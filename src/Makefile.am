@@ -1,0 +1,2 @@
+SUBDIRS = arch support core 
+
