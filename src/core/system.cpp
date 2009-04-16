@@ -24,19 +24,25 @@ void System::init ()
     config.init();
 }
 
+SchedulingGroup * createBreadthFirstPolicy();
+
 void System::start ()
 {
     int numPes = CoreSetup::getNumPEs();
 
     // if preload, TODO: allow dynamic PE creation
     pes.reserve(numPes);
-    
+
+    //TODO: remove, initialize policy dynamically
+    SchedulingGroup *sg =  createBreadthFirstPolicy();
+    //TODO: decide, single master, multiple master start
+
     // TODO: create self-worker
-    pes[0] = new SMPProcessor(0);
+    pes[0] = new SMPProcessor(0,sg);
     pes[0]->associateThisThread();
     for ( int p = 1; p < numPes ; p++ ) {
 	// TODO: create processor type based on config
-	pes[p] = new SMPProcessor(p);
+	pes[p] = new SMPProcessor(p,sg);
 	pes[p]->startWorker();
     }
 }

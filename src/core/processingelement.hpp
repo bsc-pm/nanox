@@ -20,7 +20,7 @@ public:
   // constructor
   BaseThread (ProcessingElement *creator=0) : pe(creator) {}
   // destructor
-  ~BaseThread() {}
+  virtual ~BaseThread() {}
 
 void run();
 virtual void run_dependent () = 0;
@@ -34,10 +34,14 @@ int getId() { return id; }
 
 };
 
+// forward definition
+class SchedulingGroup;
+
 class ProcessingElement {
 private:
 	int id;
 	const Architecture *architecture;
+	SchedulingGroup *schedGroup;
 
 protected:
 	virtual WorkDescriptor & getWorkerWD () const = 0;
@@ -46,8 +50,8 @@ protected:
 
 public:
 	// constructors
-	ProcessingElement(int newId,const Architecture *arch) :
-		id(newId),architecture(arch) {}
+	ProcessingElement(int newId,const Architecture *arch,SchedulingGroup *sg=0) :
+		id(newId),architecture(arch),schedGroup(sg) {}
 	// TODO: copy constructor
 	ProcessingElement(const ProcessingElement &pe);
 	// TODO: assignment operations
@@ -58,6 +62,8 @@ public:
 	/* get/put methods */
 	int getId() const { return id; }
 	const Architecture * getArchitecture () const { return architecture; }
+	SchedulingGroup * getSchedulingGroup () const { return schedGroup; }
+	void setSchedulingGroup (SchedulingGroup *sg) { schedGroup = sg; }
 
 	virtual BaseThread & startThread (WorkDescriptor &wd) = 0;
 	

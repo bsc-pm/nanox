@@ -3,12 +3,12 @@
 
 using namespace nanos;
 
-class BreadthFirstPolicy : public SchedulerPolicy {
+class BreadthFirstPolicy : public SchedulingGroup {
 private:
      Queue<WD *>   readyQueue;
 public:
      // constructor
-     BreadthFirstPolicy() : SchedulerPolicy("breadth-first-sch") {}
+     BreadthFirstPolicy() : SchedulingGroup("breadth-first-sch") {}
      // destructor
      ~BreadthFirstPolicy() {}
 
@@ -34,7 +34,7 @@ WD * BreadthFirstPolicy::atBlock (PE *pe, WD *hint) {
 }
 
 // Factory
-SchedulerPolicy * createBreadthFirstPolicy ()
+SchedulingGroup * createBreadthFirstPolicy ()
 {
     return new BreadthFirstPolicy();
 }

@@ -33,7 +33,7 @@ public:
 
     operator const volatile T& () const { return value; }
 
-    T & override () { return value; }
+    volatile T & override () { return value; }
 };
 
 template<typename T>

@@ -67,7 +67,7 @@ private:
 	const SMPProcessor & operator= (const SMPProcessor &pe);
 public:
 	// constructors
-	SMPProcessor(int id) : PE(id,&SMP) {}
+	SMPProcessor(int id, SchedulingGroup *sg=0) : PE(id,&SMP,sg) {}
 	// destructor, TODO: stop all related threads
 	~SMPProcessor() {}
 

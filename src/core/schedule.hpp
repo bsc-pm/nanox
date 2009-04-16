@@ -7,21 +7,20 @@
 
 namespace nanos {
 
-class SchedulerGroup {
-};
-
-class SchedulerPolicy {
+// Groups a number of PEs and a number of WD with a policy
+// Each PE and WD can pertain only to a SG
+class SchedulingGroup {
 private:
     std::string    name;
     // disable copy and assignment
-    SchedulerPolicy(const SchedulerPolicy &);
-    SchedulerPolicy & operator= (const SchedulerPolicy &);
+    SchedulingGroup(const SchedulingGroup &);
+    SchedulingGroup & operator= (const SchedulingGroup &);
 public:
     // constructors
-    SchedulerPolicy(std::string &policy_name) : name(policy_name) {}
-    SchedulerPolicy(const char  *policy_name) : name(policy_name) {}
+    SchedulingGroup(std::string &policy_name) : name(policy_name) {}
+    SchedulingGroup(const char  *policy_name) : name(policy_name) {}
     // destructor
-    ~SchedulerPolicy() {}
+    virtual ~SchedulingGroup() {}
 
     virtual WD *atCreation (PE *pe, WD &newWD) { return 0; }
     virtual WD *atExit     (PE *pe) { return 0; }
@@ -37,14 +36,15 @@ public:
 
 // singleton class to encapsulate scheduling data and methods
 class Scheduler {
-private:
-    static SchedulerPolicy *policy;
 public:
     static void submit (WD &wd);
     static void exit (void);
     static void blockOnCondition (volatile int *var, int condition = 0);
     static void idle (void);
 };
+
+
+typedef SchedulingGroup SG;
 
 };
 

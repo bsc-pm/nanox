@@ -1,9 +1,8 @@
 #include "workgroup.hpp"
 #include "atomic.hpp"
+#include "schedule.hpp"
 
 using namespace nanos;
-
-//TODO: use atomic updates!
 
 void WorkGroup::addWork (WorkGroup &work)
 {
@@ -26,14 +25,13 @@ void WorkGroup::sync ()
      phase_counter++;
      //TODO: block and switch
      while ( phase_counter < components );
+     //TODO: reinit phase_counter
 }
 
 void WorkGroup::waitCompletation ()
 {
-     //TODO: block and switch
-      while (components > 0 ) {
-	  
-      }
+    //TODO: remove override
+     Scheduler::blockOnCondition(&components.override(),0);
 }
 
 void WorkGroup::done ()
