@@ -90,7 +90,6 @@ public:
 	{
 	    return static_cast<T *>(data->getReference(narg));
 	}
-
 };
 
 

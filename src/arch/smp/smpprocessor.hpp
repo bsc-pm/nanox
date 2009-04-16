@@ -38,21 +38,26 @@ inline const SMPWD & SMPWD::operator= (const SMPWD &wd)
 }
 
 class SMPThread : public BaseThread {
+friend class SMPProcessor;
 private:
 	pthread_t   pth;
-	SMPWD     & work;
+	SMPWD     * work;
 	bool	    started;
 	// disable copy constructor and assignment operator
 	SMPThread(const SMPThread &th);
 	const SMPThread & operator= (const SMPThread &th);
+
+	// private constructor
+	SMPThread(PE *pe) : BaseThread(pe),work(0),started(true) {}
 public:
 	// constructor
-	SMPThread(SMPWD &w) : BaseThread(),work(w), started(false) {}
+	SMPThread(SMPWD &w, PE *pe) : BaseThread(pe),work(&w),started(false) {}
 	// destructor
 	~SMPThread() { if (started) /*TODO: stop()*/; }
 
 	// TODO: virtual?
 	void start ();
+	virtual void run_dependent (void);
 };
 
 class SMPProcessor : public PE {
@@ -68,7 +73,11 @@ public:
 
 	virtual WD & getWorkerWD () const;
 	virtual BaseThread & startThread (WorkDescriptor &wd);
+	virtual BaseThread & associateThisThread ();
 	virtual void processWork ();
+	virtual void switchTo(WD *work);
+	virtual void exitTo(WD *work);
+
 };
 
 

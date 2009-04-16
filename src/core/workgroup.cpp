@@ -31,7 +31,9 @@ void WorkGroup::sync ()
 void WorkGroup::waitCompletation ()
 {
      //TODO: block and switch
-      while (components > 0 );
+      while (components > 0 ) {
+	  
+      }
 }
 
 void WorkGroup::done ()

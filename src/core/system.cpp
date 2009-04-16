@@ -1,6 +1,7 @@
 #include "system.hpp"
 #include "coresetup.hpp"
 #include "smpprocessor.hpp"
+#include "schedule.hpp"
 
 using namespace nanos;
 
@@ -26,11 +27,13 @@ void System::init ()
 void System::start ()
 {
     int numPes = CoreSetup::getNumPEs();
+
     // if preload, TODO: allow dynamic PE creation
     pes.reserve(numPes);
+    
     // TODO: create self-worker
     pes[0] = new SMPProcessor(0);
-    //pes[0]->
+    pes[0]->associateThisThread();
     for ( int p = 1; p < numPes ; p++ ) {
 	// TODO: create processor type based on config
 	pes[p] = new SMPProcessor(p);
@@ -38,10 +41,10 @@ void System::start ()
     }
 }
 
+//TODO: remove?
 void System::submit (WD &work)
 {
-    //TODO: to wich PE?
-    pes[1]->submit(work);
+    Scheduler::submit(work);
 }
 
 //TODO: void system_description ()

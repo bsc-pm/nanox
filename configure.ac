@@ -3,7 +3,7 @@ AC_INIT([nanox], [0.01], [alex.duran@bsc.es])
 
 # Environment
 AC_CANONICAL_BUILD
-AC_CANONICAL_HOST
+AC_CANONICAL_SYSTEM
 AC_CANONICAL_TARGET
 
 # Automake initialization
@@ -11,22 +11,18 @@ AM_INIT_AUTOMAKE([-Wall -Werror dist-bzip2])
 
 # Check for programs
 AC_PROG_LIBTOOL
-
 AC_PROG_CC
-
 AC_PROG_CPP
-
 AC_PROG_CXX
-
-
-# Required flags
-#CXXFLAGS="${CXXFLAGS}"
+#AC_PROG_AS
 
 # Check for libraries
 
 # Check for header files
+AC_HEADER_STDC
 
 # Check for typedefs, structures, and compiler characteristics
+AC_C_CONST
 
 # Check for library functions
 NANOS_CONFIG_LIBS=
@@ -98,6 +94,7 @@ AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/core/Makefile
 		 src/support/Makefile
+		 src/sched/Makefile
                  src/arch/Makefile
 		 src/arch/unix-os/Makefile
 		 src/arch/smp/Makefile

@@ -1,4 +1,5 @@
 #include "smpprocessor.hpp"
+#include "schedule.hpp"
 #include "debug.hpp"
 #include <iostream>
 
@@ -6,15 +7,12 @@ namespace nanos {
 
 Architecture SMP ("SMP");
 
-void smp_run (WD *work)
+void * smp_bootthread (void *arg)
 {
-	// recover arguments
-	PE * pe = work->getValue<PE *>(0);
-
-	if (CoreSetup::getVerbose())
-		std::cerr << "Starting SMP Processor on PE: "
-			<< std::endl;
+    SMPThread *self = static_cast<SMPThread *>(arg);
+    
 #if 0
+
 TODO:
 		cpu_set_t cpu_set;
 		pid_t me = my_gettid();
@@ -27,7 +25,7 @@ TODO:
 		int i;
 		for (i = 0; i < CPU_SETSIZE; i++)
 		{
-			CPU_SET(i, &cpu_set); 
+			CPU_SET(i, &cpu_set);
 		}
 		sched_setaffinity(
 			(pid_t) me,
@@ -47,7 +45,7 @@ TODO:
 	nth_atm_add(&NTH_MYSELF->ndep, 1);
 
 	/* but not for long :) */
-	nth_block();	
+	nth_block();
 
 
 	nth_instrument_thread_end();
@@ -55,35 +53,10 @@ TODO:
 	pthread_exit(0);
 
 #endif
-	pe->processWork();
-	pthread_exit(0);
-}
 
-void SMPProcessor::processWork ()
-{
-	std::string msg;
-	
-	SimpleMessage("processing");
-	for ( ; ; ) {
-	        //TODO: scheduling
-		SMPWD * wd = static_cast<SMPWD *>(readyQueue.pop());
-		    SimpleMessage("found work");
+   self->run();
 
-		    // TODO: transform to Nth
-		    // TODO: swtichable work
-		    (wd->getWorkFct())(wd);
-
-		    // TODO: not delete work descriptor if is a parent with dependences
-		    delete wd;
-	}
-}
-
-WorkDescriptor & SMPProcessor::getWorkerWD () const
-{
-	WorkData *data = new WorkData();
-	data->setArguments(1*sizeof(void *),1,0,this);
-	SMPWD * wd = new SMPWD(smp_run,data);
-	return *wd;
+    pthread_exit (0);
 }
 
 void SMPThread::start ()
@@ -102,26 +75,68 @@ void SMPThread::start ()
       if (pthread_create(
               &pth,
               NULL,
-              (void * (*) (void *)) work.getWorkFct(),
-	      &work )
+              smp_bootthread,
+	      this )
 	 )
 	std::cerr << "couldn't create thread" << std::endl;
+}
+
+void SMPThread::run_dependent ()
+{
+    work->getWorkFct()(work);
+}
+
+void smp_run (WD *work)
+{
+	if (CoreSetup::getVerbose())
+		std::cerr << "Starting SMP Processor on PE: "
+			<< std::endl;
+
+	Scheduler::idle();
+}
+
+void SMPProcessor::switchTo ( WD *wd )
+{
+    SMPWD *swd = static_cast<SMPWD *>(wd);
+    // TODO: transform to Nth
+    // TODO: swtichable work
+    (swd->getWorkFct())(wd);
+
+    // TODO: not delete work descriptor if is a parent with pending children
+    delete wd;
+}
+
+void SMPProcessor::exitTo (WD *wd)
+{
+    switchTo(wd); //TODO: delete current
+}
+
+void SMPProcessor::processWork ()
+{
+//TODO: remove
+}
+
+WorkDescriptor & SMPProcessor::getWorkerWD () const
+{
+	SMPWD * wd = new SMPWD(smp_run,0);
+	return *wd;
 }
 
 BaseThread &SMPProcessor::startThread (WorkDescriptor &helper)
 {
 	SMPWD &wd = static_cast<SMPWD &>(helper);
-	SMPThread &th = *new SMPThread(wd);
+	SMPThread &th = *new SMPThread(wd,this);
 	th.start();
 
 	return th;
 }
 
-/*NEXT: BaseThread &SMPProcessor::associateThread ()
+BaseThread &SMPProcessor::associateThisThread ()
 {
-      SMPThread &th = *new SMPThread();
+      SMPThread &th = *new SMPThread(this);
+      associate();
       return th;
-}*/
+}
 
 
 };

@@ -1,2 +1,2 @@
-SUBDIRS = arch support core 
+SUBDIRS = arch support sched core
 

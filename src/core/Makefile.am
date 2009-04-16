@@ -13,6 +13,7 @@ nanos_ldflags=-version-info 1:0:0
 nanos_libadd=\
 	../arch/@OS@/libos.la \
 	../support/libsupport.la \
+	../sched/libsched.la \
 	@NANOS_CONFIG_LIBS@\
 	$(END)
 
@@ -21,6 +22,8 @@ nanos_sources=\
 	coresetup.cpp \
 	processingelement.hpp \
 	processingelement.cpp \
+	schedule.hpp \
+	schedule.cpp \
 	system.hpp \
 	system.cpp \
 	workgroup.hpp \
