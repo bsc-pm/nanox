@@ -19,7 +19,7 @@ private:
       void exitWork (WorkGroup &work);
 public:
       // constructors
-      WorkGroup() : components(0), phase_counter(0) {}
+      WorkGroup() : components(0), phase_counter(0) {  }
       // to do these two properly we would need to keep also the information of the components
       // TODO:copy constructor
       WorkGroup(const WorkGroup &wg);

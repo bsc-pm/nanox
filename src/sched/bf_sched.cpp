@@ -25,8 +25,10 @@ WD * BreadthFirstPolicy::atCreation (PE *pe, WD &newWD)
 
 WD * BreadthFirstPolicy::atIdle (PE *pe)
 {
+    WD *result;
     // TODO: handle teams, heterogenity, tiedness, ... probably at the generic class
-    return readyQueue.pop();
+    if (readyQueue.try_pop(result)) return result;
+    else return 0;
 }
 
 WD * BreadthFirstPolicy::atBlock (PE *pe, WD *hint) {
