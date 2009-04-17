@@ -50,3 +50,4 @@ void WorkData::setArguments( int total_size, int nrefs, int nvals, ... )
 
   va_end(vargs);
 }
+

@@ -31,3 +31,4 @@ void OS::consumeArgument (Argument &arg)
 {
 	*arg.name = 0;
 }
+

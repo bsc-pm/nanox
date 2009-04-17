@@ -40,3 +40,4 @@ inline const char * OS::getEnvironmentVariable (const std::string &name)
 
 
 #endif
+
