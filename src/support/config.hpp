@@ -16,12 +16,14 @@ public:
 	// true predicate
 	template<typename T> class CheckValue {
 	public:
+		virtual ~CheckValue() {}
 		virtual bool operator() (const T &value) const { return true; };
 	};
 
 	// isPositive predicate
 	template<typename T> class isPositive : public CheckValue<T> {
 	public:
+		virtual ~isPositive() {}
 		virtual bool operator() (const T &value) const { return value > 0; }
 	};
 
