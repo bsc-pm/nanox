@@ -71,3 +71,4 @@ template<typename T> bool Queue<T>::try_pop (T& result)
 };
 
 #endif
+

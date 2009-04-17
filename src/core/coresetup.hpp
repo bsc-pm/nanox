@@ -33,3 +33,4 @@ static bool getVerbose () { return verbose; }
 };
 
 #endif
+
