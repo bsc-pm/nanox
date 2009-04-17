@@ -69,7 +69,7 @@ public:
 	// constructors
 	SMPProcessor(int id, SchedulingGroup *sg=0) : PE(id,&SMP,sg) {}
 	// destructor, TODO: stop all related threads
-	~SMPProcessor() {}
+	virtual ~SMPProcessor() {}
 
 	virtual WD & getWorkerWD () const;
 	virtual BaseThread & startThread (WorkDescriptor &wd);

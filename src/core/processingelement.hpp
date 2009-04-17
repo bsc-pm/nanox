@@ -57,7 +57,7 @@ public:
 	// TODO: assignment operations
 	const ProcessingElement & operator= (const ProcessingElement &pe);
 	// destructor
-	~ProcessingElement() {}
+	virtual ~ProcessingElement() {}
 
 	/* get/put methods */
 	int getId() const { return id; }
