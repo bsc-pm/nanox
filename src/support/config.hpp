@@ -3,7 +3,7 @@
 
 #include <stdexcept>
 #include <vector>
-#include <unordered_map>
+#include "compatibility.hpp"
 #include <memory>
 #include <sstream>
 
@@ -107,12 +107,12 @@ public:
 	typedef class VarOption<int> 				IntegerVar;
 	typedef class VarOption<bool> 				BoolVar;
 	typedef class VarOption<std::string> 			StringVar;
-	typedef class VarOption<int,isPositive<int>> 		PositiveVar;
+	typedef class VarOption<int,isPositive<int> > 		PositiveVar;
 
 	typedef class ActionOption<int> 			IntegerAction;
 	typedef class ActionOption<bool> 			BoolAction;
 	typedef class ActionOption<std::string> 		StringAction;
-	typedef class ActionOption<int,isPositive<int>> 	PositiveAction;
+	typedef class ActionOption<int,isPositive<int> > 	PositiveAction;
 
 	template<typename T> class MapAction : public Option {
 	public:
@@ -183,7 +183,7 @@ public:
 		virtual FlagOption * clone () { return new FlagOption(*this); };
 	};
 
-	typedef std::unordered_map<std::string, Option *> OptionMap;
+	typedef TR1::unordered_map<std::string, Option *> OptionMap;
 	typedef std::vector<Option *> OptionList;
 private:
 	OptionList envOptions;

@@ -9,6 +9,7 @@ common_includes= \
 	$(END)
 
 common_cflags= -Wall -Werror
-common_cxxflags= -Wall -Werror -std=c++0x
+#common_cxxflags= -Wall -Werror -std=c++0x
+common_cxxflags= -Wall -Werror
 performance_cflags=-O3
 
