@@ -7,5 +7,7 @@ libsmp_la_CXXFLAGS=$(common_includes) $(common_cxxflags)
 libsmp_la_SOURCES = \
 		smpprocessor.hpp \
 		smpprocessor.cpp \
+		@SMP_ARCH@/stack.cpp \
+		@SMP_ARCH@/stack.s \
 		$(END)
 

@@ -27,6 +27,8 @@ void Scheduler::exit (void)
   if (next) {
       pe->exitTo(next);
   }
+
+  //TODO: fatal error
 }
 
 void Scheduler::blockOnCondition (volatile int *var, int condition)
@@ -52,4 +54,10 @@ void Scheduler::idle ()
 	      if (next) pe->switchTo(next);
 	    }
       }
+}
+
+void Scheduler::queue (WD &wd)
+{
+    PE *pe=myPE;
+    pe->getSchedulingGroup()->queue(pe,wd);
 }

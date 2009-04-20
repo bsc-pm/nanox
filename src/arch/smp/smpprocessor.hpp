@@ -6,6 +6,10 @@
 
 //TODO: Make smp independent from pthreads? move it to OS?
 
+extern "C" {
+void switchStacks(void *,void *,void *,void *);
+}
+
 namespace nanos {
 
 extern Architecture SMP;
@@ -16,10 +20,15 @@ public:
 
 private:	
 	work_fct	work;
+	intptr_t *	stack;
+	intptr_t *	state;
+	int		stackSize; //TODO: configurable stack size
 
+	void initStackDep (void *userf, void *cleanup);
 public:
 	// constructors
-	SMPWD(work_fct w, WorkData *data=0) : SimpleWD(&SMP,data),work(w) {};
+	SMPWD(work_fct w, WorkData *data=0) : SimpleWD(&SMP,data),work(w),stack(0),state(0),stackSize(1024) {}
+	SMPWD() : SimpleWD(&SMP,0),work(0),stack(0),state(0),stackSize(1024) {}
 	// copy constructors
 	SMPWD(const SMPWD &wd) : SimpleWD(wd), work(wd.work) {}
 	// assignment operator
@@ -28,6 +37,13 @@ public:
 	virtual ~SMPWD() {}
 
 	work_fct getWorkFct() const { return work; }
+
+	bool hasStack() { return state != NULL; }
+	void allocateStack();
+	void initStack();
+	
+	intptr_t *getState() const { return state; }
+	void setState (intptr_t * newState) { state = newState; }
 };
 
 inline const SMPWD & SMPWD::operator= (const SMPWD &wd)

@@ -71,7 +71,7 @@ public:
 	// TODO: assignment operator
 	const WorkDescriptor & operator= (const WorkDescriptor &wd);
 	// destructor
-	~WorkDescriptor() {}
+	virtual ~WorkDescriptor() {}
 	
 	virtual bool canRunIn(ProcessingElement &pe) = 0;
 

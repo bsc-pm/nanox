@@ -14,7 +14,7 @@ AC_PROG_LIBTOOL
 AC_PROG_CC
 AC_PROG_CPP
 AC_PROG_CXX
-#AC_PROG_AS
+AM_PROG_AS
 
 # Check for libraries
 
@@ -41,7 +41,7 @@ case $host in
   i?86-*-linux-gnu)
     OS=unix-os
     ARCHITECTURES+=smp
-    SMP_ARCH=i386
+    SMP_ARCH=x86
     ;;
   x86_64-*-linux-gnu)
     OS=unix-os

@@ -19,12 +19,6 @@ void ProcessingElement::startWorker ()
 	startThread(master);
 }
 
-void ProcessingElement::submit (WD &work)
-{
-        readyQueue.push(&work);
-	SimpleMessage("work added");
-}
-
 void ProcessingElement::associate ()
 {
         myPE = this;

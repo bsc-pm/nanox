@@ -14,12 +14,17 @@ public:
 
      virtual WD *atCreation (PE *pe, WD &newWD);
      virtual WD *atIdle (PE *pe);
-     virtual WD *atBlock (PE *pe, WD *hint=0);
+     virtual void queue (PE *pe, WD &wd);
 };
+
+void BreadthFirstPolicy::queue (PE *pe, WD &wd)
+{
+    readyQueue.push(&wd);
+}
 
 WD * BreadthFirstPolicy::atCreation (PE *pe, WD &newWD)
 {
-    readyQueue.push(&newWD);
+    queue(pe,newWD);
     return 0;
 }
 
@@ -29,10 +34,6 @@ WD * BreadthFirstPolicy::atIdle (PE *pe)
     // TODO: handle teams, heterogenity, tiedness, ... probably at the generic class
     if (readyQueue.try_pop(result)) return result;
     else return 0;
-}
-
-WD * BreadthFirstPolicy::atBlock (PE *pe, WD *hint) {
-    return atIdle(pe);
 }
 
 // Factory

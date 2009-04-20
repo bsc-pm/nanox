@@ -23,11 +23,12 @@ public:
     virtual ~SchedulingGroup() {}
 
     virtual WD *atCreation (PE *pe, WD &newWD) { return 0; }
-    virtual WD *atExit     (PE *pe) { return 0; }
-    virtual WD *atIdle     (PE *pe) { return 0; }
-    virtual WD *atBlock    (PE *pe, WD *hint=0) { return 0; }
+    virtual WD *atIdle     (PE *pe) = 0;
+    virtual WD *atExit     (PE *pe) { return atIdle(pe); }
+    virtual WD *atBlock    (PE *pe, WD *hint=0) { return atIdle(pe); }
     virtual WD *atWakeUp   (PE *pe, WD &wd) { return 0; }
 
+    virtual void queue (PE *pe,WD &wd)  = 0;
 // 	void (*enqueue_desc) (nth_desc_t *desc);
 // 	void (*parse_option) (char *opt, char *value);
 // 	int  (*num_ready) (void);
@@ -41,6 +42,7 @@ public:
     static void exit (void);
     static void blockOnCondition (volatile int *var, int condition = 0);
     static void idle (void);
+    static void queue (WD &wd);
 };
 
 

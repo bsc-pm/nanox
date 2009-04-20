@@ -83,6 +83,7 @@ void SMPThread::start ()
 
 void SMPThread::run_dependent ()
 {
+    myPE->setCurrentWD(work);
     work->getWorkFct()(work);
 }
 
@@ -92,7 +93,31 @@ void smp_run (WD *work)
 		std::cerr << "Starting SMP Processor on PE: "
 			<< std::endl;
 
+	
 	Scheduler::idle();
+}
+
+void SMPWD::allocateStack ()
+{
+    stack = new intptr_t[stackSize];
+}
+
+void SMPWD::initStack ()
+{
+    if (!hasStack()) {
+	allocateStack();
+    }
+
+    initStackDep((void *)getWorkFct(),(void *)Scheduler::exit);
+}
+
+// This is executed in between switching stacks
+static void switchHelper ( intptr_t *oldState, SMPWD *oldWD, SMPWD *newWD )
+{
+    SimpleMessage("enqueueing task");
+    oldWD->setState(oldState);
+    Scheduler::queue(*oldWD);
+    myPE->setCurrentWD(newWD);
 }
 
 void SMPProcessor::switchTo ( WD *wd )
@@ -100,15 +125,48 @@ void SMPProcessor::switchTo ( WD *wd )
     SMPWD *swd = static_cast<SMPWD *>(wd);
     // TODO: transform to Nth
     // TODO: swtichable work
-    (swd->getWorkFct())(wd);
 
-    // TODO: not delete work descriptor if is a parent with pending children
+#if 1
+    if (!swd->hasStack()) {
+	swd->initStack();
+    }
+
+    ::switchStacks((void *) switchHelper,
+ 		   (void *) currentWD,
+ 		   (void *) swd,
+ 		   (void *) swd->getState());
+
+#else    
+    (swd->getWorkFct())(wd);
+     // TODO: not delete work descriptor if is a parent with pending children
     delete wd;
+#endif
+
+}
+
+static void exitHelper ( intptr_t *oldState, SMPWD *oldWD, SMPWD *newWD )
+{
+    SimpleMessage("exiting task helper");
+    //delete oldWD;
+    oldWD->done();
+    myPE->setCurrentWD(newWD);
 }
 
 void SMPProcessor::exitTo (WD *wd)
 {
-    switchTo(wd); //TODO: delete current
+    SMPWD *swd = static_cast<SMPWD *>(wd);
+
+    SimpleMessage("exiting task");
+    // TODO: reuse stack
+
+    if (!swd->hasStack()) {
+	swd->initStack();
+    }
+
+    ::switchStacks((void *) exitHelper,
+ 		   (void *) currentWD,
+ 		   (void *) swd,
+ 		   (void *) swd->getState());    
 }
 
 void SMPProcessor::processWork ()
@@ -133,8 +191,10 @@ BaseThread &SMPProcessor::startThread (WorkDescriptor &helper)
 
 BaseThread &SMPProcessor::associateThisThread ()
 {
-      SMPThread &th = *new SMPThread(this);
+      SMPWD *wd = new SMPWD();
+      SMPThread &th = *new SMPThread(*wd,this);
       associate();
+      setCurrentWD(wd);
       return th;
 }
 

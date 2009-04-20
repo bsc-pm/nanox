@@ -6,6 +6,7 @@
 
 namespace nanos {
 
+//TODO: some things should be moved from PE to here...
 //TODO: define BaseThread interface
 class BaseThread {
 private:
@@ -45,13 +46,12 @@ private:
 
 protected:
 	virtual WorkDescriptor & getWorkerWD () const = 0;
-	//TODO: priority queue? move to scheduling groups
-	Queue<WD *>	readyQueue;
+	WD *    currentWD;
 
 public:
 	// constructors
 	ProcessingElement(int newId,const Architecture *arch,SchedulingGroup *sg=0) :
-		id(newId),architecture(arch),schedGroup(sg) {}
+		id(newId),architecture(arch),schedGroup(sg),currentWD(0) {}
 	// TODO: copy constructor
 	ProcessingElement(const ProcessingElement &pe);
 	// TODO: assignment operations
@@ -73,8 +73,9 @@ public:
 	// initializes thread-private data. Must be invoked from the thread code
 	void associate();
 
+	void setCurrentWD (WD *current) { currentWD = current; }
+
 	void startWorker();
-	void submit(WD &work);
 
 	virtual void switchTo(WD *work) = 0;
 	virtual void exitTo(WD *work) = 0;
