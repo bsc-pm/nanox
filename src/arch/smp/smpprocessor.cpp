@@ -87,16 +87,6 @@ void SMPThread::run_dependent ()
     work->getWorkFct()(work);
 }
 
-void smp_run (WD *work)
-{
-	if (CoreSetup::getVerbose())
-		std::cerr << "Starting SMP Processor on PE: "
-			<< std::endl;
-
-	
-	Scheduler::idle();
-}
-
 void SMPWD::allocateStack ()
 {
     stack = new intptr_t[stackSize];
@@ -147,8 +137,7 @@ void SMPProcessor::switchTo ( WD *wd )
 static void exitHelper ( intptr_t *oldState, SMPWD *oldWD, SMPWD *newWD )
 {
     SimpleMessage("exiting task helper");
-    //delete oldWD;
-    oldWD->done();
+    delete oldWD;
     myPE->setCurrentWD(newWD);
 }
 
@@ -176,7 +165,7 @@ void SMPProcessor::processWork ()
 
 WorkDescriptor & SMPProcessor::getWorkerWD () const
 {
-	SMPWD * wd = new SMPWD(smp_run,0);
+	SMPWD * wd = new SMPWD((SMPWD::work_fct)Scheduler::idle,0);
 	return *wd;
 }
 
