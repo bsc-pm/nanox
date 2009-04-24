@@ -61,3 +61,24 @@ void Scheduler::queue (WD &wd)
     PE *pe=myPE;
     pe->getSchedulingGroup()->queue(pe,wd);
 }
+
+void SchedulingGroup::init (int groupSize)
+{
+    size = 0;
+    group.reserve(groupSize);
+}
+
+void SchedulingGroup::addMember (PE &pe)
+{
+    SchedulingData *data = createMemberData(pe);
+
+    data->setSchId(size);    
+    pe.setSchedulingGroup(this,data);
+
+    group[size++] = data;
+}
+
+void SchedulingGroup::removeMember (PE &pe)
+{
+//TODO
+}

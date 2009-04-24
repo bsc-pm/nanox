@@ -1,5 +1,6 @@
 #include "processingelement.hpp"
 #include "debug.hpp"
+#include "schedule.hpp"
 
 using namespace nanos;
 
@@ -12,10 +13,16 @@ void BaseThread::run ()
     run_dependent();
 }
 
+ProcessingElement::ProcessingElement (int newId,const Architecture *arch,SchedulingGroup *sg) 
+ : id(newId),architecture(arch),currentWD(0)
+{
+      if (sg) sg->addMember(*this);
+}
 
 void ProcessingElement::startWorker ()
 {
 	WD & master = getWorkerWD();
+	master.tieTo(*this);
 	startThread(master);
 }
 

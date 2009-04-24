@@ -35,14 +35,16 @@ int getId() { return id; }
 
 };
 
-// forward definition
+// forward definitions
 class SchedulingGroup;
+class SchedulingData;
 
 class ProcessingElement {
 private:
 	int id;
 	const Architecture *architecture;
 	SchedulingGroup *schedGroup;
+	SchedulingData  *schedData;
 
 protected:
 	virtual WorkDescriptor & getWorkerWD () const = 0;
@@ -50,8 +52,7 @@ protected:
 
 public:
 	// constructors
-	ProcessingElement(int newId,const Architecture *arch,SchedulingGroup *sg=0) :
-		id(newId),architecture(arch),schedGroup(sg),currentWD(0) {}
+	ProcessingElement(int newId,const Architecture *arch,SchedulingGroup *sg=0);
 	// TODO: copy constructor
 	ProcessingElement(const ProcessingElement &pe);
 	// TODO: assignment operations
@@ -63,7 +64,9 @@ public:
 	int getId() const { return id; }
 	const Architecture * getArchitecture () const { return architecture; }
 	SchedulingGroup * getSchedulingGroup () const { return schedGroup; }
-	void setSchedulingGroup (SchedulingGroup *sg) { schedGroup = sg; }
+	SchedulingData * getSchedulingData () const { return schedData; }
+	void setSchedulingGroup (SchedulingGroup *sg, SchedulingData *sd)
+	    { schedGroup = sg; schedData = sd; }
 
 	virtual BaseThread & startThread (WorkDescriptor &wd) = 0;
 	

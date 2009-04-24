@@ -61,6 +61,8 @@ public:
 class WorkDescriptor : public WorkGroup {
 private:
 	WorkData *data;
+	bool	  tie;
+	ProcessingElement *  tie_to;
 protected:
 	WorkData * getData () const { return data; }
 public:
@@ -72,6 +74,12 @@ public:
 	const WorkDescriptor & operator= (const WorkDescriptor &wd);
 	// destructor
 	virtual ~WorkDescriptor() {}
+
+	/* named arguments idiom */
+	WorkDescriptor & tied () { tie = true; return *this; }
+	WorkDescriptor & tieTo (ProcessingElement &pe) { tie_to = &pe; return *this; }
+
+	bool isTied() { return tie_to != NULL; }
 	
 	virtual bool canRunIn(ProcessingElement &pe) = 0;
 

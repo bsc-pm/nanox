@@ -38,6 +38,7 @@ libnanox_la_CXXFLAGS=$(nanos_cxxflags)
 libnanox_la_LDFLAGS=$(nanos_ldflags) 
 libnanox_la_LIBADD=$(nanos_libadd)
 libnanox_la_SOURCES=$(nanos_sources)
+libnanox_la_DEPENDENCIES=$(nanos_libadd)
 
 # Performance
 libnanox_pfm_la_CFLAGS=$(nanos_cflags) $(performance_cflags)
@@ -45,3 +46,4 @@ libnanox_pfm_la_CXXFLAGS=$(nanos_cxxflags) $(performance_cflags)
 libnanox_pfm_la_LDFLAGS=$(nanos_ldflags) $(nanos_libadd)
 libnanox_pfm_la_LIBADD=$(nanos_libadd)
 libnanox_pfm_la_SOURCES=$(nanos_sources)
+libnanox_pfm_la_DEPENDENCIES=$(nanos_libadd)

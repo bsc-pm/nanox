@@ -18,6 +18,9 @@ inline void SimpleMessage (const std::string &msg)
     if (CoreSetup::getVerbose()) std::cerr << msg << std::endl;
 }
 
+#define verbose(msg) \
+    if (CoreSetup::getVerbose()) std::cerr << "[" << myPE->getId() << "]" << msg << std::endl;
+
 
 };
 
