@@ -5,14 +5,14 @@ using namespace nanos;
 
 void OS::getProgramArguments (ArgumentList &list)
 {
-	int *p;
+	long *p;
 	int i;
 
 	int argc;
 	char **argv;
 
 	// variables are before environment
-	p=(int *)environ;
+	p=(long *)environ;
 
 	// go backwards until we find argc
 	p--;
