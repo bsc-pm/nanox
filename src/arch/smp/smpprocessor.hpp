@@ -78,6 +78,9 @@ public:
 
 class SMPProcessor : public PE {
 private:
+       // config variables
+       static bool useUserThreads;
+
 	// disable copy constructor and assignment operator
 	SMPProcessor(const SMPProcessor &pe);
 	const SMPProcessor & operator= (const SMPProcessor &pe);
@@ -93,6 +96,8 @@ public:
 	virtual void processWork ();
 	virtual void switchTo(WD *work);
 	virtual void exitTo(WD *work);
+
+	static void prepareConfig (Config &config);
 
 };
 

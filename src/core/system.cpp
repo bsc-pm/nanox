@@ -10,6 +10,7 @@ System nanos::sys;
 System::System ()
 {
   CoreSetup::prepareConfig(config);
+  SMPProcessor::prepareConfig(config);
 
   init();
   start();

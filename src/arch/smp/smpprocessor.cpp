@@ -7,6 +7,13 @@ namespace nanos {
 
 Architecture SMP ("SMP");
 
+bool SMPProcessor::useUserThreads = true;
+
+void SMPProcessor::prepareConfig (Config &config)
+{
+	config.registerArgOption(new Config::FlagOption("nth-no-ut",useUserThreads,false));
+}
+
 void * smp_bootthread (void *arg)
 {
     SMPThread *self = static_cast<SMPThread *>(arg);
@@ -116,22 +123,20 @@ void SMPProcessor::switchTo ( WD *wd )
     // TODO: transform to Nth
     // TODO: swtichable work
 
-#if 1
-    if (!swd->hasStack()) {
-	swd->initStack();
-    }
+   if ( useUserThreads ) {
+      if (!swd->hasStack()) {
+	  swd->initStack();
+      }
 
-    ::switchStacks((void *) switchHelper,
+      ::switchStacks((void *) switchHelper,
  		   (void *) currentWD,
  		   (void *) swd,
  		   (void *) swd->getState());
-
-#else    
-    (swd->getWorkFct())(wd);
-     // TODO: not delete work descriptor if is a parent with pending children
-    delete wd;
-#endif
-
+   } else {
+      (swd->getWorkFct())(wd);
+      // TODO: not delete work descriptor if is a parent with pending children
+      delete wd;
+   }
 }
 
 static void exitHelper ( intptr_t *oldState, SMPWD *oldWD, SMPWD *newWD )

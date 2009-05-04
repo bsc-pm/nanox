@@ -167,16 +167,17 @@ public:
 	class FlagOption : public Option {
 	private:
 		bool &var;
+		bool  setTo;
 		// assigment operator
 		const FlagOption & operator= (const FlagOption &opt);
 	public:
 		// constructors
-		FlagOption ( const std::string &name, bool &ref ) :
-		 Option(name,Option::FLAG),var(ref) {}
-		FlagOption ( const char *name, bool &ref ) :
-		 Option(name,Option::FLAG),var(ref) {}
+		FlagOption ( const std::string &name, bool &ref, bool value=true ) :
+		 Option(name,Option::FLAG),var(ref),setTo(value) {}
+		FlagOption ( const char *name, bool &ref, bool value=true ) :
+		 Option(name,Option::FLAG),var(ref),setTo(value) {}
 		// copy constructors
-		FlagOption( const FlagOption &opt) : Option(opt), var(opt.var) {}
+		FlagOption( const FlagOption &opt) : Option(opt), var(opt.var), setTo(opt.setTo) {}
 		// destructor
 		virtual ~FlagOption() {}
 		virtual void parse ( const char *value );
@@ -286,7 +287,7 @@ inline void Config::FlagOption::parse ( const char *value )
 	if (value)
 	  throw InvalidOptionException(*this,value);
 
-	var = true;
+	var = setTo;
 }
 
 
