@@ -48,6 +48,11 @@ case $host in
     ARCHITECTURES+=smp
     SMP_ARCH=amd64
     ;;
+  ia64-*-linux)
+    OS=unix-os
+    ARCHITECTURES+=smp
+    SMP_ARCH=ia64
+    ;;
   *)
     AC_MSG_ERROR([unsupported architecture $host])
   ;;

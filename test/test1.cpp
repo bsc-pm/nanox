@@ -52,6 +52,7 @@ int main (int argc, char **argv)
 
 	cout << "PEs = " << CoreSetup::getNumPEs() << endl;
 	cout << "Mode = " << CoreSetup::getExecutionMode() << endl;
+	cout << "Verbose = " << CoreSetup::getVerbose() << endl;
 
 //  	for ( int i = 0; i < CoreSetup::getNumPEs(); i++ ) {
 //  		PE &pe = System.selectPE(i);

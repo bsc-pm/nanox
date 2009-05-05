@@ -7,6 +7,7 @@
 //TODO: Make smp independent from pthreads? move it to OS?
 
 extern "C" {
+// low-level routine to switch stacks
 void switchStacks(void *,void *,void *,void *);
 }
 
