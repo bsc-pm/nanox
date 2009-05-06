@@ -8,13 +8,15 @@ __thread ProcessingElement *nanos::myPE=0;
 
 void BaseThread::run ()
 {
+    started=true;
+    
     if (pe) pe->associate();
     
     run_dependent();
 }
 
 ProcessingElement::ProcessingElement (int newId,const Architecture *arch,SchedulingGroup *sg) 
- : id(newId),architecture(arch),currentWD(0)
+ : id(newId),architecture(arch),currentWD(0),workerThread(0)
 {
       if (sg) sg->addMember(*this);
 }
@@ -31,3 +33,8 @@ void ProcessingElement::associate ()
         myPE = this;
 }
 
+void ProcessingElement::stopAll ()
+{
+       workerThread->stop();
+       workerThread->join();
+}

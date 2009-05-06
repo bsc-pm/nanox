@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <ext/functional>
 #include <functional>
+#include "debug.hpp"
 
 using namespace nanos;
 

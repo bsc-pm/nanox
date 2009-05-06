@@ -28,7 +28,7 @@ private:
 	void initStackDep (void *userf, void *cleanup);
 public:
 	// constructors
-	SMPWD(work_fct w, WorkData *data=0) : SimpleWD(&SMP,data),work(w),stack(0),state(0),stackSize(1024*1024) {}
+	SMPWD(work_fct w, WorkData *data=0) : SimpleWD(&SMP,data),work(w),stack(0),state(0),stackSize(1024) {}
 	SMPWD() : SimpleWD(&SMP,0),work(0),stack(0),state(0),stackSize(1024) {}
 	// copy constructors
 	SMPWD(const SMPWD &wd) : SimpleWD(wd), work(wd.work) {}
@@ -72,8 +72,8 @@ public:
 	// destructor
 	~SMPThread() { if (started) /*TODO: stop()*/; }
 
-	// TODO: virtual?
-	void start ();
+	virtual void start();
+	virtual void join();
 	virtual void run_dependent (void);
 };
 

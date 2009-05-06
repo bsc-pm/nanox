@@ -16,10 +16,6 @@ System::System ()
   start();
 }
 
-System::~System ()
-{
-}
-
 void System::init ()
 {
     config.init();
@@ -46,6 +42,27 @@ void System::start ()
 	pes[p] = new SMPProcessor(p,sg);
 	pes[p]->startWorker();
     }
+}
+
+System::~System ()
+{
+   verbose("NANOS++ shutting down.... init");
+
+   verbose("Wait for main workgroup to complete");
+   myPE->getCurrentWD()->waitCompletation();
+
+   verbose("Joining threads");
+   int numPes = CoreSetup::getNumPEs();
+   // signal stop PEs
+   for ( int p = 1; p < numPes ; p++ ) {
+      pes[p]->stopAll();
+   }
+
+   // join
+   for ( int p = 1; p < numPes ; p++ ) {
+      delete pes[p];
+   }
+   verbose("NANOS++ shutting down.... end");
 }
 
 //TODO: remove?

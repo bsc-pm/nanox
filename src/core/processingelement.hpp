@@ -10,29 +10,34 @@ namespace nanos {
 //TODO: define BaseThread interface
 class BaseThread {
 private:
-int id;
-bool started;
-ProcessingElement *pe;
+  int id;
+  bool started;
+  bool mustStop;
+  ProcessingElement *pe;
 
 //disable copy and assigment
   BaseThread(const BaseThread &);
   const BaseThread operator= (const BaseThread &);
+
+  virtual void run_dependent () = 0;
+  
 public:
   // constructor
-  BaseThread (ProcessingElement *creator=0) : pe(creator) {}
+  BaseThread (ProcessingElement *creator=0) : started(false), mustStop(false), pe(creator) {}
   // destructor
   virtual ~BaseThread() {}
 
-void run();
-virtual void run_dependent () = 0;
+  virtual void start () = 0;
+  void run();
+  void stop() { mustStop = true; }
+  virtual void join() = 0;
+
+  bool isRunning () const { return started && !mustStop; }
+
 //TODO:
-// void start();
 // void pause();
 // void resume();
-// void stop();
-
-int getId() { return id; }
-
+  int getId() { return id; }
 };
 
 // forward definitions
@@ -46,9 +51,11 @@ private:
 	SchedulingGroup *schedGroup;
 	SchedulingData  *schedData;
 
+
 protected:
 	virtual WorkDescriptor & getWorkerWD () const = 0;
 	WD *    currentWD;
+	BaseThread *workerThread;
 
 public:
 	// constructors
@@ -77,8 +84,13 @@ public:
 	void associate();
 
 	void setCurrentWD (WD *current) { currentWD = current; }
+	WD * getCurrentWD () const { return currentWD; }
 
 	void startWorker();
+	void stopAll();
+
+	//TODO: move to BaseThread
+	bool isRunning() { return workerThread->isRunning(); }
 
 	virtual void switchTo(WD *work) = 0;
 	virtual void exitTo(WD *work) = 0;

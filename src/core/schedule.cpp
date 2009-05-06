@@ -40,6 +40,8 @@ void Scheduler::blockOnCondition (volatile int *var, int condition)
 		  WD *next = pe->getSchedulingGroup()->atBlock(pe);
 		  if (next) pe->switchTo(next);
 		  // TODO: implement sleeping
+
+		  verbose("waiting for " << (void *)var << " to reach " << condition << " current=" << *var);
 	    }
 	}
 }
@@ -48,12 +50,14 @@ void Scheduler::idle ()
 {
       PE *pe = myPE;
 
-      for ( ; ; ) {
+     while ( pe->isRunning() ) {
 	    if ( pe->getSchedulingGroup() ) {
 	      WD *next = pe->getSchedulingGroup()->atIdle(pe);
 	      if (next) pe->switchTo(next);
 	    }
       }
+
+      verbose("Working thread finishing");
 }
 
 void Scheduler::queue (WD &wd)

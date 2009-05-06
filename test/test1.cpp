@@ -9,7 +9,7 @@ using namespace std;
 using namespace nanos;
 
 int a = 1234;
-std::string b = "default";
+std::string b("default");
 bool c = false;
 
 class OMPModule {
@@ -75,13 +75,12 @@ int main (int argc, char **argv)
 	data->setArguments(20,1,1,2,5,a);
 	SMPWD * wd2 = new SMPWD(hello_world,data);
 
-	WG *wg = new WG();
+	WG *wg = myPE->getCurrentWD();
 	wd2->addWork(*wd);
 	wg->addWork(*wd2);
 	sys.submit(*wd);
 	sys.submit(*wd2);
 	usleep(500);
-	wg->waitCompletation();
 	
 	cout << "end" << endl;
 }

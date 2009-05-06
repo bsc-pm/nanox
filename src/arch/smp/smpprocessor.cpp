@@ -94,6 +94,11 @@ void SMPThread::run_dependent ()
     work->getWorkFct()(work);
 }
 
+void SMPThread::join ()
+{
+    pthread_join(pth,NULL);
+}
+
 void SMPWD::allocateStack ()
 {
     stack = new intptr_t[stackSize];
@@ -177,6 +182,9 @@ BaseThread &SMPProcessor::startThread (WorkDescriptor &helper)
 {
 	SMPWD &wd = static_cast<SMPWD &>(helper);
 	SMPThread &th = *new SMPThread(wd,this);
+	// TODO: generalize
+	workerThread = &th;
+
 	th.start();
 
 	return th;
