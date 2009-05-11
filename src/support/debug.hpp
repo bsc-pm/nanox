@@ -2,28 +2,42 @@
 #define _NANOS_LIB_DEBUG
 
 #include "coresetup.hpp"
+#include "xstring.hpp"
 #include <iostream>
-#include <string>
-#include "assert.h"
 
 namespace nanos {
 
-inline void SimpleMessage (const char *msg) 
-{
-    if (CoreSetup::getVerbose()) std::cerr << msg << std::endl;
-}
+//TODO: Improve information carried in Exceptions
 
-inline void SimpleMessage (const std::string &msg)
-{
-    if (CoreSetup::getVerbose()) std::cerr << msg << std::endl;
-}
+class FatalError : public  std::runtime_error {
+public:
+	FatalError (const std::string &value, int peId=-1) :
+		runtime_error( std::string("FATAL ERROR: [") + toString<int>(peId) + "] " + value )
+		    {}
+
+};
+
+class FailedAssertion : public  std::runtime_error {
+public:
+	FailedAssertion (const std::string &value, int peId=-1) :
+		runtime_error( std::string("ASSERT failed: [")+ toString<int>(peId) + "] " + value )
+		    {}
+
+};
+
+#define fatal(msg)  throw FatalError(msg,myPE->getId());
+#define fatal0(msg)  throw FatalError(msg);
+
+#define ensure(cond) if ( !(cond) ) throw FailedAssertion(#cond, myPE->getId());
+#define ensure0(cond) if ( !(cond) ) throw FailedAssertion(#cond);
+
+#define warning(msg) { std::cerr << "WARNING: [" << myPE->getId() << "]" << msg << std::endl; }
+#define warning0(msg) { std::cerr << "WARNING: [?]" << msg << std::endl; }
 
 #define verbose(msg) \
     if (CoreSetup::getVerbose()) std::cerr << "[" << myPE->getId() << "]" << msg << std::endl;
-
 #define verbose0(msg) \
-    if (CoreSetup::getVerbose()) std::cerr << "[0]" << msg << std::endl;
-
+    if (CoreSetup::getVerbose()) std::cerr << "[?]" << msg << std::endl;
 
 };
 

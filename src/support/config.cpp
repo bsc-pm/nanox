@@ -4,7 +4,6 @@
 #include "config.hpp"
 #include "os.hpp"
 #include <string.h>
-#include <assert.h>
 #include <stdlib.h>
 #include <algorithm>
 #include <ext/functional>
