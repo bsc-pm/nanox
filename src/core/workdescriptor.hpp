@@ -67,7 +67,7 @@ protected:
 	WorkData * getData () const { return data; }
 public:
 	// constructors
-	WorkDescriptor(WorkData *wdata=0) : WorkGroup(), data(wdata) {}
+	WorkDescriptor(WorkData *wdata=0) : WorkGroup(), data(wdata), tie(false), tie_to(0) {}
 	// TODO: copy constructor
 	WorkDescriptor(const WorkDescriptor &wd);
 	// TODO: assignment operator
@@ -77,7 +77,7 @@ public:
 
 	/* named arguments idiom */
 	WorkDescriptor & tied () { tie = true; return *this; }
-	WorkDescriptor & tieTo (ProcessingElement &pe) { tie_to = &pe; return *this; }
+	WorkDescriptor & tieTo (ProcessingElement &pe) { tie_to = &pe; tie=false; return *this; }
 
 	bool isTied() { return tie_to != NULL; }
 	
