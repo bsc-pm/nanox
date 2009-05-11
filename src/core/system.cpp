@@ -9,9 +9,10 @@ System nanos::sys;
 
 System::System ()
 {
+
   CoreSetup::prepareConfig(config);
   SMPProcessor::prepareConfig(config);
-
+  
   init();
   start();
 }
@@ -28,19 +29,23 @@ void System::start ()
     int numPes = CoreSetup::getNumPEs();
 
     // if preload, TODO: allow dynamic PE creation
-    pes.reserve(numPes);
+
+    // Reserve seems to make it crash at exit :?
+    //pes.reserve(numPes);
 
     //TODO: remove, initialize policy dynamically
-    SchedulingGroup *sg =  createBreadthFirstPolicy();
+    SchedulingGroup *sg = createBreadthFirstPolicy();
     //TODO: decide, single master, multiple master start
 
-    // TODO: create self-worker
-    pes[0] = new SMPProcessor(0,sg);
-    pes[0]->associateThisThread();
+    PE *pe = new SMPProcessor(0,sg);
+    pes.push_back(pe);
+    pe->associateThisThread();
+
     for ( int p = 1; p < numPes ; p++ ) {
 	// TODO: create processor type based on config
-	pes[p] = new SMPProcessor(p,sg);
-	pes[p]->startWorker();
+	pe = new SMPProcessor(p,sg);
+ 	pes.push_back(pe);
+ 	pe->startWorker();
     }
 }
 
@@ -52,14 +57,13 @@ System::~System ()
    myPE->getCurrentWD()->waitCompletation();
 
    verbose("Joining threads");
-   int numPes = CoreSetup::getNumPEs();
    // signal stop PEs
-   for ( int p = 1; p < numPes ; p++ ) {
+   for ( unsigned p = 1; p < pes.size() ; p++ ) {
       pes[p]->stopAll();
    }
 
    // join
-   for ( int p = 1; p < numPes ; p++ ) {
+   for ( unsigned p = 1; p < pes.size() ; p++ ) {
       delete pes[p];
    }
    verbose("NANOS++ shutting down.... end");
