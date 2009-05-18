@@ -4,6 +4,8 @@
 
 using namespace nanos;
 
+Atomic<int> WorkGroup::atomicSeed(0);
+
 void WorkGroup::addWork (WorkGroup &work)
 {
       components++;

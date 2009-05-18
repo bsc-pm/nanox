@@ -8,7 +8,7 @@ void Scheduler::submit (WD &wd)
   PE *pe = myPE;
   // TODO: increase ready count
 
-//   debug("submitting task " << &wd);
+  debug("submitting task " << wd.getId());
   WD *next = pe->getSchedulingGroup()->atCreation(pe,wd);
   if (next) {
       pe->switchTo(next);

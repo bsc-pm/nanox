@@ -116,7 +116,7 @@ void SMPWD::initStack ()
 // This is executed in between switching stacks
 static void switchHelper ( intptr_t *oldState, SMPWD *oldWD, SMPWD *newWD )
 {
-    debug("switching from task " << oldWD << " to " << newWD);
+    debug("switching from task " << oldWD->getId() << " to " << newWD->getId());
     oldWD->setState(oldState);
     Scheduler::queue(*oldWD);
     myPE->setCurrentWD(newWD);
@@ -156,7 +156,7 @@ void SMPProcessor::exitTo (WD *wd)
 {
     SMPWD *swd = static_cast<SMPWD *>(wd);
 
-      debug("exiting task " << currentWD << " to " << wd);
+      debug("exiting task " << currentWD->getId() << " to " << wd->getId());
     // TODO: reuse stack
 
     if (!swd->hasStack()) {
