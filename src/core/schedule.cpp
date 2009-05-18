@@ -8,6 +8,7 @@ void Scheduler::submit (WD &wd)
   PE *pe = myPE;
   // TODO: increase ready count
 
+//   debug("submitting task " << &wd);
   WD *next = pe->getSchedulingGroup()->atCreation(pe,wd);
   if (next) {
       pe->switchTo(next);
@@ -41,7 +42,7 @@ void Scheduler::blockOnCondition (volatile int *var, int condition)
 		  if (next) pe->switchTo(next);
 		  // TODO: implement sleeping
 
-		  verbose("waiting for " << (void *)var << " to reach " << condition << " current=" << *var);
+// 		  verbose("waiting for " << (void *)var << " to reach " << condition << " current=" << *var);
 	    }
 	}
 }

@@ -39,6 +39,11 @@ public:
 #define verbose0(msg) \
     if (CoreSetup::getVerbose()) std::cerr << "[?]" << msg << std::endl;
 
+#define debug(msg) \
+    if (CoreSetup::getVerbose()) std::cerr << "DBG: [" << myPE->getId() << "]" << msg << std::endl;
+#define debug0(msg) \
+    if (CoreSetup::getVerbose()) std::cerr << "DBG: [?]" << msg << std::endl;
+
 };
 
 
