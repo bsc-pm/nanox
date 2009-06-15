@@ -31,6 +31,7 @@ private:
     std::string    name;
     int		   size;
     group_t        group;
+    Queue<WD *>    idleQueue;
     
     // disable copy and assignment
     SchedulingGroup(const SchedulingGroup &);
@@ -59,6 +60,10 @@ public:
     virtual WD *atWakeUp   (PE *pe, WD &wd) { return 0; }
 
     virtual void queue (PE *pe,WD &wd)  = 0;
+
+    // idle management
+    virtual void queueIdle (PE *pe,WD &wd);
+    virtual WD *getIdle(PE *pe);
 };
 
 // singleton class to encapsulate scheduling data and methods

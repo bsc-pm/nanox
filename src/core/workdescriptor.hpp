@@ -63,11 +63,12 @@ private:
 	WorkData *data;
 	bool	  tie;
 	ProcessingElement *  tie_to;
+	bool      idle;
 protected:
 	WorkData * getData () const { return data; }
 public:
 	// constructors
-	WorkDescriptor(WorkData *wdata=0) : WorkGroup(), data(wdata), tie(false), tie_to(0) {}
+	WorkDescriptor(WorkData *wdata=0) : WorkGroup(), data(wdata), tie(false), tie_to(0), idle(false) {}
 	// TODO: copy constructor
 	WorkDescriptor(const WorkDescriptor &wd);
 	// TODO: assignment operator
@@ -98,6 +99,9 @@ public:
 	{
 	    return static_cast<T *>(data->getReference(narg));
 	}
+
+	bool isIdle () const { return idle; }
+	void setIdle(bool state=true) { idle = state; }
 };
 
 

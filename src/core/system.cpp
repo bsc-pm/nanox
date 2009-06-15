@@ -56,12 +56,12 @@ System::~System ()
    verbose("Wait for main workgroup to complete");
    myPE->getCurrentWD()->waitCompletation();
 
-   verbose("Joining threads");
+   verbose("Joining threads... phase 1");
    // signal stop PEs
    for ( unsigned p = 1; p < pes.size() ; p++ ) {
       pes[p]->stopAll();
    }
-
+   verbose("Joining threads... phase 2");
    // join
    for ( unsigned p = 1; p < pes.size() ; p++ ) {
       delete pes[p];

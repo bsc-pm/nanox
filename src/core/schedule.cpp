@@ -25,11 +25,12 @@ void Scheduler::exit (void)
   // The WD was running on a thread stack, exit to the loop
 
   WD *next = pe->getSchedulingGroup()->atExit(pe);
+  if (!next) next = pe->getSchedulingGroup()->getIdle(pe);
   if (next) {
       pe->exitTo(next);
   }
 
-  //TODO: fatal error
+  fatal("No more tasks to execute!");
 }
 
 void Scheduler::blockOnCondition (volatile int *var, int condition)
@@ -38,25 +39,34 @@ void Scheduler::blockOnCondition (volatile int *var, int condition)
 	
 	if ( *var != condition ) {
 	    while ( *var != condition ) {
+	          // set every iteration to avoid some race-conditions
+		  pe->getCurrentWD()->setIdle();
+		  
 		  WD *next = pe->getSchedulingGroup()->atBlock(pe);
+		  if (!next) next = pe->getSchedulingGroup()->getIdle(pe);
 		  if (next) pe->switchTo(next);
 		  // TODO: implement sleeping
 
 // 		  verbose("waiting for " << (void *)var << " to reach " << condition << " current=" << *var);
 	    }
 	}
+	pe->getCurrentWD()->setIdle(false);
 }
 
 void Scheduler::idle ()
 {
       PE *pe = myPE;
 
-     while ( pe->isRunning() ) {
+     verbose("PE " << myPE->getId() << " entering idle loop");
+     pe->getCurrentWD()->setIdle();
+     while ( pe->isRunning() ) {            
 	    if ( pe->getSchedulingGroup() ) {
 	      WD *next = pe->getSchedulingGroup()->atIdle(pe);
+	      if (!next) next = pe->getSchedulingGroup()->getIdle(pe);
 	      if (next) pe->switchTo(next);
 	    }
       }
+      pe->getCurrentWD()->setIdle(false);
 
       verbose("Working thread finishing");
 }
@@ -64,7 +74,11 @@ void Scheduler::idle ()
 void Scheduler::queue (WD &wd)
 {
     PE *pe=myPE;
-    pe->getSchedulingGroup()->queue(pe,wd);
+
+    if (wd.isIdle())
+      pe->getSchedulingGroup()->queueIdle(pe,wd);
+    else
+      pe->getSchedulingGroup()->queue(pe,wd);
 }
 
 void SchedulingGroup::init (int groupSize)
@@ -88,3 +102,15 @@ void SchedulingGroup::removeMember (PE &pe)
 //TODO
 }
 
+void SchedulingGroup::queueIdle (PE *pe,WD &wd)
+{
+    idleQueue.push(&wd);
+}
+
+WD * SchedulingGroup::getIdle (PE *pe)
+{
+    WD *result = 0;
+
+    if ( idleQueue.try_pop(result) ) return result;
+    return 0;
+}

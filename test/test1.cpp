@@ -75,9 +75,9 @@ int main (int argc, char **argv)
 	data->setArguments(20,1,1,2,5,a);
 	SMPWD * wd2 = new SMPWD(hello_world,data);
 
-	WG *wg = myPE->getCurrentWD();
-	wd2->addWork(*wd);
-	wg->addWork(*wd2);
+//	WG *wg = myPE->getCurrentWD();
+//	wd2->addWork(*wd);
+//	wg->addWork(*wd2);
 	sys.submit(*wd);
 	sys.submit(*wd2);
 	usleep(500);

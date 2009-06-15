@@ -12,7 +12,7 @@ class BaseThread {
 private:
   int id;
   bool started;
-  bool mustStop;
+  volatile bool mustStop;
   ProcessingElement *pe;
 
 //disable copy and assigment
