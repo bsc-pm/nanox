@@ -19,8 +19,12 @@ public:
 
 class FailedAssertion : public  std::runtime_error {
 public:
-	FailedAssertion (const std::string &value, int peId=-1) :
-		runtime_error( std::string("ASSERT failed: [")+ toString<int>(peId) + "] " + value )
+	FailedAssertion (const char *file, const int line, const std::string &value,
+	                 const std::string msg, int peId=-1) :
+		runtime_error(
+		       std::string("ASSERT failed: [")+ toString<int>(peId) + "] "
+		               + value + ":" + msg 
+		               + " (" + file + ":" + toString<int>(line)+ ")")
 		    {}
 
 };
@@ -28,8 +32,8 @@ public:
 #define fatal(msg)  throw FatalError(msg,myPE->getId());
 #define fatal0(msg)  throw FatalError(msg);
 
-#define ensure(cond) if ( !(cond) ) throw FailedAssertion(#cond, myPE->getId());
-#define ensure0(cond) if ( !(cond) ) throw FailedAssertion(#cond);
+#define ensure(cond,msg) if ( !(cond) ) throw FailedAssertion(__FILE__, __LINE__ , #cond, msg, myPE->getId());
+#define ensure0(cond,msg) if ( !(cond) ) throw FailedAssertion(__FILE__, __LINE__, #cond, msg );
 
 #define warning(msg) { std::cerr << "WARNING: [" << myPE->getId() << "]" << msg << std::endl; }
 #define warning0(msg) { std::cerr << "WARNING: [?]" << msg << std::endl; }

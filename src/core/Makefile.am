@@ -26,6 +26,7 @@ nanos_sources=\
 	schedule.cpp \
 	system.hpp \
 	system.cpp \
+	wddeque.hpp \
 	workgroup.hpp \
 	workgroup.cpp \
 	workdescriptor.hpp \

@@ -116,7 +116,6 @@ void SMPWD::initStack ()
 // This is executed in between switching stacks
 static void switchHelper ( intptr_t *oldState, SMPWD *oldWD, SMPWD *newWD )
 {
-    debug("switching from task " << oldWD->getId() << " to " << newWD->getId());
     oldWD->setState(oldState);
     Scheduler::queue(*oldWD);
     myPE->setCurrentWD(newWD);
@@ -129,12 +128,12 @@ void SMPProcessor::switchTo ( WD *wd )
     // TODO: swtichable work
 
    if ( useUserThreads ) {
+       debug("switching from task " << currentWD << ":" << currentWD->getId() << " to " << swd << ":" << swd->getId());
+
       if (!swd->hasStack()) {
 	  swd->initStack();
       }
 
-      ensure(swd != currentWD);
-      
       ::switchStacks((void *) switchHelper,
  		   (void *) currentWD,
  		   (void *) swd,
@@ -156,13 +155,14 @@ void SMPProcessor::exitTo (WD *wd)
 {
     SMPWD *swd = static_cast<SMPWD *>(wd);
 
-      debug("exiting task " << currentWD->getId() << " to " << wd->getId());
+    debug("exiting task " << currentWD << ":" << currentWD->getId() << " to " << wd << ":" << wd->getId());
     // TODO: reuse stack
 
     if (!swd->hasStack()) {
 	swd->initStack();
     }
 
+    //TODO: optimize... we don't really need to save a context in this case
     ::switchStacks((void *) exitHelper,
  		   (void *) currentWD,
  		   (void *) swd,

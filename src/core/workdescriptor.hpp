@@ -80,7 +80,8 @@ public:
 	WorkDescriptor & tied () { tie = true; return *this; }
 	WorkDescriptor & tieTo (ProcessingElement &pe) { tie_to = &pe; tie=false; return *this; }
 
-	bool isTied() { return tie_to != NULL; }
+	bool isTied() const { return tie_to != NULL; }
+	ProcessingElement * isTiedTo() const { return tie_to; }
 	
 	virtual bool canRunIn(ProcessingElement &pe) = 0;
 

@@ -99,7 +99,7 @@ public:
 typedef class ProcessingElement PE;
 
 // Each thread should be able to locate who is its PE at any moment
-extern __thread PE *myPE;
+extern __thread PE * myPE;
 
 };
 

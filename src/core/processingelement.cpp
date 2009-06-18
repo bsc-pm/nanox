@@ -4,7 +4,7 @@
 
 using namespace nanos;
 
-__thread ProcessingElement *nanos::myPE=0;
+__thread ProcessingElement * nanos::myPE=0;
 
 void BaseThread::run ()
 {

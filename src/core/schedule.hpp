@@ -2,6 +2,7 @@
 #define _NANOS_SCHEDULE
 
 #include "workdescriptor.hpp"
+#include "wddeque.hpp"
 #include "processingelement.hpp"
 #include <string>
 
@@ -31,7 +32,7 @@ private:
     std::string    name;
     int		   size;
     group_t        group;
-    Queue<WD *>    idleQueue;
+    WDDeque        idleQueue;
     
     // disable copy and assignment
     SchedulingGroup(const SchedulingGroup &);
