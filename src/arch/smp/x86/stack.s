@@ -3,8 +3,8 @@
  * while others (e.g. System V) do not.  Thus, several labels appear
  * duplicated except for the leading underscore, e.g.
  *
- *   · qt_cswap:
- *   · _qt_cswap:
+ *   · cswap:
+ *   · _cswap:
  *
  * Callee-save: %esi, %edi, %ebx, %ebp
  * Caller-save: %eax, %ecx
@@ -32,8 +32,8 @@
  * done, restore the new thread's state and return.
  *
  * The helper function (4(sp)) can return a void* that is returned
- * by the call to 'qt_blockk{,i}'.  Since we don't touch %eax in
- * between, we get that 'for free'. 
+ * to the caller.  Since we don't touch %eax in between, we get 
+ * that 'for free'. 
  */
 
 switchStacks:

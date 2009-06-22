@@ -115,3 +115,4 @@ WD * SchedulingGroup::getIdle (PE *pe)
 {
     return idleQueue.pop_front(pe);
 }
+
