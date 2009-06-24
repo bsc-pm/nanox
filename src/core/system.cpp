@@ -37,15 +37,15 @@ void System::start ()
     SchedulingGroup *sg = createBreadthFirstPolicy();
     //TODO: decide, single master, multiple master start
 
-    PE *pe = new SMPProcessor(0,sg);
+    PE *pe = new SMPProcessor(0);
     pes.push_back(pe);
-    pe->associateThisThread();
+    pe->associateThisThread(sg);
 
     for ( int p = 1; p < numPes ; p++ ) {
 	// TODO: create processor type based on config
-	pe = new SMPProcessor(p,sg);
- 	pes.push_back(pe);
- 	pe->startWorker();
+      pe = new SMPProcessor(p);
+      pes.push_back(pe);
+      pe->startWorker(sg);
     }
 }
 
@@ -54,7 +54,7 @@ System::~System ()
    verbose("NANOS++ shutting down.... init");
 
    verbose("Wait for main workgroup to complete");
-   myPE->getCurrentWD()->waitCompletation();
+   myThread->getCurrentWD()->waitCompletation();
 
    verbose("Joining threads... phase 1");
    // signal stop PEs

@@ -13,25 +13,25 @@ public:
      // destructor
      virtual ~BreadthFirstPolicy() {}
 
-     virtual WD *atCreation (PE *pe, WD &newWD);
-     virtual WD *atIdle (PE *pe);
-     virtual void queue (PE *pe, WD &wd);
+     virtual WD *atCreation (BaseThread *thread, WD &newWD);
+     virtual WD *atIdle (BaseThread *thread);
+     virtual void queue (BaseThread *thread, WD &wd);
 };
 
-void BreadthFirstPolicy::queue (PE *pe, WD &wd)
+void BreadthFirstPolicy::queue (BaseThread *thread, WD &wd)
 {
     readyQueue.push_back(&wd);
 }
 
-WD * BreadthFirstPolicy::atCreation (PE *pe, WD &newWD)
+WD * BreadthFirstPolicy::atCreation (BaseThread *thread, WD &newWD)
 {
-    queue(pe,newWD);
+    queue(thread,newWD);
     return 0;
 }
 
-WD * BreadthFirstPolicy::atIdle (PE *pe)
+WD * BreadthFirstPolicy::atIdle (BaseThread *thread)
 {
-    return readyQueue.pop_front(pe);
+    return readyQueue.pop_front(thread);
 }
 
 // Factory

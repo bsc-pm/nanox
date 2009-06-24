@@ -32,7 +32,7 @@ void WorkGroup::sync ()
 
 void WorkGroup::waitCompletation ()
 {
-    //TODO: remove override
+//TODO: remove override
      Scheduler::blockOnCondition(&components.override(),0);
 }
 

@@ -5,7 +5,7 @@
 #include "atomic.hpp"
 #include "debug.hpp"
 #include "workdescriptor.hpp"
-#include "processingelement.hpp"
+#include "basethread.hpp"
 
 namespace nanos {
 
@@ -30,10 +30,9 @@ public:
 
     void push_front (WorkDescriptor *wd);
     void push_back(WorkDescriptor *wd);
-    WorkDescriptor * pop_front (PE *pe);
-    //TODO
-    //WorkDescriptor * pop_front (PE *pe, SchedulePredicate &predicate);
-    // pop_back
+    WorkDescriptor * pop_front (BaseThread *thread);
+    //TODO: WorkDescriptor * pop_front (PE *pe, SchedulePredicate &predicate);
+    //TODO: pop_back
 };
 
 inline void WDDeque::push_front (WorkDescriptor *wd)
@@ -53,7 +52,7 @@ inline void WDDeque::push_back (WorkDescriptor *wd)
 }
 
 // Only ensures tie semantics
-inline WorkDescriptor * WDDeque::pop_front (PE *pe)
+inline WorkDescriptor * WDDeque::pop_front (BaseThread *thread)
 {
     WorkDescriptor *found = NULL;
 
@@ -65,7 +64,7 @@ inline WorkDescriptor * WDDeque::pop_front (PE *pe)
 
       for ( it = dq.begin() ; it != dq.end(); it++ )
       {
-           if ( !(*it)->isTied() || (*it)->isTiedTo() == pe ) {
+           if ( !(*it)->isTied() || (*it)->isTiedTo() == thread ) {
 	        found = *it;
 		dq.erase(it);
 	        break;
@@ -74,7 +73,7 @@ inline WorkDescriptor * WDDeque::pop_front (PE *pe)
     }
     lock--;
 
-    ensure(!found || !found->isTied() || found->isTiedTo() == pe, "" );
+    ensure(!found || !found->isTied() || found->isTiedTo() == thread, "" );
 
     return found;
 }

@@ -8,6 +8,8 @@
 
 namespace nanos {
 
+// forward declarations
+class BaseThread;
 class ProcessingElement;
 
 class Architecture
@@ -62,7 +64,7 @@ class WorkDescriptor : public WorkGroup {
 private:
 	WorkData *data;
 	bool	  tie;
-	ProcessingElement *  tie_to;
+	BaseThread *  tie_to;
 	bool      idle;
 protected:
 	WorkData * getData () const { return data; }
@@ -78,10 +80,10 @@ public:
 
 	/* named arguments idiom */
 	WorkDescriptor & tied () { tie = true; return *this; }
-	WorkDescriptor & tieTo (ProcessingElement &pe) { tie_to = &pe; tie=false; return *this; }
+	WorkDescriptor & tieTo (BaseThread &pe) { tie_to = &pe; tie=false; return *this; }
 
 	bool isTied() const { return tie_to != NULL; }
-	ProcessingElement * isTiedTo() const { return tie_to; }
+	BaseThread * isTiedTo() const { return tie_to; }
 	
 	virtual bool canRunIn(ProcessingElement &pe) = 0;
 

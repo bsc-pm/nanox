@@ -3,7 +3,7 @@
 
 #include "workdescriptor.hpp"
 #include "wddeque.hpp"
-#include "processingelement.hpp"
+#include "basethread.hpp"
 #include <string>
 
 namespace nanos {
@@ -23,8 +23,8 @@ public:
       int getSchId() const { return schId; }
 };
 
-// Groups a number of PEs and a number of WD with a policy
-// Each PE and WD can pertain only to a SG
+// Groups a number of BaseThreads and a number of WD with a policy
+// Each BaseThread and WD can pertain only to a SG
 class SchedulingGroup {
 private:
     typedef std::vector<SchedulingData *> group_t;
@@ -47,24 +47,24 @@ public:
     virtual ~SchedulingGroup() {}
 
     // membership related methods. This members are not thread-safe
-    virtual void addMember (PE &pe);
-    virtual void removeMember (PE &pe);
-    virtual SchedulingData * createMemberData (PE &pe) { return new SchedulingData(); };
+    virtual void addMember (BaseThread &thread);
+    virtual void removeMember (BaseThread &thread);
+    virtual SchedulingData * createMemberData (BaseThread &thread) { return new SchedulingData(); };
 
 // TODO: void (*parse_option) (char *opt, char *value);
 
     // policy related methods
-    virtual WD *atCreation (PE *pe, WD &newWD) { return 0; }
-    virtual WD *atIdle     (PE *pe) = 0;
-    virtual WD *atExit     (PE *pe) { return atIdle(pe); }
-    virtual WD *atBlock    (PE *pe, WD *hint=0) { return atIdle(pe); }
-    virtual WD *atWakeUp   (PE *pe, WD &wd) { return 0; }
+    virtual WD *atCreation (BaseThread *thread, WD &newWD) { return 0; }
+    virtual WD *atIdle     (BaseThread *thread) = 0;
+    virtual WD *atExit     (BaseThread *thread) { return atIdle(thread); }
+    virtual WD *atBlock    (BaseThread *thread, WD *hint=0) { return atIdle(thread); }
+    virtual WD *atWakeUp   (BaseThread *thread, WD &wd) { return 0; }
 
-    virtual void queue (PE *pe,WD &wd)  = 0;
+    virtual void queue (BaseThread *thread,WD &wd)  = 0;
 
     // idle management
-    virtual void queueIdle (PE *pe,WD &wd);
-    virtual WD *getIdle(PE *pe);
+    virtual void queueIdle (BaseThread *thread,WD &wd);
+    virtual WD *getIdle(BaseThread *thread);
 };
 
 // singleton class to encapsulate scheduling data and methods

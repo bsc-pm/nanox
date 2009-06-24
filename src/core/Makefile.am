@@ -18,6 +18,8 @@ nanos_libadd=\
 	$(END)
 
 nanos_sources=\
+	basethread.hpp\
+	basethread.cpp\
 	coresetup.hpp \
 	coresetup.cpp \
 	processingelement.hpp \

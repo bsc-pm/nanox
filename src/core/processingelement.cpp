@@ -4,33 +4,16 @@
 
 using namespace nanos;
 
-__thread ProcessingElement * nanos::myPE=0;
-
-void BaseThread::run ()
-{
-    started=true;
-    
-    if (pe) pe->associate();
-    
-    run_dependent();
-}
-
-ProcessingElement::ProcessingElement (int newId,const Architecture *arch,SchedulingGroup *sg) 
- : id(newId),architecture(arch),currentWD(0),workerThread(0)
-{
-      if (sg) sg->addMember(*this);
-}
-
-void ProcessingElement::startWorker ()
+void ProcessingElement::startWorker (SchedulingGroup *sg)
 {
 	WD & master = getWorkerWD();
-	master.tieTo(*this);
-	startThread(master);
+	//CHECK: master.tieTo(*this);
+	startThread(master,sg);
 }
 
 void ProcessingElement::associate ()
 {
-        myPE = this;
+ //CHECK       myPE = this;
 }
 
 void ProcessingElement::stopAll ()

@@ -29,22 +29,22 @@ public:
 
 };
 
-#define fatal(msg)  throw FatalError(msg,myPE->getId());
+#define fatal(msg)  throw FatalError(msg,myThread->getId());
 #define fatal0(msg)  throw FatalError(msg);
 
-#define ensure(cond,msg) if ( !(cond) ) throw FailedAssertion(__FILE__, __LINE__ , #cond, msg, myPE->getId());
+#define ensure(cond,msg) if ( !(cond) ) throw FailedAssertion(__FILE__, __LINE__ , #cond, msg, myThread->getId());
 #define ensure0(cond,msg) if ( !(cond) ) throw FailedAssertion(__FILE__, __LINE__, #cond, msg );
 
-#define warning(msg) { std::cerr << "WARNING: [" << myPE->getId() << "]" << msg << std::endl; }
+#define warning(msg) { std::cerr << "WARNING: [" << myThread->getId() << "]" << msg << std::endl; }
 #define warning0(msg) { std::cerr << "WARNING: [?]" << msg << std::endl; }
 
 #define verbose(msg) \
-    if (CoreSetup::getVerbose()) std::cerr << "[" << myPE->getId() << "]" << msg << std::endl;
+    if (CoreSetup::getVerbose()) std::cerr << "[" << myThread->getId() << "]" << msg << std::endl;
 #define verbose0(msg) \
     if (CoreSetup::getVerbose()) std::cerr << "[?]" << msg << std::endl;
 
 #define debug(msg) \
-    if (CoreSetup::getVerbose()) std::cerr << "DBG: [" << myPE->getId() << "]" << msg << std::endl;
+    if (CoreSetup::getVerbose()) std::cerr << "DBG: [" << myThread->getId() << "]" << msg << std::endl;
 #define debug0(msg) \
     if (CoreSetup::getVerbose()) std::cerr << "DBG: [?]" << msg << std::endl;
 

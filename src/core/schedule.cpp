@@ -1,33 +1,38 @@
 #include "schedule.hpp"
 #include "processingelement.hpp"
+#include "basethread.hpp"
 
 using namespace nanos;
 
-void Scheduler::submit (WD &wd)
+void Scheduler::submit ( WD &wd )
 {
-  // TODO: increase ready count
+   // TODO: increase ready count
 
-  debug("submitting task " << wd.getId());
-  WD *next = myPE->getSchedulingGroup()->atCreation(myPE,wd);
-  if (next) {
-      myPE->switchTo(next);
-  }
+   debug ( "submitting task " << wd.getId() );
+   WD *next = myThread->getSchedulingGroup()->atCreation ( myThread, wd );
+
+   if ( next ) {
+      myThread->switchTo ( next );
+   }
 }
 
-void Scheduler::exit (void)
+void Scheduler::exit ( void )
 {
-  // TODO:
-  // Cases:
-  // The WD was running on its own stack, switch to a new one
-  // The WD was running on a thread stack, exit to the loop
+   // TODO:
+   // Cases:
+   // The WD was running on its own stack, switch to a new one
+   // The WD was running on a thread stack, exit to the loop
 
-  WD *next = myPE->getSchedulingGroup()->atExit(myPE);
-  if (!next) next = myPE->getSchedulingGroup()->getIdle(myPE);
-  if (next) {
-      myPE->exitTo(next);
-  }
+   WD *next = myThread->getSchedulingGroup()->atExit ( myThread );
 
-  fatal("No more tasks to execute!");
+   if ( !next )
+      next = myThread->getSchedulingGroup()->getIdle ( myThread );
+
+   if ( next ) {
+      myThread->exitTo ( next );
+   }
+
+   fatal ( "No more tasks to execute!" );
 }
 
 /*
@@ -35,84 +40,99 @@ void Scheduler::exit (void)
  * In this function this optimization does not work because the task can move from one thread to another
  * in different iterations and it will still be seeing the old TLS variable (creating havoc
  * and destruction and colorful runtime errors).
- * getMyPESafe ensures that the TLS variable is reloaded at least once per iteration while we still do some
- * reuse of the address (inside the iteration) so we're not forcing to go through TLS for each myPE access
+ * getMyThreadSafe ensures that the TLS variable is reloaded at least once per iteration while we still do some
+ * reuse of the address (inside the iteration) so we're not forcing to go through TLS for each myThread access
  * It's important that the compiler doesn't inline it or the optimazer will cause the same wrong behavior anyway.
  */
-__attribute__((noinline)) PE * getMyPESafe() { return myPE; }
-void Scheduler::blockOnCondition (volatile int *var, int condition)
+__attribute__ ( ( noinline ) ) BaseThread * getMyThreadSafe()
 {
-	while ( *var != condition ) {
-	     // get current TLS value
-	     PE *pe = getMyPESafe();
-	     // set every iteration to avoid some race-conditions
-             pe->getCurrentWD()->setIdle();
-		  
-	     WD *next = pe->getSchedulingGroup()->atBlock(pe);
-             if (!next) next = pe->getSchedulingGroup()->getIdle(pe);
-	     if (next) {
-	       pe->switchTo(next);
-	     }
-             // TODO: implement sleeping
-	}
-	myPE->getCurrentWD()->setIdle(false);
+   return myThread;
+}
+
+void Scheduler::blockOnCondition ( volatile int *var, int condition )
+{
+   while ( *var != condition ) {
+      // get current TLS value
+      BaseThread *thread = getMyThreadSafe();
+      // set every iteration to avoid some race-conditions
+      thread->getCurrentWD()->setIdle();
+
+      WD *next = thread->getSchedulingGroup()->atBlock ( thread );
+
+      if ( !next )
+         next = thread->getSchedulingGroup()->getIdle ( thread );
+
+      if ( next ) {
+         thread->switchTo ( next );
+      }
+
+      // TODO: implement sleeping
+   }
+
+   myThread->getCurrentWD()->setIdle ( false );
 }
 
 void Scheduler::idle ()
 {
-      // This function is run always by the same PE so we don't need to use getMyPESafe
-      PE *pe = myPE;
+   // This function is run always by the same BaseThread so we don't need to use getMyThreadSafe
+   BaseThread *thread = myThread;
 
-     verbose("PE " << myPE->getId() << " entering idle loop");
-     pe->getCurrentWD()->setIdle();
-     while ( pe->isRunning() ) {            
-	    if ( pe->getSchedulingGroup() ) {
-	      WD *next = pe->getSchedulingGroup()->atIdle(pe);
-	      if (!next) next = pe->getSchedulingGroup()->getIdle(pe);
-	      if (next) pe->switchTo(next);
-	    }
+   verbose ( "Working thread entering idle loop" );
+   thread->getCurrentWD()->setIdle();
+
+   while ( thread->isRunning() ) {
+      if ( thread->getSchedulingGroup() ) {
+         WD *next = thread->getSchedulingGroup()->atIdle ( thread );
+
+         if ( !next )
+            next = thread->getSchedulingGroup()->getIdle ( thread );
+
+         if ( next )
+            thread->switchTo ( next );
       }
-      pe->getCurrentWD()->setIdle(false);
+   }
 
-      verbose("Working thread finishing");
+   thread->getCurrentWD()->setIdle ( false );
+
+   verbose ( "Working thread finishing" );
 }
 
-void Scheduler::queue (WD &wd)
+void Scheduler::queue ( WD &wd )
 {
-    if (wd.isIdle())
-      myPE->getSchedulingGroup()->queueIdle(myPE,wd);
-    else
-      myPE->getSchedulingGroup()->queue(myPE,wd);
+   if ( wd.isIdle() )
+      myThread->getSchedulingGroup()->queueIdle ( myThread, wd );
+   else
+      myThread->getSchedulingGroup()->queue ( myThread, wd );
 }
 
-void SchedulingGroup::init (int groupSize)
+void SchedulingGroup::init ( int groupSize )
 {
-    size = 0;
-    group.reserve(groupSize);
+   size = 0;
+   group.reserve ( groupSize );
 }
 
-void SchedulingGroup::addMember (PE &pe)
+void SchedulingGroup::addMember ( BaseThread &thread )
 {
-    SchedulingData *data = createMemberData(pe);
+   SchedulingData *data = createMemberData ( thread );
 
-    data->setSchId(size);    
-    pe.setSchedulingGroup(this,data);
+   data->setSchId ( size );
+   thread.setScheduling ( this, data );
 
-    group[size++] = data;
+   group[size++] = data;
 }
 
-void SchedulingGroup::removeMember (PE &pe)
+void SchedulingGroup::removeMember ( BaseThread &thread )
 {
 //TODO
 }
 
-void SchedulingGroup::queueIdle (PE *pe,WD &wd)
+void SchedulingGroup::queueIdle ( BaseThread *thread, WD &wd )
 {
-    idleQueue.push_back(&wd);
+   idleQueue.push_back ( &wd );
 }
 
-WD * SchedulingGroup::getIdle (PE *pe)
+WD * SchedulingGroup::getIdle ( BaseThread *thread )
 {
-    return idleQueue.pop_front(pe);
+   return idleQueue.pop_front ( thread );
 }
 
