@@ -2,6 +2,7 @@
 #define _BASE_THREAD_ELEMENT
 
 #include "workdescriptor.hpp"
+#include "atomic.hpp"
 
 namespace nanos {
 
@@ -15,6 +16,7 @@ class SchedulingData;
 // Threads are binded to a PE for its life-time
 class BaseThread {
 private:
+  static Atomic<int> idSeed;
   // Thread info
   int id;
   ProcessingElement *pe;
@@ -36,7 +38,8 @@ private:
   virtual void run_dependent () = 0;
 public:
   // constructor
-  BaseThread (WD &wd, ProcessingElement *creator=0) : pe(creator), threadWD(&wd), started(false), mustStop(false) {}
+  BaseThread (WD &wd, ProcessingElement *creator=0) : 
+     id(idSeed++),pe(creator), threadWD(&wd), started(false), mustStop(false) {}
   // destructor
   virtual ~BaseThread() {}
 
