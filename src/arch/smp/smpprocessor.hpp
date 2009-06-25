@@ -24,7 +24,7 @@ public:
 	virtual ~SMPProcessor() {}
 
 	virtual WD & getWorkerWD () const;
-	virtual BaseThread & startThread (WorkDescriptor &wd, SchedulingGroup *sg);
+	virtual BaseThread & createThread (WorkDescriptor &wd);
 	virtual BaseThread & associateThisThread (SchedulingGroup *sg);
 
 	static void prepareConfig (Config &config);

@@ -19,16 +19,10 @@ WorkDescriptor & SMPProcessor::getWorkerWD () const
 	return *wd;
 }
 
-BaseThread &SMPProcessor::startThread (WorkDescriptor &helper, SchedulingGroup *sg)
+BaseThread &SMPProcessor::createThread (WorkDescriptor &helper)
 {
 	SMPWD &wd = static_cast<SMPWD &>(helper);
 	SMPThread &th = *new SMPThread(wd,this);
-	// TODO: generalize
-	workerThread = &th;
-
-    if (sg) sg->addMember(th);
-
-	th.start();
 
 	return th;
 }
@@ -39,7 +33,6 @@ BaseThread &SMPProcessor::associateThisThread (SchedulingGroup *sg)
       SMPWD *wd = new SMPWD();
       //CHECK wd->tieTo(*this);
       SMPThread &th = *new SMPThread(*wd,this);
-      associate();
       //setCurrentWD(wd);
       myThread = &th;
       th.setCurrentWD(wd);

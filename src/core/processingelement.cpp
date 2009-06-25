@@ -7,13 +7,17 @@ using namespace nanos;
 void ProcessingElement::startWorker (SchedulingGroup *sg)
 {
 	WD & master = getWorkerWD();
-	//CHECK: master.tieTo(*this);
 	startThread(master,sg);
 }
 
-void ProcessingElement::associate ()
+BaseThread & ProcessingElement::startThread (WD &work, SchedulingGroup *sg)
 {
- //CHECK       myPE = this;
+       BaseThread &thread = createThread(work);
+       if (sg) sg->addMember(thread);
+       thread.start();
+
+       workerThread = &thread; // TODO: should be a vector
+       return thread; 
 }
 
 void ProcessingElement::stopAll ()
