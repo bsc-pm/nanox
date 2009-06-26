@@ -20,3 +20,4 @@ void BaseThread::associate ()
     threadWD.tieTo(*this);
     setCurrentWD(threadWD);
 }
+
