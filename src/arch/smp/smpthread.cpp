@@ -86,9 +86,9 @@ void SMPThread::start ()
 
 void SMPThread::run_dependent ()
 {
-    SMPWD *work = (SMPWD *) getThreadWD();
+    SMPWD &work = (SMPWD &) getThreadWD();
     setCurrentWD(work);
-    work->getWorkFct()(work);
+    work.getWorkFct()(&work);
 }
 
 void SMPThread::join ()
@@ -101,7 +101,7 @@ static void switchHelper ( intptr_t *oldState, SMPWD *oldWD, SMPWD *newWD )
 {
     oldWD->setState(oldState);
     Scheduler::queue(*oldWD);
-    myThread->setCurrentWD(newWD);
+    myThread->setCurrentWD(*newWD);
 }
 
 void SMPThread::switchTo ( WD *wd )
@@ -131,7 +131,7 @@ void SMPThread::switchTo ( WD *wd )
 static void exitHelper ( intptr_t *oldState, SMPWD *oldWD, SMPWD *newWD )
 {
     delete oldWD;
-    myThread->setCurrentWD(newWD);
+    myThread->setCurrentWD(*newWD);
 }
 
 void SMPThread::exitTo (WD *wd)

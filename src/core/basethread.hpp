@@ -20,7 +20,7 @@ private:
   // Thread info
   int id;
   ProcessingElement *pe;
-  WD * threadWD;
+  WD & threadWD;
 
   // Thread status
   bool started;
@@ -39,7 +39,7 @@ private:
 public:
   // constructor
   BaseThread (WD &wd, ProcessingElement *creator=0) : 
-     id(idSeed++),pe(creator), threadWD(&wd), started(false), mustStop(false) {}
+     id(idSeed++),pe(creator), threadWD(wd), started(false), mustStop(false) {}
   // destructor
   virtual ~BaseThread() {}
 
@@ -53,9 +53,9 @@ public:
   virtual void exitTo(WD *work) = 0;
 
   // set/get methods
-  void setCurrentWD (WD *current) { currentWD = current; }
+  void setCurrentWD (WD &current) { currentWD = &current; }
   WD * getCurrentWD () const { return currentWD; }
-  WD * getThreadWD () const { return threadWD; }
+  const WD & getThreadWD () const { return threadWD; }
 
   SchedulingGroup * getSchedulingGroup () const { return schedGroup; }
   SchedulingData * getSchedulingData () const { return schedData; }
