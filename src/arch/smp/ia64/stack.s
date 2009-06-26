@@ -41,10 +41,10 @@ switchStacks:
 .prologue
 .save ar.pfs, saved_pfs
 	alloc saved_pfs = ar.pfs, 4, 3, 3, 0
-	arg_helper = in0
-	arg_a0 = in1
-	arg_a1 = in2
-	arg_newthread = in3
+	arg_a0 = in0
+	arg_a1 = in1
+	arg_newthread = in2
+	arg_helper = in3
 .body
 	mov   saved_rsc = ar.rsc
 	add   sp = -60*8,sp ;;
@@ -149,7 +149,7 @@ switchStacks:
 // **************************************
 	ld8 r19= [r22],16 ;;
 	mov ar.rnat = r19 ;;
-	ld8 in3 = [r21],16    // in3 = pfs
+	ld8 arg_newthread = [r21],16    // reuse arg_newthread for pfs
 	ld8 r15 = [r22],16 ;;
 // **************************************
 // *** switch on RSE (previous value) ***
@@ -157,9 +157,9 @@ switchStacks:
 	mov ar.rsc = r15 ;;
 // **************************************
 .body
-	mov out0 = old_sp ;;
-	mov out1 = arg_a0
-	mov out2 = arg_a1 ;;
+	mov out0 = arg_a0 ;;
+	mov out1 = arg_a1
+	mov out2 = old_sp ;;
 
 	mov arg_a0 = gp
 	ld8 helper_addr = [arg_helper],8 ;;
@@ -229,7 +229,7 @@ switchStacks:
 	ld8 r18 = [ptr1] ;;
 	mov b0 = r18 ;;
 
-	mov ar.pfs = in3
+	mov ar.pfs = arg_newthread
 	add sp = 60*8,sp
 	mov ar.unat = temp1 ;;
 	
