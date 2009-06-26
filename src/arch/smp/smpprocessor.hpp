@@ -23,12 +23,11 @@ public:
 	// destructor, TODO: stop all related threads
 	virtual ~SMPProcessor() {}
 
-	virtual WD & getWorkerWD () const;
+    virtual WD & getWorkerWD () const;
+    virtual WD & getMasterWD () const;
 	virtual BaseThread & createThread (WorkDescriptor &wd);
-	virtual BaseThread & associateThisThread (SchedulingGroup *sg);
 
 	static void prepareConfig (Config &config);
-
 };
 
 

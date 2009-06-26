@@ -64,6 +64,7 @@ public:
   bool isStarted () const { return started; }
   bool isRunning () const { return started && !mustStop; }
   ProcessingElement * runningOn() const { return pe; }
+  void associate();
 
 //TODO:
 // void pause();

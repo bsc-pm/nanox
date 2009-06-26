@@ -149,6 +149,6 @@ void SMPThread::exitTo (WD *wd)
     ::switchStacks((void *) exitHelper,
  		   (void *) getCurrentWD(),
  		   (void *) swd,
- 		   (void *) swd->getState());    
+ 		   (void *) swd->getState());
 }
 

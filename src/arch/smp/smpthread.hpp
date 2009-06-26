@@ -18,11 +18,9 @@ private:
 	SMPThread(const SMPThread &th);
 	const SMPThread & operator= (const SMPThread &th);
 
-	// private constructor
-	//SMPThread(PE *pe) : BaseThread(pe),useUserThreads(0) {}
 public:
 	// constructor
-	SMPThread(SMPWD &w, PE *pe) : BaseThread(w,pe) {}
+	SMPThread(SMPWD &w, PE *pe) : BaseThread(w,pe),useUserThreads(false) {}
 	// destructor
     ~SMPThread() { if (isStarted()) /*TODO: stop()*/; }
 

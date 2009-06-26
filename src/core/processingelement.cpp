@@ -20,6 +20,17 @@ BaseThread & ProcessingElement::startThread (WD &work, SchedulingGroup *sg)
        return thread; 
 }
 
+BaseThread & ProcessingElement::associateThisThread (SchedulingGroup *sg)
+{
+	WD & master = getMasterWD();
+    BaseThread &thread = createThread(master);
+    if (sg) sg->addMember(thread);
+    
+    thread.associate();
+	
+	return thread;
+}
+
 void ProcessingElement::stopAll ()
 {
        workerThread->stop();

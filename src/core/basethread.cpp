@@ -9,9 +9,14 @@ Atomic<int> BaseThread::idSeed = 0;
 
 void BaseThread::run ()
 {
+    associate();
+    run_dependent();
+}
+
+void BaseThread::associate ()
+{
     started = true;
     myThread = this;
     threadWD->tieTo(*this);
-
-    run_dependent();
+    setCurrentWD(getThreadWD());
 }

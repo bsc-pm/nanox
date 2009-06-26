@@ -18,7 +18,8 @@ namespace nanos
          int id;
          const Architecture *architecture;
 
-      protected:
+         protected:
+         virtual WorkDescriptor & getMasterWD () const = 0;
          virtual WorkDescriptor & getWorkerWD () const = 0;
 	 //TODO: make this a vector (#6)
          BaseThread *workerThread;
@@ -45,10 +46,7 @@ namespace nanos
 
          BaseThread & startThread ( WorkDescriptor &wd, SchedulingGroup *sg = 0 );
          virtual BaseThread & createThread ( WorkDescriptor &wd) = 0;
-
-         // TODO: if not defined, it should be a fatal exception
-         virtual BaseThread & associateThisThread (SchedulingGroup *sg) = 0;
-         // initializes thread-private data. Must be invoked from the thread code
+         BaseThread & associateThisThread (SchedulingGroup *sg);
 
          void startWorker ( SchedulingGroup *sg );
          void stopAll();
