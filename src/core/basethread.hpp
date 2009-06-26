@@ -11,8 +11,6 @@ class ProcessingElement;
 class SchedulingGroup;
 class SchedulingData;
 
-//TODO: some things should be moved from PE to here...
-//TODO: define BaseThread interface
 // Threads are binded to a PE for its life-time
 class BaseThread {
 private:

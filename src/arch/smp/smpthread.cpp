@@ -97,7 +97,7 @@ void SMPThread::join ()
 }
 
 // This is executed in between switching stacks
-static void switchHelper ( intptr_t *oldState, SMPWD *oldWD, SMPWD *newWD )
+static void switchHelper ( SMPWD *oldWD, SMPWD *newWD, intptr_t *oldState  )
 {
     oldWD->setState(oldState);
     Scheduler::queue(*oldWD);
@@ -117,10 +117,11 @@ void SMPThread::switchTo ( WD *wd )
 	  swd->initStack();
       }
 
-      ::switchStacks((void *) switchHelper,
+      ::switchStacks(
  		   (void *) getCurrentWD(),
  		   (void *) swd,
- 		   (void *) swd->getState());
+           (void *) swd->getState(),
+           (void *) switchHelper);
    } else {
       (swd->getWorkFct())(wd);
       // TODO: not delete work descriptor if is a parent with pending children
@@ -128,7 +129,7 @@ void SMPThread::switchTo ( WD *wd )
    }
 }
 
-static void exitHelper ( intptr_t *oldState, SMPWD *oldWD, SMPWD *newWD )
+static void exitHelper (  SMPWD *oldWD, SMPWD *newWD, intptr_t *oldState )
 {
     delete oldWD;
     myThread->setCurrentWD(*newWD);
@@ -146,9 +147,10 @@ void SMPThread::exitTo (WD *wd)
     }
 
     //TODO: optimize... we don't really need to save a context in this case
-    ::switchStacks((void *) exitHelper,
+    ::switchStacks(
  		   (void *) getCurrentWD(),
  		   (void *) swd,
- 		   (void *) swd->getState());
+           (void *) swd->getState(),
+           (void *) exitHelper);
 }
 

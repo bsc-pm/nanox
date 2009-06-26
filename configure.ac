@@ -46,7 +46,7 @@ case $host in
   x86_64-*-linux-gnu)
     OS=unix-os
     ARCHITECTURES+=smp
-    SMP_ARCH=amd64
+    SMP_ARCH=x86-64
     ;;
   ia64-*-linux)
     OS=unix-os

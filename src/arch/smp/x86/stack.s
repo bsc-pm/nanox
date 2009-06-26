@@ -43,11 +43,11 @@ _switchStacks:
 	pushl %edi			/* Save callee-save, sp-=4. */
 	pushl %ebx			/* Save callee-save, sp-=4. */
 	movl %esp, %eax		        /* Remember old stack pointer. */
-	movl 32(%esp), %esp	        /* Move to new thread. */
-	pushl 28(%eax)		        /* Push arg 2. */
-	pushl 24(%eax)		        /* Push arg 1. */
-	pushl %eax			/* Push state pointer. */
-	movl 20(%eax), %ebx	        /* Get function to call. */
+    movl 28(%esp), %esp	        /* Move to new thread. */
+    pushl %eax          /* Push state pointer. */
+	pushl 24(%eax)		        /* Push arg 2. */
+	pushl 20(%eax)		        /* Push arg 1. */	
+	movl 32(%eax), %ebx	        /* Get function to call. */
 	call *%ebx			/* Call f. */
 	addl $12, %esp		        /* Pop args. */
 	popl %ebx			/* Restore callee-save, sp+=4. */

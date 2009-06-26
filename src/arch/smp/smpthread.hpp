@@ -20,7 +20,7 @@ private:
 
 public:
 	// constructor
-	SMPThread(SMPWD &w, PE *pe) : BaseThread(w,pe),useUserThreads(false) {}
+	SMPThread(SMPWD &w, PE *pe) : BaseThread(w,pe),useUserThreads(true) {}
 	// destructor
     ~SMPThread() { if (isStarted()) /*TODO: stop()*/; }
 
