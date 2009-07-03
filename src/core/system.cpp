@@ -22,7 +22,8 @@ void System::init ()
     config.init();
 }
 
-SchedulingGroup * createBreadthFirstPolicy();
+//SchedulingGroup * createBreadthFirstPolicy();
+SchedulingGroup * createTaskStealPolicy();
 
 void System::start ()
 {
@@ -34,7 +35,7 @@ void System::start ()
     //pes.reserve(numPes);
 
     //TODO: remove, initialize policy dynamically
-    SchedulingGroup *sg = createBreadthFirstPolicy();
+    SchedulingGroup *sg = createTaskStealPolicy();
     //TODO: decide, single master, multiple master start
 
     PE *pe = new SMPProcessor(0);

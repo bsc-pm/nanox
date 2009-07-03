@@ -3,9 +3,28 @@
 
 using namespace nanos;
 
-class TaskStealPolicy : public SchedulingGroup {
+
+class TaskStealData : public SchedulingData
+{
+  friend class TaskStealPolicy; //in this way, the policy can access the readyQueue
+
 private:
-     WDDeque   readyQueue;
+  int schId;
+  WDDeque readyQueue;
+
+public:
+  // constructor
+  TaskStealData(int id=0) : schId(id) {}
+  //TODO: copy & assigment costructor
+  
+  // destructor
+  ~TaskStealData() {}
+  
+  void setSchId(int id)  { schId = id; }
+  int getSchId() const { return schId; }
+};
+
+class TaskStealPolicy : public SchedulingGroup {
 public:
      // constructor
      TaskStealPolicy() : SchedulingGroup("task-steal-sch") {}
@@ -13,27 +32,29 @@ public:
      // destructor
      virtual ~TaskStealPolicy() {}
 
-     virtual WD *atCreation (PE *pe, WD &newWD);
-     virtual WD *atIdle (PE *pe);
-     virtual void queue (PE *pe, WD &wd);
+     virtual WD *atCreation (BaseThread *thread, WD &newWD);
+     virtual WD *atIdle (BaseThread *thread);
+     virtual void queue (BaseThread *thread, WD &wd);
 };
 
-void TaskStealPolicy::queue (PE *pe, WD &wd)
+void TaskStealPolicy::queue (BaseThread *thread, WD &wd)
 {
-    readyQueue.push_back(&wd);
+  TaskStealData *data = (TaskStealData *) thread->getSchedulingData();
+  data->readyQueue.push_back(&wd);
 }
 
-WD * TaskStealPolicy::atCreation (PE *pe, WD &newWD)
+WD * TaskStealPolicy::atCreation (BaseThread *thread, WD &newWD)
 {
-    queue(pe,newWD);
+    queue(thread,newWD);
     return 0;
 }
 
-WD * TaskStealPolicy::atIdle (PE *pe)
+WD * TaskStealPolicy::atIdle (BaseThread *thread)
 {
   WorkDescriptor * wd;
 
-  if ((wd = readyQueue.pop_front(pe)) != NULL) {
+  TaskStealData *data = (TaskStealData *) thread->getSchedulingData();
+  if ( (wd = data->readyQueue.pop_front(thread)) != NULL ) {
     std::cout << "I have a task in my queue: do not need to steal one" << std::endl;
     return wd;
   } else { //steal tasks from other pes?
