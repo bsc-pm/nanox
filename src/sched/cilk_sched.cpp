@@ -57,9 +57,14 @@ WD * TaskStealPolicy::atIdle (BaseThread *thread)
   if ( (wd = data->readyQueue.pop_front(thread)) != NULL ) {
     std::cout << "I have a task in my queue: do not need to steal one" << std::endl;
     return wd;
-  } else { //steal tasks from other pes?
-    //TODO
-    std::cout << "I should steal a task, but I don't yet know how to do this" << std::endl;
+  } else { //steal tasks from other pes
+    //select a new task queue: should be random, but for now round-robin works..
+    //data->schId corresponds to queue position in group!
+    int newposition = ((data->schId) +1) % size;
+    while((wd = (((TaskStealData *) group[newposition])->readyQueue.pop_front(thread))) == NULL)
+      newposition = newposition + 1 % size; //cyclic on the number of elements in group    
+    
+    std::cout << "Task stolen, but with a very fine grain...I should steal a packet of tasks" << std::endl;
     return wd;
   }
 }

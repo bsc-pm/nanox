@@ -22,18 +22,21 @@ public:
       void setSchId(int id)  { schId = id; }
       int getSchId() const { return schId; }
 };
-
+  
 // Groups a number of BaseThreads and a number of WD with a policy
 // Each BaseThread and WD can pertain only to a SG
 class SchedulingGroup {
 private:
-    typedef std::vector<SchedulingData *> group_t;
-
-    std::string    name;
-    int		   size;
-    group_t        group;
-    WDDeque        idleQueue;
-    
+  typedef std::vector<SchedulingData *> group_t;
+  
+  std::string    name;
+  WDDeque        idleQueue;
+  
+protected:
+  int            size;
+  group_t        group;
+  
+  
     // disable copy and assignment
     SchedulingGroup(const SchedulingGroup &);
     SchedulingGroup & operator= (const SchedulingGroup &);
