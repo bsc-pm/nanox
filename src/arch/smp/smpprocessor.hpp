@@ -22,12 +22,12 @@ public:
 	SMPProcessor(int id) : PE(id,&SMP) {}
 	// destructor, TODO: stop all related threads
 	virtual ~SMPProcessor() {}
+  
+  virtual WD & getWorkerWD () const;
+  virtual WD & getMasterWD () const;
+  virtual BaseThread & createThread (WorkDescriptor &wd);
 
-    virtual WD & getWorkerWD () const;
-    virtual WD & getMasterWD () const;
-	virtual BaseThread & createThread (WorkDescriptor &wd);
-
-	static void prepareConfig (Config &config);
+  static void prepareConfig (Config &config);
 };
 
 

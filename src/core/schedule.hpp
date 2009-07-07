@@ -9,9 +9,10 @@
 namespace nanos {
 
 class SchedulingData {
-private:
-      int schId;
+protected:
+  int schId;
 public:
+
       // constructor
       SchedulingData(int id=0) : schId(id) {}
       //TODO: copy & assigment costructor

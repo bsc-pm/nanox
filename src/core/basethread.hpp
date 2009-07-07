@@ -13,10 +13,13 @@ class SchedulingData;
 
 // Threads are binded to a PE for its life-time
 class BaseThread {
+public:
+  int id; //MOVED ONLY FOR DEBUG!!!!
 private:
   static Atomic<int> idSeed;
   // Thread info
-  int id;
+
+
   ProcessingElement *pe;
   WD & threadWD;
 
@@ -35,6 +38,7 @@ private:
 
   virtual void run_dependent () = 0;
 public:
+
   // constructor
   BaseThread (WD &wd, ProcessingElement *creator=0) : 
      id(idSeed++),pe(creator), threadWD(wd), started(false), mustStop(false) {}

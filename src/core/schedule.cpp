@@ -10,7 +10,7 @@ void Scheduler::submit ( WD &wd )
 
    debug ( "submitting task " << wd.getId() );
    WD *next = myThread->getSchedulingGroup()->atCreation ( myThread, wd );
-
+   
    if ( next ) {
       myThread->switchTo ( next );
    }
@@ -77,7 +77,6 @@ void Scheduler::idle ()
    // This function is run always by the same BaseThread so we don't need to use getMyThreadSafe
    BaseThread *thread = myThread;
 
-   verbose ( "Working thread entering idle loop" );
    thread->getCurrentWD()->setIdle();
 
    while ( thread->isRunning() ) {
@@ -113,12 +112,12 @@ void SchedulingGroup::init ( int groupSize )
 
 void SchedulingGroup::addMember ( BaseThread &thread )
 {
-   SchedulingData *data = createMemberData ( thread );
+	SchedulingData *data = createMemberData ( thread );
 
-   data->setSchId ( size );
-   thread.setScheduling ( this, data );
+	data->setSchId ( size );
+	thread.setScheduling ( this, data );
 
-   group[size++] = data;
+	group[size++] = data;
 }
 
 void SchedulingGroup::removeMember ( BaseThread &thread )

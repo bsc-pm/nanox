@@ -74,7 +74,7 @@ void SMPThread::start ()
 //                         (size_t) aux_desc->stack_size
 //                 );
 
-// TODO: check return && throw exception ?
+// TODO: check return && throw exception ?	
       if (pthread_create(
               &pth,
               NULL,

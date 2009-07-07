@@ -23,11 +23,12 @@ void System::init ()
 }
 
 //SchedulingGroup * createBreadthFirstPolicy();
-SchedulingGroup * createTaskStealPolicy();
+SchedulingGroup * createTaskStealPolicy(int);
 
 void System::start ()
 {
     int numPes = CoreSetup::getNumPEs();
+    //numPes = 2; //debug carlo...
 
     // if preload, TODO: allow dynamic PE creation
 
@@ -35,7 +36,8 @@ void System::start ()
     //pes.reserve(numPes);
 
     //TODO: remove, initialize policy dynamically
-    SchedulingGroup *sg = createTaskStealPolicy();
+    SchedulingGroup *sg = createTaskStealPolicy(numPes);
+    //SchedulingGroup *sg = createBreadthFirstPolicy();
     //TODO: decide, single master, multiple master start
 
     PE *pe = new SMPProcessor(0);

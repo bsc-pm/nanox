@@ -46,7 +46,7 @@ int fib (int n, int d)
     nanos::WG *wg = new nanos::WG();
     
     //		#pragma omp task untied shared(x) firstprivate(n,d)
-    //		x = fib(n - 2,d+1);
+    //		x = fib(n - 1,d+1);
     {
       nanos::WorkData *data = new nanos::WorkData();
       data->setArguments(2*sizeof(int)+sizeof(int *),3,0,n,d,&x);
@@ -60,7 +60,7 @@ int fib (int n, int d)
     {
       nanos::WorkData *data = new nanos::WorkData();
       data->setArguments(2*sizeof(int)+sizeof(int *),3,0,n,d,&y);
-            nanos::SMPWD * wd = new nanos::SMPWD(fib_1,data);
+      nanos::SMPWD * wd = new nanos::SMPWD(fib_1,data);
       wg->addWork(*wd);
       nanos::sys.submit(*wd);
     }
