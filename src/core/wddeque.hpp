@@ -33,6 +33,7 @@ public:
     WorkDescriptor * pop_front (BaseThread *thread);
     //TODO: WorkDescriptor * pop_front (PE *pe, SchedulePredicate &predicate);
     //TODO: pop_back
+    WorkDescriptor * pop_back (BaseThread *thread);
 };
 
 inline void WDDeque::push_front (WorkDescriptor *wd)
@@ -77,6 +78,35 @@ inline WorkDescriptor * WDDeque::pop_front (BaseThread *thread)
 
     return found;
 }
+
+
+// Only ensures tie semantics
+inline WorkDescriptor * WDDeque::pop_back (BaseThread *thread)
+{
+    WorkDescriptor *found = NULL;
+
+    if ( dq.empty() ) return NULL;
+    memory_fence();
+    lock++;
+    if (!dq.empty()) {
+      WDDeque::deque_t::iterator it;
+
+	for(it = dq.end(), --it; it != dq.begin(); --it)
+	{
+           if ( !(*it)->isTied() || (*it)->isTiedTo() == thread ) {
+	        found = *it;
+		dq.erase(it);
+	        break;
+	   }
+	}
+    }
+    lock--;
+
+    ensure(!found || !found->isTied() || found->isTiedTo() == thread, "" );
+
+    return found;
+}
+
 
 }
 

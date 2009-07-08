@@ -78,8 +78,8 @@ int main (int argc, char **argv)
 	WG *wg = myThread->getCurrentWD();
 	wd2->addWork(*wd);
 	wg->addWork(*wd2);
-	sys.submit(*wd);
-	sys.submit(*wd2);
+	sys.submit(*wd,NULL);
+	sys.submit(*wd2,NULL);
 	usleep(500);
 	
 	cout << "end" << endl;

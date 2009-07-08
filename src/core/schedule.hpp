@@ -9,7 +9,7 @@
 namespace nanos {
 
 class SchedulingData {
-protected:
+private:
   int schId;
 public:
 

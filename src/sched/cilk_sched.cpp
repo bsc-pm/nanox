@@ -42,13 +42,13 @@ public:
 void TaskStealPolicy::queue (BaseThread *thread, WD &wd)
 {
  	TaskStealData *data = (TaskStealData *) thread->getSchedulingData();
- 	data->readyQueue.push_back(&wd);
+ 	data->readyQueue.push_front(&wd);
 }
 
 WD * TaskStealPolicy::atCreation (BaseThread *thread, WD &newWD)
 {
-	queue(thread,newWD);
-	return 0;
+	//NEW: now it does not enqueue the created task, but it moves down to the generated son: DEPTH-FIRST
+	return &newWD;
 }
 
 WD * TaskStealPolicy::atIdle (BaseThread *thread)
@@ -56,19 +56,23 @@ WD * TaskStealPolicy::atIdle (BaseThread *thread)
 	WorkDescriptor * wd;
 
 	TaskStealData *data = (TaskStealData *) thread->getSchedulingData();
-
 	
 	if ( (wd = data->readyQueue.pop_front(thread)) != NULL ) {
-
     		return wd;
 	} else {
-		int newposition = ((data->schId) +1) % size;
+		//TODO: first try to steal parent task
+		if( (wd = (thread->getCurrentWD())->getParent()) != NULL ) {
+			return wd;
+		} else {
+			//next: steal other tasks
+			int newposition = ((data->getSchId()) +1) % size;
 
-		//should be random: for now it checks neighbour queues in round robin
-		while((newposition != data->schId) && (wd = (((TaskStealData *) group[newposition])->readyQueue.pop_front(thread))) == NULL) {
-			newposition = (newposition +1) % size;
-        	}
-		return wd;
+			//should be random: for now it checks neighbour queues in round robin
+			while((newposition != data->getSchId()) && (wd = (((TaskStealData *) group[newposition])->readyQueue.pop_back(thread))) == NULL) {
+				newposition = (newposition +1) % size;
+        		}
+			return wd;
+		}
 	}
 }
 

@@ -28,7 +28,6 @@ SchedulingGroup * createTaskStealPolicy(int);
 void System::start ()
 {
     int numPes = CoreSetup::getNumPEs();
-    //numPes = 2; //debug carlo...
 
     // if preload, TODO: allow dynamic PE creation
 
@@ -73,9 +72,12 @@ System::~System ()
 }
 
 //TODO: remove?
-void System::submit (WD &work)
+void System::submit (WD &work, WorkDescriptor * parent)
 {
-    Scheduler::submit(work);
+	 //ADDED parent setting for cilk scheduler
+	work.setParent(parent);
+
+	Scheduler::submit(work);
 }
 
 //TODO: void system_description ()

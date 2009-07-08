@@ -66,8 +66,13 @@ private:
 	bool	  tie;
 	BaseThread *  tie_to;
 	bool      idle;
+
+	//Added parent for cilk scheduler: first steal parent task, next other tasks
+	WorkDescriptor * parent;
+
 protected:
 	WorkData * getData () const { return data; }
+
 public:
 	// constructors
 	WorkDescriptor(WorkData *wdata=0) : WorkGroup(), data(wdata), tie(false), tie_to(0), idle(false) {}
@@ -77,6 +82,9 @@ public:
 	const WorkDescriptor & operator= (const WorkDescriptor &wd);
 	// destructor
 	virtual ~WorkDescriptor() {}
+
+	WorkDescriptor * getParent() const { return parent;}
+	void setParent(WorkDescriptor * p) {parent = p;}
 
 	/* named arguments idiom */
 	WorkDescriptor & tied () { tie = true; return *this; }
