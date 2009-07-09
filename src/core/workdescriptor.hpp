@@ -6,11 +6,13 @@
 #include <vector>
 #include "workgroup.hpp"
 
+
 namespace nanos {
 
 // forward declarations
 class BaseThread;
 class ProcessingElement;
+class WDDeque;
 
 class Architecture
 {
@@ -70,12 +72,15 @@ private:
 	//Added parent for cilk scheduler: first steal parent task, next other tasks
 	WorkDescriptor * parent;
 
+	//Added reference to queue to allow dequeuing from third party (e.g. cilk scheduler)
+	WDDeque * myQueue;
+
 protected:
 	WorkData * getData () const { return data; }
 
 public:
 	// constructors
-	WorkDescriptor(WorkData *wdata=0) : WorkGroup(), data(wdata), tie(false), tie_to(0), idle(false) {}
+	WorkDescriptor(WorkData *wdata=0) : WorkGroup(), data(wdata), tie(false), tie_to(0), idle(false), myQueue(NULL) {}
 	// TODO: copy constructor
 	WorkDescriptor(const WorkDescriptor &wd);
 	// TODO: assignment operator
@@ -83,8 +88,13 @@ public:
 	// destructor
 	virtual ~WorkDescriptor() {}
 
-	WorkDescriptor * getParent() const { return parent;}
+	WorkDescriptor * getParent() { return parent;}
 	void setParent(WorkDescriptor * p) {parent = p;}
+
+	WDDeque * getMyQueue() {return myQueue;}
+	void setMyQueue(WDDeque * myQ) {myQueue = myQ;}
+	bool isEnqueued() {return (myQueue != NULL);}
+
 
 	/* named arguments idiom */
 	WorkDescriptor & tied () { tie = true; return *this; }

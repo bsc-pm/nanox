@@ -12,7 +12,7 @@ class SchedulingGroup;
 class SchedulingData;
 
 // Threads are binded to a PE for its life-time
-class BaseThread {:
+class BaseThread {
 private:
   static Atomic<int> idSeed;
   // Thread info

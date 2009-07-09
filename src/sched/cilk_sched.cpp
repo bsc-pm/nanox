@@ -20,8 +20,7 @@ public:
 	// destructor
 	~TaskStealData() {}
 
-	void setSchId(int id)  { schId = id; }
-	int getSchId() const { return schId; }
+	
 };
 
 class TaskStealPolicy : public SchedulingGroup {
@@ -59,20 +58,23 @@ WD * TaskStealPolicy::atIdle (BaseThread *thread)
 	
 	if ( (wd = data->readyQueue.pop_front(thread)) != NULL ) {
     		return wd;
-	} else {
-		//TODO: first try to steal parent task
-		if( (wd = (thread->getCurrentWD())->getParent()) != NULL ) {
-			return wd;
-		} else {
-			//next: steal other tasks
-			int newposition = ((data->getSchId()) +1) % size;
-
-			//should be random: for now it checks neighbour queues in round robin
-			while((newposition != data->getSchId()) && (wd = (((TaskStealData *) group[newposition])->readyQueue.pop_back(thread))) == NULL) {
-				newposition = (newposition +1) % size;
-        		}
-			return wd;
-		}
+	} else {			
+		//first try to steal parent task
+		if( (wd = (thread->getCurrentWD())->getParent()) != NULL ) {			
+			//removing it from the queue. Try to remove from one queue: if someone move it, I stop looking for it to avoid ping-pongs.
+                        if ( wd->isEnqueued() == true) { //not in queue = in execution, in queue = not in execution	
+				if(wd->getMyQueue()->removeWD(wd) == true) { //found it!					
+					return wd;
+				}
+			}
+		 }
+		//if parent task is NULL or someone has moved it while I was trying to steal it --> steal other tasks
+		int newposition = ((data->getSchId()) +1) % getSize();
+		//should be random: for now it checks neighbour queues in round robin
+		while((newposition != data->getSchId()) && (wd = (((TaskStealData *) (getMemberData(newposition)))->readyQueue.pop_back(thread))) == NULL) {
+			newposition = (newposition +1) % getSize();
+        	}
+		return wd;
 	}
 }
 

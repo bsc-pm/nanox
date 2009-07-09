@@ -3,6 +3,9 @@
 #include "smpprocessor.hpp"
 #include "schedule.hpp"
 
+//for wf scheduling macros
+#include "../sched/wf_sched.hpp"
+
 using namespace nanos;
 
 System nanos::sys;
@@ -24,6 +27,7 @@ void System::init ()
 
 //SchedulingGroup * createBreadthFirstPolicy();
 SchedulingGroup * createTaskStealPolicy(int);
+//SchedulingGroup * createWFPolicy(int, int, int);
 
 void System::start ()
 {
@@ -36,6 +40,7 @@ void System::start ()
 
     //TODO: remove, initialize policy dynamically
     SchedulingGroup *sg = createTaskStealPolicy(numPes);
+    //SchedulingGroup *sg = createWFPolicy(numPes, LIFO, LIFO);
     //SchedulingGroup *sg = createBreadthFirstPolicy();
     //TODO: decide, single master, multiple master start
 
@@ -72,10 +77,10 @@ System::~System ()
 }
 
 //TODO: remove?
-void System::submit (WD &work, WorkDescriptor * parent)
+void System::submit (WD &work)
 {
 	 //ADDED parent setting for cilk scheduler
-	work.setParent(parent);
+	work.setParent(myThread->getCurrentWD());
 
 	Scheduler::submit(work);
 }

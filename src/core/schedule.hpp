@@ -29,15 +29,14 @@ public:
 class SchedulingGroup {
 private:
   typedef std::vector<SchedulingData *> group_t;
-  
+
   std::string    name;
   WDDeque        idleQueue;
-  
-protected:
+
   int            size;
   group_t        group;
-  
-  
+
+
     // disable copy and assignment
     SchedulingGroup(const SchedulingGroup &);
     SchedulingGroup & operator= (const SchedulingGroup &);
@@ -49,6 +48,12 @@ public:
     SchedulingGroup(const char  *policy_name, int groupSize=1) : name(policy_name) { init(groupSize); }
     // destructor
     virtual ~SchedulingGroup() {}
+
+
+    //modifiers
+    SchedulingData * getMemberData(int id) {return group[id];}
+    void setSize(int s) {size = s;}
+    int getSize() {return size;}
 
     // membership related methods. This members are not thread-safe
     virtual void addMember (BaseThread &thread);

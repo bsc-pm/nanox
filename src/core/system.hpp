@@ -23,7 +23,7 @@ public:
 
   void init ();
   void start ();
-  void submit (WD &work, WorkDescriptor * parent);
+  void submit (WD &work);
 };
 
 extern System sys;

@@ -34,10 +34,13 @@ public:
     //TODO: WorkDescriptor * pop_front (PE *pe, SchedulePredicate &predicate);
     //TODO: pop_back
     WorkDescriptor * pop_back (BaseThread *thread);
+
+    bool removeWD(WorkDescriptor * toRem);
 };
 
 inline void WDDeque::push_front (WorkDescriptor *wd)
 {
+  wd->setMyQueue(this);
   lock++;
   dq.push_back(wd);
   memory_fence();
@@ -46,6 +49,7 @@ inline void WDDeque::push_front (WorkDescriptor *wd)
 
 inline void WDDeque::push_back (WorkDescriptor *wd)
 {
+  wd->setMyQueue(this);
   lock++;
   dq.push_back(wd);
   memory_fence();
@@ -76,6 +80,8 @@ inline WorkDescriptor * WDDeque::pop_front (BaseThread *thread)
 
     ensure(!found || !found->isTied() || found->isTiedTo() == thread, "" );
 
+    if(found != NULL) {found->setMyQueue(NULL);}
+
     return found;
 }
 
@@ -104,12 +110,39 @@ inline WorkDescriptor * WDDeque::pop_back (BaseThread *thread)
 
     ensure(!found || !found->isTied() || found->isTiedTo() == thread, "" );
 
+    if(found != NULL) {found->setMyQueue(NULL);}
     return found;
 }
 
 
+
+
+inline bool WDDeque::removeWD(WorkDescriptor * toRem)
+{
+	if ( dq.empty() ) return false;
+	memory_fence();
+	lock++;
+	
+	if (!dq.empty() && toRem->getMyQueue() == this) {
+		WDDeque::deque_t::iterator it;			
+
+		for(it = dq.begin(); it != dq.end(); it++) {
+			if(*it == toRem) {
+				dq.erase(it);
+				toRem->setMyQueue(NULL);
+
+				lock--;
+				return true;
+			}
+		}
+	}
+	lock--;
+
+	return false;	
 }
 
+
+}
 
 
 #endif
