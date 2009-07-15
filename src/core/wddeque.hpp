@@ -10,6 +10,7 @@
 namespace nanos {
 
 class SchedulePredicate {
+public:
     bool operator() (WorkDescriptor *wd);
 };
 
@@ -31,9 +32,9 @@ public:
     void push_front (WorkDescriptor *wd);
     void push_back(WorkDescriptor *wd);
     WorkDescriptor * pop_front (BaseThread *thread);
-    //TODO: WorkDescriptor * pop_front (PE *pe, SchedulePredicate &predicate);
-    //TODO: pop_back
+    WorkDescriptor * pop_front (BaseThread *thread, SchedulePredicate &predicate);
     WorkDescriptor * pop_back (BaseThread *thread);
+    WorkDescriptor * pop_back (BaseThread *thread, SchedulePredicate &predicate);
 
     bool removeWD(WorkDescriptor * toRem);
 };
@@ -142,8 +143,65 @@ inline bool WDDeque::removeWD(WorkDescriptor * toRem)
 }
 
 
+inline WorkDescriptor * WDDeque::pop_front (BaseThread *thread, SchedulePredicate &predicate)
+{
+    WorkDescriptor *found = NULL;
+
+    if ( dq.empty() ) return NULL;
+    memory_fence();
+    lock++;
+    if (!dq.empty()) {
+      WDDeque::deque_t::iterator it;
+
+      for ( it = dq.begin() ; it != dq.end(); it++ )
+      {
+           if ( (!(*it)->isTied() || (*it)->isTiedTo() == thread) && (predicate(found) == true) ) {
+	        found = *it;
+		dq.erase(it);
+	        break;
+	   }
+      }
+    }
+    lock--;
+
+    ensure(!found || !found->isTied() || found->isTiedTo() == thread, "" );
+
+    if(found != NULL) {found->setMyQueue(NULL);}
+
+    return found;
 }
 
+
+
+// Also ensures that the passed predicate is verified on the returned element
+inline WorkDescriptor * WDDeque::pop_back (BaseThread *thread, SchedulePredicate &predicate)
+{
+    WorkDescriptor *found = NULL;
+
+    if ( dq.empty() ) return NULL;
+    memory_fence();
+    lock++;
+    if (!dq.empty()) {
+      WDDeque::deque_t::iterator it;
+
+	for(it = dq.end(), --it; it != dq.begin(); --it)
+	{
+           if ( (!(*it)->isTied() || (*it)->isTiedTo() == thread)  && (predicate(found) == true) ) {
+	        found = *it;
+		dq.erase(it);
+	        break;
+	   }
+	}
+    }
+    lock--;
+
+    ensure(!found || !found->isTied() || found->isTiedTo() == thread, "" );
+
+    if(found != NULL) {found->setMyQueue(NULL);}
+    return found;
+}
+
+}
 
 #endif
 

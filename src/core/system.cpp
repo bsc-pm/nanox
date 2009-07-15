@@ -27,7 +27,7 @@ void System::init ()
 
 //SchedulingGroup * createBreadthFirstPolicy();
 SchedulingGroup * createTaskStealPolicy(int);
-//SchedulingGroup * createWFPolicy(int, int, int);
+SchedulingGroup * createWFPolicy(int, int, int, bool);
 
 void System::start ()
 {
@@ -39,8 +39,8 @@ void System::start ()
     //pes.reserve(numPes);
 
     //TODO: remove, initialize policy dynamically
-    SchedulingGroup *sg = createTaskStealPolicy(numPes);
-    //SchedulingGroup *sg = createWFPolicy(numPes, LIFO, LIFO);
+    //SchedulingGroup *sg = createTaskStealPolicy(numPes);
+    SchedulingGroup *sg = createWFPolicy(numPes, LIFO, LIFO, true);
     //SchedulingGroup *sg = createBreadthFirstPolicy();
     //TODO: decide, single master, multiple master start
 
