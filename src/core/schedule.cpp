@@ -25,13 +25,15 @@ void Scheduler::exit ( void )
 
    WD *next = myThread->getSchedulingGroup()->atExit ( myThread );
 
-   if ( !next )
+   if ( !next ) {
+      //std::cout << "nel primo if" << std::endl;
       next = myThread->getSchedulingGroup()->getIdle ( myThread );
-
+   }
    if ( next ) {
+      //std::cout << "nel secondo if" << std::endl;
       myThread->exitTo ( next );
    }
-
+   //std::cout << "prima del fatal" << std::endl;
    fatal ( "No more tasks to execute!" );
 }
 

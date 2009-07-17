@@ -6,36 +6,34 @@ using namespace nanos;
 
 class TaskStealData : public SchedulingData
 {
-	friend class TaskStealPolicy; //in this way, the policy can access the readyQueue
+   friend class TaskStealPolicy; //in this way, the policy can access the readyQueue
 
 protected:
-  	//  int schId;
-  	WDDeque readyQueue;
+   //  int schId;
+   WDDeque readyQueue;
 
 public:
-	// constructor
-	TaskStealData(int id=0) : SchedulingData(id) {}
-	//TODO: copy & assigment costructor
+   // constructor
+   TaskStealData(int id=0) : SchedulingData(id) {}
+   //TODO: copy & assigment costructor
 
-	// destructor
-	~TaskStealData() {}
-
-	
+   // destructor
+   ~TaskStealData() {}
 };
 
 class TaskStealPolicy : public SchedulingGroup {
 public:
-	// constructor
-	TaskStealPolicy() : SchedulingGroup("task-steal-sch") {}
-	TaskStealPolicy(int groupsize) : SchedulingGroup("task-steal-sch", groupsize) {}
-	// TODO: copy and assigment operations
-	// destructor
-	virtual ~TaskStealPolicy() {}
+   // constructor
+   TaskStealPolicy() : SchedulingGroup("task-steal-sch") {}
+   TaskStealPolicy(int groupsize) : SchedulingGroup("task-steal-sch", groupsize) {}
+   // TODO: copy and assigment operations
+   // destructor
+   virtual ~TaskStealPolicy() {}
 
-	virtual WD *atCreation (BaseThread *thread, WD &newWD);
-	virtual WD *atIdle (BaseThread *thread);
-	virtual void queue (BaseThread *thread, WD &wd);
-	virtual SchedulingData * createMemberData (BaseThread &thread);
+   virtual WD *atCreation (BaseThread *thread, WD &newWD);
+   virtual WD *atIdle (BaseThread *thread);
+   virtual void queue (BaseThread *thread, WD &wd);
+   virtual SchedulingData * createMemberData (BaseThread &thread);
 };
 
 void TaskStealPolicy::queue (BaseThread *thread, WD &wd)

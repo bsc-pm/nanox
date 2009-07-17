@@ -7,6 +7,10 @@ bool 	CoreSetup::binding = false;
 bool	CoreSetup::profile = true;
 bool 	CoreSetup::instrument = false;
 bool 	CoreSetup::verbose = false;
+
+//more than 1 thread per pe
+int CoreSetup::thsPerPE = 1;
+
 CoreSetup::ExecutionMode CoreSetup::executionMode = DEDICATED;
 
 void CoreSetup::prepareConfig (Config &config)
@@ -14,6 +18,10 @@ void CoreSetup::prepareConfig (Config &config)
 	config.registerArgOption(new Config::PositiveVar("nth-pes",numPEs));
 	config.registerArgOption(new Config::FlagOption("nth-bindig",binding));
 	config.registerArgOption(new Config::FlagOption("nth-verbose",verbose));
+
+   //more than 1 thread per pe
+   config.registerArgOption(new Config::PositiveVar("nth-thsperpe",thsPerPE));
+
 
 	//TODO: how to simplify this a bit?
 	Config::MapVar<ExecutionMode>::MapList opts(2);

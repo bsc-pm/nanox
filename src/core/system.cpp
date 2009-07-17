@@ -25,7 +25,7 @@ void System::init ()
     config.init();
 }
 
-//SchedulingGroup * createBreadthFirstPolicy();
+SchedulingGroup * createBreadthFirstPolicy();
 SchedulingGroup * createTaskStealPolicy(int);
 SchedulingGroup * createWFPolicy(int, int, int, bool);
 
@@ -39,8 +39,8 @@ void System::start ()
     //pes.reserve(numPes);
 
     //TODO: remove, initialize policy dynamically
-    //SchedulingGroup *sg = createTaskStealPolicy(numPes);
-    SchedulingGroup *sg = createWFPolicy(numPes, LIFO, LIFO, true);
+    SchedulingGroup *sg = createTaskStealPolicy(numPes);
+    //SchedulingGroup *sg = createWFPolicy(numPes, LIFO, LIFO, true);
     //SchedulingGroup *sg = createBreadthFirstPolicy();
     //TODO: decide, single master, multiple master start
 
@@ -52,7 +52,11 @@ void System::start ()
 	// TODO: create processor type based on config
       pe = new SMPProcessor(p);
       pes.push_back(pe);
-      pe->startWorker(sg);
+
+      //starting as much threads per pe as requested by the user
+      for(int ths = 0; ths < CoreSetup::getThsPerPE(); ths++) { 
+         pe->startWorker(sg);
+      }
     }
 }
 
