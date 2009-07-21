@@ -11,8 +11,11 @@ namespace nanos {
 
 class SchedulePredicate {
 public:
-    bool operator() (WorkDescriptor *wd);
+    virtual bool operator() (WorkDescriptor *wd);
+
+   virtual ~SchedulePredicate(){}
 };
+
 
 class WDDeque {
 private:
@@ -96,16 +99,18 @@ inline WorkDescriptor * WDDeque::pop_back (BaseThread *thread)
     memory_fence();
     lock++;
     if (!dq.empty()) {
-      WDDeque::deque_t::iterator it;
+      WDDeque::deque_t::reverse_iterator rit;
 
-	for(it = dq.end(), --it; it != dq.begin(); --it)
-	{
-           if ( !(*it)->isTied() || (*it)->isTiedTo() == thread ) {
-	        found = *it;
-		dq.erase(it);
+      rit = dq.rbegin();
+      while( rit != dq.rend() )
+      {
+           if ( !(*rit)->isTied() || (*rit)->isTiedTo() == thread ) {
+	        found = *rit;
+		dq.erase((++rit).base());
 	        break;
 	   }
-	}
+	rit++;
+      }
     }
     lock--;
 
@@ -155,7 +160,7 @@ inline WorkDescriptor * WDDeque::pop_front (BaseThread *thread, SchedulePredicat
 
       for ( it = dq.begin() ; it != dq.end(); it++ )
       {
-           if ( (!(*it)->isTied() || (*it)->isTiedTo() == thread) && (predicate(found) == true) ) {
+           if ( (!(*it)->isTied() || (*it)->isTiedTo() == thread) && (predicate(*it) == true) ) {
 	        found = *it;
 		dq.erase(it);
 	        break;
@@ -182,18 +187,20 @@ inline WorkDescriptor * WDDeque::pop_back (BaseThread *thread, SchedulePredicate
     memory_fence();
     lock++;
     if (!dq.empty()) {
-      WDDeque::deque_t::iterator it;
+      WDDeque::deque_t::reverse_iterator rit;
 
-	for(it = dq.end(), --it; it != dq.begin(); --it)
-	{
-           if ( (!(*it)->isTied() || (*it)->isTiedTo() == thread)  && (predicate(found) == true) ) {
-	        found = *it;
-		dq.erase(it);
-	        break;
-	   }
-	}
-    }
-    lock--;
+      rit = dq.rbegin();
+      while( rit != dq.rend() )
+      {
+         if ( (!(*rit)->isTied() || (*rit)->isTiedTo() == thread)  && (predicate(*rit) == true) ) {
+            found = *rit;
+            dq.erase((++rit).base());
+            break;
+         }
+         rit++;
+      }
+   }
+   lock--;
 
     ensure(!found || !found->isTied() || found->isTiedTo() == thread, "" );
 

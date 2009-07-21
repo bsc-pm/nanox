@@ -3,9 +3,6 @@
 #include "smpprocessor.hpp"
 #include "schedule.hpp"
 
-//for wf scheduling macros
-#include "../sched/wf_sched.hpp"
-
 using namespace nanos;
 
 System nanos::sys;
@@ -28,6 +25,8 @@ void System::init ()
 SchedulingGroup * createBreadthFirstPolicy();
 SchedulingGroup * createTaskStealPolicy(int);
 SchedulingGroup * createWFPolicy(int, int, int, bool);
+#define LIFO 1
+#define FIFO 0
 
 void System::start ()
 {
@@ -39,8 +38,8 @@ void System::start ()
     //pes.reserve(numPes);
 
     //TODO: remove, initialize policy dynamically
-    SchedulingGroup *sg = createTaskStealPolicy(numPes);
-    //SchedulingGroup *sg = createWFPolicy(numPes, LIFO, LIFO, true);
+    //SchedulingGroup *sg = createTaskStealPolicy(numPes);
+    SchedulingGroup *sg = createWFPolicy(numPes, LIFO, LIFO, true);
     //SchedulingGroup *sg = createBreadthFirstPolicy();
     //TODO: decide, single master, multiple master start
 
@@ -49,7 +48,7 @@ void System::start ()
     pe->associateThisThread(sg);
 
     for ( int p = 1; p < numPes ; p++ ) {
-	// TODO: create processor type based on config
+      // TODO: create processor type based on config
       pe = new SMPProcessor(p);
       pes.push_back(pe);
 

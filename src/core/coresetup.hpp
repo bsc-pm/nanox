@@ -18,7 +18,7 @@ static bool verbose;
 static ExecutionMode executionMode;
 
 //added for more than one thread per pe
-static int thsPerPE;;
+static int thsPerPE;
 
 public:
 

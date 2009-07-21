@@ -38,14 +38,14 @@ public:
 
 void TaskStealPolicy::queue (BaseThread *thread, WD &wd)
 {
- 	TaskStealData *data = (TaskStealData *) thread->getSchedulingData();
- 	data->readyQueue.push_front(&wd);
+   TaskStealData *data = (TaskStealData *) thread->getSchedulingData();
+   data->readyQueue.push_front(&wd);
 }
 
 WD * TaskStealPolicy::atCreation (BaseThread *thread, WD &newWD)
 {
-	//NEW: now it does not enqueue the created task, but it moves down to the generated son: DEPTH-FIRST
-	return &newWD;
+   //NEW: now it does not enqueue the created task, but it moves down to the generated son: DEPTH-FIRST
+   return &newWD;
 }
 
 WD * TaskStealPolicy::atIdle (BaseThread *thread)
@@ -60,7 +60,7 @@ WD * TaskStealPolicy::atIdle (BaseThread *thread)
 		//first try to steal parent task
 		if( (wd = (thread->getCurrentWD())->getParent()) != NULL ) {			
 			//removing it from the queue. Try to remove from one queue: if someone move it, I stop looking for it to avoid ping-pongs.
-                        if ( wd->isEnqueued() == true) { //not in queue = in execution, in queue = not in execution	
+                        if ( (wd->isEnqueued()) == true && ( !(wd)->isTied() || (wd)->isTiedTo() == thread ) ) { //not in queue = in execution, in queue = not in execution	
 				if(wd->getMyQueue()->removeWD(wd) == true) { //found it!					
 					return wd;
 				}
