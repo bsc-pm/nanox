@@ -2,6 +2,7 @@
 #include "coresetup.hpp"
 #include "smpprocessor.hpp"
 #include "schedule.hpp"
+#include "plugin.hpp"
 
 using namespace nanos;
 
@@ -9,7 +10,6 @@ System nanos::sys;
 
 System::System ()
 {
-
   CoreSetup::prepareConfig(config);
   SMPProcessor::prepareConfig(config);
   
@@ -38,9 +38,7 @@ void System::start ()
     //pes.reserve(numPes);
 
     //TODO: remove, initialize policy dynamically
-    //SchedulingGroup *sg = createTaskStealPolicy(numPes);
-    SchedulingGroup *sg = createWFPolicy(numPes, LIFO, LIFO, true);
-    //SchedulingGroup *sg = createBreadthFirstPolicy();
+    SchedulingGroup *sg = createBreadthFirstPolicy();
     //TODO: decide, single master, multiple master start
 
     PE *pe = new SMPProcessor(0);
