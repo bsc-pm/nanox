@@ -14,7 +14,7 @@ bool PluginManager::load (const char *name)
 
     verbose0("trying to load plugin " << name);
 
-    filename = plugin_dir+"/nanox-"+name+".so";
+    filename = pluginsDir+"/nanox-"+name+".so";
     /* open the module */
     handler = dlopen(filename.c_str(),RTLD_GLOBAL | RTLD_NOW);
     if (!handler) {

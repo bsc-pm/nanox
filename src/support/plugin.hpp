@@ -19,11 +19,11 @@ class Plugin {
 
 class PluginManager {
   private:
-	static std::string plugin_dir;
+	static std::string pluginsDir;
   public:
 
-	static void setDirectory (const char *dir) { plugin_dir = dir; }
-	static void setDirectory (const std::string & dir) { plugin_dir = dir; }
+	static void setDirectory (const char *dir) { pluginsDir = dir; }
+	static void setDirectory (const std::string & dir) { pluginsDir = dir; }
 	static bool load(const char *plugin_name);
 };
 
