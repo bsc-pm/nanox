@@ -39,8 +39,8 @@ void System::start ()
 
     //TODO: remove, initialize policy dynamically
     //SchedulingGroup *sg = createTaskStealPolicy(numPes);
-    SchedulingGroup *sg = createWFPolicy(numPes, LIFO, LIFO, true);
-    //SchedulingGroup *sg = createBreadthFirstPolicy();
+    //SchedulingGroup *sg = createWFPolicy(numPes, LIFO, LIFO, true);
+    SchedulingGroup *sg = createBreadthFirstPolicy();
     //TODO: decide, single master, multiple master start
 
     PE *pe = new SMPProcessor(0);

@@ -118,6 +118,8 @@ void Config::parseArguments ()
 			OS::consumeArgument(*(*it));
 		}
 	}
+
+	OS::repackArguments();
 }
 
 void Config::init ()
