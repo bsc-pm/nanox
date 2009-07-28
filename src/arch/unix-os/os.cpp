@@ -22,7 +22,7 @@ void OS::getProgramArguments (ArgumentList &list)
 	argv = (char **) p+1;
 
 	// build vector
-//  	list.reserve(*argc);
+  	list.reserve(*argc);
  	for ( i = 0; i < *argc; i++)
  		list.push_back(new Argument(argv[i],i));
 
