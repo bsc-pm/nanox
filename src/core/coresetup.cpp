@@ -16,6 +16,8 @@ CoreSetup::ExecutionMode CoreSetup::executionMode = DEDICATED;
 void CoreSetup::prepareConfig (Config &config)
 {
 	config.registerArgOption(new Config::PositiveVar("nth-pes",numPEs));
+	config.registerEnvOption(new Config::PositiveVar("NTH_PES",numPEs));
+	
 	config.registerArgOption(new Config::FlagOption("nth-bindig",binding));
 	config.registerArgOption(new Config::FlagOption("nth-verbose",verbose));
 
