@@ -8,6 +8,7 @@ noinst_LTLIBRARIES = libsched.la
 libsched_la_CXXFLAGS= $(common_includes) $(common_cxxflags)
 libsched_la_SOURCES = \
 	bf_sched.cpp \
+	wf_sched.cpp \
 	$(END) 
 
 libnanox_sched_cilk_la_CXXFLAGS = $(common_includes) $(common_cxxflags)

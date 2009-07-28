@@ -16,17 +16,22 @@ public:
 	friend class OS;
 	public:
 		char * name;
+		int nparam;
 	public:
-		Argument(char *arg) : name(arg) {}
+		Argument(char *arg,int i) : name(arg),nparam(i) {}
 		char * getName() const { return name; }
 	};
 
 	//TODO: make it autovector?
 	typedef std::vector<Argument *> ArgumentList;
 
+	static char **argv;
+	static long *argc;
+
 	static const char *getEnvironmentVariable(const std::string &variable);
 	static void getProgramArguments (ArgumentList &list);
 	static void consumeArgument (Argument &arg);
+	static void repackArguments ();
 };
 
 // inlined functions

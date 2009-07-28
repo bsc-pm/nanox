@@ -3,29 +3,43 @@
 
 #include <dlfcn.h>
 #include <string>
-#include <iostream>
+#include <vector>
 
-namespace nanos {
+namespace nanos
+{
 
-class Plugin {
-  private:
-	std::string name;
-	int    version;
-	void  *handler;
-  public:
-	virtual void init() {};
-	virtual void fini() {};
-};
+   class Plugin
+   {
 
-class PluginManager {
-  private:
-	static std::string pluginsDir;
-  public:
+      private:
+         std::string name;
+         int    version;
+         void  *handler;
 
-	static void setDirectory (const char *dir) { pluginsDir = dir; }
-	static void setDirectory (const std::string & dir) { pluginsDir = dir; }
-	static bool load(const char *plugin_name);
-};
+      public:
+         virtual void init() {};
+         virtual void fini() {};
+   };
+
+   class PluginManager
+   {
+
+      private:
+         static std::string pluginsDir;
+         static std::vector<Plugin *> activePlugins;
+
+      public:
+
+         static void setDirectory ( const char *dir ) {
+            pluginsDir = dir;
+         }
+
+         static void setDirectory ( const std::string & dir ) {
+            pluginsDir = dir;
+         }
+
+         static bool load ( const char *plugin_name );
+   };
 
 }
 

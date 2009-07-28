@@ -34,13 +34,12 @@ void System::start ()
 
     // if preload, TODO: allow dynamic PE creation
 
-    // Reserve seems to make it crash at exit :?
-    //pes.reserve(numPes);
+    pes.reserve(numPes);
 
     //TODO: remove, initialize policy dynamically
     SchedulingGroup *sg = createBreadthFirstPolicy();
+    
     //TODO: decide, single master, multiple master start
-
     PE *pe = new SMPProcessor(0);
     pes.push_back(pe);
     pe->associateThisThread(sg);
