@@ -46,6 +46,11 @@ void System::start ()
     pes.push_back(pe);
     pe->associateThisThread(sg);
 
+    //starting as much threads per pe as requested by the user
+    for(int ths = 1; ths < CoreSetup::getThsPerPE(); ths++) { 
+         pe->startWorker(sg);
+     }
+
     for ( int p = 1; p < numPes ; p++ ) {
       // TODO: create processor type based on config
       pe = new SMPProcessor(p);
