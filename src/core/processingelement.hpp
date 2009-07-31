@@ -22,11 +22,13 @@ namespace nanos
          virtual WorkDescriptor & getMasterWD () const = 0;
          virtual WorkDescriptor & getWorkerWD () const = 0;
 	 //TODO: make this a vector (#6)
-         BaseThread *workerThread;
+         //BaseThread *workerThread;
+         std::vector<BaseThread *> workerThreads;
+
 
       public:
          // constructors
-         ProcessingElement ( int newId, const Architecture *arch ) : id ( newId ), architecture ( arch ), workerThread ( 0 ) {}
+         ProcessingElement ( int newId, const Architecture *arch ) : id ( newId ), architecture ( arch ) {}
 
          // TODO: copy constructor
          ProcessingElement ( const ProcessingElement &pe );

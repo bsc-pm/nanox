@@ -116,7 +116,8 @@ void SchedulingGroup::addMember ( BaseThread &thread )
 	data->setSchId ( size );
 	thread.setScheduling ( this, data );
 
-	group[size++] = data;
+       size++;
+	group.push_back(data);
 }
 
 void SchedulingGroup::removeMember ( BaseThread &thread )

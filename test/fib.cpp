@@ -1,6 +1,7 @@
 #include <iostream>
 #include "system.hpp"
 #include "smpprocessor.hpp"
+#include <sys/time.h>
 
 int cutoff_value = 10;
 
@@ -74,12 +75,29 @@ int fib (int n, int d)
 	return x + y;
 }
 
+double get_wtime(void)
+{
+        struct timeval ts;
+        double t;
+        int err;
+
+        err = gettimeofday(&ts, NULL);
+        t = (double) (ts.tv_sec)  + (double) ts.tv_usec * 1.0e-6;
+
+        return t;
+}
 
 void fib0 (int n)
 {
-	int par_res = fib(n,0);
+	double start,end;
+	int par_res;
+
+	start = get_wtime();
+	par_res = fib(n,0);
+	end = get_wtime();
 
 	std::cout << "Fibonacci result for " << n << " is " << par_res << std::endl;
+	std::cout << "Computation time:  " << end - start << " seconds." << std::endl;
 }
 
 
