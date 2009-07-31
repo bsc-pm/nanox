@@ -13,3 +13,4 @@ common_cflags= -Wall -Werror
 common_cxxflags= -Wall -Werror
 performance_cflags=-O3
 
+version_flags= -version-info 1:0:0

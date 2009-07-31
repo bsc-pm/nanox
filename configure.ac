@@ -100,6 +100,8 @@ AC_CONFIG_FILES([Makefile
                  src/core/Makefile
 		 src/support/Makefile
 		 src/sched/Makefile
+		 src/apis/Makefile
+		 src/apis/c/Makefile
                  src/arch/Makefile
 		 src/arch/unix-os/Makefile
 		 src/arch/smp/Makefile
