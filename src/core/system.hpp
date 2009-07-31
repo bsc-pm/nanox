@@ -4,6 +4,7 @@
 #include "config.hpp"
 #include "processingelement.hpp"
 #include <vector>
+#include "schedule.hpp"
 
 namespace nanos {
 
@@ -21,7 +22,7 @@ public:
   System ();
   ~System ();
 
-  void init ();
+  void loadModules();
   void start ();
   void submit (WD &work);
 };

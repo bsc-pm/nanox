@@ -1,6 +1,7 @@
 #ifndef _NANOS_CORE_SETUP
 #define _NANOS_CORE_SETUP
 
+#include <string>
 #include "config.hpp"
 
 namespace nanos {
@@ -16,9 +17,8 @@ static bool profile;
 static bool instrument;
 static bool verbose;
 static ExecutionMode executionMode;
-
-//added for more than one thread per pe
 static int thsPerPE;
+static std::string defSchedule;
 
 public:
 
@@ -34,6 +34,8 @@ static bool getVerbose () { return verbose; }
 //set for thperper
 static void setThsPerPE(int ths) { thsPerPE = ths; }
 static int getThsPerPE() { return thsPerPE; }
+
+static const std::string & getDefaultSchedule() { return defSchedule; }
 
 };
 

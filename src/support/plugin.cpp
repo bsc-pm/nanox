@@ -15,19 +15,19 @@ bool PluginManager::load ( const char *name )
 
    verbose0 ( "trying to load plugin " << name );
 
-   filename = pluginsDir + "/nanox-" + name + ".so";
+   filename = pluginsDir + "/libnanox-" + name + ".so";
    /* open the module */
    handler = dlopen ( filename.c_str(), RTLD_GLOBAL | RTLD_NOW );
 
    if ( !handler ) {
-      verbose0 ( "plugin error=" << dlerror() );
+      warning0 ( "plugin error=" << dlerror() );
       return false;
    }
 
    Plugin *plugin = ( Plugin * ) dlsym ( handler, "NanosXPlugin" );
 
    if ( !plugin ) {
-      verbose0 ( "plugin error=" << dlerror() );
+      warning0 ( "plugin error=" << dlerror() );
       return false;
    }
 

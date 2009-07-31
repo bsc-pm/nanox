@@ -39,6 +39,7 @@ namespace nanos
          }
 
          static bool load ( const char *plugin_name );
+         static bool load ( const std::string &plugin_name ) { return load(plugin_name.c_str()); };
    };
 
 }

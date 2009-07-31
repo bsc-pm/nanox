@@ -2,43 +2,43 @@
 
 using namespace nanos;
 
-int 	CoreSetup::numPEs = 1;
-bool 	CoreSetup::binding = false;
-bool	CoreSetup::profile = true;
-bool 	CoreSetup::instrument = false;
-bool 	CoreSetup::verbose = false;
+// Initialize this variables in prepareConfig to avoid problems between the order of constructors
+int   CoreSetup::numPEs;
+bool  CoreSetup::binding;
+bool  CoreSetup::profile;
+bool  CoreSetup::instrument;
+bool  CoreSetup::verbose;
+int   CoreSetup::thsPerPE;
+std::string CoreSetup::defSchedule;
+CoreSetup::ExecutionMode CoreSetup::executionMode;
 
-//more than 1 thread per pe
-int CoreSetup::thsPerPE = 1;
-
-CoreSetup::ExecutionMode CoreSetup::executionMode = DEDICATED;
-
-void CoreSetup::prepareConfig (Config &config)
+void CoreSetup::prepareConfig ( Config &config )
 {
-	config.registerArgOption(new Config::PositiveVar("nth-pes",numPEs));
-	config.registerEnvOption(new Config::PositiveVar("NTH_PES",numPEs));
-	
-	config.registerArgOption(new Config::FlagOption("nth-bindig",binding));
-	config.registerArgOption(new Config::FlagOption("nth-verbose",verbose));
+   numPEs = 1;
+   config.registerArgOption ( new Config::PositiveVar ( "nth-pes", numPEs ) );
+   config.registerEnvOption ( new Config::PositiveVar ( "NTH_PES", numPEs ) );
+
+   binding = false;
+   config.registerArgOption ( new Config::FlagOption ( "nth-bindig", binding ) );
+   
+   verbose = false;
+   config.registerArgOption ( new Config::FlagOption ( "nth-verbose", verbose ) );
 
    //more than 1 thread per pe
-   config.registerArgOption(new Config::PositiveVar("nth-thsperpe",thsPerPE));
+   thsPerPE=1;
+   config.registerArgOption ( new Config::PositiveVar ( "nth-thsperpe", thsPerPE ) );
 
+   new(&defSchedule) std::string("cilk");
+   config.registerArgOption ( new Config::StringVar ( "nth-schedule", defSchedule ) );
+   config.registerEnvOption ( new Config::StringVar ( "NTH_SCHEDULE", defSchedule ) );
 
-	//TODO: how to simplify this a bit?
-	Config::MapVar<ExecutionMode>::MapList opts(2);
-	opts[0] = Config::MapVar<ExecutionMode>::MapOption("dedicated",DEDICATED);
-	opts[1] = Config::MapVar<ExecutionMode>::MapOption("shared",SHARED);
-	config.registerArgOption(
-		new Config::MapVar<ExecutionMode>("nth-mode",executionMode,opts));
+   //TODO: how to simplify this a bit?
+   executionMode = DEDICATED;
+   Config::MapVar<ExecutionMode>::MapList opts ( 2 );
+   opts[0] = Config::MapVar<ExecutionMode>::MapOption ( "dedicated", DEDICATED );
+   opts[1] = Config::MapVar<ExecutionMode>::MapOption ( "shared", SHARED );
+   config.registerArgOption (
+      new Config::MapVar<ExecutionMode> ( "nth-mode", executionMode, opts ) );
 
-	// TODO: schedule
-// 	vector<string> opts(3);
-// 	opts[0] = "a";
-// 	opts[1] = "b";
-// 	opts[2] = "c";
-// 
-// 	config.registerEnvOption(
-// 		new Config::MapVar<string>("NTH_SCHEDULE", schedule, opts ));
 }
 
