@@ -43,7 +43,7 @@ nanos_err_t nanos_create_wd ( nanos_device_t *devices, nanos_wd_t **uwd, size_t 
          *data = chunk;
       }
 
-      WD * wd = new (*uwd) SMPWD((void (*) (WD*)) devices[0].factory(&devices[0].factory_args), (WorkData *)*data);
+      WD * wd = new (*uwd) SMPWD((void (*) (void *)) devices[0].factory(&devices[0].factory_args), (void *)*data);
       
       // set properties
       if ( props != NULL ) {

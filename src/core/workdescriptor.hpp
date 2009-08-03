@@ -31,40 +31,9 @@ public:
 	bool operator== (const Architecture &arch) { return arch.name == name; }
 };
 
-class WorkData {
-private:
-	//TODO: constantize, extend to N, move to a general class?
-        std::pair<int,size_t>  positions[10];
-        void * data[64];
-public:
-	// constructor
-	WorkData() {}
-	// TODO:copy constructor
-	WorkData(const WorkData &wd );
-	// TODO: assignment operator
-	const WorkData & operator= (const WorkData &wd);
-	// destructor
-	~WorkData() {}
-
-	void setArguments (int totalSize, int nrefs, int nvals, ...);
-
-	void * getValue (int narg) { return data[positions[narg].first]; }
-	void * getReference (int narg) { return &data[positions[narg].first]; }
-
-	template<typename T> T& getValue ( int narg )
-	{
-	    return *static_cast<T *>(getReference(narg));
-	}
-
-	template<typename T> T *getReference (int narg)
-	{
-	    return static_cast<T *>(getReference(narg));
-	}
-};
-
 class WorkDescriptor : public WorkGroup {
 private:
-	WorkData *data;
+	void    *data;
 	bool	  tie;
 	BaseThread *  tie_to;
 	bool      idle;
@@ -76,11 +45,11 @@ private:
 	WDDeque * myQueue;
 
 protected:
-	WorkData * getData () const { return data; }
+	void * getData () const { return data; }
 
 public:
 	// constructors
-	WorkDescriptor(WorkData *wdata=0) : WorkGroup(), data(wdata), tie(false), tie_to(0), idle(false), myQueue(NULL) {}
+	WorkDescriptor(void *wdata=0) : WorkGroup(), data(wdata), tie(false), tie_to(0), idle(false), myQueue(NULL) {}
 	// TODO: copy constructor
 	WorkDescriptor(const WorkDescriptor &wd);
 	// TODO: assignment operator
@@ -105,21 +74,7 @@ public:
 	
 	virtual bool canRunIn(ProcessingElement &pe) = 0;
 
-	void setData (WorkData *wdata) { data = wdata; }
-
-	// TODO: change interface to WorkData
-	void * getValue (int narg) { return data->getValue(narg); }
-	void * getReference (int narg) { return data->getReference(narg); }
-
-	template<typename T> T& getValue ( int narg )
-	{
-	    return *static_cast<T *>(data->getReference(narg));
-	}
-
-	template<typename T> T *getReference (int narg)
-	{
-	    return static_cast<T *>(data->getReference(narg));
-	}
+	void setData (void *wdata) { data = wdata; }
 
 	bool isIdle () const { return idle; }
 	void setIdle(bool state=true) { idle = state; }
@@ -133,7 +88,7 @@ private:
 	const Architecture *architecture;
 public:
 	// constructors
-	SimpleWD(const Architecture *arch,WorkData *data=0) : WorkDescriptor(data), architecture(arch) {}
+	SimpleWD(const Architecture *arch,void *data=0) : WorkDescriptor(data), architecture(arch) {}
 	// copy constructor
 	SimpleWD(const SimpleWD &wd) : WorkDescriptor(wd), architecture(wd.architecture)  {}
 	// assignment operator
