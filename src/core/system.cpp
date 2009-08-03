@@ -1,35 +1,60 @@
 #include "system.hpp"
-#include "coresetup.hpp"
-#include "smpprocessor.hpp"
+#include "config.hpp"
 #include "plugin.hpp"
+#include "schedule.hpp"
+#include "smpprocessor.hpp"
 
 using namespace nanos;
 
 System nanos::sys;
 
-System::System ()
+ System::System () : numPEs(1), binding(true), profile(false), instrument(false),
+                     verboseMode(false), executionMode(DEDICATED), thsPerPE(1),
+                     defSchedule("cilk")
 {
    verbose0 ( "NANOS++ initalizing... start" );
-   verbose0 ( "Preparing configuration" );
-   CoreSetup::prepareConfig ( config );
-   SMPProcessor::prepareConfig ( config );
-   verbose0 ( "Reading Configuration" );
-   config.init();
-   verbose0 ( "Loading modules" );
+   config();   
    loadModules();
-   verbose0 ( "Starting threads" );
    start();
    verbose0 ( "NANOS++ initalizing... end" );
 }
 
 void System::loadModules ()
 {
+   verbose0 ( "Loading modules" );
 // load default schedule plugin
-   verbose0("loading " << CoreSetup::getDefaultSchedule());
-   if ( !PluginManager::load ( "sched-"+CoreSetup::getDefaultSchedule() ) )
+   verbose0("loading " << getDefaultSchedule());
+   if ( !PluginManager::load ( "sched-"+getDefaultSchedule() ) )
       fatal0 ( "Couldn't load main scheduling policy" );
 
+}
+
+void System::config ()
+{
+   Config config;
+
+   verbose0 ( "Preparing configuration" );
+   config.registerArgOption(new Config::PositiveVar("nth-pes",numPEs));
+   config.registerEnvOption(new Config::PositiveVar("NTH_PES",numPEs));
+   config.registerArgOption(new Config::FlagOption("nth-bindig",binding));
+   config.registerArgOption(new Config::FlagOption("nth-verbose",verboseMode));
+
+   //more than 1 thread per pe
+   config.registerArgOption(new Config::PositiveVar("nth-thsperpe",thsPerPE));
+
+    //TODO: how to simplify this a bit?
+   Config::MapVar<ExecutionMode>::MapList opts(2);
+   opts[0] = Config::MapVar<ExecutionMode>::MapOption("dedicated",DEDICATED);
+   opts[1] = Config::MapVar<ExecutionMode>::MapOption("shared",SHARED);
+   config.registerArgOption(
+                            new Config::MapVar<ExecutionMode>("nth-mode",executionMode,opts));
+
+   config.registerArgOption ( new Config::StringVar ( "nth-schedule", defSchedule ) );
+   config.registerEnvOption ( new Config::StringVar ( "NTH_SCHEDULE", defSchedule ) );
    
+   SMPProcessor::prepareConfig(config);
+   verbose0 ( "Reading Configuration" );
+   config.init();
 }
 
 SchedulingGroup * createBreadthFirstPolicy();
@@ -40,7 +65,9 @@ SchedulingGroup * createWFPolicy ( int, int, int, bool );
 
 void System::start ()
 {
-   int numPes = CoreSetup::getNumPEs();
+   verbose0 ( "Starting threads" );
+
+    int numPes = getNumPEs();
 
    // if preload, TODO: allow dynamic PE creation
 
@@ -54,15 +81,19 @@ void System::start ()
    pes.push_back ( pe );
    pe->associateThisThread ( sg );
 
-   for ( int p = 1; p < numPes ; p++ ) {
+    //starting as much threads per pe as requested by the user
+    for(int ths = 1; ths < getThsPerPE(); ths++) {
+         pe->startWorker(sg);
+     }
+
+    for ( int p = 1; p < numPes ; p++ ) {
       // TODO: create processor type based on config
       pe = new SMPProcessor ( p );
       pes.push_back ( pe );
 
       //starting as much threads per pe as requested by the user
-
-      for ( int ths = 0; ths < CoreSetup::getThsPerPE(); ths++ ) {
-         pe->startWorker ( sg );
+      for(int ths = 0; ths < getThsPerPE(); ths++) {
+         pe->startWorker(sg);
       }
    }
 }

@@ -88,7 +88,7 @@ void SMPThread::run_dependent ()
 {
     SMPWD &work = (SMPWD &) getThreadWD();
     setCurrentWD(work);
-    work.getWorkFct()(&work);
+    work.getWorkFct()(work.getData());
 }
 
 void SMPThread::join ()
@@ -123,7 +123,7 @@ void SMPThread::switchTo ( WD *wd )
            (void *) swd->getState(),
            (void *) switchHelper);
    } else {
-      (swd->getWorkFct())(wd);
+      (swd->getWorkFct())(swd->getData());
       // TODO: not delete work descriptor if is a parent with pending children
       delete wd;
    }

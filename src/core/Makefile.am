@@ -9,7 +9,7 @@ endif
 
 # Common flags and files
 nanos_cxxflags=$(common_includes) $(common_cxxflags)
-nanos_ldflags=-version-info 1:0:0 -ldl
+nanos_ldflags=$(version_flags)
 nanos_libadd=\
 	../arch/@OS@/libos.la \
 	../support/libsupport.la \
@@ -20,8 +20,6 @@ nanos_libadd=\
 nanos_sources=\
 	basethread.hpp\
 	basethread.cpp\
-	coresetup.hpp \
-	coresetup.cpp \
 	processingelement.hpp \
 	processingelement.cpp \
 	schedule.hpp \

@@ -52,8 +52,7 @@ public:
 
     //modifiers
     SchedulingData * getMemberData(int id) {return group[id];}
-    void setSize(int s) {size = s;}
-    int getSize() {return size;}
+    int getSize() {return group.size();}
 
     // membership related methods. This members are not thread-safe
     virtual void addMember (BaseThread &thread);

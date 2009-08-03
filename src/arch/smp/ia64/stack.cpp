@@ -34,7 +34,7 @@ using namespace nanos;
  *  | (58) ar.rsc                  |
  *  | (59) rp == 'startHelper'     |
  *  +------------------------------+
- *  | (60) WD (this)               |
+ *  | (60) arg                     |
  *  +------------------------------+
  *
  * -----------------------------------------------------------------*/
@@ -53,7 +53,7 @@ void SMPWD::initStackDep ( void *userfuction, void *cleanup )
    state -= 68;
 
    // argument
-   state[60] = (intptr_t) this;
+   state[60] = (intptr_t) getData();
 
    // return pointer
    state[59] = (intptr_t) *((long *)startHelper);

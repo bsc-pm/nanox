@@ -106,7 +106,7 @@ class CilkSchedPlugin : public Plugin
 {
    public:
       virtual void init() {
-         setDefaultScheduler ( createTaskStealPolicy );
+//         setDefaultScheduler ( createTaskStealPolicy );
       }
 };
 
