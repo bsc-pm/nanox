@@ -45,13 +45,17 @@ typedef struct {
    void *arch;
 } nanos_constraint_t;
 
-typedef enum { NANOS_OK=0, NANOS_UNIMPLEMENTED } nanos_err_t;
+typedef enum { NANOS_OK=0, NANOS_ERR, NANOS_UNIMPLEMENTED } nanos_err_t;
 
 typedef struct {
   void * (*factory) (void *arg);
   int  factory_args;
 } nanos_device_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+   
 // Functions related to WD
 nanos_err_t nanos_create_wd ( nanos_device_t *devices, nanos_wd_t **wd, size_t data_size,
                               void ** data, nanos_wd_props_t *props );
@@ -70,5 +74,9 @@ nanos_err_t nanos_create_team_mapped (nanos_team_t **team, nanos_schedgroup_t *s
                                       unsigned int *mapping);
 
 nanos_err_t nanos_end_team ( nanos_team_t *team, bool need_barrier);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
