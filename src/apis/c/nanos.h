@@ -3,7 +3,7 @@
 
 #include <unistd.h>
 
-#ifdef MCC
+#ifdef _MERCURIUM_
 // define API version
 #pragma nanos interface family(master) version(5000)
 #endif
@@ -45,7 +45,10 @@ typedef struct {
    void *arch;
 } nanos_constraint_t;
 
-typedef enum { NANOS_OK=0, NANOS_ERR, NANOS_UNIMPLEMENTED } nanos_err_t;
+typedef enum { NANOS_OK=0,
+               NANOS_UNKNOWN_ERR,          // generic error
+               NANOS_UNIMPLEMENTED,        // service not implemented
+} nanos_err_t;
 
 typedef struct {
   void * (*factory) (void *arg);
