@@ -44,8 +44,6 @@ private:
 	//Added reference to queue to allow dequeuing from third party (e.g. cilk scheduler)
 	WDDeque * myQueue;
 
-protected:
-	void * getData () const { return data; }
 
 public:
 	// constructors
@@ -75,6 +73,7 @@ public:
 	virtual bool canRunIn(ProcessingElement &pe) = 0;
 
 	void setData (void *wdata) { data = wdata; }
+    void * getData () const { return data; }
 
 	bool isIdle () const { return idle; }
 	void setIdle(bool state=true) { idle = state; }

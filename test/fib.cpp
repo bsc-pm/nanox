@@ -18,24 +18,23 @@ int fib_seq (int n)
 
 int fib (int n, int d);
 
-void fib_0(nanos::WD *wd)
-{
-int n = wd->getValue<int>(0);
-int d = wd->getValue<int>(1);
-int *x = wd->getValue<int *>(2);
+typedef struct {
+   int n;
+   int d;
+   int *x;
+} fib_args;
 
-*x = fib(n-1,d+1);
+void fib_0(void *ptr)
+{
+   fib_args * args = (fib_args *)ptr;
+  *args->x = fib(args->n-1,args->d+1);
 }
 
-void fib_1(nanos::WD *wd)
+void fib_1(void *ptr)
 {
-int n = wd->getValue<int>(0);
-int d = wd->getValue<int>(1);
-int *x = wd->getValue<int *>(2);
-
-*x = fib(n-2,d+1);
+   fib_args * args = (fib_args *)ptr;
+   *args->x = fib(args->n-2,args->d+1);
 }
-
 
 int fib (int n, int d)
 {
@@ -48,9 +47,9 @@ int fib (int n, int d)
 //		#pragma omp task untied shared(x) firstprivate(n,d)
 //		x = fib(n - 2,d+1);
 	    {
-	    nanos::WorkData *data = new nanos::WorkData();
-            data->setArguments(2*sizeof(int)+sizeof(int *),3,0,n,d,&x);
-            nanos::SMPWD * wd = new nanos::SMPWD(fib_0,data);
+           fib_args * args = new fib_args();
+           args->n = n; args->d = d; args->x = &x;
+            nanos::SMPWD * wd = new nanos::SMPWD(fib_0,args);
             wg->addWork(*wd); 
 	    nanos::sys.submit(*wd);
 	    }
@@ -58,9 +57,9 @@ int fib (int n, int d)
 //		#pragma omp task untied shared(y) firstprivate(n,d)
 //		y = fib(n - 2,d+1);
 	    {
-	    nanos::WorkData *data = new nanos::WorkData();
-            data->setArguments(2*sizeof(int)+sizeof(int *),3,0,n,d,&y);
-            nanos::SMPWD * wd = new nanos::SMPWD(fib_1,data);
+           fib_args * args = new fib_args();
+           args->n = n; args->d = d; args->x = &y;
+            nanos::SMPWD * wd = new nanos::SMPWD(fib_1,args);
             wg->addWork(*wd);
 	    nanos::sys.submit(*wd);
 	    }

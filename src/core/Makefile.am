@@ -20,8 +20,6 @@ nanos_libadd=\
 nanos_sources=\
 	basethread.hpp\
 	basethread.cpp\
-	coresetup.hpp \
-	coresetup.cpp \
 	processingelement.hpp \
 	processingelement.cpp \
 	schedule.hpp \

@@ -1,6 +1,5 @@
 #include "config.hpp"
 #include <iostream>
-#include "coresetup.hpp"
 #include "smpprocessor.hpp"
 #include "system.hpp"
 #include <string.h>
@@ -12,6 +11,7 @@ int a = 1234;
 std::string b("default");
 bool c = false;
 
+#if 0
 class OMPModule {
 
 class SetThreadsOption : public Config::PositiveAction
@@ -36,29 +36,27 @@ void prepareConfig ()
 }
 
 };
+#endif
 
-void hello_world (WD *wd)
+typedef struct {
+  int a;
+  std::string b;
+} hello_world_args; 
+
+void hello_world (void *args)
 {
+  hello_world_args *hargs = (hello_world_args *) args;
   cout << "hello_world "
-      << wd->getValue<int>(0) << " "
-      << wd->getReference<char>(1)
+      << hargs->a << " "
+      << hargs->b
       << endl;
 }
 
-
 int main (int argc, char **argv)
 {
-
-
-	cout << "PEs = " << CoreSetup::getNumPEs() << endl;
-	cout << "Mode = " << CoreSetup::getExecutionMode() << endl;
-	cout << "Verbose = " << CoreSetup::getVerbose() << endl;
-
-//  	for ( int i = 0; i < CoreSetup::getNumPEs(); i++ ) {
-//  		PE &pe = System.selectPE(i);
-//  
-//  		pe.startWorkingThread();
-//  	}
+	cout << "PEs = " << sys.getNumPEs() << endl;
+	cout << "Mode = " << sys.getExecutionMode() << endl;
+	cout << "Verbose = " << sys.getVerbose() << endl;
 
 	cout << "Args" << endl;
 	for (int i = 0; i < argc; i++)
@@ -67,16 +65,18 @@ int main (int argc, char **argv)
 	cout << "start" << endl;
 
 	const char *a = "alex";
-	WorkData *data = new WorkData();
-	data->setArguments(20,1,1,1,5,a);
-        SMPWD * wd = new SMPWD(hello_world,data);
+	hello_world_args *data = new hello_world_args();
+	data->a = 1;
+	data->b = a;
+	SMPWD * wd = new SMPWD(hello_world,data);
 	a = "pepe";
-	data = new WorkData();
-	data->setArguments(20,1,1,2,5,a);
+	data = new hello_world_args();
+	data->a = 2;
+	data->b = a;
 	SMPWD * wd2 = new SMPWD(hello_world,data);
 
 	WG *wg = myThread->getCurrentWD();
-	wd2->addWork(*wd);
+	wg->addWork(*wd);
 	wg->addWork(*wd2);
 	sys.submit(*wd);
 	sys.submit(*wd2);

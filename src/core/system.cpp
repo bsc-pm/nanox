@@ -1,25 +1,47 @@
 #include "system.hpp"
-#include "coresetup.hpp"
-#include "smpprocessor.hpp"
+#include "config.hpp"
 #include "schedule.hpp"
+#include "smpprocessor.hpp"
 
 using namespace nanos;
 
 System nanos::sys;
 
-System::System ()
+ System::System () : numPEs(1), binding(true), profile(false), instrument(false),
+                     verboseMode(false), executionMode(DEDICATED), thsPerPE(1)
 {
-
-  CoreSetup::prepareConfig(config);
-  SMPProcessor::prepareConfig(config);
-  
+  config(); 
   init();
   start();
 }
 
 void System::init ()
 {
-    config.init();
+}
+
+void System::config ()
+{
+   Config config;
+
+
+   config.registerArgOption(new Config::PositiveVar("nth-pes",numPEs));
+   config.registerEnvOption(new Config::PositiveVar("NTH_PES",numPEs));
+   config.registerArgOption(new Config::FlagOption("nth-bindig",binding));
+   config.registerArgOption(new Config::FlagOption("nth-verbose",verboseMode));
+
+   //more than 1 thread per pe
+   config.registerArgOption(new Config::PositiveVar("nth-thsperpe",thsPerPE));
+
+    //TODO: how to simplify this a bit?
+   Config::MapVar<ExecutionMode>::MapList opts(2);
+   opts[0] = Config::MapVar<ExecutionMode>::MapOption("dedicated",DEDICATED);
+   opts[1] = Config::MapVar<ExecutionMode>::MapOption("shared",SHARED);
+   config.registerArgOption(
+                            new Config::MapVar<ExecutionMode>("nth-mode",executionMode,opts));
+
+   SMPProcessor::prepareConfig(config);
+
+   config.init();
 }
 
 SchedulingGroup * createBreadthFirstPolicy();
@@ -30,7 +52,7 @@ SchedulingGroup * createWFPolicy(int, int, int, bool);
 
 void System::start ()
 {
-    int numPes = CoreSetup::getNumPEs();
+    int numPes = getNumPEs();
 
     // if preload, TODO: allow dynamic PE creation
 
@@ -47,7 +69,7 @@ void System::start ()
     pe->associateThisThread(sg);
 
     //starting as much threads per pe as requested by the user
-    for(int ths = 1; ths < CoreSetup::getThsPerPE(); ths++) { 
+    for(int ths = 1; ths < getThsPerPE(); ths++) {
          pe->startWorker(sg);
      }
 
@@ -57,7 +79,7 @@ void System::start ()
       pes.push_back(pe);
 
       //starting as much threads per pe as requested by the user
-      for(int ths = 0; ths < CoreSetup::getThsPerPE(); ths++) { 
+      for(int ths = 0; ths < getThsPerPE(); ths++) {
          pe->startWorker(sg);
       }
     }

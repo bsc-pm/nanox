@@ -51,9 +51,10 @@ _switchStacks:
 
 startHelper:
 _startHelper:
-        popq   %rdi
+    popq   %rdi
 	popq   %rax
 	call   *%rax
+    popq   %rdi
 	popq   %rax
 	call   *%rax
 .Lfe1:

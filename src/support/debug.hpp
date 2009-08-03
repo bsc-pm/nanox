@@ -1,7 +1,8 @@
 #ifndef _NANOS_LIB_DEBUG
 #define _NANOS_LIB_DEBUG
 
-#include "coresetup.hpp"
+#include <stdexcept>
+#include "system.hpp"
 #include "xstring.hpp"
 #include <iostream>
 
@@ -39,14 +40,14 @@ public:
 #define warning0(msg) { std::cerr << "WARNING: [?]" << msg << std::endl; }
 
 #define verbose(msg) \
-    if (CoreSetup::getVerbose()) std::cerr << "[" << myThread->getId() << "]" << msg << std::endl;
+    if (sys.getVerbose()) std::cerr << "[" << myThread->getId() << "]" << msg << std::endl;
 #define verbose0(msg) \
-    if (CoreSetup::getVerbose()) std::cerr << "[?]" << msg << std::endl;
+    if (sys.getVerbose()) std::cerr << "[?]" << msg << std::endl;
 
 #define debug(msg) \
-    if (CoreSetup::getVerbose()) std::cerr << "DBG: [" << myThread->getId() << "]" << msg << std::endl;
+    if (sys.getVerbose()) std::cerr << "DBG: [" << myThread->getId() << "]" << msg << std::endl;
 #define debug0(msg) \
-    if (CoreSetup::getVerbose()) std::cerr << "DBG: [?]" << msg << std::endl;
+    if (sys.getVerbose()) std::cerr << "DBG: [?]" << msg << std::endl;
 
 };
 
