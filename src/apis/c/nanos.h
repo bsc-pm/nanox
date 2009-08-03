@@ -14,6 +14,7 @@
 typedef void * nanos_wd_t;
 typedef void * nanos_team_t;
 typedef void * nanos_thread_t;
+typedef void * nanos_schedgroup_t;
 
 // other types
 typedef struct {
@@ -42,9 +43,9 @@ typedef struct {
 typedef struct {
    int nthreads;
    void *arch;
-} nanos_restriction_t;
+} nanos_constraint_t;
 
-typedef enum { NANOS_OK=0, } nanos_err_t;
+typedef enum { NANOS_OK=0, NANOS_UNIMPLEMENTED } nanos_err_t;
 
 typedef struct {
   void * (*factory) (void *arg);
@@ -60,5 +61,14 @@ nanos_err_t nanos_submit ( nanos_wd_t *wd, nanos_dependence_t *deps, nanos_team_
 nanos_err_t nanos_create_wd_and_run ( nanos_device_t *devices, void * data, nanos_dependence_t *deps,
                                       nanos_wd_props_t *props );
 
+// Team related functions
+
+nanos_err_t nanos_create_team(nanos_team_t **team, nanos_schedgroup_t *sg, unsigned int *nthreads, 
+                              nanos_constraint_t * constraints, bool reuse, nanos_thread_t *info);
+
+nanos_err_t nanos_create_team_mapped (nanos_team_t **team, nanos_schedgroup_t *sg, unsigned int *nthreads,
+                                      unsigned int *mapping);
+
+nanos_err_t nanos_end_team ( nanos_team_t *team, bool need_barrier);
 
 #endif
