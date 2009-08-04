@@ -1,7 +1,6 @@
 #ifndef _NANOS_PLUGIN
 #define _NANOS_PLUGIN
 
-#include <dlfcn.h>
 #include <string>
 #include <vector>
 
@@ -17,6 +16,8 @@ namespace nanos
          void  *handler;
 
       public:
+         Plugin(std::string &_name, int _version) : name(_name),version(_version) {}
+         Plugin(const char *_name, int _version) : name(_name),version(_version) {}
          virtual void init() {};
          virtual void fini() {};
    };

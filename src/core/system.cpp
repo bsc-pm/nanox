@@ -8,6 +8,7 @@ using namespace nanos;
 
 System nanos::sys;
 
+// default system values go here
  System::System () : numPEs(1), binding(true), profile(false), instrument(false),
                      verboseMode(false), executionMode(DEDICATED), thsPerPE(1),
                      defSchedule("cilk")

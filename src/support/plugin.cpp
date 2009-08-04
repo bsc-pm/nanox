@@ -1,5 +1,6 @@
 #include "debug.hpp"
 #include "plugin.hpp"
+#include "os.hpp"
 
 using namespace nanos;
 
@@ -8,26 +9,24 @@ std::vector<Plugin *> PluginManager::activePlugins;
 
 bool PluginManager::load ( const char *name )
 {
-   std::string filename;
+   std::string dlname;
    void * handler;
 
    //TODO: check if already loaded
 
-   verbose0 ( "trying to load plugin " << name );
-
-   filename = pluginsDir + "/libnanox-" + name + ".so";
-   /* open the module */
-   handler = dlopen ( filename.c_str(), RTLD_GLOBAL | RTLD_NOW );
+   dlname = "libnanox-";
+   dlname += name;
+   handler = OS::loadDL(pluginsDir,dlname);
 
    if ( !handler ) {
-      warning0 ( "plugin error=" << dlerror() );
+      warning0 ( "plugin error=" << OS::dlError(handler) );
       return false;
    }
 
-   Plugin *plugin = ( Plugin * ) dlsym ( handler, "NanosXPlugin" );
+   Plugin *plugin = ( Plugin * ) OS::dlFindSymbol( handler, "NanosXPlugin" );
 
    if ( !plugin ) {
-      warning0 ( "plugin error=" << dlerror() );
+      warning0 ( "plugin error=" << OS::dlError(handler) );
       return false;
    }
 
