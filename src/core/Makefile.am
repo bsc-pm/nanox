@@ -31,6 +31,7 @@ nanos_sources=\
 	workgroup.cpp \
 	workdescriptor.hpp \
 	workdescriptor.cpp \
+	cutoff.hpp \
 	$(END)
 
 # Default

@@ -8,5 +8,7 @@ libsched_la_SOURCES = \
 	bf_sched.cpp \
 	cilk_sched.cpp \
 	wf_sched.cpp \
+	dummy_cutoff.cpp \
+	tasknum_cutoff.cpp \
 	$(END) 
 
