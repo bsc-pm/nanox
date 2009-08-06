@@ -27,7 +27,7 @@ private:
    int thsPerPE;
 
   //cutoff policy
-  cutoff * co;
+  cutoff * cutOffPolicy;
 
    std::vector<PE *> pes;
 

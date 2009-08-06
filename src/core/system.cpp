@@ -16,11 +16,13 @@ System nanos::sys;
 }
 
 cutoff * createDummyCutoff();
+class dummy_cutoff_info;
+class dummy_cutoff;
 
 void System::init ()
 {
   //setting the cutoff policy (hard-coded for now)
-  co = createDummyCutoff();
+  cutOffPolicy = createDummyCutoff();
  }
 
 void System::config ()
@@ -112,6 +114,7 @@ System::~System ()
 //TODO: remove?
 void System::submit (WD &work)
 {
+
 	 //ADDED parent setting for cilk scheduler
 	work.setParent(myThread->getCurrentWD());
 
@@ -120,7 +123,7 @@ void System::submit (WD &work)
 
 
 bool System::throttleTask() {
-  return co->cutoff_pred(NULL);
+  return cutOffPolicy->cutoff_pred();
 }
 
 

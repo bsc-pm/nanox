@@ -37,6 +37,7 @@ private:
   group_t        group;
 
 
+
     // disable copy and assignment
     SchedulingGroup(const SchedulingGroup &);
     SchedulingGroup & operator= (const SchedulingGroup &);
@@ -51,8 +52,9 @@ public:
 
 
     //modifiers
-    SchedulingData * getMemberData(int id) {return group[id];}
-    int getSize() {return group.size();}
+    SchedulingData * getMemberData(int id) { return group[id]; }
+    int getSize() { return group.size(); }
+ 
 
     // membership related methods. This members are not thread-safe
     virtual void addMember (BaseThread &thread);
@@ -77,13 +79,17 @@ public:
 
 // singleton class to encapsulate scheduling data and methods
 class Scheduler {
+private:
+    static int taskNum;
 public:
+    static int getTaskNum() { return taskNum; }
     static void submit (WD &wd);
     static void exit (void);
     static void blockOnCondition (volatile int *var, int condition = 0);
     static void idle (void);
     static void queue (WD &wd);
 };
+
 
 
 typedef SchedulingGroup SG;

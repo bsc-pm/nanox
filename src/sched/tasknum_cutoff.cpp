@@ -1,17 +1,10 @@
-
+#include "schedule.hpp"
 #include "cutoff.hpp"
 
+
+#define DEFAULT_CUTOFF_NUM 100
+
 using namespace nanos;
-
-//simple cutoff info, with the number of tasks
-class tasknum_cutoff_info: public cutoff_info {
-    friend class tasknum_cutoff;
-
-    int num_tasks;
-
-public:
-    tasknum_cutoff_info(int nt): num_tasks(nt) {}
-};
 
 
 class tasknum_cutoff: public cutoff {
@@ -19,17 +12,18 @@ private:
     int max_cutoff;
 
 public:
+    tasknum_cutoff() : max_cutoff(DEFAULT_CUTOFF_NUM) {}
+
     void init() {}
     void setMaxCutoff(int mc) { max_cutoff = mc; } 
-    bool cutoff_pred(cutoff_info *);
+    bool cutoff_pred();
 
     ~tasknum_cutoff() {}
 };
 
 
-bool tasknum_cutoff::cutoff_pred(cutoff_info * info) {
-  tasknum_cutoff_info * info_tn = (tasknum_cutoff_info *) info;
-  if( info_tn->num_tasks > max_cutoff ) return false;
+bool tasknum_cutoff::cutoff_pred() {
+  if( Scheduler::getTaskNum() > max_cutoff ) return false;
   return true;
 }
 

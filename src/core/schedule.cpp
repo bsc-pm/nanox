@@ -4,9 +4,15 @@
 
 using namespace nanos;
 
+//Initialization of the task num stati member
+int Scheduler::taskNum = 0;
+
 void Scheduler::submit ( WD &wd )
 {
    // TODO: increase ready count
+
+  taskNum++;
+
 
    debug ( "submitting task " << wd.getId() );
    WD *next = myThread->getSchedulingGroup()->atCreation ( myThread, wd );
@@ -21,7 +27,10 @@ void Scheduler::exit ( void )
    // TODO:
    // Cases:
    // The WD was running on its own stack, switch to a new one
+
    // The WD was running on a thread stack, exit to the loop
+
+   taskNum--;
 
    WD *next = myThread->getSchedulingGroup()->atExit ( myThread );
 
