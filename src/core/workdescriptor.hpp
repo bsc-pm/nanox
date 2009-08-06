@@ -48,7 +48,7 @@ private:
 public:
 	// constructors
 	WorkDescriptor(void *wdata=0) : WorkGroup(), data(wdata), tie(false), tie_to(0), idle(false), 
-					parent(0), myQueue(NULL) {}
+					parent(NULL), myQueue(NULL) {}
 	// TODO: copy constructor
 	WorkDescriptor(const WorkDescriptor &wd);
 	// TODO: assignment operator

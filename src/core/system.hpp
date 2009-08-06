@@ -4,6 +4,8 @@
 #include "processingelement.hpp"
 #include "cutoff.hpp"
 #include <vector>
+#include <string>
+#include "schedule.hpp"
 
 
 
@@ -29,6 +31,9 @@ private:
   //cutoff policy
   cutoff * cutOffPolicy;
 
+  std::string defSchedule;
+  sgFactory defSGFactory;
+
    std::vector<PE *> pes;
 
   // disable copy constructor & assignment operation
@@ -36,7 +41,7 @@ private:
   const System & operator= (const System &sys);
 
   void config ();
-  void init ();
+  void loadModules(); 
   void start ();
   
 public:
@@ -44,8 +49,8 @@ public:
   System ();
   ~System ();
 
-  void submit (WD &work);
-
+  void submit ( WD &work );
+  
   // methods to access configuration variables
   void setNumPEs (int npes) { numPEs = npes; }
   int getNumPEs () const { return numPEs; }
@@ -60,6 +65,11 @@ public:
   int getThsPerPE() const { return thsPerPE; }
 
   bool throttleTask();
+
+  const std::string & getDefaultSchedule() const { return defSchedule; }
+
+  void setDefaultSGFactory (sgFactory factory) { defSGFactory = factory; }
+
 };
 
 extern System sys;

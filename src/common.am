@@ -8,9 +8,9 @@ common_includes= \
 	-I$(top_srcdir)/src/arch/smp \
 	$(END)
 
-common_cflags= -Wall -Werror
+common_cflags= -Wall -Werror 
 #common_cxxflags= -Wall -Werror -std=c++0x
-common_cxxflags= -Wall -Werror
+common_cxxflags= -Wall -Werror -DLIBDIR=\"$(libdir)\"
 performance_cflags=-O3
 
 version_flags= -version-info 1:0:0

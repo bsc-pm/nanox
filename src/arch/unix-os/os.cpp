@@ -11,15 +11,17 @@ void OS::getProgramArguments (ArgumentList &list)
 	long *p;
 	int i;
 
-	// variables are before environment
-	p=(long *)environ;
+    if ( !argc ) {
+	  // variables are before environment
+      p=(long *)environ;
 
-	// go backwards until we find argc
-	p--;
-	for ( i = 0 ; *(--p) != i; i++ );
+	  // go backwards until we find argc
+	  p--;
+	  for ( i = 0 ; *(--p) != i; i++ );
 
-	argc = p;
-	argv = (char **) p+1;
+	  argc = p;
+	  argv = (char **) p+1;
+    }
 
 	// build vector
   	list.reserve(*argc);
@@ -53,5 +55,23 @@ void OS::repackArguments ()
 
 	if (hole != 0)
 	   *argc = hole;
+}
+
+void * OS::loadDL(std::string &dir, std::string &name)
+{
+   std::string filename;
+   filename = dir + "/" + name + ".so";
+   /* open the module */
+   return dlopen ( filename.c_str(), RTLD_NOW );
+}
+
+void * OS::dlFindSymbol(void *dlHandler, std::string &symbolName)
+{
+   return dlsym ( dlHandler, symbolName.c_str() );
+}
+
+void * OS::dlFindSymbol(void *dlHandler, const char *symbolName)
+{
+   return dlsym ( dlHandler, symbolName );
 }
 

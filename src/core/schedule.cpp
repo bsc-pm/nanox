@@ -1,6 +1,7 @@
 #include "schedule.hpp"
 #include "processingelement.hpp"
 #include "basethread.hpp"
+#include "system.hpp"
 
 using namespace nanos;
 
