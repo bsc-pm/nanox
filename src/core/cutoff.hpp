@@ -13,9 +13,12 @@ class cutoff_info
 class cutoff
 {
 public:
+    cutoff() {};
     virtual void init() = 0;
-    virtual bool cutoff_pred(cutoff_info *); 
-    virtual ~cutoff() = 0;
+    virtual bool cutoff_pred(cutoff_info *) = 0;
+    virtual ~cutoff() {}
 };
+
+
 
 }

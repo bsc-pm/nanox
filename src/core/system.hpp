@@ -2,7 +2,10 @@
 #define _NANOS_SYSTEM
 
 #include "processingelement.hpp"
+#include "cutoff.hpp"
 #include <vector>
+
+
 
 namespace nanos {
  
@@ -22,6 +25,9 @@ private:
    bool verboseMode;
    ExecutionMode executionMode;
    int thsPerPE;
+
+  //cutoff policy
+  cutoff * co;
 
    std::vector<PE *> pes;
 
@@ -53,6 +59,7 @@ public:
   void setThsPerPE(int ths) { thsPerPE = ths; }
   int getThsPerPE() const { return thsPerPE; }
 
+  bool throttleTask();
 };
 
 extern System sys;

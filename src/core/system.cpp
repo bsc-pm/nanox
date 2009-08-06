@@ -15,9 +15,13 @@ System nanos::sys;
   start();
 }
 
+cutoff * createDummyCutoff();
+
 void System::init ()
 {
-}
+  //setting the cutoff policy (hard-coded for now)
+  co = createDummyCutoff();
+ }
 
 void System::config ()
 {
@@ -113,6 +117,12 @@ void System::submit (WD &work)
 
 	Scheduler::submit(work);
 }
+
+
+bool System::throttleTask() {
+  return co->cutoff_pred(NULL);
+}
+
 
 //TODO: void system_description ()
 // {
