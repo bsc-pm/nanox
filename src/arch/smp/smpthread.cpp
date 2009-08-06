@@ -1,6 +1,7 @@
 #include "smpprocessor.hpp"
 #include "schedule.hpp"
 #include "debug.hpp"
+#include "system.hpp"
 #include <iostream>
 
 extern "C" {

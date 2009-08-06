@@ -11,6 +11,8 @@ libsupport_la_SOURCES = \
 	debug.hpp\
 	config.hpp\
 	config.cpp \
+	plugin.hpp \
+	plugin.cpp \
 	xstring.hpp \
 	$(END) 
 
