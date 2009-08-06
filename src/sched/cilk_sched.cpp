@@ -1,7 +1,7 @@
 #include "schedule.hpp"
 #include "wddeque.hpp"
 #include "plugin.hpp"
-#include "config.hpp"
+#include "system.hpp"
 
 using namespace nanos;
 
@@ -108,7 +108,7 @@ class CilkSchedPlugin : public Plugin
    public:
       CilkSchedPlugin() : Plugin("Cilk scheduling Plugin",1) {}
       virtual void init() {
-//         setDefaultScheduler ( createTaskStealPolicy );
+           sys.setDefaultSGFactory(createTaskStealPolicy);
       }
 };
 

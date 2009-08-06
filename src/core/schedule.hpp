@@ -87,6 +87,7 @@ public:
 
 
 typedef SchedulingGroup SG;
+typedef SG * (*sgFactory) ();
 
 };
 

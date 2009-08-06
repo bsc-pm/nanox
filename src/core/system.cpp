@@ -28,6 +28,7 @@ void System::loadModules ()
    if ( !PluginManager::load ( "sched-"+getDefaultSchedule() ) )
       fatal0 ( "Couldn't load main scheduling policy" );
 
+   ensure(defSGFactory,"No default system factory");
 }
 
 void System::config ()
@@ -58,12 +59,6 @@ void System::config ()
    config.init();
 }
 
-SchedulingGroup * createBreadthFirstPolicy();
-SchedulingGroup * createTaskStealPolicy ( int );
-SchedulingGroup * createWFPolicy ( int, int, int, bool );
-#define LIFO 1
-#define FIFO 0
-
 void System::start ()
 {
    verbose0 ( "Starting threads" );
@@ -74,8 +69,7 @@ void System::start ()
 
    pes.reserve ( numPes );
 
-   //TODO: remove, initialize policy dynamically
-   SchedulingGroup *sg = createBreadthFirstPolicy();
+   SchedulingGroup *sg = defSGFactory();
 
    //TODO: decide, single master, multiple master start
    PE *pe = new SMPProcessor ( 0 );

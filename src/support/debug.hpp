@@ -2,7 +2,9 @@
 #define _NANOS_LIB_DEBUG
 
 #include <stdexcept>
-#include "system.hpp"
+//Having system.hpp here generate too many circular dependences
+//but it's not really needed so we can delay it most times until the actual usage
+//#include "system.hpp"
 #include "xstring.hpp"
 #include <iostream>
 

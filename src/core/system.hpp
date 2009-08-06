@@ -4,6 +4,7 @@
 #include "processingelement.hpp"
 #include <vector>
 #include <string>
+#include "schedule.hpp"
 
 namespace nanos {
  
@@ -24,7 +25,7 @@ private:
    ExecutionMode executionMode;
    int thsPerPE;
    std::string defSchedule;
-
+   sgFactory defSGFactory;
    std::vector<PE *> pes;
 
   // disable copy constructor & assignment operation
@@ -56,6 +57,8 @@ public:
   int getThsPerPE() const { return thsPerPE; }
 
    const std::string & getDefaultSchedule() const { return defSchedule; }
+
+  void setDefaultSGFactory (sgFactory factory) { defSGFactory = factory; }
 
 };
 
