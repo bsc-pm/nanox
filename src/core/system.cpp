@@ -25,6 +25,7 @@ void System::loadModules ()
    verbose0 ( "Loading modules" );
 // load default schedule plugin
    verbose0("loading " << getDefaultSchedule());
+   
    if ( !PluginManager::load ( "sched-"+getDefaultSchedule() ) )
       fatal0 ( "Couldn't load main scheduling policy" );
 

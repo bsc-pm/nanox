@@ -62,7 +62,7 @@ void * OS::loadDL(std::string &dir, std::string &name)
    std::string filename;
    filename = dir + "/" + name + ".so";
    /* open the module */
-   return dlopen ( filename.c_str(), RTLD_GLOBAL | RTLD_NOW );
+   return dlopen ( filename.c_str(), RTLD_NOW );
 }
 
 void * OS::dlFindSymbol(void *dlHandler, std::string &symbolName)

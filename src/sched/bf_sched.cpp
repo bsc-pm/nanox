@@ -1,14 +1,18 @@
 #include "schedule.hpp"
 #include "wddeque.hpp"
+#include "plugin.hpp"
+#include "system.hpp"
+#include "config.hpp"
 
 using namespace nanos;
 
 class BreadthFirstPolicy : public SchedulingGroup {
 private:
      WDDeque   readyQueue;
+     bool      useStack;
 public:
      // constructor
-     BreadthFirstPolicy() : SchedulingGroup("breadth-first-sch") {}
+     BreadthFirstPolicy(bool stack) : SchedulingGroup("breadth-first-sch"), useStack(stack) {}
      // TODO: copy and assigment operations
      // destructor
      virtual ~BreadthFirstPolicy() {}
@@ -31,11 +35,32 @@ WD * BreadthFirstPolicy::atCreation (BaseThread *thread, WD &newWD)
 
 WD * BreadthFirstPolicy::atIdle (BaseThread *thread)
 {
+    if ( useStack ) return readyQueue.pop_back(thread);
     return readyQueue.pop_front(thread);
 }
+
+static bool useStack = false;
 
 // Factory
 SchedulingGroup * createBreadthFirstPolicy ()
 {
-    return new BreadthFirstPolicy();
+    return new BreadthFirstPolicy(useStack);
 }
+
+class BFSchedPlugin : public Plugin
+{
+   public:
+      BFSchedPlugin() : Plugin("BF scheduling Plugin",1) {}
+      virtual void init() {
+         Config config;
+
+         config.registerArgOption(new Config::FlagOption("nth-bf-use-stack",useStack));
+         config.registerArgOption(new Config::FlagOption("nth-bf-stack",useStack));
+         config.init();
+         
+         sys.setDefaultSGFactory(createBreadthFirstPolicy);
+      }
+};
+
+BFSchedPlugin NanosXPlugin;
+
