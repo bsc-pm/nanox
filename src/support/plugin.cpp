@@ -4,7 +4,7 @@
 
 using namespace nanos;
 
-std::string PluginManager::pluginsDir( "." );
+std::string PluginManager::pluginsDir( LIBDIR );
 std::vector<Plugin *> PluginManager::activePlugins;
 
 bool PluginManager::load ( const char *name )
