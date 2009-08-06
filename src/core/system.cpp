@@ -8,28 +8,24 @@ using namespace nanos;
 
 System nanos::sys;
 
+cutoff * createDummyCutoff();
+class dummy_cutoff;
+
 // default system values go here
  System::System () : numPEs(1), binding(true), profile(false), instrument(false),
                      verboseMode(false), executionMode(DEDICATED), thsPerPE(1),
                      defSchedule("cilk")
 {
-   verbose0 ( "NANOS++ initalizing... start" );
-   config();   
-   loadModules();
-   start();
-   verbose0 ( "NANOS++ initalizing... end" );
+    cutOffPolicy = createDummyCutoff();
+    verbose0 ( "NANOS++ initalizing... start" );
+    config();   
+    loadModules();
+    start();
+    verbose0 ( "NANOS++ initalizing... end" );
 }
 
 
-cutoff * createDummyCutoff();
 
-class dummy_cutoff;
-
-void System::init ()
-{
-  //setting the cutoff policy (hard-coded for now)
-  cutOffPolicy = createDummyCutoff();
- }
 
 void System::loadModules ()
 {
