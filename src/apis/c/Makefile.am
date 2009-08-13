@@ -9,6 +9,7 @@ include_HEADERS=\
 sources=\
 	nanos.h\
 	nanos_wd.cpp\
+	nanos_wg.cpp\
 	nanos_team.cpp\
 	$(END)
 

@@ -11,6 +11,8 @@ endif
 nanos_cxxflags=$(common_includes) $(common_cxxflags)
 nanos_ldflags=$(version_flags)
 nanos_libadd=\
+	-lpthread \
+	-ldl \
 	../arch/@OS@/libos.la \
 	../support/libsupport.la \
 	../sched/libsched.la \

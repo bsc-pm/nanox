@@ -51,8 +51,8 @@ int fib (int n, int d)
 //       #pragma omp task untied shared(x) firstprivate(n,d)
 //      x = fib(n - 1,d+1);
        {
-       nanos_wd_t wd;
-       fib_args *args;
+       nanos_wd_t wd=0;
+       fib_args *args=0;
        nanos_create_wd ( &wd, fib_devices_1 , sizeof(fib_args),
                          (void **)&args, nanos_current_wd(), 0 );
        args->n = n; args->d = d; args->x = &x;
@@ -62,15 +62,15 @@ int fib (int n, int d)
 //		#pragma omp task untied shared(y) firstprivate(n,d)
 //		y = fib(n - 2,d+1);
        {
-       nanos_wd_t wd;
-       fib_args *args;
+       nanos_wd_t wd=0;
+       fib_args *args=0;
        nanos_create_wd ( &wd, fib_devices_2 , sizeof(fib_args),
                          (void **)&args, nanos_current_wd(), 0 );
        args->n = n; args->d = d; args->x = &y;
        nanos_submit(wd,0,0);
        }
 //		#pragma omp taskwait
-	    //wg->waitCompletation();
+	   nanos_wg_wait_completation(nanos_current_wd());
 	} else {
 		x = fib_seq(n-1);
 		y = fib_seq(n-2);
@@ -101,7 +101,7 @@ void fib0 (int n)
 	end = get_wtime();
 
     printf("Fibonacci result for %d is %d\n", n, par_res);
-	printf("Computation time: %f seconds. ",  end - start);
+	printf("Computation time: %f seconds.\n",  end - start);
 }
 
 
