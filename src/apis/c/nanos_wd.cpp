@@ -21,7 +21,7 @@ nanos_wd_t nanos_current_wd()
 }
 
 // FIX-ME: currently, it works only for SMP
-nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, nanos_device_t *devices, size_t data_size,
+nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t data_size,
                               void ** data, nanos_wg_t uwg, nanos_wd_props_t *props )
 {   
    try {
@@ -54,7 +54,7 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, nanos_device_t *devices, size_t 
       if (*data == NULL)
         *data = new char[data_size];
       if (*uwd ==  NULL)
-        *uwd = wd =  new SMPWD((void (*) (void *)) devices[0].factory(&devices[0].factory_args), *data);
+        *uwd = wd =  new SMPWD((void (*) (void *)) devices[0].factory(devices[0].arg), *data);
       else
 	wd = (SMPWD *)*uwd;
 #endif

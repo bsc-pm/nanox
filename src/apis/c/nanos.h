@@ -59,9 +59,7 @@ typedef struct {
 
 typedef struct {
   void * (*factory) (void *arg);
-  union {
-     nanos_smp_args_t smp;
-  } factory_args;
+  void * arg;
 } nanos_device_t;
 
 #ifdef __cplusplus
@@ -71,7 +69,7 @@ extern "C" {
 // Functions related to WD
 nanos_wd_t nanos_current_wd ();
 
-nanos_err_t nanos_create_wd ( nanos_wd_t *wd, nanos_device_t *devices, size_t data_size,
+nanos_err_t nanos_create_wd ( nanos_wd_t *wd, size_t num_devices, nanos_device_t *devices, size_t data_size,
                               void ** data, nanos_wg_t wg, nanos_wd_props_t *props );
 
 nanos_err_t nanos_submit ( nanos_wd_t wd, nanos_dependence_t *deps, nanos_team_t team );
