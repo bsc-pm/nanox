@@ -92,6 +92,10 @@ nanos_err_t nanos_team_barrier ( void );
 
 nanos_err_t nanos_wg_wait_completation ( nanos_wg_t wg );
 
+// error handling
+
+void nanos_handle_error ( nanos_err_t err );
+
 // factories
 void * nanos_smp_factory(void *args);
 
