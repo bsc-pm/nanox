@@ -21,3 +21,4 @@ nanos_err_t nanos_team_barrier ( void )
 {
    return NANOS_UNIMPLEMENTED;
 }
+
