@@ -67,7 +67,7 @@ extern "C" {
 #endif
    
 // Functions related to WD
-nanos_wd_t nanos_current_wd ();
+nanos_wd_t nanos_current_wd (void);
 
 nanos_err_t nanos_create_wd ( nanos_wd_t *wd, size_t num_devices, nanos_device_t *devices, size_t data_size,
                               void ** data, nanos_wg_t wg, nanos_wd_props_t *props );
