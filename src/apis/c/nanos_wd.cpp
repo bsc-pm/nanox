@@ -55,6 +55,8 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, nanos_device_t *devices, size_t 
         *data = new char[data_size];
       if (*uwd ==  NULL)
         *uwd = wd =  new SMPWD((void (*) (void *)) devices[0].factory(&devices[0].factory_args), *data);
+      else
+	wd = (SMPWD *)*uwd;
 #endif
 
       // add to workgroup
