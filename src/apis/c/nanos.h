@@ -86,6 +86,8 @@ nanos_err_t nanos_create_team_mapped (nanos_team_t *team, nanos_sched_t sg, unsi
 
 nanos_err_t nanos_end_team ( nanos_team_t team, bool need_barrier);
 
+nanos_err_t nanos_team_barrier ( );
+
 // wg
 
 nanos_err_t nanos_wg_wait_completation ( nanos_wg_t wg );
