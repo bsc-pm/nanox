@@ -11,6 +11,7 @@ sources=\
 	nanos_wd.cpp\
 	nanos_wg.cpp\
 	nanos_team.cpp\
+	nanos_err.cpp\
 	$(END)
 
 libnanox_c_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(performance_cflags)
