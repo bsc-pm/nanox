@@ -9,26 +9,27 @@ bool SMPProcessor::useUserThreads = true;
 
 void SMPProcessor::prepareConfig (Config &config)
 {
-    // CHECK
+    // TODO: CHECK, move to plugin and to smpthread
 	config.registerArgOption(new Config::FlagOption("nth-no-ut",useUserThreads,false));
 }
 
 WorkDescriptor & SMPProcessor::getWorkerWD () const
 {
-	SMPWD * wd = new SMPWD((SMPWD::work_fct)Scheduler::idle,0);
+	SMPDD * dd = new SMPDD((SMPDD::work_fct)Scheduler::idle);
+    WD *wd = new WD(dd);
 	return *wd;
 }
 
 WorkDescriptor & SMPProcessor::getMasterWD () const
 {
-    SMPWD * wd = new SMPWD();
+    WD * wd = new WD(new SMPDD());
     return *wd;
 }
 
 BaseThread &SMPProcessor::createThread (WorkDescriptor &helper)
 {
-	SMPWD &wd = static_cast<SMPWD &>(helper);
-	SMPThread &th = *new SMPThread(wd,this);
+    ensure(helper.canRunIn(SMP),"Incompatible worker thread");
+	SMPThread &th = *new SMPThread(helper,this);
 
 	return th;
 }

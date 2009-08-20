@@ -14,21 +14,42 @@ class BaseThread;
 class ProcessingElement;
 class WDDeque;
 
-class Architecture
+class Device
 {
 private:
 	const char *name;
 public:
 	// constructor
-	Architecture(const char *n) : name(n) {}
+	Device(const char *n) : name(n) {}
 	// copy constructor
-	Architecture(const Architecture &arch) : name(arch.name) {}
+	Device(const Device &arch) : name(arch.name) {}
 	// assignment operator
-	const Architecture & operator= (const Architecture &arch) { name = arch.name; return *this; }
+	const Device & operator= (const Device &arch) { name = arch.name; return *this; }
 	// destructor
-	~Architecture() {};
+	~Device() {};
 
-	bool operator== (const Architecture &arch) { return arch.name == name; }
+	bool operator== (const Device &arch) { return arch.name == name; }
+};
+
+// This class holds the specific data for a given device
+class DeviceData
+{
+private:
+    // use pointers for this as is this fastest way to compare architecture
+    // compatibility
+    const Device *architecture;
+public:
+    // constructors
+    DeviceData(const Device *arch) : architecture(arch) {}
+    // copy constructor
+    DeviceData(const DeviceData &dd) : architecture(dd.architecture)  {}
+    // assignment operator
+    const DeviceData & operator= (const DeviceData &wd);
+
+    bool isCompatible(const Device &arch) { return architecture == &arch; }
+    
+    // destructor
+    virtual ~DeviceData() {}
 };
 
 class WorkDescriptor : public WorkGroup {
@@ -44,17 +65,25 @@ private:
 	//Added reference to queue to allow dequeuing from third party (e.g. cilk scheduler)
 	WDDeque * myQueue;
 
-
+    // Supported devices for this workdescriptor
+    int         num_devices;
+    DeviceData **devices;
+    DeviceData *active_device;
+    
 public:
 	// constructors
-	WorkDescriptor(void *wdata=0) : WorkGroup(), data(wdata), tie(false), tie_to(0), idle(false), 
-					parent(NULL), myQueue(NULL) {}
+	WorkDescriptor(int ndevices, DeviceData **devs,void *wdata=0) :
+           WorkGroup(), data(wdata), tie(false), tie_to(0), idle(false),
+		   parent(NULL), myQueue(NULL), num_devices(ndevices), devices(devs), active_device(0) {}
+    WorkDescriptor(DeviceData *device,void *wdata=0) :
+           WorkGroup(), data(wdata), tie(false), tie_to(0), idle(false),
+           parent(NULL), myQueue(NULL), num_devices(1), devices(0), active_device(device) {}
 	// TODO: copy constructor
 	WorkDescriptor(const WorkDescriptor &wd);
 	// TODO: assignment operator
 	const WorkDescriptor & operator= (const WorkDescriptor &wd);
 	// destructor
-	virtual ~WorkDescriptor() {}
+	virtual ~WorkDescriptor() { /*TODO*/ }
 
 	WorkDescriptor * getParent() { return parent;}
 	void setParent(WorkDescriptor * p) {parent = p;}
@@ -70,50 +99,32 @@ public:
 
 	bool isTied() const { return tie_to != NULL; }
 	BaseThread * isTiedTo() const { return tie_to; }
-	
-	virtual bool canRunIn(ProcessingElement &pe) = 0;
 
 	void setData (void *wdata) { data = wdata; }
     void * getData () const { return data; }
 
 	bool isIdle () const { return idle; }
 	void setIdle(bool state=true) { idle = state; }
+
+    /* device related methods */
+    DeviceData * findDeviceData (const Device &device) const;
+    bool canRunIn (const Device &device) const;
+    bool canRunIn (const ProcessingElement &pe) const;
+    DeviceData & activateDevice (const Device &device);
+    DeviceData & getActiveDevice () const { return *active_device; }
+    bool hasActiveDevice() const { return active_device != NULL; }
+
 };
 
-
-class SimpleWD : public WorkDescriptor {
-private:
-	// use pointers for this as is this fastest way to compare architecture
-	// compatibility
-	const Architecture *architecture;
-public:
-	// constructors
-	SimpleWD(const Architecture *arch,void *data=0) : WorkDescriptor(data), architecture(arch) {}
-	// copy constructor
-	SimpleWD(const SimpleWD &wd) : WorkDescriptor(wd), architecture(wd.architecture)  {}
-	// assignment operator
-	const SimpleWD & operator= (const SimpleWD &wd);
-	// destructor
-	~SimpleWD() {}
-
-	virtual bool canRunIn(ProcessingElement &pe);
-};
-
-inline const SimpleWD & SimpleWD::operator= (const SimpleWD &wd)
+inline const DeviceData & DeviceData::operator= (const DeviceData &dd)
 {
   // self-assignment: ok
-  WorkDescriptor::operator=(wd);
-  architecture = wd.architecture;
+  architecture = dd.architecture;
   return *this;
 }
 
-// class MultiArchWD : public WorkDescriptor {
-// private:
-// public:
-//   
-// };
-
 typedef class WorkDescriptor WD;
+typedef class DeviceData DD;
 
 };
 

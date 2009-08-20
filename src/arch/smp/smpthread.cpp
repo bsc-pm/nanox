@@ -75,21 +75,18 @@ void SMPThread::start ()
 //                         (size_t) aux_desc->stack_size
 //                 );
 
-// TODO: check return && throw exception ?	
-      if (pthread_create(
-              &pth,
-              NULL,
-              smp_bootthread,
-	      this )
-          )
-    fatal("couldn't create thread");
+
+      if (pthread_create( &pth, NULL, smp_bootthread, this ) )
+        fatal("couldn't create thread");
 }
 
 void SMPThread::run_dependent ()
 {
-    SMPWD &work = (SMPWD &) getThreadWD();
+    WD &work = getThreadWD();
     setCurrentWD(work);
-    work.getWorkFct()(work.getData());
+
+    SMPDD &dd = (SMPDD &) work.activateDevice(SMP);
+    dd.getWorkFct()(work.getData());
 }
 
 void SMPThread::join ()
@@ -98,39 +95,40 @@ void SMPThread::join ()
 }
 
 // This is executed in between switching stacks
-static void switchHelper ( SMPWD *oldWD, SMPWD *newWD, intptr_t *oldState  )
+static void switchHelper ( WD *oldWD, WD *newWD, intptr_t *oldState  )
 {
-    oldWD->setState(oldState);
+    SMPDD & dd = (SMPDD &)oldWD->getActiveDevice();
+    dd.setState(oldState);
     Scheduler::queue(*oldWD);
     myThread->setCurrentWD(*newWD);
 }
 
 void SMPThread::switchTo ( WD *wd )
 {
-    SMPWD *swd = static_cast<SMPWD *>(wd);
-    // TODO: transform to Nth
-    // TODO: swtichable work
+    // wd MUST have an active Device when it gets here
+    ensure(wd->hasActiveDevice(),"WD has no active SMP device");
+    SMPDD &dd = (SMPDD &)wd->getActiveDevice();
 
    if ( useUserThreads ) {
-       debug("switching from task " << getCurrentWD() << ":" << getCurrentWD()->getId() << " to " << swd << ":" << swd->getId());
+       debug("switching from task " << getCurrentWD() << ":" << getCurrentWD()->getId() << " to " << wd << ":" << wd->getId());
 
-      if (!swd->hasStack()) {
-	  swd->initStack();
+      if (!dd.hasStack()) {
+	    dd.initStack(wd->getData());
       }
 
       ::switchStacks(
  		   (void *) getCurrentWD(),
- 		   (void *) swd,
-           (void *) swd->getState(),
+ 		   (void *) wd,
+           (void *) dd.getState(),
            (void *) switchHelper);
    } else {
-      (swd->getWorkFct())(swd->getData());
+      (dd.getWorkFct())(wd->getData());
       // TODO: not delete work descriptor if is a parent with pending children
       delete wd;
    }
 }
 
-static void exitHelper (  SMPWD *oldWD, SMPWD *newWD, intptr_t *oldState )
+static void exitHelper (  WD *oldWD, WD *newWD, intptr_t *oldState )
 {
     delete oldWD;
     myThread->setCurrentWD(*newWD);
@@ -138,20 +136,23 @@ static void exitHelper (  SMPWD *oldWD, SMPWD *newWD, intptr_t *oldState )
 
 void SMPThread::exitTo (WD *wd)
 {
-    SMPWD *swd = static_cast<SMPWD *>(wd);
+    // wd MUST have an active Device when it gets here
+    ensure(wd->hasActiveDevice(),"WD has no active SMP device");
+    SMPDD &dd = (SMPDD &)wd->getActiveDevice();
+
 
     debug("exiting task " << getCurrentWD() << ":" << getCurrentWD()->getId() << " to " << wd << ":" << wd->getId());
     // TODO: reuse stack
 
-    if (!swd->hasStack()) {
-	swd->initStack();
+    if (!dd.hasStack()) {
+	  dd.initStack(wd->getData());
     }
 
     //TODO: optimize... we don't really need to save a context in this case
     ::switchStacks(
  		   (void *) getCurrentWD(),
- 		   (void *) swd,
-           (void *) swd->getState(),
+ 		   (void *) wd,
+           (void *) dd.getState(),
            (void *) exitHelper);
 }
 

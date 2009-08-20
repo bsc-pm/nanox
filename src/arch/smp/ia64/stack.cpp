@@ -44,7 +44,7 @@ extern "C" {
 void startHelper ();
 }
 
-void SMPWD::initStackDep ( void *userfuction, void *cleanup )
+void SMPDD::initStackDep ( void *userfuction, void *data, void *cleanup )
 {
    // stack grows down
    state = stack;
@@ -53,7 +53,7 @@ void SMPWD::initStackDep ( void *userfuction, void *cleanup )
    state -= 68;
 
    // argument
-   state[60] = (intptr_t) getData();
+   state[60] = (intptr_t) data;
 
    // return pointer
    state[59] = (intptr_t) *((long *)startHelper);

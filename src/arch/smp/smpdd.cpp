@@ -5,18 +5,18 @@
 
 using namespace nanos;
 
-Architecture nanos::SMP("SMP");
+Device nanos::SMP("SMP");
 
-void SMPWD::allocateStack ()
+void SMPDD::allocateStack ()
 {
     stack = new intptr_t[stackSize];
 }
 
-void SMPWD::initStack ()
+void SMPDD::initStack (void *data)
 {
     if (!hasStack()) {
 	allocateStack();
     }
 
-    initStackDep((void *)getWorkFct(),(void *)Scheduler::exit);
+    initStackDep((void *)getWorkFct(),data,(void *)Scheduler::exit);
 }

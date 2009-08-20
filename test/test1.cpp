@@ -11,33 +11,6 @@ int a = 1234;
 std::string b("default");
 bool c = false;
 
-#if 0
-class OMPModule {
-
-class SetThreadsOption : public Config::PositiveAction
-{
-public:
-	SetThreadsOption(const char *name) : Config::PositiveAction(name) {}
- 	virtual void setValue (const int &value) { CoreSetup::setNumPEs(value); }
-};
-
-public:
-
-void prepareConfig ()
-{
- 	//config.registerEnvOption(new SetThreadsOption("OMP_NUM_THREADS"));
-
-	//config.registerEnvOption(new MapOption<std::string>("OMP_SCHEDULE",));
-// 	if (getUnsignedEnvVar("OMP_STACK_SIZE",n)) {
-// 		// TODO
-// 	}*/
-// 	
-// 	//"OMP_SCHEDULE"
-}
-
-};
-#endif
-
 typedef struct {
   int a;
   std::string b;
@@ -68,12 +41,12 @@ int main (int argc, char **argv)
 	hello_world_args *data = new hello_world_args();
 	data->a = 1;
 	data->b = a;
-	SMPWD * wd = new SMPWD(hello_world,data);
+	WD * wd = new WD(new SMPDD(hello_world),data);
 	a = "pepe";
 	data = new hello_world_args();
 	data->a = 2;
 	data->b = a;
-	SMPWD * wd2 = new SMPWD(hello_world,data);
+	WD * wd2 = new WD(new SMPDD(hello_world),data);
 
 	WG *wg = myThread->getCurrentWD();
 	wg->addWork(*wd);

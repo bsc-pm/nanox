@@ -55,7 +55,7 @@ public:
   // set/get methods
   void setCurrentWD (WD &current) { currentWD = &current; }
   WD * getCurrentWD () const { return currentWD; }
-  const WD & getThreadWD () const { return threadWD; }
+  WD & getThreadWD () const { return threadWD; }
 
   SchedulingGroup * getSchedulingGroup () const { return schedGroup; }
   SchedulingData * getSchedulingData () const { return schedData; }

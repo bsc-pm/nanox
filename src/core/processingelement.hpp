@@ -16,7 +16,7 @@ namespace nanos
 
       private:
          int id;
-         const Architecture *architecture;
+         const Device *device;
 
          protected:
          virtual WorkDescriptor & getMasterWD () const = 0;
@@ -28,7 +28,7 @@ namespace nanos
 
       public:
          // constructors
-         ProcessingElement ( int newId, const Architecture *arch ) : id ( newId ), architecture ( arch ) {}
+         ProcessingElement ( int newId, const Device *arch ) : id ( newId ), device ( arch ) {}
 
          // TODO: copy constructor
          ProcessingElement ( const ProcessingElement &pe );
@@ -42,8 +42,8 @@ namespace nanos
             return id;
          }
 
-         const Architecture * getArchitecture () const {
-            return architecture;
+         const Device & getDeviceType () const {
+            return *device;
          }
 
          BaseThread & startThread ( WorkDescriptor &wd, SchedulingGroup *sg = 0 );

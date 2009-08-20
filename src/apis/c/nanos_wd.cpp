@@ -3,7 +3,7 @@
 #include "debug.hpp"
 #include "system.hpp"
 #include "workdescriptor.hpp"
-#include "smpwd.hpp"
+#include "smpdd.hpp"
 
 using namespace nanos;
 
@@ -12,7 +12,7 @@ void * nanos_smp_factory(void *args)
 {
     nanos_smp_args_t *smp = (nanos_smp_args_t *) args;
 
-    return (void *)smp->outline;
+    return (void *)new SMPDD(smp->outline);
 }
 
 nanos_wd_t nanos_current_wd()
@@ -54,9 +54,9 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
       if (*data == NULL)
         *data = new char[data_size];
       if (*uwd ==  NULL)
-        *uwd = wd =  new SMPWD((void (*) (void *)) devices[0].factory(devices[0].arg), *data);
+        *uwd = wd =  new WD((SMPDD*) devices[0].factory(devices[0].arg), *data);
       else
-	wd = (SMPWD *)*uwd;
+        wd = (WD *)*uwd;
 #endif
 
       // add to workgroup

@@ -1,7 +1,8 @@
 #ifndef _NANOS_SMP_THREAD
 #define _NANOS_SMP_THREAD
 
-#include "smpwd.hpp"
+#include "smpdd.hpp"
+#include "basethread.hpp"
 #include <pthread.h>
 
 //TODO: Make smp independent from pthreads? move it to OS?
@@ -20,7 +21,7 @@ private:
 
 public:
 	// constructor
-	SMPThread(SMPWD &w, PE *pe) : BaseThread(w,pe),useUserThreads(true) {}
+	SMPThread(WD &w, PE *pe) : BaseThread(w,pe),useUserThreads(true) {}
 	// destructor
     ~SMPThread() { if (isStarted()) /*TODO: stop()*/; }
 
