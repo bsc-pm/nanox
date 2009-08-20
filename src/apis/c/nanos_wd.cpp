@@ -25,8 +25,11 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
                               void ** data, nanos_wg_t uwg, nanos_wd_props_t *props )
 {   
    try {
-      // TODO: check throttling
-      // if ( sys.throttleTask() ) ...
+      if ( props && !props->mandatory_creation && !sys.throttleTask() ) {
+         *uwd = 0; 
+         return NANOS_OK;
+      }
+
 #if 0
       // there is problem at destruction with this right now
       

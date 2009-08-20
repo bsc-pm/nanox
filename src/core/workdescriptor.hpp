@@ -44,7 +44,6 @@ private:
 	//Added reference to queue to allow dequeuing from third party (e.g. cilk scheduler)
 	WDDeque * myQueue;
 
-
 public:
 	// constructors
 	WorkDescriptor(void *wdata=0) : WorkGroup(), data(wdata), tie(false), tie_to(0), idle(false), 
@@ -63,7 +62,6 @@ public:
 	void setMyQueue(WDDeque * myQ) {myQueue = myQ;}
 	bool isEnqueued() {return (myQueue != NULL);}
 
-
 	/* named arguments idiom */
 	WorkDescriptor & tied () { tie = true; return *this; }
 	WorkDescriptor & tieTo (BaseThread &pe) { tie_to = &pe; tie=false; return *this; }
@@ -74,7 +72,7 @@ public:
 	virtual bool canRunIn(ProcessingElement &pe) = 0;
 
 	void setData (void *wdata) { data = wdata; }
-    void * getData () const { return data; }
+       void * getData () const { return data; }
 
 	bool isIdle () const { return idle; }
 	void setIdle(bool state=true) { idle = state; }
