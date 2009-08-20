@@ -4,6 +4,7 @@
 #include "workdescriptor.hpp"
 #include "wddeque.hpp"
 #include "basethread.hpp"
+#include "atomic.hpp"
 #include <string>
 
 namespace nanos {
@@ -79,10 +80,7 @@ public:
 
 // singleton class to encapsulate scheduling data and methods
 class Scheduler {
-private:
-    static int taskNum;
 public:
-    static int getTaskNum() { return taskNum; }
     static void submit (WD &wd);
     static void exit (void);
     static void blockOnCondition (volatile int *var, int condition = 0);

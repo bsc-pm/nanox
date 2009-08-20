@@ -14,6 +14,7 @@ namespace nanos {
 // This class initializes/finalizes the library
 // All global variables MUST be declared inside
 class System {
+  friend class Scheduler;
 // constants
 public:
    typedef enum { DEDICATED, SHARED } ExecutionMode;
@@ -28,8 +29,9 @@ private:
    ExecutionMode executionMode;
    int thsPerPE;
 
-  //cutoff policy
+  //cutoff policy and related variables
   cutoff * cutOffPolicy;
+  Atomic<int> taskNum;
 
   std::string defSchedule;
   sgFactory defSGFactory;
@@ -63,6 +65,8 @@ public:
 
   void setThsPerPE(int ths) { thsPerPE = ths; }
   int getThsPerPE() const { return thsPerPE; }
+
+  int getTaskNum() { return taskNum; }
 
   bool throttleTask();
 

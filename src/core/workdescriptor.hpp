@@ -69,7 +69,6 @@ private:
     int         num_devices;
     DeviceData **devices;
     DeviceData *active_device;
-    
 public:
 	// constructors
 	WorkDescriptor(int ndevices, DeviceData **devs,void *wdata=0) :
@@ -92,7 +91,6 @@ public:
 	void setMyQueue(WDDeque * myQ) {myQueue = myQ;}
 	bool isEnqueued() {return (myQueue != NULL);}
 
-
 	/* named arguments idiom */
 	WorkDescriptor & tied () { tie = true; return *this; }
 	WorkDescriptor & tieTo (BaseThread &pe) { tie_to = &pe; tie=false; return *this; }
@@ -101,7 +99,7 @@ public:
 	BaseThread * isTiedTo() const { return tie_to; }
 
 	void setData (void *wdata) { data = wdata; }
-    void * getData () const { return data; }
+       void * getData () const { return data; }
 
 	bool isIdle () const { return idle; }
 	void setIdle(bool state=true) { idle = state; }

@@ -56,6 +56,7 @@ int fib (int n, int d)
        {
        nanos_wd_t wd=0;
        fib_args *args=0;
+
        nanos_create_wd ( &wd, 1, fib_devices_1 , sizeof(fib_args),
                          (void **)&args, nanos_current_wd(), 0 );
        args->n = n; args->d = d; args->x = &x;
@@ -67,6 +68,7 @@ int fib (int n, int d)
        {
        nanos_wd_t wd=0;
        fib_args *args=0;
+
        nanos_create_wd ( &wd, 1, fib_devices_2 , sizeof(fib_args),
                          (void **)&args, nanos_current_wd(), 0 );
        args->n = n; args->d = d; args->x = &y;

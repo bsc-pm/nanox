@@ -8,15 +8,18 @@ using namespace nanos;
 
 System nanos::sys;
 
-cutoff * createDummyCutoff();
-class dummy_cutoff;
+//cutoff * createDummyCutoff();
+//class dummy_cutoff;
+cutoff * createTasknumCutoff();
+class tasknum_cutoff;
+
 
 // default system values go here
  System::System () : numPEs(1), binding(true), profile(false), instrument(false),
                      verboseMode(false), executionMode(DEDICATED), thsPerPE(1),
                      defSchedule("cilk")
 {
-    cutOffPolicy = createDummyCutoff();
+    cutOffPolicy = createTasknumCutoff();
     verbose0 ( "NANOS++ initalizing... start" );
     config();   
     loadModules();

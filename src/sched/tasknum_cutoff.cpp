@@ -1,8 +1,8 @@
-#include "schedule.hpp"
+#include "system.hpp"
 #include "cutoff.hpp"
 
 
-#define DEFAULT_CUTOFF_NUM 100
+#define DEFAULT_CUTOFF_NUM 1000
 
 using namespace nanos;
 
@@ -23,7 +23,7 @@ public:
 
 
 bool tasknum_cutoff::cutoff_pred() {
-  if( Scheduler::getTaskNum() > max_cutoff ) return false;
+  if( sys.getTaskNum() > max_cutoff ) return false;
   return true;
 }
 

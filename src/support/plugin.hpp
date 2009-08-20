@@ -18,7 +18,7 @@ namespace nanos
       public:
          Plugin(std::string &_name, int _version) : name(_name),version(_version) {}
          Plugin(const char *_name, int _version) : name(_name),version(_version) {}
-	 virtual ~Plugin() {}
+         virtual ~Plugin() {}
          virtual void init() {}
          virtual void fini() {}
    };
