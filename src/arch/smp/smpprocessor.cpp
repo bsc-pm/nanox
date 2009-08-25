@@ -34,5 +34,4 @@ BaseThread &SMPProcessor::createThread (WorkDescriptor &helper)
 	return th;
 }
 
-
 };

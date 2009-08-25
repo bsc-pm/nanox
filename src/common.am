@@ -14,3 +14,4 @@ common_cxxflags= -Wall -Werror -DLIBDIR=\"$(libdir)\"
 performance_cflags=-O3
 
 version_flags= -version-info 1:0:0
+ld_plugin_flags= -avoid-version

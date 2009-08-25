@@ -2,7 +2,6 @@
 #include "config.hpp"
 #include "plugin.hpp"
 #include "schedule.hpp"
-#include "smpprocessor.hpp"
 
 using namespace nanos;
 
@@ -27,14 +26,18 @@ class tasknum_cutoff;
     verbose0 ( "NANOS++ initalizing... end" );
 }
 
-
-
-
 void System::loadModules ()
 {
    verbose0 ( "Loading modules" );
-// load default schedule plugin
-   verbose0("loading " << getDefaultSchedule());
+
+   // load host processor module
+   verbose0("loading SMP support");
+   if ( !PluginManager::load ( "pe-smp" ) )
+      fatal0 ( "Couldn't load SMP support" );
+   ensure(hostFactory,"No default smp factory");
+
+   // load default schedule plugin
+   verbose0("loading " << getDefaultSchedule() << " scheduling policy support");
    
    if ( !PluginManager::load ( "sched-"+getDefaultSchedule() ) )
       fatal0 ( "Couldn't load main scheduling policy" );
@@ -66,9 +69,16 @@ void System::config ()
    config.registerArgOption ( new Config::StringVar ( "nth-schedule", defSchedule ) );
    config.registerEnvOption ( new Config::StringVar ( "NTH_SCHEDULE", defSchedule ) );
    
-   SMPProcessor::prepareConfig(config);
    verbose0 ( "Reading Configuration" );
    config.init();
+}
+
+PE * System::createPE ( std::string pe_type, int pid )
+{
+   // TODO: lookup table for PE factories
+   // in the mean time assume only one factory
+
+   return hostFactory(pid);
 }
 
 void System::start ()
@@ -84,7 +94,7 @@ void System::start ()
    SchedulingGroup *sg = defSGFactory();
 
    //TODO: decide, single master, multiple master start
-   PE *pe = new SMPProcessor ( 0 );
+   PE *pe = createPE ( "smp", 0 );
    pes.push_back ( pe );
    pe->associateThisThread ( sg );
 
@@ -95,7 +105,7 @@ void System::start ()
 
     for ( int p = 1; p < numPes ; p++ ) {
       // TODO: create processor type based on config
-      pe = new SMPProcessor ( p );
+      pe = createPE ( "smp", p );
       pes.push_back ( pe );
 
       //starting as much threads per pe as requested by the user

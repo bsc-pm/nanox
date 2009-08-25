@@ -35,6 +35,7 @@ private:
 
   std::string defSchedule;
   sgFactory defSGFactory;
+  peFactory hostFactory;
 
    std::vector<PE *> pes;
 
@@ -45,6 +46,7 @@ private:
   void config ();
   void loadModules(); 
   void start ();
+  PE * createPE ( std::string pe_type, int pid );
   
 public:
   // constructor
@@ -73,6 +75,7 @@ public:
   const std::string & getDefaultSchedule() const { return defSchedule; }
 
   void setDefaultSGFactory (sgFactory factory) { defSGFactory = factory; }
+  void setHostFactory (peFactory factory) { hostFactory = factory; }
 
 };
 

@@ -55,7 +55,7 @@ namespace nanos
    };
 
    typedef class ProcessingElement PE;
-
+   typedef PE * (*peFactory) (int pid);
 };
 
 #endif
