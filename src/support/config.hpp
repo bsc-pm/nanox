@@ -9,7 +9,6 @@
 
 namespace nanos {
 
-//TODO: check destructors... delete memory...
 class Config {
 public:
 	// Checking predicates

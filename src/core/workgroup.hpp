@@ -6,7 +6,6 @@
 
 namespace nanos {
 
-//TODO: Memory management and structures of this class need serious thinking...
 class WorkGroup {
 private:
       static Atomic<int> atomicSeed;
