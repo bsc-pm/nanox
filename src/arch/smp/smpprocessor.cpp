@@ -29,7 +29,7 @@ WorkDescriptor & SMPProcessor::getMasterWD () const
 BaseThread &SMPProcessor::createThread (WorkDescriptor &helper)
 {
     ensure(helper.canRunIn(SMP),"Incompatible worker thread");
-	SMPThread &th = *new SMPThread(helper,this);
+	SMPThread &th = *new SMPThread(helper,this,useUserThreads);
 
 	return th;
 }

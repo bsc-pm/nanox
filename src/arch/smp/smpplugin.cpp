@@ -15,6 +15,11 @@ class SMPPlugin : public Plugin
       SMPPlugin() : Plugin("SMP PE Plugin",1) {}
       virtual void init() {
            sys.setHostFactory(smpProcessorFactory);
+
+           Config config;
+
+           SMPProcessor::prepareConfig(config);
+           config.init();
       }
 };
 

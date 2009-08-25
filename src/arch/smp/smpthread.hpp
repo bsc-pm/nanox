@@ -21,7 +21,7 @@ private:
 
 public:
 	// constructor
-	SMPThread(WD &w, PE *pe) : BaseThread(w,pe),useUserThreads(true) {}
+	SMPThread(WD &w, PE *pe, bool uUT=true) : BaseThread(w,pe),useUserThreads(uUT) {}
 	// destructor
     ~SMPThread() { if (isStarted()) /*TODO: stop()*/; }
 

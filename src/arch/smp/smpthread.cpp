@@ -122,8 +122,11 @@ void SMPThread::switchTo ( WD *wd )
            (void *) dd.getState(),
            (void *) switchHelper);
    } else {
+      WD *oldwd = getCurrentWD();
+      setCurrentWD(*wd);
       (dd.getWorkFct())(wd->getData());
       // TODO: not delete work descriptor if is a parent with pending children
+      setCurrentWD(*oldwd);
       delete wd;
    }
 }

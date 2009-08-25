@@ -59,6 +59,11 @@ case $host in
   ;;
 esac
 
+# Add architecture libraries
+for arch in $ARCHITECTURES; do
+	NANOS_CONFIG_LIBS+=../arch/$arch/lib$arch.la
+done
+
 AC_MSG_RESULT([$ARCHITECTURES/$OS])
 
 # Enable performance version
