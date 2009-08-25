@@ -24,10 +24,9 @@ void Scheduler::submit ( WD &wd )
 
 void Scheduler::exit ( void )
 {
-   // TODO:
+   // TODO: Support WD running on lended stack
    // Cases:
    // The WD was running on its own stack, switch to a new one
-
    // The WD was running on a thread stack, exit to the loop
 
    sys.taskNum--;

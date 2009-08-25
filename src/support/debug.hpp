@@ -10,8 +10,6 @@
 
 namespace nanos {
 
-//TODO: Improve information carried in Exceptions
-
 class FatalError : public  std::runtime_error {
 public:
 	FatalError (const std::string &value, int peId=-1) :

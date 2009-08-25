@@ -20,20 +20,6 @@ void Config::parseFiles ()
 {
 }
 
-// void Config::parseEnvironment ()
-// {
-// 	bool b;
-// 
-// 	// NTH_TIE
-// 
-// 	if (getBoolEnvVar("NTH_PROFILE",b)) {
-// 		setProfiling(b);
-// 	}
-// 
-// 	// NTH_PROFILE
-// 	// NTH_SCHEDULE
-// }
-
 void Config::registerEnvOption (Option *opt)
 {
 	envOptions.push_back(opt);

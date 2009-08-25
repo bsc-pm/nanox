@@ -30,7 +30,7 @@ private:
    
 public:
     WDDeque() {}
-    ~WDDeque() { /*TODO: ensure queue is empty*/ }
+    ~WDDeque() {}
 
     void push_front (WorkDescriptor *wd);
     void push_back(WorkDescriptor *wd);

@@ -9,7 +9,6 @@ bool SMPProcessor::useUserThreads = true;
 
 void SMPProcessor::prepareConfig (Config &config)
 {
-    // TODO: CHECK, move to plugin and to smpthread
 	config.registerArgOption(new Config::FlagOption("nth-no-ut",useUserThreads,false));
 }
 

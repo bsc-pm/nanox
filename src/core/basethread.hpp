@@ -66,9 +66,6 @@ public:
   ProcessingElement * runningOn() const { return pe; }
   void associate();
 
-//TODO:
-// void pause();
-// void resume();
   int getId() { return id; }
 };
 

@@ -16,7 +16,7 @@ BaseThread & ProcessingElement::startThread (WD &work, SchedulingGroup *sg)
        if (sg) sg->addMember(thread);
        thread.start();
 
-      workerThreads.push_back(&thread);
+      threads.push_back(&thread);
 
        return thread;
 }
@@ -35,7 +35,7 @@ BaseThread & ProcessingElement::associateThisThread (SchedulingGroup *sg)
 void ProcessingElement::stopAll ()
 {
         std::vector<BaseThread *>::iterator it;
-       for(it = workerThreads.begin(); it != workerThreads.end(); it++) {
+       for(it = threads.begin(); it != threads.end(); it++) {
             (*it)->stop();
             (*it)->join();
         }

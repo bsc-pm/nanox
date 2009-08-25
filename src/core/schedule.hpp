@@ -62,8 +62,6 @@ public:
     virtual void removeMember (BaseThread &thread);
     virtual SchedulingData * createMemberData (BaseThread &thread) { return new SchedulingData(); };
 
-// TODO: void (*parse_option) (char *opt, char *value);
-
     // policy related methods
     virtual WD *atCreation (BaseThread *thread, WD &newWD) { return 0; }
     virtual WD *atIdle     (BaseThread *thread) = 0;
@@ -87,8 +85,6 @@ public:
     static void idle (void);
     static void queue (WD &wd);
 };
-
-
 
 typedef SchedulingGroup SG;
 typedef SG * (*sgFactory) ();

@@ -20,7 +20,6 @@ private:
 public:
 	// constructors
 	SMPProcessor(int id) : PE(id,&SMP) {}
-	// destructor, TODO: stop all related threads
 	virtual ~SMPProcessor() {}
   
   virtual WD & getWorkerWD () const;

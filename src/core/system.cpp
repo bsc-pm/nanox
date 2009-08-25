@@ -87,8 +87,6 @@ void System::start ()
 
     int numPes = getNumPEs();
 
-   // if preload, TODO: allow dynamic PE creation
-
    pes.reserve ( numPes );
 
    SchedulingGroup *sg = defSGFactory();
@@ -104,7 +102,6 @@ void System::start ()
      }
 
     for ( int p = 1; p < numPes ; p++ ) {
-      // TODO: create processor type based on config
       pe = createPE ( "smp", p );
       pes.push_back ( pe );
 
@@ -140,7 +137,6 @@ System::~System ()
    verbose ( "NANOS++ shutting down.... end" );
 }
 
-//TODO: remove?
 void System::submit ( WD &work )
 {
    work.setParent ( myThread->getCurrentWD() );
@@ -153,26 +149,3 @@ bool System::throttleTask() {
 }
 
 
-//TODO: void system_description ()
-// {
-//  // Altix simple
-//  System = new UMASystem ();
-//  System.addN(128, SmpPE(1594));
-//
-//  // Altix complex
-//  System = new NUMASystem();
-//  System.add(64, Node(MultiCore(2,SmpPE(1594)),1GB) );
-//
-//  // Cell
-//  System = new NUMASystem();
-//  System.add(1,Node(MultiCore(2,SmpPE(1000)));
-//  System.add(8,Node(SpuPE(),256K));
-//
-//  // MN Partition
-//  System = new ClusterSystem();
-//  System.add(10,UMASystem(2,Multicore(2,SmpPE(1000))));
-//
-//  // MI Partition
-//  System = new ClusterSystem();
-//  System.add(10,NUMASystem(1,MultiCore(2,SmpPE(2000)),16,SpuPE());
-// }

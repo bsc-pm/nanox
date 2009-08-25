@@ -21,9 +21,7 @@ namespace nanos
          protected:
          virtual WorkDescriptor & getMasterWD () const = 0;
          virtual WorkDescriptor & getWorkerWD () const = 0;
-	 //TODO: make this a vector (#6)
-         //BaseThread *workerThread;
-         std::vector<BaseThread *> workerThreads;
+         std::vector<BaseThread *> threads;
 
 
       public:
