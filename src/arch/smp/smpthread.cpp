@@ -103,6 +103,16 @@ static void switchHelper ( WD *oldWD, WD *newWD, intptr_t *oldState  )
     myThread->setCurrentWD(*newWD);
 }
 
+void SMPThread::inlineWork ( WD *wd )
+{
+    SMPDD &dd = (SMPDD &)wd->getActiveDevice();
+    WD *oldwd = getCurrentWD();
+    setCurrentWD(*wd);
+    (dd.getWorkFct())(wd->getData());
+    // TODO: not delete work descriptor if is a parent with pending children
+    setCurrentWD(*oldwd);
+}
+
 void SMPThread::switchTo ( WD *wd )
 {
     // wd MUST have an active Device when it gets here
@@ -122,11 +132,7 @@ void SMPThread::switchTo ( WD *wd )
            (void *) dd.getState(),
            (void *) switchHelper);
    } else {
-      WD *oldwd = getCurrentWD();
-      setCurrentWD(*wd);
-      (dd.getWorkFct())(wd->getData());
-      // TODO: not delete work descriptor if is a parent with pending children
-      setCurrentWD(*oldwd);
+      inlineWork(wd);
       delete wd;
    }
 }

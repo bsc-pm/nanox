@@ -54,6 +54,7 @@ public:
   ~System ();
 
   void submit ( WD &work );
+  void inlineWork ( WD &work );
   
   // methods to access configuration variables
   void setNumPEs (int npes) { numPEs = npes; }
