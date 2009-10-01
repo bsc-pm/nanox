@@ -32,8 +32,12 @@ private:
   //cutoff policy and related variables
   cutoff * cutOffPolicy;
   Atomic<int> taskNum;
+  Atomic<int> numReady;
+  Atomic<int> idleThreads;
+
 
   std::string defSchedule;
+  std::string defCutoff;
   sgFactory defSGFactory;
   peFactory hostFactory;
 
@@ -47,7 +51,7 @@ private:
   void loadModules(); 
   void start ();
   PE * createPE ( std::string pe_type, int pid );
-  
+
 public:
   // constructor
   System ();
@@ -69,10 +73,15 @@ public:
   int getThsPerPE() const { return thsPerPE; }
 
   int getTaskNum() { return taskNum; }
+  int getIdleNum() { return idleThreads; }
+  int getReadyNum() { return numReady; }
+
+  void setCutOffPolicy(cutoff * co) { cutOffPolicy = co; }
 
   bool throttleTask();
 
   const std::string & getDefaultSchedule() const { return defSchedule; }
+  const std::string & getDefaultCutoff() const { return defCutoff; }
 
   void setDefaultSGFactory (sgFactory factory) { defSGFactory = factory; }
   void setHostFactory (peFactory factory) { hostFactory = factory; }
