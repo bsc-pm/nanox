@@ -9,16 +9,23 @@ System nanos::sys;
 
 //cutoff * createDummyCutoff();
 //class dummy_cutoff;
-cutoff * createTasknumCutoff();
-class tasknum_cutoff;
+//cutoff * createLevelCutoff();
+//class level_cutoff;
+//cutoff * createTasknumCutoff();
+//class tasknum_cutoff;
+//cutoff * createIdleCutoff();
+//class idle_cutoff;
+//cutoff * createReadyCutoff();
+//class ready_cutoff;
+
 
 
 // default system values go here
  System::System () : numPEs(1), binding(true), profile(false), instrument(false),
                      verboseMode(false), executionMode(DEDICATED), thsPerPE(1),
-                     defSchedule("cilk")
+                     defSchedule("cilk"), defCutoff("tasknum")
 {
-    cutOffPolicy = createTasknumCutoff();
+    //cutOffPolicy = createTasknumCutoff();
     verbose0 ( "NANOS++ initalizing... start" );
     config();   
     loadModules();
@@ -38,11 +45,14 @@ void System::loadModules ()
 
    // load default schedule plugin
    verbose0("loading " << getDefaultSchedule() << " scheduling policy support");
-   
    if ( !PluginManager::load ( "sched-"+getDefaultSchedule() ) )
       fatal0 ( "Couldn't load main scheduling policy" );
 
    ensure(defSGFactory,"No default system scheduling factory");
+
+   verbose0( "loading task num cutoff policy" );
+   if( !PluginManager::load( "cutoff-"+getDefaultCutoff() ) )
+      fatal0( "Could not load main cutoff policy" );
 }
 
 
@@ -68,7 +78,10 @@ void System::config ()
 
    config.registerArgOption ( new Config::StringVar ( "nth-schedule", defSchedule ) );
    config.registerEnvOption ( new Config::StringVar ( "NTH_SCHEDULE", defSchedule ) );
-   
+
+   config.registerArgOption ( new Config::StringVar ( "nth-cutoff", defCutoff ) );
+   config.registerEnvOption ( new Config::StringVar ( "NTH_CUTOFF", defCutoff ) );
+
    verbose0 ( "Reading Configuration" );
    config.init();
 }
@@ -140,6 +153,7 @@ System::~System ()
 void System::submit ( WD &work )
 {
    work.setParent ( myThread->getCurrentWD() );
+   work.setLevel( work.getParent()->getLevel() +1 );
    Scheduler::submit ( work );
 }
 

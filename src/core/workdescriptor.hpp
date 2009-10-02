@@ -65,18 +65,21 @@ private:
 	//Added reference to queue to allow dequeuing from third party (e.g. cilk scheduler)
 	WDDeque * myQueue;
 
-    // Supported devices for this workdescriptor
-    int         num_devices;
-    DeviceData **devices;
-    DeviceData *active_device;
+      //level (depth) of the task
+      int level;
+
+       // Supported devices for this workdescriptor
+      int         num_devices;
+      DeviceData **devices;
+      DeviceData *active_device;
 public:
 	// constructors
 	WorkDescriptor(int ndevices, DeviceData **devs,void *wdata=0) :
            WorkGroup(), data(wdata), tie(false), tie_to(0), idle(false),
-		   parent(NULL), myQueue(NULL), num_devices(ndevices), devices(devs), active_device(0) {}
+		   parent(NULL), myQueue(NULL), level(0), num_devices(ndevices), devices(devs), active_device(0) {}
     WorkDescriptor(DeviceData *device,void *wdata=0) :
            WorkGroup(), data(wdata), tie(false), tie_to(0), idle(false),
-           parent(NULL), myQueue(NULL), num_devices(1), devices(0), active_device(device) {}
+           parent(NULL), myQueue(NULL), level(0), num_devices(1), devices(0), active_device(device) {}
 	// TODO: copy constructor
 	WorkDescriptor(const WorkDescriptor &wd);
 	// TODO: assignment operator
@@ -103,6 +106,9 @@ public:
 
 	bool isIdle () const { return idle; }
 	void setIdle(bool state=true) { idle = state; }
+
+      void setLevel(int l) { level = l; }
+      int getLevel() { return level; }
 
     /* device related methods */
     DeviceData * findDeviceData (const Device &device) const;

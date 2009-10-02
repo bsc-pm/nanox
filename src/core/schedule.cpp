@@ -13,7 +13,6 @@ void Scheduler::submit ( WD &wd )
 
   sys.taskNum++;
 
-
    debug ( "submitting task " << wd.getId() );
    WD *next = myThread->getSchedulingGroup()->atCreation ( myThread, wd );
 
@@ -32,6 +31,9 @@ void Scheduler::exit ( void )
    sys.taskNum--;
 
    WD *next = myThread->getSchedulingGroup()->atExit ( myThread );
+   if( next ) { 
+      sys.numReady--;
+   }
 
    if ( !next ) {
       next = myThread->getSchedulingGroup()->getIdle ( myThread );
@@ -65,6 +67,9 @@ void Scheduler::blockOnCondition ( volatile int *var, int condition )
       thread->getCurrentWD()->setIdle();
 
       WD *next = thread->getSchedulingGroup()->atBlock ( thread );
+      if( next ) {
+         sys.numReady--;
+      }
 
       if ( !next )
          next = thread->getSchedulingGroup()->getIdle ( thread );
@@ -81,24 +86,35 @@ void Scheduler::blockOnCondition ( volatile int *var, int condition )
 
 void Scheduler::idle ()
 {
+
    // This function is run always by the same BaseThread so we don't need to use getMyThreadSafe
    BaseThread *thread = myThread;
 
    thread->getCurrentWD()->setIdle();
 
+   sys.idleThreads++;
+
    while ( thread->isRunning() ) {
       if ( thread->getSchedulingGroup() ) {
          WD *next = thread->getSchedulingGroup()->atIdle ( thread );
+         if( next ) { 
+            sys.numReady--;
+         }
 
          if ( !next )
             next = thread->getSchedulingGroup()->getIdle ( thread );
 
-         if ( next )
+         if ( next ) {
+            sys.idleThreads--;
             thread->switchTo ( next );
+            sys.idleThreads++;
+         }
       }
    }
 
    thread->getCurrentWD()->setIdle ( false );
+
+   sys.idleThreads--;
 
    verbose ( "Working thread finishing" );
 }
@@ -107,8 +123,10 @@ void Scheduler::queue ( WD &wd )
 {
    if ( wd.isIdle() )
       myThread->getSchedulingGroup()->queueIdle ( myThread, wd );
-   else
+   else { 
       myThread->getSchedulingGroup()->queue ( myThread, wd );
+      sys.numReady++;
+   }
 }
 
 void SchedulingGroup::init ( int groupSize )

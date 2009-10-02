@@ -57,7 +57,7 @@ class BFSchedPlugin : public Plugin
          config.registerArgOption(new Config::FlagOption("nth-bf-use-stack",useStack));
          config.registerArgOption(new Config::FlagOption("nth-bf-stack",useStack));
          config.init();
-         
+
          sys.setDefaultSGFactory(createBreadthFirstPolicy);
       }
 };
