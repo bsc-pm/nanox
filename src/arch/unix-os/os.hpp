@@ -34,8 +34,8 @@ public:
 	static void consumeArgument (Argument &arg);
 	static void repackArguments ();
 
-    static void * loadDL(std::string &dir, std::string &name);
-    static void * dlFindSymbol(void *dlHandler, std::string &symbolName);
+    static void * loadDL(const std::string &dir, const std::string &name);
+    static void * dlFindSymbol(void *dlHandler, const std::string &symbolName);
     static void * dlFindSymbol(void *dlHandler, const char *symbolName);
     // too-specific?
     static char * dlError(void *dlHandler) { return dlerror(); }

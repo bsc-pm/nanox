@@ -57,7 +57,7 @@ void OS::repackArguments ()
 	   *argc = hole;
 }
 
-void * OS::loadDL(std::string &dir, std::string &name)
+void * OS::loadDL(const std::string &dir, const std::string &name)
 {
    std::string filename;
    filename = dir + "/" + name + ".so";
@@ -65,7 +65,7 @@ void * OS::loadDL(std::string &dir, std::string &name)
    return dlopen ( filename.c_str(), RTLD_NOW );
 }
 
-void * OS::dlFindSymbol(void *dlHandler, std::string &symbolName)
+void * OS::dlFindSymbol(void *dlHandler, const std::string &symbolName)
 {
    return dlsym ( dlHandler, symbolName.c_str() );
 }

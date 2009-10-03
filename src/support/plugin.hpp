@@ -21,6 +21,9 @@ namespace nanos
          virtual ~Plugin() {}
          virtual void init() {}
          virtual void fini() {}
+
+         const std::string & getName() const { return name; }
+         int getVersion() const { return version; }
    };
 
    class PluginManager
@@ -39,6 +42,8 @@ namespace nanos
          static void setDirectory ( const std::string & dir ) {
             pluginsDir = dir;
          }
+
+         static const std::string &getDirectory () { return pluginsDir; }
 
          static bool load ( const char *plugin_name );
          static bool load ( const std::string &plugin_name ) { return load(plugin_name.c_str()); };
