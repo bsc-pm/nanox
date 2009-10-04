@@ -58,10 +58,9 @@ void Config::parseEnvironment ()
 // so it's not clear if its worth it.
 void Config::parseArguments ()
 {
-	OS::ArgumentList list;
-	OS::getProgramArguments(list);
+	const OS::ArgumentList & list = OS::getProgramArguments();
 
-	for (OS::ArgumentList::iterator it = list.begin();
+	for (OS::ArgumentList::const_iterator it = list.begin();
 		it < list.end(); it++)
 	{
 

@@ -5,8 +5,9 @@ using namespace nanos;
 
 long *  OS::argc  = 0;
 char ** OS::argv = 0;
+OS::ArgumentList OS::argList;
 
-void OS::getProgramArguments (ArgumentList &list)
+const OS::ArgumentList & OS::getProgramArguments ()
 {
 	long *p;
 	int i;
@@ -21,13 +22,14 @@ void OS::getProgramArguments (ArgumentList &list)
 
 	  argc = p;
 	  argv = (char **) p+1;
+
+      // build vector
+      argList.reserve(*argc);
+      for ( i = 0; i < *argc; i++)
+         argList.push_back(new Argument(argv[i],i));
     }
 
-	// build vector
-  	list.reserve(*argc);
- 	for ( i = 0; i < *argc; i++)
- 		list.push_back(new Argument(argv[i],i));
-
+    return argList;
 }
 
 void OS::consumeArgument (Argument &arg)

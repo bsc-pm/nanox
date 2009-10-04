@@ -28,9 +28,10 @@ public:
 
 	static char **argv;
 	static long *argc;
+    static ArgumentList argList;
 
 	static const char *getEnvironmentVariable(const std::string &variable);
-	static void getProgramArguments (ArgumentList &list);
+	static const ArgumentList & getProgramArguments ();
 	static void consumeArgument (Argument &arg);
 	static void repackArguments ();
 
