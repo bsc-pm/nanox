@@ -109,6 +109,7 @@ AC_CONFIG_FILES([Makefile
 		 src/arch/fpga/Makefile
 		 src/arch/cell/Makefile
 		 src/arch/gpu/Makefile
+		 src/utils/Makefile
 		 test/Makefile
 		 doc/Makefile
                  ])

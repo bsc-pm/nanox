@@ -5,8 +5,9 @@ using namespace nanos;
 
 long *  OS::argc  = 0;
 char ** OS::argv = 0;
+OS::ArgumentList OS::argList;
 
-void OS::getProgramArguments (ArgumentList &list)
+const OS::ArgumentList & OS::getProgramArguments ()
 {
 	long *p;
 	int i;
@@ -21,13 +22,14 @@ void OS::getProgramArguments (ArgumentList &list)
 
 	  argc = p;
 	  argv = (char **) p+1;
+
+      // build vector
+      argList.reserve(*argc);
+      for ( i = 0; i < *argc; i++)
+         argList.push_back(new Argument(argv[i],i));
     }
 
-	// build vector
-  	list.reserve(*argc);
- 	for ( i = 0; i < *argc; i++)
- 		list.push_back(new Argument(argv[i],i));
-
+    return argList;
 }
 
 void OS::consumeArgument (Argument &arg)
@@ -57,7 +59,7 @@ void OS::repackArguments ()
 	   *argc = hole;
 }
 
-void * OS::loadDL(std::string &dir, std::string &name)
+void * OS::loadDL(const std::string &dir, const std::string &name)
 {
    std::string filename;
    filename = dir + "/" + name + ".so";
@@ -65,7 +67,7 @@ void * OS::loadDL(std::string &dir, std::string &name)
    return dlopen ( filename.c_str(), RTLD_NOW );
 }
 
-void * OS::dlFindSymbol(void *dlHandler, std::string &symbolName)
+void * OS::dlFindSymbol(void *dlHandler, const std::string &symbolName)
 {
    return dlsym ( dlHandler, symbolName.c_str() );
 }

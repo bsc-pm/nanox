@@ -49,6 +49,7 @@ public:
   virtual void join() = 0;
 
   // WD micro-scheduling
+  virtual void inlineWork (WD *work) = 0;
   virtual void switchTo(WD *work) = 0;
   virtual void exitTo(WD *work) = 0;
 

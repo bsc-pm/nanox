@@ -157,6 +157,15 @@ void System::submit ( WD &work )
    Scheduler::submit ( work );
 }
 
+void System::inlineWork ( WD &work )
+{
+   BaseThread *myself = myThread;
+   
+  // TODO: choose actual device...
+  work.setParent ( myself->getCurrentWD() );
+  myself->inlineWork(&work);
+}
+
 
 bool System::throttleTask() {
   return cutOffPolicy->cutoff_pred();
