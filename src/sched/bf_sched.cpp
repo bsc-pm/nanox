@@ -12,7 +12,7 @@ private:
      bool      useStack;
 public:
      // constructor
-     BreadthFirstPolicy(bool stack) : SchedulingGroup("breadth-first-sch"), useStack(stack) {}
+     BreadthFirstPolicy(bool stack, int groupSize=1) : SchedulingGroup("breadth-first-sch",groupSize), useStack(stack) {}
      // TODO: copy and assigment operations
      // destructor
      virtual ~BreadthFirstPolicy() {}
@@ -42,9 +42,9 @@ WD * BreadthFirstPolicy::atIdle (BaseThread *thread)
 static bool useStack = false;
 
 // Factory
-SchedulingGroup * createBreadthFirstPolicy ()
+SchedulingGroup * createBreadthFirstPolicy (int groupSize)
 {
-    return new BreadthFirstPolicy(useStack);
+    return new BreadthFirstPolicy(useStack,groupSize);
 }
 
 class BFSchedPlugin : public Plugin

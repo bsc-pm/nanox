@@ -102,7 +102,7 @@ void System::start ()
 
    pes.reserve ( numPes );
 
-   SchedulingGroup *sg = defSGFactory();
+   SchedulingGroup *sg = defSGFactory(numPes*getThsPerPE());
 
    //TODO: decide, single master, multiple master start
    PE *pe = createPE ( "smp", 0 );

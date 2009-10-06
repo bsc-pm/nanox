@@ -18,23 +18,7 @@
 	.type _switchStacks,@function
 	.type switchStacks,@function
 
-/* void *switchStacks (helper, arg0, arg1, new)
- *
- * On procedure entry, the helper is at 4(sp), args at 8(sp) and
- * 12(sp) and the new thread's sp at 16(sp).  It 'appears' that the
- * calling convention for the X86 requires the caller to save all
- * floating-point registers, this makes our life easy. 
- *
- * Halt the currently-running thread.  Save it's callee-save regs on
- * to the stack, 32 bytes.  Switch to the new stack (next == 16+32(sp))
- * and call the helper function (f == 4+32(sp)) with arguments: old sp
- * arg1 (8+32(sp)) and arg2 (12+32(sp)).  When the user function is
- * done, restore the new thread's state and return.
- *
- * The helper function (4(sp)) can return a void* that is returned
- * to the caller.  Since we don't touch %eax in between, we get 
- * that 'for free'. 
- */
+/* void switchStacks (arg0, arg1, new, helper) */
 
 switchStacks:
 _switchStacks:

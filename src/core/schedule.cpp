@@ -131,7 +131,6 @@ void Scheduler::queue ( WD &wd )
 
 void SchedulingGroup::init ( int groupSize )
 {
-   size = 0;
    group.reserve ( groupSize );
 }
 
@@ -139,10 +138,8 @@ void SchedulingGroup::addMember ( BaseThread &thread )
 {
 	SchedulingData *data = createMemberData ( thread );
 
-	data->setSchId ( size );
-	thread.setScheduling ( this, data );
-
-       size++;
+    data->setSchId ( getSize() );
+    thread.setScheduling ( this, data );
 	group.push_back(data);
 }
 
