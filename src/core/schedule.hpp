@@ -34,10 +34,7 @@ private:
   std::string    name;
   WDDeque        idleQueue;
 
-  int            size;
   group_t        group;
-
-
 
     // disable copy and assignment
     SchedulingGroup(const SchedulingGroup &);
@@ -46,8 +43,8 @@ private:
     void init(int groupSize);
 public:
     // constructors
-    SchedulingGroup(std::string &policy_name, int groupSize=1) : name(policy_name) { init(groupSize); }
-    SchedulingGroup(const char  *policy_name, int groupSize=1) : name(policy_name) { init(groupSize); }
+    SchedulingGroup(std::string &policy_name, int groupSize=1) : name(policy_name),size(0) { init(groupSize); }
+    SchedulingGroup(const char  *policy_name, int groupSize=1) : name(policy_name),size(0) { init(groupSize); }
     // destructor
     virtual ~SchedulingGroup() {}
 
@@ -87,7 +84,7 @@ public:
 };
 
 typedef SchedulingGroup SG;
-typedef SG * (*sgFactory) ();
+typedef SG * (*sgFactory) (int groupSize);
 
 };
 
