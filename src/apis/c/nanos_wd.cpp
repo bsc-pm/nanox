@@ -25,10 +25,12 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
                               void ** data, nanos_wg_t uwg, nanos_wd_props_t *props )
 {   
    try {
-      if ( ( (!props) ||  (props && !props->mandatory_creation) ) && !sys.throttleTask() ) {
+      if ( (!props) || ( (props && !props->mandatory_creation)  && !sys.throttleTask() ) ) {
          *uwd = 0; 
          return NANOS_OK;
       }
+
+      //std::cout << "creatin because?" << std::endl;
 
       if ( num_devices > 1 ) warning("Multiple devices not yet supported. Using first one");
 

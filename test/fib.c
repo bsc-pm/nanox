@@ -57,8 +57,11 @@ int fib (int n, int d)
        nanos_wd_t wd=0;
        fib_args *args=0;
 
+      nanos_wd_props_t props;
+      props.mandatory_creation=true;
+
        nanos_create_wd ( &wd, 1, fib_devices_1 , sizeof(fib_args),
-                         (void **)&args, nanos_current_wd(), 0 );
+                         (void **)&args, nanos_current_wd(), &props );
        args->n = n; args->d = d; args->x = &x;
        nanos_submit(wd,0,0);
        }
@@ -69,8 +72,12 @@ int fib (int n, int d)
        nanos_wd_t wd=0;
        fib_args *args=0;
 
+      nanos_wd_props_t props;
+      props.mandatory_creation=true;
+
+
        nanos_create_wd ( &wd, 1, fib_devices_2 , sizeof(fib_args),
-                         (void **)&args, nanos_current_wd(), 0 );
+                         (void **)&args, nanos_current_wd(), &props );
        args->n = n; args->d = d; args->x = &y;
        nanos_submit(wd,0,0);
        }

@@ -1,10 +1,18 @@
 #include "schedule.hpp"
 #include "wddeque.hpp"
-#include "wf_sched.hpp"
+//#include "wf_sched.hpp"
 #include "plugin.hpp"
 #include "system.hpp"
+#include "config.hpp"
 
 using namespace nanos;
+
+typedef enum { FIFO, LIFO } wfPolicies;
+
+static bool noStealParent = false;
+static wfPolicies localPolicy = FIFO;
+static wfPolicies stealPolicy = FIFO;
+
 
 class WFData : public SchedulingData
 {
@@ -25,17 +33,17 @@ public:
 class WFPolicy : public SchedulingGroup {
 private:
    //policy variables for local dequeue and stealing: FIFO or LIFO?
-   int localPolicy;
-   int stealPolicy;
-   bool stealParent;
+  // int localPolicy;
+   //int stealPolicy;
+   //bool stealParent;
 
 public:
    // constructor
-   WFPolicy() : SchedulingGroup("wf-steal-sch"), localPolicy(LIFO), stealPolicy(FIFO), stealParent(true) {}
-   WFPolicy(int groupsize) : SchedulingGroup("wf-steal-sch", groupsize), localPolicy(FIFO), stealPolicy(FIFO), stealParent(true) {}
-   WFPolicy(int groupsize, int localP) : SchedulingGroup("wf-steal-sch", groupsize), localPolicy(localP), stealPolicy(FIFO), stealParent(true) {}
-   WFPolicy(int groupsize, int localP, int stealPol) : SchedulingGroup("wf-steal-sch", groupsize), localPolicy(localP), stealPolicy(stealPol), stealParent(true) {}
-   WFPolicy(int groupsize, int localP, int stealPol, bool stealPar) : SchedulingGroup("wf-steal-sch", groupsize), localPolicy(localP), stealPolicy(stealPol),stealParent(stealPar) {}
+   WFPolicy() : SchedulingGroup("wf-steal-sch") {} //, localPolicy(LIFO), stealPolicy(FIFO) {} //stealParent(true) {}
+   WFPolicy(int groupsize) : SchedulingGroup("wf-steal-sch", groupsize) {} //, localPolicy(FIFO), stealPolicy(FIFO) {}
+   WFPolicy(int groupsize, int localP) : SchedulingGroup("wf-steal-sch", groupsize) {} //, localPolicy(localP), stealPolicy(FIFO) {}
+   WFPolicy(int groupsize, int localP, int stealPol) : SchedulingGroup("wf-steal-sch", groupsize) {} //, localPolicy(localP), stealPolicy(stealPol) {}
+   WFPolicy(int groupsize, int localP, int stealPol, bool stealPar) : SchedulingGroup("wf-steal-sch", groupsize) {} //, localPolicy(localP), stealPolicy(stealPol) {}
 
    // TODO: copy and assigment operations
    // destructor
@@ -61,7 +69,12 @@ WD * WFPolicy::atCreation (BaseThread *thread, WD &newWD)
 
 WD * WFPolicy::atIdle (BaseThread *thread)
 {
-   WorkDescriptor * wd = NULL;
+
+//     std::cout << "Dumping configuration:" << std::endl;
+//        if(noStealParent == true) std::cout << "Not Stealing Parent! " << std::endl;
+//        else std::cout << "Stealing Parent " << std::endl;
+
+    WorkDescriptor * wd = NULL;
 
    WFData *data = (WFData *) thread->getSchedulingData();
 
@@ -69,7 +82,7 @@ WD * WFPolicy::atIdle (BaseThread *thread)
       ((localPolicy == FIFO) && ( (wd = data->readyQueue.pop_back(thread)) != NULL )) ) {
          return wd;
    } else {
-      if(stealParent == true) {
+      if(noStealParent == false) {
        if( ( wd = (thread->getCurrentWD())->getParent() ) != NULL) {
             //removing it from the queue. Try to remove from one queue: if someone move it, I stop looking for it to avoid ping-pongs.
           if ( (wd->isEnqueued()) == true && ( !(wd)->isTied() || (wd)->isTiedTo() == thread ) ) { //not in queue = in execution, in queue = not in execution
@@ -129,13 +142,27 @@ SchedulingGroup * createWFPolicy (int groupsize, int localPolicy, int stealPolic
 }
 
 
-
 class WFSchedPlugin : public Plugin
 {
    public:
       WFSchedPlugin() : Plugin("WF scheduling Plugin",1) {}
       virtual void init() {
-           sys.setDefaultSGFactory(createWFPolicy);
+          Config config;
+
+          //BUG: If defining local policy or steal policy the command line option *must not* include the = between the option name and the value, but a space
+          config.registerArgOption(new Config::FlagOption("nth-wf-no-steal-parent", noStealParent));
+
+          Config::MapVar<wfPolicies>::MapList opts(2);
+          opts[0] = Config::MapVar<wfPolicies>::MapOption("FIFO", FIFO);
+          opts[1] = Config::MapVar<wfPolicies>::MapOption("LIFO", LIFO);
+          config.registerArgOption(new Config::MapVar<wfPolicies>("nth-wf-local-policy", localPolicy, opts));
+          config.registerArgOption(new Config::MapVar<wfPolicies>("nth-wf-steal-policy", stealPolicy, opts));
+
+          config.init();
+
+         std::cout << "localPolicy = " << localPolicy << ", stealPolicy = " << stealPolicy << std::endl;
+
+          sys.setDefaultSGFactory(createWFPolicy);
       }
 };
 

@@ -28,6 +28,7 @@ bool tasknum_cutoff::cutoff_pred() {
       verbose0("Cutoff Policy: avoiding task creation!");
       return false;
    }
+
   return true;
 }
 

@@ -12,7 +12,7 @@ private:
      bool      useStack;
 public:
      // constructor
-     BreadthFirstPolicy(bool stack, int groupSize=1) : SchedulingGroup("breadth-first-sch",groupSize), useStack(stack) {}
+     BreadthFirstPolicy(bool stack, int groupSize) : SchedulingGroup("breadth-first-sch",groupSize), useStack(stack) {}
      // TODO: copy and assigment operations
      // destructor
      virtual ~BreadthFirstPolicy() {}
@@ -52,14 +52,14 @@ class BFSchedPlugin : public Plugin
    public:
       BFSchedPlugin() : Plugin("BF scheduling Plugin",1) {}
       virtual void init() {
-         Config config;
+          Config config;
 
-         config.registerArgOption(new Config::FlagOption("nth-bf-use-stack",useStack));
-         config.registerArgOption(new Config::FlagOption("nth-bf-stack",useStack));
-         config.init();
+          config.registerArgOption(new Config::FlagOption("nth-bf-use-stack",useStack));
+          config.registerArgOption(new Config::FlagOption("nth-bf-stack",useStack));
+          config.init();
 
          sys.setDefaultSGFactory(createBreadthFirstPolicy);
-      }
+     }
 };
 
 BFSchedPlugin NanosXPlugin;
