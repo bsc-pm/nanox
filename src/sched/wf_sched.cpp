@@ -1,7 +1,8 @@
 #include "schedule.hpp"
 #include "wddeque.hpp"
 #include "wf_sched.hpp"
-
+#include "plugin.hpp"
+#include "system.hpp"
 
 using namespace nanos;
 
@@ -30,7 +31,7 @@ private:
 
 public:
    // constructor
-   WFPolicy() : SchedulingGroup("wf-steal-sch"), localPolicy(FIFO), stealPolicy(FIFO), stealParent(true) {}
+   WFPolicy() : SchedulingGroup("wf-steal-sch"), localPolicy(LIFO), stealPolicy(FIFO), stealParent(true) {}
    WFPolicy(int groupsize) : SchedulingGroup("wf-steal-sch", groupsize), localPolicy(FIFO), stealPolicy(FIFO), stealParent(true) {}
    WFPolicy(int groupsize, int localP) : SchedulingGroup("wf-steal-sch", groupsize), localPolicy(localP), stealPolicy(FIFO), stealParent(true) {}
    WFPolicy(int groupsize, int localP, int stealPol) : SchedulingGroup("wf-steal-sch", groupsize), localPolicy(localP), stealPolicy(stealPol), stealParent(true) {}
@@ -126,3 +127,18 @@ SchedulingGroup * createWFPolicy (int groupsize, int localPolicy, int stealPolic
 {
    return new WFPolicy(groupsize, localPolicy, stealPolicy, stealParent);
 }
+
+
+
+class WFSchedPlugin : public Plugin
+{
+   public:
+      WFSchedPlugin() : Plugin("WF scheduling Plugin",1) {}
+      virtual void init() {
+           sys.setDefaultSGFactory(createWFPolicy);
+      }
+};
+
+WFSchedPlugin NanosXPlugin;
+
+

@@ -65,6 +65,7 @@ WD * TaskStealPolicy::atIdle ( BaseThread *thread )
    if ( ( wd = data->readyQueue.pop_front ( thread ) ) != NULL ) {
       return wd;
    } else {
+//      return NULL;
       //first try to steal parent task
       if ( ( wd = ( thread->getCurrentWD() )->getParent() ) != NULL ) {
          //removing it from the queue. Try to remove from one queue: if someone move it, I stop looking for it to avoid ping-pongs.
@@ -74,18 +75,18 @@ WD * TaskStealPolicy::atIdle ( BaseThread *thread )
             }
          }
       }
+      return NULL;
+//       //if parent task is NULL or someone has moved it while I was trying to steal it --> steal other tasks
+//       int newposition = ( ( data->getSchId() ) + 1 ) % getSize();
+// 
+//  
+// 
+//       //should be random: for now it checks neighbour queues in round robin
+//       while ( ( newposition != data->getSchId() ) && ( ( wd = ( ( ( TaskStealData * ) ( getMemberData ( newposition ) ) )->readyQueue.pop_back ( thread ) ) ) == NULL ) ) {
+//          newposition = ( newposition + 1 ) % getSize();
+//       }
 
-      //if parent task is NULL or someone has moved it while I was trying to steal it --> steal other tasks
-      int newposition = ( ( data->getSchId() ) + 1 ) % getSize();
-
- 
-
-      //should be random: for now it checks neighbour queues in round robin
-      while ( ( newposition != data->getSchId() ) && ( ( wd = ( ( ( TaskStealData * ) ( getMemberData ( newposition ) ) )->readyQueue.pop_back ( thread ) ) ) == NULL ) ) {
-         newposition = ( newposition + 1 ) % getSize();
-      }
-
-      return wd;
+     // return wd;
    }
 }
 

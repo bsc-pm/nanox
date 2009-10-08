@@ -46,7 +46,8 @@ inline void WDDeque::push_front (WorkDescriptor *wd)
 {
   wd->setMyQueue(this);
   lock++;
-  dq.push_back(wd);
+  //dq.push_back(wd);
+  dq.push_front(wd); //correct: push_back in push_front?
   memory_fence();
   lock--;
 }
@@ -55,7 +56,7 @@ inline void WDDeque::push_back (WorkDescriptor *wd)
 {
   wd->setMyQueue(this);
   lock++;
-  dq.push_back(wd);
+   dq.push_back(wd);
   memory_fence();
   lock--;
 }
@@ -65,9 +66,11 @@ inline WorkDescriptor * WDDeque::pop_front (BaseThread *thread)
 {
     WorkDescriptor *found = NULL;
 
-    if ( dq.empty() ) return NULL;
-    memory_fence();
+    if ( dq.empty() )
+      return NULL;
+
     lock++;
+    memory_fence();
     if (!dq.empty()) {
       WDDeque::deque_t::iterator it;
 
@@ -80,11 +83,12 @@ inline WorkDescriptor * WDDeque::pop_front (BaseThread *thread)
 	   }
       }
     }
+
+    if(found != NULL) {found->setMyQueue(NULL);}
+
     lock--;
 
     ensure(!found || !found->isTied() || found->isTiedTo() == thread, "" );
-
-    if(found != NULL) {found->setMyQueue(NULL);}
 
     return found;
 }
@@ -95,9 +99,12 @@ inline WorkDescriptor * WDDeque::pop_back (BaseThread *thread)
 {
     WorkDescriptor *found = NULL;
 
-    if ( dq.empty() ) return NULL;
+    if ( dq.empty() )
+      return NULL;
+
+   lock++;
+
     memory_fence();
-    lock++;
     if (!dq.empty()) {
       WDDeque::deque_t::reverse_iterator rit;
 
@@ -112,12 +119,14 @@ inline WorkDescriptor * WDDeque::pop_back (BaseThread *thread)
 	rit++;
       }
     }
+
+    if(found != NULL) {found->setMyQueue(NULL);}
+
     lock--;
 
     ensure(!found || !found->isTied() || found->isTiedTo() == thread, "" );
 
-    if(found != NULL) {found->setMyQueue(NULL);}
-    return found;
+   return found;
 }
 
 
@@ -125,9 +134,10 @@ inline WorkDescriptor * WDDeque::pop_back (BaseThread *thread)
 
 inline bool WDDeque::removeWD(WorkDescriptor * toRem)
 {
-	if ( dq.empty() ) return false;
+	if ( dq.empty() )
+         return false;
+      lock++;
 	memory_fence();
-	lock++;
 	
 	if (!dq.empty() && toRem->getMyQueue() == this) {
 		WDDeque::deque_t::iterator it;			
@@ -152,9 +162,11 @@ inline WorkDescriptor * WDDeque::pop_front (BaseThread *thread, SchedulePredicat
 {
     WorkDescriptor *found = NULL;
 
-    if ( dq.empty() ) return NULL;
-    memory_fence();
+    if ( dq.empty() )
+      return NULL;
+
     lock++;
+    memory_fence();
     if (!dq.empty()) {
       WDDeque::deque_t::iterator it;
 
@@ -167,11 +179,13 @@ inline WorkDescriptor * WDDeque::pop_front (BaseThread *thread, SchedulePredicat
 	   }
       }
     }
+
+
+    if(found != NULL) {found->setMyQueue(NULL);}
+
     lock--;
 
     ensure(!found || !found->isTied() || found->isTiedTo() == thread, "" );
-
-    if(found != NULL) {found->setMyQueue(NULL);}
 
     return found;
 }
@@ -183,9 +197,12 @@ inline WorkDescriptor * WDDeque::pop_back (BaseThread *thread, SchedulePredicate
 {
     WorkDescriptor *found = NULL;
 
-    if ( dq.empty() ) return NULL;
-    memory_fence();
+    if ( dq.empty() )
+      return NULL;
+
     lock++;
+
+    memory_fence();
     if (!dq.empty()) {
       WDDeque::deque_t::reverse_iterator rit;
 
@@ -200,11 +217,13 @@ inline WorkDescriptor * WDDeque::pop_back (BaseThread *thread, SchedulePredicate
          rit++;
       }
    }
+
+    if(found != NULL) {found->setMyQueue(NULL);}
+
    lock--;
 
     ensure(!found || !found->isTied() || found->isTiedTo() == thread, "" );
 
-    if(found != NULL) {found->setMyQueue(NULL);}
     return found;
 }
 

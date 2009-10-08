@@ -43,8 +43,8 @@ private:
     void init(int groupSize);
 public:
     // constructors
-    SchedulingGroup(std::string &policy_name, int groupSize=1) : name(policy_name),size(0) { init(groupSize); }
-    SchedulingGroup(const char  *policy_name, int groupSize=1) : name(policy_name),size(0) { init(groupSize); }
+    SchedulingGroup(std::string &policy_name, int groupSize=1) : name(policy_name) { init(groupSize); }
+    SchedulingGroup(const char  *policy_name, int groupSize=1) : name(policy_name) { init(groupSize); }
     // destructor
     virtual ~SchedulingGroup() {}
 
