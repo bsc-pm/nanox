@@ -1,17 +1,19 @@
 #ifndef _NANOS_SCHEDULE
 #define _NANOS_SCHEDULE
 
+#include <string>
+
 #include "workdescriptor.hpp"
 #include "wddeque.hpp"
 #include "basethread.hpp"
 #include "atomic.hpp"
-#include <string>
+#include "barrier.hpp"
 
 namespace nanos {
 
 class SchedulingData {
 private:
-  int schId;
+      int schId;
 public:
 
       // constructor
@@ -36,6 +38,8 @@ private:
 
   group_t        group;
 
+  Barrier * barrierImpl;
+
     // disable copy and assignment
     SchedulingGroup(const SchedulingGroup &);
     SchedulingGroup & operator= (const SchedulingGroup &);
@@ -52,7 +56,6 @@ public:
     //modifiers
     SchedulingData * getMemberData(int id) { return group[id]; }
     int getSize() { return group.size(); }
- 
 
     // membership related methods. This members are not thread-safe
     virtual void addMember (BaseThread &thread);
@@ -71,6 +74,10 @@ public:
     // idle management
     virtual void queueIdle (BaseThread *thread,WD &wd);
     virtual WD *getIdle(BaseThread *thread);
+
+   //barrier strategy
+   void setBarrierImpl(Barrier * barr) { barrierImpl = barr; }
+   void barrier() { barrierImpl->barrier(); }
 };
 
 // singleton class to encapsulate scheduling data and methods

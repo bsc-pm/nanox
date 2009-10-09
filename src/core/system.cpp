@@ -2,6 +2,7 @@
 #include "config.hpp"
 #include "plugin.hpp"
 #include "schedule.hpp"
+#include "barrier.hpp"
 
 using namespace nanos;
 
@@ -18,6 +19,8 @@ System nanos::sys;
 //cutoff * createReadyCutoff();
 //class ready_cutoff;
 
+class centralizedBarrier;
+Barrier * createCentralizedBarrier(int);
 
 
 // default system values go here
@@ -25,7 +28,7 @@ System nanos::sys;
                      verboseMode(false), executionMode(DEDICATED), thsPerPE(1),
                      defSchedule("cilk"), defCutoff("tasknum")
 {
-    //cutOffPolicy = createTasknumCutoff();
+    //cutOffPolicy = createDummyCutoff();
     verbose0 ( "NANOS++ initalizing... start" );
     config();   
     loadModules();
@@ -103,6 +106,12 @@ void System::start ()
    pes.reserve ( numPes );
 
    SchedulingGroup *sg = defSGFactory(numPes*getThsPerPE());
+
+
+   //currently, embedded barrier
+   //TODO: move it to pluging
+   sg->setBarrierImpl(createCentralizedBarrier(numPes*getThsPerPE()));
+
 
    //TODO: decide, single master, multiple master start
    PE *pe = createPE ( "smp", 0 );

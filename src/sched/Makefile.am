@@ -11,7 +11,7 @@ lib_LTLIBRARIES = \
 	libnanox-cutoff-ready.la \
 	$(END)
 
-noinst_LTLIBRARIES = libsched.la libcutoff.la
+noinst_LTLIBRARIES = libsched.la libcutoff.la libbarrier.la
 
 libsched_la_CXXFLAGS= $(common_includes) $(common_cxxflags)
 libsched_la_SOURCES = \
@@ -19,8 +19,15 @@ libsched_la_SOURCES = \
 
 libcutoff_la_CXXFLAGS= $(common_includes) $(common_cxxflags)
 libcutoff_la_SOURCES = \
-	dummy_cutoff.cpp
+	dummy_cutoff.cpp \
 	$(END)
+
+libbarrier_la_CXXFLAGS= $(common_includes) $(common_cxxflags)
+libbarrier_la_SOURCES = \
+	centralized_barrier.cpp \
+	posix_barrier.cpp \
+	dissem_barrier.cpp \
+	$(END) 
 
 libnanox_sched_bf_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
 libnanox_sched_bf_la_LDFLAGS = $(ld_plugin_flags)

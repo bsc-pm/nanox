@@ -77,8 +77,10 @@ public:
   int getIdleNum() { return idleThreads; }
   int getReadyNum() { return numReady; }
 
-  void setCutOffPolicy(cutoff * co) { cutOffPolicy = co; }
+   //BUG: does not work: sigsegv on myThread
+   int getSGSize() { return myThread->getSchedulingGroup()->getSize(); }
 
+  void setCutOffPolicy(cutoff * co) { cutOffPolicy = co; }
   bool throttleTask();
 
   const std::string & getDefaultSchedule() const { return defSchedule; }

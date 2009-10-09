@@ -16,6 +16,8 @@ nanos_libadd=\
 	../arch/@OS@/libos.la \
 	../support/libsupport.la \
 	../sched/libsched.la \
+	../sched/libcutoff.la \
+	../sched/libbarrier.la \
 	@NANOS_CONFIG_LIBS@\
 	$(END)
 

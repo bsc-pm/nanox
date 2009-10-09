@@ -77,16 +77,16 @@ WD * TaskStealPolicy::atIdle ( BaseThread *thread )
       }
       return NULL;
 //       //if parent task is NULL or someone has moved it while I was trying to steal it --> steal other tasks
-//       int newposition = ( ( data->getSchId() ) + 1 ) % getSize();
-// 
-//  
-// 
-//       //should be random: for now it checks neighbour queues in round robin
-//       while ( ( newposition != data->getSchId() ) && ( ( wd = ( ( ( TaskStealData * ) ( getMemberData ( newposition ) ) )->readyQueue.pop_back ( thread ) ) ) == NULL ) ) {
-//          newposition = ( newposition + 1 ) % getSize();
-//       }
+       int newposition = ( ( data->getSchId() ) + 1 ) % getSize();
 
-     // return wd;
+
+
+//       //should be random: for now it checks neighbour queues in round robin
+       while ( ( newposition != data->getSchId() ) && ( ( wd = ( ( ( TaskStealData * ) ( getMemberData ( newposition ) ) )->readyQueue.pop_back ( thread ) ) ) == NULL ) ) {
+          newposition = ( newposition + 1 ) % getSize();
+       }
+
+      return wd;
    }
 }
 
