@@ -86,6 +86,7 @@ public:
     static void submit (WD &wd);
     static void exit (void);
     static void blockOnCondition (volatile int *var, int condition = 0);
+    static void blockOnConditionLess (volatile int *var, int condition = 0);
     static void idle (void);
     static void queue (WD &wd);
 };

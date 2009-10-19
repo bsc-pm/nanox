@@ -19,18 +19,17 @@ System nanos::sys;
 //cutoff * createReadyCutoff();
 //class ready_cutoff;
 
-class centralizedBarrier;
-Barrier * createCentralizedBarrier(int);
+//class centralizedBarrier;
+//Barrier * createCentralizedBarrier(int);
 
 
 // default system values go here
  System::System () : numPEs(1), binding(true), profile(false), instrument(false),
                      verboseMode(false), executionMode(DEDICATED), thsPerPE(1),
-                     defSchedule("cilk"), defCutoff("tasknum")
+                     defSchedule("cilk"), defCutoff("tasknum"), defBarr("centralized")
 {
-    //cutOffPolicy = createDummyCutoff();
     verbose0 ( "NANOS++ initalizing... start" );
-    config();   
+    config();
     loadModules();
     start();
     verbose0 ( "NANOS++ initalizing... end" );
@@ -53,9 +52,18 @@ void System::loadModules ()
 
    ensure(defSGFactory,"No default system scheduling factory");
 
-   verbose0( "loading task num cutoff policy" );
+   verbose0( "loading defult cutoff policy" );
    if( !PluginManager::load( "cutoff-"+getDefaultCutoff() ) )
       fatal0( "Could not load main cutoff policy" );
+
+
+
+   verbose0( "loading default barrier algorithm" );
+   if( !PluginManager::load( "barrier-"+getDefaultBarrier() ) )
+      fatal0( "Could not load main cutoff policy" );
+
+   ensure(defBarrFactory,"No default system barrier factory");
+
 }
 
 
@@ -105,12 +113,12 @@ void System::start ()
 
    pes.reserve ( numPes );
 
-   SchedulingGroup *sg = defSGFactory(numPes*getThsPerPE());
+   SchedulingGroup *sg = defSGFactory( numPes*getThsPerPE() );
 
-
-   //currently, embedded barrier
-   //TODO: move it to pluging
-   sg->setBarrierImpl(createCentralizedBarrier(numPes*getThsPerPE()));
+   /*! create a barrier object from the selected plugin with the current number of threads */
+   Barrier * curBar = defBarrFactory( numPes*getThsPerPE() );
+   /*! setting the created barrier object as the current implementation in the scheduler */
+   sg->setBarrierImpl( curBar );
 
 
    //TODO: decide, single master, multiple master start
@@ -136,6 +144,7 @@ void System::start ()
 
 System::~System ()
 {
+   return;
    verbose ( "NANOS++ shutting down.... init" );
 
    verbose ( "Wait for main workgroup to complete" );

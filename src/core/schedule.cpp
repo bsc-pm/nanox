@@ -62,26 +62,54 @@ void Scheduler::blockOnCondition ( volatile int *var, int condition )
 {
    while ( *var != condition ) {
       // get current TLS value
-      BaseThread *thread = getMyThreadSafe();
-      // set every iteration to avoid some race-conditions
-      thread->getCurrentWD()->setIdle();
-
-      WD *next = thread->getSchedulingGroup()->atBlock ( thread );
-      if( next ) {
-         sys.numReady--;
-      }
-
-      if ( !next )
-         next = thread->getSchedulingGroup()->getIdle ( thread );
-
-      if ( next ) {
-         thread->switchTo ( next );
-      }
-
-      // TODO: implement sleeping
+//       BaseThread *thread = getMyThreadSafe();
+//       // set every iteration to avoid some race-conditions
+//       thread->getCurrentWD()->setIdle();
+// 
+//       WD *next = thread->getSchedulingGroup()->atBlock ( thread );
+//       if( next ) {
+//          sys.numReady--;
+//       }
+// 
+//       if ( !next )
+//          next = thread->getSchedulingGroup()->getIdle ( thread );
+// 
+//       if ( next ) {
+//          thread->switchTo ( next );
+//       }
+// 
+//       // TODO: implement sleeping
+      //sleep(1);
    }
 
-   myThread->getCurrentWD()->setIdle ( false );
+  // myThread->getCurrentWD()->setIdle ( false );
+}
+
+void Scheduler::blockOnConditionLess ( volatile int *var, int condition )
+{
+   while ( *var < condition ) {
+      // get current TLS value
+//       BaseThread *thread = getMyThreadSafe();
+//       // set every iteration to avoid some race-conditions
+//       thread->getCurrentWD()->setIdle();
+// 
+//       WD *next = thread->getSchedulingGroup()->atBlock ( thread );
+//       if( next ) {
+//          sys.numReady--;
+//       }
+// 
+//       if ( !next )
+//          next = thread->getSchedulingGroup()->getIdle ( thread );
+// 
+//       if ( next ) {
+//          thread->switchTo ( next );
+//       }
+// 
+//       // TODO: implement sleeping
+      //sleep(1);
+   }
+
+  // myThread->getCurrentWD()->setIdle ( false );
 }
 
 void Scheduler::idle ()

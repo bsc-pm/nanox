@@ -35,11 +35,15 @@ private:
   Atomic<int> numReady;
   Atomic<int> idleThreads;
 
-
+   /*! names of the scheduling, cutoff and barrier plugins */
   std::string defSchedule;
   std::string defCutoff;
+  std::string defBarr;
+
+  /*! factories for scheduling, pes and barriers objects */
   sgFactory defSGFactory;
   peFactory hostFactory;
+  barrFactory defBarrFactory;
 
    std::vector<PE *> pes;
 
@@ -85,9 +89,11 @@ public:
 
   const std::string & getDefaultSchedule() const { return defSchedule; }
   const std::string & getDefaultCutoff() const { return defCutoff; }
+  const std::string & getDefaultBarrier() const { return defBarr; }
 
   void setDefaultSGFactory (sgFactory factory) { defSGFactory = factory; }
   void setHostFactory (peFactory factory) { hostFactory = factory; }
+   void setDefatulBarrFactory (barrFactory factory) { defBarrFactory = factory; }
 
 };
 

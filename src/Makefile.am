@@ -1,2 +1,2 @@
-SUBDIRS = arch support sched core apis utils
+SUBDIRS = arch support plugins core apis utils
 
