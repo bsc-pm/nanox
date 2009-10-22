@@ -80,7 +80,7 @@ public:
 
   // team related methods
   BaseThread * getUnassignedWorker ( void );
-  ThreadTeam * createTeam ( int nthreads, SG &scheduling, void *constraints, bool reuseCurrent );
+  ThreadTeam * createTeam ( int nthreads, SG *scheduling=NULL, void *constraints=NULL, bool reuseCurrent=true );
   void releaseWorker ( BaseThread * thread );
 
    //BUG: does not work: sigsegv on myThread

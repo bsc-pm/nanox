@@ -134,7 +134,7 @@ void System::start ()
       }
    }
 
-   createTeam(numPes*getThsPerPE(),*sg,NULL,true);
+   createTeam(numPes*getThsPerPE());
 }
 
 System::~System ()
@@ -214,10 +214,12 @@ void System::releaseWorker ( BaseThread * thread )
     thread->leaveTeam();
 }
 
-ThreadTeam * System:: createTeam (int nthreads, SG &policy, void *constraints, bool reuseCurrent)
+ThreadTeam * System:: createTeam (int nthreads, SG *policy, void *constraints, bool reuseCurrent)
 {
+     if ( !policy ) policy = defSGFactory(nthreads);
+   
      // create team
-     ThreadTeam * team = new ThreadTeam(nthreads,policy);
+     ThreadTeam * team = new ThreadTeam(nthreads,*policy);
 
      debug("Creating team " << team << " of " << nthreads << " threads");
      // find threads

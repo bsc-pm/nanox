@@ -8,7 +8,7 @@ Makefile.in
 .deps
 INSTALL
 aclocal.m4
-.cache/
+autom4te.cache/
 compile
 config.guess
 config.h

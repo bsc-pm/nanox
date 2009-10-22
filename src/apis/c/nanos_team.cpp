@@ -10,7 +10,7 @@ nanos_err_t nanos_create_team(nanos_team_t *team, nanos_sched_t sp, unsigned int
    try {
        if ( *team ) warning("pre-allocated team not supported yet");
        
-       ThreadTeam *new_team = sys.createTeam(*nthreads,*(SG *)sp,constraints,reuse);
+       ThreadTeam *new_team = sys.createTeam(*nthreads,(SG *)sp,constraints,reuse);
        *team = new_team;
        *nthreads = new_team->size();
        for ( unsigned i = 0; i < new_team->size(); i++ )

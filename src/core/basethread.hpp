@@ -68,10 +68,12 @@ public:
   WD * getCurrentWD () const { return currentWD; }
   WD & getThreadWD () const { return threadWD; }
 
+  // team related methods
   void reserve() { has_team = 1; }
   void enterTeam(ThreadTeam *newTeam) { has_team=1; team = newTeam; }
   bool hasTeam() const { return has_team; }
   void leaveTeam() { has_team = 0; team = 0; }
+  ThreadTeam * getTeam() const { return team; }
 
   SchedulingGroup * getSchedulingGroup () const { return schedGroup; }
   SchedulingData * getSchedulingData () const { return schedData; }
