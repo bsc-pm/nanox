@@ -17,6 +17,7 @@ typedef void * nanos_wd_t;
 typedef void * nanos_team_t;
 typedef void * nanos_thread_t;
 typedef void * nanos_sched_t;
+typedef void * nanos_lock_t;
 
 // other types
 typedef struct {
@@ -63,11 +64,15 @@ typedef struct {
 } nanos_device_t;
 
 #ifdef __cplusplus
+
+#define _Bool bool
+
 extern "C" {
 #endif
    
 // Functions related to WD
 nanos_wd_t nanos_current_wd (void);
+int nanos_get_wd_id(nanos_wd_t wd);
 
 nanos_err_t nanos_create_wd ( nanos_wd_t *wd, size_t num_devices, nanos_device_t *devices, size_t data_size,
                               void ** data, nanos_wg_t wg, nanos_wd_props_t *props );
@@ -76,6 +81,9 @@ nanos_err_t nanos_submit ( nanos_wd_t wd, nanos_dependence_t *deps, nanos_team_t
 
 nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *devices, void * data,
                                       nanos_dependence_t *deps, nanos_wd_props_t *props );
+
+nanos_err_t nanos_set_internal_wd_data ( nanos_wd_t wd, void *data );
+nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data );
 
 // Team related functions
 
@@ -88,9 +96,20 @@ nanos_err_t nanos_end_team ( nanos_team_t team );
 
 nanos_err_t nanos_team_barrier ( void );
 
-// wg
+// sync
 
 nanos_err_t nanos_wg_wait_completation ( nanos_wg_t wg );
+nanos_err_t nanos_wait_on_int ( volatile int *p, int condition );
+nanos_err_t nanos_wait_on_bool ( volatile _Bool *p, _Bool condition );
+
+nanos_err_t nanos_init_lock ( nanos_lock_t *lock );
+nanos_err_t nanos_set_lock (nanos_lock_t lock);
+nanos_err_t nanos_unset_lock (nanos_lock_t lock);
+nanos_err_t nanos_try_lock ( nanos_lock_t lock, bool *result );
+nanos_err_t nanos_destroy_lock ( nanos_lock_t lock );
+
+// system interface
+nanos_err_t nanos_get_num_running_tasks ( int *num );
 
 // error handling
 
@@ -98,6 +117,14 @@ void nanos_handle_error ( nanos_err_t err );
 
 // factories
 void * nanos_smp_factory(void *args);
+
+// utility macros
+
+#define NANOS_SAFE(call) \
+do {\
+   nanos_err_t err = call;\
+   if ( err != NANOS_OK ) nanos_handle_error(err);\
+} while (1)
 
 #ifdef __cplusplus
 }

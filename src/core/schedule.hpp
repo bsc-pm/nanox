@@ -85,7 +85,8 @@ class Scheduler {
 public:
     static void submit (WD &wd);
     static void exit (void);
-    static void blockOnCondition (volatile int *var, int condition = 0);
+    template<typename T>
+    static void blockOnCondition (volatile T *var, T condition = 0);
     static void idle (void);
     static void queue (WD &wd);
 };

@@ -134,6 +134,8 @@ void System::start ()
       }
    }
 
+   // count one for the "main" task
+   sys.numTasksRunning=1;
    createTeam(numPes*getThsPerPE());
 }
 

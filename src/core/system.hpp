@@ -34,7 +34,7 @@ private:
   Atomic<int> taskNum;
   Atomic<int> numReady;
   Atomic<int> idleThreads;
-
+  Atomic<int> numTasksRunning;
 
   std::string defSchedule;
   std::string defCutoff;
@@ -77,6 +77,7 @@ public:
   int getTaskNum() const { return taskNum; }
   int getIdleNum() const { return idleThreads; }
   int getReadyNum() const { return numReady; }
+  int getRunningTasks() const { return numTasksRunning; }
 
   // team related methods
   BaseThread * getUnassignedWorker ( void );
