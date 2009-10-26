@@ -93,7 +93,7 @@ public:
 
   void setDefaultSGFactory (sgFactory factory) { defSGFactory = factory; }
   void setHostFactory (peFactory factory) { hostFactory = factory; }
-   void setDefatulBarrFactory (barrFactory factory) { defBarrFactory = factory; }
+   void setDefaultBarrFactory (barrFactory factory) { defBarrFactory = factory; }
 
 };
 
