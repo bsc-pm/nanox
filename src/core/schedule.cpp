@@ -62,62 +62,62 @@ template<typename T>
 void Scheduler::blockOnCondition ( volatile T *var, T condition )
 {
    while ( *var != condition ) {
-      // get current TLS value
-//       BaseThread *thread = getMyThreadSafe();
-//       // set every iteration to avoid some race-conditions
-//       thread->getCurrentWD()->setIdle();
-// 
-//       WD *next = thread->getSchedulingGroup()->atBlock ( thread );
-//       if( next ) {
-//          sys.numReady--;
-//       }
-// 
-//       if ( !next )
-//          next = thread->getSchedulingGroup()->getIdle ( thread );
-// 
-//       if ( next ) {
-//          thread->switchTo ( next );
-//       }
-// 
-//       // TODO: implement sleeping
-      //sleep(1);
+      //get current TLS value
+      BaseThread *thread = getMyThreadSafe();
+      // set every iteration to avoid some race-conditions
+      thread->getCurrentWD()->setIdle();
+
+      WD *next = thread->getSchedulingGroup()->atBlock ( thread );
+      if( next ) {
+         sys.numReady--;
+      }
+
+      if ( !next )
+         next = thread->getSchedulingGroup()->getIdle ( thread );
+
+      if ( next ) {
+         thread->switchTo ( next );
+      }
    }
 
-  // myThread->getCurrentWD()->setIdle ( false );
+  myThread->getCurrentWD()->setIdle ( false );
 }
 
 template<typename T>
 void Scheduler::blockOnConditionLess ( volatile T *var, T condition )
 {
    while ( *var < condition ) {
-      // get current TLS value
-//       BaseThread *thread = getMyThreadSafe();
-//       // set every iteration to avoid some race-conditions
-//       thread->getCurrentWD()->setIdle();
-// 
-//       WD *next = thread->getSchedulingGroup()->atBlock ( thread );
-//       if( next ) {
-//          sys.numReady--;
-//       }
-// 
-//       if ( !next )
-//          next = thread->getSchedulingGroup()->getIdle ( thread );
-// 
-//       if ( next ) {
-//          thread->switchTo ( next );
-//       }
-// 
-//       // TODO: implement sleeping
-      //sleep(1);
+      //get current TLS value
+      BaseThread *thread = getMyThreadSafe();
+      // set every iteration to avoid some race-conditions
+      thread->getCurrentWD()->setIdle();
+
+      WD *next = thread->getSchedulingGroup()->atBlock ( thread );
+      if( next ) {
+         sys.numReady--;
+      }
+
+      if ( !next )
+         next = thread->getSchedulingGroup()->getIdle ( thread );
+
+      if ( next ) {
+         thread->switchTo ( next );
+      }
+
+      // TODO: implement sleeping
    }
 
-  // myThread->getCurrentWD()->setIdle ( false );
+  myThread->getCurrentWD()->setIdle ( false );
 }
 
 template
 void Scheduler::blockOnCondition<int>( volatile int *var, int condition );
 template
 void Scheduler::blockOnCondition<bool>( volatile bool *var, bool condition );
+template
+void Scheduler::blockOnConditionLess<int>( volatile int *var, int condition );
+template
+void Scheduler::blockOnConditionLess<bool>( volatile bool *var, bool condition );
 
 
 void Scheduler::idle ()

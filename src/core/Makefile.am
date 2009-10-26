@@ -22,6 +22,7 @@ nanos_libadd=\
 	$(END)
 
 nanos_sources=\
+	barrier.hpp \
 	basethread.hpp\
 	basethread.cpp\
 	processingelement.hpp \

@@ -8,21 +8,6 @@ using namespace nanos;
 
 System nanos::sys;
 
-//cutoff * createDummyCutoff();
-//class dummy_cutoff;
-//cutoff * createLevelCutoff();
-//class level_cutoff;
-//cutoff * createTasknumCutoff();
-//class tasknum_cutoff;
-//cutoff * createIdleCutoff();
-//class idle_cutoff;
-//cutoff * createReadyCutoff();
-//class ready_cutoff;
-
-//class centralizedBarrier;
-//Barrier * createCentralizedBarrier(int);
-
-
 // default system values go here
  System::System () : numPEs(1), binding(true), profile(false), instrument(false),
                      verboseMode(false), executionMode(DEDICATED), thsPerPE(1),
@@ -60,7 +45,7 @@ void System::loadModules ()
 
    verbose0( "loading default barrier algorithm" );
    if( !PluginManager::load( "barrier-"+getDefaultBarrier() ) )
-      fatal0( "Could not load main cutoff policy" );
+      fatal0( "Could not load main barrier algorithm" );
 
    ensure(defBarrFactory,"No default system barrier factory");
 
@@ -228,7 +213,7 @@ void System::releaseWorker ( BaseThread * thread )
 ThreadTeam * System:: createTeam (int nthreads, SG *policy, void *constraints, bool reuseCurrent)
 {
      if ( !policy ) policy = defSGFactory(nthreads);
-   
+
      // create team
      ThreadTeam * team = new ThreadTeam(nthreads,*policy);
 
