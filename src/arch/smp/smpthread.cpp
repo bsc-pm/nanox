@@ -15,50 +15,7 @@ void * smp_bootthread (void *arg)
 {
     SMPThread *self = static_cast<SMPThread *>(arg);
     
-#if 0
-
-TODO:
-		cpu_set_t cpu_set;
-		pid_t me = my_gettid();
-
-		sched_getaffinity(
-			(pid_t) me,
-			sizeof(cpu_set),
-			&cpu_set
-		);
-		int i;
-		for (i = 0; i < CPU_SETSIZE; i++)
-		{
-			CPU_SET(i, &cpu_set);
-		}
-		sched_setaffinity(
-			(pid_t) me,
-			sizeof(cpu_set),
-			&cpu_set);
-	}
-
-	NTH_MYSELF = (nth_desc_t*) me;
-	NTH_KTH = NTH_MYSELF->vp;
-
-	NTH_MYSELF->executed = 1;
-	nth_instrument_thread_start();
-
-	nth_data.kth_myself[NTH_KTH] = me;
-
-	/* I'm running.. */
-	nth_atm_add(&NTH_MYSELF->ndep, 1);
-
-	/* but not for long :) */
-	nth_block();
-
-
-	nth_instrument_thread_end();
-
-	pthread_exit(0);
-
-#endif
-
-   self->run();
+    self->run();
 
     pthread_exit (0);
 }
@@ -150,6 +107,7 @@ void SMPThread::exitTo (WD *wd)
     SMPDD &dd = (SMPDD &)wd->getActiveDevice();
 
 
+	debug("xteruel");
     debug("exiting task " << getCurrentWD() << ":" << getCurrentWD()->getId() << " to " << wd << ":" << wd->getId());
     // TODO: reuse stack
 
@@ -163,5 +121,16 @@ void SMPThread::exitTo (WD *wd)
  		   (void *) wd,
            (void *) dd.getState(),
            (void *) exitHelper);
+}
+
+void SMPThread::bind(void)
+{
+	cpu_set_t cpu_set;
+
+	debug("binding thread ");
+	//sched_getaffinity((pid_t) 0, sizeof(cpu_set), &cpu_set);
+	CPU_ZERO(&cpu_set);
+	for (int i = 0; i < CPU_SETSIZE; i++) CPU_SET(i, &cpu_set);
+	sched_setaffinity((pid_t) 0, sizeof(cpu_set), &cpu_set); 
 }
 

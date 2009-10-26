@@ -47,6 +47,7 @@ public:
   void run();
   void stop() { mustStop = true; }
   virtual void join() = 0;
+  virtual void bind() {};
 
   // WD micro-scheduling
   virtual void inlineWork (WD *work) = 0;

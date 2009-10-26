@@ -16,6 +16,7 @@ void BaseThread::run ()
 void BaseThread::associate ()
 {
     started = true;
+//    bind();
     myThread = this;
     threadWD.tieTo(*this);
     setCurrentWD(threadWD);
