@@ -32,7 +32,7 @@ void WorkGroup::sync ()
 
 void WorkGroup::waitCompletation ()
 {
-     Scheduler::blockOnCondition(&components.override(),0);
+     Scheduler::blockOnCondition<int>(&components.override(),0);
 }
 
 void WorkGroup::done ()

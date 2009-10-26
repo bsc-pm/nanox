@@ -55,6 +55,7 @@ public:
 class WorkDescriptor : public WorkGroup {
 private:
 	void    *data;
+    void    *wd_data; // this allows higher layer to associate data to the WD
 	bool	  tie;
 	BaseThread *  tie_to;
 	bool      idle;
@@ -75,10 +76,10 @@ private:
 public:
 	// constructors
 	WorkDescriptor(int ndevices, DeviceData **devs,void *wdata=0) :
-           WorkGroup(), data(wdata), tie(false), tie_to(0), idle(false),
+           WorkGroup(), data(wdata), wd_data(0), tie(false), tie_to(0), idle(false),
 		   parent(NULL), myQueue(NULL), level(0), num_devices(ndevices), devices(devs), active_device(0) {}
     WorkDescriptor(DeviceData *device,void *wdata=0) :
-           WorkGroup(), data(wdata), tie(false), tie_to(0), idle(false),
+           WorkGroup(), data(wdata), wd_data(0), tie(false), tie_to(0), idle(false),
            parent(NULL), myQueue(NULL), level(0), num_devices(1), devices(0), active_device(device) {}
 	// TODO: copy constructor
 	WorkDescriptor(const WorkDescriptor &wd);
@@ -117,6 +118,9 @@ public:
     DeviceData & activateDevice (const Device &device);
     DeviceData & getActiveDevice () const { return *active_device; }
     bool hasActiveDevice() const { return active_device != NULL; }
+
+  void setInternalData (void *data) { wd_data = data; }
+  void * getInternalData () const { return wd_data; }
 
 };
 

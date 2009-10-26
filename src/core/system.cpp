@@ -124,8 +124,9 @@ void System::start ()
    //TODO: decide, single master, multiple master start
    PE *pe = createPE ( "smp", 0 );
    pes.push_back ( pe );
-   pe->associateThisThread ( sg );
+   workers.push_back(&pe->associateThisThread ( sg ));
 
+   
     //starting as much threads per pe as requested by the user
     for(int ths = 1; ths < getThsPerPE(); ths++) {
          pe->startWorker(sg);
@@ -137,9 +138,13 @@ void System::start ()
 
       //starting as much threads per pe as requested by the user
       for(int ths = 0; ths < getThsPerPE(); ths++) {
-         pe->startWorker(sg);
+         workers.push_back(&pe->startWorker(sg));
       }
    }
+
+   // count one for the "main" task
+   sys.numTasksRunning=1;
+   createTeam(numPes*getThsPerPE());
 }
 
 System::~System ()
@@ -189,4 +194,63 @@ bool System::throttleTask() {
   return cutOffPolicy->cutoff_pred();
 }
 
+
+BaseThread * System:: getUnassignedWorker ( void )
+{
+    BaseThread *thread;
+    
+    for ( unsigned i  = 0; i < workers.size(); i++ ) {
+       if ( !workers[i]->hasTeam() ) {
+            thread = workers[i];
+            // recheck availability with exclusive access
+            thread->lock();
+            if ( thread->hasTeam() ) {
+               // we lost it
+               thread->unlock();
+               continue;
+            }
+            thread->reserve(); // set team flag only
+            thread->unlock();
+
+            return thread;
+       }
+    }
+
+    return NULL;
+}
+
+void System::releaseWorker ( BaseThread * thread )
+{
+    //TODO: destroy if too many?
+    thread->leaveTeam();
+}
+
+ThreadTeam * System:: createTeam (int nthreads, SG *policy, void *constraints, bool reuseCurrent)
+{
+     if ( !policy ) policy = defSGFactory(nthreads);
+   
+     // create team
+     ThreadTeam * team = new ThreadTeam(nthreads,*policy);
+
+     debug("Creating team " << team << " of " << nthreads << " threads");
+     // find threads
+     if ( reuseCurrent ) {
+        nthreads --;
+        team->addThread(myThread);
+        myThread->enterTeam(team);
+     }
+     
+     while (nthreads > 0) {
+        BaseThread *thread = getUnassignedWorker();
+        if (!thread) {
+           // TODO: create one?
+           break;
+        }
+        debug("adding thread " << thread << " to " << team);
+        team->addThread(thread);
+        thread->enterTeam(team);
+     }
+
+     return team;
+}
 

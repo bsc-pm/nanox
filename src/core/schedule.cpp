@@ -58,7 +58,8 @@ __attribute__ ( ( noinline ) ) BaseThread * getMyThreadSafe()
    return myThread;
 }
 
-void Scheduler::blockOnCondition ( volatile int *var, int condition )
+template<typename T>
+void Scheduler::blockOnCondition ( volatile T *var, T condition )
 {
    while ( *var != condition ) {
       // get current TLS value
@@ -85,7 +86,8 @@ void Scheduler::blockOnCondition ( volatile int *var, int condition )
   // myThread->getCurrentWD()->setIdle ( false );
 }
 
-void Scheduler::blockOnConditionLess ( volatile int *var, int condition )
+template<typename T>
+void Scheduler::blockOnConditionLess ( volatile T *var, T condition )
 {
    while ( *var < condition ) {
       // get current TLS value
@@ -112,6 +114,12 @@ void Scheduler::blockOnConditionLess ( volatile int *var, int condition )
   // myThread->getCurrentWD()->setIdle ( false );
 }
 
+template
+void Scheduler::blockOnCondition<int>( volatile int *var, int condition );
+template
+void Scheduler::blockOnCondition<bool>( volatile bool *var, bool condition );
+
+
 void Scheduler::idle ()
 {
 
@@ -134,7 +142,9 @@ void Scheduler::idle ()
 
          if ( next ) {
             sys.idleThreads--;
+            sys.numTasksRunning++;
             thread->switchTo ( next );
+            sys.numTasksRunning--;
             sys.idleThreads++;
          }
       }
