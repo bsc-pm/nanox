@@ -9,7 +9,7 @@ include_HEADERS=\
 sources=\
 	nanos.h\
 	nanos_wd.cpp\
-	nanos_wg.cpp\
+	nanos_sync.cpp\
 	nanos_team.cpp\
 	nanos_err.cpp\
 	nanos_sys.cpp\
