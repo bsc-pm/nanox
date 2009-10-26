@@ -124,7 +124,7 @@ void * nanos_smp_factory(void *args);
 do {\
    nanos_err_t err = call;\
    if ( err != NANOS_OK ) nanos_handle_error(err);\
-} while (1)
+} while (0)
 
 #ifdef __cplusplus
 }

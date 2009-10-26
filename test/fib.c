@@ -60,10 +60,10 @@ int fib (int n, int d)
       nanos_wd_props_t props;
       props.mandatory_creation=true;
 
-       nanos_create_wd ( &wd, 1, fib_devices_1 , sizeof(fib_args),
-                         (void **)&args, nanos_current_wd(), &props );
+       NANOS_SAFE(nanos_create_wd ( &wd, 1, fib_devices_1 , sizeof(fib_args),
+                         (void **)&args, nanos_current_wd(), &props ));
        args->n = n; args->d = d; args->x = &x;
-       nanos_submit(wd,0,0);
+       NANOS_SAFE(nanos_submit(wd,0,0));
        }
 
 //		#pragma omp task untied shared(y) firstprivate(n,d)
@@ -76,13 +76,13 @@ int fib (int n, int d)
       props.mandatory_creation=true;
 
 
-       nanos_create_wd ( &wd, 1, fib_devices_2 , sizeof(fib_args),
-                         (void **)&args, nanos_current_wd(), &props );
+       NANOS_SAFE(nanos_create_wd ( &wd, 1, fib_devices_2 , sizeof(fib_args),
+                         (void **)&args, nanos_current_wd(), &props ));
        args->n = n; args->d = d; args->x = &y;
-       nanos_submit(wd,0,0);
+       NANOS_SAFE(nanos_submit(wd,0,0));
        }
 //		#pragma omp taskwait
-	   nanos_wg_wait_completation(nanos_current_wd());
+	   NANOS_SAFE(nanos_wg_wait_completation(nanos_current_wd()));
 	} else {
 		x = fib_seq(n-1);
 		y = fib_seq(n-2);
