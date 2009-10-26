@@ -100,7 +100,10 @@ AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/core/Makefile
 		 src/support/Makefile
-		 src/sched/Makefile
+		 src/plugins/Makefile
+		 src/plugins/sched/Makefile
+		 src/plugins/cutoff/Makefile
+		 src/plugins/barr/Makefile
 		 src/apis/Makefile
 		 src/apis/c/Makefile
                  src/arch/Makefile
@@ -112,6 +115,7 @@ AC_CONFIG_FILES([Makefile
 		 src/utils/Makefile
 		 test/Makefile
 		 doc/Makefile
+               doc/doxy-nanox
                  ])
 
 AC_OUTPUT

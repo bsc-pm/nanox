@@ -9,9 +9,10 @@ include_HEADERS=\
 sources=\
 	nanos.h\
 	nanos_wd.cpp\
-	nanos_wg.cpp\
+	nanos_sync.cpp\
 	nanos_team.cpp\
 	nanos_err.cpp\
+	nanos_sys.cpp\
 	$(END)
 
 libnanox_c_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(performance_cflags)

@@ -4,10 +4,10 @@
 
 using namespace nanos;
 
-void ProcessingElement::startWorker (SchedulingGroup *sg)
+BaseThread& ProcessingElement::startWorker (SchedulingGroup *sg)
 {
 	WD & master = getWorkerWD();
-	startThread(master,sg);
+	return startThread(master,sg);
 }
 
 BaseThread & ProcessingElement::startThread (WD &work, SchedulingGroup *sg)

@@ -3,18 +3,20 @@
 
 #include "workdescriptor.hpp"
 #include "atomic.hpp"
-
 namespace nanos {
 
 // forward declarations
 class ProcessingElement;
 class SchedulingGroup;
 class SchedulingData;
+class ThreadTeam;
 
 // Threads are binded to a PE for its life-time
 class BaseThread {
 private:
   static Atomic<int> idSeed;
+  Lock   mlock;
+  
   // Thread info
   int id;
 
@@ -26,6 +28,10 @@ private:
   volatile bool mustStop;
   WD *    currentWD;
 
+  // Team info
+  bool  has_team;
+  ThreadTeam *team;
+
   // scheduling info
   SchedulingGroup *schedGroup;
   SchedulingData  *schedData;
@@ -34,14 +40,18 @@ private:
   BaseThread(const BaseThread &);
   const BaseThread operator= (const BaseThread &);
 
-  virtual void run_dependent () = 0;
+  virtual void run_dependent () = 0;  
 public:
 
   // constructor
   BaseThread (WD &wd, ProcessingElement *creator=0) : 
-     id(idSeed++),pe(creator), threadWD(wd), started(false), mustStop(false) {}
+     id(idSeed++),pe(creator), threadWD(wd), started(false), mustStop(false), has_team(false), team(NULL) {}
   // destructor
   virtual ~BaseThread() {}
+
+  // atomic access
+  void lock () { mlock++; }
+  void unlock () { mlock--; }
 
   virtual void start () = 0;
   void run();
@@ -58,6 +68,13 @@ public:
   void setCurrentWD (WD &current) { currentWD = &current; }
   WD * getCurrentWD () const { return currentWD; }
   WD & getThreadWD () const { return threadWD; }
+
+  // team related methods
+  void reserve() { has_team = 1; }
+  void enterTeam(ThreadTeam *newTeam) { has_team=1; team = newTeam; }
+  bool hasTeam() const { return has_team; }
+  void leaveTeam() { has_team = 0; team = 0; }
+  ThreadTeam * getTeam() const { return team; }
 
   SchedulingGroup * getSchedulingGroup () const { return schedGroup; }
   SchedulingData * getSchedulingData () const { return schedData; }
