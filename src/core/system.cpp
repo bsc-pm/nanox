@@ -61,7 +61,7 @@ void System::config ()
    config.registerEnvOption(new Config::PositiveVar("NTH_PES",numPEs));
    config.registerArgOption(new Config::PositiveVar("nth-stack-size",deviceStackSize));
    config.registerEnvOption(new Config::PositiveVar("NTH_STACK_SIZE",deviceStackSize));
-   config.registerArgOption(new Config::FlagOption("nth-bindig",binding));
+   config.registerArgOption(new Config::FlagOption("nth-no-binding", binding, false));
    config.registerArgOption(new Config::FlagOption("nth-verbose",verboseMode));
 
    //more than 1 thread per pe

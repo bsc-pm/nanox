@@ -19,6 +19,7 @@ private:
   
   // Thread info
   int id;
+  int cpu_id;
 
   ProcessingElement *pe;
   WD & threadWD;
@@ -45,7 +46,7 @@ public:
 
   // constructor
   BaseThread (WD &wd, ProcessingElement *creator=0) : 
-     id(idSeed++),pe(creator), threadWD(wd), started(false), mustStop(false), has_team(false), team(NULL) {}
+     id(idSeed++), cpu_id(id), pe(creator), threadWD(wd), started(false), mustStop(false), has_team(false), team(NULL) {}
   // destructor
   virtual ~BaseThread() {}
 
@@ -57,6 +58,7 @@ public:
   void run();
   void stop() { mustStop = true; }
   virtual void join() = 0;
+  virtual void bind() {};
 
   // WD micro-scheduling
   virtual void inlineWork (WD *work) = 0;
@@ -85,6 +87,7 @@ public:
   void associate();
 
   int getId() { return id; }
+  int getCpuId() { return cpu_id; }
 };
 
 extern __thread BaseThread *myThread;
