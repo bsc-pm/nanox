@@ -22,6 +22,7 @@ public:
 private:
    // configuration variables
    int  numPEs;
+   int  deviceStackSize;
    bool binding;
    bool profile;
    bool instrument;
@@ -64,6 +65,9 @@ public:
   void setNumPEs (int npes) { numPEs = npes; }
   int getNumPEs () const { return numPEs; }
   
+  void setDeviceStackSize (int stackSize) { deviceStackSize = stackSize; }
+  int getDeviceStackSize () const {return deviceStackSize; }
+
   void setBinding (bool set) { binding = set; }
   bool getBinding () const { return binding; }
  
