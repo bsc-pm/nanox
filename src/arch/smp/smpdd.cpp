@@ -17,7 +17,7 @@ void SMPDD::prepareConfig(Config &config)
 
     // Get the stack size for this device
     config.registerArgOption(new Config::PositiveVar("nth-smp-stack-size",stackSize));
-    config.registerEnvOption(new Config::PositiveVar("nth-SMP_STACK_SIZE",stackSize));
+    config.registerEnvOption(new Config::PositiveVar("NTH_SMP_STACK_SIZE",stackSize));
 }
 
 void SMPDD::allocateStack ()
