@@ -10,12 +10,21 @@ Device nanos::SMP("SMP");
 
 int SMPDD::stackSize = 1024;
 
+/*! \fn prepareConfig(Config &config)
+  \brief Registers the Device's configuration options
+  \param reference to a configuration object.
+  \sa Config System
+*/
 void SMPDD::prepareConfig(Config &config)
 {
-    // Get the stack size from system config
+    /*!
+       Get the stack size from system configuration
+     */
     stackSize = sys.getDeviceStackSize();
 
-    // Get the stack size for this device
+    /*!
+       Get the stack size for this device
+    */
     config.registerArgOption(new Config::PositiveVar("nth-smp-stack-size",stackSize));
     config.registerEnvOption(new Config::PositiveVar("NTH_SMP_STACK_SIZE",stackSize));
 }
