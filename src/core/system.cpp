@@ -8,29 +8,13 @@ using namespace nanos;
 
 System nanos::sys;
 
-//cutoff * createDummyCutoff();
-//class dummy_cutoff;
-//cutoff * createLevelCutoff();
-//class level_cutoff;
-//cutoff * createTasknumCutoff();
-//class tasknum_cutoff;
-//cutoff * createIdleCutoff();
-//class idle_cutoff;
-//cutoff * createReadyCutoff();
-//class ready_cutoff;
-
-class centralizedBarrier;
-Barrier * createCentralizedBarrier(int);
-
-
 // default system values go here
  System::System () : numPEs(1), deviceStackSize(1024), binding(true), profile(false), instrument(false),
                      verboseMode(false), executionMode(DEDICATED), thsPerPE(1),
-                     defSchedule("cilk"), defCutoff("tasknum")
+                     defSchedule("cilk"), defCutoff("tasknum"), defBarr("centralized")
 {
-    //cutOffPolicy = createDummyCutoff();
     verbose0 ( "NANOS++ initalizing... start" );
-    config();   
+    config();
     loadModules();
     start();
     verbose0 ( "NANOS++ initalizing... end" );
@@ -53,9 +37,18 @@ void System::loadModules ()
 
    ensure(defSGFactory,"No default system scheduling factory");
 
-   verbose0( "loading task num cutoff policy" );
+   verbose0( "loading defult cutoff policy" );
    if( !PluginManager::load( "cutoff-"+getDefaultCutoff() ) )
       fatal0( "Could not load main cutoff policy" );
+
+
+
+   verbose0( "loading default barrier algorithm" );
+   if( !PluginManager::load( "barrier-"+getDefaultBarrier() ) )
+      fatal0( "Could not load main barrier algorithm" );
+
+   ensure(defBarrFactory,"No default system barrier factory");
+
 }
 
 
@@ -107,19 +100,20 @@ void System::start ()
 
    pes.reserve ( numPes );
 
-   SchedulingGroup *sg = defSGFactory(numPes*getThsPerPE());
+   SchedulingGroup *sg = defSGFactory( numPes*getThsPerPE() );
 
-
-   //currently, embedded barrier
-   //TODO: move it to pluging
-   sg->setBarrierImpl(createCentralizedBarrier(numPes*getThsPerPE()));
+   /*! create a barrier object from the selected plugin with the current number of threads */
+   Barrier * curBar = defBarrFactory( numPes*getThsPerPE() );
+   /*! setting the created barrier object as the current implementation in the scheduler */
+   sg->setBarrierImpl( curBar );
 
 
    //TODO: decide, single master, multiple master start
    PE *pe = createPE ( "smp", 0 );
    pes.push_back ( pe );
-   pe->associateThisThread ( sg );
+   workers.push_back(&pe->associateThisThread ( sg ));
 
+   
     //starting as much threads per pe as requested by the user
     for(int ths = 1; ths < getThsPerPE(); ths++) {
          pe->startWorker(sg);
@@ -131,13 +125,18 @@ void System::start ()
 
       //starting as much threads per pe as requested by the user
       for(int ths = 0; ths < getThsPerPE(); ths++) {
-         pe->startWorker(sg);
+         workers.push_back(&pe->startWorker(sg));
       }
    }
+
+   // count one for the "main" task
+   sys.numTasksRunning=1;
+   createTeam(numPes*getThsPerPE());
 }
 
 System::~System ()
 {
+   return;
    verbose ( "NANOS++ shutting down.... init" );
 
    verbose ( "Wait for main workgroup to complete" );
@@ -182,4 +181,63 @@ bool System::throttleTask() {
   return cutOffPolicy->cutoff_pred();
 }
 
+
+BaseThread * System:: getUnassignedWorker ( void )
+{
+    BaseThread *thread;
+    
+    for ( unsigned i  = 0; i < workers.size(); i++ ) {
+       if ( !workers[i]->hasTeam() ) {
+            thread = workers[i];
+            // recheck availability with exclusive access
+            thread->lock();
+            if ( thread->hasTeam() ) {
+               // we lost it
+               thread->unlock();
+               continue;
+            }
+            thread->reserve(); // set team flag only
+            thread->unlock();
+
+            return thread;
+       }
+    }
+
+    return NULL;
+}
+
+void System::releaseWorker ( BaseThread * thread )
+{
+    //TODO: destroy if too many?
+    thread->leaveTeam();
+}
+
+ThreadTeam * System:: createTeam (int nthreads, SG *policy, void *constraints, bool reuseCurrent)
+{
+     if ( !policy ) policy = defSGFactory(nthreads);
+
+     // create team
+     ThreadTeam * team = new ThreadTeam(nthreads,*policy);
+
+     debug("Creating team " << team << " of " << nthreads << " threads");
+     // find threads
+     if ( reuseCurrent ) {
+        nthreads --;
+        team->addThread(myThread);
+        myThread->enterTeam(team);
+     }
+     
+     while (nthreads > 0) {
+        BaseThread *thread = getUnassignedWorker();
+        if (!thread) {
+           // TODO: create one?
+           break;
+        }
+        debug("adding thread " << thread << " to " << team);
+        team->addThread(thread);
+        thread->enterTeam(team);
+     }
+
+     return team;
+}
 

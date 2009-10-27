@@ -6,7 +6,7 @@
 #include <vector>
 #include <string>
 #include "schedule.hpp"
-
+#include "threadteam.hpp"
 
 
 namespace nanos {
@@ -35,14 +35,20 @@ private:
   Atomic<int> taskNum;
   Atomic<int> numReady;
   Atomic<int> idleThreads;
+  Atomic<int> numTasksRunning;
 
-
+  /*! names of the scheduling, cutoff and barrier plugins */
   std::string defSchedule;
   std::string defCutoff;
+  std::string defBarr;
+
+  /*! factories for scheduling, pes and barriers objects */
   sgFactory defSGFactory;
   peFactory hostFactory;
+  barrFactory defBarrFactory;
 
    std::vector<PE *> pes;
+   std::vector<BaseThread *> workers;
 
   // disable copy constructor & assignment operation
   System(const System &sys);
@@ -77,21 +83,29 @@ public:
   void setThsPerPE(int ths) { thsPerPE = ths; }
   int getThsPerPE() const { return thsPerPE; }
 
-  int getTaskNum() { return taskNum; }
-  int getIdleNum() { return idleThreads; }
-  int getReadyNum() { return numReady; }
+  int getTaskNum() const { return taskNum; }
+  int getIdleNum() const { return idleThreads; }
+  int getReadyNum() const { return numReady; }
+  int getRunningTasks() const { return numTasksRunning; }
+
+  // team related methods
+  BaseThread * getUnassignedWorker ( void );
+  ThreadTeam * createTeam ( int nthreads, SG *scheduling=NULL, void *constraints=NULL, bool reuseCurrent=true );
+  void releaseWorker ( BaseThread * thread );
 
    //BUG: does not work: sigsegv on myThread
-   int getSGSize() { return myThread->getSchedulingGroup()->getSize(); }
+   int getSGSize() const { return myThread->getSchedulingGroup()->getSize(); }
 
   void setCutOffPolicy(cutoff * co) { cutOffPolicy = co; }
   bool throttleTask();
 
   const std::string & getDefaultSchedule() const { return defSchedule; }
   const std::string & getDefaultCutoff() const { return defCutoff; }
+  const std::string & getDefaultBarrier() const { return defBarr; }
 
   void setDefaultSGFactory (sgFactory factory) { defSGFactory = factory; }
   void setHostFactory (peFactory factory) { hostFactory = factory; }
+   void setDefaultBarrFactory (barrFactory factory) { defBarrFactory = factory; }
 
 };
 
