@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "workdescriptor.hpp"
+#include "config.hpp"
 
 namespace nanos {
 
@@ -16,13 +17,13 @@ private:
 	work_fct	work;
 	intptr_t *	stack;
 	intptr_t *	state;
-	int		stackSize; //TODO: configurable stack size
+	static int	stackSize;
 
 	void initStackDep (void *userf, void *data, void *cleanup);
 public:
 	// constructors
-	SMPDD(work_fct w) : DD(&SMP),work(w),stack(0),state(0),stackSize(1024) {}
-    SMPDD() : DD(&SMP),work(0),stack(0),state(0),stackSize(1024) {}
+	SMPDD(work_fct w) : DD(&SMP),work(w),stack(0),state(0) {}
+    SMPDD() : DD(&SMP),work(0),stack(0),state(0) {}
 	// copy constructors
 	SMPDD(const SMPDD &dd) : DD(dd), work(dd.work), stack(0), state(0) {}
 	// assignment operator
@@ -38,6 +39,8 @@ public:
 	
 	intptr_t *getState() const { return state; }
 	void setState (intptr_t * newState) { state = newState; }
+
+	static void prepareConfig(Config &config);
 };
 
 inline const SMPDD & SMPDD::operator= (const SMPDD &dd)
