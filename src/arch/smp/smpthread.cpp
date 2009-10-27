@@ -106,8 +106,6 @@ void SMPThread::exitTo (WD *wd)
     ensure(wd->hasActiveDevice(),"WD has no active SMP device");
     SMPDD &dd = (SMPDD &)wd->getActiveDevice();
 
-
-	debug("xteruel");
     debug("exiting task " << getCurrentWD() << ":" << getCurrentWD()->getId() << " to " << wd << ":" << wd->getId());
     // TODO: reuse stack
 
@@ -126,11 +124,12 @@ void SMPThread::exitTo (WD *wd)
 void SMPThread::bind(void)
 {
 	cpu_set_t cpu_set;
+	int cpu_id = getCpuId();
 
-	debug("binding thread ");
-	//sched_getaffinity((pid_t) 0, sizeof(cpu_set), &cpu_set);
+	ensure(((cpu_id >= 0) && (cpu_id < CPU_SETSIZE)), "invalid value for cpu id");
 	CPU_ZERO(&cpu_set);
-	for (int i = 0; i < CPU_SETSIZE; i++) CPU_SET(i, &cpu_set);
+	CPU_SET(cpu_id, &cpu_set);
+	verbose("Binding thread " << getId() << " to cpu " << cpu_id );
 	sched_setaffinity((pid_t) 0, sizeof(cpu_set), &cpu_set); 
 }
 
