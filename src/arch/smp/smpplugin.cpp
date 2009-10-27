@@ -19,11 +19,8 @@ class SMPPlugin : public Plugin
 
            Config config;
            SMPProcessor::prepareConfig(config);
+           SMPDD::prepareConfig(config);
            config.init();
-
-           Config smpdd_config;
-           SMPDD::prepareConfig(smpdd_config);
-           smpdd_config.init();
       }
 };
 
