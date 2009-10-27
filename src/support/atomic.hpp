@@ -99,6 +99,8 @@ inline void Lock::release (void)
 
 inline void memory_fence () { __sync_synchronize(); }
 
+inline bool compare_and_swap(int *ptr, int oldval, int newval) { return __sync_bool_compare_and_swap (ptr, oldval, newval);}
+
 };
 
 #endif

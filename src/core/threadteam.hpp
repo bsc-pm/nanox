@@ -12,6 +12,7 @@ class ThreadTeam {
       std::vector<BaseThread *> threads;
       int  idleThreads;
       int  numTasks;
+      int  single;
 
       // disable copy constructor & assignment operation
       ThreadTeam(const ThreadTeam &sys);
@@ -19,7 +20,7 @@ class ThreadTeam {
 
    public:
 
-      ThreadTeam ( int maxThreads, SG &policy ) : idleThreads(0), numTasks(0) { threads.reserve(maxThreads); }
+      ThreadTeam ( int maxThreads, SG &policy ) : idleThreads(0), numTasks(0), single(0) { threads.reserve(maxThreads); }
       
       unsigned size() const { return threads.size(); }
 
@@ -29,6 +30,7 @@ class ThreadTeam {
       void addThread (BaseThread *thread) {
           threads.push_back(thread);
       }
+      bool singleGuard(int local);
 };
 
 }

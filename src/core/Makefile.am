@@ -23,6 +23,8 @@ nanos_libadd=\
 
 nanos_sources=\
 	barrier.hpp \
+	threadteam.hpp \
+	threadteam.cpp \
 	basethread.hpp\
 	basethread.cpp\
 	processingelement.hpp \

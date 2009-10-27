@@ -25,3 +25,9 @@ void BaseThread::associate ()
     setCurrentWD(threadWD);
 }
 
+bool BaseThread::singleGuard ()
+{
+   local_single++;
+   return getTeam()->singleGuard(local_single); 
+}
+

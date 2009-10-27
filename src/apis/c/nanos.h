@@ -96,6 +96,8 @@ nanos_err_t nanos_end_team ( nanos_team_t team );
 
 nanos_err_t nanos_team_barrier ( void );
 
+nanos_err_t nanos_single_guard ( bool & );
+
 // sync
 
 nanos_err_t nanos_wg_wait_completation ( nanos_wg_t wg );

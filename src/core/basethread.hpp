@@ -32,6 +32,7 @@ private:
   // Team info
   bool  has_team;
   ThreadTeam *team;
+  int local_single;
 
   // scheduling info
   SchedulingGroup *schedGroup;
@@ -46,7 +47,7 @@ public:
 
   // constructor
   BaseThread (WD &wd, ProcessingElement *creator=0) : 
-     id(idSeed++), cpu_id(id), pe(creator), threadWD(wd), started(false), mustStop(false), has_team(false), team(NULL) {}
+     id(idSeed++), cpu_id(id), pe(creator), threadWD(wd), started(false), mustStop(false), has_team(false), team(NULL), local_single(0) {}
   // destructor
   virtual ~BaseThread() {}
 
@@ -88,6 +89,8 @@ public:
 
   int getId() { return id; }
   int getCpuId() { return cpu_id; }
+
+  bool singleGuard();
 };
 
 extern __thread BaseThread *myThread;
