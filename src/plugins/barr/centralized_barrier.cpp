@@ -14,14 +14,14 @@ private:
    Atomic<int> sem;
 
 public:
-   centralizedBarrier(int numP);
+   centralizedBarrier();
    void init();
    void barrier();
    int getSemValue() { return sem; }
 };
 
 
-centralizedBarrier::centralizedBarrier(int numP): Barrier(numP) {
+centralizedBarrier::centralizedBarrier(): Barrier() {
    sem =  0;
 }
 
@@ -29,6 +29,9 @@ void centralizedBarrier::init() {}
 
 
 void centralizedBarrier::barrier() {
+   /*! get the number of participants from the team */
+   numParticipants = myThread->getTeam()->size();
+
    //increment the semaphore value
    sem++;
 
@@ -46,8 +49,8 @@ void centralizedBarrier::barrier() {
 }
 
 
-Barrier * createCentralizedBarrier(int numP) {
-   return new centralizedBarrier(numP);
+Barrier * createCentralizedBarrier() {
+   return new centralizedBarrier();
 }
 
 

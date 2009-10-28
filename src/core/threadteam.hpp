@@ -4,6 +4,8 @@
 #include <vector>
 #include "basethread.hpp"
 #include "schedule.hpp"
+#include "barrier.hpp"
+
 
 namespace nanos {
 
@@ -12,6 +14,7 @@ class ThreadTeam {
       std::vector<BaseThread *> threads;
       int  idleThreads;
       int  numTasks;
+      Barrier * barrAlgorithm;
 
       // disable copy constructor & assignment operation
       ThreadTeam(const ThreadTeam &sys);
@@ -29,6 +32,8 @@ class ThreadTeam {
       void addThread (BaseThread *thread) {
           threads.push_back(thread);
       }
+
+      void setBarrAlgorithm(Barrier * barrAlg) { barrAlgorithm = barrAlg; }
 };
 
 }
