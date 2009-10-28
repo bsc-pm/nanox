@@ -91,3 +91,14 @@ nanos_err_t nanos_destroy_lock ( nanos_lock_t lock )
    return NANOS_OK;
 }
 
+
+nanos_err_t nanos_single_guard ( bool *b )
+{
+   try {
+        *b = myThread->singleGuard();
+   } catch (...) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
