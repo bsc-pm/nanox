@@ -35,6 +35,7 @@ class ThreadTeam {
       }
 
       void setBarrAlgorithm(Barrier * barrAlg) { barrAlgorithm = barrAlg; }
+      void barrier() {barrAlgorithm->barrier(); }
 
       bool singleGuard(int local);
 };
