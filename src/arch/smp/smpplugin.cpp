@@ -1,5 +1,6 @@
 #include "plugin.hpp"
 #include "smpprocessor.hpp"
+#include "smpdd.hpp"
 #include "system.hpp"
 
 using namespace nanos;
@@ -17,8 +18,8 @@ class SMPPlugin : public Plugin
            sys.setHostFactory(smpProcessorFactory);
 
            Config config;
-
            SMPProcessor::prepareConfig(config);
+           SMPDD::prepareConfig(config);
            config.init();
       }
 };

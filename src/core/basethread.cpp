@@ -1,5 +1,6 @@
 #include "basethread.hpp"
 #include "processingelement.hpp"
+#include "system.hpp"
 
 using namespace nanos;
 
@@ -17,7 +18,16 @@ void BaseThread::associate ()
 {
     started = true;
     myThread = this;
+
+    if(sys.getBinding()) bind();
+
     threadWD.tieTo(*this);
     setCurrentWD(threadWD);
+}
+
+bool BaseThread::singleGuard ()
+{
+   local_single++;
+   return getTeam()->singleGuard(local_single); 
 }
 

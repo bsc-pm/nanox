@@ -9,7 +9,7 @@ using namespace nanos;
 System nanos::sys;
 
 // default system values go here
- System::System () : numPEs(1), binding(true), profile(false), instrument(false),
+ System::System () : numPEs(1), deviceStackSize(1024), binding(true), profile(false), instrument(false),
                      verboseMode(false), executionMode(DEDICATED), thsPerPE(1),
                      defSchedule("cilk"), defCutoff("tasknum"), defBarr("centralized")
 {
@@ -59,7 +59,9 @@ void System::config ()
    verbose0 ( "Preparing configuration" );
    config.registerArgOption(new Config::PositiveVar("nth-pes",numPEs));
    config.registerEnvOption(new Config::PositiveVar("NTH_PES",numPEs));
-   config.registerArgOption(new Config::FlagOption("nth-bindig",binding));
+   config.registerArgOption(new Config::PositiveVar("nth-stack-size",deviceStackSize));
+   config.registerEnvOption(new Config::PositiveVar("NTH_STACK_SIZE",deviceStackSize));
+   config.registerArgOption(new Config::FlagOption("nth-no-binding", binding, false));
    config.registerArgOption(new Config::FlagOption("nth-verbose",verboseMode));
 
    //more than 1 thread per pe

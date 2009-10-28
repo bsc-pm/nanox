@@ -15,6 +15,7 @@ class ThreadTeam {
       int  idleThreads;
       int  numTasks;
       Barrier * barrAlgorithm;
+      int  single;
 
       // disable copy constructor & assignment operation
       ThreadTeam(const ThreadTeam &sys);
@@ -22,8 +23,8 @@ class ThreadTeam {
 
    public:
 
-      ThreadTeam ( int maxThreads, SG &policy ) : idleThreads(0), numTasks(0) { threads.reserve(maxThreads); }
-      
+      ThreadTeam ( int maxThreads, SG &policy ) : idleThreads(0), numTasks(0), single(0) { threads.reserve(maxThreads); }
+
       unsigned size() const { return threads.size(); }
 
       const BaseThread & operator[]  ( int i ) const { return *threads[i]; }
@@ -34,6 +35,8 @@ class ThreadTeam {
       }
 
       void setBarrAlgorithm(Barrier * barrAlg) { barrAlgorithm = barrAlg; }
+
+      bool singleGuard(int local);
 };
 
 }

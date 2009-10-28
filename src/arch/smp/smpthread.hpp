@@ -23,7 +23,7 @@ public:
 	// constructor
 	SMPThread(WD &w, PE *pe, bool uUT=true) : BaseThread(w,pe),useUserThreads(uUT) {}
 	// destructor
-    ~SMPThread() { if (isStarted()) /*TODO: stop()*/; }
+    virtual ~SMPThread() { if (isStarted()) /*TODO: stop()*/; }
 
     void setUseUserThreads(bool value=true) { useUserThreads = value; }
 
@@ -34,6 +34,7 @@ public:
     virtual void inlineWork(WD *work);
     virtual void switchTo(WD *work);
     virtual void exitTo(WD *work);
+    virtual void bind(void);
 };
 
 
