@@ -7,14 +7,15 @@ class Barrier {
 protected:
    int numParticipants;
 public:
-   Barrier(int numP): numParticipants(numP) {};
+   Barrier(): numParticipants(0) {}
+   Barrier(int numP): numParticipants(numP) {}
    virtual void init() = 0;
    virtual void barrier() = 0;
    virtual ~Barrier() {}
 };
 
 
-typedef Barrier * (*barrFactory) (int numParticipants);
+typedef Barrier * (*barrFactory) ();
 
 
 }

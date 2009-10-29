@@ -10,9 +10,9 @@ using namespace nanos;
 
 void single_code (void *a)
 {
-	bool b;
+	bool b = true;
 	for (int i=0; i<1000; i++){
-		nanos_single_guard(b);
+		nanos_single_guard(&b);
 		if (b)
 		{
 			cerr << "it: " << i << " th: " << myThread->getId() << endl ;

@@ -7,7 +7,6 @@
 #include "wddeque.hpp"
 #include "basethread.hpp"
 #include "atomic.hpp"
-#include "barrier.hpp"
 
 namespace nanos {
 
@@ -38,11 +37,9 @@ private:
 
   group_t        group;
 
-  Barrier * barrierImpl;
-
-    // disable copy and assignment
-    SchedulingGroup(const SchedulingGroup &);
-    SchedulingGroup & operator= (const SchedulingGroup &);
+  // disable copy and assignment
+  SchedulingGroup(const SchedulingGroup &);
+  SchedulingGroup & operator= (const SchedulingGroup &);
 
     void init(int groupSize);
 public:
@@ -75,9 +72,6 @@ public:
     virtual void queueIdle (BaseThread *thread,WD &wd);
     virtual WD *getIdle(BaseThread *thread);
 
-   //barrier strategy
-   void setBarrierImpl(Barrier * barr) { barrierImpl = barr; }
-   void barrier() { barrierImpl->barrier(); }
 };
 
 // singleton class to encapsulate scheduling data and methods

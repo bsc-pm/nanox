@@ -80,6 +80,10 @@ void System::config ()
    config.registerArgOption ( new Config::StringVar ( "nth-cutoff", defCutoff ) );
    config.registerEnvOption ( new Config::StringVar ( "NTH_CUTOFF", defCutoff ) );
 
+   config.registerArgOption ( new Config::StringVar ( "nth-barrier", defBarr ) );
+   config.registerEnvOption ( new Config::StringVar ( "NTH_BARRIER", defBarr ) );
+
+
    verbose0 ( "Reading Configuration" );
    config.init();
 }
@@ -101,11 +105,6 @@ void System::start ()
    pes.reserve ( numPes );
 
    SchedulingGroup *sg = defSGFactory( numPes*getThsPerPE() );
-
-   /*! create a barrier object from the selected plugin with the current number of threads */
-   Barrier * curBar = defBarrFactory( numPes*getThsPerPE() );
-   /*! setting the created barrier object as the current implementation in the scheduler */
-   sg->setBarrierImpl( curBar );
 
 
    //TODO: decide, single master, multiple master start
@@ -219,6 +218,9 @@ ThreadTeam * System:: createTeam (int nthreads, SG *policy, void *constraints, b
      // create team
      ThreadTeam * team = new ThreadTeam(nthreads,*policy);
 
+     team->setBarrAlgorithm( defBarrFactory() );
+
+
      debug("Creating team " << team << " of " << nthreads << " threads");
      // find threads
      if ( reuseCurrent ) {
@@ -226,7 +228,7 @@ ThreadTeam * System:: createTeam (int nthreads, SG *policy, void *constraints, b
         team->addThread(myThread);
         myThread->enterTeam(team);
      }
-     
+
      while (nthreads > 0) {
         BaseThread *thread = getUnassignedWorker();
         if (!thread) {
