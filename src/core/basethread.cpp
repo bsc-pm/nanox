@@ -27,6 +27,8 @@ void BaseThread::associate ()
 
 bool BaseThread::singleGuard ()
 {
+   // return getTeam()->singleGuard(++local_single); # doesn't work
+   // probably by some gcc bug
    local_single++;
    return getTeam()->singleGuard(local_single); 
 }
