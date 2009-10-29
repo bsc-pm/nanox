@@ -6,7 +6,9 @@
 
 using namespace nanos;
 
-
+/*! \class centralizedBarrier
+    \brief implements a single semaphore barrier
+*/
 
 class centralizedBarrier: public Barrier
 {
@@ -32,6 +34,8 @@ void centralizedBarrier::barrier() {
    /*! get the number of participants from the team */
    numParticipants = myThread->getTeam()->size();
 
+   /*! \warning We are not guaranteeing that the sem value is put back to zero at the beginning of a barrier */
+
    //increment the semaphore value
    sem++;
 
@@ -54,7 +58,10 @@ Barrier * createCentralizedBarrier() {
 }
 
 
-
+/*! \class CentralizedBarrierPlugin 
+    \brief plugin of the related centralizedBarrier class
+    \see centralizedBarrier
+*/
 class CentralizedBarrierPlugin : public Plugin
 {
    public:

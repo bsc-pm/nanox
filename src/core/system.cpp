@@ -80,6 +80,10 @@ void System::config ()
    config.registerArgOption ( new Config::StringVar ( "nth-cutoff", defCutoff ) );
    config.registerEnvOption ( new Config::StringVar ( "NTH_CUTOFF", defCutoff ) );
 
+   config.registerArgOption ( new Config::StringVar ( "nth-barrier", defBarr ) );
+   config.registerEnvOption ( new Config::StringVar ( "NTH_BARRIER", defBarr ) );
+
+
    verbose0 ( "Reading Configuration" );
    config.init();
 }
