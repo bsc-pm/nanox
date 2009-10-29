@@ -7,5 +7,7 @@ using namespace nanos;
 
 bool ThreadTeam::singleGuard(int local)
 {
+    if ( local <= single ) return false;
+    
 	return compare_and_swap(&single, local-1, local);
 }
