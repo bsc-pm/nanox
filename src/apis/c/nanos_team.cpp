@@ -40,10 +40,11 @@ nanos_err_t nanos_end_team ( nanos_team_t team )
 nanos_err_t nanos_team_barrier ( )
 {
    try {
-      (myThread->getTeam())->barrier();
+      myThread->getTeam()->barrier();
    } catch(...) {
       return NANOS_UNIMPLEMENTED;
    }
+   return NANOS_OK;
 }
 
 
