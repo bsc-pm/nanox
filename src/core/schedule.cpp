@@ -11,7 +11,7 @@ void Scheduler::submit ( WD &wd )
 {
    // TODO: increase ready count
 
-  sys.taskNum++;
+   sys.taskNum++;
 
    debug ( "submitting task " << wd.getId() );
    WD *next = myThread->getSchedulingGroup()->atCreation ( myThread, wd );
@@ -31,16 +31,19 @@ void Scheduler::exit ( void )
    sys.taskNum--;
 
    WD *next = myThread->getSchedulingGroup()->atExit ( myThread );
-   if( next ) { 
+
+   if ( next ) {
       sys.numReady--;
    }
 
    if ( !next ) {
       next = myThread->getSchedulingGroup()->getIdle ( myThread );
    }
+
    if ( next ) {
       myThread->exitTo ( next );
    }
+
    fatal ( "No more tasks to execute!" );
 }
 
@@ -68,7 +71,8 @@ void Scheduler::blockOnCondition ( volatile T *var, T condition )
       thread->getCurrentWD()->setIdle();
 
       WD *next = thread->getSchedulingGroup()->atBlock ( thread );
-      if( next ) {
+
+      if ( next ) {
          sys.numReady--;
       }
 
@@ -80,7 +84,7 @@ void Scheduler::blockOnCondition ( volatile T *var, T condition )
       }
    }
 
-  myThread->getCurrentWD()->setIdle ( false );
+   myThread->getCurrentWD()->setIdle ( false );
 }
 
 template<typename T>
@@ -93,7 +97,8 @@ void Scheduler::blockOnConditionLess ( volatile T *var, T condition )
       thread->getCurrentWD()->setIdle();
 
       WD *next = thread->getSchedulingGroup()->atBlock ( thread );
-      if( next ) {
+
+      if ( next ) {
          sys.numReady--;
       }
 
@@ -107,7 +112,7 @@ void Scheduler::blockOnConditionLess ( volatile T *var, T condition )
       // TODO: implement sleeping
    }
 
-  myThread->getCurrentWD()->setIdle ( false );
+   myThread->getCurrentWD()->setIdle ( false );
 }
 
 template
@@ -133,7 +138,8 @@ void Scheduler::idle ()
    while ( thread->isRunning() ) {
       if ( thread->getSchedulingGroup() ) {
          WD *next = thread->getSchedulingGroup()->atIdle ( thread );
-         if( next ) { 
+
+         if ( next ) {
             sys.numReady--;
          }
 
@@ -161,7 +167,7 @@ void Scheduler::queue ( WD &wd )
 {
    if ( wd.isIdle() )
       myThread->getSchedulingGroup()->queueIdle ( myThread, wd );
-   else { 
+   else {
       myThread->getSchedulingGroup()->queue ( myThread, wd );
       sys.numReady++;
    }
@@ -174,11 +180,11 @@ void SchedulingGroup::init ( int groupSize )
 
 void SchedulingGroup::addMember ( BaseThread &thread )
 {
-	SchedulingData *data = createMemberData ( thread );
+   SchedulingData *data = createMemberData ( thread );
 
-    data->setSchId ( getSize() );
-    thread.setScheduling ( this, data );
-	group.push_back(data);
+   data->setSchId ( getSize() );
+   thread.setScheduling ( this, data );
+   group.push_back( data );
 }
 
 void SchedulingGroup::removeMember ( BaseThread &thread )

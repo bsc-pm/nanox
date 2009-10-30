@@ -7,35 +7,41 @@
 
 //TODO: Make smp independent from pthreads? move it to OS?
 
-namespace nanos {
+namespace nanos
+{
 
-class SMPThread : public BaseThread {
-friend class SMPProcessor;
-private:
-	pthread_t   pth;
-    bool        useUserThreads;
-    
-	// disable copy constructor and assignment operator
-	SMPThread(const SMPThread &th);
-	const SMPThread & operator= (const SMPThread &th);
+   class SMPThread : public BaseThread
+   {
 
-public:
-	// constructor
-	SMPThread(WD &w, PE *pe, bool uUT=true) : BaseThread(w,pe),useUserThreads(uUT) {}
-	// destructor
-    virtual ~SMPThread() { if (isStarted()) /*TODO: stop()*/; }
+         friend class SMPProcessor;
 
-    void setUseUserThreads(bool value=true) { useUserThreads = value; }
+      private:
+         pthread_t   pth;
+         bool        useUserThreads;
 
-	virtual void start();
-	virtual void join();
-    virtual void run_dependent (void);
+         // disable copy constructor and assignment operator
+         SMPThread( const SMPThread &th );
+         const SMPThread & operator= ( const SMPThread &th );
 
-    virtual void inlineWork(WD *work);
-    virtual void switchTo(WD *work);
-    virtual void exitTo(WD *work);
-    virtual void bind(void);
-};
+      public:
+         // constructor
+         SMPThread( WD &w, PE *pe, bool uUT=true ) : BaseThread( w,pe ),useUserThreads( uUT ) {}
+
+         // destructor
+
+         virtual ~SMPThread() { if ( isStarted() ) /*TODO: stop()*/; }
+
+         void setUseUserThreads( bool value=true ) { useUserThreads = value; }
+
+         virtual void start();
+         virtual void join();
+         virtual void run_dependent ( void );
+
+         virtual void inlineWork( WD *work );
+         virtual void switchTo( WD *work );
+         virtual void exitTo( WD *work );
+         virtual void bind( void );
+   };
 
 
 };

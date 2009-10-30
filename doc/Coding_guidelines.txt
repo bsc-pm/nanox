@@ -1,0 +1,74 @@
+====
+V1.0
+====
+
+Syntax
+======
+
+- Indenting should use 3 spaces (not tabs!).
+- Brackets should start on the opening statement (if,for,...) except for function blocks
+- Labels, classes, cases should all be indented
+- Spaces should be used inside parenthesis (e.g., ( 5 ) not (5) )
+- If in doubt you can use astyle (http://astyle.sourceforge.net). Check scripts/astyle-nanox.sh
+
+Naming Conventions
+==================
+
+- Class names should have all words capitalized with no _  (e.g., MyClassName)
+- Class methods should have all words capitalized with no _ except for the first one (e.g., myMethod)
+- Define typedefs for template containers used for data members
+- Data members should start with _ and have all words capitalized except the first one (e.g., _myData)
+- Other variables (globals,parameters,...)  should have all words capitalized except the first one and note use _
+
+C++ idioms
+==========
+
+- All classes must be defined in the nanos namespace.
+
+- All classes MUST have a constructor, a copy constructor and a assignment operator. If you think that the class should not have some of them (or don't want to implement them) declare them as private.
+
+- If you implement an assignment operator always check if a self-assignment ( a = a; ) is handled correctly. Mark so in the code with a comment.
+
+- All classes MUST have a destructor unless they have no data members.
+
+- Remember to initialize all members in the constructor. When possible do so in the initialization list and not in the constructor body.
+
+- Do not declare static members in the core library outside of the System class unless you know very well what you are doing (this can mess the initialization process).
+
+- Use STL containers an STL algorithms when possible. Beware though, of thread-safety implications with STL.
+
+- As a rule of thumb, all data members should be private with get/set methods defined in the headers to increase inlining. Consider it deeply before declaring a data member shared or friend to another class.
+
+- Use the named parameter idiom when possible to set object properties (see WorkDescriptor::tied for an example).
+
+- All classes that implement a virtual method MUST declare their destructor to be virtual.
+
+- If an argument to a function should never be NULL declare it as a reference when possible
+
+- Remember to define default values for arguments where it makes sense (i.e., most of the time is that value)
+
+Other idioms
+============
+
+- Avoid if possible any kind of atomic operation (atomic updates, locks, compare and swaps, ...). If necessary use the double check pattern:
+       if ( cond ) {
+         lock++;
+         if ( cond ) {
+	   // do whatever
+         }
+         lock--;
+       } 
+
+Documentation
+=============
+
+
+Parameter names
+===============
+
+- All parameters names should start with -nth (e.g. -nth-pes ) and they should be lowercase
+- Use '-' in parameter names to separate words
+- If it's not a core parameter it should also include a plugin prefix (e.g., -nth-smp-stack-size, -nth-wfsch-fifo )
+- All environment variable should start with NTH and they should be uppercase
+- Use '_' in enviroment variables to separate words
+

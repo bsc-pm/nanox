@@ -12,6 +12,7 @@ using namespace nanos;
 
 class TaskStealData : public SchedulingData
 {
+
       friend class TaskStealPolicy;
 
    protected:
@@ -53,7 +54,7 @@ class TaskStealPolicy : public SchedulingGroup
 };
 
 /*! \fn queue( BaseThread *thread, WD &wd )
-  \brief Enqueue a work descriptor in the readyQueue of the passed thread 
+  \brief Enqueue a work descriptor in the readyQueue of the passed thread
   \param thread pointer to the thread to which readyQueue the task must be appended
   \param wd a reference to the work descriptor to be enqueued
   \sa TaskStealData, WD and BaseThread
@@ -75,6 +76,7 @@ WD * TaskStealPolicy::atCreation ( BaseThread *thread, WD &newWD )
    //NEW: now it does not enqueue the created task, but it moves down to the generated son: DEPTH-FIRST
    return &newWD;
 }
+
 /*! \fn atIdle( BaseThread *thread)
   \brief Function called by the scheduler when a thread becomes idle to schedule it: implements the CILK-scheduler algorithm
   \param thread pointer to the thread to be scheduled
@@ -88,6 +90,7 @@ WD * TaskStealPolicy::atIdle ( BaseThread *thread )
    /*!
       First try to schedule the thread with a task from its queue
     */
+
    if ( ( wd = data->readyQueue.pop_front ( thread ) ) != NULL ) {
       return wd;
    } else {
@@ -102,16 +105,18 @@ WD * TaskStealPolicy::atIdle ( BaseThread *thread )
             }
          }
       }
+
       return NULL;
+
       /*!
          If also the parent is NULL or if someone moved it to another queue while I was trying to steal it, try to steal tasks from other queues
          \warning other queues are checked cyclically: should be random
        */
-       int newposition = ( ( data->getSchId() ) + 1 ) % getSize();
+      int newposition = ( ( data->getSchId() ) + 1 ) % getSize();
 
-       while ( ( newposition != data->getSchId() ) && ( ( wd = ( ( ( TaskStealData * ) ( getMemberData ( newposition ) ) )->readyQueue.pop_back ( thread ) ) ) == NULL ) ) {
-          newposition = ( newposition + 1 ) % getSize();
-       }
+      while ( ( newposition != data->getSchId() ) && ( ( wd = ( ( ( TaskStealData * ) ( getMemberData ( newposition ) ) )->readyQueue.pop_back ( thread ) ) ) == NULL ) ) {
+         newposition = ( newposition + 1 ) % getSize();
+      }
 
       return wd;
    }
@@ -143,10 +148,12 @@ SchedulingGroup * createTaskStealPolicy ( int groupsize )
 
 class CilkSchedPlugin : public Plugin
 {
+
    public:
-      CilkSchedPlugin() : Plugin("Cilk scheduling Plugin",1) {}
+      CilkSchedPlugin() : Plugin( "Cilk scheduling Plugin",1 ) {}
+
       virtual void init() {
-           sys.setDefaultSGFactory(createTaskStealPolicy);
+         sys.setDefaultSGFactory( createTaskStealPolicy );
       }
 };
 

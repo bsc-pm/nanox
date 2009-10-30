@@ -3,97 +3,122 @@
 
 #include "workdescriptor.hpp"
 #include "atomic.hpp"
-namespace nanos {
+
+namespace nanos
+{
 
 // forward declarations
-class ProcessingElement;
-class SchedulingGroup;
-class SchedulingData;
-class ThreadTeam;
+
+   class ProcessingElement;
+
+   class SchedulingGroup;
+
+   class SchedulingData;
+
+   class ThreadTeam;
 
 // Threads are binded to a PE for its life-time
-class BaseThread {
-private:
-  static Atomic<int> idSeed;
-  Lock   mlock;
-  
-  // Thread info
-  int id;
-  int cpu_id;
 
-  ProcessingElement *pe;
-  WD & threadWD;
+   class BaseThread
+   {
 
-  // Thread status
-  bool started;
-  volatile bool mustStop;
-  WD *    currentWD;
+      private:
+         static Atomic<int> idSeed;
+         Lock   mlock;
 
-  // Team info
-  bool  has_team;
-  ThreadTeam *team;
-  int local_single;
+         // Thread info
+         int id;
+         int cpu_id;
 
-  // scheduling info
-  SchedulingGroup *schedGroup;
-  SchedulingData  *schedData;
+         ProcessingElement *pe;
+         WD & threadWD;
 
-   //disable copy and assigment
-  BaseThread(const BaseThread &);
-  const BaseThread operator= (const BaseThread &);
+         // Thread status
+         bool started;
+         volatile bool mustStop;
+         WD *    currentWD;
 
-  virtual void run_dependent () = 0;  
-public:
+         // Team info
+         bool  has_team;
+         ThreadTeam *team;
+         int local_single;
 
-  // constructor
-  BaseThread (WD &wd, ProcessingElement *creator=0) : 
-     id(idSeed++), cpu_id(id), pe(creator), threadWD(wd), started(false), mustStop(false), has_team(false), team(NULL), local_single(0) {}
-  // destructor
-  virtual ~BaseThread() {}
+         // scheduling info
+         SchedulingGroup *schedGroup;
+         SchedulingData  *schedData;
 
-  // atomic access
-  void lock () { mlock++; }
-  void unlock () { mlock--; }
+         //disable copy and assigment
+         BaseThread( const BaseThread & );
+         const BaseThread operator= ( const BaseThread & );
 
-  virtual void start () = 0;
-  void run();
-  void stop() { mustStop = true; }
-  virtual void join() = 0;
-  virtual void bind() {};
+         virtual void run_dependent () = 0;
 
-  // WD micro-scheduling
-  virtual void inlineWork (WD *work) = 0;
-  virtual void switchTo(WD *work) = 0;
-  virtual void exitTo(WD *work) = 0;
+      public:
 
-  // set/get methods
-  void setCurrentWD (WD &current) { currentWD = &current; }
-  WD * getCurrentWD () const { return currentWD; }
-  WD & getThreadWD () const { return threadWD; }
+         // constructor
+         BaseThread ( WD &wd, ProcessingElement *creator=0 ) :
+               id( idSeed++ ), cpu_id( id ), pe( creator ), threadWD( wd ), started( false ), mustStop( false ), has_team( false ), team( NULL ), local_single( 0 ) {}
 
-  // team related methods
-  void reserve() { has_team = 1; }
-  void enterTeam(ThreadTeam *newTeam) { has_team=1; team = newTeam; }
-  bool hasTeam() const { return has_team; }
-  void leaveTeam() { has_team = 0; team = 0; }
-  ThreadTeam * getTeam() const { return team; }
+         // destructor
+         virtual ~BaseThread() {}
 
-  SchedulingGroup * getSchedulingGroup () const { return schedGroup; }
-  SchedulingData * getSchedulingData () const { return schedData; }
-  void setScheduling (SchedulingGroup *sg, SchedulingData *sd)  { schedGroup = sg; schedData = sd; }
+         // atomic access
+         void lock () { mlock++; }
 
-  bool isStarted () const { return started; }
-  bool isRunning () const { return started && !mustStop; }
-  ProcessingElement * runningOn() const { return pe; }
-  void associate();
+         void unlock () { mlock--; }
 
-  int getId() { return id; }
-  int getCpuId() { return cpu_id; }
+         virtual void start () = 0;
+         void run();
+         void stop() { mustStop = true; }
 
-  bool singleGuard();
-};
+         virtual void join() = 0;
+         virtual void bind() {};
 
-extern __thread BaseThread *myThread;
+         // WD micro-scheduling
+         virtual void inlineWork ( WD *work ) = 0;
+         virtual void switchTo( WD *work ) = 0;
+         virtual void exitTo( WD *work ) = 0;
+
+         // set/get methods
+         void setCurrentWD ( WD &current ) { currentWD = &current; }
+
+         WD * getCurrentWD () const { return currentWD; }
+
+         WD & getThreadWD () const { return threadWD; }
+
+         // team related methods
+         void reserve() { has_team = 1; }
+
+         void enterTeam( ThreadTeam *newTeam ) { has_team=1; team = newTeam; }
+
+         bool hasTeam() const { return has_team; }
+
+         void leaveTeam() { has_team = 0; team = 0; }
+
+         ThreadTeam * getTeam() const { return team; }
+
+         SchedulingGroup * getSchedulingGroup () const { return schedGroup; }
+
+         SchedulingData * getSchedulingData () const { return schedData; }
+
+         void setScheduling ( SchedulingGroup *sg, SchedulingData *sd )  { schedGroup = sg; schedData = sd; }
+
+         bool isStarted () const { return started; }
+
+         bool isRunning () const { return started && !mustStop; }
+
+         ProcessingElement * runningOn() const { return pe; }
+
+         void associate();
+
+         int getId() { return id; }
+
+         int getCpuId() { return cpu_id; }
+
+         bool singleGuard();
+   };
+
+   extern __thread BaseThread *myThread;
 
 }
 

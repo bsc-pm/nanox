@@ -16,13 +16,18 @@ namespace nanos
          void  *handler;
 
       public:
-         Plugin(std::string &_name, int _version) : name(_name),version(_version) {}
-         Plugin(const char *_name, int _version) : name(_name),version(_version) {}
+         Plugin( std::string &_name, int _version ) : name( _name ),version( _version ) {}
+
+         Plugin( const char *_name, int _version ) : name( _name ),version( _version ) {}
+
          virtual ~Plugin() {}
+
          virtual void init() {}
+
          virtual void fini() {}
 
          const std::string & getName() const { return name; }
+
          int getVersion() const { return version; }
    };
 
@@ -46,7 +51,7 @@ namespace nanos
          static const std::string &getDirectory () { return pluginsDir; }
 
          static bool load ( const char *plugin_name );
-         static bool load ( const std::string &plugin_name ) { return load(plugin_name.c_str()); };
+         static bool load ( const std::string &plugin_name ) { return load( plugin_name.c_str() ); };
    };
 
 }

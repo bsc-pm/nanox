@@ -8,27 +8,30 @@
 #include "xstring.hpp"
 #include <iostream>
 
-namespace nanos {
+namespace nanos
+{
 
-class FatalError : public  std::runtime_error {
-public:
-	FatalError (const std::string &value, int peId=-1) :
-		runtime_error( std::string("FATAL ERROR: [") + toString<int>(peId) + "] " + value )
-		    {}
+   class FatalError : public  std::runtime_error
+   {
 
-};
+      public:
+         FatalError ( const std::string &value, int peId=-1 ) :
+               runtime_error( std::string( "FATAL ERROR: [" ) + toString<int>( peId ) + "] " + value ) {}
 
-class FailedAssertion : public  std::runtime_error {
-public:
-	FailedAssertion (const char *file, const int line, const std::string &value,
-	                 const std::string msg, int peId=-1) :
-		runtime_error(
-		       std::string("ASSERT failed: [")+ toString<int>(peId) + "] "
-		               + value + ":" + msg 
-		               + " (" + file + ":" + toString<int>(line)+ ")")
-		    {}
+   };
 
-};
+   class FailedAssertion : public  std::runtime_error
+   {
+
+      public:
+         FailedAssertion ( const char *file, const int line, const std::string &value,
+                           const std::string msg, int peId=-1 ) :
+               runtime_error(
+                  std::string( "ASSERT failed: [" )+ toString<int>( peId ) + "] "
+                  + value + ":" + msg
+                  + " (" + file + ":" + toString<int>( line )+ ")" ) {}
+
+   };
 
 #define fatal(msg)  throw FatalError(msg,myThread->getId());
 #define fatal0(msg)  throw FatalError(msg);
@@ -40,14 +43,14 @@ public:
 #define warning0(msg) { std::cerr << "WARNING: [?]" << msg << std::endl; }
 
 #define verbose(msg) \
-    if (sys.getVerbose()) std::cerr << "[" << myThread->getId() << "]" << msg << std::endl;
+   if (sys.getVerbose()) std::cerr << "[" << myThread->getId() << "]" << msg << std::endl;
 #define verbose0(msg) \
-    if (sys.getVerbose()) std::cerr << "[?]" << msg << std::endl;
+   if (sys.getVerbose()) std::cerr << "[?]" << msg << std::endl;
 
 #define debug(msg) \
-    if (sys.getVerbose()) std::cerr << "DBG: [" << myThread->getId() << "]" << msg << std::endl;
+   if (sys.getVerbose()) std::cerr << "DBG: [" << myThread->getId() << "]" << msg << std::endl;
 #define debug0(msg) \
-    if (sys.getVerbose()) std::cerr << "DBG: [?]" << msg << std::endl;
+   if (sys.getVerbose()) std::cerr << "DBG: [?]" << msg << std::endl;
 
 };
 

@@ -4,20 +4,21 @@
 #include "system.hpp"
 #include <iostream>
 
-extern "C" {
+extern "C"
+{
 // low-level routine to switch stacks
-void switchStacks(void *,void *,void *,void *);
+   void switchStacks( void *,void *,void *,void * );
 }
 
 using namespace nanos;
 
-void * smp_bootthread (void *arg)
+void * smp_bootthread ( void *arg )
 {
-    SMPThread *self = static_cast<SMPThread *>(arg);
-    
-    self->run();
+   SMPThread *self = static_cast<SMPThread *>( arg );
 
-    pthread_exit (0);
+   self->run();
+
+   pthread_exit ( 0 );
 }
 
 void SMPThread::start ()
@@ -33,103 +34,104 @@ void SMPThread::start ()
 //                 );
 
 
-      if (pthread_create( &pth, NULL, smp_bootthread, this ) )
-        fatal("couldn't create thread");
+   if ( pthread_create( &pth, NULL, smp_bootthread, this ) )
+      fatal( "couldn't create thread" );
 }
 
 void SMPThread::run_dependent ()
 {
-    WD &work = getThreadWD();
-    setCurrentWD(work);
+   WD &work = getThreadWD();
+   setCurrentWD( work );
 
-    SMPDD &dd = (SMPDD &) work.activateDevice(SMP);
-    dd.getWorkFct()(work.getData());
+   SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
+   dd.getWorkFct()( work.getData() );
 }
 
 void SMPThread::join ()
 {
-    pthread_join(pth,NULL);
+   pthread_join( pth,NULL );
 }
 
 // This is executed in between switching stacks
 static void switchHelper ( WD *oldWD, WD *newWD, intptr_t *oldState  )
 {
-    SMPDD & dd = (SMPDD &)oldWD->getActiveDevice();
-    dd.setState(oldState);
-    Scheduler::queue(*oldWD);
-    myThread->setCurrentWD(*newWD);
+   SMPDD & dd = ( SMPDD & )oldWD->getActiveDevice();
+   dd.setState( oldState );
+   Scheduler::queue( *oldWD );
+   myThread->setCurrentWD( *newWD );
 }
 
 void SMPThread::inlineWork ( WD *wd )
 {
-    SMPDD &dd = (SMPDD &)wd->getActiveDevice();
-    WD *oldwd = getCurrentWD();
-    setCurrentWD(*wd);
-    (dd.getWorkFct())(wd->getData());
-    // TODO: not delete work descriptor if is a parent with pending children
-    setCurrentWD(*oldwd);
+   SMPDD &dd = ( SMPDD & )wd->getActiveDevice();
+   WD *oldwd = getCurrentWD();
+   setCurrentWD( *wd );
+   ( dd.getWorkFct() )( wd->getData() );
+   // TODO: not delete work descriptor if is a parent with pending children
+   setCurrentWD( *oldwd );
 }
 
 void SMPThread::switchTo ( WD *wd )
 {
-    // wd MUST have an active Device when it gets here
-    ensure(wd->hasActiveDevice(),"WD has no active SMP device");
-    SMPDD &dd = (SMPDD &)wd->getActiveDevice();
+   // wd MUST have an active Device when it gets here
+   ensure( wd->hasActiveDevice(),"WD has no active SMP device" );
+   SMPDD &dd = ( SMPDD & )wd->getActiveDevice();
 
    if ( useUserThreads ) {
-       debug("switching from task " << getCurrentWD() << ":" << getCurrentWD()->getId() << " to " << wd << ":" << wd->getId());
+      debug( "switching from task " << getCurrentWD() << ":" << getCurrentWD()->getId() << " to " << wd << ":" << wd->getId() );
 
-      if (!dd.hasStack()) {
-	    dd.initStack(wd->getData());
+      if ( !dd.hasStack() ) {
+         dd.initStack( wd->getData() );
       }
 
       ::switchStacks(
- 		   (void *) getCurrentWD(),
- 		   (void *) wd,
-           (void *) dd.getState(),
-           (void *) switchHelper);
+
+         ( void * ) getCurrentWD(),
+         ( void * ) wd,
+         ( void * ) dd.getState(),
+         ( void * ) switchHelper );
    } else {
-      inlineWork(wd);
+      inlineWork( wd );
       delete wd;
    }
 }
 
 static void exitHelper (  WD *oldWD, WD *newWD, intptr_t *oldState )
 {
-    delete oldWD;
-    myThread->setCurrentWD(*newWD);
+   delete oldWD;
+   myThread->setCurrentWD( *newWD );
 }
 
-void SMPThread::exitTo (WD *wd)
+void SMPThread::exitTo ( WD *wd )
 {
-    // wd MUST have an active Device when it gets here
-    ensure(wd->hasActiveDevice(),"WD has no active SMP device");
-    SMPDD &dd = (SMPDD &)wd->getActiveDevice();
+   // wd MUST have an active Device when it gets here
+   ensure( wd->hasActiveDevice(),"WD has no active SMP device" );
+   SMPDD &dd = ( SMPDD & )wd->getActiveDevice();
 
-    debug("exiting task " << getCurrentWD() << ":" << getCurrentWD()->getId() << " to " << wd << ":" << wd->getId());
-    // TODO: reuse stack
+   debug( "exiting task " << getCurrentWD() << ":" << getCurrentWD()->getId() << " to " << wd << ":" << wd->getId() );
+   // TODO: reuse stack
 
-    if (!dd.hasStack()) {
-	  dd.initStack(wd->getData());
-    }
+   if ( !dd.hasStack() ) {
+      dd.initStack( wd->getData() );
+   }
 
-    //TODO: optimize... we don't really need to save a context in this case
-    ::switchStacks(
- 		   (void *) getCurrentWD(),
- 		   (void *) wd,
-           (void *) dd.getState(),
-           (void *) exitHelper);
+   //TODO: optimize... we don't really need to save a context in this case
+   ::switchStacks(
+      ( void * ) getCurrentWD(),
+      ( void * ) wd,
+      ( void * ) dd.getState(),
+      ( void * ) exitHelper );
 }
 
-void SMPThread::bind(void)
+void SMPThread::bind( void )
 {
-	cpu_set_t cpu_set;
-	int cpu_id = getCpuId();
+   cpu_set_t cpu_set;
+   int cpu_id = getCpuId();
 
-	ensure(((cpu_id >= 0) && (cpu_id < CPU_SETSIZE)), "invalid value for cpu id");
-	CPU_ZERO(&cpu_set);
-	CPU_SET(cpu_id, &cpu_set);
-	verbose("Binding thread " << getId() << " to cpu " << cpu_id );
-	sched_setaffinity((pid_t) 0, sizeof(cpu_set), &cpu_set); 
+   ensure( ( ( cpu_id >= 0 ) && ( cpu_id < CPU_SETSIZE ) ), "invalid value for cpu id" );
+   CPU_ZERO( &cpu_set );
+   CPU_SET( cpu_id, &cpu_set );
+   verbose( "Binding thread " << getId() << " to cpu " << cpu_id );
+   sched_setaffinity( ( pid_t ) 0, sizeof( cpu_set ), &cpu_set );
 }
 

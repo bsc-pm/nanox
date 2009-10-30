@@ -4,15 +4,16 @@
 #include <sstream>
 #include <string>
 
-namespace nanos {
-
-template <class T>
-inline std::string toString (const T& t)
+namespace nanos
 {
-   std::stringstream ss;
-   ss << t;
-   return ss.str();
-}
+
+   template <class T>
+   inline std::string toString ( const T& t )
+   {
+      std::stringstream ss;
+      ss << t;
+      return ss.str();
+   }
 
 }
 

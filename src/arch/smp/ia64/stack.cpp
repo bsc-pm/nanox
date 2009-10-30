@@ -39,9 +39,10 @@ using namespace nanos;
  *
  * -----------------------------------------------------------------*/
 
-extern "C" {
+extern "C"
+{
 // low-level helper routine to start a new user-thread
-void startHelper ();
+   void startHelper ();
 }
 
 void SMPDD::initStackDep ( void *userfuction, void *data, void *cleanup )
@@ -53,31 +54,31 @@ void SMPDD::initStackDep ( void *userfuction, void *data, void *cleanup )
    state -= 68;
 
    // argument
-   state[60] = (intptr_t) data;
+   state[60] = ( intptr_t ) data;
 
    // return pointer
-   state[59] = (intptr_t) *((long *)startHelper);
+   state[59] = ( intptr_t ) *( ( long * )startHelper );
    // ar.rsc
-   state[58] = (intptr_t) 3; 
+   state[58] = ( intptr_t ) 3;
    // ar.pfs
-   state[57] = (intptr_t) 0;
+   state[57] = ( intptr_t ) 0;
    // ar.rnat
-   state[56] = (intptr_t) 0;
+   state[56] = ( intptr_t ) 0;
    // ar.bspstore
-   state[55] = (intptr_t) stack;
+   state[55] = ( intptr_t ) stack;
    // tp(r13)
-   state[54] = (intptr_t) 0; 
+   state[54] = ( intptr_t ) 0;
    // ar.unat (caller)
-   state[53] = (intptr_t) 0; 
+   state[53] = ( intptr_t ) 0;
    // r5 (cleanup)
-   state[51] = (intptr_t) cleanup; 
+   state[51] = ( intptr_t ) cleanup;
    // r6 (pt)
-   state[50] = (intptr_t) this; 
+   state[50] = ( intptr_t ) this;
    // r7 (userf)
-   state[49] = (intptr_t) userfuction;
+   state[49] = ( intptr_t ) userfuction;
    // ar.unat (callee)
-   state[48] = (intptr_t) 0;
+   state[48] = ( intptr_t ) 0;
    // ar.fpsr
-   state[40] = (intptr_t) 0x9804c0270033f;
-   
+   state[40] = ( intptr_t ) 0x9804c0270033f;
+
 }

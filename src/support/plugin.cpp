@@ -14,17 +14,17 @@ bool PluginManager::load ( const char *name )
 
    dlname = "libnanox-";
    dlname += name;
-   handler = OS::loadDL(pluginsDir,dlname);
+   handler = OS::loadDL( pluginsDir,dlname );
 
    if ( !handler ) {
-      warning0 ( "plugin error=" << OS::dlError(handler) );
+      warning0 ( "plugin error=" << OS::dlError( handler ) );
       return false;
    }
 
    Plugin *plugin = ( Plugin * ) OS::dlFindSymbol( handler, "NanosXPlugin" );
 
    if ( !plugin ) {
-      warning0 ( "plugin error=" << OS::dlError(handler) );
+      warning0 ( "plugin error=" << OS::dlError( handler ) );
       return false;
    }
 

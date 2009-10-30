@@ -8,42 +8,51 @@
 using namespace nanos;
 
 
-class level_cutoff: public cutoff {
-private:
-    int max_level;
+class level_cutoff: public cutoff
+{
 
-public:
-    level_cutoff() : max_level(DEFAULT_CUTOFF_LEVEL) {}
+   private:
+      int max_level;
 
-    void init() {}
-    void setMaxCutoff(int ml) { max_level = ml; } 
-    bool cutoff_pred();
+   public:
+      level_cutoff() : max_level( DEFAULT_CUTOFF_LEVEL ) {}
 
-    ~level_cutoff() {}
+      void init() {}
+
+      void setMaxCutoff( int ml ) { max_level = ml; }
+
+      bool cutoff_pred();
+
+      ~level_cutoff() {}
 };
 
 
-bool level_cutoff::cutoff_pred() {
+bool level_cutoff::cutoff_pred()
+{
    //checking the parent level of the next work to be created (check >)
-   if( (myThread->getCurrentWD())->getLevel() > max_level )  {
-      verbose0("Cutoff Policy: avoiding task creation!");
+   if ( ( myThread->getCurrentWD() )->getLevel() > max_level )  {
+      verbose0( "Cutoff Policy: avoiding task creation!" );
       return false;
    }
+
    return true;
 }
 
 //factory
-cutoff * createLevelCutoff() {
-    return new level_cutoff();
+cutoff * createLevelCutoff()
+{
+   return new level_cutoff();
 }
 
 
 class LevelCutOffPlugin : public Plugin
 {
+
    public:
-      LevelCutOffPlugin() : Plugin("Task Tree Level CutOff Plugin",1) {}
+      LevelCutOffPlugin() : Plugin( "Task Tree Level CutOff Plugin",1 ) {}
+
       virtual void init() {
-           sys.setCutOffPolicy(createLevelCutoff());
+         sys.setCutOffPolicy( createLevelCutoff() );
       }
 };
 

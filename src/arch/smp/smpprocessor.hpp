@@ -7,27 +7,32 @@
 
 //TODO: Make smp independent from pthreads? move it to OS?
 
-namespace nanos {
+namespace nanos
+{
 
-class SMPProcessor : public PE {
-private:
-       // config variables
-       static bool useUserThreads;
+   class SMPProcessor : public PE
+   {
 
-	// disable copy constructor and assignment operator
-	SMPProcessor(const SMPProcessor &pe);
-	const SMPProcessor & operator= (const SMPProcessor &pe);
-public:
-	// constructors
-	SMPProcessor(int id) : PE(id,&SMP) {}
-	virtual ~SMPProcessor() {}
-  
-  virtual WD & getWorkerWD () const;
-  virtual WD & getMasterWD () const;
-  virtual BaseThread & createThread (WorkDescriptor &wd);
+      private:
+         // config variables
+         static bool useUserThreads;
 
-  static void prepareConfig (Config &config);
-};
+         // disable copy constructor and assignment operator
+         SMPProcessor( const SMPProcessor &pe );
+         const SMPProcessor & operator= ( const SMPProcessor &pe );
+
+      public:
+         // constructors
+         SMPProcessor( int id ) : PE( id,&SMP ) {}
+
+         virtual ~SMPProcessor() {}
+
+         virtual WD & getWorkerWD () const;
+         virtual WD & getMasterWD () const;
+         virtual BaseThread & createThread ( WorkDescriptor &wd );
+
+         static void prepareConfig ( Config &config );
+   };
 
 
 };

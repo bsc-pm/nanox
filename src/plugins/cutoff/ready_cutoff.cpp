@@ -8,42 +8,51 @@
 using namespace nanos;
 
 
-class ready_cutoff: public cutoff {
-private:
-    int max_ready;
+class ready_cutoff: public cutoff
+{
 
-public:
-    ready_cutoff() : max_ready(DEFAULT_CUTOFF_READY) {}
+   private:
+      int max_ready;
 
-    void init() {}
-    void setMaxCutoff(int mr) { max_ready = mr; } 
-    bool cutoff_pred();
+   public:
+      ready_cutoff() : max_ready( DEFAULT_CUTOFF_READY ) {}
 
-    ~ready_cutoff() {}
+      void init() {}
+
+      void setMaxCutoff( int mr ) { max_ready = mr; }
+
+      bool cutoff_pred();
+
+      ~ready_cutoff() {}
 };
 
 
-bool ready_cutoff::cutoff_pred() {
+bool ready_cutoff::cutoff_pred()
+{
    //checking if the number of ready tasks is higher than the allowed maximum
-   if( sys.getReadyNum() > max_ready )  {
-      verbose0("Cutoff Policy: avoiding task creation!");
+   if ( sys.getReadyNum() > max_ready )  {
+      verbose0( "Cutoff Policy: avoiding task creation!" );
       return false;
    }
+
    return true;
 }
 
 //factory
-cutoff * createReadyCutoff() {
-    return new ready_cutoff();
+cutoff * createReadyCutoff()
+{
+   return new ready_cutoff();
 }
 
 
 class ReadyCutOffPlugin : public Plugin
 {
+
    public:
-      ReadyCutOffPlugin() : Plugin("Ready Task CutOff Plugin",1) {}
+      ReadyCutOffPlugin() : Plugin( "Ready Task CutOff Plugin",1 ) {}
+
       virtual void init() {
-            sys.setCutOffPolicy(createReadyCutoff());
+         sys.setCutOffPolicy( createReadyCutoff() );
       }
 };
 

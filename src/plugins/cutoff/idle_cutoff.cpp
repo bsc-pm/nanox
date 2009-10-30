@@ -8,43 +8,52 @@ using namespace nanos;
 
 //TODO: only works with 1 scheduling group
 
-class idle_cutoff: public cutoff {
-private:
-    int max_idle;
+class idle_cutoff: public cutoff
+{
 
-public:
-    idle_cutoff() : max_idle(DEFAULT_CUTOFF_IDLE) {}
+   private:
+      int max_idle;
 
-    void init() {}
-    void setMaxCutoff(int mi) { max_idle = mi; } 
-    bool cutoff_pred();
+   public:
+      idle_cutoff() : max_idle( DEFAULT_CUTOFF_IDLE ) {}
 
-    ~idle_cutoff() {}
+      void init() {}
+
+      void setMaxCutoff( int mi ) { max_idle = mi; }
+
+      bool cutoff_pred();
+
+      ~idle_cutoff() {}
 };
 
 
-bool idle_cutoff::cutoff_pred() {
+bool idle_cutoff::cutoff_pred()
+{
    //checking if the number of idle tasks is higher than the allowed maximum
-   if( sys.getIdleNum() > max_idle )  {
-      verbose0("Cutoff Policy: avoiding task creation!");
+   if ( sys.getIdleNum() > max_idle )  {
+      verbose0( "Cutoff Policy: avoiding task creation!" );
       return false;
    }
+
    return true;
 }
 
 //factory
-cutoff * createIdleCutoff() {
-    return new idle_cutoff();
+cutoff * createIdleCutoff()
+{
+   return new idle_cutoff();
 }
 
 
 
 class IdleCutOffPlugin : public Plugin
 {
+
    public:
-      IdleCutOffPlugin() : Plugin("Idle Threads CutOff Plugin",1) {}
+      IdleCutOffPlugin() : Plugin( "Idle Threads CutOff Plugin",1 ) {}
+
       virtual void init() {
-           sys.setCutOffPolicy(createIdleCutoff());
+         sys.setCutOffPolicy( createIdleCutoff() );
       }
 };
 

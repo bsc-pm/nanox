@@ -10,19 +10,20 @@ Atomic<int> BaseThread::idSeed = 0;
 
 void BaseThread::run ()
 {
-    associate();
-    run_dependent();
+   associate();
+   run_dependent();
 }
 
 void BaseThread::associate ()
 {
-    started = true;
-    myThread = this;
+   started = true;
+   myThread = this;
 
-    if(sys.getBinding()) bind();
+   if ( sys.getBinding() ) bind();
 
-    threadWD.tieTo(*this);
-    setCurrentWD(threadWD);
+   threadWD.tieTo( *this );
+
+   setCurrentWD( threadWD );
 }
 
 bool BaseThread::singleGuard ()
@@ -30,6 +31,6 @@ bool BaseThread::singleGuard ()
    // return getTeam()->singleGuard(++local_single); # doesn't work
    // probably by some gcc bug
    local_single++;
-   return getTeam()->singleGuard(local_single); 
+   return getTeam()->singleGuard( local_single );
 }
 

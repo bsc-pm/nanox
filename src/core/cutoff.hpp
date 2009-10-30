@@ -3,16 +3,19 @@
 
 
 
-namespace nanos {
-
-class cutoff
+namespace nanos
 {
-public:
-    cutoff() {};
-    virtual void init() = 0;
-    virtual bool cutoff_pred() = 0;
-    virtual ~cutoff() {}
-};
+
+   class cutoff
+   {
+
+      public:
+         cutoff() {};
+
+         virtual void init() = 0;
+         virtual bool cutoff_pred() = 0;
+         virtual ~cutoff() {}
+   };
 
 
 

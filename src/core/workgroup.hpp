@@ -4,41 +4,46 @@
 #include <vector>
 #include "atomic.hpp"
 
-namespace nanos {
+namespace nanos
+{
 
-class WorkGroup {
-private:
-      static Atomic<int> atomicSeed;
+   class WorkGroup
+   {
 
-      typedef std::vector<WorkGroup *> ListOfWGs;
-      ListOfWGs partOf;
-      int id;
+      private:
+         static Atomic<int> atomicSeed;
 
-      Atomic<int>  components;
-      Atomic<int>  phase_counter;
-      
-      void addToGroup (WorkGroup &parent);
-      void exitWork (WorkGroup &work);
-public:
-      // constructors
-      WorkGroup() : id(atomicSeed++),components(0), phase_counter(0) {  }
-      // to do these two properly we would need to keep also the information of the components
-      // TODO:copy constructor
-      WorkGroup(const WorkGroup &wg);
-      // TODO:assignment operator
-      const WorkGroup & operator= (const WorkGroup &wg);
-      
-      // destructor
-      virtual ~WorkGroup();
-      
-      void addWork(WorkGroup &wg);
-      void sync();
-      void waitCompletation();
-      void done();
-      int getId() const { return id; }
-};
+         typedef std::vector<WorkGroup *> ListOfWGs;
+         ListOfWGs partOf;
+         int id;
 
-typedef WorkGroup WG;
+         Atomic<int>  components;
+         Atomic<int>  phase_counter;
+
+         void addToGroup ( WorkGroup &parent );
+         void exitWork ( WorkGroup &work );
+
+      public:
+         // constructors
+         WorkGroup() : id( atomicSeed++ ),components( 0 ), phase_counter( 0 ) {  }
+
+         // to do these two properly we would need to keep also the information of the components
+         // TODO:copy constructor
+         WorkGroup( const WorkGroup &wg );
+         // TODO:assignment operator
+         const WorkGroup & operator= ( const WorkGroup &wg );
+
+         // destructor
+         virtual ~WorkGroup();
+
+         void addWork( WorkGroup &wg );
+         void sync();
+         void waitCompletation();
+         void done();
+         int getId() const { return id; }
+   };
+
+   typedef WorkGroup WG;
 
 };
 

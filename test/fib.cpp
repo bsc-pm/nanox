@@ -5,18 +5,20 @@
 
 int cutoff_value = 10;
 
-int fib_seq (int n)
+int fib_seq ( int n )
 {
-	int x, y;
-	if (n < 2) return n;
+   int x, y;
 
-	x = fib_seq(n-1);
-	y = fib_seq(n-2);
+   if ( n < 2 ) return n;
 
-	return x + y;
+   x = fib_seq( n-1 );
+
+   y = fib_seq( n-2 );
+
+   return x + y;
 }
 
-int fib (int n, int d);
+int fib ( int n, int d );
 
 typedef struct {
    int n;
@@ -24,85 +26,93 @@ typedef struct {
    int *x;
 } fib_args;
 
-void fib_0(void *ptr)
+void fib_0( void *ptr )
 {
-   fib_args * args = (fib_args *)ptr;
-  *args->x = fib(args->n-1,args->d+1);
+   fib_args * args = ( fib_args * )ptr;
+   *args->x = fib( args->n-1,args->d+1 );
 }
 
-void fib_1(void *ptr)
+void fib_1( void *ptr )
 {
-   fib_args * args = (fib_args *)ptr;
-   *args->x = fib(args->n-2,args->d+1);
+   fib_args * args = ( fib_args * )ptr;
+   *args->x = fib( args->n-2,args->d+1 );
 }
 
-int fib (int n, int d)
+int fib ( int n, int d )
 {
-	int x, y;
-	if (n < 2) return n;
+   int x, y;
 
-	if ( d < cutoff_value ) {
-	    nanos::WG *wg = new nanos::WG();
+   if ( n < 2 ) return n;
+
+   if ( d < cutoff_value ) {
+      nanos::WG *wg = new nanos::WG();
 
 //		#pragma omp task untied shared(x) firstprivate(n,d)
 //		x = fib(n - 2,d+1);
-	    {
-           fib_args * args = new fib_args();
-           args->n = n; args->d = d; args->x = &x;
-            nanos::WD * wd = new nanos::WD(new nanos::SMPDD(fib_0),args);
-            wg->addWork(*wd); 
-	    nanos::sys.submit(*wd);
-	    }
+      {
+         fib_args * args = new fib_args();
+         args->n = n;
+         args->d = d;
+         args->x = &x;
+         nanos::WD * wd = new nanos::WD( new nanos::SMPDD( fib_0 ),args );
+         wg->addWork( *wd );
+         nanos::sys.submit( *wd );
+      }
 
 //		#pragma omp task untied shared(y) firstprivate(n,d)
 //		y = fib(n - 2,d+1);
-	    {
-           fib_args * args = new fib_args();
-           args->n = n; args->d = d; args->x = &y;
-            nanos::WD * wd = new nanos::WD(new nanos::SMPDD(fib_1),args);
-            wg->addWork(*wd);
-	    nanos::sys.submit(*wd);
-	    }
- 
+      {
+         fib_args * args = new fib_args();
+         args->n = n;
+         args->d = d;
+         args->x = &y;
+         nanos::WD * wd = new nanos::WD( new nanos::SMPDD( fib_1 ),args );
+         wg->addWork( *wd );
+         nanos::sys.submit( *wd );
+      }
+
 //		#pragma omp taskwait
-	    wg->waitCompletation();
-	} else {
-		x = fib_seq(n-1);
-		y = fib_seq(n-2);
-	}
+      wg->waitCompletation();
+   } else {
+      x = fib_seq( n-1 );
+      y = fib_seq( n-2 );
+   }
 
-	return x + y;
+   return x + y;
 }
 
-double get_wtime(void)
+double get_wtime( void )
 {
-        struct timeval ts;
-        double t;
-        int err;
 
-        err = gettimeofday(&ts, NULL);
-        t = (double) (ts.tv_sec)  + (double) ts.tv_usec * 1.0e-6;
+   struct timeval ts;
+   double t;
+   int err;
 
-        return t;
+   err = gettimeofday( &ts, NULL );
+   t = ( double ) ( ts.tv_sec )  + ( double ) ts.tv_usec * 1.0e-6;
+
+   return t;
 }
 
-void fib0 (int n)
+void fib0 ( int n )
 {
-	double start,end;
-	int par_res;
+   double start,end;
+   int par_res;
 
-	start = get_wtime();
-	par_res = fib(n,0);
-	end = get_wtime();
+   start = get_wtime();
+   par_res = fib( n,0 );
+   end = get_wtime();
 
-	std::cout << "Fibonacci result for " << n << " is " << par_res << std::endl;
-	std::cout << "Computation time:  " << end - start << " seconds." << std::endl;
+   std::cout << "Fibonacci result for " << n << " is " << par_res << std::endl;
+   std::cout << "Computation time:  " << end - start << " seconds." << std::endl;
 }
 
 
-int main (int argc, char **argv ) 
+int main ( int argc, char **argv )
 {
-	int n=25;
-	if (argc > 1) n = atoi(argv[1]);
-	fib0(n);
+   int n=25;
+
+   if ( argc > 1 ) n = atoi( argv[1] );
+
+   fib0( n );
 }

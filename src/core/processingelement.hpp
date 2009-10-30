@@ -18,7 +18,7 @@ namespace nanos
          int id;
          const Device *device;
 
-         protected:
+      protected:
          virtual WorkDescriptor & getMasterWD () const = 0;
          virtual WorkDescriptor & getWorkerWD () const = 0;
          std::vector<BaseThread *> threads;
@@ -45,15 +45,15 @@ namespace nanos
          }
 
          BaseThread & startThread ( WorkDescriptor &wd, SchedulingGroup *sg = 0 );
-         virtual BaseThread & createThread ( WorkDescriptor &wd) = 0;
-         BaseThread & associateThisThread (SchedulingGroup *sg);
+         virtual BaseThread & createThread ( WorkDescriptor &wd ) = 0;
+         BaseThread & associateThisThread ( SchedulingGroup *sg );
 
          BaseThread & startWorker ( SchedulingGroup *sg );
          void stopAll();
    };
 
    typedef class ProcessingElement PE;
-   typedef PE * (*peFactory) (int pid);
+   typedef PE * ( *peFactory ) ( int pid );
 };
 
 #endif

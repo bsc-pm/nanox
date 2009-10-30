@@ -7,38 +7,43 @@
 #include "barrier.hpp"
 
 
-namespace nanos {
+namespace nanos
+{
 
-class ThreadTeam {
-   private:
-      std::vector<BaseThread *> threads;
-      int  idleThreads;
-      int  numTasks;
-      Barrier * barrAlgorithm;
-      int  single;
+   class ThreadTeam
+   {
 
-      // disable copy constructor & assignment operation
-      ThreadTeam(const ThreadTeam &sys);
-      const ThreadTeam & operator= (const ThreadTeam &sys);
+      private:
+         std::vector<BaseThread *> threads;
+         int  idleThreads;
+         int  numTasks;
+         Barrier * barrAlgorithm;
+         int  single;
 
-   public:
+         // disable copy constructor & assignment operation
+         ThreadTeam( const ThreadTeam &sys );
+         const ThreadTeam & operator= ( const ThreadTeam &sys );
 
-      ThreadTeam ( int maxThreads, SG &policy ) : idleThreads(0), numTasks(0), single(0) { threads.reserve(maxThreads); }
+      public:
 
-      unsigned size() const { return threads.size(); }
+         ThreadTeam ( int maxThreads, SG &policy ) : idleThreads( 0 ), numTasks( 0 ), single( 0 ) { threads.reserve( maxThreads ); }
 
-      const BaseThread & operator[]  ( int i ) const { return *threads[i]; }
-      BaseThread & operator[]  ( int i ) { return *threads[i]; }
+         unsigned size() const { return threads.size(); }
 
-      void addThread (BaseThread *thread) {
-          threads.push_back(thread);
-      }
+         const BaseThread & operator[]  ( int i ) const { return *threads[i]; }
 
-      void setBarrAlgorithm(Barrier * barrAlg) { barrAlgorithm = barrAlg; }
-      void barrier() {barrAlgorithm->barrier(); }
+         BaseThread & operator[]  ( int i ) { return *threads[i]; }
 
-      bool singleGuard(int local);
-};
+         void addThread ( BaseThread *thread ) {
+            threads.push_back( thread );
+         }
+
+         void setBarrAlgorithm( Barrier * barrAlg ) { barrAlgorithm = barrAlg; }
+
+         void barrier() {barrAlgorithm->barrier(); }
+
+         bool singleGuard( int local );
+   };
 
 }
 

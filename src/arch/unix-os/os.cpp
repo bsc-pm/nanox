@@ -9,57 +9,61 @@ OS::ArgumentList OS::argList;
 
 const OS::ArgumentList & OS::getProgramArguments ()
 {
-	long *p;
-	int i;
+   long *p;
+   int i;
 
-    if ( !argc ) {
-	  // variables are before environment
-      p=(long *)environ;
+   if ( !argc ) {
+      // variables are before environment
+      p=( long * )environ;
 
-	  // go backwards until we find argc
-	  p--;
-	  for ( i = 0 ; *(--p) != i; i++ );
+      // go backwards until we find argc
+      p--;
 
-	  argc = p;
-	  argv = (char **) p+1;
+      for ( i = 0 ; *( --p ) != i; i++ );
+
+      argc = p;
+
+      argv = ( char ** ) p+1;
 
       // build vector
-      argList.reserve(*argc);
-      for ( i = 0; i < *argc; i++)
-         argList.push_back(new Argument(argv[i],i));
-    }
+      argList.reserve( *argc );
 
-    return argList;
+      for ( i = 0; i < *argc; i++ )
+         argList.push_back( new Argument( argv[i],i ) );
+   }
+
+   return argList;
 }
 
-void OS::consumeArgument (Argument &arg)
+void OS::consumeArgument ( Argument &arg )
 {
-	argv[arg.nparam] = 0;
+   argv[arg.nparam] = 0;
 }
 
 void OS::repackArguments ()
 {
-	int i,hole = 0;
+   int i,hole = 0;
 
-        // find first hole
-	for ( i  = 0; i < *argc; i++ )
-	    if (!argv[i]) {
-		hole=i++;
-		break;
-            }
+   // find first hole
 
-	for ( ; i < *argc; i++ )
-	    if (argv[i]) {
-		argv[hole]=argv[i];
-		argv[i]=0;
-		hole++;
-	    }
+   for ( i  = 0; i < *argc; i++ )
+      if ( !argv[i] ) {
+         hole=i++;
+         break;
+      }
 
-	if (hole != 0)
-	   *argc = hole;
+   for ( ; i < *argc; i++ )
+      if ( argv[i] ) {
+         argv[hole]=argv[i];
+         argv[i]=0;
+         hole++;
+      }
+
+   if ( hole != 0 )
+      *argc = hole;
 }
 
-void * OS::loadDL(const std::string &dir, const std::string &name)
+void * OS::loadDL( const std::string &dir, const std::string &name )
 {
    std::string filename;
    filename = dir + "/" + name + ".so";
@@ -67,12 +71,12 @@ void * OS::loadDL(const std::string &dir, const std::string &name)
    return dlopen ( filename.c_str(), RTLD_NOW );
 }
 
-void * OS::dlFindSymbol(void *dlHandler, const std::string &symbolName)
+void * OS::dlFindSymbol( void *dlHandler, const std::string &symbolName )
 {
    return dlsym ( dlHandler, symbolName.c_str() );
 }
 
-void * OS::dlFindSymbol(void *dlHandler, const char *symbolName)
+void * OS::dlFindSymbol( void *dlHandler, const char *symbolName )
 {
    return dlsym ( dlHandler, symbolName );
 }

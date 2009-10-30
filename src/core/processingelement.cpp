@@ -4,39 +4,43 @@
 
 using namespace nanos;
 
-BaseThread& ProcessingElement::startWorker (SchedulingGroup *sg)
+BaseThread& ProcessingElement::startWorker ( SchedulingGroup *sg )
 {
-	WD & master = getWorkerWD();
-	return startThread(master,sg);
+   WD & master = getWorkerWD();
+   return startThread( master,sg );
 }
 
-BaseThread & ProcessingElement::startThread (WD &work, SchedulingGroup *sg)
+BaseThread & ProcessingElement::startThread ( WD &work, SchedulingGroup *sg )
 {
-       BaseThread &thread = createThread(work);
-       if (sg) sg->addMember(thread);
-       thread.start();
+   BaseThread &thread = createThread( work );
 
-      threads.push_back(&thread);
+   if ( sg ) sg->addMember( thread );
 
-       return thread;
+   thread.start();
+
+   threads.push_back( &thread );
+
+   return thread;
 }
 
-BaseThread & ProcessingElement::associateThisThread (SchedulingGroup *sg)
+BaseThread & ProcessingElement::associateThisThread ( SchedulingGroup *sg )
 {
-    WD & master = getMasterWD();
-    BaseThread &thread = createThread(master);
-    if (sg) sg->addMember(thread);
+   WD & master = getMasterWD();
+   BaseThread &thread = createThread( master );
 
-    thread.associate();
-	
-	return thread;
+   if ( sg ) sg->addMember( thread );
+
+   thread.associate();
+
+   return thread;
 }
 
 void ProcessingElement::stopAll ()
 {
-        std::vector<BaseThread *>::iterator it;
-       for(it = threads.begin(); it != threads.end(); it++) {
-            (*it)->stop();
-            (*it)->join();
-        }
+   std::vector<BaseThread *>::iterator it;
+
+   for ( it = threads.begin(); it != threads.end(); it++ ) {
+      ( *it )->stop();
+      ( *it )->join();
+   }
 }

@@ -12,25 +12,28 @@ using namespace nanos;
 
 class centralizedBarrier: public Barrier
 {
-private:
-   Atomic<int> sem;
 
-public:
-   centralizedBarrier();
-   void init();
-   void barrier();
-   int getSemValue() { return sem; }
+   private:
+      Atomic<int> sem;
+
+   public:
+      centralizedBarrier();
+      void init();
+      void barrier();
+      int getSemValue() { return sem; }
 };
 
 
-centralizedBarrier::centralizedBarrier(): Barrier() {
+centralizedBarrier::centralizedBarrier(): Barrier()
+{
    sem =  0;
 }
 
 void centralizedBarrier::init() {}
 
 
-void centralizedBarrier::barrier() {
+void centralizedBarrier::barrier()
+{
    /*! get the number of participants from the team */
    numParticipants = myThread->getTeam()->size();
 
@@ -46,28 +49,33 @@ void centralizedBarrier::barrier() {
    sem++;
 
    //the last thread incrementing the sem for the second time puts it at zero
+
    if ( sem == ( 2*numParticipants ) ) {
       //warning: we do not have atomic assignement, thus we use atomic substraction (see atomic.hpp)
-      sem-(2*numParticipants);
+      sem-( 2*numParticipants );
    }
 }
 
 
-Barrier * createCentralizedBarrier() {
+Barrier * createCentralizedBarrier()
+{
    return new centralizedBarrier();
 }
 
 
-/*! \class CentralizedBarrierPlugin 
+/*! \class CentralizedBarrierPlugin
     \brief plugin of the related centralizedBarrier class
     \see centralizedBarrier
 */
+
 class CentralizedBarrierPlugin : public Plugin
 {
+
    public:
-      CentralizedBarrierPlugin() : Plugin("Centralized Barrier Plugin",1) {}
+      CentralizedBarrierPlugin() : Plugin( "Centralized Barrier Plugin",1 ) {}
+
       virtual void init() {
-           sys.setDefaultBarrFactory(createCentralizedBarrier);
+         sys.setDefaultBarrFactory( createCentralizedBarrier );
       }
 };
 

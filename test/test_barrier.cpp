@@ -13,11 +13,13 @@
 
 
 using namespace nanos;
+
 using namespace std;
 
-void debug_c(const char * str, int x) {
+void debug_c( const char * str, int x )
+{
    pthread_t tid = pthread_self();
-   printf("Thread %lu: %s %x\n", tid, str, x);
+   printf( "Thread %lu: %s %x\n", tid, str, x );
 }
 
 
@@ -27,72 +29,83 @@ void debug_c(const char * str, int x) {
 
 class disseminationBarrier: public Barrier
 {
-private:
-   vector<Atomic<int> > semaphores;
-   int q; //q is the log of threadNum
-public:
-   disseminationBarrier(int numP);
-   void init();
-   void barrier();
-   void barrier(int id);
+
+   private:
+      vector<Atomic<int> > semaphores;
+      int q; //q is the log of threadNum
+
+   public:
+      disseminationBarrier( int numP );
+      void init();
+      void barrier();
+      void barrier( int id );
 };
 
 //TODO: number of threads must be a power of 2: remove this hypothesis
-disseminationBarrier::disseminationBarrier(int numP): Barrier(numP) {
-   assert(numP > 0);
+disseminationBarrier::disseminationBarrier( int numP ): Barrier( numP )
+{
+   assert( numP > 0 );
 
    std::cout << "computing q as log(" << numP << ")" << std::endl;
-   q = (int) ceil(log2(numP));
+   q = ( int ) ceil( log2( numP ) );
 
    /*! semaphores are automatically initialized to their default value (\see Atomic)*/
-   semaphores.resize(numP);
+   semaphores.resize( numP );
 }
 
 void disseminationBarrier::init() {}
 
-void disseminationBarrier::barrier() {
+void disseminationBarrier::barrier()
+{
    //for now, suppose that we can obtain an ID
    int myID = -1;
-   for(int s = 0; s < q; s++) {
-      int toSign = ( myID + (int) pow(2,s) ) % numParticipants;
-      (semaphores[toSign])--;
+
+   for ( int s = 0; s < q; s++ ) {
+      int toSign = ( myID + ( int ) pow( 2,s ) ) % numParticipants;
+      ( semaphores[toSign] )--;
       //std::cout << "Thread " <<  << ": decrementing the sem of " << toSign << std::endl;
-      while(semaphores[myID] != 0) {}
-      if(s < q) {
+
+      while ( semaphores[myID] != 0 ) {}
+
+      if ( s < q ) {
          //reset the semaphore for the next round
          semaphores[myID]++; //notice that we allow another thread to signal it before we reset it (not set to 1!)
       }
    }
+
    //reset the semaphore for the next barrier
    //warning: as we do not have an atomic assignement, we use the substraction operation
    semaphores[myID]-1;
 }
 
 
-void disseminationBarrier::barrier(int myID) {
+void disseminationBarrier::barrier( int myID )
+{
    std::cout << "q = " << q << std::endl;
-   for(int s = 0; s < q; s++) {
+
+   for ( int s = 0; s < q; s++ ) {
       //int signal_val = s+1;
       std::cout << "Thread " <<  myID << ": step " << s << std::endl;
-      fflush(stdout);
+      fflush( stdout );
 
-      int toSign = ( myID + (int) pow(2,s) ) % numParticipants;
+      int toSign = ( myID + ( int ) pow( 2,s ) ) % numParticipants;
       //first wait for the neighbour sem to reach the previous value
       Scheduler::blockOnCondition( &semaphores[toSign].override(), 0 );
-      (semaphores[toSign])--;
+      ( semaphores[toSign] )--;
 
       std::cout << "Thread " <<  myID << ": incremented the sem of " << toSign << std::endl;
-      fflush(stdout);
-      /*! 
-         Wait for the semaphore to be signaled for this round 
-         (check if it reached the number of step signals (+1 because the for starts from 0 for a correct computation of neighbours) 
+      fflush( stdout );
+      /*!
+         Wait for the semaphore to be signaled for this round
+         (check if it reached the number of step signals (+1 because the for starts from 0 for a correct computation of neighbours)
        */
       Scheduler::blockOnCondition( &semaphores[myID].override(), -1 );
-      (semaphores[myID]) + 1;
+      ( semaphores[myID] ) + 1;
 
       std::cout << "Thread " <<  myID << ": now my sem is "<< semaphores[myID] << std::endl;
-      fflush(stdout);
+      fflush( stdout );
    }
+
    /*! Reset the semamphore for the next barrier: \warning as we are not supported by atomic resetting, we need to use the substraction of the reached value */
    //(semaphores[myID]) - q;
 }
@@ -100,8 +113,9 @@ void disseminationBarrier::barrier(int myID) {
 
 
 
-Barrier * createDisseminationBarrier(int numP) {
-   return new disseminationBarrier(numP);
+Barrier * createDisseminationBarrier( int numP )
+{
+   return new disseminationBarrier( numP );
 }
 
 ///////*************
@@ -112,32 +126,45 @@ Barrier * createDisseminationBarrier(int numP) {
 
 disseminationBarrier * bar;
 
-void * barrieringThread(void * arg) ;
+void * barrieringThread( void * arg ) ;
 
-int main ( int argc, char ** argv ) {
+int main ( int argc, char ** argv )
+{
    int numT = 10, i;
    pthread_t * tids;
 
-   if( argc > 2 ) printf("Usage: test_barrier <numThreads>\n");
-   if( argc == 2 ) numT = strtol( argv[1], NULL, 10 );
+   if ( argc > 2 ) printf( "Usage: test_barrier <numThreads>\n" );
 
-   tids = (pthread_t *) calloc( numT, sizeof(pthread_t) );
+   if ( argc == 2 ) numT = strtol( argv[1], NULL, 10 );
+
+   tids = ( pthread_t * ) calloc( numT, sizeof( pthread_t ) );
 
    bar = new disseminationBarrier( numT );
 
    std::cout << "Main: running " << numT << " threads"  << std::endl;
 
    for ( i = 0; i < numT; i++ ) {
-      int *id = (int *) calloc(1, sizeof(int)); *id = i;
+      int *id = ( int * ) calloc( 1, sizeof( int ) );
+      *id = i;
       int err = pthread_create( &tids[i], NULL, barrieringThread, id );
-      if(err != 0) {
-         switch(err) {
-         case EAGAIN: std::cout << "EAGAIN" << std::endl; break;
-         case EINVAL: std::cout << "EINVAL" << std::endl; break;
-         case EPERM: std::cout << "EPERM" << std::endl;
+
+      if ( err != 0 ) {
+         switch ( err ) {
+
+            case EAGAIN:
+               std::cout << "EAGAIN" << std::endl;
+               break;
+
+            case EINVAL:
+               std::cout << "EINVAL" << std::endl;
+               break;
+
+            case EPERM:
+               std::cout << "EPERM" << std::endl;
          }
       }
    }
+
    for ( i = 0; i < numT; i++ ) {
       pthread_join( tids[i], NULL );
    }
@@ -150,28 +177,30 @@ int main ( int argc, char ** argv ) {
 
 
 //thread function, performing a barrier. Users can specify a number of seconds in the arg argument before the barrier function is actually invoked
-void * barrieringThread(void * arg) {
+void * barrieringThread( void * arg )
+{
    int myID = -1;
 
-   if( arg != NULL )  myID = (int) (*(int *)arg);
+   if ( arg != NULL )  myID = ( int ) ( *( int * )arg );
 
    std::cout << "I am thread " << myID << std::endl;
+
 //    fflush(stdout);
-// 
+//
 //    std::cout << "Thread " << myID << "calling barrier " << std::endl;
 //    fflush(stdout);
 
-   bar->barrier(myID);
+   bar->barrier( myID );
 
 //    std::cout << "Thread " << myID << "after barrier " << std::endl;
 //    fflush(stdout);
 
 //    std::cout << "calling barrier 2"<< std::endl;
-// 
+//
 //    bar->barrier();
-// 
+//
 //    std::cout << "after barrier 2" << std::endl;
 
-   pthread_exit(0);
+   pthread_exit( 0 );
 }
 
