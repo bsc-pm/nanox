@@ -21,7 +21,7 @@ Naming Conventions
 - Class methods should have all words capitalized with no _ except for the first one (e.g., myMethod)
 - Define typedefs for template containers used for data members
 - Data members should start with _ and have all words capitalized except the first one (e.g., _myData)
-- Other variables (globals,parameters,...)  should have all words capitalized except the first one and note use _
+- Other variables (globals,parameters,...)  should have all words capitalized except the first one and not use _
 
 C++ idioms
 ==========
@@ -50,6 +50,8 @@ C++ idioms
 
 - Enum types should in general be defined inside the class that uses them
 
+- Error problems should be reported through the exception mechanism
+
 Other idioms
 ============
 
@@ -61,6 +63,13 @@ Other idioms
          }
          lock--;
        } 
+
+- Compare pointers to NULL:
+	if ( p != NULL ) { ... } not if (!p) {...}
+- Compare integer to the appropriate value
+	if ( i > 0 ) { ... } not if (i) { ... }
+- Do not compare booleans to true/false
+	if ( myBoolean ) { ... }
 
 Documentation
 =============
@@ -85,8 +94,8 @@ Documentation
 - Additionally try to document parts of your code where what is happening may not be obvious.
 
 
-Parameter names
-===============
+Commandline and Environment
+==========================
 
 - All parameters names should start with -nth (e.g. -nth-pes ) and they should be lowercase
 - Use '-' in parameter names to separate words
