@@ -36,16 +36,16 @@ namespace nanos
    {
 
       private:
-         volatile T     value;
+         volatile T     _value;
 
       public:
          // constructor
          Atomic () {}
 
-         Atomic ( T init ) : value( init ) {}
+         Atomic ( T init ) : _value( init ) {}
 
          // copy constructor
-         Atomic ( const Atomic &atm ) : value( atm.value ) {}
+         Atomic ( const Atomic &atm ) : _value( atm._value ) {}
 
          // assignment operator
          const Atomic & operator= ( const Atomic &atm );
@@ -53,21 +53,21 @@ namespace nanos
          // destructor
          ~Atomic() {}
 
-         T operator+ ( T val ) { return __sync_fetch_and_add( &value,val ); }
+         T operator+ ( T val ) { return __sync_fetch_and_add( &_value,val ); }
 
-         T operator++ ( int val ) { return __sync_fetch_and_add( &value,1 ); }
+         T operator++ ( int val ) { return __sync_fetch_and_add( &_value,1 ); }
 
-         T operator- ( T val ) { return __sync_fetch_and_sub( &value,val ); }
+         T operator- ( T val ) { return __sync_fetch_and_sub( &_value,val ); }
 
-         T operator-- ( int val ) { return __sync_fetch_and_sub( &value,1 ); }
+         T operator-- ( int val ) { return __sync_fetch_and_sub( &_value,1 ); }
 
-         Atomic<T> &operator++ () { __sync_add_and_fetch( &value,1 ); return *this; }
+         Atomic<T> &operator++ () { __sync_add_and_fetch( &_value,1 ); return *this; }
 
-         Atomic<T> &operator-- () { __sync_sub_and_fetch( &value,1 ); return *this; }
+         Atomic<T> &operator-- () { __sync_sub_and_fetch( &_value,1 ); return *this; }
 
-         operator const volatile T& () const { return value; }
+         operator const volatile T& () const { return _value; }
 
-         volatile T & override () { return value; }
+         volatile T & override () { return _value; }
    };
 
    template<typename T>
@@ -80,7 +80,7 @@ namespace nanos
    template<typename T>
    const Atomic<T> & Atomic<T>::operator= ( const Atomic<T> &val )
    {
-      return operator=( val.value );
+      return operator=( val._value );
    }
 
    class Lock
@@ -89,7 +89,7 @@ namespace nanos
       private:
          typedef enum { FREE=0, BUSY=1 } state_t;
 
-         volatile state_t      state;
+         volatile state_t      _state;
 
          // disable copy constructor and assignment operator
          Lock( const Lock &lock );
@@ -97,7 +97,7 @@ namespace nanos
 
       public:
          // constructor
-         Lock( state_t init=FREE ) : state( init ) {};
+         Lock( state_t init=FREE ) : _state( init ) {};
 
          // destructor
          ~Lock() {}
@@ -106,9 +106,9 @@ namespace nanos
          bool tryAcquire ( void );
          void release ( void );
 
-         const state_t operator* () const { return state; }
+         const state_t operator* () const { return _state; }
 
-         const state_t getState () const { return state; }
+         const state_t getState () const { return _state; }
 
          void operator++ ( int val ) { acquire(); }
 
@@ -120,27 +120,27 @@ namespace nanos
 
    spin:
 
-      while ( state == BUSY );
+      while ( _state == BUSY );
 
-      if ( __sync_lock_test_and_set( &state,BUSY ) ) goto spin;
+      if ( __sync_lock_test_and_set( &_state,BUSY ) ) goto spin;
    }
 
    inline bool Lock::tryAcquire ( void )
    {
-      if ( state == FREE ) {
-         if ( __sync_lock_test_and_set( &state,BUSY ) ) return false;
+      if ( _state == FREE ) {
+         if ( __sync_lock_test_and_set( &_state,BUSY ) ) return false;
          else return true;
       } else return false;
    }
 
    inline void Lock::release ( void )
    {
-      __sync_lock_release( &state );
+      __sync_lock_release( &_state );
    }
 
-   inline void memory_fence () { __sync_synchronize(); }
+   inline void memoryFence () { __sync_synchronize(); }
 
-   inline bool compare_and_swap( int *ptr, int oldval, int newval ) { return __sync_bool_compare_and_swap ( ptr, oldval, newval );}
+   inline bool compareAndSwap( int *ptr, int oldval, int newval ) { return __sync_bool_compare_and_swap ( ptr, oldval, newval );}
 
 };
 

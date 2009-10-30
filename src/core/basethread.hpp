@@ -42,53 +42,53 @@ namespace nanos
    {
 
       private:
-         static Atomic<int> idSeed;
-         Lock   mlock;
+         static Atomic<int>      _idSeed;
+         Lock                    _mlock;
 
          // Thread info
-         int id;
-         int cpu_id;
+         int                     _id;
+         int                     _cpuId;
 
-         ProcessingElement *pe;
-         WD & threadWD;
+         ProcessingElement *     _pe;
+         WD &                    _threadWD;
 
          // Thread status
-         bool started;
-         volatile bool mustStop;
-         WD *    currentWD;
+         bool                    _started;
+         volatile bool           _mustStop;
+         WD *                    _currentWD;
 
          // Team info
-         bool  has_team;
-         ThreadTeam *team;
-         int local_single;
+         bool                    _hasTeam;
+         ThreadTeam *            _team;
+         int                     _localSingleCount;
 
          // scheduling info
-         SchedulingGroup *schedGroup;
-         SchedulingData  *schedData;
+         SchedulingGroup *       _schedGroup;
+         SchedulingData  *       _schedData;
 
          //disable copy and assigment
          BaseThread( const BaseThread & );
          const BaseThread operator= ( const BaseThread & );
 
-         virtual void run_dependent () = 0;
+         virtual void runDependent () = 0;
 
       public:
 
          // constructor
          BaseThread ( WD &wd, ProcessingElement *creator=0 ) :
-               id( idSeed++ ), cpu_id( id ), pe( creator ), threadWD( wd ), started( false ), mustStop( false ), has_team( false ), team( NULL ), local_single( 0 ) {}
+               _id( _idSeed++ ), _cpuId( _id ), _pe( creator ), _threadWD( wd ), _started( false ), _mustStop( false ), _hasTeam( false ), _team( NULL ), _localSingleCount( 0 ) {}
 
          // destructor
          virtual ~BaseThread() {}
 
          // atomic access
-         void lock () { mlock++; }
+         void lock () { _mlock++; }
 
-         void unlock () { mlock--; }
+         void unlock () { _mlock--; }
 
          virtual void start () = 0;
          void run();
-         void stop() { mustStop = true; }
+         void stop() { _mustStop = true; }
 
          virtual void join() = 0;
          virtual void bind() {};
@@ -99,40 +99,40 @@ namespace nanos
          virtual void exitTo( WD *work ) = 0;
 
          // set/get methods
-         void setCurrentWD ( WD &current ) { currentWD = &current; }
+         void setCurrentWD ( WD &current ) { _currentWD = &current; }
 
-         WD * getCurrentWD () const { return currentWD; }
+         WD * getCurrentWD () const { return _currentWD; }
 
-         WD & getThreadWD () const { return threadWD; }
+         WD & getThreadWD () const { return _threadWD; }
 
          // team related methods
-         void reserve() { has_team = 1; }
+         void reserve() { _hasTeam = 1; }
 
-         void enterTeam( ThreadTeam *newTeam ) { has_team=1; team = newTeam; }
+         void enterTeam( ThreadTeam *newTeam ) { _hasTeam=1; _team = newTeam; }
 
-         bool hasTeam() const { return has_team; }
+         bool hasTeam() const { return _hasTeam; }
 
-         void leaveTeam() { has_team = 0; team = 0; }
+         void leaveTeam() { _hasTeam = 0; _team = 0; }
 
-         ThreadTeam * getTeam() const { return team; }
+         ThreadTeam * getTeam() const { return _team; }
 
-         SchedulingGroup * getSchedulingGroup () const { return schedGroup; }
+         SchedulingGroup * getSchedulingGroup () const { return _schedGroup; }
 
-         SchedulingData * getSchedulingData () const { return schedData; }
+         SchedulingData * getSchedulingData () const { return _schedData; }
 
-         void setScheduling ( SchedulingGroup *sg, SchedulingData *sd )  { schedGroup = sg; schedData = sd; }
+         void setScheduling ( SchedulingGroup *sg, SchedulingData *sd )  { _schedGroup = sg; _schedData = sd; }
 
-         bool isStarted () const { return started; }
+         bool isStarted () const { return _started; }
 
-         bool isRunning () const { return started && !mustStop; }
+         bool isRunning () const { return _started && !_mustStop; }
 
-         ProcessingElement * runningOn() const { return pe; }
+         ProcessingElement * runningOn() const { return _pe; }
 
          void associate();
 
-         int getId() { return id; }
+         int getId() { return _id; }
 
-         int getCpuId() { return cpu_id; }
+         int getCpuId() { return _cpuId; }
 
          bool singleGuard();
    };

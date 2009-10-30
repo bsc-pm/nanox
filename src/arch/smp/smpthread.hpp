@@ -54,7 +54,7 @@ namespace nanos
 
          virtual void start();
          virtual void join();
-         virtual void run_dependent ( void );
+         virtual void runDependent ( void );
 
          virtual void inlineWork( WD *work );
          virtual void switchTo( WD *work );

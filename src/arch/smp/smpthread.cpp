@@ -57,7 +57,7 @@ void SMPThread::start ()
       fatal( "couldn't create thread" );
 }
 
-void SMPThread::run_dependent ()
+void SMPThread::runDependent ()
 {
    WD &work = getThreadWD();
    setCurrentWD( work );

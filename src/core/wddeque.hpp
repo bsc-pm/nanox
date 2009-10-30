@@ -73,7 +73,7 @@ namespace nanos
       lock++;
       //dq.push_back(wd);
       dq.push_front( wd ); //correct: push_back in push_front?
-      memory_fence();
+      memoryFence();
       lock--;
    }
 
@@ -82,7 +82,7 @@ namespace nanos
       wd->setMyQueue( this );
       lock++;
       dq.push_back( wd );
-      memory_fence();
+      memoryFence();
       lock--;
    }
 
@@ -96,7 +96,7 @@ namespace nanos
 
       lock++;
 
-      memory_fence();
+      memoryFence();
 
       if ( !dq.empty() ) {
          WDDeque::deque_t::iterator it;
@@ -130,7 +130,7 @@ namespace nanos
 
       lock++;
 
-      memory_fence();
+      memoryFence();
 
       if ( !dq.empty() ) {
          WDDeque::deque_t::reverse_iterator rit;
@@ -167,7 +167,7 @@ namespace nanos
 
       lock++;
 
-      memory_fence();
+      memoryFence();
 
       if ( !dq.empty() && toRem->getMyQueue() == this ) {
          WDDeque::deque_t::iterator it;
@@ -198,7 +198,7 @@ namespace nanos
 
       lock++;
 
-      memory_fence();
+      memoryFence();
 
       if ( !dq.empty() ) {
          WDDeque::deque_t::iterator it;
@@ -234,7 +234,7 @@ namespace nanos
 
       lock++;
 
-      memory_fence();
+      memoryFence();
 
       if ( !dq.empty() ) {
          WDDeque::deque_t::reverse_iterator rit;
