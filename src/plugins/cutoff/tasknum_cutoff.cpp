@@ -18,7 +18,7 @@
 /*************************************************************************************/
 
 #include "system.hpp"
-#include "cutoff.hpp"
+#include "throttle.hpp"
 #include "plugin.hpp"
 
 
@@ -27,7 +27,7 @@
 using namespace nanos;
 
 
-class tasknum_cutoff: public cutoff
+class tasknum_cutoff: public ThrottlePolicy
 {
 
    private:
@@ -40,13 +40,13 @@ class tasknum_cutoff: public cutoff
 
       void setMaxCutoff( int mc ) { max_cutoff = mc; }
 
-      bool cutoff_pred();
+      bool throttle();
 
       ~tasknum_cutoff() {}
 };
 
 
-bool tasknum_cutoff::cutoff_pred()
+bool tasknum_cutoff::throttle()
 {
    if ( sys.getTaskNum() > max_cutoff ) {
       verbose0( "Cutoff Policy: avoiding task creation!" );
@@ -57,7 +57,7 @@ bool tasknum_cutoff::cutoff_pred()
 }
 
 //factory
-cutoff * createTasknumCutoff()
+ThrottlePolicy * createTasknumCutoff()
 {
    return new tasknum_cutoff();
 }

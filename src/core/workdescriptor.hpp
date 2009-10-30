@@ -31,157 +31,201 @@ namespace nanos
 
 // forward declarations
 
-   class BaseThread;
+    class BaseThread;
 
-   class ProcessingElement;
+    class ProcessingElement;
 
-   class WDDeque;
+    class WDDeque;
 
-   class Device
-   {
+    class Device
+    {
 
-      private:
-         const char *name;
+        private:
+            const char *_name;
 
-      public:
-         // constructor
-         Device( const char *n ) : name( n ) {}
+        public:
+            // constructor
+            Device ( const char *n ) : _name ( n ) {}
 
-         // copy constructor
-         Device( const Device &arch ) : name( arch.name ) {}
+            // copy constructor
+            Device ( const Device &arch ) : _name ( arch._name ) {}
 
-         // assignment operator
-         const Device & operator= ( const Device &arch ) { name = arch.name; return *this; }
+            // assignment operator
+            const Device & operator= ( const Device &arch ) {
+                _name = arch._name; return *this;
+            }
 
-         // destructor
-         ~Device() {};
+            // destructor
+            ~Device() {};
 
-         bool operator== ( const Device &arch ) { return arch.name == name; }
-   };
+            bool operator== ( const Device &arch ) {
+                return arch._name == _name;
+            }
+    };
 
 // This class holds the specific data for a given device
 
-   class DeviceData
-   {
+    class DeviceData
+    {
 
-      private:
-         // use pointers for this as is this fastest way to compare architecture
-         // compatibility
-         const Device *architecture;
+        private:
+            // use pointers for this as is this fastest way to compare architecture
+            // compatibility
+            const Device *_architecture;
 
-      public:
-         // constructors
-         DeviceData( const Device *arch ) : architecture( arch ) {}
+        public:
+            // constructors
+            DeviceData ( const Device *arch ) : _architecture ( arch ) {}
 
-         // copy constructor
-         DeviceData( const DeviceData &dd ) : architecture( dd.architecture )  {}
+            // copy constructor
+            DeviceData ( const DeviceData &dd ) : _architecture ( dd._architecture )  {}
 
-         // assignment operator
-         const DeviceData & operator= ( const DeviceData &wd );
+            // assignment operator
+            const DeviceData & operator= ( const DeviceData &wd );
 
-         bool isCompatible( const Device &arch ) { return architecture == &arch; }
+            bool isCompatible ( const Device &arch ) {
+                return _architecture == &arch;
+            }
 
-         // destructor
-         virtual ~DeviceData() {}
-   };
+            // destructor
+            virtual ~DeviceData() {}
+    };
 
-   class WorkDescriptor : public WorkGroup
-   {
+    class WorkDescriptor : public WorkGroup
+    {
 
-      private:
-         void    *data;
-         void    *wd_data; // this allows higher layer to associate data to the WD
-         bool	  tie;
-         BaseThread *  tie_to;
-         bool      idle;
+        private:
+            void    *            _data;
+            void    *            _wdData; // this allows higher layer to associate data to the WD
+            bool                 _tie;
+            BaseThread *         _tiedTo;
+            bool                 _idle;
 
-         //Added parent for cilk scheduler: first steal parent task, next other tasks
-         WorkDescriptor * parent;
+            //Added parent for cilk scheduler: first steal parent task, next other tasks
+            WorkDescriptor *     _parent;
 
-         //Added reference to queue to allow dequeuing from third party (e.g. cilk scheduler)
-         WDDeque * myQueue;
+            //Added reference to queue to allow dequeuing from third party (e.g. cilk scheduler)
+            WDDeque *            _myQueue;
 
-         //level (depth) of the task
-         int level;
+            //level (depth) of the task
+            int                  _level;
 
-         // Supported devices for this workdescriptor
-         int         num_devices;
-         DeviceData **devices;
-         DeviceData *active_device;
+            // Supported devices for this workdescriptor
+            int                  _numDevices;
+            DeviceData **        _devices;
+            DeviceData *         _activeDevice;
 
-      public:
-         // constructors
-         WorkDescriptor( int ndevices, DeviceData **devs,void *wdata=0 ) :
-               WorkGroup(), data( wdata ), wd_data( 0 ), tie( false ), tie_to( 0 ), idle( false ),
-               parent( NULL ), myQueue( NULL ), level( 0 ), num_devices( ndevices ), devices( devs ), active_device( 0 ) {}
+        public:
+            // constructors
+            WorkDescriptor ( int ndevices, DeviceData **devs,void *wdata=0 ) :
+                    WorkGroup(), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _idle ( false ),
+                    _parent ( NULL ), _myQueue ( NULL ), _level ( 0 ), _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( 0 ) {}
 
-         WorkDescriptor( DeviceData *device,void *wdata=0 ) :
-               WorkGroup(), data( wdata ), wd_data( 0 ), tie( false ), tie_to( 0 ), idle( false ),
-               parent( NULL ), myQueue( NULL ), level( 0 ), num_devices( 1 ), devices( 0 ), active_device( device ) {}
+            WorkDescriptor ( DeviceData *device,void *wdata=0 ) :
+                    WorkGroup(), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _idle ( false ),
+                    _parent ( NULL ), _myQueue ( NULL ), _level ( 0 ), _numDevices ( 1 ), _devices ( 0 ), _activeDevice ( device ) {}
 
-         // TODO: copy constructor
-         WorkDescriptor( const WorkDescriptor &wd );
-         // TODO: assignment operator
-         const WorkDescriptor & operator= ( const WorkDescriptor &wd );
-         // destructor
-         virtual ~WorkDescriptor() { /*TODO*/ }
+            // TODO: copy constructor
+            WorkDescriptor ( const WorkDescriptor &wd );
+            // TODO: assignment operator
+            const WorkDescriptor & operator= ( const WorkDescriptor &wd );
+            // destructor
+            virtual ~WorkDescriptor() { /*TODO*/ }
 
-         WorkDescriptor * getParent() { return parent;}
+            WorkDescriptor * getParent() {
+                return _parent;
+            }
 
-         void setParent( WorkDescriptor * p ) {parent = p;}
+            void setParent ( WorkDescriptor * p ) {
+                _parent = p;
+            }
 
-         WDDeque * getMyQueue() {return myQueue;}
+            WDDeque * getMyQueue() {
+                return _myQueue;
+            }
 
-         void setMyQueue( WDDeque * myQ ) {myQueue = myQ;}
+            void setMyQueue ( WDDeque * myQ ) {
+                _myQueue = myQ;
+            }
 
-         bool isEnqueued() {return ( myQueue != NULL );}
+            bool isEnqueued() {
+                return ( _myQueue != NULL );
+            }
 
-         /* named arguments idiom */
-         WorkDescriptor & tied () { tie = true; return *this; }
+            /* named arguments idiom */
+            WorkDescriptor & tied () {
+                _tie = true; return *this;
+            }
 
-         WorkDescriptor & tieTo ( BaseThread &pe ) { tie_to = &pe; tie=false; return *this; }
+            WorkDescriptor & tieTo ( BaseThread &pe ) {
+                _tiedTo = &pe; _tie=false; return *this;
+            }
 
-         bool isTied() const { return tie_to != NULL; }
+            bool isTied() const {
+                return _tiedTo != NULL;
+            }
 
-         BaseThread * isTiedTo() const { return tie_to; }
+            BaseThread * isTiedTo() const {
+                return _tiedTo;
+            }
 
-         void setData ( void *wdata ) { data = wdata; }
+            void setData ( void *wdata ) {
+                _data = wdata;
+            }
 
-         void * getData () const { return data; }
+            void * getData () const {
+                return _data;
+            }
 
-         bool isIdle () const { return idle; }
+            bool isIdle () const {
+                return _idle;
+            }
 
-         void setIdle( bool state=true ) { idle = state; }
+            void setIdle ( bool state=true ) {
+                _idle = state;
+            }
 
-         void setLevel( int l ) { level = l; }
+            void setLevel ( int l ) {
+                _level = l;
+            }
 
-         int getLevel() { return level; }
+            int getLevel() {
+                return _level;
+            }
 
-         /* device related methods */
-         DeviceData * findDeviceData ( const Device &device ) const;
-         bool canRunIn ( const Device &device ) const;
-         bool canRunIn ( const ProcessingElement &pe ) const;
-         DeviceData & activateDevice ( const Device &device );
-         DeviceData & getActiveDevice () const { return *active_device; }
+            /* device related methods */
+            DeviceData * findDeviceData ( const Device &device ) const;
+            bool canRunIn ( const Device &device ) const;
+            bool canRunIn ( const ProcessingElement &pe ) const;
+            DeviceData & activateDevice ( const Device &device );
+            DeviceData & getActiveDevice () const {
+                return *_activeDevice;
+            }
 
-         bool hasActiveDevice() const { return active_device != NULL; }
+            bool hasActiveDevice() const {
+                return _activeDevice != NULL;
+            }
 
-         void setInternalData ( void *data ) { wd_data = data; }
+            void setInternalData ( void *data ) {
+                _wdData = data;
+            }
 
-         void * getInternalData () const { return wd_data; }
+            void * getInternalData () const {
+                return _wdData;
+            }
 
-   };
+    };
 
-   inline const DeviceData & DeviceData::operator= ( const DeviceData &dd )
-   {
-      // self-assignment: ok
-      architecture = dd.architecture;
-      return *this;
-   }
+    inline const DeviceData & DeviceData::operator= ( const DeviceData &dd )
+    {
+        // self-assignment: ok
+        _architecture = dd._architecture;
+        return *this;
+    }
 
-   typedef class WorkDescriptor WD;
+    typedef class WorkDescriptor WD;
 
-   typedef class DeviceData DD;
+    typedef class DeviceData DD;
 
 };
 

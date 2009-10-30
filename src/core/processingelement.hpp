@@ -34,18 +34,18 @@ namespace nanos
    {
 
       private:
-         int id;
-         const Device *device;
+         typedef std::vector<BaseThread *>    ThreadList;
+         int                                  _id;
+         const Device *                       _device;
+         ThreadList                           _threads;
 
       protected:
          virtual WorkDescriptor & getMasterWD () const = 0;
          virtual WorkDescriptor & getWorkerWD () const = 0;
-         std::vector<BaseThread *> threads;
-
 
       public:
          // constructors
-         ProcessingElement ( int newId, const Device *arch ) : id ( newId ), device ( arch ) {}
+         ProcessingElement ( int newId, const Device *arch ) : _id ( newId ), _device ( arch ) {}
 
          // TODO: copy constructor
          ProcessingElement ( const ProcessingElement &pe );
@@ -56,11 +56,11 @@ namespace nanos
 
          /* get/put methods */
          int getId() const {
-            return id;
+            return _id;
          }
 
          const Device & getDeviceType () const {
-            return *device;
+            return *_device;
          }
 
          BaseThread & startThread ( WorkDescriptor &wd, SchedulingGroup *sg = 0 );

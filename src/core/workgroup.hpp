@@ -30,21 +30,21 @@ namespace nanos
    {
 
       private:
-         static Atomic<int> atomicSeed;
+         static Atomic<int> _atomicSeed;
 
-         typedef std::vector<WorkGroup *> ListOfWGs;
-         ListOfWGs partOf;
-         int id;
+         typedef std::vector<WorkGroup *> WGList;
 
-         Atomic<int>  components;
-         Atomic<int>  phase_counter;
+         WGList         _partOf;
+         int            _id;
+         Atomic<int>    _components;
+         Atomic<int>    _phaseCounter;
 
          void addToGroup ( WorkGroup &parent );
          void exitWork ( WorkGroup &work );
 
       public:
          // constructors
-         WorkGroup() : id( atomicSeed++ ),components( 0 ), phase_counter( 0 ) {  }
+         WorkGroup() : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ) {  }
 
          // to do these two properly we would need to keep also the information of the components
          // TODO:copy constructor
@@ -59,7 +59,7 @@ namespace nanos
          void sync();
          void waitCompletation();
          void done();
-         int getId() const { return id; }
+         int getId() const { return _id; }
    };
 
    typedef WorkGroup WG;

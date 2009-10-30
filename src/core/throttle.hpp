@@ -17,27 +17,20 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef __NANOS_CUTOFF_H
-#define __NANOS_CUTOFF_H
-
-
+#ifndef __NANOS_THROTTLE_POLICY_H
+#define __NANOS_THROTTLE_POLICY_H
 
 namespace nanos
 {
-
-   class cutoff
+   class ThrottlePolicy
    {
-
       public:
-         cutoff() {};
+         ThrottlePolicy() {};
+         virtual ~ThrottlePolicy() {}
 
          virtual void init() = 0;
-         virtual bool cutoff_pred() = 0;
-         virtual ~cutoff() {}
+         virtual bool throttle() = 0;
    };
-
-
-
 }
 
 #endif

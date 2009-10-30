@@ -43,10 +43,10 @@ namespace nanos
    {
 
       private:
-         typedef std::list<WorkDescriptor *> deque_t;
+         typedef std::list<WorkDescriptor *> BaseContainer;
 
-         deque_t	dq;
-         Lock 	lock;
+         BaseContainer     _dq;
+         Lock              _lock;
 
          //TODO: copy constructor, assignment
          WDDeque ( const WDDeque & );
@@ -70,20 +70,20 @@ namespace nanos
    inline void WDDeque::push_front ( WorkDescriptor *wd )
    {
       wd->setMyQueue( this );
-      lock++;
+      _lock++;
       //dq.push_back(wd);
-      dq.push_front( wd ); //correct: push_back in push_front?
-      memory_fence();
-      lock--;
+      _dq.push_front( wd ); //correct: push_back in push_front?
+      memoryFence();
+      _lock--;
    }
 
    inline void WDDeque::push_back ( WorkDescriptor *wd )
    {
       wd->setMyQueue( this );
-      lock++;
-      dq.push_back( wd );
-      memory_fence();
-      lock--;
+      _lock++;
+      _dq.push_back( wd );
+      memoryFence();
+      _lock--;
    }
 
 // Only ensures tie semantics
@@ -91,20 +91,20 @@ namespace nanos
    {
       WorkDescriptor *found = NULL;
 
-      if ( dq.empty() )
+      if ( _dq.empty() )
          return NULL;
 
-      lock++;
+      _lock++;
 
-      memory_fence();
+      memoryFence();
 
-      if ( !dq.empty() ) {
-         WDDeque::deque_t::iterator it;
+      if ( !_dq.empty() ) {
+         WDDeque::BaseContainer::iterator it;
 
-         for ( it = dq.begin() ; it != dq.end(); it++ ) {
+         for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
             if ( !( *it )->isTied() || ( *it )->isTiedTo() == thread ) {
                found = *it;
-               dq.erase( it );
+               _dq.erase( it );
                break;
             }
          }
@@ -112,7 +112,7 @@ namespace nanos
 
       if ( found != NULL ) {found->setMyQueue( NULL );}
 
-      lock--;
+      _lock--;
 
       ensure( !found || !found->isTied() || found->isTiedTo() == thread, "" );
 
@@ -125,22 +125,22 @@ namespace nanos
    {
       WorkDescriptor *found = NULL;
 
-      if ( dq.empty() )
+      if ( _dq.empty() )
          return NULL;
 
-      lock++;
+      _lock++;
 
-      memory_fence();
+      memoryFence();
 
-      if ( !dq.empty() ) {
-         WDDeque::deque_t::reverse_iterator rit;
+      if ( !_dq.empty() ) {
+         WDDeque::BaseContainer::reverse_iterator rit;
 
-         rit = dq.rbegin();
+         rit = _dq.rbegin();
 
-         while ( rit != dq.rend() ) {
+         while ( rit != _dq.rend() ) {
             if ( !( *rit )->isTied() || ( *rit )->isTiedTo() == thread ) {
                found = *rit;
-               dq.erase( ( ++rit ).base() );
+               _dq.erase( ( ++rit ).base() );
                break;
             }
 
@@ -150,7 +150,7 @@ namespace nanos
 
       if ( found != NULL ) {found->setMyQueue( NULL );}
 
-      lock--;
+      _lock--;
 
       ensure( !found || !found->isTied() || found->isTiedTo() == thread, "" );
 
@@ -162,28 +162,28 @@ namespace nanos
 
    inline bool WDDeque::removeWD( WorkDescriptor * toRem )
    {
-      if ( dq.empty() )
+      if ( _dq.empty() )
          return false;
 
-      lock++;
+      _lock++;
 
-      memory_fence();
+      memoryFence();
 
-      if ( !dq.empty() && toRem->getMyQueue() == this ) {
-         WDDeque::deque_t::iterator it;
+      if ( !_dq.empty() && toRem->getMyQueue() == this ) {
+         WDDeque::BaseContainer::iterator it;
 
-         for ( it = dq.begin(); it != dq.end(); it++ ) {
+         for ( it = _dq.begin(); it != _dq.end(); it++ ) {
             if ( *it == toRem ) {
-               dq.erase( it );
+               _dq.erase( it );
                toRem->setMyQueue( NULL );
 
-               lock--;
+               _lock--;
                return true;
             }
          }
       }
 
-      lock--;
+      _lock--;
 
       return false;
    }
@@ -193,20 +193,20 @@ namespace nanos
    {
       WorkDescriptor *found = NULL;
 
-      if ( dq.empty() )
+      if ( _dq.empty() )
          return NULL;
 
-      lock++;
+      _lock++;
 
-      memory_fence();
+      memoryFence();
 
-      if ( !dq.empty() ) {
-         WDDeque::deque_t::iterator it;
+      if ( !_dq.empty() ) {
+         WDDeque::BaseContainer::iterator it;
 
-         for ( it = dq.begin() ; it != dq.end(); it++ ) {
+         for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
             if ( ( !( *it )->isTied() || ( *it )->isTiedTo() == thread ) && ( predicate( *it ) == true ) ) {
                found = *it;
-               dq.erase( it );
+               _dq.erase( it );
                break;
             }
          }
@@ -215,7 +215,7 @@ namespace nanos
 
       if ( found != NULL ) {found->setMyQueue( NULL );}
 
-      lock--;
+      _lock--;
 
       ensure( !found || !found->isTied() || found->isTiedTo() == thread, "" );
 
@@ -229,22 +229,22 @@ namespace nanos
    {
       WorkDescriptor *found = NULL;
 
-      if ( dq.empty() )
+      if ( _dq.empty() )
          return NULL;
 
-      lock++;
+      _lock++;
 
-      memory_fence();
+      memoryFence();
 
-      if ( !dq.empty() ) {
-         WDDeque::deque_t::reverse_iterator rit;
+      if ( !_dq.empty() ) {
+         WDDeque::BaseContainer::reverse_iterator rit;
 
-         rit = dq.rbegin();
+         rit = _dq.rbegin();
 
-         while ( rit != dq.rend() ) {
+         while ( rit != _dq.rend() ) {
             if ( ( !( *rit )->isTied() || ( *rit )->isTiedTo() == thread )  && ( predicate( *rit ) == true ) ) {
                found = *rit;
-               dq.erase( ( ++rit ).base() );
+               _dq.erase( ( ++rit ).base() );
                break;
             }
 
@@ -254,7 +254,7 @@ namespace nanos
 
       if ( found != NULL ) {found->setMyQueue( NULL );}
 
-      lock--;
+      _lock--;
 
       ensure( !found || !found->isTied() || found->isTiedTo() == thread, "" );
 

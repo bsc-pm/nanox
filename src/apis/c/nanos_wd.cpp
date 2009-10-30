@@ -31,7 +31,7 @@ void * nanos_smp_factory( void *args )
 {
    nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
 
-   return ( void * )new SMPDD( smp->outline );
+   return ( void * )new ext::SMPDD( smp->outline );
 }
 
 nanos_wd_t nanos_current_wd()

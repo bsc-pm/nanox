@@ -21,7 +21,7 @@
 #define _NANOS_SYSTEM
 
 #include "processingelement.hpp"
-#include "cutoff.hpp"
+#include "throttle.hpp"
 #include <vector>
 #include <string>
 #include "schedule.hpp"
@@ -36,43 +36,46 @@ namespace nanos
 
    class System
    {
-
          friend class Scheduler;
-// constants
 
       public:
+         // constants
          typedef enum { DEDICATED, SHARED } ExecutionMode;
 
       private:
+         // types
+         typedef std::vector<PE *>         PEList;
+         typedef std::vector<BaseThread *> ThreadList;
+         
          // configuration variables
-         int  numPEs;
-         int  deviceStackSize;
-         bool binding;
-         bool profile;
-         bool instrument;
-         bool verboseMode;
-         ExecutionMode executionMode;
-         int thsPerPE;
+         int                  _numPEs;
+         int                  _deviceStackSize;
+         bool                 _bindThreads;
+         bool                 _profile;
+         bool                 _instrument;
+         bool                 _verboseMode;
+         ExecutionMode        _executionMode;
+         int                  _thsPerPE;
 
          //cutoff policy and related variables
-         cutoff * cutOffPolicy;
-         Atomic<int> taskNum;
-         Atomic<int> numReady;
-         Atomic<int> idleThreads;
-         Atomic<int> numTasksRunning;
+         ThrottlePolicy *             _cutOffPolicy;
+         Atomic<int>          _taskNum;
+         Atomic<int>          _numReady;
+         Atomic<int>          _idleThreads;
+         Atomic<int>          _numTasksRunning;
 
          /*! names of the scheduling, cutoff and barrier plugins */
-         std::string defSchedule;
-         std::string defCutoff;
-         std::string defBarr;
+         std::string          _defSchedule;
+         std::string          _defCutoff;
+         std::string          _defBarr;
 
          /*! factories for scheduling, pes and barriers objects */
-         sgFactory defSGFactory;
-         peFactory hostFactory;
-         barrFactory defBarrFactory;
+         sgFactory            _defSGFactory;
+         peFactory            _hostFactory;
+         barrFactory          _defBarrFactory;
 
-         std::vector<PE *> pes;
-         std::vector<BaseThread *> workers;
+         PEList               _pes;
+         ThreadList           _workers;
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -92,33 +95,33 @@ namespace nanos
          void inlineWork ( WD &work );
 
          // methods to access configuration variables
-         void setNumPEs ( int npes ) { numPEs = npes; }
+         void setNumPEs ( int npes ) { _numPEs = npes; }
 
-         int getNumPEs () const { return numPEs; }
+         int getNumPEs () const { return _numPEs; }
 
-         void setDeviceStackSize ( int stackSize ) { deviceStackSize = stackSize; }
+         void setDeviceStackSize ( int stackSize ) { _deviceStackSize = stackSize; }
 
-         int getDeviceStackSize () const {return deviceStackSize; }
+         int getDeviceStackSize () const {return _deviceStackSize; }
 
-         void setBinding ( bool set ) { binding = set; }
+         void setBinding ( bool set ) { _bindThreads = set; }
 
-         bool getBinding () const { return binding; }
+         bool getBinding () const { return _bindThreads; }
 
-         ExecutionMode getExecutionMode () const { return executionMode; }
+         ExecutionMode getExecutionMode () const { return _executionMode; }
 
-         bool getVerbose () const { return verboseMode; }
+         bool getVerbose () const { return _verboseMode; }
 
-         void setThsPerPE( int ths ) { thsPerPE = ths; }
+         void setThsPerPE( int ths ) { _thsPerPE = ths; }
 
-         int getThsPerPE() const { return thsPerPE; }
+         int getThsPerPE() const { return _thsPerPE; }
 
-         int getTaskNum() const { return taskNum; }
+         int getTaskNum() const { return _taskNum; }
 
-         int getIdleNum() const { return idleThreads; }
+         int getIdleNum() const { return _idleThreads; }
 
-         int getReadyNum() const { return numReady; }
+         int getReadyNum() const { return _numReady; }
 
-         int getRunningTasks() const { return numTasksRunning; }
+         int getRunningTasks() const { return _numTasksRunning; }
 
          // team related methods
          BaseThread * getUnassignedWorker ( void );
@@ -128,21 +131,21 @@ namespace nanos
          //BUG: does not work: sigsegv on myThread
          int getSGSize() const { return myThread->getSchedulingGroup()->getSize(); }
 
-         void setCutOffPolicy( cutoff * co ) { cutOffPolicy = co; }
+         void setCutOffPolicy( ThrottlePolicy * co ) { _cutOffPolicy = co; }
 
          bool throttleTask();
 
-         const std::string & getDefaultSchedule() const { return defSchedule; }
+         const std::string & getDefaultSchedule() const { return _defSchedule; }
 
-         const std::string & getDefaultCutoff() const { return defCutoff; }
+         const std::string & getDefaultCutoff() const { return _defCutoff; }
 
-         const std::string & getDefaultBarrier() const { return defBarr; }
+         const std::string & getDefaultBarrier() const { return _defBarr; }
 
-         void setDefaultSGFactory ( sgFactory factory ) { defSGFactory = factory; }
+         void setDefaultSGFactory ( sgFactory factory ) { _defSGFactory = factory; }
 
-         void setHostFactory ( peFactory factory ) { hostFactory = factory; }
+         void setHostFactory ( peFactory factory ) { _hostFactory = factory; }
 
-         void setDefaultBarrFactory ( barrFactory factory ) { defBarrFactory = factory; }
+         void setDefaultBarrFactory ( barrFactory factory ) { _defBarrFactory = factory; }
 
    };
 

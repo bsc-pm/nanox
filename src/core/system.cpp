@@ -28,9 +28,9 @@ using namespace nanos;
 System nanos::sys;
 
 // default system values go here
-System::System () : numPEs( 1 ), deviceStackSize( 1024 ), binding( true ), profile( false ), instrument( false ),
-      verboseMode( false ), executionMode( DEDICATED ), thsPerPE( 1 ),
-      defSchedule( "cilk" ), defCutoff( "tasknum" ), defBarr( "centralized" )
+System::System () : _numPEs( 1 ), _deviceStackSize( 1024 ), _bindThreads( true ), _profile( false ), _instrument( false ),
+      _verboseMode( false ), _executionMode( DEDICATED ), _thsPerPE( 1 ),
+      _defSchedule( "cilk" ), _defCutoff( "tasknum" ), _defBarr( "centralized" )
 {
    verbose0 ( "NANOS++ initalizing... start" );
    config();
@@ -49,7 +49,7 @@ void System::loadModules ()
    if ( !PluginManager::load ( "pe-smp" ) )
       fatal0 ( "Couldn't load SMP support" );
 
-   ensure( hostFactory,"No default smp factory" );
+   ensure( _hostFactory,"No default smp factory" );
 
    // load default schedule plugin
    verbose0( "loading " << getDefaultSchedule() << " scheduling policy support" );
@@ -57,7 +57,7 @@ void System::loadModules ()
    if ( !PluginManager::load ( "sched-"+getDefaultSchedule() ) )
       fatal0 ( "Couldn't load main scheduling policy" );
 
-   ensure( defSGFactory,"No default system scheduling factory" );
+   ensure( _defSGFactory,"No default system scheduling factory" );
 
    verbose0( "loading defult cutoff policy" );
 
@@ -71,7 +71,7 @@ void System::loadModules ()
    if ( !PluginManager::load( "barrier-"+getDefaultBarrier() ) )
       fatal0( "Could not load main barrier algorithm" );
 
-   ensure( defBarrFactory,"No default system barrier factory" );
+   ensure( _defBarrFactory,"No default system barrier factory" );
 
 }
 
@@ -81,31 +81,31 @@ void System::config ()
    Config config;
 
    verbose0 ( "Preparing configuration" );
-   config.registerArgOption( new Config::PositiveVar( "nth-pes",numPEs ) );
-   config.registerEnvOption( new Config::PositiveVar( "NTH_PES",numPEs ) );
-   config.registerArgOption( new Config::PositiveVar( "nth-stack-size",deviceStackSize ) );
-   config.registerEnvOption( new Config::PositiveVar( "NTH_STACK_SIZE",deviceStackSize ) );
-   config.registerArgOption( new Config::FlagOption( "nth-no-binding", binding, false ) );
-   config.registerArgOption( new Config::FlagOption( "nth-verbose",verboseMode ) );
+   config.registerArgOption( new Config::PositiveVar( "nth-pes",_numPEs ) );
+   config.registerEnvOption( new Config::PositiveVar( "NTH_PES",_numPEs ) );
+   config.registerArgOption( new Config::PositiveVar( "nth-stack-size",_deviceStackSize ) );
+   config.registerEnvOption( new Config::PositiveVar( "NTH_STACK_SIZE",_deviceStackSize ) );
+   config.registerArgOption( new Config::FlagOption( "nth-no-binding", _bindThreads, false ) );
+   config.registerArgOption( new Config::FlagOption( "nth-verbose",_verboseMode ) );
 
    //more than 1 thread per pe
-   config.registerArgOption( new Config::PositiveVar( "nth-thsperpe",thsPerPE ) );
+   config.registerArgOption( new Config::PositiveVar( "nth-thsperpe",_thsPerPE ) );
 
    //TODO: how to simplify this a bit?
    Config::MapVar<ExecutionMode>::MapList opts( 2 );
    opts[0] = Config::MapVar<ExecutionMode>::MapOption( "dedicated",DEDICATED );
    opts[1] = Config::MapVar<ExecutionMode>::MapOption( "shared",SHARED );
    config.registerArgOption(
-      new Config::MapVar<ExecutionMode>( "nth-mode",executionMode,opts ) );
+      new Config::MapVar<ExecutionMode>( "nth-mode",_executionMode,opts ) );
 
-   config.registerArgOption ( new Config::StringVar ( "nth-schedule", defSchedule ) );
-   config.registerEnvOption ( new Config::StringVar ( "NTH_SCHEDULE", defSchedule ) );
+   config.registerArgOption ( new Config::StringVar ( "nth-schedule", _defSchedule ) );
+   config.registerEnvOption ( new Config::StringVar ( "NTH_SCHEDULE", _defSchedule ) );
 
-   config.registerArgOption ( new Config::StringVar ( "nth-cutoff", defCutoff ) );
-   config.registerEnvOption ( new Config::StringVar ( "NTH_CUTOFF", defCutoff ) );
+   config.registerArgOption ( new Config::StringVar ( "nth-cutoff", _defCutoff ) );
+   config.registerEnvOption ( new Config::StringVar ( "NTH_CUTOFF", _defCutoff ) );
 
-   config.registerArgOption ( new Config::StringVar ( "nth-barrier", defBarr ) );
-   config.registerEnvOption ( new Config::StringVar ( "NTH_BARRIER", defBarr ) );
+   config.registerArgOption ( new Config::StringVar ( "nth-barrier", _defBarr ) );
+   config.registerEnvOption ( new Config::StringVar ( "NTH_BARRIER", _defBarr ) );
 
 
    verbose0 ( "Reading Configuration" );
@@ -117,7 +117,7 @@ PE * System::createPE ( std::string pe_type, int pid )
    // TODO: lookup table for PE factories
    // in the mean time assume only one factory
 
-   return hostFactory( pid );
+   return _hostFactory( pid );
 }
 
 void System::start ()
@@ -126,15 +126,15 @@ void System::start ()
 
    int numPes = getNumPEs();
 
-   pes.reserve ( numPes );
+   _pes.reserve ( numPes );
 
-   SchedulingGroup *sg = defSGFactory( numPes*getThsPerPE() );
+   SchedulingGroup *sg = _defSGFactory( numPes*getThsPerPE() );
 
 
    //TODO: decide, single master, multiple master start
    PE *pe = createPE ( "smp", 0 );
-   pes.push_back ( pe );
-   workers.push_back( &pe->associateThisThread ( sg ) );
+   _pes.push_back ( pe );
+   _workers.push_back( &pe->associateThisThread ( sg ) );
 
 
    //starting as much threads per pe as requested by the user
@@ -145,17 +145,17 @@ void System::start ()
 
    for ( int p = 1; p < numPes ; p++ ) {
       pe = createPE ( "smp", p );
-      pes.push_back ( pe );
+      _pes.push_back ( pe );
 
       //starting as much threads per pe as requested by the user
 
       for ( int ths = 0; ths < getThsPerPE(); ths++ ) {
-         workers.push_back( &pe->startWorker( sg ) );
+         _workers.push_back( &pe->startWorker( sg ) );
       }
    }
 
    // count one for the "main" task
-   sys.numTasksRunning=1;
+   sys._numTasksRunning=1;
 
    createTeam( numPes*getThsPerPE() );
 }
@@ -171,16 +171,16 @@ System::~System ()
    verbose ( "Joining threads... phase 1" );
    // signal stop PEs
 
-   for ( unsigned p = 1; p < pes.size() ; p++ ) {
-      pes[p]->stopAll();
+   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
+      _pes[p]->stopAll();
    }
 
    verbose ( "Joining threads... phase 2" );
 
    // join
 
-   for ( unsigned p = 1; p < pes.size() ; p++ ) {
-      delete pes[p];
+   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
+      delete _pes[p];
    }
 
    verbose ( "NANOS++ shutting down.... end" );
@@ -205,7 +205,7 @@ void System::inlineWork ( WD &work )
 
 bool System::throttleTask()
 {
-   return cutOffPolicy->cutoff_pred();
+   return _cutOffPolicy->throttle();
 }
 
 
@@ -213,9 +213,9 @@ BaseThread * System:: getUnassignedWorker ( void )
 {
    BaseThread *thread;
 
-   for ( unsigned i  = 0; i < workers.size(); i++ ) {
-      if ( !workers[i]->hasTeam() ) {
-         thread = workers[i];
+   for ( unsigned i  = 0; i < _workers.size(); i++ ) {
+      if ( !_workers[i]->hasTeam() ) {
+         thread = _workers[i];
          // recheck availability with exclusive access
          thread->lock();
 
@@ -244,12 +244,12 @@ void System::releaseWorker ( BaseThread * thread )
 
 ThreadTeam * System:: createTeam ( int nthreads, SG *policy, void *constraints, bool reuseCurrent )
 {
-   if ( !policy ) policy = defSGFactory( nthreads );
+   if ( !policy ) policy = _defSGFactory( nthreads );
 
    // create team
    ThreadTeam * team = new ThreadTeam( nthreads,*policy );
 
-   team->setBarrAlgorithm( defBarrFactory() );
+   team->setBarrAlgorithm( _defBarrFactory() );
 
 
    debug( "Creating team " << team << " of " << nthreads << " threads" );

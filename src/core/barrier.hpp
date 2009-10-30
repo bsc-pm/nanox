@@ -25,23 +25,18 @@ namespace nanos
 
    class Barrier
    {
-
-      protected:
-         int numParticipants;
-
+      private:
+         Barrier(const Barrier &);
+         const Barrier operator= ( const Barrier & );
       public:
-         Barrier(): numParticipants( 0 ) {}
-
-         Barrier( int numP ): numParticipants( numP ) {}
+         Barrier() {}
+         virtual ~Barrier() {}
 
          virtual void init() = 0;
          virtual void barrier() = 0;
-         virtual ~Barrier() {}
    };
 
-
    typedef Barrier * ( *barrFactory ) ();
-
 
 }
 

@@ -24,10 +24,11 @@
 #include <iostream>
 
 using namespace nanos;
+using namespace nanos::ext;
 
-Device nanos::SMP( "SMP" );
+Device nanos::ext::SMP( "SMP" );
 
-int SMPDD::stackSize = 1024;
+int SMPDD::_stackSize = 1024;
 
 /*! \fn prepareConfig(Config &config)
   \brief Registers the Device's configuration options
@@ -39,18 +40,18 @@ void SMPDD::prepareConfig( Config &config )
    /*!
       Get the stack size from system configuration
     */
-   stackSize = sys.getDeviceStackSize();
+   _stackSize = sys.getDeviceStackSize();
 
    /*!
       Get the stack size for this device
    */
-   config.registerArgOption( new Config::PositiveVar( "nth-smp-stack-size",stackSize ) );
-   config.registerEnvOption( new Config::PositiveVar( "NTH_SMP_STACK_SIZE",stackSize ) );
+   config.registerArgOption( new Config::PositiveVar( "nth-smp-stack-size",_stackSize ) );
+   config.registerEnvOption( new Config::PositiveVar( "NTH_SMP_STACK_SIZE",_stackSize ) );
 }
 
 void SMPDD::allocateStack ()
 {
-   stack = new intptr_t[stackSize];
+   _stack = new intptr_t[_stackSize];
 }
 
 void SMPDD::initStack ( void *data )

@@ -37,7 +37,7 @@ BaseThread & ProcessingElement::startThread ( WD &work, SchedulingGroup *sg )
 
    thread.start();
 
-   threads.push_back( &thread );
+   _threads.push_back( &thread );
 
    return thread;
 }
@@ -56,9 +56,9 @@ BaseThread & ProcessingElement::associateThisThread ( SchedulingGroup *sg )
 
 void ProcessingElement::stopAll ()
 {
-   std::vector<BaseThread *>::iterator it;
+   ThreadList::iterator it;
 
-   for ( it = threads.begin(); it != threads.end(); it++ ) {
+   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
       ( *it )->stop();
       ( *it )->join();
    }

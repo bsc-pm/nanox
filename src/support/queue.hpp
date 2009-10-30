@@ -33,8 +33,9 @@ namespace nanos
    {
 
       private:
-         Lock qLock;
-         std::queue<T>  q;
+         typedef std::queue<T>   BaseContainer;
+         Lock                    _qLock;
+         BaseContainer           _q;
 
          // disable copy constructor and assignment operator
          Queue( Queue &orig );
@@ -54,10 +55,10 @@ namespace nanos
 
    template<typename T> void Queue<T>::push ( T data )
    {
-      qLock++;
-      q.push( data );
-      memory_fence();
-      qLock--;
+      _qLock++;
+      _q.push( data );
+      memoryFence();
+      _qLock--;
    }
 
    template<typename T> T Queue<T>::pop ( void )
@@ -65,19 +66,19 @@ namespace nanos
 
    spin:
 
-      while ( q.empty() ) memory_fence();
+      while ( _q.empty() ) memoryFence();
 
       // not empty
-      qLock++;
+      _qLock++;
 
-      if ( !q.empty() ) {
-         T tmp = q.front();
-         q.pop();
-         qLock--;
+      if ( !_q.empty() ) {
+         T tmp = _q.front();
+         _q.pop();
+         _qLock--;
          return tmp;
       }
 
-      qLock--;
+      _qLock--;
 
       goto spin;
    }
@@ -86,19 +87,19 @@ namespace nanos
    {
       bool found = false;
 
-      if ( q.empty() ) return false;
+      if ( _q.empty() ) return false;
 
       memory_fence();
 
-      qLock++;
+      _qLock++;
 
-      if ( !q.empty() ) {
-         result = q.front();
-         q.pop();
+      if ( !_q.empty() ) {
+         result = _q.front();
+         _q.pop();
          found = true;
       }
 
-      qLock--;
+      _qLock--;
 
       return found;
    }

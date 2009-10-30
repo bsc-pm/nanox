@@ -17,12 +17,12 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "cutoff.hpp"
+#include "throttle.hpp"
 
 using namespace nanos;
 
 
-class dummy_cutoff: public cutoff
+class dummy_cutoff: public ThrottlePolicy
 {
 
    private:
@@ -37,19 +37,19 @@ class dummy_cutoff: public cutoff
 
       void init() {}
 
-      bool cutoff_pred();
+      bool throttle();
 
       ~dummy_cutoff() {};
 };
 
 
-bool dummy_cutoff::cutoff_pred()
+bool dummy_cutoff::throttle()
 {
    return createTask;
 }
 
 //factory
-cutoff * createDummyCutoff()
+ThrottlePolicy * createDummyCutoff()
 {
    return new dummy_cutoff();
 }

@@ -26,7 +26,8 @@
 
 //TODO: Make smp independent from pthreads? move it to OS?
 
-namespace nanos
+namespace nanos {
+namespace ext
 {
 
    class SMPThread : public BaseThread
@@ -35,8 +36,8 @@ namespace nanos
          friend class SMPProcessor;
 
       private:
-         pthread_t   pth;
-         bool        useUserThreads;
+         pthread_t   _pth;
+         bool        _useUserThreads;
 
          // disable copy constructor and assignment operator
          SMPThread( const SMPThread &th );
@@ -44,17 +45,17 @@ namespace nanos
 
       public:
          // constructor
-         SMPThread( WD &w, PE *pe, bool uUT=true ) : BaseThread( w,pe ),useUserThreads( uUT ) {}
+         SMPThread( WD &w, PE *pe, bool uUT=true ) : BaseThread( w,pe ),_useUserThreads( uUT ) {}
 
          // destructor
 
          virtual ~SMPThread() { if ( isStarted() ) /*TODO: stop()*/; }
 
-         void setUseUserThreads( bool value=true ) { useUserThreads = value; }
+         void setUseUserThreads( bool value=true ) { _useUserThreads = value; }
 
          virtual void start();
          virtual void join();
-         virtual void run_dependent ( void );
+         virtual void runDependent ( void );
 
          virtual void inlineWork( WD *work );
          virtual void switchTo( WD *work );
@@ -63,6 +64,7 @@ namespace nanos
    };
 
 
-};
+}
+}
 
 #endif

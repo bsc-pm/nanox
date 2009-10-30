@@ -54,7 +54,7 @@ class posixBarrier: public Barrier
 void posixBarrier::barrier()
 {
    /*! get the number of participants from the team */
-   numParticipants = myThread->getTeam()->size();
+   int numParticipants = myThread->getTeam()->size();
 
    /*! initialize the barrier to the current participant number */
    pthread_barrier_init ( &pBarrier, NULL, numParticipants );

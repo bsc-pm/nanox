@@ -66,6 +66,7 @@ class disseminationBarrier: public Barrier
 void disseminationBarrier::barrier()
 {
    int myID = -1;
+   int numParticipants = myThread->getTeam()->size();
 
    for ( int s = 0; s < q; s++ ) {
       int toSign = ( myID + ( int ) pow( 2,s ) ) % numParticipants;
@@ -88,7 +89,7 @@ void disseminationBarrier::barrier()
 void disseminationBarrier::barrier( int myID )
 {
    /*! get the number of participants from the team */
-   numParticipants = myThread->getTeam()->size();
+   int numParticipants = myThread->getTeam()->size();
 
    /*! initialize the barrier to the current participant number */
    semaphores.resize( numParticipants );

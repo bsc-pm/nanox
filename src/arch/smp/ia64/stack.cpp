@@ -17,13 +17,13 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "smpprocessor.hpp"
+#include "smpdd.hpp"
 
-using namespace nanos;
+using namespace nanos::ext;
 
 
 /* -------------------------------------------------------------------
- * Initial STACK state for IA-64
+ * Initial STACK _state for IA-64
  * -------------------------------------------------------------------
  *
  *  +------------------------------+
@@ -67,37 +67,37 @@ extern "C"
 void SMPDD::initStackDep ( void *userfuction, void *data, void *cleanup )
 {
    // stack grows down
-   state = stack;
-   state += stackSize;
+   _state = _stack;
+   _state += _stackSize;
 
-   state -= 68;
+   _state -= 68;
 
    // argument
-   state[60] = ( intptr_t ) data;
+   _state[60] = ( intptr_t ) data;
 
    // return pointer
-   state[59] = ( intptr_t ) *( ( long * )startHelper );
+   _state[59] = ( intptr_t ) *( ( long * )startHelper );
    // ar.rsc
-   state[58] = ( intptr_t ) 3;
+   _state[58] = ( intptr_t ) 3;
    // ar.pfs
-   state[57] = ( intptr_t ) 0;
+   _state[57] = ( intptr_t ) 0;
    // ar.rnat
-   state[56] = ( intptr_t ) 0;
+   _state[56] = ( intptr_t ) 0;
    // ar.bspstore
-   state[55] = ( intptr_t ) stack;
+   _state[55] = ( intptr_t ) _stack;
    // tp(r13)
-   state[54] = ( intptr_t ) 0;
+   _state[54] = ( intptr_t ) 0;
    // ar.unat (caller)
-   state[53] = ( intptr_t ) 0;
+   _state[53] = ( intptr_t ) 0;
    // r5 (cleanup)
-   state[51] = ( intptr_t ) cleanup;
+   _state[51] = ( intptr_t ) cleanup;
    // r6 (pt)
-   state[50] = ( intptr_t ) this;
+   _state[50] = ( intptr_t ) this;
    // r7 (userf)
-   state[49] = ( intptr_t ) userfuction;
+   _state[49] = ( intptr_t ) userfuction;
    // ar.unat (callee)
-   state[48] = ( intptr_t ) 0;
+   _state[48] = ( intptr_t ) 0;
    // ar.fpsr
-   state[40] = ( intptr_t ) 0x9804c0270033f;
+   _state[40] = ( intptr_t ) 0x9804c0270033f;
 
 }
