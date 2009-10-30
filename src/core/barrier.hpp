@@ -25,6 +25,9 @@ namespace nanos
 
    class Barrier
    {
+      private:
+         Barrier(const Barrier &);
+         const Barrier operator= ( const Barrier & );
       public:
          Barrier() {}
          virtual ~Barrier() {}

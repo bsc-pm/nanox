@@ -25,9 +25,9 @@ using namespace nanos;
 
 DeviceData * WorkDescriptor::findDeviceData ( const Device &device ) const
 {
-   for ( int i = 0; i < num_devices; i++ ) {
-      if ( devices[i]->isCompatible( device ) ) {
-         return devices[i];
+   for ( int i = 0; i < _numDevices; i++ ) {
+      if ( _devices[i]->isCompatible( device ) ) {
+         return _devices[i];
       }
    }
 
@@ -36,21 +36,21 @@ DeviceData * WorkDescriptor::findDeviceData ( const Device &device ) const
 
 DeviceData & WorkDescriptor::activateDevice ( const Device &device )
 {
-   if ( active_device ) {
-      ensure( active_device->isCompatible( device ),"Bogus double device activation" );
-      return *active_device;
+   if ( _activeDevice ) {
+      ensure( _activeDevice->isCompatible( device ),"Bogus double device activation" );
+      return *_activeDevice;
    }
 
    DD * dd = findDeviceData( device );
 
    ensure( dd,"Did not find requested device in activation" );
-   active_device = dd;
+   _activeDevice = dd;
    return *dd;
 }
 
 bool WorkDescriptor::canRunIn( const Device &device ) const
 {
-   if ( active_device ) return active_device->isCompatible( device );
+   if ( _activeDevice ) return _activeDevice->isCompatible( device );
 
    return findDeviceData( device ) != NULL;
 }

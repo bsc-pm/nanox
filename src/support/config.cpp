@@ -41,18 +41,18 @@ void Config::parseFiles ()
 
 void Config::registerEnvOption ( Option *opt )
 {
-   envOptions.push_back( opt );
+   _envOptions.push_back( opt );
 }
 
 void Config::registerArgOption ( Option *opt )
 {
-   argOptions[opt->getName()] = opt;
+   _argOptions[opt->getName()] = opt;
 }
 
 void Config::parseEnvironment ()
 {
-   for ( OptionList::iterator it = envOptions.begin();
-         it < envOptions.end(); it++ ) {
+   for ( OptionList::iterator it = _envOptions.begin();
+         it < _envOptions.end(); it++ ) {
       Option &opt = **it;
 
       const char *env = OS::getEnvironmentVariable( opt.getName() );
@@ -103,9 +103,9 @@ void Config::parseArguments ()
          // -arg value form
       }
 
-      OptionMap::iterator obj = argOptions.find( std::string( arg ) );
+      OptionMap::iterator obj = _argOptions.find( std::string( arg ) );
 
-      if ( obj != argOptions.end() ) {
+      if ( obj != _argOptions.end() ) {
          Option &opt = *( *obj ).second;
 
          if ( needValue && opt.getType() != Option::FLAG ) {
@@ -157,10 +157,10 @@ T * cloner ( T *p ) { return p->clone(); }
 
 void Config::clear ()
 {
-   std::for_each( envOptions.begin(),envOptions.end(),deleter<Option> );
-   std::for_each( argOptions.begin(),argOptions.end(),pair_deleter2<Option> );
-   envOptions.clear();
-   argOptions.clear();
+   std::for_each( _envOptions.begin(),_envOptions.end(),deleter<Option> );
+   std::for_each( _argOptions.begin(),_argOptions.end(),pair_deleter2<Option> );
+   _envOptions.clear();
+   _argOptions.clear();
 }
 
 //TODO: generalize?
@@ -178,9 +178,9 @@ class map_copy
 
 void Config::copy ( const Config &cfg )
 {
-   std::transform( cfg.envOptions.begin(), cfg.envOptions.end(), envOptions.begin(),
+   std::transform( cfg._envOptions.begin(), cfg._envOptions.end(), _envOptions.begin(),
                    cloner<Option> );
-   std::for_each( cfg.argOptions.begin(), cfg.argOptions.end(), map_copy( argOptions ) );
+   std::for_each( cfg._argOptions.begin(), cfg._argOptions.end(), map_copy( _argOptions ) );
 }
 
 Config::Config ( const Config &cfg )

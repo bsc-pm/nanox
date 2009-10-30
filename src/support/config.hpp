@@ -66,26 +66,26 @@ namespace nanos
                typedef enum { FLAG, VALUE } OptType;
 
             private:
-               std::string name;
-               OptType type;
+               std::string _name;
+               OptType _type;
 
             public:
                // constructors
-               Option( const std::string &n, const OptType t ) : name( n ), type( t ) {}
+               Option( const std::string &n, const OptType t ) : _name( n ), _type( t ) {}
 
-               Option( const char *n, const OptType t ) : name( n ), type( t ) {}
+               Option( const char *n, const OptType t ) : _name( n ), _type( t ) {}
 
                // copy constructor
-               Option( const Option &opt ) : name( opt.name ),type( opt.type ) {}
+               Option( const Option &opt ) : _name( opt._name ),_type( opt._type ) {}
 
                // assignment operator
                const Option & operator= ( const Option &opt );
                // destructors
                virtual ~Option() {};
 
-               const std::string &getName() const { return name; }
+               const std::string &getName() const { return _name; }
 
-               const OptType& getType() const { return type; }
+               const OptType& getType() const { return _type; }
 
                virtual void parse ( const char *value ) = 0;
 
@@ -100,7 +100,7 @@ namespace nanos
          {
 
             private:
-               checkT check;
+               checkT _check;
 
             public:
                // constructors
@@ -111,7 +111,7 @@ namespace nanos
                      Option( name,Option::VALUE ) {}
 
                // copy constructors
-               ActionOption( const ActionOption& opt ) : Option( opt ), check( opt.check ) {}
+               ActionOption( const ActionOption& opt ) : Option( opt ), _check( opt._check ) {}
 
                // assignment operator
                const ActionOption & operator= ( const ActionOption & opt );
@@ -121,7 +121,7 @@ namespace nanos
                virtual void parse ( const char *value );
                virtual void setValue ( const T &value ) = 0;
 
-               bool checkValue ( const T &value ) const	{ return check( value );  };
+               bool checkValue ( const T &value ) const	{ return _check( value );  };
 
                virtual ActionOption * clone () = 0;
          };
@@ -133,26 +133,26 @@ namespace nanos
          {
 
             private:
-               T &var;
+               T &_var;
                // assignment operator
                const VarOption & operator= ( const VarOption &opt );
 
             public:
                //constructors
                VarOption( const std::string &name,T &ref ) :
-                     ActionOption<T,checkT>( name ),var( ref ) {}
+                     ActionOption<T,checkT>( name ),_var( ref ) {}
 
                VarOption( const char *name, T &ref ) :
-                     ActionOption<T,checkT>( name ),var( ref ) {}
+                     ActionOption<T,checkT>( name ),_var( ref ) {}
 
                // copy constructor
                VarOption( const VarOption &opt ) :
-                     ActionOption<T,checkT>( opt ),var( opt.var ) {}
+                     ActionOption<T,checkT>( opt ),_var( opt._var ) {}
 
                //destructor
                virtual ~VarOption() {}
 
-               virtual void setValue ( const T &value ) { var = value; };
+               virtual void setValue ( const T &value ) { _var = value; };
 
                virtual VarOption * clone () { return new VarOption( *this ); };
          };
@@ -183,18 +183,18 @@ namespace nanos
                typedef std::vector<MapOption> MapList;
 
             private:
-               const MapList options;
+               const MapList _options;
 
             public:
                // constructors
                MapAction( const std::string &name, const MapList &opts ) :
-                     Option( name,Option::VALUE ), options( opts ) {}
+                     Option( name,Option::VALUE ), _options( opts ) {}
 
                MapAction( const char *name, const MapList &opts ) :
-                     Option( name,Option::VALUE ), options( opts ) {}
+                     Option( name,Option::VALUE ), _options( opts ) {}
 
                // copy constructor
-               MapAction( const MapAction &opt ) : Option( opt ),options( opt.options ) {}
+               MapAction( const MapAction &opt ) : Option( opt ),_options( opt._options ) {}
 
                // assignment operator
                const MapAction & operator= ( const MapAction &opt );
@@ -210,7 +210,7 @@ namespace nanos
          {
 
             private:
-               T &var;
+               T &_var;
                // assignment operator
                const MapVar & operator= ( const MapVar & );
 
@@ -220,18 +220,18 @@ namespace nanos
 
                //constructors
                MapVar( const std::string &name, T &ref, const MapList &opts ) :
-                     MapAction<T>( name,opts ), var( ref ) {}
+                     MapAction<T>( name,opts ), _var( ref ) {}
 
                MapVar( const char *name, T &ref, const MapList &opts ) :
-                     MapAction<T>( name,opts ), var( ref ) {}
+                     MapAction<T>( name,opts ), _var( ref ) {}
 
                // copy constructor
-               MapVar( const MapVar &opt ) : MapAction<T>( opt ), var( opt.var ) {}
+               MapVar( const MapVar &opt ) : MapAction<T>( opt ), _var( opt._var ) {}
 
                // destructor
                virtual ~MapVar() {}
 
-               virtual void setValue ( const T &value ) { var = value; };
+               virtual void setValue ( const T &value ) { _var = value; };
 
                virtual MapVar * clone () { return new MapVar( *this ); };
          };
@@ -244,21 +244,21 @@ namespace nanos
          {
 
             private:
-               bool &var;
-               bool  setTo;
+               bool &_var;
+               bool  _setTo;
                // assigment operator
                const FlagOption & operator= ( const FlagOption &opt );
 
             public:
                // constructors
                FlagOption ( const std::string &name, bool &ref, bool value=true ) :
-                     Option( name,Option::FLAG ),var( ref ),setTo( value ) {}
+                     Option( name,Option::FLAG ),_var( ref ),_setTo( value ) {}
 
                FlagOption ( const char *name, bool &ref, bool value=true ) :
-                     Option( name,Option::FLAG ),var( ref ),setTo( value ) {}
+                     Option( name,Option::FLAG ),_var( ref ),_setTo( value ) {}
 
                // copy constructors
-               FlagOption( const FlagOption &opt ) : Option( opt ), var( opt.var ), setTo( opt.setTo ) {}
+               FlagOption( const FlagOption &opt ) : Option( opt ), _var( opt._var ), _setTo( opt._setTo ) {}
 
                // destructor
                virtual ~FlagOption() {}
@@ -271,8 +271,8 @@ namespace nanos
          typedef std::vector<Option *> OptionList;
 
       private:
-         OptionList envOptions;
-         OptionMap  argOptions;
+         OptionList _envOptions;
+         OptionMap  _argOptions;
 
       protected:
 
@@ -317,8 +317,8 @@ namespace nanos
    inline const Config::Option & Config::Option::operator= ( const Config::Option &opt )
    {
       // self-assigment: ok
-      this->name = opt.name;
-      this->type = opt.type;
+      this->_name = opt._name;
+      this->_type = opt._type;
       return *this;
    }
 
@@ -329,7 +329,7 @@ namespace nanos
    {
       // self-assigment: ok
       Option::operator=( opt );
-      this->check = opt.check;
+      this->_check = opt._check;
       return *this;
    }
 
@@ -338,7 +338,7 @@ namespace nanos
    {
       // self->assigment: ok
       Option::operator=( opt );
-      this->options = opt.options;
+      this->_options = opt._options;
       return *this;
    }
 
@@ -363,7 +363,7 @@ namespace nanos
    {
       typename MapList::const_iterator it;
 
-      for ( it = options.begin(); it < options.end(); it++ ) {
+      for ( it = _options.begin(); it < _options.end(); it++ ) {
          if ( value == it->first ) {
             setValue( it->second );
             return;
@@ -378,7 +378,7 @@ namespace nanos
       if ( value )
          throw InvalidOptionException( *this,value );
 
-      var = setTo;
+      _var = _setTo;
    }
 
 
