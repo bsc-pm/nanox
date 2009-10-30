@@ -18,7 +18,7 @@
 /*************************************************************************************/
 
 #include "system.hpp"
-#include "cutoff.hpp"
+#include "throttle.hpp"
 #include "plugin.hpp"
 
 
@@ -27,7 +27,7 @@
 using namespace nanos;
 
 
-class level_cutoff: public cutoff
+class level_cutoff: public ThrottlePolicy
 {
 
    private:
@@ -40,13 +40,13 @@ class level_cutoff: public cutoff
 
       void setMaxCutoff( int ml ) { max_level = ml; }
 
-      bool cutoff_pred();
+      bool throttle();
 
       ~level_cutoff() {}
 };
 
 
-bool level_cutoff::cutoff_pred()
+bool level_cutoff::throttle()
 {
    //checking the parent level of the next work to be created (check >)
    if ( ( myThread->getCurrentWD() )->getLevel() > max_level )  {
@@ -58,7 +58,7 @@ bool level_cutoff::cutoff_pred()
 }
 
 //factory
-cutoff * createLevelCutoff()
+ThrottlePolicy * createLevelCutoff()
 {
    return new level_cutoff();
 }

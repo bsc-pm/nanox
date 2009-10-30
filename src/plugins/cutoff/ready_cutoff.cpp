@@ -18,7 +18,7 @@
 /*************************************************************************************/
 
 #include "system.hpp"
-#include "cutoff.hpp"
+#include "throttle.hpp"
 #include "plugin.hpp"
 
 
@@ -27,7 +27,7 @@
 using namespace nanos;
 
 
-class ready_cutoff: public cutoff
+class ready_cutoff: public ThrottlePolicy
 {
 
    private:
@@ -40,13 +40,13 @@ class ready_cutoff: public cutoff
 
       void setMaxCutoff( int mr ) { max_ready = mr; }
 
-      bool cutoff_pred();
+      bool throttle();
 
       ~ready_cutoff() {}
 };
 
 
-bool ready_cutoff::cutoff_pred()
+bool ready_cutoff::throttle()
 {
    //checking if the number of ready tasks is higher than the allowed maximum
    if ( sys.getReadyNum() > max_ready )  {
@@ -58,7 +58,7 @@ bool ready_cutoff::cutoff_pred()
 }
 
 //factory
-cutoff * createReadyCutoff()
+ThrottlePolicy * createReadyCutoff()
 {
    return new ready_cutoff();
 }

@@ -18,7 +18,7 @@
 /*************************************************************************************/
 
 #include "system.hpp"
-#include "cutoff.hpp"
+#include "throttle.hpp"
 #include "plugin.hpp"
 
 #define DEFAULT_CUTOFF_IDLE 5
@@ -27,7 +27,7 @@ using namespace nanos;
 
 //TODO: only works with 1 scheduling group
 
-class idle_cutoff: public cutoff
+class idle_cutoff: public ThrottlePolicy
 {
 
    private:
@@ -40,13 +40,13 @@ class idle_cutoff: public cutoff
 
       void setMaxCutoff( int mi ) { max_idle = mi; }
 
-      bool cutoff_pred();
+      bool throttle();
 
       ~idle_cutoff() {}
 };
 
 
-bool idle_cutoff::cutoff_pred()
+bool idle_cutoff::throttle()
 {
    //checking if the number of idle tasks is higher than the allowed maximum
    if ( sys.getIdleNum() > max_idle )  {
@@ -58,7 +58,7 @@ bool idle_cutoff::cutoff_pred()
 }
 
 //factory
-cutoff * createIdleCutoff()
+ThrottlePolicy * createIdleCutoff()
 {
    return new idle_cutoff();
 }

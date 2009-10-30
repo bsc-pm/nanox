@@ -21,7 +21,7 @@
 #define _NANOS_SYSTEM
 
 #include "processingelement.hpp"
-#include "cutoff.hpp"
+#include "throttle.hpp"
 #include <vector>
 #include <string>
 #include "schedule.hpp"
@@ -58,7 +58,7 @@ namespace nanos
          int                  _thsPerPE;
 
          //cutoff policy and related variables
-         cutoff *             _cutOffPolicy;
+         ThrottlePolicy *             _cutOffPolicy;
          Atomic<int>          _taskNum;
          Atomic<int>          _numReady;
          Atomic<int>          _idleThreads;
@@ -131,7 +131,7 @@ namespace nanos
          //BUG: does not work: sigsegv on myThread
          int getSGSize() const { return myThread->getSchedulingGroup()->getSize(); }
 
-         void setCutOffPolicy( cutoff * co ) { _cutOffPolicy = co; }
+         void setCutOffPolicy( ThrottlePolicy * co ) { _cutOffPolicy = co; }
 
          bool throttleTask();
 

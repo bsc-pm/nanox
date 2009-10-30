@@ -24,7 +24,8 @@
 #include "workdescriptor.hpp"
 #include "config.hpp"
 
-namespace nanos
+namespace nanos {
+namespace ext
 {
 
    extern Device SMP;
@@ -36,38 +37,38 @@ namespace nanos
          typedef void ( *work_fct ) ( void *self );
 
       private:
-         work_fct	work;
-         intptr_t *	stack;
-         intptr_t *	state;
-         static int	stackSize;
+         work_fct       _work;
+         intptr_t *     _stack;
+         intptr_t *     _state;
+         static int     _stackSize;
 
          void initStackDep ( void *userf, void *data, void *cleanup );
 
       public:
          // constructors
-         SMPDD( work_fct w ) : DD( &SMP ),work( w ),stack( 0 ),state( 0 ) {}
+         SMPDD( work_fct w ) : DD( &SMP ),_work( w ),_stack( 0 ),_state( 0 ) {}
 
-         SMPDD() : DD( &SMP ),work( 0 ),stack( 0 ),state( 0 ) {}
+         SMPDD() : DD( &SMP ),_work( 0 ),_stack( 0 ),_state( 0 ) {}
 
          // copy constructors
-         SMPDD( const SMPDD &dd ) : DD( dd ), work( dd.work ), stack( 0 ), state( 0 ) {}
+         SMPDD( const SMPDD &dd ) : DD( dd ), _work( dd._work ), _stack( 0 ), _state( 0 ) {}
 
          // assignment operator
          const SMPDD & operator= ( const SMPDD &wd );
          // destructor
 
-         virtual ~SMPDD() { if ( stack ) delete[] stack; }
+         virtual ~SMPDD() { if ( _stack ) delete[] _stack; }
 
-         work_fct getWorkFct() const { return work; }
+         work_fct getWorkFct() const { return _work; }
 
-         bool hasStack() { return state != NULL; }
+         bool hasStack() { return _state != NULL; }
 
          void allocateStack();
          void initStack( void *data );
 
-         intptr_t *getState() const { return state; }
+         intptr_t *getState() const { return _state; }
 
-         void setState ( intptr_t * newState ) { state = newState; }
+         void setState ( intptr_t * newState ) { _state = newState; }
 
          static void prepareConfig( Config &config );
    };
@@ -79,15 +80,14 @@ namespace nanos
 
       DD::operator= ( dd );
 
-      work = dd.work;
-
-      stack = 0;
-
-      state = 0;
+      _work = dd._work;
+      _stack = 0;
+      _state = 0;
 
       return *this;
    }
 
-};
+}
+}
 
 #endif

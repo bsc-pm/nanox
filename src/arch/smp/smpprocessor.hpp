@@ -26,15 +26,16 @@
 
 //TODO: Make smp independent from pthreads? move it to OS?
 
-namespace nanos
+namespace nanos {
+namespace ext
 {
-
+   
    class SMPProcessor : public PE
    {
 
       private:
          // config variables
-         static bool useUserThreads;
+         static bool _useUserThreads;
 
          // disable copy constructor and assignment operator
          SMPProcessor( const SMPProcessor &pe );
@@ -53,7 +54,7 @@ namespace nanos
          static void prepareConfig ( Config &config );
    };
 
-
-};
+}
+}
 
 #endif

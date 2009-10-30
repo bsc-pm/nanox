@@ -30,6 +30,7 @@ extern "C"
 }
 
 using namespace nanos;
+using namespace nanos::ext;
 
 void * smp_bootthread ( void *arg )
 {
@@ -53,7 +54,7 @@ void SMPThread::start ()
 //                 );
 
 
-   if ( pthread_create( &pth, NULL, smp_bootthread, this ) )
+   if ( pthread_create( &_pth, NULL, smp_bootthread, this ) )
       fatal( "couldn't create thread" );
 }
 
@@ -68,7 +69,7 @@ void SMPThread::runDependent ()
 
 void SMPThread::join ()
 {
-   pthread_join( pth,NULL );
+   pthread_join( _pth,NULL );
 }
 
 // This is executed in between switching stacks
@@ -96,7 +97,7 @@ void SMPThread::switchTo ( WD *wd )
    ensure( wd->hasActiveDevice(),"WD has no active SMP device" );
    SMPDD &dd = ( SMPDD & )wd->getActiveDevice();
 
-   if ( useUserThreads ) {
+   if ( _useUserThreads ) {
       debug( "switching from task " << getCurrentWD() << ":" << getCurrentWD()->getId() << " to " << wd << ":" << wd->getId() );
 
       if ( !dd.hasStack() ) {

@@ -22,35 +22,34 @@
 #include "debug.hpp"
 #include <iostream>
 
-namespace nanos
+using namespace nanos;
+using namespace nanos::ext;
+
+bool SMPProcessor::_useUserThreads = true;
+
+void SMPProcessor::prepareConfig ( Config &config )
 {
+   config.registerArgOption( new Config::FlagOption( "nth-no-ut",_useUserThreads,false ) );
+}
 
-   bool SMPProcessor::useUserThreads = true;
+WorkDescriptor & SMPProcessor::getWorkerWD () const
+{
+   SMPDD * dd = new SMPDD( ( SMPDD::work_fct )Scheduler::idle );
+   WD *wd = new WD( dd );
+   return *wd;
+}
 
-   void SMPProcessor::prepareConfig ( Config &config )
-   {
-      config.registerArgOption( new Config::FlagOption( "nth-no-ut",useUserThreads,false ) );
-   }
+WorkDescriptor & SMPProcessor::getMasterWD () const
+{
+   WD * wd = new WD( new SMPDD() );
+   return *wd;
+}
 
-   WorkDescriptor & SMPProcessor::getWorkerWD () const
-   {
-      SMPDD * dd = new SMPDD( ( SMPDD::work_fct )Scheduler::idle );
-      WD *wd = new WD( dd );
-      return *wd;
-   }
+BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper )
+{
+   ensure( helper.canRunIn( SMP ),"Incompatible worker thread" );
+   SMPThread &th = *new SMPThread( helper,this,_useUserThreads );
 
-   WorkDescriptor & SMPProcessor::getMasterWD () const
-   {
-      WD * wd = new WD( new SMPDD() );
-      return *wd;
-   }
+   return th;
+}
 
-   BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper )
-   {
-      ensure( helper.canRunIn( SMP ),"Incompatible worker thread" );
-      SMPThread &th = *new SMPThread( helper,this,useUserThreads );
-
-      return th;
-   }
-
-};

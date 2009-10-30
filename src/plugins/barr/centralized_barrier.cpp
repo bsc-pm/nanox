@@ -98,8 +98,8 @@ class CentralizedBarrierPlugin : public Plugin
          sys.setDefaultBarrFactory( createCentralizedBarrier );
       }
 };
-
-CentralizedBarrierPlugin NanosXPlugin;
-
 }
 }
+
+nanos::ext::CentralizedBarrierPlugin NanosXPlugin;
+

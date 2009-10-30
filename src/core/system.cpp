@@ -205,7 +205,7 @@ void System::inlineWork ( WD &work )
 
 bool System::throttleTask()
 {
-   return _cutOffPolicy->cutoff_pred();
+   return _cutOffPolicy->throttle();
 }
 
 

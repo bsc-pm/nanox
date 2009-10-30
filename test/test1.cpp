@@ -26,6 +26,7 @@
 using namespace std;
 
 using namespace nanos;
+using namespace nanos::ext;
 
 int a = 1234;
 std::string b( "default" );

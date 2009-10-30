@@ -22,7 +22,8 @@
 #include "smpdd.hpp"
 #include "system.hpp"
 
-using namespace nanos;
+namespace nanos {
+namespace ext {
 
 PE * smpProcessorFactory ( int id )
 {
@@ -44,8 +45,8 @@ class SMPPlugin : public Plugin
          config.init();
       }
 };
+}
+}
 
-SMPPlugin NanosXPlugin;
-
-
+nanos::ext::SMPPlugin NanosXPlugin;
 
