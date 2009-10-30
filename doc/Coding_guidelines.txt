@@ -16,7 +16,10 @@ Naming Conventions
 ==================
 
 - All core library classes must be defined in the nanos namespace.
-- All plugin classes must be defined in the nanos::ext namespace.
+- All plugin classes must be defined in the nanos::ext namespace:
+	namespace nanos {
+	namespace ext {
+	}}
 - Class names should have all words capitalized with no _  (e.g., MyClassName)
 - Class methods should have all words capitalized with no _ except for the first one (e.g., myMethod)
 - Define typedefs for template containers used for data members
@@ -44,13 +47,15 @@ C++ idioms
 
 - All classes that implement a virtual method MUST declare their destructor to be virtual.
 
-- If an argument to a function should never be NULL declare it as a reference when possible
+- If an argument to a function should never be NULL declare it as a reference when possible.
 
-- Remember to define default values for arguments where it makes sense (i.e., most of the time is that value)
+- Remember to define default values for arguments where it makes sense (i.e., most of the time is that value).
 
-- Enum types should in general be defined inside the class that uses them
+- Enum types should in general be defined inside the class that uses them.
 
-- Error problems should be reported through the exception mechanism
+- Error problems should be reported through the exception mechanism.
+
+- Avoid the usage of macros unless strictly necessary. Consider templates and inline functions first.
 
 Other idioms
 ============
@@ -65,11 +70,17 @@ Other idioms
        } 
 
 - Compare pointers to NULL:
-	if ( p != NULL ) { ... } not if (!p) {...}
+	if ( p != NULL ) { ... } 
+  not 
+	if (!p) {...}
 - Compare integer to the appropriate value
-	if ( i > 0 ) { ... } not if (i) { ... }
+	if ( i > 0 ) { ... } 
+  not 
+	if (i) { ... }
 - Do not compare booleans to true/false
-	if ( myBoolean ) { ... }
+	if ( myBoolean ) { ... } 
+  not 
+	if ( myBoolean == true ) { ... }
 
 Documentation
 =============
@@ -91,8 +102,9 @@ Documentation
    /**<  description */
   right beside it.
 
-- Additionally try to document parts of your code where what is happening may not be obvious.
-
+- Additionally, try to document parts of your code where what is happening may not be obvious. For example if you use complex combined pointer and integer arithmetics like:
+	// copy all q elements into p, q is zero-terminated
+	while (*p++ = *q++ ); 
 
 Commandline and Environment
 ==========================
