@@ -10,10 +10,13 @@ Syntax
 - Labels, classes, cases should all be indented
 - Spaces should be used inside parenthesis (e.g., ( 5 ) not (5) )
 - If in doubt you can use astyle (http://astyle.sourceforge.net). Check scripts/astyle-nanox.sh
+- All files (sources,headers,Makefile.am) MUST have the proper license header (see script/preamble.txt). You can use headache to help you.
 
 Naming Conventions
 ==================
 
+- All core library classes must be defined in the nanos namespace.
+- All plugin classes must be defined in the nanos::ext namespace.
 - Class names should have all words capitalized with no _  (e.g., MyClassName)
 - Class methods should have all words capitalized with no _ except for the first one (e.g., myMethod)
 - Define typedefs for template containers used for data members
@@ -22,8 +25,6 @@ Naming Conventions
 
 C++ idioms
 ==========
-
-- All classes must be defined in the nanos namespace.
 
 - All classes MUST have a constructor, a copy constructor and a assignment operator. If you think that the class should not have some of them (or don't want to implement them) declare them as private.
 
@@ -47,6 +48,8 @@ C++ idioms
 
 - Remember to define default values for arguments where it makes sense (i.e., most of the time is that value)
 
+- Enum types should in general be defined inside the class that uses them
+
 Other idioms
 ============
 
@@ -61,6 +64,25 @@ Other idioms
 
 Documentation
 =============
+
+- Use doxygen (http://www.doxygen.org) to document all functions. Doxygen commands are enclosed in a special comment block above the function definition. A minimum doxygen block should block like this:
+  /*! \brief Brief description of the function
+   *         can span several lines
+   *
+   *  Detailed description
+   *  \param[in]  p1 Input parameter
+   *  \param[out] p2 Output parameter
+   *  \param[in,out] p3 Input/Output parameter
+   *  \return  Returns bar
+   *  \see  cross-references
+   */
+   int foo (int p1, int *p2, int *p3);
+
+- Use doxygen to document as well data members, enum values, global variables, ... with:
+   /**<  description */
+  right beside it.
+
+- Additionally try to document parts of your code where what is happening may not be obvious.
 
 
 Parameter names
