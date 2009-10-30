@@ -83,7 +83,7 @@ void Config::parseArguments ()
    for ( OS::ArgumentList::const_iterator it = list.begin();
          it < list.end(); it++ ) {
 
-      char * arg( ( *it )->name );
+      char * arg( ( *it )->_name );
       char * value=0;
       bool needValue=true;
 
@@ -115,7 +115,7 @@ void Config::parseArguments ()
             if ( it == list.end() )
                throw InvalidOptionException( opt,"" );
 
-            value = ( *it )->name;
+            value = ( *it )->_name;
          }
 
          try {

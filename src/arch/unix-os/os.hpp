@@ -42,21 +42,21 @@ namespace nanos
                friend class OS;
 
             public:
-               char * name;
-               int nparam;
+               char *   _name;
+               int      _nparam;
 
             public:
-               Argument( char *arg,int i ) : name( arg ),nparam( i ) {}
+               Argument( char *arg,int i ) : _name( arg ),_nparam( i ) {}
 
-               char * getName() const { return name; }
+               char * getName() const { return _name; }
          };
 
          //TODO: make it autovector?
          typedef std::vector<Argument *> ArgumentList;
 
-         static char **argv;
-         static long *argc;
-         static ArgumentList argList;
+         static char **          _argv;
+         static long *           _argc;
+         static ArgumentList     _argList;
 
          static const char *getEnvironmentVariable( const std::string &variable );
          static const ArgumentList & getProgramArguments ();

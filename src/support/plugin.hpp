@@ -30,14 +30,14 @@ namespace nanos
    {
 
       private:
-         std::string name;
-         int    version;
-         void  *handler;
+         std::string    _name;
+         int            _version;
+         void  *        _handler;
 
       public:
-         Plugin( std::string &_name, int _version ) : name( _name ),version( _version ) {}
+         Plugin( std::string &_name, int _version ) : _name( _name ),_version( _version ) {}
 
-         Plugin( const char *_name, int _version ) : name( _name ),version( _version ) {}
+         Plugin( const char *_name, int _version ) : _name( _name ),_version( _version ) {}
 
          virtual ~Plugin() {}
 
@@ -45,29 +45,25 @@ namespace nanos
 
          virtual void fini() {}
 
-         const std::string & getName() const { return name; }
+         const std::string & getName() const { return _name; }
 
-         int getVersion() const { return version; }
+         int getVersion() const { return _version; }
    };
 
    class PluginManager
    {
 
       private:
-         static std::string pluginsDir;
-         static std::vector<Plugin *> activePlugins;
+         typedef std::vector<Plugin *>    PluginList;
+         static std::string               _pluginsDir;
+         static PluginList                _activePlugins;
 
       public:
 
-         static void setDirectory ( const char *dir ) {
-            pluginsDir = dir;
-         }
+         static void setDirectory ( const char *dir ) {  _pluginsDir = dir;  }
+         static void setDirectory ( const std::string & dir ) { _pluginsDir = dir;  }
 
-         static void setDirectory ( const std::string & dir ) {
-            pluginsDir = dir;
-         }
-
-         static const std::string &getDirectory () { return pluginsDir; }
+         static const std::string &getDirectory () { return _pluginsDir; }
 
          static bool load ( const char *plugin_name );
          static bool load ( const std::string &plugin_name ) { return load( plugin_name.c_str() ); };

@@ -23,8 +23,8 @@
 
 using namespace nanos;
 
-std::string PluginManager::pluginsDir( LIBDIR );
-std::vector<Plugin *> PluginManager::activePlugins;
+std::string PluginManager::_pluginsDir( LIBDIR );
+PluginManager::PluginList PluginManager::_activePlugins;
 
 bool PluginManager::load ( const char *name )
 {
@@ -33,7 +33,7 @@ bool PluginManager::load ( const char *name )
 
    dlname = "libnanox-";
    dlname += name;
-   handler = OS::loadDL( pluginsDir,dlname );
+   handler = OS::loadDL( _pluginsDir,dlname );
 
    if ( !handler ) {
       warning0 ( "plugin error=" << OS::dlError( handler ) );

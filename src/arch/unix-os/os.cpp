@@ -22,16 +22,16 @@
 
 using namespace nanos;
 
-long *  OS::argc  = 0;
-char ** OS::argv = 0;
-OS::ArgumentList OS::argList;
+long *  OS::_argc  = 0;
+char ** OS::_argv = 0;
+OS::ArgumentList OS::_argList;
 
 const OS::ArgumentList & OS::getProgramArguments ()
 {
    long *p;
    int i;
 
-   if ( !argc ) {
+   if ( !_argc ) {
       // variables are before environment
       p=( long * )environ;
 
@@ -40,23 +40,23 @@ const OS::ArgumentList & OS::getProgramArguments ()
 
       for ( i = 0 ; *( --p ) != i; i++ );
 
-      argc = p;
+      _argc = p;
 
-      argv = ( char ** ) p+1;
+      _argv = ( char ** ) p+1;
 
       // build vector
-      argList.reserve( *argc );
+      _argList.reserve( *_argc );
 
-      for ( i = 0; i < *argc; i++ )
-         argList.push_back( new Argument( argv[i],i ) );
+      for ( i = 0; i < *_argc; i++ )
+         _argList.push_back( new Argument( _argv[i],i ) );
    }
 
-   return argList;
+   return _argList;
 }
 
 void OS::consumeArgument ( Argument &arg )
 {
-   argv[arg.nparam] = 0;
+   _argv[arg._nparam] = 0;
 }
 
 void OS::repackArguments ()
@@ -65,21 +65,21 @@ void OS::repackArguments ()
 
    // find first hole
 
-   for ( i  = 0; i < *argc; i++ )
-      if ( !argv[i] ) {
+   for ( i  = 0; i < *_argc; i++ )
+      if ( !_argv[i] ) {
          hole=i++;
          break;
       }
 
-   for ( ; i < *argc; i++ )
-      if ( argv[i] ) {
-         argv[hole]=argv[i];
-         argv[i]=0;
+   for ( ; i < *_argc; i++ )
+      if ( _argv[i] ) {
+         _argv[hole]=_argv[i];
+         _argv[i]=0;
          hole++;
       }
 
    if ( hole != 0 )
-      *argc = hole;
+      *_argc = hole;
 }
 
 void * OS::loadDL( const std::string &dir, const std::string &name )

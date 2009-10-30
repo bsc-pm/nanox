@@ -58,12 +58,12 @@ namespace nanos
    {
 
       private:
-         typedef std::vector<SchedulingData *> group_t;
+         typedef std::vector<SchedulingData *> Group;
 
-         std::string    name;
-         WDDeque        idleQueue;
+         std::string    _name;
+         WDDeque        _idleQueue;
 
-         group_t        group;
+         Group          _group;
 
          // disable copy and assignment
          SchedulingGroup( const SchedulingGroup & );
@@ -73,18 +73,18 @@ namespace nanos
 
       public:
          // constructors
-         SchedulingGroup( std::string &policy_name, int groupSize=1 ) : name( policy_name ) { init( groupSize ); }
+         SchedulingGroup( std::string &policy_name, int groupSize=1 ) : _name( policy_name ) { init( groupSize ); }
 
-         SchedulingGroup( const char  *policy_name, int groupSize=1 ) : name( policy_name ) { init( groupSize ); }
+         SchedulingGroup( const char  *policy_name, int groupSize=1 ) : _name( policy_name ) { init( groupSize ); }
 
          // destructor
          virtual ~SchedulingGroup() {}
 
 
          //modifiers
-         SchedulingData * getMemberData( int id ) { return group[id]; }
+         SchedulingData * getMemberData( int id ) { return _group[id]; }
 
-         int getSize() { return group.size(); }
+         int getSize() { return _group.size(); }
 
          // membership related methods. This members are not thread-safe
          virtual void addMember ( BaseThread &thread );

@@ -30,7 +30,7 @@ void Scheduler::submit ( WD &wd )
 {
    // TODO: increase ready count
 
-   sys.taskNum++;
+   sys._taskNum++;
 
    debug ( "submitting task " << wd.getId() );
    WD *next = myThread->getSchedulingGroup()->atCreation ( myThread, wd );
@@ -47,12 +47,12 @@ void Scheduler::exit ( void )
    // The WD was running on its own stack, switch to a new one
    // The WD was running on a thread stack, exit to the loop
 
-   sys.taskNum--;
+   sys._taskNum--;
 
    WD *next = myThread->getSchedulingGroup()->atExit ( myThread );
 
    if ( next ) {
-      sys.numReady--;
+      sys._numReady--;
    }
 
    if ( !next ) {
@@ -92,7 +92,7 @@ void Scheduler::blockOnCondition ( volatile T *var, T condition )
       WD *next = thread->getSchedulingGroup()->atBlock ( thread );
 
       if ( next ) {
-         sys.numReady--;
+         sys._numReady--;
       }
 
       if ( !next )
@@ -118,7 +118,7 @@ void Scheduler::blockOnConditionLess ( volatile T *var, T condition )
       WD *next = thread->getSchedulingGroup()->atBlock ( thread );
 
       if ( next ) {
-         sys.numReady--;
+         sys._numReady--;
       }
 
       if ( !next )
@@ -152,32 +152,32 @@ void Scheduler::idle ()
 
    thread->getCurrentWD()->setIdle();
 
-   sys.idleThreads++;
+   sys._idleThreads++;
 
    while ( thread->isRunning() ) {
       if ( thread->getSchedulingGroup() ) {
          WD *next = thread->getSchedulingGroup()->atIdle ( thread );
 
          if ( next ) {
-            sys.numReady--;
+            sys._numReady--;
          }
 
          if ( !next )
             next = thread->getSchedulingGroup()->getIdle ( thread );
 
          if ( next ) {
-            sys.idleThreads--;
-            sys.numTasksRunning++;
+            sys._idleThreads--;
+            sys._numTasksRunning++;
             thread->switchTo ( next );
-            sys.numTasksRunning--;
-            sys.idleThreads++;
+            sys._numTasksRunning--;
+            sys._idleThreads++;
          }
       }
    }
 
    thread->getCurrentWD()->setIdle ( false );
 
-   sys.idleThreads--;
+   sys._idleThreads--;
 
    verbose ( "Working thread finishing" );
 }
@@ -188,13 +188,13 @@ void Scheduler::queue ( WD &wd )
       myThread->getSchedulingGroup()->queueIdle ( myThread, wd );
    else {
       myThread->getSchedulingGroup()->queue ( myThread, wd );
-      sys.numReady++;
+      sys._numReady++;
    }
 }
 
 void SchedulingGroup::init ( int groupSize )
 {
-   group.reserve ( groupSize );
+   _group.reserve ( groupSize );
 }
 
 void SchedulingGroup::addMember ( BaseThread &thread )
@@ -203,7 +203,7 @@ void SchedulingGroup::addMember ( BaseThread &thread )
 
    data->setSchId ( getSize() );
    thread.setScheduling ( this, data );
-   group.push_back( data );
+   _group.push_back( data );
 }
 
 void SchedulingGroup::removeMember ( BaseThread &thread )
@@ -213,11 +213,11 @@ void SchedulingGroup::removeMember ( BaseThread &thread )
 
 void SchedulingGroup::queueIdle ( BaseThread *thread, WD &wd )
 {
-   idleQueue.push_back ( &wd );
+   _idleQueue.push_back ( &wd );
 }
 
 WD * SchedulingGroup::getIdle ( BaseThread *thread )
 {
-   return idleQueue.pop_front ( thread );
+   return _idleQueue.pop_front ( thread );
 }
 

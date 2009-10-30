@@ -23,43 +23,43 @@
 
 using namespace nanos;
 
-Atomic<int> WorkGroup::atomicSeed( 0 );
+Atomic<int> WorkGroup::_atomicSeed( 0 );
 
 void WorkGroup::addWork ( WorkGroup &work )
 {
-   components++;
+   _components++;
    work.addToGroup( *this );
 }
 
 void WorkGroup::addToGroup ( WorkGroup &parent )
 {
-   partOf.push_back( &parent );
+   _partOf.push_back( &parent );
 }
 
 void WorkGroup::exitWork ( WorkGroup &work )
 {
-   components--;
+   _components--;
 }
 
 void WorkGroup::sync ()
 {
-   phase_counter++;
+   _phaseCounter++;
    //TODO: block and switch
 
-   while ( phase_counter < components );
+   while ( _phaseCounter < _components );
 
    //TODO: reinit phase_counter
 }
 
 void WorkGroup::waitCompletation ()
 {
-   Scheduler::blockOnCondition<int>( &components.override(),0 );
+   Scheduler::blockOnCondition<int>( &_components.override(),0 );
 }
 
 void WorkGroup::done ()
 {
-   for ( ListOfWGs::iterator it = partOf.begin();
-         it != partOf.end();
+   for ( WGList::iterator it = _partOf.begin();
+         it != _partOf.end();
          it++ ) {
       ( *it )->exitWork( *this );
       //partOf.erase(it);
