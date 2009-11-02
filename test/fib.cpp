@@ -73,7 +73,7 @@ int fib ( int n, int d )
          args->n = n;
          args->d = d;
          args->x = &x;
-         nanos::WD * wd = new nanos::WD( new nanos::SMPDD( fib_0 ),args );
+         nanos::WD * wd = new nanos::WD( new nanos::ext::SMPDD( fib_0 ),args );
          wg->addWork( *wd );
          nanos::sys.submit( *wd );
       }
@@ -85,7 +85,7 @@ int fib ( int n, int d )
          args->n = n;
          args->d = d;
          args->x = &y;
-         nanos::WD * wd = new nanos::WD( new nanos::SMPDD( fib_1 ),args );
+         nanos::WD * wd = new nanos::WD( new nanos::ext::SMPDD( fib_1 ),args );
          wg->addWork( *wd );
          nanos::sys.submit( *wd );
       }

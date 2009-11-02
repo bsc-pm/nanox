@@ -26,33 +26,32 @@
 namespace nanos {
 namespace ext {
 
-/*! \class centralizedBarrier
+/*!
     \brief implements a single semaphore barrier
 */
-
-class centralizedBarrier: public Barrier
+class CentralizedBarrier: public Barrier
 {
 
    private:
       Atomic<int> _sem;
 
    public:
-      centralizedBarrier();
+      CentralizedBarrier();
       void init();
       void barrier();
       int getSemValue() { return _sem; }
 };
 
 
-centralizedBarrier::centralizedBarrier(): Barrier()
+CentralizedBarrier::CentralizedBarrier(): Barrier()
 {
    _sem =  0;
 }
 
-void centralizedBarrier::init() {}
+void CentralizedBarrier::init() {}
 
 
-void centralizedBarrier::barrier()
+void CentralizedBarrier::barrier()
 {
    /*! get the number of participants from the team */
    int numParticipants = myThread->getTeam()->size();
@@ -69,7 +68,6 @@ void centralizedBarrier::barrier()
    _sem++;
 
    //the last thread incrementing the sem for the second time puts it at zero
-
    if ( _sem == ( 2*numParticipants ) ) {
       //warning: we do not have atomic assignement, thus we use atomic substraction (see atomic.hpp)
       _sem-( 2*numParticipants );
@@ -79,7 +77,7 @@ void centralizedBarrier::barrier()
 
 Barrier * createCentralizedBarrier()
 {
-   return new centralizedBarrier();
+   return new CentralizedBarrier();
 }
 
 

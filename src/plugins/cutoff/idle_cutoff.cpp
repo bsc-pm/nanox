@@ -23,33 +23,34 @@
 
 #define DEFAULT_CUTOFF_IDLE 5
 
-using namespace nanos;
+namespace nanos {
+namespace ext {
 
 //TODO: only works with 1 scheduling group
 
-class idle_cutoff: public ThrottlePolicy
+class idleThrottle: public ThrottlePolicy
 {
 
    private:
-      int max_idle;
+      int _maxIdle;
 
    public:
-      idle_cutoff() : max_idle( DEFAULT_CUTOFF_IDLE ) {}
+      idleThrottle() : _maxIdle( DEFAULT_CUTOFF_IDLE ) {}
 
       void init() {}
 
-      void setMaxCutoff( int mi ) { max_idle = mi; }
+      void setMaxCutoff( int mi ) { _maxIdle = mi; }
 
       bool throttle();
 
-      ~idle_cutoff() {}
+      ~idleThrottle() {}
 };
 
 
-bool idle_cutoff::throttle()
+bool idleThrottle::throttle()
 {
    //checking if the number of idle tasks is higher than the allowed maximum
-   if ( sys.getIdleNum() > max_idle )  {
+   if ( sys.getIdleNum() > _maxIdle )  {
       verbose0( "Cutoff Policy: avoiding task creation!" );
       return false;
    }
@@ -58,22 +59,23 @@ bool idle_cutoff::throttle()
 }
 
 //factory
-ThrottlePolicy * createIdleCutoff()
+ThrottlePolicy * createIdleThrottle()
 {
-   return new idle_cutoff();
+   return new idleThrottle();
 }
 
 
-
-class IdleCutOffPlugin : public Plugin
+class IdleThrottlePlugin : public Plugin
 {
 
    public:
-      IdleCutOffPlugin() : Plugin( "Idle Threads CutOff Plugin",1 ) {}
+      IdleThrottlePlugin() : Plugin( "Idle Threads Throttling Plugin",1 ) {}
 
       virtual void init() {
-         sys.setCutOffPolicy( createIdleCutoff() );
+         sys.setCutOffPolicy( createIdleThrottle() );
       }
 };
 
-IdleCutOffPlugin NanosXPlugin;
+}}
+
+nanos::ext::IdleThrottlePlugin NanosXPlugin;

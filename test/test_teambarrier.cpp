@@ -7,6 +7,7 @@
 
 using namespace std;
 using namespace nanos;
+using namespace nanos::ext;
 
 #define BARR_NUM 10
 
