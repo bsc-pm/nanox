@@ -37,6 +37,7 @@ typedef void * nanos_team_t;
 typedef void * nanos_thread_t;
 typedef void * nanos_sched_t;
 typedef void * nanos_lock_t;
+typedef void * nanos_dd_t;
 
 // other types
 typedef struct {
@@ -78,7 +79,7 @@ typedef struct {
 } nanos_smp_args_t;
 
 typedef struct {
-  void * (*factory) (void *arg);
+  void * (*factory) (void *prealloc, void *arg);
   void * arg;
 } nanos_device_t;
 
@@ -137,7 +138,7 @@ nanos_err_t nanos_get_num_running_tasks ( int *num );
 void nanos_handle_error ( nanos_err_t err );
 
 // factories
-void * nanos_smp_factory(void *args);
+void * nanos_smp_factory( void *prealloc ,void *args);
 
 // utility macros
 

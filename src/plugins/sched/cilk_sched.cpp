@@ -125,8 +125,6 @@ WD * TaskStealPolicy::atIdle ( BaseThread *thread )
          }
       }
 
-      return NULL;
-
       /*!
          If also the parent is NULL or if someone moved it to another queue while I was trying to steal it, try to steal tasks from other queues
          \warning other queues are checked cyclically: should be random
