@@ -22,7 +22,8 @@
 #include "plugin.hpp"
 #include "system.hpp"
 
-using namespace nanos;
+namespace nanos {
+namespace ext {
 
 /*! class TaskStealData
   * \brief Specialization of SchedulingData class for CILK-like scheduler
@@ -37,7 +38,7 @@ class TaskStealData : public SchedulingData
    protected:
       //  int schId;
       /*! queue of ready tasks to be executed */
-      WDDeque readyQueue;
+      WDDeque _readyQueue;
 
    public:
       // constructor
@@ -81,7 +82,7 @@ class TaskStealPolicy : public SchedulingGroup
 void TaskStealPolicy::queue ( BaseThread *thread, WD &wd )
 {
    TaskStealData *data = ( TaskStealData * ) thread->getSchedulingData();
-   data->readyQueue.push_front ( &wd );
+   data->_readyQueue.push_front ( &wd );
 }
 
 /*! \fn atCreation( BaseThread *thread, WD &newWD )
@@ -110,7 +111,7 @@ WD * TaskStealPolicy::atIdle ( BaseThread *thread )
       First try to schedule the thread with a task from its queue
     */
 
-   if ( ( wd = data->readyQueue.pop_front ( thread ) ) != NULL ) {
+   if ( ( wd = data->_readyQueue.pop_front ( thread ) ) != NULL ) {
       return wd;
    } else {
       /*!
@@ -118,8 +119,8 @@ WD * TaskStealPolicy::atIdle ( BaseThread *thread )
        */
       if ( ( wd = ( thread->getCurrentWD() )->getParent() ) != NULL ) {
          //removing it from the queue. Try to remove from one queue: if someone move it, I stop looking for it to avoid ping-pongs.
-         if ( ( wd->isEnqueued() ) == true && ( ! ( wd )->isTied() || ( wd )->isTiedTo() == thread ) ) { //not in queue = in execution, in queue = not in execution
-            if ( wd->getMyQueue()->removeWD ( wd ) == true ) { //found it!
+         if ( wd->isEnqueued() && ( !wd ->isTied() || wd->isTiedTo() == thread ) ) { //not in queue = in execution, in queue = not in execution
+            if ( wd->getMyQueue()->removeWD( wd ) ) { //found it!
                return wd;
             }
          }
@@ -129,10 +130,13 @@ WD * TaskStealPolicy::atIdle ( BaseThread *thread )
          If also the parent is NULL or if someone moved it to another queue while I was trying to steal it, try to steal tasks from other queues
          \warning other queues are checked cyclically: should be random
        */
-      int newposition = ( ( data->getSchId() ) + 1 ) % getSize();
+      int newposition = data->getSchId();
+      wd = NULL;
 
-      while ( ( newposition != data->getSchId() ) && ( ( wd = ( ( ( TaskStealData * ) ( getMemberData ( newposition ) ) )->readyQueue.pop_back ( thread ) ) ) == NULL ) ) {
+      while ( wd != NULL ) {
          newposition = ( newposition + 1 ) % getSize();
+          if ( newposition != data->getSchId() )
+            wd = (( TaskStealData * ) getMemberData ( newposition ))->_readyQueue.pop_back ( thread );
       }
 
       return wd;
@@ -174,4 +178,7 @@ class CilkSchedPlugin : public Plugin
       }
 };
 
-CilkSchedPlugin NanosXPlugin;
+}
+}
+
+nanos::ext::CilkSchedPlugin NanosXPlugin;

@@ -23,18 +23,20 @@
 #include "system.hpp"
 #include "config.hpp"
 
-using namespace nanos;
+namespace nanos {
+namespace ext {
 
 class BreadthFirstPolicy : public SchedulingGroup
 {
 
    private:
-      WDDeque   readyQueue;
-      bool      useStack;
+      WDDeque   _readyQueue;
+      bool      _useStack;
 
    public:
       // constructor
-      BreadthFirstPolicy( bool stack, int groupSize ) : SchedulingGroup( "breadth-first-sch",groupSize ), useStack( stack ) {}
+      BreadthFirstPolicy( bool stack, int groupSize ) :
+         SchedulingGroup( "breadth-first-sch",groupSize ), _useStack( stack ) {}
 
       // TODO: copy and assigment operations
       // destructor
@@ -47,7 +49,7 @@ class BreadthFirstPolicy : public SchedulingGroup
 
 void BreadthFirstPolicy::queue ( BaseThread *thread, WD &wd )
 {
-   readyQueue.push_back( &wd );
+   _readyQueue.push_back( &wd );
 }
 
 WD * BreadthFirstPolicy::atCreation ( BaseThread *thread, WD &newWD )
@@ -58,9 +60,9 @@ WD * BreadthFirstPolicy::atCreation ( BaseThread *thread, WD &newWD )
 
 WD * BreadthFirstPolicy::atIdle ( BaseThread *thread )
 {
-   if ( useStack ) return readyQueue.pop_back( thread );
+   if ( _useStack ) return _readyQueue.pop_back( thread );
 
-   return readyQueue.pop_front( thread );
+   return _readyQueue.pop_front( thread );
 }
 
 static bool useStack = false;
@@ -88,5 +90,8 @@ class BFSchedPlugin : public Plugin
       }
 };
 
-BFSchedPlugin NanosXPlugin;
+}
+}
+
+nanos::ext::BFSchedPlugin NanosXPlugin;
 
