@@ -53,7 +53,7 @@ void fib_1( void *ptr )
 
 void fib_2( void *ptr )
 {
-   fib_args * args = ( fib_args * )ptr;
+   fib_args * args = ( fib_args * )ptr;   
    *args->x = fib( args->n-2,args->d+1 );
 }
 
@@ -62,7 +62,7 @@ nanos_smp_args_t fib_device_arg_2 = { fib_2 };
 
 nanos_device_t fib_devices_1[] = { {nanos_smp_factory, &fib_device_arg_1 } };
 
-nanos_device_t fib_devices_2[] = { {nanos_smp_factory, &fib_device_arg_1 } };
+nanos_device_t fib_devices_2[] = { {nanos_smp_factory, &fib_device_arg_2 } };
 
 int fib ( int n, int d )
 {
@@ -77,14 +77,18 @@ int fib ( int n, int d )
          nanos_wd_t wd=0;
          fib_args *args=0;
 
-         nanos_wd_props_t props;
-         props.mandatory_creation=true;
+         nanos_wd_props_t props = {
+           .mandatory_creation = true,
+           .tied = false,
+           .tie_to = false,
+         };
 
          NANOS_SAFE( nanos_create_wd ( &wd, 1, fib_devices_1 , sizeof( fib_args ),
                                        ( void ** )&args, nanos_current_wd(), &props ) );
          args->n = n;
          args->d = d;
          args->x = &x;
+         
          NANOS_SAFE( nanos_submit( wd,0,0 ) );
       }
 
@@ -94,15 +98,18 @@ int fib ( int n, int d )
          nanos_wd_t wd=0;
          fib_args *args=0;
 
-         nanos_wd_props_t props;
-         props.mandatory_creation=true;
-
+         nanos_wd_props_t props = {
+           .mandatory_creation = true,
+           .tied = false,
+           .tie_to = false,
+         };
 
          NANOS_SAFE( nanos_create_wd ( &wd, 1, fib_devices_2 , sizeof( fib_args ),
                                        ( void ** )&args, nanos_current_wd(), &props ) );
          args->n = n;
          args->d = d;
          args->x = &y;
+         
          NANOS_SAFE( nanos_submit( wd,0,0 ) );
       }
 

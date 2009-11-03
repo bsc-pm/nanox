@@ -27,11 +27,14 @@
 using namespace nanos;
 
 // TODO: move to dependent part
-void * nanos_smp_factory( void *args )
+void * nanos_smp_factory( void *prealloc, void *args )
 {
    nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
 
-   return ( void * )new ext::SMPDD( smp->outline );
+   if ( prealloc != NULL )
+      return ( void * )new (prealloc) ext::SMPDD( smp->outline );
+   else 
+      return ( void * )new ext::SMPDD( smp->outline );
 }
 
 nanos_wd_t nanos_current_wd()
@@ -62,27 +65,31 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
 #if 0
       // there is problem at destruction with this right now
 
-      int size_to_allocate = ( *uwd == NULL ) ? sizeof( SMPWD ) : 0 +
-                             ( *data == NULL ) ? data_size : 0
+      // FIX-ME: support more than one device, other than SMP
+      int dd_size = sizeof(ext::SMPDD);
+
+      int size_to_allocate = ( *uwd == NULL ) ? sizeof( WD ) : 0 +
+                             ( *data == NULL ) ? data_size : 0 +
+                             dd_size
                              ;
 
       char *chunk=0;
-
-      verbose( "allocating " << data_size );
 
       if ( size_to_allocate )
          chunk = new char[size_to_allocate];
 
       if ( *uwd == NULL ) {
          *uwd = ( nanos_wd_t ) chunk;
-         chunk += sizeof( SMPWD );
+         chunk += sizeof( WD );
       }
 
       if ( *data == NULL ) {
          *data = chunk;
+         chunk += sizeof(data_size);
       }
 
-      WD * wd = new ( *uwd ) SMPWD( ( void ( * ) ( void * ) ) devices[0].factory( &devices[0].factory_args ), *data );
+      DD * dd = ( DD* ) devices[0].factory( chunk , devices[0].arg );
+      WD * wd =  new (*uwd) WD( dd, *data );
 
 #else
       WD *wd;
@@ -91,7 +98,7 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
          *data = new char[data_size];
 
       if ( *uwd ==  NULL )
-         *uwd = wd =  new WD( ( DD* ) devices[0].factory( devices[0].arg ), *data );
+         *uwd = wd =  new WD( ( DD* ) devices[0].factory( 0, devices[0].arg ), *data );
       else
          wd = ( WD * )*uwd;
 
@@ -148,7 +155,8 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
 
       if ( deps != NULL ) warning( "Dependence support not implemented yet" );
 
-      WD wd( ( DD* ) devices[0].factory( devices[0].arg ), data );
+      // TODO: pre-allocate devices
+      WD wd( ( DD* ) devices[0].factory( 0, devices[0].arg ), data );
 
       sys.inlineWork( wd );
 
