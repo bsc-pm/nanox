@@ -25,25 +25,25 @@
 #include "atomic.hpp"
 #include "plugin.hpp"
 
-
-using namespace nanos;
+namespace nanos {
+namespace ext {
 
 /*! \class posixBarrier
     \brief implements a barrier according to a centralized scheme with a posix barrier
 */
 
-class posixBarrier: public Barrier
+class PosixBarrier: public Barrier
 {
 
    private:
-      pthread_barrier_t pBarrier;
+      pthread_barrier_t _pBarrier;
 
    public:
       /*! \warning the creation of the pthread_barrier_t variable will be performed when the barrier function is invoked
                    because only at that time we exectly know the number of participants (which is dynamic, as in a team
                    threads can dynamically enter and exit)
       */
-      posixBarrier() { }
+      PosixBarrier() { }
 
       void init() { }
 
@@ -51,23 +51,22 @@ class posixBarrier: public Barrier
 };
 
 
-void posixBarrier::barrier()
+void PosixBarrier::barrier()
 {
    /*! get the number of participants from the team */
    int numParticipants = myThread->getTeam()->size();
 
    /*! initialize the barrier to the current participant number */
-   pthread_barrier_init ( &pBarrier, NULL, numParticipants );
+   pthread_barrier_init ( &_pBarrier, NULL, numParticipants );
 
-   pthread_barrier_wait( &pBarrier );
+   pthread_barrier_wait( &_pBarrier );
 }
 
 
 Barrier * createPosixBarrier()
 {
-   return new posixBarrier();
+   return new PosixBarrier();
 }
-
 
 /*! \class PosixBarrierPlugin
     \brief plugin of the related posixBarrier class
@@ -85,5 +84,7 @@ class PosixBarrierPlugin : public Plugin
       }
 };
 
-PosixBarrierPlugin NanosXPlugin;
+}}
+
+nanos::ext::PosixBarrierPlugin NanosXPlugin;
 

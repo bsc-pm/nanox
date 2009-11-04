@@ -19,37 +19,41 @@
 
 #include "throttle.hpp"
 
-using namespace nanos;
+namespace nanos {
+namespace ext {
 
-
-class dummy_cutoff: public ThrottlePolicy
+class DummyThrottle: public ThrottlePolicy
 {
 
    private:
-      //we decide one time for all if new tasks are to be created during the execution
-      bool createTask;
-      //if createTask == true, then we have the maximum number of tasks else we have only one task (sequential comp.)
+      /*!
+        we decide once if all new tasks are to be created during the execution
+        if _createTasks is true, then we have the maximum number of tasks else we have only one task (sequential comp.)
+      */
+      bool _createTasks;
+      static const bool _default;
 
    public:
-      dummy_cutoff() : createTask( true ) {}
+      DummyThrottle() : _createTasks( _default ) {}
 
-      void setCreateTask( bool ct ) { createTask = ct; }
-
-      void init() {}
+      void setCreateTask( bool ct ) { _createTasks = ct; }
 
       bool throttle();
 
-      ~dummy_cutoff() {};
+      ~DummyThrottle() {};
 };
 
+const bool DummyThrottle::_default = false;
 
-bool dummy_cutoff::throttle()
+bool DummyThrottle::throttle()
 {
-   return createTask;
+   return _createTasks;
 }
 
 //factory
-ThrottlePolicy * createDummyCutoff()
+DummyThrottle * createDummyThrottle()
 {
-   return new dummy_cutoff();
+   return new DummyThrottle();
 }
+
+}}

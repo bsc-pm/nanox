@@ -33,9 +33,6 @@ nanos_libadd=\
 	-ldl \
 	../arch/@OS@/libos.la \
 	../support/libsupport.la \
-	../plugins/sched/libsched.la \
-	../plugins/cutoff/libcutoff.la \
-	../plugins/barr/libbarrier.la \
 	@NANOS_CONFIG_LIBS@\
 	$(END)
 

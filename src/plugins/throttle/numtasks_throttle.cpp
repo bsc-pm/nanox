@@ -21,35 +21,31 @@
 #include "throttle.hpp"
 #include "plugin.hpp"
 
+namespace nanos {
+namespace ext {
 
-#define DEFAULT_CUTOFF_READY 100
-
-using namespace nanos;
-
-
-class ready_cutoff: public ThrottlePolicy
+class NumTasksThrottle: public ThrottlePolicy
 {
 
    private:
-      int max_ready;
+      int _limit;
+      static const int _defaultLimit;
 
    public:
-      ready_cutoff() : max_ready( DEFAULT_CUTOFF_READY ) {}
+      NumTasksThrottle() : _limit( _defaultLimit ) {}
 
-      void init() {}
-
-      void setMaxCutoff( int mr ) { max_ready = mr; }
+      void setLimit( int mc ) { _limit = mc; }
 
       bool throttle();
 
-      ~ready_cutoff() {}
+      ~NumTasksThrottle() {}
 };
 
+const int NumTasksThrottle::_defaultLimit = 100;
 
-bool ready_cutoff::throttle()
+bool NumTasksThrottle::throttle()
 {
-   //checking if the number of ready tasks is higher than the allowed maximum
-   if ( sys.getReadyNum() > max_ready )  {
+   if ( sys.getTaskNum() > _limit ) {
       verbose0( "Cutoff Policy: avoiding task creation!" );
       return false;
    }
@@ -58,21 +54,22 @@ bool ready_cutoff::throttle()
 }
 
 //factory
-ThrottlePolicy * createReadyCutoff()
+static NumTasksThrottle * createNumTasksThrottle()
 {
-   return new ready_cutoff();
+   return new NumTasksThrottle();
 }
 
-
-class ReadyCutOffPlugin : public Plugin
+class NumTasksThrottlePlugin : public Plugin
 {
 
    public:
-      ReadyCutOffPlugin() : Plugin( "Ready Task CutOff Plugin",1 ) {}
+      NumTasksThrottlePlugin() : Plugin( "Number of Tasks Throttle Plugin",1 ) {}
 
       virtual void init() {
-         sys.setCutOffPolicy( createReadyCutoff() );
+         sys.setThrottlePolicy( createNumTasksThrottle() );
       }
 };
 
-ReadyCutOffPlugin NanosXPlugin;
+}}
+
+nanos::ext::NumTasksThrottlePlugin NanosXPlugin;

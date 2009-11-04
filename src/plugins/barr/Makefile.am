@@ -25,13 +25,6 @@ lib_LTLIBRARIES = \
 	libnanox-barrier-dissemination.la \
 	$(END)
 
-noinst_LTLIBRARIES = libbarrier.la
-
-libbarrier_la_CXXFLAGS= $(common_includes) $(common_cxxflags)
-libbarrier_la_SOURCES = \
-	$(END)
-
-
 libnanox_barrier_centralized_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
 libnanox_barrier_centralized_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_barrier_centralized_la_SOURCES = \

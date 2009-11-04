@@ -28,7 +28,6 @@ namespace nanos
          ThrottlePolicy() {};
          virtual ~ThrottlePolicy() {}
 
-         virtual void init() = 0;
          virtual bool throttle() = 0;
    };
 }

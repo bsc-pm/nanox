@@ -21,37 +21,33 @@
 #include "throttle.hpp"
 #include "plugin.hpp"
 
-#define DEFAULT_CUTOFF_IDLE 5
 
 namespace nanos {
 namespace ext {
 
-//TODO: only works with 1 scheduling group
-
-class idleThrottle: public ThrottlePolicy
+class TaskDepthThrottle: public ThrottlePolicy
 {
 
    private:
-      int _maxIdle;
+      int _limit;
+      static const int _defaultLimit;
 
    public:
-      idleThrottle() : _maxIdle( DEFAULT_CUTOFF_IDLE ) {}
+      TaskDepthThrottle() : _limit( _defaultLimit ) {}
 
-      void init() {}
-
-      void setMaxCutoff( int mi ) { _maxIdle = mi; }
+      void setLimit( int ml ) { _limit = ml; }
 
       bool throttle();
 
-      ~idleThrottle() {}
+      ~TaskDepthThrottle() {}
 };
 
+const int _defaultLimit = 4;
 
-bool idleThrottle::throttle()
+bool TaskDepthThrottle::throttle()
 {
-   //checking if the number of idle tasks is higher than the allowed maximum
-   if ( sys.getIdleNum() > _maxIdle )  {
-      verbose0( "Cutoff Policy: avoiding task creation!" );
+   //checking the parent level of the next work to be created (check >)
+   if ( ( myThread->getCurrentWD() )->getLevel() > _limit )  {
       return false;
    }
 
@@ -59,23 +55,22 @@ bool idleThrottle::throttle()
 }
 
 //factory
-ThrottlePolicy * createIdleThrottle()
+static TaskDepthThrottle * createTaskDepthThrottle()
 {
-   return new idleThrottle();
+   return new TaskDepthThrottle();
 }
 
-
-class IdleThrottlePlugin : public Plugin
+class TaskDepthThrottlePlugin : public Plugin
 {
 
    public:
-      IdleThrottlePlugin() : Plugin( "Idle Threads Throttling Plugin",1 ) {}
+      TaskDepthThrottlePlugin() : Plugin( "Task Tree Level CutOff Plugin",1 ) {}
 
       virtual void init() {
-         sys.setCutOffPolicy( createIdleThrottle() );
+         sys.setThrottlePolicy( createTaskDepthThrottle() );
       }
 };
 
 }}
 
-nanos::ext::IdleThrottlePlugin NanosXPlugin;
+nanos::ext::TaskDepthThrottlePlugin NanosXPlugin;
