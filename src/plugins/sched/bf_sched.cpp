@@ -30,13 +30,14 @@ class BreadthFirstPolicy : public SchedulingGroup
 {
 
    private:
-      WDDeque   _readyQueue;
-      bool      _useStack;
+      WDDeque           _readyQueue;
+      
+   public:
+      static bool      _useStack;
 
    public:
       // constructor
-      BreadthFirstPolicy( bool stack, int groupSize ) :
-         SchedulingGroup( "breadth-first-sch",groupSize ), _useStack( stack ) {}
+      BreadthFirstPolicy( int groupSize ) : SchedulingGroup( "breadth-first-sch",groupSize ) {}
 
       // TODO: copy and assigment operations
       // destructor
@@ -65,12 +66,12 @@ WD * BreadthFirstPolicy::atIdle ( BaseThread *thread )
    return _readyQueue.pop_front( thread );
 }
 
-static bool useStack = false;
+bool BreadthFirstPolicy::_useStack = false;
 
 // Factory
-SchedulingGroup * createBreadthFirstPolicy ( int groupSize )
+static SchedulingGroup * createBreadthFirstPolicy ( int groupSize )
 {
-   return new BreadthFirstPolicy( useStack,groupSize );
+   return new BreadthFirstPolicy( groupSize );
 }
 
 class BFSchedPlugin : public Plugin
@@ -82,8 +83,8 @@ class BFSchedPlugin : public Plugin
       virtual void init() {
          Config config;
 
-         config.registerArgOption( new Config::FlagOption( "nth-bf-use-stack",useStack ) );
-         config.registerArgOption( new Config::FlagOption( "nth-bf-stack",useStack ) );
+         config.registerArgOption( new Config::FlagOption( "nth-bf-use-stack",BreadthFirstPolicy::_useStack ) );
+         config.registerArgOption( new Config::FlagOption( "nth-bf-stack",BreadthFirstPolicy::_useStack ) );
          config.init();
 
          sys.setDefaultSGFactory( createBreadthFirstPolicy );

@@ -35,8 +35,8 @@ class TaskStealData : public SchedulingData
 
       friend class TaskStealPolicy;
 
-   protected:
-      //  int schId;
+   private:
+
       /*! queue of ready tasks to be executed */
       WDDeque _readyQueue;
 
@@ -119,7 +119,8 @@ WD * TaskStealPolicy::atIdle ( BaseThread *thread )
        */
       if ( ( wd = ( thread->getCurrentWD() )->getParent() ) != NULL ) {
          //removing it from the queue. Try to remove from one queue: if someone move it, I stop looking for it to avoid ping-pongs.
-         if ( wd->isEnqueued() && ( !wd ->isTied() || wd->isTiedTo() == thread ) ) { //not in queue = in execution, in queue = not in execution
+         if ( wd->isEnqueued() && ( !wd ->isTied() || wd->isTiedTo() == thread ) ) {
+            //not in queue = in execution, in queue = not in execution
             if ( wd->getMyQueue()->removeWD( wd ) ) { //found it!
                return wd;
             }

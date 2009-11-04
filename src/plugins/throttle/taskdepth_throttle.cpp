@@ -47,7 +47,7 @@ const int _defaultLimit = 4;
 bool TaskDepthThrottle::throttle()
 {
    //checking the parent level of the next work to be created (check >)
-   if ( ( myThread->getCurrentWD() )->getLevel() > _limit )  {
+   if ( ( myThread->getCurrentWD() )->getDepth() > _limit )  {
       return false;
    }
 

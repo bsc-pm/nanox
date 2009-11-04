@@ -185,7 +185,7 @@ System::~System ()
 void System::submit ( WD &work )
 {
    work.setParent ( myThread->getCurrentWD() );
-   work.setLevel( work.getParent()->getLevel() +1 );
+   work.setDepth( work.getParent()->getDepth() +1 );
    Scheduler::submit ( work );
 }
 

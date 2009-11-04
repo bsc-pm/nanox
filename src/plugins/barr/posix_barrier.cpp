@@ -28,7 +28,7 @@
 namespace nanos {
 namespace ext {
 
-/*! \class posixBarrier
+/*!
     \brief implements a barrier according to a centralized scheme with a posix barrier
 */
 
