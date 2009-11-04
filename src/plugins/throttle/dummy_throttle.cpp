@@ -18,6 +18,8 @@
 /*************************************************************************************/
 
 #include "throttle.hpp"
+#include "plugin.hpp"
+#include "system.hpp"
 
 namespace nanos {
 namespace ext {
@@ -56,4 +58,17 @@ DummyThrottle * createDummyThrottle()
    return new DummyThrottle();
 }
 
+class DummyThrottlePlugin : public Plugin
+{
+
+   public:
+      DummyThrottlePlugin() : Plugin( "Simple (all/nothing) Throttle Plugin",1 ) {}
+
+      virtual void init() {
+         sys.setThrottlePolicy( createDummyThrottle() );
+      }
+};
+
 }}
+
+nanos::ext::DummyThrottlePlugin NanosXPlugin;
