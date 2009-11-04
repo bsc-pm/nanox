@@ -107,10 +107,16 @@ switchStacks:
 // *** r7, r6, r5, r4      ***
 // *** saving unat caller  ***
 // ***************************
+	LOCAL_STACK_INDEX=0
 	add  ptr1b = 16,ptr1
+
+        .mem.offset 8,LOCAL_STACK_INDEX
 	st8.spill [ptr2] = r7, 16 ;;
-	st8.spill [ptr1b] = r6,16
+        .mem.offset 16,LOCAL_STACK_INDEX
+	st8.spill [ptr1b] = r6,16 
+        .mem.offset 24,LOCAL_STACK_INDEX
 	st8.spill [ptr2] = r5, 16  ;;
+        .mem.offset 32,LOCAL_STACK_INDEX
 	st8.spill [ptr1b] = r4,16
 	st8 [ptr2] = saved_unat,16 ;;
 // ****************************
