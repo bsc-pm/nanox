@@ -102,7 +102,7 @@ AC_CONFIG_FILES([Makefile
 		 src/support/Makefile
 		 src/plugins/Makefile
 		 src/plugins/sched/Makefile
-		 src/plugins/cutoff/Makefile
+		 src/plugins/throttle/Makefile
 		 src/plugins/barr/Makefile
 		 src/apis/Makefile
 		 src/apis/c/Makefile

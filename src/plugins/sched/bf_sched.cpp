@@ -23,18 +23,21 @@
 #include "system.hpp"
 #include "config.hpp"
 
-using namespace nanos;
+namespace nanos {
+namespace ext {
 
 class BreadthFirstPolicy : public SchedulingGroup
 {
 
    private:
-      WDDeque   readyQueue;
-      bool      useStack;
+      WDDeque           _readyQueue;
+      
+   public:
+      static bool      _useStack;
 
    public:
       // constructor
-      BreadthFirstPolicy( bool stack, int groupSize ) : SchedulingGroup( "breadth-first-sch",groupSize ), useStack( stack ) {}
+      BreadthFirstPolicy( int groupSize ) : SchedulingGroup( "breadth-first-sch",groupSize ) {}
 
       // TODO: copy and assigment operations
       // destructor
@@ -47,7 +50,7 @@ class BreadthFirstPolicy : public SchedulingGroup
 
 void BreadthFirstPolicy::queue ( BaseThread *thread, WD &wd )
 {
-   readyQueue.push_back( &wd );
+   _readyQueue.push_back( &wd );
 }
 
 WD * BreadthFirstPolicy::atCreation ( BaseThread *thread, WD &newWD )
@@ -58,17 +61,17 @@ WD * BreadthFirstPolicy::atCreation ( BaseThread *thread, WD &newWD )
 
 WD * BreadthFirstPolicy::atIdle ( BaseThread *thread )
 {
-   if ( useStack ) return readyQueue.pop_back( thread );
+   if ( _useStack ) return _readyQueue.pop_back( thread );
 
-   return readyQueue.pop_front( thread );
+   return _readyQueue.pop_front( thread );
 }
 
-static bool useStack = false;
+bool BreadthFirstPolicy::_useStack = false;
 
 // Factory
-SchedulingGroup * createBreadthFirstPolicy ( int groupSize )
+static SchedulingGroup * createBreadthFirstPolicy ( int groupSize )
 {
-   return new BreadthFirstPolicy( useStack,groupSize );
+   return new BreadthFirstPolicy( groupSize );
 }
 
 class BFSchedPlugin : public Plugin
@@ -80,13 +83,16 @@ class BFSchedPlugin : public Plugin
       virtual void init() {
          Config config;
 
-         config.registerArgOption( new Config::FlagOption( "nth-bf-use-stack",useStack ) );
-         config.registerArgOption( new Config::FlagOption( "nth-bf-stack",useStack ) );
+         config.registerArgOption( new Config::FlagOption( "nth-bf-use-stack",BreadthFirstPolicy::_useStack ) );
+         config.registerArgOption( new Config::FlagOption( "nth-bf-stack",BreadthFirstPolicy::_useStack ) );
          config.init();
 
          sys.setDefaultSGFactory( createBreadthFirstPolicy );
       }
 };
 
-BFSchedPlugin NanosXPlugin;
+}
+}
+
+nanos::ext::BFSchedPlugin NanosXPlugin;
 

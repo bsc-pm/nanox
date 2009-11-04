@@ -20,39 +20,32 @@
 include $(top_srcdir)/src/common.am
 
 lib_LTLIBRARIES = \
-	libnanox-cutoff-tasknum.la \
-	libnanox-cutoff-idle.la \
-	libnanox-cutoff-level.la \
-	libnanox-cutoff-ready.la \
+	libnanox-throttle-numtasks.la \
+	libnanox-throttle-idlethreads.la \
+	libnanox-throttle-taskdepth.la \
+	libnanox-throttle-readytasks.la \
 	$(END)
 
-noinst_LTLIBRARIES = libcutoff.la
-
-libcutoff_la_CXXFLAGS= $(common_includes) $(common_cxxflags)
-libcutoff_la_SOURCES = \
-	dummy_cutoff.cpp \
-	$(END)
-
-libnanox_cutoff_tasknum_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
-libnanox_cutoff_tasknum_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_cutoff_tasknum_la_SOURCES = \
-        tasknum_cutoff.cpp \
+libnanox_throttle_numtasks_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
+libnanox_throttle_numtasks_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_throttle_numtasks_la_SOURCES = \
+        numtasks_throttle.cpp \
         $(END)
 
-libnanox_cutoff_idle_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
-libnanox_cutoff_idle_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_cutoff_idle_la_SOURCES = \
-        idle_cutoff.cpp \
+libnanox_throttle_idlethreads_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
+libnanox_throttle_idlethreads_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_throttle_idlethreads_la_SOURCES = \
+        idlethreads_throttle.cpp \
         $(END)
 
-libnanox_cutoff_level_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
-libnanox_cutoff_level_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_cutoff_level_la_SOURCES = \
-        level_cutoff.cpp \
+libnanox_throttle_taskdepth_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
+libnanox_throttle_taskdepth_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_throttle_taskdepth_la_SOURCES = \
+        taskdepth_throttle.cpp \
         $(END)
 
-libnanox_cutoff_ready_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
-libnanox_cutoff_ready_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_cutoff_ready_la_SOURCES = \
-        ready_cutoff.cpp \
+libnanox_throttle_readytasks_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
+libnanox_throttle_readytasks_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_throttle_readytasks_la_SOURCES = \
+        readytasks_throttle.cpp \
         $(END)

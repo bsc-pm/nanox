@@ -22,35 +22,32 @@
 #include "plugin.hpp"
 
 
-#define DEFAULT_CUTOFF_LEVEL 2
+namespace nanos {
+namespace ext {
 
-using namespace nanos;
-
-
-class level_cutoff: public ThrottlePolicy
+class ReadyTasksThrottle : public ThrottlePolicy
 {
-
    private:
-      int max_level;
+      int _limit;
+      static const int _defaultLimit;
 
    public:
-      level_cutoff() : max_level( DEFAULT_CUTOFF_LEVEL ) {}
+      ReadyTasksThrottle() : _limit( _defaultLimit ) {}
 
-      void init() {}
-
-      void setMaxCutoff( int ml ) { max_level = ml; }
+      void setLimit( int mr ) { _limit = mr; }
 
       bool throttle();
 
-      ~level_cutoff() {}
+      ~ReadyTasksThrottle() {}
 };
 
+const int ReadyTasksThrottle::_defaultLimit = 100;
 
-bool level_cutoff::throttle()
+bool ReadyTasksThrottle::throttle()
 {
-   //checking the parent level of the next work to be created (check >)
-   if ( ( myThread->getCurrentWD() )->getLevel() > max_level )  {
-      verbose0( "Cutoff Policy: avoiding task creation!" );
+   //checking if the number of ready tasks is higher than the allowed maximum
+   if ( sys.getReadyNum() > _limit )  {
+      verbose0( "Throttle Policy: avoiding task creation!" );
       return false;
    }
 
@@ -58,21 +55,22 @@ bool level_cutoff::throttle()
 }
 
 //factory
-ThrottlePolicy * createLevelCutoff()
+static ReadyTasksThrottle * createReadyTasksThrottle()
 {
-   return new level_cutoff();
+   return new ReadyTasksThrottle();
 }
 
-
-class LevelCutOffPlugin : public Plugin
+class ReadyTasksThrottlePlugin : public Plugin
 {
 
    public:
-      LevelCutOffPlugin() : Plugin( "Task Tree Level CutOff Plugin",1 ) {}
+      ReadyTasksThrottlePlugin() : Plugin( "Ready Task Throttle Plugin",1 ) {}
 
       virtual void init() {
-         sys.setCutOffPolicy( createLevelCutoff() );
+         sys.setThrottlePolicy( createReadyTasksThrottle() );
       }
 };
 
-LevelCutOffPlugin NanosXPlugin;
+}}
+
+nanos::ext::ReadyTasksThrottlePlugin NanosXPlugin;

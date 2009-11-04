@@ -25,12 +25,6 @@ lib_LTLIBRARIES = \
 	libnanox-sched-bf.la \
 	$(END)
 
-noinst_LTLIBRARIES = libsched.la
-
-libsched_la_CXXFLAGS= $(common_includes) $(common_cxxflags)
-libsched_la_SOURCES = \
-	$(END) 
-
 libnanox_sched_bf_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
 libnanox_sched_bf_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_sched_bf_la_SOURCES = \

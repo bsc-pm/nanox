@@ -58,7 +58,7 @@ namespace nanos
          int                  _thsPerPE;
 
          //cutoff policy and related variables
-         ThrottlePolicy *             _cutOffPolicy;
+         ThrottlePolicy *     _throttlePolicy;
          Atomic<int>          _taskNum;
          Atomic<int>          _numReady;
          Atomic<int>          _idleThreads;
@@ -66,7 +66,7 @@ namespace nanos
 
          /*! names of the scheduling, cutoff and barrier plugins */
          std::string          _defSchedule;
-         std::string          _defCutoff;
+         std::string          _defThrottlePolicy;
          std::string          _defBarr;
 
          /*! factories for scheduling, pes and barriers objects */
@@ -131,13 +131,13 @@ namespace nanos
          //BUG: does not work: sigsegv on myThread
          int getSGSize() const { return myThread->getSchedulingGroup()->getSize(); }
 
-         void setCutOffPolicy( ThrottlePolicy * co ) { _cutOffPolicy = co; }
+         void setThrottlePolicy( ThrottlePolicy * policy ) { _throttlePolicy = policy; }
 
          bool throttleTask();
 
          const std::string & getDefaultSchedule() const { return _defSchedule; }
 
-         const std::string & getDefaultCutoff() const { return _defCutoff; }
+         const std::string & getDefaultThrottlePolicy() const { return _defThrottlePolicy; }
 
          const std::string & getDefaultBarrier() const { return _defBarr; }
 

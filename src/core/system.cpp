@@ -30,7 +30,7 @@ System nanos::sys;
 // default system values go here
 System::System () : _numPEs( 1 ), _deviceStackSize( 1024 ), _bindThreads( true ), _profile( false ), _instrument( false ),
       _verboseMode( false ), _executionMode( DEDICATED ), _thsPerPE( 1 ),
-      _defSchedule( "cilk" ), _defCutoff( "tasknum" ), _defBarr( "centralized" )
+      _defSchedule( "cilk" ), _defThrottlePolicy( "numtasks" ), _defBarr( "centralized" )
 {
    verbose0 ( "NANOS++ initalizing... start" );
    config();
@@ -61,10 +61,8 @@ void System::loadModules ()
 
    verbose0( "loading defult cutoff policy" );
 
-   if ( !PluginManager::load( "cutoff-"+getDefaultCutoff() ) )
+   if ( !PluginManager::load( "throttle-"+getDefaultThrottlePolicy() ) )
       fatal0( "Could not load main cutoff policy" );
-
-
 
    verbose0( "loading default barrier algorithm" );
 
@@ -101,12 +99,11 @@ void System::config ()
    config.registerArgOption ( new Config::StringVar ( "nth-schedule", _defSchedule ) );
    config.registerEnvOption ( new Config::StringVar ( "NTH_SCHEDULE", _defSchedule ) );
 
-   config.registerArgOption ( new Config::StringVar ( "nth-cutoff", _defCutoff ) );
-   config.registerEnvOption ( new Config::StringVar ( "NTH_CUTOFF", _defCutoff ) );
+   config.registerArgOption ( new Config::StringVar ( "nth-throttle", _defThrottlePolicy ) );
+   config.registerEnvOption ( new Config::StringVar ( "NTH_TROTTLE", _defThrottlePolicy ) );
 
    config.registerArgOption ( new Config::StringVar ( "nth-barrier", _defBarr ) );
    config.registerEnvOption ( new Config::StringVar ( "NTH_BARRIER", _defBarr ) );
-
 
    verbose0 ( "Reading Configuration" );
    config.init();
@@ -129,7 +126,6 @@ void System::start ()
    _pes.reserve ( numPes );
 
    SchedulingGroup *sg = _defSGFactory( numPes*getThsPerPE() );
-
 
    //TODO: decide, single master, multiple master start
    PE *pe = createPE ( "smp", 0 );
@@ -189,7 +185,7 @@ System::~System ()
 void System::submit ( WD &work )
 {
    work.setParent ( myThread->getCurrentWD() );
-   work.setLevel( work.getParent()->getLevel() +1 );
+   work.setDepth( work.getParent()->getDepth() +1 );
    Scheduler::submit ( work );
 }
 
@@ -205,7 +201,7 @@ void System::inlineWork ( WD &work )
 
 bool System::throttleTask()
 {
-   return _cutOffPolicy->throttle();
+   return _throttlePolicy->throttle();
 }
 
 
