@@ -41,7 +41,7 @@ nanos_err_t nanos_create_team( nanos_team_t *team, nanos_sched_t sp, unsigned in
       return NANOS_UNKNOWN_ERR;
    }
 
-   return NANOS_UNIMPLEMENTED;
+   return NANOS_OK;
 }
 
 nanos_err_t nanos_create_team_mapped ( nanos_team_t *team, nanos_sched_t sg, unsigned int *nthreads,
