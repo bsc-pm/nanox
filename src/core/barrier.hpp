@@ -32,7 +32,9 @@ namespace nanos
          Barrier() {}
          virtual ~Barrier() {}
 
-         virtual void init() = 0;
+         //removed init: it is not used in any barrier
+         //virtual void init() = 0;
+
          virtual void barrier() = 0;
    };
 

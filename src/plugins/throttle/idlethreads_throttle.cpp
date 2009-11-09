@@ -20,6 +20,7 @@
 #include "system.hpp"
 #include "throttle.hpp"
 #include "plugin.hpp"
+#include "config.hpp"
 
 namespace nanos {
    namespace ext {
@@ -28,13 +29,15 @@ namespace nanos {
 
       class IdleThreadsThrottle: public ThrottlePolicy
       {
-
          private:
             int _limit;
-            static const int _defaultLimit;
 
          public:
-            IdleThreadsThrottle() : {}
+            //the default limit must be public to be referred in the plugin class
+            static const int _defaultLimit;
+
+            IdleThreadsThrottle() {}
+            IdleThreadsThrottle( int actualLimit ) : _limit(actualLimit) {}
 
             void init() {}
 
@@ -46,7 +49,6 @@ namespace nanos {
       };
 
       const int IdleThreadsThrottle::_defaultLimit = 0;
-
 
       bool IdleThreadsThrottle::throttle()
       {
@@ -60,10 +62,11 @@ namespace nanos {
       }
 
       //factory
-      static IdleThreadsThrottle * createIdleThrottle()
+      static IdleThreadsThrottle * createIdleThrottle( int actualLimit )
       {
-         return new IdleThreadsThrottle();
+         return new IdleThreadsThrottle( actualLimit );
       }
+
 
       class IdleThreadsThrottlePlugin : public Plugin
       {
@@ -72,8 +75,17 @@ namespace nanos {
             IdleThreadsThrottlePlugin() : Plugin( "Idle Threads Throttling Plugin",1 ) {}
 
             virtual void init() {
-               config.registerArgOption( new Config::FlagOption( "nth-throttle-limit", IdleThreadsThrottle::_limit ) );
-               sys.setThrottlePolicy( createIdleThrottle() );
+               Config config;
+
+               int actualLimit = -1;
+               config.registerArgOption( new Config::PositiveVar( "nth-throttle-limit", actualLimit ) );
+
+               if( actualLimit != -1 )
+                  sys.setThrottlePolicy( createIdleThrottle( IdleThreadsThrottle::_defaultLimit ) );
+               else
+                  sys.setThrottlePolicy( createIdleThrottle( actualLimit ) );
+
+               config.init();
             }
       };
 

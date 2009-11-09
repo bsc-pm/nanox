@@ -11,9 +11,7 @@ using namespace nanos::ext;
 
 void operExecutor ( void * arg )
 {
-   int * arg
-   int cop = ( int ) ( ( *( int * ) arg ) );
-
+   int cop = -1;
    while ( true ) {
       switch ( cop ) {
       case 1: { printf( "first operation" ); break; }
