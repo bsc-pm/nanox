@@ -20,6 +20,8 @@
 #include "system.hpp"
 #include "throttle.hpp"
 #include "plugin.hpp"
+#include "config.hpp"
+
 
 namespace nanos {
    namespace ext {
@@ -33,6 +35,7 @@ namespace nanos {
 
          public:
             NumTasksThrottle() : _limit( _defaultLimit ) {}
+            NumTasksThrottle( int actualLimit ) : _limit( actualLimit ) {}
 
             void setLimit( int mc ) { _limit = mc; }
 
@@ -59,6 +62,13 @@ namespace nanos {
          return new NumTasksThrottle();
       }
 
+      //factory
+      static NumTasksThrottle * createNumTasksThrottle( int actualLimit )
+      {
+         return new NumTasksThrottle( actualLimit );
+      }
+
+
       class NumTasksThrottlePlugin : public Plugin
       {
 
@@ -66,7 +76,18 @@ namespace nanos {
             NumTasksThrottlePlugin() : Plugin( "Number of Tasks Throttle Plugin",1 ) {}
 
             virtual void init() {
-               sys.setThrottlePolicy( createNumTasksThrottle() );
+               Config config;
+
+               int actualLimit = -1;
+               config.registerArgOption( new Config::PositiveVar( "nth-throttle-limit", actualLimit ) );
+
+               if( actualLimit != -1 )
+                  sys.setThrottlePolicy( createNumTasksThrottle() );
+               else
+                  sys.setThrottlePolicy( createNumTasksThrottle( actualLimit ) );
+
+               config.init();
+
             }
       };
 

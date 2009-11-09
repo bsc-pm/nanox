@@ -62,7 +62,7 @@ namespace nanos {
      {
        public:
          DummyThrottlePlugin() : Plugin( "Simple (all/nothing) Throttle Plugin",1 ) {}
-        
+
          virtual void init() {
            sys.setThrottlePolicy( createDummyThrottle() );
          }
