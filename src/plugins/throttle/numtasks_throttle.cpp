@@ -22,54 +22,55 @@
 #include "plugin.hpp"
 
 namespace nanos {
-namespace ext {
+   namespace ext {
 
-class NumTasksThrottle: public ThrottlePolicy
-{
+      class NumTasksThrottle: public ThrottlePolicy
+      {
 
-   private:
-      int _limit;
-      static const int _defaultLimit;
+         private:
+            int _limit;
+            static const int _defaultLimit;
 
-   public:
-      NumTasksThrottle() : _limit( _defaultLimit ) {}
+         public:
+            NumTasksThrottle() : _limit( _defaultLimit ) {}
 
-      void setLimit( int mc ) { _limit = mc; }
+            void setLimit( int mc ) { _limit = mc; }
 
-      bool throttle();
+            bool throttle();
 
-      ~NumTasksThrottle() {}
-};
+            ~NumTasksThrottle() {}
+      };
 
-const int NumTasksThrottle::_defaultLimit = 100;
+      const int NumTasksThrottle::_defaultLimit = 100;
 
-bool NumTasksThrottle::throttle()
-{
-   if ( sys.getTaskNum() > _limit ) {
-      verbose0( "Cutoff Policy: avoiding task creation!" );
-      return false;
-   }
+      bool NumTasksThrottle::throttle()
+      {
+         if ( sys.getTaskNum() > _limit ) {
+            verbose0( "Cutoff Policy: avoiding task creation!" );
+            return false;
+         }
 
-   return true;
-}
-
-//factory
-static NumTasksThrottle * createNumTasksThrottle()
-{
-   return new NumTasksThrottle();
-}
-
-class NumTasksThrottlePlugin : public Plugin
-{
-
-   public:
-      NumTasksThrottlePlugin() : Plugin( "Number of Tasks Throttle Plugin",1 ) {}
-
-      virtual void init() {
-         sys.setThrottlePolicy( createNumTasksThrottle() );
+         return true;
       }
-};
 
-}}
+      //factory
+      static NumTasksThrottle * createNumTasksThrottle()
+      {
+         return new NumTasksThrottle();
+      }
+
+      class NumTasksThrottlePlugin : public Plugin
+      {
+
+         public:
+            NumTasksThrottlePlugin() : Plugin( "Number of Tasks Throttle Plugin",1 ) {}
+
+            virtual void init() {
+               sys.setThrottlePolicy( createNumTasksThrottle() );
+            }
+      };
+
+   }
+}
 
 nanos::ext::NumTasksThrottlePlugin NanosXPlugin;

@@ -23,54 +23,55 @@
 
 
 namespace nanos {
-namespace ext {
+   namespace ext {
 
-class TaskDepthThrottle: public ThrottlePolicy
-{
+      class TaskDepthThrottle: public ThrottlePolicy
+      {
 
-   private:
-      int _limit;
-      static const int _defaultLimit;
+         private:
+            int _limit;
+            static const int _defaultLimit;
 
-   public:
-      TaskDepthThrottle() : _limit( _defaultLimit ) {}
+         public:
+            TaskDepthThrottle() : _limit( _defaultLimit ) {}
 
-      void setLimit( int ml ) { _limit = ml; }
+            void setLimit( int ml ) { _limit = ml; }
 
-      bool throttle();
+            bool throttle();
 
-      ~TaskDepthThrottle() {}
-};
+            ~TaskDepthThrottle() {}
+      };
 
-const int _defaultLimit = 4;
+      const int _defaultLimit = 4;
 
-bool TaskDepthThrottle::throttle()
-{
-   //checking the parent level of the next work to be created (check >)
-   if ( ( myThread->getCurrentWD() )->getDepth() > _limit )  {
-      return false;
-   }
+      bool TaskDepthThrottle::throttle()
+      {
+         //checking the parent level of the next work to be created (check >)
+         if ( ( myThread->getCurrentWD() )->getDepth() > _limit )  {
+            return false;
+         }
 
-   return true;
-}
-
-//factory
-static TaskDepthThrottle * createTaskDepthThrottle()
-{
-   return new TaskDepthThrottle();
-}
-
-class TaskDepthThrottlePlugin : public Plugin
-{
-
-   public:
-      TaskDepthThrottlePlugin() : Plugin( "Task Tree Level CutOff Plugin",1 ) {}
-
-      virtual void init() {
-         sys.setThrottlePolicy( createTaskDepthThrottle() );
+         return true;
       }
-};
 
-}}
+      //factory
+      static TaskDepthThrottle * createTaskDepthThrottle()
+      {
+         return new TaskDepthThrottle();
+      }
+
+      class TaskDepthThrottlePlugin : public Plugin
+      {
+
+         public:
+            TaskDepthThrottlePlugin() : Plugin( "Task Tree Level CutOff Plugin",1 ) {}
+
+            virtual void init() {
+               sys.setThrottlePolicy( createTaskDepthThrottle() );
+            }
+      };
+
+   }
+}
 
 nanos::ext::TaskDepthThrottlePlugin NanosXPlugin;

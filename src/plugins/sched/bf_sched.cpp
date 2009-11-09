@@ -44,7 +44,7 @@ namespace nanos {
             virtual ~BreadthFirstPolicy() {}
 
             virtual WD *atCreation ( BaseThread *thread, WD &newWD );
-          virtual WD *atIdle ( BaseThread *thread );
+            virtual WD *atIdle ( BaseThread *thread );
             virtual void queue ( BaseThread *thread, WD &wd );
       };
 

@@ -26,65 +26,65 @@
 #include "plugin.hpp"
 
 namespace nanos {
-namespace ext {
+   namespace ext {
 
-/*!
-    \brief implements a barrier according to a centralized scheme with a posix barrier
-*/
+      /*! \class PosixBarrier
+       *  \brief implements a barrier according to a centralized scheme with a posix barrier
+       */
+      class PosixBarrier: public Barrier
+      {
 
-class PosixBarrier: public Barrier
-{
+         private:
+            pthread_barrier_t _pBarrier;
 
-   private:
-      pthread_barrier_t _pBarrier;
+         public:
+            /*! \warning the creation of the pthread_barrier_t variable will be performed when the barrier function is invoked
+             *      because only at that time we exectly know the number of participants (which is dynamic, as in a team
+             *      threads can dynamically enter and exit)
+             */
+            PosixBarrier() { }
 
-   public:
-      /*! \warning the creation of the pthread_barrier_t variable will be performed when the barrier function is invoked
-                   because only at that time we exectly know the number of participants (which is dynamic, as in a team
-                   threads can dynamically enter and exit)
-      */
-      PosixBarrier() { }
+            void init() { }
 
-      void init() { }
-
-      void barrier();
-};
-
-
-void PosixBarrier::barrier()
-{
-   /*! get the number of participants from the team */
-   int numParticipants = myThread->getTeam()->size();
-
-   /*! initialize the barrier to the current participant number */
-   pthread_barrier_init ( &_pBarrier, NULL, numParticipants );
-
-   pthread_barrier_wait( &_pBarrier );
-}
+            void barrier();
+            ~PosixBarrier() { }
+       };
 
 
-Barrier * createPosixBarrier()
-{
-   return new PosixBarrier();
-}
+      void PosixBarrier::barrier()
+      {
+         /*! get the number of participants from the team */
+         int numParticipants = myThread->getTeam()->size();
 
-/*! \class PosixBarrierPlugin
-    \brief plugin of the related posixBarrier class
-    \see posixBarrier
-*/
+         /*! initialize the barrier to the current participant number */
+         pthread_barrier_init ( &_pBarrier, NULL, numParticipants );
 
-class PosixBarrierPlugin : public Plugin
-{
-
-   public:
-      PosixBarrierPlugin() : Plugin( "Posix Barrier Plugin",1 ) {}
-
-      virtual void init() {
-         sys.setDefaultBarrFactory( createPosixBarrier );
+         pthread_barrier_wait( &_pBarrier );
       }
-};
 
-}}
+
+      Barrier * createPosixBarrier()
+      {
+         return new PosixBarrier();
+      }
+
+      /*! \class PosixBarrierPlugin
+       *  \brief plugin of the related posixBarrier class
+       *  \see posixBarrier
+       */
+      class PosixBarrierPlugin : public Plugin
+      {
+
+         public:
+            PosixBarrierPlugin() : Plugin( "Posix Barrier Plugin",1 ) {}
+
+            virtual void init() {
+               sys.setDefaultBarrFactory( createPosixBarrier );
+            }
+      };
+
+   }
+}
 
 nanos::ext::PosixBarrierPlugin NanosXPlugin;
 

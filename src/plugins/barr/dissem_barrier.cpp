@@ -29,123 +29,123 @@
 using namespace std;
 
 namespace nanos {
-namespace ext {
-   
-/*!
-   \class disseminationBarrier
-   \brief implements a barrier according to the dissemination algorithm
-
- */
-
-class DisseminationBarrier: public Barrier
-{
-
-   private:
-      /*! the semaphores are implemented with a vector of atomic integers, because their number can change in successive
-          invocations of the barrier method */
-      vector<Atomic<int> > _semaphores;
-
-   public:
-      /*! \warning the creation of the pthread_barrier_t variable will be performed when the barrier function is invoked
-                   because only at that time we exectly know the number of participants (which is dynamic, as in a team
-                   threads can dynamically enter and exit)
-      */
-      DisseminationBarrier() { }
-
-      void init() { }
-
-      void barrier();
-      void barrier( int id );
-};
-
-
-void DisseminationBarrier::barrier()
-{
-   int myID = -1;
-   int numParticipants = myThread->getTeam()->size();
-   /*! q is the log of threadNum */
-   int q;
-
-   /*! initialize the barrier to the current participant number */
-   _semaphores.resize( numParticipants );
-
-   /*! now we can compute the number of steps of the algorithm */
-   q = ( int ) ceil( log2( ( double ) numParticipants ) );
-
-
-   for ( int s = 0; s < q; s++ ) {
-      int toSign = ( myID + ( int ) pow( 2,s ) ) % numParticipants;
-      ( _semaphores[toSign] )--;
-
-      while ( _semaphores[myID] != 0 ) {}
-
-      if ( s < q ) {
-         //reset the semaphore for the next round
-         _semaphores[myID]++; //notice that we allow another thread to signal it before we reset it (not set to 1!)
-      }
-   }
-
-   //reset the semaphore for the next barrier
-   //warning: as we do not have an atomic assignement, we use the substraction operation
-   _semaphores[myID]-1;
-}
-
-
-void DisseminationBarrier::barrier( int myID )
-{
-   /*! get the number of participants from the team */
-   int numParticipants = myThread->getTeam()->size();
-   /*! q is the log of threadNum */
-   int q;
-
-   /*! initialize the barrier to the current participant number */
-   _semaphores.resize( numParticipants );
-
-   /*! now we can compute the number of steps of the algorithm */
-   q = ( int ) ceil( log2( ( double ) numParticipants ) );
-
-   for ( int s = 0; s < q; s++ ) {
-      //compute the current step neighbour id
-      int toSign = ( myID + ( int ) pow( 2,s ) ) % numParticipants;
-
-      //wait for the neighbour sem to reach the previous value
-      Scheduler::blockOnCondition( &_semaphores[toSign].override(), 0 );
-      ( _semaphores[toSign] )--;
+   namespace ext {
 
       /*!
-         Wait for the semaphore to be signaled for this round
-         (check if it reached the number of step signals (+1 because the for starts from 0 for a correct computation of
-         neighbours)
+       *  \class disseminationBarrier
+       *  \brief implements a barrier according to the dissemination algorithm
        */
-      Scheduler::blockOnCondition( &_semaphores[myID].override(), -1 );
-      // is this ++?
-      ( _semaphores[myID] ) + 1;
-   }
 
-   /*! at the end of the protocol, we are guaranteed that the semaphores are all 0 */
-}
+      class DisseminationBarrier: public Barrier
+      {
 
-Barrier * createDisseminationBarrier()
-{
-   return new DisseminationBarrier();
-}
+         private:
+            /*! the semaphores are implemented with a vector of atomic integers, because their number can change in successive
+               invocations of the barrier method */
+            vector<Atomic<int> > _semaphores;
 
-/*! \class DisseminationBarrierPlugin
-    \brief plugin of the related disseminationBarrier class
-    \see disseminationBarrier
-*/
+         public:
+            /*! \warning the creation of the pthread_barrier_t variable will be performed when the barrier function is invoked
+                   because only at that time we exectly know the number of participants (which is dynamic, as in a team
+                   threads can dynamically enter and exit)
+             */
+            DisseminationBarrier() { }
 
-class DisseminationBarrierPlugin : public Plugin
-{
+            void init() { }
 
-   public:
-      DisseminationBarrierPlugin() : Plugin( "Dissemination Barrier Plugin",1 ) {}
+            void barrier();
+            void barrier( int id );
+      };
 
-      virtual void init() {
-         sys.setDefaultBarrFactory( createDisseminationBarrier );
+
+      void DisseminationBarrier::barrier()
+      {
+         int myID = -1;
+         int numParticipants = myThread->getTeam()->size();
+         /*! q is the log of threadNum */
+         int q;
+
+         /*! initialize the barrier to the current participant number */
+         _semaphores.resize( numParticipants );
+
+         /*! now we can compute the number of steps of the algorithm */
+         q = ( int ) ceil( log2( ( double ) numParticipants ) );
+
+
+         for ( int s = 0; s < q; s++ ) {
+            int toSign = ( myID + ( int ) pow( 2,s ) ) % numParticipants;
+            ( _semaphores[toSign] )--;
+
+            while ( _semaphores[myID] != 0 ) {}
+
+            if ( s < q ) {
+               //reset the semaphore for the next round
+               _semaphores[myID]++; //notice that we allow another thread to signal it before we reset it (not set to 1!)
+            }
+         }
+
+         //reset the semaphore for the next barrier
+         //warning: as we do not have an atomic assignement, we use the substraction operation
+         _semaphores[myID]-1;
       }
-};
 
-}}
+
+      void DisseminationBarrier::barrier( int myID )
+      {
+         /*! get the number of participants from the team */
+         int numParticipants = myThread->getTeam()->size();
+         /*! q is the log of threadNum */
+         int q;
+
+         /*! initialize the barrier to the current participant number */
+         _semaphores.resize( numParticipants );
+
+         /*! now we can compute the number of steps of the algorithm */
+         q = ( int ) ceil( log2( ( double ) numParticipants ) );
+
+         for ( int s = 0; s < q; s++ ) {
+            //compute the current step neighbour id
+            int toSign = ( myID + ( int ) pow( 2,s ) ) % numParticipants;
+
+            //wait for the neighbour sem to reach the previous value
+            Scheduler::blockOnCondition( &_semaphores[toSign].override(), 0 );
+            ( _semaphores[toSign] )--;
+
+            /*!
+             *  Wait for the semaphore to be signaled for this round
+             *  (check if it reached the number of step signals (+1 because the for starts from 0 
+             *  for a correct computation of neighbours)
+             */
+            Scheduler::blockOnCondition( &_semaphores[myID].override(), -1 );
+            // is this ++?
+            ( _semaphores[myID] ) + 1;
+         }
+
+         /*! at the end of the protocol, we are guaranteed that the semaphores are all 0 */
+      }
+
+      Barrier * createDisseminationBarrier()
+      {
+         return new DisseminationBarrier();
+      }
+
+      /*! \class DisseminationBarrierPlugin
+       *  \brief plugin of the related disseminationBarrier class
+       *  \see disseminationBarrier
+       */
+
+      class DisseminationBarrierPlugin : public Plugin
+      {
+
+         public:
+            DisseminationBarrierPlugin() : Plugin( "Dissemination Barrier Plugin",1 ) {}
+
+            virtual void init() {
+               sys.setDefaultBarrFactory( createDisseminationBarrier );
+            }
+      };
+
+   }
+}
 
 nanos::ext::DisseminationBarrierPlugin NanosXPlugin;
