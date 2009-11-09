@@ -118,7 +118,7 @@ namespace nanos {
              */
             Scheduler::blockOnCondition( &_semaphores[myID].override(), -1 );
             // is this ++?
-            ( _semaphores[myID] ) + 1;
+            ( _semaphores[myID] ) ++;
          }
 
          /*! at the end of the protocol, we are guaranteed that the semaphores are all 0 */

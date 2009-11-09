@@ -44,8 +44,6 @@ namespace nanos {
              */
             PosixBarrier() { }
 
-            void init() { }
-
             void barrier();
             ~PosixBarrier() { }
        };

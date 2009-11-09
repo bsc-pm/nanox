@@ -34,7 +34,7 @@ namespace nanos {
             static const int _defaultLimit;
 
          public:
-            IdleThreadsThrottle() : _limit(_defaultLimit) {}
+            IdleThreadsThrottle() : {}
 
             void init() {}
 
@@ -65,7 +65,6 @@ namespace nanos {
          return new IdleThreadsThrottle();
       }
 
-
       class IdleThreadsThrottlePlugin : public Plugin
       {
 
@@ -73,6 +72,7 @@ namespace nanos {
             IdleThreadsThrottlePlugin() : Plugin( "Idle Threads Throttling Plugin",1 ) {}
 
             virtual void init() {
+               config.registerArgOption( new Config::FlagOption( "nth-throttle-limit", IdleThreadsThrottle::_limit ) );
                sys.setThrottlePolicy( createIdleThrottle() );
             }
       };
