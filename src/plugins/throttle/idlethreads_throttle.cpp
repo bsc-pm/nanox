@@ -22,61 +22,62 @@
 #include "plugin.hpp"
 
 namespace nanos {
-namespace ext {
+   namespace ext {
 
-//TODO: only works with 1 scheduling group
+      //TODO: only works with 1 scheduling group
 
-class IdleThreadsThrottle: public ThrottlePolicy
-{
+      class IdleThreadsThrottle: public ThrottlePolicy
+      {
 
-   private:
-      int _limit;
-      static const int _defaultLimit;
+         private:
+            int _limit;
+            static const int _defaultLimit;
 
-   public:
-      IdleThreadsThrottle() : _limit(_defaultLimit) {}
+         public:
+            IdleThreadsThrottle() : _limit(_defaultLimit) {}
 
-      void init() {}
+            void init() {}
 
-      void setMaxCutoff( int mi ) { _limit = mi; }
+            void setMaxCutoff( int mi ) { _limit = mi; }
 
-      bool throttle();
+            bool throttle();
 
-      ~IdleThreadsThrottle() {}
-};
+            ~IdleThreadsThrottle() {}
+      };
 
-const int IdleThreadsThrottle::_defaultLimit = 0;
-
-
-bool IdleThreadsThrottle::throttle()
-{
-   //checking if the number of idle tasks is higher than the allowed maximum
-   if ( sys.getIdleNum() > _limit )  {
-      verbose0( "Cutoff Policy: avoiding task creation!" );
-      return false;
-   }
-
-   return true;
-}
-
-//factory
-static IdleThreadsThrottle * createIdleThrottle()
-{
-   return new IdleThreadsThrottle();
-}
+      const int IdleThreadsThrottle::_defaultLimit = 0;
 
 
-class IdleThreadsThrottlePlugin : public Plugin
-{
+      bool IdleThreadsThrottle::throttle()
+      {
+         //checking if the number of idle tasks is higher than the allowed maximum
+         if ( sys.getIdleNum() > _limit )  {
+            verbose0( "Cutoff Policy: avoiding task creation!" );
+            return false;
+         }
 
-   public:
-      IdleThreadsThrottlePlugin() : Plugin( "Idle Threads Throttling Plugin",1 ) {}
-
-      virtual void init() {
-         sys.setThrottlePolicy( createIdleThrottle() );
+         return true;
       }
-};
 
-}}
+      //factory
+      static IdleThreadsThrottle * createIdleThrottle()
+      {
+         return new IdleThreadsThrottle();
+      }
+
+
+      class IdleThreadsThrottlePlugin : public Plugin
+      {
+
+         public:
+            IdleThreadsThrottlePlugin() : Plugin( "Idle Threads Throttling Plugin",1 ) {}
+
+            virtual void init() {
+               sys.setThrottlePolicy( createIdleThrottle() );
+            }
+      };
+
+   }
+}
 
 nanos::ext::IdleThreadsThrottlePlugin NanosXPlugin;

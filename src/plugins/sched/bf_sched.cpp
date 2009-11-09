@@ -24,74 +24,74 @@
 #include "config.hpp"
 
 namespace nanos {
-namespace ext {
+   namespace ext {
 
-class BreadthFirstPolicy : public SchedulingGroup
-{
+      class BreadthFirstPolicy : public SchedulingGroup
+      {
 
-   private:
-      WDDeque           _readyQueue;
-      
-   public:
-      static bool      _useStack;
+         private:
+            WDDeque           _readyQueue;
 
-   public:
-      // constructor
-      BreadthFirstPolicy( int groupSize ) : SchedulingGroup( "breadth-first-sch",groupSize ) {}
+         public:
+            static bool      _useStack;
 
-      // TODO: copy and assigment operations
-      // destructor
-      virtual ~BreadthFirstPolicy() {}
+         public:
+            // constructor
+            BreadthFirstPolicy( int groupSize ) : SchedulingGroup( "breadth-first-sch",groupSize ) {}
 
-      virtual WD *atCreation ( BaseThread *thread, WD &newWD );
-      virtual WD *atIdle ( BaseThread *thread );
-      virtual void queue ( BaseThread *thread, WD &wd );
-};
+            // TODO: copy and assigment operations
+            // destructor
+            virtual ~BreadthFirstPolicy() {}
 
-void BreadthFirstPolicy::queue ( BaseThread *thread, WD &wd )
-{
-   _readyQueue.push_back( &wd );
-}
+            virtual WD *atCreation ( BaseThread *thread, WD &newWD );
+            virtual WD *atIdle ( BaseThread *thread );
+            virtual void queue ( BaseThread *thread, WD &wd );
+      };
 
-WD * BreadthFirstPolicy::atCreation ( BaseThread *thread, WD &newWD )
-{
-   queue( thread,newWD );
-   return 0;
-}
-
-WD * BreadthFirstPolicy::atIdle ( BaseThread *thread )
-{
-   if ( _useStack ) return _readyQueue.pop_back( thread );
-
-   return _readyQueue.pop_front( thread );
-}
-
-bool BreadthFirstPolicy::_useStack = false;
-
-// Factory
-static SchedulingGroup * createBreadthFirstPolicy ( int groupSize )
-{
-   return new BreadthFirstPolicy( groupSize );
-}
-
-class BFSchedPlugin : public Plugin
-{
-
-   public:
-      BFSchedPlugin() : Plugin( "BF scheduling Plugin",1 ) {}
-
-      virtual void init() {
-         Config config;
-
-         config.registerArgOption( new Config::FlagOption( "nth-bf-use-stack",BreadthFirstPolicy::_useStack ) );
-         config.registerArgOption( new Config::FlagOption( "nth-bf-stack",BreadthFirstPolicy::_useStack ) );
-         config.init();
-
-         sys.setDefaultSGFactory( createBreadthFirstPolicy );
+      void BreadthFirstPolicy::queue ( BaseThread *thread, WD &wd )
+      {
+         _readyQueue.push_back( &wd );
       }
-};
 
-}
+      WD * BreadthFirstPolicy::atCreation ( BaseThread *thread, WD &newWD )
+      {
+         queue( thread,newWD );
+         return 0;
+      }
+
+      WD * BreadthFirstPolicy::atIdle ( BaseThread *thread )
+      {
+         if ( _useStack ) return _readyQueue.pop_back( thread );
+
+         return _readyQueue.pop_front( thread );
+      }
+
+      bool BreadthFirstPolicy::_useStack = false;
+
+      // Factory
+      static SchedulingGroup * createBreadthFirstPolicy ( int groupSize )
+      {
+         return new BreadthFirstPolicy( groupSize );
+      }
+
+      class BFSchedPlugin : public Plugin
+      {
+
+         public:
+            BFSchedPlugin() : Plugin( "BF scheduling Plugin",1 ) {}
+
+            virtual void init() {
+               Config config;
+
+               config.registerArgOption( new Config::FlagOption( "nth-bf-use-stack",BreadthFirstPolicy::_useStack ) );
+               config.registerArgOption( new Config::FlagOption( "nth-bf-stack",BreadthFirstPolicy::_useStack ) );
+               config.init();
+
+               sys.setDefaultSGFactory( createBreadthFirstPolicy );
+            }
+      };
+
+   }
 }
 
 nanos::ext::BFSchedPlugin NanosXPlugin;

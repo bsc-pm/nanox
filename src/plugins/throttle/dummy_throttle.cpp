@@ -22,53 +22,53 @@
 #include "system.hpp"
 
 namespace nanos {
-namespace ext {
+   namespace ext {
 
-class DummyThrottle: public ThrottlePolicy
-{
+      class DummyThrottle: public ThrottlePolicy
+      {
 
-   private:
-      /*!
-        we decide once if all new tasks are to be created during the execution
-        if _createTasks is true, then we have the maximum number of tasks else we have only one task (sequential comp.)
-      */
-      bool _createTasks;
-      static const bool _default;
+         private:
+            /*!
+             * we decide once if all new tasks are to be created during the execution
+             * if _createTasks is true, then we have the maximum number of tasks else we have only one task (sequential comp.)
+             */
+            bool _createTasks;
+            static const bool _default;
 
-   public:
-      DummyThrottle() : _createTasks( _default ) {}
+         public:
+            DummyThrottle() : _createTasks( _default ) {}
 
-      void setCreateTask( bool ct ) { _createTasks = ct; }
+            void setCreateTask( bool ct ) { _createTasks = ct; }
 
-      bool throttle();
+            bool throttle();
 
-      ~DummyThrottle() {};
-};
+            ~DummyThrottle() {};
+      };
 
-const bool DummyThrottle::_default = false;
+      const bool DummyThrottle::_default = false;
 
-bool DummyThrottle::throttle()
-{
-   return _createTasks;
-}
-
-//factory
-DummyThrottle * createDummyThrottle()
-{
-   return new DummyThrottle();
-}
-
-class DummyThrottlePlugin : public Plugin
-{
-
-   public:
-      DummyThrottlePlugin() : Plugin( "Simple (all/nothing) Throttle Plugin",1 ) {}
-
-      virtual void init() {
-         sys.setThrottlePolicy( createDummyThrottle() );
+      bool DummyThrottle::throttle()
+      {
+         return _createTasks;
       }
-};
 
-}}
+      //factory
+      DummyThrottle * createDummyThrottle()
+      {
+         return new DummyThrottle();
+      }
+
+     class DummyThrottlePlugin : public Plugin
+     {
+       public:
+         DummyThrottlePlugin() : Plugin( "Simple (all/nothing) Throttle Plugin",1 ) {}
+        
+         virtual void init() {
+           sys.setThrottlePolicy( createDummyThrottle() );
+         }
+     };
+
+   }
+}
 
 nanos::ext::DummyThrottlePlugin NanosXPlugin;

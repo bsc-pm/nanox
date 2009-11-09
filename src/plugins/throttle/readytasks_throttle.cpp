@@ -23,54 +23,55 @@
 
 
 namespace nanos {
-namespace ext {
+   namespace ext {
 
-class ReadyTasksThrottle : public ThrottlePolicy
-{
-   private:
-      int _limit;
-      static const int _defaultLimit;
+      class ReadyTasksThrottle : public ThrottlePolicy
+      {
+         private:
+            int _limit;
+            static const int _defaultLimit;
 
-   public:
-      ReadyTasksThrottle() : _limit( _defaultLimit ) {}
+         public:
+            ReadyTasksThrottle() : _limit( _defaultLimit ) {}
 
-      void setLimit( int mr ) { _limit = mr; }
+            void setLimit( int mr ) { _limit = mr; }
 
-      bool throttle();
+            bool throttle();
 
-      ~ReadyTasksThrottle() {}
-};
+            ~ReadyTasksThrottle() {}
+      };
 
-const int ReadyTasksThrottle::_defaultLimit = 100;
+      const int ReadyTasksThrottle::_defaultLimit = 100;
 
-bool ReadyTasksThrottle::throttle()
-{
-   //checking if the number of ready tasks is higher than the allowed maximum
-   if ( sys.getReadyNum() > _limit )  {
-      verbose0( "Throttle Policy: avoiding task creation!" );
-      return false;
-   }
+      bool ReadyTasksThrottle::throttle()
+      {
+         //checking if the number of ready tasks is higher than the allowed maximum
+         if ( sys.getReadyNum() > _limit )  {
+            verbose0( "Throttle Policy: avoiding task creation!" );
+            return false;
+         }
 
-   return true;
-}
-
-//factory
-static ReadyTasksThrottle * createReadyTasksThrottle()
-{
-   return new ReadyTasksThrottle();
-}
-
-class ReadyTasksThrottlePlugin : public Plugin
-{
-
-   public:
-      ReadyTasksThrottlePlugin() : Plugin( "Ready Task Throttle Plugin",1 ) {}
-
-      virtual void init() {
-         sys.setThrottlePolicy( createReadyTasksThrottle() );
+         return true;
       }
-};
 
-}}
+      //factory
+      static ReadyTasksThrottle * createReadyTasksThrottle()
+      {
+         return new ReadyTasksThrottle();
+      }
+
+      class ReadyTasksThrottlePlugin : public Plugin
+      {
+
+         public:
+            ReadyTasksThrottlePlugin() : Plugin( "Ready Task Throttle Plugin",1 ) {}
+
+            virtual void init() {
+               sys.setThrottlePolicy( createReadyTasksThrottle() );
+            }
+      };
+
+   }
+}
 
 nanos::ext::ReadyTasksThrottlePlugin NanosXPlugin;
