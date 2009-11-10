@@ -20,6 +20,7 @@
 #include "system.hpp"
 #include "throttle.hpp"
 #include "plugin.hpp"
+#include "config.hpp"
 
 
 namespace nanos {
@@ -29,10 +30,12 @@ namespace nanos {
       {
          private:
             int _limit;
-            static const int _defaultLimit;
 
          public:
-            ReadyTasksThrottle() : _limit( _defaultLimit ) {}
+	    //must be public: used in the plugin
+            static const int _defaultLimit;
+
+            ReadyTasksThrottle( int actualLimit ) : _limit ( actualLimit ) {}
 
             void setLimit( int mr ) { _limit = mr; }
 
@@ -55,9 +58,9 @@ namespace nanos {
       }
 
       //factory
-      static ReadyTasksThrottle * createReadyTasksThrottle()
+      static ReadyTasksThrottle * createReadyTasksThrottle( int actualLimit )
       {
-         return new ReadyTasksThrottle();
+         return new ReadyTasksThrottle( actualLimit );
       }
 
       class ReadyTasksThrottlePlugin : public Plugin
@@ -67,7 +70,13 @@ namespace nanos {
             ReadyTasksThrottlePlugin() : Plugin( "Ready Task Throttle Plugin",1 ) {}
 
             virtual void init() {
-               sys.setThrottlePolicy( createReadyTasksThrottle() );
+		Config config;
+
+		int actualLimit = ReadyTasksThrottle::_defaultLimit; 
+		config.registerArgOption( new Config::PositiveVar( "nth-throttle-limit", 
+								   actualLimit ) ); 
+		config.init(); 
+		sys.setThrottlePolicy( createReadyTasksThrottle( actualLimit )); 
             }
       };
 

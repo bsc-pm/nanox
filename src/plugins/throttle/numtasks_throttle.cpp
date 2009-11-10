@@ -31,9 +31,11 @@ namespace nanos {
 
          private:
             int _limit;
-            static const int _defaultLimit;
 
          public:
+	  //must be public: used in the plugin
+            static const int _defaultLimit;
+
             NumTasksThrottle() : _limit( _defaultLimit ) {}
             NumTasksThrottle( int actualLimit ) : _limit( actualLimit ) {}
 
@@ -57,12 +59,6 @@ namespace nanos {
       }
 
       //factory
-      static NumTasksThrottle * createNumTasksThrottle()
-      {
-         return new NumTasksThrottle();
-      }
-
-      //factory
       static NumTasksThrottle * createNumTasksThrottle( int actualLimit )
       {
          return new NumTasksThrottle( actualLimit );
@@ -78,15 +74,12 @@ namespace nanos {
             virtual void init() {
                Config config;
 
-               int actualLimit = -1;
-               config.registerArgOption( new Config::PositiveVar( "nth-throttle-limit", actualLimit ) );
+	       int actualLimit = NumTasksThrottle::_defaultLimit; 
+	       config.registerArgOption( new Config::PositiveVar( "nth-throttle-limit", 
+								  actualLimit ) ); 
+	       config.init(); 
+	       sys.setThrottlePolicy( createNumTasksThrottle( actualLimit )); 
 
-               if( actualLimit != -1 )
-                  sys.setThrottlePolicy( createNumTasksThrottle() );
-               else
-                  sys.setThrottlePolicy( createNumTasksThrottle( actualLimit ) );
-
-               config.init();
 
             }
       };

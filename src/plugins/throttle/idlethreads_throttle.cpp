@@ -31,9 +31,10 @@ namespace nanos {
       {
          private:
             int _limit;
-            static const int _defaultLimit;
 
          public:
+	    //used in the plugin: must be public
+            static const int _defaultLimit;
             IdleThreadsThrottle() : _limit( _defaultLimit ) {}
             IdleThreadsThrottle( int actualLimit ) : _limit( actualLimit ) {}
 
@@ -59,14 +60,6 @@ namespace nanos {
          return true;
       }
 
-
-      //factory
-      static IdleThreadsThrottle * createIdleThrottle()
-      {
-         return new IdleThreadsThrottle();
-      }
-
-
       //factory
       static IdleThreadsThrottle * createIdleThrottle( int actualLimit )
       {
@@ -83,15 +76,12 @@ namespace nanos {
             virtual void init() {
                Config config;
 
-               int actualLimit = -1;
-               config.registerArgOption( new Config::PositiveVar( "nth-throttle-limit", actualLimit ) );
 
-               if( actualLimit != -1 )
-                  sys.setThrottlePolicy( createIdleThrottle( ) );
-               else
-                  sys.setThrottlePolicy( createIdleThrottle( actualLimit ) );
-
-               config.init();
+	       int actualLimit = IdleThreadsThrottle::_defaultLimit; 
+	       config.registerArgOption( new Config::PositiveVar( "nth-throttle-limit", 
+								  actualLimit ) ); 
+	       config.init(); 
+	       sys.setThrottlePolicy( createIdleThrottle( actualLimit )); 
             }
       };
 

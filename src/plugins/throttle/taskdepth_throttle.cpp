@@ -20,6 +20,7 @@
 #include "system.hpp"
 #include "throttle.hpp"
 #include "plugin.hpp"
+#include "config.hpp"
 
 
 namespace nanos {
@@ -30,10 +31,12 @@ namespace nanos {
 
          private:
             int _limit;
-            static const int _defaultLimit;
 
          public:
-            TaskDepthThrottle() : _limit( _defaultLimit ) {}
+	    //must be public: used in the plugin
+            static const int _defaultLimit;
+
+            TaskDepthThrottle( int actualLimit ) : _limit( actualLimit ) {}
 
             void setLimit( int ml ) { _limit = ml; }
 
@@ -55,9 +58,9 @@ namespace nanos {
       }
 
       //factory
-      static TaskDepthThrottle * createTaskDepthThrottle()
+      static TaskDepthThrottle * createTaskDepthThrottle( int actualLimit )
       {
-         return new TaskDepthThrottle();
+         return new TaskDepthThrottle( actualLimit );
       }
 
       class TaskDepthThrottlePlugin : public Plugin
@@ -67,7 +70,14 @@ namespace nanos {
             TaskDepthThrottlePlugin() : Plugin( "Task Tree Level CutOff Plugin",1 ) {}
 
             virtual void init() {
-               sys.setThrottlePolicy( createTaskDepthThrottle() );
+		Config config;
+
+	        int actualLimit = TaskDepthThrottle::_defaultLimit; 
+		config.registerArgOption( new Config::PositiveVar( "nth-throttle-limit", 
+								   actualLimit ) ); 
+		config.init(); 
+		sys.setThrottlePolicy( createTaskDepthThrottle( actualLimit )); 
+               
             }
       };
 
