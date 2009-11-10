@@ -146,7 +146,7 @@ void SMPThread::exitTo ( WD *wd )
 void SMPThread::bind( void )
 {
    cpu_set_t cpu_set;
-   int cpu_id = getCpuId(); //FIX-ME: this is wrong. It should be pe->getId()
+   int cpu_id = getCpuId();
 
    ensure( ( ( cpu_id >= 0 ) && ( cpu_id < CPU_SETSIZE ) ), "invalid value for cpu id" );
    CPU_ZERO( &cpu_set );

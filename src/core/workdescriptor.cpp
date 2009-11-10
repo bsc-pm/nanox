@@ -19,6 +19,7 @@
 
 #include "workdescriptor.hpp"
 #include "processingelement.hpp"
+#include "basethread.hpp"
 #include "debug.hpp"
 
 using namespace nanos;

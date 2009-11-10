@@ -22,13 +22,12 @@
 
 #include "workdescriptor.hpp"
 #include "atomic.hpp"
+#include "processingelement.hpp"
 
 namespace nanos
 {
 
 // forward declarations
-
-   class ProcessingElement;
 
    class SchedulingGroup;
 
@@ -47,7 +46,6 @@ namespace nanos
 
          // Thread info
          int                     _id;
-         int                     _cpuId;
 
          ProcessingElement *     _pe;
          WD &                    _threadWD;
@@ -77,7 +75,7 @@ namespace nanos
 
          // constructor
          BaseThread ( WD &wd, ProcessingElement *creator=0 ) :
-               _id( _idSeed++ ), _cpuId( _id ), _pe( creator ), _threadWD( wd ), _started( false ), _mustStop( false ), _hasTeam( false ) {}
+               _id( _idSeed++ ), _pe( creator ), _threadWD( wd ), _started( false ), _mustStop( false ), _hasTeam( false ) {}
 
          // destructor
          virtual ~BaseThread() {}
@@ -141,7 +139,7 @@ namespace nanos
 
          int getId() { return _id; }
 
-         int getCpuId() { return _cpuId; }
+         int getCpuId() { return runningOn()->getId(); }
 
          bool singleGuard();
    };
