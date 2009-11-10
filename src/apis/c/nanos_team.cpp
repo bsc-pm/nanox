@@ -64,7 +64,7 @@ nanos_err_t nanos_team_barrier ( )
    try {
       myThread->getTeam()->barrier();
    } catch ( ... ) {
-      return NANOS_UNIMPLEMENTED;
+      return NANOS_UNKNOWN_ERR;
    }
 
    return NANOS_OK;

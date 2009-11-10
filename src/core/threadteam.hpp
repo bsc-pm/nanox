@@ -88,7 +88,7 @@ namespace nanos
             _threads.push_back( thread );
          }
 
-         void barrier() { _barrier.barrier(); }
+         void barrier() { _barrier.barrier(myThread->getTeamId()); }
 
          bool singleGuard( int local );
    };

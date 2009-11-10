@@ -38,7 +38,7 @@ namespace nanos {
          public:
             CentralizedBarrier();
             void init();
-            void barrier();
+            void barrier ( int participant );
             int getSemValue() { return _sem; }
       };
 
@@ -51,7 +51,7 @@ namespace nanos {
       void CentralizedBarrier::init() {}
 
 
-      void CentralizedBarrier::barrier()
+      void CentralizedBarrier::barrier( int participant )
       {
          /*! get the number of participants from the team */
          int numParticipants = myThread->getTeam()->size();

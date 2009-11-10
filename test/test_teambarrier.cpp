@@ -15,9 +15,9 @@ using namespace nanos::ext;
 void barrier_code ( void * )
 {
        for ( int i = 0; i < BARR_NUM; i++ ) {
-              cout << "Before the barrier" << endl;
+              cout << "Before the " << i << " barrier" << endl;
               nanos_team_barrier();
-              cout << "After the barrier" << endl;
+              cout << "After the " << i << " barrier" << endl;
 
        }
 }
