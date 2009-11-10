@@ -240,6 +240,7 @@ void System::releaseWorker ( BaseThread * thread )
 
 ThreadTeam * System:: createTeam ( int nthreads, SG *policy, void *constraints, bool reuseCurrent )
 {
+   int thId = 0;
    if ( !policy ) policy = _defSGFactory( nthreads );
 
    // create team
@@ -252,9 +253,11 @@ ThreadTeam * System:: createTeam ( int nthreads, SG *policy, void *constraints, 
 
    // find threads
    if ( reuseCurrent ) {
+      debug( "adding thread " << myThread << " with id " << toString<int>(thId) << " to " << team );
+      
       nthreads --;
       team->addThread( myThread );
-      myThread->enterTeam( team );
+      myThread->enterTeam( team, thId++ );
    }
 
    while ( nthreads > 0 ) {
@@ -265,10 +268,11 @@ ThreadTeam * System:: createTeam ( int nthreads, SG *policy, void *constraints, 
          break;
       }
 
-      debug( "adding thread " << thread << " to " << team );
+      debug( "adding thread " << thread << " with id " << toString<int>(thId) << " to " << team );
 
+      nthreads--;
       team->addThread( thread );
-      thread->enterTeam( team );
+      thread->enterTeam( team, thId++ );
    }
 
    return team;

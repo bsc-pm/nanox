@@ -29,6 +29,10 @@
 namespace nanos
 {
 
+   class TeamData
+   {
+   };
+
    class ThreadTeam
    {
 
@@ -45,7 +49,10 @@ namespace nanos
 
       public:
 
-         ThreadTeam ( int maxThreads, SG &policy ) : idleThreads( 0 ), numTasks( 0 ), single( 0 ) { threads.reserve( maxThreads ); }
+         ThreadTeam ( int maxThreads, SG &policy ) : idleThreads( 0 ), numTasks( 0 ), single( 0 )
+           { threads.reserve( maxThreads ); }
+
+         ~ThreadTeam () { /*TODO*/ }
 
          unsigned size() const { return threads.size(); }
 
@@ -59,7 +66,7 @@ namespace nanos
 
          void setBarrAlgorithm( Barrier * barrAlg ) { barrAlgorithm = barrAlg; }
 
-         void barrier() {barrAlgorithm->barrier(); }
+         void barrier() { barrAlgorithm->barrier(); }
 
          bool singleGuard( int local );
    };

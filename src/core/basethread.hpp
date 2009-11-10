@@ -60,6 +60,7 @@ namespace nanos
          // Team info
          bool                    _hasTeam;
          ThreadTeam *            _team;
+         int                     _teamId; //! Id of the thread inside its current team
          int                     _localSingleCount;
 
          // scheduling info
@@ -76,7 +77,7 @@ namespace nanos
 
          // constructor
          BaseThread ( WD &wd, ProcessingElement *creator=0 ) :
-               _id( _idSeed++ ), _cpuId( _id ), _pe( creator ), _threadWD( wd ), _started( false ), _mustStop( false ), _hasTeam( false ), _team( NULL ), _localSingleCount( 0 ) {}
+               _id( _idSeed++ ), _cpuId( _id ), _pe( creator ), _threadWD( wd ), _started( false ), _mustStop( false ), _hasTeam( false ) {}
 
          // destructor
          virtual ~BaseThread() {}
@@ -108,13 +109,21 @@ namespace nanos
          // team related methods
          void reserve() { _hasTeam = 1; }
 
-         void enterTeam( ThreadTeam *newTeam ) { _hasTeam=1; _team = newTeam; }
+         void enterTeam( ThreadTeam *newTeam, int id ) {
+            _hasTeam=1;
+            _team = newTeam;
+            _teamId = id;
+            _localSingleCount = 0;
+         }
 
          bool hasTeam() const { return _hasTeam; }
 
          void leaveTeam() { _hasTeam = 0; _team = 0; }
 
          ThreadTeam * getTeam() const { return _team; }
+
+         //! Returns the id of the thread inside its current team 
+         int getTeamId() const { return _teamId; }
 
          SchedulingGroup * getSchedulingGroup () const { return _schedGroup; }
 
