@@ -26,7 +26,7 @@ using namespace nanos;
 
 bool ThreadTeam::singleGuard( int local )
 {
-   if ( local <= single ) return false;
+   if ( local <= _singleGuardCount ) return false;
 
-   return compareAndSwap( &single, local-1, local );
+   return compareAndSwap( &_singleGuardCount, local-1, local );
 }

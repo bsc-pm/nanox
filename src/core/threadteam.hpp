@@ -37,11 +37,11 @@ namespace nanos
    {
 
       private:
-         std::vector<BaseThread *> threads;
-         int  idleThreads;
-         int  numTasks;
-         Barrier * barrAlgorithm;
-         int  single;
+         std::vector<BaseThread *>  _threads;
+         int                        _idleThreads;
+         int                        _numTasks;
+         Barrier &                  _barrier;
+         int                        _singleGuardCount;
 
          // disable copy constructor & assignment operation
          ThreadTeam( const ThreadTeam &sys );
@@ -49,24 +49,45 @@ namespace nanos
 
       public:
 
-         ThreadTeam ( int maxThreads, SG &policy ) : idleThreads( 0 ), numTasks( 0 ), single( 0 )
-           { threads.reserve( maxThreads ); }
+         ThreadTeam ( int maxThreads, SG &policy, Barrier &barrier )
+                    : _idleThreads( 0 ), _numTasks( 0 ), _barrier(barrier), _singleGuardCount( 0 )
+         {
+               _threads.reserve( maxThreads );
+         }
 
          ~ThreadTeam () { /*TODO*/ }
 
-         unsigned size() const { return threads.size(); }
 
-         const BaseThread & operator[]  ( int i ) const { return *threads[i]; }
+         unsigned size() const { return _threads.size(); }
 
-         BaseThread & operator[]  ( int i ) { return *threads[i]; }
-
-         void addThread ( BaseThread *thread ) {
-            threads.push_back( thread );
+         /*! \brief Initializes team structures dependent on the number of threads.
+          *
+          *  This method initializes the team structures that depend on the number of threads.
+          *  It *must* be called after all threads have entered the team
+          *  It *must* be called by a single thread
+          */
+         void init ()
+         {
+            _barrier.init(size());
          }
 
-         void setBarrAlgorithm( Barrier * barrAlg ) { barrAlgorithm = barrAlg; }
+         /*! This method should be called when there's a change in the team size to readjust all structures
+          *  \warn Not implemented yet!
+          */
+         void resize ()
+         {
+            // TODO
+         }
 
-         void barrier() { barrAlgorithm->barrier(); }
+         const BaseThread & operator[]  ( int i ) const { return *_threads[i]; }
+
+         BaseThread & operator[]  ( int i ) { return *_threads[i]; }
+
+         void addThread ( BaseThread *thread ) {
+            _threads.push_back( thread );
+         }
+
+         void barrier() { _barrier.barrier(); }
 
          bool singleGuard( int local );
    };

@@ -244,10 +244,7 @@ ThreadTeam * System:: createTeam ( int nthreads, SG *policy, void *constraints, 
    if ( !policy ) policy = _defSGFactory( nthreads );
 
    // create team
-   ThreadTeam * team = new ThreadTeam( nthreads,*policy );
-
-   team->setBarrAlgorithm( _defBarrFactory() );
-
+   ThreadTeam * team = new ThreadTeam( nthreads, *policy, *_defBarrFactory() );
 
    debug( "Creating team " << team << " of " << nthreads << " threads" );
 
@@ -274,6 +271,8 @@ ThreadTeam * System:: createTeam ( int nthreads, SG *policy, void *constraints, 
       team->addThread( thread );
       thread->enterTeam( team, thId++ );
    }
+
+   team->init();
 
    return team;
 }
