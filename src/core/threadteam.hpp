@@ -74,9 +74,10 @@ namespace nanos
          /*! This method should be called when there's a change in the team size to readjust all structures
           *  \warn Not implemented yet!
           */
-         void resize ()
+         void resized ()
          {
             // TODO
+            _barrier.resize(size());
          }
 
          const BaseThread & operator[]  ( int i ) const { return *_threads[i]; }

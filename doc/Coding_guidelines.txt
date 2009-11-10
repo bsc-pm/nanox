@@ -57,6 +57,10 @@ C++ idioms
 
 - Avoid the usage of macros unless strictly necessary. Consider templates and inline functions first.
 
+- Use static functions when possible (particularly inside plugins)
+
+- Use of default parameters is preferred over overloading a method when possible
+
 Other idioms
 ============
 
