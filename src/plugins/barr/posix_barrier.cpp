@@ -44,25 +44,32 @@ namespace nanos {
              */
             PosixBarrier() { }
 
+            void init ( int numParticipants );
+            void resize ( int numParticipants );
 
-            void barrier();
+            void barrier ( int participant );
             ~PosixBarrier() { }
        };
 
 
-      void PosixBarrier::barrier()
+      void PosixBarrier::init ( int numParticipants )
       {
-         /*! get the number of participants from the team */
-         int numParticipants = myThread->getTeam()->size();
-
          /*! initialize the barrier to the current participant number */
          pthread_barrier_init ( &_pBarrier, NULL, numParticipants );
+      }
 
+      void PosixBarrier::resize ( int numParticipants )
+      {
+         pthread_barrier_destroy( &_pBarrier );
+         pthread_barrier_init ( &_pBarrier, NULL, numParticipants );
+      }
+
+      void PosixBarrier::barrier ( int participant )
+      {
          pthread_barrier_wait( &_pBarrier );
       }
 
-
-      Barrier * createPosixBarrier()
+      static Barrier * createPosixBarrier()
       {
          return new PosixBarrier();
       }

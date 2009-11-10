@@ -29,15 +29,19 @@
 namespace nanos
 {
 
+   class TeamData
+   {
+   };
+
    class ThreadTeam
    {
 
       private:
-         std::vector<BaseThread *> threads;
-         int  idleThreads;
-         int  numTasks;
-         Barrier * barrAlgorithm;
-         int  single;
+         std::vector<BaseThread *>  _threads;
+         int                        _idleThreads;
+         int                        _numTasks;
+         Barrier &                  _barrier;
+         int                        _singleGuardCount;
 
          // disable copy constructor & assignment operation
          ThreadTeam( const ThreadTeam &sys );
@@ -45,21 +49,46 @@ namespace nanos
 
       public:
 
-         ThreadTeam ( int maxThreads, SG &policy ) : idleThreads( 0 ), numTasks( 0 ), single( 0 ) { threads.reserve( maxThreads ); }
-
-         unsigned size() const { return threads.size(); }
-
-         const BaseThread & operator[]  ( int i ) const { return *threads[i]; }
-
-         BaseThread & operator[]  ( int i ) { return *threads[i]; }
-
-         void addThread ( BaseThread *thread ) {
-            threads.push_back( thread );
+         ThreadTeam ( int maxThreads, SG &policy, Barrier &barrier )
+                    : _idleThreads( 0 ), _numTasks( 0 ), _barrier(barrier), _singleGuardCount( 0 )
+         {
+               _threads.reserve( maxThreads );
          }
 
-         void setBarrAlgorithm( Barrier * barrAlg ) { barrAlgorithm = barrAlg; }
+         ~ThreadTeam () { /*TODO*/ }
 
-         void barrier() {barrAlgorithm->barrier(); }
+
+         unsigned size() const { return _threads.size(); }
+
+         /*! \brief Initializes team structures dependent on the number of threads.
+          *
+          *  This method initializes the team structures that depend on the number of threads.
+          *  It *must* be called after all threads have entered the team
+          *  It *must* be called by a single thread
+          */
+         void init ()
+         {
+            _barrier.init(size());
+         }
+
+         /*! This method should be called when there's a change in the team size to readjust all structures
+          *  \warn Not implemented yet!
+          */
+         void resized ()
+         {
+            // TODO
+            _barrier.resize(size());
+         }
+
+         const BaseThread & operator[]  ( int i ) const { return *_threads[i]; }
+
+         BaseThread & operator[]  ( int i ) { return *_threads[i]; }
+
+         void addThread ( BaseThread *thread ) {
+            _threads.push_back( thread );
+         }
+
+         void barrier() { _barrier.barrier(myThread->getTeamId()); }
 
          bool singleGuard( int local );
    };

@@ -48,7 +48,7 @@ void BaseThread::associate ()
 bool BaseThread::singleGuard ()
 {
    // return getTeam()->singleGuard(++localSingleCount); # doesn't work
-   // probably by some gcc bug
+   // probably because some gcc bug
    _localSingleCount++;
    return getTeam()->singleGuard( _localSingleCount );
 }

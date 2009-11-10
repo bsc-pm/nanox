@@ -30,7 +30,7 @@ System nanos::sys;
 // default system values go here
 System::System () : _numPEs( 1 ), _deviceStackSize( 1024 ), _bindThreads( true ), _profile( false ), _instrument( false ),
       _verboseMode( false ), _executionMode( DEDICATED ), _thsPerPE( 1 ),
-      _defSchedule( "cilk" ), _defThrottlePolicy( "numtasks" ), _defBarr( "centralized" )
+      _defSchedule( "cilk" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" )
 {
    verbose0 ( "NANOS++ initalizing... start" );
    config();
@@ -240,21 +240,21 @@ void System::releaseWorker ( BaseThread * thread )
 
 ThreadTeam * System:: createTeam ( int nthreads, SG *policy, void *constraints, bool reuseCurrent )
 {
+   int thId = 0;
    if ( !policy ) policy = _defSGFactory( nthreads );
 
    // create team
-   ThreadTeam * team = new ThreadTeam( nthreads,*policy );
-
-   team->setBarrAlgorithm( _defBarrFactory() );
-
+   ThreadTeam * team = new ThreadTeam( nthreads, *policy, *_defBarrFactory() );
 
    debug( "Creating team " << team << " of " << nthreads << " threads" );
 
    // find threads
    if ( reuseCurrent ) {
+      debug( "adding thread " << myThread << " with id " << toString<int>(thId) << " to " << team );
+      
       nthreads --;
       team->addThread( myThread );
-      myThread->enterTeam( team );
+      myThread->enterTeam( team, thId++ );
    }
 
    while ( nthreads > 0 ) {
@@ -265,11 +265,14 @@ ThreadTeam * System:: createTeam ( int nthreads, SG *policy, void *constraints, 
          break;
       }
 
-      debug( "adding thread " << thread << " to " << team );
+      debug( "adding thread " << thread << " with id " << toString<int>(thId) << " to " << team );
 
+      nthreads--;
       team->addThread( thread );
-      thread->enterTeam( team );
+      thread->enterTeam( team, thId++ );
    }
+
+   team->init();
 
    return team;
 }

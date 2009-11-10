@@ -32,10 +32,23 @@ namespace nanos
          Barrier() {}
          virtual ~Barrier() {}
 
-         //removed init: it is not used in any barrier
-         //virtual void init() = 0;
+         /*! Init is called when the number of participants in the barrier are known so the barrier
+          *  can initialize the proper data structures if needed
+          *  Must be called by just one thread
+          */
+         virtual void init (int numParticipants) { }
 
-         virtual void barrier() = 0;
+         /*! Called when the number of number of participants in the barrier changes to
+          *  restructure data structures if needed
+          *  Must be called by just one thread
+          */
+         virtual void resize (int numThreads) { }
+
+         /*! \brief Perform a barrier among the participants
+          *
+          *  When it returns it guarantees that all participants have reached the barrier
+          */
+         virtual void barrier (int particpant) = 0;
    };
 
    typedef Barrier * ( *barrFactory ) ();

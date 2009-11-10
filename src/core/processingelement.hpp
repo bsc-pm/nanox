@@ -21,7 +21,6 @@
 #define _NANOS_PROCESSING_ELEMENT
 
 #include "workdescriptor.hpp"
-#include "basethread.hpp"
 
 namespace nanos
 {
@@ -29,6 +28,7 @@ namespace nanos
 // forward definitions
 
    class SchedulingGroup;
+   class BaseThread;
 
    class ProcessingElement
    {
