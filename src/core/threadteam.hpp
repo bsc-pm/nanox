@@ -68,7 +68,7 @@ namespace nanos
           */
          void init ()
          {
-            _barrier.init(size());
+            _barrier.init( size() );
          }
 
          /*! This method should be called when there's a change in the team size to readjust all structures
@@ -88,7 +88,7 @@ namespace nanos
             _threads.push_back( thread );
          }
 
-         void barrier() { _barrier.barrier(myThread->getTeamId()); }
+         void barrier() { _barrier.barrier( myThread->getTeamId() ); }
 
          bool singleGuard( int local );
    };

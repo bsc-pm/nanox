@@ -33,7 +33,7 @@ namespace nanos {
             int _limit;
 
          public:
-	  //must be public: used in the plugin
+            //must be public: used in the plugin
             static const int _defaultLimit;
 
             NumTasksThrottle() : _limit( _defaultLimit ) {}
@@ -46,12 +46,11 @@ namespace nanos {
             ~NumTasksThrottle() {}
       };
 
-      const int NumTasksThrottle::_defaultLimit = 100;
+      const int NumTasksThrottle::_defaultLimit = 5;
 
       bool NumTasksThrottle::throttle()
       {
-         if ( sys.getTaskNum() > _limit ) {
-            verbose0( "Cutoff Policy: avoiding task creation!" );
+         if ( sys.getTaskNum() > _limit*sys.getNumWorkers() ) {
             return false;
          }
 
@@ -74,13 +73,11 @@ namespace nanos {
             virtual void init() {
                Config config;
 
-	       int actualLimit = NumTasksThrottle::_defaultLimit; 
-	       config.registerArgOption( new Config::PositiveVar( "nth-throttle-limit", 
-								  actualLimit ) ); 
-	       config.init(); 
-	       sys.setThrottlePolicy( createNumTasksThrottle( actualLimit )); 
-
-
+               int actualLimit = NumTasksThrottle::_defaultLimit; 
+               config.registerArgOption( new Config::PositiveVar( "nth-throttle-limit",
+                                          actualLimit ) );
+               config.init(); 
+               sys.setThrottlePolicy( createNumTasksThrottle( actualLimit )); 
             }
       };
 

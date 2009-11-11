@@ -123,6 +123,8 @@ namespace nanos
 
          int getRunningTasks() const { return _numTasksRunning; }
 
+         int getNumWorkers() const { return _workers.size(); }
+
          // team related methods
          BaseThread * getUnassignedWorker ( void );
          ThreadTeam * createTeam ( int nthreads, SG *scheduling=NULL, void *constraints=NULL, bool reuseCurrent=true );

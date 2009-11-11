@@ -32,7 +32,7 @@ namespace nanos {
             int _limit;
 
          public:
-	    //must be public: used in the plugin
+            //must be public: used in the plugin
             static const int _defaultLimit;
 
             ReadyTasksThrottle( int actualLimit ) : _limit ( actualLimit ) {}
@@ -70,13 +70,13 @@ namespace nanos {
             ReadyTasksThrottlePlugin() : Plugin( "Ready Task Throttle Plugin",1 ) {}
 
             virtual void init() {
-		Config config;
+               Config config;
 
-		int actualLimit = ReadyTasksThrottle::_defaultLimit; 
-		config.registerArgOption( new Config::PositiveVar( "nth-throttle-limit", 
-								   actualLimit ) ); 
-		config.init(); 
-		sys.setThrottlePolicy( createReadyTasksThrottle( actualLimit )); 
+               int actualLimit = ReadyTasksThrottle::_defaultLimit; 
+               config.registerArgOption( new Config::PositiveVar( "nth-throttle-limit", 
+                                          actualLimit ) ); 
+               config.init(); 
+               sys.setThrottlePolicy( createReadyTasksThrottle( actualLimit )); 
             }
       };
 

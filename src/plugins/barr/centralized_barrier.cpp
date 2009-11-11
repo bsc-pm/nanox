@@ -34,48 +34,66 @@ namespace nanos {
 
          private:
             Atomic<int> _sem;
+            /*! the flag is used to avoid conflicts in successive barriers */
+            bool _flag;
+            int _numParticipants;
 
          public:
             CentralizedBarrier();
-            void init();
+
+            void init ( int numParticipants );
+            void resize ( int numThreads );
+
             void barrier ( int participant );
-            int getSemValue() { return _sem; }
+
+            ~CentralizedBarrier() { }
       };
 
 
       CentralizedBarrier::CentralizedBarrier(): Barrier()
       {
          _sem =  0;
+         _flag = false;
       }
 
-      void CentralizedBarrier::init() {}
+      void CentralizedBarrier::init( int numParticipants ) 
+      {
+         _numParticipants = numParticipants;
+      }
+
+      void CentralizedBarrier::resize( int numParticipants ) 
+      {
+         _numParticipants = numParticipants;
+      }
 
 
       void CentralizedBarrier::barrier( int participant )
       {
-         /*! get the number of participants from the team */
-         int numParticipants = myThread->getTeam()->size();
-
-         /*! \warning We are not guaranteeing that the sem value is put back to zero at the beginning of a barrier */
-
-         //increment the semaphore value
          _sem++;
 
-         //wait for the semaphore value to reach numParticipants
-         Scheduler::blockOnConditionLess<int>( &_sem.override(), numParticipants );
+         std::cout << "numa par " << _numParticipants << std::endl;
 
-         //when it reaches that value, we increment the semaphore again
-         _sem++;
+         /* the last process incrementing the semaphore sets the flag
+            releasing all other threads waiting in the next block */
+         if( _sem == _numParticipants )
+            _flag = true;
 
-         //the last thread incrementing the sem for the second time puts it at zero
-         if ( _sem == ( 2*numParticipants ) ) {
-            //warning: we do not have atomic assignement, thus we use atomic substraction (see atomic.hpp)
-            _sem-( 2*numParticipants );
-         }
+         //wait for the flag to be set
+         Scheduler::blockOnCondition<bool>( &_flag, true );
+
+         _sem--;
+
+         /* the last thread decrementing the sem for the second time resets the flag.
+            A thread passing in the next barrier will be blocked until this is performed */
+         if ( _sem == 0 )
+            _flag = false;
+
+         //wait for the flag to reset
+         Scheduler::blockOnCondition<bool>( &_flag, false );
       }
 
 
-      Barrier * createCentralizedBarrier()
+      static Barrier * createCentralizedBarrier()
       {
          return new CentralizedBarrier();
       }

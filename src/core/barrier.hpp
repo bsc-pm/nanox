@@ -34,21 +34,21 @@ namespace nanos
 
          /*! Init is called when the number of participants in the barrier are known so the barrier
           *  can initialize the proper data structures if needed
-          *  Must be called by just one thread
+          *  \warning Must be called by just one thread
           */
-         virtual void init (int numParticipants) { }
+         virtual void init ( int numParticipants ) { }
 
          /*! Called when the number of number of participants in the barrier changes to
           *  restructure data structures if needed
-          *  Must be called by just one thread
+          *  \warning Must be called by just one thread
           */
-         virtual void resize (int numThreads) { }
+         virtual void resize ( int numThreads ) { }
 
          /*! \brief Perform a barrier among the participants
           *
           *  When it returns it guarantees that all participants have reached the barrier
           */
-         virtual void barrier (int particpant) = 0;
+         virtual void barrier (int participant) = 0;
    };
 
    typedef Barrier * ( *barrFactory ) ();

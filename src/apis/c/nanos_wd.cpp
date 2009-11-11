@@ -53,7 +53,8 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
                                void ** data, nanos_wg_t uwg, nanos_wd_props_t *props )
 {
    try {
-      if ( ( props == NULL ) || ( ( props != NULL  && !props->mandatory_creation )  && !sys.throttleTask() ) ) {
+      if ( ( props == NULL  ||
+            ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTask() ) {
          *uwd = 0;
          return NANOS_OK;
       }

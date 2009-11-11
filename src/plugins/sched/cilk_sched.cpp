@@ -64,6 +64,7 @@ namespace nanos {
             TaskStealPolicy ( int groupsize ) : SchedulingGroup ( "task-steal-sch", groupsize ) {}
 
             // TODO: copy and assigment operations
+
             // destructor
             virtual ~TaskStealPolicy() {}
 
@@ -138,8 +139,9 @@ namespace nanos {
 
             while ( wd != NULL ) {
                newposition = ( newposition + 1 ) % getSize();
-               if ( newposition != data->getSchId() )
+               if ( newposition != data->getSchId() ) {
                   wd = (( TaskStealData * ) getMemberData ( newposition ))->_readyQueue.pop_back ( thread );
+               }
             }
 
             return wd;

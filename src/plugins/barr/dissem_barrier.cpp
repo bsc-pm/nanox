@@ -44,6 +44,12 @@ namespace nanos {
                invocations of the barrier method */
             vector<Atomic<int> > _semaphores;
 
+            /*! number of participants: can change dynamically */
+            int _numParticipants;
+
+            /*! number of steps of the algorithm, equal to the logarithm of the number of participants */
+            int _q;
+
          public:
             /*! \warning the creation of the pthread_barrier_t variable will be performed when the barrier function is invoked
                    because only at that time we exectly know the number of participants (which is dynamic, as in a team
@@ -51,61 +57,44 @@ namespace nanos {
              */
             DisseminationBarrier() { }
 
-            void init() { }
+            void init ( int numParticipants );
+            void resize ( int numParticipants );
 
-            void barrier();
-            void barrier( int id );
+            void barrier( int numParticipants );
+
+            ~DisseminationBarrier() { }
       };
 
-
-      void DisseminationBarrier::barrier()
+      void DisseminationBarrier::init( int numParticipants ) 
       {
-         int myID = -1;
-         int numParticipants = myThread->getTeam()->size();
-         /*! q is the log of threadNum */
-         int q;
+         _numParticipants = numParticipants;
 
-         /*! initialize the barrier to the current participant number */
-         _semaphores.resize( numParticipants );
+         _semaphores.resize( _numParticipants );
 
-         /*! now we can compute the number of steps of the algorithm */
-         q = ( int ) ceil( log2( ( double ) numParticipants ) );
+         /*! we can compute the number of steps of the algorithm */
+         _q = ( int ) ceil( log2( ( double ) _numParticipants ) );
 
+         std::cout << "Num part = " << _numParticipants << " and q = " << _q << std::endl;
+      }
 
-         for ( int s = 0; s < q; s++ ) {
-            int toSign = ( myID + ( int ) pow( 2,s ) ) % numParticipants;
-            ( _semaphores[toSign] )--;
+      void DisseminationBarrier::resize( int numParticipants ) 
+      {
+         _numParticipants = numParticipants;
 
-            while ( _semaphores[myID] != 0 ) {}
+         _semaphores.resize( _numParticipants );
 
-            if ( s < q ) {
-               //reset the semaphore for the next round
-               _semaphores[myID]++; //notice that we allow another thread to signal it before we reset it (not set to 1!)
-            }
-         }
-
-         //reset the semaphore for the next barrier
-         //warning: as we do not have an atomic assignement, we use the substraction operation
-         _semaphores[myID]-1;
+         /*! we can re-compute the number of steps of the algorithm */
+         _q = ( int ) ceil( log2( ( double ) _numParticipants ) );
       }
 
 
-      void DisseminationBarrier::barrier( int myID )
+      void DisseminationBarrier::barrier( int numParticipants )
       {
-         /*! get the number of participants from the team */
-         int numParticipants = myThread->getTeam()->size();
-         /*! q is the log of threadNum */
-         int q;
+         int myID = myThread->getId();
 
-         /*! initialize the barrier to the current participant number */
-         _semaphores.resize( numParticipants );
-
-         /*! now we can compute the number of steps of the algorithm */
-         q = ( int ) ceil( log2( ( double ) numParticipants ) );
-
-         for ( int s = 0; s < q; s++ ) {
+         for ( int s = 0; s < _q; s++ ) {
             //compute the current step neighbour id
-            int toSign = ( myID + ( int ) pow( 2,s ) ) % numParticipants;
+            int toSign = ( myID + ( int ) pow( 2,s ) ) % _numParticipants;
 
             //wait for the neighbour sem to reach the previous value
             Scheduler::blockOnCondition( &_semaphores[toSign].override(), 0 );
@@ -117,14 +106,14 @@ namespace nanos {
              *  for a correct computation of neighbours)
              */
             Scheduler::blockOnCondition( &_semaphores[myID].override(), -1 );
-            // is this ++?
-            ( _semaphores[myID] ) ++;
+
+            ( _semaphores[myID] )++;
          }
 
          /*! at the end of the protocol, we are guaranteed that the semaphores are all 0 */
       }
 
-      Barrier * createDisseminationBarrier()
+      static Barrier * createDisseminationBarrier()
       {
          return new DisseminationBarrier();
       }

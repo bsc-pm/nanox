@@ -140,8 +140,10 @@ namespace nanos {
 
             while ( wd != NULL ) {
                newposition = ( newposition + 1 ) % getSize();
-               if ( newposition != data->getSchId() )
+               if ( newposition != data->getSchId() ) {
                   wd = pop( (( WFData * ) getMemberData ( newposition ))->_readyQueue, _stealPolicy, thread );
+               }
+
             }
             return wd;
          }

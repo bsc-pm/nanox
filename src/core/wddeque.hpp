@@ -48,7 +48,7 @@ namespace nanos
          BaseContainer     _dq;
          Lock              _lock;
 
-         //TODO: copy constructor, assignment
+         //TODO: copy and assignment operator
          WDDeque ( const WDDeque & );
          const WDDeque & operator= ( const WDDeque & );
 
