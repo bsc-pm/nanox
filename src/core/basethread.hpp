@@ -23,6 +23,7 @@
 #include "workdescriptor.hpp"
 #include "atomic.hpp"
 #include "processingelement.hpp"
+#include "debug.hpp"
 
 namespace nanos
 {
@@ -78,7 +79,9 @@ namespace nanos
                _id( _idSeed++ ), _pe( creator ), _threadWD( wd ), _started( false ), _mustStop( false ), _hasTeam( false ) {}
 
          // destructor
-         virtual ~BaseThread() {}
+         virtual ~BaseThread() {
+            ensure0(!_hasTeam,"Destroying thread inside a team!");
+         }
 
          // atomic access
          void lock () { _mlock++; }

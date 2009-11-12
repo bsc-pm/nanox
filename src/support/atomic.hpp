@@ -73,7 +73,7 @@ namespace nanos
    template<typename T>
    const Atomic<T> & Atomic<T>::operator= ( const T val )
    {
-      // TODO: make this an atomic update
+      this->_value = val;
       return *this;
    }
 

@@ -26,26 +26,32 @@
 namespace nanos {
    namespace ext {
 
+      class BFSchedPlugin;
+
       class BreadthFirstPolicy : public SchedulingGroup
       {
-
          private:
             WDDeque           _readyQueue;
+            static bool       _useStack;
 
-         public:
-            static bool      _useStack;
-
+            // copy constructor: disabled
+            BreadthFirstPolicy ( const BreadthFirstPolicy& );
+            // assignment operator: disabled
+            const BreadthFirstPolicy & operator= ( const BreadthFirstPolicy & );
          public:
             // constructor
             BreadthFirstPolicy( int groupSize ) : SchedulingGroup( "breadth-first-sch",groupSize ) {}
 
-            // TODO: copy and assigment operations
             // destructor
-            virtual ~BreadthFirstPolicy() {}
+            virtual ~BreadthFirstPolicy() {
+               ensure(_readyQueue.empty(),"Destroying SG with tasks!");
+            }
 
             virtual WD *atCreation ( BaseThread *thread, WD &newWD );
             virtual WD *atIdle ( BaseThread *thread );
             virtual void queue ( BaseThread *thread, WD &wd );
+
+            friend class BFSchedPlugin;
       };
 
       void BreadthFirstPolicy::queue ( BaseThread *thread, WD &wd )

@@ -33,7 +33,8 @@ namespace nanos
 
    class OS
    {
-
+      // All members are static so we don't need a constructor/destructor/...
+      
       public:
 
          class Argument
@@ -47,6 +48,19 @@ namespace nanos
 
             public:
                Argument( char *arg,int i ) : _name( arg ),_nparam( i ) {}
+               Argument( const Argument &arg ) : _name(arg._name), _nparam(arg._nparam) {}
+
+               const Argument & operator= ( const Argument &arg )
+               {
+                  // self-assignment: ok
+                  
+                  this->_name = arg._name;
+                  this->_nparam = arg._nparam;
+
+                  return *this;
+               }
+               
+               ~Argument () {}
 
                char * getName() const { return _name; }
          };

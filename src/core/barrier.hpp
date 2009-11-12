@@ -25,12 +25,13 @@ namespace nanos
 
    class Barrier
    {
-      private:
-         Barrier(const Barrier &);
-         const Barrier operator= ( const Barrier & );
       public:
          Barrier() {}
          virtual ~Barrier() {}
+
+         Barrier(const Barrier &) {}
+         const Barrier & operator= ( const Barrier & ) { return *this; }
+
 
          /*! Init is called when the number of participants in the barrier are known so the barrier
           *  can initialize the proper data structures if needed

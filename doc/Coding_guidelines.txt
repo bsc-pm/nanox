@@ -29,7 +29,7 @@ Naming Conventions
 C++ idioms
 ==========
 
-- All classes MUST have a constructor, a copy constructor and a assignment operator. If you think that the class should not have some of them (or don't want to implement them) declare them as private.
+- All classes MUST have a constructor, a copy constructor and a assignment operator. If you think that the class should not have some of them (or don't want to implement them) declare them as private. The only exception to this rule is Plugin subclasses.
 
 - If you implement an assignment operator always check if a self-assignment ( a = a; ) is handled correctly. Mark so in the code with a comment.
 

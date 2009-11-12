@@ -39,21 +39,33 @@ namespace nanos {
             int _numParticipants;
 
          public:
-            CentralizedBarrier();
+            CentralizedBarrier () : Barrier(), _sem(0), _flag(false) {}
+            CentralizedBarrier ( const CentralizedBarrier& barrier ) : Barrier(barrier),_sem(0),_flag(false)
+               { init( barrier._numParticipants ); }
+
+            const CentralizedBarrier & operator= ( const CentralizedBarrier & barrier );
+
+            virtual ~CentralizedBarrier() { }
 
             void init ( int numParticipants );
             void resize ( int numThreads );
 
             void barrier ( int participant );
-
-            ~CentralizedBarrier() { }
       };
 
-
-      CentralizedBarrier::CentralizedBarrier(): Barrier()
+      const CentralizedBarrier & CentralizedBarrier::operator= ( const CentralizedBarrier & barrier )
       {
-         _sem =  0;
-         _flag = false;
+         // self-assignment
+         if ( &barrier == this ) return *this;
+
+         Barrier::operator=(barrier);
+         _sem = 0;
+         _flag = 0;
+
+         if ( barrier._numParticipants != _numParticipants )
+            resize(barrier._numParticipants);
+         
+         return *this;
       }
 
       void CentralizedBarrier::init( int numParticipants ) 

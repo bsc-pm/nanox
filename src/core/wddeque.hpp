@@ -57,6 +57,8 @@ namespace nanos
 
          ~WDDeque() {}
 
+         bool empty () const { return _dq.empty(); }
+
          void push_front ( WorkDescriptor *wd );
          void push_back( WorkDescriptor *wd );
          WorkDescriptor * pop_front ( BaseThread *thread );
