@@ -69,9 +69,9 @@ namespace nanos {
 
       void CentralizedBarrier::barrier( int participant )
       {
-         _sem++;
-
-         std::cout << "numa par " << _numParticipants << std::endl;
+         int val;
+         
+         val = ++_sem;
 
          /* the last process incrementing the semaphore sets the flag
             releasing all other threads waiting in the next block */
@@ -81,11 +81,11 @@ namespace nanos {
          //wait for the flag to be set
          Scheduler::blockOnCondition<bool>( &_flag, true );
 
-         _sem--;
+         val = --_sem;
 
          /* the last thread decrementing the sem for the second time resets the flag.
             A thread passing in the next barrier will be blocked until this is performed */
-         if ( _sem == 0 )
+         if ( val == 0 )
             _flag = false;
 
          //wait for the flag to reset
