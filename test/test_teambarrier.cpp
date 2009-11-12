@@ -3,6 +3,7 @@
 #include <iostream>
 #include "smpprocessor.hpp"
 #include "system.hpp"
+#include "threadteam.hpp"
 #include <string.h>
 
 using namespace std;
@@ -26,7 +27,7 @@ int main (int argc, char **argv)
 {
        cout << "start" << endl;
        //all threads perform a barrier: 
-       for ( int i = 1; i < sys.getNumPEs(); i++ ) {
+       for ( unsigned i = 1; i < myThread->getTeam()->size(); i++ ) {
               WD * wd = new WD(new SMPDD(barrier_code));
               sys.submit(*wd);
        }

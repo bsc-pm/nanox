@@ -59,12 +59,14 @@ void System::loadModules ()
 
    ensure( _defSGFactory,"No default system scheduling factory" );
 
-   verbose0( "loading defult cutoff policy" );
+   verbose0( "loading " << getDefaultThrottlePolicy() << " throttle policy" );
 
    if ( !PluginManager::load( "throttle-"+getDefaultThrottlePolicy() ) )
       fatal0( "Could not load main cutoff policy" );
 
-   verbose0( "loading default barrier algorithm" );
+   ensure(_throttlePolicy, "No default throttle policy");
+
+   verbose0( "loading " << getDefaultBarrier() << " barrier algorithm" );
 
    if ( !PluginManager::load( "barrier-"+getDefaultBarrier() ) )
       fatal0( "Could not load main barrier algorithm" );
@@ -132,11 +134,9 @@ void System::start ()
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( sg ) );
 
-
-   //starting as much threads per pe as requested by the user
-
+   //start as much threads per pe as requested by the user
    for ( int ths = 1; ths < getThsPerPE(); ths++ ) {
-      pe->startWorker( sg );
+      _workers.push_back( &pe->startWorker( sg ));
    }
 
    for ( int p = 1; p < numPes ; p++ ) {
