@@ -48,8 +48,7 @@ namespace ext
          SMPThread( WD &w, PE *pe, bool uUT=true ) : BaseThread( w,pe ),_useUserThreads( uUT ) {}
 
          // destructor
-
-         virtual ~SMPThread() { if ( isStarted() ) /*TODO: stop()*/; }
+         virtual ~SMPThread() { }
 
          void setUseUserThreads( bool value=true ) { _useUserThreads = value; }
 

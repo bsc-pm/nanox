@@ -159,21 +159,21 @@ namespace nanos
 
          // shortcuts for VarOptions and ActionOptions
 
-         typedef class VarOption<int> 				IntegerVar;
+         typedef class VarOption<int>                       IntegerVar;
 
-         typedef class VarOption<bool> 				BoolVar;
+         typedef class VarOption<bool>                      BoolVar;
 
-         typedef class VarOption<std::string> 			StringVar;
+         typedef class VarOption<std::string>               StringVar;
 
-         typedef class VarOption<int,isPositive<int> > 		PositiveVar;
+         typedef class VarOption<int,isPositive<int> >      PositiveVar;
 
-         typedef class ActionOption<int> 			IntegerAction;
+         typedef class ActionOption<int>                    IntegerAction;
 
-         typedef class ActionOption<bool> 			BoolAction;
+         typedef class ActionOption<bool>                   BoolAction;
 
-         typedef class ActionOption<std::string> 		StringAction;
+         typedef class ActionOption<std::string>            StringAction;
 
-         typedef class ActionOption<int,isPositive<int> > 	PositiveAction;
+         typedef class ActionOption<int,isPositive<int> >   PositiveAction;
 
          template<typename T> class MapAction : public Option
          {

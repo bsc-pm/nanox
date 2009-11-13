@@ -51,8 +51,10 @@ namespace nanos
             Device ( const Device &arch ) : _name ( arch._name ) {}
 
             // assignment operator
-            const Device & operator= ( const Device &arch ) {
-                _name = arch._name; return *this;
+            const Device & operator= ( const Device &arch )
+            {
+                _name = arch._name;
+                return *this;
             }
 
             // destructor
@@ -81,9 +83,15 @@ namespace nanos
             DeviceData ( const DeviceData &dd ) : _architecture ( dd._architecture )  {}
 
             // assignment operator
-            const DeviceData & operator= ( const DeviceData &wd );
+            const DeviceData & operator= ( const DeviceData &dd )
+            {
+                  // self-assignment: ok
+                  _architecture = dd._architecture;
+                  return *this;
+            }
 
-            bool isCompatible ( const Device &arch ) {
+            bool isCompatible ( const Device &arch )
+            {
                 return _architecture == &arch;
             }
 
@@ -215,13 +223,6 @@ namespace nanos
             }
 
     };
-
-    inline const DeviceData & DeviceData::operator= ( const DeviceData &dd )
-    {
-        // self-assignment: ok
-        _architecture = dd._architecture;
-        return *this;
-    }
 
     typedef class WorkDescriptor WD;
 

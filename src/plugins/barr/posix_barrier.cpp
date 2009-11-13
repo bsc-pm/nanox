@@ -37,18 +37,17 @@ namespace nanos {
          private:
             pthread_barrier_t _pBarrier;
 
+            PosixBarrier( const PosixBarrier &barrier );
+            const PosixBarrier & operator= ( const PosixBarrier & );
          public:
-            /*! \warning the creation of the pthread_barrier_t variable will be performed when the barrier function is invoked
-             *      because only at that time we exectly know the number of participants (which is dynamic, as in a team
-             *      threads can dynamically enter and exit)
-             */
             PosixBarrier() { }
 
             void init ( int numParticipants );
             void resize ( int numParticipants );
 
             void barrier ( int participant );
-            ~PosixBarrier() { }
+
+            ~PosixBarrier() { pthread_barrier_destroy( &_pBarrier ); }
        };
 
 

@@ -35,6 +35,9 @@ namespace nanos {
             bool _createTasks;
             static const bool _default;
 
+            DummyThrottle ( const DummyThrottle & );
+            const DummyThrottle & operator= ( const DummyThrottle & );
+
          public:
             DummyThrottle() : _createTasks( _default ) {}
 

@@ -32,11 +32,13 @@ namespace nanos {
          private:
             int _limit;
 
+            TaskDepthThrottle ( const TaskDepthThrottle & );
+            const TaskDepthThrottle & operator= ( const TaskDepthThrottle &);
          public:
             //must be public: used in the plugin
             static const int _defaultLimit;
 
-            TaskDepthThrottle( int actualLimit ) : _limit( actualLimit ) {}
+            TaskDepthThrottle( int actualLimit = _defaultLimit ) : _limit( actualLimit ) {}
 
             void setLimit( int ml ) { _limit = ml; }
 

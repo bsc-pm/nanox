@@ -32,11 +32,13 @@ namespace nanos {
          private:
             int _limit;
 
+            IdleThreadsThrottle ( const IdleThreadsThrottle & );
+            const IdleThreadsThrottle & operator= ( const IdleThreadsThrottle & );
          public:
             //used in the plugin: must be public
             static const int _defaultLimit;
-            IdleThreadsThrottle() : _limit( _defaultLimit ) {}
-            IdleThreadsThrottle( int actualLimit ) : _limit( actualLimit ) {}
+
+            IdleThreadsThrottle( int actualLimit = _defaultLimit ) : _limit( actualLimit ) {}
 
             void init() {}
 

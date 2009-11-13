@@ -31,11 +31,14 @@ namespace nanos {
          private:
             int _limit;
 
+            ReadyTasksThrottle ( const ReadyTasksThrottle & );
+            const ReadyTasksThrottle operator= ( const ReadyTasksThrottle & );
+            
          public:
             //must be public: used in the plugin
             static const int _defaultLimit;
 
-            ReadyTasksThrottle( int actualLimit ) : _limit ( actualLimit ) {}
+            ReadyTasksThrottle( int actualLimit = _defaultLimit ) : _limit ( actualLimit ) {}
 
             void setLimit( int mr ) { _limit = mr; }
 
