@@ -38,3 +38,4 @@ template<typename T>
 T * cloner ( T *p ) { return p->clone(); }
 
 #endif
+
