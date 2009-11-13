@@ -134,7 +134,8 @@ namespace nanos
 
             WorkDescriptor ( DeviceData *device,void *wdata=0 ) :
                     WorkGroup(), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _idle ( false ),
-                    _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( 0 ), _activeDevice ( device ) {}
+                    _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( &device ),
+                    _activeDevice ( device ) {}
 
             // destructor
             // all data will be allocated in a single chunk so only the destructors need to be invoked
