@@ -70,6 +70,7 @@ void SMPThread::runDependent ()
 void SMPThread::join ()
 {
    pthread_join( _pth,NULL );
+   joined();
 }
 
 // This is executed in between switching stacks

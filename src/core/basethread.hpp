@@ -72,6 +72,16 @@ namespace nanos
 
          virtual void runDependent () = 0;
 
+      protected:
+
+         /*!
+          *  Must be called by children classes after the join operation
+          */ 
+         void joined ()
+         {
+            _started = false;
+         }
+
       public:
 
          // constructor
@@ -81,10 +91,7 @@ namespace nanos
          // destructor
          virtual ~BaseThread() {
             ensure0(!_hasTeam,"Destroying thread inside a team!");
-            if ( isStarted() ) {
-               stop();
-               join();
-            }
+            ensure0(!_started,"Trying to destroy running thread");
          }
 
          // atomic access
@@ -96,7 +103,7 @@ namespace nanos
          void run();
          void stop() { _mustStop = true; }
 
-         virtual void join() {};
+         virtual void join() = 0;
          virtual void bind() {};
 
          // WD micro-scheduling
