@@ -29,6 +29,7 @@ libsupport_la_SOURCES = \
 	debug.hpp\
 	config.hpp\
 	config.cpp \
+	functors.hpp \
 	plugin.hpp \
 	plugin.cpp \
 	xstring.hpp \
