@@ -33,8 +33,8 @@ namespace nanos
    {
 
       public:
+         SchedulePredicate () {}
          virtual bool operator() ( WorkDescriptor *wd );
-
          virtual ~SchedulePredicate() {}
    };
 
@@ -48,13 +48,11 @@ namespace nanos
          BaseContainer     _dq;
          Lock              _lock;
 
-         //TODO: copy and assignment operator
          WDDeque ( const WDDeque & );
          const WDDeque & operator= ( const WDDeque & );
 
       public:
          WDDeque() {}
-
          ~WDDeque() {}
 
          bool empty () const { return _dq.empty(); }

@@ -31,21 +31,28 @@ namespace nanos {
 
          friend class WFPolicy; //in this way, the policy can access the readyQueue
 
-         protected:
+         private:
             WDDeque _readyQueue;
+
+            WFData ( const WFData & );
+            const WFData operator= ( const WFData & );
 
          public:
             // constructor
             WFData( int id=0 ) : SchedulingData( id ) {}
 
-            //TODO: copy & assigment costructor
-
             // destructor
-            ~WFData() {}
+            ~WFData()
+            {
+                ensure(_readyQueue.empty(),"Destroying non-empty wdqueue");
+            }
       };
 
       class WFPolicy : public SchedulingGroup
       {
+         private:
+            WFPolicy ( const WFPolicy & );
+            const WFPolicy operator= ( const WFPolicy & );
 
          public:
             typedef enum { FIFO, LIFO } QueuePolicy;
@@ -57,17 +64,8 @@ namespace nanos {
 
             // constructor
             WFPolicy() : SchedulingGroup( "wf-steal-sch" ) {} 
-
             WFPolicy( int groupsize ) : SchedulingGroup( "wf-steal-sch", groupsize ) {}
 
-            WFPolicy( int groupsize, int localP ) : SchedulingGroup( "wf-steal-sch", groupsize ) {} 
-
-            WFPolicy( int groupsize, int localP, int stealPol ) : SchedulingGroup( "wf-steal-sch", groupsize ) {}
-
-            WFPolicy( int groupsize, int localP, int stealPol, bool stealPar ) : SchedulingGroup( "wf-steal-sch", groupsize ) {} 
-
-            // TODO: copy and assigment operations
-            // destructor
             virtual ~WFPolicy() {}
 
             virtual WD *atCreation ( BaseThread *thread, WD &newWD );
@@ -155,31 +153,10 @@ namespace nanos {
       }
 
       // Factories
-      SchedulingGroup * createWFPolicy ()
-      {
-         return new WFPolicy();
-      }
 
-      SchedulingGroup * createWFPolicy ( int groupsize )
+      static SchedulingGroup * createWFPolicy ( int groupsize )
       {
          return new WFPolicy( groupsize );
-      }
-
-
-      SchedulingGroup * createWFPolicy ( int localPolicy, int stealPolicy )
-      {
-         return new WFPolicy( localPolicy, stealPolicy );
-      }
-
-      SchedulingGroup * createWFPolicy ( int groupsize, int localPolicy, int stealPolicy )
-      {
-         return new WFPolicy( groupsize, localPolicy, stealPolicy );
-      }
-
-
-      SchedulingGroup * createWFPolicy ( int groupsize, int localPolicy, int stealPolicy, bool stealParent )
-      {
-         return new WFPolicy( groupsize, localPolicy, stealPolicy, stealParent );
       }
 
 

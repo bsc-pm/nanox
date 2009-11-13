@@ -32,6 +32,7 @@ namespace nanos
       private:
          static Atomic<int> _atomicSeed;
 
+         // FIX-ME: vector is not a safe-class here
          typedef std::vector<WorkGroup *> WGList;
 
          WGList         _partOf;
@@ -42,15 +43,12 @@ namespace nanos
          void addToGroup ( WorkGroup &parent );
          void exitWork ( WorkGroup &work );
 
+         WorkGroup( const WorkGroup &wg );
+         const WorkGroup & operator= ( const WorkGroup &wg );
+
       public:
          // constructors
          WorkGroup() : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ) {  }
-
-         // to do these two properly we would need to keep also the information of the components
-         // TODO:copy constructor
-         WorkGroup( const WorkGroup &wg );
-         // TODO:assignment operator
-         const WorkGroup & operator= ( const WorkGroup &wg );
 
          // destructor
          virtual ~WorkGroup();

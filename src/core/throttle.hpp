@@ -24,6 +24,10 @@ namespace nanos
 {
    class ThrottlePolicy
    {
+      private:
+         ThrottlePolicy ( const ThrottlePolicy & );
+         const ThrottlePolicy & operator= ( const ThrottlePolicy & );
+         
       public:
          ThrottlePolicy() {};
          virtual ~ThrottlePolicy() {}

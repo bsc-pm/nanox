@@ -116,12 +116,15 @@ namespace nanos
             WDDeque *            _myQueue;
 
             //level (depth) of the task
-            int                  _depth;
+            unsigned              _depth;
 
             // Supported devices for this workdescriptor
-            int                  _numDevices;
+            unsigned             _numDevices;
             DeviceData **        _devices;
             DeviceData *         _activeDevice;
+
+            WorkDescriptor ( const WorkDescriptor &wd );
+            const WorkDescriptor & operator= ( const WorkDescriptor &wd );
 
         public:
             // constructors
@@ -133,12 +136,14 @@ namespace nanos
                     WorkGroup(), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _idle ( false ),
                     _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( 0 ), _activeDevice ( device ) {}
 
-            // TODO: copy constructor
-            WorkDescriptor ( const WorkDescriptor &wd );
-            // TODO: assignment operator
-            const WorkDescriptor & operator= ( const WorkDescriptor &wd );
             // destructor
-            virtual ~WorkDescriptor() { /*TODO*/ }
+            // all data will be allocated in a single chunk so only the destructors need to be invoked
+            // but not the allocator
+            virtual ~WorkDescriptor()
+            {
+               for ( unsigned i = 0; i < _numDevices; i++ )
+                  _devices[i]->~DeviceData();
+            }
 
             WorkDescriptor * getParent() {
                 return _parent;
@@ -197,7 +202,7 @@ namespace nanos
                 _depth = l;
             }
 
-            int getDepth() {
+            unsigned getDepth() {
                 return _depth;
             }
 

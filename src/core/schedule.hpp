@@ -26,6 +26,8 @@
 #include "wddeque.hpp"
 #include "basethread.hpp"
 #include "atomic.hpp"
+#include "functors.hpp"
+#include <algorithm>
 
 namespace nanos
 {
@@ -36,12 +38,13 @@ namespace nanos
       private:
          int schId;
 
+         SchedulingData ( const SchedulingData & );
+         const SchedulingData & operator= ( const SchedulingData & );
+
       public:
 
          // constructor
          SchedulingData( int id=0 ) : schId( id ) {}
-
-         //TODO: copy & assigment costructor
 
          // destructor
          ~SchedulingData() {}
@@ -74,12 +77,13 @@ namespace nanos
       public:
          // constructors
          SchedulingGroup( std::string &policy_name, int groupSize=1 ) : _name( policy_name ) { init( groupSize ); }
-
          SchedulingGroup( const char  *policy_name, int groupSize=1 ) : _name( policy_name ) { init( groupSize ); }
 
          // destructor
-         virtual ~SchedulingGroup() {}
-
+         virtual ~SchedulingGroup()
+         {
+             std::for_each( _group.begin(),_group.end(), deleter<SchedulingData> );
+         }
 
          //modifiers
          SchedulingData * getMemberData( int id ) { return _group[id]; }

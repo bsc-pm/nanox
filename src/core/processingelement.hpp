@@ -21,6 +21,8 @@
 #define _NANOS_PROCESSING_ELEMENT
 
 #include "workdescriptor.hpp"
+#include <algorithm>
+#include "functors.hpp"
 
 namespace nanos
 {
@@ -39,6 +41,9 @@ namespace nanos
          const Device *                       _device;
          ThreadList                           _threads;
 
+         ProcessingElement ( const ProcessingElement &pe );
+         const ProcessingElement & operator= ( const ProcessingElement &pe );
+         
       protected:
          virtual WorkDescriptor & getMasterWD () const = 0;
          virtual WorkDescriptor & getWorkerWD () const = 0;
@@ -47,12 +52,11 @@ namespace nanos
          // constructors
          ProcessingElement ( int newId, const Device *arch ) : _id ( newId ), _device ( arch ) {}
 
-         // TODO: copy constructor
-         ProcessingElement ( const ProcessingElement &pe );
-         // TODO: assignment operations
-         const ProcessingElement & operator= ( const ProcessingElement &pe );
          // destructor
-         virtual ~ProcessingElement() {}
+         virtual ~ProcessingElement()
+         {
+            std::for_each(_threads.begin(),_threads.end(),deleter<BaseThread>);
+         }
 
          /* get/put methods */
          int getId() const {

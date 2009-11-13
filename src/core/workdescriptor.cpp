@@ -26,7 +26,7 @@ using namespace nanos;
 
 DeviceData * WorkDescriptor::findDeviceData ( const Device &device ) const
 {
-   for ( int i = 0; i < _numDevices; i++ ) {
+   for ( unsigned i = 0; i < _numDevices; i++ ) {
       if ( _devices[i]->isCompatible( device ) ) {
          return _devices[i];
       }

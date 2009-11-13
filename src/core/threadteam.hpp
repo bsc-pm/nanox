@@ -55,7 +55,11 @@ namespace nanos
                _threads.reserve( maxThreads );
          }
 
-         ~ThreadTeam () { /*TODO*/ }
+         ~ThreadTeam ()
+         {
+            delete &_barrier;
+            ensure(size() == 0, "Destroying non-empty team!");
+         }
 
 
          unsigned size() const { return _threads.size(); }

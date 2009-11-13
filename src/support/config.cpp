@@ -28,6 +28,7 @@
 #include <ext/functional>
 #include <functional>
 #include "debug.hpp"
+#include "functors.hpp"
 
 using namespace nanos;
 
@@ -140,20 +141,6 @@ void Config::init ()
 }
 
 //TODO: move to utility header
-template<typename T>
-void deleter( T *p ) { delete p; }
-
-template<typename T>
-void pair_deleter1 ( std::pair<std::string,T *> pair ) { delete pair.first; }
-
-template<typename T>
-void pair_deleter2 ( std::pair<std::string,T *> pair ) { delete pair.second; }
-
-template<typename T>
-T * creator ( T *p ) { return new T( *p ); }
-
-template<typename T>
-T * cloner ( T *p ) { return p->clone(); }
 
 void Config::clear ()
 {

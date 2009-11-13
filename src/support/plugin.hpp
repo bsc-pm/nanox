@@ -34,6 +34,9 @@ namespace nanos
          int            _version;
          void  *        _handler;
 
+         Plugin ( const Plugin & );
+         const Plugin operator= ( const Plugin & );
+         
       public:
          Plugin( std::string &_name, int _version ) : _name( _name ),_version( _version ) {}
 
@@ -52,7 +55,6 @@ namespace nanos
 
    class PluginManager
    {
-
       private:
          typedef std::vector<Plugin *>    PluginList;
          static std::string               _pluginsDir;

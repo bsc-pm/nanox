@@ -25,7 +25,7 @@
 namespace nanos {
    namespace ext {
 
-      /*! class TaskStealData
+      /*!
       * \brief Specialization of SchedulingData class for CILK-like scheduler
       */
 
@@ -40,30 +40,32 @@ namespace nanos {
             /*! queue of ready tasks to be executed */
             WDDeque _readyQueue;
 
+            TaskStealData ( const TaskStealData & );
+            const TaskStealData & operator= ( const TaskStealData & );
          public:
             // constructor
             TaskStealData ( int id = 0 ) : SchedulingData ( id ) {}
 
-            //TODO: copy & assigment costructor
-
             // destructor
-            ~TaskStealData() {}
+            ~TaskStealData()
+            {
+               ensure(_readyQueue.empty(),"Destroying non-empty wdqueue");
+            }
       };
 
-      /*! class TaskStealPolicy
+      /*! 
       * \brief Implements a CILK-like scheduler
       */
-
       class TaskStealPolicy : public SchedulingGroup
       {
+         private:
+            TaskStealPolicy ( const TaskStealPolicy & );
+            const TaskStealPolicy & operator= ( const TaskStealPolicy & );
 
          public:
             // constructor
             TaskStealPolicy() : SchedulingGroup ( "task-steal-sch" ) {}
-
             TaskStealPolicy ( int groupsize ) : SchedulingGroup ( "task-steal-sch", groupsize ) {}
-
-            // TODO: copy and assigment operations
 
             // destructor
             virtual ~TaskStealPolicy() {}
@@ -74,7 +76,7 @@ namespace nanos {
             virtual SchedulingData * createMemberData ( BaseThread &thread );
       };
 
-      /*! \fn queue( BaseThread *thread, WD &wd )
+      /*! 
        *  \brief Enqueue a work descriptor in the readyQueue of the passed thread
        *  \param thread pointer to the thread to which readyQueue the task must be appended
        *  \param wd a reference to the work descriptor to be enqueued
@@ -86,7 +88,7 @@ namespace nanos {
          data->_readyQueue.push_front ( &wd );
       }
 
-      /*! \fn atCreation( BaseThread *thread, WD &newWD )
+      /*! 
        *  \brief Function called when a new task must be created: the new created task is directly executed (Depth-First policy)
        *  \param thread pointer to the thread to which belongs the new task
        *  \param wd a reference to the work descriptor of the new task
@@ -98,7 +100,7 @@ namespace nanos {
          return &newWD;
       }
 
-      /*! \fn atIdle( BaseThread *thread)
+      /*! 
        *  \brief Function called by the scheduler when a thread becomes idle to schedule it: implements the CILK-scheduler algorithm
        *  \param thread pointer to the thread to be scheduled
        *  \sa BaseThread
@@ -148,7 +150,7 @@ namespace nanos {
          }
       }
 
-      /*! \fn createMemberData ( BaseThread &thread )
+      /*! 
        *  \brief creates a new instance of TaskStealData
        *  \param thread unused argument (for now all threads performs the same scheduling algorithm)
        *  \sa BaseThread and TaskStealData
@@ -158,15 +160,10 @@ namespace nanos {
          return new TaskStealData();
       }
 
-      /*! \fn createTaskStealPolicy ( )
+      /*!
        *  \brief creates a new instance of TaskStealPolicy
        */
-      SchedulingGroup * createTaskStealPolicy ()
-      {
-         return new TaskStealPolicy();
-      }
-
-      SchedulingGroup * createTaskStealPolicy ( int groupsize )
+      static SchedulingGroup * createTaskStealPolicy ( int groupsize )
       {
          return new TaskStealPolicy ( groupsize );
       }
