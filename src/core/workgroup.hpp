@@ -22,11 +22,12 @@
 
 #include <vector>
 #include "atomic.hpp"
+#include "dependenciesdomain.hpp"
 
 namespace nanos
 {
 
-   class WorkGroup
+   class WorkGroup : public DependableObject
    {
 
       private:
@@ -39,6 +40,7 @@ namespace nanos
          int            _id;
          Atomic<int>    _components;
          Atomic<int>    _phaseCounter;
+         DependenciesDomain _depsDomain;
 
          void addToGroup ( WorkGroup &parent );
          void exitWork ( WorkGroup &work );
@@ -48,7 +50,7 @@ namespace nanos
 
       public:
          // constructors
-         WorkGroup() : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ) {  }
+         WorkGroup() : DependableObject(),_id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ),_depsDomain() {  }
 
          // destructor
          virtual ~WorkGroup();
