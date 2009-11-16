@@ -54,6 +54,12 @@ nanos_sources=\
 	workdescriptor.hpp \
 	workdescriptor.cpp \
 	throttle.hpp \
+	dependency.hpp \
+	dependency.hpp \
+	dependableobject.hpp \
+	trackableobject.hpp \
+	dependenciesdomain.hpp \
+	dependenciesdomain.cpp \
 	$(END)
 
 # Default
