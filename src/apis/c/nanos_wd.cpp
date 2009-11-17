@@ -59,25 +59,21 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
          return NANOS_OK;
       }
 
-      //std::cout << "creatin because?" << std::endl;
-
-      if ( num_devices > 1 ) warning( "Multiple devices not yet supported. Using first one" );
-
-#if 0
-      // there is problem at destruction with this right now
+      if ( num_devices > 1 ) warning( "Multiple devices not yet supported. Assuming SMP device" );
 
       // FIX-ME: support more than one device, other than SMP
       int dd_size = sizeof(ext::SMPDD);
 
-      int size_to_allocate = ( *uwd == NULL ) ? sizeof( WD ) : 0 +
-                             ( *data == NULL ) ? data_size : 0 +
+      int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( WD ) : 0 ) +
+                             ( ( *data == NULL ) ? data_size : 0 ) +
                              dd_size
                              ;
 
       char *chunk=0;
+      char *start;
 
       if ( size_to_allocate )
-         chunk = new char[size_to_allocate];
+         start = chunk = new char[size_to_allocate];
 
       if ( *uwd == NULL ) {
          *uwd = ( nanos_wd_t ) chunk;
@@ -86,24 +82,14 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
 
       if ( *data == NULL ) {
          *data = chunk;
-         chunk += sizeof(data_size);
+         chunk += data_size;
       }
+      ensure((size_t) (chunk - (char *)*data) == data_size, "wrong data allocation");
 
       DD * dd = ( DD* ) devices[0].factory( chunk , devices[0].arg );
+      chunk += dd_size;
+
       WD * wd =  new (*uwd) WD( dd, *data );
-
-#else
-      WD *wd;
-
-      if ( *data == NULL )
-         *data = new char[data_size];
-
-      if ( *uwd ==  NULL )
-         *uwd = wd =  new WD( ( DD* ) devices[0].factory( 0, devices[0].arg ), *data );
-      else
-         wd = ( WD * )*uwd;
-
-#endif
 
       // add to workgroup
       if ( uwg != NULL ) {

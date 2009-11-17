@@ -134,7 +134,7 @@ namespace nanos
 
             WorkDescriptor ( DeviceData *device,void *wdata=0 ) :
                     WorkGroup(), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _idle ( false ),
-                    _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( &device ),
+                    _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( &_activeDevice ),
                     _activeDevice ( device ) {}
 
             // destructor

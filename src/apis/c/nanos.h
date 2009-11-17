@@ -134,7 +134,6 @@ nanos_err_t nanos_destroy_lock ( nanos_lock_t lock );
 nanos_err_t nanos_get_num_running_tasks ( int *num );
 
 // error handling
-
 void nanos_handle_error ( nanos_err_t err );
 
 // factories
