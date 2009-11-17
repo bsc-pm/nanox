@@ -70,3 +70,8 @@ WorkGroup::~WorkGroup ()
 {
    done();
 }
+
+void WorkGroup::dependenciesSatisfied()
+{
+}
+

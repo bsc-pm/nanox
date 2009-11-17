@@ -89,9 +89,9 @@ namespace nanos
          *  \param numDeps Number of dependenices in the list.
          *  \sa Dependency DependableObject TrackableObject
          */
-         void submitDependableObject ( DependableObject &depObj, Dependency* deps, int numDeps)
+         void submitDependableObject ( DependableObject &depObj, int numDeps, Dependency* deps)
          {
-            submitDependableObjectInternal ( depObj, deps, &deps[numDeps] );
+            submitDependableObjectInternal ( depObj, deps, deps+numDeps );
          }
 
          void finished ( DependableObject &depObj );

@@ -189,6 +189,15 @@ void System::submit ( WD &work )
    Scheduler::submit ( work );
 }
 
+void System::submitWithDependencies (WD& work, int numDeps, Dependency* deps)
+{
+   WD *current = myThread->getCurrentWD();
+   work.setParent ( current );
+   work.setDepth( work.getParent()->getDepth() +1 );
+   current->submitWithDependencies( work, numDeps , deps);
+}
+
+
 void System::inlineWork ( WD &work )
 {
    BaseThread *myself = myThread;

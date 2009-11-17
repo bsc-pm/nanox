@@ -47,13 +47,7 @@ namespace nanos
          *  \param output Whether the dependency is output or not
          *  \param canRename Whether the dependency can rename or not
          */
-         Dependency (void ** address = NULL, bool input = false, bool output = false, bool canRename = false)
-         {
-            _address = address;
-            _input = input;
-            _output = output;
-            _canRename = canRename;
-         }
+         Dependency (void ** address = NULL, bool input = false, bool output = false, bool canRename = false) : _address ( address ), _input ( input ), _output ( output ), _canRename ( canRename ) {}
 
         /*! \brief Copy constructor
          *  \param obj another Dependency

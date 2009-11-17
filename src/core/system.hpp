@@ -26,6 +26,7 @@
 #include <string>
 #include "schedule.hpp"
 #include "threadteam.hpp"
+#include "dependency.hpp"
 
 
 namespace nanos
@@ -92,6 +93,7 @@ namespace nanos
          ~System ();
 
          void submit ( WD &work );
+         void submitWithDependencies (WD& work, int numDeps, Dependency* deps);
          void inlineWork ( WD &work );
 
          // methods to access configuration variables

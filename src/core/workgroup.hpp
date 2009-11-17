@@ -60,6 +60,17 @@ namespace nanos
          void waitCompletation();
          void done();
          int getId() const { return _id; }
+         virtual void dependenciesSatisfied();
+
+         void submitWithDependencies(WorkGroup &wg, int numDeps, Dependency* deps)
+         {
+            _depsDomain.submitDependableObject(wg, numDeps, deps);
+         }
+
+         void workFinished(WorkGroup &wg)
+         {
+            _depsDomain.finished( wg );
+         }
    };
 
    typedef WorkGroup WG;
