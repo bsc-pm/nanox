@@ -90,7 +90,7 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
          dd_size += devices[i].dd_size;
 
       int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( WD ) : 0 ) +
-                             ( ( *data == NULL ) ? data_size : 0 ) +
+                             ( ( data != NULL && *data == NULL ) ? data_size : 0 ) +
                              sizeof( DD* ) * num_devices +
                              dd_size
                              ;
@@ -108,7 +108,7 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
       }
 
       // allocate WD data
-      if ( *data == NULL ) {
+      if ( data != NULL && *data == NULL ) {
          *data = chunk;
          chunk += data_size;
       }
@@ -123,7 +123,7 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
          chunk += devices[i].dd_size;
       }
 
-      WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, *data );
+      WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data != NULL ? *data : NULL );
 
       // add to workgroup
       if ( uwg != NULL ) {
