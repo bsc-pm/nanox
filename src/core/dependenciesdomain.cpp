@@ -106,6 +106,9 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
    
 }
 
+template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, Dependency* begin, Dependency* end );
+template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, const std::vector<Dependency>::const_iterator begin, const std::vector<Dependency>::const_iterator end );
+
 /*! \brief Dependable Object depObj is finished and its outgoing dependencies are removed.
  *  \param desObj Dependable Object that finished
  *  \sa DependableObject
