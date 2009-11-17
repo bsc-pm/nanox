@@ -161,6 +161,7 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, unsigned int num_deps, nanos_dependen
             conv_deps[i] = Dependency( deps[i].address, deps[i].flags.input, deps[i].flags.output, deps[i].flags.can_rename );
          }
          sys.submitWithDependencies( *wd, num_deps, conv_deps );
+         return NANOS_OK;
       }
 
       sys.submit( *wd );
