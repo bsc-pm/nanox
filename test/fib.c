@@ -60,10 +60,6 @@ void fib_2( void *ptr )
 nanos_smp_args_t fib_device_arg_1 = { fib_1 };
 nanos_smp_args_t fib_device_arg_2 = { fib_2 };
 
-nanos_device_t fib_devices_1[] = { {nanos_smp_factory, &fib_device_arg_1 } };
-
-nanos_device_t fib_devices_2[] = { {nanos_smp_factory, &fib_device_arg_2 } };
-
 int fib ( int n, int d )
 {
    int x, y;
@@ -76,7 +72,7 @@ int fib ( int n, int d )
       {
          nanos_wd_t wd=0;
          fib_args *args=0;
-
+         nanos_device_t fib_devices_1[1] = { NANOS_SMP_DESC( fib_device_arg_1 ) };
          nanos_wd_props_t props = {
            .mandatory_creation = true,
            .tied = false,
@@ -97,7 +93,7 @@ int fib ( int n, int d )
       {
          nanos_wd_t wd=0;
          fib_args *args=0;
-
+         nanos_device_t fib_devices_2[1] = { NANOS_SMP_DESC( fib_device_arg_2 ) };
          nanos_wd_props_t props = {
            .mandatory_creation = true,
            .tied = false,

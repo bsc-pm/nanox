@@ -22,6 +22,16 @@ include $(top_srcdir)/src/common.am
 noinst_LTLIBRARIES = libsmp.la
 lib_LTLIBRARIES = libnanox-pe-smp.la
 
+EXTRA_DIST= \
+	x86/stack.cpp \
+	x86/stack.s \
+	x86-64/stack.cpp \
+	x86-64/stack.s \
+	ia64/stack.cpp \
+	ia64/stack.s \
+	$(END)
+	
+
 libsmp_la_CXXFLAGS=$(common_includes) $(common_cxxflags) 
 libsmp_la_SOURCES = \
 		smpdd.hpp \

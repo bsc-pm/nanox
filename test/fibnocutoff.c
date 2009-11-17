@@ -60,9 +60,6 @@ void fib_2( void *ptr )
 nanos_smp_args_t fib_device_arg_1 = { fib_1 };
 nanos_smp_args_t fib_device_arg_2 = { fib_2 };
 
-nanos_device_t fib_devices_1[] = { {nanos_smp_factory, &fib_device_arg_1 } };
-
-nanos_device_t fib_devices_2[] = { {nanos_smp_factory, &fib_device_arg_1 } };
 
 int fib ( int n, int d )
 {
@@ -76,6 +73,7 @@ int fib ( int n, int d )
    {
       nanos_wd_t wd=0;
       fib_args *args=0;
+      nanos_device_t fib_devices_1[1] = { NANOS_SMP_DESC( fib_device_arg_1 ) };
 
       nanos_create_wd ( &wd, 1, fib_devices_1 , sizeof( fib_args ),
                         ( void ** )&args, nanos_current_wd(), 0 );
@@ -94,7 +92,8 @@ int fib ( int n, int d )
    {
       nanos_wd_t wd=0;
       fib_args *args=0;
-
+      nanos_device_t fib_devices_2[1] = { NANOS_SMP_DESC( fib_device_arg_2 ) };
+      
       nanos_create_wd ( &wd, 1, fib_devices_2 , sizeof( fib_args ),
                         ( void ** )&args, nanos_current_wd(), 0 );
 

@@ -27,6 +27,8 @@
 using namespace nanos;
 
 // TODO: move to dependent part
+const size_t nanos_smp_dd_size = sizeof(ext::SMPDD);
+
 void * nanos_smp_factory( void *prealloc, void *args )
 {
    nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
@@ -48,7 +50,31 @@ int nanos_get_wd_id ( nanos_wd_t wd )
    return lwd->getId();
 }
 
-// FIX-ME: currently, it works only for SMP
+
+/*! \brief Creates a new WorkDescriptor
+ *
+ *  When it does a full allocation the layout is the following
+ *
+ *  +---------------+
+ *  |     WD        |
+ *  +---------------+
+ *  |    data       |
+ *  +---------------+
+ *  |  dev_ptr[0]   |
+ *  +---------------+
+ *  |     ....      |
+ *  +---------------+
+ *  |  dev_ptr[N]   |
+ *  +---------------+
+ *  |     DD0       |
+ *  +---------------+
+ *  |     ....      |
+ *  +---------------+
+ *  |     DDN       |
+ *  +---------------+
+ *
+ *  \sa nanos::WorkDescriptor
+ */
 nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t data_size,
                                void ** data, nanos_wg_t uwg, nanos_wd_props_t *props )
 {
@@ -59,51 +85,45 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
          return NANOS_OK;
       }
 
-      //std::cout << "creatin because?" << std::endl;
+      int dd_size = 0;
+      for ( unsigned int i = 0; i < num_devices; i++ )
+         dd_size += devices[i].dd_size;
 
-      if ( num_devices > 1 ) warning( "Multiple devices not yet supported. Using first one" );
-
-#if 0
-      // there is problem at destruction with this right now
-
-      // FIX-ME: support more than one device, other than SMP
-      int dd_size = sizeof(ext::SMPDD);
-
-      int size_to_allocate = ( *uwd == NULL ) ? sizeof( WD ) : 0 +
-                             ( *data == NULL ) ? data_size : 0 +
+      int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( WD ) : 0 ) +
+                             ( ( *data == NULL ) ? data_size : 0 ) +
+                             sizeof( DD* ) * num_devices +
                              dd_size
                              ;
 
       char *chunk=0;
+      char *start;
 
       if ( size_to_allocate )
-         chunk = new char[size_to_allocate];
+         start = chunk = new char[size_to_allocate];
 
+      // allocate WD
       if ( *uwd == NULL ) {
          *uwd = ( nanos_wd_t ) chunk;
          chunk += sizeof( WD );
       }
 
+      // allocate WD data
       if ( *data == NULL ) {
          *data = chunk;
-         chunk += sizeof(data_size);
+         chunk += data_size;
       }
 
-      DD * dd = ( DD* ) devices[0].factory( chunk , devices[0].arg );
-      WD * wd =  new (*uwd) WD( dd, *data );
+      // allocate device pointers vector
+      DD **dev_ptrs = ( DD ** ) chunk;
+      chunk += sizeof( DD* ) * num_devices;
 
-#else
-      WD *wd;
+      // allocate device data
+      for ( unsigned int i = 0 ; i < num_devices ; i ++ ) {
+         dev_ptrs[i] = ( DD* ) devices[0].factory( chunk , devices[0].arg );
+         chunk += devices[i].dd_size;
+      }
 
-      if ( *data == NULL )
-         *data = new char[data_size];
-
-      if ( *uwd ==  NULL )
-         *uwd = wd =  new WD( ( DD* ) devices[0].factory( 0, devices[0].arg ), *data );
-      else
-         wd = ( WD * )*uwd;
-
-#endif
+      WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, *data );
 
       // add to workgroup
       if ( uwg != NULL ) {
@@ -114,7 +134,6 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
       // set properties
       if ( props != NULL ) {
          if ( props->tied ) wd->tied();
-
          if ( props->tie_to ) wd->tieTo( *( BaseThread * )props->tie_to );
       }
 
