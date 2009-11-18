@@ -54,9 +54,16 @@ case $host in
     ARCHITECTURES+=smp
     SMP_ARCH=ia64
     ;;
+  powerpc32-*-linux-gnu | powerpc64-*-linux-gnu)
+    OS=unix-os
+    ARCHITECTURES+=smp
+    SMP_ARCH=ppc32
+    CXXFLAGS+=" -m32"
+    CFLAGS+=" -m32"
+    ;;
   *)
     AC_MSG_ERROR([unsupported architecture $host])
-  ;;
+    ;;
 esac
 
 # Add architecture libraries

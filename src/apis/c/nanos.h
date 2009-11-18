@@ -80,6 +80,7 @@ typedef struct {
 
 typedef struct {
   void * (*factory) (void *prealloc, void *arg);
+  size_t dd_size;
   void * arg;
 } nanos_device_t;
 
@@ -134,18 +135,19 @@ nanos_err_t nanos_destroy_lock ( nanos_lock_t lock );
 nanos_err_t nanos_get_num_running_tasks ( int *num );
 
 // error handling
-
 void nanos_handle_error ( nanos_err_t err );
 
 // factories
 void * nanos_smp_factory( void *prealloc ,void *args);
+extern const size_t nanos_smp_dd_size;
+#define NANOS_SMP_DESC( args ) { nanos_smp_factory, nanos_smp_dd_size, &( args ) }
 
 // utility macros
 
-#define NANOS_SAFE(call) \
+#define NANOS_SAFE( call ) \
 do {\
    nanos_err_t err = call;\
-   if ( err != NANOS_OK ) nanos_handle_error(err);\
+   if ( err != NANOS_OK ) nanos_handle_error( err );\
 } while (0)
 
 #ifdef __cplusplus
