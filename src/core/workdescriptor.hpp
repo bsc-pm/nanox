@@ -24,6 +24,7 @@
 #include <utility>
 #include <vector>
 #include "workgroup.hpp"
+#include "slicer.hpp"
 
 
 namespace nanos
@@ -125,6 +126,9 @@ namespace nanos
 
             WorkDescriptor ( const WorkDescriptor &wd );
             const WorkDescriptor & operator= ( const WorkDescriptor &wd );
+
+         Slicer * _slicer;         /**< Related Slicer*/
+         SlicerData * _slicerData; /**< Related SlicerData*/
 
         public:
             // constructors
@@ -228,6 +232,19 @@ namespace nanos
                 return _wdData;
             }
 
+        /*! \brief Relate WorkDescriptor with Slicer and SlicerData objects respectively 
+         * 
+         * This function initializes _slicer and _slicerData data members.
+         * 
+         * \param[in] slicer
+         * \param[in] slicerData
+         * \see Slicer SlicerData
+         */
+         void setSlicer( Slicer *slicer, SlicerData *slicerData )
+         {
+            _slicer = slicer;
+            _slicerData = slicerData;
+         }
     };
 
     typedef class WorkDescriptor WD;
