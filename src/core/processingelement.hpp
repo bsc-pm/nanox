@@ -69,7 +69,7 @@ namespace nanos
 
          BaseThread & startThread ( WorkDescriptor &wd, SchedulingGroup *sg = 0 );
          virtual BaseThread & createThread ( WorkDescriptor &wd ) = 0;
-         BaseThread & associateThisThread ( SchedulingGroup *sg );
+         BaseThread & associateThisThread ( SchedulingGroup *sg, bool untieMain=true );
 
          BaseThread & startWorker ( SchedulingGroup *sg );
          void stopAll();
