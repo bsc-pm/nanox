@@ -53,11 +53,11 @@ namespace nanos
          // destructor
          ~Atomic() {}
 
-         T fetchAndAdd ( T val=1 ) { return __sync_fetch_and_add( &_value,val ); }
-	 T addAndFetch ( T val=1 ) { return __sync_add_and_fetch( &_value,val ); }
-	 T fetchAndSub ( T val=1 ) { return __sync_fetch_and_sub( &_value,val ); }
-	 T subAndFetch ( T val=1 ) { return __sync_sub_and_fetch( &_value,val ); }
-	 T value() const { return _value; }
+         T fetchAndAdd ( const T& val=1 ) { return __sync_fetch_and_add( &_value,val ); }
+         T addAndFetch ( const T& val=1 ) { return __sync_add_and_fetch( &_value,val ); }
+         T fetchAndSub ( const T& val=1 ) { return __sync_fetch_and_sub( &_value,val ); }
+         T subAndFetch ( const T& val=1 ) { return __sync_sub_and_fetch( &_value,val ); }
+         T value() const { return _value; }
 
          //! pre-increment ++
          T operator++ ()			{ return addAndFetch(); }
@@ -65,23 +65,31 @@ namespace nanos
 
          //! post-increment ++
          T operator++ ( int val ) 		{ return fetchAndAdd(); }
-	 T operator-- ( int val ) 		{ return fetchAndSub(); }
+         T operator-- ( int val ) 		{ return fetchAndSub(); }
 
-	 //! += operator
-	 T operator+= ( const T val ) { return addAndFetch(val); }
-	 T operator+= ( const Atomic<T> &val ) { return addAndFetch(val.value()); }
+         //! += operator
+         T operator+= ( const T val ) { return addAndFetch(val); }
+         T operator+= ( const Atomic<T> &val ) { return addAndFetch(val.value()); }
 
-	 T operator-= ( const T val ) { return subAndFetch(val); }
-	 T operator-= ( const Atomic<T> &val ) { return subAndFetch(val.value()); }
+         T operator-= ( const T val ) { return subAndFetch(val); }
+         T operator-= ( const Atomic<T> &val ) { return subAndFetch(val.value()); }
 
-	 //! equal operator
-	 bool operator== ( const Atomic<T> &val ) { return value() == val.value(); }
-	 bool operator!= ( const Atomic<T> &val ) { return value() != val.value(); }
+         //! equal operator
+         bool operator== ( const Atomic<T> &val ) { return value() == val.value(); }
+         bool operator!= ( const Atomic<T> &val ) { return value() != val.value(); }
 
-	 bool operator< (const Atomic<T> &val ) { return value() < val.value(); }
-	 bool operator> ( const Atomic<T> &val ) { return value() > val.value(); }
-	 bool operator<= ( const Atomic<T> &val ) { return value() <= val.value(); }
+         bool operator< (const Atomic<T> &val ) { return value() < val.value(); }
+         bool operator> ( const Atomic<T> &val ) { return value() > val.value(); }
+         bool operator<= ( const Atomic<T> &val ) { return value() <= val.value(); }
          bool operator>= ( const Atomic<T> &val ) { return value() >= val.value(); }
+
+         // other atomic operations
+
+         //! compare and swap
+         bool cswap ( const Atomic<T> &oldval, const Atomic<T> &newval )
+         {
+            return __sync_bool_compare_and_swap ( &_value, oldval.value(), newval.value() );
+         }
 
          volatile T & override () { return _value; }
    };
