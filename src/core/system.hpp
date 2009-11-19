@@ -115,13 +115,13 @@ namespace nanos
 
          int getThsPerPE() const { return _thsPerPE; }
 
-         int getTaskNum() const { return _taskNum; }
+         int getTaskNum() const { return _taskNum.value(); }
 
-         int getIdleNum() const { return _idleThreads; }
+         int getIdleNum() const { return _idleThreads.value(); }
 
-         int getReadyNum() const { return _numReady; }
+         int getReadyNum() const { return _numReady.value(); }
 
-         int getRunningTasks() const { return _numTasksRunning; }
+         int getRunningTasks() const { return _numTasksRunning.value(); }
 
          int getNumWorkers() const { return _workers.size(); }
 
