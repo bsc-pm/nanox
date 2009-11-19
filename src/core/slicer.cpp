@@ -17,52 +17,35 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "workdescriptor.hpp"
-#include "schedule.hpp"
-#include "processingelement.hpp"
-#include "basethread.hpp"
+#include "slicer.hpp"
 #include "debug.hpp"
+#include "system.hpp"
 
 using namespace nanos;
 
-DeviceData * WorkDescriptor::findDeviceData ( const Device &device ) const
-{
-   for ( unsigned i = 0; i < _numDevices; i++ ) {
-      if ( _devices[i]->isCompatible( device ) ) {
-         return _devices[i];
-      }
-   }
 
-   return 0;
+void SlicerStatic::submit ( WD &work )
+{
+   debug0 ( "Using sliced work descriptor: static" );
+   Scheduler::submit ( work );
 }
 
-DeviceData & WorkDescriptor::activateDevice ( const Device &device )
+bool SlicerStatic::dequeue( WD *wd, WD **slice)
 {
-   if ( _activeDevice ) {
-      ensure( _activeDevice->isCompatible( device ),"Bogus double device activation" );
-      return *_activeDevice;
-   }
+   *slice = wd;
+   return true;
+/*
+   StaticSlicerData *sd = (StaticSlicerData *) candidate->getSlicerData();
 
-   DD * dd = findDeviceData( device );
+   int id = myThread->getTeamId();
+   int low,upper =  ...
 
-   ensure( dd,"Did not find requested device in activation" );
-   _activeDevice = dd;
-   return *dd;
+   WD *wd = new WD(....);
+
+   result = wd;
+
+   if (sd->last) return true;
+   return false;
+*/
 }
 
-bool WorkDescriptor::canRunIn( const Device &device ) const
-{
-   if ( _activeDevice ) return _activeDevice->isCompatible( device );
-
-   return findDeviceData( device ) != NULL;
-}
-
-bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
-{
-   return canRunIn( pe.getDeviceType() );
-}
-
-void WorkDescriptor::submit( void )
-{
-   Scheduler::submit(*this);
-} 

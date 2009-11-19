@@ -103,8 +103,7 @@ namespace nanos
 
          for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
             if ( !( *it )->isTied() || ( *it )->isTiedTo() == thread ) {
-               found = *it;
-               _dq.erase( it );
+               if ( ( *it )->dequeue( &found ) ) _dq.erase( it );
                break;
             }
          }
@@ -139,8 +138,7 @@ namespace nanos
 
          while ( rit != _dq.rend() ) {
             if ( !( *rit )->isTied() || ( *rit )->isTiedTo() == thread ) {
-               found = *rit;
-               _dq.erase( ( ++rit ).base() );
+               if ( ( *rit )->dequeue( &found ) ) _dq.erase( ( ++rit ).base() );
                break;
             }
 
@@ -205,8 +203,7 @@ namespace nanos
 
          for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
             if ( ( !( *it )->isTied() || ( *it )->isTiedTo() == thread ) && ( predicate( *it ) == true ) ) {
-               found = *it;
-               _dq.erase( it );
+               if ( ( *it )->dequeue( &found ) ) _dq.erase( it );
                break;
             }
          }
@@ -243,8 +240,7 @@ namespace nanos
 
          while ( rit != _dq.rend() ) {
             if ( ( !( *rit )->isTied() || ( *rit )->isTiedTo() == thread )  && ( predicate( *rit ) == true ) ) {
-               found = *rit;
-               _dq.erase( ( ++rit ).base() );
+               if ( ( *rit )->dequeue( &found ) ) _dq.erase( ( ++rit ).base() );
                break;
             }
 

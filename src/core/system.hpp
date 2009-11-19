@@ -26,6 +26,7 @@
 #include <string>
 #include "schedule.hpp"
 #include "threadteam.hpp"
+#include "slicer.hpp"
 
 
 namespace nanos
@@ -76,6 +77,8 @@ namespace nanos
 
          PEList               _pes;
          ThreadList           _workers;
+
+         Slicers              _slicers; /**< set of global slicers */
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -148,6 +151,10 @@ namespace nanos
          void setHostFactory ( peFactory factory ) { _hostFactory = factory; }
 
          void setDefaultBarrFactory ( barrFactory factory ) { _defBarrFactory = factory; }
+
+         Slicer & getSlicerNull ( ) { return _slicers.getSlicerNull(); }
+
+         Slicer & getSlicerStatic ( ) { return _slicers.getSlicerStatic(); }
 
    };
 

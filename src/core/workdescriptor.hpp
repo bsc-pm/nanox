@@ -24,13 +24,17 @@
 #include <utility>
 #include <vector>
 #include "workgroup.hpp"
-#include "slicer.hpp"
-
+//#include "slicer.hpp"
 
 namespace nanos
 {
 
+
 // forward declarations
+
+   class Slicer;
+
+   class SlicerData;
 
     class BaseThread;
 
@@ -126,9 +130,10 @@ namespace nanos
 
             WorkDescriptor ( const WorkDescriptor &wd );
             const WorkDescriptor & operator= ( const WorkDescriptor &wd );
-
+#if 0
          Slicer * _slicer;         /**< Related Slicer*/
          SlicerData * _slicerData; /**< Related SlicerData*/
+#endif
 
         public:
             // constructors
@@ -232,19 +237,8 @@ namespace nanos
                 return _wdData;
             }
 
-        /*! \brief Relate WorkDescriptor with Slicer and SlicerData objects respectively 
-         * 
-         * This function initializes _slicer and _slicerData data members.
-         * 
-         * \param[in] slicer
-         * \param[in] slicerData
-         * \see Slicer SlicerData
-         */
-         void setSlicer( Slicer *slicer, SlicerData *slicerData )
-         {
-            _slicer = slicer;
-            _slicerData = slicerData;
-         }
+	 virtual void submit ( void ); 
+         virtual bool dequeue ( WorkDescriptor **slice ) { *slice = this; return true; }
     };
 
     typedef class WorkDescriptor WD;

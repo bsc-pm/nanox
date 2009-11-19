@@ -17,52 +17,76 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "workdescriptor.hpp"
-#include "schedule.hpp"
-#include "processingelement.hpp"
-#include "basethread.hpp"
-#include "debug.hpp"
+#include "config.hpp"
+#include <iostream>
+#include "smpprocessor.hpp"
+#include "system.hpp"
+#include "slicer.hpp"
+#include <string.h>
+
+using namespace std;
 
 using namespace nanos;
+using namespace nanos::ext;
 
-DeviceData * WorkDescriptor::findDeviceData ( const Device &device ) const
+int a = 1234;
+std::string b( "default" );
+bool c = false;
+
+typedef struct {
+   int a;
+   std::string b;
+} hello_world_args;
+
+void hello_world ( void *args )
 {
-   for ( unsigned i = 0; i < _numDevices; i++ ) {
-      if ( _devices[i]->isCompatible( device ) ) {
-         return _devices[i];
-      }
-   }
-
-   return 0;
+   hello_world_args *hargs = ( hello_world_args * ) args;
+   cout << "hello_world "
+        << hargs->a << " "
+        << hargs->b
+        << endl;
 }
 
-DeviceData & WorkDescriptor::activateDevice ( const Device &device )
+int main ( int argc, char **argv )
 {
-   if ( _activeDevice ) {
-      ensure( _activeDevice->isCompatible( device ),"Bogus double device activation" );
-      return *_activeDevice;
-   }
+   cout << "PEs = " << sys.getNumPEs() << endl;
+   cout << "Mode = " << sys.getExecutionMode() << endl;
+   cout << "Verbose = " << sys.getVerbose() << endl;
+   cout << "Args" << endl;
+   for ( int i = 0; i < argc; i++ )
+      cout << argv[i] << endl;
+   cout << "start" << endl;
 
-   DD * dd = findDeviceData( device );
+   const char *str;
+   hello_world_args *data;
 
-   ensure( dd,"Did not find requested device in activation" );
-   _activeDevice = dd;
-   return *dd;
+   // Work arguments
+   str = "first";
+   data = new hello_world_args();
+   data->a = 1;
+   data->b = str;
+
+   // Work descriptor creation
+   WD * wd1 = new WD( new SMPDD( hello_world ),data );
+
+   // Work arguments
+   str = "second";
+   data = new hello_world_args();
+   data->a = 2;
+   data->b = str;
+
+   // Work descriptor creation
+   WD * wd2 = new SlicedWD( sys.getSlicerStatic(), *new SlicerDataStatic(), new SMPDD( hello_world ),data );
+
+   // Work Group affiliation and work submision
+   WG *wg = myThread->getCurrentWD();
+   wg->addWork( *wd1 );
+   wg->addWork( *wd2 );
+
+   sys.submit( *wd1 );
+   sys.submit( *wd2 );
+
+   usleep( 500 );
+
+   cout << "end" << endl;
 }
-
-bool WorkDescriptor::canRunIn( const Device &device ) const
-{
-   if ( _activeDevice ) return _activeDevice->isCompatible( device );
-
-   return findDeviceData( device ) != NULL;
-}
-
-bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
-{
-   return canRunIn( pe.getDeviceType() );
-}
-
-void WorkDescriptor::submit( void )
-{
-   Scheduler::submit(*this);
-} 
