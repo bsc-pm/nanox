@@ -56,6 +56,7 @@ namespace nanos
          bool                 _verboseMode;
          ExecutionMode        _executionMode;
          int                  _thsPerPE;
+         bool                 _untieMaster;
 
          //cutoff policy and related variables
          ThrottlePolicy *     _throttlePolicy;

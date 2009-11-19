@@ -29,7 +29,7 @@ System nanos::sys;
 
 // default system values go here
 System::System () : _numPEs( 1 ), _deviceStackSize( 1024 ), _bindThreads( true ), _profile( false ), _instrument( false ),
-      _verboseMode( false ), _executionMode( DEDICATED ), _thsPerPE( 1 ),
+      _verboseMode( false ), _executionMode( DEDICATED ), _thsPerPE( 1 ), _untieMaster(true),
       _defSchedule( "cilk" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" )
 {
    verbose0 ( "NANOS++ initalizing... start" );
@@ -132,7 +132,7 @@ void System::start ()
    //TODO: decide, single master, multiple master start
    PE *pe = createPE ( "smp", 0 );
    _pes.push_back ( pe );
-   _workers.push_back( &pe->associateThisThread ( sg ) );
+   _workers.push_back( &pe->associateThisThread ( sg, _untieMaster ) );
 
    //start as much threads per pe as requested by the user
    for ( int ths = 1; ths < getThsPerPE(); ths++ ) {

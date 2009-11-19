@@ -2,22 +2,39 @@
 
 using namespace nanos::ext;
 
-/* -------------------------------------------------------------------
+extern "C" {
+// low-level helper routine to start a new user-thread
+void startHelper ();
+}
+
+
+/*! \brief initializes a stack state for PowerPC32
+ *
+ * -------------------------------------------------------------------
  * Initial STACK state for PPC 32
  * -------------------------------------------------------------------
  *
  *  +------------------------------+
  *  |                              |
  *  +------------------------------+ <- state
- *  |
- *  | 
+ *  |    scratch area for helper   |
+ *  +------------------------------+
+ *  |     (20)  r12                |
+ *  |     (24)  r14 =  userf       |
+ *  |     (28)  r15 =  data        |
+ *  |     (32)  r16 =  cleanup     |
+ *  |     (36)  r17 =  clenaup arg |
+ *  |           ....               |
+ *  |     (92)  r31                |
+ *  |     (96)  f14   (8 bytes)    |
+ *  |           ....               |
+ *  |    (232)  f31   (8 bytes)    |
+ *  |    (240)  back chain = 0     |
+ *  |    (244)  r0  =  startHelper |
+ *  +------------------------------+
  *
- * -----------------------------------------------------------------*/
-
-extern "C" {
-// low-level helper routine to start a new user-thread
-void startHelper ();
-}
+ * \sa switchStacks
+ */
 
 void SMPDD::initStackDep ( void *userfunction, void *data, void *cleanup )
 {
@@ -25,7 +42,7 @@ void SMPDD::initStackDep ( void *userfunction, void *data, void *cleanup )
    _state = _stack;
    _state += _stackSize;
 
-   _state -= 60 + 2;
+   _state -= 62; // 244/sizeof(intptr_t)
 
    // return link
    _state[61] = (intptr_t) startHelper;
