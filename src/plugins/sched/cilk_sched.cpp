@@ -120,7 +120,7 @@ namespace nanos {
             /*!
             *  If the local queue is empty, try to steal the parent (possibly enqueued in the queue of another thread)
             */
-            if ( ( wd = ( thread->getCurrentWD() )->getParent() ) != NULL ) {
+            if ( ( wd = thread->getCurrentWD()->getParent() ) != NULL ) {
                //removing it from the queue. 
                //Try to remove from one queue: if someone move it, I stop looking for it to avoid ping-pongs.
                if ( wd->isEnqueued() && ( !wd ->isTied() || wd->isTiedTo() == thread ) ) {
@@ -139,7 +139,7 @@ namespace nanos {
             int newposition = data->getSchId();
             wd = NULL;
 
-            while ( wd != NULL ) {
+            while ( wd == NULL ) {
                newposition = ( newposition + 1 ) % getSize();
                if ( newposition != data->getSchId() ) {
                   wd = (( TaskStealData * ) getMemberData ( newposition ))->_readyQueue.pop_back ( thread );
