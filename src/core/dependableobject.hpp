@@ -24,7 +24,6 @@
 #include <vector>
 #include "atomic.hpp"
 
-
 namespace nanos
 {
 
@@ -62,12 +61,12 @@ namespace nanos
       public:
         /*! \brief Constructor
          */
-         DependableObject ( ) :  _id ( 0 ), _numPredecessors ( 0 ), _successors( ), _outputObjects( ) {}
+         DependableObject ( ) :  _id ( 0 ), _numPredecessors ( 0 ), _successors( ), _outputObjects( ), _readObjects(), _objectLock() {}
 
         /*! \brief Copy constructor
          *  \param depObj another DependableObject
          */
-         DependableObject ( const DependableObject &depObj ) :  _id ( depObj._id ), _numPredecessors ( depObj._numPredecessors ), _successors ( depObj._successors ), _outputObjects( ) {}
+         DependableObject ( const DependableObject &depObj ) :  _id ( depObj._id ), _numPredecessors ( depObj._numPredecessors ), _successors ( depObj._successors ), _outputObjects( ), _readObjects(), _objectLock() {}
 
         /*! \brief Assign operator, can be self-assigned.
          *  \param depObj another DependableObject
@@ -97,11 +96,19 @@ namespace nanos
             _id = id;
          }
 
+        /*! \brief Id getter function.
+         *         Returns the id  for the DependableObject (unique in its domain).
+         */
+         unsigned int getId ()
+         {
+            return _id;
+         }
+
         /*! \brief Increase the number of predecessors of the DependableObject.
          */
          void increasePredecessors ( )
          {
-            _numPredecessors++;
+              _numPredecessors++; 
          }
 
         /*! \brief Decrease the number of predecessors of the DependableObject
@@ -110,12 +117,12 @@ namespace nanos
          */
          void decreasePredecessors ( )
          {
-            _numPredecessors--;
-
-            if ( _numPredecessors == 0 )
-            {
+            int  numPredecessors = __sync_sub_and_fetch( &_numPredecessors.override(),1 ); 
+//            int x = --_numPredecessors;
+            if ( numPredecessors == 0 ) {
                dependenciesSatisfied( );
             }
+
          }
 
         /*! \brief Obtain the list of successors

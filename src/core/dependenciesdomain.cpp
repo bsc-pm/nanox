@@ -19,6 +19,9 @@
 
 #include <utility>
 #include "dependenciesdomain.hpp"
+#include "debug.hpp"
+#include "system.hpp"
+#include <iostream>
 
 using namespace nanos;
 
@@ -61,7 +64,8 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
       const Dependency &dep = *it;
       TrackableObject * dependencyObject = lookupDependency( dep );
 
-      if ( dep.isInput() ) {
+      // assumes no new readers added concurrently
+      if ( dep.isInput() || (dep.isOutput() && !(dependencyObject->hasReaders()) ) ) {
          DependableObject *lastWriter = dependencyObject->getLastWriter();
          
          if ( lastWriter != NULL ) {
@@ -69,20 +73,30 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
             if ( dependencyObject->getLastWriter() == lastWriter ) {
                depObj.increasePredecessors();
                lastWriter->addSuccessor( depObj );
+               if ( ( !(dep.isOutput()) || dep.isInput() ) ) { // FIXME is this true? if ( !(inout) )-> RaW... something missing here
+                  // RaW dependency
+                  debug (" DO_ID_" << lastWriter->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=green];");
+               } else {
+                  // WaW dependency
+                  debug (" DO_ID_" << lastWriter->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=blue];");
+               }
             }
             lastWriter->unlock();
          }
       }
 
+
       // only for non-inout dependencies
       if ( dep.isInput() && !( dep.isOutput() ) ) {
          depObj.addReadObject( dependencyObject );
+
+         dependencyObject->lockReaders();
          dependencyObject->setReader( depObj );
+         dependencyObject->unlockReaders();
       }
 
       if ( dep.isOutput() ) {
          // add dependencies to all previous reads
-
          TrackableObject::DependableObjectList &readersList = dependencyObject->getReaders();
          dependencyObject->lockReaders();
 
@@ -90,6 +104,8 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
             DependableObject * predecessorReader = *it;
             predecessorReader->addSuccessor( depObj );
             depObj.increasePredecessors();
+            // WaR dependency
+            debug (" DO_ID_" << predecessorReader->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=red];");
          }
          dependencyObject->flushReaders();
 
@@ -99,11 +115,13 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
          depObj.addOutputObject( dependencyObject );
          dependencyObject->setLastWriter( depObj );
       }
+
    }
-   
+
+   if ( sys.getVerbose() ) return;
+
    // now everything is ready
    depObj.decreasePredecessors();
-   
 }
 
 template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, Dependency* begin, Dependency* end );
@@ -115,8 +133,11 @@ template void DependenciesDomain::submitDependableObjectInternal ( DependableObj
  */
 void DependenciesDomain::finished ( DependableObject &depObj )
 {
-   //! This step guarantees that any Object that wants to add depObj as a successor has done it
-   //! before we continue or, alternatively, won't do it.
+
+   if ( sys.getVerbose() ) return;
+
+   // This step guarantees that any Object that wants to add depObj as a successor has done it
+   // before we continue or, alternatively, won't do it.
    depObj.lock();
    DependableObject::TrackableObjectVector &outs = depObj.getOutputObjects();
    for ( unsigned int i = 0; i < outs.size(); i++ ) {
@@ -137,5 +158,5 @@ void DependenciesDomain::finished ( DependableObject &depObj )
    for ( unsigned int i = 0; i < succ.size(); i++ ) {
       succ[i]->decreasePredecessors();
    }
-   
 }
+

@@ -55,21 +55,14 @@ namespace nanos
          Lock _writerLock;
 
       public:
-         /*! \brief Constructor
-          */
-         TrackableObject ( ) :  _address ( NULL ), _lastWriter ( NULL ) {}
-
         /*! \brief Creates a TrackableObject with the given address associated.
          */
-         TrackableObject ( void ** address ) : _lastWriter ( NULL )
-         {
-            _address = address;
-         }
+         TrackableObject ( void ** address = NULL ) : _address(address), _lastWriter ( NULL ), _versionReaders(), _readersLock(), _writerLock() {}
 
         /*! \brief Copy constructor
          *  \param obj another TrackableObject
          */
-         TrackableObject ( const TrackableObject &obj ) :  _address ( obj._address ), _lastWriter ( obj._lastWriter ) {}
+         TrackableObject ( const TrackableObject &obj ) :  _address ( obj._address ), _lastWriter ( obj._lastWriter ), _versionReaders(), _readersLock(), _writerLock() {}
          
         /*! \brief Destructor
          */
@@ -169,6 +162,13 @@ namespace nanos
          void deleteReader ( DependableObject &reader )
          {
             _versionReaders.remove( &reader );
+         }
+
+        /*! \brief Whether the object has readers or not
+         */
+         bool hasReaders ()
+         {
+            return !( _versionReaders.empty() );
          }
 
         /*! \brief Get exclusive access to the readers list
