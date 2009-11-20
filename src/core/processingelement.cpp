@@ -25,8 +25,8 @@ using namespace nanos;
 
 BaseThread& ProcessingElement::startWorker ( SchedulingGroup *sg )
 {
-   WD & master = getWorkerWD();
-   return startThread( master,sg );
+   WD & worker = getWorkerWD();
+   return startThread( worker,sg );
 }
 
 BaseThread & ProcessingElement::startThread ( WD &work, SchedulingGroup *sg )
@@ -42,14 +42,24 @@ BaseThread & ProcessingElement::startThread ( WD &work, SchedulingGroup *sg )
    return thread;
 }
 
-BaseThread & ProcessingElement::associateThisThread ( SchedulingGroup *sg )
+BaseThread & ProcessingElement::associateThisThread ( SchedulingGroup *sg, bool untieMain )
 {
-   WD & master = getMasterWD();
-   BaseThread &thread = createThread( master );
+   WD & worker = untieMain ?  getWorkerWD() : getMasterWD();
+   
+   BaseThread &thread = createThread( worker );
 
    if ( sg ) sg->addMember( thread );
 
    thread.associate();
+
+   if ( untieMain ) {
+      // "switch" to main
+      WD & master = getMasterWD();
+
+      // put worker thread idle-loop into the queue
+      Scheduler::queue(worker);
+      thread.setCurrentWD(master);
+   }
 
    return thread;
 }

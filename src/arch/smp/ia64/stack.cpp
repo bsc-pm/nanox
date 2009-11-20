@@ -76,7 +76,8 @@ void SMPDD::initStackDep ( void *userfuction, void *data, void *cleanup )
    _state[60] = ( intptr_t ) data;
 
    // return pointer
-   _state[59] = ( intptr_t ) *( ( long * )startHelper );
+   // The double cast avoids a GCC warning about breaking aliasing
+   _state[59] = ( intptr_t ) *( (long *)( void * )startHelper );
    // ar.rsc
    _state[58] = ( intptr_t ) 3;
    // ar.pfs
