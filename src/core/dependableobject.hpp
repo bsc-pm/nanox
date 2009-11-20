@@ -117,8 +117,7 @@ namespace nanos
          */
          void decreasePredecessors ( )
          {
-            int  numPredecessors = __sync_sub_and_fetch( &_numPredecessors.override(),1 ); 
-//            int x = --_numPredecessors;
+            int  numPredecessors = --_numPredecessors; 
             if ( numPredecessors == 0 ) {
                dependenciesSatisfied( );
             }
