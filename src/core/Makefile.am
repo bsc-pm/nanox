@@ -57,6 +57,8 @@ nanos_sources=\
 	dependency.hpp \
 	dependency.hpp \
 	dependableobject.hpp \
+	dependableobjectwd.hpp \
+	dependableobjectwd.cpp \
 	trackableobject.hpp \
 	dependenciesdomain.hpp \
 	dependenciesdomain.cpp \

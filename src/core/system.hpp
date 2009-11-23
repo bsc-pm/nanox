@@ -95,6 +95,7 @@ namespace nanos
 
          void submit ( WD &work );
          void submitWithDependencies (WD& work, int numDeps, Dependency* deps);
+         void waitOn ( int numDeps, Dependency* deps);
          void inlineWork ( WD &work );
 
          // methods to access configuration variables

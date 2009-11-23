@@ -99,6 +99,7 @@ nanos_err_t nanos_create_wd ( nanos_wd_t *wd, size_t num_devices, nanos_device_t
                               void ** data, nanos_wg_t wg, nanos_wd_props_t *props );
 
 nanos_err_t nanos_submit ( nanos_wd_t wd, unsigned int num_deps, nanos_dependence_t *deps, nanos_team_t team );
+nanos_err_t nanos_wait_on ( unsigned int num_deps, nanos_dependence_t *deps );
 
 nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *devices, void * data,
                                       nanos_dependence_t *deps, nanos_wd_props_t *props );

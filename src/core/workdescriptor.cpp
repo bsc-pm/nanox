@@ -22,6 +22,7 @@
 #include "basethread.hpp"
 #include "debug.hpp"
 #include "schedule.hpp"
+#include "dependableobjectwd.hpp"
 
 using namespace nanos;
 
@@ -60,10 +61,5 @@ bool WorkDescriptor::canRunIn( const Device &device ) const
 bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
 {
    return canRunIn( pe.getDeviceType() );
-}
-
-void WorkDescriptor::dependenciesSatisfied ()
-{
-   Scheduler::submit(*this);
 }
 

@@ -172,6 +172,25 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, unsigned int num_deps, nanos_dependen
    return NANOS_OK;
 }
 
+nanos_err_t nanos_wait_on ( unsigned int num_deps, nanos_dependence_t *deps )
+{
+   try {
+      if ( deps != NULL ) {
+         Dependency conv_deps[num_deps];
+         for ( unsigned int i = 0; i < num_deps; i++ ) {
+            conv_deps[i] = Dependency( deps[i].address, deps[i].flags.input, deps[i].flags.output, deps[i].flags.can_rename );
+         }
+         sys.waitOn( num_deps, conv_deps );
+         return NANOS_OK;
+      }
+
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
 // data must be not null
 nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *devices, void * data,
                                       nanos_dependence_t *deps, nanos_wd_props_t *props )

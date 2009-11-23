@@ -17,54 +17,37 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_WORK_GROUP
-#define _NANOS_WORK_GROUP
+#include "dependableobjectwd.hpp"
+#include "workdescriptor.hpp"
+#include "schedule.hpp"
 
-#include <vector>
-#include "atomic.hpp"
-#include "dependenciesdomain.hpp"
+using namespace nanos;
 
-namespace nanos
+/*! \brief Submits WorkDescriptor when dependencies are satisfied
+ */
+void DOSubmit::dependenciesSatisfied ( )
 {
+     Scheduler::submit( *_submittedWD );
+}
 
-   class WorkGroup
-   {
+/*! \brief Initialise wait condition
+ */
+void DOWait::init()
+{
+   _depsSatisfied = false;
+}
 
-      private:
-         static Atomic<int> _atomicSeed;
+/*! \brief Wait method blocks execution untill dependencies are satisfied
+ */
+void DOWait::wait ( )
+{
+     Scheduler::blockOnCondition ( &_depsSatisfied, true);
+}
 
-         // FIX-ME: vector is not a safe-class here
-         typedef std::vector<WorkGroup *> WGList;
-
-         WGList         _partOf;
-         int            _id;
-         Atomic<int>    _components;
-         Atomic<int>    _phaseCounter;
-
-         void addToGroup ( WorkGroup &parent );
-         void exitWork ( WorkGroup &work );
-
-         WorkGroup( const WorkGroup &wg );
-         const WorkGroup & operator= ( const WorkGroup &wg );
-
-      public:
-         // constructors
-         WorkGroup() : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ) {  }
-
-         // destructor
-         virtual ~WorkGroup();
-
-         void addWork( WorkGroup &wg );
-         void sync();
-         void waitCompletation();
-         void done();
-         int getId() const { return _id; }
-
-   };
-
-   typedef WorkGroup WG;
-
-};
-
-#endif
+/*! \brief Unblock method when dependencies are satisfied
+ */
+void DOWait::dependenciesSatisfied ( )
+{
+   _depsSatisfied = true;
+}
 

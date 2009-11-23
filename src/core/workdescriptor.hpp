@@ -24,6 +24,7 @@
 #include <utility>
 #include <vector>
 #include "workgroup.hpp"
+#include "dependableobjectwd.hpp"
 
 
 namespace nanos
@@ -123,6 +124,11 @@ namespace nanos
             DeviceData **        _devices;
             DeviceData *         _activeDevice;
 
+            DOSubmit _dOSubmit;
+            DOWait _dOWait;
+
+            DependenciesDomain _depsDomain;
+
             WorkDescriptor ( const WorkDescriptor &wd );
             const WorkDescriptor & operator= ( const WorkDescriptor &wd );
 
@@ -130,12 +136,12 @@ namespace nanos
             // constructors
             WorkDescriptor ( int ndevices, DeviceData **devs,void *wdata=0 ) :
                     WorkGroup(), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _idle ( false ),
-                    _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : 0 ) {}
+                    _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : 0 ), _dOSubmit(this), _dOWait(this), _depsDomain() {}
 
             WorkDescriptor ( DeviceData *device,void *wdata=0 ) :
                     WorkGroup(), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _idle ( false ),
                     _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( &_activeDevice ),
-                    _activeDevice ( device ) {}
+                    _activeDevice ( device ), _dOSubmit(this), _dOWait(this), _depsDomain() {}
 
             // destructor
             // all data will be allocated in a single chunk so only the destructors need to be invoked
@@ -228,7 +234,20 @@ namespace nanos
                 return _wdData;
             }
 
-           virtual void dependenciesSatisfied();
+            void submitWithDependencies( WorkDescriptor &wd, int numDeps, Dependency* deps )
+            {
+               _depsDomain.submitDependableObject( wd._dOSubmit, numDeps, deps );
+            }
+
+            void waitOn( int numDeps, Dependency* deps )
+            {
+               _depsDomain.submitDependableObject( _dOWait, numDeps, deps );
+            }
+   
+            void workFinished(WorkDescriptor &wd)
+            {
+               _depsDomain.finished( wd._dOSubmit );
+            }
 
     };
 

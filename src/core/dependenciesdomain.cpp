@@ -54,6 +54,8 @@ template<typename iterator>
 void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, iterator begin, iterator end )
 {
    depObj.setId ( _lastDepObjId++ );
+
+   depObj.init();
    
    // Object is not ready to get its dependencies satisfied
    // so we increase the number of predecessor to permit other dependableObjects to free some of
@@ -122,6 +124,8 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
 
    // now everything is ready
    depObj.decreasePredecessors();
+
+   depObj.wait();
 }
 
 template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, Dependency* begin, Dependency* end );

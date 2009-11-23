@@ -23,14 +23,13 @@
 #include <list>
 #include <vector>
 #include "atomic.hpp"
-
+#include <cstdio>
 namespace nanos
 {
 
    class TrackableObject;
 
-  /*! \class DependableObject
-   *  \brief Abstract entity submitted to the Dependency system
+  /*! \brief Abstract entity submitted to the Dependency system
    */
    class DependableObject
    {
@@ -61,7 +60,7 @@ namespace nanos
       public:
         /*! \brief Constructor
          */
-         DependableObject ( ) :  _id ( 0 ), _numPredecessors ( 0 ), _successors( ), _outputObjects( ), _readObjects(), _objectLock() {}
+         DependableObject ( ) :  _id ( 0 ), _numPredecessors ( 0 ), _successors(), _outputObjects(), _readObjects(), _objectLock() {}
 
         /*! \brief Copy constructor
          *  \param depObj another DependableObject
@@ -85,7 +84,11 @@ namespace nanos
          */
          virtual ~DependableObject ( ) { }
 
-         virtual void dependenciesSatisfied ( )=0;
+         virtual void init ( ) { }
+
+         virtual void dependenciesSatisfied ( ) { }
+
+         virtual void wait ( ) { }
 
         /*! \brief Id setter function.
          *         The id will be unique for DependableObjects in the same Dependency Domain.
