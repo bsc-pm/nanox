@@ -63,7 +63,7 @@ namespace nanos
    
         /*! \brief Virtual destructor
          */
-         ~DOSubmit ( ) { }
+         virtual ~DOSubmit ( ) { }
 
          virtual void dependenciesSatisfied ( );
          
@@ -107,7 +107,7 @@ namespace nanos
    
         /*! \brief Virtual destructor
          */
-         ~DOWait ( ) { }
+         virtual ~DOWait ( ) { }
 
          virtual void init ( );
 

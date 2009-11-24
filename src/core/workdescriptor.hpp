@@ -124,9 +124,12 @@ namespace nanos
             DeviceData **        _devices;
             DeviceData *         _activeDevice;
 
+            /**< DependableObject representing this WD in its parent's depsendencies domain */
             DOSubmit _dOSubmit;
+            /**< DependableObject used by this task to wait on dependencies */
             DOWait _dOWait;
 
+            /**< Each WorkDescriptor has a domain where DependableObjects can be submitted */
             DependenciesDomain _depsDomain;
 
             WorkDescriptor ( const WorkDescriptor &wd );
@@ -234,16 +237,29 @@ namespace nanos
                 return _wdData;
             }
 
+           /*! \brief Add a new WD to the domain of this WD.
+            *  \param wd Must be a WD created by "this". wd will be submitted to the
+            *  scheduler when its dependencies are satisfied.
+            *  \param numDeps Number of dependencies.
+            *  \param deps Array with dependencies associated to the submitted wd.
+            */
             void submitWithDependencies( WorkDescriptor &wd, int numDeps, Dependency* deps )
             {
                _depsDomain.submitDependableObject( wd._dOSubmit, numDeps, deps );
             }
 
+           /*! \brief Waits untill all (input) dependencies passed are satisfied for the _dOWait object.
+            *  \param numDeps Number of de dependencies.
+            *  \param deps dependencies to wait on, should be input dependencies.
+            */
             void waitOn( int numDeps, Dependency* deps )
             {
                _depsDomain.submitDependableObject( _dOWait, numDeps, deps );
             }
-   
+
+           /*! \brief Make this WD's domain know a WD has finished.
+            *  \paran wd Must be a wd created in this WD's context.
+            */
             void workFinished(WorkDescriptor &wd)
             {
                _depsDomain.finished( wd._dOSubmit );
