@@ -25,6 +25,8 @@
 
 using namespace nanos;
 
+Atomic<int> DependenciesDomain::_atomicSeed( 0 );
+
 /*! \brief Looks for the dependency's address in the domain and returns the trackableObject associated.
  *  \param dep Dependency to be checked.
  *  \sa Dependency TrackableObject

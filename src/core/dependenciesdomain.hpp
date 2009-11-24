@@ -23,6 +23,7 @@
 #include <map>
 #include <list>
 #include <vector>
+#include "atomic.hpp"
 #include "dependableobject.hpp"
 #include "trackableobject.hpp"
 #include "dependency.hpp"
@@ -37,6 +38,12 @@ namespace nanos
    class DependenciesDomain
    {
       private:
+         /**< ID seed for the domains */
+         static Atomic<int> _atomicSeed;
+
+         /**< Domain's id */
+         int _id;
+
          /**< Id to be given to the next submitted DependableObject */
          unsigned int _lastDepObjId;
          
@@ -49,30 +56,29 @@ namespace nanos
 
          template<typename iterator>
          void submitDependableObjectInternal ( DependableObject &depObj, iterator begin, iterator end );
-         
+
+         const DependenciesDomain & operator= ( const DependenciesDomain &depDomain );
+
       public:
         /*! \brief Constructor
          */
-         DependenciesDomain ( ) :  _lastDepObjId ( 0 ), _addressDependencyMap( ) {}
+         DependenciesDomain ( ) :  _id( _atomicSeed++ ), _lastDepObjId ( 0 ), _addressDependencyMap( ) {}
 
         /*! \brief Copy Constructor
          */
-         DependenciesDomain ( const DependenciesDomain &depDomain ) :  _lastDepObjId ( depDomain._lastDepObjId ), _addressDependencyMap ( depDomain._addressDependencyMap ) {}
+         DependenciesDomain ( const DependenciesDomain &depDomain ) :  _id( _atomicSeed++ ), _lastDepObjId ( depDomain._lastDepObjId ), _addressDependencyMap ( depDomain._addressDependencyMap ) {}
 
         /*! \brief Destructor
          */
          ~DependenciesDomain ( ) { }
-         
-        /*! \brief Assign operator, can be self-assigned.
-         *  \param depDomain another DependenciesDomain
+
+        /*! \brief get object's id
          */
-         const DependenciesDomain & operator= ( const DependenciesDomain &depDomain ) {
-            if ( this == &depDomain ) return *this;
-            _lastDepObjId = depDomain._lastDepObjId;
-            _addressDependencyMap = depDomain._addressDependencyMap;
-            return *this;
+         int getId ()
+         {
+            return _id;
          }
-         
+
         /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
          *  \param depObj DependableObject to be added to the domain.
          *  \param deps List of dependencies to be associated to the Dependable Object.
