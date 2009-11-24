@@ -333,6 +333,48 @@ bool wait_on_test()
    return true;
 }
 
+bool create_and_run_test()
+{
+   int j;
+   int my_value[100];
+   int other_value=0;
+   nanos_wd_props_t props = {
+     .mandatory_creation = true,
+     .tied = false,
+     .tie_to = false,
+   };
+
+   for ( j = 0; j < 100; j++ ) {
+      my_value[j] = 500;
+      int * dep_addr1 = &my_value[j];
+      my_args *args1=0;
+      nanos_dependence_t deps1 = {(void **)&dep_addr1, {0,1,0}, 0};
+      nanos_wd_t wd1 = 0;
+
+      nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1 ) };
+      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), (void**)&args1, nanos_current_wd(), &props) );
+      args1->p_i = dep_addr1;
+      NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
+   }
+
+   nanos_dependence_t deps2[100];
+   int *dep_addr2[100];
+   for ( j = 0; j < 100; j++ ) {
+      dep_addr2[j] = &my_value[j];
+      deps2[j] = (nanos_dependence_t){(void **) &dep_addr2[j], {1,0,0},0};
+   }
+
+   my_args arg;
+   arg.p_i = &other_value;
+   nanos_device_t test_devices_2[1] = { NANOS_SMP_DESC( test_device_arg_1 ) };
+
+   NANOS_SAFE( nanos_create_wd_and_run( 1, test_devices_2, (void *)&arg, 100, &deps2[0], &props ) );
+
+   for ( j = 0; j < 100; j++ ) {
+    if ( my_value[j] != 0 ) return false;
+   }
+   return true;
+}
 
 int main ( int argc, char **argv )
 {
@@ -381,6 +423,13 @@ int main ( int argc, char **argv )
 
    printf("Wait on test...\n");
    if ( wait_on_test() ) {
+      printf("PASS\n");
+   } else {
+      printf("FAIL\n");
+   }
+
+   printf("create and run test...\n");
+   if ( create_and_run_test() ) {
       printf("PASS\n");
    } else {
       printf("FAIL\n");
