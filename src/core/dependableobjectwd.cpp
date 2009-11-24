@@ -30,6 +30,15 @@ void DOSubmit::dependenciesSatisfied ( )
      Scheduler::submit( *_submittedWD );
 }
 
+/*! \brief whether the DO gets blocked and no more dependencies can
+ *  be submitted until it is satisfied.
+ */
+bool DOWait::waits()
+{
+   return true;
+}
+
+
 /*! \brief Initialise wait condition
  */
 void DOWait::init()

@@ -90,6 +90,8 @@ namespace nanos
 
          virtual void wait ( ) { }
 
+         virtual bool waits ( ) { return false; }
+
         /*! \brief Id setter function.
          *         The id will be unique for DependableObjects in the same Dependency Domain.
          *  \param id identifier to be assigned.

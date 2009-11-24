@@ -77,7 +77,7 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
             if ( dependencyObject->getLastWriter() == lastWriter ) {
                depObj.increasePredecessors();
                lastWriter->addSuccessor( depObj );
-               if ( ( !(dep.isOutput()) || dep.isInput() ) ) { // FIXME is this true? if ( !(inout) )-> RaW... something missing here
+               if ( ( !(dep.isOutput()) || dep.isInput() ) ) {
                   // RaW dependency
                   debug (" DO_ID_" << lastWriter->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=green];");
                } else {
@@ -91,7 +91,7 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
 
 
       // only for non-inout dependencies
-      if ( dep.isInput() && !( dep.isOutput() ) ) {
+      if ( dep.isInput() && !( dep.isOutput() ) && !( depObj.waits() ) ) {
          depObj.addReadObject( dependencyObject );
 
          dependencyObject->lockReaders();
@@ -115,9 +115,11 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
 
          dependencyObject->unlockReaders();
          
-         // set depObj as writer of dependencyObject
-         depObj.addOutputObject( dependencyObject );
-         dependencyObject->setLastWriter( depObj );
+         if ( !depObj.waits() ) {
+            // set depObj as writer of dependencyObject
+            depObj.addOutputObject( dependencyObject );
+            dependencyObject->setLastWriter( depObj );
+         }
       }
 
    }

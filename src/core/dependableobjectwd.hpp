@@ -113,6 +113,8 @@ namespace nanos
 
          virtual void wait ( );
 
+         virtual bool waits ( );
+
          virtual void dependenciesSatisfied ( );
         
    };
