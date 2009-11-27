@@ -89,7 +89,7 @@ void SMPThread::inlineWork ( WD *wd )
    setCurrentWD( *wd );
    ( dd.getWorkFct() )( wd->getData() );
    // TODO: not delete work descriptor if is a parent with pending children
-   setCurrentWD( *oldwd );
+   myThread->setCurrentWD( *oldwd );
 }
 
 void SMPThread::switchTo ( WD *wd )

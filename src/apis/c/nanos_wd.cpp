@@ -144,7 +144,7 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
    return NANOS_OK;
 }
 
-nanos_err_t nanos_submit ( nanos_wd_t uwd, unsigned int num_deps, nanos_dependence_t *deps, nanos_team_t team )
+nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *deps, nanos_team_t team )
 {
    try {
       ensure( uwd,"NULL WD received" );
@@ -193,7 +193,7 @@ nanos_err_t nanos_wait_on ( unsigned int num_deps, nanos_dependence_t *deps )
 
 // data must be not null
 nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *devices, void * data,
-                                      unsigned int num_deps, nanos_dependence_t *deps, nanos_wd_props_t *props )
+                                      size_t num_deps, nanos_dependence_t *deps, nanos_wd_props_t *props )
 {
    try {
       if ( num_devices > 1 ) warning( "Multiple devices not yet supported. Using first one" );
