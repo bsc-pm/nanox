@@ -30,7 +30,7 @@ System nanos::sys;
 // default system values go here
 System::System () : _numPEs( 1 ), _deviceStackSize( 1024 ), _bindThreads( true ), _profile( false ), _instrument( false ),
       _verboseMode( false ), _executionMode( DEDICATED ), _thsPerPE( 1 ), _untieMaster(true),
-      _defSchedule( "cilk" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" )
+      _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" )
 {
    verbose0 ( "NANOS++ initalizing... start" );
    config();
