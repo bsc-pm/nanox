@@ -61,8 +61,9 @@ void WorkGroup::done ()
    for ( WGList::iterator it = _partOf.begin();
          it != _partOf.end();
          it++ ) {
-      ( *it )->exitWork( *this );
-      //partOf.erase(it);
+      if ( *it )
+        ( *it )->exitWork( *this );
+      *it = 0;
    }
 }
 

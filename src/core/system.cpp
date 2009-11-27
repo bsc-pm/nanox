@@ -158,7 +158,6 @@ void System::start ()
 
 System::~System ()
 {
-   return;
    verbose ( "NANOS++ shutting down.... init" );
 
    verbose ( "Wait for main workgroup to complete" );

@@ -60,12 +60,12 @@ namespace nanos
          T value() const { return _value; }
 
          //! pre-increment ++
-         T operator++ ()			{ return addAndFetch(); }
-         T operator-- ()			{ return subAndFetch(); }
+         T operator++ ()               { return addAndFetch(); }
+         T operator-- ()               { return subAndFetch(); }
 
          //! post-increment ++
-         T operator++ ( int val ) 		{ return fetchAndAdd(); }
-         T operator-- ( int val ) 		{ return fetchAndSub(); }
+         T operator++ ( int val )      { return fetchAndAdd(); }
+         T operator-- ( int val )      { return fetchAndSub(); }
 
          //! += operator
          T operator+= ( const T val ) { return addAndFetch(val); }

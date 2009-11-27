@@ -82,14 +82,10 @@ static void switchHelper ( WD *oldWD, WD *newWD, intptr_t *oldState  )
    myThread->setCurrentWD( *newWD );
 }
 
-void SMPThread::inlineWork ( WD *wd )
+void SMPThread::inlineWorkDependent ( WD &wd )
 {
-   SMPDD &dd = ( SMPDD & )wd->getActiveDevice();
-   WD *oldwd = getCurrentWD();
-   setCurrentWD( *wd );
-   ( dd.getWorkFct() )( wd->getData() );
-   // TODO: not delete work descriptor if is a parent with pending children
-   myThread->setCurrentWD( *oldwd );
+   SMPDD &dd = ( SMPDD & )wd.getActiveDevice();
+   ( dd.getWorkFct() )( wd.getData() );
 }
 
 void SMPThread::switchTo ( WD *wd )
@@ -106,7 +102,6 @@ void SMPThread::switchTo ( WD *wd )
       }
 
       ::switchStacks(
-
          ( void * ) getCurrentWD(),
          ( void * ) wd,
          ( void * ) dd.getState(),

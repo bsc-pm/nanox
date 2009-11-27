@@ -228,6 +228,7 @@ namespace nanos
                 return _wdData;
             }
 
+            virtual void done ();
     };
 
     typedef class WorkDescriptor WD;

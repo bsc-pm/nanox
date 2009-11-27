@@ -139,7 +139,7 @@ namespace nanos {
             int newposition = data->getSchId();
             wd = NULL;
 
-            while ( wd == NULL ) {
+            while ( wd == NULL && myThread->isRunning()) {
                newposition = ( newposition + 1 ) % getSize();
                if ( newposition != data->getSchId() ) {
                   wd = (( TaskStealData * ) getMemberData ( newposition ))->_readyQueue.pop_back ( thread );

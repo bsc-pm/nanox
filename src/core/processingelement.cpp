@@ -67,9 +67,13 @@ BaseThread & ProcessingElement::associateThisThread ( SchedulingGroup *sg, bool 
 void ProcessingElement::stopAll ()
 {
    ThreadList::iterator it;
+   BaseThread *thread;
 
    for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      ( *it )->stop();
-      ( *it )->join();
+      thread = *it;
+      thread->stop();
+      thread->join();
+      if ( thread->hasTeam() )
+         thread->leaveTeam();
    }
 }
