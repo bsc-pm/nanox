@@ -62,3 +62,10 @@ void SMPDD::initStack ( void *data )
 
    initStackDep( ( void * )getWorkFct(),data,( void * )Scheduler::exit );
 }
+
+SMPDD * SMPDD::copyTo ( void *toAddr )
+{
+   SMPDD *dd = new (toAddr) SMPDD(*this);
+   return dd;
+}
+

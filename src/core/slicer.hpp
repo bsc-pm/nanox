@@ -26,14 +26,20 @@
 namespace nanos
 {
 
+// Forward declarations
+
+   class SlicedWD;
+
    class Slicer
    {
       private:
       public:
          Slicer ( ) { }
          virtual ~Slicer ( ) { }
-         virtual void submit ( WorkDescriptor & work )  { Scheduler::submit(work); }
-         virtual bool dequeue ( WorkDescriptor *wd, WorkDescriptor **slice ) { *slice = wd; return true; }
+         //virtual void submit ( WorkDescriptor & work )  { Scheduler::submit(work); }
+         //virtual bool dequeue ( WorkDescriptor *wd, WorkDescriptor **slice ) { *slice = wd; return true; }
+         virtual void submit ( WorkDescriptor & work ) = 0;
+         virtual bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) = 0;
    };
 
    class SlicerData
@@ -50,42 +56,46 @@ namespace nanos
          Slicer & _slicer;         /**< Related Slicer */
          SlicerData & _slicerData; /**< Related SlicerData */
       public:
-          SlicedWD ( Slicer &slicer, SlicerData &sdata, int ndevices, DeviceData **devs,void *wdata=0 ) :
-            WorkDescriptor ( ndevices, devs, wdata), _slicer(slicer), _slicerData(sdata)  {}
-          SlicedWD ( Slicer &slicer, SlicerData &sdata, DeviceData *device, void *wdata=0 ) :
-            WorkDescriptor ( device, wdata), _slicer(slicer), _slicerData(sdata)  {}
+          SlicedWD ( Slicer &slicer, SlicerData &sdata, int ndevices, DeviceData **devs, size_t data_size, void *wdata=0 ) :
+            WorkDescriptor ( ndevices, devs, data_size, wdata), _slicer(slicer), _slicerData(sdata)  {}
+          SlicedWD ( Slicer &slicer, SlicerData &sdata, DeviceData *device, size_t data_size, void *wdata=0 ) :
+            WorkDescriptor ( device, data_size, wdata), _slicer(slicer), _slicerData(sdata)  {}
 
 	 void submit () { _slicer.submit(*this); }
-         bool dequeue ( WorkDescriptor **slice ) { return _slicer.dequeue(this,slice); }
+         bool dequeue ( WorkDescriptor **slice ) { return _slicer.dequeue( this, slice ); }
+         Slicer * getSlicer ( void ) { return &_slicer; }
+         SlicerData * getSlicerData ( void ) { return &_slicerData; }
    };
 
-   class SlicerStatic: public Slicer
+   class SlicerRepeatN: public Slicer
    {
       private:
       public:
-         SlicerStatic ( ) { }
-         ~SlicerStatic ( ) { }
+         SlicerRepeatN ( ) { }
+         ~SlicerRepeatN ( ) { }
          void submit ( WorkDescriptor & work ) ;
-         bool dequeue ( WorkDescriptor *wd, WorkDescriptor **slice ) ;
+         bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
    };
 
-   class SlicerDataStatic : public SlicerData
+   class SlicerDataRepeatN : public SlicerData
    {
       private:
+         int _n; /**< Number of Repetitions */
       public:
-         SlicerDataStatic ( ) { }
-         ~SlicerDataStatic ( ) { }
+         SlicerDataRepeatN ( int n) : _n (n) { }
+         ~SlicerDataRepeatN ( ) { }
+         int decN () { return --_n; }
    };
 
    class Slicers
    {
       private:
-         SlicerStatic _slicerStatic;
+         SlicerRepeatN _slicerRepeatN;
       public:
          Slicers ( ) { }
          ~Slicers ( ) { }
 
-         Slicer & getSlicerStatic ( ) { return _slicerStatic; }
+         Slicer & getSlicerRepeatN ( ) { return _slicerRepeatN; }
    };
 
 };

@@ -22,6 +22,7 @@
 #include "plugin.hpp"
 #include "schedule.hpp"
 #include "barrier.hpp"
+#include "nanos-int.h"
 
 using namespace nanos;
 
@@ -180,6 +181,146 @@ System::~System ()
    }
 
    verbose ( "NANOS++ shutting down.... end" );
+}
+
+void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t data_size,
+                        void **data, WG *uwg, nanos_wd_props_t *props )
+{
+   int dd_size = 0;
+   for ( unsigned int i = 0; i < num_devices; i++ )
+      dd_size += devices[i].dd_size;
+
+   int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( WD ) : 0 ) +
+                          ( ( data != NULL && *data == NULL ) ? data_size : 0 ) +
+                          sizeof( DD* ) * num_devices +
+                          dd_size
+                          ;
+
+   char *chunk=0;
+   char *start;
+
+   if ( size_to_allocate )
+      start = chunk = new char[size_to_allocate];
+
+   // allocate WD
+   if ( *uwd == NULL ) {
+      *uwd = ( WD * ) chunk;
+      chunk += sizeof( WD );
+   }
+
+   // allocate WD data
+   if ( data != NULL && *data == NULL ) {
+      *data = chunk;
+      chunk += data_size;
+   }
+
+   // allocate device pointers vector
+   DD **dev_ptrs = ( DD ** ) chunk;
+   chunk += sizeof( DD* ) * num_devices;
+
+   // allocate device data
+   for ( unsigned int i = 0 ; i < num_devices ; i ++ ) {
+      dev_ptrs[i] = ( DD* ) devices[0].factory( chunk , devices[0].arg );
+      chunk += devices[i].dd_size;
+   }
+
+   WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, data != NULL ? *data : NULL );
+
+   // add to workgroup
+   if ( uwg != NULL ) {
+      WG * wg = ( WG * )uwg;
+      wg->addWork( *wd );
+   }
+
+   // set properties
+   if ( props != NULL ) {
+      if ( props->tied ) wd->tied();
+      if ( props->tie_to ) wd->tieTo( *( BaseThread * )props->tie_to );
+   }
+
+}
+
+void System::duplicateWD ( WD **uwd, WD *wd)
+{
+   int dd_size = 0;
+   void *data = NULL;
+
+   debug0( "Duplicating WD..." );
+
+   debug0( "   Computing size of " << wd->getNumDevices() << " device(s)");
+   for ( unsigned int i = 0; i < wd->getNumDevices(); i++ )
+      dd_size += (*((DD **)(wd->getDevices()))[i]).size();
+
+   debug0( "   Device's size is " << dd_size );
+
+   int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( WD ) : 0 ) + wd->getDataSize() +
+                          sizeof( DD* ) * wd->getNumDevices() + dd_size ;
+
+   debug0( "   Size of whole structure " << size_to_allocate );
+
+   char *chunk=0;
+   char *start;
+
+   if ( size_to_allocate )
+      start = chunk = new char[size_to_allocate];
+
+   debug0( "   Allocating WD (" << sizeof ( WD ) << " bytes)");
+
+   // allocate WD
+   if ( *uwd == NULL ) {
+      *uwd = ( WD * ) chunk;
+      chunk += sizeof( WD );
+   }
+
+   debug0( "   Allocating WD Data (" << wd->getDataSize() << " bytes)");
+
+   // allocate WD data
+   if ( wd->getDataSize() != 0 ) {
+      data = (void * ) chunk;
+      memcpy ( data, wd->getData(), wd->getDataSize());
+      chunk += wd->getDataSize();
+   }
+
+   debug0( "   Allocating Device Pointer Vector (" << sizeof(DD*) * wd->getNumDevices() << " bytes)");
+
+   // allocate device pointers vector
+   DD **dev_ptrs = ( DD ** ) chunk;
+   chunk += sizeof( DD* ) * wd->getNumDevices();
+
+   debug0( "   Allocating Device Data...");
+
+   // allocate device data
+   for ( unsigned int i = 0 ; i < wd->getNumDevices(); i ++ ) {
+      wd->getDevices()[i]->copyTo(chunk);
+      dev_ptrs[i] = ( DD * ) chunk;
+      chunk += (*((DD **)(wd->getDevices()))[i]).size();
+      debug0( "     Allocating Device Data " << i << " (" << (*((DD **)(wd->getDevices()))[i]).size() << " bytes)");
+   }
+
+   debug0( "   ...Device Data allocated");
+
+   debug0( "   Creating new WD" );
+
+   WD * new_wd =  new (*uwd) WD( wd->getNumDevices(), dev_ptrs, wd->getDataSize(), data );
+
+   debug0( "   Task " << new_wd << ":" << new_wd->getId() << " has been created" );
+
+   debug0( "   Adding WD to WG" );
+
+   // add new wd to the same workgroup
+   WG * wg = ( WG * ) uwd;
+   wg->addWork( *new_wd );
+
+   debug0( "   TODO : Setting properties" );
+
+   // set properties
+   //if ( props != NULL ) {
+   //   if ( props->tied ) wd->tied();
+   //   if ( props->tie_to ) wd->tieTo( *( BaseThread * )props->tie_to );
+   //}
+
+   debug0("...WD duplicated.");
+
 }
 
 void System::submit ( WD &work )

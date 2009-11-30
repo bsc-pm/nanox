@@ -22,6 +22,7 @@
 
 #include <unistd.h>
 #include <stdbool.h>
+#include "nanos-int.h"
 
 #ifdef _MERCURIUM_
 // define API version
@@ -34,7 +35,6 @@
 typedef void * nanos_wg_t;
 typedef void * nanos_wd_t;
 typedef void * nanos_team_t;
-typedef void * nanos_thread_t;
 typedef void * nanos_sched_t;
 typedef void * nanos_lock_t;
 typedef void * nanos_dd_t;
@@ -51,19 +51,6 @@ typedef struct {
 } nanos_dependence_t;
 
 typedef struct {
-   bool mandatory_creation:1;
-   bool tied:1;
-   bool reserved0:1;
-   bool reserved1:1;
-   bool reserved2:1;
-   bool reserved3:1;
-   bool reserved4:1;
-   bool reserved5:1;
-   nanos_thread_t * tie_to;
-   unsigned int priority;
-} nanos_wd_props_t;
-
-typedef struct {
    int nthreads;
    void *arch;
 } nanos_constraint_t;
@@ -77,12 +64,6 @@ typedef enum { NANOS_OK=0,
 typedef struct {
    void (*outline) (void *);
 } nanos_smp_args_t;
-
-typedef struct {
-  void * (*factory) (void *prealloc, void *arg);
-  size_t dd_size;
-  void * arg;
-} nanos_device_t;
 
 #ifdef __cplusplus
 

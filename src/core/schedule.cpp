@@ -218,6 +218,7 @@ void SchedulingGroup::queueIdle ( BaseThread *thread, WD &wd )
 
 WD * SchedulingGroup::getIdle ( BaseThread *thread )
 {
+   debug0("SchedulingGroup::getIdle start");
    return _idleQueue.pop_front ( thread );
 }
 

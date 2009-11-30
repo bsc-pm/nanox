@@ -27,6 +27,7 @@
 #include "schedule.hpp"
 #include "threadteam.hpp"
 #include "slicer.hpp"
+#include "nanos-int.h"
 
 
 namespace nanos
@@ -98,6 +99,12 @@ namespace nanos
          void submit ( WD &work );
          void inlineWork ( WD &work );
 
+         void createWD (WD **uwd, size_t num_devices, nanos_device_t *devices,
+                        size_t data_size, void ** data, WG *uwg,
+                        nanos_wd_props_t *props);
+
+         void duplicateWD ( WD **uwd, WD *wd );
+
          // methods to access configuration variables
          void setNumPEs ( int npes ) { _numPEs = npes; }
 
@@ -153,7 +160,7 @@ namespace nanos
 
          void setDefaultBarrFactory ( barrFactory factory ) { _defBarrFactory = factory; }
 
-         Slicer & getSlicerStatic ( ) { return _slicers.getSlicerStatic(); }
+         Slicer & getSlicerRepeatN ( ) { return _slicers.getSlicerRepeatN(); }
 
    };
 

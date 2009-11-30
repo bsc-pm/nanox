@@ -21,6 +21,8 @@ include $(top_srcdir)/src/common.am
 
 lib_LTLIBRARIES=libnanox.la
 
+include_HEADERS=nanos-int.h
+
 if PERFORMANCE
   lib_LTLIBRARIES += libnanox-pfm.la
 endif
@@ -37,6 +39,7 @@ nanos_libadd=\
 	$(END)
 
 nanos_sources=\
+	nanos-int.h \
 	barrier.hpp \
 	threadteam.hpp \
 	threadteam.cpp \

@@ -78,64 +78,14 @@ int nanos_get_wd_id ( nanos_wd_t wd )
 nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t data_size,
                                void ** data, nanos_wg_t uwg, nanos_wd_props_t *props )
 {
-   try {
+   try 
+   {
       if ( ( props == NULL  ||
             ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTask() ) {
          *uwd = 0;
          return NANOS_OK;
       }
-
-      int dd_size = 0;
-      for ( unsigned int i = 0; i < num_devices; i++ )
-         dd_size += devices[i].dd_size;
-
-      int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( WD ) : 0 ) +
-                             ( ( data != NULL && *data == NULL ) ? data_size : 0 ) +
-                             sizeof( DD* ) * num_devices +
-                             dd_size
-                             ;
-
-      char *chunk=0;
-      char *start;
-
-      if ( size_to_allocate )
-         start = chunk = new char[size_to_allocate];
-
-      // allocate WD
-      if ( *uwd == NULL ) {
-         *uwd = ( nanos_wd_t ) chunk;
-         chunk += sizeof( WD );
-      }
-
-      // allocate WD data
-      if ( data != NULL && *data == NULL ) {
-         *data = chunk;
-         chunk += data_size;
-      }
-
-      // allocate device pointers vector
-      DD **dev_ptrs = ( DD ** ) chunk;
-      chunk += sizeof( DD* ) * num_devices;
-
-      // allocate device data
-      for ( unsigned int i = 0 ; i < num_devices ; i ++ ) {
-         dev_ptrs[i] = ( DD* ) devices[0].factory( chunk , devices[0].arg );
-         chunk += devices[i].dd_size;
-      }
-
-      WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data != NULL ? *data : NULL );
-
-      // add to workgroup
-      if ( uwg != NULL ) {
-         WG * wg = ( WG * )uwg;
-         wg->addWork( *wd );
-      }
-
-      // set properties
-      if ( props != NULL ) {
-         if ( props->tied ) wd->tied();
-         if ( props->tie_to ) wd->tieTo( *( BaseThread * )props->tie_to );
-      }
+      sys.createWD ( (WD **) uwd, num_devices, devices, data_size, (void **) data, (WG *) uwg, props);
 
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;

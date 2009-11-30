@@ -102,12 +102,17 @@ namespace nanos
 
             // destructor
             virtual ~DeviceData() {}
+
+         virtual size_t size ( void ) { return sizeof( *this ); }
+
+         virtual DeviceData *copyTo ( void *addr ) = 0;
     };
 
     class WorkDescriptor : public WorkGroup
     {
 
         private:
+            size_t               _data_size; /**< Data size */
             void    *            _data;
             void    *            _wdData; // this allows higher layer to associate data to the WD
             bool                 _tie;
@@ -130,21 +135,28 @@ namespace nanos
 
             WorkDescriptor ( const WorkDescriptor &wd );
             const WorkDescriptor & operator= ( const WorkDescriptor &wd );
-#if 0
-         Slicer * _slicer;         /**< Related Slicer*/
-         SlicerData * _slicerData; /**< Related SlicerData*/
-#endif
 
         public:
             // constructors
             WorkDescriptor ( int ndevices, DeviceData **devs,void *wdata=0 ) :
-                    WorkGroup(), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _idle ( false ),
-                    _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : 0 ) {}
+                    WorkGroup(), _data_size ( 0 ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _idle ( false ),
+                    _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( ndevices ), _devices ( devs ),
+                    _activeDevice ( ndevices == 1 ? devs[0] : 0 ) { }
 
             WorkDescriptor ( DeviceData *device,void *wdata=0 ) :
-                    WorkGroup(), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _idle ( false ),
+                    WorkGroup(), _data_size ( 0 ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _idle ( false ),
                     _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( &_activeDevice ),
-                    _activeDevice ( device ) {}
+                    _activeDevice ( device ) { }
+
+            WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size, void *wdata=0 ) :
+                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _idle ( false ),
+                    _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( ndevices ), _devices ( devs ),
+                    _activeDevice ( ndevices == 1 ? devs[0] : 0 ) { }
+
+            WorkDescriptor ( DeviceData *device, size_t data_size, void *wdata=0 ) :
+                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _idle ( false ),
+                    _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( &_activeDevice ),
+                    _activeDevice ( device ) { }
 
             // destructor
             // all data will be allocated in a single chunk so only the destructors need to be invoked
@@ -154,6 +166,10 @@ namespace nanos
                for ( unsigned i = 0; i < _numDevices; i++ )
                   _devices[i]->~DeviceData();
             }
+
+         size_t getDataSize () { return _data_size; }
+
+         void setDataSize ( size_t data_size ) { _data_size = data_size; }
 
             WorkDescriptor * getParent() {
                 return _parent;
@@ -236,6 +252,10 @@ namespace nanos
             void * getInternalData () const {
                 return _wdData;
             }
+
+         unsigned getNumDevices ( void ) { return _numDevices; }
+
+         DeviceData ** getDevices ( void ) { return _devices; }
 
 	 virtual void submit ( void ); 
          virtual bool dequeue ( WorkDescriptor **slice ) { *slice = this; return true; }

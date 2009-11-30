@@ -71,6 +71,10 @@ namespace ext
          void setState ( intptr_t * newState ) { _state = newState; }
 
          static void prepareConfig( Config &config );
+
+         size_t size ( void ) { return sizeof(SMPDD); }
+
+         SMPDD *copyTo ( void *toAddr );
    };
 
    inline const SMPDD & SMPDD::operator= ( const SMPDD &dd )

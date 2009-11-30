@@ -35,7 +35,8 @@ bool c = false;
 
 typedef struct {
    int a;
-   std::string b;
+   char b[20];
+   std::string c;
 } hello_world_args;
 
 void hello_world ( void *args )
@@ -43,7 +44,8 @@ void hello_world ( void *args )
    hello_world_args *hargs = ( hello_world_args * ) args;
    cout << "hello_world "
         << hargs->a << " "
-        << hargs->b
+        << hargs->b << " "
+        << hargs->c
         << endl;
 }
 
@@ -57,26 +59,31 @@ int main ( int argc, char **argv )
       cout << argv[i] << endl;
    cout << "start" << endl;
 
-   const char *str;
    hello_world_args *data;
+   const char *str;
 
    // Work arguments
-   str = "first";
+   str = "std::string(1)";
    data = new hello_world_args();
    data->a = 1;
-   data->b = str;
+   strncpy(data->b, "char *string(1)", strlen("char *string(1)"));
+   data->c = str;
 
    // Work descriptor creation
-   WD * wd1 = new WD( new SMPDD( hello_world ),data );
+   WD * wd1 = new WD( new SMPDD( hello_world ), data );
 
    // Work arguments
-   str = "second";
+   str = "std::string(2)";
    data = new hello_world_args();
    data->a = 2;
-   data->b = str;
+   strncpy(data->b, "char *string(2)", strlen("char *string(2)"));
+   data->c = str;
 
    // Work descriptor creation
-   WD * wd2 = new SlicedWD( sys.getSlicerStatic(), *new SlicerDataStatic(), new SMPDD( hello_world ),data );
+   WD * wd2 = new SlicedWD( sys.getSlicerRepeatN(), 
+                            *new SlicerDataRepeatN(10),
+                             new SMPDD( hello_world ),
+                             sizeof(hello_world_args), data );
 
    // Work Group affiliation and work submision
    WG *wg = myThread->getCurrentWD();
@@ -86,7 +93,8 @@ int main ( int argc, char **argv )
    sys.submit( *wd1 );
    sys.submit( *wd2 );
 
-   usleep( 500 );
+   wg->waitCompletation();
 
    cout << "end" << endl;
 }
+
