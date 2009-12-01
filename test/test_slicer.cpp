@@ -70,7 +70,7 @@ int main ( int argc, char **argv )
    data->c = str;
 
    // Work descriptor creation
-   WD * wd1 = new WD( new SMPDD( hello_world ), data );
+   WD * wd1 = new WD( new SMPDD( hello_world ), sizeof(hello_world_args), data );
 
    // Work arguments
    str = "std::string(2)";

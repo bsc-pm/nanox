@@ -26,7 +26,7 @@ test1_CXXFLAGS = -g $(common_includes) $(common_cxxflags)
 test1_LDADD = $(top_builddir)/src/core/libnanox.la
 
 test_single_SOURCES = test_single.cpp
-test_single_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -I$(top_builddir)/src/apis/c
+test_single_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -I$(top_srcdir)/src/apis/c
 test_single_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la
 
 test_slicer_SOURCES = test_slicer.cpp
@@ -34,7 +34,7 @@ test_slicer_CXXFLAGS = -g $(common_includes) $(common_cxxflags)
 test_slicer_LDADD = $(top_builddir)/src/core/libnanox.la
 
 test_teambarrier_SOURCES = test_teambarrier.cpp
-test_teambarrier_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -I$(top_builddir)/src/apis/c
+test_teambarrier_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -I$(top_srcdir)/src/apis/c
 test_teambarrier_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la
 
 fib_SOURCES = fib.cpp
@@ -42,11 +42,11 @@ fib_CXXFLAGS = -g $(common_includes) $(common_cxxflags)
 fib_LDADD = $(top_builddir)/src/core/libnanox.la 
 
 fib_c_SOURCES = fib.c
-fib_c_CFLAGS = -g $(common_includes) $(common_cxxflags) -I $(top_builddir)/src/apis/c -fno-strict-aliasing
+fib_c_CFLAGS = -g $(common_includes) $(common_cxxflags) -I $(top_srcdir)/src/apis/c -fno-strict-aliasing
 fib_c_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la 
 
 fibnocutoff_c_SOURCES = fibnocutoff.c
-fibnocutoff_c_CFLAGS = -g $(common_includes) $(common_cxxflags) -I $(top_builddir)/src/apis/c -fno-strict-aliasing
+fibnocutoff_c_CFLAGS = -g $(common_includes) $(common_cxxflags) -I $(top_srcdir)/src/apis/c -fno-strict-aliasing
 fibnocutoff_c_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la 
 
 
