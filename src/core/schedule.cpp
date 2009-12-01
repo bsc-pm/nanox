@@ -47,6 +47,11 @@ void Scheduler::exit ( void )
    // The WD was running on its own stack, switch to a new one
    // The WD was running on a thread stack, exit to the loop
 
+   // At this point the WD work is done, so we mark it as such and look for other work to do
+   // Deallocation doesn't happen here because:
+   // a) We are still running in the WD stack
+   // b) Resources can potentially be reused by the next WD
+   myThread->getCurrentWD()->done();
    sys._taskNum--;
 
    WD *next = myThread->getSchedulingGroup()->atExit ( myThread );

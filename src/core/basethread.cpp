@@ -53,3 +53,11 @@ bool BaseThread::singleGuard ()
    return getTeam()->singleGuard( _localSingleCount );
 }
 
+void BaseThread::inlineWork (WorkDescriptor *wd)
+{
+   WD *oldwd = getCurrentWD();
+   setCurrentWD( *wd );
+   inlineWorkDependent(*wd);
+   wd->done();
+   myThread->setCurrentWD( *oldwd );
+}

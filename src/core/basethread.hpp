@@ -71,7 +71,7 @@ namespace nanos
          const BaseThread operator= ( const BaseThread & );
 
          virtual void runDependent () = 0;
-
+         virtual void inlineWorkDependent (WD &work) = 0;
       protected:
 
          /*!
@@ -107,7 +107,7 @@ namespace nanos
          virtual void bind() {};
 
          // WD micro-scheduling
-         virtual void inlineWork ( WD *work ) = 0;
+         void inlineWork ( WD *work );
          virtual void switchTo( WD *work ) = 0;
          virtual void exitTo( WD *work ) = 0;
 

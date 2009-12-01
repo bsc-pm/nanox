@@ -66,3 +66,11 @@ void WorkDescriptor::submit( void )
 {
    Scheduler::submit(*this);
 } 
+
+void WorkDescriptor::done ()
+{
+   // FIX-ME: We are waiting for the children tasks to avoid to keep alive only part of the parent
+   waitCompletation();
+   WorkGroup::done();
+}
+

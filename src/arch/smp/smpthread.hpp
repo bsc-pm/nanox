@@ -56,7 +56,7 @@ namespace ext
          virtual void join();
          virtual void runDependent ( void );
 
-         virtual void inlineWork( WD *work );
+         virtual void inlineWorkDependent( WD &work );
          virtual void switchTo( WD *work );
          virtual void exitTo( WD *work );
          virtual void bind( void );

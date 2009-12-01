@@ -48,37 +48,61 @@ namespace nanos
          Atomic ( const Atomic &atm ) : _value( atm._value ) {}
 
          // assignment operator
-         const Atomic & operator= ( const Atomic &atm );
-         const Atomic & operator= ( const T val );
+         Atomic & operator= ( const Atomic &atm );
+         Atomic & operator= ( const T val );
          // destructor
          ~Atomic() {}
 
-         T operator+ ( T val ) { return __sync_fetch_and_add( &_value,val ); }
+         T fetchAndAdd ( const T& val=1 ) { return __sync_fetch_and_add( &_value,val ); }
+         T addAndFetch ( const T& val=1 ) { return __sync_add_and_fetch( &_value,val ); }
+         T fetchAndSub ( const T& val=1 ) { return __sync_fetch_and_sub( &_value,val ); }
+         T subAndFetch ( const T& val=1 ) { return __sync_sub_and_fetch( &_value,val ); }
+         T value() const { return _value; }
 
-         T operator++ ( int val ) { return __sync_fetch_and_add( &_value,1 ); }
+         //! pre-increment ++
+         T operator++ ()               { return addAndFetch(); }
+         T operator-- ()               { return subAndFetch(); }
 
-         T operator- ( T val ) { return __sync_fetch_and_sub( &_value,val ); }
+         //! post-increment ++
+         T operator++ ( int val )      { return fetchAndAdd(); }
+         T operator-- ( int val )      { return fetchAndSub(); }
 
-         T operator-- ( int val ) { return __sync_fetch_and_sub( &_value,1 ); }
+         //! += operator
+         T operator+= ( const T val ) { return addAndFetch(val); }
+         T operator+= ( const Atomic<T> &val ) { return addAndFetch(val.value()); }
 
-         Atomic<T> &operator++ () { __sync_add_and_fetch( &_value,1 ); return *this; }
+         T operator-= ( const T val ) { return subAndFetch(val); }
+         T operator-= ( const Atomic<T> &val ) { return subAndFetch(val.value()); }
 
-         Atomic<T> &operator-- () { __sync_sub_and_fetch( &_value,1 ); return *this; }
+         //! equal operator
+         bool operator== ( const Atomic<T> &val ) { return value() == val.value(); }
+         bool operator!= ( const Atomic<T> &val ) { return value() != val.value(); }
 
-         operator const volatile T& () const { return _value; }
+         bool operator< (const Atomic<T> &val ) { return value() < val.value(); }
+         bool operator> ( const Atomic<T> &val ) { return value() > val.value(); }
+         bool operator<= ( const Atomic<T> &val ) { return value() <= val.value(); }
+         bool operator>= ( const Atomic<T> &val ) { return value() >= val.value(); }
+
+         // other atomic operations
+
+         //! compare and swap
+         bool cswap ( const Atomic<T> &oldval, const Atomic<T> &newval )
+         {
+            return __sync_bool_compare_and_swap ( &_value, oldval.value(), newval.value() );
+         }
 
          volatile T & override () { return _value; }
    };
 
    template<typename T>
-   const Atomic<T> & Atomic<T>::operator= ( const T val )
+   Atomic<T> & Atomic<T>::operator= ( const T val )
    {
       this->_value = val;
       return *this;
    }
 
    template<typename T>
-   const Atomic<T> & Atomic<T>::operator= ( const Atomic<T> &val )
+   Atomic<T> & Atomic<T>::operator= ( const Atomic<T> &val )
    {
       return operator=( val._value );
    }

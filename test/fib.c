@@ -85,7 +85,7 @@ int fib ( int n, int d )
          args->d = d;
          args->x = &x;
          
-         NANOS_SAFE( nanos_submit( wd,0,0 ) );
+         NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
       }
 
 //		#pragma omp task untied shared(y) firstprivate(n,d)
@@ -106,7 +106,7 @@ int fib ( int n, int d )
          args->d = d;
          args->x = &y;
          
-         NANOS_SAFE( nanos_submit( wd,0,0 ) );
+         NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
       }
 
 //		#pragma omp taskwait

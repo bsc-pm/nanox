@@ -82,7 +82,7 @@ int fib ( int n, int d )
          args->n = n;
          args->d = d;
          args->x = &x;
-         nanos_submit( wd,0,0 );
+         nanos_submit( wd,0,0,0 );
       } else
          x = fib_seq( n-1 );
    }
@@ -101,7 +101,7 @@ int fib ( int n, int d )
          args->n = n;
          args->d = d;
          args->x = &y;
-         nanos_submit( wd,0,0 );
+         nanos_submit( wd,0,0,0 );
       } else
          y = fib_seq( n-2 );
 
