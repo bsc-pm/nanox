@@ -34,10 +34,11 @@ namespace nanos
    {
       private:
       public:
+         // constructor
          Slicer ( ) { }
+         // destructor
          virtual ~Slicer ( ) { }
-         //virtual void submit ( WorkDescriptor & work )  { Scheduler::submit(work); }
-         //virtual bool dequeue ( WorkDescriptor *wd, WorkDescriptor **slice ) { *slice = wd; return true; }
+
          virtual void submit ( WorkDescriptor & work ) = 0;
          virtual bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) = 0;
    };
@@ -46,7 +47,9 @@ namespace nanos
    {
       private:
       public:
+         // constructor
          SlicerData ( ) { }
+         // destructor
          ~SlicerData ( ) { }
    };
 
@@ -56,23 +59,55 @@ namespace nanos
          Slicer & _slicer;         /**< Related Slicer */
          SlicerData & _slicerData; /**< Related SlicerData */
       public:
-          SlicedWD ( Slicer &slicer, SlicerData &sdata, int ndevices, DeviceData **devs, size_t data_size, void *wdata=0 ) :
-            WorkDescriptor ( ndevices, devs, data_size, wdata), _slicer(slicer), _slicerData(sdata)  {}
-          SlicedWD ( Slicer &slicer, SlicerData &sdata, DeviceData *device, size_t data_size, void *wdata=0 ) :
-            WorkDescriptor ( device, data_size, wdata), _slicer(slicer), _slicerData(sdata)  {}
+          // constructors
+          SlicedWD ( Slicer &slicer, SlicerData &sdata, int ndevices, DeviceData **devs,
+                     size_t data_size, void *wdata=0 ) :
+                     WorkDescriptor ( ndevices, devs, data_size, wdata),
+                     _slicer(slicer), _slicerData(sdata)  {}
 
-	 void submit () { _slicer.submit(*this); }
-         bool dequeue ( WorkDescriptor **slice ) { return _slicer.dequeue( this, slice ); }
+          SlicedWD ( Slicer &slicer, SlicerData &sdata, DeviceData *device,
+                     size_t data_size, void *wdata=0 ) :
+                      WorkDescriptor ( device, data_size, wdata),
+                     _slicer(slicer), _slicerData(sdata)  {}
+
+         // destructor
+         ~SlicedWD  ( ) { }
+
+         // get/set functions
          Slicer * getSlicer ( void ) { return &_slicer; }
+         void setSlicer ( Slicer &slicer ) { _slicer = slicer; }
          SlicerData * getSlicerData ( void ) { return &_slicerData; }
+         void setSlicerData ( SlicerData &slicerData ) { _slicerData = slicerData; }
+
+         /*! \brief WD submission
+          *
+          *  This function calls the specific code for WD submission which is
+          *  implemented in the related slicer.
+          */ 
+         void submit () { _slicer.submit(*this); }
+
+         /*! \brief WD dequeue
+          *
+          *  This function calls the specific code for WD dequeue which is
+          *  implemented in the related slicer.
+          *
+          *  \param[in,out] slice : Resulting slice.
+          *  \return  true if the resulting slice is the final slice and false otherwise.
+          */ 
+         bool dequeue ( WorkDescriptor **slice ) { return _slicer.dequeue( this, slice ); }
    };
 
    class SlicerRepeatN: public Slicer
    {
       private:
       public:
+         // constructor
          SlicerRepeatN ( ) { }
+
+         // destructor
          ~SlicerRepeatN ( ) { }
+
+         // headers (implemented in slicer.cpp)
          void submit ( WorkDescriptor & work ) ;
          bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
    };
@@ -82,19 +117,37 @@ namespace nanos
       private:
          int _n; /**< Number of Repetitions */
       public:
+         // constructor
          SlicerDataRepeatN ( int n) : _n (n) { }
+
+         // destructor
          ~SlicerDataRepeatN ( ) { }
+
+         // get/set functions
+         void setN ( int n ) { _n = n; }
+         int getN ( void ) { return _n; }
+
+         /*! \brief Decrement internal counter by one
+          *
+          *  This function decrements the internal variable counter by one
+          *
+          *  \return Internal counter after decrementing its value
+          */ 
          int decN () { return --_n; }
    };
 
    class Slicers
    {
       private:
-         SlicerRepeatN _slicerRepeatN;
+         SlicerRepeatN _slicerRepeatN; /**< Repeat N slicer */
       public:
+         // constructor
          Slicers ( ) { }
+
+         // destructor
          ~Slicers ( ) { }
 
+         // get functions
          Slicer & getSlicerRepeatN ( ) { return _slicerRepeatN; }
    };
 

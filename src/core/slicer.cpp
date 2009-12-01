@@ -24,14 +24,28 @@
 using namespace nanos;
 
 
+/*! \brief Submit a RepeatN slicedWD
+ *
+ *  This function submits a RepeatN slicedWD using the Scheduler
+ *
+ */
 void SlicerRepeatN::submit ( WD &work )
 {
    debug0 ( "Using sliced work descriptor: RepeatN" );
    Scheduler::submit ( work );
 }
 
-/* 
- * SlicedWD wd has to be associated with SlicerRepeatN and SlicerDataRepeatN
+/* \brief Dequeue a RepeatN SlicedWD
+ *
+ *  This function dequeues a RepeantN SlicedWD returning true if there
+ *  will be no more slices to manage (i.e. this is the last chunk to
+ *  execute. The received paramenter wd has to be associated with a 
+ *  SlicerRepeatN and SlicerDataRepeatN objects.
+ * 
+ *  \param [in] wd is the former WorkDescriptor
+ *  \param [out] slice is the next portion to execute
+ *
+ *  \return true if there are no more slices in the former wd, false otherwise
  */
 bool SlicerRepeatN::dequeue( SlicedWD *wd, WorkDescriptor **slice)
 {
@@ -43,7 +57,6 @@ bool SlicerRepeatN::dequeue( SlicedWD *wd, WorkDescriptor **slice)
    if ( n > 0 ) 
    {
       debug0 ( "Dequeueing sliced work: keeping former wd" );
-      //*slice = new WD ( wd->getNumDevices(), wd->getDevices(), wd->getData() );
       sys.duplicateWD( slice, wd );
       return false;
    }
@@ -53,18 +66,5 @@ bool SlicerRepeatN::dequeue( SlicedWD *wd, WorkDescriptor **slice)
       *slice = wd;
       return true;
    }
-/*
-   StaticSlicerData *sd = (StaticSlicerData *) candidate->getSlicerData();
-
-   int id = myThread->getTeamId();
-   int low,upper =  ...
-
-   WD *wd = new WD(....);
-
-   result = wd;
-
-   if (sd->last) return true;
-   return false;
-*/
 }
 

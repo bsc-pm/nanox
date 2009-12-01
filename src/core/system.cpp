@@ -183,6 +183,20 @@ System::~System ()
    verbose ( "NANOS++ shutting down.... end" );
 }
 
+/*! \brief Creates a new WD
+ *
+ *  This function creates a new WD, allocating memory space for device ptrs and
+ *  datai when necessary. 
+ *
+ *  \param [in,out] uwd is the related addr for WD if this parameter is null the
+ *                  system will allocate space in memory for the new WD
+ *  \param [in] num_devices is the number of related devices
+ *  \param [in] devices is a vector of device descriptors 
+ *  \param [in] data_size is the size of the related data
+ *  \param [in,out] data is the related data (allocated if needed)
+ *  \param [in] uwg work group to relate with
+ *  \param [in] props new WD properties
+ */
 void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t data_size,
                         void **data, WG *uwg, nanos_wd_props_t *props )
 {
@@ -240,6 +254,14 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
 
 }
 
+/*! \brief Duplicates a given WD
+ *
+ *  This function duplicates the given as a parameter WD copying all the
+ *  related data (devices ptr, data and DD)
+ *
+ *  \param [out] uwd is the target addr for the new WD
+ *  \param [in] wd is the former WD
+ */
 void System::duplicateWD ( WD **uwd, WD *wd)
 {
    int dd_size = 0;

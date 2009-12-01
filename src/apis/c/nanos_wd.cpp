@@ -117,8 +117,8 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, nanos_dependence_t *deps, nanos_team_
 }
 
 // data must be not null
-nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *devices, void * data,
-                                      nanos_dependence_t *deps, nanos_wd_props_t *props )
+nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *devices, size_t data_size,
+                                      void * data, nanos_dependence_t *deps, nanos_wd_props_t *props )
 {
    try {
       if ( num_devices > 1 ) warning( "Multiple devices not yet supported. Using first one" );
@@ -126,7 +126,7 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
       if ( deps != NULL ) warning( "Dependence support not implemented yet" );
 
       // TODO: pre-allocate devices
-      WD wd( ( DD* ) devices[0].factory( 0, devices[0].arg ), data );
+      WD wd( ( DD* ) devices[0].factory( 0, devices[0].arg ), data_size, data );
 
       sys.inlineWork( wd );
 

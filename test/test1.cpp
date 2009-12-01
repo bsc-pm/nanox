@@ -67,7 +67,7 @@ int main ( int argc, char **argv )
 
    data->b = a;
 
-   WD * wd = new WD( new SMPDD( hello_world ),data );
+   WD * wd = new WD( new SMPDD( hello_world ), sizeof( hello_world_args ), data );
 
    a = "pepe";
 
@@ -77,7 +77,7 @@ int main ( int argc, char **argv )
 
    data->b = a;
 
-   WD * wd2 = new WD( new SMPDD( hello_world ),data );
+   WD * wd2 = new WD( new SMPDD( hello_world ), sizeof (hello_world_args ), data );
 
    WG *wg = myThread->getCurrentWD();
 

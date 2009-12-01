@@ -138,24 +138,16 @@ namespace nanos
 
         public:
             // constructors
-            WorkDescriptor ( int ndevices, DeviceData **devs,void *wdata=0 ) :
-                    WorkGroup(), _data_size ( 0 ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _idle ( false ),
-                    _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( ndevices ), _devices ( devs ),
+            WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0, void *wdata = NULL ) :
+                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ),
+                    _tie ( false ), _tiedTo ( 0 ), _idle ( false ), _parent ( NULL ),
+                    _myQueue ( NULL ), _depth ( 0 ), _numDevices ( ndevices ), _devices ( devs ),
                     _activeDevice ( ndevices == 1 ? devs[0] : 0 ) { }
 
-            WorkDescriptor ( DeviceData *device,void *wdata=0 ) :
-                    WorkGroup(), _data_size ( 0 ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _idle ( false ),
-                    _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( &_activeDevice ),
-                    _activeDevice ( device ) { }
-
-            WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size, void *wdata=0 ) :
-                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _idle ( false ),
-                    _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( ndevices ), _devices ( devs ),
-                    _activeDevice ( ndevices == 1 ? devs[0] : 0 ) { }
-
-            WorkDescriptor ( DeviceData *device, size_t data_size, void *wdata=0 ) :
-                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _idle ( false ),
-                    _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( &_activeDevice ),
+            WorkDescriptor ( DeviceData *device, size_t data_size = 0, void *wdata = NULL ) :
+                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ),
+                    _tie ( false ), _tiedTo ( 0 ), _idle ( false ), _parent ( NULL ),
+                    _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( &_activeDevice ),
                     _activeDevice ( device ) { }
 
             // destructor
@@ -167,8 +159,21 @@ namespace nanos
                   _devices[i]->~DeviceData();
             }
 
+         /*! \brief Get data size
+          *
+          *  This function returns the size of the user's data related with current WD
+          *
+          *  \return data size
+          *  \see getData setData setDatasize
+          */
          size_t getDataSize () { return _data_size; }
 
+         /*! \brief Set data size
+          *
+          *  This function set the size of the user's data related with current WD
+          *
+          *  \see getData setData getDataSize
+          */
          void setDataSize ( size_t data_size ) { _data_size = data_size; }
 
             WorkDescriptor * getParent() {
@@ -253,12 +258,38 @@ namespace nanos
                 return _wdData;
             }
 
+         /*! \brief Get the number of devices
+          *
+          *  This function return the number of devices for the current WD
+          *
+          *  \return the number of devices
+          *  \see getDevices
+          */
          unsigned getNumDevices ( void ) { return _numDevices; }
 
+         /*! \brief Get tdevices
+          *
+          *  This function return a devices vector related with the current WD
+          *
+          *  \return devices vector
+          *  \see getNumDevices
+          */
          DeviceData ** getDevices ( void ) { return _devices; }
 
-	 virtual void submit ( void ); 
+         /*! \brief WD dequeue 
+          *
+          *  This function give us the next WD slice to execute. As a default
+          *  behaviour give the whole WD and returns true, meaning that there
+          *  are no more slices to compute
+          *
+          *  \param [out] slice is the next slice to manage
+          *
+          *  \return true if there are no more slices to manage, false otherwise
+          */
          virtual bool dequeue ( WorkDescriptor **slice ) { *slice = this; return true; }
+
+         // headers
+	 virtual void submit ( void ); 
     };
 
     typedef class WorkDescriptor WD;
