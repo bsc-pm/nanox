@@ -17,59 +17,34 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "slicer.hpp"
-#include "debug.hpp"
-#include "system.hpp"
+#ifndef __NANOS_INT_H
+#define __NANOS_INT_H
 
-using namespace nanos;
+// C++ types hidden as void *
+typedef void * nanos_thread_t;
 
+typedef struct {
+   int lower;
+   int upper;
+   int step;
+} nanos_loop_info_t;
+typedef struct {
+   bool mandatory_creation:1;
+   bool tied:1;
+   bool reserved0:1;
+   bool reserved1:1;
+   bool reserved2:1;
+   bool reserved3:1;
+   bool reserved4:1;
+   bool reserved5:1;
+   nanos_thread_t * tie_to;
+   unsigned int priority;
+} nanos_wd_props_t;
 
-/*! \brief Submit a RepeatN slicedWD
- *
- *  This function submits a RepeatN slicedWD using the Scheduler
- *
- */
-void SlicerRepeatN::submit ( WD &work )
-{
-   debug0 ( "Using sliced work descriptor: RepeatN" );
-   Scheduler::submit ( work );
-}
+typedef struct {
+  void * (*factory) (void *prealloc, void *arg);
+  size_t dd_size;
+  void * arg;
+} nanos_device_t;
 
-/* \brief Dequeue a RepeatN SlicedWD
- *
- *  This function dequeues a RepeantN SlicedWD returning true if there
- *  will be no more slices to manage (i.e. this is the last chunk to
- *  execute. The received paramenter wd has to be associated with a 
- *  SlicerRepeatN and SlicerDataRepeatN objects.
- * 
- *  \param [in] wd is the former WorkDescriptor
- *  \param [out] slice is the next portion to execute
- *
- *  \return true if there are no more slices in the former wd, false otherwise
- */
-bool SlicerRepeatN::dequeue ( SlicedWD *wd, WorkDescriptor **slice)
-{
-
-   debug0 ( "Dequeueing sliced work: RepeatN start" );
-
-   int n = ((SlicerDataRepeatN *)(wd->getSlicerData()))->decN();
-
-   if ( n > 0 ) 
-   {
-      debug0 ( "Dequeueing sliced work: keeping former wd" );
-      sys.duplicateWD( slice, wd );
-      return false;
-   }
-   else
-   {
-      debug0 ( "Dequeueing sliced work: using former wd (final)" );
-      *slice = wd;
-      return true;
-   }
-}
-
-void SlicerDynamicFor::submit ( WD &work )
-{}
-
-bool SlicerDynamicFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
-{ return true; }
+#endif
