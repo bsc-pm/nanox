@@ -22,6 +22,8 @@
 #include "processingelement.hpp"
 #include "basethread.hpp"
 #include "debug.hpp"
+#include "schedule.hpp"
+#include "dependableobjectwd.hpp"
 
 using namespace nanos;
 

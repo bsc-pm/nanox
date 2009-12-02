@@ -351,6 +351,25 @@ void System::submit ( WD &work )
    work.submit();
 }
 
+/*! \brief Submit WorkDescriptor to its parent's  dependencies domain
+ */
+void System::submitWithDependencies (WD& work, int numDeps, Dependency* deps)
+{
+   WD *current = myThread->getCurrentWD();
+   work.setParent ( current );
+   work.setDepth( work.getParent()->getDepth() +1 );
+   current->submitWithDependencies( work, numDeps , deps);
+}
+
+/*! \brief Wait on the current WorkDescriptor's domain for some dependenices to be satisfied
+ */
+void System::waitOn( int numDeps, Dependency* deps )
+{
+   WD* current = myThread->getCurrentWD();
+   current->waitOn( numDeps, deps );
+}
+
+
 void System::inlineWork ( WD &work )
 {
    BaseThread *myself = myThread;

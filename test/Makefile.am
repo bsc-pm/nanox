@@ -19,7 +19,7 @@
 
 include $(top_srcdir)/src/common.am
 
-noinst_PROGRAMS = test1 test_single test_slicer test_teambarrier fib fib-c fibnocutoff-c
+noinst_PROGRAMS = test1 test_single test_slicer test_teambarrier test_dependencies-c test_dependency_types-c fib fib-c fibnocutoff-c
 
 test1_SOURCES = test1.cpp
 test1_CXXFLAGS = -g $(common_includes) $(common_cxxflags)
@@ -36,6 +36,14 @@ test_slicer_LDADD = $(top_builddir)/src/core/libnanox.la
 test_teambarrier_SOURCES = test_teambarrier.cpp
 test_teambarrier_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -I$(top_srcdir)/src/apis/c
 test_teambarrier_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la
+
+test_dependencies_c_SOURCES = test_dependencies.c
+test_dependencies_c_CFLAGS = -g $(common_includes) $(common_cxxflags) -I $(top_builddir)/src/apis/c -fno-strict-aliasing
+test_dependencies_c_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la
+
+test_dependency_types_c_SOURCES = test_dependency_types.c
+test_dependency_types_c_CFLAGS = -g $(common_includes) $(common_cxxflags) -I $(top_builddir)/src/apis/c -fno-strict-aliasing
+test_dependency_types_c_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la
 
 fib_SOURCES = fib.cpp
 fib_CXXFLAGS = -g $(common_includes) $(common_cxxflags)

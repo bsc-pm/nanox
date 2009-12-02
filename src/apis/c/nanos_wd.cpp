@@ -97,18 +97,43 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
 nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *deps, nanos_team_t team )
 {
    try {
-      if ( deps != NULL ) {
-         warning( "Dependence support not implemented yet" );
-      }
+      ensure( uwd,"NULL WD received" );
+
+      WD * wd = ( WD * ) uwd;
 
       if ( team != NULL ) {
          warning( "Submitting to another team not implemented yet" );
       }
 
-      ensure( uwd,"NULL WD received" );
+      if ( deps != NULL ) {
+         Dependency conv_deps[num_deps];
+         for ( unsigned int i = 0; i < num_deps; i++ ) {
+            conv_deps[i] = Dependency( deps[i].address, deps[i].flags.input, deps[i].flags.output, deps[i].flags.can_rename );
+         }
+         sys.submitWithDependencies( *wd, num_deps, conv_deps );
+         return NANOS_OK;
+      }
 
-      WD * wd = ( WD * ) uwd;
       sys.submit( *wd );
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+nanos_err_t nanos_wait_on ( unsigned int num_deps, nanos_dependence_t *deps )
+{
+   try {
+      if ( deps != NULL ) {
+         Dependency conv_deps[num_deps];
+         for ( unsigned int i = 0; i < num_deps; i++ ) {
+            conv_deps[i] = Dependency( deps[i].address, deps[i].flags.input, deps[i].flags.output, deps[i].flags.can_rename );
+         }
+         sys.waitOn( num_deps, conv_deps );
+         return NANOS_OK;
+      }
+
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -123,10 +148,16 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
    try {
       if ( num_devices > 1 ) warning( "Multiple devices not yet supported. Using first one" );
 
-      if ( deps != NULL ) warning( "Dependence support not implemented yet" );
-
       // TODO: pre-allocate devices
       WD wd( ( DD* ) devices[0].factory( 0, devices[0].arg ), data_size, data );
+
+      if ( deps != NULL ) {
+         Dependency conv_deps[num_deps];
+         for ( unsigned int i = 0; i < num_deps; i++ ) {
+            conv_deps[i] = Dependency( deps[i].address, deps[i].flags.input, deps[i].flags.output, deps[i].flags.can_rename );
+         }
+         sys.waitOn( num_deps, conv_deps );
+      }
 
       sys.inlineWork( wd );
 

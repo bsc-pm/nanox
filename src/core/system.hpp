@@ -28,6 +28,7 @@
 #include "threadteam.hpp"
 #include "slicer.hpp"
 #include "nanos-int.h"
+#include "dependency.hpp"
 
 
 namespace nanos
@@ -97,6 +98,8 @@ namespace nanos
          ~System ();
 
          void submit ( WD &work );
+         void submitWithDependencies (WD& work, int numDeps, Dependency* deps);
+         void waitOn ( int numDeps, Dependency* deps);
          void inlineWork ( WD &work );
 
          void createWD (WD **uwd, size_t num_devices, nanos_device_t *devices,

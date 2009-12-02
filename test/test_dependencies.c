@@ -17,54 +17,51 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_WORK_GROUP
-#define _NANOS_WORK_GROUP
+#include <stdio.h>
+#include <sys/time.h>
+#include <stdlib.h>
+#include <nanos.h>
 
-#include <vector>
-#include "atomic.hpp"
-#include "dependenciesdomain.hpp"
-
-namespace nanos
+void first()
 {
+   printf("first task!\n");
+   fflush(stdout);
+}
 
-   class WorkGroup
-   {
+void second()
+{
+   printf("second task!\n");
+   fflush(stdout);
+}
 
-      private:
-         static Atomic<int> _atomicSeed;
 
-         // FIX-ME: vector is not a safe-class here
-         typedef std::vector<WorkGroup *> WGList;
+nanos_smp_args_t test_device_arg_1 = { first };
+nanos_smp_args_t test_device_arg_2 = { second };
 
-         WGList         _partOf;
-         int            _id;
-         Atomic<int>    _components;
-         Atomic<int>    _phaseCounter;
-
-         void addToGroup ( WorkGroup &parent );
-         void exitWork ( WorkGroup &work );
-
-         WorkGroup( const WorkGroup &wg );
-         const WorkGroup & operator= ( const WorkGroup &wg );
-
-      public:
-         // constructors
-         WorkGroup() : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ) {  }
-
-         // destructor
-         virtual ~WorkGroup();
-
-         void addWork( WorkGroup &wg );
-         void sync();
-         void waitCompletation();
-         virtual void done();
-         int getId() const { return _id; }
-
+int main ( int argc, char **argv )
+{
+   int dep;
+   int * dep_addr = &dep;
+   int dummy=0;
+   nanos_dependence_t deps = {(void **)&dep_addr, {1,1,0}, 0};
+   nanos_wd_props_t props = {
+     .mandatory_creation = true,
+     .tied = false,
+     .tie_to = false,
    };
+   nanos_wd_t wd1=0;
+   nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1) };
+   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, 0, (void*)&dummy, nanos_current_wd(), &props) );
+   NANOS_SAFE( nanos_submit( wd1,1,&deps,0 ) );
 
-   typedef WorkGroup WG;
 
-};
+   nanos_wd_t wd2=0;
+   nanos_device_t test_devices_2[1] = { NANOS_SMP_DESC( test_device_arg_2) };
+   NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_2, 0, (void*)&dummy, nanos_current_wd(), &props) );
+   NANOS_SAFE( nanos_submit( wd2,1,&deps,0 ) );
 
-#endif
+
+   NANOS_SAFE( nanos_wg_wait_completation( nanos_current_wd() ) );
+   return 0;
+}
 

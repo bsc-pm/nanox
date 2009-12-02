@@ -59,6 +59,14 @@ nanos_sources=\
 	slicer.hpp \
 	slicer.cpp \
 	throttle.hpp \
+	dependency.hpp \
+	dependency.hpp \
+	dependableobject.hpp \
+	dependableobjectwd.hpp \
+	dependableobjectwd.cpp \
+	trackableobject.hpp \
+	dependenciesdomain.hpp \
+	dependenciesdomain.cpp \
 	$(END)
 
 # Default
