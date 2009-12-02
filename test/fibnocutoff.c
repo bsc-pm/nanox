@@ -17,6 +17,7 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+#undef _NANOS_INTERNAL
 #include <stdio.h>
 #include <sys/time.h>
 #include <stdlib.h>

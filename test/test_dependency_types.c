@@ -17,6 +17,7 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+#undef _NANOS_INTERNAL
 #include <stdio.h>
 #include <sys/time.h>
 #include <stdlib.h>
@@ -368,7 +369,7 @@ bool create_and_run_test()
    arg.p_i = &other_value;
    nanos_device_t test_devices_2[1] = { NANOS_SMP_DESC( test_device_arg_1 ) };
 
-   NANOS_SAFE( nanos_create_wd_and_run( 1, test_devices_2, (void *)&arg, 100, &deps2[0], &props ) );
+   NANOS_SAFE( nanos_create_wd_and_run( 1, test_devices_2, sizeof(my_args), (void *)&arg, 100, &deps2[0], &props ) );
 
    for ( j = 0; j < 100; j++ ) {
     if ( my_value[j] != 0 ) return false;
