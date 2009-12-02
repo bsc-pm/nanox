@@ -20,6 +20,8 @@
 #ifndef __NANOS_INT_H
 #define __NANOS_INT_H
 
+#include "dependency.hpp"
+
 // C++ types hidden as void *
 typedef void * nanos_thread_t;
 

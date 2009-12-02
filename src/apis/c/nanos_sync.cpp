@@ -58,7 +58,7 @@ nanos_err_t nanos_wait_on_bool ( volatile _Bool *p, _Bool condition )
    return NANOS_OK;
 }
 
-nanos_err_t nanos_wait_on ( unsigned int num_deps, nanos_dependence_t *deps )
+nanos_err_t nanos_wait_on ( size_t num_deps, nanos_dependence_t *deps )
 {
    try {
       if ( deps != NULL ) {

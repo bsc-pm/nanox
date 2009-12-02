@@ -47,11 +47,13 @@ namespace nanos
          /**< Address of the dependency's address */
          void ** _address;
          /**< Whether the dependency is input or not */
-         bool _input;
+         bool _input: 1;
          /**< Whether the dependency is output or not */
-         bool _output;
+         bool _output: 1;
          /**< Whether the dependency can rename or not */
-         bool _canRename;
+         bool _canRename: 1;
+         /**< size of the data block pointed by (*address) */
+         size_t size;
 
       public:
          
@@ -123,5 +125,7 @@ namespace nanos
 }
 
 typedef nanos::Dependency nanos_dependence_t;
+
+#endif
 
 #endif
