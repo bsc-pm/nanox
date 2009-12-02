@@ -17,6 +17,7 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+#include <string.h>
 #include "system.hpp"
 #include "config.hpp"
 #include "plugin.hpp"
@@ -353,7 +354,7 @@ void System::submit ( WD &work )
 
 /*! \brief Submit WorkDescriptor to its parent's  dependencies domain
  */
-void System::submitWithDependencies (WD& work, int numDeps, Dependency* deps)
+void System::submitWithDependencies (WD& work, size_t numDeps, Dependency* deps)
 {
    WD *current = myThread->getCurrentWD();
    work.setParent ( current );
@@ -363,7 +364,7 @@ void System::submitWithDependencies (WD& work, int numDeps, Dependency* deps)
 
 /*! \brief Wait on the current WorkDescriptor's domain for some dependenices to be satisfied
  */
-void System::waitOn( int numDeps, Dependency* deps )
+void System::waitOn( size_t numDeps, Dependency* deps )
 {
    WD* current = myThread->getCurrentWD();
    current->waitOn( numDeps, deps );

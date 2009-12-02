@@ -305,7 +305,7 @@ namespace nanos
             *  \param numDeps Number of dependencies.
             *  \param deps Array with dependencies associated to the submitted wd.
             */
-            void submitWithDependencies( WorkDescriptor &wd, int numDeps, Dependency* deps )
+            void submitWithDependencies( WorkDescriptor &wd, size_t numDeps, Dependency* deps )
             {
                _depsDomain.submitDependableObject( wd._doSubmit, numDeps, deps );
             }
@@ -314,7 +314,7 @@ namespace nanos
             *  \param numDeps Number of de dependencies.
             *  \param deps dependencies to wait on, should be input dependencies.
             */
-            void waitOn( int numDeps, Dependency* deps )
+            void waitOn( size_t numDeps, Dependency* deps )
             {
                _depsDomain.submitDependableObject( _doWait, numDeps, deps );
             }
