@@ -20,6 +20,7 @@
 #include "workgroup.hpp"
 #include "nanos.h"
 #include "schedule.hpp"
+#include "system.hpp"
 
 using namespace nanos;
 
@@ -50,6 +51,21 @@ nanos_err_t nanos_wait_on_bool ( volatile _Bool *p, _Bool condition )
 {
    try {
       Scheduler::blockOnCondition<_Bool>( p,condition );
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+nanos_err_t nanos_wait_on ( unsigned int num_deps, nanos_dependence_t *deps )
+{
+   try {
+      if ( deps != NULL ) {
+         sys.waitOn( num_deps, deps );
+         return NANOS_OK;
+      }
+
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }

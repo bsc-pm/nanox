@@ -112,6 +112,21 @@ namespace nanos
          bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
    };
 
+   class SlicerDynamicFor: public Slicer
+   {
+      private:
+      public:
+         // constructor
+         SlicerDynamicFor ( ) { }
+
+         // destructor
+         ~SlicerDynamicFor ( ) { }
+
+         // headers (implemented in slicer.cpp)
+         void submit ( WorkDescriptor & work ) ;
+         bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
+   };
+
    class SlicerDataRepeatN : public SlicerData
    {
       private:
@@ -136,10 +151,40 @@ namespace nanos
          int decN () { return --_n; }
    };
 
+   class SlicerDataDynamicFor : public SlicerData
+   {
+      private:
+         int _lower;  /**< Loop lower bound */
+         int _upper;  /**< Loop upper bound */
+         int _step;   /**< Loop step */
+         int _chunk;  /**< Slice chunk */
+
+      public:
+         // constructor
+         SlicerDataDynamicFor ( int lower, int upper, int step, int chunk = 1) :
+             _lower ( lower ), _upper ( upper ), _step ( step ), _chunk ( chunk )  { }
+
+         // destructor
+         ~SlicerDataDynamicFor ( ) { }
+
+         // get/set functions
+         void setLower ( int n ) { _lower = n; }
+         void setUpper ( int n ) { _upper = n; }
+         void setStep  ( int n ) {  _step = n; }
+         void setChunk ( int n ) { _chunk = n; }
+
+         int getLower ( void ) { return _lower; }
+         int getUpper ( void ) { return _upper; }
+         int getStep  ( void ) { return _step; }
+         int getChunk ( void ) { return _chunk; }
+
+   };
+
    class Slicers
    {
       private:
-         SlicerRepeatN _slicerRepeatN; /**< Repeat N slicer */
+         SlicerRepeatN    _slicerRepeatN;     /**< Repeat N slicer */
+	SlicerDynamicFor  _slicerDynamicFor;  /**< Dynamic For slicer */
       public:
          // constructor
          Slicers ( ) { }
@@ -149,6 +194,7 @@ namespace nanos
 
          // get functions
          Slicer & getSlicerRepeatN ( ) { return _slicerRepeatN; }
+         Slicer & getSlicerDynamicFor ( ) { return _slicerDynamicFor; }
    };
 
 };

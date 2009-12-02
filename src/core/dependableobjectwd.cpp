@@ -27,6 +27,7 @@ using namespace nanos;
  */
 void DOSubmit::dependenciesSatisfied ( )
 {
+     _submittedWD->submit();
      Scheduler::submit( *_submittedWD );
 }
 

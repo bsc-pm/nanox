@@ -163,7 +163,9 @@ namespace nanos
 
          void setDefaultBarrFactory ( barrFactory factory ) { _defBarrFactory = factory; }
 
+         // Slicer's index
          Slicer & getSlicerRepeatN ( ) { return _slicers.getSlicerRepeatN(); }
+         Slicer & getSlicerDynamicFor ( ) { return _slicers.getSlicerDynamicFor(); }
 
    };
 

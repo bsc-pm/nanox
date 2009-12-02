@@ -135,9 +135,9 @@ namespace nanos
             DeviceData *         _activeDevice;
 
             /**< DependableObject representing this WD in its parent's depsendencies domain */
-            DOSubmit _dOSubmit;
+            DOSubmit _doSubmit;
             /**< DependableObject used by this task to wait on dependencies */
-            DOWait _dOWait;
+            DOWait _doWait;
 
             /**< Each WorkDescriptor has a domain where DependableObjects can be submitted */
             DependenciesDomain _depsDomain;
@@ -150,12 +150,12 @@ namespace nanos
             WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0,void *wdata=0 ) :
                     WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _idle ( false ),
                     _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( ndevices ), _devices ( devs ),
-                    _activeDevice ( ndevices == 1 ? devs[0] : 0 ), _dOSubmit(this), _dOWait(this), _depsDomain() {}
+                    _activeDevice ( ndevices == 1 ? devs[0] : 0 ), _doSubmit(this), _doWait(this), _depsDomain() {}
 
             WorkDescriptor ( DeviceData *device, size_t data_size = 0, void *wdata=0 ) :
                     WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _idle ( false ),
                     _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( &_activeDevice ),
-                    _activeDevice ( device ), _dOSubmit(this), _dOWait(this), _depsDomain() {}
+                    _activeDevice ( device ), _doSubmit(this), _doWait(this), _depsDomain() {}
 
             // destructor
             // all data will be allocated in a single chunk so only the destructors need to be invoked
@@ -307,16 +307,16 @@ namespace nanos
             */
             void submitWithDependencies( WorkDescriptor &wd, int numDeps, Dependency* deps )
             {
-               _depsDomain.submitDependableObject( wd._dOSubmit, numDeps, deps );
+               _depsDomain.submitDependableObject( wd._doSubmit, numDeps, deps );
             }
 
-           /*! \brief Waits untill all (input) dependencies passed are satisfied for the _dOWait object.
+           /*! \brief Waits untill all (input) dependencies passed are satisfied for the _doWait object.
             *  \param numDeps Number of de dependencies.
             *  \param deps dependencies to wait on, should be input dependencies.
             */
             void waitOn( int numDeps, Dependency* deps )
             {
-               _depsDomain.submitDependableObject( _dOWait, numDeps, deps );
+               _depsDomain.submitDependableObject( _doWait, numDeps, deps );
             }
 
            /*! \brief Make this WD's domain know a WD has finished.
@@ -324,7 +324,7 @@ namespace nanos
             */
             void workFinished(WorkDescriptor &wd)
             {
-               _depsDomain.finished( wd._dOSubmit );
+               _depsDomain.finished( wd._doSubmit );
             }
 
     };

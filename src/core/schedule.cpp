@@ -54,10 +54,6 @@ void Scheduler::exit ( void )
    myThread->getCurrentWD()->done();
    sys._taskNum--;
 
-   WD *current = myThread->getCurrentWD();
-   WD *parent = current->getParent();
-   parent->workFinished( *current );
-
    WD *next = myThread->getSchedulingGroup()->atExit ( myThread );
 
    if ( next ) {

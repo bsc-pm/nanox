@@ -169,12 +169,14 @@ void DependenciesDomain::finished ( DependableObject &depObj )
 
    // This step guarantees that any Object that wants to add depObj as a successor has done it
    // before we continue or, alternatively, won't do it.
-   depObj.lock();
-   DependableObject::TrackableObjectVector &outs = depObj.getOutputObjects();
-   for ( unsigned int i = 0; i < outs.size(); i++ ) {
-      outs[i]->deleteLastWriter(depObj);
+   if (outs.size() > 0) {
+      depObj.lock();
+      DependableObject::TrackableObjectVector &outs = depObj.getOutputObjects();
+      for ( unsigned int i = 0; i < outs.size(); i++ ) {
+         outs[i]->deleteLastWriter(depObj);
+      }
+      depObj.unlock();
    }
-   depObj.unlock();
    
    //  Delete depObj from all trackableObjects it reads 
    DependableObject::TrackableObjectVector &reads = depObj.getReadObjects();

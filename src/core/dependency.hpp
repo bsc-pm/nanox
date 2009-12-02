@@ -21,6 +21,20 @@
 #define _NANOS_DEPENDENCY
 #include <stdlib.h>
 
+#ifndef _NANOS_INTERNAL
+
+typedef struct {
+   void **address;
+   struct {
+     bool  input: 1;
+     bool  output: 1;
+     bool  can_rename:1;
+   } flags;
+   size_t  size;
+} nanos_dependence_t;
+
+#else
+
 namespace nanos
 {
 
@@ -107,5 +121,7 @@ namespace nanos
          { _canRename = b; }
    };
 }
+
+typedef nanos::Dependency nanos_dependence_t;
 
 #endif
