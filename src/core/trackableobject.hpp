@@ -20,7 +20,8 @@
 #ifndef _NANOS_TRACKABLE_OBJECT
 #define _NANOS_TRACKABLE_OBJECT
 #include <stdlib.h>
-#include <vector>
+#include <list>
+#include <algorithm>
 #include "dependableobject.hpp"
 #include "atomic.hpp"
 
@@ -40,7 +41,7 @@ namespace nanos
       private:
 
          /**< Pointer to the dependency address */
-         void ** _address;
+         void * _address;
 
          /**< Points to the last DependableObject registered as writer of the TrackableObject */
          DependableObject *_lastWriter;
@@ -57,7 +58,7 @@ namespace nanos
       public:
         /*! \brief Creates a TrackableObject with the given address associated.
          */
-         TrackableObject ( void ** address = NULL ) : _address(address), _lastWriter ( NULL ), _versionReaders(), _readersLock(), _writerLock() {}
+         TrackableObject ( void * address = NULL ) : _address(address), _lastWriter ( NULL ), _versionReaders(), _readersLock(), _writerLock() {}
 
         /*! \brief Copy constructor
          *  \param obj another TrackableObject
@@ -80,7 +81,7 @@ namespace nanos
 
         /*! \brief Obtain the address associated to the TrackableObject
          */
-         void ** getAddress ( )
+         void * getAddress ( )
          {
             return _address;
          }
@@ -148,6 +149,13 @@ namespace nanos
          void setReader ( DependableObject &reader )
          {
             _versionReaders.push_back( &reader );
+         }
+
+        /*! \brief Returns true if do is reader of the TrackableObject
+         */
+         bool hasReader ( DependableObject &depObj )
+         {
+            return ( find( _versionReaders.begin(), _versionReaders.end(), &depObj ) != _versionReaders.end() );
          }
          
         /*! \brief Delete all readers from the object

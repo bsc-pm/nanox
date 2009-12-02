@@ -84,7 +84,7 @@ namespace nanos
          *  \param deps List of dependencies to be associated to the Dependable Object.
          *  \sa Dependency DependableObject TrackableObject
          */
-         void submitDependableObject ( DependableObject &depObj, const std::vector<Dependency> &deps )
+         void submitDependableObject ( DependableObject &depObj, std::vector<Dependency> &deps )
          {
             submitDependableObjectInternal ( depObj, deps.begin(), deps.end() );
          }

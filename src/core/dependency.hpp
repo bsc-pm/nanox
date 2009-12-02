@@ -80,16 +80,31 @@ namespace nanos
          */
          bool isInput() const
          { return _input; }
+
+        /*! \brief sets the dependency input clause to b
+         */
+         void setInput( bool b )
+         { _input = b; }
          
         /*! \brief returns true if it is an output dependency
          */
          bool isOutput() const
          { return _output; }
+
+        /*! \brief sets the dependency output clause to b
+         */
+         void setOutput( bool b )
+         { _output = b;}
          
         /*! \brief return true if the dependency can rename
          */
          bool canRename() const
          { return _canRename; }
+
+        /*! \brief sets the rename attribute to b
+         */
+         void setCanRename( bool b )
+         { _canRename = b; }
    };
 }
 

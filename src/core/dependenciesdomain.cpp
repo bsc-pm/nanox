@@ -37,7 +37,7 @@ TrackableObject* DependenciesDomain::lookupDependency ( const Dependency& dep )
    
    DepsMap::iterator it = _addressDependencyMap.find(*(dep.getAddress())); 
    if ( it == _addressDependencyMap.end() ) {
-      trackableObject = new TrackableObject(dep.getAddress());
+      trackableObject = new TrackableObject(*dep.getAddress());
       _addressDependencyMap.insert( std::make_pair(*(dep.getAddress()), trackableObject) );
    } else {
       trackableObject = it->second;
@@ -63,9 +63,33 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
    // so we increase the number of predecessor to permit other dependableObjects to free some of
    // its dependencies without triggerinf the "dependenciesSatisfied" method
    depObj.increasePredecessors();
-   
+
+   std::list<Dependency *> filteredDeps;
    for ( iterator it = begin; it != end; it++ ) {
-      const Dependency &dep = *it;
+      Dependency* newDep = &(*it);
+      bool found = false;
+      for ( std::list<Dependency *>::iterator current = filteredDeps.begin(); current != filteredDeps.end(); current++ ) {
+         Dependency* currentDep = *current;
+         if ( *(newDep->getAddress()) == *(currentDep->getAddress()) ) {
+            // Both dependencies use the same address, put them in common
+            currentDep->setInput( newDep->isInput() || currentDep->isInput() );
+            currentDep->setOutput( newDep->isOutput() || currentDep->isOutput() );
+            found = true;
+            break;
+         }
+      }
+      if ( !found ) {
+         filteredDeps.push_back(newDep);
+      }
+   }
+
+   for ( std::list<Dependency *>::iterator it = filteredDeps.begin(); it != filteredDeps.end(); it++ ) {
+      Dependency &dep = *(*it);
+
+      // TODO for renaming, remember that the trackableObject keeps the address for the dependency but not
+      // where this address is stored for the DependableObject that will use it. This last address is not the same
+      // for all DependableObjects so it needs to be stored somewhere accessible when the dependableObject will use
+      // the storage to change it if renaming happened.
       TrackableObject * dependencyObject = lookupDependency( dep );
 
       // assumes no new readers added concurrently
@@ -88,7 +112,6 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
             lastWriter->unlock();
          }
       }
-
 
       // only for non-inout dependencies
       if ( dep.isInput() && !( dep.isOutput() ) && !( depObj.waits() ) ) {
@@ -133,7 +156,7 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
 }
 
 template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, Dependency* begin, Dependency* end );
-template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, const std::vector<Dependency>::const_iterator begin, const std::vector<Dependency>::const_iterator end );
+template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, std::vector<Dependency>::iterator begin, std::vector<Dependency>::iterator end );
 
 /*! \brief Dependable Object depObj is finished and its outgoing dependencies are removed.
  *  \param desObj Dependable Object that finished
