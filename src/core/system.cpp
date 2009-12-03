@@ -203,8 +203,9 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    for ( unsigned int i = 0; i < num_devices; i++ )
       dd_size += devices[i].dd_size;
 
+   // data_size: Memory is requiered to be aligned to 8 bytes in some architectures
    int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( WD ) : 0 ) +
-                          ( ( data != NULL && *data == NULL ) ? data_size : 0 ) +
+                          ( ( data != NULL && *data == NULL ) ? (((data_size+7)>>3)<<3) : 0 ) +
                           sizeof( DD* ) * num_devices +
                           dd_size
                           ;
@@ -222,9 +223,10 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    }
 
    // allocate WD data
+   // data_size: Memory is requiered to be aligned to 8 bytes in some architectures
    if ( data != NULL && *data == NULL ) {
       *data = chunk;
-      chunk += data_size;
+      chunk += (((data_size+7)>>3)<<3);
    }
 
    // allocate device pointers vector
@@ -274,7 +276,8 @@ void System::duplicateWD ( WD **uwd, WD *wd)
 
    debug0( "   Device's size is " << dd_size );
 
-   int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( WD ) : 0 ) + wd->getDataSize() +
+   // data_size: Memory is requiered to be aligned to 8 bytes in some architectures
+   int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( WD ) : 0 ) + (((wd->getDataSize()+7)>>3)<<3) +
                           sizeof( DD* ) * wd->getNumDevices() + dd_size ;
 
    debug0( "   Size of whole structure " << size_to_allocate );
@@ -296,10 +299,11 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    debug0( "   Allocating WD Data (" << wd->getDataSize() << " bytes)");
 
    // allocate WD data
+   // data_size: Memory is requiered to be aligned to 8 bytes in some architectures
    if ( wd->getDataSize() != 0 ) {
       data = (void * ) chunk;
       memcpy ( data, wd->getData(), wd->getDataSize());
-      chunk += wd->getDataSize();
+      chunk += (((wd->getDataSize()+7)>>3)<<3);
    }
 
    debug0( "   Allocating Device Pointer Vector (" << sizeof(DD*) * wd->getNumDevices() << " bytes)");
@@ -322,15 +326,20 @@ void System::duplicateWD ( WD **uwd, WD *wd)
 
    debug0( "   Creating new WD" );
 
+   // xteruel :
    WD * new_wd =  new (*uwd) WD( wd->getNumDevices(), dev_ptrs, wd->getDataSize(), data );
+   // xteruel : WD * new_wd =  new (*uwd) WD( *wd );
 
    debug0( "   Task " << new_wd << ":" << new_wd->getId() << " has been created" );
 
    debug0( "   Adding WD to WG" );
 
    // add new wd to the same workgroup
-   WG * wg = ( WG * ) uwd;
+   WG * wg = ( WG * ) wd;
    wg->addWork( *new_wd );
+
+   new_wd->setParent ( wd );
+   new_wd->setDepth( wd->getDepth() +1 );
 
    debug0( "   TODO : Setting properties" );
 

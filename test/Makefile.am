@@ -25,11 +25,11 @@ noinst_PROGRAMS = \
 	slicer_for_dynamic_1 \
 	 test1 test_single test_slicer test_teambarrier fib fib-c fibnocutoff-c
 
-work_descriptor_create_1_SOURCES = slicer_for_dynamic_1.cpp
+work_descriptor_create_1_SOURCES = work_descriptor_create_1.cpp
 work_descriptor_create_1_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -I$(top_srcdir)/src/apis/c
 work_descriptor_create_1_LDADD = $(top_builddir)/src/core/libnanox.la
 
-work_descriptor_create_2_SOURCES = slicer_for_dynamic_1.cpp
+work_descriptor_create_2_SOURCES = work_descriptor_create_2.cpp
 work_descriptor_create_2_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -I$(top_srcdir)/src/apis/c
 work_descriptor_create_2_LDADD = $(top_builddir)/src/core/libnanox.la
 

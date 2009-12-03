@@ -64,7 +64,7 @@ int main ( int argc, char **argv )
    for ( i = 0; i < NUM_ITERS; i++ ) {
 #if USE_NANOS
       // Work descriptor creation, loop info included in SlicerDataDynamicFor
-      WD * wd = new SlicedWD( sys.getSlicerDynamicFor(), *new SlicerDataDynamicFor(0,VECTOR_SIZE,+1,0),
+      WD * wd = new SlicedWD( sys.getSlicerDynamicFor(), *new SlicerDataDynamicFor(0,VECTOR_SIZE,+1,5),
                         new SMPDD( main__loop_1 ), sizeof( _loop_data ),( void * ) &_loop_data );
 
       // Work Group affiliation

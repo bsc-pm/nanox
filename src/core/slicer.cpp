@@ -17,6 +17,7 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+#include "nanos-int.h"
 #include "slicer.hpp"
 #include "debug.hpp"
 #include "system.hpp"
@@ -69,7 +70,33 @@ bool SlicerRepeatN::dequeue ( SlicedWD *wd, WorkDescriptor **slice)
 }
 
 void SlicerDynamicFor::submit ( WD &work )
-{}
+{
+   debug0 ( "Using sliced work descriptor: Dynamic For" );
+   Scheduler::submit ( work );
+}
 
 bool SlicerDynamicFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
-{ return true; }
+{
+   int lower, upper, step;
+
+   if ( ((SlicerDataDynamicFor *)(wd->getSlicerData()))->getNextIters( &lower, &upper, &step ) ) 
+   {
+      // last iters
+      debug0 ( "Dequeueing sliced work: using former wd (final), loop={l:" << lower << " u:" << upper <<" s:" << step << "}");
+      *slice = wd;
+      ((nanos_loop_info_t *)((*slice)->getData()))->lower = lower;
+      ((nanos_loop_info_t *)((*slice)->getData()))->upper = upper;
+      ((nanos_loop_info_t *)((*slice)->getData()))->step = step;
+      return true;
+   }
+   else
+   {
+      // no last iters
+      debug0 ( "Dequeueing sliced work: keeping former wd loop={l:" << lower << " u:" << upper << " s:" << step << "}");
+      sys.duplicateWD( slice, wd );
+      ((nanos_loop_info_t *)((*slice)->getData()))->lower = lower;
+      ((nanos_loop_info_t *)((*slice)->getData()))->upper = upper;
+      ((nanos_loop_info_t *)((*slice)->getData()))->step = step;
+      return false;
+   }
+}
