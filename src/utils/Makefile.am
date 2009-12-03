@@ -31,7 +31,5 @@ nanox_list_plugins_SOURCES=\
 nanox_list_plugins_LDADD=\
 	-ldl \
 	../core/libnanox.la \
-	-L/opt/cell/sdk/usr/lib\
-        -lspe2\
 	$(END)
 
