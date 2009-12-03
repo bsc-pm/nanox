@@ -65,23 +65,19 @@ int main ( int argc, char **argv )
    // initialize vector
    for ( i = 0; i < VECTOR_SIZE+2*VECTOR_MARGIN; i++ ) I[i] = 0;
 
-   // LOOP: (Dynamic, lower(+), upper(+), step(+1), chunk(5), data(local)
+/**/
+   // LOOP: (Dynamic, lower(+), upper(+), step(+1), chunk(5)
    for ( i = 0; i < NUM_ITERS; i++ ) {
-
       // Work descriptor creation, loop info included in SlicerDataDynamicFor
       WD * wd = new SlicedWD( sys.getSlicerDynamicFor(), *new SlicerDataDynamicFor(0,VECTOR_SIZE,+1,5),
                         new SMPDD( main__loop_1 ), sizeof( _loop_data ),( void * ) &_loop_data );
-
       // Work Group affiliation
       WG *wg = myThread->getCurrentWD();
       wg->addWork( *wd );
-
       // Work submission
       sys.submit( *wd );
- 
       // barrier (kind of)
       wg->waitCompletation();
-
       // UNDO
       for ( int j = 0; j < VECTOR_SIZE; j++ ) A[j]--;
    }
@@ -93,9 +89,11 @@ int main ( int argc, char **argv )
          I[i] = 0; check = false; p_check = false;
       }
    // print partial result
-   fprintf(stderr, "dynamic \n" );
+   fprintf(stderr, "dynamic    , lower (+), upper (+), step(+1), chunk(5): %s %s %s \n",
+      p_check?"successful":"UNSUCCESSFUL:", out_of_range?"Out of Range":"", race_condition?"Race Condition":"");
    // initialize partial checks
    p_check = true; out_of_range = false; race_condition = false;
+/**/
 
 
 
