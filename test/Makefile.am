@@ -25,11 +25,11 @@ noinst_PROGRAMS = \
 	slicer_for_dynamic_1 \
 	 test1 test_single test_slicer test_teambarrier test_dependencies-c test_dependency_types-c fib fib-c fibnocutoff-c
 
-work_descriptor_create_1_SOURCES = slicer_for_dynamic_1.cpp
+work_descriptor_create_1_SOURCES = work_descriptor_create_1.cpp
 work_descriptor_create_1_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -I$(top_srcdir)/src/apis/c
 work_descriptor_create_1_LDADD = $(top_builddir)/src/core/libnanox.la
 
-work_descriptor_create_2_SOURCES = slicer_for_dynamic_1.cpp
+work_descriptor_create_2_SOURCES = work_descriptor_create_2.cpp
 work_descriptor_create_2_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -I$(top_srcdir)/src/apis/c
 work_descriptor_create_2_LDADD = $(top_builddir)/src/core/libnanox.la
 
@@ -54,11 +54,11 @@ test_teambarrier_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -I$(top_src
 test_teambarrier_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la
 
 test_dependencies_c_SOURCES = test_dependencies.c
-test_dependencies_c_CFLAGS = -g $(common_includes) $(common_cxxflags) -I $(top_builddir)/src/apis/c -fno-strict-aliasing
+test_dependencies_c_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_builddir)/src/apis/c -fno-strict-aliasing
 test_dependencies_c_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la
 
 test_dependency_types_c_SOURCES = test_dependency_types.c
-test_dependency_types_c_CFLAGS = -g $(common_includes) $(common_cxxflags) -I $(top_builddir)/src/apis/c -fno-strict-aliasing
+test_dependency_types_c_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_builddir)/src/apis/c -fno-strict-aliasing
 test_dependency_types_c_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la
 
 fib_SOURCES = fib.cpp
@@ -66,11 +66,11 @@ fib_CXXFLAGS = -g $(common_includes) $(common_cxxflags)
 fib_LDADD = $(top_builddir)/src/core/libnanox.la 
 
 fib_c_SOURCES = fib.c
-fib_c_CFLAGS = -g $(common_includes) $(common_cxxflags) -I $(top_srcdir)/src/apis/c -fno-strict-aliasing
+fib_c_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_srcdir)/src/apis/c -fno-strict-aliasing
 fib_c_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la 
 
 fibnocutoff_c_SOURCES = fibnocutoff.c
-fibnocutoff_c_CFLAGS = -g $(common_includes) $(common_cxxflags) -I $(top_srcdir)/src/apis/c -fno-strict-aliasing
+fibnocutoff_c_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_srcdir)/src/apis/c -fno-strict-aliasing
 fibnocutoff_c_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la 
 
 

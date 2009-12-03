@@ -158,11 +158,12 @@ namespace nanos
          int _upper;  /**< Loop upper bound */
          int _step;   /**< Loop step */
          int _chunk;  /**< Slice chunk */
+         int _sign;   /**< Loop sign 1 ascendant, -1 descendant */
 
       public:
          // constructor
          SlicerDataDynamicFor ( int lower, int upper, int step, int chunk = 1) :
-             _lower ( lower ), _upper ( upper ), _step ( step ), _chunk ( chunk )  { }
+             _lower ( lower ), _upper ( upper ), _step ( step ), _chunk ( chunk ), _sign ( (step < 0)? -1 : +1)  { }
 
          // destructor
          ~SlicerDataDynamicFor ( ) { }
@@ -178,13 +179,34 @@ namespace nanos
          int getStep  ( void ) { return _step; }
          int getChunk ( void ) { return _chunk; }
 
+         bool getNextIters ( int *lower, int *upper, int *step )
+         {
+            bool last = false;
+
+            // computing initial bounds
+            *lower = _lower;
+            *upper = _lower + ( _chunk * _step );
+
+            // checking boundaries
+            if ( (*upper * _sign ) >= ( _upper * _sign ) ) {
+               *upper = _upper;
+               last = true;
+            }
+
+            _lower = *upper;
+
+            *step  = _step;
+
+            return last;
+         }
+
    };
 
    class Slicers
    {
       private:
          SlicerRepeatN    _slicerRepeatN;     /**< Repeat N slicer */
-	SlicerDynamicFor  _slicerDynamicFor;  /**< Dynamic For slicer */
+	 SlicerDynamicFor  _slicerDynamicFor;  /**< Dynamic For slicer */
       public:
          // constructor
          Slicers ( ) { }
