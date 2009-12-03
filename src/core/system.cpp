@@ -24,6 +24,7 @@
 #include "schedule.hpp"
 #include "barrier.hpp"
 #include "nanos-int.h"
+#include "spuprocessor.hpp"
 
 using namespace nanos;
 
@@ -151,6 +152,9 @@ void System::start ()
          _workers.push_back( &pe->startWorker( sg ) );
       }
    }
+   
+   PE *spu = new nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);
+   spu->startWorker(sg);
 
    // count one for the "main" task
    sys._numTasksRunning=1;

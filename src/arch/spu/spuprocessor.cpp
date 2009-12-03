@@ -18,8 +18,10 @@
 /*************************************************************************************/
 
 #include "spuprocessor.hpp"
+#include "sputhread.hpp"
 #include "workdescriptor.hpp"
-
+#include "smpdd.hpp"
+   
 using namespace nanos;
 using namespace nanos::ext;
 
@@ -39,7 +41,11 @@ WorkDescriptor & SPUProcessor::getMasterWD () const
 BaseThread &SPUProcessor::createThread ( WorkDescriptor &helper )
 {
    ensure( helper.canRunIn( SPU ),"Incompatible worker thread" );
-   SPUThread &th = *new SPUThread( helper, this );
+
+   WD * boot = new WD(new SMPDD(( SMPDD::work_fct )SPUThread::bootstrap));
+   
+   SPUThread &th = *new SPUThread( (SMPThread &)getPPU().createThread(*boot),
+                                   helper, this );
 
    return th;
 }

@@ -17,10 +17,11 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_SMP_THREAD
-#define _NANOS_SMP_THREAD
+#ifndef _NANOS_SPU_THREAD
+#define _NANOS_SPU_THREAD
 
 #include "basethread.hpp"
+#include "smpthread.hpp"
 
 namespace nanos {
 namespace ext {
@@ -30,16 +31,19 @@ namespace ext {
       friend class SPUProcessor;
       
       private:
+         SMPThread  &_ppu;
          // disable copy constructor and assignment operator
          SPUThread( const SPUThread &th );
          const SPUThread & operator= ( const SPUThread &th );
 
       public:
          // constructor
-         SPUThread( WD &w, PE *pe ) : BaseThread( w,pe ) {}
+         SPUThread( SMPThread &ppu, WD &w, PE *pe ) : BaseThread( w,pe ), _ppu(ppu) {}
 
          // destructor
          virtual ~SPUThread() { }
+
+         SMPThread & getPPU() const { return _ppu; }
 
          virtual void start();
          virtual void join();
@@ -49,6 +53,8 @@ namespace ext {
          virtual void switchTo( WD *work );
          virtual void exitTo( WD *work );
          virtual void bind( void );
+
+         static  void bootstrap ();
    };
 
 }

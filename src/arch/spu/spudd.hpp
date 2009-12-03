@@ -17,8 +17,8 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_SMP_WD
-#define _NANOS_SMP_WD
+#ifndef _NANOS_SPU_WD
+#define _NANOS_SPU_WD
 
 #include "workdescriptor.hpp"
 
@@ -33,7 +33,7 @@ namespace ext {
  
 
      public:
-	SPUDD ( ) : DD( &SPU ) {}
+        SPUDD ( ) : DD( &SPU ) {}
         SPUDD ( const SPUDD &dd ) : DD( dd ) {}
 
         SPUDD * copyTo ( void *toAddr );

@@ -20,7 +20,7 @@
 #ifndef _NANOS_SPU_PROCESSOR
 #define _NANOS_SPU_PROCESSOR
 
-#include "processingelement.hpp"
+#include "smpprocessor.hpp"
 #include "sputhread.hpp"
 #include "spudd.hpp"
 
@@ -30,15 +30,18 @@ namespace ext {
    class SPUProcessor : public PE 
    { 
      private:
+        SMPProcessor &_ppu;
         // disable copy constructor and assignment operator
         SPUProcessor( const SPUProcessor &pe );
         const SPUProcessor & operator= ( const SPUProcessor &pe );
 
      public:
         // constructor
-        SPUProcessor(int id) : PE(id,&SPU) {}
+        SPUProcessor( int id, SMPProcessor &ppu ) : PE( id, &SPU ), _ppu( ppu ) {}
         ~SPUProcessor() {}
 
+        SMPProcessor & getPPU() const { return _ppu; }
+        
         WD & getWorkerWD () const;
         WD & getMasterWD () const;
         BaseThread & createThread ( WorkDescriptor &wd );
