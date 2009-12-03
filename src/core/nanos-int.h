@@ -20,7 +20,29 @@
 #ifndef __NANOS_INT_H
 #define __NANOS_INT_H
 
-#include "dependency.hpp"
+typedef struct {
+   void **address;
+   struct {
+     bool  input: 1;
+     bool  output: 1;
+     bool  can_rename:1;
+   } flags;
+   size_t  size;
+} nanos_dependence_internal_t;
+
+#ifndef _NANOS_INTERNAL
+
+typedef nanos_dependence_internal_t nanos_dependence_t;
+
+#else
+
+namespace nanos {
+   class Dependency;
+}
+typedef nanos::Dependency nanos_dependence_t;
+
+#endif
+
 
 // C++ types hidden as void *
 typedef void * nanos_thread_t;
