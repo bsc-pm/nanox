@@ -71,3 +71,4 @@ WorkGroup::~WorkGroup ()
 {
    done();
 }
+

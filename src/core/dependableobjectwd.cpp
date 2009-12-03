@@ -17,38 +17,46 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef __NANOS_INT_H
-#define __NANOS_INT_H
+#include "dependableobjectwd.hpp"
+#include "workdescriptor.hpp"
+#include "schedule.hpp"
 
-#include <stdio.h>
-#include "dependency.hpp"
+using namespace nanos;
 
-// C++ types hidden as void *
-typedef void * nanos_thread_t;
+/*! \brief Submits WorkDescriptor when dependencies are satisfied
+ */
+void DOSubmit::dependenciesSatisfied ( )
+{
+     _submittedWD->submit();
+}
 
-typedef struct {
-   int lower;
-   int upper;
-   int step;
-} nanos_loop_info_t;
+/*! \brief whether the DO gets blocked and no more dependencies can
+ *  be submitted until it is satisfied.
+ */
+bool DOWait::waits()
+{
+   return true;
+}
 
-typedef struct {
-   bool mandatory_creation:1;
-   bool tied:1;
-   bool reserved0:1;
-   bool reserved1:1;
-   bool reserved2:1;
-   bool reserved3:1;
-   bool reserved4:1;
-   bool reserved5:1;
-   nanos_thread_t * tie_to;
-   unsigned int priority;
-} nanos_wd_props_t;
 
-typedef struct {
-  void * (*factory) (void *prealloc, void *arg);
-  size_t dd_size;
-  void * arg;
-} nanos_device_t;
+/*! \brief Initialise wait condition
+ */
+void DOWait::init()
+{
+   _depsSatisfied = false;
+}
 
-#endif
+/*! \brief Wait method blocks execution untill dependencies are satisfied
+ */
+void DOWait::wait ( )
+{
+     Scheduler::blockOnCondition ( &_depsSatisfied, true);
+}
+
+/*! \brief Unblock method when dependencies are satisfied
+ */
+void DOWait::dependenciesSatisfied ( )
+{
+   _depsSatisfied = true;
+}
+

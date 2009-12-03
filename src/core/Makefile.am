@@ -21,7 +21,7 @@ include $(top_srcdir)/src/common.am
 
 lib_LTLIBRARIES=libnanox.la
 
-include_HEADERS=nanos-int.h
+include_HEADERS=nanos-int.h dependency.hpp
 
 if PERFORMANCE
   lib_LTLIBRARIES += libnanox-pfm.la
@@ -59,6 +59,14 @@ nanos_sources=\
 	slicer.hpp \
 	slicer.cpp \
 	throttle.hpp \
+	dependency.hpp \
+	dependency.hpp \
+	dependableobject.hpp \
+	dependableobjectwd.hpp \
+	dependableobjectwd.cpp \
+	trackableobject.hpp \
+	dependenciesdomain.hpp \
+	dependenciesdomain.cpp \
 	$(END)
 
 # Default

@@ -39,17 +39,6 @@ typedef void * nanos_sched_t;
 typedef void * nanos_lock_t;
 typedef void * nanos_dd_t;
 
-// other types
-typedef struct {
-   void **address;
-   struct {
-     bool  input: 1;
-     bool  output: 1;
-     bool  can_rename:1;
-   } flags;
-   size_t  size;
-} nanos_dependence_t;
-
 typedef struct {
    int nthreads;
    void *arch;
@@ -105,6 +94,7 @@ nanos_err_t nanos_single_guard ( bool *);
 nanos_err_t nanos_wg_wait_completation ( nanos_wg_t wg );
 nanos_err_t nanos_wait_on_int ( volatile int *p, int condition );
 nanos_err_t nanos_wait_on_bool ( volatile _Bool *p, _Bool condition );
+nanos_err_t nanos_wait_on ( size_t num_deps, nanos_dependence_t *deps );
 
 nanos_err_t nanos_init_lock ( nanos_lock_t *lock );
 nanos_err_t nanos_set_lock (nanos_lock_t lock);

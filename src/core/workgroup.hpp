@@ -22,6 +22,7 @@
 
 #include <vector>
 #include "atomic.hpp"
+#include "dependenciesdomain.hpp"
 
 namespace nanos
 {
@@ -58,6 +59,7 @@ namespace nanos
          void waitCompletation();
          virtual void done();
          int getId() const { return _id; }
+
    };
 
    typedef WorkGroup WG;

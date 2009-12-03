@@ -22,6 +22,8 @@
 #include "processingelement.hpp"
 #include "basethread.hpp"
 #include "debug.hpp"
+#include "schedule.hpp"
+#include "dependableobjectwd.hpp"
 
 using namespace nanos;
 
@@ -71,6 +73,7 @@ void WorkDescriptor::done ()
 {
    // FIX-ME: We are waiting for the children tasks to avoid to keep alive only part of the parent
    waitCompletation();
+   this->getParent()->workFinished( *this );
    WorkGroup::done();
 }
 
