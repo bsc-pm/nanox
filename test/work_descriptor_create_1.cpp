@@ -22,7 +22,6 @@
 #include <iostream>
 #include "smpprocessor.hpp"
 #include "system.hpp"
-#include "slicer.hpp"
 
 using namespace std;
 

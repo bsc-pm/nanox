@@ -43,7 +43,6 @@ typedef nanos::Dependency nanos_dependence_t;
 
 #endif
 
-
 // C++ types hidden as void *
 typedef void * nanos_thread_t;
 
@@ -52,6 +51,7 @@ typedef struct {
    int upper;
    int step;
 } nanos_loop_info_t;
+
 typedef struct {
    bool mandatory_creation:1;
    bool tied:1;
