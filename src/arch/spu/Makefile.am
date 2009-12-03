@@ -19,4 +19,17 @@
 
 include $(top_srcdir)/src/common.am
 
+noinst_LTLIBRARIES = libspu.la
+
+libspu_la_CXXFLAGS=$(common_includes) $(common_cxxflags)
+libspu_la_SOURCES = \
+                spudd.hpp \
+                spudd.cpp \
+		spuprocessor.hpp \
+		spuprocessor.cpp \
+		sputhread.hpp \
+		sputhread.cpp \
+                $(END)
+
+
 

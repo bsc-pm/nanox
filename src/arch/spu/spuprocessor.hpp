@@ -17,54 +17,36 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "smpprocessor.hpp"
-#include "schedule.hpp"
-#include "debug.hpp"
-#include "system.hpp"
+#ifndef _NANOS_SPU_PROCESSOR
+#define _NANOS_SPU_PROCESSOR
 
-using namespace nanos;
-using namespace nanos::ext;
+#include "processingelement.hpp"
+#include "sputhread.hpp"
+#include "spudd.hpp"
 
-Device nanos::ext::SMP( "SMP" );
+namespace nanos {
+namespace ext {
 
-int SMPDD::_stackSize = 1024;
+   class SPUProcessor : public PE 
+   { 
+     private:
+        // disable copy constructor and assignment operator
+        SPUProcessor( const SPUProcessor &pe );
+        const SPUProcessor & operator= ( const SPUProcessor &pe );
 
-/*! \fn prepareConfig(Config &config)
-  \brief Registers the Device's configuration options
-  \param reference to a configuration object.
-  \sa Config System
-*/
-void SMPDD::prepareConfig( Config &config )
-{
-   /*!
-      Get the stack size from system configuration
-    */
-   _stackSize = sys.getDeviceStackSize();
+     public:
+        // constructor
+        SPUProcessor(int id) : PE(id,&SPU) {}
+        ~SPUProcessor() {}
 
-   /*!
-      Get the stack size for this device
-   */
-   config.registerArgOption( new Config::PositiveVar( "nth-smp-stack-size",_stackSize ) );
-   config.registerEnvOption( new Config::PositiveVar( "NTH_SMP_STACK_SIZE",_stackSize ) );
+        WD & getWorkerWD () const;
+        WD & getMasterWD () const;
+        BaseThread & createThread ( WorkDescriptor &wd );
+   };
+
+}
 }
 
-void SMPDD::allocateStack ()
-{
-   _stack = new intptr_t[_stackSize];
-}
 
-void SMPDD::initStack ( void *data )
-{
-   if ( !hasStack() ) {
-      allocateStack();
-   }
-
-   initStackDep( ( void * )getWorkFct(),data,( void * )Scheduler::exit );
-}
-
-SMPDD * SMPDD::copyTo ( void *toAddr )
-{
-   SMPDD *dd = new (toAddr) SMPDD(*this);
-   return dd;
-}
+#endif
 

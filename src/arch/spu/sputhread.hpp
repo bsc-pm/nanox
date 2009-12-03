@@ -17,54 +17,42 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "smpprocessor.hpp"
-#include "schedule.hpp"
-#include "debug.hpp"
-#include "system.hpp"
+#ifndef _NANOS_SMP_THREAD
+#define _NANOS_SMP_THREAD
 
-using namespace nanos;
-using namespace nanos::ext;
+#include "basethread.hpp"
 
-Device nanos::ext::SMP( "SMP" );
+namespace nanos {
+namespace ext {
+   
+   class SPUThread : public BaseThread
+   {
+      friend class SPUProcessor;
+      
+      private:
+         // disable copy constructor and assignment operator
+         SPUThread( const SPUThread &th );
+         const SPUThread & operator= ( const SPUThread &th );
 
-int SMPDD::_stackSize = 1024;
+      public:
+         // constructor
+         SPUThread( WD &w, PE *pe ) : BaseThread( w,pe ) {}
 
-/*! \fn prepareConfig(Config &config)
-  \brief Registers the Device's configuration options
-  \param reference to a configuration object.
-  \sa Config System
-*/
-void SMPDD::prepareConfig( Config &config )
-{
-   /*!
-      Get the stack size from system configuration
-    */
-   _stackSize = sys.getDeviceStackSize();
+         // destructor
+         virtual ~SPUThread() { }
 
-   /*!
-      Get the stack size for this device
-   */
-   config.registerArgOption( new Config::PositiveVar( "nth-smp-stack-size",_stackSize ) );
-   config.registerEnvOption( new Config::PositiveVar( "NTH_SMP_STACK_SIZE",_stackSize ) );
+         virtual void start();
+         virtual void join();
+         virtual void runDependent ( void );
+
+         virtual void inlineWorkDependent( WD &work );
+         virtual void switchTo( WD *work );
+         virtual void exitTo( WD *work );
+         virtual void bind( void );
+   };
+
+}
 }
 
-void SMPDD::allocateStack ()
-{
-   _stack = new intptr_t[_stackSize];
-}
 
-void SMPDD::initStack ( void *data )
-{
-   if ( !hasStack() ) {
-      allocateStack();
-   }
-
-   initStackDep( ( void * )getWorkFct(),data,( void * )Scheduler::exit );
-}
-
-SMPDD * SMPDD::copyTo ( void *toAddr )
-{
-   SMPDD *dd = new (toAddr) SMPDD(*this);
-   return dd;
-}
-
+#endif

@@ -17,54 +17,19 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "smpprocessor.hpp"
-#include "schedule.hpp"
-#include "debug.hpp"
-#include "system.hpp"
+#include "spudd.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
 
-Device nanos::ext::SMP( "SMP" );
+Device nanos::ext::SPU( "SMP" );
 
-int SMPDD::_stackSize = 1024;
-
-/*! \fn prepareConfig(Config &config)
-  \brief Registers the Device's configuration options
-  \param reference to a configuration object.
-  \sa Config System
-*/
-void SMPDD::prepareConfig( Config &config )
+SPUDD * SPUDD::copyTo ( void *toAddr )
 {
-   /*!
-      Get the stack size from system configuration
-    */
-   _stackSize = sys.getDeviceStackSize();
-
-   /*!
-      Get the stack size for this device
-   */
-   config.registerArgOption( new Config::PositiveVar( "nth-smp-stack-size",_stackSize ) );
-   config.registerEnvOption( new Config::PositiveVar( "NTH_SMP_STACK_SIZE",_stackSize ) );
-}
-
-void SMPDD::allocateStack ()
-{
-   _stack = new intptr_t[_stackSize];
-}
-
-void SMPDD::initStack ( void *data )
-{
-   if ( !hasStack() ) {
-      allocateStack();
-   }
-
-   initStackDep( ( void * )getWorkFct(),data,( void * )Scheduler::exit );
-}
-
-SMPDD * SMPDD::copyTo ( void *toAddr )
-{
-   SMPDD *dd = new (toAddr) SMPDD(*this);
+   SPUDD *dd = new (toAddr) SPUDD(*this);
    return dd;
 }
+
+
+
 

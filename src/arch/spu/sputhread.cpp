@@ -17,54 +17,26 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "smpprocessor.hpp"
-#include "schedule.hpp"
-#include "debug.hpp"
-#include "system.hpp"
+#include "sputhread.hpp"
+
 
 using namespace nanos;
 using namespace nanos::ext;
 
-Device nanos::ext::SMP( "SMP" );
 
-int SMPDD::_stackSize = 1024;
-
-/*! \fn prepareConfig(Config &config)
-  \brief Registers the Device's configuration options
-  \param reference to a configuration object.
-  \sa Config System
-*/
-void SMPDD::prepareConfig( Config &config )
+void SPUThread::start ()
 {
-   /*!
-      Get the stack size from system configuration
-    */
-   _stackSize = sys.getDeviceStackSize();
-
-   /*!
-      Get the stack size for this device
-   */
-   config.registerArgOption( new Config::PositiveVar( "nth-smp-stack-size",_stackSize ) );
-   config.registerEnvOption( new Config::PositiveVar( "NTH_SMP_STACK_SIZE",_stackSize ) );
+	// start runnning this->run();
 }
 
-void SMPDD::allocateStack ()
+void SPUThread::join ()
 {
-   _stack = new intptr_t[_stackSize];
 }
 
-void SMPDD::initStack ( void *data )
+void SMPThread::runDependent ()
 {
-   if ( !hasStack() ) {
-      allocateStack();
-   }
-
-   initStackDep( ( void * )getWorkFct(),data,( void * )Scheduler::exit );
 }
 
-SMPDD * SMPDD::copyTo ( void *toAddr )
+void SPUThread::bind ()
 {
-   SMPDD *dd = new (toAddr) SMPDD(*this);
-   return dd;
 }
-

@@ -17,54 +17,30 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "smpprocessor.hpp"
-#include "schedule.hpp"
-#include "debug.hpp"
-#include "system.hpp"
+#include "spuprocessor.hpp"
+#include "workdescriptor.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
 
-Device nanos::ext::SMP( "SMP" );
-
-int SMPDD::_stackSize = 1024;
-
-/*! \fn prepareConfig(Config &config)
-  \brief Registers the Device's configuration options
-  \param reference to a configuration object.
-  \sa Config System
-*/
-void SMPDD::prepareConfig( Config &config )
+WorkDescriptor & SPUProcessor::getWorkerWD () const
 {
-   /*!
-      Get the stack size from system configuration
-    */
-   _stackSize = sys.getDeviceStackSize();
-
-   /*!
-      Get the stack size for this device
-   */
-   config.registerArgOption( new Config::PositiveVar( "nth-smp-stack-size",_stackSize ) );
-   config.registerEnvOption( new Config::PositiveVar( "NTH_SMP_STACK_SIZE",_stackSize ) );
+   SPUDD * dd = new SPUDD( ); //TODO: missing idle function
+   WD *wd = new WD( dd );
+   return *wd;
 }
 
-void SMPDD::allocateStack ()
+WorkDescriptor & SPUProcessor::getMasterWD () const
 {
-   _stack = new intptr_t[_stackSize];
+   WD * wd = new WD( new SPUDD() );
+   return *wd;
 }
 
-void SMPDD::initStack ( void *data )
+BaseThread &SPUProcessor::createThread ( WorkDescriptor &helper )
 {
-   if ( !hasStack() ) {
-      allocateStack();
-   }
+   ensure( helper.canRunIn( SPU ),"Incompatible worker thread" );
+   SPUThread &th = *new SPUThread( helper, this );
 
-   initStackDep( ( void * )getWorkFct(),data,( void * )Scheduler::exit );
-}
-
-SMPDD * SMPDD::copyTo ( void *toAddr )
-{
-   SMPDD *dd = new (toAddr) SMPDD(*this);
-   return dd;
+   return th;
 }
 

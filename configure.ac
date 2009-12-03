@@ -60,6 +60,12 @@ case $host in
     SMP_ARCH=ppc32
     CXXFLAGS+=" -m32"
     CFLAGS+=" -m32"
+
+    # Check if it is a Cell system
+    if cat /proc/cpuinfo | grep Cell &> /dev/null ; then
+      ARCHITECTURES+=" spu"
+    fi
+
     ;;
   *)
     AC_MSG_ERROR([unsupported architecture $host])
@@ -68,7 +74,7 @@ esac
 
 # Add architecture libraries
 for arch in $ARCHITECTURES; do
-	NANOS_CONFIG_LIBS+=../arch/$arch/lib$arch.la
+	NANOS_CONFIG_LIBS+=" ../arch/$arch/lib$arch.la"
 done
 
 AC_MSG_RESULT([$ARCHITECTURES/$OS])
