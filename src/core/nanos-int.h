@@ -20,6 +20,8 @@
 #ifndef __NANOS_INT_H
 #define __NANOS_INT_H
 
+#include <stdio.h>
+
 typedef struct {
    void **address;
    struct {
