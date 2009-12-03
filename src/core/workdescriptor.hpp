@@ -159,8 +159,8 @@ namespace nanos
 
             // xteruel: tmp
             // WorkDescriptor ( const Workdescriptor &wd, void *data, ... ) : Workgroup(wd), _data_size(wd._data_size)
-            {
-	    }
+            //{
+	    //}
 
             // destructor
             // all data will be allocated in a single chunk so only the destructors need to be invoked
