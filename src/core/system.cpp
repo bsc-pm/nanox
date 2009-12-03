@@ -327,7 +327,7 @@ void System::duplicateWD ( WD **uwd, WD *wd)
 
    debug0( "   Creating new WD" );
 
-   // xteruel :
+   // xteruel : 
    WD * new_wd =  new (*uwd) WD( wd->getNumDevices(), dev_ptrs, wd->getDataSize(), data );
    // xteruel : WD * new_wd =  new (*uwd) WD( *wd );
 

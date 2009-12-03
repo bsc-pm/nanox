@@ -157,8 +157,8 @@ namespace nanos
                     _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( &_activeDevice ),
                     _activeDevice ( device ), _doSubmit(this), _doWait(this), _depsDomain() {}
 
-            // xteruel:
-            WorkDescriptor ( const Workdescriptor &wd, void *data, ... ) : Workgroup(wd), _data_size(wd._data_size)
+            // xteruel: tmp
+            // WorkDescriptor ( const Workdescriptor &wd, void *data, ... ) : Workgroup(wd), _data_size(wd._data_size)
             {
 	    }
 

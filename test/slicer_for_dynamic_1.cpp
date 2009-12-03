@@ -29,11 +29,12 @@ using namespace std;
 using namespace nanos;
 using namespace nanos::ext;
 
-#define USE_NANOS     true
-#define NUM_ITERS     100
-#define VECTOR_SIZE   100
+#define USE_NANOS      true
+#define NUM_ITERS       100
+#define VECTOR_SIZE     100 
+#define VECTOR_MARGIN    10
 
-int A[VECTOR_SIZE];
+int *A;
 
 typedef struct {
    nanos_loop_info_t loop_info;
@@ -53,16 +54,20 @@ void main__loop_1 ( void *args )
 int main ( int argc, char **argv )
 {
    int i;
-   bool check = true;
+   bool check = true; 
+   bool p_check = true, out_of_range = false, race_condition = false;
+   int I[VECTOR_SIZE+2*VECTOR_MARGIN];
+   
+   A = &I[VECTOR_MARGIN];
 
    main__loop_1_data_t _loop_data;
-   
-   // initialize vector
-      for ( i = 0; i < VECTOR_SIZE; i++ ) A[i] = 0;
 
-   // increment vector
+   // initialize vector
+   for ( i = 0; i < VECTOR_SIZE+2*VECTOR_MARGIN; i++ ) I[i] = 0;
+
+   // LOOP: (Dynamic, lower(+), upper(+), step(+1), chunk(5), data(local)
    for ( i = 0; i < NUM_ITERS; i++ ) {
-#if USE_NANOS
+
       // Work descriptor creation, loop info included in SlicerDataDynamicFor
       WD * wd = new SlicedWD( sys.getSlicerDynamicFor(), *new SlicerDataDynamicFor(0,VECTOR_SIZE,+1,5),
                         new SMPDD( main__loop_1 ), sizeof( _loop_data ),( void * ) &_loop_data );
@@ -76,41 +81,26 @@ int main ( int argc, char **argv )
  
       // barrier (kind of)
       wg->waitCompletation();
-#else
-      for ( int j = 0; j < VECTOR_SIZE; j++ ) A[j]++;
-#endif
+
+      // UNDO
+      for ( int j = 0; j < VECTOR_SIZE; j++ ) A[j]--;
    }
+   // check and initialize vector for next test
+   for ( i = 0; i < VECTOR_SIZE+2*VECTOR_MARGIN; i++ )
+      if ( I[i] != 0 ) {
+         if ( (i < VECTOR_MARGIN) || (i > (VECTOR_SIZE + VECTOR_MARGIN))) out_of_range = true;
+         if ( I[i] != NUM_ITERS ) race_condition = true;
+         I[i] = 0; check = false; p_check = false;
+      }
+   // print partial result
+   fprintf(stderr, "dynamic \n" );
+   // initialize partial checks
+   p_check = true; out_of_range = false; race_condition = false;
 
-   // check vector
-   for ( i = 0; i < VECTOR_SIZE; i++ ) if ( A[i] != NUM_ITERS ) check = false;
-   
 
-/*
 
-   // Work descriptor creation
-   WD * wd2 = new SlicedWD( sys.getSlicerRepeatN(), 
-                            *new SlicerDataRepeatN(10),
-                             new SMPDD( hello_world ),
-                             sizeof(hello_world_args), data );
-
-   // Work Group affiliation and work submision
-   WG *wg = myThread->getCurrentWD();
-   wg->addWork( *wd1 );
-   wg->addWork( *wd2 );
-
-   sys.submit( *wd1 );
-   sys.submit( *wd2 );
-
-   wg->waitCompletation();
-*/
-
-   if ( check ) {
-      fprintf(stderr, "%s : %s\n", argv[0], "successful");
-      return 0;
-   }
-   else {
-      fprintf(stderr, "%s : %s\n", argv[0], "unsuccessful");
-      return -1;
-   }
+   // END:
+   fprintf(stderr, "%s : %s\n", argv[0], check ? "successful" : "unsuccessful");
+   if (check) { return 0; } else { return -1; }
 }
 
