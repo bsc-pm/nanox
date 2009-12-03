@@ -19,21 +19,8 @@
 
 #ifndef _NANOS_DEPENDENCY
 #define _NANOS_DEPENDENCY
-#include <stdlib.h>
 
-#ifndef _NANOS_INTERNAL
-
-typedef struct {
-   void **address;
-   struct {
-     bool  input: 1;
-     bool  output: 1;
-     bool  can_rename:1;
-   } flags;
-   size_t  size;
-} nanos_dependence_t;
-
-#else
+#include "nanos-int.h"
 
 namespace nanos
 {
@@ -41,20 +28,8 @@ namespace nanos
   /*! \class Dependency
    *  \brief Contains information about dependencies necessary to add a DependableObject to the Dependencies system
    */
-   class Dependency
+   class Dependency : public nanos_dependence_internal_t
    {
-      private:
-         /**< Address of the dependency's address */
-         void ** _address;
-         /**< Whether the dependency is input or not */
-         bool _input: 1;
-         /**< Whether the dependency is output or not */
-         bool _output: 1;
-         /**< Whether the dependency can rename or not */
-         bool _canRename: 1;
-         /**< size of the data block pointed by (*address) */
-         size_t size;
-
       public:
          
         /*! \brief Constructor
@@ -63,12 +38,26 @@ namespace nanos
          *  \param output Whether the dependency is output or not
          *  \param canRename Whether the dependency can rename or not
          */
-         Dependency (void ** address = NULL, bool input = false, bool output = false, bool canRename = false) : _address ( address ), _input ( input ), _output ( output ), _canRename ( canRename ) {}
+         Dependency ( void ** addr = NULL, bool input = false, bool output = false, bool canRename = false, size_t storageSize = 0 )
+         {
+            address = addr;
+            flags.input = input;
+            flags.output = output;
+            flags.can_rename = canRename;
+            size = storageSize;
+         }
 
         /*! \brief Copy constructor
          *  \param obj another Dependency
          */
-         Dependency ( const Dependency &dep ) :  _address ( dep._address ), _input(dep._input), _output(dep._output), _canRename(dep._canRename) {}
+         Dependency ( const Dependency &dep )
+         {
+            address = dep.address;
+            flags.input = dep.flags.input;
+            flags.output = dep.flags.output;
+            flags.can_rename = dep.flags.can_rename;
+            size = dep.size;
+         }
  
         /*! \brief Destructor
          */
@@ -80,52 +69,49 @@ namespace nanos
          const Dependency & operator= ( const Dependency &dep )
          {
             if ( this == &dep ) return *this; 
-            _address = dep._address;
-            _input = dep._input;
-            _output = dep._output;
-            _canRename = dep._canRename;
+            address = dep.address;
+            flags.input = dep.flags.input;
+            flags.output = dep.flags.output;
+            flags.can_rename = dep.flags.can_rename;
+            size = dep.size;
             return *this;
          }
          
         /*! \brief Obtain the dependency's address address
          */
          void ** getAddress() const
-         { return _address; }
+         { return address; }
          
         /*! \brief returns true if it is an input dependency
          */
          bool isInput() const
-         { return _input; }
+         { return flags.input; }
 
         /*! \brief sets the dependency input clause to b
          */
          void setInput( bool b )
-         { _input = b; }
+         { flags.input = b; }
          
         /*! \brief returns true if it is an output dependency
          */
          bool isOutput() const
-         { return _output; }
+         { return flags.output; }
 
         /*! \brief sets the dependency output clause to b
          */
          void setOutput( bool b )
-         { _output = b;}
+         { flags.output = b;}
          
         /*! \brief return true if the dependency can rename
          */
          bool canRename() const
-         { return _canRename; }
+         { return flags.can_rename; }
 
         /*! \brief sets the rename attribute to b
          */
          void setCanRename( bool b )
-         { _canRename = b; }
+         { flags.can_rename = b; }
    };
 }
-
-typedef nanos::Dependency nanos_dependence_t;
-
-#endif
 
 #endif
