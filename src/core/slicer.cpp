@@ -79,6 +79,26 @@ bool SlicerDynamicFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
 {
    int lower, upper, step;
 
+#if 0
+            bool last = false;
+
+            // computing initial bounds
+            *lower = _lower;
+            *upper = _lower + ( _chunk * _step );
+
+            // checking boundaries
+            if ( (*upper * _sign ) >= ( _upper * _sign ) ) {
+               *upper = _upper;
+               last = true;
+            }
+
+            _lower = *upper;
+
+            *step  = _step;
+
+            return last;
+#endif
+
    if ( ((SlicerDataDynamicFor *)(wd->getSlicerData()))->getNextIters( &lower, &upper, &step ) ) 
    {
       // last iters
