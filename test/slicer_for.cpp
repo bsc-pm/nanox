@@ -29,12 +29,20 @@ using namespace std;
 using namespace nanos;
 using namespace nanos::ext;
 
-#define USE_NANOS      true
 #define NUM_ITERS      100
 #define VECTOR_SIZE    1000
-#define VECTOR_MARGIN  10
+#define VECTOR_MARGIN  20
 
-#define STEP_ERROR     13
+// The program will create all possible permutation using NUM_{A,B,C}
+// for step and chunk. For a complete testing purpose they have to be:
+// -  single step/chunk: 1 ('one')
+// -  a divisor of VECTOR_SIZE  (e.g. 5, using a VECTOR_SIZE of 1000)
+// -  a non-divisor of VECTOR_SIZE (e.g. 13 using a VECTOR_SIZE 1000)
+#define NUM_A          1
+#define NUM_B          5
+#define NUM_C          13
+
+#define STEP_ERROR     17
 
 //#define VERBOSE
 
@@ -44,7 +52,6 @@ void print_vector();
 
 #define EXECUTE(get_slicer,slicer_data,lower,upper,k_offset,step,chunk)\
    for ( i = 0; i < NUM_ITERS; i++ ) {\
-      fprintf(stderr,"iteration %d has started\n",i);\
       _loop_data.offset = -k_offset; \
       WD * wd = new SlicedWD( sys.get_slicer, *new slicer_data(lower+k_offset,upper+k_offset,step,chunk),\
                         new SMPDD( main__loop_1 ), sizeof( _loop_data ),( void * ) &_loop_data );\
@@ -52,7 +59,6 @@ void print_vector();
       wg->addWork( *wd );\
       sys.submit( *wd );\
       wg->waitCompletation();\
-      fprintf(stderr,"iteration %d has finished\n",i);\
       if (step > 0 ) for ( int j = lower+k_offset; j < upper+k_offset; j+= step ) A[j+_loop_data.offset]--; \
       else if ( step < 0 ) for ( int j = lower+k_offset; j > upper+k_offset; j+= step ) A[j+_loop_data.offset]--; \
    }
@@ -77,27 +83,37 @@ void print_vector();
 
 
 #define TEST(test_type,test_get_slicer,test_slicer_data,test_step,test_chunk)\
-   EXECUTE(test_get_slicer, test_slicer_data, 0, VECTOR_SIZE, 0, +test_step, test_chunk);\
-   FINALIZE (test_type,"0","+","+0000",+test_step,test_chunk);\
-   EXECUTE(test_get_slicer, test_slicer_data, VECTOR_SIZE-1, -1, 0, -test_step, test_chunk);\
-   FINALIZE (test_type,"+","0","+0000",-test_step,test_chunk);\
-   EXECUTE(test_get_slicer, test_slicer_data, 0, VECTOR_SIZE, -VECTOR_SIZE, +test_step, test_chunk);\
-   FINALIZE (test_type,"-","0","-VS  ",+test_step,test_chunk);\
-   EXECUTE(test_get_slicer, test_slicer_data, VECTOR_SIZE-1, -1, -VECTOR_SIZE, -test_step, test_chunk);\
-   FINALIZE (test_type,"0","-","-VS  ",-test_step,test_chunk);\
-   EXECUTE(test_get_slicer, test_slicer_data, 0, VECTOR_SIZE, VECTOR_SIZE/2, +test_step, test_chunk);\
-   FINALIZE (test_type,"+","+","+VS/2",+test_step,test_chunk);\
-   EXECUTE(test_get_slicer, test_slicer_data, VECTOR_SIZE-1, -1, VECTOR_SIZE/2, -test_step, test_chunk);\
-   FINALIZE (test_type,"+","+","+VS/2",-test_step,test_chunk);\
-   EXECUTE(test_get_slicer, test_slicer_data, 0, VECTOR_SIZE, -(VECTOR_SIZE/2), +test_step, test_chunk);\
-   FINALIZE (test_type,"-","+","-VS/2",+test_step,test_chunk);\
-   EXECUTE(test_get_slicer, test_slicer_data, VECTOR_SIZE-1, -1, -(VECTOR_SIZE/2), -test_step, test_chunk);\
-   FINALIZE (test_type,"+","-","-VS/2",-test_step,test_chunk);\
-   EXECUTE(test_get_slicer, test_slicer_data, 0, VECTOR_SIZE, -(2*VECTOR_SIZE), +test_step, test_chunk);\
-   FINALIZE (test_type,"-","-","-VS  ",+test_step,test_chunk);\
-   EXECUTE(test_get_slicer, test_slicer_data, VECTOR_SIZE-1, -1, -(2*VECTOR_SIZE), -test_step, test_chunk);\
-   FINALIZE (test_type,"-","-","-VS  ",-test_step,test_chunk);
+   EXECUTE(test_get_slicer, test_slicer_data, 0, VECTOR_SIZE, 0, +test_step, test_chunk)\
+   FINALIZE (test_type,"0","+","+0000",+test_step,test_chunk)\
+   EXECUTE(test_get_slicer, test_slicer_data, VECTOR_SIZE-1, -1, 0, -test_step, test_chunk)\
+   FINALIZE (test_type,"+","0","+0000",-test_step,test_chunk)\
+   EXECUTE(test_get_slicer, test_slicer_data, 0, VECTOR_SIZE, -VECTOR_SIZE, +test_step, test_chunk)\
+   FINALIZE (test_type,"-","0","-VS  ",+test_step,test_chunk)\
+   EXECUTE(test_get_slicer, test_slicer_data, VECTOR_SIZE-1, -1, -VECTOR_SIZE, -test_step, test_chunk)\
+   FINALIZE (test_type,"0","-","-VS  ",-test_step,test_chunk)\
+   EXECUTE(test_get_slicer, test_slicer_data, 0, VECTOR_SIZE, VECTOR_SIZE/2, +test_step, test_chunk)\
+   FINALIZE (test_type,"+","+","+VS/2",+test_step,test_chunk)\
+   EXECUTE(test_get_slicer, test_slicer_data, VECTOR_SIZE-1, -1, VECTOR_SIZE/2, -test_step, test_chunk)\
+   FINALIZE (test_type,"+","+","+VS/2",-test_step,test_chunk)\
+   EXECUTE(test_get_slicer, test_slicer_data, 0, VECTOR_SIZE, -(VECTOR_SIZE/2), +test_step, test_chunk)\
+   FINALIZE (test_type,"-","+","-VS/2",+test_step,test_chunk)\
+   EXECUTE(test_get_slicer, test_slicer_data, VECTOR_SIZE-1, -1, -(VECTOR_SIZE/2), -test_step, test_chunk)\
+   FINALIZE (test_type,"+","-","-VS/2",-test_step,test_chunk)\
+   EXECUTE(test_get_slicer, test_slicer_data, 0, VECTOR_SIZE, -(2*VECTOR_SIZE), +test_step, test_chunk)\
+   FINALIZE (test_type,"-","-","-VS  ",+test_step,test_chunk)\
+   EXECUTE(test_get_slicer, test_slicer_data, VECTOR_SIZE-1, -1, -(2*VECTOR_SIZE), -test_step, test_chunk)\
+   FINALIZE (test_type,"-","-","-VS  ",-test_step,test_chunk)
 
+#define TEST_SLICER(test_slicer_type, test_slicer_get_slicer, test_slicer_slicer_data)  \
+   TEST(test_slicer_type, test_slicer_get_slicer, test_slicer_slicer_data, NUM_A, NUM_A)\
+   TEST(test_slicer_type, test_slicer_get_slicer, test_slicer_slicer_data, NUM_B, NUM_A)\
+   TEST(test_slicer_type, test_slicer_get_slicer, test_slicer_slicer_data, NUM_C, NUM_A)\
+   TEST(test_slicer_type, test_slicer_get_slicer, test_slicer_slicer_data, NUM_A, NUM_B)\
+   TEST(test_slicer_type, test_slicer_get_slicer, test_slicer_slicer_data, NUM_B, NUM_B)\
+   TEST(test_slicer_type, test_slicer_get_slicer, test_slicer_slicer_data, NUM_C, NUM_B)\
+   TEST(test_slicer_type, test_slicer_get_slicer, test_slicer_slicer_data, NUM_A, NUM_C)\
+   TEST(test_slicer_type, test_slicer_get_slicer, test_slicer_slicer_data, NUM_B, NUM_C)\
+   TEST(test_slicer_type, test_slicer_get_slicer, test_slicer_slicer_data, NUM_C, NUM_C)
 
 typedef struct {
    nanos_loop_info_t loop_info;
@@ -107,7 +123,6 @@ typedef struct {
 
 void main__loop_1 ( void *args )
 {
-#if 0
    int i;
    main__loop_1_data_t *hargs = (main__loop_1_data_t * ) args;
    if ( hargs->loop_info.step > 0 )
@@ -123,7 +138,6 @@ void main__loop_1 ( void *args )
       }
    }
    else {A[-VECTOR_MARGIN] = STEP_ERROR; }
-#endif
 
 }
 
@@ -145,25 +159,17 @@ int main ( int argc, char **argv )
    bool check = true; 
    bool p_check = true, out_of_range = false, race_condition = false, step_error= false;
    int I[VECTOR_SIZE+2*VECTOR_MARGIN];
+   main__loop_1_data_t _loop_data;
    
    A = &I[VECTOR_MARGIN];
-
-   main__loop_1_data_t _loop_data;
 
    // initialize vector
    for ( i = 0; i < VECTOR_SIZE+2*VECTOR_MARGIN; i++ ) I[i] = 0;
 
-   TEST("dynamic", getSlicerDynamicFor(), SlicerDataDynamicFor,  1,  1)
-   TEST("dynamic", getSlicerDynamicFor(), SlicerDataDynamicFor,  5,  1)
-   TEST("dynamic", getSlicerDynamicFor(), SlicerDataDynamicFor, 13,  1)
-   TEST("dynamic", getSlicerDynamicFor(), SlicerDataDynamicFor,  1,  5)
-   TEST("dynamic", getSlicerDynamicFor(), SlicerDataDynamicFor,  5,  5)
-   TEST("dynamic", getSlicerDynamicFor(), SlicerDataDynamicFor, 13,  5)
-   TEST("dynamic", getSlicerDynamicFor(), SlicerDataDynamicFor,  1, 13)
-   TEST("dynamic", getSlicerDynamicFor(), SlicerDataDynamicFor,  5, 13)
-   TEST("dynamic", getSlicerDynamicFor(), SlicerDataDynamicFor, 13, 13)
+   TEST_SLICER("dynamic", getSlicerDynamicFor(), SlicerDataFor)
+   TEST_SLICER("guided ", getSlicerGuidedFor(),  SlicerDataFor)
 
-   // END:
+   // final result
    //fprintf(stderr, "%s : %s\n", argv[0], check ? "  successful" : "unsuccessful");
    if (check) { return 0; } else { return -1; }
 }

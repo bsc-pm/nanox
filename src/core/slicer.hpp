@@ -127,6 +127,21 @@ namespace nanos
          bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
    };
 
+   class SlicerGuidedFor: public Slicer
+   {
+      private:
+      public:
+         // constructor
+         SlicerGuidedFor ( ) { }
+
+         // destructor
+         ~SlicerGuidedFor ( ) { }
+
+         // headers (implemented in slicer.cpp)
+         void submit ( WorkDescriptor & work ) ;
+         bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
+   };
+
    class SlicerDataRepeatN : public SlicerData
    {
       private:
@@ -151,7 +166,7 @@ namespace nanos
          int decN () { return --_n; }
    };
 
-   class SlicerDataDynamicFor : public SlicerData
+   class SlicerDataFor : public SlicerData
    {
       private:
          int _lower;  /**< Loop lower bound */
@@ -162,51 +177,32 @@ namespace nanos
 
       public:
          // constructor
-         SlicerDataDynamicFor ( int lower, int upper, int step, int chunk = 1) :
+         SlicerDataFor ( int lower, int upper, int step, int chunk = 1) :
              _lower ( lower ), _upper ( upper ), _step ( step ), _chunk ( chunk ), _sign ( (step < 0)? -1 : +1)  { }
 
          // destructor
-         ~SlicerDataDynamicFor ( ) { }
+         ~SlicerDataFor ( ) { }
 
          // get/set functions
          void setLower ( int n ) { _lower = n; }
          void setUpper ( int n ) { _upper = n; }
          void setStep  ( int n ) {  _step = n; }
          void setChunk ( int n ) { _chunk = n; }
+         void setSign  ( int n ) { _sign = n; }
 
          int getLower ( void ) { return _lower; }
          int getUpper ( void ) { return _upper; }
          int getStep  ( void ) { return _step; }
          int getChunk ( void ) { return _chunk; }
-
-         bool getNextIters ( int *lower, int *upper, int *step )
-         {
-            bool last = false;
-
-            // computing initial bounds
-            *lower = _lower;
-            *upper = _lower + ( _chunk * _step );
-
-            // checking boundaries
-            if ( (*upper * _sign ) >= ( _upper * _sign ) ) {
-               *upper = _upper;
-               last = true;
-            }
-
-            _lower = *upper;
-
-            *step  = _step;
-
-            return last;
-         }
-
+         int getSign  ( void ) { return _sign; }
    };
 
    class Slicers
    {
       private:
-         SlicerRepeatN    _slicerRepeatN;     /**< Repeat N slicer */
+         SlicerRepeatN     _slicerRepeatN;     /**< Repeat N slicer */
 	 SlicerDynamicFor  _slicerDynamicFor;  /**< Dynamic For slicer */
+	 SlicerGuidedFor   _slicerGuidedFor;   /**< Guided For slicer */
       public:
          // constructor
          Slicers ( ) { }
@@ -215,8 +211,9 @@ namespace nanos
          ~Slicers ( ) { }
 
          // get functions
-         Slicer & getSlicerRepeatN ( ) { return _slicerRepeatN; }
+         Slicer & getSlicerRepeatN ( )    { return _slicerRepeatN; }
          Slicer & getSlicerDynamicFor ( ) { return _slicerDynamicFor; }
+         Slicer & getSlicerGuidedFor ( )  { return _slicerGuidedFor; }
    };
 
 };

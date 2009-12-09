@@ -325,33 +325,10 @@ void System::duplicateWD ( WD **uwd, WD *wd)
 
    debug0( "   ...Device Data allocated");
 
-   debug0( "   Creating new WD" );
-
-   // xteruel : 
-   WD * new_wd =  new (*uwd) WD( wd->getNumDevices(), dev_ptrs, wd->getDataSize(), data );
-   // xteruel : WD * new_wd =  new (*uwd) WD( *wd );
+   // creating new WD 
+   WD * new_wd =  new (*uwd) WD( *wd, dev_ptrs, data );
 
    debug0( "   Task " << new_wd << ":" << new_wd->getId() << " has been created" );
-
-   debug0( "   Adding WD to WG" );
-
-   // add new wd to the same workgroup
-   WG * wg = ( WG * ) wd;
-   wg->addWork( *new_wd );
-
-   new_wd->setParent ( wd );
-   new_wd->setDepth( wd->getDepth() +1 );
-
-   debug0( "   TODO : Setting properties" );
-
-   // set properties
-   //if ( props != NULL ) {
-   //   if ( props->tied ) wd->tied();
-   //   if ( props->tie_to ) wd->tieTo( *( BaseThread * )props->tie_to );
-   //}
-
-   debug0("...WD duplicated.");
-
 }
 
 void System::submit ( WD &work )

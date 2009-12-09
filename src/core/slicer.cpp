@@ -77,46 +77,81 @@ void SlicerDynamicFor::submit ( WD &work )
 
 bool SlicerDynamicFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
 {
-   int lower, upper, step;
+   int lower, upper;
+   bool last = false;
 
-#if 0
-            bool last = false;
+   // copying slicer data values
+   int _lower = ((SlicerDataFor *)wd->getSlicerData())->getLower();
+   int _upper = ((SlicerDataFor *)wd->getSlicerData())->getUpper();
+   int _step = ((SlicerDataFor *)wd->getSlicerData())->getStep();
+   int _sign = ((SlicerDataFor *)wd->getSlicerData())->getSign();
+   int _chunk = ((SlicerDataFor *)wd->getSlicerData())->getChunk();
+ 
+   // computing initial bounds
+   lower = _lower;
+   upper = _lower + ( _chunk * _step );
 
-            // computing initial bounds
-            *lower = _lower;
-            *upper = _lower + ( _chunk * _step );
-
-            // checking boundaries
-            if ( (*upper * _sign ) >= ( _upper * _sign ) ) {
-               *upper = _upper;
-               last = true;
-            }
-
-            _lower = *upper;
-
-            *step  = _step;
-
-            return last;
-#endif
-
-   if ( ((SlicerDataDynamicFor *)(wd->getSlicerData()))->getNextIters( &lower, &upper, &step ) ) 
-   {
-      // last iters
-      debug0 ( "Dequeueing sliced work: using former wd (final), loop={l:" << lower << " u:" << upper <<" s:" << step << "}");
-      *slice = wd;
-      ((nanos_loop_info_t *)((*slice)->getData()))->lower = lower;
-      ((nanos_loop_info_t *)((*slice)->getData()))->upper = upper;
-      ((nanos_loop_info_t *)((*slice)->getData()))->step = step;
-      return true;
+   // checking boundaries
+   if ( ( upper * _sign ) >= ( _upper * _sign ) ) {
+      upper = _upper; 
+      last = true;
    }
-   else
-   {
-      // no last iters
-      debug0 ( "Dequeueing sliced work: keeping former wd loop={l:" << lower << " u:" << upper << " s:" << step << "}");
-      sys.duplicateWD( slice, wd );
-      ((nanos_loop_info_t *)((*slice)->getData()))->lower = lower;
-      ((nanos_loop_info_t *)((*slice)->getData()))->upper = upper;
-      ((nanos_loop_info_t *)((*slice)->getData()))->step = step;
-      return false;
-   }
+
+   (( SlicerDataFor *)wd->getSlicerData())->setLower( upper );
+
+   if ( last ) *slice = wd;
+   else sys.duplicateWD( slice, wd );
+
+   ((nanos_loop_info_t *)((*slice)->getData()))->lower = lower;
+   ((nanos_loop_info_t *)((*slice)->getData()))->upper = upper;
+   ((nanos_loop_info_t *)((*slice)->getData()))->step = _step;
+
+   return last;
 }
+
+void SlicerGuidedFor::submit ( WD &work )
+{
+   debug0 ( "Using sliced work descriptor: Guided For" );
+   Scheduler::submit ( work );
+}
+
+bool SlicerGuidedFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
+{
+   // xteruel: FIXME: num_threads need to be initialized to a proper value
+   int lower, upper, current_chunk, num_threads = 1;
+   bool last = false;
+
+   // copying slicer data values
+   int _lower = ((SlicerDataFor *)wd->getSlicerData())->getLower();
+   int _upper = ((SlicerDataFor *)wd->getSlicerData())->getUpper();
+   int _step = ((SlicerDataFor *)wd->getSlicerData())->getStep();
+   int _sign = ((SlicerDataFor *)wd->getSlicerData())->getSign();
+   int _chunk = ((SlicerDataFor *)wd->getSlicerData())->getChunk();
+
+   // computing current chunk 
+   if ( _sign == 1 ) current_chunk = ((_upper-_lower)/(_step*_sign)) / ( 2*num_threads);
+   else current_chunk = ((_lower-_upper)/(_step*_sign)) / ( 2*num_threads);
+   if ( current_chunk < _chunk ) current_chunk = _chunk;
+
+   // computing initial bounds
+   lower = _lower;
+   upper = _lower + ( current_chunk * _step );
+
+   // checking boundaries
+   if ( ( upper * _sign ) >= ( _upper * _sign ) ) {
+      upper = _upper; 
+      last = true;
+   }
+
+   (( SlicerDataFor *)wd->getSlicerData())->setLower( upper );
+
+   if ( last ) *slice = wd;
+   else sys.duplicateWD( slice, wd );
+
+   ((nanos_loop_info_t *)((*slice)->getData()))->lower = lower;
+   ((nanos_loop_info_t *)((*slice)->getData()))->upper = upper;
+   ((nanos_loop_info_t *)((*slice)->getData()))->step = _step;
+
+   return last;
+}
+

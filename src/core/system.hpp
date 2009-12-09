@@ -166,6 +166,7 @@ namespace nanos
          // Slicer's index
          Slicer & getSlicerRepeatN ( ) { return _slicers.getSlicerRepeatN(); }
          Slicer & getSlicerDynamicFor ( ) { return _slicers.getSlicerDynamicFor(); }
+         Slicer & getSlicerGuidedFor ( ) { return _slicers.getSlicerGuidedFor(); }
 
    };
 
