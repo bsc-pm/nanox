@@ -53,26 +53,6 @@ int nanos_get_wd_id ( nanos_wd_t wd )
 
 /*! \brief Creates a new WorkDescriptor
  *
- *  When it does a full allocation the layout is the following
- *
- *  +---------------+
- *  |     WD        |
- *  +---------------+
- *  |    data       |
- *  +---------------+
- *  |  dev_ptr[0]   |
- *  +---------------+
- *  |     ....      |
- *  +---------------+
- *  |  dev_ptr[N]   |
- *  +---------------+
- *  |     DD0       |
- *  +---------------+
- *  |     ....      |
- *  +---------------+
- *  |     DDN       |
- *  +---------------+
- *
  *  \sa nanos::WorkDescriptor
  */
 nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t data_size,
@@ -80,12 +60,35 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
 {
    try 
    {
-      if ( ( props == NULL  ||
-            ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTask() ) {
+      if ( ( props == NULL  || ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTask() ) {
          *uwd = 0;
          return NANOS_OK;
       }
       sys.createWD ( (WD **) uwd, num_devices, devices, data_size, (void **) data, (WG *) uwg, props);
+
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+/*! \brief Creates a new Sliced WorkDescriptor
+ *
+ *  \sa nanos::WorkDescriptor
+ */
+nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
+                               void ** outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, size_t slicer_data_size,
+                               void ** slicer_data, nanos_wd_props_t *props )
+{
+   try 
+   {
+      if ( ( props == NULL  || ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTask() ) {
+         *uwd = 0;
+         return NANOS_OK;
+      }
+      sys.createSlicedWD ( (WD **) uwd, num_devices, devices, outline_data_size, outline_data, (WG *) uwg,
+                           (Slicer *) slicer, slicer_data_size, (SlicerData **) slicer_data, props);
 
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
@@ -117,6 +120,7 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *
 
    return NANOS_OK;
 }
+
 
 // data must be not null
 nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *devices, size_t data_size, void * data, 

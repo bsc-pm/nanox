@@ -186,7 +186,7 @@ System::~System ()
 /*! \brief Creates a new WD
  *
  *  This function creates a new WD, allocating memory space for device ptrs and
- *  datai when necessary. 
+ *  data when necessary. 
  *
  *  \param [in,out] uwd is the related addr for WD if this parameter is null the
  *                  system will allocate space in memory for the new WD
@@ -196,6 +196,27 @@ System::~System ()
  *  \param [in,out] data is the related data (allocated if needed)
  *  \param [in] uwg work group to relate with
  *  \param [in] props new WD properties
+ *
+ *  When it does a full allocation the layout is the following:
+ *
+ *  +---------------+
+ *  |     WD        |
+ *  +---------------+
+ *  |    data       |
+ *  +---------------+
+ *  |  dev_ptr[0]   |
+ *  +---------------+
+ *  |     ....      |
+ *  +---------------+
+ *  |  dev_ptr[N]   |
+ *  +---------------+
+ *  |     DD0       |
+ *  +---------------+
+ *  |     ....      |
+ *  +---------------+
+ *  |     DDN       |
+ *  +---------------+
+ *
  */
 void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t data_size,
                         void **data, WG *uwg, nanos_wd_props_t *props )
@@ -254,6 +275,117 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
       if ( props->tie_to ) wd->tieTo( *( BaseThread * )props->tie_to );
    }
 
+}
+
+/*! \brief Creates a new Sliced WD
+ *
+ *  This function creates a new Sliced WD, allocating memory space for device ptrs and
+ *  data when necessary. Also allocates Slicer Data object which is related with the WD.
+ *
+ *  \param [in,out] uwd is the related addr for WD if this parameter is null the
+ *                  system will allocate space in memory for the new WD
+ *  \param [in] num_devices is the number of related devices
+ *  \param [in] devices is a vector of device descriptors 
+ *  \param [in] outline_data_size is the size of the related data
+ *  \param [in,out] outline_data is the related data (allocated if needed)
+ *  \param [in] uwg work group to relate with
+ *  \param [in] slicer is the related slicer which contains all the methods to manage
+ *              this WD
+ *  \param [in] slicer_data_size is the size of the related slicer data
+ *  \param [in,out] data used as the slicer data (allocated if needed)
+ *  \param [in] props new WD properties
+ *
+ *  When it does a full allocation the layout is the following:
+ *
+ *  +---------------+
+ *  |     WD        |
+ *  +---------------+
+ *  |    data       |
+ *  +---------------+
+ *  |  SlicerData   |
+ *  +---------------+
+ *  |  dev_ptr[0]   |
+ *  +---------------+
+ *  |     ....      |
+ *  +---------------+
+ *  |  dev_ptr[N]   |
+ *  +---------------+
+ *  |     DD0       |
+ *  +---------------+
+ *  |     ....      |
+ *  +---------------+
+ *  |     DDN       |
+ *  +---------------+
+ *
+ */
+void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
+                        void **outline_data, WG *uwg, Slicer *slicer, size_t slicer_data_size,
+                        SlicerData **slicer_data, nanos_wd_props_t *props )
+{
+
+   int dd_size = 0;
+   for ( unsigned int i = 0; i < num_devices; i++ )
+      dd_size += devices[i].dd_size;
+
+   // outline_data_size: Memory is requiered to be aligned to 8 bytes in some architectures
+   int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( SlicedWD ) : 0 ) +
+                          ( ( outline_data != NULL && *outline_data == NULL ) ? (((outline_data_size+7)>>3)<<3) : 0 ) +
+                          ( ( slicer_data != NULL && *slicer_data == NULL ) ? (((slicer_data_size+7)>>3)<<3) : 0 ) +
+                          sizeof( DD* ) * num_devices +
+                          dd_size
+                          ;
+
+   char *chunk=0;
+   char *start;
+
+   if ( size_to_allocate )
+      start = chunk = new char[size_to_allocate];
+
+   // allocate WD
+   if ( *uwd == NULL ) {
+      *uwd = ( SlicedWD * ) chunk;
+      chunk += sizeof( SlicedWD );
+   }
+
+   // allocate WD data
+   // outline_data_size: Memory is requiered to be aligned to 8 bytes in some architectures
+   if ( outline_data != NULL && *outline_data == NULL ) {
+      *outline_data = chunk;
+      chunk += (((outline_data_size+7)>>3)<<3);
+   }
+
+   // allocate device pointers vector
+   DD **dev_ptrs = ( DD ** ) chunk;
+   chunk += sizeof( DD* ) * num_devices;
+
+   // allocate device data
+   for ( unsigned int i = 0 ; i < num_devices ; i ++ ) {
+      dev_ptrs[i] = ( DD* ) devices[0].factory( chunk , devices[0].arg );
+      chunk += devices[i].dd_size;
+   }
+
+   // allocate SlicerData
+   // slicer_data_size: Memory is requiered to be aligned to 8 bytes in some architectures
+   if ( slicer_data != NULL && *slicer_data == NULL ) {
+      *slicer_data = ( SlicerData * )chunk;
+      chunk += (((slicer_data_size+7)>>3)<<3);
+   }
+
+   // slicer_data cannot be NULL at this point
+   SlicedWD * wd =  new (*uwd) SlicedWD( *slicer, **slicer_data, num_devices, dev_ptrs, 
+                       outline_data_size, outline_data != NULL ? *outline_data : NULL );
+
+   // add to workgroup
+   if ( uwg != NULL ) {
+      WG * wg = ( WG * )uwg;
+      wg->addWork( *wd );
+   }
+
+   // set properties
+   if ( props != NULL ) {
+      if ( props->tied ) wd->tied();
+      if ( props->tie_to ) wd->tieTo( *( BaseThread * )props->tie_to );
+   }
 }
 
 /*! \brief Duplicates a given WD

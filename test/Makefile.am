@@ -22,6 +22,7 @@ include $(top_srcdir)/src/common.am
 noinst_PROGRAMS = \
 	work_descriptor_create \
 	slicer_for \
+	api_slicer_for \
 	test1 test_single test_slicer test_teambarrier test_dependencies-c test_dependency_types-c fib fib-c fibnocutoff-c
 
 work_descriptor_create_SOURCES = work_descriptor_create.cpp
@@ -31,6 +32,10 @@ work_descriptor_create_LDADD = $(top_builddir)/src/core/libnanox.la
 slicer_for_SOURCES = slicer_for.cpp
 slicer_for_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -I$(top_srcdir)/src/apis/c
 slicer_for_LDADD = $(top_builddir)/src/core/libnanox.la
+
+api_slicer_for_SOURCES = api_slicer_for.c
+api_slicer_for_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_srcdir)/src/apis/c -fno-strict-aliasing
+api_slicer_for_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la 
 
 test1_SOURCES = test1.cpp
 test1_CXXFLAGS = -g $(common_includes) $(common_cxxflags)

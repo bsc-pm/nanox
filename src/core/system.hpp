@@ -106,6 +106,10 @@ namespace nanos
                         size_t data_size, void ** data, WG *uwg,
                         nanos_wd_props_t *props);
 
+         void createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
+                        void **outline_data, WG *uwg, Slicer *slicer, size_t slicer_data_size,
+                        SlicerData **slicer_data, nanos_wd_props_t *props );
+
          void duplicateWD ( WD **uwd, WD *wd );
 
          // methods to access configuration variables
