@@ -50,6 +50,11 @@ int nanos_get_wd_id ( nanos_wd_t wd )
    return lwd->getId();
 }
 
+nanos_slicer_t nanos_find_slicer ( char * slicer )
+{
+   // xteruel: FIXME: Use char *slicer to look for the proper slicer
+   return ( nanos_slicer_t ) &sys.getSlicerDynamicFor();
+}
 
 /*! \brief Creates a new WorkDescriptor
  *

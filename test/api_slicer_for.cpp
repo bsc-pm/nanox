@@ -83,6 +83,7 @@ nanos_smp_args_t main__loop_1_device_args = { main__loop_1 };
          .tied = false, \
          .tie_to = false, \
       }; \
+      nanos_slicer_t slicer = nanos_find_slicer("DynamicSlicer"); \
       NANOS_SAFE( nanos_create_wd ( &wd, 1, main__loop_1_device , sizeof( main__loop_1_data_t ), \
                                     ( void ** ) &loop_data, nanos_current_wd(), \
                                     slicer, slicer_data_size, slicer_data \
