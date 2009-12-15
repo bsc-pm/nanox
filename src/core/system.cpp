@@ -37,6 +37,8 @@ System::System () : _numPEs( 1 ), _deviceStackSize( 1024 ), _bindThreads( true )
    verbose0 ( "NANOS++ initalizing... start" );
    config();
    loadModules();
+   registerSlicer("DynamicFor", new SlicerDynamicFor() );
+   registerSlicer("GuidedFor", new SlicerGuidedFor() );
    start();
    verbose0 ( "NANOS++ initalizing... end" );
 }
@@ -298,11 +300,9 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
  *  When it does a full allocation the layout is the following:
  *
  *  +---------------+
- *  |     WD        |
+ *  |   slicedWD    |
  *  +---------------+
  *  |    data       |
- *  +---------------+
- *  |  SlicerData   |
  *  +---------------+
  *  |  dev_ptr[0]   |
  *  +---------------+
@@ -316,12 +316,16 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
  *  +---------------+
  *  |     DDN       |
  *  +---------------+
+ *  |  SlicerData   |
+ *  +---------------+
  *
  */
 void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
                         void **outline_data, WG *uwg, Slicer *slicer, size_t slicer_data_size,
                         SlicerData **slicer_data, nanos_wd_props_t *props )
 {
+
+   // xteruel: FIXME: slicer_data cannot be NULL at this point, throw fatal
 
    int dd_size = 0;
    for ( unsigned int i = 0; i < num_devices; i++ )
@@ -371,7 +375,6 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
       chunk += (((slicer_data_size+7)>>3)<<3);
    }
 
-   // slicer_data cannot be NULL at this point
    SlicedWD * wd =  new (*uwd) SlicedWD( *slicer, **slicer_data, num_devices, dev_ptrs, 
                        outline_data_size, outline_data != NULL ? *outline_data : NULL );
 

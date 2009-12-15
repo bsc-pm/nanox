@@ -52,8 +52,21 @@ int nanos_get_wd_id ( nanos_wd_t wd )
 
 nanos_slicer_t nanos_find_slicer ( char * slicer )
 {
-   // xteruel: FIXME: Use char *slicer to look for the proper slicer
-   return ( nanos_slicer_t ) &sys.getSlicerDynamicFor();
+   try
+   {
+      return sys.getSlicer ( std::string(slicer) );
+
+   } catch ( ... ) {
+      return ( nanos_slicer_t ) NULL;
+   }
+// xteruel: FIXME: to remove
+#if 0
+   if ( strncmp (slicer, "SlicerDynamicFor", strlen("SlicerDynamicFor")) == 0 )
+      return ( nanos_slicer_t ) &sys.getSlicerDynamicFor();
+   else if ( strncmp (slicer, "SlicerGuidedFor", strlen("SlicerGuidedFor")) == 0 )
+      return ( nanos_slicer_t ) &sys.getSlicerGuidedFor();
+   else return ( nanos_slicer_t ) NULL; // fatal?
+#endif
 }
 
 /*! \brief Creates a new WorkDescriptor
@@ -84,7 +97,7 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
  */
 nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
                                void ** outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, size_t slicer_data_size,
-                               void ** slicer_data, nanos_wd_props_t *props )
+                               nanos_slicer_data_t * slicer_data, nanos_wd_props_t *props )
 {
    try 
    {

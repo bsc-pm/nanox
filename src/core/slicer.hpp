@@ -22,6 +22,7 @@
 
 #include "workdescriptor.hpp"
 #include "schedule.hpp"
+#include "nanos-int.h"
 
 namespace nanos
 {
@@ -39,7 +40,7 @@ namespace nanos
          // destructor
          virtual ~Slicer ( ) { }
 
-         virtual void submit ( WorkDescriptor & work ) = 0;
+         virtual void submit ( SlicedWD & work ) = 0;
          virtual bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) = 0;
    };
 
@@ -108,7 +109,7 @@ namespace nanos
          ~SlicerRepeatN ( ) { }
 
          // headers (implemented in slicer.cpp)
-         void submit ( WorkDescriptor & work ) ;
+         void submit ( SlicedWD & work ) ;
          bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
    };
 
@@ -123,7 +124,7 @@ namespace nanos
          ~SlicerDynamicFor ( ) { }
 
          // headers (implemented in slicer.cpp)
-         void submit ( WorkDescriptor & work ) ;
+         void submit ( SlicedWD & work ) ;
          bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
    };
 
@@ -138,7 +139,7 @@ namespace nanos
          ~SlicerGuidedFor ( ) { }
 
          // headers (implemented in slicer.cpp)
-         void submit ( WorkDescriptor & work ) ;
+         void submit ( SlicedWD & work ) ;
          bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
    };
 
@@ -166,20 +167,24 @@ namespace nanos
          int decN () { return --_n; }
    };
 
-   class SlicerDataFor : public SlicerData
+   class SlicerDataFor : public nanos_slicer_data_for_internal_t, public SlicerData
    {
-      private:
-         int _lower;  /**< Loop lower bound */
-         int _upper;  /**< Loop upper bound */
-         int _step;   /**< Loop step */
-         int _chunk;  /**< Slice chunk */
-         int _sign;   /**< Loop sign 1 ascendant, -1 descendant */
+         /* int _lower: Loop lower bound */
+         /* int _upper: Loop upper bound */
+         /* int _step: Loop step */
+         /* int _chunk: Slice chunk */
+         /* int _sign: Loop sign 1 ascendant, -1 descendant */
 
       public:
          // constructor
-         SlicerDataFor ( int lower, int upper, int step, int chunk = 1) :
-             _lower ( lower ), _upper ( upper ), _step ( step ), _chunk ( chunk ), _sign ( (step < 0)? -1 : +1)  { }
-
+         SlicerDataFor ( int lower, int upper, int step, int chunk = 1 )
+         {
+            _lower = lower;
+            _upper = upper;
+            _step = step;
+            _chunk = chunk; 
+            _sign = ( step < 0 ) ? -1 : +1;
+         }
          // destructor
          ~SlicerDataFor ( ) { }
 
@@ -197,6 +202,8 @@ namespace nanos
          int getSign  ( void ) { return _sign; }
    };
 
+// xteruel: FIXME to remove
+#if 0 
    class Slicers
    {
       private:
@@ -215,6 +222,7 @@ namespace nanos
          Slicer & getSlicerDynamicFor ( ) { return _slicerDynamicFor; }
          Slicer & getSlicerGuidedFor ( )  { return _slicerGuidedFor; }
    };
+#endif
 
 };
 

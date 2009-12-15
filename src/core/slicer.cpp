@@ -30,7 +30,7 @@ using namespace nanos;
  *  This function submits a RepeatN slicedWD using the Scheduler
  *
  */
-void SlicerRepeatN::submit ( WD &work )
+void SlicerRepeatN::submit ( SlicedWD &work )
 {
    debug0 ( "Using sliced work descriptor: RepeatN" );
    Scheduler::submit ( work );
@@ -69,9 +69,16 @@ bool SlicerRepeatN::dequeue ( SlicedWD *wd, WorkDescriptor **slice)
    }
 }
 
-void SlicerDynamicFor::submit ( WD &work )
+void SlicerDynamicFor::submit ( SlicedWD &work )
 {
    debug0 ( "Using sliced work descriptor: Dynamic For" );
+
+   // compute sign value
+   int sign = ((SlicerDataFor *)work.getSlicerData())->getStep();
+   sign = ( sign < 0 ) ? -1 : +1;
+   (( SlicerDataFor *)work.getSlicerData())->setSign( sign );
+
+   // submit wd
    Scheduler::submit ( work );
 }
 
@@ -109,9 +116,16 @@ bool SlicerDynamicFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
    return last;
 }
 
-void SlicerGuidedFor::submit ( WD &work )
+void SlicerGuidedFor::submit ( SlicedWD &work )
 {
    debug0 ( "Using sliced work descriptor: Guided For" );
+
+   // compute sign value
+   int sign = ((SlicerDataFor *)work.getSlicerData())->getStep();
+   sign = ( sign < 0 ) ? -1 : +1;
+   (( SlicerDataFor *)work.getSlicerData())->setSign( sign );
+
+   // submit wd
    Scheduler::submit ( work );
 }
 

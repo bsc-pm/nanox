@@ -49,6 +49,7 @@ namespace nanos
          // types
          typedef std::vector<PE *>         PEList;
          typedef std::vector<BaseThread *> ThreadList;
+         typedef std::map<std::string, Slicer *> Slicers;
          
          // configuration variables
          int                  _numPEs;
@@ -167,10 +168,22 @@ namespace nanos
 
          void setDefaultBarrFactory ( barrFactory factory ) { _defBarrFactory = factory; }
 
+// xteruel: FIXME: to remove
+#if 0
          // Slicer's index
          Slicer & getSlicerRepeatN ( ) { return _slicers.getSlicerRepeatN(); }
          Slicer & getSlicerDynamicFor ( ) { return _slicers.getSlicerDynamicFor(); }
          Slicer & getSlicerGuidedFor ( ) { return _slicers.getSlicerGuidedFor(); }
+#endif
+
+         Slicer * getSlicer( const std::string &label ) const 
+         { 
+            Slicers::const_iterator it = _slicers.find(label);
+            if ( it == _slicers.end() ) return NULL;
+            return (*it).second;
+         }
+
+         void registerSlicer ( const std::string &label, Slicer *slicer) { _slicers[label] = slicer; }
 
    };
 
