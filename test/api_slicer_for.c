@@ -181,8 +181,8 @@ int main ( int argc, char **argv )
    // initialize vector
    for ( i = 0; i < VECTOR_SIZE+2*VECTOR_MARGIN; i++ ) I[i] = 0;
 
-   TEST_SLICER("DynamicFor" )
-   TEST_SLICER("GuidedFor" )
+   TEST_SLICER("dynamic_for" )
+   TEST_SLICER("guided_for" )
 
    // final result
    //fprintf(stderr, "%s : %s\n", argv[0], check ? "  successful" : "unsuccessful");

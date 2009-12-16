@@ -81,7 +81,7 @@ class SlicerGuidedForPlugin : public Plugin {
 
       void init ()
       {
-         sys.registerSlicer("GuidedFor", new SlicerGuidedFor() );	
+         sys.registerSlicer("guided_for", new SlicerGuidedFor() );	
       }
 };
 

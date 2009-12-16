@@ -57,7 +57,6 @@ nanos_sources=\
 	workdescriptor.hpp \
 	workdescriptor.cpp \
 	slicer.hpp \
-	slicer.cpp \
 	throttle.hpp \
 	dependency.hpp \
 	dependency.hpp \

@@ -75,8 +75,8 @@ void System::loadModules ()
 
    ensure( _defBarrFactory,"No default system barrier factory" );
 
-   // FIXME: temporary load here, has to be moved into find_slicer function
-
+   // xteruel: FIXME: temporary load here, has to be moved into find_slicer function
+#if 0
    if ( !PluginManager::load( "slicer-dynamic_for") ) 
 	fatal0("Could not load dynamic for slicer");
 
@@ -85,6 +85,7 @@ void System::loadModules ()
 
    if ( !PluginManager::load( "slicer-repeat_n") ) 
 	fatal0("Could not load repeat n slicer");
+#endif
 }
 
 

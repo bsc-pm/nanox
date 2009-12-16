@@ -77,7 +77,7 @@ class SlicerDynamicForPlugin : public Plugin {
 
       void init ()
       {
-         sys.registerSlicer("DynamicFor", new SlicerDynamicFor() );	
+         sys.registerSlicer("dynamic_for", new SlicerDynamicFor() );	
       }
 };
 
