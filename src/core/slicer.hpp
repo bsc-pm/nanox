@@ -28,7 +28,6 @@ namespace nanos
 {
 
 // Forward declarations
-
    class SlicedWD;
 
    class Slicer
@@ -98,6 +97,8 @@ namespace nanos
          bool dequeue ( WorkDescriptor **slice ) { return _slicer.dequeue( this, slice ); }
    };
 
+// xteruel FIXME: to remove
+#if 0
    class SlicerRepeatN: public Slicer
    {
       private:
@@ -127,7 +128,6 @@ namespace nanos
          void submit ( SlicedWD & work ) ;
          bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
    };
-
    class SlicerGuidedFor: public Slicer
    {
       private:
@@ -143,6 +143,7 @@ namespace nanos
          bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
    };
 
+#endif
    class SlicerDataRepeatN : public SlicerData
    {
       private:

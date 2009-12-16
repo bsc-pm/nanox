@@ -37,8 +37,6 @@ System::System () : _numPEs( 1 ), _deviceStackSize( 1024 ), _bindThreads( true )
    verbose0 ( "NANOS++ initalizing... start" );
    config();
    loadModules();
-   registerSlicer("GuidedFor", new SlicerGuidedFor() );
-   registerSlicer("RepeatN", new SlicerRepeatN() );
    start();
    verbose0 ( "NANOS++ initalizing... end" );
 }
@@ -77,9 +75,16 @@ void System::loadModules ()
 
    ensure( _defBarrFactory,"No default system barrier factory" );
 
+   // FIXME: temporary load here, has to be moved into find_slicer function
+
    if ( !PluginManager::load( "slicer-dynamic_for") ) 
 	fatal0("Could not load dynamic for slicer");
 
+   if ( !PluginManager::load( "slicer-guided_for") ) 
+	fatal0("Could not load guided for slicer");
+
+   if ( !PluginManager::load( "slicer-repeat_n") ) 
+	fatal0("Could not load repeat n slicer");
 }
 
 

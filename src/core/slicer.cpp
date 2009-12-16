@@ -25,6 +25,8 @@
 using namespace nanos;
 
 
+// xteruel FIXME: to remove
+#if 0
 /*! \brief Submit a RepeatN slicedWD
  *
  *  This function submits a RepeatN slicedWD using the Scheduler
@@ -68,7 +70,6 @@ bool SlicerRepeatN::dequeue ( SlicedWD *wd, WorkDescriptor **slice)
       return true;
    }
 }
-
 void SlicerDynamicFor::submit ( SlicedWD &work )
 {
    debug0 ( "Using sliced work descriptor: Dynamic For" );
@@ -171,3 +172,4 @@ bool SlicerGuidedFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
    return last;
 }
 
+#endif
