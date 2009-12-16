@@ -202,28 +202,6 @@ namespace nanos
          int getSign  ( void ) { return _sign; }
    };
 
-// xteruel: FIXME to remove
-#if 0 
-   class Slicers
-   {
-      private:
-         SlicerRepeatN     _slicerRepeatN;     /**< Repeat N slicer */
-	 SlicerDynamicFor  _slicerDynamicFor;  /**< Dynamic For slicer */
-	 SlicerGuidedFor   _slicerGuidedFor;   /**< Guided For slicer */
-      public:
-         // constructor
-         Slicers ( ) { }
-
-         // destructor
-         ~Slicers ( ) { }
-
-         // get functions
-         Slicer & getSlicerRepeatN ( )    { return _slicerRepeatN; }
-         Slicer & getSlicerDynamicFor ( ) { return _slicerDynamicFor; }
-         Slicer & getSlicerGuidedFor ( )  { return _slicerGuidedFor; }
-   };
-#endif
-
 };
 
 #endif

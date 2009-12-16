@@ -168,14 +168,6 @@ namespace nanos
 
          void setDefaultBarrFactory ( barrFactory factory ) { _defBarrFactory = factory; }
 
-// xteruel: FIXME: to remove
-#if 0
-         // Slicer's index
-         Slicer & getSlicerRepeatN ( ) { return _slicers.getSlicerRepeatN(); }
-         Slicer & getSlicerDynamicFor ( ) { return _slicers.getSlicerDynamicFor(); }
-         Slicer & getSlicerGuidedFor ( ) { return _slicers.getSlicerGuidedFor(); }
-#endif
-
          Slicer * getSlicer( const std::string &label ) const 
          { 
             Slicers::const_iterator it = _slicers.find(label);

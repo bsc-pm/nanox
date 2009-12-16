@@ -59,14 +59,6 @@ nanos_slicer_t nanos_find_slicer ( char * slicer )
    } catch ( ... ) {
       return ( nanos_slicer_t ) NULL;
    }
-// xteruel: FIXME: to remove
-#if 0
-   if ( strncmp (slicer, "SlicerDynamicFor", strlen("SlicerDynamicFor")) == 0 )
-      return ( nanos_slicer_t ) &sys.getSlicerDynamicFor();
-   else if ( strncmp (slicer, "SlicerGuidedFor", strlen("SlicerGuidedFor")) == 0 )
-      return ( nanos_slicer_t ) &sys.getSlicerGuidedFor();
-   else return ( nanos_slicer_t ) NULL; // fatal?
-#endif
 }
 
 /*! \brief Creates a new WorkDescriptor
