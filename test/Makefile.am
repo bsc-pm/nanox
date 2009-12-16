@@ -54,11 +54,11 @@ test_teambarrier_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -I$(top_src
 test_teambarrier_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la
 
 test_dependencies_c_SOURCES = test_dependencies.c
-test_dependencies_c_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_builddir)/src/apis/c -fno-strict-aliasing
+test_dependencies_c_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_srcdir)/src/apis/c -fno-strict-aliasing
 test_dependencies_c_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la
 
 test_dependency_types_c_SOURCES = test_dependency_types.c
-test_dependency_types_c_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_builddir)/src/apis/c -fno-strict-aliasing
+test_dependency_types_c_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_srcdir)/src/apis/c -fno-strict-aliasing
 test_dependency_types_c_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la
 
 fib_SOURCES = fib.cpp

@@ -97,8 +97,11 @@ nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_
          *uwd = 0;
          return NANOS_OK;
       }
+      if ( slicer_data == NULL ) {
+         return NANOS_UNKNOWN_ERR;
+      }
       sys.createSlicedWD ( (WD **) uwd, num_devices, devices, outline_data_size, outline_data, (WG *) uwg,
-                           (Slicer *) slicer, slicer_data_size, (SlicerData **) slicer_data, props);
+                           (Slicer *) slicer, slicer_data_size, (SlicerData *&) *slicer_data, props);
 
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;

@@ -53,7 +53,7 @@ void print_vector();
 #define EXECUTE(get_slicer,slicer_data,lower,upper,k_offset,step,chunk)\
    for ( i = 0; i < NUM_ITERS; i++ ) {\
       _loop_data.offset = -k_offset; \
-      WD * wd = new SlicedWD( sys.get_slicer, *new slicer_data(lower+k_offset,upper+k_offset,step,chunk),\
+      WD * wd = new SlicedWD( *sys.getSlicer(get_slicer), *new slicer_data(lower+k_offset,upper+k_offset,step,chunk),\
                         new SMPDD( main__loop_1 ), sizeof( _loop_data ),( void * ) &_loop_data );\
       WG *wg = myThread->getCurrentWD();\
       wg->addWork( *wd );\
@@ -166,8 +166,8 @@ int main ( int argc, char **argv )
    // initialize vector
    for ( i = 0; i < VECTOR_SIZE+2*VECTOR_MARGIN; i++ ) I[i] = 0;
 
-   TEST_SLICER("dynamic", getSlicerDynamicFor(), SlicerDataFor)
-   TEST_SLICER("guided ", getSlicerGuidedFor(),  SlicerDataFor)
+   TEST_SLICER("dynamic", "DynamicFor", SlicerDataFor)
+   TEST_SLICER("guided ", "GuidedFor",  SlicerDataFor)
 
    // final result
    //fprintf(stderr, "%s : %s\n", argv[0], check ? "  successful" : "unsuccessful");

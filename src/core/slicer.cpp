@@ -131,8 +131,7 @@ void SlicerGuidedFor::submit ( SlicedWD &work )
 
 bool SlicerGuidedFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
 {
-   // xteruel: FIXME: num_threads need to be initialized to a proper value
-   int lower, upper, current_chunk, num_threads = 1;
+   int lower, upper, current_chunk, num_threads = myThread->getTeam()->size();
    bool last = false;
 
    // copying slicer data values

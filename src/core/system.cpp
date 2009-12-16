@@ -39,6 +39,7 @@ System::System () : _numPEs( 1 ), _deviceStackSize( 1024 ), _bindThreads( true )
    loadModules();
    registerSlicer("DynamicFor", new SlicerDynamicFor() );
    registerSlicer("GuidedFor", new SlicerGuidedFor() );
+   registerSlicer("RepeatN", new SlicerRepeatN() );
    start();
    verbose0 ( "NANOS++ initalizing... end" );
 }
@@ -227,7 +228,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    for ( unsigned int i = 0; i < num_devices; i++ )
       dd_size += devices[i].dd_size;
 
-   // data_size: Memory is requiered to be aligned to 8 bytes in some architectures
+   // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
    int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( WD ) : 0 ) +
                           ( ( data != NULL && *data == NULL ) ? (((data_size+7)>>3)<<3) : 0 ) +
                           sizeof( DD* ) * num_devices +
@@ -247,7 +248,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    }
 
    // allocate WD data
-   // data_size: Memory is requiered to be aligned to 8 bytes in some architectures
+   // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
    if ( data != NULL && *data == NULL ) {
       *data = chunk;
       chunk += (((data_size+7)>>3)<<3);
@@ -322,19 +323,17 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
  */
 void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
                         void **outline_data, WG *uwg, Slicer *slicer, size_t slicer_data_size,
-                        SlicerData **slicer_data, nanos_wd_props_t *props )
+                        SlicerData *&slicer_data, nanos_wd_props_t *props )
 {
-
-   // xteruel: FIXME: slicer_data cannot be NULL at this point, throw fatal
 
    int dd_size = 0;
    for ( unsigned int i = 0; i < num_devices; i++ )
       dd_size += devices[i].dd_size;
 
-   // outline_data_size: Memory is requiered to be aligned to 8 bytes in some architectures
+   // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
    int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( SlicedWD ) : 0 ) +
                           ( ( outline_data != NULL && *outline_data == NULL ) ? (((outline_data_size+7)>>3)<<3) : 0 ) +
-                          ( ( slicer_data != NULL && *slicer_data == NULL ) ? (((slicer_data_size+7)>>3)<<3) : 0 ) +
+                          ( ( slicer_data == NULL ) ? (((slicer_data_size+7)>>3)<<3) : 0 ) +
                           sizeof( DD* ) * num_devices +
                           dd_size
                           ;
@@ -352,7 +351,7 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    }
 
    // allocate WD data
-   // outline_data_size: Memory is requiered to be aligned to 8 bytes in some architectures
+   // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
    if ( outline_data != NULL && *outline_data == NULL ) {
       *outline_data = chunk;
       chunk += (((outline_data_size+7)>>3)<<3);
@@ -369,13 +368,13 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    }
 
    // allocate SlicerData
-   // slicer_data_size: Memory is requiered to be aligned to 8 bytes in some architectures
-   if ( slicer_data != NULL && *slicer_data == NULL ) {
-      *slicer_data = ( SlicerData * )chunk;
+   // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
+   if ( slicer_data == NULL ) {
+      slicer_data = ( SlicerData * )chunk;
       chunk += (((slicer_data_size+7)>>3)<<3);
    }
 
-   SlicedWD * wd =  new (*uwd) SlicedWD( *slicer, **slicer_data, num_devices, dev_ptrs, 
+   SlicedWD * wd =  new (*uwd) SlicedWD( *slicer, *slicer_data, num_devices, dev_ptrs, 
                        outline_data_size, outline_data != NULL ? *outline_data : NULL );
 
    // add to workgroup
@@ -404,19 +403,13 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    int dd_size = 0;
    void *data = NULL;
 
-   debug0( "Duplicating WD..." );
-
-   debug0( "   Computing size of " << wd->getNumDevices() << " device(s)");
+   // computing size of device(s)
    for ( unsigned int i = 0; i < wd->getNumDevices(); i++ )
       dd_size += (*((DD **)(wd->getDevices()))[i]).size();
 
-   debug0( "   Device's size is " << dd_size );
-
-   // data_size: Memory is requiered to be aligned to 8 bytes in some architectures
+   // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
    int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( WD ) : 0 ) + (((wd->getDataSize()+7)>>3)<<3) +
                           sizeof( DD* ) * wd->getNumDevices() + dd_size ;
-
-   debug0( "   Size of whole structure " << size_to_allocate );
 
    char *chunk=0;
    char *start;
@@ -424,46 +417,33 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    if ( size_to_allocate )
       start = chunk = new char[size_to_allocate];
 
-   debug0( "   Allocating WD (" << sizeof ( WD ) << " bytes)");
-
    // allocate WD
    if ( *uwd == NULL ) {
       *uwd = ( WD * ) chunk;
       chunk += sizeof( WD );
    }
 
-   debug0( "   Allocating WD Data (" << wd->getDataSize() << " bytes)");
-
    // allocate WD data
-   // data_size: Memory is requiered to be aligned to 8 bytes in some architectures
+   // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
    if ( wd->getDataSize() != 0 ) {
       data = (void * ) chunk;
       memcpy ( data, wd->getData(), wd->getDataSize());
       chunk += (((wd->getDataSize()+7)>>3)<<3);
    }
 
-   debug0( "   Allocating Device Pointer Vector (" << sizeof(DD*) * wd->getNumDevices() << " bytes)");
-
    // allocate device pointers vector
    DD **dev_ptrs = ( DD ** ) chunk;
    chunk += sizeof( DD* ) * wd->getNumDevices();
-
-   debug0( "   Allocating Device Data...");
 
    // allocate device data
    for ( unsigned int i = 0 ; i < wd->getNumDevices(); i ++ ) {
       wd->getDevices()[i]->copyTo(chunk);
       dev_ptrs[i] = ( DD * ) chunk;
       chunk += (*((DD **)(wd->getDevices()))[i]).size();
-      debug0( "     Allocating Device Data " << i << " (" << (*((DD **)(wd->getDevices()))[i]).size() << " bytes)");
    }
 
-   debug0( "   ...Device Data allocated");
-
    // creating new WD 
-   WD * new_wd =  new (*uwd) WD( *wd, dev_ptrs, data );
-
-   debug0( "   Task " << new_wd << ":" << new_wd->getId() << " has been created" );
+   new (*uwd) WD( *wd, dev_ptrs, data );
 }
 
 void System::submit ( WD &work )
