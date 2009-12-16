@@ -111,6 +111,7 @@ AC_CONFIG_FILES([Makefile
 		 src/plugins/sched/Makefile
 		 src/plugins/throttle/Makefile
 		 src/plugins/barr/Makefile
+		 src/plugins/slicers/Makefile
 		 src/apis/Makefile
 		 src/apis/c/Makefile
                  src/arch/Makefile

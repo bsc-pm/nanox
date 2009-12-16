@@ -37,7 +37,6 @@ System::System () : _numPEs( 1 ), _deviceStackSize( 1024 ), _bindThreads( true )
    verbose0 ( "NANOS++ initalizing... start" );
    config();
    loadModules();
-   registerSlicer("DynamicFor", new SlicerDynamicFor() );
    registerSlicer("GuidedFor", new SlicerGuidedFor() );
    registerSlicer("RepeatN", new SlicerRepeatN() );
    start();
@@ -77,6 +76,9 @@ void System::loadModules ()
       fatal0( "Could not load main barrier algorithm" );
 
    ensure( _defBarrFactory,"No default system barrier factory" );
+
+   if ( !PluginManager::load( "slicer-dynamic_for") ) 
+	fatal0("Could not load dynamic for slicer");
 
 }
 
