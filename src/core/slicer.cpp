@@ -87,6 +87,8 @@ bool SlicerDynamicFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
    int lower, upper;
    bool last = false;
 
+   // TODO: (#107) performance evaluation on this algorithm
+
    // copying slicer data values
    int _lower = ((SlicerDataFor *)wd->getSlicerData())->getLower();
    int _upper = ((SlicerDataFor *)wd->getSlicerData())->getUpper();
@@ -131,6 +133,7 @@ void SlicerGuidedFor::submit ( SlicedWD &work )
 
 bool SlicerGuidedFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
 {
+   // TODO: (#107) performance evaluation on this algorithm
    int lower, upper, current_chunk, num_threads = myThread->getTeam()->size();
    bool last = false;
 
