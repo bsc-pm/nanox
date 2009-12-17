@@ -181,8 +181,23 @@ int main ( int argc, char **argv )
    // initialize vector
    for ( i = 0; i < VECTOR_SIZE+2*VECTOR_MARGIN; i++ ) I[i] = 0;
 
+#ifdef SLICER_STATIC
+   TEST("static_for", NUM_A, 0)
+   TEST("static_for", NUM_B, 0)
+   TEST("static_for", NUM_C, 0)
+#endif
+
+#ifdef SLICER_INTERLEAVED
+   TEST_SLICER("static_for" )
+#endif
+
+#ifdef SLICER_DYNAMIC
    TEST_SLICER("dynamic_for" )
+#endif
+
+#ifdef SLICER_GUIDED
    TEST_SLICER("guided_for" )
+#endif
 
    // final result
    //fprintf(stderr, "%s : %s\n", argv[0], check ? "  successful" : "unsuccessful");

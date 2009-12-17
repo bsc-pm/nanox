@@ -462,7 +462,7 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
       dd_size += (*((DD **)(wd->getDevices()))[i]).size();
 
    // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
-   int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( WD ) : 0 ) + (((wd->getDataSize()+7)>>3)<<3) +
+   int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( SlicedWD ) : 0 ) + (((wd->getDataSize()+7)>>3)<<3) +
                           sizeof( DD* ) * wd->getNumDevices() + dd_size + (((wd->getSlicerDataSize()+7)>>3)<<3);
 
    char *chunk=0;
@@ -504,8 +504,9 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
    }
 
    // creating new SlicedWD 
-   new (*uwd) SlicedWD( *wd->getSlicer(), wd->getSlicerDataSize(), *((SlicerData *)slicer_data),
+   new (*uwd) SlicedWD( *(wd->getSlicer()), wd->getSlicerDataSize(), *((SlicerData *)slicer_data),
                         *((WD *)wd), dev_ptrs, data );
+
 }
 
 void System::submit ( WD &work )

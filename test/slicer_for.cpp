@@ -169,20 +169,26 @@ int main ( int argc, char **argv )
    // initialize vector
    for ( i = 0; i < VECTOR_SIZE+2*VECTOR_MARGIN; i++ ) I[i] = 0;
 
+#ifdef SLICER_STATIC
    // omp for: static policy (chunk == 0)
    TEST("static_for", SlicerDataFor, NUM_A, 0)
    TEST("static_for", SlicerDataFor, NUM_B, 0)
    TEST("static_for", SlicerDataFor, NUM_C, 0)
+#endif
 
+#ifdef SLICER_INTERLEAVED
    // omp for: static policy (chunk != 0, interleaved)
    TEST_SLICER("static_for", SlicerDataFor)
+#endif
 
-#if 0
-   // omp for: dynamic policy
+#ifdef SLICER_DYNAMIC
+   // omp for: dynamic policy (chunk != 0)
    TEST_SLICER("dynamic_for", SlicerDataFor)
+#endif
 
-   // omp for: guided policy
-   TEST_SLICER("guided_for", "GuidedFor",  SlicerDataFor)
+#ifdef SLICER_GUIDED
+   // omp for: guided policy (chunk != 0)
+   TEST_SLICER("guided_for", SlicerDataFor)
 #endif
 
    // final result

@@ -24,7 +24,8 @@ void SlicerStaticFor::submit ( SlicedWD &work )
    debug ( "Using sliced work descriptor: Static For" );
 
    int lower, upper, i, num_threads = myThread->getTeam()->size();
-   WorkDescriptor **slice = NULL;
+   WorkDescriptor *slice = NULL;
+   SlicedWD *wd = NULL;
 
    // compute sign value
    int _sign = ((SlicerDataFor *)work.getSlicerData())->getStep();
@@ -40,8 +41,8 @@ void SlicerStaticFor::submit ( SlicedWD &work )
    // if chunk == 0: generate a WD for each thread
    if ( _chunk == 0 ) {
       // compute chunk and adjustment
-      _chunk = (_upper - _lower) / num_threads * _step;
-      int _adjust = (_upper - _lower) % num_threads * _step;
+      _chunk = (((_upper - _lower) / _step ) + 1 ) / num_threads;
+      int _adjust = (((_upper - _lower)/_step) + 1 ) % num_threads;
 
       // Init WorkDescriptor 'work'
       // computing initial bounds
@@ -69,15 +70,15 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          if ( ( upper * _sign ) >= ( _upper * _sign ) ) upper = _upper;
 
          // duplicating slice
-         sys.duplicateWD( slice, &work );
+         sys.duplicateWD( &slice, &work );
 
          // computing specific loop boundaries for current slice
-         ((nanos_loop_info_t *)((*slice)->getData()))->lower = lower;
-         ((nanos_loop_info_t *)((*slice)->getData()))->upper = upper;
-         ((nanos_loop_info_t *)((*slice)->getData()))->step = _step;
+         ((nanos_loop_info_t *)(slice->getData()))->lower = lower;
+         ((nanos_loop_info_t *)(slice->getData()))->upper = upper;
+         ((nanos_loop_info_t *)(slice->getData()))->step = _step;
 
          // xteruel: FIXME: slice has to run in a specific thread, (threadId == i)
-         Scheduler::submit ( **slice );
+         Scheduler::submit ( *slice );
 
          // next slice init
          _lower = upper;
@@ -85,20 +86,41 @@ void SlicerStaticFor::submit ( SlicedWD &work )
       }
 
       // Submit: work
+      // xteruel: FIXME: slice has to run in a specific thread, (threadId == 0)
       Scheduler::submit ( work );
-
    }
    // if chunk != 0: generate a SlicedWD for each thread (interleaved)
    else {
 
-   // xteruel: FIXME: interleaved case ???
+      // Init and Submit WorkDescriptors: 1..N
+      for ( i = 1; i < num_threads; i++ ) {
+         // duplicating slice
+         sys.duplicateSlicedWD( &wd, &work );
 
+         (( SlicerDataFor *)wd->getSlicerData())->setLower( _lower + ( i * _chunk * _step ));
+         (( SlicerDataFor *)wd->getSlicerData())->setUpper( _upper );
+         (( SlicerDataFor *)wd->getSlicerData())->setStep( _step );
+         (( SlicerDataFor *)wd->getSlicerData())->setChunk( _chunk );
+         (( SlicerDataFor *)wd->getSlicerData())->setSign( _sign );
+
+         // xteruel: FIXME: slice has to run in a specific thread, (threadId == i)
+         Scheduler::submit ( *wd );
+
+         // next wd init
+         wd = NULL;
+
+      }
+      // (( SlicerDataFor *)work.getSlicerData())->setLower( upper );
+
+      // Submit: work
+      // xteruel: FIXME: slice has to run in a specific thread, (threadId == 0)
+      Scheduler::submit ( work );
    }
 }
 
 bool SlicerStaticFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
 {
-   // int lower, upper;
+   int lower, upper, num_threads = myThread->getTeam()->size();
    bool last = false;
 
    // TODO: (#107) performance evaluation on this algorithm
@@ -113,14 +135,38 @@ bool SlicerStaticFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
    }
    // if chunk != 0: generate a SlicedWD for each thread (interleaved)
    else {
-#if 0
       // copying slicer data values
       int _lower = ((SlicerDataFor *)wd->getSlicerData())->getLower();
       int _upper = ((SlicerDataFor *)wd->getSlicerData())->getUpper();
       int _step = ((SlicerDataFor *)wd->getSlicerData())->getStep();
       int _sign = ((SlicerDataFor *)wd->getSlicerData())->getSign();
-#endif
-   // xteruel: FIXME: interleaved case ???
+
+      // computing initial bounds
+      lower = _lower;
+      upper = _lower + ( _chunk * _step );
+
+      // computing next lower
+      _lower = _lower + ( _chunk * _step * num_threads );
+
+      // checking boundaries
+      if ( ( upper * _sign ) >= ( _upper * _sign ) ) {
+         upper = _upper;
+         last = true;
+      }
+      else if ( (_lower * _sign) >= (_upper * _sign)) {
+         last = true;
+      }
+
+debug ( "SF->deq:[" << lower << ":" << upper << "/" << _step << "]last:" << last );
+
+      (( SlicerDataFor *)wd->getSlicerData())->setLower( _lower );
+
+      if ( last ) *slice = wd;
+      else sys.duplicateWD( slice, wd );
+
+      ((nanos_loop_info_t *)((*slice)->getData()))->lower = lower;
+      ((nanos_loop_info_t *)((*slice)->getData()))->upper = upper;
+      ((nanos_loop_info_t *)((*slice)->getData()))->step = _step;
    }
 
    return last;
