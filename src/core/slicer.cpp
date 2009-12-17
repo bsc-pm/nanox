@@ -30,7 +30,7 @@ using namespace nanos;
  *  This function submits a RepeatN slicedWD using the Scheduler
  *
  */
-void SlicerRepeatN::submit ( WD &work )
+void SlicerRepeatN::submit ( SlicedWD &work )
 {
    debug0 ( "Using sliced work descriptor: RepeatN" );
    Scheduler::submit ( work );
@@ -69,34 +69,105 @@ bool SlicerRepeatN::dequeue ( SlicedWD *wd, WorkDescriptor **slice)
    }
 }
 
-void SlicerDynamicFor::submit ( WD &work )
+void SlicerDynamicFor::submit ( SlicedWD &work )
 {
    debug0 ( "Using sliced work descriptor: Dynamic For" );
+
+   // compute sign value
+   int sign = ((SlicerDataFor *)work.getSlicerData())->getStep();
+   sign = ( sign < 0 ) ? -1 : +1;
+   (( SlicerDataFor *)work.getSlicerData())->setSign( sign );
+
+   // submit wd
    Scheduler::submit ( work );
 }
 
 bool SlicerDynamicFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
 {
-   int lower, upper, step;
+   int lower, upper;
+   bool last = false;
 
-   if ( ((SlicerDataDynamicFor *)(wd->getSlicerData()))->getNextIters( &lower, &upper, &step ) ) 
-   {
-      // last iters
-      debug0 ( "Dequeueing sliced work: using former wd (final), loop={l:" << lower << " u:" << upper <<" s:" << step << "}");
-      *slice = wd;
-      ((nanos_loop_info_t *)((*slice)->getData()))->lower = lower;
-      ((nanos_loop_info_t *)((*slice)->getData()))->upper = upper;
-      ((nanos_loop_info_t *)((*slice)->getData()))->step = step;
-      return true;
+   // TODO: (#107) performance evaluation on this algorithm
+
+   // copying slicer data values
+   int _lower = ((SlicerDataFor *)wd->getSlicerData())->getLower();
+   int _upper = ((SlicerDataFor *)wd->getSlicerData())->getUpper();
+   int _step = ((SlicerDataFor *)wd->getSlicerData())->getStep();
+   int _sign = ((SlicerDataFor *)wd->getSlicerData())->getSign();
+   int _chunk = ((SlicerDataFor *)wd->getSlicerData())->getChunk();
+ 
+   // computing initial bounds
+   lower = _lower;
+   upper = _lower + ( _chunk * _step );
+
+   // checking boundaries
+   if ( ( upper * _sign ) >= ( _upper * _sign ) ) {
+      upper = _upper; 
+      last = true;
    }
-   else
-   {
-      // no last iters
-      debug0 ( "Dequeueing sliced work: keeping former wd loop={l:" << lower << " u:" << upper << " s:" << step << "}");
-      sys.duplicateWD( slice, wd );
-      ((nanos_loop_info_t *)((*slice)->getData()))->lower = lower;
-      ((nanos_loop_info_t *)((*slice)->getData()))->upper = upper;
-      ((nanos_loop_info_t *)((*slice)->getData()))->step = step;
-      return false;
-   }
+
+   (( SlicerDataFor *)wd->getSlicerData())->setLower( upper );
+
+   if ( last ) *slice = wd;
+   else sys.duplicateWD( slice, wd );
+
+   ((nanos_loop_info_t *)((*slice)->getData()))->lower = lower;
+   ((nanos_loop_info_t *)((*slice)->getData()))->upper = upper;
+   ((nanos_loop_info_t *)((*slice)->getData()))->step = _step;
+
+   return last;
 }
+
+void SlicerGuidedFor::submit ( SlicedWD &work )
+{
+   debug0 ( "Using sliced work descriptor: Guided For" );
+
+   // compute sign value
+   int sign = ((SlicerDataFor *)work.getSlicerData())->getStep();
+   sign = ( sign < 0 ) ? -1 : +1;
+   (( SlicerDataFor *)work.getSlicerData())->setSign( sign );
+
+   // submit wd
+   Scheduler::submit ( work );
+}
+
+bool SlicerGuidedFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
+{
+   // TODO: (#107) performance evaluation on this algorithm
+   int lower, upper, current_chunk, num_threads = myThread->getTeam()->size();
+   bool last = false;
+
+   // copying slicer data values
+   int _lower = ((SlicerDataFor *)wd->getSlicerData())->getLower();
+   int _upper = ((SlicerDataFor *)wd->getSlicerData())->getUpper();
+   int _step = ((SlicerDataFor *)wd->getSlicerData())->getStep();
+   int _sign = ((SlicerDataFor *)wd->getSlicerData())->getSign();
+   int _chunk = ((SlicerDataFor *)wd->getSlicerData())->getChunk();
+
+   // computing current chunk 
+   if ( _sign == 1 ) current_chunk = ((_upper-_lower)/(_step*_sign)) / ( 2*num_threads);
+   else current_chunk = ((_lower-_upper)/(_step*_sign)) / ( 2*num_threads);
+   if ( current_chunk < _chunk ) current_chunk = _chunk;
+
+   // computing initial bounds
+   lower = _lower;
+   upper = _lower + ( current_chunk * _step );
+
+   // checking boundaries
+   if ( ( upper * _sign ) >= ( _upper * _sign ) ) {
+      upper = _upper; 
+      last = true;
+   }
+
+   (( SlicerDataFor *)wd->getSlicerData())->setLower( upper );
+
+   if ( last ) *slice = wd;
+   else sys.duplicateWD( slice, wd );
+
+   ((nanos_loop_info_t *)((*slice)->getData()))->lower = lower;
+   ((nanos_loop_info_t *)((*slice)->getData()))->upper = upper;
+   ((nanos_loop_info_t *)((*slice)->getData()))->step = _step;
+
+   return last;
+}
+

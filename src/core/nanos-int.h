@@ -45,6 +45,29 @@ typedef nanos::Dependency nanos_dependence_t;
 
 #endif
 
+// SlicerDataFor: related structures
+typedef struct {
+   int _lower;  /**< Loop lower bound */
+   int _upper;  /**< Loop upper bound */
+   int _step;   /**< Loop step */
+   int _chunk;  /**< Slice chunk */
+   int _sign;   /**< Loop sign 1 ascendant, -1 descendant */
+} nanos_slicer_data_for_internal_t;
+
+#ifndef _NANOS_INTERNAL
+
+typedef nanos_slicer_data_for_internal_t nanos_slicer_data_for_t;
+
+#else
+
+namespace nanos {
+   class SlicerDataFor;
+}
+typedef nanos::SlicerDataFor nanos_slicer_data_for_t;
+
+#endif
+
+
 // C++ types hidden as void *
 typedef void * nanos_thread_t;
 

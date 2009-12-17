@@ -44,12 +44,15 @@ namespace nanos
          void addToGroup ( WorkGroup &parent );
          void exitWork ( WorkGroup &work );
 
-         WorkGroup( const WorkGroup &wg );
          const WorkGroup & operator= ( const WorkGroup &wg );
 
       public:
          // constructors
          WorkGroup() : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ) {  }
+         WorkGroup( const WorkGroup &wg ) : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ) 
+         {
+            // FIXME: (#106) iterate on _partOf (and copy values)
+         }
 
          // destructor
          virtual ~WorkGroup();
