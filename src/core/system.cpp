@@ -371,7 +371,7 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
       chunk += (((slicer_data_size+7)>>3)<<3);
    }
 
-   SlicedWD * wd =  new (*uwd) SlicedWD( *slicer, *slicer_data, num_devices, dev_ptrs, 
+   SlicedWD * wd =  new (*uwd) SlicedWD( *slicer, slicer_data_size, *slicer_data, num_devices, dev_ptrs, 
                        outline_data_size, outline_data != NULL ? *outline_data : NULL );
 
    // add to workgroup
@@ -441,6 +441,71 @@ void System::duplicateWD ( WD **uwd, WD *wd)
 
    // creating new WD 
    new (*uwd) WD( *wd, dev_ptrs, data );
+}
+
+/*! \brief Duplicates a given SlicedWD
+ *
+ *  This function duplicates the given as a parameter WD copying all the
+ *  related data (devices ptr, data and DD)
+ *
+ *  \param [out] uwd is the target addr for the new WD
+ *  \param [in] wd is the former WD
+ */
+void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
+{
+   int dd_size = 0;
+   void *data = NULL;
+   void *slicer_data = NULL;
+
+   // computing size of device(s)
+   for ( unsigned int i = 0; i < wd->getNumDevices(); i++ )
+      dd_size += (*((DD **)(wd->getDevices()))[i]).size();
+
+   // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
+   int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( WD ) : 0 ) + (((wd->getDataSize()+7)>>3)<<3) +
+                          sizeof( DD* ) * wd->getNumDevices() + dd_size + (((wd->getSlicerDataSize()+7)>>3)<<3);
+
+   char *chunk=0;
+   char *start;
+
+   if ( size_to_allocate )
+      start = chunk = new char[size_to_allocate];
+
+   // allocate WD
+   if ( *uwd == NULL ) {
+      *uwd = ( SlicedWD * ) chunk;
+      chunk += sizeof( SlicedWD );
+   }
+
+   // allocate WD data
+   // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
+   if ( wd->getDataSize() != 0 ) {
+      data = (void * ) chunk;
+      memcpy ( data, wd->getData(), wd->getDataSize());
+      chunk += (((wd->getDataSize()+7)>>3)<<3);
+   }
+
+   // allocate device pointers vector
+   DD **dev_ptrs = ( DD ** ) chunk;
+   chunk += sizeof( DD* ) * wd->getNumDevices();
+
+   // allocate device data
+   for ( unsigned int i = 0 ; i < wd->getNumDevices(); i ++ ) {
+      wd->getDevices()[i]->copyTo(chunk);
+      dev_ptrs[i] = ( DD * ) chunk;
+      chunk += (*((DD **)(wd->getDevices()))[i]).size();
+   }
+
+   // copy SlicerData
+   if ( wd->getSlicerDataSize() != 0 ) {
+      slicer_data = (void * ) chunk;
+      memcpy ( slicer_data, wd->getSlicerData(), wd->getSlicerDataSize());
+      chunk += (((wd->getSlicerDataSize()+7)>>3)<<3);
+   }
+
+   // creating new SlicedWD 
+   new (*uwd) SlicedWD( *wd->getSlicer(), wd->getSlicerDataSize(), *((SlicerData *)slicer_data),
+                        *((WD *)wd), dev_ptrs, data );
 }
 
 void System::submit ( WD &work )

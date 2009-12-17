@@ -85,7 +85,7 @@ int main ( int argc, char **argv )
    Slicer *slicer = sys.getSlicer ( "repeat_n" );
  
    // Work descriptor creation
-   WD * wd2 = new SlicedWD( *slicer, 
+   WD * wd2 = new SlicedWD( *slicer, sizeof (SlicerDataRepeatN),
                             *new SlicerDataRepeatN(10),
                              new SMPDD( hello_world ),
                              sizeof(hello_world_args), data );
