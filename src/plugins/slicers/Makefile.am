@@ -20,9 +20,16 @@
 include $(top_srcdir)/src/common.am
 
 lib_LTLIBRARIES = \
+	libnanox-slicer-static_for.la \
 	libnanox-slicer-dynamic_for.la \
 	libnanox-slicer-guided_for.la \
 	libnanox-slicer-repeat_n.la \
+	$(END)
+
+libnanox_slicer_static_for_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
+libnanox_slicer_static_for_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_slicer_static_for_la_SOURCES = \
+	static_for.cpp \
 	$(END)
 
 libnanox_slicer_dynamic_for_la_CXXFLAGS = $(common_includes) $(common_cxxflags)

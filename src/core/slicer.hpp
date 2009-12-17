@@ -97,53 +97,6 @@ namespace nanos
          bool dequeue ( WorkDescriptor **slice ) { return _slicer.dequeue( this, slice ); }
    };
 
-// xteruel FIXME: to remove
-#if 0
-   class SlicerRepeatN: public Slicer
-   {
-      private:
-      public:
-         // constructor
-         SlicerRepeatN ( ) { }
-
-         // destructor
-         ~SlicerRepeatN ( ) { }
-
-         // headers (implemented in slicer.cpp)
-         void submit ( SlicedWD & work ) ;
-         bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
-   };
-
-   class SlicerDynamicFor: public Slicer
-   {
-      private:
-      public:
-         // constructor
-         SlicerDynamicFor ( ) { }
-
-         // destructor
-         ~SlicerDynamicFor ( ) { }
-
-         // headers (implemented in slicer.cpp)
-         void submit ( SlicedWD & work ) ;
-         bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
-   };
-   class SlicerGuidedFor: public Slicer
-   {
-      private:
-      public:
-         // constructor
-         SlicerGuidedFor ( ) { }
-
-         // destructor
-         ~SlicerGuidedFor ( ) { }
-
-         // headers (implemented in slicer.cpp)
-         void submit ( SlicedWD & work ) ;
-         bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
-   };
-
-#endif
    class SlicerDataRepeatN : public SlicerData
    {
       private:
