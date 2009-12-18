@@ -67,6 +67,8 @@ nanos_sources=\
 	trackableobject.hpp \
 	dependenciesdomain.hpp \
 	dependenciesdomain.cpp \
+        synchronizedcondition.hpp \
+        synchronizedcondition.cpp \
 	$(END)
 
 # Default
