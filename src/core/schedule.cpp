@@ -71,20 +71,6 @@ void Scheduler::exit ( void )
    fatal ( "No more tasks to execute!" );
 }
 
-/*
- * G++ optimizes TLS accesses by obtaining only once the address of the TLS variable
- * In this function this optimization does not work because the task can move from one thread to another
- * in different iterations and it will still be seeing the old TLS variable (creating havoc
- * and destruction and colorful runtime errors).
- * getMyThreadSafe ensures that the TLS variable is reloaded at least once per iteration while we still do some
- * reuse of the address (inside the iteration) so we're not forcing to go through TLS for each myThread access
- * It's important that the compiler doesn't inline it or the optimazer will cause the same wrong behavior anyway.
- */
-__attribute__ ( ( noinline ) ) BaseThread * getMyThreadSafe()
-{
-   return myThread;
-}
-
 template<typename T>
 void Scheduler::blockOnCondition ( volatile T *var, T condition )
 {
@@ -108,7 +94,7 @@ void Scheduler::blockOnCondition ( volatile T *var, T condition )
       }
    }
 
-   myThread->getCurrentWD()->setIdle ( false );
+   myThread->getCurrentWD()->setReady();
 }
 
 template<typename T>
@@ -136,7 +122,7 @@ void Scheduler::blockOnConditionLess ( volatile T *var, T condition )
       // TODO: implement sleeping
    }
 
-   myThread->getCurrentWD()->setIdle ( false );
+   myThread->getCurrentWD()->setReady();
 }
 
 template
@@ -180,7 +166,7 @@ void Scheduler::idle ()
       }
    }
 
-   thread->getCurrentWD()->setIdle ( false );
+   thread->getCurrentWD()->setReady();
 
    sys._idleThreads--;
 

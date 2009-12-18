@@ -20,6 +20,7 @@
 #include "basethread.hpp"
 #include "processingelement.hpp"
 #include "system.hpp"
+#include "synchronizedcondition.hpp"
 
 using namespace nanos;
 
@@ -61,3 +62,32 @@ void BaseThread::inlineWork (WorkDescriptor *wd)
    wd->done();
    myThread->setCurrentWD( *oldwd );
 }
+
+/*! \brief Performs the always-required operations when switching WD in a thread.
+*/
+void BaseThread::switchHelper( WD* oldWD, WD* newWD )
+{
+   SynchronizedCondition *syncCond = oldWD->getSyncCond();
+   if ( syncCond != NULL ) {
+      syncCond->unlock();
+   } else {
+      Scheduler::queue( *oldWD );
+   }
+   myThread->setCurrentWD( *newWD );
+}
+
+/*
+ * G++ optimizes TLS accesses by obtaining only once the address of the TLS variable
+ * In this function this optimization does not work because the task can move from one thread to another
+ * in different iterations and it will still be seeing the old TLS variable (creating havoc
+ * and destruction and colorful runtime errors).
+ * getMyThreadSafe ensures that the TLS variable is reloaded at least once per iteration while we still do some
+ * reuse of the address (inside the iteration) so we're not forcing to go through TLS for each myThread access
+ * It's important that the compiler doesn't inline it or the optimazer will cause the same wrong behavior anyway.
+ */
+BaseThread * nanos::getMyThreadSafe()
+{
+   return myThread;
+}
+
+
