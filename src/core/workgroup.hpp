@@ -23,6 +23,7 @@
 #include <vector>
 #include "atomic.hpp"
 #include "dependenciesdomain.hpp"
+#include "synchronizedcondition.hpp"
 
 namespace nanos
 {
@@ -41,6 +42,8 @@ namespace nanos
          Atomic<int>    _components;
          Atomic<int>    _phaseCounter;
 
+         SingleSyncCond< int > _syncCond;
+
          void addToGroup ( WorkGroup &parent );
          void exitWork ( WorkGroup &work );
 
@@ -49,7 +52,7 @@ namespace nanos
 
       public:
          // constructors
-         WorkGroup() : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ) {  }
+         WorkGroup() : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ), _syncCond( &_components.override(), 0 ) {  }
 
          // destructor
          virtual ~WorkGroup();

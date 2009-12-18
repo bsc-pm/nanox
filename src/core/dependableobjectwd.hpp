@@ -20,6 +20,7 @@
 #ifndef _NANOS_DEPENDABLE_OBJECT_WD
 #define _NANOS_DEPENDABLE_OBJECT_WD
 
+#include "synchronizedcondition.hpp"
 #include "dependableobject.hpp"
 
 namespace nanos
@@ -79,6 +80,8 @@ namespace nanos
 
         /**< Condition to satisfy before execution can go forward */
          volatile bool _depsSatisfied;
+         
+         SingleSyncCond <bool> _syncCond;
 
         /*! Disable default constructor
          */
@@ -87,12 +90,14 @@ namespace nanos
       public:
         /*! \brief Constructor
          */
-         DOWait ( WorkDescriptor *wd ) : DependableObject(), _waitDomainWD( wd ), _depsSatisfied( false ) { }
+         DOWait ( WorkDescriptor *wd ) : DependableObject(), _waitDomainWD( wd ), _depsSatisfied( false ),
+           _syncCond( &_depsSatisfied, true ) { }
     
         /*! \brief Copy constructor
          *  \param dos another DOWait
          */
-         DOWait ( const DOWait &dow ) : DependableObject(dow), _waitDomainWD( dow._waitDomainWD ), _depsSatisfied( false ) { } 
+         DOWait ( const DOWait &dow ) : DependableObject(dow), _waitDomainWD( dow._waitDomainWD ), _depsSatisfied( false ),
+           _syncCond( &_depsSatisfied, true ) { }
    
         /*! \brief Assign operator, can be self-assigned.
          *  param dos another DOWait

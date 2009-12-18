@@ -50,13 +50,15 @@ void DOWait::init()
  */
 void DOWait::wait ( )
 {
-     Scheduler::blockOnCondition ( &_depsSatisfied, true);
+     _syncCond.wait();
+//     Scheduler::blockOnCondition ( &_depsSatisfied, true);
 }
 
 /*! \brief Unblock method when dependencies are satisfied
  */
 void DOWait::dependenciesSatisfied ( )
 {
-   _depsSatisfied = true;
+//   _depsSatisfied = true;
+   _syncCond.signal();
 }
 

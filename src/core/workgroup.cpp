@@ -39,6 +39,7 @@ void WorkGroup::addToGroup ( WorkGroup &parent )
 void WorkGroup::exitWork ( WorkGroup &work )
 {
    _components--;
+   _syncCond.signal();
 }
 
 void WorkGroup::sync ()
@@ -53,7 +54,7 @@ void WorkGroup::sync ()
 
 void WorkGroup::waitCompletation ()
 {
-   Scheduler::blockOnCondition<int>( &_components.override(),0 );
+     _syncCond.wait();
 }
 
 void WorkGroup::done ()
