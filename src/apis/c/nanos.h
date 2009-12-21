@@ -67,7 +67,7 @@ extern "C" {
 nanos_wd_t nanos_current_wd (void);
 int nanos_get_wd_id(nanos_wd_t wd);
 
-nanos_slicer_t nanos_find_slicer ( char * slicer );
+nanos_slicer_t nanos_find_slicer ( const char * slicer );
 
 nanos_err_t nanos_create_wd ( nanos_wd_t *wd, size_t num_devices, nanos_device_t *devices, size_t data_size,
                               void ** data, nanos_wg_t wg, nanos_wd_props_t *props );
