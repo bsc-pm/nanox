@@ -38,43 +38,28 @@ void SynchronizedCondition::wait()
 
       spins--;
       if ( spins == 0 ) {
-         if ( !current->isBlocked() ) {
-            lock();
-            if ( !checkCondition() ) {
-               setWaiter( current );
+         lock();
+         if ( !checkCondition() ) {
+            addWaiter( current );
 
-               WD *next = thread->getSchedulingGroup()->atBlock ( thread );
+            WD *next = thread->getSchedulingGroup()->atBlock ( thread );
 
-/*               if ( next ) {
-                  sys._numReady--;
-               } */
+/*            if ( next ) {
+               sys._numReady--;
+            } */
 
-               if ( !next )
-                  next = thread->getSchedulingGroup()->getIdle ( thread );
-          
-	       if ( next ) {
-                  current->setBlocked();
-                  thread->switchTo ( next ); // how do we unlock here?
-               }
-               else {
-                  unlock();
-               }
-            } else {
+            if ( !next )
+               next = thread->getSchedulingGroup()->getIdle ( thread );
+         
+	    if ( next ) {
+               current->setBlocked();
+               thread->switchTo ( next ); // how do we unlock here?
+            }
+            else {
                unlock();
             }
          } else {
-            WD *next = thread->getSchedulingGroup()->atBlock ( thread );
-          
-/*            if ( next ) {
-               sys._numReady--;
-            }*/
-          
-            if ( !next )
-               next = thread->getSchedulingGroup()->getIdle ( thread );
-          
-            if ( next ) {
-               thread->switchTo ( next );
-            }
+            unlock();
          }
       spins = 100;
       }

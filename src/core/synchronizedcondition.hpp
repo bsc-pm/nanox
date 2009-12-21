@@ -57,7 +57,7 @@ namespace nanos
 
         /* \brief Sets a waiter Workdescriptor
          */
-         virtual void setWaiter( WorkDescriptor* wd) = 0;
+         virtual void addWaiter( WorkDescriptor* wd) = 0;
 
         /* \brief Returns true if there's any waiter on the condition
          */
@@ -131,7 +131,7 @@ namespace nanos
 
         /* \brief Sets the waiter to wd
          */
-         virtual void setWaiter( WorkDescriptor* wd )
+         virtual void addWaiter( WorkDescriptor* wd )
          {
             _waiter = wd;
          }
@@ -160,6 +160,7 @@ namespace nanos
    class MultipleSyncCond : public SynchronizedCondition
    {
       private:
+         //typedef std::vector<WorkDescriptor*> WorkDescriptorList;
          typedef std::list<WorkDescriptor *> WorkDescriptorList;
 
          WorkDescriptorList _waiters;
@@ -196,7 +197,7 @@ namespace nanos
 
         /* \brief Sets the waiter to wd
          */
-         virtual void setWaiter( WorkDescriptor* wd )
+         virtual void addWaiter( WorkDescriptor* wd )
          {
             _waiters.push_back( wd );
          }
