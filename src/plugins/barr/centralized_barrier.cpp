@@ -35,13 +35,16 @@ namespace nanos {
 
          private:
             Atomic<int> _sem;
-            Atomic<MultipleSyncCond<int> *> _syncCond1;
-            Atomic<MultipleSyncCond<int> *> _syncCond2;
+            Atomic<bool> _flag;
+            MultipleSyncCond<bool> _syncCond1;
+            MultipleSyncCond<bool> _syncCond2;
             int _numParticipants;
 
          public:
-            CentralizedBarrier () : Barrier(), _sem(0), _syncCond1(NULL), _syncCond2(NULL) {}
-            CentralizedBarrier ( const CentralizedBarrier& barrier ) : Barrier(barrier),_sem(0),_syncCond1(NULL),_syncCond2(NULL)
+            CentralizedBarrier () : Barrier(), _sem(0), _flag(false),
+               _syncCond1( &(_flag.override()), true ), _syncCond2( &(_flag.override()), false ) {}
+            CentralizedBarrier ( const CentralizedBarrier& barrier ) : Barrier(barrier), _sem(0), _flag(false),
+               _syncCond1( &(_flag.override()), true ), _syncCond2( &(_flag.override()), false )
                { init( barrier._numParticipants ); }
 
             const CentralizedBarrier & operator= ( const CentralizedBarrier & barrier );
@@ -61,8 +64,7 @@ namespace nanos {
 
          Barrier::operator=(barrier);
          _sem = 0;
-         _syncCond1 = NULL;
-         _syncCond2 = NULL;
+         _flag = false;
 
          if ( barrier._numParticipants != _numParticipants )
             resize(barrier._numParticipants);
@@ -83,28 +85,30 @@ namespace nanos {
 
       void CentralizedBarrier::barrier( int participant )
       {
-        /*
-         */
-         if ( _syncCond1 == NULL ) {
-            MultipleSyncCond<int> *tmp = new MultipleSyncCond<int>(&_sem.override(), _numParticipants);
-            if ( !_syncCond1.cswap( NULL, tmp ) ) {
-               delete (tmp);
-            }
+         int val;
+
+
+         val = ++_sem;
+
+         /* the last process incrementing the semaphore sets the flag
+         releasing all other threads waiting in the next block */
+         if ( val == _numParticipants ) {
+            _flag=true;
+            _syncCond1.signal();
+         } else {
+            _syncCond1.wait();
          }
 
-         ++_sem;
-         _syncCond1.override()->wait();
+         val = --_sem;
 
-        /*
-         */
-         if ( _syncCond2 == NULL ) {
-            MultipleSyncCond<int> *tmp = new MultipleSyncCond<int>(&_sem.override(), 0);
-            if ( !_syncCond2.cswap( NULL, tmp ) ) {
-               delete (tmp);
-            }
+         /* the last thread decrementing the sem for the second time resets the flag.
+         A thread passing in the next barrier will be blocked until this is performed */
+         if ( val == 0 ) {
+            _flag=false;
+            _syncCond2.signal();
+         } else {
+            _syncCond2.wait();
          }
-         --_sem;
-         _syncCond2.override()->wait();
       }
 
 
