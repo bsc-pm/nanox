@@ -35,6 +35,8 @@ int main (int argc, char **argv)
        }
        usleep(100);
 
+       WD *wd = myThread->getCurrentWD();
+       wd->tieTo(*myThread);
        barrier_code(NULL);
 
        cout << "end" << endl;
