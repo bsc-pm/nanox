@@ -73,16 +73,14 @@ void SynchronizedCondition::wait()
  */
 void SynchronizedCondition::signal()
 {
-   if ( checkCondition() ) {
-      lock();
-        while ( hasWaiters() ) {
-           WD* wd = getAndRemoveWaiter();
-           if ( wd->isBlocked() ) {
-              wd->setReady();
-              Scheduler::queue( *wd );
-           }
+   lock();
+     while ( hasWaiters() ) {
+        WD* wd = getAndRemoveWaiter();
+        if ( wd->isBlocked() ) {
+           wd->setReady();
+           Scheduler::queue( *wd );
         }
-      unlock(); 
-   }
+     }
+   unlock(); 
 }
 
