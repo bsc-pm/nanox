@@ -38,8 +38,9 @@ void WorkGroup::addToGroup ( WorkGroup &parent )
 
 void WorkGroup::exitWork ( WorkGroup &work )
 {
-   _components--;
-   _syncCond.signal();
+   int componentsLeft = --_components;
+   if (componentsLeft == 0)
+      _syncCond.signal();
 }
 
 void WorkGroup::sync ()
