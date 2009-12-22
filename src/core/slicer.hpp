@@ -22,6 +22,7 @@
 
 #include "workdescriptor.hpp"
 #include "schedule.hpp"
+#include "nanos-int.h"
 
 namespace nanos
 {
@@ -39,7 +40,7 @@ namespace nanos
          // destructor
          virtual ~Slicer ( ) { }
 
-         virtual void submit ( WorkDescriptor & work ) = 0;
+         virtual void submit ( SlicedWD & work ) = 0;
          virtual bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) = 0;
    };
 
@@ -108,7 +109,7 @@ namespace nanos
          ~SlicerRepeatN ( ) { }
 
          // headers (implemented in slicer.cpp)
-         void submit ( WorkDescriptor & work ) ;
+         void submit ( SlicedWD & work ) ;
          bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
    };
 
@@ -123,7 +124,22 @@ namespace nanos
          ~SlicerDynamicFor ( ) { }
 
          // headers (implemented in slicer.cpp)
-         void submit ( WorkDescriptor & work ) ;
+         void submit ( SlicedWD & work ) ;
+         bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
+   };
+
+   class SlicerGuidedFor: public Slicer
+   {
+      private:
+      public:
+         // constructor
+         SlicerGuidedFor ( ) { }
+
+         // destructor
+         ~SlicerGuidedFor ( ) { }
+
+         // headers (implemented in slicer.cpp)
+         void submit ( SlicedWD & work ) ;
          bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
    };
 
@@ -151,72 +167,39 @@ namespace nanos
          int decN () { return --_n; }
    };
 
-   class SlicerDataDynamicFor : public SlicerData
+   class SlicerDataFor : public nanos_slicer_data_for_internal_t, public SlicerData
    {
-      private:
-         int _lower;  /**< Loop lower bound */
-         int _upper;  /**< Loop upper bound */
-         int _step;   /**< Loop step */
-         int _chunk;  /**< Slice chunk */
-         int _sign;   /**< Loop sign 1 ascendant, -1 descendant */
+         /* int _lower: Loop lower bound */
+         /* int _upper: Loop upper bound */
+         /* int _step: Loop step */
+         /* int _chunk: Slice chunk */
+         /* int _sign: Loop sign 1 ascendant, -1 descendant */
 
       public:
          // constructor
-         SlicerDataDynamicFor ( int lower, int upper, int step, int chunk = 1) :
-             _lower ( lower ), _upper ( upper ), _step ( step ), _chunk ( chunk ), _sign ( (step < 0)? -1 : +1)  { }
-
+         SlicerDataFor ( int lower, int upper, int step, int chunk = 1 )
+         {
+            _lower = lower;
+            _upper = upper;
+            _step = step;
+            _chunk = chunk; 
+            _sign = ( step < 0 ) ? -1 : +1;
+         }
          // destructor
-         ~SlicerDataDynamicFor ( ) { }
+         ~SlicerDataFor ( ) { }
 
          // get/set functions
          void setLower ( int n ) { _lower = n; }
          void setUpper ( int n ) { _upper = n; }
          void setStep  ( int n ) {  _step = n; }
          void setChunk ( int n ) { _chunk = n; }
+         void setSign  ( int n ) { _sign = n; }
 
          int getLower ( void ) { return _lower; }
          int getUpper ( void ) { return _upper; }
          int getStep  ( void ) { return _step; }
          int getChunk ( void ) { return _chunk; }
-
-         bool getNextIters ( int *lower, int *upper, int *step )
-         {
-            bool last = false;
-
-            // computing initial bounds
-            *lower = _lower;
-            *upper = _lower + ( _chunk * _step );
-
-            // checking boundaries
-            if ( (*upper * _sign ) >= ( _upper * _sign ) ) {
-               *upper = _upper;
-               last = true;
-            }
-
-            _lower = *upper;
-
-            *step  = _step;
-
-            return last;
-         }
-
-   };
-
-   class Slicers
-   {
-      private:
-         SlicerRepeatN    _slicerRepeatN;     /**< Repeat N slicer */
-	 SlicerDynamicFor  _slicerDynamicFor;  /**< Dynamic For slicer */
-      public:
-         // constructor
-         Slicers ( ) { }
-
-         // destructor
-         ~Slicers ( ) { }
-
-         // get functions
-         Slicer & getSlicerRepeatN ( ) { return _slicerRepeatN; }
-         Slicer & getSlicerDynamicFor ( ) { return _slicerDynamicFor; }
+         int getSign  ( void ) { return _sign; }
    };
 
 };

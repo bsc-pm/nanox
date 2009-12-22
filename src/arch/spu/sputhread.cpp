@@ -17,60 +17,64 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_WORK_GROUP
-#define _NANOS_WORK_GROUP
+#include "sputhread.hpp"
+#include "system.hpp"
+#include <libspe2.h>
 
-#include <vector>
-#include "atomic.hpp"
-#include "dependenciesdomain.hpp"
-#include "synchronizedcondition.hpp"
+using namespace nanos;
+using namespace nanos::ext;
 
-namespace nanos
+extern spe_program_handle_t spu_idle;
+
+void SPUThread::bootstrap ()
 {
+    spe_context_ptr_t ctx;
+    unsigned int entry = SPE_DEFAULT_ENTRY;
 
-   class WorkGroup
-   {
+    debug("Starting SPU bootstrap");
+    if ((ctx = spe_context_create (0, NULL)) == NULL) {
+      perror ("Failed creating context");
+      exit (1);
+    }
 
-      private:
-         static Atomic<int> _atomicSeed;
+    if (spe_program_load (ctx, &spu_idle)) {
+      perror ("Failed loading program");
+      exit (1);
+    }
+    
+    if (spe_context_run(ctx, &entry, 0, 0, (void*)0, NULL) < 0 ) {
+      perror ("Failed running context");
+      exit (1);
+    }
+}
 
-         // FIX-ME: vector is not a safe-class here
-         typedef std::vector<WorkGroup *> WGList;
+void SPUThread::start ()
+{
+   getPPU().start();
+}
 
-         WGList         _partOf;
-         int            _id;
-         Atomic<int>    _components;
-         Atomic<int>    _phaseCounter;
+void SPUThread::join ()
+{
+   getPPU().join();
+}
 
-         SingleSyncCond< int > _syncCond;
+void SPUThread::runDependent ()
+{
+}
 
-         void addToGroup ( WorkGroup &parent );
-         void exitWork ( WorkGroup &work );
+void SPUThread::inlineWorkDependent( WD &work )
+{
+}
 
-         const WorkGroup & operator= ( const WorkGroup &wg );
+void SPUThread::switchTo( WD *work )
+{
+}
 
-      public:
-         // constructors
-         WorkGroup() : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ), _syncCond( &_components.override(), 0 ) {  }
-         WorkGroup( const WorkGroup &wg ) : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ), _syncCond( &_components.override(), 0 ) 
-         {
-            // FIXME: (#106) iterate on _partOf (and copy values)
-         }
+void SPUThread::exitTo( WD *work )
+{
+}
 
-         // destructor
-         virtual ~WorkGroup();
-
-         void addWork( WorkGroup &wg );
-         void sync();
-         void waitCompletation();
-         virtual void done();
-         int getId() const { return _id; }
-
-   };
-
-   typedef WorkGroup WG;
-
-};
-
-#endif
-
+void SPUThread::bind ()
+{
+   getPPU().bind();
+}

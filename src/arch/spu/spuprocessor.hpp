@@ -17,60 +17,39 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_WORK_GROUP
-#define _NANOS_WORK_GROUP
+#ifndef _NANOS_SPU_PROCESSOR
+#define _NANOS_SPU_PROCESSOR
 
-#include <vector>
-#include "atomic.hpp"
-#include "dependenciesdomain.hpp"
-#include "synchronizedcondition.hpp"
+#include "smpprocessor.hpp"
+#include "sputhread.hpp"
+#include "spudd.hpp"
 
-namespace nanos
-{
+namespace nanos {
+namespace ext {
 
-   class WorkGroup
-   {
+   class SPUProcessor : public PE 
+   { 
+     private:
+        SMPProcessor &_ppu;
+        // disable copy constructor and assignment operator
+        SPUProcessor( const SPUProcessor &pe );
+        const SPUProcessor & operator= ( const SPUProcessor &pe );
 
-      private:
-         static Atomic<int> _atomicSeed;
+     public:
+        // constructor
+        SPUProcessor( int id, SMPProcessor &ppu ) : PE( id, &SPU ), _ppu( ppu ) {}
+        ~SPUProcessor() {}
 
-         // FIX-ME: vector is not a safe-class here
-         typedef std::vector<WorkGroup *> WGList;
-
-         WGList         _partOf;
-         int            _id;
-         Atomic<int>    _components;
-         Atomic<int>    _phaseCounter;
-
-         SingleSyncCond< int > _syncCond;
-
-         void addToGroup ( WorkGroup &parent );
-         void exitWork ( WorkGroup &work );
-
-         const WorkGroup & operator= ( const WorkGroup &wg );
-
-      public:
-         // constructors
-         WorkGroup() : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ), _syncCond( &_components.override(), 0 ) {  }
-         WorkGroup( const WorkGroup &wg ) : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ), _syncCond( &_components.override(), 0 ) 
-         {
-            // FIXME: (#106) iterate on _partOf (and copy values)
-         }
-
-         // destructor
-         virtual ~WorkGroup();
-
-         void addWork( WorkGroup &wg );
-         void sync();
-         void waitCompletation();
-         virtual void done();
-         int getId() const { return _id; }
-
+        SMPProcessor & getPPU() const { return _ppu; }
+        
+        WD & getWorkerWD () const;
+        WD & getMasterWD () const;
+        BaseThread & createThread ( WorkDescriptor &wd );
    };
 
-   typedef WorkGroup WG;
+}
+}
 
-};
 
 #endif
 

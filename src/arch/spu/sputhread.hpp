@@ -17,60 +17,48 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_WORK_GROUP
-#define _NANOS_WORK_GROUP
+#ifndef _NANOS_SPU_THREAD
+#define _NANOS_SPU_THREAD
 
-#include <vector>
-#include "atomic.hpp"
-#include "dependenciesdomain.hpp"
-#include "synchronizedcondition.hpp"
+#include "basethread.hpp"
+#include "smpthread.hpp"
 
-namespace nanos
-{
-
-   class WorkGroup
+namespace nanos {
+namespace ext {
+   
+   class SPUThread : public BaseThread
    {
-
+      friend class SPUProcessor;
+      
       private:
-         static Atomic<int> _atomicSeed;
-
-         // FIX-ME: vector is not a safe-class here
-         typedef std::vector<WorkGroup *> WGList;
-
-         WGList         _partOf;
-         int            _id;
-         Atomic<int>    _components;
-         Atomic<int>    _phaseCounter;
-
-         SingleSyncCond< int > _syncCond;
-
-         void addToGroup ( WorkGroup &parent );
-         void exitWork ( WorkGroup &work );
-
-         const WorkGroup & operator= ( const WorkGroup &wg );
+         SMPThread  &_ppu;
+         // disable copy constructor and assignment operator
+         SPUThread( const SPUThread &th );
+         const SPUThread & operator= ( const SPUThread &th );
 
       public:
-         // constructors
-         WorkGroup() : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ), _syncCond( &_components.override(), 0 ) {  }
-         WorkGroup( const WorkGroup &wg ) : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ), _syncCond( &_components.override(), 0 ) 
-         {
-            // FIXME: (#106) iterate on _partOf (and copy values)
-         }
+         // constructor
+         SPUThread( SMPThread &ppu, WD &w, PE *pe ) : BaseThread( w,pe ), _ppu(ppu) {}
 
          // destructor
-         virtual ~WorkGroup();
+         virtual ~SPUThread() { }
 
-         void addWork( WorkGroup &wg );
-         void sync();
-         void waitCompletation();
-         virtual void done();
-         int getId() const { return _id; }
+         SMPThread & getPPU() const { return _ppu; }
 
+         virtual void start();
+         virtual void join();
+         virtual void runDependent ( void );
+
+         virtual void inlineWorkDependent( WD &work );
+         virtual void switchTo( WD *work );
+         virtual void exitTo( WD *work );
+         virtual void bind( void );
+
+         static  void bootstrap ();
    };
 
-   typedef WorkGroup WG;
+}
+}
 
-};
 
 #endif
-

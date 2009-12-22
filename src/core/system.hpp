@@ -49,6 +49,7 @@ namespace nanos
          // types
          typedef std::vector<PE *>         PEList;
          typedef std::vector<BaseThread *> ThreadList;
+         typedef std::map<std::string, Slicer *> Slicers;
          
          // configuration variables
          int                  _numPEs;
@@ -105,6 +106,10 @@ namespace nanos
          void createWD (WD **uwd, size_t num_devices, nanos_device_t *devices,
                         size_t data_size, void ** data, WG *uwg,
                         nanos_wd_props_t *props);
+
+         void createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
+                        void **outline_data, WG *uwg, Slicer *slicer, size_t slicer_data_size,
+                        SlicerData *&slicer_data, nanos_wd_props_t *props );
 
          void duplicateWD ( WD **uwd, WD *wd );
 
@@ -163,9 +168,14 @@ namespace nanos
 
          void setDefaultBarrFactory ( barrFactory factory ) { _defBarrFactory = factory; }
 
-         // Slicer's index
-         Slicer & getSlicerRepeatN ( ) { return _slicers.getSlicerRepeatN(); }
-         Slicer & getSlicerDynamicFor ( ) { return _slicers.getSlicerDynamicFor(); }
+         Slicer * getSlicer( const std::string &label ) const 
+         { 
+            Slicers::const_iterator it = _slicers.find(label);
+            if ( it == _slicers.end() ) return NULL;
+            return (*it).second;
+         }
+
+         void registerSlicer ( const std::string &label, Slicer *slicer) { _slicers[label] = slicer; }
 
    };
 

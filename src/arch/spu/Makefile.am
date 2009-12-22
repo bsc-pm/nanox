@@ -19,31 +19,30 @@
 
 include $(top_srcdir)/src/common.am
 
-lib_LTLIBRARIES = \
-	libnanox-barrier-centralized.la \
-	libnanox-barrier-posix.la \
-	$(END)
+noinst_LTLIBRARIES = libspu.la
+EXTRAD_DIST= spu_idle.spu
 
-libnanox_barrier_centralized_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
-libnanox_barrier_centralized_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_barrier_centralized_la_SOURCES = \
-	centralized_barrier.cpp \
-	$(END)
+SPUCCFLAGS=-I @CELLSDK_INC@
 
-libnanox_barrier_posix_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
-libnanox_barrier_posix_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_barrier_posix_la_SOURCES = \
-	posix_barrier.cpp \
-	$(END)
+.spu.o: $<
+	$(SPUCC) $(SPUCCFLAGS) -x c -o $@ $<
 
-#libnanox_barrier_dissemination_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
-#libnanox_barrier_dissemination_la_LDFLAGS = $(ld_plugin_flags)
-#libnanox_barrier_dissemination_la_SOURCES = \
-#	dissem_barrier.cpp \
-#	$(END)
-#
-#libnanox_barrier_tree_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
-#libnanox_barrier_tree_la_LDFLAGS = $(ld_plugin_flags)
-#libnanox_barrier_tree_la_SOURCES = \
-#	tree_barrier.cpp \
-#	$(END)
+.libs/libspu_embed.a : spu_idle.o
+	$(PPUEMBED) -m32 spu_idle $< null.o
+	$(AR) cru $@ null.o
+	$(RM) -rf null.o
+	$(RANLIB) $@
+
+libspu_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(SPUCCFLAGS)
+libspu_la_SOURCES = \
+                spudd.hpp \
+                spudd.cpp \
+		spuprocessor.hpp \
+		spuprocessor.cpp \
+		sputhread.hpp \
+		sputhread.cpp \
+                $(END)
+
+libspu_la_DEPENDENCIES = .libs/libspu_embed.a
+libspu_la_LIBADD=-lspu_embed
+

@@ -21,7 +21,6 @@
 #include "schedule.hpp"
 #include "debug.hpp"
 #include "system.hpp"
-#include <iostream>
 
 using namespace nanos;
 using namespace nanos::ext;

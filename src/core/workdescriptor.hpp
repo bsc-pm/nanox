@@ -149,7 +149,6 @@ namespace nanos
             /**< Each WorkDescriptor has a domain where DependableObjects can be submitted */
             DependenciesDomain _depsDomain;
 
-            WorkDescriptor ( const WorkDescriptor &wd );
             const WorkDescriptor & operator= ( const WorkDescriptor &wd );
 
         public:
@@ -164,10 +163,24 @@ namespace nanos
                     _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( &_activeDevice ),
                     _activeDevice ( device ), _doSubmit(this), _doWait(this), _depsDomain() {}
 
-            // xteruel: tmp
-            // WorkDescriptor ( const Workdescriptor &wd, void *data, ... ) : Workgroup(wd), _data_size(wd._data_size)
-            //{
-	    //}
+            /*! \brief WorkDescriptor constructor (using former wd)
+             *
+             *  This function is used as a constructor, receiving as a parameter other WorkDescriptor.
+             *  The constructor uses a DeviceData vector and a new void * data which will be completely
+             *  different from the former WorkDescriptor. Rest of the data is copied from the former WD.
+             *
+             *  \see WorkDescriptor
+             */
+            WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, void *data = NULL ) :
+                    WorkGroup( *((WorkGroup * ) &wd) ), _data_size( wd._data_size ), _data ( data ), _wdData ( NULL ),
+                    _tie ( wd._tie ), _tiedTo ( wd._tiedTo ), _state ( READY ), _syncCond( NULL ), _parent ( wd._parent ),
+                    _myQueue ( NULL ), _depth ( wd._depth ), _numDevices ( wd._numDevices ),
+                    _devices ( devs ), _activeDevice ( wd._numDevices ? devs[0] : NULL ),
+                    _doSubmit(this), _doWait(this), _depsDomain()
+            { 
+               // adding wd to former workdescriptor's workgroup
+               ((WorkGroup *)(_parent))->addWork( *this );
+            }
 
             // destructor
             // all data will be allocated in a single chunk so only the destructors need to be invoked
