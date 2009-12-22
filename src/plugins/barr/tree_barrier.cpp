@@ -111,7 +111,7 @@ namespace nanos {
 
       void TreeBarrier::barrier( int participant )
       {
-         int myID = participant; //myThread->getTeamId();
+         int myID = participant;
          int left_child = 2*myID + 1;
          int right_child = 2*myID + 2;
          int parent = -1;
