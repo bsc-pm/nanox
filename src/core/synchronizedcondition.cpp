@@ -23,8 +23,6 @@
 
 using namespace nanos;
 
-/* \brief Wait until the condition has been satisfied
- */
 void SynchronizedCondition::wait()
 {
    int spins=100; // Has this to be configurable??
@@ -72,9 +70,6 @@ void SynchronizedCondition::wait()
    myThread->getCurrentWD()->setSyncCond( NULL );
 }
 
-/* \brief Signal the waiters if the condition has been satisfied. If they
- * are blocked they will be set to ready and enqueued.
- */
 void SynchronizedCondition::signal()
 {
    lock();

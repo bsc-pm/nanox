@@ -66,6 +66,8 @@ namespace nanos
          */
          virtual ~DOSubmit ( ) { }
 
+        /*! \brief Submits WorkDescriptor when dependencies are satisfied
+         */
          virtual void dependenciesSatisfied ( );
          
    };
@@ -114,12 +116,21 @@ namespace nanos
          */
          virtual ~DOWait ( ) { }
 
+        /*! \brief Initialise wait condition
+         */
          virtual void init ( );
 
+        /*! \brief Wait method blocks execution untill dependencies are satisfied
+         */
          virtual void wait ( );
 
+        /*! \brief whether the DO gets blocked and no more dependencies can
+         *  be submitted until it is satisfied.
+         */
          virtual bool waits ( );
 
+        /*! \brief Unblock method when dependencies are satisfied
+         */
          virtual void dependenciesSatisfied ( );
         
    };
