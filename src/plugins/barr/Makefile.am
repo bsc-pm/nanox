@@ -22,6 +22,8 @@ include $(top_srcdir)/src/common.am
 lib_LTLIBRARIES = \
 	libnanox-barrier-centralized.la \
 	libnanox-barrier-posix.la \
+	libnanox-barrier-dissemination.la \
+	libnanox-barrier-tree.la \
 	$(END)
 
 libnanox_barrier_centralized_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
@@ -36,14 +38,14 @@ libnanox_barrier_posix_la_SOURCES = \
 	posix_barrier.cpp \
 	$(END)
 
-#libnanox_barrier_dissemination_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
-#libnanox_barrier_dissemination_la_LDFLAGS = $(ld_plugin_flags)
-#libnanox_barrier_dissemination_la_SOURCES = \
-#	dissem_barrier.cpp \
-#	$(END)
-#
-#libnanox_barrier_tree_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
-#libnanox_barrier_tree_la_LDFLAGS = $(ld_plugin_flags)
-#libnanox_barrier_tree_la_SOURCES = \
-#	tree_barrier.cpp \
-#	$(END)
+libnanox_barrier_dissemination_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
+libnanox_barrier_dissemination_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_barrier_dissemination_la_SOURCES = \
+	dissem_barrier.cpp \
+	$(END)
+
+libnanox_barrier_tree_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
+libnanox_barrier_tree_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_barrier_tree_la_SOURCES = \
+	tree_barrier.cpp \
+	$(END)

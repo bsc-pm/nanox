@@ -44,9 +44,8 @@ namespace nanos {
             /*! the semaphores are implemented with a vector of atomic integers, because their number can change in successive
                invocations of the barrier method */
             vector<Atomic<int> > _semaphores;
-            vector<SingleSyncCond<int> *> _syncConds1;
-            vector<SingleSyncCond<int> *> _syncConds2;
-            Atomic<unsigned int> _ticket;
+            vector<SingleSyncCond *> _syncCondsZero;
+            vector<SingleSyncCond *> _syncCondsMone;
 
             /*! number of participants: can change dynamically */
             int _numParticipants;
@@ -74,15 +73,13 @@ namespace nanos {
          _numParticipants = numParticipants;
 
          _semaphores.resize( _numParticipants );
-         _syncConds1.resize( _numParticipants );
-         _syncConds2.resize( _numParticipants );
-
-         _ticket = 0;
+         _syncCondsZero.resize( _numParticipants );
+         _syncCondsMone.resize( _numParticipants );
 
          for ( int i = 0; i < _numParticipants; i++ ) {
             _semaphores[i] = 0;
-            _syncConds1[i] = new SingleSyncCond<int>( &_semaphores[i].override(), 0);
-            _syncConds2[i] = new SingleSyncCond<int>( &_semaphores[i].override(), -1);
+            _syncCondsZero[i] = new SingleSyncCond( new EqualConditionChecker<int>( &_semaphores[i].override(), 0 ) );
+            _syncCondsMone[i] = new SingleSyncCond( new EqualConditionChecker<int>( &_semaphores[i].override(), -1 ) );
          }
 
          /*! we can compute the number of steps of the algorithm */
@@ -96,15 +93,13 @@ namespace nanos {
          _numParticipants = numParticipants;
 
          _semaphores.resize( _numParticipants );
-         _syncConds1.resize( _numParticipants );
-         _syncConds2.resize( _numParticipants );
-
-         _ticket = 0;
+         _syncCondsZero.resize( _numParticipants );
+         _syncCondsMone.resize( _numParticipants );
 
          for ( int i = 0; i < _numParticipants; i++ ) {
             _semaphores[i] = 0;
-            _syncConds1[i] = new SingleSyncCond<int>( &_semaphores[i].override(), 0);
-            _syncConds2[i] = new SingleSyncCond<int>( &_semaphores[i].override(), -1);
+            _syncCondsZero[i] = new SingleSyncCond( new EqualConditionChecker<int>( &_semaphores[i].override(), 0 ) );
+            _syncCondsMone[i] = new SingleSyncCond( new EqualConditionChecker<int>( &_semaphores[i].override(), -1 ) );
          }
 
          /*! we can re-compute the number of steps of the algorithm */
@@ -112,42 +107,21 @@ namespace nanos {
       }
 
 
-      void DisseminationBarrier::barrier( int numParticipants )
+      void DisseminationBarrier::barrier( int participant )
       {
-//         int myID = myThread->getId();
-warning("got ticket " << _ticket.override());
-         int myID = (_ticket++)%_numParticipants;
+         int myID = myThread->getId();
 
          for ( int s = 0; s < _q; s++ ) {
             //compute the current step neighbour id
             int toSign = ( myID + ( int ) pow( 2,s ) ) % _numParticipants;
 
-warning(" waiting for "<< toSign << " value is " << _semaphores[toSign].override() << " expecting 0");
-            _syncConds1[toSign]->wait();
+            _syncCondsZero[toSign]->wait();
             ( _semaphores[toSign] )--;
-warning(" signaling "<< toSign << " value set to " << _semaphores[toSign].override());
-            _syncConds2[toSign]->signal();
+            _syncCondsMone[toSign]->signal();
 
-warning(" 2 waiting for "<< myID << " value is " << _semaphores[myID].override() << " expecting -1");
-            _syncConds2[myID]->wait();
+            _syncCondsMone[myID]->wait();
             ( _semaphores[myID] )++;
-warning(" signaling "<< myID << " value set to " << _semaphores[myID].override());
-            _syncConds1[myID]->signal();
-/*
-            //wait for the neighbour sem to reach the previous value
-warning(" waiting for "<< toSign << " sem value: "<< _semaphores[toSign].override());
-            Scheduler::blockOnCondition( &_semaphores[toSign].override(), 0 );
-            ( _semaphores[toSign] )--;
-            / *!
-             *  Wait for the semaphore to be signaled for this round
-             *  (check if it reached the number of step signals (+1 because the for starts from 0 
-             *  for a correct computation of neighbours)
-             * /
-warning(" myself, for "<< myID << " sem value: "<< _semaphores[myID].override());
-            Scheduler::blockOnCondition( &_semaphores[myID].override(), -1 );
-
-            ( _semaphores[myID] )++;
-*/
+            _syncCondsZero[myID]->signal();
          }
 
          /*! at the end of the protocol, we are guaranteed that the semaphores are all 0 */

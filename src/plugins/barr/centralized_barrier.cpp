@@ -36,15 +36,17 @@ namespace nanos {
          private:
             Atomic<int> _sem;
             Atomic<bool> _flag;
-            MultipleSyncCond<bool> _syncCond1;
-            MultipleSyncCond<bool> _syncCond2;
+            MultipleSyncCond _syncCondTrue;
+            MultipleSyncCond _syncCondFalse;
             int _numParticipants;
 
          public:
             CentralizedBarrier () : Barrier(), _sem(0), _flag(false),
-               _syncCond1( &(_flag.override()), true ), _syncCond2( &(_flag.override()), false ) {}
+               _syncCondTrue( new EqualConditionChecker<bool>( &(_flag.override()), true ), 1 ),
+               _syncCondFalse( new EqualConditionChecker<bool>( &(_flag.override()), false ), 1 ) {}
             CentralizedBarrier ( const CentralizedBarrier& barrier ) : Barrier(barrier), _sem(0), _flag(false),
-               _syncCond1( &(_flag.override()), true ), _syncCond2( &(_flag.override()), false )
+               _syncCondTrue( new EqualConditionChecker<bool>( &(_flag.override()), true ), barrier._numParticipants ),
+               _syncCondFalse( new EqualConditionChecker<bool>( &(_flag.override()), false ), barrier._numParticipants )
                { init( barrier._numParticipants ); }
 
             const CentralizedBarrier & operator= ( const CentralizedBarrier & barrier );
@@ -75,11 +77,15 @@ namespace nanos {
       void CentralizedBarrier::init( int numParticipants ) 
       {
          _numParticipants = numParticipants;
+         _syncCondTrue.resize( numParticipants );
+         _syncCondFalse.resize( numParticipants );
       }
 
       void CentralizedBarrier::resize( int numParticipants ) 
       {
          _numParticipants = numParticipants;
+         _syncCondTrue.resize( numParticipants );
+         _syncCondFalse.resize( numParticipants );
       }
 
 
@@ -94,9 +100,9 @@ namespace nanos {
          releasing all other threads waiting in the next block */
          if ( val == _numParticipants ) {
             _flag=true;
-            _syncCond1.signal();
+            _syncCondTrue.signal();
          } else {
-            _syncCond1.wait();
+            _syncCondTrue.wait();
          }
 
          val = --_sem;
@@ -105,9 +111,9 @@ namespace nanos {
          A thread passing in the next barrier will be blocked until this is performed */
          if ( val == 0 ) {
             _flag=false;
-            _syncCond2.signal();
+            _syncCondFalse.signal();
          } else {
-            _syncCond2.wait();
+            _syncCondFalse.wait();
          }
       }
 
