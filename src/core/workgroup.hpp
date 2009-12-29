@@ -42,7 +42,7 @@ namespace nanos
          Atomic<int>    _components;
          Atomic<int>    _phaseCounter;
 
-         SingleSyncCond< int > _syncCond;
+         SingleSyncCond _syncCond;
 
          void addToGroup ( WorkGroup &parent );
          void exitWork ( WorkGroup &work );
@@ -51,8 +51,8 @@ namespace nanos
 
       public:
          // constructors
-         WorkGroup() : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ), _syncCond( &_components.override(), 0 ) {  }
-         WorkGroup( const WorkGroup &wg ) : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ), _syncCond( &_components.override(), 0 ) 
+         WorkGroup() : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ), _syncCond( new EqualConditionChecker<int>( &_components.override(), 0 ) ) {  }
+         WorkGroup( const WorkGroup &wg ) : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ), _syncCond( new EqualConditionChecker<int>(&_components.override(), 0 ) ) 
          {
             // FIXME: (#106) iterate on _partOf (and copy values)
          }

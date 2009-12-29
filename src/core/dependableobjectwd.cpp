@@ -57,6 +57,7 @@ void DOWait::wait ( )
  */
 void DOWait::dependenciesSatisfied ( )
 {
+   _depsSatisfied = true;
    _syncCond.signal();
 }
 
