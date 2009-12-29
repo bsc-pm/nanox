@@ -40,6 +40,7 @@ typedef void * nanos_slicer_t;
 typedef void * nanos_slicer_data_t;
 typedef void * nanos_lock_t;
 typedef void * nanos_dd_t;
+typedef void * nanos_sync_cond_t;
 
 typedef struct {
    int nthreads;
@@ -102,8 +103,13 @@ nanos_err_t nanos_single_guard ( bool *);
 // sync
 
 nanos_err_t nanos_wg_wait_completation ( nanos_wg_t wg );
-nanos_err_t nanos_wait_on_int ( volatile int *p, int condition );
-nanos_err_t nanos_wait_on_bool ( volatile _Bool *p, _Bool condition );
+
+nanos_err_t nanos_create_int_sync_cond ( nanos_sync_cond_t *sync_cond, volatile int *p, int condition );
+nanos_err_t nanos_create_bool_sync_cond ( nanos_sync_cond_t *sync_cond, volatile bool *p, bool condition );
+nanos_err_t nanos_sync_cond_wait ( nanos_sync_cond_t *sync_cond );
+nanos_err_t nanos_sync_cond_signal ( nanos_sync_cond_t *sync_cond );
+nanos_err_t nanos_destroy_sync_cond ( nanos_sync_cond_t *sync_cond );
+
 nanos_err_t nanos_wait_on ( size_t num_deps, nanos_dependence_t *deps );
 
 nanos_err_t nanos_init_lock ( nanos_lock_t *lock );
