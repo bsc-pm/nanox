@@ -22,12 +22,63 @@
 
 #include <stdlib.h>
 #include <list>
+#include <vector>
 #include "atomic.hpp"
 #include "debug.hpp"
 
 namespace nanos
 {
    class WorkDescriptor;
+
+   class ConditionChecker
+   {
+      public:
+         ConditionChecker() {}
+
+         virtual ~ConditionChecker() {}
+
+         virtual bool checkCondition() = 0;
+   };
+
+   template<typename T>
+   class ConditionCheckerTemplate : public ConditionChecker
+   {
+      protected:
+         volatile T*     _var;
+         T               _condition;
+      public:
+         ConditionCheckerTemplate( volatile T* var, T condition ) : ConditionChecker(), _var(var), _condition(condition) {}
+
+         virtual ~ConditionCheckerTemplate() {}
+
+         virtual bool checkCondition() = 0;
+   };
+
+   template<typename T>
+   class EqualConditionChecker : public ConditionCheckerTemplate<T>
+   {
+      public:
+         EqualConditionChecker(volatile T* var, T condition) : ConditionCheckerTemplate<T>( var, condition ) {}
+
+         virtual ~EqualConditionChecker() {}
+
+         virtual bool checkCondition() {
+            return ( *(this->_var) == (this->_condition) );
+         }
+   };
+
+   template<typename T>
+   class LessOrEqualConditionChecker : public ConditionCheckerTemplate<T>
+   {
+      public:
+         LessOrEqualConditionChecker(volatile T* var, T condition) : ConditionCheckerTemplate<T>( var, condition ) {}
+
+         virtual ~LessOrEqualConditionChecker() {}
+
+         virtual bool checkCondition() {
+            return ( *(this->_var) <= (this->_condition) );
+         }
+   };
 
   /*! \brief Abstract synchronization class.
    */
@@ -36,6 +87,8 @@ namespace nanos
       private:
          /**< Lock to block and unblock WorkDescriptors securely*/
          Lock _lock;
+
+         ConditionChecker* _conditionChecker;
 
          // Disable copy constructor and assign operator
          SynchronizedCondition ( SynchronizedCondition & sc );
@@ -50,10 +103,6 @@ namespace nanos
          }
 
       protected:
-
-        /* \brief Must return true if the condition for the synchronization is satisfied
-         */
-         virtual bool checkCondition() = 0;
 
         /* \brief Sets a waiter Workdescriptor
          */
@@ -70,7 +119,7 @@ namespace nanos
       public:
         /* \brief Constructor
          */
-         SynchronizedCondition () : _lock() { }
+         SynchronizedCondition ( ConditionChecker *cc = NULL) : _lock(), _conditionChecker(cc) { }
 
         /* \brief virtual destructor
          */
@@ -78,6 +127,13 @@ namespace nanos
 
          void wait();
          void signal();
+
+         void setConditionChecker( ConditionChecker *cc )
+         {
+            if ( _conditionChecker != NULL )
+               delete (_conditionChecker);
+            _conditionChecker = cc;
+         }
 
         /* \brief Release the lock. The wait() method can switch context
          * so it is necessary this function to be public so that the switchHelper
@@ -91,15 +147,12 @@ namespace nanos
    };
 
   /* \brief SynchronizedCondition specialization that checks equality fon one
-     variable and with just one waiter.
+   * variable and with just one waiter.
    */
-   template<typename T>
    class SingleSyncCond : public SynchronizedCondition
    {
       private:
          WorkDescriptor* _waiter;
-         volatile T*     _var;
-         T               _condition;
 
          // Disable copy constructor and assign operator
          SingleSyncCond ( SingleSyncCond & ssc );
@@ -110,25 +163,13 @@ namespace nanos
          * \param var Variable which value is used for synchronization
          * \param condition Value expected
          */
-         SingleSyncCond ( T* var, const T &condition ) : SynchronizedCondition(), 
-            _waiter( NULL ), _var( var ), _condition( condition ) { }
-
-         SingleSyncCond ( volatile T* var, const T &condition ) : SynchronizedCondition(), 
-            _waiter( NULL ), _var( var ), _condition( condition ) { }
+         SingleSyncCond ( ConditionChecker *cc = NULL) : SynchronizedCondition( cc ), _waiter( NULL ) { }
 
         /* \brief virtual destructor
          */
          virtual ~SingleSyncCond() { }
 
       protected:
-        /* \brief Checks equality between the variable and the condition with
-         * which it has been created.
-         */
-         virtual bool checkCondition()
-         {
-            return (*_var == _condition);
-         }
-
         /* \brief Sets the waiter to wd
          */
          virtual void addWaiter( WorkDescriptor* wd )
@@ -154,18 +195,15 @@ namespace nanos
    };
 
   /* \brief SynchronizedCondition specialization that checks equality fon one
-     variable and with more than one waiter.
+   * variable and with more than one waiter.
    */
-   template<typename T>
    class MultipleSyncCond : public SynchronizedCondition
    {
       private:
-         //typedef std::vector<WorkDescriptor*> WorkDescriptorList;
-         typedef std::list<WorkDescriptor *> WorkDescriptorList;
+         typedef std::vector<WorkDescriptor*> WorkDescriptorList;
+//         typedef std::list<WorkDescriptor *> WorkDescriptorList;
 
          WorkDescriptorList _waiters;
-         volatile T*     _var;
-         T               _condition;
 
          // Disable copy constructor and assign operator
          MultipleSyncCond ( MultipleSyncCond & ssc );
@@ -176,25 +214,23 @@ namespace nanos
          * \param var Variable which value is used for synchronization
          * \param condition Value expected
          */
-         MultipleSyncCond ( T* var, const T &condition ) : SynchronizedCondition(), 
-            _waiters(), _var( var ), _condition( condition ) { }
+         MultipleSyncCond (ConditionChecker *cc, size_t size) : SynchronizedCondition( cc ), _waiters()
+         {
+            _waiters.reserve(size);
+         }
 
-         MultipleSyncCond ( volatile T* var, const T &condition ) : SynchronizedCondition(), 
-            _waiters(), _var( var ), _condition( condition ) { }
+        /* Set the number of waiters expected to wait on this condition
+         */
+         void resize ( size_t size )
+         {
+            _waiters.reserve(size);
+         }
 
         /* \brief virtual destructor
          */
          virtual ~MultipleSyncCond() { }
 
       protected:
-        /* \brief Checks equality between the variable and the condition with
-         * which it has been created.
-         */
-         virtual bool checkCondition()
-         {
-            return (*_var == _condition);
-         }
-
         /* \brief Sets the waiter to wd
          */
          virtual void addWaiter( WorkDescriptor* wd )
@@ -214,9 +250,9 @@ namespace nanos
          virtual WorkDescriptor* getAndRemoveWaiter()
          {
             if ( _waiters.empty() )
-               return NULL;
-            WorkDescriptor* reslt = *( _waiters.begin() );
-            _waiters.pop_front();
+               return (WorkDescriptor*)16;
+            WorkDescriptor* reslt =  _waiters.back();
+            _waiters.pop_back();
             return reslt;
          }
    };

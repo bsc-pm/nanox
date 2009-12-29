@@ -29,9 +29,13 @@ void SynchronizedCondition::wait()
 {
    int spins=100; // Has this to be configurable??
 
+   // FIXME use exceptions
+   if ( _conditionChecker == NULL)
+      warning("Synchronized condition has no ConditionChecker for wait");
+
    myThread->getCurrentWD()->setSyncCond( this );
 
-   while ( !checkCondition() ) {
+   while ( !_conditionChecker->checkCondition() ) {
       BaseThread *thread = getMyThreadSafe();
       WD * current = thread->getCurrentWD();
       current->setIdle();
@@ -39,7 +43,7 @@ void SynchronizedCondition::wait()
       spins--;
       if ( spins == 0 ) {
          lock();
-         if ( !checkCondition() ) {
+         if ( !( _conditionChecker->checkCondition() ) ) {
             addWaiter( current );
 
             WD *next = thread->getSchedulingGroup()->atBlock ( thread );
