@@ -4,24 +4,24 @@
 
 namespace nanos {
 
-class SlicerDynamicFor: public Slicer
+class SlicerGuidedFor: public Slicer
 {
    private:
    public:
       // constructor
-      SlicerDynamicFor ( ) { }
+      SlicerGuidedFor ( ) { }
 
       // destructor
-      ~SlicerDynamicFor ( ) { }
+      ~SlicerGuidedFor ( ) { }
 
       // headers (implemented below)
       void submit ( SlicedWD & work ) ;
       bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
 };
 
-void SlicerDynamicFor::submit ( SlicedWD &work )
+void SlicerGuidedFor::submit ( SlicedWD &work )
 {
-   debug0 ( "Using sliced work descriptor: Dynamic For" );
+   debug0 ( "Using sliced work descriptor: Guided For" );
 
    // compute sign value
    int sign = ((SlicerDataFor *)work.getSlicerData())->getStep();
@@ -32,12 +32,11 @@ void SlicerDynamicFor::submit ( SlicedWD &work )
    Scheduler::submit ( work );
 }
 
-bool SlicerDynamicFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
+bool SlicerGuidedFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
 {
-   int lower, upper;
-   bool last = false;
-
    // TODO: (#107) performance evaluation on this algorithm
+   int lower, upper, current_chunk, num_threads = myThread->getTeam()->size();
+   bool last = false;
 
    // copying slicer data values
    int _lower = ((SlicerDataFor *)wd->getSlicerData())->getLower();
@@ -46,9 +45,14 @@ bool SlicerDynamicFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
    int _sign = ((SlicerDataFor *)wd->getSlicerData())->getSign();
    int _chunk = ((SlicerDataFor *)wd->getSlicerData())->getChunk();
 
+   // computing current chunk
+   if ( _sign == 1 ) current_chunk = ((_upper-_lower)/(_step*_sign)) / ( 2*num_threads);
+   else current_chunk = ((_lower-_upper)/(_step*_sign)) / ( 2*num_threads);
+   if ( current_chunk < _chunk ) current_chunk = _chunk;
+
    // computing initial bounds
    lower = _lower;
-   upper = _lower + ( _chunk * _step );
+   upper = _lower + ( current_chunk * _step );
 
    // checking boundaries
    if ( ( upper * _sign ) >= ( _upper * _sign ) ) {
@@ -70,18 +74,18 @@ bool SlicerDynamicFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
 
 namespace ext {
 
-class SlicerDynamicForPlugin : public Plugin {
+class SlicerGuidedForPlugin : public Plugin {
    public:
-      SlicerDynamicForPlugin () : Plugin("Slicer for Loops using a dynamic policy",1) {}
-      ~SlicerDynamicForPlugin () {}
+      SlicerGuidedForPlugin () : Plugin("Slicer for Loops using a guided policy",1) {}
+      ~SlicerGuidedForPlugin () {}
 
       void init ()
       {
-         sys.registerSlicer("dynamic_for", new SlicerDynamicFor() );	
+         sys.registerSlicer("guided_for", new SlicerGuidedFor() );	
       }
 };
 
 } // namespace ext
 } // namespace nanos
 
-nanos::ext::SlicerDynamicForPlugin NanosXPlugin;
+nanos::ext::SlicerGuidedForPlugin NanosXPlugin;

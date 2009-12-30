@@ -23,6 +23,7 @@
 #include "smpprocessor.hpp"
 #include "system.hpp"
 #include "slicer.hpp"
+#include "plugin.hpp"
 
 using namespace std;
 
@@ -53,7 +54,9 @@ void print_vector();
 #define EXECUTE(get_slicer,slicer_data,lower,upper,k_offset,step,chunk)\
    for ( i = 0; i < NUM_ITERS; i++ ) {\
       _loop_data.offset = -k_offset; \
-      WD * wd = new SlicedWD( *sys.getSlicer(get_slicer), *new slicer_data(lower+k_offset,upper+k_offset,step,chunk),\
+      PluginManager::load( std::string("slicer-")+std::string(get_slicer) ); \
+      Slicer *slicer = sys.getSlicer ( get_slicer ); \
+      WD * wd = new SlicedWD( *slicer, sizeof(slicer_data), *new slicer_data(lower+k_offset,upper+k_offset,step,chunk),\
                         new SMPDD( main__loop_1 ), sizeof( _loop_data ),( void * ) &_loop_data );\
       WG *wg = myThread->getCurrentWD();\
       wg->addWork( *wd );\
@@ -82,38 +85,38 @@ void print_vector();
    p_check = true; out_of_range = false; race_condition = false; step_error = false;
 
 
-#define TEST(test_type,test_get_slicer,test_slicer_data,test_step,test_chunk)\
-   EXECUTE(test_get_slicer, test_slicer_data, 0, VECTOR_SIZE, 0, +test_step, test_chunk)\
+#define TEST(test_type,test_slicer_data,test_step,test_chunk)\
+   EXECUTE(test_type, test_slicer_data, 0, VECTOR_SIZE, 0, +test_step, test_chunk)\
    FINALIZE (test_type,"0","+","+0000",+test_step,test_chunk)\
-   EXECUTE(test_get_slicer, test_slicer_data, VECTOR_SIZE-1, -1, 0, -test_step, test_chunk)\
+   EXECUTE(test_type, test_slicer_data, VECTOR_SIZE-1, -1, 0, -test_step, test_chunk)\
    FINALIZE (test_type,"+","0","+0000",-test_step,test_chunk)\
-   EXECUTE(test_get_slicer, test_slicer_data, 0, VECTOR_SIZE, -VECTOR_SIZE, +test_step, test_chunk)\
+   EXECUTE(test_type, test_slicer_data, 0, VECTOR_SIZE, -VECTOR_SIZE, +test_step, test_chunk)\
    FINALIZE (test_type,"-","0","-VS  ",+test_step,test_chunk)\
-   EXECUTE(test_get_slicer, test_slicer_data, VECTOR_SIZE-1, -1, -VECTOR_SIZE, -test_step, test_chunk)\
+   EXECUTE(test_type, test_slicer_data, VECTOR_SIZE-1, -1, -VECTOR_SIZE, -test_step, test_chunk)\
    FINALIZE (test_type,"0","-","-VS  ",-test_step,test_chunk)\
-   EXECUTE(test_get_slicer, test_slicer_data, 0, VECTOR_SIZE, VECTOR_SIZE/2, +test_step, test_chunk)\
+   EXECUTE(test_type, test_slicer_data, 0, VECTOR_SIZE, VECTOR_SIZE/2, +test_step, test_chunk)\
    FINALIZE (test_type,"+","+","+VS/2",+test_step,test_chunk)\
-   EXECUTE(test_get_slicer, test_slicer_data, VECTOR_SIZE-1, -1, VECTOR_SIZE/2, -test_step, test_chunk)\
+   EXECUTE(test_type, test_slicer_data, VECTOR_SIZE-1, -1, VECTOR_SIZE/2, -test_step, test_chunk)\
    FINALIZE (test_type,"+","+","+VS/2",-test_step,test_chunk)\
-   EXECUTE(test_get_slicer, test_slicer_data, 0, VECTOR_SIZE, -(VECTOR_SIZE/2), +test_step, test_chunk)\
+   EXECUTE(test_type, test_slicer_data, 0, VECTOR_SIZE, -(VECTOR_SIZE/2), +test_step, test_chunk)\
    FINALIZE (test_type,"-","+","-VS/2",+test_step,test_chunk)\
-   EXECUTE(test_get_slicer, test_slicer_data, VECTOR_SIZE-1, -1, -(VECTOR_SIZE/2), -test_step, test_chunk)\
+   EXECUTE(test_type, test_slicer_data, VECTOR_SIZE-1, -1, -(VECTOR_SIZE/2), -test_step, test_chunk)\
    FINALIZE (test_type,"+","-","-VS/2",-test_step,test_chunk)\
-   EXECUTE(test_get_slicer, test_slicer_data, 0, VECTOR_SIZE, -(2*VECTOR_SIZE), +test_step, test_chunk)\
+   EXECUTE(test_type, test_slicer_data, 0, VECTOR_SIZE, -(2*VECTOR_SIZE), +test_step, test_chunk)\
    FINALIZE (test_type,"-","-","-VS  ",+test_step,test_chunk)\
-   EXECUTE(test_get_slicer, test_slicer_data, VECTOR_SIZE-1, -1, -(2*VECTOR_SIZE), -test_step, test_chunk)\
+   EXECUTE(test_type, test_slicer_data, VECTOR_SIZE-1, -1, -(2*VECTOR_SIZE), -test_step, test_chunk)\
    FINALIZE (test_type,"-","-","-VS  ",-test_step,test_chunk)
 
-#define TEST_SLICER(test_slicer_type, test_slicer_get_slicer, test_slicer_slicer_data)  \
-   TEST(test_slicer_type, test_slicer_get_slicer, test_slicer_slicer_data, NUM_A, NUM_A)\
-   TEST(test_slicer_type, test_slicer_get_slicer, test_slicer_slicer_data, NUM_B, NUM_A)\
-   TEST(test_slicer_type, test_slicer_get_slicer, test_slicer_slicer_data, NUM_C, NUM_A)\
-   TEST(test_slicer_type, test_slicer_get_slicer, test_slicer_slicer_data, NUM_A, NUM_B)\
-   TEST(test_slicer_type, test_slicer_get_slicer, test_slicer_slicer_data, NUM_B, NUM_B)\
-   TEST(test_slicer_type, test_slicer_get_slicer, test_slicer_slicer_data, NUM_C, NUM_B)\
-   TEST(test_slicer_type, test_slicer_get_slicer, test_slicer_slicer_data, NUM_A, NUM_C)\
-   TEST(test_slicer_type, test_slicer_get_slicer, test_slicer_slicer_data, NUM_B, NUM_C)\
-   TEST(test_slicer_type, test_slicer_get_slicer, test_slicer_slicer_data, NUM_C, NUM_C)
+#define TEST_SLICER(test_slicer_type, test_slicer_slicer_data)  \
+   TEST(test_slicer_type, test_slicer_slicer_data, NUM_A, NUM_A)\
+   TEST(test_slicer_type, test_slicer_slicer_data, NUM_B, NUM_A)\
+   TEST(test_slicer_type, test_slicer_slicer_data, NUM_C, NUM_A)\
+   TEST(test_slicer_type, test_slicer_slicer_data, NUM_A, NUM_B)\
+   TEST(test_slicer_type, test_slicer_slicer_data, NUM_B, NUM_B)\
+   TEST(test_slicer_type, test_slicer_slicer_data, NUM_C, NUM_B)\
+   TEST(test_slicer_type, test_slicer_slicer_data, NUM_A, NUM_C)\
+   TEST(test_slicer_type, test_slicer_slicer_data, NUM_B, NUM_C)\
+   TEST(test_slicer_type, test_slicer_slicer_data, NUM_C, NUM_C)
 
 typedef struct {
    nanos_loop_info_t loop_info;
@@ -166,8 +169,27 @@ int main ( int argc, char **argv )
    // initialize vector
    for ( i = 0; i < VECTOR_SIZE+2*VECTOR_MARGIN; i++ ) I[i] = 0;
 
-   TEST_SLICER("dynamic", "DynamicFor", SlicerDataFor)
-   TEST_SLICER("guided ", "GuidedFor",  SlicerDataFor)
+#ifdef SLICER_STATIC
+   // omp for: static policy (chunk == 0)
+   TEST("static_for", SlicerDataFor, NUM_A, 0)
+   TEST("static_for", SlicerDataFor, NUM_B, 0)
+   TEST("static_for", SlicerDataFor, NUM_C, 0)
+#endif
+
+#ifdef SLICER_INTERLEAVED
+   // omp for: static policy (chunk != 0, interleaved)
+   TEST_SLICER("static_for", SlicerDataFor)
+#endif
+
+#ifdef SLICER_DYNAMIC
+   // omp for: dynamic policy (chunk != 0)
+   TEST_SLICER("dynamic_for", SlicerDataFor)
+#endif
+
+#ifdef SLICER_GUIDED
+   // omp for: guided policy (chunk != 0)
+   TEST_SLICER("guided_for", SlicerDataFor)
+#endif
 
    // final result
    //fprintf(stderr, "%s : %s\n", argv[0], check ? "  successful" : "unsuccessful");

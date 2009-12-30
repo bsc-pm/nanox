@@ -28,7 +28,6 @@ namespace nanos
 {
 
 // Forward declarations
-
    class SlicedWD;
 
    class Slicer
@@ -57,19 +56,25 @@ namespace nanos
    class SlicedWD : public WD
    {
       private:
-         Slicer & _slicer;         /**< Related Slicer */
-         SlicerData & _slicerData; /**< Related SlicerData */
+         Slicer     & _slicer;         /**< Related Slicer     */
+         size_t       _slicerDataSize; /**< SlicerData size    */
+         SlicerData & _slicerData;     /**< Related SlicerData */
       public:
           // constructors
-          SlicedWD ( Slicer &slicer, SlicerData &sdata, int ndevices, DeviceData **devs,
+          SlicedWD ( Slicer &slicer, size_t sdata_size, SlicerData &sdata, int ndevices, DeviceData **devs,
                      size_t data_size, void *wdata=0 ) :
                      WorkDescriptor ( ndevices, devs, data_size, wdata),
-                     _slicer(slicer), _slicerData(sdata)  {}
+                     _slicer(slicer), _slicerDataSize(sdata_size), _slicerData(sdata)  {}
 
-          SlicedWD ( Slicer &slicer, SlicerData &sdata, DeviceData *device,
+          SlicedWD ( Slicer &slicer, size_t sdata_size, SlicerData &sdata, DeviceData *device,
                      size_t data_size, void *wdata=0 ) :
                       WorkDescriptor ( device, data_size, wdata),
-                     _slicer(slicer), _slicerData(sdata)  {}
+                     _slicer(slicer), _slicerDataSize(sdata_size), _slicerData(sdata)  {}
+
+          SlicedWD ( Slicer &slicer, size_t sdata_size, SlicerData &sdata, WD &wd,
+                      DeviceData **device, void *wdata=0 ) :
+                      WorkDescriptor ( wd, device, wdata),
+                     _slicer(slicer), _slicerDataSize(sdata_size), _slicerData(sdata)  {}
 
          // destructor
          ~SlicedWD  ( ) { }
@@ -77,6 +82,10 @@ namespace nanos
          // get/set functions
          Slicer * getSlicer ( void ) { return &_slicer; }
          void setSlicer ( Slicer &slicer ) { _slicer = slicer; }
+
+         size_t getSlicerDataSize ( void ) { return _slicerDataSize; }
+         void setSlicerDataSize ( size_t sdata_size ) { _slicerDataSize = sdata_size; }
+
          SlicerData * getSlicerData ( void ) { return &_slicerData; }
          void setSlicerData ( SlicerData &slicerData ) { _slicerData = slicerData; }
 
@@ -96,51 +105,6 @@ namespace nanos
           *  \return  true if the resulting slice is the final slice and false otherwise.
           */ 
          bool dequeue ( WorkDescriptor **slice ) { return _slicer.dequeue( this, slice ); }
-   };
-
-   class SlicerRepeatN: public Slicer
-   {
-      private:
-      public:
-         // constructor
-         SlicerRepeatN ( ) { }
-
-         // destructor
-         ~SlicerRepeatN ( ) { }
-
-         // headers (implemented in slicer.cpp)
-         void submit ( SlicedWD & work ) ;
-         bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
-   };
-
-   class SlicerDynamicFor: public Slicer
-   {
-      private:
-      public:
-         // constructor
-         SlicerDynamicFor ( ) { }
-
-         // destructor
-         ~SlicerDynamicFor ( ) { }
-
-         // headers (implemented in slicer.cpp)
-         void submit ( SlicedWD & work ) ;
-         bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
-   };
-
-   class SlicerGuidedFor: public Slicer
-   {
-      private:
-      public:
-         // constructor
-         SlicerGuidedFor ( ) { }
-
-         // destructor
-         ~SlicerGuidedFor ( ) { }
-
-         // headers (implemented in slicer.cpp)
-         void submit ( SlicedWD & work ) ;
-         bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
    };
 
    class SlicerDataRepeatN : public SlicerData

@@ -112,6 +112,7 @@ namespace nanos
                         SlicerData *&slicer_data, nanos_wd_props_t *props );
 
          void duplicateWD ( WD **uwd, WD *wd );
+         void duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd );
 
          // methods to access configuration variables
          void setNumPEs ( int npes ) { _numPEs = npes; }
