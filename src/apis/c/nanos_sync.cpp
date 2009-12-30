@@ -21,6 +21,7 @@
 #include "nanos.h"
 #include "schedule.hpp"
 #include "system.hpp"
+#include "synchronizedcondition.hpp"
 
 using namespace nanos;
 
@@ -36,10 +37,10 @@ nanos_err_t nanos_wg_wait_completation ( nanos_wg_t uwg )
    return NANOS_OK;
 }
 
-nanos_err_t nanos_wait_on_int ( volatile int *p, int condition )
+nanos_err_t nanos_create_int_sync_cond ( nanos_sync_cond_t *sync_cond, volatile int *p, int condition )
 {
    try {
-      Scheduler::blockOnCondition<int>( p,condition );
+      *sync_cond = ( nanos_sync_cond_t * ) new SingleSyncCond( new EqualConditionChecker<int>( p, condition ) );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -47,10 +48,46 @@ nanos_err_t nanos_wait_on_int ( volatile int *p, int condition )
    return NANOS_OK;
 }
 
-nanos_err_t nanos_wait_on_bool ( volatile _Bool *p, _Bool condition )
+nanos_err_t nanos_create_bool_sync_cond ( nanos_sync_cond_t *sync_cond, volatile bool *p, bool condition )
 {
    try {
-      Scheduler::blockOnCondition<_Bool>( p,condition );
+      *sync_cond = ( nanos_sync_cond_t * ) new SingleSyncCond( new EqualConditionChecker<bool>( p, condition ) );
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+nanos_err_t nanos_sync_cond_wait ( nanos_sync_cond_t *sync_cond )
+{
+   try {
+      SynchronizedCondition * syncCond = (SynchronizedCondition *) *sync_cond;
+      syncCond->wait();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+nanos_err_t nanos_sync_cond_signal ( nanos_sync_cond_t *sync_cond )
+{
+   try {
+      SynchronizedCondition * syncCond = (SynchronizedCondition *) *sync_cond;
+      syncCond->signal();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+nanos_err_t nanos_destroy_sync_cond ( nanos_sync_cond_t *sync_cond )
+{
+   try {
+      SynchronizedCondition * syncCond = (SynchronizedCondition *) *sync_cond;
+      delete syncCond;
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }

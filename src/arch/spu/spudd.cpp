@@ -17,60 +17,19 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "workgroup.hpp"
-#include "atomic.hpp"
-#include "schedule.hpp"
+#include "spudd.hpp"
 
 using namespace nanos;
+using namespace nanos::ext;
 
-Atomic<int> WorkGroup::_atomicSeed( 0 );
+Device nanos::ext::SPU( "SMP" );
 
-void WorkGroup::addWork ( WorkGroup &work )
+SPUDD * SPUDD::copyTo ( void *toAddr )
 {
-   _components++;
-   work.addToGroup( *this );
+   SPUDD *dd = new (toAddr) SPUDD(*this);
+   return dd;
 }
 
-void WorkGroup::addToGroup ( WorkGroup &parent )
-{
-   _partOf.push_back( &parent );
-}
 
-void WorkGroup::exitWork ( WorkGroup &work )
-{
-   int componentsLeft = --_components;
-   if (componentsLeft == 0)
-      _syncCond.signal();
-}
 
-void WorkGroup::sync ()
-{
-   _phaseCounter++;
-   //TODO: block and switch
-
-   while ( _phaseCounter < _components );
-
-   //TODO: reinit phase_counter
-}
-
-void WorkGroup::waitCompletation ()
-{
-     _syncCond.wait();
-}
-
-void WorkGroup::done ()
-{
-   for ( WGList::iterator it = _partOf.begin();
-         it != _partOf.end();
-         it++ ) {
-      if ( *it )
-        ( *it )->exitWork( *this );
-      *it = 0;
-   }
-}
-
-WorkGroup::~WorkGroup ()
-{
-   done();
-}
 

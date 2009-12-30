@@ -17,60 +17,39 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "workgroup.hpp"
-#include "atomic.hpp"
-#include "schedule.hpp"
+#ifndef _NANOS_SPU_PROCESSOR
+#define _NANOS_SPU_PROCESSOR
 
-using namespace nanos;
+#include "smpprocessor.hpp"
+#include "sputhread.hpp"
+#include "spudd.hpp"
 
-Atomic<int> WorkGroup::_atomicSeed( 0 );
+namespace nanos {
+namespace ext {
 
-void WorkGroup::addWork ( WorkGroup &work )
-{
-   _components++;
-   work.addToGroup( *this );
+   class SPUProcessor : public PE 
+   { 
+     private:
+        SMPProcessor &_ppu;
+        // disable copy constructor and assignment operator
+        SPUProcessor( const SPUProcessor &pe );
+        const SPUProcessor & operator= ( const SPUProcessor &pe );
+
+     public:
+        // constructor
+        SPUProcessor( int id, SMPProcessor &ppu ) : PE( id, &SPU ), _ppu( ppu ) {}
+        ~SPUProcessor() {}
+
+        SMPProcessor & getPPU() const { return _ppu; }
+        
+        WD & getWorkerWD () const;
+        WD & getMasterWD () const;
+        BaseThread & createThread ( WorkDescriptor &wd );
+   };
+
+}
 }
 
-void WorkGroup::addToGroup ( WorkGroup &parent )
-{
-   _partOf.push_back( &parent );
-}
 
-void WorkGroup::exitWork ( WorkGroup &work )
-{
-   int componentsLeft = --_components;
-   if (componentsLeft == 0)
-      _syncCond.signal();
-}
-
-void WorkGroup::sync ()
-{
-   _phaseCounter++;
-   //TODO: block and switch
-
-   while ( _phaseCounter < _components );
-
-   //TODO: reinit phase_counter
-}
-
-void WorkGroup::waitCompletation ()
-{
-     _syncCond.wait();
-}
-
-void WorkGroup::done ()
-{
-   for ( WGList::iterator it = _partOf.begin();
-         it != _partOf.end();
-         it++ ) {
-      if ( *it )
-        ( *it )->exitWork( *this );
-      *it = 0;
-   }
-}
-
-WorkGroup::~WorkGroup ()
-{
-   done();
-}
+#endif
 

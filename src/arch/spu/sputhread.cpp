@@ -17,60 +17,64 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "workgroup.hpp"
-#include "atomic.hpp"
-#include "schedule.hpp"
+#include "sputhread.hpp"
+#include "system.hpp"
+#include <libspe2.h>
 
 using namespace nanos;
+using namespace nanos::ext;
 
-Atomic<int> WorkGroup::_atomicSeed( 0 );
+extern spe_program_handle_t spu_idle;
 
-void WorkGroup::addWork ( WorkGroup &work )
+void SPUThread::bootstrap ()
 {
-   _components++;
-   work.addToGroup( *this );
+    spe_context_ptr_t ctx;
+    unsigned int entry = SPE_DEFAULT_ENTRY;
+
+    debug("Starting SPU bootstrap");
+    if ((ctx = spe_context_create (0, NULL)) == NULL) {
+      perror ("Failed creating context");
+      exit (1);
+    }
+
+    if (spe_program_load (ctx, &spu_idle)) {
+      perror ("Failed loading program");
+      exit (1);
+    }
+    
+    if (spe_context_run(ctx, &entry, 0, 0, (void*)0, NULL) < 0 ) {
+      perror ("Failed running context");
+      exit (1);
+    }
 }
 
-void WorkGroup::addToGroup ( WorkGroup &parent )
+void SPUThread::start ()
 {
-   _partOf.push_back( &parent );
+   getPPU().start();
 }
 
-void WorkGroup::exitWork ( WorkGroup &work )
+void SPUThread::join ()
 {
-   int componentsLeft = --_components;
-   if (componentsLeft == 0)
-      _syncCond.signal();
+   getPPU().join();
 }
 
-void WorkGroup::sync ()
+void SPUThread::runDependent ()
 {
-   _phaseCounter++;
-   //TODO: block and switch
-
-   while ( _phaseCounter < _components );
-
-   //TODO: reinit phase_counter
 }
 
-void WorkGroup::waitCompletation ()
+void SPUThread::inlineWorkDependent( WD &work )
 {
-     _syncCond.wait();
 }
 
-void WorkGroup::done ()
+void SPUThread::switchTo( WD *work )
 {
-   for ( WGList::iterator it = _partOf.begin();
-         it != _partOf.end();
-         it++ ) {
-      if ( *it )
-        ( *it )->exitWork( *this );
-      *it = 0;
-   }
 }
 
-WorkGroup::~WorkGroup ()
+void SPUThread::exitTo( WD *work )
 {
-   done();
 }
 
+void SPUThread::bind ()
+{
+   getPPU().bind();
+}

@@ -23,40 +23,30 @@
 
 using namespace nanos;
 
-/*! \brief Submits WorkDescriptor when dependencies are satisfied
- */
 void DOSubmit::dependenciesSatisfied ( )
 {
      _submittedWD->submit();
 }
 
-/*! \brief whether the DO gets blocked and no more dependencies can
- *  be submitted until it is satisfied.
- */
 bool DOWait::waits()
 {
    return true;
 }
 
 
-/*! \brief Initialise wait condition
- */
 void DOWait::init()
 {
    _depsSatisfied = false;
 }
 
-/*! \brief Wait method blocks execution untill dependencies are satisfied
- */
 void DOWait::wait ( )
 {
-     Scheduler::blockOnCondition ( &_depsSatisfied, true);
+     _syncCond.wait();
 }
 
-/*! \brief Unblock method when dependencies are satisfied
- */
 void DOWait::dependenciesSatisfied ( )
 {
    _depsSatisfied = true;
+   _syncCond.signal();
 }
 

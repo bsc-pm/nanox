@@ -17,60 +17,69 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "workgroup.hpp"
-#include "atomic.hpp"
+#include "synchronizedcondition.hpp"
+#include "basethread.hpp"
 #include "schedule.hpp"
 
 using namespace nanos;
 
-Atomic<int> WorkGroup::_atomicSeed( 0 );
-
-void WorkGroup::addWork ( WorkGroup &work )
+void SynchronizedCondition::wait()
 {
-   _components++;
-   work.addToGroup( *this );
-}
+   int spins=100; // Has this to be configurable??
 
-void WorkGroup::addToGroup ( WorkGroup &parent )
-{
-   _partOf.push_back( &parent );
-}
+   // FIXME use exceptions
+   if ( _conditionChecker == NULL)
+      warning("Synchronized condition has no ConditionChecker for wait");
 
-void WorkGroup::exitWork ( WorkGroup &work )
-{
-   int componentsLeft = --_components;
-   if (componentsLeft == 0)
-      _syncCond.signal();
-}
+   myThread->getCurrentWD()->setSyncCond( this );
 
-void WorkGroup::sync ()
-{
-   _phaseCounter++;
-   //TODO: block and switch
+   while ( !_conditionChecker->checkCondition() ) {
+      BaseThread *thread = getMyThreadSafe();
+      WD * current = thread->getCurrentWD();
+      current->setIdle();
 
-   while ( _phaseCounter < _components );
+      spins--;
+      if ( spins == 0 ) {
+         lock();
+         if ( !( _conditionChecker->checkCondition() ) ) {
+            addWaiter( current );
 
-   //TODO: reinit phase_counter
-}
+            WD *next = thread->getSchedulingGroup()->atBlock ( thread );
 
-void WorkGroup::waitCompletation ()
-{
-     _syncCond.wait();
-}
+/*            if ( next ) {
+               sys._numReady--;
+            } */
 
-void WorkGroup::done ()
-{
-   for ( WGList::iterator it = _partOf.begin();
-         it != _partOf.end();
-         it++ ) {
-      if ( *it )
-        ( *it )->exitWork( *this );
-      *it = 0;
+            if ( !next )
+               next = thread->getSchedulingGroup()->getIdle ( thread );
+         
+	    if ( next ) {
+               current->setBlocked();
+               thread->switchTo ( next ); // how do we unlock here?
+            }
+            else {
+               unlock();
+            }
+         } else {
+            unlock();
+         }
+      spins = 100;
+      }
    }
+   myThread->getCurrentWD()->setReady();
+   myThread->getCurrentWD()->setSyncCond( NULL );
 }
 
-WorkGroup::~WorkGroup ()
+void SynchronizedCondition::signal()
 {
-   done();
+   lock();
+     while ( hasWaiters() ) {
+        WD* wd = getAndRemoveWaiter();
+        if ( wd->isBlocked() ) {
+           wd->setReady();
+           Scheduler::queue( *wd );
+        }
+     }
+   unlock(); 
 }
 

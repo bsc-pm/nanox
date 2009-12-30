@@ -19,4 +19,30 @@
 
 include $(top_srcdir)/src/common.am
 
+noinst_LTLIBRARIES = libspu.la
+EXTRAD_DIST= spu_idle.spu
+
+SPUCCFLAGS=-I @CELLSDK_INC@
+
+.spu.o: $<
+	$(SPUCC) $(SPUCCFLAGS) -x c -o $@ $<
+
+.libs/libspu_embed.a : spu_idle.o
+	$(PPUEMBED) -m32 spu_idle $< null.o
+	$(AR) cru $@ null.o
+	$(RM) -rf null.o
+	$(RANLIB) $@
+
+libspu_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(SPUCCFLAGS)
+libspu_la_SOURCES = \
+                spudd.hpp \
+                spudd.cpp \
+		spuprocessor.hpp \
+		spuprocessor.cpp \
+		sputhread.hpp \
+		sputhread.cpp \
+                $(END)
+
+libspu_la_DEPENDENCIES = .libs/libspu_embed.a
+libspu_la_LIBADD=-lspu_embed
 

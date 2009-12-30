@@ -122,11 +122,6 @@ namespace nanos
          static void submit ( WD &wd );
          static void exit ( void );
 
-         template<typename T>
-         static void blockOnCondition ( volatile T *var, T condition = 0 );
-         template<typename T>
-         static void blockOnConditionLess ( volatile T *var, T condition = 0 );
-
          static void idle ( void );
          static void queue ( WD &wd );
    };

@@ -91,7 +91,7 @@ Other idioms
 Documentation
 =============
 
-- Use doxygen (http://www.doxygen.org) to document all functions. Doxygen commands are enclosed in a special comment block above the function definition. A minimum doxygen block should block like this:
+- Use doxygen (http://www.doxygen.org) to document all functions. Doxygen commands are enclosed in a special comment block above the function declaration. A minimum doxygen block should block like this:
   /*! \brief Brief description of the function
    *         can span several lines
    *
@@ -110,7 +110,7 @@ Documentation
 
 - Additionally, try to document parts of your code where what is happening may not be obvious. For example if you use complex combined pointer and integer arithmetics like:
 	// copy all q elements into p, q is zero-terminated
-	while (*p++ = *q++ ); 
+	while ( *p++ = *q++ ); 
 
 Commandline and Environment
 ==========================

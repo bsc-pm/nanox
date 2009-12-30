@@ -29,7 +29,7 @@ endif
 
 # Common flags and files
 nanos_cxxflags=$(common_includes) $(common_cxxflags)
-nanos_ldflags=$(version_flags)
+nanos_ldflags=$(version_flags) @NANOS_CONFIG_LIBDIRS@
 nanos_libadd=\
 	-lpthread \
 	-ldl \
@@ -66,6 +66,8 @@ nanos_sources=\
 	trackableobject.hpp \
 	dependenciesdomain.hpp \
 	dependenciesdomain.cpp \
+        synchronizedcondition.hpp \
+        synchronizedcondition.cpp \
 	$(END)
 
 # Default

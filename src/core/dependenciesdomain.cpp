@@ -27,10 +27,6 @@ using namespace nanos;
 
 Atomic<int> DependenciesDomain::_atomicSeed( 0 );
 
-/*! \brief Looks for the dependency's address in the domain and returns the trackableObject associated.
- *  \param dep Dependency to be checked.
- *  \sa Dependency TrackableObject
- */
 TrackableObject* DependenciesDomain::lookupDependency ( const Dependency& dep )
 {
    TrackableObject *trackableObject = NULL;
@@ -46,12 +42,6 @@ TrackableObject* DependenciesDomain::lookupDependency ( const Dependency& dep )
    return trackableObject;
 }
 
-/*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
- *  \param depObj DependableObject to be added to the domain.
- *  \param begin Iterator to the start of the list of dependencies to be associated to the Dependable Object.
- *  \param end Iterator to the end of the mentioned list.
- *  \sa Dependency DependableObject TrackableObject
- */
 template<typename iterator>
 void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, iterator begin, iterator end )
 {
@@ -158,10 +148,6 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
 template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, Dependency* begin, Dependency* end );
 template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, std::vector<Dependency>::iterator begin, std::vector<Dependency>::iterator end );
 
-/*! \brief Dependable Object depObj is finished and its outgoing dependencies are removed.
- *  \param desObj Dependable Object that finished
- *  \sa DependableObject
- */
 void DependenciesDomain::finished ( DependableObject &depObj )
 {
 

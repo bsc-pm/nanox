@@ -22,6 +22,7 @@
 #include "atomic.hpp"
 #include "schedule.hpp"
 #include "plugin.hpp"
+#include "synchronizedcondition.hpp"
 
 namespace nanos {
    namespace ext {
@@ -44,6 +45,9 @@ namespace nanos {
                int left;
                int right;
                int parent;
+               SingleSyncCond *leftCondition;
+               SingleSyncCond *rightCondition;
+               SingleSyncCond *parentCondition;
                int phase;
             } NodeSems;
 
@@ -94,6 +98,9 @@ namespace nanos {
          for ( int i = 0; i < _numParticipants; i++) {
             _sems[i].parent = _sems[i].left = _sems[i].right = 0;
             _sems[i].phase = 1;
+            _sems[i].leftCondition = new SingleSyncCond();
+            _sems[i].rightCondition = new SingleSyncCond();
+            _sems[i].parentCondition = new SingleSyncCond();
          }
       }
 
@@ -106,12 +113,18 @@ namespace nanos {
          for ( int i = 0; i < _numParticipants; i++) {
              _sems[i].parent = _sems[i].left = _sems[i].right = 0;
             _sems[i].phase = 1;
+            if ( _sems[i].leftCondition == NULL )
+               _sems[i].leftCondition = new SingleSyncCond();
+            if ( _sems[i].rightCondition == NULL )
+               _sems[i].rightCondition = new SingleSyncCond();
+            if ( _sems[i].parentCondition == NULL )
+               _sems[i].parentCondition = new SingleSyncCond();
          }
       }
 
       void TreeBarrier::barrier( int participant )
       {
-         int myID = participant; //myThread->getTeamId();
+         int myID = participant;
          int left_child = 2*myID + 1;
          int right_child = 2*myID + 2;
          int parent = -1;
@@ -120,38 +133,49 @@ namespace nanos {
             parent = (int) (( myID - 1 ) / 2);
 
          int currPhase = _sems[myID].phase;
+         _sems[myID].leftCondition->setConditionChecker( new EqualConditionChecker<int>( &_sems[myID].left, _sems[myID].phase ) );
+         _sems[myID].rightCondition->setConditionChecker( new EqualConditionChecker<int>( &_sems[myID].right, _sems[myID].phase ) );
+         _sems[myID].parentCondition->setConditionChecker( new EqualConditionChecker<int>( &_sems[myID].parent, _sems[myID].phase ) );
 
           memoryFence();
 
 
          /*! Bottom-Up phase: check if I am leaf and possibly wait for children */
          if ( left_child < _numParticipants )
-            Scheduler::blockOnCondition<int>( &_sems[myID].left, currPhase );
+            _sems[myID].leftCondition->wait();
 
          if ( right_child < _numParticipants )
-            Scheduler::blockOnCondition<int>( &_sems[myID].right, currPhase );
+            _sems[myID].rightCondition->wait();
 
          /*! the bottom-up phase terminates with the root node (id = 0) */
          if ( myID != 0 ) {
             /*! now I can signal my parent: I first need to know if I am left or right child */
-            if ( 2*parent + 1 == myID )
+            if ( 2*parent + 1 == myID ) {
                _sems[parent].left = currPhase;
-            else
+               _sems[parent].leftCondition->signal();
+            } else {
                _sems[parent].right = currPhase;
+               _sems[parent].rightCondition->signal();
+            }
 
 
             memoryFence();
 
             /*! Top-Down phase: wait for the signal from the parent */
-            Scheduler::blockOnCondition<int>( &_sems[myID].parent, currPhase );
+            _sems[myID].parentCondition->wait();
+
          }
 
          /*! signaling the children if there are */
-         if ( left_child < _numParticipants )
+         if ( left_child < _numParticipants ) {
             _sems[left_child].parent = currPhase;
+            _sems[left_child].parentCondition->signal();
+         }
 
-         if ( right_child < _numParticipants )
+         if ( right_child < _numParticipants ) {
            _sems[right_child].parent = currPhase;
+           _sems[right_child].parentCondition->signal();
+         }
 
          memoryFence();
 

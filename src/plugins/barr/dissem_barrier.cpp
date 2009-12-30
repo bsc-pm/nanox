@@ -25,6 +25,7 @@
 #include "system.hpp"
 #include "atomic.hpp"
 #include "plugin.hpp"
+#include "synchronizedcondition.hpp"
 
 using namespace std;
 
@@ -43,6 +44,8 @@ namespace nanos {
             /*! the semaphores are implemented with a vector of atomic integers, because their number can change in successive
                invocations of the barrier method */
             vector<Atomic<int> > _semaphores;
+            vector<SingleSyncCond *> _syncCondsZero;
+            vector<SingleSyncCond *> _syncCondsMone;
 
             /*! number of participants: can change dynamically */
             int _numParticipants;
@@ -70,6 +73,14 @@ namespace nanos {
          _numParticipants = numParticipants;
 
          _semaphores.resize( _numParticipants );
+         _syncCondsZero.resize( _numParticipants );
+         _syncCondsMone.resize( _numParticipants );
+
+         for ( int i = 0; i < _numParticipants; i++ ) {
+            _semaphores[i] = 0;
+            _syncCondsZero[i] = new SingleSyncCond( new EqualConditionChecker<int>( &_semaphores[i].override(), 0 ) );
+            _syncCondsMone[i] = new SingleSyncCond( new EqualConditionChecker<int>( &_semaphores[i].override(), -1 ) );
+         }
 
          /*! we can compute the number of steps of the algorithm */
          _q = ( int ) ceil( log2( ( double ) _numParticipants ) );
@@ -82,13 +93,21 @@ namespace nanos {
          _numParticipants = numParticipants;
 
          _semaphores.resize( _numParticipants );
+         _syncCondsZero.resize( _numParticipants );
+         _syncCondsMone.resize( _numParticipants );
+
+         for ( int i = 0; i < _numParticipants; i++ ) {
+            _semaphores[i] = 0;
+            _syncCondsZero[i] = new SingleSyncCond( new EqualConditionChecker<int>( &_semaphores[i].override(), 0 ) );
+            _syncCondsMone[i] = new SingleSyncCond( new EqualConditionChecker<int>( &_semaphores[i].override(), -1 ) );
+         }
 
          /*! we can re-compute the number of steps of the algorithm */
          _q = ( int ) ceil( log2( ( double ) _numParticipants ) );
       }
 
 
-      void DisseminationBarrier::barrier( int numParticipants )
+      void DisseminationBarrier::barrier( int participant )
       {
          int myID = myThread->getId();
 
@@ -96,18 +115,13 @@ namespace nanos {
             //compute the current step neighbour id
             int toSign = ( myID + ( int ) pow( 2,s ) ) % _numParticipants;
 
-            //wait for the neighbour sem to reach the previous value
-            Scheduler::blockOnCondition( &_semaphores[toSign].override(), 0 );
+            _syncCondsZero[toSign]->wait();
             ( _semaphores[toSign] )--;
+            _syncCondsMone[toSign]->signal();
 
-            /*!
-             *  Wait for the semaphore to be signaled for this round
-             *  (check if it reached the number of step signals (+1 because the for starts from 0 
-             *  for a correct computation of neighbours)
-             */
-            Scheduler::blockOnCondition( &_semaphores[myID].override(), -1 );
-
+            _syncCondsMone[myID]->wait();
             ( _semaphores[myID] )++;
+            _syncCondsZero[myID]->signal();
          }
 
          /*! at the end of the protocol, we are guaranteed that the semaphores are all 0 */

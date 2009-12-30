@@ -108,6 +108,9 @@ namespace nanos
 
          // WD micro-scheduling
          void inlineWork ( WD *work );
+
+         void switchHelper( WD* oldWD, WD* newWD );
+
          virtual void switchTo( WD *work ) = 0;
          virtual void exitTo( WD *work ) = 0;
 
@@ -159,6 +162,8 @@ namespace nanos
    };
 
    extern __thread BaseThread *myThread;
+
+   BaseThread * getMyThreadSafe();
 
 }
 

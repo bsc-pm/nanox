@@ -51,7 +51,7 @@ int nanos_get_wd_id ( nanos_wd_t wd )
    return lwd->getId();
 }
 
-nanos_slicer_t nanos_find_slicer ( char * label )
+nanos_slicer_t nanos_find_slicer ( const char * label )
 {
    try
    {

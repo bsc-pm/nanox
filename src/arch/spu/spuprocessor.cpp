@@ -17,60 +17,36 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "workgroup.hpp"
-#include "atomic.hpp"
-#include "schedule.hpp"
-
+#include "spuprocessor.hpp"
+#include "sputhread.hpp"
+#include "workdescriptor.hpp"
+#include "smpdd.hpp"
+   
 using namespace nanos;
+using namespace nanos::ext;
 
-Atomic<int> WorkGroup::_atomicSeed( 0 );
-
-void WorkGroup::addWork ( WorkGroup &work )
+WorkDescriptor & SPUProcessor::getWorkerWD () const
 {
-   _components++;
-   work.addToGroup( *this );
+   SPUDD * dd = new SPUDD( ); //TODO: missing idle function
+   WD *wd = new WD( dd );
+   return *wd;
 }
 
-void WorkGroup::addToGroup ( WorkGroup &parent )
+WorkDescriptor & SPUProcessor::getMasterWD () const
 {
-   _partOf.push_back( &parent );
+   WD * wd = new WD( new SPUDD() );
+   return *wd;
 }
 
-void WorkGroup::exitWork ( WorkGroup &work )
+BaseThread &SPUProcessor::createThread ( WorkDescriptor &helper )
 {
-   int componentsLeft = --_components;
-   if (componentsLeft == 0)
-      _syncCond.signal();
-}
+   ensure( helper.canRunIn( SPU ),"Incompatible worker thread" );
 
-void WorkGroup::sync ()
-{
-   _phaseCounter++;
-   //TODO: block and switch
+   WD * boot = new WD(new SMPDD(( SMPDD::work_fct )SPUThread::bootstrap));
+   
+   SPUThread &th = *new SPUThread( (SMPThread &)getPPU().createThread(*boot),
+                                   helper, this );
 
-   while ( _phaseCounter < _components );
-
-   //TODO: reinit phase_counter
-}
-
-void WorkGroup::waitCompletation ()
-{
-     _syncCond.wait();
-}
-
-void WorkGroup::done ()
-{
-   for ( WGList::iterator it = _partOf.begin();
-         it != _partOf.end();
-         it++ ) {
-      if ( *it )
-        ( *it )->exitWork( *this );
-      *it = 0;
-   }
-}
-
-WorkGroup::~WorkGroup ()
-{
-   done();
+   return th;
 }
 

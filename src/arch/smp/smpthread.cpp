@@ -74,12 +74,11 @@ void SMPThread::join ()
 }
 
 // This is executed in between switching stacks
-static void switchHelper ( WD *oldWD, WD *newWD, intptr_t *oldState  )
+static void switchHelperDependent ( WD *oldWD, WD *newWD, intptr_t *oldState  )
 {
    SMPDD & dd = ( SMPDD & )oldWD->getActiveDevice();
    dd.setState( oldState );
-   Scheduler::queue( *oldWD );
-   myThread->setCurrentWD( *newWD );
+   myThread->switchHelper( oldWD, newWD );
 }
 
 void SMPThread::inlineWorkDependent ( WD &wd )
@@ -105,7 +104,7 @@ void SMPThread::switchTo ( WD *wd )
          ( void * ) getCurrentWD(),
          ( void * ) wd,
          ( void * ) dd.getState(),
-         ( void * ) switchHelper );
+         ( void * ) switchHelperDependent );
    } else {
       inlineWork( wd );
       delete wd;

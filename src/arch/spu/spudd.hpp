@@ -17,60 +17,30 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "workgroup.hpp"
-#include "atomic.hpp"
-#include "schedule.hpp"
+#ifndef _NANOS_SPU_WD
+#define _NANOS_SPU_WD
 
-using namespace nanos;
+#include "workdescriptor.hpp"
 
-Atomic<int> WorkGroup::_atomicSeed( 0 );
+namespace nanos {
+namespace ext {
 
-void WorkGroup::addWork ( WorkGroup &work )
-{
-   _components++;
-   work.addToGroup( *this );
+   extern Device SPU;
+  
+   class SPUDD : public DD 
+   {
+     private:
+ 
+
+     public:
+        SPUDD ( ) : DD( &SPU ) {}
+        SPUDD ( const SPUDD &dd ) : DD( dd ) {}
+
+        SPUDD * copyTo ( void *toAddr );
+   };
+
+}
 }
 
-void WorkGroup::addToGroup ( WorkGroup &parent )
-{
-   _partOf.push_back( &parent );
-}
-
-void WorkGroup::exitWork ( WorkGroup &work )
-{
-   int componentsLeft = --_components;
-   if (componentsLeft == 0)
-      _syncCond.signal();
-}
-
-void WorkGroup::sync ()
-{
-   _phaseCounter++;
-   //TODO: block and switch
-
-   while ( _phaseCounter < _components );
-
-   //TODO: reinit phase_counter
-}
-
-void WorkGroup::waitCompletation ()
-{
-     _syncCond.wait();
-}
-
-void WorkGroup::done ()
-{
-   for ( WGList::iterator it = _partOf.begin();
-         it != _partOf.end();
-         it++ ) {
-      if ( *it )
-        ( *it )->exitWork( *this );
-      *it = 0;
-   }
-}
-
-WorkGroup::~WorkGroup ()
-{
-   done();
-}
+#endif
 

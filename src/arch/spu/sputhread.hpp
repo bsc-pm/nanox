@@ -17,60 +17,48 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "workgroup.hpp"
-#include "atomic.hpp"
-#include "schedule.hpp"
+#ifndef _NANOS_SPU_THREAD
+#define _NANOS_SPU_THREAD
 
-using namespace nanos;
+#include "basethread.hpp"
+#include "smpthread.hpp"
 
-Atomic<int> WorkGroup::_atomicSeed( 0 );
+namespace nanos {
+namespace ext {
+   
+   class SPUThread : public BaseThread
+   {
+      friend class SPUProcessor;
+      
+      private:
+         SMPThread  &_ppu;
+         // disable copy constructor and assignment operator
+         SPUThread( const SPUThread &th );
+         const SPUThread & operator= ( const SPUThread &th );
 
-void WorkGroup::addWork ( WorkGroup &work )
-{
-   _components++;
-   work.addToGroup( *this );
+      public:
+         // constructor
+         SPUThread( SMPThread &ppu, WD &w, PE *pe ) : BaseThread( w,pe ), _ppu(ppu) {}
+
+         // destructor
+         virtual ~SPUThread() { }
+
+         SMPThread & getPPU() const { return _ppu; }
+
+         virtual void start();
+         virtual void join();
+         virtual void runDependent ( void );
+
+         virtual void inlineWorkDependent( WD &work );
+         virtual void switchTo( WD *work );
+         virtual void exitTo( WD *work );
+         virtual void bind( void );
+
+         static  void bootstrap ();
+   };
+
+}
 }
 
-void WorkGroup::addToGroup ( WorkGroup &parent )
-{
-   _partOf.push_back( &parent );
-}
 
-void WorkGroup::exitWork ( WorkGroup &work )
-{
-   int componentsLeft = --_components;
-   if (componentsLeft == 0)
-      _syncCond.signal();
-}
-
-void WorkGroup::sync ()
-{
-   _phaseCounter++;
-   //TODO: block and switch
-
-   while ( _phaseCounter < _components );
-
-   //TODO: reinit phase_counter
-}
-
-void WorkGroup::waitCompletation ()
-{
-     _syncCond.wait();
-}
-
-void WorkGroup::done ()
-{
-   for ( WGList::iterator it = _partOf.begin();
-         it != _partOf.end();
-         it++ ) {
-      if ( *it )
-        ( *it )->exitWork( *this );
-      *it = 0;
-   }
-}
-
-WorkGroup::~WorkGroup ()
-{
-   done();
-}
-
+#endif

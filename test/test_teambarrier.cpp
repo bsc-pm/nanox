@@ -27,12 +27,16 @@ int main (int argc, char **argv)
 {
        cout << "start" << endl;
        //all threads perform a barrier: 
-       for ( unsigned i = 1; i < myThread->getTeam()->size(); i++ ) {
+       ThreadTeam &team = *myThread->getTeam();
+       for ( unsigned i = 1; i < team.size(); i++ ) {
               WD * wd = new WD(new SMPDD(barrier_code));
+	      wd->tieTo(team[i]);
               sys.submit(*wd);
        }
        usleep(100);
 
+       WD *wd = myThread->getCurrentWD();
+       wd->tieTo(*myThread);
        barrier_code(NULL);
 
        cout << "end" << endl;
