@@ -22,6 +22,7 @@
 #include "debug.hpp"
 #include "system.hpp"
 #include <iostream>
+#include <sched.h>
 
 extern "C"
 {
@@ -148,5 +149,11 @@ void SMPThread::bind( void )
    CPU_SET( cpu_id, &cpu_set );
    verbose( "Binding thread " << getId() << " to cpu " << cpu_id );
    sched_setaffinity( ( pid_t ) 0, sizeof( cpu_set ), &cpu_set );
+}
+
+void SMPThread::yield()
+{
+   if (sched_yield() != 0)
+      fatal("sched_yield call returned an error");
 }
 

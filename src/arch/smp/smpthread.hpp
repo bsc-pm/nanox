@@ -60,6 +60,10 @@ namespace ext
          virtual void switchTo( WD *work );
          virtual void exitTo( WD *work );
          virtual void bind( void );
+
+        /* \brief SMP specific yield implementation
+         */
+         virtual void yield();
    };
 
 
