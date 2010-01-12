@@ -50,16 +50,13 @@ void SynchronizedCondition< _T>::wait()
                sys._numReady--;
             } */
 
-            if ( !next )
-               next = thread->getSchedulingGroup()->getIdle ( thread );
-         
 	    if ( next ) {
                current->setBlocked();
-               thread->switchTo ( next ); // how do we unlock here?
+               thread->switchTo ( next );
             }
             else {
                unlock();
-               thread->yield(); // TODO
+               thread->yield();
             }
          } else {
             unlock();
