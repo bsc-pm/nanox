@@ -44,8 +44,8 @@ namespace nanos {
             /*! the semaphores are implemented with a vector of atomic integers, because their number can change in successive
                invocations of the barrier method */
             vector<Atomic<int> > _semaphores;
-            vector<SingleSyncCond *> _syncCondsZero;
-            vector<SingleSyncCond *> _syncCondsMone;
+            vector<SingleSyncCond<EqualConditionChecker<int> > > _syncCondsZero;
+            vector<SingleSyncCond<EqualConditionChecker<int> > > _syncCondsMone;
 
             /*! number of participants: can change dynamically */
             int _numParticipants;
@@ -78,8 +78,8 @@ namespace nanos {
 
          for ( int i = 0; i < _numParticipants; i++ ) {
             _semaphores[i] = 0;
-            _syncCondsZero[i] = new SingleSyncCond( new EqualConditionChecker<int>( &_semaphores[i].override(), 0 ) );
-            _syncCondsMone[i] = new SingleSyncCond( new EqualConditionChecker<int>( &_semaphores[i].override(), -1 ) );
+            _syncCondsZero[i] = SingleSyncCond<EqualConditionChecker<int> >( EqualConditionChecker<int>( &_semaphores[i].override(), 0));
+            _syncCondsMone[i] = SingleSyncCond<EqualConditionChecker<int> >( EqualConditionChecker<int>( &_semaphores[i].override(), -1));
          }
 
          /*! we can compute the number of steps of the algorithm */
@@ -98,8 +98,8 @@ namespace nanos {
 
          for ( int i = 0; i < _numParticipants; i++ ) {
             _semaphores[i] = 0;
-            _syncCondsZero[i] = new SingleSyncCond( new EqualConditionChecker<int>( &_semaphores[i].override(), 0 ) );
-            _syncCondsMone[i] = new SingleSyncCond( new EqualConditionChecker<int>( &_semaphores[i].override(), -1 ) );
+            _syncCondsZero[i] = SingleSyncCond<EqualConditionChecker<int> >( EqualConditionChecker<int>( &_semaphores[i].override(), 0 ));
+            _syncCondsMone[i] = SingleSyncCond<EqualConditionChecker<int> >( EqualConditionChecker<int>( &_semaphores[i].override(), -1));
          }
 
          /*! we can re-compute the number of steps of the algorithm */
@@ -109,19 +109,19 @@ namespace nanos {
 
       void DisseminationBarrier::barrier( int participant )
       {
-         int myID = myThread->getId();
+         int myID = participant;
 
          for ( int s = 0; s < _q; s++ ) {
             //compute the current step neighbour id
             int toSign = ( myID + ( int ) pow( 2,s ) ) % _numParticipants;
 
-            _syncCondsZero[toSign]->wait();
+            _syncCondsZero[toSign].wait();
             ( _semaphores[toSign] )--;
-            _syncCondsMone[toSign]->signal();
+            _syncCondsMone[toSign].signal();
 
-            _syncCondsMone[myID]->wait();
+            _syncCondsMone[myID].wait();
             ( _semaphores[myID] )++;
-            _syncCondsZero[myID]->signal();
+            _syncCondsZero[myID].signal();
          }
 
          /*! at the end of the protocol, we are guaranteed that the semaphores are all 0 */

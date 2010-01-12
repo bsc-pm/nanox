@@ -20,6 +20,7 @@
 #include "workgroup.hpp"
 #include "atomic.hpp"
 #include "schedule.hpp"
+#include "synchronizedcondition.hpp"
 
 using namespace nanos;
 

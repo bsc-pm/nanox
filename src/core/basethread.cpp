@@ -67,7 +67,7 @@ void BaseThread::inlineWork (WorkDescriptor *wd)
 */
 void BaseThread::switchHelper( WD* oldWD, WD* newWD )
 {
-   SynchronizedCondition *syncCond = oldWD->getSyncCond();
+   GenericSyncCond *syncCond = oldWD->getSyncCond();
    if ( syncCond != NULL ) {
       syncCond->unlock();
    } else {

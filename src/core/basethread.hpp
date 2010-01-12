@@ -114,6 +114,8 @@ namespace nanos
          virtual void switchTo( WD *work ) = 0;
          virtual void exitTo( WD *work ) = 0;
 
+         virtual void yield() {};
+
          // set/get methods
          void setCurrentWD ( WD &current ) { _currentWD = &current; }
 

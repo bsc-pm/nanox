@@ -20,6 +20,7 @@
 #include "dependableobjectwd.hpp"
 #include "workdescriptor.hpp"
 #include "schedule.hpp"
+#include "synchronizedcondition.hpp"
 
 using namespace nanos;
 

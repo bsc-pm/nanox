@@ -67,7 +67,7 @@ nanos_sources=\
 	dependenciesdomain.hpp \
 	dependenciesdomain.cpp \
         synchronizedcondition.hpp \
-        synchronizedcondition.cpp \
+        synchronizedcondition_decl.hpp \
 	$(END)
 
 # Default

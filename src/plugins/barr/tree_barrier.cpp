@@ -45,9 +45,9 @@ namespace nanos {
                int left;
                int right;
                int parent;
-               SingleSyncCond *leftCondition;
-               SingleSyncCond *rightCondition;
-               SingleSyncCond *parentCondition;
+               SingleSyncCond<EqualConditionChecker<int> > leftCondition;
+               SingleSyncCond<EqualConditionChecker<int> > rightCondition;
+               SingleSyncCond<EqualConditionChecker<int> > parentCondition;
                int phase;
             } NodeSems;
 
@@ -98,9 +98,9 @@ namespace nanos {
          for ( int i = 0; i < _numParticipants; i++) {
             _sems[i].parent = _sems[i].left = _sems[i].right = 0;
             _sems[i].phase = 1;
-            _sems[i].leftCondition = new SingleSyncCond();
-            _sems[i].rightCondition = new SingleSyncCond();
-            _sems[i].parentCondition = new SingleSyncCond();
+            _sems[i].leftCondition = SingleSyncCond<EqualConditionChecker<int> >();
+            _sems[i].rightCondition = SingleSyncCond<EqualConditionChecker<int> >();
+            _sems[i].parentCondition = SingleSyncCond<EqualConditionChecker<int> >();
          }
       }
 
@@ -113,12 +113,9 @@ namespace nanos {
          for ( int i = 0; i < _numParticipants; i++) {
              _sems[i].parent = _sems[i].left = _sems[i].right = 0;
             _sems[i].phase = 1;
-            if ( _sems[i].leftCondition == NULL )
-               _sems[i].leftCondition = new SingleSyncCond();
-            if ( _sems[i].rightCondition == NULL )
-               _sems[i].rightCondition = new SingleSyncCond();
-            if ( _sems[i].parentCondition == NULL )
-               _sems[i].parentCondition = new SingleSyncCond();
+            _sems[i].leftCondition = SingleSyncCond<EqualConditionChecker<int> >();
+            _sems[i].rightCondition = SingleSyncCond<EqualConditionChecker<int> >();
+            _sems[i].parentCondition = SingleSyncCond<EqualConditionChecker<int> >();
          }
       }
 
@@ -133,48 +130,49 @@ namespace nanos {
             parent = (int) (( myID - 1 ) / 2);
 
          int currPhase = _sems[myID].phase;
-         _sems[myID].leftCondition->setConditionChecker( new EqualConditionChecker<int>( &_sems[myID].left, _sems[myID].phase ) );
-         _sems[myID].rightCondition->setConditionChecker( new EqualConditionChecker<int>( &_sems[myID].right, _sems[myID].phase ) );
-         _sems[myID].parentCondition->setConditionChecker( new EqualConditionChecker<int>( &_sems[myID].parent, _sems[myID].phase ) );
+         _sems[myID].leftCondition.setConditionChecker( EqualConditionChecker<int>( &_sems[myID].left, _sems[myID].phase ) );
+         _sems[myID].leftCondition.setConditionChecker( EqualConditionChecker<int>( &_sems[myID].left, _sems[myID].phase ) );
+         _sems[myID].rightCondition.setConditionChecker( EqualConditionChecker<int>( &_sems[myID].right, _sems[myID].phase ) );
+         _sems[myID].parentCondition.setConditionChecker( EqualConditionChecker<int>( &_sems[myID].parent, _sems[myID].phase ) );
 
           memoryFence();
 
 
          /*! Bottom-Up phase: check if I am leaf and possibly wait for children */
          if ( left_child < _numParticipants )
-            _sems[myID].leftCondition->wait();
+            _sems[myID].leftCondition.wait();
 
          if ( right_child < _numParticipants )
-            _sems[myID].rightCondition->wait();
+            _sems[myID].rightCondition.wait();
 
          /*! the bottom-up phase terminates with the root node (id = 0) */
          if ( myID != 0 ) {
             /*! now I can signal my parent: I first need to know if I am left or right child */
             if ( 2*parent + 1 == myID ) {
                _sems[parent].left = currPhase;
-               _sems[parent].leftCondition->signal();
+               _sems[parent].leftCondition.signal();
             } else {
                _sems[parent].right = currPhase;
-               _sems[parent].rightCondition->signal();
+               _sems[parent].rightCondition.signal();
             }
 
 
             memoryFence();
 
             /*! Top-Down phase: wait for the signal from the parent */
-            _sems[myID].parentCondition->wait();
+            _sems[myID].parentCondition.wait();
 
          }
 
          /*! signaling the children if there are */
          if ( left_child < _numParticipants ) {
             _sems[left_child].parent = currPhase;
-            _sems[left_child].parentCondition->signal();
+            _sems[left_child].parentCondition.signal();
          }
 
          if ( right_child < _numParticipants ) {
            _sems[right_child].parent = currPhase;
-           _sems[right_child].parentCondition->signal();
+           _sems[right_child].parentCondition.signal();
          }
 
          memoryFence();

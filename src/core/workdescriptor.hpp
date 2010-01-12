@@ -25,6 +25,7 @@
 #include <vector>
 #include "workgroup.hpp"
 #include "dependableobjectwd.hpp"
+#include "synchronizedcondition_decl.hpp"
 #include "atomic.hpp"
 
 
@@ -43,8 +44,6 @@ namespace nanos
     class ProcessingElement;
 
     class WDDeque;
-
-    class SynchronizedCondition;
 
     class Device
     {
@@ -125,7 +124,7 @@ namespace nanos
             typedef enum { READY, IDLE, BLOCKED } State;
             State                _state;
 
-            SynchronizedCondition * _syncCond;
+            GenericSyncCond * _syncCond;
 
             //Added parent for cilk scheduler: first steal parent task, next other tasks
             WorkDescriptor *     _parent;
@@ -277,11 +276,11 @@ namespace nanos
                _state = READY;
             }
 
-            SynchronizedCondition * getSyncCond() {
+            GenericSyncCond * getSyncCond() {
                return _syncCond;
             }
 
-            void setSyncCond( SynchronizedCondition * syncCond ) {
+            void setSyncCond( GenericSyncCond * syncCond ) {
                _syncCond = syncCond;
             }
 

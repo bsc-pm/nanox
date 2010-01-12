@@ -36,17 +36,17 @@ namespace nanos {
          private:
             Atomic<int> _sem;
             Atomic<bool> _flag;
-            MultipleSyncCond _syncCondTrue;
-            MultipleSyncCond _syncCondFalse;
+            MultipleSyncCond<EqualConditionChecker<bool> > _syncCondTrue;
+            MultipleSyncCond<EqualConditionChecker<bool> > _syncCondFalse;
             int _numParticipants;
 
          public:
             CentralizedBarrier () : Barrier(), _sem(0), _flag(false),
-               _syncCondTrue( new EqualConditionChecker<bool>( &(_flag.override()), true ), 1 ),
-               _syncCondFalse( new EqualConditionChecker<bool>( &(_flag.override()), false ), 1 ) {}
+               _syncCondTrue( EqualConditionChecker<bool>( &(_flag.override()), true ), 1 ),
+               _syncCondFalse( EqualConditionChecker<bool>( &(_flag.override()), false ), 1 ) {}
             CentralizedBarrier ( const CentralizedBarrier& barrier ) : Barrier(barrier), _sem(0), _flag(false),
-               _syncCondTrue( new EqualConditionChecker<bool>( &(_flag.override()), true ), barrier._numParticipants ),
-               _syncCondFalse( new EqualConditionChecker<bool>( &(_flag.override()), false ), barrier._numParticipants )
+               _syncCondTrue( EqualConditionChecker<bool>( &(_flag.override()), true ), barrier._numParticipants ),
+               _syncCondFalse( EqualConditionChecker<bool>( &(_flag.override()), false ), barrier._numParticipants )
                { init( barrier._numParticipants ); }
 
             const CentralizedBarrier & operator= ( const CentralizedBarrier & barrier );

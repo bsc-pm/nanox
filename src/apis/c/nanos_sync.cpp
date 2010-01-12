@@ -40,7 +40,7 @@ nanos_err_t nanos_wg_wait_completation ( nanos_wg_t uwg )
 nanos_err_t nanos_create_int_sync_cond ( nanos_sync_cond_t *sync_cond, volatile int *p, int condition )
 {
    try {
-      *sync_cond = ( nanos_sync_cond_t * ) new SingleSyncCond( new EqualConditionChecker<int>( p, condition ) );
+      *sync_cond = ( nanos_sync_cond_t * ) new SingleSyncCond<EqualConditionChecker<int> >( EqualConditionChecker<int>( p, condition ) );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -51,7 +51,7 @@ nanos_err_t nanos_create_int_sync_cond ( nanos_sync_cond_t *sync_cond, volatile 
 nanos_err_t nanos_create_bool_sync_cond ( nanos_sync_cond_t *sync_cond, volatile bool *p, bool condition )
 {
    try {
-      *sync_cond = ( nanos_sync_cond_t * ) new SingleSyncCond( new EqualConditionChecker<bool>( p, condition ) );
+      *sync_cond = ( nanos_sync_cond_t * ) new SingleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>( p, condition ) );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -62,7 +62,7 @@ nanos_err_t nanos_create_bool_sync_cond ( nanos_sync_cond_t *sync_cond, volatile
 nanos_err_t nanos_sync_cond_wait ( nanos_sync_cond_t *sync_cond )
 {
    try {
-      SynchronizedCondition * syncCond = (SynchronizedCondition *) *sync_cond;
+      GenericSyncCond * syncCond = (GenericSyncCond *) *sync_cond;
       syncCond->wait();
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
@@ -74,7 +74,7 @@ nanos_err_t nanos_sync_cond_wait ( nanos_sync_cond_t *sync_cond )
 nanos_err_t nanos_sync_cond_signal ( nanos_sync_cond_t *sync_cond )
 {
    try {
-      SynchronizedCondition * syncCond = (SynchronizedCondition *) *sync_cond;
+      GenericSyncCond * syncCond = (GenericSyncCond *) *sync_cond;
       syncCond->signal();
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
@@ -86,7 +86,7 @@ nanos_err_t nanos_sync_cond_signal ( nanos_sync_cond_t *sync_cond )
 nanos_err_t nanos_destroy_sync_cond ( nanos_sync_cond_t *sync_cond )
 {
    try {
-      SynchronizedCondition * syncCond = (SynchronizedCondition *) *sync_cond;
+      GenericSyncCond * syncCond = (GenericSyncCond *) *sync_cond;
       delete syncCond;
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
