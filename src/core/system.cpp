@@ -266,7 +266,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
 
    // allocate device data
    for ( unsigned int i = 0 ; i < num_devices ; i ++ ) {
-      dev_ptrs[i] = ( DD* ) devices[0].factory( chunk , devices[0].arg );
+      dev_ptrs[i] = ( DD* ) devices[i].factory( chunk , devices[i].arg );
       chunk += devices[i].dd_size;
    }
 
@@ -369,7 +369,7 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
 
    // allocate device data
    for ( unsigned int i = 0 ; i < num_devices ; i ++ ) {
-      dev_ptrs[i] = ( DD* ) devices[0].factory( chunk , devices[0].arg );
+      dev_ptrs[i] = ( DD* ) devices[i].factory( chunk , devices[i].arg );
       chunk += devices[i].dd_size;
    }
 
