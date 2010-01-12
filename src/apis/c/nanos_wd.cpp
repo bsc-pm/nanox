@@ -151,8 +151,11 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
    try {
       if ( num_devices > 1 ) warning( "Multiple devices not yet supported. Using first one" );
 
-      // TODO: pre-allocate devices
-      WD wd( ( DD* ) devices[0].factory( 0, devices[0].arg ), data_size, data );
+      // TODO: choose device
+      // pre-allocate device
+      char chunk[devices[0].dd_size];
+
+      WD wd( ( DD* ) devices[0].factory( chunk, devices[0].arg ), data_size, data );
 
       if ( deps != NULL ) {
          sys.waitOn( num_deps, deps );
