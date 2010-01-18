@@ -166,6 +166,7 @@ namespace nanos
          typedef class VarOption<std::string>               StringVar;
 
          typedef class VarOption<int,isPositive<int> >      PositiveVar;
+         typedef class VarOption<size_t,isPositive<size_t> > SizeVar;
 
          typedef class ActionOption<int>                    IntegerAction;
 

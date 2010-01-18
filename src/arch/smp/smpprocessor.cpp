@@ -20,16 +20,19 @@
 #include "smpprocessor.hpp"
 #include "schedule.hpp"
 #include "debug.hpp"
+#include "config.hpp"
 #include <iostream>
 
 using namespace nanos;
 using namespace nanos::ext;
 
 bool SMPProcessor::_useUserThreads = true;
+size_t SMPProcessor::_threadsStackSize = 0;
 
 void SMPProcessor::prepareConfig ( Config &config )
 {
    config.registerArgOption( new Config::FlagOption( "nth-no-ut",_useUserThreads,false ) );
+   config.registerArgOption( new Config::SizeVar( "pthread-stack-size", _threadsStackSize ) );
 }
 
 WorkDescriptor & SMPProcessor::getWorkerWD () const
@@ -48,7 +51,8 @@ WorkDescriptor & SMPProcessor::getMasterWD () const
 BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper )
 {
    ensure( helper.canRunIn( SMP ),"Incompatible worker thread" );
-   SMPThread &th = *new SMPThread( helper,this,_useUserThreads );
+   SMPThread &th = *new SMPThread( helper,this );
+   th.stackSize(_threadsStackSize).useUserThreads(_useUserThreads);
 
    return th;
 }

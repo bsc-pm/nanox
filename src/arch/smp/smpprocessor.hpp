@@ -36,6 +36,7 @@ namespace ext
       private:
          // config variables
          static bool _useUserThreads;
+	 static size_t _threadsStackSize;
 
          // disable copy constructor and assignment operator
          SMPProcessor( const SMPProcessor &pe );

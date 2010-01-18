@@ -37,6 +37,7 @@ namespace ext
 
       private:
          pthread_t   _pth;
+	 size_t      _stackSize;
          bool        _useUserThreads;
 
          // disable copy constructor and assignment operator
@@ -45,7 +46,11 @@ namespace ext
 
       public:
          // constructor
-         SMPThread( WD &w, PE *pe, bool uUT=true ) : BaseThread( w,pe ),_useUserThreads( uUT ) {}
+         SMPThread( WD &w, PE *pe ) : BaseThread( w,pe ),_stackSize(0), _useUserThreads(true) {}
+
+	 // named parameter idiom
+         SMPThread & stackSize( size_t size ) { _stackSize = size; return *this; }
+	 SMPThread & useUserThreads ( bool use ) { _useUserThreads = use; return *this; }
 
          // destructor
          virtual ~SMPThread() { }
