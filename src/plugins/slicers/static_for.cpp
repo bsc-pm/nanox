@@ -77,7 +77,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          ((nanos_loop_info_t *)(slice->getData()))->upper = upper;
          ((nanos_loop_info_t *)(slice->getData()))->step = _step;
 
-         // xteruel: FIXME: slice has to run in a specific thread, (threadId == i)
+         slice->tieTo( (*myThread->getTeam())[i] );
          Scheduler::submit ( *slice );
 
          // next slice init
@@ -86,7 +86,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
       }
 
       // Submit: work
-      // xteruel: FIXME: slice has to run in a specific thread, (threadId == 0)
+      work.tieTo( (*myThread->getTeam())[0] );
       Scheduler::submit ( work );
    }
    // if chunk != 0: generate a SlicedWD for each thread (interleaved)
@@ -103,7 +103,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          (( SlicerDataFor *)wd->getSlicerData())->setChunk( _chunk );
          (( SlicerDataFor *)wd->getSlicerData())->setSign( _sign );
 
-         // xteruel: FIXME: slice has to run in a specific thread, (threadId == i)
+         wd->tieTo( (*myThread->getTeam())[i] );
          Scheduler::submit ( *wd );
 
          // next wd init
@@ -113,7 +113,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
       // (( SlicerDataFor *)work.getSlicerData())->setLower( upper );
 
       // Submit: work
-      // xteruel: FIXME: slice has to run in a specific thread, (threadId == 0)
+      work.tieTo( (*myThread->getTeam())[0] );
       Scheduler::submit ( work );
    }
 }
