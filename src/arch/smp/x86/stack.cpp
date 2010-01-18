@@ -24,7 +24,7 @@ using namespace nanos::ext;
 void SMPDD::initStackDep ( void *userfuction, void *data, void *cleanup )
 {
    _state =  _stack;
-   _state += _stackSize;
+   _state += _stackSize - 1;
    *_state = ( intptr_t )this;
    _state--;
    *_state = ( intptr_t )data;
@@ -32,8 +32,7 @@ void SMPDD::initStackDep ( void *userfuction, void *data, void *cleanup )
    *_state = ( intptr_t )cleanup;
    _state--;
    *_state = ( intptr_t )userfuction;
-   _state--;
 
    // skip first _state
-   _state -= 3;
+   _state -= 4;
 }
