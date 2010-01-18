@@ -30,18 +30,17 @@ extern "C"
 void SMPDD::initStackDep ( void *userfuction, void *data, void *cleanup )
 {
    _state = _stack;
-   _state += _stackSize;
+   _state += _stackSize - 1;
 
    *_state = ( intptr_t )cleanup;
    _state--;
    *_state = ( intptr_t )this;
-   _state--;
-   *_state = ( intptr_t )userfuction;
    _state --;
+   *_state = ( intptr_t )userfuction;
+   _state--;
    *_state = ( intptr_t )data;
    _state--;
    *_state = ( intptr_t )startHelper;
-   _state--;
    // skip first _state
-   _state -= 5;
+   _state -= 6;
 }
