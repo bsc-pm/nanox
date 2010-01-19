@@ -51,25 +51,6 @@ int nanos_get_wd_id ( nanos_wd_t wd )
    return lwd->getId();
 }
 
-nanos_slicer_t nanos_find_slicer ( const char * label )
-{
-   try
-   {
-      nanos_slicer_t slicer;
-      std::string plugin = "slicer-" + std::string(label);
-
-      slicer = sys.getSlicer ( std::string(label) );
-      if ( slicer == NULL ) {
-         if ( !PluginManager::load( plugin )) fatal0( "Could not load " + std::string(label) + "slicer" );
-         slicer = sys.getSlicer ( std::string(label) );
-      }
-      return slicer;
-
-   } catch ( ... ) {
-      return ( nanos_slicer_t ) NULL;
-   }
-}
-
 /*! \brief Creates a new WorkDescriptor
  *
  *  \sa nanos::WorkDescriptor

@@ -17,22 +17,33 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "smpdd.hpp"
+#include "nanos.h"
+#include "debug.hpp"
+#include "system.hpp"
+#include "plugin.hpp"
 
-using namespace nanos::ext;
+using namespace nanos;
 
-void SMPDD::initStackDep ( void *userfuction, void *data, void *cleanup )
+/*! \brief Find a slicer giving a label id
+ *
+ *  \sa Slicers
+ */
+nanos_slicer_t nanos_find_slicer ( const char * label )
 {
-   _state =  _stack;
-   _state += _stackSize - 1;
-   *_state = ( intptr_t )this;
-   _state--;
-   *_state = ( intptr_t )data;
-   _state--;
-   *_state = ( intptr_t )cleanup;
-   _state--;
-   *_state = ( intptr_t )userfuction;
+   try
+   {
+      nanos_slicer_t slicer;
+      std::string plugin = "slicer-" + std::string(label);
 
-   // skip first _state
-   _state -= 4;
+      slicer = sys.getSlicer ( std::string(label) );
+      if ( slicer == NULL ) {
+         if ( !PluginManager::load( plugin )) fatal0( "Could not load " + std::string(label) + "slicer" );
+         slicer = sys.getSlicer ( std::string(label) );
+      }
+      return slicer;
+
+   } catch ( ... ) {
+      return ( nanos_slicer_t ) NULL;
+   }
 }
+
