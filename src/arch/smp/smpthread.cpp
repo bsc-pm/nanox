@@ -42,20 +42,31 @@ void * smp_bootthread ( void *arg )
    pthread_exit ( 0 );
 }
 
+// TODO: detect at configure
+#define PTHREAD_STACK_MIN 16384
+
 void SMPThread::start ()
 {
-// TODO:
-//        /* initialize thread_attr: init. attr */
-//        pthread_attr_init(&nth_data.thread_attr);
-//        /* initialize thread_attr: stack attr */
-//        rv_pthread = pthread_attr_setstack(
-//                         (pthread_attr_t *) &nth_data.thread_attr,
-//                         (void *) aux_desc->stack_addr,
-//                         (size_t) aux_desc->stack_size
-//                 );
+   pthread_attr_t attr;
+   pthread_attr_init(&attr);
+
+   // user-defined stack size
+   if ( _stackSize > 0 ) {
+	// TODO: check alignment?
+
+	if ( _stackSize < PTHREAD_STACK_MIN ) {
+	 	warning("specified thread stack too small, adjusting it to minimum size");
+		_stackSize = PTHREAD_STACK_MIN;
+	}
+
+       char *stack = new char[_stackSize];
+
+       if ( stack == NULL || pthread_attr_setstack( &attr, stack, _stackSize ) )
+	 warning("couldn't create pthread stack");
+   }
 
 
-   if ( pthread_create( &_pth, NULL, smp_bootthread, this ) )
+   if ( pthread_create( &_pth, &attr, smp_bootthread, this ) )
       fatal( "couldn't create thread" );
 }
 
