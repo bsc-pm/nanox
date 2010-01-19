@@ -76,7 +76,7 @@ namespace nanos {
                Config config;
 
                int actualLimit = NumTasksThrottle::_defaultLimit; 
-               config.registerArgOption( new Config::PositiveVar( "nth-throttle-limit",
+               config.registerArgOption( new Config::PositiveVar( "throttle-limit",
                                           actualLimit ) );
                config.init(); 
                sys.setThrottlePolicy( createNumTasksThrottle( actualLimit )); 

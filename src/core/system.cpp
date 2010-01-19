@@ -87,30 +87,30 @@ void System::config ()
    Config config;
 
    verbose0 ( "Preparing configuration" );
-   config.registerArgOption( new Config::PositiveVar( "nth-pes",_numPEs ) );
+   config.registerArgOption( new Config::PositiveVar( "pes",_numPEs ) );
    config.registerEnvOption( new Config::PositiveVar( "NTH_PES",_numPEs ) );
-   config.registerArgOption( new Config::PositiveVar( "nth-stack-size",_deviceStackSize ) );
+   config.registerArgOption( new Config::PositiveVar( "stack-size",_deviceStackSize ) );
    config.registerEnvOption( new Config::PositiveVar( "NTH_STACK_SIZE",_deviceStackSize ) );
-   config.registerArgOption( new Config::FlagOption( "nth-no-binding", _bindThreads, false ) );
-   config.registerArgOption( new Config::FlagOption( "nth-verbose",_verboseMode ) );
+   config.registerArgOption( new Config::FlagOption( "no-binding", _bindThreads, false ) );
+   config.registerArgOption( new Config::FlagOption( "verbose",_verboseMode ) );
 
    //more than 1 thread per pe
-   config.registerArgOption( new Config::PositiveVar( "nth-thsperpe",_thsPerPE ) );
+   config.registerArgOption( new Config::PositiveVar( "thsperpe",_thsPerPE ) );
 
    //TODO: how to simplify this a bit?
    Config::MapVar<ExecutionMode>::MapList opts( 2 );
    opts[0] = Config::MapVar<ExecutionMode>::MapOption( "dedicated",DEDICATED );
    opts[1] = Config::MapVar<ExecutionMode>::MapOption( "shared",SHARED );
    config.registerArgOption(
-      new Config::MapVar<ExecutionMode>( "nth-mode",_executionMode,opts ) );
+      new Config::MapVar<ExecutionMode>( "mode",_executionMode,opts ) );
 
-   config.registerArgOption ( new Config::StringVar ( "nth-schedule", _defSchedule ) );
+   config.registerArgOption ( new Config::StringVar ( "schedule", _defSchedule ) );
    config.registerEnvOption ( new Config::StringVar ( "NTH_SCHEDULE", _defSchedule ) );
 
-   config.registerArgOption ( new Config::StringVar ( "nth-throttle", _defThrottlePolicy ) );
+   config.registerArgOption ( new Config::StringVar ( "throttle", _defThrottlePolicy ) );
    config.registerEnvOption ( new Config::StringVar ( "NTH_TROTTLE", _defThrottlePolicy ) );
 
-   config.registerArgOption ( new Config::StringVar ( "nth-barrier", _defBarr ) );
+   config.registerArgOption ( new Config::StringVar ( "barrier", _defBarr ) );
    config.registerEnvOption ( new Config::StringVar ( "NTH_BARRIER", _defBarr ) );
 
    verbose0 ( "Reading Configuration" );
