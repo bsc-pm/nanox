@@ -29,7 +29,7 @@ bool SMPProcessor::_useUserThreads = true;
 
 void SMPProcessor::prepareConfig ( Config &config )
 {
-   config.registerArgOption( new Config::FlagOption( "nth-no-ut",_useUserThreads,false ) );
+   config.registerArgOption( new Config::FlagOption( "no-ut",_useUserThreads,false ) );
 }
 
 WorkDescriptor & SMPProcessor::getWorkerWD () const

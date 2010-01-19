@@ -20,6 +20,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <string.h>
 #include "config.hpp"
 #include "os.hpp"
 #include <string.h>
@@ -29,6 +30,7 @@
 #include <functional>
 #include "debug.hpp"
 #include "functors.hpp"
+#include <map>
 
 using namespace nanos;
 
@@ -60,10 +62,6 @@ void Config::parseEnvironment ()
 
       if ( !env ) continue;
 
-      const std::string tmp( env );
-
-      std::istringstream iss( env );
-
       try {
          opt.parse( env );
       } catch ( InvalidOptionException &exception ) {
@@ -79,16 +77,20 @@ void Config::parseEnvironment ()
 // so it's not clear if its worth it.
 void Config::parseArguments ()
 {
-   const OS::ArgumentList & list = OS::getProgramArguments();
+   const char *tmp = OS::getEnvironmentVariable( "NANOS_ARGS" );
+   char space = ' ';
+   char env[ strlen(tmp) + 1 ];
+   strcpy( &env[0], tmp );
+   char *arg = strtok( &env[0], &space );
 
-   for ( OS::ArgumentList::const_iterator it = list.begin();
-         it < list.end(); it++ ) {
-
-      char * arg( ( *it )->_name );
+   while ( arg != NULL) {
       char * value=0;
       bool needValue=true;
 
-      if ( arg[0] != '-' ) continue;
+      if ( arg[0] != '-' ) {
+         arg = strtok( NULL, &space );
+         continue;
+      }
 
       arg++;
 
@@ -110,13 +112,9 @@ void Config::parseArguments ()
          Option &opt = *( *obj ).second;
 
          if ( needValue && opt.getType() != Option::FLAG ) {
-            OS::consumeArgument( *( *it ) );
-            it++;
-
-            if ( it == list.end() )
+            value = strtok( NULL, &space );
+            if ( value == NULL)
                throw InvalidOptionException( opt,"" );
-
-            value = ( *it )->_name;
          }
 
          try {
@@ -124,12 +122,9 @@ void Config::parseArguments ()
          } catch ( InvalidOptionException &exception ) {
             std::cerr << "WARNING:" << exception.what() << std::endl;
          }
-
-         OS::consumeArgument( *( *it ) );
       }
+      arg = strtok( NULL, &space );
    }
-
-   OS::repackArguments();
 }
 
 void Config::init ()

@@ -171,15 +171,15 @@ namespace nanos {
 
                //BUG: If defining local policy or steal policy the command line option *must not* include the = between
                //the option name and the value, but a space
-               config.registerArgOption( new Config::FlagOption( "nth-wf-no-steal-parent", WFPolicy::_noStealParent ) );
+               config.registerArgOption( new Config::FlagOption( "wf-no-steal-parent", WFPolicy::_noStealParent ) );
 
                typedef Config::MapVar<WFPolicy::QueuePolicy> QueuePolicyConfig;
 
                QueuePolicyConfig::MapList opts( 2 );
                opts[0] = QueuePolicyConfig::MapOption( "FIFO", WFPolicy::FIFO );
                opts[1] = QueuePolicyConfig::MapOption( "LIFO", WFPolicy::LIFO );
-               config.registerArgOption( new QueuePolicyConfig( "nth-wf-local-policy", WFPolicy::_localPolicy, opts ) );
-               config.registerArgOption( new QueuePolicyConfig( "nth-wf-steal-policy", WFPolicy::_stealPolicy, opts ) );
+               config.registerArgOption( new QueuePolicyConfig( "wf-local-policy", WFPolicy::_localPolicy, opts ) );
+               config.registerArgOption( new QueuePolicyConfig( "wf-steal-policy", WFPolicy::_stealPolicy, opts ) );
 
                config.init();
 
