@@ -285,7 +285,7 @@ namespace nanos
                // destructor
                virtual ~FlagOption() {}
 
-               virtual void setValue ( const bool &value ) { _var = value ^ _setTo; };
+               virtual void setValue ( const bool &value ) { _var = !( value ^ _setTo ); };
 
                virtual FlagOption * clone () { return new FlagOption( *this ); };
          };
