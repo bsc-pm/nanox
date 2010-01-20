@@ -81,17 +81,17 @@ void Config::parseArguments ()
 
    if ( tmp == NULL ) return;
 
-   char space = ' ';
    char env[ strlen(tmp) + 1 ];
    strcpy( &env[0], tmp );
-   char *arg = strtok( &env[0], &space );
+   char *arg = strtok( &env[0], " " );
 
    while ( arg != NULL) {
       char * value=0;
       bool needValue=true;
+      bool hasNegation=false;
 
       if ( arg[0] != '-' ) {
-         arg = strtok( NULL, &space );
+         arg = strtok( NULL, " " );
          continue;
       }
 
@@ -99,6 +99,13 @@ void Config::parseArguments ()
 
       // support --args
       if ( arg[0] == '-' ) arg++;
+
+      // Since this skips the negation prefix no other arguments
+      // are allowed to start with the negation prefix.
+      if ( strncmp( arg, "no-", 3 ) == 0) {
+         hasNegation=true;
+         arg+=3;
+      }
 
       if ( ( value = strchr( arg,'=' ) ) != NULL ) {
          // -arg=value form
@@ -115,9 +122,18 @@ void Config::parseArguments ()
          Option &opt = *( *obj ).second;
 
          if ( needValue && opt.getType() != Option::FLAG ) {
-            value = strtok( NULL, &space );
+            value = strtok( NULL, " " );
             if ( value == NULL)
                throw InvalidOptionException( opt,"" );
+         }
+         char yes[] = "yes";
+         char no[] = "no";
+
+         if ( opt.getType() == Option::FLAG ) {
+            if ( hasNegation )
+               value = no;
+            else
+               value = yes;
          }
 
          try {
@@ -126,7 +142,7 @@ void Config::parseArguments ()
             std::cerr << "WARNING:" << exception.what() << std::endl;
          }
       }
-      arg = strtok( NULL, &space );
+      arg = strtok( NULL, " " );
    }
 }
 

@@ -25,6 +25,7 @@
 #include "compatibility.hpp"
 #include <memory>
 #include <sstream>
+#include <string.h>
 
 namespace nanos
 {
@@ -237,11 +238,31 @@ namespace nanos
                virtual MapVar * clone () { return new MapVar( *this ); };
          };
 
-         // TODO: make final class
-         // TODO: inverted flags?
-         // TODO: add action in same pattern as other options
+         class ActionFlag : public Option
+         {
+            public:
+               // constructors
+               ActionFlag( const std::string &name ) :
+                     Option( name,Option::FLAG ) {}
 
-         class FlagOption : public Option
+               ActionFlag( const char *name ) :
+                     Option( name,Option::FLAG ) {}
+
+               // copy constructors
+               ActionFlag( const ActionFlag& opt ) : Option( opt ) {}
+
+               // assignment operator
+               const ActionFlag & operator= ( const ActionFlag & opt );
+               // destructor
+               virtual ~ActionFlag() {}
+
+               virtual void parse ( const char *value );
+               virtual void setValue ( const bool &value ) = 0;
+
+               virtual ActionFlag * clone () = 0;
+         };
+
+         class FlagOption : public ActionFlag
          {
 
             private:
@@ -253,18 +274,19 @@ namespace nanos
             public:
                // constructors
                FlagOption ( const std::string &name, bool &ref, bool value=true ) :
-                     Option( name,Option::FLAG ),_var( ref ),_setTo( value ) {}
+                     ActionFlag( name ),_var( ref ),_setTo( value ) {}
 
                FlagOption ( const char *name, bool &ref, bool value=true ) :
-                     Option( name,Option::FLAG ),_var( ref ),_setTo( value ) {}
+                     ActionFlag( name ),_var( ref ),_setTo( value ) {}
 
                // copy constructors
-               FlagOption( const FlagOption &opt ) : Option( opt ), _var( opt._var ), _setTo( opt._setTo ) {}
+               FlagOption( const FlagOption &opt ) : ActionFlag( opt ), _var( opt._var ), _setTo( opt._setTo ) {}
 
                // destructor
                virtual ~FlagOption() {}
 
-               virtual void parse ( const char *value );
+               virtual void setValue ( const bool &value ) { _var = value ^ _setTo; };
+
                virtual FlagOption * clone () { return new FlagOption( *this ); };
          };
 
@@ -374,14 +396,15 @@ namespace nanos
       throw InvalidOptionException( *this,value );
    }
 
-   inline void Config::FlagOption::parse ( const char *value )
+   inline void Config::ActionFlag::parse ( const char *value )
    {
-      if ( value )
+      if ( strcasecmp(value, "yes" ) == 0) {
+         setValue( true );
+      } else if ( strcasecmp(value, "no" ) == 0 ) {
+         setValue( false );
+      } else
          throw InvalidOptionException( *this,value );
-
-      _var = _setTo;
    }
-
 
 };
 
