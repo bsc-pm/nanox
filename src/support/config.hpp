@@ -374,7 +374,9 @@ namespace nanos
       if ( ( iss >> t ).fail() )
          throw InvalidOptionException( *this,value );
 
-      // TODO: check for remaining chars
+      if ( !iss.eof() )
+         throw InvalidOptionException( *this,value );
+
       if ( ! checkValue( t ) )
          throw InvalidOptionException( *this,value );
 
