@@ -241,11 +241,9 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
                           dd_size
                           ;
 
-   char *chunk=0;
-   char *start;
+   char *chunk = 0;
 
-   if ( size_to_allocate )
-      start = chunk = new char[size_to_allocate];
+   if ( size_to_allocate ) chunk = new char[size_to_allocate];
 
    // allocate WD
    if ( *uwd == NULL ) {
@@ -344,11 +342,9 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
                           dd_size
                           ;
 
-   char *chunk=0;
-   char *start;
+   char *chunk = 0;
 
-   if ( size_to_allocate )
-      start = chunk = new char[size_to_allocate];
+   if ( size_to_allocate ) chunk = new char[size_to_allocate];
 
    // allocate WD
    if ( *uwd == NULL ) {
@@ -417,11 +413,9 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( WD ) : 0 ) + (((wd->getDataSize()+7)>>3)<<3) +
                           sizeof( DD* ) * wd->getNumDevices() + dd_size ;
 
-   char *chunk=0;
-   char *start;
+   char *chunk = 0;
 
-   if ( size_to_allocate )
-      start = chunk = new char[size_to_allocate];
+   if ( size_to_allocate ) chunk = new char[size_to_allocate];
 
    // allocate WD
    if ( *uwd == NULL ) {
@@ -474,11 +468,9 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
    int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( SlicedWD ) : 0 ) + (((wd->getDataSize()+7)>>3)<<3) +
                           sizeof( DD* ) * wd->getNumDevices() + dd_size + (((wd->getSlicerDataSize()+7)>>3)<<3);
 
-   char *chunk=0;
-   char *start;
+   char *chunk = 0;
 
-   if ( size_to_allocate )
-      start = chunk = new char[size_to_allocate];
+   if ( size_to_allocate ) chunk = new char[size_to_allocate];
 
    // allocate WD
    if ( *uwd == NULL ) {

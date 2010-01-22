@@ -27,16 +27,15 @@ void SlicerStaticFor::submit ( SlicedWD &work )
    WorkDescriptor *slice = NULL;
    SlicedWD *wd = NULL;
 
-   // compute sign value
-   int _sign = ((SlicerDataFor *)work.getSlicerData())->getStep();
-   _sign = ( _sign < 0 ) ? -1 : +1;
-   (( SlicerDataFor *)work.getSlicerData())->setSign( _sign );
-
    // copying rest of slicer data values
    int _lower = ((SlicerDataFor *) work.getSlicerData())->getLower();
    int _upper = ((SlicerDataFor *) work.getSlicerData())->getUpper();
    int _step  = ((SlicerDataFor *) work.getSlicerData())->getStep();
    int _chunk = ((SlicerDataFor *) work.getSlicerData())->getChunk();
+
+   // compute sign value
+   int _sign = ( _step < 0 ) ? -1 : +1;
+   (( SlicerDataFor *)work.getSlicerData())->setSign( _sign );
 
    // if chunk == 0: generate a WD for each thread
    if ( _chunk == 0 ) {
@@ -153,16 +152,15 @@ bool SlicerStaticFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
          upper = _upper;
          last = true;
       }
-      else if ( (_lower * _sign) >= (_upper * _sign)) {
+      if ( (_lower * _sign) > (_upper * _sign)) {
          last = true;
       }
 
-debug ( "SF->deq:[" << lower << ":" << upper << "/" << _step << "]last:" << last );
-
-      (( SlicerDataFor *)wd->getSlicerData())->setLower( _lower );
-
       if ( last ) *slice = wd;
-      else sys.duplicateWD( slice, wd );
+      else {
+         sys.duplicateWD( slice, wd );
+         (( SlicerDataFor *)wd->getSlicerData())->setLower( _lower );
+      }
 
       ((nanos_loop_info_t *)((*slice)->getData()))->lower = lower;
       ((nanos_loop_info_t *)((*slice)->getData()))->upper = upper;
