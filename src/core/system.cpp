@@ -47,6 +47,10 @@ System::System () : _numPEs( 1 ), _deviceStackSize( 1024 ), _bindThreads( true )
 
 void System::loadModules ()
 {
+   verbose0 ( "Configuring module manager" );
+
+   PluginManager::init();
+
    verbose0 ( "Loading modules" );
 
    // load host processor module

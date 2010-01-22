@@ -20,11 +20,20 @@
 #include "debug.hpp"
 #include "plugin.hpp"
 #include "os.hpp"
+#include "config.hpp"
 
 using namespace nanos;
 
 std::string PluginManager::_pluginsDir( LIBDIR );
 PluginManager::PluginList PluginManager::_activePlugins;
+
+void PluginManager::init()
+{
+   Config config;
+   config.registerEnvOption ( new Config::StringVar ( "NTH_PLUGINS_DIR", _pluginsDir ) );
+   config.registerArgOption ( new Config::StringVar ( "plugins_dir", _pluginsDir ) );
+   config.init();
+}
 
 bool PluginManager::load ( const char *name )
 {

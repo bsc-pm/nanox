@@ -62,6 +62,8 @@ namespace nanos
 
       public:
 
+         static void init();
+
          static void setDirectory ( const char *dir ) {  _pluginsDir = dir;  }
          static void setDirectory ( const std::string & dir ) { _pluginsDir = dir;  }
 
