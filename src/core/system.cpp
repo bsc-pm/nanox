@@ -36,7 +36,8 @@ System nanos::sys;
 // default system values go here
 System::System () : _numPEs( 1 ), _deviceStackSize( 1024 ), _bindThreads( true ), _profile( false ), _instrument( false ),
       _verboseMode( false ), _executionMode( DEDICATED ), _thsPerPE( 1 ), _untieMaster(true),
-      _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" )
+      _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" ), _defInstr ( "empty_trace" ),
+      _instrumentor ( NULL )
 {
    verbose0 ( "NANOS++ initalizing... start" );
    config();
@@ -77,6 +78,9 @@ void System::loadModules ()
    if ( !PluginManager::load( "barrier-"+getDefaultBarrier() ) )
       fatal0( "Could not load main barrier algorithm" );
 
+   if ( !PluginManager::load( "instrumentor-"+getDefaultInstrumentor() ) )
+      fatal0( "Could not load " + getDefaultInstrumentor() + " instrumentor" );
+
    ensure( _defBarrFactory,"No default system barrier factory" );
 
 }
@@ -112,6 +116,9 @@ void System::config ()
 
    config.registerArgOption ( new Config::StringVar ( "barrier", _defBarr ) );
    config.registerEnvOption ( new Config::StringVar ( "NTH_BARRIER", _defBarr ) );
+
+   config.registerArgOption ( new Config::StringVar ( "instrumentor", _defInstr ) );
+   config.registerEnvOption ( new Config::StringVar ( "NTH_INSTRUMENTOR", _defInstr ) );
 
    verbose0 ( "Reading Configuration" );
    config.init();

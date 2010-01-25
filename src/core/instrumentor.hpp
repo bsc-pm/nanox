@@ -19,29 +19,57 @@
 
 #ifndef __NANOS_INSTRUMENTOR_H
 #define __NANOS_INSTRUMENTOR_H
+// xteruel: FIXME: this flag has to be managed through compilation
+#define ENABLE_INSTRUMENTATION
 
-namespace nanos
-{
+#define INSTRUMENTOR_MAX_STATES 10
+#define INSTRUMENTOR_MAX_EVENTS 10
+
+#define INSTRUMENTOR_STATE_RUNTIME  0
+#define INSTRUMENTOR_STATE_CPU      1
+#define INSTRUMENTOR_STATE_BARRIER  2
+
+namespace nanos {
 
   class Instrumentor {
+     int   states[INSTRUMENTOR_MAX_STATES];  /*<< state vector translator */
+     int   events[INSTRUMENTOR_MAX_EVENTS];  /*<< event vector translator */
+
      public:
        Instrumentor() {}
        virtual ~Instrumentor() {}
 
 #ifdef ENABLE_INSTRUMENTATION
 
-       // low-level instrumentation interface
+       // low-level instrumentation interface (pure virtual function)
 
-       virtual void pushState() {}
-       virtual void popState() {}
-       virtual void addEvent() {}
+       virtual void pushState( int state ) = 0;
+       virtual void popState( void ) = 0;
+       virtual void addEvent() = 0;
+       virtual void addEventList() = 0;
 
        // high-level events
 
-       virtual void enterRuntime () {}
-       virtual void leaveRuntime () {}
+       virtual void enterRuntime ()
+       {
+          pushState(states[INSTRUMENTOR_STATE_RUNTIME]);
+          
+       }
+       virtual void leaveRuntime ()
+       {
+          popState();
+       }
 
+       virtual void enterCPU () {}
+       virtual void leaveCPU () {}
 
+       virtual void threadIdle() {}
+
+       virtual void taskCreation() {}
+       virtual void taskCompletation() {}
+
+       virtual void enterBarrier() {}
+       virtual void leaveBarrier() {}
 
 #else
 
@@ -64,14 +92,10 @@ namespace nanos
        void taskCompletation() {}
 
        void enterBarrier() {}
-       void exitBarrier() {}
-
+       void leaveBarrier() {}
 
 #endif
 
   };
-
-
 }
-
 #endif

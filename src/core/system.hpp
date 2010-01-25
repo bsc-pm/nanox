@@ -29,6 +29,7 @@
 #include "slicer.hpp"
 #include "nanos-int.h"
 #include "dependency.hpp"
+#include "instrumentor.hpp"
 
 
 namespace nanos
@@ -73,6 +74,7 @@ namespace nanos
          std::string          _defSchedule;
          std::string          _defThrottlePolicy;
          std::string          _defBarr;
+         std::string          _defInstr;
 
          /*! factories for scheduling, pes and barriers objects */
          sgFactory            _defSGFactory;
@@ -83,6 +85,8 @@ namespace nanos
          ThreadList           _workers;
 
          Slicers              _slicers; /**< set of global slicers */
+
+         Instrumentor         *_instrumentor; /**< instrumentor object used in current execution */
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -163,6 +167,8 @@ namespace nanos
 
          const std::string & getDefaultBarrier() const { return _defBarr; }
 
+         const std::string & getDefaultInstrumentor() const { return _defInstr; }
+
          void setDefaultSGFactory ( sgFactory factory ) { _defSGFactory = factory; }
 
          void setHostFactory ( peFactory factory ) { _hostFactory = factory; }
@@ -175,6 +181,11 @@ namespace nanos
             if ( it == _slicers.end() ) return NULL;
             return (*it).second;
          }
+
+         Instrumentor * getInstrumentor ( void ) { return _instrumentor; }
+
+         // TODO: Is it needed to check if _instrumentor was already set?
+         void setInstrumentor ( Instrumentor *instr ) { _instrumentor = instr; }
 
          void registerSlicer ( const std::string &label, Slicer *slicer) { _slicers[label] = slicer; }
 
