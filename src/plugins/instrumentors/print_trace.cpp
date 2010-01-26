@@ -24,13 +24,10 @@ class InstrumentorPrintTrace: public Instrumentor
 
       // high-level events
 
-      void enterRuntime () { fprintf(stderr, "TRACE: Entering runtime.\n"); } 
-      void leaveRuntime () { fprintf(stderr, "TRACE: Leaving runtime.\n");  }
-      void enterBarrier () { fprintf(stderr, "TRACE: Entering barrier.\n"); }
-      void leaveBarrier () { fprintf(stderr, "TRACE: Leaving barrier.\n"); }
-
-#if 0
-
+      void enterRuntime () { fprintf(stderr, "TRACE [%d]: Entering runtime.\n", myThread->getId() ); } 
+      void leaveRuntime () { fprintf(stderr, "TRACE [%d]: Leaving runtime.\n", myThread->getId() );  }
+      void enterBarrier () { fprintf(stderr, "TRACE [%d]: Entering barrier.\n", myThread->getId() ); }
+      void leaveBarrier () { fprintf(stderr, "TRACE [%d]: Leaving barrier.\n", myThread->getId() ); }
       void enterCPU () {}
       void leaveCPU () {}
 
@@ -39,7 +36,6 @@ class InstrumentorPrintTrace: public Instrumentor
       void taskCreation() {}
       void taskCompletation() {}
 
-#endif
 
 };
 

@@ -103,7 +103,6 @@ nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_
 nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *deps, nanos_team_t team )
 {
    try {
-      sys.getInstrumentor()->enterRuntime();
       ensure( uwd,"NULL WD received" );
 
       WD * wd = ( WD * ) uwd;
@@ -118,9 +117,7 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *
       }
 
       sys.submit( *wd );
-      sys.getInstrumentor()->leaveRuntime();
    } catch ( ... ) {
-      sys.getInstrumentor()->leaveRuntime();
       return NANOS_UNKNOWN_ERR;
    }
 
