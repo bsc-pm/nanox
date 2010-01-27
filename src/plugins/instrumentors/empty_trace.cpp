@@ -14,30 +14,24 @@ class InstrumentorEmptyTrace: public Instrumentor
       // destructor
       ~InstrumentorEmptyTrace ( ) { }
 
-      // headers (implemented below)
-      // low-level instrumentation interface
+      // low-level instrumentation interface (mandatory functions)
 
-      void pushState( int state ){ }
+      void pushStateEventList ( nanos_state_t state, int count, nanos_event_t *event ) { }
+      void popStateEventList ( int count, nanos_event_t *event ) { }
+      void addEventList ( int count, nanos_event_t *event ) { } 
+
+      // mid-level interface
+
+      void pushState ( nanos_state_t state ) { }
       void popState( void ) { }
-      void addEvent() { } 
-      void addEventList() { } 
+      void pushStateEvent ( nanos_state_t state, nanos_event_t event) { }
+      void popStateEvent( nanos_event_t event ) { }
+      void addEvent( nanos_event_t event ) { }
 
       // high-level events
 
-      void enterRuntime () { } 
-      void leaveRuntime () { }
-
-      void enterCPU () {}
-      void leaveCPU () {}
-
-      void threadIdle() {}
-
-      void taskCreation() {}
-      void taskCompletation() {}
-
-      void enterBarrier() {}
-      void exitBarrier() {}
-
+      void enterCreateWD() { }
+      void leaveCreateWD() { }
 };
 
 

@@ -22,6 +22,7 @@ include $(top_srcdir)/src/common.am
 lib_LTLIBRARIES = \
 	libnanox-instrumentor-empty_trace.la \
 	libnanox-instrumentor-print_trace.la \
+	libnanox-instrumentor-paraver.la \
 	$(END)
 
 
@@ -35,4 +36,10 @@ libnanox_instrumentor_print_trace_la_CXXFLAGS = $(common_includes) $(common_cxxf
 libnanox_instrumentor_print_trace_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_instrumentor_print_trace_la_SOURCES = \
 	print_trace.cpp \
+	$(END)
+
+libnanox_instrumentor_paraver_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
+libnanox_instrumentor_paraver_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_instrumentor_paraver_la_SOURCES = \
+	paraver.cpp \
 	$(END)

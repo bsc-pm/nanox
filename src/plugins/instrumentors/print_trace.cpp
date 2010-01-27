@@ -9,7 +9,12 @@ class InstrumentorPrintTrace: public Instrumentor
    private:
    public:
       // constructor
-      InstrumentorPrintTrace ( ) { }
+      InstrumentorPrintTrace ( )
+      {
+         _states[IDLE]      = 80000000;
+         _states[RUN]       = 80000001;
+         _states[CREATE_WD] = 80000002;
+      }
 
       // destructor
       ~InstrumentorPrintTrace ( ) { }
@@ -17,25 +22,14 @@ class InstrumentorPrintTrace: public Instrumentor
       // headers (implemented below)
       // low-level instrumentation interface
 
-      void pushState( int state ){ fprintf(stderr,"pushState\n"); }
-      void popState( void ) { fprintf(stderr,"popState\n");  }
-      void addEvent() { fprintf(stderr,"addEvent\n");  } 
-      void addEventList() { fprintf(stderr,"addEventList\n");  } 
+      void pushStateEventList ( nanos_state_t state, int count, nanos_event_t *events ) { }
+      void popStateEventList ( int count, nanos_event_t *events ) { }
+      void addEventList ( int count, nanos_event_t *events ) { }
 
       // high-level events
 
-      void enterRuntime () { fprintf(stderr, "TRACE [%d]: Entering runtime.\n", myThread->getId() ); } 
-      void leaveRuntime () { fprintf(stderr, "TRACE [%d]: Leaving runtime.\n", myThread->getId() );  }
-      void enterBarrier () { fprintf(stderr, "TRACE [%d]: Entering barrier.\n", myThread->getId() ); }
-      void leaveBarrier () { fprintf(stderr, "TRACE [%d]: Leaving barrier.\n", myThread->getId() ); }
-      void enterCPU () {}
-      void leaveCPU () {}
-
-      void threadIdle() {}
-
-      void taskCreation() {}
-      void taskCompletation() {}
-
+      void enterCreateWD () { fprintf(stderr, "TRACE [%d]: Enter create WD (%d).\n", myThread->getId(), _states[CREATE_WD] ); }
+      void leaveCreateWD () { fprintf(stderr, "TRACE [%d]: Leave create WD (%d).\n", myThread->getId(), _states[CREATE_WD] ); }
 
 };
 

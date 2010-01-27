@@ -25,15 +25,24 @@
 #define INSTRUMENTOR_MAX_STATES 10
 #define INSTRUMENTOR_MAX_EVENTS 10
 
-#define INSTRUMENTOR_STATE_RUNTIME  0
-#define INSTRUMENTOR_STATE_CPU      1
-#define INSTRUMENTOR_STATE_BARRIER  2
-
 namespace nanos {
 
   class Instrumentor {
-     int   states[INSTRUMENTOR_MAX_STATES];  /*<< state vector translator */
-     int   events[INSTRUMENTOR_MAX_EVENTS];  /*<< event vector translator */
+     protected:
+       typedef unsigned int nanos_state_t;
+       typedef unsigned int nanos_event_id_t;
+       typedef unsigned int nanos_event_value_t;
+
+       typedef struct Event {
+          nanos_event_id_t       id;
+          nanos_event_value_t    value;
+       }nanos_event_t;
+
+       typedef enum {IDLE, RUN, CREATE_WD} States;
+       typedef enum { } Events;
+
+       nanos_state_t     _states[INSTRUMENTOR_MAX_STATES];  /*<< state vector translator */
+       nanos_event_id_t  _events[INSTRUMENTOR_MAX_EVENTS];  /*<< event id vector translator */
 
      public:
        Instrumentor() {}
@@ -41,58 +50,50 @@ namespace nanos {
 
 #ifdef ENABLE_INSTRUMENTATION
 
-       // low-level instrumentation interface (pure virtual function)
+#if 0
+       void setStateItem ( nanos_state_t idx, nanos_state_t value ) { _states[idx] = value; }
+       nanos_state_t getStateItem ( nanos_state_t idx ) { return _states[idx]; }
 
-       virtual void pushState( int state ) = 0;
-       virtual void popState( void ) = 0;
-       virtual void addEvent() = 0;
-       virtual void addEventList() = 0;
+       void setEventItem ( nanos_event_id_t idx, nanos_event_id_t value ) { _events[idx] = value; }
+       nanos_event_id_t getEventItem ( nanos_event_id_t idx ) { return _events[idx]; }
+#endif
 
-       // high-level events
+       // low-level instrumentation interface (pure virtual functions)
 
-       virtual void enterRuntime ()
-       {
-          pushState(states[INSTRUMENTOR_STATE_RUNTIME]);
-          
-       }
-       virtual void leaveRuntime ()
-       {
-          popState();
-       }
+       virtual void pushStateEventList ( nanos_state_t state, int count, nanos_event_t *events ) = 0;
+       virtual void popStateEventList ( int count, nanos_event_t *events ) = 0;
+       virtual void addEventList ( int count, nanos_event_t *events ) = 0;
 
-       virtual void enterCPU () {}
-       virtual void leaveCPU () {}
+       // mid-level instrumentation interface (virtual functions)
 
+       virtual void pushState ( nanos_state_t state ) { pushStateEventList ( state, 0, NULL ); }
+       virtual void popState( void ) { popStateEventList ( 0, NULL ); }
+       virtual void pushStateEvent ( nanos_state_t state, nanos_event_t event) { pushStateEventList ( state, 1, &event ); }
+       virtual void popStateEvent( nanos_event_t event ) { popStateEventList ( 1, &event ); }
+       virtual void addEvent( nanos_event_t event ) { addEventList ( 1, &event );}
+
+       // high-level instrumentation interface (virtual functions)
+
+       virtual void enterCreateWD() { pushState(_states[CREATE_WD]); }
+       virtual void leaveCreateWD() { popState(); }
+#if 0
+       virtual void enterRuntime () { pushState(_states[RUNTIME]); }
+       virtual void leaveRuntime () { popState(); }
+       virtual void enterCPU () { pushState(_states[CPU]); }
+       virtual void leaveCPU () { popState(); }
+       virtual void enterBarrier() { pushState(_states[BARRIER]); }
+       virtual void leaveBarrier() { popState(); }
        virtual void threadIdle() {}
-
-       virtual void taskCreation() {}
        virtual void taskCompletation() {}
-
-       virtual void enterBarrier() {}
-       virtual void leaveBarrier() {}
+#endif
 
 #else
 
        // All functions here must be empty and  non-virtual so the compiler 
        // eliminates the instrumentation calls
 
-       void pushState () {}
-       void popState () {}
-       void addEvent () {}
-
-       void enterRuntime () {} 
-       void leaveRuntime () {}
-
-       void enterCPU () {}
-       void leaveCPU () {}
-
-       void threadIdle() {}
-
-       void taskCreation() {}
-       void taskCompletation() {}
-
-       void enterBarrier() {}
-       void leaveBarrier() {}
+       void enterCreateWD() { }
+       void leaveCreateWD() { }
 
 #endif
 
