@@ -38,8 +38,8 @@ libnanox_instrumentor_print_trace_la_SOURCES = \
 	print_trace.cpp \
 	$(END)
 
-libnanox_instrumentor_paraver_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
-libnanox_instrumentor_paraver_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_instrumentor_paraver_la_CXXFLAGS = $(common_includes) $(common_cxxflags) -I/home/Computacional/gllort/Packages/mpitrace_nanos/include
+libnanox_instrumentor_paraver_la_LDFLAGS = $(ld_plugin_flags) -L/home/Computacional/gllort/Packages/mpitrace_nanos/lib -lnanostrace
 libnanox_instrumentor_paraver_la_SOURCES = \
 	paraver.cpp \
 	$(END)

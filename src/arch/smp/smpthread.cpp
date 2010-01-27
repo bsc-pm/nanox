@@ -43,7 +43,9 @@ void * smp_bootthread ( void *arg )
 }
 
 // TODO: detect at configure
+#ifndef PTHREAD_STACK_MIN
 #define PTHREAD_STACK_MIN 16384
+#endif
 
 void SMPThread::start ()
 {

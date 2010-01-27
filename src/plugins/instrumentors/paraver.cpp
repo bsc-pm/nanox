@@ -1,6 +1,7 @@
 #include "plugin.hpp"
 #include "instrumentor.hpp"
 #include "system.hpp"
+#include <mpitrace_user_events.h>
 
 namespace nanos {
 
