@@ -73,6 +73,7 @@ void Scheduler::exit ( void )
 
 void Scheduler::idle ()
 {
+   sys.getInstrumentor()->enterIdle();
 
    // This function is run always by the same BaseThread so we don't need to use getMyThreadSafe
    BaseThread *thread = myThread;
@@ -105,6 +106,8 @@ void Scheduler::idle ()
    thread->getCurrentWD()->setReady();
 
    sys._idleThreads--;
+
+   sys.getInstrumentor()->leaveIdle();
 
    verbose ( "Working thread finishing" );
 }

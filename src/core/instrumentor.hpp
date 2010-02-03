@@ -22,27 +22,18 @@
 // xteruel: FIXME: this flag has to be managed through compilation
 #define ENABLE_INSTRUMENTATION
 
-#define INSTRUMENTOR_MAX_STATES 10
-#define INSTRUMENTOR_MAX_EVENTS 10
-
 namespace nanos {
 
   class Instrumentor {
      protected:
-       typedef unsigned int nanos_state_t;
-       typedef unsigned int nanos_event_id_t;
+       typedef enum {IDLE, RUN, RUNTIME, CREATE_WD, SUBMIT_WD, INLINE_WD} nanos_state_t;
+       typedef enum { } nanos_event_id_t;
        typedef unsigned int nanos_event_value_t;
 
        typedef struct Event {
-          nanos_event_id_t       id;
-          nanos_event_value_t    value;
-       }nanos_event_t;
-
-       typedef enum {IDLE, RUN, CREATE_WD} States;
-       typedef enum { } Events;
-
-       nanos_state_t     _states[INSTRUMENTOR_MAX_STATES];  /*<< state vector translator */
-       nanos_event_id_t  _events[INSTRUMENTOR_MAX_EVENTS];  /*<< event id vector translator */
+          nanos_event_id_t     id;
+          nanos_event_value_t  value;
+       } nanos_event_t;
 
      public:
        Instrumentor() {}
@@ -50,15 +41,10 @@ namespace nanos {
 
 #ifdef ENABLE_INSTRUMENTATION
 
-#if 0
-       void setStateItem ( nanos_state_t idx, nanos_state_t value ) { _states[idx] = value; }
-       nanos_state_t getStateItem ( nanos_state_t idx ) { return _states[idx]; }
-
-       void setEventItem ( nanos_event_id_t idx, nanos_event_id_t value ) { _events[idx] = value; }
-       nanos_event_id_t getEventItem ( nanos_event_id_t idx ) { return _events[idx]; }
-#endif
-
        // low-level instrumentation interface (pure virtual functions)
+
+       virtual void initialize( void ) = 0;
+       virtual void finalize( void ) = 0;
 
        virtual void pushStateEventList ( nanos_state_t state, int count, nanos_event_t *events ) = 0;
        virtual void popStateEventList ( int count, nanos_event_t *events ) = 0;
@@ -74,24 +60,24 @@ namespace nanos {
 
        // high-level instrumentation interface (virtual functions)
 
-       virtual void enterCreateWD() { pushState(_states[CREATE_WD]); }
+       virtual void enterIdle() { pushState(IDLE); }
+       virtual void leaveIdle() { popState(); }
+       virtual void enterRuntime() { pushState(RUNTIME); }
+       virtual void leaveRuntime() { popState(); }
+       virtual void enterCreateWD() { pushState(CREATE_WD); }
        virtual void leaveCreateWD() { popState(); }
-#if 0
-       virtual void enterRuntime () { pushState(_states[RUNTIME]); }
-       virtual void leaveRuntime () { popState(); }
-       virtual void enterCPU () { pushState(_states[CPU]); }
-       virtual void leaveCPU () { popState(); }
-       virtual void enterBarrier() { pushState(_states[BARRIER]); }
-       virtual void leaveBarrier() { popState(); }
-       virtual void threadIdle() {}
-       virtual void taskCompletation() {}
-#endif
+       virtual void enterSubmitWD() { pushState(SUBMIT_WD); }
+       virtual void leaveSubmitWD() { popState(); }
+       virtual void enterInlineWD() { pushState(INLINE_WD); }
+       virtual void leaveInlineWD() { popState(); }
 
 #else
 
        // All functions here must be empty and  non-virtual so the compiler 
        // eliminates the instrumentation calls
 
+       void initialize( void ) { }
+       void finalize( void ) { }
        void enterCreateWD() { }
        void leaveCreateWD() { }
 

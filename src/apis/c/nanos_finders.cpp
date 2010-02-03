@@ -30,9 +30,10 @@ using namespace nanos;
  */
 nanos_slicer_t nanos_find_slicer ( const char * label )
 {
+   nanos_slicer_t slicer;
+   sys.getInstrumentor()->enterRuntime();
    try
    {
-      nanos_slicer_t slicer;
       std::string plugin = "slicer-" + std::string(label);
 
       slicer = sys.getSlicer ( std::string(label) );
@@ -40,31 +41,12 @@ nanos_slicer_t nanos_find_slicer ( const char * label )
          if ( !PluginManager::load( plugin )) fatal0( "Could not load " + std::string(label) + "slicer" );
          slicer = sys.getSlicer ( std::string(label) );
       }
-      return slicer;
 
    } catch ( ... ) {
+      sys.getInstrumentor()->leaveRuntime();
       return ( nanos_slicer_t ) NULL;
    }
+   sys.getInstrumentor()->leaveRuntime();
+   return slicer;
 }
 
-// xteruel: FIXME: to remove ?
-#if 0
-nanos_instrumentor_t nanos_find_instrumentor ( const char * label )
-{
-   try
-   {
-      nanos_instrumentor_t instrumentor;
-      std::string plugin = "instrumentor-" + std::string(label);
-
-      instrumentor = sys.getInstrumentor ( std::string(label) );
-      if ( instrumentor == NULL ) {
-         if ( !PluginManager::load( plugin )) fatal0( "Could not load " + std::string(label) + "instrumentor" );
-         instrumentor = sys.getInstrumentor ( std::string(label) );
-      }
-      return instrumentor;
-
-   } catch ( ... ) {
-      return ( nanos_instrumentor_t ) NULL;
-   }
-}
-#endif

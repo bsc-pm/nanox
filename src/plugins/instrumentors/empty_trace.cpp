@@ -16,6 +16,8 @@ class InstrumentorEmptyTrace: public Instrumentor
 
       // low-level instrumentation interface (mandatory functions)
 
+      void initialize ( void ) { }
+      void finalize ( void ) { }
       void pushStateEventList ( nanos_state_t state, int count, nanos_event_t *event ) { }
       void popStateEventList ( int count, nanos_event_t *event ) { }
       void addEventList ( int count, nanos_event_t *event ) { } 

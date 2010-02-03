@@ -81,6 +81,7 @@ void System::loadModules ()
    if ( !PluginManager::load( "instrumentor-"+getDefaultInstrumentor() ) )
       fatal0( "Could not load " + getDefaultInstrumentor() + " instrumentor" );
 
+
    ensure( _defBarrFactory,"No default system barrier factory" );
 
 }
@@ -147,6 +148,8 @@ void System::start ()
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( sg, _untieMaster ) );
 
+   getInstrumentor()->initialize();
+
    //start as much threads per pe as requested by the user
    for ( int ths = 1; ths < getThsPerPE(); ths++ ) {
       _workers.push_back( &pe->startWorker( sg ));
@@ -191,6 +194,7 @@ System::~System ()
    verbose ( "Joining threads... phase 2" );
 
    // join
+   getInstrumentor()->finalize();
 
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {
       delete _pes[p];

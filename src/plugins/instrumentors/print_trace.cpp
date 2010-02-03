@@ -4,9 +4,15 @@
 
 namespace nanos {
 
+#define INSTRUMENTOR_MAX_STATES 10
+#define INSTRUMENTOR_MAX_EVENTS 10
+
 class InstrumentorPrintTrace: public Instrumentor 
 {
    private:
+       unsigned int _states[INSTRUMENTOR_MAX_STATES];  /*<< state vector translator */
+       unsigned int _events[INSTRUMENTOR_MAX_EVENTS];  /*<< event id vector translator */
+
    public:
       // constructor
       InstrumentorPrintTrace ( )
@@ -14,6 +20,7 @@ class InstrumentorPrintTrace: public Instrumentor
          _states[IDLE]      = 80000000;
          _states[RUN]       = 80000001;
          _states[CREATE_WD] = 80000002;
+
       }
 
       // destructor
@@ -22,6 +29,8 @@ class InstrumentorPrintTrace: public Instrumentor
       // headers (implemented below)
       // low-level instrumentation interface
 
+      void initialize ( void ) { }
+      void finalize ( void ) { } 
       void pushStateEventList ( nanos_state_t state, int count, nanos_event_t *events ) { }
       void popStateEventList ( int count, nanos_event_t *events ) { }
       void addEventList ( int count, nanos_event_t *events ) { }

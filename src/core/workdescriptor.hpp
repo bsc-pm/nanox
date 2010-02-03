@@ -28,7 +28,6 @@
 #include "synchronizedcondition_decl.hpp"
 #include "atomic.hpp"
 
-
 namespace nanos
 {
 
@@ -155,12 +154,12 @@ namespace nanos
             WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0,void *wdata=0 ) :
                     WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( READY ),
                     _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( ndevices ), _devices ( devs ),
-                    _activeDevice ( ndevices == 1 ? devs[0] : 0 ), _doSubmit(this), _doWait(this), _depsDomain() {}
+                    _activeDevice ( ndevices == 1 ? devs[0] : 0 ), _doSubmit(this), _doWait(this), _depsDomain() { }
 
             WorkDescriptor ( DeviceData *device, size_t data_size = 0, void *wdata=0 ) :
                     WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( READY ),
                     _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( &_activeDevice ),
-                    _activeDevice ( device ), _doSubmit(this), _doWait(this), _depsDomain() {}
+                    _activeDevice ( device ), _doSubmit(this), _doWait(this), _depsDomain() { }
 
             /*! \brief WorkDescriptor constructor (using former wd)
              *

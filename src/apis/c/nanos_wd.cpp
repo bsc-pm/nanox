@@ -32,23 +32,36 @@ const size_t nanos_smp_dd_size = sizeof(ext::SMPDD);
 
 void * nanos_smp_factory( void *prealloc, void *args )
 {
+   sys.getInstrumentor()->enterRuntime();
    nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
 
    if ( prealloc != NULL )
+   {
+      sys.getInstrumentor()->leaveRuntime();
       return ( void * )new (prealloc) ext::SMPDD( smp->outline );
+   }
    else 
+   {
+      sys.getInstrumentor()->leaveRuntime();
       return ( void * )new ext::SMPDD( smp->outline );
+   }
 }
 
 nanos_wd_t nanos_current_wd()
 {
-   return myThread->getCurrentWD();
+   sys.getInstrumentor()->enterRuntime();
+   nanos_wd_t cwd = myThread->getCurrentWD();
+   sys.getInstrumentor()->leaveRuntime();
+   return cwd;
 }
 
 int nanos_get_wd_id ( nanos_wd_t wd )
 {
+   sys.getInstrumentor()->enterRuntime();
    WD *lwd = ( WD * )wd;
-   return lwd->getId();
+   int id = lwd->getId();
+   sys.getInstrumentor()->leaveRuntime();
+   return id;
 }
 
 /*! \brief Creates a new WorkDescriptor
@@ -109,6 +122,7 @@ nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_
 
 nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *deps, nanos_team_t team )
 {
+   sys.getInstrumentor()->enterSubmitWD();
    try {
       ensure( uwd,"NULL WD received" );
 
@@ -125,9 +139,11 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *
 
       sys.submit( *wd );
    } catch ( ... ) {
+      sys.getInstrumentor()->leaveSubmitWD();
       return NANOS_UNKNOWN_ERR;
    }
 
+   sys.getInstrumentor()->leaveSubmitWD();
    return NANOS_OK;
 }
 
@@ -136,6 +152,7 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *
 nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *devices, size_t data_size, void * data, 
                                       size_t num_deps, nanos_dependence_t *deps, nanos_wd_props_t *props )
 {
+   sys.getInstrumentor()->enterInlineWD();
    try {
       if ( num_devices > 1 ) warning( "Multiple devices not yet supported. Using first one" );
 
@@ -152,27 +169,33 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
       sys.inlineWork( wd );
 
    } catch ( ... ) {
+      sys.getInstrumentor()->leaveInlineWD();
       return NANOS_UNKNOWN_ERR;
    }
 
+   sys.getInstrumentor()->leaveInlineWD();
    return NANOS_OK;
 }
 
 nanos_err_t nanos_set_internal_wd_data ( nanos_wd_t wd, void *data )
 {
+   sys.getInstrumentor()->enterRuntime();
    try {
       WD *lwd = ( WD * ) wd;
 
       lwd->setInternalData( data );
    } catch ( ... ) {
+      sys.getInstrumentor()->leaveRuntime();
       return NANOS_UNKNOWN_ERR;
    }
 
+   sys.getInstrumentor()->leaveRuntime();
    return NANOS_OK;
 }
 
 nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data )
 {
+   sys.getInstrumentor()->enterRuntime();
    try {
       WD *lwd = ( WD * ) wd;
       void *ldata;
@@ -181,8 +204,10 @@ nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data )
 
       *data = ldata;
    } catch ( ... ) {
+      sys.getInstrumentor()->leaveRuntime();
       return NANOS_UNKNOWN_ERR;
    }
 
+   sys.getInstrumentor()->leaveRuntime();
    return NANOS_OK;
 }
