@@ -414,7 +414,7 @@ void System::duplicateWD ( WD **uwd, WD *wd)
 
    // computing size of device(s)
    for ( unsigned int i = 0; i < wd->getNumDevices(); i++ )
-      dd_size += (((wd->getDataSize()+7)>>3)<<3);
+      dd_size += wd->getDevices()[i]->size();
 
    // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
    int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( WD ) : 0 ) + (((wd->getDataSize()+7)>>3)<<3) +
@@ -446,7 +446,7 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    for ( unsigned int i = 0 ; i < wd->getNumDevices(); i ++ ) {
       wd->getDevices()[i]->copyTo(chunk);
       dev_ptrs[i] = ( DD * ) chunk;
-      chunk += (*((DD **)(wd->getDevices()))[i]).size();
+      chunk += wd->getDevices()[i]->size();
    }
 
    // creating new WD 
