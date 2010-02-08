@@ -18,16 +18,16 @@ class InstrumentorEmptyTrace: public Instrumentor
 
       void initialize ( void ) { }
       void finalize ( void ) { }
-      void pushStateEventList ( nanos_state_t state, int count, nanos_event_t *event ) { }
-      void popStateEventList ( int count, nanos_event_t *event ) { }
-      void addEventList ( int count, nanos_event_t *event ) { } 
+      void pushStateEventList ( nanos_state_t state, unsigned int count, nanos_event_t *event ) { }
+      void popStateEventList ( nanos_state_t state, unsigned int count, nanos_event_t *event ) { }
+      void addEventList ( unsigned int count, nanos_event_t *event ) { } 
 
       // mid-level interface
 
       void pushState ( nanos_state_t state ) { }
-      void popState( void ) { }
+      void popState( nanos_state_t state ) { }
       void pushStateEvent ( nanos_state_t state, nanos_event_t event) { }
-      void popStateEvent( nanos_event_t event ) { }
+      void popStateEvent( nanos_state_t state, nanos_event_t event ) { }
       void addEvent( nanos_event_t event ) { }
 
       // high-level events

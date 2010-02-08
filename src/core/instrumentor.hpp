@@ -26,8 +26,8 @@ namespace nanos {
 
   class Instrumentor {
      protected:
-       typedef enum {IDLE, RUN, RUNTIME, CREATE_WD, SUBMIT_WD, INLINE_WD} nanos_state_t;
-       typedef enum { } nanos_event_id_t;
+       typedef enum { IDLE, RUNNING, SYNCHRONIZATION, SCHEDULING, FORK_JOIN, OTHERS } nanos_state_t;
+       typedef enum { IDLE_FUNCTION, RUNTIME, CREATE_WD, SUBMIT_WD, INLINE_WD, LOCK, SINGLE_GUARD, BARRIER, SWITCH } nanos_event_id_t;
        typedef unsigned int nanos_event_value_t;
 
        typedef struct Event {
@@ -46,31 +46,39 @@ namespace nanos {
        virtual void initialize( void ) = 0;
        virtual void finalize( void ) = 0;
 
-       virtual void pushStateEventList ( nanos_state_t state, int count, nanos_event_t *events ) = 0;
-       virtual void popStateEventList ( int count, nanos_event_t *events ) = 0;
-       virtual void addEventList ( int count, nanos_event_t *events ) = 0;
+       virtual void pushStateEventList ( nanos_state_t state, unsigned int count, nanos_event_t *events ) = 0;
+       virtual void popStateEventList ( nanos_state_t state, unsigned int count, nanos_event_t *events ) = 0;
+       virtual void addEventList ( unsigned int count, nanos_event_t *events ) = 0;
 
        // mid-level instrumentation interface (virtual functions)
 
        virtual void pushState ( nanos_state_t state ) { pushStateEventList ( state, 0, NULL ); }
-       virtual void popState( void ) { popStateEventList ( 0, NULL ); }
+       virtual void popState( nanos_state_t state ) { popStateEventList ( state, 0, NULL ); }
        virtual void pushStateEvent ( nanos_state_t state, nanos_event_t event) { pushStateEventList ( state, 1, &event ); }
-       virtual void popStateEvent( nanos_event_t event ) { popStateEventList ( 1, &event ); }
+       virtual void popStateEvent( nanos_state_t state, nanos_event_t event ) { popStateEventList ( state, 1, &event ); }
        virtual void addEvent( nanos_event_t event ) { addEventList ( 1, &event );}
 
        // high-level instrumentation interface (virtual functions)
 
-       virtual void enterIdle() { pushState(IDLE); }
-       virtual void leaveIdle() { popState(); }
-       virtual void enterRuntime() { pushState(RUNTIME); }
-       virtual void leaveRuntime() { popState(); }
-       virtual void enterCreateWD() { pushState(CREATE_WD); }
-       virtual void leaveCreateWD() { popState(); }
-       virtual void enterSubmitWD() { pushState(SUBMIT_WD); }
-       virtual void leaveSubmitWD() { popState(); }
-       virtual void enterInlineWD() { pushState(INLINE_WD); }
-       virtual void leaveInlineWD() { popState(); }
+       virtual void enterIdle() { nanos_event_t e = {IDLE_FUNCTION,1}; pushStateEvent(IDLE,e); }
+       virtual void leaveIdle() { nanos_event_t e = {IDLE_FUNCTION,0}; popStateEvent(IDLE,e); }
+       virtual void enterRuntime() { nanos_event_t e = {RUNTIME,1}; pushStateEvent(OTHERS,e); }
+       virtual void leaveRuntime() { nanos_event_t e = {RUNTIME,0}; popStateEvent(OTHERS,e); }
+       virtual void enterCreateWD() { nanos_event_t e = {CREATE_WD,1}; pushStateEvent(FORK_JOIN,e); }
+       virtual void leaveCreateWD() { nanos_event_t e = {CREATE_WD,0}; popStateEvent(FORK_JOIN,e); }
+       virtual void enterSubmitWD() { nanos_event_t e = {SUBMIT_WD,1}; pushStateEvent(FORK_JOIN,e); }
+       virtual void leaveSubmitWD() { nanos_event_t e = {SUBMIT_WD,0}; popStateEvent(FORK_JOIN,e); }
+       virtual void enterInlineWD() { nanos_event_t e = {INLINE_WD,1}; pushStateEvent(FORK_JOIN,e); }
+       virtual void leaveInlineWD() { nanos_event_t e = {INLINE_WD,0}; popStateEvent(FORK_JOIN,e); }
+       virtual void enterLock() { nanos_event_t e = {LOCK,1}; pushStateEvent(SYNCHRONIZATION,e); }
+       virtual void leaveLock() { nanos_event_t e = {LOCK,0}; popStateEvent(SYNCHRONIZATION,e); }
+       virtual void enterSingleGuard() { nanos_event_t e = {SINGLE_GUARD,1}; pushStateEvent(SYNCHRONIZATION,e); }
+       virtual void leaveSingleGuard() { nanos_event_t e = {SINGLE_GUARD,0}; popStateEvent(SYNCHRONIZATION,e); }
+       virtual void enterBarrier() { nanos_event_t e = {BARRIER,1}; pushStateEvent(SYNCHRONIZATION,e); }
+       virtual void leaveBarrier() { nanos_event_t e = {BARRIER,0}; popStateEvent(SYNCHRONIZATION,e); }
 
+       virtual void beforeContextSwitch() { nanos_event_t e = {SWITCH,1}; pushStateEvent(RUNNING,e); }
+       virtual void afterContextSwitch() { nanos_event_t e = {SWITCH,0}; popStateEvent(RUNNING,e); }
 #else
 
        // All functions here must be empty and  non-virtual so the compiler 

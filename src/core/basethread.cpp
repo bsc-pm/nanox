@@ -73,7 +73,9 @@ void BaseThread::switchHelper( WD* oldWD, WD* newWD )
    } else {
       Scheduler::queue( *oldWD );
    }
+   sys.getInstrumentor()->beforeContextSwitch();
    myThread->setCurrentWD( *newWD );
+   sys.getInstrumentor()->afterContextSwitch();
 }
 
 /*

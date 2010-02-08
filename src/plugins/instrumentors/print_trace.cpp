@@ -18,8 +18,9 @@ class InstrumentorPrintTrace: public Instrumentor
       InstrumentorPrintTrace ( )
       {
          _states[IDLE]      = 80000000;
-         _states[RUN]       = 80000001;
-         _states[CREATE_WD] = 80000002;
+         _states[RUNNING]   = 80000001;
+
+         _events[CREATE_WD] = 80000002;
 
       }
 
@@ -31,9 +32,9 @@ class InstrumentorPrintTrace: public Instrumentor
 
       void initialize ( void ) { }
       void finalize ( void ) { } 
-      void pushStateEventList ( nanos_state_t state, int count, nanos_event_t *events ) { }
-      void popStateEventList ( int count, nanos_event_t *events ) { }
-      void addEventList ( int count, nanos_event_t *events ) { }
+      void pushStateEventList ( nanos_state_t state, unsigned int count, nanos_event_t *events ) { }
+      void popStateEventList ( nanos_state_t state, unsigned int count, nanos_event_t *events ) { }
+      void addEventList ( unsigned int count, nanos_event_t *events ) { }
 
       // high-level events
 

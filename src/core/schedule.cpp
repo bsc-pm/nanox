@@ -107,9 +107,8 @@ void Scheduler::idle ()
 
    sys._idleThreads--;
 
-   sys.getInstrumentor()->leaveIdle();
-
    verbose ( "Working thread finishing" );
+   sys.getInstrumentor()->leaveIdle();
 }
 
 void Scheduler::queue ( WD &wd )
