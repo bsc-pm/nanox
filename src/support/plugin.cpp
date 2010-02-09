@@ -31,7 +31,7 @@ void PluginManager::init()
 {
    Config config;
    config.registerConfigOption ( "plugins_dir", new Config::StringVar ( _pluginsDir ), "Plugins directory" );
-   config.registerArgOption ( "plugins_dir", "plugins_dir" );
+   config.registerArgOption ( "plugins_dir", "plugins-dir" );
    config.registerEnvOption ( "plugins_dir", "NX_PLUGINS_DIR" );
    config.init();
 }
