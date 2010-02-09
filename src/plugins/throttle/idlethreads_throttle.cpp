@@ -79,8 +79,8 @@ namespace nanos {
                Config config;
 
                int actualLimit = IdleThreadsThrottle::_defaultLimit; 
-               config.registerArgOption( new Config::PositiveVar( "throttle-limit",
-                                          actualLimit ) ); 
+               config.registerConfigOption ( "throttle-limit", new Config::PositiveVar( "throttle-limit", actualLimit), "Throttle limit" );
+               config.registerArgOption ( "throttle-limit", "throttle-limit" );
                config.init(); 
                sys.setThrottlePolicy( createIdleThrottle( actualLimit )); 
             }

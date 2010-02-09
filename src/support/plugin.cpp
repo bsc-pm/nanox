@@ -20,11 +20,21 @@
 #include "debug.hpp"
 #include "plugin.hpp"
 #include "os.hpp"
+#include "config.hpp"
 
 using namespace nanos;
 
 std::string PluginManager::_pluginsDir( LIBDIR );
 PluginManager::PluginList PluginManager::_activePlugins;
+
+void PluginManager::init()
+{
+   Config config;
+   config.registerConfigOption ( "plugins_dir", new Config::StringVar ( _pluginsDir ), "Plugins directory" );
+   config.registerArgOption ( "plugins_dir", "plugins_dir" );
+   config.registerEnvOption ( "plugins_dir", "NX_PLUGINS_DIR" );
+   config.init();
+}
 
 bool PluginManager::load ( const char *name )
 {

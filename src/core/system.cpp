@@ -48,6 +48,10 @@ System::System () : _numPEs( 1 ), _deviceStackSize( 1024 ), _bindThreads( true )
 
 void System::loadModules ()
 {
+   verbose0 ( "Configuring module manager" );
+
+   PluginManager::init();
+
    verbose0 ( "Loading modules" );
 
    // load host processor module
@@ -92,34 +96,47 @@ void System::config ()
    Config config;
 
    verbose0 ( "Preparing configuration" );
-   config.registerArgOption( new Config::PositiveVar( "pes",_numPEs ) );
-   config.registerEnvOption( new Config::PositiveVar( "NTH_PES",_numPEs ) );
-   config.registerArgOption( new Config::PositiveVar( "stack-size",_deviceStackSize ) );
-   config.registerEnvOption( new Config::PositiveVar( "NTH_STACK_SIZE",_deviceStackSize ) );
-   config.registerArgOption( new Config::FlagOption( "no-binding", _bindThreads, false ) );
-   config.registerArgOption( new Config::FlagOption( "verbose",_verboseMode ) );
+
+   config.setOptionsSection ( "Global options", new std::string( "Global options for the Nanox runtime" ) );
+
+   config.registerConfigOption ( "num_pes", new Config::PositiveVar( _numPEs ), "Number of processing elements" );
+   config.registerArgOption ( "num_pes", "pes" );
+   config.registerEnvOption ( "num_pes", "NX_PES" );
+
+   config.registerConfigOption ( "stack-size", new Config::PositiveVar( _deviceStackSize ), "Default stack size for the devices" );
+   config.registerArgOption ( "stack-size", "stack-size" );
+   config.registerEnvOption ( "stack-size", "NX_STACK_SIZE" );
+
+   config.registerConfigOption ( "no-binding", new Config::FlagOption( _bindThreads, false), "Thread binding" );
+   config.registerArgOption ( "no-binding", "no-binding" );
+
+   config.registerConfigOption ( "verbose", new Config::FlagOption( _verboseMode), "Verbose mode" );
+   config.registerArgOption ( "verbose", "verbose" );
 
    //more than 1 thread per pe
-   config.registerArgOption( new Config::PositiveVar( "thsperpe",_thsPerPE ) );
+   config.registerConfigOption ( "thsperpe", new Config::PositiveVar( _thsPerPE ), "Number of threads per processing element" );
+   config.registerArgOption ( "thsperpe", "thrsperpe" );
 
-   //TODO: how to simplify this a bit?
-   Config::MapVar<ExecutionMode>::MapList opts( 2 );
-   opts[0] = Config::MapVar<ExecutionMode>::MapOption( "dedicated",DEDICATED );
-   opts[1] = Config::MapVar<ExecutionMode>::MapOption( "shared",SHARED );
-   config.registerArgOption(
-      new Config::MapVar<ExecutionMode>( "mode",_executionMode,opts ) );
+   Config::MapVar<ExecutionMode> map( _executionMode );
+   map.addOption( "dedicated", DEDICATED).addOption( "shared", SHARED );
+   config.registerConfigOption ( "exec_mode", &map, "Execution mode" );
+   config.registerArgOption ( "exec_mode", "mode" );
 
-   config.registerArgOption ( new Config::StringVar ( "schedule", _defSchedule ) );
-   config.registerEnvOption ( new Config::StringVar ( "NTH_SCHEDULE", _defSchedule ) );
+   config.registerConfigOption ( "schedule", new Config::StringVar ( _defSchedule ), "Default scheduling policy" );
+   config.registerArgOption ( "schedule", "schedule" );
+   config.registerEnvOption ( "schedule", "NX_SCHEDULE" );
 
-   config.registerArgOption ( new Config::StringVar ( "throttle", _defThrottlePolicy ) );
-   config.registerEnvOption ( new Config::StringVar ( "NTH_TROTTLE", _defThrottlePolicy ) );
+   config.registerConfigOption ( "throttle", new Config::StringVar ( _defThrottlePolicy ), "Default throttle policy" );
+   config.registerArgOption ( "throttle", "throttle" );
+   config.registerEnvOption ( "throttle", "NX_THROTTLE" );
 
-   config.registerArgOption ( new Config::StringVar ( "barrier", _defBarr ) );
-   config.registerEnvOption ( new Config::StringVar ( "NTH_BARRIER", _defBarr ) );
+   config.registerConfigOption ( "barrier", new Config::StringVar ( _defBarr ), "Default barrier" );
+   config.registerArgOption ( "barrier", "barrier" );
+   config.registerEnvOption ( "barrier", "NX_BARRIER" );
 
-   config.registerArgOption ( new Config::StringVar ( "instrumentor", _defInstr ) );
-   config.registerEnvOption ( new Config::StringVar ( "NTH_INSTRUMENTOR", _defInstr ) );
+   config.registerConfigOption ( "instrumentor", new Config::StringVar ( _defInstr ), "Nanos instrumentation" );
+   config.registerArgOption ( "instrumentor", "instrumentor" );
+   config.registerEnvOption ( "instrumentor", "NX_INSTRUMENTOR" );
 
    verbose0 ( "Reading Configuration" );
    config.init();
@@ -418,7 +435,7 @@ void System::duplicateWD ( WD **uwd, WD *wd)
 
    // computing size of device(s)
    for ( unsigned int i = 0; i < wd->getNumDevices(); i++ )
-      dd_size += (((wd->getDataSize()+7)>>3)<<3);
+      dd_size += wd->getDevices()[i]->size();
 
    // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
    int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( WD ) : 0 ) + (((wd->getDataSize()+7)>>3)<<3) +
@@ -450,7 +467,7 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    for ( unsigned int i = 0 ; i < wd->getNumDevices(); i ++ ) {
       wd->getDevices()[i]->copyTo(chunk);
       dev_ptrs[i] = ( DD * ) chunk;
-      chunk += (*((DD **)(wd->getDevices()))[i]).size();
+      chunk += wd->getDevices()[i]->size();
    }
 
    // creating new WD 

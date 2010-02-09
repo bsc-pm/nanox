@@ -52,7 +52,7 @@ bool SlicerGuidedFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
 
    // computing initial bounds
    lower = _lower;
-   upper = _lower + ( current_chunk * _step );
+   upper = _lower + ( current_chunk * _step ) - _sign;
 
    // checking boundaries
    if ( ( upper * _sign ) >= ( _upper * _sign ) ) {

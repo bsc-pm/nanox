@@ -142,7 +142,7 @@ bool SlicerStaticFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
 
       // computing initial bounds
       lower = _lower;
-      upper = _lower + ( _chunk * _step );
+      upper = _lower + ( _chunk * _step ) - _sign;
 
       // computing next lower
       _lower = _lower + ( _chunk * _step * num_threads );

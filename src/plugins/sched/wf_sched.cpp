@@ -171,15 +171,18 @@ namespace nanos {
 
                //BUG: If defining local policy or steal policy the command line option *must not* include the = between
                //the option name and the value, but a space
-               config.registerArgOption( new Config::FlagOption( "wf-no-steal-parent", WFPolicy::_noStealParent ) );
+               config.registerConfigOption ( "wf-no-steal-parent", new Config::FlagOption( WFPolicy::_noStealParent ), "Do not steal parent" );
+               config.registerArgOption ( "wf-no-steal-parent", "wf-no-steal-parent" );
 
-               typedef Config::MapVar<WFPolicy::QueuePolicy> QueuePolicyConfig;
+               Config::MapVar<WFPolicy::QueuePolicy> queuePolicyLocalConfig ( WFPolicy::_localPolicy );
+               queuePolicyLocalConfig.addOption ( "FIFO", WFPolicy::FIFO ).addOption ( "LIFO", WFPolicy::LIFO );
+               config.registerConfigOption ( "wf-local-policy", &queuePolicyLocalConfig, "WF local queue policy");
+               config.registerArgOption ( "wf-local-policy", "wf-local-policy" );
 
-               QueuePolicyConfig::MapList opts( 2 );
-               opts[0] = QueuePolicyConfig::MapOption( "FIFO", WFPolicy::FIFO );
-               opts[1] = QueuePolicyConfig::MapOption( "LIFO", WFPolicy::LIFO );
-               config.registerArgOption( new QueuePolicyConfig( "wf-local-policy", WFPolicy::_localPolicy, opts ) );
-               config.registerArgOption( new QueuePolicyConfig( "wf-steal-policy", WFPolicy::_stealPolicy, opts ) );
+               Config::MapVar<WFPolicy::QueuePolicy> queuePolicyStealConfig ( WFPolicy::_localPolicy );
+               queuePolicyStealConfig.addOption ( "FIFO", WFPolicy::FIFO ).addOption ( "LIFO", WFPolicy::LIFO );
+               config.registerConfigOption ( "wf-steal-policy", &queuePolicyStealConfig, "WF steal queue policy");
+               config.registerArgOption ( "wf-steal-policy", "wf-steal-policy" );
 
                config.init();
 

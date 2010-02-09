@@ -34,6 +34,56 @@
 
 using namespace nanos;
 
+
+Config::NanosHelp *Config::_nanosHelp = NULL;
+
+void Config::NanosHelp::addHelpString ( const std::string &section, const std::string &argHelpString, const std::string &envHelpString )
+{
+   _helpSections[section].push_back( std::make_pair( argHelpString, envHelpString ) );
+}
+
+void Config::NanosHelp::addSectionDescription ( const std::string &section, const std::string &description )
+{
+   _sectionDescriptions[section] = description;
+}
+
+const std::string Config::NanosHelp::getHelp()
+{
+   std::stringstream helpString;
+
+   for ( SectionsMap::iterator it = _helpSections.begin(); it != _helpSections.end(); it++ ) {
+      helpString << it->first;
+
+      SectionDescriptionsMap::iterator desc = _sectionDescriptions.find ( it->first );
+      if ( desc != _sectionDescriptions.end() ) {
+         helpString << "\t" << desc->second;
+      }
+
+      helpString << std::endl;
+
+      std::stringstream argHelpString;
+      std::stringstream envHelpString;
+      HelpStringList &optionsHelpList = it->second;
+      for ( HelpStringList::iterator it = optionsHelpList.begin(); it != optionsHelpList.end(); it++ ) {
+         if ( it->first != "" ) argHelpString << "\t" << it->first << std::endl;
+         if ( it->second != "" ) envHelpString << "\t" << it->second << std::endl;
+      }
+
+      helpString << "   'NX_ARGS' options" << std::endl;
+      helpString << argHelpString.str();
+      helpString << "   Environment variables" << std::endl;
+      helpString << envHelpString.str();
+      helpString << std::endl;
+   }
+
+   return helpString.str();
+}
+
+const std::string Config::getNanosHelp()
+{
+   return _nanosHelp->getHelp();
+}
+
 void Config::setDefaults()
 {
 }
@@ -42,30 +92,47 @@ void Config::parseFiles ()
 {
 }
 
-void Config::registerEnvOption ( Option *opt )
+void Config::registerEnvOption ( const std::string &option, const std::string &envVar )
 {
-   _envOptions.push_back( opt );
+   _configOptions[option]->setEnvVar( envVar );
 }
 
-void Config::registerArgOption ( Option *opt )
+void Config::registerArgOption ( const std::string &option, const std::string &arg )
 {
-   _argOptions[opt->getName()] = opt;
+   _configOptions[option]->setArg( arg );
+   _argOptionsMap[arg] = _configOptions[option];
+}
+
+void Config::registerConfigOption ( const std::string &optionName, Option *option, const std::string &helpMessage )
+{
+   ConfigOption *configOption = new ConfigOption( optionName, *option, helpMessage, _currentSection );
+   _configOptions[optionName] = configOption;
+}
+
+void Config::registerAlias ( const std::string &optionName, const std::string &alias, const std::string &helpMessage )
+{
+   ConfigOption *option = _configOptions[optionName];
+   ConfigOption *aliasOption = new ConfigOption( alias, option->getOption(), helpMessage, _currentSection );
+   _configOptions[alias] = aliasOption;
 }
 
 void Config::parseEnvironment ()
 {
-   for ( OptionList::iterator it = _envOptions.begin();
-         it < _envOptions.end(); it++ ) {
-      Option &opt = **it;
+   for ( ConfigOptionMap::iterator it = _configOptions.begin(); it != _configOptions.end(); it++ ) {
+      ConfigOption &confOpt = * ( it->second );
+      if ( confOpt.getEnvVar() != "" ) {
+         Option &opt = confOpt.getOption();
+         opt.setName( confOpt.getEnvVar() );
 
-      const char *env = OS::getEnvironmentVariable( opt.getName() );
+         const char *env = OS::getEnvironmentVariable( confOpt.getEnvVar() );
 
-      if ( !env ) continue;
+         if ( !env ) continue;
 
-      try {
-         opt.parse( env );
-      } catch ( InvalidOptionException &exception ) {
-         std::cerr << "WARNING:" << exception.what() << std::endl;
+         try {
+            opt.parse( env );
+         } catch ( InvalidOptionException &exception ) {
+            std::cerr << "WARNING:" << exception.what() << std::endl;
+         }
       }
    }
 }
@@ -77,7 +144,7 @@ void Config::parseEnvironment ()
 // so it's not clear if its worth it.
 void Config::parseArguments ()
 {
-   const char *tmp = OS::getEnvironmentVariable( "NANOS_ARGS" );
+   const char *tmp = OS::getEnvironmentVariable( "NX_ARGS" );
 
    if ( tmp == NULL ) return;
 
@@ -116,10 +183,10 @@ void Config::parseArguments ()
          // -arg value form
       }
 
-      OptionMap::iterator obj = _argOptions.find( std::string( arg ) );
+      ConfigOptionMap::iterator obj = _argOptionsMap.find( std::string( arg ) );
 
-      if ( obj != _argOptions.end() ) {
-         Option &opt = *( *obj ).second;
+      if ( obj != _argOptionsMap.end() ) {
+         Option &opt = ( *obj ).second->getOption();
 
          if ( needValue && opt.getType() != Option::FLAG ) {
             value = strtok( NULL, " " );
@@ -137,6 +204,7 @@ void Config::parseArguments ()
          }
 
          try {
+            opt.setName( std::string( arg ) );
             opt.parse( value );
          } catch ( InvalidOptionException &exception ) {
             std::cerr << "WARNING:" << exception.what() << std::endl;
@@ -152,36 +220,56 @@ void Config::init ()
    parseFiles();
    parseEnvironment();
    parseArguments();
+
+   if ( _nanosHelp == NULL ) {
+      _nanosHelp = new NanosHelp();
+   }
+
+   for ( ConfigOptionMap::iterator it = _configOptions.begin(); it != _configOptions.end(); it++ ) {
+      _nanosHelp->addHelpString ( (*it).second->getSection(), (*it).second->getArgHelp(), (*it).second->getEnvHelp() );
+   }
+}
+
+void Config::setOptionsSection( const std::string &sectionName, const std::string *sectionDescription )
+{
+   _currentSection = sectionName;
+
+   if ( sectionDescription != NULL ) {
+      if ( _nanosHelp == NULL ) {
+         _nanosHelp = new NanosHelp();
+      }
+      _nanosHelp->addSectionDescription ( sectionName, *sectionDescription );
+   }
 }
 
 //TODO: move to utility header
 
 void Config::clear ()
 {
-   std::for_each( _envOptions.begin(),_envOptions.end(),deleter<Option> );
-   std::for_each( _argOptions.begin(),_argOptions.end(),pair_deleter2<Option> );
-   _envOptions.clear();
-   _argOptions.clear();
+   std::for_each( _configOptions.begin(),_configOptions.end(),pair_deleter2<ConfigOption> );
+   _configOptions.clear();
+   _argOptionsMap.clear();
 }
 
 //TODO: generalize?
 
 class map_copy
 {
-      Config::OptionMap& dest;
+      Config::ConfigOptionMap& dest;
 
    public:
 
-      map_copy( Config::OptionMap &d ) : dest( d ) {}
+      map_copy( Config::ConfigOptionMap &d ) : dest( d ) {}
 
-      void operator()( Config::OptionMap::value_type pair ) {  dest[pair.first] = pair.second->clone(); }
+      void operator()( Config::ConfigOptionMap::value_type pair ) {  dest[pair.first] = pair.second->clone(); }
 };
 
 void Config::copy ( const Config &cfg )
 {
-   std::transform( cfg._envOptions.begin(), cfg._envOptions.end(), _envOptions.begin(),
-                   cloner<Option> );
-   std::for_each( cfg._argOptions.begin(), cfg._argOptions.end(), map_copy( _argOptions ) );
+   std::for_each( cfg._configOptions.begin(), cfg._configOptions.end(), map_copy( _configOptions ) );
+   for ( ConfigOptionMap::iterator it = _configOptions.begin(); it != _configOptions.end(); it++ ) {
+      _argOptionsMap[it->first] = it->second;
+   }
 }
 
 Config::Config ( const Config &cfg )
@@ -206,5 +294,47 @@ Config::~Config ()
    clear();
 }
 
-/** Options **/
+
+std::string Config::ConfigOption::getArgHelp()
+{ 
+   std::string help;
+   std::string farg="";
+
+// argument
+   if ( _argOption != "" ) {
+      farg = "--" + _argOption + " ";
+      std::string argval = _option.getArgHelp();
+      if ( argval.compare( "no" ) == 0 ) {
+         farg += "--no-"+_argOption;
+      } else {
+         farg += "[=]" + argval;
+      }
+   } else {
+      return "";
+   }
+
+// Env vars
+   std::string formattedArg = "                                           ";
+   formattedArg.replace( 0, farg.size(), farg );
+   help += formattedArg + _message;
+   return help;
+}
+
+std::string Config::ConfigOption::getEnvHelp()
+{
+   std::string help;
+   std::string fenv="";
+
+// Env vars
+   if ( _envOption != "" ) {
+      fenv = _envOption + " = " + _option.getEnvHelp();
+   } else {
+      return "";
+   }
+
+   std::string formattedEnv = "                                           ";
+   formattedEnv.replace( 0, fenv.size(), fenv );
+   help += formattedEnv + _message;
+   return help;
+}
 

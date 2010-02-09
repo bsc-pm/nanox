@@ -19,6 +19,7 @@
 
 #include "os.hpp"
 #include "plugin.hpp"
+#include "config.hpp"
 #include <string>
 #include <stdio.h>
 #include <iostream>
@@ -28,11 +29,36 @@
 using namespace nanos;
 
 
-int main ()
+int main (int argc, char* argv[])
 {
 
    struct dirent **namelist;
    int n;
+
+   bool listHelp = false;
+   bool listPlugins = false;
+   std::string arg;
+
+   for ( int i=1; i < argc; i++ ) {
+      arg = std::string( argv[i] );
+
+      if ( arg.compare( "--help" ) == 0 ) {
+         listHelp = true;
+      } else if ( arg.compare( "--list-modules" ) == 0 ) {
+         listPlugins = true;
+      } else {
+         std::cout << "usage: " << argv[0] << " [--help] [--list-modules]" << std::endl;
+         exit(0);
+      }
+   } 
+
+   if ( !listPlugins && !listHelp ) {
+      std::cout << "usage: " << argv[0] << " [--help] [--list-modules]" << std::endl;
+      exit(0);
+   }
+
+   if ( listPlugins )
+      std::cout << "Nanox runtime library available plugins at '" << PluginManager::getDirectory() << "':" << std::endl;
 
    n = scandir( PluginManager::getDirectory().c_str(), &namelist, 0, alphasort );
 
@@ -55,13 +81,23 @@ int main ()
 
             if ( !plugin ) continue;
 
-            std::cout << name << " - " << plugin->getName() << " - version " << plugin->getVersion() << std::endl;
+plugin->init();
+
+            if ( listPlugins )
+               std::cout << "   " << name << " - " << plugin->getName() << " - version " << plugin->getVersion() << std::endl;
          }
 
          free( namelist[n] );
       }
 
       free( namelist );
+   }
+
+   if ( listHelp ) {
+      if ( listPlugins )
+         std::cout << std::endl;
+
+      std::cout << Config::getNanosHelp();
    }
 
 }

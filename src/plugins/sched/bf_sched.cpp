@@ -89,8 +89,12 @@ namespace nanos {
             virtual void init() {
                Config config;
 
-               config.registerArgOption( new Config::FlagOption( "bf-use-stack",BreadthFirstPolicy::_useStack ) );
-               config.registerArgOption( new Config::FlagOption( "bf-stack",BreadthFirstPolicy::_useStack ) );
+               config.registerConfigOption ( "bf-use-stack", new Config::FlagOption( BreadthFirstPolicy::_useStack ), "Stack usage for the breadth-first policy");
+               config.registerArgOption( "bf-use-stack", "bf-use-stack" );
+
+               config.registerAlias ( "bf-use-stack", "bf-stack", "Stack usage for the breadth-first policy" );
+               config.registerArgOption ( "bf-stack", "bf-stack" );
+
                config.init();
 
                sys.setDefaultSGFactory( createBreadthFirstPolicy );
