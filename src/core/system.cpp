@@ -133,8 +133,9 @@ void System::config ()
    config.registerArgOption ( "barrier", "barrier" );
    config.registerEnvOption ( "barrier", "NANOS_BARRIER" );
 
-   config.registerArgOption ( new Config::StringVar ( "instrumentor", _defInstr ) );
-   config.registerEnvOption ( new Config::StringVar ( "NTH_INSTRUMENTOR", _defInstr ) );
+   config.registerConfigOption ( "instrumentor", new Config::StringVar ( _defInstr ), "Nanos instrumentation" );
+   config.registerArgOption ( "instrumentor", "instrumentor" );
+   config.registerEnvOption ( "instrumentor", "NTH_INSTRUMENTOR" );
 
    verbose0 ( "Reading Configuration" );
    config.init();
