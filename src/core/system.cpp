@@ -100,11 +100,11 @@ void System::config ()
 
    config.registerConfigOption ( "num_pes", new Config::PositiveVar( _numPEs ), "Number of processing elements" );
    config.registerArgOption ( "num_pes", "pes" );
-   config.registerEnvOption ( "num_pes", "NANOS_PES" );
+   config.registerEnvOption ( "num_pes", "NX_PES" );
 
    config.registerConfigOption ( "stack-size", new Config::PositiveVar( _deviceStackSize ), "Default stack size for the devices" );
    config.registerArgOption ( "stack-size", "stack-size" );
-   config.registerEnvOption ( "stack-size", "NANOS_STACK_SIZE" );
+   config.registerEnvOption ( "stack-size", "NX_STACK_SIZE" );
 
    config.registerConfigOption ( "no-binding", new Config::FlagOption( _bindThreads, false), "Thread binding" );
    config.registerArgOption ( "no-binding", "no-binding" );
@@ -123,19 +123,19 @@ void System::config ()
 
    config.registerConfigOption ( "schedule", new Config::StringVar ( _defSchedule ), "Default scheduling policy" );
    config.registerArgOption ( "schedule", "schedule" );
-   config.registerEnvOption ( "schedule", "NANOS_SCHEDULE" );
+   config.registerEnvOption ( "schedule", "NX_SCHEDULE" );
 
    config.registerConfigOption ( "throttle", new Config::StringVar ( _defThrottlePolicy ), "Default throttle policy" );
    config.registerArgOption ( "throttle", "throttle" );
-   config.registerEnvOption ( "throttle", "NANOS_THROTTLE" );
+   config.registerEnvOption ( "throttle", "NX_THROTTLE" );
 
    config.registerConfigOption ( "barrier", new Config::StringVar ( _defBarr ), "Default barrier" );
    config.registerArgOption ( "barrier", "barrier" );
-   config.registerEnvOption ( "barrier", "NANOS_BARRIER" );
+   config.registerEnvOption ( "barrier", "NX_BARRIER" );
 
    config.registerConfigOption ( "instrumentor", new Config::StringVar ( _defInstr ), "Nanos instrumentation" );
    config.registerArgOption ( "instrumentor", "instrumentor" );
-   config.registerEnvOption ( "instrumentor", "NTH_INSTRUMENTOR" );
+   config.registerEnvOption ( "instrumentor", "NX_INSTRUMENTOR" );
 
    verbose0 ( "Reading Configuration" );
    config.init();

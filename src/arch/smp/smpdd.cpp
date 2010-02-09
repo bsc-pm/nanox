@@ -46,7 +46,7 @@ void SMPDD::prepareConfig( Config &config )
    */
    config.registerConfigOption ( "smp-stack-size", new Config::PositiveVar( _stackSize ), "SMP device's stack size" );
    config.registerArgOption ( "smp-stack-size", "smp-stack-size" );
-   config.registerEnvOption ( "smp-stack-size", "NANOS_SMP_STACK_SIZE" );
+   config.registerEnvOption ( "smp-stack-size", "NX_SMP_STACK_SIZE" );
 }
 
 void SMPDD::allocateStack ()

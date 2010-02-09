@@ -69,7 +69,7 @@ const std::string Config::NanosHelp::getHelp()
          if ( it->second != "" ) envHelpString << "\t" << it->second << std::endl;
       }
 
-      helpString << "   'NANOS_ARGS' options" << std::endl;
+      helpString << "   'NX_ARGS' options" << std::endl;
       helpString << argHelpString.str();
       helpString << "   Environment variables" << std::endl;
       helpString << envHelpString.str();
@@ -144,7 +144,7 @@ void Config::parseEnvironment ()
 // so it's not clear if its worth it.
 void Config::parseArguments ()
 {
-   const char *tmp = OS::getEnvironmentVariable( "NANOS_ARGS" );
+   const char *tmp = OS::getEnvironmentVariable( "NX_ARGS" );
 
    if ( tmp == NULL ) return;
 
