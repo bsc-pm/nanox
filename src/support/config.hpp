@@ -59,7 +59,6 @@ namespace nanos
 
          /** Configuration options */
          // Abstract Base Class
-
          class Option
          {
 
@@ -76,6 +75,8 @@ namespace nanos
 
                Option( const char *n, const OptType t ) : _name( n ), _type( t ) {}
 
+               Option( const OptType t ) : _name( "" ), _type( t ) {}
+
                // copy constructor
                Option( const Option &opt ) : _name( opt._name ),_type( opt._type ) {}
 
@@ -86,12 +87,22 @@ namespace nanos
 
                const std::string &getName() const { return _name; }
 
+               void setName( const std::string &name ) { _name = name; }
+
                const OptType& getType() const { return _type; }
 
                virtual void parse ( const char *value ) = 0;
 
                // clone idiom
                virtual Option * clone () = 0;
+
+              /* \brief Formatted help for the argument option.
+               */
+               virtual const std::string getArgHelp () = 0;
+
+              /* \brief Formatted help for the environment variable.
+               */
+               virtual const std::string getEnvHelp () = 0;
          };
 
          // Action Option, Base Class
@@ -111,6 +122,9 @@ namespace nanos
                ActionOption( const char *name ) :
                      Option( name,Option::VALUE ) {}
 
+               ActionOption() :
+                     Option( Option::VALUE ) {}
+
                // copy constructors
                ActionOption( const ActionOption& opt ) : Option( opt ), _check( opt._check ) {}
 
@@ -125,6 +139,14 @@ namespace nanos
                bool checkValue ( const T &value ) const	{ return _check( value );  };
 
                virtual ActionOption * clone () = 0;
+
+              /* \brief Formatted help for the argument option.
+               */
+               virtual const std::string getArgHelp () { return std::string("<value>"); }
+
+              /* \brief Formatted help for the environment variable.
+               */
+               virtual const std::string getEnvHelp () { return std::string("<VALUE>"); }
          };
 
          // VarOption: Option modifies a variable
@@ -145,6 +167,9 @@ namespace nanos
 
                VarOption( const char *name, T &ref ) :
                      ActionOption<T,checkT>( name ),_var( ref ) {}
+
+               VarOption( T &ref ) :
+                     ActionOption<T,checkT>(), _var( ref ) {}
 
                // copy constructor
                VarOption( const VarOption &opt ) :
@@ -185,7 +210,16 @@ namespace nanos
                typedef std::vector<MapOption> MapList;
 
             private:
-               const MapList _options;
+               MapList _options;
+
+               const std::string getHelp ()
+               {
+                  std::string help = "";
+                  for ( unsigned int i = 0; i < _options.size(); i++ ) {
+                     help += ( (i == 0) ? "": ", ") + _options[i].first;
+                  }
+                  return help;
+               }
 
             public:
                // constructors
@@ -195,6 +229,13 @@ namespace nanos
                MapAction( const char *name, const MapList &opts ) :
                      Option( name,Option::VALUE ), _options( opts ) {}
 
+               MapAction( const MapList &opts ) :
+                     Option( Option::VALUE ), _options( opts ) {}
+
+               MapAction( ) :
+                     Option( Option::VALUE ), _options()
+                  { _options.reserve(16); }
+
                // copy constructor
                MapAction( const MapAction &opt ) : Option( opt ),_options( opt._options ) {}
 
@@ -203,9 +244,29 @@ namespace nanos
                // destructor
                virtual ~MapAction() {}
 
+               MapAction & addOption ( std::string optionName, T value )
+               {
+                  _options.push_back( MapOption( optionName, value ) );
+                  return *this;
+               }
+
                virtual void parse ( const char *name );
                virtual void setValue ( const T &value ) = 0;
                virtual MapAction * clone () = 0;
+
+              /* \brief Formatted help for the argument option.
+               */
+               virtual const std::string getArgHelp ()
+               {
+                  return getHelp();
+               }
+
+              /* \brief Formatted help for the environment variable.
+               */
+               virtual const std::string getEnvHelp ()
+               {
+                  return getHelp();
+               }
          };
 
          template<typename T> class MapVar : public MapAction<T>
@@ -227,15 +288,18 @@ namespace nanos
                MapVar( const char *name, T &ref, const MapList &opts ) :
                      MapAction<T>( name,opts ), _var( ref ) {}
 
+               MapVar( T &ref ) :
+                     MapAction<T>(), _var( ref ) {}
+
                // copy constructor
                MapVar( const MapVar &opt ) : MapAction<T>( opt ), _var( opt._var ) {}
 
                // destructor
                virtual ~MapVar() {}
 
-               virtual void setValue ( const T &value ) { _var = value; };
+               virtual void setValue ( const T &value ) { _var = value; }
 
-               virtual MapVar * clone () { return new MapVar( *this ); };
+               virtual MapVar * clone () { return new MapVar( *this ); }
          };
 
          class ActionFlag : public Option
@@ -247,6 +311,9 @@ namespace nanos
 
                ActionFlag( const char *name ) :
                      Option( name,Option::FLAG ) {}
+
+               ActionFlag() :
+                     Option( Option::FLAG ) {}
 
                // copy constructors
                ActionFlag( const ActionFlag& opt ) : Option( opt ) {}
@@ -260,6 +327,11 @@ namespace nanos
                virtual void setValue ( const bool &value ) = 0;
 
                virtual ActionFlag * clone () = 0;
+
+              /* \brief Formatted help for the option.
+               */
+               virtual const std::string getArgHelp() { return "no"; }
+               virtual const std::string getEnvHelp() { return "yes/no"; }
          };
 
          class FlagOption : public ActionFlag
@@ -279,6 +351,9 @@ namespace nanos
                FlagOption ( const char *name, bool &ref, bool value=true ) :
                      ActionFlag( name ),_var( ref ),_setTo( value ) {}
 
+               FlagOption ( bool &ref, bool value=true ) :
+                     ActionFlag(),_var( ref ),_setTo( value ) {}
+
                // copy constructors
                FlagOption( const FlagOption &opt ) : ActionFlag( opt ), _var( opt._var ), _setTo( opt._setTo ) {}
 
@@ -290,12 +365,147 @@ namespace nanos
                virtual FlagOption * clone () { return new FlagOption( *this ); };
          };
 
-         typedef TR1::unordered_map<std::string, Option *> OptionMap;
-         typedef std::vector<Option *> OptionList;
+        /* \brief High-Level Instances of configuration options
+         */
+         class ConfigOption
+         {
+            private:
+               /**< Name that identifies the option. */
+               std::string _optionName;
+
+               /**< Environment variable option to set this option. */
+               std::string _envOption;
+               /**< Argument option for NANOS_ARGS to set this option. */
+               std::string _argOption;
+
+               /**< Option set by the ConfigOption*/
+               Option &_option;
+
+               /**< help message for this option. */
+               std::string _message;
+
+               /**< Section in which the ConfigOption is*/
+               std::string _section;
+
+            public:
+              /* \brief Constructor
+               * \param name: Name that identifies the option.
+               * \param option: Option set by this ConfigOption.
+               * \param helpMessage: Help message to be printed for this option.
+               * \param section: section in which the ConfigOption is listed.
+               */
+               ConfigOption( const std::string &name, Option &option, const std::string &helpMessage, const std::string &section ) :
+                  _optionName( name ), _envOption( "" ), _argOption( "" ), _option( option ), _message( helpMessage ), _section( section ) {}
+
+              /* \brief Constructor
+               * \param name: Name that identifies the option.
+               * \param arg: Argument name to set the option.
+               * \paran env: Environment variable name to set the option.
+               * \param option: Option set by this ConfigOption.
+               * \param helpMessage: Help message to be printed for this option.
+               * \param section: section in which the ConfigOption is listed.
+               */
+               ConfigOption( const std::string &name, const std::string& env, const std::string &arg, Option &option, const std::string &helpMessage, const std::string &section ) :
+                  _optionName( name ), _envOption( arg ), _argOption( env ), _option( option ), _message( helpMessage ), _section( section ) {}
+
+               ConfigOption( const ConfigOption &co ) :
+                  _optionName( co._optionName ), _envOption( co._envOption ), _argOption( co._argOption ),
+                  _option( co._option ), _message( co._message ), _section( co._section ) {}
+
+               const ConfigOption & operator= ( const ConfigOption &co );
+
+               ~ConfigOption () {}
+
+              /* \brief Returns the formatted help message for the ConfigOption's argument.
+               */
+               std::string getArgHelp();
+              /* \brief Returns the formatted help message for the ConfigOption's environment variable.
+               */
+               std::string getEnvHelp();
+
+              /* \brief Environment Option's getter method.
+               */
+               const std::string& getEnvVar() { return _envOption; }
+
+              /* \brief Argument Option's getter method.
+               */
+               const std::string& getArg() { return _argOption; }
+
+              /* \brief Environment Option's setter method.
+               */
+               void setEnvVar( const std::string envOption ) { _envOption = envOption; }
+
+              /* \brief Argument Option's setter method.
+               */
+               void setArg( const std::string argOption ) { _argOption = argOption; }
+
+              /* \brief Returns the option set by this ConfigOption
+               */
+               Option& getOption() { return _option; }
+
+              /* \brief Returns the name of the section to which this ConfigOption belongs
+               */
+               const std::string getSection () { return _section; }
+
+              /* \brief cloner function
+               */
+               ConfigOption * clone ();
+         };
+
+        /* \brief Nanos help class, constructs the help text for the library
+         */
+         class NanosHelp
+         {
+             private:
+                /**< Help formatted help string for the argument and the environment variable of an option */
+                typedef std::pair<std::string, std::string> argAndEnvHelps;
+                /**< List of helps in a section */
+                typedef std::vector<argAndEnvHelps> HelpStringList;
+                /**< Sections by name */
+                typedef TR1::unordered_map<std::string, HelpStringList> SectionsMap;
+                /**< Section descriptions by name */
+                typedef TR1::unordered_map<std::string, std::string> SectionDescriptionsMap;
+
+                /**< Help strings for all sections */
+                SectionsMap _helpSections;
+                /**< Section descriptions */
+                SectionDescriptionsMap _sectionDescriptions;
+
+             public:
+
+               /* \brief Add the help string for an option
+                * \param section section to which the option belogns
+                * \param agrHelpString Help string for the argument option
+                * \param envHelpString Help string for the environment variable
+                */
+                void addHelpString ( const std::string &section, const std::string &argHelpString, const std::string &envHelpString );
+
+               /* \brief Set the description for a section
+                * \param section Section name
+                * \param description Section description
+                */
+                void addSectionDescription ( const std::string &section, const std::string &description );
+
+               /* \brief Build and return the help text
+                */
+                const std::string getHelp();
+         };
+
+         /**< Stores ConfigOptions by name */
+         typedef TR1::unordered_map<std::string, ConfigOption *> ConfigOptionMap;
 
       private:
-         OptionList _envOptions;
-         OptionMap  _argOptions;
+
+         /**< List of all config options in this config */
+         ConfigOptionMap _configOptions;
+         /**< Shortcut to find argument options */
+         ConfigOptionMap _argOptionsMap;
+
+         /**< Current section where the options are being listed */
+         std::string _currentSection;
+
+         /**< Gathers help messages of all Configs used in the runtime */
+         static NanosHelp *_nanosHelp;
 
       protected:
 
@@ -308,7 +518,7 @@ namespace nanos
 
       public:
          // constructors
-         Config() {}
+         Config() : _currentSection("Other options") {}
 
          // copy constructors
          Config( const Config &cfg );
@@ -317,17 +527,59 @@ namespace nanos
          // destructor
          virtual ~Config ();
 
+        /* \brief initializes the config object
+         */
          void init();
-         void registerEnvOption ( Option *opt );
-         void registerArgOption ( Option *opt );
+
+        /* \brief Sets the current section in which new ConfigOptions will be listed
+         * \param sectionName name of the section to be set as current
+         * \param sectionDescription If any, sets the description for the section
+         */
+         void setOptionsSection( const std::string &sectionName, const std::string *sectionDescription = NULL );
+
+        /* \brief Register a Configuration Option
+         * \param optionName Name to give to the option
+         * \param option Option set by this ConfigOption
+         * \param helpMessage Help information about the ConfigOption
+         */
+         void registerConfigOption ( const std::string &optionName, Option *option, const std::string &helpMessage );
+
+        /* \brief Register alias for a ConfigOption
+         * \param optionName Name of the ConfigOption to alias
+         * \param aliasName Name for the new ConfigOption
+         * \param helpMessage Help information about the new ConfigOption
+         */
+         void registerAlias ( const std::string &optionName, const std::string &aliasName, const std::string &helpMessage );
+
+        /* \brief Register env var option
+         * \param option Name of the ConfigOption
+         * \param envVar Name for the environment variable to set the option
+         */
+         void registerEnvOption ( const std::string &option, const std::string &envVar );
+
+        /* \brief Register a NX_ARGS argument option
+         * \param option Name of the ConfigOption
+         * \param arg Name for the argument
+         */
+         void registerArgOption ( const std::string &option, const std::string &arg );
+
+        /* Returns the formatted help text for the nanox runtime library
+         */
+         static const std::string getNanosHelp();
    };
 
    /** exceptions */
 
+  /* \brief Exception for invalid options
+   */
    class InvalidOptionException : public  std::runtime_error
    {
 
       public:
+        /* \brief Constructor
+         * \param option Option detected invalid
+         * \param value Invalid value
+         */
          InvalidOptionException( const Config::Option &option,
                                  const std::string &value ) :
                runtime_error( std::string( "Ignoring invalid value '" )+value
@@ -406,6 +658,24 @@ namespace nanos
          setValue( false );
       } else
          throw InvalidOptionException( *this,value );
+   }
+
+   inline const Config::ConfigOption& Config::ConfigOption::operator= ( const ConfigOption &co )
+   {
+      if ( this == &co )
+         return *this;
+      this->_optionName = co._optionName;
+      this->_envOption = co._envOption;
+      this->_argOption = _argOption;
+      this->_option = _option;
+      this->_message = _message;
+      this->_section = _section;
+      return *this;
+   }
+
+   inline Config::ConfigOption* Config::ConfigOption::clone()
+   {
+      return new ConfigOption( _optionName, _envOption, _argOption, *(_option.clone()), _message, _section); 
    }
 
 };

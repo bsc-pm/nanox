@@ -30,8 +30,9 @@ PluginManager::PluginList PluginManager::_activePlugins;
 void PluginManager::init()
 {
    Config config;
-   config.registerEnvOption ( new Config::StringVar ( "NTH_PLUGINS_DIR", _pluginsDir ) );
-   config.registerArgOption ( new Config::StringVar ( "plugins_dir", _pluginsDir ) );
+   config.registerConfigOption ( "plugins_dir", new Config::StringVar ( _pluginsDir ), "Plugins directory" );
+   config.registerArgOption ( "plugins_dir", "plugins_dir" );
+   config.registerEnvOption ( "plugins_dir", "NTH_PLUGINS_DIR" );
    config.init();
 }
 

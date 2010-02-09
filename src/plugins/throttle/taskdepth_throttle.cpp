@@ -75,8 +75,8 @@ namespace nanos {
                Config config;
 
                int actualLimit = TaskDepthThrottle::_defaultLimit; 
-               config.registerArgOption( new Config::PositiveVar( "throttle-limit", 
-                                          actualLimit ) ); 
+               config.registerConfigOption ( "throttle-limit",  new Config::PositiveVar( actualLimit ), "Throttle limit" );
+               config.registerArgOption ( "throttle-limit", "throttle-limit" );
                config.init(); 
                sys.setThrottlePolicy( createTaskDepthThrottle( actualLimit )); 
             }

@@ -29,7 +29,7 @@ Device nanos::ext::SMP( "SMP" );
 
 int SMPDD::_stackSize = 1024;
 
-/*! \fn prepareConfig(Config &config)
+/*!
   \brief Registers the Device's configuration options
   \param reference to a configuration object.
   \sa Config System
@@ -44,8 +44,9 @@ void SMPDD::prepareConfig( Config &config )
    /*!
       Get the stack size for this device
    */
-   config.registerArgOption( new Config::PositiveVar( "smp-stack-size",_stackSize ) );
-   config.registerEnvOption( new Config::PositiveVar( "NTH_SMP_STACK_SIZE",_stackSize ) );
+   config.registerConfigOption ( "smp-stack-size", new Config::PositiveVar( _stackSize ), "SMP device's stack size" );
+   config.registerArgOption ( "smp-stack-size", "smp-stack-size" );
+   config.registerEnvOption ( "smp-stack-size", "NANOS_SMP_STACK_SIZE" );
 }
 
 void SMPDD::allocateStack ()

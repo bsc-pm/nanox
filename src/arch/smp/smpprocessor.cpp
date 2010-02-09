@@ -31,8 +31,11 @@ size_t SMPProcessor::_threadsStackSize = 0;
 
 void SMPProcessor::prepareConfig ( Config &config )
 {
-   config.registerArgOption( new Config::FlagOption( "no-ut",_useUserThreads,false ) );
-   config.registerArgOption( new Config::SizeVar( "pthreads-stack-size", _threadsStackSize ) );
+   config.registerConfigOption( "user-threads", new Config::FlagOption( _useUserThreads, false), "Use of user threads" );
+   config.registerArgOption( "user-threads", "disable-ut" );
+
+   config.registerConfigOption ( "pthreads-stack-size", new Config::SizeVar( _threadsStackSize ), "Pthreads stack size" );
+   config.registerArgOption( "pthreads-stack-size", "pthreads-stack-size" );
 }
 
 WorkDescriptor & SMPProcessor::getWorkerWD () const
