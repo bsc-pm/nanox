@@ -27,6 +27,7 @@
 #include "dependableobject.hpp"
 #include "trackableobject.hpp"
 #include "dependency.hpp"
+#include "compatibility.hpp"
 
 
 namespace nanos
@@ -48,7 +49,7 @@ namespace nanos
          unsigned int _lastDepObjId;
          
          /**< Maps addresses to Trackable objects */
-         typedef std::map<void *, TrackableObject*> DepsMap;
+         typedef TR1::unordered_map<void *, TrackableObject*> DepsMap;
          /**< Used to track dependencies between DependableObject */
          DepsMap _addressDependencyMap;
 
