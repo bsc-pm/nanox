@@ -19,70 +19,27 @@
 
 include $(top_srcdir)/src/common.am
 
-lib_LTLIBRARIES=libnanox.la
-
-include_HEADERS=nanos-int.h
-
-if PERFORMANCE
-  lib_LTLIBRARIES += libnanox-pfm.la
-endif
-
-# Common flags and files
-nanos_cxxflags=$(common_includes) $(common_cxxflags)
-nanos_ldflags=$(version_flags) @NANOS_CONFIG_LIBDIRS@
-nanos_libadd=\
-	-lpthread \
-	-ldl \
-	../arch/@OS@/libos.la \
-	../support/libsupport.la \
-	@NANOS_CONFIG_LIBS@\
+lib_LTLIBRARIES = \
+	libnanox-instrumentor-empty_trace.la \
+	libnanox-instrumentor-print_trace.la \
+	libnanox-instrumentor-paraver.la \
 	$(END)
 
-nanos_sources=\
-	nanos-int.h \
-	barrier.hpp \
-	threadteam.hpp \
-	threadteam.cpp \
-	basethread.hpp\
-	basethread.cpp\
-	processingelement.hpp \
-	processingelement.cpp \
-	schedule.hpp \
-	schedule.cpp \
-	system.hpp \
-	system.cpp \
-	wddeque.hpp \
-	workgroup.hpp \
-	workgroup.cpp \
-	workdescriptor.hpp \
-	workdescriptor.cpp \
-	slicer.hpp \
-	instrumentor.hpp \
-	throttle.hpp \
-	dependency.hpp \
-	dependency.hpp \
-	dependableobject.hpp \
-	dependableobjectwd.hpp \
-	dependableobjectwd.cpp \
-	trackableobject.hpp \
-	dependenciesdomain.hpp \
-	dependenciesdomain.cpp \
-        synchronizedcondition.hpp \
-        synchronizedcondition_decl.hpp \
+
+libnanox_instrumentor_empty_trace_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
+libnanox_instrumentor_empty_trace_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_instrumentor_empty_trace_la_SOURCES = \
+	empty_trace.cpp \
 	$(END)
 
-# Default
-libnanox_la_CFLAGS=$(nanos_cflags)
-libnanox_la_CXXFLAGS=$(nanos_cxxflags)
-libnanox_la_LDFLAGS=$(nanos_ldflags) 
-libnanox_la_LIBADD=$(nanos_libadd)
-libnanox_la_SOURCES=$(nanos_sources)
-libnanox_la_DEPENDENCIES=$(nanos_libadd)
+libnanox_instrumentor_print_trace_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
+libnanox_instrumentor_print_trace_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_instrumentor_print_trace_la_SOURCES = \
+	print_trace.cpp \
+	$(END)
 
-# Performance
-libnanox_pfm_la_CFLAGS=$(nanos_cflags) $(performance_cflags)
-libnanox_pfm_la_CXXFLAGS=$(nanos_cxxflags) $(performance_cflags)
-libnanox_pfm_la_LDFLAGS=$(nanos_ldflags) $(nanos_libadd)
-libnanox_pfm_la_LIBADD=$(nanos_libadd)
-libnanox_pfm_la_SOURCES=$(nanos_sources)
-libnanox_pfm_la_DEPENDENCIES=$(nanos_libadd)
+libnanox_instrumentor_paraver_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
+libnanox_instrumentor_paraver_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_instrumentor_paraver_la_SOURCES = \
+	paraver.cpp \
+	$(END)

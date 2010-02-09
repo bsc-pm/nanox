@@ -153,6 +153,7 @@ AC_CONFIG_FILES([Makefile
 		 src/plugins/throttle/Makefile
 		 src/plugins/barr/Makefile
 		 src/plugins/slicers/Makefile
+		 src/plugins/instrumentors/Makefile
 		 src/apis/Makefile
 		 src/apis/c/Makefile
                  src/arch/Makefile

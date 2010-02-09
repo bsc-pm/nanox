@@ -99,8 +99,8 @@ nanos_smp_args_t main__loop_1_device_args = { main__loop_1 };
 \
       NANOS_SAFE( nanos_submit( wd,0,0,0 ) );\
       NANOS_SAFE( nanos_wg_wait_completation( nanos_current_wd() ) );\
-      if (step > 0 ) for ( j = lower+k_offset; j < upper+k_offset; j+= step ) A[j+loop_data->offset]--;\
-      else if ( step < 0 ) for ( j = lower+k_offset; j > upper+k_offset; j+= step ) A[j+loop_data->offset]--;\
+      if (step > 0 ) for ( j = lower+k_offset; j < upper+k_offset; j+= step ) A[j-k_offset]--;\
+      else if ( step < 0 ) for ( j = lower+k_offset; j > upper+k_offset; j+= step ) A[j-k_offset]--;\
    }
 
 #define FINALIZE(type,lower,upper,offset,step,chunk)\

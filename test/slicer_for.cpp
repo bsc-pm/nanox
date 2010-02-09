@@ -18,7 +18,7 @@
 /*************************************************************************************/
 
 #include "config.hpp"
-#include "nanos.h"
+#include <nanos.h>
 #include <iostream>
 #include "smpprocessor.hpp"
 #include "system.hpp"
@@ -45,11 +45,17 @@ using namespace nanos::ext;
 
 #define STEP_ERROR     17
 
+// Output information level:
+#define SHOW_PARTIAL_RESULTS
 //#define VERBOSE
+//#define EXTRA_VERBOSE
+
 
 int *A;
 
 void print_vector();
+
+void main__loop_1 ( void *args );
 
 #define EXECUTE(get_slicer,slicer_data,lower,upper,k_offset,step,chunk)\
    for ( i = 0; i < NUM_ITERS; i++ ) {\
@@ -128,6 +134,10 @@ void main__loop_1 ( void *args )
 {
    int i;
    main__loop_1_data_t *hargs = (main__loop_1_data_t * ) args;
+#ifdef VERBOSE
+   fprintf(stderr,"[%d..%d:%d/%d]",
+      hargs->loop_info.lower, hargs->loop_info.upper, hargs->loop_info.step, hargs->offset);
+#endif
    if ( hargs->loop_info.step > 0 )
    {
       for ( i = hargs->loop_info.lower; i < hargs->loop_info.upper; i += hargs->loop_info.step) {
@@ -146,7 +156,7 @@ void main__loop_1 ( void *args )
 
 void print_vector ()
 {
-#ifdef VERBOSE
+#ifdef EXTRA_VERBOSE
    for ( int j = -5; j < 0; j++ ) fprintf(stderr,"%d:",A[j]);
    fprintf(stderr,"[");
    for ( int j = 0; j < VECTOR_SIZE; j++ ) fprintf(stderr,"%d:",A[j]);
@@ -166,30 +176,59 @@ int main ( int argc, char **argv )
    
    A = &I[VECTOR_MARGIN];
 
+#ifdef VERBOSE
+   fprintf(stderr,"SLICER_FOR: Initializing vector.\n");
+#endif
+
    // initialize vector
    for ( i = 0; i < VECTOR_SIZE+2*VECTOR_MARGIN; i++ ) I[i] = 0;
 
 #ifdef SLICER_STATIC
    // omp for: static policy (chunk == 0)
+#ifdef VERBOSE
+   fprintf(stderr,"SLICER_FOR: static_for (static) begins.\n");
+#endif
    TEST("static_for", SlicerDataFor, NUM_A, 0)
    TEST("static_for", SlicerDataFor, NUM_B, 0)
    TEST("static_for", SlicerDataFor, NUM_C, 0)
+#ifdef VERBOSE
+   fprintf(stderr,"SLICER_FOR: static_for (static) ends.\n");
+#endif
 #endif
 
 #ifdef SLICER_INTERLEAVED
    // omp for: static policy (chunk != 0, interleaved)
+#ifdef VERBOSE
+   fprintf(stderr,"SLICER_FOR: static_for (interleaved) begins.\n");
+#endif
    TEST_SLICER("static_for", SlicerDataFor)
+#ifdef VERBOSE
+   fprintf(stderr,"SLICER_FOR: static_for (interleaved) ends.\n");
+#endif
 #endif
 
 #ifdef SLICER_DYNAMIC
    // omp for: dynamic policy (chunk != 0)
+#ifdef VERBOSE
+   fprintf(stderr,"SLICER_FOR: dynamic_for begins.\n");
+#endif
    TEST_SLICER("dynamic_for", SlicerDataFor)
+#ifdef VERBOSE
+   fprintf(stderr,"SLICER_FOR: dynamic_for ends.\n");
+#endif
 #endif
 
 #ifdef SLICER_GUIDED
    // omp for: guided policy (chunk != 0)
-   TEST_SLICER("guided_for", SlicerDataFor)
+#ifdef VERBOSE
+   fprintf(stderr,"SLICER_FOR: guided_for begins.\n");
 #endif
+   TEST_SLICER("guided_for", SlicerDataFor)
+#ifdef VERBOSE
+   fprintf(stderr,"SLICER_FOR: guided_for ends.\n");
+#endif
+#endif
+
 
    // final result
    //fprintf(stderr, "%s : %s\n", argv[0], check ? "  successful" : "unsuccessful");

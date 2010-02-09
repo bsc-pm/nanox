@@ -58,6 +58,7 @@ int nanos_get_wd_id ( nanos_wd_t wd )
 nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t data_size,
                                void ** data, nanos_wg_t uwg, nanos_wd_props_t *props )
 {
+   sys.getInstrumentor()->enterCreateWD();
    try 
    {
       if ( ( props == NULL  || ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTask() ) {
@@ -67,9 +68,11 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
       sys.createWD ( (WD **) uwd, num_devices, devices, data_size, (void **) data, (WG *) uwg, props);
 
    } catch ( ... ) {
+      sys.getInstrumentor()->leaveCreateWD();
       return NANOS_UNKNOWN_ERR;
    }
 
+   sys.getInstrumentor()->leaveCreateWD();
    return NANOS_OK;
 }
 
@@ -81,6 +84,7 @@ nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_
                                void ** outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, size_t slicer_data_size,
                                nanos_slicer_data_t * slicer_data, nanos_wd_props_t *props )
 {
+   sys.getInstrumentor()->enterCreateWD();
    try 
    {
       if ( ( props == NULL  || ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTask() ) {
@@ -88,15 +92,18 @@ nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_
          return NANOS_OK;
       }
       if ( slicer_data == NULL ) {
+         sys.getInstrumentor()->leaveCreateWD();
          return NANOS_UNKNOWN_ERR;
       }
       sys.createSlicedWD ( (WD **) uwd, num_devices, devices, outline_data_size, outline_data, (WG *) uwg,
                            (Slicer *) slicer, slicer_data_size, (SlicerData *&) *slicer_data, props);
 
    } catch ( ... ) {
+      sys.getInstrumentor()->leaveCreateWD();
       return NANOS_UNKNOWN_ERR;
    }
 
+   sys.getInstrumentor()->leaveCreateWD();
    return NANOS_OK;
 }
 

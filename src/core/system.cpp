@@ -36,7 +36,8 @@ System nanos::sys;
 // default system values go here
 System::System () : _numPEs( 1 ), _deviceStackSize( 1024 ), _bindThreads( true ), _profile( false ), _instrument( false ),
       _verboseMode( false ), _executionMode( DEDICATED ), _thsPerPE( 1 ), _untieMaster(true),
-      _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" )
+      _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" ), _defInstr ( "empty_trace" ),
+      _instrumentor ( NULL )
 {
    verbose0 ( "NANOS++ initalizing... start" );
    config();
@@ -80,6 +81,9 @@ void System::loadModules ()
 
    if ( !PluginManager::load( "barrier-"+getDefaultBarrier() ) )
       fatal0( "Could not load main barrier algorithm" );
+
+   if ( !PluginManager::load( "instrumentor-"+getDefaultInstrumentor() ) )
+      fatal0( "Could not load " + getDefaultInstrumentor() + " instrumentor" );
 
    ensure( _defBarrFactory,"No default system barrier factory" );
 
@@ -128,6 +132,9 @@ void System::config ()
    config.registerConfigOption ( "barrier", new Config::StringVar ( _defBarr ), "Default barrier" );
    config.registerArgOption ( "barrier", "barrier" );
    config.registerEnvOption ( "barrier", "NANOS_BARRIER" );
+
+   config.registerArgOption ( new Config::StringVar ( "instrumentor", _defInstr ) );
+   config.registerEnvOption ( new Config::StringVar ( "NTH_INSTRUMENTOR", _defInstr ) );
 
    verbose0 ( "Reading Configuration" );
    config.init();
@@ -257,11 +264,9 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
                           dd_size
                           ;
 
-   char *chunk=0;
-   char *start;
+   char *chunk = 0;
 
-   if ( size_to_allocate )
-      start = chunk = new char[size_to_allocate];
+   if ( size_to_allocate ) chunk = new char[size_to_allocate];
 
    // allocate WD
    if ( *uwd == NULL ) {
@@ -360,11 +365,9 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
                           dd_size
                           ;
 
-   char *chunk=0;
-   char *start;
+   char *chunk = 0;
 
-   if ( size_to_allocate )
-      start = chunk = new char[size_to_allocate];
+   if ( size_to_allocate ) chunk = new char[size_to_allocate];
 
    // allocate WD
    if ( *uwd == NULL ) {
@@ -427,17 +430,15 @@ void System::duplicateWD ( WD **uwd, WD *wd)
 
    // computing size of device(s)
    for ( unsigned int i = 0; i < wd->getNumDevices(); i++ )
-      dd_size += (*((DD **)(wd->getDevices()))[i]).size();
+      dd_size += wd->getDevices()[i]->size();
 
    // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
    int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( WD ) : 0 ) + (((wd->getDataSize()+7)>>3)<<3) +
                           sizeof( DD* ) * wd->getNumDevices() + dd_size ;
 
-   char *chunk=0;
-   char *start;
+   char *chunk = 0;
 
-   if ( size_to_allocate )
-      start = chunk = new char[size_to_allocate];
+   if ( size_to_allocate ) chunk = new char[size_to_allocate];
 
    // allocate WD
    if ( *uwd == NULL ) {
@@ -461,7 +462,7 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    for ( unsigned int i = 0 ; i < wd->getNumDevices(); i ++ ) {
       wd->getDevices()[i]->copyTo(chunk);
       dev_ptrs[i] = ( DD * ) chunk;
-      chunk += (*((DD **)(wd->getDevices()))[i]).size();
+      chunk += wd->getDevices()[i]->size();
    }
 
    // creating new WD 
@@ -484,17 +485,15 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
 
    // computing size of device(s)
    for ( unsigned int i = 0; i < wd->getNumDevices(); i++ )
-      dd_size += (*((DD **)(wd->getDevices()))[i]).size();
+      dd_size += wd->getDevices()[i]->size();
 
    // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
    int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( SlicedWD ) : 0 ) + (((wd->getDataSize()+7)>>3)<<3) +
                           sizeof( DD* ) * wd->getNumDevices() + dd_size + (((wd->getSlicerDataSize()+7)>>3)<<3);
 
-   char *chunk=0;
-   char *start;
+   char *chunk = 0;
 
-   if ( size_to_allocate )
-      start = chunk = new char[size_to_allocate];
+   if ( size_to_allocate ) chunk = new char[size_to_allocate];
 
    // allocate WD
    if ( *uwd == NULL ) {
@@ -518,7 +517,7 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
    for ( unsigned int i = 0 ; i < wd->getNumDevices(); i ++ ) {
       wd->getDevices()[i]->copyTo(chunk);
       dev_ptrs[i] = ( DD * ) chunk;
-      chunk += (*((DD **)(wd->getDevices()))[i]).size();
+      chunk += wd->getDevices()[i]->size();
    }
 
    // copy SlicerData
