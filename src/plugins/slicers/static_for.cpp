@@ -57,7 +57,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
       ((nanos_loop_info_t *)(work.getData()))->step = _step;
 
       // next slice init
-      _lower = upper;
+      _lower = upper + _step;
 
       // Init and Submit WorkDescriptors: 1..N
       for ( i = 1; i < num_threads; i++ ) {
@@ -80,7 +80,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          Scheduler::submit ( *slice );
 
          // next slice init
-         _lower = upper;
+         _lower = upper + _step;
          slice = NULL;
       }
 

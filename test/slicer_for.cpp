@@ -68,8 +68,8 @@ void main__loop_1 ( void *args );
       wg->addWork( *wd );\
       sys.submit( *wd );\
       wg->waitCompletation();\
-      if (step > 0 ) for ( int j = lower+k_offset; j < upper+k_offset; j+= step ) A[j+_loop_data.offset]--; \
-      else if ( step < 0 ) for ( int j = lower+k_offset; j > upper+k_offset; j+= step ) A[j+_loop_data.offset]--; \
+      if (step > 0 ) for ( int j = lower+k_offset; j <= upper+k_offset; j+= step ) A[j+_loop_data.offset]--; \
+      else if ( step < 0 ) for ( int j = lower+k_offset; j >= upper+k_offset; j+= step ) A[j+_loop_data.offset]--; \
    }
 
 #define FINALIZE(type,lower,upper,offset,step,chunk)\
@@ -140,13 +140,13 @@ void main__loop_1 ( void *args )
 #endif
    if ( hargs->loop_info.step > 0 )
    {
-      for ( i = hargs->loop_info.lower; i < hargs->loop_info.upper; i += hargs->loop_info.step) {
+      for ( i = hargs->loop_info.lower; i <= hargs->loop_info.upper; i += hargs->loop_info.step) {
          A[i+hargs->offset]++;
       }
    }
    else if ( hargs->loop_info.step < 0 )
    {
-      for ( i = hargs->loop_info.lower; i > hargs->loop_info.upper; i += hargs->loop_info.step) {
+      for ( i = hargs->loop_info.lower; i >= hargs->loop_info.upper; i += hargs->loop_info.step) {
          A[i+hargs->offset]++;
       }
    }
@@ -159,9 +159,9 @@ void print_vector ()
 #ifdef EXTRA_VERBOSE
    for ( int j = -5; j < 0; j++ ) fprintf(stderr,"%d:",A[j]);
    fprintf(stderr,"[");
-   for ( int j = 0; j < VECTOR_SIZE; j++ ) fprintf(stderr,"%d:",A[j]);
+   for ( int j = 0; j <= VECTOR_SIZE; j++ ) fprintf(stderr,"%d:",A[j]);
    fprintf(stderr,"]");
-   for ( int j = VECTOR_SIZE; j < VECTOR_SIZE+5; j++ ) fprintf(stderr,"%d:",A[j]);
+   for ( int j = VECTOR_SIZE+1; j < VECTOR_SIZE+6; j++ ) fprintf(stderr,"%d:",A[j]);
    fprintf(stderr,"\n");
 #endif
 }

@@ -48,7 +48,7 @@ bool SlicerDynamicFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
 
    // computing initial bounds
    lower = _lower;
-   upper = _lower + ( _chunk * _step ) - _sign;
+   upper = _lower + ( _chunk * _step );
 
    // checking boundaries
    if ( ( upper * _sign ) >= ( _upper * _sign ) ) {
@@ -56,7 +56,7 @@ bool SlicerDynamicFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
       last = true;
    }
 
-   (( SlicerDataFor *)wd->getSlicerData())->setLower( upper );
+   (( SlicerDataFor *)wd->getSlicerData())->setLower( upper + _step );
 
    if ( last ) *slice = wd;
    else sys.duplicateWD( slice, wd );
