@@ -56,13 +56,13 @@ void main__loop_1 ( void *args )
 
    if ( hargs->loop_info.step > 0 )
    {
-      for ( i = hargs->loop_info.lower; i < hargs->loop_info.upper; i += hargs->loop_info.step) {
+      for ( i = hargs->loop_info.lower; i <= hargs->loop_info.upper; i += hargs->loop_info.step) {
          A[i+hargs->offset]++;
       }
    }
    else if ( hargs->loop_info.step < 0 )
    {
-      for ( i = hargs->loop_info.lower; i > hargs->loop_info.upper; i += hargs->loop_info.step) {
+      for ( i = hargs->loop_info.lower; i >= hargs->loop_info.upper; i += hargs->loop_info.step) {
          A[i+hargs->offset]++;
       }
    }
@@ -99,8 +99,8 @@ nanos_smp_args_t main__loop_1_device_args = { main__loop_1 };
 \
       NANOS_SAFE( nanos_submit( wd,0,0,0 ) );\
       NANOS_SAFE( nanos_wg_wait_completation( nanos_current_wd() ) );\
-      if (step > 0 ) for ( j = lower+k_offset; j < upper+k_offset; j+= step ) A[j-k_offset]--;\
-      else if ( step < 0 ) for ( j = lower+k_offset; j > upper+k_offset; j+= step ) A[j-k_offset]--;\
+      if (step > 0 ) for ( j = lower+k_offset; j <= upper+k_offset; j+= step ) A[j-k_offset]--;\
+      else if ( step < 0 ) for ( j = lower+k_offset; j >= upper+k_offset; j+= step ) A[j-k_offset]--;\
    }
 
 #define FINALIZE(type,lower,upper,offset,step,chunk)\
@@ -162,9 +162,9 @@ void print_vector ()
    int j;
    for ( j = -5; j < 0; j++ ) fprintf(stderr,"%d:",A[j]);
    fprintf(stderr,"[");
-   for ( j = 0; j < VECTOR_SIZE; j++ ) fprintf(stderr,"%d:",A[j]);
+   for ( j = 0; j <= VECTOR_SIZE; j++ ) fprintf(stderr,"%d:",A[j]);
    fprintf(stderr,"]");
-   for ( j = VECTOR_SIZE; j < VECTOR_SIZE+5; j++ ) fprintf(stderr,"%d:",A[j]);
+   for ( j = VECTOR_SIZE+1; j < VECTOR_SIZE+6; j++ ) fprintf(stderr,"%d:",A[j]);
    fprintf(stderr,"\n");
 #endif
 }

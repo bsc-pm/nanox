@@ -113,7 +113,7 @@ namespace nanos {
 
          for ( int s = 0; s < _q; s++ ) {
             //compute the current step neighbour id
-            int toSign = ( myID + ( int ) pow( 2,s ) ) % _numParticipants;
+            int toSign = ( myID + ( int ) pow( (double) 2, s ) ) % _numParticipants;
 
             _syncCondsZero[toSign].wait();
             ( _semaphores[toSign] )--;
