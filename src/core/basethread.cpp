@@ -57,9 +57,11 @@ bool BaseThread::singleGuard ()
 void BaseThread::inlineWork (WorkDescriptor *wd)
 {
    WD *oldwd = getCurrentWD();
+   sys.getInstrumentor()->wdSwitch( oldwd, wd );
    setCurrentWD( *wd );
    inlineWorkDependent(*wd);
    wd->done();
+   sys.getInstrumentor()->wdSwitch( wd, oldwd );
    myThread->setCurrentWD( *oldwd );
 }
 
@@ -73,11 +75,19 @@ void BaseThread::switchHelper( WD* oldWD, WD* newWD )
    } else {
       Scheduler::queue( *oldWD );
    }
-   sys.getInstrumentor()->beforeContextSwitch();
+   sys.getInstrumentor()->wdSwitch( oldWD, newWD );
    myThread->setCurrentWD( *newWD );
-   sys.getInstrumentor()->afterContextSwitch();
 }
 
+/*! \brief Performs the always-required operations when exit a WD in a thread.
+*/
+void BaseThread::exitHelper( WD* oldWD, WD* newWD )
+{
+   sys.getInstrumentor()->wdExit( oldWD, newWD );
+   delete oldWD;
+   myThread->setCurrentWD( *newWD );
+}
+ 
 /*
  * G++ optimizes TLS accesses by obtaining only once the address of the TLS variable
  * In this function this optimization does not work because the task can move from one thread to another

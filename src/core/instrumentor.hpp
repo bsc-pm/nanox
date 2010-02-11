@@ -19,25 +19,30 @@
 
 #ifndef __NANOS_INSTRUMENTOR_H
 #define __NANOS_INSTRUMENTOR_H
-// xteruel: FIXME: this flag has to be managed through compilation
+#include <stack>
+#include "workdescriptor.hpp"
+
+// FIXME: (#131) This flag has to be managed through compilation in order to generate an instrumentation version
 #define ENABLE_INSTRUMENTATION
 
 namespace nanos {
 
-  class Instrumentor {
-     protected:
-       typedef enum { IDLE, RUNNING, SYNCHRONIZATION, SCHEDULING, FORK_JOIN, OTHERS } nanos_state_t;
-       typedef enum { IDLE_FUNCTION, RUNTIME, CREATE_WD, SUBMIT_WD, INLINE_WD, LOCK, SINGLE_GUARD, BARRIER, SWITCH } nanos_event_id_t;
-       typedef unsigned int nanos_event_value_t;
+   typedef enum { IDLE, RUNNING, SYNCHRONIZATION, SCHEDULING, FORK_JOIN, OTHERS } nanos_state_t;
+   typedef enum { IDLE_FUNCTION, RUNTIME, CREATE_WD, SUBMIT_WD, INLINE_WD, LOCK,
+                  SINGLE_GUARD, BARRIER, SWITCH } nanos_event_id_t;
+   typedef unsigned int nanos_event_value_t;
 
-       typedef struct Event {
-          nanos_event_id_t     id;
-          nanos_event_value_t  value;
-       } nanos_event_t;
+   class Instrumentor {
+      protected:
 
-     public:
-       Instrumentor() {}
-       virtual ~Instrumentor() {}
+         typedef struct Event {
+            nanos_event_id_t     id;
+            nanos_event_value_t  value;
+         } nanos_event_t;
+
+      public:
+         Instrumentor() {}
+         virtual ~Instrumentor() {}
 
 #ifdef ENABLE_INSTRUMENTATION
 
@@ -79,6 +84,9 @@ namespace nanos {
 
        virtual void beforeContextSwitch() { nanos_event_t e = {SWITCH,1}; pushStateEvent(RUNNING,e); }
        virtual void afterContextSwitch() { nanos_event_t e = {SWITCH,0}; popStateEvent(RUNNING,e); }
+
+       virtual void wdSwitch( WD* oldWD, WD* newWD ) {}
+       virtual void wdExit( WD* oldWD, WD* newWD ) {}
 #else
 
        // All functions here must be empty and  non-virtual so the compiler 
@@ -92,5 +100,19 @@ namespace nanos {
 #endif
 
   };
+
+   class InstrumentorContext {
+#ifdef INSTRUMENTATION_ENABLED
+      private:
+         typedef std::stack<nanos_state_t> StateStack;
+         StateStack _stateStack;
+      public:
+         void push ( nanos_state_t state ) { _stateStack.push(state); }
+         nanos_state_t pop () { nanos_state_t state = _stateStack.top(); _stateStack.pop(); return state;}
+         nanos_state_t top () { return _stateStack.top(); }
+#endif
+   };
+
+
 }
 #endif

@@ -68,7 +68,9 @@ class InstrumentorParaver: public Instrumentor
 
       void initialize ( void )
       {
-         putenv ("MPITRACE_ON=1");
+         char *mpi_trace_on= new char[255];
+         strcpy(mpi_trace_on, "MPITRACE_ON=1");
+         putenv (mpi_trace_on);
          OMPItrace_init();
       }
 

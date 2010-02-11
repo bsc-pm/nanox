@@ -125,10 +125,9 @@ void SMPThread::switchTo ( WD *wd )
    }
 }
 
-static void exitHelper (  WD *oldWD, WD *newWD, intptr_t *oldState )
+static void exitHelperDependent (  WD *oldWD, WD *newWD, intptr_t *oldState )
 {
-   delete oldWD;
-   myThread->setCurrentWD( *newWD );
+   myThread->exitHelper( oldWD, newWD );
 }
 
 void SMPThread::exitTo ( WD *wd )
@@ -149,7 +148,7 @@ void SMPThread::exitTo ( WD *wd )
       ( void * ) getCurrentWD(),
       ( void * ) wd,
       ( void * ) dd.getState(),
-      ( void * ) exitHelper );
+      ( void * ) exitHelperDependent );
 }
 
 void SMPThread::bind( void )

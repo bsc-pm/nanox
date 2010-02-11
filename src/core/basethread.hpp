@@ -110,6 +110,7 @@ namespace nanos
          void inlineWork ( WD *work );
 
          void switchHelper( WD* oldWD, WD* newWD );
+         void exitHelper( WD* oldWD, WD* newWD );
 
          virtual void switchTo( WD *work ) = 0;
          virtual void exitTo( WD *work ) = 0;
