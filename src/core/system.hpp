@@ -47,12 +47,7 @@ namespace nanos
          typedef enum { DEDICATED, SHARED } ExecutionMode;
          typedef enum { POOL, ONE_THREAD } InitialMode;
 
-         class Init {
-            public:
-               Init() {}
-               virtual ~Init() {}
-               virtual void operator() () = 0;
-         };
+         typedef void (*Init) ();
 
       private:
          // types

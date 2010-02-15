@@ -31,8 +31,11 @@
 
 using namespace nanos;
 
+namespace nanos {
+  System::Init externInit __attribute__((weak));
+}
+
 System nanos::sys;
-System::Init * externInit __attribute__((weak));
 
 // default system values go here
 System::System () : _numPEs( 1 ), _deviceStackSize( 1024 ), _bindThreads( true ), _profile( false ), _instrument( false ),
@@ -97,10 +100,11 @@ void System::config ()
    Config config;
 
    if ( externInit != NULL ) {
-       (*externInit)();
+        verbose0("Invoking external configuration");
+        externInit();
    }
 
-   verbose0 ( "Preparing configuration" );
+   verbose0 ( "Preparing library configuration" );
 
    config.setOptionsSection ( "Global options", new std::string( "Global options for the Nanox runtime" ) );
 
@@ -206,6 +210,7 @@ void System::start ()
          break;
       default:
          fatal("Unknown inital mode!");
+         break;
    }
 }
 
