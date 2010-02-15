@@ -83,6 +83,7 @@ nanos_err_t nanos_create_team(nanos_team_t *team, nanos_sched_t sg, unsigned int
 
 nanos_err_t nanos_create_team_mapped (nanos_team_t *team, nanos_sched_t sg, unsigned int *nthreads,                                                           unsigned int *mapping);
 
+nanos_err_t nanos_leave_team ( );
 nanos_err_t nanos_end_team ( nanos_team_t team );
 
 nanos_err_t nanos_team_barrier ( void );

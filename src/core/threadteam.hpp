@@ -29,10 +29,6 @@
 namespace nanos
 {
 
-   class TeamData
-   {
-   };
-
    class ThreadTeam
    {
 
@@ -88,8 +84,13 @@ namespace nanos
 
          BaseThread & operator[]  ( int i ) { return *_threads[i]; }
 
-         void addThread ( BaseThread *thread ) {
+         /*! \brief adds a thread to the team pool, returns the thread id in the team
+          *
+          */
+         unsigned addThread ( BaseThread *thread ) {
+            unsigned id = size();
             _threads.push_back( thread );
+            return id;
          }
 
          void barrier() { _barrier.barrier( myThread->getTeamId() ); }

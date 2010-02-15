@@ -155,7 +155,10 @@ void System::start ()
    // count one for the "main" task
    sys._numTasksRunning=1;
 
-   createTeam( numPes*getThsPerPE() );
+   if (0) // TODO: mode variable
+     createTeam( numPes*getThsPerPE() );
+   else
+     createTeam(1);
 }
 
 System::~System ()
@@ -426,12 +429,22 @@ BaseThread * System:: getUnassignedWorker ( void )
 void System::releaseWorker ( BaseThread * thread )
 {
    //TODO: destroy if too many?
+   //TODO: to free or not to free team data?
+   debug("Releasing thread " << thread << " from team " << thread->getTeam() );
    thread->leaveTeam();
 }
 
-ThreadTeam * System:: createTeam ( int nthreads, SG *policy, void *constraints, bool reuseCurrent )
+ThreadTeam * System:: createTeam ( unsigned nthreads, SG *policy, void *constraints,
+                                   bool reuseCurrent, TeamData *tdata )
 {
-   int thId = 0;
+   int thId;
+   TeamData *data;
+
+   if ( nthreads == 0 ) {
+      nthreads = 1;
+      nthreads = getNumPEs()*getThsPerPE();
+   }
+   
    if ( !policy ) policy = _defSGFactory( nthreads );
 
    // create team
@@ -441,11 +454,17 @@ ThreadTeam * System:: createTeam ( int nthreads, SG *policy, void *constraints, 
 
    // find threads
    if ( reuseCurrent ) {
-      debug( "adding thread " << myThread << " with id " << toString<int>(thId) << " to " << team );
       
       nthreads --;
-      team->addThread( myThread );
-      myThread->enterTeam( team, thId++ );
+
+      thId = team->addThread( myThread );
+
+      debug( "adding thread " << myThread << " with id " << toString<int>(thId) << " to " << team );
+      if (tdata) data = &tdata[thId];
+      else data = new TeamData();
+
+      data->setId(thId);
+      myThread->enterTeam( team,  data );
    }
 
    while ( nthreads > 0 ) {
@@ -456,11 +475,15 @@ ThreadTeam * System:: createTeam ( int nthreads, SG *policy, void *constraints, 
          break;
       }
 
+      nthreads--;
+      thId = team->addThread( thread );
       debug( "adding thread " << thread << " with id " << toString<int>(thId) << " to " << team );
 
-      nthreads--;
-      team->addThread( thread );
-      thread->enterTeam( team, thId++ );
+      if (tdata) data = &tdata[thId];
+      else data = new TeamData();
+
+      data->setId(thId);
+      thread->enterTeam( team, data );
    }
 
    team->init();
@@ -468,3 +491,12 @@ ThreadTeam * System:: createTeam ( int nthreads, SG *policy, void *constraints, 
    return team;
 }
 
+void System::endTeam ( ThreadTeam *team )
+{
+   if ( size() > 1 ) {
+     fatal("Trying to end a team with running threads");
+   }
+
+   
+   delete team;
+}

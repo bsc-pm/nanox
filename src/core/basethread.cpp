@@ -49,8 +49,7 @@ bool BaseThread::singleGuard ()
 {
    // return getTeam()->singleGuard(++localSingleCount); # doesn't work
    // probably because some gcc bug
-   _localSingleCount++;
-   return getTeam()->singleGuard( _localSingleCount );
+   return getTeam()->singleGuard( getTeamData()->nextSingleGuard() );
 }
 
 void BaseThread::inlineWork (WorkDescriptor *wd)

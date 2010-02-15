@@ -141,7 +141,9 @@ namespace nanos
 
          // team related methods
          BaseThread * getUnassignedWorker ( void );
-         ThreadTeam * createTeam ( int nthreads, SG *scheduling=NULL, void *constraints=NULL, bool reuseCurrent=true );
+         ThreadTeam * createTeam ( unsigned nthreads, SG *scheduling=NULL, void *constraints=NULL,
+                                   bool reuseCurrent=true,  TeamData *tdata = 0 );
+         void endTeam ( ThreadTeam *team );
          void releaseWorker ( BaseThread * thread );
 
          //BUG: does not work: sigsegv on myThread

@@ -50,9 +50,24 @@ nanos_err_t nanos_create_team_mapped ( nanos_team_t *team, nanos_sched_t sg, uns
    return NANOS_UNIMPLEMENTED;
 }
 
+nanos_err_t nanos_leave_team ()
+{
+   try {
+      sys.releaseWorker(myThread);
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+   return NANOS_OK;
+}
+
 nanos_err_t nanos_end_team ( nanos_team_t team )
 {
-   return NANOS_UNIMPLEMENTED;
+   try {
+      sys.endTeam(team);
+   } catch ( ... ) {
+         return NANOS_UNKNOWN_ERR;
+   }
+   return NANOS_OK;
 }
 
 /*!
