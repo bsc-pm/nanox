@@ -19,16 +19,16 @@
 
 include $(top_srcdir)/src/common.am
 
-bin_PROGRAMS = nanox-list-plugins
+bin_PROGRAMS = nanox
 
 
-nanox_list_plugins_CPPFLAGS = $(common_includes) $(common_cxxflags) 
+nanox_CPPFLAGS = $(common_includes) $(common_cxxflags) 
 
-nanox_list_plugins_SOURCES=\
-	list_plugins.cpp \
+nanox_SOURCES=\
+	nanox.cpp \
 	$(END)
 
-nanox_list_plugins_LDADD=\
+nanox_LDADD=\
 	-ldl \
 	../core/libnanox.la \
 	$(END)

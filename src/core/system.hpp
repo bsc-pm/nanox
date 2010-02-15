@@ -29,6 +29,7 @@
 #include "slicer.hpp"
 #include "nanos-int.h"
 #include "dependency.hpp"
+#include "instrumentor.hpp"
 
 
 namespace nanos
@@ -49,6 +50,7 @@ namespace nanos
          // types
          typedef std::vector<PE *>         PEList;
          typedef std::vector<BaseThread *> ThreadList;
+         typedef std::map<std::string, Slicer *> Slicers;
          
          // configuration variables
          int                  _numPEs;
@@ -72,6 +74,7 @@ namespace nanos
          std::string          _defSchedule;
          std::string          _defThrottlePolicy;
          std::string          _defBarr;
+         std::string          _defInstr;
 
          /*! factories for scheduling, pes and barriers objects */
          sgFactory            _defSGFactory;
@@ -82,6 +85,8 @@ namespace nanos
          ThreadList           _workers;
 
          Slicers              _slicers; /**< set of global slicers */
+
+         Instrumentor         *_instrumentor; /**< instrumentor object used in current execution */
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -106,7 +111,12 @@ namespace nanos
                         size_t data_size, void ** data, WG *uwg,
                         nanos_wd_props_t *props);
 
+         void createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
+                        void **outline_data, WG *uwg, Slicer *slicer, size_t slicer_data_size,
+                        SlicerData *&slicer_data, nanos_wd_props_t *props );
+
          void duplicateWD ( WD **uwd, WD *wd );
+         void duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd );
 
          // methods to access configuration variables
          void setNumPEs ( int npes ) { _numPEs = npes; }
@@ -159,15 +169,27 @@ namespace nanos
 
          const std::string & getDefaultBarrier() const { return _defBarr; }
 
+         const std::string & getDefaultInstrumentor() const { return _defInstr; }
+
          void setDefaultSGFactory ( sgFactory factory ) { _defSGFactory = factory; }
 
          void setHostFactory ( peFactory factory ) { _hostFactory = factory; }
 
          void setDefaultBarrFactory ( barrFactory factory ) { _defBarrFactory = factory; }
 
-         // Slicer's index
-         Slicer & getSlicerRepeatN ( ) { return _slicers.getSlicerRepeatN(); }
-         Slicer & getSlicerDynamicFor ( ) { return _slicers.getSlicerDynamicFor(); }
+         Slicer * getSlicer( const std::string &label ) const 
+         { 
+            Slicers::const_iterator it = _slicers.find(label);
+            if ( it == _slicers.end() ) return NULL;
+            return (*it).second;
+         }
+
+         Instrumentor * getInstrumentor ( void ) { return _instrumentor; }
+
+         // TODO: Is it needed to check if _instrumentor was already set?
+         void setInstrumentor ( Instrumentor *instr ) { _instrumentor = instr; }
+
+         void registerSlicer ( const std::string &label, Slicer *slicer) { _slicers[label] = slicer; }
 
    };
 

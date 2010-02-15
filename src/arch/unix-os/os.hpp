@@ -37,45 +37,7 @@ namespace nanos
       
       public:
 
-         class Argument
-         {
-
-               friend class OS;
-
-            public:
-               char *   _name;
-               int      _nparam;
-
-            public:
-               Argument( char *arg,int i ) : _name( arg ),_nparam( i ) {}
-               Argument( const Argument &arg ) : _name(arg._name), _nparam(arg._nparam) {}
-
-               const Argument & operator= ( const Argument &arg )
-               {
-                  // self-assignment: ok
-                  
-                  this->_name = arg._name;
-                  this->_nparam = arg._nparam;
-
-                  return *this;
-               }
-               
-               ~Argument () {}
-
-               char * getName() const { return _name; }
-         };
-
-         //TODO: make it autovector?
-         typedef std::vector<Argument *> ArgumentList;
-
-         static char **          _argv;
-         static long *           _argc;
-         static ArgumentList     _argList;
-
          static const char *getEnvironmentVariable( const std::string &variable );
-         static const ArgumentList & getProgramArguments ();
-         static void consumeArgument ( Argument &arg );
-         static void repackArguments ();
 
          static void * loadDL( const std::string &dir, const std::string &name );
          static void * dlFindSymbol( void *dlHandler, const std::string &symbolName );

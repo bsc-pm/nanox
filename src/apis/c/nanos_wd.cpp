@@ -23,6 +23,7 @@
 #include "system.hpp"
 #include "workdescriptor.hpp"
 #include "smpdd.hpp"
+#include "plugin.hpp"
 
 using namespace nanos;
 
@@ -31,71 +32,97 @@ const size_t nanos_smp_dd_size = sizeof(ext::SMPDD);
 
 void * nanos_smp_factory( void *prealloc, void *args )
 {
+   sys.getInstrumentor()->enterRuntime();
    nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
 
    if ( prealloc != NULL )
+   {
+      sys.getInstrumentor()->leaveRuntime();
       return ( void * )new (prealloc) ext::SMPDD( smp->outline );
+   }
    else 
+   {
+      sys.getInstrumentor()->leaveRuntime();
       return ( void * )new ext::SMPDD( smp->outline );
+   }
 }
 
 nanos_wd_t nanos_current_wd()
 {
-   return myThread->getCurrentWD();
+   sys.getInstrumentor()->enterRuntime();
+   nanos_wd_t cwd = myThread->getCurrentWD();
+   sys.getInstrumentor()->leaveRuntime();
+   return cwd;
 }
 
 int nanos_get_wd_id ( nanos_wd_t wd )
 {
+   sys.getInstrumentor()->enterRuntime();
    WD *lwd = ( WD * )wd;
-   return lwd->getId();
+   int id = lwd->getId();
+   sys.getInstrumentor()->leaveRuntime();
+   return id;
 }
 
-
 /*! \brief Creates a new WorkDescriptor
- *
- *  When it does a full allocation the layout is the following
- *
- *  +---------------+
- *  |     WD        |
- *  +---------------+
- *  |    data       |
- *  +---------------+
- *  |  dev_ptr[0]   |
- *  +---------------+
- *  |     ....      |
- *  +---------------+
- *  |  dev_ptr[N]   |
- *  +---------------+
- *  |     DD0       |
- *  +---------------+
- *  |     ....      |
- *  +---------------+
- *  |     DDN       |
- *  +---------------+
  *
  *  \sa nanos::WorkDescriptor
  */
 nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t data_size,
                                void ** data, nanos_wg_t uwg, nanos_wd_props_t *props )
 {
+   sys.getInstrumentor()->enterCreateWD();
    try 
    {
-      if ( ( props == NULL  ||
-            ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTask() ) {
+      if ( ( props == NULL  || ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTask() ) {
          *uwd = 0;
          return NANOS_OK;
       }
       sys.createWD ( (WD **) uwd, num_devices, devices, data_size, (void **) data, (WG *) uwg, props);
 
    } catch ( ... ) {
+      sys.getInstrumentor()->leaveCreateWD();
       return NANOS_UNKNOWN_ERR;
    }
 
+   sys.getInstrumentor()->leaveCreateWD();
+   return NANOS_OK;
+}
+
+/*! \brief Creates a new Sliced WorkDescriptor
+ *
+ *  \sa nanos::WorkDescriptor
+ */
+nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
+                               void ** outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, size_t slicer_data_size,
+                               nanos_slicer_data_t * slicer_data, nanos_wd_props_t *props )
+{
+   sys.getInstrumentor()->enterCreateWD();
+   try 
+   {
+      if ( ( props == NULL  || ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTask() ) {
+         *uwd = 0;
+         return NANOS_OK;
+      }
+      if ( slicer_data == NULL ) {
+         sys.getInstrumentor()->leaveCreateWD();
+         return NANOS_UNKNOWN_ERR;
+      }
+      sys.createSlicedWD ( (WD **) uwd, num_devices, devices, outline_data_size, outline_data, (WG *) uwg,
+                           (Slicer *) slicer, slicer_data_size, (SlicerData *&) *slicer_data, props);
+
+   } catch ( ... ) {
+      sys.getInstrumentor()->leaveCreateWD();
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   sys.getInstrumentor()->leaveCreateWD();
    return NANOS_OK;
 }
 
 nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *deps, nanos_team_t team )
 {
+   sys.getInstrumentor()->enterSubmitWD();
    try {
       ensure( uwd,"NULL WD received" );
 
@@ -112,21 +139,28 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *
 
       sys.submit( *wd );
    } catch ( ... ) {
+      sys.getInstrumentor()->leaveSubmitWD();
       return NANOS_UNKNOWN_ERR;
    }
 
+   sys.getInstrumentor()->leaveSubmitWD();
    return NANOS_OK;
 }
+
 
 // data must be not null
 nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *devices, size_t data_size, void * data, 
                                       size_t num_deps, nanos_dependence_t *deps, nanos_wd_props_t *props )
 {
+   sys.getInstrumentor()->enterInlineWD();
    try {
       if ( num_devices > 1 ) warning( "Multiple devices not yet supported. Using first one" );
 
-      // TODO: pre-allocate devices
-      WD wd( ( DD* ) devices[0].factory( 0, devices[0].arg ), data_size, data );
+      // TODO: choose device
+      // pre-allocate device
+      char chunk[devices[0].dd_size];
+
+      WD wd( ( DD* ) devices[0].factory( chunk, devices[0].arg ), data_size, data );
 
       if ( deps != NULL ) {
          sys.waitOn( num_deps, deps );
@@ -135,27 +169,33 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
       sys.inlineWork( wd );
 
    } catch ( ... ) {
+      sys.getInstrumentor()->leaveInlineWD();
       return NANOS_UNKNOWN_ERR;
    }
 
+   sys.getInstrumentor()->leaveInlineWD();
    return NANOS_OK;
 }
 
 nanos_err_t nanos_set_internal_wd_data ( nanos_wd_t wd, void *data )
 {
+   sys.getInstrumentor()->enterRuntime();
    try {
       WD *lwd = ( WD * ) wd;
 
       lwd->setInternalData( data );
    } catch ( ... ) {
+      sys.getInstrumentor()->leaveRuntime();
       return NANOS_UNKNOWN_ERR;
    }
 
+   sys.getInstrumentor()->leaveRuntime();
    return NANOS_OK;
 }
 
 nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data )
 {
+   sys.getInstrumentor()->enterRuntime();
    try {
       WD *lwd = ( WD * ) wd;
       void *ldata;
@@ -164,8 +204,10 @@ nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data )
 
       *data = ldata;
    } catch ( ... ) {
+      sys.getInstrumentor()->leaveRuntime();
       return NANOS_UNKNOWN_ERR;
    }
 
+   sys.getInstrumentor()->leaveRuntime();
    return NANOS_OK;
 }

@@ -22,6 +22,7 @@
 #include "smpprocessor.hpp"
 #include "system.hpp"
 #include "slicer.hpp"
+#include "plugin.hpp"
 #include <string.h>
 
 using namespace std;
@@ -79,8 +80,12 @@ int main ( int argc, char **argv )
    strncpy(data->b, "char *string(2)", strlen("char *string(2)"));
    data->c = str;
 
+   // loading RepeatN Slicer Plugin
+   PluginManager::load( "slicer-repeat_n" );
+   Slicer *slicer = sys.getSlicer ( "repeat_n" );
+ 
    // Work descriptor creation
-   WD * wd2 = new SlicedWD( sys.getSlicerRepeatN(), 
+   WD * wd2 = new SlicedWD( *slicer, sizeof (SlicerDataRepeatN),
                             *new SlicerDataRepeatN(10),
                              new SMPDD( hello_world ),
                              sizeof(hello_world_args), data );

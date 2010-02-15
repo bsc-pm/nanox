@@ -36,8 +36,11 @@ typedef void * nanos_wg_t;
 typedef void * nanos_wd_t;
 typedef void * nanos_team_t;
 typedef void * nanos_sched_t;
+typedef void * nanos_slicer_t;
+typedef void * nanos_slicer_data_t;
 typedef void * nanos_lock_t;
 typedef void * nanos_dd_t;
+typedef void * nanos_sync_cond_t;
 
 typedef struct {
    int nthreads;
@@ -60,18 +63,26 @@ typedef struct {
 
 extern "C" {
 #endif
-   
+
 // Functions related to WD
 nanos_wd_t nanos_current_wd (void);
 int nanos_get_wd_id(nanos_wd_t wd);
 
+nanos_slicer_t nanos_find_slicer ( const char * slicer );
+
 nanos_err_t nanos_create_wd ( nanos_wd_t *wd, size_t num_devices, nanos_device_t *devices, size_t data_size,
                               void ** data, nanos_wg_t wg, nanos_wd_props_t *props );
+
+nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
+                               void **outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, size_t slicer_data_size,
+                               void **slicer_data, nanos_wd_props_t *props );
 
 nanos_err_t nanos_submit ( nanos_wd_t wd, size_t num_deps, nanos_dependence_t *deps, nanos_team_t team );
 
 nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *devices, size_t data_size, void * data,
                                       size_t num_deps, nanos_dependence_t *deps, nanos_wd_props_t *props );
+
+nanos_err_t nanos_create_for ( void );
 
 nanos_err_t nanos_set_internal_wd_data ( nanos_wd_t wd, void *data );
 nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data );
@@ -93,8 +104,13 @@ nanos_err_t nanos_single_guard ( bool *);
 // sync
 
 nanos_err_t nanos_wg_wait_completation ( nanos_wg_t wg );
-nanos_err_t nanos_wait_on_int ( volatile int *p, int condition );
-nanos_err_t nanos_wait_on_bool ( volatile _Bool *p, _Bool condition );
+
+nanos_err_t nanos_create_int_sync_cond ( nanos_sync_cond_t *sync_cond, volatile int *p, int condition );
+nanos_err_t nanos_create_bool_sync_cond ( nanos_sync_cond_t *sync_cond, volatile bool *p, bool condition );
+nanos_err_t nanos_sync_cond_wait ( nanos_sync_cond_t *sync_cond );
+nanos_err_t nanos_sync_cond_signal ( nanos_sync_cond_t *sync_cond );
+nanos_err_t nanos_destroy_sync_cond ( nanos_sync_cond_t *sync_cond );
+
 nanos_err_t nanos_wait_on ( size_t num_deps, nanos_dependence_t *deps );
 
 nanos_err_t nanos_init_lock ( nanos_lock_t *lock );

@@ -26,7 +26,9 @@ AC_HEADER_STDC
 AC_C_CONST
 
 # Check for library functions
+NANOS_CONFIG_LIBDIRS=
 NANOS_CONFIG_LIBS=
+AC_SUBST([NANOS_CONFIG_LIBDIRS])
 AC_SUBST([NANOS_CONFIG_LIBS])
 
 # Check for architecture
@@ -54,12 +56,51 @@ case $host in
     ARCHITECTURES+=smp
     SMP_ARCH=ia64
     ;;
-  powerpc32-*-linux-gnu | powerpc64-*-linux-gnu)
+  powerpc-*-linux-gnu | powerpc64-*-linux-gnu)
     OS=unix-os
     ARCHITECTURES+=smp
     SMP_ARCH=ppc32
     CXXFLAGS+=" -m32"
     CFLAGS+=" -m32"
+
+    # Check if it is a Cell system
+    if cat /proc/cpuinfo | grep Cell &> /dev/null ; then
+      spu_valid=yes
+      AC_ARG_VAR([SPUCC],[SPU C compiler])
+      AC_ARG_VAR([PPUEMBED],[SPU to PPU embedding tool])
+      AC_CHECK_PROG( [SPUCC], [spu-cc], spu-cc, no)
+      if test x$SPUCC = xno ; then
+	AC_MSG_WARN([spu-cc not found. Disabling SPU support]) 
+        spu_valid=no
+      else 
+        AC_CHECK_PROG( [PPUEMBED], [ppu-embedspu], ppu-embedspu, no)
+        if test x$PPUEMBED = xno ; then
+          AC_MSG_WARN([ppu-embedspu not found. Disabling SPU support]) 
+          spu_valid=no
+        else
+           AC_ARG_WITH([cellsdk],
+              AS_HELP_STRING([--with-cellsdk=dir], [Directory of Cell SDK installation]),
+              [
+		CELLSDK="${withval}"
+              ],
+              [
+		CELLSDK=/opt/cell/sdk/usr
+              ])
+           CELLSDK_INC="$CELLSDK/include"
+           CELLSDK_LIB="$CELLSDK/lib"
+
+	   AC_SUBST([CELLSDK_INC])
+	   AC_SUBST([CELLSDK_LIB])
+
+	   NANOS_CONFIG_LIBDIRS+=" -L$CELLSDK_LIB"
+	   NANOS_CONFIG_LIBS+=" -lspe2"
+        fi
+      fi
+      if test x$spu_valid = xyes; then
+        ARCHITECTURES+=" spu"
+      fi
+    fi
+
     ;;
   *)
     AC_MSG_ERROR([unsupported architecture $host])
@@ -68,7 +109,7 @@ esac
 
 # Add architecture libraries
 for arch in $ARCHITECTURES; do
-	NANOS_CONFIG_LIBS+=../arch/$arch/lib$arch.la
+	NANOS_CONFIG_LIBS+=" ../arch/$arch/lib$arch.la"
 done
 
 AC_MSG_RESULT([$ARCHITECTURES/$OS])
@@ -100,6 +141,29 @@ AC_ARG_ENABLE([performance],
 
 AM_CONDITIONAL([PERFORMANCE], [test "$performance_enabled" = yes])
 
+AC_ARG_WITH([mpitrace],
+           AS_HELP_STRING([--with-mpitrace=dir], [Directory of mpitrace installation]),
+           [
+                MPITRACE_HOME="$withval"
+                MPITRACE_INC="$withval/include"
+                MPITRACE_LIB="$withval/lib"
+                MPITRACE_BIN="$withval/bin"
+           ],
+           [
+                MPITRACE_HOME=""
+                MPITRACE_INC=""
+                MPITRACE_LIB=""
+                MPITRACE_BIN=""
+           ]
+)
+	   AC_SUBST([MPITRACE_HOME])
+	   AC_SUBST([MPITRACE_INC])
+	   AC_SUBST([MPITRACE_LIB])
+	   AC_SUBST([MPITRACE_BIN])
+
+
+AM_CONDITIONAL([INSTRUMENTOR_PARAVER], test x"$MPITRACE_HOME" != x)
+
 # Output files
 AC_CONFIG_HEADERS([config.h])
 
@@ -111,18 +175,20 @@ AC_CONFIG_FILES([Makefile
 		 src/plugins/sched/Makefile
 		 src/plugins/throttle/Makefile
 		 src/plugins/barr/Makefile
+		 src/plugins/slicers/Makefile
+		 src/plugins/instrumentors/Makefile
 		 src/apis/Makefile
 		 src/apis/c/Makefile
                  src/arch/Makefile
 		 src/arch/unix-os/Makefile
 		 src/arch/smp/Makefile
 		 src/arch/fpga/Makefile
-		 src/arch/cell/Makefile
+		 src/arch/spu/Makefile
 		 src/arch/gpu/Makefile
 		 src/utils/Makefile
 		 test/Makefile
 		 doc/Makefile
-               doc/doxy-nanox
+                 doc/doxy-nanox
                  ])
 
 AC_OUTPUT

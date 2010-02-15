@@ -20,22 +20,54 @@
 include $(top_srcdir)/src/common.am
 
 noinst_PROGRAMS = \
-	work_descriptor_create_1 \
-	work_descriptor_create_2 \
-	slicer_for_dynamic_1 \
-	 test1 test_single test_slicer test_teambarrier test_dependencies-c test_dependency_types-c fib fib-c fibnocutoff-c
+	work_descriptor_create \
+	slicer_static_for \
+	slicer_interleaved_for \
+	slicer_dynamic_for \
+	slicer_guided_for \
+	api_slicer_static_for \
+	api_slicer_interleaved_for \
+	api_slicer_dynamic_for \
+	api_slicer_guided_for \
+	test1 test_single test_slicer test_teambarrier test_dependencies-c test_dependency_types-c fib fib-c fibnocutoff-c
 
-work_descriptor_create_1_SOURCES = work_descriptor_create_1.cpp
-work_descriptor_create_1_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -I$(top_srcdir)/src/apis/c
-work_descriptor_create_1_LDADD = $(top_builddir)/src/core/libnanox.la
+work_descriptor_create_SOURCES = work_descriptor_create.cpp
+work_descriptor_create_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -I$(top_srcdir)/src/apis/c
+work_descriptor_create_LDADD = $(top_builddir)/src/core/libnanox.la
 
-work_descriptor_create_2_SOURCES = work_descriptor_create_2.cpp
-work_descriptor_create_2_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -I$(top_srcdir)/src/apis/c
-work_descriptor_create_2_LDADD = $(top_builddir)/src/core/libnanox.la
+# slicer for tests:
+slicer_static_for_SOURCES = slicer_for.cpp
+slicer_static_for_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -I$(top_srcdir)/src/apis/c -DSLICER_STATIC
+slicer_static_for_LDADD = $(top_builddir)/src/core/libnanox.la
 
-slicer_for_dynamic_1_SOURCES = slicer_for_dynamic_1.cpp
-slicer_for_dynamic_1_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -I$(top_srcdir)/src/apis/c
-slicer_for_dynamic_1_LDADD = $(top_builddir)/src/core/libnanox.la
+slicer_interleaved_for_SOURCES = slicer_for.cpp
+slicer_interleaved_for_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -I$(top_srcdir)/src/apis/c -DSLICER_INTERLEAVED
+slicer_interleaved_for_LDADD = $(top_builddir)/src/core/libnanox.la
+
+slicer_dynamic_for_SOURCES = slicer_for.cpp
+slicer_dynamic_for_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -I$(top_srcdir)/src/apis/c -DSLICER_DYNAMIC
+slicer_dynamic_for_LDADD = $(top_builddir)/src/core/libnanox.la
+
+slicer_guided_for_SOURCES = slicer_for.cpp
+slicer_guided_for_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -I$(top_srcdir)/src/apis/c -DSLICER_GUIDED
+slicer_guided_for_LDADD = $(top_builddir)/src/core/libnanox.la
+
+# api slicer for tests:
+api_slicer_static_for_SOURCES = api_slicer_for.c
+api_slicer_static_for_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_srcdir)/src/apis/c -fno-strict-aliasing -DSLICER_STATIC
+api_slicer_static_for_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la 
+
+api_slicer_interleaved_for_SOURCES = api_slicer_for.c
+api_slicer_interleaved_for_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_srcdir)/src/apis/c -fno-strict-aliasing -DSLICER_INTERLEAVED
+api_slicer_interleaved_for_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la 
+
+api_slicer_dynamic_for_SOURCES = api_slicer_for.c
+api_slicer_dynamic_for_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_srcdir)/src/apis/c -fno-strict-aliasing -DSLICER_DYNAMIC
+api_slicer_dynamic_for_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la 
+
+api_slicer_guided_for_SOURCES = api_slicer_for.c
+api_slicer_guided_for_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_srcdir)/src/apis/c -fno-strict-aliasing -DSLICER_GUIDED
+api_slicer_guided_for_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la 
 
 test1_SOURCES = test1.cpp
 test1_CXXFLAGS = -g $(common_includes) $(common_cxxflags)
@@ -54,11 +86,11 @@ test_teambarrier_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -I$(top_src
 test_teambarrier_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la
 
 test_dependencies_c_SOURCES = test_dependencies.c
-test_dependencies_c_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_builddir)/src/apis/c -fno-strict-aliasing
+test_dependencies_c_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_srcdir)/src/apis/c -fno-strict-aliasing
 test_dependencies_c_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la
 
 test_dependency_types_c_SOURCES = test_dependency_types.c
-test_dependency_types_c_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_builddir)/src/apis/c -fno-strict-aliasing
+test_dependency_types_c_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_srcdir)/src/apis/c -fno-strict-aliasing
 test_dependency_types_c_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la
 
 fib_SOURCES = fib.cpp

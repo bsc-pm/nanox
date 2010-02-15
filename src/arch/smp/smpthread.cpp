@@ -22,6 +22,7 @@
 #include "debug.hpp"
 #include "system.hpp"
 #include <iostream>
+#include <sched.h>
 
 extern "C"
 {
@@ -41,20 +42,33 @@ void * smp_bootthread ( void *arg )
    pthread_exit ( 0 );
 }
 
+// TODO: detect at configure
+#ifndef PTHREAD_STACK_MIN
+#define PTHREAD_STACK_MIN 16384
+#endif
+
 void SMPThread::start ()
 {
-// TODO:
-//        /* initialize thread_attr: init. attr */
-//        pthread_attr_init(&nth_data.thread_attr);
-//        /* initialize thread_attr: stack attr */
-//        rv_pthread = pthread_attr_setstack(
-//                         (pthread_attr_t *) &nth_data.thread_attr,
-//                         (void *) aux_desc->stack_addr,
-//                         (size_t) aux_desc->stack_size
-//                 );
+   pthread_attr_t attr;
+   pthread_attr_init(&attr);
+
+   // user-defined stack size
+   if ( _stackSize > 0 ) {
+	// TODO: check alignment?
+
+	if ( _stackSize < PTHREAD_STACK_MIN ) {
+	 	warning("specified thread stack too small, adjusting it to minimum size");
+		_stackSize = PTHREAD_STACK_MIN;
+	}
+
+       char *stack = new char[_stackSize];
+
+       if ( stack == NULL || pthread_attr_setstack( &attr, stack, _stackSize ) )
+	 warning("couldn't create pthread stack");
+   }
 
 
-   if ( pthread_create( &_pth, NULL, smp_bootthread, this ) )
+   if ( pthread_create( &_pth, &attr, smp_bootthread, this ) )
       fatal( "couldn't create thread" );
 }
 
@@ -74,12 +88,11 @@ void SMPThread::join ()
 }
 
 // This is executed in between switching stacks
-static void switchHelper ( WD *oldWD, WD *newWD, intptr_t *oldState  )
+static void switchHelperDependent ( WD *oldWD, WD *newWD, intptr_t *oldState  )
 {
    SMPDD & dd = ( SMPDD & )oldWD->getActiveDevice();
    dd.setState( oldState );
-   Scheduler::queue( *oldWD );
-   myThread->setCurrentWD( *newWD );
+   myThread->switchHelper( oldWD, newWD );
 }
 
 void SMPThread::inlineWorkDependent ( WD &wd )
@@ -105,17 +118,16 @@ void SMPThread::switchTo ( WD *wd )
          ( void * ) getCurrentWD(),
          ( void * ) wd,
          ( void * ) dd.getState(),
-         ( void * ) switchHelper );
+         ( void * ) switchHelperDependent );
    } else {
       inlineWork( wd );
       delete wd;
    }
 }
 
-static void exitHelper (  WD *oldWD, WD *newWD, intptr_t *oldState )
+static void exitHelperDependent (  WD *oldWD, WD *newWD, intptr_t *oldState )
 {
-   delete oldWD;
-   myThread->setCurrentWD( *newWD );
+   myThread->exitHelper( oldWD, newWD );
 }
 
 void SMPThread::exitTo ( WD *wd )
@@ -136,7 +148,7 @@ void SMPThread::exitTo ( WD *wd )
       ( void * ) getCurrentWD(),
       ( void * ) wd,
       ( void * ) dd.getState(),
-      ( void * ) exitHelper );
+      ( void * ) exitHelperDependent );
 }
 
 void SMPThread::bind( void )
@@ -149,5 +161,11 @@ void SMPThread::bind( void )
    CPU_SET( cpu_id, &cpu_set );
    verbose( "Binding thread " << getId() << " to cpu " << cpu_id );
    sched_setaffinity( ( pid_t ) 0, sizeof( cpu_set ), &cpu_set );
+}
+
+void SMPThread::yield()
+{
+   if (sched_yield() != 0)
+      fatal("sched_yield call returned an error");
 }
 

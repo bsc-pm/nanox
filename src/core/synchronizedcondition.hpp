@@ -17,51 +17,70 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "os.hpp"
-#include "plugin.hpp"
-#include <string>
-#include <stdio.h>
-#include <iostream>
-#include <dirent.h>
-#include <stdlib.h>
+#ifndef _NANOS_SYNCRHONIZED_CONDITION
+#define _NANOS_SYNCRHONIZED_CONDITION
+
+#include "synchronizedcondition_decl.hpp"
+#include "basethread.hpp"
+#include "schedule.hpp"
 
 using namespace nanos;
 
-
-int main ()
+template <class _T>
+void SynchronizedCondition< _T>::wait()
 {
+   int spins=100; // Has this to be configurable??
 
-   struct dirent **namelist;
-   int n;
+   myThread->getCurrentWD()->setSyncCond( this );
 
-   n = scandir( PluginManager::getDirectory().c_str(), &namelist, 0, alphasort );
+   while ( !_conditionChecker.checkCondition() ) {
+      BaseThread *thread = getMyThreadSafe();
+      WD * current = thread->getCurrentWD();
+      current->setIdle();
 
-   if ( n < 0 )
-      perror( "scandir" );
-   else {
-      while ( n-- ) {
-         std::string name( namelist[n]->d_name );
+      spins--;
+      if ( spins == 0 ) {
+         lock();
+         if ( !( _conditionChecker.checkCondition() ) ) {
+            addWaiter( current );
 
-         if ( name.compare( 0,9,"libnanox-" ) != 0 ) continue;
+            WD *next = thread->getSchedulingGroup()->atBlock ( thread );
 
-         if ( name.compare( name.size()-3,3,".so" ) == 0 ) {
-            name.erase( name.size()-3 );
+/*            if ( next ) {
+               sys._numReady--;
+            } */
 
-            void * handler = OS::loadDL( PluginManager::getDirectory(),name );
-
-            if ( !handler ) continue;
-
-            Plugin * plugin = ( Plugin * ) OS::dlFindSymbol( handler, "NanosXPlugin" );
-
-            if ( !plugin ) continue;
-
-            std::cout << name << " - " << plugin->getName() << " - version " << plugin->getVersion() << std::endl;
+	    if ( next ) {
+               current->setBlocked();
+               thread->switchTo ( next );
+            }
+            else {
+               unlock();
+               thread->yield();
+            }
+         } else {
+            unlock();
          }
-
-         free( namelist[n] );
+      spins = 100;
       }
-
-      free( namelist );
    }
-
+   myThread->getCurrentWD()->setReady();
+   myThread->getCurrentWD()->setSyncCond( NULL );
 }
+
+template <class _T>
+void SynchronizedCondition< _T>::signal()
+{
+   lock();
+     while ( hasWaiters() ) {
+        WD* wd = getAndRemoveWaiter();
+        if ( wd->isBlocked() ) {
+           wd->setReady();
+           Scheduler::queue( *wd );
+        }
+     }
+   unlock(); 
+}
+
+#endif
+

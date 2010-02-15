@@ -27,6 +27,7 @@ include_HEADERS=\
 
 sources=\
 	nanos.h\
+	nanos_finders.cpp\
 	nanos_wd.cpp\
 	nanos_sync.cpp\
 	nanos_team.cpp\

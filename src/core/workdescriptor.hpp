@@ -25,7 +25,8 @@
 #include <vector>
 #include "workgroup.hpp"
 #include "dependableobjectwd.hpp"
-
+#include "synchronizedcondition_decl.hpp"
+#include "atomic.hpp"
 
 namespace nanos
 {
@@ -118,7 +119,11 @@ namespace nanos
             void    *            _wdData; // this allows higher layer to associate data to the WD
             bool                 _tie;
             BaseThread *         _tiedTo;
-            bool                 _idle;
+
+            typedef enum { READY, IDLE, BLOCKED } State;
+            State                _state;
+
+            GenericSyncCond * _syncCond;
 
             //Added parent for cilk scheduler: first steal parent task, next other tasks
             WorkDescriptor *     _parent;
@@ -142,25 +147,38 @@ namespace nanos
             /**< Each WorkDescriptor has a domain where DependableObjects can be submitted */
             DependenciesDomain _depsDomain;
 
-            WorkDescriptor ( const WorkDescriptor &wd );
             const WorkDescriptor & operator= ( const WorkDescriptor &wd );
 
         public:
             // constructors
             WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0,void *wdata=0 ) :
-                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _idle ( false ),
-                    _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( ndevices ), _devices ( devs ),
-                    _activeDevice ( ndevices == 1 ? devs[0] : 0 ), _doSubmit(this), _doWait(this), _depsDomain() {}
+                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( READY ),
+                    _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( ndevices ), _devices ( devs ),
+                    _activeDevice ( ndevices == 1 ? devs[0] : 0 ), _doSubmit(this), _doWait(this), _depsDomain() { }
 
             WorkDescriptor ( DeviceData *device, size_t data_size = 0, void *wdata=0 ) :
-                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _idle ( false ),
-                    _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( &_activeDevice ),
-                    _activeDevice ( device ), _doSubmit(this), _doWait(this), _depsDomain() {}
+                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( READY ),
+                    _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( &_activeDevice ),
+                    _activeDevice ( device ), _doSubmit(this), _doWait(this), _depsDomain() { }
 
-            // xteruel: tmp
-            // WorkDescriptor ( const Workdescriptor &wd, void *data, ... ) : Workgroup(wd), _data_size(wd._data_size)
-            //{
-	    //}
+            /*! \brief WorkDescriptor constructor (using former wd)
+             *
+             *  This function is used as a constructor, receiving as a parameter other WorkDescriptor.
+             *  The constructor uses a DeviceData vector and a new void * data which will be completely
+             *  different from the former WorkDescriptor. Rest of the data is copied from the former WD.
+             *
+             *  \see WorkDescriptor
+             */
+            WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, void *data = NULL ) :
+                    WorkGroup( *((WorkGroup * ) &wd) ), _data_size( wd._data_size ), _data ( data ), _wdData ( NULL ),
+                    _tie ( wd._tie ), _tiedTo ( wd._tiedTo ), _state ( READY ), _syncCond( NULL ), _parent ( wd._parent ),
+                    _myQueue ( NULL ), _depth ( wd._depth ), _numDevices ( wd._numDevices ),
+                    _devices ( devs ), _activeDevice ( wd._numDevices ? devs[0] : NULL ),
+                    _doSubmit(this), _doWait(this), _depsDomain()
+            { 
+               // adding wd to former workdescriptor's workgroup
+               ((WorkGroup *)(_parent))->addWork( *this );
+            }
 
             // destructor
             // all data will be allocated in a single chunk so only the destructors need to be invoked
@@ -234,11 +252,35 @@ namespace nanos
             }
 
             bool isIdle () const {
-                return _idle;
+               return _state == IDLE;
             }
 
-            void setIdle ( bool state=true ) {
-                _idle = state;
+            void setIdle () {
+               _state = IDLE;
+            }
+
+            bool isBlocked () const {
+               return _state == BLOCKED;
+            }
+
+            void setBlocked () {
+               _state = BLOCKED;
+            }
+
+            bool isReady () const {
+               return _state == READY;
+            }
+
+            void setReady () {
+               _state = READY;
+            }
+
+            GenericSyncCond * getSyncCond() {
+               return _syncCond;
+            }
+
+            void setSyncCond( GenericSyncCond * syncCond ) {
+               _syncCond = syncCond;
             }
 
             void setDepth ( int l ) {
@@ -304,6 +346,7 @@ namespace nanos
 	 virtual void submit ( void ); 
 
          virtual void done ();
+
            /*! \brief Add a new WD to the domain of this WD.
             *  \param wd Must be a WD created by "this". wd will be submitted to the
             *  scheduler when its dependencies are satisfied.

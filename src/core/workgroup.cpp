@@ -20,6 +20,7 @@
 #include "workgroup.hpp"
 #include "atomic.hpp"
 #include "schedule.hpp"
+#include "synchronizedcondition.hpp"
 
 using namespace nanos;
 
@@ -38,7 +39,9 @@ void WorkGroup::addToGroup ( WorkGroup &parent )
 
 void WorkGroup::exitWork ( WorkGroup &work )
 {
-   _components--;
+   int componentsLeft = --_components;
+   if (componentsLeft == 0)
+      _syncCond.signal();
 }
 
 void WorkGroup::sync ()
@@ -53,7 +56,7 @@ void WorkGroup::sync ()
 
 void WorkGroup::waitCompletation ()
 {
-   Scheduler::blockOnCondition<int>( &_components.override(),0 );
+     _syncCond.wait();
 }
 
 void WorkGroup::done ()

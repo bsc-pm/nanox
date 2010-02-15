@@ -71,86 +71,9 @@ void Scheduler::exit ( void )
    fatal ( "No more tasks to execute!" );
 }
 
-/*
- * G++ optimizes TLS accesses by obtaining only once the address of the TLS variable
- * In this function this optimization does not work because the task can move from one thread to another
- * in different iterations and it will still be seeing the old TLS variable (creating havoc
- * and destruction and colorful runtime errors).
- * getMyThreadSafe ensures that the TLS variable is reloaded at least once per iteration while we still do some
- * reuse of the address (inside the iteration) so we're not forcing to go through TLS for each myThread access
- * It's important that the compiler doesn't inline it or the optimazer will cause the same wrong behavior anyway.
- */
-__attribute__ ( ( noinline ) ) BaseThread * getMyThreadSafe()
-{
-   return myThread;
-}
-
-template<typename T>
-void Scheduler::blockOnCondition ( volatile T *var, T condition )
-{
-   while ( *var != condition ) {
-      //get current TLS value
-      BaseThread *thread = getMyThreadSafe();
-      // set every iteration to avoid some race-conditions
-      thread->getCurrentWD()->setIdle();
-
-      WD *next = thread->getSchedulingGroup()->atBlock ( thread );
-
-      if ( next ) {
-         sys._numReady--;
-      }
-
-      if ( !next )
-         next = thread->getSchedulingGroup()->getIdle ( thread );
-
-      if ( next ) {
-         thread->switchTo ( next );
-      }
-   }
-
-   myThread->getCurrentWD()->setIdle ( false );
-}
-
-template<typename T>
-void Scheduler::blockOnConditionLess ( volatile T *var, T condition )
-{
-   while ( *var < condition ) {
-      //get current TLS value
-      BaseThread *thread = getMyThreadSafe();
-      // set every iteration to avoid some race-conditions
-      thread->getCurrentWD()->setIdle();
-
-      WD *next = thread->getSchedulingGroup()->atBlock ( thread );
-
-      if ( next ) {
-         sys._numReady--;
-      }
-
-      if ( !next )
-         next = thread->getSchedulingGroup()->getIdle ( thread );
-
-      if ( next ) {
-         thread->switchTo ( next );
-      }
-
-      // TODO: implement sleeping
-   }
-
-   myThread->getCurrentWD()->setIdle ( false );
-}
-
-template
-void Scheduler::blockOnCondition<int>( volatile int *var, int condition );
-template
-void Scheduler::blockOnCondition<bool>( volatile bool *var, bool condition );
-template
-void Scheduler::blockOnConditionLess<int>( volatile int *var, int condition );
-template
-void Scheduler::blockOnConditionLess<bool>( volatile bool *var, bool condition );
-
-
 void Scheduler::idle ()
 {
+   sys.getInstrumentor()->enterIdle();
 
    // This function is run always by the same BaseThread so we don't need to use getMyThreadSafe
    BaseThread *thread = myThread;
@@ -180,11 +103,12 @@ void Scheduler::idle ()
       }
    }
 
-   thread->getCurrentWD()->setIdle ( false );
+   thread->getCurrentWD()->setReady();
 
    sys._idleThreads--;
 
    verbose ( "Working thread finishing" );
+   sys.getInstrumentor()->leaveIdle();
 }
 
 void Scheduler::queue ( WD &wd )
