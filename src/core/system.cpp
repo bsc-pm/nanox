@@ -36,7 +36,7 @@ System::Init * externInit __attribute__((weak));
 
 // default system values go here
 System::System () : _numPEs( 1 ), _deviceStackSize( 1024 ), _bindThreads( true ), _profile( false ), _instrument( false ),
-      _verboseMode( false ), _executionMode( DEDICATED ), _thsPerPE( 1 ), _untieMaster(true),
+      _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster(true),
       _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" ), _defInstr ( "empty_trace" ),
       _instrumentor ( NULL )
 {
@@ -196,10 +196,17 @@ void System::start ()
    // count one for the "main" task
    sys._numTasksRunning=1;
 
-   if (0) // TODO: mode variable
-     createTeam( numPes*getThsPerPE() );
-   else
-     createTeam(1);
+   switch ( getInitialMode() )
+   {
+      case POOL:
+         createTeam( numPes*getThsPerPE() );
+         break;
+      case ONE_THREAD:
+         createTeam(1);
+         break;
+      default:
+         fatal("Unknown inital mode!");
+   }
 }
 
 System::~System ()

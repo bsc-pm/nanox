@@ -12,9 +12,9 @@ class OpenMPInit : public System::Init {
    public:
      void operator() () {
        if ( ssCompatibility != NULL) {
-//          sys.executionMode(POOL_MODE);
+         sys.setInitialMode(System::POOL);
        } else {
-//          sys.executionMode(SINGLE_THREAD_MODE);
+         sys.setInitialMode(System::ONE_THREAD);
        }
      }
 };

@@ -45,6 +45,7 @@ namespace nanos
       public:
          // constants
          typedef enum { DEDICATED, SHARED } ExecutionMode;
+         typedef enum { POOL, ONE_THREAD } InitialMode;
 
          class Init {
             public:
@@ -67,6 +68,7 @@ namespace nanos
          bool                 _instrument;
          bool                 _verboseMode;
          ExecutionMode        _executionMode;
+         InitialMode          _initialMode;
          int                  _thsPerPE;
          bool                 _untieMaster;
 
@@ -125,7 +127,7 @@ namespace nanos
          void duplicateWD ( WD **uwd, WD *wd );
          void duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd );
 
-         // methods to access configuration variables
+         // methods to access configuration variable         
          void setNumPEs ( int npes ) { _numPEs = npes; }
 
          int getNumPEs () const { return _numPEs; }
@@ -141,6 +143,9 @@ namespace nanos
          ExecutionMode getExecutionMode () const { return _executionMode; }
 
          bool getVerbose () const { return _verboseMode; }
+
+         void setInitialMode ( InitialMode mode ) { _initialMode = mode; }
+         InitialMode getInitialMode() const { return _initialMode; }
 
          void setThsPerPE( int ths ) { _thsPerPE = ths; }
 
