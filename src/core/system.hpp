@@ -46,6 +46,13 @@ namespace nanos
          // constants
          typedef enum { DEDICATED, SHARED } ExecutionMode;
 
+         class Init {
+            public:
+               Init() {}
+               virtual ~Init() {}
+               virtual void operator() () = 0;
+         };
+
       private:
          // types
          typedef std::vector<PE *>         PEList;

@@ -32,6 +32,7 @@
 using namespace nanos;
 
 System nanos::sys;
+System::Init * externInit __attribute__((weak));
 
 // default system values go here
 System::System () : _numPEs( 1 ), _deviceStackSize( 1024 ), _bindThreads( true ), _profile( false ), _instrument( false ),
@@ -94,6 +95,10 @@ void System::loadModules ()
 void System::config ()
 {
    Config config;
+
+   if ( externInit != NULL ) {
+       (*externInit)();
+   }
 
    verbose0 ( "Preparing configuration" );
 
@@ -647,6 +652,8 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, SG *policy, void *constrai
       if (tdata) data = &tdata[thId];
       else data = new TeamData();
 
+//       data->parentTeam = myThread->getTeamData();
+
       data->setId(thId);
       myThread->enterTeam( team,  data );
    }
@@ -680,6 +687,11 @@ void System::endTeam ( ThreadTeam *team )
    if ( team->size() > 1 ) {
      fatal("Trying to end a team with running threads");
    }
+
+//    if ( myThread->getTeamData()->parentTeam )
+//    {
+//       myThread->restoreTeam(myThread->getTeamData()->parentTeam);
+//    }
 
    
    delete team;

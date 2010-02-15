@@ -17,5 +17,20 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = arch support plugins core apis pms utils
+include $(top_srcdir)/src/common.am
+
+lib_LTLIBRARIES=libnanox-omp.la
+
+include_HEADERS=\
+	$(END)
+
+sources=\
+        omp_init.cpp\
+	$(END)
+
+libnanox_omp_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(performance_cflags)
+libnanox_omp_la_LDFLAGS=$(version_flags)
+libnanox_omp_la_LIBADD=$(top_builddir)/src/core/libnanox.la
+libnanox_omp_la_SOURCES=$(sources)
+libnanox_omp_la_DEPENDENCIES=$(top_builddir)/src/core/libnanox.la
 
