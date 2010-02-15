@@ -63,7 +63,7 @@ nanos_err_t nanos_leave_team ()
 nanos_err_t nanos_end_team ( nanos_team_t team )
 {
    try {
-      sys.endTeam(team);
+      sys.endTeam((ThreadTeam *)team);
    } catch ( ... ) {
          return NANOS_UNKNOWN_ERR;
    }
