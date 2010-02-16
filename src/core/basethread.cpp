@@ -50,13 +50,16 @@ bool BaseThread::singleGuard ()
 {
    // return getTeam()->singleGuard(++localSingleCount); # doesn't work
    // probably because some gcc bug
-   _localSingleCount++;
-   return getTeam()->singleGuard( _localSingleCount );
+   return getTeam()->singleGuard( getTeamData()->nextSingleGuard() );
 }
 
 void BaseThread::inlineWork (WorkDescriptor *wd)
 {
    WD *oldwd = getCurrentWD();
+   GenericSyncCond *syncCond = oldWD->getSyncCond();
+   if ( syncCond != NULL ) {
+      syncCond->unlock();
+   }
    sys.getInstrumentor()->wdSwitch( oldwd, wd );
    setCurrentWD( *wd );
    inlineWorkDependent(*wd);
@@ -71,6 +74,7 @@ void BaseThread::switchHelper( WD* oldWD, WD* newWD )
 {
    GenericSyncCond *syncCond = oldWD->getSyncCond();
    if ( syncCond != NULL ) {
+      oldWD->setBlocked();
       syncCond->unlock();
    } else {
       Scheduler::queue( *oldWD );

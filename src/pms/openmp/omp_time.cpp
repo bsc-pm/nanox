@@ -1,4 +1,5 @@
 /*************************************************************************************/
+/*      Copyright 2010 Barcelona Supercomputing Center                               */
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
@@ -17,69 +18,26 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_SYNCRHONIZED_CONDITION
-#define _NANOS_SYNCRHONIZED_CONDITION
+#include "omp.h"
 
-#include "synchronizedcondition_decl.hpp"
-#include "basethread.hpp"
-#include "schedule.hpp"
-
-using namespace nanos;
-
-template <class _T>
-void SynchronizedCondition< _T>::wait()
+extern "C"
 {
-   int spins=100; // Has this to be configurable??
-
-   myThread->getCurrentWD()->setSyncCond( this );
-
-   while ( !_conditionChecker.checkCondition() ) {
-      BaseThread *thread = getMyThreadSafe();
-      WD * current = thread->getCurrentWD();
-      current->setIdle();
-
-      spins--;
-      if ( spins == 0 ) {
-         lock();
-         if ( !( _conditionChecker.checkCondition() ) ) {
-            addWaiter( current );
-
-            WD *next = thread->getSchedulingGroup()->atBlock ( thread );
-
-/*            if ( next ) {
-               sys._numReady--;
-            } */
-
-            if ( next ) {               
-               thread->switchTo ( next );
-            }
-            else {
-               unlock();
-               thread->yield();
-            }
-         } else {
-            unlock();
-         }
-         spins = 100;
-      }
+   double omp_get_wtime ( void )
+   {
+      /* This function does not provide a working
+      * wallclock timer. Replace it with a version
+      * customized for the target machine.
+      */
+      return 0.0;
    }
-   myThread->getCurrentWD()->setReady();
-   myThread->getCurrentWD()->setSyncCond( NULL );
+
+   double omp_get_wtick ( void )
+   {
+      /* This function does not provide a working
+      * clock tick function. Replace it with
+      * a version customized for the target machine.
+      */
+      return 365. * 86400.;
+   }
+
 }
-
-template <class _T>
-void SynchronizedCondition< _T>::signal()
-{
-   lock();
-     while ( hasWaiters() ) {
-        WD* wd = getAndRemoveWaiter();
-        if ( wd->isBlocked() ) {
-           wd->setReady();
-           Scheduler::queue( *wd );
-        }
-     }
-   unlock(); 
-}
-
-#endif
-

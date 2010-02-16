@@ -179,6 +179,9 @@ AC_CONFIG_FILES([Makefile
 		 src/plugins/instrumentors/Makefile
 		 src/apis/Makefile
 		 src/apis/c/Makefile
+		 src/pms/Makefile
+		 src/pms/openmp/Makefile
+		 src/pms/ss/Makefile
                  src/arch/Makefile
 		 src/arch/unix-os/Makefile
 		 src/arch/smp/Makefile

@@ -1,4 +1,5 @@
 /*************************************************************************************/
+/*      Copyright 2010 Barcelona Supercomputing Center                               */
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
@@ -17,75 +18,32 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "nanos.h"
 #include "system.hpp"
-#include "debug.hpp"
+#include <cstdlib>
 
 using namespace nanos;
 
-nanos_err_t nanos_create_team( nanos_team_t *team, nanos_sched_t sp, unsigned int *nthreads,
-                               nanos_constraint_t * constraints, bool reuse, nanos_thread_t *info )
+namespace nanos
 {
-   try {
-      if ( *team ) warning( "pre-allocated team not supported yet" );
 
-      ThreadTeam *new_team = sys.createTeam( *nthreads,( SG * )sp,constraints,reuse );
+   namespace OpenMP {
 
-      *team = new_team;
+      int * ssCompatibility __attribute__( ( weak ) );
 
-      *nthreads = new_team->size();
+      static void ompInit()
+      {
+         if ( ssCompatibility != NULL ) {
+            sys.setInitialMode( System::POOL );
+         } else {
+            sys.setInitialMode( System::ONE_THREAD );
+         }
+      }
 
-      for ( unsigned i = 0; i < new_team->size(); i++ )
-         info[i] = ( nanos_thread_t ) &( *new_team )[i];
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
    }
-
-   return NANOS_OK;
 }
 
-nanos_err_t nanos_create_team_mapped ( nanos_team_t *team, nanos_sched_t sg, unsigned int *nthreads,
-                                       unsigned int *mapping )
+namespace nanos
 {
-   return NANOS_UNIMPLEMENTED;
+   System::Init externInit = OpenMP::ompInit;
 }
-
-nanos_err_t nanos_leave_team ()
-{
-   try {
-      sys.releaseWorker(myThread);
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-   return NANOS_OK;
-}
-
-nanos_err_t nanos_end_team ( nanos_team_t team )
-{
-   try {
-      sys.endTeam((ThreadTeam *)team);
-   } catch ( ... ) {
-         return NANOS_UNKNOWN_ERR;
-   }
-   return NANOS_OK;
-}
-
-/*!
-   Implements the team barrier by invoking the barrier function of the team.
-   The actual barrier algorithm is loaded at the run-time startup.
-*/
-nanos_err_t nanos_team_barrier ( )
-{
-   sys.getInstrumentor()->enterBarrier();
-   try {
-      myThread->getTeam()->barrier();
-   } catch ( ... ) {
-      sys.getInstrumentor()->leaveBarrier();
-      return NANOS_UNKNOWN_ERR;
-   }
-
-   sys.getInstrumentor()->leaveBarrier();
-   return NANOS_OK;
-}
-
 

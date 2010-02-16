@@ -1,4 +1,5 @@
 /*************************************************************************************/
+/*      Copyright 2010 Barcelona Supercomputing Center                               */
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
@@ -17,69 +18,41 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_SYNCRHONIZED_CONDITION
-#define _NANOS_SYNCRHONIZED_CONDITION
+#ifndef _OMP_H_DEF
+#define _OMP_H_DEF
 
-#include "synchronizedcondition_decl.hpp"
-#include "basethread.hpp"
-#include "schedule.hpp"
+/* OpenMP API interface */
 
-using namespace nanos;
+/*
+* define the lock data types
+*/
+typedef void * omp_lock_t;
+typedef void * omp_nest_lock_t;
 
-template <class _T>
-void SynchronizedCondition< _T>::wait()
+/*
+* define the schedule kinds
+*/
+typedef enum omp_sched_t {
+   omp_sched_static = 1,
+   omp_sched_dynamic = 2,
+   omp_sched_guided = 3,
+   omp_sched_auto = 4
+} omp_sched_t;
+
+/*
+* exported OpenMP functions
+*/
+#ifdef __cplusplus
+extern
+   "C"
 {
-   int spins=100; // Has this to be configurable??
+#endif
 
-   myThread->getCurrentWD()->setSyncCond( this );
 
-   while ( !_conditionChecker.checkCondition() ) {
-      BaseThread *thread = getMyThreadSafe();
-      WD * current = thread->getCurrentWD();
-      current->setIdle();
 
-      spins--;
-      if ( spins == 0 ) {
-         lock();
-         if ( !( _conditionChecker.checkCondition() ) ) {
-            addWaiter( current );
-
-            WD *next = thread->getSchedulingGroup()->atBlock ( thread );
-
-/*            if ( next ) {
-               sys._numReady--;
-            } */
-
-            if ( next ) {               
-               thread->switchTo ( next );
-            }
-            else {
-               unlock();
-               thread->yield();
-            }
-         } else {
-            unlock();
-         }
-         spins = 100;
-      }
-   }
-   myThread->getCurrentWD()->setReady();
-   myThread->getCurrentWD()->setSyncCond( NULL );
-}
-
-template <class _T>
-void SynchronizedCondition< _T>::signal()
-{
-   lock();
-     while ( hasWaiters() ) {
-        WD* wd = getAndRemoveWaiter();
-        if ( wd->isBlocked() ) {
-           wd->setReady();
-           Scheduler::queue( *wd );
-        }
-     }
-   unlock(); 
+#ifdef __cplusplus
 }
 
 #endif
 
+#endif

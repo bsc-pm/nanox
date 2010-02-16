@@ -31,10 +31,32 @@ namespace nanos
 // forward declarations
 
    class SchedulingGroup;
-
    class SchedulingData;
-
    class ThreadTeam;
+   
+   /*!
+    * Each thread in a team has one of this. All data associated with the team should be here
+    * and not in BaseThread as it needs to be saved and restored on team switches
+    */
+   class TeamData
+   {
+      private:
+         unsigned   _id;
+         unsigned   _singleCount;
+         // PM Data?
+
+      public:
+
+         unsigned getId() const { return _id; }
+         unsigned getSingleCount() const { return _singleCount; }
+
+         void setId ( int id ) { _id = id; }
+         unsigned nextSingleGuard() {
+            ++_singleCount;
+            return _singleCount;
+         }
+   };
+
 
 // Threads are binded to a PE for its life-time
 
@@ -59,8 +81,9 @@ namespace nanos
          // Team info
          bool                    _hasTeam;
          ThreadTeam *            _team;
-         int                     _teamId; //! Id of the thread inside its current team
-         int                     _localSingleCount;
+         TeamData *              _teamData;
+//         int                     _teamId; //! Id of the thread inside its current team
+//          int                     _localSingleCount;
 
          // scheduling info
          SchedulingGroup *       _schedGroup;
@@ -127,11 +150,10 @@ namespace nanos
          // team related methods
          void reserve() { _hasTeam = 1; }
 
-         void enterTeam( ThreadTeam *newTeam, int id ) {
+         void enterTeam( ThreadTeam *newTeam, TeamData *data ) {
             _hasTeam=1;
             _team = newTeam;
-            _teamId = id;
-            _localSingleCount = 0;
+            _teamData = data;
          }
 
          bool hasTeam() const { return _hasTeam; }
@@ -140,8 +162,10 @@ namespace nanos
 
          ThreadTeam * getTeam() const { return _team; }
 
+         TeamData * getTeamData() const { return _teamData; }
+
          //! Returns the id of the thread inside its current team 
-         int getTeamId() const { return _teamId; }
+         int getTeamId() const { return _teamData->getId(); }
 
          SchedulingGroup * getSchedulingGroup () const { return _schedGroup; }
 

@@ -1,4 +1,5 @@
 /*************************************************************************************/
+/*      Copyright 2010 Barcelona Supercomputing Center                               */
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
@@ -17,69 +18,98 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_SYNCRHONIZED_CONDITION
-#define _NANOS_SYNCRHONIZED_CONDITION
+#include "omp.h"
 
-#include "synchronizedcondition_decl.hpp"
-#include "basethread.hpp"
-#include "schedule.hpp"
-
-using namespace nanos;
-
-template <class _T>
-void SynchronizedCondition< _T>::wait()
+extern "C"
 {
-   int spins=100; // Has this to be configurable??
 
-   myThread->getCurrentWD()->setSyncCond( this );
-
-   while ( !_conditionChecker.checkCondition() ) {
-      BaseThread *thread = getMyThreadSafe();
-      WD * current = thread->getCurrentWD();
-      current->setIdle();
-
-      spins--;
-      if ( spins == 0 ) {
-         lock();
-         if ( !( _conditionChecker.checkCondition() ) ) {
-            addWaiter( current );
-
-            WD *next = thread->getSchedulingGroup()->atBlock ( thread );
-
-/*            if ( next ) {
-               sys._numReady--;
-            } */
-
-            if ( next ) {               
-               thread->switchTo ( next );
-            }
-            else {
-               unlock();
-               thread->yield();
-            }
-         } else {
-            unlock();
-         }
-         spins = 100;
-      }
+   int omp_get_num_threads ( void )
+   {
+      return 1;
    }
-   myThread->getCurrentWD()->setReady();
-   myThread->getCurrentWD()->setSyncCond( NULL );
+
+   int omp_get_max_threads ( void )
+   {
+      return 1;
+   }
+
+   int omp_get_thread_num ( void )
+   {
+      return 0;
+   }
+
+   int omp_get_num_procs ( void )
+   {
+      return 1;
+   }
+
+   int omp_in_parallel ( void )
+   {
+      return 0;
+   }
+
+   void omp_set_dynamic ( int dynamic_threads )
+   {
+   }
+
+   int omp_get_dynamic ( void )
+   {
+      return 0;
+   }
+
+   void omp_set_nested ( int nested )
+   {
+   }
+
+   int omp_get_nested ( void )
+   {
+      return 0;
+   }
+
+   void omp_set_schedule ( omp_sched_t kind, int modifier )
+   {
+   }
+
+   void omp_get_schedule ( omp_sched_t *kind, int *modifier )
+   {
+      *kind = omp_sched_auto;
+      *modifier = 0;
+   }
+
+   int omp_get_thread_limit ( void )
+   {
+      return 1;
+   }
+
+   void omp_set_max_active_levels ( int max_active_levels )
+   {
+   }
+
+   int omp_get_max_active_levels ( void )
+   {
+      return 0;
+   }
+
+   int omp_get_level ( void )
+   {
+      return 0;
+   }
+
+   int omp_get_ancestor_thread_num ( int level )
+   {
+      if ( level == 0 ) return 0;
+      else return -1;
+   }
+
+   int omp_get_team_size ( int level )
+   {
+      if ( level == 0 ) return 1;
+      else return -1;
+   }
+
+   int omp_get_active_level ( void )
+   {
+      return 0;
+   }
+
 }
-
-template <class _T>
-void SynchronizedCondition< _T>::signal()
-{
-   lock();
-     while ( hasWaiters() ) {
-        WD* wd = getAndRemoveWaiter();
-        if ( wd->isBlocked() ) {
-           wd->setReady();
-           Scheduler::queue( *wd );
-        }
-     }
-   unlock(); 
-}
-
-#endif
-

@@ -45,6 +45,9 @@ namespace nanos
       public:
          // constants
          typedef enum { DEDICATED, SHARED } ExecutionMode;
+         typedef enum { POOL, ONE_THREAD } InitialMode;
+
+         typedef void (*Init) ();
 
       private:
          // types
@@ -60,6 +63,7 @@ namespace nanos
          bool                 _instrument;
          bool                 _verboseMode;
          ExecutionMode        _executionMode;
+         InitialMode          _initialMode;
          int                  _thsPerPE;
          bool                 _untieMaster;
 
@@ -118,7 +122,7 @@ namespace nanos
          void duplicateWD ( WD **uwd, WD *wd );
          void duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd );
 
-         // methods to access configuration variables
+         // methods to access configuration variable         
          void setNumPEs ( int npes ) { _numPEs = npes; }
 
          int getNumPEs () const { return _numPEs; }
@@ -134,6 +138,9 @@ namespace nanos
          ExecutionMode getExecutionMode () const { return _executionMode; }
 
          bool getVerbose () const { return _verboseMode; }
+
+         void setInitialMode ( InitialMode mode ) { _initialMode = mode; }
+         InitialMode getInitialMode() const { return _initialMode; }
 
          void setThsPerPE( int ths ) { _thsPerPE = ths; }
 
@@ -151,7 +158,9 @@ namespace nanos
 
          // team related methods
          BaseThread * getUnassignedWorker ( void );
-         ThreadTeam * createTeam ( int nthreads, SG *scheduling=NULL, void *constraints=NULL, bool reuseCurrent=true );
+         ThreadTeam * createTeam ( unsigned nthreads, SG *scheduling=NULL, void *constraints=NULL,
+                                   bool reuseCurrent=true,  TeamData *tdata = 0 );
+         void endTeam ( ThreadTeam *team );
          void releaseWorker ( BaseThread * thread );
 
          //BUG: does not work: sigsegv on myThread

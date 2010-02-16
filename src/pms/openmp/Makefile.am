@@ -1,4 +1,5 @@
 #####################################################################################
+#      Copyright 2010 Barcelona Supercomputing Center                               #
 #      Copyright 2009 Barcelona Supercomputing Center                               #
 #                                                                                   #
 #      This file is part of the NANOS++ library.                                    #
@@ -17,5 +18,36 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = arch support plugins core apis pms utils
+include $(top_srcdir)/src/common.am
+
+lib_LTLIBRARIES=libnanox-omp.la libnanox-omp-stubs.la
+
+include_HEADERS=\
+	omp.h \
+	$(END)
+
+sources=\
+        omp_init.cpp\
+        omp.h\
+        omp_api.cpp\
+        omp_time.cpp\
+        omp_locks.cpp\
+	$(END)
+
+stub_sources=\
+        omp.h\
+        omp_stubs.cpp\
+        omp_time.cpp\
+        omp_locks.cpp\
+	$(END)
+
+libnanox_omp_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(performance_cflags)
+libnanox_omp_la_LDFLAGS=$(version_flags)
+libnanox_omp_la_LIBADD=$(top_builddir)/src/core/libnanox.la
+libnanox_omp_la_SOURCES=$(sources)
+libnanox_omp_la_DEPENDENCIES=$(top_builddir)/src/core/libnanox.la
+
+libnanox_omp_stubs_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(performance_cflags)
+libnanox_omp_stubs_la_LDFLAGS=$(version_flags)
+libnanox_omp_stubs_la_SOURCES=$(stub_sources)
 
