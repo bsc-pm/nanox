@@ -56,6 +56,10 @@ bool BaseThread::singleGuard ()
 void BaseThread::inlineWork (WorkDescriptor *wd)
 {
    WD *oldwd = getCurrentWD();
+   GenericSyncCond *syncCond = oldWD->getSyncCond();
+   if ( syncCond != NULL ) {
+      syncCond->unlock();
+   }
    sys.getInstrumentor()->wdSwitch( oldwd, wd );
    setCurrentWD( *wd );
    inlineWorkDependent(*wd);
@@ -70,6 +74,7 @@ void BaseThread::switchHelper( WD* oldWD, WD* newWD )
 {
    GenericSyncCond *syncCond = oldWD->getSyncCond();
    if ( syncCond != NULL ) {
+      oldWD->setBlocked();
       syncCond->unlock();
    } else {
       Scheduler::queue( *oldWD );

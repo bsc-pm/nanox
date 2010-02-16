@@ -50,8 +50,7 @@ void SynchronizedCondition< _T>::wait()
                sys._numReady--;
             } */
 
-	    if ( next ) {
-               current->setBlocked();
+            if ( next ) {               
                thread->switchTo ( next );
             }
             else {
@@ -61,7 +60,7 @@ void SynchronizedCondition< _T>::wait()
          } else {
             unlock();
          }
-      spins = 100;
+         spins = 100;
       }
    }
    myThread->getCurrentWD()->setReady();
