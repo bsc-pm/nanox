@@ -18,32 +18,98 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "system.hpp"
-#include <cstdlib>
+#include "omp.h"
 
-using namespace nanos;
-
-namespace nanos
+extern "C"
 {
 
-   namespace OpenMP {
-
-      int * ssCompatibility __attribute__( ( weak ) );
-
-      static void ompInit()
-      {
-         if ( ssCompatibility != NULL ) {
-            sys.setInitialMode( System::POOL );
-         } else {
-            sys.setInitialMode( System::ONE_THREAD );
-         }
-      }
-
+   int omp_get_num_threads ( void )
+   {
+      return 1;
    }
-}
 
-namespace nanos
-{
-   System::Init externInit = OpenMP::ompInit;
-}
+   int omp_get_max_threads ( void )
+   {
+      return 1;
+   }
 
+   int omp_get_thread_num ( void )
+   {
+      return 0;
+   }
+
+   int omp_get_num_procs ( void )
+   {
+      return 1;
+   }
+
+   int omp_in_parallel ( void )
+   {
+      return 0;
+   }
+
+   void omp_set_dynamic ( int dynamic_threads )
+   {
+   }
+
+   int omp_get_dynamic ( void )
+   {
+      return 0;
+   }
+
+   void omp_set_nested ( int nested )
+   {
+   }
+
+   int omp_get_nested ( void )
+   {
+      return 0;
+   }
+
+   void omp_set_schedule ( omp_sched_t kind, int modifier )
+   {
+   }
+
+   void omp_get_schedule ( omp_sched_t *kind, int *modifier )
+   {
+      *kind = omp_sched_auto;
+      *modifier = 0;
+   }
+
+   int omp_get_thread_limit ( void )
+   {
+      return 1;
+   }
+
+   void omp_set_max_active_levels ( int max_active_levels )
+   {
+   }
+
+   int omp_get_max_active_levels ( void )
+   {
+      return 0;
+   }
+
+   int omp_get_level ( void )
+   {
+      return 0;
+   }
+
+   int omp_get_ancestor_thread_num ( int level )
+   {
+      if ( level == 0 ) return 0;
+      else return -1;
+   }
+
+   int omp_get_team_size ( int level )
+   {
+      if ( level == 0 ) return 1;
+      else return -1;
+   }
+
+   int omp_get_active_level ( void )
+   {
+      return 0;
+   }
+
+}

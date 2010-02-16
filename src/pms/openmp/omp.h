@@ -18,32 +18,41 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "system.hpp"
-#include <cstdlib>
+#ifndef _OMP_H_DEF
+#define _OMP_H_DEF
 
-using namespace nanos;
+/* OpenMP API interface */
 
-namespace nanos
+/*
+* define the lock data types
+*/
+typedef void * omp_lock_t;
+typedef void * omp_nest_lock_t;
+
+/*
+* define the schedule kinds
+*/
+typedef enum omp_sched_t {
+   omp_sched_static = 1,
+   omp_sched_dynamic = 2,
+   omp_sched_guided = 3,
+   omp_sched_auto = 4
+} omp_sched_t;
+
+/*
+* exported OpenMP functions
+*/
+#ifdef __cplusplus
+extern
+   "C"
 {
+#endif
 
-   namespace OpenMP {
 
-      int * ssCompatibility __attribute__( ( weak ) );
 
-      static void ompInit()
-      {
-         if ( ssCompatibility != NULL ) {
-            sys.setInitialMode( System::POOL );
-         } else {
-            sys.setInitialMode( System::ONE_THREAD );
-         }
-      }
-
-   }
+#ifdef __cplusplus
 }
 
-namespace nanos
-{
-   System::Init externInit = OpenMP::ompInit;
-}
+#endif
 
+#endif

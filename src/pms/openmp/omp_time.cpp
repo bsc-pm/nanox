@@ -18,32 +18,26 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "system.hpp"
-#include <cstdlib>
+#include "omp.h"
 
-using namespace nanos;
-
-namespace nanos
+extern "C"
 {
-
-   namespace OpenMP {
-
-      int * ssCompatibility __attribute__( ( weak ) );
-
-      static void ompInit()
-      {
-         if ( ssCompatibility != NULL ) {
-            sys.setInitialMode( System::POOL );
-         } else {
-            sys.setInitialMode( System::ONE_THREAD );
-         }
-      }
-
+   double omp_get_wtime ( void )
+   {
+      /* This function does not provide a working
+      * wallclock timer. Replace it with a version
+      * customized for the target machine.
+      */
+      return 0.0;
    }
-}
 
-namespace nanos
-{
-   System::Init externInit = OpenMP::ompInit;
-}
+   double omp_get_wtick ( void )
+   {
+      /* This function does not provide a working
+      * clock tick function. Replace it with
+      * a version customized for the target machine.
+      */
+      return 365. * 86400.;
+   }
 
+}
