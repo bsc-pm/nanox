@@ -3,24 +3,27 @@
 
 using namespace nanos;
 
-namespace nanos {
-namespace OpenMP {
+namespace nanos
+{
 
-  int * ssCompatibility __attribute__((weak));
+   namespace OpenMP {
 
-  static void ompInit()
-  {
-     if ( ssCompatibility != NULL) {
-       sys.setInitialMode(System::POOL);
-     } else {
-       sys.setInitialMode(System::ONE_THREAD);
-     }
-  }
+      int * ssCompatibility __attribute__( ( weak ) );
 
+      static void ompInit()
+      {
+         if ( ssCompatibility != NULL ) {
+            sys.setInitialMode( System::POOL );
+         } else {
+            sys.setInitialMode( System::ONE_THREAD );
+         }
+      }
+
+   }
 }
-}
 
-namespace nanos {
-  System::Init externInit = OpenMP::ompInit;
+namespace nanos
+{
+   System::Init externInit = OpenMP::ompInit;
 }
 
