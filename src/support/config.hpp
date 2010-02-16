@@ -106,13 +106,13 @@ namespace nanos
          };
 
          // Action Option, Base Class
-         template<typename T, typename checkT = CheckValue<T> >
-
+         template<typename T, class helpFormat, typename checkT = CheckValue<T> >
          class ActionOption : public Option
          {
 
             private:
                checkT _check;
+               helpFormat _helpFormat;
 
             public:
                // constructors
@@ -126,7 +126,7 @@ namespace nanos
                      Option( Option::VALUE ) {}
 
                // copy constructors
-               ActionOption( const ActionOption& opt ) : Option( opt ), _check( opt._check ) {}
+               ActionOption( const ActionOption& opt ) : Option( opt ), _check( opt._check ), _helpFormat( opt._helpFormat ) {}
 
                // assignment operator
                const ActionOption & operator= ( const ActionOption & opt );
@@ -142,17 +142,16 @@ namespace nanos
 
               /* \brief Formatted help for the argument option.
                */
-               virtual const std::string getArgHelp () { return std::string("<value>"); }
+               virtual const std::string getArgHelp () { return std::string("<" + _helpFormat() + ">"); }
 
               /* \brief Formatted help for the environment variable.
                */
-               virtual const std::string getEnvHelp () { return std::string("<VALUE>"); }
+               virtual const std::string getEnvHelp () { return std::string("<" + _helpFormat() + ">"); }
          };
 
          // VarOption: Option modifies a variable
-         template<typename T, typename checkT= CheckValue<T> >
-
-         class VarOption : public ActionOption<T,checkT>
+         template<typename T, class helpFormat, typename checkT= CheckValue<T> >
+         class VarOption : public ActionOption<T,helpFormat,checkT>
          {
 
             private:
@@ -163,17 +162,17 @@ namespace nanos
             public:
                //constructors
                VarOption( const std::string &name,T &ref ) :
-                     ActionOption<T,checkT>( name ),_var( ref ) {}
+                     ActionOption<T,helpFormat,checkT>( name ),_var( ref ) {}
 
                VarOption( const char *name, T &ref ) :
-                     ActionOption<T,checkT>( name ),_var( ref ) {}
+                     ActionOption<T,helpFormat,checkT>( name ),_var( ref ) {}
 
                VarOption( T &ref ) :
-                     ActionOption<T,checkT>(), _var( ref ) {}
+                     ActionOption<T,helpFormat,checkT>(), _var( ref ) {}
 
                // copy constructor
                VarOption( const VarOption &opt ) :
-                     ActionOption<T,checkT>( opt ),_var( opt._var ) {}
+                     ActionOption<T,helpFormat,checkT>( opt ),_var( opt._var ) {}
 
                //destructor
                virtual ~VarOption() {}
@@ -185,24 +184,96 @@ namespace nanos
 
          // shortcuts for VarOptions and ActionOptions
 
-         typedef class VarOption<int>                       IntegerVar;
 
-         typedef class VarOption<bool>                      BoolVar;
+         class HelpFormat
+         {
+            public:
+               virtual std::string operator()()
+                  { return "value"; }
+         };
 
-         typedef class VarOption<std::string>               StringVar;
+         class IntegerHelpFormat : public HelpFormat
+         {
+            public:
+               virtual std::string operator()()
+                  { return "integer"; }
+         };
 
-         typedef class VarOption<int,isPositive<int> >      PositiveVar;
-         typedef class VarOption<size_t,isPositive<size_t> > SizeVar;
+         class BoolHelpFormat : public HelpFormat
+         {
+            public:
+               virtual std::string operator()()
+                  { return "true/false"; }
+         };
 
-         typedef class ActionOption<int>                    IntegerAction;
+         class StringHelpFormat : public HelpFormat
+         {
+            public:
+               virtual std::string operator()()
+                  { return "string"; }
+         };
 
-         typedef class ActionOption<bool>                   BoolAction;
+         class PositiveHelpFormat : public HelpFormat
+         {
+            public:
+               virtual std::string operator()()
+                  { return "positive integer"; }
+         };
 
-         typedef class ActionOption<std::string>            StringAction;
+         typedef class VarOption<int,IntegerHelpFormat>                         IntegerVar;
 
-         typedef class ActionOption<int,isPositive<int> >   PositiveAction;
+         typedef class VarOption<bool,BoolHelpFormat>                           BoolVar;
 
-         template<typename T> class MapAction : public Option
+         typedef class VarOption<std::string, StringHelpFormat>                 StringVar;
+
+         typedef class VarOption<int,PositiveHelpFormat,isPositive<int> >       PositiveVar;
+
+         typedef class VarOption<size_t,PositiveHelpFormat,isPositive<size_t> > SizeVar;
+
+         typedef class ActionOption<int,IntegerHelpFormat>                      IntegerAction;
+
+         typedef class ActionOption<bool,BoolHelpFormat>                        BoolAction;
+
+         typedef class ActionOption<std::string, StringHelpFormat>              StringAction;
+
+         typedef class ActionOption<int,PositiveHelpFormat,isPositive<int> >    PositiveAction;
+
+         template<typename T, class helpFormat, typename checkT= CheckValue<T> >
+         class FuncOption : public ActionOption<T,helpFormat,checkT>
+         {
+            public:
+               typedef void (*funptr) (const T &);
+
+            private:
+               funptr  _function;
+
+            public:
+               //constructors
+               FuncOption( const std::string &name, funptr function ) :
+                     ActionOption<T,helpFormat,checkT>( name ), _function( function ) {}
+
+               FuncOption( const char *name, funptr function ) :
+                     ActionOption<T,helpFormat,checkT>( name ), _function( function ) {}
+
+               FuncOption( T &ref ) :
+                     ActionOption<T,helpFormat,checkT>(), _function( ref.function ) {}
+
+               // copy constructor
+               FuncOption( const FuncOption &opt ) :
+                     ActionOption<T,helpFormat,checkT>( opt ), _function( opt.function ) {}
+
+               //destructor
+               virtual ~FuncOption() {}
+
+               virtual void setValue ( const T& value ) { _function(value); }
+
+               virtual FuncOption * clone () { return new FuncOption( *this ); };
+         };
+
+         typedef class FuncOption<int,PositiveHelpFormat,isPositive<int> >      PositveFunc;
+
+         template<typename T>
+         class MapAction : public Option
          {
 
             public:
@@ -269,7 +340,8 @@ namespace nanos
                }
          };
 
-         template<typename T> class MapVar : public MapAction<T>
+         template <typename T>
+         class MapVar : public MapAction<T>
          {
 
             private:
@@ -365,6 +437,35 @@ namespace nanos
                virtual FlagOption * clone () { return new FlagOption( *this ); };
          };
 
+         class HelpTriplet
+         {
+            private:
+               std::string _envHelp;
+               std::string _argHelp;
+               std::string _message;
+
+            public:
+               HelpTriplet ( const std::string &envHelp, const std::string argHelp, const std::string message ) :
+                  _envHelp( envHelp ), _argHelp( argHelp ), _message( message ) {}
+
+               HelpTriplet ( const HelpTriplet& ht ) :
+                  _envHelp( ht._envHelp ), _argHelp( ht._argHelp ), _message( ht._message ) {}
+
+               const HelpTriplet& operator=( const HelpTriplet& ht )
+               {
+                  this->_envHelp = ht._envHelp;
+                  this->_argHelp = ht._argHelp;
+                  this->_message = ht._message;
+                  return *this;
+               }
+
+               ~HelpTriplet() {}
+
+               size_t getHelpLength();
+               std::string getEnvHelp( size_t size );
+               std::string getArgHelp( size_t size );
+         };
+
         /* \brief High-Level Instances of configuration options
          */
          class ConfigOption
@@ -418,10 +519,11 @@ namespace nanos
 
               /* \brief Returns the formatted help message for the ConfigOption's argument.
                */
-               std::string getArgHelp();
-              /* \brief Returns the formatted help message for the ConfigOption's environment variable.
+               HelpTriplet getHelp();
+
+              /* \breif Returns the option's help lenght
                */
-               std::string getEnvHelp();
+               unsigned int getHelpLength();
 
               /* \brief Environment Option's getter method.
                */
@@ -457,10 +559,11 @@ namespace nanos
          class NanosHelp
          {
              private:
-                /**< Help formatted help string for the argument and the environment variable of an option */
-                typedef std::pair<std::string, std::string> argAndEnvHelps;
+//                /**< Help formatted help string for the argument and the environment variable of an option */
+//                typedef std::pair<std::string, std::string> argAndEnvHelps;
                 /**< List of helps in a section */
-                typedef std::vector<argAndEnvHelps> HelpStringList;
+//                typedef std::vector<argAndEnvHelps> HelpStringList;
+                typedef std::vector<HelpTriplet> HelpStringList;
                 /**< Sections by name */
                 typedef TR1::unordered_map<std::string, HelpStringList> SectionsMap;
                 /**< Section descriptions by name */
@@ -478,7 +581,7 @@ namespace nanos
                 * \param agrHelpString Help string for the argument option
                 * \param envHelpString Help string for the environment variable
                 */
-                void addHelpString ( const std::string &section, const std::string &argHelpString, const std::string &envHelpString );
+                void addHelpString ( const std::string &section, const HelpTriplet &ht );
 
                /* \brief Set the description for a section
                 * \param section Section name
@@ -597,10 +700,10 @@ namespace nanos
       return *this;
    }
 
-   template<typename T,typename checkT>
-   const Config::ActionOption<T,checkT> &
-   Config::ActionOption<T,checkT>::operator=
-   ( const Config::ActionOption<T,checkT> & opt )
+   template<typename T, class helpFormat, typename checkT>
+   const Config::ActionOption<T,helpFormat,checkT> &
+   Config::ActionOption<T,helpFormat,checkT>::operator=
+   ( const Config::ActionOption<T,helpFormat,checkT> & opt )
    {
       // self-assigment: ok
       Option::operator=( opt );
@@ -617,8 +720,8 @@ namespace nanos
       return *this;
    }
 
-   template<typename T,typename checkT>
-   void Config::ActionOption<T,checkT>::parse ( const char *value )
+   template<typename T, class helpFormat, typename checkT>
+   void Config::ActionOption<T,helpFormat,checkT>::parse ( const char *value )
    {
       T t;
       std::istringstream iss( value );
