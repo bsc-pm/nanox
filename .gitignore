@@ -30,4 +30,4 @@ doc/doxy-nanox
 doc/doxywarn.log
 doc/html
 doc/latex
-src/utils/nanox-list-plugins
+src/utils/nanox
