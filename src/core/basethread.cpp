@@ -56,7 +56,7 @@ bool BaseThread::singleGuard ()
 void BaseThread::inlineWork (WorkDescriptor *wd)
 {
    WD *oldwd = getCurrentWD();
-   GenericSyncCond *syncCond = oldWD->getSyncCond();
+   GenericSyncCond *syncCond = oldwd->getSyncCond();
    if ( syncCond != NULL ) {
       syncCond->unlock();
    }
