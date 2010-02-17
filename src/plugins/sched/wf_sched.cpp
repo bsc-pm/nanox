@@ -169,6 +169,7 @@ namespace nanos {
             virtual void init() {
                Config config;
 
+               config.setOptionsSection( "Wf module", new std::string("Width-first scheduling module") );
                //BUG: If defining local policy or steal policy the command line option *must not* include the = between
                //the option name and the value, but a space
                config.registerConfigOption ( "wf-no-steal-parent", new Config::FlagOption( WFPolicy::_noStealParent ), "Do not steal parent" );

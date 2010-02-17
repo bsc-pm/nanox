@@ -74,6 +74,7 @@ namespace nanos {
             virtual void init() {
                Config config;
 
+               config.setOptionsSection( "Task depth throttle", new std::string("Scheduling throttle policy based on task's depth.") );
                int actualLimit = TaskDepthThrottle::_defaultLimit; 
                config.registerConfigOption ( "throttle-limit",  new Config::PositiveVar( actualLimit ), "Throttle limit" );
                config.registerArgOption ( "throttle-limit", "throttle-limit" );

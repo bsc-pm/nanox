@@ -47,6 +47,37 @@ void Config::NanosHelp::addSectionDescription ( const std::string &section, cons
    _sectionDescriptions[section] = description;
 }
 
+void Config::NanosHelp::buildSectionHelp( std::stringstream &helpString, const std::string &sectionName, HelpStringList &optionsHelpList, size_t helpLength)
+{
+      helpString << sectionName;
+
+      SectionDescriptionsMap::iterator desc = _sectionDescriptions.find ( sectionName );
+      if ( desc != _sectionDescriptions.end() ) {
+         helpString << ": " << desc->second;
+      }
+
+      helpString << std::endl;
+
+      std::stringstream argHelpString;
+      std::stringstream envHelpString;
+
+      for ( HelpStringList::iterator it = optionsHelpList.begin(); it != optionsHelpList.end(); it++ ) {
+         HelpTriplet& ht = *it;
+         std::string argHelp = ht.getArgHelp(helpLength);
+         std::string envHelp = ht.getEnvHelp(helpLength);
+
+         if ( argHelp != "" ) argHelpString << "\t" << argHelp << std::endl;
+         if ( envHelp != "" ) envHelpString << "\t" << envHelp << std::endl;
+      }
+
+      helpString << "   NX_ARGS options" << std::endl;
+      helpString << argHelpString.str();
+      helpString << "   Environment variables" << std::endl;
+      helpString << envHelpString.str();
+      helpString << std::endl;
+  
+}
+
 const std::string Config::NanosHelp::getHelp()
 {
    std::stringstream helpString;
@@ -60,37 +91,12 @@ const std::string Config::NanosHelp::getHelp()
       }
    }
 
+   buildSectionHelp( helpString, "Core", _helpSections["Core"], helpLength );
+
    for ( SectionsMap::iterator it = _helpSections.begin(); it != _helpSections.end(); it++ ) {
-      helpString << it->first;
-
-      SectionDescriptionsMap::iterator desc = _sectionDescriptions.find ( it->first );
-      if ( desc != _sectionDescriptions.end() ) {
-         helpString << "\t" << desc->second;
-      }
-
-      helpString << std::endl;
-
-      std::stringstream argHelpString;
-      std::stringstream envHelpString;
-
-      HelpStringList &optionsHelpList = it->second;
-      for ( HelpStringList::iterator it = optionsHelpList.begin(); it != optionsHelpList.end(); it++ ) {
-         HelpTriplet& ht = *it;
-         std::string argHelp = ht.getArgHelp(helpLength);
-         std::string envHelp = ht.getEnvHelp(helpLength);
-
-         if ( argHelp != "" ) argHelpString << "\t" << argHelp << std::endl;
-         if ( envHelp != "" ) envHelpString << "\t" << envHelp << std::endl;
-         
-//         if ( it->first != "" ) argHelpString << "\t" << it->first << std::endl;
-//         if ( it->second != "" ) envHelpString << "\t" << it->second << std::endl;
-      }
-
-      helpString << "   NX_ARGS options" << std::endl;
-      helpString << argHelpString.str();
-      helpString << "   Environment variables" << std::endl;
-      helpString << envHelpString.str();
-      helpString << std::endl;
+      std::string sectionName = it->first;
+      if (sectionName != "Core" )
+         buildSectionHelp( helpString, sectionName, it->second, helpLength );
    }
 
    return helpString.str();
@@ -243,6 +249,8 @@ void Config::init ()
    }
 
    for ( ConfigOptionMap::iterator it = _configOptions.begin(); it != _configOptions.end(); it++ ) {
+std::cout << "parsed config ARG: " << (*it).second->getSection() << " " << (*it).second->getHelp().getArgHelp(40) << std::endl;
+std::cout << "parsed config ENV: " << (*it).second->getSection() << " " << (*it).second->getHelp().getEnvHelp(40) << std::endl;
       _nanosHelp->addHelpString ( (*it).second->getSection(), (*it).second->getHelp() );
    }
 }

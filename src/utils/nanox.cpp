@@ -82,7 +82,7 @@ int main (int argc, char* argv[])
 
             if ( !plugin ) continue;
 
-plugin->init();
+            plugin->init();
 
             if ( listPlugins )
                std::cout << "   " << name << " - " << plugin->getName() << " - version " << plugin->getVersion() << std::endl;

@@ -106,7 +106,7 @@ void System::config ()
 
    verbose0 ( "Preparing library configuration" );
 
-   config.setOptionsSection ( "Global options", new std::string( "Global options for the Nanox runtime" ) );
+   config.setOptionsSection ( "Core", new std::string( "Options for the core of Nanox runtime" ) );
 
    config.registerConfigOption ( "num_pes", new Config::PositiveVar( _numPEs ), "Number of processing elements" );
    config.registerArgOption ( "num_pes", "pes" );

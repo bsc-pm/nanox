@@ -574,6 +574,8 @@ namespace nanos
                 /**< Section descriptions */
                 SectionDescriptionsMap _sectionDescriptions;
 
+                void buildSectionHelp( std::stringstream &helpString, const std::string &sectionName, HelpStringList &optionsHelpList, size_t helpLength);
+
              public:
 
                /* \brief Add the help string for an option

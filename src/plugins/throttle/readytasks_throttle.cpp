@@ -75,6 +75,7 @@ namespace nanos {
             virtual void init() {
                Config config;
 
+               config.setOptionsSection( "Ready tasks throttle", new std::string("Scheduling throttle policy based on the number of ready tasks.") );
                int actualLimit = ReadyTasksThrottle::_defaultLimit; 
                config.registerConfigOption ( "throttle-limit",  new Config::PositiveVar( actualLimit ), "Throttle limit" );
                config.registerArgOption ( "throttle-limit", "throttle-limit" );
