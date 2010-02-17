@@ -249,8 +249,6 @@ void Config::init ()
    }
 
    for ( ConfigOptionMap::iterator it = _configOptions.begin(); it != _configOptions.end(); it++ ) {
-std::cout << "parsed config ARG: " << (*it).second->getSection() << " " << (*it).second->getHelp().getArgHelp(40) << std::endl;
-std::cout << "parsed config ENV: " << (*it).second->getSection() << " " << (*it).second->getHelp().getEnvHelp(40) << std::endl;
       _nanosHelp->addHelpString ( (*it).second->getSection(), (*it).second->getHelp() );
    }
 }
