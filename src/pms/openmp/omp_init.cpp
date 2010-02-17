@@ -20,30 +20,51 @@
 
 #include "system.hpp"
 #include <cstdlib>
+#include "config.hpp"
+#include "omp_data.hpp"
 
 using namespace nanos;
 
 namespace nanos
 {
-
    namespace OpenMP {
-
       int * ssCompatibility __attribute__( ( weak ) );
+      OmpState *globalState;
+
+      static void readEnvinroment ()
+      {
+         Config config;
+
+         config.setOptionsSection("OpenMP specific");
+
+         // OMP_SCHEDULE
+         // OMP_NUM_THREADS
+         // OMP_DYNAMIC
+         // OMP_NESTED
+         // OMP_STACKSIZE
+         // OMP_WAIT_POLICY
+         // OMP_MAX_ACTIVE_LEVELS
+         // OMP_THREAD_LIMIT
+         
+         config.init();
+      }
 
       static void ompInit()
       {
+         // Must be allocated through new to avoid problems with the order of
+         // initialization of global objects
+         globalState = new OmpState();
+         
          if ( ssCompatibility != NULL ) {
             sys.setInitialMode( System::POOL );
          } else {
             sys.setInitialMode( System::ONE_THREAD );
          }
+
+         readEnvinroment();
       }
-
    }
-}
 
-namespace nanos
-{
    System::Init externInit = OpenMP::ompInit;
 }
 
