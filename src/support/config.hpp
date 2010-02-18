@@ -188,6 +188,8 @@ namespace nanos
          class HelpFormat
          {
             public:
+               virtual ~HelpFormat() {}
+
                virtual std::string operator()()
                   { return "value"; }
          };
@@ -195,6 +197,8 @@ namespace nanos
          class IntegerHelpFormat : public HelpFormat
          {
             public:
+               virtual ~IntegerHelpFormat() {}
+
                virtual std::string operator()()
                   { return "integer"; }
          };
@@ -202,6 +206,8 @@ namespace nanos
          class BoolHelpFormat : public HelpFormat
          {
             public:
+               virtual ~BoolHelpFormat() {}
+
                virtual std::string operator()()
                   { return "true/false"; }
          };
@@ -209,6 +215,8 @@ namespace nanos
          class StringHelpFormat : public HelpFormat
          {
             public:
+               virtual ~StringHelpFormat() {}
+
                virtual std::string operator()()
                   { return "string"; }
          };
@@ -216,6 +224,8 @@ namespace nanos
          class PositiveHelpFormat : public HelpFormat
          {
             public:
+               virtual ~PositiveHelpFormat() {}
+
                virtual std::string operator()()
                   { return "positive integer"; }
          };
