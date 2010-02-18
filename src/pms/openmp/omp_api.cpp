@@ -118,23 +118,27 @@ extern "C"
 
    int omp_get_level ( void )
    {
+      //TODO
       return 0;
    }
 
    int omp_get_ancestor_thread_num ( int level )
    {
+      //TODO
       if ( level == 0 ) return 0;
       else return -1;
    }
 
    int omp_get_team_size ( int level )
    {
+      //TODO
       if ( level == 0 ) return 1;
       else return -1;
    }
 
    int omp_get_active_level ( void )
    {
+      //TODO
       return 0;
    }
 
