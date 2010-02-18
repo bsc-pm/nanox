@@ -29,7 +29,10 @@ noinst_PROGRAMS = \
 	api_slicer_interleaved_for \
 	api_slicer_dynamic_for \
 	api_slicer_guided_for \
-	test1 test_single test_slicer test_teambarrier test_dependencies-c test_dependency_types-c fib fib-c fibnocutoff-c
+	test1 test_single test_slicer test_teambarrier test_dependencies-c test_dependency_types-c fib fib-c fibnocutoff-c \
+        test_copy_in_out test_copy_in_out-c
+
+noinst_LIBRARIES = libtest_copy_in_out_c_aux.a
 
 work_descriptor_create_SOURCES = work_descriptor_create.cpp
 work_descriptor_create_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -I$(top_srcdir)/src/apis/c
@@ -105,4 +108,15 @@ fibnocutoff_c_SOURCES = fibnocutoff.c
 fibnocutoff_c_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_srcdir)/src/apis/c -fno-strict-aliasing
 fibnocutoff_c_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la 
 
+test_copy_in_out_SOURCES = test_copy_in_out.cpp
+test_copy_in_out_CXXFLAGS = -g $(common_includes) $(common_cxxflags)
+test_copy_in_out_LDADD = $(top_builddir)/src/core/libnanox.la
+
+libtest_copy_in_out_c_aux_a_SOURCES = test_copy_in_out_c_aux.cpp
+libtest_copy_in_out_c_aux_a_CXXFLAGS = -g $(common_includes) $(common_cxxflags)
+libtest_copy_in_out_c_aux_a_LIBADD = $(top_builddir)/src/core/libnanox.la
+
+test_copy_in_out_c_SOURCES = test_copy_in_out.c
+test_copy_in_out_c_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_srcdir)/src/apis/c -fno-strict-aliasing
+test_copy_in_out_c_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la  libtest_copy_in_out_c_aux.a
 
