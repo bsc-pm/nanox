@@ -47,7 +47,7 @@ namespace nanos {
             ~TaskDepthThrottle() {}
       };
 
-      const unsigned _defaultLimit = 4;
+      const unsigned TaskDepthThrottle::_defaultLimit = 4;
 
       bool TaskDepthThrottle::throttle()
       {
@@ -67,19 +67,21 @@ namespace nanos {
 
       class TaskDepthThrottlePlugin : public Plugin
       {
-
+         private:
+            int _actualLimit;
          public:
-            TaskDepthThrottlePlugin() : Plugin( "Task Tree Level CutOff Plugin",1 ) {}
+            TaskDepthThrottlePlugin() : Plugin( "Task Tree Level CutOff Plugin",1 ), _actualLimit(TaskDepthThrottle::_defaultLimit) {}
 
-            virtual void init() {
-               Config config;
-
+            virtual void config( Config& config )
+            {
                config.setOptionsSection( "Task depth throttle", new std::string("Scheduling throttle policy based on task's depth.") );
-               int actualLimit = TaskDepthThrottle::_defaultLimit; 
-               config.registerConfigOption ( "throttle-limit",  new Config::PositiveVar( actualLimit ), "Throttle limit" );
+               config.registerConfigOption ( "throttle-limit",  new Config::PositiveVar( _actualLimit ), "Throttle limit" );
                config.registerArgOption ( "throttle-limit", "throttle-limit" );
                config.init(); 
-               sys.setThrottlePolicy( createTaskDepthThrottle( actualLimit )); 
+            }
+
+            virtual void init() {
+               sys.setThrottlePolicy( createTaskDepthThrottle( _actualLimit )); 
             }
       };
 

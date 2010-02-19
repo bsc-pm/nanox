@@ -174,6 +174,8 @@ namespace nanos {
          public:
             CilkSchedPlugin() : Plugin( "Cilk scheduling Plugin",1 ) {}
 
+            virtual void config( Config& config ) {}
+
             virtual void init() {
                sys.setDefaultSGFactory( createTaskStealPolicy );
             }

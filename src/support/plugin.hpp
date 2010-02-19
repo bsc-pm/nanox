@@ -22,6 +22,7 @@
 
 #include <string>
 #include <vector>
+#include "config.hpp"
 
 namespace nanos
 {
@@ -44,6 +45,7 @@ namespace nanos
 
          virtual ~Plugin() {}
 
+         virtual void config(Config &cfg) {}
          virtual void init() {}
 
          virtual void fini() {}
@@ -69,8 +71,14 @@ namespace nanos
 
          static const std::string &getDirectory () { return _pluginsDir; }
 
-         static bool load ( const char *plugin_name );
-         static bool load ( const std::string &plugin_name ) { return load( plugin_name.c_str() ); };
+         static bool isPlugin ( const char *name );
+         static bool isPlugin ( const std::string &name ) { return isPlugin( name.c_str() ); }
+
+         static bool load ( const char *plugin_name, const bool init=true );
+         static bool load ( const std::string &plugin_name, const bool init=true ) { return load( plugin_name.c_str(), init ); };
+         static Plugin* loadAndGetPlugin ( const char *plugin_name, const bool init=true );
+         static Plugin* loadAndGetPlugin ( const std::string &plugin_name, const bool init=true ) { return loadAndGetPlugin( plugin_name.c_str(), init ); }
+
    };
 
 }

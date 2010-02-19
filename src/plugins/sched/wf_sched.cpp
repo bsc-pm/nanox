@@ -166,9 +166,8 @@ namespace nanos {
          public:
             WFSchedPlugin() : Plugin( "WF scheduling Plugin",1 ) {}
 
-            virtual void init() {
-               Config config;
-
+            virtual void config( Config& config )
+            {
                config.setOptionsSection( "Wf module", new std::string("Width-first scheduling module") );
                //BUG: If defining local policy or steal policy the command line option *must not* include the = between
                //the option name and the value, but a space
@@ -186,7 +185,9 @@ namespace nanos {
                config.registerArgOption ( "wf-steal-policy", "wf-steal-policy" );
 
                config.init();
+            }
 
+            virtual void init() {
                sys.setDefaultSGFactory( createWFPolicy );
             }
       };

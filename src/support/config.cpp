@@ -49,11 +49,14 @@ void Config::NanosHelp::addSectionDescription ( const std::string &section, cons
 
 void Config::NanosHelp::buildSectionHelp( std::stringstream &helpString, const std::string &sectionName, HelpStringList &optionsHelpList, size_t helpLength)
 {
-      helpString << sectionName;
+      std::string formattedSectionName;
+      formattedSectionName.assign( helpLength+8, ' ' );
+      formattedSectionName.replace( 0, sectionName.size()+1, sectionName + ":" );
+      helpString << formattedSectionName;
 
       SectionDescriptionsMap::iterator desc = _sectionDescriptions.find ( sectionName );
       if ( desc != _sectionDescriptions.end() ) {
-         helpString << ": " << desc->second;
+         helpString << desc->second;
       }
 
       helpString << std::endl;
@@ -66,16 +69,18 @@ void Config::NanosHelp::buildSectionHelp( std::stringstream &helpString, const s
          std::string argHelp = ht.getArgHelp(helpLength);
          std::string envHelp = ht.getEnvHelp(helpLength);
 
-         if ( argHelp != "" ) argHelpString << "\t" << argHelp << std::endl;
-         if ( envHelp != "" ) envHelpString << "\t" << envHelp << std::endl;
+         if ( argHelp != "" ) argHelpString << "      " << argHelp << std::endl;
+         if ( envHelp != "" ) envHelpString << "      " << envHelp << std::endl;
       }
 
-      helpString << "   NX_ARGS options" << std::endl;
-      helpString << argHelpString.str();
-      helpString << "   Environment variables" << std::endl;
-      helpString << envHelpString.str();
-      helpString << std::endl;
-  
+      if ( argHelpString.str() != "" ) {
+         helpString << "   NX_ARGS options" << std::endl;
+         helpString << argHelpString.str();
+      }
+      if ( envHelpString.str() != "" ) {
+         helpString << "   Environment variables" << std::endl;
+         helpString << envHelpString.str();
+      }
 }
 
 const std::string Config::NanosHelp::getHelp()
@@ -94,6 +99,9 @@ const std::string Config::NanosHelp::getHelp()
    buildSectionHelp( helpString, "Core", _helpSections["Core"], helpLength );
 
    for ( SectionsMap::iterator it = _helpSections.begin(); it != _helpSections.end(); it++ ) {
+      helpString << std::endl;
+      helpString << std::endl;
+
       std::string sectionName = it->first;
       if (sectionName != "Core" )
          buildSectionHelp( helpString, sectionName, it->second, helpLength );

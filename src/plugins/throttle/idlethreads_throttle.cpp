@@ -71,19 +71,22 @@ namespace nanos {
 
       class IdleThreadsThrottlePlugin : public Plugin
       {
+         private:
+            int _actualLimit;
 
          public:
-            IdleThreadsThrottlePlugin() : Plugin( "Idle Threads Throttling Plugin",1 ) {}
+            IdleThreadsThrottlePlugin() : Plugin( "Idle Threads Throttling Plugin",1 ), _actualLimit( IdleThreadsThrottle::_defaultLimit ) {}
 
-            virtual void init() {
-               Config config;
-
+            virtual void config( Config &config )
+            {
                config.setOptionsSection( "Idle threads throttle", new std::string("Scheduling throttle policy based on idle threads.") );
-               int actualLimit = IdleThreadsThrottle::_defaultLimit; 
-               config.registerConfigOption ( "throttle-limit", new Config::PositiveVar( "throttle-limit", actualLimit), "Throttle limit" );
+               config.registerConfigOption ( "throttle-limit", new Config::PositiveVar( "throttle-limit", _actualLimit), "Throttle limit" );
                config.registerArgOption ( "throttle-limit", "throttle-limit" );
                config.init(); 
-               sys.setThrottlePolicy( createIdleThrottle( actualLimit )); 
+            }
+
+            virtual void init() {
+               sys.setThrottlePolicy( createIdleThrottle( _actualLimit )); 
             }
       };
 

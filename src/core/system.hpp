@@ -66,6 +66,7 @@ namespace nanos
          InitialMode          _initialMode;
          int                  _thsPerPE;
          bool                 _untieMaster;
+         bool                 _delayedStart;
 
          //cutoff policy and related variables
          ThrottlePolicy *     _throttlePolicy;
@@ -143,6 +144,10 @@ namespace nanos
          InitialMode getInitialMode() const { return _initialMode; }
 
          void setThsPerPE( int ths ) { _thsPerPE = ths; }
+
+         void setDelayedStart ( bool set) { _delayedStart = set; }
+
+         bool getDelayedStart () const { return _delayedStart; }
 
          int getThsPerPE() const { return _thsPerPE; }
 

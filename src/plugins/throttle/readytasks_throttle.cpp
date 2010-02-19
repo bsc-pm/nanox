@@ -68,19 +68,21 @@ namespace nanos {
 
       class ReadyTasksThrottlePlugin : public Plugin
       {
-
+         private:
+            int _actualLimit;
          public:
-            ReadyTasksThrottlePlugin() : Plugin( "Ready Task Throttle Plugin",1 ) {}
+            ReadyTasksThrottlePlugin() : Plugin( "Ready Task Throttle Plugin",1 ), _actualLimit( ReadyTasksThrottle::_defaultLimit ) {}
 
-            virtual void init() {
-               Config config;
-
+            virtual void config( Config &config )
+            {
                config.setOptionsSection( "Ready tasks throttle", new std::string("Scheduling throttle policy based on the number of ready tasks.") );
-               int actualLimit = ReadyTasksThrottle::_defaultLimit; 
-               config.registerConfigOption ( "throttle-limit",  new Config::PositiveVar( actualLimit ), "Throttle limit" );
+               config.registerConfigOption ( "throttle-limit",  new Config::PositiveVar( _actualLimit ), "Throttle limit" );
                config.registerArgOption ( "throttle-limit", "throttle-limit" );
                config.init(); 
-               sys.setThrottlePolicy( createReadyTasksThrottle( actualLimit )); 
+            }
+
+            virtual void init() {
+               sys.setThrottlePolicy( createReadyTasksThrottle( _actualLimit )); 
             }
       };
 

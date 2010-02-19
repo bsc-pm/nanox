@@ -40,14 +40,16 @@ System nanos::sys;
 
 // default system values go here
 System::System () : _numPEs( 1 ), _deviceStackSize( 1024 ), _bindThreads( true ), _profile( false ), _instrument( false ),
-      _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster(true),
+      _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster(true), _delayedStart(false),
       _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" ), _defInstr ( "empty_trace" ),
       _instrumentor ( NULL )
 {
    verbose0 ( "NANOS++ initalizing... start" );
    config();
-   loadModules();
-   start();
+   if ( !_delayedStart ) {
+      loadModules();
+      start();
+   }
    verbose0 ( "NANOS++ initalizing... end" );
 }
 
@@ -219,23 +221,25 @@ System::~System ()
 {
    verbose ( "NANOS++ shutting down.... init" );
 
-   verbose ( "Wait for main workgroup to complete" );
-   myThread->getCurrentWD()->waitCompletation();
-
-   verbose ( "Joining threads... phase 1" );
-   // signal stop PEs
-
-   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
-      _pes[p]->stopAll();
-   }
-
-   verbose ( "Joining threads... phase 2" );
-
-   // join
-   getInstrumentor()->finalize();
-
-   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
-      delete _pes[p];
+   if ( !_delayedStart ) {
+      verbose ( "Wait for main workgroup to complete" );
+      myThread->getCurrentWD()->waitCompletation();
+   
+      verbose ( "Joining threads... phase 1" );
+      // signal stop PEs
+   
+      for ( unsigned p = 1; p < _pes.size() ; p++ ) {
+         _pes[p]->stopAll();
+      }
+   
+      verbose ( "Joining threads... phase 2" );
+   
+      // join
+      getInstrumentor()->finalize();
+   
+      for ( unsigned p = 1; p < _pes.size() ; p++ ) {
+         delete _pes[p];
+      }
    }
 
    verbose ( "NANOS++ shutting down.... end" );

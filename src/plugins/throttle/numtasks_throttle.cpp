@@ -68,19 +68,22 @@ namespace nanos {
 
       class NumTasksThrottlePlugin : public Plugin
       {
+         private:
+            int _actualLimit;
 
          public:
-            NumTasksThrottlePlugin() : Plugin( "Number of Tasks Throttle Plugin",1 ) {}
+            NumTasksThrottlePlugin() : Plugin( "Number of Tasks Throttle Plugin",1 ), _actualLimit( NumTasksThrottle::_defaultLimit ) {}
 
-            virtual void init() {
-               Config config;
-
+            virtual void config( Config &config )
+            {
                config.setOptionsSection( "Num tasks throttle", new std::string("Scheduling throttle policy based on the number of tasks.") );
-               int actualLimit = NumTasksThrottle::_defaultLimit; 
-               config.registerConfigOption ( "throttle-limit",  new Config::PositiveVar( actualLimit ), "Throttle limit" );
+               config.registerConfigOption ( "throttle-limit",  new Config::PositiveVar( _actualLimit ), "Throttle limit" );
                config.registerArgOption ( "throttle-limit", "throttle-limit" );
                config.init(); 
-               sys.setThrottlePolicy( createNumTasksThrottle( actualLimit )); 
+            }
+
+            virtual void init() {
+               sys.setThrottlePolicy( createNumTasksThrottle( _actualLimit )); 
             }
       };
 
