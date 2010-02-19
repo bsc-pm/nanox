@@ -71,6 +71,11 @@ namespace nanos
 #define debug0(msg) \
    if (sys.getVerbose()) std::cerr << "DBG: [?]" << msg << std::endl;
 
+#define message(msg) \
+   std::cerr << "MSG: [" << myThread->getId() << "]" << msg << std::endl;
+#define message0(msg) \
+   std::cerr << "MSG: [?]" << msg << std::endl;
+
 };
 
 
