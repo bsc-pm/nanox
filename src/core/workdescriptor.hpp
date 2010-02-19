@@ -25,6 +25,7 @@
 #include <vector>
 #include "workgroup.hpp"
 #include "dependableobjectwd.hpp"
+#include "copydata.hpp"
 #include "synchronizedcondition_decl.hpp"
 #include "atomic.hpp"
 #include "instrumentor_ctx.hpp"
@@ -140,6 +141,10 @@ namespace nanos
             DeviceData **        _devices;
             DeviceData *         _activeDevice;
 
+            // Copy-in / Copy-out data
+            size_t               _numCopies;
+            CopyData *           _copies;
+
             /**< DependableObject representing this WD in its parent's depsendencies domain */
             DOSubmit _doSubmit;
             /**< DependableObject used by this task to wait on dependencies */
@@ -154,18 +159,16 @@ namespace nanos
 
         public:
             // constructors
-            WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0,void *wdata=0 ) :
-                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ),
-                    _tie ( false ), _tiedTo ( 0 ), _state( READY ), _syncCond( NULL ),  _parent ( NULL ),
-                    _myQueue ( NULL ), _depth ( 0 ), _numDevices ( ndevices ), _devices ( devs ),
-                    _activeDevice ( ndevices == 1 ? devs[0] : 0 ),
-                    _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext() { } 
+            WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0,void *wdata=0, size_t numCopies = 0, CopyData *copies = NULL ) :
+                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( READY ),
+                    _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( ndevices ), _devices ( devs ),
+                    _activeDevice ( ndevices == 1 ? devs[0] : 0 ), _numCopies( numCopies ), _copies( copies ),
+                    _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext() { }
 
-            WorkDescriptor ( DeviceData *device, size_t data_size = 0, void *wdata=0 ) :
-                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ),
-                    _tie ( false ), _tiedTo ( 0 ), _state( READY ), _syncCond( NULL ), _parent ( NULL ),
-                    _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ),
-                    _devices ( &_activeDevice ), _activeDevice ( device ),
+            WorkDescriptor ( DeviceData *device, size_t data_size = 0, void *wdata=0, size_t numCopies = 0, CopyData *copies = NULL ) :
+                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( READY ),
+                    _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( &_activeDevice ),
+                    _activeDevice ( device ), _numCopies( numCopies ), _copies( copies ), 
                     _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext() { }
 
             /*! \brief WorkDescriptor constructor (using former wd)
@@ -176,11 +179,12 @@ namespace nanos
              *
              *  \see WorkDescriptor
              */
-            WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, void *data = NULL ) :
+            WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL ) :
                     WorkGroup( *((WorkGroup * ) &wd) ), _data_size( wd._data_size ), _data ( data ), _wdData ( NULL ),
                     _tie ( wd._tie ), _tiedTo ( wd._tiedTo ), _state ( READY ), _syncCond( NULL ), _parent ( wd._parent ),
                     _myQueue ( NULL ), _depth ( wd._depth ), _numDevices ( wd._numDevices ),
                     _devices ( devs ), _activeDevice ( wd._numDevices ? devs[0] : NULL ),
+                    _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
                     _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext()
             { 
                // adding wd to former workdescriptor's workgroup
@@ -353,6 +357,20 @@ namespace nanos
 	 virtual void submit ( void ); 
 
          virtual void done ();
+
+          /*! \brief returns the number of CopyData elements in the WorkDescriptor
+           */
+           size_t getNumCopies() const
+           {
+              return _numCopies;
+           }
+
+          /*! \brief returns the CopyData vector that describes the copy-ins/copy-outs of the WD
+           */
+           CopyData * getCopies() const
+           {
+              return _copies;
+           }
 
            /*! \brief Add a new WD to the domain of this WD.
             *  \param wd Must be a WD created by "this". wd will be submitted to the

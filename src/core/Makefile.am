@@ -61,7 +61,7 @@ nanos_sources=\
 	instrumentor.hpp \
 	throttle.hpp \
 	dependency.hpp \
-	dependency.hpp \
+	copydata.hpp \
 	dependableobject.hpp \
 	dependableobjectwd.hpp \
 	dependableobjectwd.cpp \

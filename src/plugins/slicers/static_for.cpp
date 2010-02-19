@@ -177,6 +177,8 @@ class SlicerStaticForPlugin : public Plugin {
       SlicerStaticForPlugin () : Plugin("Slicer for Loops using a static policy",1) {}
       ~SlicerStaticForPlugin () {}
 
+      virtual void config( Config& config ) {}
+
       void init ()
       {
          sys.registerSlicer("static_for", new SlicerStaticFor() );	

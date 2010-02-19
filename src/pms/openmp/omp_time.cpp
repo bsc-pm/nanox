@@ -1,4 +1,5 @@
 /*************************************************************************************/
+/*      Copyright 2010 Barcelona Supercomputing Center                               */
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
@@ -17,38 +18,27 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "plugin.hpp"
-#include "smpprocessor.hpp"
-#include "smpdd.hpp"
-#include "system.hpp"
+#include "omp.h"
 
-namespace nanos {
-namespace ext {
-
-PE * smpProcessorFactory ( int id )
+extern "C"
 {
-   return new SMPProcessor( id );
+   double omp_get_wtime ( void )
+   {
+      /* This function does not provide a working
+      * wallclock timer. Replace it with a version
+      * customized for the target machine.
+      */
+      return 0.0;
+   }
+
+   double omp_get_wtick ( void )
+   {
+      /* This function does not provide a working
+      * clock tick function. Replace it with
+      * a version customized for the target machine.
+      */
+      return 365. * 86400.;
+   }
+
 }
-
-class SMPPlugin : public Plugin
-{
-
-   public:
-      SMPPlugin() : Plugin( "SMP PE Plugin",1 ) {}
-
-      virtual void config( Config& config )
-      {
-         SMPProcessor::prepareConfig( config );
-         SMPDD::prepareConfig( config );
-         config.init();
-      }
-
-      virtual void init() {
-         sys.setHostFactory( smpProcessorFactory );
-      }
-};
-}
-}
-
-nanos::ext::SMPPlugin NanosXPlugin;
 

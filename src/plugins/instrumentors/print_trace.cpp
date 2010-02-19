@@ -50,6 +50,8 @@ class InstrumentorPrintTracePlugin : public Plugin {
       InstrumentorPrintTracePlugin () : Plugin("Instrumentor which print the trace to std out.",1) {}
       ~InstrumentorPrintTracePlugin () {}
 
+      virtual void config( Config &config ) {}
+
       void init ()
       {
          sys.setInstrumentor( new InstrumentorPrintTrace() );	

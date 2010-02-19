@@ -43,6 +43,8 @@ class InstrumentorEmptyTracePlugin : public Plugin {
       InstrumentorEmptyTracePlugin () : Plugin("Instrumentor which doesn't generate any trace.",1) {}
       ~InstrumentorEmptyTracePlugin () {}
 
+      virtual void config( Config &config ) {}
+
       void init ()
       {
          sys.setInstrumentor( new InstrumentorEmptyTrace() );	

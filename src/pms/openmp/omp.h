@@ -1,4 +1,5 @@
 /*************************************************************************************/
+/*      Copyright 2010 Barcelona Supercomputing Center                               */
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
@@ -17,38 +18,42 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "plugin.hpp"
-#include "smpprocessor.hpp"
-#include "smpdd.hpp"
-#include "system.hpp"
+#ifndef _OMP_H_DEF
+#define _OMP_H_DEF
 
-namespace nanos {
-namespace ext {
+/* OpenMP API interface */
 
-PE * smpProcessorFactory ( int id )
+/*
+* define the lock data types
+*/
+typedef void * omp_lock_t;
+typedef void * omp_nest_lock_t;
+
+/*
+* define the schedule kinds
+*/
+typedef enum omp_sched_t {
+   omp_sched_static = 1,
+   omp_sched_dynamic = 2,
+   omp_sched_guided = 3,
+   omp_sched_auto = 4
+} omp_sched_t;
+
+/*
+* exported OpenMP functions
+*/
+#ifdef __cplusplus
+extern
+   "C"
 {
-   return new SMPProcessor( id );
+#endif
+
+
+
+#ifdef __cplusplus
 }
 
-class SMPPlugin : public Plugin
-{
+#endif
 
-   public:
-      SMPPlugin() : Plugin( "SMP PE Plugin",1 ) {}
-
-      virtual void config( Config& config )
-      {
-         SMPProcessor::prepareConfig( config );
-         SMPDD::prepareConfig( config );
-         config.init();
-      }
-
-      virtual void init() {
-         sys.setHostFactory( smpProcessorFactory );
-      }
-};
-}
-}
-
-nanos::ext::SMPPlugin NanosXPlugin;
+#endif
 

@@ -66,6 +66,7 @@ namespace nanos
          InitialMode          _initialMode;
          int                  _thsPerPE;
          bool                 _untieMaster;
+         bool                 _delayedStart;
 
          //cutoff policy and related variables
          ThrottlePolicy *     _throttlePolicy;
@@ -113,11 +114,11 @@ namespace nanos
 
          void createWD (WD **uwd, size_t num_devices, nanos_device_t *devices,
                         size_t data_size, void ** data, WG *uwg,
-                        nanos_wd_props_t *props);
+                        nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t *copies );
 
          void createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
                         void **outline_data, WG *uwg, Slicer *slicer, size_t slicer_data_size,
-                        SlicerData *&slicer_data, nanos_wd_props_t *props );
+                        SlicerData *&slicer_data, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t *copies );
 
          void duplicateWD ( WD **uwd, WD *wd );
          void duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd );
@@ -143,6 +144,10 @@ namespace nanos
          InitialMode getInitialMode() const { return _initialMode; }
 
          void setThsPerPE( int ths ) { _thsPerPE = ths; }
+
+         void setDelayedStart ( bool set) { _delayedStart = set; }
+
+         bool getDelayedStart () const { return _delayedStart; }
 
          int getThsPerPE() const { return _thsPerPE; }
 

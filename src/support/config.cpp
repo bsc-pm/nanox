@@ -37,9 +37,9 @@ using namespace nanos;
 
 Config::NanosHelp *Config::_nanosHelp = NULL;
 
-void Config::NanosHelp::addHelpString ( const std::string &section, const std::string &argHelpString, const std::string &envHelpString )
+void Config::NanosHelp::addHelpString ( const std::string &section, const HelpTriplet& ht )
 {
-   _helpSections[section].push_back( std::make_pair( argHelpString, envHelpString ) );
+   _helpSections[section].push_back( ht );
 }
 
 void Config::NanosHelp::addSectionDescription ( const std::string &section, const std::string &description )
@@ -47,33 +47,64 @@ void Config::NanosHelp::addSectionDescription ( const std::string &section, cons
    _sectionDescriptions[section] = description;
 }
 
-const std::string Config::NanosHelp::getHelp()
+void Config::NanosHelp::buildSectionHelp( std::stringstream &helpString, const std::string &sectionName, HelpStringList &optionsHelpList, size_t helpLength)
 {
-   std::stringstream helpString;
+      std::string formattedSectionName;
+      formattedSectionName.assign( helpLength+8, ' ' );
+      formattedSectionName.replace( 0, sectionName.size()+1, sectionName + ":" );
+      helpString << formattedSectionName;
 
-   for ( SectionsMap::iterator it = _helpSections.begin(); it != _helpSections.end(); it++ ) {
-      helpString << it->first;
-
-      SectionDescriptionsMap::iterator desc = _sectionDescriptions.find ( it->first );
+      SectionDescriptionsMap::iterator desc = _sectionDescriptions.find ( sectionName );
       if ( desc != _sectionDescriptions.end() ) {
-         helpString << "\t" << desc->second;
+         helpString << desc->second;
       }
 
       helpString << std::endl;
 
       std::stringstream argHelpString;
       std::stringstream envHelpString;
-      HelpStringList &optionsHelpList = it->second;
+
       for ( HelpStringList::iterator it = optionsHelpList.begin(); it != optionsHelpList.end(); it++ ) {
-         if ( it->first != "" ) argHelpString << "\t" << it->first << std::endl;
-         if ( it->second != "" ) envHelpString << "\t" << it->second << std::endl;
+         HelpTriplet& ht = *it;
+         std::string argHelp = ht.getArgHelp(helpLength);
+         std::string envHelp = ht.getEnvHelp(helpLength);
+
+         if ( argHelp != "" ) argHelpString << "      " << argHelp << std::endl;
+         if ( envHelp != "" ) envHelpString << "      " << envHelp << std::endl;
       }
 
-      helpString << "   'NX_ARGS' options" << std::endl;
-      helpString << argHelpString.str();
-      helpString << "   Environment variables" << std::endl;
-      helpString << envHelpString.str();
+      if ( argHelpString.str() != "" ) {
+         helpString << "   NX_ARGS options" << std::endl;
+         helpString << argHelpString.str();
+      }
+      if ( envHelpString.str() != "" ) {
+         helpString << "   Environment variables" << std::endl;
+         helpString << envHelpString.str();
+      }
+}
+
+const std::string Config::NanosHelp::getHelp()
+{
+   std::stringstream helpString;
+   size_t helpLength=0;
+
+   for ( SectionsMap::iterator it = _helpSections.begin(); it != _helpSections.end(); it++ ) {
+      HelpStringList &optionsHelpList = it->second;
+      for ( HelpStringList::iterator it = optionsHelpList.begin(); it != optionsHelpList.end(); it++ ) {
+         size_t length = it->getHelpLength();
+         if ( length > helpLength ) helpLength = length;
+      }
+   }
+
+   buildSectionHelp( helpString, "Core", _helpSections["Core"], helpLength );
+
+   for ( SectionsMap::iterator it = _helpSections.begin(); it != _helpSections.end(); it++ ) {
       helpString << std::endl;
+      helpString << std::endl;
+
+      std::string sectionName = it->first;
+      if (sectionName != "Core" )
+         buildSectionHelp( helpString, sectionName, it->second, helpLength );
    }
 
    return helpString.str();
@@ -226,7 +257,7 @@ void Config::init ()
    }
 
    for ( ConfigOptionMap::iterator it = _configOptions.begin(); it != _configOptions.end(); it++ ) {
-      _nanosHelp->addHelpString ( (*it).second->getSection(), (*it).second->getArgHelp(), (*it).second->getEnvHelp() );
+      _nanosHelp->addHelpString ( (*it).second->getSection(), (*it).second->getHelp() );
    }
 }
 
@@ -294,10 +325,32 @@ Config::~Config ()
    clear();
 }
 
+unsigned int Config::ConfigOption::getHelpLength()
+{
+   std::string farg="";
+   std::string fenv="";
+   
+   if ( _argOption != "" ) {
+      farg = "--" + _argOption + " ";
+      std::string argval = _option.getArgHelp();
+      if ( argval.compare( "no" ) == 0 ) {
+         farg += "--no-"+_argOption;
+      } else {
+         farg += "[=]" + argval;
+      }
+   }
 
-std::string Config::ConfigOption::getArgHelp()
-{ 
-   std::string help;
+   if ( _envOption != "" ) {
+      fenv = _envOption + " = " + _option.getEnvHelp();
+   }
+
+   if ( fenv.size() > farg.size() ) return fenv.size();
+   else return farg.size();
+}
+
+Config::HelpTriplet Config::ConfigOption::getHelp()
+{
+   std::string fenv="";
    std::string farg="";
 
 // argument
@@ -309,32 +362,46 @@ std::string Config::ConfigOption::getArgHelp()
       } else {
          farg += "[=]" + argval;
       }
-   } else {
-      return "";
    }
-
-// Env vars
-   std::string formattedArg = "                                           ";
-   formattedArg.replace( 0, farg.size(), farg );
-   help += formattedArg + _message;
-   return help;
-}
-
-std::string Config::ConfigOption::getEnvHelp()
-{
-   std::string help;
-   std::string fenv="";
 
 // Env vars
    if ( _envOption != "" ) {
       fenv = _envOption + " = " + _option.getEnvHelp();
-   } else {
-      return "";
    }
 
-   std::string formattedEnv = "                                           ";
-   formattedEnv.replace( 0, fenv.size(), fenv );
+   return HelpTriplet( fenv, farg, _message );
+
+}
+
+
+size_t Config::HelpTriplet::getHelpLength()
+{
+   size_t envHelpSize = _envHelp.size();
+   size_t argHelpSize = _argHelp.size();
+
+   if ( envHelpSize > argHelpSize ) return envHelpSize;
+   return argHelpSize;
+}
+
+std::string Config::HelpTriplet::getEnvHelp( size_t size )
+{
+   if ( _envHelp == "" ) return "";
+   std::string help = "";
+   std::string formattedEnv = "";
+   formattedEnv.assign( size+2, ' ' );
+   formattedEnv.replace( 0, _envHelp.size(), _envHelp );
    help += formattedEnv + _message;
+   return help;
+}
+
+std::string Config::HelpTriplet::getArgHelp( size_t size )
+{
+   if ( _argHelp == "" ) return "";
+   std::string help = "";
+   std::string formattedArg = "";
+   formattedArg.assign( size+2, ' ' );
+   formattedArg.replace( 0, _argHelp.size(), _argHelp );
+   help += formattedArg + _message;
    return help;
 }
 

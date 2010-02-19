@@ -179,6 +179,8 @@ class InstrumentorParaverPlugin : public Plugin {
       InstrumentorParaverPlugin () : Plugin("Instrumentor which generates a paraver trace.",1) {}
       ~InstrumentorParaverPlugin () {}
 
+      virtual void config( Config &config ) {}
+
       void init ()
       {
          sys.setInstrumentor( new InstrumentorParaver() );

@@ -24,6 +24,7 @@
 #include "schedule.hpp"
 #include "barrier.hpp"
 #include "nanos-int.h"
+#include "copydata.hpp"
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -39,14 +40,16 @@ System nanos::sys;
 
 // default system values go here
 System::System () : _numPEs( 1 ), _deviceStackSize( 1024 ), _bindThreads( true ), _profile( false ), _instrument( false ),
-      _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster(true),
+      _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster(true), _delayedStart(false),
       _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" ), _defInstr ( "empty_trace" ),
       _instrumentor ( NULL )
 {
    verbose0 ( "NANOS++ initalizing... start" );
    config();
-   loadModules();
-   start();
+   if ( !_delayedStart ) {
+      loadModules();
+      start();
+   }
    verbose0 ( "NANOS++ initalizing... end" );
 }
 
@@ -106,7 +109,7 @@ void System::config ()
 
    verbose0 ( "Preparing library configuration" );
 
-   config.setOptionsSection ( "Global options", new std::string( "Global options for the Nanox runtime" ) );
+   config.setOptionsSection ( "Core", new std::string( "Options for the core of Nanox runtime" ) );
 
    config.registerConfigOption ( "num_pes", new Config::PositiveVar( _numPEs ), "Number of processing elements" );
    config.registerArgOption ( "num_pes", "pes" );
@@ -218,23 +221,25 @@ System::~System ()
 {
    verbose ( "NANOS++ shutting down.... init" );
 
-   verbose ( "Wait for main workgroup to complete" );
-   myThread->getCurrentWD()->waitCompletation();
-
-   verbose ( "Joining threads... phase 1" );
-   // signal stop PEs
-
-   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
-      _pes[p]->stopAll();
-   }
-
-   verbose ( "Joining threads... phase 2" );
-
-   // join
-   getInstrumentor()->finalize();
-
-   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
-      delete _pes[p];
+   if ( !_delayedStart ) {
+      verbose ( "Wait for main workgroup to complete" );
+      myThread->getCurrentWD()->waitCompletation();
+   
+      verbose ( "Joining threads... phase 1" );
+      // signal stop PEs
+   
+      for ( unsigned p = 1; p < _pes.size() ; p++ ) {
+         _pes[p]->stopAll();
+      }
+   
+      verbose ( "Joining threads... phase 2" );
+   
+      // join
+      getInstrumentor()->finalize();
+   
+      for ( unsigned p = 1; p < _pes.size() ; p++ ) {
+         delete _pes[p];
+      }
    }
 
    verbose ( "NANOS++ shutting down.... end" );
@@ -253,6 +258,8 @@ System::~System ()
  *  \param [in,out] data is the related data (allocated if needed)
  *  \param [in] uwg work group to relate with
  *  \param [in] props new WD properties
+ *  \param [in] num_copies is the number of copy objects of the WD
+ *  \param [in] copies is vector of copy objects of the WD
  *
  *  When it does a full allocation the layout is the following:
  *
@@ -273,10 +280,16 @@ System::~System ()
  *  +---------------+
  *  |     DDN       |
  *  +---------------+
+ *  |    copy0      |
+ *  +---------------+
+ *  |     ....      |
+ *  +---------------+
+ *  |    copyN      |
+ *  +---------------+
  *
  */
 void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t data_size,
-                        void **data, WG *uwg, nanos_wd_props_t *props )
+                        void **data, WG *uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t *copies )
 {
    int dd_size = 0;
    for ( unsigned int i = 0; i < num_devices; i++ )
@@ -286,7 +299,8 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( WD ) : 0 ) +
                           ( ( data != NULL && *data == NULL ) ? (((data_size+7)>>3)<<3) : 0 ) +
                           sizeof( DD* ) * num_devices +
-                          dd_size
+                          dd_size +
+                          num_copies * sizeof(CopyData)
                           ;
 
    char *chunk = 0;
@@ -316,7 +330,15 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
       chunk += devices[i].dd_size;
    }
 
-   WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, data != NULL ? *data : NULL );
+   // allocate copy-ins/copy-outs
+   CopyData *wdCopies = ( CopyData * ) chunk;
+   for (unsigned int i = 0; i < num_copies; i++ ) {
+      CopyData *wdCopiesCurr = ( CopyData * ) chunk;
+      *wdCopiesCurr = copies[i];
+      chunk += sizeof( CopyData );
+   }
+
+   WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, data != NULL ? *data : NULL, num_copies, num_copies == 0 ? NULL : wdCopies );
 
    // add to workgroup
    if ( uwg != NULL ) {
@@ -369,13 +391,19 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
  *  +---------------+
  *  |     DDN       |
  *  +---------------+
+ *  |    copy0      |
+ *  +---------------+
+ *  |     ....      |
+ *  +---------------+
+ *  |    copyN      |
+ *  +---------------+
  *  |  SlicerData   |
  *  +---------------+
  *
  */
 void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
                         void **outline_data, WG *uwg, Slicer *slicer, size_t slicer_data_size,
-                        SlicerData *&slicer_data, nanos_wd_props_t *props )
+                        SlicerData *&slicer_data, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t *copies )
 {
 
    int dd_size = 0;
@@ -387,7 +415,8 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
                           ( ( outline_data != NULL && *outline_data == NULL ) ? (((outline_data_size+7)>>3)<<3) : 0 ) +
                           ( ( slicer_data == NULL ) ? (((slicer_data_size+7)>>3)<<3) : 0 ) +
                           sizeof( DD* ) * num_devices +
-                          dd_size
+                          dd_size +
+                          num_copies * sizeof(CopyData)
                           ;
 
    char *chunk = 0;
@@ -417,6 +446,14 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
       chunk += devices[i].dd_size;
    }
 
+   // allocate copy-ins/copy-outs
+   CopyData *wdCopies = ( CopyData * ) chunk;
+   for (unsigned int i = 0; i < num_copies; i++ ) {
+      CopyData *wdCopiesCurr = ( CopyData * ) chunk;
+      *wdCopiesCurr = copies[i];
+      chunk += sizeof( CopyData );
+   }
+
    // allocate SlicerData
    // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
    if ( slicer_data == NULL ) {
@@ -425,7 +462,7 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    }
 
    SlicedWD * wd =  new (*uwd) SlicedWD( *slicer, slicer_data_size, *slicer_data, num_devices, dev_ptrs, 
-                       outline_data_size, outline_data != NULL ? *outline_data : NULL );
+                       outline_data_size, outline_data != NULL ? *outline_data : NULL, num_copies, num_copies == 0 ? NULL : wdCopies );
 
    // add to workgroup
    if ( uwg != NULL ) {
@@ -459,7 +496,8 @@ void System::duplicateWD ( WD **uwd, WD *wd)
 
    // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
    int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( WD ) : 0 ) + (((wd->getDataSize()+7)>>3)<<3) +
-                          sizeof( DD* ) * wd->getNumDevices() + dd_size ;
+                          sizeof( DD* ) * wd->getNumDevices() + dd_size +
+                          sizeof( CopyData )* wd->getNumCopies() ;
 
    char *chunk = 0;
 
@@ -490,8 +528,16 @@ void System::duplicateWD ( WD **uwd, WD *wd)
       chunk += wd->getDevices()[i]->size();
    }
 
+   // allocate copy-in/copy-outs
+   CopyData *wdCopies = ( CopyData * ) chunk;
+   for ( unsigned int i = 0; i < wd->getNumCopies(); i++ ) {
+      CopyData *wdCopiesCurr = ( CopyData * ) chunk;
+      *wdCopiesCurr = wd->getCopies()[i];
+      chunk += sizeof( CopyData );
+   }
+
    // creating new WD 
-   new (*uwd) WD( *wd, dev_ptrs, data );
+   new (*uwd) WD( *wd, dev_ptrs, wdCopies , data);
 }
 
 /*! \brief Duplicates a given SlicedWD
@@ -514,7 +560,8 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
 
    // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
    int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( SlicedWD ) : 0 ) + (((wd->getDataSize()+7)>>3)<<3) +
-                          sizeof( DD* ) * wd->getNumDevices() + dd_size + (((wd->getSlicerDataSize()+7)>>3)<<3);
+                          sizeof( DD* ) * wd->getNumDevices() + dd_size + (((wd->getSlicerDataSize()+7)>>3)<<3) +
+                          sizeof( CopyData )* wd->getNumCopies() ;
 
    char *chunk = 0;
 
@@ -545,6 +592,14 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
       chunk += wd->getDevices()[i]->size();
    }
 
+   // allocate copy-in/copy-outs
+   CopyData *wdCopies = ( CopyData * ) chunk;
+   for ( unsigned int i = 0; i < wd->getNumCopies(); i++ ) {
+      CopyData *wdCopiesCurr = ( CopyData * ) chunk;
+      *wdCopiesCurr = wd->getCopies()[i];
+      chunk += sizeof( CopyData );
+   }
+
    // copy SlicerData
    if ( wd->getSlicerDataSize() != 0 ) {
       slicer_data = (void * ) chunk;
@@ -554,7 +609,7 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
 
    // creating new SlicedWD 
    new (*uwd) SlicedWD( *(wd->getSlicer()), wd->getSlicerDataSize(), *((SlicerData *)slicer_data),
-                        *((WD *)wd), dev_ptrs, data );
+                        *((WD *)wd), dev_ptrs, wdCopies, data );
 
 }
 

@@ -20,6 +20,8 @@
 #include "os.hpp"
 #include "plugin.hpp"
 #include "config.hpp"
+#include "config.h"
+#include "system.hpp"
 #include <string>
 #include <stdio.h>
 #include <iostream>
@@ -28,6 +30,15 @@
 
 using namespace nanos;
 
+
+void utilInit () 
+{
+   sys.setDelayedStart(true);
+}
+
+namespace nanos {
+  System::Init externInit = utilInit;
+}
 
 int main (int argc, char* argv[])
 {
@@ -72,19 +83,14 @@ int main (int argc, char* argv[])
 
          if ( name.compare( name.size()-3,3,".so" ) == 0 ) {
             name.erase( name.size()-3 );
+            name.erase( 0, std::string("libnanox-").size() );
 
-            void * handler = OS::loadDL( PluginManager::getDirectory(),name );
+            if ( PluginManager::isPlugin( name ) ) {
+               Plugin *plugin = PluginManager::loadAndGetPlugin( name , false );
 
-            if ( !handler ) continue;
-
-            Plugin * plugin = ( Plugin * ) OS::dlFindSymbol( handler, "NanosXPlugin" );
-
-            if ( !plugin ) continue;
-
-plugin->init();
-
-            if ( listPlugins )
-               std::cout << "   " << name << " - " << plugin->getName() << " - version " << plugin->getVersion() << std::endl;
+               if ( listPlugins && plugin != NULL )
+                  std::cout << "   " << name << " - " << plugin->getName() << " - version " << plugin->getVersion() << std::endl;
+            }
          }
 
          free( namelist[n] );
@@ -96,6 +102,17 @@ plugin->init();
    if ( listHelp ) {
       if ( listPlugins )
          std::cout << std::endl;
+
+      std::cout << "Nanos++ runtime library version " << VERSION << "." << std::endl;
+      std::cout << std::endl;
+      std::cout << "The runtime configuration can be set using arguments added" << std::endl;
+      std::cout << "to the NX_ARGS environment variable or through specialised" << std::endl;
+      std::cout << "environment variables. As an example of NX_ARGS, to execute" << std::endl;
+      std::cout << "with verbose mode and 4 PEs the NX_ARGS environment variable" << std::endl;
+      std::cout << "should be: 'NX_ARGS=\"--pes=4 --verbose\"'." << std::endl;
+      std::cout << std::endl;
+      std::cout << "All NX_ARGS and env vars are listed above." << std::endl;
+      std::cout << std::endl;
 
       std::cout << Config::getNanosHelp();
    }
