@@ -142,6 +142,9 @@ namespace nanos
          void setInitialMode ( InitialMode mode ) { _initialMode = mode; }
          InitialMode getInitialMode() const { return _initialMode; }
 
+         void setUntieMaster ( bool value ) { _untieMaster = value; }
+         bool getUntieMaster () const { return _untieMaster; }
+
          void setThsPerPE( int ths ) { _thsPerPE = ths; }
 
          int getThsPerPE() const { return _thsPerPE; }

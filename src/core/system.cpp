@@ -172,7 +172,7 @@ void System::start ()
    //TODO: decide, single master, multiple master start
    PE *pe = createPE ( "smp", 0 );
    _pes.push_back ( pe );
-   _workers.push_back( &pe->associateThisThread ( sg, _untieMaster ) );
+   _workers.push_back( &pe->associateThisThread ( sg, getUntieMaster() ) );
 
    getInstrumentor()->initialize();
 
