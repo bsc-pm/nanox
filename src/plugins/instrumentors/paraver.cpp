@@ -41,6 +41,7 @@ class InstrumentorParaver: public Instrumentor
       // constructor
       InstrumentorParaver ( )
       {
+         _states[ERROR]           = 66;
          _states[IDLE]            = 0;
          _states[RUNNING]         = 1;
          _states[SYNCHRONIZATION] = 5;
@@ -138,7 +139,7 @@ class InstrumentorParaver: public Instrumentor
          else std::cout << "Unable to open paraver config file" << std::endl;  
       }
 
-      void pushStateEventList ( nanos_state_t state, unsigned int count, nanos_event_t *events )
+      void changeStateEventList ( nanos_state_t state, unsigned int count, nanos_event_t *events )
       {
          unsigned int *p_events = (unsigned int *) alloca ((count+1) * sizeof (unsigned int));
          unsigned int *p_values = (unsigned int *) alloca ((count+1) * sizeof (unsigned int));
@@ -154,22 +155,7 @@ class InstrumentorParaver: public Instrumentor
 
          OMPItrace_neventandcounters(count+1, p_events, p_values);
       }
-      void popStateEventList ( nanos_state_t state, unsigned int count, nanos_event_t *events )
-      {
-         unsigned int *p_events = (unsigned int *) alloca ((count+1) * sizeof (unsigned int));
-         unsigned int *p_values = (unsigned int *) alloca ((count+1) * sizeof (unsigned int));
 
-         p_events[0] = _eventState;
-         p_values[0] = 0;
-
-         for (unsigned int i = 0; i < count; i++)
-         {
-            p_events[i+1] = _events[events[i].id];
-            p_values[i+1] = events[i].value;
-         }
-
-         OMPItrace_neventandcounters(count+1, p_events, p_values);
-      }
       void addEventList ( unsigned int count, nanos_event_t *events) 
       {
          unsigned int *p_events = (unsigned int *) alloca (count * sizeof (unsigned int));

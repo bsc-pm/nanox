@@ -32,8 +32,7 @@ class InstrumentorPrintTrace: public Instrumentor
 
       void initialize ( void ) { }
       void finalize ( void ) { } 
-      void pushStateEventList ( nanos_state_t state, unsigned int count, nanos_event_t *events ) { }
-      void popStateEventList ( nanos_state_t state, unsigned int count, nanos_event_t *events ) { }
+      void changeStateEventList ( nanos_state_t state, unsigned int count, nanos_event_t *events ) { }
       void addEventList ( unsigned int count, nanos_event_t *events ) { }
 
       // high-level events

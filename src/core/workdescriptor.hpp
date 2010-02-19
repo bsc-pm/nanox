@@ -27,6 +27,7 @@
 #include "dependableobjectwd.hpp"
 #include "synchronizedcondition_decl.hpp"
 #include "atomic.hpp"
+#include "instrumentor_ctx.hpp"
 
 namespace nanos
 {
@@ -149,17 +150,23 @@ namespace nanos
 
             const WorkDescriptor & operator= ( const WorkDescriptor &wd );
 
+            InstrumentorContext _instrumentorContext; /** Instrumentor Context (may be empty if no instrumentor enabled) */
+
         public:
             // constructors
             WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0,void *wdata=0 ) :
-                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( READY ),
-                    _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( ndevices ), _devices ( devs ),
-                    _activeDevice ( ndevices == 1 ? devs[0] : 0 ), _doSubmit(this), _doWait(this), _depsDomain() { }
+                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ),
+                    _tie ( false ), _tiedTo ( 0 ), _state( READY ), _syncCond( NULL ),  _parent ( NULL ),
+                    _myQueue ( NULL ), _depth ( 0 ), _numDevices ( ndevices ), _devices ( devs ),
+                    _activeDevice ( ndevices == 1 ? devs[0] : 0 ),
+                    _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext() { } 
 
             WorkDescriptor ( DeviceData *device, size_t data_size = 0, void *wdata=0 ) :
-                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( READY ),
-                    _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( &_activeDevice ),
-                    _activeDevice ( device ), _doSubmit(this), _doWait(this), _depsDomain() { }
+                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ),
+                    _tie ( false ), _tiedTo ( 0 ), _state( READY ), _syncCond( NULL ), _parent ( NULL ),
+                    _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ),
+                    _devices ( &_activeDevice ), _activeDevice ( device ),
+                    _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext() { }
 
             /*! \brief WorkDescriptor constructor (using former wd)
              *
@@ -174,7 +181,7 @@ namespace nanos
                     _tie ( wd._tie ), _tiedTo ( wd._tiedTo ), _state ( READY ), _syncCond( NULL ), _parent ( wd._parent ),
                     _myQueue ( NULL ), _depth ( wd._depth ), _numDevices ( wd._numDevices ),
                     _devices ( devs ), _activeDevice ( wd._numDevices ? devs[0] : NULL ),
-                    _doSubmit(this), _doWait(this), _depsDomain()
+                    _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext()
             { 
                // adding wd to former workdescriptor's workgroup
                ((WorkGroup *)(_parent))->addWork( *this );
@@ -373,6 +380,13 @@ namespace nanos
             void workFinished(WorkDescriptor &wd)
             {
                _depsDomain.finished( wd._doSubmit );
+            }
+
+            /*! \brief Returns embeded instrumentor context.
+            */
+            InstrumentorContext & getInstrumentorContext( void ) 
+            {
+               return _instrumentorContext;
             }
 
     };
