@@ -43,11 +43,18 @@ int main ( int argc, char **argv )
      .tie_to = false,
    };
 
-   nanos_copy_data_t cd[2] = { {dummy1, {true, false}, 255}, {dummy2, {false, true}, 127} }; 
+   nanos_copy_data_t *cd = 0;
 
    nanos_wd_t wd1=0;
    nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1) };
-   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, 0, (void*)&dummy, nanos_current_wd(), &props, 2, cd) );
+   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, 0, (void*)&dummy, nanos_current_wd(), &props, 2, &cd) );
+
+printf("Recieved: %lx\n",(unsigned long)cd);
+fflush(stdout);
+
+   cd[0] = (nanos_copy_data_t) {dummy1, NX_SHARED, {true, false}, 255};
+   cd[1] = (nanos_copy_data_t) {dummy2, NX_PRIVATE, {false, true}, 127}; 
+
    NANOS_SAFE( nanos_submit( wd1,0,0,0 ) );
 
    NANOS_SAFE( nanos_wg_wait_completation( nanos_current_wd() ) );

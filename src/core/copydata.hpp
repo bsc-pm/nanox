@@ -38,9 +38,10 @@ namespace nanos
          *  \param output Whether the dependency is output or not
          *  \param canRename Whether the dependency can rename or not
          */
-         CopyData ( void * addr = NULL, bool input = false, bool output = false, size_t storageSize = 0 )
+         CopyData ( void * addr = NULL, nanos_sharing_t nxSharing = NX_SHARED, bool input = false, bool output = false, size_t storageSize = 0 )
          {
             address = addr;
+            sharing = nxSharing;
             flags.input = input;
             flags.output = output;
             size = storageSize;
@@ -52,6 +53,7 @@ namespace nanos
          CopyData ( const CopyData &cd )
          {
             address = cd.address;
+            sharing = cd.sharing;
             flags.input = cd.flags.input;
             flags.output = cd.flags.output;
             size = cd.size;
@@ -102,7 +104,17 @@ namespace nanos
         /*! \brief  returns the CopyData's size
          */
          size_t getSize() const
-         { return size; } 
+         { return size; }
+
+        /*! \brief Returns true if the data to copy is shared
+         */
+         bool isShared() const
+         { return sharing ==  NX_SHARED; }
+
+        /*! \brief Returns true if the data to copy is private
+         */
+         bool isPrivate() const
+         { return sharing ==  NX_PRIVATE; }
    };
 }
 

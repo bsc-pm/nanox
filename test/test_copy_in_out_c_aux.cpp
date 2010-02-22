@@ -60,6 +60,13 @@ void check_hardcoded_copy_data ()
    if ( !cd[1].isOutput() )
       std::cout << "Error: CopyData was supposed to be output." << std::endl;
    else std::cout << "Checking for CopyData direction correctness... PASS" << std::endl;
+
+   if ( !cd[0].isShared() )
+      std::cout << "Error: CopyData was supposed to be NX_SHARED." <<  std::endl;
+   else std::cout << "Checking for CopyData sharing... PASS" << std::endl;
+   if ( !cd[1].isPrivate() )
+      std::cout << "Error: CopyData was supposed to be NX_PRIVATE." <<  std::endl;
+   else std::cout << "Checking for CopyData sharing... PASS" << std::endl;
    
 }
 
