@@ -1,5 +1,5 @@
 #include "plugin.hpp"
-#include "instrumentor.hpp"
+#include "instrumentor_decl.hpp"
 #include "system.hpp"
 #include <mpitrace_user_events.h>
 #include "debug.hpp"
@@ -27,20 +27,21 @@ extern "C" {
 
 }
 
-#define INSTRUMENTOR_MAX_STATES 10
-#define INSTRUMENTOR_MAX_EVENTS 10
-
 class InstrumentorParaver: public Instrumentor 
 {
    private:
-       static const unsigned int _eventState = 9000; /*<< event coding state changes */
-       unsigned int _states[INSTRUMENTOR_MAX_STATES];    /*<< state vector translator */
-       unsigned int _events[INSTRUMENTOR_MAX_EVENTS];    /*<< event id vector translator */
+       static const unsigned int _eventState    = 9000;   /*<< event coding state changes */
+       static const unsigned int _eventPTPStart = 9001;   /*<< event coding state comm start */
+       static const unsigned int _eventPTPEnd   = 9002;   /*<< event coding state comm end */
+       static const unsigned int _eventBase     = 9900;   /*<< event coding basecode for general events (kvs) */
+       unsigned int _states[LAST_EVENT_STATE];            /*<< state vector translator */
+       unsigned int _events[LAST_EVENT];                  /*<< event id vector translator */
 
    public:
       // constructor
       InstrumentorParaver ( )
       {
+#if 0
          _states[ERROR]           = 66;
          _states[IDLE]            = 0;
          _states[RUNNING]         = 1;
@@ -58,7 +59,10 @@ class InstrumentorParaver: public Instrumentor
          _events[SINGLE_GUARD]    = 9907;
          _events[BARRIER]         = 9908;
          _events[SWITCH]          = 9909;
- 
+
+         _events[THROW_WD]        = 9910;
+         _events[CATCH_WD]        = 9911;
+ #endif
       }
 
       // destructor
@@ -114,60 +118,131 @@ class InstrumentorParaver: public Instrumentor
          if (p_file.is_open())
          {
             p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    9000    Change status" << std::endl;
+            p_file << "9    " << _eventState  << "    Change status: " << std::endl;
             p_file << "VALUES" << std::endl;
-            p_file << "0      Pop" << std::endl;
+
+            // List of states
+            p_file << ERROR           << "     ERROR" << std::endl;
+            p_file << _states[IDLE]            << "     IDLE" << std::endl;
+            p_file << _states[RUNNING]         << "     RUNNING" << std::endl;
+            p_file << _states[SYNCHRONIZATION] << "     SYNCHRONIZATION" << std::endl;
+            p_file << _states[SCHEDULING]      << "     SCHED-FORK/JOIN" << std::endl;
+            p_file << _states[FORK_JOIN]       << "     SCHED-FORK/JOIN" << std::endl;
+            p_file << _states[OTHERS]          << "     OTHERS" << std::endl;
 
             p_file << std::endl;
 
+            // FIXME (141): Generate paraver .pcf file automatically using registerd event types
+#if 0
+            // List of events enter/leave functions
             p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    9900    Unspecified region" << std::endl;
-            p_file << "9    9901    Idle function" << std::endl;
-            p_file << "9    9902    Runtime region" << std::endl;
-            p_file << "9    9903    Create WD" << std::endl;
-            p_file << "9    9904    Submit WD" << std::endl;
-            p_file << "9    9905    Inline WD" << std::endl;
-            p_file << "9    9906    Lock region" << std::endl;
-            p_file << "9    9907    Single guard region" << std::endl;
-            p_file << "9    9908    Barrier region" << std::endl;
+            p_file << "9    " << _events[IDLE_FUNCTION]  << "    Idle function" << std::endl;
+            p_file << "9    " << _events[RUNTIME]        << "    Runtime region" << std::endl;
+            p_file << "9    " << _events[CREATE_WD]      << "    Create WD" << std::endl;
+            p_file << "9    " << _events[SUBMIT_WD]      << "    Submit WD" << std::endl;
+            p_file << "9    " << _events[INLINE_WD]      << "    Inline WD" << std::endl;
+            p_file << "9    " << _events[LOCK]           << "    Lock region" << std::endl;
+            p_file << "9    " << _events[SINGLE_GUARD]   << "    Single guard region" << std::endl;
+            p_file << "9    " << _events[BARRIER]        << "    Barrier region" << std::endl;
+            p_file << "9    " << _events[SWITCH]         << "    Switch region" << std::endl;
+
             p_file << "VALUES" << std::endl;
-            p_file << "1      Begin" << std::endl;
-            p_file << "0      End" << std::endl;
+            p_file << "1      begins" << std::endl;
+            p_file << "0      ends"   << std::endl;
+#endif
+
+            p_file << std::endl;
+
+            // List of events trhow/catch 
+            p_file << "EVENT_TYPE" << std::endl;
+            p_file << "9    " << _events[THROW_WD]  << "    Throwing task:" << std::endl;
+            p_file << "9    " << _events[CATCH_WD]  << "    Catching task:" << std::endl;
 
             p_file.close();
          }
          else std::cout << "Unable to open paraver config file" << std::endl;  
       }
 
-      void changeStateEventList ( nanos_state_t state, unsigned int count, nanos_event_t *events )
+      void addEventList ( unsigned int count, Event *events) 
       {
-         unsigned int *p_events = (unsigned int *) alloca ((count+1) * sizeof (unsigned int));
-         unsigned int *p_values = (unsigned int *) alloca ((count+1) * sizeof (unsigned int));
+         int total = 0;
+         for (unsigned int i = 0; i < count; i++)
+         {
+            Event &e = events[i];
+            switch ( e.getType() ) {
+               case Event::STATE:
+                  total++;
+                  break;
+               case Event::PTP_START:
+               case Event::PTP_END:
+                  total++;
+               case Event::POINT:
+               case Event::BURST_START:
+               case Event::BURST_END:
+                  total += e.getNumKVs();
+                  break;
+            }
+         }
 
-         p_events[0] = _eventState;
-         p_values[0] = _states[state];
+         unsigned int *p_events = (unsigned int *) alloca (total * sizeof (unsigned int));
+         unsigned int *p_values = (unsigned int *) alloca (total * sizeof (unsigned int));
+
+         int j = 0;
+         Event::ConstKVList kvs = NULL;
+
 
          for (unsigned int i = 0; i < count; i++)
          {
-            p_events[i+1] = _events[events[i].id];
-            p_values[i+1] = events[i].value;
+            Event &e = events[i];
+            int localBase=0;
+            switch ( e.getType() ) {
+               case Event::STATE:
+                  p_events[j] = _eventState;
+                  p_values[j++] = e.getState();
+                  break;
+               case Event::PTP_START:
+               case Event::PTP_END:
+                  p_events[j] = ( e.getType() == Event::PTP_START ) ? _eventPTPStart : _eventPTPEnd;
+	          p_values[j++] = e.getDomain()+e.getId();
+                  localBase = 1000;
+               case Event::POINT:
+               case Event::BURST_START:
+                  kvs = e.getKVs();
+                  for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
+                     p_events[j] = localBase + _eventBase + kvs->first;
+                     p_values[j++] = kvs->second;
+                  }
+                  break;
+               case Event::BURST_END:
+                  kvs = e.getKVs();
+                  for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
+                     p_events[j] = _eventBase +  kvs->first;
+                     p_values[j++] = 0; // end
+                  }
+                  break;
+            }
          }
 
-         OMPItrace_neventandcounters(count+1, p_events, p_values);
-      }
+         int rmValues = 0;
+         for ( int i = 0; i < total; i++ )
+            for ( int j = i+1; j < total; j++ )
+               if ( p_events[i] == p_events[j] )
+               {
+                  p_events[i] = 0;
+                  rmValues++;
+               }
 
-      void addEventList ( unsigned int count, nanos_event_t *events) 
-      {
-         unsigned int *p_events = (unsigned int *) alloca (count * sizeof (unsigned int));
-         unsigned int *p_values = (unsigned int *) alloca (count * sizeof (unsigned int));
+         total -= rmValues;
 
-         for (unsigned int i = 0; i < count; i++)
+         for ( int j = 0, i = 0; i < total; i++ )
          {
-            p_events[i] = _events[events[i].id];
-            p_values[i] = events[i].value;
+            while ( p_events[j] == 0 ) j++;
+            p_events[i] = p_events[j];
+            p_values[i] = p_values[j++];
          }
 
-         OMPItrace_neventandcounters(count, p_events, p_values);
+         OMPItrace_neventandcounters(total , p_events, p_values);
+          
       }
 };
 

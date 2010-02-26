@@ -17,65 +17,45 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "workdescriptor.hpp"
-#include "schedule.hpp"
-#include "processingelement.hpp"
-#include "basethread.hpp"
-#include "debug.hpp"
-#include "schedule.hpp"
-#include "dependableobjectwd.hpp"
+#include <stdio.h>
+#include <nanos.h>
 
-using namespace nanos;
+// compiler: outlined function arguments
+typedef struct {
+   int value;
+} main__task_1_data_t;
 
-Atomic<unsigned int> WorkDescriptor::_idSeed = 1;
-
-DeviceData * WorkDescriptor::findDeviceData ( const Device &device ) const
+// compiler: outlined function
+void main__task_1 ( void *args )
 {
-   for ( unsigned i = 0; i < _numDevices; i++ ) {
-      if ( _devices[i]->isCompatible( device ) ) {
-         return _devices[i];
-      }
-   }
+   main__task_1_data_t *hargs = (main__task_1_data_t * ) args;
 
-   return 0;
+   usleep ( hargs->value );
 }
 
-DeviceData & WorkDescriptor::activateDevice ( const Device &device )
+// compiler: smp device for main__loop_1 function
+nanos_smp_args_t main__task_1_device_args = { main__task_1 };
+
+int main ( int argc, char **argv )
 {
-   if ( _activeDevice ) {
-      ensure( _activeDevice->isCompatible( device ),"Bogus double device activation" );
-      return *_activeDevice;
-   }
 
-   DD * dd = findDeviceData( device );
+      nanos_wd_t wd = NULL;
+      nanos_device_t main__task_1_device[1] = { NANOS_SMP_DESC( main__task_1_device_args ) };
+      main__task_1_data_t *task_data = NULL;
+      nanos_wd_props_t props = {
+         .mandatory_creation = true,
+         .tied = false,
+         .tie_to = false
+      };
 
-   ensure( dd,"Did not find requested device in activation" );
-   _activeDevice = dd;
-   return *dd;
-}
+      NANOS_SAFE( nanos_create_wd ( &wd, 1, main__task_1_device , sizeof( main__task_1_data_t ),
+                                    (void **) &task_data, nanos_current_wd(), &props , 0, NULL ));
 
-bool WorkDescriptor::canRunIn( const Device &device ) const
-{
-   if ( _activeDevice ) return _activeDevice->isCompatible( device );
+      task_data->value = 100;
 
-   return findDeviceData( device ) != NULL;
-}
+      NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
+      NANOS_SAFE( nanos_wg_wait_completation( nanos_current_wd() ) );
 
-bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
-{
-   return canRunIn( pe.getDeviceType() );
-}
-
-void WorkDescriptor::submit( void )
-{
-   Scheduler::submit(*this);
-} 
-
-void WorkDescriptor::done ()
-{
-   // FIX-ME: We are waiting for the children tasks to avoid to keep alive only part of the parent
-   waitCompletation();
-   this->getParent()->workFinished( *this );
-   WorkGroup::done();
+      return 0; 
 }
 

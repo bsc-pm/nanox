@@ -22,138 +22,139 @@
 
 #ifndef __NANOS_INSTRUMENTOR_H
 #define __NANOS_INSTRUMENTOR_H
+#include "instrumentor_decl.hpp"
 #include "instrumentor_ctx.hpp"
-#include "basethread.hpp"
+#include "workdescriptor.hpp"
 
 namespace nanos {
 
-// forward decl
-   class WorkDescriptor;
-
-   typedef enum { IDLE_FUNCTION, RUNTIME, CREATE_WD, SUBMIT_WD, INLINE_WD, LOCK,
-                  SINGLE_GUARD, BARRIER, SWITCH } nanos_event_id_t;
-   typedef unsigned int nanos_event_value_t;
-
-   typedef struct Event {
-      nanos_event_id_t     id;
-      nanos_event_value_t  value;
-   } nanos_event_t;
-
-   class Instrumentor {
-      public:
-         Instrumentor() {}
-         virtual ~Instrumentor() {}
-
 #ifdef INSTRUMENTATION_ENABLED
 
-       // low-level instrumentation interface (pure virtual functions)
-
-       virtual void initialize( void ) = 0;
-       virtual void finalize( void ) = 0;
-       virtual void changeStateEventList ( nanos_state_t state, unsigned int count,
-                                           nanos_event_t *events ) = 0;
-       virtual void addEventList ( unsigned int count, nanos_event_t *events ) = 0;
-
-       // mid-level instrumentation interface (virtual functions)
-
-       virtual void pushState ( nanos_state_t state )
+       // CORE: high-level instrumentation interface (virtual functions)
+       void Instrumentor::enterRuntimeAPI ( nanos_event_api_t function, nanos_event_state_t state )
        {
+          Event::KV kv( Event::KV(Event::NANOS_API,function) );
+          Event e[2] = { State(state), Burst( kv) };
           InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
-          instrContext.push(state);
-          changeStateEventList ( state, 0, NULL );
+          instrContext.pushState(state);
+          instrContext.pushBurst(e[1]);
+          addEventList ( 2, e );
        }
-       virtual void popState( void )
+
+       void Instrumentor::leaveRuntimeAPI ( )
        {
           InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
+          Event &e1 = instrContext.topBurst();
+          e1.reverseType();
           /* Top is current state, so before we have to pop previous state
            * on top of the stack and then restore previous state */
-          instrContext.pop(); 
-          nanos_state_t state = instrContext.top();
-          changeStateEventList ( state, 0, NULL );
+          instrContext.popState();
+          nanos_event_state_t state = instrContext.topState();
+          Event e[2] = { State(state), e1 };
+          addEventList ( 2, e );
+
+          instrContext.popBurst(); 
        }
-       virtual void pushStateEvent ( nanos_state_t state, nanos_event_t event)
+
+       // FIXME (140): Change InstrumentorContext ic.init() to Instrumentor::wdCreate();
+       void Instrumentor::wdCreate( WorkDescriptor* newWD ) {}
+
+       void Instrumentor::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD )
+       {
+          /* Computing number of burst events */
+          InstrumentorContext &oldInstrContext = oldWD->getInstrumentorContext();
+          InstrumentorContext &newInstrContext = newWD->getInstrumentorContext();
+          unsigned int oldBursts = oldInstrContext.getNumBursts();
+          unsigned int newBursts = newInstrContext.getNumBursts();
+          unsigned int numEvents = 3 + oldBursts + newBursts;
+
+          /* Allocating Events */
+          Event *e = (Event *) alloca(sizeof(Event) * numEvents );
+
+          /* Creating PtP events */
+          e[0] = PtP (true,  PtP::WD, oldWD->getId(), 0, NULL);
+          e[1] = PtP (false, PtP::WD, newWD->getId(), 0, NULL);
+
+          /* Change state for newWD */
+          nanos_event_state_t state = newInstrContext.topState();
+          e[2] = State ( state );
+
+          /* Regenerating reverse bursts for old WD */
+          int i = 2;
+          for ( InstrumentorContext::BurstIterator it = oldInstrContext.beginBurst() ;
+                it != oldInstrContext.endBurst(); it++,i++ ) {
+             e[i] = *it;
+             e[i].reverseType();
+          }
+
+          /* Regenerating bursts for new WD */
+          for ( InstrumentorContext::BurstIterator it = newInstrContext.beginBurst() ;
+                it != newInstrContext.endBurst(); it++,i++ ) {
+             e[i] = *it;
+          }
+          /* Adding event list */
+          addEventList ( numEvents, e );
+       }
+
+       void Instrumentor::wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD )
+       {
+
+          /* Computing number of events */
+          InstrumentorContext &oldInstrContext = oldWD->getInstrumentorContext();
+          InstrumentorContext &newInstrContext = newWD->getInstrumentorContext();
+          unsigned int oldBursts = oldInstrContext.getNumBursts();
+          unsigned int newBursts = newInstrContext.getNumBursts();
+          unsigned int numEvents = 2 + oldBursts + newBursts;
+
+          /* Allocating Events */
+          Event *e = (Event *) alloca(sizeof(Event) * numEvents );
+
+          /* Creating PtP events */
+          Event::KV kv( Event::KV( Event::WD_ID, newWD->getId() ) );
+          e[0] = PtP ( false, 0, newWD->getId(), 1, &kv );
+
+          /* Change state for newWD */
+          nanos_event_state_t state = newInstrContext.topState();
+          e[1] = State ( state );
+
+          int i = 2; 
+          /* Regenerating reverse bursts for old WD */
+          for ( InstrumentorContext::BurstIterator it = oldInstrContext.beginBurst() ;
+                it != oldInstrContext.endBurst(); it++,i++ ) {
+             e[i] = *it;
+             e[i].reverseType();
+          }
+
+          /* Regenerating bursts for new WD */
+          for ( InstrumentorContext::BurstIterator it = newInstrContext.beginBurst() ;
+                it != newInstrContext.endBurst(); it++,i++ ) {
+             e[i] = *it;
+          }
+
+          /* Adding event list */
+          addEventList ( numEvents, e );
+       }
+
+       void Instrumentor::enterIdle ( )
        {
           InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
-          instrContext.push(state);
-          changeStateEventList ( state, 1, &event );
+          instrContext.pushState(IDLE);
+
+          Event e = State(IDLE);
+          addEventList ( 1u, &e );
        }
-       virtual void popStateEvent( nanos_event_t event )
+
+       /* This function should be used only at the end of runtime execution */
+       void Instrumentor::leaveIdle ( )
        {
           InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
-          /* Top is current state, so before we have to pop previous state
-           * on top of the stack and then restore previous state */
-          instrContext.pop();
-          nanos_state_t state = instrContext.top();
-          changeStateEventList ( state, 1, &event );
-       }
-       virtual void addEvent( nanos_event_t event )
-       {
-          addEventList ( 1, &event );
+          instrContext.popState();
+          nanos_event_state_t state = instrContext.topState();
+          Event e = State( state );
+          addEventList ( 1u, &e );
        }
 
-       // high-level instrumentation interface (virtual functions)
-
-       virtual void enterIdle() { nanos_event_t e = {IDLE_FUNCTION,1}; pushStateEvent(IDLE,e); }
-       virtual void leaveIdle() { nanos_event_t e = {IDLE_FUNCTION,0}; popStateEvent(e); }
-
-       virtual void enterSingleGuard() { nanos_event_t e = {SINGLE_GUARD,1}; pushStateEvent(SYNCHRONIZATION,e); }
-       virtual void leaveSingleGuard() { nanos_event_t e = {SINGLE_GUARD,0}; popStateEvent(e); }
-
-       virtual void enterRuntime() { }
-       virtual void leaveRuntime() { }
-       virtual void enterCreateWD() { }
-       virtual void leaveCreateWD() { }
-       virtual void enterSubmitWD() { }
-       virtual void leaveSubmitWD() { }
-       virtual void enterInlineWD() { }
-       virtual void leaveInlineWD() { }
-       virtual void enterLock() { }
-       virtual void leaveLock() { }
-       virtual void enterBarrier() { }
-       virtual void leaveBarrier() { }
-       virtual void beforeContextSwitch() { }
-       virtual void afterContextSwitch() { }
-
-       virtual void wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
-       virtual void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
-#if 0
-       virtual void enterIdle() { nanos_event_t e = {IDLE_FUNCTION,1}; pushStateEvent(IDLE,e); }
-       virtual void leaveIdle() { nanos_event_t e = {IDLE_FUNCTION,0}; popStateEvent(e); }
-       virtual void enterRuntime() { nanos_event_t e = {RUNTIME,1}; pushStateEvent(OTHERS,e); }
-       virtual void leaveRuntime() { nanos_event_t e = {RUNTIME,0}; popStateEvent(e); }
-       virtual void enterCreateWD() { nanos_event_t e = {CREATE_WD,1}; pushStateEvent(FORK_JOIN,e); }
-       virtual void leaveCreateWD() { nanos_event_t e = {CREATE_WD,0}; popStateEvent(e); }
-       virtual void enterSubmitWD() { nanos_event_t e = {SUBMIT_WD,1}; pushStateEvent(FORK_JOIN,e); }
-       virtual void leaveSubmitWD() { nanos_event_t e = {SUBMIT_WD,0}; popStateEvent(e); }
-       virtual void enterInlineWD() { nanos_event_t e = {INLINE_WD,1}; pushStateEvent(FORK_JOIN,e); }
-       virtual void leaveInlineWD() { nanos_event_t e = {INLINE_WD,0}; popStateEvent(e); }
-       virtual void enterLock() { nanos_event_t e = {LOCK,1}; pushStateEvent(SYNCHRONIZATION,e); }
-       virtual void leaveLock() { nanos_event_t e = {LOCK,0}; popStateEvent(e); }
-       virtual void enterSingleGuard() { nanos_event_t e = {SINGLE_GUARD,1}; pushStateEvent(SYNCHRONIZATION,e); }
-       virtual void leaveSingleGuard() { nanos_event_t e = {SINGLE_GUARD,0}; popStateEvent(e); }
-       virtual void enterBarrier() { nanos_event_t e = {BARRIER,1}; pushStateEvent(SYNCHRONIZATION,e); }
-       virtual void leaveBarrier() { nanos_event_t e = {BARRIER,0}; popStateEvent(e); }
-       virtual void beforeContextSwitch() { nanos_event_t e = {SWITCH,1}; pushStateEvent(RUNNING,e); }
-       virtual void afterContextSwitch() { nanos_event_t e = {SWITCH,0}; popStateEvent(e); }
-
-       virtual void wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
-       virtual void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
 #endif
-
-#else
-
-       // All functions here must be empty and  non-virtual so the compiler 
-       // eliminates the instrumentation calls
-
-       void initialize( void ) { }
-       void finalize( void ) { }
-       void enterCreateWD() { }
-       void leaveCreateWD() { }
-
-#endif
-
-  };
-
 
 }
 #endif

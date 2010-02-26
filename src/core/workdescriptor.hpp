@@ -116,6 +116,8 @@ namespace nanos
     {
 
         private:
+            static Atomic<unsigned int>  _idSeed;
+            unsigned int         _id;
             size_t               _data_size; /**< Data size */
             void    *            _data;
             void    *            _wdData; // this allows higher layer to associate data to the WD
@@ -160,16 +162,24 @@ namespace nanos
         public:
             // constructors
             WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0,void *wdata=0, size_t numCopies = 0, CopyData *copies = NULL ) :
-                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( READY ),
+                    WorkGroup(), _id ( _idSeed++ ), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( READY ),
                     _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( ndevices ), _devices ( devs ),
                     _activeDevice ( ndevices == 1 ? devs[0] : 0 ), _numCopies( numCopies ), _copies( copies ),
-                    _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext() { }
+                    _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext()
+            {
+              // FIXME (140): Change InstrumentorContext ic.init() to Instrumentor::_wdCreate();
+               _instrumentorContext.init ( _id );
+            }
 
             WorkDescriptor ( DeviceData *device, size_t data_size = 0, void *wdata=0, size_t numCopies = 0, CopyData *copies = NULL ) :
-                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( READY ),
+                    WorkGroup(), _id ( _idSeed++ ), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( READY ),
                     _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( &_activeDevice ),
                     _activeDevice ( device ), _numCopies( numCopies ), _copies( copies ), 
-                    _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext() { }
+                    _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext()
+            {
+              // FIXME (140): Change InstrumentorContext ic.init() to Instrumentor::_wdCreate();
+               _instrumentorContext.init ( _id );
+            }
 
             /*! \brief WorkDescriptor constructor (using former wd)
              *
@@ -177,18 +187,23 @@ namespace nanos
              *  The constructor uses a DeviceData vector and a new void * data which will be completely
              *  different from the former WorkDescriptor. Rest of the data is copied from the former WD.
              *
-             *  \see WorkDescriptor
+             *  This constructor is used only for duplicating purposes
+             *
+             *  \see WorkDescriptor System::duplicateWD System::duplicateSlicedWD
              */
             WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL ) :
-                    WorkGroup( *((WorkGroup * ) &wd) ), _data_size( wd._data_size ), _data ( data ), _wdData ( NULL ),
+                    WorkGroup( *((WorkGroup * ) &wd) ), _id ( _idSeed++ ), _data_size( wd._data_size ), _data ( data ), _wdData ( NULL ),
                     _tie ( wd._tie ), _tiedTo ( wd._tiedTo ), _state ( READY ), _syncCond( NULL ), _parent ( wd._parent ),
                     _myQueue ( NULL ), _depth ( wd._depth ), _numDevices ( wd._numDevices ),
                     _devices ( devs ), _activeDevice ( wd._numDevices ? devs[0] : NULL ),
                     _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
                     _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext()
             { 
-               // adding wd to former workdescriptor's workgroup
-               ((WorkGroup *)(_parent))->addWork( *this );
+               // adding wd to parent workdescriptor's workgroup
+               _parent->addWork( *this );
+
+              // FIXME (140): Change InstrumentorContext ic.init() to Instrumentor::_wdCreate();
+               _instrumentorContext.init( _id );
             }
 
             // destructor
@@ -199,6 +214,10 @@ namespace nanos
                for ( unsigned i = 0; i < _numDevices; i++ )
                   _devices[i]->~DeviceData();
             }
+
+         /*! \brief Get WorkDescriptor id
+          */
+         unsigned int getId ( void ) { return _id; }
 
          /*! \brief Get data size
           *

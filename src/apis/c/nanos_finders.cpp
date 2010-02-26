@@ -31,9 +31,8 @@ using namespace nanos;
 nanos_slicer_t nanos_find_slicer ( const char * label )
 {
    nanos_slicer_t slicer;
-   sys.getInstrumentor()->enterRuntime();
-   try
-   {
+   try {
+      sys.getInstrumentor()->enterRuntimeAPI( FIND_SLICER, RUNTIME );
       std::string plugin = "slicer-" + std::string(label);
 
       slicer = sys.getSlicer ( std::string(label) );
@@ -43,10 +42,10 @@ nanos_slicer_t nanos_find_slicer ( const char * label )
       }
 
    } catch ( ... ) {
-      sys.getInstrumentor()->leaveRuntime();
+      sys.getInstrumentor()->leaveRuntimeAPI();
       return ( nanos_slicer_t ) NULL;
    }
-   sys.getInstrumentor()->leaveRuntime();
+   sys.getInstrumentor()->leaveRuntimeAPI();
    return slicer;
 }
 

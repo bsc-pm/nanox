@@ -1,5 +1,5 @@
 #include "plugin.hpp"
-#include "instrumentor.hpp"
+#include "instrumentor_decl.hpp"
 #include "system.hpp"
 
 namespace nanos {
@@ -16,23 +16,19 @@ class InstrumentorEmptyTrace: public Instrumentor
 
       // low-level instrumentation interface (mandatory functions)
 
-      void initialize ( void ) { }
-      void finalize ( void ) { }
-      void changeStateEventList ( nanos_state_t state, unsigned int count, nanos_event_t *event ) { }
-      void addEventList ( unsigned int count, nanos_event_t *event ) { } 
-
-      // mid-level interface
-
-      void pushState ( nanos_state_t state ) { }
-      void popState( void ) { }
-      void pushStateEvent ( nanos_state_t state, nanos_event_t event) { }
-      void popStateEvent( nanos_event_t event ) { }
-      void addEvent( nanos_event_t event ) { }
+      virtual void initialize( void ) {}
+      virtual void finalize( void ) {}
+      virtual void addEventList ( unsigned int count, Event *events ) {}
 
       // high-level events
 
-      void enterCreateWD() { }
-      void leaveCreateWD() { }
+      virtual void enterRuntimeAPI ( nanos_event_api_t function, nanos_event_state_t state = RUNTIME ) {}
+      virtual void leaveRuntimeAPI ( ) {}
+      virtual void enterIdle ( ) {}
+      virtual void leaveIdle ( ) {}
+      virtual void wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
+      virtual void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
+
 };
 
 

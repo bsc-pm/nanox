@@ -59,6 +59,7 @@ nanos_sources=\
 	slicer.hpp \
 	instrumentor_ctx.hpp \
 	instrumentor.hpp \
+	instrumentor_decl.hpp \
 	throttle.hpp \
 	dependency.hpp \
 	copydata.hpp \

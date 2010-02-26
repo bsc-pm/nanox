@@ -76,15 +76,15 @@ nanos_err_t nanos_end_team ( nanos_team_t team )
 */
 nanos_err_t nanos_team_barrier ( )
 {
-   sys.getInstrumentor()->enterBarrier();
    try {
+      sys.getInstrumentor()->enterRuntimeAPI( TEAM_BARRIER, RUNTIME );
       myThread->getTeam()->barrier();
    } catch ( ... ) {
-      sys.getInstrumentor()->leaveBarrier();
+      sys.getInstrumentor()->leaveRuntimeAPI();
       return NANOS_UNKNOWN_ERR;
    }
 
-   sys.getInstrumentor()->leaveBarrier();
+   sys.getInstrumentor()->leaveRuntimeAPI();
    return NANOS_OK;
 }
 

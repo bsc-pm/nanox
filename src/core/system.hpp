@@ -29,7 +29,7 @@
 #include "slicer.hpp"
 #include "nanos-int.h"
 #include "dependency.hpp"
-#include "instrumentor.hpp"
+#include "instrumentor_decl.hpp"
 
 
 namespace nanos
