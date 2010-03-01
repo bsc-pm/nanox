@@ -18,7 +18,7 @@
 /*************************************************************************************/
 // FIXME: (#131) This flag ENABLE_INSTRUMENTATION has to be managed through
 //compilation in order to generate an instrumentation version
-#define INSTRUMENTATION_ENABLED
+//#define INSTRUMENTATION_ENABLED
 
 #ifndef __NANOS_INSTRUMENTOR_DECL_H
 #define __NANOS_INSTRUMENTOR_DECL_H
@@ -186,20 +186,20 @@ namespace nanos {
 
        // low-level instrumentation interface (pure virtual functions)
 
-       virtual void initialize( void ) {} 
-       virtual void finalize( void ) {}
-       virtual void addEventList ( unsigned int count, Event *events ) {}
+       void initialize( void ) {} 
+       void finalize( void ) {}
+       void addEventList ( unsigned int count, Event *events ) {}
 
        // CORE: high-level instrumentation interface (virtual functions)
 
-       virtual void enterRuntimeAPI ( nanos_event_api_t function, nanos_event_state_t state = RUNTIME ) {}
-       virtual void leaveRuntimeAPI ( ) {}
-       virtual void enterIdle ( ) {}
-       virtual void leaveIdle ( ) {}
+       void enterRuntimeAPI ( nanos_event_api_t function, nanos_event_state_t state = RUNTIME ) {}
+       void leaveRuntimeAPI ( ) {}
+       void enterIdle ( ) {}
+       void leaveIdle ( ) {}
 
-       virtual void wdCreate( WorkDescriptor* newWD ) {}
-       virtual void wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
-       virtual void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
+       void wdCreate( WorkDescriptor* newWD ) {}
+       void wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
+       void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
 
 #endif
 

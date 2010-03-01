@@ -16,10 +16,6 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-// FIXME: (#131) This flag ENABLE_INSTRUMENTATION has to be managed through
-//compilation in order to generate an instrumentation version
-#define INSTRUMENTATION_ENABLED
-
 #ifndef __NANOS_INSTRUMENTOR_H
 #define __NANOS_INSTRUMENTOR_H
 #include "instrumentor_decl.hpp"

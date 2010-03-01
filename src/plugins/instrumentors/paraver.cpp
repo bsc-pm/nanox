@@ -29,6 +29,7 @@ extern "C" {
 
 class InstrumentorParaver: public Instrumentor 
 {
+#if defined INSTRUMENTATION_ENABLED
    private:
        static const unsigned int _eventState    = 9000;   /*<< event coding state changes */
        static const unsigned int _eventPTPStart = 9001;   /*<< event coding state comm start */
@@ -244,6 +245,7 @@ class InstrumentorParaver: public Instrumentor
          OMPItrace_neventandcounters(total , p_events, p_values);
           
       }
+#endif
 };
 
 

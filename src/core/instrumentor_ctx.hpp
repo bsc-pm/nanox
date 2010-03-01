@@ -16,10 +16,6 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-// FIXME: (#131) This flag ENABLE_INSTRUMENTATION has to be managed through
-// compilation in order to generate an instrumentation version
-#define INSTRUMENTATION_ENABLED
-
 #ifndef __NANOS_INSTRUMENTOR_CTX_H
 #define __NANOS_INSTRUMENTOR_CTX_H
 #include <stack>
@@ -39,8 +35,13 @@ namespace nanos {
          StateStack       _stateStack;
          BurstList        _burstList;
 
-         InstrumentorContext(const InstrumentorContext &);
       public:
+         explicit InstrumentorContext(const InstrumentorContext &ic)
+         {
+            // xteruel:FIXME:?
+            _stateStack = StateStack(ic._stateStack);
+            _burstList = BurstList(ic._burstList);
+         }
 
          typedef BurstList::const_iterator BurstIterator;
 
