@@ -1,6 +1,6 @@
 #include "plugin.hpp"
-#include "instrumentor_decl.hpp"
 #include "system.hpp"
+#include "instrumentor.hpp"
 #include <mpitrace_user_events.h>
 #include "debug.hpp"
 #include <sys/types.h>
@@ -8,24 +8,10 @@
 #include <string.h>
 #include <iostream>
 #include <fstream>
+#include <alloca.h>
+#include <stdlib.h>
 
 namespace nanos {
-
-extern "C" {
-
-   void OMPItrace_neventandcounters (unsigned int count, unsigned int *types, unsigned int *values);
-
-   unsigned int nanos_ompitrace_get_max_threads ( void )
-   {
-      return sys.getNumPEs();
-   }
-
-   unsigned int nanos_ompitrace_get_thread_num ( void )
-   { 
-      return myThread->getId(); 
-   }
-
-}
 
 class InstrumentorParaver: public Instrumentor 
 {

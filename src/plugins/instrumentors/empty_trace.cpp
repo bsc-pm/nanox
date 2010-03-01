@@ -1,6 +1,6 @@
 #include "plugin.hpp"
-#include "instrumentor_decl.hpp"
 #include "system.hpp"
+#include "instrumentor.hpp"
 
 namespace nanos {
 
