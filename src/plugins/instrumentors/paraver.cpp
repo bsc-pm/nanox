@@ -171,6 +171,7 @@ class InstrumentorParaver: public Instrumentor
             }
          }
 
+
          unsigned int *p_events = (unsigned int *) alloca (total * sizeof (unsigned int));
          unsigned int *p_values = (unsigned int *) alloca (total * sizeof (unsigned int));
 
@@ -189,7 +190,11 @@ class InstrumentorParaver: public Instrumentor
                   break;
                case Event::PTP_START:
                case Event::PTP_END:
-                  p_events[j] = ( e.getType() == Event::PTP_START ) ? _eventPTPStart : _eventPTPEnd;
+                  // p_events[j] = ( e.getType() == Event::PTP_START ) ? _eventPTPStart : _eventPTPEnd;
+		  if ( e.getType() == Event::PTP_START )
+			  p_events[j] = _eventPTPStart;
+		  else
+			  p_events[j] = _eventPTPEnd;
 	          p_values[j++] = e.getDomain()+e.getId();
                   localBase = 1000;
                case Event::POINT:

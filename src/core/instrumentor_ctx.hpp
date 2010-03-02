@@ -22,6 +22,7 @@
 #include <list>
 
 #include "instrumentor_decl.hpp"
+#include "debug.hpp"
 
 namespace nanos {
    class InstrumentorContext {
@@ -36,21 +37,13 @@ namespace nanos {
          BurstList        _burstList;
 
       public:
-         explicit InstrumentorContext(const InstrumentorContext &ic)
-         {
-            // xteruel:FIXME:?
-            _stateStack = StateStack(ic._stateStack);
-            _burstList = BurstList(ic._burstList);
-         }
+         explicit InstrumentorContext(const InstrumentorContext &ic) : _stateStack(), _burstList() { }
 
          typedef BurstList::const_iterator BurstIterator;
 
          // constructors
          InstrumentorContext () :_stateStack(), _burstList() 
          {
-            _stateStack.push(ERROR);
-            _stateStack.push(RUNNING);
-            _stateStack.push(SCHEDULING);
          }
          ~InstrumentorContext() {}
 
@@ -68,14 +61,15 @@ namespace nanos {
          {
             if ( !(_burstList.empty()) ) _burstList.pop_back( );
             else fatal0("Instrumentor burst error (empty burst list).");
-            // FIXME: else fatal("Instrumentor burst error (empty burst list).");
+            // FIXME: previous line should be fatal. Fix when we can include system.hpp
+            // else fatal("Instrumentor burst error (empty burst list).");
          }
 
          Event & topBurst ( void )
          {
             if ( !(_burstList.empty()) ) return _burstList.front();
-            // FIXME: should be fatal
             fatal0("Instrumentor burst error (empty burst list).");
+            // FIXME: previous line should be fatal. Fix when we can include system.hpp
          }
           
          unsigned int getNumBursts() const { return _burstList.size(); }

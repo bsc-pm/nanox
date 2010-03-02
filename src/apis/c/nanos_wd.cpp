@@ -110,7 +110,7 @@ nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_
                            (Slicer *) slicer, slicer_data_size, (SlicerData *&) *slicer_data, props, num_copies, copies );
 
    } catch ( ... ) {
-      // FIXME: Will be interesting to instrument new wd info: (WD *) *uwd
+      // xteruel:FIXME: Will be interesting to instrument new wd info: (WD *) *uwd
       sys.getInstrumentor()->leaveRuntimeAPI();
       return NANOS_UNKNOWN_ERR;
    }
@@ -122,7 +122,7 @@ nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_
 nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *deps, nanos_team_t team )
 {
    try {
-      // FIXME: Will be interesting to instrument new wd info: (WD *) *uwd
+      // xteruel:FIXME: Will be interesting to instrument new wd info: (WD *) *uwd
       sys.getInstrumentor()->enterRuntimeAPI( SUBMIT_WD, RUNTIME );
       ensure( uwd,"NULL WD received" );
 
@@ -139,12 +139,12 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *
 
       sys.submit( *wd );
    } catch ( ... ) {
-      // FIXME: Will be interesting to instrument new wd info: (WD *) *uwd
+      // xteruel:FIXME: Will be interesting to instrument new wd info: (WD *) *uwd
       sys.getInstrumentor()->leaveRuntimeAPI();
       return NANOS_UNKNOWN_ERR;
    }
 
-   // FIXME: Will be interesting to instrument new wd info: (WD *) *uwd
+   // xteruel:FIXME: Will be interesting to instrument new wd info: (WD *) *uwd
    sys.getInstrumentor()->leaveRuntimeAPI();
    return NANOS_OK;
 }

@@ -167,7 +167,7 @@ namespace nanos
                     _activeDevice ( ndevices == 1 ? devs[0] : 0 ), _numCopies( numCopies ), _copies( copies ),
                     _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext()
             {
-              // FIXME (140): Change InstrumentorContext ic.init() to Instrumentor::_wdCreate();
+              // FIXME (#140): Change InstrumentorContext ic.init() to Instrumentor::_wdCreate();
                _instrumentorContext.init ( _id );
             }
 
@@ -177,7 +177,7 @@ namespace nanos
                     _activeDevice ( device ), _numCopies( numCopies ), _copies( copies ), 
                     _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext()
             {
-              // FIXME (140): Change InstrumentorContext ic.init() to Instrumentor::_wdCreate();
+              // FIXME (#140): Change InstrumentorContext ic.init() to Instrumentor::_wdCreate();
                _instrumentorContext.init ( _id );
             }
 
@@ -192,19 +192,19 @@ namespace nanos
              *  \see WorkDescriptor System::duplicateWD System::duplicateSlicedWD
              */
             WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL ) :
-                    WorkGroup( *((WorkGroup * ) &wd) ), _id ( _idSeed++ ), _data_size( wd._data_size ), _data ( data ), _wdData ( NULL ),
+                    WorkGroup( wd ), _id ( _idSeed++ ), _data_size( wd._data_size ), _data ( data ), _wdData ( NULL ),
                     _tie ( wd._tie ), _tiedTo ( wd._tiedTo ), _state ( READY ), _syncCond( NULL ), _parent ( wd._parent ),
                     _myQueue ( NULL ), _depth ( wd._depth ), _numDevices ( wd._numDevices ),
-                    _devices ( devs ), _activeDevice ( wd._numDevices ? devs[0] : NULL ),
+                    _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
                     _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
                     _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext( wd._instrumentorContext )
             { 
                // adding wd to parent workdescriptor's workgroup
                _parent->addWork( *this );
 
-              // FIXME (140): Change InstrumentorContext ic.init() to Instrumentor::_wdCreate();
+              // FIXME (#140): Change InstrumentorContext ic.init() to Instrumentor::_wdCreate();
               // xteruel:FIXME: Not needed due we have used copy constructor
-              // _instrumentorContext.init( _id );
+               _instrumentorContext.init( _id );
             }
 
             // destructor
