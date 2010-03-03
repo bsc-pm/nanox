@@ -203,7 +203,11 @@ namespace nanos
                _parent->addWork( *this );
 
               // FIXME (#140): Change InstrumentorContext ic.init() to Instrumentor::_wdCreate();
-              // xteruel:FIXME: Not needed due we have used copy constructor
+              /* We still need to initialize instrumentor context (ic) due ic copy cconstructor 
+                 creates a new instrumentor context scope. Without any event list initialized:
+                    - bursts (list)
+                    - states (stack)
+               */
                _instrumentorContext.init( _id );
             }
 

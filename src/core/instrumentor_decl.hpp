@@ -18,12 +18,13 @@
 /*************************************************************************************/
 // FIXME: (#131) This flag ENABLE_INSTRUMENTATION has to be managed through
 //compilation in order to generate an instrumentation version
-//#define INSTRUMENTATION_ENABLED
+#define INSTRUMENTATION_ENABLED
 
 #ifndef __NANOS_INSTRUMENTOR_DECL_H
 #define __NANOS_INSTRUMENTOR_DECL_H
 #include <list>
 #include <utility>
+#include "debug.hpp"
 
 namespace nanos {
 
@@ -71,7 +72,20 @@ namespace nanos {
                Event ( Type type, nanos_event_state_t state, unsigned int nkvs, KVList kvlist, bool kvlist_owner,
                        unsigned int ptp_domain, unsigned int ptp_id ) :
                      _type (type), _state (state), _nkvs(nkvs), _kvList (kvlist), _kvListOwner(kvlist_owner),
-                     _ptpDomain (ptp_domain), _ptpId (ptp_id) { }
+                     _ptpDomain (ptp_domain), _ptpId (ptp_id)
+               {
+// xteruel:FIXME:
+                  if ( _nkvs > 10 ) fatal0("Event constructor has too many kv's: ");
+
+// xteruel:FIXME: is the kv received already allocated in persistant memory or event has to be the owner?
+                  if ( _type == BURST_START || _type == BURST_END )
+                  {
+                     _kvList = new KV[1];
+                     _kvList[0] = *kvlist;
+                     _kvListOwner = true;
+                  }
+ 
+               }
 
                Event ( const Event & evt )
                {
@@ -85,6 +99,9 @@ namespace nanos {
                   _kvListOwner = true;
                   _ptpDomain = evt._ptpDomain;
                   _ptpId     = evt._ptpId;
+
+// xteruel:FIXME:
+                  if ( _nkvs > 10 ) fatal0("Event copy constructor has too many kv's: ");
                }
 
                void operator= ( const Event & evt ) 
@@ -102,6 +119,9 @@ namespace nanos {
                   _kvListOwner = true;
                   _ptpDomain = evt._ptpDomain;
                   _ptpId     = evt._ptpId;
+
+// xteruel:FIXME:
+                  if ( _nkvs > 10 ) fatal0("Event assignment operator has too many kv's: ");
                }
 
                ~Event() { if ( _kvListOwner ) delete[] _kvList; }

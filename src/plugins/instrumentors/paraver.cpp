@@ -13,14 +13,15 @@
 
 namespace nanos {
 
+       const unsigned int _eventState    = 9000;   /*<< event coding state changes */
+       const unsigned int _eventPTPStart = 9001;   /*<< event coding state comm start */
+       const unsigned int _eventPTPEnd   = 9002;   /*<< event coding state comm end */
+       const unsigned int _eventBase     = 9900;   /*<< event coding basecode for general events (kvs) */
+
 class InstrumentorParaver: public Instrumentor 
 {
 #if defined INSTRUMENTATION_ENABLED
    private:
-       static const unsigned int _eventState    = 9000;   /*<< event coding state changes */
-       static const unsigned int _eventPTPStart = 9001;   /*<< event coding state comm start */
-       static const unsigned int _eventPTPEnd   = 9002;   /*<< event coding state comm end */
-       static const unsigned int _eventBase     = 9900;   /*<< event coding basecode for general events (kvs) */
        unsigned int _states[LAST_EVENT_STATE];            /*<< state vector translator */
        unsigned int _events[LAST_EVENT];                  /*<< event id vector translator */
 
@@ -163,6 +164,7 @@ class InstrumentorParaver: public Instrumentor
                case Event::PTP_START:
                case Event::PTP_END:
                   total++;
+                  // continue...
                case Event::POINT:
                case Event::BURST_START:
                case Event::BURST_END:
@@ -171,9 +173,10 @@ class InstrumentorParaver: public Instrumentor
             }
          }
 
-
-         unsigned int *p_events = (unsigned int *) alloca (total * sizeof (unsigned int));
-         unsigned int *p_values = (unsigned int *) alloca (total * sizeof (unsigned int));
+         // xteruel:FIXME:
+         unsigned int *p_events = (unsigned int *) malloc (total * sizeof (unsigned int));
+         unsigned int *p_values = (unsigned int *) malloc (total * sizeof (unsigned int));
+        
 
          int j = 0;
          Event::ConstKVList kvs = NULL;
@@ -190,26 +193,40 @@ class InstrumentorParaver: public Instrumentor
                   break;
                case Event::PTP_START:
                case Event::PTP_END:
-                  // p_events[j] = ( e.getType() == Event::PTP_START ) ? _eventPTPStart : _eventPTPEnd;
-		  if ( e.getType() == Event::PTP_START )
-			  p_events[j] = _eventPTPStart;
-		  else
-			  p_events[j] = _eventPTPEnd;
+		  if ( e.getType() == Event::PTP_START ) p_events[j] = _eventPTPStart;
+		  else p_events[j] = _eventPTPEnd;
 	          p_values[j++] = e.getDomain()+e.getId();
                   localBase = 1000;
+                  // continue...
                case Event::POINT:
                case Event::BURST_START:
                   kvs = e.getKVs();
+#if 0
                   for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
                      p_events[j] = localBase + _eventBase + kvs->first;
                      p_values[j++] = kvs->second;
                   }
+#endif
+                  for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++ ) {
+                     //p_events[j] = localBase + _eventBase + kvs[kv].first;
+                     //p_values[j++] = kvs[kv].second;
+                     p_events[j] = 9999;
+                     p_values[j++] = 9999;
+                  }
                   break;
                case Event::BURST_END:
                   kvs = e.getKVs();
+#if 0
                   for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
                      p_events[j] = _eventBase +  kvs->first;
                      p_values[j++] = 0; // end
+                  }
+#endif
+                  for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++ ) {
+                     //p_events[j] = _eventBase +  kvs[kv].first;
+                     //p_values[j++] = 0; // end
+                     p_events[j] = 9999;
+                     p_values[j++] = 0;
                   }
                   break;
             }
