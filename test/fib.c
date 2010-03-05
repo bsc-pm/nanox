@@ -71,6 +71,7 @@ int fib ( int n, int d )
 //      x = fib(n - 1,d+1);
       {
          nanos_wd_t wd=0;
+         nanos_copy_data_t *cd = 0;
          fib_args *args=0;
          nanos_device_t fib_devices_1[1] = { NANOS_SMP_DESC( fib_device_arg_1 ) };
          nanos_wd_props_t props = {
@@ -80,7 +81,7 @@ int fib ( int n, int d )
          };
 
          NANOS_SAFE( nanos_create_wd ( &wd, 1, fib_devices_1 , sizeof( fib_args ),
-                                       ( void ** )&args, nanos_current_wd(), &props, 0, NULL ) );
+                                       ( void ** )&args, nanos_current_wd(), &props, 0, &cd ) );
          args->n = n;
          args->d = d;
          args->x = &x;
@@ -92,6 +93,7 @@ int fib ( int n, int d )
 //		y = fib(n - 2,d+1);
       {
          nanos_wd_t wd=0;
+         nanos_copy_data_t *cd = 0;
          fib_args *args=0;
          nanos_device_t fib_devices_2[1] = { NANOS_SMP_DESC( fib_device_arg_2 ) };
          nanos_wd_props_t props = {
@@ -101,7 +103,7 @@ int fib ( int n, int d )
          };
 
          NANOS_SAFE( nanos_create_wd ( &wd, 1, fib_devices_2 , sizeof( fib_args ),
-                                       ( void ** )&args, nanos_current_wd(), &props, 0, NULL ) );
+                                       ( void ** )&args, nanos_current_wd(), &props, 0, &cd ) );
          args->n = n;
          args->d = d;
          args->x = &y;

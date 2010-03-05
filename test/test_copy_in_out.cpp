@@ -29,10 +29,6 @@ using namespace std;
 using namespace nanos;
 using namespace nanos::ext;
 
-int a = 1234;
-std::string b( "default" );
-bool c = false;
-
 typedef struct {
    int a;
    std::string b;
@@ -48,7 +44,7 @@ void hello_world ( void *args )
       std::cout << "Error: CopyData address '" << cd[0].getAddress() << "' does not match argument with address '"
                 << &(hargs->a) << "'." << std::endl;
    else std::cout << "Checking for CopyData address correctness... PASS" << std::endl;
-   if ( (void *)cd[1].getAddress() != (void *) &(hargs->b) )
+   if ( (void *)( (char *)hargs + (unsigned long)cd[1].getAddress() ) != (void *) &(hargs->b) )
       std::cout << "Error: CopyData address '" << cd[1].getAddress() << "' does not match argument with address '"
                 << &(hargs->b) << "'." << std::endl;
    else std::cout << "Checking for CopyData address correctness... PASS" << std::endl;
@@ -88,7 +84,7 @@ int main ( int argc, char **argv )
    data->b = a;
 
    CopyData cd[2] = { CopyData( (void *)&data->a, NX_SHARED, true, false, sizeof(data->a) ),
-                      CopyData( (void *)&data->b, NX_PRIVATE, false, true, sizeof(data->b) ) };
+                      CopyData( (void *)&data->b, NX_PRIVATE, true, true, sizeof(data->b) ) };
 
    WD * wd = new WD( new SMPDD( hello_world ), sizeof( hello_world_args ), data, 2, cd );
 

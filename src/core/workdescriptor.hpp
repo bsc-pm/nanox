@@ -357,6 +357,7 @@ namespace nanos
 	 virtual void submit ( void ); 
 
          virtual void done ();
+         virtual void start ();
 
           /*! \brief returns the number of CopyData elements in the WorkDescriptor
            */
@@ -406,6 +407,10 @@ namespace nanos
             {
                return _instrumentorContext;
             }
+
+           /*! \breif Prepare private copies to have relative addresses
+            */
+            void prepareCopies();
 
     };
 

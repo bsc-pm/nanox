@@ -17,65 +17,42 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "workgroup.hpp"
-#include "atomic.hpp"
-#include "schedule.hpp"
-#include "synchronizedcondition.hpp"
+#include "nanos_pe.h"
+#include "basethread.hpp"
+#include "debug.hpp"
+#include "system.hpp"
+#include "workdescriptor.hpp"
+#include "plugin.hpp"
 
 using namespace nanos;
 
-Atomic<int> WorkGroup::_atomicSeed( 0 );
-
-void WorkGroup::addWork ( WorkGroup &work )
+nanos_err_t nanos_get_addr ( void * tag, nanos_sharing_t sharing, void **addr )
 {
-   _components++;
-   work.addToGroup( *this );
+   sys.getInstrumentor()->enterRuntime();
+
+   nanos_wd_t cwd = myThread->getCurrentWD();
+   WD *wd = ( WD * )cwd;
+
+   ProcessingElement *pe = myThread->runningOn();
+   *addr = pe->getAddress( *wd, tag, sharing ); //FIXME , SHARING );
+
+   sys.getInstrumentor()->leaveRuntime();
+
+   return NANOS_OK;
 }
 
-void WorkGroup::addToGroup ( WorkGroup &parent )
+nanos_err_t nanos_copy_value ( void * dst, void *tag, nanos_sharing_t sharing, size_t size )
 {
-   _partOf.push_back( &parent );
-}
+   sys.getInstrumentor()->enterRuntime();
 
-void WorkGroup::exitWork ( WorkGroup &work )
-{
-   int componentsLeft = --_components;
-   if (componentsLeft == 0)
-      _syncCond.signal();
-}
+   nanos_wd_t cwd = myThread->getCurrentWD();
+   WD *wd = ( WD * )cwd;
 
-void WorkGroup::sync ()
-{
-   _phaseCounter++;
-   //TODO: block and switch
+   ProcessingElement *pe = myThread->runningOn();
+   pe->copyTo( *wd, dst, tag, sharing, size ); //FIXME , SHARING );
 
-   while ( _phaseCounter < _components );
+   sys.getInstrumentor()->leaveRuntime();
 
-   //TODO: reinit phase_counter
-}
-
-void WorkGroup::waitCompletation ()
-{
-     _syncCond.wait();
-}
-
-void WorkGroup::start ()
-{
-}
-
-void WorkGroup::done ()
-{
-   for ( WGList::iterator it = _partOf.begin();
-         it != _partOf.end();
-         it++ ) {
-      if ( *it )
-        ( *it )->exitWork( *this );
-      *it = 0;
-   }
-}
-
-WorkGroup::~WorkGroup ()
-{
-   done();
+   return NANOS_OK;
 }
 

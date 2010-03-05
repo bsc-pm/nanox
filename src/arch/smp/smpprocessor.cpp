@@ -60,3 +60,38 @@ BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper )
    return th;
 }
 
+
+#if SMP_NUMA
+
+void SMPProcessor::registerDataAccessDependent( void *tag, size_t size )
+{
+   _cache.cacheData( tag, size );
+}
+
+void SMPProcessor::copyDataDependent( void *tag, size_t size )
+{
+   _cache.copyData( tag, size );
+}
+
+void SMPProcessor::unregisterDataAccessDependent( void *tag )
+{
+   _cache.flush( tag );
+}
+
+void SMPProcessor::copyBackDependent( void *tag, size_t size )
+{
+   _cache.copyBack( tag, size );
+}
+
+void* SMPProcessor::getAddressDependent( void* tag )
+{
+   return _cache.getAddress(tag);
+}
+
+void SMPProcessor::copyToDependent( void* dst, void *tag, size_t size )
+{
+   _cache.copyTo( dst, tag, size );
+}
+
+#endif
+

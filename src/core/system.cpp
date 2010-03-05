@@ -625,6 +625,10 @@ void System::submit ( WD &work )
 {
    work.setParent ( myThread->getCurrentWD() );
    work.setDepth( work.getParent()->getDepth() +1 );
+
+   // Prepare private copy structures to use relative addresses
+   work.prepareCopies();
+
    work.submit();
 }
 
@@ -653,6 +657,10 @@ void System::inlineWork ( WD &work )
 
    // TODO: choose actual device...
    work.setParent ( myself->getCurrentWD() );
+
+   // Prepare private copy structures to use relative addresses
+   work.prepareCopies();
+
    myself->inlineWork( &work );
 }
 

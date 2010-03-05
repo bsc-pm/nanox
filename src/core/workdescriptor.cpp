@@ -71,9 +71,26 @@ void WorkDescriptor::submit( void )
 
 void WorkDescriptor::done ()
 {
+   ProcessingElement *pe = myThread->runningOn();
+   pe->copyDataOut( *this );
+
    // FIX-ME: We are waiting for the children tasks to avoid to keep alive only part of the parent
    waitCompletation();
    this->getParent()->workFinished( *this );
    WorkGroup::done();
+}
+
+void WorkDescriptor::start ()
+{
+   ProcessingElement *pe = myThread->runningOn();
+   pe->copyDataIn( *this );
+}
+
+void WorkDescriptor::prepareCopies()
+{
+   for (unsigned int i = 0; i < _numCopies; i++ ) {
+      if ( _copies[i].isPrivate() )
+         _copies[i].setAddress( (void *)( (char *)_copies[i].getAddress() - (unsigned long)_data ) );
+   }
 }
 

@@ -17,65 +17,32 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_WORK_GROUP
-#define _NANOS_WORK_GROUP
+#ifndef _NUMA_NANOS_H_
+#define _NUMA_NANOS_H_
 
-#include <vector>
-#include "atomic.hpp"
-#include "dependenciesdomain.hpp"
-#include "synchronizedcondition_decl.hpp"
+#include <unistd.h>
+#include <stdbool.h>
+#include "nanos.h"
+#include "nanos-int.h"
 
-namespace nanos
-{
-
-   class WorkGroup
-   {
-
-      private:
-         static Atomic<int> _atomicSeed;
-
-         // FIX-ME: vector is not a safe-class here
-         typedef std::vector<WorkGroup *> WGList;
-
-         WGList         _partOf;
-         int            _id;
-         Atomic<int>    _components;
-         Atomic<int>    _phaseCounter;
-
-         SingleSyncCond<EqualConditionChecker<int> > _syncCond;
-
-         void addToGroup ( WorkGroup &parent );
-         void exitWork ( WorkGroup &work );
-
-         const WorkGroup & operator= ( const WorkGroup &wg );
-
-      public:
-         // constructors
-         WorkGroup() : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ),
-            _syncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ) {  }
-         WorkGroup( const WorkGroup &wg ) : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ),
-            _syncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ) 
-         {
-            for ( WGList::const_iterator it = wg._partOf.begin(); it < wg._partOf.end(); it++ ) {
-               if (*it) (*it)->addWork( *this );
-            }
-         }
-
-         // destructor
-         virtual ~WorkGroup();
-
-         void addWork( WorkGroup &wg );
-         void sync();
-         void waitCompletation();
-         virtual void start();
-         virtual void done();
-         int getId() const { return _id; }
-
-   };
-
-   typedef WorkGroup WG;
-
-};
-
+#ifdef _MERCURIUM_
+// define API version
+#pragma nanos interface family(master) version(5000)
 #endif
 
+#ifdef __cplusplus
+
+#define _Bool bool
+
+extern "C" {
+#endif
+
+nanos_err_t nanos_get_addr ( void * tag, nanos_sharing_t sharing, void **addr );
+
+nanos_err_t nanos_copy_value ( void * dst, void *tag, nanos_sharing_t sharing, size_t size );
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
