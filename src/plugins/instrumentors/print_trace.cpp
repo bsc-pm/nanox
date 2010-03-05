@@ -1,45 +1,38 @@
 #include "plugin.hpp"
-#include "instrumentor.hpp"
 #include "system.hpp"
+#include "instrumentor.hpp"
 
 namespace nanos {
 
-#define INSTRUMENTOR_MAX_STATES 10
-#define INSTRUMENTOR_MAX_EVENTS 10
-
 class InstrumentorPrintTrace: public Instrumentor 
 {
+#if defined INSTRUMENTATION_ENABLED
    private:
-       unsigned int _states[INSTRUMENTOR_MAX_STATES];  /*<< state vector translator */
-       unsigned int _events[INSTRUMENTOR_MAX_EVENTS];  /*<< event id vector translator */
 
    public:
       // constructor
       InstrumentorPrintTrace ( )
       {
-         _states[IDLE]      = 80000000;
-         _states[RUNNING]   = 80000001;
-
-         _events[CREATE_WD] = 80000002;
-
       }
 
       // destructor
       ~InstrumentorPrintTrace ( ) { }
 
-      // headers (implemented below)
-      // low-level instrumentation interface
+      // low-level instrumentation interface (mandatory functions)
 
-      void initialize ( void ) { }
-      void finalize ( void ) { } 
-      void changeStateEventList ( nanos_state_t state, unsigned int count, nanos_event_t *events ) { }
-      void addEventList ( unsigned int count, nanos_event_t *events ) { }
+      virtual void initialize( void ) {}
+      virtual void finalize( void ) {}
+      virtual void addEventList ( unsigned int count, Event *events ) {}
 
       // high-level events
 
-      void enterCreateWD () { fprintf(stderr, "TRACE [%d]: Enter create WD (%d).\n", myThread->getId(), _states[CREATE_WD] ); }
-      void leaveCreateWD () { fprintf(stderr, "TRACE [%d]: Leave create WD (%d).\n", myThread->getId(), _states[CREATE_WD] ); }
-
+      virtual void enterRuntimeAPI ( nanos_event_api_t function, nanos_event_state_t state = RUNTIME ) {}
+      virtual void leaveRuntimeAPI ( ) {}
+      virtual void enterIdle ( ) {}
+      virtual void leaveIdle ( ) {}
+      virtual void wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
+      virtual void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
+#endif
 };
 
 
