@@ -65,6 +65,8 @@ class SlicerRepeatNPlugin : public Plugin {
       SlicerRepeatNPlugin () : Plugin("Slicer for repeating n times a given wd",1) {}
       ~SlicerRepeatNPlugin () {}
 
+      virtual void config( Config& config ) {}
+
       void init ()
       {
          sys.registerSlicer("repeat_n", new SlicerRepeatN() );	

@@ -32,16 +32,28 @@ typedef struct {
    size_t  size;
 } nanos_dependence_internal_t;
 
+typedef struct {
+   void *address;
+   struct {
+      bool input: 1;
+      bool output: 1;
+   } flags;
+   size_t size;
+} nanos_copy_data_internal_t;
+
 #ifndef _NANOS_INTERNAL
 
 typedef nanos_dependence_internal_t nanos_dependence_t;
+typedef nanos_copy_data_internal_t nanos_copy_data_t;
 
 #else
 
 namespace nanos {
    class Dependency;
+   class CopyData;
 }
 typedef nanos::Dependency nanos_dependence_t;
+typedef nanos::CopyData nanos_copy_data_t;
 
 #endif
 

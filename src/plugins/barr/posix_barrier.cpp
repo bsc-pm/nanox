@@ -83,6 +83,8 @@ namespace nanos {
          public:
             PosixBarrierPlugin() : Plugin( "Posix Barrier Plugin",1 ) {}
 
+            virtual void config( Config &config ) {}
+
             virtual void init() {
                sys.setDefaultBarrFactory( createPosixBarrier );
             }

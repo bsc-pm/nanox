@@ -36,7 +36,7 @@ void PluginManager::init()
    config.init();
 }
 
-bool PluginManager::load ( const char *name )
+bool PluginManager::isPlugin ( const char *name )
 {
    std::string dlname;
    void * handler;
@@ -52,12 +52,40 @@ bool PluginManager::load ( const char *name )
 
    Plugin *plugin = ( Plugin * ) OS::dlFindSymbol( handler, "NanosXPlugin" );
 
-   if ( !plugin ) {
+   return plugin != NULL;
+}
+
+bool PluginManager::load ( const char *name, const bool init )
+{
+   return loadAndGetPlugin ( name, init ) != NULL;
+}
+
+Plugin * PluginManager::loadAndGetPlugin( const char *name, const bool init )
+{
+   std::string dlname;
+   void * handler;
+
+   dlname = "libnanox-";
+   dlname += name;
+   handler = OS::loadDL( _pluginsDir,dlname );
+
+   if ( !handler ) {
       warning0 ( "plugin error=" << OS::dlError( handler ) );
-      return false;
+      return NULL;
    }
 
-   plugin->init();
+   Plugin *plugin = ( Plugin * ) OS::dlFindSymbol( handler, "NanosXPlugin" );
 
-   return true;
+   if ( !plugin ) {
+      warning0 ( "plugin error=" << OS::dlError( handler ) );
+      return NULL;
+   }
+
+ 
+   Config config;
+   plugin->config(config);
+   if ( init )
+      plugin->init();
+
+   return plugin;
 }

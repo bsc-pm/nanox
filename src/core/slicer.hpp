@@ -62,18 +62,18 @@ namespace nanos
       public:
           // constructors
           SlicedWD ( Slicer &slicer, size_t sdata_size, SlicerData &sdata, int ndevices, DeviceData **devs,
-                     size_t data_size, void *wdata=0 ) :
-                     WorkDescriptor ( ndevices, devs, data_size, wdata),
+                     size_t data_size, void *wdata=0, size_t numCopies=0, CopyData *copies=NULL ) :
+                     WorkDescriptor ( ndevices, devs, data_size, wdata, numCopies, copies ),
                      _slicer(slicer), _slicerDataSize(sdata_size), _slicerData(sdata)  {}
 
           SlicedWD ( Slicer &slicer, size_t sdata_size, SlicerData &sdata, DeviceData *device,
-                     size_t data_size, void *wdata=0 ) :
-                      WorkDescriptor ( device, data_size, wdata),
+                     size_t data_size, void *wdata=0, size_t numCopies=0, CopyData* copies=NULL ) :
+                      WorkDescriptor ( device, data_size, wdata, numCopies, copies ),
                      _slicer(slicer), _slicerDataSize(sdata_size), _slicerData(sdata)  {}
 
           SlicedWD ( Slicer &slicer, size_t sdata_size, SlicerData &sdata, WD &wd,
-                      DeviceData **device, void *wdata=0 ) :
-                      WorkDescriptor ( wd, device, wdata),
+                      DeviceData **device, CopyData *copies, void *wdata=0 ) :
+                      WorkDescriptor ( wd, device, copies, wdata),
                      _slicer(slicer), _slicerDataSize(sdata_size), _slicerData(sdata)  {}
 
          // destructor

@@ -18,10 +18,10 @@
 /*************************************************************************************/
 
 #include "config.hpp"
-#include "nanos.h"
 #include <iostream>
 #include "smpprocessor.hpp"
 #include "system.hpp"
+#include "copydata.hpp"
 #include <string.h>
 
 using namespace std;
@@ -29,35 +29,39 @@ using namespace std;
 using namespace nanos;
 using namespace nanos::ext;
 
-void single_code ( void *a )
+extern "C" {
+
+void check_hardcoded_copy_data ()
 {
-   bool b = true;
+   WD *wd = myThread->getCurrentWD();
+   CopyData* cd = wd->getCopies();
 
-   for ( int i=0; i<1000; i++ ) {
-      nanos_single_guard( &b );
+   if ( cd[0].getAddress() !=  (void *)1280 ) 
+      std::cout << "Error: CopyData address '" << (unsigned long)cd[0].getAddress() << "' does not match argument with address '"
+                << 1280 << "'." << std::endl;
+   else std::cout << "Checking for CopyData address correctness... PASS" << std::endl;
+   if ( cd[1].getAddress() !=  (void *)1024 ) 
+      std::cout << "Error: CopyData address '" << (unsigned long)cd[1].getAddress() << "' does not match argument with address '"
+                << 1024 << "'." << std::endl;
+   else std::cout << "Checking for CopyData address correctness... PASS" << std::endl;
 
-      if ( b ) {
-         cerr << "it: " << i << " th: " << myThread->getId() << endl ;
-         usleep( 10 );
-      }
-      nanos_team_barrier();
-   }
+   if ( cd[0].getSize() != 255 )
+      std::cout << "Error: CopyData size '" << cd[0].getSize() << "' does not match argument with size '"
+                << 255 << "'." << std::endl;
+   else std::cout << "Checking for CopyData size correctness... PASS" << std::endl;
+   if ( cd[1].getSize() != 127 )
+      std::cout << "Error: CopyData size '" << cd[1].getSize() << "' does not match argument with size '"
+                << 127 << "'." << std::endl;
+   else std::cout << "Checking for CopyData size correctness... PASS" << std::endl;
+
+   if ( !cd[0].isInput() )
+      std::cout << "Error: CopyData was supposed to be input." << std::endl;
+   else std::cout << "Checking for CopyData direction correctness... PASS" << std::endl;
+   if ( !cd[1].isOutput() )
+      std::cout << "Error: CopyData was supposed to be output." << std::endl;
+   else std::cout << "Checking for CopyData direction correctness... PASS" << std::endl;
+   
 }
 
-int main ( int argc, char **argv )
-{
-   cout << "start" << endl;
-
-   ThreadTeam &team = *myThread->getTeam();
-   for ( int i = 1; i < sys.getNumPEs(); i++ ) {
-      WD * wd = new WD( new SMPDD( single_code ) );
-      wd->tieTo(team[i]);
-      sys.submit( *wd );
-   }
-
-   usleep( 100 );
-
-   single_code( 0 );
-
-   cout << "end" << endl;
 }
+

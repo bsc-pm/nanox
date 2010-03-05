@@ -24,6 +24,7 @@
 #include "workdescriptor.hpp"
 #include "smpdd.hpp"
 #include "plugin.hpp"
+#include "instrumentor.hpp"
 
 using namespace nanos;
 
@@ -32,35 +33,32 @@ const size_t nanos_smp_dd_size = sizeof(ext::SMPDD);
 
 void * nanos_smp_factory( void *prealloc, void *args )
 {
-   sys.getInstrumentor()->enterRuntime();
    nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
 
    if ( prealloc != NULL )
    {
-      sys.getInstrumentor()->leaveRuntime();
       return ( void * )new (prealloc) ext::SMPDD( smp->outline );
    }
    else 
    {
-      sys.getInstrumentor()->leaveRuntime();
       return ( void * )new ext::SMPDD( smp->outline );
    }
 }
 
 nanos_wd_t nanos_current_wd()
 {
-   sys.getInstrumentor()->enterRuntime();
+   sys.getInstrumentor()->enterRuntimeAPI( CURRENT_WD, RUNTIME );
    nanos_wd_t cwd = myThread->getCurrentWD();
-   sys.getInstrumentor()->leaveRuntime();
+   sys.getInstrumentor()->leaveRuntimeAPI();
    return cwd;
 }
 
 int nanos_get_wd_id ( nanos_wd_t wd )
 {
-   sys.getInstrumentor()->enterRuntime();
+   sys.getInstrumentor()->enterRuntimeAPI( GET_WD_ID, RUNTIME );
    WD *lwd = ( WD * )wd;
    int id = lwd->getId();
-   sys.getInstrumentor()->leaveRuntime();
+   sys.getInstrumentor()->leaveRuntimeAPI();
    return id;
 }
 
@@ -69,23 +67,23 @@ int nanos_get_wd_id ( nanos_wd_t wd )
  *  \sa nanos::WorkDescriptor
  */
 nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t data_size,
-                               void ** data, nanos_wg_t uwg, nanos_wd_props_t *props )
+                               void ** data, nanos_wg_t uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t *copies )
 {
-   sys.getInstrumentor()->enterCreateWD();
    try 
    {
+      sys.getInstrumentor()->enterRuntimeAPI( CREATE_WD, RUNTIME );
       if ( ( props == NULL  || ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTask() ) {
          *uwd = 0;
          return NANOS_OK;
       }
-      sys.createWD ( (WD **) uwd, num_devices, devices, data_size, (void **) data, (WG *) uwg, props);
+      sys.createWD ( (WD **) uwd, num_devices, devices, data_size, (void **) data, (WG *) uwg, props, num_copies, copies );
 
    } catch ( ... ) {
-      sys.getInstrumentor()->leaveCreateWD();
+      sys.getInstrumentor()->leaveRuntimeAPI();
       return NANOS_UNKNOWN_ERR;
    }
 
-   sys.getInstrumentor()->leaveCreateWD();
+   sys.getInstrumentor()->leaveRuntimeAPI();
    return NANOS_OK;
 }
 
@@ -95,35 +93,37 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
  */
 nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
                                void ** outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, size_t slicer_data_size,
-                               nanos_slicer_data_t * slicer_data, nanos_wd_props_t *props )
+                               nanos_slicer_data_t * slicer_data, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t *copies )
 {
-   sys.getInstrumentor()->enterCreateWD();
    try 
    {
+      sys.getInstrumentor()->enterRuntimeAPI( CREATE_WD, RUNTIME );
       if ( ( props == NULL  || ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTask() ) {
          *uwd = 0;
          return NANOS_OK;
       }
       if ( slicer_data == NULL ) {
-         sys.getInstrumentor()->leaveCreateWD();
+         sys.getInstrumentor()->leaveRuntimeAPI();
          return NANOS_UNKNOWN_ERR;
       }
       sys.createSlicedWD ( (WD **) uwd, num_devices, devices, outline_data_size, outline_data, (WG *) uwg,
-                           (Slicer *) slicer, slicer_data_size, (SlicerData *&) *slicer_data, props);
+                           (Slicer *) slicer, slicer_data_size, (SlicerData *&) *slicer_data, props, num_copies, copies );
 
    } catch ( ... ) {
-      sys.getInstrumentor()->leaveCreateWD();
+      // xteruel:FIXME: Will be interesting to instrument new wd info: (WD *) *uwd
+      sys.getInstrumentor()->leaveRuntimeAPI();
       return NANOS_UNKNOWN_ERR;
    }
 
-   sys.getInstrumentor()->leaveCreateWD();
+   sys.getInstrumentor()->leaveRuntimeAPI();
    return NANOS_OK;
 }
 
 nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *deps, nanos_team_t team )
 {
-   sys.getInstrumentor()->enterSubmitWD();
    try {
+      // xteruel:FIXME: Will be interesting to instrument new wd info: (WD *) *uwd
+      sys.getInstrumentor()->enterRuntimeAPI( SUBMIT_WD, RUNTIME );
       ensure( uwd,"NULL WD received" );
 
       WD * wd = ( WD * ) uwd;
@@ -139,28 +139,31 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *
 
       sys.submit( *wd );
    } catch ( ... ) {
-      sys.getInstrumentor()->leaveSubmitWD();
+      // xteruel:FIXME: Will be interesting to instrument new wd info: (WD *) *uwd
+      sys.getInstrumentor()->leaveRuntimeAPI();
       return NANOS_UNKNOWN_ERR;
    }
 
-   sys.getInstrumentor()->leaveSubmitWD();
+   // xteruel:FIXME: Will be interesting to instrument new wd info: (WD *) *uwd
+   sys.getInstrumentor()->leaveRuntimeAPI();
    return NANOS_OK;
 }
 
 
 // data must be not null
 nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *devices, size_t data_size, void * data, 
-                                      size_t num_deps, nanos_dependence_t *deps, nanos_wd_props_t *props )
+                                      size_t num_deps, nanos_dependence_t *deps, nanos_wd_props_t *props,
+                                      size_t num_copies, nanos_copy_data_t *copies )
 {
-   sys.getInstrumentor()->enterInlineWD();
    try {
+      sys.getInstrumentor()->enterRuntimeAPI( CREATE_WD_AND_RUN, RUNTIME );
       if ( num_devices > 1 ) warning( "Multiple devices not yet supported. Using first one" );
 
       // TODO: choose device
       // pre-allocate device
       char chunk[devices[0].dd_size];
 
-      WD wd( ( DD* ) devices[0].factory( chunk, devices[0].arg ), data_size, data );
+      WD wd( ( DD* ) devices[0].factory( chunk, devices[0].arg ), data_size, data, num_copies, copies );
 
       if ( deps != NULL ) {
          sys.waitOn( num_deps, deps );
@@ -169,34 +172,34 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
       sys.inlineWork( wd );
 
    } catch ( ... ) {
-      sys.getInstrumentor()->leaveInlineWD();
+      sys.getInstrumentor()->leaveRuntimeAPI();
       return NANOS_UNKNOWN_ERR;
    }
 
-   sys.getInstrumentor()->leaveInlineWD();
+   sys.getInstrumentor()->leaveRuntimeAPI();
    return NANOS_OK;
 }
 
 nanos_err_t nanos_set_internal_wd_data ( nanos_wd_t wd, void *data )
 {
-   sys.getInstrumentor()->enterRuntime();
    try {
+      sys.getInstrumentor()->enterRuntimeAPI( SET_INTERNAL_WD_DATA, RUNTIME );
       WD *lwd = ( WD * ) wd;
 
       lwd->setInternalData( data );
    } catch ( ... ) {
-      sys.getInstrumentor()->leaveRuntime();
+      sys.getInstrumentor()->leaveRuntimeAPI();
       return NANOS_UNKNOWN_ERR;
    }
 
-   sys.getInstrumentor()->leaveRuntime();
+   sys.getInstrumentor()->leaveRuntimeAPI();
    return NANOS_OK;
 }
 
 nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data )
 {
-   sys.getInstrumentor()->enterRuntime();
    try {
+      sys.getInstrumentor()->enterRuntimeAPI( GET_INTERNAL_WD_DATA, RUNTIME );
       WD *lwd = ( WD * ) wd;
       void *ldata;
 
@@ -204,10 +207,10 @@ nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data )
 
       *data = ldata;
    } catch ( ... ) {
-      sys.getInstrumentor()->leaveRuntime();
+      sys.getInstrumentor()->leaveRuntimeAPI();
       return NANOS_UNKNOWN_ERR;
    }
 
-   sys.getInstrumentor()->leaveRuntime();
+   sys.getInstrumentor()->leaveRuntimeAPI();
    return NANOS_OK;
 }

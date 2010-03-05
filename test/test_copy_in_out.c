@@ -17,47 +17,40 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "config.hpp"
-#include "nanos.h"
-#include <iostream>
-#include "smpprocessor.hpp"
-#include "system.hpp"
-#include <string.h>
+#include <stdio.h>
+#include <sys/time.h>
+#include <stdlib.h>
+#include <nanos.h>
 
-using namespace std;
 
-using namespace nanos;
-using namespace nanos::ext;
+void check_hardcoded_copy_data();
 
-void single_code ( void *a )
+void first()
 {
-   bool b = true;
-
-   for ( int i=0; i<1000; i++ ) {
-      nanos_single_guard( &b );
-
-      if ( b ) {
-         cerr << "it: " << i << " th: " << myThread->getId() << endl ;
-         usleep( 10 );
-      }
-      nanos_team_barrier();
-   }
+   check_hardcoded_copy_data ();
 }
+
+nanos_smp_args_t test_device_arg_1 = { first };
 
 int main ( int argc, char **argv )
 {
-   cout << "start" << endl;
+   int dummy=0;
+   void* dummy1 = (void *) 1280;
+   void* dummy2 = (void *) 1024;
+   nanos_wd_props_t props = {
+     .mandatory_creation = true,
+     .tied = false,
+     .tie_to = false,
+   };
 
-   ThreadTeam &team = *myThread->getTeam();
-   for ( int i = 1; i < sys.getNumPEs(); i++ ) {
-      WD * wd = new WD( new SMPDD( single_code ) );
-      wd->tieTo(team[i]);
-      sys.submit( *wd );
-   }
+   nanos_copy_data_t cd[2] = { {dummy1, {true, false}, 255}, {dummy2, {false, true}, 127} }; 
 
-   usleep( 100 );
+   nanos_wd_t wd1=0;
+   nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1) };
+   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, 0, (void*)&dummy, nanos_current_wd(), &props, 2, cd) );
+   NANOS_SAFE( nanos_submit( wd1,0,0,0 ) );
 
-   single_code( 0 );
-
-   cout << "end" << endl;
+   NANOS_SAFE( nanos_wg_wait_completation( nanos_current_wd() ) );
+   return 0;
 }
+

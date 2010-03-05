@@ -63,8 +63,8 @@ void BaseThread::inlineWork (WorkDescriptor *wd)
    sys.getInstrumentor()->wdSwitch( oldwd, wd );
    setCurrentWD( *wd );
    inlineWorkDependent(*wd);
-   wd->done();
    sys.getInstrumentor()->wdSwitch( wd, oldwd );
+   wd->done();
    myThread->setCurrentWD( *oldwd );
 }
 

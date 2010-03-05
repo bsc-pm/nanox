@@ -57,10 +57,13 @@ nanos_sources=\
 	workdescriptor.hpp \
 	workdescriptor.cpp \
 	slicer.hpp \
+	instrumentor_ctx.hpp \
+	instrumentor_decl.hpp \
 	instrumentor.hpp \
+        instrumentor.cpp \
 	throttle.hpp \
 	dependency.hpp \
-	dependency.hpp \
+	copydata.hpp \
 	dependableobject.hpp \
 	dependableobjectwd.hpp \
 	dependableobjectwd.cpp \

@@ -134,6 +134,8 @@ namespace nanos {
          public:
             CentralizedBarrierPlugin() : Plugin( "Centralized Barrier Plugin",1 ) {}
 
+            virtual void config( Config &config ) {}
+
             virtual void init() {
                sys.setDefaultBarrFactory( createCentralizedBarrier );
             }

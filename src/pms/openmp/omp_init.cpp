@@ -61,7 +61,7 @@ namespace nanos
             sys.setUntieMaster(true);
          } else {
             sys.setInitialMode( System::ONE_THREAD );
-            sys.setUntieMaster(false);
+//             sys.setUntieMaster(false);
          }
 
          readEnvinroment();

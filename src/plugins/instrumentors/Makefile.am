@@ -43,8 +43,9 @@ libnanox_instrumentor_print_trace_la_SOURCES = \
 	print_trace.cpp \
 	$(END)
 
-libnanox_instrumentor_paraver_la_CXXFLAGS = $(common_includes) $(common_cxxflags) $(mpitrace_cxxflags)
+libnanox_instrumentor_paraver_la_CXXFLAGS = $(common_includes) $(common_cxxflags) $(mpitrace_cxxflags) 
 libnanox_instrumentor_paraver_la_LDFLAGS = $(ld_plugin_flags) $(mpitrace_ldflags)
 libnanox_instrumentor_paraver_la_SOURCES = \
 	paraver.cpp \
+        ompi_services.cpp \
 	$(END)

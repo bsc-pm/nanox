@@ -21,6 +21,7 @@
 #include "plugin.hpp"
 #include "config.hpp"
 #include "config.h"
+#include "system.hpp"
 #include <string>
 #include <stdio.h>
 #include <iostream>
@@ -29,6 +30,15 @@
 
 using namespace nanos;
 
+
+void utilInit () 
+{
+   sys.setDelayedStart(true);
+}
+
+namespace nanos {
+  System::Init externInit = utilInit;
+}
 
 int main (int argc, char* argv[])
 {
@@ -73,19 +83,14 @@ int main (int argc, char* argv[])
 
          if ( name.compare( name.size()-3,3,".so" ) == 0 ) {
             name.erase( name.size()-3 );
+            name.erase( 0, std::string("libnanox-").size() );
 
-            void * handler = OS::loadDL( PluginManager::getDirectory(),name );
+            if ( PluginManager::isPlugin( name ) ) {
+               Plugin *plugin = PluginManager::loadAndGetPlugin( name , false );
 
-            if ( !handler ) continue;
-
-            Plugin * plugin = ( Plugin * ) OS::dlFindSymbol( handler, "NanosXPlugin" );
-
-            if ( !plugin ) continue;
-
-plugin->init();
-
-            if ( listPlugins )
-               std::cout << "   " << name << " - " << plugin->getName() << " - version " << plugin->getVersion() << std::endl;
+               if ( listPlugins && plugin != NULL )
+                  std::cout << "   " << name << " - " << plugin->getName() << " - version " << plugin->getVersion() << std::endl;
+            }
          }
 
          free( namelist[n] );
