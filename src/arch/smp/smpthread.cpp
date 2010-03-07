@@ -88,11 +88,11 @@ void SMPThread::join ()
 }
 
 // This is executed in between switching stacks
-static void switchHelperDependent ( WD *oldWD, WD *newWD, intptr_t *oldState  )
+void SMPThread::switchHelperDependent ( WD *oldWD, WD *newWD, void *oldState  )
 {
    SMPDD & dd = ( SMPDD & )oldWD->getActiveDevice();
-   dd.setState( oldState );
-   myThread->switchHelper( oldWD, newWD );
+   dd.setState( (intptr_t *) oldState );
+//    myThread->switchHelper( oldWD, newWD );
 }
 
 void SMPThread::inlineWorkDependent ( WD &wd )
@@ -101,7 +101,7 @@ void SMPThread::inlineWorkDependent ( WD &wd )
    ( dd.getWorkFct() )( wd.getData() );
 }
 
-void SMPThread::switchTo ( WD *wd )
+void SMPThread::switchTo ( WD *wd, SchedulerHelper *helper )
 {
    // wd MUST have an active Device when it gets here
    ensure( wd->hasActiveDevice(),"WD has no active SMP device" );
@@ -118,19 +118,14 @@ void SMPThread::switchTo ( WD *wd )
          ( void * ) getCurrentWD(),
          ( void * ) wd,
          ( void * ) dd.getState(),
-         ( void * ) switchHelperDependent );
+         ( void * ) helper );
    } else {
       inlineWork( wd );
       delete wd;
    }
 }
 
-static void exitHelperDependent (  WD *oldWD, WD *newWD, intptr_t *oldState )
-{
-   myThread->exitHelper( oldWD, newWD );
-}
-
-void SMPThread::exitTo ( WD *wd )
+void SMPThread::exitTo ( WD *wd, SchedulerHelper *helper)
 {
    // wd MUST have an active Device when it gets here
    ensure( wd->hasActiveDevice(),"WD has no active SMP device" );
@@ -148,7 +143,7 @@ void SMPThread::exitTo ( WD *wd )
       ( void * ) getCurrentWD(),
       ( void * ) wd,
       ( void * ) dd.getState(),
-      ( void * ) exitHelperDependent );
+      ( void * ) helper );
 }
 
 void SMPThread::bind( void )

@@ -51,7 +51,7 @@ void SynchronizedCondition< _T>::wait()
             } */
 
             if ( next ) {               
-               thread->switchTo ( next );
+               Scheduler::switchTo ( next );
             }
             else {
                unlock();

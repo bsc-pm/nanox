@@ -124,7 +124,7 @@ namespace nanos
             bool                 _tie;
             BaseThread *         _tiedTo;
 
-            typedef enum { READY, IDLE, BLOCKED } State;
+            typedef enum { INIT, READY, IDLE, BLOCKED } State;
             State                _state;
 
             GenericSyncCond * _syncCond;
@@ -162,7 +162,7 @@ namespace nanos
         public:
             // constructors
             WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0,void *wdata=0, size_t numCopies = 0, CopyData *copies = NULL ) :
-                    WorkGroup(), _id ( _idSeed++ ), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( READY ),
+                    WorkGroup(), _id ( _idSeed++ ), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( INIT ),
                     _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( ndevices ), _devices ( devs ),
                     _activeDevice ( ndevices == 1 ? devs[0] : 0 ), _numCopies( numCopies ), _copies( copies ),
                     _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext()
@@ -172,7 +172,7 @@ namespace nanos
             }
 
             WorkDescriptor ( DeviceData *device, size_t data_size = 0, void *wdata=0, size_t numCopies = 0, CopyData *copies = NULL ) :
-                    WorkGroup(), _id ( _idSeed++ ), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( READY ),
+                    WorkGroup(), _id ( _idSeed++ ), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( INIT ),
                     _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( &_activeDevice ),
                     _activeDevice ( device ), _numCopies( numCopies ), _copies( copies ), 
                     _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext()
@@ -193,7 +193,7 @@ namespace nanos
              */
             WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL ) :
                     WorkGroup( wd ), _id ( _idSeed++ ), _data_size( wd._data_size ), _data ( data ), _wdData ( NULL ),
-                    _tie ( wd._tie ), _tiedTo ( wd._tiedTo ), _state ( READY ), _syncCond( NULL ), _parent ( wd._parent ),
+                    _tie ( wd._tie ), _tiedTo ( wd._tiedTo ), _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ),
                     _myQueue ( NULL ), _depth ( wd._depth ), _numDevices ( wd._numDevices ),
                     _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
                     _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
@@ -223,6 +223,16 @@ namespace nanos
          /*! \brief Get WorkDescriptor id
           */
          unsigned int getId ( void ) { return _id; }
+
+         /*! \brief Has this WorkDescriptor ever run?
+          */
+         bool started ( void ) const { return _state != INIT; }
+
+         /*! \brief Prepare WorkDescriptor to run
+          *
+          *  This function is useful to perform lazy initialization in the workdescriptor
+          */
+         void start ( void );
 
          /*! \brief Get data size
           *

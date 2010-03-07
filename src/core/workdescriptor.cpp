@@ -29,6 +29,11 @@ using namespace nanos;
 
 Atomic<unsigned int> WorkDescriptor::_idSeed = 1;
 
+void WorkDescriptor::start ()
+{
+   setReady();
+}
+
 DeviceData * WorkDescriptor::findDeviceData ( const Device &device ) const
 {
    for ( unsigned i = 0; i < _numDevices; i++ ) {

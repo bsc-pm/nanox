@@ -53,6 +53,9 @@ namespace ext
          virtual BaseThread & createThread ( WorkDescriptor &wd );
 
          static void prepareConfig ( Config &config );
+
+         // capability query functinos
+         virtual bool supportsUserLevelThreads () const { return _useUserThreads; }
    };
 
 }

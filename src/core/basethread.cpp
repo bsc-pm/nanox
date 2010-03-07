@@ -68,6 +68,7 @@ void BaseThread::inlineWork (WorkDescriptor *wd)
    myThread->setCurrentWD( *oldwd );
 }
 
+#if 0
 /*! \brief Performs the always-required operations when switching WD in a thread.
 */
 void BaseThread::switchHelper( WD* oldWD, WD* newWD )
@@ -91,6 +92,8 @@ void BaseThread::exitHelper( WD* oldWD, WD* newWD )
    delete oldWD;
    myThread->setCurrentWD( *newWD );
 }
+#endif
+
  
 /*
  * G++ optimizes TLS accesses by obtaining only once the address of the TLS variable

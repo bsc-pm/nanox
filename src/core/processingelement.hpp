@@ -73,6 +73,9 @@ namespace nanos
 
          BaseThread & startWorker ( SchedulingGroup *sg );
          void stopAll();
+
+         /* capabilitiy query functions */
+         virtual bool supportsUserLevelThreads() const = 0;
    };
 
    typedef class ProcessingElement PE;
