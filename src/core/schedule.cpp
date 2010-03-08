@@ -96,7 +96,10 @@ void Scheduler::idle ()
          if ( next ) {
             sys._idleThreads--;
             sys._numTasksRunning++;
-            switchTo ( next );
+             if (next->started())
+               switchTo(next);
+            else
+               inlineWork ( next );
             sys._numTasksRunning--;
             sys._idleThreads++;
          }
@@ -201,8 +204,10 @@ void Scheduler::switchTo ( WD *to )
 
    if ( myThread->runningOn()->supportsUserLevelThreads() )
       myThread->switchTo( to, switchHelper );
-   else 
+   else {
       inlineWork(to);
+      delete to;
+   }
 }
 
 #if 0

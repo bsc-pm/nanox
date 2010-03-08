@@ -61,6 +61,8 @@ BaseThread & ProcessingElement::associateThisThread ( SchedulingGroup *sg, bool 
       thread.setCurrentWD(master);
    }
 
+   thread.getCurrentWD()->setReady();
+
    return thread;
 }
 

@@ -72,6 +72,7 @@ namespace nanos
             bool operator== ( const Device &arch ) {
                 return arch._name == _name;
             }
+
     };
 
 // This class holds the specific data for a given device
@@ -106,10 +107,8 @@ namespace nanos
 
             // destructor
             virtual ~DeviceData() {}
-
-         virtual size_t size ( void ) { return sizeof( *this ); }
-
-         virtual DeviceData *copyTo ( void *addr ) = 0;
+            virtual size_t size ( void ) = 0;
+            virtual DeviceData *copyTo ( void *addr ) = 0;
     };
 
     class WorkDescriptor : public WorkGroup
