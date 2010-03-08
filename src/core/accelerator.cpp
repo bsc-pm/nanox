@@ -17,81 +17,45 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include <string.h>
-#include "processingelement.hpp"
+#include "accelerator.hpp"
 #include "debug.hpp"
 #include "schedule.hpp"
 #include "copydata.hpp"
 
 using namespace nanos;
 
-BaseThread& ProcessingElement::startWorker ( SchedulingGroup *sg )
+void Accelerator::copyDataIn( WorkDescriptor &work )
 {
-   WD & worker = getWorkerWD();
-   return startThread( worker,sg );
+   CopyData *copies = work.getCopies();
+   for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
+      CopyData & cd = copies[i];
+      void *tag = cd.isPrivate() ? ((char *)work.getData() + (unsigned long)cd.getAddress()) : cd.getAddress();
+      this->registerDataAccessDependent( tag, cd.getSize() );
+      if ( cd.isInput() )
+         this->copyDataDependent( tag, cd.getSize() );
+   }      
 }
 
-BaseThread & ProcessingElement::startThread ( WD &work, SchedulingGroup *sg )
+void Accelerator::copyDataOut( WorkDescriptor& work )
 {
-   BaseThread &thread = createThread( work );
-
-   if ( sg ) sg->addMember( thread );
-
-   thread.start();
-
-   _threads.push_back( &thread );
-
-   return thread;
-}
-
-BaseThread & ProcessingElement::associateThisThread ( SchedulingGroup *sg, bool untieMain )
-{
-   WD & worker = untieMain ?  getWorkerWD() : getMasterWD();
-   
-   BaseThread &thread = createThread( worker );
-
-   if ( sg ) sg->addMember( thread );
-
-   thread.associate();
-
-   if ( untieMain ) {
-      // "switch" to main
-      WD & master = getMasterWD();
-
-      // put worker thread idle-loop into the queue
-      Scheduler::queue(worker);
-      thread.setCurrentWD(master);
-   }
-
-   thread.getCurrentWD()->setReady();
-
-   return thread;
-}
-
-void ProcessingElement::stopAll ()
-{
-   ThreadList::iterator it;
-   BaseThread *thread;
-
-   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      thread = *it;
-      thread->stop();
-      thread->join();
-      if ( thread->hasTeam() )
-         thread->leaveTeam();
+   CopyData *copies = work.getCopies();
+   for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
+      CopyData & cd = copies[i];
+      void *tag = cd.isPrivate() ? ((char *)work.getData() + (unsigned long)cd.getAddress()) : cd.getAddress();
+      this->unregisterDataAccessDependent( tag );
+      if ( cd.isOutput() )
+          this->copyBackDependent( tag, cd.getSize() );
    }
 }
 
-void* ProcessingElement::getAddress( WorkDescriptor &wd, void* tag, nanos_sharing_t sharing )
+void* Accelerator::getAddress( WorkDescriptor &wd, void* tag, nanos_sharing_t sharing )
 {
    void *actualTag = (void *) ( sharing == NX_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : tag );
-   return actualTag;
+   return getAddressDependent( actualTag );
 }
 
-void ProcessingElement::copyTo( WorkDescriptor& wd, void* dst, void *tag, nanos_sharing_t sharing, size_t size )
+void Accelerator::copyTo( WorkDescriptor &wd, void* dst, void *tag, nanos_sharing_t sharing, size_t size )
 {
-   void *actualTag = (void *) ( sharing == NX_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : tag );
-   // FIXME: should this be done by using the local copeir of the device?
-   memcpy( dst, actualTag, size );
+   void *actualTag = (void *)( sharing == NX_PRIVATE ? (char *)wd.getData() + (unsigned long) tag : tag );
+   copyToDependent( dst, actualTag, size );
 }
-

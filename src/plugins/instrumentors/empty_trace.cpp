@@ -27,7 +27,7 @@ class InstrumentorEmptyTrace: public Instrumentor
       virtual void leaveRuntimeAPI ( ) {}
       virtual void enterIdle ( ) {}
       virtual void leaveIdle ( ) {}
-      virtual void wdCreate ( ) {}
+      virtual void wdCreate ( WorkDescriptor *wd ) {}
       virtual void wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
       virtual void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
 #endif

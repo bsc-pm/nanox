@@ -17,65 +17,53 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "workgroup.hpp"
-#include "atomic.hpp"
-#include "schedule.hpp"
-#include "synchronizedcondition.hpp"
+#ifndef _NANOS_ACCELERATOR
+#define _NANOS_ACCELERATOR
 
-using namespace nanos;
+#include "workdescriptor.hpp"
+#include "processingelement.hpp"
+#include <algorithm>
+#include "functors.hpp"
 
-Atomic<int> WorkGroup::_atomicSeed( 0 );
-
-void WorkGroup::addWork ( WorkGroup &work )
+namespace nanos
 {
-   _components++;
-   work.addToGroup( *this );
-}
 
-void WorkGroup::addToGroup ( WorkGroup &parent )
-{
-   _partOf.push_back( &parent );
-}
+// forward definitions
 
-void WorkGroup::exitWork ( WorkGroup &work )
-{
-   int componentsLeft = --_components;
-   if (componentsLeft == 0)
-      _syncCond.signal();
-}
 
-void WorkGroup::sync ()
-{
-   _phaseCounter++;
-   //TODO: block and switch
+   class Accelerator : public ProcessingElement
+   {
 
-   while ( _phaseCounter < _components );
+      private:
+         Accelerator ( const Accelerator &pe );
+         const Accelerator & operator= ( const Accelerator &pe );
+         
+      protected:
+         virtual WorkDescriptor & getMasterWD () const = 0;
+         virtual WorkDescriptor & getWorkerWD () const = 0;
 
-   //TODO: reinit phase_counter
-}
+      public:
+         // constructors
+         Accelerator ( int newId, const Device *arch ) : ProcessingElement( newId, arch) {}
 
-void WorkGroup::waitCompletation ()
-{
-     _syncCond.wait();
-}
+         // destructor
+         virtual ~Accelerator() {}
 
-void WorkGroup::start ()
-{
-}
+         virtual void copyDataIn( WorkDescriptor& wd );
+         virtual void copyDataOut( WorkDescriptor& wd );
 
-void WorkGroup::done ()
-{
-   for ( WGList::iterator it = _partOf.begin();
-         it != _partOf.end();
-         it++ ) {
-      if ( *it )
-        ( *it )->exitWork( *this );
-      *it = 0;
-   }
-}
+         virtual void registerDataAccessDependent( void *tag, size_t size ) = 0;
+         virtual void copyDataDependent( void *tag, size_t size ) = 0;
+         virtual void unregisterDataAccessDependent( void *tag ) = 0;
+         virtual void copyBackDependent( void *tag, size_t size ) = 0;
 
-WorkGroup::~WorkGroup ()
-{
-   done();
-}
+         virtual void* getAddress( WorkDescriptor& wd, void* tag, nanos_sharing_t sharing );
+         virtual void copyTo( WorkDescriptor& wd, void* dst, void *tag, nanos_sharing_t sharing, size_t size );
 
+         virtual void* getAddressDependent( void* tag ) = 0;
+         virtual void copyToDependent( void *tag, void* dst, size_t size ) = 0;
+   };
+
+};
+
+#endif

@@ -56,10 +56,14 @@ namespace nanos {
             else return ERROR;
          }
 
-         void pushBurst ( const Event &e ) { _burstList.push_back ( e ); }
+         void pushBurst ( const Event &e )
+         {
+            _burstList.push_front ( e );
+         }
+
          void popBurst ( void )
          {
-            if ( !(_burstList.empty()) ) _burstList.pop_back( );
+            if ( !(_burstList.empty()) ) _burstList.pop_front ( );
             else fatal0("Instrumentor burst error (empty burst list).");
             // FIXME: previous line should be fatal. Fix when we can include system.hpp
             // else fatal("Instrumentor burst error (empty burst list).");
@@ -72,6 +76,21 @@ namespace nanos {
             // FIXME: previous line should be fatal. Fix when we can include system.hpp
          }
           
+         bool findBurstByKey ( Event::Key key )
+         {
+            bool find = false;
+
+            for ( BurstList::iterator it = _burstList.begin() ; !find && (it != _burstList.end()) ; it++ ) {
+               Event::ConstKVList kvlist = (*it).getKVs();
+               if ( kvlist[0].first == key  )
+               {
+                  find = true;
+                  if ( it != _burstList.begin() ) _burstList.splice ( _burstList.begin(), _burstList, it );
+               }
+            }
+            return find;
+         }
+
          unsigned int getNumBursts() const { return _burstList.size(); }
          BurstIterator beginBurst() const { return _burstList.begin(); }
          BurstIterator endBurst() const { return _burstList.end(); }

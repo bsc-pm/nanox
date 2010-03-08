@@ -17,65 +17,40 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "workgroup.hpp"
-#include "atomic.hpp"
-#include "schedule.hpp"
-#include "synchronizedcondition.hpp"
+#ifndef _SMP_COPIER
+#define _SMP_COPIER
 
-using namespace nanos;
-
-Atomic<int> WorkGroup::_atomicSeed( 0 );
-
-void WorkGroup::addWork ( WorkGroup &work )
+namespace nanos
 {
-   _components++;
-   work.addToGroup( *this );
+
+   class SMPMemory
+   {
+      public:
+         void * allocate( size_t size )
+         {
+            return new char[size]; 
+         }
+
+         void free( void *address )
+         {
+            delete[] (char *) address;
+         }
+
+         void copyIn( void *localDst, void* remoteSrc, size_t size )
+         {
+            memcpy( localDst, remoteSrc, size );
+         }
+
+         void copyOut( void *remoteDst, void *localSrc, size_t size )
+         {
+            memcpy( remoteDst, localSrc, size );
+         }
+
+         void copyLocal( void *dst, void * src, size_t size )
+         {
+            memcpy( dst, src, size );
+         }
+   };
 }
 
-void WorkGroup::addToGroup ( WorkGroup &parent )
-{
-   _partOf.push_back( &parent );
-}
-
-void WorkGroup::exitWork ( WorkGroup &work )
-{
-   int componentsLeft = --_components;
-   if (componentsLeft == 0)
-      _syncCond.signal();
-}
-
-void WorkGroup::sync ()
-{
-   _phaseCounter++;
-   //TODO: block and switch
-
-   while ( _phaseCounter < _components );
-
-   //TODO: reinit phase_counter
-}
-
-void WorkGroup::waitCompletation ()
-{
-     _syncCond.wait();
-}
-
-void WorkGroup::start ()
-{
-}
-
-void WorkGroup::done ()
-{
-   for ( WGList::iterator it = _partOf.begin();
-         it != _partOf.end();
-         it++ ) {
-      if ( *it )
-        ( *it )->exitWork( *this );
-      *it = 0;
-   }
-}
-
-WorkGroup::~WorkGroup ()
-{
-   done();
-}
-
+#endif

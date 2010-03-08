@@ -32,8 +32,14 @@ typedef struct {
    size_t  size;
 } nanos_dependence_internal_t;
 
+typedef enum {
+   NX_PRIVATE,
+   NX_SHARED,
+} nanos_sharing_t;
+
 typedef struct {
    void *address;
+   nanos_sharing_t sharing;
    struct {
       bool input: 1;
       bool output: 1;

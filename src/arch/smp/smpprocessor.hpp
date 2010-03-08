@@ -20,18 +20,29 @@
 #ifndef _NANOS_SMP_PROCESSOR
 #define _NANOS_SMP_PROCESSOR
 
-#include "processingelement.hpp"
 #include "config.hpp"
 #include "smpthread.hpp"
+#include "cache.hpp"
+#include "smpmemory.hpp"
+#ifdef SMP_NUMA
+#include "accelerator.hpp"
+#else
+#include "processingelement.hpp"
+#endif
 
 //TODO: Make smp independent from pthreads? move it to OS?
 
 namespace nanos {
 namespace ext
 {
-   
+
+#ifdef SMP_NUMA
+   class SMPProcessor : public Accelerator
+#else
    class SMPProcessor : public PE
+#endif
    {
+
 
       private:
          // config variables
@@ -42,9 +53,17 @@ namespace ext
          SMPProcessor( const SMPProcessor &pe );
          const SMPProcessor & operator= ( const SMPProcessor &pe );
 
+#ifdef SMP_NUMA
+         Cache<SMPMemory> _cache;
+#endif
+
       public:
          // constructors
+#ifdef SMP_NUMA
+         SMPProcessor( int id ) : Accelerator( id,&SMP ), _cache() {}
+#else
          SMPProcessor( int id ) : PE( id,&SMP ) {}
+#endif
 
          virtual ~SMPProcessor() {}
 
@@ -56,6 +75,15 @@ namespace ext
 
          // capability query functinos
          virtual bool supportsUserLevelThreads () const { return _useUserThreads; }
+#if SMP_NUMA
+         /* Memory space suport */
+         virtual void registerDataAccessDependent( void *tag, size_t size );
+         virtual void copyDataDependent( void *tag, size_t size );
+         virtual void unregisterDataAccessDependent( void *tag );
+         virtual void copyBackDependent( void *tag, size_t size );
+         virtual void* getAddressDependent( void* tag );
+         virtual void copyToDependent( void* dst, void *tag, size_t size );
+#endif
    };
 
 }

@@ -47,6 +47,8 @@ nanos_sources=\
 	basethread.cpp\
 	processingelement.hpp \
 	processingelement.cpp \
+	accelerator.hpp \
+	accelerator.cpp \
 	schedule.hpp \
 	schedule.cpp \
 	system.hpp \

@@ -17,65 +17,32 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "workgroup.hpp"
-#include "atomic.hpp"
-#include "schedule.hpp"
-#include "synchronizedcondition.hpp"
+#ifndef _NUMA_NANOS_H_
+#define _NUMA_NANOS_H_
 
-using namespace nanos;
+#include <unistd.h>
+#include <stdbool.h>
+#include "nanos.h"
+#include "nanos-int.h"
 
-Atomic<int> WorkGroup::_atomicSeed( 0 );
+#ifdef _MERCURIUM_
+// define API version
+#pragma nanos interface family(master) version(5000)
+#endif
 
-void WorkGroup::addWork ( WorkGroup &work )
-{
-   _components++;
-   work.addToGroup( *this );
+#ifdef __cplusplus
+
+#define _Bool bool
+
+extern "C" {
+#endif
+
+nanos_err_t nanos_get_addr ( void * tag, nanos_sharing_t sharing, void **addr );
+
+nanos_err_t nanos_copy_value ( void * dst, void *tag, nanos_sharing_t sharing, size_t size );
+
+#ifdef __cplusplus
 }
+#endif
 
-void WorkGroup::addToGroup ( WorkGroup &parent )
-{
-   _partOf.push_back( &parent );
-}
-
-void WorkGroup::exitWork ( WorkGroup &work )
-{
-   int componentsLeft = --_components;
-   if (componentsLeft == 0)
-      _syncCond.signal();
-}
-
-void WorkGroup::sync ()
-{
-   _phaseCounter++;
-   //TODO: block and switch
-
-   while ( _phaseCounter < _components );
-
-   //TODO: reinit phase_counter
-}
-
-void WorkGroup::waitCompletation ()
-{
-     _syncCond.wait();
-}
-
-void WorkGroup::start ()
-{
-}
-
-void WorkGroup::done ()
-{
-   for ( WGList::iterator it = _partOf.begin();
-         it != _partOf.end();
-         it++ ) {
-      if ( *it )
-        ( *it )->exitWork( *this );
-      *it = 0;
-   }
-}
-
-WorkGroup::~WorkGroup ()
-{
-   done();
-}
-
+#endif

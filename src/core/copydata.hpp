@@ -26,21 +26,21 @@ namespace nanos
 {
 
   /*! \class CopyData
-   *  \brief Contains information about dependencies necessary to add a DependableObject to the Dependencies system
+   *  \brief Contains information about Copies
    */
    class CopyData : public nanos_copy_data_internal_t
    {
       public:
          
         /*! \brief Constructor
-         *  \param address Address of the dependency's address 
-         *  \param input Whether the dependency is input or not 
-         *  \param output Whether the dependency is output or not
-         *  \param canRename Whether the dependency can rename or not
+         *  \param address Address of the CopyData's address 
+         *  \param input Whether the CopyData is input or not 
+         *  \param output Whether the CopyData is output or not
          */
-         CopyData ( void * addr = NULL, bool input = false, bool output = false, size_t storageSize = 0 )
+         CopyData ( void * addr = NULL, nanos_sharing_t nxSharing = NX_SHARED, bool input = false, bool output = false, size_t storageSize = 0 )
          {
             address = addr;
+            sharing = nxSharing;
             flags.input = input;
             flags.output = output;
             size = storageSize;
@@ -52,6 +52,7 @@ namespace nanos
          CopyData ( const CopyData &cd )
          {
             address = cd.address;
+            sharing = cd.sharing;
             flags.input = cd.flags.input;
             flags.output = cd.flags.output;
             size = cd.size;
@@ -74,27 +75,32 @@ namespace nanos
             return *this;
          }
          
-        /*! \brief Obtain the dependency's address address
+        /*! \brief Obtain the CopyData's address address
          */
          void * getAddress() const
          { return address; }
          
-        /*! \brief returns true if it is an input dependency
+        /*! \brief Set the CopyData's address address
+         */
+         void setAddress( void *addr )
+         { address = addr; }
+         
+        /*! \brief returns true if it is an input CopyData
          */
          bool isInput() const
          { return flags.input; }
 
-        /*! \brief sets the dependency input clause to b
+        /*! \brief sets the CopyData input clause to b
          */
          void setInput( bool b )
          { flags.input = b; }
          
-        /*! \brief returns true if it is an output dependency
+        /*! \brief returns true if it is an output CopyData
          */
          bool isOutput() const
          { return flags.output; }
 
-        /*! \brief sets the dependency output clause to b
+        /*! \brief sets the CopyData output clause to b
          */
          void setOutput( bool b )
          { flags.output = b;}
@@ -102,7 +108,20 @@ namespace nanos
         /*! \brief  returns the CopyData's size
          */
          size_t getSize() const
-         { return size; } 
+         { return size; }
+
+        /*! \brief Returns true if the data to copy is shared
+         */
+         bool isShared() const
+         { return sharing ==  NX_SHARED; }
+
+        /*! \brief Returns true if the data to copy is private
+         */
+         bool isPrivate() const
+         { return sharing ==  NX_PRIVATE; }
+
+         nanos_sharing_t getSharing() const
+         { return sharing; }
    };
 }
 

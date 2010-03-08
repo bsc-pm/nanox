@@ -31,6 +31,21 @@ using namespace nanos::ext;
 
 extern "C" {
 
+void * aux_get_copies_addr( unsigned int i )
+{
+   WD *wd = myThread->getCurrentWD();
+   CopyData* cd = wd->getCopies();
+   return cd[i].getAddress();
+}
+
+nanos_sharing_t aux_get_sharing( unsigned int i )
+{
+   WD *wd = myThread->getCurrentWD();
+   CopyData* cd = wd->getCopies();
+   return cd[i].getSharing();
+}
+
+
 void check_hardcoded_copy_data ()
 {
    WD *wd = myThread->getCurrentWD();
@@ -60,7 +75,13 @@ void check_hardcoded_copy_data ()
    if ( !cd[1].isOutput() )
       std::cout << "Error: CopyData was supposed to be output." << std::endl;
    else std::cout << "Checking for CopyData direction correctness... PASS" << std::endl;
-   
+
+   if ( !cd[0].isShared() )
+      std::cout << "Error: CopyData was supposed to be NX_SHARED." <<  std::endl;
+   else std::cout << "Checking for CopyData sharing... PASS" << std::endl;
+   if ( !cd[1].isPrivate() )
+      std::cout << "Error: CopyData was supposed to be NX_PRIVATE." <<  std::endl;
+   else std::cout << "Checking for CopyData sharing... PASS" << std::endl;
 }
 
 }
