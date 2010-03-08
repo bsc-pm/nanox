@@ -109,8 +109,6 @@ namespace nanos
 
          // idle management
          virtual void queueIdle ( BaseThread *thread,WD &wd );
-         virtual WD *getIdle( BaseThread *thread );
-
    };
 
 // singleton class to encapsulate scheduling data and methods
@@ -134,6 +132,9 @@ namespace nanos
 
          static void idle ( void );
          static void queue ( WD &wd );
+         static void yield ();
+
+         static void switchToThread ( BaseThread * thread );
 
          static void waitOnCondition ( GenericSyncCond &condition );
    };

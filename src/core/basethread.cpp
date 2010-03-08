@@ -30,6 +30,7 @@ Atomic<int> BaseThread::_idSeed = 0;
 
 void BaseThread::run ()
 {
+   _threadWD.tieTo( *this );
    associate();
    runDependent();
 }
@@ -41,8 +42,7 @@ void BaseThread::associate ()
 
    if ( sys.getBinding() ) bind();
 
-   _threadWD.tieTo( *this );
-
+   _threadWD.setReady();
    setCurrentWD( _threadWD );
 }
 

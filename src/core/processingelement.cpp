@@ -46,7 +46,7 @@ BaseThread & ProcessingElement::startThread ( WD &work, SchedulingGroup *sg )
 
 BaseThread & ProcessingElement::associateThisThread ( SchedulingGroup *sg, bool untieMain )
 {
-   WD & worker = untieMain ?  getWorkerWD() : getMasterWD();
+   WD & worker = getMasterWD();
    
    BaseThread &thread = createThread( worker );
 
@@ -54,16 +54,9 @@ BaseThread & ProcessingElement::associateThisThread ( SchedulingGroup *sg, bool 
 
    thread.associate();
 
-   if ( untieMain ) {
-      // "switch" to main
-      WD & master = getMasterWD();
-
-      // put worker thread idle-loop into the queue
-      Scheduler::queue(worker);
-      thread.setCurrentWD(master);
+   if ( !untieMain ) {
+      worker.tieTo(thread);
    }
-
-   thread.getCurrentWD()->setReady();
 
    return thread;
 }

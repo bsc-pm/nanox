@@ -224,6 +224,12 @@ System::~System ()
    if ( !_delayedStart ) {
       verbose ( "Wait for main workgroup to complete" );
       myThread->getCurrentWD()->waitCompletation();
+
+      // we need to switch to the main thread here to finish
+      // the execution correctly
+      myThread->getCurrentWD()->tieTo(*_workers[0]);
+      Scheduler::switchToThread(_workers[0]);
+      ensure(myThread->getId() == 0, "Main thread not finishing the application!");
    
       verbose ( "Joining threads... phase 1" );
       // signal stop PEs
