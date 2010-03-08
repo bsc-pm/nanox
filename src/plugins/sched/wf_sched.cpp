@@ -171,17 +171,17 @@ namespace nanos {
                config.setOptionsSection( "Wf module", new std::string("Width-first scheduling module") );
                //BUG: If defining local policy or steal policy the command line option *must not* include the = between
                //the option name and the value, but a space
-               config.registerConfigOption ( "wf-no-steal-parent", new Config::FlagOption( WFPolicy::_noStealParent ), "Do not steal parent" );
+               config.registerConfigOption ( "wf-no-steal-parent", new Config::FlagOption( WFPolicy::_noStealParent ), "Defines if the scheduling policy try to steal the parent first" );
                config.registerArgOption ( "wf-no-steal-parent", "wf-no-steal-parent" );
 
                Config::MapVar<WFPolicy::QueuePolicy> queuePolicyLocalConfig ( WFPolicy::_localPolicy );
                queuePolicyLocalConfig.addOption ( "FIFO", WFPolicy::FIFO ).addOption ( "LIFO", WFPolicy::LIFO );
-               config.registerConfigOption ( "wf-local-policy", &queuePolicyLocalConfig, "WF local queue policy");
+               config.registerConfigOption ( "wf-local-policy", &queuePolicyLocalConfig, "Defines the local queue access policy");
                config.registerArgOption ( "wf-local-policy", "wf-local-policy" );
 
                Config::MapVar<WFPolicy::QueuePolicy> queuePolicyStealConfig ( WFPolicy::_localPolicy );
                queuePolicyStealConfig.addOption ( "FIFO", WFPolicy::FIFO ).addOption ( "LIFO", WFPolicy::LIFO );
-               config.registerConfigOption ( "wf-steal-policy", &queuePolicyStealConfig, "WF steal queue policy");
+               config.registerConfigOption ( "wf-steal-policy", &queuePolicyStealConfig, "Defines the steal access policy");
                config.registerArgOption ( "wf-steal-policy", "wf-steal-policy" );
 
                config.init();

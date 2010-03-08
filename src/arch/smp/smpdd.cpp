@@ -44,7 +44,7 @@ void SMPDD::prepareConfig( Config &config )
    /*!
       Get the stack size for this device
    */
-   config.registerConfigOption ( "smp-stack-size", new Config::PositiveVar( _stackSize ), "SMP device's stack size" );
+   config.registerConfigOption ( "smp-stack-size", new Config::PositiveVar( _stackSize ), "Defines SMP workdescriptor stack size" );
    config.registerArgOption ( "smp-stack-size", "smp-stack-size" );
    config.registerEnvOption ( "smp-stack-size", "NX_SMP_STACK_SIZE" );
 }
