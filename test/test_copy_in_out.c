@@ -22,7 +22,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <nanos.h>
-#include <nanos_pe.h>
 
 typedef struct {
    int a;
