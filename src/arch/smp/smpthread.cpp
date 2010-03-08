@@ -23,12 +23,7 @@
 #include "system.hpp"
 #include <iostream>
 #include <sched.h>
-
-extern "C"
-{
-// low-level routine to switch stacks
-   void switchStacks( void *,void *,void *,void * );
-}
+#include "smp_ult.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;

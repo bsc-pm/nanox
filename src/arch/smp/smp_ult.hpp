@@ -17,54 +17,20 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "smpprocessor.hpp"
-#include "schedule.hpp"
-#include "debug.hpp"
-#include "system.hpp"
-#include "smp_ult.hpp"
+#ifndef _NANOS_SMP_ULT
+#define _NANOS_SMP_ULT
 
-using namespace nanos;
-using namespace nanos::ext;
+#include <stddef.h>
+#include <stdint.h>
 
-Device nanos::ext::SMP( "SMP" );
-
-size_t SMPDD::_stackSize = 1024;
-
-/*!
-  \brief Registers the Device's configuration options
-  \param reference to a configuration object.
-  \sa Config System
-*/
-void SMPDD::prepareConfig( Config &config )
+extern "C"
 {
-   /*!
-      Get the stack size from system configuration
-    */
-   _stackSize = sys.getDeviceStackSize();
-
-   /*!
-      Get the stack size for this device
-   */
-   config.registerConfigOption ( "smp-stack-size", new Config::SizeVar( _stackSize ), "SMP device's stack size" );
-   config.registerArgOption ( "smp-stack-size", "smp-stack-size" );
-   config.registerEnvOption ( "smp-stack-size", "NX_SMP_STACK_SIZE" );
+// low-level routine to switch stacks
+   void switchStacks( void *,void *,void *,void * );
 }
 
-void SMPDD::initStack ( void *data )
-{
-   _stack = new intptr_t[_stackSize];
-   _state = ::initContext( _stack, _stackSize, ( void * )getWorkFct(),data,( void * )Scheduler::exit, 0 );
-}
+intptr_t * initContext( intptr_t *stack, size_t stackSize, void *userFunction, void *userArg,
+                       void *cleanup, void *cleanupArg );
 
-void SMPDD::lazyInit (WD &wd, bool isUserLevelThread)
-{
-   if (isUserLevelThread)
-      initStack(wd.getData());
-}
 
-SMPDD * SMPDD::copyTo ( void *toAddr )
-{
-   SMPDD *dd = new (toAddr) SMPDD(*this);
-   return dd;
-}
-
+#endif
