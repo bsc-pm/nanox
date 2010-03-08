@@ -116,8 +116,6 @@ namespace nanos
     {
 
         private:
-            static Atomic<unsigned int>  _idSeed;
-            unsigned int         _id;
             size_t               _data_size; /**< Data size */
             void    *            _data;
             void    *            _wdData; // this allows higher layer to associate data to the WD
@@ -127,7 +125,7 @@ namespace nanos
             typedef enum { INIT, READY, IDLE, BLOCKED } State;
             State                _state;
 
-            GenericSyncCond * _syncCond;
+            GenericSyncCond *    _syncCond;
 
             //Added parent for cilk scheduler: first steal parent task, next other tasks
             WorkDescriptor *     _parent;
@@ -162,23 +160,23 @@ namespace nanos
         public:
             // constructors
             WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0,void *wdata=0, size_t numCopies = 0, CopyData *copies = NULL ) :
-                    WorkGroup(), _id ( _idSeed++ ), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( INIT ),
+                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( INIT ),
                     _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( ndevices ), _devices ( devs ),
                     _activeDevice ( ndevices == 1 ? devs[0] : 0 ), _numCopies( numCopies ), _copies( copies ),
                     _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext()
             {
               // FIXME (#140): Change InstrumentorContext ic.init() to Instrumentor::_wdCreate();
-               _instrumentorContext.init ( _id );
+               _instrumentorContext.init ( getId() );
             }
 
             WorkDescriptor ( DeviceData *device, size_t data_size = 0, void *wdata=0, size_t numCopies = 0, CopyData *copies = NULL ) :
-                    WorkGroup(), _id ( _idSeed++ ), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( INIT ),
+                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( INIT ),
                     _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( &_activeDevice ),
                     _activeDevice ( device ), _numCopies( numCopies ), _copies( copies ), 
                     _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext()
             {
               // FIXME (#140): Change InstrumentorContext ic.init() to Instrumentor::_wdCreate();
-               _instrumentorContext.init ( _id );
+               _instrumentorContext.init ( getId() );
             }
 
             /*! \brief WorkDescriptor constructor (using former wd)
@@ -192,7 +190,7 @@ namespace nanos
              *  \see WorkDescriptor System::duplicateWD System::duplicateSlicedWD
              */
             WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL ) :
-                    WorkGroup( wd ), _id ( _idSeed++ ), _data_size( wd._data_size ), _data ( data ), _wdData ( NULL ),
+                    WorkGroup( wd ), _data_size( wd._data_size ), _data ( data ), _wdData ( NULL ),
                     _tie ( wd._tie ), _tiedTo ( wd._tiedTo ), _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ),
                     _myQueue ( NULL ), _depth ( wd._depth ), _numDevices ( wd._numDevices ),
                     _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
@@ -208,7 +206,7 @@ namespace nanos
                     - bursts (list)
                     - states (stack)
                */
-               _instrumentorContext.init( _id );
+               _instrumentorContext.init( getId() );
             }
 
             // destructor
@@ -219,10 +217,6 @@ namespace nanos
                for ( unsigned i = 0; i < _numDevices; i++ )
                   _devices[i]->~DeviceData();
             }
-
-         /*! \brief Get WorkDescriptor id
-          */
-         unsigned int getId ( void ) { return _id; }
 
          /*! \brief Has this WorkDescriptor ever run?
           */

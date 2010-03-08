@@ -27,8 +27,6 @@
 
 using namespace nanos;
 
-Atomic<unsigned int> WorkDescriptor::_idSeed = 1;
-
 void WorkDescriptor::start (bool isUserLevelThread)
 {
    ProcessingElement *pe = myThread->runningOn();
