@@ -21,6 +21,7 @@
 #define __NANOS_INT_H
 
 #include <stdio.h>
+#include <stdint.h>
 
 typedef struct {
    void **address;
@@ -38,7 +39,7 @@ typedef enum {
 } nanos_sharing_t;
 
 typedef struct {
-   void *address;
+   uint64_t address;
    nanos_sharing_t sharing;
    struct {
       bool input: 1;

@@ -22,6 +22,7 @@
 
 #include <unistd.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include "nanos.h"
 #include "nanos-int.h"
 
@@ -37,9 +38,9 @@
 extern "C" {
 #endif
 
-nanos_err_t nanos_get_addr ( void * tag, nanos_sharing_t sharing, void **addr );
+nanos_err_t nanos_get_addr ( uint64_t tag, nanos_sharing_t sharing, void **addr );
 
-nanos_err_t nanos_copy_value ( void * dst, void *tag, nanos_sharing_t sharing, size_t size );
+nanos_err_t nanos_copy_value ( void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );
 
 #ifdef __cplusplus
 }

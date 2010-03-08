@@ -29,7 +29,7 @@ void Accelerator::copyDataIn( WorkDescriptor &work )
    CopyData *copies = work.getCopies();
    for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
       CopyData & cd = copies[i];
-      void *tag = cd.isPrivate() ? ((char *)work.getData() + (unsigned long)cd.getAddress()) : cd.getAddress();
+      uint64_t tag = (uint64_t) cd.isPrivate() ? ((uint64_t) work.getData() + (unsigned long)cd.getAddress()) : cd.getAddress();
       this->registerDataAccessDependent( tag, cd.getSize() );
       if ( cd.isInput() )
          this->copyDataDependent( tag, cd.getSize() );
@@ -41,21 +41,21 @@ void Accelerator::copyDataOut( WorkDescriptor& work )
    CopyData *copies = work.getCopies();
    for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
       CopyData & cd = copies[i];
-      void *tag = cd.isPrivate() ? ((char *)work.getData() + (unsigned long)cd.getAddress()) : cd.getAddress();
+      uint64_t tag = (uint64_t) cd.isPrivate() ? ((uint64_t) work.getData() + (unsigned long) cd.getAddress()) : cd.getAddress();
       this->unregisterDataAccessDependent( tag );
       if ( cd.isOutput() )
           this->copyBackDependent( tag, cd.getSize() );
    }
 }
 
-void* Accelerator::getAddress( WorkDescriptor &wd, void* tag, nanos_sharing_t sharing )
+void* Accelerator::getAddress( WorkDescriptor &wd, uint64_t tag, nanos_sharing_t sharing )
 {
-   void *actualTag = (void *) ( sharing == NX_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : tag );
+   uint64_t actualTag = (uint64_t) ( sharing == NX_PRIVATE ? (uint64_t) wd.getData() + (unsigned long) tag : tag );
    return getAddressDependent( actualTag );
 }
 
-void Accelerator::copyTo( WorkDescriptor &wd, void* dst, void *tag, nanos_sharing_t sharing, size_t size )
+void Accelerator::copyTo( WorkDescriptor &wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size )
 {
-   void *actualTag = (void *)( sharing == NX_PRIVATE ? (char *)wd.getData() + (unsigned long) tag : tag );
+   uint64_t actualTag = (uint64_t) ( sharing == NX_PRIVATE ? (uint64_t) wd.getData() + (unsigned long) tag : tag );
    copyToDependent( dst, actualTag, size );
 }

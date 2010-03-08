@@ -20,6 +20,8 @@
 #ifndef _SMP_COPIER
 #define _SMP_COPIER
 
+#include <stdint.h>
+
 namespace nanos
 {
 
@@ -36,17 +38,17 @@ namespace nanos
             delete[] (char *) address;
          }
 
-         void copyIn( void *localDst, void* remoteSrc, size_t size )
+         void copyIn( void *localDst, uint64_t remoteSrc, size_t size )
          {
-            memcpy( localDst, remoteSrc, size );
+            memcpy( localDst, (void *)remoteSrc, size );
          }
 
-         void copyOut( void *remoteDst, void *localSrc, size_t size )
+         void copyOut( uint64_t remoteDst, void *localSrc, size_t size )
          {
-            memcpy( remoteDst, localSrc, size );
+            memcpy( (void *)remoteDst, localSrc, size );
          }
 
-         void copyLocal( void *dst, void * src, size_t size )
+         void copyLocal( void *dst, void *src, size_t size )
          {
             memcpy( dst, src, size );
          }

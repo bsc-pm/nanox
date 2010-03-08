@@ -26,7 +26,7 @@
 
 using namespace nanos;
 
-nanos_err_t nanos_get_addr ( void * tag, nanos_sharing_t sharing, void **addr )
+nanos_err_t nanos_get_addr ( uint64_t tag, nanos_sharing_t sharing, void **addr )
 {
    nanos_wd_t cwd = myThread->getCurrentWD();
    WD *wd = ( WD * )cwd;
@@ -37,7 +37,7 @@ nanos_err_t nanos_get_addr ( void * tag, nanos_sharing_t sharing, void **addr )
    return NANOS_OK;
 }
 
-nanos_err_t nanos_copy_value ( void * dst, void *tag, nanos_sharing_t sharing, size_t size )
+nanos_err_t nanos_copy_value ( void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size )
 {
    nanos_wd_t cwd = myThread->getCurrentWD();
    WD *wd = ( WD * )cwd;

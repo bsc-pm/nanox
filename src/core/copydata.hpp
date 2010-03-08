@@ -37,7 +37,7 @@ namespace nanos
          *  \param input Whether the CopyData is input or not 
          *  \param output Whether the CopyData is output or not
          */
-         CopyData ( void * addr = NULL, nanos_sharing_t nxSharing = NX_SHARED, bool input = false, bool output = false, size_t storageSize = 0 )
+         CopyData ( uint64_t addr = NULL, nanos_sharing_t nxSharing = NX_SHARED, bool input = false, bool output = false, size_t storageSize = 0 )
          {
             address = addr;
             sharing = nxSharing;
@@ -77,12 +77,12 @@ namespace nanos
          
         /*! \brief Obtain the CopyData's address address
          */
-         void * getAddress() const
+         uint64_t getAddress() const
          { return address; }
          
         /*! \brief Set the CopyData's address address
          */
-         void setAddress( void *addr )
+         void setAddress( uint64_t addr )
          { address = addr; }
          
         /*! \brief returns true if it is an input CopyData
