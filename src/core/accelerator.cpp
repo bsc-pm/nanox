@@ -50,12 +50,12 @@ void Accelerator::copyDataOut( WorkDescriptor& work )
 
 void* Accelerator::getAddress( WorkDescriptor &wd, uint64_t tag, nanos_sharing_t sharing )
 {
-   uint64_t actualTag = (uint64_t) ( sharing == NX_PRIVATE ? (uint64_t) wd.getData() + (unsigned long) tag : tag );
+   uint64_t actualTag = (uint64_t) ( sharing == NANOS_PRIVATE ? (uint64_t) wd.getData() + (unsigned long) tag : tag );
    return getAddressDependent( actualTag );
 }
 
 void Accelerator::copyTo( WorkDescriptor &wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size )
 {
-   uint64_t actualTag = (uint64_t) ( sharing == NX_PRIVATE ? (uint64_t) wd.getData() + (unsigned long) tag : tag );
+   uint64_t actualTag = (uint64_t) ( sharing == NANOS_PRIVATE ? (uint64_t) wd.getData() + (unsigned long) tag : tag );
    copyToDependent( dst, actualTag, size );
 }

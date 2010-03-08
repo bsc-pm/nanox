@@ -66,10 +66,10 @@ void hello_world ( void *args )
    else std::cout << "Checking for CopyData direction correctness... PASS" << std::endl;
    
    if ( !cd[0].isShared() )
-      std::cout << "Error: CopyData was supposed to be NX_SHARED." <<  std::endl;
+      std::cout << "Error: CopyData was supposed to be NANOS_SHARED." <<  std::endl;
    else std::cout << "Checking for CopyData sharing... PASS" << std::endl;
    if ( !cd[1].isPrivate() )
-      std::cout << "Error: CopyData was supposed to be NX_PRIVATE." <<  std::endl;
+      std::cout << "Error: CopyData was supposed to be NANOS_PRIVATE." <<  std::endl;
    else std::cout << "Checking for CopyData sharing... PASS" << std::endl;
 }
 
@@ -83,8 +83,8 @@ int main ( int argc, char **argv )
 
    data->b = a;
 
-   CopyData cd[2] = { CopyData( (uint64_t)&data->a, NX_SHARED, true, false, sizeof(data->a) ),
-                      CopyData( (uint64_t)&data->b, NX_PRIVATE, true, true, sizeof(data->b) ) };
+   CopyData cd[2] = { CopyData( (uint64_t)&data->a, NANOS_SHARED, true, false, sizeof(data->a) ),
+                      CopyData( (uint64_t)&data->b, NANOS_PRIVATE, true, true, sizeof(data->b) ) };
 
    WD * wd = new WD( new SMPDD( hello_world ), sizeof( hello_world_args ), data, 2, cd );
 

@@ -86,8 +86,8 @@ int main ( int argc, char **argv )
    args->a = 1;
    args->b = dummy1;
 
-   cd[0] = (nanos_copy_data_t) {(uint64_t)&(args->a), NX_PRIVATE, {true, false}, sizeof(args->a)};
-   cd[1] = (nanos_copy_data_t) {(uint64_t)args->b, NX_SHARED, {true, true}, sizeof(char)*10}; 
+   cd[0] = (nanos_copy_data_t) {(uint64_t)&(args->a), NANOS_PRIVATE, {true, false}, sizeof(args->a)};
+   cd[1] = (nanos_copy_data_t) {(uint64_t)args->b, NANOS_SHARED, {true, true}, sizeof(char)*10}; 
 
    NANOS_SAFE( nanos_submit( wd1,0,0,0 ) );
 

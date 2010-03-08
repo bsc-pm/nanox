@@ -34,8 +34,8 @@ typedef struct {
 } nanos_dependence_internal_t;
 
 typedef enum {
-   NX_PRIVATE,
-   NX_SHARED,
+   NANOS_PRIVATE,
+   NANOS_SHARED,
 } nanos_sharing_t;
 
 typedef struct {
