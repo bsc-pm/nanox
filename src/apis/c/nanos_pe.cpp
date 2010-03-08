@@ -28,30 +28,22 @@ using namespace nanos;
 
 nanos_err_t nanos_get_addr ( void * tag, nanos_sharing_t sharing, void **addr )
 {
-   sys.getInstrumentor()->enterRuntime();
-
    nanos_wd_t cwd = myThread->getCurrentWD();
    WD *wd = ( WD * )cwd;
 
    ProcessingElement *pe = myThread->runningOn();
    *addr = pe->getAddress( *wd, tag, sharing ); //FIXME , SHARING );
 
-   sys.getInstrumentor()->leaveRuntime();
-
    return NANOS_OK;
 }
 
 nanos_err_t nanos_copy_value ( void * dst, void *tag, nanos_sharing_t sharing, size_t size )
 {
-   sys.getInstrumentor()->enterRuntime();
-
    nanos_wd_t cwd = myThread->getCurrentWD();
    WD *wd = ( WD * )cwd;
 
    ProcessingElement *pe = myThread->runningOn();
    pe->copyTo( *wd, dst, tag, sharing, size ); //FIXME , SHARING );
-
-   sys.getInstrumentor()->leaveRuntime();
 
    return NANOS_OK;
 }

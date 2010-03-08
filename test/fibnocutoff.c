@@ -72,12 +72,11 @@ int fib ( int n, int d )
 //      x = fib(n - 1,d+1);
    {
       nanos_wd_t wd=0;
-      nanos_copy_data_t *cd = 0;
       fib_args *args=0;
       nanos_device_t fib_devices_1[1] = { NANOS_SMP_DESC( fib_device_arg_1 ) };
 
       nanos_create_wd ( &wd, 1, fib_devices_1 , sizeof( fib_args ),
-                        ( void ** )&args, nanos_current_wd(), 0, 0, &cd );
+                        ( void ** )&args, nanos_current_wd(), 0, 0, NULL );
 
       if ( wd != 0 ) {
          args->n = n;
@@ -92,12 +91,11 @@ int fib ( int n, int d )
 //            y = fib(n - 2,d+1);
    {
       nanos_wd_t wd=0;
-      nanos_copy_data_t *cd = 0;
       fib_args *args=0;
       nanos_device_t fib_devices_2[1] = { NANOS_SMP_DESC( fib_device_arg_2 ) };
       
       nanos_create_wd ( &wd, 1, fib_devices_2 , sizeof( fib_args ),
-                        ( void ** )&args, nanos_current_wd(), 0, 0, &cd );
+                        ( void ** )&args, nanos_current_wd(), 0, 0, NULL );
 
       if ( wd != 0 ) {
          args->n = n;

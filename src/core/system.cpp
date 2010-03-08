@@ -300,7 +300,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
                           ( ( data != NULL && *data == NULL ) ? (((data_size+7)>>3)<<3) : 0 ) +
                           sizeof( DD* ) * num_devices +
                           dd_size +
-                          ( ( *copies == NULL ) ? num_copies * sizeof(CopyData) : 0 )
+                          ( ( copies != NULL && *copies == NULL ) ? num_copies * sizeof(CopyData) : 0 )
                           ;
 
    char *chunk = 0;
@@ -332,14 +332,16 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
 
    // allocate copy-ins/copy-outs
    CopyData *wdCopies = NULL;
-   if ( *copies == NULL ) {
-      if ( num_copies > 0 ) {
-         wdCopies = ( CopyData * ) chunk;
-         *copies = wdCopies;
-         chunk += num_copies * sizeof( CopyData );
+   if ( copies != NULL ) {
+      if ( *copies == NULL ) {
+         if ( num_copies > 0 ) {
+            wdCopies = ( CopyData * ) chunk;
+            *copies = wdCopies;
+            chunk += num_copies * sizeof( CopyData );
+         }
+      } else {
+         wdCopies = *copies;
       }
-   } else {
-      wdCopies = *copies;
    }
 
    WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, data != NULL ? *data : NULL, num_copies, num_copies == 0 ? NULL : wdCopies );
@@ -420,7 +422,7 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
                           ( ( slicer_data == NULL ) ? (((slicer_data_size+7)>>3)<<3) : 0 ) +
                           sizeof( DD* ) * num_devices +
                           dd_size +
-                          ( ( *copies == NULL ) ? num_copies * sizeof(CopyData) : 0 )
+                          ( ( copies != NULL && *copies == NULL ) ? num_copies * sizeof(CopyData) : 0 )
                           ;
 
    char *chunk = 0;
@@ -452,14 +454,16 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
 
    // allocate copy-ins/copy-outs
    CopyData *wdCopies = NULL;
-   if ( *copies == NULL ) {
-      if ( num_copies > 0 ) {
-         chunk += num_copies * sizeof( CopyData );
-         *copies = wdCopies;
-         wdCopies = ( CopyData * ) chunk;
+   if ( copies != NULL ) {
+      if ( *copies == NULL ) {
+         if ( num_copies > 0 ) {
+            wdCopies = ( CopyData * ) chunk;
+            *copies = wdCopies;
+            chunk += num_copies * sizeof( CopyData );
+         }
+      } else {
+         wdCopies = *copies;
       }
-   } else {
-      wdCopies = *copies;
    }
 
    // allocate SlicerData
