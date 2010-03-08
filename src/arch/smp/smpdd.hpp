@@ -72,9 +72,9 @@ namespace ext
 
          static void prepareConfig( Config &config );
 
-         size_t size ( void ) { return sizeof(SMPDD); }
-
-         SMPDD *copyTo ( void *toAddr );
+         virtual void lazyInit (WD &wd, bool isUserLevelThread);
+         virtual size_t size ( void ) { return sizeof(SMPDD); }
+         virtual SMPDD *copyTo ( void *toAddr );
    };
 
    inline const SMPDD & SMPDD::operator= ( const SMPDD &dd )

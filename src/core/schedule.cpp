@@ -65,6 +65,7 @@ void Scheduler::exit ( void )
    }
 
    if ( next ) {
+      if (!next->started()) next->start(true);
       myThread->exitTo ( next, exitHelper );
    }
 
@@ -188,7 +189,7 @@ void Scheduler::inlineWork ( WD *wd )
 
    sys.getInstrumentor()->wdSwitch( oldwd, wd );
 
-   wd->start();
+   wd->start(false);
    myThread->setCurrentWD( *wd );
    myThread->inlineWorkDependent(*wd);
    wd->done();
@@ -202,7 +203,7 @@ void Scheduler::switchTo ( WD *to )
 {
    if ( myThread->runningOn()->supportsUserLevelThreads() ) {
       if (!to->started())
-        to->start();
+        to->start(true);
 
       myThread->switchTo( to, switchHelper );
    } else {

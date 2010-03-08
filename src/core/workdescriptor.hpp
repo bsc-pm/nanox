@@ -107,6 +107,7 @@ namespace nanos
 
             // destructor
             virtual ~DeviceData() {}
+            virtual void lazyInit (WorkDescriptor &wd, bool isUserLevelThread ) = 0;
             virtual size_t size ( void ) = 0;
             virtual DeviceData *copyTo ( void *addr ) = 0;
     };
@@ -231,7 +232,7 @@ namespace nanos
           *
           *  This function is useful to perform lazy initialization in the workdescriptor
           */
-         virtual void start ( void );
+         virtual void start ( bool isUserLevelThread );
 
          /*! \brief Get data size
           *

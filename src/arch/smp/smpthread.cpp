@@ -105,40 +105,29 @@ void SMPThread::inlineWorkDependent ( WD &wd )
 
 void SMPThread::switchTo ( WD *wd, SchedulerHelper *helper )
 {
-   // wd MUST have an active Device when it gets here
+   // wd MUST have an active SMP Device when it gets here
    ensure( wd->hasActiveDevice(),"WD has no active SMP device" );
    SMPDD &dd = ( SMPDD & )wd->getActiveDevice();
+   ensure( dd.hasStack(), "DD has no stack for ULT");
 
-   if ( _useUserThreads ) {
-      debug( "switching from task " << getCurrentWD() << ":" << getCurrentWD()->getId() << " to " << wd << ":" << wd->getId() );
+   debug( "switching from task " << getCurrentWD() << ":" << getCurrentWD()->getId() << " to " << wd << ":" << wd->getId() );
 
-      if ( !dd.hasStack() ) {
-         dd.initStack( wd->getData() );
-      }
-
-      ::switchStacks(
-         ( void * ) getCurrentWD(),
-         ( void * ) wd,
-         ( void * ) dd.getState(),
-         ( void * ) helper );
-   } else {
-      inlineWork( wd );
-      delete wd;
-   }
+   ::switchStacks(
+       ( void * ) getCurrentWD(),
+       ( void * ) wd,
+       ( void * ) dd.getState(),
+       ( void * ) helper );
 }
 
 void SMPThread::exitTo ( WD *wd, SchedulerHelper *helper)
 {
-   // wd MUST have an active Device when it gets here
+   // wd MUST have an active SMP Device when it gets here
    ensure( wd->hasActiveDevice(),"WD has no active SMP device" );
    SMPDD &dd = ( SMPDD & )wd->getActiveDevice();
+   ensure( dd.hasStack(), "DD has no stack for ULT");
 
    debug( "exiting task " << getCurrentWD() << ":" << getCurrentWD()->getId() << " to " << wd << ":" << wd->getId() );
    // TODO: reuse stack
-
-   if ( !dd.hasStack() ) {
-      dd.initStack( wd->getData() );
-   }
 
    //TODO: optimize... we don't really need to save a context in this case
    ::switchStacks(

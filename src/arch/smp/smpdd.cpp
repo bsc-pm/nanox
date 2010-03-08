@@ -63,6 +63,12 @@ void SMPDD::initStack ( void *data )
    initStackDep( ( void * )getWorkFct(),data,( void * )Scheduler::exit );
 }
 
+void SMPDD::lazyInit (WD &wd, bool isUserLevelThread)
+{
+   if (isUserLevelThread)
+      initStack(wd.getData());
+}
+
 SMPDD * SMPDD::copyTo ( void *toAddr )
 {
    SMPDD *dd = new (toAddr) SMPDD(*this);

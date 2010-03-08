@@ -29,10 +29,12 @@ using namespace nanos;
 
 Atomic<unsigned int> WorkDescriptor::_idSeed = 1;
 
-void WorkDescriptor::start ()
+void WorkDescriptor::start (bool isUserLevelThread)
 {
    ProcessingElement *pe = myThread->runningOn();
 
+   _activeDevice->lazyInit(*this,isUserLevelThread);
+   
    if ( pe->hasSeparatedMemorySpace() )
       pe->copyDataIn( *this );
 
