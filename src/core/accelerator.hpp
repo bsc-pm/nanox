@@ -20,6 +20,7 @@
 #ifndef _NANOS_ACCELERATOR
 #define _NANOS_ACCELERATOR
 
+#include <stdint.h>
 #include "workdescriptor.hpp"
 #include "processingelement.hpp"
 #include <algorithm>
@@ -52,16 +53,16 @@ namespace nanos
          virtual void copyDataIn( WorkDescriptor& wd );
          virtual void copyDataOut( WorkDescriptor& wd );
 
-         virtual void registerDataAccessDependent( void *tag, size_t size ) = 0;
-         virtual void copyDataDependent( void *tag, size_t size ) = 0;
-         virtual void unregisterDataAccessDependent( void *tag ) = 0;
-         virtual void copyBackDependent( void *tag, size_t size ) = 0;
+         virtual void registerDataAccessDependent( uint64_t tag, size_t size ) = 0;
+         virtual void copyDataDependent( uint64_t tag, size_t size ) = 0;
+         virtual void unregisterDataAccessDependent( uint64_t tag ) = 0;
+         virtual void copyBackDependent( uint64_t tag, size_t size ) = 0;
 
-         virtual void* getAddress( WorkDescriptor& wd, void* tag, nanos_sharing_t sharing );
-         virtual void copyTo( WorkDescriptor& wd, void* dst, void *tag, nanos_sharing_t sharing, size_t size );
+         virtual void* getAddress( WorkDescriptor& wd, uint64_t tag, nanos_sharing_t sharing );
+         virtual void copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );
 
-         virtual void* getAddressDependent( void* tag ) = 0;
-         virtual void copyToDependent( void *tag, void* dst, size_t size ) = 0;
+         virtual void* getAddressDependent( uint64_t tag ) = 0;
+         virtual void copyToDependent( void *dst, uint64_t tag, size_t size ) = 0;
    };
 
 };

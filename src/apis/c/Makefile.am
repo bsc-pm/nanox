@@ -23,7 +23,6 @@ lib_LTLIBRARIES=libnanox-c.la
 
 include_HEADERS=\
 	nanos.h \
-	nanos_pe.h \
 	$(END)
 
 sources=\

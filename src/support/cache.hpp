@@ -36,7 +36,7 @@ namespace nanos {
          class CacheEntry
          {
             private:
-               void * _addr;
+               void *_addr;
                unsigned int _refs;
             public:
                CacheEntry(): _addr( NULL), _refs(0) {}
@@ -68,7 +68,7 @@ namespace nanos {
                { return (--_refs) == 0; }
          };
 
-         typedef TR1::unordered_map< void *, CacheEntry> CacheHash;
+         typedef TR1::unordered_map< uint64_t, CacheEntry> CacheHash;
          CacheHash _cache;
          _T _peMemory;
 
@@ -79,7 +79,7 @@ namespace nanos {
       public:
          Cache() : _cache(), _peMemory() {}
 
-         void cacheData( void *tag, size_t size )
+         void cacheData( uint64_t tag, size_t size )
          {
             CacheEntry &entry = _cache[tag];
             if ( entry.hasRefs() ) {
@@ -89,18 +89,18 @@ namespace nanos {
             }
          }
 
-         void flush( void * tag )
+         void flush( uint64_t tag )
          {
             CacheEntry &entry = _cache[tag];
             entry.decreaseRefs();
          }
 
-         void copyData( void *tag, size_t size )
+         void copyData( uint64_t tag, size_t size )
          {
             _peMemory.copyIn( _cache[tag].getAddress(), tag, size );
          }
 
-         void copyBack( void *tag, size_t size )
+         void copyBack( uint64_t tag, size_t size )
          {
             CacheEntry &entry = _cache[tag];
             _peMemory.copyOut( tag, entry.getAddress(), size );
@@ -110,13 +110,13 @@ namespace nanos {
             }
          }
 
-         void * getAddress( void *tag )
+         void * getAddress( uint64_t tag )
          {
             void *result = _cache[tag].getAddress();
             return result;
          }
 
-         void copyTo( void *dst, void *tag, size_t size )
+         void copyTo( void *dst, uint64_t tag, size_t size )
          {
             _peMemory.copyLocal( dst, _cache[tag].getAddress(), size );
          }

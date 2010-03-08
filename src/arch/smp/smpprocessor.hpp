@@ -78,12 +78,12 @@ namespace ext
 #ifdef SMP_NUMA
          virtual bool hasSeparatedMemorySpace() const { return true; }
          /* Memory space suport */
-         virtual void registerDataAccessDependent( void *tag, size_t size );
-         virtual void copyDataDependent( void *tag, size_t size );
-         virtual void unregisterDataAccessDependent( void *tag );
-         virtual void copyBackDependent( void *tag, size_t size );
-         virtual void* getAddressDependent( void* tag );
-         virtual void copyToDependent( void* dst, void *tag, size_t size );
+         virtual void registerDataAccessDependent( uint64_t tag, size_t size );
+         virtual void copyDataDependent( uint64_t tag, size_t size );
+         virtual void unregisterDataAccessDependent( uint64_t tag );
+         virtual void copyBackDependent( uint64_t tag, size_t size );
+         virtual void* getAddressDependent( uint64_t tag );
+         virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
 #else
          virtual bool hasSeparatedMemorySpace() const { return false; }
 #endif

@@ -22,7 +22,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <nanos.h>
-#include <nanos_pe.h>
 
 typedef struct {
    int a;
@@ -30,7 +29,7 @@ typedef struct {
 } my_args;
 
 void check_hardcoded_copy_data();
-void* aux_get_copies_addr( unsigned int );
+uint64_t aux_get_copies_addr( unsigned int );
 nanos_sharing_t aux_get_sharing( unsigned int );
 
 void first( void *ptr )
@@ -86,8 +85,8 @@ int main ( int argc, char **argv )
    args->a = 1;
    args->b = dummy1;
 
-   cd[0] = (nanos_copy_data_t) {&(args->a), NX_PRIVATE, {true, false}, sizeof(args->a)};
-   cd[1] = (nanos_copy_data_t) {args->b, NX_SHARED, {true, true}, sizeof(char)*10}; 
+   cd[0] = (nanos_copy_data_t) {(uint64_t)&(args->a), NANOS_PRIVATE, {true, false}, sizeof(args->a)};
+   cd[1] = (nanos_copy_data_t) {(uint64_t)args->b, NANOS_SHARED, {true, true}, sizeof(char)*10}; 
 
    NANOS_SAFE( nanos_submit( wd1,0,0,0 ) );
 

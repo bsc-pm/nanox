@@ -31,10 +31,10 @@ size_t SMPProcessor::_threadsStackSize = 0;
 
 void SMPProcessor::prepareConfig ( Config &config )
 {
-   config.registerConfigOption( "user-threads", new Config::FlagOption( _useUserThreads, false), "Use of user threads" );
+   config.registerConfigOption( "user-threads", new Config::FlagOption( _useUserThreads, false), "Disable use of user threads to implement workdescriptor" );
    config.registerArgOption( "user-threads", "disable-ut" );
 
-   config.registerConfigOption ( "pthreads-stack-size", new Config::SizeVar( _threadsStackSize ), "Pthreads stack size" );
+   config.registerConfigOption ( "pthreads-stack-size", new Config::SizeVar( _threadsStackSize ), "Defines pthreads stack size" );
    config.registerArgOption( "pthreads-stack-size", "pthreads-stack-size" );
 }
 
@@ -63,32 +63,32 @@ BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper )
 
 #if SMP_NUMA
 
-void SMPProcessor::registerDataAccessDependent( void *tag, size_t size )
+void SMPProcessor::registerDataAccessDependent( uint64_t tag, size_t size )
 {
    _cache.cacheData( tag, size );
 }
 
-void SMPProcessor::copyDataDependent( void *tag, size_t size )
+void SMPProcessor::copyDataDependent( uint64_t tag, size_t size )
 {
    _cache.copyData( tag, size );
 }
 
-void SMPProcessor::unregisterDataAccessDependent( void *tag )
+void SMPProcessor::unregisterDataAccessDependent( uint64_t tag )
 {
    _cache.flush( tag );
 }
 
-void SMPProcessor::copyBackDependent( void *tag, size_t size )
+void SMPProcessor::copyBackDependent( uint64_t tag, size_t size )
 {
    _cache.copyBack( tag, size );
 }
 
-void* SMPProcessor::getAddressDependent( void* tag )
+void* SMPProcessor::getAddressDependent( uint64_t tag )
 {
    return _cache.getAddress(tag);
 }
 
-void SMPProcessor::copyToDependent( void* dst, void *tag, size_t size )
+void SMPProcessor::copyToDependent( void *dst, uint64_t tag, size_t size )
 {
    _cache.copyTo( dst, tag, size );
 }

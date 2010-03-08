@@ -30,7 +30,7 @@ PluginManager::PluginList PluginManager::_activePlugins;
 void PluginManager::init()
 {
    Config config;
-   config.registerConfigOption ( "plugins_dir", new Config::StringVar ( _pluginsDir ), "Plugins directory" );
+   config.registerConfigOption ( "plugins_dir", new Config::StringVar ( _pluginsDir ), "Specifies the directory where the plugins are" );
    config.registerArgOption ( "plugins_dir", "plugins-dir" );
    config.registerEnvOption ( "plugins_dir", "NX_PLUGINS_DIR" );
    config.init();

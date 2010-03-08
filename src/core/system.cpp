@@ -111,42 +111,41 @@ void System::config ()
 
    config.setOptionsSection ( "Core", new std::string( "Options for the core of Nanox runtime" ) );
 
-   config.registerConfigOption ( "num_pes", new Config::PositiveVar( _numPEs ), "Number of processing elements" );
+   config.registerConfigOption ( "num_pes", new Config::PositiveVar( _numPEs ), "Defines the number of processing elements" );
    config.registerArgOption ( "num_pes", "pes" );
    config.registerEnvOption ( "num_pes", "NX_PES" );
 
-   config.registerConfigOption ( "stack-size", new Config::PositiveVar( _deviceStackSize ), "Default stack size for the devices" );
+   config.registerConfigOption ( "stack-size", new Config::PositiveVar( _deviceStackSize ), "Defines the default stack size for all devices" );
    config.registerArgOption ( "stack-size", "stack-size" );
    config.registerEnvOption ( "stack-size", "NX_STACK_SIZE" );
 
-   config.registerConfigOption ( "no-binding", new Config::FlagOption( _bindThreads, false), "Thread binding" );
-   config.registerArgOption ( "no-binding", "no-binding" );
+   config.registerConfigOption ( "no-binding", new Config::FlagOption( _bindThreads, false), "Disables thread binding" );
+   config.registerArgOption ( "no-binding", "disable-binding" );
 
-   config.registerConfigOption ( "verbose", new Config::FlagOption( _verboseMode), "Verbose mode" );
+   config.registerConfigOption ( "verbose", new Config::FlagOption( _verboseMode), "Activates verbose mode" );
    config.registerArgOption ( "verbose", "verbose" );
 
-   //more than 1 thread per pe
-   config.registerConfigOption ( "thsperpe", new Config::PositiveVar( _thsPerPE ), "Number of threads per processing element" );
-   config.registerArgOption ( "thsperpe", "thrsperpe" );
-
+#if 0
+   FIXME: implement execution modes (#146)
    Config::MapVar<ExecutionMode> map( _executionMode );
    map.addOption( "dedicated", DEDICATED).addOption( "shared", SHARED );
    config.registerConfigOption ( "exec_mode", &map, "Execution mode" );
    config.registerArgOption ( "exec_mode", "mode" );
+#endif
 
-   config.registerConfigOption ( "schedule", new Config::StringVar ( _defSchedule ), "Default scheduling policy" );
+   config.registerConfigOption ( "schedule", new Config::StringVar ( _defSchedule ), "Defines the scheduling policy" );
    config.registerArgOption ( "schedule", "schedule" );
    config.registerEnvOption ( "schedule", "NX_SCHEDULE" );
 
-   config.registerConfigOption ( "throttle", new Config::StringVar ( _defThrottlePolicy ), "Default throttle policy" );
+   config.registerConfigOption ( "throttle", new Config::StringVar ( _defThrottlePolicy ), "Defines the throttle policy" );
    config.registerArgOption ( "throttle", "throttle" );
    config.registerEnvOption ( "throttle", "NX_THROTTLE" );
 
-   config.registerConfigOption ( "barrier", new Config::StringVar ( _defBarr ), "Default barrier" );
+   config.registerConfigOption ( "barrier", new Config::StringVar ( _defBarr ), "Defines barrier algorithm" );
    config.registerArgOption ( "barrier", "barrier" );
    config.registerEnvOption ( "barrier", "NX_BARRIER" );
 
-   config.registerConfigOption ( "instrumentor", new Config::StringVar ( _defInstr ), "Nanos instrumentation" );
+   config.registerConfigOption ( "instrumentor", new Config::StringVar ( _defInstr ), "Defines instrumentation format" );
    config.registerArgOption ( "instrumentor", "instrumentor" );
    config.registerEnvOption ( "instrumentor", "NX_INSTRUMENTOR" );
 

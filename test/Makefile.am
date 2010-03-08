@@ -110,11 +110,11 @@ fibnocutoff_c_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_srcdir)/s
 fibnocutoff_c_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la 
 
 test_copy_in_out_SOURCES = test_copy_in_out.cpp
-test_copy_in_out_CXXFLAGS = -g $(common_includes) $(common_cxxflags)
+test_copy_in_out_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -DSMP_NUMA
 test_copy_in_out_LDADD = $(top_builddir)/src/core/libnanox.la
 
 libtest_copy_in_out_c_aux_a_SOURCES = test_copy_in_out_c_aux.cpp
-libtest_copy_in_out_c_aux_a_CXXFLAGS = -g $(common_includes) $(common_cxxflags)
+libtest_copy_in_out_c_aux_a_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -DSMP_NUMA
 libtest_copy_in_out_c_aux_a_LIBADD = $(top_builddir)/src/core/libnanox.la
 
 test_copy_in_out_c_SOURCES = test_copy_in_out.c
@@ -122,7 +122,7 @@ test_copy_in_out_c_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_srcd
 test_copy_in_out_c_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la  libtest_copy_in_out_c_aux.a
 
 test_copies_device_SOURCES = test_copies_device.cpp
-test_copies_device_CXXFLAGS = -g $(common_includes) $(common_cxxflags)
+test_copies_device_CXXFLAGS = -g $(common_includes) $(common_cxxflags) -DSMP_NUMA
 test_copies_device_LDADD = $(top_builddir)/src/core/libnanox.la
 
 test_instrumentor_01_SOURCES = test_instrumentor_01.c
