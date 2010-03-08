@@ -42,7 +42,7 @@ void Instrumentor::enterRuntimeAPI ( nanos_event_api_t function, nanos_event_sta
    /* Update instrumentor context with new state and open burst */
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
    instrContext.pushState(state);
-   instrContext.pushBurst(e[1]);
+   instrContext.insertBurst(e[1]);
 
    /* Spawning two events: specific instrumentor call */
    addEventList ( 2, e );
@@ -55,8 +55,10 @@ void Instrumentor::enterRuntimeAPI ( nanos_event_api_t function, nanos_event_sta
 void Instrumentor::leaveRuntimeAPI ( )
 {
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
-   if ( ! instrContext.findBurstByKey( Event::NANOS_API ) ) fatal0 ("Burst not found!");
-   Event &e1 = instrContext.topBurst( );
+   InstrumentorContext::BurstIterator it;
+   if ( !instrContext.findBurstByKey( Event::NANOS_API, it ) ) fatal0("Burst doesn't exists");
+
+   Event &e1 =  (*it);
    e1.reverseType();
 
    /* Top is current state, so before we have to bring (pop) previous state
@@ -71,7 +73,7 @@ void Instrumentor::leaveRuntimeAPI ( )
    /* Spawning two events: specific instrumentor call */
    addEventList ( 2, e );
 
-   instrContext.popBurst(); 
+   instrContext.removeBurst( it ); 
 }
 
 // FIXME (#140): Change InstrumentorContext ic.init() to Instrumentor::wdCreate();
@@ -110,13 +112,13 @@ void Instrumentor::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD )
    e[i++] = State ( state );
 
    /* Regenerating reverse bursts for old WD */
-   for ( InstrumentorContext::BurstIterator it = oldInstrContext.beginBurst(); it != oldInstrContext.endBurst(); it++,i++ ) {
+   for ( InstrumentorContext::ConstBurstIterator it = oldInstrContext.beginBurst(); it != oldInstrContext.endBurst(); it++,i++ ) {
       e[i] = *it;
       e[i].reverseType();
    }
 
    /* Regenerating bursts for new WD */
-   for ( InstrumentorContext::BurstIterator it = newInstrContext.beginBurst() ; it != newInstrContext.endBurst(); it++,i++ ) {
+   for ( InstrumentorContext::ConstBurstIterator it = newInstrContext.beginBurst() ; it != newInstrContext.endBurst(); it++,i++ ) {
       e[i] = *it;
    }
 
@@ -155,13 +157,13 @@ void Instrumentor::wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD )
    e[i++] = State ( state );
 
    /* Regenerating reverse bursts for old WD */
-   for ( InstrumentorContext::BurstIterator it = oldInstrContext.beginBurst() ; it != oldInstrContext.endBurst(); it++,i++ ) {
+   for ( InstrumentorContext::ConstBurstIterator it = oldInstrContext.beginBurst() ; it != oldInstrContext.endBurst(); it++,i++ ) {
       e[i] = *it;
       e[i].reverseType();
    }
 
    /* Regenerating bursts for new WD */
-   for ( InstrumentorContext::BurstIterator it = newInstrContext.beginBurst() ; it != newInstrContext.endBurst(); it++,i++ ) {
+   for ( InstrumentorContext::ConstBurstIterator it = newInstrContext.beginBurst() ; it != newInstrContext.endBurst(); it++,i++ ) {
       e[i] = *it;
    }
 
