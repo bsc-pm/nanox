@@ -54,17 +54,16 @@ void SMPThread::start ()
 
    // user-defined stack size
    if ( _stackSize > 0 ) {
-	// TODO: check alignment?
+     // TODO: check alignment?
+     if ( _stackSize < PTHREAD_STACK_MIN ) {
+       warning("specified thread stack too small, adjusting it to minimum size");
+       _stackSize = PTHREAD_STACK_MIN;
+     }
 
-	if ( _stackSize < PTHREAD_STACK_MIN ) {
-	 	warning("specified thread stack too small, adjusting it to minimum size");
-		_stackSize = PTHREAD_STACK_MIN;
-	}
+     char *stack = new char[_stackSize];
 
-       char *stack = new char[_stackSize];
-
-       if ( stack == NULL || pthread_attr_setstack( &attr, stack, _stackSize ) )
-	 warning("couldn't create pthread stack");
+     if ( stack == NULL || pthread_attr_setstack( &attr, stack, _stackSize ) )
+       warning("couldn't create pthread stack");
    }
 
 
@@ -88,55 +87,6 @@ void SMPThread::join ()
    joined();
 }
 
-// This is executed in between switching stacks
-void SMPThread::switchHelperDependent ( WD *oldWD, WD *newWD, void *oldState  )
-{
-   SMPDD & dd = ( SMPDD & )oldWD->getActiveDevice();
-   dd.setState( (intptr_t *) oldState );
-//    myThread->switchHelper( oldWD, newWD );
-}
-
-void SMPThread::inlineWorkDependent ( WD &wd )
-{
-   SMPDD &dd = ( SMPDD & )wd.getActiveDevice();
-
-   ( dd.getWorkFct() )( wd.getData() );
-}
-
-void SMPThread::switchTo ( WD *wd, SchedulerHelper *helper )
-{
-   // wd MUST have an active SMP Device when it gets here
-   ensure( wd->hasActiveDevice(),"WD has no active SMP device" );
-   SMPDD &dd = ( SMPDD & )wd->getActiveDevice();
-   ensure( dd.hasStack(), "DD has no stack for ULT");
-
-   debug( "switching from task " << getCurrentWD() << ":" << getCurrentWD()->getId() << " to " << wd << ":" << wd->getId() );
-
-   ::switchStacks(
-       ( void * ) getCurrentWD(),
-       ( void * ) wd,
-       ( void * ) dd.getState(),
-       ( void * ) helper );
-}
-
-void SMPThread::exitTo ( WD *wd, SchedulerHelper *helper)
-{
-   // wd MUST have an active SMP Device when it gets here
-   ensure( wd->hasActiveDevice(),"WD has no active SMP device" );
-   SMPDD &dd = ( SMPDD & )wd->getActiveDevice();
-   ensure( dd.hasStack(), "DD has no stack for ULT");
-
-   debug( "exiting task " << getCurrentWD() << ":" << getCurrentWD()->getId() << " to " << wd << ":" << wd->getId() );
-   // TODO: reuse stack
-
-   //TODO: optimize... we don't really need to save a context in this case
-   ::switchStacks(
-      ( void * ) getCurrentWD(),
-      ( void * ) wd,
-      ( void * ) dd.getState(),
-      ( void * ) helper );
-}
-
 void SMPThread::bind( void )
 {
    cpu_set_t cpu_set;
@@ -153,5 +103,54 @@ void SMPThread::yield()
 {
    if (sched_yield() != 0)
       fatal("sched_yield call returned an error");
+}
+
+
+// This is executed in between switching stacks
+void SMPThread::switchHelperDependent ( WD *oldWD, WD *newWD, void *oldState  )
+{
+   SMPDD & dd = ( SMPDD & )oldWD->getActiveDevice();
+   dd.setState( (intptr_t *) oldState );
+}
+
+void SMPThread::inlineWorkDependent ( WD &wd )
+{
+   SMPDD &dd = ( SMPDD & )wd.getActiveDevice();
+   ( dd.getWorkFct() )( wd.getData() );
+}
+
+void SMPThread::switchTo ( WD *wd, SchedulerHelper *helper )
+{
+   // wd MUST have an active SMP Device when it gets here
+   ensure( wd->hasActiveDevice(),"WD has no active SMP device" );
+   SMPDD &dd = ( SMPDD & )wd->getActiveDevice();
+   ensure( dd.hasStack(), "DD has no stack for ULT");
+
+   debug( "switching from task " << getCurrentWD() << ":" << getCurrentWD()->getId() <<
+          " to " << wd << ":" << wd->getId() );
+
+   ::switchStacks(
+       ( void * ) getCurrentWD(),
+       ( void * ) wd,
+       ( void * ) dd.getState(),
+       ( void * ) helper );
+}
+
+void SMPThread::exitTo ( WD *wd, SchedulerHelper *helper)
+{
+   // wd MUST have an active SMP Device when it gets here
+   ensure( wd->hasActiveDevice(),"WD has no active SMP device" );
+   SMPDD &dd = ( SMPDD & )wd->getActiveDevice();
+   ensure( dd.hasStack(), "DD has no stack for ULT");
+
+   debug( "exiting task " << getCurrentWD() << ":" << getCurrentWD()->getId() <<
+          " to " << wd << ":" << wd->getId() );
+
+   //TODO: optimize... we don't really need to save a context in this case
+   ::switchStacks(
+      ( void * ) getCurrentWD(),
+      ( void * ) wd,
+      ( void * ) dd.getState(),
+      ( void * ) helper );
 }
 
