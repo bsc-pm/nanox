@@ -17,82 +17,34 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "workdescriptor.hpp"
-#include "schedule.hpp"
-#include "processingelement.hpp"
+#include "nanos_pe.h"
 #include "basethread.hpp"
 #include "debug.hpp"
-#include "schedule.hpp"
-#include "dependableobjectwd.hpp"
+#include "system.hpp"
+#include "workdescriptor.hpp"
+#include "plugin.hpp"
 
 using namespace nanos;
 
-Atomic<unsigned int> WorkDescriptor::_idSeed = 1;
-
-DeviceData * WorkDescriptor::findDeviceData ( const Device &device ) const
+nanos_err_t nanos_get_addr ( void * tag, nanos_sharing_t sharing, void **addr )
 {
-   for ( unsigned i = 0; i < _numDevices; i++ ) {
-      if ( _devices[i]->isCompatible( device ) ) {
-         return _devices[i];
-      }
-   }
+   nanos_wd_t cwd = myThread->getCurrentWD();
+   WD *wd = ( WD * )cwd;
 
-   return 0;
-}
-
-DeviceData & WorkDescriptor::activateDevice ( const Device &device )
-{
-   if ( _activeDevice ) {
-      ensure( _activeDevice->isCompatible( device ),"Bogus double device activation" );
-      return *_activeDevice;
-   }
-
-   DD * dd = findDeviceData( device );
-
-   ensure( dd,"Did not find requested device in activation" );
-   _activeDevice = dd;
-   return *dd;
-}
-
-bool WorkDescriptor::canRunIn( const Device &device ) const
-{
-   if ( _activeDevice ) return _activeDevice->isCompatible( device );
-
-   return findDeviceData( device ) != NULL;
-}
-
-bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
-{
-   return canRunIn( pe.getDeviceType() );
-}
-
-void WorkDescriptor::submit( void )
-{
-   Scheduler::submit(*this);
-} 
-
-void WorkDescriptor::done ()
-{
    ProcessingElement *pe = myThread->runningOn();
-   pe->copyDataOut( *this );
+   *addr = pe->getAddress( *wd, tag, sharing ); //FIXME , SHARING );
 
-   // FIX-ME: We are waiting for the children tasks to avoid to keep alive only part of the parent
-   waitCompletation();
-   this->getParent()->workFinished( *this );
-   WorkGroup::done();
+   return NANOS_OK;
 }
 
-void WorkDescriptor::start ()
+nanos_err_t nanos_copy_value ( void * dst, void *tag, nanos_sharing_t sharing, size_t size )
 {
+   nanos_wd_t cwd = myThread->getCurrentWD();
+   WD *wd = ( WD * )cwd;
+
    ProcessingElement *pe = myThread->runningOn();
-   pe->copyDataIn( *this );
-}
+   pe->copyTo( *wd, dst, tag, sharing, size ); //FIXME , SHARING );
 
-void WorkDescriptor::prepareCopies()
-{
-   for (unsigned int i = 0; i < _numCopies; i++ ) {
-      if ( _copies[i].isPrivate() )
-         _copies[i].setAddress( (void *)( (char *)_copies[i].getAddress() - (unsigned long)_data ) );
-   }
+   return NANOS_OK;
 }
 

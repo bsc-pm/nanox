@@ -73,6 +73,12 @@ namespace nanos
 
          BaseThread & startWorker ( SchedulingGroup *sg );
          void stopAll();
+
+         virtual void copyDataIn( WorkDescriptor& wd ) {}
+         virtual void copyDataOut( WorkDescriptor& wd ) {}
+
+         virtual void* getAddress( WorkDescriptor& wd, void* tag, nanos_sharing_t sharing );
+         virtual void copyTo( WorkDescriptor& wd, void* dst, void *tag, nanos_sharing_t sharing, size_t size );
    };
 
    typedef class ProcessingElement PE;

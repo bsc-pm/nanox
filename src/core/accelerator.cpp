@@ -17,65 +17,45 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "workgroup.hpp"
-#include "atomic.hpp"
+#include "accelerator.hpp"
+#include "debug.hpp"
 #include "schedule.hpp"
-#include "synchronizedcondition.hpp"
+#include "copydata.hpp"
 
 using namespace nanos;
 
-Atomic<int> WorkGroup::_atomicSeed( 0 );
-
-void WorkGroup::addWork ( WorkGroup &work )
+void Accelerator::copyDataIn( WorkDescriptor &work )
 {
-   _components++;
-   work.addToGroup( *this );
+   CopyData *copies = work.getCopies();
+   for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
+      CopyData & cd = copies[i];
+      void *tag = cd.isPrivate() ? ((char *)work.getData() + (unsigned long)cd.getAddress()) : cd.getAddress();
+      this->registerDataAccessDependent( tag, cd.getSize() );
+      if ( cd.isInput() )
+         this->copyDataDependent( tag, cd.getSize() );
+   }      
 }
 
-void WorkGroup::addToGroup ( WorkGroup &parent )
+void Accelerator::copyDataOut( WorkDescriptor& work )
 {
-   _partOf.push_back( &parent );
-}
-
-void WorkGroup::exitWork ( WorkGroup &work )
-{
-   int componentsLeft = --_components;
-   if (componentsLeft == 0)
-      _syncCond.signal();
-}
-
-void WorkGroup::sync ()
-{
-   _phaseCounter++;
-   //TODO: block and switch
-
-   while ( _phaseCounter < _components );
-
-   //TODO: reinit phase_counter
-}
-
-void WorkGroup::waitCompletation ()
-{
-     _syncCond.wait();
-}
-
-void WorkGroup::start ()
-{
-}
-
-void WorkGroup::done ()
-{
-   for ( WGList::iterator it = _partOf.begin();
-         it != _partOf.end();
-         it++ ) {
-      if ( *it )
-        ( *it )->exitWork( *this );
-      *it = 0;
+   CopyData *copies = work.getCopies();
+   for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
+      CopyData & cd = copies[i];
+      void *tag = cd.isPrivate() ? ((char *)work.getData() + (unsigned long)cd.getAddress()) : cd.getAddress();
+      this->unregisterDataAccessDependent( tag );
+      if ( cd.isOutput() )
+          this->copyBackDependent( tag, cd.getSize() );
    }
 }
 
-WorkGroup::~WorkGroup ()
+void* Accelerator::getAddress( WorkDescriptor &wd, void* tag, nanos_sharing_t sharing )
 {
-   done();
+   void *actualTag = (void *) ( sharing == NX_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : tag );
+   return getAddressDependent( actualTag );
 }
 
+void Accelerator::copyTo( WorkDescriptor &wd, void* dst, void *tag, nanos_sharing_t sharing, size_t size )
+{
+   void *actualTag = (void *)( sharing == NX_PRIVATE ? (char *)wd.getData() + (unsigned long) tag : tag );
+   copyToDependent( dst, actualTag, size );
+}

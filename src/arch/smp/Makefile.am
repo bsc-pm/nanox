@@ -34,6 +34,7 @@ EXTRA_DIST= \
 
 libsmp_la_CXXFLAGS=$(common_includes) $(common_cxxflags) 
 libsmp_la_SOURCES = \
+		smpmemory.hpp \
 		smpdd.hpp \
 		smpdd.cpp \
 		@SMP_ARCH@/stack.cpp \
@@ -44,6 +45,7 @@ libsmp_la_SOURCES = \
 libnanox_pe_smp_la_CXXFLAGS=$(common_includes) $(common_cxxflags) 
 libnanox_pe_smp_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_pe_smp_la_SOURCES = \
+		smpmemory.hpp \
 		smpplugin.cpp \
 		smpprocessor.hpp \
 		smpprocessor.cpp \

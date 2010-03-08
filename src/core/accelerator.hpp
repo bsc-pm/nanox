@@ -17,68 +17,53 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_WORK_GROUP
-#define _NANOS_WORK_GROUP
+#ifndef _NANOS_ACCELERATOR
+#define _NANOS_ACCELERATOR
 
-#include <vector>
-#include "atomic.hpp"
-#include "dependenciesdomain.hpp"
-#include "synchronizedcondition_decl.hpp"
+#include "workdescriptor.hpp"
+#include "processingelement.hpp"
+#include <algorithm>
+#include "functors.hpp"
 
 namespace nanos
 {
 
-   class WorkGroup
+// forward definitions
+
+
+   class Accelerator : public ProcessingElement
    {
 
       private:
-         static Atomic<int> _atomicSeed;
-
-         // FIX-ME: vector is not a safe-class here
-         typedef std::vector<WorkGroup *> WGList;
-
-         WGList         _partOf;
-         int            _id;
-         Atomic<int>    _components;
-         Atomic<int>    _phaseCounter;
-
-         SingleSyncCond<EqualConditionChecker<int> > _syncCond;
-
-         void addToGroup ( WorkGroup &parent );
-         void exitWork ( WorkGroup &work );
-
-         const WorkGroup & operator= ( const WorkGroup &wg );
+         Accelerator ( const Accelerator &pe );
+         const Accelerator & operator= ( const Accelerator &pe );
+         
+      protected:
+         virtual WorkDescriptor & getMasterWD () const = 0;
+         virtual WorkDescriptor & getWorkerWD () const = 0;
 
       public:
          // constructors
-         WorkGroup() : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ),
-            _syncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ) {  }
-         WorkGroup( const WorkGroup &wg ) : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ),
-            _syncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ) 
-         {
-// xteruel:FIXME: (#106, closed) Is that code really needed?
-#if 1
-            for ( WGList::const_iterator it = wg._partOf.begin(); it < wg._partOf.end(); it++ ) {
-               if (*it) (*it)->addWork( *this );
-            }
-#endif
-         }
+         Accelerator ( int newId, const Device *arch ) : ProcessingElement( newId, arch) {}
 
          // destructor
-         virtual ~WorkGroup();
+         virtual ~Accelerator() {}
 
-         void addWork( WorkGroup &wg );
-         void sync();
-         void waitCompletation();
-         virtual void start();
-         virtual void done();
-         int getId() const { return _id; }
+         virtual void copyDataIn( WorkDescriptor& wd );
+         virtual void copyDataOut( WorkDescriptor& wd );
 
+         virtual void registerDataAccessDependent( void *tag, size_t size ) = 0;
+         virtual void copyDataDependent( void *tag, size_t size ) = 0;
+         virtual void unregisterDataAccessDependent( void *tag ) = 0;
+         virtual void copyBackDependent( void *tag, size_t size ) = 0;
+
+         virtual void* getAddress( WorkDescriptor& wd, void* tag, nanos_sharing_t sharing );
+         virtual void copyTo( WorkDescriptor& wd, void* dst, void *tag, nanos_sharing_t sharing, size_t size );
+
+         virtual void* getAddressDependent( void* tag ) = 0;
+         virtual void copyToDependent( void *tag, void* dst, size_t size ) = 0;
    };
-
-   typedef WorkGroup WG;
 
 };
 
 #endif
-

@@ -78,6 +78,7 @@ void SMPThread::runDependent ()
    setCurrentWD( work );
 
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
+
    dd.getWorkFct()( work.getData() );
 }
 
@@ -98,6 +99,9 @@ static void switchHelperDependent ( WD *oldWD, WD *newWD, intptr_t *oldState  )
 void SMPThread::inlineWorkDependent ( WD &wd )
 {
    SMPDD &dd = ( SMPDD & )wd.getActiveDevice();
+
+   wd.start();
+
    ( dd.getWorkFct() )( wd.getData() );
 }
 
@@ -111,6 +115,7 @@ void SMPThread::switchTo ( WD *wd )
       debug( "switching from task " << getCurrentWD() << ":" << getCurrentWD()->getId() << " to " << wd << ":" << wd->getId() );
 
       if ( !dd.hasStack() ) {
+         wd->start();
          dd.initStack( wd->getData() );
       }
 
@@ -140,6 +145,7 @@ void SMPThread::exitTo ( WD *wd )
    // TODO: reuse stack
 
    if ( !dd.hasStack() ) {
+      wd->start();
       dd.initStack( wd->getData() );
    }
 

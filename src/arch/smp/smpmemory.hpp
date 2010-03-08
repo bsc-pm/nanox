@@ -17,68 +17,40 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_WORK_GROUP
-#define _NANOS_WORK_GROUP
-
-#include <vector>
-#include "atomic.hpp"
-#include "dependenciesdomain.hpp"
-#include "synchronizedcondition_decl.hpp"
+#ifndef _SMP_COPIER
+#define _SMP_COPIER
 
 namespace nanos
 {
 
-   class WorkGroup
+   class SMPMemory
    {
-
-      private:
-         static Atomic<int> _atomicSeed;
-
-         // FIX-ME: vector is not a safe-class here
-         typedef std::vector<WorkGroup *> WGList;
-
-         WGList         _partOf;
-         int            _id;
-         Atomic<int>    _components;
-         Atomic<int>    _phaseCounter;
-
-         SingleSyncCond<EqualConditionChecker<int> > _syncCond;
-
-         void addToGroup ( WorkGroup &parent );
-         void exitWork ( WorkGroup &work );
-
-         const WorkGroup & operator= ( const WorkGroup &wg );
-
       public:
-         // constructors
-         WorkGroup() : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ),
-            _syncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ) {  }
-         WorkGroup( const WorkGroup &wg ) : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ),
-            _syncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ) 
+         void * allocate( size_t size )
          {
-// xteruel:FIXME: (#106, closed) Is that code really needed?
-#if 1
-            for ( WGList::const_iterator it = wg._partOf.begin(); it < wg._partOf.end(); it++ ) {
-               if (*it) (*it)->addWork( *this );
-            }
-#endif
+            return new char[size]; 
          }
 
-         // destructor
-         virtual ~WorkGroup();
+         void free( void *address )
+         {
+            delete[] (char *) address;
+         }
 
-         void addWork( WorkGroup &wg );
-         void sync();
-         void waitCompletation();
-         virtual void start();
-         virtual void done();
-         int getId() const { return _id; }
+         void copyIn( void *localDst, void* remoteSrc, size_t size )
+         {
+            memcpy( localDst, remoteSrc, size );
+         }
 
+         void copyOut( void *remoteDst, void *localSrc, size_t size )
+         {
+            memcpy( remoteDst, localSrc, size );
+         }
+
+         void copyLocal( void *dst, void * src, size_t size )
+         {
+            memcpy( dst, src, size );
+         }
    };
-
-   typedef WorkGroup WG;
-
-};
+}
 
 #endif
-

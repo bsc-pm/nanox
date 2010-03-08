@@ -17,9 +17,11 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+#include <string.h>
 #include "processingelement.hpp"
 #include "debug.hpp"
 #include "schedule.hpp"
+#include "copydata.hpp"
 
 using namespace nanos;
 
@@ -77,3 +79,17 @@ void ProcessingElement::stopAll ()
          thread->leaveTeam();
    }
 }
+
+void* ProcessingElement::getAddress( WorkDescriptor &wd, void* tag, nanos_sharing_t sharing )
+{
+   void *actualTag = (void *) ( sharing == NX_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : tag );
+   return actualTag;
+}
+
+void ProcessingElement::copyTo( WorkDescriptor& wd, void* dst, void *tag, nanos_sharing_t sharing, size_t size )
+{
+   void *actualTag = (void *) ( sharing == NX_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : tag );
+   // FIXME: should this be done by using the local copeir of the device?
+   memcpy( dst, actualTag, size );
+}
+

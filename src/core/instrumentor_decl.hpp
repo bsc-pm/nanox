@@ -32,13 +32,11 @@ namespace nanos {
    class WorkDescriptor;
 
    // TODO: Move nanos_event_state_t inside Event?
-   typedef enum { ERROR, IDLE, RUNTIME, RUNNING, SYNCHRONIZATION, SCHEDULING,
-                  FORK_JOIN, OTHERS, LAST_EVENT_STATE } nanos_event_state_t;
+   typedef enum { NOT_TRACED, ERROR, IDLE, RUNTIME, RUNNING, SYNCHRONIZATION, SCHEDULING, FORK_JOIN, EVENT_STATE_TYPES } nanos_event_state_t;
 
    // xteruel: TODO Move this enum to the api.
-   typedef enum { CURRENT_WD, GET_WD_ID, CREATE_WD, SUBMIT_WD, CREATE_WD_AND_RUN,
+   typedef enum { NOT_IN_NANOS_API, CURRENT_WD, GET_WD_ID, CREATE_WD, SUBMIT_WD, CREATE_WD_AND_RUN,
                   SET_INTERNAL_WD_DATA, GET_INTERNAL_WD_DATA,
-        SWITCH, THROW_WD, CATCH_WD, LAST_EVENT, 
                   WG_WAIT_COMPLETATION, SYNC_COND, WAIT_ON, LOCK, SINGLE_GUARD,
                   TEAM_BARRIER,
                   FIND_SLICER,
@@ -50,7 +48,7 @@ namespace nanos {
       public:
          class Event {
             public:
-               enum                           Type { STATE, BURST_START, BURST_END, PTP_START, PTP_END, POINT };
+               enum                           Type { STATE, BURST_START, BURST_END, PTP_START, PTP_END, POINT, EVENT_TYPES };
                enum                           Domain { WD };
                enum                           Key { NANOS_API, WD_ID };
                typedef int                    Value;
