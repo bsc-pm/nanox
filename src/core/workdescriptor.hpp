@@ -231,7 +231,7 @@ namespace nanos
           *
           *  This function is useful to perform lazy initialization in the workdescriptor
           */
-         void start ( void );
+         virtual void start ( void );
 
          /*! \brief Get data size
           *
@@ -387,10 +387,9 @@ namespace nanos
          virtual bool dequeue ( WorkDescriptor **slice ) { *slice = this; return true; }
 
          // headers
-	 virtual void submit ( void ); 
+         virtual void submit ( void );
 
          virtual void done ();
-         virtual void start ();
 
           /*! \brief returns the number of CopyData elements in the WorkDescriptor
            */

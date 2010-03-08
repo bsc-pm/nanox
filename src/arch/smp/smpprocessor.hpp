@@ -47,7 +47,7 @@ namespace ext
       private:
          // config variables
          static bool _useUserThreads;
-	 static size_t _threadsStackSize;
+         static size_t _threadsStackSize;
 
          // disable copy constructor and assignment operator
          SMPProcessor( const SMPProcessor &pe );
@@ -75,7 +75,8 @@ namespace ext
 
          // capability query functinos
          virtual bool supportsUserLevelThreads () const { return _useUserThreads; }
-#if SMP_NUMA
+#ifdef SMP_NUMA
+         virtual bool hasSeparatedMemorySpace() const { return true; }
          /* Memory space suport */
          virtual void registerDataAccessDependent( void *tag, size_t size );
          virtual void copyDataDependent( void *tag, size_t size );
@@ -83,6 +84,8 @@ namespace ext
          virtual void copyBackDependent( void *tag, size_t size );
          virtual void* getAddressDependent( void* tag );
          virtual void copyToDependent( void* dst, void *tag, size_t size );
+#else
+         virtual bool hasSeparatedMemorySpace() const { return false; }
 #endif
    };
 

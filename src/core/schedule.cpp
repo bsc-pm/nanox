@@ -188,23 +188,24 @@ void Scheduler::inlineWork ( WD *wd )
 
    sys.getInstrumentor()->wdSwitch( oldwd, wd );
 
+   wd->start();
    myThread->setCurrentWD( *wd );
    myThread->inlineWorkDependent(*wd);
+   wd->done();
 
    sys.getInstrumentor()->wdSwitch( wd, oldwd );
-   wd->done();
 
    myThread->setCurrentWD( *oldwd );
 }
 
 void Scheduler::switchTo ( WD *to )
 {
-   if (!to->started())
-      to->start();
+   if ( myThread->runningOn()->supportsUserLevelThreads() ) {
+      if (!to->started())
+        to->start();
 
-   if ( myThread->runningOn()->supportsUserLevelThreads() )
       myThread->switchTo( to, switchHelper );
-   else {
+   } else {
       inlineWork(to);
       delete to;
    }

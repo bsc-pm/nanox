@@ -31,6 +31,11 @@ Atomic<unsigned int> WorkDescriptor::_idSeed = 1;
 
 void WorkDescriptor::start ()
 {
+   ProcessingElement *pe = myThread->runningOn();
+
+   if ( pe->hasSeparatedMemorySpace() )
+      pe->copyDataIn( *this );
+
    setReady();
 }
 
@@ -79,18 +84,13 @@ void WorkDescriptor::submit( void )
 void WorkDescriptor::done ()
 {
    ProcessingElement *pe = myThread->runningOn();
-   pe->copyDataOut( *this );
+   if ( pe->hasSeparatedMemorySpace() )
+     pe->copyDataOut( *this );
 
    // FIX-ME: We are waiting for the children tasks to avoid to keep alive only part of the parent
    waitCompletation();
    this->getParent()->workFinished( *this );
    WorkGroup::done();
-}
-
-void WorkDescriptor::start ()
-{
-   ProcessingElement *pe = myThread->runningOn();
-   pe->copyDataIn( *this );
 }
 
 void WorkDescriptor::prepareCopies()
