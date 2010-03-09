@@ -51,7 +51,8 @@ void Scheduler::exit ( void )
    // Deallocation doesn't happen here because:
    // a) We are still running in the WD stack
    // b) Resources can potentially be reused by the next WD
-   myThread->getCurrentWD()->done();
+   WD *oldwd = myThread->getCurrentWD();
+   oldwd->done();
    sys._taskNum--;
 
    while ( myThread->isRunning() ) {
@@ -60,7 +61,7 @@ void Scheduler::exit ( void )
       if ( next ) {
         sys._numReady--;
         sys._numTasksRunning++;
-        if (!next->started()) next->start(true);
+        if (!next->started()) next->start(true,oldwd);
         myThread->exitTo ( next, exitHelper );
       }
    }
