@@ -72,6 +72,7 @@ namespace nanos
             bool operator== ( const Device &arch ) {
                 return arch._name == _name;
             }
+
     };
 
 // This class holds the specific data for a given device
@@ -106,28 +107,25 @@ namespace nanos
 
             // destructor
             virtual ~DeviceData() {}
-
-         virtual size_t size ( void ) { return sizeof( *this ); }
-
-         virtual DeviceData *copyTo ( void *addr ) = 0;
+            virtual void lazyInit (WorkDescriptor &wd, bool isUserLevelThread ) = 0;
+            virtual size_t size ( void ) = 0;
+            virtual DeviceData *copyTo ( void *addr ) = 0;
     };
 
     class WorkDescriptor : public WorkGroup
     {
 
         private:
-            static Atomic<unsigned int>  _idSeed;
-            unsigned int         _id;
             size_t               _data_size; /**< Data size */
             void    *            _data;
             void    *            _wdData; // this allows higher layer to associate data to the WD
             bool                 _tie;
             BaseThread *         _tiedTo;
 
-            typedef enum { READY, IDLE, BLOCKED } State;
+            typedef enum { INIT, READY, IDLE, BLOCKED } State;
             State                _state;
 
-            GenericSyncCond * _syncCond;
+            GenericSyncCond *    _syncCond;
 
             //Added parent for cilk scheduler: first steal parent task, next other tasks
             WorkDescriptor *     _parent;
@@ -162,23 +160,23 @@ namespace nanos
         public:
             // constructors
             WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0,void *wdata=0, size_t numCopies = 0, CopyData *copies = NULL ) :
-                    WorkGroup(), _id ( _idSeed++ ), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( READY ),
+                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( INIT ),
                     _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( ndevices ), _devices ( devs ),
                     _activeDevice ( ndevices == 1 ? devs[0] : 0 ), _numCopies( numCopies ), _copies( copies ),
                     _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext()
             {
               // FIXME (#140): Change InstrumentorContext ic.init() to Instrumentor::_wdCreate();
-               _instrumentorContext.init ( _id );
+               _instrumentorContext.init ( getId() );
             }
 
             WorkDescriptor ( DeviceData *device, size_t data_size = 0, void *wdata=0, size_t numCopies = 0, CopyData *copies = NULL ) :
-                    WorkGroup(), _id ( _idSeed++ ), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( READY ),
+                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( INIT ),
                     _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( &_activeDevice ),
                     _activeDevice ( device ), _numCopies( numCopies ), _copies( copies ), 
                     _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext()
             {
               // FIXME (#140): Change InstrumentorContext ic.init() to Instrumentor::_wdCreate();
-               _instrumentorContext.init ( _id );
+               _instrumentorContext.init ( getId() );
             }
 
             /*! \brief WorkDescriptor constructor (using former wd)
@@ -192,8 +190,8 @@ namespace nanos
              *  \see WorkDescriptor System::duplicateWD System::duplicateSlicedWD
              */
             WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL ) :
-                    WorkGroup( wd ), _id ( _idSeed++ ), _data_size( wd._data_size ), _data ( data ), _wdData ( NULL ),
-                    _tie ( wd._tie ), _tiedTo ( wd._tiedTo ), _state ( READY ), _syncCond( NULL ), _parent ( wd._parent ),
+                    WorkGroup( wd ), _data_size( wd._data_size ), _data ( data ), _wdData ( NULL ),
+                    _tie ( wd._tie ), _tiedTo ( wd._tiedTo ), _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ),
                     _myQueue ( NULL ), _depth ( wd._depth ), _numDevices ( wd._numDevices ),
                     _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
                     _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
@@ -208,7 +206,7 @@ namespace nanos
                     - bursts (list)
                     - states (stack)
                */
-               _instrumentorContext.init( _id );
+               _instrumentorContext.init( getId() );
             }
 
             // destructor
@@ -220,9 +218,15 @@ namespace nanos
                   _devices[i]->~DeviceData();
             }
 
-         /*! \brief Get WorkDescriptor id
+         /*! \brief Has this WorkDescriptor ever run?
           */
-         unsigned int getId ( void ) { return _id; }
+         bool started ( void ) const { return _state != INIT; }
+
+         /*! \brief Prepare WorkDescriptor to run
+          *
+          *  This function is useful to perform lazy initialization in the workdescriptor
+          */
+         virtual void start ( bool isUserLevelThread );
 
          /*! \brief Get data size
           *
@@ -378,10 +382,9 @@ namespace nanos
          virtual bool dequeue ( WorkDescriptor **slice ) { *slice = this; return true; }
 
          // headers
-	 virtual void submit ( void ); 
+         virtual void submit ( void );
 
          virtual void done ();
-         virtual void start ();
 
           /*! \brief returns the number of CopyData elements in the WorkDescriptor
            */

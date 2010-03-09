@@ -36,7 +36,7 @@ void Scheduler::submit ( WD &wd )
    WD *next = myThread->getSchedulingGroup()->atCreation ( myThread, wd );
 
    if ( next ) {
-      myThread->switchTo ( next );
+      switchTo ( next );
    }
 }
 
@@ -54,21 +54,17 @@ void Scheduler::exit ( void )
    myThread->getCurrentWD()->done();
    sys._taskNum--;
 
-   WD *next = myThread->getSchedulingGroup()->atExit ( myThread );
+   while ( myThread->isRunning() ) {
+      WD *next = myThread->getSchedulingGroup()->atExit ( myThread );
 
-   if ( next ) {
-      sys._numReady--;
+      if ( next ) {
+        sys._numReady--;
+        sys._numTasksRunning++;
+        if (!next->started()) next->start(true);
+        myThread->exitTo ( next, exitHelper );
+      }
    }
 
-   if ( !next ) {
-      next = myThread->getSchedulingGroup()->getIdle ( myThread );
-   }
-
-   if ( next ) {
-      myThread->exitTo ( next );
-   }
-
-   fatal ( "No more tasks to execute!" );
 }
 
 void Scheduler::idle ()
@@ -88,15 +84,12 @@ void Scheduler::idle ()
 
          if ( next ) {
             sys._numReady--;
-         }
-
-         if ( !next )
-            next = thread->getSchedulingGroup()->getIdle ( thread );
-
-         if ( next ) {
             sys._idleThreads--;
             sys._numTasksRunning++;
-            thread->switchTo ( next );
+             if (next->started())
+               switchTo(next);
+            else
+               inlineWork ( next );
             sys._numTasksRunning--;
             sys._idleThreads++;
          }
@@ -113,12 +106,8 @@ void Scheduler::idle ()
 
 void Scheduler::queue ( WD &wd )
 {
-   if ( wd.isIdle() )
-      myThread->getSchedulingGroup()->queueIdle ( myThread, wd );
-   else {
       myThread->getSchedulingGroup()->queue ( myThread, wd );
       sys._numReady++;
-   }
 }
 
 void SchedulingGroup::init ( int groupSize )
@@ -145,8 +134,139 @@ void SchedulingGroup::queueIdle ( BaseThread *thread, WD &wd )
    _idleQueue.push_back ( &wd );
 }
 
-WD * SchedulingGroup::getIdle ( BaseThread *thread )
+void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
 {
-   return _idleQueue.pop_front ( thread );
+   GenericSyncCond *syncCond = oldWD->getSyncCond();
+   if ( syncCond != NULL ) {
+      oldWD->setBlocked();
+      syncCond->unlock();
+   } else {
+      Scheduler::queue( *oldWD );
+   }
+   myThread->switchHelperDependent(oldWD, newWD, arg);
+   
+   sys.getInstrumentor()->wdSwitch( oldWD, newWD );
+   myThread->setCurrentWD( *newWD );
 }
 
+void Scheduler::exitHelper (WD *oldWD, WD *newWD, void *arg)
+{
+   myThread->exitHelperDependent(oldWD, newWD, arg);
+   sys.getInstrumentor()->wdExit( oldWD, newWD );
+   delete oldWD;
+   myThread->setCurrentWD( *newWD );
+}
+
+void Scheduler::inlineWork ( WD *wd )
+{
+   // run it in the current frame
+   WD *oldwd = myThread->getCurrentWD();
+
+   GenericSyncCond *syncCond = oldwd->getSyncCond();
+   if ( syncCond != NULL ) {
+      syncCond->unlock();
+   }
+
+   debug( "switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
+          " to " << wd << ":" << wd->getId() );
+
+   sys.getInstrumentor()->wdSwitch( oldwd, wd );
+
+   // This ensures that when we return from the inlining is still the same thread
+   // and we don't violate rules about tied WD
+   wd->tieTo(*oldwd->isTiedTo());
+   wd->start(false);
+   myThread->setCurrentWD( *wd );
+   myThread->inlineWorkDependent(*wd);
+   wd->done();
+
+   debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
+          " to " << oldwd << ":" << oldwd->getId() );
+
+   sys.getInstrumentor()->wdSwitch( wd, oldwd );
+
+   BaseThread *thread = getMyThreadSafe();
+   thread->setCurrentWD( *oldwd );
+
+   // While we tie the inlined tasks this is not needed
+   // as we will always return to the current thread
+   #if 0
+   if ( oldwd->isTiedTo() != NULL )
+      switchToThread(oldwd->isTiedTo());
+   #endif
+
+   ensure(oldwd->isTiedTo() != NULL || oldwd->isTiedTo() == thread,"Violating tied rules");
+}
+
+void Scheduler::switchTo ( WD *to )
+{
+   if ( myThread->runningOn()->supportsUserLevelThreads() ) {
+      if (!to->started())
+        to->start(true);
+
+      myThread->switchTo( to, switchHelper );
+   } else {
+      inlineWork(to);
+      delete to;
+   }
+}
+
+void Scheduler::yield ()
+{
+   WD *next = myThread->getSchedulingGroup()->atIdle( myThread );
+
+   if ( next ) {
+        sys._numTasksRunning++;
+        switchTo(next);
+   }
+}
+
+void Scheduler::switchToThread ( BaseThread *thread )
+{
+   while ( getMyThreadSafe() != thread )
+        yield();
+}
+
+#if 0
+
+void Scheduler::waitOnCondition ( GenericSyncCond &condition )
+{
+   int spins=100; // FIXME: this has to be configurable (see #147)
+
+   myThread->getCurrentWD()->setSyncCond( condition );
+   
+   while ( !condition.check() ) {
+      BaseThread *thread = getMyThreadSafe();
+      WD * current = thread->getCurrentWD();
+      current->setIdle();
+
+      spins--;
+      if ( spins == 0 ) {
+         condition.lock();
+         if ( !( condition.check() ) ) {
+            condition.addWaiter( current );
+
+            WD *next = thread->getSchedulingGroup()->atBlock ( thread );
+
+            if ( next ) {
+               sys._numReady--;
+            } 
+
+            if ( next ) {
+               thread->switchTo ( next );
+            }
+            else {
+               condition.unlock();
+               thread->yield();
+            }
+         } else {
+            condition.unlock();
+         }
+         spins = 100;
+      }
+   }
+   myThread->getCurrentWD()->setReady();
+   myThread->getCurrentWD()->setSyncCond( NULL );
+}
+
+#endif
