@@ -30,6 +30,8 @@ noinst_PROGRAMS = \
 	api_slicer_dynamic_for \
 	api_slicer_guided_for \
         test_instrumentor_01 \
+        test_instrumentor_02 \
+        test_instrumentor_03 \
 	test1 test_single test_slicer test_teambarrier test_dependencies-c test_dependency_types-c fib fib-c fibnocutoff-c \
         test_copy_in_out test_copy_in_out-c test_copies_device
 
@@ -128,4 +130,12 @@ test_copies_device_LDADD = $(top_builddir)/src/core/libnanox.la
 test_instrumentor_01_SOURCES = test_instrumentor_01.c
 test_instrumentor_01_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_srcdir)/src/apis/c 
 test_instrumentor_01_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la 
+
+test_instrumentor_02_SOURCES = test_instrumentor_02.c
+test_instrumentor_02_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_srcdir)/src/apis/c 
+test_instrumentor_02_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la 
+
+test_instrumentor_03_SOURCES = test_instrumentor_03.c
+test_instrumentor_03_CFLAGS = -g $(common_includes) $(common_cflags) -I $(top_srcdir)/src/apis/c 
+test_instrumentor_03_LDADD = $(top_builddir)/src/core/libnanox.la $(top_builddir)/src/apis/c/libnanox-c.la 
 

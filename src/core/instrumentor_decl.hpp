@@ -172,17 +172,8 @@ namespace nanos {
        virtual void wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD );
        virtual void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD );
 
-       void createBurstStart ( Event &e, nanos_event_key_t key, nanos_event_value_t value )
-       {
-          Event::KV kv( Event::KV( key, value) );
-          e = Burst( true, kv );
-       }
-
-       void createBurstEnd ( Event &e, nanos_event_key_t key, nanos_event_value_t value )
-       {
-          Event::KV kv( Event::KV( key, value) );
-          e = Burst( false, kv );
-       }
+       void createBurstStart ( Event &e, nanos_event_key_t key, nanos_event_value_t value );
+       void createBurstEnd ( Event &e, nanos_event_key_t key, nanos_event_value_t value );
 
 #else
 

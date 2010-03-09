@@ -17,35 +17,59 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "nanos.h"
-#include "system.hpp"
-#include "instrumentor_decl.hpp"
+#include <stdio.h>
+#include <nanos.h>
 
-using namespace nanos;
+// compiler: outlined function arguments
+typedef struct {
+   int value;
+} main__task_1_data_t;
 
-nanos_err_t nanos_instrument_events ( unsigned int num_events, nanos_event_t events[] )
+// compiler: outlined function
+void main__task_1 ( void *args )
 {
-   try
-   {
-      Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) * num_events ); 
+   nanos_event_t event_ini;
+   event_ini.type = BURST_START;
+   event_ini.info.burst.key = 133;
+   event_ini.info.burst.value = 12345;
 
-      for (unsigned int i = 0; i < num_events; i++ ) {
-         switch ( events[i].type ) {
-            case BURST_START:
-               sys.getInstrumentor()->createBurstStart( e[i], events[i].info.burst.key, events[i].info.burst.value );
-               break;
-            case BURST_END:
-               sys.getInstrumentor()->createBurstEnd( e[i], events[i].info.burst.key, events[i].info.burst.value );
-               break;
-            default:
-               return NANOS_UNKNOWN_ERR;
-               break;
-         }
-      }
-      sys.getInstrumentor()->addEventList ( num_events, e);
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
+   nanos_instrument_events ( 1, &event_ini );
 
-   return NANOS_OK;
+   main__task_1_data_t *hargs = (main__task_1_data_t * ) args;
+
+   usleep ( hargs->value );
+
+   nanos_event_t event_fini;
+   event_fini.type = BURST_END;
+   event_fini.info.burst.key = 133;
+   event_fini.info.burst.value = 12345;
+
+   nanos_instrument_events ( 1, &event_fini );
 }
+
+// compiler: smp device for main__loop_1 function
+nanos_smp_args_t main__task_1_device_args = { main__task_1 };
+
+int main ( int argc, char **argv )
+{
+
+      nanos_wd_t wd = NULL;
+      nanos_device_t main__task_1_device[1] = { NANOS_SMP_DESC( main__task_1_device_args ) };
+      main__task_1_data_t *task_data = NULL;
+      nanos_wd_props_t props = {
+         .mandatory_creation = true,
+         .tied = false,
+         .tie_to = false
+      };
+
+      NANOS_SAFE( nanos_create_wd ( &wd, 1, main__task_1_device , sizeof( main__task_1_data_t ),
+                                    (void **) &task_data, nanos_current_wd(), &props , 0, NULL ));
+
+      task_data->value = 100;
+
+      NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
+      NANOS_SAFE( nanos_wg_wait_completation( nanos_current_wd() ) );
+
+      return 0; 
+}
+

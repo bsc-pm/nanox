@@ -165,7 +165,7 @@ typedef struct {
 } nanos_event_ptp_t;
 
 typedef struct {
-   unsigned int type;
+   nanos_event_type_t       type;
    union {
       nanos_event_burst_t   burst;
       nanos_event_state_t   state;

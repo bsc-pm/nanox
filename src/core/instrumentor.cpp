@@ -200,5 +200,29 @@ void Instrumentor::leaveIdle ( )
    addEventList ( 1u, &e );
 }
 
+void Instrumentor::createBurstStart ( Event &e, nanos_event_key_t key, nanos_event_value_t value )
+{
+   /* Creating burst  event */
+   Event::KV kv( Event::KV( key, value) );
+   e = Burst( true, kv );
+
+   /* Registering burst event in instrucmentor context */
+   InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
+   instrContext.insertBurst( e );
+}
+
+void Instrumentor::createBurstEnd ( Event &e, nanos_event_key_t key, nanos_event_value_t value )
+{
+   /* Creating burst event */
+   Event::KV kv( Event::KV( key, value) );
+   e = Burst( false, kv );
+
+   /* Deleting burst event in instrucmentor context */
+   InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
+   InstrumentorContext::BurstIterator it;
+   if ( instrContext.findBurstByKey( key, it ) ) instrContext.removeBurst( it ); 
+}
+
+
 #endif
 
