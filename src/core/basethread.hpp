@@ -33,7 +33,9 @@ namespace nanos
    class SchedulingGroup;
    class SchedulingData;
    class ThreadTeam;
-   
+   class Scheduler;
+   typedef void SchedulerHelper ( WD *oldWD, WD *newWD, void *arg); // FIXME: should be only in one place
+
    /*!
     * Each thread in a team has one of this. All data associated with the team should be here
     * and not in BaseThread as it needs to be saved and restored on team switches
@@ -62,6 +64,7 @@ namespace nanos
 
    class BaseThread
    {
+      friend class Scheduler;
 
       private:
          static Atomic<int>      _idSeed;
@@ -132,11 +135,11 @@ namespace nanos
          // WD micro-scheduling
          void inlineWork ( WD *work );
 
-         void switchHelper( WD* oldWD, WD* newWD );
-         void exitHelper( WD* oldWD, WD* newWD );
+         virtual void switchHelperDependent( WD* oldWD, WD* newWD, void *arg ) = 0;
+         virtual void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) = 0;
 
-         virtual void switchTo( WD *work ) = 0;
-         virtual void exitTo( WD *work ) = 0;
+         virtual void switchTo( WD *work, SchedulerHelper *helper ) = 0;
+         virtual void exitTo( WD *work, SchedulerHelper *helper ) = 0;
 
          virtual void yield() {};
 

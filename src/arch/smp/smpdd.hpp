@@ -40,9 +40,7 @@ namespace ext
          work_fct       _work;
          intptr_t *     _stack;
          intptr_t *     _state;
-         static int     _stackSize;
-
-         void initStackDep ( void *userf, void *data, void *cleanup );
+         static size_t     _stackSize;
 
       public:
          // constructors
@@ -63,7 +61,6 @@ namespace ext
 
          bool hasStack() { return _state != NULL; }
 
-         void allocateStack();
          void initStack( void *data );
 
          intptr_t *getState() const { return _state; }
@@ -72,10 +69,10 @@ namespace ext
 
          static void prepareConfig( Config &config );
 
-         size_t size ( void ) { return sizeof(SMPDD); }
-
-         SMPDD *copyTo ( void *toAddr );
-   };
+         virtual void lazyInit (WD &wd, bool isUserLevelThread);
+         virtual size_t size ( void ) { return sizeof(SMPDD); }
+         virtual SMPDD *copyTo ( void *toAddr );
+      };
 
    inline const SMPDD & SMPDD::operator= ( const SMPDD &dd )
    {

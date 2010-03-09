@@ -17,32 +17,20 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NUMA_NANOS_H_
-#define _NUMA_NANOS_H_
+#ifndef _NANOS_SMP_ULT
+#define _NANOS_SMP_ULT
 
-#include <unistd.h>
-#include <stdbool.h>
-#include "nanos.h"
-#include "nanos-int.h"
+#include <stddef.h>
+#include <stdint.h>
 
-#ifdef _MERCURIUM_
-// define API version
-#pragma nanos interface family(master) version(5000)
-#endif
-
-#ifdef __cplusplus
-
-#define _Bool bool
-
-extern "C" {
-#endif
-
-nanos_err_t nanos_get_addr ( void * tag, nanos_sharing_t sharing, void **addr );
-
-nanos_err_t nanos_copy_value ( void * dst, void *tag, nanos_sharing_t sharing, size_t size );
-
-#ifdef __cplusplus
+extern "C"
+{
+// low-level routine to switch stacks
+   void switchStacks( void *,void *,void *,void * );
 }
-#endif
+
+intptr_t * initContext( intptr_t *stack, size_t stackSize, void *userFunction, void *userArg,
+                       void *cleanup, void *cleanupArg );
+
 
 #endif

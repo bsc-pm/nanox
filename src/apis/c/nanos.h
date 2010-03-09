@@ -120,6 +120,11 @@ nanos_err_t nanos_unset_lock (nanos_lock_t lock);
 nanos_err_t nanos_try_lock ( nanos_lock_t lock, bool *result );
 nanos_err_t nanos_destroy_lock ( nanos_lock_t lock );
 
+// Device copies
+nanos_err_t nanos_get_addr ( uint64_t tag, nanos_sharing_t sharing, void **addr );
+
+nanos_err_t nanos_copy_value ( void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );
+
 // system interface
 nanos_err_t nanos_get_num_running_tasks ( int *num );
 

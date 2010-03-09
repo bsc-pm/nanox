@@ -37,7 +37,7 @@ namespace ext
 
       private:
          pthread_t   _pth;
-	 size_t      _stackSize;
+         size_t      _stackSize;
          bool        _useUserThreads;
 
          // disable copy constructor and assignment operator
@@ -48,9 +48,9 @@ namespace ext
          // constructor
          SMPThread( WD &w, PE *pe ) : BaseThread( w,pe ),_stackSize(0), _useUserThreads(true) {}
 
-	 // named parameter idiom
+         // named parameter idiom
          SMPThread & stackSize( size_t size ) { _stackSize = size; return *this; }
-	 SMPThread & useUserThreads ( bool use ) { _useUserThreads = use; return *this; }
+         SMPThread & useUserThreads ( bool use ) { _useUserThreads = use; return *this; }
 
          // destructor
          virtual ~SMPThread() { }
@@ -62,11 +62,15 @@ namespace ext
          virtual void runDependent ( void );
 
          virtual void inlineWorkDependent( WD &work );
-         virtual void switchTo( WD *work );
-         virtual void exitTo( WD *work );
+         virtual void switchTo( WD *work, SchedulerHelper *helper );
+         virtual void exitTo( WD *work, SchedulerHelper *helper );
+
+         virtual void switchHelperDependent( WD* oldWD, WD* newWD, void *arg );
+         virtual void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) {};
+
          virtual void bind( void );
 
-        /* \brief SMP specific yield implementation
+         /** \brief SMP specific yield implementation
          */
          virtual void yield();
    };

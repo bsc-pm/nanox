@@ -46,7 +46,7 @@ BaseThread & ProcessingElement::startThread ( WD &work, SchedulingGroup *sg )
 
 BaseThread & ProcessingElement::associateThisThread ( SchedulingGroup *sg, bool untieMain )
 {
-   WD & worker = untieMain ?  getWorkerWD() : getMasterWD();
+   WD & worker = getMasterWD();
    
    BaseThread &thread = createThread( worker );
 
@@ -54,13 +54,8 @@ BaseThread & ProcessingElement::associateThisThread ( SchedulingGroup *sg, bool 
 
    thread.associate();
 
-   if ( untieMain ) {
-      // "switch" to main
-      WD & master = getMasterWD();
-
-      // put worker thread idle-loop into the queue
-      Scheduler::queue(worker);
-      thread.setCurrentWD(master);
+   if ( !untieMain ) {
+      worker.tieTo(thread);
    }
 
    return thread;
@@ -80,16 +75,15 @@ void ProcessingElement::stopAll ()
    }
 }
 
-void* ProcessingElement::getAddress( WorkDescriptor &wd, void* tag, nanos_sharing_t sharing )
+void* ProcessingElement::getAddress( WorkDescriptor &wd, uint64_t tag, nanos_sharing_t sharing )
 {
-   void *actualTag = (void *) ( sharing == NX_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : tag );
+   void *actualTag = (void *) ( sharing == NANOS_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : (void *)tag );
    return actualTag;
 }
 
-void ProcessingElement::copyTo( WorkDescriptor& wd, void* dst, void *tag, nanos_sharing_t sharing, size_t size )
+void ProcessingElement::copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size )
 {
-   void *actualTag = (void *) ( sharing == NX_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : tag );
+   void *actualTag = (void *) ( sharing == NANOS_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : (void *)tag );
    // FIXME: should this be done by using the local copeir of the device?
    memcpy( dst, actualTag, size );
 }
-

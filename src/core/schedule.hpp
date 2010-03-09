@@ -109,21 +109,34 @@ namespace nanos
 
          // idle management
          virtual void queueIdle ( BaseThread *thread,WD &wd );
-         virtual WD *getIdle( BaseThread *thread );
-
    };
 
 // singleton class to encapsulate scheduling data and methods
 
+   class GenericSyncCondition;
+   typedef void SchedulerHelper ( WD *oldWD, WD *newWD, void *arg);
+
    class Scheduler
    {
-
+      public:
+         
+      private:
+         static void inlineWork ( WD *work );
+         static void switchHelper (WD *oldWD, WD *newWD, void *arg);
+         static void exitHelper (WD *oldWD, WD *newWD, void *arg);
+         
       public:
          static void submit ( WD &wd );
          static void exit ( void );
+         static void switchTo ( WD *to );
 
          static void idle ( void );
          static void queue ( WD &wd );
+         static void yield ();
+
+         static void switchToThread ( BaseThread * thread );
+
+         static void waitOnCondition ( GenericSyncCond &condition );
    };
 
    typedef SchedulingGroup SG;
