@@ -87,6 +87,7 @@ nanos_err_t nanos_create_for ( void );
 
 nanos_err_t nanos_set_internal_wd_data ( nanos_wd_t wd, void *data );
 nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data );
+nanos_err_t nanos_yield ( void );
 
 // Team related functions
 

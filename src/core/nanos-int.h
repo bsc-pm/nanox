@@ -129,7 +129,7 @@ typedef enum { STATE, BURST_START, BURST_END, PTP_START, PTP_END, POINT, EVENT_T
 
 typedef enum { NANOS_WD_DOMAIN } nanos_event_domain_t;
 
-typedef enum { NANOS_API, WD_ID } nanos_event_key_t;
+typedef enum { NANOS_API, WD_ID, USER_FUNCT } nanos_event_key_t;
 
 typedef int  nanos_event_value_t;
   
@@ -138,7 +138,7 @@ typedef enum { NOT_TRACED, ERROR, IDLE, RUNTIME, RUNNING, SYNCHRONIZATION,
 } nanos_event_state_value_t;
 
 typedef enum { NOT_IN_NANOS_API, CURRENT_WD, GET_WD_ID, CREATE_WD, SUBMIT_WD, CREATE_WD_AND_RUN,
-               SET_INTERNAL_WD_DATA, GET_INTERNAL_WD_DATA,
+               SET_INTERNAL_WD_DATA, GET_INTERNAL_WD_DATA, YIELD,
                WG_WAIT_COMPLETATION, SYNC_COND, WAIT_ON, LOCK, SINGLE_GUARD,
                TEAM_BARRIER,
                FIND_SLICER,
