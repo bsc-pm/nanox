@@ -30,7 +30,7 @@ namespace nanos {
       private:
          typedef Instrumentor::Event Event;
          typedef Instrumentor::Burst Burst;
-         typedef std::stack<nanos_event_state_t> StateStack;
+         typedef std::stack<nanos_event_state_value_t> StateStack;
          typedef std::list<Event> BurstList;
 
          StateStack       _stateStack;
@@ -49,10 +49,10 @@ namespace nanos {
          }
          ~InstrumentorContext() {}
 
-         void pushState ( nanos_event_state_t state ) { _stateStack.push( state ); }
+         void pushState ( nanos_event_state_value_t state ) { _stateStack.push( state ); }
          void popState ( void ) { if ( !(_stateStack.empty()) ) _stateStack.pop(); }
 
-         nanos_event_state_t topState ( void )
+         nanos_event_state_value_t topState ( void )
          {
             if ( !(_stateStack.empty()) ) return _stateStack.top();
             else return ERROR;
@@ -62,7 +62,7 @@ namespace nanos {
          {
             bool found = false;
             BurstList::iterator it;
-            Event::Key key = e.getKVs()[0].first;
+            nanos_event_key_t key = e.getKVs()[0].first;
 
             /* if found an event with the same key in the main list, send it to the backup list */
             for ( it = _burstList.begin() ; !found && (it != _burstList.end()) ; it++ ) {
@@ -80,7 +80,7 @@ namespace nanos {
          }
          void removeBurst ( BurstIterator it ) {
             bool found = false;
-            Event::Key key = (*it).getKVs()[0].first;
+            nanos_event_key_t key = (*it).getKVs()[0].first;
 
             _burstList.erase ( it );
 
@@ -95,7 +95,7 @@ namespace nanos {
             }
          }
 
-         bool findBurstByKey ( Event::Key key, BurstIterator &ret )
+         bool findBurstByKey ( nanos_event_key_t key, BurstIterator &ret )
          {
             bool found = false;
             BurstList::iterator it;
@@ -116,8 +116,8 @@ namespace nanos {
 
          void init ( unsigned int wd_id )
          {
-            Event::KV kv( Event::KV( Event::WD_ID, wd_id ) );
-            Event e = Burst( kv );
+            Event::KV kv( Event::KV( WD_ID, wd_id ) );
+            Event e = Burst( true, kv );
  
             insertBurst( e );
             pushState( RUNNING );

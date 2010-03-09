@@ -131,6 +131,9 @@ void * nanos_smp_factory( void *prealloc ,void *args);
 extern const size_t nanos_smp_dd_size;
 #define NANOS_SMP_DESC( args ) { nanos_smp_factory, nanos_smp_dd_size, &( args ) }
 
+// instrumentor interface
+nanos_err_t nanos_instrument_events ( unsigned int num_events, nanos_event_t events[] );
+
 // utility macros
 
 #define NANOS_SAFE( call ) \
