@@ -8,6 +8,7 @@ AC_CANONICAL_TARGET
 
 # Automake initialization
 AM_INIT_AUTOMAKE([-Wall -Werror dist-bzip2])
+AC_CONFIG_MACRO_DIR([m4])
 
 # Check for programs
 AC_PROG_LIBTOOL
@@ -138,6 +139,9 @@ AC_ARG_ENABLE([performance],
       AC_MSG_RESULT([yes])
   ]
 )
+
+# Check for atomic builtins in GCC
+AC_CHECK_GXX_ATOMIC_BUILTINS()
 
 AM_CONDITIONAL([PERFORMANCE], [test "$performance_enabled" = yes])
 
