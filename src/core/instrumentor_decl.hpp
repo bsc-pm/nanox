@@ -25,39 +25,23 @@
 #include <list>
 #include <utility>
 #include "debug.hpp"
+#include "nanos-int.h"
 
 namespace nanos {
 
 // forward decl
    class WorkDescriptor;
 
-   // TODO: Move nanos_event_state_t inside Event?
-   typedef enum { NOT_TRACED, ERROR, IDLE, RUNTIME, RUNNING, SYNCHRONIZATION, SCHEDULING, FORK_JOIN, EVENT_STATE_TYPES } nanos_event_state_t;
-
-   // xteruel: TODO Move this enum to the api.
-   typedef enum { NOT_IN_NANOS_API, CURRENT_WD, GET_WD_ID, CREATE_WD, SUBMIT_WD, CREATE_WD_AND_RUN,
-                  SET_INTERNAL_WD_DATA, GET_INTERNAL_WD_DATA,
-                  WG_WAIT_COMPLETATION, SYNC_COND, WAIT_ON, LOCK, SINGLE_GUARD,
-                  TEAM_BARRIER,
-                  FIND_SLICER,
-                  LAST_EVENT_API
-                } nanos_event_api_t;
-
-
    class Instrumentor {
       public:
          class Event {
             public:
-               enum                           Type { STATE, BURST_START, BURST_END, PTP_START, PTP_END, POINT, EVENT_TYPES };
-               enum                           Domain { WD };
-               enum                           Key { NANOS_API, WD_ID };
-               typedef int                    Value;
-               typedef std::pair<Key,Value>   KV;
-               typedef KV*                    KVList;
-               typedef const KV *             ConstKVList;
+               typedef std::pair<nanos_event_key_t,nanos_event_value_t>   KV;
+               typedef KV*                                                KVList;
+               typedef const KV *                                         ConstKVList;
             protected:
-               Type                  _type;
-               nanos_event_state_t   _state;
+               nanos_event_type_t          _type;
+               nanos_event_state_value_t   _state;
 
                unsigned int          _nkvs;
                KVList                _kvList;
@@ -67,22 +51,17 @@ namespace nanos {
                unsigned int          _ptpId;
 
             public:
-               Event ( Type type, nanos_event_state_t state, unsigned int nkvs, KVList kvlist, bool kvlist_owner,
+               Event ( nanos_event_type_t type, nanos_event_state_value_t state, unsigned int nkvs, KVList kvlist, bool kvlist_owner,
                        unsigned int ptp_domain, unsigned int ptp_id ) :
                      _type (type), _state (state), _nkvs(nkvs), _kvList (kvlist), _kvListOwner(kvlist_owner),
                      _ptpDomain (ptp_domain), _ptpId (ptp_id)
                {
-// xteruel:FIXME:
-                  if ( _nkvs > 10 ) fatal0("Event constructor has too many kv's: ");
-
-// xteruel:FIXME: is the kv received already allocated in persistant memory or event has to be the owner?
                   if ( _type == BURST_START || _type == BURST_END )
                   {
                      _kvList = new KV[1];
                      _kvList[0] = *kvlist;
                      _kvListOwner = true;
                   }
- 
                }
 
                Event ( const Event & evt )
@@ -98,8 +77,6 @@ namespace nanos {
                   _ptpDomain = evt._ptpDomain;
                   _ptpId     = evt._ptpId;
 
-// xteruel:FIXME:
-                  if ( _nkvs > 10 ) fatal0("Event copy constructor has too many kv's: ");
                }
 
                void operator= ( const Event & evt ) 
@@ -118,16 +95,14 @@ namespace nanos {
                   _ptpDomain = evt._ptpDomain;
                   _ptpId     = evt._ptpId;
 
-// xteruel:FIXME:
-                  if ( _nkvs > 10 ) fatal0("Event assignment operator has too many kv's: ");
                }
 
                ~Event() { if ( _kvListOwner ) delete[] _kvList; }
 
                
-               Type getType () const { return _type; } 
+               nanos_event_type_t getType () const { return _type; } 
 
-               nanos_event_state_t getState () { return _state; }
+               nanos_event_state_value_t getState () { return _state; }
 
                unsigned int getNumKVs () const { return _nkvs; }
                ConstKVList getKVs () const { return _kvList; } 
@@ -150,14 +125,14 @@ namespace nanos {
 
          class State : public Event {
             public:
-              State ( nanos_event_state_t state = ERROR ) 
+              State ( nanos_event_state_value_t state = ERROR ) 
                  : Event (STATE, state, 0, NULL, false, 0, 0 ) { }
          };
 
          class Burst : public Event {
              public:
-               Burst ( KV kv )
-                 : Event ( BURST_START, ERROR, 1, &kv, false, 0, 0 ) { }
+               Burst ( bool start, KV kv )
+                 : Event ( start? BURST_START: BURST_END, ERROR, 1, &kv, false, 0, 0 ) { }
 
          };
 
@@ -188,7 +163,7 @@ namespace nanos {
 
        // CORE: high-level instrumentation interface (virtual functions)
 
-       virtual void enterRuntimeAPI ( nanos_event_api_t function, nanos_event_state_t state = RUNTIME );
+       virtual void enterRuntimeAPI ( nanos_event_api_t function, nanos_event_state_value_t state = RUNTIME );
        virtual void leaveRuntimeAPI ( );
        virtual void enterIdle ( );
        virtual void leaveIdle ( );
@@ -196,6 +171,10 @@ namespace nanos {
        virtual void wdCreate( WorkDescriptor* newWD );
        virtual void wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD );
        virtual void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD );
+
+       // CORE: high-level instrumentation interface (non-virtual functions)
+       void createBurstStart ( Event &e, nanos_event_key_t key, nanos_event_value_t value );
+       void createBurstEnd ( Event &e, nanos_event_key_t key, nanos_event_value_t value );
 
 #else
 
@@ -210,7 +189,7 @@ namespace nanos {
 
        // CORE: high-level instrumentation interface (virtual functions)
 
-       void enterRuntimeAPI ( nanos_event_api_t function, nanos_event_state_t state = RUNTIME ) {}
+       void enterRuntimeAPI ( nanos_event_api_t function, nanos_event_state_value_t state = RUNTIME ) {}
        void leaveRuntimeAPI ( ) {}
        void enterIdle ( ) {}
        void leaveIdle ( ) {}
@@ -218,6 +197,10 @@ namespace nanos {
        void wdCreate( WorkDescriptor* newWD ) {}
        void wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
        void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
+
+       // CORE: high-level instrumentation interface (non-virtual functions)
+       void createBurstStart ( Event &e, nanos_event_key_t key, nanos_event_value_t value ) {}
+       void createBurstEnd ( Event &e, nanos_event_key_t key, nanos_event_value_t value ) {}
 
 #endif
 

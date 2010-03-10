@@ -30,16 +30,18 @@ namespace nanos {
       private:
          typedef Instrumentor::Event Event;
          typedef Instrumentor::Burst Burst;
-         typedef std::stack<nanos_event_state_t> StateStack;
+         typedef std::stack<nanos_event_state_value_t> StateStack;
          typedef std::list<Event> BurstList;
 
          StateStack       _stateStack;
          BurstList        _burstList;
+         BurstList        _burstBackup;
 
       public:
          explicit InstrumentorContext(const InstrumentorContext &ic) : _stateStack(), _burstList() { }
 
-         typedef BurstList::const_iterator BurstIterator;
+         typedef BurstList::const_iterator   ConstBurstIterator;
+         typedef BurstList::iterator         BurstIterator;
 
          // constructors
          InstrumentorContext () :_stateStack(), _burstList() 
@@ -47,60 +49,77 @@ namespace nanos {
          }
          ~InstrumentorContext() {}
 
-         void pushState ( nanos_event_state_t state ) { _stateStack.push( state ); }
+         void pushState ( nanos_event_state_value_t state ) { _stateStack.push( state ); }
          void popState ( void ) { if ( !(_stateStack.empty()) ) _stateStack.pop(); }
 
-         nanos_event_state_t topState ( void )
+         nanos_event_state_value_t topState ( void )
          {
             if ( !(_stateStack.empty()) ) return _stateStack.top();
             else return ERROR;
          }
 
-         void pushBurst ( const Event &e )
+         void insertBurst ( const Event &e )
          {
-            _burstList.push_front ( e );
-         }
+            bool found = false;
+            BurstList::iterator it;
+            nanos_event_key_t key = e.getKVs()[0].first;
 
-         void popBurst ( void )
-         {
-            if ( !(_burstList.empty()) ) _burstList.pop_front ( );
-            else fatal0("Instrumentor burst error (empty burst list).");
-            // FIXME: previous line should be fatal. Fix when we can include system.hpp
-            // else fatal("Instrumentor burst error (empty burst list).");
-         }
-
-         Event & topBurst ( void )
-         {
-            if ( !(_burstList.empty()) ) return _burstList.front();
-            fatal0("Instrumentor burst error (empty burst list).");
-            // FIXME: previous line should be fatal. Fix when we can include system.hpp
-         }
-          
-         bool findBurstByKey ( Event::Key key )
-         {
-            bool find = false;
-
-            for ( BurstList::iterator it = _burstList.begin() ; !find && (it != _burstList.end()) ; it++ ) {
+            /* if found an event with the same key in the main list, send it to the backup list */
+            for ( it = _burstList.begin() ; !found && (it != _burstList.end()) ; it++ ) {
                Event::ConstKVList kvlist = (*it).getKVs();
                if ( kvlist[0].first == key  )
                {
-                  find = true;
-                  if ( it != _burstList.begin() ) _burstList.splice ( _burstList.begin(), _burstList, it );
+                  _burstBackup.splice ( _burstBackup.begin(), _burstList, it );
+                  found = true;
                }
             }
-            return find;
+
+            /* insert the event into the list */
+            _burstList.push_front ( e );
+
+         }
+         void removeBurst ( BurstIterator it ) {
+            bool found = false;
+            nanos_event_key_t key = (*it).getKVs()[0].first;
+
+            _burstList.erase ( it );
+
+            /* if found an event with the same key in the backup list, recover it to the main list */
+            for ( it = _burstBackup.begin() ; !found && (it != _burstBackup.end()) ; it++ ) {
+               Event::ConstKVList kvlist = (*it).getKVs();
+               if ( kvlist[0].first == key  )
+               {
+                  _burstList.splice ( _burstList.begin(), _burstBackup, it );
+                  found = true;
+               }
+            }
          }
 
+         bool findBurstByKey ( nanos_event_key_t key, BurstIterator &ret )
+         {
+            bool found = false;
+            BurstList::iterator it;
+
+            for ( it = _burstList.begin() ; !found && (it != _burstList.end()) ; it++ ) {
+               Event::ConstKVList kvlist = (*it).getKVs();
+               if ( kvlist[0].first == key  ) { ret = it; found = true;}
+            }
+
+            return found;
+            
+         }
+
+
          unsigned int getNumBursts() const { return _burstList.size(); }
-         BurstIterator beginBurst() const { return _burstList.begin(); }
-         BurstIterator endBurst() const { return _burstList.end(); }
+         ConstBurstIterator beginBurst() const { return _burstList.begin(); }
+         ConstBurstIterator endBurst() const { return _burstList.end(); }
 
          void init ( unsigned int wd_id )
          {
-            Event::KV kv( Event::KV( Event::WD_ID, wd_id ) );
-            Event e = Burst( kv );
+            Event::KV kv( Event::KV( WD_ID, wd_id ) );
+            Event e = Burst( true, kv );
  
-            pushBurst( e );
+            insertBurst( e );
             pushState( RUNNING );
          }
 #else

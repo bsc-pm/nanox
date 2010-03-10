@@ -215,3 +215,19 @@ nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data )
    sys.getInstrumentor()->leaveRuntimeAPI();
    return NANOS_OK;
 }
+
+nanos_err_t nanos_yield ( void )
+{
+   try {
+      sys.getInstrumentor()->enterRuntimeAPI( YIELD, RUNTIME );
+      Scheduler::yield();
+
+   } catch ( ... ) {
+      sys.getInstrumentor()->leaveRuntimeAPI();
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   sys.getInstrumentor()->leaveRuntimeAPI();
+   return NANOS_OK;
+}
+
