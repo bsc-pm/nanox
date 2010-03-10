@@ -62,12 +62,18 @@ nanos_smp_args_t fib_device_arg_2 = { fib_2 };
 
 int fib ( int n, int d )
 {
+#if 0
    nanos_event_t event_ini;
    event_ini.type = BURST_START;
-   event_ini.info.burst.key = 13;
+   event_ini.info.burst.key = USER_FUNCT;
    event_ini.info.burst.value = 12345;
 
    nanos_instrument_events ( 1, &event_ini );
+#else
+   nanos_instrument_enter_burst ( USER_FUNCT, 12345 );
+#endif
+
+
 
    int x, y;
 
@@ -123,12 +129,16 @@ int fib ( int n, int d )
       y = fib_seq( n-2 );
    }
 
+#if 0
    nanos_event_t event_fini;
    event_fini.type = BURST_END;
-   event_fini.info.burst.key = 13;
+   event_fini.info.burst.key = USER_FUNCT;
    event_fini.info.burst.value = 12345;
 
    nanos_instrument_events ( 1, &event_fini );
+#else
+   nanos_instrument_leave_burst ( USER_FUNCT, 12345 );
+#endif
 
    return x + y;
 }

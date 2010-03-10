@@ -139,6 +139,10 @@ extern const size_t nanos_smp_dd_size;
 
 // instrumentor interface
 nanos_err_t nanos_instrument_events ( unsigned int num_events, nanos_event_t events[] );
+nanos_err_t nanos_instrument_enter_state ( nanos_event_state_value_t state_t );
+nanos_err_t nanos_instrument_leave_state ( void );
+nanos_err_t nanos_instrument_enter_burst( nanos_event_key_t key, nanos_event_value_t value );
+nanos_err_t nanos_instrument_leave_burst( nanos_event_key_t key, nanos_event_value_t value );
 
 // utility macros
 

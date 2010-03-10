@@ -223,6 +223,24 @@ void Instrumentor::createBurstEnd ( Event &e, nanos_event_key_t key, nanos_event
    if ( instrContext.findBurstByKey( key, it ) ) instrContext.removeBurst( it ); 
 }
 
+void Instrumentor::createStateEvent ( Event &e, nanos_event_state_value_t state )
+{
+   InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
+   instrContext.pushState(state);
+
+   e = State(state);
+}
+
+void Instrumentor::returnPreviousStateEvent ( Event &e )
+{
+   InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
+
+   instrContext.popState();
+   nanos_event_state_value_t state = instrContext.topState(); 
+
+   e = State(state);
+}
+
 void Instrumentor::enterStartUp ( void )
 {
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();

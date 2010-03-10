@@ -131,6 +131,11 @@ namespace nanos {
             p_file << "9    " << _eventBase[BURST_START]+WD_ID  << "     Work Descriptor, id: " << std::endl;
             p_file << std::endl;
 
+            /* Event: Burst (WD_ID) */
+            p_file << "EVENT_TYPE" << std::endl;
+            p_file << "9    " << _eventBase[BURST_START]+USER_FUNCT  << "     User Functions, id: " << std::endl;
+            p_file << std::endl;
+
             p_file.close();
          }
          else std::cout << "Unable to open paraver config file" << std::endl;  

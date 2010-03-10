@@ -180,6 +180,8 @@ namespace nanos {
        // CORE: high-level instrumentation interface (non-virtual functions)
        void createBurstStart ( Event &e, nanos_event_key_t key, nanos_event_value_t value );
        void createBurstEnd ( Event &e, nanos_event_key_t key, nanos_event_value_t value );
+       void createStateEvent ( Event &e, nanos_event_state_value_t state );
+       void returnPreviousStateEvent ( Event &e );
 
 #else
 
@@ -212,6 +214,8 @@ namespace nanos {
        // CORE: high-level instrumentation interface (non-virtual functions)
        void createBurstStart ( Event &e, nanos_event_key_t key, nanos_event_value_t value ) {}
        void createBurstEnd ( Event &e, nanos_event_key_t key, nanos_event_value_t value ) {}
+       void createStateEvent ( Event &e, nanos_event_state_value_t state ) {}
+       void returnPreviousStateEvent ( Event &e ) {}
 
 #endif
 

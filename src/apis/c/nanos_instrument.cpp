@@ -31,6 +31,9 @@ nanos_err_t nanos_instrument_events ( unsigned int num_events, nanos_event_t eve
 
       for (unsigned int i = 0; i < num_events; i++ ) {
          switch ( events[i].type ) {
+            case STATE:
+               sys.getInstrumentor()->createStateEvent ( e[i], events[i].info.state.value );
+               break;
             case BURST_START:
                sys.getInstrumentor()->createBurstStart( e[i], events[i].info.burst.key, events[i].info.burst.value );
                break;
@@ -43,6 +46,62 @@ nanos_err_t nanos_instrument_events ( unsigned int num_events, nanos_event_t eve
          }
       }
       sys.getInstrumentor()->addEventList ( num_events, e);
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+nanos_err_t nanos_instrument_enter_state ( nanos_event_state_value_t state )
+{
+   try
+   {
+      Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
+      sys.getInstrumentor()->createStateEvent ( *e, state );
+      sys.getInstrumentor()->addEventList ( 1, e);
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+nanos_err_t nanos_instrument_leave_state ( void )
+{
+   try
+   {
+      Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
+      sys.getInstrumentor()->returnPreviousStateEvent ( *e );
+      sys.getInstrumentor()->addEventList ( 1, e);
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+nanos_err_t nanos_instrument_enter_burst( nanos_event_key_t key, nanos_event_value_t value )
+{
+   try
+   {
+      Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
+      sys.getInstrumentor()->createBurstStart ( *e, key, value );
+      sys.getInstrumentor()->addEventList ( 1, e);
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+nanos_err_t nanos_instrument_leave_burst( nanos_event_key_t key, nanos_event_value_t value )
+{
+   try
+   {
+      Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
+      sys.getInstrumentor()->createBurstEnd ( *e, key, value );
+      sys.getInstrumentor()->addEventList ( 1, e);
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }

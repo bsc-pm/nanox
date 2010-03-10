@@ -151,7 +151,7 @@ typedef struct {
 } nanos_event_burst_t;
 
 typedef struct {
-   nanos_event_state_value_t state;
+   nanos_event_state_value_t value;
 } nanos_event_state_t;
 
 typedef struct {
