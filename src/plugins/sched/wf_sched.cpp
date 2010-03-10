@@ -125,7 +125,7 @@ namespace nanos {
                    */
                   if ( wd->isEnqueued()  && ( !wd->isTied() || wd->isTiedTo() == thread ) ) {
                      //not in queue = in execution, in queue = not in execution
-                     if ( wd->getMyQueue()->removeWD( wd ) == true ) { //found it!
+                     if ( wd->getMyQueue()->removeWD( thread, wd ) == true ) { //found it!
                         return wd;
                      }
                   }
