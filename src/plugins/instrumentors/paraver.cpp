@@ -83,6 +83,8 @@ namespace nanos {
             p_file << "9    " << _eventState  << "    Change status: " << std::endl;
             p_file << "VALUES" << std::endl;
             p_file << NOT_TRACED       << "     NOT TRACED" << std::endl;
+            p_file << STARTUP          << "     STARTUP" << std::endl;
+            p_file << SHUTDOWN         << "     SHUTDOWN" << std::endl;
             p_file << ERROR            << "     ERROR" << std::endl;
             p_file << IDLE             << "     IDLE" << std::endl;
             p_file << RUNTIME          << "     RUNTIME" << std::endl;

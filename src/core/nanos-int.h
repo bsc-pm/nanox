@@ -133,7 +133,7 @@ typedef enum { NANOS_API, WD_ID, USER_FUNCT } nanos_event_key_t;
 
 typedef int  nanos_event_value_t;
   
-typedef enum { NOT_TRACED, ERROR, IDLE, RUNTIME, RUNNING, SYNCHRONIZATION,
+typedef enum { NOT_TRACED, STARTUP, SHUTDOWN, ERROR, IDLE, RUNTIME, RUNNING, SYNCHRONIZATION,
                SCHEDULING, FORK_JOIN, EVENT_STATE_TYPES
 } nanos_event_state_value_t;
 

@@ -172,6 +172,11 @@ namespace nanos {
        virtual void wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD );
        virtual void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD );
 
+       virtual void enterStartUp ( void );
+       virtual void leaveStartUp ( void );
+       virtual void enterShutDown ( void );
+       virtual void leaveShutDown ( void );
+
        // CORE: high-level instrumentation interface (non-virtual functions)
        void createBurstStart ( Event &e, nanos_event_key_t key, nanos_event_value_t value );
        void createBurstEnd ( Event &e, nanos_event_key_t key, nanos_event_value_t value );
@@ -197,6 +202,12 @@ namespace nanos {
        void wdCreate( WorkDescriptor* newWD ) {}
        void wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
        void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
+
+       void enterStartUp ( void ) {}
+       void leaveStartUp ( void ) {}
+       void enterShutDown ( void ) {}
+       void leaveShutDown ( void ) {}
+
 
        // CORE: high-level instrumentation interface (non-virtual functions)
        void createBurstStart ( Event &e, nanos_event_key_t key, nanos_event_value_t value ) {}
