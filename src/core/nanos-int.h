@@ -129,6 +129,8 @@ typedef enum { STATE, BURST_START, BURST_END, PTP_START, PTP_END, POINT, EVENT_T
 
 typedef enum { NANOS_WD_DOMAIN } nanos_event_domain_t;
 
+typedef unsigned int  nanos_event_id_t;
+
 typedef enum { NANOS_API, WD_ID, USER_FUNCT } nanos_event_key_t;
 
 typedef int  nanos_event_value_t;
@@ -155,13 +157,17 @@ typedef struct {
 } nanos_event_state_t;
 
 typedef struct {
-   nanos_event_key_t key;
-   nanos_event_value_t value;
+   unsigned int        nkvs;
+   nanos_event_key_t   *keys;
+   nanos_event_value_t *values;
 } nanos_event_point_t;
 
 typedef struct {
-   nanos_event_key_t key;
-   nanos_event_value_t value;
+   nanos_event_domain_t domain; 
+   nanos_event_id_t     id;
+   unsigned int         nkvs;
+   nanos_event_key_t    *keys;
+   nanos_event_value_t  *values;
 } nanos_event_ptp_t;
 
 typedef struct {

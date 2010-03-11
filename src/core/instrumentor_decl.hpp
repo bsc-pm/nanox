@@ -18,7 +18,7 @@
 /*************************************************************************************/
 // FIXME: (#131) This flag ENABLE_INSTRUMENTATION has to be managed through
 //compilation in order to generate an instrumentation version
-//#define INSTRUMENTATION_ENABLED
+#define INSTRUMENTATION_ENABLED
 
 #ifndef __NANOS_INSTRUMENTOR_DECL_H
 #define __NANOS_INSTRUMENTOR_DECL_H
@@ -37,8 +37,8 @@ namespace nanos {
          class Event {
             public:
                typedef std::pair<nanos_event_key_t,nanos_event_value_t>   KV;
-               typedef KV*                                                KVList;
-               typedef const KV *                                         ConstKVList;
+               typedef KV *KVList;
+               typedef const KV *ConstKVList;
             protected:
                nanos_event_type_t          _type;
                nanos_event_state_value_t   _state;
@@ -47,12 +47,12 @@ namespace nanos {
                KVList                _kvList;
                bool                  _kvListOwner;
 
-               unsigned int          _ptpDomain;
-               unsigned int          _ptpId;
+               nanos_event_domain_t  _ptpDomain;
+               nanos_event_id_t      _ptpId;
 
             public:
                Event ( nanos_event_type_t type, nanos_event_state_value_t state, unsigned int nkvs, KVList kvlist, bool kvlist_owner,
-                       unsigned int ptp_domain, unsigned int ptp_id ) :
+                       nanos_event_domain_t ptp_domain, nanos_event_id_t ptp_id ) :
                      _type (type), _state (state), _nkvs(nkvs), _kvList (kvlist), _kvListOwner(kvlist_owner),
                      _ptpDomain (ptp_domain), _ptpId (ptp_id)
                {
@@ -126,25 +126,25 @@ namespace nanos {
          class State : public Event {
             public:
               State ( nanos_event_state_value_t state = ERROR ) 
-                 : Event (STATE, state, 0, NULL, false, 0, 0 ) { }
+                 : Event (STATE, state, 0, NULL, false, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
          };
 
          class Burst : public Event {
              public:
                Burst ( bool start, KV kv )
-                 : Event ( start? BURST_START: BURST_END, ERROR, 1, &kv, false, 0, 0 ) { }
+                 : Event ( start? BURST_START: BURST_END, ERROR, 1, &kv, false, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
 
          };
 
          class Point : public Event {
              public:
                Point ( unsigned int nkvs, KVList kvlist )
-                 : Event ( POINT, ERROR, nkvs, kvlist, false, 0, 0 ) { }
+                 : Event ( POINT, ERROR, nkvs, kvlist, false, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
          };
 
          class PtP : public Event {
             public:
-               PtP ( bool start, unsigned int domain, unsigned int id, unsigned int nkvs,  KVList kvlist )
+               PtP ( bool start, nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,  KVList kvlist )
                   : Event ( start ? PTP_START : PTP_END , ERROR, nkvs, kvlist, false, domain, id ) { }
 
          };
@@ -182,6 +182,11 @@ namespace nanos {
        void createBurstEnd ( Event &e, nanos_event_key_t key, nanos_event_value_t value );
        void createStateEvent ( Event &e, nanos_event_state_value_t state );
        void returnPreviousStateEvent ( Event &e );
+       void createPointEvent ( Event &e, unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
+       void createPtPStart ( Event &e, nanos_event_domain_t domain, nanos_event_id_t id,
+                             unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
+       void createPtPEnd ( Event &e, nanos_event_domain_t domain, nanos_event_id_t id,
+                             unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
 
 #else
 
@@ -216,6 +221,11 @@ namespace nanos {
        void createBurstEnd ( Event &e, nanos_event_key_t key, nanos_event_value_t value ) {}
        void createStateEvent ( Event &e, nanos_event_state_value_t state ) {}
        void returnPreviousStateEvent ( Event &e ) {}
+       void createPointEvent ( Event &e, unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values ) {}
+       void createPtPStart ( Event &e, nanos_event_domain_t domain, nanos_event_id_t id,
+                             unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values ) {}
+       void createPtPEnd ( Event &e, nanos_event_domain_t domain, nanos_event_id_t id,
+                             unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values ) {}
 
 #endif
 
