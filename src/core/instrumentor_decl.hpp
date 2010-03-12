@@ -18,7 +18,7 @@
 /*************************************************************************************/
 // FIXME: (#131) This flag ENABLE_INSTRUMENTATION has to be managed through
 //compilation in order to generate an instrumentation version
-#define INSTRUMENTATION_ENABLED
+//#define INSTRUMENTATION_ENABLED
 
 #ifndef __NANOS_INSTRUMENTOR_DECL_H
 #define __NANOS_INSTRUMENTOR_DECL_H
