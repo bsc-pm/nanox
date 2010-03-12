@@ -53,21 +53,6 @@ bool BaseThread::singleGuard ()
    return getTeam()->singleGuard( getTeamData()->nextSingleGuard() );
 }
 
-void BaseThread::inlineWork (WorkDescriptor *wd)
-{
-   WD *oldwd = getCurrentWD();
-   GenericSyncCond *syncCond = oldwd->getSyncCond();
-   if ( syncCond != NULL ) {
-      syncCond->unlock();
-   }
-   sys.getInstrumentor()->wdSwitch( oldwd, wd );
-   setCurrentWD( *wd );
-   inlineWorkDependent(*wd);
-   sys.getInstrumentor()->wdSwitch( wd, oldwd );
-   wd->done();
-   myThread->setCurrentWD( *oldwd );
-}
-
 /*
  * G++ optimizes TLS accesses by obtaining only once the address of the TLS variable
  * In this function this optimization does not work because the task can move from one thread to another

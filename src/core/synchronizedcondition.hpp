@@ -29,42 +29,7 @@ using namespace nanos;
 template <class _T>
 void SynchronizedCondition< _T>::wait()
 {
-   int spins=100; // Has this to be configurable??
-
-   myThread->getCurrentWD()->setSyncCond( this );
-
-   while ( !_conditionChecker.checkCondition() ) {
-      BaseThread *thread = getMyThreadSafe();
-      WD * current = thread->getCurrentWD();
-      current->setIdle();
-
-      spins--;
-      if ( spins == 0 ) {
-         lock();
-         if ( !( _conditionChecker.checkCondition() ) ) {
-            addWaiter( current );
-
-            WD *next = thread->getSchedulingGroup()->atBlock ( thread );
-
-/*            if ( next ) {
-               sys._numReady--;
-            } */
-
-            if ( next ) {               
-               Scheduler::switchTo ( next );
-            }
-            else {
-               unlock();
-               thread->yield();
-            }
-         } else {
-            unlock();
-         }
-         spins = 100;
-      }
-   }
-   myThread->getCurrentWD()->setReady();
-   myThread->getCurrentWD()->setSyncCond( NULL );
+   Scheduler::waitOnCondition(this);
 }
 
 template <class _T>
@@ -73,10 +38,7 @@ void SynchronizedCondition< _T>::signal()
    lock();
      while ( hasWaiters() ) {
         WD* wd = getAndRemoveWaiter();
-        if ( wd->isBlocked() ) {
-           wd->setReady();
-           Scheduler::queue( *wd );
-        }
+        Scheduler::wakeUp(wd);
      }
    unlock(); 
 }
