@@ -144,6 +144,9 @@ namespace nanos
    class SchedulePolicy
    {
       public:
+
+         virtual ~SchedulePolicy ();
+
          virtual WD * atSubmit (BaseThread *thread, WD &wd);
 
          virtual WD *atIdle     ( BaseThread *thread ) = 0;

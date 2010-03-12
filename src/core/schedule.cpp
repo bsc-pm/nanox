@@ -317,3 +317,4 @@ void Scheduler::switchToThread ( BaseThread *thread )
    while ( getMyThreadSafe() != thread )
         yield();
 }
+
