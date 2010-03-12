@@ -104,8 +104,8 @@ void Instrumentor::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD )
    Event *e = (Event *) alloca(sizeof(Event) * numEvents );
 
    /* Creating two PtP events */
-   e[i++] = PtP (true,  NANOS_WD_DOMAIN, oldWD->getId(), 0, NULL);
-   e[i++] = PtP (false, NANOS_WD_DOMAIN, newWD->getId(), 0, NULL);
+   e[i++] = PtP (true,  NANOS_WD_DOMAIN, (nanos_event_id_t) oldWD->getId(), 0, NULL);
+   e[i++] = PtP (false, NANOS_WD_DOMAIN, (nanos_event_id_t) newWD->getId(), 0, NULL);
 
    /* Creating State event: change thread current state with newWD saved state */
    nanos_event_state_value_t state = newInstrContext.topState();
@@ -150,7 +150,7 @@ void Instrumentor::wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD )
    /* Creating PtP event: as oldWD has finished execution we need to generate only PtP End
     * in order to instrument receiving point for the new WorkDescriptor */
    Event::KV kv( Event::KV( WD_ID, newWD->getId() ) );
-   e[i++] = PtP ( false, 0, newWD->getId(), 1, &kv );
+   e[i++] = PtP ( false, (nanos_event_domain_t) 0, (nanos_event_id_t) newWD->getId(), 1, &kv );
 
    /* Creating State event: change thread current state with newWD saved state */
    nanos_event_state_value_t state = newInstrContext.topState();
@@ -223,6 +223,100 @@ void Instrumentor::createBurstEnd ( Event &e, nanos_event_key_t key, nanos_event
    if ( instrContext.findBurstByKey( key, it ) ) instrContext.removeBurst( it ); 
 }
 
+void Instrumentor::createStateEvent ( Event &e, nanos_event_state_value_t state )
+{
+   InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
+   instrContext.pushState(state);
+
+   e = State(state);
+}
+
+void Instrumentor::returnPreviousStateEvent ( Event &e )
+{
+   InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
+
+   instrContext.popState();
+   nanos_event_state_value_t state = instrContext.topState(); 
+
+   e = State(state);
+}
+
+void Instrumentor::createPointEvent ( Event &e, unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
+{
+   Event::KVList kvlist = new Event::KV[nkvs];
+
+   for ( unsigned int i = 0; i < nkvs; i++ ) {
+      kvlist[i] = Event::KV ( keys[i], values[i] );
+   }
+
+   e = Point ( nkvs, kvlist );
+
+}
+
+void Instrumentor::createPtPStart ( Event &e, nanos_event_domain_t domain, nanos_event_id_t id,
+                      unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
+{
+   Event::KVList kvlist = new Event::KV[nkvs];
+
+   for ( unsigned int i = 0; i < nkvs; i++ ) {
+      kvlist[i] = Event::KV ( keys[i], values[i] );
+   }
+
+   e = PtP ( true, domain, id, nkvs, kvlist );
+
+}
+ 
+void Instrumentor::createPtPEnd ( Event &e, nanos_event_domain_t domain, nanos_event_id_t id,
+                      unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
+{
+   Event::KVList kvlist = new Event::KV[nkvs];
+
+   for ( unsigned int i = 0; i < nkvs; i++ ) {
+      kvlist[i] = Event::KV ( keys[i], values[i] );
+   }
+
+   e = PtP ( false, domain, id, nkvs, kvlist );
+
+}
+
+void Instrumentor::enterStartUp ( void )
+{
+   InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
+   instrContext.pushState(STARTUP);
+
+   Event e = State(STARTUP);
+   addEventList ( 1u, &e );
+}
+
+void Instrumentor::leaveStartUp ( void )
+{
+   InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
+   instrContext.popState();
+   nanos_event_state_value_t state = instrContext.topState();
+
+   Event e = State( state );
+   addEventList ( 1u, &e );
+}
+
+void Instrumentor::enterShutDown ( void )
+{
+   InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
+   instrContext.pushState(SHUTDOWN);
+
+   Event e = State(SHUTDOWN);
+   addEventList ( 1u, &e );
+}
+
+void Instrumentor::leaveShutDown ( void )
+{
+   InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
+   instrContext.popState();
+   nanos_event_state_value_t state = instrContext.topState();
+
+   Event e = State( state );
+   addEventList ( 1u, &e );
+}
 
 #endif
+
 
