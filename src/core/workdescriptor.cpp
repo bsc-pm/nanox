@@ -27,11 +27,11 @@
 
 using namespace nanos;
 
-void WorkDescriptor::start (bool isUserLevelThread)
+void WorkDescriptor::start (bool isUserLevelThread, WorkDescriptor *previous)
 {
    ProcessingElement *pe = myThread->runningOn();
 
-   _activeDevice->lazyInit(*this,isUserLevelThread);
+   _activeDevice->lazyInit(*this,isUserLevelThread,previous);
    
    if ( pe->hasSeparatedMemorySpace() )
       pe->copyDataIn( *this );
@@ -88,7 +88,7 @@ void WorkDescriptor::done ()
      pe->copyDataOut( *this );
 
    // FIX-ME: We are waiting for the children tasks to avoid to keep alive only part of the parent
-   waitCompletation();
+   waitCompletion();
    this->getParent()->workFinished( *this );
    WorkGroup::done();
 }

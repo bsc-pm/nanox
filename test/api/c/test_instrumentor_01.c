@@ -60,7 +60,7 @@ int main ( int argc, char **argv )
       task_data->value = 100;
 
       NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
-      NANOS_SAFE( nanos_wg_wait_completation( nanos_current_wd() ) );
+      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
 
       return 0; 
 }

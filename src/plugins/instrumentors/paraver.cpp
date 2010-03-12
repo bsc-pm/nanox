@@ -21,17 +21,17 @@ namespace nanos {
    {
 #if defined INSTRUMENTATION_ENABLED
    private:
-      unsigned int _eventBase[Event::EVENT_TYPES];
+      unsigned int _eventBase[EVENT_TYPES];
    public:
       // constructor
       InstrumentorParaver ( )
       {
-         _eventBase[Event::STATE]       = 0;
-         _eventBase[Event::BURST_START] = 9200;
-         _eventBase[Event::BURST_END]   = 9200;
-         _eventBase[Event::PTP_START]   = 9400;
-         _eventBase[Event::PTP_END]     = 9400;
-         _eventBase[Event::POINT]       = 9600;
+         _eventBase[STATE]       = 0;
+         _eventBase[BURST_START] = 9200;
+         _eventBase[BURST_END]   = 9200;
+         _eventBase[PTP_START]   = 9400;
+         _eventBase[PTP_END]     = 9400;
+         _eventBase[POINT]       = 9600;
       }
 
       // destructor
@@ -83,6 +83,8 @@ namespace nanos {
             p_file << "9    " << _eventState  << "    Change status: " << std::endl;
             p_file << "VALUES" << std::endl;
             p_file << NOT_TRACED       << "     NOT TRACED" << std::endl;
+            p_file << STARTUP          << "     STARTUP" << std::endl;
+            p_file << SHUTDOWN         << "     SHUTDOWN" << std::endl;
             p_file << ERROR            << "     ERROR" << std::endl;
             p_file << IDLE             << "     IDLE" << std::endl;
             p_file << RUNTIME          << "     RUNTIME" << std::endl;
@@ -104,7 +106,7 @@ namespace nanos {
 
             /* Event: Burst (NANOS_API) */
             p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    " << _eventBase[Event::BURST_START]+Event::NANOS_API  << "     API Fucntion: " << std::endl;
+            p_file << "9    " << _eventBase[BURST_START]+NANOS_API  << "     API Fucntion: " << std::endl;
             p_file << "VALUES" << std::endl;
             p_file << NOT_IN_NANOS_API     << "     not in nanos api" << std::endl;
             p_file << CURRENT_WD           << "     current wd" << std::endl;
@@ -114,7 +116,8 @@ namespace nanos {
             p_file << CREATE_WD_AND_RUN    << "     create wd and run" << std::endl;
             p_file << SET_INTERNAL_WD_DATA << "     set internal wd data" << std::endl;
             p_file << GET_INTERNAL_WD_DATA << "     get internal wd data" << std::endl;
-            p_file << WG_WAIT_COMPLETATION << "     wg wait completation" << std::endl;
+            p_file << YIELD                << "     yield" << std::endl;
+            p_file << WG_WAIT_COMPLETION   << "     wg wait completion" << std::endl;
             p_file << SYNC_COND            << "     sync cond" << std::endl;
             p_file << WAIT_ON              << "     wait on" << std::endl;
             p_file << LOCK                 << "     lock function" << std::endl;
@@ -125,7 +128,12 @@ namespace nanos {
 
             /* Event: Burst (WD_ID) */
             p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    " << _eventBase[Event::BURST_START]+Event::WD_ID  << "     Work Descriptor, id: " << std::endl;
+            p_file << "9    " << _eventBase[BURST_START]+WD_ID  << "     Work Descriptor, id: " << std::endl;
+            p_file << std::endl;
+
+            /* Event: Burst (WD_ID) */
+            p_file << "EVENT_TYPE" << std::endl;
+            p_file << "9    " << _eventBase[BURST_START]+USER_FUNCT  << "     User Functions, id: " << std::endl;
             p_file << std::endl;
 
             p_file.close();
@@ -135,9 +143,20 @@ namespace nanos {
 
       void initialize ( void )
       {
-         char *mpi_trace_on= new char[255];
-         strcpy(mpi_trace_on, "MPITRACE_ON=1");
-         putenv (mpi_trace_on);
+         char *mpi_trace_on;
+
+         /* check environment variable MPITRACE_ON value */
+         mpi_trace_on = getenv("MPITRACE_ON");
+
+         /* if MPITRAE_ON not defined, active it */
+         if ( mpi_trace_on == NULL )
+         {
+            mpi_trace_on = new char[15];
+            strcpy(mpi_trace_on, "MPITRACE_ON=1");
+            putenv (mpi_trace_on);
+         }
+
+         /* OMPItrace initialization */
          OMPItrace_init();
       }
 
@@ -155,16 +174,16 @@ namespace nanos {
          {
             Event &e = events[i];
             switch ( e.getType() ) {
-               case Event::STATE:
+               case STATE:
                   total++;
                   break;
-               case Event::PTP_START:
-               case Event::PTP_END:
+               case PTP_START:
+               case PTP_END:
                   total++;
                   // continue...
-               case Event::POINT:
-               case Event::BURST_START:
-               case Event::BURST_END:
+               case POINT:
+               case BURST_START:
+               case BURST_END:
                   total += e.getNumKVs();
                   break;
                default: break;
@@ -184,26 +203,26 @@ namespace nanos {
             Event &e = events[i];
             unsigned int type = e.getType();
             switch ( type ) {
-               case Event::STATE:
+               case STATE:
                   p_events[j] = _eventState;
                   p_values[j++] = e.getState();
                   break;
-               case Event::PTP_START:
-               case Event::PTP_END:
+               case PTP_START:
+               case PTP_END:
                   /* Creating PtP event */
-		  if ( type == Event::PTP_START ) p_events[j] = _eventPtPStart;
+		  if ( type == PTP_START ) p_events[j] = _eventPtPStart;
 		  else p_events[j] = _eventPtPEnd;
 	          p_values[j++] = e.getDomain() + e.getId();
                   // continue...
-               case Event::POINT:
-               case Event::BURST_START:
+               case POINT:
+               case BURST_START:
                   kvs = e.getKVs();
                   for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
                      p_events[j] = _eventBase[type] + kvs->first;
                      p_values[j++] = kvs->second;
                   }
                   break;
-               case Event::BURST_END:
+               case BURST_END:
                   kvs = e.getKVs();
                   for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
                      p_events[j] = _eventBase[type] +  kvs->first;

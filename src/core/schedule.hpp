@@ -113,22 +113,20 @@ namespace nanos
 
 // singleton class to encapsulate scheduling data and methods
 
-   class GenericSyncCondition;
+   class GenericSyncCond;
    typedef void SchedulerHelper ( WD *oldWD, WD *newWD, void *arg);
 
    class Scheduler
    {
       public:
-         
-      private:
          static void inlineWork ( WD *work );
          static void switchHelper (WD *oldWD, WD *newWD, void *arg);
          static void exitHelper (WD *oldWD, WD *newWD, void *arg);
-         
-      public:
+
          static void submit ( WD &wd );
          static void exit ( void );
          static void switchTo ( WD *to );
+         static void exitTo ( WD *next );
 
          static void idle ( void );
          static void queue ( WD &wd );
@@ -136,12 +134,30 @@ namespace nanos
 
          static void switchToThread ( BaseThread * thread );
 
-         static void waitOnCondition ( GenericSyncCond &condition );
+         static void waitOnCondition ( GenericSyncCond *condition );
+         static void wakeUp ( WD *wd );
    };
 
    typedef SchedulingGroup SG;
    typedef SG * ( *sgFactory ) ( int groupSize );
 
+   class SchedulePolicy
+   {
+      public:
+
+         virtual ~SchedulePolicy ();
+
+         virtual WD * atSubmit (BaseThread *thread, WD &wd);
+
+         virtual WD *atIdle     ( BaseThread *thread ) = 0;
+         virtual WD *atExit     ( BaseThread *thread, WD *current ) { return atIdle( thread ); }
+         virtual WD *atBlock    ( BaseThread *thread, WD *current ) { return atIdle( thread ); }
+         virtual WD *atYield    ( BaseThread *thread, WD *current) { return atIdle(thread); };
+         virtual WD *atWakeUp   ( BaseThread *thread, WD &wd ) { return 0; }
+
+         virtual void queue ( BaseThread *thread, WD &wd )  = 0;
+   };
+   
 };
 
 #endif

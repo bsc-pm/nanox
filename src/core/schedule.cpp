@@ -24,8 +24,6 @@
 
 using namespace nanos;
 
-
-
 void Scheduler::submit ( WD &wd )
 {
    // TODO: increase ready count
@@ -40,6 +38,105 @@ void Scheduler::submit ( WD &wd )
    }
 }
 
+template<class behaviour>
+static inline void idleLoop ()
+{
+   for ( ; ; ) {
+      BaseThread *thread = getMyThreadSafe();
+      WD *current = thread->getCurrentWD();
+
+      if ( !thread->isRunning() ) break;
+
+      if ( thread->hasTeam() ) {
+         WD * next = behaviour::getWD(thread,current);
+
+         if (next) {
+           behaviour::switchWD(thread,current, next);
+         }
+      }
+   }
+}
+
+void Scheduler::waitOnCondition (GenericSyncCond *condition)
+{
+   int spins=100; // FIXME: this has to be configurable (see #147)
+
+   myThread->getCurrentWD()->setSyncCond( condition );
+
+   while ( !condition->check() ) {
+      BaseThread *thread = getMyThreadSafe();
+      WD * current = thread->getCurrentWD();
+      current->setIdle();
+
+      spins--;
+      if ( spins == 0 ) {
+         condition->lock();
+         if ( !( condition->check() ) ) {
+            condition->addWaiter( current );
+
+            WD *next = thread->getSchedulingGroup()->atBlock ( thread );
+
+            if ( next ) {
+               sys._numReady--;
+            }
+
+            if ( next ) {
+               switchTo ( next );
+            }
+            else {
+               condition->unlock();
+               thread->yield();
+            }
+         } else {
+            condition->unlock();
+         }
+         spins = 100;
+      }
+   }
+   myThread->getCurrentWD()->setReady();
+   myThread->getCurrentWD()->setSyncCond( NULL );
+}
+
+void Scheduler::wakeUp ( WD *wd )
+{
+  if ( wd->isBlocked() ) {
+    wd->setReady();
+    Scheduler::queue( *wd );
+  }
+}
+
+void Scheduler::exitHelper (WD *oldWD, WD *newWD, void *arg)
+{
+    myThread->exitHelperDependent(oldWD, newWD, arg);
+    sys.getInstrumentor()->wdExit( oldWD, newWD );
+    delete oldWD;
+    myThread->setCurrentWD( *newWD );
+}
+
+struct ExitBehaviour
+{
+   static WD * getWD ( BaseThread *thread, WD *current )
+   {
+      return thread->getSchedulingGroup()->atExit ( thread );
+   }
+
+   static void switchWD ( BaseThread *thread, WD *current, WD *next )
+   {
+      Scheduler::exitTo(next);
+   }
+};
+
+void Scheduler::exitTo ( WD *next )
+ {
+    WD *current = myThread->getCurrentWD();
+
+    sys._numReady--;
+    sys._numTasksRunning++;
+
+     if (!next->started()) next->start(true,current);
+     myThread->exitTo ( next, Scheduler::exitHelper );
+}
+
 void Scheduler::exit ( void )
 {
    // TODO: Support WD running on lended stack
@@ -51,21 +148,39 @@ void Scheduler::exit ( void )
    // Deallocation doesn't happen here because:
    // a) We are still running in the WD stack
    // b) Resources can potentially be reused by the next WD
-   myThread->getCurrentWD()->done();
+   WD *oldwd = myThread->getCurrentWD();
+   oldwd->done();
    sys._taskNum--;
 
-   while ( myThread->isRunning() ) {
-      WD *next = myThread->getSchedulingGroup()->atExit ( myThread );
+   idleLoop<ExitBehaviour>();
 
-      if ( next ) {
-        sys._numReady--;
-        sys._numTasksRunning++;
-        if (!next->started()) next->start(true);
-        myThread->exitTo ( next, exitHelper );
-      }
+   fatal("A thread should never return from Scheduler::exit");
+}
+
+struct WorkerBehaviour
+{
+   static WD * getWD ( BaseThread *thread, WD *current )
+   {
+      return thread->getSchedulingGroup()->atIdle ( thread );
    }
 
-}
+   static void switchWD ( BaseThread *thread, WD *current, WD *next )
+   {
+// FIX stats
+//                   sys._numReady--;
+//             sys._idleThreads--;
+//             sys._numTasksRunning++;
+
+      if (next->started())
+        Scheduler::switchTo(next);
+      else
+        Scheduler::inlineWork ( next );
+
+//             sys._numTasksRunning--;
+//             sys._idleThreads++;
+
+   }
+};
 
 void Scheduler::idle ()
 {
@@ -78,23 +193,7 @@ void Scheduler::idle ()
 
    sys._idleThreads++;
 
-   while ( thread->isRunning() ) {
-      if ( thread->getSchedulingGroup() ) {
-         WD *next = thread->getSchedulingGroup()->atIdle ( thread );
-
-         if ( next ) {
-            sys._numReady--;
-            sys._idleThreads--;
-            sys._numTasksRunning++;
-             if (next->started())
-               switchTo(next);
-            else
-               inlineWork ( next );
-            sys._numTasksRunning--;
-            sys._idleThreads++;
-         }
-      }
-   }
+   idleLoop<WorkerBehaviour>();
 
    thread->getCurrentWD()->setReady();
 
@@ -146,14 +245,6 @@ void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
    myThread->switchHelperDependent(oldWD, newWD, arg);
    
    sys.getInstrumentor()->wdSwitch( oldWD, newWD );
-   myThread->setCurrentWD( *newWD );
-}
-
-void Scheduler::exitHelper (WD *oldWD, WD *newWD, void *arg)
-{
-   myThread->exitHelperDependent(oldWD, newWD, arg);
-   sys.getInstrumentor()->wdExit( oldWD, newWD );
-   delete oldWD;
    myThread->setCurrentWD( *newWD );
 }
 
@@ -227,46 +318,3 @@ void Scheduler::switchToThread ( BaseThread *thread )
         yield();
 }
 
-#if 0
-
-void Scheduler::waitOnCondition ( GenericSyncCond &condition )
-{
-   int spins=100; // FIXME: this has to be configurable (see #147)
-
-   myThread->getCurrentWD()->setSyncCond( condition );
-   
-   while ( !condition.check() ) {
-      BaseThread *thread = getMyThreadSafe();
-      WD * current = thread->getCurrentWD();
-      current->setIdle();
-
-      spins--;
-      if ( spins == 0 ) {
-         condition.lock();
-         if ( !( condition.check() ) ) {
-            condition.addWaiter( current );
-
-            WD *next = thread->getSchedulingGroup()->atBlock ( thread );
-
-            if ( next ) {
-               sys._numReady--;
-            } 
-
-            if ( next ) {
-               thread->switchTo ( next );
-            }
-            else {
-               condition.unlock();
-               thread->yield();
-            }
-         } else {
-            condition.unlock();
-         }
-         spins = 100;
-      }
-   }
-   myThread->getCurrentWD()->setReady();
-   myThread->getCurrentWD()->setSyncCond( NULL );
-}
-
-#endif

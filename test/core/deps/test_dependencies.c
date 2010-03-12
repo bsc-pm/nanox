@@ -67,7 +67,7 @@ int main ( int argc, char **argv )
    NANOS_SAFE( nanos_submit( wd2,1,&deps,0 ) );
 
 
-   NANOS_SAFE( nanos_wg_wait_completation( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
    return 0;
 }
 

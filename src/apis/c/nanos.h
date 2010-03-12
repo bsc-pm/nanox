@@ -87,6 +87,7 @@ nanos_err_t nanos_create_for ( void );
 
 nanos_err_t nanos_set_internal_wd_data ( nanos_wd_t wd, void *data );
 nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data );
+nanos_err_t nanos_yield ( void );
 
 // Team related functions
 
@@ -104,7 +105,7 @@ nanos_err_t nanos_single_guard ( bool *);
 
 // sync
 
-nanos_err_t nanos_wg_wait_completation ( nanos_wg_t wg );
+nanos_err_t nanos_wg_wait_completion ( nanos_wg_t wg );
 
 nanos_err_t nanos_create_int_sync_cond ( nanos_sync_cond_t *sync_cond, volatile int *p, int condition );
 nanos_err_t nanos_create_bool_sync_cond ( nanos_sync_cond_t *sync_cond, volatile bool *p, bool condition );
@@ -135,6 +136,19 @@ void nanos_handle_error ( nanos_err_t err );
 void * nanos_smp_factory( void *prealloc ,void *args);
 extern const size_t nanos_smp_dd_size;
 #define NANOS_SMP_DESC( args ) { nanos_smp_factory, nanos_smp_dd_size, &( args ) }
+
+// instrumentor interface
+nanos_err_t nanos_instrument_events ( unsigned int num_events, nanos_event_t events[] );
+nanos_err_t nanos_instrument_enter_state ( nanos_event_state_value_t state_t );
+nanos_err_t nanos_instrument_leave_state ( void );
+nanos_err_t nanos_instrument_enter_burst( nanos_event_key_t key, nanos_event_value_t value );
+nanos_err_t nanos_instrument_leave_burst( nanos_event_key_t key, nanos_event_value_t value );
+nanos_err_t nanos_instrument_point_event ( unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
+nanos_err_t nanos_instrument_ptp_start ( nanos_event_domain_t domain, nanos_event_id_t id,
+                                         unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
+nanos_err_t nanos_instrument_ptp_end ( nanos_event_domain_t domain, nanos_event_id_t id,
+                                         unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
+
 
 // utility macros
 

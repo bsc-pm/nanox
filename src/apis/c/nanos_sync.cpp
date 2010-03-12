@@ -25,12 +25,12 @@
 
 using namespace nanos;
 
-nanos_err_t nanos_wg_wait_completation ( nanos_wg_t uwg )
+nanos_err_t nanos_wg_wait_completion ( nanos_wg_t uwg )
 {
    try {
-      sys.getInstrumentor()->enterRuntimeAPI( WG_WAIT_COMPLETATION, RUNTIME );
+      sys.getInstrumentor()->enterRuntimeAPI( WG_WAIT_COMPLETION, RUNTIME );
       WG *wg = ( WG * )uwg;
-      wg->waitCompletation();
+      wg->waitCompletion();
    } catch ( ... ) {
       sys.getInstrumentor()->leaveRuntimeAPI();
       return NANOS_UNKNOWN_ERR;

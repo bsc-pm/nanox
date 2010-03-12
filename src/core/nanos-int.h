@@ -115,4 +115,70 @@ typedef struct {
   void * arg;
 } nanos_device_t;
 
+// instrumentor structures
+
+// FIXME: instrumentor types
+#define NANOS_INSTRUMENT_BURST_START 0
+#define NANOS_INSTRUMENT_BURST_END   1
+#define NANOS_INSTRUMENT_STATE       2
+#define NANOS_INSTRUMENT_POINT       3
+#define NANOS_INSTRUMENT_PTP_START   4
+#define NANOS_INSTRUMENT_PTP_END     5
+
+typedef enum { STATE, BURST_START, BURST_END, PTP_START, PTP_END, POINT, EVENT_TYPES } nanos_event_type_t;
+
+typedef enum { NANOS_WD_DOMAIN } nanos_event_domain_t;
+
+typedef unsigned int  nanos_event_id_t;
+
+typedef enum { NANOS_API, WD_ID, USER_FUNCT } nanos_event_key_t;
+
+typedef int  nanos_event_value_t;
+  
+typedef enum { NOT_TRACED, STARTUP, SHUTDOWN, ERROR, IDLE, RUNTIME, RUNNING, SYNCHRONIZATION,
+               SCHEDULING, FORK_JOIN, EVENT_STATE_TYPES
+} nanos_event_state_value_t;
+
+typedef enum { NOT_IN_NANOS_API, CURRENT_WD, GET_WD_ID, CREATE_WD, SUBMIT_WD, CREATE_WD_AND_RUN,
+               SET_INTERNAL_WD_DATA, GET_INTERNAL_WD_DATA, YIELD,
+               WG_WAIT_COMPLETION, SYNC_COND, WAIT_ON, LOCK, SINGLE_GUARD,
+               TEAM_BARRIER,
+               FIND_SLICER,
+               EVENT_API_TYPES
+} nanos_event_api_t;
+
+typedef struct {
+   nanos_event_key_t    key;
+   nanos_event_value_t  value;
+} nanos_event_burst_t;
+
+typedef struct {
+   nanos_event_state_value_t value;
+} nanos_event_state_t;
+
+typedef struct {
+   unsigned int        nkvs;
+   nanos_event_key_t   *keys;
+   nanos_event_value_t *values;
+} nanos_event_point_t;
+
+typedef struct {
+   nanos_event_domain_t domain; 
+   nanos_event_id_t     id;
+   unsigned int         nkvs;
+   nanos_event_key_t    *keys;
+   nanos_event_value_t  *values;
+} nanos_event_ptp_t;
+
+typedef struct {
+   nanos_event_type_t       type;
+   union {
+      nanos_event_burst_t   burst;
+      nanos_event_state_t   state;
+      nanos_event_point_t   point;
+      nanos_event_ptp_t     ptp;
+   } info;
+} nanos_event_t;
+
+
 #endif

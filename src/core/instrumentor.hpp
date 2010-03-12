@@ -21,4 +21,28 @@
 
 #include "instrumentor_decl.hpp"
 
+using namespace nanos;
+
+nanos_event_type_t Instrumentor::Event::getType () const { return _type; }
+
+nanos_event_state_value_t Instrumentor::Event::getState () { return _state; }
+
+unsigned int Instrumentor::Event::getNumKVs () const { return _nkvs; }
+Instrumentor::Event::ConstKVList Instrumentor::Event::getKVs () const { return _kvList; }
+
+unsigned int Instrumentor::Event::getDomain ( void ) const { return _ptpDomain; }
+unsigned int Instrumentor::Event::getId( void ) const { return _ptpId; }
+
+void Instrumentor::Event::reverseType ( )
+{
+   switch ( _type )
+   {
+      case PTP_START: _type = PTP_END; break;
+      case PTP_END: _type = PTP_START; break;
+      case BURST_START: _type = BURST_END; break;
+      case BURST_END: _type = BURST_START; break;
+      default: break;
+   }
+}
+
 #endif

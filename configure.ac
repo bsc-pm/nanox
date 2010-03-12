@@ -42,22 +42,22 @@ AC_SUBST([SMP_ARCH])
 
 AC_MSG_CHECKING([for architecture])
 case $host in
-  i?86-*-linux-gnu)
+  i?86-*-linux*)
     OS=unix-os
     ARCHITECTURES+=smp
     SMP_ARCH=x86
     ;;
-  x86_64-*-linux-gnu)
+  x86_64-*-linux*)
     OS=unix-os
     ARCHITECTURES+=smp
     SMP_ARCH=x86-64
     ;;
-  ia64-*-linux)
+  ia64-*-linux*)
     OS=unix-os
     ARCHITECTURES+=smp
     SMP_ARCH=ia64
     ;;
-  powerpc-*-linux-gnu | powerpc64-*-linux-gnu)
+  powerpc-*-linux* | powerpc64-*-linux*)
     OS=unix-os
     ARCHITECTURES+=smp
     SMP_ARCH=ppc32

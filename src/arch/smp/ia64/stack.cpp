@@ -66,7 +66,7 @@ intptr_t * initContext ( intptr_t *stack, size_t stackSize, void *userFunction, 
                           void *cleanup, void *cleanupArg )
 {
    // stack grows down
-   intprt_t *state = stack;
+   intptr_t *state = stack;
    state += stackSize;
 
    state -= 68;
