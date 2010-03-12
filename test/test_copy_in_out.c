@@ -90,7 +90,7 @@ int main ( int argc, char **argv )
 
    NANOS_SAFE( nanos_submit( wd1,0,0,0 ) );
 
-   NANOS_SAFE( nanos_wg_wait_completation( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
 
    if ( strcmp( text2, dummy1 ) == 0 ) {
       printf( "Checking for copy-back correctness...  PASS\n" );

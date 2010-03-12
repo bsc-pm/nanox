@@ -191,7 +191,7 @@ int main ( int argc, char **argv )
 #else
 #endif
 
-   NANOS_SAFE( nanos_wg_wait_completation( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
 
    return 0; 
 }

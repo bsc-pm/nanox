@@ -92,7 +92,7 @@ int fib ( int n, int d )
       }
 
 //		#pragma omp taskwait
-      wg->waitCompletation();
+      wg->waitCompletion();
    } else {
       x = fib_seq( n-1 );
       y = fib_seq( n-2 );

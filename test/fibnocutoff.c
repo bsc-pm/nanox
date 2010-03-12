@@ -108,7 +108,7 @@ int fib ( int n, int d )
    }
 
 //            #pragma omp taskwait
-   nanos_wg_wait_completation( nanos_current_wd() );
+   nanos_wg_wait_completion( nanos_current_wd() );
 
    return x + y;
 }
