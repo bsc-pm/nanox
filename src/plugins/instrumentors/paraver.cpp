@@ -117,7 +117,7 @@ namespace nanos {
             p_file << SET_INTERNAL_WD_DATA << "     set internal wd data" << std::endl;
             p_file << GET_INTERNAL_WD_DATA << "     get internal wd data" << std::endl;
             p_file << YIELD                << "     yield" << std::endl;
-            p_file << WG_WAIT_COMPLETATION << "     wg wait completation" << std::endl;
+            p_file << WG_WAIT_COMPLETION   << "     wg wait completion" << std::endl;
             p_file << SYNC_COND            << "     sync cond" << std::endl;
             p_file << WAIT_ON              << "     wait on" << std::endl;
             p_file << LOCK                 << "     lock function" << std::endl;

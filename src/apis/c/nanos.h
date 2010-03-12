@@ -105,7 +105,7 @@ nanos_err_t nanos_single_guard ( bool *);
 
 // sync
 
-nanos_err_t nanos_wg_wait_completation ( nanos_wg_t wg );
+nanos_err_t nanos_wg_wait_completion ( nanos_wg_t wg );
 
 nanos_err_t nanos_create_int_sync_cond ( nanos_sync_cond_t *sync_cond, volatile int *p, int condition );
 nanos_err_t nanos_create_bool_sync_cond ( nanos_sync_cond_t *sync_cond, volatile bool *p, bool condition );

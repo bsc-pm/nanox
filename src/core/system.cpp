@@ -226,7 +226,7 @@ System::~System ()
 
    if ( !_delayedStart ) {
       verbose ( "Wait for main workgroup to complete" );
-      myThread->getCurrentWD()->waitCompletation();
+      myThread->getCurrentWD()->waitCompletion();
 
       // we need to switch to the main thread here to finish
       // the execution correctly

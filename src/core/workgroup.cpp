@@ -54,7 +54,7 @@ void WorkGroup::sync ()
    //TODO: reinit phase_counter
 }
 
-void WorkGroup::waitCompletation ()
+void WorkGroup::waitCompletion ()
 {
      _syncCond.wait();
 }
