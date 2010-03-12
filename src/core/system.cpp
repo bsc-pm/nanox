@@ -676,7 +676,7 @@ void System::inlineWork ( WD &work )
    // Prepare private copy structures to use relative addresses
    work.prepareCopies();
 
-   myself->inlineWork( &work );
+   Scheduler::inlineWork( &work );
 }
 
 

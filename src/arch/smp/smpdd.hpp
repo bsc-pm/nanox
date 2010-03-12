@@ -69,7 +69,7 @@ namespace ext
 
          static void prepareConfig( Config &config );
 
-         virtual void lazyInit (WD &wd, bool isUserLevelThread);
+         virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous);
          virtual size_t size ( void ) { return sizeof(SMPDD); }
          virtual SMPDD *copyTo ( void *toAddr );
       };

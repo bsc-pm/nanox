@@ -96,8 +96,13 @@ namespace nanos {
        */
       WD * TaskStealPolicy::atCreation ( BaseThread *thread, WD &newWD )
       {
+         WD *next;
          /*! \warning it does not enqueue the created task, but it moves down to the generated son: DEPTH-FIRST */
-         return &newWD;
+
+         /* enqueue the remaining part of a WD */
+         if ( !newWD.dequeue(&next) ) queue(thread,newWD);
+         
+         return next;
       }
 
       /*! 
@@ -123,9 +128,9 @@ namespace nanos {
             if ( ( wd = thread->getCurrentWD()->getParent() ) != NULL ) {
                //removing it from the queue. 
                //Try to remove from one queue: if someone move it, I stop looking for it to avoid ping-pongs.
-               if ( wd->isEnqueued() && ( !wd ->isTied() || wd->isTiedTo() == thread ) ) {
+               if ( wd->isEnqueued() ) {
                   //not in queue = in execution, in queue = not in execution
-                  if ( wd->getMyQueue()->removeWD( wd ) ) { //found it!
+                  if ( wd->getMyQueue()->removeWD( thread, wd ) ) { //found it!
                      return wd;
                   }
                }

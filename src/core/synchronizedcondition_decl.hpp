@@ -60,8 +60,7 @@ namespace nanos
 
         /* \brief interface used by the SynchronizedCondition to check the condition.
          */
-         virtual bool checkCondition()
-            { return true; }
+         virtual bool checkCondition() = 0;
    };
 
   /* \brief Checks a templated variable for equality with a given condition.
@@ -168,26 +167,33 @@ namespace nanos
    */
    class GenericSyncCond
    {
+      private:
+         /**< Lock to block and unblock WorkDescriptors securely. */
+         Lock _lock;
+
       public:
-        GenericSyncCond() {}
+        GenericSyncCond() : _lock() {}
 
         virtual ~GenericSyncCond() {}
 
         virtual void wait() = 0;
         virtual void signal() = 0;
-        virtual void unlock() = 0;
-   };
+        virtual bool check() = 0;
 
-  /*! \brief Abstract template synchronization class.
-   */
-   template<class _T>
-   class SynchronizedCondition : GenericSyncCond
-   {
-      private:
-         /**< Lock to block and unblock WorkDescriptors securely. */
-         Lock _lock;
+        /** \brief Sets a waiter Workdescriptor.
+         */
+         virtual void addWaiter( WorkDescriptor* wd) = 0;
 
-        /* \brief acquire the lock.
+        /** \brief Returns true if there's any waiter on the condition.
+         */
+         virtual bool hasWaiters() = 0;
+
+        /** \brief Returns a waiter adn removes it from the condition.
+         */
+         virtual WorkDescriptor* getAndRemoveWaiter() = 0;
+
+        
+        /** \brief acquire the lock.
          */
          void lock()
          {
@@ -195,32 +201,36 @@ namespace nanos
             memoryFence();
          }
 
+         /** \brief Release the lock. The wait() method can switch context
+          * so it is necessary this function to be public so that the switchHelper
+          * can unlock it after removing the current WD from the stack.
+          */
+         void unlock()
+         {
+            memoryFence();
+            _lock.release();
+         }
+   };
+
+  /*! \brief Abstract template synchronization class.
+   */
+   template<class _T>
+   class SynchronizedCondition : GenericSyncCond
+   {
       protected:
          /**< ConditionChecker associated to the SynchronizedCondition. */
          _T _conditionChecker;
-
-        /* \brief Sets a waiter Workdescriptor.
-         */
-         virtual void addWaiter( WorkDescriptor* wd) = 0;
-
-        /* \brief Returns true if there's any waiter on the condition.
-         */
-         virtual bool hasWaiters() = 0;
-
-        /* \brief Returns a waiter adn removes it from the condition.
-         */
-         virtual WorkDescriptor* getAndRemoveWaiter() = 0;
       
       public:
         /* \brief Constructor
          */
-         SynchronizedCondition ( ) : GenericSyncCond(), _lock(), _conditionChecker() { }
-         SynchronizedCondition ( _T cc ) : GenericSyncCond(),  _lock(), _conditionChecker(cc) { }
+         SynchronizedCondition ( ) : GenericSyncCond(), _conditionChecker() { }
+         SynchronizedCondition ( _T cc ) : GenericSyncCond(), _conditionChecker(cc) { }
 
         /* \brief Copy constructor
          * \param sc Another SyncrhonizedCondition
          */
-         SynchronizedCondition ( const SynchronizedCondition & sc ) : GenericSyncCond(), _lock(), _conditionChecker( sc._conditionChecker )
+         SynchronizedCondition ( const SynchronizedCondition & sc ) : GenericSyncCond(), _conditionChecker( sc._conditionChecker )
          {
          }
 
@@ -253,14 +263,9 @@ namespace nanos
             _conditionChecker = cc;
          }
 
-        /* \brief Release the lock. The wait() method can switch context
-         * so it is necessary this function to be public so that the switchHelper
-         * can unlock it after removing the current WD from the stack.
-         */
-         void unlock()
+         bool check ()
          {
-            memoryFence();
-            _lock.release();
+            return _conditionChecker.checkCondition();
          }
    };
 

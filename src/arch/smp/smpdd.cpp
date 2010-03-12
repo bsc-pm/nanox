@@ -52,14 +52,22 @@ void SMPDD::prepareConfig( Config &config )
 
 void SMPDD::initStack ( void *data )
 {
-   _stack = new intptr_t[_stackSize];
    _state = ::initContext( _stack, _stackSize, ( void * )getWorkFct(),data,( void * )Scheduler::exit, 0 );
 }
 
-void SMPDD::lazyInit (WD &wd, bool isUserLevelThread)
+void SMPDD::lazyInit (WD &wd, bool isUserLevelThread, WD *previous)
 {
-   if (isUserLevelThread)
-      initStack(wd.getData());
+   if (isUserLevelThread) {
+     if ( previous == NULL )
+       _stack = new intptr_t[_stackSize];
+     else {
+        SMPDD &oldDD = (SMPDD &) previous->getActiveDevice();
+
+        std::swap(_stack,oldDD._stack);
+     }
+  
+     initStack(wd.getData());
+   }
 }
 
 SMPDD * SMPDD::copyTo ( void *toAddr )

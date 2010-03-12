@@ -64,7 +64,7 @@ namespace nanos
          WorkDescriptor * pop_back ( BaseThread *thread );
          WorkDescriptor * pop_back ( BaseThread *thread, SchedulePredicate &predicate );
 
-         bool removeWD( WorkDescriptor * toRem );
+         bool removeWD( BaseThread *thread, WorkDescriptor * toRem );
    };
 
    inline void WDDeque::push_front ( WorkDescriptor *wd )
@@ -156,11 +156,12 @@ namespace nanos
    }
 
 
-
-
-   inline bool WDDeque::removeWD( WorkDescriptor * toRem )
+   inline bool WDDeque::removeWD( BaseThread *thread, WorkDescriptor * toRem )
    {
       if ( _dq.empty() )
+         return false;
+
+      if ( toRem->isTied() && toRem->isTiedTo() != thread )
          return false;
 
       _lock++;

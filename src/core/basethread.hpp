@@ -97,7 +97,15 @@ namespace nanos
          const BaseThread operator= ( const BaseThread & );
 
          virtual void runDependent () = 0;
+
+         // These must be called through the Scheduler interface
+         virtual void switchHelperDependent( WD* oldWD, WD* newWD, void *arg ) = 0;
+         virtual void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) = 0;
          virtual void inlineWorkDependent (WD &work) = 0;
+         virtual void switchTo( WD *work, SchedulerHelper *helper ) = 0;
+         virtual void exitTo( WD *work, SchedulerHelper *helper ) = 0;
+         virtual void yield() {};
+
       protected:
 
          /*!
@@ -131,17 +139,6 @@ namespace nanos
 
          virtual void join() = 0;
          virtual void bind() {};
-
-         // WD micro-scheduling
-         void inlineWork ( WD *work );
-
-         virtual void switchHelperDependent( WD* oldWD, WD* newWD, void *arg ) = 0;
-         virtual void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) = 0;
-
-         virtual void switchTo( WD *work, SchedulerHelper *helper ) = 0;
-         virtual void exitTo( WD *work, SchedulerHelper *helper ) = 0;
-
-         virtual void yield() {};
 
          // set/get methods
          void setCurrentWD ( WD &current ) { _currentWD = &current; }

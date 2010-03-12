@@ -27,11 +27,11 @@
 
 using namespace nanos;
 
-void WorkDescriptor::start (bool isUserLevelThread)
+void WorkDescriptor::start (bool isUserLevelThread, WorkDescriptor *previous)
 {
    ProcessingElement *pe = myThread->runningOn();
 
-   _activeDevice->lazyInit(*this,isUserLevelThread);
+   _activeDevice->lazyInit(*this,isUserLevelThread,previous);
    
    if ( pe->hasSeparatedMemorySpace() )
       pe->copyDataIn( *this );
