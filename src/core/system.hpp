@@ -40,7 +40,7 @@ namespace nanos
 
    class System
    {
-         friend class Scheduler;
+      friend class Scheduler;
 
       public:
          // constants

@@ -18,7 +18,7 @@
 /*************************************************************************************/
 // FIXME: (#131) This flag ENABLE_INSTRUMENTATION has to be managed through
 //compilation in order to generate an instrumentation version
-//#define INSTRUMENTATION_ENABLED
+#define INSTRUMENTATION_ENABLED
 
 #ifndef __NANOS_INSTRUMENTOR_DECL_H
 #define __NANOS_INSTRUMENTOR_DECL_H
@@ -43,12 +43,12 @@ namespace nanos {
                nanos_event_type_t          _type;
                nanos_event_state_value_t   _state;
 
-               unsigned int          _nkvs;
-               KVList                _kvList;
-               bool                  _kvListOwner;
+               unsigned int                _nkvs;
+               KVList                      _kvList;
+               bool                        _kvListOwner;
 
-               nanos_event_domain_t  _ptpDomain;
-               nanos_event_id_t      _ptpId;
+               nanos_event_domain_t        _ptpDomain;
+               nanos_event_id_t            _ptpId;
 
             public:
                Event ( nanos_event_type_t type, nanos_event_state_value_t state, unsigned int nkvs, KVList kvlist, bool kvlist_owner,
@@ -99,28 +99,15 @@ namespace nanos {
 
                ~Event() { if ( _kvListOwner ) delete[] _kvList; }
 
-               
-               nanos_event_type_t getType () const { return _type; } 
+               nanos_event_type_t getType () const; 
+               nanos_event_state_value_t getState ();
+               unsigned int getNumKVs () const;
+               ConstKVList getKVs () const;
 
-               nanos_event_state_value_t getState () { return _state; }
+               unsigned int getDomain ( void ) const;
+               unsigned int getId( void ) const;
 
-               unsigned int getNumKVs () const { return _nkvs; }
-               ConstKVList getKVs () const { return _kvList; } 
-
-               unsigned int getDomain ( void ) const { return _ptpDomain; }
-               unsigned int getId( void ) const { return _ptpId; }
-
-               void reverseType ( )
-               {
-                   switch ( _type )
-                   {
-                      case PTP_START: _type = PTP_END; break;
-                      case PTP_END: _type = PTP_START; break;
-                      case BURST_START: _type = BURST_END; break;
-                      case BURST_END: _type = BURST_START; break;
-                      default: break;
-                   }
-               }
+               void reverseType ( );
          };
 
          class State : public Event {
