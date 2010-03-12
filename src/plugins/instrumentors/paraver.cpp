@@ -143,9 +143,20 @@ namespace nanos {
 
       void initialize ( void )
       {
-         char *mpi_trace_on= new char[255];
-         strcpy(mpi_trace_on, "MPITRACE_ON=1");
-         putenv (mpi_trace_on);
+         char *mpi_trace_on;
+
+         /* check environment variable MPITRACE_ON value */
+         mpi_trace_on = getenv("MPITRACE_ON");
+
+         /* if MPITRAE_ON not defined, active it */
+         if ( mpi_trace_on == NULL )
+         {
+            mpi_trace_on = new char[15];
+            strcpy(mpi_trace_on, "MPITRACE_ON=1");
+            putenv (mpi_trace_on);
+         }
+
+         /* OMPItrace initialization */
          OMPItrace_init();
       }
 
