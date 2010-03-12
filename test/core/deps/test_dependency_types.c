@@ -17,6 +17,12 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+/*
+<testinfo>
+test_generator=gens/api-generator
+</testinfo>
+*/
+
 #include <stdio.h>
 #include <sys/time.h>
 #include <stdlib.h>

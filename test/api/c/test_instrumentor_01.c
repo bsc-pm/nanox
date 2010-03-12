@@ -17,47 +17,51 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "config.hpp"
-#include "nanos.h"
-#include <iostream>
-#include "smpprocessor.hpp"
-#include "system.hpp"
-#include <string.h>
+/*
+<testinfo>
+test_generator=gens/api-generator
+</testinfo>
+*/
 
-using namespace std;
+#include <stdio.h>
+#include <nanos.h>
 
-using namespace nanos;
-using namespace nanos::ext;
+// compiler: outlined function arguments
+typedef struct {
+   int value;
+} main__task_1_data_t;
 
-void single_code ( void *a )
+// compiler: outlined function
+void main__task_1 ( void *args )
 {
-   bool b = true;
+   main__task_1_data_t *hargs = (main__task_1_data_t * ) args;
 
-   for ( int i=0; i<1000; i++ ) {
-      nanos_single_guard( &b );
-
-      if ( b ) {
-         cerr << "it: " << i << " th: " << myThread->getId() << endl ;
-         usleep( 10 );
-      }
-      nanos_team_barrier();
-   }
+   usleep ( hargs->value );
 }
+
+// compiler: smp device for main__loop_1 function
+nanos_smp_args_t main__task_1_device_args = { main__task_1 };
 
 int main ( int argc, char **argv )
 {
-   cout << "start" << endl;
 
-   ThreadTeam &team = *myThread->getTeam();
-   for ( int i = 1; i < sys.getNumPEs(); i++ ) {
-      WD * wd = new WD( new SMPDD( single_code ) );
-      wd->tieTo(team[i]);
-      sys.submit( *wd );
-   }
+      nanos_wd_t wd = NULL;
+      nanos_device_t main__task_1_device[1] = { NANOS_SMP_DESC( main__task_1_device_args ) };
+      main__task_1_data_t *task_data = NULL;
+      nanos_wd_props_t props = {
+         .mandatory_creation = true,
+         .tied = false,
+         .tie_to = false
+      };
 
-   usleep( 100 );
+      NANOS_SAFE( nanos_create_wd ( &wd, 1, main__task_1_device , sizeof( main__task_1_data_t ),
+                                    (void **) &task_data, nanos_current_wd(), &props , 0, NULL ));
 
-   single_code( 0 );
+      task_data->value = 100;
 
-   cout << "end" << endl;
+      NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
+      NANOS_SAFE( nanos_wg_wait_completation( nanos_current_wd() ) );
+
+      return 0; 
 }
+

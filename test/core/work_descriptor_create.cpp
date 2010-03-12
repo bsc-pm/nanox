@@ -17,33 +17,89 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+/*
+<testinfo>
+test_generator=gens/mixed-generator
+</testinfo>
+*/
+
 #include "config.hpp"
+#include "nanos.h"
 #include <iostream>
 #include "smpprocessor.hpp"
 #include "system.hpp"
-#include "copydata.hpp"
-#include <string.h>
 
 using namespace std;
 
 using namespace nanos;
 using namespace nanos::ext;
 
-extern "C" {
+#define USE_NANOS     true
+#define NUM_ITERS     100
+#define VECTOR_SIZE   100
 
-uint64_t aux_get_copies_addr( unsigned int i )
+int A[VECTOR_SIZE];
+
+typedef struct {
+   nanos_loop_info_t loop_info;
+} main__loop_1_data_t;
+
+
+void main__loop_1 ( void *args )
 {
-   WD *wd = myThread->getCurrentWD();
-   CopyData* cd = wd->getCopies();
-   return (uint64_t)cd[i].getAddress();
+   int i;
+   main__loop_1_data_t *hargs = (main__loop_1_data_t * ) args;
+
+   for ( i = hargs->loop_info.lower; i < hargs->loop_info.upper; i += hargs->loop_info.step) {
+      A[i]++;
+   }
 }
 
-nanos_sharing_t aux_get_sharing( unsigned int i )
+int main ( int argc, char **argv )
 {
-   WD *wd = myThread->getCurrentWD();
-   CopyData* cd = wd->getCopies();
-   return cd[i].getSharing();
-}
+   int i;
+   bool check = true;
 
+   main__loop_1_data_t _loop_data;
+   
+   // initialize vector
+      for ( i = 0; i < VECTOR_SIZE; i++ ) A[i] = 0;
+
+   // increment vector
+   for ( i = 0; i < NUM_ITERS; i++ ) {
+#if USE_NANOS
+      // loop info initialization
+      _loop_data.loop_info.lower = 0;
+      _loop_data.loop_info.upper = VECTOR_SIZE;
+      _loop_data.loop_info.step = + 1;
+
+      // Work descriptor creation
+      WD * wd = new WD( new SMPDD( main__loop_1 ), sizeof( _loop_data ),( void * ) &_loop_data );
+
+      // Work Group affiliation
+      WG *wg = myThread->getCurrentWD();
+      wg->addWork( *wd );
+
+      // Work submission
+      sys.submit( *wd );
+ 
+      // barrier (kind of)
+      wg->waitCompletation();
+#else
+      for ( int j = 0; j < VECTOR_SIZE; j++ ) A[j]++;
+#endif
+   }
+
+   // check vector
+   for ( i = 0; i < VECTOR_SIZE; i++ ) if ( A[i] != NUM_ITERS ) check = false;
+   
+   if ( check ) {
+      fprintf(stderr, "%s : %s\n", argv[0], "successful");
+      return 0;
+   }
+   else {
+      fprintf(stderr, "%s: %s\n", argv[0], "unsuccessful");
+      return -1;
+   }
 }
 

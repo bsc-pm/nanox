@@ -1,3 +1,9 @@
+/*
+<testinfo>
+test_generator=gens/mixed-generator
+</testinfo>
+*/
+
 #include "config.hpp"
 #include "nanos.h"
 #include <iostream>
