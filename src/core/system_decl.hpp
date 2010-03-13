@@ -82,7 +82,6 @@ namespace nanos
          std::string          _defInstr;
 
          /*! factories for scheduling, pes and barriers objects */
-         sgFactory            _defSGFactory;
          peFactory            _hostFactory;
          barrFactory          _defBarrFactory;
 
@@ -164,12 +163,10 @@ namespace nanos
 
          // team related methods
          BaseThread * getUnassignedWorker ( void );
-         ThreadTeam * createTeam ( unsigned nthreads, SG *scheduling=NULL, void *constraints=NULL,
+         ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL,
                                    bool reuseCurrent=true,  TeamData *tdata = 0 );
          void endTeam ( ThreadTeam *team );
          void releaseWorker ( BaseThread * thread );
-
-         int getSGSize() const;
 
          void setThrottlePolicy( ThrottlePolicy * policy );
 
@@ -182,8 +179,6 @@ namespace nanos
          const std::string & getDefaultBarrier() const;
 
          const std::string & getDefaultInstrumentor() const;
-
-         void setDefaultSGFactory ( sgFactory factory );
 
          void setHostFactory ( peFactory factory );
 

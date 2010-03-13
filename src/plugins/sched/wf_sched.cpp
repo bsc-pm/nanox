@@ -26,56 +26,57 @@
 namespace nanos {
    namespace ext {
 
-      class WFData : public SchedulingData
+      class WorkFirst : public SchedulePolicy
       {
-
-         friend class WFPolicy; //in this way, the policy can access the readyQueue
-
          private:
-            WDDeque _readyQueue;
-
-            WFData ( const WFData & );
-            const WFData operator= ( const WFData & );
-
-         public:
-            // constructor
-            WFData( int id=0 ) : SchedulingData( id ) {}
-
-            // destructor
-            ~WFData()
+            struct ThreadData : public ScheduleThreadData
             {
-                ensure(_readyQueue.empty(),"Destroying non-empty wdqueue");
-            }
-      };
+               /*! queue of ready tasks to be executed */
+               WDDeque _readyQueue;
 
-      class WFPolicy : public SchedulingGroup
-      {
-         private:
-            WFPolicy ( const WFPolicy & );
-            const WFPolicy operator= ( const WFPolicy & );
+               ThreadData () : _readyQueue() {}
+               virtual ~ThreadData () {
+                  ensure(_readyQueue.empty(),"Destroying non-empty queue");
+               }
+            };
+
+            WorkFirst ( const WorkFirst & );
+            const WorkFirst operator= ( const WorkFirst & );
 
          public:
             typedef enum { FIFO, LIFO } QueuePolicy;
 
-            // Should these be private?
-            static bool          _noStealParent;
+            //alex: FIX: this should be defaults and not common to all instances
+            static bool          _stealParent;
             static QueuePolicy   _localPolicy;
             static QueuePolicy   _stealPolicy;
 
             // constructor
-            WFPolicy() : SchedulingGroup( "wf-steal-sch" ) {} 
-            WFPolicy( int groupsize ) : SchedulingGroup( "wf-steal-sch", groupsize ) {}
+            WorkFirst() : SchedulePolicy( "Work First" ) {}
+            virtual ~WorkFirst() {}
 
-            virtual ~WFPolicy() {}
+           virtual size_t getTeamDataSize () const { return 0; }
+           virtual size_t getThreadDataSize () const { return sizeof(ThreadData); }
 
-            virtual WD *atCreation ( BaseThread *thread, WD &newWD );
-            virtual WD *atIdle ( BaseThread *thread );
-            virtual void queue ( BaseThread *thread, WD &wd );
-            virtual SchedulingData * createMemberData ( BaseThread &thread );
+           virtual ScheduleTeamData * createTeamData ( ScheduleTeamData *preAlloc )
+           {
+              return 0;
+           }
+
+           virtual ScheduleThreadData * createThreadData ( ScheduleThreadData *preAlloc )
+           {
+              ThreadData *data;
+
+              if ( preAlloc ) data = new (preAlloc) ThreadData();
+              else data = new ThreadData();
+
+              return data;
+           }
 
             /*! \brief Extracts a WD from the queue either from the beginning or the end of the queue
              *
-             *  This function allows to simplify the code to extract code from the queues. It's a wrapper around the WDDeque
+             *  This function allows to simplify the code to extract code from the queues.
+             *  It's a wrapper around the WDDeque
              *  functions with the actual function chosen with the policy argument.
              *
              *   \param [inout] q The queue from we want to extract a WD
@@ -84,79 +85,102 @@ namespace nanos {
              *   \returns either a WD if one was available in the queues or NULL
              *   \sa WDDeque::pop_front, WDDeque::pop_back
              */
-            WD * pop ( WDDeque &q, QueuePolicy policy, BaseThread *thread );
+            WD * pop ( WDDeque &q, QueuePolicy policy, BaseThread *thread )
+            {
+               return policy == LIFO  ? q.pop_front(thread) : q.pop_back(thread);
+            }
+
+            /*!
+            *  \brief Enqueue a work descriptor in the readyQueue of the passed thread
+            *  \param thread pointer to the thread to which readyQueue the task must be appended
+            *  \param wd a reference to the work descriptor to be enqueued
+            *  \sa ThreadData, WD, and BaseThread
+            */
+            virtual void queue ( BaseThread *thread, WD &wd )
+            {
+                ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
+                data._readyQueue.push_front ( &wd );
+            }
+
+            /*!
+            *  \brief Function called when a new task must be created: the new created task
+            *          is directly executed (Depth-First policy)
+            *  \param thread pointer to the thread to which belongs the new task
+            *  \param wd a reference to the work descriptor of the new task
+            *  \sa WD and BaseThread
+            */
+            virtual WD * atSubmit ( BaseThread *thread, WD &newWD )
+            {
+               WD *next;
+
+               /* enqueue the remaining part of a WD */
+               if ( !newWD.dequeue(&next) ) queue(thread,newWD);
+
+               /* it does not enqueue the created task, but it moves down to the generated son: DEPTH-FIRST */
+               return next;
+            }
+
+            virtual WD * atIdle ( BaseThread *thread );
       };
 
-      bool WFPolicy::_noStealParent = false;
-      WFPolicy::QueuePolicy WFPolicy::_localPolicy = WFPolicy::FIFO;
-      WFPolicy::QueuePolicy WFPolicy::_stealPolicy = WFPolicy::FIFO;
+      bool WorkFirst::_stealParent = true;
+      WorkFirst::QueuePolicy WorkFirst::_localPolicy = WorkFirst::FIFO;
+      WorkFirst::QueuePolicy WorkFirst::_stealPolicy = WorkFirst::FIFO;
 
-      void WFPolicy::queue ( BaseThread *thread, WD &wd )
+      /*!
+       *  \brief Function called by the scheduler when a thread becomes idle to schedule it
+       *  \param thread pointer to the thread to be scheduled
+       *  \sa BaseThread
+       */
+      WD * WorkFirst::atIdle ( BaseThread *thread )
       {
-         WFData *data = ( WFData * ) thread->getSchedulingData();
-         data->_readyQueue.push_front( &wd );
-      }
+         WorkDescriptor * wd;
 
-      WD * WFPolicy::atCreation ( BaseThread *thread, WD &newWD )
-      {
-         //NEW: now it does not enqueue the created task, but it moves down to the generated son: DEPTH-FIRST
-         return &newWD;
-      }
+         ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
 
-      WD * WFPolicy::pop ( WDDeque &q, QueuePolicy policy, BaseThread *thread )
-      {
-         return policy == LIFO  ? q.pop_front(thread) : q.pop_back(thread);
-      }
-
-      WD * WFPolicy::atIdle ( BaseThread *thread )
-      {
-         WorkDescriptor * wd = NULL;
-
-         WFData *data = ( WFData * ) thread->getSchedulingData();
-
-         if ( ( wd = pop(data->_readyQueue, _localPolicy, thread) ) != NULL ) {
+         /*
+          *  First try to schedule the thread with a task from its queue
+          */
+         if ( ( wd = pop( data._readyQueue, _localPolicy, thread ) ) != NULL ) {
             return wd;
          } else {
-            if ( _noStealParent == false ) {
-               if ( ( wd = ( thread->getCurrentWD() )->getParent() ) != NULL ) {
-                  /*!
-                   * removing it from the queue. Try to remove from one queue: if someone move it,
-                   * stop looking to avoid ping-pongs.
-                   */
-                  if ( wd->isEnqueued()  && ( !wd->isTied() || wd->isTiedTo() == thread ) ) {
-                     //not in queue = in execution, in queue = not in execution
-                     if ( wd->getMyQueue()->removeWD( thread, wd ) == true ) { //found it!
-                        return wd;
-                     }
+            /*
+            *  If the local queue is empty, try to steal the parent (possibly enqueued in the queue of another thread)
+            */
+            if ( _stealParent && ( wd = thread->getCurrentWD()->getParent() ) != NULL ) {
+               //removing it from the queue.
+               //Try to remove from one queue: if someone move it, I stop looking for it to avoid ping-pongs.
+               if ( wd->isEnqueued() ) {
+                  //not in queue = in execution, in queue = not in execution
+                  if ( wd->getMyQueue()->removeWD( thread, wd ) ) { //found it!
+                     return wd;
                   }
                }
             }
 
-            /*! next: steal from other queues */
-            int newposition = data->getSchId();
+            /*!
+            *  If also the parent is NULL or if someone moved it to another queue while was trying to steal it,
+            *  try to steal tasks from other queues
+            *  \warning other queues are checked cyclically: should be random
+            */
+            int thid = thread->getTeamId();
+            int size = thread->getTeam()->size();
             wd = NULL;
 
-            while ( wd == NULL ) {
-               newposition = ( newposition + 1 ) % getSize();
-               if ( newposition != data->getSchId() ) {
-                  wd = pop( (( WFData * ) getMemberData ( newposition ))->_readyQueue, _stealPolicy, thread );
+            do {
+               thid = ( thid + 1 ) % size;
+
+               BaseThread &victim = thread->getTeam()->getThread(thid);
+
+               if ( victim.getTeam() != NULL ) {
+                 ThreadData &data = ( ThreadData & ) *victim.getTeamData()->getScheduleData();
+                 wd = pop( data._readyQueue, _stealPolicy, thread );
                }
 
-            }
+            } while ( wd == NULL && thid != thread->getTeamId() );
+
             return wd;
          }
-      }
-
-      SchedulingData * WFPolicy::createMemberData ( BaseThread &thread )
-      {
-         return new WFData();
-      }
-
-      // Factories
-
-      static SchedulingGroup * createWFPolicy ( int groupsize )
-      {
-         return new WFPolicy( groupsize );
       }
 
 
@@ -169,26 +193,33 @@ namespace nanos {
             virtual void config( Config& config )
             {
                config.setOptionsSection( "Wf module", new std::string("Width-first scheduling module") );
-               //BUG: If defining local policy or steal policy the command line option *must not* include the = between
-               //the option name and the value, but a space
-               config.registerConfigOption ( "wf-no-steal-parent", new Config::FlagOption( WFPolicy::_noStealParent ), "Defines if the scheduling policy try to steal the parent first" );
-               config.registerArgOption ( "wf-no-steal-parent", "wf-no-steal-parent" );
 
-               Config::MapVar<WFPolicy::QueuePolicy> queuePolicyLocalConfig ( WFPolicy::_localPolicy );
-               queuePolicyLocalConfig.addOption ( "FIFO", WFPolicy::FIFO ).addOption ( "LIFO", WFPolicy::LIFO );
-               config.registerConfigOption ( "wf-local-policy", &queuePolicyLocalConfig, "Defines the local queue access policy");
+               config.registerConfigOption ( "wf-steal-parent", new Config::FlagOption( WorkFirst::_stealParent ),
+                                             "Defines if tries to steal the parent" );
+               config.registerArgOption ( "wf-steal-parent", "steal-parent" );
+
+               Config::MapVar<WorkFirst::QueuePolicy> queuePolicyLocalConfig ( WorkFirst::_localPolicy );
+               queuePolicyLocalConfig
+                  .addOption ( "FIFO", WorkFirst::FIFO )
+                  .addOption ( "LIFO", WorkFirst::LIFO );
+               config.registerConfigOption ( "wf-local-policy", &queuePolicyLocalConfig,
+                                             "Defines the local queue access policy");
                config.registerArgOption ( "wf-local-policy", "wf-local-policy" );
 
-               Config::MapVar<WFPolicy::QueuePolicy> queuePolicyStealConfig ( WFPolicy::_localPolicy );
-               queuePolicyStealConfig.addOption ( "FIFO", WFPolicy::FIFO ).addOption ( "LIFO", WFPolicy::LIFO );
-               config.registerConfigOption ( "wf-steal-policy", &queuePolicyStealConfig, "Defines the steal access policy");
+               Config::MapVar<WorkFirst::QueuePolicy> queuePolicyStealConfig ( WorkFirst::_localPolicy );
+               queuePolicyStealConfig
+                  .addOption ( "FIFO", WorkFirst::FIFO )
+                  .addOption ( "LIFO", WorkFirst::LIFO );
+                  
+               config.registerConfigOption ( "wf-steal-policy", &queuePolicyStealConfig,
+                                             "Defines the steal access policy");
                config.registerArgOption ( "wf-steal-policy", "wf-steal-policy" );
 
                config.init();
             }
 
             virtual void init() {
-               sys.setDefaultSGFactory( createWFPolicy );
+               sys.setDefaultSchedulePolicy(new WorkFirst());
             }
       };
 

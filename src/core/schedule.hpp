@@ -33,85 +33,6 @@
 namespace nanos
 {
 
-   class SchedulingData
-   {
-
-      private:
-         int schId;
-
-         SchedulingData ( const SchedulingData & );
-         const SchedulingData & operator= ( const SchedulingData & );
-
-      public:
-
-         // constructor
-         SchedulingData( int id=0 ) : schId( id ) {}
-
-         // destructor
-         ~SchedulingData() {}
-
-         void setSchId( int id )  { schId = id; }
-
-         int getSchId() const { return schId; }
-   };
-
-// Groups a number of BaseThreads and a number of WD with a policy
-// Each BaseThread and WD can pertain only to a SG
-
-   class SchedulingGroup
-   {
-
-      private:
-         typedef std::vector<SchedulingData *> Group;
-
-         std::string    _name;
-         WDDeque        _idleQueue;
-
-         Group          _group;
-
-         // disable copy and assignment
-         SchedulingGroup( const SchedulingGroup & );
-         SchedulingGroup & operator= ( const SchedulingGroup & );
-
-         void init( int groupSize );
-
-      public:
-         // constructors
-         SchedulingGroup( std::string &policy_name, int groupSize=1 ) : _name( policy_name ) { init( groupSize ); }
-         SchedulingGroup( const char  *policy_name, int groupSize=1 ) : _name( policy_name ) { init( groupSize ); }
-
-         // destructor
-         virtual ~SchedulingGroup()
-         {
-             std::for_each( _group.begin(),_group.end(), deleter<SchedulingData> );
-         }
-
-         //modifiers
-         SchedulingData * getMemberData( int id ) { return _group[id]; }
-
-         int getSize() { return _group.size(); }
-
-         // membership related methods. This members are not thread-safe
-         virtual void addMember ( BaseThread &thread );
-         virtual void removeMember ( BaseThread &thread );
-         virtual SchedulingData * createMemberData ( BaseThread &thread ) { return new SchedulingData(); };
-
-         // policy related methods
-         virtual WD *atCreation ( BaseThread *thread, WD &newWD ) { return 0; }
-
-         virtual WD *atIdle     ( BaseThread *thread ) = 0;
-         virtual WD *atExit     ( BaseThread *thread ) { return atIdle( thread ); }
-
-         virtual WD *atBlock    ( BaseThread *thread, WD *hint=0 ) { return atIdle( thread ); }
-
-         virtual WD *atWakeUp   ( BaseThread *thread, WD &wd ) { return 0; }
-
-         virtual void queue ( BaseThread *thread,WD &wd )  = 0;
-
-         // idle management
-         virtual void queueIdle ( BaseThread *thread,WD &wd );
-   };
-
 // singleton class to encapsulate scheduling data and methods
 
    class GenericSyncCond;
@@ -139,9 +60,6 @@ namespace nanos
          static void wakeUp ( WD *wd );
    };
 
-   typedef SchedulingGroup SG;
-   typedef SG * ( *sgFactory ) ( int groupSize );
-
    class ScheduleTeamData {
       public:
          ScheduleTeamData() {}
@@ -154,12 +72,8 @@ namespace nanos
          virtual ~ScheduleThreadData() {}
    };
 
-   
    class SchedulePolicy
    {
-      public:
-
- 
       private:
          std::string    _name;
          
@@ -169,6 +83,8 @@ namespace nanos
          SchedulePolicy ( const char *name ) : _name(name) {}
          
          virtual ~SchedulePolicy () {};
+
+         const std::string & getName () const { return _name; }
 
          virtual size_t getTeamDataSize() const = 0;
          virtual size_t getThreadDataSize() const = 0;

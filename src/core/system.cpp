@@ -42,7 +42,7 @@ System nanos::sys;
 System::System () : _numPEs( 1 ), _deviceStackSize( 1024 ), _bindThreads( true ), _profile( false ), _instrument( false ),
       _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster(true), _delayedStart(false),
       _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" ), _defInstr ( "empty_trace" ),
-      _instrumentor ( NULL )
+      _instrumentor ( NULL ),_defSchedulePolicy(NULL)
 {
    verbose0 ( "NANOS++ initalizing... start" );
    config();
@@ -76,7 +76,7 @@ void System::loadModules ()
    if ( !PluginManager::load ( "sched-"+getDefaultSchedule() ) )
       fatal0 ( "Couldn't load main scheduling policy" );
 
-   ensure( _defSGFactory,"No default system scheduling factory" );
+   ensure( _defSchedulePolicy,"No default system scheduling factory" );
 
    verbose0( "loading " << getDefaultThrottlePolicy() << " throttle policy" );
 
@@ -170,12 +170,10 @@ void System::start ()
 
    _pes.reserve ( numPes );
 
-   SchedulingGroup *sg = _defSGFactory( numPes*getThsPerPE() );
-
    //TODO: decide, single master, multiple master start
    PE *pe = createPE ( "smp", 0 );
    _pes.push_back ( pe );
-   _workers.push_back( &pe->associateThisThread ( sg, _untieMaster ) );
+   _workers.push_back( &pe->associateThisThread ( _untieMaster ) );
 
    // Instrumentation startup
    getInstrumentor()->initialize();
@@ -183,7 +181,7 @@ void System::start ()
 
    //start as much threads per pe as requested by the user
    for ( int ths = 1; ths < getThsPerPE(); ths++ ) {
-      _workers.push_back( &pe->startWorker( sg ));
+      _workers.push_back( &pe->startWorker( ));
    }
 
    for ( int p = 1; p < numPes ; p++ ) {
@@ -193,13 +191,13 @@ void System::start ()
       //starting as much threads per pe as requested by the user
 
       for ( int ths = 0; ths < getThsPerPE(); ths++ ) {
-         _workers.push_back( &pe->startWorker( sg ) );
+         _workers.push_back( &pe->startWorker() );
       }
    }
    
 #ifdef SPU_DEV
    PE *spu = new nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);
-   spu->startWorker(sg);
+   spu->startWorker();
 #endif
 
    // count one for the "main" task
@@ -721,7 +719,7 @@ void System::releaseWorker ( BaseThread * thread )
    thread->leaveTeam();
 }
 
-ThreadTeam * System:: createTeam ( unsigned nthreads, SG *policy, void *constraints,
+ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
                                    bool reuseCurrent, TeamData *tdata )
 {
    int thId;
@@ -732,8 +730,6 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, SG *policy, void *constrai
       nthreads = getNumPEs()*getThsPerPE();
    }
    
-   if ( !policy ) policy = _defSGFactory( nthreads );
-
    SchedulePolicy *sched = 0;
    if ( !sched ) sched = sys.getDefaultSchedulePolicy();
 
@@ -742,7 +738,7 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, SG *policy, void *constrai
       stdata = sched->createTeamData(NULL);
 
    // create team
-   ThreadTeam * team = new ThreadTeam( nthreads, *policy, *sched, stdata, *_defBarrFactory() );
+   ThreadTeam * team = new ThreadTeam( nthreads, *sched, stdata, *_defBarrFactory() );
 
    debug( "Creating team " << team << " of " << nthreads << " threads" );
 

@@ -210,30 +210,6 @@ void Scheduler::queue ( WD &wd )
       sys._numReady++;
 }
 
-void SchedulingGroup::init ( int groupSize )
-{
-   _group.reserve ( groupSize );
-}
-
-void SchedulingGroup::addMember ( BaseThread &thread )
-{
-   SchedulingData *data = createMemberData ( thread );
-
-   data->setSchId ( getSize() );
-   thread.setScheduling ( this, data );
-   _group.push_back( data );
-}
-
-void SchedulingGroup::removeMember ( BaseThread &thread )
-{
-//TODO
-}
-
-void SchedulingGroup::queueIdle ( BaseThread *thread, WD &wd )
-{
-   _idleQueue.push_back ( &wd );
-}
-
 void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
 {
    GenericSyncCond *syncCond = oldWD->getSyncCond();

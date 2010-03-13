@@ -83,8 +83,6 @@ inline const std::string & System::getDefaultBarrier() const { return _defBarr; 
 
 inline const std::string & System::getDefaultInstrumentor() const { return _defInstr; }
 
-inline void System::setDefaultSGFactory ( sgFactory factory ) { _defSGFactory = factory; }
-
 inline void System::setHostFactory ( peFactory factory ) { _hostFactory = factory; }
 
 inline void System::setDefaultBarrFactory ( barrFactory factory ) { _defBarrFactory = factory; }

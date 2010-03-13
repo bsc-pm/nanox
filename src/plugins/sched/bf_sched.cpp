@@ -85,58 +85,7 @@ namespace nanos {
            }
       };
 
-      class BreadthFirstPolicy : public SchedulingGroup
-      {
-         private:
-            WDDeque           _readyQueue;
-            static bool       _useStack;
-
-            // copy constructor: disabled
-            BreadthFirstPolicy ( const BreadthFirstPolicy& );
-            // assignment operator: disabled
-            const BreadthFirstPolicy & operator= ( const BreadthFirstPolicy & );
-         public:
-            // constructor
-            BreadthFirstPolicy( int groupSize ) : SchedulingGroup( "breadth-first-sch",groupSize ) {}
-
-            // destructor
-            virtual ~BreadthFirstPolicy() {
-               ensure(_readyQueue.empty(),"Destroying SG with tasks!");
-            }
-
-            virtual WD *atCreation ( BaseThread *thread, WD &newWD );
-            virtual WD *atIdle ( BaseThread *thread );
-            virtual void queue ( BaseThread *thread, WD &wd );
-
-            friend class BFSchedPlugin;
-      };
-
-      void BreadthFirstPolicy::queue ( BaseThread *thread, WD &wd )
-      {
-         _readyQueue.push_back( &wd );
-      }
-
-      WD * BreadthFirstPolicy::atCreation ( BaseThread *thread, WD &newWD )
-      {
-         queue( thread,newWD );
-         return 0;
-      }
-
-      WD * BreadthFirstPolicy::atIdle ( BaseThread *thread )
-      {
-         if ( _useStack ) return _readyQueue.pop_back( thread );
-
-         return _readyQueue.pop_front( thread );
-      }
-
-      bool BreadthFirstPolicy::_useStack = false;
       bool BreadthFirst::_useStack = false;
-
-      // Factory
-      static SchedulingGroup * createBreadthFirstPolicy ( int groupSize )
-      {
-         return new BreadthFirstPolicy( groupSize );
-      }
 
       class BFSchedPlugin : public Plugin
       {
@@ -147,7 +96,7 @@ namespace nanos {
             virtual void config ( Config &config )
             {
                config.setOptionsSection( "Bf module", new std::string("Breadth-first scheduling module") );
-               config.registerConfigOption ( "bf-use-stack", new Config::FlagOption( BreadthFirstPolicy::_useStack ), "Stack usage for the breadth-first policy");
+               config.registerConfigOption ( "bf-use-stack", new Config::FlagOption( BreadthFirst::_useStack ), "Stack usage for the breadth-first policy");
                config.registerArgOption( "bf-use-stack", "bf-use-stack" );
 
                config.registerAlias ( "bf-use-stack", "bf-stack", "Stack usage for the breadth-first policy" );
@@ -157,7 +106,6 @@ namespace nanos {
             }
 
             virtual void init() {
-               sys.setDefaultSGFactory( createBreadthFirstPolicy );
                sys.setDefaultSchedulePolicy(new BreadthFirst());
             }
       };

@@ -47,7 +47,7 @@ namespace nanos
 
       public:
 
-         ThreadTeam ( int maxThreads, SG &sg, SchedulePolicy &policy, ScheduleTeamData *data, Barrier &barrier )
+         ThreadTeam ( int maxThreads, SchedulePolicy &policy, ScheduleTeamData *data, Barrier &barrier )
                     : _idleThreads( 0 ), _numTasks( 0 ), _barrier(barrier), _singleGuardCount( 0 ),
                       _schedulePolicy(policy), _scheduleData(data)
          {
@@ -83,9 +83,11 @@ namespace nanos
             _barrier.resize(size());
          }
 
-         const BaseThread & operator[]  ( int i ) const { return *_threads[i]; }
+         BaseThread & getThread ( int i ) const { return *_threads[i]; }
+         BaseThread & getThread ( int i ) { return *_threads[i]; }
 
-         BaseThread & operator[]  ( int i ) { return *_threads[i]; }
+         const BaseThread & operator[]  ( int i ) const { return getThread(i); }
+         BaseThread & operator[]  ( int i ) { return getThread(i); }
 
          /*! \brief adds a thread to the team pool, returns the thread id in the team
           *

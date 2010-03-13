@@ -67,11 +67,11 @@ namespace nanos
             return *_device;
          }
 
-         BaseThread & startThread ( WorkDescriptor &wd, SchedulingGroup *sg = 0 );
+         BaseThread & startThread ( WorkDescriptor &wd );
          virtual BaseThread & createThread ( WorkDescriptor &wd ) = 0;
-         BaseThread & associateThisThread ( SchedulingGroup *sg, bool untieMain=true );
+         BaseThread & associateThisThread ( bool untieMain=true );
 
-         BaseThread & startWorker ( SchedulingGroup *sg );
+         BaseThread & startWorker ( );
          void stopAll();
 
          /* capabilitiy query functions */
