@@ -73,9 +73,6 @@ inline int System::getRunningTasks() const { return _numTasksRunning.value(); }
 
 inline int System::getNumWorkers() const { return _workers.size(); }
 
-//BUG: does not work: sigsegv on myThread
-inline int System::getSGSize() const { return myThread->getSchedulingGroup()->getSize(); }
-
 inline void System::setThrottlePolicy( ThrottlePolicy * policy ) { _throttlePolicy = policy; }
 
 inline const std::string & System::getDefaultSchedule() const { return _defSchedule; }
@@ -99,11 +96,14 @@ inline Slicer * System::getSlicer( const std::string &label ) const
    return (*it).second;
 }
 
-inline Instrumentor * System::getInstrumentor ( void ) { return _instrumentor; }
+inline Instrumentor * System::getInstrumentor ( void ) const { return _instrumentor; }
 
 inline void System::setInstrumentor ( Instrumentor *instr ) { _instrumentor = instr; }
 
 inline void System::registerSlicer ( const std::string &label, Slicer *slicer) { _slicers[label] = slicer; }
+
+inline void System::setDefaultSchedulePolicy ( SchedulePolicy *policy ) { _defSchedulePolicy = policy; }
+inline SchedulePolicy * System::getDefaultSchedulePolicy ( ) const  { return _defSchedulePolicy; }
 
 #endif
 

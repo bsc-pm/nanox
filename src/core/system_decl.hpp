@@ -92,6 +92,7 @@ namespace nanos
          Slicers              _slicers; /**< set of global slicers */
 
          Instrumentor         *_instrumentor; /**< instrumentor object used in current execution */
+         SchedulePolicy       *_defSchedulePolicy;
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -190,12 +191,15 @@ namespace nanos
 
          Slicer * getSlicer( const std::string &label ) const;
 
-         Instrumentor * getInstrumentor ( void );
+         Instrumentor * getInstrumentor ( void ) const;
 
          void setInstrumentor ( Instrumentor *instr );
 
          void registerSlicer ( const std::string &label, Slicer *slicer);
 
+         void setDefaultSchedulePolicy ( SchedulePolicy *policy );
+         
+         SchedulePolicy * getDefaultSchedulePolicy ( ) const;
    };
 
    extern System sys;

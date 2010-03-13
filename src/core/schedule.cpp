@@ -31,7 +31,7 @@ void Scheduler::submit ( WD &wd )
    sys._taskNum++;
 
    debug ( "submitting task " << wd.getId() );
-   WD *next = myThread->getSchedulingGroup()->atCreation ( myThread, wd );
+   WD *next = myThread->getTeam()->getSchedulePolicy().atSubmit( myThread, wd );
 
    if ( next ) {
       switchTo ( next );
@@ -43,11 +43,12 @@ static inline void idleLoop ()
 {
    for ( ; ; ) {
       BaseThread *thread = getMyThreadSafe();
-      WD *current = thread->getCurrentWD();
 
       if ( !thread->isRunning() ) break;
 
-      if ( thread->hasTeam() ) {
+      if ( thread->getTeam() != NULL ) {
+
+         WD *current = thread->getCurrentWD();
          WD * next = behaviour::getWD(thread,current);
 
          if (next) {
@@ -74,7 +75,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
          if ( !( condition->check() ) ) {
             condition->addWaiter( current );
 
-            WD *next = thread->getSchedulingGroup()->atBlock ( thread );
+            WD *next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
 
             if ( next ) {
                sys._numReady--;
@@ -117,7 +118,7 @@ struct ExitBehaviour
 {
    static WD * getWD ( BaseThread *thread, WD *current )
    {
-      return thread->getSchedulingGroup()->atExit ( thread );
+      return thread->getTeam()->getSchedulePolicy().atExit( thread, current );
    }
 
    static void switchWD ( BaseThread *thread, WD *current, WD *next )
@@ -161,7 +162,7 @@ struct WorkerBehaviour
 {
    static WD * getWD ( BaseThread *thread, WD *current )
    {
-      return thread->getSchedulingGroup()->atIdle ( thread );
+      return thread->getTeam()->getSchedulePolicy().atIdle ( thread );
    }
 
    static void switchWD ( BaseThread *thread, WD *current, WD *next )
@@ -205,7 +206,7 @@ void Scheduler::idle ()
 
 void Scheduler::queue ( WD &wd )
 {
-      myThread->getSchedulingGroup()->queue ( myThread, wd );
+      myThread->getTeam()->getSchedulePolicy().queue( myThread, wd );
       sys._numReady++;
 }
 
@@ -304,7 +305,7 @@ void Scheduler::switchTo ( WD *to )
 
 void Scheduler::yield ()
 {
-   WD *next = myThread->getSchedulingGroup()->atIdle( myThread );
+   WD *next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
 
    if ( next ) {
         sys._numTasksRunning++;

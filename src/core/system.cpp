@@ -734,33 +734,49 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, SG *policy, void *constrai
    
    if ( !policy ) policy = _defSGFactory( nthreads );
 
+   SchedulePolicy *sched = 0;
+   if ( !sched ) sched = sys.getDefaultSchedulePolicy();
+
+   ScheduleTeamData *stdata = 0;
+   if ( sched->getTeamDataSize() > 0 )
+      stdata = sched->createTeamData(NULL);
+
    // create team
-   ThreadTeam * team = new ThreadTeam( nthreads, *policy, *_defBarrFactory() );
+   ThreadTeam * team = new ThreadTeam( nthreads, *policy, *sched, stdata, *_defBarrFactory() );
 
    debug( "Creating team " << team << " of " << nthreads << " threads" );
 
    // find threads
    if ( reuseCurrent ) {
-      
       nthreads --;
 
       thId = team->addThread( myThread );
 
       debug( "adding thread " << myThread << " with id " << toString<int>(thId) << " to " << team );
+
+      
       if (tdata) data = &tdata[thId];
       else data = new TeamData();
 
+      ScheduleThreadData *stdata = 0;
+      if ( sched->getThreadDataSize() > 0 )
+        stdata = sched->createThreadData(NULL);
+      
 //       data->parentTeam = myThread->getTeamData();
 
       data->setId(thId);
+      data->setScheduleData(stdata);
+      
       myThread->enterTeam( team,  data );
+
+      debug( "added thread " << myThread << " with id " << toString<int>(thId) << " to " << team );
    }
 
    while ( nthreads > 0 ) {
       BaseThread *thread = getUnassignedWorker();
 
       if ( !thread ) {
-         // TODO: create one?
+         // alex: TODO: create one?
          break;
       }
 
@@ -771,8 +787,15 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, SG *policy, void *constrai
       if (tdata) data = &tdata[thId];
       else data = new TeamData();
 
+      ScheduleThreadData *stdata = 0;
+      if ( sched->getThreadDataSize() > 0 )
+        stdata = sched->createThreadData(NULL);
+
       data->setId(thId);
+      data->setScheduleData(stdata);
+      
       thread->enterTeam( team, data );
+      debug( "added thread " << myThread << " with id " << toString<int>(thId) << " to " << thread->getTeam() );
    }
 
    team->init();

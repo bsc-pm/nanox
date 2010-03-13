@@ -26,7 +26,64 @@
 namespace nanos {
    namespace ext {
 
-      class BFSchedPlugin;
+      class BreadthFirst : public SchedulePolicy
+      {
+        private:
+           struct TeamData : public ScheduleTeamData
+           {
+              WDDeque           _readyQueue;
+
+              TeamData () : ScheduleTeamData(), _readyQueue() {}
+              ~TeamData () {}
+           };
+
+         public:
+           static bool       _useStack;
+
+           BreadthFirst() : SchedulePolicy("Breadth First") {}
+           virtual ~BreadthFirst () {}
+
+         private:
+            
+           virtual size_t getTeamDataSize () const { return sizeof(TeamData); }
+           virtual size_t getThreadDataSize () const { return 0; }
+
+           virtual ScheduleTeamData * createTeamData ( ScheduleTeamData *preAlloc )
+           {
+              TeamData *data;
+
+              if ( preAlloc ) data = new (preAlloc) TeamData();
+              else data = new TeamData();
+
+              return data;
+           }
+
+           virtual ScheduleThreadData * createThreadData ( ScheduleThreadData *preAlloc )
+           {
+              return 0;
+           }
+
+           virtual void queue ( BaseThread *thread, WD &wd )
+           {
+              TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+              tdata._readyQueue.push_back( &wd );
+           }
+
+           virtual WD *atSubmit ( BaseThread *thread, WD &newWD )
+           {
+              queue( thread,newWD );
+              return 0;
+           }
+
+           WD * atIdle ( BaseThread *thread )
+           {
+              TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+              
+              if ( _useStack ) return tdata._readyQueue.pop_back( thread );
+
+              return tdata._readyQueue.pop_front( thread );
+           }
+      };
 
       class BreadthFirstPolicy : public SchedulingGroup
       {
@@ -73,6 +130,7 @@ namespace nanos {
       }
 
       bool BreadthFirstPolicy::_useStack = false;
+      bool BreadthFirst::_useStack = false;
 
       // Factory
       static SchedulingGroup * createBreadthFirstPolicy ( int groupSize )
@@ -100,6 +158,7 @@ namespace nanos {
 
             virtual void init() {
                sys.setDefaultSGFactory( createBreadthFirstPolicy );
+               sys.setDefaultSchedulePolicy(new BreadthFirst());
             }
       };
 

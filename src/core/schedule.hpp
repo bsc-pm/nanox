@@ -20,6 +20,7 @@
 #ifndef _NANOS_SCHEDULE
 #define _NANOS_SCHEDULE
 
+#include <stddef.h>
 #include <string>
 
 #include "workdescriptor.hpp"
@@ -141,19 +142,45 @@ namespace nanos
    typedef SchedulingGroup SG;
    typedef SG * ( *sgFactory ) ( int groupSize );
 
+   class ScheduleTeamData {
+      public:
+         ScheduleTeamData() {}
+         virtual ~ScheduleTeamData() {}
+   };
+
+   class ScheduleThreadData {
+      public:
+         ScheduleThreadData() {}
+         virtual ~ScheduleThreadData() {}
+   };
+
+   
    class SchedulePolicy
    {
       public:
 
-         virtual ~SchedulePolicy ();
+ 
+      private:
+         std::string    _name;
+         
+      public:
 
-         virtual WD * atSubmit (BaseThread *thread, WD &wd);
+         SchedulePolicy ( std::string &name ) : _name(name) {}
+         SchedulePolicy ( const char *name ) : _name(name) {}
+         
+         virtual ~SchedulePolicy () {};
 
-         virtual WD *atIdle     ( BaseThread *thread ) = 0;
-         virtual WD *atExit     ( BaseThread *thread, WD *current ) { return atIdle( thread ); }
-         virtual WD *atBlock    ( BaseThread *thread, WD *current ) { return atIdle( thread ); }
-         virtual WD *atYield    ( BaseThread *thread, WD *current) { return atIdle(thread); };
-         virtual WD *atWakeUp   ( BaseThread *thread, WD &wd ) { return 0; }
+         virtual size_t getTeamDataSize() const = 0;
+         virtual size_t getThreadDataSize() const = 0;
+         virtual ScheduleTeamData * createTeamData ( ScheduleTeamData *preAlloc ) = 0;
+         virtual ScheduleThreadData * createThreadData ( ScheduleThreadData *preAlloc ) = 0;
+         
+         virtual WD * atSubmit   ( BaseThread *thread, WD &wd ) = 0;
+         virtual WD * atIdle     ( BaseThread *thread ) = 0;
+         virtual WD * atExit     ( BaseThread *thread, WD *current ) { return atIdle( thread ); }
+         virtual WD * atBlock    ( BaseThread *thread, WD *current ) { return atIdle( thread ); }
+         virtual WD * atYield    ( BaseThread *thread, WD *current) { return atIdle(thread); };
+         virtual WD * atWakeUp   ( BaseThread *thread, WD &wd ) { return 0; }
 
          virtual void queue ( BaseThread *thread, WD &wd )  = 0;
    };
