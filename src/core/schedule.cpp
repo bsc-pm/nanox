@@ -192,7 +192,9 @@ void Scheduler::inlineWork ( WD *wd )
       switchToThread(oldwd->isTiedTo());
    #endif
 
-   ensure(oldwd->isTiedTo() != NULL || oldwd->isTiedTo() == thread,"Violating tied rules");
+   ensure(oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(), 
+          "Violating tied rules " + toString<BaseThread*>(thread) + "!=" + toString<BaseThread*>(oldwd->isTiedTo()));
+
 }
 
 void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
