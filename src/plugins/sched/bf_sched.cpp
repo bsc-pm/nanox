@@ -95,14 +95,12 @@ namespace nanos {
 
             virtual void config ( Config &config )
             {
-               config.setOptionsSection( "Bf module", new std::string("Breadth-first scheduling module") );
+               config.setOptionsSection( "BF module", "Breadth-first scheduling module" );
                config.registerConfigOption ( "bf-use-stack", new Config::FlagOption( BreadthFirst::_useStack ), "Stack usage for the breadth-first policy");
                config.registerArgOption( "bf-use-stack", "bf-use-stack" );
 
                config.registerAlias ( "bf-use-stack", "bf-stack", "Stack usage for the breadth-first policy" );
                config.registerArgOption ( "bf-stack", "bf-stack" );
-
-               config.init();
             }
 
             virtual void init() {

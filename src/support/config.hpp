@@ -650,7 +650,7 @@ namespace nanos
          * \param sectionName name of the section to be set as current
          * \param sectionDescription If any, sets the description for the section
          */
-         void setOptionsSection( const std::string &sectionName, const std::string *sectionDescription = NULL );
+         void setOptionsSection( const std::string &sectionName, const std::string &sectionDescription );
 
         /* \brief Register a Configuration Option
          * \param optionName Name to give to the option

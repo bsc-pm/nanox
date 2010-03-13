@@ -78,10 +78,13 @@ namespace nanos {
 
             virtual void config( Config &config )
             {
-               config.setOptionsSection( "Idle threads throttle", new std::string("Scheduling throttle policy based on idle threads.") );
-               config.registerConfigOption ( "throttle-limit", new Config::PositiveVar( "throttle-limit", _actualLimit), "Throttle limit" );
-               config.registerArgOption ( "throttle-limit", "Defines maximum number of Idle Threads" );
-               config.init(); 
+               config.setOptionsSection( "Idle threads throttle",
+                                         "Throttle policy based on idle threads" );
+                                         
+               config.registerConfigOption ( "throttle-limit",
+                  new Config::PositiveVar( "throttle-limit", _actualLimit),
+                  "Defines maximum number of Idle Threads" );
+               config.registerArgOption ( "throttle-limit", "throttle-limit" );
             }
 
             virtual void init() {

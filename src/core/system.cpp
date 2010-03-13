@@ -110,7 +110,7 @@ void System::config ()
 
    verbose0 ( "Preparing library configuration" );
 
-   config.setOptionsSection ( "Core", new std::string( "Options for the core of Nanox runtime" ) );
+   config.setOptionsSection ( "Core", "Core options of the core of Nanos++ runtime"  );
 
    config.registerConfigOption ( "num_pes", new Config::PositiveVar( _numPEs ), "Defines the number of processing elements" );
    config.registerArgOption ( "num_pes", "pes" );
@@ -219,10 +219,9 @@ void System::start ()
 
 System::~System ()
 {
-   verbose ( "NANOS++ shutting down.... init" );
-   getInstrumentor()->enterShutDown();
-
    if ( !_delayedStart ) {
+      getInstrumentor()->enterShutDown();
+      verbose ( "NANOS++ shutting down.... init" );
       verbose ( "Wait for main workgroup to complete" );
       myThread->getCurrentWD()->waitCompletion();
 
@@ -249,9 +248,8 @@ System::~System ()
       for ( unsigned p = 1; p < _pes.size() ; p++ ) {
          delete _pes[p];
       }
+      verbose ( "NANOS++ shutting down.... end" );
    }
-
-   verbose ( "NANOS++ shutting down.... end" );
 }
 
 /*! \brief Creates a new WD

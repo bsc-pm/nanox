@@ -192,30 +192,31 @@ namespace nanos {
 
             virtual void config( Config& config )
             {
-               config.setOptionsSection( "Wf module", new std::string("Width-first scheduling module") );
+               config.setOptionsSection( "WF module", "Work-first scheduling module" );
 
                config.registerConfigOption ( "wf-steal-parent", new Config::FlagOption( WorkFirst::_stealParent ),
                                              "Defines if tries to steal the parent" );
                config.registerArgOption ( "wf-steal-parent", "steal-parent" );
 
-               Config::MapVar<WorkFirst::QueuePolicy> queuePolicyLocalConfig ( WorkFirst::_localPolicy );
+               typedef Config::MapVar<WorkFirst::QueuePolicy> QueueConfig;
+               
+               QueueConfig *queuePolicyLocalConfig = new QueueConfig ( WorkFirst::_localPolicy );
                queuePolicyLocalConfig
-                  .addOption ( "FIFO", WorkFirst::FIFO )
-                  .addOption ( "LIFO", WorkFirst::LIFO );
-               config.registerConfigOption ( "wf-local-policy", &queuePolicyLocalConfig,
+                  ->addOption ( "FIFO", WorkFirst::FIFO )
+                   .addOption ( "LIFO", WorkFirst::LIFO );
+               config.registerConfigOption ( "wf-local-policy", queuePolicyLocalConfig,
                                              "Defines the local queue access policy");
                config.registerArgOption ( "wf-local-policy", "wf-local-policy" );
-
-               Config::MapVar<WorkFirst::QueuePolicy> queuePolicyStealConfig ( WorkFirst::_localPolicy );
+ 
+               QueueConfig *queuePolicyStealConfig = new QueueConfig ( WorkFirst::_localPolicy );
                queuePolicyStealConfig
-                  .addOption ( "FIFO", WorkFirst::FIFO )
-                  .addOption ( "LIFO", WorkFirst::LIFO );
-                  
-               config.registerConfigOption ( "wf-steal-policy", &queuePolicyStealConfig,
+                  ->addOption ( "FIFO", WorkFirst::FIFO )
+                   .addOption ( "LIFO", WorkFirst::LIFO );
+
+               config.registerConfigOption ( "wf-steal-policy", queuePolicyStealConfig,
                                              "Defines the steal access policy");
                config.registerArgOption ( "wf-steal-policy", "wf-steal-policy" );
 
-               config.init();
             }
 
             virtual void init() {
