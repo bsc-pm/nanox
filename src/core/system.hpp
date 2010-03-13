@@ -63,13 +63,16 @@ inline bool System::getDelayedStart () const { return _delayedStart; }
 
 inline int System::getThsPerPE() const { return _thsPerPE; }
 
-inline int System::getTaskNum() const { return _taskNum.value(); }
+inline int System::getTaskNum() const { return _schedStats._totalTasks.value(); }
 
-inline int System::getIdleNum() const { return _idleThreads.value(); }
+inline int System::getIdleNum() const { return _schedStats._idleThreads.value(); }
 
-inline int System::getReadyNum() const { return _numReady.value(); }
+inline int System::getReadyNum() const { return _schedStats._readyTasks.value(); }
 
-inline int System::getRunningTasks() const { return _numTasksRunning.value(); }
+inline int System::getRunningTasks() const
+{
+   return _workers.size() - _schedStats._idleThreads.value();
+}
 
 inline int System::getNumWorkers() const { return _workers.size(); }
 
@@ -102,6 +105,8 @@ inline void System::registerSlicer ( const std::string &label, Slicer *slicer) {
 
 inline void System::setDefaultSchedulePolicy ( SchedulePolicy *policy ) { _defSchedulePolicy = policy; }
 inline SchedulePolicy * System::getDefaultSchedulePolicy ( ) const  { return _defSchedulePolicy; }
+
+inline SchedulerStats & System::getSchedulerStats () { return _schedStats; }
 
 #endif
 

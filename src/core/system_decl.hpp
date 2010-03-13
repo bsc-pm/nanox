@@ -40,8 +40,6 @@ namespace nanos
 
    class System
    {
-      friend class Scheduler;
-
       public:
          // constants
          typedef enum { DEDICATED, SHARED } ExecutionMode;
@@ -70,10 +68,7 @@ namespace nanos
 
          //cutoff policy and related variables
          ThrottlePolicy *     _throttlePolicy;
-         Atomic<int>          _taskNum;
-         Atomic<int>          _numReady;
-         Atomic<int>          _idleThreads;
-         Atomic<int>          _numTasksRunning;
+         SchedulerStats       _schedStats;
 
          /*! names of the scheduling, cutoff and barrier plugins */
          std::string          _defSchedule;
@@ -195,6 +190,8 @@ namespace nanos
          void setDefaultSchedulePolicy ( SchedulePolicy *policy );
          
          SchedulePolicy * getDefaultSchedulePolicy ( ) const;
+
+         SchedulerStats & getSchedulerStats ();
    };
 
    extern System sys;

@@ -40,24 +40,45 @@ namespace nanos
 
    class Scheduler
    {
-      public:
-         static void inlineWork ( WD *work );
+      private:
+         static void queue ( WD &wd );
          static void switchHelper (WD *oldWD, WD *newWD, void *arg);
          static void exitHelper (WD *oldWD, WD *newWD, void *arg);
+         
+         template<class behaviour>
+         static void idleLoop (void);
+
+      public:
+         static void inlineWork ( WD *work );
 
          static void submit ( WD &wd );
-         static void exit ( void );
          static void switchTo ( WD *to );
          static void exitTo ( WD *next );
-
-         static void idle ( void );
-         static void queue ( WD &wd );
-         static void yield ();
-
          static void switchToThread ( BaseThread * thread );
+
+         static void workerLoop ( void );
+         static void yield ( void );
+
+         static void exit ( void );
 
          static void waitOnCondition ( GenericSyncCond *condition );
          static void wakeUp ( WD *wd );
+   };
+
+   class System;
+   class SchedulerStats
+   {
+      friend class Scheduler;
+      friend class System;
+      
+      private:
+        Atomic<int>          _createdTasks;
+        Atomic<int>          _readyTasks;
+        Atomic<int>          _idleThreads;
+        Atomic<int>          _totalTasks;
+
+      public:
+         SchedulerStats () : _createdTasks(0), _idleThreads(0), _totalTasks(1) {}
    };
 
    class ScheduleTeamData {

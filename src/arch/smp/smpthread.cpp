@@ -97,9 +97,8 @@ void SMPThread::bind( void )
 void SMPThread::yield()
 {
    if (sched_yield() != 0)
-      fatal("sched_yield call returned an error");
+      warning("sched_yield call returned an error");
 }
-
 
 // This is executed in between switching stacks
 void SMPThread::switchHelperDependent ( WD *oldWD, WD *newWD, void *oldState  )
@@ -121,9 +120,6 @@ void SMPThread::switchTo ( WD *wd, SchedulerHelper *helper )
    SMPDD &dd = ( SMPDD & )wd->getActiveDevice();
    ensure( dd.hasStack(), "DD has no stack for ULT");
 
-   debug( "switching from task " << getCurrentWD() << ":" << getCurrentWD()->getId() <<
-          " to " << wd << ":" << wd->getId() );
-
    ::switchStacks(
        ( void * ) getCurrentWD(),
        ( void * ) wd,
@@ -137,9 +133,6 @@ void SMPThread::exitTo ( WD *wd, SchedulerHelper *helper)
    ensure( wd->hasActiveDevice(),"WD has no active SMP device" );
    SMPDD &dd = ( SMPDD & )wd->getActiveDevice();
    ensure( dd.hasStack(), "DD has no stack for ULT");
-
-   debug( "exiting task " << getCurrentWD() << ":" << getCurrentWD()->getId() <<
-          " to " << wd << ":" << wd->getId() );
 
    //TODO: optimize... we don't really need to save a context in this case
    ::switchStacks(
