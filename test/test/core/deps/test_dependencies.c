@@ -49,7 +49,7 @@ int main ( int argc, char **argv )
    int dep;
    int * dep_addr = &dep;
    int dummy=0;
-   nanos_dependence_t deps = {(void **)&dep_addr, {1,1,0}, 0};
+   nanos_dependence_t deps = {(void **)&dep_addr,0, {1,1,0}, 0};
    nanos_wd_props_t props = {
      .mandatory_creation = true,
      .tied = false,

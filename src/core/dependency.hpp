@@ -38,9 +38,10 @@ namespace nanos
          *  \param output Whether the dependency is output or not
          *  \param canRename Whether the dependency can rename or not
          */
-         Dependency ( void ** addr = NULL, bool input = false, bool output = false, bool canRename = false, size_t storageSize = 0 )
+         Dependency ( void ** addr = NULL, unsigned int offset = 0, bool input = false, bool output = false, bool canRename = false, size_t storageSize = 0 )
          {
             address = addr;
+            offset = offset;
             flags.input = input;
             flags.output = output;
             flags.can_rename = canRename;
@@ -53,6 +54,7 @@ namespace nanos
          Dependency ( const Dependency &dep )
          {
             address = dep.address;
+            offset = dep.offset;
             flags.input = dep.flags.input;
             flags.output = dep.flags.output;
             flags.can_rename = dep.flags.can_rename;
@@ -70,6 +72,7 @@ namespace nanos
          {
             if ( this == &dep ) return *this; 
             address = dep.address;
+            offset = dep.offset;
             flags.input = dep.flags.input;
             flags.output = dep.flags.output;
             flags.can_rename = dep.flags.can_rename;
@@ -81,6 +84,16 @@ namespace nanos
          */
          void ** getAddress() const
          { return address; }
+         
+        /*! \brief Obtain the dependency's address address
+         */
+         unsigned int getOffset() const
+         { return offset; }
+
+        /*! \brief Compute the dependency address
+         */
+         void * getDepAddress() const
+         { return (void *) ( (char *) (*address) + offset ); }
          
         /*! \brief returns true if it is an input dependency
          */
