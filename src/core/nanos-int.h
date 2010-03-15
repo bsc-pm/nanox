@@ -25,6 +25,7 @@
 
 typedef struct {
    void **address;
+   unsigned int offset;
    struct {
      bool  input: 1;
      bool  output: 1;

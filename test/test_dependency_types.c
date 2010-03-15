@@ -74,7 +74,7 @@ bool single_dependency()
    int my_value;
    int * dep_addr = &my_value;
    my_args *args1=0;
-   nanos_dependence_t deps1 = {(void **)&dep_addr, {0,1,0}, 0};
+   nanos_dependence_t deps1 = {(void **)&dep_addr,0, {0,1,0}, 0};
    nanos_wd_props_t props = {
      .mandatory_creation = true,
      .tied = false,
@@ -87,7 +87,7 @@ bool single_dependency()
    NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
 
    my_args *args2=0;
-   nanos_dependence_t deps2 = {(void **)&dep_addr, {1,1,0}, 0};
+   nanos_dependence_t deps2 = {(void **)&dep_addr,0, {1,1,0}, 0};
    nanos_wd_t wd2 = 0;
    nanos_device_t test_devices_2[1] = { NANOS_SMP_DESC( test_device_arg_2 ) };
    NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_2, sizeof(my_args), (void**)&args2, nanos_current_wd(), &props, 0, NULL) );
@@ -105,7 +105,7 @@ bool single_inout_chain()
    int my_value;
    int * dep_addr = &my_value;
    my_args *args1=0;
-   nanos_dependence_t deps1 = {(void **)&dep_addr, {0,1,0}, 0};
+   nanos_dependence_t deps1 = {(void **)&dep_addr,0, {0,1,0}, 0};
    nanos_wd_props_t props = {
      .mandatory_creation = true,
      .tied = false,
@@ -119,7 +119,7 @@ bool single_inout_chain()
 
    for ( i = 0; i < 100; i++ ) {
       my_args *args2=0;
-      nanos_dependence_t deps2 = {(void **)&dep_addr, {1,1,0}, 0};
+      nanos_dependence_t deps2 = {(void **)&dep_addr,0, {1,1,0}, 0};
       nanos_wd_t wd2 = 0;
       nanos_device_t test_devices_2[1] = { NANOS_SMP_DESC( test_device_arg_2 ) };
       NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_2, sizeof(my_args), (void**)&args2, nanos_current_wd(), &props, 0, NULL) );
@@ -140,7 +140,7 @@ bool multiple_inout_chains()
    for ( i = 0; i < 100; i++ ) {
       int * dep_addr = &my_value[i];
       my_args *args1=0;
-      nanos_dependence_t deps1 = {(void **)&dep_addr, {0,1,0}, 0};
+      nanos_dependence_t deps1 = {(void **)&dep_addr,0, {0,1,0}, 0};
       nanos_wd_props_t props = {
         .mandatory_creation = true,
         .tied = false,
@@ -154,7 +154,7 @@ bool multiple_inout_chains()
 
       for ( j = 0; j < 100; j++ ) {
          my_args *args2=0;
-         nanos_dependence_t deps2 = {(void **)&dep_addr, {1,1,0}, 0};
+         nanos_dependence_t deps2 = {(void **)&dep_addr,0, {1,1,0}, 0};
          nanos_wd_t wd2 = 0;
          nanos_device_t test_devices_2[1] = { NANOS_SMP_DESC( test_device_arg_2 ) };
          NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_2, sizeof(my_args), (void**)&args2, nanos_current_wd(), &props, 0, NULL) );
@@ -184,7 +184,7 @@ bool multiple_predecessors()
    for ( j = 0; j < 100; j++ ) {
       int * dep_addr1 = &my_value[j];
       my_args *args1=0;
-      nanos_dependence_t deps1 = {(void **)&dep_addr1, {0,1,0}, 0};
+      nanos_dependence_t deps1 = {(void **)&dep_addr1,0, {0,1,0}, 0};
       nanos_wd_t wd1 = 0;
 
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1 ) };
@@ -198,7 +198,7 @@ bool multiple_predecessors()
    my_args *args2=0;
    for ( j = 0; j < 100; j++ ) {
       dep_addr2[j] = &my_value[j];
-      deps2[j] = (nanos_dependence_t){(void **) &dep_addr2[j], {1,1,0},0};
+      deps2[j] = (nanos_dependence_t){(void **) &dep_addr2[j],0, {1,1,0},0};
    }
 
    nanos_wd_t wd2=0;
@@ -230,7 +230,7 @@ bool multiple_antidependencies()
       int * dep_addr1 = &my_value;
       int * reslt_addr =&my_reslt[j];
       my_args *args1=0;
-      nanos_dependence_t deps1 = {(void **)&dep_addr1, {1,0,0}, 0};
+      nanos_dependence_t deps1 = {(void **)&dep_addr1,0, {1,0,0}, 0};
 
       nanos_wd_t wd1 = 0;
       nanos_device_t test_devices_4[1] = { NANOS_SMP_DESC( test_device_arg_4 ) };
@@ -241,7 +241,7 @@ bool multiple_antidependencies()
    }
 
    int *dep_addr2 = &my_value;
-   nanos_dependence_t deps2 = (nanos_dependence_t){(void **) &dep_addr2, {1,1,0},0};
+   nanos_dependence_t deps2 = (nanos_dependence_t){(void **) &dep_addr2,0, {1,1,0},0};
    my_args *args2=0;
 
    nanos_wd_t wd2=0;
@@ -271,7 +271,7 @@ bool out_dep_chain()
 
    for ( i = 0; i < 100; i++ ) {
       my_args *args2=0;
-      nanos_dependence_t deps2 = {(void **)&dep_addr, {0,1,0}, 0};
+      nanos_dependence_t deps2 = {(void **)&dep_addr,0, {0,1,0}, 0};
       nanos_wd_t wd2 = 0;
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1 ) };
       NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_1, sizeof(my_args), (void**)&args2, nanos_current_wd(), &props, 0, NULL) );
@@ -281,7 +281,7 @@ bool out_dep_chain()
 
    int input=500;
    int * input_addr = &input;
-   nanos_dependence_t deps1 = {(void **)&dep_addr, {0,1,0}, 0};
+   nanos_dependence_t deps1 = {(void **)&dep_addr,0, {0,1,0}, 0};
    my_args *args1=0;
    nanos_wd_t wd1=0;
    nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_4) };
@@ -309,7 +309,7 @@ bool wait_on_test()
       my_value[j] = 500;
       int * dep_addr1 = &my_value[j];
       my_args *args1=0;
-      nanos_dependence_t deps1 = {(void **)&dep_addr1, {0,1,0}, 0};
+      nanos_dependence_t deps1 = {(void **)&dep_addr1,0, {0,1,0}, 0};
       nanos_wd_t wd1 = 0;
 
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1 ) };
@@ -322,7 +322,7 @@ bool wait_on_test()
    int *dep_addr2[100];
    for ( j = 0; j < 100; j++ ) {
       dep_addr2[j] = &my_value[j];
-      deps2[j] = (nanos_dependence_t){(void **) &dep_addr2[j], {1,0,0},0};
+      deps2[j] = (nanos_dependence_t){(void **) &dep_addr2[j],0, {1,0,0},0};
    }
    
    NANOS_SAFE( nanos_wait_on( 100, &deps2[0] ));
@@ -348,7 +348,7 @@ bool create_and_run_test()
       my_value[j] = 500;
       int * dep_addr1 = &my_value[j];
       my_args *args1=0;
-      nanos_dependence_t deps1 = {(void **)&dep_addr1, {0,1,0}, 0};
+      nanos_dependence_t deps1 = {(void **)&dep_addr1,0, {0,1,0}, 0};
       nanos_wd_t wd1 = 0;
 
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1 ) };
@@ -361,7 +361,7 @@ bool create_and_run_test()
    int *dep_addr2[100];
    for ( j = 0; j < 100; j++ ) {
       dep_addr2[j] = &my_value[j];
-      deps2[j] = (nanos_dependence_t){(void **) &dep_addr2[j], {1,0,0},0};
+      deps2[j] = (nanos_dependence_t){(void **) &dep_addr2[j],0, {1,0,0},0};
    }
 
    my_args arg;
