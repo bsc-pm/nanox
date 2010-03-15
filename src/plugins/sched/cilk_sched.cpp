@@ -25,104 +25,108 @@
 namespace nanos {
    namespace ext {
 
-      /*!
-      * \brief Specialization of SchedulingData class for CILK-like scheduler
+      /** \brief Implements a CILK-like scheduler
       */
-
-
-      class TaskStealData : public SchedulingData
+      class CilkPolicy : public SchedulePolicy
       {
-
-         friend class TaskStealPolicy;
-
          private:
-
-            /*! queue of ready tasks to be executed */
-            WDDeque _readyQueue;
-
-            TaskStealData ( const TaskStealData & );
-            const TaskStealData & operator= ( const TaskStealData & );
-         public:
-            // constructor
-            TaskStealData ( int id = 0 ) : SchedulingData ( id ) {}
-
-            // destructor
-            ~TaskStealData()
+            /** \brief Cilk Scheduler data associated to each thread
+              *
+              */
+            struct ThreadData : public ScheduleThreadData
             {
-               ensure(_readyQueue.empty(),"Destroying non-empty wdqueue");
-            }
-      };
+               /*! queue of ready tasks to be executed */
+               WDDeque _readyQueue;
 
-      /*! 
-      * \brief Implements a CILK-like scheduler
-      */
-      class TaskStealPolicy : public SchedulingGroup
-      {
-         private:
-            TaskStealPolicy ( const TaskStealPolicy & );
-            const TaskStealPolicy & operator= ( const TaskStealPolicy & );
+               ThreadData () : _readyQueue() {}
+               virtual ~ThreadData () {
+                  ensure(_readyQueue.empty(),"Destroying non-empty queue");
+               }
+            };
+
+            /* disable copy and assigment */
+            explicit CilkPolicy ( const CilkPolicy & );
+            const CilkPolicy & operator= ( const CilkPolicy & );
 
          public:
             // constructor
-            TaskStealPolicy() : SchedulingGroup ( "task-steal-sch" ) {}
-            TaskStealPolicy ( int groupsize ) : SchedulingGroup ( "task-steal-sch", groupsize ) {}
+            CilkPolicy() : SchedulePolicy ( "Cilk" ) {}
 
             // destructor
-            virtual ~TaskStealPolicy() {}
+            virtual ~CilkPolicy() {}
 
-            virtual WD *atCreation ( BaseThread *thread, WD &newWD );
+            virtual size_t getTeamDataSize () const { return 0; }
+            virtual size_t getThreadDataSize () const { return sizeof(ThreadData); }
+
+            virtual ScheduleTeamData * createTeamData ( ScheduleTeamData *preAlloc )
+            {
+               return 0;
+            }
+
+            virtual ScheduleThreadData * createThreadData ( ScheduleThreadData *preAlloc )
+            {
+               ThreadData *data;
+
+               if ( preAlloc ) data = new (preAlloc) ThreadData();
+               else data = new ThreadData();
+
+               return data;
+            }
+
+            /*!
+            *  \brief Enqueue a work descriptor in the readyQueue of the passed thread
+            *  \param thread pointer to the thread to which readyQueue the task must be appended
+            *  \param wd a reference to the work descriptor to be enqueued
+            *  \sa ThreadData, WD and BaseThread
+            */
+            virtual void queue ( BaseThread *thread, WD &wd )
+            {
+                ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
+                data._readyQueue.push_front ( &wd );
+            }
+
+            /*!
+            *  \brief Function called when a new task must be created: the new created task
+            *          is directly executed (Depth-First policy)
+            *  \param thread pointer to the thread to which belongs the new task
+            *  \param wd a reference to the work descriptor of the new task
+            *  \sa WD and BaseThread
+            */
+            virtual WD * atSubmit ( BaseThread *thread, WD &newWD )
+            {
+               WD *next;
+
+               /* enqueue the remaining part of a WD */
+               if ( !newWD.dequeue(&next) ) queue(thread,newWD);
+
+               /* it does not enqueue the created task, but it moves down to the generated son: DEPTH-FIRST */
+               return next;
+            }
+
+
             virtual WD *atIdle ( BaseThread *thread );
-            virtual void queue ( BaseThread *thread, WD &wd );
-            virtual SchedulingData * createMemberData ( BaseThread &thread );
       };
 
-      /*! 
-       *  \brief Enqueue a work descriptor in the readyQueue of the passed thread
-       *  \param thread pointer to the thread to which readyQueue the task must be appended
-       *  \param wd a reference to the work descriptor to be enqueued
-       *  \sa TaskStealData, WD and BaseThread
-      */
-      void TaskStealPolicy::queue ( BaseThread *thread, WD &wd )
-      {
-         TaskStealData *data = ( TaskStealData * ) thread->getSchedulingData();
-         data->_readyQueue.push_front ( &wd );
-      }
 
-      /*! 
-       *  \brief Function called when a new task must be created: the new created task is directly executed (Depth-First policy)
-       *  \param thread pointer to the thread to which belongs the new task
-       *  \param wd a reference to the work descriptor of the new task
-       *  \sa WD and BaseThread
-       */
-      WD * TaskStealPolicy::atCreation ( BaseThread *thread, WD &newWD )
-      {
-         WD *next;
-         /*! \warning it does not enqueue the created task, but it moves down to the generated son: DEPTH-FIRST */
-
-         /* enqueue the remaining part of a WD */
-         if ( !newWD.dequeue(&next) ) queue(thread,newWD);
-         
-         return next;
-      }
 
       /*! 
        *  \brief Function called by the scheduler when a thread becomes idle to schedule it: implements the CILK-scheduler algorithm
        *  \param thread pointer to the thread to be scheduled
        *  \sa BaseThread
        */
-      WD * TaskStealPolicy::atIdle ( BaseThread *thread )
+      WD * CilkPolicy::atIdle ( BaseThread *thread )
       {
          WorkDescriptor * wd;
 
-         TaskStealData *data = ( TaskStealData * ) thread->getSchedulingData();
-         /*!
+         ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
+
+         /*
           *  First try to schedule the thread with a task from its queue
           */
-
-         if ( ( wd = data->_readyQueue.pop_front ( thread ) ) != NULL ) {
+         if ( ( wd = data._readyQueue.pop_front ( thread ) ) != NULL ) {
             return wd;
          } else {
-            /*!
+            /*
             *  If the local queue is empty, try to steal the parent (possibly enqueued in the queue of another thread)
             */
             if ( ( wd = thread->getCurrentWD()->getParent() ) != NULL ) {
@@ -141,46 +145,35 @@ namespace nanos {
             *  try to steal tasks from other queues
             *  \warning other queues are checked cyclically: should be random
             */
-            int newposition = data->getSchId();
+            int thid = thread->getTeamId();
+            int size = thread->getTeam()->size();
             wd = NULL;
 
             do {
-               newposition = ( newposition + 1 ) % getSize();
-               wd = (( TaskStealData * ) getMemberData ( newposition ))->_readyQueue.pop_back ( thread );
-            } while ( wd == NULL && newposition != data->getSchId());
+               thid = ( thid + 1 ) % size;
+
+               BaseThread &victim = thread->getTeam()->getThread(thid);
+
+               if ( victim.getTeam() != NULL ) {
+                 ThreadData &data = ( ThreadData & ) *victim.getTeamData()->getScheduleData();
+                 wd = data._readyQueue.pop_back ( thread );
+               }
+
+            } while ( wd == NULL && thid != thread->getTeamId() );
 
             return wd;
          }
       }
 
-      /*! 
-       *  \brief creates a new instance of TaskStealData
-       *  \param thread unused argument (for now all threads performs the same scheduling algorithm)
-       *  \sa BaseThread and TaskStealData
-       */
-      SchedulingData * TaskStealPolicy::createMemberData ( BaseThread &thread )
-      {
-         return new TaskStealData();
-      }
-
-      /*!
-       *  \brief creates a new instance of TaskStealPolicy
-       */
-      static SchedulingGroup * createTaskStealPolicy ( int groupsize )
-      {
-         return new TaskStealPolicy ( groupsize );
-      }
-
       class CilkSchedPlugin : public Plugin
       {
-
          public:
             CilkSchedPlugin() : Plugin( "Cilk scheduling Plugin",1 ) {}
 
             virtual void config( Config& config ) {}
 
             virtual void init() {
-               sys.setDefaultSGFactory( createTaskStealPolicy );
+               sys.setDefaultSchedulePolicy(new CilkPolicy());
             }
       };
 

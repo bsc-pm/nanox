@@ -137,8 +137,6 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
 
    }
 
-   if ( sys.getVerbose() ) return;
-
    // now everything is ready
    depObj.decreasePredecessors();
 

@@ -34,6 +34,8 @@ namespace nanos
    class SchedulingData;
    class ThreadTeam;
    class Scheduler;
+   class ScheduleThreadData;
+   
    typedef void SchedulerHelper ( WD *oldWD, WD *newWD, void *arg); // FIXME: should be only in one place
 
    /*!
@@ -42,9 +44,12 @@ namespace nanos
     */
    class TeamData
    {
+      typedef ScheduleThreadData SchedData;
+      
       private:
-         unsigned   _id;
-         unsigned   _singleCount;
+         unsigned       _id;
+         unsigned       _singleCount;
+         SchedData    * _schedData;
          // PM Data?
 
       public:
@@ -57,6 +62,9 @@ namespace nanos
             ++_singleCount;
             return _singleCount;
          }
+
+         void setScheduleData ( SchedData *data ) { _schedData = data; }
+         SchedData * getScheduleData () const { return _schedData; }
    };
 
 
@@ -151,9 +159,9 @@ namespace nanos
          void reserve() { _hasTeam = 1; }
 
          void enterTeam( ThreadTeam *newTeam, TeamData *data ) {
-            _hasTeam=1;
             _team = newTeam;
             _teamData = data;
+            _hasTeam=1;
          }
 
          bool hasTeam() const { return _hasTeam; }
@@ -166,8 +174,6 @@ namespace nanos
 
          //! Returns the id of the thread inside its current team 
          int getTeamId() const { return _teamData->getId(); }
-
-         SchedulingGroup * getSchedulingGroup () const { return _schedGroup; }
 
          SchedulingData * getSchedulingData () const { return _schedData; }
 

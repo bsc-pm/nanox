@@ -40,8 +40,6 @@ namespace nanos
 
    class System
    {
-      friend class Scheduler;
-
       public:
          // constants
          typedef enum { DEDICATED, SHARED } ExecutionMode;
@@ -70,10 +68,7 @@ namespace nanos
 
          //cutoff policy and related variables
          ThrottlePolicy *     _throttlePolicy;
-         Atomic<int>          _taskNum;
-         Atomic<int>          _numReady;
-         Atomic<int>          _idleThreads;
-         Atomic<int>          _numTasksRunning;
+         SchedulerStats       _schedStats;
 
          /*! names of the scheduling, cutoff and barrier plugins */
          std::string          _defSchedule;
@@ -82,7 +77,6 @@ namespace nanos
          std::string          _defInstr;
 
          /*! factories for scheduling, pes and barriers objects */
-         sgFactory            _defSGFactory;
          peFactory            _hostFactory;
          barrFactory          _defBarrFactory;
 
@@ -92,6 +86,7 @@ namespace nanos
          Slicers              _slicers; /**< set of global slicers */
 
          Instrumentor         *_instrumentor; /**< instrumentor object used in current execution */
+         SchedulePolicy       *_defSchedulePolicy;
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -143,8 +138,6 @@ namespace nanos
          void setInitialMode ( InitialMode mode );
          InitialMode getInitialMode() const;
 
-         void setThsPerPE( int ths );
-
          void setDelayedStart ( bool set);
 
          bool getDelayedStart () const;
@@ -161,14 +154,16 @@ namespace nanos
 
          int getNumWorkers() const;
 
+         void setUntieMaster ( bool value );
+
+         bool getUntieMaster () const;
+
          // team related methods
          BaseThread * getUnassignedWorker ( void );
-         ThreadTeam * createTeam ( unsigned nthreads, SG *scheduling=NULL, void *constraints=NULL,
+         ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL,
                                    bool reuseCurrent=true,  TeamData *tdata = 0 );
          void endTeam ( ThreadTeam *team );
          void releaseWorker ( BaseThread * thread );
-
-         int getSGSize() const;
 
          void setThrottlePolicy( ThrottlePolicy * policy );
 
@@ -182,20 +177,23 @@ namespace nanos
 
          const std::string & getDefaultInstrumentor() const;
 
-         void setDefaultSGFactory ( sgFactory factory );
-
          void setHostFactory ( peFactory factory );
 
          void setDefaultBarrFactory ( barrFactory factory );
 
          Slicer * getSlicer( const std::string &label ) const;
 
-         Instrumentor * getInstrumentor ( void );
+         Instrumentor * getInstrumentor ( void ) const;
 
          void setInstrumentor ( Instrumentor *instr );
 
          void registerSlicer ( const std::string &label, Slicer *slicer);
 
+         void setDefaultSchedulePolicy ( SchedulePolicy *policy );
+         
+         SchedulePolicy * getDefaultSchedulePolicy ( ) const;
+
+         SchedulerStats & getSchedulerStats ();
    };
 
    extern System sys;

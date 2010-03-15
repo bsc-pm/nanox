@@ -38,9 +38,9 @@ class SMPPlugin : public Plugin
 
       virtual void config( Config& config )
       {
+         config.setOptionsSection( "SMP Arch", "SMP specific options" );
          SMPProcessor::prepareConfig( config );
          SMPDD::prepareConfig( config );
-         config.init();
       }
 
       virtual void init() {

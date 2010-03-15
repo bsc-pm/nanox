@@ -40,7 +40,7 @@ void SMPProcessor::prepareConfig ( Config &config )
 
 WorkDescriptor & SMPProcessor::getWorkerWD () const
 {
-   SMPDD * dd = new SMPDD( ( SMPDD::work_fct )Scheduler::idle );
+   SMPDD * dd = new SMPDD( ( SMPDD::work_fct )Scheduler::workerLoop );
    WD *wd = new WD( dd );
    return *wd;
 }

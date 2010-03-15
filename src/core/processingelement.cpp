@@ -25,17 +25,15 @@
 
 using namespace nanos;
 
-BaseThread& ProcessingElement::startWorker ( SchedulingGroup *sg )
+BaseThread& ProcessingElement::startWorker ( )
 {
    WD & worker = getWorkerWD();
-   return startThread( worker,sg );
+   return startThread( worker );
 }
 
-BaseThread & ProcessingElement::startThread ( WD &work, SchedulingGroup *sg )
+BaseThread & ProcessingElement::startThread ( WD &work )
 {
    BaseThread &thread = createThread( work );
-
-   if ( sg ) sg->addMember( thread );
 
    thread.start();
 
@@ -44,13 +42,11 @@ BaseThread & ProcessingElement::startThread ( WD &work, SchedulingGroup *sg )
    return thread;
 }
 
-BaseThread & ProcessingElement::associateThisThread ( SchedulingGroup *sg, bool untieMain )
+BaseThread & ProcessingElement::associateThisThread ( bool untieMain )
 {
    WD & worker = getMasterWD();
    
    BaseThread &thread = createThread( worker );
-
-   if ( sg ) sg->addMember( thread );
 
    thread.associate();
 
