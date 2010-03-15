@@ -91,7 +91,7 @@ int main ( int argc, char **argv )
 
    usleep( 500 );
 
-   wg->waitCompletation();
+   wg->waitCompletion();
 
    cout << "end" << endl;
 }

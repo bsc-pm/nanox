@@ -20,6 +20,7 @@
 #include <iostream>
 #include "system.hpp"
 #include "smpprocessor.hpp"
+#include "basethread.hpp"
 #include <sys/time.h>
 
 int cutoff_value = 10;
@@ -64,7 +65,7 @@ int fib ( int n, int d )
    if ( n < 2 ) return n;
 
    if ( d < cutoff_value ) {
-      nanos::WG *wg = new nanos::WG();
+      nanos::WG *wg = nanos::myThread->getCurrentWD();
 
 //		#pragma omp task untied shared(x) firstprivate(n,d)
 //		x = fib(n - 2,d+1);
@@ -91,7 +92,7 @@ int fib ( int n, int d )
       }
 
 //		#pragma omp taskwait
-      wg->waitCompletation();
+      wg->waitCompletion();
    } else {
       x = fib_seq( n-1 );
       y = fib_seq( n-2 );

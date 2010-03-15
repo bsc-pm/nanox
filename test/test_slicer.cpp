@@ -98,7 +98,7 @@ int main ( int argc, char **argv )
    sys.submit( *wd1 );
    sys.submit( *wd2 );
 
-   wg->waitCompletation();
+   wg->waitCompletion();
 
    cout << "end" << endl;
 }

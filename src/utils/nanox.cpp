@@ -111,7 +111,7 @@ int main (int argc, char* argv[])
       std::cout << "with verbose mode and 4 PEs the NX_ARGS environment variable" << std::endl;
       std::cout << "should be: 'NX_ARGS=\"--pes=4 --verbose\"'." << std::endl;
       std::cout << std::endl;
-      std::cout << "All NX_ARGS and env vars are listed above." << std::endl;
+      std::cout << "All NX_ARGS and env vars are listed below." << std::endl;
       std::cout << std::endl;
 
       std::cout << Config::getNanosHelp();

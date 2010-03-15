@@ -27,7 +27,17 @@
 
 using namespace nanos;
 
-Atomic<unsigned int> WorkDescriptor::_idSeed = 1;
+void WorkDescriptor::start (bool isUserLevelThread, WorkDescriptor *previous)
+{
+   ProcessingElement *pe = myThread->runningOn();
+
+   _activeDevice->lazyInit(*this,isUserLevelThread,previous);
+   
+   if ( pe->hasSeparatedMemorySpace() )
+      pe->copyDataIn( *this );
+
+   setReady();
+}
 
 DeviceData * WorkDescriptor::findDeviceData ( const Device &device ) const
 {
@@ -73,9 +83,21 @@ void WorkDescriptor::submit( void )
 
 void WorkDescriptor::done ()
 {
+   ProcessingElement *pe = myThread->runningOn();
+   if ( pe->hasSeparatedMemorySpace() )
+     pe->copyDataOut( *this );
+
    // FIX-ME: We are waiting for the children tasks to avoid to keep alive only part of the parent
-   waitCompletation();
+   waitCompletion();
    this->getParent()->workFinished( *this );
    WorkGroup::done();
+}
+
+void WorkDescriptor::prepareCopies()
+{
+   for (unsigned int i = 0; i < _numCopies; i++ ) {
+      if ( _copies[i].isPrivate() )
+         _copies[i].setAddress( ( (uint64_t)_copies[i].getAddress() - (unsigned long)_data ) );
+   }
 }
 

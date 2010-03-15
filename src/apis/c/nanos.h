@@ -71,11 +71,11 @@ int nanos_get_wd_id(nanos_wd_t wd);
 nanos_slicer_t nanos_find_slicer ( const char * slicer );
 
 nanos_err_t nanos_create_wd ( nanos_wd_t *wd, size_t num_devices, nanos_device_t *devices, size_t data_size,
-                              void ** data, nanos_wg_t wg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t *copies );
+                              void ** data, nanos_wg_t wg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies );
 
 nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
                                void **outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, size_t slicer_data_size,
-                               void **slicer_data, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t *copies );
+                               void **slicer_data, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies );
 
 nanos_err_t nanos_submit ( nanos_wd_t wd, size_t num_deps, nanos_dependence_t *deps, nanos_team_t team );
 
@@ -87,6 +87,7 @@ nanos_err_t nanos_create_for ( void );
 
 nanos_err_t nanos_set_internal_wd_data ( nanos_wd_t wd, void *data );
 nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data );
+nanos_err_t nanos_yield ( void );
 
 // Team related functions
 
@@ -104,7 +105,7 @@ nanos_err_t nanos_single_guard ( bool *);
 
 // sync
 
-nanos_err_t nanos_wg_wait_completation ( nanos_wg_t wg );
+nanos_err_t nanos_wg_wait_completion ( nanos_wg_t wg );
 
 nanos_err_t nanos_create_int_sync_cond ( nanos_sync_cond_t *sync_cond, volatile int *p, int condition );
 nanos_err_t nanos_create_bool_sync_cond ( nanos_sync_cond_t *sync_cond, volatile bool *p, bool condition );
@@ -120,6 +121,11 @@ nanos_err_t nanos_unset_lock (nanos_lock_t lock);
 nanos_err_t nanos_try_lock ( nanos_lock_t lock, bool *result );
 nanos_err_t nanos_destroy_lock ( nanos_lock_t lock );
 
+// Device copies
+nanos_err_t nanos_get_addr ( uint64_t tag, nanos_sharing_t sharing, void **addr );
+
+nanos_err_t nanos_copy_value ( void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );
+
 // system interface
 nanos_err_t nanos_get_num_running_tasks ( int *num );
 
@@ -130,6 +136,19 @@ void nanos_handle_error ( nanos_err_t err );
 void * nanos_smp_factory( void *prealloc ,void *args);
 extern const size_t nanos_smp_dd_size;
 #define NANOS_SMP_DESC( args ) { nanos_smp_factory, nanos_smp_dd_size, &( args ) }
+
+// instrumentor interface
+nanos_err_t nanos_instrument_events ( unsigned int num_events, nanos_event_t events[] );
+nanos_err_t nanos_instrument_enter_state ( nanos_event_state_value_t state_t );
+nanos_err_t nanos_instrument_leave_state ( void );
+nanos_err_t nanos_instrument_enter_burst( nanos_event_key_t key, nanos_event_value_t value );
+nanos_err_t nanos_instrument_leave_burst( nanos_event_key_t key, nanos_event_value_t value );
+nanos_err_t nanos_instrument_point_event ( unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
+nanos_err_t nanos_instrument_ptp_start ( nanos_event_domain_t domain, nanos_event_id_t id,
+                                         unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
+nanos_err_t nanos_instrument_ptp_end ( nanos_event_domain_t domain, nanos_event_id_t id,
+                                         unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
+
 
 // utility macros
 

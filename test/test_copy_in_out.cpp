@@ -29,10 +29,6 @@ using namespace std;
 using namespace nanos;
 using namespace nanos::ext;
 
-int a = 1234;
-std::string b( "default" );
-bool c = false;
-
 typedef struct {
    int a;
    std::string b;
@@ -44,11 +40,11 @@ void hello_world ( void *args )
    hello_world_args *hargs = ( hello_world_args * ) args;
    CopyData* cd = wd->getCopies();
 
-   if ( cd[0].getAddress() !=  (void *)&(hargs->a) )
+   if ( (void *)cd[0].getAddress() !=  (void *)&(hargs->a) )
       std::cout << "Error: CopyData address '" << cd[0].getAddress() << "' does not match argument with address '"
                 << &(hargs->a) << "'." << std::endl;
    else std::cout << "Checking for CopyData address correctness... PASS" << std::endl;
-   if ( (void *)cd[1].getAddress() != (void *) &(hargs->b) )
+   if ( (void *)( (char *)hargs + (unsigned long)cd[1].getAddress() ) != (void *) &(hargs->b) )
       std::cout << "Error: CopyData address '" << cd[1].getAddress() << "' does not match argument with address '"
                 << &(hargs->b) << "'." << std::endl;
    else std::cout << "Checking for CopyData address correctness... PASS" << std::endl;
@@ -69,6 +65,12 @@ void hello_world ( void *args )
       std::cout << "Error: CopyData was supposed to be output." << std::endl;
    else std::cout << "Checking for CopyData direction correctness... PASS" << std::endl;
    
+   if ( !cd[0].isShared() )
+      std::cout << "Error: CopyData was supposed to be NANOS_SHARED." <<  std::endl;
+   else std::cout << "Checking for CopyData sharing... PASS" << std::endl;
+   if ( !cd[1].isPrivate() )
+      std::cout << "Error: CopyData was supposed to be NANOS_PRIVATE." <<  std::endl;
+   else std::cout << "Checking for CopyData sharing... PASS" << std::endl;
 }
 
 int main ( int argc, char **argv )
@@ -81,7 +83,8 @@ int main ( int argc, char **argv )
 
    data->b = a;
 
-   CopyData cd[2] = { CopyData((void *)&data->a, true, false, sizeof(data->a) ), CopyData( (void *)&data->b, false, true, sizeof(data->b) ) };
+   CopyData cd[2] = { CopyData( (uint64_t)&data->a, NANOS_SHARED, true, false, sizeof(data->a) ),
+                      CopyData( (uint64_t)&data->b, NANOS_PRIVATE, true, true, sizeof(data->b) ) };
 
    WD * wd = new WD( new SMPDD( hello_world ), sizeof( hello_world_args ), data, 2, cd );
 
@@ -93,6 +96,6 @@ int main ( int argc, char **argv )
 
    usleep( 500 );
 
-   wg->waitCompletation();
+   wg->waitCompletion();
 
 }

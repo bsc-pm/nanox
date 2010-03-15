@@ -24,7 +24,7 @@
 
 using namespace nanos;
 
-Atomic<int> WorkGroup::_atomicSeed( 0 );
+Atomic<int> WorkGroup::_atomicSeed( 1 );
 
 void WorkGroup::addWork ( WorkGroup &work )
 {
@@ -54,9 +54,13 @@ void WorkGroup::sync ()
    //TODO: reinit phase_counter
 }
 
-void WorkGroup::waitCompletation ()
+void WorkGroup::waitCompletion ()
 {
      _syncCond.wait();
+}
+
+void WorkGroup::start ()
+{
 }
 
 void WorkGroup::done ()

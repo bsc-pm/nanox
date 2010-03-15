@@ -31,12 +31,20 @@ namespace nanos
       int * ssCompatibility __attribute__( ( weak ) );
       OmpState *globalState;
 
+      static void setOmpNumThreads ( const int &numThreads )
+      {
+         sys.setNumPEs(numThreads);
+      }
+
       static void readEnvinroment ()
       {
          Config config;
 
-         config.setOptionsSection("OpenMP specific");
+         config.setOptionsSection("OpenMP specific","OpenMP related options");
 
+         config.registerConfigOption("omp-num-threads",new Config::PositiveFunc(setOmpNumThreads),
+                                     "Set number of OpenMP threads");
+         config.registerEnvOption("omp-num-threads","OMP_NUM_THREADS");
          // OMP_SCHEDULE
          // OMP_NUM_THREADS
          // OMP_DYNAMIC
@@ -50,7 +58,7 @@ namespace nanos
       }
 
       static void ompInit()
-      {
+      {         
          // Must be allocated through new to avoid problems with the order of
          // initialization of global objects
          globalState = new OmpState();
@@ -61,7 +69,7 @@ namespace nanos
             sys.setUntieMaster(true);
          } else {
             sys.setInitialMode( System::ONE_THREAD );
-//             sys.setUntieMaster(false);
+            sys.setUntieMaster(false);
          }
 
          readEnvinroment();

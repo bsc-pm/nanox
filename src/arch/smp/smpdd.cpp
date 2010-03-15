@@ -21,13 +21,14 @@
 #include "schedule.hpp"
 #include "debug.hpp"
 #include "system.hpp"
+#include "smp_ult.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
 
 Device nanos::ext::SMP( "SMP" );
 
-int SMPDD::_stackSize = 1024;
+size_t SMPDD::_stackSize = 16*1024*1024;
 
 /*!
   \brief Registers the Device's configuration options
@@ -39,28 +40,36 @@ void SMPDD::prepareConfig( Config &config )
    /*!
       Get the stack size from system configuration
     */
-   _stackSize = sys.getDeviceStackSize();
+   size_t size = sys.getDeviceStackSize(); 
+   if ( size > 0 )
+      _stackSize = size;
 
    /*!
       Get the stack size for this device
    */
-   config.registerConfigOption ( "smp-stack-size", new Config::PositiveVar( _stackSize ), "SMP device's stack size" );
+   config.registerConfigOption ( "smp-stack-size", new Config::SizeVar( _stackSize ), "Defines SMP workdescriptor stack size" );
    config.registerArgOption ( "smp-stack-size", "smp-stack-size" );
    config.registerEnvOption ( "smp-stack-size", "NX_SMP_STACK_SIZE" );
 }
 
-void SMPDD::allocateStack ()
-{
-   _stack = new intptr_t[_stackSize];
-}
-
 void SMPDD::initStack ( void *data )
 {
-   if ( !hasStack() ) {
-      allocateStack();
-   }
+   _state = ::initContext( _stack, _stackSize, ( void * )getWorkFct(),data,( void * )Scheduler::exit, 0 );
+}
 
-   initStackDep( ( void * )getWorkFct(),data,( void * )Scheduler::exit );
+void SMPDD::lazyInit (WD &wd, bool isUserLevelThread, WD *previous)
+{
+   if (isUserLevelThread) {
+     if ( previous == NULL )
+       _stack = new intptr_t[_stackSize];
+     else {
+        SMPDD &oldDD = (SMPDD &) previous->getActiveDevice();
+
+        std::swap(_stack,oldDD._stack);
+     }
+  
+     initStack(wd.getData());
+   }
 }
 
 SMPDD * SMPDD::copyTo ( void *toAddr )

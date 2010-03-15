@@ -17,23 +17,23 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+#include <string.h>
 #include "processingelement.hpp"
 #include "debug.hpp"
 #include "schedule.hpp"
+#include "copydata.hpp"
 
 using namespace nanos;
 
-BaseThread& ProcessingElement::startWorker ( SchedulingGroup *sg )
+BaseThread& ProcessingElement::startWorker ( )
 {
    WD & worker = getWorkerWD();
-   return startThread( worker,sg );
+   return startThread( worker );
 }
 
-BaseThread & ProcessingElement::startThread ( WD &work, SchedulingGroup *sg )
+BaseThread & ProcessingElement::startThread ( WD &work )
 {
    BaseThread &thread = createThread( work );
-
-   if ( sg ) sg->addMember( thread );
 
    thread.start();
 
@@ -42,23 +42,16 @@ BaseThread & ProcessingElement::startThread ( WD &work, SchedulingGroup *sg )
    return thread;
 }
 
-BaseThread & ProcessingElement::associateThisThread ( SchedulingGroup *sg, bool untieMain )
+BaseThread & ProcessingElement::associateThisThread ( bool untieMain )
 {
-   WD & worker = untieMain ?  getWorkerWD() : getMasterWD();
+   WD & worker = getMasterWD();
    
    BaseThread &thread = createThread( worker );
 
-   if ( sg ) sg->addMember( thread );
-
    thread.associate();
 
-   if ( untieMain ) {
-      // "switch" to main
-      WD & master = getMasterWD();
-
-      // put worker thread idle-loop into the queue
-      Scheduler::queue(worker);
-      thread.setCurrentWD(master);
+   if ( !untieMain ) {
+      worker.tieTo(thread);
    }
 
    return thread;
@@ -76,4 +69,17 @@ void ProcessingElement::stopAll ()
       if ( thread->hasTeam() )
          thread->leaveTeam();
    }
+}
+
+void* ProcessingElement::getAddress( WorkDescriptor &wd, uint64_t tag, nanos_sharing_t sharing )
+{
+   void *actualTag = (void *) ( sharing == NANOS_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : (void *)tag );
+   return actualTag;
+}
+
+void ProcessingElement::copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size )
+{
+   void *actualTag = (void *) ( sharing == NANOS_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : (void *)tag );
+   // FIXME: should this be done by using the local copeir of the device?
+   memcpy( dst, actualTag, size );
 }

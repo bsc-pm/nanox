@@ -19,3 +19,5 @@
 
 SUBDIRS = src
 DIST_SUBDIRS = test doc src
+
+ACLOCAL_AMFLAGS=-I m4

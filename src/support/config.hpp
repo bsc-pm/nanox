@@ -265,12 +265,12 @@ namespace nanos
                FuncOption( const char *name, funptr function ) :
                      ActionOption<T,helpFormat,checkT>( name ), _function( function ) {}
 
-               FuncOption( T &ref ) :
-                     ActionOption<T,helpFormat,checkT>(), _function( ref.function ) {}
+               FuncOption( funptr function ) :
+                     ActionOption<T,helpFormat,checkT>(), _function( function ) {}
 
                // copy constructor
                FuncOption( const FuncOption &opt ) :
-                     ActionOption<T,helpFormat,checkT>( opt ), _function( opt.function ) {}
+                     ActionOption<T,helpFormat,checkT>( opt ), _function( opt._function ) {}
 
                //destructor
                virtual ~FuncOption() {}
@@ -280,7 +280,7 @@ namespace nanos
                virtual FuncOption * clone () { return new FuncOption( *this ); };
          };
 
-         typedef class FuncOption<int,PositiveHelpFormat,isPositive<int> >      PositveFunc;
+         typedef class FuncOption<int,PositiveHelpFormat,isPositive<int> >      PositiveFunc;
 
          template<typename T>
          class MapAction : public Option
@@ -650,7 +650,7 @@ namespace nanos
          * \param sectionName name of the section to be set as current
          * \param sectionDescription If any, sets the description for the section
          */
-         void setOptionsSection( const std::string &sectionName, const std::string *sectionDescription = NULL );
+         void setOptionsSection( const std::string &sectionName, const std::string &sectionDescription );
 
         /* \brief Register a Configuration Option
          * \param optionName Name to give to the option

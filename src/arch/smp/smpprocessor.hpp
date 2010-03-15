@@ -20,31 +20,50 @@
 #ifndef _NANOS_SMP_PROCESSOR
 #define _NANOS_SMP_PROCESSOR
 
-#include "processingelement.hpp"
 #include "config.hpp"
 #include "smpthread.hpp"
+#include "cache.hpp"
+#include "smpmemory.hpp"
+#ifdef SMP_NUMA
+#include "accelerator.hpp"
+#else
+#include "processingelement.hpp"
+#endif
 
 //TODO: Make smp independent from pthreads? move it to OS?
 
 namespace nanos {
 namespace ext
 {
-   
+
+#ifdef SMP_NUMA
+   class SMPProcessor : public Accelerator
+#else
    class SMPProcessor : public PE
+#endif
    {
+
 
       private:
          // config variables
          static bool _useUserThreads;
-	 static size_t _threadsStackSize;
+         static size_t _threadsStackSize;
 
          // disable copy constructor and assignment operator
          SMPProcessor( const SMPProcessor &pe );
          const SMPProcessor & operator= ( const SMPProcessor &pe );
 
+#ifdef SMP_NUMA
+         Cache<SMPMemory> _cache;
+#endif
+
       public:
          // constructors
+#ifdef SMP_NUMA
+         SMPProcessor( int id ) : Accelerator( id,&SMP ), _cache() {}
+#else
          SMPProcessor( int id ) : PE( id,&SMP ) {}
+#endif
 
          virtual ~SMPProcessor() {}
 
@@ -53,6 +72,21 @@ namespace ext
          virtual BaseThread & createThread ( WorkDescriptor &wd );
 
          static void prepareConfig ( Config &config );
+
+         // capability query functinos
+         virtual bool supportsUserLevelThreads () const { return _useUserThreads; }
+#ifdef SMP_NUMA
+         virtual bool hasSeparatedMemorySpace() const { return true; }
+         /* Memory space suport */
+         virtual void registerDataAccessDependent( uint64_t tag, size_t size );
+         virtual void copyDataDependent( uint64_t tag, size_t size );
+         virtual void unregisterDataAccessDependent( uint64_t tag );
+         virtual void copyBackDependent( uint64_t tag, size_t size );
+         virtual void* getAddressDependent( uint64_t tag );
+         virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
+#else
+         virtual bool hasSeparatedMemorySpace() const { return false; }
+#endif
    };
 
 }

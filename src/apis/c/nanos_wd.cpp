@@ -67,7 +67,7 @@ int nanos_get_wd_id ( nanos_wd_t wd )
  *  \sa nanos::WorkDescriptor
  */
 nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t data_size,
-                               void ** data, nanos_wg_t uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t *copies )
+                               void ** data, nanos_wg_t uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies )
 {
    try 
    {
@@ -93,7 +93,7 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
  */
 nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
                                void ** outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, size_t slicer_data_size,
-                               nanos_slicer_data_t * slicer_data, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t *copies )
+                               nanos_slicer_data_t * slicer_data, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies )
 {
    try 
    {
@@ -106,6 +106,7 @@ nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_
          sys.getInstrumentor()->leaveRuntimeAPI();
          return NANOS_UNKNOWN_ERR;
       }
+
       sys.createSlicedWD ( (WD **) uwd, num_devices, devices, outline_data_size, outline_data, (WG *) uwg,
                            (Slicer *) slicer, slicer_data_size, (SlicerData *&) *slicer_data, props, num_copies, copies );
 
@@ -214,3 +215,19 @@ nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data )
    sys.getInstrumentor()->leaveRuntimeAPI();
    return NANOS_OK;
 }
+
+nanos_err_t nanos_yield ( void )
+{
+   try {
+      sys.getInstrumentor()->enterRuntimeAPI( YIELD, RUNTIME );
+      Scheduler::yield();
+
+   } catch ( ... ) {
+      sys.getInstrumentor()->leaveRuntimeAPI();
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   sys.getInstrumentor()->leaveRuntimeAPI();
+   return NANOS_OK;
+}
+

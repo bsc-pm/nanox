@@ -261,16 +261,14 @@ void Config::init ()
    }
 }
 
-void Config::setOptionsSection( const std::string &sectionName, const std::string *sectionDescription )
+void Config::setOptionsSection( const std::string &sectionName, const std::string &sectionDescription )
 {
    _currentSection = sectionName;
 
-   if ( sectionDescription != NULL ) {
-      if ( _nanosHelp == NULL ) {
-         _nanosHelp = new NanosHelp();
-      }
-      _nanosHelp->addSectionDescription ( sectionName, *sectionDescription );
+   if ( _nanosHelp == NULL ) {
+     _nanosHelp = new NanosHelp();
    }
+   _nanosHelp->addSectionDescription ( sectionName, sectionDescription );
 }
 
 //TODO: move to utility header

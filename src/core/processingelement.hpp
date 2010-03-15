@@ -67,12 +67,23 @@ namespace nanos
             return *_device;
          }
 
-         BaseThread & startThread ( WorkDescriptor &wd, SchedulingGroup *sg = 0 );
+         BaseThread & startThread ( WorkDescriptor &wd );
          virtual BaseThread & createThread ( WorkDescriptor &wd ) = 0;
-         BaseThread & associateThisThread ( SchedulingGroup *sg, bool untieMain=true );
+         BaseThread & associateThisThread ( bool untieMain=true );
 
-         BaseThread & startWorker ( SchedulingGroup *sg );
+         BaseThread & startWorker ( );
          void stopAll();
+
+         /* capabilitiy query functions */
+         virtual bool supportsUserLevelThreads() const = 0;
+         virtual bool hasSeparatedMemorySpace() const = 0;
+
+         /* Memory space suport */
+         virtual void copyDataIn( WorkDescriptor& wd ) {}
+         virtual void copyDataOut( WorkDescriptor& wd ) {}
+
+         virtual void* getAddress( WorkDescriptor& wd, uint64_t tag, nanos_sharing_t sharing );
+         virtual void copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );
    };
 
    typedef class ProcessingElement PE;

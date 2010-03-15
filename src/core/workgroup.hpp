@@ -56,12 +56,9 @@ namespace nanos
          WorkGroup( const WorkGroup &wg ) : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ),
             _syncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ) 
          {
-// xteruel:FIXME: (#106, closed) Is that code really needed?
-#if 0
             for ( WGList::const_iterator it = wg._partOf.begin(); it < wg._partOf.end(); it++ ) {
                if (*it) (*it)->addWork( *this );
             }
-#endif
          }
 
          // destructor
@@ -69,7 +66,8 @@ namespace nanos
 
          void addWork( WorkGroup &wg );
          void sync();
-         void waitCompletation();
+         void waitCompletion();
+         virtual void start();
          virtual void done();
          int getId() const { return _id; }
 

@@ -17,9 +17,10 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_SYSTEM
-#define _NANOS_SYSTEM
+#ifndef _NANOS_SYSTEM_H
+#define _NANOS_SYSTEM_H
 
+#include "system_decl.hpp"
 #include "processingelement.hpp"
 #include "throttle.hpp"
 #include <vector>
@@ -31,186 +32,82 @@
 #include "dependency.hpp"
 #include "instrumentor_decl.hpp"
 
+using namespace nanos;
 
-namespace nanos
+// methods to access configuration variable         
+inline void System::setNumPEs ( int npes ) { _numPEs = npes; }
+
+inline int System::getNumPEs () const { return _numPEs; }
+
+inline void System::setDeviceStackSize ( int stackSize ) { _deviceStackSize = stackSize; }
+
+inline int System::getDeviceStackSize () const {return _deviceStackSize; }
+
+inline void System::setBinding ( bool set ) { _bindThreads = set; }
+
+inline bool System::getBinding () const { return _bindThreads; }
+
+inline System::ExecutionMode System::getExecutionMode () const { return _executionMode; }
+
+inline bool System::getVerbose () const { return _verboseMode; }
+
+inline void System::setInitialMode ( System::InitialMode mode ) { _initialMode = mode; }
+
+inline System::InitialMode System::getInitialMode() const { return _initialMode; }
+
+inline void System::setDelayedStart ( bool set) { _delayedStart = set; }
+
+inline bool System::getDelayedStart () const { return _delayedStart; }
+
+inline int System::getThsPerPE() const { return _thsPerPE; }
+
+inline int System::getTaskNum() const { return _schedStats._totalTasks.value(); }
+
+inline int System::getIdleNum() const { return _schedStats._idleThreads.value(); }
+
+inline void System::setUntieMaster ( bool value ) { _untieMaster = value; }
+inline bool System::getUntieMaster () const { return _untieMaster; }
+
+inline int System::getReadyNum() const { return _schedStats._readyTasks.value(); }
+
+inline int System::getRunningTasks() const
 {
+   return _workers.size() - _schedStats._idleThreads.value();
+}
 
-// This class initializes/finalizes the library
-// All global variables MUST be declared inside
+inline int System::getNumWorkers() const { return _workers.size(); }
 
-   class System
-   {
-         friend class Scheduler;
+inline void System::setThrottlePolicy( ThrottlePolicy * policy ) { _throttlePolicy = policy; }
 
-      public:
-         // constants
-         typedef enum { DEDICATED, SHARED } ExecutionMode;
-         typedef enum { POOL, ONE_THREAD } InitialMode;
+inline const std::string & System::getDefaultSchedule() const { return _defSchedule; }
 
-         typedef void (*Init) ();
+inline const std::string & System::getDefaultThrottlePolicy() const { return _defThrottlePolicy; }
 
-      private:
-         // types
-         typedef std::vector<PE *>         PEList;
-         typedef std::vector<BaseThread *> ThreadList;
-         typedef std::map<std::string, Slicer *> Slicers;
-         
-         // configuration variables
-         int                  _numPEs;
-         int                  _deviceStackSize;
-         bool                 _bindThreads;
-         bool                 _profile;
-         bool                 _instrument;
-         bool                 _verboseMode;
-         ExecutionMode        _executionMode;
-         InitialMode          _initialMode;
-         int                  _thsPerPE;
-         bool                 _untieMaster;
-         bool                 _delayedStart;
+inline const std::string & System::getDefaultBarrier() const { return _defBarr; }
 
-         //cutoff policy and related variables
-         ThrottlePolicy *     _throttlePolicy;
-         Atomic<int>          _taskNum;
-         Atomic<int>          _numReady;
-         Atomic<int>          _idleThreads;
-         Atomic<int>          _numTasksRunning;
+inline const std::string & System::getDefaultInstrumentor() const { return _defInstr; }
 
-         /*! names of the scheduling, cutoff and barrier plugins */
-         std::string          _defSchedule;
-         std::string          _defThrottlePolicy;
-         std::string          _defBarr;
-         std::string          _defInstr;
+inline void System::setHostFactory ( peFactory factory ) { _hostFactory = factory; }
 
-         /*! factories for scheduling, pes and barriers objects */
-         sgFactory            _defSGFactory;
-         peFactory            _hostFactory;
-         barrFactory          _defBarrFactory;
+inline void System::setDefaultBarrFactory ( barrFactory factory ) { _defBarrFactory = factory; }
 
-         PEList               _pes;
-         ThreadList           _workers;
+inline Slicer * System::getSlicer( const std::string &label ) const 
+{ 
+   Slicers::const_iterator it = _slicers.find(label);
+   if ( it == _slicers.end() ) return NULL;
+   return (*it).second;
+}
 
-         Slicers              _slicers; /**< set of global slicers */
+inline Instrumentor * System::getInstrumentor ( void ) const { return _instrumentor; }
 
-         Instrumentor         *_instrumentor; /**< instrumentor object used in current execution */
+inline void System::setInstrumentor ( Instrumentor *instr ) { _instrumentor = instr; }
 
-         // disable copy constructor & assignment operation
-         System( const System &sys );
-         const System & operator= ( const System &sys );
+inline void System::registerSlicer ( const std::string &label, Slicer *slicer) { _slicers[label] = slicer; }
 
-         void config ();
-         void loadModules();
-         void start ();
-         PE * createPE ( std::string pe_type, int pid );
+inline void System::setDefaultSchedulePolicy ( SchedulePolicy *policy ) { _defSchedulePolicy = policy; }
+inline SchedulePolicy * System::getDefaultSchedulePolicy ( ) const  { return _defSchedulePolicy; }
 
-      public:
-         // constructor
-         System ();
-         ~System ();
-
-         void submit ( WD &work );
-         void submitWithDependencies (WD& work, size_t numDeps, Dependency* deps);
-         void waitOn ( size_t numDeps, Dependency* deps);
-         void inlineWork ( WD &work );
-
-         void createWD (WD **uwd, size_t num_devices, nanos_device_t *devices,
-                        size_t data_size, void ** data, WG *uwg,
-                        nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t *copies );
-
-         void createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
-                        void **outline_data, WG *uwg, Slicer *slicer, size_t slicer_data_size,
-                        SlicerData *&slicer_data, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t *copies );
-
-         void duplicateWD ( WD **uwd, WD *wd );
-         void duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd );
-
-         // methods to access configuration variable         
-         void setNumPEs ( int npes ) { _numPEs = npes; }
-
-         int getNumPEs () const { return _numPEs; }
-
-         void setDeviceStackSize ( int stackSize ) { _deviceStackSize = stackSize; }
-
-         int getDeviceStackSize () const {return _deviceStackSize; }
-
-         void setBinding ( bool set ) { _bindThreads = set; }
-
-         bool getBinding () const { return _bindThreads; }
-
-         ExecutionMode getExecutionMode () const { return _executionMode; }
-
-         bool getVerbose () const { return _verboseMode; }
-
-         void setInitialMode ( InitialMode mode ) { _initialMode = mode; }
-         InitialMode getInitialMode() const { return _initialMode; }
-
-         void setUntieMaster ( bool value ) { _untieMaster = value; }
-         bool getUntieMaster () const { return _untieMaster; }
-
-         void setThsPerPE( int ths ) { _thsPerPE = ths; }
-
-         void setDelayedStart ( bool set) { _delayedStart = set; }
-
-         bool getDelayedStart () const { return _delayedStart; }
-
-         int getThsPerPE() const { return _thsPerPE; }
-
-         int getTaskNum() const { return _taskNum.value(); }
-
-         int getIdleNum() const { return _idleThreads.value(); }
-
-         int getReadyNum() const { return _numReady.value(); }
-
-         int getRunningTasks() const { return _numTasksRunning.value(); }
-
-         int getNumWorkers() const { return _workers.size(); }
-
-         // team related methods
-         BaseThread * getUnassignedWorker ( void );
-         ThreadTeam * createTeam ( unsigned nthreads, SG *scheduling=NULL, void *constraints=NULL,
-                                   bool reuseCurrent=true,  TeamData *tdata = 0 );
-         void endTeam ( ThreadTeam *team );
-         void releaseWorker ( BaseThread * thread );
-
-         //BUG: does not work: sigsegv on myThread
-         int getSGSize() const { return myThread->getSchedulingGroup()->getSize(); }
-
-         void setThrottlePolicy( ThrottlePolicy * policy ) { _throttlePolicy = policy; }
-
-         bool throttleTask();
-
-         const std::string & getDefaultSchedule() const { return _defSchedule; }
-
-         const std::string & getDefaultThrottlePolicy() const { return _defThrottlePolicy; }
-
-         const std::string & getDefaultBarrier() const { return _defBarr; }
-
-         const std::string & getDefaultInstrumentor() const { return _defInstr; }
-
-         void setDefaultSGFactory ( sgFactory factory ) { _defSGFactory = factory; }
-
-         void setHostFactory ( peFactory factory ) { _hostFactory = factory; }
-
-         void setDefaultBarrFactory ( barrFactory factory ) { _defBarrFactory = factory; }
-
-         Slicer * getSlicer( const std::string &label ) const 
-         { 
-            Slicers::const_iterator it = _slicers.find(label);
-            if ( it == _slicers.end() ) return NULL;
-            return (*it).second;
-         }
-
-         Instrumentor * getInstrumentor ( void ) { return _instrumentor; }
-
-         // TODO: Is it needed to check if _instrumentor was already set?
-         void setInstrumentor ( Instrumentor *instr ) { _instrumentor = instr; }
-
-         void registerSlicer ( const std::string &label, Slicer *slicer) { _slicers[label] = slicer; }
-
-   };
-
-   extern System sys;
-
-};
+inline SchedulerStats & System::getSchedulerStats () { return _schedStats; }
 
 #endif
 

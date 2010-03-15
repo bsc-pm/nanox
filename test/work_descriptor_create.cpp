@@ -78,7 +78,7 @@ int main ( int argc, char **argv )
       sys.submit( *wd );
  
       // barrier (kind of)
-      wg->waitCompletation();
+      wg->waitCompletion();
 #else
       for ( int j = 0; j < VECTOR_SIZE; j++ ) A[j]++;
 #endif

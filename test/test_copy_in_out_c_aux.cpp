@@ -31,36 +31,18 @@ using namespace nanos::ext;
 
 extern "C" {
 
-void check_hardcoded_copy_data ()
+uint64_t aux_get_copies_addr( unsigned int i )
 {
    WD *wd = myThread->getCurrentWD();
    CopyData* cd = wd->getCopies();
+   return (uint64_t)cd[i].getAddress();
+}
 
-   if ( cd[0].getAddress() !=  (void *)1280 ) 
-      std::cout << "Error: CopyData address '" << (unsigned long)cd[0].getAddress() << "' does not match argument with address '"
-                << 1280 << "'." << std::endl;
-   else std::cout << "Checking for CopyData address correctness... PASS" << std::endl;
-   if ( cd[1].getAddress() !=  (void *)1024 ) 
-      std::cout << "Error: CopyData address '" << (unsigned long)cd[1].getAddress() << "' does not match argument with address '"
-                << 1024 << "'." << std::endl;
-   else std::cout << "Checking for CopyData address correctness... PASS" << std::endl;
-
-   if ( cd[0].getSize() != 255 )
-      std::cout << "Error: CopyData size '" << cd[0].getSize() << "' does not match argument with size '"
-                << 255 << "'." << std::endl;
-   else std::cout << "Checking for CopyData size correctness... PASS" << std::endl;
-   if ( cd[1].getSize() != 127 )
-      std::cout << "Error: CopyData size '" << cd[1].getSize() << "' does not match argument with size '"
-                << 127 << "'." << std::endl;
-   else std::cout << "Checking for CopyData size correctness... PASS" << std::endl;
-
-   if ( !cd[0].isInput() )
-      std::cout << "Error: CopyData was supposed to be input." << std::endl;
-   else std::cout << "Checking for CopyData direction correctness... PASS" << std::endl;
-   if ( !cd[1].isOutput() )
-      std::cout << "Error: CopyData was supposed to be output." << std::endl;
-   else std::cout << "Checking for CopyData direction correctness... PASS" << std::endl;
-   
+nanos_sharing_t aux_get_sharing( unsigned int i )
+{
+   WD *wd = myThread->getCurrentWD();
+   CopyData* cd = wd->getCopies();
+   return cd[i].getSharing();
 }
 
 }

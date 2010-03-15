@@ -33,16 +33,23 @@ namespace nanos
    class SchedulingGroup;
    class SchedulingData;
    class ThreadTeam;
+   class Scheduler;
+   class ScheduleThreadData;
    
+   typedef void SchedulerHelper ( WD *oldWD, WD *newWD, void *arg); // FIXME: should be only in one place
+
    /*!
     * Each thread in a team has one of this. All data associated with the team should be here
     * and not in BaseThread as it needs to be saved and restored on team switches
     */
    class TeamData
    {
+      typedef ScheduleThreadData SchedData;
+      
       private:
-         unsigned   _id;
-         unsigned   _singleCount;
+         unsigned       _id;
+         unsigned       _singleCount;
+         SchedData    * _schedData;
          // PM Data?
 
       public:
@@ -55,6 +62,9 @@ namespace nanos
             ++_singleCount;
             return _singleCount;
          }
+
+         void setScheduleData ( SchedData *data ) { _schedData = data; }
+         SchedData * getScheduleData () const { return _schedData; }
    };
 
 
@@ -62,6 +72,7 @@ namespace nanos
 
    class BaseThread
    {
+      friend class Scheduler;
 
       private:
          static Atomic<int>      _idSeed;
@@ -94,7 +105,15 @@ namespace nanos
          const BaseThread operator= ( const BaseThread & );
 
          virtual void runDependent () = 0;
+
+         // These must be called through the Scheduler interface
+         virtual void switchHelperDependent( WD* oldWD, WD* newWD, void *arg ) = 0;
+         virtual void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) = 0;
          virtual void inlineWorkDependent (WD &work) = 0;
+         virtual void switchTo( WD *work, SchedulerHelper *helper ) = 0;
+         virtual void exitTo( WD *work, SchedulerHelper *helper ) = 0;
+         virtual void yield() {};
+
       protected:
 
          /*!
@@ -129,17 +148,6 @@ namespace nanos
          virtual void join() = 0;
          virtual void bind() {};
 
-         // WD micro-scheduling
-         void inlineWork ( WD *work );
-
-         void switchHelper( WD* oldWD, WD* newWD );
-         void exitHelper( WD* oldWD, WD* newWD );
-
-         virtual void switchTo( WD *work ) = 0;
-         virtual void exitTo( WD *work ) = 0;
-
-         virtual void yield() {};
-
          // set/get methods
          void setCurrentWD ( WD &current ) { _currentWD = &current; }
 
@@ -151,9 +159,9 @@ namespace nanos
          void reserve() { _hasTeam = 1; }
 
          void enterTeam( ThreadTeam *newTeam, TeamData *data ) {
-            _hasTeam=1;
             _team = newTeam;
             _teamData = data;
+            _hasTeam=1;
          }
 
          bool hasTeam() const { return _hasTeam; }
@@ -166,8 +174,6 @@ namespace nanos
 
          //! Returns the id of the thread inside its current team 
          int getTeamId() const { return _teamData->getId(); }
-
-         SchedulingGroup * getSchedulingGroup () const { return _schedGroup; }
 
          SchedulingData * getSchedulingData () const { return _schedData; }
 

@@ -17,9 +17,7 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "smpdd.hpp"
-
-using namespace nanos::ext;
+#include "smp_ult.hpp"
 
 
 /* -------------------------------------------------------------------
@@ -64,41 +62,43 @@ extern "C"
    void startHelper ();
 }
 
-void SMPDD::initStackDep ( void *userfuction, void *data, void *cleanup )
+intptr_t * initContext ( intptr_t *stack, size_t stackSize, void *userFunction, void *userArg,
+                          void *cleanup, void *cleanupArg )
 {
    // stack grows down
-   _state = _stack;
-   _state += _stackSize;
+   intptr_t *state = stack;
+   state += stackSize;
 
-   _state -= 68;
+   state -= 68;
 
    // argument
-   _state[60] = ( intptr_t ) data;
+   state[60] = ( intptr_t ) userArg;
 
    // return pointer
    // The double cast avoids a GCC warning about breaking aliasing
-   _state[59] = ( intptr_t ) *( (long *)( void * )startHelper );
+   state[59] = ( intptr_t ) *( (long *)( void * )startHelper );
    // ar.rsc
-   _state[58] = ( intptr_t ) 3;
+   state[58] = ( intptr_t ) 3;
    // ar.pfs
-   _state[57] = ( intptr_t ) 0;
+   state[57] = ( intptr_t ) 0;
    // ar.rnat
-   _state[56] = ( intptr_t ) 0;
+   state[56] = ( intptr_t ) 0;
    // ar.bspstore
-   _state[55] = ( intptr_t ) _stack;
+   state[55] = ( intptr_t ) stack;
    // tp(r13)
-   _state[54] = ( intptr_t ) 0;
+   state[54] = ( intptr_t ) 0;
    // ar.unat (caller)
-   _state[53] = ( intptr_t ) 0;
+   state[53] = ( intptr_t ) 0;
    // r5 (cleanup)
-   _state[51] = ( intptr_t ) cleanup;
+   state[51] = ( intptr_t ) cleanup;
    // r6 (pt)
-   _state[50] = ( intptr_t ) this;
+   state[50] = ( intptr_t ) cleanupArg;
    // r7 (userf)
-   _state[49] = ( intptr_t ) userfuction;
+   state[49] = ( intptr_t ) userFunction;
    // ar.unat (callee)
-   _state[48] = ( intptr_t ) 0;
+   state[48] = ( intptr_t ) 0;
    // ar.fpsr
-   _state[40] = ( intptr_t ) 0x9804c0270033f;
+   state[40] = ( intptr_t ) 0x9804c0270033f;
 
+   return state;
 }

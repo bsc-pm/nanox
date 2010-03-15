@@ -30,6 +30,7 @@ Atomic<int> BaseThread::_idSeed = 0;
 
 void BaseThread::run ()
 {
+   _threadWD.tieTo( *this );
    associate();
    runDependent();
 }
@@ -41,8 +42,7 @@ void BaseThread::associate ()
 
    if ( sys.getBinding() ) bind();
 
-   _threadWD.tieTo( *this );
-
+   _threadWD.setReady();
    setCurrentWD( _threadWD );
 }
 
@@ -53,45 +53,6 @@ bool BaseThread::singleGuard ()
    return getTeam()->singleGuard( getTeamData()->nextSingleGuard() );
 }
 
-void BaseThread::inlineWork (WorkDescriptor *wd)
-{
-   WD *oldwd = getCurrentWD();
-   GenericSyncCond *syncCond = oldwd->getSyncCond();
-   if ( syncCond != NULL ) {
-      syncCond->unlock();
-   }
-   sys.getInstrumentor()->wdSwitch( oldwd, wd );
-   setCurrentWD( *wd );
-   inlineWorkDependent(*wd);
-   sys.getInstrumentor()->wdSwitch( wd, oldwd );
-   wd->done();
-   myThread->setCurrentWD( *oldwd );
-}
-
-/*! \brief Performs the always-required operations when switching WD in a thread.
-*/
-void BaseThread::switchHelper( WD* oldWD, WD* newWD )
-{
-   GenericSyncCond *syncCond = oldWD->getSyncCond();
-   if ( syncCond != NULL ) {
-      oldWD->setBlocked();
-      syncCond->unlock();
-   } else {
-      Scheduler::queue( *oldWD );
-   }
-   sys.getInstrumentor()->wdSwitch( oldWD, newWD );
-   myThread->setCurrentWD( *newWD );
-}
-
-/*! \brief Performs the always-required operations when exit a WD in a thread.
-*/
-void BaseThread::exitHelper( WD* oldWD, WD* newWD )
-{
-   sys.getInstrumentor()->wdExit( oldWD, newWD );
-   delete oldWD;
-   myThread->setCurrentWD( *newWD );
-}
- 
 /*
  * G++ optimizes TLS accesses by obtaining only once the address of the TLS variable
  * In this function this optimization does not work because the task can move from one thread to another

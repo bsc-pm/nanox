@@ -22,17 +22,19 @@ include $(top_srcdir)/src/common.am
 lib_LTLIBRARIES=libnanox-c.la
 
 include_HEADERS=\
-	nanos.h
+	nanos.h \
 	$(END)
 
 sources=\
 	nanos.h\
+	nanos_pe.cpp\
 	nanos_finders.cpp\
 	nanos_wd.cpp\
 	nanos_sync.cpp\
 	nanos_team.cpp\
 	nanos_err.cpp\
 	nanos_sys.cpp\
+	nanos_instrument.cpp\
 	$(END)
 
 libnanox_c_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(performance_cflags)

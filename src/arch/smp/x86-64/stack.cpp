@@ -17,9 +17,8 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "smpdd.hpp"
 
-using namespace nanos::ext;
+#include "smp_ult.hpp"
 
 extern "C"
 {
@@ -27,20 +26,24 @@ extern "C"
    void startHelper ();
 }
 
-void SMPDD::initStackDep ( void *userfuction, void *data, void *cleanup )
-{
-   _state = _stack;
-   _state += _stackSize - 1;
 
-   *_state = ( intptr_t )cleanup;
-   _state--;
-   *_state = ( intptr_t )this;
-   _state --;
-   *_state = ( intptr_t )userfuction;
-   _state--;
-   *_state = ( intptr_t )data;
-   _state--;
-   *_state = ( intptr_t )startHelper;
+intptr_t * initContext ( intptr_t *stack, size_t stackSize, void *userFunction, void *userArg,
+                          void *cleanup, void *cleanupArg )
+{
+   intptr_t * state = stack;
+   state += stackSize - 1;
+
+   *state = ( intptr_t )cleanup;
+   state--;
+   *state = ( intptr_t )cleanupArg;
+   state --;
+   *state = ( intptr_t )userFunction;
+   state--;
+   *state = ( intptr_t )userArg;
+   state--;
+   *state = ( intptr_t )startHelper;
    // skip first _state
-   _state -= 6;
+   state -= 6;
+
+   return state;
 }

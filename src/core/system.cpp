@@ -39,10 +39,10 @@ namespace nanos {
 System nanos::sys;
 
 // default system values go here
-System::System () : _numPEs( 1 ), _deviceStackSize( 1024 ), _bindThreads( true ), _profile( false ), _instrument( false ),
-      _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster(true), _delayedStart(false),
-      _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" ), _defInstr ( "empty_trace" ),
-      _instrumentor ( NULL )
+System::System () :
+      _numPEs( 1 ), _deviceStackSize( 0 ), _bindThreads( true ), _profile( false ), _instrument( false ),
+      _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster(true), _delayedStart(false), _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" ),
+      _defInstr ( "empty_trace" ), _instrumentor ( NULL ), _defSchedulePolicy(NULL)
 {
    verbose0 ( "NANOS++ initalizing... start" );
    config();
@@ -50,6 +50,7 @@ System::System () : _numPEs( 1 ), _deviceStackSize( 1024 ), _bindThreads( true )
       loadModules();
       start();
    }
+   getInstrumentor()->leaveStartUp();
    verbose0 ( "NANOS++ initalizing... end" );
 }
 
@@ -75,7 +76,7 @@ void System::loadModules ()
    if ( !PluginManager::load ( "sched-"+getDefaultSchedule() ) )
       fatal0 ( "Couldn't load main scheduling policy" );
 
-   ensure( _defSGFactory,"No default system scheduling factory" );
+   ensure( _defSchedulePolicy,"No default system scheduling factory" );
 
    verbose0( "loading " << getDefaultThrottlePolicy() << " throttle policy" );
 
@@ -103,50 +104,48 @@ void System::config ()
    Config config;
 
    if ( externInit != NULL ) {
-        verbose0("Invoking external configuration");
         externInit();
    }
 
    verbose0 ( "Preparing library configuration" );
 
-   config.setOptionsSection ( "Core", new std::string( "Options for the core of Nanox runtime" ) );
+   config.setOptionsSection ( "Core", "Core options of the core of Nanos++ runtime"  );
 
-   config.registerConfigOption ( "num_pes", new Config::PositiveVar( _numPEs ), "Number of processing elements" );
+   config.registerConfigOption ( "num_pes", new Config::PositiveVar( _numPEs ), "Defines the number of processing elements" );
    config.registerArgOption ( "num_pes", "pes" );
    config.registerEnvOption ( "num_pes", "NX_PES" );
 
-   config.registerConfigOption ( "stack-size", new Config::PositiveVar( _deviceStackSize ), "Default stack size for the devices" );
+   config.registerConfigOption ( "stack-size", new Config::PositiveVar( _deviceStackSize ), "Defines the default stack size for all devices" );
    config.registerArgOption ( "stack-size", "stack-size" );
    config.registerEnvOption ( "stack-size", "NX_STACK_SIZE" );
 
-   config.registerConfigOption ( "no-binding", new Config::FlagOption( _bindThreads, false), "Thread binding" );
-   config.registerArgOption ( "no-binding", "no-binding" );
+   config.registerConfigOption ( "no-binding", new Config::FlagOption( _bindThreads, false), "Disables thread binding" );
+   config.registerArgOption ( "no-binding", "disable-binding" );
 
-   config.registerConfigOption ( "verbose", new Config::FlagOption( _verboseMode), "Verbose mode" );
+   config.registerConfigOption ( "verbose", new Config::FlagOption( _verboseMode), "Activates verbose mode" );
    config.registerArgOption ( "verbose", "verbose" );
 
-   //more than 1 thread per pe
-   config.registerConfigOption ( "thsperpe", new Config::PositiveVar( _thsPerPE ), "Number of threads per processing element" );
-   config.registerArgOption ( "thsperpe", "thrsperpe" );
-
+#if 0
+   FIXME: implement execution modes (#146)
    Config::MapVar<ExecutionMode> map( _executionMode );
    map.addOption( "dedicated", DEDICATED).addOption( "shared", SHARED );
    config.registerConfigOption ( "exec_mode", &map, "Execution mode" );
    config.registerArgOption ( "exec_mode", "mode" );
+#endif
 
-   config.registerConfigOption ( "schedule", new Config::StringVar ( _defSchedule ), "Default scheduling policy" );
+   config.registerConfigOption ( "schedule", new Config::StringVar ( _defSchedule ), "Defines the scheduling policy" );
    config.registerArgOption ( "schedule", "schedule" );
    config.registerEnvOption ( "schedule", "NX_SCHEDULE" );
 
-   config.registerConfigOption ( "throttle", new Config::StringVar ( _defThrottlePolicy ), "Default throttle policy" );
+   config.registerConfigOption ( "throttle", new Config::StringVar ( _defThrottlePolicy ), "Defines the throttle policy" );
    config.registerArgOption ( "throttle", "throttle" );
    config.registerEnvOption ( "throttle", "NX_THROTTLE" );
 
-   config.registerConfigOption ( "barrier", new Config::StringVar ( _defBarr ), "Default barrier" );
+   config.registerConfigOption ( "barrier", new Config::StringVar ( _defBarr ), "Defines barrier algorithm" );
    config.registerArgOption ( "barrier", "barrier" );
    config.registerEnvOption ( "barrier", "NX_BARRIER" );
 
-   config.registerConfigOption ( "instrumentor", new Config::StringVar ( _defInstr ), "Nanos instrumentation" );
+   config.registerConfigOption ( "instrumentor", new Config::StringVar ( _defInstr ), "Defines instrumentation format" );
    config.registerArgOption ( "instrumentor", "instrumentor" );
    config.registerEnvOption ( "instrumentor", "NX_INSTRUMENTOR" );
 
@@ -170,18 +169,18 @@ void System::start ()
 
    _pes.reserve ( numPes );
 
-   SchedulingGroup *sg = _defSGFactory( numPes*getThsPerPE() );
-
    //TODO: decide, single master, multiple master start
    PE *pe = createPE ( "smp", 0 );
    _pes.push_back ( pe );
-   _workers.push_back( &pe->associateThisThread ( sg, getUntieMaster() ) );
+   _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 
+   // Instrumentation startup
    getInstrumentor()->initialize();
+   getInstrumentor()->enterStartUp();
 
    //start as much threads per pe as requested by the user
    for ( int ths = 1; ths < getThsPerPE(); ths++ ) {
-      _workers.push_back( &pe->startWorker( sg ));
+      _workers.push_back( &pe->startWorker( ));
    }
 
    for ( int p = 1; p < numPes ; p++ ) {
@@ -191,17 +190,14 @@ void System::start ()
       //starting as much threads per pe as requested by the user
 
       for ( int ths = 0; ths < getThsPerPE(); ths++ ) {
-         _workers.push_back( &pe->startWorker( sg ) );
+         _workers.push_back( &pe->startWorker() );
       }
    }
    
 #ifdef SPU_DEV
    PE *spu = new nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);
-   spu->startWorker(sg);
+   spu->startWorker();
 #endif
-
-   // count one for the "main" task
-   sys._numTasksRunning=1;
 
    switch ( getInitialMode() )
    {
@@ -219,11 +215,17 @@ void System::start ()
 
 System::~System ()
 {
-   verbose ( "NANOS++ shutting down.... init" );
-
    if ( !_delayedStart ) {
+      getInstrumentor()->enterShutDown();
+      verbose ( "NANOS++ shutting down.... init" );
       verbose ( "Wait for main workgroup to complete" );
-      myThread->getCurrentWD()->waitCompletation();
+      myThread->getCurrentWD()->waitCompletion();
+
+      // we need to switch to the main thread here to finish
+      // the execution correctly
+      myThread->getCurrentWD()->tieTo(*_workers[0]);
+      Scheduler::switchToThread(_workers[0]);
+      ensure(myThread->getId() == 0, "Main thread not finishing the application!");
    
       verbose ( "Joining threads... phase 1" );
       // signal stop PEs
@@ -233,16 +235,17 @@ System::~System ()
       }
    
       verbose ( "Joining threads... phase 2" );
-   
-      // join
+  
+      // shutdown instrumentation 
+      getInstrumentor()->leaveShutDown();
       getInstrumentor()->finalize();
    
+      // join
       for ( unsigned p = 1; p < _pes.size() ; p++ ) {
          delete _pes[p];
       }
+      verbose ( "NANOS++ shutting down.... end" );
    }
-
-   verbose ( "NANOS++ shutting down.... end" );
 }
 
 /*! \brief Creates a new WD
@@ -289,7 +292,7 @@ System::~System ()
  *
  */
 void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t data_size,
-                        void **data, WG *uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t *copies )
+                        void **data, WG *uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies )
 {
    int dd_size = 0;
    for ( unsigned int i = 0; i < num_devices; i++ )
@@ -300,7 +303,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
                           ( ( data != NULL && *data == NULL ) ? (((data_size+7)>>3)<<3) : 0 ) +
                           sizeof( DD* ) * num_devices +
                           dd_size +
-                          num_copies * sizeof(CopyData)
+                          ( ( copies != NULL && *copies == NULL ) ? num_copies * sizeof(CopyData) : 0 )
                           ;
 
    char *chunk = 0;
@@ -331,11 +334,17 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    }
 
    // allocate copy-ins/copy-outs
-   CopyData *wdCopies = ( CopyData * ) chunk;
-   for (unsigned int i = 0; i < num_copies; i++ ) {
-      CopyData *wdCopiesCurr = ( CopyData * ) chunk;
-      *wdCopiesCurr = copies[i];
-      chunk += sizeof( CopyData );
+   CopyData *wdCopies = NULL;
+   if ( copies != NULL ) {
+      if ( *copies == NULL ) {
+         if ( num_copies > 0 ) {
+            wdCopies = ( CopyData * ) chunk;
+            *copies = wdCopies;
+            chunk += num_copies * sizeof( CopyData );
+         }
+      } else {
+         wdCopies = *copies;
+      }
    }
 
    WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, data != NULL ? *data : NULL, num_copies, num_copies == 0 ? NULL : wdCopies );
@@ -403,7 +412,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
  */
 void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
                         void **outline_data, WG *uwg, Slicer *slicer, size_t slicer_data_size,
-                        SlicerData *&slicer_data, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t *copies )
+                        SlicerData *&slicer_data, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies )
 {
 
    int dd_size = 0;
@@ -416,7 +425,7 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
                           ( ( slicer_data == NULL ) ? (((slicer_data_size+7)>>3)<<3) : 0 ) +
                           sizeof( DD* ) * num_devices +
                           dd_size +
-                          num_copies * sizeof(CopyData)
+                          ( ( copies != NULL && *copies == NULL ) ? num_copies * sizeof(CopyData) : 0 )
                           ;
 
    char *chunk = 0;
@@ -447,11 +456,17 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    }
 
    // allocate copy-ins/copy-outs
-   CopyData *wdCopies = ( CopyData * ) chunk;
-   for (unsigned int i = 0; i < num_copies; i++ ) {
-      CopyData *wdCopiesCurr = ( CopyData * ) chunk;
-      *wdCopiesCurr = copies[i];
-      chunk += sizeof( CopyData );
+   CopyData *wdCopies = NULL;
+   if ( copies != NULL ) {
+      if ( *copies == NULL ) {
+         if ( num_copies > 0 ) {
+            wdCopies = ( CopyData * ) chunk;
+            *copies = wdCopies;
+            chunk += num_copies * sizeof( CopyData );
+         }
+      } else {
+         wdCopies = *copies;
+      }
    }
 
    // allocate SlicerData
@@ -617,6 +632,10 @@ void System::submit ( WD &work )
 {
    work.setParent ( myThread->getCurrentWD() );
    work.setDepth( work.getParent()->getDepth() +1 );
+
+   // Prepare private copy structures to use relative addresses
+   work.prepareCopies();
+
    work.submit();
 }
 
@@ -645,7 +664,11 @@ void System::inlineWork ( WD &work )
 
    // TODO: choose actual device...
    work.setParent ( myself->getCurrentWD() );
-   myself->inlineWork( &work );
+
+   // Prepare private copy structures to use relative addresses
+   work.prepareCopies();
+
+   Scheduler::inlineWork( &work );
 }
 
 
@@ -690,7 +713,7 @@ void System::releaseWorker ( BaseThread * thread )
    thread->leaveTeam();
 }
 
-ThreadTeam * System:: createTeam ( unsigned nthreads, SG *policy, void *constraints,
+ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
                                    bool reuseCurrent, TeamData *tdata )
 {
    int thId;
@@ -701,35 +724,49 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, SG *policy, void *constrai
       nthreads = getNumPEs()*getThsPerPE();
    }
    
-   if ( !policy ) policy = _defSGFactory( nthreads );
+   SchedulePolicy *sched = 0;
+   if ( !sched ) sched = sys.getDefaultSchedulePolicy();
+
+   ScheduleTeamData *stdata = 0;
+   if ( sched->getTeamDataSize() > 0 )
+      stdata = sched->createTeamData(NULL);
 
    // create team
-   ThreadTeam * team = new ThreadTeam( nthreads, *policy, *_defBarrFactory() );
+   ThreadTeam * team = new ThreadTeam( nthreads, *sched, stdata, *_defBarrFactory() );
 
    debug( "Creating team " << team << " of " << nthreads << " threads" );
 
    // find threads
    if ( reuseCurrent ) {
-      
       nthreads --;
 
       thId = team->addThread( myThread );
 
       debug( "adding thread " << myThread << " with id " << toString<int>(thId) << " to " << team );
+
+      
       if (tdata) data = &tdata[thId];
       else data = new TeamData();
 
+      ScheduleThreadData *stdata = 0;
+      if ( sched->getThreadDataSize() > 0 )
+        stdata = sched->createThreadData(NULL);
+      
 //       data->parentTeam = myThread->getTeamData();
 
       data->setId(thId);
+      data->setScheduleData(stdata);
+      
       myThread->enterTeam( team,  data );
+
+      debug( "added thread " << myThread << " with id " << toString<int>(thId) << " to " << team );
    }
 
    while ( nthreads > 0 ) {
       BaseThread *thread = getUnassignedWorker();
 
       if ( !thread ) {
-         // TODO: create one?
+         // alex: TODO: create one?
          break;
       }
 
@@ -740,8 +777,15 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, SG *policy, void *constrai
       if (tdata) data = &tdata[thId];
       else data = new TeamData();
 
+      ScheduleThreadData *stdata = 0;
+      if ( sched->getThreadDataSize() > 0 )
+        stdata = sched->createThreadData(NULL);
+
       data->setId(thId);
+      data->setScheduleData(stdata);
+      
       thread->enterTeam( team, data );
+      debug( "added thread " << myThread << " with id " << toString<int>(thId) << " to " << thread->getTeam() );
    }
 
    team->init();

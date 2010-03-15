@@ -67,7 +67,7 @@ void main__loop_1 ( void *args );
       WG *wg = myThread->getCurrentWD();\
       wg->addWork( *wd );\
       sys.submit( *wd );\
-      wg->waitCompletation();\
+      wg->waitCompletion();\
       if (step > 0 ) for ( int j = lower+k_offset; j <= upper+k_offset; j+= step ) A[j+_loop_data.offset]--; \
       else if ( step < 0 ) for ( int j = lower+k_offset; j >= upper+k_offset; j+= step ) A[j+_loop_data.offset]--; \
    }
