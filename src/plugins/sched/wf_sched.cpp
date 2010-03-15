@@ -208,7 +208,7 @@ namespace nanos {
                                              "Defines the local queue access policy");
                config.registerArgOption ( "wf-local-policy", "wf-local-policy" );
  
-               QueueConfig *queuePolicyStealConfig = new QueueConfig ( WorkFirst::_localPolicy );
+               QueueConfig *queuePolicyStealConfig = new QueueConfig ( WorkFirst::_stealPolicy );
                queuePolicyStealConfig
                   ->addOption ( "FIFO", WorkFirst::FIFO )
                    .addOption ( "LIFO", WorkFirst::LIFO );

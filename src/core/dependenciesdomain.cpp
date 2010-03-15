@@ -93,10 +93,10 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
                lastWriter->addSuccessor( depObj );
                if ( ( !(dep.isOutput()) || dep.isInput() ) ) {
                   // RaW dependency
-                  debug (" DO_ID_" << lastWriter->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=green];");
+    //              debug (" DO_ID_" << lastWriter->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=green];");
                } else {
                   // WaW dependency
-                  debug (" DO_ID_" << lastWriter->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=blue];");
+     //             debug (" DO_ID_" << lastWriter->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=blue];");
                }
             }
             lastWriter->unlock();
@@ -122,7 +122,7 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
             predecessorReader->addSuccessor( depObj );
             depObj.increasePredecessors();
             // WaR dependency
-            debug (" DO_ID_" << predecessorReader->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=red];");
+   //         debug (" DO_ID_" << predecessorReader->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=red];");
          }
          dependencyObject->flushReaders();
 
@@ -148,9 +148,6 @@ template void DependenciesDomain::submitDependableObjectInternal ( DependableObj
 
 void DependenciesDomain::finished ( DependableObject &depObj )
 {
-
-   if ( sys.getVerbose() ) return;
-
    // This step guarantees that any Object that wants to add depObj as a successor has done it
    // before we continue or, alternatively, won't do it.
    DependableObject::TrackableObjectVector &outs = depObj.getOutputObjects();
