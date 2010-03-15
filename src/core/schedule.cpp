@@ -26,12 +26,12 @@ using namespace nanos;
 
 void Scheduler::submit ( WD &wd )
 {
-   // TODO: increase ready count
-
-   sys._taskNum++;
+   sys.getSchedulerStats()._createdTasks++;
+   sys.getSchedulerStats()._totalTasks++;
+   sys.getSchedulerStats()._readyTasks++;
 
    debug ( "submitting task " << wd.getId() );
-   WD *next = myThread->getSchedulingGroup()->atCreation ( myThread, wd );
+   WD *next = myThread->getTeam()->getSchedulePolicy().atSubmit( myThread, wd );
 
    if ( next ) {
       switchTo ( next );
@@ -39,49 +39,65 @@ void Scheduler::submit ( WD &wd )
 }
 
 template<class behaviour>
-static inline void idleLoop ()
+inline void Scheduler::idleLoop ()
 {
+   sys.getInstrumentor()->enterIdle();
+
+   WD *current = myThread->getCurrentWD();
+   current->setIdle();
+   sys.getSchedulerStats()._idleThreads++;
    for ( ; ; ) {
       BaseThread *thread = getMyThreadSafe();
-      WD *current = thread->getCurrentWD();
 
       if ( !thread->isRunning() ) break;
 
-      if ( thread->hasTeam() ) {
-         WD * next = behaviour::getWD(thread,current);
+      if ( thread->getTeam() != NULL ) {
+
+        WD * next = behaviour::getWD(thread,current);
 
          if (next) {
+           sys.getSchedulerStats()._idleThreads--;
+           sys.getInstrumentor()->leaveIdle();
            behaviour::switchWD(thread,current, next);
+           sys.getInstrumentor()->enterIdle();
+           sys.getSchedulerStats()._idleThreads++;
          }
       }
    }
+   sys.getSchedulerStats()._idleThreads--;
+   current->setReady();
+   sys.getInstrumentor()->leaveIdle();
 }
 
 void Scheduler::waitOnCondition (GenericSyncCond *condition)
 {
+   sys.getInstrumentor()->enterIdle();
+   
    int spins=100; // FIXME: this has to be configurable (see #147)
+   WD * current = myThread->getCurrentWD();
 
-   myThread->getCurrentWD()->setSyncCond( condition );
-
+   sys.getSchedulerStats()._readyTasks--;
+   sys.getSchedulerStats()._idleThreads++;
+   current->setSyncCond( condition );
+   current->setBlocked();
+   
    while ( !condition->check() ) {
       BaseThread *thread = getMyThreadSafe();
-      WD * current = thread->getCurrentWD();
-      current->setIdle();
-
+      
       spins--;
       if ( spins == 0 ) {
          condition->lock();
          if ( !( condition->check() ) ) {
             condition->addWaiter( current );
 
-            WD *next = thread->getSchedulingGroup()->atBlock ( thread );
+            WD *next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
 
             if ( next ) {
-               sys._numReady--;
-            }
-
-            if ( next ) {
+               sys.getSchedulerStats()._idleThreads--;
+               sys.getInstrumentor()->leaveIdle();
                switchTo ( next );
+               sys.getInstrumentor()->enterIdle();
+               sys.getSchedulerStats()._idleThreads++;
             }
             else {
                condition->unlock();
@@ -93,159 +109,49 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
          spins = 100;
       }
    }
-   myThread->getCurrentWD()->setReady();
-   myThread->getCurrentWD()->setSyncCond( NULL );
+
+   current->setSyncCond( NULL );
+   sys.getSchedulerStats()._idleThreads--;
+   if ( !current->isReady() ) {
+      sys.getSchedulerStats()._readyTasks++;
+      current->setReady();
+   }
+   sys.getInstrumentor()->leaveIdle();
 }
 
 void Scheduler::wakeUp ( WD *wd )
 {
   if ( wd->isBlocked() ) {
+    sys.getSchedulerStats()._readyTasks++;
     wd->setReady();
     Scheduler::queue( *wd );
   }
-}
-
-void Scheduler::exitHelper (WD *oldWD, WD *newWD, void *arg)
-{
-    myThread->exitHelperDependent(oldWD, newWD, arg);
-    sys.getInstrumentor()->wdExit( oldWD, newWD );
-    delete oldWD;
-    myThread->setCurrentWD( *newWD );
-}
-
-struct ExitBehaviour
-{
-   static WD * getWD ( BaseThread *thread, WD *current )
-   {
-      return thread->getSchedulingGroup()->atExit ( thread );
-   }
-
-   static void switchWD ( BaseThread *thread, WD *current, WD *next )
-   {
-      Scheduler::exitTo(next);
-   }
-};
-
-void Scheduler::exitTo ( WD *next )
- {
-    WD *current = myThread->getCurrentWD();
-
-    sys._numReady--;
-    sys._numTasksRunning++;
-
-     if (!next->started()) next->start(true,current);
-     myThread->exitTo ( next, Scheduler::exitHelper );
-}
-
-void Scheduler::exit ( void )
-{
-   // TODO: Support WD running on lended stack
-   // Cases:
-   // The WD was running on its own stack, switch to a new one
-   // The WD was running on a thread stack, exit to the loop
-
-   // At this point the WD work is done, so we mark it as such and look for other work to do
-   // Deallocation doesn't happen here because:
-   // a) We are still running in the WD stack
-   // b) Resources can potentially be reused by the next WD
-   WD *oldwd = myThread->getCurrentWD();
-   oldwd->done();
-   sys._taskNum--;
-
-   idleLoop<ExitBehaviour>();
-
-   fatal("A thread should never return from Scheduler::exit");
 }
 
 struct WorkerBehaviour
 {
    static WD * getWD ( BaseThread *thread, WD *current )
    {
-      return thread->getSchedulingGroup()->atIdle ( thread );
+      return thread->getTeam()->getSchedulePolicy().atIdle ( thread );
    }
 
    static void switchWD ( BaseThread *thread, WD *current, WD *next )
    {
-// FIX stats
-//                   sys._numReady--;
-//             sys._idleThreads--;
-//             sys._numTasksRunning++;
-
       if (next->started())
         Scheduler::switchTo(next);
       else
         Scheduler::inlineWork ( next );
-
-//             sys._numTasksRunning--;
-//             sys._idleThreads++;
-
    }
 };
 
-void Scheduler::idle ()
+void Scheduler::workerLoop ()
 {
-   sys.getInstrumentor()->enterIdle();
-
-   // This function is run always by the same BaseThread so we don't need to use getMyThreadSafe
-   BaseThread *thread = myThread;
-
-   thread->getCurrentWD()->setIdle();
-
-   sys._idleThreads++;
-
    idleLoop<WorkerBehaviour>();
-
-   thread->getCurrentWD()->setReady();
-
-   sys._idleThreads--;
-
-   verbose ( "Working thread finishing" );
-   sys.getInstrumentor()->leaveIdle();
 }
 
 void Scheduler::queue ( WD &wd )
 {
-      myThread->getSchedulingGroup()->queue ( myThread, wd );
-      sys._numReady++;
-}
-
-void SchedulingGroup::init ( int groupSize )
-{
-   _group.reserve ( groupSize );
-}
-
-void SchedulingGroup::addMember ( BaseThread &thread )
-{
-   SchedulingData *data = createMemberData ( thread );
-
-   data->setSchId ( getSize() );
-   thread.setScheduling ( this, data );
-   _group.push_back( data );
-}
-
-void SchedulingGroup::removeMember ( BaseThread &thread )
-{
-//TODO
-}
-
-void SchedulingGroup::queueIdle ( BaseThread *thread, WD &wd )
-{
-   _idleQueue.push_back ( &wd );
-}
-
-void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
-{
-   GenericSyncCond *syncCond = oldWD->getSyncCond();
-   if ( syncCond != NULL ) {
-      oldWD->setBlocked();
-      syncCond->unlock();
-   } else {
-      Scheduler::queue( *oldWD );
-   }
-   myThread->switchHelperDependent(oldWD, newWD, arg);
-   
-   sys.getInstrumentor()->wdSwitch( oldWD, newWD );
-   myThread->setCurrentWD( *newWD );
+      myThread->getTeam()->getSchedulePolicy().queue( myThread, wd );
 }
 
 void Scheduler::inlineWork ( WD *wd )
@@ -286,15 +192,35 @@ void Scheduler::inlineWork ( WD *wd )
       switchToThread(oldwd->isTiedTo());
    #endif
 
-   ensure(oldwd->isTiedTo() != NULL || oldwd->isTiedTo() == thread,"Violating tied rules");
+   ensure(oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(), 
+          "Violating tied rules " + toString<BaseThread*>(thread) + "!=" + toString<BaseThread*>(oldwd->isTiedTo()));
+
+}
+
+void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
+{
+   GenericSyncCond *syncCond = oldWD->getSyncCond();
+   if ( syncCond != NULL ) {
+      oldWD->setBlocked();
+      syncCond->unlock();
+   } else {
+      Scheduler::queue( *oldWD );
+   }
+   myThread->switchHelperDependent(oldWD, newWD, arg);
+
+   sys.getInstrumentor()->wdSwitch( oldWD, newWD );
+   myThread->setCurrentWD( *newWD );
 }
 
 void Scheduler::switchTo ( WD *to )
 {
    if ( myThread->runningOn()->supportsUserLevelThreads() ) {
       if (!to->started())
-        to->start(true);
-
+         to->start(true);
+      
+      debug( "switching from task " << myThread->getCurrentWD() << ":" << myThread->getCurrentWD()->getId() <<
+          " to " << to << ":" << to->getId() );
+          
       myThread->switchTo( to, switchHelper );
    } else {
       inlineWork(to);
@@ -304,11 +230,10 @@ void Scheduler::switchTo ( WD *to )
 
 void Scheduler::yield ()
 {
-   WD *next = myThread->getSchedulingGroup()->atIdle( myThread );
+   WD *next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
 
    if ( next ) {
-        sys._numTasksRunning++;
-        switchTo(next);
+      switchTo(next);
    }
 }
 
@@ -318,3 +243,52 @@ void Scheduler::switchToThread ( BaseThread *thread )
         yield();
 }
 
+void Scheduler::exitHelper (WD *oldWD, WD *newWD, void *arg)
+{
+    myThread->exitHelperDependent(oldWD, newWD, arg);
+    sys.getInstrumentor()->wdExit( oldWD, newWD );
+    delete oldWD;
+    myThread->setCurrentWD( *newWD );
+}
+
+struct ExitBehaviour
+{
+   static WD * getWD ( BaseThread *thread, WD *current )
+   {
+      return thread->getTeam()->getSchedulePolicy().atExit( thread, current );
+   }
+
+   static void switchWD ( BaseThread *thread, WD *current, WD *next )
+   {
+      Scheduler::exitTo(next);
+   }
+};
+
+void Scheduler::exitTo ( WD *to )
+ {
+    WD *current = myThread->getCurrentWD();
+
+    if (!to->started()) to->start(true,current);
+
+    debug( "exiting task " << myThread->getCurrentWD() << ":" << myThread->getCurrentWD()->getId() <<
+          " to " << to << ":" << to->getId() );
+
+    myThread->exitTo ( to, Scheduler::exitHelper );
+}
+
+void Scheduler::exit ( void )
+{
+   // At this point the WD work is done, so we mark it as such and look for other work to do
+   // Deallocation doesn't happen here because:
+   // a) We are still running in the WD stack
+   // b) Resources can potentially be reused by the next WD
+
+   sys.getSchedulerStats()._totalTasks--;
+
+   WD *oldwd = myThread->getCurrentWD();
+   oldwd->done();
+
+   idleLoop<ExitBehaviour>();
+
+   fatal("A thread should never return from Scheduler::exit");
+}

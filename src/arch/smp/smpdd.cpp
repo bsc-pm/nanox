@@ -28,7 +28,7 @@ using namespace nanos::ext;
 
 Device nanos::ext::SMP( "SMP" );
 
-size_t SMPDD::_stackSize = 1024;
+size_t SMPDD::_stackSize = 16*1024*1024;
 
 /*!
   \brief Registers the Device's configuration options
@@ -40,7 +40,9 @@ void SMPDD::prepareConfig( Config &config )
    /*!
       Get the stack size from system configuration
     */
-   _stackSize = sys.getDeviceStackSize();
+   size_t size = sys.getDeviceStackSize(); 
+   if ( size > 0 )
+      _stackSize = size;
 
    /*!
       Get the stack size for this device

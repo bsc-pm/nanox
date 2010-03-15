@@ -55,26 +55,27 @@ inline void System::setInitialMode ( System::InitialMode mode ) { _initialMode =
 
 inline System::InitialMode System::getInitialMode() const { return _initialMode; }
 
-inline void System::setThsPerPE( int ths ) { _thsPerPE = ths; }
-
 inline void System::setDelayedStart ( bool set) { _delayedStart = set; }
 
 inline bool System::getDelayedStart () const { return _delayedStart; }
 
 inline int System::getThsPerPE() const { return _thsPerPE; }
 
-inline int System::getTaskNum() const { return _taskNum.value(); }
+inline int System::getTaskNum() const { return _schedStats._totalTasks.value(); }
 
-inline int System::getIdleNum() const { return _idleThreads.value(); }
+inline int System::getIdleNum() const { return _schedStats._idleThreads.value(); }
 
-inline int System::getReadyNum() const { return _numReady.value(); }
+inline void System::setUntieMaster ( bool value ) { _untieMaster = value; }
+inline bool System::getUntieMaster () const { return _untieMaster; }
 
-inline int System::getRunningTasks() const { return _numTasksRunning.value(); }
+inline int System::getReadyNum() const { return _schedStats._readyTasks.value(); }
+
+inline int System::getRunningTasks() const
+{
+   return _workers.size() - _schedStats._idleThreads.value();
+}
 
 inline int System::getNumWorkers() const { return _workers.size(); }
-
-//BUG: does not work: sigsegv on myThread
-inline int System::getSGSize() const { return myThread->getSchedulingGroup()->getSize(); }
 
 inline void System::setThrottlePolicy( ThrottlePolicy * policy ) { _throttlePolicy = policy; }
 
@@ -85,8 +86,6 @@ inline const std::string & System::getDefaultThrottlePolicy() const { return _de
 inline const std::string & System::getDefaultBarrier() const { return _defBarr; }
 
 inline const std::string & System::getDefaultInstrumentor() const { return _defInstr; }
-
-inline void System::setDefaultSGFactory ( sgFactory factory ) { _defSGFactory = factory; }
 
 inline void System::setHostFactory ( peFactory factory ) { _hostFactory = factory; }
 
@@ -99,11 +98,16 @@ inline Slicer * System::getSlicer( const std::string &label ) const
    return (*it).second;
 }
 
-inline Instrumentor * System::getInstrumentor ( void ) { return _instrumentor; }
+inline Instrumentor * System::getInstrumentor ( void ) const { return _instrumentor; }
 
 inline void System::setInstrumentor ( Instrumentor *instr ) { _instrumentor = instr; }
 
 inline void System::registerSlicer ( const std::string &label, Slicer *slicer) { _slicers[label] = slicer; }
+
+inline void System::setDefaultSchedulePolicy ( SchedulePolicy *policy ) { _defSchedulePolicy = policy; }
+inline SchedulePolicy * System::getDefaultSchedulePolicy ( ) const  { return _defSchedulePolicy; }
+
+inline SchedulerStats & System::getSchedulerStats () { return _schedStats; }
 
 #endif
 

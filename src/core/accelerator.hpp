@@ -50,6 +50,8 @@ namespace nanos
          // destructor
          virtual ~Accelerator() {}
 
+         virtual bool hasSeparatedMemorySpace() const { return true; };
+
          virtual void copyDataIn( WorkDescriptor& wd );
          virtual void copyDataOut( WorkDescriptor& wd );
 
