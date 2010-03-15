@@ -18,99 +18,128 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "omp.h"
+#include "basethread.hpp"
+#include "threadteam.hpp"
+#include "system.hpp"
+#include "omp_data.hpp"
+
+using namespace nanos;
+using namespace nanos::OpenMP;
 
 extern "C"
 {
-
    int omp_get_num_threads ( void )
    {
-      return 1;
+      return myThread->getTeam()->size();
    }
 
    int omp_get_max_threads ( void )
    {
-      return 1;
+      OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+      return data->icvs().getNumThreads();
+   }
+
+   void omp_set_num_threads ( int nthreads )
+   {
+      OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+      data->icvs().setNumThreads(nthreads);
    }
 
    int omp_get_thread_num ( void )
    {
-      return 0;
+      //TODO: check master always gets a 0
+      return myThread->getTeamData()->getId();
    }
 
    int omp_get_num_procs ( void )
    {
-      return 1;
+      return sys.getNumPEs();
    }
 
    int omp_in_parallel ( void )
    {
-      return 0;
+      return myThread->getTeam()->size() > 1;
    }
 
    void omp_set_dynamic ( int dynamic_threads )
    {
+      OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+      data->icvs().setDynamic((bool) dynamic_threads);
    }
 
    int omp_get_dynamic ( void )
    {
-      return 0;
+      OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+      return (int) data->icvs().getDynamic();
    }
 
    void omp_set_nested ( int nested )
    {
+      OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+      data->icvs().setNested((bool) nested);
    }
 
    int omp_get_nested ( void )
    {
-      return 0;
+      OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+      return (int) data->icvs().getNested();
    }
 
    void omp_set_schedule ( omp_sched_t kind, int modifier )
    {
+      OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+      data->icvs().setSchedule( LoopSchedule(kind,modifier) );
    }
 
    void omp_get_schedule ( omp_sched_t *kind, int *modifier )
    {
-      *kind = omp_sched_auto;
-      *modifier = 0;
+      OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+      const LoopSchedule &schedule = data->icvs().getSchedule();
+
+      *kind = schedule._kind;
+      *modifier = schedule._modifier;
    }
 
    int omp_get_thread_limit ( void )
    {
-      return 1;
+      return globalState->getThreadLimit();
    }
 
    void omp_set_max_active_levels ( int max_active_levels )
    {
+      if (!omp_in_parallel() )
+         globalState->setMaxActiveLevels(max_active_levels);
    }
 
    int omp_get_max_active_levels ( void )
    {
-      return 0;
+      return globalState->getMaxActiveLevels();
    }
 
    int omp_get_level ( void )
    {
+      //TODO
       return 0;
    }
 
    int omp_get_ancestor_thread_num ( int level )
    {
+      //TODO
       if ( level == 0 ) return 0;
       else return -1;
    }
 
    int omp_get_team_size ( int level )
    {
+      //TODO
       if ( level == 0 ) return 1;
       else return -1;
    }
 
    int omp_get_active_level ( void )
    {
+      //TODO
       return 0;
    }
-   
 }
 

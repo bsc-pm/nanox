@@ -138,8 +138,6 @@ namespace nanos
          void setInitialMode ( InitialMode mode );
          InitialMode getInitialMode() const;
 
-         void setThsPerPE( int ths );
-
          void setDelayedStart ( bool set);
 
          bool getDelayedStart () const;
@@ -155,6 +153,10 @@ namespace nanos
          int getRunningTasks() const;
 
          int getNumWorkers() const;
+
+         void setUntieMaster ( bool value );
+
+         bool getUntieMaster () const;
 
          // team related methods
          BaseThread * getUnassignedWorker ( void );

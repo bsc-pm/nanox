@@ -30,11 +30,12 @@ Atomic<int> DependenciesDomain::_atomicSeed( 0 );
 TrackableObject* DependenciesDomain::lookupDependency ( const Dependency& dep )
 {
    TrackableObject *trackableObject = NULL;
+   void * address = dep.getDepAddress();
    
-   DepsMap::iterator it = _addressDependencyMap.find(*(dep.getAddress())); 
+   DepsMap::iterator it = _addressDependencyMap.find( address ); 
    if ( it == _addressDependencyMap.end() ) {
-      trackableObject = new TrackableObject(*dep.getAddress());
-      _addressDependencyMap.insert( std::make_pair(*(dep.getAddress()), trackableObject) );
+      trackableObject = new TrackableObject( address );
+      _addressDependencyMap.insert( std::make_pair( address, trackableObject) );
    } else {
       trackableObject = it->second;
    }
@@ -60,7 +61,7 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
       bool found = false;
       for ( std::list<Dependency *>::iterator current = filteredDeps.begin(); current != filteredDeps.end(); current++ ) {
          Dependency* currentDep = *current;
-         if ( *(newDep->getAddress()) == *(currentDep->getAddress()) ) {
+         if ( newDep->getDepAddress() == currentDep->getDepAddress() ) {
             // Both dependencies use the same address, put them in common
             currentDep->setInput( newDep->isInput() || currentDep->isInput() );
             currentDep->setOutput( newDep->isOutput() || currentDep->isOutput() );

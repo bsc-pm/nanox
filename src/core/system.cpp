@@ -104,7 +104,6 @@ void System::config ()
    Config config;
 
    if ( externInit != NULL ) {
-        verbose0("Invoking external configuration");
         externInit();
    }
 
@@ -173,7 +172,7 @@ void System::start ()
    //TODO: decide, single master, multiple master start
    PE *pe = createPE ( "smp", 0 );
    _pes.push_back ( pe );
-   _workers.push_back( &pe->associateThisThread ( _untieMaster ) );
+   _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 
    // Instrumentation startup
    getInstrumentor()->initialize();

@@ -55,8 +55,6 @@ inline void System::setInitialMode ( System::InitialMode mode ) { _initialMode =
 
 inline System::InitialMode System::getInitialMode() const { return _initialMode; }
 
-inline void System::setThsPerPE( int ths ) { _thsPerPE = ths; }
-
 inline void System::setDelayedStart ( bool set) { _delayedStart = set; }
 
 inline bool System::getDelayedStart () const { return _delayedStart; }
@@ -66,6 +64,9 @@ inline int System::getThsPerPE() const { return _thsPerPE; }
 inline int System::getTaskNum() const { return _schedStats._totalTasks.value(); }
 
 inline int System::getIdleNum() const { return _schedStats._idleThreads.value(); }
+
+inline void System::setUntieMaster ( bool value ) { _untieMaster = value; }
+inline bool System::getUntieMaster () const { return _untieMaster; }
 
 inline int System::getReadyNum() const { return _schedStats._readyTasks.value(); }
 

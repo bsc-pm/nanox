@@ -43,12 +43,17 @@ typedef enum omp_sched_t {
 * exported OpenMP functions
 */
 #ifdef __cplusplus
-extern
-   "C"
+extern "C"
 {
 #endif
 
-
+int omp_get_num_threads ( void );
+int omp_get_thread_num ( void );
+int omp_get_num_procs ( void );
+int omp_in_parallel ( void );
+int omp_get_thread_limit ( void );
+void omp_set_max_active_levels ( int max_active_levels );
+int omp_get_max_active_levels ( void );
 
 #ifdef __cplusplus
 }
