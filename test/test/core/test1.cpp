@@ -17,45 +17,87 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include <stdio.h>
-#include <nanos.h>
+/*
+<testinfo>
+test_generator=gens/core-generator
+</testinfo>
+*/
 
-// compiler: outlined function arguments
+#include "config.hpp"
+#include <iostream>
+#include "smpprocessor.hpp"
+#include "system.hpp"
+#include <string.h>
+
+using namespace std;
+
+using namespace nanos;
+using namespace nanos::ext;
+
+int a = 1234;
+std::string b( "default" );
+bool c = false;
+
 typedef struct {
-   int value;
-} main__task_1_data_t;
+   int a;
+   std::string b;
+} hello_world_args;
 
-// compiler: outlined function
-void main__task_1 ( void *args )
+void hello_world ( void *args )
 {
-   main__task_1_data_t *hargs = (main__task_1_data_t * ) args;
-
-   usleep ( hargs->value );
+   hello_world_args *hargs = ( hello_world_args * ) args;
+   cout << "hello_world "
+        << hargs->a << " "
+        << hargs->b
+        << endl;
 }
-
-// compiler: smp device for main__loop_1 function
-nanos_smp_args_t main__task_1_device_args = { main__task_1 };
 
 int main ( int argc, char **argv )
 {
+   cout << "PEs = " << sys.getNumPEs() << endl;
+   cout << "Mode = " << sys.getExecutionMode() << endl;
+   cout << "Verbose = " << sys.getVerbose() << endl;
 
-      nanos_wd_t wd = NULL;
-      nanos_device_t main__task_1_device[1] = { NANOS_SMP_DESC( main__task_1_device_args ) };
-      main__task_1_data_t *task_data = NULL;
-      nanos_wd_props_t props = {
-         .mandatory_creation = true,
-         .tied = false,
-         .tie_to = false
-      };
+   cout << "Args" << endl;
 
-      NANOS_SAFE( nanos_create_wd ( &wd, 1, main__task_1_device , sizeof( main__task_1_data_t ),
-                                    (void **) &task_data, nanos_current_wd(), &props , 0, NULL ));
+   for ( int i = 0; i < argc; i++ )
+      cout << argv[i] << endl;
 
-      task_data->value = 100;
+   cout << "start" << endl;
 
-      NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
-      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+   const char *a = "alex";
 
-      return 0; 
+   hello_world_args *data = new hello_world_args();
+
+   data->a = 1;
+
+   data->b = a;
+
+   WD * wd = new WD( new SMPDD( hello_world ), sizeof( hello_world_args ), data );
+
+   a = "pepe";
+
+   data = new hello_world_args();
+
+   data->a = 2;
+
+   data->b = a;
+
+   WD * wd2 = new WD( new SMPDD( hello_world ), sizeof (hello_world_args ), data );
+
+   WG *wg = myThread->getCurrentWD();
+
+   wg->addWork( *wd );
+
+   wg->addWork( *wd2 );
+
+   sys.submit( *wd );
+
+   sys.submit( *wd2 );
+
+   usleep( 500 );
+
+   wg->waitCompletion();
+
+   cout << "end" << endl;
 }
-

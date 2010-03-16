@@ -17,51 +17,51 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+/*
+<testinfo>
+test_generator=gens/api-generator
+</testinfo>
+*/
+
 #include <stdio.h>
-#include <sys/time.h>
-#include <stdlib.h>
 #include <nanos.h>
 
-void first()
+// compiler: outlined function arguments
+typedef struct {
+   int value;
+} main__task_1_data_t;
+
+// compiler: outlined function
+void main__task_1 ( void *args )
 {
-   printf("first task!\n");
-   fflush(stdout);
+   main__task_1_data_t *hargs = (main__task_1_data_t * ) args;
+
+   usleep ( hargs->value );
 }
 
-void second()
-{
-   printf("second task!\n");
-   fflush(stdout);
-}
-
-
-nanos_smp_args_t test_device_arg_1 = { first };
-nanos_smp_args_t test_device_arg_2 = { second };
+// compiler: smp device for main__loop_1 function
+nanos_smp_args_t main__task_1_device_args = { main__task_1 };
 
 int main ( int argc, char **argv )
 {
-   int dep;
-   int * dep_addr = &dep;
-   int dummy=0;
-   nanos_dependence_t deps = {(void **)&dep_addr,0, {1,1,0}, 0};
-   nanos_wd_props_t props = {
-     .mandatory_creation = true,
-     .tied = false,
-     .tie_to = false,
-   };
-   nanos_wd_t wd1=0;
-   nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1) };
-   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, 0, (void*)&dummy, nanos_current_wd(), &props, 0, NULL ) );
-   NANOS_SAFE( nanos_submit( wd1,1,&deps,0 ) );
 
+      nanos_wd_t wd = NULL;
+      nanos_device_t main__task_1_device[1] = { NANOS_SMP_DESC( main__task_1_device_args ) };
+      main__task_1_data_t *task_data = NULL;
+      nanos_wd_props_t props = {
+         .mandatory_creation = true,
+         .tied = false,
+         .tie_to = false
+      };
 
-   nanos_wd_t wd2=0;
-   nanos_device_t test_devices_2[1] = { NANOS_SMP_DESC( test_device_arg_2) };
-   NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_2, 0, (void*)&dummy, nanos_current_wd(), &props, 0, NULL ) );
-   NANOS_SAFE( nanos_submit( wd2,1,&deps,0 ) );
+      NANOS_SAFE( nanos_create_wd ( &wd, 1, main__task_1_device , sizeof( main__task_1_data_t ),
+                                    (void **) &task_data, nanos_current_wd(), &props , 0, NULL ));
 
+      task_data->value = 100;
 
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
-   return 0;
+      NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
+      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+
+      return 0; 
 }
 

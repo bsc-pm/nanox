@@ -17,6 +17,12 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+/*
+<testinfo>
+test_generator=gens/api-generator
+</testinfo>
+*/
+
 #include <stdio.h>
 #include <sys/time.h>
 #include <stdlib.h>
@@ -53,92 +59,62 @@ void fib_1( void *ptr )
 
 void fib_2( void *ptr )
 {
-   fib_args * args = ( fib_args * )ptr;   
+   fib_args * args = ( fib_args * )ptr;
    *args->x = fib( args->n-2,args->d+1 );
 }
 
 nanos_smp_args_t fib_device_arg_1 = { fib_1 };
 nanos_smp_args_t fib_device_arg_2 = { fib_2 };
 
+
 int fib ( int n, int d )
 {
-#if 0
-   nanos_event_t event_ini;
-   event_ini.type = BURST_START;
-   event_ini.info.burst.key = USER_FUNCT;
-   event_ini.info.burst.value = 12345;
-
-   nanos_instrument_events ( 1, &event_ini );
-#else
-   nanos_instrument_enter_burst ( USER_FUNCT, 12345 );
-#endif
-
-
-
    int x, y;
 
    if ( n < 2 ) return n;
 
-   if ( d < cutoff_value ) {
+   // if ( d < cutoff_value ) {
 //       #pragma omp task untied shared(x) firstprivate(n,d)
 //      x = fib(n - 1,d+1);
-      {
-         nanos_wd_t wd=0;
-         fib_args *args=0;
-         nanos_device_t fib_devices_1[1] = { NANOS_SMP_DESC( fib_device_arg_1 ) };
-         nanos_wd_props_t props = {
-           .mandatory_creation = true,
-           .tied = false,
-           .tie_to = false,
-         };
+   {
+      nanos_wd_t wd=0;
+      fib_args *args=0;
+      nanos_device_t fib_devices_1[1] = { NANOS_SMP_DESC( fib_device_arg_1 ) };
 
-         NANOS_SAFE( nanos_create_wd ( &wd, 1, fib_devices_1 , sizeof( fib_args ),
-                                       ( void ** )&args, nanos_current_wd(), &props, 0, NULL ) );
+      nanos_create_wd ( &wd, 1, fib_devices_1 , sizeof( fib_args ),
+                        ( void ** )&args, nanos_current_wd(), 0, 0, NULL );
+
+      if ( wd != 0 ) {
          args->n = n;
          args->d = d;
          args->x = &x;
-         
-         NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
-      }
+         nanos_submit( wd,0,0,0 );
+      } else
+         x = fib_seq( n-1 );
+   }
 
-//		#pragma omp task untied shared(y) firstprivate(n,d)
-//		y = fib(n - 2,d+1);
-      {
-         nanos_wd_t wd=0;
-         fib_args *args=0;
-         nanos_device_t fib_devices_2[1] = { NANOS_SMP_DESC( fib_device_arg_2 ) };
-         nanos_wd_props_t props = {
-           .mandatory_creation = true,
-           .tied = false,
-           .tie_to = false,
-         };
+//            #pragma omp task untied shared(y) firstprivate(n,d)
+//            y = fib(n - 2,d+1);
+   {
+      nanos_wd_t wd=0;
+      fib_args *args=0;
+      nanos_device_t fib_devices_2[1] = { NANOS_SMP_DESC( fib_device_arg_2 ) };
+      
+      nanos_create_wd ( &wd, 1, fib_devices_2 , sizeof( fib_args ),
+                        ( void ** )&args, nanos_current_wd(), 0, 0, NULL );
 
-         NANOS_SAFE( nanos_create_wd ( &wd, 1, fib_devices_2 , sizeof( fib_args ),
-                                       ( void ** )&args, nanos_current_wd(), &props, 0, NULL ) );
+      if ( wd != 0 ) {
          args->n = n;
          args->d = d;
          args->x = &y;
-         
-         NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
-      }
+         nanos_submit( wd,0,0,0 );
+      } else
+         y = fib_seq( n-2 );
 
-//		#pragma omp taskwait
-      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
-   } else {
-      x = fib_seq( n-1 );
-      y = fib_seq( n-2 );
    }
 
-#if 0
-   nanos_event_t event_fini;
-   event_fini.type = BURST_END;
-   event_fini.info.burst.key = USER_FUNCT;
-   event_fini.info.burst.value = 12345;
-
-   nanos_instrument_events ( 1, &event_fini );
-#else
-   nanos_instrument_leave_burst ( USER_FUNCT, 12345 );
-#endif
+//            #pragma omp taskwait
+   nanos_wg_wait_completion( nanos_current_wd() );
 
    return x + y;
 }
