@@ -76,7 +76,6 @@ namespace ext
          // capability query functinos
          virtual bool supportsUserLevelThreads () const { return _useUserThreads; }
 #ifdef SMP_NUMA
-         virtual bool hasSeparatedMemorySpace() const { return true; }
          /* Memory space suport */
          virtual void registerDataAccessDependent( uint64_t tag, size_t size );
          virtual void copyDataDependent( uint64_t tag, size_t size );
@@ -84,8 +83,6 @@ namespace ext
          virtual void copyBackDependent( uint64_t tag, size_t size );
          virtual void* getAddressDependent( uint64_t tag );
          virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
-#else
-         virtual bool hasSeparatedMemorySpace() const { return false; }
 #endif
    };
 

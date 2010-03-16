@@ -76,7 +76,7 @@ namespace nanos
 
          /* capabilitiy query functions */
          virtual bool supportsUserLevelThreads() const = 0;
-         virtual bool hasSeparatedMemorySpace() const = 0;
+         virtual bool hasSeparatedMemorySpace() const { return false };
 
          /* Memory space suport */
          virtual void copyDataIn( WorkDescriptor& wd ) {}
