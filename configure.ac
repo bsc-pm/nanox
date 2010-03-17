@@ -41,6 +41,7 @@ AC_SUBST([OS])
 AC_SUBST([SMP_ARCH])
 
 AC_MSG_CHECKING([for architecture])
+smp_ult=yes
 case $host in
   i?86-*-linux*)
     OS=unix-os
@@ -104,7 +105,9 @@ case $host in
 
     ;;
   *)
-    AC_MSG_ERROR([unsupported architecture $host])
+    ARCHITECTURES+=smp
+    SMP_ARCH=unknown
+    smp_ult=no
     ;;
 esac
 
@@ -112,6 +115,8 @@ esac
 for arch in $ARCHITECTURES; do
 	NANOS_CONFIG_LIBS+=" ../arch/$arch/lib$arch.la"
 done
+
+AM_CONDITIONAL([SMP_SUPPORTS_ULT],[test "$smp_ult"=yes])
 
 AC_MSG_RESULT([$ARCHITECTURES/$OS])
 
