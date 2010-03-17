@@ -22,6 +22,17 @@ SUBDIRS = gens
 check-local: $(top_srcdir)/scripts/bets
 	$(top_srcdir)/scripts/bets -o tests.log $(srcdir)/test
 
+dist-hook:
+	mkdir $(distdir)/test; \
+	for i in $(srcdir)/test/*; \
+	do  \
+	   DIR=test/$$(basename $$i); \
+	   [ -f $$i ] && continue; \
+	   [ "$DIR" = "gens" ] && continue;\
+	   mkdir -p $(distdir)/$${DIR} ; \
+	   find $(srcdir)/$${DIR} "(" -name "*.c" -o -name "*.cpp" -o -name "*.C" -o -name "*.cc" ")" -exec cp {} $(distdir)/$${DIR} ';' ; \
+	done
+
 #include $(top_srcdir)/src/common.am
 #
 #unsafe_cflags=$(common_cflags) -fno-strict-aliasing
