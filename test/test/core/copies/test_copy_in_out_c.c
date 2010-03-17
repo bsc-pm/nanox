@@ -39,11 +39,12 @@ void first( void *ptr )
 
    my_args *args = (my_args *)ptr;
    my_args local;
-   nanos_copy_value( &local.a, (uint64_t)&args->a, NANOS_PRIVATE, sizeof(local.a) );
-   nanos_get_addr( (uint64_t)args->b, NANOS_SHARED, (void **)&local.b );
+   nanos_copy_value( &local.a, 0 );
+   nanos_get_addr( 1, (void **)&local.b );
 
    if ( args->a != local.a ) {
       printf( "Error private argument is incorrect, %d in args and %d through the copies  FAIL\n", args->a, local.a );
+      exit(1);
    } else {
       printf( "Checking private argument ...          PASS\n" );
    }
@@ -51,12 +52,12 @@ void first( void *ptr )
    printf(    "Checking for shared argument ...");
 
    if ( strcmp(args->b, local.b) == 0) {
-   printf(                                    "       PASS\n");
+      printf(                                 "       PASS\n");
    } else {
-   printf(                                    "       FAIL\n");
-   printf( "Argument is '%s' while the copy is '%s'\n", args->b, local.b );
+      printf(                                 "       FAIL\n");
+      printf( "Argument is '%s' while the copy is '%s'\n", args->b, local.b );
+      exit(1);
    }
-
    for ( i = 0; i < 9; i++ )
       local.b[i] = '9'-i;
 }
@@ -85,8 +86,8 @@ int main ( int argc, char **argv )
    args->a = 1;
    args->b = dummy1;
 
-   cd[0] = (nanos_copy_data_t) {(uint64_t)(unsigned int)&(args->a), NANOS_PRIVATE, {true, false}, sizeof(args->a)};
-   cd[1] = (nanos_copy_data_t) {(uint64_t)(unsigned int)args->b, NANOS_SHARED, {true, true}, sizeof(char)*10}; 
+   cd[0] = (nanos_copy_data_t) {(uint64_t)&(args->a), NANOS_PRIVATE, {true, false}, sizeof(args->a)};
+   cd[1] = (nanos_copy_data_t) {(uint64_t)args->b, NANOS_SHARED, {true, true}, sizeof(char)*10}; 
 
    NANOS_SAFE( nanos_submit( wd1,0,0,0 ) );
 
@@ -97,6 +98,7 @@ int main ( int argc, char **argv )
    } else {
       printf( "Checking for copy-back correctness...  FAIL\n" );
       printf( "expecting '%s', copied back: '%s'\n", text2, dummy1 );
+      return 1;
    }
 
    return 0;

@@ -41,6 +41,7 @@ typedef void * nanos_slicer_data_t;
 typedef void * nanos_lock_t;
 typedef void * nanos_dd_t;
 typedef void * nanos_sync_cond_t;
+typedef unsigned int nanos_copy_id_t;
 
 typedef struct {
    int nthreads;
@@ -122,9 +123,11 @@ nanos_err_t nanos_try_lock ( nanos_lock_t lock, bool *result );
 nanos_err_t nanos_destroy_lock ( nanos_lock_t lock );
 
 // Device copies
-nanos_err_t nanos_get_addr ( uint64_t tag, nanos_sharing_t sharing, void **addr );
+//nanos_err_t nanos_get_addr ( uint64_t tag, nanos_sharing_t sharing, void **addr );
+nanos_err_t nanos_get_addr ( nanos_copy_id_t copy_id, void **addr );
 
-nanos_err_t nanos_copy_value ( void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );
+//nanos_err_t nanos_copy_value ( void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );
+nanos_err_t nanos_copy_value ( void *dst, nanos_copy_id_t copy_id );
 
 // system interface
 nanos_err_t nanos_get_num_running_tasks ( int *num );
