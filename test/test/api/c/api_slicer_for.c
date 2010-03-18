@@ -19,9 +19,25 @@
 
 /*
 <testinfo>
+compile_versions="SLICER_STATIC SLICER_INTERLEAVED"
+
+for cver in $compile_versions;
+do
+  let test_CFLAGS_$cver="-D$cver"
+done
+
 test_generator=gens/api-generator
 </testinfo>
 */
+
+#if 0
+exec_versions="1 2 3 4"
+for ever in $exec_versions;
+do
+  let test_ARGS_$ever="--length=$ever"
+  let test_ENV_$ever="ENV_VAR='VALUE_$ever'"
+done
+#endif
 
 #include <stdio.h>
 #include <nanos.h>
