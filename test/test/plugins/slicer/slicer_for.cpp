@@ -19,6 +19,13 @@
 
 /*
 <testinfo>
+compile_versions="slicer_static slicer_interleaved slicer_dynamic slicer_guided"
+
+test_CXXFLAGS_slicer_static="-DSLICER_STATIC"
+test_CXXFLAGS_slicer_interleaved="-DSLICER_INTERLEAVED"
+test_CXXFLAGS_slicer_dynamic="-DSLICER_DYNAMIC"
+test_CXXFLAGS_slicer_guided="-DSLICER_GUIDED"
+
 test_generator=gens/mixed-generator
 </testinfo>
 */

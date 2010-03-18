@@ -19,25 +19,16 @@
 
 /*
 <testinfo>
-compile_versions="SLICER_STATIC SLICER_INTERLEAVED"
+compile_versions="slicer_static slicer_interleaved slicer_dynamic slicer_guided"
 
-for cver in $compile_versions;
-do
-  let test_CFLAGS_$cver="-D$cver"
-done
+test_CFLAGS_slicer_static="-DSLICER_STATIC"
+test_CFLAGS_slicer_interleaved="-DSLICER_INTERLEAVED"
+test_CFLAGS_slicer_dynamic="-DSLICER_DYNAMIC"
+test_CFLAGS_slicer_guided="-DSLICER_GUIDED"
 
 test_generator=gens/api-generator
 </testinfo>
 */
-
-#if 0
-exec_versions="1 2 3 4"
-for ever in $exec_versions;
-do
-  let test_ARGS_$ever="--length=$ever"
-  let test_ENV_$ever="ENV_VAR='VALUE_$ever'"
-done
-#endif
 
 #include <stdio.h>
 #include <nanos.h>
