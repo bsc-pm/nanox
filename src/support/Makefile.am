@@ -33,5 +33,6 @@ libsupport_la_SOURCES = \
 	plugin.hpp \
 	plugin.cpp \
 	xstring.hpp \
+	cache.hpp \
 	$(END) 
 

@@ -38,7 +38,7 @@ namespace nanos
          *  \param output Whether the dependency is output or not
          *  \param canRename Whether the dependency can rename or not
          */
-         Dependency ( void ** addr = NULL, unsigned int offset = 0, bool input = false, bool output = false, bool canRename = false, size_t storageSize = 0 )
+         Dependency ( void ** addr = NULL, ptrdiff_t offset = 0, bool input = false, bool output = false, bool canRename = false, size_t storageSize = 0 )
          {
             address = addr;
             offset = offset;
@@ -87,7 +87,7 @@ namespace nanos
          
         /*! \brief Obtain the dependency's address address
          */
-         unsigned int getOffset() const
+         ptrdiff_t getOffset() const
          { return offset; }
 
         /*! \brief Compute the dependency address

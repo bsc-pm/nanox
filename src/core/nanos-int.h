@@ -22,10 +22,11 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stddef.h>
 
 typedef struct {
    void **address;
-   unsigned int offset;
+   ptrdiff_t offset;
    struct {
      bool  input: 1;
      bool  output: 1;

@@ -29,20 +29,28 @@ EXTRA_DIST= \
 	x86-64/stack.s \
 	ia64/stack.cpp \
 	ia64/stack.s \
+        smp_ult.hpp \
 	$(END)
 	
+if SMP_SUPPORTS_ULT
+ult_sources= \
+         @SMP_ARCH@/stack.cpp \
+	 @SMP_ARCH@/stack.s \
+         $(END)
+ult_flags=-DSMP_SUPPORTS_ULT
+endif
 
-libsmp_la_CXXFLAGS=$(common_includes) $(common_cxxflags) 
+libsmp_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags)
 libsmp_la_SOURCES = \
 		smpmemory.hpp \
 		smpdd.hpp \
 		smpdd.cpp \
-		@SMP_ARCH@/stack.cpp \
-		@SMP_ARCH@/stack.s \
+		$(ult_sources) \
 		$(END)
 
 
-libnanox_pe_smp_la_CXXFLAGS=$(common_includes) $(common_cxxflags) 
+
+libnanox_pe_smp_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags)
 libnanox_pe_smp_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_pe_smp_la_SOURCES = \
 		smpmemory.hpp \

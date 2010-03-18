@@ -26,24 +26,26 @@
 
 using namespace nanos;
 
-nanos_err_t nanos_get_addr ( uint64_t tag, nanos_sharing_t sharing, void **addr )
+nanos_err_t nanos_get_addr ( nanos_copy_id_t copy_id, void **addr )
 {
    nanos_wd_t cwd = myThread->getCurrentWD();
    WD *wd = ( WD * )cwd;
+   CopyData &cd = wd->getCopies()[copy_id];
 
    ProcessingElement *pe = myThread->runningOn();
-   *addr = pe->getAddress( *wd, tag, sharing ); //FIXME , SHARING );
+   *addr = pe->getAddress( *wd, cd.getAddress(), cd.getSharing() );
 
    return NANOS_OK;
 }
 
-nanos_err_t nanos_copy_value ( void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size )
+nanos_err_t nanos_copy_value ( void *dst, nanos_copy_id_t copy_id )
 {
    nanos_wd_t cwd = myThread->getCurrentWD();
    WD *wd = ( WD * )cwd;
+   CopyData &cd = wd->getCopies()[copy_id];
 
    ProcessingElement *pe = myThread->runningOn();
-   pe->copyTo( *wd, dst, tag, sharing, size ); //FIXME , SHARING );
+   pe->copyTo( *wd, dst, cd.getAddress(), cd.getSharing(), cd.getSize() );
 
    return NANOS_OK;
 }

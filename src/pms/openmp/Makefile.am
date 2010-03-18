@@ -29,6 +29,7 @@ include_HEADERS=\
 sources=\
         omp_init.cpp\
         omp.h\
+        omp_data.hpp\
         omp_api.cpp\
         omp_time.cpp\
         omp_locks.cpp\

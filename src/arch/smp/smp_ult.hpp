@@ -32,6 +32,14 @@ extern "C"
 intptr_t * initContext( intptr_t *stack, size_t stackSize, void *userFunction, void *userArg,
                        void *cleanup, void *cleanupArg );
 
+#ifndef SMP_SUPPORTS_ULT
+
+extern "C" {
+   inline void switchStacks( void *,void *,void *,void * ) {}
+}
+inline intptr_t * initContext( intptr_t *stack, size_t stackSize, void *userFunction, void *userArg,
+                       void *cleanup, void *cleanupArg ) { return 0; }
+#endif
 
 #endif
 

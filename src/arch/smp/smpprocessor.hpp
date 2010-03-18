@@ -72,11 +72,14 @@ namespace ext
          virtual BaseThread & createThread ( WorkDescriptor &wd );
 
          static void prepareConfig ( Config &config );
-
-         // capability query functinos
+         // capability query functions
+#ifdef SMP_SUPPORTS_ULT
          virtual bool supportsUserLevelThreads () const { return _useUserThreads; }
+#else
+         virtual bool supportsUserLevelThreads () const { return false; }
+#endif
+
 #ifdef SMP_NUMA
-         virtual bool hasSeparatedMemorySpace() const { return true; }
          /* Memory space suport */
          virtual void registerDataAccessDependent( uint64_t tag, size_t size );
          virtual void copyDataDependent( uint64_t tag, size_t size );
@@ -84,8 +87,6 @@ namespace ext
          virtual void copyBackDependent( uint64_t tag, size_t size );
          virtual void* getAddressDependent( uint64_t tag );
          virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
-#else
-         virtual bool hasSeparatedMemorySpace() const { return false; }
 #endif
    };
 
