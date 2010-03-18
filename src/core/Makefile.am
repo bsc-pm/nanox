@@ -51,12 +51,13 @@ nanos_sources=\
 	accelerator.cpp \
 	schedule.hpp \
 	schedule.cpp \
-	system.hpp \
         system_decl.hpp\
+	system.hpp \
 	system.cpp \
 	wddeque.hpp \
 	workgroup.hpp \
 	workgroup.cpp \
+	workdescriptor_decl.hpp \
 	workdescriptor.hpp \
 	workdescriptor.cpp \
 	slicer.hpp \
@@ -73,8 +74,8 @@ nanos_sources=\
 	trackableobject.hpp \
 	dependenciesdomain.hpp \
 	dependenciesdomain.cpp \
-        synchronizedcondition.hpp \
         synchronizedcondition_decl.hpp \
+        synchronizedcondition.hpp \
 	$(END)
 
 # Default

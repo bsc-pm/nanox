@@ -17,8 +17,8 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_WORK_DESCRIPTOR
-#define _NANOS_WORK_DESCRIPTOR
+#ifndef _NANOS_WORK_DESCRIPTOR_DECL_H
+#define _NANOS_WORK_DESCRIPTOR_DECL_H
 
 #include <stdlib.h>
 #include <utility>
@@ -40,175 +40,204 @@ namespace nanos
    class ProcessingElement;
    class WDDeque;
 
+   /*! \brief This class represents a device object
+    */
    class Device
    {
       private:
-         const char *_name;
+
+         const char *_name; /**< Identifies device type */
 
       public:
-         /*! \brief Constructor */
+
+         /*! \brief Device constructor
+          */
          Device ( const char *n ) : _name ( n ) {}
 
-         /*! \brief Copy constructor */
+         /*! \brief Device copy constructor
+          */
          Device ( const Device &arch ) : _name ( arch._name ) {}
 
-         /*! \brief Destructor */
+         /*! \brief Device destructor
+          */
          ~Device() {};
 
-         /*! \brief Assignment operator */
+         /*! \brief Device assignment operator
+          */
          const Device & operator= ( const Device &arch ) { _name = arch._name; return *this; }
 
-         /*! \brief Equals operator */
+         /*! \brief Device equals operator
+          */
          bool operator== ( const Device &arch ) { return arch._name == _name; }
 
+   };
+
+   /*! \brief This class holds the specific data for a given device
+    */
+   class DeviceData
+   {
+      private:
+
+         /**Use pointers for this as is this fastest way to compare architecture compatibility */
+         const Device *_architecture; /**< Related Device (architecture). */
+
+      public:
+
+         /*! \brief DeviceData constructor
+          */
+         DeviceData ( const Device *arch ) : _architecture ( arch ) {}
+
+         /*! \brief DeviceData copy constructor
+          */
+         DeviceData ( const DeviceData &dd ) : _architecture ( dd._architecture )  {}
+
+         /*! \brief DeviceData destructor
+          */
+         virtual ~DeviceData() {}
+
+         /*! \brief DeviceData assignment operator
+          */
+         const DeviceData & operator= ( const DeviceData &dd )
+         {
+            // self-assignment: ok
+            _architecture = dd._architecture;
+            return *this;
+         }
+
+         /*! \brief Indicates if DeviceData is compatible with a given Device
+          *
+          *  \param[in] arch is the Device which we have to compare to.
+          *  \return a boolean indicating if both elements (DeviceData and Device) are compatible.
+          */
+         bool isCompatible ( const Device &arch );
+
+         /*! \brief FIXME: (#170) documentation needed
+          */
+         virtual void lazyInit (WorkDescriptor &wd, bool isUserLevelThread, WorkDescriptor *previous=NULL ) = 0;
+
+         /*! \brief FIXME: (#170) documentation needed
+          */
+         virtual size_t size ( void ) = 0;
+
+         /*! \brief FIXME: (#170) documentation needed 
+          */
+         virtual DeviceData *copyTo ( void *addr ) = 0;
+
     };
 
-// This class holds the specific data for a given device
+   /*! \brief This class identifies a single unit of work
+    */
+   class WorkDescriptor : public WorkGroup
+   {
+      private:
 
-    class DeviceData
-    {
+         typedef enum { INIT, READY, IDLE, BLOCKED } State;
 
-        private:
-            // use pointers for this as is this fastest way to compare architecture
-            // compatibility
-            const Device *_architecture;
+         size_t               _data_size;    /**< WD data size */
+         void *               _data;         /**< WD data */
+         void *               _wdData;       /**< Internal WD data. this allows higher layer to associate data to the WD */
+         bool                 _tie;          /**< FIXME: (#170) documentation needed */
+         BaseThread *         _tiedTo;       /**< FIXME: (#170) documentation needed */
 
-        public:
-            // constructors
-            DeviceData ( const Device *arch ) : _architecture ( arch ) {}
+         State                _state;        /**< Workdescriptor current state */
 
-            // copy constructor
-            DeviceData ( const DeviceData &dd ) : _architecture ( dd._architecture )  {}
+         GenericSyncCond *    _syncCond;     /**< FIXME: (#170) documentation needed */
 
-            // assignment operator
-            const DeviceData & operator= ( const DeviceData &dd )
-            {
-                  // self-assignment: ok
-                  _architecture = dd._architecture;
-                  return *this;
-            }
+         WorkDescriptor *     _parent;       /**< Parent WD (task hierarchy). Cilk sched.: first steal parent task, next other tasks */
 
-            bool isCompatible ( const Device &arch )
-            {
-                return _architecture == &arch;
-            }
+         WDDeque *            _myQueue;      /**< Reference to a queue. Allows dequeuing from third party (e.g. Cilk schedulers */
 
-            // destructor
-            virtual ~DeviceData() {}
-            virtual void lazyInit (WorkDescriptor &wd, bool isUserLevelThread, WorkDescriptor *previous=NULL ) = 0;
-            virtual size_t size ( void ) = 0;
-            virtual DeviceData *copyTo ( void *addr ) = 0;
-    };
+         unsigned             _depth;        /**< Level (depth) of the task */
 
-    class WorkDescriptor : public WorkGroup
-    {
+         unsigned             _numDevices;   /**< Number of suported devices for this workdescriptor */
+         DeviceData **        _devices;      /**< Supported devices for this workdescriptor */
+         DeviceData *         _activeDevice; /**< Active device (if any) */
 
-        private:
-            size_t               _data_size; /**< Data size */
-            void    *            _data;
-            void    *            _wdData; // this allows higher layer to associate data to the WD
-            bool                 _tie;
-            BaseThread *         _tiedTo;
+         size_t               _numCopies;    /**< Copy-in / Copy-out data */
+         CopyData *           _copies;       /**< Copy-in / Copy-out data */
 
-            typedef enum { INIT, READY, IDLE, BLOCKED } State;
-            State                _state;
+         DOSubmit             _doSubmit;     /**< DependableObject representing this WD in its parent's depsendencies domain */
+         DOWait               _doWait;       /**< DependableObject used by this task to wait on dependencies */
 
-            GenericSyncCond *    _syncCond;
+         DependenciesDomain   _depsDomain;   /**< Dependences domain. Each WD has a domain where DependableObjects can be submitted */
 
-            //Added parent for cilk scheduler: first steal parent task, next other tasks
-            WorkDescriptor *     _parent;
+         InstrumentorContext  _instrumentorContext; /**< Instrumentor Context (may be empty if no instrumentor enabled) */
 
-            //Added reference to queue to allow dequeuing from third party (e.g. cilk scheduler)
-            WDDeque *            _myQueue;
+         /*! \brief WorkDescriptor assignment operator privatized
+          */
+         const WorkDescriptor & operator= ( const WorkDescriptor &wd );
 
-            //level (depth) of the task
-            unsigned              _depth;
+      public:
 
-            // Supported devices for this workdescriptor
-            unsigned             _numDevices;
-            DeviceData **        _devices;
-            DeviceData *         _activeDevice;
+         /*! \brief WorkDescriptor constructor
+          */
+         WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0, void *wdata=0,
+                          size_t numCopies = 0, CopyData *copies = NULL ) :
+                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ),
+                    _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
+                    _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : 0 ),
+                    _numCopies( numCopies ), _copies( copies ), _doSubmit( this ), _doWait( this ),
+                    _depsDomain(), _instrumentorContext()
+         {
+            // FIXME (#140): Change InstrumentorContext ic.init() to Instrumentor::_wdCreate();
+            _instrumentorContext.init ( getId() );
+         }
 
-            // Copy-in / Copy-out data
-            size_t               _numCopies;
-            CopyData *           _copies;
-
-            /**< DependableObject representing this WD in its parent's depsendencies domain */
-            DOSubmit _doSubmit;
-            /**< DependableObject used by this task to wait on dependencies */
-            DOWait _doWait;
-
-            /**< Each WorkDescriptor has a domain where DependableObjects can be submitted */
-            DependenciesDomain _depsDomain;
-
-            const WorkDescriptor & operator= ( const WorkDescriptor &wd );
-
-            InstrumentorContext _instrumentorContext; /** Instrumentor Context (may be empty if no instrumentor enabled) */
-
-        public:
-            // constructors
-            WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0,void *wdata=0, size_t numCopies = 0, CopyData *copies = NULL ) :
-                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( INIT ),
-                    _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( ndevices ), _devices ( devs ),
-                    _activeDevice ( ndevices == 1 ? devs[0] : 0 ), _numCopies( numCopies ), _copies( copies ),
-                    _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext()
-            {
+         WorkDescriptor ( DeviceData *device, size_t data_size = 0, void *wdata=0, size_t numCopies = 0, CopyData *copies = NULL ) :
+                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ),
+                    _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
+                    _numDevices ( 1 ), _devices ( &_activeDevice ), _activeDevice ( device ),
+                    _numCopies( numCopies ), _copies( copies ), _doSubmit( this ), _doWait( this ),
+                    _depsDomain(), _instrumentorContext()
+         {
               // FIXME (#140): Change InstrumentorContext ic.init() to Instrumentor::_wdCreate();
-               _instrumentorContext.init ( getId() );
-            }
+            _instrumentorContext.init ( getId() );
+         }
 
-            WorkDescriptor ( DeviceData *device, size_t data_size = 0, void *wdata=0, size_t numCopies = 0, CopyData *copies = NULL ) :
-                    WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ), _state( INIT ),
-                    _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ), _numDevices ( 1 ), _devices ( &_activeDevice ),
-                    _activeDevice ( device ), _numCopies( numCopies ), _copies( copies ), 
-                    _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext()
-            {
-              // FIXME (#140): Change InstrumentorContext ic.init() to Instrumentor::_wdCreate();
-               _instrumentorContext.init ( getId() );
-            }
-
-            /*! \brief WorkDescriptor constructor (using former wd)
-             *
-             *  This function is used as a constructor, receiving as a parameter other WorkDescriptor.
-             *  The constructor uses a DeviceData vector and a new void * data which will be completely
-             *  different from the former WorkDescriptor. Rest of the data is copied from the former WD.
-             *
-             *  This constructor is used only for duplicating purposes
-             *
-             *  \see WorkDescriptor System::duplicateWD System::duplicateSlicedWD
-             */
-            WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL ) :
+         /*! \brief WorkDescriptor constructor (using a given WorkDescriptor)
+          *
+          *  This function is used as a constructor, receiving as a parameter other WorkDescriptor.
+          *  The constructor uses a DeviceData vector and a new void * data which will be completely
+          *  different from the former WorkDescriptor. Rest of the data is copied from the former WD.
+          *
+          *  This constructor is used only for duplicating purposes
+          *
+          *  \see WorkDescriptor System::duplicateWD System::duplicateSlicedWD
+          */
+         WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL ) :
                     WorkGroup( wd ), _data_size( wd._data_size ), _data ( data ), _wdData ( NULL ),
                     _tie ( wd._tie ), _tiedTo ( wd._tiedTo ), _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ),
                     _myQueue ( NULL ), _depth ( wd._depth ), _numDevices ( wd._numDevices ),
                     _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
                     _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
                     _doSubmit(this), _doWait(this), _depsDomain(), _instrumentorContext( wd._instrumentorContext )
-            { 
-               // adding wd to parent workdescriptor's workgroup
-               _parent->addWork( *this );
+         { 
+            // adding wd to parent workdescriptor's workgroup
+            _parent->addWork( *this );
 
-              // FIXME (#140): Change InstrumentorContext ic.init() to Instrumentor::_wdCreate();
-              /* We still need to initialize instrumentor context (ic) due ic copy cconstructor 
-                 creates a new instrumentor context scope. Without any event list initialized:
-                    - bursts (list)
-                    - states (stack)
-               */
-               _instrumentorContext.init( getId() );
-            }
+            // FIXME: (#140) Change InstrumentorContext ic.init() to Instrumentor::_wdCreate();
+            /* We still need to initialize instrumentor context (ic) due ic copy constructor 
+               creates a new instrumentor context scope. Without any event list initialized:
+                  - bursts (list)
+                  - states (stack)
+             */
+             _instrumentorContext.init( getId() );
+         }
 
-            // destructor
-            // all data will be allocated in a single chunk so only the destructors need to be invoked
-            // but not the allocator
-            virtual ~WorkDescriptor()
-            {
-               for ( unsigned i = 0; i < _numDevices; i++ )
-                  _devices[i]->~DeviceData();
-            }
+         /*! \brief WorkDescriptor destructor
+          *
+          * all data will be allocated in a single chunk so only the destructors need to be invoked
+          * but not the allocator
+          */
+         virtual ~WorkDescriptor()
+         {
+            for ( unsigned i = 0; i < _numDevices; i++ )
+               _devices[i]->~DeviceData();
+         }
 
          /*! \brief Has this WorkDescriptor ever run?
           */
-         bool started ( void ) const { return _state != INIT; }
+         bool started ( void ) const;
 
          /*! \brief Prepare WorkDescriptor to run
           *
@@ -223,7 +252,7 @@ namespace nanos
           *  \return data size
           *  \see getData setData setDatasize
           */
-         size_t getDataSize () { return _data_size; }
+         size_t getDataSize ();
 
          /*! \brief Set data size
           *
@@ -231,131 +260,84 @@ namespace nanos
           *
           *  \see getData setData getDataSize
           */
-         void setDataSize ( size_t data_size ) { _data_size = data_size; }
+         void setDataSize ( size_t data_size );
 
-            WorkDescriptor * getParent() {
-                return _parent;
-            }
+         WorkDescriptor * getParent();
 
-            void setParent ( WorkDescriptor * p ) {
-                _parent = p;
-            }
+         void setParent ( WorkDescriptor * p );
 
-            WDDeque * getMyQueue() {
-                return _myQueue;
-            }
+         WDDeque * getMyQueue();
 
-            void setMyQueue ( WDDeque * myQ ) {
-                _myQueue = myQ;
-            }
+         void setMyQueue ( WDDeque * myQ );
 
-            bool isEnqueued() {
-                return ( _myQueue != NULL );
-            }
+         bool isEnqueued();
 
-            /* named arguments idiom */
-            WorkDescriptor & tied () {
-                _tie = true; return *this;
-            }
+         /*! \brief FIXME: (#170) documentation needed
+          *
+          *  Named arguments idiom format.
+          */
+         WorkDescriptor & tied ();
 
-            WorkDescriptor & tieTo ( BaseThread &pe ) {
-                _tiedTo = &pe; _tie=false; return *this;
-            }
+         WorkDescriptor & tieTo ( BaseThread &pe );
 
-            bool isTied() const {
-                return _tiedTo != NULL;
-            }
+         bool isTied() const;
 
-            BaseThread * isTiedTo() const {
-                return _tiedTo;
-            }
+         BaseThread * isTiedTo() const;
 
-            void setData ( void *wdata ) {
-                _data = wdata;
-            }
+         void setData ( void *wdata );
 
-            void * getData () const {
-                return _data;
-            }
+         void * getData () const;
 
-            bool isIdle () const {
-               return _state == IDLE;
-            }
+         bool isIdle () const;
 
-            void setIdle () {
-               _state = IDLE;
-            }
+         void setIdle ();
 
-            bool isBlocked () const {
-               return _state == BLOCKED;
-            }
+         bool isBlocked () const;
 
-            void setBlocked () {
-               _state = BLOCKED;
-            }
+         void setBlocked ();
 
-            bool isReady () const {
-               return _state == READY;
-            }
+         bool isReady () const;
 
-            void setReady () {
-               _state = READY;
-            }
+         void setReady ();
 
-            GenericSyncCond * getSyncCond() {
-               return _syncCond;
-            }
+         GenericSyncCond * getSyncCond();
 
-            void setSyncCond( GenericSyncCond * syncCond ) {
-               _syncCond = syncCond;
-            }
+         void setSyncCond( GenericSyncCond * syncCond );
 
-            void setDepth ( int l ) {
-                _depth = l;
-            }
+         void setDepth ( int l );
 
-            unsigned getDepth() {
-                return _depth;
-            }
+         unsigned getDepth();
 
-            /* device related methods */
-            DeviceData * findDeviceData ( const Device &device ) const;
-            bool canRunIn ( const Device &device ) const;
-            bool canRunIn ( const ProcessingElement &pe ) const;
-            DeviceData & activateDevice ( const Device &device );
-            DeviceData & getActiveDevice () const {
-                return *_activeDevice;
-            }
+         /* device related methods */
+         DeviceData * findDeviceData ( const Device &device ) const;
+         bool canRunIn ( const Device &device ) const;
+         bool canRunIn ( const ProcessingElement &pe ) const;
+         DeviceData & activateDevice ( const Device &device );
+         DeviceData & getActiveDevice () const;
 
-            bool hasActiveDevice() const {
-                return _activeDevice != NULL;
-            }
+         bool hasActiveDevice() const;
 
-            void setInternalData ( void *data ) {
-                _wdData = data;
-            }
+         void setInternalData ( void *data );
 
-            void * getInternalData () const {
-                return _wdData;
-            }
+         void * getInternalData () const;
 
          /*! \brief Get the number of devices
           *
           *  This function return the number of devices for the current WD
           *
-          *  \return the number of devices
+          *  \return WorkDescriptor's number of devices
           *  \see getDevices
           */
-         unsigned getNumDevices ( void ) { return _numDevices; }
+         unsigned getNumDevices ( void );
 
-         /*! \brief Get tdevices
+         /*! \brief Get devices
           *
-          *  This function return a devices vector related with the current WD
+          *  This function return a device vector which are related with the current WD
           *
           *  \return devices vector
           *  \see getNumDevices
           */
-         DeviceData ** getDevices ( void ) { return _devices; }
+         DeviceData ** getDevices ( void );
 
          /*! \brief WD dequeue 
           *
@@ -367,67 +349,49 @@ namespace nanos
           *
           *  \return true if there are no more slices to manage, false otherwise
           */
-         virtual bool dequeue ( WorkDescriptor **slice ) { *slice = this; return true; }
+         virtual bool dequeue ( WorkDescriptor **slice );
 
          // headers
          virtual void submit ( void );
 
          virtual void done ();
 
-          /*! \brief returns the number of CopyData elements in the WorkDescriptor
-           */
-           size_t getNumCopies() const
-           {
-              return _numCopies;
-           }
+         /*! \brief returns the number of CopyData elements in the WorkDescriptor
+          */
+         size_t getNumCopies() const;
 
-          /*! \brief returns the CopyData vector that describes the copy-ins/copy-outs of the WD
-           */
-           CopyData * getCopies() const
-           {
-              return _copies;
-           }
+         /*! \brief returns the CopyData vector that describes the copy-ins/copy-outs of the WD
+          */
+         CopyData * getCopies() const;
 
-           /*! \brief Add a new WD to the domain of this WD.
-            *  \param wd Must be a WD created by "this". wd will be submitted to the
-            *  scheduler when its dependencies are satisfied.
-            *  \param numDeps Number of dependencies.
-            *  \param deps Array with dependencies associated to the submitted wd.
-            */
-            void submitWithDependencies( WorkDescriptor &wd, size_t numDeps, Dependency* deps )
-            {
-               _depsDomain.submitDependableObject( wd._doSubmit, numDeps, deps );
-            }
+         /*! \brief Add a new WD to the domain of this WD.
+          *  \param wd Must be a WD created by "this". wd will be submitted to the
+          *  scheduler when its dependencies are satisfied.
+          *  \param numDeps Number of dependencies.
+          *  \param deps Array with dependencies associated to the submitted wd.
+          */
+         void submitWithDependencies( WorkDescriptor &wd, size_t numDeps, Dependency* deps );
 
-           /*! \brief Waits untill all (input) dependencies passed are satisfied for the _doWait object.
-            *  \param numDeps Number of de dependencies.
-            *  \param deps dependencies to wait on, should be input dependencies.
-            */
-            void waitOn( size_t numDeps, Dependency* deps )
-            {
-               _depsDomain.submitDependableObject( _doWait, numDeps, deps );
-            }
+         /*! \brief Waits untill all (input) dependencies passed are satisfied for the _doWait object.
+          *  \param numDeps Number of de dependencies.
+          *  \param deps dependencies to wait on, should be input dependencies.
+          */
+         void waitOn( size_t numDeps, Dependency* deps );
 
-           /*! \brief Make this WD's domain know a WD has finished.
-            *  \paran wd Must be a wd created in this WD's context.
-            */
-            void workFinished(WorkDescriptor &wd)
-            {
-               _depsDomain.finished( wd._doSubmit );
-            }
+         /*! \brief Make this WD's domain know a WD has finished.
+          *  \paran wd Must be a wd created in this WD's context.
+          */
+         void workFinished(WorkDescriptor &wd);
 
-            /*! \brief Returns embeded instrumentor context.
-            */
-            InstrumentorContext & getInstrumentorContext( void ) 
-            {
-               return _instrumentorContext;
-            }
+         /*! \brief Returns embeded instrumentor context.
+          */
+         InstrumentorContext & getInstrumentorContext( void );
 
-           /*! \breif Prepare private copies to have relative addresses
-            */
-            void prepareCopies();
+         /*! \breif Prepare private copies to have relative addresses
+          */
+         void prepareCopies();
 
-    };
+   };
 
     typedef class WorkDescriptor WD;
 
