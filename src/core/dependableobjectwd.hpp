@@ -22,11 +22,10 @@
 
 #include "synchronizedcondition_decl.hpp"
 #include "dependableobject.hpp"
+#include "workdescriptor_fwd.hpp"
 
 namespace nanos
 {
-
-   class WorkDescriptor;
 
   /*! \brief DependableObject representing a WorkDescriptor as Dependable entity
    */

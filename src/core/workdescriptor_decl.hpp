@@ -393,9 +393,9 @@ namespace nanos
 
    };
 
-    typedef class WorkDescriptor WD;
+   typedef class WorkDescriptor WD;
 
-    typedef class DeviceData DD;
+   typedef class DeviceData DD;
 
 };
 
