@@ -29,16 +29,13 @@
 #include "synchronizedcondition_decl.hpp"
 #include "atomic.hpp"
 #include "instrumentor_ctx.hpp"
+#include "slicer_fwd.hpp"
+#include "basethread_fwd.hpp"
+#include "processingelement_fwd.hpp"
+#include "wddeque_fwd.hpp"
 
 namespace nanos
 {
-
-// xteruel:FIXME: forward declarations
-   class Slicer;
-   class SlicerData;
-   class BaseThread;
-   class ProcessingElement;
-   class WDDeque;
 
    /*! \brief This class represents a device object
     */

@@ -16,7 +16,6 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
 #ifndef _NANOS_WORK_DESCRIPTOR_FWD_H
 #define _NANOS_WORK_DESCRIPTOR_FWD_H
 

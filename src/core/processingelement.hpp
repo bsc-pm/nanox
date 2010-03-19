@@ -23,6 +23,7 @@
 #include "workdescriptor.hpp"
 #include <algorithm>
 #include "functors.hpp"
+#include "basethread_fwd.hpp"
 
 namespace nanos
 {
@@ -30,7 +31,6 @@ namespace nanos
 // forward definitions
 
    class SchedulingGroup;
-   class BaseThread;
 
    class ProcessingElement
    {

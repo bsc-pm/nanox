@@ -23,12 +23,10 @@
 #include "workdescriptor.hpp"
 #include "schedule.hpp"
 #include "nanos-int.h"
+#include "slicer_fwd.hpp"
 
 namespace nanos
 {
-
-// Forward declarations
-   class SlicedWD;
 
    class Slicer
    {

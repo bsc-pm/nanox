@@ -43,8 +43,10 @@ nanos_sources=\
 	barrier.hpp \
 	threadteam.hpp \
 	threadteam.cpp \
+	basethread_fwd.hpp\
 	basethread.hpp\
 	basethread.cpp\
+	processingelement_fwd.hpp \
 	processingelement.hpp \
 	processingelement.cpp \
 	accelerator.hpp \
@@ -54,12 +56,15 @@ nanos_sources=\
         system_decl.hpp\
 	system.hpp \
 	system.cpp \
+	wddeque_fwd.hpp \
 	wddeque.hpp \
 	workgroup.hpp \
 	workgroup.cpp \
+	workdescriptor_fwd.hpp \
 	workdescriptor_decl.hpp \
 	workdescriptor.hpp \
 	workdescriptor.cpp \
+	slicer_fwd.hpp \
 	slicer.hpp \
 	instrumentor_ctx.hpp \
 	instrumentor_decl.hpp \
