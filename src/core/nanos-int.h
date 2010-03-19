@@ -119,14 +119,6 @@ typedef struct {
 
 // instrumentor structures
 
-// FIXME: instrumentor types
-#define NANOS_INSTRUMENT_BURST_START 0
-#define NANOS_INSTRUMENT_BURST_END   1
-#define NANOS_INSTRUMENT_STATE       2
-#define NANOS_INSTRUMENT_POINT       3
-#define NANOS_INSTRUMENT_PTP_START   4
-#define NANOS_INSTRUMENT_PTP_END     5
-
 typedef enum { STATE, BURST_START, BURST_END, PTP_START, PTP_END, POINT, EVENT_TYPES } nanos_event_type_t;
 
 typedef enum { NANOS_WD_DOMAIN } nanos_event_domain_t;
