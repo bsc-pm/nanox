@@ -55,7 +55,7 @@ nanos_sources=\
 	accelerator.cpp \
 	schedule.hpp \
 	schedule.cpp \
-        system_decl.hpp\
+	system_decl.hpp\
 	system.hpp \
 	system.cpp \
 	wddeque_fwd.hpp \
@@ -71,19 +71,22 @@ nanos_sources=\
 	instrumentor_ctx.hpp \
 	instrumentor_decl.hpp \
 	instrumentor.hpp \
-        instrumentor.cpp \
+	instrumentor.cpp \
 	throttle.hpp \
 	dependency.hpp \
 	copydata_fwd.hpp \
 	copydata.hpp \
+	dependableobject_fwd.hpp \
 	dependableobject.hpp \
 	dependableobjectwd.hpp \
+	dependableobjectwd_fwd.hpp \
 	dependableobjectwd.cpp \
+	trackableobject_fwd.hpp \
 	trackableobject.hpp \
 	dependenciesdomain.hpp \
 	dependenciesdomain.cpp \
-        synchronizedcondition_decl.hpp \
-        synchronizedcondition.hpp \
+	synchronizedcondition_decl.hpp \
+	synchronizedcondition.hpp \
 	$(END)
 
 # Default
