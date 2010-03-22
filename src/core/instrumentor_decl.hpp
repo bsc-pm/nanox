@@ -30,7 +30,8 @@
 
 namespace nanos {
 
-   class Instrumentor {
+   class Instrumentor 
+   {
       public:
          class Event {
             public:
@@ -38,17 +39,20 @@ namespace nanos {
                typedef KV *KVList;
                typedef const KV *ConstKVList;
             protected:
-               nanos_event_type_t          _type;
-               nanos_event_state_value_t   _state;
+               nanos_event_type_t          _type;         /**< Event type */
+               nanos_event_state_value_t   _state;        /**< Event state */
 
-               unsigned int                _nkvs;
-               KVList                      _kvList;
-               bool                        _kvListOwner;
+               unsigned int                _nkvs;         /**< Number of kvs elements */
+               KVList                      _kvList;       /**< List of elements kv (key.value) */
+               bool                        _kvListOwner;  /**< Is the object the owner of kvList */
 
-               nanos_event_domain_t        _ptpDomain;
-               nanos_event_id_t            _ptpId;
+               nanos_event_domain_t        _ptpDomain;    /**< A specific domain in which ptpId is unique */
+               nanos_event_id_t            _ptpId;        /**< PtP event id */
 
             public:
+               /*! \brief Event constructor (generic constructor used by all other specific constructors)
+                *  \see State Burst Point PtP
+                */
                Event ( nanos_event_type_t type, nanos_event_state_value_t state, unsigned int nkvs, KVList kvlist, bool kvlist_owner,
                        nanos_event_domain_t ptp_domain, nanos_event_id_t ptp_id ) :
                      _type (type), _state (state), _nkvs(nkvs), _kvList (kvlist), _kvListOwner(kvlist_owner),
@@ -62,6 +66,8 @@ namespace nanos {
                   }
                }
 
+               /*! \brief Event copy constructor
+                */
                Event ( const Event & evt )
                {
                   _type = evt._type;
@@ -77,6 +83,8 @@ namespace nanos {
 
                }
 
+               /*! \brief Event assignment operator
+                */
                void operator= ( const Event & evt ) 
                { 
                   // self-assignment: ok
@@ -95,55 +103,113 @@ namespace nanos {
 
                }
 
+               /*! \brief Event destructor
+                */
                ~Event() { if ( _kvListOwner ) delete[] _kvList; }
 
+               /*! \brief Get event type
+                */
                nanos_event_type_t getType () const; 
+
+               /*! \brief Get event state
+                */
                nanos_event_state_value_t getState ();
+
+               /*! \brief Get number of kvs
+                */
                unsigned int getNumKVs () const;
+
+               /*! \brief Get kvs vector
+                */
                ConstKVList getKVs () const;
 
+               /*! \brief Get specific domain ( useful in PtP events)
+                *  \see getId
+                */
                unsigned int getDomain ( void ) const;
+
+               /*! \brief Get event id (unique in a specific domain, useful in PtP events)
+                *  \see getDomain
+                */
                unsigned int getId( void ) const;
 
+               /*! \brief Change event type to the complementary value (i.e. if type is BURST_START it changes to BURST_END)
+                */
                void reverseType ( );
          };
 
-         class State : public Event {
+         class State : public Event 
+         {
             public:
+              /*! \brief State event constructor
+               */
               State ( nanos_event_state_value_t state = ERROR ) 
                  : Event (STATE, state, 0, NULL, false, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
          };
 
-         class Burst : public Event {
+         class Burst : public Event 
+         {
              public:
+               /*! \brief Burst event constructor
+                */
                Burst ( bool start, KV kv )
                  : Event ( start? BURST_START: BURST_END, ERROR, 1, &kv, false, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
 
          };
 
-         class Point : public Event {
+         class Point : public Event 
+         {
              public:
+               /*! \brief Point event constructor
+                */
                Point ( unsigned int nkvs, KVList kvlist )
                  : Event ( POINT, ERROR, nkvs, kvlist, false, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
          };
 
-         class PtP : public Event {
+         class PtP : public Event 
+         {
             public:
+               /*! \brief PtP event constructor
+                */
                PtP ( bool start, nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,  KVList kvlist )
                   : Event ( start ? PTP_START : PTP_END , ERROR, nkvs, kvlist, false, domain, id ) { }
 
          };
 
       public:
+         /*! \brief Instrumentor constructor
+          */
          Instrumentor() {}
+
+         /*! \brief Instrumentor destructor
+          */
          virtual ~Instrumentor() {}
 
 #ifdef INSTRUMENTATION_ENABLED
 
        // low-level instrumentation interface (pure virtual functions)
 
+       /*! \brief Pure virtual functions executed at the beginning of instrumentation phase
+        *
+        *  Each of (specific) instrumentor modules have to implement this function in order
+        *  to be consistent with the instrumentation model
+        */
        virtual void initialize( void ) = 0;
+
+       /*! \brief Pure virtual functions executed at the end of instrumentation phase
+        *
+        *  Each of (specific) instrumentor modules have to implement this function in order
+        *  to be consistent with the instrumentation model
+        */
        virtual void finalize( void ) = 0;
+
+       /*! \brief Pure virtual functions executed each time runtime wants to add an event
+        *
+        *  Each of (specific) instrumentor modules have to implement this function in order
+        *  to be consistent with the instrumentation model. This function includes several
+        *  events in a row to facilitate implementation in which several events occurs at
+        *  the same time (i.e. same timestamp).
+        */
        virtual void addEventList ( unsigned int count, Event *events ) = 0;
 
        // CORE: high-level instrumentation interface (virtual functions)
