@@ -42,6 +42,7 @@ nanos_sources=\
 	nanos-int.h \
 	barrier_fwd.hpp \
 	barrier.hpp \
+	threadteam_fwd.hpp \
 	threadteam.hpp \
 	threadteam.cpp \
 	basethread_fwd.hpp\
@@ -53,13 +54,16 @@ nanos_sources=\
 	accelerator_fwd.hpp \
 	accelerator.hpp \
 	accelerator.cpp \
+	schedule_fwd.hpp \
 	schedule.hpp \
 	schedule.cpp \
+	system_fwd.hpp \
 	system_decl.hpp\
 	system.hpp \
 	system.cpp \
 	wddeque_fwd.hpp \
 	wddeque.hpp \
+	workgroup_fwd.hpp \
 	workgroup.hpp \
 	workgroup.cpp \
 	workdescriptor_fwd.hpp \
@@ -72,6 +76,7 @@ nanos_sources=\
 	instrumentor_decl.hpp \
 	instrumentor.hpp \
 	instrumentor.cpp \
+	throttle_fwd.hpp \
 	throttle.hpp \
 	dependency.hpp \
 	copydata_fwd.hpp \
@@ -85,6 +90,7 @@ nanos_sources=\
 	trackableobject.hpp \
 	dependenciesdomain.hpp \
 	dependenciesdomain.cpp \
+	synchronizedcondition_fwd.hpp \
 	synchronizedcondition_decl.hpp \
 	synchronizedcondition.hpp \
 	$(END)
