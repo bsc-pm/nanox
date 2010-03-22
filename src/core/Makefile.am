@@ -40,6 +40,7 @@ nanos_libadd=\
 
 nanos_sources=\
 	nanos-int.h \
+	barrier_fwd.hpp \
 	barrier.hpp \
 	threadteam.hpp \
 	threadteam.cpp \
@@ -49,6 +50,7 @@ nanos_sources=\
 	processingelement_fwd.hpp \
 	processingelement.hpp \
 	processingelement.cpp \
+	accelerator_fwd.hpp \
 	accelerator.hpp \
 	accelerator.cpp \
 	schedule.hpp \
@@ -72,6 +74,7 @@ nanos_sources=\
         instrumentor.cpp \
 	throttle.hpp \
 	dependency.hpp \
+	copydata_fwd.hpp \
 	copydata.hpp \
 	dependableobject.hpp \
 	dependableobjectwd.hpp \
