@@ -22,12 +22,17 @@
 namespace nanos
 {
    class ConditionChecker;
+   class GenericSyncCond;
+
+#if 0
+   /* following forward declaration needs related template argument */
    class EqualConditionChecker;
    class LessOrEqualConditionChecker;
-   class GenericSyncCond;
    class SynchronizedCondition;
    class SingleSyncCond;
    class MultipleSyncCond;
+#endif
+
 };
 
 #endif

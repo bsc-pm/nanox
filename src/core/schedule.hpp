@@ -29,13 +29,12 @@
 #include "atomic.hpp"
 #include "functors.hpp"
 #include <algorithm>
+#include "synchronizedcondition_fwd.hpp"
 
 namespace nanos
 {
 
 // singleton class to encapsulate scheduling data and methods
-
-   class GenericSyncCond;
    typedef void SchedulerHelper ( WD *oldWD, WD *newWD, void *arg);
 
    class Scheduler

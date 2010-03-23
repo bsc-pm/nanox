@@ -48,6 +48,9 @@ namespace nanos
    class ScheduleThreadData;
    class SchedulePolicy;
 
+   class SchedulingGroup;
+   class SchedulingData;
+
    class Slicer;
    class SlicerData;
    class SlicedWD;
@@ -55,12 +58,16 @@ namespace nanos
    class SlicerDataFor;
 
    class ConditionChecker;
+   class GenericSyncCond;
+
+#if 0
+   /* following forward declarations needs related template argument */
    class EqualConditionChecker;
    class LessOrEqualConditionChecker;
-   class GenericSyncCond;
    class SynchronizedCondition;
    class SingleSyncCond;
    class MultipleSyncCond;
+#endif
 
    class System;
 

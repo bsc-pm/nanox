@@ -26,6 +26,9 @@ namespace nanos
    class ScheduleTeamData;
    class ScheduleThreadData;
    class SchedulePolicy;
+
+   class SchedulingGroup;
+   class SchedulingData;
 };
 
 #endif

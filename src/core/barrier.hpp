@@ -22,7 +22,6 @@
 
 namespace nanos
 {
-
    class Barrier
    {
       public:
