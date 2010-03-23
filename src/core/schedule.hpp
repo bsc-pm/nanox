@@ -30,6 +30,7 @@
 #include "functors.hpp"
 #include <algorithm>
 #include "synchronizedcondition_fwd.hpp"
+#include "system_fwd.hpp"
 
 namespace nanos
 {
@@ -64,7 +65,6 @@ namespace nanos
          static void wakeUp ( WD *wd );
    };
 
-   class System;
    class SchedulerStats
    {
       friend class Scheduler;
