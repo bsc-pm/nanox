@@ -26,13 +26,6 @@ using namespace nanos;
 
 #ifdef INSTRUMENTATION_ENABLED
 
-/*! \brief Used by runtime API services to start a burst event and change state
- *
- *  \param [in] function is the funcition code used to create burst start
- *  \param [in] state is the state code we are starting now
- *
- *  \see Event Instrumentor::addEventList
- */
 void Instrumentor::enterRuntimeAPI ( nanos_event_api_t function, nanos_event_state_value_t state )
 {
    /* Create a vector of two events: STATE and BURST */
@@ -48,10 +41,6 @@ void Instrumentor::enterRuntimeAPI ( nanos_event_api_t function, nanos_event_sta
    addEventList ( 2, e );
 }
 
-/*! \brief Used by runtime API services to close related burst event and coming back to previous state 
- *
- *  \see Event Instrumentor::addEventList
- */
 void Instrumentor::leaveRuntimeAPI ( )
 {
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
@@ -82,13 +71,6 @@ void Instrumentor::wdCreate( WorkDescriptor* newWD )
 
 }
 
-/*! \brief Used by WorkDescriptor context switch. 
- *
- *  \param [in] oldWD is the WorkDescriptor leaving the cpu 
- *  \param [in] newWD is the WorkDescriptor entering the cpu
- *
- *  \see Event Instrumentor::addEventList
- */
 void Instrumentor::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD )
 {
    unsigned int i = 0; /* Used as Event e[] index */
@@ -126,13 +108,6 @@ void Instrumentor::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD )
    addEventList ( numEvents, e );
 }
 
-/*! \brief Used by WorkDescriptor context switch when oldWD has finished execution
- *
- *  \param [in] oldWD is the WorkDescriptor leaving the cpu 
- *  \param [in] newWD is the WorkDescriptor entering the cpu
- *
- *  \see Event Instrumentor::addEventList
- */
 void Instrumentor::wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD )
 {
    unsigned int i = 0; /* Used as Event e[] index */
@@ -171,10 +146,6 @@ void Instrumentor::wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD )
    addEventList ( numEvents, e );
 }
 
-/*! \brief Used by idle WorkDescriptor in order to change thread state 
- *
- *  \see Event Instrumentor::addEventList
- */
 void Instrumentor::enterIdle ( )
 {
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
@@ -184,12 +155,6 @@ void Instrumentor::enterIdle ( )
    addEventList ( 1u, &e );
 }
 
-/*! \brief Used by idle WorkDescriptor in order to change thread state 
- *
- *  This function should be used only at the end of runtime execution
- *
- *  \see Event Instrumentor::addEventList
- */
 void Instrumentor::leaveIdle ( )
 {
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
