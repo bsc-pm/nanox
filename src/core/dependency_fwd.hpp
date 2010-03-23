@@ -16,11 +16,12 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-#ifndef __NANOS_INSTRUMENTOR_FWD_H
-#define __NANOS_INSTRUMENTOR_FWD_H
+#ifndef _NANOS_DEPENDENCY_FWD_H
+#define _NANOS_DEPENDENCY_FWD_H
 
-namespace nanos {
-   class Instrumentor;
+namespace nanos
+{
+   class Dependency;
 };
 
 #endif

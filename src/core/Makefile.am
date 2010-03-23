@@ -79,6 +79,7 @@ nanos_sources=\
 	instrumentor.cpp \
 	throttle_fwd.hpp \
 	throttle.hpp \
+	dependency_fwd.hpp \
 	dependency.hpp \
 	copydata_fwd.hpp \
 	copydata.hpp \
@@ -89,6 +90,7 @@ nanos_sources=\
 	dependableobjectwd.cpp \
 	trackableobject_fwd.hpp \
 	trackableobject.hpp \
+	dependenciesdomain_fwd.hpp \
 	dependenciesdomain.hpp \
 	dependenciesdomain.cpp \
 	synchronizedcondition_fwd.hpp \
