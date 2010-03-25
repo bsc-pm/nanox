@@ -190,30 +190,36 @@ void Instrumentor::createBurstEnd ( Event &e, nanos_event_key_t key, nanos_event
 
 void Instrumentor::createStateEvent ( Event &e, nanos_event_state_value_t state )
 {
+   /* Registering a state event in instrucmentor context */
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
    instrContext.pushState(state);
 
+   /* Creating a state event */
    e = State(state);
 }
 
 void Instrumentor::returnPreviousStateEvent ( Event &e )
 {
+   /* Recovering a state event in instrumentor context */
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
-
    instrContext.popState();
    nanos_event_state_value_t state = instrContext.topState(); 
 
+   /* Creating a state event */
    e = State(state);
 }
 
 void Instrumentor::createPointEvent ( Event &e, unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
 {
+   /* Creating an Event::KV vector */
    Event::KVList kvlist = new Event::KV[nkvs];
 
+   /* Initializing kvlist elements */
    for ( unsigned int i = 0; i < nkvs; i++ ) {
       kvlist[i] = Event::KV ( keys[i], values[i] );
    }
 
+   /* Creating a point event */
    e = Point ( nkvs, kvlist );
 
 }
@@ -221,12 +227,15 @@ void Instrumentor::createPointEvent ( Event &e, unsigned int nkvs, nanos_event_k
 void Instrumentor::createPtPStart ( Event &e, nanos_event_domain_t domain, nanos_event_id_t id,
                       unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
 {
+   /* Creating an Event::KV vector */
    Event::KVList kvlist = new Event::KV[nkvs];
 
+   /* Initializing kvlist elements */
    for ( unsigned int i = 0; i < nkvs; i++ ) {
       kvlist[i] = Event::KV ( keys[i], values[i] );
    }
 
+   /* Creating a PtP (start) event */
    e = PtP ( true, domain, id, nkvs, kvlist );
 
 }
@@ -234,50 +243,61 @@ void Instrumentor::createPtPStart ( Event &e, nanos_event_domain_t domain, nanos
 void Instrumentor::createPtPEnd ( Event &e, nanos_event_domain_t domain, nanos_event_id_t id,
                       unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
 {
+   /* Creating an Event::KV vector */
    Event::KVList kvlist = new Event::KV[nkvs];
 
+   /* Initializing kvlist elements */
    for ( unsigned int i = 0; i < nkvs; i++ ) {
       kvlist[i] = Event::KV ( keys[i], values[i] );
    }
 
+   /* Creating a PtP (end) event */
    e = PtP ( false, domain, id, nkvs, kvlist );
 
 }
 
 void Instrumentor::enterStartUp ( void )
 {
+   /* Registering a state (start-up) event in instrucmentor context */
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
    instrContext.pushState(STARTUP);
 
+   /* Creating a state event (start-up), spawning event */
    Event e = State(STARTUP);
    addEventList ( 1u, &e );
 }
 
 void Instrumentor::leaveStartUp ( void )
 {
+   /* Recovering a state event from instrumentor context */
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
    instrContext.popState();
    nanos_event_state_value_t state = instrContext.topState();
 
+   /* Returning to previous state, spawning event */
    Event e = State( state );
    addEventList ( 1u, &e );
 }
 
 void Instrumentor::enterShutDown ( void )
 {
+   /* Registering a state (shut-down) event in instrucmentor context */
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
    instrContext.pushState(SHUTDOWN);
 
+   /* Creating a state event (shut-down), spawning event */
    Event e = State(SHUTDOWN);
    addEventList ( 1u, &e );
 }
 
 void Instrumentor::leaveShutDown ( void )
 {
+   /* Recovering a state event from instrumentor context */
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
    instrContext.popState();
    nanos_event_state_value_t state = instrContext.topState();
 
+   /* Returning to previous state, spawning event */
    Event e = State( state );
    addEventList ( 1u, &e );
 }
