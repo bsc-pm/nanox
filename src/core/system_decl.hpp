@@ -95,7 +95,7 @@ namespace nanos
 
          void config ();
          void loadModules();
-         void start ();
+         
          PE * createPE ( std::string pe_type, int pid );
 
       public:
@@ -103,6 +103,9 @@ namespace nanos
          System ();
          ~System ();
 
+         void start ();
+         void finish ();
+         
          void submit ( WD &work );
          void submitWithDependencies (WD& work, size_t numDeps, Dependency* deps);
          void waitOn ( size_t numDeps, Dependency* deps);

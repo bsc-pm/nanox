@@ -47,7 +47,6 @@ System::System () :
    verbose0 ( "NANOS++ initalizing... start" );
    config();
    if ( !_delayedStart ) {
-      loadModules();
       start();
       getInstrumentor()->leaveStartUp();
    }
@@ -163,6 +162,8 @@ PE * System::createPE ( std::string pe_type, int pid )
 
 void System::start ()
 {
+   loadModules();
+
    verbose0 ( "Starting threads" );
 
    int numPes = getNumPEs();
@@ -215,37 +216,40 @@ void System::start ()
 
 System::~System ()
 {
-   if ( !_delayedStart ) {
-      getInstrumentor()->enterShutDown();
-      verbose ( "NANOS++ shutting down.... init" );
-      verbose ( "Wait for main workgroup to complete" );
-      myThread->getCurrentWD()->waitCompletion();
+   if ( !_delayedStart ) finish();
+}
 
-      // we need to switch to the main thread here to finish
-      // the execution correctly
-      myThread->getCurrentWD()->tieTo(*_workers[0]);
-      Scheduler::switchToThread(_workers[0]);
-      ensure(myThread->getId() == 0, "Main thread not finishing the application!");
-   
-      verbose ( "Joining threads... phase 1" );
-      // signal stop PEs
-   
-      for ( unsigned p = 1; p < _pes.size() ; p++ ) {
-         _pes[p]->stopAll();
-      }
-   
-      verbose ( "Joining threads... phase 2" );
-  
-      // shutdown instrumentation 
-      getInstrumentor()->leaveShutDown();
-      getInstrumentor()->finalize();
-   
-      // join
-      for ( unsigned p = 1; p < _pes.size() ; p++ ) {
-         delete _pes[p];
-      }
-      verbose ( "NANOS++ shutting down.... end" );
+void System::finish ()
+{
+   getInstrumentor()->enterShutDown();
+   verbose ( "NANOS++ shutting down.... init" );
+   verbose ( "Wait for main workgroup to complete" );
+   myThread->getCurrentWD()->waitCompletion();
+
+   // we need to switch to the main thread here to finish
+   // the execution correctly
+   myThread->getCurrentWD()->tieTo(*_workers[0]);
+   Scheduler::switchToThread(_workers[0]);
+   ensure(myThread->getId() == 0, "Main thread not finishing the application!");
+
+   verbose ( "Joining threads... phase 1" );
+   // signal stop PEs
+
+   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
+      _pes[p]->stopAll();
    }
+
+   verbose ( "Joining threads... phase 2" );
+
+   // shutdown instrumentation
+   getInstrumentor()->leaveShutDown();
+   getInstrumentor()->finalize();
+
+   // join
+   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
+      delete _pes[p];
+   }
+   verbose ( "NANOS++ shutting down.... end" );
 }
 
 /*! \brief Creates a new WD
