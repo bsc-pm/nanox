@@ -94,13 +94,8 @@ namespace nanos {
             */
             virtual WD * atSubmit ( BaseThread *thread, WD &newWD )
             {
-               WD *next;
-
-               /* enqueue the remaining part of a WD */
-               if ( !newWD.dequeue(&next) ) queue(thread,newWD);
-
                /* it does not enqueue the created task, but it moves down to the generated son: DEPTH-FIRST */
-               return next;
+               return &newWD;
             }
 
 

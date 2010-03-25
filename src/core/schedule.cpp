@@ -31,10 +31,21 @@ void Scheduler::submit ( WD &wd )
    sys.getSchedulerStats()._readyTasks++;
 
    debug ( "submitting task " << wd.getId() );
+
+   /* handle tied tasks */
+   if ( wd.isTied() && wd.isTiedTo() != myThread ) {
+     myThread->getTeam()->getSchedulePolicy().queue(wd.isTiedTo(), wd);
+     return;
+   }
+
    WD *next = myThread->getTeam()->getSchedulePolicy().atSubmit( myThread, wd );
 
    if ( next ) {
-      switchTo ( next );
+      WD *slice;
+      /* enqueue the remaining part of a WD */
+      if ( !next->dequeue(&slice) ) queue(*next);
+
+      switchTo ( slice );
    }
 }
 
