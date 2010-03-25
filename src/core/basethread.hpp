@@ -24,18 +24,11 @@
 #include "atomic.hpp"
 #include "processingelement.hpp"
 #include "debug.hpp"
+#include "schedule_fwd.hpp"
+#include "threadteam_fwd.hpp"
 
 namespace nanos
 {
-
-// forward declarations
-
-   class SchedulingGroup;
-   class SchedulingData;
-   class ThreadTeam;
-   class Scheduler;
-   class ScheduleThreadData;
-   
    typedef void SchedulerHelper ( WD *oldWD, WD *newWD, void *arg); // FIXME: should be only in one place
 
    /*!

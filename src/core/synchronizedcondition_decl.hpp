@@ -25,11 +25,10 @@
 #include <vector>
 #include "atomic.hpp"
 #include "debug.hpp"
+#include "workdescriptor_fwd.hpp"
 
 namespace nanos
 {
-   class WorkDescriptor;
-
   /* \brief Represents an object that checks a given condition.
    */
    class ConditionChecker

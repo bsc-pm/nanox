@@ -23,17 +23,19 @@
 
 using namespace nanos;
 
-nanos_event_type_t Instrumentor::Event::getType () const { return _type; }
+inline nanos_event_type_t Instrumentor::Event::getType () const { return _type; }
 
-nanos_event_state_value_t Instrumentor::Event::getState () { return _state; }
+inline nanos_event_state_value_t Instrumentor::Event::getState () { return _state; }
 
-unsigned int Instrumentor::Event::getNumKVs () const { return _nkvs; }
-Instrumentor::Event::ConstKVList Instrumentor::Event::getKVs () const { return _kvList; }
+inline unsigned int Instrumentor::Event::getNumKVs () const { return _nkvs; }
 
-unsigned int Instrumentor::Event::getDomain ( void ) const { return _ptpDomain; }
-unsigned int Instrumentor::Event::getId( void ) const { return _ptpId; }
+inline Instrumentor::Event::ConstKVList Instrumentor::Event::getKVs () const { return _kvList; }
 
-void Instrumentor::Event::reverseType ( )
+inline unsigned int Instrumentor::Event::getDomain ( void ) const { return _ptpDomain; }
+
+inline unsigned int Instrumentor::Event::getId( void ) const { return _ptpId; }
+
+inline void Instrumentor::Event::reverseType ( )
 {
    switch ( _type )
    {

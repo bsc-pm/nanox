@@ -24,11 +24,10 @@
 #include <vector>
 #include "atomic.hpp"
 #include <cstdio>
+#include "trackableobject_fwd.hpp"
+
 namespace nanos
 {
-
-   class TrackableObject;
-
   /*! \brief Abstract entity submitted to the Dependency system
    */
    class DependableObject

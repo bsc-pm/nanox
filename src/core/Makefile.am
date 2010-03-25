@@ -40,41 +40,62 @@ nanos_libadd=\
 
 nanos_sources=\
 	nanos-int.h \
+	barrier_fwd.hpp \
 	barrier.hpp \
+	threadteam_fwd.hpp \
 	threadteam.hpp \
 	threadteam.cpp \
+	basethread_fwd.hpp\
 	basethread.hpp\
 	basethread.cpp\
+	processingelement_fwd.hpp \
 	processingelement.hpp \
 	processingelement.cpp \
+	accelerator_fwd.hpp \
 	accelerator.hpp \
 	accelerator.cpp \
+	schedule_fwd.hpp \
 	schedule.hpp \
 	schedule.cpp \
+	system_fwd.hpp \
+	system_decl.hpp\
 	system.hpp \
-        system_decl.hpp\
 	system.cpp \
+	wddeque_fwd.hpp \
 	wddeque.hpp \
+	workgroup_fwd.hpp \
 	workgroup.hpp \
 	workgroup.cpp \
+	workdescriptor_fwd.hpp \
+	workdescriptor_decl.hpp \
 	workdescriptor.hpp \
 	workdescriptor.cpp \
+	slicer_fwd.hpp \
 	slicer.hpp \
 	instrumentor_ctx.hpp \
+	instrumentor_fwd.hpp \
 	instrumentor_decl.hpp \
 	instrumentor.hpp \
-        instrumentor.cpp \
+	instrumentor.cpp \
+	throttle_fwd.hpp \
 	throttle.hpp \
+	dependency_fwd.hpp \
 	dependency.hpp \
+	copydata_fwd.hpp \
 	copydata.hpp \
+	dependableobject_fwd.hpp \
 	dependableobject.hpp \
 	dependableobjectwd.hpp \
+	dependableobjectwd_fwd.hpp \
 	dependableobjectwd.cpp \
+	trackableobject_fwd.hpp \
 	trackableobject.hpp \
+	dependenciesdomain_fwd.hpp \
 	dependenciesdomain.hpp \
 	dependenciesdomain.cpp \
-        synchronizedcondition.hpp \
-        synchronizedcondition_decl.hpp \
+	synchronizedcondition_fwd.hpp \
+	synchronizedcondition_decl.hpp \
+	synchronizedcondition.hpp \
 	$(END)
 
 # Default

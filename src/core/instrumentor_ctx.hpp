@@ -21,7 +21,7 @@
 #include <stack>
 #include <list>
 
-#include "instrumentor_decl.hpp"
+#include "instrumentor.hpp"
 #include "debug.hpp"
 
 namespace nanos {
@@ -33,31 +33,59 @@ namespace nanos {
          typedef std::stack<nanos_event_state_value_t> StateStack;
          typedef std::list<Event> BurstList;
 
-         StateStack       _stateStack;
-         BurstList        _burstList;
-         BurstList        _burstBackup;
+         StateStack       _stateStack;  /**< Stack of states */
+         BurstList        _burstList;   /**< List of current opened bursts */
+         BurstList        _burstBackup; /**< Backup list (non-active) of opened bursts */
 
       public:
+         /*! \brief InstrumentorContext copy constructor
+          */
          explicit InstrumentorContext(const InstrumentorContext &ic) : _stateStack(), _burstList() { }
 
          typedef BurstList::const_iterator   ConstBurstIterator;
          typedef BurstList::iterator         BurstIterator;
 
-         // constructors
-         InstrumentorContext () :_stateStack(), _burstList() 
-         {
-         }
+         /*! \brief InstrumentorContext constructor
+          */
+         InstrumentorContext () :_stateStack(), _burstList() { }
+
+         /*! \brief InstrumentorContext destructor
+          */
          ~InstrumentorContext() {}
 
+         /*! \brief Initializes the InstrumentContext
+          */
+         void init ( unsigned int wd_id )
+         {
+            Event::KV kv( Event::KV( WD_ID, wd_id ) );
+            Event e = Burst( true, kv );
+ 
+            insertBurst( e );
+            pushState( RUNNING );
+         }
+
+         /*! \brief Adds a state value into the state stack 
+          */
          void pushState ( nanos_event_state_value_t state ) { _stateStack.push( state ); }
+
+         /*! \brief Removes top state from the state stack
+          */
          void popState ( void ) { if ( !(_stateStack.empty()) ) _stateStack.pop(); }
 
+         /*! \brief Gets current state from top of stack
+          */
          nanos_event_state_value_t topState ( void )
          {
             if ( !(_stateStack.empty()) ) return _stateStack.top();
             else return ERROR;
          }
 
+         /*! \brief Inserts a Burst into the burst list
+          *
+          *  This function inserts a burst event in the burst list. If an event with the same type of that
+          *  event was already in the list it will be moved to an internal backup list in order to guarantee
+          *  just one event per type in the list.
+          */
          void insertBurst ( const Event &e )
          {
             bool found = false;
@@ -78,6 +106,12 @@ namespace nanos {
             _burstList.push_front ( e );
 
          }
+
+         /*! \brief Removes a Burst from the burst list
+          *
+          *  This function removes a burst event from the burst list. If an event with the same type of that
+          *  event was in the backup list it will be recovered to main list.
+          */
          void removeBurst ( BurstIterator it ) {
             bool found = false;
             nanos_event_key_t key = (*it).getKVs()[0].first;
@@ -95,6 +129,8 @@ namespace nanos {
             }
          }
 
+         /*! \brief Look for a specific event given its key value
+          */
          bool findBurstByKey ( nanos_event_key_t key, BurstIterator &ret )
          {
             bool found = false;
@@ -110,18 +146,18 @@ namespace nanos {
          }
 
 
+         /*! \brief Get the number of bursts in the main list
+          */
          unsigned int getNumBursts() const { return _burstList.size(); }
+
+         /*! \brief Gets the starting element in the burst list
+          */
          ConstBurstIterator beginBurst() const { return _burstList.begin(); }
+
+         /*! \brief Gets the last element in the burst list
+          */
          ConstBurstIterator endBurst() const { return _burstList.end(); }
 
-         void init ( unsigned int wd_id )
-         {
-            Event::KV kv( Event::KV( WD_ID, wd_id ) );
-            Event e = Burst( true, kv );
- 
-            insertBurst( e );
-            pushState( RUNNING );
-         }
 #else
       public:
          void init ( unsigned int wd_id ) { }

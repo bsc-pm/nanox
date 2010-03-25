@@ -23,18 +23,13 @@
 #include "workdescriptor.hpp"
 #include <algorithm>
 #include "functors.hpp"
+#include "basethread_fwd.hpp"
+#include "schedule_fwd.hpp"
 
 namespace nanos
 {
-
-// forward definitions
-
-   class SchedulingGroup;
-   class BaseThread;
-
    class ProcessingElement
    {
-
       private:
          typedef std::vector<BaseThread *>    ThreadList;
          int                                  _id;
