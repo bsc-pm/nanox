@@ -49,8 +49,8 @@ System::System () :
    if ( !_delayedStart ) {
       loadModules();
       start();
+      getInstrumentor()->leaveStartUp();
    }
-   getInstrumentor()->leaveStartUp();
    verbose0 ( "NANOS++ initalizing... end" );
 }
 

@@ -25,12 +25,10 @@
 namespace nanos {
    namespace ext {
 
-      /** \brief Implements a CILK-like scheduler
-      */
-      class CilkPolicy : public SchedulePolicy
+      class DistributedBFPolicy : public SchedulePolicy
       {
          private:
-            /** \brief Cilk Scheduler data associated to each thread
+            /** \brief DistributedBF Scheduler data associated to each thread
               *
               */
             struct ThreadData : public ScheduleThreadData
@@ -45,15 +43,15 @@ namespace nanos {
             };
 
             /* disable copy and assigment */
-            explicit CilkPolicy ( const CilkPolicy & );
-            const CilkPolicy & operator= ( const CilkPolicy & );
+            explicit DistributedBFPolicy ( const DistributedBFPolicy & );
+            const DistributedBFPolicy & operator= ( const DistributedBFPolicy & );
 
          public:
             // constructor
-            CilkPolicy() : SchedulePolicy ( "Cilk" ) {}
+            DistributedBFPolicy() : SchedulePolicy ( "Cilk" ) {}
 
             // destructor
-            virtual ~CilkPolicy() {}
+            virtual ~DistributedBFPolicy() {}
 
             virtual size_t getTeamDataSize () const { return 0; }
             virtual size_t getThreadDataSize () const { return sizeof(ThreadData); }
@@ -87,15 +85,16 @@ namespace nanos {
 
             /*!
             *  \brief Function called when a new task must be created: the new created task
-            *          is directly executed (Depth-First policy)
+            *          is directly queued (Breadth-First policy)
             *  \param thread pointer to the thread to which belongs the new task
             *  \param wd a reference to the work descriptor of the new task
             *  \sa WD and BaseThread
             */
             virtual WD * atSubmit ( BaseThread *thread, WD &newWD )
             {
-               /* it does not enqueue the created task, but it moves down to the generated son: DEPTH-FIRST */
-               return &newWD;
+               queue(thread,newWD);
+
+               return 0;
             }
 
 
@@ -109,7 +108,7 @@ namespace nanos {
        *  \param thread pointer to the thread to be scheduled
        *  \sa BaseThread
        */
-      WD * CilkPolicy::atIdle ( BaseThread *thread )
+      WD * DistributedBFPolicy::atIdle ( BaseThread *thread )
       {
          WorkDescriptor * wd;
 
@@ -160,19 +159,19 @@ namespace nanos {
          }
       }
 
-      class CilkSchedPlugin : public Plugin
+      class DistributedBFSchedPlugin : public Plugin
       {
          public:
-            CilkSchedPlugin() : Plugin( "Cilk scheduling Plugin",1 ) {}
+            DistributedBFSchedPlugin() : Plugin( "Distributed Breadth-First scheduling Plugin",1 ) {}
 
             virtual void config( Config& config ) {}
 
             virtual void init() {
-               sys.setDefaultSchedulePolicy(new CilkPolicy());
+               sys.setDefaultSchedulePolicy(new DistributedBFPolicy());
             }
       };
 
    }
 }
 
-nanos::ext::CilkSchedPlugin NanosXPlugin;
+nanos::ext::DistributedBFSchedPlugin NanosXPlugin;
