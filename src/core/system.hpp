@@ -109,5 +109,8 @@ inline SchedulePolicy * System::getDefaultSchedulePolicy ( ) const  { return _de
 
 inline SchedulerStats & System::getSchedulerStats () { return _schedStats; }
 
+inline const std::string & System::getDefaultArch() const { return _defArch; }
+inline void System::setDefaultArch( const std::string &arch ) { _defArch = arch; }
+
 #endif
 

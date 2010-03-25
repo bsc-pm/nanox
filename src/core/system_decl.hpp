@@ -75,6 +75,7 @@ namespace nanos
          std::string          _defThrottlePolicy;
          std::string          _defBarr;
          std::string          _defInstr;
+         std::string          _defArch;
 
          /*! factories for scheduling, pes and barriers objects */
          peFactory            _hostFactory;
@@ -176,6 +177,9 @@ namespace nanos
          const std::string & getDefaultBarrier() const;
 
          const std::string & getDefaultInstrumentor() const;
+
+         const std::string & getDefaultArch() const;
+         void setDefaultArch( const std::string &arch );
 
          void setHostFactory ( peFactory factory );
 
