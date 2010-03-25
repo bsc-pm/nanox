@@ -18,7 +18,7 @@
 /*************************************************************************************/
 #include "instrumentor.hpp"
 
-#include "instrumentor_ctx.hpp"
+#include "instrumentorcontext.hpp"
 #include "system.hpp"
 #include "workdescriptor.hpp"
 

@@ -29,7 +29,7 @@
 #include "copydata.hpp"
 #include "synchronizedcondition_decl.hpp"
 #include "atomic.hpp"
-#include "instrumentor_ctx.hpp"
+#include "instrumentorcontext.hpp"
 
 using namespace nanos;
 
