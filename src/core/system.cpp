@@ -48,7 +48,6 @@ System::System () :
    config();
    if ( !_delayedStart ) {
       start();
-      getInstrumentor()->leaveStartUp();
    }
    verbose0 ( "NANOS++ initalizing... end" );
 }
@@ -212,6 +211,7 @@ void System::start ()
          fatal("Unknown inital mode!");
          break;
    }
+   getInstrumentor()->leaveStartUp();
 }
 
 System::~System ()
