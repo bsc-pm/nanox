@@ -24,6 +24,15 @@
 
 using namespace nanos;
 
+void SchedulerConf::config (Config &config)
+{
+   config.setOptionsSection ( "Core [Scheduler]", "Policy independent scheduler options"  );
+
+   config.registerConfigOption ( "num_spins", new Config::UintVar( _numSpins ), "Determines the amount of spinning before yielding" );
+   config.registerArgOption ( "num_spins", "spins" );
+   config.registerEnvOption ( "num_spins", "NX_SPINS" );
+}
+
 void Scheduler::submit ( WD &wd )
 {
    sys.getSchedulerStats()._createdTasks++;
@@ -52,8 +61,10 @@ void Scheduler::submit ( WD &wd )
 template<class behaviour>
 inline void Scheduler::idleLoop ()
 {
-   int spins = 100;
    sys.getInstrumentor()->enterIdle();
+
+   const int nspins = sys.getSchedulerConf().getNumSpins();
+   int spins = nspins;
 
    WD *current = myThread->getCurrentWD();
    current->setIdle();
@@ -73,7 +84,7 @@ inline void Scheduler::idleLoop ()
            behaviour::switchWD(thread,current, next);
            sys.getInstrumentor()->enterIdle();
            sys.getSchedulerStats()._idleThreads++;
-           spins = 100;
+           spins = nspins;
            continue;
          }
       }
@@ -81,7 +92,7 @@ inline void Scheduler::idleLoop ()
       spins--;
       if ( spins == 0 ) {
         thread->yield();
-        spins = 100;
+        spins = nspins;
       }
    }
    sys.getSchedulerStats()._idleThreads--;
@@ -92,8 +103,9 @@ inline void Scheduler::idleLoop ()
 void Scheduler::waitOnCondition (GenericSyncCond *condition)
 {
    sys.getInstrumentor()->enterIdle();
-   
-   int spins=100; // FIXME: this has to be configurable (see #147)
+
+   const int nspins = sys.getSchedulerConf().getNumSpins();
+   int spins=nspins; 
    WD * current = myThread->getCurrentWD();
 
    sys.getSchedulerStats()._readyTasks--;
@@ -126,7 +138,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
          } else {
             condition->unlock();
          }
-         spins = 100;
+         spins = nspins;
       }
    }
 

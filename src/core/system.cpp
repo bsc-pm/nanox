@@ -147,6 +147,8 @@ void System::config ()
    config.registerArgOption ( "instrumentor", "instrumentor" );
    config.registerEnvOption ( "instrumentor", "NX_INSTRUMENTOR" );
 
+   _schedConf.config(config);
+   
    verbose0 ( "Reading Configuration" );
    config.init();
 }

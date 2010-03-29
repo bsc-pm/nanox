@@ -31,6 +31,7 @@
 #include <algorithm>
 #include "synchronizedcondition_fwd.hpp"
 #include "system_fwd.hpp"
+#include "config.hpp"
 
 namespace nanos
 {
@@ -65,6 +66,22 @@ namespace nanos
          static void wakeUp ( WD *wd );
    };
 
+   class SchedulerConf
+   {
+      friend class System;
+
+      private:
+        unsigned int  _numSpins;
+
+        SchedulerConf() : _numSpins(100) {}
+
+      public:
+         unsigned int getNumSpins () const { return _numSpins; }
+         void setNumSpins ( const unsigned int num ) { _numSpins = num; }
+
+         void config ( Config &cfg );
+   };
+   
    class SchedulerStats
    {
       friend class Scheduler;

@@ -69,6 +69,7 @@ namespace nanos
          //cutoff policy and related variables
          ThrottlePolicy *     _throttlePolicy;
          SchedulerStats       _schedStats;
+         SchedulerConf        _schedConf;
 
          /*! names of the scheduling, cutoff and barrier plugins */
          std::string          _defSchedule;
@@ -201,6 +202,8 @@ namespace nanos
          SchedulePolicy * getDefaultSchedulePolicy ( ) const;
 
          SchedulerStats & getSchedulerStats ();
+
+         const SchedulerConf  & getSchedulerConf() const;
    };
 
    extern System sys;

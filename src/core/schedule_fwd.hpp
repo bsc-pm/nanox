@@ -29,6 +29,7 @@ namespace nanos
 
    class SchedulingGroup;
    class SchedulingData;
+   class SchedulingConf;
 };
 
 #endif
