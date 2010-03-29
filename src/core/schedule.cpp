@@ -52,6 +52,7 @@ void Scheduler::submit ( WD &wd )
 template<class behaviour>
 inline void Scheduler::idleLoop ()
 {
+   int spins = 100;
    sys.getInstrumentor()->enterIdle();
 
    WD *current = myThread->getCurrentWD();
@@ -72,7 +73,15 @@ inline void Scheduler::idleLoop ()
            behaviour::switchWD(thread,current, next);
            sys.getInstrumentor()->enterIdle();
            sys.getSchedulerStats()._idleThreads++;
+           spins = 100;
+           continue;
          }
+      }
+
+      spins--;
+      if ( spins == 0 ) {
+        thread->yield();
+        spins = 100;
       }
    }
    sys.getSchedulerStats()._idleThreads--;
