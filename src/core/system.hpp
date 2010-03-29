@@ -108,7 +108,7 @@ inline void System::setDefaultSchedulePolicy ( SchedulePolicy *policy ) { _defSc
 inline SchedulePolicy * System::getDefaultSchedulePolicy ( ) const  { return _defSchedulePolicy; }
 
 inline SchedulerStats & System::getSchedulerStats () { return _schedStats; }
-inline const SchedulerConf  & System::getSchedulerConf () const { return _schedConf; }
+inline SchedulerConf  & System::getSchedulerConf ()  { return _schedConf; }
 
 inline const std::string & System::getDefaultArch() const { return _defArch; }
 inline void System::setDefaultArch( const std::string &arch ) { _defArch = arch; }

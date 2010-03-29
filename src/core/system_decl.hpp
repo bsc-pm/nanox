@@ -202,8 +202,7 @@ namespace nanos
          SchedulePolicy * getDefaultSchedulePolicy ( ) const;
 
          SchedulerStats & getSchedulerStats ();
-
-         const SchedulerConf  & getSchedulerConf() const;
+         SchedulerConf  & getSchedulerConf();
    };
 
    extern System sys;

@@ -31,10 +31,10 @@
 #include <algorithm>
 #include "synchronizedcondition_fwd.hpp"
 #include "system_fwd.hpp"
-#include "config.hpp"
 
 namespace nanos
 {
+   class Config;
 
 // singleton class to encapsulate scheduling data and methods
    typedef void SchedulerHelper ( WD *oldWD, WD *newWD, void *arg);

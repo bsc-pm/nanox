@@ -21,6 +21,7 @@
 #include "processingelement.hpp"
 #include "basethread.hpp"
 #include "system.hpp"
+#include "config.hpp"
 
 using namespace nanos;
 
