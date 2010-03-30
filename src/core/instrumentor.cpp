@@ -24,8 +24,6 @@
 
 using namespace nanos;
 
-#ifdef INSTRUMENTATION_ENABLED
-
 void Instrumentor::enterRuntimeAPI ( nanos_event_api_t function, nanos_event_state_value_t state )
 {
    /* Create a vector of two events: STATE and BURST */
@@ -301,7 +299,4 @@ void Instrumentor::leaveShutDown ( void )
    Event e = State( state );
    addEventList ( 1u, &e );
 }
-
-#endif
-
 

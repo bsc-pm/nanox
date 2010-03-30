@@ -27,7 +27,6 @@
 namespace nanos {
 
    class InstrumentorContext {
-#ifdef INSTRUMENTATION_ENABLED
       private:
          typedef Instrumentor::Event Event;
          typedef Instrumentor::Burst Burst;
@@ -108,10 +107,6 @@ namespace nanos {
          /*! \brief Gets the last element in the burst list
           */
          ConstBurstIterator endBurst() const ; 
-
-#else
-         void init ( unsigned int wd_id ) {}
-#endif
 
    };
 }

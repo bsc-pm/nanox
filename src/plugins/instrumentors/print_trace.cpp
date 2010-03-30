@@ -6,7 +6,7 @@ namespace nanos {
 
 class InstrumentorPrintTrace: public Instrumentor 
 {
-#if defined INSTRUMENTATION_ENABLED
+#if defined NANOS_INSTRUMENTATION_ENABLED
    private:
 
    public:

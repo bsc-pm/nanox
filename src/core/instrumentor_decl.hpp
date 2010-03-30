@@ -18,7 +18,13 @@
 /*************************************************************************************/
 // FIXME: (#131) This flag ENABLE_INSTRUMENTATION has to be managed through
 //compilation in order to generate an instrumentation version
-#define INSTRUMENTATION_ENABLED
+#define NANOS_INSTRUMENTATION_ENABLED
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+#define NANOS_INSTRUMENTOR(f) sys.getInstrumentor()->f;
+#else
+#define NANOS_INSTRUMENTOR(f) ;
+#endif
 
 #ifndef __NANOS_INSTRUMENTOR_DECL_H
 #define __NANOS_INSTRUMENTOR_DECL_H
@@ -186,8 +192,6 @@ namespace nanos {
           */
          virtual ~Instrumentor() {}
 
-#ifdef INSTRUMENTATION_ENABLED
-
          // low-level instrumentation interface (pure virtual functions)
 
          /*! \brief Pure virtual functions executed at the beginning of instrumentation phase
@@ -351,47 +355,6 @@ namespace nanos {
           */
          void createPtPEnd ( Event &e, nanos_event_domain_t domain, nanos_event_id_t id,
                              unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
-
-#else // INSTRUMENTATION DISABLED
-
-         // All functions here must be empty and  non-virtual so the compiler 
-         // eliminates the instrumentation calls
-
-         // low-level instrumentation interface (pure virtual functions)
-
-         void initialize( void ) {} 
-         void finalize( void ) {}
-         void addEventList ( unsigned int count, Event *events ) {}
-
-         // CORE: high-level instrumentation interface (virtual functions)
-
-         void enterRuntimeAPI ( nanos_event_api_t function, nanos_event_state_value_t state = RUNTIME ) {}
-         void leaveRuntimeAPI ( ) {}
-         void enterIdle ( ) {}
-         void leaveIdle ( ) {}
-
-         void wdCreate( WorkDescriptor* newWD ) {}
-         void wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
-         void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
-
-         void enterStartUp ( void ) {}
-         void leaveStartUp ( void ) {}
-         void enterShutDown ( void ) {}
-         void leaveShutDown ( void ) {}
-
-         // CORE: high-level instrumentation interface (non-virtual functions)
-
-         void createBurstStart ( Event &e, nanos_event_key_t key, nanos_event_value_t value ) {}
-         void createBurstEnd ( Event &e, nanos_event_key_t key, nanos_event_value_t value ) {}
-         void createStateEvent ( Event &e, nanos_event_state_value_t state ) {}
-         void returnPreviousStateEvent ( Event &e ) {}
-         void createPointEvent ( Event &e, unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values ) {}
-         void createPtPStart ( Event &e, nanos_event_domain_t domain, nanos_event_id_t id,
-                               unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values ) {}
-         void createPtPEnd ( Event &e, nanos_event_domain_t domain, nanos_event_id_t id,
-                             unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values ) {}
-
-#endif
 
    };
 }

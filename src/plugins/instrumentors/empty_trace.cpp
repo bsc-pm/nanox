@@ -6,7 +6,7 @@ namespace nanos {
 
 class InstrumentorEmptyTrace: public Instrumentor 
 {
-#if defined INSTRUMENTATION_ENABLED
+#if defined NANOS_INSTRUMENTATION_ENABLED
    private:
    public:
       // constructor

@@ -19,7 +19,7 @@ namespace nanos {
 
    class InstrumentorParaver: public Instrumentor 
    {
-#if defined INSTRUMENTATION_ENABLED
+#if defined NANOS_INSTRUMENTATION_ENABLED
    private:
       unsigned int _eventBase[EVENT_TYPES];
    public:

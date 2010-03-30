@@ -27,8 +27,6 @@
 
 using namespace nanos;
 
-#ifdef INSTRUMENTATION_ENABLED
-
 inline void InstrumentorContext::init ( unsigned int wd_id )
 {
    Event::KV kv( Event::KV( WD_ID, wd_id ) );
@@ -121,7 +119,5 @@ inline InstrumentorContext::ConstBurstIterator InstrumentorContext::endBurst() c
 {
    return _burstList.end();
 }
-
-#endif // INSTRUMENTATION_ENABLED
 
 #endif

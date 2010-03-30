@@ -49,7 +49,7 @@ System::System () :
    if ( !_delayedStart ) {
       loadModules();
       start();
-      getInstrumentor()->leaveStartUp();
+      NANOS_INSTRUMENTOR ( leaveStartUp() );
    }
    verbose0 ( "NANOS++ initalizing... end" );
 }
@@ -175,8 +175,8 @@ void System::start ()
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 
    // Instrumentation startup
-   getInstrumentor()->initialize();
-   getInstrumentor()->enterStartUp();
+   NANOS_INSTRUMENTOR ( initialize() );
+   NANOS_INSTRUMENTOR ( enterStartUp() );
 
    //start as much threads per pe as requested by the user
    for ( int ths = 1; ths < getThsPerPE(); ths++ ) {
@@ -216,7 +216,7 @@ void System::start ()
 System::~System ()
 {
    if ( !_delayedStart ) {
-      getInstrumentor()->enterShutDown();
+      NANOS_INSTRUMENTOR( enterShutDown() );
       verbose ( "NANOS++ shutting down.... init" );
       verbose ( "Wait for main workgroup to complete" );
       myThread->getCurrentWD()->waitCompletion();
@@ -237,8 +237,8 @@ System::~System ()
       verbose ( "Joining threads... phase 2" );
   
       // shutdown instrumentation 
-      getInstrumentor()->leaveShutDown();
-      getInstrumentor()->finalize();
+      NANOS_INSTRUMENTOR ( leaveShutDown() );
+      NANOS_INSTRUMENTOR ( finalize() );
    
       // join
       for ( unsigned p = 1; p < _pes.size() ; p++ ) {
