@@ -152,8 +152,9 @@ namespace nanos
          void reserve() { _hasTeam = 1; }
 
          void enterTeam( ThreadTeam *newTeam, TeamData *data ) {
-            _team = newTeam;
             _teamData = data;
+	    ::memoryFence();
+            _team = newTeam;
             _hasTeam=1;
          }
 

@@ -42,14 +42,12 @@ System nanos::sys;
 System::System () :
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindThreads( true ), _profile( false ), _instrument( false ),
       _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster(true), _delayedStart(false), _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" ),
-      _defInstr ( "empty_trace" ), _instrumentor ( NULL ), _defSchedulePolicy(NULL)
+      _defInstr ( "empty_trace" ), _defArch("smp"), _instrumentor ( NULL ), _defSchedulePolicy(NULL)
 {
    verbose0 ( "NANOS++ initalizing... start" );
    config();
    if ( !_delayedStart ) {
-      loadModules();
       start();
-      NANOS_INSTRUMENTOR ( leaveStartUp() );
    }
    verbose0 ( "NANOS++ initalizing... end" );
 }
@@ -65,10 +63,10 @@ void System::loadModules ()
    // load host processor module
    verbose0( "loading SMP support" );
 
-   if ( !PluginManager::load ( "pe-smp" ) )
-      fatal0 ( "Couldn't load SMP support" );
+   if ( !PluginManager::load ( "pe-"+getDefaultArch() ) )
+      fatal0 ( "Couldn't load host support" );
 
-   ensure( _hostFactory,"No default smp factory" );
+   ensure( _hostFactory,"No default host factory" );
 
    // load default schedule plugin
    verbose0( "loading " << getDefaultSchedule() << " scheduling policy support" );
@@ -149,6 +147,8 @@ void System::config ()
    config.registerArgOption ( "instrumentor", "instrumentor" );
    config.registerEnvOption ( "instrumentor", "NX_INSTRUMENTOR" );
 
+   _schedConf.config(config);
+   
    verbose0 ( "Reading Configuration" );
    config.init();
 }
@@ -163,6 +163,8 @@ PE * System::createPE ( std::string pe_type, int pid )
 
 void System::start ()
 {
+   loadModules();
+
    verbose0 ( "Starting threads" );
 
    int numPes = getNumPEs();
@@ -211,41 +213,45 @@ void System::start ()
          fatal("Unknown inital mode!");
          break;
    }
+   NANOS_INSTRUMENTOR ( leaveStartUp() );
 }
 
 System::~System ()
 {
-   if ( !_delayedStart ) {
-      NANOS_INSTRUMENTOR( enterShutDown() );
-      verbose ( "NANOS++ shutting down.... init" );
-      verbose ( "Wait for main workgroup to complete" );
-      myThread->getCurrentWD()->waitCompletion();
+   if ( !_delayedStart ) finish();
+}
 
-      // we need to switch to the main thread here to finish
-      // the execution correctly
-      myThread->getCurrentWD()->tieTo(*_workers[0]);
-      Scheduler::switchToThread(_workers[0]);
-      ensure(myThread->getId() == 0, "Main thread not finishing the application!");
-   
-      verbose ( "Joining threads... phase 1" );
-      // signal stop PEs
-   
-      for ( unsigned p = 1; p < _pes.size() ; p++ ) {
-         _pes[p]->stopAll();
-      }
-   
-      verbose ( "Joining threads... phase 2" );
-  
-      // shutdown instrumentation 
-      NANOS_INSTRUMENTOR ( leaveShutDown() );
-      NANOS_INSTRUMENTOR ( finalize() );
-   
-      // join
-      for ( unsigned p = 1; p < _pes.size() ; p++ ) {
-         delete _pes[p];
-      }
-      verbose ( "NANOS++ shutting down.... end" );
+void System::finish ()
+{
+   NANOS_INSTRUMENTOR ( enterShutDown() );
+   verbose ( "NANOS++ shutting down.... init" );
+   verbose ( "Wait for main workgroup to complete" );
+   myThread->getCurrentWD()->waitCompletion();
+
+   // we need to switch to the main thread here to finish
+   // the execution correctly
+   myThread->getCurrentWD()->tieTo(*_workers[0]);
+   Scheduler::switchToThread(_workers[0]);
+   ensure(myThread->getId() == 0, "Main thread not finishing the application!");
+
+   verbose ( "Joining threads... phase 1" );
+   // signal stop PEs
+
+   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
+      _pes[p]->stopAll();
    }
+
+   verbose ( "Joining threads... phase 2" );
+
+   // shutdown instrumentation
+   NANOS_INSTRUMENTOR ( leaveShutDown() );
+   NANOS_INSTRUMENTOR ( finalize() );
+
+   // join
+   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
+      delete _pes[p];
+   }
+   verbose ( "NANOS++ shutting down.... end" );
 }
 
 /*! \brief Creates a new WD

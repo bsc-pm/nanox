@@ -69,12 +69,14 @@ namespace nanos
          //cutoff policy and related variables
          ThrottlePolicy *     _throttlePolicy;
          SchedulerStats       _schedStats;
+         SchedulerConf        _schedConf;
 
          /*! names of the scheduling, cutoff and barrier plugins */
          std::string          _defSchedule;
          std::string          _defThrottlePolicy;
          std::string          _defBarr;
          std::string          _defInstr;
+         std::string          _defArch;
 
          /*! factories for scheduling, pes and barriers objects */
          peFactory            _hostFactory;
@@ -94,7 +96,7 @@ namespace nanos
 
          void config ();
          void loadModules();
-         void start ();
+         
          PE * createPE ( std::string pe_type, int pid );
 
       public:
@@ -102,6 +104,9 @@ namespace nanos
          System ();
          ~System ();
 
+         void start ();
+         void finish ();
+         
          void submit ( WD &work );
          void submitWithDependencies (WD& work, size_t numDeps, Dependency* deps);
          void waitOn ( size_t numDeps, Dependency* deps);
@@ -177,6 +182,9 @@ namespace nanos
 
          const std::string & getDefaultInstrumentor() const;
 
+         const std::string & getDefaultArch() const;
+         void setDefaultArch( const std::string &arch );
+
          void setHostFactory ( peFactory factory );
 
          void setDefaultBarrFactory ( barrFactory factory );
@@ -194,6 +202,7 @@ namespace nanos
          SchedulePolicy * getDefaultSchedulePolicy ( ) const;
 
          SchedulerStats & getSchedulerStats ();
+         SchedulerConf  & getSchedulerConf();
    };
 
    extern System sys;

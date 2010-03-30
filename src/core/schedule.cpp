@@ -21,8 +21,18 @@
 #include "processingelement.hpp"
 #include "basethread.hpp"
 #include "system.hpp"
+#include "config.hpp"
 
 using namespace nanos;
+
+void SchedulerConf::config (Config &config)
+{
+   config.setOptionsSection ( "Core [Scheduler]", "Policy independent scheduler options"  );
+
+   config.registerConfigOption ( "num_spins", new Config::UintVar( _numSpins ), "Determines the amount of spinning before yielding" );
+   config.registerArgOption ( "num_spins", "spins" );
+   config.registerEnvOption ( "num_spins", "NX_SPINS" );
+}
 
 void Scheduler::submit ( WD &wd )
 {
@@ -54,6 +64,9 @@ inline void Scheduler::idleLoop ()
 {
    NANOS_INSTRUMENTOR( enterIdle() )
 
+   const int nspins = sys.getSchedulerConf().getNumSpins();
+   int spins = nspins;
+
    WD *current = myThread->getCurrentWD();
    current->setIdle();
    sys.getSchedulerStats()._idleThreads++;
@@ -72,7 +85,15 @@ inline void Scheduler::idleLoop ()
            behaviour::switchWD(thread,current, next);
            NANOS_INSTRUMENTOR( enterIdle() );
            sys.getSchedulerStats()._idleThreads++;
+           spins = nspins;
+           continue;
          }
+      }
+
+      spins--;
+      if ( spins == 0 ) {
+        thread->yield();
+        spins = nspins;
       }
    }
    sys.getSchedulerStats()._idleThreads--;
@@ -83,8 +104,10 @@ inline void Scheduler::idleLoop ()
 void Scheduler::waitOnCondition (GenericSyncCond *condition)
 {
    NANOS_INSTRUMENTOR ( enterIdle() );
-   
-   int spins=100; // FIXME: this has to be configurable (see #147)
+
+   const int nspins = sys.getSchedulerConf().getNumSpins();
+   int spins = nspins; 
+
    WD * current = myThread->getCurrentWD();
 
    sys.getSchedulerStats()._readyTasks--;
@@ -117,7 +140,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
          } else {
             condition->unlock();
          }
-         spins = 100;
+         spins = nspins;
       }
    }
 
