@@ -30,12 +30,48 @@
 #define __NANOS_INSTRUMENTOR_DECL_H
 #include <list>
 #include <utility>
+#include <string>
+#include <tr1/unordered_map>
 #include "debug.hpp"
 #include "nanos-int.h"
 
 #include "workdescriptor_fwd.hpp"
 
 namespace nanos {
+
+   class InstrumentorKeyDescriptor
+   {
+      private:
+         nanos_event_key_t  _id;          /**< InstrumentorKeyDescriptor id */
+         std::string        _description; /**< InstrumenotrKeyDescriptor description */
+      public:
+
+
+   };
+
+   class InstrumentorDictionary
+   {
+      public:
+         typedef std::tr1::unordered_map<std::string, InstrumentorKeyDescriptor*> KeyMap;
+      private:
+         unsigned int _totalKeys; /**< Total number of keys */
+         KeyMap       _keyMap;    /**< Registered Key elements */
+         
+      public:
+         InstrumentorDictionary () {}
+         ~InstrumentorDictionary() {}
+
+         void registerEventKey ( nanos_event_key_t key, std::string name, std::string description );
+
+         nanos_event_key_t getEventKey ( std::string name );
+         const std::string getEventKeyDescription ( std::string name );
+
+         void registerEventValue ( nanos_event_key_t key, nanos_event_value_t, std::string name, std::string description );
+
+         nanos_event_value_t getEventValue ( std::string name );
+         const std::string getEventValueDescription ( std::string name );
+
+   };
 
    class Instrumentor 
    {
@@ -45,7 +81,7 @@ namespace nanos {
                typedef std::pair<nanos_event_key_t,nanos_event_value_t>   KV;
                typedef KV *KVList;
                typedef const KV *ConstKVList;
-            protected:
+            private:
                nanos_event_type_t          _type;         /**< Event type */
                nanos_event_state_value_t   _state;        /**< Event state */
 
@@ -304,7 +340,7 @@ namespace nanos {
          /*! \brief Used by higher levels to create a STATE event
           *
           *  \param[in,out] e is an event reference, preallocated by the caller
-          *  \param[in} state is the state value for the event
+          *  \param[in] state is the state value for the event
           */
          void createStateEvent ( Event &e, nanos_event_state_value_t state );
 
@@ -357,5 +393,6 @@ namespace nanos {
                              unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
 
    };
+
 }
 #endif
