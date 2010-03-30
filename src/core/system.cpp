@@ -232,7 +232,8 @@ void System::finish ()
    // the execution correctly
    myThread->getCurrentWD()->tieTo(*_workers[0]);
    Scheduler::switchToThread(_workers[0]);
-   ensure(myThread->getId() == 0, "Main thread not finishing the application!");
+   
+   //FIXME (#185) : ensure(myThread->getId() == 0, "Main thread not finishing the application!");
 
    verbose ( "Joining threads... phase 1" );
    // signal stop PEs
