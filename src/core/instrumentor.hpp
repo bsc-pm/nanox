@@ -23,6 +23,67 @@
 
 using namespace nanos;
 
+/** INSTRUMENTOR KEY DESCRIPTOR **/
+
+inline nanos_event_key_t InstrumentorKeyDescriptor::getId ( void )
+{
+   return _id;
+}
+
+inline const std::string InstrumentorKeyDescriptor::getDescription ( void )
+{
+   return _description;
+}
+
+/** INSTRUMENTOR DICTIONARY **/
+
+inline nanos_event_key_t InstrumentorDictionary::registerEventKey ( std::string name, std::string description )
+{
+   InstrumentorKeyDescriptor *keyDescriptor = NULL;
+
+   KeyMapIterator it = _keyMap.find( name );
+
+   if ( it == _keyMap.end() ) {
+      keyDescriptor = new InstrumentorKeyDescriptor ( (nanos_event_key_t) _totalKeys++, description );
+      _keyMap.insert( std::make_pair( name, keyDescriptor ) );
+   }
+   else keyDescriptor = it->second;
+
+   return keyDescriptor->getId();
+}
+
+inline bool InstrumentorDictionary::getEventKey ( std::string key, nanos_event_key_t &event_key )
+{
+
+   return true;
+}
+
+inline bool  InstrumentorDictionary::getEventKeyDescription ( std::string key, std::string &description )
+{
+
+   return true;
+}
+
+inline nanos_event_value_t InstrumentorDictionary::registerEventValue ( std::string key, std::string value, std::string description )
+{
+
+   return (nanos_event_value_t) 0;
+}
+
+inline bool InstrumentorDictionary::getEventValue ( std::string key, std::string value, nanos_event_value_t &event_value )
+{
+
+   return true;
+}
+
+inline bool InstrumentorDictionary::getEventValueDescription ( std::string key, std::string value, std::string &description )
+{
+
+   return true;
+}
+
+/** INSTRUMENTOR **/
+
 inline nanos_event_type_t Instrumentor::Event::getType () const { return _type; }
 
 inline nanos_event_state_value_t Instrumentor::Event::getState () { return _state; }

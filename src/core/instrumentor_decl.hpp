@@ -34,6 +34,7 @@
 #include <tr1/unordered_map>
 #include "debug.hpp"
 #include "nanos-int.h"
+#include "atomic.hpp"
 
 #include "workdescriptor_fwd.hpp"
 
@@ -45,7 +46,11 @@ namespace nanos {
          nanos_event_key_t  _id;          /**< InstrumentorKeyDescriptor id */
          std::string        _description; /**< InstrumenotrKeyDescriptor description */
       public:
+         InstrumentorKeyDescriptor ( nanos_event_key_t id, std::string description ) : _id( id ), _description ( description ) {}
+         ~InstrumentorKeyDescriptor() {}
 
+         nanos_event_key_t getId ( void );
+         const std::string getDescription ( void );
 
    };
 
@@ -53,23 +58,25 @@ namespace nanos {
    {
       public:
          typedef std::tr1::unordered_map<std::string, InstrumentorKeyDescriptor*> KeyMap;
+         typedef KeyMap::iterator KeyMapIterator;
+         typedef KeyMap::const_iterator ConstKeyMapIterator;
       private:
-         unsigned int _totalKeys; /**< Total number of keys */
-         KeyMap       _keyMap;    /**< Registered Key elements */
+         static Atomic<unsigned int> _totalKeys; /**< Total number of keys */
+         KeyMap                      _keyMap;    /**< Registered Key elements */
          
       public:
          InstrumentorDictionary () {}
          ~InstrumentorDictionary() {}
 
-         void registerEventKey ( nanos_event_key_t key, std::string name, std::string description );
+         nanos_event_key_t registerEventKey ( std::string key, std::string description );
 
-         nanos_event_key_t getEventKey ( std::string name );
-         const std::string getEventKeyDescription ( std::string name );
+         bool getEventKey ( std::string key, nanos_event_key_t &event_key );
+         bool getEventKeyDescription ( std::string key, std::string &description );
 
-         void registerEventValue ( nanos_event_key_t key, nanos_event_value_t, std::string name, std::string description );
+         nanos_event_value_t registerEventValue ( std::string key, std::string value, std::string description );
 
-         nanos_event_value_t getEventValue ( std::string name );
-         const std::string getEventValueDescription ( std::string name );
+         bool getEventValue ( std::string key, std::string value, nanos_event_value_t &event_value );
+         bool getEventValueDescription ( std::string key, std::string value, std::string &description );
 
    };
 
