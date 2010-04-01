@@ -334,9 +334,7 @@ namespace nanos {
           *  \param[in] function is a function id
           *  \param[in] state is the state we are changing to
           *
-          *  FIXME: two versions available, the one using nanos_event_api_t will be unsupported
           */
-         virtual void enterRuntimeAPI ( nanos_event_api_t function, nanos_event_state_value_t state = RUNTIME );
          virtual void enterRuntimeAPI ( std::string function, std::string description, nanos_event_state_value_t state = RUNTIME );
 
          /*! \brief Used in API level when leaving a runtime service
