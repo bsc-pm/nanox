@@ -22,8 +22,10 @@
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 #define NANOS_INSTRUMENTOR(f) sys.getInstrumentor()->f;
+#define NANOS_INSTRUMENTOR_DICTIONARY(f) sys.getInstrumentorDictionary()->f;
 #else
 #define NANOS_INSTRUMENTOR(f) ;
+#define NANOS_INSTRUMENTOR_DICTIONARY(f) ;
 #endif
 
 #ifndef __NANOS_INSTRUMENTOR_DECL_H
@@ -40,17 +42,68 @@
 
 namespace nanos {
 
-   class InstrumentorKeyDescriptor
+   class InstrumentorValueDescriptor
    {
       private:
-         nanos_event_key_t  _id;          /**< InstrumentorKeyDescriptor id */
-         std::string        _description; /**< InstrumenotrKeyDescriptor description */
+         nanos_event_value_t  _id;          /**< InstrumentorValueDescriptor id */
+         std::string          _description; /**< InstrumenotrValueDescriptor description */
       public:
-         InstrumentorKeyDescriptor ( nanos_event_key_t id, std::string description ) : _id( id ), _description ( description ) {}
+         /*!
+          */
+         InstrumentorValueDescriptor ( nanos_event_value_t id, std::string description ) : _id( id ), _description ( description ) {}
+         /*!
+          */
+         ~InstrumentorValueDescriptor() {}
+
+         /*!
+          */
+         nanos_event_value_t getId ( void );
+
+         /*!
+          */
+         const std::string getDescription ( void );
+
+   };
+
+   class InstrumentorKeyDescriptor
+   {
+      public:
+         typedef std::tr1::unordered_map<std::string, InstrumentorValueDescriptor*> ValueMap;
+         typedef ValueMap::iterator ValueMapIterator;
+         typedef ValueMap::const_iterator ConstValueMapIterator;
+      private:
+         nanos_event_key_t    _id;          /**< InstrumentorKeyDescriptor id */
+         std::string          _description; /**< InstrumenotrKeyDescriptor description */
+         Atomic<unsigned int> _totalValues; /**< Total number of values */
+         ValueMap             _valueMap;    /**< Registered Value elements */
+      public:
+         /*!
+          */
+         InstrumentorKeyDescriptor ( nanos_event_key_t id, std::string description ) : _id( id ), _description ( description ),
+                                     _totalValues(1), _valueMap() {}
+         /*!
+          */
          ~InstrumentorKeyDescriptor() {}
 
+         /*!
+          */
          nanos_event_key_t getId ( void );
+
+         /*!
+          */
          const std::string getDescription ( void );
+
+         /*!
+          */
+         nanos_event_value_t registerValue ( std::string value, std::string description );
+
+         /*!
+          */
+         ConstValueMapIterator beginValueMap ( void );
+
+         /*!
+          */
+         ConstValueMapIterator endValueMap ( void );
 
    };
 
@@ -61,22 +114,33 @@ namespace nanos {
          typedef KeyMap::iterator KeyMapIterator;
          typedef KeyMap::const_iterator ConstKeyMapIterator;
       private:
-         static Atomic<unsigned int> _totalKeys; /**< Total number of keys */
-         KeyMap                      _keyMap;    /**< Registered Key elements */
+         Atomic<unsigned int> _totalKeys; /**< Total number of keys */
+         KeyMap               _keyMap;    /**< Registered Key elements */
          
       public:
-         InstrumentorDictionary () {}
+         /*!
+          */
+         InstrumentorDictionary () : _totalKeys(1), _keyMap() {}
+         /*!
+          */
          ~InstrumentorDictionary() {}
 
-         nanos_event_key_t registerEventKey ( std::string key, std::string description );
+         /*!
+          */
+         nanos_event_key_t registerEventKey ( std::string key, std::string description="" );
 
-         bool getEventKey ( std::string key, nanos_event_key_t &event_key );
-         bool getEventKeyDescription ( std::string key, std::string &description );
+         /*!
+          */
+         nanos_event_value_t registerEventValue ( std::string key, std::string value, std::string description="" );
 
-         nanos_event_value_t registerEventValue ( std::string key, std::string value, std::string description );
+         /*!
+          */
+         ConstKeyMapIterator beginKeyMap ( void );
 
-         bool getEventValue ( std::string key, std::string value, nanos_event_value_t &event_value );
-         bool getEventValueDescription ( std::string key, std::string value, std::string &description );
+         /*!
+          */
+         ConstKeyMapIterator endKeyMap ( void );
+         
 
    };
 
@@ -269,8 +333,11 @@ namespace nanos {
           *
           *  \param[in] function is a function id
           *  \param[in] state is the state we are changing to
+          *
+          *  FIXME: two versions available, the one using nanos_event_api_t will be unsupported
           */
          virtual void enterRuntimeAPI ( nanos_event_api_t function, nanos_event_state_value_t state = RUNTIME );
+         virtual void enterRuntimeAPI ( std::string function, std::string description, nanos_event_state_value_t state = RUNTIME );
 
          /*! \brief Used in API level when leaving a runtime service
           */

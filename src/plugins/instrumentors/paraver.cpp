@@ -136,6 +136,30 @@ namespace nanos {
             p_file << "9    " << _eventBase[BURST_START]+USER_FUNCT  << "     User Functions, id: " << std::endl;
             p_file << std::endl;
 
+// xteruel:FIXME
+
+            InstrumentorDictionary::ConstKeyMapIterator itK;
+            InstrumentorKeyDescriptor::ConstValueMapIterator itV;
+
+            InstrumentorDictionary *iD = sys.getInstrumentorDictionary();
+
+            for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
+               InstrumentorKeyDescriptor *kD = itK->second;
+ 
+               p_file << "EVENT_TYPE" << std::endl;
+               p_file << "9    " << kD->getId() << "  " << kD->getDescription() << std::endl;
+               p_file << "VALUES" << std::endl;
+               
+               for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
+                  InstrumentorValueDescriptor *vD = itV->second;
+                  p_file << vD->getId() << "  " << vD->getDescription() << std::endl;
+               }
+               p_file << std::endl;
+            }
+            p_file << std::endl;
+
+// xteruel:FIXME
+
             p_file.close();
          }
          else std::cout << "Unable to open paraver config file" << std::endl;  

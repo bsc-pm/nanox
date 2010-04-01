@@ -20,6 +20,9 @@
 #define __NANOS_INSTRUMENTOR_FWD_H
 
 namespace nanos {
+   class InstrumentorValueDescriptor;
+   class InstrumentorKeyDescriptor;
+   class InstrumentorDictionary;
    class Instrumentor;
 };
 

@@ -24,6 +24,7 @@
 
 using namespace nanos;
 
+// xteruel:FIXME: This function should be replaced for next implementation
 void Instrumentor::enterRuntimeAPI ( nanos_event_api_t function, nanos_event_state_value_t state )
 {
    /* Create a vector of two events: STATE and BURST */
@@ -39,11 +40,39 @@ void Instrumentor::enterRuntimeAPI ( nanos_event_api_t function, nanos_event_sta
    addEventList ( 2, e );
 }
 
+void Instrumentor::enterRuntimeAPI ( std::string function, std::string description, nanos_event_state_value_t state )
+{
+   /* Register (if not) key and values */
+   InstrumentorDictionary *iD = sys.getInstrumentorDictionary();
+   nanos_event_key_t   key = iD->registerEventKey("api","Nanos Runtime API");
+   nanos_event_value_t val = iD->registerEventValue( "api", function, description);
+
+   /* Create a vector of two events: STATE and BURST */
+   Event::KV kv( Event::KV( key, val ) );
+   Event e[2] = { State(state), Burst( true, kv) };
+
+   /* Update instrumentor context with new state and open burst */
+   InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
+   instrContext.pushState(state);
+   instrContext.insertBurst( e[1] );
+
+   /* Spawning two events: specific instrumentor call */
+   addEventList ( 2, e );
+}
+
 void Instrumentor::leaveRuntimeAPI ( )
 {
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
    InstrumentorContext::BurstIterator it;
-   if ( !instrContext.findBurstByKey( NANOS_API, it ) ) fatal0("Burst doesn't exists");
+
+   // xteruel:FIXME: This code should be look for second if condition.
+   if ( !instrContext.findBurstByKey( NANOS_API, it ) )
+   {
+      InstrumentorDictionary *iD = sys.getInstrumentorDictionary();
+      nanos_event_key_t key = iD->registerEventKey("api","Nanos Runtime API");
+      if ( !instrContext.findBurstByKey( key, it ) )
+         fatal0("Burst doesn't exists");
+   }
 
    Event &e1 =  (*it);
    e1.reverseType();
