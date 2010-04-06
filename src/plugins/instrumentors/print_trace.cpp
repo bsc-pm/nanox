@@ -6,7 +6,6 @@ namespace nanos {
 
 class InstrumentorPrintTrace: public Instrumentor 
 {
-#if defined NANOS_INSTRUMENTATION_ENABLED
    private:
 
    public:
@@ -32,7 +31,6 @@ class InstrumentorPrintTrace: public Instrumentor
       virtual void leaveIdle ( ) {}
       virtual void wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
       virtual void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
-#endif
 };
 
 

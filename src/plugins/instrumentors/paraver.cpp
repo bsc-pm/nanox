@@ -17,9 +17,8 @@ namespace nanos {
    const unsigned int _eventPtPStart   = 9001;   /*<< event coding comm start */
    const unsigned int _eventPtPEnd     = 9002;   /*<< event coding comm end */
 
-   class InstrumentorParaver: public Instrumentor 
-   {
-#if defined NANOS_INSTRUMENTATION_ENABLED
+class InstrumentorParaver: public Instrumentor 
+{
    private:
       unsigned int _eventBase[EVENT_TYPES];
    public:
@@ -278,7 +277,6 @@ namespace nanos {
          OMPItrace_neventandcounters(total , p_events, p_values);
           
       }
-#endif
 };
 
 namespace ext {
