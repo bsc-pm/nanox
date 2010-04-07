@@ -111,6 +111,39 @@ case $host in
     ;;
 esac
 
+
+# Check if it has nVidia GPUs
+if lspci | grep nVidia &> /dev/null ; then
+	gpu_valid=yes
+	AC_ARG_VAR([NVCC],[CUDA compiler])
+	AC_CHECK_PROG( [NVCC], [nvcc], nvcc, no)
+	if test x$NVCC = xno ; then
+		AC_MSG_WARN([nvcc not found. Disabling GPU support]) 
+		gpu_valid=no
+	else 
+		AC_ARG_WITH([cuda],
+		AS_HELP_STRING([--with-cuda=dir], [Directory of CUDA installation]),
+			[
+				CUDA="${withval}"
+			],
+			[
+				CUDA=/usr/local/cuda
+			])
+		CUDA_INC="$CUDA/include"
+		CUDA_LIB="$CUDA/lib64"
+
+		AC_SUBST([CUDA_INC])
+		AC_SUBST([CUDA_LIB])
+
+		NANOS_CONFIG_LIBDIRS+=" -L$CUDA_LIB"
+#		NANOS_CONFIG_LIBS+=" -lcudart"
+	fi
+	if test x$gpu_valid = xyes; then
+		ARCHITECTURES+=" gpu"
+	fi
+fi
+
+
 # Add architecture libraries
 for arch in $ARCHITECTURES; do
 	NANOS_CONFIG_LIBS+=" ../arch/$arch/lib$arch.la"

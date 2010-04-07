@@ -22,7 +22,8 @@ include $(top_srcdir)/src/common.am
 bin_PROGRAMS = nanox
 
 
-nanox_CPPFLAGS = $(common_includes) $(common_cxxflags) 
+nanox_CPPFLAGS = $(common_includes) $(common_cxxflags) -I @CUDA_INC@
+nanox_LDFLAGS = -L@CUDA_LIB@ 
 
 nanox_SOURCES=\
 	nanox.cpp \
@@ -30,6 +31,7 @@ nanox_SOURCES=\
 
 nanox_LDADD=\
 	-ldl \
+	-lcudart \
 	../core/libnanox.la \
 	$(END)
 

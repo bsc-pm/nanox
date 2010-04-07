@@ -17,34 +17,39 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "smpprocessor.hpp"
+#include "gpuprocessor.hpp"
 #include "schedule.hpp"
 #include "debug.hpp"
 #include "system.hpp"
 #include <iostream>
 #include <sched.h>
-#include "smp_ult.hpp"
+
+
+// CUDA
+#include <cuda_runtime.h>
 
 using namespace nanos;
 using namespace nanos::ext;
 
-void * smp_bootthread ( void *arg )
+
+Atomic<int> GPUThread::_deviceSeed = 0;
+
+/*
+void * gpu_bootthread ( void *arg )
 {
-   SMPThread *self = static_cast<SMPThread *>( arg );
+   GPUThread *self = static_cast<GPUThread *>( arg );
 
    self->run();
 
    pthread_exit ( 0 );
 }
+*/
 
-// TODO: detect at configure
-#ifndef PTHREAD_STACK_MIN
-#define PTHREAD_STACK_MIN 16384
-#endif
-
-void SMPThread::start ()
+/*
+void GPUThread::start ()
 {
-   std::cout << "SMPThread::start()" << std::endl;
+   std::cout << "GPUThread::start()" << std::endl;
+
    pthread_attr_t attr;
    pthread_attr_init(&attr);
 
@@ -63,31 +68,36 @@ void SMPThread::start ()
    }
 
 
-   if ( pthread_create( &_pth, &attr, smp_bootthread, this ) )
+   if ( pthread_create( &_pth, &attr, gpu_bootthread, this ) )
       fatal( "couldn't create thread" );
 }
+*/
 
-void SMPThread::runDependent ()
+void GPUThread::runDependent ()
 {
-   std::cout << "SMPThread::runDependent()" << std::endl;
+   std::cout << "GPUThread::runDependent()" << std::endl;
    WD &work = getThreadWD();
    setCurrentWD( work );
 
-   SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
+   cudaError_t cudaErr = cudaSetDevice( _gpuDevice );
+   if (cudaErr != cudaSuccess) warning( "couldn't set the GPU device" );
+
+   GPUDD &dd = ( GPUDD & ) work.activateDevice( GPU );
 
    dd.getWorkFct()( work.getData() );
 }
-
-void SMPThread::join ()
+/*
+void GPUThread::join ()
 {
-   std::cout << "SMPThread::join()" << std::endl;
+   std::cout << "GPUThread::join()" << std::endl;
    pthread_join( _pth,NULL );
    joined();
 }
-
-void SMPThread::bind( void )
+*/
+/*
+void GPUThread::bind( void )
 {
-   std::cout << "SMPThread::bind()" << std::endl;
+   std::cout << "GPUThread::bind()" << std::endl;
    cpu_set_t cpu_set;
    int cpu_id = getCpuId();
 
@@ -97,54 +107,65 @@ void SMPThread::bind( void )
    verbose( "Binding thread " << getId() << " to cpu " << cpu_id );
    sched_setaffinity( ( pid_t ) 0, sizeof( cpu_set ), &cpu_set );
 }
-
-void SMPThread::yield()
+*/
+/*
+void GPUThread::yield()
 {
+   std::cout << "GPUThread::yield()" << std::endl;
    if (sched_yield() != 0)
       warning("sched_yield call returned an error");
 }
-
+*/
+/*
 // This is executed in between switching stacks
-void SMPThread::switchHelperDependent ( WD *oldWD, WD *newWD, void *oldState  )
+void GPUThread::switchHelperDependent ( WD *oldWD, WD *newWD, void *oldState  )
 {
-   std::cout << "SMPThread::switchHelperDependent()" << std::endl;
-   SMPDD & dd = ( SMPDD & )oldWD->getActiveDevice();
+   std::cout << "GPUThread::switchHelperDependent()" << std::endl;
+   GPUDD & dd = ( GPUDD & )oldWD->getActiveDevice();
    dd.setState( (intptr_t *) oldState );
 }
-
-void SMPThread::inlineWorkDependent ( WD &wd )
+*/
+/*
+void GPUThread::inlineWorkDependent ( WD &wd )
 {
-   std::cout << "SMPThread::inlineWorkDependent()" << std::endl;
-   SMPDD &dd = ( SMPDD & )wd.getActiveDevice();
+   std::cout << "GPUThread::inlineWorkDependent()" << std::endl;
+   GPUDD &dd = ( GPUDD & )wd.getActiveDevice();
    ( dd.getWorkFct() )( wd.getData() );
 }
+*/
 
-void SMPThread::switchTo ( WD *wd, SchedulerHelper *helper )
+#if 0
+void GPUThread::switchTo ( WD *wd, SchedulerHelper *helper )
 {
-   // wd MUST have an active SMP Device when it gets here
-   ensure( wd->hasActiveDevice(),"WD has no active SMP device" );
-   SMPDD &dd = ( SMPDD & )wd->getActiveDevice();
+   std::cout << "GPUThread::switchTo()" << std::endl;
+   // wd MUST have an active GPU Device when it gets here
+   ensure( wd->hasActiveDevice(),"WD has no active GPU device" );
+   GPUDD &dd = ( GPUDD & )wd->getActiveDevice();
    ensure( dd.hasStack(), "DD has no stack for ULT");
-
+/*
    ::switchStacks(
        ( void * ) getCurrentWD(),
        ( void * ) wd,
        ( void * ) dd.getState(),
        ( void * ) helper );
+*/
 }
 
-void SMPThread::exitTo ( WD *wd, SchedulerHelper *helper)
+void GPUThread::exitTo ( WD *wd, SchedulerHelper *helper)
 {
-   // wd MUST have an active SMP Device when it gets here
-   ensure( wd->hasActiveDevice(),"WD has no active SMP device" );
-   SMPDD &dd = ( SMPDD & )wd->getActiveDevice();
+   std::cout << "GPUThread::exitTo()" << std::endl;
+   // wd MUST have an active GPU Device when it gets here
+   ensure( wd->hasActiveDevice(),"WD has no active GPU device" );
+   GPUDD &dd = ( GPUDD & )wd->getActiveDevice();
    ensure( dd.hasStack(), "DD has no stack for ULT");
 
    //TODO: optimize... we don't really need to save a context in this case
+/*
    ::switchStacks(
       ( void * ) getCurrentWD(),
       ( void * ) wd,
       ( void * ) dd.getState(),
       ( void * ) helper );
+*/
 }
-
+#endif

@@ -54,7 +54,7 @@ namespace nanos
 
          /*! \brief Device copy constructor
           */
-         Device ( const Device &arch ) : _name ( arch._name ) {}
+         Device ( const Device &arch ) : _name ( arch._name ) { std::cout << "device type is " << _name << std::endl; }
 
          /*! \brief Device destructor
           */
@@ -67,6 +67,10 @@ namespace nanos
          /*! \brief Device equals operator
           */
          bool operator== ( const Device &arch ) { return arch._name == _name; }
+
+         void printName () {
+            std::cout << _name;
+         }
 
    };
 

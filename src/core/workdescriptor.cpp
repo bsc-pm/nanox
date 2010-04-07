@@ -33,6 +33,9 @@ void WorkDescriptor::start (bool isUserLevelThread, WorkDescriptor *previous)
 
    _activeDevice->lazyInit(*this,isUserLevelThread,previous);
    
+   std::cout << "[" << myThread->getId() << "] " << "WD::start() --> ";
+   nanos::Device dev(pe->getDeviceType());
+
    if ( pe->hasSeparatedMemorySpace() )
       pe->copyDataIn( *this );
 
@@ -84,10 +87,11 @@ void WorkDescriptor::submit( void )
 void WorkDescriptor::done ()
 {
    ProcessingElement *pe = myThread->runningOn();
+
    if ( pe->hasSeparatedMemorySpace() )
      pe->copyDataOut( *this );
 
-   // FIX-ME: We are waiting for the children tasks to avoid to keep alive only part of the parent
+   // FIXME: We are waiting for the children tasks to avoid to keep alive only part of the parent
    waitCompletion();
    this->getParent()->workFinished( *this );
    WorkGroup::done();

@@ -28,8 +28,8 @@ if PERFORMANCE
 endif
 
 # Common flags and files
-nanos_cxxflags=$(common_includes) $(common_cxxflags)
-nanos_ldflags=$(version_flags) @NANOS_CONFIG_LIBDIRS@
+nanos_cxxflags=$(common_includes) $(common_cxxflags) -I @CUDA_INC@
+nanos_ldflags=$(version_flags) @NANOS_CONFIG_LIBDIRS@ -L@CUDA_LIB@ -lcudart
 nanos_libadd=\
 	-lpthread \
 	-ldl \

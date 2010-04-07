@@ -30,6 +30,8 @@
 #include "spuprocessor.hpp"
 #endif
 
+#include "gpuprocessor.hpp"
+
 using namespace nanos;
 
 namespace nanos {
@@ -151,6 +153,9 @@ void System::config ()
    
    verbose0 ( "Reading Configuration" );
    config.init();
+
+   nanos::ext::GPUProcessor::prepareConfig( config );
+   nanos::ext::GPUDD::prepareConfig( config );
 }
 
 PE * System::createPE ( std::string pe_type, int pid )
@@ -185,7 +190,8 @@ void System::start ()
       _workers.push_back( &pe->startWorker( ));
    }
 
-   for ( int p = 1; p < numPes ; p++ ) {
+   int p;
+   for ( p = 1; p < numPes ; p++ ) {
       pe = createPE ( "smp", p );
       _pes.push_back ( pe );
 
@@ -195,7 +201,20 @@ void System::start ()
          _workers.push_back( &pe->startWorker() );
       }
    }
-   
+
+   //TODO: define GPU_DEV when CUDA-capable GPUs are available
+#ifdef GPU_DEV
+   std::cout << "GPU_DEV defined!" << std::endl;
+#endif
+
+   int gpuC;
+   for ( gpuC = 0; gpuC < nanos::ext::GPUDD::getGPUCount(); gpuC++ ) {
+      PE *gpu = new nanos::ext::GPUProcessor( p++ );
+      _pes.push_back( gpu );
+      _workers.push_back( &gpu->startWorker() );
+   }
+
+
 #ifdef SPU_DEV
    PE *spu = new nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);
    spu->startWorker();
@@ -204,7 +223,7 @@ void System::start ()
    switch ( getInitialMode() )
    {
       case POOL:
-         createTeam( numPes*getThsPerPE() );
+         createTeam( numPes*getThsPerPE() + gpuC /*nanos::ext::GPUDD::getGPUCount()*/ );
          break;
       case ONE_THREAD:
          createTeam(1);
