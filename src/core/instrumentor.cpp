@@ -49,14 +49,10 @@ void Instrumentor::leaveRuntimeAPI ( )
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
    InstrumentorContext::BurstIterator it;
 
-   // xteruel:FIXME: This code should be look for second if condition.
-   if ( !instrContext.findBurstByKey( NANOS_API, it ) )
-   {
-      InstrumentorDictionary *iD = sys.getInstrumentorDictionary();
-      nanos_event_key_t key = iD->registerEventKey("api","Nanos Runtime API");
-      if ( !instrContext.findBurstByKey( key, it ) )
-         fatal0("Burst doesn't exists");
-   }
+   InstrumentorDictionary *iD = sys.getInstrumentorDictionary();
+   nanos_event_key_t key = iD->registerEventKey("api","Nanos Runtime API");
+   if ( !instrContext.findBurstByKey( key, it ) )
+      fatal0("Burst doesn't exists");
 
    Event &e1 =  (*it);
    e1.reverseType();
@@ -69,7 +65,6 @@ void Instrumentor::leaveRuntimeAPI ( )
    /* Creating two events */
    Event e[2] = { State(state), e1 };
 
-   
    /* Spawning two events: specific instrumentor call */
    addEventList ( 2, e );
 
@@ -135,8 +130,7 @@ void Instrumentor::wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD )
 
    /* Creating PtP event: as oldWD has finished execution we need to generate only PtP End
     * in order to instrument receiving point for the new WorkDescriptor */
-   Event::KV kv( Event::KV( WD_ID, newWD->getId() ) );
-   e[i++] = PtP ( false, (nanos_event_domain_t) 0, (nanos_event_id_t) newWD->getId(), 1, &kv );
+   e[i++] = PtP ( false, NANOS_WD_DOMAIN, (nanos_event_id_t) newWD->getId(), 0, NULL );
 
    /* Creating State event: change thread current state with newWD saved state */
    nanos_event_state_value_t state = newInstrContext.topState();

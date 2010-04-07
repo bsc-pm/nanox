@@ -25,7 +25,7 @@ class InstrumentorPrintTrace: public Instrumentor
 
       // high-level events
 
-      virtual void enterRuntimeAPI ( nanos_event_api_t function, nanos_event_state_value_t state = RUNTIME ) {}
+      virtual void enterRuntimeAPI ( std::string function, std::string description, nanos_event_state_value_t state = RUNTIME ) {}
       virtual void leaveRuntimeAPI ( ) {}
       virtual void enterIdle ( ) {}
       virtual void leaveIdle ( ) {}
