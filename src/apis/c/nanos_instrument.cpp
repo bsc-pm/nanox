@@ -23,12 +23,12 @@
 
 using namespace nanos;
 
-nanos_err_t nanos_instrument_register_key ( nanos_event_key_t &event_key, char *key, char *description )
+nanos_err_t nanos_instrument_register_key ( nanos_event_key_t *event_key, char *key, char *description )
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      NANOS_INSTRUMENTOR_DICTIONARY( event_key, registerEventKey(key, description) );
+      NANOS_INSTRUMENTOR_DICTIONARY( *event_key, registerEventKey(key, description) );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -36,12 +36,12 @@ nanos_err_t nanos_instrument_register_key ( nanos_event_key_t &event_key, char *
    return NANOS_OK;
 }
 
-nanos_err_t nanos_instrument_register_value ( nanos_event_value_t &event_value, char *key, char *value, char *description )
+nanos_err_t nanos_instrument_register_value ( nanos_event_value_t *event_value, char *key, char *value, char *description )
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      NANOS_INSTRUMENTOR_DICTIONARY( event_value, registerEventValue(key, value,  description) );
+      NANOS_INSTRUMENTOR_DICTIONARY( *event_value, registerEventValue(key, value,  description) );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
