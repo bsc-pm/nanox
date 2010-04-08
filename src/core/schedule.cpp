@@ -201,13 +201,15 @@ void Scheduler::inlineWork ( WD *wd )
    debug( "switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
           " to " << wd << ":" << wd->getId() );
 
-   NANOS_INSTRUMENTOR( wdSwitch( oldwd, wd ) );
 
    // This ensures that when we return from the inlining is still the same thread
    // and we don't violate rules about tied WD
    wd->tieTo(*oldwd->isTiedTo());
    wd->start(false);
    myThread->setCurrentWD( *wd );
+
+   NANOS_INSTRUMENTOR( wdSwitch( oldwd, wd ) );
+
    myThread->inlineWorkDependent(*wd);
    wd->done();
 

@@ -42,7 +42,9 @@ void BaseThread::associate ()
 
    if ( sys.getBinding() ) bind();
 
-   _threadWD.setReady();
+   _threadWD.start(false);
+
+   NANOS_INSTRUMENTOR( wdEnter(&_threadWD) );
    setCurrentWD( _threadWD );
 }
 

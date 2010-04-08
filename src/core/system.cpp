@@ -165,6 +165,9 @@ void System::start ()
 {
    loadModules();
 
+   // Instrumentation startup
+   NANOS_INSTRUMENTOR ( initialize() );
+
    verbose0 ( "Starting threads" );
 
    int numPes = getNumPEs();
@@ -176,8 +179,6 @@ void System::start ()
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 
-   // Instrumentation startup
-   NANOS_INSTRUMENTOR ( initialize() );
    NANOS_INSTRUMENTOR ( enterStartUp() );
 
    //start as much threads per pe as requested by the user

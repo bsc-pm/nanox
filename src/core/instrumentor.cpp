@@ -90,6 +90,34 @@ void Instrumentor::wdCreate( WorkDescriptor* newWD )
    instrContext.pushState( RUNNING );
 }
 
+void Instrumentor::wdEnter( WorkDescriptor* newWD )
+{
+   unsigned int i = 0; /* Used as Event e[] index */
+
+   /* Computing number of burst events */
+   InstrumentorContext &newInstrContext = newWD->getInstrumentorContext();
+   unsigned int newBursts = newInstrContext.getNumBursts();
+   unsigned int numEvents = 2 + newBursts;
+
+   /* Allocating Events */
+   Event *e = (Event *) alloca(sizeof(Event) * numEvents );
+
+   /* Creating two PtP events */
+   e[i++] = PtP (false, NANOS_WD_DOMAIN, (nanos_event_id_t) newWD->getId(), 0, NULL);
+
+   /* Creating State event: change thread current state with newWD saved state */
+   nanos_event_state_value_t state = newInstrContext.topState();
+   e[i++] = State ( state );
+
+   /* Regenerating bursts for new WD */
+   for ( InstrumentorContext::ConstBurstIterator it = newInstrContext.beginBurst() ; it != newInstrContext.endBurst(); it++,i++ ) {
+      e[i] = *it;
+   }
+
+   /* Spawning 'numEvents' events: specific instrumentor call */
+   addEventList ( numEvents, e );
+}
+
 void Instrumentor::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD )
 {
    unsigned int i = 0; /* Used as Event e[] index */

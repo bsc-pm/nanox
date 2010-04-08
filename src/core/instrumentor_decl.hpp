@@ -355,6 +355,12 @@ namespace nanos {
           */   
          virtual void wdCreate( WorkDescriptor* newWD );
 
+         /*! \brief Used in work descriptor context switch (entering phase)
+          *
+          *  \param[in] newWD, is the work descriptor which enters the cpu
+          */
+         virtual void wdEnter( WorkDescriptor* newWD );
+
          /*! \brief Used in work descriptor context switch
           *
           *  \param[in] oldWD, is the work descriptor which leaves the cpu
