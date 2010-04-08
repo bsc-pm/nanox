@@ -27,27 +27,6 @@
 
 using namespace nanos;
 
-inline void InstrumentorContext::init ( unsigned int wd_id )
-{
-// xteruel:FIXME this code doesn't work if we cannot include system in this file
-// but that code should also moved into instrumentor code (see ticket #140) so we
-// temporary disable work descriptor bursts
-#if 0
-   /* Register (if not) key and values */
-   InstrumentorDictionary *iD = sys.getInstrumentorDictionary();
-   nanos_event_key_t   key = iD->registerEventKey("wd-id","Work Descriptor id:");
-
-   /* Creating key value and Burst event */
-   Event::KV kv( Event::KV( key, wd_id ) );
-#else
-   Event::KV kv( Event::KV( (nanos_event_key_t) 0, wd_id ) );
-#endif
-   Event e = Burst( true, kv );
- 
-   insertBurst( e );
-   pushState( RUNNING );
-}
-
 inline void InstrumentorContext::pushState ( nanos_event_state_value_t state )
 {
    _stateStack.push( state );

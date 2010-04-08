@@ -75,12 +75,13 @@ namespace nanos {
          nanos_event_key_t    _id;          /**< InstrumentorKeyDescriptor id */
          std::string          _description; /**< InstrumenotrKeyDescriptor description */
          Atomic<unsigned int> _totalValues; /**< Total number of values */
+         Lock                 _lock;        /**< _valueMap exclusive lock */
          ValueMap             _valueMap;    /**< Registered Value elements */
       public:
          /*!
           */
          InstrumentorKeyDescriptor ( nanos_event_key_t id, std::string description ) : _id( id ), _description ( description ),
-                                     _totalValues(1), _valueMap() {}
+                                     _totalValues(1), _lock(), _valueMap() {}
          /*!
           */
          ~InstrumentorKeyDescriptor() {}
@@ -115,12 +116,13 @@ namespace nanos {
          typedef KeyMap::const_iterator ConstKeyMapIterator;
       private:
          Atomic<unsigned int> _totalKeys; /**< Total number of keys */
+         Lock                 _lock;      /**< _keyMap exclusive lock */
          KeyMap               _keyMap;    /**< Registered Key elements */
          
       public:
          /*!
           */
-         InstrumentorDictionary () : _totalKeys(1), _keyMap() {}
+         InstrumentorDictionary () : _totalKeys(1), _lock(), _keyMap() {}
          /*!
           */
          ~InstrumentorDictionary() {}

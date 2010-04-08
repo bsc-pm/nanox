@@ -54,8 +54,14 @@ inline nanos_event_value_t InstrumentorKeyDescriptor::registerValue ( std::strin
    ValueMapIterator it = _valueMap.find( value );
 
    if ( it == _valueMap.end() ) {
-      valueDescriptor = new InstrumentorValueDescriptor ( (nanos_event_value_t) _totalValues++, description );
-      _valueMap.insert( std::make_pair( value, valueDescriptor ) );
+      _lock++;
+      it = _valueMap.find( value );
+      if ( it == _valueMap.end() ) {
+         valueDescriptor = new InstrumentorValueDescriptor ( (nanos_event_value_t) _totalValues++, description );
+         _valueMap.insert( std::make_pair( value, valueDescriptor ) );
+      }
+      else valueDescriptor = it->second;
+      _lock--;
    }
    else valueDescriptor = it->second;
 
@@ -81,8 +87,14 @@ inline nanos_event_key_t InstrumentorDictionary::registerEventKey ( std::string 
    KeyMapIterator it = _keyMap.find( key );
 
    if ( it == _keyMap.end() ) {
-      keyDescriptor = new InstrumentorKeyDescriptor ( (nanos_event_key_t) _totalKeys++, description );
-      _keyMap.insert( std::make_pair( key, keyDescriptor ) );
+      _lock++;
+      it = _keyMap.find( key );
+      if ( it == _keyMap.end() ) {
+         keyDescriptor = new InstrumentorKeyDescriptor ( (nanos_event_key_t) _totalKeys++, description );
+         _keyMap.insert( std::make_pair( key, keyDescriptor ) );
+      }
+      else keyDescriptor = it->second;
+      _lock--;
    }
    else keyDescriptor = it->second;
 
@@ -96,8 +108,14 @@ inline nanos_event_value_t InstrumentorDictionary::registerEventValue ( std::str
    KeyMapIterator it = _keyMap.find( key );
 
    if ( it == _keyMap.end() ) {
-      keyDescriptor = new InstrumentorKeyDescriptor ( (nanos_event_key_t) _totalKeys++, "" );
-      _keyMap.insert( std::make_pair( key, keyDescriptor ) );
+      _lock++;
+      it = _keyMap.find( key );
+      if ( it == _keyMap.end() ) {
+         keyDescriptor = new InstrumentorKeyDescriptor ( (nanos_event_key_t) _totalKeys++, "" );
+         _keyMap.insert( std::make_pair( key, keyDescriptor ) );
+      }
+      else keyDescriptor = it->second;
+      _lock--;
    }
    else keyDescriptor = it->second;
 

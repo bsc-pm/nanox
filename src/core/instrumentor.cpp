@@ -71,10 +71,23 @@ void Instrumentor::leaveRuntimeAPI ( )
    instrContext.removeBurst( it ); 
 }
 
-// FIXME (#140): Change InstrumentorContext ic.init() to Instrumentor::wdCreate();
 void Instrumentor::wdCreate( WorkDescriptor* newWD )
 {
+   /* Register (if not) key and values */
+   InstrumentorDictionary *iD = sys.getInstrumentorDictionary();
+   nanos_event_key_t   key = iD->registerEventKey("wd-id","Work Descriptor id:");
 
+   /* Getting work descriptor id */
+   nanos_event_value_t wd_id = newWD->getId();
+
+   /* Creating key value and Burst event */
+   Event::KV kv( Event::KV( key, wd_id ) );
+   Event e = Burst( true, kv );
+
+   InstrumentorContext &instrContext = newWD->getInstrumentorContext();
+ 
+   instrContext.insertBurst( e );
+   instrContext.pushState( RUNNING );
 }
 
 void Instrumentor::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD )
