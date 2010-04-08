@@ -44,7 +44,7 @@ void BaseThread::associate ()
 
    _threadWD.start(false);
 
-   NANOS_INSTRUMENTOR( wdEnter(&_threadWD) );
+   NANOS_INSTRUMENTOR( wdSwitchEnter(&_threadWD) );
    setCurrentWD( _threadWD );
 }
 
