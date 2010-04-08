@@ -16,7 +16,7 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-// FIXME: (#131) This flag ENABLE_INSTRUMENTATION has to be managed through
+// FIXME: (#64) This flag ENABLE_INSTRUMENTATION has to be managed through
 //compilation in order to generate an instrumentation version
 #define NANOS_INSTRUMENTATION_ENABLED
 
@@ -48,18 +48,18 @@ namespace nanos {
          nanos_event_value_t  _id;          /**< InstrumentorValueDescriptor id */
          std::string          _description; /**< InstrumenotrValueDescriptor description */
       public:
-         /*!
+         /*! \brief InstrumentorValueDescriptor constructor
           */
          InstrumentorValueDescriptor ( nanos_event_value_t id, std::string description ) : _id( id ), _description ( description ) {}
-         /*!
+         /*! \brief InstrumentorValueDescriptor destructor
           */
          ~InstrumentorValueDescriptor() {}
 
-         /*!
+         /*! \brief Gets value descriptor id
           */
          nanos_event_value_t getId ( void );
 
-         /*!
+         /*! \brief Gets value descriptor textual description
           */
          const std::string getDescription ( void );
 
@@ -78,31 +78,31 @@ namespace nanos {
          Lock                 _lock;        /**< _valueMap exclusive lock */
          ValueMap             _valueMap;    /**< Registered Value elements */
       public:
-         /*!
+         /*! \brief InstrumentorKeyDescriptor constructor
           */
          InstrumentorKeyDescriptor ( nanos_event_key_t id, std::string description ) : _id( id ), _description ( description ),
                                      _totalValues(1), _lock(), _valueMap() {}
-         /*!
+         /*! \brief InstrumentorKeyDescriptor destructor
           */
          ~InstrumentorKeyDescriptor() {}
 
-         /*!
+         /*! \brief Gets key descriptor id
           */
          nanos_event_key_t getId ( void );
 
-         /*!
+         /*! \brief Gets key descriptor textual description
           */
          const std::string getDescription ( void );
 
-         /*!
+         /*! \brief Inserts (or gets) a value into (from) valueMap 
           */
          nanos_event_value_t registerValue ( std::string value, std::string description );
 
-         /*!
+         /*! \brief Returns starting point of valueMap ( iteration purposes )
           */
          ConstValueMapIterator beginValueMap ( void );
 
-         /*!
+         /*! \brief Returns ending point of valueMap ( iteration purposes )
           */
          ConstValueMapIterator endValueMap ( void );
 
@@ -120,26 +120,26 @@ namespace nanos {
          KeyMap               _keyMap;    /**< Registered Key elements */
          
       public:
-         /*!
+         /*! \brief InstrumentorDictionary constructor
           */
          InstrumentorDictionary () : _totalKeys(1), _lock(), _keyMap() {}
-         /*!
+         /*! \brief InstrumentorDictionary destructor
           */
          ~InstrumentorDictionary() {}
 
-         /*!
+         /*! \brief Inserts (or gets) a key into (from) the keyMap
           */
          nanos_event_key_t registerEventKey ( std::string key, std::string description="" );
 
-         /*!
+         /*! \brief Inserts (or gets) a value into (from) the valueMap (which belongs to 'key' parameter )
           */
          nanos_event_value_t registerEventValue ( std::string key, std::string value, std::string description="" );
 
-         /*!
+         /*! \brief Returns starting point of keyMap ( iteration purposes )
           */
          ConstKeyMapIterator beginKeyMap ( void );
 
-         /*!
+         /*! \brief Returns ending point of keyMap ( iteration purposes )
           */
          ConstKeyMapIterator endKeyMap ( void );
          
