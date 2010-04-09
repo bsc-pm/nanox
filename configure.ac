@@ -191,6 +191,7 @@ AC_CONFIG_FILES([Makefile
 		 src/pms/Makefile
 		 src/pms/openmp/Makefile
 		 src/pms/ss/Makefile
+		 src/pms/chapel/Makefile
                  src/arch/Makefile
 		 src/arch/unix-os/Makefile
 		 src/arch/smp/Makefile
