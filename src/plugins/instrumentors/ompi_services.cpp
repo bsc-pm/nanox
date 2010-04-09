@@ -13,7 +13,8 @@ extern "C" {
 
    unsigned int nanos_ompitrace_get_thread_num ( void )
    { 
-      return myThread->getId(); 
+      if ( myThread == NULL ) return 0;
+      else return myThread->getId(); 
    }
 
 }

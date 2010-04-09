@@ -27,15 +27,6 @@
 
 using namespace nanos;
 
-inline void InstrumentorContext::init ( unsigned int wd_id )
-{
-   Event::KV kv( Event::KV( WD_ID, wd_id ) );
-   Event e = Burst( true, kv );
- 
-   insertBurst( e );
-   pushState( RUNNING );
-}
-
 inline void InstrumentorContext::pushState ( nanos_event_state_value_t state )
 {
    _stateStack.push( state );

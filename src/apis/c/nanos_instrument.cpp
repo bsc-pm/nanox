@@ -23,8 +23,35 @@
 
 using namespace nanos;
 
+nanos_err_t nanos_instrument_register_key ( nanos_event_key_t *event_key, char *key, char *description )
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   try
+   {
+      NANOS_INSTRUMENTOR_DICTIONARY( *event_key, registerEventKey(key, description) );
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+#endif
+   return NANOS_OK;
+}
+
+nanos_err_t nanos_instrument_register_value ( nanos_event_value_t *event_value, char *key, char *value, char *description )
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   try
+   {
+      NANOS_INSTRUMENTOR_DICTIONARY( *event_value, registerEventValue(key, value,  description) );
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+#endif
+   return NANOS_OK;
+}
+
 nanos_err_t nanos_instrument_events ( unsigned int num_events, nanos_event_t events[] )
 {
+#ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
       Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) * num_events ); 
@@ -58,12 +85,13 @@ nanos_err_t nanos_instrument_events ( unsigned int num_events, nanos_event_t eve
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
-
+#endif
    return NANOS_OK;
 }
 
 nanos_err_t nanos_instrument_enter_state ( nanos_event_state_value_t state )
 {
+#ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
       Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
@@ -72,12 +100,13 @@ nanos_err_t nanos_instrument_enter_state ( nanos_event_state_value_t state )
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
-
+#endif
    return NANOS_OK;
 }
 
 nanos_err_t nanos_instrument_leave_state ( void )
 {
+#ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
       Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
@@ -86,12 +115,13 @@ nanos_err_t nanos_instrument_leave_state ( void )
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
-
+#endif
    return NANOS_OK;
 }
 
 nanos_err_t nanos_instrument_enter_burst( nanos_event_key_t key, nanos_event_value_t value )
 {
+#ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
       Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
@@ -100,12 +130,13 @@ nanos_err_t nanos_instrument_enter_burst( nanos_event_key_t key, nanos_event_val
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
-
+#endif
    return NANOS_OK;
 }
 
 nanos_err_t nanos_instrument_leave_burst( nanos_event_key_t key, nanos_event_value_t value )
 {
+#ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
       Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
@@ -114,12 +145,13 @@ nanos_err_t nanos_instrument_leave_burst( nanos_event_key_t key, nanos_event_val
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
-
+#endif
    return NANOS_OK;
 }
 
 nanos_err_t nanos_instrument_point_event ( unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
 {
+#ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
       Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
@@ -128,13 +160,14 @@ nanos_err_t nanos_instrument_point_event ( unsigned int nkvs, nanos_event_key_t 
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
-
+#endif
    return NANOS_OK;
 }
 
 nanos_err_t nanos_instrument_ptp_start ( nanos_event_domain_t domain, nanos_event_id_t id,
                                          unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
 {
+#ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
       Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
@@ -143,13 +176,14 @@ nanos_err_t nanos_instrument_ptp_start ( nanos_event_domain_t domain, nanos_even
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
-
+#endif
    return NANOS_OK;
 }
 
 nanos_err_t nanos_instrument_ptp_end ( nanos_event_domain_t domain, nanos_event_id_t id,
                                          unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
 {
+#ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
       Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
@@ -158,6 +192,6 @@ nanos_err_t nanos_instrument_ptp_end ( nanos_event_domain_t domain, nanos_event_
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
-
+#endif
    return NANOS_OK;
 }

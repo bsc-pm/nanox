@@ -6,7 +6,6 @@ namespace nanos {
 
 class InstrumentorPrintTrace: public Instrumentor 
 {
-#if defined NANOS_INSTRUMENTATION_ENABLED
    private:
 
    public:
@@ -26,13 +25,12 @@ class InstrumentorPrintTrace: public Instrumentor
 
       // high-level events
 
-      virtual void enterRuntimeAPI ( nanos_event_api_t function, nanos_event_state_value_t state = RUNTIME ) {}
+      virtual void enterRuntimeAPI ( std::string function, std::string description, nanos_event_state_value_t state = RUNTIME ) {}
       virtual void leaveRuntimeAPI ( ) {}
       virtual void enterIdle ( ) {}
       virtual void leaveIdle ( ) {}
       virtual void wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
       virtual void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
-#endif
 };
 
 

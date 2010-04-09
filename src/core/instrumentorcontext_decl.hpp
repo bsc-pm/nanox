@@ -27,6 +27,8 @@
 namespace nanos {
 
    class InstrumentorContext {
+      friend class Instrumentor;
+
       private:
          typedef Instrumentor::Event Event;
          typedef Instrumentor::Burst Burst;
@@ -52,17 +54,13 @@ namespace nanos {
 
          /*! \brief InstrumentorContext constructor
           */
-         InstrumentorContext () :_stateStack(), _burstList() { }
+         InstrumentorContext () :_stateStack(), _burstList(), _burstBackup() { }
 
          /*! \brief InstrumentorContext destructor
           */
          ~InstrumentorContext() {}
 
-         /*! \brief Initializes the InstrumentContext
-          */
-         void init ( unsigned int wd_id );
-
-// xteruel:FIXME private and Instrumentor as friend class???
+       private: /* Only friend classes (Instrumentor) can use InstrumentorContext */
 
          /*! \brief Adds a state value into the state stack 
           */

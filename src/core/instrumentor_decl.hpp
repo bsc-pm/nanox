@@ -22,20 +22,129 @@
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 #define NANOS_INSTRUMENTOR(f) sys.getInstrumentor()->f;
+#define NANOS_INSTRUMENTOR_DICTIONARY(f,g) f = sys.getInstrumentorDictionary()->g;
 #else
 #define NANOS_INSTRUMENTOR(f) ;
+#define NANOS_INSTRUMENTOR_DICTIONARY(f,g) ;
 #endif
 
 #ifndef __NANOS_INSTRUMENTOR_DECL_H
 #define __NANOS_INSTRUMENTOR_DECL_H
 #include <list>
 #include <utility>
+#include <string>
+#include <tr1/unordered_map>
 #include "debug.hpp"
 #include "nanos-int.h"
+#include "atomic.hpp"
 
 #include "workdescriptor_fwd.hpp"
 
 namespace nanos {
+
+   class InstrumentorValueDescriptor
+   {
+      private:
+         nanos_event_value_t  _id;          /**< InstrumentorValueDescriptor id */
+         std::string          _description; /**< InstrumenotrValueDescriptor description */
+      public:
+         /*!
+          */
+         InstrumentorValueDescriptor ( nanos_event_value_t id, std::string description ) : _id( id ), _description ( description ) {}
+         /*!
+          */
+         ~InstrumentorValueDescriptor() {}
+
+         /*!
+          */
+         nanos_event_value_t getId ( void );
+
+         /*!
+          */
+         const std::string getDescription ( void );
+
+   };
+
+   class InstrumentorKeyDescriptor
+   {
+      public:
+         typedef std::tr1::unordered_map<std::string, InstrumentorValueDescriptor*> ValueMap;
+         typedef ValueMap::iterator ValueMapIterator;
+         typedef ValueMap::const_iterator ConstValueMapIterator;
+      private:
+         nanos_event_key_t    _id;          /**< InstrumentorKeyDescriptor id */
+         std::string          _description; /**< InstrumenotrKeyDescriptor description */
+         Atomic<unsigned int> _totalValues; /**< Total number of values */
+         Lock                 _lock;        /**< _valueMap exclusive lock */
+         ValueMap             _valueMap;    /**< Registered Value elements */
+      public:
+         /*!
+          */
+         InstrumentorKeyDescriptor ( nanos_event_key_t id, std::string description ) : _id( id ), _description ( description ),
+                                     _totalValues(1), _lock(), _valueMap() {}
+         /*!
+          */
+         ~InstrumentorKeyDescriptor() {}
+
+         /*!
+          */
+         nanos_event_key_t getId ( void );
+
+         /*!
+          */
+         const std::string getDescription ( void );
+
+         /*!
+          */
+         nanos_event_value_t registerValue ( std::string value, std::string description );
+
+         /*!
+          */
+         ConstValueMapIterator beginValueMap ( void );
+
+         /*!
+          */
+         ConstValueMapIterator endValueMap ( void );
+
+   };
+
+   class InstrumentorDictionary
+   {
+      public:
+         typedef std::tr1::unordered_map<std::string, InstrumentorKeyDescriptor*> KeyMap;
+         typedef KeyMap::iterator KeyMapIterator;
+         typedef KeyMap::const_iterator ConstKeyMapIterator;
+      private:
+         Atomic<unsigned int> _totalKeys; /**< Total number of keys */
+         Lock                 _lock;      /**< _keyMap exclusive lock */
+         KeyMap               _keyMap;    /**< Registered Key elements */
+         
+      public:
+         /*!
+          */
+         InstrumentorDictionary () : _totalKeys(1), _lock(), _keyMap() {}
+         /*!
+          */
+         ~InstrumentorDictionary() {}
+
+         /*!
+          */
+         nanos_event_key_t registerEventKey ( std::string key, std::string description="" );
+
+         /*!
+          */
+         nanos_event_value_t registerEventValue ( std::string key, std::string value, std::string description="" );
+
+         /*!
+          */
+         ConstKeyMapIterator beginKeyMap ( void );
+
+         /*!
+          */
+         ConstKeyMapIterator endKeyMap ( void );
+         
+
+   };
 
    class Instrumentor 
    {
@@ -45,7 +154,7 @@ namespace nanos {
                typedef std::pair<nanos_event_key_t,nanos_event_value_t>   KV;
                typedef KV *KVList;
                typedef const KV *ConstKVList;
-            protected:
+            private:
                nanos_event_type_t          _type;         /**< Event type */
                nanos_event_state_value_t   _state;        /**< Event state */
 
@@ -226,8 +335,9 @@ namespace nanos {
           *
           *  \param[in] function is a function id
           *  \param[in] state is the state we are changing to
+          *
           */
-         virtual void enterRuntimeAPI ( nanos_event_api_t function, nanos_event_state_value_t state = RUNTIME );
+         virtual void enterRuntimeAPI ( std::string function, std::string description, nanos_event_state_value_t state = RUNTIME );
 
          /*! \brief Used in API level when leaving a runtime service
           */
@@ -244,6 +354,18 @@ namespace nanos {
          /*! \brief Used when creating a work descriptor (initializes instrumentor context associated to a WD)
           */   
          virtual void wdCreate( WorkDescriptor* newWD );
+
+         /*! \brief Used in work descriptor context switch (entering phase)
+          *
+          *  \param[in] newWD, is the work descriptor which enters the cpu
+          */
+         virtual void wdSwitchEnter( WorkDescriptor* newWD );
+
+         /*! \brief Used in work descriptor context switch (entering phase)
+          *
+          *  \param[in] oldWD, is the work descriptor which leaves the cpu
+          */
+         virtual void wdSwitchLeave( WorkDescriptor* oldWD );
 
          /*! \brief Used in work descriptor context switch
           *
@@ -304,7 +426,7 @@ namespace nanos {
          /*! \brief Used by higher levels to create a STATE event
           *
           *  \param[in,out] e is an event reference, preallocated by the caller
-          *  \param[in} state is the state value for the event
+          *  \param[in] state is the state value for the event
           */
          void createStateEvent ( Event &e, nanos_event_state_value_t state );
 
@@ -357,5 +479,6 @@ namespace nanos {
                              unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
 
    };
+
 }
 #endif

@@ -62,7 +62,7 @@ void * nanos_smp_factory( void *prealloc, void *args )
 
 nanos_wd_t nanos_current_wd()
 {
-   NANOS_INSTRUMENTOR( enterRuntimeAPI(CURRENT_WD,RUNTIME) )
+   NANOS_INSTRUMENTOR( enterRuntimeAPI( "current_wd", "nanos_current_wd()",RUNTIME) )
    nanos_wd_t cwd = myThread->getCurrentWD();
    NANOS_INSTRUMENTOR( leaveRuntimeAPI() )
    return cwd;
@@ -70,7 +70,7 @@ nanos_wd_t nanos_current_wd()
 
 int nanos_get_wd_id ( nanos_wd_t wd )
 {
-   NANOS_INSTRUMENTOR( enterRuntimeAPI(GET_WD_ID, RUNTIME) );
+   NANOS_INSTRUMENTOR( enterRuntimeAPI("get_wd_id","nanos_get_wd_id()", RUNTIME) );
    WD *lwd = ( WD * )wd;
    int id = lwd->getId();
    NANOS_INSTRUMENTOR( leaveRuntimeAPI() );
@@ -86,7 +86,7 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
 {
    try 
    {
-      NANOS_INSTRUMENTOR( enterRuntimeAPI(CREATE_WD,RUNTIME) );
+      NANOS_INSTRUMENTOR( enterRuntimeAPI("*_create_wd","nanos_create_xxx_wd()",RUNTIME) );
       if ( ( props == NULL  || ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTask() ) {
          *uwd = 0;
          return NANOS_OK;
@@ -112,7 +112,7 @@ nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_
 {
    try 
    {
-      NANOS_INSTRUMENTOR( enterRuntimeAPI(CREATE_WD,RUNTIME) );
+      NANOS_INSTRUMENTOR( enterRuntimeAPI("*_create_wd","nanos_create_xxx_wd()",RUNTIME) );
       if ( ( props == NULL  || ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTask() ) {
          *uwd = 0;
          return NANOS_OK;
@@ -139,7 +139,7 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *
 {
    try {
       // xteruel:FIXME: Will be interesting to instrument new wd info: (WD *) *uwd
-      NANOS_INSTRUMENTOR( enterRuntimeAPI(SUBMIT_WD, RUNTIME) );
+      NANOS_INSTRUMENTOR( enterRuntimeAPI("submit","nanos_submit()", RUNTIME) );
       ensure( uwd,"NULL WD received" );
 
       WD * wd = ( WD * ) uwd;
@@ -172,7 +172,7 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
                                       size_t num_copies, nanos_copy_data_t *copies )
 {
    try {
-      NANOS_INSTRUMENTOR( enterRuntimeAPI(CREATE_WD_AND_RUN, RUNTIME) );
+      NANOS_INSTRUMENTOR( enterRuntimeAPI("create_wd_and_run","nanos_create_wd_and_run()", RUNTIME) );
       if ( num_devices > 1 ) warning( "Multiple devices not yet supported. Using first one" );
 
       // TODO: choose device
@@ -199,7 +199,7 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
 nanos_err_t nanos_set_internal_wd_data ( nanos_wd_t wd, void *data )
 {
    try {
-      NANOS_INSTRUMENTOR( enterRuntimeAPI(SET_INTERNAL_WD_DATA,RUNTIME) );
+      NANOS_INSTRUMENTOR( enterRuntimeAPI("set_internal_wd_data","nanos_set_internal_wd_data()",RUNTIME) );
       WD *lwd = ( WD * ) wd;
 
       lwd->setInternalData( data );
@@ -215,7 +215,7 @@ nanos_err_t nanos_set_internal_wd_data ( nanos_wd_t wd, void *data )
 nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data )
 {
    try {
-      NANOS_INSTRUMENTOR( enterRuntimeAPI(GET_INTERNAL_WD_DATA,RUNTIME) );
+      NANOS_INSTRUMENTOR( enterRuntimeAPI("get_internal_wd_data","nanos_get_internal_wd_data()",RUNTIME) );
       WD *lwd = ( WD * ) wd;
       void *ldata;
 
@@ -234,7 +234,7 @@ nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data )
 nanos_err_t nanos_yield ( void )
 {
    try {
-      NANOS_INSTRUMENTOR( enterRuntimeAPI( YIELD,RUNTIME) );
+      NANOS_INSTRUMENTOR( enterRuntimeAPI( "yield","nanos_yield()",RUNTIME) );
       Scheduler::yield();
 
    } catch ( ... ) {

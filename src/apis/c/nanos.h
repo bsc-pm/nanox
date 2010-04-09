@@ -145,6 +145,9 @@ extern const size_t nanos_gpu_dd_size;
 #define NANOS_GPU_DESC( args ) { nanos_gpu_factory, nanos_gpu_dd_size, &( args ) }
 
 // instrumentor interface
+nanos_err_t nanos_instrument_register_key ( nanos_event_key_t *event_key, char *key, char *description );
+nanos_err_t nanos_instrument_register_value ( nanos_event_value_t *event_value, char *key, char *value, char *description );
+
 nanos_err_t nanos_instrument_events ( unsigned int num_events, nanos_event_t events[] );
 nanos_err_t nanos_instrument_enter_state ( nanos_event_state_value_t state_t );
 nanos_err_t nanos_instrument_leave_state ( void );

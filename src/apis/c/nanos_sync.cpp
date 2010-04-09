@@ -28,7 +28,7 @@ using namespace nanos;
 nanos_err_t nanos_wg_wait_completion ( nanos_wg_t uwg )
 {
    try {
-      NANOS_INSTRUMENTOR( enterRuntimeAPI(WG_WAIT_COMPLETION,RUNTIME) );
+      NANOS_INSTRUMENTOR( enterRuntimeAPI("wg_wait_completion","nanos_wg_wait_completion()",RUNTIME) );
       WG *wg = ( WG * )uwg;
       wg->waitCompletion();
    } catch ( ... ) {
@@ -43,7 +43,7 @@ nanos_err_t nanos_wg_wait_completion ( nanos_wg_t uwg )
 nanos_err_t nanos_create_int_sync_cond ( nanos_sync_cond_t *sync_cond, volatile int *p, int condition )
 {
    try {
-      NANOS_INSTRUMENTOR( enterRuntimeAPI(SYNC_COND,RUNTIME) );
+      NANOS_INSTRUMENTOR( enterRuntimeAPI("*_create_sync_cond","nanos_create_xxx_cond()",RUNTIME) );
       *sync_cond = ( nanos_sync_cond_t * ) new SingleSyncCond<EqualConditionChecker<int> >( EqualConditionChecker<int>( p, condition ) );
    } catch ( ... ) {
       NANOS_INSTRUMENTOR( leaveRuntimeAPI() );
@@ -57,7 +57,7 @@ nanos_err_t nanos_create_int_sync_cond ( nanos_sync_cond_t *sync_cond, volatile 
 nanos_err_t nanos_create_bool_sync_cond ( nanos_sync_cond_t *sync_cond, volatile bool *p, bool condition )
 {
    try {
-      NANOS_INSTRUMENTOR ( enterRuntimeAPI( SYNC_COND,RUNTIME) );
+      NANOS_INSTRUMENTOR ( enterRuntimeAPI( "*_create_sync_cond","nanos_create_xxx_cond()",RUNTIME) );
       *sync_cond = ( nanos_sync_cond_t * ) new SingleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>( p, condition ) );
    } catch ( ... ) {
       NANOS_INSTRUMENTOR ( leaveRuntimeAPI() );
@@ -71,7 +71,7 @@ nanos_err_t nanos_create_bool_sync_cond ( nanos_sync_cond_t *sync_cond, volatile
 nanos_err_t nanos_sync_cond_wait ( nanos_sync_cond_t *sync_cond )
 {
    try {
-      NANOS_INSTRUMENTOR ( enterRuntimeAPI(SYNC_COND,RUNTIME) );
+      NANOS_INSTRUMENTOR ( enterRuntimeAPI("sync_cond_wait","nanos_sync_cond_wait()",RUNTIME) );
       GenericSyncCond * syncCond = (GenericSyncCond *) *sync_cond;
       syncCond->wait();
    } catch ( ... ) {
@@ -86,7 +86,7 @@ nanos_err_t nanos_sync_cond_wait ( nanos_sync_cond_t *sync_cond )
 nanos_err_t nanos_sync_cond_signal ( nanos_sync_cond_t *sync_cond )
 {
    try {
-      NANOS_INSTRUMENTOR ( enterRuntimeAPI( SYNC_COND, RUNTIME ) );
+      NANOS_INSTRUMENTOR ( enterRuntimeAPI( "sync_cond_signal","nanos_sync_cond_signal()", RUNTIME ) );
       GenericSyncCond * syncCond = (GenericSyncCond *) *sync_cond;
       syncCond->signal();
    } catch ( ... ) {
@@ -101,7 +101,7 @@ nanos_err_t nanos_sync_cond_signal ( nanos_sync_cond_t *sync_cond )
 nanos_err_t nanos_destroy_sync_cond ( nanos_sync_cond_t *sync_cond )
 {
    try {
-      NANOS_INSTRUMENTOR ( enterRuntimeAPI(SYNC_COND,RUNTIME) );
+      NANOS_INSTRUMENTOR ( enterRuntimeAPI("destroy_sync_cond","nanos_destroy_sync_cond()",RUNTIME) );
       GenericSyncCond * syncCond = (GenericSyncCond *) *sync_cond;
       delete syncCond;
    } catch ( ... ) {
@@ -116,7 +116,7 @@ nanos_err_t nanos_destroy_sync_cond ( nanos_sync_cond_t *sync_cond )
 nanos_err_t nanos_wait_on ( size_t num_deps, nanos_dependence_t *deps )
 {
    try {
-      NANOS_INSTRUMENTOR ( enterRuntimeAPI(WAIT_ON,RUNTIME) );
+      NANOS_INSTRUMENTOR ( enterRuntimeAPI("wait_on","nanos_wait_on()",RUNTIME) );
       if ( deps != NULL ) {
          sys.waitOn( num_deps, deps );
          return NANOS_OK;
@@ -134,7 +134,7 @@ nanos_err_t nanos_wait_on ( size_t num_deps, nanos_dependence_t *deps )
 nanos_err_t nanos_init_lock ( nanos_lock_t *lock )
 {
    try {
-      NANOS_INSTRUMENTOR ( enterRuntimeAPI(LOCK,RUNTIME) );
+      NANOS_INSTRUMENTOR ( enterRuntimeAPI("*_lock","nanos_xxx_lock()",RUNTIME) );
       *lock = ( nanos_lock_t ) new Lock();
    } catch ( ... ) {
       NANOS_INSTRUMENTOR ( leaveRuntimeAPI() );
@@ -148,7 +148,7 @@ nanos_err_t nanos_init_lock ( nanos_lock_t *lock )
 nanos_err_t nanos_set_lock ( nanos_lock_t lock )
 {
    try {
-      NANOS_INSTRUMENTOR ( enterRuntimeAPI(LOCK,RUNTIME) );
+      NANOS_INSTRUMENTOR ( enterRuntimeAPI("*_lock","nanos_xxx_lock()",RUNTIME) );
       Lock *l = ( Lock * ) lock;
       l++;
    } catch ( ... ) {
@@ -163,7 +163,7 @@ nanos_err_t nanos_set_lock ( nanos_lock_t lock )
 nanos_err_t nanos_unset_lock ( nanos_lock_t lock )
 {
    try {
-      NANOS_INSTRUMENTOR ( enterRuntimeAPI( LOCK, RUNTIME ) );
+      NANOS_INSTRUMENTOR ( enterRuntimeAPI( "*_lock","nanos_xxx_lock()", RUNTIME ) );
       Lock *l = ( Lock * ) lock;
       l--;
    } catch ( ... ) {
@@ -178,7 +178,7 @@ nanos_err_t nanos_unset_lock ( nanos_lock_t lock )
 nanos_err_t nanos_try_lock ( nanos_lock_t lock, bool *result )
 {
    try {
-      NANOS_INSTRUMENTOR ( enterRuntimeAPI( LOCK, RUNTIME) );
+      NANOS_INSTRUMENTOR ( enterRuntimeAPI( "*_lock","nanos_try_lock()", RUNTIME) );
       Lock *l = ( Lock * ) lock;
 
       *result = l->tryAcquire();
@@ -194,7 +194,7 @@ nanos_err_t nanos_try_lock ( nanos_lock_t lock, bool *result )
 nanos_err_t nanos_destroy_lock ( nanos_lock_t lock )
 {
    try {
-      NANOS_INSTRUMENTOR ( enterRuntimeAPI( LOCK, RUNTIME ) );
+      NANOS_INSTRUMENTOR ( enterRuntimeAPI( "*_lock","nanos_xxx_lock()", RUNTIME ) );
       delete ( Lock * )lock;
    } catch ( ... ) {
       NANOS_INSTRUMENTOR ( leaveRuntimeAPI() );
@@ -209,7 +209,7 @@ nanos_err_t nanos_destroy_lock ( nanos_lock_t lock )
 nanos_err_t nanos_single_guard ( bool *b )
 {
    try {
-      NANOS_INSTRUMENTOR ( enterRuntimeAPI( SINGLE_GUARD, RUNTIME ) );
+      NANOS_INSTRUMENTOR ( enterRuntimeAPI( "single_guard","nanos_single_guard()", RUNTIME ) );
       *b = myThread->singleGuard();
    } catch ( ... ) {
       NANOS_INSTRUMENTOR ( leaveRuntimeAPI() );

@@ -24,6 +24,7 @@
 #include "debug.hpp"
 #include "schedule.hpp"
 #include "dependableobjectwd.hpp"
+#include "system.hpp"
 
 using namespace nanos;
 
@@ -38,6 +39,9 @@ void WorkDescriptor::start (bool isUserLevelThread, WorkDescriptor *previous)
 
    if ( pe->hasSeparatedMemorySpace() )
       pe->copyDataIn( *this );
+
+   /* Initializing instrumentor context */
+   NANOS_INSTRUMENTOR( wdCreate( this ) ); 
 
    setReady();
 }

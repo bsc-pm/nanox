@@ -17,9 +17,8 @@ namespace nanos {
    const unsigned int _eventPtPStart   = 9001;   /*<< event coding comm start */
    const unsigned int _eventPtPEnd     = 9002;   /*<< event coding comm end */
 
-   class InstrumentorParaver: public Instrumentor 
-   {
-#if defined NANOS_INSTRUMENTATION_ENABLED
+class InstrumentorParaver: public Instrumentor 
+{
    private:
       unsigned int _eventBase[EVENT_TYPES];
    public:
@@ -94,46 +93,68 @@ namespace nanos {
             p_file << FORK_JOIN        << "     SCHED-FORK/JOIN" << std::endl;
             p_file << std::endl;
 
-            /* Event: PtPStart */
+            /* Event: PtPStart main event */
             p_file << "EVENT_TYPE" << std::endl;
             p_file << "9    " << _eventPtPStart  << "    Point-to-point origin: " << std::endl;
             p_file << std::endl;
 
-            /* Event: PtPEnd */
+            /* Event: PtPEnd main event */
             p_file << "EVENT_TYPE" << std::endl;
             p_file << "9    " << _eventPtPEnd    << "    Point-to-point destination: " << std::endl;
             p_file << std::endl;
 
-            /* Event: Burst (NANOS_API) */
-            p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    " << _eventBase[BURST_START]+NANOS_API  << "     API Fucntion: " << std::endl;
-            p_file << "VALUES" << std::endl;
-            p_file << NOT_IN_NANOS_API     << "     not in nanos api" << std::endl;
-            p_file << CURRENT_WD           << "     current wd" << std::endl;
-            p_file << GET_WD_ID            << "     get wd id" << std::endl;
-            p_file << CREATE_WD            << "     create wd" << std::endl;
-            p_file << SUBMIT_WD            << "     submit wd" << std::endl;
-            p_file << CREATE_WD_AND_RUN    << "     create wd and run" << std::endl;
-            p_file << SET_INTERNAL_WD_DATA << "     set internal wd data" << std::endl;
-            p_file << GET_INTERNAL_WD_DATA << "     get internal wd data" << std::endl;
-            p_file << YIELD                << "     yield" << std::endl;
-            p_file << WG_WAIT_COMPLETION   << "     wg wait completion" << std::endl;
-            p_file << SYNC_COND            << "     sync cond" << std::endl;
-            p_file << WAIT_ON              << "     wait on" << std::endl;
-            p_file << LOCK                 << "     lock function" << std::endl;
-            p_file << SINGLE_GUARD         << "     single guard" << std::endl;
-            p_file << TEAM_BARRIER         << "     team barrier" << std::endl;
-            p_file << FIND_SLICER          << "     find slicer" << std::endl;
+            /* Getting Instrumentor Dictionary */
+            InstrumentorDictionary::ConstKeyMapIterator itK;
+            InstrumentorKeyDescriptor::ConstValueMapIterator itV;
+
+            InstrumentorDictionary *iD = sys.getInstrumentorDictionary();
+
+            /* Generating BURST events */
+            for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
+               InstrumentorKeyDescriptor *kD = itK->second;
+ 
+               p_file << "EVENT_TYPE" << std::endl;
+               p_file << "9    " << _eventBase[BURST_START]+kD->getId() << "  Burst: " << kD->getDescription() << std::endl;
+               p_file << "VALUES" << std::endl;
+               
+               for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
+                  InstrumentorValueDescriptor *vD = itV->second;
+                  p_file << vD->getId() << "  " << vD->getDescription() << std::endl;
+               }
+               p_file << std::endl;
+            }
             p_file << std::endl;
 
-            /* Event: Burst (WD_ID) */
-            p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    " << _eventBase[BURST_START]+WD_ID  << "     Work Descriptor, id: " << std::endl;
+            /* Generating POINT events */
+            for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
+               InstrumentorKeyDescriptor *kD = itK->second;
+ 
+               p_file << "EVENT_TYPE" << std::endl;
+               p_file << "9    " << _eventBase[POINT]+kD->getId() << "  Punctual: " << kD->getDescription() << std::endl;
+               p_file << "VALUES" << std::endl;
+               
+               for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
+                  InstrumentorValueDescriptor *vD = itV->second;
+                  p_file << vD->getId() << "  " << vD->getDescription() << std::endl;
+               }
+               p_file << std::endl;
+            }
             p_file << std::endl;
 
-            /* Event: Burst (WD_ID) */
-            p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    " << _eventBase[BURST_START]+USER_FUNCT  << "     User Functions, id: " << std::endl;
+            /* Generating PTP events */
+            for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
+               InstrumentorKeyDescriptor *kD = itK->second;
+ 
+               p_file << "EVENT_TYPE" << std::endl;
+               p_file << "9    " << _eventBase[PTP_START]+kD->getId() << "  Point-to-point: " << kD->getDescription() << std::endl;
+               p_file << "VALUES" << std::endl;
+               
+               for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
+                  InstrumentorValueDescriptor *vD = itV->second;
+                  p_file << vD->getId() << "  " << vD->getDescription() << std::endl;
+               }
+               p_file << std::endl;
+            }
             p_file << std::endl;
 
             p_file.close();
@@ -254,7 +275,6 @@ namespace nanos {
          OMPItrace_neventandcounters(total , p_events, p_values);
           
       }
-#endif
 };
 
 namespace ext {
