@@ -47,7 +47,9 @@ void * nanos_smp_factory( void *prealloc, void *args )
 
 nanos_wd_t nanos_current_wd()
 {
-   NANOS_INSTRUMENTOR( enterRuntimeAPI( "current_wd", "nanos_current_wd()",RUNTIME) )
+// xteruel:FIXME: how to reuse key values at this point?
+//   NANOS_INSTRUMENTOR_DICTIONARY ( static key, registerEventValue("api","","") );
+   NANOS_INSTRUMENTOR( enterRuntimeAPI( "current_wd", "nanos_current_wd()",RUNTIME) );
    nanos_wd_t cwd = myThread->getCurrentWD();
    NANOS_INSTRUMENTOR( leaveRuntimeAPI() )
    return cwd;

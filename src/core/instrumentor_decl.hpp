@@ -122,7 +122,45 @@ namespace nanos {
       public:
          /*! \brief InstrumentorDictionary constructor
           */
-         InstrumentorDictionary () : _totalKeys(1), _lock(), _keyMap() {}
+         InstrumentorDictionary () : _totalKeys(1), _lock(), _keyMap()
+         {
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+            /* ******************************************** */
+            /* Instrumentor events: In order initialization */
+            /* ******************************************** */
+
+            /* 01 */ registerEventKey("api","Nanos Runtime API"); 
+            registerEventValue("api","find_slicer","nanos_find_slicer()");
+            registerEventValue("api","wg_wait_completion","nanos_wg_wait_completion()");
+            registerEventValue("api","*_create_sync_cond","nanos_create_xxx_cond()");
+            registerEventValue("api","*_create_sync_cond","nanos_create_xxx_cond()");
+            registerEventValue("api","sync_cond_wait","nanos_sync_cond_wait()");
+            registerEventValue("api", "sync_cond_signal","nanos_sync_cond_signal()");
+            registerEventValue("api","destroy_sync_cond","nanos_destroy_sync_cond()");
+            registerEventValue("api","wait_on","nanos_wait_on()");
+            registerEventValue("api","*_lock","nanos_xxx_lock()");
+            registerEventValue("api","*_lock","nanos_xxx_lock()");
+            registerEventValue("api","*_lock","nanos_xxx_lock()");
+            registerEventValue("api","*_lock","nanos_try_lock()");
+            registerEventValue("api","*_lock","nanos_xxx_lock()");
+            registerEventValue("api","single_guard","nanos_single_guard()");
+            registerEventValue("api","team_barrier","nanos_team_barrier()");
+            registerEventValue("api","current_wd", "nanos_current_wd()");
+            registerEventValue("api","get_wd_id","nanos_get_wd_id()");
+            registerEventValue("api","*_create_wd","nanos_create_xxx_wd()");
+            registerEventValue("api","*_create_wd","nanos_create_xxx_wd()");
+            registerEventValue("api","submit","nanos_submit()");
+            registerEventValue("api","create_wd_and_run","nanos_create_wd_and_run()");
+            registerEventValue("api","set_internal_wd_data","nanos_set_internal_wd_data()");
+            registerEventValue("api","get_internal_wd_data","nanos_get_internal_wd_data()");
+            registerEventValue("api","yield","nanos_yield()");
+
+            /* 02 */ registerEventKey("wd-id","Work Descriptor id:");
+
+#endif
+
+         }
+
          /*! \brief InstrumentorDictionary destructor
           */
          ~InstrumentorDictionary() {}
@@ -359,13 +397,13 @@ namespace nanos {
           *
           *  \param[in] newWD, is the work descriptor which enters the cpu
           */
-         virtual void wdSwitchEnter( WorkDescriptor* newWD );
+         virtual void wdEnterCPU( WorkDescriptor* newWD );
 
          /*! \brief Used in work descriptor context switch (entering phase)
           *
           *  \param[in] oldWD, is the work descriptor which leaves the cpu
           */
-         virtual void wdSwitchLeave( WorkDescriptor* oldWD );
+         virtual void wdLeaveCPU( WorkDescriptor* oldWD );
 
          /*! \brief Used in work descriptor context switch
           *

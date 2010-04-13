@@ -73,9 +73,11 @@ void Instrumentor::leaveRuntimeAPI ( )
 
 void Instrumentor::wdCreate( WorkDescriptor* newWD )
 {
+   static nanos_event_key_t key = 0;
+
    /* Register (if not) key and values */
    InstrumentorDictionary *iD = sys.getInstrumentorDictionary();
-   nanos_event_key_t   key = iD->registerEventKey("wd-id","Work Descriptor id:");
+   if ( key != 0 ) key = iD->registerEventKey("wd-id","Work Descriptor id:");
 
    /* Getting work descriptor id */
    nanos_event_value_t wd_id = newWD->getId();
@@ -90,7 +92,7 @@ void Instrumentor::wdCreate( WorkDescriptor* newWD )
    instrContext.pushState( RUNNING );
 }
 
-void Instrumentor::wdSwitchEnter( WorkDescriptor* newWD )
+void Instrumentor::wdEnterCPU( WorkDescriptor* newWD )
 {
    unsigned int i = 0; /* Used as Event e[] index */
 
@@ -118,7 +120,7 @@ void Instrumentor::wdSwitchEnter( WorkDescriptor* newWD )
    addEventList ( numEvents, e );
 }
 
-void Instrumentor::wdSwitchLeave( WorkDescriptor* oldWD )
+void Instrumentor::wdLeaveCPU( WorkDescriptor* oldWD )
 {
    unsigned int i = 0; /* Used as Event e[] index */
 
