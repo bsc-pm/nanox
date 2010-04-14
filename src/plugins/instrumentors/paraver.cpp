@@ -107,7 +107,7 @@ class InstrumentorParaver: public Instrumentor
             InstrumentorDictionary::ConstKeyMapIterator itK;
             InstrumentorKeyDescriptor::ConstValueMapIterator itV;
 
-            InstrumentorDictionary *iD = sys.getInstrumentorDictionary();
+            InstrumentorDictionary *iD = sys.getInstrumentor()->getInstrumentorDictionary();
 
             /* Generating BURST events */
             for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {

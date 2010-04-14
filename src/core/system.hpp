@@ -100,8 +100,6 @@ inline Slicer * System::getSlicer( const std::string &label ) const
 
 inline Instrumentor * System::getInstrumentor ( void ) const { return _instrumentor; }
 
-inline InstrumentorDictionary * System::getInstrumentorDictionary ( void ) { return &_instrumentorDictionary; }
-
 inline void System::setInstrumentor ( Instrumentor *instr ) { _instrumentor = instr; }
 
 inline void System::registerSlicer ( const std::string &label, Slicer *slicer) { _slicers[label] = slicer; }

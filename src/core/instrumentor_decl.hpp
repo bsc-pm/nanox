@@ -21,10 +21,12 @@
 #define NANOS_INSTRUMENTATION_ENABLED
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
-#define NANOS_INSTRUMENTOR(f) sys.getInstrumentor()->f;
-#define NANOS_INSTRUMENTOR_DICTIONARY(f,g) f = sys.getInstrumentorDictionary()->g;
+#define NANOS_INSTRUMENTOR(f) f;
+#define NANOS_INSTRUMENTOR_2(f) sys.getInstrumentor()->f;
+#define NANOS_INSTRUMENTOR_DICTIONARY(f,g) f = sys.getInstrumentor()->getInstrumentorDictionary()->g;
 #else
-#define NANOS_INSTRUMENTOR(f) ;
+#define NANOS_INSTRUMENTOR(f)
+#define NANOS_INSTRUMENTOR_2(f) ;
 #define NANOS_INSTRUMENTOR_DICTIONARY(f,g) ;
 #endif
 
@@ -96,7 +98,11 @@ namespace nanos {
 
          /*! \brief Inserts (or gets) a value into (from) valueMap 
           */
-         nanos_event_value_t registerValue ( std::string value, std::string description );
+         nanos_event_value_t registerValue ( std::string value, std::string description="" );
+
+         /*! \brief Gets a value into (from) valueMap 
+          */
+         nanos_event_value_t getValue ( std::string value );
 
          /*! \brief Returns starting point of valueMap ( iteration purposes )
           */
@@ -169,9 +175,17 @@ namespace nanos {
           */
          nanos_event_key_t registerEventKey ( std::string key, std::string description="" );
 
+         /*! \brief Gets a key into (from) the keyMap
+          */
+         nanos_event_key_t getEventKey ( std::string key );
+
          /*! \brief Inserts (or gets) a value into (from) the valueMap (which belongs to 'key' parameter )
           */
          nanos_event_value_t registerEventValue ( std::string key, std::string value, std::string description="" );
+
+         /*! \brief Gets a value into (from) the valueMap (which belongs to 'key' parameter )
+          */
+         nanos_event_value_t getEventValue ( std::string key, std::string value );
 
          /*! \brief Returns starting point of keyMap ( iteration purposes )
           */
@@ -186,6 +200,8 @@ namespace nanos {
 
    class Instrumentor 
    {
+      private:
+         InstrumentorDictionary      _instrumentorDictionary; /** Instrumentor Dictionary (allow register event keys and values) */
       public:
          class Event {
             public:
@@ -202,6 +218,7 @@ namespace nanos {
 
                nanos_event_domain_t        _ptpDomain;    /**< A specific domain in which ptpId is unique */
                nanos_event_id_t            _ptpId;        /**< PtP event id */
+
 
             public:
                /*! \brief Event constructor (generic constructor used by all other specific constructors)
@@ -339,6 +356,11 @@ namespace nanos {
           */
          virtual ~Instrumentor() {}
 
+         /*! \brief Gets InstrumentorDictionary
+          *
+          */
+         InstrumentorDictionary * getInstrumentorDictionary ( void );
+
          // low-level instrumentation interface (pure virtual functions)
 
          /*! \brief Pure virtual functions executed at the beginning of instrumentation phase
@@ -375,7 +397,7 @@ namespace nanos {
           *  \param[in] state is the state we are changing to
           *
           */
-         virtual void enterRuntimeAPI ( std::string function, std::string description, nanos_event_state_value_t state = RUNTIME );
+         virtual void enterRuntimeAPI ( nanos_event_value_t val, nanos_event_state_value_t state = RUNTIME );
 
          /*! \brief Used in API level when leaving a runtime service
           */

@@ -28,7 +28,7 @@ nanos_err_t nanos_instrument_register_key ( nanos_event_key_t *event_key, char *
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      NANOS_INSTRUMENTOR_DICTIONARY( *event_key, registerEventKey(key, description) );
+      *event_key = sys.getInstrumentor()->getInstrumentorDictionary()->registerEventKey(key, description);
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -41,13 +41,20 @@ nanos_err_t nanos_instrument_register_value ( nanos_event_value_t *event_value, 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      NANOS_INSTRUMENTOR_DICTIONARY( *event_value, registerEventValue(key, value,  description) );
+      *event_value = sys.getInstrumentor()->getInstrumentorDictionary()->registerEventValue(key, value,  description);
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
 #endif
    return NANOS_OK;
 }
+
+// FIXME:
+#if 0
+   sys.getInstrumentor()->static Instrumentor *inst = sys.getInstrumentor() );
+   NANOS_INSTRUMENTOR(static nanos_event_value_t val = inst->getInstrumentorDictionary()->getEventValue("api","team_barrier"));
+   sys.getInstrumentor()->inst->enterRuntimeAPI(val,RUNTIME) );
+#endif
 
 nanos_err_t nanos_instrument_events ( unsigned int num_events, nanos_event_t events[] )
 {
@@ -59,29 +66,29 @@ nanos_err_t nanos_instrument_events ( unsigned int num_events, nanos_event_t eve
       for (unsigned int i = 0; i < num_events; i++ ) {
          switch ( events[i].type ) {
             case STATE:
-               NANOS_INSTRUMENTOR( createStateEvent( e[i],events[i].info.state.value) );
+               sys.getInstrumentor()->createStateEvent( e[i],events[i].info.state.value);
                break;
             case BURST_START:
-               NANOS_INSTRUMENTOR( createBurstStart(e[i],events[i].info.burst.key,events[i].info.burst.value) );
+               sys.getInstrumentor()->createBurstStart(e[i],events[i].info.burst.key,events[i].info.burst.value);
                break;
             case BURST_END:
-               NANOS_INSTRUMENTOR( createBurstEnd(e[i],events[i].info.burst.key,events[i].info.burst.value) );
+               sys.getInstrumentor()->createBurstEnd(e[i],events[i].info.burst.key,events[i].info.burst.value);
                break;
             case POINT:
-               NANOS_INSTRUMENTOR( createPointEvent( e[i],events[i].info.point.nkvs,events[i].info.point.keys,events[i].info.point.values ) );
+               sys.getInstrumentor()->createPointEvent( e[i],events[i].info.point.nkvs,events[i].info.point.keys,events[i].info.point.values );
                break;
             case PTP_START:
-               NANOS_INSTRUMENTOR ( createPtPStart( e[i],events[i].info.ptp.domain,events[i].info.ptp.id,events[i].info.ptp.nkvs,events[i].info.ptp.keys,events[i].info.ptp.values) );
+               sys.getInstrumentor()->createPtPStart( e[i],events[i].info.ptp.domain,events[i].info.ptp.id,events[i].info.ptp.nkvs,events[i].info.ptp.keys,events[i].info.ptp.values);
                break;
             case PTP_END:
-               NANOS_INSTRUMENTOR( createPtPEnd(e[i],events[i].info.ptp.domain,events[i].info.ptp.id,events[i].info.ptp.nkvs,events[i].info.ptp.keys,events[i].info.ptp.values) );
+               sys.getInstrumentor()->createPtPEnd(e[i],events[i].info.ptp.domain,events[i].info.ptp.id,events[i].info.ptp.nkvs,events[i].info.ptp.keys,events[i].info.ptp.values);
                break;
             default:
                return NANOS_UNKNOWN_ERR;
                break;
          }
       }
-      NANOS_INSTRUMENTOR (addEventList( num_events,e) );
+      sys.getInstrumentor()->addEventList( num_events,e);
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -95,8 +102,8 @@ nanos_err_t nanos_instrument_enter_state ( nanos_event_state_value_t state )
    try
    {
       Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
-      NANOS_INSTRUMENTOR ( createStateEvent(*e,state) );
-      NANOS_INSTRUMENTOR ( addEventList(1,e) );
+      sys.getInstrumentor()->createStateEvent(*e,state);
+      sys.getInstrumentor()->addEventList(1,e);
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -110,8 +117,8 @@ nanos_err_t nanos_instrument_leave_state ( void )
    try
    {
       Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
-      NANOS_INSTRUMENTOR ( returnPreviousStateEvent(*e) );
-      NANOS_INSTRUMENTOR ( addEventList(1,e) );
+      sys.getInstrumentor()->returnPreviousStateEvent(*e);
+      sys.getInstrumentor()->addEventList(1,e);
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -125,8 +132,8 @@ nanos_err_t nanos_instrument_enter_burst( nanos_event_key_t key, nanos_event_val
    try
    {
       Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
-      NANOS_INSTRUMENTOR ( createBurstStart(*e,key,value) );
-      NANOS_INSTRUMENTOR ( addEventList(1,e) );
+      sys.getInstrumentor()->createBurstStart(*e,key,value);
+      sys.getInstrumentor()->addEventList(1,e);
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -140,8 +147,8 @@ nanos_err_t nanos_instrument_leave_burst( nanos_event_key_t key, nanos_event_val
    try
    {
       Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
-      NANOS_INSTRUMENTOR ( createBurstEnd(*e,key,value) );
-      NANOS_INSTRUMENTOR ( addEventList(1, e) );
+      sys.getInstrumentor()->createBurstEnd(*e,key,value);
+      sys.getInstrumentor()->addEventList(1, e);
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -155,8 +162,8 @@ nanos_err_t nanos_instrument_point_event ( unsigned int nkvs, nanos_event_key_t 
    try
    {
       Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
-      NANOS_INSTRUMENTOR( createPointEvent(*e,nkvs,keys,values) );
-      NANOS_INSTRUMENTOR( addEventList(1,e) );
+      sys.getInstrumentor()->createPointEvent(*e,nkvs,keys,values);
+      sys.getInstrumentor()->addEventList(1,e);
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -171,8 +178,8 @@ nanos_err_t nanos_instrument_ptp_start ( nanos_event_domain_t domain, nanos_even
    try
    {
       Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
-      NANOS_INSTRUMENTOR ( createPtPStart(*e,domain,id,nkvs,keys,values) );
-      NANOS_INSTRUMENTOR ( addEventList(1,e) );
+      sys.getInstrumentor()->createPtPStart(*e,domain,id,nkvs,keys,values);
+      sys.getInstrumentor()->addEventList(1,e);
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -187,8 +194,8 @@ nanos_err_t nanos_instrument_ptp_end ( nanos_event_domain_t domain, nanos_event_
    try
    {
       Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
-      NANOS_INSTRUMENTOR ( createPtPEnd(*e,domain,id,nkvs,keys,values) );
-      NANOS_INSTRUMENTOR ( addEventList(1,e) );
+      sys.getInstrumentor()->createPtPEnd(*e,domain,id,nkvs,keys,values);
+      sys.getInstrumentor()->addEventList(1,e);
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }

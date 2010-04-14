@@ -62,7 +62,7 @@ void Scheduler::submit ( WD &wd )
 template<class behaviour>
 inline void Scheduler::idleLoop ()
 {
-   NANOS_INSTRUMENTOR( enterIdle() )
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->enterIdle() )
 
    const int nspins = sys.getSchedulerConf().getNumSpins();
    int spins = nspins;
@@ -81,9 +81,9 @@ inline void Scheduler::idleLoop ()
 
          if (next) {
            sys.getSchedulerStats()._idleThreads--;
-           NANOS_INSTRUMENTOR( leaveIdle() );
+           NANOS_INSTRUMENTOR( sys.getInstrumentor()->leaveIdle() );
            behaviour::switchWD(thread,current, next);
-           NANOS_INSTRUMENTOR( enterIdle() );
+           NANOS_INSTRUMENTOR( sys.getInstrumentor()->enterIdle() );
            sys.getSchedulerStats()._idleThreads++;
            spins = nspins;
            continue;
@@ -98,12 +98,12 @@ inline void Scheduler::idleLoop ()
    }
    sys.getSchedulerStats()._idleThreads--;
    current->setReady();
-   NANOS_INSTRUMENTOR( leaveIdle() );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->leaveIdle() );
 }
 
 void Scheduler::waitOnCondition (GenericSyncCond *condition)
 {
-   NANOS_INSTRUMENTOR ( enterIdle() );
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->enterIdle() );
 
    const int nspins = sys.getSchedulerConf().getNumSpins();
    int spins = nspins; 
@@ -128,9 +128,9 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
             if ( next ) {
                sys.getSchedulerStats()._idleThreads--;
-               NANOS_INSTRUMENTOR( leaveIdle() );
+               NANOS_INSTRUMENTOR( sys.getInstrumentor()->leaveIdle() );
                switchTo ( next );
-               NANOS_INSTRUMENTOR( enterIdle() );
+               NANOS_INSTRUMENTOR( sys.getInstrumentor()->enterIdle() );
                sys.getSchedulerStats()._idleThreads++;
             }
             else {
@@ -150,7 +150,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
       sys.getSchedulerStats()._readyTasks++;
       current->setReady();
    }
-   NANOS_INSTRUMENTOR ( leaveIdle() );
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->leaveIdle() );
 }
 
 void Scheduler::wakeUp ( WD *wd )
@@ -208,7 +208,7 @@ void Scheduler::inlineWork ( WD *wd )
    wd->start(false);
    myThread->setCurrentWD( *wd );
 
-   NANOS_INSTRUMENTOR( wdSwitch( oldwd, wd ) );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdSwitch(oldwd,wd) );
 
    myThread->inlineWorkDependent(*wd);
    wd->done();
@@ -216,7 +216,7 @@ void Scheduler::inlineWork ( WD *wd )
    debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
           " to " << oldwd << ":" << oldwd->getId() );
 
-   NANOS_INSTRUMENTOR( wdSwitch( wd, oldwd ) );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdSwitch(wd,oldwd ) );
 
    BaseThread *thread = getMyThreadSafe();
    thread->setCurrentWD( *oldwd );
@@ -244,7 +244,7 @@ void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
    }
    myThread->switchHelperDependent(oldWD, newWD, arg);
 
-   NANOS_INSTRUMENTOR( wdSwitch( oldWD, newWD ) );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdSwitch(oldWD,newWD) );
    myThread->setCurrentWD( *newWD );
 }
 
@@ -282,7 +282,7 @@ void Scheduler::switchToThread ( BaseThread *thread )
 void Scheduler::exitHelper (WD *oldWD, WD *newWD, void *arg)
 {
     myThread->exitHelperDependent(oldWD, newWD, arg);
-    NANOS_INSTRUMENTOR ( wdExit(oldWD,newWD) );
+    NANOS_INSTRUMENTOR ( sys.getInstrumentor()->wdExit(oldWD,newWD) );
     delete oldWD;
     myThread->setCurrentWD( *newWD );
 }

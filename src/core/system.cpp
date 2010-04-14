@@ -42,7 +42,7 @@ System nanos::sys;
 System::System () :
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindThreads( true ), _profile( false ), _instrument( false ),
       _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster(true), _delayedStart(false), _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" ),
-      _defInstr ( "empty_trace" ), _defArch("smp"), _instrumentor ( NULL ), _instrumentorDictionary(), _defSchedulePolicy(NULL)
+      _defInstr ( "empty_trace" ), _defArch("smp"), _instrumentor ( NULL ), _defSchedulePolicy(NULL)
 {
    verbose0 ( "NANOS++ initalizing... start" );
    config();
@@ -166,7 +166,7 @@ void System::start ()
    loadModules();
 
    // Instrumentation startup
-   NANOS_INSTRUMENTOR ( initialize() );
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->initialize() );
 
    verbose0 ( "Starting threads" );
 
@@ -179,7 +179,7 @@ void System::start ()
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 
-   NANOS_INSTRUMENTOR ( enterStartUp() );
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->enterStartUp() );
 
    //start as much threads per pe as requested by the user
    for ( int ths = 1; ths < getThsPerPE(); ths++ ) {
@@ -214,7 +214,7 @@ void System::start ()
          fatal("Unknown inital mode!");
          break;
    }
-   NANOS_INSTRUMENTOR ( leaveStartUp() );
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->leaveStartUp() );
 }
 
 System::~System ()
@@ -224,7 +224,7 @@ System::~System ()
 
 void System::finish ()
 {
-   NANOS_INSTRUMENTOR ( enterShutDown() );
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->enterShutDown() );
    verbose ( "NANOS++ shutting down.... init" );
    verbose ( "Wait for main workgroup to complete" );
    myThread->getCurrentWD()->waitCompletion();
@@ -246,8 +246,8 @@ void System::finish ()
    verbose ( "Joining threads... phase 2" );
 
    // shutdown instrumentation
-   NANOS_INSTRUMENTOR ( leaveShutDown() );
-   NANOS_INSTRUMENTOR ( finalize() );
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->leaveShutDown() );
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->finalize() );
 
    // join
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {
