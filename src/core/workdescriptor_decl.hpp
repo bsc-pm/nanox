@@ -28,12 +28,8 @@
 #include "copydata.hpp"
 #include "synchronizedcondition_decl.hpp"
 #include "atomic.hpp"
-<<<<<<< HEAD:src/core/workdescriptor_decl.hpp
-#include "instrumentor_ctx.hpp"
 #include "lazy.hpp"
-=======
 #include "instrumentorcontext.hpp"
->>>>>>> 7278b259a2d4a2ba75370daf5d817ca153aa20fd:src/core/workdescriptor_decl.hpp
 
 #include "slicer_fwd.hpp"
 #include "basethread_fwd.hpp"
