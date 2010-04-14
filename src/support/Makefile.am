@@ -24,6 +24,7 @@ noinst_LTLIBRARIES = libsupport.la
 libsupport_la_CXXFLAGS= $(common_includes) $(common_cxxflags)
 libsupport_la_SOURCES = \
 	atomic.hpp\
+	lazy.hpp\
 	compatibility.hpp\
 	queue.hpp\
 	debug.hpp\
