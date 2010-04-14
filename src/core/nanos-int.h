@@ -119,28 +119,18 @@ typedef struct {
 
 // instrumentor structures
 
-typedef enum { STATE, BURST_START, BURST_END, PTP_START, PTP_END, POINT, EVENT_TYPES } nanos_event_type_t;
+typedef enum { STATE, BURST_START, BURST_END, PTP_START, PTP_END, POINT, EVENT_TYPES } nanos_event_type_t; /**< Event types  */
 
-typedef enum { NANOS_WD_DOMAIN } nanos_event_domain_t;
-
-typedef unsigned int  nanos_event_id_t;
-
-typedef enum { NANOS_API, WD_ID, USER_FUNCT } nanos_event_key_t;
-
-typedef int  nanos_event_value_t;
-  
 typedef enum { NOT_TRACED, STARTUP, SHUTDOWN, ERROR, IDLE, RUNTIME, RUNNING, SYNCHRONIZATION,
                SCHEDULING, FORK_JOIN, EVENT_STATE_TYPES
-} nanos_event_state_value_t;
+} nanos_event_state_value_t; /**< State enum values */
 
-typedef enum { NOT_IN_NANOS_API, CURRENT_WD, GET_WD_ID, CREATE_WD, SUBMIT_WD, CREATE_WD_AND_RUN,
-               SET_INTERNAL_WD_DATA, GET_INTERNAL_WD_DATA, YIELD,
-               WG_WAIT_COMPLETION, SYNC_COND, WAIT_ON, LOCK, SINGLE_GUARD,
-               TEAM_BARRIER,
-               FIND_SLICER,
-               EVENT_API_TYPES
-} nanos_event_api_t;
+typedef enum { NANOS_WD_DOMAIN } nanos_event_domain_t; /**< Specifies a domain */
+typedef unsigned int  nanos_event_id_t;                /**< Used as unique id within a given domain */
 
+typedef unsigned int nanos_event_key_t; /**< Key (on key-value pair) */
+typedef int  nanos_event_value_t;       /**< Value (on key-value pair) */
+  
 typedef struct {
    nanos_event_key_t    key;
    nanos_event_value_t  value;

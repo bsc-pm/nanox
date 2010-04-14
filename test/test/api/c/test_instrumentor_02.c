@@ -26,7 +26,7 @@ test_generator=gens/api-generator
 #include <stdio.h>
 #include <nanos.h>
 #include <alloca.h>
-#define GENERIC_INSTRUMENTOR_API
+//#define GENERIC_INSTRUMENTOR_API
 
 // compiler: outlined function arguments
 typedef struct {
@@ -48,7 +48,13 @@ void main__task_1 ( void *args )
 
    nanos_instrument_events ( 1, &event_ini );
 #else
-   nanos_instrument_enter_burst( 133, 12345 );
+   nanos_event_key_t ek;
+   nanos_event_value_t ev;
+
+   nanos_instrument_register_key ( &ek, "user-funct", "User Functions" );
+   nanos_instrument_register_value ( &ev, "user-funct", "main__task_1", "main__task_1 user's function" );
+
+   nanos_instrument_enter_burst( ek, ev );
 #endif
 
 #ifdef GENERIC_INSTRUMENTOR_API
@@ -123,7 +129,7 @@ void main__task_1 ( void *args )
 
    nanos_instrument_events ( 1, &event_fini );
 #else
-   nanos_instrument_leave_burst( 133, 12345 );
+   nanos_instrument_leave_burst( ek, ev );
 #endif
 
 }

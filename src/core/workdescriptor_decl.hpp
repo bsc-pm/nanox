@@ -28,8 +28,12 @@
 #include "copydata.hpp"
 #include "synchronizedcondition_decl.hpp"
 #include "atomic.hpp"
+<<<<<<< HEAD:src/core/workdescriptor_decl.hpp
 #include "instrumentor_ctx.hpp"
 #include "lazy.hpp"
+=======
+#include "instrumentorcontext.hpp"
+>>>>>>> 7278b259a2d4a2ba75370daf5d817ca153aa20fd:src/core/workdescriptor_decl.hpp
 
 #include "slicer_fwd.hpp"
 #include "basethread_fwd.hpp"
@@ -176,22 +180,14 @@ namespace nanos
                     _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                     _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : 0 ),
                     _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                    _depsDomain(), _instrumentorContext()
-         {
-            // FIXME (#140): Change InstrumentorContext ic.init() to Instrumentor::_wdCreate();
-            _instrumentorContext.init ( getId() );
-         }
+                    _depsDomain(), _instrumentorContext() { }
 
          WorkDescriptor ( DeviceData *device, size_t data_size = 0, void *wdata=0, size_t numCopies = 0, CopyData *copies = NULL ) :
                     WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ),
                     _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                     _numDevices ( 1 ), _devices ( &_activeDevice ), _activeDevice ( device ),
                     _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                    _depsDomain(), _instrumentorContext()
-         {
-              // FIXME (#140): Change InstrumentorContext ic.init() to Instrumentor::_wdCreate();
-            _instrumentorContext.init ( getId() );
-         }
+                    _depsDomain(), _instrumentorContext() { }
 
          /*! \brief WorkDescriptor constructor (using a given WorkDescriptor)
           *
@@ -211,16 +207,8 @@ namespace nanos
                     _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
                     _doSubmit(), _doWait(), _depsDomain(), _instrumentorContext( wd._instrumentorContext )
          { 
-            // adding wd to parent workdescriptor's workgroup
+            /* adding wd to parent workdescriptor's workgroup */
             _parent->addWork( *this );
-
-            // FIXME: (#140) Change InstrumentorContext ic.init() to Instrumentor::_wdCreate();
-            /* We still need to initialize instrumentor context (ic) due ic copy constructor 
-               creates a new instrumentor context scope. Without any event list initialized:
-                  - bursts (list)
-                  - states (stack)
-             */
-             _instrumentorContext.init( getId() );
          }
 
          /*! \brief WorkDescriptor destructor

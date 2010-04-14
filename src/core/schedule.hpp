@@ -34,6 +34,7 @@
 
 namespace nanos
 {
+   class Config;
 
 // singleton class to encapsulate scheduling data and methods
    typedef void SchedulerHelper ( WD *oldWD, WD *newWD, void *arg);
@@ -65,6 +66,22 @@ namespace nanos
          static void wakeUp ( WD *wd );
    };
 
+   class SchedulerConf
+   {
+      friend class System;
+
+      private:
+        unsigned int  _numSpins;
+
+        SchedulerConf() : _numSpins(100) {}
+
+      public:
+         unsigned int getNumSpins () const { return _numSpins; }
+         void setNumSpins ( const unsigned int num ) { _numSpins = num; }
+
+         void config ( Config &cfg );
+   };
+   
    class SchedulerStats
    {
       friend class Scheduler;

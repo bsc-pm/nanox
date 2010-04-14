@@ -18,18 +18,21 @@
 /*************************************************************************************/
 #include "instrumentor.hpp"
 
-#include "instrumentor_ctx.hpp"
+#include "instrumentorcontext.hpp"
 #include "system.hpp"
 #include "workdescriptor.hpp"
 
 using namespace nanos;
 
-#ifdef INSTRUMENTATION_ENABLED
-
-void Instrumentor::enterRuntimeAPI ( nanos_event_api_t function, nanos_event_state_value_t state )
+void Instrumentor::enterRuntimeAPI ( std::string function, std::string description, nanos_event_state_value_t state )
 {
+   /* Register (if not) key and values */
+   InstrumentorDictionary *iD = sys.getInstrumentorDictionary();
+   nanos_event_key_t   key = iD->registerEventKey("api","Nanos Runtime API");
+   nanos_event_value_t val = iD->registerEventValue( "api", function, description);
+
    /* Create a vector of two events: STATE and BURST */
-   Event::KV kv( Event::KV(NANOS_API,function) );
+   Event::KV kv( Event::KV( key, val ) );
    Event e[2] = { State(state), Burst( true, kv) };
 
    /* Update instrumentor context with new state and open burst */
@@ -45,7 +48,11 @@ void Instrumentor::leaveRuntimeAPI ( )
 {
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
    InstrumentorContext::BurstIterator it;
-   if ( !instrContext.findBurstByKey( NANOS_API, it ) ) fatal0("Burst doesn't exists");
+
+   InstrumentorDictionary *iD = sys.getInstrumentorDictionary();
+   nanos_event_key_t key = iD->registerEventKey("api","Nanos Runtime API");
+   if ( !instrContext.findBurstByKey( key, it ) )
+      fatal0("Burst doesn't exists");
 
    Event &e1 =  (*it);
    e1.reverseType();
@@ -58,17 +65,85 @@ void Instrumentor::leaveRuntimeAPI ( )
    /* Creating two events */
    Event e[2] = { State(state), e1 };
 
-   
    /* Spawning two events: specific instrumentor call */
    addEventList ( 2, e );
 
    instrContext.removeBurst( it ); 
 }
 
-// FIXME (#140): Change InstrumentorContext ic.init() to Instrumentor::wdCreate();
 void Instrumentor::wdCreate( WorkDescriptor* newWD )
 {
+   /* Register (if not) key and values */
+   InstrumentorDictionary *iD = sys.getInstrumentorDictionary();
+   nanos_event_key_t   key = iD->registerEventKey("wd-id","Work Descriptor id:");
 
+   /* Getting work descriptor id */
+   nanos_event_value_t wd_id = newWD->getId();
+
+   /* Creating key value and Burst event */
+   Event::KV kv( Event::KV( key, wd_id ) );
+   Event e = Burst( true, kv );
+
+   InstrumentorContext &instrContext = newWD->getInstrumentorContext();
+ 
+   instrContext.insertBurst( e );
+   instrContext.pushState( RUNNING );
+}
+
+void Instrumentor::wdSwitchEnter( WorkDescriptor* newWD )
+{
+   unsigned int i = 0; /* Used as Event e[] index */
+
+   /* Computing number of burst events */
+   InstrumentorContext &newInstrContext = newWD->getInstrumentorContext();
+   unsigned int newBursts = newInstrContext.getNumBursts();
+   unsigned int numEvents = 2 + newBursts;
+
+   /* Allocating Events */
+   Event *e = (Event *) alloca(sizeof(Event) * numEvents );
+
+   /* Creating two PtP events */
+   e[i++] = PtP (false, NANOS_WD_DOMAIN, (nanos_event_id_t) newWD->getId(), 0, NULL);
+
+   /* Creating State event: change thread current state with newWD saved state */
+   nanos_event_state_value_t state = newInstrContext.topState();
+   e[i++] = State ( state );
+
+   /* Regenerating bursts for new WD */
+   for ( InstrumentorContext::ConstBurstIterator it = newInstrContext.beginBurst() ; it != newInstrContext.endBurst(); it++,i++ ) {
+      e[i] = *it;
+   }
+
+   /* Spawning 'numEvents' events: specific instrumentor call */
+   addEventList ( numEvents, e );
+}
+
+void Instrumentor::wdSwitchLeave( WorkDescriptor* oldWD )
+{
+   unsigned int i = 0; /* Used as Event e[] index */
+
+   /* Computing number of burst events */
+   InstrumentorContext &oldInstrContext = oldWD->getInstrumentorContext();
+   unsigned int oldBursts = oldInstrContext.getNumBursts();
+   unsigned int numEvents = 2 + oldBursts;
+
+   /* Allocating Events */
+   Event *e = (Event *) alloca(sizeof(Event) * numEvents );
+
+   /* Creating two PtP events */
+   e[i++] = PtP (true,  NANOS_WD_DOMAIN, (nanos_event_id_t) oldWD->getId(), 0, NULL);
+
+   /* Creating State event: change thread current state with newWD saved state */
+   e[i++] = State ( RUNTIME );
+
+   /* Regenerating reverse bursts for old WD */
+   for ( InstrumentorContext::ConstBurstIterator it = oldInstrContext.beginBurst(); it != oldInstrContext.endBurst(); it++,i++ ) {
+      e[i] = *it;
+      e[i].reverseType();
+   }
+
+   /* Spawning 'numEvents' events: specific instrumentor call */
+   addEventList ( numEvents, e );
 }
 
 void Instrumentor::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD )
@@ -124,8 +199,7 @@ void Instrumentor::wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD )
 
    /* Creating PtP event: as oldWD has finished execution we need to generate only PtP End
     * in order to instrument receiving point for the new WorkDescriptor */
-   Event::KV kv( Event::KV( WD_ID, newWD->getId() ) );
-   e[i++] = PtP ( false, (nanos_event_domain_t) 0, (nanos_event_id_t) newWD->getId(), 1, &kv );
+   e[i++] = PtP ( false, NANOS_WD_DOMAIN, (nanos_event_id_t) newWD->getId(), 0, NULL );
 
    /* Creating State event: change thread current state with newWD saved state */
    nanos_event_state_value_t state = newInstrContext.topState();
@@ -301,7 +375,4 @@ void Instrumentor::leaveShutDown ( void )
    Event e = State( state );
    addEventList ( 1u, &e );
 }
-
-#endif
-
 

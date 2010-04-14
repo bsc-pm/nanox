@@ -36,11 +36,22 @@ template <class _T>
 void SynchronizedCondition< _T>::signal()
 {
    lock();
-     while ( hasWaiters() ) {
-        WD* wd = getAndRemoveWaiter();
-        Scheduler::wakeUp(wd);
-     }
+   while ( hasWaiters() ) {
+      WD* wd = getAndRemoveWaiter();
+      Scheduler::wakeUp(wd);
+   }
    unlock(); 
+}
+
+template <class _T>
+void SynchronizedCondition< _T>::signal_one()
+{
+   lock();
+   if ( hasWaiters() ) {
+      WD* wd = getAndRemoveWaiter();
+      Scheduler::wakeUp(wd);
+   }
+   unlock();
 }
 
 #endif

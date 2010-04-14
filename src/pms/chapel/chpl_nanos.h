@@ -1,4 +1,5 @@
 /*************************************************************************************/
+/*      Copyright 2010 Barcelona Supercomputing Center                               */
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
@@ -16,21 +17,41 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-#ifndef _NANOS_SCHEDULE_FWD_H
-#define _NANOS_SCHEDULE_FWD_H
 
-namespace nanos
-{
-   class Scheduler;
-   class SchedulerStats;
-   class ScheduleTeamData;
-   class ScheduleThreadData;
-   class SchedulePolicy;
+#ifndef NANOS_CHPL_H
+#define NANOS_CHPL_H
 
-   class SchedulingGroup;
-   class SchedulingData;
-   class SchedulingConf;
-};
+#define CHPL_TASKS nanos
 
+#include <stdbool.h>
+
+#ifdef __cplusplus
+#define _Bool bool
+extern "C" {
 #endif
 
+typedef int chpl_taskID_t;
+#define chpl_nullTaskID 0
+
+typedef void * chpl_mutex_t;
+
+typedef struct {
+   bool is_full;
+   void *empty;
+   void *full;
+} chpl_sync_aux_t;
+
+typedef struct {
+   bool is_full;
+   void *full;
+} chpl_single_aux_t;
+
+#include <chpltypes.h>
+#include <chpltasks_func_names.h>
+#include <chpltasks.h>
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
