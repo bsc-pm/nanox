@@ -18,10 +18,7 @@
 /*************************************************************************************/
 // FIXME: (#131) This flag ENABLE_INSTRUMENTATION has to be managed through
 //compilation in order to generate an instrumentation version
-<<<<<<< HEAD:src/core/instrumentor_decl.hpp
 //#define INSTRUMENTATION_ENABLED
-=======
-#define NANOS_INSTRUMENTATION_ENABLED
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 #define NANOS_INSTRUMENTOR(f) sys.getInstrumentor()->f;
@@ -30,7 +27,6 @@
 #define NANOS_INSTRUMENTOR(f) ;
 #define NANOS_INSTRUMENTOR_DICTIONARY(f,g) ;
 #endif
->>>>>>> 7278b259a2d4a2ba75370daf5d817ca153aa20fd:src/core/instrumentor_decl.hpp
 
 #ifndef __NANOS_INSTRUMENTOR_DECL_H
 #define __NANOS_INSTRUMENTOR_DECL_H
