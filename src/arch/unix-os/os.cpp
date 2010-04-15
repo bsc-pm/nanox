@@ -22,6 +22,38 @@
 
 using namespace nanos;
 
+long OS::_argc = 0; 
+char ** OS::_argv = 0; 
+
+static void findArgs (long *argc, char ***argv) 
+{
+   long *p; 
+   int i; 
+
+   // variables are before environment 
+   p=( long * )environ; 
+
+   // go backwards until we find argc 
+   p--; 
+
+   for ( i = 0 ; *( --p ) != i; i++ ); 
+
+   *argc = *p; 
+   *argv = ( char ** ) p+1; 
+}
+
+long OS::getArgc () 
+{ 
+   if (!_argv) findArgs(&_argc,&_argv);
+   return _argc;
+}
+
+const char * OS::getArg ( int arg )
+{
+   if (!_argv) findArgs(&_argc,&_argv);
+   return _argv[arg];
+}
+
 void * OS::loadDL( const std::string &dir, const std::string &name )
 {
    std::string filename;
