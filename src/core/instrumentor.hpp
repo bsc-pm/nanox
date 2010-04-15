@@ -23,7 +23,6 @@
 
 using namespace nanos;
 
-
 inline nanos_event_value_t InstrumentorValueDescriptor::getId ( void )
 {
    return _id;

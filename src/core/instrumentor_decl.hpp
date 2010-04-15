@@ -22,12 +22,8 @@
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 #define NANOS_INSTRUMENTOR(f) f;
-#define NANOS_INSTRUMENTOR_2(f) sys.getInstrumentor()->f;
-#define NANOS_INSTRUMENTOR_DICTIONARY(f,g) f = sys.getInstrumentor()->getInstrumentorDictionary()->g;
 #else
 #define NANOS_INSTRUMENTOR(f)
-#define NANOS_INSTRUMENTOR_2(f) ;
-#define NANOS_INSTRUMENTOR_DICTIONARY(f,g) ;
 #endif
 
 #ifndef __NANOS_INSTRUMENTOR_DECL_H
