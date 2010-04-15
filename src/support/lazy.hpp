@@ -17,58 +17,42 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "os.hpp"
-#include <stdlib.h>
+#ifndef _NANOS_LAZY_INIT
+#define _NANOS_LAZY_INIT
 
-using namespace nanos;
+#define likely(x)       __builtin_expect((x),1)
+#define unlikely(x)     __builtin_expect((x),0)
 
-long OS::_argc = 0; 
-char ** OS::_argv = 0; 
+template <class T>
+class LazyInit {
+   private:
+      bool _init;
+      char _storage[sizeof(T)];
 
-static void findArgs (long *argc, char ***argv) 
-{
-   long *p; 
-   int i; 
+      void construct ()
+      {
+         _init = true;
+         new (&_storage) T();
+      }
 
-   // variables are before environment 
-   p=( long * )environ; 
+      void destroy ()
+      {
+         T * ptr = (T *) &_storage;
+         ptr->~T();
+      }
 
-   // go backwards until we find argc 
-   p--; 
+   public:
+      LazyInit() : _init(false) {}
 
-   for ( i = 0 ; *( --p ) != i; i++ ); 
+      ~LazyInit () { if (_init) destroy();  }
 
-   *argc = *p; 
-   *argv = ( char ** ) p+1; 
-}
+      T * operator-> ()
+      {
+         if (unlikely(!_init)) construct();
+         return (T *)&_storage;
+      }
 
-long OS::getArgc () 
-{ 
-   if (!_argv) findArgs(&_argc,&_argv);
-   return _argc;
-}
+      T & operator* () {  return *(operator->());   }
+};
 
-const char * OS::getArg ( int arg )
-{
-   if (!_argv) findArgs(&_argc,&_argv);
-   return _argv[arg];
-}
-
-void * OS::loadDL( const std::string &dir, const std::string &name )
-{
-   std::string filename;
-   filename = dir + "/" + name + ".so";
-   /* open the module */
-   return dlopen ( filename.c_str(), RTLD_NOW );
-}
-
-void * OS::dlFindSymbol( void *dlHandler, const std::string &symbolName )
-{
-   return dlsym ( dlHandler, symbolName.c_str() );
-}
-
-void * OS::dlFindSymbol( void *dlHandler, const char *symbolName )
-{
-   return dlsym ( dlHandler, symbolName );
-}
-
+#endif

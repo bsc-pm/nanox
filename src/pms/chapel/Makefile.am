@@ -1,5 +1,5 @@
 #####################################################################################
-#      Copyright 2009 Barcelona Supercomputing Center                               #
+#      Copyright 2010 Barcelona Supercomputing Center                               #
 #                                                                                   #
 #      This file is part of the NANOS++ library.                                    #
 #                                                                                   #
@@ -19,21 +19,24 @@
 
 include $(top_srcdir)/src/common.am
 
-noinst_LTLIBRARIES = libsupport.la
+chpl_dir=/home/alex/Build/chapel/trunk
+chpl_flags=-I$(chpl_dir)/runtime/include
 
-libsupport_la_CXXFLAGS= $(common_includes) $(common_cxxflags)
-libsupport_la_SOURCES = \
-	atomic.hpp\
-	lazy.hpp\
-	compatibility.hpp\
-	queue.hpp\
-	debug.hpp\
-	config.hpp\
-	config.cpp \
-	functors.hpp \
-	plugin.hpp \
-	plugin.cpp \
-	xstring.hpp \
-	cache.hpp \
-	$(END) 
+lib_LTLIBRARIES=libnanox-chpl.la
+
+include_HEADERS=\
+        chpl_nanos.h\
+	$(END)
+
+sources=\
+	chpl_nanos.h\
+        chpl_main.cpp\
+        chpl_sync.cpp\
+	$(END)
+
+libnanox_chpl_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(performance_cflags) $(chpl_flags)
+libnanox_chpl_la_LDFLAGS=$(version_flags)
+libnanox_chpl_la_LIBADD=$(top_builddir)/src/core/libnanox.la
+libnanox_chpl_la_SOURCES=$(sources)
+libnanox_chpl_la_DEPENDENCIES=$(top_builddir)/src/core/libnanox.la
 

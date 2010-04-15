@@ -177,6 +177,7 @@ namespace nanos
 
         virtual void wait() = 0;
         virtual void signal() = 0;
+        virtual void signal_one() = 0;
         virtual bool check() = 0;
 
         /** \brief Sets a waiter Workdescriptor.
@@ -254,6 +255,12 @@ namespace nanos
          * are blocked they will be set to ready and enqueued.
          */
          void signal();
+
+        /* \brief Signal only one waiter if the condition has been satisfied. If it
+         * is blocked it will be set to ready and enqueued.
+         */
+         void signal_one();
+
 
         /* \brief Change the condition checker associated to the synchronizedConditon object.
          */

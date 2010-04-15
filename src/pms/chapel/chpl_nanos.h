@@ -1,4 +1,5 @@
 /*************************************************************************************/
+/*      Copyright 2010 Barcelona Supercomputing Center                               */
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
@@ -17,58 +18,40 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "os.hpp"
-#include <stdlib.h>
+#ifndef NANOS_CHPL_H
+#define NANOS_CHPL_H
 
-using namespace nanos;
+#define CHPL_TASKS nanos
 
-long OS::_argc = 0; 
-char ** OS::_argv = 0; 
+#include <stdbool.h>
 
-static void findArgs (long *argc, char ***argv) 
-{
-   long *p; 
-   int i; 
+#ifdef __cplusplus
+#define _Bool bool
+extern "C" {
+#endif
 
-   // variables are before environment 
-   p=( long * )environ; 
+typedef int chpl_taskID_t;
+#define chpl_nullTaskID 0
 
-   // go backwards until we find argc 
-   p--; 
+typedef void * chpl_mutex_t;
 
-   for ( i = 0 ; *( --p ) != i; i++ ); 
+typedef struct {
+   bool is_full;
+   void *empty;
+   void *full;
+} chpl_sync_aux_t;
 
-   *argc = *p; 
-   *argv = ( char ** ) p+1; 
+typedef struct {
+   bool is_full;
+   void *full;
+} chpl_single_aux_t;
+
+#include <chpltypes.h>
+#include <chpltasks_func_names.h>
+#include <chpltasks.h>
+
+#ifdef __cplusplus
 }
+#endif
 
-long OS::getArgc () 
-{ 
-   if (!_argv) findArgs(&_argc,&_argv);
-   return _argc;
-}
-
-const char * OS::getArg ( int arg )
-{
-   if (!_argv) findArgs(&_argc,&_argv);
-   return _argv[arg];
-}
-
-void * OS::loadDL( const std::string &dir, const std::string &name )
-{
-   std::string filename;
-   filename = dir + "/" + name + ".so";
-   /* open the module */
-   return dlopen ( filename.c_str(), RTLD_NOW );
-}
-
-void * OS::dlFindSymbol( void *dlHandler, const std::string &symbolName )
-{
-   return dlsym ( dlHandler, symbolName.c_str() );
-}
-
-void * OS::dlFindSymbol( void *dlHandler, const char *symbolName )
-{
-   return dlsym ( dlHandler, symbolName );
-}
-
+#endif

@@ -35,6 +35,8 @@ namespace nanos
    {
       // All members are static so we don't need a constructor/destructor/...
       
+         static long _argc; 
+         static char ** _argv; 
       public:
 
          static const char *getEnvironmentVariable( const std::string &variable );
@@ -44,6 +46,9 @@ namespace nanos
          static void * dlFindSymbol( void *dlHandler, const char *symbolName );
          // too-specific?
          static char * dlError( void *dlHandler ) { return dlerror(); }
+
+	 static const char * getArg (int i);
+         static long getArgc();
    };
 
 // inlined functions
