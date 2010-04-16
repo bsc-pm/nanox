@@ -99,17 +99,19 @@ inline CopyData * WorkDescriptor::getCopies() const { return _copies; }
 
 inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t numDeps, Dependency* deps )
 {
-   _depsDomain.submitDependableObject( wd._doSubmit, numDeps, deps );
+   wd._doSubmit->setWD(&wd);
+   _depsDomain->submitDependableObject( *(wd._doSubmit), numDeps, deps );
 }
 
 inline void WorkDescriptor::waitOn( size_t numDeps, Dependency* deps )
 {
-   _depsDomain.submitDependableObject( _doWait, numDeps, deps );
+   _doWait->setWD(this);
+   _depsDomain->submitDependableObject( *_doWait, numDeps, deps );
 }
 
 inline void WorkDescriptor::workFinished(WorkDescriptor &wd)
 {
-   _depsDomain.finished( wd._doSubmit );
+   _depsDomain->finished( *(wd._doSubmit) );
 }
 
 inline InstrumentorContext & WorkDescriptor::getInstrumentorContext( void ) { return _instrumentorContext; }

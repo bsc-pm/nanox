@@ -17,64 +17,42 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "smpprocessor.hpp"
-#include "schedule.hpp"
-#include "debug.hpp"
-#include "system.hpp"
-#include "smp_ult.hpp"
+#ifndef _NANOS_LAZY_INIT
+#define _NANOS_LAZY_INIT
 
-using namespace nanos;
-using namespace nanos::ext;
+#define likely(x)       __builtin_expect((x),1)
+#define unlikely(x)     __builtin_expect((x),0)
 
-SMPDevice nanos::ext::SMP( "SMP" );
+template <class T>
+class LazyInit {
+   private:
+      bool _init;
+      char _storage[sizeof(T)];
 
-size_t SMPDD::_stackSize = 16*1024;
+      void construct ()
+      {
+         _init = true;
+         new (&_storage) T();
+      }
 
-/*!
-  \brief Registers the Device's configuration options
-  \param reference to a configuration object.
-  \sa Config System
-*/
-void SMPDD::prepareConfig( Config &config )
-{
-   /*!
-      Get the stack size from system configuration
-    */
-   size_t size = sys.getDeviceStackSize(); 
-   if ( size > 0 )
-      _stackSize = size;
+      void destroy ()
+      {
+         T * ptr = (T *) &_storage;
+         ptr->~T();
+      }
 
-   /*!
-      Get the stack size for this device
-   */
-   config.registerConfigOption ( "smp-stack-size", new Config::SizeVar( _stackSize ), "Defines SMP workdescriptor stack size" );
-   config.registerArgOption ( "smp-stack-size", "smp-stack-size" );
-   config.registerEnvOption ( "smp-stack-size", "NX_SMP_STACK_SIZE" );
-}
+   public:
+      LazyInit() : _init(false) {}
 
-void SMPDD::initStack ( void *data )
-{
-   _state = ::initContext( _stack, _stackSize, ( void * )getWorkFct(),data,( void * )Scheduler::exit, 0 );
-}
+      ~LazyInit () { if (_init) destroy();  }
 
-void SMPDD::lazyInit (WD &wd, bool isUserLevelThread, WD *previous)
-{
-   if (isUserLevelThread) {
-     if ( previous == NULL )
-       _stack = new intptr_t[_stackSize];
-     else {
-        SMPDD &oldDD = (SMPDD &) previous->getActiveDevice();
+      T * operator-> ()
+      {
+         if (unlikely(!_init)) construct();
+         return (T *)&_storage;
+      }
 
-        std::swap(_stack,oldDD._stack);
-     }
-  
-     initStack(wd.getData());
-   }
-}
+      T & operator* () {  return *(operator->());   }
+};
 
-SMPDD * SMPDD::copyTo ( void *toAddr )
-{
-   SMPDD *dd = new (toAddr) SMPDD(*this);
-   return dd;
-}
-
+#endif

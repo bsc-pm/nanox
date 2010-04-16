@@ -42,7 +42,7 @@ endif
 
 libsmp_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags)
 libsmp_la_SOURCES = \
-		smpmemory.hpp \
+		smpdevice.hpp \
 		smpdd.hpp \
 		smpdd.cpp \
 		smpprocessor.hpp \

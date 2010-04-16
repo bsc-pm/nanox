@@ -1,4 +1,5 @@
 /*************************************************************************************/
+/*      Copyright 2010 Barcelona Supercomputing Center                               */
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
@@ -17,42 +18,40 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _SMP_COPIER
-#define _SMP_COPIER
+#ifndef NANOS_CHPL_H
+#define NANOS_CHPL_H
 
-#include <stdint.h>
+#define CHPL_TASKS nanos
 
-namespace nanos
-{
+#include <stdbool.h>
 
-   class SMPMemory
-   {
-      public:
-         void * allocate( size_t size )
-         {
-            return new char[size]; 
-         }
+#ifdef __cplusplus
+#define _Bool bool
+extern "C" {
+#endif
 
-         void free( void *address )
-         {
-            delete[] (char *) address;
-         }
+typedef int chpl_taskID_t;
+#define chpl_nullTaskID 0
 
-         void copyIn( void *localDst, uint64_t remoteSrc, size_t size )
-         {
-            memcpy( localDst, (void *)remoteSrc, size );
-         }
+typedef void * chpl_mutex_t;
 
-         void copyOut( uint64_t remoteDst, void *localSrc, size_t size )
-         {
-            memcpy( (void *)remoteDst, localSrc, size );
-         }
+typedef struct {
+   bool is_full;
+   void *empty;
+   void *full;
+} chpl_sync_aux_t;
 
-         void copyLocal( void *dst, void *src, size_t size )
-         {
-            memcpy( dst, src, size );
-         }
-   };
+typedef struct {
+   bool is_full;
+   void *full;
+} chpl_single_aux_t;
+
+#include <chpltypes.h>
+#include <chpltasks_func_names.h>
+#include <chpltasks.h>
+
+#ifdef __cplusplus
 }
+#endif
 
 #endif
