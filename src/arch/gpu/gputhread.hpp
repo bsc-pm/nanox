@@ -24,7 +24,6 @@
 #include "smpthread.hpp"
 #include <pthread.h>
 
-//TODO: Make gpu independent from pthreads? move it to OS?
 
 namespace nanos {
 namespace ext

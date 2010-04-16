@@ -21,6 +21,7 @@
 #include <cuda_runtime.h>
 
 #include "gpumemory.hpp"
+#include "debug.hpp"
 
 
 #include <iostream>
@@ -29,28 +30,49 @@ using namespace nanos;
 
 void * GPUMemory::allocate( size_t size )
 {
-   std::cout << "allocating device memory with cudaMalloc" << std::endl;
+   std::cout << "allocating device memory with cudaMalloc at device address... ";
    void * address;
-   cudaMalloc( (void **) &address, size );
-   return address;
+   cudaError_t err = cudaMalloc( (void **) &address, size );
+
+   std::cout << "..." << address << std::endl;
+   if (err == cudaSuccess)
+      return address;
+
+   nanos::FatalError::runtime_error(cudaGetErrorString(cudaGetLastError()));
+   return 0;
 }
 
 void GPUMemory::free( void *address )
 {
-   std::cout << "freeing device memory with cudaFree" << std::endl;
-   cudaFree( address );
+   std::cout << "freeing device memory with cudaFree at device address " << address << std::endl;
+   cudaError_t err = cudaFree( address );
+
+   if (err != cudaSuccess)
+      nanos::FatalError::runtime_error(cudaGetErrorString(cudaGetLastError()));
 }
 
 void GPUMemory::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
 {
    std::cout << "copying data from host to device memory with cudaMemcpy" << std::endl;
    // Copy from host memory to device memory
-   cudaMemcpy( localDst, (void *) remoteSrc, size, cudaMemcpyHostToDevice );
+
+   std::cout << "    dest = " << localDst << "; src = " << remoteSrc << "; size = " << size << std::endl;
+
+   std::cout << "    *src is " << *((int *) remoteSrc) << std::endl;
+
+   cudaError_t err = cudaMemcpy( localDst, (void *) remoteSrc, size, cudaMemcpyHostToDevice );
+   if (err != cudaSuccess)
+      nanos::FatalError::runtime_error(cudaGetErrorString(cudaGetLastError()));
 }
 
 void GPUMemory::copyOut( uint64_t remoteDst, void *localSrc, size_t size )
 {
    std::cout << "copying data from device to host memory with cudaMemcpy" << std::endl;
+
+   std::cout << "    src = " << localSrc << "; dest = " << remoteDst << "; size = " << size << std::endl;
+
+      std::cout << "    *dest is " << *((int *) remoteDst) << std::endl;
+
    // Copy from device memory to host memory
    cudaMemcpy( (void *) remoteDst, localSrc, size, cudaMemcpyDeviceToHost );
 }

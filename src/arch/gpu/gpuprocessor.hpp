@@ -59,13 +59,9 @@ namespace ext
 
          static void prepareConfig ( Config &config );
          // capability query functions
-#ifdef GPU_SUPPORTS_ULT
-         virtual bool supportsUserLevelThreads () const { return _useUserThreads; }
-#else
          virtual bool supportsUserLevelThreads () const { return false; }
-#endif
 
-         /* Memory space suport */
+         /* Memory space support */
          virtual void registerDataAccessDependent( uint64_t tag, size_t size );
          virtual void copyDataDependent( uint64_t tag, size_t size );
          virtual void unregisterDataAccessDependent( uint64_t tag );

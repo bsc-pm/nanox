@@ -78,7 +78,7 @@ void GPUDD::initStack ( void *data )
 
 void GPUDD::lazyInit (WD &wd, bool isUserLevelThread, WD *previous)
 {
-   if (isUserLevelThread) {
+/*   if (isUserLevelThread) {
       if ( previous == NULL )
          _stack = new intptr_t[_stackSize];
       else {
@@ -89,6 +89,7 @@ void GPUDD::lazyInit (WD &wd, bool isUserLevelThread, WD *previous)
 
       initStack(wd.getData());
    }
+*/
 }
 
 GPUDD * GPUDD::copyTo ( void *toAddr )
