@@ -113,7 +113,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    sys.getSchedulerStats()._readyTasks--;
    sys.getSchedulerStats()._idleThreads++;
    current->setSyncCond( condition );
-   current->setBlocked();
+   current->setIdle();
    
    while ( !condition->check() ) {
       BaseThread *thread = getMyThreadSafe();
