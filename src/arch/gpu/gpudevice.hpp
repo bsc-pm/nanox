@@ -17,25 +17,42 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _GPU_COPIER
-#define _GPU_COPIER
+#ifndef _GPU_DEVICE
+#define _GPU_DEVICE
 
 #include <stdint.h>
 #include <string.h>
+#include "workdescriptor_decl.hpp"
 
 namespace nanos
 {
 
-   class GPUMemory
+/* \brief Device specialization for GPU architecture
+ * provides functions to allocate and copy data in the device
+ */
+
+   class GPUDevice : Device
    {
       public:
-         void * allocate( size_t size );
-         void free( void *address );
+         /*! \brief GPUDevice constructor
+          */
+         GPUDevice ( const char *n ) : Device ( n ) {}
 
-         void copyIn( void *localDst, uint64_t remoteSrc, size_t size );
-         void copyOut( uint64_t remoteDst, void *localSrc, size_t size );
+         /*! \brief GPUDevice copy constructor
+          */
+         GPUDevice ( const GPUDevice &arch ) : Device ( arch ) {}
 
-         void copyLocal( void *dst, void *src, size_t size )
+         /*! \brief GPUDevice destructor
+          */
+         ~GPUDevice() {};
+
+         static void * allocate( size_t size );
+         static void free( void *address );
+
+         static void copyIn( void *localDst, uint64_t remoteSrc, size_t size );
+         static void copyOut( uint64_t remoteDst, void *localSrc, size_t size );
+
+         static void copyLocal( void *dst, void *src, size_t size )
          {
             memcpy( dst, src, size );
          }

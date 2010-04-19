@@ -31,8 +31,8 @@ EXTRA_DIST= \
 libgpu_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags) -I @CUDA_INC@
 libgpu_la_LDFLAGS = -L@CUDA_LIB@ -lcudart
 libgpu_la_SOURCES = \
-		gpumemory.hpp \
-		gpumemory.cpp \
+		gpudevice.hpp \
+		gpudevice.cpp \
 		gpudd.hpp \
 		gpudd.cpp \
 		gpuprocessor.hpp \

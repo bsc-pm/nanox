@@ -69,6 +69,7 @@ void GPUProcessor::registerDataAccessDependent( uint64_t tag, size_t size )
 
 void GPUProcessor::copyDataDependent( uint64_t tag, size_t size )
 {
+   std::cout << "[GPUProc::copyDataDependent] tag = " << tag << "; size = " << size << std::endl;
    _cache.copyData( tag, size );
 }
 

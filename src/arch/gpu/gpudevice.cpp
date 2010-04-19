@@ -20,7 +20,7 @@
 // CUDA
 #include <cuda_runtime.h>
 
-#include "gpumemory.hpp"
+#include "gpudevice.hpp"
 #include "debug.hpp"
 
 
@@ -28,7 +28,7 @@
 
 using namespace nanos;
 
-void * GPUMemory::allocate( size_t size )
+void * GPUDevice::allocate( size_t size )
 {
    std::cout << "allocating device memory with cudaMalloc at device address... ";
    void * address;
@@ -42,7 +42,7 @@ void * GPUMemory::allocate( size_t size )
    return 0;
 }
 
-void GPUMemory::free( void *address )
+void GPUDevice::free( void *address )
 {
    std::cout << "freeing device memory with cudaFree at device address " << address << std::endl;
    cudaError_t err = cudaFree( address );
@@ -51,7 +51,7 @@ void GPUMemory::free( void *address )
       nanos::FatalError::runtime_error(cudaGetErrorString(cudaGetLastError()));
 }
 
-void GPUMemory::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
+void GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
 {
    std::cout << "copying data from host to device memory with cudaMemcpy" << std::endl;
    // Copy from host memory to device memory
@@ -60,12 +60,14 @@ void GPUMemory::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
 
    std::cout << "    *src is " << *((int *) remoteSrc) << std::endl;
 
+   if (!localDst) localDst = allocate(size);
+
    cudaError_t err = cudaMemcpy( localDst, (void *) remoteSrc, size, cudaMemcpyHostToDevice );
    if (err != cudaSuccess)
       nanos::FatalError::runtime_error(cudaGetErrorString(cudaGetLastError()));
 }
 
-void GPUMemory::copyOut( uint64_t remoteDst, void *localSrc, size_t size )
+void GPUDevice::copyOut( uint64_t remoteDst, void *localSrc, size_t size )
 {
    std::cout << "copying data from device to host memory with cudaMemcpy" << std::endl;
 

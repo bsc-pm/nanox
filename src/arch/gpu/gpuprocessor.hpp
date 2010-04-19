@@ -24,7 +24,7 @@
 #include "config.hpp"
 #include "gputhread.hpp"
 #include "cache.hpp"
-#include "gpumemory.hpp"
+#include "gpudevice.hpp"
 #include "accelerator.hpp"
 
 
@@ -45,7 +45,7 @@ namespace ext
          GPUProcessor( const GPUProcessor &pe );
          const GPUProcessor & operator= ( const GPUProcessor &pe );
 
-         Cache<GPUMemory> _cache;
+         Cache<GPUDevice> _cache;
 
       public:
          // constructors
