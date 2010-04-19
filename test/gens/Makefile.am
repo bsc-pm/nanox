@@ -1,5 +1,3 @@
-
-
 EXTRA_DIST = api-generator.in core-generator.in mixed-generator.in nanox-creation-generator.in
 noinst_PROGRAMS = config-generator
 
@@ -7,7 +5,7 @@ noinst_SCRIPTS = api-generator core-generator mixed-generator nanox-creation-gen
 
 CLEANFILES = api-generator core-generator mixed-generator nanox-creation-generator
 
-config_generator_SOURCES=config-generator.c
+config_generator_SOURCES=config-generator.cpp
 
 api-generator: api-generator.in
 	rm -f api-generator
