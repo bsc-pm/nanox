@@ -51,19 +51,19 @@ void hello_world ( void *args )
 
    if ( !copies[0].isPrivate() ) {
       std::cout << "Error, CopyData was supposed to be private.   FAIL" << std::endl;
-      return;
+      exit(1);
    }
    pe->copyTo( *wd, &localArgs.a, copies[0].getAddress(), copies[0].getSharing(), sizeof(localArgs.a) );
 
    if ( !copies[1].isShared() ) {
       std::cout << "Error, CopyData was supposed to be shared.   FAIL" << std::endl;
-      return;
+      exit(1);
    }
    localArgs.b = (char *) pe->getAddress( *wd, copies[1].getAddress(), copies[1].getSharing() );
 
    if ( localArgs.a != hargs->a ) {
       std::cout << "Error, Private argument does not match.   FAIL" << std::endl;
-      return;
+      exit(1);
    }
 
    char *it = localArgs.b;
@@ -72,14 +72,14 @@ void hello_world ( void *args )
    while ( *it != 0 && *it2 != 0 ) {
       if (*it != *it2 ) {
          std::cout << "Error, Shared argument does not match.   FAIL" << std::endl;
-         return;
+         exit(1);
       }
       it++;
       it2++;
    }
    if (*it != *it2 ) {
       std::cout << "Error, Shared argument does not match.   FAIL" << std::endl;
-      return;
+      exit(1);
    }
 
    std::cout << "SUCCESS" << std::endl;
