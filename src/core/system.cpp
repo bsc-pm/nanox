@@ -793,7 +793,7 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
       data->setScheduleData(stdata);
       
       thread->enterTeam( team, data );
-      debug( "added thread " << myThread << " with id " << toString<int>(thId) << " to " << thread->getTeam() );
+      debug( "added thread " << thread << " with id " << toString<int>(thId) << " to " << thread->getTeam() );
    }
 
    team->init();
