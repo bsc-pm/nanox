@@ -215,7 +215,7 @@ namespace nanos
   /*! \brief Abstract template synchronization class.
    */
    template<class _T>
-   class SynchronizedCondition : GenericSyncCond
+   class SynchronizedCondition : public GenericSyncCond
    {
       protected:
          /**< ConditionChecker associated to the SynchronizedCondition. */
