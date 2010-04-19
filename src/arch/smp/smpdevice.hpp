@@ -17,49 +17,69 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_OS
-#define _NANOS_OS
+#ifndef _SMP_DEVICE
+#define _SMP_DEVICE
 
-#include <string>
-#include <vector>
-#include <stdlib.h>
-#include <dlfcn.h>
+#include <stdint.h>
+#include <string.h>
+#include "workdescriptor_decl.hpp"
 
 namespace nanos
 {
 
-// this is UNIX-like OS
-// TODO: ABS and virtualize
-
-   class OS
+  /* \brief Device specialization for SMP architecture
+   * provides functions to allocate and copy data in the device
+   */
+   class SMPDevice : public Device
    {
-      // All members are static so we don't need a constructor/destructor/...
-      
-         static long _argc; 
-         static char ** _argv; 
       public:
+         /*! \brief SMPDevice constructor
+          */
+         SMPDevice ( const char *n ) : Device ( n ) {}
 
-         static const char *getEnvironmentVariable( const std::string &variable );
+         /*! \brief SMPDevice copy constructor
+          */
+         SMPDevice ( const SMPDevice &arch ) : Device ( arch ) {}
 
-         static void * loadDL( const std::string &dir, const std::string &name );
-         static void * dlFindSymbol( void *dlHandler, const std::string &symbolName );
-         static void * dlFindSymbol( void *dlHandler, const char *symbolName );
-         // too-specific?
-         static char * dlError( void *dlHandler ) { return dlerror(); }
+         /*! \brief SMPDevice destructor
+          */
+         ~SMPDevice() {};
 
-	 static const char * getArg (int i);
-         static long getArgc();
+        /* \breif allocate size bytes in the device
+         */
+         static void * allocate( size_t size )
+         {
+            return new char[size]; 
+         }
+
+        /* \brief free address
+         */
+         static void free( void *address )
+         {
+            delete[] (char *) address;
+         }
+
+        /* \brief copy from remoteSrc in the host to localDst in the device
+         */
+         static void copyIn( void *localDst, uint64_t remoteSrc, size_t size )
+         {
+            memcpy( localDst, (void *)remoteSrc, size );
+         }
+
+        /* \brief copy from localSrc in the device to remoteDst in the host
+         */
+         static void copyOut( uint64_t remoteDst, void *localSrc, size_t size )
+         {
+            memcpy( (void *)remoteDst, localSrc, size );
+         }
+
+        /* \brief copy localy in the device from src to dst
+         */
+         static void copyLocal( void *dst, void *src, size_t size )
+         {
+            memcpy( dst, src, size );
+         }
    };
-
-// inlined functions
-
-   inline const char * OS::getEnvironmentVariable ( const std::string &name )
-   {
-      return getenv( name.c_str() );
-   }
-
-};
-
+}
 
 #endif
-

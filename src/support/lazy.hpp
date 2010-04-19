@@ -17,42 +17,42 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _SMP_COPIER
-#define _SMP_COPIER
+#ifndef _NANOS_LAZY_INIT
+#define _NANOS_LAZY_INIT
 
-#include <stdint.h>
+#define likely(x)       __builtin_expect((x),1)
+#define unlikely(x)     __builtin_expect((x),0)
 
-namespace nanos
-{
+template <class T>
+class LazyInit {
+   private:
+      bool _init;
+      char _storage[sizeof(T)];
 
-   class SMPMemory
-   {
-      public:
-         void * allocate( size_t size )
-         {
-            return new char[size]; 
-         }
+      void construct ()
+      {
+         _init = true;
+         new (&_storage) T();
+      }
 
-         void free( void *address )
-         {
-            delete[] (char *) address;
-         }
+      void destroy ()
+      {
+         T * ptr = (T *) &_storage;
+         ptr->~T();
+      }
 
-         void copyIn( void *localDst, uint64_t remoteSrc, size_t size )
-         {
-            memcpy( localDst, (void *)remoteSrc, size );
-         }
+   public:
+      LazyInit() : _init(false) {}
 
-         void copyOut( uint64_t remoteDst, void *localSrc, size_t size )
-         {
-            memcpy( (void *)remoteDst, localSrc, size );
-         }
+      ~LazyInit () { if (_init) destroy();  }
 
-         void copyLocal( void *dst, void *src, size_t size )
-         {
-            memcpy( dst, src, size );
-         }
-   };
-}
+      T * operator-> ()
+      {
+         if (unlikely(!_init)) construct();
+         return (T *)&_storage;
+      }
+
+      T & operator* () {  return *(operator->());   }
+};
 
 #endif

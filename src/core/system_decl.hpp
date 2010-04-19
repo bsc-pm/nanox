@@ -100,6 +100,11 @@ namespace nanos
          
          PE * createPE ( std::string pe_type, int pid );
 
+        /* \brief prepares a WD to be scheduled/executed.
+         * \param work WD to be set up
+         */
+         void setupWD( WD &work );
+
       public:
          // constructor
          System ();
@@ -107,7 +112,7 @@ namespace nanos
 
          void start ();
          void finish ();
-         
+
          void submit ( WD &work );
          void submitWithDependencies (WD& work, size_t numDeps, Dependency* deps);
          void waitOn ( size_t numDeps, Dependency* deps);

@@ -26,7 +26,7 @@
 using namespace nanos;
 using namespace nanos::ext;
 
-Device nanos::ext::SMP( "SMP" );
+SMPDevice nanos::ext::SMP( "SMP" );
 
 size_t SMPDD::_stackSize = 16*1024;
 

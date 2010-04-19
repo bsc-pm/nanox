@@ -35,11 +35,10 @@ namespace nanos
          /**< Pointer to the work descriptor represented by this DependableObject */
          WorkDescriptor *_submittedWD;
 
-        /*! Disable default constructor
-         */
-         DOSubmit ( );
-   
       public:
+        /*! Default constructor
+         */
+         DOSubmit ( ) : DependableObject(), _submittedWD(NULL) { }
     
         /*! \brief Constructor
          */
@@ -69,6 +68,8 @@ namespace nanos
          */
          virtual void dependenciesSatisfied ( );
          
+         void setWD( WorkDescriptor *wd )
+            { _submittedWD = wd; }
    };
 
   /*! \brief DependableObject representing a WorkDescriptor as a task domain to wait on some dependencies
@@ -84,11 +85,12 @@ namespace nanos
          
          SingleSyncCond<EqualConditionChecker<bool> >  _syncCond;
 
-        /*! Disable default constructor
-         */
-         DOWait ( );
-   
       public:
+        /*! Default constructor
+         */
+         DOWait ( ) : DependableObject(), _waitDomainWD(NULL), _depsSatisfied( false ),
+            _syncCond( EqualConditionChecker<bool>( &_depsSatisfied, true ) ) { }
+   
         /*! \brief Constructor
          */
          DOWait ( WorkDescriptor *wd ) : DependableObject(), _waitDomainWD( wd ), _depsSatisfied( false ),
@@ -132,6 +134,8 @@ namespace nanos
          */
          virtual void dependenciesSatisfied ( );
         
+         void setWD( WorkDescriptor *wd )
+            { _waitDomainWD = wd; }
    };
 };
 
