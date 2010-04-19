@@ -25,6 +25,7 @@
 #include "barrier.hpp"
 #include "nanos-int.h"
 #include "copydata.hpp"
+#include "os.hpp"
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -45,6 +46,9 @@ System::System () :
       _defInstr ( "empty_trace" ), _defArch("smp"), _instrumentor ( NULL ), _instrumentorDictionary(), _defSchedulePolicy(NULL)
 {
    verbose0 ( "NANOS++ initalizing... start" );
+   // OS::init must be called here and not in System::start() as it can be too late
+   // to locate the program arguments at that point
+   OS::init();
    config();
    if ( !_delayedStart ) {
       start();
