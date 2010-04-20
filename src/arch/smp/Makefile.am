@@ -42,7 +42,7 @@ endif
 
 libsmp_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags)
 libsmp_la_SOURCES = \
-		smpmemory.hpp \
+		smpdevice.hpp \
 		smpdd.hpp \
 		smpdd.cpp \
 		$(ult_sources) \
@@ -53,7 +53,7 @@ libsmp_la_SOURCES = \
 libnanox_pe_smp_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags)
 libnanox_pe_smp_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_pe_smp_la_SOURCES = \
-		smpmemory.hpp \
+		smpdevice.hpp \
 		smpplugin.cpp \
 		smpprocessor.hpp \
 		smpprocessor.cpp \

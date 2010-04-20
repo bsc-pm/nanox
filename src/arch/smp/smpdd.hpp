@@ -21,6 +21,7 @@
 #define _NANOS_SMP_WD
 
 #include <stdint.h>
+#include "smpdevice.hpp"
 #include "workdescriptor.hpp"
 #include "config.hpp"
 
@@ -28,7 +29,7 @@ namespace nanos {
 namespace ext
 {
 
-   extern Device SMP;
+   extern SMPDevice SMP;
 
    class SMPDD : public DD
    {

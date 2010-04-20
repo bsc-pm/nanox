@@ -25,6 +25,7 @@
 #include "barrier.hpp"
 #include "nanos-int.h"
 #include "copydata.hpp"
+#include "os.hpp"
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -45,6 +46,9 @@ System::System () :
       _defInstr ( "empty_trace" ), _defArch("smp"), _instrumentor ( NULL ), _defSchedulePolicy(NULL)
 {
    verbose0 ( "NANOS++ initalizing... start" );
+   // OS::init must be called here and not in System::start() as it can be too late
+   // to locate the program arguments at that point
+   OS::init();
    config();
    if ( !_delayedStart ) {
       start();
@@ -636,14 +640,18 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
 
 }
 
-void System::submit ( WD &work )
+void System::setupWD ( WD &work )
 {
    work.setParent ( myThread->getCurrentWD() );
    work.setDepth( work.getParent()->getDepth() +1 );
 
    // Prepare private copy structures to use relative addresses
    work.prepareCopies();
+}
 
+void System::submit ( WD &work )
+{
+   setupWD( work );
    work.submit();
 }
 
@@ -651,9 +659,8 @@ void System::submit ( WD &work )
  */
 void System::submitWithDependencies (WD& work, size_t numDeps, Dependency* deps)
 {
+   setupWD( work );
    WD *current = myThread->getCurrentWD();
-   work.setParent ( current );
-   work.setDepth( work.getParent()->getDepth() +1 );
    current->submitWithDependencies( work, numDeps , deps);
 }
 
@@ -668,14 +675,8 @@ void System::waitOn( size_t numDeps, Dependency* deps )
 
 void System::inlineWork ( WD &work )
 {
-   BaseThread *myself = myThread;
-
-   // TODO: choose actual device...
-   work.setParent ( myself->getCurrentWD() );
-
-   // Prepare private copy structures to use relative addresses
-   work.prepareCopies();
-
+   setupWD( work );
+   // TODO: choose actual (active) device...
    Scheduler::inlineWork( &work );
 }
 
@@ -793,7 +794,7 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
       data->setScheduleData(stdata);
       
       thread->enterTeam( team, data );
-      debug( "added thread " << myThread << " with id " << toString<int>(thId) << " to " << thread->getTeam() );
+      debug( "added thread " << thread << " with id " << toString<int>(thId) << " to " << thread->getTeam() );
    }
 
    team->init();

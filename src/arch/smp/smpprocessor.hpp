@@ -23,7 +23,7 @@
 #include "config.hpp"
 #include "smpthread.hpp"
 #include "cache.hpp"
-#include "smpmemory.hpp"
+#include "smpdevice.hpp"
 #ifdef SMP_NUMA
 #include "accelerator.hpp"
 #else
@@ -54,7 +54,7 @@ namespace ext
          const SMPProcessor & operator= ( const SMPProcessor &pe );
 
 #ifdef SMP_NUMA
-         Cache<SMPMemory> _cache;
+         Cache<SMPDevice> _cache;
 #endif
 
       public:
