@@ -85,7 +85,7 @@ namespace nanos {
               /* \brief Address setter
                */
                void setAddress( void *addr )
-               { _addr = addr; _refs++; }
+               { _addr = addr; }
 
               /* \brief Whether the Entry has references or not
                */
@@ -127,6 +127,7 @@ namespace nanos {
                entry.increaseRefs();
             } else {
                entry.setAddress( _T::allocate( size ) );
+               entry.increaseRefs();
             }
          }
 
