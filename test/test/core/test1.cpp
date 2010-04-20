@@ -46,10 +46,18 @@ typedef struct {
 void hello_world ( void *args )
 {
    hello_world_args *hargs = ( hello_world_args * ) args;
-   cout << "hello_world "
-        << hargs->a << " "
-        << hargs->b
-        << endl;
+   if ( hargs->a == 1 && hargs->b != "alex" ) {
+      cerr << "Error, task didn't get the correct arguments" << endl;
+      exit(1);
+   } else if (hargs->a == 2 && hargs->b != "pepe" ) {
+      cerr << "Error, task didn't get the correct arguments" << endl;
+      exit(1);
+   } else {
+      cout << "hello_world "
+           << hargs->a << " "
+           << hargs->b
+           << endl;
+   }
 }
 
 int main ( int argc, char **argv )

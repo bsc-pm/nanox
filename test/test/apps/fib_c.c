@@ -138,7 +138,7 @@ double get_wtime( void )
    return t;
 }
 
-void fib0 ( int n )
+int fib0 ( int n )
 {
    double start,end;
    int par_res;
@@ -149,6 +149,7 @@ void fib0 ( int n )
 
    printf( "Fibonacci result for %d is %d\n", n, par_res );
    printf( "Computation time: %f seconds.\n",  end - start );
+   return par_res;
 }
 
 
@@ -158,7 +159,7 @@ int main ( int argc, char **argv )
 
    if ( argc > 1 ) n = atoi( argv[1] );
 
-   fib0( n );
+   if ( fib0( n ) != 75025 ) return 1;
 
    return 0;
 }

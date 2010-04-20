@@ -18,14 +18,25 @@ using namespace nanos::ext;
 
 #define BARR_NUM 10
 
+int* counts;
+int size;
+
 /*! works only with bf scheduler */
 void barrier_code ( void * )
 {
        for ( int i = 0; i < BARR_NUM; i++ ) {
-              cout << "Before the " << i << " barrier" << endl;
               nanos_team_barrier();
-              cout << "After the " << i << " barrier" << endl;
 
+              cout << "Before the " << i << " barrier" << endl;
+              counts[myThread->getId()]++;
+
+              nanos_team_barrier();
+
+              cout << "After the " << i << " barrier" << endl;
+              if ( counts[ (myThread->getId()+1)%size ] != i+1 ) {
+                 cerr << "Error: the barrier is broken." << std::endl;
+                 exit(1);
+              }
        }
 }
 
@@ -34,7 +45,13 @@ int main (int argc, char **argv)
        cout << "start" << endl;
        //all threads perform a barrier: 
        ThreadTeam &team = *myThread->getTeam();
+
+       size = team.size();
+       counts = new int[team.size()];
+       counts[0] = 0;
+
        for ( unsigned i = 1; i < team.size(); i++ ) {
+              counts[i] = 0;
               WD * wd = new WD(new SMPDD(barrier_code));
 	      wd->tieTo(team[i]);
               sys.submit(*wd);

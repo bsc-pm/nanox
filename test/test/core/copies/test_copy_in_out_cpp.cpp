@@ -46,37 +46,65 @@ void hello_world ( void *args )
    hello_world_args *hargs = ( hello_world_args * ) args;
    CopyData* cd = wd->getCopies();
 
-   if ( (void *)cd[0].getAddress() !=  (void *)&(hargs->a) )
+   if ( (void *)cd[0].getAddress() !=  (void *)&(hargs->a) ) {
       std::cout << "Error: CopyData address '" << cd[0].getAddress() << "' does not match argument with address '"
                 << &(hargs->a) << "'." << std::endl;
-   else std::cout << "Checking for CopyData address correctness... PASS" << std::endl;
-   if ( (void *)( (char *)hargs + (unsigned long)cd[1].getAddress() ) != (void *) &(hargs->b) )
+      exit(1);
+   } else {
+      std::cout << "Checking for CopyData address correctness... PASS" << std::endl;
+   }
+
+   if ( (void *)( (char *)hargs + (unsigned long)cd[1].getAddress() ) != (void *) &(hargs->b) ) {
       std::cout << "Error: CopyData address '" << cd[1].getAddress() << "' does not match argument with address '"
                 << &(hargs->b) << "'." << std::endl;
-   else std::cout << "Checking for CopyData address correctness... PASS" << std::endl;
+      exit(1);
+   } else {
+      std::cout << "Checking for CopyData address correctness... PASS" << std::endl;
+   }
 
-   if ( cd[0].getSize() != sizeof(hargs->a) )
+   if ( cd[0].getSize() != sizeof(hargs->a) ) {
       std::cout << "Error: CopyData size '" << cd[0].getSize() << "' does not match argument with size '"
                 << sizeof((hargs->b)) << "'." << std::endl;
-   else std::cout << "Checking for CopyData size correctness... PASS" << std::endl;
-   if ( cd[1].getSize() != sizeof(hargs->b) )
+      exit(1);
+   } else {
+      std::cout << "Checking for CopyData size correctness... PASS" << std::endl;
+   }
+
+   if ( cd[1].getSize() != sizeof(hargs->b) ) {
       std::cout << "Error: CopyData size '" << cd[1].getSize() << "' does not match argument with size '"
                 << sizeof((hargs->b)) << "'." << std::endl;
-   else std::cout << "Checking for CopyData size correctness... PASS" << std::endl;
+      exit(1);
+   } else {
+      std::cout << "Checking for CopyData size correctness... PASS" << std::endl;
+   }
 
-   if ( !cd[0].isInput() )
+   if ( !cd[0].isInput() ) {
       std::cout << "Error: CopyData was supposed to be input." << std::endl;
-   else std::cout << "Checking for CopyData direction correctness... PASS" << std::endl;
-   if ( !cd[1].isOutput() )
+      exit(1);
+   } else {
+      std::cout << "Checking for CopyData direction correctness... PASS" << std::endl;
+   }
+
+   if ( !cd[1].isOutput() ) {
       std::cout << "Error: CopyData was supposed to be output." << std::endl;
-   else std::cout << "Checking for CopyData direction correctness... PASS" << std::endl;
+      exit(1);
+   } else {
+      std::cout << "Checking for CopyData direction correctness... PASS" << std::endl;
+   }
    
-   if ( !cd[0].isShared() )
+   if ( !cd[0].isShared() ) {
       std::cout << "Error: CopyData was supposed to be NANOS_SHARED." <<  std::endl;
-   else std::cout << "Checking for CopyData sharing... PASS" << std::endl;
-   if ( !cd[1].isPrivate() )
+      exit(1);
+   } else {
+      std::cout << "Checking for CopyData sharing... PASS" << std::endl;
+   }
+
+   if ( !cd[1].isPrivate() ) {
       std::cout << "Error: CopyData was supposed to be NANOS_PRIVATE." <<  std::endl;
-   else std::cout << "Checking for CopyData sharing... PASS" << std::endl;
+      exit(1);
+   } else {
+      std::cout << "Checking for CopyData sharing... PASS" << std::endl;
+   }
 }
 
 int main ( int argc, char **argv )

@@ -215,7 +215,7 @@ namespace nanos
   /*! \brief Abstract template synchronization class.
    */
    template<class _T>
-   class SynchronizedCondition : GenericSyncCond
+   class SynchronizedCondition : public GenericSyncCond
    {
       protected:
          /**< ConditionChecker associated to the SynchronizedCondition. */
@@ -413,12 +413,12 @@ namespace nanos
             return !( _waiters.empty() );
          }
 
-        /* \brief Returns the waiter and sets it to NULL.
+        /* \brief Takes one of the the waiters from the list returns NULL if the list is empty.
          */
          virtual WorkDescriptor* getAndRemoveWaiter()
          {
             if ( _waiters.empty() )
-               return (WorkDescriptor*)16;
+               return (WorkDescriptor*)NULL;
             WorkDescriptor* reslt =  _waiters.back();
             _waiters.pop_back();
             return reslt;

@@ -28,14 +28,22 @@ test_generator=gens/api-generator
 #include <stdlib.h>
 #include <nanos.h>
 
+int orderer = 0;
+
 void first()
 {
+   orderer++;
    printf("first task!\n");
    fflush(stdout);
 }
 
 void second()
 {
+   if ( orderer != 1 ) {
+      printf("Error, order of tasks not respected!\n");
+      exit(1);
+   }
+   orderer++;
    printf("second task!\n");
    fflush(stdout);
 }
@@ -68,6 +76,12 @@ int main ( int argc, char **argv )
 
 
    NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+
+   if ( orderer != 2 ) {
+      printf("Error: Dependencies have not been respected or a task(s) has not been executed.\n");
+      return 1;
+   }
+
    return 0;
 }
 
