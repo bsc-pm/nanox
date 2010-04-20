@@ -42,16 +42,9 @@ static void findArgs (long *argc, char ***argv)
    *argv = ( char ** ) p+1; 
 }
 
-long OS::getArgc () 
-{ 
-   if (!_argv) findArgs(&_argc,&_argv);
-   return _argc;
-}
-
-const char * OS::getArg ( int arg )
+void OS::init ()
 {
-   if (!_argv) findArgs(&_argc,&_argv);
-   return _argv[arg];
+   findArgs(&_argc,&_argv);
 }
 
 void * OS::loadDL( const std::string &dir, const std::string &name )

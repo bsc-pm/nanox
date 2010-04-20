@@ -39,6 +39,8 @@ namespace nanos
          static char ** _argv; 
       public:
 
+         static void init ();
+
          static const char *getEnvironmentVariable( const std::string &variable );
 
          static void * loadDL( const std::string &dir, const std::string &name );
@@ -47,8 +49,8 @@ namespace nanos
          // too-specific?
          static char * dlError( void *dlHandler ) { return dlerror(); }
 
-	 static const char * getArg (int i);
-         static long getArgc();
+         static const char * getArg (int i) { return _argv[i]; }
+         static long getArgc() { return _argc; }
    };
 
 // inlined functions
