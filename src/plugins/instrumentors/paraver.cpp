@@ -11,6 +11,7 @@
 #include <alloca.h>
 #include <stdlib.h>
 #include <libgen.h>
+#include "os.hpp"
 
 namespace nanos {
 
@@ -165,66 +166,23 @@ class InstrumentorParaver: public Instrumentor
 
       void renameFiles ()
       {
-#if 1
-         /* Get filename (basename) */
-         char *exe_name = (char *) alloca ( 255 * sizeof (char));;
-         char *new_name = (char *) alloca ( 255 * sizeof (char));;
-
          char *new_name_prv = (char *) alloca ( 255 * sizeof (char));;
          char *new_name_pcf = (char *) alloca ( 255 * sizeof (char));;
          char *new_name_row = (char *) alloca ( 255 * sizeof (char));;
 
-         ssize_t s = readlink( "/proc/self/exe", exe_name, 255 );
-         exe_name[s] = 0;
-
-         new_name = basename( exe_name );
- 
-         strcpy(new_name_prv, new_name );
-         strcpy(new_name_pcf, new_name );
-         strcpy(new_name_row, new_name );
-
-         strcat(new_name_prv, ".prv");
-         strcat(new_name_pcf, ".pcf");
-         strcat(new_name_row, ".row");
-
-
-         /* Renaming the file */
-         int result;
-
-         result = rename( "MPITRACE_Paraver_Trace.prv"  , new_name_prv );
-         if ( result != 0 ) std::cout << "Unable to rename paraver file" << std::endl;
-
-         result = rename( "MPITRACE_Paraver_Trace.pcf"  , new_name_pcf );
-         if ( result != 0 ) std::cout << "Unable to rename paraver config file" << std::endl;
-
-         result = rename( "MPITRACE_Paraver_Trace.row"  , new_name_row );
-         if ( result != 0 ) std::cout << "Unable to rename paraver row file" << std::endl;
-#else     
-
-         char *new_name_prv = (char *) alloca ( 255 * sizeof (char));;
-         char *new_name_pcf = (char *) alloca ( 255 * sizeof (char));;
-         char *new_name_row = (char *) alloca ( 255 * sizeof (char));;
-
-         strcpy(new_name_prv, __argv[0] );
-         strcpy(new_name_pcf, __argv[0] );
-         strcpy(new_name_row, __argv[0] );
-
-         strcat(new_name_prv, ".prv");
-         strcat(new_name_pcf, ".pcf");
-         strcat(new_name_row, ".row");
+         sprintf(new_name_prv, "%s.prv",OS::getArg(0) );
+         sprintf(new_name_pcf, "%s.pcf",OS::getArg(0) );
+         sprintf(new_name_row, "%s.row",OS::getArg(0) );
      
-         /* Renaming the file */
+         /* Renaming the files */
          int result;
 
          result = rename( "MPITRACE_Paraver_Trace.prv"  , new_name_prv );
          if ( result != 0 ) std::cout << "Unable to rename paraver file" << std::endl;
-
          result = rename( "MPITRACE_Paraver_Trace.pcf"  , new_name_pcf );
          if ( result != 0 ) std::cout << "Unable to rename paraver config file" << std::endl;
-
          result = rename( "MPITRACE_Paraver_Trace.row"  , new_name_row );
          if ( result != 0 ) std::cout << "Unable to rename paraver row file" << std::endl;
-#endif
       }
 
       void initialize ( void )
