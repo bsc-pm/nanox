@@ -88,7 +88,6 @@ namespace nanos
          Slicers              _slicers; /**< set of global slicers */
 
          Instrumentor           *_instrumentor; /**< Instrumentor object used in current execution */
-         InstrumentorDictionary _instrumentorDictionary; /** Instrumentor Dictionary (allow register event keys and values) */
          SchedulePolicy         *_defSchedulePolicy;
 
          // disable copy constructor & assignment operation
@@ -200,8 +199,6 @@ namespace nanos
          Instrumentor * getInstrumentor ( void ) const;
 
          void setInstrumentor ( Instrumentor *instr );
-
-         InstrumentorDictionary * getInstrumentorDictionary ( void );
 
          void registerSlicer ( const std::string &label, Slicer *slicer);
 

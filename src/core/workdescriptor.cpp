@@ -38,7 +38,7 @@ void WorkDescriptor::start (bool isUserLevelThread, WorkDescriptor *previous)
       pe->copyDataIn( *this );
 
    /* Initializing instrumentor context */
-   NANOS_INSTRUMENTOR( wdCreate( this ) ); 
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdCreate( this ) ); 
 
    setReady();
 }

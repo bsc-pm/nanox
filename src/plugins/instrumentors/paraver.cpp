@@ -10,12 +10,14 @@
 #include <fstream>
 #include <alloca.h>
 #include <stdlib.h>
+#include <libgen.h>
+#include "os.hpp"
 
 namespace nanos {
 
-   const unsigned int _eventState      = 9000;   /*<< event coding state changes */
-   const unsigned int _eventPtPStart   = 9001;   /*<< event coding comm start */
-   const unsigned int _eventPtPEnd     = 9002;   /*<< event coding comm end */
+   const unsigned int _eventState      = 9000000;   /*<< event coding state changes */
+   const unsigned int _eventPtPStart   = 9000001;   /*<< event coding comm start */
+   const unsigned int _eventPtPEnd     = 9000002;   /*<< event coding comm end */
 
 class InstrumentorParaver: public Instrumentor 
 {
@@ -26,11 +28,11 @@ class InstrumentorParaver: public Instrumentor
       InstrumentorParaver ( )
       {
          _eventBase[STATE]       = 0;
-         _eventBase[BURST_START] = 9200;
-         _eventBase[BURST_END]   = 9200;
-         _eventBase[PTP_START]   = 9400;
-         _eventBase[PTP_END]     = 9400;
-         _eventBase[POINT]       = 9600;
+         _eventBase[BURST_START] = 9200000;
+         _eventBase[BURST_END]   = 9200000;
+         _eventBase[PTP_START]   = 9400000;
+         _eventBase[PTP_END]     = 9400000;
+         _eventBase[POINT]       = 9600000;
       }
 
       // destructor
@@ -74,7 +76,7 @@ class InstrumentorParaver: public Instrumentor
       {
          // Writing paraver config 
          std::fstream p_file;
-         p_file.open ("MPITRACE_Paraver_Trace.pcf", std::ios::out | std::ios::app);
+         p_file.open ( "MPITRACE_Paraver_Trace.pcf", std::ios::out | std::ios::app);
          if (p_file.is_open())
          {
             /* Event: State */
@@ -107,14 +109,14 @@ class InstrumentorParaver: public Instrumentor
             InstrumentorDictionary::ConstKeyMapIterator itK;
             InstrumentorKeyDescriptor::ConstValueMapIterator itV;
 
-            InstrumentorDictionary *iD = sys.getInstrumentorDictionary();
+            InstrumentorDictionary *iD = sys.getInstrumentor()->getInstrumentorDictionary();
 
             /* Generating BURST events */
             for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
                InstrumentorKeyDescriptor *kD = itK->second;
  
                p_file << "EVENT_TYPE" << std::endl;
-               p_file << "9    " << _eventBase[BURST_START]+kD->getId() << "  Burst: " << kD->getDescription() << std::endl;
+               p_file << "9    " << _eventBase[BURST_START]+kD->getId() << "  Burst, " << kD->getDescription() << std::endl;
                p_file << "VALUES" << std::endl;
                
                for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
@@ -130,7 +132,7 @@ class InstrumentorParaver: public Instrumentor
                InstrumentorKeyDescriptor *kD = itK->second;
  
                p_file << "EVENT_TYPE" << std::endl;
-               p_file << "9    " << _eventBase[POINT]+kD->getId() << "  Punctual: " << kD->getDescription() << std::endl;
+               p_file << "9    " << _eventBase[POINT]+kD->getId() << "  Punctual, " << kD->getDescription() << std::endl;
                p_file << "VALUES" << std::endl;
                
                for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
@@ -146,7 +148,7 @@ class InstrumentorParaver: public Instrumentor
                InstrumentorKeyDescriptor *kD = itK->second;
  
                p_file << "EVENT_TYPE" << std::endl;
-               p_file << "9    " << _eventBase[PTP_START]+kD->getId() << "  Point-to-point: " << kD->getDescription() << std::endl;
+               p_file << "9    " << _eventBase[PTP_START]+kD->getId() << "  Point-to-point, " << kD->getDescription() << std::endl;
                p_file << "VALUES" << std::endl;
                
                for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
@@ -160,6 +162,27 @@ class InstrumentorParaver: public Instrumentor
             p_file.close();
          }
          else std::cout << "Unable to open paraver config file" << std::endl;  
+      }
+
+      void renameFiles ()
+      {
+         char *new_name_prv = (char *) alloca ( 255 * sizeof (char));;
+         char *new_name_pcf = (char *) alloca ( 255 * sizeof (char));;
+         char *new_name_row = (char *) alloca ( 255 * sizeof (char));;
+
+         sprintf(new_name_prv, "%s.prv",OS::getArg(0) );
+         sprintf(new_name_pcf, "%s.pcf",OS::getArg(0) );
+         sprintf(new_name_row, "%s.row",OS::getArg(0) );
+     
+         /* Renaming the files */
+         int result;
+
+         result = rename( "MPITRACE_Paraver_Trace.prv"  , new_name_prv );
+         if ( result != 0 ) std::cout << "Unable to rename paraver file" << std::endl;
+         result = rename( "MPITRACE_Paraver_Trace.pcf"  , new_name_pcf );
+         if ( result != 0 ) std::cout << "Unable to rename paraver config file" << std::endl;
+         result = rename( "MPITRACE_Paraver_Trace.row"  , new_name_row );
+         if ( result != 0 ) std::cout << "Unable to rename paraver row file" << std::endl;
       }
 
       void initialize ( void )
@@ -186,6 +209,7 @@ class InstrumentorParaver: public Instrumentor
          OMPItrace_fini();
          mergeParaverTraceFiles();
          createParaverConfigFile();
+         renameFiles();
       }
 
       void addEventList ( unsigned int count, Event *events) 

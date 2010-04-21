@@ -77,15 +77,17 @@ nanos_err_t nanos_end_team ( nanos_team_t team )
 */
 nanos_err_t nanos_team_barrier ( )
 {
+   NANOS_INSTRUMENTOR( static Instrumentor *inst = sys.getInstrumentor() );
    try {
-      NANOS_INSTRUMENTOR( enterRuntimeAPI("team_barrier","nanos_team_barrier()",RUNTIME) );
+      NANOS_INSTRUMENTOR(static nanos_event_value_t val = inst->getInstrumentorDictionary()->getEventValue("api","team_barrier"));
+      NANOS_INSTRUMENTOR( inst->enterRuntimeAPI(val,RUNTIME) );
       myThread->getTeam()->barrier();
    } catch ( ... ) {
-      NANOS_INSTRUMENTOR( leaveRuntimeAPI() );
+      NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
       return NANOS_UNKNOWN_ERR;
    }
 
-   NANOS_INSTRUMENTOR( leaveRuntimeAPI() );
+   NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
    return NANOS_OK;
 }
 
