@@ -123,10 +123,10 @@ namespace nanos {
          void cacheData( uint64_t tag, size_t size )
          {
             CacheEntry &entry = _cache[tag];
-            entry.increaseRefs();
             if ( !entry.hasRefs() ) {
                entry.setAddress( _T::allocate( size ) );
             }
+            entry.increaseRefs();
          }
 
         /* \brief Deleting a reference from a given entry
