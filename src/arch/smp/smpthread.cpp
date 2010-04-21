@@ -44,7 +44,6 @@ void * smp_bootthread ( void *arg )
 
 void SMPThread::start ()
 {
-   std::cout << "SMPThread::start()" << std::endl;
    pthread_attr_t attr;
    pthread_attr_init(&attr);
 
@@ -69,7 +68,6 @@ void SMPThread::start ()
 
 void SMPThread::runDependent ()
 {
-   std::cout << "SMPThread::runDependent()" << std::endl;
    WD &work = getThreadWD();
    setCurrentWD( work );
 
@@ -80,14 +78,12 @@ void SMPThread::runDependent ()
 
 void SMPThread::join ()
 {
-   std::cout << "SMPThread::join()" << std::endl;
    pthread_join( _pth,NULL );
    joined();
 }
 
 void SMPThread::bind( void )
 {
-   std::cout << "SMPThread::bind()" << std::endl;
    cpu_set_t cpu_set;
    int cpu_id = getCpuId();
 
@@ -107,14 +103,12 @@ void SMPThread::yield()
 // This is executed in between switching stacks
 void SMPThread::switchHelperDependent ( WD *oldWD, WD *newWD, void *oldState  )
 {
-   std::cout << "SMPThread::switchHelperDependent()" << std::endl;
    SMPDD & dd = ( SMPDD & )oldWD->getActiveDevice();
    dd.setState( (intptr_t *) oldState );
 }
 
 void SMPThread::inlineWorkDependent ( WD &wd )
 {
-   std::cout << "SMPThread::inlineWorkDependent()" << std::endl;
    SMPDD &dd = ( SMPDD & )wd.getActiveDevice();
    ( dd.getWorkFct() )( wd.getData() );
 }
