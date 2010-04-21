@@ -123,11 +123,9 @@ namespace nanos {
          void cacheData( uint64_t tag, size_t size )
          {
             CacheEntry &entry = _cache[tag];
-            if ( entry.hasRefs() ) {
-               entry.increaseRefs();
-            } else {
+            entry.increaseRefs();
+            if ( !entry.hasRefs() ) {
                entry.setAddress( _T::allocate( size ) );
-               entry.increaseRefs();
             }
          }
 
