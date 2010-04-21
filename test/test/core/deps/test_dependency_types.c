@@ -404,6 +404,7 @@ int main ( int argc, char **argv )
       printf("PASS\n");
    } else {
       printf("FAIL\n");
+      return 1;
    }
  
    printf("task with multiple predecessors... \n");
@@ -411,6 +412,7 @@ int main ( int argc, char **argv )
       printf("PASS\n");
    } else {
       printf("FAIL\n");
+      return 1;
    }
  
    printf("task with multiple anti-dependencies... \n");
@@ -418,6 +420,7 @@ int main ( int argc, char **argv )
       printf("PASS\n");
    } else {
       printf("FAIL\n");
+      return 1;
    }
 
    printf("Out dependencies chain... \n");
@@ -425,6 +428,7 @@ int main ( int argc, char **argv )
       printf("PASS\n");
    } else {
       printf("FAIL\n");
+      return 1;
    }
 
    printf("Wait on test...\n");
@@ -432,6 +436,7 @@ int main ( int argc, char **argv )
       printf("PASS\n");
    } else {
       printf("FAIL\n");
+      return 1;
    }
 
    printf("create and run test...\n");
@@ -439,6 +444,7 @@ int main ( int argc, char **argv )
       printf("PASS\n");
    } else {
       printf("FAIL\n");
+      return 1;
    }
 
    return 0;

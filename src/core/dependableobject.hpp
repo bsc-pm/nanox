@@ -118,13 +118,13 @@ namespace nanos
          *         if it becomes 0, the dependencies are satisfied and the virtual
          *         method dependenciesSatisfied is invoked.
          */
-         void decreasePredecessors ( )
+         int decreasePredecessors ( )
          {
             int  numPredecessors = --_numPredecessors; 
             if ( numPredecessors == 0 ) {
                dependenciesSatisfied( );
             }
-
+            return numPredecessors;
          }
 
         /*! \brief Obtain the list of successors
