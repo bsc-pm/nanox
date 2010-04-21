@@ -22,7 +22,6 @@
 
 #include "gpudd.hpp"
 #include "smpthread.hpp"
-#include <pthread.h>
 
 
 namespace nanos {
@@ -49,24 +48,8 @@ namespace ext
          // destructor
          virtual ~GPUThread() {}
 
-//         virtual void start();
-//         virtual void join();
          virtual void runDependent ( void );
 
-//         virtual void inlineWorkDependent( WD &work );
-//         virtual void switchTo( WD *work, SchedulerHelper *helper );
-//         virtual void exitTo( WD *work, SchedulerHelper *helper );
-
- /*        void switchHelperDependent( WD* oldWD, WD* newWD, void *arg ) {
-            SMPThread::switchHelperDependent(oldWD, newWD, arg);
-         }*/
-//         virtual void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) {};
-
-//         virtual void bind( void );
-
-         /** \brief GPU specific yield implementation
-         */
-//         virtual void yield();
    };
 
 

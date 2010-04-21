@@ -17,22 +17,17 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "gpuprocessor.hpp"
-#include "schedule.hpp"
-#include "debug.hpp"
-#include "system.hpp"
+#include "gpudd.hpp"
 #include "gpuutils.hpp"
 
-// CUDA
 #include <cuda_runtime.h>
 
 using namespace nanos;
 using namespace nanos::ext;
 
-Device nanos::ext::GPU( "GPU" );
+GPUDevice nanos::ext::GPU( "GPU" );
 
 int GPUDD::_gpuCount = 0;
-size_t GPUDD::_stackSize = 16*1024;
 
 /*!
   \brief Registers the Device's configuration options
@@ -41,20 +36,7 @@ size_t GPUDD::_stackSize = 16*1024;
  */
 void GPUDD::prepareConfig( Config &config )
 {
-   /*!
-      Get the stack size from system configuration
-    */
-   size_t size = sys.getDeviceStackSize(); 
-   if ( size > 0 )
-      _stackSize = size;
-
-   /*!
-      Get the stack size for this device
-    */
-   config.registerConfigOption ( "gpu-stack-size", new Config::SizeVar( _stackSize ), "Defines GPU workdescriptor stack size" );
-   config.registerArgOption ( "gpu-stack-size", "gpu-stack-size" );
-   config.registerEnvOption ( "gpu-stack-size", "NX_GPU_STACK_SIZE" );
-
+   // Find out how many CUDA-capable GPUs the system has
    int deviceCount, device;
    struct cudaDeviceProp properties;
    cudaError_t cudaErr = cudaGetDeviceCount(&deviceCount);
@@ -69,27 +51,6 @@ void GPUDD::prepareConfig( Config &config )
    }
 
    //displayAllGPUsProperties();
-}
-
-void GPUDD::initStack ( void *data )
-{
-   //_state = ::initContext( _stack, _stackSize, ( void * )getWorkFct(),data,( void * )Scheduler::exit, 0 );
-}
-
-void GPUDD::lazyInit (WD &wd, bool isUserLevelThread, WD *previous)
-{
-/*   if (isUserLevelThread) {
-      if ( previous == NULL )
-         _stack = new intptr_t[_stackSize];
-      else {
-         GPUDD &oldDD = (GPUDD &) previous->getActiveDevice();
-
-         std::swap(_stack,oldDD._stack);
-      }
-
-      initStack(wd.getData());
-   }
-*/
 }
 
 GPUDD * GPUDD::copyTo ( void *toAddr )

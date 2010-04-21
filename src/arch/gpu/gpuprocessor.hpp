@@ -21,11 +21,11 @@
 #define _NANOS_GPU_PROCESSOR
 
 
-#include "config.hpp"
-#include "gputhread.hpp"
-#include "cache.hpp"
-#include "gpudevice.hpp"
 #include "accelerator.hpp"
+#include "cache.hpp"
+#include "config.hpp"
+#include "gpudevice.hpp"
+#include "gputhread.hpp"
 
 
 namespace nanos {
@@ -39,7 +39,6 @@ namespace ext
       private:
          // config variables
          static bool _useUserThreads;
-         static size_t _threadsStackSize;
 
          // disable copy constructor and assignment operator
          GPUProcessor( const GPUProcessor &pe );
@@ -57,7 +56,7 @@ namespace ext
          virtual WD & getMasterWD () const;
          virtual BaseThread & createThread ( WorkDescriptor &wd );
 
-         static void prepareConfig ( Config &config );
+         static void prepareConfig ( Config &config ) { }
          // capability query functions
          virtual bool supportsUserLevelThreads () const { return false; }
 

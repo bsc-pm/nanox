@@ -20,17 +20,15 @@
 #ifndef _NANOS_GPU_WD
 #define _NANOS_GPU_WD
 
-#include <stdint.h>
-#include "workdescriptor.hpp"
 #include "config.hpp"
-
-
+#include "gpudevice.hpp"
+#include "workdescriptor.hpp"
 
 namespace nanos {
 namespace ext
 {
 
-   extern Device GPU;
+   extern GPUDevice GPU;
 
    class GPUDD : public DD
    {
@@ -41,30 +39,26 @@ namespace ext
       private:
          static int     _gpuCount; // Number of CUDA-capable GPUs
          work_fct       _work;
-         intptr_t *     _stack;
          intptr_t *     _state;
-         static size_t  _stackSize;
 
       public:
          // constructors
-         GPUDD( work_fct w ) : DD( &GPU ), _work( w ), _stack( 0 ), _state( 0 ) {}
+         GPUDD( work_fct w ) : DD( &GPU ), _work( w ), _state( 0 ) {}
 
-         GPUDD() : DD( &GPU ),_work( 0 ), _stack( 0 ), _state( 0 ) {}
+         GPUDD() : DD( &GPU ), _work( 0 ), _state( 0 ) {}
 
          // copy constructors
-         GPUDD( const GPUDD &dd ) : DD( dd ), _work( dd._work ), _stack( 0 ), _state( 0 ) {}
+         GPUDD( const GPUDD &dd ) : DD( dd ), _work( dd._work ), _state( 0 ) {}
 
          // assignment operator
          const GPUDD & operator= ( const GPUDD &wd );
-         // destructor
 
-         virtual ~GPUDD() { if ( _stack ) delete[] _stack; }
+         // destructor
+         virtual ~GPUDD() { }
 
          work_fct getWorkFct() const { return _work; }
 
-         bool hasStack() { return _state != NULL; }
-
-         void initStack( void *data );
+         bool hasStack() { return false; }
 
          intptr_t *getState() const { return _state; }
 
@@ -74,7 +68,7 @@ namespace ext
 
          static int getGPUCount () { return _gpuCount; }
 
-         virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous);
+         virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous) { }
          virtual size_t size ( void ) { return sizeof(GPUDD); }
          virtual GPUDD *copyTo ( void *toAddr );
       };
@@ -88,7 +82,6 @@ namespace ext
 
       _gpuCount = dd._gpuCount;
       _work = dd._work;
-      _stack = 0;
       _state = 0;
 
       return *this;

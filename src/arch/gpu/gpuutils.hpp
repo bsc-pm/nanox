@@ -20,11 +20,12 @@
 #ifndef _NANOS_GPU_UTILS
 #define _NANOS_GPU_UTILS
 
-// CUDA
-#include "cuda_runtime.h"
 
 #include <iostream>
 #include <iomanip>
+
+#include "cuda_runtime.h"
+
 
 namespace nanos {
 namespace ext

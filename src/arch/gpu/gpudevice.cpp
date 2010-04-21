@@ -17,65 +17,52 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-// CUDA
-#include <cuda_runtime.h>
-
 #include "gpudevice.hpp"
 #include "debug.hpp"
 
-
-#include <iostream>
+#include <cuda_runtime.h>
 
 using namespace nanos;
 
 void * GPUDevice::allocate( size_t size )
 {
-   std::cout << "allocating device memory with cudaMalloc at device address... ";
-   void * address;
+   void * address=0;
    cudaError_t err = cudaMalloc( (void **) &address, size );
 
-   std::cout << "..." << address << std::endl;
    if (err == cudaSuccess)
       return address;
 
-   nanos::FatalError::runtime_error(cudaGetErrorString(cudaGetLastError()));
+   throw nanos::FatalError(cudaGetErrorString(err));
    return 0;
 }
 
 void GPUDevice::free( void *address )
 {
-   std::cout << "freeing device memory with cudaFree at device address " << address << std::endl;
    cudaError_t err = cudaFree( address );
 
-   if (err != cudaSuccess)
-      nanos::FatalError::runtime_error(cudaGetErrorString(cudaGetLastError()));
+   if (err != cudaSuccess) {
+      throw nanos::FatalError(cudaGetErrorString(err));
+   }
 }
 
 void GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
 {
-   std::cout << "copying data from host to device memory with cudaMemcpy" << std::endl;
    // Copy from host memory to device memory
-
-   std::cout << "    dest = " << localDst << "; src = " << remoteSrc << "; size = " << size << std::endl;
-
-   std::cout << "    *src is " << *((int *) remoteSrc) << std::endl;
-
-   if (!localDst) localDst = allocate(size);
-
    cudaError_t err = cudaMemcpy( localDst, (void *) remoteSrc, size, cudaMemcpyHostToDevice );
-   if (err != cudaSuccess)
-      nanos::FatalError::runtime_error(cudaGetErrorString(cudaGetLastError()));
+
+   if (err != cudaSuccess) {
+      throw nanos::FatalError::runtime_error(cudaGetErrorString(err));
+   }
+
 }
 
 void GPUDevice::copyOut( uint64_t remoteDst, void *localSrc, size_t size )
 {
-   std::cout << "copying data from device to host memory with cudaMemcpy" << std::endl;
-
-   std::cout << "    src = " << localSrc << "; dest = " << remoteDst << "; size = " << size << std::endl;
-
-      std::cout << "    *dest is " << *((int *) remoteDst) << std::endl;
-
    // Copy from device memory to host memory
-   cudaMemcpy( (void *) remoteDst, localSrc, size, cudaMemcpyDeviceToHost );
+   cudaError_t err = cudaMemcpy( (void *) remoteDst, localSrc, size, cudaMemcpyDeviceToHost );
+
+   if (err != cudaSuccess) {
+      throw nanos::FatalError::runtime_error(cudaGetErrorString(err));
+   }
 }
 

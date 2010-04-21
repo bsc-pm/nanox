@@ -20,8 +20,6 @@
 #ifndef _GPU_DEVICE
 #define _GPU_DEVICE
 
-#include <stdint.h>
-#include <string.h>
 #include "workdescriptor_decl.hpp"
 
 namespace nanos
@@ -31,7 +29,7 @@ namespace nanos
  * provides functions to allocate and copy data in the device
  */
 
-   class GPUDevice : Device
+   class GPUDevice : public Device
    {
       public:
          /*! \brief GPUDevice constructor
@@ -54,7 +52,7 @@ namespace nanos
 
          static void copyLocal( void *dst, void *src, size_t size )
          {
-            memcpy( dst, src, size );
+            // Do not allow local copies in GPU memory
          }
    };
 }

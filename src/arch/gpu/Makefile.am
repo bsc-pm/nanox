@@ -23,8 +23,6 @@ noinst_LTLIBRARIES = libgpu.la
 lib_LTLIBRARIES = libnanox-pe-gpu.la
 
 EXTRA_DIST= \
-	stack.cpp \
-	stack.s \
 	$(END)
 
 
