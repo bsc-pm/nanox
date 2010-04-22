@@ -30,25 +30,26 @@ namespace ext
 
    extern GPUDevice GPU;
 
+   class GPUPlugin;
+
    class GPUDD : public DD
    {
-
+      friend class GPUPlugin;
       public:
          typedef void ( *work_fct ) ( void *self );
 
       private:
          static int     _gpuCount; // Number of CUDA-capable GPUs
          work_fct       _work;
-         intptr_t *     _state;
 
       public:
          // constructors
-         GPUDD( work_fct w ) : DD( &GPU ), _work( w ), _state( 0 ) {}
+         GPUDD( work_fct w ) : DD( &GPU ), _work( w ) {}
 
-         GPUDD() : DD( &GPU ), _work( 0 ), _state( 0 ) {}
+         GPUDD() : DD( &GPU ), _work( 0 ) {}
 
          // copy constructors
-         GPUDD( const GPUDD &dd ) : DD( dd ), _work( dd._work ), _state( 0 ) {}
+         GPUDD( const GPUDD &dd ) : DD( dd ), _work( dd._work ) {}
 
          // assignment operator
          const GPUDD & operator= ( const GPUDD &wd );
@@ -58,20 +59,12 @@ namespace ext
 
          work_fct getWorkFct() const { return _work; }
 
-         bool hasStack() { return false; }
-
-         intptr_t *getState() const { return _state; }
-
-         void setState ( intptr_t * newState ) { _state = newState; }
-
-         static void prepareConfig( Config &config );
-
          static int getGPUCount () { return _gpuCount; }
 
          virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous) { }
          virtual size_t size ( void ) { return sizeof(GPUDD); }
          virtual GPUDD *copyTo ( void *toAddr );
-      };
+   };
 
    inline const GPUDD & GPUDD::operator= ( const GPUDD &dd )
    {
@@ -79,10 +72,7 @@ namespace ext
       if ( &dd == this ) return *this;
 
       DD::operator= ( dd );
-
-      _gpuCount = dd._gpuCount;
       _work = dd._work;
-      _state = 0;
 
       return *this;
    }

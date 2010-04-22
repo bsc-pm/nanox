@@ -34,7 +34,6 @@ namespace ext
       friend class GPUProcessor;
 
       private:
-         static Atomic<int>      _deviceSeed; // Number of GPU devices assigned to threads
          int                     _gpuDevice; // Assigned GPU device Id
 
          // disable copy constructor and assignment operator
@@ -43,7 +42,7 @@ namespace ext
 
       public:
          // constructor
-         GPUThread( WD &w, PE *pe ) : SMPThread( w, pe ), _gpuDevice(_deviceSeed++) {}
+         GPUThread( WD &w, PE *pe, int device ) : SMPThread( w, pe ), _gpuDevice(device) {}
 
          // destructor
          virtual ~GPUThread() {}

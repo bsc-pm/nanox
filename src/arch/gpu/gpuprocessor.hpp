@@ -38,7 +38,8 @@ namespace ext
 
       private:
          // config variables
-         static bool _useUserThreads;
+         static Atomic<int>      _deviceSeed; // Number of GPU devices assigned to threads
+         int                     _gpuDevice; // Assigned GPU device Id
 
          // disable copy constructor and assignment operator
          GPUProcessor( const GPUProcessor &pe );
@@ -48,7 +49,7 @@ namespace ext
 
       public:
          // constructors
-         GPUProcessor( int id ) : Accelerator( id, &GPU ), _cache() {}
+         GPUProcessor( int id ) : Accelerator( id, &GPU ), _gpuDevice(_deviceSeed++), _cache() {}
 
          virtual ~GPUProcessor() {}
 
@@ -56,7 +57,6 @@ namespace ext
          virtual WD & getMasterWD () const;
          virtual BaseThread & createThread ( WorkDescriptor &wd );
 
-         static void prepareConfig ( Config &config ) { }
          // capability query functions
          virtual bool supportsUserLevelThreads () const { return false; }
 

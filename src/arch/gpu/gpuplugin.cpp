@@ -21,6 +21,7 @@
 #include "gpuprocessor.hpp"
 #include "gpudd.hpp"
 #include "system.hpp"
+#include "cuda_runtime.h"
 
 namespace nanos {
 namespace ext {
@@ -32,19 +33,46 @@ PE * gpuProcessorFactory ( int id )
 
 class GPUPlugin : public Plugin
 {
+   private:
+      int _numGPUs;
 
    public:
-      GPUPlugin() : Plugin( "GPU PE Plugin",1 ) {}
+      GPUPlugin() : Plugin( "GPU PE Plugin",1 ), _numGPUs(-1) {}
 
       virtual void config( Config& config )
       {
          config.setOptionsSection( "GPU Arch", "GPU specific options" );
-         GPUProcessor::prepareConfig( config );
-         GPUDD::prepareConfig( config );
+         config.registerConfigOption ( "num-gpus", new Config::IntegerVar( _numGPUs ),
+                                       "Defines the maximum number of GPUs to use" );
+         config.registerArgOption ( "num-gpus", "gpus" );
+         config.registerEnvOption ( "num-gpus", "NX_GPUS" );
       }
 
       virtual void init() {
          //sys.setHostFactory( gpuProcessorFactory );
+
+         // Find out how many CUDA-capable GPUs the system has
+         int deviceCount, device, count=0;
+         struct cudaDeviceProp properties;
+         cudaError_t cudaErr = cudaGetDeviceCount(&deviceCount);
+         if (cudaErr != cudaSuccess)
+            deviceCount = 0;
+
+         // Machines with no GPUs can still report one emulation device
+         for (device = 0; device < deviceCount; ++device) {
+            cudaGetDeviceProperties(&properties, device);
+            if (properties.major != 9999) // 9999 means emulation only
+               ++count;
+         }
+
+         //displayAllGPUsProperties();
+
+         if ( _numGPUs >= 0 ) {
+            count = std::min(_numGPUs,count);
+         }
+
+         GPUDD::_gpuCount = count;
+
       }
 };
 }

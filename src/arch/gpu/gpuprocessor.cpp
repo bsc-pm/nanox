@@ -19,30 +19,29 @@
 
 #include "gpuprocessor.hpp"
 #include "schedule.hpp"
+#include "debug.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
 
-bool GPUProcessor::_useUserThreads = false;
-
+Atomic<int> GPUProcessor::_deviceSeed = 0;
 
 WorkDescriptor & GPUProcessor::getWorkerWD () const
 {
-   GPUDD * dd = new GPUDD( ( GPUDD::work_fct )Scheduler::workerLoop );
+   SMPDD * dd = new SMPDD( ( SMPDD::work_fct )Scheduler::workerLoop );
    WD *wd = new WD( dd );
    return *wd;
 }
 
 WorkDescriptor & GPUProcessor::getMasterWD () const
 {
-   WD * wd = new WD( new GPUDD() );
-   return *wd;
+   fatal("Attempting to create a GPU master thread");
 }
 
 BaseThread &GPUProcessor::createThread ( WorkDescriptor &helper )
 {
-   ensure( helper.canRunIn( GPU ), "Incompatible worker thread" );
-   GPUThread &th = *new GPUThread( helper,this );
+   ensure( helper.canRunIn( SMP ), "Incompatible worker thread" );
+   GPUThread &th = *new GPUThread( helper,this, _gpuDevice );
 
    return th;
 }

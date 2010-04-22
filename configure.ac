@@ -134,11 +134,10 @@ if lspci | grep nVidia &> /dev/null ; then
 
 		AC_SUBST([CUDA_INC])
 		AC_SUBST([CUDA_LIB])
-
-		NANOS_CONFIG_LIBDIRS+=" -L$CUDA_LIB"
-#		NANOS_CONFIG_LIBS+=" -lcudart"
 	fi
 	if test x$gpu_valid = xyes; then
+           	CFLAGS+=" -DGPU_DEV"
+           	CXXFLAGS+=" -DGPU_DEV"
 		ARCHITECTURES+=" gpu"
 	fi
 fi

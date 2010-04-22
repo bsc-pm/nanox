@@ -25,9 +25,6 @@ using namespace nanos;
 using namespace nanos::ext;
 
 
-Atomic<int> GPUThread::_deviceSeed = 0;
-
-
 void GPUThread::runDependent ()
 {
    WD &work = getThreadWD();
@@ -36,7 +33,7 @@ void GPUThread::runDependent ()
    cudaError_t cudaErr = cudaSetDevice( _gpuDevice );
    if (cudaErr != cudaSuccess) warning( "couldn't set the GPU device" );
 
-   GPUDD &dd = ( GPUDD & ) work.activateDevice( GPU );
+   SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
 
    dd.getWorkFct()( work.getData() );
 }

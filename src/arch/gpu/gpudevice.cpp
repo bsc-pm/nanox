@@ -19,6 +19,7 @@
 
 #include "gpudevice.hpp"
 #include "debug.hpp"
+#include "basethread.hpp"
 
 #include <cuda_runtime.h>
 
@@ -32,7 +33,7 @@ void * GPUDevice::allocate( size_t size )
    if (err == cudaSuccess)
       return address;
 
-   throw nanos::FatalError(cudaGetErrorString(err));
+   fatal(cudaGetErrorString(err));
    return 0;
 }
 
@@ -41,7 +42,7 @@ void GPUDevice::free( void *address )
    cudaError_t err = cudaFree( address );
 
    if (err != cudaSuccess) {
-      throw nanos::FatalError(cudaGetErrorString(err));
+      fatal(cudaGetErrorString(err));
    }
 }
 
@@ -51,7 +52,7 @@ void GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
    cudaError_t err = cudaMemcpy( localDst, (void *) remoteSrc, size, cudaMemcpyHostToDevice );
 
    if (err != cudaSuccess) {
-      throw nanos::FatalError::runtime_error(cudaGetErrorString(err));
+      fatal(cudaGetErrorString(err));
    }
 
 }
@@ -62,7 +63,7 @@ void GPUDevice::copyOut( uint64_t remoteDst, void *localSrc, size_t size )
    cudaError_t err = cudaMemcpy( (void *) remoteDst, localSrc, size, cudaMemcpyDeviceToHost );
 
    if (err != cudaSuccess) {
-      throw nanos::FatalError::runtime_error(cudaGetErrorString(err));
+      fatal(cudaGetErrorString(err));
    }
 }
 

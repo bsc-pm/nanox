@@ -29,30 +29,6 @@ GPUDevice nanos::ext::GPU( "GPU" );
 
 int GPUDD::_gpuCount = 0;
 
-/*!
-  \brief Registers the Device's configuration options
-  \param reference to a configuration object.
-  \sa Config System
- */
-void GPUDD::prepareConfig( Config &config )
-{
-   // Find out how many CUDA-capable GPUs the system has
-   int deviceCount, device;
-   struct cudaDeviceProp properties;
-   cudaError_t cudaErr = cudaGetDeviceCount(&deviceCount);
-   if (cudaErr != cudaSuccess)
-      deviceCount = 0;
-
-   // Machines with no GPUs can still report one emulation device
-   for (device = 0; device < deviceCount; ++device) {
-      cudaGetDeviceProperties(&properties, device);
-      if (properties.major != 9999) // 9999 means emulation only
-         ++_gpuCount;
-   }
-
-   //displayAllGPUsProperties();
-}
-
 GPUDD * GPUDD::copyTo ( void *toAddr )
 {
    GPUDD *dd = new (toAddr) GPUDD(*this);
