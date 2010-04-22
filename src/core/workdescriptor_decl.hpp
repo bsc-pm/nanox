@@ -339,6 +339,8 @@ namespace nanos
 
          virtual void done ();
 
+         void clear ();
+
          /*! \brief returns the number of CopyData elements in the WorkDescriptor
           */
          size_t getNumCopies() const;
