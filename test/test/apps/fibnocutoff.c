@@ -28,8 +28,6 @@ test_generator=gens/api-generator
 #include <stdlib.h>
 #include <nanos.h>
 
-int cutoff_value = 10;
-
 int fib_seq ( int n )
 {
    int x, y;
@@ -73,7 +71,6 @@ int fib ( int n, int d )
 
    if ( n < 2 ) return n;
 
-   // if ( d < cutoff_value ) {
 //       #pragma omp task untied shared(x) firstprivate(n,d)
 //      x = fib(n - 1,d+1);
    {
@@ -153,7 +150,7 @@ int main ( int argc, char **argv )
 
    if ( argc > 1 ) n = atoi( argv[1] );
 
-   if ( fib0( n ) != 75025 ) return 1;
+   if ( fib0( n ) != fib_seq(n) ) return 1;
 
    return 0;
 }
