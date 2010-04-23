@@ -323,6 +323,7 @@ void Scheduler::exit ( void )
 
    WD *oldwd = myThread->getCurrentWD();
    oldwd->done();
+   oldwd->clear();
 
    idleLoop<ExitBehaviour>();
 

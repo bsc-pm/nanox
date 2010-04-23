@@ -93,6 +93,8 @@ inline DeviceData ** WorkDescriptor::getDevices ( void ) { return _devices; }
 
 inline bool WorkDescriptor::dequeue ( WorkDescriptor **slice ) { *slice = this; return true; }
 
+inline void WorkDescriptor::clear () { _parent = NULL; }
+
 inline size_t WorkDescriptor::getNumCopies() const { return _numCopies; }
 
 inline CopyData * WorkDescriptor::getCopies() const { return _copies; }
