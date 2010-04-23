@@ -46,7 +46,7 @@ inline const std::string InstrumentorKeyDescriptor::getDescription ( void )
    return _description;
 }
 
-inline nanos_event_value_t InstrumentorKeyDescriptor::registerValue ( std::string value, std::string description )
+inline nanos_event_value_t InstrumentorKeyDescriptor::registerValue ( std::string value, std::string description, bool abort_when_registered )
 {
    InstrumentorValueDescriptor *valueDescriptor = NULL;
 
@@ -59,10 +59,16 @@ inline nanos_event_value_t InstrumentorKeyDescriptor::registerValue ( std::strin
          valueDescriptor = new InstrumentorValueDescriptor ( (nanos_event_value_t) _totalValues++, description );
          _valueMap.insert( std::make_pair( value, valueDescriptor ) );
       }
-      else valueDescriptor = it->second;
+      else {
+         if ( abort_when_registered ) fatal0("Event Value " + value + " was already registered (lock taken)\n");
+         valueDescriptor = it->second;
+      }
       _lock--;
    }
-   else valueDescriptor = it->second;
+   else {
+      if ( abort_when_registered ) fatal0("Event Value " + value + " was already registered (lock not taken)\n");
+      valueDescriptor = it->second;
+   }
 
    return valueDescriptor->getId();
 }
@@ -87,7 +93,7 @@ inline InstrumentorKeyDescriptor::ConstValueMapIterator InstrumentorKeyDescripto
 
 /** INSTRUMENTOR DICTIONARY **/
 
-inline nanos_event_key_t InstrumentorDictionary::registerEventKey ( std::string key, std::string description )
+inline nanos_event_key_t InstrumentorDictionary::registerEventKey ( std::string key, std::string description, bool abort_when_registered  )
 {
    InstrumentorKeyDescriptor *keyDescriptor = NULL;
 
@@ -100,10 +106,16 @@ inline nanos_event_key_t InstrumentorDictionary::registerEventKey ( std::string 
          keyDescriptor = new InstrumentorKeyDescriptor ( (nanos_event_key_t) _totalKeys++, description );
          _keyMap.insert( std::make_pair( key, keyDescriptor ) );
       }
-      else keyDescriptor = it->second;
+      else {
+         if ( abort_when_registered ) fatal0("Event Key " + key + " was already registered (lock taken)\n");
+         keyDescriptor = it->second;
+      }
       _lock--;
    }
-   else keyDescriptor = it->second;
+   else {
+      if ( abort_when_registered ) fatal0("Event Key " + key + " was already registered (lock not taken)\n");
+      keyDescriptor = it->second;
+   }
 
    return keyDescriptor->getId();
 }
@@ -116,7 +128,7 @@ inline nanos_event_key_t InstrumentorDictionary::getEventKey ( std::string key )
    else return it->second->getId();
 }
 
-inline nanos_event_value_t InstrumentorDictionary::registerEventValue ( std::string key, std::string value, std::string description )
+inline nanos_event_value_t InstrumentorDictionary::registerEventValue ( std::string key, std::string value, std::string description, bool abort_when_registered )
 {
    InstrumentorKeyDescriptor *keyDescriptor = NULL;
 
@@ -129,12 +141,14 @@ inline nanos_event_value_t InstrumentorDictionary::registerEventValue ( std::str
          keyDescriptor = new InstrumentorKeyDescriptor ( (nanos_event_key_t) _totalKeys++, "" );
          _keyMap.insert( std::make_pair( key, keyDescriptor ) );
       }
-      else keyDescriptor = it->second;
+      else {
+         keyDescriptor = it->second;
+      }
       _lock--;
    }
    else keyDescriptor = it->second;
 
-   return keyDescriptor->registerValue(value, description);
+   return keyDescriptor->registerValue( value, description, abort_when_registered );
 }
 
 inline nanos_event_value_t InstrumentorDictionary::getEventValue ( std::string key, std::string value )
