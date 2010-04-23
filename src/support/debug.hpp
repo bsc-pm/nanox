@@ -52,11 +52,11 @@ namespace nanos
 
    };
 
-#define fatal(msg)  throw FatalError(msg,myThread->getId());
-#define fatal0(msg)  throw FatalError(msg);
+#define fatal(msg)  throw nanos::FatalError(msg,myThread->getId());
+#define fatal0(msg)  throw nanos::FatalError(msg);
 
-#define ensure(cond,msg) if ( !(cond) ) throw FailedAssertion(__FILE__, __LINE__ , #cond, msg, myThread->getId());
-#define ensure0(cond,msg) if ( !(cond) ) throw FailedAssertion(__FILE__, __LINE__, #cond, msg );
+#define ensure(cond,msg) if ( !(cond) ) throw nanos::FailedAssertion(__FILE__, __LINE__ , #cond, msg, myThread->getId());
+#define ensure0(cond,msg) if ( !(cond) ) throw nanos::FailedAssertion(__FILE__, __LINE__, #cond, msg );
 
 #define warning(msg) { std::cerr << "WARNING: [" << myThread->getId() << "]" << msg << std::endl; }
 #define warning0(msg) { std::cerr << "WARNING: [?]" << msg << std::endl; }

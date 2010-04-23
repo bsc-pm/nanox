@@ -134,9 +134,15 @@ nanos_err_t nanos_get_num_running_tasks ( int *num );
 void nanos_handle_error ( nanos_err_t err );
 
 // factories
+   // smp
 void * nanos_smp_factory( void *prealloc ,void *args);
 extern const size_t nanos_smp_dd_size;
 #define NANOS_SMP_DESC( args ) { nanos_smp_factory, nanos_smp_dd_size, &( args ) }
+
+   // gpu
+void * nanos_gpu_factory( void *prealloc ,void *args);
+extern const size_t nanos_gpu_dd_size;
+#define NANOS_GPU_DESC( args ) { nanos_gpu_factory, nanos_gpu_dd_size, &( args ) }
 
 // instrumentor interface
 nanos_err_t nanos_instrument_register_key ( nanos_event_key_t *event_key, char *key, char *description );

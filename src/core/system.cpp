@@ -31,6 +31,10 @@
 #include "spuprocessor.hpp"
 #endif
 
+#ifdef GPU_DEV
+#include "gpuprocessor.hpp"
+#endif
+
 using namespace nanos;
 
 namespace nanos {
@@ -71,6 +75,11 @@ void System::loadModules ()
       fatal0 ( "Couldn't load host support" );
 
    ensure( _hostFactory,"No default host factory" );
+
+#ifdef GPU_DEV
+   if ( !PluginManager::load ( "pe-gpu" ) )
+      fatal0 ( "Couldn't load GPU support" );
+#endif
 
    // load default schedule plugin
    verbose0( "loading " << getDefaultSchedule() << " scheduling policy support" );
@@ -190,7 +199,8 @@ void System::start ()
       _workers.push_back( &pe->startWorker( ));
    }
 
-   for ( int p = 1; p < numPes ; p++ ) {
+   int p;
+   for ( p = 1; p < numPes ; p++ ) {
       pe = createPE ( "smp", p );
       _pes.push_back ( pe );
 
@@ -200,7 +210,19 @@ void System::start ()
          _workers.push_back( &pe->startWorker() );
       }
    }
-   
+
+   //TODO: define GPU_DEV when CUDA-capable GPUs are available
+#ifdef GPU_DEV
+   std::cout << "GPU_DEV defined!" << std::endl;
+
+   int gpuC;
+   for ( gpuC = 0; gpuC < nanos::ext::GPUDD::getGPUCount(); gpuC++ ) {
+      PE *gpu = new nanos::ext::GPUProcessor( p++ );
+      _pes.push_back( gpu );
+      _workers.push_back( &gpu->startWorker() );
+   }
+#endif
+
 #ifdef SPU_DEV
    PE *spu = new nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);
    spu->startWorker();
@@ -209,7 +231,7 @@ void System::start ()
    switch ( getInitialMode() )
    {
       case POOL:
-         createTeam( numPes*getThsPerPE() );
+         createTeam( _workers.size() );
          break;
       case ONE_THREAD:
          createTeam(1);

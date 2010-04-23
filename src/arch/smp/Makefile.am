@@ -45,6 +45,11 @@ libsmp_la_SOURCES = \
 		smpdevice.hpp \
 		smpdd.hpp \
 		smpdd.cpp \
+		smpprocessor.hpp \
+		smpprocessor.cpp \
+		smpthread.hpp \
+		smpthread.cpp \
+		smpmemory.hpp \
 		$(ult_sources) \
 		$(END)
 
@@ -53,11 +58,6 @@ libsmp_la_SOURCES = \
 libnanox_pe_smp_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags)
 libnanox_pe_smp_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_pe_smp_la_SOURCES = \
-		smpdevice.hpp \
 		smpplugin.cpp \
-		smpprocessor.hpp \
-		smpprocessor.cpp \
-		smpthread.hpp \
-		smpthread.cpp \
 		$(END)
 

@@ -19,4 +19,32 @@
 
 include $(top_srcdir)/src/common.am
 
+noinst_LTLIBRARIES = libgpu.la
+lib_LTLIBRARIES = libnanox-pe-gpu.la
+
+EXTRA_DIST= \
+	$(END)
+
+
+libgpu_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags) -I @CUDA_INC@
+libgpu_la_LDFLAGS = -L@CUDA_LIB@ -lcudart
+libgpu_la_SOURCES = \
+		gpudevice.hpp \
+		gpudevice.cpp \
+		gpudd.hpp \
+		gpudd.cpp \
+		gpuprocessor.hpp \
+		gpuprocessor.cpp \
+		gputhread.hpp \
+		gputhread.cpp \
+		gpuutils.hpp \
+		$(END)
+
+
+
+libnanox_pe_gpu_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags) -I @CUDA_INC@
+libnanox_pe_gpu_la_LDFLAGS = $(ld_plugin_flags) -L@CUDA_LIB@ -lcudart
+libnanox_pe_gpu_la_SOURCES = \
+		gpuplugin.cpp \
+		$(END)
 
