@@ -17,9 +17,10 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+
 #include "gpudevice.hpp"
-#include "debug.hpp"
 #include "basethread.hpp"
+#include "debug.hpp"
 
 #include <cuda_runtime.h>
 

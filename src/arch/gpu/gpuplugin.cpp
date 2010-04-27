@@ -18,9 +18,10 @@
 /*************************************************************************************/
 
 #include "plugin.hpp"
-#include "gpuprocessor.hpp"
 #include "gpudd.hpp"
+#include "gpuprocessor.hpp"
 #include "system.hpp"
+
 #include "cuda_runtime.h"
 
 namespace nanos {
@@ -37,7 +38,7 @@ class GPUPlugin : public Plugin
       int _numGPUs;
 
    public:
-      GPUPlugin() : Plugin( "GPU PE Plugin",1 ), _numGPUs(-1) {}
+      GPUPlugin() : Plugin( "GPU PE Plugin", 1 ), _numGPUs( -1 ) {}
 
       virtual void config( Config& config )
       {
@@ -48,30 +49,35 @@ class GPUPlugin : public Plugin
          config.registerEnvOption ( "num-gpus", "NX_GPUS" );
       }
 
-      virtual void init() {
-         //sys.setHostFactory( gpuProcessorFactory );
-
+      virtual void init()
+      {
          // Find out how many CUDA-capable GPUs the system has
-         int deviceCount, device, count=0;
-         struct cudaDeviceProp properties;
-         cudaError_t cudaErr = cudaGetDeviceCount(&deviceCount);
-         if (cudaErr != cudaSuccess)
-            deviceCount = 0;
+         int totalCount, device, deviceCount = 0;
+         struct cudaDeviceProp gpuProperties;
+
+         cudaError_t cudaErr = cudaGetDeviceCount( &totalCount );
+
+         if ( cudaErr != cudaSuccess ) {
+            totalCount = 0;
+         }
 
          // Machines with no GPUs can still report one emulation device
-         for (device = 0; device < deviceCount; ++device) {
-            cudaGetDeviceProperties(&properties, device);
-            if (properties.major != 9999) // 9999 means emulation only
-               ++count;
+         for ( devices = 0; devices < totalCount; devices++ ) {
+            cudaGetDeviceProperties( &gpuProperties, device );
+            if ( gpuProperties.major != 9999 ) {
+               // 9999 means emulation only
+               deviceCount++;
+            }
          }
 
          //displayAllGPUsProperties();
 
+         // Check if the user has set a different number of GPUs to use
          if ( _numGPUs >= 0 ) {
-            count = std::min(_numGPUs,count);
+            deviceCount = std::min( _numGPUs, deviceCount );
          }
 
-         GPUDD::_gpuCount = count;
+         GPUDD::_gpuCount = deviceCount;
 
       }
 };

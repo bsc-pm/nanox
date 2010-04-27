@@ -20,12 +20,10 @@
 #ifndef _NANOS_GPU_UTILS
 #define _NANOS_GPU_UTILS
 
-
 #include <iostream>
 #include <iomanip>
 
 #include "cuda_runtime.h"
-
 
 namespace nanos {
 namespace ext
@@ -60,15 +58,24 @@ void displayAllGPUsProperties( void )
    cudaDeviceProp deviceProp;
    int idx, deviceCount = 0;
 
-   cudaGetDeviceCount( &deviceCount );
+   cudaError_t err = cudaGetDeviceCount( &deviceCount );
+
+   if ( err != cudaSuccess ) {
+      message0( cudaGetErrorString( err ) );
+      return;
+   }
+
    std::cout << "Total number of GPUs found: " << deviceCount;
+
    for ( idx = 0; idx < deviceCount; idx++ ) {
-      memset( &deviceProp, 0, sizeof(deviceProp));
-      if( cudaSuccess == cudaGetDeviceProperties( &deviceProp, idx ) ) {
+      memset( &deviceProp, 0, sizeof( deviceProp ) );
+      err = cudaGetDeviceProperties( &deviceProp, idx );
+
+      if ( err == cudaSuccess ) {
          displayProperties( &deviceProp );
       }
       else {
-         std::cout << cudaGetErrorString( cudaGetLastError() );
+         message0( cudaGetErrorString( err ) );
       }
    }
 
@@ -79,5 +86,3 @@ void displayAllGPUsProperties( void )
 }
 
 #endif
-
-

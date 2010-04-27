@@ -49,7 +49,7 @@ namespace ext
 
       public:
          // constructors
-         GPUProcessor( int id ) : Accelerator( id, &GPU ), _gpuDevice(_deviceSeed++), _cache() {}
+         GPUProcessor( int id ) : Accelerator( id, &GPU ), _gpuDevice( _deviceSeed++ ), _cache() {}
 
          virtual ~GPUProcessor() {}
 

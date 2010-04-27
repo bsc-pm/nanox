@@ -211,10 +211,7 @@ void System::start ()
       }
    }
 
-   //TODO: define GPU_DEV when CUDA-capable GPUs are available
 #ifdef GPU_DEV
-   std::cout << "GPU_DEV defined!" << std::endl;
-
    int gpuC;
    for ( gpuC = 0; gpuC < nanos::ext::GPUDD::getGPUCount(); gpuC++ ) {
       PE *gpu = new nanos::ext::GPUProcessor( p++ );

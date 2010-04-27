@@ -31,7 +31,7 @@ int GPUDD::_gpuCount = 0;
 
 GPUDD * GPUDD::copyTo ( void *toAddr )
 {
-   GPUDD *dd = new (toAddr) GPUDD(*this);
+   GPUDD *dd = new ( toAddr ) GPUDD( *this );
    return dd;
 }
 

@@ -18,8 +18,8 @@
 /*************************************************************************************/
 
 #include "gpuprocessor.hpp"
-#include "schedule.hpp"
 #include "debug.hpp"
+#include "schedule.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -40,6 +40,7 @@ WorkDescriptor & GPUProcessor::getMasterWD () const
 
 BaseThread &GPUProcessor::createThread ( WorkDescriptor &helper )
 {
+   // In fact, the GPUThread will run on the CPU, so make sure it canRunIn( SMP )
    ensure( helper.canRunIn( SMP ), "Incompatible worker thread" );
    GPUThread &th = *new GPUThread( helper,this, _gpuDevice );
 
