@@ -94,7 +94,7 @@ namespace nanos {
 
          /*! \brief Inserts (or gets) a value into (from) valueMap 
           */
-         nanos_event_value_t registerValue ( std::string value, std::string description="" );
+         nanos_event_value_t registerValue ( std::string value, std::string description="", bool abort_when_registered=true );
 
          /*! \brief Gets a value into (from) valueMap 
           */
@@ -135,21 +135,15 @@ namespace nanos {
             registerEventValue("api","find_slicer","nanos_find_slicer()");
             registerEventValue("api","wg_wait_completion","nanos_wg_wait_completion()");
             registerEventValue("api","*_create_sync_cond","nanos_create_xxx_cond()");
-            registerEventValue("api","*_create_sync_cond","nanos_create_xxx_cond()");
             registerEventValue("api","sync_cond_wait","nanos_sync_cond_wait()");
-            registerEventValue("api", "sync_cond_signal","nanos_sync_cond_signal()");
+            registerEventValue("api","sync_cond_signal","nanos_sync_cond_signal()");
             registerEventValue("api","destroy_sync_cond","nanos_destroy_sync_cond()");
             registerEventValue("api","wait_on","nanos_wait_on()");
-            registerEventValue("api","*_lock","nanos_xxx_lock()");
-            registerEventValue("api","*_lock","nanos_xxx_lock()");
-            registerEventValue("api","*_lock","nanos_xxx_lock()");
-            registerEventValue("api","*_lock","nanos_try_lock()");
             registerEventValue("api","*_lock","nanos_xxx_lock()");
             registerEventValue("api","single_guard","nanos_single_guard()");
             registerEventValue("api","team_barrier","nanos_team_barrier()");
             registerEventValue("api","current_wd", "nanos_current_wd()");
             registerEventValue("api","get_wd_id","nanos_get_wd_id()");
-            registerEventValue("api","*_create_wd","nanos_create_xxx_wd()");
             registerEventValue("api","*_create_wd","nanos_create_xxx_wd()");
             registerEventValue("api","submit","nanos_submit()");
             registerEventValue("api","create_wd_and_run","nanos_create_wd_and_run()");
@@ -169,7 +163,7 @@ namespace nanos {
 
          /*! \brief Inserts (or gets) a key into (from) the keyMap
           */
-         nanos_event_key_t registerEventKey ( std::string key, std::string description="" );
+         nanos_event_key_t registerEventKey ( std::string key, std::string description="", bool abort_when_registered=true );
 
          /*! \brief Gets a key into (from) the keyMap
           */
@@ -177,7 +171,7 @@ namespace nanos {
 
          /*! \brief Inserts (or gets) a value into (from) the valueMap (which belongs to 'key' parameter )
           */
-         nanos_event_value_t registerEventValue ( std::string key, std::string value, std::string description="" );
+         nanos_event_value_t registerEventValue ( std::string key, std::string value, std::string description="", bool abort_when_registered=true );
 
          /*! \brief Gets a value into (from) the valueMap (which belongs to 'key' parameter )
           */

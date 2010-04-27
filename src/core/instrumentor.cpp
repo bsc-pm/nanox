@@ -48,7 +48,7 @@ void Instrumentor::leaveRuntimeAPI ( )
    InstrumentorContext::BurstIterator it;
 
    InstrumentorDictionary *iD = getInstrumentorDictionary();
-   nanos_event_key_t key = iD->registerEventKey("api","Nanos Runtime API");
+   nanos_event_key_t key = iD->getEventKey("api");
    if ( !instrContext.findBurstByKey( key, it ) )
       fatal0("Burst doesn't exists");
 
@@ -75,7 +75,7 @@ void Instrumentor::wdCreate( WorkDescriptor* newWD )
 
    /* Register (if not) key and values */
    InstrumentorDictionary *iD = getInstrumentorDictionary();
-   if ( key != 0 ) key = iD->registerEventKey("wd-id","Work Descriptor id:");
+   if ( key != 0 ) key = iD->getEventKey("wd-id");
 
    /* Getting work descriptor id */
    nanos_event_value_t wd_id = newWD->getId();
