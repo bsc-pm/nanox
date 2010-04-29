@@ -102,6 +102,7 @@ namespace nanos
          WDDeque::BaseContainer::iterator it;
 
          for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
+            if ( !(*it)->canRunIn(*thread->runningOn()) ) continue;
             if ( !( *it )->isTied() || ( *it )->isTiedTo() == thread ) {
                if ( (((WD*)( *it ))->dequeue( &found )) == true ) _dq.erase( it );
                break;
@@ -137,6 +138,7 @@ namespace nanos
          rit = _dq.rbegin();
 
          while ( rit != _dq.rend() ) {
+            if ( !(*rit)->canRunIn(*thread->runningOn()) ) continue;
             if ( !( *rit )->isTied() || ( *rit )->isTiedTo() == thread ) {
                if ( (( *rit )->dequeue( &found )) == true ) _dq.erase( ( ++rit ).base() );
                break;
@@ -162,6 +164,9 @@ namespace nanos
          return false;
 
       if ( toRem->isTied() && toRem->isTiedTo() != thread )
+         return false;
+
+      if ( !toRem->canRunIn(*thread->runningOn()) )
          return false;
 
       _lock++;
@@ -203,6 +208,7 @@ namespace nanos
          WDDeque::BaseContainer::iterator it;
 
          for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
+            if ( !(*it)->canRunIn(*thread->runningOn()) ) continue;
             if ( ( !( *it )->isTied() || ( *it )->isTiedTo() == thread ) && ( predicate( *it ) == true ) ) {
                if ( (( *it )->dequeue( &found )) == true ) _dq.erase( it );
                break;
@@ -240,6 +246,7 @@ namespace nanos
          rit = _dq.rbegin();
 
          while ( rit != _dq.rend() ) {
+            if ( !(*rit)->canRunIn(*thread->runningOn()) ) continue;
             if ( ( !( *rit )->isTied() || ( *rit )->isTiedTo() == thread )  && ( predicate( *rit ) == true ) ) {
                if ( (( *rit )->dequeue( &found )) == true ) _dq.erase( ( ++rit ).base() );
                break;
