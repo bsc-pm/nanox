@@ -158,6 +158,7 @@ bool SlicerStaticFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
 
       if ( last ) *slice = wd;
       else {
+         *slice = NULL;
          sys.duplicateWD( slice, wd );
          (( SlicerDataFor *)wd->getSlicerData())->setLower( _lower );
       }

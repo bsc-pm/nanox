@@ -63,7 +63,10 @@ bool SlicerGuidedFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
    (( SlicerDataFor *)wd->getSlicerData())->setLower( upper + _step);
 
    if ( last ) *slice = wd;
-   else sys.duplicateWD( slice, wd );
+   else {
+      *slice = NULL;
+      sys.duplicateWD( slice, wd );
+   }
 
    ((nanos_loop_info_t *)((*slice)->getData()))->lower = lower;
    ((nanos_loop_info_t *)((*slice)->getData()))->upper = upper;
