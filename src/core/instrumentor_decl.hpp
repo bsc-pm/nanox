@@ -153,6 +153,10 @@ namespace nanos {
 
             /* 02 */ registerEventKey("wd-id","Work Descriptor id:");
 
+            /* 03 */ registerEventKey("copy-in","");
+            /* 04 */ registerEventKey("copy-out","");
+            /* 05 */ registerEventKey("local-copy","");
+
 #endif
 
          }
@@ -430,6 +434,9 @@ namespace nanos {
           *  \param[in] newWD, is the work descriptor which enters the cpu
           */
          virtual void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD );
+
+         virtual void enterTransfer( std::string type, size_t size );
+         virtual void leaveTransfer( void );
 
          /*! \brief Used to mark the begin of runtime start-up phase
           *

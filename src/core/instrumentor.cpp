@@ -220,6 +220,29 @@ void Instrumentor::wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD )
    addEventList ( numEvents, e );
 }
 
+void Instrumentor::enterTransfer( std::string type, size_t size )
+{
+   nanos_event_key_t key = getInstrumentorDictionary()->getEventKey(type);
+   nanos_event_value_t val = (nanos_event_value_t) size;
+
+   /* Create a vector of two events: STATE and BURST */
+   Event::KV kv( Event::KV( key, val ) );
+   Event e[2] = { State(MEM_TRANSFER), Burst( true, kv) };
+
+   /* Update instrumentor context with new state and open burst */
+   InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
+   instrContext.pushState(MEM_TRANSFER);
+   instrContext.insertBurst( e[1] );
+
+   /* Adding event list */
+   addEventList ( 2, e );
+
+}
+void Instrumentor::leaveTransfer( void )
+{
+
+}
+
 void Instrumentor::enterIdle ( )
 {
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
