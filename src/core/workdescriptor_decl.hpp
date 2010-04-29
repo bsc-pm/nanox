@@ -201,11 +201,7 @@ namespace nanos
                     _myQueue ( NULL ), _depth ( wd._depth ), _numDevices ( wd._numDevices ),
                     _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
                     _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
-                    _doSubmit(), _doWait(), _depsDomain(), _instrumentorContext( wd._instrumentorContext )
-         { 
-            /* adding wd to parent workdescriptor's workgroup */
-            _parent->addWork( *this );
-         }
+                    _doSubmit(), _doWait(), _depsDomain(), _instrumentorContext( wd._instrumentorContext ) { }
 
          /*! \brief WorkDescriptor destructor
           *
