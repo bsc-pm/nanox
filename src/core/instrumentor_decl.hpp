@@ -436,7 +436,7 @@ namespace nanos {
          virtual void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD );
 
          virtual void enterTransfer( std::string type, size_t size );
-         virtual void leaveTransfer( void );
+         virtual void leaveTransfer( std::string type );
 
          /*! \brief Used to mark the begin of runtime start-up phase
           *

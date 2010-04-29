@@ -238,9 +238,31 @@ void Instrumentor::enterTransfer( std::string type, size_t size )
    addEventList ( 2, e );
 
 }
-void Instrumentor::leaveTransfer( void )
+void Instrumentor::leaveTransfer( std::string type )
 {
+   InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
+   InstrumentorContext::BurstIterator it;
 
+   InstrumentorDictionary *iD = getInstrumentorDictionary();
+   nanos_event_key_t key = iD->getEventKey(type);
+   if ( !instrContext.findBurstByKey( key, it ) )
+      fatal0("Burst doesn't exists");
+
+   Event &e1 =  (*it);
+   e1.reverseType();
+
+   /* Top is current state, so before we have to bring (pop) previous state
+    * on top of the stack and then restore previous state */
+   instrContext.popState();
+   nanos_event_state_value_t state = instrContext.topState();
+
+   /* Creating two events */
+   Event e[2] = { State(state), e1 };
+
+   /* Spawning two events: specific instrumentor call */
+   addEventList ( 2, e );
+
+   instrContext.removeBurst( it ); 
 }
 
 void Instrumentor::enterIdle ( )

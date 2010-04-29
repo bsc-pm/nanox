@@ -22,6 +22,7 @@
 
 #include "config.hpp"
 #include "compatibility.hpp"
+#include "instrumentor_decl.hpp"
 
 namespace nanos {
 
@@ -144,7 +145,9 @@ namespace nanos {
          */
          void copyData( uint64_t tag, size_t size )
          {
+            Instrumentor::enterTransfer( "cop-in", size );
             _T::copyIn( _cache[tag].getAddress(), tag, size );
+            Instrumentor::leaveTransfer( "cop-in" );
          }
 
         /* \brief Copy back from the entry to the address represented by the tag.
@@ -153,12 +156,14 @@ namespace nanos {
          */
          void copyBack( uint64_t tag, size_t size )
          {
+            Instrumentor::enterTransfer( "copy-out", size );
             CacheEntry &entry = _cache[tag];
             _T::copyOut( tag, entry.getAddress(), size );
             if ( !entry.hasRefs() ) {
                _T::free( entry.getAddress() );
                entry.setAddress(NULL);
             }
+            Instrumentor::leaveTransfer( "copy-out" );
          }
 
         /* \brief get the Address in the cache for tag
