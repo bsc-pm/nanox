@@ -62,7 +62,7 @@ class GPUPlugin : public Plugin
          }
 
          // Machines with no GPUs can still report one emulation device
-         for ( devices = 0; devices < totalCount; devices++ ) {
+         for ( device = 0; device < totalCount; device++ ) {
             cudaGetDeviceProperties( &gpuProperties, device );
             if ( gpuProperties.major != 9999 ) {
                // 9999 means emulation only
