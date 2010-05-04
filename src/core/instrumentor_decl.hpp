@@ -153,9 +153,9 @@ namespace nanos {
 
             /* 02 */ registerEventKey("wd-id","Work Descriptor id:");
 
-            /* 03 */ registerEventKey("copy-in","");
-            /* 04 */ registerEventKey("copy-out","");
-            /* 05 */ registerEventKey("local-copy","");
+            /* 03 */ registerEventKey("copy-in","Transfer data into device");
+            /* 04 */ registerEventKey("copy-out","Transfer data to main memory");
+            /* 05 */ registerEventKey("local-copy","Local copy in device memory");
 
 #endif
 
