@@ -81,8 +81,13 @@ namespace nanos {
             */
             virtual void queue ( BaseThread *thread, WD &wd )
             {
-                ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
-                data._readyQueue.push_front ( &wd );
+		ThreadData *data;
+		if ( wd.isTied() ) {
+                    data = ( ThreadData * ) wd.isTiedTo()->getTeamData()->getScheduleData();
+                } else {
+                    data = ( ThreadData * ) thread->getTeamData()->getScheduleData();
+		}
+                data->_readyQueue.push_front ( &wd );
             }
 
             /*!
