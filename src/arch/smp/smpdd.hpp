@@ -64,6 +64,12 @@ namespace ext
 
          void initStack( void *data );
 
+        /* \brief Wrapper called by the instrumented library to
+         * be able to instrument the exact moment in which the runtime
+         * is left and the user's code starts being executed.
+         */
+         static void workWrapper( void *data );
+
          intptr_t *getState() const { return _state; }
 
          void setState ( intptr_t * newState ) { _state = newState; }

@@ -23,6 +23,7 @@
 #include "config.hpp"
 #include "compatibility.hpp"
 #include "instrumentor_decl.hpp"
+#include "system.hpp"
 
 namespace nanos {
 

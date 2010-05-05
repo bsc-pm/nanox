@@ -87,7 +87,7 @@ void Instrumentor::wdCreate( WorkDescriptor* newWD )
    InstrumentorContext &instrContext = newWD->getInstrumentorContext();
  
    instrContext.insertBurst( e );
-   instrContext.pushState( RUNNING );
+   instrContext.pushState( RUNTIME );
 }
 
 void Instrumentor::wdEnterCPU( WorkDescriptor* newWD )
@@ -265,6 +265,35 @@ void Instrumentor::leaveTransfer( std::string type )
    instrContext.removeBurst( it ); 
 }
 
+void Instrumentor::enterUserCode ( void )
+{
+   /* Create an event: STATE */
+   Event e = State(RUNNING);
+
+   /* Update instrumentor context with new state */
+   InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
+   instrContext.pushState(RUNNING);
+
+   /* Adding event */
+   addEventList ( 1, &e );
+}
+
+void Instrumentor::leaveUserCode ( void )
+{
+   InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
+
+   /* Top is current state, so before we have to bring (pop) previous state
+    * on top of the stack and then restore previous state */
+   instrContext.popState();
+   nanos_event_state_value_t state = instrContext.topState();
+
+   /* Creating two events */
+   Event e = State(state);
+
+   /* Spawning two events: specific instrumentor call */
+   addEventList ( 1, &e );
+}
+
 void Instrumentor::enterIdle ( )
 {
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
@@ -391,10 +420,10 @@ void Instrumentor::leaveStartUp ( void )
    /* Recovering a state event from instrumentor context */
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
    instrContext.popState();
-   nanos_event_state_value_t state = instrContext.topState();
+   instrContext.pushState( RUNNING );
 
    /* Returning to previous state, spawning event */
-   Event e = State( state );
+   Event e = State( RUNNING );
    addEventList ( 1u, &e );
 }
 

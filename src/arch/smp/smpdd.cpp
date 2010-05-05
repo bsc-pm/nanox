@@ -22,6 +22,7 @@
 #include "debug.hpp"
 #include "system.hpp"
 #include "smp_ult.hpp"
+#include "instrumentor_decl.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -54,7 +55,19 @@ void SMPDD::prepareConfig( Config &config )
 
 void SMPDD::initStack ( void *data )
 {
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   _state = ::initContext( _stack, _stackSize, ( void * )&workWrapper,data,( void * )Scheduler::exit, 0 );
+#else
    _state = ::initContext( _stack, _stackSize, ( void * )getWorkFct(),data,( void * )Scheduler::exit, 0 );
+#endif
+}
+
+void SMPDD::workWrapper( void *data )
+{
+   SMPDD &dd = ( SMPDD & ) myThread->getCurrentWD()->getActiveDevice();
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->enterUserCode() );
+   dd.getWorkFct()( data );
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->leaveUserCode() );
 }
 
 void SMPDD::lazyInit (WD &wd, bool isUserLevelThread, WD *previous)

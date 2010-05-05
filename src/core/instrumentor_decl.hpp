@@ -438,6 +438,14 @@ namespace nanos {
          virtual void enterTransfer( std::string type, size_t size );
          virtual void leaveTransfer( std::string type );
 
+         /*! \brief Used to mark when the user's code starts being executed
+          */
+         virtual void enterUserCode ( void );
+
+         /*! \brief Used to mark when the user's code starts ends executed
+          */
+         virtual void leaveUserCode ( void );
+
          /*! \brief Used to mark the begin of runtime start-up phase
           *
           *  \see leaveStartUp

@@ -24,6 +24,7 @@
 #include <iostream>
 #include <sched.h>
 #include "smp_ult.hpp"
+#include "instrumentor_decl.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -110,7 +111,9 @@ void SMPThread::switchHelperDependent ( WD *oldWD, WD *newWD, void *oldState  )
 void SMPThread::inlineWorkDependent ( WD &wd )
 {
    SMPDD &dd = ( SMPDD & )wd.getActiveDevice();
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->enterUserCode() );
    ( dd.getWorkFct() )( wd.getData() );
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->leaveUserCode() );
 }
 
 void SMPThread::switchTo ( WD *wd, SchedulerHelper *helper )
