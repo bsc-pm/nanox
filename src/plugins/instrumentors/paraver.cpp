@@ -91,8 +91,9 @@ class InstrumentorParaver: public Instrumentor
             p_file << RUNTIME          << "     RUNTIME" << std::endl;
             p_file << RUNNING          << "     RUNNING" << std::endl;
             p_file << SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
-            p_file << SCHEDULING       << "     SCHED-FORK/JOIN" << std::endl;
-            p_file << FORK_JOIN        << "     SCHED-FORK/JOIN" << std::endl;
+            p_file << SCHEDULING       << "     SCHEDULING" << std::endl;
+            p_file << FORK_JOIN        << "     FORK/JOIN" << std::endl;
+            p_file << MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
             p_file << std::endl;
 
             /* Event: PtPStart main event */
