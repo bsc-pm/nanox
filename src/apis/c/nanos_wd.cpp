@@ -167,6 +167,7 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *
 
       if ( deps != NULL ) {
          sys.submitWithDependencies( *wd, num_deps, deps );
+         NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
          return NANOS_OK;
       }
 
