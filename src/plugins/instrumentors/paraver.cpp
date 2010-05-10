@@ -94,6 +94,7 @@ class InstrumentorParaver: public Instrumentor
             p_file << SCHEDULING       << "     SCHEDULING" << std::endl;
             p_file << FORK_JOIN        << "     FORK/JOIN" << std::endl;
             p_file << MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
+            p_file << CACHE            << "     CACHE ALLOC/FREE" << std::endl;
             p_file << std::endl;
 
             /* Event: PtPStart main event */
