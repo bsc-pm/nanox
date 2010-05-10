@@ -133,6 +133,7 @@ nanos_err_t nanos_wait_on ( size_t num_deps, nanos_dependence_t *deps )
       NANOS_INSTRUMENTOR( inst->enterRuntimeAPI(val,RUNTIME) );
       if ( deps != NULL ) {
          sys.waitOn( num_deps, deps );
+         NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
          return NANOS_OK;
       }
 

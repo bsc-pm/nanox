@@ -150,6 +150,9 @@ namespace nanos {
             registerEventValue("api","set_internal_wd_data","nanos_set_internal_wd_data()");
             registerEventValue("api","get_internal_wd_data","nanos_get_internal_wd_data()");
             registerEventValue("api","yield","nanos_yield()");
+            registerEventValue("api","create_team","nanos_create_team()");
+            registerEventValue("api","leave_team","nanos_leave_team()");
+            registerEventValue("api","end_team","nanos_end_team()");
 
             /* 02 */ registerEventKey("wd-id","Work Descriptor id:");
 
