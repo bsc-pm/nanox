@@ -21,6 +21,8 @@
 #include "debug.hpp"
 #include "schedule.hpp"
 #include "copydata.hpp"
+#include "instrumentor_decl.hpp"
+#include "system.hpp"
 
 using namespace nanos;
 
@@ -39,8 +41,11 @@ void Accelerator::copyDataIn( WorkDescriptor &work )
       CopyData & cd = copies[i];
       uint64_t tag = (uint64_t) cd.isPrivate() ? ((uint64_t) work.getData() + (unsigned long)cd.getAddress()) : cd.getAddress();
       this->registerDataAccessDependent( tag, cd.getSize() );
-      if ( cd.isInput() )
+      if ( cd.isInput() ) {
+         NANOS_INSTRUMENTOR( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("copy-in") );
+         NANOS_INSTRUMENTOR( sys.getInstrumentor()->registerCopy( key, cd.getSize() ) );
          this->copyDataDependent( tag, cd.getSize() );
+      }
    }
 #if LOCK_TRANSFER
    _transferLock.release();
@@ -57,8 +62,11 @@ void Accelerator::copyDataOut( WorkDescriptor& work )
       CopyData & cd = copies[i];
       uint64_t tag = (uint64_t) cd.isPrivate() ? ((uint64_t) work.getData() + (unsigned long) cd.getAddress()) : cd.getAddress();
       this->unregisterDataAccessDependent( tag );
-      if ( cd.isOutput() )
-          this->copyBackDependent( tag, cd.getSize() );
+      if ( cd.isOutput() ) {
+         NANOS_INSTRUMENTOR( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("copy-out") );
+         NANOS_INSTRUMENTOR( sys.getInstrumentor()->registerCopy( key, cd.getSize() ) );
+         this->copyBackDependent( tag, cd.getSize() );
+      }
    }
 #if LOCK_TRANSFER
    _transferLock.release();

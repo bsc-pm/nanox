@@ -220,9 +220,60 @@ void Instrumentor::wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD )
    addEventList ( numEvents, e );
 }
 
-void Instrumentor::enterTransfer( std::string type, size_t size )
+void Instrumentor::registerCopy( nanos_event_key_t key, size_t size )
 {
-   nanos_event_key_t key = getInstrumentorDictionary()->getEventKey(type);
+   nanos_event_value_t val = (nanos_event_value_t) size;
+
+   Event::KV kv( Event::KV( key, val ) );
+   Event e = Point( 1, &kv );
+
+   addEventList ( 1, &e );
+}
+
+void Instrumentor::enterCache( nanos_event_key_t key, size_t size )
+{
+   nanos_event_value_t val = (nanos_event_value_t) size;
+
+   /* Create a vector of two events: STATE and BURST */
+   Event::KV kv( Event::KV( key, val ) );
+   Event e[2] = { State(CACHE), Burst( true, kv) };
+
+   /* Update instrumentor context with new state and open burst */
+   InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
+   instrContext.pushState(CACHE);
+   instrContext.insertBurst( e[1] );
+
+   /* Adding event list */
+   addEventList ( 2, e );
+}
+
+void Instrumentor::leaveCache( nanos_event_key_t key )
+{
+   InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
+   InstrumentorContext::BurstIterator it;
+
+   if ( !instrContext.findBurstByKey( key, it ) )
+      fatal0("Burst doesn't exists");
+
+   Event &e1 =  (*it);
+   e1.reverseType();
+
+   /* Top is current state, so before we have to bring (pop) previous state
+    * on top of the stack and then restore previous state */
+   instrContext.popState();
+   nanos_event_state_value_t state = instrContext.topState();
+
+   /* Creating two events */
+   Event e[2] = { State(state), e1 };
+
+   /* Spawning two events: specific instrumentor call */
+   addEventList ( 2, e );
+
+   instrContext.removeBurst( it );
+}
+
+void Instrumentor::enterTransfer( nanos_event_key_t key, size_t size )
+{
    nanos_event_value_t val = (nanos_event_value_t) size;
 
    /* Create a vector of two events: STATE and BURST */
@@ -236,15 +287,13 @@ void Instrumentor::enterTransfer( std::string type, size_t size )
 
    /* Adding event list */
    addEventList ( 2, e );
-
 }
-void Instrumentor::leaveTransfer( std::string type )
+
+void Instrumentor::leaveTransfer( nanos_event_key_t key )
 {
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
    InstrumentorContext::BurstIterator it;
 
-   InstrumentorDictionary *iD = getInstrumentorDictionary();
-   nanos_event_key_t key = iD->getEventKey(type);
    if ( !instrContext.findBurstByKey( key, it ) )
       fatal0("Burst doesn't exists");
 

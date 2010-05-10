@@ -102,6 +102,7 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
       NANOS_INSTRUMENTOR( inst->enterRuntimeAPI(val,RUNTIME) );
       if ( ( props == NULL  || ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTask() ) {
          *uwd = 0;
+         NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
          return NANOS_OK;
       }
       sys.createWD ( (WD **) uwd, num_devices, devices, data_size, (void **) data, (WG *) uwg, props, num_copies, copies );
@@ -130,6 +131,7 @@ nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_
       NANOS_INSTRUMENTOR( inst->enterRuntimeAPI(val,RUNTIME) );
       if ( ( props == NULL  || ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTask() ) {
          *uwd = 0;
+         NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
          return NANOS_OK;
       }
       if ( slicer_data == NULL ) {

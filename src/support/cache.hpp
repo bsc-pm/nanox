@@ -126,7 +126,10 @@ namespace nanos {
          {
             CacheEntry &entry = _cache[tag];
             if ( !entry.hasRefs() ) {
+               NANOS_INSTRUMENTOR( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("cache-malloc") );
+               NANOS_INSTRUMENTOR( sys.getInstrumentor()->enterCache( key, size) );
                entry.setAddress( _T::allocate( size ) );
+               NANOS_INSTRUMENTOR( sys.getInstrumentor()->leaveCache( key ) );
             }
             entry.increaseRefs();
          }
@@ -146,9 +149,10 @@ namespace nanos {
          */
          void copyData( uint64_t tag, size_t size )
          {
-            NANOS_INSTRUMENTOR( sys.getInstrumentor()->enterTransfer( "copy-in", size) );
+            NANOS_INSTRUMENTOR( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("cache-copy-in") );
+            NANOS_INSTRUMENTOR( sys.getInstrumentor()->enterTransfer( key, size) );
             _T::copyIn( _cache[tag].getAddress(), tag, size );
-            NANOS_INSTRUMENTOR( sys.getInstrumentor()->leaveTransfer( "copy-in" ) );
+            NANOS_INSTRUMENTOR( sys.getInstrumentor()->leaveTransfer( key ) );
          }
 
         /* \brief Copy back from the entry to the address represented by the tag.
@@ -157,14 +161,18 @@ namespace nanos {
          */
          void copyBack( uint64_t tag, size_t size )
          {
-            NANOS_INSTRUMENTOR( sys.getInstrumentor()->enterTransfer( "copy-out", size ) );
+            NANOS_INSTRUMENTOR( static nanos_event_key_t key1 = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("cache-copy-out") );
+            NANOS_INSTRUMENTOR( sys.getInstrumentor()->enterTransfer( key1, size ) );
             CacheEntry &entry = _cache[tag];
             _T::copyOut( tag, entry.getAddress(), size );
             if ( !entry.hasRefs() ) {
+               NANOS_INSTRUMENTOR( static nanos_event_key_t key2 = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("cache-free") );
+               NANOS_INSTRUMENTOR( sys.getInstrumentor()->enterCache( key2, size) );
                _T::free( entry.getAddress() );
+               NANOS_INSTRUMENTOR( sys.getInstrumentor()->leaveCache( key2 ) );
                entry.setAddress(NULL);
             }
-            NANOS_INSTRUMENTOR( sys.getInstrumentor()->leaveTransfer( "copy-out" ) );
+            NANOS_INSTRUMENTOR( sys.getInstrumentor()->leaveTransfer( key1 ) );
          }
 
         /* \brief get the Address in the cache for tag
@@ -183,7 +191,10 @@ namespace nanos {
          */
          void copyTo( void *dst, uint64_t tag, size_t size )
          {
+            NANOS_INSTRUMENTOR( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("cache-local-copy") );
+            NANOS_INSTRUMENTOR( sys.getInstrumentor()->enterTransfer( key, size ) );
             _T::copyLocal( dst, _cache[tag].getAddress(), size );
+            NANOS_INSTRUMENTOR( sys.getInstrumentor()->leaveTransfer( key ) );
          }
    };
 }

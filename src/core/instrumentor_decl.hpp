@@ -150,12 +150,20 @@ namespace nanos {
             registerEventValue("api","set_internal_wd_data","nanos_set_internal_wd_data()");
             registerEventValue("api","get_internal_wd_data","nanos_get_internal_wd_data()");
             registerEventValue("api","yield","nanos_yield()");
+            registerEventValue("api","create_team","nanos_create_team()");
+            registerEventValue("api","leave_team","nanos_leave_team()");
+            registerEventValue("api","end_team","nanos_end_team()");
 
             /* 02 */ registerEventKey("wd-id","Work Descriptor id:");
 
-            /* 03 */ registerEventKey("copy-in","Transfer data into device");
-            /* 04 */ registerEventKey("copy-out","Transfer data to main memory");
-            /* 05 */ registerEventKey("local-copy","Local copy in device memory");
+            /* 03 */ registerEventKey("cache-copy-in","Transfer data into device cache");
+            /* 04 */ registerEventKey("cache-copy-out","Transfer data to main memory");
+            /* 05 */ registerEventKey("cache-local-copy","Local copy in device memory");
+            /* 06 */ registerEventKey("cache-malloc","Memory allocation in device cache");
+            /* 07 */ registerEventKey("cache-free","Memory free in device cache");
+
+            /* 08 */ registerEventKey("copy-in","Copying WD inputs");
+            /* 09 */ registerEventKey("copy-out","Copying WD outputs");
 
 #endif
 
@@ -435,8 +443,13 @@ namespace nanos {
           */
          virtual void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD );
 
-         virtual void enterTransfer( std::string type, size_t size );
-         virtual void leaveTransfer( std::string type );
+         virtual void registerCopy( nanos_event_key_t key, size_t size );
+
+         virtual void enterCache( nanos_event_key_t key, size_t size );
+         virtual void leaveCache( nanos_event_key_t key );
+
+         virtual void enterTransfer( nanos_event_key_t key, size_t size );
+         virtual void leaveTransfer( nanos_event_key_t key );
 
          /*! \brief Used to mark when the user's code starts being executed
           */
