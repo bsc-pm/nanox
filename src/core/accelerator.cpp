@@ -24,8 +24,16 @@
 
 using namespace nanos;
 
+#if LOCK_TRANSFER
+Lock Accelerator::_transferLock;
+#endif
+
+
 void Accelerator::copyDataIn( WorkDescriptor &work )
 {
+#if LOCK_TRANSFER
+   _transferLock.acquire();
+#endif
    CopyData *copies = work.getCopies();
    for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
       CopyData & cd = copies[i];
@@ -33,11 +41,17 @@ void Accelerator::copyDataIn( WorkDescriptor &work )
       this->registerDataAccessDependent( tag, cd.getSize() );
       if ( cd.isInput() )
          this->copyDataDependent( tag, cd.getSize() );
-   }      
+   }
+#if LOCK_TRANSFER
+   _transferLock.release();
+#endif
 }
 
 void Accelerator::copyDataOut( WorkDescriptor& work )
 {
+#if LOCK_TRANSFER
+   _transferLock.acquire();
+#endif
    CopyData *copies = work.getCopies();
    for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
       CopyData & cd = copies[i];
@@ -46,6 +60,9 @@ void Accelerator::copyDataOut( WorkDescriptor& work )
       if ( cd.isOutput() )
           this->copyBackDependent( tag, cd.getSize() );
    }
+#if LOCK_TRANSFER
+   _transferLock.release();
+#endif
 }
 
 void* Accelerator::getAddress( WorkDescriptor &wd, uint64_t tag, nanos_sharing_t sharing )
