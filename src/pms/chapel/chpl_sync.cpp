@@ -37,6 +37,7 @@ using namespace nanos;
 
 void CHPL_MUTEX_INIT(chpl_mutex_t* mutex)
 {
+   fatal("Unimplemented service");
 }
 
 chpl_mutex_t* CHPL_MUTEX_NEW(void)
@@ -62,57 +63,84 @@ void CHPL_SYNC_INIT_AUX(chpl_sync_aux_t *s)
 {
    s->is_full = false;
 
-   s->empty = (void * )new SingleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>( &s->is_full, false ) );
-   s->full = (void *) new SingleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>( &s->is_full, true ) );
+   s->empty = (void * )new MultipleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>( &s->is_full, false ) , 4);
+   s->full = (void *) new MultipleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>( &s->is_full, true ) , 4);
+
+   s->lock = (void *) new Lock();
 }
 
 void CHPL_SYNC_DESTROY_AUX(chpl_sync_aux_t *s)
 {
-  delete (GenericSyncCond *)s->empty;
-  delete (GenericSyncCond *)s->full;
+   delete (GenericSyncCond *)s->empty;
+   delete (GenericSyncCond *)s->full;
 }
 
 void CHPL_SYNC_WAIT_FULL_AND_LOCK(chpl_sync_aux_t *s,
                                   int32_t lineno, chpl_string filename)
 {
-  GenericSyncCond *sync = (GenericSyncCond *) s->full;
-  sync->wait();
+   GenericSyncCond *sync = (GenericSyncCond *) s->full;
+   Lock *l = (Lock *)s->lock;
+
+   l->acquire();
+   while ( !s->is_full ) {
+      l->release();
+      sync->wait();
+      l->acquire();
+   }
 }
 
 void CHPL_SYNC_WAIT_EMPTY_AND_LOCK(chpl_sync_aux_t *s,
                                    int32_t lineno, chpl_string filename)
 {
-  GenericSyncCond *sync = (GenericSyncCond *) s->full;
-  sync->signal_one();
+   GenericSyncCond *sync = (GenericSyncCond *) s->empty;
+   Lock *l = (Lock *)s->lock;
+
+   l->acquire();
+   while ( s->is_full ) {
+      l->release();
+      sync->wait();
+      l->acquire();
+   }
+  
 }
 
 void CHPL_SYNC_MARK_AND_SIGNAL_FULL(chpl_sync_aux_t *s)
 {
-  s->is_full = true;
-  GenericSyncCond *sync = (GenericSyncCond *) s->full;
-  sync->signal_one();
+   GenericSyncCond *sync = (GenericSyncCond *) s->full;
+   Lock *l = (Lock *)s->lock;
+
+   s->is_full = true;
+   sync->signal_one();
+   l->release();
 }
 
 void CHPL_SYNC_MARK_AND_SIGNAL_EMPTY(chpl_sync_aux_t *s)
 {
-  s->is_full = false;
-  GenericSyncCond *sync = (GenericSyncCond *) s->full;
-  sync->signal_one();
+   GenericSyncCond *sync = (GenericSyncCond *) s->empty;
+   Lock *l = (Lock *)s->lock;
+
+   s->is_full = false;
+   sync->signal_one();
+   l->release();
 }
 
 chpl_bool CHPL_SYNC_IS_FULL(void *val_ptr,
                             chpl_sync_aux_t *s,
                             chpl_bool simple_sync_var)
 {
-  return s->is_full;
+   return s->is_full;
 }
 
 void CHPL_SYNC_LOCK(chpl_sync_aux_t *s)
 {
+   Lock *l = (Lock *)s->lock;
+   l->acquire();
 }
 
 void CHPL_SYNC_UNLOCK(chpl_sync_aux_t *s)
 {
+   Lock *l = (Lock *)s->lock;
+   l->release();
 }
 
 // Single variables interface
@@ -120,7 +148,6 @@ void CHPL_SYNC_UNLOCK(chpl_sync_aux_t *s)
 void CHPL_SINGLE_INIT_AUX(chpl_single_aux_t *s)
 {
    s->is_full = false;
-
    s->full = (void *) new SingleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>( &s->is_full, true ) );
 }
 

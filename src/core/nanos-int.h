@@ -107,7 +107,7 @@ typedef struct {
    bool reserved3:1;
    bool reserved4:1;
    bool reserved5:1;
-   nanos_thread_t * tie_to;
+   nanos_thread_t tie_to;
    unsigned int priority;
 } nanos_wd_props_t;
 
