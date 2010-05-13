@@ -24,6 +24,7 @@
 #include "schedule.hpp"
 #include "nanos-int.h"
 #include "slicer_fwd.hpp"
+#include <list>                                                                                                                                          
 
 namespace nanos
 {
@@ -164,6 +165,23 @@ namespace nanos
          int getSign  ( void ) { return _sign; }
    };
 
+   class SlicerDataCompoundWD : public nanos_slicer_data_compound_wd_internal_t, public SlicerData
+   {
+      /* int _nWD: Number of WorkDescriptor's */
+      public:
+         // constructor
+         SlicerDataCompoundWD ( int n ) { _nWD = n; }
+         // destructor
+         ~SlicerDataCompoundWD ( ) { }
+
+         /*! \brief Decrement internal counter by one
+          *
+          *  This function decrements the internal variable counter by one
+          *
+          *  \return Internal counter after decrementing its value
+          */ 
+         int getN () { return --_nWD; }
+   };
 };
 
 #endif
