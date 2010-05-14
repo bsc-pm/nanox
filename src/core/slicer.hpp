@@ -170,7 +170,11 @@ namespace nanos
       /* int _nWD: Number of WorkDescriptor's */
       public:
          // constructor
-         SlicerDataCompoundWD ( int n ) { _nWD = n; }
+         SlicerDataCompoundWD ( int n )
+         {
+            fprintf(stderr, "compound of %d sects\n",n);
+            _nWD = n;
+         }
          // destructor
          ~SlicerDataCompoundWD ( ) { }
 
@@ -180,7 +184,7 @@ namespace nanos
           *
           *  \return Internal counter after decrementing its value
           */ 
-         int getN () { return --_nWD; }
+         int getNextIndex () { return --_nWD; }
    };
 };
 

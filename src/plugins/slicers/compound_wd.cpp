@@ -25,23 +25,23 @@ void SlicerCompoundWD::submit ( SlicedWD &work )
    Scheduler::submit ( work );
 }
 
-/* \brief Dequeue a RepeatN SlicedWD
+/* \brief Dequeue a SlicerCompoundWD WD
  *
- *  This function dequeues a RepeantN SlicedWD returning true if there
- *  will be no more slices to manage (i.e. this is the last chunk to
- *  execute. The received paramenter wd has to be associated with a
- *  SlicerRepeatN and SlicerDataRepeatN objects.
+ *  This function dequeues a SlicerCompoundWD returning true if there
+ *  will be no more slices to manage (i.e. this is the last section to
+ *  execute.
  *
- *  \param [in] wd is the former WorkDescriptor
+ *  \param [in] wd is the original WorkDescriptor
  *  \param [out] slice is the next portion to execute
  *
  *  \return true if there are no more slices in the former wd, false otherwise
  */
 bool SlicerCompoundWD::dequeue ( SlicedWD *wd, WorkDescriptor **slice)
 {
-   int n = ((SlicerDataCompoundWD *)(wd->getSlicerData()))->getN();
+   int n = ((SlicerDataCompoundWD *)(wd->getSlicerData()))->getNextIndex();
    *slice = ( (WorkDescriptor**)(wd->getData()) )[n];
-   return !n;
+   if ( n == 0 ) return true;
+   else return false;
 }
 
 namespace ext {
