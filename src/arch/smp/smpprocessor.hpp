@@ -22,9 +22,9 @@
 
 #include "config.hpp"
 #include "smpthread.hpp"
-#include "cache.hpp"
 #include "smpdevice.hpp"
 #ifdef SMP_NUMA
+#include "cache.hpp"
 #include "accelerator.hpp"
 #else
 #include "processingelement.hpp"
