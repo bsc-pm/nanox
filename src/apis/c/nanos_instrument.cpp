@@ -49,6 +49,19 @@ nanos_err_t nanos_instrument_register_value ( nanos_event_value_t *event_value, 
    return NANOS_OK;
 }
 
+nanos_err_t nanos_instrument_get_key (const char *key, nanos_event_key_t *event_key)
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   try
+   {
+      *event_key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey(key);
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+#endif
+   return NANOS_OK;
+}
+
 // FIXME:
 #if 0
    sys.getInstrumentor()->static Instrumentor *inst = sys.getInstrumentor() );

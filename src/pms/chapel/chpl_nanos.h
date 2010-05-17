@@ -39,6 +39,7 @@ typedef struct {
    bool is_full;
    void *empty;
    void *full;
+   void *lock;
 } chpl_sync_aux_t;
 
 typedef struct {

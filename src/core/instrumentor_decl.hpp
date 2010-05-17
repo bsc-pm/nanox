@@ -165,6 +165,8 @@ namespace nanos {
             /* 08 */ registerEventKey("copy-in","Copying WD inputs");
             /* 09 */ registerEventKey("copy-out","Copying WD outputs");
 
+            /* 10 */ registerEventKey("user-funct","User Functions");
+
 #endif
 
          }
