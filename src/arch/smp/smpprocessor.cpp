@@ -63,29 +63,29 @@ BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper )
 
 #if SMP_NUMA
 
-void SMPProcessor::registerDataAccessDependent( uint64_t tag, size_t size )
+void SMPProcessor::registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output )
 {
-   _cache.cacheData( tag, size );
+   _cache.registerCacheAccess( tag, size, input, output );
 }
 
-void SMPProcessor::copyDataDependent( uint64_t tag, size_t size )
+void SMPProcessor::unregisterCacheAccessDependent( uint64_t tag, size_t size )
 {
-   _cache.copyData( tag, size );
+   _cache.unregisterCacheAccess( tag, size );
 }
 
-void SMPProcessor::unregisterDataAccessDependent( uint64_t tag )
+void SMPProcessor::registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output )
 {
-   _cache.flush( tag );
+   _cache.registerPrivateAccess( tag, size, input, output );
 }
 
-void SMPProcessor::copyBackDependent( uint64_t tag, size_t size )
+void SMPProcessor::unregisterPrivateAccessDependent( uint64_t tag, size_t size )
 {
-   _cache.copyBack( tag, size );
+   _cache.unregisterPrivateAccess( tag, size );
 }
 
 void* SMPProcessor::getAddressDependent( uint64_t tag )
 {
-   return _cache.getAddress(tag);
+   return _cache.getAddress( tag );
 }
 
 void SMPProcessor::copyToDependent( void *dst, uint64_t tag, size_t size )

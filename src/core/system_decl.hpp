@@ -30,6 +30,7 @@
 #include "nanos-int.h"
 #include "dependency.hpp"
 #include "instrumentor_decl.hpp"
+#include "directory.hpp"
 
 
 namespace nanos
@@ -89,6 +90,9 @@ namespace nanos
 
          Instrumentor           *_instrumentor; /**< Instrumentor object used in current execution */
          SchedulePolicy         *_defSchedulePolicy;
+
+         // Mempory access directory
+         Directory            _directory;
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -205,6 +209,8 @@ namespace nanos
          void setDefaultSchedulePolicy ( SchedulePolicy *policy );
          
          SchedulePolicy * getDefaultSchedulePolicy ( ) const;
+
+         Directory& getDirectory();
 
          SchedulerStats & getSchedulerStats ();
          SchedulerConf  & getSchedulerConf();
