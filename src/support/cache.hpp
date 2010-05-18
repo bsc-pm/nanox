@@ -112,7 +112,7 @@ namespace nanos {
          virtual ~Cache() { }
          virtual void * allocate( size_t size ) = 0;
          virtual CacheEntry& newEntry( uint64_t tag, unsigned int version, bool dirty ) = 0;
-         virtual void deleteEntry( uint64_t tag ) = 0;
+         virtual void deleteEntry( uint64_t tag, size_t size ) = 0;
          virtual CacheEntry* getEntry( uint64_t tag ) = 0;
          virtual void copyDataToCache( uint64_t tag, size_t size ) = 0;
          virtual void copyBackFromCache( uint64_t tag, size_t size ) = 0;
@@ -237,7 +237,7 @@ namespace nanos {
             ensure ( ce != NULL, "Private access cannot miss in the cache.");
             if ( ce->isDirty() )
                _cache.copyBackFromCache( tag, size );
-            _cache.deleteEntry( tag );
+            _cache.deleteEntry( tag, size );
          }
    };
 
@@ -279,7 +279,7 @@ namespace nanos {
             return result;
          }
 
-         void deleteEntry( uint64_t tag )
+         void deleteEntry( uint64_t tag, size_t size )
          {
             NANOS_INSTRUMENTOR( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("cache-free") );
             NANOS_INSTRUMENTOR( sys.getInstrumentor()->enterCache( key, size) );
