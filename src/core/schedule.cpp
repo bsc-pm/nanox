@@ -77,7 +77,7 @@ inline void Scheduler::idleLoop ()
 
       if ( thread->getTeam() != NULL ) {
 
-        WD * next = behaviour::getWD(thread,current);
+        WD * next = myThread->getNextWD() ? myThread->getNextWD() : behaviour::getWD(thread,current);
 
          if (next) {
            sys.getSchedulerStats()._idleThreads--;
@@ -162,6 +162,12 @@ void Scheduler::wakeUp ( WD *wd )
   }
 }
 
+WD * Scheduler::prefetch( BaseThread *thread, WD &wd )
+{
+   debug ( "prefetching data for task " << wd.getId() );
+   return thread->getTeam()->getSchedulePolicy().atPrefetch( thread, wd );
+}
+
 struct WorkerBehaviour
 {
    static WD * getWD ( BaseThread *thread, WD *current )
@@ -205,7 +211,8 @@ void Scheduler::inlineWork ( WD *wd )
    // This ensures that when we return from the inlining is still the same thread
    // and we don't violate rules about tied WD
    wd->tieTo(*oldwd->isTiedTo());
-   wd->start(false);
+   if (!wd->started())
+      wd->start(false);
    myThread->setCurrentWD( *wd );
 
    NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdSwitch(oldwd,wd) );
