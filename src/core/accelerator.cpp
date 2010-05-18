@@ -32,13 +32,16 @@ void Accelerator::copyDataIn( WorkDescriptor &work )
    for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
       CopyData & cd = copies[i];
       uint64_t tag = (uint64_t) cd.isPrivate() ? ((uint64_t) work.getData() + (unsigned long)cd.getAddress()) : cd.getAddress();
-      this->registerDataAccessDependent( tag, cd.getSize() );
       if ( cd.isInput() ) {
          NANOS_INSTRUMENTOR( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("copy-in") );
          NANOS_INSTRUMENTOR( sys.getInstrumentor()->registerCopy( key, cd.getSize() ) );
-         this->copyDataDependent( tag, cd.getSize() );
       }
-   }      
+      if ( cd.isPrivate() ) {
+         this->registerPrivateAccessDependent( tag, cd.getSize(), cd.isInput(), cd.isOutput() );
+      } else {
+         this->registerCacheAccessDependent( tag, cd.getSize(), cd.isInput(), cd.isOutput() );
+      }
+   }
 }
 
 void Accelerator::copyDataOut( WorkDescriptor& work )
@@ -47,11 +50,14 @@ void Accelerator::copyDataOut( WorkDescriptor& work )
    for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
       CopyData & cd = copies[i];
       uint64_t tag = (uint64_t) cd.isPrivate() ? ((uint64_t) work.getData() + (unsigned long) cd.getAddress()) : cd.getAddress();
-      this->unregisterDataAccessDependent( tag );
       if ( cd.isOutput() ) {
          NANOS_INSTRUMENTOR( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("copy-out") );
          NANOS_INSTRUMENTOR( sys.getInstrumentor()->registerCopy( key, cd.getSize() ) );
-         this->copyBackDependent( tag, cd.getSize() );
+      }
+      if ( cd.isPrivate() ) {
+         this->unregisterPrivateAccessDependent( tag, cd.getSize() );
+      } else {
+         this->unregisterCacheAccessDependent( tag, cd.getSize() );
       }
    }
 }

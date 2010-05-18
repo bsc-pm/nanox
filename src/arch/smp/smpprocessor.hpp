@@ -22,9 +22,9 @@
 
 #include "config.hpp"
 #include "smpthread.hpp"
-#include "cache.hpp"
 #include "smpdevice.hpp"
 #ifdef SMP_NUMA
+#include "cache.hpp"
 #include "accelerator.hpp"
 #else
 #include "processingelement.hpp"
@@ -54,7 +54,7 @@ namespace ext
          const SMPProcessor & operator= ( const SMPProcessor &pe );
 
 #ifdef SMP_NUMA
-         Cache<SMPDevice> _cache;
+         DeviceCache<SMPDevice> _cache;
 #endif
 
       public:
@@ -81,10 +81,11 @@ namespace ext
 
 #ifdef SMP_NUMA
          /* Memory space suport */
-         virtual void registerDataAccessDependent( uint64_t tag, size_t size );
-         virtual void copyDataDependent( uint64_t tag, size_t size );
-         virtual void unregisterDataAccessDependent( uint64_t tag );
-         virtual void copyBackDependent( uint64_t tag, size_t size );
+         virtual void registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output );
+         virtual void unregisterCacheAccessDependent( uint64_t tag, size_t size );
+         virtual void registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output );
+         virtual void unregisterPrivateAccessDependent( uint64_t tag, size_t size );
+
          virtual void* getAddressDependent( uint64_t tag );
          virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
 #endif
