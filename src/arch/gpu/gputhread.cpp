@@ -18,6 +18,7 @@
 /*************************************************************************************/
 
 #include "gputhread.hpp"
+#include "schedule.hpp"
 
 #include <cuda_runtime.h>
 
@@ -29,11 +30,32 @@ void GPUThread::runDependent ()
 {
    WD &work = getThreadWD();
    setCurrentWD( work );
+   setNextWD( (WD *) 0 );
 
    cudaError_t cudaErr = cudaSetDevice( _gpuDevice );
    if (cudaErr != cudaSuccess) warning( "couldn't set the GPU device" );
 
+#if PINNED_CUDA | WC
+   cudaErr = cudaSetDeviceFlags( cudaDeviceMapHost );
+   if (cudaErr != cudaSuccess) warning( "couldn't set the GPU device flags" );
+#endif
+
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
 
    dd.getWorkFct()( work.getData() );
+}
+
+void GPUThread::inlineWorkDependent ( WD &wd )
+{
+   SMPThread::inlineWorkDependent( wd );
+
+   // Get next task in order to prefetch data to device memory
+   WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, wd );
+   setNextWD( next );
+   if ( next != 0 ) {
+      next->start(false);
+   }
+
+   // Wait for the GPU kernel to finish
+   cudaThreadSynchronize();
 }
