@@ -19,6 +19,11 @@
 
 #include "smp_ult.hpp"
 
+extern "C"
+{
+// low-level helper routine to start a new user-thread
+    void startHelper ();
+}
 
 /*! \brief initializes a stack state for PowerPC32
  *
@@ -52,7 +57,7 @@ intptr_t * initContext ( intptr_t *stack, size_t stackSize, void *userFunction, 
                           void *cleanup, void *cleanupArg )
 {
    // stack grows down
-   intprt_t *state = stack;
+   intptr_t *state = stack;
    state += stackSize;
 
    state -= 62; // 244/sizeof(intptr_t)

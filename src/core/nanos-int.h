@@ -75,16 +75,26 @@ typedef struct {
    int _sign;   /**< Loop sign 1 ascendant, -1 descendant */
 } nanos_slicer_data_for_internal_t;
 
+// SlicerDataCompoundWD: related structures
+typedef struct {
+   int _nWD;    /**< Number of WorkDescriptors */
+} nanos_slicer_data_compound_wd_internal_t;
+
+
 #ifndef _NANOS_INTERNAL
 
-typedef nanos_slicer_data_for_internal_t nanos_slicer_data_for_t;
+typedef nanos_slicer_data_for_internal_t           nanos_slicer_data_for_t;
+typedef nanos_slicer_data_compound_wd_internal_t   nanos_slicer_data_compound_wd_t;
 
 #else
 
 namespace nanos {
    class SlicerDataFor;
+   class SlicerDataCompoundWD;
 }
-typedef nanos::SlicerDataFor nanos_slicer_data_for_t;
+
+typedef nanos::SlicerDataFor          nanos_slicer_data_for_t;
+typedef nanos::SlicerDataCompoundWD   nanos_slicer_data_compound_wd_t;
 
 #endif
 
@@ -107,7 +117,7 @@ typedef struct {
    bool reserved3:1;
    bool reserved4:1;
    bool reserved5:1;
-   nanos_thread_t * tie_to;
+   nanos_thread_t tie_to;
    unsigned int priority;
 } nanos_wd_props_t;
 
