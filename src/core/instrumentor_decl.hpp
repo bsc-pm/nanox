@@ -161,11 +161,12 @@ namespace nanos {
             /* 05 */ registerEventKey("cache-local-copy","Local copy in device memory");
             /* 06 */ registerEventKey("cache-malloc","Memory allocation in device cache");
             /* 07 */ registerEventKey("cache-free","Memory free in device cache");
+            /* 08 */ registerEventKey("cache-hit","Hit in the cache");
 
-            /* 08 */ registerEventKey("copy-in","Copying WD inputs");
-            /* 09 */ registerEventKey("copy-out","Copying WD outputs");
+            /* 09 */ registerEventKey("copy-in","Copying WD inputs");
+            /* 10 */ registerEventKey("copy-out","Copying WD outputs");
 
-            /* 10 */ registerEventKey("user-funct","User Functions");
+            /* 11 */ registerEventKey("user-funct","User Functions");
 
 #endif
 
@@ -446,6 +447,7 @@ namespace nanos {
          virtual void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD );
 
          virtual void registerCopy( nanos_event_key_t key, size_t size );
+         virtual void registerCacheHit( nanos_event_key_t key, uint64_t addr );
 
          virtual void enterCache( nanos_event_key_t key, size_t size );
          virtual void leaveCache( nanos_event_key_t key );
