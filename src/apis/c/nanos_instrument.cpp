@@ -23,7 +23,7 @@
 
 using namespace nanos;
 
-nanos_err_t nanos_instrument_register_key ( nanos_event_key_t *event_key, char *key, char *description )
+nanos_err_t nanos_instrument_register_key ( nanos_event_key_t *event_key, const char *key, const char *description )
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
@@ -36,7 +36,7 @@ nanos_err_t nanos_instrument_register_key ( nanos_event_key_t *event_key, char *
    return NANOS_OK;
 }
 
-nanos_err_t nanos_instrument_register_value ( nanos_event_value_t *event_value, char *key, char *value, char *description )
+nanos_err_t nanos_instrument_register_value ( nanos_event_value_t *event_value, const char *key, const char *value, const char *description )
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
@@ -62,6 +62,18 @@ nanos_err_t nanos_instrument_get_key (const char *key, nanos_event_key_t *event_
    return NANOS_OK;
 }
 
+nanos_err_t nanos_instrument_get_value (const char *key, const char *value, nanos_event_value_t *event_value)
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   try
+   {
+      *event_value = sys.getInstrumentor()->getInstrumentorDictionary()->getEventValue(key, value);
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+#endif
+   return NANOS_OK;
+}
 // FIXME:
 #if 0
    sys.getInstrumentor()->static Instrumentor *inst = sys.getInstrumentor() );

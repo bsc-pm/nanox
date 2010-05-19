@@ -48,7 +48,12 @@ namespace nanos {
       public:
          /*! \brief InstrumentorValueDescriptor constructor
           */
-         InstrumentorValueDescriptor ( nanos_event_value_t id, std::string description ) : _id( id ), _description ( description ) {}
+         InstrumentorValueDescriptor ( nanos_event_value_t id, const std::string &description ) : _id( id ), _description ( description ) {}
+
+         /*! \brief InstrumentorValueDescriptor constructor
+          */
+         InstrumentorValueDescriptor ( nanos_event_value_t id, const char *description ) : _id( id ), _description ( description ) {}
+
          /*! \brief InstrumentorValueDescriptor destructor
           */
          ~InstrumentorValueDescriptor() {}
@@ -78,8 +83,14 @@ namespace nanos {
       public:
          /*! \brief InstrumentorKeyDescriptor constructor
           */
-         InstrumentorKeyDescriptor ( nanos_event_key_t id, std::string description ) : _id( id ), _description ( description ),
+         InstrumentorKeyDescriptor ( nanos_event_key_t id, const std::string &description ) : _id( id ), _description ( description ),
                                      _totalValues(1), _lock(), _valueMap() {}
+
+         /*! \brief InstrumentorKeyDescriptor constructor
+          */
+         InstrumentorKeyDescriptor ( nanos_event_key_t id, const char *description ) : _id( id ), _description ( description ),
+                                     _totalValues(1), _lock(), _valueMap() {}
+
          /*! \brief InstrumentorKeyDescriptor destructor
           */
          ~InstrumentorKeyDescriptor() {}
@@ -94,11 +105,19 @@ namespace nanos {
 
          /*! \brief Inserts (or gets) a value into (from) valueMap 
           */
-         nanos_event_value_t registerValue ( std::string value, std::string description="", bool abort_when_registered=true );
+         nanos_event_value_t registerValue ( const std::string &value, const std::string &description="", bool abort_when_registered=true );
+
+         /*! \brief Inserts (or gets) a value into (from) valueMap 
+          */
+         nanos_event_value_t registerValue ( const char *value, const char *description="", bool abort_when_registered=true );
 
          /*! \brief Gets a value into (from) valueMap 
           */
-         nanos_event_value_t getValue ( std::string value );
+         nanos_event_value_t getValue ( const std::string &value );
+
+         /*! \brief Gets a value into (from) valueMap 
+          */
+         nanos_event_value_t getValue ( const char *value );
 
          /*! \brief Returns starting point of valueMap ( iteration purposes )
           */
@@ -178,19 +197,35 @@ namespace nanos {
 
          /*! \brief Inserts (or gets) a key into (from) the keyMap
           */
-         nanos_event_key_t registerEventKey ( std::string key, std::string description="", bool abort_when_registered=true );
+         nanos_event_key_t registerEventKey ( const std::string &key, const std::string &description="", bool abort_when_registered=true );
+
+         /*! \brief Inserts (or gets) a key into (from) the keyMap
+          */
+         nanos_event_key_t registerEventKey ( const char *key, const char *description="", bool abort_when_registered=true );
 
          /*! \brief Gets a key into (from) the keyMap
           */
-         nanos_event_key_t getEventKey ( std::string key );
+         nanos_event_key_t getEventKey ( const std::string &key );
+
+         /*! \brief Gets a key into (from) the keyMap
+          */
+         nanos_event_key_t getEventKey ( const char *key );
 
          /*! \brief Inserts (or gets) a value into (from) the valueMap (which belongs to 'key' parameter )
           */
-         nanos_event_value_t registerEventValue ( std::string key, std::string value, std::string description="", bool abort_when_registered=true );
+         nanos_event_value_t registerEventValue ( const std::string &key, const std::string &value, const std::string &description="", bool abort_when_registered=true );
+
+         /*! \brief Inserts (or gets) a value into (from) the valueMap (which belongs to 'key' parameter )
+          */
+         nanos_event_value_t registerEventValue ( const char *key, const char *value, const char *description="", bool abort_when_registered=true );
 
          /*! \brief Gets a value into (from) the valueMap (which belongs to 'key' parameter )
           */
-         nanos_event_value_t getEventValue ( std::string key, std::string value );
+         nanos_event_value_t getEventValue ( const std::string &key, const std::string &value );
+
+         /*! \brief Gets a value into (from) the valueMap (which belongs to 'key' parameter )
+          */
+         nanos_event_value_t getEventValue ( const char *key, const char *value );
 
          /*! \brief Returns starting point of keyMap ( iteration purposes )
           */
