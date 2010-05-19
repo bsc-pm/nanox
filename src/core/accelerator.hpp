@@ -27,7 +27,7 @@
 #include "functors.hpp"
 #include "atomic.hpp"
 
-//#define LOCK_TRANSFER 1
+#define LOCK_TRANSFER 1
 
 namespace nanos
 {

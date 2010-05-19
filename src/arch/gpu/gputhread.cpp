@@ -49,12 +49,14 @@ void GPUThread::inlineWorkDependent ( WD &wd )
 {
    SMPThread::inlineWorkDependent( wd );
 
+#if !NORMAL
    // Get next task in order to prefetch data to device memory
    WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, wd );
    setNextWD( next );
    if ( next != 0 ) {
       next->start(false);
    }
+#endif
 
    // Wait for the GPU kernel to finish
    cudaThreadSynchronize();
