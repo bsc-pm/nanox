@@ -45,7 +45,7 @@ namespace ext
          GPUProcessor( const GPUProcessor &pe );
          const GPUProcessor & operator= ( const GPUProcessor &pe );
 
-         Cache<GPUDevice> _cache;
+         DeviceCache<GPUDevice> _cache;
 
       public:
          // constructors
@@ -61,10 +61,11 @@ namespace ext
          virtual bool supportsUserLevelThreads () const { return false; }
 
          /* Memory space support */
-         virtual void registerDataAccessDependent( uint64_t tag, size_t size );
-         virtual void copyDataDependent( uint64_t tag, size_t size );
-         virtual void unregisterDataAccessDependent( uint64_t tag );
-         virtual void copyBackDependent( uint64_t tag, size_t size );
+         virtual void registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output );
+         virtual void unregisterCacheAccessDependent( uint64_t tag, size_t size );
+         virtual void registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output );
+         virtual void unregisterPrivateAccessDependent( uint64_t tag, size_t size );
+
          virtual void* getAddressDependent( uint64_t tag );
          virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
    };
