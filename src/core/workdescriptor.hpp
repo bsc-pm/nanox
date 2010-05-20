@@ -113,7 +113,8 @@ inline void WorkDescriptor::waitOn( size_t numDeps, Dependency* deps )
 
 inline void WorkDescriptor::workFinished(WorkDescriptor &wd)
 {
-   _depsDomain->finished( *(wd._doSubmit) );
+   if ( _depsDomain.isInitialized() )
+      _depsDomain->finished( *(wd._doSubmit) );
 }
 
 inline InstrumentorContext & WorkDescriptor::getInstrumentorContext( void ) { return _instrumentorContext; }
