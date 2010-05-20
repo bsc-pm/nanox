@@ -28,14 +28,23 @@
 
 namespace TR1 = std;
 
+namespace std {
 #else
 
 #include <tr1/unordered_map>
 
 namespace TR1 = std::tr1;
 
+namespace std { namespace tr1 {
 #endif
 
+/* Specialize hash for unsigned long long allows unordered_map<uint64_t, xxx> when compiling for 32 bits */
+template<> struct hash<unsigned long long> : public std::unary_function<unsigned long long, std::size_t> { std::size_t operator()(unsigned long long val) const { return static_cast<std::size_t>(val); } };
+}
+
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
+}
+#endif
 
 #endif
 
