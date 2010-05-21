@@ -29,28 +29,46 @@ namespace nanos {
 namespace ext
 {
 
-void displayProperties( cudaDeviceProp* pDeviceProp )
+void displayProperties( cudaDeviceProp* pDeviceProp, int device )
 {
    if( !pDeviceProp )
       return;
 
-   std::cout << std::endl << "************************************************";
-   std::cout << std::endl << std::setw(37)<< std::left << "Device Name" << "- " << pDeviceProp->name << " ";
-   std::cout << std::endl << std::setw(37) << "Total Global Memory" << "- " << pDeviceProp->totalGlobalMem/1024 << " KB";
-   std::cout << std::endl << std::setw(37) << "Shared memory available per block" << "- " << pDeviceProp->sharedMemPerBlock/1024 << " KB";
-   std::cout << std::endl << std::setw(37) << "Number of registers per thread block" << "- " << pDeviceProp->regsPerBlock;
-   std::cout << std::endl << std::setw(37) << "Warp size in threads" << "- " << pDeviceProp->warpSize;
-   std::cout << std::endl << std::setw(37) << "Memory Pitch" << "- " << pDeviceProp->memPitch << " bytes";
-   std::cout << std::endl << std::setw(37) << "Maximum threads per block" << "- " << pDeviceProp->maxThreadsPerBlock;
-   std::cout << std::endl << std::setw(37) << "Maximum Thread Dimension (block)" << "- " << pDeviceProp->maxThreadsDim[0] << " " << pDeviceProp->maxThreadsDim[1] << " " << pDeviceProp->maxThreadsDim[2];
-   std::cout << std::endl << std::setw(37) << "Maximum Thread Dimension (grid)" << "- " << pDeviceProp->maxGridSize[0] << " " << pDeviceProp->maxGridSize[1] << " " << pDeviceProp->maxGridSize[2];
-   std::cout << std::endl << std::setw(37) << "Total constant memory" << "- " << pDeviceProp->totalConstMem << " bytes";
-   std::cout << std::endl << std::setw(37) << "CUDA version" << "- " << pDeviceProp->major << "." << pDeviceProp->minor;
-   std::cout << std::endl << std::setw(37) << "Clock rate" << "- " << pDeviceProp->clockRate << " KHz";
-   std::cout << std::endl << std::setw(37) << "Texture Alignment" << "- " << pDeviceProp->textureAlignment << " bytes";
-   std::cout << std::endl << std::setw(37) << "Device Overlap" << "- "<< ( pDeviceProp-> deviceOverlap ? "Allowed" : "Not Allowed" );
-   std::cout << std::endl << std::setw(37) << "Number of Multiprocessors" << "- " << pDeviceProp->multiProcessorCount;
-   std::cout << std::endl << "************************************************";
+   std::cout << std::endl;
+   std::cout << std::endl << "Device " << device << ": " << pDeviceProp->name << " ";
+   std::cout << std::endl << std::setw(50) << std::left << "  Major revision number:" << pDeviceProp->major;
+   std::cout << std::endl << std::setw(50) << "  Minor revision number:" << pDeviceProp->minor;
+   std::cout << std::endl << std::setw(50) << "  Total amount of global memory:" << pDeviceProp->totalGlobalMem/1024 << " KB";
+   std::cout << std::endl << std::setw(50) << "  Number of multiprocessors:" << pDeviceProp->multiProcessorCount;
+   std::cout << std::endl << std::setw(50) << "  Total amount of constant memory:" << pDeviceProp->totalConstMem << " bytes";
+   std::cout << std::endl << std::setw(50) << "  Total amount of shared memory per block:" << pDeviceProp->sharedMemPerBlock/1024 << " KB";
+   std::cout << std::endl << std::setw(50) << "  Total number of registers available per block:" << pDeviceProp->regsPerBlock;
+   std::cout << std::endl << std::setw(50) << "  Warp size:" << pDeviceProp->warpSize << " threads";
+   std::cout << std::endl << std::setw(50) << "  Maximum number of threads per block:" << pDeviceProp->maxThreadsPerBlock;
+   std::cout << std::endl << std::setw(50) << "  Maximum sizes of each dimension of a block:" << pDeviceProp->maxThreadsDim[0] << " x " << pDeviceProp->maxThreadsDim[1] << " x " << pDeviceProp->maxThreadsDim[2];
+   std::cout << std::endl << std::setw(50) << "  Maximum sizes of each dimension of a grid:" << pDeviceProp->maxGridSize[0] << " x " << pDeviceProp->maxGridSize[1] << " x " << pDeviceProp->maxGridSize[2];
+   std::cout << std::endl << std::setw(50) << "  Maximum memory pitch:" << pDeviceProp->memPitch << " bytes";
+   std::cout << std::endl << std::setw(50) << "  Texture Alignment:" << pDeviceProp->textureAlignment << " bytes";
+   std::cout << std::endl << std::setw(50) << "  Clock rate:" << pDeviceProp->clockRate << " KHz";
+   std::cout << std::endl << std::setw(50) << "  Concurrent copy and execution:" << ( pDeviceProp->deviceOverlap ? "Yes" : "No" );
+   std::cout << std::endl << std::setw(50) << "  Can map host memory:" << ( pDeviceProp->canMapHostMemory ? "Yes" : "No" );
+   std::cout << std::endl << std::setw(50) << "  Device integrated with host memory system:" << ( pDeviceProp->integrated ? "Yes" : "No" );
+   std::cout << std::endl << std::setw(50) << "  Kernel execution timeout enabled:";
+   if ( pDeviceProp->kernelExecTimeoutEnabled ) {
+      std::cout << "Yes : " << pDeviceProp->kernelExecTimeoutEnabled;
+   } else {
+      std::cout << "No";
+   }
+   std::cout << std::endl << std::setw(50) << "  Compute mode:";
+   if ( pDeviceProp->computeMode == cudaComputeModeExclusive ) {
+      std::cout << "Exclusive";
+   } else if ( pDeviceProp->computeMode == cudaComputeModeProhibited ) {
+      std::cout << "Prohibited";
+   } else if ( pDeviceProp->computeMode == cudaComputeModeDefault ) {
+      std::cout << "Default";
+   } else {
+      std::cout << "Not specified";
+   }
 }
 
 void displayAllGPUsProperties( void )
@@ -61,7 +79,7 @@ void displayAllGPUsProperties( void )
    cudaError_t err = cudaGetDeviceCount( &deviceCount );
 
    if ( err != cudaSuccess ) {
-      message0( cudaGetErrorString( err ) );
+      std::cerr << cudaGetErrorString( err ) << std::endl;
       return;
    }
 
@@ -72,15 +90,16 @@ void displayAllGPUsProperties( void )
       err = cudaGetDeviceProperties( &deviceProp, idx );
 
       if ( err == cudaSuccess ) {
-         displayProperties( &deviceProp );
+         displayProperties( &deviceProp, idx );
       }
       else {
-         message0( cudaGetErrorString( err ) );
+         std::cerr << cudaGetErrorString( err ) << std::endl;
       }
    }
 
    std::cout << std::endl;
 }
+
 
 }
 }
