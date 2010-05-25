@@ -39,13 +39,13 @@ void BaseThread::associate ()
 {
    _started = true;
    myThread = this;
+   setCurrentWD( _threadWD );
 
    if ( sys.getBinding() ) bind();
 
    _threadWD.start(false);
 
    NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdEnterCPU(&_threadWD) );
-   setCurrentWD( _threadWD );
 }
 
 bool BaseThread::singleGuard ()
