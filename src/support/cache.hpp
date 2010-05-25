@@ -191,6 +191,9 @@ namespace nanos {
                         de->setVersion( de->getVersion() + 1 ) ;
                         ce->setVersion( de->getVersion() );
                      }
+
+                     NANOS_INSTRUMENTOR( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("cache-hit") );
+                     NANOS_INSTRUMENTOR( sys.getInstrumentor()->registerCopy( key, tag ) );
                   } else {
                      if ( output ) {
                         de->setOwner( &_cache );

@@ -227,6 +227,16 @@ void Instrumentor::registerCopy( nanos_event_key_t key, size_t size )
    addEventList ( 1, &e );
 }
 
+void Instrumentor::registerCacheHit( nanos_event_key_t key, uint64_t addr )
+{
+   nanos_event_value_t val = (nanos_event_value_t) addr;
+
+   Event::KV kv( Event::KV( key, val ) );
+   Event e = Point( 1, &kv );
+
+   addEventList ( 1, &e );
+}
+
 void Instrumentor::enterCache( nanos_event_key_t key, size_t size )
 {
    nanos_event_value_t val = (nanos_event_value_t) size;
