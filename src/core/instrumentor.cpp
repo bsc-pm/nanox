@@ -313,20 +313,36 @@ void Instrumentor::leaveTransfer( nanos_event_key_t key )
 
 void Instrumentor::enterUserCode ( void )
 {
-   /* Create an event: STATE */
-   Event e = State(RUNNING);
+   /* Gets key for api functions */
+   nanos_event_key_t key = getInstrumentorDictionary()->getEventKey("user-code");
+   nanos_event_value_t val = 12345; /*FIXME*/
+
+   /* Create a vector of two  events: STATE and BURST*/
+   Event::KV kv( Event::KV( key, val ) );
+   Event e[2] = {State(RUNNING), Burst (true,kv) };
 
    /* Update instrumentor context with new state */
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
    instrContext.pushState(RUNNING);
+   instrContext.insertBurst( e[1] );
 
    /* Adding event */
-   addEventList ( 1, &e );
+   addEventList ( 2, e );
 }
 
 void Instrumentor::leaveUserCode ( void )
 {
+   nanos_event_key_t key = getInstrumentorDictionary()->getEventKey("user-code");
+
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
+
+   InstrumentorContext::BurstIterator it;
+
+   if ( !instrContext.findBurstByKey( key, it ) )
+      fatal0("Burst doesn't exists");
+
+   Event &e1 =  (*it);
+   e1.reverseType();
 
    /* Top is current state, so before we have to bring (pop) previous state
     * on top of the stack and then restore previous state */
@@ -334,10 +350,12 @@ void Instrumentor::leaveUserCode ( void )
    nanos_event_state_value_t state = instrContext.topState();
 
    /* Creating two events */
-   Event e = State(state);
+   Event e[2] = { State(state), e1 };
 
    /* Spawning two events: specific instrumentor call */
-   addEventList ( 1, &e );
+   addEventList ( 2, e );
+
+   instrContext.removeBurst( it ); 
 }
 
 void Instrumentor::enterIdle ( )
