@@ -17,6 +17,8 @@ class SlicerCompoundWD: public Slicer
       // headers (implemented below)
       void submit ( SlicedWD & work ) ;
       bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
+      void *getSpecificData() const;
+      static void executeWDs ( WD *lwd[] );
 };
 
 void SlicerCompoundWD::submit ( SlicedWD &work )
@@ -38,10 +40,34 @@ void SlicerCompoundWD::submit ( SlicedWD &work )
  */
 bool SlicerCompoundWD::dequeue ( SlicedWD *wd, WorkDescriptor **slice)
 {
+   /* Get next wd index */
    int n = ((SlicerDataCompoundWD *)(wd->getSlicerData()))->getNextIndex();
-   *slice = ( (WorkDescriptor**)(wd->getData()) )[n];
-   if ( n == 0 ) return true;
-   else return false;
+
+   /* If next index to execute is -1, there is no more wd to execute */
+   if ( n == -1 ) {
+      *slice = wd;
+      return true;
+   }
+
+   /* Get next WD to execute */
+   *slice = ( (WorkDescriptor**) (wd->getData()) )[n];
+
+   /* As *slice has not submited we need to configure it */
+   (*slice)->setParent ( wd );                                                                                                          
+   (*slice)->setDepth( wd->getDepth() +1 );                                                                                                     
+ 
+   return false;
+}
+
+void *SlicerCompoundWD::getSpecificData ( ) const
+{
+   return (void *) executeWDs;
+}
+
+void SlicerCompoundWD::executeWDs ( WD *lwd[] )
+{
+
+
 }
 
 namespace ext {
@@ -60,3 +86,4 @@ class SlicerCompoundWDPlugin : public Plugin {
 } // namespace nanos
 
 nanos::ext::SlicerCompoundWDPlugin NanosXPlugin;
+
