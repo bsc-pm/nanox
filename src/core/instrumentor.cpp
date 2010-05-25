@@ -71,11 +71,8 @@ void Instrumentor::leaveRuntimeAPI ( )
 
 void Instrumentor::wdCreate( WorkDescriptor* newWD )
 {
-   static nanos_event_key_t key = getInstrumentorDictionary()->getEventKey("wd-id");
-
    /* Register (if not) key and values */
-   InstrumentorDictionary *iD = getInstrumentorDictionary();
-   if ( key != 0 ) key = iD->getEventKey("wd-id");
+   static nanos_event_key_t key = getInstrumentorDictionary()->getEventKey("wd-id");
 
    /* Getting work descriptor id */
    nanos_event_value_t wd_id = newWD->getId();
