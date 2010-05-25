@@ -32,13 +32,13 @@ void WorkDescriptor::start (bool isUserLevelThread, WorkDescriptor *previous)
 {
    ProcessingElement *pe = myThread->runningOn();
 
+   /* Initializing instrumentor context */
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdCreate( this ) );
+
    _activeDevice->lazyInit(*this,isUserLevelThread,previous);
    
-   if ( pe->hasSeparatedMemorySpace() )
+   if ( getNumCopies() > 0 && pe->hasSeparatedMemorySpace() )
       pe->copyDataIn( *this );
-
-   /* Initializing instrumentor context */
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdCreate( this ) ); 
 
    setReady();
 }
