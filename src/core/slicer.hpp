@@ -40,6 +40,7 @@ namespace nanos
 
          virtual void submit ( SlicedWD & work ) = 0;
          virtual bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) = 0;
+         virtual void *getSpecificData ( ) const { return NULL; }
    };
 
    class SlicerData
