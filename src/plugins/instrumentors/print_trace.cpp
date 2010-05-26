@@ -21,7 +21,7 @@ class InstrumentorPrintTrace: public Instrumentor
 
       virtual void initialize( void ) {}
       virtual void finalize( void ) {}
-      virtual void addEventList ( unsigned int count, Event *events ) {}
+      virtual void addEventList ( unsigned int count, Event *events ) { }
 
       // high-level events
 
