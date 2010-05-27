@@ -81,26 +81,15 @@ typedef struct {
 } nanos_slicer_data_compound_wd_internal_t;
 
 
-#ifndef _NANOS_INTERNAL
-
-typedef nanos_slicer_data_for_internal_t           nanos_slicer_data_for_t;
-typedef nanos_slicer_data_compound_wd_internal_t   nanos_slicer_data_compound_wd_t;
-
-#else
-
-namespace nanos {
-   class SlicerDataFor;
-   class SlicerDataCompoundWD;
-}
-
-typedef nanos::SlicerDataFor          nanos_slicer_data_for_t;
-typedef nanos::SlicerDataCompoundWD   nanos_slicer_data_compound_wd_t;
-
-#endif
-
-
 // C++ types hidden as void *
 typedef void * nanos_thread_t;
+typedef void * nanos_wd_t;                                                                                                                               
+
+typedef struct {                                                                                                                                   
+   int nsect;                                                                                                                                      
+   nanos_wd_t lwd[];
+} nanos_compound_wd_data_t;                                                                                                                        
+
 
 typedef struct {
    int lower;

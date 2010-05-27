@@ -9,7 +9,7 @@ class SlicerCompoundWD: public Slicer
    private:
    public:
       // constructor
-      SlicerCompoundWD ( ) { }
+      SlicerCompoundWD ( ) : Slicer() { }
 
       // destructor
       ~SlicerCompoundWD ( ) { }
@@ -38,19 +38,19 @@ void SlicerCompoundWD::submit ( SlicedWD &work )
  *
  *  \return true if there are no more slices in the former wd, false otherwise
  */
-bool SlicerCompoundWD::dequeue ( SlicedWD *wd, WorkDescriptor **slice)
+bool SlicerCompoundWD::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
 {
-   /* Get next wd index */
-   int n = ((SlicerDataCompoundWD *)(wd->getSlicerData()))->getNextIndex();
+   /* Get compound wd data */
+   nanos_compound_wd_data_t *data = (nanos_compound_wd_data_t *) wd->getData();
 
-   /* If next index to execute is -1, there is no more wd to execute */
-   if ( n == -1 ) {
+   /* If we have executed all wd's */
+   if ( data->nsect == 0 ) {
       *slice = wd;
       return true;
    }
 
-   /* Get next WD to execute */
-   *slice = ( (WorkDescriptor**) (wd->getData()) )[n];
+   /* Pre-decrement nsect and get corresponding wd */
+   *slice = ((WorkDescriptor**)data->lwd)[--(data->nsect)];
 
    /* As *slice has not submited we need to configure it */
    (*slice)->setParent ( wd );                                                                                                          
@@ -59,16 +59,9 @@ bool SlicerCompoundWD::dequeue ( SlicedWD *wd, WorkDescriptor **slice)
    return false;
 }
 
-void *SlicerCompoundWD::getSpecificData ( ) const
-{
-   return (void *) executeWDs;
-}
+void *SlicerCompoundWD::getSpecificData ( ) const { return (void *) executeWDs; }
 
-void SlicerCompoundWD::executeWDs ( WD *lwd[] )
-{
-
-
-}
+void SlicerCompoundWD::executeWDs ( WD *lwd[] ) { }
 
 namespace ext {
 

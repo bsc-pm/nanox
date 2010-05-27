@@ -33,7 +33,6 @@
 
 // C++ types hidden as void *
 typedef void * nanos_wg_t;
-typedef void * nanos_wd_t;
 typedef void * nanos_team_t;
 typedef void * nanos_sched_t;
 typedef void * nanos_slicer_t;
