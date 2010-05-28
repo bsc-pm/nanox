@@ -27,7 +27,7 @@ template <class T>
 class LazyInit {
    private:
       bool _init;
-      char _storage[sizeof(T)];
+      char _storage[sizeof(T)] __attribute__((aligned(8)));
 
       void construct ()
       {
