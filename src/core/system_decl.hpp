@@ -103,11 +103,6 @@ namespace nanos
          
          PE * createPE ( std::string pe_type, int pid );
 
-        /* \brief prepares a WD to be scheduled/executed.
-         * \param work WD to be set up
-         */
-         void setupWD( WD &work );
-
       public:
          // constructor
          System ();
@@ -131,6 +126,11 @@ namespace nanos
 
          void duplicateWD ( WD **uwd, WD *wd );
          void duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd );
+
+        /* \brief prepares a WD to be scheduled/executed.
+         * \param work WD to be set up
+         */
+         void setupWD( WD &work, WD *parent );
 
          // methods to access configuration variable         
          void setNumPEs ( int npes );

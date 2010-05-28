@@ -31,8 +31,7 @@ void SlicerCompoundWD::submit ( SlicedWD &work )
    /* As the wd's has not been submitted we need to configure it */
    for ( int i = 0; i < data->nsect; i++) {
       slice = ((WorkDescriptor**)data->lwd)[i];
-      slice->setParent ( &work );                                                                                                          
-      slice->setDepth( work.getDepth() +1 );
+      sys.setupWD(*slice, &work);
    }
 
    Scheduler::submit ( work );
