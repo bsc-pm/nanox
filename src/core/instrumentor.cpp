@@ -239,6 +239,7 @@ void Instrumentor::registerCacheHit( nanos_event_key_t key, uint64_t addr )
 
 void Instrumentor::enterCache( nanos_event_key_t key, size_t size )
 {
+#if 0 //FIXME (#236)
    nanos_event_value_t val = (nanos_event_value_t) size;
 
    /* Create a vector of two events: STATE and BURST */
@@ -252,10 +253,12 @@ void Instrumentor::enterCache( nanos_event_key_t key, size_t size )
 
    /* Adding event list */
    addEventList ( 2, e );
+#endif
 }
 
 void Instrumentor::leaveCache( nanos_event_key_t key )
 {
+#if 0 //FIXME (#236)
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
    InstrumentorContext::BurstIterator it;
 
@@ -277,6 +280,7 @@ void Instrumentor::leaveCache( nanos_event_key_t key )
    addEventList ( 2, e );
 
    instrContext.removeBurst( it );
+#endif
 }
 
 void Instrumentor::enterTransfer( nanos_event_key_t key, size_t size )
@@ -323,9 +327,9 @@ void Instrumentor::leaveTransfer( nanos_event_key_t key )
 
 void Instrumentor::enterUserCode ( void )
 {
-   /* Gets key for api functions */
-   nanos_event_key_t key = getInstrumentorDictionary()->getEventKey("user-code");
-   nanos_event_value_t val = 12345; /*FIXME*/
+   /* Get key for user-code */
+   static nanos_event_key_t key = getInstrumentorDictionary()->getEventKey("user-code");
+   nanos_event_value_t val = myThread->getCurrentWD()->getId();
 
    /* Create a vector of two  events: STATE and BURST*/
    Event::KV kv( Event::KV( key, val ) );
@@ -342,7 +346,8 @@ void Instrumentor::enterUserCode ( void )
 
 void Instrumentor::leaveUserCode ( void )
 {
-   nanos_event_key_t key = getInstrumentorDictionary()->getEventKey("user-code");
+   /* Get key for user-code */
+   static nanos_event_key_t key = getInstrumentorDictionary()->getEventKey("user-code");
 
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
 
