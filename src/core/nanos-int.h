@@ -84,12 +84,10 @@ typedef struct {
 // C++ types hidden as void *
 typedef void * nanos_thread_t;
 typedef void * nanos_wd_t;                                                                                                                               
-
-typedef struct {                                                                                                                                   
-   int nsect;                                                                                                                                      
+typedef struc {
+   int nsect;
    nanos_wd_t lwd[];
-} nanos_compound_wd_data_t;                                                                                                                        
-
+} nanos_compound_wd_data_t;
 
 typedef struct {
    int lower;

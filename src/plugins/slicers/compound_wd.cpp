@@ -23,7 +23,7 @@ class SlicerCompoundWD: public Slicer
 
 void SlicerCompoundWD::submit ( SlicedWD &work )
 {
-   debug0 ( "Using sliced work descriptor: CompoundWD" );
+   debug ( "Using sliced work descriptor: CompoundWD" );
 
    nanos_compound_wd_data_t *data = (nanos_compound_wd_data_t *) work.getData();
    WorkDescriptor *slice;
@@ -55,7 +55,7 @@ bool SlicerCompoundWD::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
    nanos_compound_wd_data_t *data = (nanos_compound_wd_data_t *) wd->getData();
 
    /* If we have executed all wd's or we want to serialize FIXME(true) them */
-   if ( ( data->nsect == 0 ) || true ) {
+   if ( ( data->nsect == 1 ) || sys.getNumWorkers() == 1 ) {
       *slice = wd;
       return true;
    }
