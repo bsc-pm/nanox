@@ -89,6 +89,8 @@ nanos_err_t nanos_set_internal_wd_data ( nanos_wd_t wd, void *data );
 nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data );
 nanos_err_t nanos_yield ( void );
 
+nanos_err_t nanos_slicer_get_specific_data ( nanos_slicer_t slicer, void ** data );
+
 // Team related functions
 
 nanos_err_t nanos_create_team(nanos_team_t *team, nanos_sched_t sg, unsigned int *nthreads,

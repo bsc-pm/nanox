@@ -40,7 +40,6 @@ typedef struct { int *M; } main__section_1_data_t;
 void main__section_1 ( void *p_args )
 {
    int i;
-fprintf(stderr,"e1\n");
    main__section_1_data_t *args = (main__section_1_data_t *) p_args;
 //fprintf(stderr,"section 1: vector @=%p\n",args->M );
    for ( i = 0; i < VECTOR_SIZE; i++) args->M[i]++;
@@ -56,7 +55,6 @@ typedef struct { int *M; } main__section_2_data_t;
 void main__section_2 ( void *p_args )
 {
    int i;
-fprintf(stderr,"e2\n");
    main__section_2_data_t *args = (main__section_2_data_t *) p_args;
 //fprintf(stderr,"section 2: vector @=%p\n",args->M );
    for ( i = 0; i < VECTOR_SIZE; i++) args->M[i]++;
@@ -72,7 +70,6 @@ typedef struct { int *M; } main__section_3_data_t;
 void main__section_3 ( void *p_args )
 {
    int i;
-fprintf(stderr,"e3\n");
    main__section_3_data_t *args = (main__section_3_data_t *) p_args;
 //fprintf(stderr,"section 3: vector @=%p\n",args->M );
    for ( i = 0; i < VECTOR_SIZE; i++) args->M[i]++;
@@ -88,7 +85,6 @@ typedef struct { int *M; } main__section_4_data_t;
 void main__section_4 ( void *p_args )
 {
    int i;
-fprintf(stderr,"e4\n");
    main__section_4_data_t *args = (main__section_4_data_t *) p_args;
 //fprintf(stderr,"section 4: vector @=%p\n",args->M );
    for ( i = 0; i < VECTOR_SIZE; i++) args->M[i]++;
@@ -140,15 +136,11 @@ int main ( int argc, char **argv )
 
       nanos_wd_t wd[4] = { NULL, NULL, NULL, NULL };
 
-fprintf(stderr,"i\n");
-
       /* Creating section 1 wd */
       nanos_device_t main__section_1_device[1] = { NANOS_SMP_DESC( main__section_1_device_args ) };
       main__section_1_data_t *section_data_1 = NULL;
       NANOS_SAFE( nanos_create_wd ( &wd[0], 1, main__section_1_device, sizeof(section_data_1), (void **) &section_data_1,
                                     nanos_current_wd(), &props , 0, NULL ) );
-fprintf(stderr,"c1\n");
-
       /* Initializing section 1 data */
       section_data_1->M = A;
 
@@ -157,8 +149,6 @@ fprintf(stderr,"c1\n");
       main__section_2_data_t *section_data_2 = NULL;
       NANOS_SAFE( nanos_create_wd ( &wd[1], 1, main__section_2_device, sizeof(section_data_2), (void **) &section_data_2,
                                     nanos_current_wd(), &props , 0, NULL ) );
-fprintf(stderr,"c2\n");
-
       /* Initializing section 2 data */
       section_data_2->M = B;
 
@@ -167,8 +157,6 @@ fprintf(stderr,"c2\n");
       main__section_3_data_t *section_data_3 = NULL;
       NANOS_SAFE( nanos_create_wd ( &wd[2], 1, main__section_3_device, sizeof(section_data_3), (void **) &section_data_3,
                                     nanos_current_wd(), &props , 0, NULL ) );
-fprintf(stderr,"c3\n");
-
       /* Initializing section 3 data */
       section_data_3->M = C;
 
@@ -177,8 +165,6 @@ fprintf(stderr,"c3\n");
       main__section_4_data_t *section_data_4 = NULL;
       NANOS_SAFE( nanos_create_wd ( &wd[3], 1, main__section_4_device, sizeof(section_data_4), (void **) &section_data_4,
                                     nanos_current_wd(), &props , 0, NULL ) );
-
-fprintf(stderr,"c4\n");
 
       /* Creating section 4 wd */
       section_data_4->M = D;
@@ -192,7 +178,10 @@ fprintf(stderr,"c4\n");
 
       // old: nanos_device_t main__sections_device[1] = { NANOS_SMP_DESC( main__sections_device_args ) };
 
-      nanos_smp_args_t main__sections_device_args = { main__sections };
+      void * compound_f;
+
+      nanos_slicer_get_specific_data ( slicer, &compound_f );
+      nanos_smp_args_t main__sections_device_args = { compound_f };
       nanos_device_t main__sections_device[1] = { NANOS_SMP_DESC( main__sections_device_args ) };
 
       nanos_compound_wd_data_t *list_of_wds = NULL;
@@ -203,12 +192,10 @@ fprintf(stderr,"c4\n");
                                     //sizeof(nanos_slicer_data_compound_wd_t), (void **) &slicer_data_compound_wd,
 
 
-      NANOS_SAFE( nanos_create_sliced_wd ( &cwd, 1, main__sections_device ,
+      NANOS_SAFE( nanos_create_sliced_wd ( &cwd, 1, main__sections_device,
                                     sizeof(nanos_compound_wd_data_t) + (4) * sizeof(nanos_wd_t), (void **) &list_of_wds,
                                     nanos_current_wd(), slicer,
                                     0, &dummy, &props , 0, NULL ) );
-
-fprintf(stderr,"cc\n");
 
       /* Initializing data */
       //nanos_wd_t *lwd = &list_of_wds->lwd;
@@ -219,8 +206,6 @@ fprintf(stderr,"cc\n");
       list_of_wds->lwd[3] = wd[3];
 
       NANOS_SAFE( nanos_submit( cwd,0,0,0 ) );
-
-fprintf(stderr,"sc\n");
 
 #else // Normal implementation for sections (submiting all wd's)
       NANOS_SAFE( nanos_submit( wd[0],0,0,0 ) );

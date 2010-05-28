@@ -274,3 +274,19 @@ nanos_err_t nanos_yield ( void )
    return NANOS_OK;
 }
 
+
+nanos_err_t nanos_slicer_get_specific_data ( nanos_slicer_t slicer, void ** data )
+{                                                                                                                                                        
+   NANOS_INSTRUMENTOR( static Instrumentor *inst = sys.getInstrumentor() );                                                                              
+   try {
+      NANOS_INSTRUMENTOR(static nanos_event_value_t val = inst->getInstrumentorDictionary()->getEventValue("api","get_specific_data"));
+      NANOS_INSTRUMENTOR( inst->enterRuntimeAPI(val,RUNTIME) );
+      *data = ((Slicer *)slicer)->getSpecificData();
+   } catch ( ... ) {                                                                                                                                     
+      NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );                                                                                                     
+      return NANOS_UNKNOWN_ERR;                                                                                                                          
+   }                                                                                                                                                     
+                                                                                                                                                         
+   NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );                                                                                                        
+   return NANOS_OK;                                                                                                                                      
+}   

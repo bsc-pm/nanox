@@ -18,12 +18,23 @@ class SlicerCompoundWD: public Slicer
       void submit ( SlicedWD & work ) ;
       bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
       void *getSpecificData() const;
-      static void executeWDs ( WD *lwd[] );
+      static void executeWDs ( nanos_compound_wd_data_t *data );
 };
 
 void SlicerCompoundWD::submit ( SlicedWD &work )
 {
    debug0 ( "Using sliced work descriptor: CompoundWD" );
+
+   nanos_compound_wd_data_t *data = (nanos_compound_wd_data_t *) work.getData();
+   WorkDescriptor *slice;
+
+   /* As the wd's has not been submitted we need to configure it */
+   for ( int i = 0; i < data->nsect; i++) {
+      slice = ((WorkDescriptor**)data->lwd)[i];
+      slice->setParent ( &work );                                                                                                          
+      slice->setDepth( work.getDepth() +1 );
+   }
+
    Scheduler::submit ( work );
 }
 
@@ -43,8 +54,8 @@ bool SlicerCompoundWD::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
    /* Get compound wd data */
    nanos_compound_wd_data_t *data = (nanos_compound_wd_data_t *) wd->getData();
 
-   /* If we have executed all wd's */
-   if ( data->nsect == 0 ) {
+   /* If we have executed all wd's or we want to serialize FIXME(true) them */
+   if ( ( data->nsect == 0 ) || true ) {
       *slice = wd;
       return true;
    }
@@ -52,16 +63,24 @@ bool SlicerCompoundWD::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
    /* Pre-decrement nsect and get corresponding wd */
    *slice = ((WorkDescriptor**)data->lwd)[--(data->nsect)];
 
-   /* As *slice has not submited we need to configure it */
-   (*slice)->setParent ( wd );                                                                                                          
-   (*slice)->setDepth( wd->getDepth() +1 );                                                                                                     
- 
    return false;
 }
 
-void *SlicerCompoundWD::getSpecificData ( ) const { return (void *) executeWDs; }
+void *SlicerCompoundWD::getSpecificData ( ) const
+{
+   return (void *) executeWDs;
+}
 
-void SlicerCompoundWD::executeWDs ( WD *lwd[] ) { }
+void SlicerCompoundWD::executeWDs ( nanos_compound_wd_data_t *data )
+{
+   WorkDescriptor *slice;
+
+   for ( int i = 0; i < data->nsect; i++ ) {
+      slice = ((WorkDescriptor**)data->lwd)[i];
+      Scheduler::inlineWork( slice );
+   }
+
+}
 
 namespace ext {
 
