@@ -18,7 +18,7 @@
 /*************************************************************************************/
 // FIXME: (#64) This flag ENABLE_INSTRUMENTATION has to be managed through
 //compilation in order to generate an instrumentation version
-//#define NANOS_INSTRUMENTATION_ENABLED
+#define NANOS_INSTRUMENTATION_ENABLED
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 #define NANOS_INSTRUMENTOR(f) f;
@@ -187,7 +187,7 @@ namespace nanos {
 
             /* 11 */ registerEventKey("user-funct","User Functions");
 
-            /* 11 */ registerEventKey("user-code","User Code (wd)");
+            /* 12 */ registerEventKey("user-code","User Code (wd)");
 
 #endif
 
