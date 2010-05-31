@@ -659,10 +659,10 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
 
 }
 
-void System::setupWD ( WD &work )
+void System::setupWD ( WD &work, WD *parent )
 {
-   work.setParent ( myThread->getCurrentWD() );
-   work.setDepth( work.getParent()->getDepth() +1 );
+   work.setParent ( parent );
+   work.setDepth( parent->getDepth() +1 );
 
    // Prepare private copy structures to use relative addresses
    work.prepareCopies();
@@ -670,7 +670,7 @@ void System::setupWD ( WD &work )
 
 void System::submit ( WD &work )
 {
-   setupWD( work );
+   setupWD( work, myThread->getCurrentWD() );
    work.submit();
 }
 
@@ -678,7 +678,7 @@ void System::submit ( WD &work )
  */
 void System::submitWithDependencies (WD& work, size_t numDeps, Dependency* deps)
 {
-   setupWD( work );
+   setupWD( work, myThread->getCurrentWD() );
    WD *current = myThread->getCurrentWD();
    current->submitWithDependencies( work, numDeps , deps);
 }
@@ -694,7 +694,7 @@ void System::waitOn( size_t numDeps, Dependency* deps )
 
 void System::inlineWork ( WD &work )
 {
-   setupWD( work );
+   setupWD( work, myThread->getCurrentWD() );
    // TODO: choose actual (active) device...
    Scheduler::inlineWork( &work );
 }

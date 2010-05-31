@@ -33,7 +33,6 @@
 
 // C++ types hidden as void *
 typedef void * nanos_wg_t;
-typedef void * nanos_wd_t;
 typedef void * nanos_team_t;
 typedef void * nanos_sched_t;
 typedef void * nanos_slicer_t;
@@ -89,6 +88,8 @@ nanos_err_t nanos_create_for ( void );
 nanos_err_t nanos_set_internal_wd_data ( nanos_wd_t wd, void *data );
 nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data );
 nanos_err_t nanos_yield ( void );
+
+nanos_err_t nanos_slicer_get_specific_data ( nanos_slicer_t slicer, void ** data );
 
 // Team related functions
 

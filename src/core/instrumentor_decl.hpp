@@ -187,7 +187,7 @@ namespace nanos {
 
             /* 11 */ registerEventKey("user-funct","User Functions");
 
-            /* 11 */ registerEventKey("user-code","User Code (wd)");
+            /* 12 */ registerEventKey("user-code","User Code (wd)");
 
 #endif
 
