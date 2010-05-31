@@ -26,7 +26,7 @@ class InstrumentorParaver: public Instrumentor
       unsigned int _eventBase[EVENT_TYPES];
    public:
       // constructor
-      InstrumentorParaver ( )
+      InstrumentorParaver ( ) : Instrumentor()
       {
          _eventBase[STATE]       = 0;
          _eventBase[BURST_START] = 9200000;

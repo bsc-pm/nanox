@@ -40,6 +40,7 @@ namespace nanos
 
          virtual void submit ( SlicedWD & work ) = 0;
          virtual bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) = 0;
+         virtual void *getSpecificData ( ) const { return NULL; }
    };
 
    class SlicerData
@@ -165,27 +166,6 @@ namespace nanos
          int getSign  ( void ) { return _sign; }
    };
 
-   class SlicerDataCompoundWD : public nanos_slicer_data_compound_wd_internal_t, public SlicerData
-   {
-      /* int _nWD: Number of WorkDescriptor's */
-      public:
-         // constructor
-         SlicerDataCompoundWD ( int n )
-         {
-            fprintf(stderr, "compound of %d sects\n",n);
-            _nWD = n;
-         }
-         // destructor
-         ~SlicerDataCompoundWD ( ) { }
-
-         /*! \brief Decrement internal counter by one
-          *
-          *  This function decrements the internal variable counter by one
-          *
-          *  \return Internal counter after decrementing its value
-          */ 
-         int getNextIndex () { return --_nWD; }
-   };
 };
 
 #endif

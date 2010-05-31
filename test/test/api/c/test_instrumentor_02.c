@@ -51,8 +51,8 @@ void main__task_1 ( void *args )
    nanos_event_key_t ek;
    nanos_event_value_t ev;
 
-   nanos_instrument_register_key ( &ek, "user-funct", "User Functions" );
-   nanos_instrument_register_value ( &ev, "user-funct", "main__task_1", "main__task_1 user's function" );
+   nanos_instrument_register_key ( &ek, "user-funct", "User Functions", true );
+   nanos_instrument_register_value ( &ev, "user-funct", "main__task_1", "main__task_1 user's function", true );
 
    nanos_instrument_enter_burst( ek, ev );
 #endif

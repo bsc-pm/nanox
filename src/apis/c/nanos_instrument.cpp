@@ -23,12 +23,12 @@
 
 using namespace nanos;
 
-nanos_err_t nanos_instrument_register_key ( nanos_event_key_t *event_key, const char *key, const char *description )
+nanos_err_t nanos_instrument_register_key ( nanos_event_key_t *event_key, const char *key, const char *description, bool abort_when_registered )
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      *event_key = sys.getInstrumentor()->getInstrumentorDictionary()->registerEventKey(key, description);
+      *event_key = sys.getInstrumentor()->getInstrumentorDictionary()->registerEventKey(key, description, abort_when_registered);
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -36,12 +36,12 @@ nanos_err_t nanos_instrument_register_key ( nanos_event_key_t *event_key, const 
    return NANOS_OK;
 }
 
-nanos_err_t nanos_instrument_register_value ( nanos_event_value_t *event_value, const char *key, const char *value, const char *description )
+nanos_err_t nanos_instrument_register_value ( nanos_event_value_t *event_value, const char *key, const char *value, const char *description, bool abort_when_registered )
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      *event_value = sys.getInstrumentor()->getInstrumentorDictionary()->registerEventValue(key, value,  description);
+      *event_value = sys.getInstrumentor()->getInstrumentorDictionary()->registerEventValue(key, value,  description, abort_when_registered);
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }

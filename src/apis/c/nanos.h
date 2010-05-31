@@ -33,7 +33,6 @@
 
 // C++ types hidden as void *
 typedef void * nanos_wg_t;
-typedef void * nanos_wd_t;
 typedef void * nanos_team_t;
 typedef void * nanos_sched_t;
 typedef void * nanos_slicer_t;
@@ -90,6 +89,8 @@ nanos_err_t nanos_set_internal_wd_data ( nanos_wd_t wd, void *data );
 nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data );
 nanos_err_t nanos_yield ( void );
 
+nanos_err_t nanos_slicer_get_specific_data ( nanos_slicer_t slicer, void ** data );
+
 // Team related functions
 
 nanos_err_t nanos_create_team(nanos_team_t *team, nanos_sched_t sg, unsigned int *nthreads,
@@ -145,8 +146,8 @@ extern const size_t nanos_gpu_dd_size;
 #define NANOS_GPU_DESC( args ) { nanos_gpu_factory, nanos_gpu_dd_size, &( args ) }
 
 // instrumentor interface
-nanos_err_t nanos_instrument_register_key ( nanos_event_key_t *event_key, const char *key, const char *description );
-nanos_err_t nanos_instrument_register_value ( nanos_event_value_t *event_value, const char *key, const char *value, const char *description );
+nanos_err_t nanos_instrument_register_key ( nanos_event_key_t *event_key, const char *key, const char *description, bool abort_when_registered );
+nanos_err_t nanos_instrument_register_value ( nanos_event_value_t *event_value, const char *key, const char *value, const char *description, bool abort_when_registered );
 
 nanos_err_t nanos_instrument_get_key (const char *key, nanos_event_key_t *event_key);
 nanos_err_t nanos_instrument_get_value (const char *key, const char *value, nanos_event_value_t *event_value);

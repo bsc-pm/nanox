@@ -71,11 +71,8 @@ void Instrumentor::leaveRuntimeAPI ( )
 
 void Instrumentor::wdCreate( WorkDescriptor* newWD )
 {
-   static nanos_event_key_t key = getInstrumentorDictionary()->getEventKey("wd-id");
-
    /* Register (if not) key and values */
-   InstrumentorDictionary *iD = getInstrumentorDictionary();
-   if ( key != 0 ) key = iD->getEventKey("wd-id");
+   static nanos_event_key_t key = getInstrumentorDictionary()->getEventKey("wd-id");
 
    /* Getting work descriptor id */
    nanos_event_value_t wd_id = newWD->getId();
@@ -242,6 +239,7 @@ void Instrumentor::registerCacheHit( nanos_event_key_t key, uint64_t addr )
 
 void Instrumentor::enterCache( nanos_event_key_t key, size_t size )
 {
+#if 0 //FIXME (#236)
    nanos_event_value_t val = (nanos_event_value_t) size;
 
    /* Create a vector of two events: STATE and BURST */
@@ -255,10 +253,12 @@ void Instrumentor::enterCache( nanos_event_key_t key, size_t size )
 
    /* Adding event list */
    addEventList ( 2, e );
+#endif
 }
 
 void Instrumentor::leaveCache( nanos_event_key_t key )
 {
+#if 0 //FIXME (#236)
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
    InstrumentorContext::BurstIterator it;
 
@@ -280,6 +280,7 @@ void Instrumentor::leaveCache( nanos_event_key_t key )
    addEventList ( 2, e );
 
    instrContext.removeBurst( it );
+#endif
 }
 
 void Instrumentor::enterTransfer( nanos_event_key_t key, size_t size )
@@ -326,20 +327,37 @@ void Instrumentor::leaveTransfer( nanos_event_key_t key )
 
 void Instrumentor::enterUserCode ( void )
 {
-   /* Create an event: STATE */
-   Event e = State(RUNNING);
+   /* Get key for user-code */
+   static nanos_event_key_t key = getInstrumentorDictionary()->getEventKey("user-code");
+   nanos_event_value_t val = myThread->getCurrentWD()->getId();
+
+   /* Create a vector of two  events: STATE and BURST*/
+   Event::KV kv( Event::KV( key, val ) );
+   Event e[2] = {State(RUNNING), Burst (true,kv) };
 
    /* Update instrumentor context with new state */
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
    instrContext.pushState(RUNNING);
+   instrContext.insertBurst( e[1] );
 
    /* Adding event */
-   addEventList ( 1, &e );
+   addEventList ( 2, e );
 }
 
 void Instrumentor::leaveUserCode ( void )
 {
+   /* Get key for user-code */
+   static nanos_event_key_t key = getInstrumentorDictionary()->getEventKey("user-code");
+
    InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
+
+   InstrumentorContext::BurstIterator it;
+
+   if ( !instrContext.findBurstByKey( key, it ) )
+      fatal0("Burst doesn't exists");
+
+   Event &e1 =  (*it);
+   e1.reverseType();
 
    /* Top is current state, so before we have to bring (pop) previous state
     * on top of the stack and then restore previous state */
@@ -347,10 +365,12 @@ void Instrumentor::leaveUserCode ( void )
    nanos_event_state_value_t state = instrContext.topState();
 
    /* Creating two events */
-   Event e = State(state);
+   Event e[2] = { State(state), e1 };
 
    /* Spawning two events: specific instrumentor call */
-   addEventList ( 1, &e );
+   addEventList ( 2, e );
+
+   instrContext.removeBurst( it ); 
 }
 
 void Instrumentor::enterIdle ( )
