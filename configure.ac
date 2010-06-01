@@ -45,25 +45,25 @@ smp_ult=yes
 case $host in
   i?86-*-linux*)
     OS=unix-os
-    ARCHITECTURES+=smp
+    ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=x86
     ;;
   x86_64-*-linux*)
     OS=unix-os
-    ARCHITECTURES+=smp
+    ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=x86-64
     ;;
   ia64-*-linux*)
     OS=unix-os
-    ARCHITECTURES+=smp
+    ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=ia64
     ;;
   powerpc-*-linux* | powerpc64-*-linux*)
     OS=unix-os
-    ARCHITECTURES+=smp
+    ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=ppc32
-    CXXFLAGS+=" -m32"
-    CFLAGS+=" -m32"
+    CXXFLAGS="$CXXFLAGS -m32"
+    CFLAGS="$CFLAGS -m32"
 
     # Check if it is a Cell system
     if cat /proc/cpuinfo | grep Cell &> /dev/null ; then
@@ -94,18 +94,17 @@ case $host in
 	   AC_SUBST([CELLSDK_INC])
 	   AC_SUBST([CELLSDK_LIB])
 
-	   NANOS_CONFIG_LIBDIRS+=" -L$CELLSDK_LIB"
-	   NANOS_CONFIG_LIBS+=" -lspe2"
+	   NANOS_CONFIG_LIBDIRS="NANOS_CONFIG_LIBDIRS -L$CELLSDK_LIB"
+	   NANOS_CONFIG_LIBS="NANOS_CONFIG_LIBS -lspe2"
         fi
       fi
       if test x$spu_valid = xyes; then
-        ARCHITECTURES+=" spu"
+        ARCHITECTURES="$ARCHITECTURES spu"
       fi
     fi
-
     ;;
   *)
-    ARCHITECTURES+=smp
+    ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=unknown
     smp_ult=no
     ;;
@@ -136,19 +135,19 @@ if lspci | grep nVidia &> /dev/null ; then
 		AC_SUBST([CUDA_LIB])
 	fi
 	if test x$gpu_valid = xyes; then
-           	CFLAGS+=" -DGPU_DEV"
-           	CXXFLAGS+=" -DGPU_DEV"
-		ARCHITECTURES+=" gpu"
+           	CFLAGS="$CFLAGS -DGPU_DEV"
+           	CXXFLAGS="$CXXFLAGS -DGPU_DEV"
+		ARCHITECTURES="$ARCHITECTURES gpu"
 	fi
 fi
 
 
 # Add architecture libraries
 for arch in $ARCHITECTURES; do
-	NANOS_CONFIG_LIBS+=" ../arch/$arch/lib$arch.la"
+	NANOS_CONFIG_LIBS="$NANOS_CONFIG_LIBS ../arch/$arch/lib$arch.la"
 done
 
-AM_CONDITIONAL([SMP_SUPPORTS_ULT],[test "$smp_ult"=yes])
+AM_CONDITIONAL([SMP_SUPPORTS_ULT],[test $smp_ult=yes])
 
 AC_MSG_RESULT([$ARCHITECTURES/$OS])
 
