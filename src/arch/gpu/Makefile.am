@@ -38,6 +38,7 @@ libgpu_la_SOURCES = \
 		gputhread.hpp \
 		gputhread.cpp \
 		gpuutils.hpp \
+		gpuutils.cpp \
 		$(END)
 
 

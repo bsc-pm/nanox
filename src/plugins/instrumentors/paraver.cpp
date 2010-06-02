@@ -327,6 +327,11 @@ class InstrumentorParaver: public Instrumentor
          OMPItrace_neventandcounters(total , p_events, p_values);
           
       }
+
+      void traceMyEvent (unsigned int type, unsigned int value)
+      {
+         OMPItrace_event(type, value);
+      }
 };
 
 namespace ext {

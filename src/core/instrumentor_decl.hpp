@@ -486,6 +486,8 @@ namespace nanos {
          virtual void registerCopy( nanos_event_key_t key, size_t size );
          virtual void registerCacheHit( nanos_event_key_t key, uint64_t addr );
 
+         virtual void traceMyEvent( unsigned int type, unsigned int value ) {}
+
          virtual void enterCache( nanos_event_key_t key, size_t size );
          virtual void leaveCache( nanos_event_key_t key );
 
