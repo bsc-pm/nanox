@@ -36,9 +36,18 @@ void GPUThread::runDependent ()
    if (cudaErr != cudaSuccess) warning( "couldn't set the GPU device" );
 
 #if PINNED_CUDA | WC
-   cudaErr = cudaSetDeviceFlags( cudaDeviceMapHost );
+   cudaErr = cudaSetDeviceFlags( cudaDeviceMapHost | cudaDeviceBlockingSync );
+   if (cudaErr != cudaSuccess) warning( "couldn't set the GPU device flags" );
+#else
+   cudaErr = cudaSetDeviceFlags( cudaDeviceBlockingSync );
    if (cudaErr != cudaSuccess) warning( "couldn't set the GPU device flags" );
 #endif
+
+   // Avoid the so slow first data allocation and transfer to device
+   bool b = true;
+   bool * b_d = ( bool * ) GPUDevice::allocate( sizeof( b ) );
+   GPUDevice::copyIn( ( void * ) b_d, ( uint64_t ) &b, sizeof( b ) );
+   GPUDevice::free( b_d );
 
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
 
