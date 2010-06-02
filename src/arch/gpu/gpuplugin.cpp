@@ -29,16 +29,18 @@ namespace ext {
 
 PE * gpuProcessorFactory ( int id )
 {
-   return new GPUProcessor( id );
+   return new GPUProcessor( id, 0 );
 }
+
 
 class GPUPlugin : public Plugin
 {
    private:
       int _numGPUs;
+      bool _prefetch;
 
    public:
-      GPUPlugin() : Plugin( "GPU PE Plugin", 1 ), _numGPUs( -1 ) {}
+      GPUPlugin() : Plugin( "GPU PE Plugin", 1 ), _numGPUs( -1 ), _prefetch( true ) {}
 
       virtual void config( Config& config )
       {
@@ -47,6 +49,11 @@ class GPUPlugin : public Plugin
                                        "Defines the maximum number of GPUs to use" );
          config.registerArgOption ( "num-gpus", "gpus" );
          config.registerEnvOption ( "num-gpus", "NX_GPUS" );
+
+         config.registerConfigOption( "gpu-prefetch", new Config::FlagOption( _prefetch ),
+                                       "Set whether data prefetching must be activated or not" );
+         config.registerEnvOption( "gpu-prefetch", "NX_GPUPREFETCH" );
+         config.registerArgOption( "gpu-prefetch", "gpu-prefetch" );
       }
 
       virtual void init()
@@ -79,8 +86,12 @@ class GPUPlugin : public Plugin
 
          GPUDD::_gpuCount = deviceCount;
 
+         // Check if the user wants data to be prefetched or not
+         GPUDD::_prefetch = _prefetch;
       }
+
 };
+
 }
 }
 
