@@ -29,7 +29,7 @@ namespace ext {
 
 PE * gpuProcessorFactory ( int id )
 {
-   return new GPUProcessor( id, 0 );
+   return new GPUProcessor( id );
 }
 
 
