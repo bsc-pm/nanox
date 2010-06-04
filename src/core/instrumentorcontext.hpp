@@ -111,4 +111,14 @@ inline InstrumentorContext::ConstBurstIterator InstrumentorContext::endBurst() c
    return _burstList.end();
 }
 
+inline void InstrumentorContext::setStateLevel ( int sl )
+{
+   _stateLevel = sl;
+}
+                                                                                                                                                         
+inline int InstrumentorContext::getStateLevel ( void ) const
+{
+   return _stateLevel;
+}
+ 
 #endif

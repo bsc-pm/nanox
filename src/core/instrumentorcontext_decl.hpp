@@ -35,9 +35,10 @@ namespace nanos {
          typedef std::stack<nanos_event_state_value_t> StateStack;
          typedef std::list<Event> BurstList;
 
-         StateStack       _stateStack;  /**< Stack of states */
-         BurstList        _burstList;   /**< List of current opened bursts */
-         BurstList        _burstBackup; /**< Backup list (non-active) of opened bursts */
+         StateStack       _stateStack;   /**< Stack of states */
+         int              _stateLevel;   /**< Set state level, zero by default */
+         BurstList        _burstList;    /**< List of current opened bursts */
+         BurstList        _burstBackup;  /**< Backup list (non-active) of opened bursts */
 
       public:
          /*! \brief InstrumenotrContext const BurstIterator
@@ -50,11 +51,11 @@ namespace nanos {
 
          /*! \brief InstrumentorContext copy constructor
           */
-         explicit InstrumentorContext(const InstrumentorContext &ic) : _stateStack(), _burstList() { }
+         explicit InstrumentorContext(const InstrumentorContext &ic) : _stateStack(), _stateLevel(ic._stateLevel), _burstList(), _burstBackup() {}
 
          /*! \brief InstrumentorContext constructor
           */
-         InstrumentorContext () :_stateStack(), _burstList(), _burstBackup() { }
+         InstrumentorContext () :_stateStack(), _stateLevel(0), _burstList(), _burstBackup() { }
 
          /*! \brief InstrumentorContext destructor
           */
@@ -105,6 +106,14 @@ namespace nanos {
          /*! \brief Gets the last element in the burst list
           */
          ConstBurstIterator endBurst() const ; 
+
+         /*! \brief Set state enabled flag
+          */
+         void setStateLevel ( int sl ) ;
+
+         /*! \brief Gets state enabled flag
+          */
+         int getStateLevel ( void ) const ;
 
    };
 }

@@ -282,12 +282,17 @@ class InstrumentorParaver: public Instrumentor
 
          int rmValues = 0;
          for ( unsigned int i = 0; i < total; i++ )
+         {
+            if ( (p_events[i] < 0) || (p_events[i] > 10000000) ) fatal("Negative event type");
             for ( unsigned int j = i+1; j < total; j++ )
+            {
                if ( p_events[i] == p_events[j] )
                {
                   p_events[i] = 0;
                   rmValues++;
                }
+            }
+         }
 
          total -= rmValues;
 

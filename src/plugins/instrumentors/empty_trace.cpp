@@ -19,16 +19,6 @@ class InstrumentorEmptyTrace: public Instrumentor
       virtual void initialize( void ) {}
       virtual void finalize( void ) {}
       virtual void addEventList ( unsigned int count, Event *events ) {}
-
-      // high-level events
-
-      virtual void enterRuntimeAPI ( std::string function, std::string description, nanos_event_state_value_t state = RUNTIME ) {}
-      virtual void leaveRuntimeAPI ( ) {}
-      virtual void enterIdle ( ) {}
-      virtual void leaveIdle ( ) {}
-      virtual void wdCreate ( WorkDescriptor *wd ) {}
-      virtual void wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
-      virtual void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
 };
 
 

@@ -70,7 +70,7 @@ int fib ( int n, int d )
 {
    nanos_event_key_t ek;
    nanos_event_value_t ev;
-   nanos_instrument_register_key ( &ek, "user-funct", "User Functions", true );
+   nanos_instrument_get_key ( "user-funct", &ek );
    nanos_instrument_register_value ( &ev, "user-funct", "fib", "fib user's function", true );
 
    nanos_instrument_enter_burst ( ek, ev );
