@@ -64,6 +64,7 @@ void Instrumentor::closeBurstEvent ( Event *e, nanos_event_key_t key )
    if ( ic.findBurstByKey( key, it ) ) {
       /* Creating burst event */
       new (e) Event(*it);
+      e->reverseType();
    }
 }
 

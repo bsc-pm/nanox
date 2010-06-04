@@ -129,7 +129,7 @@ int fib ( int n, int d )
       y = fib_seq( n-2 );
    }
 
-   nanos_instrument_leave_burst ( ek, ev );
+   nanos_instrument_leave_burst ( ek );
 
    return x + y;
 }

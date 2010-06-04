@@ -26,6 +26,7 @@
 #include "gpudd.hpp"
 #include "plugin.hpp"
 #include "instrumentor.hpp"
+#include "instrumentormodule_decl.hpp"
 
 using namespace nanos;
 
@@ -65,13 +66,10 @@ void * nanos_smp_factory( void *prealloc, void *args )
 
 nanos_wd_t nanos_current_wd()
 {
-   NANOS_INSTRUMENTOR( static Instrumentor *inst = sys.getInstrumentor() );
-   NANOS_INSTRUMENTOR( static nanos_event_value_t val = inst->getInstrumentorDictionary()->getEventValue("api","current_wd") );
-   NANOS_INSTRUMENTOR( inst->enterRuntimeAPI(val,RUNTIME) );
+   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","current_wd",RUNTIME) );
 
    nanos_wd_t cwd = myThread->getCurrentWD();
 
-   NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() )
    return cwd;
 }
 

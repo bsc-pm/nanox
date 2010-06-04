@@ -16,16 +16,31 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-#ifndef __NANOS_INSTRUMENTOR_FWD_H
-#define __NANOS_INSTRUMENTOR_FWD_H
+#ifndef __NANOS_INSTRUMENTOR_MODULE_DECL_H
+#define __NANOS_INSTRUMENTOR_MODULE_DECL_H
+#include "debug.hpp"
+#include "nanos-int.h"
+#include "system.hpp"
 
 namespace nanos {
-   class InstrumentorValueDescriptor;
-   class InstrumentorKeyDescriptor;
-   class InstrumentorDictionary;
-   class Instrumentor;
 
-   class InstrumentationStateAndBurst;
-};
+   class InstrumentorStateAndBurst {
+      private:
+         // FIXME: could _inst be static?
+         Instrumentor        *_inst;
+         nanos_event_key_t    _key;
+      public:
+         InstrumentorStateAndBurst ( const char* keydesc, const char *valdesc, nanos_event_state_value_t state )
+         {
+            _inst = sys.getInstrumentor();
+            //if ( _inst == NULL ) _inst = sys.getInstrumentor();
+            _key = _inst->getInstrumentorDictionary()->getEventKey(keydesc);
+            nanos_event_value_t val = _inst->getInstrumentorDictionary()->getEventValue(keydesc,valdesc);
+            _inst->throwOpenStateAndBurst(state, _key, val);
+         }
 
+         ~InstrumentorStateAndBurst ( ) { _inst->throwCloseStateAndBurst( _key ); }
+   };
+
+}
 #endif
