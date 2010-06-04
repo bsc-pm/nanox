@@ -32,24 +32,48 @@ namespace nanos {
 namespace ext
 {
 
+struct GPUInfo {
+   size_t maxMemoryAvailable;
+};
+
    class GPUProcessor : public Accelerator
    {
+      public:
 
+         class GPUInfo
+         {
+            private:
+               size_t _maxMemoryAvailable;
+
+            public:
+               GPUInfo ( int device );
+
+               size_t getMaxMemoryAvailable () { return _maxMemoryAvailable; }
+         };
 
       private:
-         // config variables
+
+         // configuration variables
          static Atomic<int>      _deviceSeed; // Number of GPU devices assigned to threads
          int                     _gpuDevice; // Assigned GPU device Id
+         GPUInfo                 _gpuInfo; // Information related to the GPU device that represents
+
+         // cache
+         DeviceCache<GPUDevice>  _cache;
 
          // disable copy constructor and assignment operator
          GPUProcessor( const GPUProcessor &pe );
          const GPUProcessor & operator= ( const GPUProcessor &pe );
 
-         DeviceCache<GPUDevice> _cache;
+         size_t getMaxMemoryAvailable ( int id );
 
       public:
          // constructors
-         GPUProcessor( int id ) : Accelerator( id, &GPU ), _gpuDevice( _deviceSeed++ ), _cache() {}
+         GPUProcessor( int id, int gpuId ) : Accelerator( id, &GPU ), _gpuDevice( _deviceSeed++ ), _gpuInfo( gpuId ), _cache()
+         {
+            std::cout << "[GPUProcessor] I have " << _gpuInfo.getMaxMemoryAvailable()
+                  << " bytes of available memory (device #" << gpuId << ")" << std::endl;
+         }
 
          virtual ~GPUProcessor() {}
 

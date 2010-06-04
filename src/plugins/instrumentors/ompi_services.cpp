@@ -8,7 +8,7 @@ extern "C" {
 
    unsigned int nanos_ompitrace_get_max_threads ( void )
    {
-      return sys.getNumPEs();
+      return sys.getNumPEs()+2;
    }
 
    unsigned int nanos_ompitrace_get_thread_num ( void )

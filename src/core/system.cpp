@@ -77,6 +77,8 @@ void System::loadModules ()
    ensure( _hostFactory,"No default host factory" );
 
 #ifdef GPU_DEV
+   verbose0( "loading GPU support" );
+
    if ( !PluginManager::load ( "pe-gpu" ) )
       fatal0 ( "Couldn't load GPU support" );
 #endif
@@ -214,7 +216,7 @@ void System::start ()
 #ifdef GPU_DEV
    int gpuC;
    for ( gpuC = 0; gpuC < nanos::ext::GPUDD::getGPUCount(); gpuC++ ) {
-      PE *gpu = new nanos::ext::GPUProcessor( p++ );
+      PE *gpu = new nanos::ext::GPUProcessor( p++, gpuC );
       _pes.push_back( gpu );
       _workers.push_back( &gpu->startWorker() );
    }

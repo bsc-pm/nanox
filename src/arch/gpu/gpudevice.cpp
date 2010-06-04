@@ -21,24 +21,47 @@
 #include "gpudevice.hpp"
 #include "basethread.hpp"
 #include "debug.hpp"
-#if ASYNC
+//#if ASYNC
 #include <string.h>
-#endif
-#if PINNED_OS
+//#endif
+//#if PINNED_OS
 #include <sys/mman.h>
-#endif
+#include <errno.h>
+#include <string.h>
+#include <sys/resource.h>
+//#endif
+
 
 #include <cuda_runtime.h>
 
 using namespace nanos;
 
-#if ASYNC | PINNED_CUDA | WC
+transfer_mode GPUDevice::_transferMode = NORMAL;
+
+//#if ASYNC | PINNED_CUDA | WC
 std::map< void *, uint64_t > GPUDevice::_pinnedMemory;
-#endif
+//#endif
+
+//#if PINNED_OS
+unsigned int GPUDevice::_rlimit;
+
+void GPUDevice::getMemoryLockLimit()
+{
+   if ( _transferMode == PINNED_OS ) {
+      struct rlimit rlim;
+      int error = getrlimit( RLIMIT_MEMLOCK, &rlim );
+      if ( error == 0 ) {
+         _rlimit = rlim.rlim_cur >> 1;
+      } else {
+         _rlimit = 0;
+      }
+   }
+}
+//#endif
 
 void * GPUDevice::allocate( size_t size )
 {
-   cudaError_t err = cudaSuccess;
+   //cudaError_t err = cudaSuccess;
    void * address = 0;
 
 #if ASYNC
@@ -103,7 +126,7 @@ void * GPUDevice::allocate( size_t size )
 
 void GPUDevice::free( void *address )
 {
-   cudaError_t err = cudaSuccess;
+   //cudaError_t err = cudaSuccess;
 
 #if NORMAL | ASYNC | PINNED_OS
    err = cudaFree( address );
@@ -141,10 +164,32 @@ void GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
 
 #if PINNED_OS
 
-   /*int error = */mlock( ( void * ) remoteSrc, size );
+   unsigned int auxAddress = remoteSrc;
+   int error = 0;
 
-   //if (error != 0) std::cout << "ERROR in mlock()" << std::endl;
-   //else std::cout << "mlock() SUCCEEDED" << std::endl;
+   for ( int bytesLeft = size; bytesLeft > 0;  ) {
+      bool touch = * ((bool *) remoteSrc);
+      std::cout << "aux@ = " << auxAddress << "; min(rlim,Bl) = " << std::min( _rlimit, (unsigned int) bytesLeft )
+            << "; error = " << error << "; size = " << size << "; Bl = " << bytesLeft << " " << touch << std::endl;
+      error += mlock( ( void * ) auxAddress, std::min( _rlimit, (unsigned int) bytesLeft ) );
+      auxAddress += std::min( _rlimit, (unsigned int) bytesLeft );
+      bytesLeft -= _rlimit;
+      if (bytesLeft <= 0 ) std::cout << "+++++++++++++++++++++++++++++" << std::endl;
+   }
+
+   //int error = mlock( ( void * ) remoteSrc, size );
+
+   if (error != 0) {
+      std::cout << "ERROR in mlock() ::: " << errno << ": " << strerror( errno ) ;
+      if ( errno == ENOMEM ) std::cout << " --> ENOMEM" << std::endl;
+      else if ( errno == EAGAIN ) std::cout << " --> EAGAIN" << std::endl;
+      else if ( errno == EINVAL ) std::cout << " --> EINVAL" << std::endl;
+      else if ( errno == ENOMEM ) std::cout << " --> ENOMEM" << std::endl;
+      else if ( errno == EPERM ) std::cout << " --> EPERM" << std::endl;
+      else std::cout << " --> ??" << std::endl;
+   }
+
+   std::cout << "-------------------------------------------" << std::endl;
 
    err = cudaMemcpyAsync( localDst, ( void * ) remoteSrc, size, cudaMemcpyHostToDevice, 0 );
 #endif

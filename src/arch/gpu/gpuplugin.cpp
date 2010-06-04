@@ -21,6 +21,7 @@
 #include "gpudd.hpp"
 #include "gpuprocessor.hpp"
 #include "system.hpp"
+#include "throttle.hpp"
 
 #include "cuda_runtime.h"
 
@@ -29,9 +30,24 @@ namespace ext {
 
 PE * gpuProcessorFactory ( int id )
 {
-   return new GPUProcessor( id );
+   return new GPUProcessor( id, 0 );
 }
 
+
+class GPUTransferModeOption : public Config::MapAction<transfer_mode>
+{
+   public:
+      GPUTransferModeOption( ) : Config::MapAction<transfer_mode>() {}
+
+      // copy constructor
+      GPUTransferModeOption( const GPUTransferModeOption &opt ) : Config::MapAction<transfer_mode>( opt ) {}
+
+      // destructor
+      virtual ~GPUTransferModeOption() {}
+
+      virtual void setValue ( const transfer_mode &value ) { GPUDevice::setTransferMode(value); }
+      virtual GPUTransferModeOption * clone () { return new GPUTransferModeOption( *this ); }
+};
 
 class GPUPlugin : public Plugin
 {
@@ -54,6 +70,14 @@ class GPUPlugin : public Plugin
                                        "Set whether data prefetching must be activated or not" );
          config.registerEnvOption( "gpu-prefetch", "NX_GPUPREFETCH" );
          config.registerArgOption( "gpu-prefetch", "gpu-prefetch" );
+
+         GPUTransferModeOption map;
+         map.addOption("wc", WC)
+            .addOption("normal",NORMAL);
+         config.registerConfigOption ( "gpu-transfer-mode", &map, "Data transfer modes" );
+         config.registerArgOption ( "gpu-transfer-mode", "gpu-transfer-mode" );
+
+         //sys.setThrottlePolicy( nanos::ext::createDummyThrottle() );
       }
 
       virtual void init()

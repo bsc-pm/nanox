@@ -21,10 +21,28 @@
 #include "debug.hpp"
 #include "schedule.hpp"
 
+#include "cuda_runtime.h"
+
 using namespace nanos;
 using namespace nanos::ext;
 
 Atomic<int> GPUProcessor::_deviceSeed = 0;
+
+
+GPUProcessor::GPUInfo::GPUInfo ( int device )
+{
+   struct cudaDeviceProp gpuProperties;
+   cudaGetDeviceProperties( &gpuProperties, device );
+
+   _maxMemoryAvailable = gpuProperties.totalGlobalMem * 0.7;
+}
+
+
+size_t  GPUProcessor::getMaxMemoryAvailable ( int id )
+{
+   return 0;//GPUPlugin::getMaxMemoryAvailable( id );
+}
+
 
 WorkDescriptor & GPUProcessor::getWorkerWD () const
 {

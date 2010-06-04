@@ -12,7 +12,7 @@ common_includes= \
 
 common_cflags= -Wall -Werror 
 #common_cxxflags= -Wall -Werror -std=c++0x
-common_cxxflags= -Wall -Werror -DLIBDIR=\"$(libdir)\" -D_NANOS_INTERNAL
+common_cxxflags= -g2 -O0 -fno-inline -Wall -Werror -DLIBDIR=\"$(libdir)\" -D_NANOS_INTERNAL
 performance_cflags=-O3
 
 version_flags= -version-info 1:0:0

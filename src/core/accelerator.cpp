@@ -28,6 +28,7 @@ using namespace nanos;
 
 #if LOCK_TRANSFER
 Lock Accelerator::_transferLock;
+pthread_mutex_t Accelerator::_mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
 
@@ -35,6 +36,7 @@ void Accelerator::copyDataIn( WorkDescriptor &work )
 {
 #if LOCK_TRANSFER
    _transferLock.acquire();
+   //pthread_mutex_lock( &_mutex );
 #endif
    CopyData *copies = work.getCopies();
    for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
@@ -52,8 +54,10 @@ void Accelerator::copyDataIn( WorkDescriptor &work )
       }
    }
 #if LOCK_TRANSFER
+   //pthread_mutex_unlock( &_mutex );
    _transferLock.release();
 #endif
+
 }
 
 void Accelerator::copyDataOut( WorkDescriptor& work )

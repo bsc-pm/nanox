@@ -26,6 +26,8 @@
 #include <algorithm>
 #include "functors.hpp"
 #include "atomic.hpp"
+#include <pthread.h>
+
 
 #define LOCK_TRANSFER 1
 
@@ -38,8 +40,9 @@ namespace nanos
       private:
          Accelerator ( const Accelerator &pe );
          const Accelerator & operator= ( const Accelerator &pe );
-#ifdef LOCK_TRANSFER
+#if LOCK_TRANSFER
          static Lock _transferLock;
+         static pthread_mutex_t _mutex;
 #endif
          
       protected:

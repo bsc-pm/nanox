@@ -19,23 +19,31 @@
 
 #ifndef _GPU_DEVICE
 #define _GPU_DEVICE
-
-#define NORMAL       1 // -- Basis
-#define ASYNC        0 // -- A little bit better (gives bad results from time to time)
+/*
+#define NORMAL       0 // -- Basis
+#define ASYNC        1 // -- A little bit better (gives bad results from time to time)
 #define PINNED_CUDA  0 // -- Slowdown of ~10x (gives always bad results)
 #define PINNED_OS    0 // -- Similar to NORMAL (correct results though mlock fails)
 #define WC           0 // -- Same as PINNED_CUDA: Slowdown of ~10x (gives always bad results)
-
+*/
 
 
 #include "workdescriptor_decl.hpp"
-#if ASYNC | PINNED_CUDA | WC
+//#if ASYNC | PINNED_CUDA | WC
 #include <map>
-#endif
+//#endif
 
 
 namespace nanos
 {
+
+typedef enum {
+   NORMAL,
+   ASYNC,
+   PINNED_CUDA,
+   PINNED_OS,
+   WC
+} transfer_mode;
 
 /* \brief Device specialization for GPU architecture
  * provides functions to allocate and copy data in the device
@@ -44,14 +52,28 @@ namespace nanos
    class GPUDevice : public Device
    {
       private:
-#if ASYNC | PINNED_CUDA | WC
+
+      static transfer_mode _transferMode;
+
+//#if ASYNC | PINNED_CUDA | WC
          static std::map< void *, uint64_t > _pinnedMemory;
-#endif
+//#endif
+
+//#if PINNED_OS
+         static unsigned int _rlimit;
+
+         static void getMemoryLockLimit();
+//#endif
 
       public:
          /*! \brief GPUDevice constructor
           */
-         GPUDevice ( const char *n ) : Device ( n ) {}
+         GPUDevice ( const char *n ) : Device ( n )
+         {
+//#if PINNED_OS
+            getMemoryLockLimit();
+//#endif
+         }
 
          /*! \brief GPUDevice copy constructor
           */
@@ -60,6 +82,11 @@ namespace nanos
          /*! \brief GPUDevice destructor
           */
          ~GPUDevice() {};
+
+         static void setTransferMode ( transfer_mode mode )
+         {
+            _transferMode = mode;
+         }
 
          static void * allocate( size_t size );
          static void free( void *address );
