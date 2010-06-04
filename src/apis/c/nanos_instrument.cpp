@@ -128,9 +128,7 @@ nanos_err_t nanos_instrument_enter_state ( nanos_event_state_value_t state )
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
-      sys.getInstrumentor()->createStateEvent(e,state);
-      sys.getInstrumentor()->addEventList(1,e);
+      sys.getInstrumentor()->throwOpenStateEvent( state );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -143,9 +141,7 @@ nanos_err_t nanos_instrument_leave_state ( void )
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
-      sys.getInstrumentor()->returnPreviousStateEvent(e);
-      sys.getInstrumentor()->addEventList(1,e);
+      sys.getInstrumentor()->throwCloseStateEvent( );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -158,10 +154,7 @@ nanos_err_t nanos_instrument_enter_burst( nanos_event_key_t key, nanos_event_val
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      Instrumentor::Event e; 
-      sys.getInstrumentor()->createBurstEvent(&e,key,value);
-      sys.getInstrumentor()->insertBurstEvent(e);
-      sys.getInstrumentor()->addEventList(1,&e);
+      sys.getInstrumentor()->throwOpenBurstEvent ( key, value );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -169,15 +162,12 @@ nanos_err_t nanos_instrument_enter_burst( nanos_event_key_t key, nanos_event_val
    return NANOS_OK;
 }
 
-nanos_err_t nanos_instrument_leave_burst( nanos_event_key_t key, nanos_event_value_t value )
+nanos_err_t nanos_instrument_leave_burst( nanos_event_key_t key )
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
-      sys.getInstrumentor()->closeBurstEvent(e,key);
-      sys.getInstrumentor()->removeBurstEvent(key);
-      sys.getInstrumentor()->addEventList(1, e);
+      sys.getInstrumentor()->throwCloseBurstEvent ( key );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -190,9 +180,7 @@ nanos_err_t nanos_instrument_point_event ( unsigned int nkvs, nanos_event_key_t 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
-      sys.getInstrumentor()->createPointEvent(e,nkvs,keys,values);
-      sys.getInstrumentor()->addEventList(1,e);
+      sys.getInstrumentor()->throwPointEventNkvs ( nkvs, keys, values );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -206,9 +194,7 @@ nanos_err_t nanos_instrument_ptp_start ( nanos_event_domain_t domain, nanos_even
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
-      sys.getInstrumentor()->createPtPStart(e,domain,id,nkvs,keys,values);
-      sys.getInstrumentor()->addEventList(1,e);
+      sys.getInstrumentor()->throwOpenPtPEventNkvs ( domain, id, nkvs, keys, values );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -222,9 +208,7 @@ nanos_err_t nanos_instrument_ptp_end ( nanos_event_domain_t domain, nanos_event_
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) ); 
-      sys.getInstrumentor()->createPtPEnd(e,domain,id,nkvs,keys,values);
-      sys.getInstrumentor()->addEventList(1,e);
+      sys.getInstrumentor()->throwClosePtPEventNkvs ( domain, id, nkvs, keys, values );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }

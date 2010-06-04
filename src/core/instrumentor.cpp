@@ -147,6 +147,17 @@ void Instrumentor::throwPointEvent ( nanos_event_key_t key, nanos_event_value_t 
    addEventList ( 1, &e );
 }
 
+void Instrumentor::throwPointEventNkvs ( unsigned int nkvs, nanos_event_key_t *key, nanos_event_value_t *val )
+{
+   Event e; /* Event */
+
+   /* Create point event */
+   createPointEvent ( &e, nkvs, key, val );
+
+   /* Spawning point event */
+   addEventList ( 1, &e );
+}
+
 void Instrumentor::throwOpenStateEvent ( nanos_event_state_value_t state )
 {
    Event e; /* Event */
@@ -170,11 +181,81 @@ void Instrumentor::throwCloseStateEvent ( void )
 
 }
 
+void Instrumentor::throwOpenBurstEvent ( nanos_event_key_t key, nanos_event_value_t val )
+{
+   Event e; /* Event */
+
+   /* Create event: BURST */
+   createBurstEvent( &e, key, val );
+   insertBurstEvent( e );
+
+   /* Spawning event: specific instrumentor call */
+   addEventList ( 1, &e );
+}
+
+void Instrumentor::throwCloseBurstEvent ( nanos_event_key_t key )
+{
+   Event e; /* Event */
+
+   /* Create event: BURST */
+   closeBurstEvent( &e, key );
+
+   /* Spawning event: specific instrumentor call */
+   addEventList ( 1, &e );
+   removeBurstEvent( key );
+}
+
+void Instrumentor::throwOpenPtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val )
+{
+   Event e; /* Event */
+
+   /* Create event: PtP */
+   createPtPStart( &e, domain, id, 1, &key, &val );
+
+   /* Spawning event: specific instrumentor call */
+   addEventList ( 1, &e );
+}
+
+void Instrumentor::throwOpenPtPEventNkvs ( nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,
+                                           nanos_event_key_t *key, nanos_event_value_t *val )
+{
+   Event e; /* Event */
+
+   /* Create event: PtP */
+   createPtPStart( &e, domain, id, nkvs, key, val );
+
+   /* Spawning event: specific instrumentor call */
+   addEventList ( 1, &e );
+}
+
+void Instrumentor::throwClosePtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val )
+{
+   Event e; /* Event */
+
+   /* Create event: PtP */
+   createPtPEnd( &e, domain, id, 1, &key, &val );
+
+   /* Spawning event: specific instrumentor call */
+   addEventList ( 1, &e );
+
+}
+
+void Instrumentor::throwClosePtPEventNkvs ( nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,
+                                            nanos_event_key_t *key, nanos_event_value_t *val )
+{
+   Event e; /* Event */
+
+   /* Create event: PtP */
+   createPtPEnd( &e, domain, id, nkvs, key, val );
+
+   /* Spawning event: specific instrumentor call */
+   addEventList ( 1, &e );
+
+}
+
 void Instrumentor::throwOpenStateAndBurst ( nanos_event_state_value_t state, nanos_event_key_t key, nanos_event_value_t val )
 {
    Event e[2]; /* Event array */
-
-   ensure(key < 13, "ARGHHHH!!!");
 
    /* Create a vector of two events: STATE and BURST */
    createStateEvent( &e[0], state );
@@ -343,54 +424,12 @@ void Instrumentor::registerCacheHit( nanos_event_key_t key, uint64_t addr )
 
 void Instrumentor::enterCache( nanos_event_key_t key, size_t size )
 {
-#if 0 //FIXME (#236)
    throwOpenStateAndBurst ( CACHE, key, (nanos_event_value_t) size );
-
-
-// Previous code, to remove when fixed #236
-   nanos_event_value_t val = (nanos_event_value_t) size;
-
-   /* Create a vector of two events: STATE and BURST */
-   Event::KV kv( Event::KV( key, val ) );
-   Event e[2] = { State(CACHE), Burst( true, kv) };
-
-   /* Update instrumentor context with new state and open burst */
-   InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
-   instrContext.pushState(CACHE);
-   instrContext.insertBurst( e[1] );
-
-   /* Adding event list */
-   addEventList ( 2, e );
-#endif
 }
 
 void Instrumentor::leaveCache( nanos_event_key_t key )
 {
-#if 0 //FIXME (#236)
    throwCloseStateAndBurst( key );
-// Previous code, to remove when fixed #236
-   InstrumentorContext &instrContext = myThread->getCurrentWD()->getInstrumentorContext();
-   InstrumentorContext::BurstIterator it;
-
-   if ( !instrContext.findBurstByKey( key, it ) )
-      fatal0("Burst doesn't exists");
-
-   Event &e1 =  (*it);
-   e1.reverseType();
-
-   /* Top is current state, so before we have to bring (pop) previous state
-    * on top of the stack and then restore previous state */
-   instrContext.popState();
-   nanos_event_state_value_t state = instrContext.topState();
-
-   /* Creating two events */
-   Event e[2] = { State(state), e1 };
-
-   /* Spawning two events: specific instrumentor call */
-   addEventList ( 2, e );
-
-   instrContext.removeBurst( it );
-#endif
 }
 
 void Instrumentor::enterTransfer( nanos_event_key_t key, size_t size )

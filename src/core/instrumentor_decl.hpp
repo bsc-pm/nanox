@@ -598,9 +598,23 @@ namespace nanos {
          void createPtPEnd ( Event *e, nanos_event_domain_t domain, nanos_event_id_t id,
                              unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
 
+
          void throwPointEvent ( nanos_event_key_t key, nanos_event_value_t val );
+         void throwPointEventNkvs ( unsigned int nkvs, nanos_event_key_t *key, nanos_event_value_t *val );
+
          void throwOpenStateEvent ( nanos_event_state_value_t state );
          void throwCloseStateEvent ( void );
+
+         void throwOpenBurstEvent ( nanos_event_key_t key, nanos_event_value_t val );
+         void throwCloseBurstEvent ( nanos_event_key_t key );
+
+         void throwOpenPtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val );
+         void throwOpenPtPEventNkvs ( nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,
+                                      nanos_event_key_t *key, nanos_event_value_t *val );
+         void throwClosePtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val ); 
+         void throwClosePtPEventNkvs ( nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,
+                                       nanos_event_key_t *key, nanos_event_value_t *val ); 
+
          void throwOpenStateAndBurst ( nanos_event_state_value_t state, nanos_event_key_t key, nanos_event_value_t val );
          void throwCloseStateAndBurst ( nanos_event_key_t key );
    };
