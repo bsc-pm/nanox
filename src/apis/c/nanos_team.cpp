@@ -20,16 +20,16 @@
 #include "nanos.h"
 #include "system.hpp"
 #include "debug.hpp"
+#include "instrumentormodule_decl.hpp"
 
 using namespace nanos;
 
 nanos_err_t nanos_create_team( nanos_team_t *team, nanos_sched_t sp, unsigned int *nthreads,
                                nanos_constraint_t * constraints, bool reuse, nanos_thread_t *info )
 {
-   NANOS_INSTRUMENTOR( static Instrumentor *inst = sys.getInstrumentor() );
+   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","create_team",RUNTIME) );
+
    try {
-      NANOS_INSTRUMENTOR(static nanos_event_value_t val = inst->getInstrumentorDictionary()->getEventValue("api","create_team"));
-      NANOS_INSTRUMENTOR( inst->enterRuntimeAPI(val,RUNTIME) );
       if ( *team ) warning( "pre-allocated team not supported yet" );
       if ( sp ) warning ( "selecting scheduling policy not supported yet");
 
@@ -42,11 +42,9 @@ nanos_err_t nanos_create_team( nanos_team_t *team, nanos_sched_t sp, unsigned in
       for ( unsigned i = 0; i < new_team->size(); i++ )
          info[i] = ( nanos_thread_t ) &( *new_team )[i];
    } catch ( ... ) {
-      NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
       return NANOS_UNKNOWN_ERR;
    }
 
-   NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
    return NANOS_OK;
 }
 
@@ -58,31 +56,25 @@ nanos_err_t nanos_create_team_mapped ( nanos_team_t *team, nanos_sched_t sg, uns
 
 nanos_err_t nanos_leave_team ()
 {
-   NANOS_INSTRUMENTOR( static Instrumentor *inst = sys.getInstrumentor() );
+   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","leave_team",RUNTIME) );
+
    try {
-      NANOS_INSTRUMENTOR(static nanos_event_value_t val = inst->getInstrumentorDictionary()->getEventValue("api","leave_team"));
-      NANOS_INSTRUMENTOR( inst->enterRuntimeAPI(val,RUNTIME) );
       sys.releaseWorker(myThread);
    } catch ( ... ) {
-      NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
       return NANOS_UNKNOWN_ERR;
    }
-   NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
    return NANOS_OK;
 }
 
 nanos_err_t nanos_end_team ( nanos_team_t team )
 {
-   NANOS_INSTRUMENTOR( static Instrumentor *inst = sys.getInstrumentor() );
+   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","end_team",RUNTIME) );
+
    try {
-      NANOS_INSTRUMENTOR(static nanos_event_value_t val = inst->getInstrumentorDictionary()->getEventValue("api","end_team"));
-      NANOS_INSTRUMENTOR( inst->enterRuntimeAPI(val,RUNTIME) );
       sys.endTeam((ThreadTeam *)team);
    } catch ( ... ) {
-      NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
          return NANOS_UNKNOWN_ERR;
    }
-   NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
    return NANOS_OK;
 }
 
@@ -92,17 +84,14 @@ nanos_err_t nanos_end_team ( nanos_team_t team )
 */
 nanos_err_t nanos_team_barrier ( )
 {
-   NANOS_INSTRUMENTOR( static Instrumentor *inst = sys.getInstrumentor() );
+   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","team_barrier",RUNTIME) );
+
    try {
-      NANOS_INSTRUMENTOR(static nanos_event_value_t val = inst->getInstrumentorDictionary()->getEventValue("api","team_barrier"));
-      NANOS_INSTRUMENTOR( inst->enterRuntimeAPI(val,RUNTIME) );
       myThread->getTeam()->barrier();
    } catch ( ... ) {
-      NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
       return NANOS_UNKNOWN_ERR;
    }
 
-   NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
    return NANOS_OK;
 }
 

@@ -172,6 +172,9 @@ namespace nanos {
             registerEventValue("api","create_team","nanos_create_team()");
             registerEventValue("api","leave_team","nanos_leave_team()");
             registerEventValue("api","end_team","nanos_end_team()");
+            registerEventValue("api","get_num_runnin_tasks","nanos_get_num_runnin_tasks()");
+            registerEventValue("api","get_addr","nanos_get_addr()");
+            registerEventValue("api","copy_value","nanos_copy_value()");
 
             /* 02 */ registerEventKey("wd-id","Work Descriptor id:");
 

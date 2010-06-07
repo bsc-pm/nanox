@@ -19,11 +19,14 @@
 
 #include "nanos.h"
 #include "system.hpp"
+#include "instrumentormodule_decl.hpp"
 
 using namespace nanos;
 
 nanos_err_t nanos_get_num_running_tasks ( int *num )
 {
+   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","get_num_running_tasks",RUNTIME) );
+
    try {
       *num = sys.getRunningTasks();
    } catch ( ... ) {

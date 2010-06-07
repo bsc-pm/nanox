@@ -75,14 +75,11 @@ nanos_wd_t nanos_current_wd()
 
 int nanos_get_wd_id ( nanos_wd_t wd )
 {
-   NANOS_INSTRUMENTOR( static Instrumentor *inst = sys.getInstrumentor() );
-   NANOS_INSTRUMENTOR( static nanos_event_value_t val = inst->getInstrumentorDictionary()->getEventValue("api","get_wd_id") );
-   NANOS_INSTRUMENTOR( inst->enterRuntimeAPI(val,RUNTIME) );
+   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","get_wd_id",RUNTIME) );
 
    WD *lwd = ( WD * )wd;
    int id = lwd->getId();
 
-   NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
    return id;
 }
 
@@ -93,24 +90,20 @@ int nanos_get_wd_id ( nanos_wd_t wd )
 nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t data_size,
                                void ** data, nanos_wg_t uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies )
 {
-   NANOS_INSTRUMENTOR( static Instrumentor *inst = sys.getInstrumentor() );
+   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","*_create_wd",RUNTIME) );
+
    try 
    {
-      NANOS_INSTRUMENTOR( static nanos_event_value_t val = inst->getInstrumentorDictionary()->getEventValue("api","*_create_wd") );
-      NANOS_INSTRUMENTOR( inst->enterRuntimeAPI(val,RUNTIME) );
       if ( ( props == NULL  || ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTask() ) {
          *uwd = 0;
-         NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
          return NANOS_OK;
       }
       sys.createWD ( (WD **) uwd, num_devices, devices, data_size, (void **) data, (WG *) uwg, props, num_copies, copies );
 
    } catch ( ... ) {
-      NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
       return NANOS_UNKNOWN_ERR;
    }
 
-   NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
    return NANOS_OK;
 }
 
@@ -122,18 +115,15 @@ nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_
                                void ** outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, size_t slicer_data_size,
                                nanos_slicer_data_t * slicer_data, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies )
 {
-   NANOS_INSTRUMENTOR( static Instrumentor *inst = sys.getInstrumentor() );
+   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","*_create_wd",RUNTIME) );
+
    try 
    {
-      NANOS_INSTRUMENTOR( static nanos_event_value_t val = inst->getInstrumentorDictionary()->getEventValue("api","*_create_wd") );
-      NANOS_INSTRUMENTOR( inst->enterRuntimeAPI(val,RUNTIME) );
       if ( ( props == NULL  || ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTask() ) {
          *uwd = 0;
-         NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
          return NANOS_OK;
       }
       if ( slicer_data == NULL ) {
-         NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
          return NANOS_UNKNOWN_ERR;
       }
 
@@ -141,22 +131,17 @@ nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_
                            (Slicer *) slicer, slicer_data_size, (SlicerData *&) *slicer_data, props, num_copies, copies );
 
    } catch ( ... ) {
-      // xteruel:FIXME: Will be interesting to instrument new wd info: (WD *) *uwd
-      NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
       return NANOS_UNKNOWN_ERR;
    }
 
-   NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
    return NANOS_OK;
 }
 
 nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *deps, nanos_team_t team )
 {
-   NANOS_INSTRUMENTOR( static Instrumentor *inst = sys.getInstrumentor() );
+   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","submit",RUNTIME) );
+
    try {
-      // xteruel:FIXME: Will be interesting to instrument new wd info: (WD *) *uwd
-      NANOS_INSTRUMENTOR( static nanos_event_value_t val = inst->getInstrumentorDictionary()->getEventValue("api","submit") );
-      NANOS_INSTRUMENTOR( inst->enterRuntimeAPI(val,RUNTIME) );
       ensure( uwd,"NULL WD received" );
 
       WD * wd = ( WD * ) uwd;
@@ -167,19 +152,14 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *
 
       if ( deps != NULL ) {
          sys.submitWithDependencies( *wd, num_deps, deps );
-         NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
          return NANOS_OK;
       }
 
       sys.submit( *wd );
    } catch ( ... ) {
-      // xteruel:FIXME: Will be interesting to instrument new wd info: (WD *) *uwd
-      NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
       return NANOS_UNKNOWN_ERR;
    }
 
-   // xteruel:FIXME: Will be interesting to instrument new wd info: (WD *) *uwd
-   NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
    return NANOS_OK;
 }
 
@@ -189,10 +169,9 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
                                       size_t num_deps, nanos_dependence_t *deps, nanos_wd_props_t *props,
                                       size_t num_copies, nanos_copy_data_t *copies )
 {
-   NANOS_INSTRUMENTOR( static Instrumentor *inst = sys.getInstrumentor() );
+   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","create_wd_and_run",RUNTIME) );
+
    try {
-      NANOS_INSTRUMENTOR( static nanos_event_value_t val = inst->getInstrumentorDictionary()->getEventValue("api","create_wd_and_run") );
-      NANOS_INSTRUMENTOR( inst->enterRuntimeAPI(val,RUNTIME) );
       if ( num_devices > 1 ) warning( "Multiple devices not yet supported. Using first one" );
 
       // TODO: choose device
@@ -208,38 +187,32 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
       sys.inlineWork( wd );
 
    } catch ( ... ) {
-      NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
       return NANOS_UNKNOWN_ERR;
    }
 
-   NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
    return NANOS_OK;
 }
 
 nanos_err_t nanos_set_internal_wd_data ( nanos_wd_t wd, void *data )
 {
-   NANOS_INSTRUMENTOR( static Instrumentor *inst = sys.getInstrumentor() );
+   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","set_internal_wd_data",RUNTIME) );
+
    try {
-      NANOS_INSTRUMENTOR(static nanos_event_value_t val = inst->getInstrumentorDictionary()->getEventValue("api","set_internal_wd_data"));
-      NANOS_INSTRUMENTOR( inst->enterRuntimeAPI(val,RUNTIME) );
       WD *lwd = ( WD * ) wd;
 
       lwd->setInternalData( data );
    } catch ( ... ) {
-      NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
       return NANOS_UNKNOWN_ERR;
    }
 
-   NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
    return NANOS_OK;
 }
 
 nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data )
 {
-   NANOS_INSTRUMENTOR( static Instrumentor *inst = sys.getInstrumentor() );
+   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","get_internal_wd_data",RUNTIME) );
+
    try {
-      NANOS_INSTRUMENTOR(static nanos_event_value_t val = inst->getInstrumentorDictionary()->getEventValue("api","get_internal_wd_data"));
-      NANOS_INSTRUMENTOR( inst->enterRuntimeAPI(val,RUNTIME) );
       WD *lwd = ( WD * ) wd;
       void *ldata;
 
@@ -247,44 +220,37 @@ nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data )
 
       *data = ldata;
    } catch ( ... ) {
-      NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
       return NANOS_UNKNOWN_ERR;
    }
 
-   NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
    return NANOS_OK;
 }
 
 nanos_err_t nanos_yield ( void )
 {
-   NANOS_INSTRUMENTOR( static Instrumentor *inst = sys.getInstrumentor() );
+   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","yield",RUNTIME) );
+
    try {
-      NANOS_INSTRUMENTOR(static nanos_event_value_t val = inst->getInstrumentorDictionary()->getEventValue("api","yield"));
-      NANOS_INSTRUMENTOR( inst->enterRuntimeAPI(val,RUNTIME) );
       Scheduler::yield();
 
    } catch ( ... ) {
-      NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
       return NANOS_UNKNOWN_ERR;
    }
 
-   NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
    return NANOS_OK;
 }
 
 
 nanos_err_t nanos_slicer_get_specific_data ( nanos_slicer_t slicer, void ** data )
 {                                                                                                                                                        
-   NANOS_INSTRUMENTOR( static Instrumentor *inst = sys.getInstrumentor() );                                                                              
+   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","get_specific_data",RUNTIME) );
+
    try {
-      NANOS_INSTRUMENTOR(static nanos_event_value_t val = inst->getInstrumentorDictionary()->getEventValue("api","get_specific_data"));
-      NANOS_INSTRUMENTOR( inst->enterRuntimeAPI(val,RUNTIME) );
       *data = ((Slicer *)slicer)->getSpecificData();
    } catch ( ... ) {                                                                                                                                     
-      NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );                                                                                                     
       return NANOS_UNKNOWN_ERR;                                                                                                                          
    }                                                                                                                                                     
                                                                                                                                                          
-   NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );                                                                                                        
    return NANOS_OK;                                                                                                                                      
 }   
+
