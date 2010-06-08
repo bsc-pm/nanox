@@ -19,6 +19,7 @@
 
 #include "gputhread.hpp"
 #include "schedule.hpp"
+#include "system.hpp"
 
 #include <cuda_runtime.h>
 
@@ -56,7 +57,10 @@ void GPUThread::runDependent ()
 
 void GPUThread::inlineWorkDependent ( WD &wd )
 {
-   SMPThread::inlineWorkDependent( wd );
+   SMPDD &dd = ( SMPDD & )wd.getActiveDevice();
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->enterUserCode() );
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->disableStateEvents() );
+   ( dd.getWorkFct() )( wd.getData() );
 
 #if !NORMAL
    // Get next task in order to prefetch data to device memory
@@ -69,4 +73,6 @@ void GPUThread::inlineWorkDependent ( WD &wd )
 
    // Wait for the GPU kernel to finish
    cudaThreadSynchronize();
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->enableStateEvents() );
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->leaveUserCode() );
 }
