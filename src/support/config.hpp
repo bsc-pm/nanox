@@ -297,13 +297,10 @@ namespace nanos
 
                const std::string getHelp ()
                {
-printf("before looking at the size\n");
- printf("before looking at the list, list size: %d\n",(int)_options.size());
                   std::string help = "";
                   for ( unsigned int i = 0; i < _options.size(); i++ ) {
                      help += ( (i == 0) ? "": ", ") + _options[i].first;
                   }
-printf("before returning help: %s\n", help.c_str());
                   return help;
                }
 
