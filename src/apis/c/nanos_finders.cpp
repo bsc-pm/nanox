@@ -21,6 +21,7 @@
 #include "debug.hpp"
 #include "system.hpp"
 #include "plugin.hpp"
+#include "instrumentormodule_decl.hpp"
 
 using namespace nanos;
 
@@ -30,11 +31,10 @@ using namespace nanos;
  */
 nanos_slicer_t nanos_find_slicer ( const char * label )
 {
+   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","find_slicer",RUNTIME) );
+
    nanos_slicer_t slicer;
-   NANOS_INSTRUMENTOR( static Instrumentor *inst = sys.getInstrumentor() );
    try {
-      NANOS_INSTRUMENTOR( static nanos_event_value_t val = inst->getInstrumentorDictionary()->getEventValue("api","find_slicer") );
-      NANOS_INSTRUMENTOR( inst->enterRuntimeAPI(val,RUNTIME) );
       std::string plugin = "slicer-" + std::string(label);
 
       slicer = sys.getSlicer ( std::string(label) );
@@ -44,10 +44,8 @@ nanos_slicer_t nanos_find_slicer ( const char * label )
       }
 
    } catch ( ... ) {
-      NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
       return ( nanos_slicer_t ) NULL;
    }
-   NANOS_INSTRUMENTOR( inst->leaveRuntimeAPI() );
    return slicer;
 }
 

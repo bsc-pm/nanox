@@ -23,11 +23,14 @@
 #include "system.hpp"
 #include "workdescriptor.hpp"
 #include "plugin.hpp"
+#include "instrumentormodule_decl.hpp"
 
 using namespace nanos;
 
 nanos_err_t nanos_get_addr ( nanos_copy_id_t copy_id, void **addr )
 {
+   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","get_addr",RUNTIME) );
+
    nanos_wd_t cwd = myThread->getCurrentWD();
    WD *wd = ( WD * )cwd;
    CopyData &cd = wd->getCopies()[copy_id];
@@ -40,6 +43,8 @@ nanos_err_t nanos_get_addr ( nanos_copy_id_t copy_id, void **addr )
 
 nanos_err_t nanos_copy_value ( void *dst, nanos_copy_id_t copy_id )
 {
+   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","copy_value",RUNTIME) );
+
    nanos_wd_t cwd = myThread->getCurrentWD();
    WD *wd = ( WD * )cwd;
    CopyData &cd = wd->getCopies()[copy_id];

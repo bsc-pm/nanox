@@ -172,6 +172,9 @@ namespace nanos {
             registerEventValue("api","create_team","nanos_create_team()");
             registerEventValue("api","leave_team","nanos_leave_team()");
             registerEventValue("api","end_team","nanos_end_team()");
+            registerEventValue("api","get_num_runnin_tasks","nanos_get_num_runnin_tasks()");
+            registerEventValue("api","get_addr","nanos_get_addr()");
+            registerEventValue("api","copy_value","nanos_copy_value()");
 
             /* 02 */ registerEventKey("wd-id","Work Descriptor id:");
 
@@ -188,6 +191,8 @@ namespace nanos {
             /* 11 */ registerEventKey("user-funct","User Functions");
 
             /* 12 */ registerEventKey("user-code","User Code (wd)");
+
+            /* 13 */ registerEventKey("state","Thread State (background)");
 
 #endif
 
@@ -266,9 +271,14 @@ namespace nanos {
                /*! \brief Event constructor (generic constructor used by all other specific constructors)
                 *  \see State Burst Point PtP
                 */
-               Event ( nanos_event_type_t type, nanos_event_state_value_t state, unsigned int nkvs, KVList kvlist, bool kvlist_owner,
+               Event () : _type((nanos_event_type_t) 0), _state((nanos_event_state_value_t) 0), _nkvs(0),
+                          _kvList(NULL), _kvListOwner(false), _ptpDomain((nanos_event_domain_t) 0), _ptpId(0) {}
+               /*! \brief Event constructor (generic constructor used by all other specific constructors)
+                *  \see State Burst Point PtP
+                */
+               Event ( nanos_event_type_t type, nanos_event_state_value_t state, unsigned int nkvs, KVList kvlist,
                        nanos_event_domain_t ptp_domain, nanos_event_id_t ptp_id ) :
-                     _type (type), _state (state), _nkvs(nkvs), _kvList (kvlist), _kvListOwner(kvlist_owner),
+                     _type (type), _state (state), _nkvs(nkvs), _kvList (kvlist), _kvListOwner(false),
                      _ptpDomain (ptp_domain), _ptpId (ptp_id)
                {
                   if ( _type == BURST_START || _type == BURST_END )
@@ -356,8 +366,8 @@ namespace nanos {
             public:
               /*! \brief State event constructor
                */
-              State ( nanos_event_state_value_t state = ERROR ) 
-                 : Event (STATE, state, 0, NULL, false, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
+              State ( nanos_event_type_t type = STATE, nanos_event_state_value_t state = ERROR ) 
+                 : Event (type, state, 0, NULL, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
          };
 
          class Burst : public Event 
@@ -366,7 +376,7 @@ namespace nanos {
                /*! \brief Burst event constructor
                 */
                Burst ( bool start, KV kv )
-                 : Event ( start? BURST_START: BURST_END, ERROR, 1, &kv, false, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
+                 : Event ( start? BURST_START: BURST_END, ERROR, 1, &kv, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
 
          };
 
@@ -376,7 +386,7 @@ namespace nanos {
                /*! \brief Point event constructor
                 */
                Point ( unsigned int nkvs, KVList kvlist )
-                 : Event ( POINT, ERROR, nkvs, kvlist, false, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
+                 : Event ( POINT, ERROR, nkvs, kvlist, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
          };
 
          class PtP : public Event 
@@ -385,7 +395,7 @@ namespace nanos {
                /*! \brief PtP event constructor
                 */
                PtP ( bool start, nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,  KVList kvlist )
-                  : Event ( start ? PTP_START : PTP_END , ERROR, nkvs, kvlist, false, domain, id ) { }
+                  : Event ( start ? PTP_START : PTP_END , ERROR, nkvs, kvlist, domain, id ) { }
 
          };
 
@@ -469,13 +479,6 @@ namespace nanos {
           */
          virtual void wdLeaveCPU( WorkDescriptor* oldWD );
 
-         /*! \brief Used in work descriptor context switch
-          *
-          *  \param[in] oldWD, is the work descriptor which leaves the cpu
-          *  \param[in] newWD, is the work descriptor which enters the cpu
-          */
-         virtual void wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD );
-
          /*! \brief Used in work descriptor context switch (oldWD has finished completely its execution
           *
           *  \param[in] oldWD, is the work descriptor which leaves the cpu
@@ -532,7 +535,7 @@ namespace nanos {
           *  \param[in] key is the key in the related  pair <key,value>
           *  \param[in] value is the value in related pair <key,value>
           */
-         void createBurstStart ( Event &e, nanos_event_key_t key, nanos_event_value_t value );
+         void  createBurstEvent ( Event *e, nanos_event_key_t key, nanos_event_value_t value );
 
          /*! \brief Used by higher levels to create a BURST_END event
           *
@@ -540,20 +543,20 @@ namespace nanos {
           *  \param[in] key is the key in the related  pair <key,value>
           *  \param[in] value is the value in related pair <key,value>
           */
-         void createBurstEnd ( Event &e, nanos_event_key_t key, nanos_event_value_t value );
+         void closeBurstEvent ( Event *e, nanos_event_key_t key );
 
          /*! \brief Used by higher levels to create a STATE event
           *
           *  \param[in,out] e is an event reference, preallocated by the caller
           *  \param[in] state is the state value for the event
           */
-         void createStateEvent ( Event &e, nanos_event_state_value_t state );
+         void createStateEvent ( Event *e, nanos_event_state_value_t state );
 
          /*! \brief Used by higher levels to create a STATE event (value will be previous state in instrumentor context info) 
           *
           *  \param[in,out] e is an event reference, preallocated by the caller
           */
-         void returnPreviousStateEvent ( Event &e );
+         void returnPreviousStateEvent ( Event *e );
 
          /*! \brief Used by higher levels to create a POINT (punctual) event
           *
@@ -565,7 +568,7 @@ namespace nanos {
           *  \param[in] key is a vector of nkvs keys 
           *  \param[in] value is a vector of nkvs  values
           */
-         void createPointEvent ( Event &e, unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
+         void createPointEvent ( Event *e, unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
 
          /*! \brief Used by higher levels to create a PTP_START event
           *
@@ -579,7 +582,7 @@ namespace nanos {
           *  \param[in] key is a vector of nkvs keys 
           *  \param[in] value is a vector of nkvs  values
           */
-         void createPtPStart ( Event &e, nanos_event_domain_t domain, nanos_event_id_t id,
+         void createPtPStart ( Event *e, nanos_event_domain_t domain, nanos_event_id_t id,
                                unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
 
          /*! \brief Used by higher levels to create a PTP_END event
@@ -594,9 +597,31 @@ namespace nanos {
           *  \param[in] key is a vector of nkvs keys 
           *  \param[in] value is a vector of nkvs  values
           */
-         void createPtPEnd ( Event &e, nanos_event_domain_t domain, nanos_event_id_t id,
+         void createPtPEnd ( Event *e, nanos_event_domain_t domain, nanos_event_id_t id,
                              unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
 
+
+         void throwPointEvent ( nanos_event_key_t key, nanos_event_value_t val );
+         void throwPointEventNkvs ( unsigned int nkvs, nanos_event_key_t *key, nanos_event_value_t *val );
+
+         void throwOpenStateEvent ( nanos_event_state_value_t state );
+         void throwCloseStateEvent ( void );
+
+         void throwOpenBurstEvent ( nanos_event_key_t key, nanos_event_value_t val );
+         void throwCloseBurstEvent ( nanos_event_key_t key );
+
+         void throwOpenPtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val );
+         void throwOpenPtPEventNkvs ( nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,
+                                      nanos_event_key_t *key, nanos_event_value_t *val );
+         void throwClosePtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val ); 
+         void throwClosePtPEventNkvs ( nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,
+                                       nanos_event_key_t *key, nanos_event_value_t *val ); 
+
+         void throwOpenStateAndBurst ( nanos_event_state_value_t state, nanos_event_key_t key, nanos_event_value_t val );
+         void throwCloseStateAndBurst ( nanos_event_key_t key );
+
+         void disableStateEvents ( void );
+         void enableStateEvents ( void ); 
    };
 
 }

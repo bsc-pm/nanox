@@ -35,9 +35,11 @@ namespace nanos {
          typedef std::stack<nanos_event_state_value_t> StateStack;
          typedef std::list<Event> BurstList;
 
-         StateStack       _stateStack;  /**< Stack of states */
-         BurstList        _burstList;   /**< List of current opened bursts */
-         BurstList        _burstBackup; /**< Backup list (non-active) of opened bursts */
+         StateStack                 _stateStack;           /**< Stack of states */
+         bool                       _stateEventEnabled;    /**< Set state level, zero by default */
+         nanos_event_state_value_t  _validState;           /**< Last valid states */
+         BurstList                  _burstList;            /**< List of current opened bursts */
+         BurstList                  _burstBackup;          /**< Backup list (non-active) of opened bursts */
 
       public:
          /*! \brief InstrumenotrContext const BurstIterator
@@ -50,11 +52,11 @@ namespace nanos {
 
          /*! \brief InstrumentorContext copy constructor
           */
-         explicit InstrumentorContext(const InstrumentorContext &ic) : _stateStack(), _burstList() { }
+         explicit InstrumentorContext(const InstrumentorContext &ic) : _stateStack(), _stateEventEnabled(ic._stateEventEnabled), _burstList(), _burstBackup() {}
 
          /*! \brief InstrumentorContext constructor
           */
-         InstrumentorContext () :_stateStack(), _burstList(), _burstBackup() { }
+         InstrumentorContext () :_stateStack(), _stateEventEnabled(true), _burstList(), _burstBackup() { }
 
          /*! \brief InstrumentorContext destructor
           */
@@ -106,6 +108,25 @@ namespace nanos {
           */
          ConstBurstIterator endBurst() const ; 
 
+         /*! \brief Enable state events
+          */
+         void enableStateEvents ( void ) ;
+
+         /*! \brief Disable state events
+          */
+         void disableStateEvents ( void ) ;
+
+         /*! \brief get state events status
+          */
+         bool isStateEventEnabled ( void ) ;
+
+         /*! \brief Save valid state
+          */
+         nanos_event_state_value_t validState ( void ) ;
+
+         /*! \brief Save valid state
+          */
+         void saveValidState ( void ) ;
    };
 }
 #endif
