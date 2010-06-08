@@ -21,6 +21,7 @@
 #include "instrumentorcontext.hpp"
 #include "system.hpp"
 #include "workdescriptor.hpp"
+#include <alloca.h>
 
 using namespace nanos;
 

@@ -82,7 +82,7 @@ class InstrumentorParaver: public Instrumentor
          {
             /* Event: State */
             p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    " << _eventState  << "    Change status: " << std::endl;
+            p_file << "9    " << _eventState  << "    Thread state: " << std::endl;
             p_file << "VALUES" << std::endl;
             p_file << NOT_TRACED       << "     NOT TRACED" << std::endl;
             p_file << STARTUP          << "     STARTUP" << std::endl;
