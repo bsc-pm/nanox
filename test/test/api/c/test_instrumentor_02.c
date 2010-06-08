@@ -129,7 +129,7 @@ void main__task_1 ( void *args )
 
    nanos_instrument_events ( 1, &event_fini );
 #else
-   nanos_instrument_leave_burst( ek, ev );
+   nanos_instrument_leave_burst( ek );
 #endif
 
 }
