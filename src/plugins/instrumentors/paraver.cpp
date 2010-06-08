@@ -17,6 +17,7 @@
 namespace nanos {
 
    const unsigned int _eventState      = 9000000;   /*<< event coding state changes */
+   const unsigned int _eventSubState   = 9000004;   /*<< event coding sub-state changes */
    const unsigned int _eventPtPStart   = 9000001;   /*<< event coding comm start */
    const unsigned int _eventPtPEnd     = 9000002;   /*<< event coding comm end */
 
@@ -83,6 +84,24 @@ class InstrumentorParaver: public Instrumentor
             /* Event: State */
             p_file << "EVENT_TYPE" << std::endl;
             p_file << "9    " << _eventState  << "    Thread state: " << std::endl;
+            p_file << "VALUES" << std::endl;
+            p_file << NOT_TRACED       << "     NOT TRACED" << std::endl;
+            p_file << STARTUP          << "     STARTUP" << std::endl;
+            p_file << SHUTDOWN         << "     SHUTDOWN" << std::endl;
+            p_file << ERROR            << "     ERROR" << std::endl;
+            p_file << IDLE             << "     IDLE" << std::endl;
+            p_file << RUNTIME          << "     RUNTIME" << std::endl;
+            p_file << RUNNING          << "     RUNNING" << std::endl;
+            p_file << SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
+            p_file << SCHEDULING       << "     SCHEDULING" << std::endl;
+            p_file << FORK_JOIN        << "     FORK/JOIN" << std::endl;
+            p_file << MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
+            p_file << CACHE            << "     CACHE ALLOC/FREE" << std::endl;
+            p_file << std::endl;
+
+            /* Event: Sub-state */
+            p_file << "EVENT_TYPE" << std::endl;
+            p_file << "9    " << _eventSubState  << "    Thread sub-state: " << std::endl;
             p_file << "VALUES" << std::endl;
             p_file << NOT_TRACED       << "     NOT TRACED" << std::endl;
             p_file << STARTUP          << "     STARTUP" << std::endl;
@@ -248,6 +267,7 @@ class InstrumentorParaver: public Instrumentor
             Event &e = events[i];
             switch ( e.getType() ) {
                case STATE:
+               case SUBSTATE:
                   total++;
                   break;
                case PTP_START:
@@ -280,6 +300,10 @@ class InstrumentorParaver: public Instrumentor
                   p_events[j] = _eventState;
                   p_values[j++] = e.getState();
                   break;
+               case SUBSTATE:
+                  p_events[j] = _eventSubState;
+                  p_values[j++] = e.getState();
+                  break;
                case PTP_START:
                case PTP_END:
                   /* Creating PtP event */
@@ -308,12 +332,17 @@ class InstrumentorParaver: public Instrumentor
 
          int rmValues = 0;
          for ( unsigned int i = 0; i < total; i++ )
+         {
+            if ( (p_events[i] < 0) || (p_events[i] > 10000000) ) fatal("Negative event type");
             for ( unsigned int j = i+1; j < total; j++ )
+            {
                if ( p_events[i] == p_events[j] )
                {
                   p_events[i] = 0;
                   rmValues++;
                }
+            }
+         }
 
          total -= rmValues;
 

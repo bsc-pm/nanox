@@ -215,7 +215,8 @@ void Scheduler::inlineWork ( WD *wd )
       wd->start(false);
    myThread->setCurrentWD( *wd );
 
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdSwitch(oldwd,wd) );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdLeaveCPU(oldwd) );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdEnterCPU(wd) );
 
    myThread->inlineWorkDependent(*wd);
    wd->done();
@@ -223,7 +224,8 @@ void Scheduler::inlineWork ( WD *wd )
    debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
           " to " << oldwd << ":" << oldwd->getId() );
 
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdSwitch(wd,oldwd ) );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdLeaveCPU(oldwd ) );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdEnterCPU(wd) );
 
    BaseThread *thread = getMyThreadSafe();
    thread->setCurrentWD( *oldwd );
@@ -251,7 +253,8 @@ void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
    }
    myThread->switchHelperDependent(oldWD, newWD, arg);
 
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdSwitch(oldWD,newWD) );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdLeaveCPU(oldWD) );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdEnterCPU(newWD) );
    myThread->setCurrentWD( *newWD );
 }
 
