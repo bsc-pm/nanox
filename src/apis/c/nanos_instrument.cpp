@@ -95,11 +95,9 @@ nanos_err_t nanos_instrument_events ( unsigned int num_events, nanos_event_t eve
                break;
             case BURST_START:
                sys.getInstrumentor()->createBurstEvent(&e[i],events[i].info.burst.key,events[i].info.burst.value);
-               sys.getInstrumentor()->insertBurstEvent(e[i]);
                break;
             case BURST_END:
                sys.getInstrumentor()->closeBurstEvent(&e[i],events[i].info.burst.key);
-               sys.getInstrumentor()->removeBurstEvent(events[i].info.burst.key);
                break;
             case POINT:
                sys.getInstrumentor()->createPointEvent(&e[i],events[i].info.point.nkvs,events[i].info.point.keys,events[i].info.point.values );
@@ -209,6 +207,32 @@ nanos_err_t nanos_instrument_ptp_end ( nanos_event_domain_t domain, nanos_event_
    try
    {
       sys.getInstrumentor()->throwClosePtPEventNkvs ( domain, id, nkvs, keys, values );
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+#endif
+   return NANOS_OK;
+}
+
+nanos_err_t nanos_instrument_disable_state_events ( void )
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   try
+   {
+      sys.getInstrumentor()->disableStateEvents();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+#endif
+   return NANOS_OK;
+}
+
+nanos_err_t nanos_instrument_enable_state_events ( void )
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   try
+   {
+      sys.getInstrumentor()->enableStateEvents();
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }

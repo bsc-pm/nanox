@@ -16,6 +16,7 @@
 namespace nanos {
 
    const unsigned int _eventState      = 9000000;   /*<< event coding state changes */
+   const unsigned int _eventSubState   = 9000004;   /*<< event coding sub-state changes */
    const unsigned int _eventPtPStart   = 9000001;   /*<< event coding comm start */
    const unsigned int _eventPtPEnd     = 9000002;   /*<< event coding comm end */
 
@@ -222,6 +223,7 @@ class InstrumentorParaver: public Instrumentor
             Event &e = events[i];
             switch ( e.getType() ) {
                case STATE:
+               case SUBSTATE:
                   total++;
                   break;
                case PTP_START:
@@ -252,6 +254,10 @@ class InstrumentorParaver: public Instrumentor
             switch ( type ) {
                case STATE:
                   p_events[j] = _eventState;
+                  p_values[j++] = e.getState();
+                  break;
+               case SUBSTATE:
+                  p_events[j] = _eventSubState;
                   p_values[j++] = e.getState();
                   break;
                case PTP_START:

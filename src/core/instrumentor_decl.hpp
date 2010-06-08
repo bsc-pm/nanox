@@ -192,6 +192,8 @@ namespace nanos {
 
             /* 12 */ registerEventKey("user-code","User Code (wd)");
 
+            /* 13 */ registerEventKey("state","Thread State (background)");
+
 #endif
 
          }
@@ -364,8 +366,8 @@ namespace nanos {
             public:
               /*! \brief State event constructor
                */
-              State ( nanos_event_state_value_t state = ERROR ) 
-                 : Event (STATE, state, 0, NULL, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
+              State ( nanos_event_type_t type = STATE, nanos_event_state_value_t state = ERROR ) 
+                 : Event (type, state, 0, NULL, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
          };
 
          class Burst : public Event 
@@ -543,9 +545,6 @@ namespace nanos {
           */
          void closeBurstEvent ( Event *e, nanos_event_key_t key );
 
-         void insertBurstEvent ( Event &e );
-         void removeBurstEvent ( nanos_event_key_t key );
-
          /*! \brief Used by higher levels to create a STATE event
           *
           *  \param[in,out] e is an event reference, preallocated by the caller
@@ -620,6 +619,9 @@ namespace nanos {
 
          void throwOpenStateAndBurst ( nanos_event_state_value_t state, nanos_event_key_t key, nanos_event_value_t val );
          void throwCloseStateAndBurst ( nanos_event_key_t key );
+
+         void disableStateEvents ( void );
+         void enableStateEvents ( void ); 
    };
 
 }

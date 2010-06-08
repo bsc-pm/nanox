@@ -131,7 +131,7 @@ typedef struct {
 
 // instrumentor structures
 
-typedef enum { STATE, BURST_START, BURST_END, PTP_START, PTP_END, POINT, EVENT_TYPES } nanos_event_type_t; /**< Event types  */
+typedef enum { STATE, SUBSTATE, BURST_START, BURST_END, PTP_START, PTP_END, POINT, EVENT_TYPES } nanos_event_type_t; /**< Event types  */
 
 typedef enum { NOT_TRACED, STARTUP, SHUTDOWN, ERROR, IDLE, RUNTIME, RUNNING, SYNCHRONIZATION,
                SCHEDULING, FORK_JOIN, MEM_TRANSFER, CACHE, EVENT_STATE_TYPES

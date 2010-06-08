@@ -111,14 +111,29 @@ inline InstrumentorContext::ConstBurstIterator InstrumentorContext::endBurst() c
    return _burstList.end();
 }
 
-inline void InstrumentorContext::setStateLevel ( int sl )
+inline void InstrumentorContext::disableStateEvents ( void )
 {
-   _stateLevel = sl;
+   _stateEventEnabled = false;
 }
-                                                                                                                                                         
-inline int InstrumentorContext::getStateLevel ( void ) const
+
+inline void InstrumentorContext::enableStateEvents ( void )
 {
-   return _stateLevel;
+   _stateEventEnabled = true;
 }
- 
+
+inline bool InstrumentorContext::isStateEventEnabled ( void )
+{
+   return _stateEventEnabled;
+}
+
+inline nanos_event_state_value_t InstrumentorContext::validState ( void )
+{
+   return _validState;
+}
+
+inline void InstrumentorContext::saveValidState ( void )
+{
+   _validState = _stateStack.top();
+}
+
 #endif

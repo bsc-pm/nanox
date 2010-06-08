@@ -35,10 +35,11 @@ namespace nanos {
          typedef std::stack<nanos_event_state_value_t> StateStack;
          typedef std::list<Event> BurstList;
 
-         StateStack       _stateStack;   /**< Stack of states */
-         int              _stateLevel;   /**< Set state level, zero by default */
-         BurstList        _burstList;    /**< List of current opened bursts */
-         BurstList        _burstBackup;  /**< Backup list (non-active) of opened bursts */
+         StateStack                 _stateStack;           /**< Stack of states */
+         bool                       _stateEventEnabled;    /**< Set state level, zero by default */
+         nanos_event_state_value_t  _validState;           /**< Last valid states */
+         BurstList                  _burstList;            /**< List of current opened bursts */
+         BurstList                  _burstBackup;          /**< Backup list (non-active) of opened bursts */
 
       public:
          /*! \brief InstrumenotrContext const BurstIterator
@@ -51,11 +52,11 @@ namespace nanos {
 
          /*! \brief InstrumentorContext copy constructor
           */
-         explicit InstrumentorContext(const InstrumentorContext &ic) : _stateStack(), _stateLevel(ic._stateLevel), _burstList(), _burstBackup() {}
+         explicit InstrumentorContext(const InstrumentorContext &ic) : _stateStack(), _stateEventEnabled(ic._stateEventEnabled), _burstList(), _burstBackup() {}
 
          /*! \brief InstrumentorContext constructor
           */
-         InstrumentorContext () :_stateStack(), _stateLevel(0), _burstList(), _burstBackup() { }
+         InstrumentorContext () :_stateStack(), _stateEventEnabled(true), _burstList(), _burstBackup() { }
 
          /*! \brief InstrumentorContext destructor
           */
@@ -107,14 +108,25 @@ namespace nanos {
           */
          ConstBurstIterator endBurst() const ; 
 
-         /*! \brief Set state enabled flag
+         /*! \brief Enable state events
           */
-         void setStateLevel ( int sl ) ;
+         void enableStateEvents ( void ) ;
 
-         /*! \brief Gets state enabled flag
+         /*! \brief Disable state events
           */
-         int getStateLevel ( void ) const ;
+         void disableStateEvents ( void ) ;
 
+         /*! \brief get state events status
+          */
+         bool isStateEventEnabled ( void ) ;
+
+         /*! \brief Save valid state
+          */
+         nanos_event_state_value_t validState ( void ) ;
+
+         /*! \brief Save valid state
+          */
+         void saveValidState ( void ) ;
    };
 }
 #endif

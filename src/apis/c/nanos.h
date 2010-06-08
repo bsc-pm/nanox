@@ -163,6 +163,8 @@ nanos_err_t nanos_instrument_ptp_start ( nanos_event_domain_t domain, nanos_even
                                          unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
 nanos_err_t nanos_instrument_ptp_end ( nanos_event_domain_t domain, nanos_event_id_t id,
                                          unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
+nanos_err_t nanos_instrument_disable_state_events ( void );
+nanos_err_t nanos_instrument_enable_state_events ( void );
 
 
 // utility macros
