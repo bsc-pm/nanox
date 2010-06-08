@@ -98,6 +98,24 @@ class InstrumentorParaver: public Instrumentor
             p_file << CACHE            << "     CACHE ALLOC/FREE" << std::endl;
             p_file << std::endl;
 
+            /* Event: Sub-state */
+            p_file << "EVENT_TYPE" << std::endl;
+            p_file << "9    " << _eventSubState  << "    Thread sub-state: " << std::endl;
+            p_file << "VALUES" << std::endl;
+            p_file << NOT_TRACED       << "     NOT TRACED" << std::endl;
+            p_file << STARTUP          << "     STARTUP" << std::endl;
+            p_file << SHUTDOWN         << "     SHUTDOWN" << std::endl;
+            p_file << ERROR            << "     ERROR" << std::endl;
+            p_file << IDLE             << "     IDLE" << std::endl;
+            p_file << RUNTIME          << "     RUNTIME" << std::endl;
+            p_file << RUNNING          << "     RUNNING" << std::endl;
+            p_file << SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
+            p_file << SCHEDULING       << "     SCHEDULING" << std::endl;
+            p_file << FORK_JOIN        << "     FORK/JOIN" << std::endl;
+            p_file << MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
+            p_file << CACHE            << "     CACHE ALLOC/FREE" << std::endl;
+            p_file << std::endl;
+
             /* Event: PtPStart main event */
             p_file << "EVENT_TYPE" << std::endl;
             p_file << "9    " << _eventPtPStart  << "    Point-to-point origin: " << std::endl;

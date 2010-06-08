@@ -297,6 +297,7 @@ void Instrumentor::wdEnterCPU( WorkDescriptor* newWD )
    InstrumentorContext &newInstrContext = newWD->getInstrumentorContext();
    unsigned int newBursts = newInstrContext.getNumBursts();
    unsigned int numEvents = 2 + newBursts;
+   if ( !newInstrContext.isStateEventEnabled() ) numEvents++;
 
    /* Allocating Events */
    Event *e = (Event *) alloca(sizeof(Event) * numEvents );
@@ -307,8 +308,13 @@ void Instrumentor::wdEnterCPU( WorkDescriptor* newWD )
    /* Creating State event: change thread current state with newWD saved state */
    nanos_event_state_value_t state;
 
-   if ( newInstrContext.isStateEventEnabled() ) state = newInstrContext.topState();
-   else state = newInstrContext.validState();
+   if ( newInstrContext.isStateEventEnabled() )
+      state = newInstrContext.topState();
+   else {
+      state = newInstrContext.topState();
+      e[i++] = State ( SUBSTATE, state );
+      state = newInstrContext.validState();
+   }
 
    e[i++] = State ( STATE, state );
 
@@ -329,6 +335,7 @@ void Instrumentor::wdLeaveCPU( WorkDescriptor* oldWD )
    InstrumentorContext &oldInstrContext = oldWD->getInstrumentorContext();
    unsigned int oldBursts = oldInstrContext.getNumBursts();
    unsigned int numEvents = 2 + oldBursts;
+   if ( !oldInstrContext.isStateEventEnabled() ) numEvents++;
 
    /* Allocating Events */
    Event *e = (Event *) alloca(sizeof(Event) * numEvents );
@@ -337,6 +344,7 @@ void Instrumentor::wdLeaveCPU( WorkDescriptor* oldWD )
    e[i++] = PtP (true,  NANOS_WD_DOMAIN, (nanos_event_id_t) oldWD->getId(), 0, NULL);
 
    /* Creating State event: change thread current state with newWD saved state */
+   if ( !oldInstrContext.isStateEventEnabled() ) e[i++] = State ( SUBSTATE, NOT_TRACED );
    e[i++] = State ( STATE, RUNTIME );
 
    /* Regenerating reverse bursts for old WD */
@@ -359,6 +367,8 @@ void Instrumentor::wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD )
    unsigned int oldBursts = oldInstrContext.getNumBursts();
    unsigned int newBursts = newInstrContext.getNumBursts();
    unsigned int numEvents = 2 + oldBursts + newBursts;
+   if ( !newInstrContext.isStateEventEnabled() ) numEvents++;
+   if ( !oldInstrContext.isStateEventEnabled() ) numEvents++;
 
    /* Allocating Events */
    Event *e = (Event *) alloca(sizeof(Event) * numEvents );
@@ -370,9 +380,15 @@ void Instrumentor::wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD )
    /* Creating State event: change thread current state with newWD saved state */
    nanos_event_state_value_t state;
 
-   if ( newInstrContext.isStateEventEnabled() ) state = newInstrContext.topState();
-   else state = newInstrContext.validState();
+   if ( !oldInstrContext.isStateEventEnabled() ) e[i++] = State ( SUBSTATE, NOT_TRACED );
 
+   if ( newInstrContext.isStateEventEnabled() )
+      state = newInstrContext.topState();
+   else {
+      state = newInstrContext.topState();
+      e[i++] = State ( SUBSTATE, state );
+      state = newInstrContext.validState();
+   }
    e[i++] = State ( STATE, state );
 
    /* Regenerating reverse bursts for old WD */
@@ -394,6 +410,8 @@ void Instrumentor::enableStateEvents()
 {
    InstrumentorContext &ic = myThread->getCurrentWD()->getInstrumentorContext();
    ic.enableStateEvents();
+   Event e = State ( SUBSTATE, NOT_TRACED );
+   addEventList ( 1, &e );
 }
 
 void Instrumentor::disableStateEvents()
