@@ -43,10 +43,10 @@ class GPUTransferModeOption : public Config::MapAction<transfer_mode>
       GPUTransferModeOption( const GPUTransferModeOption &opt ) : Config::MapAction<transfer_mode>( opt ) {}
 
       // destructor
-      virtual ~GPUTransferModeOption() {}
+      ~GPUTransferModeOption() {}
 
-      virtual void setValue ( const transfer_mode &value ) { GPUDevice::setTransferMode(value); }
-      virtual GPUTransferModeOption * clone () { return new GPUTransferModeOption( *this ); }
+      void setValue ( const transfer_mode &value ) { GPUDevice::setTransferMode(value); }
+      GPUTransferModeOption * clone () { return new GPUTransferModeOption( *this ); }
 };
 
 class GPUPlugin : public Plugin
@@ -71,12 +71,13 @@ class GPUPlugin : public Plugin
          config.registerEnvOption( "gpu-prefetch", "NX_GPUPREFETCH" );
          config.registerArgOption( "gpu-prefetch", "gpu-prefetch" );
 
+/*
          GPUTransferModeOption map;
          map.addOption("wc", WC)
             .addOption("normal",NORMAL);
          config.registerConfigOption ( "gpu-transfer-mode", &map, "Data transfer modes" );
          config.registerArgOption ( "gpu-transfer-mode", "gpu-transfer-mode" );
-
+*/
          //sys.setThrottlePolicy( nanos::ext::createDummyThrottle() );
       }
 
