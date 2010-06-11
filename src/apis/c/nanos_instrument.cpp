@@ -75,12 +75,6 @@ nanos_err_t nanos_instrument_get_value (const char *key, const char *value, nano
 #endif
    return NANOS_OK;
 }
-// FIXME:
-#if 0
-   sys.getInstrumentor()->static Instrumentor *inst = sys.getInstrumentor() );
-   NANOS_INSTRUMENTOR(static nanos_event_value_t val = inst->getInstrumentorDictionary()->getEventValue("api","team_barrier"));
-   sys.getInstrumentor()->inst->enterRuntimeAPI(val,RUNTIME) );
-#endif
 
 nanos_err_t nanos_instrument_events ( unsigned int num_events, nanos_event_t events[] )
 {

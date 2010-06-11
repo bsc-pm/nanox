@@ -192,7 +192,7 @@ void System::start ()
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->enterStartUp() );
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->throwOpenStateEvent (STARTUP) );
 
    //start as much threads per pe as requested by the user
    for ( int ths = 1; ths < getThsPerPE(); ths++ ) {
@@ -237,7 +237,7 @@ void System::start ()
          fatal("Unknown inital mode!");
          break;
    }
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->leaveStartUp() );
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->throwCloseStateEvent() );
 }
 
 System::~System ()
@@ -247,7 +247,7 @@ System::~System ()
 
 void System::finish ()
 {
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->enterShutDown() );
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->throwOpenStateEvent(SHUTDOWN) );
    verbose ( "NANOS++ shutting down.... init" );
    verbose ( "Wait for main workgroup to complete" );
    myThread->getCurrentWD()->waitCompletion();
@@ -269,7 +269,7 @@ void System::finish ()
    verbose ( "Joining threads... phase 2" );
 
    // shutdown instrumentation
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->leaveShutDown() );
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->throwCloseStateEvent() );
    NANOS_INSTRUMENTOR ( sys.getInstrumentor()->finalize() );
 
    // join

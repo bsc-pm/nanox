@@ -443,26 +443,6 @@ namespace nanos {
 
          // CORE: high-level instrumentation interface (virtual functions)
 
-         /*! \brief Used in API level when entering a runtime service
-          *
-          *  \param[in] function is a function id
-          *  \param[in] state is the state we are changing to
-          *
-          */
-         virtual void enterRuntimeAPI ( nanos_event_value_t val, nanos_event_state_value_t state = RUNTIME );
-
-         /*! \brief Used in API level when leaving a runtime service
-          */
-         virtual void leaveRuntimeAPI ( );
-
-         /*! \brief Used when entering to an idle code (idle function)
-          */
-         virtual void enterIdle ( );
-
-         /*! \brief Usend when leaving an idle code (idle function)
-          */
-         virtual void leaveIdle ( );
-
          /*! \brief Used when creating a work descriptor (initializes instrumentor context associated to a WD)
           */   
          virtual void wdCreate( WorkDescriptor* newWD );
@@ -485,49 +465,6 @@ namespace nanos {
           *  \param[in] newWD, is the work descriptor which enters the cpu
           */
          virtual void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD );
-
-         virtual void registerCopy( nanos_event_key_t key, size_t size );
-         virtual void registerCacheHit( nanos_event_key_t key, uint64_t addr );
-
-         virtual void enterCache( nanos_event_key_t key, size_t size );
-         virtual void leaveCache( nanos_event_key_t key );
-
-         virtual void enterTransfer( nanos_event_key_t key, size_t size );
-         virtual void leaveTransfer( nanos_event_key_t key );
-
-         /*! \brief Used to mark when the user's code starts being executed
-          */
-         virtual void enterUserCode ( void );
-
-         /*! \brief Used to mark when the user's code starts ends executed
-          */
-         virtual void leaveUserCode ( void );
-
-         /*! \brief Used to mark the begin of runtime start-up phase
-          *
-          *  \see leaveStartUp
-          */
-         virtual void enterStartUp ( void );
-
-         /*! \brief Used to mark the end of runtime start-up phase
-          *
-          *  \see enterStartUp
-          */
-         virtual void leaveStartUp ( void );
-
-         /*! \brief Used to mark the begin of runtime shut-down phase
-          *
-          *  \see leaveStartUp
-          */
-         virtual void enterShutDown ( void );
-
-         /*! \brief Used to mark the end of runtime shut-down phase
-          *
-          *  \see enterShutDown
-          */
-         virtual void leaveShutDown ( void );
-
-         // CORE: high-level instrumentation interface (non-virtual functions)
 
          /*! \brief Used by higher levels to create a BURST_START event
           *

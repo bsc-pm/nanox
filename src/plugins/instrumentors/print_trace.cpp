@@ -10,26 +10,16 @@ class InstrumentorPrintTrace: public Instrumentor
 
    public:
       // constructor
-      InstrumentorPrintTrace ( )
-      {
-      }
+      InstrumentorPrintTrace ( ) {}
 
       // destructor
-      ~InstrumentorPrintTrace ( ) { }
+      ~InstrumentorPrintTrace ( ) {}
 
       // low-level instrumentation interface (mandatory functions)
-
       virtual void initialize( void ) {}
       virtual void finalize( void ) {}
-      virtual void addEventList ( unsigned int count, Event *events ) { }
+      virtual void addEventList ( unsigned int count, Event *events ) {}
 
-      // high-level events
-
-      virtual void enterRuntimeAPI ( std::string function, std::string description, nanos_event_state_value_t state = RUNTIME ) {}
-      virtual void leaveRuntimeAPI ( ) {}
-      virtual void enterIdle ( ) {}
-      virtual void leaveIdle ( ) {}
-      virtual void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD ) {}
 };
 
 

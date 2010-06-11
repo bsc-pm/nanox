@@ -111,9 +111,11 @@ void SMPThread::switchHelperDependent ( WD *oldWD, WD *newWD, void *oldState  )
 void SMPThread::inlineWorkDependent ( WD &wd )
 {
    SMPDD &dd = ( SMPDD & )wd.getActiveDevice();
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->enterUserCode() );
+   NANOS_INSTRUMENTOR ( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("user-code") );
+   NANOS_INSTRUMENTOR ( static nanos_event_value_t val = myThread->getCurrentWD()->getId() );
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->throwOpenStateAndBurst ( RUNNING, key, val ) );
    ( dd.getWorkFct() )( wd.getData() );
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->leaveUserCode() );
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->throwCloseStateAndBurst ( key ) );
 }
 
 void SMPThread::switchTo ( WD *wd, SchedulerHelper *helper )

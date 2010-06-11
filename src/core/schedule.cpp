@@ -62,7 +62,7 @@ void Scheduler::submit ( WD &wd )
 template<class behaviour>
 inline void Scheduler::idleLoop ()
 {
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->enterIdle() )
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwOpenStateEvent( IDLE ) );
 
    const int nspins = sys.getSchedulerConf().getNumSpins();
    int spins = nspins;
@@ -81,9 +81,9 @@ inline void Scheduler::idleLoop ()
 
          if (next) {
            sys.getSchedulerStats()._idleThreads--;
-           NANOS_INSTRUMENTOR( sys.getInstrumentor()->leaveIdle() );
+           NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwCloseStateEvent() );
            behaviour::switchWD(thread,current, next);
-           NANOS_INSTRUMENTOR( sys.getInstrumentor()->enterIdle() );
+           NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwOpenStateEvent( IDLE ) );
            sys.getSchedulerStats()._idleThreads++;
            spins = nspins;
            continue;
@@ -98,12 +98,12 @@ inline void Scheduler::idleLoop ()
    }
    sys.getSchedulerStats()._idleThreads--;
    current->setReady();
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->leaveIdle() );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwCloseStateEvent() );
 }
 
 void Scheduler::waitOnCondition (GenericSyncCond *condition)
 {
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->enterIdle() );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwOpenStateEvent( IDLE ) );
 
    const int nspins = sys.getSchedulerConf().getNumSpins();
    int spins = nspins; 
@@ -128,9 +128,9 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
             if ( next ) {
                sys.getSchedulerStats()._idleThreads--;
-               NANOS_INSTRUMENTOR( sys.getInstrumentor()->leaveIdle() );
+               NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwCloseStateEvent() );
                switchTo ( next );
-               NANOS_INSTRUMENTOR( sys.getInstrumentor()->enterIdle() );
+               NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwOpenStateEvent( IDLE ) );
                sys.getSchedulerStats()._idleThreads++;
             }
             else {
@@ -150,7 +150,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
       sys.getSchedulerStats()._readyTasks++;
       current->setReady();
    }
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->leaveIdle() );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwCloseStateEvent() );
 }
 
 void Scheduler::wakeUp ( WD *wd )
