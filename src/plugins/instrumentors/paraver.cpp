@@ -16,25 +16,16 @@
 namespace nanos {
 
    const unsigned int _eventState      = 9000000;   /*<< event coding state changes */
-   const unsigned int _eventSubState   = 9000004;   /*<< event coding sub-state changes */
    const unsigned int _eventPtPStart   = 9000001;   /*<< event coding comm start */
    const unsigned int _eventPtPEnd     = 9000002;   /*<< event coding comm end */
+   const unsigned int _eventSubState   = 9000004;   /*<< event coding sub-state changes */
+   const unsigned int _eventBase       = 9200000;   /*<< event base (used in key/value pairs) */
 
 class InstrumentorParaver: public Instrumentor 
 {
-   private:
-      unsigned int _eventBase[EVENT_TYPES];
    public:
       // constructor
-      InstrumentorParaver ( ) : Instrumentor()
-      {
-         _eventBase[STATE]       = 0;
-         _eventBase[BURST_START] = 9200000;
-         _eventBase[BURST_END]   = 9200000;
-         _eventBase[PTP_START]   = 9400000;
-         _eventBase[PTP_END]     = 9400000;
-         _eventBase[POINT]       = 9600000;
-      }
+      InstrumentorParaver ( ) : Instrumentor() {}
 
       // destructor
       ~InstrumentorParaver ( ) { }
@@ -98,7 +89,17 @@ class InstrumentorParaver: public Instrumentor
             p_file << CACHE            << "     CACHE ALLOC/FREE" << std::endl;
             p_file << std::endl;
 
-            /* Event: Sub-state */
+            /* Event: PtPStart main event */
+            p_file << "EVENT_TYPE" << std::endl;
+            p_file << "9    " << _eventPtPStart  << "    Point-to-point origin: " << std::endl;
+            p_file << std::endl;
+
+            /* Event: PtPEnd main event */
+            p_file << "EVENT_TYPE" << std::endl;
+            p_file << "9    " << _eventPtPEnd    << "    Point-to-point destination: " << std::endl;
+            p_file << std::endl;
+
+            /* Event: Sub-state (key == state)  */
             p_file << "EVENT_TYPE" << std::endl;
             p_file << "9    " << _eventSubState  << "    Thread sub-state: " << std::endl;
             p_file << "VALUES" << std::endl;
@@ -116,28 +117,18 @@ class InstrumentorParaver: public Instrumentor
             p_file << CACHE            << "     CACHE ALLOC/FREE" << std::endl;
             p_file << std::endl;
 
-            /* Event: PtPStart main event */
-            p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    " << _eventPtPStart  << "    Point-to-point origin: " << std::endl;
-            p_file << std::endl;
-
-            /* Event: PtPEnd main event */
-            p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    " << _eventPtPEnd    << "    Point-to-point destination: " << std::endl;
-            p_file << std::endl;
-
             /* Getting Instrumentor Dictionary */
             InstrumentorDictionary::ConstKeyMapIterator itK;
             InstrumentorKeyDescriptor::ConstValueMapIterator itV;
 
             InstrumentorDictionary *iD = sys.getInstrumentor()->getInstrumentorDictionary();
 
-            /* Generating BURST events */
+            /* Generating key/value events */
             for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
                InstrumentorKeyDescriptor *kD = itK->second;
  
                p_file << "EVENT_TYPE" << std::endl;
-               p_file << "9    " << _eventBase[BURST_START]+kD->getId() << "  Burst, " << kD->getDescription() << std::endl;
+               p_file << "9    " << _eventBase+kD->getId() << kD->getDescription() << std::endl;
                p_file << "VALUES" << std::endl;
                
                for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
@@ -148,38 +139,7 @@ class InstrumentorParaver: public Instrumentor
             }
             p_file << std::endl;
 
-            /* Generating POINT events */
-            for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
-               InstrumentorKeyDescriptor *kD = itK->second;
- 
-               p_file << "EVENT_TYPE" << std::endl;
-               p_file << "9    " << _eventBase[POINT]+kD->getId() << "  Punctual, " << kD->getDescription() << std::endl;
-               p_file << "VALUES" << std::endl;
-               
-               for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
-                  InstrumentorValueDescriptor *vD = itV->second;
-                  p_file << vD->getId() << "  " << vD->getDescription() << std::endl;
-               }
-               p_file << std::endl;
-            }
-            p_file << std::endl;
-
-            /* Generating PTP events */
-            for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
-               InstrumentorKeyDescriptor *kD = itK->second;
- 
-               p_file << "EVENT_TYPE" << std::endl;
-               p_file << "9    " << _eventBase[PTP_START]+kD->getId() << "  Point-to-point, " << kD->getDescription() << std::endl;
-               p_file << "VALUES" << std::endl;
-               
-               for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
-                  InstrumentorValueDescriptor *vD = itV->second;
-                  p_file << vD->getId() << "  " << vD->getDescription() << std::endl;
-               }
-               p_file << std::endl;
-            }
-            p_file << std::endl;
-
+            /* Closing configuration file */
             p_file.close();
          }
          else std::cout << "Unable to open paraver config file" << std::endl;  
@@ -289,14 +249,14 @@ class InstrumentorParaver: public Instrumentor
                case BURST_START:
                   kvs = e.getKVs();
                   for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
-                     p_events[j] = _eventBase[type] + kvs->first;
+                     p_events[j] = _eventBase + kvs->first;
                      p_values[j++] = kvs->second;
                   }
                   break;
                case BURST_END:
                   kvs = e.getKVs();
                   for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
-                     p_events[j] = _eventBase[type] +  kvs->first;
+                     p_events[j] = _eventBase +  kvs->first;
                      p_values[j++] = 0; // end
                   }
                   break;

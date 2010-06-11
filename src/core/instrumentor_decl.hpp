@@ -194,6 +194,8 @@ namespace nanos {
 
             /* 13 */ registerEventKey("state","Thread State (background)");
 
+            /* 14 */ registerEventKey("wd-create","Work Descriptor creation");
+
 #endif
 
          }
