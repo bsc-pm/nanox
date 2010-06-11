@@ -71,8 +71,8 @@ struct GPUInfo {
          // constructors
          GPUProcessor( int id, int gpuId ) : Accelerator( id, &GPU ), _gpuDevice( _deviceSeed++ ), _gpuInfo( gpuId ), _cache()
          {
-            std::cout << "[GPUProcessor] I have " << _gpuInfo.getMaxMemoryAvailable()
-                  << " bytes of available memory (device #" << gpuId << ")" << std::endl;
+            //std::cout << "[GPUProcessor] I have " << _gpuInfo.getMaxMemoryAvailable()
+            //      << " bytes of available memory (device #" << gpuId << ")" << std::endl;
          }
 
          virtual ~GPUProcessor() {}
