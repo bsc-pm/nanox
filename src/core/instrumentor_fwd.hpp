@@ -25,7 +25,8 @@ namespace nanos {
    class InstrumentorDictionary;
    class Instrumentor;
 
-   class InstrumentationStateAndBurst;
+   class InstrumentorStateAndBurst;
+   class InstrumentorState;
 };
 
 #endif

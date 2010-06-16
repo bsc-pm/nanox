@@ -42,5 +42,16 @@ namespace nanos {
          ~InstrumentorStateAndBurst ( ) { _inst->throwCloseStateAndBurst( _key ); }
    };
 
+   class InstrumentorState {
+      private:
+         Instrumentor        *_inst;
+      public:
+         InstrumentorState ( nanos_event_state_value_t state ) 
+         {
+            _inst = sys.getInstrumentor();
+            _inst->throwOpenStateEvent( state );
+         }
+         ~InstrumentorState ( ) { _inst->throwCloseStateEvent(); }
+   };
 }
 #endif
