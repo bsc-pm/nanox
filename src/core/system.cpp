@@ -238,6 +238,7 @@ void System::start ()
          break;
    }
    NANOS_INSTRUMENTOR ( sys.getInstrumentor()->throwCloseStateEvent() );
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->throwOpenStateEvent (RUNNING) );
 }
 
 System::~System ()
@@ -247,7 +248,10 @@ System::~System ()
 
 void System::finish ()
 {
+   /* Instrumentor: First removing RUNNING state from top of the state statck */
+   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->throwCloseStateEvent() );
    NANOS_INSTRUMENTOR ( sys.getInstrumentor()->throwOpenStateEvent(SHUTDOWN) );
+
    verbose ( "NANOS++ shutting down.... init" );
    verbose ( "Wait for main workgroup to complete" );
    myThread->getCurrentWD()->waitCompletion();
