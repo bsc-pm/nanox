@@ -147,7 +147,7 @@ for arch in $ARCHITECTURES; do
 	NANOS_CONFIG_LIBS="$NANOS_CONFIG_LIBS ../arch/$arch/lib$arch.la"
 done
 
-AM_CONDITIONAL([SMP_SUPPORTS_ULT],[test $smp_ult=yes])
+AM_CONDITIONAL([SMP_SUPPORTS_ULT],[test $smp_ult = yes])
 
 AC_MSG_RESULT([$ARCHITECTURES/$OS])
 
