@@ -150,6 +150,19 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *
          warning( "Submitting to another team not implemented yet" );
       }
 
+      NANOS_INSTRUMENTOR ( static nanos_event_key_t throw_key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("wd-throw") );
+      NANOS_INSTRUMENTOR ( static nanos_event_key_t dep_key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("nanos-dep") );
+      NANOS_INSTRUMENTOR ( unsigned int nkvs = num_deps+1; );
+      NANOS_INSTRUMENTOR ( nanos_event_key_t *Keys = new nanos_event_key_t(nkvs); );
+      NANOS_INSTRUMENTOR ( nanos_event_value_t *Values = new nanos_event_value_t(nkvs); );
+      NANOS_INSTRUMENTOR ( Keys[0] = (unsigned int) throw_key; );
+      NANOS_INSTRUMENTOR ( Values[0] = (nanos_event_value_t) wd->getId(); );
+      NANOS_INSTRUMENTOR ( for (unsigned int i = 1; i< nkvs; i++) {
+          Keys[i] = (unsigned int) dep_key;
+          Values[i] = (nanos_event_value_t) &deps[i-1];
+      } );
+      NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwPointEventNkvs(nkvs, Keys, Values) ); 
+
       if ( deps != NULL ) {
          sys.submitWithDependencies( *wd, num_deps, deps );
          return NANOS_OK;
@@ -179,6 +192,19 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
       char chunk[devices[0].dd_size];
 
       WD wd( ( DD* ) devices[0].factory( chunk, devices[0].arg ), data_size, data, num_copies, copies );
+
+      NANOS_INSTRUMENTOR ( static nanos_event_key_t throw_key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("wd-throw") );
+      NANOS_INSTRUMENTOR ( static nanos_event_key_t dep_key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("nanos-dep") );
+      NANOS_INSTRUMENTOR ( unsigned int nkvs = num_deps+1; );
+      NANOS_INSTRUMENTOR ( nanos_event_key_t *Keys = new nanos_event_key_t(nkvs); );
+      NANOS_INSTRUMENTOR ( nanos_event_value_t *Values = new nanos_event_value_t(nkvs); );
+      NANOS_INSTRUMENTOR ( Keys[0] = (unsigned int) throw_key; );
+      NANOS_INSTRUMENTOR ( Values[0] = (nanos_event_value_t) wd.getId(); );
+      NANOS_INSTRUMENTOR ( for (unsigned int i = 1; i< nkvs; i++) {
+          Keys[i] = (unsigned int) dep_key;
+          Values[i] = (nanos_event_value_t) &deps[i-1];
+      } );
+      NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwPointEventNkvs(nkvs, Keys, Values) ); 
 
       if ( deps != NULL ) {
          sys.waitOn( num_deps, deps );

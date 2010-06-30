@@ -112,6 +112,19 @@ nanos_err_t nanos_wait_on ( size_t num_deps, nanos_dependence_t *deps )
 {
    NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","wait_on",RUNTIME) );
 
+   NANOS_INSTRUMENTOR ( static nanos_event_key_t wait_key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("wait-on") );
+   NANOS_INSTRUMENTOR ( static nanos_event_key_t dep_key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("nanos-dep") );
+   NANOS_INSTRUMENTOR ( unsigned int nkvs = num_deps+1 );
+   NANOS_INSTRUMENTOR ( nanos_event_key_t *Keys = new nanos_event_key_t(nkvs) );
+   NANOS_INSTRUMENTOR ( nanos_event_value_t *Values = new nanos_event_value_t(nkvs) );
+   NANOS_INSTRUMENTOR ( Keys[0] = (unsigned int) wait_key );
+   NANOS_INSTRUMENTOR ( Values[0] = (nanos_event_value_t) myThread->getCurrentWD()->getId() );
+   NANOS_INSTRUMENTOR ( for (unsigned int i = 1; i< nkvs; i++) {
+       Keys[i] = (unsigned int) dep_key;
+       Values[i] = (nanos_event_value_t) &deps[i-1];
+   } );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwPointEventNkvs(nkvs, Keys, Values) );
+
    try {
       if ( deps != NULL ) {
          sys.waitOn( num_deps, deps );
