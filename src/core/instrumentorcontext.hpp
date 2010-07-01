@@ -126,14 +126,14 @@ inline bool InstrumentorContext::isStateEventEnabled ( void )
    return _stateEventEnabled;
 }
 
-inline nanos_event_state_value_t InstrumentorContext::validState ( void )
+inline nanos_event_state_value_t InstrumentorContext::getValidState ( void )
 {
    return _validState;
 }
 
-inline void InstrumentorContext::saveValidState ( void )
+inline void InstrumentorContext::setValidState ( nanos_event_state_value_t state )
 {
-   _validState = _stateStack.top();
+   _validState = state;
 }
 
 #endif

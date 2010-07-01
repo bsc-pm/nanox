@@ -116,17 +116,17 @@ namespace nanos {
           */
          void disableStateEvents ( void ) ;
 
-         /*! \brief get state events status
+         /*! \brief Get state events status
           */
          bool isStateEventEnabled ( void ) ;
 
-         /*! \brief Save valid state
+         /*! \brief Get valid state
           */
-         nanos_event_state_value_t validState ( void ) ;
+         nanos_event_state_value_t getValidState ( void ) ;
 
-         /*! \brief Save valid state
+         /*! \brief Save current state as valid state
           */
-         void saveValidState ( void ) ;
+         void setValidState ( nanos_event_state_value_t state ) ;
    };
 }
 #endif

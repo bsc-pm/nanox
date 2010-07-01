@@ -313,7 +313,7 @@ void Instrumentor::wdEnterCPU( WorkDescriptor* newWD )
    else {
       state = newInstrContext.topState();
       e[i++] = State ( SUBSTATE, state );
-      state = newInstrContext.validState();
+      state = newInstrContext.getValidState();
    }
 
    e[i++] = State ( STATE, state );
@@ -387,7 +387,7 @@ void Instrumentor::wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD )
    else {
       state = newInstrContext.topState();
       e[i++] = State ( SUBSTATE, state );
-      state = newInstrContext.validState();
+      state = newInstrContext.getValidState();
    }
    e[i++] = State ( STATE, state );
 
@@ -418,6 +418,6 @@ void Instrumentor::disableStateEvents()
 {
    InstrumentorContext &ic = myThread->getCurrentWD()->getInstrumentorContext();
    ic.disableStateEvents();
-   ic.saveValidState();
+   ic.setValidState( ic.topState() );
 }
 
