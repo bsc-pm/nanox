@@ -196,13 +196,28 @@ AC_ARG_WITH([mpitrace],
                 MPITRACE_BIN=""
            ]
 )
+AC_ARG_WITH([extrae],
+           AS_HELP_STRING([--with-extrae=dir], [Directory of extrae installation]),
+           [
+                MPITRACE_HOME="$withval"
+                MPITRACE_INC="$withval/include"
+                MPITRACE_LIB="$withval/lib"
+                MPITRACE_BIN="$withval/bin"
+           ],
+           [
+                MPITRACE_HOME=""
+                MPITRACE_INC=""
+                MPITRACE_LIB=""
+                MPITRACE_BIN=""
+           ]
+)
 	   AC_SUBST([MPITRACE_HOME])
 	   AC_SUBST([MPITRACE_INC])
 	   AC_SUBST([MPITRACE_LIB])
 	   AC_SUBST([MPITRACE_BIN])
 
 
-AM_CONDITIONAL([INSTRUMENTOR_PARAVER], test x"$MPITRACE_HOME" != x)
+AM_CONDITIONAL([INSTRUMENTATION_EXTRAE], test x"$MPITRACE_HOME" != x)
 
 # Output files
 AC_CONFIG_HEADERS([config.h])
