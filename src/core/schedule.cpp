@@ -36,7 +36,7 @@ void SchedulerConf::config (Config &config)
 
 void Scheduler::submit ( WD &wd )
 {
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwOpenStateEvent( SCHEDULING ) );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->raiseOpenStateEvent( SCHEDULING ) );
    sys.getSchedulerStats()._createdTasks++;
    sys.getSchedulerStats()._totalTasks++;
    sys.getSchedulerStats()._readyTasks++;
@@ -46,7 +46,7 @@ void Scheduler::submit ( WD &wd )
    /* handle tied tasks */
    if ( wd.isTied() && wd.isTiedTo() != myThread ) {
       myThread->getTeam()->getSchedulePolicy().queue(wd.isTiedTo(), wd);
-      NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwCloseStateEvent() );
+      NANOS_INSTRUMENTOR( sys.getInstrumentor()->raiseCloseStateEvent() );
       return;
    }
 
@@ -59,13 +59,13 @@ void Scheduler::submit ( WD &wd )
 
       switchTo ( slice );
    }
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwCloseStateEvent() );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->raiseCloseStateEvent() );
 }
 
 template<class behaviour>
 inline void Scheduler::idleLoop ()
 {
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwOpenStateEvent( IDLE ) );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->raiseOpenStateEvent( IDLE ) );
 
    const int nspins = sys.getSchedulerConf().getNumSpins();
    int spins = nspins;
@@ -84,9 +84,9 @@ inline void Scheduler::idleLoop ()
 
          if (next) {
            sys.getSchedulerStats()._idleThreads--;
-           NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwCloseStateEvent() );
+           NANOS_INSTRUMENTOR( sys.getInstrumentor()->raiseCloseStateEvent() );
            behaviour::switchWD(thread,current, next);
-           NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwOpenStateEvent( IDLE ) );
+           NANOS_INSTRUMENTOR( sys.getInstrumentor()->raiseOpenStateEvent( IDLE ) );
            sys.getSchedulerStats()._idleThreads++;
            spins = nspins;
            continue;
@@ -101,12 +101,12 @@ inline void Scheduler::idleLoop ()
    }
    sys.getSchedulerStats()._idleThreads--;
    current->setReady();
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwCloseStateEvent() );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->raiseCloseStateEvent() );
 }
 
 void Scheduler::waitOnCondition (GenericSyncCond *condition)
 {
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwOpenStateEvent( IDLE ) );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->raiseOpenStateEvent( IDLE ) );
 
    const int nspins = sys.getSchedulerConf().getNumSpins();
    int spins = nspins; 
@@ -131,9 +131,9 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
             if ( next ) {
                sys.getSchedulerStats()._idleThreads--;
-               NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwOpenStateEvent( SCHEDULING ) );
+               NANOS_INSTRUMENTOR( sys.getInstrumentor()->raiseOpenStateEvent( SCHEDULING ) );
                switchTo ( next );
-               NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwCloseStateEvent() );
+               NANOS_INSTRUMENTOR( sys.getInstrumentor()->raiseCloseStateEvent() );
                sys.getSchedulerStats()._idleThreads++;
             }
             else {
@@ -153,18 +153,18 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
       sys.getSchedulerStats()._readyTasks++;
       current->setReady();
    }
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwCloseStateEvent() );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->raiseCloseStateEvent() );
 }
 
 void Scheduler::wakeUp ( WD *wd )
 {
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwOpenStateEvent( SCHEDULING ) );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->raiseOpenStateEvent( SCHEDULING ) );
    if ( wd->isBlocked() ) {
       sys.getSchedulerStats()._readyTasks++;
       wd->setReady();
       Scheduler::queue( *wd );
    }
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwCloseStateEvent() );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->raiseCloseStateEvent() );
 }
 
 struct WorkerBehaviour
@@ -185,9 +185,9 @@ struct WorkerBehaviour
 
 void Scheduler::workerLoop ()
 {
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwOpenStateEvent( SCHEDULING ) );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->raiseOpenStateEvent( SCHEDULING ) );
    idleLoop<WorkerBehaviour>();
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwCloseStateEvent() );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->raiseCloseStateEvent() );
 }
 
 void Scheduler::queue ( WD &wd )
@@ -197,7 +197,7 @@ void Scheduler::queue ( WD &wd )
 
 void Scheduler::inlineWork ( WD *wd )
 {
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwOpenStateEvent( SCHEDULING ) );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->raiseOpenStateEvent( SCHEDULING ) );
    // run it in the current frame
    WD *oldwd = myThread->getCurrentWD();
 
@@ -242,7 +242,7 @@ void Scheduler::inlineWork ( WD *wd )
 
    ensure(oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(), 
           "Violating tied rules " + toString<BaseThread*>(thread) + "!=" + toString<BaseThread*>(oldwd->isTiedTo()));
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwCloseStateEvent() );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->raiseCloseStateEvent() );
 
 }
 
@@ -281,13 +281,13 @@ void Scheduler::switchTo ( WD *to )
 
 void Scheduler::yield ()
 {
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwOpenStateEvent( SCHEDULING ) );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->raiseOpenStateEvent( SCHEDULING ) );
    WD *next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
 
    if ( next ) {
       switchTo(next);
    }
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwCloseStateEvent() );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->raiseCloseStateEvent() );
 }
 
 void Scheduler::switchToThread ( BaseThread *thread )
@@ -331,7 +331,7 @@ void Scheduler::exitTo ( WD *to )
 
 void Scheduler::exit ( void )
 {
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwOpenStateEvent( SCHEDULING ) );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->raiseOpenStateEvent( SCHEDULING ) );
 
    // At this point the WD work is done, so we mark it as such and look for other work to do
    // Deallocation doesn't happen here because:

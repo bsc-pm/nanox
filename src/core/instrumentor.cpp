@@ -127,7 +127,7 @@ void Instrumentor::createPtPEnd ( Event *e, nanos_event_domain_t domain, nanos_e
 /* ***                   T H R O W I N G   E V E N T S                    *** */
 /* ************************************************************************** */
 
-void Instrumentor::throwPointEvent ( nanos_event_key_t key, nanos_event_value_t val )
+void Instrumentor::raisePointEvent ( nanos_event_key_t key, nanos_event_value_t val )
 {
    Event e; /* Event */
 
@@ -138,7 +138,7 @@ void Instrumentor::throwPointEvent ( nanos_event_key_t key, nanos_event_value_t 
    addEventList ( 1, &e );
 }
 
-void Instrumentor::throwPointEventNkvs ( unsigned int nkvs, nanos_event_key_t *key, nanos_event_value_t *val )
+void Instrumentor::raisePointEventNkvs ( unsigned int nkvs, nanos_event_key_t *key, nanos_event_value_t *val )
 {
    Event e; /* Event */
 
@@ -149,7 +149,7 @@ void Instrumentor::throwPointEventNkvs ( unsigned int nkvs, nanos_event_key_t *k
    addEventList ( 1, &e );
 }
 
-void Instrumentor::throwOpenStateEvent ( nanos_event_state_value_t state )
+void Instrumentor::raiseOpenStateEvent ( nanos_event_state_value_t state )
 {
    Event e; /* Event */
 
@@ -160,7 +160,7 @@ void Instrumentor::throwOpenStateEvent ( nanos_event_state_value_t state )
    addEventList ( 1, &e );
 }
 
-void Instrumentor::throwCloseStateEvent ( void )
+void Instrumentor::raiseCloseStateEvent ( void )
 {
    Event e; /* Event */
 
@@ -172,7 +172,7 @@ void Instrumentor::throwCloseStateEvent ( void )
 
 }
 
-void Instrumentor::throwOpenBurstEvent ( nanos_event_key_t key, nanos_event_value_t val )
+void Instrumentor::raiseOpenBurstEvent ( nanos_event_key_t key, nanos_event_value_t val )
 {
    Event e; /* Event */
 
@@ -183,7 +183,7 @@ void Instrumentor::throwOpenBurstEvent ( nanos_event_key_t key, nanos_event_valu
    addEventList ( 1, &e );
 }
 
-void Instrumentor::throwCloseBurstEvent ( nanos_event_key_t key )
+void Instrumentor::raiseCloseBurstEvent ( nanos_event_key_t key )
 {
    Event e; /* Event */
 
@@ -194,7 +194,7 @@ void Instrumentor::throwCloseBurstEvent ( nanos_event_key_t key )
    addEventList ( 1, &e );
 }
 
-void Instrumentor::throwOpenPtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val )
+void Instrumentor::raiseOpenPtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val )
 {
    Event e; /* Event */
 
@@ -205,7 +205,7 @@ void Instrumentor::throwOpenPtPEvent ( nanos_event_domain_t domain, nanos_event_
    addEventList ( 1, &e );
 }
 
-void Instrumentor::throwOpenPtPEventNkvs ( nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,
+void Instrumentor::raiseOpenPtPEventNkvs ( nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,
                                            nanos_event_key_t *key, nanos_event_value_t *val )
 {
    Event e; /* Event */
@@ -217,7 +217,7 @@ void Instrumentor::throwOpenPtPEventNkvs ( nanos_event_domain_t domain, nanos_ev
    addEventList ( 1, &e );
 }
 
-void Instrumentor::throwClosePtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val )
+void Instrumentor::raiseClosePtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val )
 {
    Event e; /* Event */
 
@@ -229,7 +229,7 @@ void Instrumentor::throwClosePtPEvent ( nanos_event_domain_t domain, nanos_event
 
 }
 
-void Instrumentor::throwClosePtPEventNkvs ( nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,
+void Instrumentor::raiseClosePtPEventNkvs ( nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,
                                             nanos_event_key_t *key, nanos_event_value_t *val )
 {
    Event e; /* Event */
@@ -242,7 +242,7 @@ void Instrumentor::throwClosePtPEventNkvs ( nanos_event_domain_t domain, nanos_e
 
 }
 
-void Instrumentor::throwOpenStateAndBurst ( nanos_event_state_value_t state, nanos_event_key_t key, nanos_event_value_t val )
+void Instrumentor::raiseOpenStateAndBurst ( nanos_event_state_value_t state, nanos_event_key_t key, nanos_event_value_t val )
 {
    Event e[2]; /* Event array */
 
@@ -255,7 +255,7 @@ void Instrumentor::throwOpenStateAndBurst ( nanos_event_state_value_t state, nan
 
 }
 
-void Instrumentor::throwCloseStateAndBurst ( nanos_event_key_t key )
+void Instrumentor::raiseCloseStateAndBurst ( nanos_event_key_t key )
 {
    Event e[2]; /* Event array */
 

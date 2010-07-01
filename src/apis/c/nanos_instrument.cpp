@@ -121,7 +121,7 @@ nanos_err_t nanos_instrument_enter_state ( nanos_event_state_value_t state )
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      sys.getInstrumentor()->throwOpenStateEvent( state );
+      sys.getInstrumentor()->raiseOpenStateEvent( state );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -134,7 +134,7 @@ nanos_err_t nanos_instrument_leave_state ( void )
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      sys.getInstrumentor()->throwCloseStateEvent( );
+      sys.getInstrumentor()->raiseCloseStateEvent( );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -147,7 +147,7 @@ nanos_err_t nanos_instrument_enter_burst( nanos_event_key_t key, nanos_event_val
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      sys.getInstrumentor()->throwOpenBurstEvent ( key, value );
+      sys.getInstrumentor()->raiseOpenBurstEvent ( key, value );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -160,7 +160,7 @@ nanos_err_t nanos_instrument_leave_burst( nanos_event_key_t key )
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      sys.getInstrumentor()->throwCloseBurstEvent ( key );
+      sys.getInstrumentor()->raiseCloseBurstEvent ( key );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -173,7 +173,7 @@ nanos_err_t nanos_instrument_point_event ( unsigned int nkvs, nanos_event_key_t 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      sys.getInstrumentor()->throwPointEventNkvs ( nkvs, keys, values );
+      sys.getInstrumentor()->raisePointEventNkvs ( nkvs, keys, values );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -187,7 +187,7 @@ nanos_err_t nanos_instrument_ptp_start ( nanos_event_domain_t domain, nanos_even
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      sys.getInstrumentor()->throwOpenPtPEventNkvs ( domain, id, nkvs, keys, values );
+      sys.getInstrumentor()->raiseOpenPtPEventNkvs ( domain, id, nkvs, keys, values );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -201,7 +201,7 @@ nanos_err_t nanos_instrument_ptp_end ( nanos_event_domain_t domain, nanos_event_
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      sys.getInstrumentor()->throwClosePtPEventNkvs ( domain, id, nkvs, keys, values );
+      sys.getInstrumentor()->raiseClosePtPEventNkvs ( domain, id, nkvs, keys, values );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }

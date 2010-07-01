@@ -161,7 +161,7 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *
           Keys[i] = (unsigned int) dep_key;
           Values[i] = (nanos_event_value_t) &deps[i-1];
       } );
-      NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwPointEventNkvs(nkvs, Keys, Values) ); 
+      NANOS_INSTRUMENTOR( sys.getInstrumentor()->raisePointEventNkvs(nkvs, Keys, Values) ); 
 
       if ( deps != NULL ) {
          sys.submitWithDependencies( *wd, num_deps, deps );
@@ -204,7 +204,7 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
           Keys[i] = (unsigned int) dep_key;
           Values[i] = (nanos_event_value_t) &deps[i-1];
       } );
-      NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwPointEventNkvs(nkvs, Keys, Values) ); 
+      NANOS_INSTRUMENTOR( sys.getInstrumentor()->raisePointEventNkvs(nkvs, Keys, Values) ); 
 
       if ( deps != NULL ) {
          sys.waitOn( num_deps, deps );

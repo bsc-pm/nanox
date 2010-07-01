@@ -36,10 +36,10 @@ namespace nanos {
             //if ( _inst == NULL ) _inst = sys.getInstrumentor();
             _key = _inst->getInstrumentorDictionary()->getEventKey(keydesc);
             nanos_event_value_t val = _inst->getInstrumentorDictionary()->getEventValue(keydesc,valdesc);
-            _inst->throwOpenStateAndBurst(state, _key, val);
+            _inst->raiseOpenStateAndBurst(state, _key, val);
          }
 
-         ~InstrumentorStateAndBurst ( ) { _inst->throwCloseStateAndBurst( _key ); }
+         ~InstrumentorStateAndBurst ( ) { _inst->raiseCloseStateAndBurst( _key ); }
    };
 
    class InstrumentorState {
@@ -49,9 +49,9 @@ namespace nanos {
          InstrumentorState ( nanos_event_state_value_t state ) 
          {
             _inst = sys.getInstrumentor();
-            _inst->throwOpenStateEvent( state );
+            _inst->raiseOpenStateEvent( state );
          }
-         ~InstrumentorState ( ) { _inst->throwCloseStateEvent(); }
+         ~InstrumentorState ( ) { _inst->raiseCloseStateEvent(); }
    };
 }
 #endif

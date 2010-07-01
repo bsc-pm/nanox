@@ -123,7 +123,7 @@ nanos_err_t nanos_wait_on ( size_t num_deps, nanos_dependence_t *deps )
        Keys[i] = (unsigned int) dep_key;
        Values[i] = (nanos_event_value_t) &deps[i-1];
    } );
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->throwPointEventNkvs(nkvs, Keys, Values) );
+   NANOS_INSTRUMENTOR( sys.getInstrumentor()->raisePointEventNkvs(nkvs, Keys, Values) );
 
    try {
       if ( deps != NULL ) {
