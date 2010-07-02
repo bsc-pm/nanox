@@ -84,7 +84,7 @@ nanos_err_t nanos_end_team ( nanos_team_t team )
 */
 nanos_err_t nanos_team_barrier ( )
 {
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","team_barrier",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","team_barrier",SYNCHRONIZATION) );
 
    try {
       myThread->getTeam()->barrier();

@@ -84,7 +84,7 @@ class InstrumentationExtrae: public Instrumentation
             p_file << RUNNING          << "     RUNNING" << std::endl;
             p_file << SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
             p_file << SCHEDULING       << "     SCHEDULING" << std::endl;
-            p_file << FORK_JOIN        << "     FORK/JOIN" << std::endl;
+            p_file << CREATION         << "     CREATION" << std::endl;
             p_file << MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
             p_file << CACHE            << "     CACHE ALLOC/FREE" << std::endl;
             p_file << std::endl;
@@ -112,7 +112,7 @@ class InstrumentationExtrae: public Instrumentation
             p_file << RUNNING          << "     RUNNING" << std::endl;
             p_file << SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
             p_file << SCHEDULING       << "     SCHEDULING" << std::endl;
-            p_file << FORK_JOIN        << "     FORK/JOIN" << std::endl;
+            p_file << CREATION         << "     CREATION" << std::endl;
             p_file << MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
             p_file << CACHE            << "     CACHE ALLOC/FREE" << std::endl;
             p_file << std::endl;

@@ -29,8 +29,9 @@ namespace nanos {
          // FIXME: could _inst be static?
          Instrumentation        *_inst;
          nanos_event_key_t    _key;
+	 bool		      _closed;
       public:
-         InstrumentStateAndBurst ( const char* keydesc, const char *valdesc, nanos_event_state_value_t state )
+         InstrumentStateAndBurst ( const char* keydesc, const char *valdesc, nanos_event_state_value_t state ) : _closed(false)
          {
             _inst = sys.getInstrumentor();
             //if ( _inst == NULL ) _inst = sys.getInstrumentor();
@@ -38,8 +39,13 @@ namespace nanos {
             nanos_event_value_t val = _inst->getInstrumentorDictionary()->getEventValue(keydesc,valdesc);
             _inst->raiseOpenStateAndBurst(state, _key, val);
          }
-
-         ~InstrumentStateAndBurst ( ) { _inst->raiseCloseStateAndBurst( _key ); }
+         void changeState ( nanos_event_state_value_t state ) 
+         {
+            _inst->raiseCloseStateEvent();
+            _inst->raiseOpenStateEvent(state);
+         }
+	 void close() { _closed=true; _inst->raiseCloseStateAndBurst(_key);  }
+         ~InstrumentStateAndBurst ( ) { if (!_closed) close(); }
    };
 
    class InstrumentState {
@@ -50,6 +56,11 @@ namespace nanos {
          {
             _inst = sys.getInstrumentor();
             _inst->raiseOpenStateEvent( state );
+         }
+         void changeState ( nanos_event_state_value_t state ) 
+         {
+            _inst->raiseCloseStateEvent();
+            _inst->raiseOpenStateEvent(state);
          }
          ~InstrumentState ( ) { _inst->raiseCloseStateEvent(); }
    };

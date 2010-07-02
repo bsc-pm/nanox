@@ -101,8 +101,8 @@ void System::loadModules ()
    if ( !PluginManager::load( "barrier-"+getDefaultBarrier() ) )
       fatal0( "Could not load main barrier algorithm" );
 
-   if ( !PluginManager::load( "instrumentor-"+getDefaultInstrumentor() ) )
-      fatal0( "Could not load " + getDefaultInstrumentor() + " instrumentor" );
+   if ( !PluginManager::load( "instrumentation-"+getDefaultInstrumentor() ) )
+      fatal0( "Could not load " + getDefaultInstrumentor() + " instrumentation" );
 
 
    ensure( _defBarrFactory,"No default system barrier factory" );
@@ -156,9 +156,9 @@ void System::config ()
    config.registerArgOption ( "barrier", "barrier" );
    config.registerEnvOption ( "barrier", "NX_BARRIER" );
 
-   config.registerConfigOption ( "instrumentor", new Config::StringVar ( _defInstr ), "Defines instrumentation format" );
-   config.registerArgOption ( "instrumentor", "instrumentor" );
-   config.registerEnvOption ( "instrumentor", "NX_INSTRUMENTOR" );
+   config.registerConfigOption ( "instrumentation", new Config::StringVar ( _defInstr ), "Defines instrumentation format" );
+   config.registerArgOption ( "instrumentation", "instrumentation" );
+   config.registerEnvOption ( "instrumentation", "NX_INSTRUMENTATION" );
 
    _schedConf.config(config);
    
