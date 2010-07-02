@@ -21,14 +21,14 @@ namespace nanos {
    const unsigned int _eventSubState   = 9000004;   /*<< event coding sub-state changes */
    const unsigned int _eventBase       = 9200000;   /*<< event base (used in key/value pairs) */
 
-class InstrumentationParaver: public Instrumentation 
+class InstrumentationExtrae: public Instrumentation 
 {
    public:
       // constructor
-      InstrumentationParaver ( ) : Instrumentation() {}
+      InstrumentationExtrae ( ) : Instrumentation() {}
 
       // destructor
-      ~InstrumentationParaver ( ) { }
+      ~InstrumentationExtrae ( ) { }
 
       void mergeParaverTraceFiles ()
       {
@@ -296,14 +296,14 @@ namespace ext {
 
 class InstrumentorParaverPlugin : public Plugin {
    public:
-      InstrumentorParaverPlugin () : Plugin("Instrumentor which generates a paraver trace.",1) {}
+      InstrumentorParaverPlugin () : Plugin("Instrumentor which generates a Paraver trace.",1) {}
       ~InstrumentorParaverPlugin () {}
 
       virtual void config( Config &config ) {}
 
       void init ()
       {
-         sys.setInstrumentor( new InstrumentationParaver() );
+         sys.setInstrumentor( new InstrumentationExtrae() );
       }
 };
 
