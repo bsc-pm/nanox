@@ -35,6 +35,10 @@
 #include "gpuprocessor.hpp"
 #endif
 
+#ifdef CLUSTER_DEV
+#include "clusterprocessor.hpp"
+#endif
+
 using namespace nanos;
 
 namespace nanos {
@@ -79,6 +83,12 @@ void System::loadModules ()
 #ifdef GPU_DEV
    if ( !PluginManager::load ( "pe-gpu" ) )
       fatal0 ( "Couldn't load GPU support" );
+#endif
+
+#ifdef CLUSTER_DEV
+   if ( !PluginManager::load ( "pe-cluster" ) )
+      fatal0 ( "Couldn't load Cluster support" );
+   fprintf(stderr, "Cluster plugin loaded!\n");
 #endif
 
    // load default schedule plugin
@@ -224,6 +234,11 @@ void System::start ()
    PE *spu = new nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);
    spu->startWorker();
 #endif
+
+//#ifdef CLUSTER_DEV
+//   PE *cluster = new nanos::ext::ClusterProcessor(0);
+//   (void) cluster;
+//#endif
 
    switch ( getInitialMode() )
    {

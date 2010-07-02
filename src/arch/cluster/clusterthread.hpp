@@ -17,52 +17,42 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_OS
-#define _NANOS_OS
+#ifndef _NANOS_GPU_THREAD
+#define _NANOS_GPU_THREAD
 
-#include <string>
-#include <vector>
-#include <stdlib.h>
-#include <dlfcn.h>
+#include "clusterdd.hpp"
+#include "smpthread.hpp"
 
-namespace nanos
+
+namespace nanos {
+namespace ext
 {
 
-// this is UNIX-like OS
-// TODO: ABS and virtualize
-
-   class OS
+   class ClusterThread : public SMPThread
    {
-      // All members are static so we don't need a constructor/destructor/...
-      
-         static long _argc; 
-         static char ** _argv; 
+
+      friend class ClusterProcessor;
+
+      private:
+         int                     _clusterDevice; // Assigned Cluster device Id
+
+         // disable copy constructor and assignment operator
+         ClusterThread( const ClusterThread &th );
+         const ClusterThread & operator= ( const ClusterThread &th );
+
       public:
+         // constructor
+         ClusterThread( WD &w, PE *pe, int device ) : SMPThread( w, pe ), _clusterDevice( device ) {}
 
-         static void init ();
+         // destructor
+         virtual ~ClusterThread() {}
 
-         static const char *getEnvironmentVariable( const std::string &variable );
+         virtual void runDependent ( void );
 
-         static void * loadDL( const std::string &dir, const std::string &name );
-         static void * dlFindSymbol( void *dlHandler, const std::string &symbolName );
-         static void * dlFindSymbol( void *dlHandler, const char *symbolName );
-         // too-specific?
-         static char * dlError( void *dlHandler ) { return dlerror(); }
-
-         static const char * getArg (int i) { return _argv[i]; }
-         static long getArgc() { return _argc; }
-         static char **getArgv() { return _argv; }
    };
 
-// inlined functions
 
-   inline const char * OS::getEnvironmentVariable ( const std::string &name )
-   {
-      return getenv( name.c_str() );
-   }
-
-};
-
+}
+}
 
 #endif
-

@@ -17,52 +17,67 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_OS
-#define _NANOS_OS
+#ifndef _NANOS_CLUSTER_WD
+#define _NANOS_CLUSTER_WD
 
-#include <string>
-#include <vector>
-#include <stdlib.h>
-#include <dlfcn.h>
+#include "config.hpp"
+#include "clusterdevice.hpp"
+#include "workdescriptor.hpp"
 
-namespace nanos
+namespace nanos {
+namespace ext
 {
 
-// this is UNIX-like OS
-// TODO: ABS and virtualize
+   extern ClusterDevice Cluster;
 
-   class OS
+   class ClusterPlugin;
+#if 0
+   class ClusterDD : public DD
    {
-      // All members are static so we don't need a constructor/destructor/...
-      
-         static long _argc; 
-         static char ** _argv; 
+      friend class ClusterPlugin;
       public:
+         typedef void ( *work_fct ) ( void *self );
 
-         static void init ();
+      private:
+         static int     _gpuCount; // Number of CUDA-capable GPUs
+         work_fct       _work;
 
-         static const char *getEnvironmentVariable( const std::string &variable );
+      public:
+         // constructors
+         GPUDD( work_fct w ) : DD( &GPU ), _work( w ) {}
 
-         static void * loadDL( const std::string &dir, const std::string &name );
-         static void * dlFindSymbol( void *dlHandler, const std::string &symbolName );
-         static void * dlFindSymbol( void *dlHandler, const char *symbolName );
-         // too-specific?
-         static char * dlError( void *dlHandler ) { return dlerror(); }
+         GPUDD() : DD( &GPU ), _work( 0 ) {}
 
-         static const char * getArg (int i) { return _argv[i]; }
-         static long getArgc() { return _argc; }
-         static char **getArgv() { return _argv; }
+         // copy constructors
+         GPUDD( const GPUDD &dd ) : DD( dd ), _work( dd._work ) {}
+
+         // assignment operator
+         const GPUDD & operator= ( const GPUDD &wd );
+
+         // destructor
+         virtual ~GPUDD() { }
+
+         work_fct getWorkFct() const { return _work; }
+
+         static int getGPUCount () { return _gpuCount; }
+
+         virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous) { }
+         virtual size_t size ( void ) { return sizeof(GPUDD); }
+         virtual GPUDD *copyTo ( void *toAddr );
    };
 
-// inlined functions
-
-   inline const char * OS::getEnvironmentVariable ( const std::string &name )
+   inline const GPUDD & GPUDD::operator= ( const GPUDD &dd )
    {
-      return getenv( name.c_str() );
+      // self-assignment: ok
+      if ( &dd == this ) return *this;
+
+      DD::operator= ( dd );
+      _work = dd._work;
+
+      return *this;
    }
-
-};
-
+#endif
+}
+}
 
 #endif
-

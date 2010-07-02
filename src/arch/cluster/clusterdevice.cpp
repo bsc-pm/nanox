@@ -17,52 +17,27 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_OS
-#define _NANOS_OS
 
-#include <string>
-#include <vector>
-#include <stdlib.h>
-#include <dlfcn.h>
+#include "clusterdevice.hpp"
+#include "basethread.hpp"
+#include "debug.hpp"
 
-namespace nanos
+using namespace nanos;
+
+void * ClusterDevice::allocate( size_t size )
 {
+   return 0;
+}
 
-// this is UNIX-like OS
-// TODO: ABS and virtualize
+void ClusterDevice::free( void *address )
+{
+}
 
-   class OS
-   {
-      // All members are static so we don't need a constructor/destructor/...
-      
-         static long _argc; 
-         static char ** _argv; 
-      public:
+void ClusterDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
+{
+}
 
-         static void init ();
-
-         static const char *getEnvironmentVariable( const std::string &variable );
-
-         static void * loadDL( const std::string &dir, const std::string &name );
-         static void * dlFindSymbol( void *dlHandler, const std::string &symbolName );
-         static void * dlFindSymbol( void *dlHandler, const char *symbolName );
-         // too-specific?
-         static char * dlError( void *dlHandler ) { return dlerror(); }
-
-         static const char * getArg (int i) { return _argv[i]; }
-         static long getArgc() { return _argc; }
-         static char **getArgv() { return _argv; }
-   };
-
-// inlined functions
-
-   inline const char * OS::getEnvironmentVariable ( const std::string &name )
-   {
-      return getenv( name.c_str() );
-   }
-
-};
-
-
-#endif
+void ClusterDevice::copyOut( uint64_t remoteDst, void *localSrc, size_t size )
+{
+}
 

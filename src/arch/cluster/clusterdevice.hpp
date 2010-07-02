@@ -17,52 +17,44 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_OS
-#define _NANOS_OS
+#ifndef _CLUSTER_DEVICE
+#define _CLUSTER_DEVICE
 
-#include <string>
-#include <vector>
-#include <stdlib.h>
-#include <dlfcn.h>
+#include "workdescriptor_decl.hpp"
 
 namespace nanos
 {
 
-// this is UNIX-like OS
-// TODO: ABS and virtualize
+/* \brief Device specialization for cluster architecture
+ * provides functions to allocate and copy data in the device
+ */
 
-   class OS
+   class ClusterDevice : public Device
    {
-      // All members are static so we don't need a constructor/destructor/...
-      
-         static long _argc; 
-         static char ** _argv; 
       public:
+         /*! \brief GPUDevice constructor
+          */
+         ClusterDevice ( const char *n ) : Device ( n ) {}
 
-         static void init ();
+         /*! \brief GPUDevice copy constructor
+          */
+         ClusterDevice ( const ClusterDevice &arch ) : Device ( arch ) {}
 
-         static const char *getEnvironmentVariable( const std::string &variable );
+         /*! \brief GPUDevice destructor
+          */
+         ~ClusterDevice() {};
 
-         static void * loadDL( const std::string &dir, const std::string &name );
-         static void * dlFindSymbol( void *dlHandler, const std::string &symbolName );
-         static void * dlFindSymbol( void *dlHandler, const char *symbolName );
-         // too-specific?
-         static char * dlError( void *dlHandler ) { return dlerror(); }
+         static void * allocate( size_t size );
+         static void free( void *address );
 
-         static const char * getArg (int i) { return _argv[i]; }
-         static long getArgc() { return _argc; }
-         static char **getArgv() { return _argv; }
+         static void copyIn( void *localDst, uint64_t remoteSrc, size_t size );
+         static void copyOut( uint64_t remoteDst, void *localSrc, size_t size );
+
+         static void copyLocal( void *dst, void *src, size_t size )
+         {
+            // Do not allow local copies in cluster memory
+         }
    };
-
-// inlined functions
-
-   inline const char * OS::getEnvironmentVariable ( const std::string &name )
-   {
-      return getenv( name.c_str() );
-   }
-
-};
-
+}
 
 #endif
-

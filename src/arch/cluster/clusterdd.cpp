@@ -17,52 +17,20 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_OS
-#define _NANOS_OS
+#include "clusterdd.hpp"
+#include "clusterutils.hpp"
 
-#include <string>
-#include <vector>
-#include <stdlib.h>
-#include <dlfcn.h>
+using namespace nanos;
+using namespace nanos::ext;
 
-namespace nanos
+ClusterDevice nanos::ext::Cluster( "Cluster" );
+
+#if 0
+int GPUDD::_gpuCount = 0;
+
+GPUDD * GPUDD::copyTo ( void *toAddr )
 {
-
-// this is UNIX-like OS
-// TODO: ABS and virtualize
-
-   class OS
-   {
-      // All members are static so we don't need a constructor/destructor/...
-      
-         static long _argc; 
-         static char ** _argv; 
-      public:
-
-         static void init ();
-
-         static const char *getEnvironmentVariable( const std::string &variable );
-
-         static void * loadDL( const std::string &dir, const std::string &name );
-         static void * dlFindSymbol( void *dlHandler, const std::string &symbolName );
-         static void * dlFindSymbol( void *dlHandler, const char *symbolName );
-         // too-specific?
-         static char * dlError( void *dlHandler ) { return dlerror(); }
-
-         static const char * getArg (int i) { return _argv[i]; }
-         static long getArgc() { return _argc; }
-         static char **getArgv() { return _argv; }
-   };
-
-// inlined functions
-
-   inline const char * OS::getEnvironmentVariable ( const std::string &name )
-   {
-      return getenv( name.c_str() );
-   }
-
-};
-
-
+   GPUDD *dd = new ( toAddr ) GPUDD( *this );
+   return dd;
+}
 #endif
-

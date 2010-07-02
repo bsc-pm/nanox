@@ -17,6 +17,34 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = @ARCHITECTURES@ @OS@
+include $(top_srcdir)/src/common.am
 
-DIST_SUBDIRS = unix-os smp spu gpu fpga cluster
+noinst_LTLIBRARIES = libcluster.la
+lib_LTLIBRARIES = libnanox-pe-cluster.la
+
+EXTRA_DIST= \
+	$(END)
+
+
+libcluster_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags)
+#libcluster_la_LDFLAGS = 
+libcluster_la_SOURCES = \
+		clusterdevice.hpp \
+		clusterdevice.cpp \
+		clusterdd.hpp \
+		clusterdd.cpp \
+		clusterprocessor.hpp \
+		clusterprocessor.cpp \
+		clusterthread.hpp \
+		clusterthread.cpp \
+		clusterutils.hpp \
+		$(END)
+
+
+
+libnanox_pe_cluster_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags) -DGASNET_PAR -I@GASNET_INC@ -I@GASNET_INC@/mpi-conduit
+libnanox_pe_cluster_la_LDFLAGS = $(ld_plugin_flags) -L@GASNET_LIB@ -lgasnet-mpi-par -lammpi -L/gpfs/apps/GCC/4.4.0/lib/ -L/opt/osshpc/mpich-mx/32/lib/shared -L/opt/osshpc/mx/lib -lmpich -lmyriexpress -L/opt/ibmcmp/vacpp/10.1/lib -lxl -lpthread
+libnanox_pe_cluster_la_SOURCES = \
+		clusterplugin.cpp \
+		$(END)
+
