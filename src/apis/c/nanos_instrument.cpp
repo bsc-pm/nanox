@@ -81,7 +81,7 @@ nanos_err_t nanos_instrument_events ( unsigned int num_events, nanos_event_t eve
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      Instrumentor::Event *e = (Instrumentor::Event *) alloca ( sizeof(Instrumentor::Event) * num_events ); 
+      Instrumentation::Event *e = (Instrumentation::Event *) alloca ( sizeof(Instrumentation::Event) * num_events ); 
 
       for (unsigned int i = 0; i < num_events; i++ ) {
          switch ( events[i].type ) {
