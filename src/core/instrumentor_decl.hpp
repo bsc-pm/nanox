@@ -192,12 +192,10 @@ namespace nanos {
 
             /* 12 */ registerEventKey("user-code","User Code (wd)");
 
-            /* 13 */ registerEventKey("state","Thread State (background)");
-
-            /* 14 */ registerEventKey("create-wd-id","Create WD Id:");
-            /* 15 */ registerEventKey("create-wd-ptr","Create WD pointer:");
-            /* 16 */ registerEventKey("wd-num-deps","Create WD num. deps."); 
-            /* 17 */ registerEventKey("wd-deps-ptr","Create WD dependence pointer"); 
+            /* 13 */ registerEventKey("create-wd-id","Create WD Id:");
+            /* 14 */ registerEventKey("create-wd-ptr","Create WD pointer:");
+            /* 15 */ registerEventKey("wd-num-deps","Create WD num. deps."); 
+            /* 16 */ registerEventKey("wd-deps-ptr","Create WD dependence pointer"); 
 #endif
 
          }
