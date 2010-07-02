@@ -24,7 +24,7 @@ lib_LTLIBRARIES = \
 	libnanox-instrumentor-print_trace.la \
 	$(END)
 
-if INSTRUMENTOR_PARAVER
+if INSTRUMENTATION_EXTRAE
 mpitrace_cxxflags=-I@MPITRACE_INC@ -DMPITRACE_BIN='"@MPITRACE_BIN@"'
 mpitrace_ldflags=-L@MPITRACE_LIB@ -lnanostrace
 

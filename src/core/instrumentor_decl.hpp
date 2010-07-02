@@ -17,13 +17,13 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 // FIXME: (#64) This flag ENABLE_INSTRUMENTATION has to be managed through
-//compilation in order to generate an instrumentation version
+//configure in order to generate an instrumentation version
 //#define NANOS_INSTRUMENTATION_ENABLED
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
-#define NANOS_INSTRUMENTOR(f) f;
+#define NANOS_INSTRUMENT(f) f;
 #else
-#define NANOS_INSTRUMENTOR(f)
+#define NANOS_INSTRUMENT(f)
 #endif
 
 #ifndef __NANOS_INSTRUMENTOR_DECL_H
@@ -40,23 +40,23 @@
 
 namespace nanos {
 
-   class InstrumentorValueDescriptor
+   class InstrumentationValueDescriptor
    {
       private:
-         nanos_event_value_t  _id;          /**< InstrumentorValueDescriptor id */
+         nanos_event_value_t  _id;          /**< InstrumentationValueDescriptor id */
          std::string          _description; /**< InstrumenotrValueDescriptor description */
       public:
-         /*! \brief InstrumentorValueDescriptor constructor
+         /*! \brief InstrumentationValueDescriptor constructor
           */
-         InstrumentorValueDescriptor ( nanos_event_value_t id, const std::string &description ) : _id( id ), _description ( description ) {}
+         InstrumentationValueDescriptor ( nanos_event_value_t id, const std::string &description ) : _id( id ), _description ( description ) {}
 
-         /*! \brief InstrumentorValueDescriptor constructor
+         /*! \brief InstrumentationValueDescriptor constructor
           */
-         InstrumentorValueDescriptor ( nanos_event_value_t id, const char *description ) : _id( id ), _description ( description ) {}
+         InstrumentationValueDescriptor ( nanos_event_value_t id, const char *description ) : _id( id ), _description ( description ) {}
 
-         /*! \brief InstrumentorValueDescriptor destructor
+         /*! \brief InstrumentationValueDescriptor destructor
           */
-         ~InstrumentorValueDescriptor() {}
+         ~InstrumentationValueDescriptor() {}
 
          /*! \brief Gets value descriptor id
           */
@@ -68,32 +68,32 @@ namespace nanos {
 
    };
 
-   class InstrumentorKeyDescriptor
+   class InstrumentationKeyDescriptor
    {
       public:
-         typedef std::tr1::unordered_map<std::string, InstrumentorValueDescriptor*> ValueMap;
+         typedef std::tr1::unordered_map<std::string, InstrumentationValueDescriptor*> ValueMap;
          typedef ValueMap::iterator ValueMapIterator;
          typedef ValueMap::const_iterator ConstValueMapIterator;
       private:
-         nanos_event_key_t    _id;          /**< InstrumentorKeyDescriptor id */
+         nanos_event_key_t    _id;          /**< InstrumentationKeyDescriptor id */
          std::string          _description; /**< InstrumenotrKeyDescriptor description */
          Atomic<unsigned int> _totalValues; /**< Total number of values */
          Lock                 _lock;        /**< _valueMap exclusive lock */
          ValueMap             _valueMap;    /**< Registered Value elements */
       public:
-         /*! \brief InstrumentorKeyDescriptor constructor
+         /*! \brief InstrumentationKeyDescriptor constructor
           */
-         InstrumentorKeyDescriptor ( nanos_event_key_t id, const std::string &description ) : _id( id ), _description ( description ),
+         InstrumentationKeyDescriptor ( nanos_event_key_t id, const std::string &description ) : _id( id ), _description ( description ),
                                      _totalValues(1), _lock(), _valueMap() {}
 
-         /*! \brief InstrumentorKeyDescriptor constructor
+         /*! \brief InstrumentationKeyDescriptor constructor
           */
-         InstrumentorKeyDescriptor ( nanos_event_key_t id, const char *description ) : _id( id ), _description ( description ),
+         InstrumentationKeyDescriptor ( nanos_event_key_t id, const char *description ) : _id( id ), _description ( description ),
                                      _totalValues(1), _lock(), _valueMap() {}
 
-         /*! \brief InstrumentorKeyDescriptor destructor
+         /*! \brief InstrumentationKeyDescriptor destructor
           */
-         ~InstrumentorKeyDescriptor() {}
+         ~InstrumentationKeyDescriptor() {}
 
          /*! \brief Gets key descriptor id
           */
@@ -129,10 +129,10 @@ namespace nanos {
 
    };
 
-   class InstrumentorDictionary
+   class InstrumentationDictionary
    {
       public:
-         typedef std::tr1::unordered_map<std::string, InstrumentorKeyDescriptor*> KeyMap;
+         typedef std::tr1::unordered_map<std::string, InstrumentationKeyDescriptor*> KeyMap;
          typedef KeyMap::iterator KeyMapIterator;
          typedef KeyMap::const_iterator ConstKeyMapIterator;
       private:
@@ -141,9 +141,9 @@ namespace nanos {
          KeyMap               _keyMap;    /**< Registered Key elements */
          
       public:
-         /*! \brief InstrumentorDictionary constructor
+         /*! \brief InstrumentationDictionary constructor
           */
-         InstrumentorDictionary () : _totalKeys(1), _lock(), _keyMap()
+         InstrumentationDictionary () : _totalKeys(1), _lock(), _keyMap()
          {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
             /* ******************************************** */
@@ -192,17 +192,17 @@ namespace nanos {
 
             /* 12 */ registerEventKey("user-code","User Code (wd)");
 
-            /* 13 */ registerEventKey("state","Thread State (background)");
-
-            /* 14 */ registerEventKey("wd-create","Work Descriptor creation");
-
+            /* 13 */ registerEventKey("create-wd-id","Create WD Id:");
+            /* 14 */ registerEventKey("create-wd-ptr","Create WD pointer:");
+            /* 15 */ registerEventKey("wd-num-deps","Create WD num. deps."); 
+            /* 16 */ registerEventKey("wd-deps-ptr","Create WD dependence pointer"); 
 #endif
 
          }
 
-         /*! \brief InstrumentorDictionary destructor
+         /*! \brief InstrumentationDictionary destructor
           */
-         ~InstrumentorDictionary() {}
+         ~InstrumentationDictionary() {}
 
          /*! \brief Inserts (or gets) a key into (from) the keyMap
           */
@@ -247,10 +247,10 @@ namespace nanos {
 
    };
 
-   class Instrumentor 
+   class Instrumentation 
    {
       private:
-         InstrumentorDictionary      _instrumentorDictionary; /** Instrumentor Dictionary (allow register event keys and values) */
+         InstrumentationDictionary      _instrumentorDictionary; /** Instrumentor Dictionary (allow register event keys and values) */
       public:
          class Event {
             public:
@@ -404,16 +404,16 @@ namespace nanos {
       public:
          /*! \brief Instrumentor constructor
           */
-         Instrumentor() {}
+         Instrumentation() {}
 
          /*! \brief Instrumentor destructor
           */
-         virtual ~Instrumentor() {}
+         virtual ~Instrumentation() {}
 
-         /*! \brief Gets InstrumentorDictionary
+         /*! \brief Gets InstrumentationDictionary
           *
           */
-         InstrumentorDictionary * getInstrumentorDictionary ( void );
+         InstrumentationDictionary * getInstrumentorDictionary ( void );
 
          // low-level instrumentation interface (pure virtual functions)
 
@@ -540,24 +540,24 @@ namespace nanos {
                              unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
 
 
-         void throwPointEvent ( nanos_event_key_t key, nanos_event_value_t val );
-         void throwPointEventNkvs ( unsigned int nkvs, nanos_event_key_t *key, nanos_event_value_t *val );
+         void raisePointEvent ( nanos_event_key_t key, nanos_event_value_t val );
+         void raisePointEventNkvs ( unsigned int nkvs, nanos_event_key_t *key, nanos_event_value_t *val );
 
-         void throwOpenStateEvent ( nanos_event_state_value_t state );
-         void throwCloseStateEvent ( void );
+         void raiseOpenStateEvent ( nanos_event_state_value_t state );
+         void raiseCloseStateEvent ( void );
 
-         void throwOpenBurstEvent ( nanos_event_key_t key, nanos_event_value_t val );
-         void throwCloseBurstEvent ( nanos_event_key_t key );
+         void raiseOpenBurstEvent ( nanos_event_key_t key, nanos_event_value_t val );
+         void raiseCloseBurstEvent ( nanos_event_key_t key );
 
-         void throwOpenPtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val );
-         void throwOpenPtPEventNkvs ( nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,
+         void raiseOpenPtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val );
+         void raiseOpenPtPEventNkvs ( nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,
                                       nanos_event_key_t *key, nanos_event_value_t *val );
-         void throwClosePtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val ); 
-         void throwClosePtPEventNkvs ( nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,
+         void raiseClosePtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val ); 
+         void raiseClosePtPEventNkvs ( nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,
                                        nanos_event_key_t *key, nanos_event_value_t *val ); 
 
-         void throwOpenStateAndBurst ( nanos_event_state_value_t state, nanos_event_key_t key, nanos_event_value_t val );
-         void throwCloseStateAndBurst ( nanos_event_key_t key );
+         void raiseOpenStateAndBurst ( nanos_event_state_value_t state, nanos_event_key_t key, nanos_event_value_t val );
+         void raiseCloseStateAndBurst ( nanos_event_key_t key );
 
          void disableStateEvents ( void );
          void enableStateEvents ( void ); 

@@ -21,14 +21,14 @@ namespace nanos {
    const unsigned int _eventSubState   = 9000004;   /*<< event coding sub-state changes */
    const unsigned int _eventBase       = 9200000;   /*<< event base (used in key/value pairs) */
 
-class InstrumentorParaver: public Instrumentor 
+class InstrumentationExtrae: public Instrumentation 
 {
    public:
       // constructor
-      InstrumentorParaver ( ) : Instrumentor() {}
+      InstrumentationExtrae ( ) : Instrumentation() {}
 
       // destructor
-      ~InstrumentorParaver ( ) { }
+      ~InstrumentationExtrae ( ) { }
 
       void mergeParaverTraceFiles ()
       {
@@ -118,21 +118,21 @@ class InstrumentorParaver: public Instrumentor
             p_file << std::endl;
 
             /* Getting Instrumentor Dictionary */
-            InstrumentorDictionary::ConstKeyMapIterator itK;
-            InstrumentorKeyDescriptor::ConstValueMapIterator itV;
+            InstrumentationDictionary::ConstKeyMapIterator itK;
+            InstrumentationKeyDescriptor::ConstValueMapIterator itV;
 
-            InstrumentorDictionary *iD = sys.getInstrumentor()->getInstrumentorDictionary();
+            InstrumentationDictionary *iD = sys.getInstrumentor()->getInstrumentorDictionary();
 
             /* Generating key/value events */
             for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
-               InstrumentorKeyDescriptor *kD = itK->second;
+               InstrumentationKeyDescriptor *kD = itK->second;
  
                p_file << "EVENT_TYPE" << std::endl;
                p_file << "9    " << _eventBase+kD->getId() << kD->getDescription() << std::endl;
                p_file << "VALUES" << std::endl;
                
                for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
-                  InstrumentorValueDescriptor *vD = itV->second;
+                  InstrumentationValueDescriptor *vD = itV->second;
                   p_file << vD->getId() << "  " << vD->getDescription() << std::endl;
                }
                p_file << std::endl;
@@ -296,14 +296,14 @@ namespace ext {
 
 class InstrumentorParaverPlugin : public Plugin {
    public:
-      InstrumentorParaverPlugin () : Plugin("Instrumentor which generates a paraver trace.",1) {}
+      InstrumentorParaverPlugin () : Plugin("Instrumentor which generates a Paraver trace.",1) {}
       ~InstrumentorParaverPlugin () {}
 
       virtual void config( Config &config ) {}
 
       void init ()
       {
-         sys.setInstrumentor( new InstrumentorParaver() );
+         sys.setInstrumentor( new InstrumentationExtrae() );
       }
 };
 

@@ -26,12 +26,12 @@
 
 namespace nanos {
 
-   class InstrumentorContext {
-      friend class Instrumentor;
+   class InstrumentationContext {
+      friend class Instrumentation;
 
       private:
-         typedef Instrumentor::Event Event;
-         typedef Instrumentor::Burst Burst;
+         typedef Instrumentation::Event Event;
+         typedef Instrumentation::Burst Burst;
          typedef std::stack<nanos_event_state_value_t> StateStack;
          typedef std::list<Event> BurstList;
 
@@ -50,19 +50,19 @@ namespace nanos {
           */
          typedef BurstList::iterator         BurstIterator;
 
-         /*! \brief InstrumentorContext copy constructor
+         /*! \brief InstrumentationContext copy constructor
           */
-         explicit InstrumentorContext(const InstrumentorContext &ic) : _stateStack(), _stateEventEnabled(ic._stateEventEnabled), _burstList(), _burstBackup() {}
+         explicit InstrumentationContext(const InstrumentationContext &ic) : _stateStack(), _stateEventEnabled(ic._stateEventEnabled), _burstList(), _burstBackup() {}
 
-         /*! \brief InstrumentorContext constructor
+         /*! \brief InstrumentationContext constructor
           */
-         InstrumentorContext () :_stateStack(), _stateEventEnabled(true), _burstList(), _burstBackup() { }
+         InstrumentationContext () :_stateStack(), _stateEventEnabled(true), _burstList(), _burstBackup() { }
 
-         /*! \brief InstrumentorContext destructor
+         /*! \brief InstrumentationContext destructor
           */
-         ~InstrumentorContext() {}
+         ~InstrumentationContext() {}
 
-       private: /* Only friend classes (Instrumentor) can use InstrumentorContext */
+       private: /* Only friend classes (Instrumentor) can use InstrumentationContext */
 
          /*! \brief Adds a state value into the state stack 
           */
@@ -116,17 +116,17 @@ namespace nanos {
           */
          void disableStateEvents ( void ) ;
 
-         /*! \brief get state events status
+         /*! \brief Get state events status
           */
          bool isStateEventEnabled ( void ) ;
 
-         /*! \brief Save valid state
+         /*! \brief Get valid state
           */
-         nanos_event_state_value_t validState ( void ) ;
+         nanos_event_state_value_t getValidState ( void ) ;
 
-         /*! \brief Save valid state
+         /*! \brief Save current state as valid state
           */
-         void saveValidState ( void ) ;
+         void setValidState ( nanos_event_state_value_t state ) ;
    };
 }
 #endif

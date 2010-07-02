@@ -160,7 +160,7 @@ namespace nanos
 
          LazyInit<DependenciesDomain>   _depsDomain;   /**< Dependences domain. Each WD has a domain where DependableObjects can be submitted */
 
-         InstrumentorContext  _instrumentorContext; /**< Instrumentor Context (may be empty if no instrumentor enabled) */
+         InstrumentationContext  _instrumentorContext; /**< Instrumentor Context (may be empty if no instrumentor enabled) */
 
          /*! \brief WorkDescriptor assignment operator privatized
           */
@@ -366,7 +366,7 @@ namespace nanos
 
          /*! \brief Returns embeded instrumentor context.
           */
-         InstrumentorContext & getInstrumentorContext( void );
+         InstrumentationContext & getInstrumentorContext( void );
 
          /*! \breif Prepare private copies to have relative addresses
           */

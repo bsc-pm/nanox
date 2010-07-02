@@ -66,7 +66,7 @@ void * nanos_smp_factory( void *prealloc, void *args )
 
 nanos_wd_t nanos_current_wd()
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","current_wd",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","current_wd",RUNTIME) );
 
    nanos_wd_t cwd = myThread->getCurrentWD();
 
@@ -75,7 +75,7 @@ nanos_wd_t nanos_current_wd()
 
 int nanos_get_wd_id ( nanos_wd_t wd )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","get_wd_id",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_wd_id",RUNTIME) );
 
    WD *lwd = ( WD * )wd;
    int id = lwd->getId();
@@ -90,7 +90,7 @@ int nanos_get_wd_id ( nanos_wd_t wd )
 nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t data_size,
                                void ** data, nanos_wg_t uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","*_create_wd",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",RUNTIME) );
 
    try 
    {
@@ -115,7 +115,7 @@ nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_
                                void ** outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, size_t slicer_data_size,
                                nanos_slicer_data_t * slicer_data, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","*_create_wd",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",RUNTIME) );
 
    try 
    {
@@ -139,7 +139,7 @@ nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_
 
 nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *deps, nanos_team_t team )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","submit",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","submit",RUNTIME) );
 
    try {
       ensure( uwd,"NULL WD received" );
@@ -149,6 +149,30 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *
       if ( team != NULL ) {
          warning( "Submitting to another team not implemented yet" );
       }
+
+      NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentor()->getInstrumentorDictionary(); )
+
+      NANOS_INSTRUMENT ( static nanos_event_key_t create_wd_id = ID->getEventKey("create-wd-id"); )
+      NANOS_INSTRUMENT ( static nanos_event_key_t create_wd_ptr = ID->getEventKey("create-wd-ptr"); )
+      NANOS_INSTRUMENT ( static nanos_event_key_t wd_num_deps = ID->getEventKey("wd-num-deps"); )
+      NANOS_INSTRUMENT ( static nanos_event_key_t wd_deps_ptr = ID->getEventKey("wd-deps-ptr"); )
+
+      NANOS_INSTRUMENT ( nanos_event_key_t Keys[4]; )
+      NANOS_INSTRUMENT ( nanos_event_value_t Values[4]; )
+
+      NANOS_INSTRUMENT ( Keys[0] = create_wd_id; )
+      NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) wd->getId(); )
+
+      NANOS_INSTRUMENT ( Keys[1] = create_wd_ptr; )
+      NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) wd; )
+
+      NANOS_INSTRUMENT ( Keys[2] = wd_num_deps; )
+      NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) num_deps; )
+
+      NANOS_INSTRUMENT ( Keys[3] = wd_deps_ptr; );
+      NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) deps; )
+
+      NANOS_INSTRUMENT( sys.getInstrumentor()->raisePointEventNkvs(4, Keys, Values); )
 
       if ( deps != NULL ) {
          sys.submitWithDependencies( *wd, num_deps, deps );
@@ -169,7 +193,7 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
                                       size_t num_deps, nanos_dependence_t *deps, nanos_wd_props_t *props,
                                       size_t num_copies, nanos_copy_data_t *copies )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","create_wd_and_run",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","create_wd_and_run",RUNTIME) );
 
    try {
       if ( num_devices > 1 ) warning( "Multiple devices not yet supported. Using first one" );
@@ -179,6 +203,30 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
       char chunk[devices[0].dd_size];
 
       WD wd( ( DD* ) devices[0].factory( chunk, devices[0].arg ), data_size, data, num_copies, copies );
+
+      NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentor()->getInstrumentorDictionary(); )
+
+      NANOS_INSTRUMENT ( static nanos_event_key_t create_wd_id = ID->getEventKey("create-wd-id"); )
+      NANOS_INSTRUMENT ( static nanos_event_key_t create_wd_ptr = ID->getEventKey("create-wd-ptr"); )
+      NANOS_INSTRUMENT ( static nanos_event_key_t wd_num_deps = ID->getEventKey("wd-num-deps"); )
+      NANOS_INSTRUMENT ( static nanos_event_key_t wd_deps_ptr = ID->getEventKey("wd-deps-ptr"); )
+
+      NANOS_INSTRUMENT ( nanos_event_key_t Keys[4]; 
+      NANOS_INSTRUMENT ( nanos_event_value_t Values[4]); )
+
+      NANOS_INSTRUMENT ( Keys[0] = create_wd_id; )
+      NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) wd.getId(); )
+
+      NANOS_INSTRUMENT ( Keys[1] = create_wd_ptr; )
+      NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) &wd; )
+
+      NANOS_INSTRUMENT ( Keys[2] = wd_num_deps; )
+      NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) num_deps; )
+
+      NANOS_INSTRUMENT ( Keys[3] = wd_deps_ptr; );
+      NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) deps; )
+
+      NANOS_INSTRUMENT( sys.getInstrumentor()->raisePointEventNkvs(4, Keys, Values); )
 
       if ( deps != NULL ) {
          sys.waitOn( num_deps, deps );
@@ -195,7 +243,7 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
 
 nanos_err_t nanos_set_internal_wd_data ( nanos_wd_t wd, void *data )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","set_internal_wd_data",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","set_internal_wd_data",RUNTIME) );
 
    try {
       WD *lwd = ( WD * ) wd;
@@ -210,7 +258,7 @@ nanos_err_t nanos_set_internal_wd_data ( nanos_wd_t wd, void *data )
 
 nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","get_internal_wd_data",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_internal_wd_data",RUNTIME) );
 
    try {
       WD *lwd = ( WD * ) wd;
@@ -228,7 +276,7 @@ nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data )
 
 nanos_err_t nanos_yield ( void )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","yield",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","yield",RUNTIME) );
 
    try {
       Scheduler::yield();
@@ -243,7 +291,7 @@ nanos_err_t nanos_yield ( void )
 
 nanos_err_t nanos_slicer_get_specific_data ( nanos_slicer_t slicer, void ** data )
 {                                                                                                                                                        
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","get_specific_data",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_specific_data",RUNTIME) );
 
    try {
       *data = ((Slicer *)slicer)->getSpecificData();

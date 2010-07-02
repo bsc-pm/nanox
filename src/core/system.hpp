@@ -98,9 +98,9 @@ inline Slicer * System::getSlicer( const std::string &label ) const
    return (*it).second;
 }
 
-inline Instrumentor * System::getInstrumentor ( void ) const { return _instrumentor; }
+inline Instrumentation * System::getInstrumentor ( void ) const { return _instrumentor; }
 
-inline void System::setInstrumentor ( Instrumentor *instr ) { _instrumentor = instr; }
+inline void System::setInstrumentor ( Instrumentation *instr ) { _instrumentor = instr; }
 
 inline void System::registerSlicer ( const std::string &label, Slicer *slicer) { _slicers[label] = slicer; }
 

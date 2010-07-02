@@ -140,8 +140,8 @@ typedef enum { NOT_TRACED, STARTUP, SHUTDOWN, ERROR, IDLE, RUNTIME, RUNNING, SYN
 typedef enum { NANOS_WD_DOMAIN } nanos_event_domain_t; /**< Specifies a domain */
 typedef unsigned int  nanos_event_id_t;                /**< Used as unique id within a given domain */
 
-typedef unsigned int nanos_event_key_t; /**< Key (on key-value pair) */
-typedef int  nanos_event_value_t;       /**< Value (on key-value pair) */
+typedef unsigned int         nanos_event_key_t;   /**< Key (on key-value pair) */
+typedef unsigned long long   nanos_event_value_t; /**< Value (on key-value pair) */
   
 typedef struct {
    nanos_event_key_t    key;

@@ -66,11 +66,11 @@ void SMPDD::workWrapper( void *data )
 {
    SMPDD &dd = ( SMPDD & ) myThread->getCurrentWD()->getActiveDevice();
 
-   NANOS_INSTRUMENTOR ( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("user-code") );
-   NANOS_INSTRUMENTOR ( nanos_event_value_t val = myThread->getCurrentWD()->getId() );
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->throwOpenStateAndBurst ( RUNNING, key, val ) );
+   NANOS_INSTRUMENT ( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("user-code") );
+   NANOS_INSTRUMENT ( nanos_event_value_t val = myThread->getCurrentWD()->getId() );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseOpenStateAndBurst ( RUNNING, key, val ) );
    dd.getWorkFct()( data );
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->throwCloseStateAndBurst ( key ) );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseCloseStateAndBurst ( key ) );
 }
 
 void SMPDD::lazyInit (WD &wd, bool isUserLevelThread, WD *previous)

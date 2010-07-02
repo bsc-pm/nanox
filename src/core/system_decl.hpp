@@ -88,7 +88,7 @@ namespace nanos
 
          Slicers              _slicers; /**< set of global slicers */
 
-         Instrumentor           *_instrumentor; /**< Instrumentor object used in current execution */
+         Instrumentation           *_instrumentor; /**< Instrumentor object used in current execution */
          SchedulePolicy         *_defSchedulePolicy;
 
          // Mempory access directory
@@ -200,9 +200,9 @@ namespace nanos
 
          Slicer * getSlicer( const std::string &label ) const;
 
-         Instrumentor * getInstrumentor ( void ) const;
+         Instrumentation * getInstrumentor ( void ) const;
 
-         void setInstrumentor ( Instrumentor *instr );
+         void setInstrumentor ( Instrumentation *instr );
 
          void registerSlicer ( const std::string &label, Slicer *slicer);
 

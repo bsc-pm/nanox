@@ -189,7 +189,7 @@ void System::start ()
    loadModules();
 
    // Instrumentation startup
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->initialize() );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->initialize() );
 
    verbose0 ( "Starting threads" );
 
@@ -202,7 +202,7 @@ void System::start ()
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->throwOpenStateEvent (STARTUP) );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseOpenStateEvent (STARTUP) );
 
    //start as much threads per pe as requested by the user
    for ( int ths = 1; ths < getThsPerPE(); ths++ ) {
@@ -252,8 +252,8 @@ void System::start ()
          fatal("Unknown inital mode!");
          break;
    }
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->throwCloseStateEvent() );
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->throwOpenStateEvent (RUNNING) );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseCloseStateEvent() );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseOpenStateEvent (RUNNING) );
 }
 
 System::~System ()
@@ -264,8 +264,8 @@ System::~System ()
 void System::finish ()
 {
    /* Instrumentor: First removing RUNNING state from top of the state statck */
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->throwCloseStateEvent() );
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->throwOpenStateEvent(SHUTDOWN) );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseCloseStateEvent() );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseOpenStateEvent(SHUTDOWN) );
 
    verbose ( "NANOS++ shutting down.... init" );
    verbose ( "Wait for main workgroup to complete" );
@@ -288,8 +288,8 @@ void System::finish ()
    verbose ( "Joining threads... phase 2" );
 
    // shutdown instrumentation
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->throwCloseStateEvent() );
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->finalize() );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseCloseStateEvent() );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->finalize() );
 
    // join
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {

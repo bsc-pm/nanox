@@ -4,15 +4,15 @@
 
 namespace nanos {
 
-class InstrumentorEmptyTrace: public Instrumentor 
+class InstrumentationEmptyTrace: public Instrumentation 
 {
    private:
    public:
       // constructor
-      InstrumentorEmptyTrace ( ) { }
+      InstrumentationEmptyTrace ( ) { }
 
       // destructor
-      ~InstrumentorEmptyTrace ( ) { }
+      ~InstrumentationEmptyTrace ( ) { }
 
       // low-level instrumentation interface (mandatory functions)
 
@@ -33,7 +33,7 @@ class InstrumentorEmptyTracePlugin : public Plugin {
 
       void init ()
       {
-         sys.setInstrumentor( new InstrumentorEmptyTrace() );	
+         sys.setInstrumentor( new InstrumentationEmptyTrace() );	
       }
 };
 

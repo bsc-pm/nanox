@@ -27,23 +27,23 @@
 
 using namespace nanos;
 
-inline void InstrumentorContext::pushState ( nanos_event_state_value_t state )
+inline void InstrumentationContext::pushState ( nanos_event_state_value_t state )
 {
    _stateStack.push( state );
 }
 
-inline void InstrumentorContext::popState ( void )
+inline void InstrumentationContext::popState ( void )
 {
    if ( !(_stateStack.empty()) ) _stateStack.pop();
 }
 
-inline nanos_event_state_value_t InstrumentorContext::topState ( void )
+inline nanos_event_state_value_t InstrumentationContext::topState ( void )
 {
    if ( !(_stateStack.empty()) ) return _stateStack.top();
    else return ERROR;
 }
 
-inline void InstrumentorContext::insertBurst ( const Event &e )
+inline void InstrumentationContext::insertBurst ( const Event &e )
 {
    bool found = false;
    BurstList::iterator it;
@@ -64,7 +64,7 @@ inline void InstrumentorContext::insertBurst ( const Event &e )
 
 }
 
-inline void InstrumentorContext::removeBurst ( InstrumentorContext::BurstIterator it )
+inline void InstrumentationContext::removeBurst ( InstrumentationContext::BurstIterator it )
 {
    bool found = false;
    nanos_event_key_t key = (*it).getKVs()[0].first;
@@ -82,7 +82,7 @@ inline void InstrumentorContext::removeBurst ( InstrumentorContext::BurstIterato
    }
 }
 
-inline bool InstrumentorContext::findBurstByKey ( nanos_event_key_t key, InstrumentorContext::BurstIterator &ret )
+inline bool InstrumentationContext::findBurstByKey ( nanos_event_key_t key, InstrumentationContext::BurstIterator &ret )
 {
    bool found = false;
    BurstList::iterator it;
@@ -96,44 +96,44 @@ inline bool InstrumentorContext::findBurstByKey ( nanos_event_key_t key, Instrum
 
 }
 
-inline unsigned int InstrumentorContext::getNumBursts() const
+inline unsigned int InstrumentationContext::getNumBursts() const
 {
    return _burstList.size();
 }
 
-inline InstrumentorContext::ConstBurstIterator InstrumentorContext::beginBurst() const
+inline InstrumentationContext::ConstBurstIterator InstrumentationContext::beginBurst() const
 {
    return _burstList.begin();
 }
 
-inline InstrumentorContext::ConstBurstIterator InstrumentorContext::endBurst() const
+inline InstrumentationContext::ConstBurstIterator InstrumentationContext::endBurst() const
 {
    return _burstList.end();
 }
 
-inline void InstrumentorContext::disableStateEvents ( void )
+inline void InstrumentationContext::disableStateEvents ( void )
 {
    _stateEventEnabled = false;
 }
 
-inline void InstrumentorContext::enableStateEvents ( void )
+inline void InstrumentationContext::enableStateEvents ( void )
 {
    _stateEventEnabled = true;
 }
 
-inline bool InstrumentorContext::isStateEventEnabled ( void )
+inline bool InstrumentationContext::isStateEventEnabled ( void )
 {
    return _stateEventEnabled;
 }
 
-inline nanos_event_state_value_t InstrumentorContext::validState ( void )
+inline nanos_event_state_value_t InstrumentationContext::getValidState ( void )
 {
    return _validState;
 }
 
-inline void InstrumentorContext::saveValidState ( void )
+inline void InstrumentationContext::setValidState ( nanos_event_state_value_t state )
 {
-   _validState = _stateStack.top();
+   _validState = state;
 }
 
 #endif

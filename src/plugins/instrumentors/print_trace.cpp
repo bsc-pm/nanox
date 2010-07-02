@@ -4,16 +4,16 @@
 
 namespace nanos {
 
-class InstrumentorPrintTrace: public Instrumentor 
+class InstrumentationPrintTrace: public Instrumentation 
 {
    private:
 
    public:
       // constructor
-      InstrumentorPrintTrace ( ) {}
+      InstrumentationPrintTrace ( ) {}
 
       // destructor
-      ~InstrumentorPrintTrace ( ) {}
+      ~InstrumentationPrintTrace ( ) {}
 
       // low-level instrumentation interface (mandatory functions)
       virtual void initialize( void ) {}
@@ -34,7 +34,7 @@ class InstrumentorPrintTracePlugin : public Plugin {
 
       void init ()
       {
-         sys.setInstrumentor( new InstrumentorPrintTrace() );	
+         sys.setInstrumentor( new InstrumentationPrintTrace() );	
       }
 };
 
