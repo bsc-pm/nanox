@@ -108,6 +108,7 @@ typedef struct {
    int lower;
    int upper;
    int step;
+   bool last;
 } nanos_loop_info_t;
 
 typedef struct {
