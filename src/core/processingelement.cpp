@@ -61,6 +61,8 @@ void ProcessingElement::stopAll ()
 {
    ThreadList::iterator it;
    BaseThread *thread;
+   
+   fprintf(stderr, "stopping all threads\n");
 
    for ( it = _threads.begin(); it != _threads.end(); it++ ) {
       thread = *it;

@@ -19,7 +19,9 @@
 
 #include "plugin.hpp"
 #include "clusterdd.hpp"
-#include "clusterprocessor.hpp"
+#include "clusternode.hpp"
+#include "clusternodeinfo.hpp"
+#include "clustermsg.hpp"
 #include "system.hpp"
 #include "os.hpp"
 
@@ -28,22 +30,72 @@
 namespace nanos {
 namespace ext {
 
-PE * clusterProcessorFactory ( int id )
+volatile bool finish_gasnet = false;
+
+class GASNetMessaging
 {
-   return new ClusterProcessor( id );
+    public:
+        static void sendMessage(ClusterRemoteNode *dest)
+        {
+            if (gasnet_AMRequestShort0(dest->getClusterID(), 203) != GASNET_OK)
+            {
+                fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest->getClusterID());
+            }
+            fprintf(stderr, "Message sent to node %d\n", dest->getClusterID());
+        }
+};
+
+void am_handler_exit(gasnet_token_t token)
+{
+    gasnet_node_t src_node;
+    if (gasnet_AMGetMsgSource(token, &src_node) != GASNET_OK)
+    {
+        fprintf(stderr, "gasnet: Error obtaining node information.\n");
+    }
+    fprintf(stderr, "EXIT msg from node %d.\n", src_node);
+    //gasnet_AMReplyShort0(token, 204);
+    finish_gasnet = true;
 }
 
-void am_handler(void)
+void am_handler_exit_reply(gasnet_token_t token)
 {
+    gasnet_node_t src_node;
+    if (gasnet_AMGetMsgSource(token, &src_node) != GASNET_OK)
+    {
+        fprintf(stderr, "gasnet: Error obtaining node information.\n");
+    }
+    fprintf(stderr, "EXIT message to node %d completed.\n", src_node);
+}
+
+void GASNet_finalize()
+{
+    gasnet_barrier_notify(0,GASNET_BARRIERFLAG_ANONYMOUS);
+    gasnet_barrier_wait(0,GASNET_BARRIERFLAG_ANONYMOUS);
+    gasnet_AMPoll();
+    fprintf(stderr, "Node %d closing the network...\n", ClusterNodeInfo::getNodeNum());
+    gasnet_exit(0);
+}
+
+void GASNet_idleLoop()
+{
+    while (true)
+    {
+        if (finish_gasnet == false)
+        {
+            gasnet_AMPoll();
+        }
+        else
+        {
+            GASNet_finalize();
+            exit(0);
+        }
+    }
 }
 
 class ClusterPlugin : public Plugin
 {
-   private:
-      int _numNodes; 
-
    public:
-      ClusterPlugin() : Plugin( "Cluster PE Plugin", 1 ), _numNodes( -1 ) {}
+      ClusterPlugin() : Plugin( "Cluster PE Plugin", 1 ) {}
 
       virtual void config( Config& config )
       {
@@ -56,48 +108,37 @@ class ClusterPlugin : public Plugin
 
       virtual void init()
       {
-
           int my_argc = OS::getArgc();
           char **my_argv = OS::getArgv();
 
-          gasnet_handlerentry_t htable[] = {{ 203, am_handler}};
+          gasnet_handlerentry_t htable[] = { { 203, (void (*)()) am_handler_exit }, { 204, (void (*)()) am_handler_exit_reply } };
 
           gasnet_init(&my_argc, &my_argv);
-          gasnet_attach(htable, 1, 0, 0);
-          gasnet_barrier_notify(0,GASNET_BARRIERFLAG_ANONYMOUS);            
-          gasnet_barrier_wait(0,GASNET_BARRIERFLAG_ANONYMOUS); 		
-#if 0
-         // Find out how many CUDA-capable GPUs the system has
-         int totalCount, device, deviceCount = 0;
-         struct cudaDeviceProp gpuProperties;
+          gasnet_attach(htable, sizeof(htable)/sizeof(gasnet_handlerentry_t), 0, 0);
 
-         cudaError_t cudaErr = cudaGetDeviceCount( &totalCount );
+          ClusterMsg::setSendFinishMessageFunc(GASNetMessaging::sendMessage);
 
-         if ( cudaErr != cudaSuccess ) {
-            totalCount = 0;
-         }
+          ClusterNodeInfo::setIdleLoopFunc(GASNet_idleLoop);
+          ClusterNodeInfo::setNetworkFinalizeFunc(GASNet_finalize);
 
-         // Machines with no GPUs can still report one emulation device
-         for ( devices = 0; devices < totalCount; devices++ ) {
-            cudaGetDeviceProperties( &gpuProperties, device );
-            if ( gpuProperties.major != 9999 ) {
-               // 9999 means emulation only
-               deviceCount++;
-            }
-         }
+          ClusterNodeInfo::setNumNodes(gasnet_nodes());
+          ClusterNodeInfo::setNodeNum(gasnet_mynode());
+          fprintf(stderr, "Im node %d, total nodes %d\n", ClusterNodeInfo::getNodeNum(), ClusterNodeInfo::getNumNodes());
+          //_nodeInfo = new ClusterNodeInfo(gasnet_nodes(), gasnet_mynode());
 
-         //displayAllGPUsProperties();
+          //ClusterDD::_numNodes = gasnet_nodes();
+          //ClusterDD::_nodeNum = gasnet_mynode();
 
-         // Check if the user has set a different number of GPUs to use
-         if ( _numGPUs >= 0 ) {
-            deviceCount = std::min( _numGPUs, deviceCount );
-         }
+          //thisNode = new ClusterLocalNode(gasnet_mynode());
+          
+          gasnet_barrier_notify(0,GASNET_BARRIERFLAG_ANONYMOUS);
+          gasnet_barrier_wait(0,GASNET_BARRIERFLAG_ANONYMOUS);
 
-         GPUDD::_gpuCount = deviceCount;
-#endif
-
+          //if (gasnet_mynode() == 0)
+          //    GASNetMessaging::sendMessage(1);
       }
 };
+
 }
 }
 

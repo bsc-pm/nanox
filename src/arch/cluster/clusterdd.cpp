@@ -25,12 +25,8 @@ using namespace nanos::ext;
 
 ClusterDevice nanos::ext::Cluster( "Cluster" );
 
-#if 0
-int GPUDD::_gpuCount = 0;
-
-GPUDD * GPUDD::copyTo ( void *toAddr )
+ClusterDD * ClusterDD::copyTo ( void *toAddr )
 {
-   GPUDD *dd = new ( toAddr ) GPUDD( *this );
+   ClusterDD *dd = new ( toAddr ) ClusterDD( *this );
    return dd;
 }
-#endif

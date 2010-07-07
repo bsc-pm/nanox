@@ -17,61 +17,62 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_CLUSTER_WD
-#define _NANOS_CLUSTER_WD
+#ifndef _NANOS_CLUSTER_LOCAL_NODE
+#define _NANOS_CLUSTER_LOCAL_NODE
 
+#include "clusternode.hpp"
 #include "config.hpp"
 #include "clusterdevice.hpp"
-#include "workdescriptor.hpp"
+#include "clusterthread.hpp"
 
 namespace nanos {
 namespace ext
 {
 
-   extern ClusterDevice Cluster;
-
-   class ClusterPlugin;
-   class ClusterDD : public DD
+   class ClusterLocalNode : public ClusterNode
    {
-      friend class ClusterPlugin;
-      public:
-         typedef void ( *work_fct ) ( void *self );
+
 
       private:
-         work_fct       _work;
+         // disable copy constructor and assignment operator
+         ClusterLocalNode( const ClusterLocalNode &pe );
+         const ClusterLocalNode & operator= ( const ClusterLocalNode &pe );
+
+         //Cache<ClusterDevice> _cache;
 
       public:
          // constructors
-         ClusterDD( work_fct w ) : DD( &Cluster ), _work( w ) {}
+         ClusterLocalNode( int id ) : ClusterNode( id ) { }
 
-         ClusterDD() : DD( &Cluster ), _work( 0 ) {}
+         virtual ~ClusterLocalNode() {}
 
-         // copy constructors
-         ClusterDD( const ClusterDD &dd ) : DD( dd ), _work( dd._work ) {}
+         void stopAll();
+         //{
+         //    fprintf(stderr, "stoping local threads.\n");
+         //}
 
-         // assignment operator
-         const ClusterDD & operator= ( const ClusterDD &wd );
+         //virtual WD & getWorkerWD () const;
+         //virtual WD & getMasterWD () const;
+         //virtual BaseThread & createThread ( WorkDescriptor &wd );
 
-         // destructor
-         virtual ~ClusterDD() { }
+         //// capability query functions
+         //virtual bool supportsUserLevelThreads () const { return false; }
 
-         work_fct getWorkFct() const { return _work; }
+         ///* Memory space support */
+         //virtual void registerDataAccessDependent( uint64_t tag, size_t size );
+         //virtual void copyDataDependent( uint64_t tag, size_t size );
+         //virtual void unregisterDataAccessDependent( uint64_t tag );
+         //virtual void copyBackDependent( uint64_t tag, size_t size );
+         //virtual void* getAddressDependent( uint64_t tag );
+         //virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
 
-         virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous) { }
-         virtual size_t size ( void ) { return sizeof(ClusterDD); }
-         virtual ClusterDD *copyTo ( void *toAddr );
+         //void registerCacheAccessDependent(uint64_t a, size_t aa, bool aaa, bool aaaa);
+         //void unregisterCacheAccessDependent(uint64_t a, size_t aa);
+         //void registerPrivateAccessDependent(uint64_t a, size_t aa, bool aaa, bool aaaa);
+         //void unregisterPrivateAccessDependent(uint64_t a, size_t aa);
+
    };
 
-   inline const ClusterDD & ClusterDD::operator= ( const ClusterDD &dd )
-   {
-      // self-assignment: ok
-      if ( &dd == this ) return *this;
-
-      DD::operator= ( dd );
-      _work = dd._work;
-
-      return *this;
-   }
 }
 }
 
