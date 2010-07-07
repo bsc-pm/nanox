@@ -115,5 +115,7 @@ inline SchedulerConf  & System::getSchedulerConf ()  { return _schedConf; }
 inline const std::string & System::getDefaultArch() const { return _defArch; }
 inline void System::setDefaultArch( const std::string &arch ) { _defArch = arch; }
 
+inline bool System::isMaster( void ) { return _isMaster; }
+inline void System::setMaster( bool _isMasterNode ) { _isMaster = _isMasterNode; }
 #endif
 

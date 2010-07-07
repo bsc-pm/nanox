@@ -67,6 +67,9 @@ namespace nanos
          bool                 _untieMaster;
          bool                 _delayedStart;
 
+         // cluster arch
+         bool                 _isMaster;
+
          //cutoff policy and related variables
          ThrottlePolicy *     _throttlePolicy;
          SchedulerStats       _schedStats;
@@ -214,6 +217,9 @@ namespace nanos
 
          SchedulerStats & getSchedulerStats ();
          SchedulerConf  & getSchedulerConf();
+
+         bool isMaster( void );
+         void setMaster( bool );
    };
 
    extern System sys;

@@ -33,11 +33,19 @@ libcluster_la_SOURCES = \
 		clusterdevice.cpp \
 		clusterdd.hpp \
 		clusterdd.cpp \
-		clusterprocessor.hpp \
-		clusterprocessor.cpp \
+		clusternode.hpp \
+		clusternode.cpp \
+		clusterlocalnode.hpp \
+		clusterlocalnode.cpp \
+		clusterremotenode.hpp \
+		clusterremotenode.cpp \
 		clusterthread.hpp \
 		clusterthread.cpp \
 		clusterutils.hpp \
+		clusternodeinfo.hpp \
+		clusternodeinfo.cpp \
+		clustermsg.hpp \
+		clustermsg.cpp \
 		$(END)
 
 
