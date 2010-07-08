@@ -116,7 +116,7 @@ inline void WorkDescriptor::workFinished(WorkDescriptor &wd)
    _depsDomain->finished( *(wd._doSubmit) );
 }
 
-inline InstrumentationContext & WorkDescriptor::getInstrumentorContext( void ) { return _instrumentorContext; }
+inline InstrumentationContext & WorkDescriptor::getInstrumentorContext( void ) { return *_instrumentorContext; }
 
 #endif
 

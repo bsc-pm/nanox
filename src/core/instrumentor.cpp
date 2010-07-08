@@ -74,6 +74,11 @@ void Instrumentation::closeBurstEvent ( Event *e, nanos_event_key_t key )
       ic.removeBurst( it ); 
    }
    else fatal("Burst type doesn't exists");
+
+
+   if ( ( !sys.getInstrumentor()->useStackedBursts()) && (ic.findBurstByKey( key, it )) ) {
+      new (e) Event(*it);
+   }
 }
 
 void Instrumentation::createPointEvent ( Event *e, unsigned int nkvs, nanos_event_key_t *keys,
@@ -319,9 +324,11 @@ void Instrumentation::wdEnterCPU( WorkDescriptor* newWD )
    e[i++] = State ( STATE, state );
 
    /* Regenerating bursts for new WD */
-   for ( InstrumentationContext::ConstBurstIterator it = newInstrContext.beginBurst() ; it != newInstrContext.endBurst(); it++,i++ ) {
+   i += (newBursts-1);
+   for ( InstrumentationContext::ConstBurstIterator it = newInstrContext.beginBurst() ; it != newInstrContext.endBurst(); it++,i-- ) {
       e[i] = *it;
    }
+   i += (newBursts);
 
    /* Spawning 'numEvents' events: specific instrumentor call */
    addEventList ( numEvents, e );
@@ -392,15 +399,17 @@ void Instrumentation::wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD )
    e[i++] = State ( STATE, state );
 
    /* Regenerating reverse bursts for old WD */
-   for ( InstrumentationContext::ConstBurstIterator it = oldInstrContext.beginBurst() ; it != oldInstrContext.endBurst(); it++,i++ ) {
+   for ( InstrumentationContext::ConstBurstIterator it = oldInstrContext.beginBurst() ; it != oldInstrContext.endBurst(); it++,i++) {
       e[i] = *it;
       e[i].reverseType();
    }
 
    /* Regenerating bursts for new WD */
-   for ( InstrumentationContext::ConstBurstIterator it = newInstrContext.beginBurst() ; it != newInstrContext.endBurst(); it++,i++ ) {
+   i += (newBursts-1);
+   for ( InstrumentationContext::ConstBurstIterator it = newInstrContext.beginBurst() ; it != newInstrContext.endBurst(); it++,i--) {
       e[i] = *it;
    }
+   i += newBursts;
 
    /* Spawning 'numEvents' events: specific instrumentor call */
    addEventList ( numEvents, e );

@@ -16,6 +16,8 @@ class InstrumentationPrintTrace: public Instrumentation
       ~InstrumentationPrintTrace ( ) {}
 
       // low-level instrumentation interface (mandatory functions)
+      virtual bool useStackedBursts () { return false; }
+      virtual bool useStackedState () { return false; }
       virtual void initialize( void ) {}
       virtual void finalize( void ) {}
       virtual void addEventList ( unsigned int count, Event *events ) {}

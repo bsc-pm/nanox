@@ -443,6 +443,16 @@ namespace nanos {
           */
          virtual void addEventList ( unsigned int count, Event *events ) = 0;
 
+         /*! \brief Is the instrumentor managing stacked bursts or must the
+          *         instrumentor context implements stack behaviour
+          */
+         virtual bool useStackedBursts ( void ) = 0;
+
+         /*! \brief Is the instrumentor managing stacked state or must the
+          *         instrumentor context implements stack behaviour
+          */
+         virtual bool useStackedState ( void ) = 0;
+
          // CORE: high-level instrumentation interface (virtual functions)
 
          /*! \brief Used when creating a work descriptor (initializes instrumentor context associated to a WD)

@@ -27,6 +27,8 @@
 
 using namespace nanos;
 
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+
 inline void InstrumentationContext::pushState ( nanos_event_state_value_t state )
 {
    _stateStack.push( state );
@@ -43,45 +45,6 @@ inline nanos_event_state_value_t InstrumentationContext::topState ( void )
    else return ERROR;
 }
 
-inline void InstrumentationContext::insertBurst ( const Event &e )
-{
-   bool found = false;
-   BurstList::iterator it;
-   nanos_event_key_t key = e.getKVs()[0].first;
-
-   /* if found an event with the same key in the main list, send it to the backup list */
-   for ( it = _burstList.begin() ; !found && (it != _burstList.end()) ; it++ ) {
-      Event::ConstKVList kvlist = (*it).getKVs();
-      if ( kvlist[0].first == key  )
-      {
-         _burstBackup.splice ( _burstBackup.begin(), _burstList, it );
-         found = true;
-      }
-   }
-
-   /* insert the event into the list */
-   _burstList.push_front ( e );
-
-}
-
-inline void InstrumentationContext::removeBurst ( InstrumentationContext::BurstIterator it )
-{
-   bool found = false;
-   nanos_event_key_t key = (*it).getKVs()[0].first;
-
-   _burstList.erase ( it );
-
-   /* if found an event with the same key in the backup list, recover it to the main list */
-   for ( it = _burstBackup.begin() ; !found && (it != _burstBackup.end()) ; it++ ) {
-      Event::ConstKVList kvlist = (*it).getKVs();
-      if ( kvlist[0].first == key  )
-      {
-         _burstList.splice ( _burstList.begin(), _burstBackup, it );
-         found = true;
-      }
-   }
-}
-
 inline bool InstrumentationContext::findBurstByKey ( nanos_event_key_t key, InstrumentationContext::BurstIterator &ret )
 {
    bool found = false;
@@ -93,7 +56,6 @@ inline bool InstrumentationContext::findBurstByKey ( nanos_event_key_t key, Inst
    }
 
    return found;
-
 }
 
 inline unsigned int InstrumentationContext::getNumBursts() const
@@ -135,5 +97,7 @@ inline void InstrumentationContext::setValidState ( nanos_event_state_value_t st
 {
    _validState = state;
 }
+
+#endif
 
 #endif

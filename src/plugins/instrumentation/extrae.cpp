@@ -166,6 +166,9 @@ class InstrumentationExtrae: public Instrumentation
          if ( result != 0 ) std::cout << "Unable to rename paraver row file" << std::endl;
       }
 
+      bool useStackedBursts ( void ) { return true; }
+      bool useStackedState ( void ) { return false; }
+
       void initialize ( void )
       {
          char *mpi_trace_on;
@@ -264,27 +267,28 @@ class InstrumentationExtrae: public Instrumentation
             }
          }
 
-         int rmValues = 0;
-         for ( unsigned int i = 0; i < total; i++ )
-         {
-            if ( (p_events[i] < 0) || (p_events[i] > 10000000) ) fatal("Negative event type");
-            for ( unsigned int j = i+1; j < total; j++ )
+         if ( ! useStackedBursts() ) {
+            int rmValues = 0;
+            for ( unsigned int i = 0; i < total; i++ )
             {
-               if ( p_events[i] == p_events[j] )
+               for ( unsigned int j = i+1; j < total; j++ )
                {
-                  p_events[i] = 0;
-                  rmValues++;
+                  if ( p_events[i] == p_events[j] )
+                  {
+                     p_events[i] = 0;
+                     rmValues++;
+                  }
                }
             }
-         }
 
-         total -= rmValues;
+            total -= rmValues;
 
-         for ( unsigned int j = 0, i = 0; i < total; i++ )
-         {
-            while ( p_events[j] == 0 ) j++;
-            p_events[i] = p_events[j];
-            p_values[i] = p_values[j++];
+            for ( unsigned int j = 0, i = 0; i < total; i++ )
+            {
+               while ( p_events[j] == 0 ) j++;
+               p_events[i] = p_events[j];
+               p_values[i] = p_values[j++];
+            }
          }
 
          OMPItrace_neventandcounters(total , p_events, p_values);

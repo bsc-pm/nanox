@@ -27,9 +27,11 @@
 namespace nanos {
 
    class InstrumentationContext {
+#ifdef NANOS_INSTRUMENTATION_ENABLED
       friend class Instrumentation;
+      friend class InstrumentationContextStackedBursts;
 
-      private:
+      protected:
          typedef Instrumentation::Event Event;
          typedef Instrumentation::Burst Burst;
          typedef std::stack<nanos_event_state_value_t> StateStack;
@@ -52,7 +54,13 @@ namespace nanos {
 
          /*! \brief InstrumentationContext copy constructor
           */
-         explicit InstrumentationContext(const InstrumentationContext &ic) : _stateStack(), _stateEventEnabled(ic._stateEventEnabled), _burstList(), _burstBackup() {}
+         explicit InstrumentationContext(const InstrumentationContext &ic) : _stateStack(), _stateEventEnabled(ic._stateEventEnabled),
+                                                                             _burstList(), _burstBackup() {}
+
+         /*! \brief InstrumentationContext copy constructor
+          */
+         explicit InstrumentationContext(const InstrumentationContext *ic) : _stateStack(), _stateEventEnabled(ic->_stateEventEnabled),
+                                                                             _burstList(), _burstBackup() {}
 
          /*! \brief InstrumentationContext constructor
           */
@@ -60,9 +68,9 @@ namespace nanos {
 
          /*! \brief InstrumentationContext destructor
           */
-         ~InstrumentationContext() {}
+         virtual ~InstrumentationContext() {}
 
-       private: /* Only friend classes (Instrumentor) can use InstrumentationContext */
+       protected: /* Only friend classes (Instrumentor) can use InstrumentationContext */
 
          /*! \brief Adds a state value into the state stack 
           */
@@ -82,14 +90,14 @@ namespace nanos {
           *  event was already in the list it will be moved to an internal backup list in order to guarantee
           *  just one event per type in the list.
           */
-         void insertBurst ( const Event &e );
+         virtual void insertBurst ( const Event &e );
 
          /*! \brief Removes a Burst from the burst list
           *
           *  This function removes a burst event from the burst list. If an event with the same type of that
           *  event was in the backup list it will be recovered to main list.
           */
-         void removeBurst ( BurstIterator it ); 
+         virtual void removeBurst ( BurstIterator it ); 
 
          /*! \brief Look for a specific event given its key value
           */
@@ -127,6 +135,20 @@ namespace nanos {
          /*! \brief Save current state as valid state
           */
          void setValidState ( nanos_event_state_value_t state ) ;
+#endif
+   };
+
+   class InstrumentationContextStackedBursts : public InstrumentationContext {
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+      public:
+         InstrumentationContextStackedBursts () : InstrumentationContext() {}
+         InstrumentationContextStackedBursts ( const InstrumentationContext &ic) : InstrumentationContext ( ic ) {}
+         InstrumentationContextStackedBursts ( InstrumentationContext *ic) : InstrumentationContext ( ic ) {}
+         ~InstrumentationContextStackedBursts () {}
+    
+         void insertBurst ( const Event &e );
+         void removeBurst ( BurstIterator it ); 
+#endif
    };
 }
 #endif
