@@ -1,6 +1,7 @@
 #include "plugin.hpp"
 #include "system.hpp"
 #include "instrumentor.hpp"
+#include <extrae_types.h>
 #include <mpitrace_user_events.h>
 #include "debug.hpp"
 #include <sys/types.h>
@@ -174,13 +175,13 @@ class InstrumentationExtrae: public Instrumentation
          char *mpi_trace_on;
 
          /* check environment variable MPITRACE_ON value */
-         mpi_trace_on = getenv("MPITRACE_ON");
+         mpi_trace_on = getenv("EXTRAE_ON");
 
          /* if MPITRAE_ON not defined, active it */
          if ( mpi_trace_on == NULL )
          {
             mpi_trace_on = new char[15];
-            strcpy(mpi_trace_on, "MPITRACE_ON=1");
+            strcpy(mpi_trace_on, "EXTRAE_ON=1");
             putenv (mpi_trace_on);
          }
 
@@ -198,33 +199,43 @@ class InstrumentationExtrae: public Instrumentation
 
       void addEventList ( unsigned int count, Event *events) 
       {
-         unsigned int total = 0;
+         struct extrae_CombinedEvents ce;
+
+         ce.HardwareCounters = 1;
+         ce.Callers = 0;
+         ce.UserFunction = 0;
+         ce.nEvents = 0;
+         ce.nCommunications = 0;
+
          for (unsigned int i = 0; i < count; i++)
          {
             Event &e = events[i];
             switch ( e.getType() ) {
                case STATE:
                case SUBSTATE:
-                  total++;
+                  ce.nEvents++;
                   break;
                case PTP_START:
                case PTP_END:
-                  total++;
+                  ce.nCommunications++;
                   // continue...
                case POINT:
                case BURST_START:
                case BURST_END:
-                  total += e.getNumKVs();
+                  ce.nEvents += e.getNumKVs();
                   break;
                default: break;
             }
          }
 
-         unsigned int *p_events = (unsigned int *) alloca (total * sizeof (unsigned int));
-         unsigned int *p_values = (unsigned int *) alloca (total * sizeof (unsigned int));
-        
+         ce.Types = (unsigned int *) alloca (ce.nEvents * sizeof (unsigned int));
+         ce.Values = (unsigned int *) alloca (ce.nEvents * sizeof (unsigned int));
+         ce.Communications = (struct extrae_UserCommunication *) alloca (ce.nCommunications * sizeof (struct extrae_UserCommunication));
 
-         int j = 0;
+
+
+
+         int j = 0; int k = 0;
          Event::ConstKVList kvs = NULL;
 
 
@@ -234,33 +245,37 @@ class InstrumentationExtrae: public Instrumentation
             unsigned int type = e.getType();
             switch ( type ) {
                case STATE:
-                  p_events[j] = _eventState;
-                  p_values[j++] = e.getState();
+                  ce.Types[j] = _eventState;
+                  ce.Values[j++] = e.getState();
                   break;
                case SUBSTATE:
-                  p_events[j] = _eventSubState;
-                  p_values[j++] = e.getState();
+                  ce.Types[j] = _eventSubState;
+                  ce.Values[j++] = e.getState();
                   break;
                case PTP_START:
                case PTP_END:
                   /* Creating PtP event */
-		  if ( type == PTP_START ) p_events[j] = _eventPtPStart;
-		  else p_events[j] = _eventPtPEnd;
-	          p_values[j++] = e.getDomain() + e.getId();
+                  if ( type == PTP_START) ce.Communications[k].type = EXTRAE_USER_SEND;
+                  else ce.Communications[k].type = EXTRAE_USER_RECV;
+                  ce.Communications[k].tag = e.getDomain();
+                  ce.Communications[k].id = e.getId();
+                  ce.Communications[k].size = e.getId(); // FIXME: just in some cases size is equal to id
+                  ce.Communications[k].partner = 0;
+                  k++;
                   // continue...
                case POINT:
                case BURST_START:
                   kvs = e.getKVs();
                   for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
-                     p_events[j] = _eventBase + kvs->first;
-                     p_values[j++] = kvs->second;
+                     ce.Types[j] = _eventBase + kvs->first;
+                     ce.Values[j++] = kvs->second;
                   }
                   break;
                case BURST_END:
                   kvs = e.getKVs();
                   for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
-                     p_events[j] = _eventBase +  kvs->first;
-                     p_values[j++] = 0; // end
+                     ce.Types[j] = _eventBase +  kvs->first;
+                     ce.Values[j++] = 0; // end
                   }
                   break;
                default: break;
@@ -269,29 +284,30 @@ class InstrumentationExtrae: public Instrumentation
 
          if ( ! useStackedBursts() ) {
             int rmValues = 0;
-            for ( unsigned int i = 0; i < total; i++ )
+            for ( int i = 0; i < ce.nEvents; i++ )
             {
-               for ( unsigned int j = i+1; j < total; j++ )
+               for ( int j = i+1; j < ce.nEvents; j++ )
                {
-                  if ( p_events[i] == p_events[j] )
+                  if ( ce.Types[i] == ce.Types[j] )
                   {
-                     p_events[i] = 0;
+                     ce.Types[i] = 0;
                      rmValues++;
                   }
                }
             }
 
-            total -= rmValues;
+            ce.nEvents -= rmValues;
 
-            for ( unsigned int j = 0, i = 0; i < total; i++ )
+            for ( int j = 0, i = 0; i < ce.nEvents; i++ )
             {
-               while ( p_events[j] == 0 ) j++;
-               p_events[i] = p_events[j];
-               p_values[i] = p_values[j++];
+               while ( ce.Types[j] == 0 ) j++;
+               ce.Types[i] = ce.Types[j];
+               ce.Values[i] = ce.Values[j++];
             }
          }
 
-         OMPItrace_neventandcounters(total , p_events, p_values);
+         Extrae_emit_CombinedEvents ( &ce );
+         //OMPItrace_neventandcounters(ce.nEvents , p_events, p_values);
           
       }
 };

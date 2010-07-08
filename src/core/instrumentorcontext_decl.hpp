@@ -27,7 +27,7 @@
 namespace nanos {
 
    class InstrumentationContext {
-#ifdef NANOS_INSTRUMENTATION_ENABLED
+//#ifdef NANOS_INSTRUMENTATION_ENABLED
       friend class Instrumentation;
       friend class InstrumentationContextStackedBursts;
 
@@ -135,11 +135,11 @@ namespace nanos {
          /*! \brief Save current state as valid state
           */
          void setValidState ( nanos_event_state_value_t state ) ;
-#endif
+//#endif
    };
 
    class InstrumentationContextStackedBursts : public InstrumentationContext {
-#ifdef NANOS_INSTRUMENTATION_ENABLED
+//#ifdef NANOS_INSTRUMENTATION_ENABLED
       public:
          InstrumentationContextStackedBursts () : InstrumentationContext() {}
          InstrumentationContextStackedBursts ( const InstrumentationContext &ic) : InstrumentationContext ( ic ) {}
@@ -148,7 +148,7 @@ namespace nanos {
     
          void insertBurst ( const Event &e );
          void removeBurst ( BurstIterator it ); 
-#endif
+//#endif
    };
 }
 #endif

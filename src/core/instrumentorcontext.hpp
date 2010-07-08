@@ -27,7 +27,7 @@
 
 using namespace nanos;
 
-#ifdef NANOS_INSTRUMENTATION_ENABLED
+//#ifdef NANOS_INSTRUMENTATION_ENABLED
 
 inline void InstrumentationContext::pushState ( nanos_event_state_value_t state )
 {
@@ -98,6 +98,6 @@ inline void InstrumentationContext::setValidState ( nanos_event_state_value_t st
    _validState = state;
 }
 
-#endif
+//#endif
 
 #endif

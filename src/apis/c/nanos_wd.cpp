@@ -170,6 +170,8 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *
 
       NANOS_INSTRUMENT( sys.getInstrumentor()->raisePointEventNkvs(4, Keys, Values); )
 
+      NANOS_INSTRUMENT (sys.getInstrumentor()->raiseOpenPtPEventNkvs ( NANOS_WD_DOMAIN, (nanos_event_id_t) wd->getId(), 0, NULL, NULL ); )
+
       if ( deps != NULL ) {
          sys.submitWithDependencies( *wd, num_deps, deps );
          return NANOS_OK;
@@ -223,6 +225,8 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
       NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) deps; )
 
       NANOS_INSTRUMENT( sys.getInstrumentor()->raisePointEventNkvs(4, Keys, Values); )
+
+      NANOS_INSTRUMENT (sys.getInstrumentor()->raiseOpenPtPEventNkvs ( NANOS_WD_DOMAIN, (nanos_event_id_t) wd.getId(), 0, NULL, NULL ); )
 
       if ( deps != NULL ) {
          sys.waitOn( num_deps, deps );
