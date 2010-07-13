@@ -187,7 +187,6 @@ void System::start ()
 
    _pes.reserve ( numPes );
 
-   //TODO: decide, single master, multiple master start
    PE *pe = createPE ( "smp", 0 );
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
