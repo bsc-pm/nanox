@@ -9,15 +9,13 @@ class InstrumentationEmptyTrace: public Instrumentation
    private:
    public:
       // constructor
-      InstrumentationEmptyTrace ( ) { }
+      InstrumentationEmptyTrace ( ) { _instrumentationContext = new InstrumentationContext(); }
 
       // destructor
       ~InstrumentationEmptyTrace ( ) { }
 
       // low-level instrumentation interface (mandatory functions)
 
-      virtual bool useStackedBursts ( void ) { return false; }
-      virtual bool useStackedState ( void ) { return false; }
       virtual void initialize( void ) {}
       virtual void finalize( void ) {}
       virtual void addEventList ( unsigned int count, Event *events ) {}

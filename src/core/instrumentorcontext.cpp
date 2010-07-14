@@ -25,55 +25,61 @@
 
 using namespace nanos;
 
-void InstrumentationContext::insertBurst ( const Event &e )
+bool InstrumentationContext::showStackedBursts ( void ) { return false; }
+bool InstrumentationContextStackedBursts::showStackedBursts ( void ) { return true; }
+
+bool InstrumentationContext::showStackedState ( void ) { return false; }
+bool InstrumentationContextStackedBursts::showStackedState ( void ) { return false; }
+
+void InstrumentationContext::insertBurst ( InstrumentationContextData *icd, const Event &e )
 {
    bool found = false;
-   BurstList::iterator it;
+   InstrumentationContextData::BurstList::iterator it;
    nanos_event_key_t key = e.getKVs()[0].first;
 
    /* if found an event with the same key in the main list, send it to the backup list */
-   for ( it = _burstList.begin() ; !found && (it != _burstList.end()) ; it++ ) {
+   for ( it = icd->_burstList.begin() ; !found && (it != icd->_burstList.end()) ; it++ ) {
       Event::ConstKVList kvlist = (*it).getKVs();
       if ( kvlist[0].first == key  )
       {
-         _burstBackup.splice ( _burstBackup.begin(), _burstList, it );
+         icd->_burstBackup.splice ( icd->_burstBackup.begin(), icd->_burstList, it );
          found = true;
       }
    }
 
    /* insert the event into the list */
-   _burstList.push_front ( e );
+   icd->_burstList.push_front ( e );
 
 }
 
-void InstrumentationContext::removeBurst ( InstrumentationContext::BurstIterator it )
+void InstrumentationContext::removeBurst ( InstrumentationContextData *icd, InstrumentationContextData::BurstIterator it )
 {
    bool found = false;
    nanos_event_key_t key = (*it).getKVs()[0].first;
 
    /* remove event from the list */
-   _burstList.erase ( it );
+   icd->_burstList.erase ( it );
 
    /* if found an event with the same key in the backup list, recover it to the main list */
-   for ( it = _burstBackup.begin() ; !found && (it != _burstBackup.end()) ; it++ ) {
+   for ( it = icd->_burstBackup.begin() ; !found && (it != icd->_burstBackup.end()) ; it++ ) {
       Event::ConstKVList kvlist = (*it).getKVs();
       if ( kvlist[0].first == key  )
       {
-         _burstList.splice ( _burstList.begin(), _burstBackup, it );
+         icd->_burstList.splice ( icd->_burstList.begin(), icd->_burstBackup, it );
          found = true;
       }
    }
 }
 
-void InstrumentationContextStackedBursts::insertBurst ( const Event &e )
+void InstrumentationContextStackedBursts::insertBurst ( InstrumentationContextData *icd, const Event &e )
 {
    /* insert the event into the list */
-   _burstList.push_front ( e );
+   icd->_burstList.push_front ( e );
 }
 
-void InstrumentationContextStackedBursts::removeBurst ( BurstIterator it )
+void InstrumentationContextStackedBursts::removeBurst ( InstrumentationContextData *icd, InstrumentationContextData::BurstIterator it )
 {
    /* remove event from the list */
-   _burstList.erase ( it );
+   icd->_burstList.erase ( it );
 }
 

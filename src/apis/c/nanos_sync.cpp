@@ -23,6 +23,7 @@
 #include "system.hpp"
 #include "synchronizedcondition.hpp"
 #include "instrumentormodule_decl.hpp"
+#include "instrumentor.hpp"
 
 using namespace nanos;
 

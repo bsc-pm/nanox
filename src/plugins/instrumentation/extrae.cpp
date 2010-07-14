@@ -1,6 +1,7 @@
 #include "plugin.hpp"
 #include "system.hpp"
 #include "instrumentor.hpp"
+#include "instrumentorcontext_decl.hpp"
 #include <extrae_types.h>
 #include <mpitrace_user_events.h>
 #include "debug.hpp"
@@ -24,9 +25,11 @@ namespace nanos {
 
 class InstrumentationExtrae: public Instrumentation 
 {
+   private:
+      InstrumentationContextStackedBursts   _icLocal;
    public:
       // constructor
-      InstrumentationExtrae ( ) : Instrumentation() {}
+      InstrumentationExtrae ( ) : Instrumentation(), _icLocal() { _instrumentationContext = &_icLocal; }
 
       // destructor
       ~InstrumentationExtrae ( ) { }
@@ -167,9 +170,6 @@ class InstrumentationExtrae: public Instrumentation
          if ( result != 0 ) std::cout << "Unable to rename paraver row file" << std::endl;
       }
 
-      bool useStackedBursts ( void ) { return true; }
-      bool useStackedState ( void ) { return false; }
-
       void initialize ( void )
       {
          char *mpi_trace_on;
@@ -282,7 +282,8 @@ class InstrumentationExtrae: public Instrumentation
             }
          }
 
-         if ( ! useStackedBursts() ) {
+         // if showing stacked burst is false remove duplicates
+         if ( !_icLocal.showStackedBursts() ) {
             int rmValues = 0;
             for ( int i = 0; i < ce.nEvents; i++ )
             {
@@ -295,9 +296,7 @@ class InstrumentationExtrae: public Instrumentation
                   }
                }
             }
-
             ce.nEvents -= rmValues;
-
             for ( int j = 0, i = 0; i < ce.nEvents; i++ )
             {
                while ( ce.Types[j] == 0 ) j++;
@@ -307,8 +306,6 @@ class InstrumentationExtrae: public Instrumentation
          }
 
          Extrae_emit_CombinedEvents ( &ce );
-         //OMPItrace_neventandcounters(ce.nEvents , p_events, p_values);
-          
       }
 };
 

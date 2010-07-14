@@ -22,7 +22,7 @@
 
 #include "config.hpp"
 #include "compatibility.hpp"
-#include "instrumentor_decl.hpp"
+#include "instrumentor.hpp"
 #include "system.hpp"
 #include "directory.hpp"
 

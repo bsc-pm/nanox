@@ -22,7 +22,7 @@
 #include "debug.hpp"
 #include "system.hpp"
 #include "smp_ult.hpp"
-#include "instrumentor_decl.hpp"
+#include "instrumentor.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;

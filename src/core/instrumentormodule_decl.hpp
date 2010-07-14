@@ -20,6 +20,7 @@
 #define __NANOS_INSTRUMENTOR_MODULE_DECL_H
 #include "debug.hpp"
 #include "nanos-int.h"
+#include "instrumentor.hpp"
 #include "system.hpp"
 
 namespace nanos {
