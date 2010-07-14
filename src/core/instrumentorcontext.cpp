@@ -25,6 +25,8 @@
 
 using namespace nanos;
 
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+
 bool InstrumentationContext::showStackedBursts ( void ) { return false; }
 bool InstrumentationContextStackedBursts::showStackedBursts ( void ) { return true; }
 
@@ -83,3 +85,4 @@ void InstrumentationContextStackedBursts::removeBurst ( InstrumentationContextDa
    icd->_burstList.erase ( it );
 }
 
+#endif

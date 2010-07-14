@@ -25,6 +25,8 @@
 
 namespace nanos {
 
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+
    class InstrumentStateAndBurst {
       private:
          // FIXME: could _inst be static?
@@ -65,5 +67,6 @@ namespace nanos {
          }
          ~InstrumentState ( ) { _inst->raiseCloseStateEvent(); }
    };
+#endif
 }
 #endif

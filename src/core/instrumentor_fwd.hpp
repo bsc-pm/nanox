@@ -20,13 +20,15 @@
 #define __NANOS_INSTRUMENTOR_FWD_H
 
 namespace nanos {
+   class Instrumentation;
+#ifdef NANOS_INSTRUMENTATION_ENABLED
    class InstrumentationValueDescriptor;
    class InstrumentationKeyDescriptor;
    class InstrumentationDictionary;
-   class Instrumentation;
 
    class InstrumentStateAndBurst;
    class InstrumentState;
+#endif
 };
 
 #endif

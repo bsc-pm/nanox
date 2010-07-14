@@ -34,6 +34,7 @@ namespace nanos {
          typedef std::list<Event>                        BurstList;            /**< List of Events (Bursts) */
          typedef BurstList::const_iterator               ConstBurstIterator;   /**< InstrumentationContext const BurstIterator */
          typedef BurstList::iterator                     BurstIterator;        /**< InstrumentationContext BurstIterator */
+#ifdef NANOS_INSTRUMENTATION_ENABLED
       public: //FIXME
          StateStack                 _stateStack;             /**< Stack of states */
          bool                       _stateEventEnabled;      /**< Set state level, zero by default */
@@ -55,7 +56,18 @@ namespace nanos {
          /*! \brief InstrumentationContextData destructor
           */
          ~InstrumentationContextData() {}
+#else
+      public:
+         /*! \brief InstrumentationContextData constructor (empty version)
+          */
+         InstrumentationContextData() {}
+         /*! \brief InstrumentationContextData destructor (empty version)
+          */
+         ~InstrumentationContextData() {}
+#endif
    };
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
 
    class InstrumentationContext {
          friend class Instrumentation;
@@ -128,7 +140,6 @@ namespace nanos {
    };
 
    class InstrumentationContextStackedBursts : public InstrumentationContext {
-//#ifdef NANOS_INSTRUMENTATION_ENABLED
       public:
          InstrumentationContextStackedBursts () : InstrumentationContext() {}
          ~InstrumentationContextStackedBursts () {}
@@ -137,7 +148,9 @@ namespace nanos {
          bool showStackedState( void );
          void insertBurst ( InstrumentationContextData *icd, const Event &e );
          void removeBurst ( InstrumentationContextData *icd, InstrumentationContextData::BurstIterator it ); 
-//#endif
    };
+
+#endif
+
 }
 #endif

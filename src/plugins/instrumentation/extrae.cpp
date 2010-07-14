@@ -25,12 +25,23 @@ namespace nanos {
 
 class InstrumentationExtrae: public Instrumentation 
 {
+#ifndef NANOS_INSTRUMENTATION_ENABLED
+   public:
+      // constructor
+      InstrumentationExtrae(): Instrumentation() {}
+      // destructor
+      ~InstrumentationExtrae() {}
+
+      // low-level instrumentation interface (mandatory functions)
+      virtual void initialize( void ) {}
+      virtual void finalize( void ) {}
+      virtual void addEventList ( unsigned int count, Event *events ) {}
+#else
    private:
       InstrumentationContextStackedBursts   _icLocal;
    public:
       // constructor
       InstrumentationExtrae ( ) : Instrumentation(), _icLocal() { _instrumentationContext = &_icLocal; }
-
       // destructor
       ~InstrumentationExtrae ( ) { }
 
@@ -232,12 +243,8 @@ class InstrumentationExtrae: public Instrumentation
          ce.Values = (unsigned int *) alloca (ce.nEvents * sizeof (unsigned int));
          ce.Communications = (struct extrae_UserCommunication *) alloca (ce.nCommunications * sizeof (struct extrae_UserCommunication));
 
-
-
-
          int j = 0; int k = 0;
          Event::ConstKVList kvs = NULL;
-
 
          for (unsigned int i = 0; i < count; i++)
          {
@@ -307,6 +314,7 @@ class InstrumentationExtrae: public Instrumentation
 
          Extrae_emit_CombinedEvents ( &ce );
       }
+#endif
 };
 
 namespace ext {
@@ -325,6 +333,8 @@ class InstrumentorParaverPlugin : public Plugin {
 };
 
 } // namespace ext
+
 } // namespace nanos
 
 nanos::ext::InstrumentorParaverPlugin NanosXPlugin;
+

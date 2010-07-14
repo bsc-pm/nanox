@@ -25,6 +25,8 @@
 
 using namespace nanos;
 
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+
 /* ************************************************************************** */
 /* ***                   C R E A T I N G   E V E N T S                    *** */
 /* ************************************************************************** */
@@ -432,3 +434,4 @@ void Instrumentation::disableStateEvents()
    _instrumentationContext->setValidState( icd, _instrumentationContext->topState( icd ) );
 }
 
+#endif

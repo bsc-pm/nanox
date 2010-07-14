@@ -22,12 +22,11 @@
 #include <list>
 
 #include "instrumentorcontext_decl.hpp"
-//#include "instrumentor_decl.hpp"
 #include "debug.hpp"
 
 using namespace nanos;
 
-//#ifdef NANOS_INSTRUMENTATION_ENABLED
+#ifdef NANOS_INSTRUMENTATION_ENABLED
 
 inline void InstrumentationContext::pushState ( InstrumentationContextData *icd, nanos_event_state_value_t state )
 {
@@ -98,6 +97,7 @@ inline void InstrumentationContext::setValidState ( InstrumentationContextData *
 {
    icd->_validState = state;
 }
-//#endif
+
+#endif
 
 #endif

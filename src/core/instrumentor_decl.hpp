@@ -40,6 +40,7 @@
 
 namespace nanos {
 
+#ifdef NANOS_INSTRUMENTATION_ENABLED
    class InstrumentationValueDescriptor
    {
       private:
@@ -246,12 +247,10 @@ namespace nanos {
          
 
    };
+#endif
 
    class Instrumentation 
    {
-      protected: /* They can be accessed by plugins (derived classes ) */
-         InstrumentationDictionary      _instrumentorDictionary; /**< Instrumentation Dictionary (allow register event keys and values) */
-         InstrumentationContext        *_instrumentationContext; /**< Instrumentation Context */
       public:
          class Event {
             public:
@@ -391,7 +390,14 @@ namespace nanos {
                PtP ( bool start, nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,  KVList kvlist )
                    : Event ( start ? PTP_START : PTP_END , ERROR, nkvs, kvlist, domain, id ) { }
          };
-
+#ifndef NANOS_INSTRUMENTATION_ENABLED
+      public:
+         Instrumentation () {}
+         ~Instrumentation () {}
+#else
+      protected: /* They can be accessed by plugins (derived classes ) */
+         InstrumentationDictionary      _instrumentorDictionary; /**< Instrumentation Dictionary (allow register event keys and values) */
+         InstrumentationContext        *_instrumentationContext; /**< Instrumentation Context */
       public:
          /*! \brief Instrumentor constructor
           */
@@ -552,7 +558,12 @@ namespace nanos {
 
          void disableStateEvents ( void );
          void enableStateEvents ( void ); 
+#endif
    };
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+
+#endif
 
 }
 #endif

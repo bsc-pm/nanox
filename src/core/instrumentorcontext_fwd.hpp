@@ -20,7 +20,9 @@
 #define __NANOS_INSTRUMENTOR_CTX_FWD_H
 namespace nanos {
    class InstrumentationContextData ;
+#ifdef NANOS_INSTRUMENTATION_ENABLED
    class InstrumentationContext ;
    class InstrumentationContextStackedBursts ;
+#endif
 }
 #endif
