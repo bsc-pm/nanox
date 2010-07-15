@@ -18,14 +18,8 @@
 /*************************************************************************************/
 
 namespace nanos {
-
-void traceMyEvent(unsigned int type, unsigned int value);
-
-
 namespace ext
 {
-
-void traceMyEvent(unsigned int type, unsigned int value);
 
 void displayAllGPUsProperties( void );
 

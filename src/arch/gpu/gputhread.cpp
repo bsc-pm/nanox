@@ -66,8 +66,8 @@ void GPUThread::runDependent ()
 void GPUThread::inlineWorkDependent ( WD &wd )
 {
    SMPDD &dd = ( SMPDD & )wd.getActiveDevice();
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->enterUserCode() );
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->disableStateEvents() );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->enterUserCode() );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->disableStateEvents() );
    ( dd.getWorkFct() )( wd.getData() );
 
 //#if !NORMAL
@@ -85,6 +85,6 @@ void GPUThread::inlineWorkDependent ( WD &wd )
 
    // Wait for the GPU kernel to finish
    cudaThreadSynchronize();
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->enableStateEvents() );
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->leaveUserCode() );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->enableStateEvents() );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->leaveUserCode() );
 }

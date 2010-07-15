@@ -27,19 +27,8 @@
 #include "cuda_runtime.h"
 
 namespace nanos {
-
-
-void traceMyEvent(unsigned int type, unsigned int value) {
-   sys.getInstrumentor()->traceMyEvent(type, value);
-}
-
-
 namespace ext
 {
-
-void traceMyEvent(unsigned int type, unsigned int value) {
-   sys.getInstrumentor()->traceMyEvent(type, value);
-}
 
 void displayProperties( cudaDeviceProp* pDeviceProp, int device )
 {
