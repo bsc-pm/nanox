@@ -20,78 +20,39 @@
 #ifndef _NANOS_GPU_PROCESSOR
 #define _NANOS_GPU_PROCESSOR
 
+#include "gpuprocessor_fwd.hpp"
 
-#include "accelerator.hpp"
-#include "cache.hpp"
-#include "config.hpp"
-#include "gpudevice.hpp"
-#include "gputhread.hpp"
+#include <cuda_runtime.h>
 
 
 namespace nanos {
 namespace ext
 {
 
-struct GPUInfo {
-   size_t maxMemoryAvailable;
-};
-
-   class GPUProcessor : public Accelerator
+   class GPUProcessor::TransferInfo
    {
-      public:
-
-         class GPUInfo
-         {
-            private:
-               size_t _maxMemoryAvailable;
-
-            public:
-               GPUInfo ( int device );
-
-               size_t getMaxMemoryAvailable () { return _maxMemoryAvailable; }
-         };
-
       private:
-
-         // configuration variables
-         static Atomic<int>      _deviceSeed; // Number of GPU devices assigned to threads
-         int                     _gpuDevice; // Assigned GPU device Id
-         GPUInfo                 _gpuInfo; // Information related to the GPU device that represents
-
-         // cache
-         DeviceCache<GPUDevice>  _cache;
-
-         // disable copy constructor and assignment operator
-         GPUProcessor( const GPUProcessor &pe );
-         const GPUProcessor & operator= ( const GPUProcessor &pe );
-
-         size_t getMaxMemoryAvailable ( int id );
+         cudaStream_t _transferStream;
 
       public:
-         // constructors
-         GPUProcessor( int id, int gpuId ) : Accelerator( id, &GPU ), _gpuDevice( _deviceSeed++ ), _gpuInfo( gpuId ), _cache()
+
+         TransferInfo ()
          {
-            //std::cout << "[GPUProcessor] I have " << _gpuInfo.getMaxMemoryAvailable()
-            //      << " bytes of available memory (device #" << gpuId << ")" << std::endl;
+#if 1
+            cudaError_t err = cudaStreamCreate( &_transferStream );
+            if ( err != cudaSuccess ) {
+               _transferStream = 0;
+               warning( "Error while creating the CUDA stream: " << cudaGetErrorString( err ) );
+            }
+#else
+            _transferStream = 0;
+#endif
          }
 
-         virtual ~GPUProcessor() {}
-
-         virtual WD & getWorkerWD () const;
-         virtual WD & getMasterWD () const;
-         virtual BaseThread & createThread ( WorkDescriptor &wd );
-
-         // capability query functions
-         virtual bool supportsUserLevelThreads () const { return false; }
-
-         /* Memory space support */
-         virtual void registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output );
-         virtual void unregisterCacheAccessDependent( uint64_t tag, size_t size );
-         virtual void registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output );
-         virtual void unregisterPrivateAccessDependent( uint64_t tag, size_t size );
-
-         virtual void* getAddressDependent( uint64_t tag );
-         virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
+         cudaStream_t getTransferStream ()
+         {
+            return _transferStream;
+         }
    };
 
 }

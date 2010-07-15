@@ -18,6 +18,7 @@
 /*************************************************************************************/
 
 #include "gputhread.hpp"
+#include "gpuprocessor.hpp"
 #include "schedule.hpp"
 #include "system.hpp"
 
@@ -33,16 +34,23 @@ void GPUThread::runDependent ()
    setCurrentWD( work );
    setNextWD( (WD *) 0 );
 
-   cudaError_t cudaErr = cudaSetDevice( _gpuDevice );
-   if (cudaErr != cudaSuccess) warning( "couldn't set the GPU device" );
+   cudaError_t err = cudaSetDevice( _gpuDevice );
+   if ( err != cudaSuccess )
+      warning( "Couldn't set the GPU device for the thread: " << cudaGetErrorString( err ) );
 
-#if PINNED_CUDA | WC
-   cudaErr = cudaSetDeviceFlags( cudaDeviceMapHost | cudaDeviceBlockingSync );
-   if (cudaErr != cudaSuccess) warning( "couldn't set the GPU device flags" );
-#else
-   cudaErr = cudaSetDeviceFlags( cudaDeviceBlockingSync );
-   if (cudaErr != cudaSuccess) warning( "couldn't set the GPU device flags" );
-#endif
+//#if PINNED_CUDA | WC
+   if ( GPUDevice::getTransferMode() == nanos::PINNED_CUDA || GPUDevice::getTransferMode() == nanos::WC ) {
+      err = cudaSetDeviceFlags( cudaDeviceMapHost | cudaDeviceBlockingSync );
+      if ( err != cudaSuccess )
+         warning( "Couldn't set the GPU device flags: " << cudaGetErrorString( err ) );
+//#else
+   }
+   else {
+      err = cudaSetDeviceFlags( cudaDeviceBlockingSync );
+      if ( err != cudaSuccess )
+         warning( "Couldn't set the GPU device flags:" << cudaGetErrorString( err ) );
+   }
+//#endif
 
    // Avoid the so slow first data allocation and transfer to device
    bool b = true;
@@ -62,14 +70,18 @@ void GPUThread::inlineWorkDependent ( WD &wd )
    NANOS_INSTRUMENTOR ( sys.getInstrumentor()->disableStateEvents() );
    ( dd.getWorkFct() )( wd.getData() );
 
-#if !NORMAL
-   // Get next task in order to prefetch data to device memory
-   WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, wd );
-   setNextWD( next );
-   if ( next != 0 ) {
-      next->start(false);
+//#if !NORMAL
+   if ( GPUDevice::getTransferMode() != nanos::NORMAL ) {
+      // Get next task in order to prefetch data to device memory
+      WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, wd );
+      setNextWD( next );
+      if ( next != 0 ) {
+         next->start(false);
+      }
+      // Wait for the transfer stream to finish
+      cudaStreamSynchronize( ((GPUProcessor *) myThread->runningOn())->getTransferInfo()->getTransferStream() );
    }
-#endif
+//#endif
 
    // Wait for the GPU kernel to finish
    cudaThreadSynchronize();

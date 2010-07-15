@@ -38,7 +38,17 @@ GPUProcessor::GPUInfo::GPUInfo ( int device )
 }
 
 
-size_t  GPUProcessor::getMaxMemoryAvailable ( int id )
+GPUProcessor::GPUProcessor( int id, int gpuId )
+   : Accelerator( id, &GPU ), _gpuDevice( _deviceSeed++ ), _gpuInfo( gpuId ), _transferInfo(),
+     _cache(), _pinnedMemory()
+{
+   //std::cout << "[GPUProcessor] I have " << _gpuInfo.getMaxMemoryAvailable()
+   //      << " bytes of available memory (device #" << gpuId << ")" << std::endl;
+
+   _transferInfo = new TransferInfo();
+}
+
+size_t GPUProcessor::getMaxMemoryAvailable ( int id )
 {
    return 0;//GPUPlugin::getMaxMemoryAvailable( id );
 }

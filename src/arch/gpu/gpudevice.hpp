@@ -29,9 +29,6 @@
 
 
 #include "workdescriptor_decl.hpp"
-//#if ASYNC | PINNED_CUDA | WC
-#include <map>
-//#endif
 
 
 namespace nanos
@@ -52,12 +49,7 @@ typedef enum {
    class GPUDevice : public Device
    {
       private:
-
-      static transfer_mode _transferMode;
-
-//#if ASYNC | PINNED_CUDA | WC
-         static std::map< void *, uint64_t > _pinnedMemory;
-//#endif
+         static transfer_mode _transferMode;
 
 //#if PINNED_OS
          static unsigned int _rlimit;
@@ -86,6 +78,11 @@ typedef enum {
          static void setTransferMode ( transfer_mode mode )
          {
             _transferMode = mode;
+         }
+
+         static transfer_mode getTransferMode ()
+         {
+            return _transferMode;
          }
 
          static void * allocate( size_t size );
