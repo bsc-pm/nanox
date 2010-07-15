@@ -108,6 +108,7 @@ typedef struct {
    int lower;
    int upper;
    int step;
+   bool last;
 } nanos_loop_info_t;
 
 typedef struct {
@@ -134,15 +135,14 @@ typedef struct {
 typedef enum { STATE, SUBSTATE, BURST_START, BURST_END, PTP_START, PTP_END, POINT, EVENT_TYPES } nanos_event_type_t; /**< Event types  */
 
 typedef enum { NOT_TRACED, STARTUP, SHUTDOWN, ERROR, IDLE, RUNTIME, RUNNING, SYNCHRONIZATION,
-               SCHEDULING, FORK_JOIN, MEM_TRANSFER, CACHE,
-               EVENT_STATE_TYPES,
+               SCHEDULING, CREATION, MEM_TRANSFER, CACHE, EVENT_STATE_TYPES
 } nanos_event_state_value_t; /**< State enum values */
 
 typedef enum { NANOS_WD_DOMAIN } nanos_event_domain_t; /**< Specifies a domain */
 typedef unsigned int  nanos_event_id_t;                /**< Used as unique id within a given domain */
 
-typedef unsigned int nanos_event_key_t; /**< Key (on key-value pair) */
-typedef int  nanos_event_value_t;       /**< Value (on key-value pair) */
+typedef unsigned int         nanos_event_key_t;   /**< Key (on key-value pair) */
+typedef unsigned long long   nanos_event_value_t; /**< Value (on key-value pair) */
   
 typedef struct {
    nanos_event_key_t    key;

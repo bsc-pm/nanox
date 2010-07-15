@@ -4,23 +4,35 @@
 
 namespace nanos {
 
-class InstrumentorEmptyTrace: public Instrumentor 
+class InstrumentationEmptyTrace: public Instrumentation 
 {
-   private:
+#ifndef NANOS_INSTRUMENTATION_ENABLED
    public:
       // constructor
-      InstrumentorEmptyTrace ( ) { }
-
+      InstrumentationEmptyTrace() : Instrumentation() {}
       // destructor
-      ~InstrumentorEmptyTrace ( ) { }
+      ~InstrumentationEmptyTrace() {}
 
       // low-level instrumentation interface (mandatory functions)
-
       virtual void initialize( void ) {}
       virtual void finalize( void ) {}
       virtual void addEventList ( unsigned int count, Event *events ) {}
-};
+#else
+   private:
+      InstrumentationContext   _icLocal;
 
+   public:
+      // constructor
+      InstrumentationEmptyTrace() : Instrumentation(), _icLocal() { _instrumentationContext = &_icLocal; }
+      // destructor
+      ~InstrumentationEmptyTrace () {}
+
+      // low-level instrumentation interface (mandatory functions)
+      virtual void initialize( void ) {}
+      virtual void finalize( void ) {}
+      virtual void addEventList ( unsigned int count, Event *events ) {}
+#endif
+};
 
 namespace ext {
 
@@ -33,11 +45,12 @@ class InstrumentorEmptyTracePlugin : public Plugin {
 
       void init ()
       {
-         sys.setInstrumentor( new InstrumentorEmptyTrace() );	
+         sys.setInstrumentor( new InstrumentationEmptyTrace() );	
       }
 };
 
 } // namespace ext
+
 } // namespace nanos
 
 nanos::ext::InstrumentorEmptyTracePlugin NanosXPlugin;

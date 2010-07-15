@@ -16,36 +16,13 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
-#include "nanos.h"
-#include "debug.hpp"
-#include "system.hpp"
-#include "plugin.hpp"
-#include "instrumentormodule_decl.hpp"
-
-using namespace nanos;
-
-/*! \brief Find a slicer giving a label id
- *
- *  \sa Slicers
- */
-nanos_slicer_t nanos_find_slicer ( const char * label )
-{
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","find_slicer",RUNTIME) );
-
-   nanos_slicer_t slicer;
-   try {
-      std::string plugin = "slicer-" + std::string(label);
-
-      slicer = sys.getSlicer ( std::string(label) );
-      if ( slicer == NULL ) {
-         if ( !PluginManager::load( plugin )) fatal0( "Could not load " + std::string(label) + "slicer" );
-         slicer = sys.getSlicer ( std::string(label) );
-      }
-
-   } catch ( ... ) {
-      return ( nanos_slicer_t ) NULL;
-   }
-   return slicer;
+#ifndef __NANOS_INSTRUMENTOR_CTX_FWD_H
+#define __NANOS_INSTRUMENTOR_CTX_FWD_H
+namespace nanos {
+   class InstrumentationContextData ;
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   class InstrumentationContext ;
+   class InstrumentationContextStackedBursts ;
+#endif
 }
-
+#endif

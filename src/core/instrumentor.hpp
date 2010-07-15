@@ -23,12 +23,14 @@
 
 using namespace nanos;
 
-inline nanos_event_value_t InstrumentorValueDescriptor::getId ( void )
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+
+inline nanos_event_value_t InstrumentationValueDescriptor::getId ( void )
 {
    return _id;
 }
 
-inline const std::string InstrumentorValueDescriptor::getDescription ( void )
+inline const std::string InstrumentationValueDescriptor::getDescription ( void )
 {
    return _description;
 }
@@ -36,25 +38,25 @@ inline const std::string InstrumentorValueDescriptor::getDescription ( void )
 
 /** INSTRUMENTOR KEY DESCRIPTOR **/
 
-inline nanos_event_key_t InstrumentorKeyDescriptor::getId ( void )
+inline nanos_event_key_t InstrumentationKeyDescriptor::getId ( void )
 {
    return _id;
 }
 
-inline const std::string InstrumentorKeyDescriptor::getDescription ( void )
+inline const std::string InstrumentationKeyDescriptor::getDescription ( void )
 {
    return _description;
 }
 
-inline nanos_event_value_t InstrumentorKeyDescriptor::registerValue ( const std::string &value, const std::string &description,
+inline nanos_event_value_t InstrumentationKeyDescriptor::registerValue ( const std::string &value, const std::string &description,
                                                                       bool abort_when_registered )
 {
    return registerValue( value.c_str(), description.c_str(), abort_when_registered );
 }
 
-inline nanos_event_value_t InstrumentorKeyDescriptor::registerValue ( const char *value, const char *description, bool abort_when_registered )
+inline nanos_event_value_t InstrumentationKeyDescriptor::registerValue ( const char *value, const char *description, bool abort_when_registered )
 {
-   InstrumentorValueDescriptor *valueDescriptor = NULL;
+   InstrumentationValueDescriptor *valueDescriptor = NULL;
 
    ValueMapIterator it = _valueMap.find( value );
 
@@ -62,7 +64,7 @@ inline nanos_event_value_t InstrumentorKeyDescriptor::registerValue ( const char
       _lock++;
       it = _valueMap.find( value );
       if ( it == _valueMap.end() ) {
-         valueDescriptor = new InstrumentorValueDescriptor ( (nanos_event_value_t) _totalValues++, description );
+         valueDescriptor = new InstrumentationValueDescriptor ( (nanos_event_value_t) _totalValues++, description );
          _valueMap.insert( std::make_pair( value, valueDescriptor ) );
       }
       else {
@@ -79,12 +81,12 @@ inline nanos_event_value_t InstrumentorKeyDescriptor::registerValue ( const char
    return valueDescriptor->getId();
 }
 
-inline nanos_event_value_t InstrumentorKeyDescriptor::getValue ( const std::string &value )
+inline nanos_event_value_t InstrumentationKeyDescriptor::getValue ( const std::string &value )
 {
    return getValue( value.c_str() );
 }
 
-inline nanos_event_value_t InstrumentorKeyDescriptor::getValue ( const char *value )
+inline nanos_event_value_t InstrumentationKeyDescriptor::getValue ( const char *value )
 {
    ValueMapIterator it = _valueMap.find( value );
 
@@ -92,26 +94,26 @@ inline nanos_event_value_t InstrumentorKeyDescriptor::getValue ( const char *val
    else return it->second->getId();
 }
 
-inline InstrumentorKeyDescriptor::ConstValueMapIterator InstrumentorKeyDescriptor::beginValueMap ( void )
+inline InstrumentationKeyDescriptor::ConstValueMapIterator InstrumentationKeyDescriptor::beginValueMap ( void )
 {
    return _valueMap.begin();
 }
 
-inline InstrumentorKeyDescriptor::ConstValueMapIterator InstrumentorKeyDescriptor::endValueMap ( void )
+inline InstrumentationKeyDescriptor::ConstValueMapIterator InstrumentationKeyDescriptor::endValueMap ( void )
 {
    return _valueMap.end();
 }
 
 /** INSTRUMENTOR DICTIONARY **/
 
-inline nanos_event_key_t InstrumentorDictionary::registerEventKey ( const std::string &key, const std::string &description, bool abort_when_registered  )
+inline nanos_event_key_t InstrumentationDictionary::registerEventKey ( const std::string &key, const std::string &description, bool abort_when_registered  )
 {
    return registerEventKey( key.c_str(), description.c_str(), abort_when_registered );
 }
 
-inline nanos_event_key_t InstrumentorDictionary::registerEventKey ( const char *key, const char *description, bool abort_when_registered  )
+inline nanos_event_key_t InstrumentationDictionary::registerEventKey ( const char *key, const char *description, bool abort_when_registered  )
 {
-   InstrumentorKeyDescriptor *keyDescriptor = NULL;
+   InstrumentationKeyDescriptor *keyDescriptor = NULL;
 
    KeyMapIterator it = _keyMap.find( key );
 
@@ -119,7 +121,7 @@ inline nanos_event_key_t InstrumentorDictionary::registerEventKey ( const char *
       _lock++;
       it = _keyMap.find( key );
       if ( it == _keyMap.end() ) {
-         keyDescriptor = new InstrumentorKeyDescriptor ( (nanos_event_key_t) _totalKeys++, description );
+         keyDescriptor = new InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, description );
          _keyMap.insert( std::make_pair( key, keyDescriptor ) );
       }
       else {
@@ -136,12 +138,12 @@ inline nanos_event_key_t InstrumentorDictionary::registerEventKey ( const char *
    return keyDescriptor->getId();
 }
 
-inline nanos_event_key_t InstrumentorDictionary::getEventKey ( const std::string &key )
+inline nanos_event_key_t InstrumentationDictionary::getEventKey ( const std::string &key )
 {
    return getEventKey( key.c_str() );
 }
 
-inline nanos_event_key_t InstrumentorDictionary::getEventKey ( const char *key )
+inline nanos_event_key_t InstrumentationDictionary::getEventKey ( const char *key )
 {
    KeyMapIterator it = _keyMap.find( key );
 
@@ -149,14 +151,14 @@ inline nanos_event_key_t InstrumentorDictionary::getEventKey ( const char *key )
    else return it->second->getId();
 }
 
-inline nanos_event_value_t InstrumentorDictionary::registerEventValue ( const std::string &key, const std::string &value, const std::string &description, bool abort_when_registered )
+inline nanos_event_value_t InstrumentationDictionary::registerEventValue ( const std::string &key, const std::string &value, const std::string &description, bool abort_when_registered )
 {
    return registerEventValue ( key.c_str(), value.c_str(), description.c_str(), abort_when_registered );
 }
 
-inline nanos_event_value_t InstrumentorDictionary::registerEventValue ( const char *key, const char *value, const char *description, bool abort_when_registered )
+inline nanos_event_value_t InstrumentationDictionary::registerEventValue ( const char *key, const char *value, const char *description, bool abort_when_registered )
 {
-   InstrumentorKeyDescriptor *keyDescriptor = NULL;
+   InstrumentationKeyDescriptor *keyDescriptor = NULL;
 
    KeyMapIterator it = _keyMap.find( key );
 
@@ -164,7 +166,7 @@ inline nanos_event_value_t InstrumentorDictionary::registerEventValue ( const ch
       _lock++;
       it = _keyMap.find( key );
       if ( it == _keyMap.end() ) {
-         keyDescriptor = new InstrumentorKeyDescriptor ( (nanos_event_key_t) _totalKeys++, "" );
+         keyDescriptor = new InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, "" );
          _keyMap.insert( std::make_pair( key, keyDescriptor ) );
       }
       else {
@@ -177,12 +179,12 @@ inline nanos_event_value_t InstrumentorDictionary::registerEventValue ( const ch
    return keyDescriptor->registerValue( value, description, abort_when_registered );
 }
 
-inline nanos_event_value_t InstrumentorDictionary::getEventValue ( const std::string &key, const std::string &value )
+inline nanos_event_value_t InstrumentationDictionary::getEventValue ( const std::string &key, const std::string &value )
 {
    return getEventValue ( key.c_str(), value.c_str() );
 }
 
-inline nanos_event_value_t InstrumentorDictionary::getEventValue ( const char *key, const char *value )
+inline nanos_event_value_t InstrumentationDictionary::getEventValue ( const char *key, const char *value )
 {
    KeyMapIterator it = _keyMap.find( key );
 
@@ -190,33 +192,33 @@ inline nanos_event_value_t InstrumentorDictionary::getEventValue ( const char *k
    else return it->second->getValue(value);
 }
 
-inline InstrumentorDictionary::ConstKeyMapIterator InstrumentorDictionary::beginKeyMap ( void )
+inline InstrumentationDictionary::ConstKeyMapIterator InstrumentationDictionary::beginKeyMap ( void )
 {
    return _keyMap.begin();
 }
 
-inline InstrumentorDictionary::ConstKeyMapIterator InstrumentorDictionary::endKeyMap ( void )
+inline InstrumentationDictionary::ConstKeyMapIterator InstrumentationDictionary::endKeyMap ( void )
 {
    return _keyMap.end();
 }
 
 /** INSTRUMENTOR **/
 
-inline InstrumentorDictionary * Instrumentor::getInstrumentorDictionary ( void ) { return &_instrumentorDictionary; }
+inline InstrumentationDictionary * Instrumentation::getInstrumentorDictionary ( void ) { return &_instrumentorDictionary; }
 
-inline nanos_event_type_t Instrumentor::Event::getType () const { return _type; }
+inline nanos_event_type_t Instrumentation::Event::getType () const { return _type; }
 
-inline nanos_event_state_value_t Instrumentor::Event::getState () { return _state; }
+inline nanos_event_state_value_t Instrumentation::Event::getState () { return _state; }
 
-inline unsigned int Instrumentor::Event::getNumKVs () const { return _nkvs; }
+inline unsigned int Instrumentation::Event::getNumKVs () const { return _nkvs; }
 
-inline Instrumentor::Event::ConstKVList Instrumentor::Event::getKVs () const { return _kvList; }
+inline Instrumentation::Event::ConstKVList Instrumentation::Event::getKVs () const { return _kvList; }
 
-inline unsigned int Instrumentor::Event::getDomain ( void ) const { return _ptpDomain; }
+inline unsigned int Instrumentation::Event::getDomain ( void ) const { return _ptpDomain; }
 
-inline unsigned int Instrumentor::Event::getId( void ) const { return _ptpId; }
+inline unsigned int Instrumentation::Event::getId( void ) const { return _ptpId; }
 
-inline void Instrumentor::Event::reverseType ( )
+inline void Instrumentation::Event::reverseType ( )
 {
    switch ( _type )
    {
@@ -227,5 +229,7 @@ inline void Instrumentor::Event::reverseType ( )
       default: break;
    }
 }
+
+#endif
 
 #endif

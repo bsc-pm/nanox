@@ -1,6 +1,8 @@
 #include "plugin.hpp"
 #include "system.hpp"
 #include "instrumentor.hpp"
+#include "instrumentorcontext_decl.hpp"
+#include <extrae_types.h>
 #include <mpitrace_user_events.h>
 #include "debug.hpp"
 #include <sys/stat.h>
@@ -17,28 +19,32 @@
 namespace nanos {
 
    const unsigned int _eventState      = 9000000;   /*<< event coding state changes */
-   const unsigned int _eventSubState   = 9000004;   /*<< event coding sub-state changes */
    const unsigned int _eventPtPStart   = 9000001;   /*<< event coding comm start */
    const unsigned int _eventPtPEnd     = 9000002;   /*<< event coding comm end */
+   const unsigned int _eventSubState   = 9000004;   /*<< event coding sub-state changes */
+   const unsigned int _eventBase       = 9200000;   /*<< event base (used in key/value pairs) */
 
-class InstrumentorParaver: public Instrumentor 
+class InstrumentationExtrae: public Instrumentation 
 {
-   private:
-      unsigned int _eventBase[EVENT_TYPES];
+#ifndef NANOS_INSTRUMENTATION_ENABLED
    public:
       // constructor
-      InstrumentorParaver ( ) : Instrumentor()
-      {
-         _eventBase[STATE]       = 0;
-         _eventBase[BURST_START] = 9200000;
-         _eventBase[BURST_END]   = 9200000;
-         _eventBase[PTP_START]   = 9400000;
-         _eventBase[PTP_END]     = 9400000;
-         _eventBase[POINT]       = 9600000;
-      }
-
+      InstrumentationExtrae(): Instrumentation() {}
       // destructor
-      ~InstrumentorParaver ( ) { }
+      ~InstrumentationExtrae() {}
+
+      // low-level instrumentation interface (mandatory functions)
+      virtual void initialize( void ) {}
+      virtual void finalize( void ) {}
+      virtual void addEventList ( unsigned int count, Event *events ) {}
+#else
+   private:
+      InstrumentationContextStackedBursts   _icLocal;
+   public:
+      // constructor
+      InstrumentationExtrae ( ) : Instrumentation(), _icLocal() { _instrumentationContext = &_icLocal; }
+      // destructor
+      ~InstrumentationExtrae ( ) { }
 
       void mergeParaverTraceFiles ()
       {
@@ -94,25 +100,7 @@ class InstrumentorParaver: public Instrumentor
             p_file << RUNNING          << "     RUNNING" << std::endl;
             p_file << SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
             p_file << SCHEDULING       << "     SCHEDULING" << std::endl;
-            p_file << FORK_JOIN        << "     FORK/JOIN" << std::endl;
-            p_file << MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
-            p_file << CACHE            << "     CACHE ALLOC/FREE" << std::endl;
-            p_file << std::endl;
-
-            /* Event: Sub-state */
-            p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    " << _eventSubState  << "    Thread sub-state: " << std::endl;
-            p_file << "VALUES" << std::endl;
-            p_file << NOT_TRACED       << "     NOT TRACED" << std::endl;
-            p_file << STARTUP          << "     STARTUP" << std::endl;
-            p_file << SHUTDOWN         << "     SHUTDOWN" << std::endl;
-            p_file << ERROR            << "     ERROR" << std::endl;
-            p_file << IDLE             << "     IDLE" << std::endl;
-            p_file << RUNTIME          << "     RUNTIME" << std::endl;
-            p_file << RUNNING          << "     RUNNING" << std::endl;
-            p_file << SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
-            p_file << SCHEDULING       << "     SCHEDULING" << std::endl;
-            p_file << FORK_JOIN        << "     FORK/JOIN" << std::endl;
+            p_file << CREATION         << "     CREATION" << std::endl;
             p_file << MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
             p_file << CACHE            << "     CACHE ALLOC/FREE" << std::endl;
             p_file << std::endl;
@@ -127,60 +115,47 @@ class InstrumentorParaver: public Instrumentor
             p_file << "9    " << _eventPtPEnd    << "    Point-to-point destination: " << std::endl;
             p_file << std::endl;
 
+            /* Event: Sub-state (key == state)  */
+            p_file << "EVENT_TYPE" << std::endl;
+            p_file << "9    " << _eventSubState  << "    Thread sub-state: " << std::endl;
+            p_file << "VALUES" << std::endl;
+            p_file << NOT_TRACED       << "     NOT TRACED" << std::endl;
+            p_file << STARTUP          << "     STARTUP" << std::endl;
+            p_file << SHUTDOWN         << "     SHUTDOWN" << std::endl;
+            p_file << ERROR            << "     ERROR" << std::endl;
+            p_file << IDLE             << "     IDLE" << std::endl;
+            p_file << RUNTIME          << "     RUNTIME" << std::endl;
+            p_file << RUNNING          << "     RUNNING" << std::endl;
+            p_file << SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
+            p_file << SCHEDULING       << "     SCHEDULING" << std::endl;
+            p_file << CREATION         << "     CREATION" << std::endl;
+            p_file << MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
+            p_file << CACHE            << "     CACHE ALLOC/FREE" << std::endl;
+            p_file << std::endl;
+
             /* Getting Instrumentor Dictionary */
-            InstrumentorDictionary::ConstKeyMapIterator itK;
-            InstrumentorKeyDescriptor::ConstValueMapIterator itV;
+            InstrumentationDictionary::ConstKeyMapIterator itK;
+            InstrumentationKeyDescriptor::ConstValueMapIterator itV;
 
-            InstrumentorDictionary *iD = sys.getInstrumentor()->getInstrumentorDictionary();
+            InstrumentationDictionary *iD = sys.getInstrumentor()->getInstrumentorDictionary();
 
-            /* Generating BURST events */
+            /* Generating key/value events */
             for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
-               InstrumentorKeyDescriptor *kD = itK->second;
+               InstrumentationKeyDescriptor *kD = itK->second;
  
                p_file << "EVENT_TYPE" << std::endl;
-               p_file << "9    " << _eventBase[BURST_START]+kD->getId() << "  Burst, " << kD->getDescription() << std::endl;
+               p_file << "9    " << _eventBase+kD->getId() << kD->getDescription() << std::endl;
                p_file << "VALUES" << std::endl;
                
                for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
-                  InstrumentorValueDescriptor *vD = itV->second;
+                  InstrumentationValueDescriptor *vD = itV->second;
                   p_file << vD->getId() << "  " << vD->getDescription() << std::endl;
                }
                p_file << std::endl;
             }
             p_file << std::endl;
 
-            /* Generating POINT events */
-            for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
-               InstrumentorKeyDescriptor *kD = itK->second;
- 
-               p_file << "EVENT_TYPE" << std::endl;
-               p_file << "9    " << _eventBase[POINT]+kD->getId() << "  Punctual, " << kD->getDescription() << std::endl;
-               p_file << "VALUES" << std::endl;
-               
-               for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
-                  InstrumentorValueDescriptor *vD = itV->second;
-                  p_file << vD->getId() << "  " << vD->getDescription() << std::endl;
-               }
-               p_file << std::endl;
-            }
-            p_file << std::endl;
-
-            /* Generating PTP events */
-            for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
-               InstrumentorKeyDescriptor *kD = itK->second;
- 
-               p_file << "EVENT_TYPE" << std::endl;
-               p_file << "9    " << _eventBase[PTP_START]+kD->getId() << "  Point-to-point, " << kD->getDescription() << std::endl;
-               p_file << "VALUES" << std::endl;
-               
-               for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
-                  InstrumentorValueDescriptor *vD = itV->second;
-                  p_file << vD->getId() << "  " << vD->getDescription() << std::endl;
-               }
-               p_file << std::endl;
-            }
-            p_file << std::endl;
-
+            /* Closing configuration file */
             p_file.close();
          }
          else std::cout << "Unable to open paraver config file" << std::endl;  
@@ -237,13 +212,13 @@ class InstrumentorParaver: public Instrumentor
          char *mpi_trace_on;
 
          /* check environment variable MPITRACE_ON value */
-         mpi_trace_on = getenv("MPITRACE_ON");
+         mpi_trace_on = getenv("EXTRAE_ON");
 
          /* if MPITRAE_ON not defined, active it */
          if ( mpi_trace_on == NULL )
          {
             mpi_trace_on = new char[15];
-            strcpy(mpi_trace_on, "MPITRACE_ON=1");
+            strcpy(mpi_trace_on, "EXTRAE_ON=1");
             putenv (mpi_trace_on);
          }
 
@@ -261,35 +236,41 @@ class InstrumentorParaver: public Instrumentor
 
       void addEventList ( unsigned int count, Event *events) 
       {
-         unsigned int total = 0;
+         struct extrae_CombinedEvents ce;
+
+         ce.HardwareCounters = 1;
+         ce.Callers = 0;
+         ce.UserFunction = 0;
+         ce.nEvents = 0;
+         ce.nCommunications = 0;
+
          for (unsigned int i = 0; i < count; i++)
          {
             Event &e = events[i];
             switch ( e.getType() ) {
                case STATE:
                case SUBSTATE:
-                  total++;
+                  ce.nEvents++;
                   break;
                case PTP_START:
                case PTP_END:
-                  total++;
+                  ce.nCommunications++;
                   // continue...
                case POINT:
                case BURST_START:
                case BURST_END:
-                  total += e.getNumKVs();
+                  ce.nEvents += e.getNumKVs();
                   break;
                default: break;
             }
          }
 
-         unsigned int *p_events = (unsigned int *) alloca (total * sizeof (unsigned int));
-         unsigned int *p_values = (unsigned int *) alloca (total * sizeof (unsigned int));
-        
+         ce.Types = (unsigned int *) alloca (ce.nEvents * sizeof (unsigned int));
+         ce.Values = (unsigned int *) alloca (ce.nEvents * sizeof (unsigned int));
+         ce.Communications = (struct extrae_UserCommunication *) alloca (ce.nCommunications * sizeof (struct extrae_UserCommunication));
 
-         int j = 0;
+         int j = 0; int k = 0;
          Event::ConstKVList kvs = NULL;
-
 
          for (unsigned int i = 0; i < count; i++)
          {
@@ -297,88 +278,89 @@ class InstrumentorParaver: public Instrumentor
             unsigned int type = e.getType();
             switch ( type ) {
                case STATE:
-                  p_events[j] = _eventState;
-                  p_values[j++] = e.getState();
+                  ce.Types[j] = _eventState;
+                  ce.Values[j++] = e.getState();
                   break;
                case SUBSTATE:
-                  p_events[j] = _eventSubState;
-                  p_values[j++] = e.getState();
+                  ce.Types[j] = _eventSubState;
+                  ce.Values[j++] = e.getState();
                   break;
                case PTP_START:
                case PTP_END:
                   /* Creating PtP event */
-		  if ( type == PTP_START ) p_events[j] = _eventPtPStart;
-		  else p_events[j] = _eventPtPEnd;
-	          p_values[j++] = e.getDomain() + e.getId();
+                  if ( type == PTP_START) ce.Communications[k].type = EXTRAE_USER_SEND;
+                  else ce.Communications[k].type = EXTRAE_USER_RECV;
+                  ce.Communications[k].tag = e.getDomain();
+                  ce.Communications[k].id = e.getId();
+                  ce.Communications[k].size = e.getId(); // FIXME: just in some cases size is equal to id
+                  ce.Communications[k].partner = 0;
+                  k++;
                   // continue...
                case POINT:
                case BURST_START:
                   kvs = e.getKVs();
                   for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
-                     p_events[j] = _eventBase[type] + kvs->first;
-                     p_values[j++] = kvs->second;
+                     ce.Types[j] = _eventBase + kvs->first;
+                     ce.Values[j++] = kvs->second;
                   }
                   break;
                case BURST_END:
                   kvs = e.getKVs();
                   for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
-                     p_events[j] = _eventBase[type] +  kvs->first;
-                     p_values[j++] = 0; // end
+                     ce.Types[j] = _eventBase +  kvs->first;
+                     ce.Values[j++] = 0; // end
                   }
                   break;
                default: break;
             }
          }
 
-         int rmValues = 0;
-         for ( unsigned int i = 0; i < total; i++ )
-         {
-            if ( (p_events[i] < 0) || (p_events[i] > 10000000) ) fatal("Negative event type");
-            for ( unsigned int j = i+1; j < total; j++ )
+         // if showing stacked burst is false remove duplicates
+         if ( !_icLocal.showStackedBursts() ) {
+            int rmValues = 0;
+            for ( int i = 0; i < ce.nEvents; i++ )
             {
-               if ( p_events[i] == p_events[j] )
+               for ( int j = i+1; j < ce.nEvents; j++ )
                {
-                  p_events[i] = 0;
-                  rmValues++;
+                  if ( ce.Types[i] == ce.Types[j] )
+                  {
+                     ce.Types[i] = 0;
+                     rmValues++;
+                  }
                }
+            }
+            ce.nEvents -= rmValues;
+            for ( int j = 0, i = 0; i < ce.nEvents; i++ )
+            {
+               while ( ce.Types[j] == 0 ) j++;
+               ce.Types[i] = ce.Types[j];
+               ce.Values[i] = ce.Values[j++];
             }
          }
 
-         total -= rmValues;
-
-         for ( unsigned int j = 0, i = 0; i < total; i++ )
-         {
-            while ( p_events[j] == 0 ) j++;
-            p_events[i] = p_events[j];
-            p_values[i] = p_values[j++];
-         }
-
-         OMPItrace_neventandcounters(total , p_events, p_values);
-          
+         Extrae_emit_CombinedEvents ( &ce );
       }
-
-      void traceMyEvent (unsigned int type, unsigned int value)
-      {
-         OMPItrace_event(type, value);
-      }
+#endif
 };
 
 namespace ext {
 
 class InstrumentorParaverPlugin : public Plugin {
    public:
-      InstrumentorParaverPlugin () : Plugin("Instrumentor which generates a paraver trace.",1) {}
+      InstrumentorParaverPlugin () : Plugin("Instrumentor which generates a Paraver trace.",1) {}
       ~InstrumentorParaverPlugin () {}
 
       virtual void config( Config &config ) {}
 
       void init ()
       {
-         sys.setInstrumentor( new InstrumentorParaver() );
+         sys.setInstrumentor( new InstrumentationExtrae() );
       }
 };
 
 } // namespace ext
+
 } // namespace nanos
 
 nanos::ext::InstrumentorParaverPlugin NanosXPlugin;
+

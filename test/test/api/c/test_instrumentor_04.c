@@ -27,6 +27,24 @@ test_generator=gens/api-generator
 #include <nanos.h>
 #include <alloca.h>
 
+
+void sleep_100 ( void )
+{
+   nanos_event_key_t event_key;
+   nanos_event_value_t event_value;
+
+   nanos_instrument_get_key ("user-funct", &event_key);
+   nanos_instrument_register_value ( &event_value, "user-funct", "sleep_100", "Function: sleep_100", false );
+   nanos_instrument_enter_burst( event_key, event_value );
+
+   usleep ( 100 );
+   nanos_yield();
+   usleep ( 100 );
+   nanos_yield();
+   usleep ( 100 );
+
+   nanos_instrument_leave_burst( event_key );
+}
 // compiler: outlined function arguments
 typedef struct {
    int value;
@@ -38,11 +56,20 @@ typedef struct {
 
 void main__task_2 ( void *args )
 {
+   nanos_event_key_t event_key;
+   nanos_event_value_t event_value;
+
+   nanos_instrument_get_key ("user-funct", &event_key);
+   nanos_instrument_register_value ( &event_value, "user-funct", "task-2", "Function: main__task_2", false );
+   nanos_instrument_enter_burst( event_key, event_value );
+
    main__task_2_data_t *hargs = (main__task_2_data_t * ) args;
 
    nanos_yield();
    usleep ( hargs->value );
    nanos_yield();
+
+   nanos_instrument_leave_burst( event_key );
 }
 // compiler: smp device for main__task_2 function
 nanos_smp_args_t main__task_2_device_args = { main__task_2 };
@@ -54,7 +81,6 @@ void main__task_1 ( void *args )
    nanos_event_value_t event_value;
 
    nanos_instrument_get_key ("user-funct", &event_key);
-   nanos_instrument_register_value ( &event_value, "user-funct", "task-0", "Function: main__task_1", false );
    nanos_instrument_register_value ( &event_value, "user-funct", "task-1", "Function: main__task_1", false );
    nanos_instrument_enter_burst( event_key, event_value );
 
@@ -78,14 +104,18 @@ void main__task_1 ( void *args )
       NANOS_SAFE( nanos_create_wd ( &wd, 1, main__task_2_device , sizeof( main__task_2_data_t ),
                                     (void **) &task_data, nanos_current_wd(), &props , 0, NULL ));
 
-      task_data->value = 100;
+      task_data->value = 1000;
 
       NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
    }
 
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
-
    usleep ( hargs->value );
+   sleep_100 ();
+   usleep ( hargs->value );
+   nanos_yield();
+   usleep ( hargs->value );
+
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
 
    nanos_instrument_enable_state_events();
 

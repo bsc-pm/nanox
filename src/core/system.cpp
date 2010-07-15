@@ -103,8 +103,8 @@ void System::loadModules ()
    if ( !PluginManager::load( "barrier-"+getDefaultBarrier() ) )
       fatal0( "Could not load main barrier algorithm" );
 
-   if ( !PluginManager::load( "instrumentor-"+getDefaultInstrumentor() ) )
-      fatal0( "Could not load " + getDefaultInstrumentor() + " instrumentor" );
+   if ( !PluginManager::load( "instrumentation-"+getDefaultInstrumentor() ) )
+      fatal0( "Could not load " + getDefaultInstrumentor() + " instrumentation" );
 
 
    ensure( _defBarrFactory,"No default system barrier factory" );
@@ -158,9 +158,9 @@ void System::config ()
    config.registerArgOption ( "barrier", "barrier" );
    config.registerEnvOption ( "barrier", "NX_BARRIER" );
 
-   config.registerConfigOption ( "instrumentor", new Config::StringVar ( _defInstr ), "Defines instrumentation format" );
-   config.registerArgOption ( "instrumentor", "instrumentor" );
-   config.registerEnvOption ( "instrumentor", "NX_INSTRUMENTOR" );
+   config.registerConfigOption ( "instrumentation", new Config::StringVar ( _defInstr ), "Defines instrumentation format" );
+   config.registerArgOption ( "instrumentation", "instrumentation" );
+   config.registerEnvOption ( "instrumentation", "NX_INSTRUMENTATION" );
 
    _schedConf.config(config);
    
@@ -181,7 +181,7 @@ void System::start ()
    loadModules();
 
    // Instrumentation startup
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->initialize() );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->initialize() );
 
    verbose0 ( "Starting threads" );
 
@@ -189,12 +189,11 @@ void System::start ()
 
    _pes.reserve ( numPes );
 
-   //TODO: decide, single master, multiple master start
    PE *pe = createPE ( "smp", 0 );
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->enterStartUp() );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseOpenStateEvent (STARTUP) );
 
    //start as much threads per pe as requested by the user
    for ( int ths = 1; ths < getThsPerPE(); ths++ ) {
@@ -239,7 +238,8 @@ void System::start ()
          fatal("Unknown inital mode!");
          break;
    }
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->leaveStartUp() );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseCloseStateEvent() );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseOpenStateEvent (RUNNING) );
 }
 
 System::~System ()
@@ -249,7 +249,10 @@ System::~System ()
 
 void System::finish ()
 {
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->enterShutDown() );
+   /* Instrumentor: First removing RUNNING state from top of the state statck */
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseCloseStateEvent() );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseOpenStateEvent(SHUTDOWN) );
+
    verbose ( "NANOS++ shutting down.... init" );
    verbose ( "Wait for main workgroup to complete" );
    myThread->getCurrentWD()->waitCompletion();
@@ -271,8 +274,8 @@ void System::finish ()
    verbose ( "Joining threads... phase 2" );
 
    // shutdown instrumentation
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->leaveShutDown() );
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->finalize() );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseCloseStateEvent() );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->finalize() );
 
    // join
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {

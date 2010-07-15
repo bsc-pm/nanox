@@ -147,7 +147,7 @@ for arch in $ARCHITECTURES; do
 	NANOS_CONFIG_LIBS="$NANOS_CONFIG_LIBS ../arch/$arch/lib$arch.la"
 done
 
-AM_CONDITIONAL([SMP_SUPPORTS_ULT],[test $smp_ult=yes])
+AM_CONDITIONAL([SMP_SUPPORTS_ULT],[test $smp_ult = yes])
 
 AC_MSG_RESULT([$ARCHITECTURES/$OS])
 
@@ -181,6 +181,12 @@ AC_CHECK_GXX_ATOMIC_BUILTINS()
 
 AM_CONDITIONAL([PERFORMANCE], [test "$performance_enabled" = yes])
 
+
+MPITRACE_HOME=""
+MPITRACE_INC=""
+MPITRACE_LIB=""
+MPITRACE_BIN=""
+
 AC_ARG_WITH([mpitrace],
            AS_HELP_STRING([--with-mpitrace=dir], [Directory of mpitrace installation]),
            [
@@ -188,21 +194,25 @@ AC_ARG_WITH([mpitrace],
                 MPITRACE_INC="$withval/include"
                 MPITRACE_LIB="$withval/lib"
                 MPITRACE_BIN="$withval/bin"
-           ],
-           [
-                MPITRACE_HOME=""
-                MPITRACE_INC=""
-                MPITRACE_LIB=""
-                MPITRACE_BIN=""
            ]
 )
-	   AC_SUBST([MPITRACE_HOME])
-	   AC_SUBST([MPITRACE_INC])
-	   AC_SUBST([MPITRACE_LIB])
-	   AC_SUBST([MPITRACE_BIN])
+AC_ARG_WITH([extrae],
+           AS_HELP_STRING([--with-extrae=dir], [Directory of extrae installation]),
+           [
+                MPITRACE_HOME="$withval"
+                MPITRACE_INC="$withval/include"
+                MPITRACE_LIB="$withval/lib"
+                MPITRACE_BIN="$withval/bin"
+           ]
+)
+
+AC_SUBST([MPITRACE_HOME])
+AC_SUBST([MPITRACE_INC])
+AC_SUBST([MPITRACE_LIB])
+AC_SUBST([MPITRACE_BIN])
 
 
-AM_CONDITIONAL([INSTRUMENTOR_PARAVER], test x"$MPITRACE_HOME" != x)
+AM_CONDITIONAL([INSTRUMENTATION_EXTRAE], test x"$MPITRACE_HOME" != x)
 
 # Output files
 AC_CONFIG_HEADERS([config.h])
@@ -216,7 +226,7 @@ AC_CONFIG_FILES([Makefile
 		 src/plugins/throttle/Makefile
 		 src/plugins/barr/Makefile
 		 src/plugins/slicers/Makefile
-		 src/plugins/instrumentors/Makefile
+		 src/plugins/instrumentation/Makefile
 		 src/apis/Makefile
 		 src/apis/c/Makefile
 		 src/pms/Makefile

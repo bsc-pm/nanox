@@ -22,118 +22,82 @@
 #include <list>
 
 #include "instrumentorcontext_decl.hpp"
-#include "instrumentor.hpp"
 #include "debug.hpp"
 
 using namespace nanos;
 
-inline void InstrumentorContext::pushState ( nanos_event_state_value_t state )
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+
+inline void InstrumentationContext::pushState ( InstrumentationContextData *icd, nanos_event_state_value_t state )
 {
-   _stateStack.push( state );
+   icd->_stateStack.push( state );
 }
 
-inline void InstrumentorContext::popState ( void )
+inline void InstrumentationContext::popState ( InstrumentationContextData *icd )
 {
-   if ( !(_stateStack.empty()) ) _stateStack.pop();
+   if ( !(icd->_stateStack.empty()) ) icd->_stateStack.pop();
 }
 
-inline nanos_event_state_value_t InstrumentorContext::topState ( void )
+inline nanos_event_state_value_t InstrumentationContext::topState ( InstrumentationContextData *icd )
 {
-   if ( !(_stateStack.empty()) ) return _stateStack.top();
+   if ( !(icd->_stateStack.empty()) ) return icd->_stateStack.top();
    else return ERROR;
 }
 
-inline void InstrumentorContext::insertBurst ( const Event &e )
+inline bool InstrumentationContext::findBurstByKey ( InstrumentationContextData *icd, nanos_event_key_t key,
+                                                     InstrumentationContextData::BurstIterator &ret )
 {
    bool found = false;
-   BurstList::iterator it;
-   nanos_event_key_t key = e.getKVs()[0].first;
+   InstrumentationContextData::BurstIterator it;
 
-   /* if found an event with the same key in the main list, send it to the backup list */
-   for ( it = _burstList.begin() ; !found && (it != _burstList.end()) ; it++ ) {
-      Event::ConstKVList kvlist = (*it).getKVs();
-      if ( kvlist[0].first == key  )
-      {
-         _burstBackup.splice ( _burstBackup.begin(), _burstList, it );
-         found = true;
-      }
-   }
-
-   /* insert the event into the list */
-   _burstList.push_front ( e );
-
-}
-
-inline void InstrumentorContext::removeBurst ( InstrumentorContext::BurstIterator it )
-{
-   bool found = false;
-   nanos_event_key_t key = (*it).getKVs()[0].first;
-
-   _burstList.erase ( it );
-
-   /* if found an event with the same key in the backup list, recover it to the main list */
-   for ( it = _burstBackup.begin() ; !found && (it != _burstBackup.end()) ; it++ ) {
-      Event::ConstKVList kvlist = (*it).getKVs();
-      if ( kvlist[0].first == key  )
-      {
-         _burstList.splice ( _burstList.begin(), _burstBackup, it );
-         found = true;
-      }
-   }
-}
-
-inline bool InstrumentorContext::findBurstByKey ( nanos_event_key_t key, InstrumentorContext::BurstIterator &ret )
-{
-   bool found = false;
-   BurstList::iterator it;
-
-   for ( it = _burstList.begin() ; !found && (it != _burstList.end()) ; it++ ) {
-      Event::ConstKVList kvlist = (*it).getKVs();
+   for ( it = icd->_burstList.begin() ; !found && (it != icd->_burstList.end()) ; it++ ) {
+      Instrumentation::Event::ConstKVList kvlist = (*it).getKVs();
       if ( kvlist[0].first == key  ) { ret = it; found = true;}
    }
 
    return found;
-
 }
 
-inline unsigned int InstrumentorContext::getNumBursts() const
+inline size_t InstrumentationContext::getNumBursts( InstrumentationContextData *icd ) const
 {
-   return _burstList.size();
+   return icd->_burstList.size();
 }
 
-inline InstrumentorContext::ConstBurstIterator InstrumentorContext::beginBurst() const
+inline InstrumentationContextData::ConstBurstIterator InstrumentationContext::beginBurst( InstrumentationContextData *icd ) const
 {
-   return _burstList.begin();
+   return icd->_burstList.begin();
 }
 
-inline InstrumentorContext::ConstBurstIterator InstrumentorContext::endBurst() const
+inline InstrumentationContextData::ConstBurstIterator InstrumentationContext::endBurst( InstrumentationContextData *icd ) const
 {
-   return _burstList.end();
+   return icd->_burstList.end();
 }
 
-inline void InstrumentorContext::disableStateEvents ( void )
+inline void InstrumentationContext::disableStateEvents ( InstrumentationContextData *icd )
 {
-   _stateEventEnabled = false;
+   icd->_stateEventEnabled = false;
 }
 
-inline void InstrumentorContext::enableStateEvents ( void )
+inline void InstrumentationContext::enableStateEvents ( InstrumentationContextData *icd )
 {
-   _stateEventEnabled = true;
+   icd->_stateEventEnabled = true;
 }
 
-inline bool InstrumentorContext::isStateEventEnabled ( void )
+inline bool InstrumentationContext::isStateEventEnabled ( InstrumentationContextData *icd )
 {
-   return _stateEventEnabled;
+   return icd->_stateEventEnabled;
 }
 
-inline nanos_event_state_value_t InstrumentorContext::validState ( void )
+inline nanos_event_state_value_t InstrumentationContext::getValidState ( InstrumentationContextData *icd )
 {
-   return _validState;
+   return icd->_validState;
 }
 
-inline void InstrumentorContext::saveValidState ( void )
+inline void InstrumentationContext::setValidState ( InstrumentationContextData *icd, nanos_event_state_value_t state )
 {
-   _validState = _stateStack.top();
+   icd->_validState = state;
 }
+
+#endif
 
 #endif

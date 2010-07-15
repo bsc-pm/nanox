@@ -67,6 +67,7 @@ bool SlicerDynamicFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
    ((nanos_loop_info_t *)((*slice)->getData()))->lower = lower;
    ((nanos_loop_info_t *)((*slice)->getData()))->upper = upper;
    ((nanos_loop_info_t *)((*slice)->getData()))->step = _step;
+   ((nanos_loop_info_t *)((*slice)->getData()))->last = last;
 
    return last;
 }
