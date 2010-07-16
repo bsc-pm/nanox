@@ -23,6 +23,8 @@
 
 using namespace nanos;
 
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+
 inline nanos_event_value_t InstrumentationValueDescriptor::getId ( void )
 {
    return _id;
@@ -227,5 +229,7 @@ inline void Instrumentation::Event::reverseType ( )
       default: break;
    }
 }
+
+#endif
 
 #endif

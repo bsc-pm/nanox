@@ -135,16 +135,12 @@ namespace nanos
       if ( !_dq.empty() ) {
          WDDeque::BaseContainer::reverse_iterator rit;
 
-         rit = _dq.rbegin();
-
-         while ( rit != _dq.rend() ) {
+         for ( rit = _dq.rbegin(); rit != _dq.rend() ; rit++ ) {
             if ( !(*rit)->canRunIn(*thread->runningOn()) ) continue;
             if ( !( *rit )->isTied() || ( *rit )->isTiedTo() == thread ) {
                if ( (( *rit )->dequeue( &found )) == true ) _dq.erase( ( ++rit ).base() );
                break;
             }
-
-            rit++;
          }
       }
 
@@ -243,16 +239,12 @@ namespace nanos
       if ( !_dq.empty() ) {
          WDDeque::BaseContainer::reverse_iterator rit;
 
-         rit = _dq.rbegin();
-
-         while ( rit != _dq.rend() ) {
+         for ( rit = _dq.rbegin(); rit != _dq.rend() ; rit++ ) {
             if ( !(*rit)->canRunIn(*thread->runningOn()) ) continue;
             if ( ( !( *rit )->isTied() || ( *rit )->isTiedTo() == thread )  && ( predicate( *rit ) == true ) ) {
                if ( (( *rit )->dequeue( &found )) == true ) _dq.erase( ( ++rit ).base() );
                break;
             }
-
-            rit++;
          }
       }
 

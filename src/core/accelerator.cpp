@@ -21,7 +21,7 @@
 #include "debug.hpp"
 #include "schedule.hpp"
 #include "copydata.hpp"
-#include "instrumentor_decl.hpp"
+#include "instrumentor.hpp"
 #include "system.hpp"
 
 using namespace nanos;

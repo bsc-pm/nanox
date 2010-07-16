@@ -16,19 +16,13 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-#ifndef __NANOS_INSTRUMENTOR_FWD_H
-#define __NANOS_INSTRUMENTOR_FWD_H
-
+#ifndef __NANOS_INSTRUMENTOR_CTX_FWD_H
+#define __NANOS_INSTRUMENTOR_CTX_FWD_H
 namespace nanos {
-   class Instrumentation;
+   class InstrumentationContextData ;
 #ifdef NANOS_INSTRUMENTATION_ENABLED
-   class InstrumentationValueDescriptor;
-   class InstrumentationKeyDescriptor;
-   class InstrumentationDictionary;
-
-   class InstrumentStateAndBurst;
-   class InstrumentState;
+   class InstrumentationContext ;
+   class InstrumentationContextStackedBursts ;
 #endif
-};
-
+}
 #endif
