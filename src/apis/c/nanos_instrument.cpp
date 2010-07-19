@@ -19,7 +19,7 @@
 
 #include "nanos.h"
 #include "system.hpp"
-#include "instrumentor_decl.hpp"
+#include "instrumentor.hpp"
 #include <alloca.h>
 
 using namespace nanos;

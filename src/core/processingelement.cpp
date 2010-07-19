@@ -22,12 +22,16 @@
 #include "debug.hpp"
 #include "schedule.hpp"
 #include "copydata.hpp"
+#include "system.hpp"
+#include "instrumentor.hpp"
 
 using namespace nanos;
 
 BaseThread& ProcessingElement::startWorker ( )
 {
    WD & worker = getWorkerWD();
+   NANOS_INSTRUMENT (sys.getInstrumentor()->raiseOpenPtPEventNkvs ( NANOS_WD_DOMAIN, (nanos_event_id_t) worker.getId(), 0, NULL, NULL ); )
+
    return startThread( worker );
 }
 
@@ -45,6 +49,7 @@ BaseThread & ProcessingElement::startThread ( WD &work )
 BaseThread & ProcessingElement::associateThisThread ( bool untieMain )
 {
    WD & worker = getMasterWD();
+   NANOS_INSTRUMENT (sys.getInstrumentor()->raiseOpenPtPEventNkvs ( NANOS_WD_DOMAIN, (nanos_event_id_t) worker.getId(), 0, NULL, NULL ); )
    
    BaseThread &thread = createThread( worker );
 

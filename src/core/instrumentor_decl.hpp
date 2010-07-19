@@ -35,11 +35,12 @@
 #include "debug.hpp"
 #include "nanos-int.h"
 #include "atomic.hpp"
-
+#include "instrumentorcontext_fwd.hpp"
 #include "workdescriptor_fwd.hpp"
 
 namespace nanos {
 
+#ifdef NANOS_INSTRUMENTATION_ENABLED
    class InstrumentationValueDescriptor
    {
       private:
@@ -129,15 +130,14 @@ namespace nanos {
 
    };
 
-   class InstrumentationDictionary
-   {
+   class InstrumentationDictionary {
       public:
          typedef std::tr1::unordered_map<std::string, InstrumentationKeyDescriptor*> KeyMap;
          typedef KeyMap::iterator KeyMapIterator;
          typedef KeyMap::const_iterator ConstKeyMapIterator;
       private:
          Atomic<unsigned int> _totalKeys; /**< Total number of keys */
-         Lock                 _lock;      /**< _keyMap exclusive lock */
+         Lock                 _lock;      /**< Is the _keyMap exclusive lock */
          KeyMap               _keyMap;    /**< Registered Key elements */
          
       public:
@@ -222,7 +222,8 @@ namespace nanos {
 
          /*! \brief Inserts (or gets) a value into (from) the valueMap (which belongs to 'key' parameter )
           */
-         nanos_event_value_t registerEventValue ( const std::string &key, const std::string &value, const std::string &description="", bool abort_when_registered=true );
+         nanos_event_value_t registerEventValue ( const std::string &key, const std::string &value,
+                                                  const std::string &description="", bool abort_when_registered=true );
 
          /*! \brief Inserts (or gets) a value into (from) the valueMap (which belongs to 'key' parameter )
           */
@@ -246,11 +247,10 @@ namespace nanos {
          
 
    };
+#endif
 
    class Instrumentation 
    {
-      private:
-         InstrumentationDictionary      _instrumentorDictionary; /** Instrumentor Dictionary (allow register event keys and values) */
       public:
          class Event {
             public:
@@ -362,49 +362,46 @@ namespace nanos {
                 */
                void reverseType ( );
          };
-
-         class State : public Event 
-         {
+         class State : public Event {
             public:
               /*! \brief State event constructor
                */
               State ( nanos_event_type_t type = STATE, nanos_event_state_value_t state = ERROR ) 
-                 : Event (type, state, 0, NULL, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
+                    : Event (type, state, 0, NULL, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
          };
-
-         class Burst : public Event 
-         {
+         class Burst : public Event {
              public:
                /*! \brief Burst event constructor
                 */
                Burst ( bool start, KV kv )
-                 : Event ( start? BURST_START: BURST_END, ERROR, 1, &kv, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
-
+                     : Event ( start? BURST_START: BURST_END, ERROR, 1, &kv, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
          };
-
-         class Point : public Event 
-         {
+         class Point : public Event {
              public:
                /*! \brief Point event constructor
                 */
                Point ( unsigned int nkvs, KVList kvlist )
-                 : Event ( POINT, ERROR, nkvs, kvlist, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
+                     : Event ( POINT, ERROR, nkvs, kvlist, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
          };
-
-         class PtP : public Event 
-         {
+         class PtP : public Event {
             public:
                /*! \brief PtP event constructor
                 */
                PtP ( bool start, nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,  KVList kvlist )
-                  : Event ( start ? PTP_START : PTP_END , ERROR, nkvs, kvlist, domain, id ) { }
-
+                   : Event ( start ? PTP_START : PTP_END , ERROR, nkvs, kvlist, domain, id ) { }
          };
-
+#ifndef NANOS_INSTRUMENTATION_ENABLED
+      public:
+         Instrumentation () {}
+         ~Instrumentation () {}
+#else
+      protected: /* They can be accessed by plugins (derived classes ) */
+         InstrumentationDictionary      _instrumentorDictionary; /**< Instrumentation Dictionary (allow register event keys and values) */
+         InstrumentationContext        *_instrumentationContext; /**< Instrumentation Context */
       public:
          /*! \brief Instrumentor constructor
           */
-         Instrumentation() {}
+         Instrumentation() : _instrumentorDictionary(), _instrumentationContext(NULL) {}
 
          /*! \brief Instrumentor destructor
           */
@@ -561,7 +558,12 @@ namespace nanos {
 
          void disableStateEvents ( void );
          void enableStateEvents ( void ); 
+#endif
    };
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+
+#endif
 
 }
 #endif
