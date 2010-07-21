@@ -421,17 +421,18 @@ void Instrumentation::wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD )
 
 void Instrumentation::enableStateEvents()
 {
+   raiseCloseStateEvent();
    InstrumentationContextData *icd = myThread->getCurrentWD()->getInstrumentorContextData();
    _instrumentationContext->enableStateEvents( icd );
-   Event e = State ( SUBSTATE, NOT_TRACED );
-   addEventList ( 1, &e );
 }
 
-void Instrumentation::disableStateEvents()
+void Instrumentation::disableStateEvents( nanos_event_state_value_t state )
 {
    InstrumentationContextData *icd = myThread->getCurrentWD()->getInstrumentorContextData();
-   _instrumentationContext->disableStateEvents( icd );
    _instrumentationContext->setValidState( icd, _instrumentationContext->topState( icd ) );
+   _instrumentationContext->disableStateEvents( icd );
+   raiseOpenStateEvent( state );
+
 }
 
 #endif
