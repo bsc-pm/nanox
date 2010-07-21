@@ -20,7 +20,7 @@
 SUBDIRS = gens
 
 check-local: $(top_srcdir)/scripts/bets
-	$(top_srcdir)/scripts/bets -o tests.log $(srcdir)/test
+	$(top_srcdir)/scripts/bets $(BETS_OPTIONS) -o tests.log $(srcdir)/test 
 
 dist-hook:
 	mkdir $(distdir)/test; \
