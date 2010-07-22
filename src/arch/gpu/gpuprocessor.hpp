@@ -36,7 +36,9 @@ namespace ext
 
       public:
 
-         TransferInfo ()
+         TransferInfo () {}
+
+         void init ()
          {
 #if 1
             cudaError_t err = cudaStreamCreate( &_transferStream );

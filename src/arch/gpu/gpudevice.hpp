@@ -51,20 +51,16 @@ typedef enum {
       private:
          static transfer_mode _transferMode;
 
-//#if PINNED_OS
          static unsigned int _rlimit;
 
          static void getMemoryLockLimit();
-//#endif
 
       public:
          /*! \brief GPUDevice constructor
           */
          GPUDevice ( const char *n ) : Device ( n )
          {
-//#if PINNED_OS
             getMemoryLockLimit();
-//#endif
          }
 
          /*! \brief GPUDevice copy constructor

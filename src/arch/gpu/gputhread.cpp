@@ -19,6 +19,7 @@
 
 #include "gputhread.hpp"
 #include "gpuprocessor.hpp"
+#include "instrumentormodule_decl.hpp"
 #include "schedule.hpp"
 #include "system.hpp"
 
@@ -38,19 +39,20 @@ void GPUThread::runDependent ()
    if ( err != cudaSuccess )
       warning( "Couldn't set the GPU device for the thread: " << cudaGetErrorString( err ) );
 
-//#if PINNED_CUDA | WC
    if ( GPUDevice::getTransferMode() == nanos::PINNED_CUDA || GPUDevice::getTransferMode() == nanos::WC ) {
       err = cudaSetDeviceFlags( cudaDeviceMapHost | cudaDeviceBlockingSync );
       if ( err != cudaSuccess )
          warning( "Couldn't set the GPU device flags: " << cudaGetErrorString( err ) );
-//#else
    }
    else {
       err = cudaSetDeviceFlags( cudaDeviceBlockingSync );
       if ( err != cudaSuccess )
          warning( "Couldn't set the GPU device flags:" << cudaGetErrorString( err ) );
    }
-//#endif
+
+   if ( GPUDevice::getTransferMode() != nanos::NORMAL ) {
+      ((GPUProcessor *) myThread->runningOn())->getTransferInfo()->init();
+   }
 
    // Avoid the so slow first data allocation and transfer to device
    bool b = true;
@@ -66,11 +68,12 @@ void GPUThread::runDependent ()
 void GPUThread::inlineWorkDependent ( WD &wd )
 {
    SMPDD &dd = ( SMPDD & )wd.getActiveDevice();
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->enterUserCode() );
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->disableStateEvents() );
+
+   NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), RUNNING ) );
+   NANOS_INSTRUMENT ( InstrumentSubState inst2( RUNTIME ) );
+
    ( dd.getWorkFct() )( wd.getData() );
 
-//#if !NORMAL
    if ( GPUDevice::getTransferMode() != nanos::NORMAL ) {
       // Get next task in order to prefetch data to device memory
       WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, wd );
@@ -79,12 +82,9 @@ void GPUThread::inlineWorkDependent ( WD &wd )
          next->start(false);
       }
       // Wait for the transfer stream to finish
-      cudaStreamSynchronize( ((GPUProcessor *) myThread->runningOn())->getTransferInfo()->getTransferStream() );
+      cudaStreamSynchronize( ( (GPUProcessor *) myThread->runningOn() )->getTransferInfo()->getTransferStream() );
    }
-//#endif
 
    // Wait for the GPU kernel to finish
    cudaThreadSynchronize();
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->enableStateEvents() );
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->leaveUserCode() );
 }

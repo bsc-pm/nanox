@@ -22,15 +22,11 @@
 #include "basethread.hpp"
 #include "debug.hpp"
 #include "gpuprocessor.hpp"
-//#if ASYNC
 #include <string.h>
-//#endif
-//#if PINNED_OS
 #include <sys/mman.h>
 #include <errno.h>
 #include <string.h>
 #include <sys/resource.h>
-//#endif
 
 
 #include <cuda_runtime.h>
@@ -41,7 +37,6 @@ using namespace nanos;
 transfer_mode GPUDevice::_transferMode = ASYNC;
 
 
-//#if PINNED_OS
 unsigned int GPUDevice::_rlimit;
 
 void GPUDevice::getMemoryLockLimit()
@@ -56,7 +51,6 @@ void GPUDevice::getMemoryLockLimit()
       }
    }
 }
-//#endif
 
 void * GPUDevice::allocate( size_t size )
 {
@@ -64,23 +58,28 @@ void * GPUDevice::allocate( size_t size )
    void * address = 0;
    uint64_t pinned = 0;
 
-//#if ASYNC
    if ( _transferMode == ASYNC ) {
       err = cudaMallocHost( ( void ** ) &pinned, size );
       //err = cudaHostAlloc( ( void ** ) &pinned, size, cudaHostAllocPortable);
       if ( err != cudaSuccess ) {
-         std::string what = "Trying to allocate host memory with cudaMallocHost(): ";
+         std::stringstream sizeStr;
+         sizeStr << size;
+         std::string what = "Trying to allocate "
+                            + sizeStr.str()
+                            + " bytes of host memory with cudaMallocHost(): ";
          fatal( what + cudaGetErrorString( err ) );
       }
    }
-//#endif
 
-//#if PINNED_CUDA
    if ( _transferMode == PINNED_CUDA ) {
       err = cudaHostAlloc( ( void ** ) &pinned, size, cudaHostAllocMapped );
 
       if ( err != cudaSuccess ) {
-         std::string what = "Trying to allocate host memory with cudaHostAlloc(): ";
+         std::stringstream sizeStr;
+         sizeStr << size;
+         std::string what = "Trying to allocate "
+                            + sizeStr.str()
+                            + " bytes of host memory with cudaHostAlloc(): ";
          fatal( what + cudaGetErrorString( err ) );
       }
 
@@ -91,15 +90,17 @@ void * GPUDevice::allocate( size_t size )
          fatal( what + cudaGetErrorString( err ) );
       }
    }
-//#endif
 
-//#if WC
    if ( _transferMode == WC ) {
       // Find out more about this method --> it's not clear how to use it
       err = cudaHostAlloc( ( void ** ) &pinned, size, cudaHostAllocMapped | cudaHostAllocWriteCombined );
 
       if ( err != cudaSuccess ) {
-         std::string what = "Trying to allocate host memory with cudaHostAlloc(): ";
+         std::stringstream sizeStr;
+         sizeStr << size;
+         std::string what = "Trying to allocate "
+                            + sizeStr.str()
+                            + " bytes of host memory with cudaHostAlloc(): ";
          fatal( what + cudaGetErrorString( err ) );
       }
 
@@ -110,24 +111,23 @@ void * GPUDevice::allocate( size_t size )
          fatal( what + cudaGetErrorString( err ) );
       }
    }
-//#endif
 
-//#if NORMAL | ASYNC | PINNED_OS
    if ( _transferMode == NORMAL || _transferMode == ASYNC || _transferMode == PINNED_OS) {
       err = cudaMalloc( ( void ** ) &address, size );
 
       if ( err != cudaSuccess ) {
-         std::string what = "Trying to allocate host memory with cudaMalloc(): ";
+         std::stringstream sizeStr;
+         sizeStr << size;
+         std::string what = "Trying to allocate "
+                            + sizeStr.str()
+                            + " bytes of device memory with cudaMalloc(): ";
          fatal( what + cudaGetErrorString( err ) );
       }
    }
-//#endif
 
-//#if ASYNC | PINNED_CUDA | WC
    if ( _transferMode == ASYNC || _transferMode == PINNED_CUDA || _transferMode == WC) {
       ((nanos::ext::GPUProcessor *) myThread->runningOn())->setPinnedAddress( address, pinned );
    }
-//#endif
 
    return address;
 
@@ -137,7 +137,6 @@ void GPUDevice::free( void *address )
 {
    cudaError_t err = cudaSuccess;
 
-//#if NORMAL | ASYNC | PINNED_OS
    if ( _transferMode == NORMAL || _transferMode == ASYNC || _transferMode == PINNED_OS) {
       err = cudaFree( address );
 
@@ -146,9 +145,7 @@ void GPUDevice::free( void *address )
          fatal( what + cudaGetErrorString( err ) );
       }
    }
-//#endif
 
-//#if ASYNC | PINNED_CUDA | WC
    if ( _transferMode == ASYNC || _transferMode == PINNED_CUDA || _transferMode == WC) {
       uint64_t pinned = ((nanos::ext::GPUProcessor *) myThread->runningOn())->getPinnedAddress( address );
       if ( pinned != 0 ) {
@@ -161,7 +158,6 @@ void GPUDevice::free( void *address )
          fatal( what + cudaGetErrorString( err ) );
       }
    }
-//#endif
 }
 
 void GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
@@ -170,11 +166,11 @@ void GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
 
    cudaError_t err = cudaSuccess;
 
-//#if ASYNC
    if ( _transferMode == ASYNC ) {
       // Workaround to perform asynchronous copies
       uint64_t pinned = ((nanos::ext::GPUProcessor *) myThread->runningOn())->getPinnedAddress( localDst );
       memcpy( ( void * ) pinned, ( void * ) remoteSrc, size );
+
       err = cudaMemcpyAsync(
                localDst,
                ( void * ) pinned,
@@ -184,17 +180,15 @@ void GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
             );
 
       if ( err != cudaSuccess ) {
-         std::cout << "localDst = " << localDst << "; pinnedMemory = 0x"
-               << pinned << "; size = " << size
-               << "; stream = " << ((nanos::ext::GPUProcessor *) myThread->runningOn())->getTransferInfo()->getTransferStream()
-               << std::endl;
-         std::string what = "Trying to copy data from host to device with cudaMemcpy*(): ";
+         std::stringstream sizeStr;
+         sizeStr << size;
+         std::string what = "Trying to copy "
+                            + sizeStr.str()
+                            + " bytes of data from host to device with cudaMemcpy*(): ";
          fatal( what + cudaGetErrorString( err ) );
       }
    }
-//#endif
 
-//#if PINNED_OS
    if ( _transferMode == PINNED_OS ) {
       unsigned int auxAddress = remoteSrc;
       int error = 0;
@@ -225,16 +219,17 @@ void GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
 
       err = cudaMemcpyAsync( localDst, ( void * ) remoteSrc, size, cudaMemcpyHostToDevice, 0 );
    }
-//#endif
 
-//#if NORMAL
    if ( _transferMode == NORMAL) {
       err = cudaMemcpy( localDst, ( void * ) remoteSrc, size, cudaMemcpyHostToDevice );
    }
-//#endif
 
    if ( err != cudaSuccess ) {
-      std::string what = "Trying to copy data from host to device with cudaMemcpy*(): ";
+      std::stringstream sizeStr;
+      sizeStr << size;
+      std::string what = "Trying to copy "
+                         + sizeStr.str()
+                         + " bytes of data from host to device with cudaMemcpy*(): ";
       fatal( what + cudaGetErrorString( err ) );
    }
 }
@@ -243,21 +238,7 @@ void GPUDevice::copyOut( uint64_t remoteDst, void *localSrc, size_t size )
 {
    // Copy from device memory to host memory
 
-#if 0
-   cudaError_t err = cudaMemcpyAsync( ( void * ) _pinnedMemory[localSrc], localSrc, size, cudaMemcpyDeviceToHost, 0 );
-
-   if ( err != cudaSuccess ) {
-      fatal( cudaGetErrorString( err ) );
-   }
-
-   // Workaround to perform asynchronous copies
-   memcpy( ( void * ) remoteDst, ( void * ) _pinnedMemory[localSrc], size );
-
-#endif
-
-//#if PINNED_CUDA | WC
-   // No need to copy back
-//#else
+   // No need to copy back for PINNED_CUDA or WC
    if ( _transferMode != PINNED_CUDA && _transferMode != WC ) {
 #if 0
       cudaError_t err = cudaSuccess;
@@ -285,17 +266,18 @@ void GPUDevice::copyOut( uint64_t remoteDst, void *localSrc, size_t size )
       cudaError_t err = cudaMemcpy( ( void * ) remoteDst, localSrc, size, cudaMemcpyDeviceToHost );
 
       if ( err != cudaSuccess ) {
-         std::string what = "Trying to copy data from device to host with cudaMemcpy*(): ";
+         std::stringstream sizeStr;
+         sizeStr << size;
+         std::string what = "Trying to copy "
+                            + sizeStr.str()
+                            + " bytes of data from device to host with cudaMemcpy*(): ";
          fatal( what + cudaGetErrorString( err ) );
       }
    }
-//#endif
 
-//#if PINNED_OS
    if ( _transferMode == PINNED_OS ) {
       munlock( ( void * ) remoteDst, size );
    }
-//#endif
 }
 
 void GPUDevice::copyLocal( void *dst, void *src, size_t size )
@@ -304,18 +286,19 @@ void GPUDevice::copyLocal( void *dst, void *src, size_t size )
 
    cudaError_t err = cudaSuccess;
 
-//#if NORMAL
    if (_transferMode == NORMAL ) {
       err = cudaMemcpy( ( void *) dst, src, size, cudaMemcpyDeviceToDevice );
    }
-//#else
    else {
       err = cudaMemcpyAsync( ( void *) dst, src, size, cudaMemcpyDeviceToDevice, 0 );
    }
-//#endif
 
    if ( err != cudaSuccess ) {
-      std::string what = "Trying to copy data from device to device with cudaMemcpy*(): ";
+      std::stringstream sizeStr;
+      sizeStr << size;
+      std::string what = "Trying to copy "
+                         + sizeStr.str()
+                         + " bytes of data from device to device with cudaMemcpy*(): ";
       fatal( what + cudaGetErrorString( err ) );
    }
 }

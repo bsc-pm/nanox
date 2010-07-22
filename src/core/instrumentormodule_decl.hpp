@@ -42,6 +42,15 @@ namespace nanos {
             nanos_event_value_t val = _inst->getInstrumentorDictionary()->getEventValue(keydesc,valdesc);
             _inst->raiseOpenStateAndBurst(state, _key, val);
          }
+
+         InstrumentStateAndBurst ( const char* keydesc, nanos_event_value_t val, nanos_event_state_value_t state ) : _closed(false)
+         {
+            _inst = sys.getInstrumentor();
+            //if ( _inst == NULL ) _inst = sys.getInstrumentor();
+            _key = _inst->getInstrumentorDictionary()->getEventKey(keydesc);
+            _inst->raiseOpenStateAndBurst(state, _key, val);
+         }
+
          void changeState ( nanos_event_state_value_t state ) 
          {
             _inst->raiseCloseStateEvent();
@@ -67,6 +76,23 @@ namespace nanos {
          }
          ~InstrumentState ( ) { _inst->raiseCloseStateEvent(); }
    };
+
+   class InstrumentSubState {
+      private:
+         Instrumentation   &_inst;
+      public:
+         InstrumentSubState ( nanos_event_state_value_t subState ) : _inst(*sys.getInstrumentor())
+         {
+            _inst.disableStateEvents(subState);
+         }
+
+         ~InstrumentSubState ()
+         {
+            _inst.enableStateEvents();
+         }
+
+   };
+
 #endif
 }
 #endif

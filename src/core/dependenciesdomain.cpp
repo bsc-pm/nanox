@@ -94,13 +94,17 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
             if ( dependencyObject->getLastWriter() == lastWriter ) {
                depObj.increasePredecessors();
                lastWriter->addSuccessor( depObj );
+#if 0
                if ( ( !(dep.isOutput()) || dep.isInput() ) ) {
                   // RaW dependency
-    //              debug (" DO_ID_" << lastWriter->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=green];");
+                  debug (" DO_ID_" << lastWriter->getId() << " [style=filled label=" << lastWriter->getDescription() << " color=" << "red" << "];");
+                  debug (" DO_ID_" << lastWriter->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=green];");
                } else {
                   // WaW dependency
-     //             debug (" DO_ID_" << lastWriter->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=blue];");
+                  debug (" DO_ID_" << lastWriter->getId() << " [style=filled label=" << lastWriter->getDescription() << " color=" << "red" << "];");
+                  debug (" DO_ID_" << lastWriter->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=blue];");
                }
+#endif
             }
             lastWriter->unlock();
          }
@@ -125,7 +129,10 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
             predecessorReader->addSuccessor( depObj );
             depObj.increasePredecessors();
             // WaR dependency
-   //         debug (" DO_ID_" << predecessorReader->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=red];");
+#if 0
+            debug (" DO_ID_" << predecessorReader->getId() << " [style=filled label=" << predecessorReader->getDescription() << " color=" << "red" << "];");
+            debug (" DO_ID_" << predecessorReader->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=red];");
+#endif
          }
          dependencyObject->flushReaders();
 
