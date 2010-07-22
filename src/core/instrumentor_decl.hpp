@@ -556,7 +556,7 @@ namespace nanos {
          void raiseOpenStateAndBurst ( nanos_event_state_value_t state, nanos_event_key_t key, nanos_event_value_t val );
          void raiseCloseStateAndBurst ( nanos_event_key_t key );
 
-         void disableStateEvents ( void );
+         void disableStateEvents ( nanos_event_state_value_t state );
          void enableStateEvents ( void ); 
 #endif
    };

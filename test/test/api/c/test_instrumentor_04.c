@@ -84,7 +84,7 @@ void main__task_1 ( void *args )
    nanos_instrument_register_value ( &event_value, "user-funct", "task-1", "Function: main__task_1", false );
    nanos_instrument_enter_burst( event_key, event_value );
 
-   nanos_instrument_disable_state_events();
+   nanos_instrument_disable_state_events( RUNTIME );
 
    int i;
    main__task_1_data_t *hargs = (main__task_1_data_t * ) args;

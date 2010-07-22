@@ -209,12 +209,12 @@ nanos_err_t nanos_instrument_ptp_end ( nanos_event_domain_t domain, nanos_event_
    return NANOS_OK;
 }
 
-nanos_err_t nanos_instrument_disable_state_events ( void )
+nanos_err_t nanos_instrument_disable_state_events ( nanos_event_state_value_t state )
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      sys.getInstrumentor()->disableStateEvents();
+      sys.getInstrumentor()->disableStateEvents( state );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
