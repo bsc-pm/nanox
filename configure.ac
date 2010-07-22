@@ -112,7 +112,7 @@ esac
 
 
 # Check if it has nVidia GPUs
-if lspci | grep nVidia &> /dev/null ; then
+if /sbin/lspci | grep nVidia &> /dev/null ; then
 	gpu_valid=yes
 	AC_ARG_VAR([NVCC],[CUDA compiler])
 	AC_CHECK_PROG( [NVCC], [nvcc], nvcc, no)
