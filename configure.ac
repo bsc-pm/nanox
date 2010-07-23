@@ -148,6 +148,7 @@ for arch in $ARCHITECTURES; do
 done
 
 AM_CONDITIONAL([SMP_SUPPORTS_ULT],[test $smp_ult = yes])
+AM_CONDITIONAL([CHAPEL_SUPPORT], [false])
 
 AC_MSG_RESULT([$ARCHITECTURES/$OS])
 
