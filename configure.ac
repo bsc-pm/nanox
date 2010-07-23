@@ -1,5 +1,5 @@
 
-AC_INIT([nanox], [0.5], [alex.duran@bsc.es])
+AC_INIT([nanox], [0.6a], [alex.duran@bsc.es])
 
 # Environment
 AC_CANONICAL_BUILD
