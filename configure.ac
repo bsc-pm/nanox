@@ -111,34 +111,40 @@ case $host in
 esac
 
 
-# Check if it has nVidia GPUs
-if /sbin/lspci | grep nVidia &> /dev/null ; then
-	gpu_valid=yes
+# Check if it has nVidia GPUs / CUDA is installed
+gpu_valid=no
+CUDA=""
+
+AC_ARG_WITH([cuda],
+AS_HELP_STRING([--with-cuda=dir], [Directory of CUDA installation]),
+	[
+		CUDA="${withval}"
+	],
+	[
+		CUDA="/usr/local/cuda"
+	])
+
+if ls "$CUDA" &> /dev/null ; then
 	AC_ARG_VAR([NVCC],[CUDA compiler])
 	AC_CHECK_PROG( [NVCC], [nvcc], nvcc, no)
 	if test x$NVCC = xno ; then
-		AC_MSG_WARN([nvcc not found. Disabling GPU support]) 
+		AC_MSG_WARN([nvcc not found. Disabling GPU support])
 		gpu_valid=no
-	else 
-		AC_ARG_WITH([cuda],
-		AS_HELP_STRING([--with-cuda=dir], [Directory of CUDA installation]),
-			[
-				CUDA="${withval}"
-			],
-			[
-				CUDA=/usr/local/cuda
-			])
+	else
 		CUDA_INC="$CUDA/include"
 		CUDA_LIB="$CUDA/lib64"
 
 		AC_SUBST([CUDA_INC])
 		AC_SUBST([CUDA_LIB])
+
+		gpu_valid=yes
 	fi
-	if test x$gpu_valid = xyes; then
-           	CFLAGS="$CFLAGS -DGPU_DEV"
-           	CXXFLAGS="$CXXFLAGS -DGPU_DEV"
-		ARCHITECTURES="$ARCHITECTURES gpu"
-	fi
+fi
+
+if test x$gpu_valid = xyes; then
+	CFLAGS="$CFLAGS -DGPU_DEV"
+	CXXFLAGS="$CXXFLAGS -DGPU_DEV"
+	ARCHITECTURES="$ARCHITECTURES gpu"
 fi
 
 
