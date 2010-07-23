@@ -85,7 +85,7 @@ void CHPL_TASKING_INIT()
 
 void CHPL_TASKING_EXIT()
 {
-   sys.finalize();
+   sys.finish();
 }
 
 void CHPL_ADD_TO_TASK_LIST(chpl_fn_int_t fid, void* arg,

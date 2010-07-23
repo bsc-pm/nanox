@@ -154,7 +154,6 @@ for arch in $ARCHITECTURES; do
 done
 
 AM_CONDITIONAL([SMP_SUPPORTS_ULT],[test $smp_ult = yes])
-AM_CONDITIONAL([CHAPEL_SUPPORT], [false])
 
 AC_MSG_RESULT([$ARCHITECTURES/$OS])
 
@@ -195,7 +194,7 @@ MPITRACE_LIB=""
 MPITRACE_BIN=""
 
 AC_ARG_WITH([mpitrace],
-           AS_HELP_STRING([--with-mpitrace=dir], [Directory of mpitrace installation]),
+           AS_HELP_STRING([--with-mpitrace=dir], [Directory of Extrae installation (deprecated)]),
            [
                 MPITRACE_HOME="$withval"
                 MPITRACE_INC="$withval/include"
@@ -204,7 +203,7 @@ AC_ARG_WITH([mpitrace],
            ]
 )
 AC_ARG_WITH([extrae],
-           AS_HELP_STRING([--with-extrae=dir], [Directory of extrae installation]),
+           AS_HELP_STRING([--with-extrae=dir], [Directory of Extrae installation]),
            [
                 MPITRACE_HOME="$withval"
                 MPITRACE_INC="$withval/include"
@@ -220,6 +219,21 @@ AC_SUBST([MPITRACE_BIN])
 
 
 AM_CONDITIONAL([INSTRUMENTATION_EXTRAE], test x"$MPITRACE_HOME" != x)
+
+# Chechk for Chapel support
+AC_ARG_WITH([chapel],
+            AS_HELP_STRING([--with-chapel=dir], [Directory of Chapel installation]),
+	    [
+		chapel=yes
+		CHAPEL_HOME="$withval"
+	    ],
+            [
+		chapel=no
+	    ]
+)
+
+AM_CONDITIONAL([CHAPEL_SUPPORT], [test "$chapel" = "yes"])
+AC_SUBST([CHAPEL_HOME])
 
 # Output files
 AC_CONFIG_HEADERS([config.h])

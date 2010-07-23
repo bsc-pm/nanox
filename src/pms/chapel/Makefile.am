@@ -22,7 +22,7 @@ include $(top_srcdir)/src/common.am
 
 if CHAPEL_SUPPORT
 
-chpl_dir=/home/alex/Build/chapel/trunk
+chpl_dir=@CHAPEL_HOME@
 chpl_flags=-I$(chpl_dir)/runtime/include
 
 lib_LTLIBRARIES=libnanox-chpl.la
