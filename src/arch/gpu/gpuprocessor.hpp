@@ -24,6 +24,8 @@
 
 #include <cuda_runtime.h>
 
+#include <iostream>
+
 
 namespace nanos {
 namespace ext
@@ -32,23 +34,25 @@ namespace ext
    class GPUProcessor::TransferInfo
    {
       private:
-         cudaStream_t _transferStream;
+         bool           _overlap;
+         cudaStream_t   _transferStream;
 
       public:
 
-         TransferInfo () {}
+         TransferInfo () : _overlap( GPUDD::isOverlappingDefined() ) {}
 
          void init ()
          {
-#if 1
-            cudaError_t err = cudaStreamCreate( &_transferStream );
-            if ( err != cudaSuccess ) {
-               _transferStream = 0;
-               warning( "Error while creating the CUDA stream: " << cudaGetErrorString( err ) );
+            if ( _overlap ) {
+               cudaError_t err = cudaStreamCreate( &_transferStream );
+               if ( err != cudaSuccess ) {
+                  _transferStream = 0;
+                  warning( "Error while creating the CUDA stream: " << cudaGetErrorString( err ) );
+               }
             }
-#else
-            _transferStream = 0;
-#endif
+            else {
+               _transferStream = 0;
+            }
          }
 
          cudaStream_t getTransferStream ()

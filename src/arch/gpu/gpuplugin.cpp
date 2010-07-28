@@ -54,9 +54,11 @@ class GPUPlugin : public Plugin
    private:
       int _numGPUs;
       bool _prefetch;
+      bool _overlap;
 
    public:
-      GPUPlugin() : Plugin( "GPU PE Plugin", 1 ), _numGPUs( -1 ), _prefetch( true ) {}
+      GPUPlugin() : Plugin( "GPU PE Plugin", 1 ), _numGPUs( -1 ), _prefetch( true ), _overlap( true )
+      {}
 
       virtual void config( Config& config )
       {
@@ -70,6 +72,12 @@ class GPUPlugin : public Plugin
                                        "Set whether data prefetching must be activated or not" );
          config.registerEnvOption( "gpu-prefetch", "NX_GPUPREFETCH" );
          config.registerArgOption( "gpu-prefetch", "gpu-prefetch" );
+
+         config.registerConfigOption( "gpu-overlap", new Config::FlagOption( _overlap ),
+                                       "Set whether GPU computation should be overlapped with\n\
+                                                       data transfers, whenever possible, or not" );
+         config.registerEnvOption( "gpu-overlap", "NX_GPUOVERLAP" );
+         config.registerArgOption( "gpu-overlap", "gpu-overlap" );
 
 /*
          GPUTransferModeOption map;
@@ -113,6 +121,9 @@ class GPUPlugin : public Plugin
 
          // Check if the user wants data to be prefetched or not
          GPUDD::_prefetch = _prefetch;
+
+         // Check if the user wants computation and data transfers to be overlapped
+         GPUDD::_overlap = _overlap;
       }
 
 };

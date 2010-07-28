@@ -42,6 +42,7 @@ namespace ext
          static int     _gpuCount; // Number of CUDA-capable GPUs
          work_fct       _work;
          static bool    _prefetch; // Enable / disable data prefetching (set by the user)
+         static bool    _overlap; // Enable / disable computation and data transfer overlapping (set by the user)
 
       public:
          // constructors
@@ -63,6 +64,8 @@ namespace ext
          static int getGPUCount () { return _gpuCount; }
 
          static bool isPrefetchingDefined () { return _prefetch; }
+
+         static bool isOverlappingDefined () { return _overlap; }
 
          virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous) { }
          virtual size_t size ( void ) { return sizeof(GPUDD); }
