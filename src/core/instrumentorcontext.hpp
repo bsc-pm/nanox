@@ -30,18 +30,43 @@ using namespace nanos;
 
 inline void InstrumentationContext::pushState ( InstrumentationContextData *icd, nanos_event_state_value_t state )
 {
-   icd->_stateStack.push( state );
+   if ( icd->_stateEventEnabled ) icd->_stateStack.push_back( state );
+   else icd->_subStateStack.push_back ( state );
 }
 
 inline void InstrumentationContext::popState ( InstrumentationContextData *icd )
 {
-   if ( !(icd->_stateStack.empty()) ) icd->_stateStack.pop();
+   if ( (icd->_stateEventEnabled ) && !(icd->_stateStack.empty()) ) icd->_stateStack.pop_back();
+   else if ( !(icd->_subStateStack.empty()) ) icd->_subStateStack.pop_back();
 }
 
 inline nanos_event_state_value_t InstrumentationContext::topState ( InstrumentationContextData *icd )
 {
-   if ( !(icd->_stateStack.empty()) ) return icd->_stateStack.top();
+   if ( (icd->_stateEventEnabled) && !(icd->_stateStack.empty()) ) return icd->_stateStack.back();
+   else if ( !(icd->_subStateStack.empty()) ) return icd->_subStateStack.back();
    else return ERROR;
+}
+
+inline nanos_event_state_value_t InstrumentationContext::getState ( InstrumentationContextData *icd )
+{
+   if ( !(icd->_stateStack.empty()) ) return icd->_stateStack.back();
+   else return ERROR;
+}
+
+inline nanos_event_state_value_t InstrumentationContext::getSubState ( InstrumentationContextData *icd )
+{
+   if ( !(icd->_subStateStack.empty()) ) return icd->_subStateStack.back();
+   else return ERROR;
+}
+
+inline size_t InstrumentationContext::getStateStackSize ( InstrumentationContextData *icd )
+{
+   return (size_t) icd->_stateStack.size();
+}
+
+inline size_t InstrumentationContext::getSubStateStackSize ( InstrumentationContextData *icd )
+{
+   return (size_t) icd->_subStateStack.size();
 }
 
 inline bool InstrumentationContext::findBurstByKey ( InstrumentationContextData *icd, nanos_event_key_t key,
@@ -73,6 +98,26 @@ inline InstrumentationContextData::ConstBurstIterator InstrumentationContext::en
    return icd->_burstList.end();
 }
 
+inline InstrumentationContextData::ConstStateIterator InstrumentationContext::beginState( InstrumentationContextData *icd ) const
+{
+   return icd->_stateStack.begin();
+}
+
+inline InstrumentationContextData::ConstStateIterator InstrumentationContext::endState( InstrumentationContextData *icd ) const
+{
+   return icd->_stateStack.end();
+}
+
+inline InstrumentationContextData::ConstStateIterator InstrumentationContext::beginSubState( InstrumentationContextData *icd ) const
+{
+   return icd->_subStateStack.begin();
+}
+
+inline InstrumentationContextData::ConstStateIterator InstrumentationContext::endSubState( InstrumentationContextData *icd ) const
+{
+   return icd->_subStateStack.end();
+}
+
 inline void InstrumentationContext::disableStateEvents ( InstrumentationContextData *icd )
 {
    icd->_stateEventEnabled = false;
@@ -86,16 +131,6 @@ inline void InstrumentationContext::enableStateEvents ( InstrumentationContextDa
 inline bool InstrumentationContext::isStateEventEnabled ( InstrumentationContextData *icd )
 {
    return icd->_stateEventEnabled;
-}
-
-inline nanos_event_state_value_t InstrumentationContext::getValidState ( InstrumentationContextData *icd )
-{
-   return icd->_validState;
-}
-
-inline void InstrumentationContext::setValidState ( InstrumentationContextData *icd, nanos_event_state_value_t state )
-{
-   icd->_validState = state;
 }
 
 #endif
