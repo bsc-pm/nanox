@@ -31,21 +31,60 @@ namespace nanos {
 namespace ext
 {
 
-   class GPUProcessor::TransferInfo
+   class GPUProcessor::GPUProcessorInfo
    {
       private:
+         // Device #
+         unsigned int   _deviceId;
+
+         // Memory
+         size_t         _maxMemoryAvailable;
+
+         // Transfers
          bool           _overlap;
          cudaStream_t   _transferStream;
 
       public:
+         GPUProcessorInfo ( int device ) : _deviceId ( device ), _maxMemoryAvailable ( 0 ),
+            _overlap ( GPUDD::isOverlappingDefined() ), _transferStream ( 0 )
+         {}
 
-         TransferInfo () : _overlap( GPUDD::isOverlappingDefined() ) {}
+         ~GPUProcessorInfo ()
+         {
+            if ( _transferStream ) {
+               cudaError_t err = cudaStreamDestroy( _transferStream );
+               if ( err != cudaSuccess ) {
+                  warning( "Error while destroying the CUDA stream: " << cudaGetErrorString( err ) );
+               }
+            }
+         }
 
          void init ()
          {
+            // Each thread initializes its own GPUProcessor so that initialization
+            // can be done in parallel
+
+            struct cudaDeviceProp gpuProperties;
+            cudaGetDeviceProperties( &gpuProperties, _deviceId );
+
+            // Use 70% of the total GPU global memory
+            _maxMemoryAvailable = gpuProperties.totalGlobalMem * 0.7;
+
+            if ( !gpuProperties.deviceOverlap ) {
+               // It does not support stream overlapping, disable this feature
+               if ( _overlap ) {
+                  warning( "Device #" << _deviceId <<
+                        " does not support computation and data transfer overlapping" );
+                  _overlap = false;
+               }
+            }
+
             if ( _overlap ) {
+               // Initialize the CUDA stream used for data transfers
                cudaError_t err = cudaStreamCreate( &_transferStream );
                if ( err != cudaSuccess ) {
+                  // If an error occurred, disable stream overlapping
+                  _overlap = false;
                   _transferStream = 0;
                   warning( "Error while creating the CUDA stream: " << cudaGetErrorString( err ) );
                }
@@ -55,12 +94,16 @@ namespace ext
             }
          }
 
+         size_t getMaxMemoryAvailable ()
+         {
+            return _maxMemoryAvailable;
+         }
+
          cudaStream_t getTransferStream ()
          {
             return _transferStream;
          }
    };
-
 }
 }
 

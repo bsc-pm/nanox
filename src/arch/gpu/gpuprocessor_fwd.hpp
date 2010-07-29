@@ -36,25 +36,13 @@ namespace ext
    class GPUProcessor : public Accelerator
    {
       public:
-         class GPUInfo
-         {
-            private:
-               size_t _maxMemoryAvailable;
-
-            public:
-               GPUInfo ( int device );
-
-               size_t getMaxMemoryAvailable () { return _maxMemoryAvailable; }
-         };
-
-         class TransferInfo;
+         class GPUProcessorInfo;
 
       private:
          // Configuration variables
          static Atomic<int>      _deviceSeed; // Number of GPU devices assigned to threads
          int                     _gpuDevice; // Assigned GPU device Id
-         GPUInfo                 _gpuInfo; // Information related to the GPU device that represents
-         TransferInfo *          _transferInfo; // Information used for data transfers
+         GPUProcessorInfo *      _gpuProcessorInfo; // Information related to the GPU device that represents
 
          // Cache
          DeviceCache<GPUDevice>        _cache;
@@ -88,10 +76,10 @@ namespace ext
          virtual void* getAddressDependent( uint64_t tag );
          virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
 
-         // Get information about data transfers
-         TransferInfo * getTransferInfo ()
+         // Get information about the GPU that represents this object
+         GPUProcessorInfo * getGPUProcessorInfo ()
          {
-            return _transferInfo;
+            return _gpuProcessorInfo;
          }
 
          uint64_t getPinnedAddress ( void * dAddress )

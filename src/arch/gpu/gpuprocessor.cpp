@@ -29,28 +29,15 @@ using namespace nanos::ext;
 Atomic<int> GPUProcessor::_deviceSeed = 0;
 
 
-GPUProcessor::GPUInfo::GPUInfo ( int device )
-{
-   struct cudaDeviceProp gpuProperties;
-   cudaGetDeviceProperties( &gpuProperties, device );
-
-   _maxMemoryAvailable = gpuProperties.totalGlobalMem * 0.7;
-}
-
-
 GPUProcessor::GPUProcessor( int id, int gpuId )
-   : Accelerator( id, &GPU ), _gpuDevice( _deviceSeed++ ), _gpuInfo( gpuId ), _transferInfo(),
-     _cache(), _pinnedMemory()
+   : Accelerator( id, &GPU ), _gpuDevice( _deviceSeed++ ), _cache(), _pinnedMemory()
 {
-   //std::cout << "[GPUProcessor] I have " << _gpuInfo.getMaxMemoryAvailable()
-   //      << " bytes of available memory (device #" << gpuId << ")" << std::endl;
-
-   _transferInfo = new TransferInfo();
+   _gpuProcessorInfo = new GPUProcessorInfo( gpuId );
 }
 
 size_t GPUProcessor::getMaxMemoryAvailable ( int id )
 {
-   return 0;//GPUPlugin::getMaxMemoryAvailable( id );
+   return _gpuProcessorInfo->getMaxMemoryAvailable();
 }
 
 

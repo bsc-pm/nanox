@@ -51,7 +51,7 @@ void GPUThread::runDependent ()
    }
 
    if ( GPUDevice::getTransferMode() != nanos::NORMAL ) {
-      ((GPUProcessor *) myThread->runningOn())->getTransferInfo()->init();
+      ((GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->init();
    }
 
    // Avoid the so slow first data allocation and transfer to device
@@ -82,7 +82,7 @@ void GPUThread::inlineWorkDependent ( WD &wd )
          next->start(false);
       }
       // Wait for the transfer stream to finish
-      cudaStreamSynchronize( ( (GPUProcessor *) myThread->runningOn() )->getTransferInfo()->getTransferStream() );
+      cudaStreamSynchronize( ( (GPUProcessor *) myThread->runningOn() )->getGPUProcessorInfo()->getTransferStream() );
    }
 
    // Wait for the GPU kernel to finish

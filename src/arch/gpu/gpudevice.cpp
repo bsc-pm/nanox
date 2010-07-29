@@ -176,7 +176,7 @@ void GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
                ( void * ) pinned,
                size,
                cudaMemcpyHostToDevice,
-               ((nanos::ext::GPUProcessor *) myThread->runningOn())->getTransferInfo()->getTransferStream()
+               ((nanos::ext::GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->getTransferStream()
             );
 
       if ( err != cudaSuccess ) {
