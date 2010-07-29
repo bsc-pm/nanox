@@ -9,8 +9,8 @@ config_generator_SOURCES=config-generator.cpp
 
 api-generator: api-generator.in
 	rm -f api-generator
-	tmp_srcdir=$(PWD)/$(top_srcdir)/src ; \
-	tmp_builddir=$(PWD)/$(top_builddir)/src ; \
+	tmp_srcdir=$(abs_top_srcdir) ; \
+	tmp_builddir=$(abs_top_builddir) ; \
 	sed \
 		-e's,@SRCDIR\@,'"$$tmp_srcdir"',g' \
 		-e's,@BUILDDIR\@,'"$$tmp_builddir"',g' \
@@ -20,8 +20,8 @@ api-generator: api-generator.in
 
 core-generator: core-generator.in
 	rm -f core-generator
-	tmp_srcdir=$(PWD)/$(top_srcdir)/src ; \
-	tmp_builddir=$(PWD)/$(top_builddir)/src ; \
+	tmp_srcdir=$(abs_top_srcdir) ; \
+	tmp_builddir=$(abs_top_builddir) ; \
 	sed \
 		-e's,@SRCDIR\@,'"$$tmp_srcdir"',g' \
 		-e's,@BUILDDIR\@,'"$$tmp_builddir"',g' \
@@ -31,8 +31,8 @@ core-generator: core-generator.in
 
 mixed-generator: mixed-generator.in
 	rm -f mixed-generator
-	tmp_srcdir=$(PWD)/$(top_srcdir)/src ; \
-	tmp_builddir=$(PWD)/$(top_builddir)/src ; \
+	tmp_srcdir=$(abs_top_srcdir) ; \
+	tmp_builddir=$(abs_top_builddir) ; \
 	sed \
 		-e's,@SRCDIR\@,'"$$tmp_srcdir"',g' \
 		-e's,@BUILDDIR\@,'"$$tmp_builddir"',g' \
@@ -42,8 +42,8 @@ mixed-generator: mixed-generator.in
 
 nanox-creation-generator: nanox-creation-generator.in
 	rm -f nanox-creation-generator
-	tmp_srcdir=$(PWD)/$(top_srcdir)/src ; \
-	tmp_builddir=$(PWD)/$(top_builddir)/src ; \
+	tmp_srcdir=$(abs_top_srcdir) ; \
+	tmp_builddir=$(abs_top_builddir) ; \
 	sed \
 		-e's,@SRCDIR\@,'"$$tmp_srcdir"',g' \
 		-e's,@BUILDDIR\@,'"$$tmp_builddir"',g' \

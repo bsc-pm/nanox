@@ -261,8 +261,8 @@ AC_CONFIG_FILES([Makefile
 		 src/arch/spu/Makefile
 		 src/arch/gpu/Makefile
 		 src/utils/Makefile
-		 test/Makefile
-		 test/gens/Makefile
+		 tests/Makefile
+		 tests/gens/Makefile
 		 doc/Makefile
                  doc/doxy-nanox
                  ])
