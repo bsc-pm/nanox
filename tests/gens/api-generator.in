@@ -2,8 +2,8 @@
 
 cat <<EOF
 
-SRC=@SRCDIR@
-BUILD=@BUILDDIR@
+SRC=@SRCDIR@/src
+BUILD=@BUILDDIR@/src
 
 common_includes="-I\$SRC/core -I\$SRC/apis/c"
 
@@ -15,6 +15,6 @@ test_CXXFLAGS="\$common_includes \$common_cflags"
 test_LDFLAGS="\$BUILD/core/.libs/libnanox.so \$BUILD/apis/c/.libs/libnanox-c.so"
 test_ENV="LD_LIBRARY_PATH=\$BUILD/core/.libs:\$BUILD/apis/c/.libs/:$LD_LIBRARY_PATH"
 
-`@BUILDDIR@/../test/gens/config-generator`
+`@BUILDDIR@/tests/gens/config-generator`
 EOF
 

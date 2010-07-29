@@ -18,6 +18,9 @@
 #####################################################################################
 
 SUBDIRS = src
-DIST_SUBDIRS = test doc src
+DIST_SUBDIRS = tests doc src
 
 ACLOCAL_AMFLAGS=-I m4
+
+test:
+	$(MAKE) -C tests test
