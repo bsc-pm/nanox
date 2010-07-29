@@ -28,10 +28,17 @@ using namespace nanos;
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 
 bool InstrumentationContext::showStackedBursts ( void ) { return false; }
-bool InstrumentationContextStackedBursts::showStackedBursts ( void ) { return true; }
+bool InstrumentationContext::showStackedStates ( void ) { return false; }
 
-bool InstrumentationContext::showStackedState ( void ) { return false; }
-bool InstrumentationContextStackedBursts::showStackedState ( void ) { return false; }
+bool InstrumentationContextStackedStates::showStackedBursts ( void ) { return false; }
+bool InstrumentationContextStackedStates::showStackedStates ( void ) { return true; }
+
+bool InstrumentationContextStackedBursts::showStackedBursts ( void ) { return true; }
+bool InstrumentationContextStackedBursts::showStackedStates ( void ) { return false; }
+
+bool InstrumentationContextStackedStatesAndBursts::showStackedBursts ( void ) { return true; }
+bool InstrumentationContextStackedStatesAndBursts::showStackedStates ( void ) { return true; }
+
 
 void InstrumentationContext::insertBurst ( InstrumentationContextData *icd, const Event &e )
 {
@@ -80,6 +87,18 @@ void InstrumentationContextStackedBursts::insertBurst ( InstrumentationContextDa
 }
 
 void InstrumentationContextStackedBursts::removeBurst ( InstrumentationContextData *icd, InstrumentationContextData::BurstIterator it )
+{
+   /* remove event from the list */
+   icd->_burstList.erase ( it );
+}
+
+void InstrumentationContextStackedStatesAndBursts::insertBurst ( InstrumentationContextData *icd, const Event &e )
+{
+   /* insert the event into the list */
+   icd->_burstList.push_front ( e );
+}
+
+void InstrumentationContextStackedStatesAndBursts::removeBurst ( InstrumentationContextData *icd, InstrumentationContextData::BurstIterator it )
 {
    /* remove event from the list */
    icd->_burstList.erase ( it );

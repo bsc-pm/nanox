@@ -38,7 +38,7 @@ class InstrumentationExtrae: public Instrumentation
       virtual void addEventList ( unsigned int count, Event *events ) {}
 #else
    private:
-      InstrumentationContextStackedBursts   _icLocal;
+      InstrumentationContextStackedStatesAndBursts   _icLocal;
    public:
       // constructor
       InstrumentationExtrae ( ) : Instrumentation(), _icLocal() { _instrumentationContext = &_icLocal; }
@@ -90,6 +90,7 @@ class InstrumentationExtrae: public Instrumentation
             p_file << "EVENT_TYPE" << std::endl;
             p_file << "9    " << _eventState  << "    Thread state: " << std::endl;
             p_file << "VALUES" << std::endl;
+            p_file << NOT_CREATED      << "     NOT CREATED" << std::endl;
             p_file << NOT_TRACED       << "     NOT TRACED" << std::endl;
             p_file << STARTUP          << "     STARTUP" << std::endl;
             p_file << SHUTDOWN         << "     SHUTDOWN" << std::endl;
@@ -118,6 +119,7 @@ class InstrumentationExtrae: public Instrumentation
             p_file << "EVENT_TYPE" << std::endl;
             p_file << "9    " << _eventSubState  << "    Thread sub-state: " << std::endl;
             p_file << "VALUES" << std::endl;
+            p_file << NOT_CREATED      << "     NOT_CREATED" << std::endl;
             p_file << NOT_TRACED       << "     NOT TRACED" << std::endl;
             p_file << STARTUP          << "     STARTUP" << std::endl;
             p_file << SHUTDOWN         << "     SHUTDOWN" << std::endl;
@@ -143,7 +145,7 @@ class InstrumentationExtrae: public Instrumentation
                InstrumentationKeyDescriptor *kD = itK->second;
  
                p_file << "EVENT_TYPE" << std::endl;
-               p_file << "9    " << _eventBase+kD->getId() << kD->getDescription() << std::endl;
+               p_file << "9    " << _eventBase+kD->getId() << " " << kD->getDescription() << std::endl;
                p_file << "VALUES" << std::endl;
                
                for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
@@ -222,8 +224,10 @@ class InstrumentationExtrae: public Instrumentation
          {
             Event &e = events[i];
             switch ( e.getType() ) {
-               case STATE:
-               case SUBSTATE:
+               case STATE_START:
+               case STATE_END:
+               case SUBSTATE_START:
+               case SUBSTATE_END:
                   ce.nEvents++;
                   break;
                case PTP_START:
@@ -251,13 +255,21 @@ class InstrumentationExtrae: public Instrumentation
             Event &e = events[i];
             unsigned int type = e.getType();
             switch ( type ) {
-               case STATE:
+               case STATE_START:
                   ce.Types[j] = _eventState;
                   ce.Values[j++] = e.getState();
                   break;
-               case SUBSTATE:
+               case STATE_END:
+                  ce.Types[j] = _eventState;
+                  ce.Values[j++] = 0;
+                  break;
+               case SUBSTATE_START:
                   ce.Types[j] = _eventSubState;
                   ce.Values[j++] = e.getState();
+                  break;
+               case SUBSTATE_END:
+                  ce.Types[j] = _eventSubState;
+                  ce.Values[j++] = 0;
                   break;
                case PTP_START:
                case PTP_END:

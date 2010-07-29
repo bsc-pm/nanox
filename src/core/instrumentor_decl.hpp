@@ -366,7 +366,7 @@ namespace nanos {
             public:
               /*! \brief State event constructor
                */
-              State ( nanos_event_type_t type = STATE, nanos_event_state_value_t state = ERROR ) 
+              State ( nanos_event_type_t type = STATE_START, nanos_event_state_value_t state = ERROR ) 
                     : Event (type, state, 0, NULL, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
          };
          class Burst : public Event {
@@ -456,14 +456,14 @@ namespace nanos {
           *
           *  \param[in] oldWD, is the work descriptor which leaves the cpu
           */
-         virtual void wdLeaveCPU( WorkDescriptor* oldWD );
+         virtual void wdLeaveCPU( WorkDescriptor* oldWD, bool last = false );
 
          /*! \brief Used in work descriptor context switch (oldWD has finished completely its execution
           *
           *  \param[in] oldWD, is the work descriptor which leaves the cpu
           *  \param[in] newWD, is the work descriptor which enters the cpu
           */
-         virtual void wdExit( WorkDescriptor* oldWD, WorkDescriptor* newWD );
+         virtual void wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bool last = false );
 
          /*! \brief Used by higher levels to create a BURST_START event
           *
