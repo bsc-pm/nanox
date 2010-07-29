@@ -27,35 +27,49 @@
 namespace nanos {
 
    class InstrumentationContextData {
+         friend class InstrumentationContext;
+         friend class InstrumentationContextStackedStates;
+         friend class InstrumentationContextStackedBursts;
+         friend class InstrumentationContextStackedStatesAndBursts;
       public:
          typedef Instrumentation::Event                  Event;                /**< Class defined in instrumentor_decl.hpp */
          typedef Instrumentation::Burst                  Burst;                /**< Class defined in instrumentor_decl.hpp */
-         typedef std::stack<nanos_event_state_value_t>   StateStack;           /**< Stack of state's values */
+         typedef std::deque<nanos_event_state_value_t>   StateStack;           /**< Stack of state's values */
          typedef std::list<Event>                        BurstList;            /**< List of Events (Bursts) */
          typedef BurstList::const_iterator               ConstBurstIterator;   /**< InstrumentationContext const BurstIterator */
          typedef BurstList::iterator                     BurstIterator;        /**< InstrumentationContext BurstIterator */
+         typedef StateStack::const_iterator              ConstStateIterator;   /**< InstrumentationContext const StateIterator*/
+         typedef StateStack::iterator                    StateIterator;        /**< InstrumentationContext StateIterator */
 #ifdef NANOS_INSTRUMENTATION_ENABLED
-      public: //FIXME
+      private: /* Only friend classes (InstrumentationContext...) can use InstrumentationContextData */
+         bool                       _startingWD;             /**< Is a startingWD? */
          StateStack                 _stateStack;             /**< Stack of states */
+         StateStack                 _subStateStack;          /**< Stack of sub states */
          bool                       _stateEventEnabled;      /**< Set state level, zero by default */
-         nanos_event_state_value_t  _validState;             /**< Last valid states */
          BurstList                  _burstList;              /**< List of current opened bursts */
          BurstList                  _burstBackup;            /**< Backup list (non-active) of opened bursts */
       public:
          /*! \brief InstrumentationContextData copy constructor
           */
-         explicit InstrumentationContextData(const InstrumentationContextData &icd) : _stateStack(), _stateEventEnabled(icd._stateEventEnabled),
-                  _validState(icd._validState), _burstList(), _burstBackup() {}
+         explicit InstrumentationContextData(const InstrumentationContextData &icd) : _startingWD(false), _stateStack(), _subStateStack(), 
+                  _stateEventEnabled(icd._stateEventEnabled), _burstList(), _burstBackup() {}
          /*! \brief InstrumentationContextData copy constructor
           */
-         explicit InstrumentationContextData(const InstrumentationContextData *icd) : _stateStack(), _stateEventEnabled(icd->_stateEventEnabled),
-                  _validState(icd->_validState), _burstList(), _burstBackup() {}
+         explicit InstrumentationContextData(const InstrumentationContextData *icd) : _startingWD(false), _stateStack(), _subStateStack(),
+                  _stateEventEnabled(icd->_stateEventEnabled), _burstList(), _burstBackup() {}
          /*! \brief InstrumentationContextData constructor
           */
-         InstrumentationContextData() :_stateStack(), _stateEventEnabled(true), _validState(ERROR), _burstList(), _burstBackup() { }
+         InstrumentationContextData() : _startingWD(false), _stateStack(), _subStateStack(),
+                   _stateEventEnabled(true), _burstList(), _burstBackup() { }
          /*! \brief InstrumentationContextData destructor
           */
          ~InstrumentationContextData() {}
+         /*! \brief Sets _startingWD attribute
+          */
+         void setStartingWD ( bool value ) { _startingWD = value; }
+         /*! \brief Sets _startingWD attribute
+          */
+         bool getStartingWD ( void ) { return _startingWD; }
 #else
       public:
          /*! \brief InstrumentationContextData constructor (empty version)
@@ -80,16 +94,29 @@ namespace nanos {
          /*! \brief InstrumentationContext destructor
           */
          virtual ~InstrumentationContext() {}
-      public: //FIXME /* Only friend classes (Instrumentation) can use InstrumentationContext */
+      private: /* Only friend classes (Instrumentation) can use InstrumentationContext */
          /*! \brief Adds a state value into the state stack 
           */
          void pushState ( InstrumentationContextData *icd, nanos_event_state_value_t state ); 
          /*! \brief Removes top state from the state stack
           */
          void popState ( InstrumentationContextData *icd ); 
-         /*! \brief Gets current state from top of stack
+         /*! \brief Gets current state/substate from top of stack
           */
          nanos_event_state_value_t topState ( InstrumentationContextData *icd );
+         /*! \brief Gets current state from top of stack
+          */
+         nanos_event_state_value_t getState ( InstrumentationContextData *icd );
+         /*! \brief Gets current substate from top of stack
+          */
+         nanos_event_state_value_t getSubState ( InstrumentationContextData *icd );
+         /*! \brief Gets stack of state's size
+          */
+         size_t getStateStackSize ( InstrumentationContextData *icd );
+         /*! \brief Gets stack of substate's size 
+          */
+         size_t getSubStateStackSize ( InstrumentationContextData *icd );
+
          /*! \brief Inserts a Burst into the burst list
           *
           *  This function inserts a burst event in the burst list. If an event with the same type of that
@@ -115,6 +142,18 @@ namespace nanos {
          /*! \brief Gets the last element in the burst list
           */
          InstrumentationContextData::ConstBurstIterator endBurst( InstrumentationContextData *icd ) const ; 
+         /*! \brief Gets the starting element in the state stack
+          */
+         InstrumentationContextData::ConstStateIterator beginState( InstrumentationContextData *icd ) const ; 
+         /*! \brief Gets the last element in the state stack
+          */
+         InstrumentationContextData::ConstStateIterator endState( InstrumentationContextData *icd ) const ; 
+         /*! \brief Gets the starting element in the sub-state stack
+          */
+         InstrumentationContextData::ConstStateIterator beginSubState( InstrumentationContextData *icd ) const ; 
+         /*! \brief Gets the last element in the sub-state stack
+          */
+         InstrumentationContextData::ConstStateIterator endSubState( InstrumentationContextData *icd ) const ; 
          /*! \brief Enable state events
           */
          void enableStateEvents ( InstrumentationContextData *icd ) ;
@@ -124,19 +163,21 @@ namespace nanos {
          /*! \brief Get state events status
           */
          bool isStateEventEnabled ( InstrumentationContextData *icd ) ;
-         /*! \brief Get valid state
-          */
-         nanos_event_state_value_t getValidState ( InstrumentationContextData *icd ) ;
-         /*! \brief Save current state as valid state
-          */
-         void setValidState ( InstrumentationContextData *icd, nanos_event_state_value_t state ) ;
          /*!
           */
          virtual bool showStackedBursts( void );
          /*!
           */
-         virtual bool showStackedState( void );
-//#endif
+         virtual bool showStackedStates( void );
+   };
+
+   class InstrumentationContextStackedStates : public InstrumentationContext {
+      public:
+         InstrumentationContextStackedStates () : InstrumentationContext() {}
+         ~InstrumentationContextStackedStates () {}
+    
+         bool showStackedBursts( void );
+         bool showStackedStates( void );
    };
 
    class InstrumentationContextStackedBursts : public InstrumentationContext {
@@ -145,7 +186,20 @@ namespace nanos {
          ~InstrumentationContextStackedBursts () {}
     
          bool showStackedBursts( void );
-         bool showStackedState( void );
+         bool showStackedStates( void );
+
+         void insertBurst ( InstrumentationContextData *icd, const Event &e );
+         void removeBurst ( InstrumentationContextData *icd, InstrumentationContextData::BurstIterator it ); 
+   };
+
+   class InstrumentationContextStackedStatesAndBursts : public InstrumentationContext {
+      public:
+         InstrumentationContextStackedStatesAndBursts () : InstrumentationContext() {}
+         ~InstrumentationContextStackedStatesAndBursts () {}
+    
+         bool showStackedBursts( void );
+         bool showStackedStates( void );
+
          void insertBurst ( InstrumentationContextData *icd, const Event &e );
          void removeBurst ( InstrumentationContextData *icd, InstrumentationContextData::BurstIterator it ); 
    };

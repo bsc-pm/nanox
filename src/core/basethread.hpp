@@ -122,8 +122,9 @@ namespace nanos
 
          // constructor
          BaseThread ( WD &wd, ProcessingElement *creator=0 ) :
-               _id( _idSeed++ ), _pe( creator ), _threadWD( wd ), _started( false ), _mustStop( false ), _hasTeam( false ),_team(NULL),
-			   _teamData(NULL), _schedGroup(NULL), _schedData(NULL) {}
+               _id( _idSeed++ ), _pe( creator ), _threadWD( wd ), _started( false ), _mustStop( false ), _currentWD( NULL),
+               _nextWD( NULL), _hasTeam( false ),_team(NULL),
+               _teamData(NULL), _schedGroup(NULL), _schedData(NULL) {}
 
          // destructor
          virtual ~BaseThread() {

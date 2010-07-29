@@ -17,11 +17,11 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = . src tests 
-DIST_SUBDIRS = tests doc src scripts
-
-ACLOCAL_AMFLAGS=-I m4
-
-# This make install is related to tickets #160 and #161
-check-local:
-	$(MAKE) -C . install
+EXTRA_DIST=\
+           astyle-nanox.sh \
+           bets \
+           headache.cfg \
+           headerfy.sh \
+           Makefile.am \
+           preamble.txt \
+           $(END)
