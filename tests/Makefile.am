@@ -21,6 +21,8 @@ SUBDIRS = gens
 
 CLEANFILES=
 
+CLEANFILES+=tests.log
+
 check-local: $(top_srcdir)/scripts/bets
 	$(top_srcdir)/scripts/bets $(BETS_OPTIONS) -o tests.log $(srcdir)/test
 
@@ -34,10 +36,3 @@ dist-hook:
 	   mkdir -p $(distdir)/$${DIR} ; \
 	   find $(srcdir)/$${DIR} "(" -name "*.c" -o -name "*.cpp" -o -name "*.C" -o -name "*.cc" ")" -exec cp {} $(distdir)/$${DIR} ';' ; \
 	done
-
-
-.PHONY: test
-test: 
-	$(MAKE) -C gens
-	$(MAKE) -C . 
-	$(MAKE) -C . check-local
