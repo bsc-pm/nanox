@@ -64,6 +64,8 @@ namespace nanos
 
          static void waitOnCondition ( GenericSyncCond *condition );
          static void wakeUp ( WD *wd );
+
+         static WD * prefetch ( BaseThread *thread, WD &wd );
    };
 
    class SchedulerConf
@@ -132,8 +134,9 @@ namespace nanos
          virtual WD * atIdle     ( BaseThread *thread ) = 0;
          virtual WD * atExit     ( BaseThread *thread, WD *current ) { return atIdle( thread ); }
          virtual WD * atBlock    ( BaseThread *thread, WD *current ) { return atIdle( thread ); }
-         virtual WD * atYield    ( BaseThread *thread, WD *current) { return atIdle(thread); };
+         virtual WD * atYield    ( BaseThread *thread, WD *current) { return atIdle( thread ); }
          virtual WD * atWakeUp   ( BaseThread *thread, WD &wd ) { return 0; }
+         virtual WD * atPrefetch ( BaseThread *thread, WD &current ) { return atIdle( thread ); }
 
          virtual void queue ( BaseThread *thread, WD &wd )  = 0;
    };

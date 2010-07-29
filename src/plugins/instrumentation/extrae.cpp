@@ -5,6 +5,7 @@
 #include <extrae_types.h>
 #include <mpitrace_user_events.h>
 #include "debug.hpp"
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <string.h>
@@ -168,10 +169,33 @@ class InstrumentationExtrae: public Instrumentation
          char *new_name_pcf = (char *) alloca ( 255 * sizeof (char));;
          char *new_name_row = (char *) alloca ( 255 * sizeof (char));;
 
-         sprintf(new_name_prv, "%s.prv",OS::getArg(0) );
-         sprintf(new_name_pcf, "%s.pcf",OS::getArg(0) );
-         sprintf(new_name_row, "%s.row",OS::getArg(0) );
-     
+         // Check if the trace file exists
+         struct stat buffer;
+         int err;
+         std::string trace_base = ( OS::getArg( 0 ) );
+         int num = 1;
+         std::string trace_suffix = "_001";
+         std::string trace_extension = ".prv";
+         bool trace_exists = true;
+
+         while ( trace_exists ) {
+            // Attempt to get the file attributes
+            err = stat( ( trace_base + trace_suffix + trace_extension).c_str(), &buffer );
+            if ( err == 0 ) {
+               // The file exists
+               num++;
+               std::stringstream trace_num;
+               trace_num << "_" << (num < 100 ? "0" : "") << (num < 10 ? "0" : "") << num;
+               trace_suffix =  trace_num.str();
+            } else {
+               trace_exists = false;
+            }
+         }
+
+         sprintf( new_name_prv, "%s%s.prv", trace_base.c_str(), trace_suffix.c_str() );
+         sprintf( new_name_pcf, "%s%s.pcf", trace_base.c_str(), trace_suffix.c_str() );
+         sprintf( new_name_row, "%s%s.row", trace_base.c_str(), trace_suffix.c_str() );
+
          /* Renaming the files */
          int result;
 
@@ -181,6 +205,8 @@ class InstrumentationExtrae: public Instrumentation
          if ( result != 0 ) std::cout << "Unable to rename paraver config file" << std::endl;
          result = rename( "MPITRACE_Paraver_Trace.row"  , new_name_row );
          if ( result != 0 ) std::cout << "Unable to rename paraver row file" << std::endl;
+
+         std::cout << "nanox: Trace MPITRACE_Paraver_Trace.prv renamed to " << trace_base << trace_suffix << ".prv." << std::endl;
       }
 
       void initialize ( void )

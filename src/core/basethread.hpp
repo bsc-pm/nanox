@@ -81,6 +81,7 @@ namespace nanos
          bool                    _started;
          volatile bool           _mustStop;
          WD *                    _currentWD;
+         WD *                    _nextWD;
 
          // Team info
          bool                    _hasTeam;
@@ -148,6 +149,10 @@ namespace nanos
          WD * getCurrentWD () const { return _currentWD; }
 
          WD & getThreadWD () const { return _threadWD; }
+
+         void setNextWD ( WD *next ) { _nextWD = next; }
+
+         WD * getNextWD () const { return _nextWD; }
 
          // team related methods
          void reserve() { _hasTeam = 1; }
