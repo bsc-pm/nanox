@@ -261,6 +261,7 @@ AC_CONFIG_FILES([Makefile
 		 src/arch/spu/Makefile
 		 src/arch/gpu/Makefile
 		 src/utils/Makefile
+		 scripts/Makefile
 		 tests/Makefile
 		 tests/gens/Makefile
 		 doc/Makefile
