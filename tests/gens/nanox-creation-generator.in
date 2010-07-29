@@ -1,8 +1,8 @@
 #!/bin/bash
 
 cat <<EOF
-SRC=@SRCDIR@
-BUILD=@BUILDDIR@
+SRC=@SRCDIR@/src
+BUILD=@BUILDDIR@/src
 
 common_includes="-I\$SRC/core -I\$SRC/apis/c"
 
