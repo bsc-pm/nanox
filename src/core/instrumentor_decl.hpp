@@ -18,7 +18,7 @@
 /*************************************************************************************/
 // FIXME: (#64) This flag ENABLE_INSTRUMENTATION has to be managed through
 //configure in order to generate an instrumentation version
-//#define NANOS_INSTRUMENTATION_ENABLED
+#define NANOS_INSTRUMENTATION_ENABLED
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 #define NANOS_INSTRUMENT(f) f;
@@ -31,7 +31,7 @@
 #include <list>
 #include <utility>
 #include <string>
-#include <tr1/unordered_map>
+#include "compatibility.hpp"
 #include "debug.hpp"
 #include "nanos-int.h"
 #include "atomic.hpp"
@@ -72,7 +72,7 @@ namespace nanos {
    class InstrumentationKeyDescriptor
    {
       public:
-         typedef std::tr1::unordered_map<std::string, InstrumentationValueDescriptor*> ValueMap;
+         typedef TR1::unordered_map<std::string, InstrumentationValueDescriptor*> ValueMap;
          typedef ValueMap::iterator ValueMapIterator;
          typedef ValueMap::const_iterator ConstValueMapIterator;
       private:
@@ -132,7 +132,7 @@ namespace nanos {
 
    class InstrumentationDictionary {
       public:
-         typedef std::tr1::unordered_map<std::string, InstrumentationKeyDescriptor*> KeyMap;
+         typedef TR1::unordered_map<std::string, InstrumentationKeyDescriptor*> KeyMap;
          typedef KeyMap::iterator KeyMapIterator;
          typedef KeyMap::const_iterator ConstKeyMapIterator;
       private:
