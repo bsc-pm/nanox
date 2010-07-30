@@ -19,7 +19,7 @@
 
 #include "nanos.h"
 #include "system.hpp"
-#include "instrumentor_decl.hpp"
+#include "instrumentor.hpp"
 #include <alloca.h>
 
 using namespace nanos;
@@ -85,8 +85,11 @@ nanos_err_t nanos_instrument_events ( unsigned int num_events, nanos_event_t eve
 
       for (unsigned int i = 0; i < num_events; i++ ) {
          switch ( events[i].type ) {
-            case STATE:
+            case STATE_START:
                sys.getInstrumentor()->createStateEvent(&e[i],events[i].info.state.value);
+               break;
+            case STATE_END:
+               sys.getInstrumentor()->returnPreviousStateEvent(&e[i]);
                break;
             case BURST_START:
                sys.getInstrumentor()->createBurstEvent(&e[i],events[i].info.burst.key,events[i].info.burst.value);
@@ -209,12 +212,12 @@ nanos_err_t nanos_instrument_ptp_end ( nanos_event_domain_t domain, nanos_event_
    return NANOS_OK;
 }
 
-nanos_err_t nanos_instrument_disable_state_events ( void )
+nanos_err_t nanos_instrument_disable_state_events ( nanos_event_state_value_t state )
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      sys.getInstrumentor()->disableStateEvents();
+      sys.getInstrumentor()->disableStateEvents( state );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }

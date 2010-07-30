@@ -73,7 +73,9 @@ nanos_sources=\
 	slicer_fwd.hpp \
 	slicer.hpp \
 	instrumentorcontext_decl.hpp \
+	instrumentorcontext_fwd.hpp \
 	instrumentorcontext.hpp \
+	instrumentorcontext.cpp \
 	instrumentormodule_decl.hpp \
 	instrumentor_fwd.hpp \
 	instrumentor_decl.hpp \

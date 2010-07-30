@@ -70,6 +70,9 @@ namespace nanos
          
          void setWD( WorkDescriptor *wd )
             { _submittedWD = wd; }
+
+         unsigned long getDescription ( );
+
    };
 
   /*! \brief DependableObject representing a WorkDescriptor as a task domain to wait on some dependencies

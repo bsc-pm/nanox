@@ -32,7 +32,7 @@
 #endif
 
 #ifdef GPU_DEV
-#include "gpuprocessor.hpp"
+#include "gpuprocessor_fwd.hpp"
 #endif
 
 #ifdef CLUSTER_DEV
@@ -82,6 +82,8 @@ void System::loadModules ()
    ensure( _hostFactory,"No default host factory" );
 
 #ifdef GPU_DEV
+   verbose0( "loading GPU support" );
+
    if ( !PluginManager::load ( "pe-gpu" ) )
       fatal0 ( "Couldn't load GPU support" );
 #endif
@@ -112,8 +114,8 @@ void System::loadModules ()
    if ( !PluginManager::load( "barrier-"+getDefaultBarrier() ) )
       fatal0( "Could not load main barrier algorithm" );
 
-   if ( !PluginManager::load( "instrumentor-"+getDefaultInstrumentor() ) )
-      fatal0( "Could not load " + getDefaultInstrumentor() + " instrumentor" );
+   if ( !PluginManager::load( "instrumentation-"+getDefaultInstrumentor() ) )
+      fatal0( "Could not load " + getDefaultInstrumentor() + " instrumentation" );
 
 
    ensure( _defBarrFactory,"No default system barrier factory" );
@@ -167,9 +169,9 @@ void System::config ()
    config.registerArgOption ( "barrier", "barrier" );
    config.registerEnvOption ( "barrier", "NX_BARRIER" );
 
-   config.registerConfigOption ( "instrumentor", new Config::StringVar ( _defInstr ), "Defines instrumentation format" );
-   config.registerArgOption ( "instrumentor", "instrumentor" );
-   config.registerEnvOption ( "instrumentor", "NX_INSTRUMENTOR" );
+   config.registerConfigOption ( "instrumentation", new Config::StringVar ( _defInstr ), "Defines instrumentation format" );
+   config.registerArgOption ( "instrumentation", "instrumentation" );
+   config.registerEnvOption ( "instrumentation", "NX_INSTRUMENTATION" );
 
    _schedConf.config(config);
    
@@ -198,7 +200,6 @@ void System::start ()
 
    _pes.reserve ( numPes );
 
-   //TODO: decide, single master, multiple master start
    PE *pe = createPE ( "smp", 0 );
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
@@ -226,7 +227,7 @@ void System::start ()
 #ifdef GPU_DEV
    int gpuC;
    for ( gpuC = 0; gpuC < nanos::ext::GPUDD::getGPUCount(); gpuC++ ) {
-      PE *gpu = new nanos::ext::GPUProcessor( p++ );
+      PE *gpu = new nanos::ext::GPUProcessor( p++, gpuC );
       _pes.push_back( gpu );
       _workers.push_back( &gpu->startWorker() );
    }

@@ -16,43 +16,13 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
-#include "dependableobjectwd.hpp"
-#include "workdescriptor.hpp"
-#include "schedule.hpp"
-#include "synchronizedcondition.hpp"
-#include "smpdd.hpp"
-
-using namespace nanos;
-
-void DOSubmit::dependenciesSatisfied ( )
-{
-     _submittedWD->submit();
+#ifndef __NANOS_INSTRUMENTOR_CTX_FWD_H
+#define __NANOS_INSTRUMENTOR_CTX_FWD_H
+namespace nanos {
+   class InstrumentationContextData ;
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   class InstrumentationContext ;
+   class InstrumentationContextStackedBursts ;
+#endif
 }
-
-bool DOWait::waits()
-{
-   return true;
-}
-
-
-void DOWait::init()
-{
-   _depsSatisfied = false;
-}
-
-void DOWait::wait ( )
-{
-   _syncCond.wait();
-}
-
-void DOWait::dependenciesSatisfied ( )
-{
-   _depsSatisfied = true;
-   _syncCond.signal();
-}
-
-unsigned long DOSubmit::getDescription ( )
-{
-   return (unsigned long) ((nanos::ext::SMPDD &) _submittedWD->getActiveDevice()).getWorkFct();
-}
+#endif

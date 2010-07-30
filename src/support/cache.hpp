@@ -24,7 +24,7 @@
 #include <exception>
 #include "config.hpp"
 #include "compatibility.hpp"
-#include "instrumentor_decl.hpp"
+#include "instrumentor.hpp"
 #include "system.hpp"
 #include "directory.hpp"
 
@@ -257,11 +257,11 @@ namespace nanos {
          virtual void unregisterCacheAccess( uint64_t tag, size_t size )
          {
             CacheEntry *ce = _cache.getEntry( tag );
-            // ensure (ce != NULL, "Cache has been corrupted");
+            //ensure (ce != NULL, "Cache has been corrupted");
             if ( ce->isDirty() ) {
                _cache.copyBackFromCache( tag, size );
                DirectoryEntry *de = _directory.getEntry( tag );
-               // ensure (de != NULL, "Cache has been corrupted");
+               //ensure (de != NULL, "Cache has been corrupted");
                de->setOwner( NULL );
                _directory.unLock();
             }

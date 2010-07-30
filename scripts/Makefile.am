@@ -17,19 +17,11 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = gens
-
-check-local: $(top_srcdir)/scripts/bets
-	$(top_srcdir)/scripts/bets -o tests.log $(srcdir)/test
-
-dist-hook:
-	mkdir $(distdir)/test; \
-	for i in $(srcdir)/test/*; \
-	do  \
-	   DIR=test/$$(basename $$i); \
-	   [ -f $$i ] && continue; \
-	   [ "$DIR" = "gens" ] && continue;\
-	   mkdir -p $(distdir)/$${DIR} ; \
-	   find $(srcdir)/$${DIR} "(" -name "*.c" -o -name "*.cpp" -o -name "*.C" -o -name "*.cc" ")" -exec cp {} $(distdir)/$${DIR} ';' ; \
-	done
-
+EXTRA_DIST=\
+           astyle-nanox.sh \
+           bets \
+           headache.cfg \
+           headerfy.sh \
+           Makefile.am \
+           preamble.txt \
+           $(END)

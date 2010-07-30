@@ -81,6 +81,7 @@ namespace nanos
          bool                    _started;
          volatile bool           _mustStop;
          WD *                    _currentWD;
+         WD *                    _nextWD;
 
          // Team info
          bool                    _hasTeam;
@@ -121,8 +122,9 @@ namespace nanos
 
          // constructor
          BaseThread ( WD &wd, ProcessingElement *creator=0 ) :
-               _id( _idSeed++ ), _pe( creator ), _threadWD( wd ), _started( false ), _mustStop( false ), _hasTeam( false ),_team(NULL),
-			   _teamData(NULL), _schedGroup(NULL), _schedData(NULL) {}
+               _id( _idSeed++ ), _pe( creator ), _threadWD( wd ), _started( false ), _mustStop( false ), _currentWD( NULL),
+               _nextWD( NULL), _hasTeam( false ),_team(NULL),
+               _teamData(NULL), _schedGroup(NULL), _schedData(NULL) {}
 
          // destructor
          virtual ~BaseThread() {
@@ -148,6 +150,10 @@ namespace nanos
          WD * getCurrentWD () const { return _currentWD; }
 
          WD & getThreadWD () const { return _threadWD; }
+
+         void setNextWD ( WD *next ) { _nextWD = next; }
+
+         WD * getNextWD () const { return _nextWD; }
 
          // team related methods
          void reserve() { _hasTeam = 1; }

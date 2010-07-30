@@ -22,6 +22,7 @@
 #include "basethread.hpp"
 #include "system.hpp"
 #include "config.hpp"
+#include "instrumentormodule_decl.hpp"
 
 using namespace nanos;
 
@@ -36,7 +37,8 @@ void SchedulerConf::config (Config &config)
 
 void Scheduler::submit ( WD &wd )
 {
-   NANOS_INSTRUMENT( sys.getInstrumentor()->raiseOpenStateEvent( SCHEDULING ) );
+   NANOS_INSTRUMENT( InstrumentState inst(SCHEDULING) );
+
    sys.getSchedulerStats()._createdTasks++;
    sys.getSchedulerStats()._totalTasks++;
    sys.getSchedulerStats()._readyTasks++;
@@ -46,7 +48,6 @@ void Scheduler::submit ( WD &wd )
    /* handle tied tasks */
    if ( wd.isTied() && wd.isTiedTo() != myThread ) {
       myThread->getTeam()->getSchedulePolicy().queue(wd.isTiedTo(), wd);
-      NANOS_INSTRUMENT( sys.getInstrumentor()->raiseCloseStateEvent() );
       return;
    }
 
@@ -59,13 +60,12 @@ void Scheduler::submit ( WD &wd )
 
       switchTo ( slice );
    }
-   NANOS_INSTRUMENT( sys.getInstrumentor()->raiseCloseStateEvent() );
 }
 
 template<class behaviour>
 inline void Scheduler::idleLoop ()
 {
-   NANOS_INSTRUMENT( sys.getInstrumentor()->raiseOpenStateEvent( IDLE ) );
+   NANOS_INSTRUMENT( InstrumentState inst(IDLE) );
 
    const int nspins = sys.getSchedulerConf().getNumSpins();
    int spins = nspins;
@@ -80,13 +80,15 @@ inline void Scheduler::idleLoop ()
 
       if ( thread->getTeam() != NULL ) {
 
-        WD * next = behaviour::getWD(thread,current);
+        NANOS_INSTRUMENT( inst.changeState( SCHEDULING ) );
+        WD * next = myThread->getNextWD() ? myThread->getNextWD() : behaviour::getWD(thread,current);
+        NANOS_INSTRUMENT( inst.changeState( IDLE ) );
 
          if (next) {
            sys.getSchedulerStats()._idleThreads--;
-           NANOS_INSTRUMENT( sys.getInstrumentor()->raiseCloseStateEvent() );
+           NANOS_INSTRUMENT( inst.changeState( RUNTIME ) );
            behaviour::switchWD(thread,current, next);
-           NANOS_INSTRUMENT( sys.getInstrumentor()->raiseOpenStateEvent( IDLE ) );
+           NANOS_INSTRUMENT( inst.changeState( IDLE ) );
            sys.getSchedulerStats()._idleThreads++;
            spins = nspins;
            continue;
@@ -103,12 +105,11 @@ inline void Scheduler::idleLoop ()
    }
    sys.getSchedulerStats()._idleThreads--;
    current->setReady();
-   NANOS_INSTRUMENT( sys.getInstrumentor()->raiseCloseStateEvent() );
 }
 
 void Scheduler::waitOnCondition (GenericSyncCond *condition)
 {
-   NANOS_INSTRUMENT( sys.getInstrumentor()->raiseOpenStateEvent( IDLE ) );
+   NANOS_INSTRUMENT( InstrumentState inst(SYNCHRONIZATION) );
 
    const int nspins = sys.getSchedulerConf().getNumSpins();
    int spins = nspins; 
@@ -129,13 +130,13 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
          if ( !( condition->check() ) ) {
             condition->addWaiter( current );
 
+            NANOS_INSTRUMENT( inst.changeState( SCHEDULING ) );
             WD *next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
+            NANOS_INSTRUMENT( inst.changeState( SYNCHRONIZATION ) );
 
             if ( next ) {
                sys.getSchedulerStats()._idleThreads--;
-               NANOS_INSTRUMENT( sys.getInstrumentor()->raiseOpenStateEvent( SCHEDULING ) );
                switchTo ( next );
-               NANOS_INSTRUMENT( sys.getInstrumentor()->raiseCloseStateEvent() );
                sys.getSchedulerStats()._idleThreads++;
             }
             else {
@@ -155,18 +156,22 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
       sys.getSchedulerStats()._readyTasks++;
       current->setReady();
    }
-   NANOS_INSTRUMENT( sys.getInstrumentor()->raiseCloseStateEvent() );
 }
 
 void Scheduler::wakeUp ( WD *wd )
 {
-   NANOS_INSTRUMENT( sys.getInstrumentor()->raiseOpenStateEvent( SCHEDULING ) );
+   NANOS_INSTRUMENT( InstrumentState inst(SYNCHRONIZATION) );
    if ( wd->isBlocked() ) {
       sys.getSchedulerStats()._readyTasks++;
       wd->setReady();
       Scheduler::queue( *wd );
    }
-   NANOS_INSTRUMENT( sys.getInstrumentor()->raiseCloseStateEvent() );
+}
+
+WD * Scheduler::prefetch( BaseThread *thread, WD &wd )
+{
+   debug ( "prefetching data for task " << wd.getId() );
+   return thread->getTeam()->getSchedulePolicy().atPrefetch( thread, wd );
 }
 
 struct WorkerBehaviour
@@ -191,9 +196,7 @@ struct WorkerBehaviour
 
 void Scheduler::workerLoop ()
 {
-   NANOS_INSTRUMENT( sys.getInstrumentor()->raiseOpenStateEvent( SCHEDULING ) );
    idleLoop<WorkerBehaviour>();
-   NANOS_INSTRUMENT( sys.getInstrumentor()->raiseCloseStateEvent() );
 }
 
 void Scheduler::queue ( WD &wd )
@@ -203,7 +206,6 @@ void Scheduler::queue ( WD &wd )
 
 void Scheduler::inlineWork ( WD *wd )
 {
-   NANOS_INSTRUMENT( sys.getInstrumentor()->raiseOpenStateEvent( SCHEDULING ) );
    // run it in the current frame
    WD *oldwd = myThread->getCurrentWD();
 
@@ -220,7 +222,8 @@ void Scheduler::inlineWork ( WD *wd )
    // This ensures that when we return from the inlining is still the same thread
    // and we don't violate rules about tied WD
    wd->tieTo(*oldwd->isTiedTo());
-   wd->start(false);
+   if (!wd->started())
+      wd->start(false);
    myThread->setCurrentWD( *wd );
 
    NANOS_INSTRUMENT( sys.getInstrumentor()->wdEnterCPU(wd) );
@@ -229,6 +232,7 @@ void Scheduler::inlineWork ( WD *wd )
    wd->done();
 
    NANOS_INSTRUMENT( sys.getInstrumentor()->wdLeaveCPU(wd) );
+
 
    debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
           " to " << oldwd << ":" << oldwd->getId() );
@@ -248,7 +252,6 @@ void Scheduler::inlineWork ( WD *wd )
 
    ensure(oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(), 
           "Violating tied rules " + toString<BaseThread*>(thread) + "!=" + toString<BaseThread*>(oldwd->isTiedTo()));
-   NANOS_INSTRUMENT( sys.getInstrumentor()->raiseCloseStateEvent() );
 
 }
 
@@ -287,13 +290,12 @@ void Scheduler::switchTo ( WD *to )
 
 void Scheduler::yield ()
 {
-   NANOS_INSTRUMENT( sys.getInstrumentor()->raiseOpenStateEvent( SCHEDULING ) );
+   NANOS_INSTRUMENT( InstrumentState inst(SCHEDULING) );
    WD *next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
 
    if ( next ) {
       switchTo(next);
    }
-   NANOS_INSTRUMENT( sys.getInstrumentor()->raiseCloseStateEvent() );
 }
 
 void Scheduler::switchToThread ( BaseThread *thread )
@@ -305,7 +307,7 @@ void Scheduler::switchToThread ( BaseThread *thread )
 void Scheduler::exitHelper (WD *oldWD, WD *newWD, void *arg)
 {
     myThread->exitHelperDependent(oldWD, newWD, arg);
-    NANOS_INSTRUMENT ( sys.getInstrumentor()->wdExit(oldWD,newWD) );
+    NANOS_INSTRUMENT ( sys.getInstrumentor()->wdSwitch(oldWD,newWD,true) );
     delete oldWD;
     myThread->setCurrentWD( *newWD );
 }
@@ -337,8 +339,6 @@ void Scheduler::exitTo ( WD *to )
 
 void Scheduler::exit ( void )
 {
-   NANOS_INSTRUMENT( sys.getInstrumentor()->raiseOpenStateEvent( SCHEDULING ) );
-
    // At this point the WD work is done, so we mark it as such and look for other work to do
    // Deallocation doesn't happen here because:
    // a) We are still running in the WD stack

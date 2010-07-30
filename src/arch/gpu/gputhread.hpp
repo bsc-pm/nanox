@@ -49,6 +49,8 @@ namespace ext
 
          virtual void runDependent ( void );
 
+         virtual void inlineWorkDependent( WD &work );
+
    };
 
 

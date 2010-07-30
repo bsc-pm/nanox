@@ -17,72 +17,11 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_GPU_UTILS
-#define _NANOS_GPU_UTILS
-
-#include <iostream>
-#include <iomanip>
-
-#include "cuda_runtime.h"
-
 namespace nanos {
 namespace ext
 {
 
-void displayProperties( cudaDeviceProp* pDeviceProp )
-{
-   if( !pDeviceProp )
-      return;
+void displayAllGPUsProperties( void );
 
-   std::cout << std::endl << "************************************************";
-   std::cout << std::endl << std::setw(37)<< std::left << "Device Name" << "- " << pDeviceProp->name << " ";
-   std::cout << std::endl << std::setw(37) << "Total Global Memory" << "- " << pDeviceProp->totalGlobalMem/1024 << " KB";
-   std::cout << std::endl << std::setw(37) << "Shared memory available per block" << "- " << pDeviceProp->sharedMemPerBlock/1024 << " KB";
-   std::cout << std::endl << std::setw(37) << "Number of registers per thread block" << "- " << pDeviceProp->regsPerBlock;
-   std::cout << std::endl << std::setw(37) << "Warp size in threads" << "- " << pDeviceProp->warpSize;
-   std::cout << std::endl << std::setw(37) << "Memory Pitch" << "- " << pDeviceProp->memPitch << " bytes";
-   std::cout << std::endl << std::setw(37) << "Maximum threads per block" << "- " << pDeviceProp->maxThreadsPerBlock;
-   std::cout << std::endl << std::setw(37) << "Maximum Thread Dimension (block)" << "- " << pDeviceProp->maxThreadsDim[0] << " " << pDeviceProp->maxThreadsDim[1] << " " << pDeviceProp->maxThreadsDim[2];
-   std::cout << std::endl << std::setw(37) << "Maximum Thread Dimension (grid)" << "- " << pDeviceProp->maxGridSize[0] << " " << pDeviceProp->maxGridSize[1] << " " << pDeviceProp->maxGridSize[2];
-   std::cout << std::endl << std::setw(37) << "Total constant memory" << "- " << pDeviceProp->totalConstMem << " bytes";
-   std::cout << std::endl << std::setw(37) << "CUDA version" << "- " << pDeviceProp->major << "." << pDeviceProp->minor;
-   std::cout << std::endl << std::setw(37) << "Clock rate" << "- " << pDeviceProp->clockRate << " KHz";
-   std::cout << std::endl << std::setw(37) << "Texture Alignment" << "- " << pDeviceProp->textureAlignment << " bytes";
-   std::cout << std::endl << std::setw(37) << "Device Overlap" << "- "<< ( pDeviceProp-> deviceOverlap ? "Allowed" : "Not Allowed" );
-   std::cout << std::endl << std::setw(37) << "Number of Multiprocessors" << "- " << pDeviceProp->multiProcessorCount;
-   std::cout << std::endl << "************************************************";
-}
-
-void displayAllGPUsProperties( void )
-{
-   cudaDeviceProp deviceProp;
-   int idx, deviceCount = 0;
-
-   cudaError_t err = cudaGetDeviceCount( &deviceCount );
-
-   if ( err != cudaSuccess ) {
-      message0( cudaGetErrorString( err ) );
-      return;
-   }
-
-   std::cout << "Total number of GPUs found: " << deviceCount;
-
-   for ( idx = 0; idx < deviceCount; idx++ ) {
-      memset( &deviceProp, 0, sizeof( deviceProp ) );
-      err = cudaGetDeviceProperties( &deviceProp, idx );
-
-      if ( err == cudaSuccess ) {
-         displayProperties( &deviceProp );
-      }
-      else {
-         message0( cudaGetErrorString( err ) );
-      }
-   }
-
-   std::cout << std::endl;
-}
-
-}
-}
-
-#endif
+} // namespace ext
+} // namespace nanos

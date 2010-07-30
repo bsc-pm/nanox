@@ -17,46 +17,22 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-include $(top_srcdir)/src/common.am
+SUBDIRS = gens
 
-noinst_LTLIBRARIES = libsmp.la
-lib_LTLIBRARIES = libnanox-pe-smp.la
+CLEANFILES=
 
-EXTRA_DIST= \
-	x86/stack.cpp \
-	x86/stack.s \
-	x86-64/stack.cpp \
-	x86-64/stack.s \
-	ia64/stack.cpp \
-	ia64/stack.s \
-        smp_ult.hpp \
-	$(END)
-	
-if SMP_SUPPORTS_ULT
-ult_sources= \
-         @SMP_ARCH@/stack.cpp \
-	 @SMP_ARCH@/stack.s \
-         $(END)
-ult_flags=-DSMP_SUPPORTS_ULT
-endif
+CLEANFILES+=tests.log
 
-libsmp_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags)
-libsmp_la_SOURCES = \
-		smpdevice.hpp \
-		smpdd.hpp \
-		smpdd.cpp \
-		smpprocessor.hpp \
-		smpprocessor.cpp \
-		smpthread.hpp \
-		smpthread.cpp \
-		$(ult_sources) \
-		$(END)
+check-local: $(top_srcdir)/scripts/bets
+	$(top_srcdir)/scripts/bets $(BETS_OPTIONS) -o tests.log $(srcdir)/test
 
-
-
-libnanox_pe_smp_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags)
-libnanox_pe_smp_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_pe_smp_la_SOURCES = \
-		smpplugin.cpp \
-		$(END)
-
+dist-hook:
+	mkdir $(distdir)/test; \
+	for i in $(srcdir)/test/*; \
+	do  \
+	   DIR=test/$$(basename $$i); \
+	   [ -f $$i ] && continue; \
+	   [ "$DIR" = "gens" ] && continue;\
+	   mkdir -p $(distdir)/$${DIR} ; \
+	   find $(srcdir)/$${DIR} "(" -name "*.c" -o -name "*.cpp" -o -name "*.C" -o -name "*.cc" ")" -exec cp {} $(distdir)/$${DIR} ';' ; \
+	done

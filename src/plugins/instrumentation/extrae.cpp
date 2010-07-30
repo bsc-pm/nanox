@@ -1,8 +1,11 @@
 #include "plugin.hpp"
 #include "system.hpp"
 #include "instrumentor.hpp"
+#include "instrumentorcontext_decl.hpp"
+#include <extrae_types.h>
 #include <mpitrace_user_events.h>
 #include "debug.hpp"
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <string.h>
@@ -23,10 +26,23 @@ namespace nanos {
 
 class InstrumentationExtrae: public Instrumentation 
 {
+#ifndef NANOS_INSTRUMENTATION_ENABLED
    public:
       // constructor
-      InstrumentationExtrae ( ) : Instrumentation() {}
+      InstrumentationExtrae(): Instrumentation() {}
+      // destructor
+      ~InstrumentationExtrae() {}
 
+      // low-level instrumentation interface (mandatory functions)
+      virtual void initialize( void ) {}
+      virtual void finalize( void ) {}
+      virtual void addEventList ( unsigned int count, Event *events ) {}
+#else
+   private:
+      InstrumentationContextStackedStatesAndBursts   _icLocal;
+   public:
+      // constructor
+      InstrumentationExtrae ( ) : Instrumentation(), _icLocal() { _instrumentationContext = &_icLocal; }
       // destructor
       ~InstrumentationExtrae ( ) { }
 
@@ -75,6 +91,7 @@ class InstrumentationExtrae: public Instrumentation
             p_file << "EVENT_TYPE" << std::endl;
             p_file << "9    " << _eventState  << "    Thread state: " << std::endl;
             p_file << "VALUES" << std::endl;
+            p_file << NOT_CREATED      << "     NOT CREATED" << std::endl;
             p_file << NOT_TRACED       << "     NOT TRACED" << std::endl;
             p_file << STARTUP          << "     STARTUP" << std::endl;
             p_file << SHUTDOWN         << "     SHUTDOWN" << std::endl;
@@ -84,7 +101,7 @@ class InstrumentationExtrae: public Instrumentation
             p_file << RUNNING          << "     RUNNING" << std::endl;
             p_file << SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
             p_file << SCHEDULING       << "     SCHEDULING" << std::endl;
-            p_file << FORK_JOIN        << "     FORK/JOIN" << std::endl;
+            p_file << CREATION         << "     CREATION" << std::endl;
             p_file << MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
             p_file << CACHE            << "     CACHE ALLOC/FREE" << std::endl;
             p_file << std::endl;
@@ -103,6 +120,7 @@ class InstrumentationExtrae: public Instrumentation
             p_file << "EVENT_TYPE" << std::endl;
             p_file << "9    " << _eventSubState  << "    Thread sub-state: " << std::endl;
             p_file << "VALUES" << std::endl;
+            p_file << NOT_CREATED      << "     NOT_CREATED" << std::endl;
             p_file << NOT_TRACED       << "     NOT TRACED" << std::endl;
             p_file << STARTUP          << "     STARTUP" << std::endl;
             p_file << SHUTDOWN         << "     SHUTDOWN" << std::endl;
@@ -112,7 +130,7 @@ class InstrumentationExtrae: public Instrumentation
             p_file << RUNNING          << "     RUNNING" << std::endl;
             p_file << SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
             p_file << SCHEDULING       << "     SCHEDULING" << std::endl;
-            p_file << FORK_JOIN        << "     FORK/JOIN" << std::endl;
+            p_file << CREATION         << "     CREATION" << std::endl;
             p_file << MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
             p_file << CACHE            << "     CACHE ALLOC/FREE" << std::endl;
             p_file << std::endl;
@@ -128,7 +146,7 @@ class InstrumentationExtrae: public Instrumentation
                InstrumentationKeyDescriptor *kD = itK->second;
  
                p_file << "EVENT_TYPE" << std::endl;
-               p_file << "9    " << _eventBase+kD->getId() << kD->getDescription() << std::endl;
+               p_file << "9    " << _eventBase+kD->getId() << " " << kD->getDescription() << std::endl;
                p_file << "VALUES" << std::endl;
                
                for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
@@ -151,10 +169,33 @@ class InstrumentationExtrae: public Instrumentation
          char *new_name_pcf = (char *) alloca ( 255 * sizeof (char));;
          char *new_name_row = (char *) alloca ( 255 * sizeof (char));;
 
-         sprintf(new_name_prv, "%s.prv",OS::getArg(0) );
-         sprintf(new_name_pcf, "%s.pcf",OS::getArg(0) );
-         sprintf(new_name_row, "%s.row",OS::getArg(0) );
-     
+         // Check if the trace file exists
+         struct stat buffer;
+         int err;
+         std::string trace_base = ( OS::getArg( 0 ) );
+         int num = 1;
+         std::string trace_suffix = "_001";
+         std::string trace_extension = ".prv";
+         bool trace_exists = true;
+
+         while ( trace_exists ) {
+            // Attempt to get the file attributes
+            err = stat( ( trace_base + trace_suffix + trace_extension).c_str(), &buffer );
+            if ( err == 0 ) {
+               // The file exists
+               num++;
+               std::stringstream trace_num;
+               trace_num << "_" << (num < 100 ? "0" : "") << (num < 10 ? "0" : "") << num;
+               trace_suffix =  trace_num.str();
+            } else {
+               trace_exists = false;
+            }
+         }
+
+         sprintf( new_name_prv, "%s%s.prv", trace_base.c_str(), trace_suffix.c_str() );
+         sprintf( new_name_pcf, "%s%s.pcf", trace_base.c_str(), trace_suffix.c_str() );
+         sprintf( new_name_row, "%s%s.row", trace_base.c_str(), trace_suffix.c_str() );
+
          /* Renaming the files */
          int result;
 
@@ -164,6 +205,8 @@ class InstrumentationExtrae: public Instrumentation
          if ( result != 0 ) std::cout << "Unable to rename paraver config file" << std::endl;
          result = rename( "MPITRACE_Paraver_Trace.row"  , new_name_row );
          if ( result != 0 ) std::cout << "Unable to rename paraver row file" << std::endl;
+
+         std::cout << "nanox: Trace MPITRACE_Paraver_Trace.prv renamed to " << trace_base << trace_suffix << ".prv." << std::endl;
       }
 
       void initialize ( void )
@@ -171,13 +214,13 @@ class InstrumentationExtrae: public Instrumentation
          char *mpi_trace_on;
 
          /* check environment variable MPITRACE_ON value */
-         mpi_trace_on = getenv("MPITRACE_ON");
+         mpi_trace_on = getenv("EXTRAE_ON");
 
          /* if MPITRAE_ON not defined, active it */
          if ( mpi_trace_on == NULL )
          {
             mpi_trace_on = new char[15];
-            strcpy(mpi_trace_on, "MPITRACE_ON=1");
+            strcpy(mpi_trace_on, "EXTRAE_ON=1");
             putenv (mpi_trace_on);
          }
 
@@ -195,101 +238,121 @@ class InstrumentationExtrae: public Instrumentation
 
       void addEventList ( unsigned int count, Event *events) 
       {
-         unsigned int total = 0;
+         struct extrae_CombinedEvents ce;
+
+         ce.HardwareCounters = 1;
+         ce.Callers = 0;
+         ce.UserFunction = 0;
+         ce.nEvents = 0;
+         ce.nCommunications = 0;
+
          for (unsigned int i = 0; i < count; i++)
          {
             Event &e = events[i];
             switch ( e.getType() ) {
-               case STATE:
-               case SUBSTATE:
-                  total++;
+               case STATE_START:
+               case STATE_END:
+               case SUBSTATE_START:
+               case SUBSTATE_END:
+                  ce.nEvents++;
                   break;
                case PTP_START:
                case PTP_END:
-                  total++;
+                  ce.nCommunications++;
                   // continue...
                case POINT:
                case BURST_START:
                case BURST_END:
-                  total += e.getNumKVs();
+                  ce.nEvents += e.getNumKVs();
                   break;
                default: break;
             }
          }
 
-         unsigned int *p_events = (unsigned int *) alloca (total * sizeof (unsigned int));
-         unsigned int *p_values = (unsigned int *) alloca (total * sizeof (unsigned int));
-        
+         ce.Types = (unsigned int *) alloca (ce.nEvents * sizeof (unsigned int));
+         ce.Values = (unsigned int *) alloca (ce.nEvents * sizeof (unsigned int));
+         ce.Communications = (struct extrae_UserCommunication *) alloca (ce.nCommunications * sizeof (struct extrae_UserCommunication));
 
-         int j = 0;
+         int j = 0; int k = 0;
          Event::ConstKVList kvs = NULL;
-
 
          for (unsigned int i = 0; i < count; i++)
          {
             Event &e = events[i];
             unsigned int type = e.getType();
             switch ( type ) {
-               case STATE:
-                  p_events[j] = _eventState;
-                  p_values[j++] = e.getState();
+               case STATE_START:
+                  ce.Types[j] = _eventState;
+                  ce.Values[j++] = e.getState();
                   break;
-               case SUBSTATE:
-                  p_events[j] = _eventSubState;
-                  p_values[j++] = e.getState();
+               case STATE_END:
+                  ce.Types[j] = _eventState;
+                  ce.Values[j++] = 0;
+                  break;
+               case SUBSTATE_START:
+                  ce.Types[j] = _eventSubState;
+                  ce.Values[j++] = e.getState();
+                  break;
+               case SUBSTATE_END:
+                  ce.Types[j] = _eventSubState;
+                  ce.Values[j++] = 0;
                   break;
                case PTP_START:
                case PTP_END:
                   /* Creating PtP event */
-		  if ( type == PTP_START ) p_events[j] = _eventPtPStart;
-		  else p_events[j] = _eventPtPEnd;
-	          p_values[j++] = e.getDomain() + e.getId();
+                  if ( type == PTP_START) ce.Communications[k].type = EXTRAE_USER_SEND;
+                  else ce.Communications[k].type = EXTRAE_USER_RECV;
+                  ce.Communications[k].tag = e.getDomain();
+                  ce.Communications[k].id = e.getId();
+                  ce.Communications[k].size = e.getId(); // FIXME: just in some cases size is equal to id
+                  ce.Communications[k].partner = 0;
+                  k++;
                   // continue...
                case POINT:
                case BURST_START:
                   kvs = e.getKVs();
                   for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
-                     p_events[j] = _eventBase + kvs->first;
-                     p_values[j++] = kvs->second;
+                     ce.Types[j] = _eventBase + kvs->first;
+                     ce.Values[j++] = kvs->second;
                   }
                   break;
                case BURST_END:
                   kvs = e.getKVs();
                   for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
-                     p_events[j] = _eventBase +  kvs->first;
-                     p_values[j++] = 0; // end
+                     ce.Types[j] = _eventBase +  kvs->first;
+                     ce.Values[j++] = 0; // end
                   }
                   break;
                default: break;
             }
          }
 
-         int rmValues = 0;
-         for ( unsigned int i = 0; i < total; i++ )
-         {
-            if ( (p_events[i] < 0) || (p_events[i] > 10000000) ) fatal("Negative event type");
-            for ( unsigned int j = i+1; j < total; j++ )
+         // if showing stacked burst is false remove duplicates
+         if ( !_icLocal.showStackedBursts() ) {
+            int rmValues = 0;
+            for ( int i = 0; i < ce.nEvents; i++ )
             {
-               if ( p_events[i] == p_events[j] )
+               for ( int j = i+1; j < ce.nEvents; j++ )
                {
-                  p_events[i] = 0;
-                  rmValues++;
+                  if ( ce.Types[i] == ce.Types[j] )
+                  {
+                     ce.Types[i] = 0;
+                     rmValues++;
+                  }
                }
+            }
+            ce.nEvents -= rmValues;
+            for ( int j = 0, i = 0; i < ce.nEvents; i++ )
+            {
+               while ( ce.Types[j] == 0 ) j++;
+               ce.Types[i] = ce.Types[j];
+               ce.Values[i] = ce.Values[j++];
             }
          }
 
-         total -= rmValues;
-
-         for ( unsigned int j = 0, i = 0; i < total; i++ )
-         {
-            while ( p_events[j] == 0 ) j++;
-            p_events[i] = p_events[j];
-            p_values[i] = p_values[j++];
-         }
-
-         OMPItrace_neventandcounters(total , p_events, p_values);
-          
+         Extrae_emit_CombinedEvents ( &ce );
       }
+#endif
 };
 
 namespace ext {
@@ -308,6 +371,8 @@ class InstrumentorParaverPlugin : public Plugin {
 };
 
 } // namespace ext
+
 } // namespace nanos
 
 nanos::ext::InstrumentorParaverPlugin NanosXPlugin;
+

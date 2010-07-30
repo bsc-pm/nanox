@@ -18,7 +18,6 @@
 /*************************************************************************************/
 
 #include "gpudd.hpp"
-#include "gpuutils.hpp"
 
 #include <cuda_runtime.h>
 
@@ -28,6 +27,7 @@ using namespace nanos::ext;
 GPUDevice nanos::ext::GPU( "GPU" );
 
 int GPUDD::_gpuCount = 0;
+bool GPUDD::_prefetch = true;
 
 GPUDD * GPUDD::copyTo ( void *toAddr )
 {
