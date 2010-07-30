@@ -77,6 +77,7 @@ bool WorkDescriptor::canRunIn( const Device &device ) const
 
 bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
 {
+   if ( started() && !pe.supportsUserLevelThreads() ) return false;
    return canRunIn( pe.getDeviceType() );
 }
 
