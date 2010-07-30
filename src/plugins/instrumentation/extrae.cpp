@@ -148,11 +148,20 @@ class InstrumentationExtrae: public Instrumentation
                p_file << "EVENT_TYPE" << std::endl;
                p_file << "9    " << _eventBase+kD->getId() << " " << kD->getDescription() << std::endl;
                p_file << "VALUES" << std::endl;
-               
+
+               // First: Ordering list of values and descriptions 
+               std::map<int,std::string> lov;
                for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
                   InstrumentationValueDescriptor *vD = itV->second;
-                  p_file << vD->getId() << "  " << vD->getDescription() << std::endl;
+                  lov.insert( make_pair( vD->getId(), vD->getDescription() ));
                }
+
+               // Second:: Generating already ordered list of values
+               std::map<int,std::string>::iterator itLoV;
+               for ( itLoV = lov.begin(); itLoV != lov.end(); itLoV++ ) {
+                  p_file << itLoV->first << "  " << itLoV->second << std::endl;
+               }
+
                p_file << std::endl;
             }
             p_file << std::endl;
