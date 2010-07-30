@@ -290,7 +290,14 @@ void GPUDevice::copyLocal( void *dst, void *src, size_t size )
       err = cudaMemcpy( ( void *) dst, src, size, cudaMemcpyDeviceToDevice );
    }
    else {
-      err = cudaMemcpyAsync( ( void *) dst, src, size, cudaMemcpyDeviceToDevice, 0 );
+      err = cudaMemcpyAsync(
+               ( void *) dst,
+               src,
+               size,
+               cudaMemcpyDeviceToDevice,
+               ((nanos::ext::GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->getTransferStream()
+            );
+
    }
 
    if ( err != cudaSuccess ) {
