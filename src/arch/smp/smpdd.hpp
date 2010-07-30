@@ -47,7 +47,7 @@ namespace ext
          // constructors
          SMPDD( work_fct w ) : DD( &SMP ),_work( w ),_stack( 0 ),_state( 0 ) {}
 
-         SMPDD() : DD( &SMP ),_work( 0 ),_stack( 0 ),_state( 0 ) {}
+         SMPDD() : DD( &SMP ),_work( 0 ),_stack( 0 ),_state( 0 ) { fprintf(stderr, "creating a NULL work dd\n"); }
 
          // copy constructors
          SMPDD( const SMPDD &dd ) : DD( dd ), _work( dd._work ), _stack( 0 ), _state( 0 ) {}

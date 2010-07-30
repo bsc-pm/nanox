@@ -23,6 +23,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "workdescriptor_decl.hpp"
+#include "system.hpp"
 
 namespace nanos
 {
@@ -49,7 +50,10 @@ namespace nanos
          */
          static void * allocate( size_t size )
          {
-            return new char[size]; 
+            fprintf(stderr, "[%d] smpdevice allocate %d\n", sys.getNetwork()->getNodeNum(), size);
+            char *addr = new char[size];
+            fprintf(stderr, "[%d] smpdevice allocate %d returns %p\n", sys.getNetwork()->getNodeNum(), size, addr);
+            return addr; 
          }
 
         /* \brief free address

@@ -93,6 +93,8 @@ inline void Scheduler::idleLoop ()
          }
       }
 
+      sys.getNetwork()->poll();
+
       spins--;
       if ( spins == 0 ) {
         thread->yield();
@@ -177,9 +179,13 @@ struct WorkerBehaviour
    static void switchWD ( BaseThread *thread, WD *current, WD *next )
    {
       if (next->started())
+      {
         Scheduler::switchTo(next);
+      }
       else
+      {
         Scheduler::inlineWork ( next );
+      }
    }
 };
 

@@ -54,6 +54,7 @@ inline void DirectoryEntry::setOwner( Cache *owner ) { _owner = owner; }
 
 inline DirectoryEntry& Directory::newEntry( uint64_t tag, unsigned int version, Cache* owner )
 {
+   _lock.acquire();
    DirectoryEntry& de = _directory[tag];
    de.setTag( tag );
    de.setVersion( version );
@@ -63,6 +64,7 @@ inline DirectoryEntry& Directory::newEntry( uint64_t tag, unsigned int version, 
 
 inline DirectoryEntry* Directory::getEntry( uint64_t tag )
 {
+   _lock.acquire();
    DirectoryMap::iterator it = _directory.find( tag );
    if ( it == _directory.end() )
       return NULL;

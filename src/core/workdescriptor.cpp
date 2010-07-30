@@ -37,8 +37,11 @@ void WorkDescriptor::start (bool isUserLevelThread, WorkDescriptor *previous)
 
    _activeDevice->lazyInit(*this,isUserLevelThread,previous);
    
+   //fprintf(stderr, "_node %d_ STARTING A WORKDESCRIPTOR, num copies is %d, has separated memory space? %s\n", sys.getNetwork()->getNodeNum(), getNumCopies(), pe->hasSeparatedMemorySpace() ? "yes" : "no");
    if ( getNumCopies() > 0 && pe->hasSeparatedMemorySpace() )
+   {
       pe->copyDataIn( *this );
+   }
 
    setReady();
 }

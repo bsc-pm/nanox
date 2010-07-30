@@ -25,18 +25,23 @@
 using namespace nanos;
 using namespace nanos::ext;
 
-void ClusterRemoteNode::stopAll()
+//void ClusterRemoteNode::stopAll()
+//{
+//    fprintf(stderr, "I have to send a message to a remote node.\n");
+//    ClusterMsg::sendFinishMessage(this);
+//}
+//Atomic<int> ClusterRemoteNode::_deviceSeed = 0;
+
+void ClusterRemoteNode::slaveLoop ( ClusterRemoteNode *node)
 {
-    fprintf(stderr, "I have to send a message to a remote node.\n");
-    ClusterMsg::sendFinishMessage(this);
+   Scheduler::workerLoop();
+   sys.getNetwork()->sendExitMsg( node->getClusterNodeNum() );
 }
-#if 0
-Atomic<int> ClusterRemoteNode::_deviceSeed = 0;
 
 WorkDescriptor & ClusterRemoteNode::getWorkerWD () const
 {
-   SMPDD * dd = new SMPDD( ( SMPDD::work_fct )Scheduler::workerLoop );
-   WD *wd = new WD( dd );
+   SMPDD * dd = new SMPDD( ( SMPDD::work_fct ) slaveLoop );
+   WD *wd = new WD( dd, sizeof(this), (void *) this );
    return *wd;
 }
 
@@ -45,6 +50,7 @@ WorkDescriptor & ClusterRemoteNode::getMasterWD () const
    fatal("Attempting to create a cluster master thread");
 }
 
+#if 0
 BaseThread &ClusterRemoteNode::createThread ( WorkDescriptor &helper )
 {
    // In fact, the GPUThread will run on the CPU, so make sure it canRunIn( SMP )

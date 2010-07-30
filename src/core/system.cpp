@@ -51,7 +51,7 @@ System nanos::sys;
 // default system values go here
 System::System () :
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindThreads( true ), _profile( false ), _instrument( false ),
-      _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster(true), _delayedStart(false), _isMaster(true), _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" ),
+      _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster( false ), _delayedStart(false), _isMaster(true), _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" ),
       _defInstr ( "empty_trace" ), _defArch("smp"), _instrumentor ( NULL ), _defSchedulePolicy(NULL), _directory()
 {
    verbose0 ( "NANOS++ initalizing... start" );
@@ -203,6 +203,7 @@ void System::start ()
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 
+
    NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseOpenStateEvent (STARTUP) );
 
    //start as much threads per pe as requested by the user
@@ -236,16 +237,19 @@ void System::start ()
    spu->startWorker();
 #endif
 
+   _net.initialize();
+
 #ifdef CLUSTER_DEV
-   int nodeC;
-   _pes.push_back( nanos::ext::ClusterNodeInfo::getThisNodePE() ); 
-   for ( nodeC = 0; nodeC < nanos::ext::ClusterNodeInfo::getNumNodes(); nodeC++ )
+   if ( _net.getNodeNum() == 0 )
    {
-       if ( nodeC != nanos::ext::ClusterNodeInfo::getNodeNum() )
-       {
-           nanos::ext::ClusterRemoteNode *node = new nanos::ext::ClusterRemoteNode( nodeC );
-           _pes.push_back( node );
-       }
+      unsigned int nodeC;
+      for ( nodeC = 0; nodeC < _net.getNumNodes(); nodeC++ ) {
+         if ( nodeC != _net.getNodeNum() ) {
+            PE *node = new nanos::ext::ClusterRemoteNode( nodeC );
+            _pes.push_back( node );
+            _workers.push_back( &node->startWorker() );
+         }
+      }
    }
 #endif
 
@@ -265,14 +269,15 @@ void System::start ()
    NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseOpenStateEvent (RUNNING) );
 
 #ifdef CLUSTER_DEV
-   setMaster(nanos::ext::ClusterNodeInfo::getNodeNum() == nanos::ext::ClusterNodeInfo::MASTER_NODE_NUM);
+   setMaster(_net.getNodeNum() == nanos::Network::MASTER_NODE_NUM);
    if (!isMaster())
    {
-       fprintf(stderr, "I'm not the master, I have to idle\n");
-       nanos::ext::ClusterNodeInfo::callIdleLoopFunc();
-       //Scheduler::workerLoop();
+       Scheduler::workerLoop();
+       fprintf(stderr, "Slave node: I have to finish.\n");
+       finish();
    }
-   fprintf(stderr, "Im only allowed here if im the master.\n");
+   //else
+   //   fprintf(stderr, "Im only allowed here if im the master.\n");
 #endif
 }
 
@@ -301,22 +306,25 @@ void System::finish ()
    verbose ( "Joining threads... phase 1" );
    // signal stop PEs
 
-#ifdef CLUSTER_DEV
-   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
-       if (_pes[p] != nanos::ext::ClusterNodeInfo::getThisNodePE())
-       {
-           ((nanos::ext::ClusterRemoteNode *) _pes[p])->stopAll();
-       }
-   }
-   nanos::ext::ClusterNodeInfo::callNetworkFinalizeFunc();
-   fprintf(stderr, "Closed the network.\n");
-#else
+//#ifdef CLUSTER_DEV
+//   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
+//       if (_pes[p] != nanos::ext::ClusterNodeInfo::getThisNodePE())
+//       {
+//           ((nanos::ext::ClusterRemoteNode *) _pes[p])->stopAll();
+//       }
+//   }
+//   nanos::ext::ClusterNodeInfo::callNetworkFinalizeFunc();
+//   fprintf(stderr, "Closed the network.\n");
+//#else
+   fprintf(stderr, "Finishing thds.\n");
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {
        _pes[p]->stopAll();
    }
-#endif
+//#endif
 
    verbose ( "Joining threads... phase 2" );
+
+   _net.getAPI()->finalize();
 
    // shutdown instrumentation
    NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseCloseStateEvent() );

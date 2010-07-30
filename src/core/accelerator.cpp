@@ -29,6 +29,7 @@ using namespace nanos;
 void Accelerator::copyDataIn( WorkDescriptor &work )
 {
    CopyData *copies = work.getCopies();
+   //fprintf(stderr, "[%d]=============== copy data in! ===============\n", sys.getNetwork()->getNodeNum());
    for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
       CopyData & cd = copies[i];
       uint64_t tag = (uint64_t) cd.isPrivate() ? ((uint64_t) work.getData() + (unsigned long)cd.getAddress()) : cd.getAddress();
@@ -39,6 +40,7 @@ void Accelerator::copyDataIn( WorkDescriptor &work )
       if ( cd.isPrivate() ) {
          this->registerPrivateAccessDependent( tag, cd.getSize(), cd.isInput(), cd.isOutput() );
       } else {
+   //fprintf(stderr, "[%d]====copy data in! == %llx\n", sys.getNetwork()->getNodeNum(), tag);
          this->registerCacheAccessDependent( tag, cd.getSize(), cd.isInput(), cd.isOutput() );
       }
    }

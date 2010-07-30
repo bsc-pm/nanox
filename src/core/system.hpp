@@ -117,5 +117,8 @@ inline void System::setDefaultArch( const std::string &arch ) { _defArch = arch;
 
 inline bool System::isMaster( void ) { return _isMaster; }
 inline void System::setMaster( bool _isMasterNode ) { _isMaster = _isMasterNode; }
+
+inline Network * System::getNetwork( void ) { return &_net; }
+inline void System::stopFirstThread( void ) { _workers[0]->stop(); }
 #endif
 

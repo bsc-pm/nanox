@@ -19,25 +19,39 @@
 
 
 #include "clusterdevice.hpp"
+#include "clusterremotenode.hpp"
 #include "basethread.hpp"
 #include "debug.hpp"
+#include "system.hpp"
 
 using namespace nanos;
+using namespace ext;
 
 void * ClusterDevice::allocate( size_t size )
 {
-   return 0;
+   ClusterRemoteNode *node = (ClusterRemoteNode *) myThread->runningOn();
+   void * addr = sys.getNetwork()->malloc( node->getClusterNodeNum(), size );
+   //fprintf(stderr, "[node %d] ALLOCATE %d at %d, ret %p\n", sys.getNetwork()->getNodeNum(), size, node->getClusterNodeNum(), addr );
+   return addr;
 }
 
 void ClusterDevice::free( void *address )
 {
+   //fprintf(stderr, "[node %d] FREE\n", sys.getNetwork()->getNodeNum());
 }
 
 void ClusterDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
 {
+   ClusterRemoteNode *node = (ClusterRemoteNode *) myThread->runningOn();
+   //fprintf(stderr, "[node %d] COPY IN ( remote=%p, <= local=0x%llx[%d], size=%d)\n", sys.getNetwork()->getNodeNum(), localDst, remoteSrc, *((int *)remoteSrc), size);
+   sys.getNetwork()->put( node->getClusterNodeNum(), ( uint64_t ) localDst, ( void * ) remoteSrc, size );
 }
 
 void ClusterDevice::copyOut( uint64_t remoteDst, void *localSrc, size_t size )
 {
+   ClusterRemoteNode *node = (ClusterRemoteNode *) myThread->runningOn();
+   //fprintf(stderr, "[node %d] COPY OUT ( remote=%p, => local=0x%llx[%d], size %d\n", sys.getNetwork()->getNodeNum(), localSrc, remoteDst, *((int *)remoteDst), size);
+   sys.getNetwork()->get( ( void * ) remoteDst, node->getClusterNodeNum(), ( uint64_t ) localSrc, size );
+   //fprintf(stderr, "[node %d] COPY OUT ( remote=%p, => local=0x%llx[%d], size %d\n", sys.getNetwork()->getNodeNum(), localSrc, remoteDst, *((int *)remoteDst), size);
 }
 

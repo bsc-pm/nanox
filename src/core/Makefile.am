@@ -98,8 +98,11 @@ nanos_sources=\
 	synchronizedcondition_fwd.hpp \
 	synchronizedcondition_decl.hpp \
 	synchronizedcondition.hpp \
-        directory_decl.hpp \
-        directory.hpp \
+   directory_decl.hpp \
+   directory.hpp \
+   networkapi.hpp \
+   network.hpp \
+   network.cpp \
 	$(END)
 
 # Default

@@ -42,46 +42,60 @@ BaseThread &ClusterNode::createThread ( WorkDescriptor &helper )
 {
    // In fact, the GPUThread will run on the CPU, so make sure it canRunIn( SMP )
    ensure( helper.canRunIn( SMP ), "Incompatible worker thread" );
-   ClusterThread &th = *new ClusterThread( helper,this, _clusterDevice );
+   ClusterThread &th = *new ClusterThread( helper, this, _clusterNode );
 
    return th;
 }
 
-void ClusterNode::registerDataAccessDependent( uint64_t tag, size_t size )
-{
-   //_cache.cacheData( tag, size );
-}
+//void ClusterNode::registerDataAccessDependent( uint64_t tag, size_t size )
+//{
+//   _cache.cacheData( tag, size );
+//}
 
-void ClusterNode::copyDataDependent( uint64_t tag, size_t size )
-{
-   //_cache.copyData( tag, size );
-}
+//void ClusterNode::copyDataDependent( uint64_t tag, size_t size )
+//{
+//   _cache.copyData( tag, size );
+//}
 
-void ClusterNode::unregisterDataAccessDependent( uint64_t tag )
-{
-   //_cache.flush( tag );
-}
+//void ClusterNode::unregisterDataAccessDependent( uint64_t tag )
+//{
+//   _cache.flush( tag );
+//}
 
-void ClusterNode::copyBackDependent( uint64_t tag, size_t size )
-{
-   //_cache.copyBack( tag, size );
-}
+//void ClusterNode::copyBackDependent( uint64_t tag, size_t size )
+//{
+//   _cache.copyBack( tag, size );
+//}
 
 void* ClusterNode::getAddressDependent( uint64_t tag )
 {
-   //return _cache.getAddress(tag);
-   return 0;
+   return _cache.getAddress(tag);
 }
 
 void ClusterNode::copyToDependent( void *dst, uint64_t tag, size_t size )
 {
-   //_cache.copyTo( dst, tag, size );
+   _cache.copyTo( dst, tag, size );
 }
 
-void ClusterNode::registerCacheAccessDependent(uint64_t a, size_t aa, bool aaa, bool aaaa){}
-void ClusterNode::unregisterCacheAccessDependent(uint64_t a, size_t aa){}
-void ClusterNode::registerPrivateAccessDependent(uint64_t a, size_t aa, bool aaa, bool aaaa){}
-void ClusterNode::unregisterPrivateAccessDependent(uint64_t a, size_t aa){}
+void ClusterNode::registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output )
+{
+   //fprintf(stderr, "clusternode: registerCacheAccessDependent %llx\n", tag);
+   _cache.registerCacheAccess( tag, size, input, output );
+}
 
+void ClusterNode::unregisterCacheAccessDependent( uint64_t tag, size_t size )
+{
+   _cache.unregisterCacheAccess( tag, size );
+}
 
-int ClusterNode::getClusterID() { return _clusterDevice; }
+void ClusterNode::registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output )
+{
+   _cache.registerPrivateAccess( tag, size, input, output );
+}
+
+void ClusterNode::unregisterPrivateAccessDependent( uint64_t tag, size_t size )
+{
+   _cache.unregisterPrivateAccess( tag, size );
+}
+
+unsigned int ClusterNode::getClusterNodeNum() { return _clusterNode; }

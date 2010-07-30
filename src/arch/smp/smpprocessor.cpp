@@ -48,6 +48,7 @@ WorkDescriptor & SMPProcessor::getWorkerWD () const
 WorkDescriptor & SMPProcessor::getMasterWD () const
 {
    WD * wd = new WD( new SMPDD() );
+   fprintf(stderr, "master wd(%p)'s dd is %p\n", wd, &wd->getActiveDevice());
    return *wd;
 }
 
@@ -61,7 +62,7 @@ BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper )
 }
 
 
-#if SMP_NUMA
+#ifdef SMP_NUMA
 
 void SMPProcessor::registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output )
 {
@@ -85,6 +86,7 @@ void SMPProcessor::unregisterPrivateAccessDependent( uint64_t tag, size_t size )
 
 void* SMPProcessor::getAddressDependent( uint64_t tag )
 {
+   fprintf(stderr, "smpprocessor: getAddressDependent returns %p\n", _cache.getAddress(tag));
    return _cache.getAddress( tag );
 }
 

@@ -22,6 +22,7 @@
 
 #include "compatibility.hpp"
 #include "cache_fwd.hpp"
+#include "atomic.hpp"
 
 namespace nanos
 {
@@ -82,6 +83,8 @@ namespace nanos
 
          typedef TR1::unordered_map< uint64_t, DirectoryEntry> DirectoryMap;
          DirectoryMap _directory;
+         Lock _lock;
+
 
          // disable copy constructor and assignment operator
          Directory( const Directory &dir );
@@ -96,6 +99,8 @@ namespace nanos
          DirectoryEntry& newEntry( uint64_t tag, unsigned int version, Cache* owner );
 
          DirectoryEntry* getEntry( uint64_t tag );
+
+         void unLock( void ) { _lock.release(); }
    };
 
 };

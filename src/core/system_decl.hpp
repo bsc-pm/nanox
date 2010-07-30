@@ -31,6 +31,7 @@
 #include "dependency.hpp"
 #include "instrumentor_decl.hpp"
 #include "directory.hpp"
+#include "network.hpp"
 
 
 namespace nanos
@@ -90,6 +91,8 @@ namespace nanos
          ThreadList           _workers;
 
          Slicers              _slicers; /**< set of global slicers */
+
+         Network              _net;
 
          Instrumentation           *_instrumentor; /**< Instrumentor object used in current execution */
          SchedulePolicy         *_defSchedulePolicy;
@@ -220,6 +223,11 @@ namespace nanos
 
          bool isMaster( void );
          void setMaster( bool );
+
+         Network * getNetwork( void );
+
+         void stopFirstThread( void );
+
    };
 
    extern System sys;

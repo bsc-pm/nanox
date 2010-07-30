@@ -54,7 +54,11 @@ namespace ext
          const SMPProcessor & operator= ( const SMPProcessor &pe );
 
 #ifdef SMP_NUMA
+#ifdef CLUSTER_DEV
+         HostCache<SMPDevice> _cache;
+#else
          DeviceCache<SMPDevice> _cache;
+#endif
 #endif
 
       public:

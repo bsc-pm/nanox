@@ -34,7 +34,7 @@ namespace ext
       friend class ClusterProcessor;
 
       private:
-         int                     _clusterDevice; // Assigned Cluster device Id
+         unsigned int                     _clusterNode; // Assigned Cluster device Id
 
          // disable copy constructor and assignment operator
          ClusterThread( const ClusterThread &th );
@@ -42,12 +42,13 @@ namespace ext
 
       public:
          // constructor
-         ClusterThread( WD &w, PE *pe, int device ) : SMPThread( w, pe ), _clusterDevice( device ) {}
+         ClusterThread( WD &w, PE *pe, int device ) : SMPThread( w, pe ), _clusterNode( device ) {}
 
          // destructor
          virtual ~ClusterThread() {}
 
          virtual void runDependent ( void );
+         virtual void inlineWorkDependent ( WD &wd );
 
    };
 

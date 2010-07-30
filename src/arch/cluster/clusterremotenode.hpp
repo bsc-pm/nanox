@@ -47,9 +47,10 @@ namespace ext
 
          virtual ~ClusterRemoteNode() {}
 
-         //virtual WD & getWorkerWD () const;
-         //virtual WD & getMasterWD () const;
+         virtual WD & getWorkerWD () const;
+         virtual WD & getMasterWD () const;
          //virtual BaseThread & createThread ( WorkDescriptor &wd );
+         virtual bool supportsUserLevelThreads () const { return false; }
 
          //// capability query functions
          //virtual bool supportsUserLevelThreads () const { return false; }
@@ -67,7 +68,7 @@ namespace ext
          //void registerPrivateAccessDependent(uint64_t a, size_t aa, bool aaa, bool aaaa);
          //void unregisterPrivateAccessDependent(uint64_t a, size_t aa);
 
-         void stopAll();
+         static void slaveLoop ( ClusterRemoteNode *node );
    };
 
 }

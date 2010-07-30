@@ -50,9 +50,11 @@ libcluster_la_SOURCES = \
 
 
 
-libnanox_pe_cluster_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags) -DGASNET_PAR -I@GASNET_INC@ -I@GASNET_INC@/mpi-conduit
-libnanox_pe_cluster_la_LDFLAGS = $(ld_plugin_flags) -L@GASNET_LIB@ -lgasnet-mpi-par -lammpi -L/gpfs/apps/GCC/4.4.0/lib/ -L/opt/osshpc/mpich-mx/32/lib/shared -L/opt/osshpc/mx/lib -lmpich -lmyriexpress -L/opt/ibmcmp/vacpp/10.1/lib -lxl -lpthread
+libnanox_pe_cluster_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags) -DGASNET_PAR -I@GASNET_INC@ -I@GASNET_INC@/@GASNET_CONDUIT@-conduit
+libnanox_pe_cluster_la_LDFLAGS = $(ld_plugin_flags) -L@GASNET_LIB@ @GASNET_FLAGS_LIBS@ -L/gpfs/apps/GCC/4.4.0/lib/
 libnanox_pe_cluster_la_SOURCES = \
 		clusterplugin.cpp \
+		gasnetapi.hpp \
+		gasnetapi.cpp \
 		$(END)
 

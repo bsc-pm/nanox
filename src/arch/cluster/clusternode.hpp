@@ -25,6 +25,7 @@
 #include "config.hpp"
 #include "clusterdevice.hpp"
 #include "clusterthread.hpp"
+#include "smpdevice.hpp"
 
 namespace nanos {
 namespace ext
@@ -37,17 +38,17 @@ namespace ext
       private:
          // config variables
          static Atomic<int>      _deviceSeed; // Number of cluster devices assigned to threads
-         int                     _clusterDevice; // Assigned cluster device Id
+         unsigned int            _clusterNode; // Assigned cluster device Id
 
          // disable copy constructor and assignment operator
          ClusterNode( const ClusterNode &pe );
          const ClusterNode & operator= ( const ClusterNode &pe );
 
-         //Cache<ClusterDevice> _cache;
+         DeviceCache<ClusterDevice> _cache;
 
       public:
          // constructors
-         ClusterNode( int id ) : Accelerator( id, &Cluster ) { _clusterDevice = id; }
+         ClusterNode( int id ) : Accelerator( id, &SMP ) { _clusterNode = id; }
 
          virtual ~ClusterNode() {}
 
@@ -59,10 +60,10 @@ namespace ext
          virtual bool supportsUserLevelThreads () const { return false; }
 
          /* Memory space support */
-         virtual void registerDataAccessDependent( uint64_t tag, size_t size );
-         virtual void copyDataDependent( uint64_t tag, size_t size );
-         virtual void unregisterDataAccessDependent( uint64_t tag );
-         virtual void copyBackDependent( uint64_t tag, size_t size );
+         //virtual void registerDataAccessDependent( uint64_t tag, size_t size );
+         //virtual void copyDataDependent( uint64_t tag, size_t size );
+         //virtual void unregisterDataAccessDependent( uint64_t tag );
+         //virtual void copyBackDependent( uint64_t tag, size_t size );
          virtual void* getAddressDependent( uint64_t tag );
          virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
 
@@ -71,7 +72,7 @@ namespace ext
          void registerPrivateAccessDependent(uint64_t a, size_t aa, bool aaa, bool aaaa);
          void unregisterPrivateAccessDependent(uint64_t a, size_t aa);
 
-         int getClusterID();
+         unsigned int getClusterNodeNum();
    };
 
 }
