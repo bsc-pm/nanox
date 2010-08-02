@@ -18,7 +18,7 @@
 /*************************************************************************************/
 // FIXME: (#64) This flag ENABLE_INSTRUMENTATION has to be managed through
 //configure in order to generate an instrumentation version
-//#define NANOS_INSTRUMENTATION_ENABLED
+#define NANOS_INSTRUMENTATION_ENABLED
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 #define NANOS_INSTRUMENT(f) f;
@@ -128,6 +128,9 @@ namespace nanos {
           */
          ConstValueMapIterator endValueMap ( void );
 
+         /*! \brief Returns a Value description for a given value
+          */
+         const std::string getValueDescription ( nanos_event_value_t val );
    };
 
    class InstrumentationDictionary {
@@ -245,6 +248,13 @@ namespace nanos {
           */
          ConstKeyMapIterator endKeyMap ( void );
          
+         /*! \brief Returns a Key description for a given key
+          */
+         const std::string getKeyDescription ( nanos_event_key_t key );
+
+         /*! \brief Returns a Value description for a given key and a value
+          */
+         const std::string getValueDescription ( nanos_event_key_t key, nanos_event_value_t val );
 
    };
 #endif
