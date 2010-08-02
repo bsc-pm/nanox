@@ -40,6 +40,7 @@ class InstrumentationExtrae: public Instrumentation
 #else
    private:
       InstrumentationContextStackedStatesAndBursts   _icLocal;
+      char                                           _traceDirectory[255];
    public:
       // constructor
       InstrumentationExtrae ( ) : Instrumentation(), _icLocal() { _instrumentationContext = &_icLocal; }
@@ -71,13 +72,14 @@ class InstrumentationExtrae: public Instrumentation
                if ( strlen(str) > 0 )
                {
                   for (unsigned int i = 0; i < strlen(str); i++) if ( str[i] == ' ' ) str[i] = 0x0;
-                  if ( remove(str) != 0 ) std::cout << "Unable to delete file" << str << std::endl;
+                  if ( remove(str) != 0 ) std::cout << "nanox: Unable to delete partial trace file" << str << std::endl;
                }
             }
             p_file.close();
          }
-         else std::cout << "Unable to open file" << std::endl;  
-         if ( remove("TRACE.mpits") != 0 ) std::cout << "Unable to delete TRACE.mpits file" << std::endl;
+         else std::cout << "Unable to open TRACE.mpits file" << std::endl;  
+
+//         if ( remove("TRACE.mpits") != 0 ) std::cout << "Unable to delete TRACE.mpits file" << std::endl;
       }
 
       void createParaverConfigFile()
@@ -209,11 +211,11 @@ class InstrumentationExtrae: public Instrumentation
          int result;
 
          result = rename( "MPITRACE_Paraver_Trace.prv"  , new_name_prv );
-         if ( result != 0 ) std::cout << "Unable to rename paraver file" << std::endl;
+         if ( result != 0 ) std::cout << "nanox: Unable to rename paraver file" << std::endl;
          result = rename( "MPITRACE_Paraver_Trace.pcf"  , new_name_pcf );
-         if ( result != 0 ) std::cout << "Unable to rename paraver config file" << std::endl;
+         if ( result != 0 ) std::cout << "nanox: Unable to rename paraver config file" << std::endl;
          result = rename( "MPITRACE_Paraver_Trace.row"  , new_name_row );
-         if ( result != 0 ) std::cout << "Unable to rename paraver row file" << std::endl;
+         if ( result != 0 ) std::cout << "nanox: Unable to rename paraver row file" << std::endl;
 
          std::cout << "nanox: Trace MPITRACE_Paraver_Trace.prv renamed to " << trace_base << trace_suffix << ".prv." << std::endl;
       }
@@ -221,17 +223,42 @@ class InstrumentationExtrae: public Instrumentation
       void initialize ( void )
       {
          char *mpi_trace_on;
+#if 0
+         char *mpi_trace_dir;
+#endif
 
-         /* check environment variable MPITRACE_ON value */
+         /* check environment variable: EXTRAE_ON */
          mpi_trace_on = getenv("EXTRAE_ON");
 
          /* if MPITRAE_ON not defined, active it */
-         if ( mpi_trace_on == NULL )
-         {
+         if ( mpi_trace_on == NULL ) {
             mpi_trace_on = new char[15];
             strcpy(mpi_trace_on, "EXTRAE_ON=1");
             putenv (mpi_trace_on);
          }
+
+#if 0
+         /* check environment variable: EXTRAE_FINAL_DIR */
+         mpi_trace_dir = getenv("EXTRAE_FINAL_DIR");
+
+         /* if EXTRAE_FINAL_DIR not defined, active it */
+         if ( mpi_trace_dir == NULL ) {
+            mpi_trace_dir = new char[3];
+            strcpy(mpi_trace_dir, "./");
+         }
+
+         strcpy(_traceDirectory, mpi_trace_dir);
+         strcat(_traceDirectory, "/extrae/");
+
+         std::cout << "nanox: Using " << _traceDirectory << " as trace output directory." <<  std::endl;
+
+         char *env_trace_dir = new char[255];
+         strcpy(env_trace_dir, "EXTRAE_FINAL_DIR=");
+         strcat(env_trace_dir, _traceDirectory);
+
+         putenv (env_trace_dir);
+#endif
+
 
          /* OMPItrace initialization */
          OMPItrace_init();
