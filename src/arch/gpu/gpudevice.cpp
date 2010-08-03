@@ -60,7 +60,11 @@ void * GPUDevice::allocate( size_t size )
 
    if ( _transferMode == ASYNC ) {
       err = cudaMallocHost( ( void ** ) &pinned, size );
+
+      // Use cudaHostAllocPortable flag in order to allocate host memory that must be
+      // accessed from more than one GPU
       //err = cudaHostAlloc( ( void ** ) &pinned, size, cudaHostAllocPortable);
+
       if ( err != cudaSuccess ) {
          std::stringstream sizeStr;
          sizeStr << size;
@@ -178,15 +182,6 @@ void GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
                cudaMemcpyHostToDevice,
                ((nanos::ext::GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->getTransferStream()
             );
-
-      if ( err != cudaSuccess ) {
-         std::stringstream sizeStr;
-         sizeStr << size;
-         std::string what = "Trying to copy "
-                            + sizeStr.str()
-                            + " bytes of data from host to device with cudaMemcpy*(): ";
-         fatal( what + cudaGetErrorString( err ) );
-      }
    }
 
    if ( _transferMode == PINNED_OS ) {

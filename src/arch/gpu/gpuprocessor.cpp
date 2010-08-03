@@ -40,7 +40,6 @@ size_t GPUProcessor::getMaxMemoryAvailable ( int id )
    return _gpuProcessorInfo->getMaxMemoryAvailable();
 }
 
-
 WorkDescriptor & GPUProcessor::getWorkerWD () const
 {
    SMPDD * dd = new SMPDD( ( SMPDD::work_fct )Scheduler::workerLoop );
