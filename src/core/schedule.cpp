@@ -79,10 +79,12 @@ inline void Scheduler::idleLoop ()
       if ( !thread->isRunning() ) break;
 
       if ( thread->getTeam() != NULL ) {
-
-        NANOS_INSTRUMENT( inst.changeState( SCHEDULING ) );
-        WD * next = myThread->getNextWD() ? myThread->getNextWD() : behaviour::getWD(thread,current);
-        NANOS_INSTRUMENT( inst.changeState( IDLE ) );
+         WD * next = myThread->getNextWD();
+         if ( !next && sys.getSchedulerStats()._readyTasks > 0 ) {
+            NANOS_INSTRUMENT( inst.changeState( SCHEDULING ) );
+            next = behaviour::getWD(thread,current);
+            NANOS_INSTRUMENT( inst.changeState( IDLE ) );
+         }
 
          if (next) {
            sys.getSchedulerStats()._idleThreads--;
@@ -97,7 +99,9 @@ inline void Scheduler::idleLoop ()
 
       spins--;
       if ( spins == 0 ) {
+        NANOS_INSTRUMENT( inst.changeState( YIELD ) );
         thread->yield();
+        NANOS_INSTRUMENT( inst.changeState( IDLE ) );
         spins = nspins;
       }
    }

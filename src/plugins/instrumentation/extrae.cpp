@@ -110,6 +110,7 @@ class InstrumentationExtrae: public Instrumentation
             p_file << CREATION         << "     CREATION" << std::endl;
             p_file << MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
             p_file << CACHE            << "     CACHE ALLOC/FREE" << std::endl;
+            p_file << YIELD            << "     YIELD" << std::endl;
             p_file << std::endl;
 
             /* Event: PtPStart main event */
@@ -139,6 +140,7 @@ class InstrumentationExtrae: public Instrumentation
             p_file << CREATION         << "     CREATION" << std::endl;
             p_file << MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
             p_file << CACHE            << "     CACHE ALLOC/FREE" << std::endl;
+            p_file << YIELD            << "     YIELD" << std::endl;
             p_file << std::endl;
 
             /* Getting Instrumentor Dictionary */
