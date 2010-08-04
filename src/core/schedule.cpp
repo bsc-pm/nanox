@@ -81,27 +81,27 @@ inline void Scheduler::idleLoop ()
       if ( thread->getTeam() != NULL ) {
          WD * next = myThread->getNextWD();
          if ( !next && sys.getSchedulerStats()._readyTasks > 0 ) {
-            NANOS_INSTRUMENT( inst.changeState( SCHEDULING ) );
+            NANOS_INSTRUMENT( InstrumentState inst1(SCHEDULING) );
             next = behaviour::getWD(thread,current);
-            NANOS_INSTRUMENT( inst.changeState( IDLE ) );
+            NANOS_INSTRUMENT( inst1.close() );
          }
 
          if (next) {
-           sys.getSchedulerStats()._idleThreads--;
-           NANOS_INSTRUMENT( inst.changeState( RUNTIME ) );
-           behaviour::switchWD(thread,current, next);
-           NANOS_INSTRUMENT( inst.changeState( IDLE ) );
-           sys.getSchedulerStats()._idleThreads++;
-           spins = nspins;
-           continue;
+            sys.getSchedulerStats()._idleThreads--;
+            NANOS_INSTRUMENT( InstrumentState inst2(RUNTIME) );
+            behaviour::switchWD(thread,current, next);
+            NANOS_INSTRUMENT( inst2.close() );
+            sys.getSchedulerStats()._idleThreads++;
+            spins = nspins;
+            continue;
          }
       }
 
       spins--;
       if ( spins == 0 ) {
-        NANOS_INSTRUMENT( inst.changeState( YIELD ) );
+        NANOS_INSTRUMENT( InstrumentState inst3(YIELD) );
         thread->yield();
-        NANOS_INSTRUMENT( inst.changeState( IDLE ) );
+        NANOS_INSTRUMENT( inst3.close() );
         spins = nspins;
       }
    }
@@ -132,18 +132,22 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
          if ( !( condition->check() ) ) {
             condition->addWaiter( current );
 
-            NANOS_INSTRUMENT( inst.changeState( SCHEDULING ) );
+            NANOS_INSTRUMENT( InstrumentState inst1(SCHEDULING) );
             WD *next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
-            NANOS_INSTRUMENT( inst.changeState( SYNCHRONIZATION ) );
+            NANOS_INSTRUMENT( inst1.close() );
 
             if ( next ) {
                sys.getSchedulerStats()._idleThreads--;
+               NANOS_INSTRUMENT( InstrumentState inst2(RUNTIME) );
                switchTo ( next );
+               NANOS_INSTRUMENT( inst2.close() );
                sys.getSchedulerStats()._idleThreads++;
             }
             else {
                condition->unlock();
+               NANOS_INSTRUMENT( InstrumentState inst3(YIELD) );
                thread->yield();
+               NANOS_INSTRUMENT( inst3.close() );
             }
          } else {
             condition->unlock();

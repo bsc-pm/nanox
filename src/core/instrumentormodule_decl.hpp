@@ -49,12 +49,13 @@ namespace nanos {
          {
             _inst.raiseOpenStateAndBurst(state, _key, val);
          }
-
+#if 0 // REMOVE
          void changeState ( nanos_event_state_value_t state ) 
          {
             _inst.raiseCloseStateEvent();
             _inst.raiseOpenStateEvent(state);
          }
+#endif
 	 void close() { _closed=true; _inst.raiseCloseStateAndBurst(_key);  }
          ~InstrumentStateAndBurst ( ) { if (!_closed) close(); }
    };
@@ -62,17 +63,21 @@ namespace nanos {
    class InstrumentState {
       private:
          Instrumentation     &_inst;
+	 bool		      _closed;
       public:
-         InstrumentState ( nanos_event_state_value_t state ) : _inst(*sys.getInstrumentor())
+         InstrumentState ( nanos_event_state_value_t state ) : _inst(*sys.getInstrumentor()), _closed(false)
          {
             _inst.raiseOpenStateEvent( state );
          }
+#if 0 // REMOVE
          void changeState ( nanos_event_state_value_t state ) 
          {
             _inst.raiseCloseStateEvent();
             _inst.raiseOpenStateEvent(state);
          }
-         ~InstrumentState ( ) { _inst.raiseCloseStateEvent(); }
+#endif
+	 void close() { _closed=true; _inst.raiseCloseStateEvent();  }
+         ~InstrumentState ( ) { if (!_closed) close(); }
    };
 
    class InstrumentSubState {
