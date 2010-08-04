@@ -40,6 +40,9 @@ class InstrumentationExtrae: public Instrumentation
 #else
    private:
       InstrumentationContextStackedStatesAndBursts   _icLocal;
+      char                                           _listOfTraceFiles[255];
+      char                                           _traceDirectory[255];
+      char                                           _traceFinalDirectory[255];
    public:
       // constructor
       InstrumentationExtrae ( ) : Instrumentation(), _icLocal() { _instrumentationContext = &_icLocal; }
@@ -55,13 +58,14 @@ class InstrumentationExtrae: public Instrumentation
          // Merging trace files
          strcpy(str, MPITRACE_BIN);
          strcat(str, "/mpi2prv");
+
          pid = fork();
-         if ( pid == (pid_t) 0 ) execl ( str, "mpi2prv", "-f", "TRACE.mpits", (char *) NULL);
+         if ( pid == (pid_t) 0 ) execl ( str, "mpi2prv", "-f", _listOfTraceFiles, (char *) NULL);
          else waitpid( pid, &status, options);
 
          // Deleting temporary files
          std::fstream p_file;
-         p_file.open("TRACE.mpits");
+         p_file.open(_listOfTraceFiles);
 
          if (p_file.is_open())
          {
@@ -71,13 +75,15 @@ class InstrumentationExtrae: public Instrumentation
                if ( strlen(str) > 0 )
                {
                   for (unsigned int i = 0; i < strlen(str); i++) if ( str[i] == ' ' ) str[i] = 0x0;
-                  if ( remove(str) != 0 ) std::cout << "Unable to delete file" << str << std::endl;
+                  if ( remove(str) != 0 ) std::cout << "nanox: Unable to delete temporary/partial trace file" << str << std::endl;
                }
             }
             p_file.close();
          }
-         else std::cout << "Unable to open file" << std::endl;  
-         if ( remove("TRACE.mpits") != 0 ) std::cout << "Unable to delete TRACE.mpits file" << std::endl;
+         else std::cout << "Unable to open " << _listOfTraceFiles << " file" << std::endl;  
+
+         if ( remove(_listOfTraceFiles) != 0 ) std::cout << "Unable to delete TRACE.mpits file" << std::endl;
+
       }
 
       void createParaverConfigFile()
@@ -148,11 +154,20 @@ class InstrumentationExtrae: public Instrumentation
                p_file << "EVENT_TYPE" << std::endl;
                p_file << "9    " << _eventBase+kD->getId() << " " << kD->getDescription() << std::endl;
                p_file << "VALUES" << std::endl;
-               
+
+               // First: Ordering list of values and descriptions 
+               std::map<int,std::string> lov;
                for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
                   InstrumentationValueDescriptor *vD = itV->second;
-                  p_file << vD->getId() << "  " << vD->getDescription() << std::endl;
+                  lov.insert( make_pair( vD->getId(), vD->getDescription() ));
                }
+
+               // Second:: Generating already ordered list of values
+               std::map<int,std::string>::iterator itLoV;
+               for ( itLoV = lov.begin(); itLoV != lov.end(); itLoV++ ) {
+                  p_file << itLoV->first << "  " << itLoV->second << std::endl;
+               }
+
                p_file << std::endl;
             }
             p_file << std::endl;
@@ -165,22 +180,27 @@ class InstrumentationExtrae: public Instrumentation
 
       void renameFiles ()
       {
+         char *old_name_prv = (char *) alloca ( 255 * sizeof (char));;
+         char *old_name_pcf = (char *) alloca ( 255 * sizeof (char));;
+         char *old_name_row = (char *) alloca ( 255 * sizeof (char));;
          char *new_name_prv = (char *) alloca ( 255 * sizeof (char));;
          char *new_name_pcf = (char *) alloca ( 255 * sizeof (char));;
          char *new_name_row = (char *) alloca ( 255 * sizeof (char));;
+         char *file_name    = (char *) alloca ( 255 * sizeof (char));;
 
          // Check if the trace file exists
          struct stat buffer;
          int err;
+         std::string trace_dir = _traceFinalDirectory;
          std::string trace_base = ( OS::getArg( 0 ) );
          int num = 1;
          std::string trace_suffix = "_001";
          std::string trace_extension = ".prv";
-         bool trace_exists = true;
+         bool file_exists = true;
 
-         while ( trace_exists ) {
+         while ( file_exists ) {
             // Attempt to get the file attributes
-            err = stat( ( trace_base + trace_suffix + trace_extension).c_str(), &buffer );
+            err = stat( ( trace_dir + "/../" + trace_base + trace_suffix + trace_extension).c_str(), &buffer );
             if ( err == 0 ) {
                // The file exists
                num++;
@@ -188,41 +208,108 @@ class InstrumentationExtrae: public Instrumentation
                trace_num << "_" << (num < 100 ? "0" : "") << (num < 10 ? "0" : "") << num;
                trace_suffix =  trace_num.str();
             } else {
-               trace_exists = false;
+               file_exists = false;
             }
          }
 
-         sprintf( new_name_prv, "%s%s.prv", trace_base.c_str(), trace_suffix.c_str() );
-         sprintf( new_name_pcf, "%s%s.pcf", trace_base.c_str(), trace_suffix.c_str() );
-         sprintf( new_name_row, "%s%s.row", trace_base.c_str(), trace_suffix.c_str() );
+         /* Old file names */
+         sprintf( old_name_prv, "MPITRACE_Paraver_Trace.prv");
+         sprintf( old_name_pcf, "MPITRACE_Paraver_Trace.pcf");
+         sprintf( old_name_row, "MPITRACE_Paraver_Trace.row");
+
+         /* New file names */
+         sprintf( new_name_prv, "%s/../%s%s.prv", _traceFinalDirectory, trace_base.c_str(), trace_suffix.c_str() );
+         sprintf( new_name_pcf, "%s/../%s%s.pcf", _traceFinalDirectory, trace_base.c_str(), trace_suffix.c_str() );
+         sprintf( new_name_row, "%s/../%s%s.row", _traceFinalDirectory, trace_base.c_str(), trace_suffix.c_str() );
 
          /* Renaming the files */
          int result;
 
-         result = rename( "MPITRACE_Paraver_Trace.prv"  , new_name_prv );
-         if ( result != 0 ) std::cout << "Unable to rename paraver file" << std::endl;
-         result = rename( "MPITRACE_Paraver_Trace.pcf"  , new_name_pcf );
-         if ( result != 0 ) std::cout << "Unable to rename paraver config file" << std::endl;
-         result = rename( "MPITRACE_Paraver_Trace.row"  , new_name_row );
-         if ( result != 0 ) std::cout << "Unable to rename paraver row file" << std::endl;
+         result = rename( old_name_prv, new_name_prv );
+         if ( result != 0 ) std::cout << "nanox: Unable to rename paraver file" << std::endl;
+         result = rename( old_name_pcf, new_name_pcf );
+         if ( result != 0 ) std::cout << "nanox: Unable to rename paraver config file" << std::endl;
+         result = rename( old_name_row, new_name_row );
+         if ( result != 0 ) std::cout << "nanox: Unable to rename paraver row file" << std::endl;
 
-         std::cout << "nanox: Trace MPITRACE_Paraver_Trace.prv renamed to " << trace_base << trace_suffix << ".prv." << std::endl;
+         /* Removing EXTRAE_DIR temporary directories and files */
+         file_exists = true; num = 0;
+         while ( file_exists ) {
+            sprintf( file_name, "%s/set-%d", _traceDirectory, num++ );
+            if ( remove( file_name ) != 0 ) file_exists = false;
+
+         }
+         remove( _traceDirectory);
+
+         /* Removing EXTRAE_FINAL_DIR temporary directories and files */
+         file_exists = true; num = 0;
+         while ( file_exists ) {
+            sprintf( file_name, "%s/set-%d", _traceFinalDirectory, num++ );
+            if ( remove( file_name ) != 0 ) file_exists = false;
+
+         }
+         remove( _traceFinalDirectory);
       }
 
       void initialize ( void )
       {
          char *mpi_trace_on;
+         char *mpi_trace_dir;
+         char *mpi_trace_final_dir;
 
-         /* check environment variable MPITRACE_ON value */
+         /* check environment variable: EXTRAE_ON */
          mpi_trace_on = getenv("EXTRAE_ON");
-
          /* if MPITRAE_ON not defined, active it */
-         if ( mpi_trace_on == NULL )
-         {
-            mpi_trace_on = new char[15];
+         if ( mpi_trace_on == NULL ) {
+            mpi_trace_on = new char[12];
             strcpy(mpi_trace_on, "EXTRAE_ON=1");
             putenv (mpi_trace_on);
          }
+
+         /* check environment variable: EXTRAE_FINAL_DIR */
+         mpi_trace_final_dir = getenv("EXTRAE_FINAL_DIR");
+         /* if EXTRAE_FINAL_DIR not defined, active it */
+         if ( mpi_trace_final_dir == NULL ) {
+            mpi_trace_final_dir = new char[3];
+            strcpy(mpi_trace_final_dir, "./");
+         }
+
+         /* check environment variable: EXTRAE_DIR */
+         mpi_trace_dir = getenv("EXTRAE_DIR");
+         /* if EXTRAE_DIR not defined, active it */
+         if ( mpi_trace_dir == NULL ) {
+            mpi_trace_dir = new char[3];
+            strcpy(mpi_trace_dir, "./");
+         }
+
+         /* Saving DIR and FINAL_DIR */
+         strcpy(_traceDirectory, mpi_trace_dir);
+         strcpy(_traceFinalDirectory, mpi_trace_final_dir);
+
+         /* Append temporary directory and creating them */
+         strcat(_traceDirectory, "/extrae_dir/");
+         strcat(_traceFinalDirectory, "/extrae_final/");
+
+         if ( mkdir(_traceDirectory, S_IRWXU ) != 0 )
+            fatal0 ( "Trace directory doesn't exists or user has no permissions on this directory" ); ;
+         if ( mkdir(_traceFinalDirectory, S_IRWXU) != 0 ) {
+            remove (_traceDirectory);
+            fatal0 ( "Trace final directory doesn't exists or user has no permissions on this directory" ); ;
+         }
+
+         strcpy(_listOfTraceFiles, _traceFinalDirectory);
+         strcat(_listOfTraceFiles, "TRACE.mpits");
+
+         std::cout << "nanox: Using " << _traceDirectory << " and " << _traceFinalDirectory << " as trace output directory." <<  std::endl;
+
+         char *env_trace_dir = new char[255];
+         char *env_trace_final_dir = new char[255];
+
+         sprintf(env_trace_dir, "EXTRAE_DIR=%s",_traceDirectory);
+         putenv (env_trace_dir);
+
+         sprintf(env_trace_final_dir, "EXTRAE_FINAL_DIR=%s",_traceFinalDirectory);
+         putenv (env_trace_final_dir);
 
          /* OMPItrace initialization */
          OMPItrace_init();
