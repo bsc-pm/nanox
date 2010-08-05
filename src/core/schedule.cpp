@@ -101,9 +101,9 @@ inline void Scheduler::idleLoop ()
 
       spins--;
       if ( spins == 0 ) {
-        //NANOS_INSTRUMENT( InstrumentState inst3(YIELD) );
+        NANOS_INSTRUMENT( InstrumentState inst3(YIELD) );
         thread->yield();
-        //NANOS_INSTRUMENT( inst3.close() );
+        NANOS_INSTRUMENT( inst3.close() );
         spins = nspins;
       }
    }
