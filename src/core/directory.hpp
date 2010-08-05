@@ -29,6 +29,7 @@ inline const Entry& Entry::operator= ( const Entry &ent )
    if ( this == &ent ) return *this;
    _tag = ent._tag;
    _version = ent._version;
+   return *this;
 }
 
 inline uint64_t Entry::getTag() const { return _tag; }
