@@ -239,7 +239,7 @@ namespace nanos
          */
          SynchronizedCondition& operator=( const SynchronizedCondition & sc )
          {
-            this._conditionChecker = sc._ConditionChecker;
+            this->_conditionChecker = sc._conditionChecker;
             return *this;
          }
 

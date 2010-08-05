@@ -20,12 +20,15 @@
 #ifndef _NANOS_ATOMIC
 #define _NANOS_ATOMIC
 
+#include "compatibility.hpp"
+
 /* TODO: move to configure
 #include <ext/atomicity.h>
 #ifndef _GLIBCXX_ATOMIC_BUILTINS
 #error "Atomic gcc builtins support is mandatory at this point"
 #endif
 */
+
 
 namespace nanos
 {
