@@ -51,6 +51,11 @@ namespace ext
 
          virtual void inlineWorkDependent( WD &work );
 
+         int getGpuDevice ()
+         {
+            return _gpuDevice;
+         }
+
    };
 
 

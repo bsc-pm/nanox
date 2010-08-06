@@ -1,11 +1,12 @@
-EXTRA_DIST = api-generator.in core-generator.in mixed-generator.in nanox-creation-generator.in
-noinst_PROGRAMS = config-generator
+EXTRA_DIST = api-generator.in core-generator.in gpu-generator.in mixed-generator.in nanox-creation-generator.in
+noinst_PROGRAMS = config-generator gpu-config-generator
 
-noinst_SCRIPTS = api-generator core-generator mixed-generator nanox-creation-generator
+noinst_SCRIPTS = api-generator core-generator gpu-generator mixed-generator nanox-creation-generator
 
-CLEANFILES = api-generator core-generator mixed-generator nanox-creation-generator
+CLEANFILES = api-generator core-generator mixed-generator nanox-creation-generator gpu-generator
 
 config_generator_SOURCES=config-generator.cpp
+gpu_config_generator_SOURCES=gpu-config-generator.cpp
 
 api-generator: api-generator.in
 	rm -f api-generator
@@ -50,4 +51,15 @@ nanox-creation-generator: nanox-creation-generator.in
 		$(srcdir)/nanox-creation-generator.in > nanox-creation-generator.tmp
 	mv nanox-creation-generator.tmp nanox-creation-generator
 	chmod 755 nanox-creation-generator
+
+gpu-generator: gpu-generator.in
+	rm -f gpu-generator
+	tmp_srcdir=$(abs_top_srcdir) ; \
+	tmp_builddir=$(abs_top_builddir) ; \
+	sed \
+		-e's,@SRCDIR\@,'"$$tmp_srcdir"',g' \
+		-e's,@BUILDDIR\@,'"$$tmp_builddir"',g' \
+		$(srcdir)/gpu-generator.in > gpu-generator.tmp
+	mv gpu-generator.tmp gpu-generator
+	chmod 755 gpu-generator
 
