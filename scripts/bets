@@ -399,7 +399,7 @@ run_file()
      c)
        run_gen_test $file c
        ;;
-    cpp) 
+    cpp|cu) 
        run_gen_test $file cpp
        ;;
    esac
