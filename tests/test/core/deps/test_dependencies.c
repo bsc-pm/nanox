@@ -41,7 +41,7 @@ void second()
 {
    if ( orderer != 1 ) {
       printf("Error, order of tasks not respected!\n");
-      exit(1);
+      abort();
    }
    orderer++;
    printf("second task!\n");

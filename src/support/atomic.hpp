@@ -133,9 +133,9 @@ namespace nanos
          bool tryAcquire ( void );
          void release ( void );
 
-         const state_t operator* () const { return _state; }
+         state_t operator* () const { return _state; }
 
-         const state_t getState () const { return _state; }
+         state_t getState () const { return _state; }
 
          void operator++ ( int val ) { acquire(); }
 

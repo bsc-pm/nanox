@@ -232,8 +232,9 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
          sys.waitOn( num_deps, deps );
       }
       
-      NANOS_INSTRUMENT ( inst.changeState( RUNTIME ); )
+      NANOS_INSTRUMENT( InstrumentState inst1(RUNTIME) );
       sys.inlineWork( wd );
+      NANOS_INSTRUMENT( inst1.close() );
 
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;

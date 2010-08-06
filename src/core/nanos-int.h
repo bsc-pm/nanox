@@ -136,7 +136,7 @@ typedef enum { STATE_START, STATE_END, SUBSTATE_START, SUBSTATE_END,
                BURST_START, BURST_END, PTP_START, PTP_END, POINT, EVENT_TYPES } nanos_event_type_t; /**< Event types  */
 
 typedef enum { NOT_CREATED, NOT_TRACED, STARTUP, SHUTDOWN, ERROR, IDLE, RUNTIME, RUNNING, SYNCHRONIZATION,
-               SCHEDULING, CREATION, MEM_TRANSFER, CACHE, EVENT_STATE_TYPES
+               SCHEDULING, CREATION, MEM_TRANSFER, CACHE, YIELD, EVENT_STATE_TYPES
 } nanos_event_state_value_t; /**< State enum values */
 
 typedef enum { NANOS_WD_DOMAIN } nanos_event_domain_t; /**< Specifies a domain */

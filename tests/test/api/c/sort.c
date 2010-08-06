@@ -523,8 +523,17 @@ typedef struct {
 // outlined function
 void cilkmerge_par_1( void *ptr )
 {
+   nanos_event_key_t event_key;
+   nanos_event_value_t event_value;
+
+   nanos_instrument_get_key ("user-funct", &event_key);
+   nanos_instrument_register_value ( &event_value, "user-funct", "cilk-merge", "Merge function", false );
+   nanos_instrument_enter_burst( event_key, event_value );
+
    cilkmerge_par_1_args * args = ( cilkmerge_par_1_args * ) ptr;
    cilkmerge_par(args->low1,args->high1,args->low2,args->high2,args->lowdest);
+
+   nanos_instrument_leave_burst( event_key );
 }
 // device arg (using outlined function name)
 nanos_smp_args_t cilkmerge_par_1_device_arg = { cilkmerge_par_1 };
@@ -642,8 +651,17 @@ typedef struct {
 // outlined function
 void cilksort_par_1( void *ptr )
 {
+   nanos_event_key_t event_key;
+   nanos_event_value_t event_value;
+
+   nanos_instrument_get_key ("user-funct", &event_key);
+   nanos_instrument_register_value ( &event_value, "user-funct", "cilk-sort", "Sort function", false );
+   nanos_instrument_enter_burst( event_key, event_value );
+
    cilksort_par_1_args * args = ( cilksort_par_1_args * ) ptr;
    cilksort_par(args->low, args->tmp, args->size);
+
+   nanos_instrument_leave_burst( event_key );
 }
 // device arg (using outlined function name)
 nanos_smp_args_t cilksort_par_1_device_arg = { cilksort_par_1 };

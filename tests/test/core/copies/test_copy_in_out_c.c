@@ -44,7 +44,7 @@ void first( void *ptr )
 
    if ( args->a != local.a ) {
       printf( "Error private argument is incorrect, %d in args and %d through the copies  FAIL\n", args->a, local.a );
-      exit(1);
+      abort();
    } else {
       printf( "Checking private argument ...          PASS\n" );
    }
@@ -56,7 +56,7 @@ void first( void *ptr )
    } else {
       printf(                                 "       FAIL\n");
       printf( "Argument is '%s' while the copy is '%s'\n", args->b, local.b );
-      exit(1);
+      abort();
    }
    for ( i = 0; i < 9; i++ )
       local.b[i] = '9'-i;
