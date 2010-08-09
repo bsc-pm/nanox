@@ -97,6 +97,7 @@ int main ( int argc, char **argv )
 ///      test_init( args[i] );
 
       nanos::WD * wd = new nanos::WD( new nanos::ext::GPUDD( test_init ), sizeof( test_args ) * ngpus, args );
+      wd->tied();
       wg->addWork( *wd );
       nanos::sys.submit( *wd );
       
@@ -118,6 +119,7 @@ int main ( int argc, char **argv )
 ///      test_host_to_device( args[i] );
 
       nanos::WD * wd = new nanos::WD( new nanos::ext::GPUDD( test_host_to_device ), sizeof( test_args ) * ngpus, args );
+      wd->tied();
       wg->addWork( *wd );
       nanos::sys.submit( *wd );
       
@@ -139,6 +141,7 @@ int main ( int argc, char **argv )
 ///      test_device_to_device( args[i] );
       
       nanos::WD * wd = new nanos::WD( new nanos::ext::GPUDD( test_device_to_device ), sizeof( test_args ) * ngpus, args );
+      wd->tied();
       wg->addWork( *wd );
       nanos::sys.submit( *wd );
       
@@ -160,6 +163,7 @@ int main ( int argc, char **argv )
 ///      test_device_to_host( args[i] );
       
       nanos::WD * wd = new nanos::WD( new nanos::ext::GPUDD( test_device_to_host ), sizeof( test_args ) * ngpus, args );
+      wd->tied();
       wg->addWork( *wd );
       nanos::sys.submit( *wd );
 
@@ -181,6 +185,7 @@ int main ( int argc, char **argv )
 ///      test_cleanup( args[i] );
 
       nanos::WD * wd = new nanos::WD( new nanos::ext::GPUDD( test_cleanup ), sizeof( test_args ) * ngpus, args );
+      wd->tied();
       wg->addWork( *wd );
       nanos::sys.submit( *wd );
       
