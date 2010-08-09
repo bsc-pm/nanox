@@ -35,7 +35,7 @@ void barrier_code ( void * )
               cout << "After the " << i << " barrier" << endl;
               if ( counts[ (myThread->getId()+1)%size ] != i+1 ) {
                  cerr << "Error: the barrier is broken." << std::endl;
-                 exit(1);
+                 abort();
               }
        }
 }
