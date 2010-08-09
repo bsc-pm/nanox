@@ -53,7 +53,7 @@ void Scheduler::submit ( WD &wd )
    }
 
    if ( !wd.canRunIn(*mythread->runningOn()) ) {
-      mythread->getTeam()->getSchedulePolicy().queue(wd.isTiedTo(), wd);
+      queue(wd);
       return;
    }
 
