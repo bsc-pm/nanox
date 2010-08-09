@@ -29,6 +29,8 @@ EXTRA_DIST= \
 	x86-64/stack.s \
 	ia64/stack.cpp \
 	ia64/stack.s \
+	ppc32/stack.cpp \
+	ppc32/stack.s \
         smp_ult.hpp \
 	$(END)
 	
