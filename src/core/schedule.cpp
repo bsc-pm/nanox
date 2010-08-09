@@ -38,6 +38,7 @@ void SchedulerConf::config (Config &config)
 void Scheduler::submit ( WD &wd )
 {
    NANOS_INSTRUMENT( InstrumentState inst(SCHEDULING) );
+   BaseThread *mythread = myThread;
 
    sys.getSchedulerStats()._createdTasks++;
    sys.getSchedulerStats()._totalTasks++;
@@ -46,12 +47,17 @@ void Scheduler::submit ( WD &wd )
    debug ( "submitting task " << wd.getId() );
 
    /* handle tied tasks */
-   if ( wd.isTied() && wd.isTiedTo() != myThread ) {
-      myThread->getTeam()->getSchedulePolicy().queue(wd.isTiedTo(), wd);
+   if ( wd.isTied() && wd.isTiedTo() != mythread ) {
+      mythread->getTeam()->getSchedulePolicy().queue(wd.isTiedTo(), wd);
       return;
    }
 
-   WD *next = myThread->getTeam()->getSchedulePolicy().atSubmit( myThread, wd );
+   if ( !wd.canRunIn(*mythread->runningOn()) ) {
+      mythread->getTeam()->getSchedulePolicy().queue(wd.isTiedTo(), wd);
+      return;
+   }
+
+   WD *next = mythread->getTeam()->getSchedulePolicy().atSubmit( myThread, wd );
 
    if ( next ) {
       WD *slice;
