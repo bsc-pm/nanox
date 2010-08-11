@@ -180,7 +180,7 @@ void GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
                ( void * ) pinned,
                size,
                cudaMemcpyHostToDevice,
-               ((nanos::ext::GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->getTransferStream()
+               ((nanos::ext::GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->getInTransferStream()
             );
    }
 
@@ -243,14 +243,14 @@ void GPUDevice::copyOut( uint64_t remoteDst, void *localSrc, size_t size )
                   localSrc,
                   size,
                   cudaMemcpyDeviceToHost,
-                  ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->getTransferInfo()->getTransferStream()
+                  ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->getTransferInfo()->getOutTransferStream()
                );
          err = cudaMemcpyAsync(
                   ( void * ) remoteDst,
                   ( void * ) _pinnedMemory[localSrc],
                   size,
                   cudaMemcpyHostToHost,
-                  ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->getTransferInfo()->getTransferStream()
+                  ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->getTransferInfo()->getOutTransferStream()
                );
       }
       else {
@@ -290,7 +290,7 @@ void GPUDevice::copyLocal( void *dst, void *src, size_t size )
                src,
                size,
                cudaMemcpyDeviceToDevice,
-               ((nanos::ext::GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->getTransferStream()
+               ((nanos::ext::GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->getInTransferStream()
             );
 
    }

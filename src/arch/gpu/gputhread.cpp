@@ -72,6 +72,11 @@ void GPUThread::inlineWorkDependent ( WD &wd )
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), RUNNING ) );
    NANOS_INSTRUMENT ( InstrumentSubState inst2( RUNTIME ) );
 
+   if ( GPUDevice::getTransferMode() != nanos::NORMAL ) {
+      // Wait for the input transfer stream to finish
+      cudaStreamSynchronize( ( (GPUProcessor *) myThread->runningOn() )->getGPUProcessorInfo()->getInTransferStream() );
+   }
+
    ( dd.getWorkFct() )( wd.getData() );
 
    if ( GPUDevice::getTransferMode() != nanos::NORMAL ) {
@@ -81,8 +86,6 @@ void GPUThread::inlineWorkDependent ( WD &wd )
       if ( next != 0 ) {
          next->start(false);
       }
-      // Wait for the transfer stream to finish
-      cudaStreamSynchronize( ( (GPUProcessor *) myThread->runningOn() )->getGPUProcessorInfo()->getTransferStream() );
    }
 
    // Wait for the GPU kernel to finish

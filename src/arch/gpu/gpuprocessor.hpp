@@ -42,19 +42,27 @@ namespace ext
 
          // Transfers
          bool           _overlap;
-         cudaStream_t   _transferStream;
+         cudaStream_t   _inTransferStream;
+         cudaStream_t   _outTransferStream;
 
       public:
          GPUProcessorInfo ( int device ) : _deviceId ( device ), _maxMemoryAvailable ( 0 ),
-            _overlap ( GPUDD::isOverlappingDefined() ), _transferStream ( 0 )
+            _overlap ( GPUDD::isOverlappingDefined() ), _inTransferStream ( 0 ), _outTransferStream ( 0 )
          {}
 
          ~GPUProcessorInfo ()
          {
-            if ( _transferStream ) {
-               cudaError_t err = cudaStreamDestroy( _transferStream );
+            if ( _inTransferStream ) {
+               cudaError_t err = cudaStreamDestroy( _inTransferStream );
                if ( err != cudaSuccess ) {
-                  warning( "Error while destroying the CUDA stream: " << cudaGetErrorString( err ) );
+                  warning( "Error while destroying the CUDA input transfer stream: " << cudaGetErrorString( err ) );
+               }
+            }
+
+            if ( _outTransferStream ) {
+               cudaError_t err = cudaStreamDestroy( _outTransferStream );
+               if ( err != cudaSuccess ) {
+                  warning( "Error while destroying the CUDA output transfer stream: " << cudaGetErrorString( err ) );
                }
             }
          }
@@ -80,17 +88,28 @@ namespace ext
             }
 
             if ( _overlap ) {
-               // Initialize the CUDA stream used for data transfers
-               cudaError_t err = cudaStreamCreate( &_transferStream );
+               // Initialize the CUDA streams used for data transfers
+               cudaError_t err = cudaStreamCreate( &_inTransferStream );
                if ( err != cudaSuccess ) {
                   // If an error occurred, disable stream overlapping
                   _overlap = false;
-                  _transferStream = 0;
-                  warning( "Error while creating the CUDA stream: " << cudaGetErrorString( err ) );
+                  _inTransferStream = 0;
+                  _outTransferStream = 0;
+                  warning( "Error while creating the CUDA input transfer stream: " << cudaGetErrorString( err ) );
+               } else {
+                  cudaError_t err = cudaStreamCreate( &_outTransferStream );
+                  if ( err != cudaSuccess ) {
+                     // If an error occurred, disable stream overlapping
+                     _overlap = false;
+                     _inTransferStream = 0;
+                     _outTransferStream = 0;
+                     warning( "Error while creating the CUDA output transfer stream: " << cudaGetErrorString( err ) );
+                  }
                }
             }
             else {
-               _transferStream = 0;
+               _inTransferStream = 0;
+               _outTransferStream = 0;
             }
          }
 
@@ -99,9 +118,14 @@ namespace ext
             return _maxMemoryAvailable;
          }
 
-         cudaStream_t getTransferStream ()
+         cudaStream_t getInTransferStream ()
          {
-            return _transferStream;
+            return _inTransferStream;
+         }
+
+         cudaStream_t getOutTransferStream ()
+         {
+            return _outTransferStream;
          }
    };
 }
