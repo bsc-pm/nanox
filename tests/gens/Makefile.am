@@ -1,12 +1,8 @@
-EXTRA_DIST = api-generator.in core-generator.in gpu-generator.in mixed-generator.in nanox-creation-generator.in
-noinst_PROGRAMS = config-generator gpu-config-generator
+EXTRA_DIST = api-generator.in core-generator.in gpu-generator.in mixed-generator.in nanox-creation-generator.in config.py
 
 noinst_SCRIPTS = api-generator core-generator gpu-generator mixed-generator nanox-creation-generator
 
 CLEANFILES = api-generator core-generator mixed-generator nanox-creation-generator gpu-generator
-
-config_generator_SOURCES=config-generator.cpp
-gpu_config_generator_SOURCES=gpu-config-generator.cpp
 
 api-generator: api-generator.in
 	rm -f api-generator
