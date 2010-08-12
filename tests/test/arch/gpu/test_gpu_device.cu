@@ -265,7 +265,7 @@ void test_host_to_device ( void * args )
    test_args ** full_args = ( test_args ** ) args;
    test_args * targs = full_args[id];
    
-   cudaStream_t stream = ((nanos::ext::GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->getTransferStream();
+   cudaStream_t inStream = ((nanos::ext::GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->getInTransferStream();
    
    int i;   
    size_t size = targs->n * sizeof ( int );
@@ -280,7 +280,7 @@ void test_host_to_device ( void * args )
 
    GPUDevice::copyIn( targs->Ad, ( uint64_t ) targs->Ah, size );
    
-   cudaStreamSynchronize( stream );
+   cudaStreamSynchronize( inStream );
    
    // Launch a kernel to check the copy was successful and get the result back from the GPU
    // Arrays Bd and Bh will contain the error checking result
@@ -305,7 +305,7 @@ void test_device_to_device ( void * args )
    test_args ** full_args = ( test_args ** ) args;
    test_args * targs = full_args[id];
    
-   cudaStream_t stream = ((nanos::ext::GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->getTransferStream();
+   cudaStream_t inStream = ((nanos::ext::GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->getInTransferStream();
    
    int i;   
    size_t size = targs->n * sizeof ( int );
@@ -320,7 +320,7 @@ void test_device_to_device ( void * args )
 
    GPUDevice::copyLocal( targs->Bd, targs->Ad, size );
    
-   cudaStreamSynchronize( stream );
+   cudaStreamSynchronize( inStream );
    
    // Launch a kernel to check the copy was successful and get the result back from the GPU
    // Arrays Ad and Bh will contain the error checking result
@@ -345,7 +345,7 @@ void test_device_to_host ( void * args )
    test_args ** full_args = ( test_args ** ) args;
    test_args * targs = full_args[id];
    
-   cudaStream_t stream = ((nanos::ext::GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->getTransferStream();
+   cudaStream_t outStream = ((nanos::ext::GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->getOutTransferStream();
    
    int i;   
    size_t size = targs->n * sizeof ( int );
@@ -358,6 +358,8 @@ void test_device_to_host ( void * args )
    cudaMemcpy( targs->Bd, targs->Ah, size, cudaMemcpyHostToDevice );
 
    GPUDevice::copyOut( ( uint64_t ) targs->Bh, targs->Bd, size );
+
+   cudaStreamSynchronize( outStream );
 
    targs->err = 0;
    for ( i = 0; i < targs->n; i++ ) {
