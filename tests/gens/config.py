@@ -17,7 +17,8 @@ import sys
 if '--help' in sys.argv:
 	print 'Envorionment variables that affect this script:'
 	print '    NX_TEST_MODE=\'small\'|\'medium\'|\'large\''
-        print '    NX_TEST_MAX_CPUS=#CPUS'
+	print '    NX_TEST_MAX_CPUS=#CPUS'
+	print '    NX_TEST_MANDATORY_ARGS=\'--nx-flag --nx-arg=val ...\''
         sys.exit()
 
 test_mode=os.environ.get('NX_TEST_MODE')
@@ -27,6 +28,10 @@ if test_mode == None:
 max_cpus=os.environ.get('NX_TEST_MAX_CPUS')
 if ( max_cpus == None ):
 	max_cpus=2
+
+mandatory_args=os.environ.get('NX_TEST_MANDATORY_ARGS')
+if mandatory_args == None:
+	mandatory_args=''
 
 max_cpus=int(max_cpus)
 
@@ -50,6 +55,7 @@ i=1
 for c in configs:
 	line = 'test_ENV_ver'+str(i)+'=\"NX_ARGS=\''
 	versions+='ver'+str(i)+' '
+	line = line + mandatory_args
 	for entry in c:
 		line = line + ' ' +entry
 	line = line + '\'\"'
