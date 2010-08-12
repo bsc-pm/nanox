@@ -145,7 +145,11 @@ void GPUDevice::free( void *address )
       err = cudaFree( address );
 
       if ( err != cudaSuccess ) {
-         std::string what = "Trying to free device memory with cudaFree(): ";
+         std::stringstream addrStr;
+         addrStr << address;
+         std::string what = "Trying to free device memory at "
+                            + addrStr.str()
+                            + " with cudaFree(): ";
          fatal( what + cudaGetErrorString( err ) );
       }
    }
@@ -158,7 +162,11 @@ void GPUDevice::free( void *address )
       }
 
       if ( err != cudaSuccess ) {
-         std::string what = "Trying to free host memory with cudaFreeHost(): ";
+         std::stringstream addrStr;
+         addrStr << address;
+         std::string what = "Trying to free host memory at "
+                            + addrStr.str()
+                            + " with cudaFreeHost(): ";
          fatal( what + cudaGetErrorString( err ) );
       }
    }
@@ -222,9 +230,17 @@ void GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
    if ( err != cudaSuccess ) {
       std::stringstream sizeStr;
       sizeStr << size;
+      std::stringstream srcStr;
+      srcStr << remoteSrc;
+      std::stringstream dstStr;
+      dstStr << localDst;
       std::string what = "Trying to copy "
                          + sizeStr.str()
-                         + " bytes of data from host to device with cudaMemcpy*(): ";
+                         + " bytes of data from host ("
+                         + srcStr.str()
+                         + ") to device ("
+                         + dstStr.str()
+                         + ") with cudaMemcpy*(): ";
       fatal( what + cudaGetErrorString( err ) );
    }
 }
@@ -263,9 +279,17 @@ void GPUDevice::copyOut( uint64_t remoteDst, void *localSrc, size_t size )
       if ( err != cudaSuccess ) {
          std::stringstream sizeStr;
          sizeStr << size;
+         std::stringstream srcStr;
+         srcStr << localSrc;
+         std::stringstream dstStr;
+         dstStr << remoteDst;
          std::string what = "Trying to copy "
                             + sizeStr.str()
-                            + " bytes of data from device to host with cudaMemcpy*(): ";
+                            + " bytes of data from device ("
+                            + srcStr.str()
+                            + ") to host ("
+                            + dstStr.str()
+                            + ") with cudaMemcpy*(): ";
          fatal( what + cudaGetErrorString( err ) );
       }
    }
@@ -298,9 +322,17 @@ void GPUDevice::copyLocal( void *dst, void *src, size_t size )
    if ( err != cudaSuccess ) {
       std::stringstream sizeStr;
       sizeStr << size;
+      std::stringstream srcStr;
+      srcStr << src;
+      std::stringstream dstStr;
+      dstStr << dst;
       std::string what = "Trying to copy "
                          + sizeStr.str()
-                         + " bytes of data from device to device with cudaMemcpy*(): ";
+                         + " bytes of data from device ("
+                         + srcStr.str()
+                         + ") to device ("
+                         + dstStr.str()
+                         + ") with cudaMemcpy*(): ";
       fatal( what + cudaGetErrorString( err ) );
    }
 }
