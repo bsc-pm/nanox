@@ -34,7 +34,7 @@ namespace nanos
 
       public:
          SchedulePredicate () {}
-         virtual bool operator() ( WorkDescriptor *wd );
+         virtual bool operator() ( WorkDescriptor *wd ) = 0;
          virtual ~SchedulePredicate() {}
    };
 
