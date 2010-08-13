@@ -53,6 +53,7 @@ gpu-generator: gpu-generator.in
 	tmp_srcdir=$(abs_top_srcdir) ; \
 	tmp_builddir=$(abs_top_builddir) ; \
 	sed \
+		-e's,@gpu_valid\@,@gpu_valid@,g' \
 		-e's,@SRCDIR\@,'"$$tmp_srcdir"',g' \
 		-e's,@BUILDDIR\@,'"$$tmp_builddir"',g' \
 		$(srcdir)/gpu-generator.in > gpu-generator.tmp

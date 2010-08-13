@@ -147,6 +147,7 @@ if test x$gpu_valid = xyes; then
 	ARCHITECTURES="$ARCHITECTURES gpu"
 fi
 
+AC_SUBST([gpu_valid])
 
 # Add architecture libraries
 for arch in $ARCHITECTURES; do
