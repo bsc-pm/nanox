@@ -40,9 +40,12 @@ class InstrumentationExtrae: public Instrumentation
 #else
    private:
       InstrumentationContextStackedStatesAndBursts   _icLocal;
-      char                                           _listOfTraceFiles[255];
+      char                                           _listOfTraceFileNames[255];
       char                                           _traceDirectory[255];
       char                                           _traceFinalDirectory[255];
+      char                                           _traceFileName_PRV[255];
+      char                                           _traceFileName_PCF[255];
+      char                                           _traceFileName_ROW[255];
    public:
       // constructor
       InstrumentationExtrae ( ) : Instrumentation(), _icLocal() { _instrumentationContext = &_icLocal; }
@@ -60,37 +63,17 @@ class InstrumentationExtrae: public Instrumentation
          strcat(str, "/mpi2prv");
 
          pid = fork();
-         if ( pid == (pid_t) 0 ) execl ( str, "mpi2prv", "-f", _listOfTraceFiles, (char *) NULL);
+         if ( pid == (pid_t) 0 ) execl ( str, "mpi2prv", "-f", _listOfTraceFileNames, "-o", _traceFileName_PRV, (char *) NULL);
          else waitpid( pid, &status, options);
 
-         // Deleting temporary files
-         std::fstream p_file;
-         p_file.open(_listOfTraceFiles);
-
-         if (p_file.is_open())
-         {
-            while (!p_file.eof() )
-            {
-               p_file.getline (str, 255);
-               if ( strlen(str) > 0 )
-               {
-                  for (unsigned int i = 0; i < strlen(str); i++) if ( str[i] == ' ' ) str[i] = 0x0;
-                  if ( remove(str) != 0 ) std::cout << "nanox: Unable to delete temporary/partial trace file" << str << std::endl;
-               }
-            }
-            p_file.close();
-         }
-         else std::cout << "Unable to open " << _listOfTraceFiles << " file" << std::endl;  
-
-         if ( remove(_listOfTraceFiles) != 0 ) std::cout << "Unable to delete TRACE.mpits file" << std::endl;
 
       }
 
-      void createParaverConfigFile()
+      void modifyParaverConfigFile()
       {
          // Writing paraver config 
          std::fstream p_file;
-         p_file.open ( "MPITRACE_Paraver_Trace.pcf", std::ios::out | std::ios::app);
+         p_file.open ( _traceFileName_PCF, std::ios::out | std::ios::app);
          if (p_file.is_open())
          {
             /* Event: State */
@@ -180,16 +163,52 @@ class InstrumentationExtrae: public Instrumentation
          else std::cout << "Unable to open paraver config file" << std::endl;  
       }
 
-      void renameFiles ()
+      void removeTemporaryFiles()
       {
-         char *old_name_prv = (char *) alloca ( 255 * sizeof (char));;
-         char *old_name_pcf = (char *) alloca ( 255 * sizeof (char));;
-         char *old_name_row = (char *) alloca ( 255 * sizeof (char));;
-         char *new_name_prv = (char *) alloca ( 255 * sizeof (char));;
-         char *new_name_pcf = (char *) alloca ( 255 * sizeof (char));;
-         char *new_name_row = (char *) alloca ( 255 * sizeof (char));;
-         char *file_name    = (char *) alloca ( 255 * sizeof (char));;
+         /* Removig Temporary trace files */
+         char str[255];
+         std::fstream p_file;
+         p_file.open(_listOfTraceFileNames);
 
+         if (p_file.is_open())
+         {
+            while (!p_file.eof() )
+            {
+               p_file.getline (str, 255);
+               if ( strlen(str) > 0 )
+               {
+                  for (unsigned int i = 0; i < strlen(str); i++) if ( str[i] == ' ' ) str[i] = 0x0;
+                  if ( remove(str) != 0 ) std::cout << "nanox: Unable to delete temporary/partial trace file" << str << std::endl;
+               }
+            }
+            p_file.close();
+         }
+         else std::cout << "Unable to open " << _listOfTraceFileNames << " file" << std::endl;  
+
+         if ( remove(_listOfTraceFileNames) != 0 ) std::cout << "Unable to delete TRACE.mpits file" << std::endl;
+
+         /* Removing EXTRAE_DIR temporary directories and files */
+         char *file_name    = (char *) alloca ( 255 * sizeof (char));
+         bool file_exists = true; int num = 0;
+         while ( file_exists ) {
+            sprintf( file_name, "%s/set-%d", _traceDirectory, num++ );
+            if ( remove( file_name ) != 0 ) file_exists = false;
+
+         }
+         remove( _traceDirectory);
+
+         /* Removing EXTRAE_FINAL_DIR temporary directories and files */
+         file_exists = true; num = 0;
+         while ( file_exists ) {
+            sprintf( file_name, "%s/set-%d", _traceFinalDirectory, num++ );
+            if ( remove( file_name ) != 0 ) file_exists = false;
+
+         }
+         remove( _traceFinalDirectory);
+      }
+
+      void getTraceFileName ()
+      {
          // Check if the trace file exists
          struct stat buffer;
          int err;
@@ -214,43 +233,10 @@ class InstrumentationExtrae: public Instrumentation
             }
          }
 
-         /* Old file names */
-         sprintf( old_name_prv, "MPITRACE_Paraver_Trace.prv");
-         sprintf( old_name_pcf, "MPITRACE_Paraver_Trace.pcf");
-         sprintf( old_name_row, "MPITRACE_Paraver_Trace.row");
-
          /* New file names */
-         sprintf( new_name_prv, "%s/../%s%s.prv", _traceFinalDirectory, trace_base.c_str(), trace_suffix.c_str() );
-         sprintf( new_name_pcf, "%s/../%s%s.pcf", _traceFinalDirectory, trace_base.c_str(), trace_suffix.c_str() );
-         sprintf( new_name_row, "%s/../%s%s.row", _traceFinalDirectory, trace_base.c_str(), trace_suffix.c_str() );
-
-         /* Renaming the files */
-         int result;
-
-         result = rename( old_name_prv, new_name_prv );
-         if ( result != 0 ) std::cout << "nanox: Unable to rename paraver file" << std::endl;
-         result = rename( old_name_pcf, new_name_pcf );
-         if ( result != 0 ) std::cout << "nanox: Unable to rename paraver config file" << std::endl;
-         result = rename( old_name_row, new_name_row );
-         if ( result != 0 ) std::cout << "nanox: Unable to rename paraver row file" << std::endl;
-
-         /* Removing EXTRAE_DIR temporary directories and files */
-         file_exists = true; num = 0;
-         while ( file_exists ) {
-            sprintf( file_name, "%s/set-%d", _traceDirectory, num++ );
-            if ( remove( file_name ) != 0 ) file_exists = false;
-
-         }
-         remove( _traceDirectory);
-
-         /* Removing EXTRAE_FINAL_DIR temporary directories and files */
-         file_exists = true; num = 0;
-         while ( file_exists ) {
-            sprintf( file_name, "%s/set-%d", _traceFinalDirectory, num++ );
-            if ( remove( file_name ) != 0 ) file_exists = false;
-
-         }
-         remove( _traceFinalDirectory);
+         sprintf( _traceFileName_PRV, "%s/../%s%s.prv", _traceFinalDirectory, trace_base.c_str(), trace_suffix.c_str() );
+         sprintf( _traceFileName_PCF, "%s/../%s%s.pcf", _traceFinalDirectory, trace_base.c_str(), trace_suffix.c_str() );
+         sprintf( _traceFileName_ROW, "%s/../%s%s.row", _traceFinalDirectory, trace_base.c_str(), trace_suffix.c_str() );
       }
 
       void initialize ( void )
@@ -299,10 +285,8 @@ class InstrumentationExtrae: public Instrumentation
             fatal0 ( "Trace final directory doesn't exists or user has no permissions on this directory" ); ;
          }
 
-         strcpy(_listOfTraceFiles, _traceFinalDirectory);
-         strcat(_listOfTraceFiles, "TRACE.mpits");
-
-         std::cout << "nanox: Using " << _traceDirectory << " and " << _traceFinalDirectory << " as trace output directory." <<  std::endl;
+         strcpy(_listOfTraceFileNames, _traceFinalDirectory);
+         strcat(_listOfTraceFileNames, "TRACE.mpits");
 
          char *env_trace_dir = new char[255];
          char *env_trace_final_dir = new char[255];
@@ -320,9 +304,10 @@ class InstrumentationExtrae: public Instrumentation
       void finalize ( void )
       {
          OMPItrace_fini();
+         getTraceFileName();
          mergeParaverTraceFiles();
-         createParaverConfigFile();
-         renameFiles();
+         modifyParaverConfigFile();
+         removeTemporaryFiles();
       }
 
       void addEventList ( unsigned int count, Event *events) 

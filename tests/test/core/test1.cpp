@@ -48,10 +48,10 @@ void hello_world ( void *args )
    hello_world_args *hargs = ( hello_world_args * ) args;
    if ( hargs->a == 1 && hargs->b != "alex" ) {
       cerr << "Error, task didn't get the correct arguments" << endl;
-      exit(1);
+      abort();
    } else if (hargs->a == 2 && hargs->b != "pepe" ) {
       cerr << "Error, task didn't get the correct arguments" << endl;
-      exit(1);
+      abort();
    } else {
       cout << "hello_world "
            << hargs->a << " "
