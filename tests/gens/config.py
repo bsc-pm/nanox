@@ -27,8 +27,8 @@ import sys
 
 header ='Nanox config generator 0.1\n\n'+\
 	'Envorionment variables that affect this script:\n'+\
-	'   NX_TEST_MODE=\'small\'|\'medium\'|\'large\'\n'+\
-	'   NX_TEST_MAX_CPUS=#CPUS\n'
+	'   NX_TEST_MODE=\'small\'|\'medium\'|\'large\'   -  \'small\' by default\n'+\
+	'   NX_TEST_MAX_CPUS=#CPUS                  -  2 by default\n'
 if '-h' in sys.argv or '--help' in sys.argv:
 	print header
 

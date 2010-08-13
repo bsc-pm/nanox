@@ -40,17 +40,35 @@ class InstrumentationExtrae: public Instrumentation
 #else
    private:
       InstrumentationContextStackedStatesAndBursts   _icLocal;
-      char                                           _listOfTraceFileNames[255];
-      char                                           _traceDirectory[255];
-      char                                           _traceFinalDirectory[255];
-      char                                           _traceFileName_PRV[255];
-      char                                           _traceFileName_PCF[255];
-      char                                           _traceFileName_ROW[255];
+      std::string                                    _listOfTraceFileNames;
+      std::string                                    _traceDirectory;
+      std::string                                    _traceFinalDirectory;
+      std::string                                    _traceFileName_PRV;
+      std::string                                    _traceFileName_PCF;
+      std::string                                    _traceFileName_ROW;
    public:
       // constructor
       InstrumentationExtrae ( ) : Instrumentation(), _icLocal() { _instrumentationContext = &_icLocal; }
       // destructor
       ~InstrumentationExtrae ( ) { }
+
+      int recursiveMkdir( const char *dir, mode_t mode)
+      {
+         int i=0, err=0;
+         char tmp[256];
+
+         while ( dir[i]!=0 && dir[i]=='/'){tmp[i] = dir[i];i++;}
+
+         while ( dir[i]!=0 ) {
+            while ( dir[i]!=0 && dir[i]!='/'){tmp[i] = dir[i];i++;}
+            tmp[i] = 0;
+            err = mkdir(tmp, mode);
+            /* do not throwing intermediate dir's creation errors */
+            /* if (err!= 0) return err; */
+            while ( dir[i]!=0 && dir[i]=='/'){tmp[i] = dir[i];i++;}
+         }
+         return err;
+      }
 
       void mergeParaverTraceFiles ()
       {
@@ -63,7 +81,9 @@ class InstrumentationExtrae: public Instrumentation
          strcat(str, "/mpi2prv");
 
          pid = fork();
-         if ( pid == (pid_t) 0 ) execl ( str, "mpi2prv", "-f", _listOfTraceFileNames, "-o", _traceFileName_PRV, (char *) NULL);
+         if ( pid == (pid_t) 0 ) {
+            execl ( str, "mpi2prv", "-f", _listOfTraceFileNames.c_str(), "-o", _traceFileName_PRV.c_str(), (char *) NULL); 
+         }
          else waitpid( pid, &status, options);
 
 
@@ -73,7 +93,7 @@ class InstrumentationExtrae: public Instrumentation
       {
          // Writing paraver config 
          std::fstream p_file;
-         p_file.open ( _traceFileName_PCF, std::ios::out | std::ios::app);
+         p_file.open ( _traceFileName_PCF.c_str(), std::ios::out | std::ios::app);
          if (p_file.is_open())
          {
             /* Event: State */
@@ -168,7 +188,7 @@ class InstrumentationExtrae: public Instrumentation
          /* Removig Temporary trace files */
          char str[255];
          std::fstream p_file;
-         p_file.open(_listOfTraceFileNames);
+         p_file.open(_listOfTraceFileNames.c_str());
 
          if (p_file.is_open())
          {
@@ -185,26 +205,26 @@ class InstrumentationExtrae: public Instrumentation
          }
          else std::cout << "Unable to open " << _listOfTraceFileNames << " file" << std::endl;  
 
-         if ( remove(_listOfTraceFileNames) != 0 ) std::cout << "Unable to delete TRACE.mpits file" << std::endl;
+         if ( remove(_listOfTraceFileNames.c_str()) != 0 ) std::cout << "Unable to delete TRACE.mpits file" << std::endl;
 
          /* Removing EXTRAE_DIR temporary directories and files */
          char *file_name    = (char *) alloca ( 255 * sizeof (char));
          bool file_exists = true; int num = 0;
          while ( file_exists ) {
-            sprintf( file_name, "%s/set-%d", _traceDirectory, num++ );
+            sprintf( file_name, "%s/set-%d", _traceDirectory.c_str(), num++ );
             if ( remove( file_name ) != 0 ) file_exists = false;
 
          }
-         remove( _traceDirectory);
+         remove( _traceDirectory.c_str());
 
          /* Removing EXTRAE_FINAL_DIR temporary directories and files */
          file_exists = true; num = 0;
          while ( file_exists ) {
-            sprintf( file_name, "%s/set-%d", _traceFinalDirectory, num++ );
+            sprintf( file_name, "%s/set-%d", _traceFinalDirectory.c_str(), num++ );
             if ( remove( file_name ) != 0 ) file_exists = false;
 
          }
-         remove( _traceFinalDirectory);
+         remove( _traceFinalDirectory.c_str());
       }
 
       void getTraceFileName ()
@@ -212,16 +232,18 @@ class InstrumentationExtrae: public Instrumentation
          // Check if the trace file exists
          struct stat buffer;
          int err;
-         std::string trace_dir = _traceFinalDirectory;
-         std::string trace_base = ( OS::getArg( 0 ) );
+         std::string full_trace_base = ( OS::getArg( 0 ) );
+         size_t found = full_trace_base.find_last_of("/\\");
+         std::string trace_base = full_trace_base.substr(found+1);
+
          int num = 1;
          std::string trace_suffix = "_001";
-         std::string trace_extension = ".prv";
          bool file_exists = true;
 
          while ( file_exists ) {
             // Attempt to get the file attributes
-            err = stat( ( trace_dir + "/../" + trace_base + trace_suffix + trace_extension).c_str(), &buffer );
+            std::string file_name = _traceFinalDirectory + "/../" + trace_base + trace_suffix + ".prv";
+            err = stat( file_name.c_str(), &buffer );
             if ( err == 0 ) {
                // The file exists
                num++;
@@ -229,14 +251,16 @@ class InstrumentationExtrae: public Instrumentation
                trace_num << "_" << (num < 100 ? "0" : "") << (num < 10 ? "0" : "") << num;
                trace_suffix =  trace_num.str();
             } else {
-               file_exists = false;
+               std::ofstream trace_file(file_name.c_str(), std::ios::out);
+               if ( !trace_file.fail() ) file_exists = false;
             }
          }
 
          /* New file names */
-         sprintf( _traceFileName_PRV, "%s/../%s%s.prv", _traceFinalDirectory, trace_base.c_str(), trace_suffix.c_str() );
-         sprintf( _traceFileName_PCF, "%s/../%s%s.pcf", _traceFinalDirectory, trace_base.c_str(), trace_suffix.c_str() );
-         sprintf( _traceFileName_ROW, "%s/../%s%s.row", _traceFinalDirectory, trace_base.c_str(), trace_suffix.c_str() );
+         found = _traceFinalDirectory.find_last_of("/");
+         _traceFileName_PRV = _traceFinalDirectory.substr(0,found+1) + trace_base + trace_suffix + ".prv" ;
+         _traceFileName_PCF = _traceFinalDirectory.substr(0,found+1) + trace_base + trace_suffix + ".pcf";
+         _traceFileName_ROW = _traceFinalDirectory.substr(0,found+1) + trace_base + trace_suffix + ".row";
       }
 
       void initialize ( void )
@@ -244,6 +268,11 @@ class InstrumentationExtrae: public Instrumentation
          char *mpi_trace_on;
          char *mpi_trace_dir;
          char *mpi_trace_final_dir;
+         char *tmp_dir;
+         char *tmp_dir_backup;
+         char *env_tmp_dir = new char[255];
+         char *env_trace_dir = new char[255];
+         char *env_trace_final_dir = new char[255];
 
          /* check environment variable: EXTRAE_ON */
          mpi_trace_on = getenv("EXTRAE_ON");
@@ -270,31 +299,47 @@ class InstrumentationExtrae: public Instrumentation
             strcpy(mpi_trace_dir, "./");
          }
 
-         /* Saving DIR and FINAL_DIR */
-         strcpy(_traceDirectory, mpi_trace_dir);
-         strcpy(_traceFinalDirectory, mpi_trace_final_dir);
+         /* check environment variable: TMPDIR */
+         tmp_dir = getenv("TMPDIR");
+         /* if TMPDIR defined, save it and remove it */
+         if ( tmp_dir != NULL ) {
+            tmp_dir_backup = new char[strlen(tmp_dir)];
+            strcpy(tmp_dir_backup, tmp_dir);
+            sprintf(env_tmp_dir, "TMPDIR=");
+            putenv (env_tmp_dir);
+         }
+         else {
+            tmp_dir_backup = new char[3];
+            strcpy(tmp_dir_backup, "./");
+         }
 
-         /* Append temporary directory and creating them */
-         strcat(_traceDirectory, "/extrae_dir/");
-         strcat(_traceFinalDirectory, "/extrae_final/");
+         recursiveMkdir(mpi_trace_dir, S_IRWXU);
+         recursiveMkdir(mpi_trace_final_dir, S_IRWXU);
 
-         if ( mkdir(_traceDirectory, S_IRWXU ) != 0 )
+         _traceDirectory = tempnam(mpi_trace_dir, "trace");
+         _traceFinalDirectory = tempnam(mpi_trace_final_dir, "trace");
+
+         if ( recursiveMkdir(_traceDirectory.c_str(), S_IRWXU ) != 0 )
             fatal0 ( "Trace directory doesn't exists or user has no permissions on this directory" ); ;
-         if ( mkdir(_traceFinalDirectory, S_IRWXU) != 0 ) {
-            remove (_traceDirectory);
+         if ( recursiveMkdir(_traceFinalDirectory.c_str(), S_IRWXU) != 0 ) {
+            remove ( _traceDirectory.c_str());
             fatal0 ( "Trace final directory doesn't exists or user has no permissions on this directory" ); ;
          }
 
-         strcpy(_listOfTraceFileNames, _traceFinalDirectory);
-         strcat(_listOfTraceFileNames, "TRACE.mpits");
+         _listOfTraceFileNames = _traceFinalDirectory + "/TRACE.mpits";
 
-         char *env_trace_dir = new char[255];
-         char *env_trace_final_dir = new char[255];
+         /* Restoring TMPDIR*/
+         if ( tmp_dir != NULL ) {
+            sprintf(env_tmp_dir, "TMPDIR=%s", tmp_dir_backup);
+            putenv (env_tmp_dir);
+         }
 
-         sprintf(env_trace_dir, "EXTRAE_DIR=%s",_traceDirectory);
+         /* Setting EXTRAE_DIR environment variable */
+         sprintf(env_trace_dir, "EXTRAE_DIR=%s", _traceDirectory.c_str());
          putenv (env_trace_dir);
 
-         sprintf(env_trace_final_dir, "EXTRAE_FINAL_DIR=%s",_traceFinalDirectory);
+         /* Setting EXTRAE_FINAL_DIR environment variable */
+         sprintf(env_trace_final_dir, "EXTRAE_FINAL_DIR=%s", _traceFinalDirectory.c_str());
          putenv (env_trace_final_dir);
 
          /* OMPItrace initialization */
