@@ -21,6 +21,6 @@ test_CXXFLAGS="\$common_includes \$common_cflags"
 test_LDFLAGS="\$BUILD/core/.libs/libnanox.so \$BUILD/apis/c/.libs/libnanox-c.so"
 test_ENV="LD_LIBRARY_PATH=\$BUILD/core/.libs:\$BUILD/apis/c/.libs/:$LD_LIBRARY_PATH"
 
-`@BUILDDIR@/tests/gens/config-generator`
+`@SRCDIR@/tests/gens/config.py $*`
 EOF
 
