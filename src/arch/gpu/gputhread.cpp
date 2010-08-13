@@ -86,8 +86,77 @@ void GPUThread::inlineWorkDependent ( WD &wd )
       if ( next != 0 ) {
          next->start(false);
       }
+
+      /*
+      while ( !_pendingCopies.empty() ) {
+         PendingCopy & copy = _pendingCopies[0];
+         // Execute the memory copy
+         copy.executeAsyncCopy();
+         // Finish DO and WG done
+         _pendingCopies.erase(_pendingCopies.begin());
+      }
+      */
+
+      if ( _pendingCopies.size() == 1 ) {
+         PendingCopy & copy = _pendingCopies[0];
+         copy.executeSyncCopy();
+         _pendingCopies.erase(_pendingCopies.begin());
+      }
+      else if ( !_pendingCopies.empty() ) {
+         // First copy
+         PendingCopy & copy1 = _pendingCopies[0];
+         GPUDevice::copyOutAsyncToBuffer( copy1.getDst(), copy1.getSrc(), copy1.getSize() );
+
+         while ( _pendingCopies.size() > 1) {
+            // First copy
+            GPUDevice::copyOutAsyncWait();
+            // Second copy
+            PendingCopy & copy2 = _pendingCopies[1];
+            GPUDevice::copyOutAsyncToBuffer( copy2.getDst(), copy2.getSrc(), copy2.getSize() );
+
+            // First copy
+            GPUDevice::copyOutAsyncToHost( copy1.getDst(), copy1.getSrc(), copy1.getSize() );
+
+            // Finish DO and WG done of first copy
+            _pendingCopies.erase(_pendingCopies.begin());
+
+            // Update second copy to be first copy at next iteration
+            copy1 = _pendingCopies[0];
+         }
+
+         GPUDevice::copyOutAsyncWait();
+         GPUDevice::copyOutAsyncToHost( copy1.getDst(), copy1.getSrc(), copy1.getSize() );
+         _pendingCopies.erase(_pendingCopies.begin());
+      }
    }
 
    // Wait for the GPU kernel to finish
    cudaThreadSynchronize();
+}
+
+void GPUThread::yield()
+{
+   if ( !_pendingCopies.empty() ) {
+      PendingCopy & copy = _pendingCopies[0];
+      copy.executeSyncCopy();
+      _pendingCopies.erase(_pendingCopies.begin());
+   }
+
+   SMPThread::yield();
+}
+
+void GPUThread::PendingCopy::executeAsyncCopy()
+{
+   // Asynchronous copy-out
+   GPUDevice::copyOutAsyncToBuffer( _dst, _src, _size );
+   // Asynchronous wait
+   GPUDevice::copyOutAsyncWait();
+   // Memcpy
+   GPUDevice::copyOutAsyncToHost( _dst, _src, _size );
+}
+
+void GPUThread::PendingCopy::executeSyncCopy()
+{
+   // Synchronous copy-out
+   GPUDevice::copyOutSyncToHost( _dst, _src, _size );
 }

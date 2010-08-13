@@ -116,6 +116,12 @@ inline void WorkDescriptor::workFinished(WorkDescriptor &wd)
    _depsDomain->finished( *(wd._doSubmit) );
 }
 
+inline DependenciesDomain & WorkDescriptor::getDependenciesDomain()
+{
+   return *_depsDomain;
+}
+
+
 inline InstrumentationContextData * WorkDescriptor::getInstrumentorContextData( void ) { return &_instrumentorContextData; }
 
 #endif

@@ -89,6 +89,12 @@ typedef enum {
 
          static void copyLocal( void *dst, void *src, size_t size );
 
+         static void copyOutAsyncToBuffer( void * src, void * dst, size_t size );
+         static void copyOutAsyncWait();
+         static void copyOutAsyncToHost( void * src, void * dst, size_t size );
+         static void copyOutSyncToHost ( void * dst, void * src, size_t size );
+
+
    };
 }
 

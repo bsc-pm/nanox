@@ -33,8 +33,68 @@ namespace ext
 
       friend class GPUProcessor;
 
+      class PendingCopy : nanos::WG {
+
+         private:
+            void *                  _src;
+            void *                  _dst;
+            size_t                  _size;
+            DependableObject        _do;
+            DependenciesDomain &    _dd;
+
+
+         public:
+            PendingCopy( void * source, void * dest, size_t s ) :
+                  _src( source ), _dst( dest ), _size( s ), _do(),
+                  _dd( myThread->getCurrentWD()->getParent()->getDependenciesDomain() )
+            {
+               //_dd = myThread->getCurrentWD()->getParent()->getDependenciesDomain();
+               std::vector<Dependency> dependencies;
+               dependencies.push_back( Dependency( &_dst, 0, false, true ) );
+               _dd.submitDependableObject( _do, dependencies );
+               //myThread->getCurrentWD()->getParent()->addWork( ( WG )this );
+            }
+
+            ~PendingCopy()
+            {
+               _dd.finished( _do );
+               WG::done();
+            }
+
+            void * getSrc ()
+            {
+               return _src;
+            }
+
+            void * getDst ()
+            {
+               return _dst;
+            }
+
+            size_t getSize ()
+            {
+               return _size;
+            }
+
+            const PendingCopy& operator=(const PendingCopy& pd)
+            {
+               _src = pd._src;
+               _dst = pd._dst;
+               _size = pd._size;
+               _do = pd._do;
+               //_dd( myThread->getCurrentWD()->getParent()->getDependenciesDomain() );
+
+               return *this;
+            }
+
+            void executeAsyncCopy();
+            void executeSyncCopy();
+
+      };
+
       private:
-         int                     _gpuDevice; // Assigned GPU device Id
+         int                        _gpuDevice; // Assigned GPU device Id
+         std::vector<PendingCopy>   _pendingCopies;
 
          // disable copy constructor and assignment operator
          GPUThread( const GPUThread &th );
@@ -42,7 +102,7 @@ namespace ext
 
       public:
          // constructor
-         GPUThread( WD &w, PE *pe, int device ) : SMPThread( w, pe ), _gpuDevice( device ) {}
+         GPUThread( WD &w, PE *pe, int device ) : SMPThread( w, pe ), _gpuDevice( device ), _pendingCopies() {}
 
          // destructor
          virtual ~GPUThread() {}
@@ -51,9 +111,19 @@ namespace ext
 
          virtual void inlineWorkDependent( WD &work );
 
+         /** \brief GPU specific yield implementation
+         */
+         virtual void yield();
+
          int getGpuDevice ()
          {
             return _gpuDevice;
+         }
+
+         void addPendingCopy ( void * source, void * dest, size_t size )
+         {
+            _pendingCopies.push_back( PendingCopy( source, dest, size ) );
+            myThread->getCurrentWD()->getParent()->addWork( (WG &) _pendingCopies.back() );
          }
 
    };
