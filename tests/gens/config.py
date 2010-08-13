@@ -13,14 +13,6 @@ def cpus(max_cpus):
 		ans = ans + ['--pes='+str(i)]
 	return ans
 
-import sys
-if '--help' in sys.argv:
-	print 'Envorionment variables that affect this script:'
-	print '    NX_TEST_MODE=\'small\'|\'medium\'|\'large\''
-	print '    NX_TEST_MAX_CPUS=#CPUS'
-	print '    NX_TEST_MANDATORY_ARGS=\'--nx-flag --nx-arg=val ...\''
-        sys.exit()
-
 test_mode=os.environ.get('NX_TEST_MODE')
 if test_mode == None:
 	test_mode='small'
@@ -29,9 +21,43 @@ max_cpus=os.environ.get('NX_TEST_MAX_CPUS')
 if ( max_cpus == None ):
 	max_cpus=2
 
-mandatory_args=os.environ.get('NX_TEST_MANDATORY_ARGS')
-if mandatory_args == None:
-	mandatory_args=''
+# Process program arguments (priority to env vars)
+from optparse import OptionParser
+import sys
+
+header ='Nanox config generator 0.1\n\n'+\
+	'Envorionment variables that affect this script:\n'+\
+	'   NX_TEST_MODE=\'small\'|\'medium\'|\'large\'\n'+\
+	'   NX_TEST_MAX_CPUS=#CPUS\n'
+if '-h' in sys.argv or '--help' in sys.argv:
+	print header
+
+usage = "usage: %prog [options]"
+parser = OptionParser(usage)
+parser.add_option("-a", metavar="\"a1|a2,b1|b2,..\"", dest="additional",
+                  help="Comma separated lists of aditional options ('|' separates incompatible alternatives ) combined in the configurations generated")
+parser.add_option("-m", choices=['small','medium','large'], dest="mode",
+                  help="Determines the number of execution versions for each test combining different runtime options.")
+parser.add_option("-c","--cpus", metavar="n", type='int', dest="cpus",
+                  help="Each configuration will be tested for 1 to n CPUS")
+
+(options, args) = parser.parse_args()
+
+if len(args) != 0:
+	parser.error("this script takes no arguments")
+
+addlist=[]
+if options.additional:
+	additional=options.additional
+	additional=additional.split(',')
+	for a in additional:
+		addlist=addlist+[a.split('|')]
+if options.mode:
+	test_mode=options.mode
+if options.cpus:
+	max_cpus=options.cpus
+
+
 
 max_cpus=int(max_cpus)
 
@@ -43,11 +69,11 @@ barriers=['--barrier=centralized','--barrier=tree']
 others=[cpus(max_cpus),['--disable-binding','--no-disable-binding']]
 
 if test_mode == 'small':
-	configs=cross(*others+[scheduling_small])
+	configs=cross(*others+[scheduling_small]+addlist)
 elif test_mode == 'medium':
-	configs=cross(*others+[scheduling_small]+[throttle]+[barriers])
+	configs=cross(*others+[scheduling_small]+[throttle]+[barriers]+addlist)
 elif test_mode == 'large':
-	configs=cross(*others+[scheduling_full]+[throttle]+[barriers])
+	configs=cross(*others+[scheduling_full]+[throttle]+[barriers]+addlist)
 
 config_lines=[]
 versions=''
@@ -55,7 +81,6 @@ i=1
 for c in configs:
 	line = 'test_ENV_ver'+str(i)+'=\"NX_ARGS=\''
 	versions+='ver'+str(i)+' '
-	line = line + mandatory_args
 	for entry in c:
 		line = line + ' ' +entry
 	line = line + '\'\"'
