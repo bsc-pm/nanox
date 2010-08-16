@@ -37,7 +37,6 @@ typedef void * nanos_team_t;
 typedef void * nanos_sched_t;
 typedef void * nanos_slicer_t;
 typedef void * nanos_slicer_data_t;
-typedef void * nanos_lock_t;
 typedef void * nanos_dd_t;
 typedef void * nanos_sync_cond_t;
 typedef unsigned int nanos_copy_id_t;
@@ -117,11 +116,13 @@ nanos_err_t nanos_destroy_sync_cond ( nanos_sync_cond_t *sync_cond );
 
 nanos_err_t nanos_wait_on ( size_t num_deps, nanos_dependence_t *deps );
 
-nanos_err_t nanos_init_lock ( nanos_lock_t *lock );
-nanos_err_t nanos_set_lock (nanos_lock_t lock);
-nanos_err_t nanos_unset_lock (nanos_lock_t lock);
-nanos_err_t nanos_try_lock ( nanos_lock_t lock, bool *result );
-nanos_err_t nanos_destroy_lock ( nanos_lock_t lock );
+#define NANOS_INIT_LOCK_FREE { NANOS_LOCK_FREE }
+#define NANOS_INIT_LOCK_BUSY { NANOS_LOCK_BUSY }
+nanos_err_t nanos_init_lock ( nanos_lock_t **lock );
+nanos_err_t nanos_set_lock (nanos_lock_t *lock);
+nanos_err_t nanos_unset_lock (nanos_lock_t *lock);
+nanos_err_t nanos_try_lock ( nanos_lock_t *lock, bool *result );
+nanos_err_t nanos_destroy_lock ( nanos_lock_t *lock );
 
 // Device copies
 nanos_err_t nanos_get_addr ( nanos_copy_id_t copy_id, void **addr );

@@ -178,5 +178,14 @@ typedef struct {
    } info;
 } nanos_event_t;
 
+/* Lock C interface */
+typedef enum { NANOS_LOCK_FREE = 0, NANOS_LOCK_BUSY = 1 } nanos_lock_state_t;
+typedef struct nanos_lock_t {
+   volatile nanos_lock_state_t _state;
+#ifdef __cplusplus
+   nanos_lock_t ( nanos_lock_state_t init=NANOS_LOCK_FREE ) : _state(init) {}
+#endif
+} nanos_lock_t;
+
 
 #endif
