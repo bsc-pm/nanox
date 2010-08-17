@@ -30,6 +30,7 @@
 #include "atomic.hpp"
 #include "lazy.hpp"
 #include "instrumentorcontext_decl.hpp"
+#include "compatibility.hpp"
 
 #include "slicer_fwd.hpp"
 #include "basethread_fwd.hpp"
@@ -155,7 +156,7 @@ namespace nanos
          size_t               _numCopies;    /**< Copy-in / Copy-out data */
          CopyData *           _copies;       /**< Copy-in / Copy-out data */
 
-         DOSubmit*                      _doSubmit;     /**< DependableObject representing this WD in its parent's depsendencies domain */
+         TR1::shared_ptr<DOSubmit>                      _doSubmit;     /**< DependableObject representing this WD in its parent's depsendencies domain */
          LazyInit<DOWait>               _doWait;       /**< DependableObject used by this task to wait on dependencies */
 
          LazyInit<DependenciesDomain>   _depsDomain;   /**< Dependences domain. Each WD has a domain where DependableObjects can be submitted */
@@ -175,14 +176,14 @@ namespace nanos
                         : WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ),
                           _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : 0 ),
-                          _numCopies( numCopies ), _copies( copies ), _doSubmit(NULL), _doWait(),
+                          _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
                           _depsDomain(), _instrumentorContextData() { }
 
          WorkDescriptor ( DeviceData *device, size_t data_size = 0, void *wdata=0, size_t numCopies = 0, CopyData *copies = NULL )
                         : WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ),
                           _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( 1 ), _devices ( &_activeDevice ), _activeDevice ( device ),
-                          _numCopies( numCopies ), _copies( copies ), _doSubmit(NULL), _doWait(),
+                          _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
                           _depsDomain(), _instrumentorContextData() { }
 
          /*! \brief WorkDescriptor constructor (using a given WorkDescriptor)
@@ -201,7 +202,7 @@ namespace nanos
                           _myQueue ( NULL ), _depth ( wd._depth ), _numDevices ( wd._numDevices ),
                           _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
                           _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
-                          _doSubmit(NULL), _doWait(), _depsDomain(), _instrumentorContextData() { }
+                          _doSubmit(), _doWait(), _depsDomain(), _instrumentorContextData() { }
 
          /*! \brief WorkDescriptor destructor
           *

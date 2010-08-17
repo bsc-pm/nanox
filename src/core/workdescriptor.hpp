@@ -101,7 +101,7 @@ inline CopyData * WorkDescriptor::getCopies() const { return _copies; }
 
 inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t numDeps, Dependency* deps )
 {
-   wd._doSubmit = new DOSubmit();
+   wd._doSubmit.reset( new DOSubmit() );
    wd._doSubmit->setWD(&wd);
    _depsDomain->submitDependableObject( *(wd._doSubmit), numDeps, deps );
 }
