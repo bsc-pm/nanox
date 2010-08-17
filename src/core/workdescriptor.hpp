@@ -99,6 +99,8 @@ inline size_t WorkDescriptor::getNumCopies() const { return _numCopies; }
 
 inline CopyData * WorkDescriptor::getCopies() const { return _copies; }
 
+inline TR1::shared_ptr<DOSubmit> & WorkDescriptor::getDOSubmit() { return _doSubmit; }
+
 inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t numDeps, Dependency* deps )
 {
    wd._doSubmit.reset( new DOSubmit() );
