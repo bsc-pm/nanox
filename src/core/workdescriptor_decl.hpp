@@ -222,7 +222,7 @@ namespace nanos
           *
           *  This function is useful to perform lazy initialization in the workdescriptor
           */
-         virtual void start ( bool isUserLevelThread, WorkDescriptor *previous = NULL );
+         void start ( bool isUserLevelThread, WorkDescriptor *previous = NULL );
 
          /*! \brief Get data size
           *
