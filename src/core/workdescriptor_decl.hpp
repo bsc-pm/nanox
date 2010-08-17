@@ -30,6 +30,7 @@
 #include "atomic.hpp"
 #include "lazy.hpp"
 #include "instrumentorcontext_decl.hpp"
+#include "compatibility.hpp"
 
 #include "slicer_fwd.hpp"
 #include "basethread_fwd.hpp"
@@ -155,7 +156,7 @@ namespace nanos
          size_t               _numCopies;    /**< Copy-in / Copy-out data */
          CopyData *           _copies;       /**< Copy-in / Copy-out data */
 
-         LazyInit<DOSubmit>             _doSubmit;     /**< DependableObject representing this WD in its parent's depsendencies domain */
+         TR1::shared_ptr<DOSubmit>                      _doSubmit;     /**< DependableObject representing this WD in its parent's depsendencies domain */
          LazyInit<DOWait>               _doWait;       /**< DependableObject used by this task to wait on dependencies */
 
          LazyInit<DependenciesDomain>   _depsDomain;   /**< Dependences domain. Each WD has a domain where DependableObjects can be submitted */
@@ -222,7 +223,7 @@ namespace nanos
           *
           *  This function is useful to perform lazy initialization in the workdescriptor
           */
-         virtual void start ( bool isUserLevelThread, WorkDescriptor *previous = NULL );
+         void start ( bool isUserLevelThread, WorkDescriptor *previous = NULL );
 
          /*! \brief Get data size
           *

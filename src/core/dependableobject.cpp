@@ -17,58 +17,39 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_COMPATIBILITY_HPP
-#define _NANOS_COMPATIBILITY_HPP
+#include "dependableobject.hpp"
+#include "trackableobject.hpp"
 
-#if __CUDACC__
+using namespace nanos;
 
-#define BROKEN_COMPARE_AND_SWAP
-
-#endif
-
-// compiler issues
-
-#if __GXX_EXPERIMENTAL_CXX0X__
-
-#include <unordered_map>
-#include <memory>
-
-namespace TR1 = std;
-
-#else
-
-#include <tr1/unordered_map>
-#include <tr1/memory>
-
-namespace TR1 = std::tr1;
-
-#endif
-
-#ifdef __GNUC__
-#if __GNUC__ == 4 && __GNUC_MINOR__ < 2
-
-namespace std {
-#ifndef __GXX_EXPERIMENTAL_CXX0X__
-namespace tr1{
-#endif // __GXX_EXPERIMENTAL_CXX0X__
-
-/* Specialize hash for unsigned long long allows unordered_map<uint64_t, xxx> when compiling for 32 bits */
-template<> struct hash<unsigned long long> : public std::unary_function<unsigned long long, std::size_t> { std::size_t operator()(unsigned long long val) const { return static_cast<std::size_t>(val); } };
+void DependableObject::finished ( )
+{
+   if ( --_references == 0) {
+      DependableObject& depObj = *this;
+      // This step guarantees that any Object that wants to add depObj as a successor has done it
+      // before we continue or, alternatively, won't do it.
+      DependableObject::TrackableObjectVector &outs = depObj.getOutputObjects();
+      if (outs.size() > 0) {
+         depObj.lock();
+         for ( unsigned int i = 0; i < outs.size(); i++ ) {
+            outs[i]->deleteLastWriter(depObj);
+         }
+         depObj.unlock();
+      }
+      
+      //  Delete depObj from all trackableObjects it reads 
+      DependableObject::TrackableObjectVector &reads = depObj.getReadObjects();
+      for ( DependableObject::TrackableObjectVector::iterator it = reads.begin(); it != reads.end(); it++ ) {
+         TrackableObject* readObject = *it;
+         readObject->lockReaders();
+         readObject->deleteReader(depObj);
+         readObject->unlockReaders();
+      }
+         
+      DependableObject::DependableObjectVector &succ = depObj.getSuccessors();
+      for ( unsigned int i = 0; i < succ.size(); i++ ) {
+         succ[i]->decreasePredecessors();
+      }
+   }
 }
-
-#ifndef __GXX_EXPERIMENTAL_CXX0X__
-}
-#endif // __GXX_EXPERIMENTAL_CXX0X__
-
-#endif // __GNUC__ == 4 && __GNUC_MINOR__ < 2
-#endif // __GNUC__
-
-#ifdef BROKEN_COMPARE_AND_SWAP
-
-bool __sync_bool_compare_and_swap( int *ptr, int oldval, int newval );
-
-#endif
-
-
-#endif
 

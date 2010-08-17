@@ -89,6 +89,7 @@ nanos_sources=\
 	copydata.hpp \
 	dependableobject_fwd.hpp \
 	dependableobject.hpp \
+	dependableobject.cpp \
 	dependableobjectwd.hpp \
 	dependableobjectwd_fwd.hpp \
 	dependableobjectwd.cpp \
