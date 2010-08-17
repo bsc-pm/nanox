@@ -101,6 +101,7 @@ inline CopyData * WorkDescriptor::getCopies() const { return _copies; }
 
 inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t numDeps, Dependency* deps )
 {
+   wd._doSubmit = new DOSubmit();
    wd._doSubmit->setWD(&wd);
    _depsDomain->submitDependableObject( *(wd._doSubmit), numDeps, deps );
 }
@@ -113,7 +114,8 @@ inline void WorkDescriptor::waitOn( size_t numDeps, Dependency* deps )
 
 inline void WorkDescriptor::workFinished(WorkDescriptor &wd)
 {
-   wd._doSubmit->finished();
+   if ( wd._doSubmit != NULL )
+      wd._doSubmit->finished();
 }
 
 inline InstrumentationContextData * WorkDescriptor::getInstrumentorContextData( void ) { return &_instrumentorContextData; }
