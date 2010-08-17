@@ -155,31 +155,3 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
 template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, Dependency* begin, Dependency* end );
 template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, std::vector<Dependency>::iterator begin, std::vector<Dependency>::iterator end );
 
-void DependenciesDomain::finished ( DependableObject &depObj )
-{
-   // This step guarantees that any Object that wants to add depObj as a successor has done it
-   // before we continue or, alternatively, won't do it.
-   DependableObject::TrackableObjectVector &outs = depObj.getOutputObjects();
-   if (outs.size() > 0) {
-      depObj.lock();
-      for ( unsigned int i = 0; i < outs.size(); i++ ) {
-         outs[i]->deleteLastWriter(depObj);
-      }
-      depObj.unlock();
-   }
-   
-   //  Delete depObj from all trackableObjects it reads 
-   DependableObject::TrackableObjectVector &reads = depObj.getReadObjects();
-   for ( DependableObject::TrackableObjectVector::iterator it = reads.begin(); it != reads.end(); it++ ) {
-      TrackableObject* readObject = *it;
-      readObject->lockReaders();
-      readObject->deleteReader(depObj);
-      readObject->unlockReaders();
-   }
-      
-   DependableObject::DependableObjectVector &succ = depObj.getSuccessors();
-   for ( unsigned int i = 0; i < succ.size(); i++ ) {
-      succ[i]->decreasePredecessors();
-   }
-}
-
