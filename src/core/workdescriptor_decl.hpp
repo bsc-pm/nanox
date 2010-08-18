@@ -346,6 +346,10 @@ namespace nanos
           */
          CopyData * getCopies() const;
 
+         /*! \brief Returns a pointer to the DOSubmit of the WD
+          */
+         TR1::shared_ptr<DOSubmit> & getDOSubmit();
+
          /*! \brief Add a new WD to the domain of this WD.
           *  \param wd Must be a WD created by "this". wd will be submitted to the
           *  scheduler when its dependencies are satisfied.
