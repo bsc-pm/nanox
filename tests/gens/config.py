@@ -61,8 +61,8 @@ if options.cpus:
 
 max_cpus=int(max_cpus)
 
-scheduling_small=['--schedule=bf','--schedule=wf','--schedule=dbf','--shcedule=cilk']
-scheduling_full=['--schedule=bf --bf-stack','--schedule=bf --no-bf-stack', '--schedule=wf --steal-parent --wf-local-policy=FIFO --wf-steal-policy=FIFO','--schedule=wf --steal-parent --wf-local-policy=FIFO --wf-steal-policy=LIFO','--schedule=wf --steal-parent --wf-local-policy=LIFO --wf-steal-policy=FIFO','--schedule=wf --steal-parent --wf-local-policy=LIFO --wf-steal-policy=LIFO','--schedule=wf --no-steal-parent --wf-local-policy=FIFO --wf-steal-policy=FIFO', '--schedule=wf --no-steal-parent --wf-local-policy=FIFO --wf-steal-policy=LIFO','--schedule=wf --no-steal-parent --wf-local-policy=LIFO --wf-steal-policy=FIFO','--schedule=wf --no-steal-parent --wf-local-policy=LIFO --wf-steal-policy=LIFO','--schedule=dbf','--shcedule=cilk']
+scheduling_small=['--schedule=bf','--schedule=wf','--schedule=dbf','--schedule=cilk']
+scheduling_full=['--schedule=bf --bf-stack','--schedule=bf --no-bf-stack', '--schedule=wf --steal-parent --wf-local-policy=FIFO --wf-steal-policy=FIFO','--schedule=wf --steal-parent --wf-local-policy=FIFO --wf-steal-policy=LIFO','--schedule=wf --steal-parent --wf-local-policy=LIFO --wf-steal-policy=FIFO','--schedule=wf --steal-parent --wf-local-policy=LIFO --wf-steal-policy=LIFO','--schedule=wf --no-steal-parent --wf-local-policy=FIFO --wf-steal-policy=FIFO', '--schedule=wf --no-steal-parent --wf-local-policy=FIFO --wf-steal-policy=LIFO','--schedule=wf --no-steal-parent --wf-local-policy=LIFO --wf-steal-policy=FIFO','--schedule=wf --no-steal-parent --wf-local-policy=LIFO --wf-steal-policy=LIFO','--schedule=dbf','--schedule=cilk']
 throttle=['--throttle=dummy','--throttle=idlethreads','--throttle=numtasks','--throttle=readytasks','--throttle=taskdepth']
 #barriers=['--barrier=centralized','--barrier=tree','--barrier=dissemination']
 barriers=['--barrier=centralized','--barrier=tree']
