@@ -68,6 +68,11 @@ __global__ void check_task_params ( int idx, int * a , int * b, int * c, int * e
 void test_gpu_task ( void * args );
 
 
+///#pragma omp target device (cuda) copydeps
+///#pragma omp task 
+void dummy_task ( void * args );
+
+
 int main ( int argc, char **argv )
 {
    std::cout << "Testing GPU task parameter copy mechanism" << std::endl;
@@ -79,7 +84,6 @@ int main ( int argc, char **argv )
 
    for ( i = 0; i < ntasks; i++ ) {
       // Data structures initialization
-      test_args * task_args = new test_args();
       args[i] = new test_args();
       args[i]->err = new int(1);
       args[i]->n = n;
@@ -119,7 +123,20 @@ int main ( int argc, char **argv )
    usleep(500);
 
    wg->waitCompletion();
-   
+
+   // waitCompletion does not wait for the last copy-out to finish when overlapping data and computation,
+   // so create several dummy tasks in order to force last data to be copied. (See #307)
+   for ( i = 0; i < ntasks; i++ ) {
+      nanos::WD * wd = new nanos::WD( new nanos::ext::GPUDD( dummy_task ), 0, 0, 0, 0 );
+      wd->tied();
+      wg->addWork( *wd );
+      nanos::sys.submit( *wd );
+   }
+
+   usleep(500);
+
+   wg->waitCompletion();
+
    for ( i = 0; i < ntasks; i++ ) {
       if ( *args[i]->err != 0 ) {
          std::cout << "   [" << i << "] " << *args[i]->err << " errors found: task parameter copy mechanism did not succeed.   FAIL" << std::endl;
@@ -135,6 +152,20 @@ int main ( int argc, char **argv )
     
    
    return 0;
+}
+
+///#pragma omp target device (cuda) copydeps
+///#pragma omp task 
+void dummy_task ( void * args )
+{
+   int a = 4985;
+   float b = 0.6234;
+   double c = 0.0;
+
+   int i;
+   for ( i = 0; i < NTASKS*NTASKS*NTASKS*NTASKS; i++ ) {
+      c += (double) (a * b) - (b / a) + (a + b);
+   }
 }
 
 ///#pragma omp target device (cuda) copydeps

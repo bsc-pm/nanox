@@ -38,6 +38,7 @@ using namespace std;
 using namespace nanos;
 using namespace nanos::ext;
 
+#define NREP 100
 
 // Arguments' struct
 typedef struct {
@@ -47,6 +48,7 @@ typedef struct {
    int * Ad;
    int * Bh;
    int * Bd;
+   int task;
 } test_args;
 
 
@@ -77,8 +79,9 @@ int main ( int argc, char **argv )
 {
    std::cout << "Testing GPU memory manager ( GPUDevice ): allocate, free, copy in / out / local" << std::endl;
 
-   int i, ngpus = 2, n = 512;
-   test_args ** args = ( test_args ** ) malloc( ngpus * sizeof( test_args * ) );
+   int i, n = 512;
+   int ngpus = nanos::ext::GPUDD::getGPUCount();
+   test_args ** args = new test_args* [ngpus];
    
    for ( i = 0; i < ngpus; i++ ) {
       args[i] = new test_args();
@@ -88,12 +91,17 @@ int main ( int argc, char **argv )
       args[i]->Ad = 0;
       args[i]->Bh = 0;
       args[i]->Bd = 0;
+      args[i]->task = 0;
    }
 
    nanos::WG *wg = nanos::myThread->getCurrentWD();
 
+   // Execution of tasks: for every kind of task, create 100 times the number of GPUs, so that we
+   // assume that each GPU will pick at least one task of each type.
+   // 'task' member controls that each kind of task is executed once and only once on the same GPU.
+
    // Initialization
-   for ( i = 0; i < ngpus; i++ ) {
+   for ( i = 0; i < ngpus*NREP; i++ ) {
 ///      test_init( args[i] );
 
       nanos::WD * wd = new nanos::WD( new nanos::ext::GPUDD( test_init ), sizeof( test_args ) * ngpus, args );
@@ -115,7 +123,7 @@ int main ( int argc, char **argv )
    std::cout << "   Initialization ... ok!" << std::endl;
    
    // First copy: host to device
-   for ( i = 0; i < ngpus; i++ ) {
+   for ( i = 0; i < ngpus*NREP; i++ ) {
 ///      test_host_to_device( args[i] );
 
       nanos::WD * wd = new nanos::WD( new nanos::ext::GPUDD( test_host_to_device ), sizeof( test_args ) * ngpus, args );
@@ -137,7 +145,7 @@ int main ( int argc, char **argv )
    std::cout << "   Host --> Device ... ok!" << std::endl;
    
    // Second copy: device to device (local)
-   for ( i = 0; i < ngpus; i++ ) {
+   for ( i = 0; i < ngpus*NREP; i++ ) {
 ///      test_device_to_device( args[i] );
       
       nanos::WD * wd = new nanos::WD( new nanos::ext::GPUDD( test_device_to_device ), sizeof( test_args ) * ngpus, args );
@@ -159,7 +167,7 @@ int main ( int argc, char **argv )
    std::cout << "   Device --> Device ... ok!" << std::endl;
 
    // Third copy: device to host
-   for ( i = 0; i < ngpus; i++ ) {
+   for ( i = 0; i < ngpus*NREP; i++ ) {
 ///      test_device_to_host( args[i] );
       
       nanos::WD * wd = new nanos::WD( new nanos::ext::GPUDD( test_device_to_host ), sizeof( test_args ) * ngpus, args );
@@ -181,7 +189,7 @@ int main ( int argc, char **argv )
    std::cout << "   Device --> Host ... ok!" << std::endl;
    
    // CLEANUP
-   for ( i = 0; i < ngpus; i++ ) {
+   for ( i = 0; i < ngpus*NREP; i++ ) {
 ///      test_cleanup( args[i] );
 
       nanos::WD * wd = new nanos::WD( new nanos::ext::GPUDD( test_cleanup ), sizeof( test_args ) * ngpus, args );
@@ -201,7 +209,15 @@ int main ( int argc, char **argv )
    }
    
    std::cout << "   Clean up ... ok!" << std::endl;
-   
+  
+   for ( i = 0; i < ngpus; i++ ) {
+      if ( args[i]->task != 5 ) {
+         std::cout << "WARNING: thread " << i << " did not run all kinds of tasks: " << args[i]->task << std::endl;
+      }
+   }
+ 
+   delete args;
+
    std::cout << "End testing GPU memory manager ( GPUDevice )" << std::endl;
     
    
@@ -216,10 +232,15 @@ void test_init ( void * args )
    
    test_args ** full_args = ( test_args ** ) args;
    test_args * targs = full_args[id];
-   
+
+   if ( targs->task != 0 )
+      return;
+
+   targs->task++;
+
    size_t size = targs->n * sizeof ( int );
-   targs->Ah = ( int * ) malloc ( size );
-   targs->Bh = ( int * ) malloc ( size );
+   targs->Ah = new int[targs->n];
+   targs->Bh = new int[targs->n];
    targs->Ad = ( int * ) GPUDevice::allocate( size );
    //std::cout << "[" << id << "] Attempting to malloc " << targs->Ad << std::endl;
    targs->Bd = ( int * ) GPUDevice::allocate( size );
@@ -244,8 +265,13 @@ void test_cleanup ( void * args )
    test_args ** full_args = ( test_args ** ) args;
    test_args * targs = full_args[id];
    
-   free( targs->Ah );
-   free( targs->Bh );
+   if ( targs->task != 4 )
+      return;
+   
+   targs->task++;
+
+   delete targs->Ah;
+   delete targs->Bh;
    //std::cout << "[" << id << "] Attempting to free " << targs->Ad << std::endl;
    GPUDevice::free( targs->Ad );
    //std::cout << "[" << id << "] Attempting to free " << targs->Bd << std::endl;
@@ -265,6 +291,11 @@ void test_host_to_device ( void * args )
    test_args ** full_args = ( test_args ** ) args;
    test_args * targs = full_args[id];
    
+   if ( targs->task != 1 )
+      return;
+   
+   targs->task++;
+
    cudaStream_t inStream = ((nanos::ext::GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->getInTransferStream();
    
    int i;   
@@ -305,6 +336,11 @@ void test_device_to_device ( void * args )
    test_args ** full_args = ( test_args ** ) args;
    test_args * targs = full_args[id];
    
+   if ( targs->task != 2 )
+      return;
+   
+   targs->task++;
+
    cudaStream_t inStream = ((nanos::ext::GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->getInTransferStream();
    
    int i;   
@@ -345,8 +381,13 @@ void test_device_to_host ( void * args )
    test_args ** full_args = ( test_args ** ) args;
    test_args * targs = full_args[id];
    
-   cudaStream_t outStream = ((nanos::ext::GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->getOutTransferStream();
+   if ( targs->task != 3 )
+      return;
    
+   targs->task++;
+
+   //cudaStream_t outStream = ((nanos::ext::GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->getOutTransferStream();
+
    int i;   
    size_t size = targs->n * sizeof ( int );
    
@@ -359,7 +400,9 @@ void test_device_to_host ( void * args )
 
    GPUDevice::copyOut( ( uint64_t ) targs->Bh, targs->Bd, size );
 
-   cudaStreamSynchronize( outStream );
+   ( ( GPUThread * ) myThread)->executePendingCopies();
+
+//   cudaStreamSynchronize( outStream );
 
    targs->err = 0;
    for ( i = 0; i < targs->n; i++ ) {
