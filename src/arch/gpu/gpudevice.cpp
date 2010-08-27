@@ -130,7 +130,7 @@ void * GPUDevice::allocate( size_t size )
    }
 
    if ( _transferMode == ASYNC || _transferMode == PINNED_CUDA || _transferMode == WC) {
-      ((nanos::ext::GPUProcessor *) myThread->runningOn())->setPinnedAddress( address, pinned );
+      ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->setPinnedAddress( address, pinned );
    }
 
    return address;
@@ -142,6 +142,11 @@ void GPUDevice::free( void *address )
    cudaError_t err = cudaSuccess;
 
    if ( _transferMode == NORMAL || _transferMode == ASYNC || _transferMode == PINNED_OS) {
+
+      // Check there are no pending copies to execute before we free the memory
+      // (and if there are, execute them)
+      ( ( nanos::ext::GPUThread * ) myThread )->checkAddressForPendingCopy( address );
+
       err = cudaFree( address );
 
       if ( err != cudaSuccess ) {
@@ -276,7 +281,7 @@ void GPUDevice::copyOut( uint64_t remoteDst, void *localSrc, size_t size )
       cudaError_t err = cudaSuccess;
 
       if ( _transferMode == ASYNC ) {
-         ( ( nanos::ext::GPUThread * ) myThread )->addPendingCopy( localSrc, ( void * ) remoteDst, size );
+         ( ( nanos::ext::GPUThread * ) myThread )->addPendingCopy( ( void * ) remoteDst, localSrc, size );
       }
       else {
          err = cudaMemcpy( ( void * ) remoteDst, localSrc, size, cudaMemcpyDeviceToHost );

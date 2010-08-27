@@ -54,6 +54,15 @@ void GPUThread::runDependent ()
       ((GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->init();
    }
 
+   if ( ( (GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->getOutTransferStream() ) {
+      // If overlapping outputs is defined, create the list
+      _pendingCopies = new PendingCopiesAsyncList();
+   }
+   else {
+      // Else, create a 'fake list' which copies outputs synchronously
+      _pendingCopies = new PendingCopiesSyncList();
+   }
+
    // Avoid the so slow first data allocation and transfer to device
    bool b = true;
    bool * b_d = ( bool * ) GPUDevice::allocate( sizeof( b ) );
@@ -87,47 +96,8 @@ void GPUThread::inlineWorkDependent ( WD &wd )
          next->start(false);
       }
 
-      /*
-      while ( !_pendingCopies.empty() ) {
-         PendingCopy & copy = _pendingCopies[0];
-         // Execute the memory copy
-         copy.executeAsyncCopy();
-         // Finish DO and WG done
-         _pendingCopies.erase(_pendingCopies.begin());
-      }
-      */
-
-      if ( _pendingCopies.size() == 1 ) {
-         PendingCopy & copy = _pendingCopies[0];
-         copy.executeSyncCopy();
-         _pendingCopies.erase(_pendingCopies.begin());
-      }
-      else if ( !_pendingCopies.empty() ) {
-         // First copy
-         PendingCopy & copy1 = _pendingCopies[0];
-         GPUDevice::copyOutAsyncToBuffer( copy1.getDst(), copy1.getSrc(), copy1.getSize() );
-
-         while ( _pendingCopies.size() > 1) {
-            // First copy
-            GPUDevice::copyOutAsyncWait();
-            // Second copy
-            PendingCopy & copy2 = _pendingCopies[1];
-            GPUDevice::copyOutAsyncToBuffer( copy2.getDst(), copy2.getSrc(), copy2.getSize() );
-
-            // First copy
-            GPUDevice::copyOutAsyncToHost( copy1.getDst(), copy1.getSrc(), copy1.getSize() );
-
-            // Finish DO and WG done of first copy
-            _pendingCopies.erase(_pendingCopies.begin());
-
-            // Update second copy to be first copy at next iteration
-            copy1 = _pendingCopies[0];
-         }
-
-         GPUDevice::copyOutAsyncWait();
-         GPUDevice::copyOutAsyncToHost( copy1.getDst(), copy1.getSrc(), copy1.getSize() );
-         _pendingCopies.erase(_pendingCopies.begin());
-      }
+      // Copy out results from tasks executed previously
+      _pendingCopies->executePendingCopies();
    }
 
    // Wait for the GPU kernel to finish
@@ -136,27 +106,85 @@ void GPUThread::inlineWorkDependent ( WD &wd )
 
 void GPUThread::yield()
 {
-   if ( !_pendingCopies.empty() ) {
-      PendingCopy & copy = _pendingCopies[0];
-      copy.executeSyncCopy();
-      _pendingCopies.erase(_pendingCopies.begin());
-   }
+   _pendingCopies->removePendingCopy();
 
    SMPThread::yield();
 }
 
-void GPUThread::PendingCopy::executeAsyncCopy()
+
+
+void GPUThread::PendingCopiesAsyncList::removePendingCopy ( std::vector<PendingCopy>::iterator it )
 {
-   // Asynchronous copy-out
-   GPUDevice::copyOutAsyncToBuffer( _dst, _src, _size );
-   // Asynchronous wait
+   PendingCopy copy = *it;
+
+   NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("cache-copy-out") );
+   NANOS_INSTRUMENT( sys.getInstrumentor()->raiseOpenStateAndBurst( MEM_TRANSFER, key, copy._size ) );
+
+   GPUDevice::copyOutAsyncToBuffer( copy._dst, copy._src, copy._size );
    GPUDevice::copyOutAsyncWait();
-   // Memcpy
-   GPUDevice::copyOutAsyncToHost( _dst, _src, _size );
+   GPUDevice::copyOutAsyncToHost( copy._dst, copy._src, copy._size );
+
+   finishPendingCopy( it );
+
+   NANOS_INSTRUMENT( sys.getInstrumentor()->raiseCloseStateAndBurst( key ) );
 }
 
-void GPUThread::PendingCopy::executeSyncCopy()
+void GPUThread::PendingCopiesAsyncList::executePendingCopies ()
 {
-   // Synchronous copy-out
-   GPUDevice::copyOutSyncToHost( _dst, _src, _size );
+   if ( !_pendingCopiesAsync.empty() ) {
+      // First copy
+      PendingCopy & copy1 = _pendingCopiesAsync[0];
+
+      NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseOpenStateEvent( MEM_TRANSFER ) );
+      NANOS_INSTRUMENT( nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("cache-copy-out") );
+
+      GPUDevice::copyOutAsyncToBuffer( copy1._dst, copy1._src, copy1._size );
+
+      while ( _pendingCopiesAsync.size() > 1) {
+         // First copy
+         GPUDevice::copyOutAsyncWait();
+
+         // Second copy
+         PendingCopy & copy2 = _pendingCopiesAsync[1];
+         GPUDevice::copyOutAsyncToBuffer( copy2._dst, copy2._src, copy2._size );
+
+         // First copy
+         GPUDevice::copyOutAsyncToHost( copy1._dst, copy1._src, copy1._size );
+
+         // Finish DO of first copy and remove it from the list
+         finishPendingCopy( _pendingCopiesAsync.begin() );
+
+         NANOS_INSTRUMENT( sys.getInstrumentor()->raisePointEvent( key, copy1._size ) );
+
+         // Update second copy to be first copy at next iteration
+         copy1 = _pendingCopiesAsync[0];
+      }
+
+      GPUDevice::copyOutAsyncWait();
+      GPUDevice::copyOutAsyncToHost( copy1._dst, copy1._src, copy1._size );
+
+      // Finish DO of the copy and remove it from the list
+      finishPendingCopy( _pendingCopiesAsync.begin() );
+
+      NANOS_INSTRUMENT( sys.getInstrumentor()->raisePointEvent( key, copy1._size ) );
+      NANOS_INSTRUMENT( sys.getInstrumentor()->raiseCloseStateEvent() );
+   }
+#if 0
+   while ( !_pendingCopiesAsync.empty() ) {
+      PendingCopy & copy = *_pendingCopiesAsync.begin();
+
+      NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("cache-copy-out") );
+      NANOS_INSTRUMENT( sys.getInstrumentor()->raiseOpenStateAndBurst( MEM_TRANSFER, key, copy._size ) );
+
+      GPUDevice::copyOutAsyncToBuffer( copy._dst, copy._src, copy._size );
+      GPUDevice::copyOutAsyncWait();
+      GPUDevice::copyOutAsyncToHost( copy._dst, copy._src, copy._size );
+
+      // Finish DO of the copy and remove it from the list
+      finishPendingCopy( _pendingCopiesAsync.begin() );
+
+      NANOS_INSTRUMENT( sys.getInstrumentor()->raiseCloseStateAndBurst( key ) );
+   }
+#endif
 }
+
