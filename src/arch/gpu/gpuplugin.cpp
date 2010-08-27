@@ -45,7 +45,7 @@ class GPUTransferModeOption : public Config::MapAction<transfer_mode>
       // destructor
       ~GPUTransferModeOption() {}
 
-      void setValue ( const transfer_mode &value ) { GPUDevice::setTransferMode(value); }
+      void setValue ( const transfer_mode &value ) { GPUDevice::setTransferMode( value ); }
       GPUTransferModeOption * clone () { return new GPUTransferModeOption( *this ); }
 };
 
@@ -55,9 +55,12 @@ class GPUPlugin : public Plugin
       int _numGPUs;
       bool _prefetch;
       bool _overlap;
+      bool _overlapInputs;
+      bool _overlapOutputs;
 
    public:
-      GPUPlugin() : Plugin( "GPU PE Plugin", 1 ), _numGPUs( -1 ), _prefetch( true ), _overlap( true )
+      GPUPlugin() : Plugin( "GPU PE Plugin", 1 ), _numGPUs( -1 ), _prefetch( true ), _overlap( true ),
+                     _overlapInputs( true ), _overlapOutputs( true )
       {}
 
       virtual void config( Config& config )
@@ -75,11 +78,23 @@ class GPUPlugin : public Plugin
 
          config.registerConfigOption( "gpu-overlap", new Config::FlagOption( _overlap ),
                                        "Set whether GPU computation should be overlapped with\n\
-                                                       data transfers, whenever possible, or not" );
+                                                       all data transfers, whenever possible, or not" );
          config.registerEnvOption( "gpu-overlap", "NX_GPUOVERLAP" );
          config.registerArgOption( "gpu-overlap", "gpu-overlap" );
 
-/*
+         config.registerConfigOption( "gpu-overlap-inputs", new Config::FlagOption( _overlapInputs ),
+                                       "Set whether GPU computation should be overlapped with\n\
+                                                       host --> device data transfers, whenever possible, or not" );
+         config.registerEnvOption( "gpu-overlap-inputs", "NX_GPUOVERLAP_INPUTS" );
+         config.registerArgOption( "gpu-overlap-inputs", "gpu-overlap-inputs" );
+
+         config.registerConfigOption( "gpu-overlap-outputs", new Config::FlagOption( _overlapOutputs ),
+                                       "Set whether GPU computation should be overlapped with\n\
+                                                       device --> host data transfers, whenever possible, or not" );
+         config.registerEnvOption( "gpu-overlap-outputs", "NX_GPUOVERLAP_OUTPUTS" );
+         config.registerArgOption( "gpu-overlap-outputs", "gpu-overlap-outputs" );
+
+         /*
          GPUTransferModeOption map;
          map.addOption("wc", WC)
             .addOption("normal",NORMAL);
@@ -124,6 +139,15 @@ class GPUPlugin : public Plugin
 
          // Check if the user wants computation and data transfers to be overlapped
          GPUDD::_overlap = _overlap;
+
+         // If _overlap is defined to false, disable any kind of overlapping
+         GPUDD::_overlapInputs = _overlap ? _overlapInputs : false;
+         GPUDD::_overlapOutputs = _overlap ? _overlapOutputs : false;
+
+         if ( GPUDD::_overlapInputs || GPUDD::_overlapOutputs ) {
+            GPUDevice::setTransferMode( ASYNC );
+         }
+
       }
 
 };

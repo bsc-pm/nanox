@@ -41,13 +41,12 @@ namespace ext
          size_t         _maxMemoryAvailable;
 
          // Transfers
-         bool           _overlap;
          cudaStream_t   _inTransferStream;
          cudaStream_t   _outTransferStream;
 
       public:
          GPUProcessorInfo ( int device ) : _deviceId ( device ), _maxMemoryAvailable ( 0 ),
-            _overlap ( GPUDD::isOverlappingDefined() ), _inTransferStream ( 0 ), _outTransferStream ( 0 )
+            _inTransferStream ( 0 ), _outTransferStream ( 0 )
          {}
 
          ~GPUProcessorInfo ()
@@ -80,36 +79,31 @@ namespace ext
 
             if ( !gpuProperties.deviceOverlap ) {
                // It does not support stream overlapping, disable this feature
-               if ( _overlap ) {
-                  warning( "Device #" << _deviceId <<
-                        " does not support computation and data transfer overlapping" );
-                  _overlap = false;
-               }
+               warning( "Device #" << _deviceId <<
+                     " does not support computation and data transfer overlapping" );
+               return;
             }
 
-            if ( _overlap ) {
-               // Initialize the CUDA streams used for data transfers
+            if ( GPUDD::isOverlappingInputsDefined() ) {
+               // Initialize the CUDA streams used for input data transfers
                cudaError_t err = cudaStreamCreate( &_inTransferStream );
                if ( err != cudaSuccess ) {
                   // If an error occurred, disable stream overlapping
-                  _overlap = false;
                   _inTransferStream = 0;
-                  _outTransferStream = 0;
                   warning( "Error while creating the CUDA input transfer stream: " << cudaGetErrorString( err ) );
-               } else {
-                  cudaError_t err = cudaStreamCreate( &_outTransferStream );
-                  if ( err != cudaSuccess ) {
-                     // If an error occurred, disable stream overlapping
-                     _overlap = false;
-                     _inTransferStream = 0;
-                     _outTransferStream = 0;
-                     warning( "Error while creating the CUDA output transfer stream: " << cudaGetErrorString( err ) );
-                  }
+                  return;
                }
             }
-            else {
-               _inTransferStream = 0;
-               _outTransferStream = 0;
+            if ( GPUDD::isOverlappingOutputsDefined() ) {
+               // Initialize the CUDA streams used for output data transfers
+               cudaError_t err = cudaStreamCreate( &_outTransferStream );
+               if ( err != cudaSuccess ) {
+                  // If an error occurred, disable stream overlapping
+                  _inTransferStream = 0;
+                  _outTransferStream = 0;
+                  warning( "Error while creating the CUDA output transfer stream: " << cudaGetErrorString( err ) );
+                  return;
+               }
             }
          }
 

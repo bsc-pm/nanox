@@ -29,6 +29,8 @@ GPUDevice nanos::ext::GPU( "GPU" );
 int GPUDD::_gpuCount = 0;
 bool GPUDD::_prefetch = true;
 bool GPUDD::_overlap = true;
+bool GPUDD::_overlapInputs = true;
+bool GPUDD::_overlapOutputs = true;
 
 GPUDD * GPUDD::copyTo ( void *toAddr )
 {
