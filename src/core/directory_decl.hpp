@@ -82,6 +82,7 @@ namespace nanos
 
          typedef TR1::unordered_map< uint64_t, DirectoryEntry> DirectoryMap;
          DirectoryMap _directory;
+         Lock _lock;
 
          // disable copy constructor and assignment operator
          Directory( const Directory &dir );
@@ -89,13 +90,25 @@ namespace nanos
 
       public:
 
-         Directory() : _directory() { }
+         Directory() : _directory(), _lock() { }
 
          ~Directory() { }
 
          DirectoryEntry& newEntry( uint64_t tag, unsigned int version, Cache* owner );
 
          DirectoryEntry* getEntry( uint64_t tag );
+
+         void lock ()
+         {
+            _lock.acquire();
+         }
+
+         void unLock ()
+         {
+            _lock.release();
+         }
+
+
    };
 
 };
