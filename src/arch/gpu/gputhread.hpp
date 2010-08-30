@@ -152,9 +152,10 @@ namespace ext
 
          virtual void inlineWorkDependent( WD &work );
 
-         /** \brief GPU specific yield implementation
-         */
-         virtual void yield();
+         void idle()
+         {
+            _pendingCopies->removePendingCopy();
+         }
 
          int getGpuDevice ()
          {

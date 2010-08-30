@@ -104,13 +104,6 @@ void GPUThread::inlineWorkDependent ( WD &wd )
    cudaThreadSynchronize();
 }
 
-void GPUThread::yield()
-{
-   _pendingCopies->removePendingCopy();
-
-   SMPThread::yield();
-}
-
 
 
 void GPUThread::PendingCopiesAsyncList::removePendingCopy ( std::vector<PendingCopy>::iterator it )
