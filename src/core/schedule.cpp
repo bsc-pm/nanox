@@ -112,6 +112,9 @@ inline void Scheduler::idleLoop ()
         NANOS_INSTRUMENT( inst3.close() );
         spins = nspins;
       }
+      else {
+         thread->idle();
+      }
    }
    sys.getSchedulerStats()._idleThreads--;
    current->setReady();
@@ -162,6 +165,8 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
          }
          spins = nspins;
       }
+
+      thread->idle();
    }
 
    current->setSyncCond( NULL );
