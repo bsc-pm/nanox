@@ -25,8 +25,8 @@
 #include "smpdd.hpp"
 #include "gpudd.hpp"
 #include "plugin.hpp"
-#include "instrumentor.hpp"
-#include "instrumentormodule_decl.hpp"
+#include "instrumentation.hpp"
+#include "instrumentationmodule_decl.hpp"
 
 using namespace nanos;
 
@@ -146,7 +146,7 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *
          warning( "Submitting to another team not implemented yet" );
       }
 
-      NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentor()->getInstrumentorDictionary(); )
+      NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
 
       NANOS_INSTRUMENT ( static nanos_event_key_t create_wd_id = ID->getEventKey("create-wd-id"); )
       NANOS_INSTRUMENT ( static nanos_event_key_t create_wd_ptr = ID->getEventKey("create-wd-ptr"); )
@@ -168,9 +168,9 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *
       NANOS_INSTRUMENT ( Keys[3] = wd_deps_ptr; );
       NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) deps; )
 
-      NANOS_INSTRUMENT( sys.getInstrumentor()->raisePointEventNkvs(4, Keys, Values); )
+      NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(4, Keys, Values); )
 
-      NANOS_INSTRUMENT (sys.getInstrumentor()->raiseOpenPtPEventNkvs ( NANOS_WD_DOMAIN, (nanos_event_id_t) wd->getId(), 0, NULL, NULL ); )
+      NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEventNkvs ( NANOS_WD_DOMAIN, (nanos_event_id_t) wd->getId(), 0, NULL, NULL ); )
 
       if ( deps != NULL ) {
          sys.submitWithDependencies( *wd, num_deps, deps );
@@ -202,7 +202,7 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
 
       WD wd( ( DD* ) devices[0].factory( chunk, devices[0].arg ), data_size, data, num_copies, copies );
 
-      NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentor()->getInstrumentorDictionary(); )
+      NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
 
       NANOS_INSTRUMENT ( static nanos_event_key_t create_wd_id = ID->getEventKey("create-wd-id"); )
       NANOS_INSTRUMENT ( static nanos_event_key_t create_wd_ptr = ID->getEventKey("create-wd-ptr"); )
@@ -224,9 +224,9 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
       NANOS_INSTRUMENT ( Keys[3] = wd_deps_ptr; );
       NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) deps; )
 
-      NANOS_INSTRUMENT( sys.getInstrumentor()->raisePointEventNkvs(4, Keys, Values); )
+      NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(4, Keys, Values); )
 
-      NANOS_INSTRUMENT (sys.getInstrumentor()->raiseOpenPtPEventNkvs ( NANOS_WD_DOMAIN, (nanos_event_id_t) wd.getId(), 0, NULL, NULL ); )
+      NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEventNkvs ( NANOS_WD_DOMAIN, (nanos_event_id_t) wd.getId(), 0, NULL, NULL ); )
 
       if ( deps != NULL ) {
          sys.waitOn( num_deps, deps );

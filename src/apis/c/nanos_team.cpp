@@ -20,7 +20,7 @@
 #include "nanos.h"
 #include "system.hpp"
 #include "debug.hpp"
-#include "instrumentormodule_decl.hpp"
+#include "instrumentationmodule_decl.hpp"
 
 using namespace nanos;
 

@@ -1,7 +1,7 @@
 #include "plugin.hpp"
 #include "system.hpp"
-#include "instrumentor.hpp"
-#include "instrumentorcontext_decl.hpp"
+#include "instrumentation.hpp"
+#include "instrumentationcontext_decl.hpp"
 #include <extrae_types.h>
 #include <mpitrace_user_events.h>
 #include "debug.hpp"
@@ -146,11 +146,11 @@ class InstrumentationExtrae: public Instrumentation
             p_file << YIELD            << "     YIELD" << std::endl;
             p_file << std::endl;
 
-            /* Getting Instrumentor Dictionary */
+            /* Getting Instrumentation Dictionary */
             InstrumentationDictionary::ConstKeyMapIterator itK;
             InstrumentationKeyDescriptor::ConstValueMapIterator itV;
 
-            InstrumentationDictionary *iD = sys.getInstrumentor()->getInstrumentorDictionary();
+            InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
 
             /* Generating key/value events */
             for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
@@ -476,16 +476,16 @@ class InstrumentationExtrae: public Instrumentation
 
 namespace ext {
 
-class InstrumentorParaverPlugin : public Plugin {
+class InstrumentationParaverPlugin : public Plugin {
    public:
-      InstrumentorParaverPlugin () : Plugin("Instrumentor which generates a Paraver trace.",1) {}
-      ~InstrumentorParaverPlugin () {}
+      InstrumentationParaverPlugin () : Plugin("Instrumentation which generates a Paraver trace.",1) {}
+      ~InstrumentationParaverPlugin () {}
 
       virtual void config( Config &config ) {}
 
       void init ()
       {
-         sys.setInstrumentor( new InstrumentationExtrae() );
+         sys.setInstrumentation( new InstrumentationExtrae() );
       }
 };
 
@@ -493,5 +493,5 @@ class InstrumentorParaverPlugin : public Plugin {
 
 } // namespace nanos
 
-nanos::ext::InstrumentorParaverPlugin NanosXPlugin;
+nanos::ext::InstrumentationParaverPlugin NanosXPlugin;
 

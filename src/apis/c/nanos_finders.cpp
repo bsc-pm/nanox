@@ -21,7 +21,7 @@
 #include "debug.hpp"
 #include "system.hpp"
 #include "plugin.hpp"
-#include "instrumentormodule_decl.hpp"
+#include "instrumentationmodule_decl.hpp"
 
 using namespace nanos;
 

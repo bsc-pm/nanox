@@ -32,8 +32,8 @@ void WorkDescriptor::start (bool isUserLevelThread, WorkDescriptor *previous)
 {
    ProcessingElement *pe = myThread->runningOn();
 
-   /* Initializing instrumentor context */
-   NANOS_INSTRUMENT( sys.getInstrumentor()->wdCreate( this ) );
+   /* Initializing instrumentation context */
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdCreate( this ) );
 
    _activeDevice->lazyInit(*this,isUserLevelThread,previous);
    

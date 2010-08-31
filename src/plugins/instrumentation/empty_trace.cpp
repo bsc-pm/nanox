@@ -1,6 +1,6 @@
 #include "plugin.hpp"
 #include "system.hpp"
-#include "instrumentor.hpp"
+#include "instrumentation.hpp"
 
 namespace nanos {
 
@@ -36,16 +36,16 @@ class InstrumentationEmptyTrace: public Instrumentation
 
 namespace ext {
 
-class InstrumentorEmptyTracePlugin : public Plugin {
+class InstrumentationEmptyTracePlugin : public Plugin {
    public:
-      InstrumentorEmptyTracePlugin () : Plugin("Instrumentor which doesn't generate any trace.",1) {}
-      ~InstrumentorEmptyTracePlugin () {}
+      InstrumentationEmptyTracePlugin () : Plugin("Instrumentation which doesn't generate any trace.",1) {}
+      ~InstrumentationEmptyTracePlugin () {}
 
       virtual void config( Config &config ) {}
 
       void init ()
       {
-         sys.setInstrumentor( new InstrumentationEmptyTrace() );	
+         sys.setInstrumentation( new InstrumentationEmptyTrace() );	
       }
 };
 
@@ -53,4 +53,4 @@ class InstrumentorEmptyTracePlugin : public Plugin {
 
 } // namespace nanos
 
-nanos::ext::InstrumentorEmptyTracePlugin NanosXPlugin;
+nanos::ext::InstrumentationEmptyTracePlugin NanosXPlugin;

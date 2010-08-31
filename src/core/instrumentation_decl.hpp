@@ -35,7 +35,7 @@
 #include "debug.hpp"
 #include "nanos-int.h"
 #include "atomic.hpp"
-#include "instrumentorcontext_fwd.hpp"
+#include "instrumentationcontext_fwd.hpp"
 #include "workdescriptor_fwd.hpp"
 
 namespace nanos {
@@ -150,7 +150,7 @@ namespace nanos {
          {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
             /* ******************************************** */
-            /* Instrumentor events: In order initialization */
+            /* Instrumentation events: In order initialization */
             /* ******************************************** */
 
             /* 01 */ registerEventKey("api","Nanos Runtime API"); 
@@ -406,41 +406,41 @@ namespace nanos {
          ~Instrumentation () {}
 #else
       protected: /* They can be accessed by plugins (derived classes ) */
-         InstrumentationDictionary      _instrumentorDictionary; /**< Instrumentation Dictionary (allow register event keys and values) */
+         InstrumentationDictionary      _instrumentationDictionary; /**< Instrumentation Dictionary (allow register event keys and values) */
          InstrumentationContext        *_instrumentationContext; /**< Instrumentation Context */
       public:
-         /*! \brief Instrumentor constructor
+         /*! \brief Instrumentation constructor
           */
-         Instrumentation() : _instrumentorDictionary(), _instrumentationContext(NULL) {}
+         Instrumentation() : _instrumentationDictionary(), _instrumentationContext(NULL) {}
 
-         /*! \brief Instrumentor destructor
+         /*! \brief Instrumentation destructor
           */
          virtual ~Instrumentation() {}
 
          /*! \brief Gets InstrumentationDictionary
           *
           */
-         InstrumentationDictionary * getInstrumentorDictionary ( void );
+         InstrumentationDictionary * getInstrumentationDictionary ( void );
 
          // low-level instrumentation interface (pure virtual functions)
 
          /*! \brief Pure virtual functions executed at the beginning of instrumentation phase
           *
-          *  Each of (specific) instrumentor modules have to implement this function in order
+          *  Each of (specific) instrumentation modules have to implement this function in order
           *  to be consistent with the instrumentation model
           */
          virtual void initialize( void ) = 0;
 
          /*! \brief Pure virtual functions executed at the end of instrumentation phase
           *
-          *  Each of (specific) instrumentor modules have to implement this function in order
+          *  Each of (specific) instrumentation modules have to implement this function in order
           *  to be consistent with the instrumentation model
           */
          virtual void finalize( void ) = 0;
 
          /*! \brief Pure virtual functions executed each time runtime wants to add an event
           *
-          *  Each of (specific) instrumentor modules have to implement this function in order
+          *  Each of (specific) instrumentation modules have to implement this function in order
           *  to be consistent with the instrumentation model. This function includes several
           *  events in a row to facilitate implementation in which several events occurs at
           *  the same time (i.e. same timestamp).
@@ -452,7 +452,7 @@ namespace nanos {
 
          // CORE: high-level instrumentation interface (virtual functions)
 
-         /*! \brief Used when creating a work descriptor (initializes instrumentor context associated to a WD)
+         /*! \brief Used when creating a work descriptor (initializes instrumentation context associated to a WD)
           */   
          virtual void wdCreate( WorkDescriptor* newWD );
 
@@ -498,7 +498,7 @@ namespace nanos {
           */
          void createStateEvent ( Event *e, nanos_event_state_value_t state );
 
-         /*! \brief Used by higher levels to create a STATE event (value will be previous state in instrumentor context info) 
+         /*! \brief Used by higher levels to create a STATE event (value will be previous state in instrumentation context info) 
           *
           *  \param[in,out] e is an event reference, preallocated by the caller
           */

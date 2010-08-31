@@ -22,8 +22,8 @@
 #include "schedule.hpp"
 #include "system.hpp"
 #include "synchronizedcondition.hpp"
-#include "instrumentormodule_decl.hpp"
-#include "instrumentor.hpp"
+#include "instrumentationmodule_decl.hpp"
+#include "instrumentation.hpp"
 
 using namespace nanos;
 
@@ -113,7 +113,7 @@ nanos_err_t nanos_wait_on ( size_t num_deps, nanos_dependence_t *deps )
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","wait_on",SYNCHRONIZATION ); )
 
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentor()->getInstrumentorDictionary(); )
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
 
    NANOS_INSTRUMENT ( static nanos_event_key_t wd_num_deps = ID->getEventKey("wd-num-deps"); )
    NANOS_INSTRUMENT ( static nanos_event_key_t wd_deps_ptr = ID->getEventKey("wd-deps-ptr"); )
@@ -127,7 +127,7 @@ nanos_err_t nanos_wait_on ( size_t num_deps, nanos_dependence_t *deps )
    NANOS_INSTRUMENT ( Keys[1] = wd_deps_ptr; );
    NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) deps; )
 
-   NANOS_INSTRUMENT( sys.getInstrumentor()->raisePointEventNkvs(2, Keys, Values); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(2, Keys, Values); )
 
    try {
       if ( deps != NULL ) {

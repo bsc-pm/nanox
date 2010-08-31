@@ -130,7 +130,7 @@ typedef struct {
   void * arg;
 } nanos_device_t;
 
-// instrumentor structures
+// instrumentation structures
 
 typedef enum { STATE_START, STATE_END, SUBSTATE_START, SUBSTATE_END,
                BURST_START, BURST_END, PTP_START, PTP_END, POINT, EVENT_TYPES } nanos_event_type_t; /**< Event types  */

@@ -19,7 +19,7 @@
 #ifndef __NANOS_INSTRUMENTOR_H
 #define __NANOS_INSTRUMENTOR_H
 
-#include "instrumentor_decl.hpp"
+#include "instrumentation_decl.hpp"
 
 using namespace nanos;
 
@@ -246,7 +246,7 @@ inline const std::string InstrumentationDictionary::getValueDescription ( nanos_
 
 /** INSTRUMENTOR **/
 
-inline InstrumentationDictionary * Instrumentation::getInstrumentorDictionary ( void ) { return &_instrumentorDictionary; }
+inline InstrumentationDictionary * Instrumentation::getInstrumentationDictionary ( void ) { return &_instrumentationDictionary; }
 
 inline nanos_event_type_t Instrumentation::Event::getType () const { return _type; }
 
