@@ -25,10 +25,8 @@ test_CXX=nvcc
 */
 
 #define __aligned__ ignored
-#include "nanos.h"
-//#include "gpudd.hpp"
-//#include "gpudevice.hpp"
 #include "gpuprocessor.hpp"
+#include "nanos.h"
 #undef __aligned__
 #include <iostream>
 #include <stdlib.h>
@@ -88,8 +86,8 @@ int main ( int argc, char **argv )
 
    for ( i = 0; i < n; i++ ) {
       for ( j = 0; j < n; j++ ) {
-         a[i * n + j] = 1.0;//( ( float ) rand() ) / ( ( float ) RAND_MAX );
-         b[i * n + j] = 2.0;//( ( float ) rand() ) / ( ( float ) RAND_MAX );
+         a[i * n + j] = 1.0;
+         b[i * n + j] = 2.0;
          c[i * n + j] = 0.0;
       }
    }
@@ -102,11 +100,10 @@ int main ( int argc, char **argv )
          for ( j = 0; j < nb; j++ ) {
             nanos_wd_t wd = 0;
             
-            test_args *args = 0;//test_args();
+            test_args *args = 0;
             
             
             //nanos_device_t test_devices[1] = { {NANOS_GPU_DESC( test_device_arg )} };
-            
             nanos_device_t test_devices[] = {
                {
                   nanos_gpu_factory,
@@ -123,7 +120,6 @@ int main ( int argc, char **argv )
             
             nanos_copy_data_t *cd = 0;
 
-            // Task execution
 //            nanos::WD * wd = new nanos::WD( new nanos::ext::GPUDD( matmul_task ), sizeof( args ), &args, 4, cd );
 //            wd->tied();
 //            wg->addWork( *wd );
@@ -163,12 +159,6 @@ int main ( int argc, char **argv )
             cd[3].flags.output = true;
             cd[3].size = bsize * bsize * sizeof(float);
             //cd[3] = (nanos_copy_data_t) { (uint64_t) args->c, NANOS_SHARED, { true, true }, bsize * bsize * sizeof(float) };
-            //nanos_dependence_t deps = { ( void ** ) &args->c, 0, { 1, 1, 0 }, 0 };
-            //nanos_dependence_t deps = { ( void ** ) args->c, 0, { 1, 1, 0 }, sizeof(float) * bsize * bsize };
-
-//            args->a = &a[i * nb * bsize * bsize + k * bsize * bsize];
-//            args->b = &b[k * nb * bsize * bsize + j * bsize * bsize];
-//            args->c = &c[i * nb * bsize * bsize + j * bsize * bsize];
 
             nanos_dependence_t deps[3] = {
                {
@@ -192,37 +182,20 @@ int main ( int argc, char **argv )
             };
             
             NANOS_SAFE( nanos_submit( wd, 1, deps, 0 ) );
-            //NANOS_SAFE( nanos_submit( wd, 0, 0, 0 ) );
-            
-            
             
             usleep(500);
-            
          }
       }
       wg->waitCompletion();
    }
 
 
-   // Host computation
-//   float * c_h = new float[n * n];
-
-//   for ( i = 0; i < nb; i++ ) {
-//      for ( j = 0; j < nb; j++ ) {
-//         for ( k = 0; k < nb; k++ ) {
-//            matmul_host ( bsize, &a[i*nb*bsize*bsize+k*bsize*bsize], &b[k*nb*bsize*bsize+j*bsize*bsize], &c_h[i*nb*bsize*bsize+j*bsize*bsize]);
-//         }
-//      }
-//   }
-
    NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
-   //wg->waitCompletion();
 
    // Error checking
    int err = 0;
    for ( i = 0; i < n; i++ ) {
       for ( j = 0; j < n; j++ ) {
-//         if ( fabs( c[i*n+j] - c_h[i*n+j] ) > 0.00001 ) {
          if ( c[i*n+j] != bsize * nb * 2 ) {
         	 std::cout << "Error at " << i << ", " << j
         			 << ": (GPU) " << c[i*n+j] << " vs (CPU) " << bsize * nb * 2 << std::endl;
@@ -245,19 +218,6 @@ int main ( int argc, char **argv )
 }
 
 
-void matmul_host ( int bs, float * a, float * b, float * c )
-{
-   int i, j, k;
-
-   for ( i = 0; i < bs; i++ ) {
-      for ( j = 0; j < bs; j++ ) {
-         for ( k = 0; k < bs; k++ ) {
-            c[i*bs+j] += a[i*bs+k] * b[k*bs+j];
-         }
-      }
-   }
-}
-
 
 ///#pragma omp target device (cuda) copydeps
 ///#pragma omp task input(n, idx, a) output(b, err) inout(c)
@@ -270,69 +230,12 @@ void matmul_task ( void * args )
    nanos_get_addr(1, ( void ** ) &targs->a);
    nanos_get_addr(2, ( void ** ) &targs->b);
    nanos_get_addr(3, ( void ** ) &targs->c);
-
-   
-   /**************************************************************************************/
-/*
-   float * a_h;
-   cudaMallocHost( &a_h, targs->bs * targs->bs * sizeof( float ) );
-   cudaMemcpy( a_h, targs->a, targs->bs * targs->bs * sizeof( float ), cudaMemcpyDeviceToHost );
-   
-   int i, j;
-   for ( i = 0; i < targs->bs; i++ ) {
-	   for ( j = 0; j < targs->bs; j++ ) {
-		   if ( a_h[i*targs->bs+j] != 1.0 ) std::cerr << "Error at A" << std::endl;
-	   }
-   }
-   
-   float * b_h;
-   cudaMallocHost( &b_h, targs->bs * targs->bs * sizeof( float ) );
-   cudaMemcpy( b_h, targs->b, targs->bs * targs->bs * sizeof( float ), cudaMemcpyDeviceToHost );
-   
-   for ( i = 0; i < targs->bs; i++ ) {
-	   for ( j = 0; j < targs->bs; j++ ) {
-		   if ( b_h[i*targs->bs+j] != 2.0 ) std::cerr << "Error at B" << std::endl;
-	   }
-   }
-   
-   float * c_h;
-   cudaMallocHost( &c_h, targs->bs * targs->bs * sizeof( float ) );
-   cudaMemcpy( c_h, targs->c, targs->bs * targs->bs * sizeof( float ), cudaMemcpyDeviceToHost );
-*/
-   /**********************************************************************************/
    
    dim3 dimBlock(targs->bs, targs->bs);
-
    matmul_gpu <<< 1, dimBlock >>> ( targs->a, targs->b, targs->c );
    
-   /***************************************************************************************/
-/*
-   int k;
-   for ( i = 0; i < targs->bs; i++ ) {
-	   for ( j = 0; j < targs->bs; j++ ) {
-		   for ( k = 0; k < targs->bs; k++ ) {
-			   c_h[i*targs->bs+j] += a_h[i*targs->bs+k] * b_h[k*targs->bs+j];
-		   }
-	   }
-   }
-*/
    
    cudaThreadSynchronize();
-/*   
-   float * c_d_h;
-   cudaMallocHost( &c_d_h, targs->bs * targs->bs * sizeof( float ) );
-   cudaMemcpy( c_d_h, targs->c, targs->bs * targs->bs * sizeof( float ), cudaMemcpyDeviceToHost );
-
-   for ( i = 0; i < targs->bs; i++ ) {
-	   for ( j = 0; j < targs->bs; j++ ) {
-		   if ( c_d_h[i*targs->bs+j] != c_d_h[i*targs->bs+j] ) std::cerr << "Error at C" << std::endl;
-	   }
-   }
-
-   cudaMemcpy( targs->c, c_h, targs->bs * targs->bs * sizeof( float ), cudaMemcpyHostToDevice );
-*/
-   /****************************************************************************************/
-   
    
    delete targs;
 

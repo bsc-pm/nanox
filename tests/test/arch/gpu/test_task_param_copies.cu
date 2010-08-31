@@ -25,8 +25,6 @@ test_CXX=nvcc
 */
 
 #define __aligned__ ignored
-#include "gpudd.hpp"
-#include "gpudevice.hpp"
 #include "gpuprocessor.hpp"
 #include "nanos.h"
 #undef __aligned__

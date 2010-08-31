@@ -25,7 +25,6 @@ test_CXX=nvcc
 */
 
 #define __aligned__ ignored
-#include "gpudevice.hpp"
 #include "gpuprocessor.hpp"
 #undef __aligned__
 #include <iostream>
@@ -242,9 +241,7 @@ void test_init ( void * args )
    targs->Ah = new int[targs->n];
    targs->Bh = new int[targs->n];
    targs->Ad = ( int * ) GPUDevice::allocate( size );
-   //std::cout << "[" << id << "] Attempting to malloc " << targs->Ad << std::endl;
    targs->Bd = ( int * ) GPUDevice::allocate( size );
-   //std::cout << "[" << id << "] Attempting to malloc " << targs->Bd << std::endl;
 
    targs->err = 0;
 
@@ -272,9 +269,7 @@ void test_cleanup ( void * args )
 
    delete targs->Ah;
    delete targs->Bh;
-   //std::cout << "[" << id << "] Attempting to free " << targs->Ad << std::endl;
    GPUDevice::free( targs->Ad );
-   //std::cout << "[" << id << "] Attempting to free " << targs->Bd << std::endl;
    GPUDevice::free( targs->Bd );
    
    targs->err = 0;
@@ -386,8 +381,6 @@ void test_device_to_host ( void * args )
    
    targs->task++;
 
-   //cudaStream_t outStream = ((nanos::ext::GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->getOutTransferStream();
-
    int i;   
    size_t size = targs->n * sizeof ( int );
    
@@ -401,8 +394,6 @@ void test_device_to_host ( void * args )
    GPUDevice::copyOut( ( uint64_t ) targs->Bh, targs->Bd, size );
 
    ( ( GPUThread * ) myThread)->executePendingCopies();
-
-//   cudaStreamSynchronize( outStream );
 
    targs->err = 0;
    for ( i = 0; i < targs->n; i++ ) {
