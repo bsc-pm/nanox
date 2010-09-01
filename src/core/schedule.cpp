@@ -37,7 +37,7 @@ void SchedulerConf::config (Config &config)
 
 void Scheduler::submit ( WD &wd )
 {
-   NANOS_INSTRUMENT( InstrumentState inst(SCHEDULING) );
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
    BaseThread *mythread = myThread;
 
    sys.getSchedulerStats()._createdTasks++;
@@ -71,7 +71,7 @@ void Scheduler::submit ( WD &wd )
 template<class behaviour>
 inline void Scheduler::idleLoop ()
 {
-   NANOS_INSTRUMENT( InstrumentState inst(IDLE) );
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_IDLE) );
 
    const int nspins = sys.getSchedulerConf().getNumSpins();
    int spins = nspins;
@@ -89,14 +89,14 @@ inline void Scheduler::idleLoop ()
 
          //if ( !next && sys.getSchedulerStats()._readyTasks > 0 ) { // FIXME (#289)
          if ( !next ) {
-            NANOS_INSTRUMENT( InstrumentState inst1(SCHEDULING) );
+            NANOS_INSTRUMENT( InstrumentState inst1(NANOS_SCHEDULING) );
             next = behaviour::getWD(thread,current);
             NANOS_INSTRUMENT( inst1.close() );
          }
 
          if (next) {
             sys.getSchedulerStats()._idleThreads--;
-            NANOS_INSTRUMENT( InstrumentState inst2(RUNTIME) );
+            NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) );
             behaviour::switchWD(thread,current, next);
             NANOS_INSTRUMENT( inst2.close() );
             sys.getSchedulerStats()._idleThreads++;
@@ -107,7 +107,7 @@ inline void Scheduler::idleLoop ()
 
       spins--;
       if ( spins == 0 ) {
-        NANOS_INSTRUMENT( InstrumentState inst3(YIELD) );
+        NANOS_INSTRUMENT( InstrumentState inst3(NANOS_YIELD) );
         thread->yield();
         NANOS_INSTRUMENT( inst3.close() );
         spins = nspins;
@@ -122,7 +122,7 @@ inline void Scheduler::idleLoop ()
 
 void Scheduler::waitOnCondition (GenericSyncCond *condition)
 {
-   NANOS_INSTRUMENT( InstrumentState inst(SYNCHRONIZATION) );
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
 
    const int nspins = sys.getSchedulerConf().getNumSpins();
    int spins = nspins; 
@@ -143,20 +143,20 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
          if ( !( condition->check() ) ) {
             condition->addWaiter( current );
 
-            NANOS_INSTRUMENT( InstrumentState inst1(SCHEDULING) );
+            NANOS_INSTRUMENT( InstrumentState inst1(NANOS_SCHEDULING) );
             WD *next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
             NANOS_INSTRUMENT( inst1.close() );
 
             if ( next ) {
                sys.getSchedulerStats()._idleThreads--;
-               NANOS_INSTRUMENT( InstrumentState inst2(RUNTIME) );
+               NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) );
                switchTo ( next );
                NANOS_INSTRUMENT( inst2.close() );
                sys.getSchedulerStats()._idleThreads++;
             }
             else {
                condition->unlock();
-               NANOS_INSTRUMENT( InstrumentState inst3(YIELD) );
+               NANOS_INSTRUMENT( InstrumentState inst3(NANOS_YIELD) );
                thread->yield();
                NANOS_INSTRUMENT( inst3.close() );
             }
@@ -179,7 +179,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
 void Scheduler::wakeUp ( WD *wd )
 {
-   NANOS_INSTRUMENT( InstrumentState inst(SYNCHRONIZATION) );
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
    if ( wd->isBlocked() ) {
       sys.getSchedulerStats()._readyTasks++;
       wd->setReady();
@@ -305,7 +305,7 @@ void Scheduler::switchTo ( WD *to )
 
 void Scheduler::yield ()
 {
-   NANOS_INSTRUMENT( InstrumentState inst(SCHEDULING) );
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
    WD *next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
 
    if ( next ) {

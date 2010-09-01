@@ -86,7 +86,7 @@ int nanos_get_wd_id ( nanos_wd_t wd )
 nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t data_size,
                                void ** data, nanos_wg_t uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies )
 {
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",CREATION) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",NANOS_CREATION) );
 
    try 
    {
@@ -111,7 +111,7 @@ nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_
                                void ** outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, size_t slicer_data_size,
                                nanos_slicer_data_t * slicer_data, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies )
 {
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",CREATION) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",NANOS_CREATION) );
 
    try 
    {
@@ -135,7 +135,7 @@ nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_
 
 nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *deps, nanos_team_t team )
 {
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","submit",SCHEDULING) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","submit",NANOS_SCHEDULING) );
 
    try {
       ensure( uwd,"NULL WD received" );
@@ -191,7 +191,7 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
                                       size_t num_deps, nanos_dependence_t *deps, nanos_wd_props_t *props,
                                       size_t num_copies, nanos_copy_data_t *copies )
 {
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","create_wd_and_run", CREATION) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","create_wd_and_run", NANOS_CREATION) );
 
    try {
       if ( num_devices > 1 ) warning( "Multiple devices not yet supported. Using first one" );
@@ -232,7 +232,7 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
          sys.waitOn( num_deps, deps );
       }
       
-      NANOS_INSTRUMENT( InstrumentState inst1(RUNTIME) );
+      NANOS_INSTRUMENT( InstrumentState inst1(NANOS_RUNTIME) );
       sys.inlineWork( wd );
       NANOS_INSTRUMENT( inst1.close() );
 
@@ -245,7 +245,7 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
 
 nanos_err_t nanos_set_internal_wd_data ( nanos_wd_t wd, void *data )
 {
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","set_internal_wd_data",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","set_internal_wd_data",NANOS_RUNTIME) );
 
    try {
       WD *lwd = ( WD * ) wd;
@@ -260,7 +260,7 @@ nanos_err_t nanos_set_internal_wd_data ( nanos_wd_t wd, void *data )
 
 nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data )
 {
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_internal_wd_data",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_internal_wd_data",NANOS_RUNTIME) );
 
    try {
       WD *lwd = ( WD * ) wd;
@@ -278,7 +278,7 @@ nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data )
 
 nanos_err_t nanos_yield ( void )
 {
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","yield",SCHEDULING) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","yield",NANOS_SCHEDULING) );
 
    try {
       Scheduler::yield();
@@ -293,7 +293,7 @@ nanos_err_t nanos_yield ( void )
 
 nanos_err_t nanos_slicer_get_specific_data ( nanos_slicer_t slicer, void ** data )
 {                                                                                                                                                        
-   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_specific_data",RUNTIME) );
+   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_specific_data",NANOS_RUNTIME) );
 
    try {
       *data = ((Slicer *)slicer)->getSpecificData();

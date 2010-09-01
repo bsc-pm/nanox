@@ -85,25 +85,25 @@ nanos_err_t nanos_instrument_events ( unsigned int num_events, nanos_event_t eve
 
       for (unsigned int i = 0; i < num_events; i++ ) {
          switch ( events[i].type ) {
-            case STATE_START:
+            case NANOS_STATE_START:
                sys.getInstrumentation()->createStateEvent(&e[i],events[i].info.state.value);
                break;
-            case STATE_END:
+            case NANOS_STATE_END:
                sys.getInstrumentation()->returnPreviousStateEvent(&e[i]);
                break;
-            case BURST_START:
+            case NANOS_BURST_START:
                sys.getInstrumentation()->createBurstEvent(&e[i],events[i].info.burst.key,events[i].info.burst.value);
                break;
-            case BURST_END:
+            case NANOS_BURST_END:
                sys.getInstrumentation()->closeBurstEvent(&e[i],events[i].info.burst.key);
                break;
-            case POINT:
+            case NANOS_POINT:
                sys.getInstrumentation()->createPointEvent(&e[i],events[i].info.point.nkvs,events[i].info.point.keys,events[i].info.point.values );
                break;
-            case PTP_START:
+            case NANOS_PTP_START:
                sys.getInstrumentation()->createPtPStart(&e[i],events[i].info.ptp.domain,events[i].info.ptp.id,events[i].info.ptp.nkvs,events[i].info.ptp.keys,events[i].info.ptp.values);
                break;
-            case PTP_END:
+            case NANOS_PTP_END:
                sys.getInstrumentation()->createPtPEnd(&e[i],events[i].info.ptp.domain,events[i].info.ptp.id,events[i].info.ptp.nkvs,events[i].info.ptp.keys,events[i].info.ptp.values);
                break;
             default:

@@ -44,19 +44,19 @@ inline nanos_event_state_value_t InstrumentationContext::topState ( Instrumentat
 {
    if ( (icd->_stateEventEnabled) && !(icd->_stateStack.empty()) ) return icd->_stateStack.back();
    else if ( !(icd->_subStateStack.empty()) ) return icd->_subStateStack.back();
-   else return ERROR;
+   else return NANOS_ERROR;
 }
 
 inline nanos_event_state_value_t InstrumentationContext::getState ( InstrumentationContextData *icd )
 {
    if ( !(icd->_stateStack.empty()) ) return icd->_stateStack.back();
-   else return ERROR;
+   else return NANOS_ERROR;
 }
 
 inline nanos_event_state_value_t InstrumentationContext::getSubState ( InstrumentationContextData *icd )
 {
    if ( !(icd->_subStateStack.empty()) ) return icd->_subStateStack.back();
-   else return ERROR;
+   else return NANOS_ERROR;
 }
 
 inline size_t InstrumentationContext::getStateStackSize ( InstrumentationContextData *icd )

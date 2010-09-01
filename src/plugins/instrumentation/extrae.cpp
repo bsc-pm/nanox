@@ -100,20 +100,20 @@ class InstrumentationExtrae: public Instrumentation
             p_file << "EVENT_TYPE" << std::endl;
             p_file << "9    " << _eventState  << "    Thread state: " << std::endl;
             p_file << "VALUES" << std::endl;
-            p_file << NOT_CREATED      << "     NOT CREATED" << std::endl;
-            p_file << NOT_TRACED       << "     NOT TRACED" << std::endl;
-            p_file << STARTUP          << "     STARTUP" << std::endl;
-            p_file << SHUTDOWN         << "     SHUTDOWN" << std::endl;
-            p_file << ERROR            << "     ERROR" << std::endl;
-            p_file << IDLE             << "     IDLE" << std::endl;
-            p_file << RUNTIME          << "     RUNTIME" << std::endl;
-            p_file << RUNNING          << "     RUNNING" << std::endl;
-            p_file << SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
-            p_file << SCHEDULING       << "     SCHEDULING" << std::endl;
-            p_file << CREATION         << "     CREATION" << std::endl;
-            p_file << MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
-            p_file << CACHE            << "     CACHE ALLOC/FREE" << std::endl;
-            p_file << YIELD            << "     YIELD" << std::endl;
+            p_file << NANOS_NOT_CREATED      << "     NOT CREATED" << std::endl;
+            p_file << NANOS_NOT_TRACED       << "     NOT TRACED" << std::endl;
+            p_file << NANOS_STARTUP          << "     STARTUP" << std::endl;
+            p_file << NANOS_SHUTDOWN         << "     SHUTDOWN" << std::endl;
+            p_file << NANOS_ERROR            << "     ERROR" << std::endl;
+            p_file << NANOS_IDLE             << "     IDLE" << std::endl;
+            p_file << NANOS_RUNTIME          << "     RUNTIME" << std::endl;
+            p_file << NANOS_RUNNING          << "     RUNNING" << std::endl;
+            p_file << NANOS_SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
+            p_file << NANOS_SCHEDULING       << "     SCHEDULING" << std::endl;
+            p_file << NANOS_CREATION         << "     CREATION" << std::endl;
+            p_file << NANOS_MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
+            p_file << NANOS_CACHE            << "     CACHE ALLOC/FREE" << std::endl;
+            p_file << NANOS_YIELD            << "     YIELD" << std::endl;
             p_file << std::endl;
 
             /* Event: PtPStart main event */
@@ -130,20 +130,20 @@ class InstrumentationExtrae: public Instrumentation
             p_file << "EVENT_TYPE" << std::endl;
             p_file << "9    " << _eventSubState  << "    Thread sub-state: " << std::endl;
             p_file << "VALUES" << std::endl;
-            p_file << NOT_CREATED      << "     NOT_CREATED" << std::endl;
-            p_file << NOT_TRACED       << "     NOT TRACED" << std::endl;
-            p_file << STARTUP          << "     STARTUP" << std::endl;
-            p_file << SHUTDOWN         << "     SHUTDOWN" << std::endl;
-            p_file << ERROR            << "     ERROR" << std::endl;
-            p_file << IDLE             << "     IDLE" << std::endl;
-            p_file << RUNTIME          << "     RUNTIME" << std::endl;
-            p_file << RUNNING          << "     RUNNING" << std::endl;
-            p_file << SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
-            p_file << SCHEDULING       << "     SCHEDULING" << std::endl;
-            p_file << CREATION         << "     CREATION" << std::endl;
-            p_file << MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
-            p_file << CACHE            << "     CACHE ALLOC/FREE" << std::endl;
-            p_file << YIELD            << "     YIELD" << std::endl;
+            p_file << NANOS_NOT_CREATED      << "     NOT_CREATED" << std::endl;
+            p_file << NANOS_NOT_TRACED       << "     NOT TRACED" << std::endl;
+            p_file << NANOS_STARTUP          << "     STARTUP" << std::endl;
+            p_file << NANOS_SHUTDOWN         << "     SHUTDOWN" << std::endl;
+            p_file << NANOS_ERROR            << "     ERROR" << std::endl;
+            p_file << NANOS_IDLE             << "     IDLE" << std::endl;
+            p_file << NANOS_RUNTIME          << "     RUNTIME" << std::endl;
+            p_file << NANOS_RUNNING          << "     RUNNING" << std::endl;
+            p_file << NANOS_SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
+            p_file << NANOS_SCHEDULING       << "     SCHEDULING" << std::endl;
+            p_file << NANOS_CREATION         << "     CREATION" << std::endl;
+            p_file << NANOS_MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
+            p_file << NANOS_CACHE            << "     CACHE ALLOC/FREE" << std::endl;
+            p_file << NANOS_YIELD            << "     YIELD" << std::endl;
             p_file << std::endl;
 
             /* Getting Instrumentation Dictionary */
@@ -369,19 +369,19 @@ class InstrumentationExtrae: public Instrumentation
          {
             Event &e = events[i];
             switch ( e.getType() ) {
-               case STATE_START:
-               case STATE_END:
-               case SUBSTATE_START:
-               case SUBSTATE_END:
+               case NANOS_STATE_START:
+               case NANOS_STATE_END:
+               case NANOS_SUBSTATE_START:
+               case NANOS_SUBSTATE_END:
                   ce.nEvents++;
                   break;
-               case PTP_START:
-               case PTP_END:
+               case NANOS_PTP_START:
+               case NANOS_PTP_END:
                   ce.nCommunications++;
                   // continue...
-               case POINT:
-               case BURST_START:
-               case BURST_END:
+               case NANOS_POINT:
+               case NANOS_BURST_START:
+               case NANOS_BURST_END:
                   ce.nEvents += e.getNumKVs();
                   break;
                default: break;
@@ -400,26 +400,26 @@ class InstrumentationExtrae: public Instrumentation
             Event &e = events[i];
             unsigned int type = e.getType();
             switch ( type ) {
-               case STATE_START:
+               case NANOS_STATE_START:
                   ce.Types[j] = _eventState;
                   ce.Values[j++] = e.getState();
                   break;
-               case STATE_END:
+               case NANOS_STATE_END:
                   ce.Types[j] = _eventState;
                   ce.Values[j++] = 0;
                   break;
-               case SUBSTATE_START:
+               case NANOS_SUBSTATE_START:
                   ce.Types[j] = _eventSubState;
                   ce.Values[j++] = e.getState();
                   break;
-               case SUBSTATE_END:
+               case NANOS_SUBSTATE_END:
                   ce.Types[j] = _eventSubState;
                   ce.Values[j++] = 0;
                   break;
-               case PTP_START:
-               case PTP_END:
+               case NANOS_PTP_START:
+               case NANOS_PTP_END:
                   /* Creating PtP event */
-                  if ( type == PTP_START) ce.Communications[k].type = EXTRAE_USER_SEND;
+                  if ( type == NANOS_PTP_START) ce.Communications[k].type = EXTRAE_USER_SEND;
                   else ce.Communications[k].type = EXTRAE_USER_RECV;
                   ce.Communications[k].tag = e.getDomain();
                   ce.Communications[k].id = e.getId();
@@ -427,15 +427,15 @@ class InstrumentationExtrae: public Instrumentation
                   ce.Communications[k].partner = 0;
                   k++;
                   // continue...
-               case POINT:
-               case BURST_START:
+               case NANOS_POINT:
+               case NANOS_BURST_START:
                   kvs = e.getKVs();
                   for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
                      ce.Types[j] = _eventBase + kvs->first;
                      ce.Values[j++] = kvs->second;
                   }
                   break;
-               case BURST_END:
+               case NANOS_BURST_END:
                   kvs = e.getKVs();
                   for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
                      ce.Types[j] = _eventBase +  kvs->first;

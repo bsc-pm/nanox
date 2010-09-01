@@ -193,7 +193,7 @@ void System::start ()
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (STARTUP) );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_STARTUP) );
 
    //start as much threads per pe as requested by the user
    for ( int ths = 1; ths < getThsPerPE(); ths++ ) {
@@ -239,7 +239,7 @@ void System::start ()
          break;
    }
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (RUNNING) );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_RUNNING) );
 }
 
 System::~System ()
@@ -251,7 +251,7 @@ void System::finish ()
 {
    /* Instrumentation: First removing RUNNING state from top of the state statck */
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent(SHUTDOWN) );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent(NANOS_SHUTDOWN) );
 
    verbose ( "NANOS++ shutting down.... init" );
    verbose ( "Wait for main workgroup to complete" );

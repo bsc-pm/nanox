@@ -264,10 +264,10 @@ inline void Instrumentation::Event::reverseType ( )
 {
    switch ( _type )
    {
-      case PTP_START: _type = PTP_END; break;
-      case PTP_END: _type = PTP_START; break;
-      case BURST_START: _type = BURST_END; break;
-      case BURST_END: _type = BURST_START; break;
+      case NANOS_PTP_START: _type = NANOS_PTP_END; break;
+      case NANOS_PTP_END: _type = NANOS_PTP_START; break;
+      case NANOS_BURST_START: _type = NANOS_BURST_END; break;
+      case NANOS_BURST_END: _type = NANOS_BURST_START; break;
       default: break;
    }
 }

@@ -293,7 +293,7 @@ namespace nanos {
                      _type (type), _state (state), _nkvs(nkvs), _kvList (kvlist), _kvListOwner(false),
                      _ptpDomain (ptp_domain), _ptpId (ptp_id)
                {
-                  if ( _type == BURST_START || _type == BURST_END )
+                  if ( _type == NANOS_BURST_START || _type == NANOS_BURST_END )
                   {
                      _kvList = new KV[1];
                      _kvList[0] = *kvlist;
@@ -376,7 +376,7 @@ namespace nanos {
             public:
               /*! \brief State event constructor
                */
-              State ( nanos_event_type_t type = STATE_START, nanos_event_state_value_t state = ERROR ) 
+              State ( nanos_event_type_t type = NANOS_STATE_START, nanos_event_state_value_t state = NANOS_ERROR ) 
                     : Event (type, state, 0, NULL, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
          };
          class Burst : public Event {
@@ -384,21 +384,21 @@ namespace nanos {
                /*! \brief Burst event constructor
                 */
                Burst ( bool start, KV kv )
-                     : Event ( start? BURST_START: BURST_END, ERROR, 1, &kv, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
+                     : Event ( start? NANOS_BURST_START: NANOS_BURST_END, NANOS_ERROR, 1, &kv, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
          };
          class Point : public Event {
              public:
                /*! \brief Point event constructor
                 */
                Point ( unsigned int nkvs, KVList kvlist )
-                     : Event ( POINT, ERROR, nkvs, kvlist, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
+                     : Event ( NANOS_POINT, NANOS_ERROR, nkvs, kvlist, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
          };
          class PtP : public Event {
             public:
                /*! \brief PtP event constructor
                 */
                PtP ( bool start, nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,  KVList kvlist )
-                   : Event ( start ? PTP_START : PTP_END , ERROR, nkvs, kvlist, domain, id ) { }
+                   : Event ( start ? NANOS_PTP_START : NANOS_PTP_END , NANOS_ERROR, nkvs, kvlist, domain, id ) { }
          };
 #ifndef NANOS_INSTRUMENTATION_ENABLED
       public:
