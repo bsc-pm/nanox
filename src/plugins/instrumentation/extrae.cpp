@@ -29,7 +29,7 @@ class InstrumentationExtrae: public Instrumentation
 #ifndef NANOS_INSTRUMENTATION_ENABLED
    public:
       // constructor
-      InstrumentationExtrae(): Instrumentation() {}
+      InstrumentationExtrae( ): Instrumentation( ) {}
       // destructor
       ~InstrumentationExtrae() {}
 
@@ -39,7 +39,6 @@ class InstrumentationExtrae: public Instrumentation
       virtual void addEventList ( unsigned int count, Event *events ) {}
 #else
    private:
-      InstrumentationContextStackedStatesAndBursts   _icLocal;
       std::string                                    _listOfTraceFileNames;
       std::string                                    _traceDirectory;
       std::string                                    _traceFinalDirectory;
@@ -48,7 +47,7 @@ class InstrumentationExtrae: public Instrumentation
       std::string                                    _traceFileName_ROW;
    public:
       // constructor
-      InstrumentationExtrae ( ) : Instrumentation(), _icLocal() { _instrumentationContext = &_icLocal; }
+      InstrumentationExtrae ( ) : Instrumentation( *new InstrumentationContextStackedStatesAndBursts() ) {}
       // destructor
       ~InstrumentationExtrae ( ) { }
 
@@ -447,7 +446,7 @@ class InstrumentationExtrae: public Instrumentation
          }
 
          // if showing stacked burst is false remove duplicates
-         if ( !_icLocal.showStackedBursts() ) {
+         if ( !_instrumentationContext.showStackedBursts() ) {
             int rmValues = 0;
             for ( int i = 0; i < ce.nEvents; i++ )
             {

@@ -19,12 +19,9 @@ class InstrumentationPrintTrace: public Instrumentation
       virtual void finalize( void ) {}
       virtual void addEventList ( unsigned int count, Event *events ) {}
 #else
-   private:
-      InstrumentationContext   _icLocal;
-
    public:
       // constructor
-      InstrumentationPrintTrace() : Instrumentation(), _icLocal() { _instrumentationContext = &_icLocal; }
+      InstrumentationPrintTrace() : Instrumentation( *new InstrumentationContext() ) {}
       // destructor
       ~InstrumentationPrintTrace ( ) {}
 

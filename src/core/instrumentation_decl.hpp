@@ -406,12 +406,12 @@ namespace nanos {
          ~Instrumentation () {}
 #else
       protected: /* They can be accessed by plugins (derived classes ) */
-         InstrumentationDictionary      _instrumentationDictionary; /**< Instrumentation Dictionary (allow register event keys and values) */
-         InstrumentationContext        *_instrumentationContext; /**< Instrumentation Context */
+         InstrumentationDictionary      _instrumentationDictionary; /**< Instrumentation Dictionary (allow to register keys and values) */
+         InstrumentationContext        &_instrumentationContext; /**< Instrumentation Context */
       public:
          /*! \brief Instrumentation constructor
           */
-         Instrumentation() : _instrumentationDictionary(), _instrumentationContext(NULL) {}
+         Instrumentation( InstrumentationContext &ic ) : _instrumentationDictionary(), _instrumentationContext(ic) {}
 
          /*! \brief Instrumentation destructor
           */

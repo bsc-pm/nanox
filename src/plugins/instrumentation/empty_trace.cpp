@@ -9,7 +9,7 @@ class InstrumentationEmptyTrace: public Instrumentation
 #ifndef NANOS_INSTRUMENTATION_ENABLED
    public:
       // constructor
-      InstrumentationEmptyTrace() : Instrumentation() {}
+      InstrumentationEmptyTrace( ) : Instrumentation( ) {}
       // destructor
       ~InstrumentationEmptyTrace() {}
 
@@ -18,12 +18,9 @@ class InstrumentationEmptyTrace: public Instrumentation
       virtual void finalize( void ) {}
       virtual void addEventList ( unsigned int count, Event *events ) {}
 #else
-   private:
-      InstrumentationContext   _icLocal;
-
    public:
       // constructor
-      InstrumentationEmptyTrace() : Instrumentation(), _icLocal() { _instrumentationContext = &_icLocal; }
+      InstrumentationEmptyTrace( ) : Instrumentation( *new InstrumentationContext() ) {}
       // destructor
       ~InstrumentationEmptyTrace () {}
 

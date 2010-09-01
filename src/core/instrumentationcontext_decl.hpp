@@ -94,7 +94,6 @@ namespace nanos {
          /*! \brief InstrumentationContext destructor
           */
          virtual ~InstrumentationContext() {}
-      private: /* Only friend classes (Instrumentation) can use InstrumentationContext */
          /*! \brief Adds a state value into the state stack 
           */
          void pushState ( InstrumentationContextData *icd, nanos_event_state_value_t state ); 
