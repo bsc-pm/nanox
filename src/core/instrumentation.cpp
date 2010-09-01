@@ -575,65 +575,6 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
    addEventList ( numEvents, e );
 }
 
-
-#if 0
-{
-   unsigned int i = 0; /* Used as Event e[] index */
-
-   /* Computing number of events */
-   InstrumentationContextData *old_icd = oldWD->getInstrumentationContextData();
-   InstrumentationContextData *new_icd = newWD->getInstrumentationContextData();
-   unsigned int oldBursts = _instrumentationContext.getNumBursts( old_icd );
-   unsigned int newBursts = _instrumentationContext.getNumBursts( new_icd );
-   unsigned int numEvents = 2 + oldBursts + newBursts;
-   if ( !_instrumentationContext.isStateEventEnabled( new_icd ) ) numEvents++;
-   if ( !_instrumentationContext.isStateEventEnabled( old_icd ) ) numEvents++;
-
-   /* Allocating Events */
-   Event *e = (Event *) alloca(sizeof(Event) * numEvents );
-
-   /* Creating PtP event: as oldWD has finished execution we need to generate only PtP End
-    * in order to instrument receiving point for the new WorkDescriptor */
-   e[i++] = PtP ( false, NANOS_WD_DOMAIN, (nanos_event_id_t) newWD->getId(), 0, NULL );
-
-   /* Creating State event: change thread current state with newWD saved state */
-   nanos_event_state_value_t state;
-
-   /* Generating NOT_TRACED substate when WorkDescriptor exits */
-   if ( !_instrumentationContext.isStateEventEnabled( old_icd ) ) e[i++] = State ( SUBSTATE_START, NOT_TRACED );
-
-   /* -------------------- OLD/NEW WD -------------------- */
-
-   /* If StateEvent is enabled just needed to generate last state value
-    * otherwise is needed last substate and last state values */
-   if ( !_instrumentationContext.isStateEventEnabled( new_icd ) ) {
-      state = _instrumentationContext.getSubState( new_icd );
-      e[i++] = State ( SUBSTATE_START, state );
-   }
-   state = _instrumentationContext.getState( new_icd );
-   e[i++] = State ( STATE_START, state );
-
-   /* Burst iterator used in following loops */
-   InstrumentationContextData::ConstBurstIterator it;
-
-   /* Regenerating reverse bursts for old WD (regular order: LIFO) */
-   for ( it = _instrumentationContext.beginBurst(old_icd); it != _instrumentationContext.endBurst(old_icd); it++,i++) {
-      e[i] = *it;
-      e[i].reverseType();
-   }
-
-   /* Regenerating bursts for the new WD (reverse order: FIFO) */
-   i += (newBursts-1);
-   for ( it = _instrumentationContext.beginBurst(new_icd); it != _instrumentationContext.endBurst(new_icd); it++,i--) {
-      e[i] = *it;
-   }
-   i += newBursts;
-
-   /* Spawning 'numEvents' events: specific instrumentation call */
-   addEventList ( numEvents, e );
-}
-#endif
-
 void Instrumentation::enableStateEvents()
 {
    /* Closing user's defined state: coherent state should be NOT_TRACED */
