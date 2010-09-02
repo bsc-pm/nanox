@@ -51,7 +51,7 @@ System nanos::sys;
 // default system values go here
 System::System () :
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindThreads( true ), _profile( false ), _instrument( false ),
-      _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster( false ), _delayedStart(false), _isMaster(true), _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" ),
+      _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster( true ), _delayedStart(false), _isMaster(true), _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" ),
       _defInstr ( "empty_trace" ), _defArch("smp"), _instrumentor ( NULL ), _defSchedulePolicy(NULL), _directory()
 {
    verbose0 ( "NANOS++ initalizing... start" );
@@ -325,7 +325,6 @@ void System::finish ()
 
    verbose ( "Joining threads... phase 2" );
 
-   _net.getAPI()->finalize();
 
    // shutdown instrumentation
    NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseCloseStateEvent() );
@@ -336,6 +335,8 @@ void System::finish ()
       delete _pes[p];
    }
    verbose ( "NANOS++ shutting down.... end" );
+
+   _net.getAPI()->finalize();
 }
 
 /*! \brief Creates a new WD

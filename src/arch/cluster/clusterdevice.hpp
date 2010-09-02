@@ -31,6 +31,16 @@ namespace nanos
 
    class ClusterDevice : public Device
    {
+      private:
+         //static void **memPublicSegmentStart;
+         //static size_t *memPublicSegmentSize;
+         //static memChunkDescriptor *memPublicSegment;
+
+         typedef std::map< uintptr_t, size_t > SegmentMap;
+
+         static std::vector< SegmentMap > allocatedChunks;
+         static std::vector< SegmentMap > freeChunks;
+         
       public:
          /*! \brief GPUDevice constructor
           */
@@ -53,6 +63,17 @@ namespace nanos
          static void copyLocal( void *dst, void *src, size_t size )
          {
             // Do not allow local copies in cluster memory
+         }
+
+         static void addPublicSegment(void *segmentAddr, size_t segmentSize)
+         {
+            SegmentMap *mallocated = new SegmentMap;
+            SegmentMap *mfree = new SegmentMap;
+
+            ( *mfree )[ ( uintptr_t ) segmentAddr ] = segmentSize;
+
+            allocatedChunks.push_back( *mallocated );
+            freeChunks.push_back( *mfree );
          }
    };
 }

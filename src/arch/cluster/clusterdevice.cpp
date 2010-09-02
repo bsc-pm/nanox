@@ -27,17 +27,104 @@
 using namespace nanos;
 using namespace ext;
 
+std::vector< ClusterDevice::SegmentMap > ClusterDevice::allocatedChunks;
+std::vector< ClusterDevice::SegmentMap > ClusterDevice::freeChunks;
+
 void * ClusterDevice::allocate( size_t size )
 {
    ClusterRemoteNode *node = (ClusterRemoteNode *) myThread->runningOn();
-   void * addr = sys.getNetwork()->malloc( node->getClusterNodeNum(), size );
+   unsigned int nodeId = node->getClusterNodeNum();
+   SegmentMap &nodeFreeChunks = freeChunks[ nodeId ];
+   SegmentMap &nodeAllocatedChunks = allocatedChunks[ nodeId ];
+   SegmentMap::iterator mapIter = nodeFreeChunks.begin();
+   void *retAddr = NULL;
    //fprintf(stderr, "[node %d] ALLOCATE %d at %d, ret %p\n", sys.getNetwork()->getNodeNum(), size, node->getClusterNodeNum(), addr );
-   return addr;
+
+   //fprintf(stderr, "looking for chunk of %d bytes, first is %d bytes.", size, mapIter->second );
+   while( mapIter != nodeFreeChunks.end() && mapIter->second < size )
+   {
+      mapIter++;
+   }
+
+   if ( mapIter != nodeFreeChunks.end() ) {
+
+      uintptr_t targetAddr = mapIter->first;
+      size_t chunkSize = mapIter->second;
+
+      nodeFreeChunks.erase( mapIter );
+
+      //add the chunk with the new size (previous size - requested size)
+      nodeFreeChunks[ targetAddr + size ] = chunkSize - size ;
+      nodeAllocatedChunks[ targetAddr ] = size;
+
+      retAddr = ( void * ) targetAddr;
+   }
+   else {
+      fprintf(stderr, "Could not get a chunk of %d bytes at node %d\n", size, nodeId);
+   }
+   
+   return retAddr;
 }
 
 void ClusterDevice::free( void *address )
 {
-   //fprintf(stderr, "[node %d] FREE\n", sys.getNetwork()->getNodeNum());
+   ClusterRemoteNode *node = (ClusterRemoteNode *) myThread->runningOn();
+   unsigned int nodeId = node->getClusterNodeNum();
+   SegmentMap &nodeFreeChunks = freeChunks[ nodeId ];
+   SegmentMap &nodeAllocatedChunks = allocatedChunks[ nodeId ];
+   
+   SegmentMap::iterator mapIter = nodeAllocatedChunks.find( ( uintptr_t ) address );
+   size_t size = mapIter->second;
+
+   nodeAllocatedChunks.erase( mapIter );
+
+   if ( nodeFreeChunks.size() > 0 ) {
+      mapIter = nodeFreeChunks.lower_bound( ( uintptr_t ) address );
+
+      //case where address is the highest key, check if it can be merged with the previous chunk
+      if ( mapIter == nodeFreeChunks.end() ) {
+         mapIter--;
+         if ( mapIter->first + mapIter->second == ( uintptr_t ) address ) {
+            mapIter->second += size;
+         }
+      }
+      //address is not the hightest key, check if it can be merged with the previous and next chunks
+      else if ( nodeFreeChunks.key_comp()( ( uintptr_t ) address, mapIter->first ) ) {
+         size_t totalSize = size;
+
+         //check next chunk
+         if ( mapIter->first == ( ( uintptr_t ) address ) + size ) {
+            totalSize += mapIter->second;
+            nodeFreeChunks.erase( mapIter );
+            mapIter = nodeFreeChunks.insert( mapIter, SegmentMap::value_type( ( uintptr_t ) address, totalSize ) );
+         }
+
+         //check previous chunk
+         mapIter--;
+         if ( mapIter->first + mapIter->second == ( uintptr_t ) address ) {
+            //if totalSize > size then the next chunk was merged
+            if ( totalSize > size ) {
+               mapIter->second += totalSize;
+               mapIter++;
+               nodeFreeChunks.erase(mapIter);
+            }
+            else {
+               mapIter->second += size;
+            }
+         }
+      }
+      //duplicate key, error
+      else {
+         fprintf(stderr, "Duplicate entry in node segment map, node %d, addr %p\n.", nodeId, address);
+      }
+   }
+   else {
+      nodeFreeChunks[ ( uintptr_t ) address ] = size;
+   }
+
+
+   
+   fprintf(stderr, "[node %d] FREE %p\n", nodeId, address);
 }
 
 void ClusterDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size )

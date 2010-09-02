@@ -86,7 +86,6 @@ void SMPProcessor::unregisterPrivateAccessDependent( uint64_t tag, size_t size )
 
 void* SMPProcessor::getAddressDependent( uint64_t tag )
 {
-   fprintf(stderr, "smpprocessor: getAddressDependent returns %p\n", _cache.getAddress(tag));
    return _cache.getAddress( tag );
 }
 

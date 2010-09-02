@@ -179,7 +179,6 @@ namespace nanos {
                Cache *owner = de->getOwner();
                if ( owner != NULL ) {
                   // FIXME Is dirty we need to interact with the other cache
-                  //fprintf(stderr, "hola\n");
                   CacheEntry *ce = _cache.getEntry( tag );
                   if ( ce == NULL ) {
                      
@@ -211,13 +210,11 @@ namespace nanos {
                      }
 
                   }
-                  //fprintf(stderr, "end hola\n");
 
                } else {
                   // lookup in cache
                   CacheEntry *ce = _cache.getEntry( tag );
                   if ( ce != NULL ) {
-                  //fprintf(stderr, "hola2\n");
                      if ( ( ce->getVersion() < de->getVersion() ) && input ) {
                         _cache.copyDataToCache( tag, size );
                         ce->setVersion( de->getVersion() );
@@ -230,11 +227,9 @@ namespace nanos {
                         ce->setVersion( de->getVersion() );
                      }
 
-                  //fprintf(stderr, "end hola2\n");
                      NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("cache-hit") );
                      NANOS_INSTRUMENT( sys.getInstrumentor()->raisePointEvent( key, (nanos_event_value_t) tag ) );
                   } else {
-                  //fprintf(stderr, "hola3\n");
                      if ( output ) {
                         de->setOwner( &_cache );
                         de->setVersion( de->getVersion() + 1 );
@@ -245,7 +240,6 @@ namespace nanos {
                      if ( input ) {
                         _cache.copyDataToCache( tag, size );
                      }
-                  //fprintf(stderr, "end hola3\n");
                   }
                   ce->increaseRefs();
                }
@@ -469,7 +463,6 @@ namespace nanos {
          void * allocate( size_t size )
          {
             void *result = (void *) 0xdeadbeef;
-            //fprintf(stderr, "hostcache: allocate %d\n", size);
             //NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("cache-malloc") );
             //NANOS_INSTRUMENT( sys.getInstrumentor()->raiseOpenStateAndBurst( CACHE, key, (nanos_event_value_t) size) );
             //result = _T::allocate( size );
@@ -538,16 +531,9 @@ namespace nanos {
 
          CacheEntry& newEntry( uint64_t tag, unsigned int version, bool dirty )
          {
-            //fprintf(stderr, "[%d] hostcache: newentry\n", sys.getNetwork()->getNodeNum());
             _lock.acquire();
             CacheEntry& ce = _cache[tag];
-            try {
             ce = _cache[tag];
-            }
-            catch (std::exception &e)
-            {
-               fprintf(stderr, "omg!\n");
-            }
             ce.setTag( tag );
             ce.setVersion( version );
             ce.setDirty( dirty );

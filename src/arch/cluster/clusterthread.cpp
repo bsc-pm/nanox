@@ -47,44 +47,31 @@ void ClusterThread::inlineWorkDependent ( WD &wd )
    for (i = 0; i < wd.getNumCopies(); i += 1) {
       newCopies[i] = new CopyData( wd.getCopies()[i] );
    }
-   //NANOS_INSTRUMENT ( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("user-code") );
-   //NANOS_INSTRUMENT ( nanos_event_value_t val = wd.getId() );
-   //NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseOpenStateAndBurst ( RUNNING, key, val ) );
 
-   //fprintf(stderr, "wd = %p, fct %p\n", dd, dd.getWorkFct());
-
-   //fprintf(stderr, "host: num copies is %d\n", wd.getNumCopies());
-   //fprintf(stderr, "host: addr is %llx\n", wd.getCopies()[0].getAddress());
-   //fprintf(stderr, "host: is input? %s\n", wd.getCopies()[0].isInput() ? "yes" : "no");
-   //fprintf(stderr, "host: is output? %s\n", wd.getCopies()[0].isOutput() ? "yes" : "no");
+   NANOS_INSTRUMENT ( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("user-code") );
+   NANOS_INSTRUMENT ( nanos_event_value_t val = wd.getId() );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseOpenStateAndBurst ( RUNNING, key, val ) );
 
    for (i = 0; i < wd.getNumCopies(); i += 1) {
       CopyData *cd = newCopies[i];
-      //fprintf(stderr, "addr is %llx\n", cd->getAddress());
       cd->setAddress( ( uint64_t ) pe->getAddress( wd, cd->getAddress(), cd->getSharing() ) );
-      //fprintf(stderr, "new addr is %llx\n", cd->getAddress());
    }
 
    char *buff = new char[ wd.getDataSize() + wd.getNumCopies() * sizeof( CopyData ) ];
    if ( wd.getDataSize() > 0 )
+   {
       memcpy( &buff[ 0 ], wd.getData(), wd.getDataSize() );
+   }
    for (i = 0; i < wd.getNumCopies(); i += 1) {
       memcpy( &buff[ wd.getDataSize() + sizeof( CopyData ) * i ], newCopies[i], sizeof( CopyData ) );
    }
 
-   //fprintf(stderr, "I have to SEND WORK to node %d\n", _clusterNode);
-   // fprintf(stderr, "NUM COPIES %d addr %llx, in? %s, out? %s\n",
-   //       wd.getNumCopies(),
-   //       ((CopyData *) &buff[ wd.getDataSize() ])->getAddress(),
-   //       ((CopyData *) &buff[ wd.getDataSize() ])->isInput() ? "yes" : "no",
-   //       ((CopyData *) &buff[ wd.getDataSize() ])->isOutput() ? "yes" : "no" );
    sys.getNetwork()->sendWorkMsg( _clusterNode, dd.getWorkFct(), wd.getDataSize(), wd.getDataSize() + ( wd.getNumCopies() * sizeof( CopyData ) ), buff );
-   //( dd.getWorkFct() )( wd.getData() );
 
    for (i = 0; i < wd.getNumCopies(); i += 1) {
       delete newCopies[i];
    }
    delete buff;
 
-   //NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseCloseStateAndBurst ( key ) );
+   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseCloseStateAndBurst ( key ) );
 }
