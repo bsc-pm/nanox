@@ -17,6 +17,7 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+#include "instrumentation.hpp"
 #include "clusterthread.hpp"
 #include "system.hpp"
 
@@ -48,9 +49,9 @@ void ClusterThread::inlineWorkDependent ( WD &wd )
       newCopies[i] = new CopyData( wd.getCopies()[i] );
    }
 
-   NANOS_INSTRUMENT ( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("user-code") );
+   NANOS_INSTRUMENT ( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("user-code") );
    NANOS_INSTRUMENT ( nanos_event_value_t val = wd.getId() );
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseOpenStateAndBurst ( RUNNING, key, val ) );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_RUNNING, key, val ) );
 
    for (i = 0; i < wd.getNumCopies(); i += 1) {
       CopyData *cd = newCopies[i];
@@ -73,5 +74,5 @@ void ClusterThread::inlineWorkDependent ( WD &wd )
    }
    delete buff;
 
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseCloseStateAndBurst ( key ) );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateAndBurst ( key ) );
 }

@@ -35,7 +35,7 @@ struct work_wrapper_args
 
 static void wk_wrapper(struct work_wrapper_args *arg)
 {
-   fprintf(stderr, "starting work> outline %p, arg struct %p\n", arg->work, arg->arg);
+   //fprintf(stderr, "starting work> outline %p, arg struct %p\n", arg->work, arg->arg);
    arg->work(arg->arg);
 
    delete arg;
@@ -80,12 +80,6 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize, void ( *wor
     warg->arg = arg;
     warg->argSize = arg0;
 
-      //fprintf(stderr, "%x\n", *((int *) arg ) );
-      //fprintf(stderr, "%x\n", *((int *) &((char *) arg)[4]) );
-      //fprintf(stderr, "%x\n", *((int *) &((char *) arg)[8]) );
-      //fprintf(stderr, "%x\n", *((int *) &((char *) arg)[12]) );
-      //fprintf(stderr, "%x\n", *((int *) &((char *) arg)[16]) );
-      //fprintf(stderr, "%x\n", *((int *) &((char *) arg)[20]) );
     CopyData *recvcd = (CopyData *) &((char *) arg)[arg0];
 
     //fprintf(stderr, "NUM COPIES %d addr %llx, in? %s, out? %s\n",
@@ -228,7 +222,7 @@ void GasnetAPI::sendExitMsg ( unsigned int dest )
 
 void GasnetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, size_t argSize, void * arg )
 {
-   fprintf(stderr, "sending msg WORK %p, arg size %d to node %d\n", work, argSize, dest);
+   //fprintf(stderr, "sending msg WORK %p, arg size %d to node %d\n", work, argSize, dest);
    if (gasnet_AMRequestMedium2( dest, 205, arg, argSize, work, arg0 ) != GASNET_OK)
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
@@ -246,29 +240,14 @@ void GasnetAPI::sendWorkDoneMsg ( unsigned int dest )
 
 void GasnetAPI::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size )
 {
-#if 0
-   unsigned int sent = 0, thisSendSize;
-
-   while (sent < size)
-   {
-      thisSendSize = (size - sent) > 1000 ? 1000 : size - sent;
-
-      fprintf(stderr, "gasnet_put_bulk size %d\n", thisSendSize);
-      
-      gasnet_put_bulk( ( gasnet_node_t ) remoteNode, &( ( ( char * ) remoteAddr )[ sent ] ), &( ( ( char * )localAddr )[ sent ] ), thisSendSize );
-
-      sent += thisSendSize;
-   }
-#else
-   fprintf(stderr, "gasnet_put_bulk size %d\n", size);
-   fprintf(stderr, "gasnet_put_bulk( %d , %p , %p , %d );\n", remoteNode, &( ( ( char * ) remoteAddr )[ 0 ]), &( ( ( char * )localAddr )[ 0 ] ), size);
+   //fprintf(stderr, "gasnet_put_bulk size %d\n", size);
+   //fprintf(stderr, "gasnet_put_bulk( %d , %p , %p , %d );\n", remoteNode, &( ( ( char * ) remoteAddr )[ 0 ]), &( ( ( char * )localAddr )[ 0 ] ), size);
    gasnet_put_bulk( ( gasnet_node_t ) remoteNode, &( ( ( char * ) remoteAddr )[ 0 ] ), &( ( ( char * )localAddr )[ 0 ] ), size );
-#endif
 }
 
 void GasnetAPI::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, size_t size )
 {
-   fprintf(stderr, "gasnet_get_bulk size %d\n", size);
+   //fprintf(stderr, "gasnet_get_bulk size %d\n", size);
    gasnet_get_bulk ( localAddr, ( gasnet_node_t ) remoteNode, ( void * ) remoteAddr, size );
 }
 
