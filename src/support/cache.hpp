@@ -458,7 +458,7 @@ namespace nanos {
       public:
         /* \brief Default constructor
          */
-         HostCache() : _cache(), _lock( Lock::FREE ), _policy( *this ) {}
+         HostCache() : _cache(), _lock( ), _policy( *this ) {}
 
          void * allocate( size_t size )
          {
