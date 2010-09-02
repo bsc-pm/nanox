@@ -1,7 +1,7 @@
 #include "plugin.hpp"
 #include "system.hpp"
-#include "instrumentor.hpp"
-#include "instrumentorcontext_decl.hpp"
+#include "instrumentation.hpp"
+#include "instrumentationcontext_decl.hpp"
 #include <extrae_types.h>
 #include <mpitrace_user_events.h>
 #include "debug.hpp"
@@ -29,7 +29,7 @@ class InstrumentationExtrae: public Instrumentation
 #ifndef NANOS_INSTRUMENTATION_ENABLED
    public:
       // constructor
-      InstrumentationExtrae(): Instrumentation() {}
+      InstrumentationExtrae( ): Instrumentation( ) {}
       // destructor
       ~InstrumentationExtrae() {}
 
@@ -39,12 +39,35 @@ class InstrumentationExtrae: public Instrumentation
       virtual void addEventList ( unsigned int count, Event *events ) {}
 #else
    private:
-      InstrumentationContextStackedStatesAndBursts   _icLocal;
+      std::string                                    _listOfTraceFileNames;
+      std::string                                    _traceDirectory;
+      std::string                                    _traceFinalDirectory;
+      std::string                                    _traceFileName_PRV;
+      std::string                                    _traceFileName_PCF;
+      std::string                                    _traceFileName_ROW;
    public:
       // constructor
-      InstrumentationExtrae ( ) : Instrumentation(), _icLocal() { _instrumentationContext = &_icLocal; }
+      InstrumentationExtrae ( ) : Instrumentation( *new InstrumentationContextStackedStatesAndBursts() ) {}
       // destructor
       ~InstrumentationExtrae ( ) { }
+
+      int recursiveMkdir( const char *dir, mode_t mode)
+      {
+         int i=0, err=0;
+         char tmp[256];
+
+         while ( dir[i]!=0 && dir[i]=='/'){tmp[i] = dir[i];i++;}
+
+         while ( dir[i]!=0 ) {
+            while ( dir[i]!=0 && dir[i]!='/'){tmp[i] = dir[i];i++;}
+            tmp[i] = 0;
+            err = mkdir(tmp, mode);
+            /* do not throwing intermediate dir's creation errors */
+            /* if (err!= 0) return err; */
+            while ( dir[i]!=0 && dir[i]=='/'){tmp[i] = dir[i];i++;}
+         }
+         return err;
+      }
 
       void mergeParaverTraceFiles ()
       {
@@ -55,55 +78,41 @@ class InstrumentationExtrae: public Instrumentation
          // Merging trace files
          strcpy(str, MPITRACE_BIN);
          strcat(str, "/mpi2prv");
+
          pid = fork();
-         if ( pid == (pid_t) 0 ) execl ( str, "mpi2prv", "-f", "TRACE.mpits", (char *) NULL);
+         if ( pid == (pid_t) 0 ) {
+            execl ( str, "mpi2prv", "-f", _listOfTraceFileNames.c_str(), "-o", _traceFileName_PRV.c_str(), (char *) NULL); 
+         }
          else waitpid( pid, &status, options);
 
-         // Deleting temporary files
-         std::fstream p_file;
-         p_file.open("TRACE.mpits");
 
-         if (p_file.is_open())
-         {
-            while (!p_file.eof() )
-            {
-               p_file.getline (str, 255);
-               if ( strlen(str) > 0 )
-               {
-                  for (unsigned int i = 0; i < strlen(str); i++) if ( str[i] == ' ' ) str[i] = 0x0;
-                  if ( remove(str) != 0 ) std::cout << "Unable to delete file" << str << std::endl;
-               }
-            }
-            p_file.close();
-         }
-         else std::cout << "Unable to open file" << std::endl;  
-         if ( remove("TRACE.mpits") != 0 ) std::cout << "Unable to delete TRACE.mpits file" << std::endl;
       }
 
-      void createParaverConfigFile()
+      void modifyParaverConfigFile()
       {
          // Writing paraver config 
          std::fstream p_file;
-         p_file.open ( "MPITRACE_Paraver_Trace.pcf", std::ios::out | std::ios::app);
+         p_file.open ( _traceFileName_PCF.c_str(), std::ios::out | std::ios::app);
          if (p_file.is_open())
          {
             /* Event: State */
             p_file << "EVENT_TYPE" << std::endl;
             p_file << "9    " << _eventState  << "    Thread state: " << std::endl;
             p_file << "VALUES" << std::endl;
-            p_file << NOT_CREATED      << "     NOT CREATED" << std::endl;
-            p_file << NOT_TRACED       << "     NOT TRACED" << std::endl;
-            p_file << STARTUP          << "     STARTUP" << std::endl;
-            p_file << SHUTDOWN         << "     SHUTDOWN" << std::endl;
-            p_file << ERROR            << "     ERROR" << std::endl;
-            p_file << IDLE             << "     IDLE" << std::endl;
-            p_file << RUNTIME          << "     RUNTIME" << std::endl;
-            p_file << RUNNING          << "     RUNNING" << std::endl;
-            p_file << SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
-            p_file << SCHEDULING       << "     SCHEDULING" << std::endl;
-            p_file << CREATION         << "     CREATION" << std::endl;
-            p_file << MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
-            p_file << CACHE            << "     CACHE ALLOC/FREE" << std::endl;
+            p_file << NANOS_NOT_CREATED      << "     NOT CREATED" << std::endl;
+            p_file << NANOS_NOT_TRACED       << "     NOT TRACED" << std::endl;
+            p_file << NANOS_STARTUP          << "     STARTUP" << std::endl;
+            p_file << NANOS_SHUTDOWN         << "     SHUTDOWN" << std::endl;
+            p_file << NANOS_ERROR            << "     ERROR" << std::endl;
+            p_file << NANOS_IDLE             << "     IDLE" << std::endl;
+            p_file << NANOS_RUNTIME          << "     RUNTIME" << std::endl;
+            p_file << NANOS_RUNNING          << "     RUNNING" << std::endl;
+            p_file << NANOS_SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
+            p_file << NANOS_SCHEDULING       << "     SCHEDULING" << std::endl;
+            p_file << NANOS_CREATION         << "     CREATION" << std::endl;
+            p_file << NANOS_MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
+            p_file << NANOS_CACHE            << "     CACHE ALLOC/FREE" << std::endl;
+            p_file << NANOS_YIELD            << "     YIELD" << std::endl;
             p_file << std::endl;
 
             /* Event: PtPStart main event */
@@ -120,26 +129,27 @@ class InstrumentationExtrae: public Instrumentation
             p_file << "EVENT_TYPE" << std::endl;
             p_file << "9    " << _eventSubState  << "    Thread sub-state: " << std::endl;
             p_file << "VALUES" << std::endl;
-            p_file << NOT_CREATED      << "     NOT_CREATED" << std::endl;
-            p_file << NOT_TRACED       << "     NOT TRACED" << std::endl;
-            p_file << STARTUP          << "     STARTUP" << std::endl;
-            p_file << SHUTDOWN         << "     SHUTDOWN" << std::endl;
-            p_file << ERROR            << "     ERROR" << std::endl;
-            p_file << IDLE             << "     IDLE" << std::endl;
-            p_file << RUNTIME          << "     RUNTIME" << std::endl;
-            p_file << RUNNING          << "     RUNNING" << std::endl;
-            p_file << SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
-            p_file << SCHEDULING       << "     SCHEDULING" << std::endl;
-            p_file << CREATION         << "     CREATION" << std::endl;
-            p_file << MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
-            p_file << CACHE            << "     CACHE ALLOC/FREE" << std::endl;
+            p_file << NANOS_NOT_CREATED      << "     NOT_CREATED" << std::endl;
+            p_file << NANOS_NOT_TRACED       << "     NOT TRACED" << std::endl;
+            p_file << NANOS_STARTUP          << "     STARTUP" << std::endl;
+            p_file << NANOS_SHUTDOWN         << "     SHUTDOWN" << std::endl;
+            p_file << NANOS_ERROR            << "     ERROR" << std::endl;
+            p_file << NANOS_IDLE             << "     IDLE" << std::endl;
+            p_file << NANOS_RUNTIME          << "     RUNTIME" << std::endl;
+            p_file << NANOS_RUNNING          << "     RUNNING" << std::endl;
+            p_file << NANOS_SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
+            p_file << NANOS_SCHEDULING       << "     SCHEDULING" << std::endl;
+            p_file << NANOS_CREATION         << "     CREATION" << std::endl;
+            p_file << NANOS_MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
+            p_file << NANOS_CACHE            << "     CACHE ALLOC/FREE" << std::endl;
+            p_file << NANOS_YIELD            << "     YIELD" << std::endl;
             p_file << std::endl;
 
-            /* Getting Instrumentor Dictionary */
+            /* Getting Instrumentation Dictionary */
             InstrumentationDictionary::ConstKeyMapIterator itK;
             InstrumentationKeyDescriptor::ConstValueMapIterator itV;
 
-            InstrumentationDictionary *iD = sys.getInstrumentor()->getInstrumentorDictionary();
+            InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
 
             /* Generating key/value events */
             for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
@@ -148,11 +158,20 @@ class InstrumentationExtrae: public Instrumentation
                p_file << "EVENT_TYPE" << std::endl;
                p_file << "9    " << _eventBase+kD->getId() << " " << kD->getDescription() << std::endl;
                p_file << "VALUES" << std::endl;
-               
+
+               // First: Ordering list of values and descriptions 
+               std::map<int,std::string> lov;
                for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
                   InstrumentationValueDescriptor *vD = itV->second;
-                  p_file << vD->getId() << "  " << vD->getDescription() << std::endl;
+                  lov.insert( make_pair( vD->getId(), vD->getDescription() ));
                }
+
+               // Second:: Generating already ordered list of values
+               std::map<int,std::string>::iterator itLoV;
+               for ( itLoV = lov.begin(); itLoV != lov.end(); itLoV++ ) {
+                  p_file << itLoV->first << "  " << itLoV->second << std::endl;
+               }
+
                p_file << std::endl;
             }
             p_file << std::endl;
@@ -163,24 +182,67 @@ class InstrumentationExtrae: public Instrumentation
          else std::cout << "Unable to open paraver config file" << std::endl;  
       }
 
-      void renameFiles ()
+      void removeTemporaryFiles()
       {
-         char *new_name_prv = (char *) alloca ( 255 * sizeof (char));;
-         char *new_name_pcf = (char *) alloca ( 255 * sizeof (char));;
-         char *new_name_row = (char *) alloca ( 255 * sizeof (char));;
+         /* Removig Temporary trace files */
+         char str[255];
+         std::fstream p_file;
+         p_file.open(_listOfTraceFileNames.c_str());
 
+         if (p_file.is_open())
+         {
+            while (!p_file.eof() )
+            {
+               p_file.getline (str, 255);
+               if ( strlen(str) > 0 )
+               {
+                  for (unsigned int i = 0; i < strlen(str); i++) if ( str[i] == ' ' ) str[i] = 0x0;
+                  if ( remove(str) != 0 ) std::cout << "nanox: Unable to delete temporary/partial trace file" << str << std::endl;
+               }
+            }
+            p_file.close();
+         }
+         else std::cout << "Unable to open " << _listOfTraceFileNames << " file" << std::endl;  
+
+         if ( remove(_listOfTraceFileNames.c_str()) != 0 ) std::cout << "Unable to delete TRACE.mpits file" << std::endl;
+
+         /* Removing EXTRAE_DIR temporary directories and files */
+         char *file_name    = (char *) alloca ( 255 * sizeof (char));
+         bool file_exists = true; int num = 0;
+         while ( file_exists ) {
+            sprintf( file_name, "%s/set-%d", _traceDirectory.c_str(), num++ );
+            if ( remove( file_name ) != 0 ) file_exists = false;
+
+         }
+         remove( _traceDirectory.c_str());
+
+         /* Removing EXTRAE_FINAL_DIR temporary directories and files */
+         file_exists = true; num = 0;
+         while ( file_exists ) {
+            sprintf( file_name, "%s/set-%d", _traceFinalDirectory.c_str(), num++ );
+            if ( remove( file_name ) != 0 ) file_exists = false;
+
+         }
+         remove( _traceFinalDirectory.c_str());
+      }
+
+      void getTraceFileName ()
+      {
          // Check if the trace file exists
          struct stat buffer;
          int err;
-         std::string trace_base = ( OS::getArg( 0 ) );
+         std::string full_trace_base = ( OS::getArg( 0 ) );
+         size_t found = full_trace_base.find_last_of("/\\");
+         std::string trace_base = full_trace_base.substr(found+1);
+
          int num = 1;
          std::string trace_suffix = "_001";
-         std::string trace_extension = ".prv";
-         bool trace_exists = true;
+         bool file_exists = true;
 
-         while ( trace_exists ) {
+         while ( file_exists ) {
             // Attempt to get the file attributes
-            err = stat( ( trace_base + trace_suffix + trace_extension).c_str(), &buffer );
+            std::string file_name = _traceFinalDirectory + "/../" + trace_base + trace_suffix + ".prv";
+            err = stat( file_name.c_str(), &buffer );
             if ( err == 0 ) {
                // The file exists
                num++;
@@ -188,41 +250,96 @@ class InstrumentationExtrae: public Instrumentation
                trace_num << "_" << (num < 100 ? "0" : "") << (num < 10 ? "0" : "") << num;
                trace_suffix =  trace_num.str();
             } else {
-               trace_exists = false;
+               std::ofstream trace_file(file_name.c_str(), std::ios::out);
+               if ( !trace_file.fail() ) file_exists = false;
             }
          }
 
-         sprintf( new_name_prv, "%s%s.prv", trace_base.c_str(), trace_suffix.c_str() );
-         sprintf( new_name_pcf, "%s%s.pcf", trace_base.c_str(), trace_suffix.c_str() );
-         sprintf( new_name_row, "%s%s.row", trace_base.c_str(), trace_suffix.c_str() );
-
-         /* Renaming the files */
-         int result;
-
-         result = rename( "MPITRACE_Paraver_Trace.prv"  , new_name_prv );
-         if ( result != 0 ) std::cout << "Unable to rename paraver file" << std::endl;
-         result = rename( "MPITRACE_Paraver_Trace.pcf"  , new_name_pcf );
-         if ( result != 0 ) std::cout << "Unable to rename paraver config file" << std::endl;
-         result = rename( "MPITRACE_Paraver_Trace.row"  , new_name_row );
-         if ( result != 0 ) std::cout << "Unable to rename paraver row file" << std::endl;
-
-         std::cout << "nanox: Trace MPITRACE_Paraver_Trace.prv renamed to " << trace_base << trace_suffix << ".prv." << std::endl;
+         /* New file names */
+         found = _traceFinalDirectory.find_last_of("/");
+         _traceFileName_PRV = _traceFinalDirectory.substr(0,found+1) + trace_base + trace_suffix + ".prv" ;
+         _traceFileName_PCF = _traceFinalDirectory.substr(0,found+1) + trace_base + trace_suffix + ".pcf";
+         _traceFileName_ROW = _traceFinalDirectory.substr(0,found+1) + trace_base + trace_suffix + ".row";
       }
 
       void initialize ( void )
       {
          char *mpi_trace_on;
+         char *mpi_trace_dir;
+         char *mpi_trace_final_dir;
+         char *tmp_dir;
+         char *tmp_dir_backup;
+         char *env_tmp_dir = new char[255];
+         char *env_trace_dir = new char[255];
+         char *env_trace_final_dir = new char[255];
 
-         /* check environment variable MPITRACE_ON value */
+         /* check environment variable: EXTRAE_ON */
          mpi_trace_on = getenv("EXTRAE_ON");
-
          /* if MPITRAE_ON not defined, active it */
-         if ( mpi_trace_on == NULL )
-         {
-            mpi_trace_on = new char[15];
+         if ( mpi_trace_on == NULL ) {
+            mpi_trace_on = new char[12];
             strcpy(mpi_trace_on, "EXTRAE_ON=1");
             putenv (mpi_trace_on);
          }
+
+         /* check environment variable: EXTRAE_FINAL_DIR */
+         mpi_trace_final_dir = getenv("EXTRAE_FINAL_DIR");
+         /* if EXTRAE_FINAL_DIR not defined, active it */
+         if ( mpi_trace_final_dir == NULL ) {
+            mpi_trace_final_dir = new char[3];
+            strcpy(mpi_trace_final_dir, "./");
+         }
+
+         /* check environment variable: EXTRAE_DIR */
+         mpi_trace_dir = getenv("EXTRAE_DIR");
+         /* if EXTRAE_DIR not defined, active it */
+         if ( mpi_trace_dir == NULL ) {
+            mpi_trace_dir = new char[3];
+            strcpy(mpi_trace_dir, "./");
+         }
+
+         /* check environment variable: TMPDIR */
+         tmp_dir = getenv("TMPDIR");
+         /* if TMPDIR defined, save it and remove it */
+         if ( tmp_dir != NULL ) {
+            tmp_dir_backup = new char[strlen(tmp_dir)];
+            strcpy(tmp_dir_backup, tmp_dir);
+            sprintf(env_tmp_dir, "TMPDIR=");
+            putenv (env_tmp_dir);
+         }
+         else {
+            tmp_dir_backup = new char[3];
+            strcpy(tmp_dir_backup, "./");
+         }
+
+         recursiveMkdir(mpi_trace_dir, S_IRWXU);
+         recursiveMkdir(mpi_trace_final_dir, S_IRWXU);
+
+         _traceDirectory = tempnam(mpi_trace_dir, "trace");
+         _traceFinalDirectory = tempnam(mpi_trace_final_dir, "trace");
+
+         if ( recursiveMkdir(_traceDirectory.c_str(), S_IRWXU ) != 0 )
+            fatal0 ( "Trace directory doesn't exists or user has no permissions on this directory" ); ;
+         if ( recursiveMkdir(_traceFinalDirectory.c_str(), S_IRWXU) != 0 ) {
+            remove ( _traceDirectory.c_str());
+            fatal0 ( "Trace final directory doesn't exists or user has no permissions on this directory" ); ;
+         }
+
+         _listOfTraceFileNames = _traceFinalDirectory + "/TRACE.mpits";
+
+         /* Restoring TMPDIR*/
+         if ( tmp_dir != NULL ) {
+            sprintf(env_tmp_dir, "TMPDIR=%s", tmp_dir_backup);
+            putenv (env_tmp_dir);
+         }
+
+         /* Setting EXTRAE_DIR environment variable */
+         sprintf(env_trace_dir, "EXTRAE_DIR=%s", _traceDirectory.c_str());
+         putenv (env_trace_dir);
+
+         /* Setting EXTRAE_FINAL_DIR environment variable */
+         sprintf(env_trace_final_dir, "EXTRAE_FINAL_DIR=%s", _traceFinalDirectory.c_str());
+         putenv (env_trace_final_dir);
 
          /* OMPItrace initialization */
          OMPItrace_init();
@@ -231,9 +348,10 @@ class InstrumentationExtrae: public Instrumentation
       void finalize ( void )
       {
          OMPItrace_fini();
+         getTraceFileName();
          mergeParaverTraceFiles();
-         createParaverConfigFile();
-         renameFiles();
+         modifyParaverConfigFile();
+         removeTemporaryFiles();
       }
 
       void addEventList ( unsigned int count, Event *events) 
@@ -250,19 +368,19 @@ class InstrumentationExtrae: public Instrumentation
          {
             Event &e = events[i];
             switch ( e.getType() ) {
-               case STATE_START:
-               case STATE_END:
-               case SUBSTATE_START:
-               case SUBSTATE_END:
+               case NANOS_STATE_START:
+               case NANOS_STATE_END:
+               case NANOS_SUBSTATE_START:
+               case NANOS_SUBSTATE_END:
                   ce.nEvents++;
                   break;
-               case PTP_START:
-               case PTP_END:
+               case NANOS_PTP_START:
+               case NANOS_PTP_END:
                   ce.nCommunications++;
                   // continue...
-               case POINT:
-               case BURST_START:
-               case BURST_END:
+               case NANOS_POINT:
+               case NANOS_BURST_START:
+               case NANOS_BURST_END:
                   ce.nEvents += e.getNumKVs();
                   break;
                default: break;
@@ -281,26 +399,26 @@ class InstrumentationExtrae: public Instrumentation
             Event &e = events[i];
             unsigned int type = e.getType();
             switch ( type ) {
-               case STATE_START:
+               case NANOS_STATE_START:
                   ce.Types[j] = _eventState;
                   ce.Values[j++] = e.getState();
                   break;
-               case STATE_END:
+               case NANOS_STATE_END:
                   ce.Types[j] = _eventState;
                   ce.Values[j++] = 0;
                   break;
-               case SUBSTATE_START:
+               case NANOS_SUBSTATE_START:
                   ce.Types[j] = _eventSubState;
                   ce.Values[j++] = e.getState();
                   break;
-               case SUBSTATE_END:
+               case NANOS_SUBSTATE_END:
                   ce.Types[j] = _eventSubState;
                   ce.Values[j++] = 0;
                   break;
-               case PTP_START:
-               case PTP_END:
+               case NANOS_PTP_START:
+               case NANOS_PTP_END:
                   /* Creating PtP event */
-                  if ( type == PTP_START) ce.Communications[k].type = EXTRAE_USER_SEND;
+                  if ( type == NANOS_PTP_START) ce.Communications[k].type = EXTRAE_USER_SEND;
                   else ce.Communications[k].type = EXTRAE_USER_RECV;
                   ce.Communications[k].tag = e.getDomain();
                   ce.Communications[k].id = e.getId();
@@ -308,15 +426,15 @@ class InstrumentationExtrae: public Instrumentation
                   ce.Communications[k].partner = 0;
                   k++;
                   // continue...
-               case POINT:
-               case BURST_START:
+               case NANOS_POINT:
+               case NANOS_BURST_START:
                   kvs = e.getKVs();
                   for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
                      ce.Types[j] = _eventBase + kvs->first;
                      ce.Values[j++] = kvs->second;
                   }
                   break;
-               case BURST_END:
+               case NANOS_BURST_END:
                   kvs = e.getKVs();
                   for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
                      ce.Types[j] = _eventBase +  kvs->first;
@@ -328,7 +446,7 @@ class InstrumentationExtrae: public Instrumentation
          }
 
          // if showing stacked burst is false remove duplicates
-         if ( !_icLocal.showStackedBursts() ) {
+         if ( !_instrumentationContext.showStackedBursts() ) {
             int rmValues = 0;
             for ( int i = 0; i < ce.nEvents; i++ )
             {
@@ -357,16 +475,16 @@ class InstrumentationExtrae: public Instrumentation
 
 namespace ext {
 
-class InstrumentorParaverPlugin : public Plugin {
+class InstrumentationParaverPlugin : public Plugin {
    public:
-      InstrumentorParaverPlugin () : Plugin("Instrumentor which generates a Paraver trace.",1) {}
-      ~InstrumentorParaverPlugin () {}
+      InstrumentationParaverPlugin () : Plugin("Instrumentation which generates a Paraver trace.",1) {}
+      ~InstrumentationParaverPlugin () {}
 
       virtual void config( Config &config ) {}
 
       void init ()
       {
-         sys.setInstrumentor( new InstrumentationExtrae() );
+         sys.setInstrumentation( new InstrumentationExtrae() );
       }
 };
 
@@ -374,5 +492,5 @@ class InstrumentorParaverPlugin : public Plugin {
 
 } // namespace nanos
 
-nanos::ext::InstrumentorParaverPlugin NanosXPlugin;
+nanos::ext::InstrumentationParaverPlugin NanosXPlugin;
 

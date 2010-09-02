@@ -24,7 +24,7 @@
 #include <exception>
 #include "config.hpp"
 #include "compatibility.hpp"
-#include "instrumentor.hpp"
+#include "instrumentation.hpp"
 #include "system.hpp"
 #include "directory.hpp"
 
@@ -227,8 +227,8 @@ namespace nanos {
                         ce->setVersion( de->getVersion() );
                      }
 
-                     NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("cache-hit") );
-                     NANOS_INSTRUMENT( sys.getInstrumentor()->raisePointEvent( key, (nanos_event_value_t) tag ) );
+                     NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-hit") );
+                     NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) tag ) );
                   } else {
                      if ( output ) {
                         de->setOwner( &_cache );
@@ -314,26 +314,26 @@ namespace nanos {
          void * allocate( size_t size )
          {
             void *result;
-            NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("cache-malloc") );
-            NANOS_INSTRUMENT( sys.getInstrumentor()->raiseOpenStateAndBurst( CACHE, key, (nanos_event_value_t) size) );
+            NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-malloc") );
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( CACHE, key, (nanos_event_value_t) size) );
             _lock.acquire();
             result = _T::allocate( size );
             _lock.release();
-            NANOS_INSTRUMENT( sys.getInstrumentor()->raiseCloseStateAndBurst( key ) );
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
             return result;
          }
 
          void deleteEntry( uint64_t tag, size_t size )
          {
-            NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("cache-free") );
-            NANOS_INSTRUMENT( sys.getInstrumentor()->raiseOpenStateAndBurst ( CACHE, key, (nanos_event_value_t) size) );
+            NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-free") );
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst ( CACHE, key, (nanos_event_value_t) size) );
             // it assumes the entry exists
             _lock.acquire();
             CacheEntry &ce = _cache[tag];
             _T::free( ce.getAddress() );
             _cache.erase( tag );
             _lock.release();
-            NANOS_INSTRUMENT( sys.getInstrumentor()->raiseCloseStateAndBurst( key ) );
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
          }
 
         /* \brief get the Address in the cache for tag
@@ -353,12 +353,12 @@ namespace nanos {
          */
          void copyDataToCache( uint64_t tag, size_t size )
          {
-            NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("cache-copy-in") );
-            NANOS_INSTRUMENT( sys.getInstrumentor()->raiseOpenStateAndBurst( MEM_TRANSFER, key, (nanos_event_value_t) size) );
+            NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( MEM_TRANSFER, key, (nanos_event_value_t) size) );
             _lock.acquire();
             _T::copyIn( _cache[tag].getAddress(), tag, size );
             _lock.release();
-            NANOS_INSTRUMENT( sys.getInstrumentor()->raiseCloseStateAndBurst( key ) );
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
          }
 
         /* \brief Copy back from the entry to the address represented by the tag.
@@ -367,13 +367,13 @@ namespace nanos {
          */
          void copyBackFromCache( uint64_t tag, size_t size )
          {
-            NANOS_INSTRUMENT( static nanos_event_key_t key1 = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("cache-copy-out") );
-            NANOS_INSTRUMENT( sys.getInstrumentor()->raiseOpenStateAndBurst( MEM_TRANSFER, key1, size ) );
+            NANOS_INSTRUMENT( static nanos_event_key_t key1 = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-out") );
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( MEM_TRANSFER, key1, size ) );
             _lock.acquire();
             CacheEntry &entry = _cache[tag];
             _T::copyOut( tag, entry.getAddress(), size );
             _lock.release();
-            NANOS_INSTRUMENT( sys.getInstrumentor()->raiseCloseStateAndBurst( key1 ) );
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key1 ) );
          }
 
         /* \brief Perform local copy in the device for an entry
@@ -383,12 +383,12 @@ namespace nanos {
          */
          void copyTo( void *dst, uint64_t tag, size_t size )
          {
-            NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("cache-local-copy") );
-            NANOS_INSTRUMENT( sys.getInstrumentor()->raiseOpenStateAndBurst( MEM_TRANSFER, key, size ) );
+            NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-local-copy") );
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( MEM_TRANSFER, key, size ) );
             _lock.acquire();
             _T::copyLocal( dst, _cache[tag].getAddress(), size );
             _lock.release();
-            NANOS_INSTRUMENT( sys.getInstrumentor()->raiseCloseStateAndBurst( key ) );
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
          }
 
          CacheEntry& newEntry( uint64_t tag, unsigned int version, bool dirty )

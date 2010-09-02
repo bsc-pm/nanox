@@ -20,7 +20,7 @@
 #define __NANOS_INSTRUMENTOR_MODULE_DECL_H
 #include "debug.hpp"
 #include "nanos-int.h"
-#include "instrumentor.hpp"
+#include "instrumentation.hpp"
 #include "system.hpp"
 
 namespace nanos {
@@ -29,68 +29,69 @@ namespace nanos {
 
    class InstrumentStateAndBurst {
       private:
-         // FIXME: could _inst be static?
-         Instrumentation        *_inst;
+         Instrumentation     &_inst;
          nanos_event_key_t    _key;
 	 bool		      _closed;
       public:
-         InstrumentStateAndBurst ( const char* keydesc, const char *valdesc, nanos_event_state_value_t state ) : _closed(false)
+         InstrumentStateAndBurst ( const char* keydesc, const char *valdesc, nanos_event_state_value_t state ) : 
+                                   _inst(*sys.getInstrumentation()),
+                                   _key( _inst.getInstrumentationDictionary()->getEventKey(keydesc)),
+                                   _closed(false)
          {
-            _inst = sys.getInstrumentor();
-            //if ( _inst == NULL ) _inst = sys.getInstrumentor();
-            _key = _inst->getInstrumentorDictionary()->getEventKey(keydesc);
-            nanos_event_value_t val = _inst->getInstrumentorDictionary()->getEventValue(keydesc,valdesc);
-            _inst->raiseOpenStateAndBurst(state, _key, val);
+            nanos_event_value_t val = _inst.getInstrumentationDictionary()->getEventValue(keydesc,valdesc);
+            _inst.raiseOpenStateAndBurst(state, _key, val);
          }
 
-         InstrumentStateAndBurst ( const char* keydesc, nanos_event_value_t val, nanos_event_state_value_t state ) : _closed(false)
+         InstrumentStateAndBurst ( const char* keydesc, nanos_event_value_t val, nanos_event_state_value_t state ) :
+                                   _inst(*sys.getInstrumentation()),
+                                   _key( _inst.getInstrumentationDictionary()->getEventKey(keydesc)),
+                                   _closed(false)
          {
-            _inst = sys.getInstrumentor();
-            //if ( _inst == NULL ) _inst = sys.getInstrumentor();
-            _key = _inst->getInstrumentorDictionary()->getEventKey(keydesc);
-            _inst->raiseOpenStateAndBurst(state, _key, val);
+            _inst.raiseOpenStateAndBurst(state, _key, val);
          }
-
+#if 0 // REMOVE
          void changeState ( nanos_event_state_value_t state ) 
          {
-            _inst->raiseCloseStateEvent();
-            _inst->raiseOpenStateEvent(state);
+            _inst.raiseCloseStateEvent();
+            _inst.raiseOpenStateEvent(state);
          }
-	 void close() { _closed=true; _inst->raiseCloseStateAndBurst(_key);  }
+#endif
+	 void close() { _closed=true; _inst.raiseCloseStateAndBurst(_key);  }
          ~InstrumentStateAndBurst ( ) { if (!_closed) close(); }
    };
 
    class InstrumentState {
       private:
-         Instrumentation        *_inst;
+         Instrumentation     &_inst;
+	 bool		      _closed;
       public:
-         InstrumentState ( nanos_event_state_value_t state ) 
+         InstrumentState ( nanos_event_state_value_t state ) : _inst(*sys.getInstrumentation()), _closed(false)
          {
-            _inst = sys.getInstrumentor();
-            _inst->raiseOpenStateEvent( state );
+            _inst.raiseOpenStateEvent( state );
          }
+#if 0 // REMOVE
          void changeState ( nanos_event_state_value_t state ) 
          {
-            _inst->raiseCloseStateEvent();
-            _inst->raiseOpenStateEvent(state);
+            _inst.raiseCloseStateEvent();
+            _inst.raiseOpenStateEvent(state);
          }
-         ~InstrumentState ( ) { _inst->raiseCloseStateEvent(); }
+#endif
+	 void close() { _closed=true; _inst.raiseCloseStateEvent();  }
+         ~InstrumentState ( ) { if (!_closed) close(); }
    };
 
    class InstrumentSubState {
       private:
-         Instrumentation   &_inst;
+         Instrumentation     &_inst;
       public:
-         InstrumentSubState ( nanos_event_state_value_t subState ) : _inst(*sys.getInstrumentor())
+         InstrumentSubState ( nanos_event_state_value_t subState ) : _inst(*sys.getInstrumentation())
          {
             _inst.disableStateEvents(subState);
          }
-
          ~InstrumentSubState ()
          {
             _inst.enableStateEvents();
          }
-
    };
 
 #endif

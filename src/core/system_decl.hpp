@@ -29,7 +29,7 @@
 #include "slicer.hpp"
 #include "nanos-int.h"
 #include "dependency.hpp"
-#include "instrumentor_decl.hpp"
+#include "instrumentation_decl.hpp"
 #include "directory.hpp"
 #include "network.hpp"
 
@@ -72,7 +72,7 @@ namespace nanos
          bool                 _isMaster;
 
          //cutoff policy and related variables
-         ThrottlePolicy *     _throttlePolicy;
+         ThrottlePolicy      *_throttlePolicy;
          SchedulerStats       _schedStats;
          SchedulerConf        _schedConf;
 
@@ -94,8 +94,8 @@ namespace nanos
 
          Network              _net;
 
-         Instrumentation           *_instrumentor; /**< Instrumentor object used in current execution */
-         SchedulePolicy         *_defSchedulePolicy;
+         Instrumentation     *_instrumentation; /**< Instrumentation object used in current execution */
+         SchedulePolicy      *_defSchedulePolicy;
 
          // Mempory access directory
          Directory            _directory;
@@ -195,7 +195,7 @@ namespace nanos
 
          const std::string & getDefaultBarrier() const;
 
-         const std::string & getDefaultInstrumentor() const;
+         const std::string & getDefaultInstrumentation() const;
 
          const std::string & getDefaultArch() const;
          void setDefaultArch( const std::string &arch );
@@ -206,9 +206,9 @@ namespace nanos
 
          Slicer * getSlicer( const std::string &label ) const;
 
-         Instrumentation * getInstrumentor ( void ) const;
+         Instrumentation * getInstrumentation ( void ) const;
 
-         void setInstrumentor ( Instrumentation *instr );
+         void setInstrumentation ( Instrumentation *instr );
 
          void registerSlicer ( const std::string &label, Slicer *slicer);
 

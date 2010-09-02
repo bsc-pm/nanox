@@ -130,13 +130,15 @@ typedef struct {
   void * arg;
 } nanos_device_t;
 
-// instrumentor structures
+// instrumentation structures
 
-typedef enum { STATE_START, STATE_END, SUBSTATE_START, SUBSTATE_END,
-               BURST_START, BURST_END, PTP_START, PTP_END, POINT, EVENT_TYPES } nanos_event_type_t; /**< Event types  */
+typedef enum { NANOS_STATE_START, NANOS_STATE_END, NANOS_SUBSTATE_START, NANOS_SUBSTATE_END,
+               NANOS_BURST_START, NANOS_BURST_END, NANOS_PTP_START, NANOS_PTP_END, NANOS_POINT, EVENT_TYPES
+} nanos_event_type_t; /**< Event types  */
 
-typedef enum { NOT_CREATED, NOT_TRACED, STARTUP, SHUTDOWN, ERROR, IDLE, RUNTIME, RUNNING, SYNCHRONIZATION,
-               SCHEDULING, CREATION, MEM_TRANSFER, CACHE, EVENT_STATE_TYPES
+typedef enum { NANOS_NOT_CREATED, NANOS_NOT_TRACED, NANOS_STARTUP, NANOS_SHUTDOWN, NANOS_ERROR, NANOS_IDLE,
+               NANOS_RUNTIME, NANOS_RUNNING, NANOS_SYNCHRONIZATION, NANOS_SCHEDULING, NANOS_CREATION,
+               NANOS_MEM_TRANSFER, NANOS_CACHE, NANOS_YIELD, NANOS_EVENT_STATE_TYPES
 } nanos_event_state_value_t; /**< State enum values */
 
 typedef enum { NANOS_WD_DOMAIN } nanos_event_domain_t; /**< Specifies a domain */
@@ -177,6 +179,15 @@ typedef struct {
       nanos_event_ptp_t     ptp;
    } info;
 } nanos_event_t;
+
+/* Lock C interface */
+typedef enum { NANOS_LOCK_FREE = 0, NANOS_LOCK_BUSY = 1 } nanos_lock_state_t;
+typedef struct nanos_lock_t {
+   volatile nanos_lock_state_t _state;
+#ifdef __cplusplus
+   nanos_lock_t ( nanos_lock_state_t init=NANOS_LOCK_FREE ) : _state(init) {}
+#endif
+} nanos_lock_t;
 
 
 #endif

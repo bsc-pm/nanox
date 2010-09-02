@@ -30,7 +30,7 @@
 #include "slicer.hpp"
 #include "nanos-int.h"
 #include "dependency.hpp"
-#include "instrumentor_decl.hpp"
+#include "instrumentation_decl.hpp"
 
 using namespace nanos;
 
@@ -85,7 +85,7 @@ inline const std::string & System::getDefaultThrottlePolicy() const { return _de
 
 inline const std::string & System::getDefaultBarrier() const { return _defBarr; }
 
-inline const std::string & System::getDefaultInstrumentor() const { return _defInstr; }
+inline const std::string & System::getDefaultInstrumentation() const { return _defInstr; }
 
 inline void System::setHostFactory ( peFactory factory ) { _hostFactory = factory; }
 
@@ -98,9 +98,9 @@ inline Slicer * System::getSlicer( const std::string &label ) const
    return (*it).second;
 }
 
-inline Instrumentation * System::getInstrumentor ( void ) const { return _instrumentor; }
+inline Instrumentation * System::getInstrumentation ( void ) const { return _instrumentation; }
 
-inline void System::setInstrumentor ( Instrumentation *instr ) { _instrumentor = instr; }
+inline void System::setInstrumentation ( Instrumentation *instr ) { _instrumentation = instr; }
 
 inline void System::registerSlicer ( const std::string &label, Slicer *slicer) { _slicers[label] = slicer; }
 

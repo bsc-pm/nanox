@@ -19,7 +19,7 @@
 
 #include "gputhread.hpp"
 #include "gpuprocessor.hpp"
-#include "instrumentormodule_decl.hpp"
+#include "instrumentationmodule_decl.hpp"
 #include "schedule.hpp"
 #include "system.hpp"
 
@@ -67,7 +67,7 @@ void GPUThread::runDependent ()
 
 void GPUThread::inlineWorkDependent ( WD &wd )
 {
-   SMPDD &dd = ( SMPDD & )wd.getActiveDevice();
+   GPUDD &dd = ( GPUDD & )wd.getActiveDevice();
 
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), RUNNING ) );
    NANOS_INSTRUMENT ( InstrumentSubState inst2( RUNTIME ) );

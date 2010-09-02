@@ -1,7 +1,7 @@
 #include "plugin.hpp"
 #include "system.hpp"
-#include "instrumentor.hpp"
-#include "instrumentorcontext_decl.hpp"
+#include "instrumentation.hpp"
+#include "instrumentationcontext_decl.hpp"
 
 namespace nanos {
 
@@ -19,12 +19,9 @@ class InstrumentationPrintTrace: public Instrumentation
       virtual void finalize( void ) {}
       virtual void addEventList ( unsigned int count, Event *events ) {}
 #else
-   private:
-      InstrumentationContext   _icLocal;
-
    public:
       // constructor
-      InstrumentationPrintTrace() : Instrumentation(), _icLocal() { _instrumentationContext = &_icLocal; }
+      InstrumentationPrintTrace() : Instrumentation( *new InstrumentationContext() ) {}
       // destructor
       ~InstrumentationPrintTrace ( ) {}
 
@@ -38,16 +35,16 @@ class InstrumentationPrintTrace: public Instrumentation
 
 namespace ext {
 
-class InstrumentorPrintTracePlugin : public Plugin {
+class InstrumentationPrintTracePlugin : public Plugin {
    public:
-      InstrumentorPrintTracePlugin () : Plugin("Instrumentor which print the trace to std out.",1) {}
-      ~InstrumentorPrintTracePlugin () {}
+      InstrumentationPrintTracePlugin () : Plugin("Instrumentation which print the trace to std out.",1) {}
+      ~InstrumentationPrintTracePlugin () {}
 
       virtual void config( Config &config ) {}
 
       void init ()
       {
-         sys.setInstrumentor( new InstrumentationPrintTrace() );	
+         sys.setInstrumentation( new InstrumentationPrintTrace() );	
       }
 };
 
@@ -55,5 +52,5 @@ class InstrumentorPrintTracePlugin : public Plugin {
 
 } // namespace nanos
 
-nanos::ext::InstrumentorPrintTracePlugin NanosXPlugin;
+nanos::ext::InstrumentationPrintTracePlugin NanosXPlugin;
 

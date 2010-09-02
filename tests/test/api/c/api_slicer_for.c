@@ -65,7 +65,7 @@ void main__loop_1 ( void *args )
 {
    int i;
    main__loop_1_data_t *hargs = (main__loop_1_data_t * ) args;
-// fprintf(stderr,"[%d..%d/%d:%d]", hargs->loop_info.lower, hargs->loop_info.upper, hargs->loop_info.step, hargs->offset );
+//   fprintf(stderr,"[%d..%d/%d:%d]", hargs->loop_info.lower, hargs->loop_info.upper, hargs->loop_info.step, hargs->offset ); //FIXME
 
    if ( hargs->loop_info.step > 0 )
    {

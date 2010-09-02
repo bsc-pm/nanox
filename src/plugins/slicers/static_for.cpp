@@ -46,7 +46,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
       // Init WorkDescriptor 'work'
       // computing initial bounds
       lower = _lower;
-      upper = _lower + ( _chunk * _step ) + ( ((0 < _adjust) ? 1 : 0) * _step );
+      upper = _lower + ( (_chunk-1) * _step ) + ( ((0 < _adjust) ? 1 : 0) * _step );
 
       // checking boundaries
       if ( ( upper * _sign ) >= ( _upper * _sign ) ) upper = _upper;
@@ -64,7 +64,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
       for ( i = 1; i < num_threads; i++ ) {
          // computing initial bounds
          lower = _lower;
-         upper = _lower + ( _chunk * _step ) + ( ((i < _adjust) ? 1 : 0) * _step );
+         upper = _lower + ( (_chunk-1) * _step ) + ( ((i < _adjust) ? 1 : 0) * _step );
 
          // checking boundaries
          if ( ( upper * _sign ) >= ( _upper * _sign ) ) upper = _upper;

@@ -90,10 +90,6 @@ namespace nanos
 //         int                     _teamId; //! Id of the thread inside its current team
 //          int                     _localSingleCount;
 
-         // scheduling info
-         SchedulingGroup *       _schedGroup;
-         SchedulingData  *       _schedData;
-
          //disable copy and assigment
          BaseThread( const BaseThread & );
          const BaseThread operator= ( const BaseThread & );
@@ -107,6 +103,7 @@ namespace nanos
          virtual void switchTo( WD *work, SchedulerHelper *helper ) = 0;
          virtual void exitTo( WD *work, SchedulerHelper *helper ) = 0;
          virtual void yield() {};
+         virtual void idle() {};
 
       protected:
 
@@ -124,7 +121,7 @@ namespace nanos
          BaseThread ( WD &wd, ProcessingElement *creator=0 ) :
                _id( _idSeed++ ), _pe( creator ), _threadWD( wd ), _started( false ), _mustStop( false ), _currentWD( NULL),
                _nextWD( NULL), _hasTeam( false ),_team(NULL),
-               _teamData(NULL), _schedGroup(NULL), _schedData(NULL) {}
+               _teamData(NULL) {}
 
          // destructor
          virtual ~BaseThread() {
@@ -175,10 +172,6 @@ namespace nanos
 
          //! Returns the id of the thread inside its current team 
          int getTeamId() const { return _teamData->getId(); }
-
-         SchedulingData * getSchedulingData () const { return _schedData; }
-
-         void setScheduling ( SchedulingGroup *sg, SchedulingData *sd )  { _schedGroup = sg; _schedData = sd; }
 
          bool isStarted () const { return _started; }
 

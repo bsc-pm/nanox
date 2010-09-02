@@ -114,8 +114,8 @@ void System::loadModules ()
    if ( !PluginManager::load( "barrier-"+getDefaultBarrier() ) )
       fatal0( "Could not load main barrier algorithm" );
 
-   if ( !PluginManager::load( "instrumentation-"+getDefaultInstrumentor() ) )
-      fatal0( "Could not load " + getDefaultInstrumentor() + " instrumentation" );
+   if ( !PluginManager::load( "instrumentation-"+getDefaultInstrumentation() ) )
+      fatal0( "Could not load " + getDefaultInstrumentation() + " instrumentation" );
 
 
    ensure( _defBarrFactory,"No default system barrier factory" );
@@ -192,7 +192,7 @@ void System::start ()
    loadModules();
 
    // Instrumentation startup
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->initialize() );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->initialize() );
 
    verbose0 ( "Starting threads" );
 
@@ -204,8 +204,7 @@ void System::start ()
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 
-
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseOpenStateEvent (STARTUP) );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_STARTUP) );
 
    //start as much threads per pe as requested by the user
    for ( int ths = 1; ths < getThsPerPE(); ths++ ) {
@@ -266,8 +265,8 @@ void System::start ()
          fatal("Unknown inital mode!");
          break;
    }
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseCloseStateEvent() );
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseOpenStateEvent (RUNNING) );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_RUNNING) );
 
 #ifdef CLUSTER_DEV
    setMaster(_net.getNodeNum() == nanos::Network::MASTER_NODE_NUM);
@@ -280,7 +279,6 @@ void System::start ()
    //else
    //   fprintf(stderr, "Im only allowed here if im the master.\n");
 #endif
-}
 
 System::~System ()
 {
@@ -289,9 +287,9 @@ System::~System ()
 
 void System::finish ()
 {
-   /* Instrumentor: First removing RUNNING state from top of the state statck */
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseCloseStateEvent() );
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseOpenStateEvent(SHUTDOWN) );
+   /* Instrumentation: First removing RUNNING state from top of the state statck */
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent(NANOS_SHUTDOWN) );
 
    verbose ( "NANOS++ shutting down.... init" );
    verbose ( "Wait for main workgroup to complete" );
@@ -327,8 +325,8 @@ void System::finish ()
 
 
    // shutdown instrumentation
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseCloseStateEvent() );
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->finalize() );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->finalize() );
 
    // join
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {

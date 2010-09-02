@@ -19,8 +19,8 @@
 #include <stack>
 #include <list>
 
-#include "instrumentorcontext.hpp"
-#include "instrumentor.hpp"
+#include "instrumentationcontext.hpp"
+#include "instrumentation.hpp"
 #include "debug.hpp"
 
 using namespace nanos;

@@ -49,7 +49,7 @@ void hello_world ( void *args )
    if ( (void *)cd[0].getAddress() !=  (void *)&(hargs->a) ) {
       std::cout << "Error: CopyData address '" << cd[0].getAddress() << "' does not match argument with address '"
                 << &(hargs->a) << "'." << std::endl;
-      exit(1);
+      abort();
    } else {
       std::cout << "Checking for CopyData address correctness... PASS" << std::endl;
    }
@@ -57,7 +57,7 @@ void hello_world ( void *args )
    if ( (void *)( (char *)hargs + (unsigned long)cd[1].getAddress() ) != (void *) &(hargs->b) ) {
       std::cout << "Error: CopyData address '" << cd[1].getAddress() << "' does not match argument with address '"
                 << &(hargs->b) << "'." << std::endl;
-      exit(1);
+      abort();
    } else {
       std::cout << "Checking for CopyData address correctness... PASS" << std::endl;
    }
@@ -65,7 +65,7 @@ void hello_world ( void *args )
    if ( cd[0].getSize() != sizeof(hargs->a) ) {
       std::cout << "Error: CopyData size '" << cd[0].getSize() << "' does not match argument with size '"
                 << sizeof((hargs->b)) << "'." << std::endl;
-      exit(1);
+      abort();
    } else {
       std::cout << "Checking for CopyData size correctness... PASS" << std::endl;
    }
@@ -73,35 +73,35 @@ void hello_world ( void *args )
    if ( cd[1].getSize() != sizeof(hargs->b) ) {
       std::cout << "Error: CopyData size '" << cd[1].getSize() << "' does not match argument with size '"
                 << sizeof((hargs->b)) << "'." << std::endl;
-      exit(1);
+      abort();
    } else {
       std::cout << "Checking for CopyData size correctness... PASS" << std::endl;
    }
 
    if ( !cd[0].isInput() ) {
       std::cout << "Error: CopyData was supposed to be input." << std::endl;
-      exit(1);
+      abort();
    } else {
       std::cout << "Checking for CopyData direction correctness... PASS" << std::endl;
    }
 
    if ( !cd[1].isOutput() ) {
       std::cout << "Error: CopyData was supposed to be output." << std::endl;
-      exit(1);
+      abort();
    } else {
       std::cout << "Checking for CopyData direction correctness... PASS" << std::endl;
    }
    
    if ( !cd[0].isShared() ) {
       std::cout << "Error: CopyData was supposed to be NANOS_SHARED." <<  std::endl;
-      exit(1);
+      abort();
    } else {
       std::cout << "Checking for CopyData sharing... PASS" << std::endl;
    }
 
    if ( !cd[1].isPrivate() ) {
       std::cout << "Error: CopyData was supposed to be NANOS_PRIVATE." <<  std::endl;
-      exit(1);
+      abort();
    } else {
       std::cout << "Checking for CopyData sharing... PASS" << std::endl;
    }
