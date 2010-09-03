@@ -103,6 +103,7 @@ namespace nanos
          virtual void switchTo( WD *work, SchedulerHelper *helper ) = 0;
          virtual void exitTo( WD *work, SchedulerHelper *helper ) = 0;
          virtual void yield() {};
+         virtual void idle() {};
 
       protected:
 

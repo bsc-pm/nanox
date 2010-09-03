@@ -19,7 +19,7 @@
 #ifndef __NANOS_INSTRUMENTOR_H
 #define __NANOS_INSTRUMENTOR_H
 
-#include "instrumentor_decl.hpp"
+#include "instrumentation_decl.hpp"
 
 using namespace nanos;
 
@@ -246,7 +246,7 @@ inline const std::string InstrumentationDictionary::getValueDescription ( nanos_
 
 /** INSTRUMENTOR **/
 
-inline InstrumentationDictionary * Instrumentation::getInstrumentorDictionary ( void ) { return &_instrumentorDictionary; }
+inline InstrumentationDictionary * Instrumentation::getInstrumentationDictionary ( void ) { return &_instrumentationDictionary; }
 
 inline nanos_event_type_t Instrumentation::Event::getType () const { return _type; }
 
@@ -264,10 +264,10 @@ inline void Instrumentation::Event::reverseType ( )
 {
    switch ( _type )
    {
-      case PTP_START: _type = PTP_END; break;
-      case PTP_END: _type = PTP_START; break;
-      case BURST_START: _type = BURST_END; break;
-      case BURST_END: _type = BURST_START; break;
+      case NANOS_PTP_START: _type = NANOS_PTP_END; break;
+      case NANOS_PTP_END: _type = NANOS_PTP_START; break;
+      case NANOS_BURST_START: _type = NANOS_BURST_END; break;
+      case NANOS_BURST_END: _type = NANOS_BURST_START; break;
       default: break;
    }
 }

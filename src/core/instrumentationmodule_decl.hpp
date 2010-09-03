@@ -20,7 +20,7 @@
 #define __NANOS_INSTRUMENTOR_MODULE_DECL_H
 #include "debug.hpp"
 #include "nanos-int.h"
-#include "instrumentor.hpp"
+#include "instrumentation.hpp"
 #include "system.hpp"
 
 namespace nanos {
@@ -34,17 +34,17 @@ namespace nanos {
 	 bool		      _closed;
       public:
          InstrumentStateAndBurst ( const char* keydesc, const char *valdesc, nanos_event_state_value_t state ) : 
-                                   _inst(*sys.getInstrumentor()),
-                                   _key( _inst.getInstrumentorDictionary()->getEventKey(keydesc)),
+                                   _inst(*sys.getInstrumentation()),
+                                   _key( _inst.getInstrumentationDictionary()->getEventKey(keydesc)),
                                    _closed(false)
          {
-            nanos_event_value_t val = _inst.getInstrumentorDictionary()->getEventValue(keydesc,valdesc);
+            nanos_event_value_t val = _inst.getInstrumentationDictionary()->getEventValue(keydesc,valdesc);
             _inst.raiseOpenStateAndBurst(state, _key, val);
          }
 
          InstrumentStateAndBurst ( const char* keydesc, nanos_event_value_t val, nanos_event_state_value_t state ) :
-                                   _inst(*sys.getInstrumentor()),
-                                   _key( _inst.getInstrumentorDictionary()->getEventKey(keydesc)),
+                                   _inst(*sys.getInstrumentation()),
+                                   _key( _inst.getInstrumentationDictionary()->getEventKey(keydesc)),
                                    _closed(false)
          {
             _inst.raiseOpenStateAndBurst(state, _key, val);
@@ -65,7 +65,7 @@ namespace nanos {
          Instrumentation     &_inst;
 	 bool		      _closed;
       public:
-         InstrumentState ( nanos_event_state_value_t state ) : _inst(*sys.getInstrumentor()), _closed(false)
+         InstrumentState ( nanos_event_state_value_t state ) : _inst(*sys.getInstrumentation()), _closed(false)
          {
             _inst.raiseOpenStateEvent( state );
          }
@@ -84,7 +84,7 @@ namespace nanos {
       private:
          Instrumentation     &_inst;
       public:
-         InstrumentSubState ( nanos_event_state_value_t subState ) : _inst(*sys.getInstrumentor())
+         InstrumentSubState ( nanos_event_state_value_t subState ) : _inst(*sys.getInstrumentation())
          {
             _inst.disableStateEvents(subState);
          }

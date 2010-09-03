@@ -29,7 +29,7 @@
 #include "copydata.hpp"
 #include "synchronizedcondition_decl.hpp"
 #include "atomic.hpp"
-#include "instrumentorcontext.hpp"
+#include "instrumentationcontext.hpp"
 
 using namespace nanos;
 
@@ -126,7 +126,7 @@ inline DependenciesDomain & WorkDescriptor::getDependenciesDomain()
 }
 
 
-inline InstrumentationContextData * WorkDescriptor::getInstrumentorContextData( void ) { return &_instrumentorContextData; }
+inline InstrumentationContextData * WorkDescriptor::getInstrumentationContextData( void ) { return &_instrumentationContextData; }
 
 #endif
 

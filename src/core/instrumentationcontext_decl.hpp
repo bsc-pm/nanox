@@ -21,7 +21,7 @@
 #include <stack>
 #include <list>
 
-#include "instrumentor_decl.hpp"
+#include "instrumentation_decl.hpp"
 #include "debug.hpp"
 
 namespace nanos {
@@ -32,8 +32,8 @@ namespace nanos {
          friend class InstrumentationContextStackedBursts;
          friend class InstrumentationContextStackedStatesAndBursts;
       public:
-         typedef Instrumentation::Event                  Event;                /**< Class defined in instrumentor_decl.hpp */
-         typedef Instrumentation::Burst                  Burst;                /**< Class defined in instrumentor_decl.hpp */
+         typedef Instrumentation::Event                  Event;                /**< Class defined in instrumentation_decl.hpp */
+         typedef Instrumentation::Burst                  Burst;                /**< Class defined in instrumentation_decl.hpp */
          typedef std::deque<nanos_event_state_value_t>   StateStack;           /**< Stack of state's values */
          typedef std::list<Event>                        BurstList;            /**< List of Events (Bursts) */
          typedef BurstList::const_iterator               ConstBurstIterator;   /**< InstrumentationContext const BurstIterator */
@@ -86,7 +86,7 @@ namespace nanos {
    class InstrumentationContext {
          friend class Instrumentation;
       public:
-         typedef Instrumentation::Event                  Event;                /**< Class defined in instrumentor_decl.hpp */
+         typedef Instrumentation::Event                  Event;                /**< Class defined in instrumentation_decl.hpp */
       public:
          /*! \brief InstrumentationContext constructor
           */
@@ -94,7 +94,6 @@ namespace nanos {
          /*! \brief InstrumentationContext destructor
           */
          virtual ~InstrumentationContext() {}
-      private: /* Only friend classes (Instrumentation) can use InstrumentationContext */
          /*! \brief Adds a state value into the state stack 
           */
          void pushState ( InstrumentationContextData *icd, nanos_event_state_value_t state ); 

@@ -19,7 +19,7 @@
 
 #include "gputhread.hpp"
 #include "gpuprocessor.hpp"
-#include "instrumentormodule_decl.hpp"
+#include "instrumentationmodule_decl.hpp"
 #include "schedule.hpp"
 #include "system.hpp"
 

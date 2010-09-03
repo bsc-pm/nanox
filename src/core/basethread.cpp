@@ -45,7 +45,7 @@ void BaseThread::associate ()
 
    _threadWD.start(false);
 
-   NANOS_INSTRUMENT( sys.getInstrumentor()->wdEnterCPU(&_threadWD) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdEnterCPU(&_threadWD) );
 }
 
 bool BaseThread::singleGuard ()

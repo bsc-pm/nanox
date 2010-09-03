@@ -72,15 +72,15 @@ nanos_sources=\
 	workdescriptor.cpp \
 	slicer_fwd.hpp \
 	slicer.hpp \
-	instrumentorcontext_decl.hpp \
-	instrumentorcontext_fwd.hpp \
-	instrumentorcontext.hpp \
-	instrumentorcontext.cpp \
-	instrumentormodule_decl.hpp \
-	instrumentor_fwd.hpp \
-	instrumentor_decl.hpp \
-	instrumentor.hpp \
-	instrumentor.cpp \
+	instrumentationcontext_fwd.hpp \
+	instrumentationcontext_decl.hpp \
+	instrumentationcontext.hpp \
+	instrumentationcontext.cpp \
+	instrumentationmodule_decl.hpp \
+	instrumentation_fwd.hpp \
+	instrumentation_decl.hpp \
+	instrumentation.hpp \
+	instrumentation.cpp \
 	throttle_fwd.hpp \
 	throttle.hpp \
 	dependency_fwd.hpp \
