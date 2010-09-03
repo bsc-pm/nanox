@@ -104,6 +104,11 @@ void GPUThread::inlineWorkDependent ( WD &wd )
    cudaThreadSynchronize();
 }
 
+void GPUThread::yield()
+{
+   executePendingCopies();
+}
+
 
 
 void GPUThread::PendingCopiesAsyncList::removePendingCopy ( std::vector<PendingCopy>::iterator it )
@@ -187,6 +192,7 @@ void GPUThread::PendingCopiesAsyncList::finishPendingCopy( std::vector<PendingCo
       it->_do->finished();
    }
    it->done();
+   ( ( GPUProcessor * ) myThread->runningOn() )->flushCacheAccess( ( uint64_t ) it->_dst, it->_size );
    _pendingCopiesAsync.erase( it );
 }
 

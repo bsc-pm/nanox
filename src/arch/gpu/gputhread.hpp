@@ -148,6 +148,8 @@ namespace ext
 
          virtual void inlineWorkDependent( WD &work );
 
+         virtual void yield();
+
          void idle()
          {
             _pendingCopies->removePendingCopy();

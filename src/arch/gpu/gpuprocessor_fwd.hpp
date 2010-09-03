@@ -70,6 +70,7 @@ namespace ext
          // Memory space support
          virtual void registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output );
          virtual void unregisterCacheAccessDependent( uint64_t tag, size_t size );
+         virtual void flushCacheAccess( uint64_t tag, size_t size );
          virtual void registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output );
          virtual void unregisterPrivateAccessDependent( uint64_t tag, size_t size );
 

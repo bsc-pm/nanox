@@ -71,6 +71,11 @@ void GPUProcessor::unregisterCacheAccessDependent( uint64_t tag, size_t size )
    _cache.unregisterCacheAccess( tag, size );
 }
 
+void GPUProcessor::flushCacheAccess( uint64_t tag, size_t size )
+{
+   _cache.flushCacheAccess( tag, size );
+}
+
 void GPUProcessor::registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output )
 {
    _cache.registerPrivateAccess( tag, size, input, output );
