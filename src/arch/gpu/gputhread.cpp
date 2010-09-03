@@ -181,3 +181,12 @@ void GPUThread::PendingCopiesAsyncList::executePendingCopies ()
 #endif
 }
 
+void GPUThread::PendingCopiesAsyncList::finishPendingCopy( std::vector<PendingCopy>::iterator it )
+{
+   if ( it->_do != NULL) {
+      it->_do->finished();
+   }
+   it->done();
+   _pendingCopiesAsync.erase( it );
+}
+

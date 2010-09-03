@@ -65,7 +65,7 @@ namespace ext
       {
          private:
 
-            class PendingCopy
+            class PendingCopy : public nanos::WG
             {
                public:
                   void *                        _dst;
@@ -101,6 +101,7 @@ namespace ext
             void addPendingCopy ( void * dest, void * source, size_t size )
             {
                _pendingCopiesAsync.push_back( PendingCopy( dest, source, size ) );
+               myThread->getCurrentWD()->getParent()->addWork( _pendingCopiesAsync.back() );
             }
 
             void removePendingCopy ( std::vector<PendingCopy>::iterator it );
@@ -125,12 +126,7 @@ namespace ext
 
             void executePendingCopies ();
 
-            void finishPendingCopy ( std::vector<PendingCopy>::iterator it ) {
-               if ( it->_do != NULL) {
-                  it->_do->finished();
-               }
-               _pendingCopiesAsync.erase( it );
-            }
+            void finishPendingCopy ( std::vector<PendingCopy>::iterator it );
       };
 
       private:

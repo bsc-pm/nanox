@@ -47,6 +47,8 @@ namespace nanos
          void addToGroup ( WorkGroup &parent );
          void exitWork ( WorkGroup &work );
 
+         //const WorkGroup & operator= ( const WorkGroup &wg );
+
       public:
          // constructors
          WorkGroup() : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ),
@@ -61,8 +63,6 @@ namespace nanos
 
          // destructor
          virtual ~WorkGroup();
-
-         const WorkGroup & operator= ( const WorkGroup &wg );
 
          void addWork( WorkGroup &wg );
          void sync();
