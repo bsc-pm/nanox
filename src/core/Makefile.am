@@ -81,7 +81,7 @@ nanos_sources=\
 	instrumentation_decl.hpp \
 	instrumentation.hpp \
 	instrumentation.cpp \
-	throttle_fwdatiopp \
+	throttle_fwd.hpp \
 	throttle.hpp \
 	dependency_fwd.hpp \
 	dependency.hpp \
