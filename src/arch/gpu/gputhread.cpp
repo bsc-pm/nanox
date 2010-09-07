@@ -192,7 +192,7 @@ void GPUThread::PendingCopiesAsyncList::finishPendingCopy( std::vector<PendingCo
       it->_do->finished();
    }
    it->done();
-   ( ( GPUProcessor * ) myThread->runningOn() )->flushCacheAccess( ( uint64_t ) it->_dst, it->_size );
+   ( ( GPUProcessor * ) myThread->runningOn() )->updateCacheAccess( ( uint64_t ) it->_dst, it->_size );
    _pendingCopiesAsync.erase( it );
 }
 

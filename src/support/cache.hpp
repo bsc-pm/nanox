@@ -125,7 +125,7 @@ namespace nanos {
          virtual void copyDataToCache( uint64_t tag, size_t size ) = 0;
          virtual void copyBackFromCache( uint64_t tag, size_t size ) = 0;
          virtual void copyTo( void *dst, uint64_t tag, size_t size ) = 0;
-         virtual void flushCacheAccess( uint64_t tag, size_t size ) = 0;
+         virtual void updateCacheAccess( uint64_t tag, size_t size ) = 0;
    };
 
    class CachePolicy
@@ -303,164 +303,15 @@ namespace nanos {
 
          virtual ~AsynchronousWriteThroughPolicy() { }
 
-         virtual void registerCacheAccess( uint64_t tag, size_t size, bool input, bool output )
-         {
-            _directory.lock();
-            DirectoryEntry *de = _directory.getEntry( tag );
+         void init ( size_t max );
 
-            if ( de == NULL ) { // Memory access not registered in the directory
-               // Create directory entry, if the access is output, own it
-               de = &( _directory.newEntry( tag, 0, ( output ? &_cache : NULL ) ) );
+         virtual void registerCacheAccess( uint64_t tag, size_t size, bool input, bool output );
+         virtual void unregisterCacheAccess( uint64_t tag, size_t size );
 
-               // Create cache entry (we assume it is not in the cache)
-               CacheEntry& ce = _cache.newEntry( tag, 0, output, size );
-               ce.increaseRefs();
-               ce.setAddress( _cache.allocate( size ) );
+         virtual void updateCacheAccess( uint64_t tag, size_t size );
 
-               // Need to copy in ?
-               if ( input ) {
-                  _cache.copyDataToCache( tag, size );
-               }
-            }
-            else {
-               Cache *owner = de->getOwner();
-
-               if ( owner != NULL ) {
-                  // FIXME Is dirty we need to interact with the other cache
-                  CacheEntry *ce = _cache.getEntry( tag );
-                  if ( ce == NULL ) {
-                     // I'm not the owner
-                     CacheEntry& nce = _cache.newEntry( tag, 0, output, size );
-                     nce.increaseRefs();
-                     nce.setAddress( _cache.allocate( size ) );
-
-                     // Need to copy in ?
-                     if ( input ) {
-                        _directory.unLock();
-                        while ( owner->getEntry( tag )->isDirty() ) {
-                           flushMyself();
-                        }
-                        _directory.lock();
-                        _cache.copyDataToCache( tag, size );
-                        nce.setVersion( de->getVersion() );
-                     }
-
-                     if ( output ) {
-                        de->setOwner( &_cache );
-                        ce->setDirty( true );
-                        de->setVersion( de->getVersion() + 1 ) ;
-                        ce->setVersion( de->getVersion() );
-                     }
-                  }
-                  else
-                  {
-                     if ( ( ce->getVersion() < de->getVersion() ) && input ) {
-                        _directory.unLock();
-                        if ( owner != &_cache ) {
-                           // Check I'm not the owner
-                           while ( owner->getEntry( tag )->isDirty() ) {
-                              flushMyself();
-                           }
-                        }
-                        _directory.lock();
-                        _cache.copyDataToCache( tag, size );
-                        ce->setVersion( de->getVersion() );
-                     }
-
-                     if ( output ) {
-                        de->setOwner( &_cache );
-                        ce->setDirty( true );
-                        de->setVersion( de->getVersion() + 1 ) ;
-                        ce->setVersion( de->getVersion() );
-                     }
-                  }
-               }
-               else {
-                  // lookup in cache
-                  CacheEntry *ce = _cache.getEntry( tag );
-                  if ( ce != NULL ) {
-                     if ( ( ce->getVersion() < de->getVersion() ) && input ) {
-                        _cache.copyDataToCache( tag, size );
-                        ce->setVersion( de->getVersion() );
-                     }
-                     else {
-                        // Hit in the cache
-                        NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("cache-hit") );
-                        NANOS_INSTRUMENT( sys.getInstrumentor()->raisePointEvent( key, (nanos_event_value_t) tag ) );
-                     }
-
-                     if ( output ) {
-                        de->setOwner( &_cache );
-                        ce->setDirty( true );
-                        de->setVersion( de->getVersion() + 1 ) ;
-                        ce->setVersion( de->getVersion() );
-                     }
-                  }
-                  else {
-                     if ( output ) {
-                        de->setOwner( &_cache );
-                        de->setVersion( de->getVersion() + 1 );
-                     }
-                     ce = & (_cache.newEntry( tag, de->getVersion(), output, size ) );
-                     //ce->increaseRefs();
-                     ce->setAddress( _cache.allocate( size ) );
-                     if ( input ) {
-                        _cache.copyDataToCache( tag, size );
-                     }
-                  }
-                  ce->increaseRefs();
-               }
-            }
-            _directory.unLock();
-         }
-
-         virtual void unregisterCacheAccess( uint64_t tag, size_t size )
-         {
-            _directory.lock();
-            CacheEntry *ce = _cache.getEntry( tag );
-            //ensure (ce != NULL, "Cache has been corrupted");
-            if ( ce->isDirty() ) {
-               _cache.copyBackFromCache( tag, size );
-            }
-            _directory.unLock();
-         }
-
-         virtual void flushCacheAccess( uint64_t tag, size_t size )
-         {
-            _directory.lock();
-            CacheEntry *ce = _cache.getEntry( tag );
-            DirectoryEntry *de = _directory.getEntry( tag );
-            de->setOwner( NULL );
-            ce->setDirty( false );
-            ce->decreaseRefs();
-            _directory.unLock();
-         }
-
-         virtual void flushMyself ()
-         {
-            //( (nanos::ext::GPUThread * ) myThread )->executePendingCopies();
-            myThread->idle();
-            //_cache.flush( _directory );
-         }
-
-         virtual void registerPrivateAccess( uint64_t tag, size_t size, bool input, bool output )
-         {
-            // Private accesses are never found in the cache, the directory is not used because they can't be shared
-            CacheEntry& ce = _cache.newEntry( tag, 0, output, size );
-            ce.increaseRefs();
-            ce.setAddress( _cache.allocate( size ) );
-            if ( input )
-               _cache.copyDataToCache( tag, size );
-         }
-
-         virtual void unregisterPrivateAccess( uint64_t tag, size_t size )
-         {
-            CacheEntry *ce = _cache.getEntry( tag );
-            ensure ( ce != NULL, "Private access cannot miss in the cache.");
-            if ( ce->isDirty() )
-               _cache.copyBackFromCache( tag, size );
-            _cache.deleteEntry( tag, size );
-         }
+         virtual void registerPrivateAccess( uint64_t tag, size_t size, bool input, bool output );
+         virtual void unregisterPrivateAccess( uint64_t tag, size_t size );
    };
 
 
@@ -630,9 +481,9 @@ namespace nanos {
             _policy.unregisterPrivateAccess( tag, size );
          }
 
-         void flushCacheAccess( uint64_t tag, size_t size )
+         void updateCacheAccess( uint64_t tag, size_t size )
          {
-            _policy.flushCacheAccess( tag, size );
+            _policy.updateCacheAccess( tag, size );
          }
 #if 0
          void flush ( Directory & directory )

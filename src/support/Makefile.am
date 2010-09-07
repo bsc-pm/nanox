@@ -36,5 +36,6 @@ libsupport_la_SOURCES = \
 	xstring.hpp \
 	cache_fwd.hpp \
 	cache.hpp \
+	cache.cpp \
 	$(END) 
 
