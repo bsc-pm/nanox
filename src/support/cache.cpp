@@ -49,7 +49,7 @@ void AsynchronousWriteThroughPolicy::registerCacheAccess( uint64_t tag, size_t s
             // I'm not the owner
             CacheEntry& nce = _cache.newEntry( tag, 0, output, size );
             nce.increaseRefs();
-            ce->setAddress( _cache.allocate( size ) );
+            nce.setAddress( _cache.allocate( size ) );
 
             // Need to copy in ?
             if ( input ) {
@@ -64,9 +64,9 @@ void AsynchronousWriteThroughPolicy::registerCacheAccess( uint64_t tag, size_t s
 
             if ( output ) {
                de->setOwner( &_cache );
-               ce->setDirty( true );
+               nce.setDirty( true );
                de->setVersion( de->getVersion() + 1 ) ;
-               ce->setVersion( de->getVersion() );
+               nce.setVersion( de->getVersion() );
             }
          }
          else
