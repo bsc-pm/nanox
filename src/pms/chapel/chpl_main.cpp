@@ -46,8 +46,7 @@ namespace nanos
    {
       static void init()
       {
-         sys.setInitialMode( System::POOL );
-         sys.setUntieMaster(true);
+	 sys.setDelayedStart(true);
       }
    }
 
@@ -71,13 +70,12 @@ void CHPL_BEGIN(chpl_fn_p fp,
 
 // Tasks
 
-void CHPL_TASKING_INIT() {
-#if 0
-  // TODO:
-  if (blockreport || taskreport) {
-    chpl_internal_error("blockreport/taskreport not implemented");
-  }
-#endif  
+void CHPL_TASKING_INIT() 
+{
+   sys.setInitialMode( System::POOL );
+   sys.setUntieMaster(true);
+   sys.setNumPEs(maxThreads);
+   sys.start();
 
 /*  tp = chpl_alloc(sizeof(thread_private_data_t), CHPL_RT_MD_THREAD_PRIVATE_DATA, 0, 0);
   threadlayer_set_thread_private_data(tp);
@@ -87,6 +85,7 @@ void CHPL_TASKING_INIT() {
 
 void CHPL_TASKING_EXIT()
 {
+   sys.finish();
 }
 
 void CHPL_ADD_TO_TASK_LIST(chpl_fn_int_t fid, void* arg,

@@ -81,6 +81,7 @@ namespace nanos
          bool                    _started;
          volatile bool           _mustStop;
          WD *                    _currentWD;
+         WD *                    _nextWD;
 
          // Team info
          bool                    _hasTeam;
@@ -88,10 +89,6 @@ namespace nanos
          TeamData *              _teamData;
 //         int                     _teamId; //! Id of the thread inside its current team
 //          int                     _localSingleCount;
-
-         // scheduling info
-         SchedulingGroup *       _schedGroup;
-         SchedulingData  *       _schedData;
 
          //disable copy and assigment
          BaseThread( const BaseThread & );
@@ -121,8 +118,9 @@ namespace nanos
 
          // constructor
          BaseThread ( WD &wd, ProcessingElement *creator=0 ) :
-               _id( _idSeed++ ), _pe( creator ), _threadWD( wd ), _started( false ), _mustStop( false ), _hasTeam( false ),_team(NULL),
-			   _teamData(NULL), _schedGroup(NULL), _schedData(NULL) {}
+               _id( _idSeed++ ), _pe( creator ), _threadWD( wd ), _started( false ), _mustStop( false ), _currentWD( NULL),
+               _nextWD( NULL), _hasTeam( false ),_team(NULL),
+               _teamData(NULL) {}
 
          // destructor
          virtual ~BaseThread() {
@@ -139,6 +137,8 @@ namespace nanos
          void run();
          void stop() { _mustStop = true; }
 
+         virtual void idle() {};
+
          virtual void join() = 0;
          virtual void bind() {};
 
@@ -148,6 +148,10 @@ namespace nanos
          WD * getCurrentWD () const { return _currentWD; }
 
          WD & getThreadWD () const { return _threadWD; }
+
+         void setNextWD ( WD *next ) { _nextWD = next; }
+
+         WD * getNextWD () const { return _nextWD; }
 
          // team related methods
          void reserve() { _hasTeam = 1; }
@@ -169,10 +173,6 @@ namespace nanos
 
          //! Returns the id of the thread inside its current team 
          int getTeamId() const { return _teamData->getId(); }
-
-         SchedulingData * getSchedulingData () const { return _schedData; }
-
-         void setScheduling ( SchedulingGroup *sg, SchedulingData *sd )  { _schedGroup = sg; _schedData = sd; }
 
          bool isStarted () const { return _started; }
 

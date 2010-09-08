@@ -20,14 +20,14 @@
 #include "nanos.h"
 #include "system.hpp"
 #include "debug.hpp"
-#include "instrumentormodule_decl.hpp"
+#include "instrumentationmodule_decl.hpp"
 
 using namespace nanos;
 
 nanos_err_t nanos_create_team( nanos_team_t *team, nanos_sched_t sp, unsigned int *nthreads,
                                nanos_constraint_t * constraints, bool reuse, nanos_thread_t *info )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","create_team",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","create_team",NANOS_RUNTIME) );
 
    try {
       if ( *team ) warning( "pre-allocated team not supported yet" );
@@ -56,7 +56,7 @@ nanos_err_t nanos_create_team_mapped ( nanos_team_t *team, nanos_sched_t sg, uns
 
 nanos_err_t nanos_leave_team ()
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","leave_team",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","leave_team",NANOS_RUNTIME) );
 
    try {
       sys.releaseWorker(myThread);
@@ -68,7 +68,7 @@ nanos_err_t nanos_leave_team ()
 
 nanos_err_t nanos_end_team ( nanos_team_t team )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","end_team",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","end_team",NANOS_RUNTIME) );
 
    try {
       sys.endTeam((ThreadTeam *)team);
@@ -84,7 +84,7 @@ nanos_err_t nanos_end_team ( nanos_team_t team )
 */
 nanos_err_t nanos_team_barrier ( )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","team_barrier",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","team_barrier",NANOS_SYNCHRONIZATION) );
 
    try {
       myThread->getTeam()->barrier();

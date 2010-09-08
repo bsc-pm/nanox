@@ -17,9 +17,12 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
+
 include $(top_srcdir)/src/common.am
 
-chpl_dir=/home/alex/Build/chapel/trunk
+if CHAPEL_SUPPORT
+
+chpl_dir=@CHAPEL_HOME@
 chpl_flags=-I$(chpl_dir)/runtime/include
 
 lib_LTLIBRARIES=libnanox-chpl.la
@@ -40,3 +43,4 @@ libnanox_chpl_la_LIBADD=$(top_builddir)/src/core/libnanox.la
 libnanox_chpl_la_SOURCES=$(sources)
 libnanox_chpl_la_DEPENDENCIES=$(top_builddir)/src/core/libnanox.la
 
+endif

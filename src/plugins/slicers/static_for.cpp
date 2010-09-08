@@ -46,7 +46,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
       // Init WorkDescriptor 'work'
       // computing initial bounds
       lower = _lower;
-      upper = _lower + ( _chunk * _step ) + ( ((0 < _adjust) ? 1 : 0) * _step );
+      upper = _lower + ( (_chunk-1) * _step ) + ( ((0 < _adjust) ? 1 : 0) * _step );
 
       // checking boundaries
       if ( ( upper * _sign ) >= ( _upper * _sign ) ) upper = _upper;
@@ -55,6 +55,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
       ((nanos_loop_info_t *)(work.getData()))->lower = lower;
       ((nanos_loop_info_t *)(work.getData()))->upper = upper; 
       ((nanos_loop_info_t *)(work.getData()))->step = _step;
+      ((nanos_loop_info_t *)(work.getData()))->last = (num_threads == 1 );
 
       // next slice init
       _lower = upper + _step;
@@ -63,7 +64,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
       for ( i = 1; i < num_threads; i++ ) {
          // computing initial bounds
          lower = _lower;
-         upper = _lower + ( _chunk * _step ) + ( ((i < _adjust) ? 1 : 0) * _step );
+         upper = _lower + ( (_chunk-1) * _step ) + ( ((i < _adjust) ? 1 : 0) * _step );
 
          // checking boundaries
          if ( ( upper * _sign ) >= ( _upper * _sign ) ) upper = _upper;
@@ -75,6 +76,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          ((nanos_loop_info_t *)(slice->getData()))->lower = lower;
          ((nanos_loop_info_t *)(slice->getData()))->upper = upper;
          ((nanos_loop_info_t *)(slice->getData()))->step = _step;
+         ((nanos_loop_info_t *)(slice->getData()))->last = ( i == (num_threads - 1) );
 
          slice->tieTo( (*myThread->getTeam())[i] );
          Scheduler::submit ( *slice );
@@ -152,6 +154,7 @@ bool SlicerStaticFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
          upper = _upper;
          last = true;
       }
+
       if ( (_lower * _sign) > (_upper * _sign)) {
          last = true;
       }
@@ -166,6 +169,12 @@ bool SlicerStaticFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
       ((nanos_loop_info_t *)((*slice)->getData()))->lower = lower;
       ((nanos_loop_info_t *)((*slice)->getData()))->upper = upper;
       ((nanos_loop_info_t *)((*slice)->getData()))->step = _step;
+
+      // If it is 'actually' a chunk of iterations and it is the last one...
+      if ( ((_lower * _sign) < (_upper * _sign)) && ( upper == _upper ) ) {
+         ((nanos_loop_info_t *)((*slice)->getData()))->last = true;
+      }
+      else ((nanos_loop_info_t *)((*slice)->getData()))->last = false;
    }
 
    return last;

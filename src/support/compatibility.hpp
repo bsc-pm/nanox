@@ -20,17 +20,25 @@
 #ifndef _NANOS_COMPATIBILITY_HPP
 #define _NANOS_COMPATIBILITY_HPP
 
+#if __CUDACC__
+
+#define BROKEN_COMPARE_AND_SWAP
+
+#endif
+
 // compiler issues
 
 #if __GXX_EXPERIMENTAL_CXX0X__
 
 #include <unordered_map>
+#include <memory>
 
 namespace TR1 = std;
 
 #else
 
 #include <tr1/unordered_map>
+#include <tr1/memory>
 
 namespace TR1 = std::tr1;
 
@@ -54,6 +62,12 @@ template<> struct hash<unsigned long long> : public std::unary_function<unsigned
 
 #endif // __GNUC__ == 4 && __GNUC_MINOR__ < 2
 #endif // __GNUC__
+
+#ifdef BROKEN_COMPARE_AND_SWAP
+
+bool __sync_bool_compare_and_swap( int *ptr, int oldval, int newval );
+
+#endif
 
 
 #endif

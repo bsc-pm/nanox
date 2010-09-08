@@ -21,10 +21,38 @@
 #include "debug.hpp"
 #include "schedule.hpp"
 
+#include "cuda_runtime.h"
+
 using namespace nanos;
 using namespace nanos::ext;
 
 Atomic<int> GPUProcessor::_deviceSeed = 0;
+
+
+GPUProcessor::GPUInfo::GPUInfo ( int device )
+{
+   struct cudaDeviceProp gpuProperties;
+   cudaGetDeviceProperties( &gpuProperties, device );
+
+   _maxMemoryAvailable = gpuProperties.totalGlobalMem * 0.7;
+}
+
+
+GPUProcessor::GPUProcessor( int id, int gpuId )
+   : Accelerator( id, &GPU ), _gpuDevice( _deviceSeed++ ), _gpuInfo( gpuId ), _transferInfo(),
+     _cache(), _pinnedMemory()
+{
+   //std::cout << "[GPUProcessor] I have " << _gpuInfo.getMaxMemoryAvailable()
+   //      << " bytes of available memory (device #" << gpuId << ")" << std::endl;
+
+   _transferInfo = new TransferInfo();
+}
+
+size_t GPUProcessor::getMaxMemoryAvailable ( int id )
+{
+   return 0;//GPUPlugin::getMaxMemoryAvailable( id );
+}
+
 
 WorkDescriptor & GPUProcessor::getWorkerWD () const
 {
@@ -47,29 +75,29 @@ BaseThread &GPUProcessor::createThread ( WorkDescriptor &helper )
    return th;
 }
 
-void GPUProcessor::registerDataAccessDependent( uint64_t tag, size_t size )
+void GPUProcessor::registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output )
 {
-   _cache.cacheData( tag, size );
+   _cache.registerCacheAccess( tag, size, input, output );
 }
 
-void GPUProcessor::copyDataDependent( uint64_t tag, size_t size )
+void GPUProcessor::unregisterCacheAccessDependent( uint64_t tag, size_t size )
 {
-   _cache.copyData( tag, size );
+   _cache.unregisterCacheAccess( tag, size );
 }
 
-void GPUProcessor::unregisterDataAccessDependent( uint64_t tag )
+void GPUProcessor::registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output )
 {
-   _cache.flush( tag );
+   _cache.registerPrivateAccess( tag, size, input, output );
 }
 
-void GPUProcessor::copyBackDependent( uint64_t tag, size_t size )
+void GPUProcessor::unregisterPrivateAccessDependent( uint64_t tag, size_t size )
 {
-   _cache.copyBack( tag, size );
+   _cache.unregisterPrivateAccess( tag, size );
 }
 
 void* GPUProcessor::getAddressDependent( uint64_t tag )
 {
-   return _cache.getAddress(tag);
+   return _cache.getAddress( tag );
 }
 
 void GPUProcessor::copyToDependent( void *dst, uint64_t tag, size_t size )

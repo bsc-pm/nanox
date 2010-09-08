@@ -22,13 +22,14 @@
 #include "schedule.hpp"
 #include "system.hpp"
 #include "synchronizedcondition.hpp"
-#include "instrumentormodule_decl.hpp"
+#include "instrumentationmodule_decl.hpp"
+#include "instrumentation.hpp"
 
 using namespace nanos;
 
 nanos_err_t nanos_wg_wait_completion ( nanos_wg_t uwg )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","wg_wait_completion",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","wg_wait_completion",NANOS_SYNCHRONIZATION) );
 
    try {
       WG *wg = ( WG * )uwg;
@@ -42,7 +43,7 @@ nanos_err_t nanos_wg_wait_completion ( nanos_wg_t uwg )
 
 nanos_err_t nanos_create_int_sync_cond ( nanos_sync_cond_t *sync_cond, volatile int *p, int condition )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","*_create_sync_cond",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_sync_cond",NANOS_RUNTIME ) );
 
    try {
       *sync_cond = ( nanos_sync_cond_t * ) new SingleSyncCond<EqualConditionChecker<int> >( EqualConditionChecker<int>( p, condition ) );
@@ -55,7 +56,7 @@ nanos_err_t nanos_create_int_sync_cond ( nanos_sync_cond_t *sync_cond, volatile 
 
 nanos_err_t nanos_create_bool_sync_cond ( nanos_sync_cond_t *sync_cond, volatile bool *p, bool condition )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","*_create_sync_cond",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_sync_cond",NANOS_RUNTIME) );
 
    try {
       *sync_cond = ( nanos_sync_cond_t * ) new SingleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>( p, condition ) );
@@ -68,7 +69,7 @@ nanos_err_t nanos_create_bool_sync_cond ( nanos_sync_cond_t *sync_cond, volatile
 
 nanos_err_t nanos_sync_cond_wait ( nanos_sync_cond_t *sync_cond )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","sync_cond_wait",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","sync_cond_wait",NANOS_SYNCHRONIZATION) );
 
    try {
       GenericSyncCond * syncCond = (GenericSyncCond *) *sync_cond;
@@ -82,7 +83,7 @@ nanos_err_t nanos_sync_cond_wait ( nanos_sync_cond_t *sync_cond )
 
 nanos_err_t nanos_sync_cond_signal ( nanos_sync_cond_t *sync_cond )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","sync_cond_signal",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","sync_cond_signal",NANOS_SYNCHRONIZATION) );
 
    try {
       GenericSyncCond * syncCond = (GenericSyncCond *) *sync_cond;
@@ -96,7 +97,7 @@ nanos_err_t nanos_sync_cond_signal ( nanos_sync_cond_t *sync_cond )
 
 nanos_err_t nanos_destroy_sync_cond ( nanos_sync_cond_t *sync_cond )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","destroy_sync_cond",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","destroy_sync_cond",NANOS_RUNTIME) );
 
    try {
       GenericSyncCond * syncCond = (GenericSyncCond *) *sync_cond;
@@ -110,7 +111,23 @@ nanos_err_t nanos_destroy_sync_cond ( nanos_sync_cond_t *sync_cond )
 
 nanos_err_t nanos_wait_on ( size_t num_deps, nanos_dependence_t *deps )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","wait_on",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","wait_on",NANOS_SYNCHRONIZATION ); )
+
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+
+   NANOS_INSTRUMENT ( static nanos_event_key_t wd_num_deps = ID->getEventKey("wd-num-deps"); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t wd_deps_ptr = ID->getEventKey("wd-deps-ptr"); )
+                                                                                                                                                         
+   NANOS_INSTRUMENT ( nanos_event_key_t Keys[2]; )
+   NANOS_INSTRUMENT ( nanos_event_value_t Values[2]; )
+
+   NANOS_INSTRUMENT ( Keys[0] = wd_num_deps; )
+   NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) num_deps; )
+
+   NANOS_INSTRUMENT ( Keys[1] = wd_deps_ptr; );
+   NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) deps; )
+
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(2, Keys, Values); )
 
    try {
       if ( deps != NULL ) {
@@ -125,12 +142,12 @@ nanos_err_t nanos_wait_on ( size_t num_deps, nanos_dependence_t *deps )
    return NANOS_OK;
 }
 
-nanos_err_t nanos_init_lock ( nanos_lock_t *lock )
+nanos_err_t nanos_init_lock ( nanos_lock_t **lock )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","*_lock",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_lock",NANOS_RUNTIME) );
 
    try {
-      *lock = ( nanos_lock_t ) new Lock();
+      *lock = new Lock();
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -138,9 +155,9 @@ nanos_err_t nanos_init_lock ( nanos_lock_t *lock )
    return NANOS_OK;
 }
 
-nanos_err_t nanos_set_lock ( nanos_lock_t lock )
+nanos_err_t nanos_set_lock ( nanos_lock_t *lock )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","*_lock",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_lock",NANOS_SYNCHRONIZATION) );
 
    try {
       Lock *l = ( Lock * ) lock;
@@ -152,9 +169,9 @@ nanos_err_t nanos_set_lock ( nanos_lock_t lock )
    return NANOS_OK;
 }
 
-nanos_err_t nanos_unset_lock ( nanos_lock_t lock )
+nanos_err_t nanos_unset_lock ( nanos_lock_t *lock )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","*_lock",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_lock",NANOS_SYNCHRONIZATION) );
 
    try {
       Lock *l = ( Lock * ) lock;
@@ -166,9 +183,9 @@ nanos_err_t nanos_unset_lock ( nanos_lock_t lock )
    return NANOS_OK;
 }
 
-nanos_err_t nanos_try_lock ( nanos_lock_t lock, bool *result )
+nanos_err_t nanos_try_lock ( nanos_lock_t *lock, bool *result )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","*_lock",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_lock",NANOS_SYNCHRONIZATION) );
 
    try {
       Lock *l = ( Lock * ) lock;
@@ -181,9 +198,9 @@ nanos_err_t nanos_try_lock ( nanos_lock_t lock, bool *result )
    return NANOS_OK;
 }
 
-nanos_err_t nanos_destroy_lock ( nanos_lock_t lock )
+nanos_err_t nanos_destroy_lock ( nanos_lock_t *lock )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","*_lock",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_lock",NANOS_RUNTIME) );
 
    try {
       delete ( Lock * )lock;
@@ -197,7 +214,7 @@ nanos_err_t nanos_destroy_lock ( nanos_lock_t lock )
 
 nanos_err_t nanos_single_guard ( bool *b )
 {
-   NANOS_INSTRUMENTOR( InstrumentorStateAndBurst inst("api","single_guard",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","single_guard",NANOS_SYNCHRONIZATION) );
 
    try {
       *b = myThread->singleGuard();

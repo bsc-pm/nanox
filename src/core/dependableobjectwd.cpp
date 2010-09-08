@@ -21,6 +21,7 @@
 #include "workdescriptor.hpp"
 #include "schedule.hpp"
 #include "synchronizedcondition.hpp"
+#include "smpdd.hpp"
 
 using namespace nanos;
 
@@ -42,7 +43,7 @@ void DOWait::init()
 
 void DOWait::wait ( )
 {
-     _syncCond.wait();
+   _syncCond.wait();
 }
 
 void DOWait::dependenciesSatisfied ( )
@@ -51,3 +52,7 @@ void DOWait::dependenciesSatisfied ( )
    _syncCond.signal();
 }
 
+unsigned long DOSubmit::getDescription ( )
+{
+   return (unsigned long) ((nanos::ext::SMPDD &) _submittedWD->getActiveDevice()).getWorkFct();
+}

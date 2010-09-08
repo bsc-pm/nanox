@@ -22,6 +22,7 @@
 #include "basethread.hpp"
 #include "system.hpp"
 #include "config.hpp"
+#include "instrumentationmodule_decl.hpp"
 
 using namespace nanos;
 
@@ -36,6 +37,9 @@ void SchedulerConf::config (Config &config)
 
 void Scheduler::submit ( WD &wd )
 {
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
+   BaseThread *mythread = myThread;
+
    sys.getSchedulerStats()._createdTasks++;
    sys.getSchedulerStats()._totalTasks++;
    sys.getSchedulerStats()._readyTasks++;
@@ -43,12 +47,17 @@ void Scheduler::submit ( WD &wd )
    debug ( "submitting task " << wd.getId() );
 
    /* handle tied tasks */
-   if ( wd.isTied() && wd.isTiedTo() != myThread ) {
-     myThread->getTeam()->getSchedulePolicy().queue(wd.isTiedTo(), wd);
-     return;
+   if ( wd.isTied() && wd.isTiedTo() != mythread ) {
+      mythread->getTeam()->getSchedulePolicy().queue(wd.isTiedTo(), wd);
+      return;
    }
 
-   WD *next = myThread->getTeam()->getSchedulePolicy().atSubmit( myThread, wd );
+   if ( !wd.canRunIn(*mythread->runningOn()) ) {
+      queue(wd);
+      return;
+   }
+
+   WD *next = mythread->getTeam()->getSchedulePolicy().atSubmit( myThread, wd );
 
    if ( next ) {
       WD *slice;
@@ -62,7 +71,7 @@ void Scheduler::submit ( WD &wd )
 template<class behaviour>
 inline void Scheduler::idleLoop ()
 {
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->enterIdle() )
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_IDLE) );
 
    const int nspins = sys.getSchedulerConf().getNumSpins();
    int spins = nspins;
@@ -76,34 +85,44 @@ inline void Scheduler::idleLoop ()
       if ( !thread->isRunning() ) break;
 
       if ( thread->getTeam() != NULL ) {
+         WD * next = myThread->getNextWD();
 
-        WD * next = behaviour::getWD(thread,current);
+         //if ( !next && sys.getSchedulerStats()._readyTasks > 0 ) { // FIXME (#289)
+         if ( !next ) {
+            NANOS_INSTRUMENT( InstrumentState inst1(NANOS_SCHEDULING) );
+            next = behaviour::getWD(thread,current);
+            NANOS_INSTRUMENT( inst1.close() );
+         }
 
          if (next) {
-           sys.getSchedulerStats()._idleThreads--;
-           NANOS_INSTRUMENTOR( sys.getInstrumentor()->leaveIdle() );
-           behaviour::switchWD(thread,current, next);
-           NANOS_INSTRUMENTOR( sys.getInstrumentor()->enterIdle() );
-           sys.getSchedulerStats()._idleThreads++;
-           spins = nspins;
-           continue;
+            sys.getSchedulerStats()._idleThreads--;
+            NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) );
+            behaviour::switchWD(thread,current, next);
+            NANOS_INSTRUMENT( inst2.close() );
+            sys.getSchedulerStats()._idleThreads++;
+            spins = nspins;
+            continue;
          }
       }
 
       spins--;
       if ( spins == 0 ) {
+        NANOS_INSTRUMENT( InstrumentState inst3(NANOS_YIELD) );
         thread->yield();
+        NANOS_INSTRUMENT( inst3.close() );
         spins = nspins;
+      }
+      else {
+         thread->idle();
       }
    }
    sys.getSchedulerStats()._idleThreads--;
    current->setReady();
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->leaveIdle() );
 }
 
 void Scheduler::waitOnCondition (GenericSyncCond *condition)
 {
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->enterIdle() );
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
 
    const int nspins = sys.getSchedulerConf().getNumSpins();
    int spins = nspins; 
@@ -124,24 +143,30 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
          if ( !( condition->check() ) ) {
             condition->addWaiter( current );
 
+            NANOS_INSTRUMENT( InstrumentState inst1(NANOS_SCHEDULING) );
             WD *next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
+            NANOS_INSTRUMENT( inst1.close() );
 
             if ( next ) {
                sys.getSchedulerStats()._idleThreads--;
-               NANOS_INSTRUMENTOR( sys.getInstrumentor()->leaveIdle() );
+               NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) );
                switchTo ( next );
-               NANOS_INSTRUMENTOR( sys.getInstrumentor()->enterIdle() );
+               NANOS_INSTRUMENT( inst2.close() );
                sys.getSchedulerStats()._idleThreads++;
             }
             else {
                condition->unlock();
+               NANOS_INSTRUMENT( InstrumentState inst3(NANOS_YIELD) );
                thread->yield();
+               NANOS_INSTRUMENT( inst3.close() );
             }
          } else {
             condition->unlock();
          }
          spins = nspins;
       }
+
+      thread->idle();
    }
 
    current->setSyncCond( NULL );
@@ -150,16 +175,22 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
       sys.getSchedulerStats()._readyTasks++;
       current->setReady();
    }
-   NANOS_INSTRUMENTOR ( sys.getInstrumentor()->leaveIdle() );
 }
 
 void Scheduler::wakeUp ( WD *wd )
 {
-  if ( wd->isBlocked() ) {
-    sys.getSchedulerStats()._readyTasks++;
-    wd->setReady();
-    Scheduler::queue( *wd );
-  }
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
+   if ( wd->isBlocked() ) {
+      sys.getSchedulerStats()._readyTasks++;
+      wd->setReady();
+      Scheduler::queue( *wd );
+   }
+}
+
+WD * Scheduler::prefetch( BaseThread *thread, WD &wd )
+{
+   debug ( "prefetching data for task " << wd.getId() );
+   return thread->getTeam()->getSchedulePolicy().atPrefetch( thread, wd );
 }
 
 struct WorkerBehaviour
@@ -201,27 +232,31 @@ void Scheduler::inlineWork ( WD *wd )
    debug( "switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
           " to " << wd << ":" << wd->getId() );
 
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdLeaveCPU(oldwd) );
 
    // This ensures that when we return from the inlining is still the same thread
    // and we don't violate rules about tied WD
    wd->tieTo(*oldwd->isTiedTo());
-   wd->start(false);
+   if (!wd->started())
+      wd->start(false);
    myThread->setCurrentWD( *wd );
 
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdLeaveCPU(oldwd) );
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdEnterCPU(wd) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdEnterCPU(wd) );
 
    myThread->inlineWorkDependent(*wd);
    wd->done();
 
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdLeaveCPU(wd) );
+
+
    debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
           " to " << oldwd << ":" << oldwd->getId() );
 
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdLeaveCPU(oldwd ) );
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdEnterCPU(wd) );
 
    BaseThread *thread = getMyThreadSafe();
    thread->setCurrentWD( *oldwd );
+
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdEnterCPU(oldwd) );
 
    // While we tie the inlined tasks this is not needed
    // as we will always return to the current thread
@@ -244,11 +279,12 @@ void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
    } else {
       Scheduler::queue( *oldWD );
    }
+
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdLeaveCPU(oldWD) );
    myThread->switchHelperDependent(oldWD, newWD, arg);
 
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdLeaveCPU(oldWD) );
-   NANOS_INSTRUMENTOR( sys.getInstrumentor()->wdEnterCPU(newWD) );
    myThread->setCurrentWD( *newWD );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdEnterCPU(newWD) );
 }
 
 void Scheduler::switchTo ( WD *to )
@@ -269,6 +305,7 @@ void Scheduler::switchTo ( WD *to )
 
 void Scheduler::yield ()
 {
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
    WD *next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
 
    if ( next ) {
@@ -285,7 +322,7 @@ void Scheduler::switchToThread ( BaseThread *thread )
 void Scheduler::exitHelper (WD *oldWD, WD *newWD, void *arg)
 {
     myThread->exitHelperDependent(oldWD, newWD, arg);
-    NANOS_INSTRUMENTOR ( sys.getInstrumentor()->wdExit(oldWD,newWD) );
+    NANOS_INSTRUMENT ( sys.getInstrumentation()->wdSwitch(oldWD,newWD,true) );
     delete oldWD;
     myThread->setCurrentWD( *newWD );
 }

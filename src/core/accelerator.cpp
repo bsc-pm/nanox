@@ -21,38 +21,53 @@
 #include "debug.hpp"
 #include "schedule.hpp"
 #include "copydata.hpp"
-#include "instrumentor_decl.hpp"
+#include "instrumentation.hpp"
 #include "system.hpp"
 
 using namespace nanos;
 
+#if LOCK_TRANSFER
+Lock Accelerator::_transferLock;
+#endif
+
+
 void Accelerator::copyDataIn( WorkDescriptor &work )
 {
+#if LOCK_TRANSFER
+   _transferLock.acquire();
+#endif
    CopyData *copies = work.getCopies();
    for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
       CopyData & cd = copies[i];
       uint64_t tag = (uint64_t) cd.isPrivate() ? ((uint64_t) work.getData() + (unsigned long)cd.getAddress()) : cd.getAddress();
       if ( cd.isInput() ) {
-         NANOS_INSTRUMENTOR( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("copy-in") );
-         NANOS_INSTRUMENTOR( sys.getInstrumentor()->registerCopy( key, cd.getSize() ) );
+         NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("copy-in") );
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) cd.getSize() ) );
       }
+
       if ( cd.isPrivate() ) {
          this->registerPrivateAccessDependent( tag, cd.getSize(), cd.isInput(), cd.isOutput() );
       } else {
          this->registerCacheAccessDependent( tag, cd.getSize(), cd.isInput(), cd.isOutput() );
       }
    }
+#if LOCK_TRANSFER
+   _transferLock.release();
+#endif
 }
 
 void Accelerator::copyDataOut( WorkDescriptor& work )
 {
+#if LOCK_TRANSFER
+   _transferLock.acquire();
+#endif
    CopyData *copies = work.getCopies();
    for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
       CopyData & cd = copies[i];
       uint64_t tag = (uint64_t) cd.isPrivate() ? ((uint64_t) work.getData() + (unsigned long) cd.getAddress()) : cd.getAddress();
       if ( cd.isOutput() ) {
-         NANOS_INSTRUMENTOR( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("copy-out") );
-         NANOS_INSTRUMENTOR( sys.getInstrumentor()->registerCopy( key, cd.getSize() ) );
+         NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("copy-out") );
+		NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) cd.getSize() ) );
       }
       if ( cd.isPrivate() ) {
          this->unregisterPrivateAccessDependent( tag, cd.getSize() );
@@ -60,6 +75,9 @@ void Accelerator::copyDataOut( WorkDescriptor& work )
          this->unregisterCacheAccessDependent( tag, cd.getSize() );
       }
    }
+#if LOCK_TRANSFER
+   _transferLock.release();
+#endif
 }
 
 void* Accelerator::getAddress( WorkDescriptor &wd, uint64_t tag, nanos_sharing_t sharing )

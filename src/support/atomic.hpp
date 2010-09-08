@@ -20,12 +20,16 @@
 #ifndef _NANOS_ATOMIC
 #define _NANOS_ATOMIC
 
+#include "compatibility.hpp"
+#include "nanos-int.h"
+
 /* TODO: move to configure
 #include <ext/atomicity.h>
 #ifndef _GLIBCXX_ATOMIC_BUILTINS
 #error "Atomic gcc builtins support is mandatory at this point"
 #endif
 */
+
 
 namespace nanos
 {
@@ -107,13 +111,11 @@ namespace nanos
       return operator=( val._value );
    }
 
-   class Lock
+   class Lock : public nanos_lock_t
    {
 
       private:
-         typedef enum { FREE=0, BUSY=1 } state_t;
-
-         volatile state_t      _state;
+         typedef nanos_lock_state_t state_t;
 
          // disable copy constructor and assignment operator
          Lock( const Lock &lock );
@@ -121,7 +123,7 @@ namespace nanos
 
       public:
          // constructor
-         Lock( state_t init=FREE ) : _state( init ) {};
+         Lock( state_t init=NANOS_LOCK_FREE ) : nanos_lock_t( init ) {};
 
          // destructor
          ~Lock() {}
@@ -130,9 +132,9 @@ namespace nanos
          bool tryAcquire ( void );
          void release ( void );
 
-         const state_t operator* () const { return _state; }
+         state_t operator* () const { return _state; }
 
-         const state_t getState () const { return _state; }
+         state_t getState () const { return _state; }
 
          void operator++ ( int val ) { acquire(); }
 
@@ -144,15 +146,15 @@ namespace nanos
 
    spin:
 
-      while ( _state == BUSY );
+      while ( _state == NANOS_LOCK_BUSY );
 
-      if ( __sync_lock_test_and_set( &_state,BUSY ) ) goto spin;
+      if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) goto spin;
    }
 
    inline bool Lock::tryAcquire ( void )
    {
-      if ( _state == FREE ) {
-         if ( __sync_lock_test_and_set( &_state,BUSY ) ) return false;
+      if ( _state == NANOS_LOCK_FREE ) {
+         if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) return false;
          else return true;
       } else return false;
    }

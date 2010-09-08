@@ -1,0 +1,55 @@
+/*************************************************************************************/
+/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+
+#include "dependableobject.hpp"
+#include "trackableobject.hpp"
+
+using namespace nanos;
+
+void DependableObject::finished ( )
+{
+   if ( --_references == 0) {
+      DependableObject& depObj = *this;
+      // This step guarantees that any Object that wants to add depObj as a successor has done it
+      // before we continue or, alternatively, won't do it.
+      DependableObject::TrackableObjectVector &outs = depObj.getOutputObjects();
+      if (outs.size() > 0) {
+         depObj.lock();
+         for ( unsigned int i = 0; i < outs.size(); i++ ) {
+            outs[i]->deleteLastWriter(depObj);
+         }
+         depObj.unlock();
+      }
+      
+      //  Delete depObj from all trackableObjects it reads 
+      DependableObject::TrackableObjectVector &reads = depObj.getReadObjects();
+      for ( DependableObject::TrackableObjectVector::iterator it = reads.begin(); it != reads.end(); it++ ) {
+         TrackableObject* readObject = *it;
+         readObject->lockReaders();
+         readObject->deleteReader(depObj);
+         readObject->unlockReaders();
+      }
+         
+      DependableObject::DependableObjectVector &succ = depObj.getSuccessors();
+      for ( unsigned int i = 0; i < succ.size(); i++ ) {
+         succ[i]->decreasePredecessors();
+      }
+   }
+}
+

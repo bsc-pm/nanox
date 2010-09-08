@@ -29,7 +29,7 @@
 #include "copydata.hpp"
 #include "synchronizedcondition_decl.hpp"
 #include "atomic.hpp"
-#include "instrumentorcontext.hpp"
+#include "instrumentationcontext.hpp"
 
 using namespace nanos;
 
@@ -99,8 +99,11 @@ inline size_t WorkDescriptor::getNumCopies() const { return _numCopies; }
 
 inline CopyData * WorkDescriptor::getCopies() const { return _copies; }
 
+inline TR1::shared_ptr<DOSubmit> & WorkDescriptor::getDOSubmit() { return _doSubmit; }
+
 inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t numDeps, Dependency* deps )
 {
+   wd._doSubmit.reset( new DOSubmit() );
    wd._doSubmit->setWD(&wd);
    _depsDomain->submitDependableObject( *(wd._doSubmit), numDeps, deps );
 }
@@ -113,11 +116,11 @@ inline void WorkDescriptor::waitOn( size_t numDeps, Dependency* deps )
 
 inline void WorkDescriptor::workFinished(WorkDescriptor &wd)
 {
-   if ( _depsDomain.isInitialized() )
-      _depsDomain->finished( *(wd._doSubmit) );
+   if ( wd._doSubmit != NULL )
+      wd._doSubmit->finished();
 }
 
-inline InstrumentorContext & WorkDescriptor::getInstrumentorContext( void ) { return _instrumentorContext; }
+inline InstrumentationContextData * WorkDescriptor::getInstrumentationContextData( void ) { return &_instrumentationContextData; }
 
 #endif
 
