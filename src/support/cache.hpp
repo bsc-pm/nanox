@@ -360,7 +360,7 @@ namespace nanos {
          {
             void *result;
             NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-malloc") );
-            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( CACHE, key, (nanos_event_value_t) size) );
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_CACHE, key, (nanos_event_value_t) size) );
             _lock.acquire();
             result = _T::allocate( size );
             _lock.release();
@@ -371,7 +371,7 @@ namespace nanos {
          void deleteEntry( uint64_t tag, size_t size )
          {
             NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-free") );
-            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst ( CACHE, key, (nanos_event_value_t) size) );
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_CACHE, key, (nanos_event_value_t) size) );
             // it assumes the entry exists
             _lock.acquire();
             CacheEntry &ce = _cache[tag];
@@ -399,7 +399,7 @@ namespace nanos {
          void copyDataToCache( uint64_t tag, size_t size )
          {
             NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
-            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( MEM_TRANSFER, key, (nanos_event_value_t) size) );
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER, key, (nanos_event_value_t) size) );
             _lock.acquire();
             _T::copyIn( _cache[tag].getAddress(), tag, size );
             _lock.release();
@@ -413,7 +413,7 @@ namespace nanos {
          void copyBackFromCache( uint64_t tag, size_t size )
          {
             NANOS_INSTRUMENT( static nanos_event_key_t key1 = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-out") );
-            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( MEM_TRANSFER, key1, size ) );
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER, key1, size ) );
             _lock.acquire();
             CacheEntry &entry = _cache[tag];
             _T::copyOut( tag, entry.getAddress(), size );
@@ -429,7 +429,7 @@ namespace nanos {
          void copyTo( void *dst, uint64_t tag, size_t size )
          {
             NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-local-copy") );
-            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( MEM_TRANSFER, key, size ) );
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER, key, size ) );
             _lock.acquire();
             _T::copyLocal( dst, _cache[tag].getAddress(), size );
             _lock.release();
