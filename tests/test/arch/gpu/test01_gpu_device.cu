@@ -391,7 +391,8 @@ void test_device_to_host ( void * args )
    memset( targs->Bh, 0, size ); 
    cudaMemcpy( targs->Bd, targs->Ah, size, cudaMemcpyHostToDevice );
 
-   GPUDevice::copyOut( ( uint64_t ) targs->Bh, targs->Bd, size );
+   // As asynchronous copies involve the cache management, make always synchronous copy out's
+   GPUDevice::copyOutSyncToHost( targs->Bh, targs->Bd, size );
 
    ( ( GPUThread * ) myThread)->executePendingCopies();
 

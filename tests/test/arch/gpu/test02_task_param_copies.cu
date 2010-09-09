@@ -171,54 +171,54 @@ void dummy_task ( void * args )
 void test_gpu_task ( void * args )
 {
 
-   test_args * targs = new test_args();
+   test_args targs;
 
-   nanos_get_addr(0, ( void ** ) &targs->err);
-   targs->n = ( (test_args *) args)->n;
-   targs->idx = ( (test_args *) args)->idx;
-   nanos_get_addr(3, ( void ** ) &targs->a);
-   nanos_get_addr(4, ( void ** ) &targs->b);
-   nanos_get_addr(5, ( void ** ) &targs->c);
+   nanos_get_addr(0, ( void ** ) &targs.err);
+   targs.n = ( (test_args *) args)->n;
+   targs.idx = ( (test_args *) args)->idx;
+   nanos_get_addr(3, ( void ** ) &targs.a);
+   nanos_get_addr(4, ( void ** ) &targs.b);
+   nanos_get_addr(5, ( void ** ) &targs.c);
 
    int i, err, value;
 
-   size_t size = targs->n * sizeof ( int );
-   int * err_h = new int[targs->n];
+   size_t size = targs.n * sizeof ( int );
+   int err_h[targs.n];
    int * err_d;
    cudaMalloc( &err_d, size );
 
    memset( err_h, 0x1, size );
    cudaMemcpy( err_d, err_h, size, cudaMemcpyHostToDevice );
 
-   check_task_params <<< 1, targs->n >>> ( targs->idx, targs->a, targs->b, targs->c, err_d );
+   check_task_params <<< 1, targs.n >>> ( targs.idx, targs.a, targs.b, targs.c, err_d );
+
+   cudaThreadSynchronize();
 
    cudaMemcpy( err_h, err_d, size, cudaMemcpyDeviceToHost );
 
    err = 0;
-   for ( i = 0; i < targs->n; i++ ) {
+   for ( i = 0; i < targs.n; i++ ) {
       // Error checking for A and C, from kernel execution (as inputs)
       if ( err_h[i] ) {
-         std::cout << "[" << targs->idx << "] Input error detected at position " << i << ": " << err_h[i] << std::endl;
+         std::cout << "[" << targs.idx << "] Input error detected at position " << i << ": " << err_h[i] << std::endl;
          err++;
       }
    }
 
    // Error checking for B, from kernel execution (as output)
-   cudaMemcpy( err_h, targs->b, size, cudaMemcpyDeviceToHost );
-   value = targs->idx;
-   for ( i = 0; i < targs->n; i++ ) {
+   cudaMemcpy( err_h, targs.b, size, cudaMemcpyDeviceToHost );
+   value = targs.idx;
+   for ( i = 0; i < targs.n; i++ ) {
       if ( err_h[i] != value ) {
-         std::cout << "[" << targs->idx << "] Output error detected at position " << i << ": " << err_h[i] << std::endl;
+         std::cout << "[" << targs.idx << "] Output error detected at position " << i << ": " << err_h[i] << std::endl;
          err++;
       }
       value++;
    }
 
    // Write the result through cudaMemcpy, as 'targs->err' address belongs to GPU memory space
-   cudaMemcpy( targs->err, &err, sizeof( int ), cudaMemcpyHostToDevice );
+   cudaMemcpy( targs.err, &err, sizeof( int ), cudaMemcpyHostToDevice );
 
-   delete targs;
-   delete err_h;
    cudaFree(err_d);
 
 }

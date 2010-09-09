@@ -95,9 +95,9 @@ int main ( int argc, char **argv )
    // Task creation
    nanos::WG *wg = nanos::myThread->getCurrentWD();
 
-   for ( k = 0; k < nb; k++ ) {
-      for ( i = 0; i < nb; i++ ) {
-         for ( j = 0; j < nb; j++ ) {
+   for ( i = 0; i < nb; i++ ) {
+      for ( j = 0; j < nb; j++ ) {
+         for ( k = 0; k < nb; k++ ) {
             nanos_wd_t wd = 0;
             
             test_args *args = 0;
@@ -186,7 +186,6 @@ int main ( int argc, char **argv )
             usleep(500);
          }
       }
-      wg->waitCompletion();
    }
 
 
@@ -197,8 +196,7 @@ int main ( int argc, char **argv )
    for ( i = 0; i < n; i++ ) {
       for ( j = 0; j < n; j++ ) {
          if ( c[i*n+j] != bsize * nb * 2 ) {
-        	 std::cout << "Error at " << i << ", " << j
-        			 << ": (GPU) " << c[i*n+j] << " vs (CPU) " << bsize * nb * 2 << std::endl;
+        	 std::cout << "Error at " << i << ", " << j << ": (GPU) " << c[i*n+j] << " vs (CPU) " << bsize * nb * 2 << std::endl;
             err++;
          }
       }
