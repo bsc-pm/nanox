@@ -102,8 +102,8 @@ void AsynchronousWriteThroughPolicy::registerCacheAccess( uint64_t tag, size_t s
             }
             else {
                // Hit in the cache
-               NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("cache-hit") );
-               NANOS_INSTRUMENT( sys.getInstrumentor()->raisePointEvent( key, (nanos_event_value_t) tag ) );
+               NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-hit") );
+               NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) tag ) );
             }
 
             if ( output ) {
