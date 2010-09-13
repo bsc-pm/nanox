@@ -199,6 +199,7 @@ namespace nanos {
             /* 14 */ registerEventKey("create-wd-ptr","Create WD pointer:");
             /* 15 */ registerEventKey("wd-num-deps","Create WD num. deps."); 
             /* 16 */ registerEventKey("wd-deps-ptr","Create WD dependence pointer"); 
+            /* 17 */ registerEventKey("debug","Debug Key"); 
 #endif
 
          }
@@ -546,6 +547,20 @@ namespace nanos {
          void createPtPEnd ( Event *e, nanos_event_domain_t domain, nanos_event_id_t id,
                              unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
 
+         /*! \brief Used by higher levels to create a deferred POINT event into a given WorkDescriptor (wd)
+          */
+         void createDeferredPointEvent ( WorkDescriptor &wd, unsigned int nkvs, nanos_event_key_t *keys,
+                                         nanos_event_value_t *values );
+
+         /*! \brief Used by higher levels to create a deferred PTP_START event into a given WorkDescriptor (wd)
+          */
+         void createDeferredPtPStart ( WorkDescriptor &wd, nanos_event_domain_t domain, nanos_event_id_t id,
+                                       unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
+
+         /*! \brief Used by higher levels to create a deferred PTP_END event into a given WorkDescriptor (wd)
+          */
+         void createDeferredPtPEnd ( WorkDescriptor &wd, nanos_event_domain_t domain, nanos_event_id_t id,
+                                     unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
 
          void raisePointEvent ( nanos_event_key_t key, nanos_event_value_t val );
          void raisePointEventNkvs ( unsigned int nkvs, nanos_event_key_t *key, nanos_event_value_t *val );

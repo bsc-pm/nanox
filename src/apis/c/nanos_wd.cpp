@@ -170,7 +170,7 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *
 
       NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(4, Keys, Values); )
 
-      NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEventNkvs ( NANOS_WD_DOMAIN, (nanos_event_id_t) wd->getId(), 0, NULL, NULL ); )
+      NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEventNkvs ( NANOS_WD_DOMAIN, (nanos_event_id_t) wd->getId(), 0, NULL, NULL );)
 
       if ( deps != NULL ) {
          sys.submitWithDependencies( *wd, num_deps, deps );

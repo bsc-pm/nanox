@@ -131,7 +131,67 @@ void Instrumentation::createPtPEnd ( Event *e, nanos_event_domain_t domain, nano
    new (e) PtP ( false, domain, id, nkvs, kvlist );
 
 }
+/* ************************************************************************** */
+/* ***          C R E A T I N G   D E F E R R E D   E V E N T S           *** */
+/* ************************************************************************** */
 
+void Instrumentation::createDeferredPointEvent ( WorkDescriptor &wd, unsigned int nkvs, nanos_event_key_t *keys,
+                                      nanos_event_value_t *values )
+{
+   /* Creating an Event::KV vector */
+   Event::KVList kvlist = new Event::KV[nkvs];
+
+   /* Initializing kvlist elements */
+   for ( unsigned int i = 0; i < nkvs; i++ ) {
+      kvlist[i] = Event::KV ( keys[i], values[i] );
+   }
+
+   /* Creating a point event */
+   Event *e = new Point( nkvs, kvlist );
+
+   /* Inserting event into deferred event list */
+   InstrumentationContextData *icd = wd.getInstrumentationContextData();                                             
+   _instrumentationContext.insertDeferredEvent( icd, *e );
+
+}
+
+void Instrumentation::createDeferredPtPStart ( WorkDescriptor &wd, nanos_event_domain_t domain, nanos_event_id_t id,
+                      unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
+{
+   /* Creating an Event::KV vector */
+   Event::KVList kvlist = new Event::KV[nkvs];
+
+   /* Initializing kvlist elements */
+   for ( unsigned int i = 0; i < nkvs; i++ ) {
+      kvlist[i] = Event::KV ( keys[i], values[i] );
+   }
+
+   /* Creating a PtP (start) event */
+   Event *e = new PtP( true, domain, id, nkvs, kvlist );
+
+   /* Inserting event into deferred event list */
+   InstrumentationContextData *icd = wd.getInstrumentationContextData();                                             
+   _instrumentationContext.insertDeferredEvent( icd, *e );
+}
+
+void Instrumentation::createDeferredPtPEnd ( WorkDescriptor &wd, nanos_event_domain_t domain, nanos_event_id_t id,
+                      unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
+{
+   /* Creating an Event::KV vector */
+   Event::KVList kvlist = new Event::KV[nkvs];
+
+   /* Initializing kvlist elements */
+   for ( unsigned int i = 0; i < nkvs; i++ ) {
+      kvlist[i] = Event::KV ( keys[i], values[i] );
+   }
+
+   /* Creating a PtP (end) event */
+   Event *e = new PtP( false, domain, id, nkvs, kvlist );
+
+   /* Inserting event into deferred event list */
+   InstrumentationContextData *icd = wd.getInstrumentationContextData();                                             
+   _instrumentationContext.insertDeferredEvent( icd, *e );
+}
 /* ************************************************************************** */
 /* ***                   T H R O W I N G   E V E N T S                    *** */
 /* ************************************************************************** */
@@ -440,7 +500,7 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
 {
    unsigned int i = 0;
    unsigned int oldPtP = 0, oldStates = 0, oldSubStates = 0, oldBursts = 0;
-   unsigned int newPtP = 0, newStates = 0, newSubStates = 0, newBursts = 0;
+   unsigned int newPtP = 0, newStates = 0, newSubStates = 0, newBursts = 0, newDeferred = 0;
    InstrumentationContextData *old_icd = NULL;
    InstrumentationContextData *new_icd = NULL;
 
@@ -482,11 +542,12 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       }
       else newSubStates = 0;
       newBursts = _instrumentationContext.getNumBursts( new_icd );
+      newDeferred = _instrumentationContext.getNumDeferredEvents ( new_icd );
    }
 
    /* Allocating Events */
    unsigned int numEvents = oldPtP + oldStates + oldSubStates + oldBursts
-                          + newPtP + newStates + newSubStates + newBursts;
+                          + newPtP + newStates + newSubStates + newBursts + newDeferred;
    Event *e = (Event *) alloca(sizeof(Event) * numEvents );
 
    /* Creating leaving wd events */
@@ -568,7 +629,16 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       for ( it = _instrumentationContext.beginBurst( new_icd ) ; it != _instrumentationContext.endBurst( new_icd ); it++ ) {
          e[i--] = *it;
       }
-      i += (newBursts);
+      i += (newBursts+1);
+
+      /* Generating deferred events for new WD (and removing them) */
+      InstrumentationContextData::EventIterator itDE;
+      itDE = _instrumentationContext.beginDeferredEvents( new_icd );
+      while ( itDE != _instrumentationContext.endDeferredEvents( new_icd ) ) {
+         e[i++] = *itDE;
+         _instrumentationContext.removeDeferredEvent( new_icd, itDE );
+         itDE = _instrumentationContext.beginDeferredEvents( new_icd );
+      }
    }
 
    /* Spawning 'numEvents' events: specific instrumentation call */

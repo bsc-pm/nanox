@@ -232,7 +232,8 @@ void Scheduler::inlineWork ( WD *wd )
    debug( "switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
           " to " << wd << ":" << wd->getId() );
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdLeaveCPU(oldwd) );
+   // NANOS_INSTRUMENT( sys.getInstrumentation()->wdLeaveCPU(oldwd) ); FIXME
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldwd, NULL, false) );
 
    // This ensures that when we return from the inlining is still the same thread
    // and we don't violate rules about tied WD
@@ -241,12 +242,14 @@ void Scheduler::inlineWork ( WD *wd )
       wd->start(false);
    myThread->setCurrentWD( *wd );
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdEnterCPU(wd) );
+   //NANOS_INSTRUMENT( sys.getInstrumentation()->wdEnterCPU(wd) ); FIXME
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
 
    myThread->inlineWorkDependent(*wd);
    wd->done();
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdLeaveCPU(wd) );
+   //NANOS_INSTRUMENT( sys.getInstrumentation()->wdLeaveCPU(wd) ); FIXME
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, false) );
 
 
    debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
@@ -256,7 +259,8 @@ void Scheduler::inlineWork ( WD *wd )
    BaseThread *thread = getMyThreadSafe();
    thread->setCurrentWD( *oldwd );
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdEnterCPU(oldwd) );
+   //NANOS_INSTRUMENT( sys.getInstrumentation()->wdEnterCPU(oldwd) ); FIXME
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, oldwd, false) );
 
    // While we tie the inlined tasks this is not needed
    // as we will always return to the current thread
@@ -280,11 +284,13 @@ void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
       Scheduler::queue( *oldWD );
    }
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdLeaveCPU(oldWD) );
+   //NANOS_INSTRUMENT( sys.getInstrumentation()->wdLeaveCPU(oldWD) ); FIXME
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldWD, NULL, false) );
    myThread->switchHelperDependent(oldWD, newWD, arg);
 
    myThread->setCurrentWD( *newWD );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdEnterCPU(newWD) );
+   //NANOS_INSTRUMENT( sys.getInstrumentation()->wdEnterCPU(newWD) ); FIXME
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, newWD, false) );
 }
 
 void Scheduler::switchTo ( WD *to )

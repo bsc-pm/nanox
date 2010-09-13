@@ -35,19 +35,22 @@ namespace nanos {
          typedef Instrumentation::Event                  Event;                /**< Class defined in instrumentation_decl.hpp */
          typedef Instrumentation::Burst                  Burst;                /**< Class defined in instrumentation_decl.hpp */
          typedef std::deque<nanos_event_state_value_t>   StateStack;           /**< Stack of state's values */
-         typedef std::list<Event>                        BurstList;            /**< List of Events (Bursts) */
-         typedef BurstList::const_iterator               ConstBurstIterator;   /**< InstrumentationContext const BurstIterator */
-         typedef BurstList::iterator                     BurstIterator;        /**< InstrumentationContext BurstIterator */
+         typedef std::list<Event>                        EventList;            /**< List of Events (Bursts) */
+         typedef EventList::const_iterator               ConstBurstIterator;   /**< InstrumentationContext const BurstIterator */
+         typedef EventList::iterator                     BurstIterator;        /**< InstrumentationContext BurstIterator */
          typedef StateStack::const_iterator              ConstStateIterator;   /**< InstrumentationContext const StateIterator*/
          typedef StateStack::iterator                    StateIterator;        /**< InstrumentationContext StateIterator */
+         typedef EventList::const_iterator               ConstEventIterator;   /**< InstrumentationContext const EventIterator */
+         typedef EventList::iterator                     EventIterator;        /**< InstrumentationContext EventIterator */
 #ifdef NANOS_INSTRUMENTATION_ENABLED
       private: /* Only friend classes (InstrumentationContext...) can use InstrumentationContextData */
          bool                       _startingWD;             /**< Is a startingWD? */
          StateStack                 _stateStack;             /**< Stack of states */
          StateStack                 _subStateStack;          /**< Stack of sub states */
          bool                       _stateEventEnabled;      /**< Set state level, zero by default */
-         BurstList                  _burstList;              /**< List of current opened bursts */
-         BurstList                  _burstBackup;            /**< Backup list (non-active) of opened bursts */
+         EventList                  _burstList;              /**< List of current opened bursts */
+         EventList                  _burstBackup;            /**< Backup list (non-active) of opened bursts */
+         EventList                  _deferredEvents;         /**< List of deferred events */
       public:
          /*! \brief InstrumentationContextData copy constructor
           */
@@ -141,6 +144,26 @@ namespace nanos {
          /*! \brief Gets the last element in the burst list
           */
          InstrumentationContextData::ConstBurstIterator endBurst( InstrumentationContextData *icd ) const ; 
+         /*! \brief Inserts a deferred event into the deferred event list
+          *
+          *  This function inserts a deferred event in the deferred event list. 
+          */
+         void insertDeferredEvent ( InstrumentationContextData *icd, const Event &e );
+         /*! \brief Removes deferred events from the deferred event list
+          *
+          *  This function removes a deferred event from the deferred event list. 
+          */
+         void removeDeferredEvent ( InstrumentationContextData *icd, InstrumentationContextData::EventIterator it ); 
+         /*! \brief Gets the size of deferred event list
+          */
+         inline size_t getNumDeferredEvents( InstrumentationContextData *icd ) const ;
+         /*! \brief Gets the starting element in the deferred event list
+          */
+         InstrumentationContextData::EventIterator beginDeferredEvents( InstrumentationContextData *icd ) const ;
+         /*! \brief Gets the last element in the deferred event list 
+          */
+         InstrumentationContextData::EventIterator endDeferredEvents( InstrumentationContextData *icd ) const ;
+
          /*! \brief Gets the starting element in the state stack
           */
          InstrumentationContextData::ConstStateIterator beginState( InstrumentationContextData *icd ) const ; 

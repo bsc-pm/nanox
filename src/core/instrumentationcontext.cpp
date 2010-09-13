@@ -43,7 +43,7 @@ bool InstrumentationContextStackedStatesAndBursts::showStackedStates ( void ) { 
 void InstrumentationContext::insertBurst ( InstrumentationContextData *icd, const Event &e )
 {
    bool found = false;
-   InstrumentationContextData::BurstList::iterator it;
+   InstrumentationContextData::EventList::iterator it;
    nanos_event_key_t key = e.getKVs()[0].first;
 
    /* if found an event with the same key in the main list, send it to the backup list */
