@@ -51,6 +51,7 @@ namespace nanos {
          EventList                  _burstList;              /**< List of current opened bursts */
          EventList                  _burstBackup;            /**< Backup list (non-active) of opened bursts */
          EventList                  _deferredEvents;         /**< List of deferred events */
+         Lock                       _deferredEventsLock;     /**< Lock in deferred event list */
       public:
          /*! \brief InstrumentationContextData copy constructor
           */
@@ -149,11 +150,9 @@ namespace nanos {
           *  This function inserts a deferred event in the deferred event list. 
           */
          void insertDeferredEvent ( InstrumentationContextData *icd, const Event &e );
-         /*! \brief Removes deferred events from the deferred event list
-          *
-          *  This function removes a deferred event from the deferred event list. 
+         /*! \brief Removes all deferred events from deferred event list
           */
-         void removeDeferredEvent ( InstrumentationContextData *icd, InstrumentationContextData::EventIterator it ); 
+         void clearDeferredEvents ( InstrumentationContextData *icd ); 
          /*! \brief Gets the size of deferred event list
           */
          inline size_t getNumDeferredEvents( InstrumentationContextData *icd ) const ;

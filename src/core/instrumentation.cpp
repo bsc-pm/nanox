@@ -633,12 +633,11 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
 
       /* Generating deferred events for new WD (and removing them) */
       InstrumentationContextData::EventIterator itDE;
-      itDE = _instrumentationContext.beginDeferredEvents( new_icd );
-      while ( itDE != _instrumentationContext.endDeferredEvents( new_icd ) ) {
+      for ( itDE  = _instrumentationContext.beginDeferredEvents( new_icd );
+            itDE != _instrumentationContext.endDeferredEvents(new_icd); itDE++ ) {
          e[i++] = *itDE;
-         _instrumentationContext.removeDeferredEvent( new_icd, itDE );
-         itDE = _instrumentationContext.beginDeferredEvents( new_icd );
       }
+      _instrumentationContext.clearDeferredEvents( new_icd );
    }
 
    /* Spawning 'numEvents' events: specific instrumentation call */
