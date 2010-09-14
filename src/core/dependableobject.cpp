@@ -19,6 +19,8 @@
 
 #include "dependableobject.hpp"
 #include "trackableobject.hpp"
+#include "instrumentation.hpp"
+#include "system.hpp"
 
 using namespace nanos;
 
@@ -45,9 +47,15 @@ void DependableObject::finished ( )
          readObject->deleteReader(depObj);
          readObject->unlockReaders();
       }
-         
+
+      NANOS_INSTRUMENT ( void * predObj = getRelatedObject(); )
+
       DependableObject::DependableObjectVector &succ = depObj.getSuccessors();
       for ( unsigned int i = 0; i < succ.size(); i++ ) {
+
+         NANOS_INSTRUMENT ( void * succObj = succ[i]->getRelatedObject(); )
+         NANOS_INSTRUMENT ( instrument ( predObj, succObj ); ) 
+
          succ[i]->decreasePredecessors();
       }
    }
