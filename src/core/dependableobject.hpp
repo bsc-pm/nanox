@@ -21,6 +21,7 @@
 #define _NANOS_DEPENDABLE_OBJECT
 #include <stdlib.h>
 #include <list>
+#include <set>
 #include <vector>
 #include "atomic.hpp"
 #include "trackableobject_fwd.hpp"
@@ -33,7 +34,7 @@ namespace nanos
    {
       public:
          /**< Type vector of successors  */
-         typedef std::vector<DependableObject *> DependableObjectVector;
+         typedef std::set<DependableObject *> DependableObjectVector;
          /**< Type vector of output objects */
          typedef std::vector<TrackableObject *> TrackableObjectVector;
          
@@ -153,7 +154,7 @@ namespace nanos
          */
          void addSuccessor ( DependableObject &depObj )
          {
-            _successors.push_back ( &depObj );
+            _successors.insert ( &depObj );
          }
 
         /*! \brief Add an output object to the list.
