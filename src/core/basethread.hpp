@@ -61,7 +61,6 @@ namespace nanos
    };
 
 
-// Threads are binded to a PE for its life-time
 
    class BaseThread
    {
@@ -74,7 +73,7 @@ namespace nanos
          // Thread info
          int                     _id;
 
-         ProcessingElement *     _pe;
+         ProcessingElement *     _pe;         /**< Threads are binded to a PE for its life-time */
          WD &                    _threadWD;
 
          // Thread status
