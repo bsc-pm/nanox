@@ -51,12 +51,12 @@ void DependableObject::finished ( )
       NANOS_INSTRUMENT ( void * predObj = getRelatedObject(); )
 
       DependableObject::DependableObjectVector &succ = depObj.getSuccessors();
-      for ( unsigned int i = 0; i < succ.size(); i++ ) {
+      for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
 
-         NANOS_INSTRUMENT ( void * succObj = succ[i]->getRelatedObject(); )
+         NANOS_INSTRUMENT ( void * succObj = (*it)->getRelatedObject(); )
          NANOS_INSTRUMENT ( instrument ( predObj, succObj ); ) 
 
-         succ[i]->decreasePredecessors();
+         (*it)->decreasePredecessors();
       }
    }
 }
