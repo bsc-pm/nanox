@@ -70,6 +70,10 @@ namespace nanos
           */
          bool operator== ( const Device &arch ) { return arch._name == _name; }
 
+         /*! \brief Get device name
+          */
+         const char * getName ( void ) const { return _name; }
+
    };
 
    /*! \brief This class holds the specific data for a given device

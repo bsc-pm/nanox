@@ -176,6 +176,9 @@ namespace nanos
          BaseThread * getUnassignedWorker ( void );
          ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL,
                                    bool reuseCurrent=true,  TeamData *tdata = 0 );
+
+         BaseThread * getWorker( unsigned int n );
+
          void endTeam ( ThreadTeam *team );
          void releaseWorker ( BaseThread * thread );
 

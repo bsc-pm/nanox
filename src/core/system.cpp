@@ -193,6 +193,9 @@ void System::start ()
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 
+   /* Renaming currend thread as Master */
+   myThread->rename("Master");
+
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_STARTUP) );
 
    //start as much threads per pe as requested by the user
@@ -736,6 +739,12 @@ BaseThread * System:: getUnassignedWorker ( void )
    }
 
    return NULL;
+}
+
+BaseThread * System::getWorker ( unsigned int n )
+{
+   if ( n < _workers.size() ) return _workers[n];
+   else return NULL;
 }
 
 void System::releaseWorker ( BaseThread * thread )
