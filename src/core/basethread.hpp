@@ -61,7 +61,6 @@ namespace nanos
    };
 
 
-// Threads are binded to a PE for its life-time
 
    class BaseThread
    {
@@ -73,8 +72,10 @@ namespace nanos
 
          // Thread info
          int                     _id;
+         std::string             _name;
+         std::string             _description;
 
-         ProcessingElement *     _pe;
+         ProcessingElement *     _pe;         /**< Threads are binded to a PE for its life-time */
          WD &                    _threadWD;
 
          // Thread status
@@ -118,7 +119,8 @@ namespace nanos
 
          // constructor
          BaseThread ( WD &wd, ProcessingElement *creator=0 ) :
-               _id( _idSeed++ ), _pe( creator ), _threadWD( wd ), _started( false ), _mustStop( false ), _currentWD( NULL),
+               _id( _idSeed++ ), _name("Thread"), _description(""), _pe( creator ), _threadWD( wd ),
+               _started( false ), _mustStop( false ), _currentWD( NULL),
                _nextWD( NULL), _hasTeam( false ),_team(NULL),
                _teamData(NULL) {}
 
@@ -187,6 +189,42 @@ namespace nanos
          int getCpuId() { return runningOn()->getId(); }
 
          bool singleGuard();
+
+         /*! \brief Rename the basethread
+          */
+         void rename ( const char *name )
+         {
+            _name = *new std::string(name);
+         }
+
+         /*! \brief Get BaseThread name
+          */
+         const std::string getName ( void )
+         {
+            return _name;
+         }
+
+         /*! \brief Get BaseThread description
+          */
+         const std::string getDescription ( void )
+         {
+            if ( _description.compare("") == 0 ) {
+
+               /* description name */
+               _description = *new std::string( getName() );
+               _description.append("-");
+
+               /* adding device type */
+               _description.append( _pe->getDeviceType().getName() );
+               _description.append("-");
+
+               /* adding global id */
+               char id[5]; sprintf(id, "%d", getId() );
+               _description.append( id );
+            }
+
+            return _description;
+         }
    };
 
    extern __thread BaseThread *myThread;

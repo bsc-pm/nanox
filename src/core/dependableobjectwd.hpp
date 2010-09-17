@@ -73,6 +73,14 @@ namespace nanos
 
          unsigned long getDescription ( );
 
+         /*! \brief Get the related object which actually has the dependence
+          */
+         virtual void * getRelatedObject ( ) { return (void *) _submittedWD; }
+
+         /*! \brief Instrument predecessor -> successor dependency
+          */
+         virtual void instrument ( void *pred, void *succ );
+
    };
 
   /*! \brief DependableObject representing a WorkDescriptor as a task domain to wait on some dependencies
@@ -139,6 +147,14 @@ namespace nanos
         
          void setWD( WorkDescriptor *wd )
             { _waitDomainWD = wd; }
+
+         /*! \brief Get the related object which actually has the dependence
+          */
+         virtual void * getRelatedObject ( ) { return (void *) _waitDomainWD; }
+
+         /*! \brief Instrument predecessor -> successor dependency
+          */
+         virtual void instrument ( void *pred, void *succ );
    };
 };
 

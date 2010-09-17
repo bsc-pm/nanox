@@ -16,6 +16,11 @@
 #include <libgen.h>
 #include "os.hpp"
 
+extern "C" {
+   unsigned int nanos_ompitrace_get_max_threads ( void );
+   unsigned int nanos_ompitrace_get_thread_num ( void );
+}
+
 namespace nanos {
 
    const unsigned int _eventState      = 9000000;   /*<< event coding state changes */
@@ -173,6 +178,28 @@ class InstrumentationExtrae: public Instrumentation
                }
 
                p_file << std::endl;
+            }
+            p_file << std::endl;
+
+            /* Closing configuration file */
+            p_file.close();
+         }
+         else std::cout << "Unable to open paraver config file" << std::endl;  
+      }
+
+      void modifyParaverRowFile()
+      {
+         unsigned int num_threads = sys.getNumWorkers();
+         // Writing paraver config 
+         std::fstream p_file;
+         p_file.open ( _traceFileName_ROW.c_str(), std::ios::out | std::ios::app);
+         if (p_file.is_open())
+         {
+            /* Adding thread info */
+            p_file << std::endl;
+            p_file << "LEVEL THREAD SIZE " << num_threads << std::endl;
+            for ( unsigned int i = 0; i < num_threads; i++ ) {
+               p_file << sys.getWorker(i)->getDescription() << std::endl;
             }
             p_file << std::endl;
 
@@ -351,6 +378,7 @@ class InstrumentationExtrae: public Instrumentation
          getTraceFileName();
          mergeParaverTraceFiles();
          modifyParaverConfigFile();
+         modifyParaverRowFile();
          removeTemporaryFiles();
       }
 

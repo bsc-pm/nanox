@@ -21,6 +21,7 @@
 #define _NANOS_DEPENDABLE_OBJECT
 #include <stdlib.h>
 #include <list>
+#include <set>
 #include <vector>
 #include "atomic.hpp"
 #include "trackableobject_fwd.hpp"
@@ -33,7 +34,7 @@ namespace nanos
    {
       public:
          /**< Type vector of successors  */
-         typedef std::vector<DependableObject *> DependableObjectVector;
+         typedef std::set<DependableObject *> DependableObjectVector;
          /**< Type vector of output objects */
          typedef std::vector<TrackableObject *> TrackableObjectVector;
          
@@ -95,6 +96,14 @@ namespace nanos
 
          virtual unsigned long getDescription ( ) { return 0; }
 
+         /*! \brief Get the related object which actually has the dependence
+          */
+         virtual void * getRelatedObject ( ) { return NULL; }
+
+         /*! \brief Instrument predecessor -> successor dependency
+          */
+         virtual void instrument ( void *pred, void *succ ) { }
+
         /*! \brief Id setter function.
          *         The id will be unique for DependableObjects in the same Dependency Domain.
          *  \param id identifier to be assigned.
@@ -145,7 +154,7 @@ namespace nanos
          */
          void addSuccessor ( DependableObject &depObj )
          {
-            _successors.push_back ( &depObj );
+            _successors.insert ( &depObj );
          }
 
         /*! \brief Add an output object to the list.

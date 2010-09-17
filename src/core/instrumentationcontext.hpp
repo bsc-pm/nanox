@@ -98,6 +98,33 @@ inline InstrumentationContextData::ConstBurstIterator InstrumentationContext::en
    return icd->_burstList.end();
 }
 
+inline void InstrumentationContext::insertDeferredEvent ( InstrumentationContextData *icd, const Event &e )
+{
+   /* insert the event into the list */
+   icd->_deferredEventsLock++;
+   icd->_deferredEvents.push_front ( e );
+   icd->_deferredEventsLock--;
+}
+
+inline void InstrumentationContext::clearDeferredEvents ( InstrumentationContextData *icd )
+{
+   /* remove all events from the list */
+   icd->_deferredEvents.clear();
+}
+
+inline size_t InstrumentationContext::getNumDeferredEvents( InstrumentationContextData *icd ) const
+{
+   return icd->_deferredEvents.size();
+}
+inline InstrumentationContextData::EventIterator InstrumentationContext::beginDeferredEvents( InstrumentationContextData *icd ) const
+{
+   return icd->_deferredEvents.begin();
+}
+inline InstrumentationContextData::EventIterator InstrumentationContext::endDeferredEvents( InstrumentationContextData *icd ) const
+{
+   return icd->_deferredEvents.end();
+}
+
 inline InstrumentationContextData::ConstStateIterator InstrumentationContext::beginState( InstrumentationContextData *icd ) const
 {
    return icd->_stateStack.begin();
