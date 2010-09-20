@@ -21,7 +21,7 @@ include $(top_srcdir)/src/common.am
 
 lib_LTLIBRARIES=libnanox-ss.la
 
-include_HEADERS=\
+pkginclude_HEADERS=\
 	$(END)
 
 sources=\

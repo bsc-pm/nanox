@@ -27,7 +27,7 @@ chpl_flags=-I$(chpl_dir)/runtime/include
 
 lib_LTLIBRARIES=libnanox-chpl.la
 
-include_HEADERS=\
+pkginclude_HEADERS=\
         chpl_nanos.h\
 	$(END)
 
