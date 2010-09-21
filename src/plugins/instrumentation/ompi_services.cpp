@@ -1,5 +1,6 @@
 #include "system.hpp"
 #include "gpudd.hpp"
+#include "clusterdevice.hpp"
 
 namespace nanos {
 
@@ -12,7 +13,13 @@ extern "C" {
 #ifdef GPU_DEV
       return sys.getNumPEs() + nanos::ext::GPUDD::getGPUCount();
 #else
+
+#ifdef CLUSTER_DEV
+      return sys.getNumPEs() + nanos::ClusterDevice::getExtraPEsCount();
+#else
       return sys.getNumPEs();
+#endif
+
 #endif
    }
 

@@ -48,7 +48,6 @@ WorkDescriptor & SMPProcessor::getWorkerWD () const
 WorkDescriptor & SMPProcessor::getMasterWD () const
 {
    WD * wd = new WD( new SMPDD() );
-   fprintf(stderr, "master wd(%p)'s dd is %p\n", wd, &wd->getActiveDevice());
    return *wd;
 }
 

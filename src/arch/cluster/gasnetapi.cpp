@@ -1,3 +1,22 @@
+/*************************************************************************************/
+/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+
 #include "gasnetapi.hpp"
 #include "smpdd.hpp"
 #include "system.hpp"
@@ -11,6 +30,7 @@ using namespace ext;
 
 extern char **environ;
 
+#if 0
 static void inspect_environ(void)
 {
 	int i = 0;
@@ -19,13 +39,9 @@ static void inspect_environ(void)
 	while (environ[i] != NULL)
 		fprintf(stderr, "| %s\n", environ[i++]);
 	fprintf(stderr, "+-------------- Environ End = %p ---------------\n", &environ[i]);
-
-	// DBG(1,"%s\n", environ[2]);
-	// DBG(1,"\n");
-	// DBG(1,"\n");
-	// DBG(1,"\n");
-	// DBG(1,"\n");
 }
+#endif
+
 struct work_wrapper_args
 {
    void ( * work ) ( void * );
@@ -35,7 +51,7 @@ struct work_wrapper_args
 
 static void wk_wrapper(struct work_wrapper_args *arg)
 {
-   fprintf(stderr, "starting work> outline %p, arg struct %p\n", arg->work, arg->arg);
+   //fprintf(stderr, "starting work> outline %p, arg struct %p\n", arg->work, arg->arg);
    arg->work(arg->arg);
 
    delete arg;
@@ -80,20 +96,14 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize, void ( *wor
     warg->arg = arg;
     warg->argSize = arg0;
 
-      //fprintf(stderr, "%x\n", *((int *) arg ) );
-      //fprintf(stderr, "%x\n", *((int *) &((char *) arg)[4]) );
-      //fprintf(stderr, "%x\n", *((int *) &((char *) arg)[8]) );
-      //fprintf(stderr, "%x\n", *((int *) &((char *) arg)[12]) );
-      //fprintf(stderr, "%x\n", *((int *) &((char *) arg)[16]) );
-      //fprintf(stderr, "%x\n", *((int *) &((char *) arg)[20]) );
-    CopyData *recvcd = (CopyData *) &((char *) arg)[arg0];
-
+    //CopyData *recvcd = (CopyData *) &((char *) arg)[arg0];
     //fprintf(stderr, "NUM COPIES %d addr %llx, in? %s, out? %s\n",
     //      1,
     //      recvcd->getAddress(),
     //      recvcd->isInput() ? "yes" : "no",
     //      recvcd->isOutput() ? "yes" : "no" );
     //
+
     SMPDD * dd = new SMPDD ( ( SMPDD::work_fct ) wk_wrapper );
     WD *wd = new WD( dd, sizeof(struct work_wrapper_args), warg, ( size_t ) ( argSize - arg0 ) / sizeof(CopyData), ( CopyData * ) &( ( char * )arg )[ arg0 ] );
     //WD *wd = new WD( dd/*, sizeof(struct work_wrapper_args), warg*/ );
@@ -193,11 +203,16 @@ void GasnetAPI::initialize ( Network *net )
       gasnet_seginfo_t seginfoTable[ gasnet_nodes() ];
       gasnet_getSegmentInfo( seginfoTable, gasnet_nodes() );
 
+      void *segmentAddr[ gasnet_nodes() ];
+      size_t segmentLen[ gasnet_nodes() ];
+
       fprintf(stderr, "GasNet segment information:\n");
       for ( idx = 0; idx < gasnet_nodes(); idx += 1)
       {
+         segmentAddr[ idx ] = seginfoTable[ idx ].addr;
+         segmentLen[ idx ] = seginfoTable[ idx ].size;
          fprintf(stderr, "\tnode %d: @=%p, len=%d\n", idx, seginfoTable[ idx ].addr, seginfoTable[ idx ].size);
-         ClusterDevice::addPublicSegment( seginfoTable[ idx ].addr, seginfoTable[ idx ].size );
+         ClusterDevice::addSegments( gasnet_nodes(), segmentAddr, segmentLen );
       }
 
 
@@ -228,7 +243,7 @@ void GasnetAPI::sendExitMsg ( unsigned int dest )
 
 void GasnetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, size_t argSize, void * arg )
 {
-   fprintf(stderr, "sending msg WORK %p, arg size %d to node %d\n", work, argSize, dest);
+   //fprintf(stderr, "sending msg WORK %p, arg size %d to node %d\n", work, argSize, dest);
    if (gasnet_AMRequestMedium2( dest, 205, arg, argSize, work, arg0 ) != GASNET_OK)
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
@@ -243,32 +258,13 @@ void GasnetAPI::sendWorkDoneMsg ( unsigned int dest )
    }
 }
 
-
 void GasnetAPI::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size )
 {
-#if 0
-   unsigned int sent = 0, thisSendSize;
-
-   while (sent < size)
-   {
-      thisSendSize = (size - sent) > 1000 ? 1000 : size - sent;
-
-      fprintf(stderr, "gasnet_put_bulk size %d\n", thisSendSize);
-      
-      gasnet_put_bulk( ( gasnet_node_t ) remoteNode, &( ( ( char * ) remoteAddr )[ sent ] ), &( ( ( char * )localAddr )[ sent ] ), thisSendSize );
-
-      sent += thisSendSize;
-   }
-#else
-   fprintf(stderr, "gasnet_put_bulk size %d\n", size);
-   fprintf(stderr, "gasnet_put_bulk( %d , %p , %p , %d );\n", remoteNode, &( ( ( char * ) remoteAddr )[ 0 ]), &( ( ( char * )localAddr )[ 0 ] ), size);
-   gasnet_put_bulk( ( gasnet_node_t ) remoteNode, &( ( ( char * ) remoteAddr )[ 0 ] ), &( ( ( char * )localAddr )[ 0 ] ), size );
-#endif
+   gasnet_put_bulk( ( gasnet_node_t ) remoteNode, ( void * ) remoteAddr, localAddr, size );
 }
 
 void GasnetAPI::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, size_t size )
 {
-   fprintf(stderr, "gasnet_get_bulk size %d\n", size);
    gasnet_get_bulk ( localAddr, ( gasnet_node_t ) remoteNode, ( void * ) remoteAddr, size );
 }
 

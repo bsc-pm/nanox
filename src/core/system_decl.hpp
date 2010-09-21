@@ -92,6 +92,8 @@ namespace nanos
 
          Slicers              _slicers; /**< set of global slicers */
 
+         /*! Cluster: GasNet conduit to use and system Network object */
+         std::string          _currentConduit;
          Network              _net;
 
          Instrumentation     *_instrumentation; /**< Instrumentation object used in current execution */
@@ -198,6 +200,9 @@ namespace nanos
          const std::string & getDefaultInstrumentation() const;
 
          const std::string & getDefaultArch() const;
+         
+         const std::string & getCurrentConduit() const;
+         
          void setDefaultArch( const std::string &arch );
 
          void setHostFactory ( peFactory factory );

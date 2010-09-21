@@ -24,7 +24,11 @@
 using namespace nanos;
 using namespace nanos::ext;
 
-//Atomic<int> ClusterNode::_deviceSeed = 0;
+void ClusterNode::slaveLoop ( ClusterNode *node)
+{
+   Scheduler::workerLoop();
+   sys.getNetwork()->sendExitMsg( node->getClusterNodeNum() );
+}
 
 WorkDescriptor & ClusterNode::getWorkerWD () const
 {

@@ -349,9 +349,9 @@ class InstrumentationExtrae: public Instrumentation
       {
          OMPItrace_fini();
          getTraceFileName();
-         mergeParaverTraceFiles();
+         //mergeParaverTraceFiles();
          modifyParaverConfigFile();
-         removeTemporaryFiles();
+         //removeTemporaryFiles();
       }
 
       void addEventList ( unsigned int count, Event *events) 

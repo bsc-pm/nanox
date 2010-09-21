@@ -20,6 +20,7 @@
 #include "plugin.hpp"
 #include "system.hpp"
 #include "gasnetapi.hpp"
+#include "clusterdevice.hpp"
 
 
 namespace nanos {
@@ -43,6 +44,12 @@ class ClusterPlugin : public Plugin
       virtual void init()
       {
          sys.getNetwork()->setAPI(&_gasnetApi);
+         sys.getNetwork()->initialize();
+
+         if (sys.getNetwork()->getNodeNum() == 0)
+         {
+            ClusterDevice::setExtraPEsCount( sys.getNetwork()->getNumNodes() - 1 );
+         }
       }
 };
 

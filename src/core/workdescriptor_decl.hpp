@@ -163,6 +163,8 @@ namespace nanos
 
          InstrumentationContextData     _instrumentationContextData; /**< Instrumentation Context Data (may be empty if no instrumentation enabled) */
 
+         bool                 _clusterMigrable;
+
          /*! \brief WorkDescriptor assignment operator privatized
           */
          const WorkDescriptor & operator= ( const WorkDescriptor &wd );
@@ -177,14 +179,14 @@ namespace nanos
                           _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : 0 ),
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain(), _instrumentationContextData() { }
+                          _depsDomain(), _instrumentationContextData(), _clusterMigrable ( false ) { }
 
          WorkDescriptor ( DeviceData *device, size_t data_size = 0, void *wdata=0, size_t numCopies = 0, CopyData *copies = NULL )
                         : WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ),
                           _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( 1 ), _devices ( &_activeDevice ), _activeDevice ( device ),
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain(), _instrumentationContextData() { }
+                          _depsDomain(), _instrumentationContextData(), _clusterMigrable ( false ) { }
 
          /*! \brief WorkDescriptor constructor (using a given WorkDescriptor)
           *
@@ -202,7 +204,7 @@ namespace nanos
                           _myQueue ( NULL ), _depth ( wd._depth ), _numDevices ( wd._numDevices ),
                           _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
                           _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
-                          _doSubmit(), _doWait(), _depsDomain(), _instrumentationContextData() { }
+                          _doSubmit(), _doWait(), _depsDomain(), _instrumentationContextData(), _clusterMigrable ( false ) { }
 
          /*! \brief WorkDescriptor destructor
           *
@@ -376,6 +378,8 @@ namespace nanos
          /*! \breif Prepare private copies to have relative addresses
           */
          void prepareCopies();
+
+         bool isClusterMigrable();
 
    };
 

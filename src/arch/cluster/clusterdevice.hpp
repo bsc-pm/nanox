@@ -32,27 +32,46 @@ namespace nanos
    class ClusterDevice : public Device
    {
       private:
-         //static void **memPublicSegmentStart;
-         //static size_t *memPublicSegmentSize;
-         //static memChunkDescriptor *memPublicSegment;
+         static unsigned int _numSegments;
+         static void ** _segmentAddrList;
+         static size_t * _segmentLenList;
 
-         typedef std::map< uintptr_t, size_t > SegmentMap;
+         //typedef std::map< uintptr_t, size_t > SegmentMap;
+         //
+         //static std::vector< SegmentMap > _allocatedChunks;
+         //static std::vector< SegmentMap > _freeChunks;
 
-         static std::vector< SegmentMap > allocatedChunks;
-         static std::vector< SegmentMap > freeChunks;
+         static unsigned int _extraPEsCount;
          
       public:
-         /*! \brief GPUDevice constructor
+         /*! \brief ClusterDevice constructor
           */
          ClusterDevice ( const char *n ) : Device ( n ) {}
 
-         /*! \brief GPUDevice copy constructor
+         /*! \brief ClusterDevice copy constructor
           */
          ClusterDevice ( const ClusterDevice &arch ) : Device ( arch ) {}
 
-         /*! \brief GPUDevice destructor
+         /*! \brief ClusterDevice destructor
           */
-         ~ClusterDevice() {};
+         ~ClusterDevice()
+         {
+            if ( _segmentAddrList != NULL )
+               delete _segmentAddrList;
+
+            if ( _segmentLenList != NULL )
+               delete _segmentLenList;
+         };
+
+         static unsigned int getExtraPEsCount()
+         {
+            return _extraPEsCount;
+         }
+
+         static void setExtraPEsCount( unsigned int num)
+         {
+            _extraPEsCount = num;
+         }
 
          static void * allocate( size_t size );
          static void free( void *address );
@@ -65,15 +84,28 @@ namespace nanos
             // Do not allow local copies in cluster memory
          }
 
-         static void addPublicSegment(void *segmentAddr, size_t segmentSize)
+         static void addSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize )
          {
-            SegmentMap *mallocated = new SegmentMap;
-            SegmentMap *mfree = new SegmentMap;
+            unsigned int idx;
+            _numSegments = numSegments;
+            _segmentAddrList = new void *[ numSegments ];
+            _segmentLenList = new size_t[ numSegments ];
 
-            ( *mfree )[ ( uintptr_t ) segmentAddr ] = segmentSize;
+            for ( idx = 0; idx < numSegments; idx += 1)
+            {
+               _segmentAddrList[ idx ] = segmentAddr[ idx ];
+               _segmentLenList[ idx ] = segmentSize[ idx ];
+            }
+         }
 
-            allocatedChunks.push_back( *mallocated );
-            freeChunks.push_back( *mfree );
+         static void * getSegmentAddr( unsigned int idx )
+         {
+            return _segmentAddrList[ idx ];
+         }
+
+         static size_t getSegmentLen( unsigned int idx )
+         {
+            return _segmentLenList[ idx ];
          }
    };
 }

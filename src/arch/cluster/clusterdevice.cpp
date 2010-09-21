@@ -19,7 +19,7 @@
 
 
 #include "clusterdevice.hpp"
-#include "clusterremotenode.hpp"
+#include "clusternode.hpp"
 #include "basethread.hpp"
 #include "debug.hpp"
 #include "system.hpp"
@@ -27,17 +27,25 @@
 using namespace nanos;
 using namespace ext;
 
-std::vector< ClusterDevice::SegmentMap > ClusterDevice::allocatedChunks;
-std::vector< ClusterDevice::SegmentMap > ClusterDevice::freeChunks;
+//std::vector< ClusterDevice::SegmentMap > ClusterDevice::_allocatedChunks;
+//std::vector< ClusterDevice::SegmentMap > ClusterDevice::_freeChunks;
+unsigned int ClusterDevice::_numSegments = 0;
+void ** ClusterDevice::_segmentAddrList = NULL;
+size_t * ClusterDevice::_segmentLenList = NULL;
+
+unsigned int ClusterDevice::_extraPEsCount = 0;
 
 void * ClusterDevice::allocate( size_t size )
 {
-   ClusterRemoteNode *node = (ClusterRemoteNode *) myThread->runningOn();
-   unsigned int nodeId = node->getClusterNodeNum();
-   SegmentMap &nodeFreeChunks = freeChunks[ nodeId ];
-   SegmentMap &nodeAllocatedChunks = allocatedChunks[ nodeId ];
-   SegmentMap::iterator mapIter = nodeFreeChunks.begin();
+   ClusterNode *node = ( ClusterNode * ) myThread->runningOn();
    void *retAddr = NULL;
+
+   retAddr = node->getAllocator().allocate( size );
+   /*
+   unsigned int nodeId = node->getClusterNodeNum();
+   SegmentMap &nodeFreeChunks = _freeChunks[ nodeId ];
+   SegmentMap &nodeAllocatedChunks = _allocatedChunks[ nodeId ];
+   SegmentMap::iterator mapIter = nodeFreeChunks.begin();
    //fprintf(stderr, "[node %d] ALLOCATE %d at %d, ret %p\n", sys.getNetwork()->getNodeNum(), size, node->getClusterNodeNum(), addr );
 
    //fprintf(stderr, "looking for chunk of %d bytes, first is %d bytes.", size, mapIter->second );
@@ -62,16 +70,20 @@ void * ClusterDevice::allocate( size_t size )
    else {
       fprintf(stderr, "Could not get a chunk of %d bytes at node %d\n", size, nodeId);
    }
+   */
    
    return retAddr;
 }
 
 void ClusterDevice::free( void *address )
 {
-   ClusterRemoteNode *node = (ClusterRemoteNode *) myThread->runningOn();
+   ClusterNode *node = ( ClusterNode * ) myThread->runningOn();
+
+   node->getAllocator().free( address );
    unsigned int nodeId = node->getClusterNodeNum();
-   SegmentMap &nodeFreeChunks = freeChunks[ nodeId ];
-   SegmentMap &nodeAllocatedChunks = allocatedChunks[ nodeId ];
+   /*
+   SegmentMap &nodeFreeChunks = _freeChunks[ nodeId ];
+   SegmentMap &nodeAllocatedChunks = _allocatedChunks[ nodeId ];
    
    SegmentMap::iterator mapIter = nodeAllocatedChunks.find( ( uintptr_t ) address );
    size_t size = mapIter->second;
@@ -106,7 +118,7 @@ void ClusterDevice::free( void *address )
             if ( totalSize > size ) {
                mapIter->second += totalSize;
                mapIter++;
-               nodeFreeChunks.erase(mapIter);
+               nodeFreeChunks.erase( mapIter );
             }
             else {
                mapIter->second += size;
@@ -121,6 +133,7 @@ void ClusterDevice::free( void *address )
    else {
       nodeFreeChunks[ ( uintptr_t ) address ] = size;
    }
+   */
 
 
    
@@ -129,14 +142,14 @@ void ClusterDevice::free( void *address )
 
 void ClusterDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
 {
-   ClusterRemoteNode *node = (ClusterRemoteNode *) myThread->runningOn();
+   ClusterNode *node = (ClusterNode *) myThread->runningOn();
    //fprintf(stderr, "[node %d] COPY IN ( remote=%p, <= local=0x%llx[%d], size=%d)\n", sys.getNetwork()->getNodeNum(), localDst, remoteSrc, *((int *)remoteSrc), size);
    sys.getNetwork()->put( node->getClusterNodeNum(), ( uint64_t ) localDst, ( void * ) remoteSrc, size );
 }
 
 void ClusterDevice::copyOut( uint64_t remoteDst, void *localSrc, size_t size )
 {
-   ClusterRemoteNode *node = (ClusterRemoteNode *) myThread->runningOn();
+   ClusterNode *node = (ClusterNode *) myThread->runningOn();
    //fprintf(stderr, "[node %d] COPY OUT ( remote=%p, => local=0x%llx[%d], size %d\n", sys.getNetwork()->getNodeNum(), localSrc, remoteDst, *((int *)remoteDst), size);
    sys.getNetwork()->get( ( void * ) remoteDst, node->getClusterNodeNum(), ( uint64_t ) localSrc, size );
    //fprintf(stderr, "[node %d] COPY OUT ( remote=%p, => local=0x%llx[%d], size %d\n", sys.getNetwork()->getNodeNum(), localSrc, remoteDst, *((int *)remoteDst), size);

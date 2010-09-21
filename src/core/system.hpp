@@ -87,6 +87,8 @@ inline const std::string & System::getDefaultBarrier() const { return _defBarr; 
 
 inline const std::string & System::getDefaultInstrumentation() const { return _defInstr; }
 
+inline const std::string & System::getCurrentConduit() const { return _currentConduit; }
+
 inline void System::setHostFactory ( peFactory factory ) { _hostFactory = factory; }
 
 inline void System::setDefaultBarrFactory ( barrFactory factory ) { _defBarrFactory = factory; }

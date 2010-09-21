@@ -134,35 +134,14 @@ case $host in
         AC_ARG_WITH([gasnet],
               AS_HELP_STRING([--with-gasnet=dir], [Directory of GASNet installation]),
               [
-		GASNETDIR="${withval}"
+		GASNET_DIR="${withval}"
               ],
               [
-		GASNETDIR=/opt/gasnet
-              ])
-           GASNET_INC="$GASNETDIR/include"
-           GASNET_LIB="$GASNETDIR/lib"
-
-	   AC_SUBST([GASNET_INC])
-	   AC_SUBST([GASNET_LIB])
-
-        AC_ARG_WITH([gasnet-conduit],
-              AS_HELP_STRING([--with-gasnet-conduit=mpi|udp], [GASNet conduit to use, udp or mpi]),
-              [
-		GASNET_CONDUIT="${withval}"
-              ],
-              [
-		GASNET_CONDUIT=mpi
+		GASNET_DIR=/opt/gasnet
               ])
 
-	   AC_SUBST([GASNET_CONDUIT])
-      
-      if test x$GASNET_CONDUIT = xudp; then
-         GASNET_FLAGS_LIBS="-lgasnet-udp-par -lamudp"
-      else if test x$GASNET_CONDUIT = xmpi; then
-         GASNET_FLAGS_LIBS="-lgasnet-mpi-par -lammpi -L/opt/osshpc/mpich-mx/32/lib/shared -L/opt/osshpc/mx/lib -lmpich -lmyriexpress -L/opt/ibmcmp/vacpp/10.1/lib -lxl -lpthread"
-         fi
-      fi
-	   AC_SUBST([GASNET_FLAGS_LIBS])
+	   AC_SUBST([GASNET_DIR])
+
     fi
     
     ;;

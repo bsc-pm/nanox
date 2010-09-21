@@ -1,3 +1,23 @@
+/*************************************************************************************/
+/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+
+
 #include <stdio.h>
 #include "network.hpp"
 
@@ -59,13 +79,22 @@ unsigned int Network::getNodeNum ()
 void Network::initialize()
 {
 //   ensure ( _api != NULL, "No network api loaded." );
-   _api->initialize( this );
+   if ( _api != NULL )
+      _api->initialize( this );
+}
+
+void Network::finalize()
+{
+//   ensure ( _api != NULL, "No network api loaded." );
+   if ( _api != NULL )
+      _api->finalize();
 }
 
 void Network::poll()
 {
 //   ensure ( _api != NULL, "No network api loaded." );
-   _api->poll();
+   if (_api != NULL)
+      _api->poll();
 }
 
 void Network::sendExitMsg( unsigned int nodeNum )
@@ -80,30 +109,36 @@ void Network::sendExitMsg( unsigned int nodeNum )
 void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, size_t argSize, void * arg )
 {
  //  ensure ( _api != NULL, "No network api loaded." );
-   if (work == NULL)
+   if ( _api != NULL )
    {
-      fprintf(stderr, "ERROR\n");
-   }
-   if ( _nodeNum == MASTER_NODE_NUM )
-   {
-      _api->sendWorkMsg( dest, work, arg0, argSize, arg );
+      if (work == NULL)
+      {
+         fprintf(stderr, "ERROR\n");
+      }
+      if ( _nodeNum == MASTER_NODE_NUM )
+      {
+         _api->sendWorkMsg( dest, work, arg0, argSize, arg );
 
-      while (_notify[dest] == 0)
-         poll();
-      _notify[dest] = 0;
-   }
-   else
-   {
-      fprintf(stderr, "tried to send work from a node != 0\n");
+         while (_notify[dest] == 0)
+            poll();
+         _notify[dest] = 0;
+      }
+      else
+      {
+         fprintf(stderr, "tried to send work from a node != 0\n");
+      }
    }
 }
 
 void Network::sendWorkDoneMsg( unsigned int nodeNum )
 {
  //  ensure ( _api != NULL, "No network api loaded." );
-   if ( _nodeNum != MASTER_NODE_NUM )
+   if ( _api != NULL )
    {
-      _api->sendWorkDoneMsg( nodeNum );
+      if ( _nodeNum != MASTER_NODE_NUM )
+      {
+         _api->sendWorkDoneMsg( nodeNum );
+      }
    }
 }
 
@@ -114,25 +149,30 @@ void Network::notifyWorkDone ( unsigned int nodeNum )
 
 void Network::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size )
 {
-   _api->put( remoteNode, remoteAddr, localAddr, size );
+   if ( _api != NULL )
+      _api->put( remoteNode, remoteAddr, localAddr, size );
 }
 
 void Network::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, size_t size )
 {
-   _api->get( localAddr, remoteNode, remoteAddr, size );
+   if ( _api != NULL )
+      _api->get( localAddr, remoteNode, remoteAddr, size );
 }
 
 void * Network::malloc ( unsigned int remoteNode, size_t size )
 {
-   void * result;
+   void * result = NULL;
 
-   _api->malloc( remoteNode, size );
+   if ( _api != NULL )
+   {
+      _api->malloc( remoteNode, size );
 
-   while ( _malloc_complete[ remoteNode ] == false )
-      poll();
+      while ( _malloc_complete[ remoteNode ] == false )
+         poll();
 
-   result = _malloc_return[ remoteNode ];
-   _malloc_complete[ remoteNode ] = false;
+      result = _malloc_return[ remoteNode ];
+      _malloc_complete[ remoteNode ] = false;
+   }
 
    return result;
 }

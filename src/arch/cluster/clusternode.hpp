@@ -26,6 +26,7 @@
 #include "clusterdevice.hpp"
 #include "clusterthread.hpp"
 #include "smpdevice.hpp"
+#include "simpleallocator.hpp"
 
 namespace nanos {
 namespace ext
@@ -45,10 +46,11 @@ namespace ext
          const ClusterNode & operator= ( const ClusterNode &pe );
 
          DeviceCache<ClusterDevice> _cache;
+         SimpleAllocator _memSegment;
 
       public:
          // constructors
-         ClusterNode( int id ) : Accelerator( id, &SMP ) { _clusterNode = id; }
+         ClusterNode( int id ) : Accelerator( id, &SMP ), _memSegment( ( uintptr_t ) ClusterDevice::getSegmentAddr( id ), ClusterDevice::getSegmentLen( id ) ) { _clusterNode = id; }
 
          virtual ~ClusterNode() {}
 
@@ -73,12 +75,11 @@ namespace ext
          void unregisterPrivateAccessDependent(uint64_t a, size_t aa);
 
          unsigned int getClusterNodeNum();
+         static void slaveLoop ( ClusterNode *node );
+         SimpleAllocator & getAllocator( void ) { return _memSegment; }
    };
 
 }
 }
-
-#include "clusterlocalnode.hpp"
-#include "clusterremotenode.hpp"
 
 #endif

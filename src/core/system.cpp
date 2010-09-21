@@ -37,7 +37,7 @@
 
 #ifdef CLUSTER_DEV
 #include "clusternode.hpp"
-#include "clusternodeinfo.hpp"
+//#include "clusternodeinfo.hpp"
 #endif
 
 using namespace nanos;
@@ -52,7 +52,7 @@ System nanos::sys;
 System::System () :
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindThreads( true ), _profile( false ), _instrument( false ),
       _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster( true ), _delayedStart(false), _isMaster(true), _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" ),
-      _defInstr ( "empty_trace" ), _defArch("smp"), _instrumentation ( NULL ), _defSchedulePolicy(NULL), _directory()
+      _defInstr ( "empty_trace" ), _defArch("smp"), _currentConduit( "mpi" ), _instrumentation ( NULL ), _defSchedulePolicy(NULL), _directory()
 {
    verbose0 ( "NANOS++ initalizing... start" );
    // OS::init must be called here and not in System::start() as it can be too late
@@ -89,7 +89,7 @@ void System::loadModules ()
 #endif
 
 #ifdef CLUSTER_DEV
-   if ( !PluginManager::load ( "pe-cluster" ) )
+   if ( !PluginManager::load ( "pe-cluster-"+getCurrentConduit() ) )
       fatal0 ( "Couldn't load Cluster support" );
    fprintf(stderr, "Cluster plugin loaded!\n");
 #endif
@@ -173,6 +173,15 @@ void System::config ()
    config.registerArgOption ( "instrumentation", "instrumentation" );
    config.registerEnvOption ( "instrumentation", "NX_INSTRUMENTATION" );
 
+   /* Cluster: select wich module to load mpi or udp */
+   //config.registerConfigOption ( "enable-cluster", new Config::FlagOption ( _useCluster, false ), "Enables the usage of Nanos++ Cluster" );
+   //config.registerArgOption ( "enable-cluster", "enable-cluster" );
+   //config.registerEnvOption ( "enable-cluster", "NX_ENABLE_CLUSTER" );
+
+   config.registerConfigOption ( "conduit", new Config::StringVar ( _currentConduit ), "Selects which GasNet conduit will be used" );
+   config.registerArgOption ( "conduit", "cluster-network" );
+   config.registerEnvOption ( "conduit", "NX_CLUSTER_NETWORK" );
+
    _schedConf.config(config);
    
    verbose0 ( "Reading Configuration" );
@@ -237,7 +246,6 @@ void System::start ()
    spu->startWorker();
 #endif
 
-   _net.initialize();
 
 #ifdef CLUSTER_DEV
    if ( _net.getNodeNum() == 0 )
@@ -245,7 +253,7 @@ void System::start ()
       unsigned int nodeC;
       for ( nodeC = 0; nodeC < _net.getNumNodes(); nodeC++ ) {
          if ( nodeC != _net.getNodeNum() ) {
-            PE *node = new nanos::ext::ClusterRemoteNode( nodeC );
+            PE *node = new nanos::ext::ClusterNode( nodeC );
             _pes.push_back( node );
             _workers.push_back( &node->startWorker() );
          }
@@ -310,7 +318,7 @@ void System::finish ()
 //   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
 //       if (_pes[p] != nanos::ext::ClusterNodeInfo::getThisNodePE())
 //       {
-//           ((nanos::ext::ClusterRemoteNode *) _pes[p])->stopAll();
+//           ((nanos::ext::ClusterNode *) _pes[p])->stopAll();
 //       }
 //   }
 //   nanos::ext::ClusterNodeInfo::callNetworkFinalizeFunc();
@@ -335,7 +343,7 @@ void System::finish ()
    }
    verbose ( "NANOS++ shutting down.... end" );
 
-   _net.getAPI()->finalize();
+   _net.finalize();
 }
 
 /*! \brief Creates a new WD
