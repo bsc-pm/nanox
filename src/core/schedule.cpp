@@ -68,6 +68,11 @@ void Scheduler::submit ( WD &wd )
    }
 }
 
+void Scheduler::updateExitStats ( void )
+{
+   sys.getSchedulerStats()._totalTasks--;
+}
+
 template<class behaviour>
 inline void Scheduler::idleLoop ()
 {
@@ -207,7 +212,7 @@ struct WorkerBehaviour
         Scheduler::switchTo(next);
       else {
         Scheduler::inlineWork ( next );
-        sys.getSchedulerStats()._totalTasks--;
+        Scheduler::updateExitStats ();
       }
    }
 };
@@ -368,7 +373,7 @@ void Scheduler::exit ( void )
    // a) We are still running in the WD stack
    // b) Resources can potentially be reused by the next WD
 
-   sys.getSchedulerStats()._totalTasks--;
+   updateExitStats ();
 
    WD *oldwd = myThread->getCurrentWD();
    oldwd->done();
