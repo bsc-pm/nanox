@@ -144,7 +144,13 @@ nanos_err_t nanos_wait_on ( size_t num_deps, nanos_dependence_t *deps )
 
 nanos_err_t nanos_init_lock ( nanos_lock_t **lock )
 {
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_lock",NANOS_RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","init_lock",NANOS_RUNTIME) );
+
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+
+   NANOS_INSTRUMENT ( static nanos_event_key_t Keys = ID->getEventKey("lock-addr"); )
+   NANOS_INSTRUMENT ( nanos_event_value_t Values = (nanos_event_value_t) *lock; )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(1, &Keys, &Values); )
 
    try {
       *lock = new Lock();
@@ -157,7 +163,13 @@ nanos_err_t nanos_init_lock ( nanos_lock_t **lock )
 
 nanos_err_t nanos_set_lock ( nanos_lock_t *lock )
 {
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_lock",NANOS_SYNCHRONIZATION) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","set_lock",NANOS_SYNCHRONIZATION) );
+
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+
+   NANOS_INSTRUMENT ( static nanos_event_key_t Keys = ID->getEventKey("lock-addr"); )
+   NANOS_INSTRUMENT ( nanos_event_value_t Values = (nanos_event_value_t) lock; )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(1, &Keys, &Values); )
 
    try {
       Lock *l = ( Lock * ) lock;
@@ -171,7 +183,13 @@ nanos_err_t nanos_set_lock ( nanos_lock_t *lock )
 
 nanos_err_t nanos_unset_lock ( nanos_lock_t *lock )
 {
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_lock",NANOS_SYNCHRONIZATION) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","unset_lock",NANOS_SYNCHRONIZATION) );
+
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+
+   NANOS_INSTRUMENT ( static nanos_event_key_t Keys = ID->getEventKey("lock-addr"); )
+   NANOS_INSTRUMENT ( nanos_event_value_t Values = (nanos_event_value_t) lock; )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(1, &Keys, &Values); )
 
    try {
       Lock *l = ( Lock * ) lock;
@@ -185,7 +203,13 @@ nanos_err_t nanos_unset_lock ( nanos_lock_t *lock )
 
 nanos_err_t nanos_try_lock ( nanos_lock_t *lock, bool *result )
 {
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_lock",NANOS_SYNCHRONIZATION) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","try_lock",NANOS_SYNCHRONIZATION) );
+
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+
+   NANOS_INSTRUMENT ( static nanos_event_key_t Keys = ID->getEventKey("lock-addr"); )
+   NANOS_INSTRUMENT ( nanos_event_value_t Values = (nanos_event_value_t) lock; )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(1, &Keys, &Values); )
 
    try {
       Lock *l = ( Lock * ) lock;
@@ -200,7 +224,13 @@ nanos_err_t nanos_try_lock ( nanos_lock_t *lock, bool *result )
 
 nanos_err_t nanos_destroy_lock ( nanos_lock_t *lock )
 {
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_lock",NANOS_RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","destroy_lock",NANOS_RUNTIME) );
+
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+
+   NANOS_INSTRUMENT ( static nanos_event_key_t Keys = ID->getEventKey("lock-addr"); )
+   NANOS_INSTRUMENT ( nanos_event_value_t Values = (nanos_event_value_t) lock; )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(1, &Keys, &Values); )
 
    try {
       delete ( Lock * )lock;

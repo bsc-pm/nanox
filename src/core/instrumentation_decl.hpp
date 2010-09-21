@@ -161,7 +161,11 @@ namespace nanos {
             registerEventValue("api","sync_cond_signal","nanos_sync_cond_signal()");
             registerEventValue("api","destroy_sync_cond","nanos_destroy_sync_cond()");
             registerEventValue("api","wait_on","nanos_wait_on()");
-            registerEventValue("api","*_lock","nanos_xxx_lock()");
+            registerEventValue("api","init_lock","nanos_init_lock()");
+            registerEventValue("api","set_lock","nanos_set_lock()");
+            registerEventValue("api","unset_lock","nanos_unset_lock()");
+            registerEventValue("api","try_lock","nanos_try_lock()");
+            registerEventValue("api","destroy_lock","nanos_destroy_lock()");
             registerEventValue("api","single_guard","nanos_single_guard()");
             registerEventValue("api","team_barrier","nanos_team_barrier()");
             registerEventValue("api","current_wd", "nanos_current_wd()");
@@ -199,7 +203,10 @@ namespace nanos {
             /* 14 */ registerEventKey("create-wd-ptr","Create WD pointer:");
             /* 15 */ registerEventKey("wd-num-deps","Create WD num. deps."); 
             /* 16 */ registerEventKey("wd-deps-ptr","Create WD dependence pointer"); 
-            /* 17 */ registerEventKey("debug","Debug Key"); 
+
+            /* 17 */ registerEventKey("lock-addr","Lock address"); 
+
+            /* 18 */ registerEventKey("debug","Debug Key"); 
 #endif
 
          }
