@@ -68,6 +68,11 @@ void Scheduler::submit ( WD &wd )
    }
 }
 
+void Scheduler::updateExitStats ( void )
+{
+   sys.getSchedulerStats()._totalTasks--;
+}
+
 template<class behaviour>
 inline void Scheduler::idleLoop ()
 {
@@ -95,6 +100,7 @@ inline void Scheduler::idleLoop ()
          }
 
          if (next) {
+            sys.getSchedulerStats()._readyTasks--;
             sys.getSchedulerStats()._idleThreads--;
             NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) );
             behaviour::switchWD(thread,current, next);
@@ -129,7 +135,6 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
    WD * current = myThread->getCurrentWD();
 
-   sys.getSchedulerStats()._readyTasks--;
    sys.getSchedulerStats()._idleThreads++;
    current->setSyncCond( condition );
    current->setIdle();
@@ -148,6 +153,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
             NANOS_INSTRUMENT( inst1.close() );
 
             if ( next ) {
+               sys.getSchedulerStats()._readyTasks--;
                sys.getSchedulerStats()._idleThreads--;
                NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) );
                switchTo ( next );
@@ -204,8 +210,10 @@ struct WorkerBehaviour
    {
       if (next->started())
         Scheduler::switchTo(next);
-      else
+      else {
         Scheduler::inlineWork ( next );
+        Scheduler::updateExitStats ();
+      }
    }
 };
 
@@ -365,7 +373,7 @@ void Scheduler::exit ( void )
    // a) We are still running in the WD stack
    // b) Resources can potentially be reused by the next WD
 
-   sys.getSchedulerStats()._totalTasks--;
+   updateExitStats ();
 
    WD *oldwd = myThread->getCurrentWD();
    oldwd->done();
