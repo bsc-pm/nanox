@@ -122,8 +122,6 @@ void GPUThread::yield()
 
 void GPUThread::addWDInputs( WD * wd )
 {
-   uint64_t addr = 0;
-
    CopyData *copies = wd->getCopies();
    for ( unsigned int i = 0; i < wd->getNumCopies(); i++ ) {
       CopyData & cd = copies[i];
@@ -132,12 +130,8 @@ void GPUThread::addWDInputs( WD * wd )
                ( ( uint64_t ) wd->getData() + ( uint64_t ) cd.getAddress() )
                : cd.getAddress();
          _pendingCopiesIn->addPendingCopy( NULL, ( void * ) address, cd.getSize() );
-
-         if ( !addr ) addr = address;
       }
    }
-
-   std::cout << "ADDING INPUTS FOR WD " << wd->getId() << ": " << addr << std::endl;
 }
 
 
@@ -228,9 +222,6 @@ void GPUThread::PendingCopiesOutAsyncList::finishPendingCopy( std::vector<Pendin
 
 void GPUThread::PendingCopiesInAsyncList::clearPendingCopies()
 {
-   if ( _pendingCopiesAsync.size() > 0 )
-      std::cout << "DELETING INPUT : " << ( uint64_t ) _pendingCopiesAsync[0]._src << std::endl;
-
    _pendingCopiesAsync.clear();
 }
 
