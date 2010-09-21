@@ -56,12 +56,15 @@ void GPUThread::runDependent ()
 
    if ( ( (GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->getOutTransferStream() ) {
       // If overlapping outputs is defined, create the list
-      _pendingCopies = new PendingCopiesAsyncList();
+      _pendingCopiesOut = new PendingCopiesOutAsyncList();
    }
    else {
       // Else, create a 'fake list' which copies outputs synchronously
-      _pendingCopies = new PendingCopiesSyncList();
+      _pendingCopiesOut = new PendingCopiesOutSyncList();
    }
+
+   // Create a list of inputs that have been ordered to copy but the operation is still not completed
+   _pendingCopiesIn = new PendingCopiesInAsyncList();
 
    // Avoid the so slow first data allocation and transfer to device
    bool b = true;
@@ -84,20 +87,27 @@ void GPUThread::inlineWorkDependent ( WD &wd )
    if ( GPUDevice::getTransferMode() != nanos::NORMAL ) {
       // Wait for the input transfer stream to finish
       cudaStreamSynchronize( ( (GPUProcessor *) myThread->runningOn() )->getGPUProcessorInfo()->getInTransferStream() );
+      // --> ERASE INPUT LIST --> sync to cache: synchronize()
+      _pendingCopiesIn->clearPendingCopies();
    }
 
+   // We should ask the cache to wait for wd inputs: waitInputs(), but as we have
+   // just waited for them, we skip this step
    ( dd.getWorkFct() )( wd.getData() );
 
    if ( GPUDevice::getTransferMode() != nanos::NORMAL ) {
       // Get next task in order to prefetch data to device memory
       WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, wd );
+
       setNextWD( next );
       if ( next != 0 ) {
+         // ADD INPUTS OF next TO INPUT LIST
+         addWDInputs( next );
          next->start(false);
       }
 
       // Copy out results from tasks executed previously
-      _pendingCopies->executePendingCopies();
+      _pendingCopiesOut->executePendingCopies();
    }
 
    // Wait for the GPU kernel to finish
@@ -110,8 +120,28 @@ void GPUThread::yield()
 }
 
 
+void GPUThread::addWDInputs( WD * wd )
+{
+   uint64_t addr = 0;
 
-void GPUThread::PendingCopiesAsyncList::removePendingCopy ( std::vector<PendingCopy>::iterator it )
+   CopyData *copies = wd->getCopies();
+   for ( unsigned int i = 0; i < wd->getNumCopies(); i++ ) {
+      CopyData & cd = copies[i];
+      if ( cd.isInput() ) {
+         uint64_t address = cd.isPrivate() ?
+               ( ( uint64_t ) wd->getData() + ( uint64_t ) cd.getAddress() )
+               : cd.getAddress();
+         _pendingCopiesIn->addPendingCopy( NULL, ( void * ) address, cd.getSize() );
+
+         if ( !addr ) addr = address;
+      }
+   }
+
+   std::cout << "ADDING INPUTS FOR WD " << wd->getId() << ": " << addr << std::endl;
+}
+
+
+void GPUThread::PendingCopiesOutAsyncList::removePendingCopy ( std::vector<PendingCopy>::iterator it )
 {
    PendingCopy copy = *it;
 
@@ -127,7 +157,7 @@ void GPUThread::PendingCopiesAsyncList::removePendingCopy ( std::vector<PendingC
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
 }
 
-void GPUThread::PendingCopiesAsyncList::executePendingCopies ()
+void GPUThread::PendingCopiesOutAsyncList::executePendingCopies ()
 {
    if ( !_pendingCopiesAsync.empty() ) {
       // First copy
@@ -186,7 +216,7 @@ void GPUThread::PendingCopiesAsyncList::executePendingCopies ()
 #endif
 }
 
-void GPUThread::PendingCopiesAsyncList::finishPendingCopy( std::vector<PendingCopy>::iterator it )
+void GPUThread::PendingCopiesOutAsyncList::finishPendingCopy( std::vector<PendingCopy>::iterator it )
 {
    if ( it->_do != NULL) {
       it->_do->finished();
@@ -194,5 +224,13 @@ void GPUThread::PendingCopiesAsyncList::finishPendingCopy( std::vector<PendingCo
    it->done();
    ( ( GPUProcessor * ) myThread->runningOn() )->updateCacheAccess( ( uint64_t ) it->_dst, it->_size );
    _pendingCopiesAsync.erase( it );
+}
+
+void GPUThread::PendingCopiesInAsyncList::clearPendingCopies()
+{
+   if ( _pendingCopiesAsync.size() > 0 )
+      std::cout << "DELETING INPUT : " << ( uint64_t ) _pendingCopiesAsync[0]._src << std::endl;
+
+   _pendingCopiesAsync.clear();
 }
 

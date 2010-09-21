@@ -45,14 +45,15 @@ namespace ext
             virtual void removePendingCopy () {}
             virtual void checkAddressForPendingCopy ( void * address ) {}
             virtual void executePendingCopies () {}
+            virtual void clearPendingCopies () {}
       };
 
-      class PendingCopiesSyncList : public PendingCopiesList
+      class PendingCopiesOutSyncList : public PendingCopiesList
       {
          public:
 
-            PendingCopiesSyncList() : PendingCopiesList() {}
-            ~PendingCopiesSyncList() {}
+            PendingCopiesOutSyncList() : PendingCopiesList() {}
+            ~PendingCopiesOutSyncList() {}
 
             void addPendingCopy ( void * dest, void * source, size_t size )
             {
@@ -60,36 +61,34 @@ namespace ext
             }
       };
 
+      class PendingCopy : public nanos::WG
+      {
+         public:
+            void *                        _dst;
+            void *                        _src;
+            size_t                        _size;
+            TR1::shared_ptr<DOSubmit>     _do;
 
-      class PendingCopiesAsyncList : public PendingCopiesList
+            PendingCopy( void * dest, void * source, size_t s ) : _dst( dest ), _src( source ),
+                  _size( s ), _do( myThread->getCurrentWD()->getDOSubmit() )
+            {
+               if ( _do != NULL ) {
+                  _do->increaseReferences();
+               }
+            }
+
+            ~PendingCopy() {}
+      };
+
+
+      class PendingCopiesOutAsyncList : public PendingCopiesList
       {
          private:
-
-            class PendingCopy : public nanos::WG
-            {
-               public:
-                  void *                        _dst;
-                  void *                        _src;
-                  size_t                        _size;
-                  TR1::shared_ptr<DOSubmit>     _do;
-
-                  PendingCopy( void * dest, void * source, size_t s ) : _dst( dest ), _src( source ),
-                        _size( s ), _do( myThread->getCurrentWD()->getDOSubmit() )
-                  {
-                     if ( _do != NULL ) {
-                        _do->increaseReferences();
-                     }
-                  }
-
-                  ~PendingCopy() {}
-            };
-
-
             std::vector<PendingCopy>   _pendingCopiesAsync;
 
          public:
-            PendingCopiesAsyncList() : PendingCopiesList() {}
-            ~PendingCopiesAsyncList()
+            PendingCopiesOutAsyncList() : PendingCopiesList() {}
+            ~PendingCopiesOutAsyncList()
             {
                if ( !_pendingCopiesAsync.empty() ) {
                   warning ( "Attempting to delete the pending copies list with already "
@@ -129,9 +128,45 @@ namespace ext
             void finishPendingCopy ( std::vector<PendingCopy>::iterator it );
       };
 
+      class PendingCopiesInAsyncList : public PendingCopiesList
+      {
+         private:
+            std::vector<PendingCopy>   _pendingCopiesAsync;
+
+         public:
+            PendingCopiesInAsyncList() : PendingCopiesList() {}
+            ~PendingCopiesInAsyncList()
+            {
+               if ( !_pendingCopiesAsync.empty() ) {
+                  warning ( "Attempting to delete the pending copies list with already "
+                        << _pendingCopiesAsync.size()
+                        << " pending copies to perform" );
+               }
+            }
+
+            void addPendingCopy ( void * dest, void * source, size_t size )
+            {
+               _pendingCopiesAsync.push_back( PendingCopy( dest, source, size ) );
+            }
+
+            void removePendingCopy ( void * address )
+            {
+               for ( std::vector<PendingCopy>::iterator it = _pendingCopiesAsync.begin();
+                     it != _pendingCopiesAsync.end();
+                     it++ ) {
+                  if ( it->_src == address ) {
+                     _pendingCopiesAsync.erase( it );
+                  }
+               }
+            }
+
+            void clearPendingCopies ();
+      };
+
       private:
          int                        _gpuDevice; // Assigned GPU device Id
-         PendingCopiesList *        _pendingCopies;
+         PendingCopiesList *        _pendingCopiesOut;
+         PendingCopiesList *        _pendingCopiesIn;
 
          // disable copy constructor and assignment operator
          GPUThread( const GPUThread &th );
@@ -152,7 +187,7 @@ namespace ext
 
          void idle()
          {
-            _pendingCopies->removePendingCopy();
+            _pendingCopiesOut->removePendingCopy();
          }
 
          int getGpuDevice ()
@@ -162,18 +197,20 @@ namespace ext
 
          void addPendingCopy ( void * dest, void * source, size_t size )
          {
-            _pendingCopies->addPendingCopy( dest, source, size );
+            _pendingCopiesOut->addPendingCopy( dest, source, size );
          }
 
          void checkAddressForPendingCopy ( void * address )
          {
-            _pendingCopies->checkAddressForPendingCopy( address );
+            _pendingCopiesOut->checkAddressForPendingCopy( address );
          }
 
          void executePendingCopies ()
          {
-            _pendingCopies->executePendingCopies();
+            _pendingCopiesOut->executePendingCopies();
          }
+
+         void addWDInputs ( WD * wd );
    };
 
 
