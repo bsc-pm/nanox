@@ -95,6 +95,7 @@ inline void Scheduler::idleLoop ()
          }
 
          if (next) {
+            sys.getSchedulerStats()._readyTasks--;
             sys.getSchedulerStats()._idleThreads--;
             NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) );
             behaviour::switchWD(thread,current, next);
@@ -129,7 +130,6 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
    WD * current = myThread->getCurrentWD();
 
-   sys.getSchedulerStats()._readyTasks--;
    sys.getSchedulerStats()._idleThreads++;
    current->setSyncCond( condition );
    current->setIdle();
@@ -148,6 +148,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
             NANOS_INSTRUMENT( inst1.close() );
 
             if ( next ) {
+               sys.getSchedulerStats()._readyTasks--;
                sys.getSchedulerStats()._idleThreads--;
                NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) );
                switchTo ( next );
@@ -204,8 +205,10 @@ struct WorkerBehaviour
    {
       if (next->started())
         Scheduler::switchTo(next);
-      else
+      else {
         Scheduler::inlineWork ( next );
+        sys.getSchedulerStats()._totalTasks--;
+      }
    }
 };
 
