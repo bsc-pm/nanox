@@ -166,7 +166,6 @@ namespace nanos {
          virtual void copyDataToCache( uint64_t tag, size_t size ) = 0;
          virtual void copyBackFromCache( uint64_t tag, size_t size ) = 0;
          virtual void copyTo( void *dst, uint64_t tag, size_t size ) = 0;
-         virtual void updateCacheAccess( uint64_t tag, size_t size ) = 0;
    };
 
    class CachePolicy
@@ -283,12 +282,10 @@ namespace nanos {
                   }
                }
             }
-            _directory.unLock();
          }
 
          virtual void unregisterCacheAccess( uint64_t tag, size_t size, bool output )
          {
-            _directory.lock();
             CacheEntry *ce = _cache.getEntry( tag );
             // There's two reference deleting calls because getEntry places one reference
             _cache.deleteReference(tag);
@@ -320,52 +317,12 @@ namespace nanos {
          }
    };
 
-
-
-   // Asynchronous cache policy for GPUs
-   class AsynchronousWriteThroughPolicy : public WriteThroughPolicy
-   {
-      private:
-
-         AsynchronousWriteThroughPolicy( const AsynchronousWriteThroughPolicy &policy );
-         const AsynchronousWriteThroughPolicy & operator= ( const AsynchronousWriteThroughPolicy &policy );
-
-      public:
-
-         AsynchronousWriteThroughPolicy( Cache& cache ) : WriteThroughPolicy( cache ) { }
-
-         virtual ~AsynchronousWriteThroughPolicy() { }
-
-         void init ( size_t max );
-
-         virtual void registerCacheAccess( uint64_t tag, size_t size, bool input, bool output );
-         virtual void unregisterCacheAccess( uint64_t tag, size_t size );
-
-         virtual void updateCacheAccess( uint64_t tag, size_t size );
-
-         virtual void registerPrivateAccess( uint64_t tag, size_t size, bool input, bool output );
-         virtual void unregisterPrivateAccess( uint64_t tag, size_t size );
-   };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-   /*! \brief A Cache is a class that provides basic services for registering and
+  /*! \brief A Cache is a class that provides basic services for registering and
    *         searching for memory blocks in a device using an identifier represented
    *         by an unsigned int of 64 bits which represents the address of the original
    *         data in the host. 
    */
-   template <class _T, class _Policy = AsynchronousWriteThroughPolicy>
+   template <class _T, class _Policy = WriteThroughPolicy>
    class DeviceCache : public Cache
    {
      /* FIXME (see #195)
@@ -380,7 +337,6 @@ namespace nanos {
 //         typedef TR1::unordered_map< uint64_t, CacheEntry> CacheHash;
          typedef HashMap<uint64_t, CacheEntry> CacheHash;
          CacheHash _cache;
-         Lock _lock;
 
          _Policy _policy;
 
@@ -398,9 +354,7 @@ namespace nanos {
             void *result;
             NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-malloc") );
             NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_CACHE, key, (nanos_event_value_t) size) );
-            _lock.acquire();
             result = _T::allocate( size );
-            _lock.release();
             NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
             return result;
          }
@@ -410,11 +364,9 @@ namespace nanos {
             NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-free") );
             NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_CACHE, key, (nanos_event_value_t) size) );
             // it assumes the entry exists
-            _lock.acquire();
             CacheEntry &ce = _cache[tag];
             _T::free( ce.getAddress() );
             _cache.erase( tag );
-            _lock.release();
             NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
          }
 
@@ -423,9 +375,7 @@ namespace nanos {
          */
          void * getAddress( uint64_t tag )
          {
-            _lock.acquire();
             void *result = _cache[tag].getAddress();
-            _lock.release();
             return result;
          }
 
@@ -437,9 +387,7 @@ namespace nanos {
          {
             NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
             NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER, key, (nanos_event_value_t) size) );
-            _lock.acquire();
             _T::copyIn( _cache[tag].getAddress(), tag, size );
-            _lock.release();
             NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
          }
 
@@ -451,10 +399,8 @@ namespace nanos {
          {
             NANOS_INSTRUMENT( static nanos_event_key_t key1 = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-out") );
             NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER, key1, size ) );
-            _lock.acquire();
             CacheEntry &entry = _cache[tag];
             _T::copyOut( tag, entry.getAddress(), size );
-            _lock.release();
             NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key1 ) );
          }
 
@@ -467,22 +413,17 @@ namespace nanos {
          {
             NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-local-copy") );
             NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER, key, size ) );
-            _lock.acquire();
             _T::copyLocal( dst, _cache[tag].getAddress(), size );
-            _lock.release();
             NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
          }
 
          CacheEntry& newEntry( uint64_t tag, size_t size, unsigned int version, bool dirty )
          {
-            _lock.acquire();
             CacheEntry& ce = _cache[tag];
-            _lock.release();
             ce.setTag( tag );
             ce.setSize( size );
             ce.setVersion( version );
             ce.setDirty( dirty );
-            ce.setSize( size );
             return ce;
          }
 
@@ -571,26 +512,6 @@ namespace nanos {
          }
    };
 
-         void updateCacheAccess( uint64_t tag, size_t size )
-         {
-            _policy.updateCacheAccess( tag, size );
-         }
-#if 0
-         void flush ( Directory & directory )
-         {/*
-            for( CacheHash::iterator it = _cache.begin(); it != _cache.end(); it++ ) {
-               if ( it->second.isDirty()
-                     && directory.getEntry( it->first ) < it->second.getVersion() ) {
-                  _lock.acquire();
-                  unregisterCacheAccess( it->first, it->second.getSize() );
-                  _lock.release();
-               }
-
-            }
-         */}
-#endif
-
-   };
 }
 
 #endif
