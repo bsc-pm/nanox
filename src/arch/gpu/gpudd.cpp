@@ -31,6 +31,8 @@ bool GPUDD::_prefetch = true;
 bool GPUDD::_overlap = true;
 bool GPUDD::_overlapInputs = true;
 bool GPUDD::_overlapOutputs = true;
+size_t GPUDD::_maxGPUMemory = 0;
+
 
 GPUDD * GPUDD::copyTo ( void *toAddr )
 {

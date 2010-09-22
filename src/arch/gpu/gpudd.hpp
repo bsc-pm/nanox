@@ -45,6 +45,7 @@ namespace ext
          static bool    _overlap; // Enable / disable computation and data transfer overlapping (set by the user)
          static bool    _overlapInputs;
          static bool    _overlapOutputs;
+         static size_t  _maxGPUMemory; // Maximum amount of memory for each GPU to use
 
       public:
          // constructors
@@ -70,6 +71,8 @@ namespace ext
          static bool isOverlappingInputsDefined () { return _overlapInputs; }
 
          static bool isOverlappingOutputsDefined () { return _overlapOutputs; }
+
+         static size_t getGPUMaxMemory() { return _maxGPUMemory; }
 
          virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous) { }
          virtual size_t size ( void ) { return sizeof(GPUDD); }

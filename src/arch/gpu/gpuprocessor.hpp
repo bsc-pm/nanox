@@ -74,8 +74,22 @@ namespace ext
             struct cudaDeviceProp gpuProperties;
             cudaGetDeviceProperties( &gpuProperties, _deviceId );
 
-            // Use 70% of the total GPU global memory
-            _maxMemoryAvailable = gpuProperties.totalGlobalMem * 0.7;
+            // Check if the user has set the amount of memory to use (and the value is valid)
+            // Otherwise, use 90% of the total GPU global memory
+            size_t userDefinedMem = GPUDD::getGPUMaxMemory();
+            _maxMemoryAvailable = gpuProperties.totalGlobalMem * 0.9;
+
+            if ( userDefinedMem > 0 ) {
+               if ( userDefinedMem > _maxMemoryAvailable ) {
+                  warning( "Could not set memory size to " << userDefinedMem
+                        << " for GPU #" << _deviceId
+                        << " because maximum memory available is " << _maxMemoryAvailable
+                        << " bytes. Using " << _maxMemoryAvailable << " bytes" );
+               }
+               else {
+                  _maxMemoryAvailable = userDefinedMem;
+               }
+            }
 
             if ( !gpuProperties.deviceOverlap ) {
                // It does not support stream overlapping, disable this feature

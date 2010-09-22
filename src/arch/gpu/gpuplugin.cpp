@@ -52,16 +52,17 @@ class GPUTransferModeOption : public Config::MapAction<transfer_mode>
 class GPUPlugin : public Plugin
 {
    private:
-      bool _disableCUDA;
-      int _numGPUs;
-      bool _prefetch;
-      bool _overlap;
-      bool _overlapInputs;
-      bool _overlapOutputs;
+      bool     _disableCUDA;
+      int      _numGPUs;
+      bool     _prefetch;
+      bool     _overlap;
+      bool     _overlapInputs;
+      bool     _overlapOutputs;
+      size_t   _maxGPUMemory;
 
    public:
       GPUPlugin() : Plugin( "GPU PE Plugin", 1 ), _disableCUDA( false ), _numGPUs( -1 ), _prefetch( true ),
-                      _overlap( true ), _overlapInputs( true ), _overlapOutputs( true )
+                      _overlap( true ), _overlapInputs( true ), _overlapOutputs( true ), _maxGPUMemory( 0 )
       {}
 
       virtual void config( Config& config )
@@ -77,8 +78,8 @@ class GPUPlugin : public Plugin
          // Set #GPUs
          config.registerConfigOption ( "num-gpus", new Config::IntegerVar( _numGPUs ),
                                        "Defines the maximum number of GPUs to use" );
-         config.registerArgOption ( "num-gpus", "gpus" );
          config.registerEnvOption ( "num-gpus", "NX_GPUS" );
+         config.registerArgOption ( "num-gpus", "gpus" );
 
          // Enable / disable prefetching
          config.registerConfigOption( "gpu-prefetch", new Config::FlagOption( _prefetch ),
@@ -107,6 +108,12 @@ class GPUPlugin : public Plugin
          config.registerEnvOption( "gpu-overlap-outputs", "NX_GPUOVERLAP_OUTPUTS" );
          config.registerArgOption( "gpu-overlap-outputs", "gpu-overlap-outputs" );
 
+         // Set maximum GPU memory available for each GPU
+         config.registerConfigOption ( "gpu-max-memory", new Config::SizeVar( _maxGPUMemory ),
+                                       "Defines the maximum amount of GPU memory (in bytes) to use for each GPU" );
+         config.registerEnvOption ( "gpu-max-memory", "NX_GPUMAXMEM" );
+         config.registerArgOption ( "gpu-max-memory", "gpu-max-memory" );
+
          /*
          GPUTransferModeOption map;
          map.addOption("wc", WC)
@@ -125,6 +132,7 @@ class GPUPlugin : public Plugin
             GPUDD::_overlap = false;
             GPUDD::_overlapInputs = false;
             GPUDD::_overlapOutputs = false;
+            GPUDD::_maxGPUMemory = 0;
          }
          else {
             // Find out how many CUDA-capable GPUs the system has
@@ -168,6 +176,9 @@ class GPUPlugin : public Plugin
             if ( GPUDD::_overlapInputs || GPUDD::_overlapOutputs ) {
                GPUDevice::setTransferMode( ASYNC );
             }
+
+            // Check if the user has defined the maximum GPU memory to use
+            GPUDD::_maxGPUMemory = _maxGPUMemory;
          }
       }
 };
