@@ -92,8 +92,7 @@ inline void Scheduler::idleLoop ()
       if ( thread->getTeam() != NULL ) {
          WD * next = myThread->getNextWD();
 
-         //if ( !next && sys.getSchedulerStats()._readyTasks > 0 ) { // FIXME (#289)
-         if ( !next ) {
+         if ( !next && sys.getSchedulerStats()._readyTasks > 0 ) {
             NANOS_INSTRUMENT( InstrumentState inst1(NANOS_SCHEDULING) );
             next = behaviour::getWD(thread,current);
             NANOS_INSTRUMENT( inst1.close() );
