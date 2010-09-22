@@ -82,7 +82,7 @@ namespace ext
 #ifdef SMP_NUMA
          /* Memory space suport */
          virtual void registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output );
-         virtual void unregisterCacheAccessDependent( uint64_t tag, size_t size );
+         virtual void unregisterCacheAccessDependent( uint64_t tag, size_t size, bool output );
          virtual void registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output );
          virtual void unregisterPrivateAccessDependent( uint64_t tag, size_t size );
 

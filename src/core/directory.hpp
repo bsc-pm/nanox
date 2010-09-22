@@ -21,6 +21,7 @@
 #define _NANOS_DIRECTORY_H
 
 #include "directory_decl.hpp"
+#include "hashmap.hpp"
 
 using namespace nanos;
 
@@ -36,9 +37,18 @@ inline uint64_t Entry::getTag() const { return _tag; }
 
 inline void Entry::setTag( uint64_t tag) { _tag = tag; }
 
-inline unsigned int Entry::getVersion() const { return _version; }
+inline unsigned int Entry::getVersion() const { return _version.value(); }
 
 inline void Entry::setVersion ( unsigned int version ) { _version = version; }
+
+inline bool Entry::setVersionCS ( unsigned int version )
+{
+   Atomic< unsigned int > oldVal = _version.value();
+   Atomic< unsigned int > newVal = version;
+   return _version.cswap( oldVal, newVal );
+}
+
+inline void Entry::increaseVersion() { _version++; }
 
 inline const DirectoryEntry& DirectoryEntry::operator= ( const DirectoryEntry &ent )
 {
@@ -53,6 +63,11 @@ inline Cache * DirectoryEntry::getOwner() const { return _owner; }
 
 inline void DirectoryEntry::setOwner( Cache *owner ) { _owner = owner; }
 
+inline DirectoryEntry& Directory::insert( uint64_t tag, DirectoryEntry &ent,  bool &inserted )
+{
+   return _directory.insert( tag, ent, inserted );
+}
+
 inline DirectoryEntry& Directory::newEntry( uint64_t tag, unsigned int version, Cache* owner )
 {
    DirectoryEntry& de = _directory[tag];
@@ -64,11 +79,7 @@ inline DirectoryEntry& Directory::newEntry( uint64_t tag, unsigned int version, 
 
 inline DirectoryEntry* Directory::getEntry( uint64_t tag )
 {
-   DirectoryMap::iterator it = _directory.find( tag );
-   if ( it == _directory.end() )
-      return NULL;
-   DirectoryEntry& de = (*it).second;
-   return &de;
+   return _directory.find( tag );
 }
 
 #endif
