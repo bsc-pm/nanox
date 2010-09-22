@@ -68,9 +68,9 @@ void SMPProcessor::registerCacheAccessDependent( uint64_t tag, size_t size, bool
    _cache.registerCacheAccess( tag, size, input, output );
 }
 
-void SMPProcessor::unregisterCacheAccessDependent( uint64_t tag, size_t size )
+void SMPProcessor::unregisterCacheAccessDependent( uint64_t tag, size_t size, bool output )
 {
-   _cache.unregisterCacheAccess( tag, size );
+   _cache.unregisterCacheAccess( tag, size, output );
 }
 
 void SMPProcessor::registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output )
