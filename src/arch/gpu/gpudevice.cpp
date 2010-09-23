@@ -184,6 +184,7 @@ void GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
    cudaError_t err = cudaSuccess;
 
    if ( _transferMode == ASYNC ) {
+      ( ( nanos::ext::GPUThread * ) myThread )->addPendingCopyIn( remoteSrc );
       // Workaround to perform asynchronous copies
       uint64_t pinned = ((nanos::ext::GPUProcessor *) myThread->runningOn())->getPinnedAddress( localDst );
       memcpy( ( void * ) pinned, ( void * ) remoteSrc, size );
@@ -281,7 +282,7 @@ void GPUDevice::copyOut( uint64_t remoteDst, void *localSrc, size_t size )
       cudaError_t err = cudaSuccess;
 
       if ( _transferMode == ASYNC ) {
-         ( ( nanos::ext::GPUThread * ) myThread )->addPendingCopy( ( void * ) remoteDst, localSrc, size );
+         ( ( nanos::ext::GPUThread * ) myThread )->addPendingCopyOut( ( void * ) remoteDst, localSrc, size );
       }
       else {
          err = cudaMemcpy( ( void * ) remoteDst, localSrc, size, cudaMemcpyDeviceToHost );

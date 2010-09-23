@@ -72,6 +72,10 @@ void GPUThread::runDependent ()
    GPUDevice::copyIn( ( void * ) b_d, ( uint64_t ) &b, sizeof( b ) );
    GPUDevice::free( b_d );
 
+   // Clear copy-in list, just in case last operations filled it
+   _pendingCopiesIn->reset();
+
+
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
 
    dd.getWorkFct()( work.getData() );
@@ -87,12 +91,23 @@ void GPUThread::inlineWorkDependent ( WD &wd )
    if ( GPUDevice::getTransferMode() != nanos::NORMAL ) {
       // Wait for the input transfer stream to finish
       cudaStreamSynchronize( ( (GPUProcessor *) myThread->runningOn() )->getGPUProcessorInfo()->getInTransferStream() );
-      // --> ERASE INPUT LIST --> sync to cache: synchronize()
+      // Erase the wait input list and synchronize it with cache
       _pendingCopiesIn->clearPendingCopies();
    }
 
    // We should ask the cache to wait for wd inputs: waitInputs(), but as we have
    // just waited for them, we skip this step
+#if 0
+   CopyData *copies = wd.getCopies();
+   for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
+      CopyData & cd = copies[i];
+      uint64_t tag = (uint64_t) cd.isPrivate() ? ((uint64_t) wd.getData() + (unsigned long)cd.getAddress()) : cd.getAddress();
+      if ( cd.isInput() ) {
+         ( (GPUProcessor *) myThread->runningOn() )->waitInput( tag );
+      }
+   }
+#endif
+
    ( dd.getWorkFct() )( wd.getData() );
 
    if ( GPUDevice::getTransferMode() != nanos::NORMAL ) {
@@ -101,8 +116,6 @@ void GPUThread::inlineWorkDependent ( WD &wd )
 
       setNextWD( next );
       if ( next != 0 ) {
-         // ADD INPUTS OF next TO INPUT LIST
-         addWDInputs( next );
          next->start(false);
       }
 
@@ -119,20 +132,6 @@ void GPUThread::yield()
    executePendingCopies();
 }
 
-
-void GPUThread::addWDInputs( WD * wd )
-{
-   CopyData *copies = wd->getCopies();
-   for ( unsigned int i = 0; i < wd->getNumCopies(); i++ ) {
-      CopyData & cd = copies[i];
-      if ( cd.isInput() ) {
-         uint64_t address = cd.isPrivate() ?
-               ( ( uint64_t ) wd->getData() + ( uint64_t ) cd.getAddress() )
-               : cd.getAddress();
-         _pendingCopiesIn->addPendingCopy( NULL, ( void * ) address, cd.getSize() );
-      }
-   }
-}
 
 
 void GPUThread::PendingCopiesOutAsyncList::removePendingCopy ( std::vector<PendingCopy>::iterator it )
@@ -212,16 +211,21 @@ void GPUThread::PendingCopiesOutAsyncList::executePendingCopies ()
 
 void GPUThread::PendingCopiesOutAsyncList::finishPendingCopy( std::vector<PendingCopy>::iterator it )
 {
+   ( ( GPUProcessor * ) myThread->runningOn() )->synchronize( ( uint64_t ) it->_dst );
+
    if ( it->_do != NULL) {
       it->_do->finished();
    }
    it->done();
-   ( ( GPUProcessor * ) myThread->runningOn() )->updateCacheAccess( ( uint64_t ) it->_dst, it->_size );
    _pendingCopiesAsync.erase( it );
 }
 
+
+
 void GPUThread::PendingCopiesInAsyncList::clearPendingCopies()
 {
+   ( ( GPUProcessor * ) myThread->runningOn() )->synchronize( _pendingCopiesAsync );
+
    _pendingCopiesAsync.clear();
 }
 

@@ -69,10 +69,12 @@ namespace ext
 
          // Memory space support
          virtual void registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output );
-         virtual void unregisterCacheAccessDependent( uint64_t tag, size_t size );
-         virtual void updateCacheAccess( uint64_t tag, size_t size );
+         virtual void unregisterCacheAccessDependent( uint64_t tag, size_t size, bool output );
          virtual void registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output );
          virtual void unregisterPrivateAccessDependent( uint64_t tag, size_t size );
+         virtual void synchronize( uint64_t tag );
+         virtual void synchronize( std::list<uint64_t> &tags );
+         virtual void waitInput( uint64_t tag );
 
          virtual void* getAddressDependent( uint64_t tag );
          virtual void copyToDependent( void *dst, uint64_t tag, size_t size );

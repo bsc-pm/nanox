@@ -56,7 +56,7 @@ BaseThread &GPUProcessor::createThread ( WorkDescriptor &helper )
 {
    // In fact, the GPUThread will run on the CPU, so make sure it canRunIn( SMP )
    ensure( helper.canRunIn( SMP ), "Incompatible worker thread" );
-   GPUThread &th = *new GPUThread( helper,this, _gpuDevice );
+   GPUThread &th = *new GPUThread( helper, this, _gpuDevice );
 
    return th;
 }
@@ -66,14 +66,9 @@ void GPUProcessor::registerCacheAccessDependent( uint64_t tag, size_t size, bool
    _cache.registerCacheAccess( tag, size, input, output );
 }
 
-void GPUProcessor::unregisterCacheAccessDependent( uint64_t tag, size_t size )
+void GPUProcessor::unregisterCacheAccessDependent( uint64_t tag, size_t size, bool output )
 {
-   _cache.unregisterCacheAccess( tag, size );
-}
-
-void GPUProcessor::updateCacheAccess( uint64_t tag, size_t size )
-{
-   _cache.updateCacheAccess( tag, size );
+   _cache.unregisterCacheAccess( tag, size, output );
 }
 
 void GPUProcessor::registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output )
@@ -84,6 +79,21 @@ void GPUProcessor::registerPrivateAccessDependent( uint64_t tag, size_t size, bo
 void GPUProcessor::unregisterPrivateAccessDependent( uint64_t tag, size_t size )
 {
    _cache.unregisterPrivateAccess( tag, size );
+}
+
+void GPUProcessor::synchronize( uint64_t tag )
+{
+   _cache.synchronize( tag );
+}
+
+void GPUProcessor::synchronize( std::list<uint64_t> &tags )
+{
+   _cache.synchronize( tags );
+}
+
+void GPUProcessor::waitInput( uint64_t tag )
+{
+   _cache.waitInput( tag );
 }
 
 void* GPUProcessor::getAddressDependent( uint64_t tag )

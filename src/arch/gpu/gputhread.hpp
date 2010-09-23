@@ -42,10 +42,12 @@ namespace ext
             ~PendingCopiesList() {}
 
             virtual void addPendingCopy ( void * dest, void * source, size_t size ) {}
+            virtual void addPendingCopy ( uint64_t address ) {}
             virtual void removePendingCopy () {}
             virtual void checkAddressForPendingCopy ( void * address ) {}
             virtual void executePendingCopies () {}
             virtual void clearPendingCopies () {}
+            virtual void reset () {}
       };
 
       class PendingCopiesOutSyncList : public PendingCopiesList
@@ -131,7 +133,7 @@ namespace ext
       class PendingCopiesInAsyncList : public PendingCopiesList
       {
          private:
-            std::vector<PendingCopy>   _pendingCopiesAsync;
+            std::list<uint64_t>   _pendingCopiesAsync;
 
          public:
             PendingCopiesInAsyncList() : PendingCopiesList() {}
@@ -144,20 +146,14 @@ namespace ext
                }
             }
 
-            void addPendingCopy ( void * dest, void * source, size_t size )
+            void addPendingCopy ( uint64_t address )
             {
-               _pendingCopiesAsync.push_back( PendingCopy( dest, source, size ) );
+               _pendingCopiesAsync.push_back( address );
             }
 
-            void removePendingCopy ( void * address )
+            void reset ()
             {
-               for ( std::vector<PendingCopy>::iterator it = _pendingCopiesAsync.begin();
-                     it != _pendingCopiesAsync.end();
-                     it++ ) {
-                  if ( it->_src == address ) {
-                     _pendingCopiesAsync.erase( it );
-                  }
-               }
+               _pendingCopiesAsync.clear();
             }
 
             void clearPendingCopies ();
@@ -195,7 +191,7 @@ namespace ext
             return _gpuDevice;
          }
 
-         void addPendingCopy ( void * dest, void * source, size_t size )
+         void addPendingCopyOut ( void * dest, void * source, size_t size )
          {
             _pendingCopiesOut->addPendingCopy( dest, source, size );
          }
@@ -211,6 +207,11 @@ namespace ext
          }
 
          void addWDInputs ( WD * wd );
+
+         void addPendingCopyIn ( uint64_t address )
+         {
+            _pendingCopiesIn->addPendingCopy( address );
+         }
    };
 
 
