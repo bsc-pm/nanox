@@ -495,7 +495,12 @@ namespace nanos {
 
          void synchronize( std::list<uint64_t> &tags )
          {
-            for_each( tags.begin(), tags.end(), synchronize );
+            //for_each( tags.begin(), tags.end(), synchronize );
+
+            for( std::list<uint64_t>::iterator it = tags.begin(); it != tags.end(); it++ ) {
+               synchronize( *it );
+            }
+
          }
 
          void waitInput( uint64_t tag )
