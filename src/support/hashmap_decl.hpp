@@ -24,6 +24,7 @@
 
 #include "list.hpp"
 #include <list>
+#include "atomic.hpp"
 
 
 namespace nanos {
@@ -46,10 +47,11 @@ class HashMap
          private:
             _KeyType _key;
             _T _value;
+            unsigned int _lru;
          public:
-            MapEntry( _KeyType k ) : _key(k), _value() {}
-            MapEntry( _KeyType k, _T v ) : _key(k), _value(v) {}
-            MapEntry( MapEntry const &e ) : _key(e._key), _value(e._value) {}
+            MapEntry( _KeyType k ) : _key(k), _value(), _lru(0) {}
+            MapEntry( _KeyType k, _T v ) : _key(k), _value(v), _lru(0) {}
+            MapEntry( MapEntry const &e ) : _key(e._key), _value(e._value), _lru(0) {}
             MapEntry& operator=( MapEntry const &e )
             {
                if (this == &e) return *this;
@@ -65,6 +67,10 @@ class HashMap
                { return _key; }
             _T& getValue()
                { return _value; }
+            void setLRU( unsigned int val )
+               { _lru = val; }
+            unsigned int getLRU()
+               { return _lru; }
       };
 
 #ifdef USE_NANOS_LIST
@@ -77,11 +83,12 @@ class HashMap
       HashList _table[_tsize];
       _HashFunction _hash; 
 
+      Atomic<unsigned int> _lruCounter;
    public:
       typedef std::list<_T> ItemList;
-      typedef std::list<_KeyType> KeyList;
+      typedef std::map<unsigned int, _KeyType> KeyList;
 
-      HashMap() : _tableSize(_tsize), _table(), _hash() {}
+      HashMap() : _tableSize(_tsize), _table(), _hash(), _lruCounter(0) {}
 
       ~HashMap() {}
 

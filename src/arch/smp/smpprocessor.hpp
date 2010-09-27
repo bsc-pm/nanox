@@ -48,6 +48,7 @@ namespace ext
          // config variables
          static bool _useUserThreads;
          static size_t _threadsStackSize;
+         static size_t _cacheDefaultSize;
 
          // disable copy constructor and assignment operator
          SMPProcessor( const SMPProcessor &pe );
@@ -60,7 +61,7 @@ namespace ext
       public:
          // constructors
 #ifdef SMP_NUMA
-         SMPProcessor( int id ) : Accelerator( id,&SMP ), _cache() {}
+         SMPProcessor( int id ) : Accelerator( id,&SMP ), _cache(_cacheDefaultSize) {}
 #else
          SMPProcessor( int id ) : PE( id,&SMP ) {}
 #endif

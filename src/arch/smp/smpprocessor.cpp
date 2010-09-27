@@ -28,6 +28,7 @@ using namespace nanos::ext;
 
 bool SMPProcessor::_useUserThreads = true;
 size_t SMPProcessor::_threadsStackSize = 0;
+size_t SMPProcessor::_cacheDefaultSize = 1048580;
 
 void SMPProcessor::prepareConfig ( Config &config )
 {
@@ -36,6 +37,11 @@ void SMPProcessor::prepareConfig ( Config &config )
 
    config.registerConfigOption ( "pthreads-stack-size", new Config::SizeVar( _threadsStackSize ), "Defines pthreads stack size" );
    config.registerArgOption( "pthreads-stack-size", "pthreads-stack-size" );
+
+#if SMP_NUMA
+   config.registerConfigOption ( "numa-cache-size", new Config::SizeVar( _cacheDefaultSize ), "Defines size of the cache for SMP_NUMA architectures" );
+   config.registerArgOption( "numa-cache-size", "numa-cache-size" );
+#endif
 }
 
 WorkDescriptor & SMPProcessor::getWorkerWD () const

@@ -300,7 +300,10 @@ namespace nanos {
 
          virtual void registerPrivateAccess( uint64_t tag, size_t size, bool input, bool output )
          {
-            CacheEntry& ce = _cache.newEntry( tag, size, 0, output ); 
+            bool inserted;
+            CacheEntry c =  CacheEntry( NULL, size, tag, 0, output, input );
+            CacheEntry& ce = _cache.insert( tag, c, inserted );
+            ensure ( inserted, "Private access cannot hit the cache.");
             ce.increaseRefs();
             ce.setAddress( _cache.allocate( size ) );
             if ( input )
@@ -330,15 +333,16 @@ namespace nanos {
       *   - check for errors 
       */
       private:
-         /**< Maps keys with CacheEntries  */
-
          Directory &_directory;
 
-//         typedef TR1::unordered_map< uint64_t, CacheEntry> CacheHash;
+         /**< Maps keys with CacheEntries  */
          typedef HashMap<uint64_t, CacheEntry> CacheHash;
          CacheHash _cache;
 
          _Policy _policy;
+
+         size_t _size;
+         size_t _usedSize;
 
          // disable copy constructor and assignment operator
          DeviceCache( const DeviceCache &cache );
@@ -347,14 +351,35 @@ namespace nanos {
       public:
         /* \brief Default constructor
          */
-         DeviceCache() : _directory( sys.getDirectory() ), _cache(), _policy( *this ) {}
+         DeviceCache( size_t size ) : _directory( sys.getDirectory() ), _cache(), _policy( *this ), _size( size ), _usedSize(0) {}
 
          void * allocate( size_t size )
          {
             void *result;
             NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-malloc") );
             NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_CACHE, key, (nanos_event_value_t) size) );
-            result = _T::allocate( size );
+            if ( _usedSize + size <= _size ) {
+               result = _T::allocate( size );
+            } else {
+               CacheHash::KeyList kl;
+               // FIXME: lock the cache
+               _cache.listUnreferencedKeys( kl );
+               CacheHash::KeyList::iterator it;
+               for ( it = kl.begin(); it != kl.end(); it++ ) {
+                  // Copy the entry because once erased it can be recycled
+                  CacheEntry ce = *(_cache.find( it->second ));
+                  if ( _cache.erase( it->second ) ) {
+                     // FIXME: With writeback it will be necesary to copy back
+                     _T::free( ce.getAddress() );
+                     _usedSize -= ce.getSize();
+                     if ( _usedSize + size <= _size )
+                        break;
+                  }
+               }
+               // FIXME: unlock
+               result = _T::allocate( size );
+            }
+            _usedSize+= size;
             NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
             return result;
          }
@@ -366,6 +391,7 @@ namespace nanos {
             // it assumes the entry exists
             CacheEntry &ce = _cache[tag];
             _T::free( ce.getAddress() );
+            _usedSize -= ce.getSize();
             _cache.erase( tag );
             NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
          }
@@ -493,14 +519,27 @@ namespace nanos {
             }
          }
 
+         static void synchronize( DeviceCache* _this, uint64_t tag )
+         {
+            CacheEntry *ce = _this->_cache.find(tag);
+            // FIXME: enable this when separating the headers
+            //ensure( ce != NULL, "Cache has been corrupted" );
+            if ( ce->isFlushing() ) {
+               ce->setFlushing(false);
+               DirectoryEntry *de = _this->_directory.getEntry(tag);
+               // FIXME: enable this when separating the headers
+               //ensure( de != NULL, "Directory has been corrupted" );
+               de->setOwner(NULL);
+            } else {
+               // FIXME: enable this when separating the headers
+               //ensure( ce->isCopying(), "Cache has been corrupted" );
+               ce->setCopying(false);
+            }
+         }
+
          void synchronize( std::list<uint64_t> &tags )
          {
-            //for_each( tags.begin(), tags.end(), synchronize );
-
-            for( std::list<uint64_t>::iterator it = tags.begin(); it != tags.end(); it++ ) {
-               synchronize( *it );
-            }
-
+            for_each( tags.begin(), tags.end(), std :: bind1st( std :: ptr_fun ( synchronize ), this ) );
          }
 
          void waitInput( uint64_t tag )
@@ -511,9 +550,23 @@ namespace nanos {
             while ( ce->isCopying() );
          }
 
+         static void waitInput( DeviceCache* _this, uint64_t tag )
+         {
+            CacheEntry *ce = _this->_cache.find(tag);
+            // FIXME: enable this when separating the headers
+            //ensure( ce != NULL, "Cache has been corrupted" );
+            while ( ce->isCopying() );
+         }
+
          void waitInputs( std::list<uint64_t> &tags )
          {
+            for_each( tags.begin(), tags.end(), std :: bind1st( std :: ptr_fun ( waitInput ), this ) );
             for_each( tags.begin(), tags.end(), waitInput );
+         }
+
+         size_t& getCacheSize()
+         {
+            return _size;
          }
    };
 
