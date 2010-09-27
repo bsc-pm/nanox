@@ -30,7 +30,7 @@ Atomic<int> GPUProcessor::_deviceSeed = 0;
 
 
 GPUProcessor::GPUProcessor( int id, int gpuId )
-   : Accelerator( id, &GPU ), _gpuDevice( _deviceSeed++ ), _cache(), _pinnedMemory()
+   : Accelerator( id, &GPU ), _gpuDevice( _deviceSeed++ ), _cache( 0 ), _pinnedMemory()
 {
    _gpuProcessorInfo = new GPUProcessorInfo( gpuId );
 }
@@ -59,6 +59,11 @@ BaseThread &GPUProcessor::createThread ( WorkDescriptor &helper )
    GPUThread &th = *new GPUThread( helper, this, _gpuDevice );
 
    return th;
+}
+
+void GPUProcessor::setCacheSize( size_t size )
+{
+   _cache.setSize( size );
 }
 
 void GPUProcessor::registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output )

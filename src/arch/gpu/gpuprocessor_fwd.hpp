@@ -68,6 +68,7 @@ namespace ext
          virtual bool supportsUserLevelThreads () const { return false; }
 
          // Memory space support
+         virtual void setCacheSize( size_t size );
          virtual void registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output );
          virtual void unregisterCacheAccessDependent( uint64_t tag, size_t size, bool output );
          virtual void registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output );

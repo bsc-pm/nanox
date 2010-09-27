@@ -68,7 +68,7 @@ namespace ext
 
          void init ()
          {
-            // Each thread initializes its own GPUProcessor so that initialization
+            // Each thread initializes its own GPUProcessorInfo so that initialization
             // can be done in parallel
 
             struct cudaDeviceProp gpuProperties;
@@ -90,6 +90,8 @@ namespace ext
                   _maxMemoryAvailable = userDefinedMem;
                }
             }
+
+            ( ( GPUProcessor * ) myThread->runningOn() )->setCacheSize( _maxMemoryAvailable );
 
             if ( !gpuProperties.deviceOverlap ) {
                // It does not support stream overlapping, disable this feature
