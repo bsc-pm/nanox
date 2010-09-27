@@ -353,6 +353,12 @@ namespace nanos {
          */
          DeviceCache( size_t size ) : _directory( sys.getDirectory() ), _cache(), _policy( *this ), _size( size ), _usedSize(0) {}
 
+         size_t getSize()
+         { return _size; }
+
+         void setSize( size_t size )
+         { _size = size; }
+
          void * allocate( size_t size )
          {
             void *result;
