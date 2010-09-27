@@ -73,7 +73,7 @@ int main (int argc, char **argv)
    int& val = _map[0];
 
    if ( _map.find(0) == NULL ) {
-      std::cout << "Error, map doesn't find element in it" << std::endl;
+      std::cout << "Error, map doesn't find element in it, value was: " << val << std::endl;
       exit(1);
    }
 
@@ -102,7 +102,7 @@ int main (int argc, char **argv)
       exit(1);
    }
 
-   std::list<int> unrefs;
+   HashMap<int, int, false, 4, Hash<int> >::KeyList unrefs;
    _map.listUnreferencedKeys(unrefs);
 
    if (unrefs.empty()) {
@@ -110,9 +110,10 @@ int main (int argc, char **argv)
       exit(1);
    }
 
-   std::list<int>::iterator it = std::find(unrefs.begin(),unrefs.end(),8);
+   //HashMap<int, int, false, 4, Hash<int> >::KeyList::iterator it = std::find(unrefs.begin(),unrefs.end(),8);
+   HashMap<int, int, false, 4, Hash<int> >::KeyList::iterator it = unrefs.find(8);
    if ( it != unrefs.end() ) {
-      std::cout << "Error: unreferenced elements list contains a referenced element's key: " << *(it) << std::endl;
+      std::cout << "Error: unreferenced elements list contains a referenced element's key: " << (it->second) << std::endl;
       exit(1);
    }
 

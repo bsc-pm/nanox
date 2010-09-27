@@ -102,6 +102,9 @@ void HashMap<_KeyType,_T,_invalidate,_tsize,_HashFunction>::deleteReference( _Ke
    	return;
    }
    it.deleteReference();
+   MapEntry& entry = *it;
+   if ( it.getReferences() == 1 )
+      entry.setLRU( _lruCounter++ );
 }
 
 template <typename _KeyType, typename _T, bool _invalidate, size_t _tsize, typename _HashFunction>
@@ -135,7 +138,7 @@ void HashMap<_KeyType,_T,_invalidate,_tsize,_HashFunction>::listUnreferencedKeys
       while ( it != _table[i].end() ) {
          if ( it.getReferences() == 1 ) {
             MapEntry& entry = *it;
-            unreferenced.push_back(entry.getKey());
+            unreferenced.insert( std::pair<unsigned int, _KeyType>( entry.getLRU(), entry.getKey() ) );
          }
          it++;
       }
