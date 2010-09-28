@@ -59,7 +59,7 @@ namespace nanos
          virtual void copyDataOut( WorkDescriptor& wd );
 
          virtual void registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output ) = 0;
-         virtual void unregisterCacheAccessDependent( uint64_t tag, size_t size ) = 0;
+         virtual void unregisterCacheAccessDependent( uint64_t tag, size_t size, bool output ) = 0;
          virtual void registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output ) = 0;
          virtual void unregisterPrivateAccessDependent( uint64_t tag, size_t size ) = 0;
 
