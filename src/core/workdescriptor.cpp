@@ -28,7 +28,7 @@
 
 using namespace nanos;
 
-void WorkDescriptor::start (bool isUserLevelThread, WorkDescriptor *previous)
+void WorkDescriptor::init (bool isUserLevelThread, WorkDescriptor *previous)
 {
    ProcessingElement *pe = myThread->runningOn();
 
