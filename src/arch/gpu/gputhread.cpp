@@ -116,7 +116,7 @@ void GPUThread::inlineWorkDependent ( WD &wd )
 
       setNextWD( next );
       if ( next != 0 ) {
-         next->start(false);
+         next->init(false);
       }
 
       // Copy out results from tasks executed previously
