@@ -363,9 +363,10 @@ namespace nanos {
          {
             void *result;
             NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-malloc") );
-            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_CACHE, key, (nanos_event_value_t) size) );
             if ( _usedSize + size <= _size ) {
+               NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_CACHE, key, (nanos_event_value_t) size) );
                result = _T::allocate( size );
+               NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
             } else {
                CacheHash::KeyList kl;
                // FIXME: lock the cache
@@ -383,10 +384,11 @@ namespace nanos {
                   }
                }
                // FIXME: unlock
+               NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_CACHE, key, (nanos_event_value_t) size) );
                result = _T::allocate( size );
+               NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
             }
             _usedSize+= size;
-            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
             return result;
          }
 
