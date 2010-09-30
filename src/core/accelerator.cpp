@@ -72,7 +72,7 @@ void Accelerator::copyDataOut( WorkDescriptor& work )
       if ( cd.isPrivate() ) {
          this->unregisterPrivateAccessDependent( tag, cd.getSize() );
       } else {
-         this->unregisterCacheAccessDependent( tag, cd.getSize() );
+         this->unregisterCacheAccessDependent( tag, cd.getSize(), cd.isOutput() );
       }
    }
 #if LOCK_TRANSFER

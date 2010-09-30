@@ -59,7 +59,7 @@ void WorkGroup::waitCompletion ()
      _syncCond.wait();
 }
 
-void WorkGroup::start ()
+void WorkGroup::init ()
 {
 }
 
