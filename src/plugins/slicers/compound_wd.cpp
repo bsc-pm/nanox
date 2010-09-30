@@ -50,11 +50,13 @@ void SlicerCompoundWD::submit ( SlicedWD &work )
  */
 bool SlicerCompoundWD::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
 {
+   bool pack_cond = true;
+
    /* Get compound wd data */
    nanos_compound_wd_data_t *data = (nanos_compound_wd_data_t *) wd->getData();
 
-   /* If we have executed all wd's or we want to serialize FIXME(true) them */
-   if ( ( data->nsect == 1 ) || sys.getNumWorkers() == 1 ) {
+   /* If pack_cond is true, it is the last section, or there is only one worker -> serialize them */
+   if ( pack_cond || ( data->nsect == 1 ) || sys.getNumWorkers() == 1 ) {
       *slice = wd;
       return true;
    }
