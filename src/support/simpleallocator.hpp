@@ -35,17 +35,24 @@ namespace nanos {
          SegmentMap _allocatedChunks;
          SegmentMap _freeChunks;
 
+         uint64_t _baseAddress;
+
       public:
          SimpleAllocator( uint64_t baseAddress, size_t len );
 
          // WARNING: Calling this constructor requires calling init() at some time
          // before any allocate() or free() methods are called
-         SimpleAllocator() { }
+         SimpleAllocator() : _baseAddress( 0 ) { }
 
          void init( uint64_t baseAddress, size_t len );
 
          void * allocate( size_t len );
          void free( void *address );
+
+         uint64_t getBaseAddress ()
+         {
+            return _baseAddress;
+         }
    };
 
 }

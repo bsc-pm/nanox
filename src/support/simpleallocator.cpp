@@ -22,13 +22,14 @@
 
 using namespace nanos;
 
-SimpleAllocator::SimpleAllocator( uint64_t baseAddress, size_t len )
+SimpleAllocator::SimpleAllocator( uint64_t baseAddress, size_t len ) : _baseAddress( baseAddress )
 {
    _freeChunks[ baseAddress ] = len;
 }
 
 void SimpleAllocator::init( uint64_t baseAddress, size_t len )
 {
+   _baseAddress = baseAddress;
    _freeChunks[ baseAddress ] = len;
 }
 
