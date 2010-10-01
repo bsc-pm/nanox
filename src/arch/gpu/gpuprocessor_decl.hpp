@@ -63,6 +63,8 @@ namespace ext
          virtual ~GPUProcessor() {}
 
          void init( size_t memSize );
+         void freeWholeMemory();
+
 
          virtual WD & getWorkerWD () const;
          virtual WD & getMasterWD () const;

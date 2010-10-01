@@ -42,6 +42,11 @@ void GPUProcessor::init( size_t memSize )
    _allocator.init( ( uint64_t ) GPUDevice::allocateWholeMemory( memSize ), memSize );
 }
 
+void GPUProcessor::freeWholeMemory()
+{
+   GPUDevice::freeWholeMemory( ( void * ) _allocator.getBaseAddress() );
+}
+
 size_t GPUProcessor::getMaxMemoryAvailable ( int id )
 {
    return _gpuProcessorInfo->getMaxMemoryAvailable();

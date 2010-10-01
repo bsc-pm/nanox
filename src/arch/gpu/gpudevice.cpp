@@ -65,8 +65,22 @@ void * GPUDevice::allocateWholeMemory( size_t size )
             + " bytes of device memory with cudaMalloc(): ";
       fatal( what + cudaGetErrorString( err ) );
    }
-   return address;
 
+   return address;
+}
+
+void GPUDevice::freeWholeMemory( void * address )
+{
+   cudaError_t err = cudaFree( address );
+
+   if ( err != cudaSuccess ) {
+      std::stringstream addrStr;
+      addrStr << address;
+      std::string what = "Trying to free device memory at "
+                         + addrStr.str()
+                         + " with cudaFree(): ";
+      fatal( what + cudaGetErrorString( err ) );
+   }
 }
 
 

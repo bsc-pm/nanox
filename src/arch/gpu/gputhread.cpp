@@ -79,6 +79,9 @@ void GPUThread::runDependent ()
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
 
    dd.getWorkFct()( work.getData() );
+
+   ( ( GPUProcessor * ) myThread->runningOn() )->freeWholeMemory();
+
 }
 
 void GPUThread::inlineWorkDependent ( WD &wd )

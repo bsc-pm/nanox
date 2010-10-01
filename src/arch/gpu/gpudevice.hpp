@@ -82,6 +82,7 @@ typedef enum {
          }
 
          static void * allocateWholeMemory( size_t size );
+         static void freeWholeMemory( void * address );
 
          static void * allocate( size_t size );
          static void free( void *address );
