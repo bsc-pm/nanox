@@ -52,27 +52,27 @@ namespace nanos
 
    };
 
-#define fatal(msg)  throw nanos::FatalError(msg,myThread->getId());
+#define fatal(msg)  throw nanos::FatalError(msg,getMyThreadSafe()->getId());
 #define fatal0(msg)  throw nanos::FatalError(msg);
 
-#define ensure(cond,msg) if ( !(cond) ) throw nanos::FailedAssertion(__FILE__, __LINE__ , #cond, msg, myThread->getId());
+#define ensure(cond,msg) if ( !(cond) ) throw nanos::FailedAssertion(__FILE__, __LINE__ , #cond, msg, getMyThreadSafe()->getId());
 #define ensure0(cond,msg) if ( !(cond) ) throw nanos::FailedAssertion(__FILE__, __LINE__, #cond, msg );
 
-#define warning(msg) { std::cerr << "WARNING: [" << myThread->getId() << "]" << msg << std::endl; }
+#define warning(msg) { std::cerr << "WARNING: [" << getMyThreadSafe()->getId() << "]" << msg << std::endl; }
 #define warning0(msg) { std::cerr << "WARNING: [?]" << msg << std::endl; }
 
 #define verbose(msg) \
-   if (sys.getVerbose()) std::cerr << "[" << myThread->getId() << "]" << msg << std::endl;
+   if (sys.getVerbose()) std::cerr << "[" << getMyThreadSafe()->getId() << "]" << msg << std::endl;
 #define verbose0(msg) \
    if (sys.getVerbose()) std::cerr << "[?]" << msg << std::endl;
 
 #define debug(msg) \
-   if (sys.getVerbose()) std::cerr << "DBG: [" << myThread->getId() << "]" << msg << std::endl;
+   if (sys.getVerbose()) std::cerr << "DBG: [" << getMyThreadSafe()->getId() << "]" << msg << std::endl;
 #define debug0(msg) \
    if (sys.getVerbose()) std::cerr << "DBG: [?]" << msg << std::endl;
 
 #define message(msg) \
-   std::cerr << "MSG: [" << myThread->getId() << "]" << msg << std::endl;
+   std::cerr << "MSG: [" << getMyThreadSafe()->getId() << "]" << msg << std::endl;
 #define message0(msg) \
    std::cerr << "MSG: [?]" << msg << std::endl;
 
