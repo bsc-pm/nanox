@@ -32,7 +32,7 @@
 #endif
 
 #ifdef GPU_DEV
-#include "gpuprocessor_fwd.hpp"
+#include "gpuprocessor_decl.hpp"
 #endif
 
 using namespace nanos;

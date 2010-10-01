@@ -20,7 +20,7 @@
 #ifndef _NANOS_GPU_PROCESSOR
 #define _NANOS_GPU_PROCESSOR
 
-#include "gpuprocessor_fwd.hpp"
+#include "gpuprocessor_decl.hpp"
 
 #include <cuda_runtime.h>
 
