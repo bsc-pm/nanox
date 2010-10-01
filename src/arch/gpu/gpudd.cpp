@@ -18,6 +18,7 @@
 /*************************************************************************************/
 
 #include "gpudd.hpp"
+#include "system.hpp"
 
 #include <cuda_runtime.h>
 
@@ -38,5 +39,23 @@ GPUDD * GPUDD::copyTo ( void *toAddr )
 {
    GPUDD *dd = new ( toAddr ) GPUDD( *this );
    return dd;
+}
+
+void GPUDD::printConfiguration()
+{
+   verbose0( "--- GPUDD configuration ---" );
+   verbose0( "  Number of GPU's: " << _gpuCount );
+   verbose0( "  Prefetching: " << (_prefetch ? "Enabled" : "Disabled") );
+   verbose0( "  Overlapping: " << (_overlap ? "Enabled" : "Disabled") );
+   verbose0( "  Overlapping inputs: " << (_overlapInputs ? "Enabled" : "Disabled") );
+   verbose0( "  Overlapping outputs: " << (_overlapOutputs ? "Enabled" : "Disabled") );
+   if ( _maxGPUMemory != 0 ) {
+      verbose0( "  Limited memory: Enabled: " << _maxGPUMemory << " bytes" );
+   }
+   else {
+      verbose0( "  Limited memory: Disabled" );
+   }
+
+   verbose0( "--- end of GPUDD configuration ---" );
 }
 

@@ -180,6 +180,8 @@ class GPUPlugin : public Plugin
             // Check if the user has defined the maximum GPU memory to use
             GPUDD::_maxGPUMemory = _maxGPUMemory;
          }
+
+         GPUDD::printConfiguration();
       }
 };
 

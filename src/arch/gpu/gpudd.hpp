@@ -77,6 +77,9 @@ namespace ext
          virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous) { }
          virtual size_t size ( void ) { return sizeof(GPUDD); }
          virtual GPUDD *copyTo ( void *toAddr );
+
+         static void printConfiguration();
+
    };
 
    inline const GPUDD & GPUDD::operator= ( const GPUDD &dd )
