@@ -245,7 +245,7 @@ void Scheduler::inlineWork ( WD *wd )
    // and we don't violate rules about tied WD
    wd->tieTo(*oldwd->isTiedTo());
    if (!wd->started())
-      wd->start(false);
+      wd->init(false);
    myThread->setCurrentWD( *wd );
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
@@ -298,7 +298,7 @@ void Scheduler::switchTo ( WD *to )
 {
    if ( myThread->runningOn()->supportsUserLevelThreads() ) {
       if (!to->started())
-         to->start(true);
+         to->init(true);
       
       debug( "switching from task " << myThread->getCurrentWD() << ":" << myThread->getCurrentWD()->getId() <<
           " to " << to << ":" << to->getId() );
@@ -351,7 +351,7 @@ void Scheduler::exitTo ( WD *to )
  {
     WD *current = myThread->getCurrentWD();
 
-    if (!to->started()) to->start(true,current);
+    if (!to->started()) to->init(true,current);
 
     debug( "exiting task " << myThread->getCurrentWD() << ":" << myThread->getCurrentWD()->getId() <<
           " to " << to << ":" << to->getId() );

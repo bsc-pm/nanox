@@ -17,65 +17,30 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_WORK_GROUP
-#define _NANOS_WORK_GROUP
+#ifndef _NANOS_SIMPLEALLOCATOR
+#define _NANOS_SIMPLEALLOCATOR
 
-#include <vector>
-#include "atomic.hpp"
-#include "dependenciesdomain.hpp"
-#include "synchronizedcondition_decl.hpp"
+#include <stdint.h>
+#include <map>
 
-namespace nanos
-{
+namespace nanos {
 
-   class WorkGroup
+   /*! \brief Simple memory allocator to manage a given contiguous memory area
+    */
+   class SimpleAllocator
    {
-
       private:
-         static Atomic<int> _atomicSeed;
+         typedef std::map < uintptr_t, size_t > SegmentMap;
 
-         // FIX-ME: vector is not a safe-class here
-         typedef std::vector<WorkGroup *> WGList;
-
-         WGList         _partOf;
-         int            _id;
-         Atomic<int>    _components;
-         Atomic<int>    _phaseCounter;
-
-         SingleSyncCond<EqualConditionChecker<int> > _syncCond;
-
-         void addToGroup ( WorkGroup &parent );
-         void exitWork ( WorkGroup &work );
-
-         const WorkGroup & operator= ( const WorkGroup &wg );
+         SegmentMap _allocatedChunks;
+         SegmentMap _freeChunks;
 
       public:
-         // constructors
-         WorkGroup() : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ),
-            _syncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ) {  }
-         WorkGroup( const WorkGroup &wg ) : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ),
-            _syncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ) 
-         {
-            for ( WGList::const_iterator it = wg._partOf.begin(); it < wg._partOf.end(); it++ ) {
-               if (*it) (*it)->addWork( *this );
-            }
-         }
+         SimpleAllocator( uintptr_t baseAddress, size_t len );
 
-         // destructor
-         virtual ~WorkGroup();
-
-         void addWork( WorkGroup &wg );
-         void sync();
-         void waitCompletion();
-         virtual void init();
-         virtual void done();
-         int getId() const { return _id; }
-
+         void * allocate( size_t len );
+         void free( void *address );
    };
 
-   typedef WorkGroup WG;
-
-};
-
-#endif
-
+}
+#endif /* _NANOS_SIMPLEALLOCATOR */
