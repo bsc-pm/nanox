@@ -30,13 +30,19 @@ namespace nanos {
    class SimpleAllocator
    {
       private:
-         typedef std::map < uintptr_t, size_t > SegmentMap;
+         typedef std::map < uint64_t, size_t > SegmentMap;
 
          SegmentMap _allocatedChunks;
          SegmentMap _freeChunks;
 
       public:
-         SimpleAllocator( uintptr_t baseAddress, size_t len );
+         SimpleAllocator( uint64_t baseAddress, size_t len );
+
+         // WARNING: Calling this constructor requires calling init() at some time
+         // before any allocate() or free() methods are called
+         SimpleAllocator() { }
+
+         void init( uint64_t baseAddress, size_t len );
 
          void * allocate( size_t len );
          void free( void *address );
