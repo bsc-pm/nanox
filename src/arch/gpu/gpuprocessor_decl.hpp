@@ -25,6 +25,7 @@
 #include "config.hpp"
 #include "gpudevice.hpp"
 #include "gputhread.hpp"
+#include "simpleallocator.hpp"
 
 #include <map>
 
@@ -46,6 +47,7 @@ namespace ext
 
          // Cache
          DeviceCache<GPUDevice>        _cache;
+         SimpleAllocator               _allocator;
          std::map< void *, uint64_t >  _pinnedMemory;
 
          // Disable copy constructor and assignment operator
@@ -59,6 +61,8 @@ namespace ext
          GPUProcessor( int id, int gpuId );
 
          virtual ~GPUProcessor() {}
+
+         void init( size_t memSize );
 
          virtual WD & getWorkerWD () const;
          virtual WD & getMasterWD () const;
@@ -79,6 +83,17 @@ namespace ext
 
          virtual void* getAddressDependent( uint64_t tag );
          virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
+
+         // Allocator interface
+         void * allocate ( size_t size )
+         {
+            return _allocator.allocate( size );
+         }
+
+         void free( void * address )
+         {
+            _allocator.free( address );
+         }
 
          // Get information about the GPU that represents this object
          GPUProcessorInfo * getGPUProcessorInfo ()

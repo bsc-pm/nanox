@@ -81,6 +81,8 @@ typedef enum {
             return _transferMode;
          }
 
+         static void * allocateWholeMemory( size_t size );
+
          static void * allocate( size_t size );
          static void free( void *address );
 

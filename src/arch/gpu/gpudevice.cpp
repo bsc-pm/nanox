@@ -52,6 +52,24 @@ void GPUDevice::getMemoryLockLimit()
    }
 }
 
+void * GPUDevice::allocateWholeMemory( size_t size )
+{
+   void * address = 0;
+   cudaError_t err = cudaMalloc( ( void ** ) &address, size );
+
+   if ( err != cudaSuccess ) {
+      std::stringstream sizeStr;
+      sizeStr << size;
+      std::string what = "Trying to allocate "
+            + sizeStr.str()
+            + " bytes of device memory with cudaMalloc(): ";
+      fatal( what + cudaGetErrorString( err ) );
+   }
+   return address;
+
+}
+
+
 void * GPUDevice::allocate( size_t size )
 {
    cudaError_t err = cudaSuccess;
@@ -117,6 +135,8 @@ void * GPUDevice::allocate( size_t size )
    }
 
    if ( _transferMode == NORMAL || _transferMode == ASYNC || _transferMode == PINNED_OS) {
+      address = ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->allocate( size );
+#if 0
       err = cudaMalloc( ( void ** ) &address, size );
 
       if ( err != cudaSuccess ) {
@@ -127,6 +147,7 @@ void * GPUDevice::allocate( size_t size )
                             + " bytes of device memory with cudaMalloc(): ";
          fatal( what + cudaGetErrorString( err ) );
       }
+#endif
    }
 
    if ( _transferMode == ASYNC || _transferMode == PINNED_CUDA || _transferMode == WC) {
@@ -147,6 +168,9 @@ void GPUDevice::free( void *address )
       // (and if there are, execute them)
       ( ( nanos::ext::GPUThread * ) myThread )->checkAddressForPendingCopy( address );
 
+      ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->free( address );
+
+#if 0
       err = cudaFree( address );
 
       if ( err != cudaSuccess ) {
@@ -157,6 +181,8 @@ void GPUDevice::free( void *address )
                             + " with cudaFree(): ";
          fatal( what + cudaGetErrorString( err ) );
       }
+#endif
+
    }
 
    if ( _transferMode == ASYNC || _transferMode == PINNED_CUDA || _transferMode == WC) {

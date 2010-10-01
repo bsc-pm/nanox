@@ -75,9 +75,9 @@ namespace ext
             cudaGetDeviceProperties( &gpuProperties, _deviceId );
 
             // Check if the user has set the amount of memory to use (and the value is valid)
-            // Otherwise, use 90% of the total GPU global memory
+            // Otherwise, use 95% of the total GPU global memory
             size_t userDefinedMem = GPUDD::getGPUMaxMemory();
-            _maxMemoryAvailable = gpuProperties.totalGlobalMem * 0.9;
+            _maxMemoryAvailable = gpuProperties.totalGlobalMem * 0.95;
 
             if ( userDefinedMem > 0 ) {
                if ( userDefinedMem > _maxMemoryAvailable ) {
@@ -91,7 +91,7 @@ namespace ext
                }
             }
 
-            ( ( GPUProcessor * ) myThread->runningOn() )->setCacheSize( _maxMemoryAvailable );
+            ( ( GPUProcessor * ) myThread->runningOn() )->init( _maxMemoryAvailable );
 
             if ( !gpuProperties.deviceOverlap ) {
                // It does not support stream overlapping, disable this feature

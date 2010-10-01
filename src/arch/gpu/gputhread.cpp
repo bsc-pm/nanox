@@ -67,10 +67,10 @@ void GPUThread::runDependent ()
    _pendingCopiesIn = new PendingCopiesInAsyncList();
 
    // Avoid the so slow first data allocation and transfer to device
-   bool b = true;
-   bool * b_d = ( bool * ) GPUDevice::allocate( sizeof( b ) );
-   GPUDevice::copyIn( ( void * ) b_d, ( uint64_t ) &b, sizeof( b ) );
-   GPUDevice::free( b_d );
+   //bool b = true;
+   //bool * b_d = ( bool * ) GPUDevice::allocate( sizeof( b ) );
+   //GPUDevice::copyIn( ( void * ) b_d, ( uint64_t ) &b, sizeof( b ) );
+   //GPUDevice::free( b_d );
 
    // Clear copy-in list, just in case last operations filled it
    _pendingCopiesIn->reset();

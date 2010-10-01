@@ -30,9 +30,16 @@ Atomic<int> GPUProcessor::_deviceSeed = 0;
 
 
 GPUProcessor::GPUProcessor( int id, int gpuId )
-   : Accelerator( id, &GPU ), _gpuDevice( _deviceSeed++ ), _cache( 0 ), _pinnedMemory()
+   : Accelerator( id, &GPU ), _gpuDevice( _deviceSeed++ ), _cache( 0 ), _allocator(), _pinnedMemory()
 {
    _gpuProcessorInfo = new GPUProcessorInfo( gpuId );
+}
+
+void GPUProcessor::init( size_t memSize )
+{
+   _cache.setSize( memSize );
+
+   _allocator.init( ( uint64_t ) GPUDevice::allocateWholeMemory( memSize ), memSize );
 }
 
 size_t GPUProcessor::getMaxMemoryAvailable ( int id )
