@@ -271,6 +271,7 @@ void GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
 
    if ( _transferMode == NORMAL) {
       err = cudaMemcpy( localDst, ( void * ) remoteSrc, size, cudaMemcpyHostToDevice );
+      ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->synchronize( remoteSrc );
    }
 
    if ( err != cudaSuccess ) {
@@ -326,6 +327,7 @@ void GPUDevice::copyOut( uint64_t remoteDst, void *localSrc, size_t size )
       }
       else {
          err = cudaMemcpy( ( void * ) remoteDst, localSrc, size, cudaMemcpyDeviceToHost );
+         ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->synchronize( remoteDst );
       }
 
       if ( err != cudaSuccess ) {
