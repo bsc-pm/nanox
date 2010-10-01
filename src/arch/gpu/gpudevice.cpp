@@ -221,6 +221,8 @@ void GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
 {
    // Copy from host memory to device memory
 
+   ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->transferInput( size );
+
    cudaError_t err = cudaSuccess;
 
    if ( _transferMode == ASYNC ) {
@@ -295,6 +297,8 @@ void GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
 void GPUDevice::copyOut( uint64_t remoteDst, void *localSrc, size_t size )
 {
    // Copy from device memory to host memory
+
+   ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->transferOutput( size );
 
    // No need to copy back for PINNED_CUDA or WC
    if ( _transferMode != PINNED_CUDA && _transferMode != WC ) {

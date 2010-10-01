@@ -39,11 +39,21 @@ namespace ext
       public:
          class GPUProcessorInfo;
 
+         class GPUProcessorStats
+         {
+            public:
+               unsigned int   _bytesIn;
+               unsigned int   _bytesOut;
+         };
+
+
       private:
          // Configuration variables
          static Atomic<int>      _deviceSeed; // Number of GPU devices assigned to threads
          int                     _gpuDevice; // Assigned GPU device Id
          GPUProcessorInfo *      _gpuProcessorInfo; // Information related to the GPU device that represents
+         GPUProcessorStats       _gpuProcessorStats; // Statistics of data copied in and out to / from cache
+
 
          // Cache
          DeviceCache<GPUDevice>        _cache;
@@ -60,7 +70,10 @@ namespace ext
          // Constructors
          GPUProcessor( int id, int gpuId );
 
-         virtual ~GPUProcessor() {}
+         virtual ~GPUProcessor()
+         {
+            printStats();
+         }
 
          void init( size_t memSize );
          void freeWholeMemory();
@@ -116,6 +129,24 @@ namespace ext
          void removePinnedAddress ( void * dAddress )
          {
             _pinnedMemory.erase( dAddress );
+         }
+
+         void transferInput ( size_t size )
+         {
+            _gpuProcessorStats._bytesIn += ( unsigned int ) size;
+         }
+
+         void transferOutput ( size_t size )
+         {
+            _gpuProcessorStats._bytesOut += ( unsigned int ) size;
+         }
+
+         void printStats ()
+         {
+            std::cout << "GPU " << _gpuDevice << " TRANSFER STATISTICS" << std::endl
+                  << "Total input transfers: " << _gpuProcessorStats._bytesIn << " bytes" << std::endl
+                  << "Total output transfers: " << _gpuProcessorStats._bytesOut << " bytes" << std::endl;
+
          }
    };
 
