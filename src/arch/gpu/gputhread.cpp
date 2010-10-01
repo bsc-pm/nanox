@@ -85,9 +85,6 @@ void GPUThread::inlineWorkDependent ( WD &wd )
 {
    GPUDD &dd = ( GPUDD & )wd.getActiveDevice();
 
-   NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
-   NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
-
    if ( GPUDevice::getTransferMode() != nanos::NORMAL ) {
       // Wait for the input transfer stream to finish
       cudaStreamSynchronize( ( (GPUProcessor *) myThread->runningOn() )->getGPUProcessorInfo()->getInTransferStream() );
@@ -108,9 +105,11 @@ void GPUThread::inlineWorkDependent ( WD &wd )
    }
 #endif
 
+   NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
    ( dd.getWorkFct() )( wd.getData() );
 
    if ( GPUDevice::getTransferMode() != nanos::NORMAL ) {
+      NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
       // Get next task in order to prefetch data to device memory
       WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, wd );
 
