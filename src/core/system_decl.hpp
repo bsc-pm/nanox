@@ -31,6 +31,7 @@
 #include "dependency.hpp"
 #include "instrumentor_decl.hpp"
 #include "directory.hpp"
+#include "pminterface_decl.hpp"
 
 
 namespace nanos
@@ -93,6 +94,9 @@ namespace nanos
 
          // Mempory access directory
          Directory            _directory;
+
+         // Programming model interface
+         PMInterface *        _pmInterface;
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -214,6 +218,8 @@ namespace nanos
 
          SchedulerStats & getSchedulerStats ();
          SchedulerConf  & getSchedulerConf();
+
+         void setPMInterface (PMInterface *_pm);
    };
 
    extern System sys;

@@ -84,6 +84,7 @@ inline void Scheduler::idleLoop ()
 
          if (next) {
            sys.getSchedulerStats()._idleThreads--;
+           sys.getSchedulerStats()._readyTasks--;
            NANOS_INSTRUMENT( sys.getInstrumentor()->raiseCloseStateEvent() );
            behaviour::switchWD(thread,current, next);
            NANOS_INSTRUMENT( sys.getInstrumentor()->raiseOpenStateEvent( IDLE ) );
@@ -113,7 +114,6 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
    WD * current = myThread->getCurrentWD();
 
-   sys.getSchedulerStats()._readyTasks--;
    sys.getSchedulerStats()._idleThreads++;
    current->setSyncCond( condition );
    current->setIdle();
@@ -130,6 +130,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
             WD *next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
 
             if ( next ) {
+               sys.getSchedulerStats()._readyTasks--;
                sys.getSchedulerStats()._idleThreads--;
                NANOS_INSTRUMENT( sys.getInstrumentor()->raiseOpenStateEvent( SCHEDULING ) );
                switchTo ( next );
@@ -178,8 +179,10 @@ struct WorkerBehaviour
    {
       if (next->started())
         Scheduler::switchTo(next);
-      else
+      else {
         Scheduler::inlineWork ( next );
+        sys.getSchedulerStats()._totalTasks--;
+      }
    }
 };
 
