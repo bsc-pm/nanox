@@ -33,6 +33,14 @@ bool GPUDD::_overlap = true;
 bool GPUDD::_overlapInputs = true;
 bool GPUDD::_overlapOutputs = true;
 size_t GPUDD::_maxGPUMemory = 0;
+void * GPUDD::_gpusProperties = NULL;
+
+
+void GPUDD::getGPUsProperties( int device, void * deviceProps )
+{
+   void * props = &((struct cudaDeviceProp *) _gpusProperties)[device];
+   memcpy( deviceProps, props, sizeof( struct cudaDeviceProp ) );
+}
 
 
 GPUDD * GPUDD::copyTo ( void *toAddr )

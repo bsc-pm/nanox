@@ -72,7 +72,8 @@ namespace ext
             // can be done in parallel
 
             struct cudaDeviceProp gpuProperties;
-            cudaGetDeviceProperties( &gpuProperties, _deviceId );
+            GPUDD::getGPUsProperties( _deviceId, ( void * ) &gpuProperties );
+            //cudaGetDeviceProperties( &gpuProperties, _deviceId );
 
             // Check if the user has set the amount of memory to use (and the value is valid)
             // Otherwise, use 95% of the total GPU global memory
@@ -91,6 +92,7 @@ namespace ext
                }
             }
 
+            // Initialize GPUProcessor --> we allocate the whole GPU memory
             ( ( GPUProcessor * ) myThread->runningOn() )->init( _maxMemoryAvailable );
 
             if ( !gpuProperties.deviceOverlap ) {

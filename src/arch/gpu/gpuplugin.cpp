@@ -52,13 +52,13 @@ class GPUTransferModeOption : public Config::MapAction<transfer_mode>
 class GPUPlugin : public Plugin
 {
    private:
-      bool     _disableCUDA;
-      int      _numGPUs;
-      bool     _prefetch;
-      bool     _overlap;
-      bool     _overlapInputs;
-      bool     _overlapOutputs;
-      size_t   _maxGPUMemory;
+      bool              _disableCUDA;
+      int               _numGPUs;
+      bool              _prefetch;
+      bool              _overlap;
+      bool              _overlapInputs;
+      bool              _overlapOutputs;
+      size_t            _maxGPUMemory;
 
    public:
       GPUPlugin() : Plugin( "GPU PE Plugin", 1 ), _disableCUDA( false ), _numGPUs( -1 ), _prefetch( true ),
@@ -137,9 +137,13 @@ class GPUPlugin : public Plugin
          else {
             // Find out how many CUDA-capable GPUs the system has
             int totalCount, device, deviceCount = 0;
-            struct cudaDeviceProp gpuProperties;
 
             cudaError_t cudaErr = cudaGetDeviceCount( &totalCount );
+
+            // Keep the information of GPUs in GPUDD, in order to avoid a second call to
+            // 'cudaGetDeviceProperties()' for each GPU device
+            GPUDD::_gpusProperties = malloc( totalCount * sizeof( struct cudaDeviceProp ) );
+            struct cudaDeviceProp * gpuProperties = (struct cudaDeviceProp *) GPUDD::_gpusProperties;
 
             if ( cudaErr != cudaSuccess ) {
                totalCount = 0;
@@ -147,8 +151,8 @@ class GPUPlugin : public Plugin
 
             // Machines with no GPUs can still report one emulation device
             for ( device = 0; device < totalCount; device++ ) {
-               cudaGetDeviceProperties( &gpuProperties, device );
-               if ( gpuProperties.major != 9999 ) {
+               cudaGetDeviceProperties( &gpuProperties[deviceCount], device );
+               if ( gpuProperties[deviceCount].major != 9999 ) {
                   // 9999 means emulation only
                   deviceCount++;
                }

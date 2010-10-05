@@ -46,6 +46,7 @@ namespace ext
          static bool    _overlapInputs;
          static bool    _overlapOutputs;
          static size_t  _maxGPUMemory; // Maximum amount of memory for each GPU to use
+         static void *  _gpusProperties; // Array of structs of cudaDeviceProp
 
       public:
          // constructors
@@ -74,6 +75,8 @@ namespace ext
 
          static size_t getGPUMaxMemory() { return _maxGPUMemory; }
 
+         static void getGPUsProperties( int device, void * deviceProps );
+
          virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous) { }
          virtual size_t size ( void ) { return sizeof(GPUDD); }
          virtual GPUDD *copyTo ( void *toAddr );
@@ -89,6 +92,7 @@ namespace ext
 
       DD::operator= ( dd );
       _work = dd._work;
+      _gpusProperties = dd._gpusProperties;
 
       return *this;
    }
