@@ -149,6 +149,8 @@ namespace nanos
 
          bool getVerbose () const;
 
+         void setVerbose ( bool value );
+
          void setInitialMode ( InitialMode mode );
          InitialMode getInitialMode() const;
 
@@ -217,6 +219,7 @@ namespace nanos
 
          SchedulerStats & getSchedulerStats ();
          SchedulerConf  & getSchedulerConf();
+
    };
 
    extern System sys;
