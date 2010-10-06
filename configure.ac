@@ -40,7 +40,7 @@ AC_SUBST([ARCHITECTURES])
 AC_SUBST([OS])
 AC_SUBST([SMP_ARCH])
 
-AC_MSG_CHECKING([for architecture])
+#AC_MSG_CHECKING([for architecture])
 smp_ult=yes
 case $host in
   i?86-*-linux*)
@@ -169,6 +169,8 @@ if test x$gpu_valid = xyes; then
 fi
 
 AC_SUBST([gpu_valid])
+
+AC_MSG_CHECKING([for architecture])
 
 # Add architecture libraries
 for arch in $ARCHITECTURES; do
