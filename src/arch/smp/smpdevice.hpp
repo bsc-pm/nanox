@@ -23,6 +23,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "workdescriptor_decl.hpp"
+#include "processingelement_fwd.hpp"
 
 namespace nanos
 {
@@ -47,37 +48,45 @@ namespace nanos
 
         /* \breif allocate size bytes in the device
          */
-         static void * allocate( size_t size )
+         static void * allocate( size_t size, ProcessingElement *pe )
          {
             return new char[size]; 
          }
 
         /* \brief free address
          */
-         static void free( void *address )
+         static void free( void *address, ProcessingElement *pe )
          {
             delete[] (char *) address;
          }
 
-        /* \brief copy from remoteSrc in the host to localDst in the device
+        /* \brief Copy from remoteSrc in the host to localDst in the device
+         *        Returns true if the operation is synchronous
          */
-         static void copyIn( void *localDst, uint64_t remoteSrc, size_t size )
+         static bool copyIn( void *localDst, uint64_t remoteSrc, size_t size, ProcessingElement *pe )
          {
             memcpy( localDst, (void *)remoteSrc, size );
+            return true;
          }
 
-        /* \brief copy from localSrc in the device to remoteDst in the host
+        /* \brief Copy from localSrc in the device to remoteDst in the host
+         *        Returns true if the operation is synchronous
          */
-         static void copyOut( uint64_t remoteDst, void *localSrc, size_t size )
+         static bool copyOut( uint64_t remoteDst, void *localSrc, size_t size, ProcessingElement *pe )
          {
             memcpy( (void *)remoteDst, localSrc, size );
+            return true;
          }
 
-        /* \brief copy localy in the device from src to dst
+        /* \brief Copy localy in the device from src to dst
          */
-         static void copyLocal( void *dst, void *src, size_t size )
+         static void copyLocal( void *dst, void *src, size_t size, ProcessingElement *pe )
          {
             memcpy( dst, src, size );
+         }
+
+         static void syncTransfer( uint64_t hostAddress, ProcessingElement *pe)
+         {
          }
    };
 }
