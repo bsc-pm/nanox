@@ -51,6 +51,8 @@ inline System::ExecutionMode System::getExecutionMode () const { return _executi
 
 inline bool System::getVerbose () const { return _verboseMode; }
 
+inline void System::setVerbose ( bool value ) { _verboseMode = value; }
+
 inline void System::setInitialMode ( System::InitialMode mode ) { _initialMode = mode; }
 
 inline System::InitialMode System::getInitialMode() const { return _initialMode; }

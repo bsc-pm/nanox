@@ -37,6 +37,8 @@ libsupport_la_SOURCES = \
 	cache_fwd.hpp \
 	cache_decl.hpp \
 	cache.hpp \
+	simpleallocator.hpp \
+	simpleallocator.cpp \
 	list.hpp \
 	hashmap.hpp \
 	hashmap_decl.hpp \
