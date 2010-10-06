@@ -114,7 +114,21 @@ esac
 
 # Check if it has nVidia GPUs / CUDA is installed
 gpu_valid=no
+gpu_disabled=no
 CUDA=""
+
+AC_MSG_CHECKING([if the use of GPU devices was disabled])
+AC_ARG_ENABLE([gpu-arch],
+  AS_HELP_STRING([--disable-gpu-arch], [Disables the use of GPU devices]),
+  [
+    gpu_valid="no"
+    gpu_disabled="yes"
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    AC_MSG_RESULT([no])
+  ]
+)
 
 AC_ARG_WITH([cuda],
 AS_HELP_STRING([--with-cuda=dir], [Directory of CUDA installation]),
@@ -125,21 +139,27 @@ AS_HELP_STRING([--with-cuda=dir], [Directory of CUDA installation]),
 		CUDA="/usr/local/cuda"
 	])
 
-if ls "$CUDA" &> /dev/null ; then
-	AC_ARG_VAR([NVCC],[CUDA compiler])
-	AC_CHECK_PROG( [NVCC], [nvcc], nvcc, no)
-	if test x$NVCC = xno ; then
-		AC_MSG_WARN([nvcc not found. Disabling GPU support])
-		gpu_valid=no
-	else
-		CUDA_INC="$CUDA/include"
-		CUDA_LIB="$CUDA/lib64"
+if test x$gpu_disabled = xno ; then
+    if ls "$CUDA" &> /dev/null ; then
+        AC_ARG_VAR([NVCC],[CUDA compiler])
+        NVCC="nvcc"
+        AC_CHECK_PROG( [NVCC], ["CUDA compiler"], nvcc, no)
+        if test x$NVCC = xno ; then
+            AC_MSG_WARN([nvcc not found. Disabling GPU support])
+            gpu_valid=no
+        else
+            CUDA_INC="$CUDA/include"
+            CUDA_LIB="$CUDA/lib"
+            if ls "$CUDA/lib64" &> /dev/null ; then
+                CUDA_LIB="$CUDA/lib64"
+            fi
 
-		AC_SUBST([CUDA_INC])
-		AC_SUBST([CUDA_LIB])
+            AC_SUBST([CUDA_INC])
+            AC_SUBST([CUDA_LIB])
 
-		gpu_valid=yes
-	fi
+            gpu_valid=yes
+        fi
+    fi
 fi
 
 if test x$gpu_valid = xyes; then
