@@ -93,7 +93,12 @@ namespace ext
             }
 
             // Initialize GPUProcessor --> we allocate the whole GPU memory
-            ( ( GPUProcessor * ) myThread->runningOn() )->init( _maxMemoryAvailable );
+            size_t allocatedMemory = _maxMemoryAvailable;
+            ( ( GPUProcessor * ) myThread->runningOn() )->init( allocatedMemory );
+
+            if ( allocatedMemory != _maxMemoryAvailable ) {
+               _maxMemoryAvailable = allocatedMemory;
+            }
 
             if ( !gpuProperties.deviceOverlap ) {
                // It does not support stream overlapping, disable this feature

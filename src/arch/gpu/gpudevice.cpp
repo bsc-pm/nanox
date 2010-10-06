@@ -52,10 +52,19 @@ void GPUDevice::getMemoryLockLimit()
    }
 }
 
-void * GPUDevice::allocateWholeMemory( size_t size )
+void * GPUDevice::allocateWholeMemory( size_t &size )
 {
    void * address = 0;
-   cudaError_t err = cudaMalloc( ( void ** ) &address, size );
+   float percentage = 1.0;
+
+   cudaError_t err = cudaMalloc( ( void ** ) &address, size * percentage );
+
+   while ( ( err == cudaErrorMemoryValueTooLarge || err == cudaErrorMemoryAllocation )
+         && percentage > 0.5 )
+   {
+      percentage -= 0.05;
+      err = cudaMalloc( ( void ** ) &address, size * percentage );
+   }
 
    if ( err != cudaSuccess ) {
       std::stringstream sizeStr;
@@ -65,6 +74,8 @@ void * GPUDevice::allocateWholeMemory( size_t size )
             + " bytes of device memory with cudaMalloc(): ";
       fatal( what + cudaGetErrorString( err ) );
    }
+
+   size = size * percentage;
 
    return address;
 }

@@ -35,11 +35,11 @@ GPUProcessor::GPUProcessor( int id, int gpuId )
    _gpuProcessorInfo = new GPUProcessorInfo( gpuId );
 }
 
-void GPUProcessor::init( size_t memSize )
+void GPUProcessor::init( size_t &memSize )
 {
+   void * baseAddress = GPUDevice::allocateWholeMemory( memSize );
+   _allocator.init( ( uint64_t ) baseAddress, memSize );
    _cache.setSize( memSize );
-
-   _allocator.init( ( uint64_t ) GPUDevice::allocateWholeMemory( memSize ), memSize );
 }
 
 void GPUProcessor::freeWholeMemory()

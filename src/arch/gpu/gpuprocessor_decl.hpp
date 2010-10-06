@@ -75,7 +75,7 @@ namespace ext
             printStats();
          }
 
-         void init( size_t memSize );
+         void init( size_t &memSize );
          void freeWholeMemory();
 
 
