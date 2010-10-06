@@ -24,8 +24,33 @@
 #include "copydata.hpp"
 #include "system.hpp"
 #include "instrumentation.hpp"
+#include "directory.hpp"
 
 using namespace nanos;
+
+void ProcessingElement::copyDataIn( WorkDescriptor &work )
+{
+   Directory &d = sys.getDirectory();
+   CopyData *copies = work.getCopies();
+   for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
+      CopyData & cd = copies[i];
+      if ( !cd.isPrivate() && cd.isInput() ) {
+           d.registerAccess( cd.getAddress(), cd.getSize() );
+      }
+   }
+}
+
+void ProcessingElement::waitInputs( WorkDescriptor &work )
+{
+   Directory &d = sys.getDirectory();
+   CopyData *copies = work.getCopies();
+   for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
+      CopyData & cd = copies[i];
+      if ( !cd.isPrivate() && cd.isInput() ) {
+           d.waitInput( cd.getAddress() );
+      }
+   }
+}
 
 BaseThread& ProcessingElement::startWorker ( )
 {

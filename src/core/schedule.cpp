@@ -273,7 +273,7 @@ void Scheduler::inlineWork ( WD *wd )
    #endif
 
    ensure(oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(), 
-          "Violating tied rules " + toString<BaseThread*>(thread) + "!=" + toString<BaseThread*>(oldwd->isTiedTo()));
+           "Violating tied rules " + toString<BaseThread*>(thread) + "!=" + toString<BaseThread*>(oldwd->isTiedTo()));
 
 }
 
@@ -297,8 +297,10 @@ void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
 void Scheduler::switchTo ( WD *to )
 {
    if ( myThread->runningOn()->supportsUserLevelThreads() ) {
-      if (!to->started())
+      if (!to->started()) {
          to->init(true);
+         to->start();
+      }
       
       debug( "switching from task " << myThread->getCurrentWD() << ":" << myThread->getCurrentWD()->getId() <<
           " to " << to << ":" << to->getId() );
@@ -351,7 +353,10 @@ void Scheduler::exitTo ( WD *to )
  {
     WD *current = myThread->getCurrentWD();
 
-    if (!to->started()) to->init(true,current);
+    if (!to->started()) {
+       to->init(true,current);
+       to->start();
+    }
 
     debug( "exiting task " << myThread->getCurrentWD() << ":" << myThread->getCurrentWD()->getId() <<
           " to " << to << ":" << to->getId() );

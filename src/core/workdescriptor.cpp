@@ -37,10 +37,18 @@ void WorkDescriptor::init (bool isUserLevelThread, WorkDescriptor *previous)
 
    _activeDevice->lazyInit(*this,isUserLevelThread,previous);
    
-   if ( getNumCopies() > 0 && pe->hasSeparatedMemorySpace() )
+   if ( getNumCopies() > 0 )
       pe->copyDataIn( *this );
 
    setReady();
+}
+
+void WorkDescriptor::start()
+{
+   ProcessingElement *pe = myThread->runningOn();
+
+   if ( getNumCopies() > 0 )
+      pe->waitInputs( *this );
 }
 
 DeviceData * WorkDescriptor::findDeviceData ( const Device &device ) const

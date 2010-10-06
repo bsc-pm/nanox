@@ -30,7 +30,7 @@
 #include "nanos-int.h"
 #include "dependency.hpp"
 #include "instrumentation_decl.hpp"
-#include "directory.hpp"
+#include "directory_decl.hpp"
 
 
 namespace nanos

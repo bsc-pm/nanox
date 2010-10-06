@@ -229,6 +229,13 @@ namespace nanos
           */
          void init ( bool isUserLevelThread, WorkDescriptor *previous = NULL );
 
+         /*! \brief Last operations just before WD execution
+          *
+          *  This function is useful to perform any operation that needs to be done at the last moment
+          *  before the execution of the WD.
+          */
+         void start ();
+
          /*! \brief Get data size
           *
           *  This function returns the size of the user's data related with current WD
