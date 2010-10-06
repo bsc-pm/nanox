@@ -35,6 +35,7 @@ libsupport_la_SOURCES = \
 	plugin.cpp \
 	xstring.hpp \
 	cache_fwd.hpp \
+	cache_decl.hpp \
 	cache.hpp \
 	list.hpp \
 	hashmap.hpp \
