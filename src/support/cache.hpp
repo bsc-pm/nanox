@@ -69,7 +69,7 @@ inline void CachePolicy::registerCacheAccess( uint64_t tag, size_t size, bool in
             Cache *owner = de->getOwner();
             if ( owner != NULL && !(!input && output) ) {
                owner->invalidate( tag, size, de );
-               while( de->getOwner() != NULL );
+               while( de->getOwner() != NULL )
                   _cache.syncTransfer( tag );
             }
             ce->setAddress( _cache.allocate(size) );
@@ -96,7 +96,7 @@ inline void CachePolicy::registerCacheAccess( uint64_t tag, size_t size, bool in
                Cache *owner = de->getOwner();
                if ( owner != NULL && !(!input && output) ) {
                   owner->invalidate( tag, size, de );
-                  while( de->getOwner() != NULL );
+                  while( de->getOwner() != NULL )
                      _cache.syncTransfer( tag );
                }
                if (input) {
