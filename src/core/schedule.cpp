@@ -24,6 +24,10 @@
 #include "config.hpp"
 #include "instrumentationmodule_decl.hpp"
 
+#ifdef CLUSTER_DEV
+#include "clusterthread.hpp"
+#endif
+
 using namespace nanos;
 
 void SchedulerConf::config (Config &config)
@@ -195,6 +199,45 @@ WD * Scheduler::prefetch( BaseThread *thread, WD &wd )
    return thread->getTeam()->getSchedulePolicy().atPrefetch( thread, wd );
 }
 
+struct ClusterWorkerBehaviour
+{
+   static WD * getWD ( BaseThread *thread, WD *current )
+   {
+      WD *next = NULL;
+
+      next = thread->getTeam()->getSchedulePolicy().atIdle ( thread );
+
+      //std::cerr << "next is " << next << ":" << (unsigned int) (next != NULL ? next->getId() : 0) << std::endl;
+      if ( next == NULL )
+      {
+         ext::ClusterThread *cThd = dynamic_cast<ext::ClusterThread*>( myThread );
+         next = cThd->getWD();
+      }
+      //std::cerr << "next is " << next << ":" << (unsigned int) (next != NULL ? next->getId() : 0) << std::endl;
+      return next;
+   }
+
+   static void switchWD ( BaseThread *thread, WD *current, WD *next )
+   {
+      //std::cerr << "CLUSTER switchWD " << next << " - "<< myThread->getCurrentWD() << std::endl;
+      if ( !next->isClusterMigrable() || next->started())
+      {
+         ext::ClusterThread *cThd = dynamic_cast<ext::ClusterThread*>( myThread );
+         cThd->addWD( current );
+         Scheduler::switchTo(next);
+      }
+      else
+      {
+         //std::cerr << "Current PE is " << current->getPe() << std::endl;
+         next->setPe( current->getPe() );
+         current->unsetNodeFree();
+         //std::cerr << "CLUSTER INLINE WORK, current PE is " << current->getPe() << " nextwd " << next << ":" << next->getId() << std::endl;
+         Scheduler::inlineWork ( next );
+         current->setNodeFree();
+      }
+   }
+};
+
 struct WorkerBehaviour
 {
    static WD * getWD ( BaseThread *thread, WD *current )
@@ -214,6 +257,13 @@ struct WorkerBehaviour
       }
    }
 };
+
+void Scheduler::workerClusterLoop ()
+{
+   std::cerr << "workeLoop started" << std::endl;
+
+   idleLoop<ClusterWorkerBehaviour>();
+}
 
 void Scheduler::workerLoop ()
 {
@@ -283,7 +333,15 @@ void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
       oldWD->setBlocked();
       syncCond->unlock();
    } else {
-      Scheduler::queue( *oldWD );
+
+      if (oldWD->getPrevious() == NULL)
+      {
+         Scheduler::queue( *oldWD );
+      }
+      else if ( oldWD->getPrevious()->isClusterMigrable() )
+      {
+         Scheduler::queue( *oldWD );
+      }
    }
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdLeaveCPU(oldWD) );
@@ -312,8 +370,37 @@ void Scheduler::switchTo ( WD *to )
 void Scheduler::yield ()
 {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
-   WD *next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
+   WD *next = NULL;
 
+   if ( ! myThread->getCurrentWD()->getPrevious()->isClusterMigrable() ) {
+      // I'm running on a Cluster Thread (but Im a "work" WD)
+      // I've reached here because I am waiting the remote call to complete.
+
+      ext::ClusterThread *cThd = dynamic_cast<ext::ClusterThread*>( myThread );
+      cThd->addWD( myThread->getCurrentWD() );
+
+      if ( myThread->getCurrentWD()->getPrevious()->isNodeFree() ) {
+         // can the node be free at this point? if we reach here only from waiting work to be done
+         // then this branch makes no sense.
+         next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
+         if ( next == NULL )
+            next = cThd->getWD();
+      }
+      else 
+      {
+         next = cThd->getWD();
+      }
+
+   }
+   else
+   {
+      // SMPThread, do SMP stuff
+      next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
+   }
+   
+   if (next == myThread->getCurrentWD())
+      next = NULL;
+   
    if ( next ) {
       switchTo(next);
    }

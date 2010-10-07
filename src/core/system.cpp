@@ -51,7 +51,7 @@ System nanos::sys;
 // default system values go here
 System::System () :
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindThreads( true ), _profile( false ), _instrument( false ),
-      _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster( true ), _delayedStart(false), _isMaster(true), _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" ),
+      _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster( false ), _delayedStart(false), _isMaster(true), _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" ),
       _defInstr ( "empty_trace" ), _defArch("smp"), _currentConduit( "mpi" ), _instrumentation ( NULL ), _defSchedulePolicy(NULL), _directory()
 {
    verbose0 ( "NANOS++ initalizing... start" );
@@ -207,7 +207,7 @@ void System::start ()
 
    int numPes = getNumPEs();
 
-   _pes.reserve ( numPes );
+   _pes.reserve ( numPes + nanos::ClusterDevice::getExtraPEsCount() );
 
    PE *pe = createPE ( "smp", 0 );
    _pes.push_back ( pe );
@@ -227,6 +227,7 @@ void System::start ()
 
       //starting as much threads per pe as requested by the user
 
+   //if ( _net.getNodeNum() > 0 )
       for ( int ths = 0; ths < getThsPerPE(); ths++ ) {
          _workers.push_back( &pe->startWorker() );
       }
@@ -251,16 +252,63 @@ void System::start ()
    if ( _net.getNodeNum() == 0 )
    {
       unsigned int nodeC;
-      for ( nodeC = 0; nodeC < _net.getNumNodes(); nodeC++ ) {
-         if ( nodeC != _net.getNodeNum() ) {
-            PE *node = new nanos::ext::ClusterNode( nodeC );
-            _pes.push_back( node );
-            _workers.push_back( &node->startWorker() );
+      ext::ClusterThread *clusterThread = NULL;
+
+      //char *nodePes = new char[ sizeof( nanos::ext::ClusterNode ) * ( _net.getNumNodes() - 1 ) ];
+
+      for ( nodeC = 1; nodeC < _net.getNumNodes(); nodeC++ ) {
+         //PE *node = reinterpret_cast< nanos::ext::ClusterNode * >( &nodePes[ ( nodeC - 1 ) * sizeof( nanos::ext::ClusterNode )] );
+         //new ( node ) nanos::ext::ClusterNode( nodeC );
+         PE *node = new nanos::ext::ClusterNode( nodeC );
+   //std::cerr << "c:node @ is " << (void * ) node << std::endl;
+         _pes.push_back( node );
+
+   //std::cerr << "Pre start thread" << std::endl;
+         if ( nodeC == 1) {
+            int i;
+
+            clusterThread = dynamic_cast<ext::ClusterThread *>( &node->startWorker() );
+            std::cerr << "c:wd @ is " << (void * ) &clusterThread->getThreadWD() << ":" << clusterThread->getThreadWD().getId() << std::endl;
+            //clusterThread->getCurrentWD()->setPe( node );
+            clusterThread->getThreadWD().tieTo( *clusterThread );
+            _workers.push_back( clusterThread );
+
+            for ( i = 1; i < numPes; i++ ) {
+               WD &slaveWd = node->getWorkerWD();
+               std::cerr << "c:slwd @ is " << (void * ) &slaveWd << ":" << slaveWd.getId() << std::endl;
+               slaveWd.tieTo( *clusterThread );
+               clusterThread->addWD( &slaveWd );
+            }
+            ///////////////////////////////////////////
+            switch ( getInitialMode() )
+            {
+               case POOL:
+                  createTeam( _workers.size() );
+                  break;
+               case ONE_THREAD:
+                  createTeam(1);
+                  break;
+               default:
+                  fatal("Unknown inital mode!");
+                  break;
+            }
+            ///////////////////////////////////////////
          }
+         else
+         {
+            int i;
+            for ( i = 0; i < numPes; i++ ) {
+               WD &slaveWd = node->getWorkerWD();
+               std::cerr << "c:slwd @ is " << (void * ) &slaveWd << ":" << slaveWd.getId() << std::endl;
+               slaveWd.tieTo( *clusterThread );
+               clusterThread->addWD( &slaveWd );
+            }
+         }
+   //std::cerr << "Post start thread" << std::endl;
       }
    }
-#endif
-
+   else
+   {
    switch ( getInitialMode() )
    {
       case POOL:
@@ -273,6 +321,23 @@ void System::start ()
          fatal("Unknown inital mode!");
          break;
    }
+   }
+#endif
+
+#if 0
+   switch ( getInitialMode() )
+   {
+      case POOL:
+         createTeam( _workers.size() );
+         break;
+      case ONE_THREAD:
+         createTeam(1);
+         break;
+      default:
+         fatal("Unknown inital mode!");
+         break;
+   }
+#endif
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_RUNNING) );
 

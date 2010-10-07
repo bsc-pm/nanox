@@ -18,8 +18,9 @@
 /*************************************************************************************/
 
 
-#include <stdio.h>
+#include <iostream>
 #include "network.hpp"
+#include "schedule.hpp"
 
 using namespace nanos;
 
@@ -50,7 +51,7 @@ void Network::setNumNodes ( unsigned int numNodes )
 
    _numNodes = numNodes;
    
-   _notify = new unsigned int[numNodes];
+   _notify = new volatile unsigned int[numNodes];
    _malloc_return = new void *[numNodes];
    _malloc_complete = new bool[numNodes];
 
@@ -113,19 +114,26 @@ void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigne
    {
       if (work == NULL)
       {
-         fprintf(stderr, "ERROR\n");
+         std::cerr << "ERROR: no work to send (work=NULL)" << std::endl;
       }
       if ( _nodeNum == MASTER_NODE_NUM )
       {
+       //  std::cerr << "work sent to " << dest << std::endl;
          _api->sendWorkMsg( dest, work, arg0, argSize, arg );
 
+       //  std::cerr << "waiting work from " << dest << std::endl;
          while (_notify[dest] == 0)
+         {
             poll();
+            Scheduler::yield();
+         }
          _notify[dest] = 0;
+       //  std::cerr << "completed work from " << dest << std::endl;
+
       }
       else
       {
-         fprintf(stderr, "tried to send work from a node != 0\n");
+         std::cerr << "tried to send work from a node != 0" << std::endl;
       }
    }
 }
@@ -168,7 +176,9 @@ void * Network::malloc ( unsigned int remoteNode, size_t size )
       _api->malloc( remoteNode, size );
 
       while ( _malloc_complete[ remoteNode ] == false )
+      {
          poll();
+      }
 
       result = _malloc_return[ remoteNode ];
       _malloc_complete[ remoteNode ] = false;

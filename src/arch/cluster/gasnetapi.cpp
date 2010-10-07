@@ -51,11 +51,12 @@ struct work_wrapper_args
 
 static void wk_wrapper(struct work_wrapper_args *arg)
 {
-   //fprintf(stderr, "starting work> outline %p, arg struct %p\n", arg->work, arg->arg);
+   //fprintf(stderr, "node %d starting work> outline %p, arg struct %p\n", sys.getNetwork()->getNodeNum(), arg->work, arg->arg);
    arg->work(arg->arg);
 
    delete arg;
 
+   //fprintf(stderr, "node %d finishing work> outline %p, arg struct %p\n", sys.getNetwork()->getNodeNum(), arg->work, arg->arg);
    sys.getNetwork()->sendWorkDoneMsg( Network::MASTER_NODE_NUM );
 }
 
@@ -85,6 +86,7 @@ static void am_exit_reply(gasnet_token_t token)
 static void am_work(gasnet_token_t token, void *arg, size_t argSize, void ( *work ) ( void * ), unsigned int arg0 )
 {
     gasnet_node_t src_node;
+    unsigned int i;
     if (gasnet_AMGetMsgSource(token, &src_node) != GASNET_OK)
     {
         fprintf(stderr, "gasnet: Error obtaining node information.\n");
@@ -92,6 +94,7 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize, void ( *wor
     //fprintf(stderr, "am_work: WORK message from node %d: fct %p, argSize %d.\n", src_node, work, argSize);
 
     struct work_wrapper_args * warg = new struct work_wrapper_args;
+    bzero(warg, sizeof(struct work_wrapper_args));
     warg->work = work;
     warg->arg = arg;
     warg->argSize = arg0;
@@ -102,20 +105,31 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize, void ( *wor
     //      recvcd->getAddress(),
     //      recvcd->isInput() ? "yes" : "no",
     //      recvcd->isOutput() ? "yes" : "no" );
-    //
+    
+    unsigned int numCopies = ( argSize - arg0 ) / sizeof( CopyData );
+    CopyData *newCopies = new CopyData[ numCopies ]; 
+
+    for (i = 0; i < numCopies; i += 1) {
+       new ( &newCopies[i] ) CopyData( *( (CopyData *) &( ( char * )arg)[ arg0 + i * sizeof( CopyData ) ] ) );
+    }
 
     SMPDD * dd = new SMPDD ( ( SMPDD::work_fct ) wk_wrapper );
-    WD *wd = new WD( dd, sizeof(struct work_wrapper_args), warg, ( size_t ) ( argSize - arg0 ) / sizeof(CopyData), ( CopyData * ) &( ( char * )arg )[ arg0 ] );
+    WD *wd = new WD( dd, sizeof(struct work_wrapper_args), warg, numCopies, newCopies );
+
+    wd->setPe( NULL );
     //WD *wd = new WD( dd/*, sizeof(struct work_wrapper_args), warg*/ );
 
     //SMPDD * dd = new SMPDD ( ( SMPDD::work_fct ) work);
     //WD *wd = new WD( dd, argSize, arg );
 
-    //fprintf(stderr, "NUM COPIES %d addr %llx, in? %s, out? %s\n",
+    //fprintf(stderr, "WD is %p\n", wd);
+    //for (int i = 0; i < wd->getNumCopies(); i++)
+    //fprintf(stderr, "NUM COPIES %d addr %llx, in? %s, out? %s, sharing %d\n",
     //      wd->getNumCopies(),
-    //      wd->getCopies()[0].getAddress(),
-    //      wd->getCopies()[0].isInput() ? "yes" : "no",
-    //      wd->getCopies()[0].isOutput() ? "yes" : "no" );
+    //      wd->getCopies()[i].getAddress(),
+    //      wd->getCopies()[i].isInput() ? "yes" : "no",
+    //      wd->getCopies()[i].isOutput() ? "yes" : "no",
+    //      wd->getCopies()[i].getSharing());
 
     sys.submit( *wd );
 

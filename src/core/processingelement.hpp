@@ -30,6 +30,7 @@ namespace nanos
 {
    class ProcessingElement
    {
+      friend class System;
       private:
          typedef std::vector<BaseThread *>    ThreadList;
          int                                  _id;

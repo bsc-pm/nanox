@@ -17,8 +17,10 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+#include <iostream>
 #include "instrumentation.hpp"
 #include "clusterthread.hpp"
+#include "clusternode.hpp"
 #include "system.hpp"
 
 using namespace nanos;
@@ -39,11 +41,16 @@ void ClusterThread::inlineWorkDependent ( WD &wd )
 {
    unsigned int i;
    SMPDD &dd = ( SMPDD & )wd.getActiveDevice();
-   ProcessingElement *pe = myThread->runningOn();
-   CopyData newCopies[ wd.getNumCopies() ]; 
+   //ProcessingElement *pe = myThread->runningOn();
+   if (dd.getWorkFct() == NULL ) return;
 
-   if (dd.getWorkFct() == NULL)
-      fprintf(stderr, "ERROR, wd with NULL fct, DD addr is %p, wd %p\n", &dd, &wd);
+   if ( wd.isClusterMigrable() )
+   {
+   
+   ProcessingElement *pe = wd.getPe();
+   //std::cerr << "run remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << std::endl;
+   
+   CopyData newCopies[ wd.getNumCopies() ]; 
 
    for (i = 0; i < wd.getNumCopies(); i += 1) {
        new ( &newCopies[i] ) CopyData( wd.getCopies()[i] );
@@ -55,9 +62,10 @@ void ClusterThread::inlineWorkDependent ( WD &wd )
 
    for (i = 0; i < wd.getNumCopies(); i += 1) {
       newCopies[i].setAddress( ( uint64_t ) pe->getAddress( wd, newCopies[i].getAddress(), newCopies[i].getSharing() ) );
+    //  std::cerr << "copy " << i << " addr " << (void *) newCopies[i].getAddress() << std::endl;
    }
 
-   char *buff = new char[ wd.getDataSize() + wd.getNumCopies() * sizeof( CopyData ) ];
+   char buff[ wd.getDataSize() + wd.getNumCopies() * sizeof( CopyData ) ];
    if ( wd.getDataSize() > 0 )
    {
       memcpy( &buff[ 0 ], wd.getData(), wd.getDataSize() );
@@ -66,12 +74,25 @@ void ClusterThread::inlineWorkDependent ( WD &wd )
       memcpy( &buff[ wd.getDataSize() + sizeof( CopyData ) * i ], &newCopies[i], sizeof( CopyData ) );
    }
 
-   sys.getNetwork()->sendWorkMsg( _clusterNode, dd.getWorkFct(), wd.getDataSize(), wd.getDataSize() + ( wd.getNumCopies() * sizeof( CopyData ) ), buff );
+   sys.getNetwork()->sendWorkMsg( ((ClusterNode *)pe)->getClusterNodeNum(), dd.getWorkFct(), wd.getDataSize(), wd.getDataSize() + ( wd.getNumCopies() * sizeof( CopyData ) ), buff );
 
-   //for (i = 0; i < wd.getNumCopies(); i += 1) {
-   //   delete newCopies[i];
-   //}
-   delete buff;
+   //std::cerr << "finished remote call at node " << ((ClusterNode *)pe)->getClusterNodeNum() << std::endl;
 
    //NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateAndBurst ( key ) );
+   }
+   else
+   {
+      std::cerr << "i should execute the function!" << std::endl;
+      ( dd.getWorkFct() )( wd.getData() );
+   }
+}
+
+void ClusterThread::addWD( WorkDescriptor *wd )
+{
+   _myWDs.push_back( wd );
+}
+WorkDescriptor *ClusterThread::getWD( )
+{
+   WorkDescriptor * wd = _myWDs.pop_front( this );
+   return wd;
 }

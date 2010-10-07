@@ -22,6 +22,7 @@
 
 #include "clusterdd.hpp"
 #include "smpthread.hpp"
+#include "wddeque.hpp"
 
 
 namespace nanos {
@@ -35,6 +36,7 @@ namespace ext
 
       private:
          unsigned int                     _clusterNode; // Assigned Cluster device Id
+         WDDeque                          _myWDs;
 
          // disable copy constructor and assignment operator
          ClusterThread( const ClusterThread &th );
@@ -49,6 +51,8 @@ namespace ext
 
          virtual void runDependent ( void );
          virtual void inlineWorkDependent ( WD &wd );
+         void addWD( WorkDescriptor *wd );
+         WorkDescriptor *getWD();
 
    };
 

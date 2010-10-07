@@ -58,6 +58,7 @@ namespace nanos
          static void switchToThread ( BaseThread * thread );
 
          static void workerLoop ( void );
+         static void workerClusterLoop ( void );
          static void yield ( void );
 
          static void exit ( void );

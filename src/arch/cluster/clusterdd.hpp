@@ -21,6 +21,7 @@
 #define _NANOS_CLUSTER_WD
 
 #include "config.hpp"
+#include "smpdd.hpp"
 #include "clusterdevice.hpp"
 #include "workdescriptor.hpp"
 
@@ -31,35 +32,24 @@ namespace ext
    extern ClusterDevice Cluster;
 
    class ClusterPlugin;
-   class ClusterDD : public DD
+   class ClusterDD : public SMPDD
    {
       friend class ClusterPlugin;
-      public:
-         typedef void ( *work_fct ) ( void *self );
-
-      private:
-         work_fct       _work;
 
       public:
          // constructors
-         ClusterDD( work_fct w ) : DD( &Cluster ), _work( w ) {}
+         ClusterDD( work_fct w ) : SMPDD( w, &SMP ) {}
 
-         ClusterDD() : DD( &Cluster ), _work( 0 ) {}
+         ClusterDD() : SMPDD( &SMP ) {}
 
          // copy constructors
-         ClusterDD( const ClusterDD &dd ) : DD( dd ), _work( dd._work ) {}
+         ClusterDD( const ClusterDD &dd ) : SMPDD( dd ) {}
 
          // assignment operator
          const ClusterDD & operator= ( const ClusterDD &wd );
 
          // destructor
          virtual ~ClusterDD() { }
-
-         work_fct getWorkFct() const { return _work; }
-
-         virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous) { }
-         virtual size_t size ( void ) { return sizeof(ClusterDD); }
-         virtual ClusterDD *copyTo ( void *toAddr );
    };
 
    inline const ClusterDD & ClusterDD::operator= ( const ClusterDD &dd )
@@ -68,7 +58,6 @@ namespace ext
       if ( &dd == this ) return *this;
 
       DD::operator= ( dd );
-      _work = dd._work;
 
       return *this;
    }

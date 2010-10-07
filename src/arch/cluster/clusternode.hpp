@@ -25,7 +25,6 @@
 #include "config.hpp"
 #include "clusterdevice.hpp"
 #include "clusterthread.hpp"
-#include "smpdevice.hpp"
 #include "simpleallocator.hpp"
 
 namespace nanos {
@@ -59,7 +58,7 @@ namespace ext
          virtual BaseThread & createThread ( WorkDescriptor &wd );
 
          // capability query functions
-         virtual bool supportsUserLevelThreads () const { return false; }
+         virtual bool supportsUserLevelThreads () const { return true; }
 
          /* Memory space support */
          //virtual void registerDataAccessDependent( uint64_t tag, size_t size );
@@ -75,7 +74,7 @@ namespace ext
          void unregisterPrivateAccessDependent(uint64_t a, size_t aa);
 
          unsigned int getClusterNodeNum();
-         static void slaveLoop ( ClusterNode *node );
+         //static void slaveLoop ( ClusterNode *node );
          SimpleAllocator & getAllocator( void ) { return _memSegment; }
    };
 

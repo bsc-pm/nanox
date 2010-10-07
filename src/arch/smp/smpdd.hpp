@@ -43,11 +43,15 @@ namespace ext
          intptr_t *     _state;
          static size_t     _stackSize;
 
+      protected:
+         SMPDD( work_fct w, Device *dd ) : DD( dd ), _work( w ),_stack( 0 ),_state( 0 ) {}
+         SMPDD( Device *dd ) : DD( dd ), _work( 0 ),_stack( 0 ),_state( 0 ) {}
+
       public:
          // constructors
          SMPDD( work_fct w ) : DD( &SMP ),_work( w ),_stack( 0 ),_state( 0 ) {}
 
-         SMPDD() : DD( &SMP ),_work( 0 ),_stack( 0 ),_state( 0 ) { fprintf(stderr, "creating a NULL work dd\n"); }
+         SMPDD() : DD( &SMP ),_work( 0 ),_stack( 0 ),_state( 0 ) { }
 
          // copy constructors
          SMPDD( const SMPDD &dd ) : DD( dd ), _work( dd._work ), _stack( 0 ), _state( 0 ) {}

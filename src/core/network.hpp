@@ -31,7 +31,7 @@ namespace nanos {
          unsigned int _numNodes;
          NetworkAPI *_api; 
          unsigned int _nodeNum;
-         unsigned int *_notify;
+         volatile unsigned int *_notify;
          void **_malloc_return;
          bool *_malloc_complete;
 

@@ -17,6 +17,7 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+#include <iostream>
 #include "clusternode.hpp"
 #include "debug.hpp"
 #include "schedule.hpp"
@@ -24,16 +25,19 @@
 using namespace nanos;
 using namespace nanos::ext;
 
-void ClusterNode::slaveLoop ( ClusterNode *node)
-{
-   Scheduler::workerLoop();
-   sys.getNetwork()->sendExitMsg( node->getClusterNodeNum() );
-}
+//void ClusterNode::slaveLoop ( ClusterNode *node)
+//{
+//   Scheduler::workerLoop();
+//   sys.getNetwork()->sendExitMsg( node->getClusterNodeNum() );
+//}
 
 WorkDescriptor & ClusterNode::getWorkerWD () const
 {
-   SMPDD * dd = new SMPDD( ( SMPDD::work_fct )Scheduler::workerLoop );
+   SMPDD * dd = new ClusterDD( ( ClusterDD::work_fct )Scheduler::workerClusterLoop );
    WD *wd = new WD( dd );
+   std::cerr << "c:node @ is " << (void * ) this << " id " << _clusterNode << std::endl;
+   wd->setPe( (ProcessingElement *) this );
+   wd->unsetClusterMigrable();
    return *wd;
 }
 

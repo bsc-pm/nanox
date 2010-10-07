@@ -18,7 +18,7 @@
 /*************************************************************************************/
 // FIXME: (#64) This flag ENABLE_INSTRUMENTATION has to be managed through
 //configure in order to generate an instrumentation version
-#define NANOS_INSTRUMENTATION_ENABLED
+//#define NANOS_INSTRUMENTATION_ENABLED
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 #define NANOS_INSTRUMENT(f) f;

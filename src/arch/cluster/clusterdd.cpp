@@ -25,8 +25,3 @@ using namespace nanos::ext;
 
 ClusterDevice nanos::ext::Cluster( "Cluster" );
 
-ClusterDD * ClusterDD::copyTo ( void *toAddr )
-{
-   ClusterDD *dd = new ( toAddr ) ClusterDD( *this );
-   return dd;
-}

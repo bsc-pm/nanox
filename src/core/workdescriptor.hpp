@@ -122,7 +122,6 @@ inline void WorkDescriptor::workFinished(WorkDescriptor &wd)
 
 inline InstrumentationContextData * WorkDescriptor::getInstrumentationContextData( void ) { return &_instrumentationContextData; }
 
-inline bool WorkDescriptor::isClusterMigrable( void ) { return _clusterMigrable; }
 
 #endif
 
