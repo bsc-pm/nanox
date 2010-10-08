@@ -92,14 +92,6 @@ namespace ext
                }
             }
 
-            // Initialize GPUProcessor --> we allocate the whole GPU memory
-            size_t allocatedMemory = _maxMemoryAvailable;
-            ( ( GPUProcessor * ) myThread->runningOn() )->init( allocatedMemory );
-
-            if ( allocatedMemory != _maxMemoryAvailable ) {
-               _maxMemoryAvailable = allocatedMemory;
-            }
-
             if ( !gpuProperties.deviceOverlap ) {
                // It does not support stream overlapping, disable this feature
                warning( "Device #" << _deviceId <<
@@ -127,6 +119,15 @@ namespace ext
                   warning( "Error while creating the CUDA output transfer stream: " << cudaGetErrorString( err ) );
                   return;
                }
+            }
+
+            // Initialize GPUProcessor --> we allocate the whole GPU memory
+            // WARNING: GPUProcessor::init must be called after initializing CUDA Streams
+            size_t allocatedMemory = _maxMemoryAvailable;
+            ( ( GPUProcessor * ) myThread->runningOn() )->init( allocatedMemory );
+
+            if ( allocatedMemory != _maxMemoryAvailable ) {
+               _maxMemoryAvailable = allocatedMemory;
             }
          }
 

@@ -29,8 +29,8 @@ using namespace nanos::ext;
 Atomic<int> GPUProcessor::_deviceSeed = 0;
 
 
-GPUProcessor::GPUProcessor( int id, int gpuId )
-   : Accelerator( id, &GPU ), _gpuDevice( _deviceSeed++ ), _cache( 0 ), _allocator(), _pinnedMemory()
+GPUProcessor::GPUProcessor( int id, int gpuId ) : Accelerator( id, &GPU ),
+      _gpuDevice( _deviceSeed++ ), _gpuProcessorTransfers(), _cache( 0, this ), _allocator(), _pinnedMemory()
 {
    _gpuProcessorInfo = new GPUProcessorInfo( gpuId );
 }
@@ -40,6 +40,18 @@ void GPUProcessor::init( size_t &memSize )
    void * baseAddress = GPUDevice::allocateWholeMemory( memSize );
    _allocator.init( ( uint64_t ) baseAddress, memSize );
    _cache.setSize( memSize );
+
+   // Create a list of inputs that have been ordered to transfer but the copy is still not completed
+   _gpuProcessorTransfers._pendingCopiesIn = new GPUMemoryTransferInAsyncList();
+
+   if ( _gpuProcessorInfo->getOutTransferStream() ) {
+      // If overlapping outputs is defined, create the list
+      _gpuProcessorTransfers._pendingCopiesOut = new GPUMemoryTransferOutAsyncList();
+   }
+   else {
+      // Else, create a 'fake list' which copies outputs synchronously
+      _gpuProcessorTransfers._pendingCopiesOut = new GPUMemoryTransferOutSyncList();
+   }
 }
 
 void GPUProcessor::freeWholeMemory()
@@ -108,7 +120,7 @@ void GPUProcessor::synchronize( std::list<uint64_t> &tags )
    _cache.synchronize( tags );
 }
 
-void GPUProcessor::waitInput( uint64_t tag )
+void GPUProcessor::waitInputDependent( uint64_t tag )
 {
    _cache.waitInput( tag );
 }

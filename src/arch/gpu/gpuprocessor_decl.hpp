@@ -24,6 +24,7 @@
 #include "cache.hpp"
 #include "config.hpp"
 #include "gpudevice.hpp"
+#include "gpumemorytransfer.hpp"
 #include "gputhread.hpp"
 #include "simpleallocator.hpp"
 
@@ -46,6 +47,17 @@ namespace ext
                unsigned int   _bytesOut;
          };
 
+         class GPUProcessorTransfers
+         {
+            public:
+               GPUMemoryTransferList * _pendingCopiesIn;
+               GPUMemoryTransferList * _pendingCopiesOut;
+
+
+               GPUProcessorTransfers() : _pendingCopiesIn( NULL ), _pendingCopiesOut( NULL ) {}
+               ~GPUProcessorTransfers() {}
+         };
+
 
       private:
          // Configuration variables
@@ -53,6 +65,7 @@ namespace ext
          int                     _gpuDevice; // Assigned GPU device Id
          GPUProcessorInfo *      _gpuProcessorInfo; // Information related to the GPU device that represents
          GPUProcessorStats       _gpuProcessorStats; // Statistics of data copied in and out to / from cache
+         GPUProcessorTransfers   _gpuProcessorTransfers; // Keep the list of pending memory transfers
 
 
          // Cache
@@ -88,13 +101,15 @@ namespace ext
 
          // Memory space support
          virtual void setCacheSize( size_t size );
+
+         virtual void waitInputDependent( uint64_t tag );
+
          virtual void registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output );
          virtual void unregisterCacheAccessDependent( uint64_t tag, size_t size, bool output );
          virtual void registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output );
          virtual void unregisterPrivateAccessDependent( uint64_t tag, size_t size );
          virtual void synchronize( uint64_t tag );
          virtual void synchronize( std::list<uint64_t> &tags );
-         virtual void waitInput( uint64_t tag );
 
          virtual void* getAddressDependent( uint64_t tag );
          virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
@@ -139,6 +154,16 @@ namespace ext
          void transferOutput ( size_t size )
          {
             _gpuProcessorStats._bytesOut += ( unsigned int ) size;
+         }
+
+         GPUMemoryTransferList * getInTransferList ()
+         {
+            return _gpuProcessorTransfers._pendingCopiesIn;
+         }
+
+         GPUMemoryTransferList * getOutTransferList ()
+         {
+            return _gpuProcessorTransfers._pendingCopiesOut;
          }
 
          void printStats ()
