@@ -33,6 +33,8 @@ libgpu_la_SOURCES = \
 		gpudevice.cpp \
 		gpudd.hpp \
 		gpudd.cpp \
+		gpumemorytransfer.hpp \
+		gpumemorytransfer.cpp \
 		gpuprocessor_decl.hpp \
 		gpuprocessor.hpp \
 		gpuprocessor.cpp \
