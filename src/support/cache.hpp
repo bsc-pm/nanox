@@ -93,6 +93,7 @@ inline void CachePolicy::registerCacheAccess( uint64_t tag, size_t size, bool in
       } else {
          if ( de->getVersion() != ce->getVersion()) {
             if ( ce->setVersionCS( de->getVersion()) ) {
+               ce->setCopying(true);
                Cache *owner = de->getOwner();
                if ( owner != NULL && !(!input && output) ) {
                   owner->invalidate( tag, size, de );
