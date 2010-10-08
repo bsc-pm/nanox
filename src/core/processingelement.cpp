@@ -34,8 +34,8 @@ void ProcessingElement::copyDataIn( WorkDescriptor &work )
    CopyData *copies = work.getCopies();
    for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
       CopyData & cd = copies[i];
-      if ( !cd.isPrivate() && cd.isInput() ) {
-           d.registerAccess( cd.getAddress(), cd.getSize() );
+      if ( !cd.isPrivate() ) {
+           d.registerAccess( cd.getAddress(), cd.getSize(), cd.isInput(), cd.isOutput() );
       }
    }
 }

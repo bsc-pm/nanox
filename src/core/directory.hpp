@@ -100,13 +100,18 @@ inline DirectoryEntry* Directory::getEntry( uint64_t tag )
    return _directory.find( tag );
 }
 
-inline void Directory::registerAccess( uint64_t tag, size_t size )
+inline void Directory::registerAccess( uint64_t tag, size_t size, bool input, bool output )
 {
    DirectoryEntry *de = _directory.find( tag );
    if ( de != NULL ) {
-      Cache *c = de->getOwner();
-      if ( c != NULL )
-         c->invalidate( tag, size, de );
+      if ( input ) {
+         Cache *c = de->getOwner();
+         if ( c != NULL )
+            c->invalidate( tag, size, de );
+      }
+      if ( output ) {
+         de->setVersion(de->getVersion()+1);
+      }
    }
 }
 
