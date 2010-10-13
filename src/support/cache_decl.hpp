@@ -44,7 +44,7 @@ namespace nanos {
          unsigned int _refs;
 
          volatile bool _dirty;
-         volatile bool _copying;
+         Atomic<bool> _copying;
          Atomic<bool> _flushing;
          Atomic<unsigned int> _transfers;
 
@@ -127,10 +127,17 @@ namespace nanos {
          { _dirty = dirty; }
 
          bool isCopying() const
-         { return _copying; }
+         { return _copying.value(); }
 
          void setCopying( bool copying )
          { _copying = copying; }
+
+         bool trySetToCopying()
+         {
+            Atomic<bool> expected = false;
+            Atomic<bool> value = true;
+            return _flushing.cswap( expected, value );
+         }
 
          bool isFlushing()
          { return _flushing.value(); }

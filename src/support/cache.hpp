@@ -69,8 +69,8 @@ inline void CachePolicy::registerCacheAccess( uint64_t tag, size_t size, bool in
             Cache *owner = de->getOwner();
             if ( owner != NULL && !(!input && output) ) {
                owner->invalidate( tag, size, de );
-               while( de->getOwner() != NULL )
-                  _cache.syncTransfer( tag );
+               owner->syncTransfer(tag);
+               while( de->getOwner() != NULL );
             }
             ce->setAddress( _cache.allocate(size) );
             if (input) {
@@ -91,20 +91,28 @@ inline void CachePolicy::registerCacheAccess( uint64_t tag, size_t size, bool in
             _cache.addReference(tag);
          }
       } else {
+         // Cache entry already exists in the cache
          if ( de->getVersion() != ce->getVersion()) {
-            if ( ce->setVersionCS( de->getVersion()) ) {
-               ce->setCopying(true);
-               Cache *owner = de->getOwner();
-               if ( owner != NULL && !(!input && output) ) {
-                  owner->invalidate( tag, size, de );
-                  while( de->getOwner() != NULL )
-                     _cache.syncTransfer( tag );
-               }
-               if (input) {
+            // Version doesn't match the one in the directory
+            if ( input ) {
+               if ( ce->trySetToCopying() ) {
+                  ce->setVersion( de->getVersion() );
+                  Cache *owner = de->getOwner();
+                  if ( owner != NULL ) {
+                     // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
+                     owner->invalidate( tag, size, de );
+                     owner->syncTransfer( tag ); // Ask the device to be nice and priorise this transfer
+                     while( de->getOwner() != NULL );
+                  }
+
+                  // Copy in
                   if ( _cache.copyDataToCache( tag, size ) ) {
                      ce->setCopying(false);
                   }
                }
+            } else {
+               // Since there's no input, it is output and we don't care about what may be in other caches, just update this version
+               ce->setVersion( de->getVersion() );
             }
          }
          if (output) {
