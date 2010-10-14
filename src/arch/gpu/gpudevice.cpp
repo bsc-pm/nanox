@@ -348,7 +348,6 @@ bool GPUDevice::copyOut( uint64_t remoteDst, void *localSrc, size_t size, Proces
       }
       else {
          err = cudaMemcpy( ( void * ) remoteDst, localSrc, size, cudaMemcpyDeviceToHost );
-         ( ( nanos::ext::GPUProcessor * ) pe )->synchronize( remoteDst );
       }
 
       if ( err != cudaSuccess ) {
