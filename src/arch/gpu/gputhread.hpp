@@ -36,6 +36,7 @@ namespace ext
 
       private:
          int                        _gpuDevice; // Assigned GPU device Id
+         nanos_event_key_t          _wdEvtKey;
 
          // disable copy constructor and assignment operator
          GPUThread( const GPUThread &th );
@@ -43,7 +44,8 @@ namespace ext
 
       public:
          // constructor
-         GPUThread( WD &w, PE *pe, int device ) : SMPThread( w, pe ), _gpuDevice( device ) {}
+         GPUThread( WD &w, PE *pe, int device ) : SMPThread( w, pe ), _gpuDevice( device ), _wdEvtKey()
+         {}
 
          // destructor
          virtual ~GPUThread() {}
@@ -62,6 +64,11 @@ namespace ext
          }
 
          void addWDInputs ( WD * wd );
+
+         void setWDEvtKey ( nanos_event_key_t key )
+         {
+            _wdEvtKey = key;
+         }
 
    };
 

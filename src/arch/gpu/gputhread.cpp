@@ -99,6 +99,7 @@ void GPUThread::inlineWorkDependent ( WD &wd )
 
    // Wait for the GPU kernel to finish
    cudaThreadSynchronize();
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseBurstEvent ( _wdEvtKey ) );
 }
 
 void GPUThread::yield()
