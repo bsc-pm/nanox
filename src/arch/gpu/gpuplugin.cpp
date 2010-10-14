@@ -180,6 +180,9 @@ class GPUPlugin : public Plugin
             if ( GPUDD::_overlapInputs || GPUDD::_overlapOutputs ) {
                GPUDevice::setTransferMode( ASYNC );
             }
+            else {
+               GPUDevice::setTransferMode( NORMAL );
+            }
 
             // Check if the user has defined the maximum GPU memory to use
             GPUDD::_maxGPUMemory = _maxGPUMemory;
