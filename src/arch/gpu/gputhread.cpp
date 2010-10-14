@@ -50,9 +50,7 @@ void GPUThread::runDependent ()
          warning( "Couldn't set the GPU device flags:" << cudaGetErrorString( err ) );
    }
 
-   if ( GPUDevice::getTransferMode() != nanos::NORMAL ) {
-      ((GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->init();
-   }
+   ((GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->init();
 
    // Avoid the so slow first data allocation and transfer to device
    //bool b = true;
