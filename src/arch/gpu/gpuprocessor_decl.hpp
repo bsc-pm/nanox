@@ -168,7 +168,7 @@ namespace ext
 
          void printStats ()
          {
-            std::cout << "GPU " << _gpuDevice << " TRANSFER STATISTICS" << std::endl
+            std::cerr << "GPU " << _gpuDevice << " TRANSFER STATISTICS" << std::endl
                   << "Total input transfers: " << _gpuProcessorStats._bytesIn << " bytes" << std::endl
                   << "Total output transfers: " << _gpuProcessorStats._bytesOut << " bytes" << std::endl;
 
