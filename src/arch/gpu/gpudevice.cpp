@@ -420,17 +420,9 @@ void GPUDevice::copyLocal( void *dst, void *src, size_t size, ProcessingElement 
 
 void GPUDevice::syncTransfer( uint64_t hostAddress, ProcessingElement *pe)
 {
-   ( ( nanos::ext::GPUProcessor * ) pe )->getOutTransferList()->removeMemoryTransfer( ( void * ) hostAddress );
-#if 0
-   std::vector<ext::GPUMemoryTransfer> &list = ((nanos::ext::GPUMemoryTransferOutAsyncList*) ( ( nanos::ext::GPUProcessor * ) pe )->getOutTransferList())->getList();
-   for ( std::vector<ext::GPUMemoryTransfer>::iterator it = list.begin(); it != list.end(); it++ ) {
-      if ( (*it)._dst == (void *)hostAddress ) {
-         ( (nanos::ext::GPUMemoryTransferOutAsyncList*)( ( nanos::ext::GPUProcessor * ) pe )->getOutTransferList())->removeMemoryTransfer( it );
-         break;
-      }
-   }
-#endif
-
+   // syncTransfer() is used to ensure that somebody will update the data
+   // related to 'hostAddress' of main memory at some time
+   // since we use copy back, this is always ensured
 }
 
 void GPUDevice::copyOutAsyncToBuffer ( void * dst, void * src, size_t size )
