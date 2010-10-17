@@ -19,25 +19,18 @@
 /*************************************************************************************/
 
 #include "omp.h"
+#include "os.hpp"
 
 extern "C"
 {
    double omp_get_wtime ( void )
    {
-      /* This function does not provide a working
-      * wallclock timer. Replace it with a version
-      * customized for the target machine.
-      */
-      return 0.0;
+      return nanos::OS::getMonotonicTime();
    }
 
    double omp_get_wtick ( void )
    {
-      /* This function does not provide a working
-      * clock tick function. Replace it with
-      * a version customized for the target machine.
-      */
-      return 365. * 86400.;
+      return nanos::OS::getMonotonicTimeResolution();
    }
 
 }
