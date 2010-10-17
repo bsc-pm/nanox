@@ -47,13 +47,45 @@ extern "C"
 {
 #endif
 
-int omp_get_num_threads ( void );
-int omp_get_thread_num ( void );
-int omp_get_num_procs ( void );
-int omp_in_parallel ( void );
-int omp_get_thread_limit ( void );
-void omp_set_max_active_levels ( int max_active_levels );
-int omp_get_max_active_levels ( void );
+extern void omp_set_num_threads(int num_threads);
+extern int  omp_get_num_threads(void);
+extern int  omp_get_max_threads(void);
+extern int  omp_get_thread_num(void);
+extern int  omp_get_num_procs(void);
+extern int  omp_in_parallel(void);
+extern void omp_set_dynamic(int dynamic_threads);
+extern int  omp_get_dynamic(void);
+extern void omp_set_nested(int nested);
+extern int  omp_get_nested(void);
+extern int  omp_get_thread_limit(void);
+extern void omp_set_max_active_levels(int max_active_levels);
+extern int  omp_get_max_active_levels(void);
+extern void omp_set_schedule(omp_sched_t kind, int modifier);
+extern void omp_get_schedule(omp_sched_t *kind, int *modifier);
+
+/* TODO:
+extern int  omp_get_level(void);
+extern int  omp_get_ancestor_thread_num(int level);
+extern int  omp_get_team_size(int level);
+extern int  omp_get_active_level(void);
+*/
+
+extern void omp_init_lock(omp_lock_t *lock);
+extern void omp_destroy_lock(omp_lock_t *lock);
+extern void omp_set_lock(omp_lock_t *lock);
+extern void omp_unset_lock(omp_lock_t *lock);
+extern int  omp_test_lock(omp_lock_t *lock);
+
+/* TODO:
+extern void omp_init_nest_lock(omp_nest_lock_t *lock);
+extern void omp_destroy_nest_lock(omp_nest_lock_t *lock);
+extern void omp_set_nest_lock(omp_nest_lock_t *lock);
+extern void omp_unset_nest_lock(omp_nest_lock_t *lock);
+extern int  omp_test_nest_lock(omp_nest_lock_t *lock);
+
+extern double omp_get_wtime(void);
+extern double omp_get_wtick(void);
+*/
 
 #ifdef __cplusplus
 }

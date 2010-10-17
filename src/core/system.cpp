@@ -117,11 +117,11 @@ void System::config ()
    Config config;
 
    if ( externInit != NULL ) {
-        externInit();
+      externInit();
    }
    if ( !_pmInterface ) {
-	  // bare bone run
-	  _pmInterface = new PMInterface();
+      // bare bone run
+      _pmInterface = new PMInterface();
    }
 
    verbose0 ( "Preparing library configuration" );
@@ -198,7 +198,14 @@ void System::start ()
    PE *pe = createPE ( "smp", 0 );
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
-   _pmInterface->setupWD(*myThread->getCurrentWD());
+
+   WD &mainWD = *myThread->getCurrentWD();
+   
+   if ( _pmInterface->getInternalDataSize() > 0 )
+     // TODO: is this properly aligned?
+     mainWD.setInternalData(new char[_pmInterface->getInternalDataSize()]);
+      
+   _pmInterface->setupWD(mainWD);
 
    /* Renaming currend thread as Master */
    myThread->rename("Master");

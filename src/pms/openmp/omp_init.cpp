@@ -70,7 +70,7 @@ namespace nanos
          }
 
     	   virtual int getInternalDataSize() const { return sizeof(OmpData); }
-    	   virtual void wdCreated( WD &wd )
+    	   virtual void setupWD( WD &wd )
     	   {
    		    OmpData *data = (OmpData *) wd.getInternalData();
    		    ensure(data,"OpenMP data is missing!");
