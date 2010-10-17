@@ -94,13 +94,17 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
             if ( dependencyObject->getLastWriter() == lastWriter ) {
                depObj.increasePredecessors();
                lastWriter->addSuccessor( depObj );
+#if 0
                if ( ( !(dep.isOutput()) || dep.isInput() ) ) {
                   // RaW dependency
-    //              debug (" DO_ID_" << lastWriter->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=green];");
+                  debug (" DO_ID_" << lastWriter->getId() << " [style=filled label=" << lastWriter->getDescription() << " color=" << "red" << "];");
+                  debug (" DO_ID_" << lastWriter->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=green];");
                } else {
                   // WaW dependency
-     //             debug (" DO_ID_" << lastWriter->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=blue];");
+                  debug (" DO_ID_" << lastWriter->getId() << " [style=filled label=" << lastWriter->getDescription() << " color=" << "red" << "];");
+                  debug (" DO_ID_" << lastWriter->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=blue];");
                }
+#endif
             }
             lastWriter->unlock();
          }
@@ -125,7 +129,10 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
             predecessorReader->addSuccessor( depObj );
             depObj.increasePredecessors();
             // WaR dependency
-   //         debug (" DO_ID_" << predecessorReader->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=red];");
+#if 0
+            debug (" DO_ID_" << predecessorReader->getId() << " [style=filled label=" << predecessorReader->getDescription() << " color=" << "red" << "];");
+            debug (" DO_ID_" << predecessorReader->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=red];");
+#endif
          }
          dependencyObject->flushReaders();
 
@@ -147,32 +154,4 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
 
 template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, Dependency* begin, Dependency* end );
 template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, std::vector<Dependency>::iterator begin, std::vector<Dependency>::iterator end );
-
-void DependenciesDomain::finished ( DependableObject &depObj )
-{
-   // This step guarantees that any Object that wants to add depObj as a successor has done it
-   // before we continue or, alternatively, won't do it.
-   DependableObject::TrackableObjectVector &outs = depObj.getOutputObjects();
-   if (outs.size() > 0) {
-      depObj.lock();
-      for ( unsigned int i = 0; i < outs.size(); i++ ) {
-         outs[i]->deleteLastWriter(depObj);
-      }
-      depObj.unlock();
-   }
-   
-   //  Delete depObj from all trackableObjects it reads 
-   DependableObject::TrackableObjectVector &reads = depObj.getReadObjects();
-   for ( DependableObject::TrackableObjectVector::iterator it = reads.begin(); it != reads.end(); it++ ) {
-      TrackableObject* readObject = *it;
-      readObject->lockReaders();
-      readObject->deleteReader(depObj);
-      readObject->unlockReaders();
-   }
-      
-   DependableObject::DependableObjectVector &succ = depObj.getSuccessors();
-   for ( unsigned int i = 0; i < succ.size(); i++ ) {
-      succ[i]->decreasePredecessors();
-   }
-}
 

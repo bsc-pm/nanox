@@ -20,53 +20,41 @@
 #ifndef _NANOS_GPU_PROCESSOR
 #define _NANOS_GPU_PROCESSOR
 
+#include "gpuprocessor_fwd.hpp"
 
-#include "accelerator.hpp"
-#include "cache.hpp"
-#include "config.hpp"
-#include "gpudevice.hpp"
-#include "gputhread.hpp"
+#include <cuda_runtime.h>
 
 
 namespace nanos {
 namespace ext
 {
 
-   class GPUProcessor : public Accelerator
+   class GPUProcessor::TransferInfo
    {
-
-
       private:
-         // config variables
-         static Atomic<int>      _deviceSeed; // Number of GPU devices assigned to threads
-         int                     _gpuDevice; // Assigned GPU device Id
-
-         // disable copy constructor and assignment operator
-         GPUProcessor( const GPUProcessor &pe );
-         const GPUProcessor & operator= ( const GPUProcessor &pe );
-
-         Cache<GPUDevice> _cache;
+         cudaStream_t _transferStream;
 
       public:
-         // constructors
-         GPUProcessor( int id ) : Accelerator( id, &GPU ), _gpuDevice( _deviceSeed++ ), _cache() {}
 
-         virtual ~GPUProcessor() {}
+         TransferInfo () {}
 
-         virtual WD & getWorkerWD () const;
-         virtual WD & getMasterWD () const;
-         virtual BaseThread & createThread ( WorkDescriptor &wd );
+         void init ()
+         {
+#if 1
+            cudaError_t err = cudaStreamCreate( &_transferStream );
+            if ( err != cudaSuccess ) {
+               _transferStream = 0;
+               warning( "Error while creating the CUDA stream: " << cudaGetErrorString( err ) );
+            }
+#else
+            _transferStream = 0;
+#endif
+         }
 
-         // capability query functions
-         virtual bool supportsUserLevelThreads () const { return false; }
-
-         /* Memory space support */
-         virtual void registerDataAccessDependent( uint64_t tag, size_t size );
-         virtual void copyDataDependent( uint64_t tag, size_t size );
-         virtual void unregisterDataAccessDependent( uint64_t tag );
-         virtual void copyBackDependent( uint64_t tag, size_t size );
-         virtual void* getAddressDependent( uint64_t tag );
-         virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
+         cudaStream_t getTransferStream ()
+         {
+            return _transferStream;
+         }
    };
 
 }

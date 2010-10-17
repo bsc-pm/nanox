@@ -33,11 +33,13 @@ libgpu_la_SOURCES = \
 		gpudevice.cpp \
 		gpudd.hpp \
 		gpudd.cpp \
+		gpuprocessor_fwd.hpp \
 		gpuprocessor.hpp \
 		gpuprocessor.cpp \
 		gputhread.hpp \
 		gputhread.cpp \
 		gpuutils.hpp \
+		gpuutils.cpp \
 		$(END)
 
 

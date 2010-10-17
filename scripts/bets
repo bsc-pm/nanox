@@ -5,6 +5,9 @@ readonly bets_version=0.9
 
 #color constants
 
+machine_output=""
+output_filter=""
+
 define_colors()
 {
   if [ "$use_color" = "yes" ]; then
@@ -25,6 +28,7 @@ define_colors()
 #global counters
 pass=0
 fail=0
+faulty=0
 
 #utility functions
 log ()
@@ -47,13 +51,33 @@ logcmd ()
     $* 
 }
 
-message ()
+buffer=
+filtered_message ()
 {
+    [ -n "$machine_output" ] && return
+
     local n
     if [ "$1" = "-n" ]; then
       shift; n=-n
+      buffer="$buffer $*"
+    else
+      echo -e $buffer "$*" | grep -e "$output_filter"
+      buffer=""
     fi
-    echo -e $n "$*"
+}
+
+message ()
+{
+    [ -n "$machine_output" ] && return
+
+    local n
+    if [ "$1" = "-n" ]; then
+      shift; n=-n
+      buffer="$buffer $*"
+    else
+      echo -e $buffer "$*" 
+      buffer=""
+    fi
 }
 
 # action functions
@@ -62,6 +86,10 @@ passfail ()
 {
    local reverse
    local ret=0
+
+   local full_test_name=$1
+   shift
+
    $* 1>> $logfile 2>> $logfile || ret=1
 
    if [ "$test_fail" ]; then
@@ -69,12 +97,22 @@ passfail ()
    fi
 
    if [ $reverse $ret -eq 0 ]; then
-     message "${GREEN}passed${NORMAL}"
-     log "${GREEN}passed${NORMAL}"
+     if [ ! "$test_faulty" ];
+     then
+       filtered_message "${GREEN}passed${NORMAL}"
+       [ -n "$machine_output" ] && echo "${full_test_name}:passed"
+       log "passed"
+     else
+       filtered_message "${YELLOW}passed (faulty)${NORMAL}"
+       [ -n "$machine_output" ] && echo "${full_test_name}:passed (faulty)"
+       log "passed (faulty)"
+       let faulty=faulty+1
+     fi
      let pass=pass+1
    else
-     message "${RED}failed${NORMAL}!"
-     log "${RED}failed${NORMAL}!"
+     filtered_message "${RED}failed${NORMAL}!"
+     [ -n "$machine_output" ] && echo "${full_test_name}:failed"
+     log "failed!"
      let fail=fail+1
    fi
    return $ret
@@ -224,6 +262,8 @@ clean_c_compile_version_vars ()
    unset test_CC_$1
    unset test_CFLAGS_$1
    unset test_LDFLAGS_$1
+   unset test_compile_fail_$1
+   unset test_compile_faulty_$1
 }
 
 clean_cpp_compile_version_vars ()
@@ -231,6 +271,8 @@ clean_cpp_compile_version_vars ()
    unset test_CXX_$1
    unset test_CXXFLAGS_$1
    unset test_LDFLAGS_$1
+   unset test_compile_fail_$1
+   unset test_compile_faulty_$1
 }
 
 clean_exec_vars()
@@ -241,15 +283,23 @@ clean_exec_vars()
 
 clean_exec_version_vars()
 {
-   unset test_ENV_$v2
-   unset test_ARGS_$v2
+   local v=$1
+   local e=$2
+   unset test_ENV_$e
+   unset test_ARGS_$e
+   unset test_exec_fail_$e
+   unset test_exec_faulty_$e
+   unset test_exec_fail_${v}_${e}
+   unset test_exec_faulty_${v}_${e}
 }
 
 clean_test_vars ()
 {
    unset test_generator
    unset test_compile_fail
+   unset test_compile_faulty
    unset test_exec_fail
+   unset test_exec_faulty
    unset test_nolink
    unset test_noexec
    unset test_ignore
@@ -328,8 +378,10 @@ run_gen_test ()
                 merge_exec_vars $v $v1 $v2
              done
           done
-          for v in $all_exec_versions $exec_versions; do
-             clean_exec_version_vars $v
+          for v in $all_compile_versions $compile_versions; do
+            for e in $all_exec_versions $exec_versions; do
+               clean_exec_version_vars $v $e
+            done
           done
           all_exec_versions=$tmp
         else
@@ -348,22 +400,31 @@ run_gen_test ()
    
    test_noexec=${test_noexec:-$test_nolink}
    if [ "$test_ignore" ]; then
-      echo -e "Test $name ${YELLOW}ignored${NORMAL}"
+      [ -n "$machine_output" ] && echo "${name}:ignored"
+      filtered_message "Test $name ${YELLOW}ignored${NORMAL}"
    else    
      for v in $all_compile_versions; do
-        message -n "Compile test $name-$v "
+        filtered_message -n "Compile test $name-$v "
         log "***Start compile test $name-$v"
-        test_fail=$test_compile_fail
-        passfail compile_$type $v $source $name  
+        eval test_fail=\${test_compile_fail_$v}
+        test_fail=${test_fail:-$test_compile_fail}
+        eval test_faulty=\${test_compile_faulty_$v}
+        test_faulty=${test_faulty:-$test_compile_faulty}
+        passfail "$name-$v" compile_$type $v $source $name  
         local ok=$?
 
         if [ "$ok" -eq "0" -a -z "$test_noexec" ]; then
           log "***End compile test $name-$v"
           for e in $all_exec_versions; do
-             message -n "Execute test $name-$v-$e "
+             filtered_message -n "Execute test $name-$v-$e "
              log "***Start execute test $name-$v-$e"
-             test_fail=$test_exec_fail
-             passfail execute $e $name
+             eval test_fail=\${test_exec_fail_${v}_${e}}
+             eval test_fail=\${test_fail:-\$test_exec_fail_${e}}
+             test_fail=${test_fail:-$test_exec_fail}
+             eval test_faulty=\${test_exec_faulty_${v}_${e}}
+             eval test_faulty=\${test_faulty:-\$test_exec_faulty_${e}}
+             test_faulty=${test_faulty:-$test_exec_faulty}
+             passfail "$name-$v-$e" execute $e $name
              log "***End execute test $name-$v-$e"
           done
         fi
@@ -375,8 +436,10 @@ run_gen_test ()
    for v in $all_compile_versions; do
       clean_${type}_compile_version_vars $v
    done
-   for e in $all_exec_versions; do
-      clean_exec_version_vars $e
+   for v in $all_compile_versions; do
+     for e in $all_exec_versions; do
+        clean_exec_version_vars $v $e
+     done
    done
 }
 
@@ -388,7 +451,7 @@ run_file()
      c)
        run_gen_test $file c
        ;;
-    cpp) 
+    cpp|cu) 
        run_gen_test $file cpp
        ;;
    esac
@@ -400,6 +463,7 @@ run_dir()
 
   debug "Testing $base"
   message "===Entering directory $base==="
+  [ -n "$machine_output" ] && echo "$base:dir>"
 
   #test subdirs
   local dirs=$(find . -maxdepth 1 -type d -path "./*" | cut -c3- | sort)
@@ -413,6 +477,8 @@ run_dir()
   for file in $(find . -maxdepth 1 -type f | sort ); do
      run_file $file
   done
+
+  [ -n "$machine_output" ] && echo "$base:dir<"
 }
 
 # mode functions
@@ -446,6 +512,7 @@ do_run ()
    declare -r tmpdir=$(mktemp -d)
    export TMPDIR=$tmpdir
    declare -r tmpfile=$(mktemp)
+   local old_dir=""
 
    if [ "${logfile:0:1}" != "/" ]; then
      logfile=$basedir/$logfile
@@ -459,12 +526,16 @@ do_run ()
    if [ "$#" -ge 1 ]; then
      for t in $*; do
         if [ -d $t ]; then
+          old_dir=$(pwd)
           cd $t
           run_dir $t
-          cd - > /dev/null
+          cd "$old_dir" 
         fi
         if [ -f $t ]; then
-          run_file $t
+          old_dir=$(pwd)
+          cd $(dirname $t)
+          run_file $(basename $t)
+          cd "$old_dir"
         fi
      done
    else
@@ -479,15 +550,39 @@ do_run ()
    else
      message
      message "===Summary==="
-     if [ $fail -eq 0 ]; then
+     if [ $fail -eq 0 -a $faulty -eq 0 ]; then
        message "ALL $pass tests passed! Congratulations! :-)"
-     else
+     elif [ $fail -eq 0 -a $faulty -ne 0 ]; then
+       message "ALL $pass tests passed! But there are faulty ones :-/"
        message "Pass tests: $pass"
+       message "${YELLOW}Faulty tests: $faulty${NORMAL}"
+     else
+       message "Some tests failed! :("
+       message "Pass tests: $pass"
+       message "${YELLOW}Faulty tests: $faulty${NORMAL}"
        message "${RED}Failed tests: $fail${NORMAL}"
      fi
      message
    fi
    return $fail
+}
+
+do_list()
+{
+   local items=
+   #run tests
+   if [ "$#" -ge 1 ]; then
+     items=$1/*
+   else
+     items=*
+   fi
+
+   for t in ${items};
+   do
+      if [ -d $t ]; then
+        echo $t
+      fi
+   done
 }
 
 #default values
@@ -506,6 +601,13 @@ case $1 in
     -h)
        mode=help; shift
        ;;
+    --ants)
+       machine_output="1"; 
+       use_color=no; shift
+       ;;
+    --list)
+       mode=list; shift
+       ;;
     -nocolor)
        use_color=no; shift
        ;;
@@ -513,6 +615,10 @@ case $1 in
        shift
        logfile=$1; 
        shift
+       ;;
+    -only-fails)
+       output_filter="failed";
+       shift;
        ;;
     -run) 
        mode=run; shift

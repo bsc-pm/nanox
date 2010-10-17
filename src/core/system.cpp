@@ -32,7 +32,7 @@
 #endif
 
 #ifdef GPU_DEV
-#include "gpuprocessor.hpp"
+#include "gpuprocessor_fwd.hpp"
 #endif
 
 using namespace nanos;
@@ -47,8 +47,7 @@ System nanos::sys;
 System::System () :
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindThreads( true ), _profile( false ), _instrument( false ),
       _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster(true), _delayedStart(false), _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" ),
-      _defInstr ( "empty_trace" ), _defArch("smp"), _instrumentor ( NULL ), _defSchedulePolicy(NULL),
-      _directory(), _pmInterface(NULL)
+      _defInstr ( "empty_trace" ), _defArch("smp"), _instrumentation ( NULL ), _defSchedulePolicy(NULL), _directory(), _pmInterface(NULL)
 {
    verbose0 ( "NANOS++ initializing... start" );
    // OS::init must be called here and not in System::start() as it can be too late
@@ -78,6 +77,8 @@ void System::loadModules ()
    ensure( _hostFactory,"No default host factory" );
 
 #ifdef GPU_DEV
+   verbose0( "loading GPU support" );
+
    if ( !PluginManager::load ( "pe-gpu" ) )
       fatal0 ( "Couldn't load GPU support" );
 #endif
@@ -102,8 +103,8 @@ void System::loadModules ()
    if ( !PluginManager::load( "barrier-"+getDefaultBarrier() ) )
       fatal0( "Could not load main barrier algorithm" );
 
-   if ( !PluginManager::load( "instrumentor-"+getDefaultInstrumentor() ) )
-      fatal0( "Could not load " + getDefaultInstrumentor() + " instrumentor" );
+   if ( !PluginManager::load( "instrumentation-"+getDefaultInstrumentation() ) )
+      fatal0( "Could not load " + getDefaultInstrumentation() + " instrumentation" );
 
 
    ensure( _defBarrFactory,"No default system barrier factory" );
@@ -161,9 +162,9 @@ void System::config ()
    config.registerArgOption ( "barrier", "barrier" );
    config.registerEnvOption ( "barrier", "NX_BARRIER" );
 
-   config.registerConfigOption ( "instrumentor", new Config::StringVar ( _defInstr ), "Defines instrumentation format" );
-   config.registerArgOption ( "instrumentor", "instrumentor" );
-   config.registerEnvOption ( "instrumentor", "NX_INSTRUMENTOR" );
+   config.registerConfigOption ( "instrumentation", new Config::StringVar ( _defInstr ), "Defines instrumentation format" );
+   config.registerArgOption ( "instrumentation", "instrumentation" );
+   config.registerEnvOption ( "instrumentation", "NX_INSTRUMENTATION" );
 
    _schedConf.config(config);
    _pmInterface->config(config);
@@ -194,13 +195,15 @@ void System::start ()
 
    _pes.reserve ( numPes );
 
-   //TODO: decide, single master, multiple master start
    PE *pe = createPE ( "smp", 0 );
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
    _pmInterface->setupWD(*myThread->getCurrentWD());
 
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseOpenStateEvent (STARTUP) );
+   /* Renaming currend thread as Master */
+   myThread->rename("Master");
+
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_STARTUP) );
 
    //start as much threads per pe as requested by the user
    for ( int ths = 1; ths < getThsPerPE(); ths++ ) {
@@ -222,7 +225,7 @@ void System::start ()
 #ifdef GPU_DEV
    int gpuC;
    for ( gpuC = 0; gpuC < nanos::ext::GPUDD::getGPUCount(); gpuC++ ) {
-      PE *gpu = new nanos::ext::GPUProcessor( p++ );
+      PE *gpu = new nanos::ext::GPUProcessor( p++, gpuC );
       _pes.push_back( gpu );
       _workers.push_back( &gpu->startWorker() );
    }
@@ -245,8 +248,8 @@ void System::start ()
          fatal("Unknown inital mode!");
          break;
    }
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseCloseStateEvent() );
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseOpenStateEvent (RUNNING) );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_RUNNING) );
 }
 
 System::~System ()
@@ -256,9 +259,9 @@ System::~System ()
 
 void System::finish ()
 {
-   /* Instrumentor: First removing RUNNING state from top of the state statck */
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseCloseStateEvent() );
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseOpenStateEvent(SHUTDOWN) );
+   /* Instrumentation: First removing RUNNING state from top of the state statck */
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent(NANOS_SHUTDOWN) );
 
    verbose ( "NANOS++ shutting down.... init" );
    verbose ( "Wait for main workgroup to complete" );
@@ -281,8 +284,8 @@ void System::finish ()
    verbose ( "Joining threads... phase 2" );
 
    // shutdown instrumentation
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->raiseCloseStateEvent() );
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->finalize() );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->finalize() );
 
    // join
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {
@@ -765,6 +768,12 @@ BaseThread * System:: getUnassignedWorker ( void )
    }
 
    return NULL;
+}
+
+BaseThread * System::getWorker ( unsigned int n )
+{
+   if ( n < _workers.size() ) return _workers[n];
+   else return NULL;
 }
 
 void System::releaseWorker ( BaseThread * thread )

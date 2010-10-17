@@ -17,6 +17,5 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-#SUBDIRS = openmp ss chapel
-SUBDIRS = openmp ss 
+SUBDIRS = openmp ss chapel
 

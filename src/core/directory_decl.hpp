@@ -22,6 +22,8 @@
 
 #include "compatibility.hpp"
 #include "cache_fwd.hpp"
+#include "hashmap_decl.hpp"
+#include "atomic.hpp"
 
 namespace nanos
 {
@@ -30,7 +32,7 @@ namespace nanos
       private:
 
          uint64_t _tag;
-         unsigned int _version;
+         Atomic<unsigned int> _version;
 
       public:
 
@@ -50,7 +52,11 @@ namespace nanos
 
          unsigned int getVersion() const;
 
-         void setVersion ( unsigned int version );
+         void setVersion( unsigned int version );
+
+         void increaseVersion();
+
+         bool setVersionCS( unsigned int version );
    };
 
    class DirectoryEntry : public Entry
@@ -80,7 +86,7 @@ namespace nanos
    {
       private:
 
-         typedef TR1::unordered_map< uint64_t, DirectoryEntry> DirectoryMap;
+         typedef HashMap<uint64_t, DirectoryEntry> DirectoryMap;
          DirectoryMap _directory;
 
          // disable copy constructor and assignment operator
@@ -92,6 +98,8 @@ namespace nanos
          Directory() : _directory() { }
 
          ~Directory() { }
+
+         DirectoryEntry& insert( uint64_t tag, DirectoryEntry &ent, bool &inserted );
 
          DirectoryEntry& newEntry( uint64_t tag, unsigned int version, Cache* owner );
 

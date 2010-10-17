@@ -21,6 +21,7 @@
 #define _NANOS_DEPENDABLE_OBJECT
 #include <stdlib.h>
 #include <list>
+#include <set>
 #include <vector>
 #include "atomic.hpp"
 #include "trackableobject_fwd.hpp"
@@ -33,7 +34,7 @@ namespace nanos
    {
       public:
          /**< Type vector of successors  */
-         typedef std::vector<DependableObject *> DependableObjectVector;
+         typedef std::set<DependableObject *> DependableObjectVector;
          /**< Type vector of output objects */
          typedef std::vector<TrackableObject *> TrackableObjectVector;
          
@@ -42,6 +43,8 @@ namespace nanos
          unsigned int _id;
          /**< Number of predecessors locking this object */
          Atomic<unsigned int> _numPredecessors;
+         /** References counter */
+         unsigned int _references;
 
          /**< List of successiors */
          DependableObjectVector _successors;
@@ -58,12 +61,12 @@ namespace nanos
       public:
         /*! \brief Constructor
          */
-         DependableObject ( ) :  _id ( 0 ), _numPredecessors ( 0 ), _successors(), _outputObjects(), _readObjects(), _objectLock() {}
+         DependableObject ( ) :  _id ( 0 ), _numPredecessors ( 0 ), _references(1), _successors(), _outputObjects(), _readObjects(), _objectLock() {}
 
         /*! \brief Copy constructor
          *  \param depObj another DependableObject
          */
-         DependableObject ( const DependableObject &depObj ) :  _id ( depObj._id ), _numPredecessors ( depObj._numPredecessors ), _successors ( depObj._successors ), _outputObjects( ), _readObjects(), _objectLock() {}
+         DependableObject ( const DependableObject &depObj ) :  _id ( depObj._id ), _numPredecessors ( depObj._numPredecessors ), _references(depObj._references), _successors ( depObj._successors ), _outputObjects( ), _readObjects(), _objectLock() {}
 
         /*! \brief Assign operator, can be self-assigned.
          *  \param depObj another DependableObject
@@ -73,6 +76,7 @@ namespace nanos
             if ( this == &depObj ) return *this; 
             _id = depObj._id;
             _numPredecessors = depObj._numPredecessors;
+            _references = depObj._references;
             _successors = depObj._successors;
             _outputObjects = depObj._outputObjects;
             return *this;
@@ -89,6 +93,16 @@ namespace nanos
          virtual void wait ( ) { }
 
          virtual bool waits ( ) { return false; }
+
+         virtual unsigned long getDescription ( ) { return 0; }
+
+         /*! \brief Get the related object which actually has the dependence
+          */
+         virtual void * getRelatedObject ( ) { return NULL; }
+
+         /*! \brief Instrument predecessor -> successor dependency
+          */
+         virtual void instrument ( void *pred, void *succ ) { }
 
         /*! \brief Id setter function.
          *         The id will be unique for DependableObjects in the same Dependency Domain.
@@ -140,7 +154,7 @@ namespace nanos
          */
          void addSuccessor ( DependableObject &depObj )
          {
-            _successors.push_back ( &depObj );
+            _successors.insert ( &depObj );
          }
 
         /*! \brief Add an output object to the list.
@@ -175,6 +189,13 @@ namespace nanos
             return _readObjects;
          }
 
+        /*! \brief Increases the object's references counter
+         */
+         void increaseReferences()
+         {
+            _references++;
+         }
+
         /*! \brief Get exclusive access to the object
          */
          void lock ( )
@@ -190,6 +211,13 @@ namespace nanos
             memoryFence();
             _objectLock.release();
          }
+
+        /*! \brief Dependable Object depObj is finished and its outgoing dependencies are removed.
+         *  NOTE: this function is not thread safe
+         *  \param desObj Dependable Object that finished
+         *  \sa DependableObject
+         */
+         void finished ( );
    };
 
 };

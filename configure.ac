@@ -1,5 +1,5 @@
 
-AC_INIT([nanox], [0.5], [alex.duran@bsc.es])
+AC_INIT([nanox], [0.6a], [alex.duran@bsc.es])
 
 # Environment
 AC_CANONICAL_BUILD
@@ -104,6 +104,7 @@ case $host in
     fi
     ;;
   *)
+    OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=unknown
     smp_ult=no
@@ -111,34 +112,40 @@ case $host in
 esac
 
 
-# Check if it has nVidia GPUs
-if lspci | grep nVidia &> /dev/null ; then
-	gpu_valid=yes
+# Check if it has nVidia GPUs / CUDA is installed
+gpu_valid=no
+CUDA=""
+
+AC_ARG_WITH([cuda],
+AS_HELP_STRING([--with-cuda=dir], [Directory of CUDA installation]),
+	[
+		CUDA="${withval}"
+	],
+	[
+		CUDA="/usr/local/cuda"
+	])
+
+if ls "$CUDA" &> /dev/null ; then
 	AC_ARG_VAR([NVCC],[CUDA compiler])
 	AC_CHECK_PROG( [NVCC], [nvcc], nvcc, no)
 	if test x$NVCC = xno ; then
-		AC_MSG_WARN([nvcc not found. Disabling GPU support]) 
+		AC_MSG_WARN([nvcc not found. Disabling GPU support])
 		gpu_valid=no
-	else 
-		AC_ARG_WITH([cuda],
-		AS_HELP_STRING([--with-cuda=dir], [Directory of CUDA installation]),
-			[
-				CUDA="${withval}"
-			],
-			[
-				CUDA=/usr/local/cuda
-			])
+	else
 		CUDA_INC="$CUDA/include"
 		CUDA_LIB="$CUDA/lib64"
 
 		AC_SUBST([CUDA_INC])
 		AC_SUBST([CUDA_LIB])
+
+		gpu_valid=yes
 	fi
-	if test x$gpu_valid = xyes; then
-           	CFLAGS="$CFLAGS -DGPU_DEV"
-           	CXXFLAGS="$CXXFLAGS -DGPU_DEV"
-		ARCHITECTURES="$ARCHITECTURES gpu"
-	fi
+fi
+
+if test x$gpu_valid = xyes; then
+	CFLAGS="$CFLAGS -DGPU_DEV"
+	CXXFLAGS="$CXXFLAGS -DGPU_DEV"
+	ARCHITECTURES="$ARCHITECTURES gpu"
 fi
 
 
@@ -181,43 +188,53 @@ AC_CHECK_GXX_ATOMIC_BUILTINS()
 
 AM_CONDITIONAL([PERFORMANCE], [test "$performance_enabled" = yes])
 
+
+MPITRACE_HOME=""
+MPITRACE_INC=""
+MPITRACE_LIB=""
+MPITRACE_BIN=""
+
 AC_ARG_WITH([mpitrace],
-           AS_HELP_STRING([--with-mpitrace=dir], [Directory of mpitrace installation]),
+           AS_HELP_STRING([--with-mpitrace=dir], [Directory of Extrae installation (deprecated)]),
            [
                 MPITRACE_HOME="$withval"
                 MPITRACE_INC="$withval/include"
                 MPITRACE_LIB="$withval/lib"
                 MPITRACE_BIN="$withval/bin"
-           ],
-           [
-                MPITRACE_HOME=""
-                MPITRACE_INC=""
-                MPITRACE_LIB=""
-                MPITRACE_BIN=""
            ]
 )
 AC_ARG_WITH([extrae],
-           AS_HELP_STRING([--with-extrae=dir], [Directory of extrae installation]),
+           AS_HELP_STRING([--with-extrae=dir], [Directory of Extrae installation]),
            [
                 MPITRACE_HOME="$withval"
                 MPITRACE_INC="$withval/include"
                 MPITRACE_LIB="$withval/lib"
                 MPITRACE_BIN="$withval/bin"
-           ],
-           [
-                MPITRACE_HOME=""
-                MPITRACE_INC=""
-                MPITRACE_LIB=""
-                MPITRACE_BIN=""
            ]
 )
-	   AC_SUBST([MPITRACE_HOME])
-	   AC_SUBST([MPITRACE_INC])
-	   AC_SUBST([MPITRACE_LIB])
-	   AC_SUBST([MPITRACE_BIN])
+
+AC_SUBST([MPITRACE_HOME])
+AC_SUBST([MPITRACE_INC])
+AC_SUBST([MPITRACE_LIB])
+AC_SUBST([MPITRACE_BIN])
 
 
 AM_CONDITIONAL([INSTRUMENTATION_EXTRAE], test x"$MPITRACE_HOME" != x)
+
+# Chechk for Chapel support
+AC_ARG_WITH([chapel],
+            AS_HELP_STRING([--with-chapel=dir], [Directory of Chapel installation]),
+	    [
+		chapel=yes
+		CHAPEL_HOME="$withval"
+	    ],
+            [
+		chapel=no
+	    ]
+)
+
+AM_CONDITIONAL([CHAPEL_SUPPORT], [test "$chapel" = "yes"])
+AC_SUBST([CHAPEL_HOME])
 
 # Output files
 AC_CONFIG_HEADERS([config.h])
@@ -231,7 +248,7 @@ AC_CONFIG_FILES([Makefile
 		 src/plugins/throttle/Makefile
 		 src/plugins/barr/Makefile
 		 src/plugins/slicers/Makefile
-		 src/plugins/instrumentors/Makefile
+		 src/plugins/instrumentation/Makefile
 		 src/apis/Makefile
 		 src/apis/c/Makefile
 		 src/pms/Makefile
@@ -245,8 +262,9 @@ AC_CONFIG_FILES([Makefile
 		 src/arch/spu/Makefile
 		 src/arch/gpu/Makefile
 		 src/utils/Makefile
-		 test/Makefile
-		 test/gens/Makefile
+		 scripts/Makefile
+		 tests/Makefile
+		 tests/gens/Makefile
 		 doc/Makefile
                  doc/doxy-nanox
                  ])

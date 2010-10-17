@@ -21,7 +21,7 @@
 #include "debug.hpp"
 #include "system.hpp"
 #include "plugin.hpp"
-#include "instrumentormodule_decl.hpp"
+#include "instrumentationmodule_decl.hpp"
 
 using namespace nanos;
 
@@ -31,7 +31,7 @@ using namespace nanos;
  */
 nanos_slicer_t nanos_find_slicer ( const char * label )
 {
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","find_slicer",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","find_slicer",NANOS_RUNTIME) );
 
    nanos_slicer_t slicer;
    try {

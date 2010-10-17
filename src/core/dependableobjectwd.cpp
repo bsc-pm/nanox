@@ -21,6 +21,11 @@
 #include "workdescriptor.hpp"
 #include "schedule.hpp"
 #include "synchronizedcondition.hpp"
+#include "smpdd.hpp"
+#include "instrumentation.hpp"
+#include "system.hpp"
+#include "instrumentation.hpp"
+#include "system.hpp"
 
 using namespace nanos;
 
@@ -29,11 +34,26 @@ void DOSubmit::dependenciesSatisfied ( )
      _submittedWD->submit();
 }
 
+unsigned long DOSubmit::getDescription ( )
+{
+   return (unsigned long) ((nanos::ext::SMPDD &) _submittedWD->getActiveDevice()).getWorkFct();
+}
+
+void DOSubmit::instrument ( void *pred, void *succ )
+{
+   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+   NANOS_INSTRUMENT ( WorkDescriptor *wd_sender = (WorkDescriptor *) pred; )
+   NANOS_INSTRUMENT ( WorkDescriptor *wd_receiver = (WorkDescriptor *) succ; )
+   NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wd_sender->getId()) << 32 ) + wd_receiver->getId(); )
+   NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs( NANOS_WD_DEPENDENCY, id, 0, NULL, NULL ); )
+   NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *wd_receiver, NANOS_WD_DEPENDENCY, id, 0, NULL, NULL ); )
+}
+
+
 bool DOWait::waits()
 {
    return true;
 }
-
 
 void DOWait::init()
 {
@@ -42,12 +62,22 @@ void DOWait::init()
 
 void DOWait::wait ( )
 {
-     _syncCond.wait();
+   _syncCond.wait();
 }
 
 void DOWait::dependenciesSatisfied ( )
 {
    _depsSatisfied = true;
    _syncCond.signal();
+}
+
+void DOWait::instrument ( void *pred, void *succ )
+{
+   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+   NANOS_INSTRUMENT ( WorkDescriptor *wd_sender = (WorkDescriptor *) pred; )
+   NANOS_INSTRUMENT ( WorkDescriptor *wd_receiver = (WorkDescriptor *) succ; )
+   NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wd_sender->getId()) << 32 ) + wd_receiver->getId(); )
+   NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs( NANOS_WD_DEPENDENCY, id, 0, NULL, NULL ); )
+   NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *wd_receiver, NANOS_WD_DEPENDENCY, id, 0, NULL, NULL ); )
 }
 

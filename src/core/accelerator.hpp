@@ -25,6 +25,9 @@
 #include "processingelement.hpp"
 #include <algorithm>
 #include "functors.hpp"
+#include "atomic.hpp"
+
+#define LOCK_TRANSFER 0
 
 namespace nanos
 {
@@ -35,6 +38,9 @@ namespace nanos
       private:
          Accelerator ( const Accelerator &pe );
          const Accelerator & operator= ( const Accelerator &pe );
+#if LOCK_TRANSFER
+         static Lock _transferLock;
+#endif
          
       protected:
          virtual WorkDescriptor & getMasterWD () const = 0;
@@ -53,7 +59,7 @@ namespace nanos
          virtual void copyDataOut( WorkDescriptor& wd );
 
          virtual void registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output ) = 0;
-         virtual void unregisterCacheAccessDependent( uint64_t tag, size_t size ) = 0;
+         virtual void unregisterCacheAccessDependent( uint64_t tag, size_t size, bool output ) = 0;
          virtual void registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output ) = 0;
          virtual void unregisterPrivateAccessDependent( uint64_t tag, size_t size ) = 0;
 

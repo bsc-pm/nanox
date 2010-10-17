@@ -21,7 +21,7 @@ include $(top_srcdir)/src/common.am
 
 lib_LTLIBRARIES=libnanox.la
 
-include_HEADERS=nanos-int.h
+pkginclude_HEADERS=nanos-int.h
 
 if PERFORMANCE
   lib_LTLIBRARIES += libnanox-pfm.la
@@ -72,13 +72,15 @@ nanos_sources=\
 	workdescriptor.cpp \
 	slicer_fwd.hpp \
 	slicer.hpp \
-	instrumentorcontext_decl.hpp \
-	instrumentorcontext.hpp \
-	instrumentormodule_decl.hpp \
-	instrumentor_fwd.hpp \
-	instrumentor_decl.hpp \
-	instrumentor.hpp \
-	instrumentor.cpp \
+	instrumentationcontext_fwd.hpp \
+	instrumentationcontext_decl.hpp \
+	instrumentationcontext.hpp \
+	instrumentationcontext.cpp \
+	instrumentationmodule_decl.hpp \
+	instrumentation_fwd.hpp \
+	instrumentation_decl.hpp \
+	instrumentation.hpp \
+	instrumentation.cpp \
 	throttle_fwd.hpp \
 	throttle.hpp \
 	dependency_fwd.hpp \
@@ -87,6 +89,7 @@ nanos_sources=\
 	copydata.hpp \
 	dependableobject_fwd.hpp \
 	dependableobject.hpp \
+	dependableobject.cpp \
 	dependableobjectwd.hpp \
 	dependableobjectwd_fwd.hpp \
 	dependableobjectwd.cpp \

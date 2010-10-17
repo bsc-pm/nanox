@@ -110,12 +110,6 @@ namespace nanos
          {
             submitDependableObjectInternal ( depObj, deps, deps+numDeps );
          }
-
-        /*! \brief Dependable Object depObj is finished and its outgoing dependencies are removed.
-         *  \param desObj Dependable Object that finished
-         *  \sa DependableObject
-         */
-         void finished ( DependableObject &depObj );
    };
 
 };

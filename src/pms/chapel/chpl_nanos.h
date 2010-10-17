@@ -21,7 +21,9 @@
 #ifndef NANOS_CHPL_H
 #define NANOS_CHPL_H
 
-#define CHPL_TASKS nanos
+#ifndef CHPL_TASKS
+#define CHPL_TASKS nanox
+#endif
 
 #include <stdbool.h>
 
@@ -56,3 +58,4 @@ typedef struct {
 #endif
 
 #endif
+

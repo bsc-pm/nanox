@@ -61,7 +61,6 @@ namespace nanos
    };
 
 
-// Threads are binded to a PE for its life-time
 
    class BaseThread
    {
@@ -73,14 +72,17 @@ namespace nanos
 
          // Thread info
          int                     _id;
+         std::string             _name;
+         std::string             _description;
 
-         ProcessingElement *     _pe;
+         ProcessingElement *     _pe;         /**< Threads are binded to a PE for its life-time */
          WD &                    _threadWD;
 
          // Thread status
          bool                    _started;
          volatile bool           _mustStop;
          WD *                    _currentWD;
+         WD *                    _nextWD;
 
          // Team info
          bool                    _hasTeam;
@@ -88,10 +90,6 @@ namespace nanos
          TeamData *              _teamData;
 //         int                     _teamId; //! Id of the thread inside its current team
 //          int                     _localSingleCount;
-
-         // scheduling info
-         SchedulingGroup *       _schedGroup;
-         SchedulingData  *       _schedData;
 
          //disable copy and assigment
          BaseThread( const BaseThread & );
@@ -121,8 +119,10 @@ namespace nanos
 
          // constructor
          BaseThread ( WD &wd, ProcessingElement *creator=0 ) :
-               _id( _idSeed++ ), _pe( creator ), _threadWD( wd ), _started( false ), _mustStop( false ), _hasTeam( false ),_team(NULL),
-			   _teamData(NULL), _schedGroup(NULL), _schedData(NULL) {}
+               _id( _idSeed++ ), _name("Thread"), _description(""), _pe( creator ), _threadWD( wd ),
+               _started( false ), _mustStop( false ), _currentWD( NULL),
+               _nextWD( NULL), _hasTeam( false ),_team(NULL),
+               _teamData(NULL) {}
 
          // destructor
          virtual ~BaseThread() {
@@ -139,6 +139,8 @@ namespace nanos
          void run();
          void stop() { _mustStop = true; }
 
+         virtual void idle() {};
+
          virtual void join() = 0;
          virtual void bind() {};
 
@@ -148,6 +150,10 @@ namespace nanos
          WD * getCurrentWD () const { return _currentWD; }
 
          WD & getThreadWD () const { return _threadWD; }
+
+         void setNextWD ( WD *next ) { _nextWD = next; }
+
+         WD * getNextWD () const { return _nextWD; }
 
          // team related methods
          void reserve() { _hasTeam = 1; }
@@ -170,10 +176,6 @@ namespace nanos
          //! Returns the id of the thread inside its current team 
          int getTeamId() const { return _teamData->getId(); }
 
-         SchedulingData * getSchedulingData () const { return _schedData; }
-
-         void setScheduling ( SchedulingGroup *sg, SchedulingData *sd )  { _schedGroup = sg; _schedData = sd; }
-
          bool isStarted () const { return _started; }
 
          bool isRunning () const { return _started && !_mustStop; }
@@ -187,6 +189,42 @@ namespace nanos
          int getCpuId() { return runningOn()->getId(); }
 
          bool singleGuard();
+
+         /*! \brief Rename the basethread
+          */
+         void rename ( const char *name )
+         {
+            _name = *new std::string(name);
+         }
+
+         /*! \brief Get BaseThread name
+          */
+         const std::string getName ( void )
+         {
+            return _name;
+         }
+
+         /*! \brief Get BaseThread description
+          */
+         const std::string getDescription ( void )
+         {
+            if ( _description.compare("") == 0 ) {
+
+               /* description name */
+               _description = *new std::string( getName() );
+               _description.append("-");
+
+               /* adding device type */
+               _description.append( _pe->getDeviceType().getName() );
+               _description.append("-");
+
+               /* adding global id */
+               char id[5]; sprintf(id, "%d", getId() );
+               _description.append( id );
+            }
+
+            return _description;
+         }
    };
 
    extern __thread BaseThread *myThread;

@@ -29,7 +29,7 @@
 #include "slicer.hpp"
 #include "nanos-int.h"
 #include "dependency.hpp"
-#include "instrumentor_decl.hpp"
+#include "instrumentation_decl.hpp"
 #include "directory.hpp"
 #include "pminterface_decl.hpp"
 
@@ -69,7 +69,7 @@ namespace nanos
          bool                 _delayedStart;
 
          //cutoff policy and related variables
-         ThrottlePolicy *     _throttlePolicy;
+         ThrottlePolicy      *_throttlePolicy;
          SchedulerStats       _schedStats;
          SchedulerConf        _schedConf;
 
@@ -89,8 +89,8 @@ namespace nanos
 
          Slicers              _slicers; /**< set of global slicers */
 
-         Instrumentation           *_instrumentor; /**< Instrumentor object used in current execution */
-         SchedulePolicy         *_defSchedulePolicy;
+         Instrumentation     *_instrumentation; /**< Instrumentation object used in current execution */
+         SchedulePolicy      *_defSchedulePolicy;
 
          // Mempory access directory
          Directory            _directory;
@@ -153,6 +153,8 @@ namespace nanos
 
          bool getVerbose () const;
 
+         void setVerbose ( bool value );
+
          void setInitialMode ( InitialMode mode );
          InitialMode getInitialMode() const;
 
@@ -180,6 +182,9 @@ namespace nanos
          BaseThread * getUnassignedWorker ( void );
          ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL,
                                    bool reuseCurrent=true,  TeamData *tdata = 0 );
+
+         BaseThread * getWorker( unsigned int n );
+
          void endTeam ( ThreadTeam *team );
          void releaseWorker ( BaseThread * thread );
 
@@ -193,7 +198,7 @@ namespace nanos
 
          const std::string & getDefaultBarrier() const;
 
-         const std::string & getDefaultInstrumentor() const;
+         const std::string & getDefaultInstrumentation() const;
 
          const std::string & getDefaultArch() const;
          void setDefaultArch( const std::string &arch );
@@ -204,9 +209,9 @@ namespace nanos
 
          Slicer * getSlicer( const std::string &label ) const;
 
-         Instrumentation * getInstrumentor ( void ) const;
+         Instrumentation * getInstrumentation ( void ) const;
 
-         void setInstrumentor ( Instrumentation *instr );
+         void setInstrumentation ( Instrumentation *instr );
 
          void registerSlicer ( const std::string &label, Slicer *slicer);
 
@@ -220,6 +225,7 @@ namespace nanos
          SchedulerConf  & getSchedulerConf();
 
          void setPMInterface (PMInterface *_pm);
+
    };
 
    extern System sys;

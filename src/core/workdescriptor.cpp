@@ -28,12 +28,12 @@
 
 using namespace nanos;
 
-void WorkDescriptor::start (bool isUserLevelThread, WorkDescriptor *previous)
+void WorkDescriptor::init (bool isUserLevelThread, WorkDescriptor *previous)
 {
    ProcessingElement *pe = myThread->runningOn();
 
-   /* Initializing instrumentor context */
-   NANOS_INSTRUMENT( sys.getInstrumentor()->wdCreate( this ) );
+   /* Initializing instrumentation context */
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdCreate( this ) );
 
    _activeDevice->lazyInit(*this,isUserLevelThread,previous);
    
@@ -77,6 +77,7 @@ bool WorkDescriptor::canRunIn( const Device &device ) const
 
 bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
 {
+   if ( started() && !pe.supportsUserLevelThreads() ) return false;
    return canRunIn( pe.getDeviceType() );
 }
 

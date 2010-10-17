@@ -23,9 +23,26 @@ void SlicerStaticFor::submit ( SlicedWD &work )
 {
    debug ( "Using sliced work descriptor: Static For" );
 
-   int lower, upper, i, num_threads = myThread->getTeam()->size();
-   WorkDescriptor *slice = NULL;
    SlicedWD *wd = NULL;
+   WorkDescriptor *slice = NULL;
+
+   int lower, upper, first_valid_thread, i, j, valid_threads = 0, num_threads = myThread->getTeam()->size();
+   int *thread_map = (int *) alloca ( sizeof(int) * num_threads );
+
+   /* Determine which threads are compatible with work:
+    *   - number of valid threads
+    *   - a map of compatible threads with a normalized id or -1 if not compatible:
+    *     (e.g. 6 threads with only 4 valid threads 1,2,4 & 5 and 2 non-valid threads 0 & 3)
+    *
+    *                     0    1    2    3    4    5
+    *                  +----+----+----+----+----+----+
+    *     thread_map = | -1 |  0 |  1 | -1 |  2 |  3 |
+    *                  +----+----+----+----+----+----+
+    */
+   for ( i = 0; i < num_threads; i++) {
+     if (  work.canRunIn( *(((*myThread->getTeam())[i]).runningOn()) ) ) thread_map[i] = valid_threads++;
+     else thread_map[i] = -1;
+   }
 
    // copying rest of slicer data values
    int _lower = ((SlicerDataFor *) work.getSlicerData())->getLower();
@@ -37,16 +54,20 @@ void SlicerStaticFor::submit ( SlicedWD &work )
    int _sign = ( _step < 0 ) ? -1 : +1;
    (( SlicerDataFor *)work.getSlicerData())->setSign( _sign );
 
+   // j is the first valid thread: thread_map[j] == 0 (first id)
+   j = 0; while ( (j < num_threads) && (thread_map [j] == -1) ) j++;
+   first_valid_thread = j;
+
    // if chunk == 0: generate a WD for each thread
    if ( _chunk == 0 ) {
       // compute chunk and adjustment
-      _chunk = (((_upper - _lower) / _step ) + 1 ) / num_threads;
-      int _adjust = (((_upper - _lower)/_step) + 1 ) % num_threads;
+      _chunk = (((_upper - _lower) / _step ) + 1 ) / valid_threads;
+      int _adjust = (((_upper - _lower)/_step) + 1 ) % valid_threads;
 
       // Init WorkDescriptor 'work'
       // computing initial bounds
       lower = _lower;
-      upper = _lower + ( _chunk * _step ) + ( ((0 < _adjust) ? 1 : 0) * _step );
+      upper = _lower + ( (_chunk-1) * _step ) + ( ((0 < _adjust) ? 1 : 0) * _step );
 
       // checking boundaries
       if ( ( upper * _sign ) >= ( _upper * _sign ) ) upper = _upper;
@@ -55,15 +76,19 @@ void SlicerStaticFor::submit ( SlicedWD &work )
       ((nanos_loop_info_t *)(work.getData()))->lower = lower;
       ((nanos_loop_info_t *)(work.getData()))->upper = upper; 
       ((nanos_loop_info_t *)(work.getData()))->step = _step;
+      ((nanos_loop_info_t *)(work.getData()))->last = (num_threads == 1 );
 
       // next slice init
       _lower = upper + _step;
 
       // Init and Submit WorkDescriptors: 1..N
-      for ( i = 1; i < num_threads; i++ ) {
+      for ( i = 1; i < valid_threads; i++ ) {
+         // j is the next valid thread 
+         while ( (j < num_threads) && (thread_map [j] == -1) ) j++;
+
          // computing initial bounds
          lower = _lower;
-         upper = _lower + ( _chunk * _step ) + ( ((i < _adjust) ? 1 : 0) * _step );
+         upper = _lower + ( (_chunk-1) * _step ) + ( ((i < _adjust) ? 1 : 0) * _step );
 
          // checking boundaries
          if ( ( upper * _sign ) >= ( _upper * _sign ) ) upper = _upper;
@@ -75,8 +100,9 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          ((nanos_loop_info_t *)(slice->getData()))->lower = lower;
          ((nanos_loop_info_t *)(slice->getData()))->upper = upper;
          ((nanos_loop_info_t *)(slice->getData()))->step = _step;
+         ((nanos_loop_info_t *)(slice->getData()))->last = ( i == (valid_threads - 1) );
 
-         slice->tieTo( (*myThread->getTeam())[i] );
+         slice->tieTo( (*myThread->getTeam())[j] );
          Scheduler::submit ( *slice );
 
          // next slice init
@@ -85,14 +111,17 @@ void SlicerStaticFor::submit ( SlicedWD &work )
       }
 
       // Submit: work
-      work.tieTo( (*myThread->getTeam())[0] );
+      work.tieTo( (*myThread->getTeam())[first_valid_thread] );
       Scheduler::submit ( work );
    }
    // if chunk != 0: generate a SlicedWD for each thread (interleaved)
    else {
 
       // Init and Submit WorkDescriptors: 1..N
-      for ( i = 1; i < num_threads; i++ ) {
+      for ( i = 1; i < valid_threads; i++ ) {
+         // j is the next valid thread 
+         while ( (j < num_threads) && (thread_map [j] == -1) ) j++;
+
          // duplicating slice
          sys.duplicateSlicedWD( &wd, &work );
 
@@ -102,7 +131,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          (( SlicerDataFor *)wd->getSlicerData())->setChunk( _chunk );
          (( SlicerDataFor *)wd->getSlicerData())->setSign( _sign );
 
-         wd->tieTo( (*myThread->getTeam())[i] );
+         wd->tieTo( (*myThread->getTeam())[j] );
          Scheduler::submit ( *wd );
 
          // next wd init
@@ -112,14 +141,14 @@ void SlicerStaticFor::submit ( SlicedWD &work )
       // (( SlicerDataFor *)work.getSlicerData())->setLower( upper );
 
       // Submit: work
-      work.tieTo( (*myThread->getTeam())[0] );
+      work.tieTo( (*myThread->getTeam())[first_valid_thread] );
       Scheduler::submit ( work );
    }
 }
 
 bool SlicerStaticFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
 {
-   int lower, upper, num_threads = myThread->getTeam()->size();
+   int lower, i, upper, valid_threads = 0, num_threads = myThread->getTeam()->size();
    bool last = false;
 
    // TODO: (#107) performance evaluation on this algorithm
@@ -134,6 +163,12 @@ bool SlicerStaticFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
    }
    // if chunk != 0: generate a SlicedWD for each thread (interleaved)
    else {
+
+      /* Determine the number of valid threads */
+      for ( i = 0; i < num_threads; i++) {
+        if (  wd->canRunIn( *(((*myThread->getTeam())[i]).runningOn()) ) ) valid_threads++;
+      }
+
       // copying slicer data values
       int _lower = ((SlicerDataFor *)wd->getSlicerData())->getLower();
       int _upper = ((SlicerDataFor *)wd->getSlicerData())->getUpper();
@@ -145,13 +180,14 @@ bool SlicerStaticFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
       upper = _lower + ( _chunk * _step ) - _sign;
 
       // computing next lower
-      _lower = _lower + ( _chunk * _step * num_threads );
+      _lower = _lower + ( _chunk * _step * valid_threads );
 
       // checking boundaries
       if ( ( upper * _sign ) >= ( _upper * _sign ) ) {
          upper = _upper;
          last = true;
       }
+
       if ( (_lower * _sign) > (_upper * _sign)) {
          last = true;
       }
@@ -166,6 +202,12 @@ bool SlicerStaticFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
       ((nanos_loop_info_t *)((*slice)->getData()))->lower = lower;
       ((nanos_loop_info_t *)((*slice)->getData()))->upper = upper;
       ((nanos_loop_info_t *)((*slice)->getData()))->step = _step;
+
+      // If it is 'actually' a chunk of iterations and it is the last one...
+      if ( ((_lower * _sign) < (_upper * _sign)) && ( upper == _upper ) ) {
+         ((nanos_loop_info_t *)((*slice)->getData()))->last = true;
+      }
+      else ((nanos_loop_info_t *)((*slice)->getData()))->last = false;
    }
 
    return last;

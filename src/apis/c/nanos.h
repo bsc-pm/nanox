@@ -24,7 +24,7 @@
 #include <stdbool.h>
 #include "nanos-int.h"
 
-#ifdef _MERCURIUM_
+#ifdef _MERCURIUM
 // define API version
 #pragma nanos interface family(master) version(5000)
 #endif
@@ -37,7 +37,6 @@ typedef void * nanos_team_t;
 typedef void * nanos_sched_t;
 typedef void * nanos_slicer_t;
 typedef void * nanos_slicer_data_t;
-typedef void * nanos_lock_t;
 typedef void * nanos_dd_t;
 typedef void * nanos_sync_cond_t;
 typedef unsigned int nanos_copy_id_t;
@@ -117,11 +116,13 @@ nanos_err_t nanos_destroy_sync_cond ( nanos_sync_cond_t *sync_cond );
 
 nanos_err_t nanos_wait_on ( size_t num_deps, nanos_dependence_t *deps );
 
-nanos_err_t nanos_init_lock ( nanos_lock_t *lock );
-nanos_err_t nanos_set_lock (nanos_lock_t lock);
-nanos_err_t nanos_unset_lock (nanos_lock_t lock);
-nanos_err_t nanos_try_lock ( nanos_lock_t lock, bool *result );
-nanos_err_t nanos_destroy_lock ( nanos_lock_t lock );
+#define NANOS_INIT_LOCK_FREE { NANOS_LOCK_FREE }
+#define NANOS_INIT_LOCK_BUSY { NANOS_LOCK_BUSY }
+nanos_err_t nanos_init_lock ( nanos_lock_t **lock );
+nanos_err_t nanos_set_lock (nanos_lock_t *lock);
+nanos_err_t nanos_unset_lock (nanos_lock_t *lock);
+nanos_err_t nanos_try_lock ( nanos_lock_t *lock, bool *result );
+nanos_err_t nanos_destroy_lock ( nanos_lock_t *lock );
 
 // Device copies
 nanos_err_t nanos_get_addr ( nanos_copy_id_t copy_id, void **addr );
@@ -145,7 +146,7 @@ void * nanos_gpu_factory( void *prealloc ,void *args);
 extern const size_t nanos_gpu_dd_size;
 #define NANOS_GPU_DESC( args ) { nanos_gpu_factory, nanos_gpu_dd_size, &( args ) }
 
-// instrumentor interface
+// instrumentation interface
 nanos_err_t nanos_instrument_register_key ( nanos_event_key_t *event_key, const char *key, const char *description, bool abort_when_registered );
 nanos_err_t nanos_instrument_register_value ( nanos_event_value_t *event_value, const char *key, const char *value, const char *description, bool abort_when_registered );
 
@@ -154,7 +155,7 @@ nanos_err_t nanos_instrument_get_value (const char *key, const char *value, nano
 
 
 nanos_err_t nanos_instrument_events ( unsigned int num_events, nanos_event_t events[] );
-nanos_err_t nanos_instrument_enter_state ( nanos_event_state_value_t state_t );
+nanos_err_t nanos_instrument_enter_state ( nanos_event_state_value_t state );
 nanos_err_t nanos_instrument_leave_state ( void );
 nanos_err_t nanos_instrument_enter_burst( nanos_event_key_t key, nanos_event_value_t value );
 nanos_err_t nanos_instrument_leave_burst( nanos_event_key_t key );
@@ -163,7 +164,8 @@ nanos_err_t nanos_instrument_ptp_start ( nanos_event_domain_t domain, nanos_even
                                          unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
 nanos_err_t nanos_instrument_ptp_end ( nanos_event_domain_t domain, nanos_event_id_t id,
                                          unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
-nanos_err_t nanos_instrument_disable_state_events ( void );
+
+nanos_err_t nanos_instrument_disable_state_events ( nanos_event_state_value_t state );
 nanos_err_t nanos_instrument_enable_state_events ( void );
 
 
