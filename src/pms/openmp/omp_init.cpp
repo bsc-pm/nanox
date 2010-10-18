@@ -31,48 +31,68 @@ namespace nanos
       int * ssCompatibility __attribute__( ( weak ) );
       OmpState *globalState;
 
-      static void setOmpNumThreads ( const int &numThreads )
+      class OpenMPInterface : public PMInterface
       {
-         sys.setNumPEs(numThreads);
-      }
+         virtual void config ( Config & config )
+         {
+            config.setOptionsSection("OpenMP specific","OpenMP related options");
 
-      static void readEnvinroment ()
-      {
-         Config config;
+            // OMP_NUM_THREADS
+            config.registerEnvOption("num_pes","OMP_NUM_THREADS");
 
-         config.setOptionsSection("OpenMP specific","OpenMP related options");
-
-         config.registerConfigOption("omp-num-threads",new Config::PositiveFunc(setOmpNumThreads),
-                                     "Set number of OpenMP threads");
-         config.registerEnvOption("omp-num-threads","OMP_NUM_THREADS");
-         // OMP_SCHEDULE
-         // OMP_NUM_THREADS
-         // OMP_DYNAMIC
-         // OMP_NESTED
-         // OMP_STACKSIZE
-         // OMP_WAIT_POLICY
-         // OMP_MAX_ACTIVE_LEVELS
-         // OMP_THREAD_LIMIT
-         
-         config.init();
-      }
-
-      static void ompInit()
-      {         
-         // Must be allocated through new to avoid problems with the order of
-         // initialization of global objects
-         globalState = new OmpState();
-         
-         if ( ssCompatibility != NULL ) {
-            // Enable Ss compatibility mode
-            sys.setInitialMode( System::POOL );
-            sys.setUntieMaster(true);
-         } else {
-            sys.setInitialMode( System::ONE_THREAD );
-            sys.setUntieMaster(false);
+            // OMP_SCHEDULE
+            // OMP_DYNAMIC
+            // OMP_NESTED
+            // OMP_STACKSIZE
+            // OMP_WAIT_POLICY
+            // OMP_MAX_ACTIVE_LEVELS
+            // OMP_THREAD_LIMIT
          }
 
-         readEnvinroment();
+         virtual void start ()
+         {
+            // Must be allocated through new to avoid problems with the order of
+            // initialization of global objects
+            globalState = new OmpState();
+
+            TaskICVs & icvs = globalState->getICVs();
+            icvs.setSchedule(LoopSchedule(omp_sched_static));
+            icvs.setNumThreads(sys.getNumPEs());
+
+            if ( ssCompatibility != NULL ) {
+               // Enable Ss compatibility mode
+               sys.setInitialMode( System::POOL );
+               sys.setUntieMaster(true);
+            } else {
+               sys.setInitialMode( System::ONE_THREAD );
+               sys.setUntieMaster(false);
+            }
+         }
+
+    	   virtual int getInternalDataSize() const { return sizeof(OmpData); }
+    	   virtual void setupWD( WD &wd )
+    	   {
+   		    OmpData *data = (OmpData *) wd.getInternalData();
+   		    ensure(data,"OpenMP data is missing!");
+    		    WD *parent = wd.getParent();
+
+    		    if ( parent != NULL ) {
+    		      OmpData *parentData = (OmpData *) parent->getInternalData();
+    		      ensure(data,"parent OpenMP data is missing!");
+
+    		      data = parentData;
+    		    } else {
+    		      data->icvs() = globalState->getICVs();
+    		    }
+    	   }
+
+    	   virtual void wdStarted( WD &wd ) {};
+    	   virtual void wdFinished( WD &wd ) {};
+      };
+
+      static void ompInit()
+      {
+         sys.setPMInterface(new OpenMPInterface());
       }
    }
 

@@ -22,6 +22,7 @@
 
 #include "directory_decl.hpp"
 #include "hashmap.hpp"
+#include "cache_decl.hpp"
 
 using namespace nanos;
 
@@ -63,6 +64,23 @@ inline Cache * DirectoryEntry::getOwner() const { return _owner; }
 
 inline void DirectoryEntry::setOwner( Cache *owner ) { _owner = owner; }
 
+inline bool DirectoryEntry::isInvalidated()
+{
+   return _invalidated.value();
+}
+
+inline void DirectoryEntry::setInvalidated( bool invalid )
+{
+   _invalidated = invalid;
+}
+
+inline bool DirectoryEntry::trySetInvalidated()
+{
+   Atomic<bool> expected = false;
+   Atomic<bool> value = true;
+   return _invalidated.cswap( expected, value );
+}
+
 inline DirectoryEntry& Directory::insert( uint64_t tag, DirectoryEntry &ent,  bool &inserted )
 {
    return _directory.insert( tag, ent, inserted );
@@ -80,6 +98,28 @@ inline DirectoryEntry& Directory::newEntry( uint64_t tag, unsigned int version, 
 inline DirectoryEntry* Directory::getEntry( uint64_t tag )
 {
    return _directory.find( tag );
+}
+
+inline void Directory::registerAccess( uint64_t tag, size_t size, bool input, bool output )
+{
+   DirectoryEntry *de = _directory.find( tag );
+   if ( de != NULL ) {
+      if ( input ) {
+         Cache *c = de->getOwner();
+         if ( c != NULL )
+            c->invalidate( tag, size, de );
+      }
+      if ( output ) {
+         de->setVersion(de->getVersion()+1);
+      }
+   }
+}
+
+inline void Directory::waitInput( uint64_t tag )
+{
+   DirectoryEntry *de = _directory.find( tag );
+   if ( de != NULL ) // The entry may have never been registered
+      while ( de->getOwner() != NULL );
 }
 
 #endif

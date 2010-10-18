@@ -26,3 +26,4 @@ libos_la_SOURCES = \
 		os.hpp \
 		os.cpp \
 		$(END)
+libos_la_LIBADD = -lrt

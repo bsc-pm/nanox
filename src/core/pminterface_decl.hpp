@@ -18,20 +18,23 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "omp.h"
-#include "os.hpp"
+#ifndef NANOS_PM_INTERFACE
+#define NANOS_PM_INTERFACE
 
-extern "C"
+#include "config.hpp"
+
+class PMInterface
 {
-   double omp_get_wtime ( void )
-   {
-      return nanos::OS::getMonotonicTime();
-   }
+   public:
+      virtual int getInternalDataSize() const { return 0; }
 
-   double omp_get_wtick ( void )
-   {
-      return nanos::OS::getMonotonicTimeResolution();
-   }
+      virtual void config (Config &cfg) {}
+      virtual void start () {}
+      virtual void finish() {}
 
-}
+      virtual void setupWD( WD &wd ) {}
+      virtual void wdStarted( WD &wd ) {}
+      virtual void wdFinished( WD &wd ) {}
+};
 
+#endif /* PM_INTERFACE_HPP_ */

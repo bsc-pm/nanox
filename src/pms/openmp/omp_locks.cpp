@@ -19,76 +19,42 @@
 /*************************************************************************************/
 
 #include "omp.h"
-#include <stdlib.h>
-#include <stdio.h>
+#include "atomic.hpp"
 
 extern "C"
 {
+   using namespace nanos;
 
-   struct __omp_lock {
-      int lock;
-   };
+   void omp_init_lock( omp_lock_t *arg )
+   {
+      Lock *lock = (Lock *) arg;
 
-   enum { UNLOCKED = -1, INIT, LOCKED };
-   void omp_init_lock( omp_lock_t *arg ) {
-
-      struct __omp_lock *lock = ( struct __omp_lock * )arg;
-      lock->lock = UNLOCKED;
+      new (lock) Lock;
    }
 
-   void omp_destroy_lock( omp_lock_t *arg ) {
-
-      struct __omp_lock *lock = ( struct __omp_lock * )arg;
-      lock->lock = INIT;
+   void omp_destroy_lock( omp_lock_t *arg )
+   {
    }
 
-   void omp_set_lock( omp_lock_t *arg ) {
-
-      struct __omp_lock *lock = ( struct __omp_lock * )arg;
-
-      if ( lock->lock == UNLOCKED ) {
-         lock->lock = LOCKED;
-      } else if ( lock->lock == LOCKED ) {
-         fprintf( stderr,
-                  "error: deadlock in using lock variable\n" );
-         exit( 1 );
-      } else {
-         fprintf( stderr, "error: lock not initialized\n" );
-         exit( 1 );
-      }
-
+   void omp_set_lock( omp_lock_t *arg )
+   {
+      Lock &lock = *(Lock *) arg;
+      lock++;
    }
 
-   void omp_unset_lock( omp_lock_t *arg ) {
-
-      struct __omp_lock *lock = ( struct __omp_lock * )arg;
-
-      if ( lock->lock == LOCKED ) {
-         lock->lock = UNLOCKED;
-      } else if ( lock->lock == UNLOCKED ) {
-         fprintf( stderr, "error: lock not set\n" );
-         exit( 1 );
-      } else {
-         fprintf( stderr, "error: lock not initialized\n" );
-         exit( 1 );
-      }
+   void omp_unset_lock( omp_lock_t *arg )
+   {
+      Lock &lock = *(Lock *) arg;
+      lock--;
    }
 
-   int omp_test_lock( omp_lock_t *arg ) {
-
-      struct __omp_lock *lock = ( struct __omp_lock * )arg;
-
-      if ( lock->lock == UNLOCKED ) {
-         lock->lock = LOCKED;
-         return 1;
-      } else if ( lock->lock == LOCKED ) {
-         return 0;
-      } else {
-         fprintf( stderr, "error: lock not initialized\n" );
-         exit( 1 );
-      }
+   int omp_test_lock( omp_lock_t *arg )
+   {
+      Lock &lock = *(Lock *) arg;
+      return lock.tryAcquire();
    }
 
+#if 0
    struct __omp_nest_lock {
       short owner;
       short count;
@@ -151,5 +117,6 @@ extern "C"
       omp_set_nest_lock( arg );
       return nlock->count;
    }
+#endif   
 }
 
