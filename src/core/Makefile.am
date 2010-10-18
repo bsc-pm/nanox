@@ -103,6 +103,7 @@ nanos_sources=\
 	synchronizedcondition.hpp \
         directory_decl.hpp \
         directory.hpp \
+	pminterface_decl.hpp  \
 	$(END)
 
 # Default
