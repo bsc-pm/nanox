@@ -69,6 +69,11 @@ BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper )
 
 #if SMP_NUMA
 
+void SMPProcessor::waitInputDependent( uint64_t tag )
+{
+   _cache.waitInput(tag);
+}
+
 void SMPProcessor::registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output )
 {
    _cache.registerCacheAccess( tag, size, input, output );
@@ -97,6 +102,11 @@ void* SMPProcessor::getAddressDependent( uint64_t tag )
 void SMPProcessor::copyToDependent( void *dst, uint64_t tag, size_t size )
 {
    _cache.copyTo( dst, tag, size );
+}
+
+void SMPProcessor::synchronize( uint64_t tag )
+{
+   _cache.synchronize( tag );
 }
 
 #endif

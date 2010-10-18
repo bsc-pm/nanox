@@ -108,6 +108,17 @@ void HashMap<_KeyType,_T,_invalidate,_tsize,_HashFunction>::deleteReference( _Ke
 }
 
 template <typename _KeyType, typename _T, bool _invalidate, size_t _tsize, typename _HashFunction>
+unsigned int HashMap<_KeyType,_T,_invalidate,_tsize,_HashFunction>::getReferenceCount( _KeyType key )
+{
+   HashList& list = _table[_hash(key,_tsize)];
+   typename HashList::iterator it = std::find( list.begin(), list.end(), MapEntry(key) );
+   if ( it == list.end() ) {
+      return 0;
+   }
+   return it.getReferences() - 1; // substract the one hold by the iterator
+}
+
+template <typename _KeyType, typename _T, bool _invalidate, size_t _tsize, typename _HashFunction>
 _T& HashMap<_KeyType,_T,_invalidate,_tsize,_HashFunction>::accessAndReference( _KeyType key )
 {
    HashList& list = _table[_hash(key,_tsize)];
