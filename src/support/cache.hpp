@@ -23,561 +23,498 @@
 #include "config.hpp"
 #include "compatibility.hpp"
 #include "instrumentation.hpp"
-#include "system.hpp"
+#include "cache_decl.hpp"
 #include "directory.hpp"
 #include "atomic.hpp"
+#include "processingelement_fwd.hpp"
 
-namespace nanos {
+using namespace nanos;
 
-  /*! \brief Represents a cache entry identified by an address
-   */
-   class CacheEntry : public Entry
-   {
-      private:
-         /**< Address identifier of the cache entry  */
-         void *_addr;
-
-         /**< Size of the block in the cache */
-         size_t _size;
-
-         /**< Entry references counter  */
-         unsigned int _refs;
-
-         volatile bool _dirty;
-         volatile bool _copying;
-         volatile bool _flushing;
-         Atomic<unsigned int> _transfers;
-
-      public:
-
-        /*! \brief Default constructor
-         */
-         CacheEntry(): Entry(), _addr( NULL ), _size(0), _refs( 0 ), _dirty( false ), _copying(false), _flushing(false), _transfers(0) {}
-
-        /*! \brief Constructor
-         *  \param addr: address of the cache entry
-         */
-         CacheEntry( void *addr, size_t size, uint64_t tag, unsigned int version, bool dirty, bool copying ): Entry( tag, version ), _addr( addr ), _size(size), _refs( 0 ), _dirty( dirty ), _copying(copying), _flushing(false), _transfers(0) {}
-
-        /*! \brief Copy constructor
-         *  \param Another CacheEntry
-         */
-         CacheEntry( const CacheEntry &ce ): Entry( ce.getTag(), ce.getVersion() ), _addr( ce._addr ), _size( ce._size ), _refs( ce._refs ), _dirty( ce._dirty ), _copying(ce._copying), _flushing(false), _transfers(0) {}
-
-        /* \brief Destructor
-         */
-         ~CacheEntry() {}
-
-        /* \brief Assign operator
-         */
-         CacheEntry& operator=( const CacheEntry &ce )
-         {
-            if ( this == &ce ) return *this;
-            this->setTag( ce.getTag() );
-            this->setVersion( ce.getVersion() );
-            this->_addr = ce._addr;
-            this->_size = ce._size;
-            this->_refs = ce._refs;
-            this->_dirty = ce._dirty;
-            this->_copying = ce._copying;
-            this->_flushing = ce._flushing;
-            this->_transfers = ce._transfers;
-            return *this;
+inline void CachePolicy::registerCacheAccess( uint64_t tag, size_t size, bool input, bool output )
+{
+   DirectoryEntry *de = _directory.getEntry( tag );
+   CacheEntry *ce;
+   if ( de == NULL ) { // Memory access not registered in the directory
+      bool inserted;
+      DirectoryEntry d = DirectoryEntry( tag, 0, ( output ? &_cache : NULL ) );
+      de = &(_directory.insert( tag, d, inserted ));
+      if (!inserted) {
+         if ( output ) {
+            de->setOwner(&_cache);
+            de->setInvalidated(false);
          }
+      }
 
-        /* \brief Returns the address identifier of the Cache Entry
-         */
-         void * getAddress()
-         { return _addr; }
-
-        /* \brief Address setter
-         */
-         void setAddress( void *addr )
-         { _addr = addr; }
-
-        /* \brief Returns the size of the block in the cache
-         */
-         size_t getSize() const
-         { return _size; }
-
-        /* \brief Size setter
-         */
-         void setSize( size_t size )
-         { _size = size; }
-
-        /* \brief Whether the Entry has references or not
-         */
-         bool hasRefs() const
-         { return _refs > 0; }
-
-        /* \brief Increase the references to the entry
-         */
-         void increaseRefs()
-         { _refs++; }
-
-        /* \brief Decrease the references to the entry
-         */
-         bool decreaseRefs()
-         { return (--_refs) == 0; }
-
-         bool isDirty()
-         { return _dirty; }
-
-         void setDirty( bool dirty )
-         { _dirty = dirty; }
-
-         bool isCopying() const
-         { return _copying; }
-
-         void setCopying( bool copying )
-         { _copying = copying; }
-
-         bool isFlushing()
-         { return _flushing; }
-
-         void setFlushing( bool flushing )
-         { _flushing = flushing; }
-
-         bool hasTransfers()
-         { return _transfers.value() > 0; }
-
-         void increaseTransfers()
-         { _transfers++; }
-
-         bool decreaseTransfers()
-         {
-            _transfers--;
-            return hasTransfers();
-         }
-   };
-
-
-   class Cache
-   {
-      public:
-         virtual ~Cache() { }
-         virtual void * allocate( size_t size ) = 0;
-         virtual CacheEntry& newEntry( uint64_t tag, size_t size, unsigned int version, bool dirty ) = 0;
-         virtual CacheEntry& insert( uint64_t tag, CacheEntry& ce, bool& inserted ) = 0;
-         virtual void deleteEntry( uint64_t tag, size_t size ) = 0;
-         virtual CacheEntry* getEntry( uint64_t tag ) = 0;
-         virtual void addReference( uint64_t tag ) = 0;
-         virtual void deleteReference( uint64_t tag ) = 0;
-         virtual void copyDataToCache( uint64_t tag, size_t size ) = 0;
-         virtual void copyBackFromCache( uint64_t tag, size_t size ) = 0;
-         virtual void copyTo( void *dst, uint64_t tag, size_t size ) = 0;
-   };
-
-   class CachePolicy
-   {
-      private:
-         CachePolicy( const CachePolicy &policy );
-         const CachePolicy & operator= ( const CachePolicy &policy );
-
-      public:
-         Cache& _cache;
-         Directory& _directory;
-
-         CachePolicy( Cache& cache ) : _cache( cache ), _directory( sys.getDirectory() ) { }
-
-         virtual ~CachePolicy() { }
-
-         virtual void registerCacheAccess( uint64_t tag, size_t size, bool input, bool output ) = 0;
-
-         virtual void unregisterCacheAccess( uint64_t tag, size_t size, bool output ) = 0;
-
-         virtual void registerPrivateAccess( uint64_t tag, size_t size, bool input, bool output ) = 0;
-         virtual void unregisterPrivateAccess( uint64_t tag, size_t size ) = 0;
-   };
-
-   // A plugin maybe??
-   class WriteThroughPolicy : public CachePolicy
-   {
-      private:
-
-         WriteThroughPolicy( const WriteThroughPolicy &policy );
-         const WriteThroughPolicy & operator= ( const WriteThroughPolicy &policy );
-
-      public:
-
-         WriteThroughPolicy( Cache& cache ) : CachePolicy( cache ) { }
-
-         virtual ~WriteThroughPolicy() { }
-
-         virtual void registerCacheAccess( uint64_t tag, size_t size, bool input, bool output )
-         {
-            // FIXME: Make sure that creation is atomic (locks in the list, you don't wan to lock the whole hash)
-            DirectoryEntry *de = _directory.getEntry( tag );
-            CacheEntry *ce;
-            if ( de == NULL ) { // Memory access not registered in the directory
-               bool inserted;
-               DirectoryEntry d = DirectoryEntry( tag, 0, ( output ? &_cache : NULL ) ); // FIXME: insert accessible through directory
-               de = &(_directory.insert( tag, d, inserted ));
-               if (!inserted) {
-                  if ( output ) {
-                     de->setOwner(&_cache);
-                  }
-               }
-                                                                                  //FIXME: insert accessible through cache, increases refs
-               CacheEntry c =  CacheEntry( NULL, size, tag, 0, output, input );
-               ce = &(_cache.insert( tag, c, inserted ));
-               if (inserted) { // allocate it
-                  ce->setAddress( _cache.allocate(size) );
-                  if (input) {
-                     _cache.copyDataToCache( tag, size );
-                  }
-               } else {        // wait for address
-                  while ( ce->getAddress() == NULL );
-               }
-            } else {
-               // DirectoryEntry exists
-               bool inserted = false;
-               ce = _cache.getEntry( tag );
-               if ( ce == NULL ) {
-                  // Create a new CacheEntry
-                  CacheEntry c = CacheEntry( NULL, size, tag, 0, output, input );
-                  ce = &(_cache.insert( tag, c, inserted ));
-                  if (inserted) { // allocate it
-                     Cache *owner = de->getOwner();
-                     if ( owner != NULL && !(!input && output) ) {
-                        // FIXME: interaction with other caches, forcing copy back
-                        // owner->invalidate(tag);
-                        // CacheEntry *owners = owner->getEntry( tag );
-                        // while( owners->isFlushing() );
-                     }
-                     ce->setAddress( _cache.allocate(size) );
-                     if (input) {
-                        while ( de->getOwner() != NULL );
-                        _cache.copyDataToCache( tag, size );
-                     }
-                     if (output) {
-                        de->setOwner(&_cache);
-                        de->increaseVersion();
-                        ce->increaseVersion();
-                     }
-                  } else {        // wait for address
-                     // has to be input, otherwise the program is incorrect so just wait the address to exist
-                     while ( ce->getAddress() == NULL );
-                     _cache.addReference(tag);
-                  }
-               } else {
-                  if ( de->getVersion() != ce->getVersion()) {
-                     if ( ce->setVersionCS( de->getVersion()) ) {
-                        Cache *owner = de->getOwner();
-                        if ( owner != NULL && !(!input && output) ) {
-                           // FIXME: interaction with other caches, forcing copy back
-                           // owner->invalidate(tag);
-                           // CacheEntry *owners = owner->getEntry( tag );
-                           // while( owners->isFlushing() );
-                        }
-                        if (input) {
-                           _cache.copyDataToCache( tag, size );
-                        }
-                     }
-                  }
-                  if (output) {
-                     de->setOwner(&_cache);
-                     de->increaseVersion();
-                     ce->increaseVersion();
-                  }
-               }
-            }
-         }
-
-         virtual void unregisterCacheAccess( uint64_t tag, size_t size, bool output )
-         {
-            CacheEntry *ce = _cache.getEntry( tag );
-            // There's two reference deleting calls because getEntry places one reference
-            _cache.deleteReference(tag);
-            // FIXME: This could be optimized by keeping the entries referenced untill they are flushed,
-            // another option would be to wait to flushes when freeing memory is needed
-            _cache.deleteReference(tag);
-            if ( output ) {
-               _cache.copyBackFromCache( tag, size );
-               ce->setFlushing(true);
-            }
-         }
-
-         virtual void registerPrivateAccess( uint64_t tag, size_t size, bool input, bool output )
-         {
-            bool inserted;
-            CacheEntry c =  CacheEntry( NULL, size, tag, 0, output, input );
-            CacheEntry& ce = _cache.insert( tag, c, inserted );
-            ensure ( inserted, "Private access cannot hit the cache.");
-            ce.increaseRefs();
-            ce.setAddress( _cache.allocate( size ) );
-            if ( input )
-               _cache.copyDataToCache( tag, size );
-         }
-
-         virtual void unregisterPrivateAccess( uint64_t tag, size_t size )
-         {
-            CacheEntry *ce = _cache.getEntry( tag );
-            ensure ( ce != NULL, "Private access cannot miss in the cache.");
-            if ( ce->isDirty() )
-               _cache.copyBackFromCache( tag, size );
-            _cache.deleteEntry( tag, size );
-         }
-   };
-
-  /*! \brief A Cache is a class that provides basic services for registering and
-   *         searching for memory blocks in a device using an identifier represented
-   *         by an unsigned int of 64 bits which represents the address of the original
-   *         data in the host. 
-   */
-   template <class _T, class _Policy = WriteThroughPolicy>
-   class DeviceCache : public Cache
-   {
-     /* FIXME (see #195)
-      *   - Code in the cache c file?
-      *   - check for errors 
-      */
-      private:
-         Directory &_directory;
-
-         /**< Maps keys with CacheEntries  */
-         typedef HashMap<uint64_t, CacheEntry> CacheHash;
-         CacheHash _cache;
-
-         _Policy _policy;
-
-         size_t _size;
-         size_t _usedSize;
-
-         // disable copy constructor and assignment operator
-         DeviceCache( const DeviceCache &cache );
-         const DeviceCache & operator= ( const DeviceCache &cache );
-
-      public:
-        /* \brief Default constructor
-         */
-         DeviceCache( size_t size ) : _directory( sys.getDirectory() ), _cache(), _policy( *this ), _size( size ), _usedSize(0) {}
-
-         size_t getSize()
-         { return _size; }
-
-         void setSize( size_t size )
-         { _size = size; }
-
-         void * allocate( size_t size )
-         {
-            void *result;
-            NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-malloc") );
-            if ( _usedSize + size <= _size ) {
-               NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_CACHE, key, (nanos_event_value_t) size) );
-               result = _T::allocate( size );
-               NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
-            } else {
-               CacheHash::KeyList kl;
-               // FIXME: lock the cache
-               _cache.listUnreferencedKeys( kl );
-               CacheHash::KeyList::iterator it;
-               for ( it = kl.begin(); it != kl.end(); it++ ) {
-                  // Copy the entry because once erased it can be recycled
-                  CacheEntry ce = *(_cache.find( it->second ));
-                  if ( _cache.erase( it->second ) ) {
-                     // FIXME: With writeback it will be necesary to copy back
-                     _T::free( ce.getAddress() );
-                     _usedSize -= ce.getSize();
-                     if ( _usedSize + size <= _size )
-                        break;
-                  }
-               }
-               // FIXME: unlock
-               NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_CACHE, key, (nanos_event_value_t) size) );
-               result = _T::allocate( size );
-               NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
-            }
-            _usedSize+= size;
-            return result;
-         }
-
-         void deleteEntry( uint64_t tag, size_t size )
-         {
-            NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-free") );
-            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_CACHE, key, (nanos_event_value_t) size) );
-            // it assumes the entry exists
-            CacheEntry &ce = _cache[tag];
-            _T::free( ce.getAddress() );
-            _usedSize -= ce.getSize();
-            _cache.erase( tag );
-            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
-         }
-
-        /* \brief get the Address in the cache for tag
-         * \param tag: Identifier of the entry to look for
-         */
-         void * getAddress( uint64_t tag )
-         {
-            void *result = _cache[tag].getAddress();
-            return result;
-         }
-
-        /* \brief Copy data from the address represented by the tag to the entry in the device.
-         * \param tag: identifier of the entry
-         * \param size: number of bytes to copy
-         */
-         void copyDataToCache( uint64_t tag, size_t size )
-         {
-            NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
-            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER, key, (nanos_event_value_t) size) );
-            _T::copyIn( _cache[tag].getAddress(), tag, size );
-            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
-         }
-
-        /* \brief Copy back from the entry to the address represented by the tag.
-         * \param tag: Entry identifier and address of original data
-         * \param size: number of bytes to copy
-         */
-         void copyBackFromCache( uint64_t tag, size_t size )
-         {
-            NANOS_INSTRUMENT( static nanos_event_key_t key1 = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-out") );
-            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER, key1, size ) );
-            CacheEntry &entry = _cache[tag];
-            _T::copyOut( tag, entry.getAddress(), size );
-            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key1 ) );
-         }
-
-        /* \brief Perform local copy in the device for an entry
-         * \param dst: Device destination address to copy to
-         * \param tag: entry identifier to look for the source data
-         * \param size: number of bytes to copy
-         */
-         void copyTo( void *dst, uint64_t tag, size_t size )
-         {
-            NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-local-copy") );
-            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER, key, size ) );
-            _T::copyLocal( dst, _cache[tag].getAddress(), size );
-            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
-         }
-
-         CacheEntry& newEntry( uint64_t tag, size_t size, unsigned int version, bool dirty )
-         {
-            CacheEntry& ce = _cache[tag];
-            ce.setTag( tag );
-            ce.setSize( size );
-            ce.setVersion( version );
-            ce.setDirty( dirty );
-            return ce;
-         }
-
-         CacheEntry& insert( uint64_t tag, CacheEntry& ce, bool& inserted )
-         {
-            return _cache.insert( tag, ce, inserted );
-         }
-
-         CacheEntry* getEntry( uint64_t tag )
-         {
-            return _cache.findAndReference( tag );
-         }
-
-         void addReference( uint64_t tag )
-         {
-            _cache.findAndReference(tag);
-         }
-
-         void deleteReference( uint64_t tag )
-         {
-            _cache.deleteReference(tag);
-         }
-
-         void registerCacheAccess( uint64_t tag, size_t size, bool input, bool output )
-         {
-            _policy.registerCacheAccess( tag, size, input, output );
-         }
-
-         void unregisterCacheAccess( uint64_t tag, size_t size, bool output )
-         {
-            _policy.unregisterCacheAccess( tag, size, output );
-         }
-
-         void registerPrivateAccess( uint64_t tag, size_t size, bool input, bool output )
-         {
-            _policy.registerPrivateAccess( tag, size, input, output );
-         }
-
-         void unregisterPrivateAccess( uint64_t tag, size_t size )
-         {
-            _policy.unregisterPrivateAccess( tag, size );
-         }
-
-         void synchronizeTransfer( uint64_t tag )
-         {
-            CacheEntry *ce = _cache.find(tag);
-            // FIXME: enable this when separating the headers
-            //ensure( ce != NULL && ce->hasTransfers(), "Cache has been corrupted" );
-            ce->decreaseTransfers();
-         }
-
-         void synchronize( uint64_t tag )
-         {
-            CacheEntry *ce = _cache.find(tag);
-            // FIXME: enable this when separating the headers
-            //ensure( ce != NULL, "Cache has been corrupted" );
-            if ( ce->isFlushing() ) {
-               ce->setFlushing(false);
-               DirectoryEntry *de = _directory.getEntry(tag);
-               // FIXME: enable this when separating the headers
-               //ensure( de != NULL, "Directory has been corrupted" );
-               de->setOwner(NULL);
-            } else {
-               // FIXME: enable this when separating the headers
-               //ensure( ce->isCopying(), "Cache has been corrupted" );
+      CacheEntry c =  CacheEntry( NULL, size, tag, 0, output, input );
+      ce = &(_cache.insert( tag, c, inserted ));
+      if (inserted) { // allocate it
+         ce->setAddress( _cache.allocate(size) );
+         if (input) {
+            if ( _cache.copyDataToCache( tag, size ) ) {
                ce->setCopying(false);
             }
          }
+      } else {        // wait for address
+         while ( ce->getAddress() == NULL );
+      }
+   } else {
+      // DirectoryEntry exists
+      bool inserted = false;
+      ce = _cache.getEntry( tag );
+      if ( ce == NULL ) {
+         // Create a new CacheEntry
+         CacheEntry c = CacheEntry( NULL, size, tag, 0, output, input );
+         ce = &(_cache.insert( tag, c, inserted ));
+         if (inserted) { // allocate it
+            Cache *owner = de->getOwner();
+            if ( owner != NULL && !(!input && output) ) {
+               owner->invalidate( tag, size, de );
+               owner->syncTransfer(tag);
+               while( de->getOwner() != NULL );
+            }
+            ce->setAddress( _cache.allocate(size) );
+            if (input) {
+               while ( de->getOwner() != NULL );
+               if ( _cache.copyDataToCache( tag, size ) ) {
+                  ce->setCopying(false);
+               }
+            }
+            if (output) {
+               de->setOwner(&_cache);
+               de->setInvalidated(false);
+               de->increaseVersion();
+               ce->increaseVersion();
+            }
+         } else {        // wait for address
+            // has to be input, otherwise the program is incorrect so just wait the address to exist
+            while ( ce->getAddress() == NULL );
+            _cache.addReference(tag);
 
-         static void synchronize( DeviceCache* _this, uint64_t tag )
-         {
-            CacheEntry *ce = _this->_cache.find(tag);
-            // FIXME: enable this when separating the headers
-            //ensure( ce != NULL, "Cache has been corrupted" );
-            if ( ce->isFlushing() ) {
-               ce->setFlushing(false);
-               DirectoryEntry *de = _this->_directory.getEntry(tag);
-               // FIXME: enable this when separating the headers
-               //ensure( de != NULL, "Directory has been corrupted" );
-               de->setOwner(NULL);
-            } else {
-               // FIXME: enable this when separating the headers
-               //ensure( ce->isCopying(), "Cache has been corrupted" );
-               ce->setCopying(false);
+            if ( size != ce->getSize() ) {
+               if ( ce->trySetToResizing() ) {
+                  // Wait untill it's only me using this entry
+                  while ( _cache.getReferences( ce->getTag() ) > 1 );
+
+                  // First approach, always copy back if size didn't match
+                  if ( ce->isDirty() ) {
+                     // invalidate in its own cache
+                     _cache.invalidate( tag, ce->getSize(), de );
+                     // synchronize invalidation
+                     _cache.syncTransfer( tag ); // Ask the device to be nice and priorise this transfer
+                     while( de->getOwner() != NULL );
+                  }
+                  if ( size > ce->getAllocSize() ) {
+                     _cache.realloc( ce, size );
+                  }
+                  ce->setSize(size);
+                  ce->setResizing(false);
+               }
+            }
+         }
+      } else {
+         // Cache entry already exists in the cache
+         if ( size != ce->getSize() ) {
+            if ( ce->trySetToResizing() ) {
+               // Wait untill it's only me using this entry
+               while ( _cache.getReferences( ce->getTag() ) > 1 );
+
+               // First approach, always copy back if size didn't match
+               if ( ce->isDirty() ) {
+                  // invalidate in its own cache
+                  _cache.invalidate( tag, ce->getSize(), de );
+                  // synchronize invalidation
+                  _cache.syncTransfer( tag ); // Ask the device to be nice and priorise this transfer
+                  while( de->getOwner() != NULL );
+               }
+               if ( size > ce->getAllocSize() ) {
+                  _cache.realloc( ce, size );
+               }
+               ce->setSize(size);
+               ce->setResizing(false);
             }
          }
 
-         void synchronize( std::list<uint64_t> &tags )
-         {
-            for_each( tags.begin(), tags.end(), std :: bind1st( std :: ptr_fun ( synchronize ), this ) );
-         }
+         if ( de->getVersion() != ce->getVersion()) {
+            // Version doesn't match the one in the directory
+            if ( input ) {
+               if ( ce->trySetToCopying() ) {
+                  ce->setVersion( de->getVersion() );
+                  Cache *owner = de->getOwner();
+                  if ( owner != NULL ) {
+                     // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
+                     owner->invalidate( tag, size, de );
+                     owner->syncTransfer( tag ); // Ask the device to be nice and priorise this transfer
+                     while( de->getOwner() != NULL );
+                  }
 
-         void waitInput( uint64_t tag )
-         {
-            CacheEntry *ce = _cache.find(tag);
-            // FIXME: enable this when separating the headers
-            //ensure( ce != NULL, "Cache has been corrupted" );
-            while ( ce->isCopying() );
-         }
+                  // Wait while it's resizing
+                  while ( ce-> isResizing() );
 
-         static void waitInput( DeviceCache* _this, uint64_t tag )
-         {
-            CacheEntry *ce = _this->_cache.find(tag);
-            // FIXME: enable this when separating the headers
-            //ensure( ce != NULL, "Cache has been corrupted" );
-            while ( ce->isCopying() );
+                  // Copy in
+                  if ( _cache.copyDataToCache( tag, size ) ) {
+                     ce->setCopying(false);
+                  }
+               }
+            } else {
+               // Since there's no input, it is output and we don't care about what may be in other caches, just update this version
+               ce->setVersion( de->getVersion() );
+            }
          }
-
-         void waitInputs( std::list<uint64_t> &tags )
-         {
-            for_each( tags.begin(), tags.end(), std :: bind1st( std :: ptr_fun ( waitInput ), this ) );
-            for_each( tags.begin(), tags.end(), waitInput );
+         if (output) {
+            de->setOwner(&_cache);
+            de->setInvalidated(false);
+            de->increaseVersion();
+            ce->increaseVersion();
          }
+      }
+   }
+}
 
-         size_t& getCacheSize()
-         {
-            return _size;
+inline void CachePolicy::registerPrivateAccess( uint64_t tag, size_t size, bool input, bool output )
+{
+   bool inserted;
+   CacheEntry c =  CacheEntry( NULL, size, tag, 0, output, input );
+   CacheEntry& ce = _cache.insert( tag, c, inserted );
+   ensure ( inserted, "Private access cannot hit the cache.");
+   ce.setAddress( _cache.allocate( size ) );
+   if ( input ) {
+      if ( _cache.copyDataToCache( tag, size ) ) {
+         ce.setCopying(false);
+      }
+   }
+}
+
+inline void CachePolicy::unregisterPrivateAccess( uint64_t tag, size_t size )
+{
+   CacheEntry *ce = _cache.getEntry( tag );
+   _cache.deleteReference(tag);
+   _cache.deleteReference(tag);
+   ensure ( ce != NULL, "Private access cannot miss in the cache.");
+   // FIXME: to use this output it needs to be synchronized now or somewhere in case it is asynchronous
+   if ( ce->isDirty() ) {
+      _cache.copyBackFromCache( tag, size );
+   }
+   _cache.deleteEntry( tag, size );
+}
+
+inline void WriteThroughPolicy::unregisterCacheAccess( uint64_t tag, size_t size, bool output )
+{
+   CacheEntry *ce = _cache.getEntry( tag );
+   // There's two reference deleting calls because getEntry places one reference
+   _cache.deleteReference(tag);
+   _cache.deleteReference(tag);
+   if ( output ) {
+      if ( _cache.copyBackFromCache( tag, size ) ) {
+         ce->setDirty(false);
+         DirectoryEntry *de = _directory.getEntry(tag);
+         ensure( de != NULL, "Directory has been corrupted" );
+         de->setOwner(NULL);
+      } else {
+         ce->setFlushing(true);
+         ce->setDirty(false);
+      }
+   }
+}
+
+inline void WriteBackPolicy::unregisterCacheAccess( uint64_t tag, size_t size, bool output )
+{
+   // There's two reference deleting calls because getEntry places one reference
+   _cache.deleteReference(tag);
+   _cache.deleteReference(tag);
+}
+
+ /*! \brief A Cache is a class that provides basic services for registering and
+  *         searching for memory blocks in a device using an identifier represented
+  *         by an unsigned int of 64 bits which represents the address of the original
+  *         data in the host. 
+  */
+template <class _T, class _Policy>
+inline size_t DeviceCache<_T,_Policy>::getSize()
+   { return _size; }
+
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::setSize( size_t size )
+   { _size = size; }
+
+template <class _T, class _Policy>
+inline void * DeviceCache<_T,_Policy>::allocate( size_t size )
+{
+   void *result;
+   NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-malloc") );
+   if ( _usedSize + size <= _size ) {
+      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_CACHE, key, (nanos_event_value_t) size) );
+      result = _T::allocate( size, _pe );
+      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
+   } else {
+      // FIXME: lock the cache
+      freeSpaceToFit( size );
+      // FIXME: unlock
+      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_CACHE, key, (nanos_event_value_t) size) );
+      result = _T::allocate( size, _pe );
+      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
+   }
+   _usedSize+= size;
+   return result;
+}
+
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::freeSpaceToFit( size_t size )
+{
+   CacheHash::KeyList kl;
+   _cache.listUnreferencedKeys( kl );
+   CacheHash::KeyList::iterator it;
+   for ( it = kl.begin(); it != kl.end(); it++ ) {
+      // Copy the entry because once erased it can be recycled
+      CacheEntry &ce = *(_cache.find( it->second ));
+      if ( _cache.erase( it->second ) ) {
+         if ( ce.isDirty() ) {
+            DirectoryEntry *de = _directory.getEntry(ce.getTag());
+            invalidate( ce.getTag(), ce.getSize(), de );
          }
-   };
+         // FIXME: this can be optimized by adding the flushing entries to a list and go to that list if not enough space was freed
+         while ( ce.isFlushing() )
+            _T::syncTransfer( (uint64_t)it->second, _pe );
+         _T::free( ce.getAddress(), _pe );
+         _usedSize -= ce.getSize();
+         if ( _usedSize + size <= _size )
+            break;
+      }
+   }
+   ensure( _usedSize + size <= _size, "Cache is full" )
+}
 
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::deleteEntry( uint64_t tag, size_t size )
+{
+   NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-free") );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_CACHE, key, (nanos_event_value_t) size) );
+   // it assumes the entry exists
+   CacheEntry &ce = _cache[tag];
+   _T::free( ce.getAddress(), _pe );
+   _usedSize -= ce.getAllocSize();
+   _cache.erase( tag );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
+}
+
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::realloc( CacheEntry *ce, size_t size )
+{
+   if ( _usedSize + size - ce->getSize() < _size ) {
+      freeSpaceToFit( size - ce->getSize() );
+   }
+   _usedSize += size - ce->getSize();
+   void *addr = ce->getAddress();
+   addr = _T::realloc( addr, size, ce->getSize(), _pe );
+   ce->setAllocSize( size );
+   ce->setSize( size );
+   ce->setAddress( addr );
+}
+
+template <class _T, class _Policy>
+inline void * DeviceCache<_T,_Policy>::getAddress( uint64_t tag )
+{
+   void *result = _cache[tag].getAddress();
+   return result;
+}
+
+template <class _T, class _Policy>
+inline bool DeviceCache<_T,_Policy>::copyDataToCache( uint64_t tag, size_t size )
+{
+   bool result;
+   NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER, key, (nanos_event_value_t) size) );
+   result = _T::copyIn( _cache[tag].getAddress(), tag, size, _pe );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
+   return result;
+}
+
+template <class _T, class _Policy>
+inline bool DeviceCache<_T,_Policy>::copyBackFromCache( uint64_t tag, size_t size )
+{
+   bool result;
+   NANOS_INSTRUMENT( static nanos_event_key_t key1 = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-out") );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER, key1, size ) );
+   CacheEntry &entry = _cache[tag];
+   result = _T::copyOut( tag, entry.getAddress(), size, _pe );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key1 ) );
+   return result;
+}
+
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::copyTo( void *dst, uint64_t tag, size_t size )
+{
+   NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-local-copy") );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER, key, size ) );
+   _T::copyLocal( dst, _cache[tag].getAddress(), size, _pe );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
+}
+
+template <class _T, class _Policy>
+inline CacheEntry& DeviceCache<_T,_Policy>::newEntry( uint64_t tag, size_t size, unsigned int version, bool dirty )
+{
+   CacheEntry& ce = _cache[tag];
+   ce.setTag( tag );
+   ce.setSize( size );
+   ce.setVersion( version );
+   ce.setDirty( dirty );
+   return ce;
+}
+
+template <class _T, class _Policy>
+inline CacheEntry& DeviceCache<_T,_Policy>::insert( uint64_t tag, CacheEntry& ce, bool& inserted )
+{
+   return _cache.insert( tag, ce, inserted );
+}
+
+template <class _T, class _Policy>
+inline CacheEntry* DeviceCache<_T,_Policy>::getEntry( uint64_t tag )
+{
+   return _cache.findAndReference( tag );
+}
+
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::addReference( uint64_t tag )
+{
+   _cache.findAndReference(tag);
+}
+
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::deleteReference( uint64_t tag )
+{
+   _cache.deleteReference(tag);
+}
+
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::registerCacheAccess( uint64_t tag, size_t size, bool input, bool output )
+{
+   _policy.registerCacheAccess( tag, size, input, output );
+}
+
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::unregisterCacheAccess( uint64_t tag, size_t size, bool output )
+{
+   _policy.unregisterCacheAccess( tag, size, output );
+}
+
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::registerPrivateAccess( uint64_t tag, size_t size, bool input, bool output )
+{
+   _policy.registerPrivateAccess( tag, size, input, output );
+}
+
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::unregisterPrivateAccess( uint64_t tag, size_t size )
+{
+   _policy.unregisterPrivateAccess( tag, size );
+}
+
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::synchronizeTransfer( uint64_t tag )
+{
+   CacheEntry *ce = _cache.find(tag);
+   ensure( ce != NULL && ce->hasTransfers(), "Cache has been corrupted" );
+   ce->decreaseTransfers();
+}
+
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::synchronize( uint64_t tag )
+{
+   CacheEntry *ce = _cache.find(tag);
+   ensure( ce != NULL, "Cache has been corrupted" );
+   if ( ce->isFlushing() ) {
+      DirectoryEntry *de = _directory.getEntry(tag);
+      ensure( de != NULL, "Directory has been corrupted" );
+      de->setOwner(NULL);
+      memoryFence(); 
+      ce->setFlushing(false);
+   } else {
+      ensure( ce->isCopying(), "Cache has been corrupted" );
+      ce->setCopying(false);
+   }
+}
+
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::synchronize( DeviceCache<_T,_Policy>* _this, uint64_t tag )
+{
+   CacheEntry *ce = _this->_cache.find(tag);
+   ensure( ce != NULL, "Cache has been corrupted" );
+   if ( ce->isFlushing() ) {
+      ce->setFlushing(false);
+      DirectoryEntry *de = _this->_directory.getEntry(tag);
+      ensure ( !ce->isCopying(), "User program is incorrect" );
+      ensure( de != NULL, "Directory has been corrupted" );
+      de->setOwner(NULL);
+   } else {
+      ensure ( !ce->isFlushing(), "User program is incorrect" );
+      ensure( ce->isCopying(), "Cache has been corrupted" );
+      ce->setCopying(false);
+   }
+}
+
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::synchronize( std::list<uint64_t> &tags )
+{
+   for_each( tags.begin(), tags.end(), std :: bind1st( std :: ptr_fun ( synchronize ), this ) );
+}
+
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::waitInput( uint64_t tag )
+{
+   CacheEntry *ce = _cache.find(tag);
+   ensure( ce != NULL, "Cache has been corrupted" );
+   while ( ce->isCopying() );
+}
+
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::waitInput( DeviceCache<_T,_Policy>* _this, uint64_t tag )
+{
+   CacheEntry *ce = _this->_cache.find(tag);
+   ensure( ce != NULL, "Cache has been corrupted" );
+   while ( ce->isCopying() );
+}
+
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::waitInputs( std::list<uint64_t> &tags )
+{
+   for_each( tags.begin(), tags.end(), std :: bind1st( std :: ptr_fun ( waitInput ), this ) );
+   for_each( tags.begin(), tags.end(), waitInput );
+}
+
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::invalidate( uint64_t tag, size_t size, DirectoryEntry *de )
+{
+   CacheEntry *ce = _cache.find( tag );
+   if ( de->trySetInvalidated() ) {
+      if ( ce->trySetToFlushing() ) {
+         if ( de->getOwner() != this ) {
+               // someone flushed it between setting to invalidated and setting to flushing, do nothing
+               ce->setFlushing(false);
+         } else {
+            if ( copyBackFromCache( tag, size ) ) {
+               ce->setFlushing(false);
+               de->setOwner(NULL);
+            }
+         }
+      }
+   }
+}
+
+template <class _T, class _Policy>
+inline size_t& DeviceCache<_T,_Policy>::getCacheSize()
+{
+   return _size;
+}
+
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::syncTransfer( uint64_t tag )
+{
+   _T::syncTransfer( tag, _pe );
+}
+
+template <class _T, class _Policy>
+int DeviceCache<_T,_Policy>::getReferences( unsigned int tag )
+{
+   return _cache.getReferenceCount( tag );
 }
 
 #endif

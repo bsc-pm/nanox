@@ -119,6 +119,10 @@ class HashMap
       */
       void deleteReference( _KeyType key );
 
+     /* \brief Returns the number of references
+      */
+      unsigned int getReferenceCount( _KeyType key );
+
      /* \brief Tries to erase the element identified by 'key' and returns true if successful (it had no references)
       */
       bool erase( _KeyType key );
