@@ -172,7 +172,7 @@ nanos_err_t nanos_set_lock ( nanos_lock_t *lock )
    NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(1, &Keys, &Values); )
 
    try {
-      Lock *l = ( Lock * ) lock;
+      Lock &l = *( Lock * ) lock;
       l++;
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
@@ -192,7 +192,7 @@ nanos_err_t nanos_unset_lock ( nanos_lock_t *lock )
    NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(1, &Keys, &Values); )
 
    try {
-      Lock *l = ( Lock * ) lock;
+      Lock &l = *( Lock * ) lock;
       l--;
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
@@ -212,9 +212,9 @@ nanos_err_t nanos_try_lock ( nanos_lock_t *lock, bool *result )
    NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(1, &Keys, &Values); )
 
    try {
-      Lock *l = ( Lock * ) lock;
+      Lock &l = *( Lock * ) lock;
 
-      *result = l->tryAcquire();
+      *result = l.tryAcquire();
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }

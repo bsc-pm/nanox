@@ -117,5 +117,16 @@ inline SchedulerConf  & System::getSchedulerConf ()  { return _schedConf; }
 inline const std::string & System::getDefaultArch() const { return _defArch; }
 inline void System::setDefaultArch( const std::string &arch ) { _defArch = arch; }
 
+inline void System::setPMInterface(PMInterface *pm)
+{
+   ensure(!_pmInterface,"PM interface already in place!");
+   _pmInterface = pm;
+}
+
+inline bool System::throttleTask()
+{
+   return _throttlePolicy->throttle();
+}
+
 #endif
 
