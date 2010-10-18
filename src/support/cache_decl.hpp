@@ -39,30 +39,30 @@ namespace nanos {
 
          /**< Size of the block in the cache */
          size_t _size;
-
-         /**< Entry references counter  */
-         unsigned int _refs;
+         /**< Size of the block allocated in the device */
+         size_t _allocSize;
 
          volatile bool _dirty;
          Atomic<bool> _copying;
          Atomic<bool> _flushing;
          Atomic<unsigned int> _transfers;
+         Atomic<bool> _resizing;
 
       public:
 
         /*! \brief Default constructor
          */
-         CacheEntry(): Entry(), _addr( NULL ), _size(0), _refs( 0 ), _dirty( false ), _copying(false), _flushing(false), _transfers(0) {}
+         CacheEntry(): Entry(), _addr( NULL ), _size(0), _allocSize(0), _dirty( false ), _copying(false), _flushing(false), _transfers(0), _resizing(false) {}
 
         /*! \brief Constructor
          *  \param addr: address of the cache entry
          */
-         CacheEntry( void *addr, size_t size, uint64_t tag, unsigned int version, bool dirty, bool copying ): Entry( tag, version ), _addr( addr ), _size(size), _refs( 0 ), _dirty( dirty ), _copying(copying), _flushing(false), _transfers(0) {}
+         CacheEntry( void *addr, size_t size, uint64_t tag, unsigned int version, bool dirty, bool copying ): Entry( tag, version ), _addr( addr ), _size(size), _allocSize(0), _dirty( dirty ), _copying(copying), _flushing(false), _transfers(0), _resizing(false) {}
 
         /*! \brief Copy constructor
          *  \param Another CacheEntry
          */
-         CacheEntry( const CacheEntry &ce ): Entry( ce.getTag(), ce.getVersion() ), _addr( ce._addr ), _size( ce._size ), _refs( ce._refs ), _dirty( ce._dirty ), _copying(ce._copying), _flushing(false), _transfers(0) {}
+         CacheEntry( const CacheEntry &ce ): Entry( ce.getTag(), ce.getVersion() ), _addr( ce._addr ), _size( ce._size ), _allocSize( ce._allocSize ), _dirty( ce._dirty ), _copying(ce._copying), _flushing(false), _transfers(0), _resizing(false) {}
 
         /* \brief Destructor
          */
@@ -77,11 +77,11 @@ namespace nanos {
             this->setVersion( ce.getVersion() );
             this->_addr = ce._addr;
             this->_size = ce._size;
-            this->_refs = ce._refs;
             this->_dirty = ce._dirty;
             this->_copying = ce._copying;
             this->_flushing = ce._flushing;
             this->_transfers = ce._transfers;
+            this->_resizing = ce._resizing;
             return *this;
          }
 
@@ -105,20 +105,15 @@ namespace nanos {
          void setSize( size_t size )
          { _size = size; }
 
-        /* \brief Whether the Entry has references or not
+        /* \brief Returns the size of the block in the device
          */
-         bool hasRefs() const
-         { return _refs > 0; }
+         size_t getAllocSize() const
+         { return _allocSize; }
 
-        /* \brief Increase the references to the entry
+        /* \brief Size setter
          */
-         void increaseRefs()
-         { _refs++; }
-
-        /* \brief Decrease the references to the entry
-         */
-         bool decreaseRefs()
-         { return (--_refs) == 0; }
+         void setAllocSize( size_t size )
+         { _allocSize = size; }
 
          bool isDirty()
          { return _dirty; }
@@ -163,6 +158,23 @@ namespace nanos {
             _transfers--;
             return hasTransfers();
          }
+
+         bool isResizing()
+         {
+            return _resizing.value();
+         }
+
+         void setResizing( bool resizing )
+         {
+            _resizing = resizing;
+         }
+
+         bool trySetToResizing()
+         {
+            Atomic<bool> expected = false;
+            Atomic<bool> value = true;
+            return _resizing.cswap( expected, value );
+         }
    };
 
 
@@ -171,6 +183,7 @@ namespace nanos {
       public:
          virtual ~Cache() { }
          virtual void * allocate( size_t size ) = 0;
+         virtual void realloc( CacheEntry * ce, size_t size ) = 0;
          virtual CacheEntry& newEntry( uint64_t tag, size_t size, unsigned int version, bool dirty ) = 0;
          virtual CacheEntry& insert( uint64_t tag, CacheEntry& ce, bool& inserted ) = 0;
          virtual void deleteEntry( uint64_t tag, size_t size ) = 0;
@@ -182,6 +195,7 @@ namespace nanos {
          virtual void copyTo( void *dst, uint64_t tag, size_t size ) = 0;
          virtual void invalidate( uint64_t tag, size_t size, DirectoryEntry *de ) = 0;
          virtual void syncTransfer( uint64_t tag ) = 0;
+         virtual int getReferences( unsigned int tag ) = 0;
    };
 
    class CachePolicy
@@ -281,7 +295,11 @@ namespace nanos {
 
          void * allocate( size_t size );
 
+         void freeSpaceToFit( size_t size );
+
          void deleteEntry( uint64_t tag, size_t size );
+
+         void realloc( CacheEntry *ce, size_t size );
 
         /* \brief get the Address in the cache for tag
          * \param tag: Identifier of the entry to look for
@@ -344,6 +362,8 @@ namespace nanos {
          size_t& getCacheSize();
 
          void syncTransfer( uint64_t tag );
+
+         int getReferences( unsigned int tag );
    };
 
 }
