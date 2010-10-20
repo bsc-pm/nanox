@@ -424,6 +424,12 @@ void GPUDevice::syncTransfer( uint64_t hostAddress, ProcessingElement *pe)
    // since we use copy back, this is always ensured
 }
 
+void * GPUDevice::realloc( void * address, size_t size, size_t ceSize, ProcessingElement *pe )
+{
+   fatal( "GPUDevice::realloc(): Feature not implemented yet" );
+   return 0;
+}
+
 void GPUDevice::copyOutAsyncToBuffer ( void * dst, void * src, size_t size )
 {
    cudaError_t err = cudaMemcpyAsync(

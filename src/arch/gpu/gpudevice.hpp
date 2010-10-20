@@ -128,6 +128,10 @@ typedef enum {
           */
          static void syncTransfer( uint64_t hostAddress, ProcessingElement *pe);
 
+         /* \brief Reallocate and copy from address.
+          */
+         static void * realloc( void * address, size_t size, size_t ceSize, ProcessingElement *pe );
+
          /* \brief when transferring with asynchronous modes, copy from src in the device
           *        to dst in the host, where dst is an intermediate buffer
           */
