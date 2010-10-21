@@ -109,8 +109,6 @@ inline void System::registerSlicer ( const std::string &label, Slicer *slicer) {
 inline void System::setDefaultSchedulePolicy ( SchedulePolicy *policy ) { _defSchedulePolicy = policy; }
 inline SchedulePolicy * System::getDefaultSchedulePolicy ( ) const  { return _defSchedulePolicy; }
 
-inline Directory& System::getDirectory() { return _directory; }
-
 inline SchedulerStats & System::getSchedulerStats () { return _schedStats; }
 inline SchedulerConf  & System::getSchedulerConf ()  { return _schedConf; }
 

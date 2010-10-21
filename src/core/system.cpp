@@ -26,7 +26,6 @@
 #include "nanos-int.h"
 #include "copydata.hpp"
 #include "os.hpp"
-#include "directory.hpp"
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -48,7 +47,7 @@ System nanos::sys;
 System::System () :
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindThreads( true ), _profile( false ), _instrument( false ),
       _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster(true), _delayedStart(false), _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" ),
-      _defInstr ( "empty_trace" ), _defArch("smp"), _instrumentation ( NULL ), _defSchedulePolicy(NULL), _directory()
+      _defInstr ( "empty_trace" ), _defArch("smp"), _instrumentation ( NULL ), _defSchedulePolicy(NULL)
 {
    verbose0 ( "NANOS++ initalizing... start" );
    // OS::init must be called here and not in System::start() as it can be too late

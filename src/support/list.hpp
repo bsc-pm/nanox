@@ -138,7 +138,7 @@ class List {
             operator const_iterator () const
                { return const_iterator( _node, _list ); }
 
-            iterator const& operator=( iterator const &it)
+            iterator const& operator=( iterator const &it )
             {
                if ( _node != _list->_end )
                   _node->decreaseRefs();

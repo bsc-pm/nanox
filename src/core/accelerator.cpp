@@ -46,9 +46,9 @@ void Accelerator::copyDataIn( WorkDescriptor &work )
       }
 
       if ( cd.isPrivate() ) {
-         this->registerPrivateAccessDependent( tag, cd.getSize(), cd.isInput(), cd.isOutput() );
+         this->registerPrivateAccessDependent( *(work.getParent()->getDirectory(true)), tag, cd.getSize(), cd.isInput(), cd.isOutput() );
       } else {
-         this->registerCacheAccessDependent( tag, cd.getSize(), cd.isInput(), cd.isOutput() );
+         this->registerCacheAccessDependent( *(work.getParent()->getDirectory(true)), tag, cd.getSize(), cd.isInput(), cd.isOutput() );
       }
    }
 #if LOCK_TRANSFER
@@ -82,9 +82,9 @@ void Accelerator::copyDataOut( WorkDescriptor& work )
 		NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) cd.getSize() ) );
       }
       if ( cd.isPrivate() ) {
-         this->unregisterPrivateAccessDependent( tag, cd.getSize() );
+         this->unregisterPrivateAccessDependent( *(work.getParent()->getDirectory(true)), tag, cd.getSize() );
       } else {
-         this->unregisterCacheAccessDependent( tag, cd.getSize(), cd.isOutput() );
+         this->unregisterCacheAccessDependent( *(work.getParent()->getDirectory(true)), tag, cd.getSize(), cd.isOutput() );
       }
    }
 #if LOCK_TRANSFER

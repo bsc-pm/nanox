@@ -30,14 +30,14 @@
 
 using namespace nanos;
 
-inline void CachePolicy::registerCacheAccess( uint64_t tag, size_t size, bool input, bool output )
+inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
 {
-   DirectoryEntry *de = _directory.getEntry( tag );
+   DirectoryEntry *de = dir.getEntry( tag );
    CacheEntry *ce;
    if ( de == NULL ) { // Memory access not registered in the directory
       bool inserted;
       DirectoryEntry d = DirectoryEntry( tag, 0, ( output ? &_cache : NULL ) );
-      de = &(_directory.insert( tag, d, inserted ));
+      de = &(dir.insert( tag, d, inserted ));
       if (!inserted) {
          if ( output ) {
             de->setOwner(&_cache);
@@ -48,7 +48,7 @@ inline void CachePolicy::registerCacheAccess( uint64_t tag, size_t size, bool in
       CacheEntry c =  CacheEntry( NULL, size, tag, 0, output, input );
       ce = &(_cache.insert( tag, c, inserted ));
       if (inserted) { // allocate it
-         ce->setAddress( _cache.allocate(size) );
+         ce->setAddress( _cache.allocate( dir, size ) );
          if (input) {
             if ( _cache.copyDataToCache( tag, size ) ) {
                ce->setCopying(false);
@@ -72,7 +72,7 @@ inline void CachePolicy::registerCacheAccess( uint64_t tag, size_t size, bool in
                owner->syncTransfer(tag);
                while( de->getOwner() != NULL );
             }
-            ce->setAddress( _cache.allocate(size) );
+            ce->setAddress( _cache.allocate( dir, size ) );
             if (input) {
                while ( de->getOwner() != NULL );
                if ( _cache.copyDataToCache( tag, size ) ) {
@@ -104,7 +104,7 @@ inline void CachePolicy::registerCacheAccess( uint64_t tag, size_t size, bool in
                      while( de->getOwner() != NULL );
                   }
                   if ( size > ce->getAllocSize() ) {
-                     _cache.realloc( ce, size );
+                     _cache.realloc( dir, ce, size );
                   }
                   ce->setSize(size);
                   ce->setResizing(false);
@@ -127,7 +127,7 @@ inline void CachePolicy::registerCacheAccess( uint64_t tag, size_t size, bool in
                   while( de->getOwner() != NULL );
                }
                if ( size > ce->getAllocSize() ) {
-                  _cache.realloc( ce, size );
+                  _cache.realloc( dir, ce, size );
                }
                ce->setSize(size);
                ce->setResizing(false);
@@ -170,13 +170,13 @@ inline void CachePolicy::registerCacheAccess( uint64_t tag, size_t size, bool in
    }
 }
 
-inline void CachePolicy::registerPrivateAccess( uint64_t tag, size_t size, bool input, bool output )
+inline void CachePolicy::registerPrivateAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
 {
    bool inserted;
    CacheEntry c =  CacheEntry( NULL, size, tag, 0, output, input );
    CacheEntry& ce = _cache.insert( tag, c, inserted );
    ensure ( inserted, "Private access cannot hit the cache.");
-   ce.setAddress( _cache.allocate( size ) );
+   ce.setAddress( _cache.allocate( dir, size ) );
    if ( input ) {
       if ( _cache.copyDataToCache( tag, size ) ) {
          ce.setCopying(false);
@@ -184,7 +184,7 @@ inline void CachePolicy::registerPrivateAccess( uint64_t tag, size_t size, bool 
    }
 }
 
-inline void CachePolicy::unregisterPrivateAccess( uint64_t tag, size_t size )
+inline void CachePolicy::unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size )
 {
    CacheEntry *ce = _cache.getEntry( tag );
    _cache.deleteReference(tag);
@@ -197,7 +197,7 @@ inline void CachePolicy::unregisterPrivateAccess( uint64_t tag, size_t size )
    _cache.deleteEntry( tag, size );
 }
 
-inline void WriteThroughPolicy::unregisterCacheAccess( uint64_t tag, size_t size, bool output )
+inline void WriteThroughPolicy::unregisterCacheAccess( Directory& dir, uint64_t tag, size_t size, bool output )
 {
    CacheEntry *ce = _cache.getEntry( tag );
    // There's two reference deleting calls because getEntry places one reference
@@ -206,7 +206,7 @@ inline void WriteThroughPolicy::unregisterCacheAccess( uint64_t tag, size_t size
    if ( output ) {
       if ( _cache.copyBackFromCache( tag, size ) ) {
          ce->setDirty(false);
-         DirectoryEntry *de = _directory.getEntry(tag);
+         DirectoryEntry *de = dir.getEntry(tag);
          ensure( de != NULL, "Directory has been corrupted" );
          de->setOwner(NULL);
       } else {
@@ -216,7 +216,7 @@ inline void WriteThroughPolicy::unregisterCacheAccess( uint64_t tag, size_t size
    }
 }
 
-inline void WriteBackPolicy::unregisterCacheAccess( uint64_t tag, size_t size, bool output )
+inline void WriteBackPolicy::unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output )
 {
    // There's two reference deleting calls because getEntry places one reference
    _cache.deleteReference(tag);
@@ -237,7 +237,7 @@ inline void DeviceCache<_T,_Policy>::setSize( size_t size )
    { _size = size; }
 
 template <class _T, class _Policy>
-inline void * DeviceCache<_T,_Policy>::allocate( size_t size )
+inline void * DeviceCache<_T,_Policy>::allocate( Directory &dir, size_t size )
 {
    void *result;
    NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-malloc") );
@@ -247,7 +247,7 @@ inline void * DeviceCache<_T,_Policy>::allocate( size_t size )
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
    } else {
       // FIXME: lock the cache
-      freeSpaceToFit( size );
+      freeSpaceToFit( dir, size );
       // FIXME: unlock
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_CACHE, key, (nanos_event_value_t) size) );
       result = _T::allocate( size, _pe );
@@ -258,7 +258,7 @@ inline void * DeviceCache<_T,_Policy>::allocate( size_t size )
 }
 
 template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::freeSpaceToFit( size_t size )
+inline void DeviceCache<_T,_Policy>::freeSpaceToFit( Directory &dir, size_t size )
 {
    CacheHash::KeyList kl;
    _cache.listUnreferencedKeys( kl );
@@ -268,7 +268,7 @@ inline void DeviceCache<_T,_Policy>::freeSpaceToFit( size_t size )
       CacheEntry &ce = *(_cache.find( it->second ));
       if ( _cache.erase( it->second ) ) {
          if ( ce.isDirty() ) {
-            DirectoryEntry *de = _directory.getEntry(ce.getTag());
+            DirectoryEntry *de = dir.getEntry(ce.getTag());
             invalidate( ce.getTag(), ce.getSize(), de );
          }
          // FIXME: this can be optimized by adding the flushing entries to a list and go to that list if not enough space was freed
@@ -297,10 +297,10 @@ inline void DeviceCache<_T,_Policy>::deleteEntry( uint64_t tag, size_t size )
 }
 
 template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::realloc( CacheEntry *ce, size_t size )
+inline void DeviceCache<_T,_Policy>::realloc( Directory& dir, CacheEntry *ce, size_t size )
 {
    if ( _usedSize + size - ce->getSize() < _size ) {
-      freeSpaceToFit( size - ce->getSize() );
+      freeSpaceToFit( dir, size - ce->getSize() );
    }
    _usedSize += size - ce->getSize();
    void *addr = ce->getAddress();
@@ -385,27 +385,27 @@ inline void DeviceCache<_T,_Policy>::deleteReference( uint64_t tag )
 }
 
 template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::registerCacheAccess( uint64_t tag, size_t size, bool input, bool output )
+inline void DeviceCache<_T,_Policy>::registerCacheAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
 {
-   _policy.registerCacheAccess( tag, size, input, output );
+   _policy.registerCacheAccess( dir, tag, size, input, output );
 }
 
 template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::unregisterCacheAccess( uint64_t tag, size_t size, bool output )
+inline void DeviceCache<_T,_Policy>::unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output )
 {
-   _policy.unregisterCacheAccess( tag, size, output );
+   _policy.unregisterCacheAccess( dir, tag, size, output );
 }
 
 template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::registerPrivateAccess( uint64_t tag, size_t size, bool input, bool output )
+inline void DeviceCache<_T,_Policy>::registerPrivateAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
 {
-   _policy.registerPrivateAccess( tag, size, input, output );
+   _policy.registerPrivateAccess( dir, tag, size, input, output );
 }
 
 template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::unregisterPrivateAccess( uint64_t tag, size_t size )
+inline void DeviceCache<_T,_Policy>::unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size )
 {
-   _policy.unregisterPrivateAccess( tag, size );
+   _policy.unregisterPrivateAccess( dir, tag, size );
 }
 
 template <class _T, class _Policy>
@@ -417,30 +417,13 @@ inline void DeviceCache<_T,_Policy>::synchronizeTransfer( uint64_t tag )
 }
 
 template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::synchronize( uint64_t tag )
+inline void DeviceCache<_T,_Policy>::synchronize( SyncData &sd, uint64_t tag )
 {
-   CacheEntry *ce = _cache.find(tag);
-   ensure( ce != NULL, "Cache has been corrupted" );
-   if ( ce->isFlushing() ) {
-      DirectoryEntry *de = _directory.getEntry(tag);
-      ensure( de != NULL, "Directory has been corrupted" );
-      de->setOwner(NULL);
-      memoryFence(); 
-      ce->setFlushing(false);
-   } else {
-      ensure( ce->isCopying(), "Cache has been corrupted" );
-      ce->setCopying(false);
-   }
-}
-
-template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::synchronize( DeviceCache<_T,_Policy>* _this, uint64_t tag )
-{
-   CacheEntry *ce = _this->_cache.find(tag);
+   CacheEntry *ce = sd._this->_cache.find(tag);
    ensure( ce != NULL, "Cache has been corrupted" );
    if ( ce->isFlushing() ) {
       ce->setFlushing(false);
-      DirectoryEntry *de = _this->_directory.getEntry(tag);
+      DirectoryEntry *de = sd.dir.getEntry(tag);
       ensure ( !ce->isCopying(), "User program is incorrect" );
       ensure( de != NULL, "Directory has been corrupted" );
       de->setOwner(NULL);
@@ -452,9 +435,17 @@ inline void DeviceCache<_T,_Policy>::synchronize( DeviceCache<_T,_Policy>* _this
 }
 
 template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::synchronize( std::list<uint64_t> &tags )
+inline void DeviceCache<_T,_Policy>::synchronize( Directory &dir, uint64_t tag )
 {
-   for_each( tags.begin(), tags.end(), std :: bind1st( std :: ptr_fun ( synchronize ), this ) );
+   SyncData sd = { dir, this };
+   synchronize( sd, tag );
+}
+
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::synchronize( Directory &dir, std::list<uint64_t> &tags )
+{
+   SyncData sd = { dir, this };
+   for_each( tags.begin(), tags.end(), std :: bind1st( std :: ptr_fun ( synchronize ), sd ) );
 }
 
 template <class _T, class _Policy>
@@ -479,6 +470,25 @@ inline void DeviceCache<_T,_Policy>::waitInputs( std::list<uint64_t> &tags )
    for_each( tags.begin(), tags.end(), std :: bind1st( std :: ptr_fun ( waitInput ), this ) );
    for_each( tags.begin(), tags.end(), waitInput );
 }
+
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::invalidate( uint64_t tag, DirectoryEntry *de )
+{
+   CacheEntry *ce = _cache.find( tag );
+   if ( de->trySetInvalidated() ) {
+      if ( ce->trySetToFlushing() ) {
+         if ( de->getOwner() != this ) {
+               // someone flushed it between setting to invalidated and setting to flushing, do nothing
+               ce->setFlushing(false);
+         } else {
+            if ( copyBackFromCache( tag, ce->getSize() ) ) {
+               ce->setFlushing(false);
+               de->setOwner(NULL);
+            }
+         }
+      }
+   }
+} 
 
 template <class _T, class _Policy>
 inline void DeviceCache<_T,_Policy>::invalidate( uint64_t tag, size_t size, DirectoryEntry *de )

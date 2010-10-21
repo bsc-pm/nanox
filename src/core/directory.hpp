@@ -122,4 +122,31 @@ inline void Directory::waitInput( uint64_t tag )
       while ( de->getOwner() != NULL );
 }
 
+inline void Directory::synchronizeHost()
+{
+   std::list<DirectoryEntry *> flushings;
+   DirectoryMap::iterator it = _directory.begin();
+   while ( it != _directory.end() ) {
+      DirectoryEntry &de = *it;
+      Cache * c = de.getOwner();
+      if ( c == NULL ) {
+         // Invalidate all non-dirty copies
+         de.setVersion( de.getVersion()+1 );
+      } else {
+         // Froce copy back
+         c->invalidate( de.getTag(), &de );
+         flushings.push_back( &de );
+      }
+      it++;
+   }
+   for ( std::list<DirectoryEntry *>::iterator deIt=flushings.begin(); deIt != flushings.end(); deIt++ ) {
+      DirectoryEntry *de = *deIt;
+      Cache *c = de->getOwner();
+      if ( c != NULL ) {
+         c->syncTransfer( de->getTag() );
+         while (  de->getOwner() != NULL );
+      }
+   }
+}
+
 #endif

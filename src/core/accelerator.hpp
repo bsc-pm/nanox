@@ -62,10 +62,10 @@ namespace nanos
 
          virtual void waitInputDependent( uint64_t tag ) = 0;
 
-         virtual void registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output ) = 0;
-         virtual void unregisterCacheAccessDependent( uint64_t tag, size_t size, bool output ) = 0;
-         virtual void registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output ) = 0;
-         virtual void unregisterPrivateAccessDependent( uint64_t tag, size_t size ) = 0;
+         virtual void registerCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output ) = 0;
+         virtual void unregisterCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool output ) = 0;
+         virtual void registerPrivateAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output ) = 0;
+         virtual void unregisterPrivateAccessDependent( Directory &dir, uint64_t tag, size_t size ) = 0;
 
          virtual void* getAddress( WorkDescriptor& wd, uint64_t tag, nanos_sharing_t sharing );
          virtual void copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );

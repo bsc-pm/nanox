@@ -119,6 +119,8 @@ namespace nanos
          void registerAccess( uint64_t tag, size_t size, bool input, bool output );
 
          void waitInput( uint64_t tag );
+
+         void synchronizeHost();
    };
 
 };
