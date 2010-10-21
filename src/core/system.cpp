@@ -187,7 +187,7 @@ void System::start ()
    loadModules();
 
    // Instrumentation startup
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->initialize() );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->initialize() );
    verbose0 ( "Starting runtime" );
 
    _pmInterface->start();
