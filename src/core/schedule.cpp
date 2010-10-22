@@ -332,7 +332,8 @@ void Scheduler::exitHelper (WD *oldWD, WD *newWD, void *arg)
 {
     myThread->exitHelperDependent(oldWD, newWD, arg);
     NANOS_INSTRUMENT ( sys.getInstrumentation()->wdSwitch(oldWD,newWD,true) );
-    delete oldWD;
+    oldWD->~WorkDescriptor();
+    delete[] (char *)oldWD;
     myThread->setCurrentWD( *newWD );
 }
 
