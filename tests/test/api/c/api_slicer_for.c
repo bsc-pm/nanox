@@ -33,7 +33,7 @@ test_generator=gens/api-generator
 #include <stdio.h>
 #include <nanos.h>
 
-#define NUM_ITERS      100
+#define NUM_ITERS      20
 #define VECTOR_SIZE    1000
 #define VECTOR_MARGIN  20
 

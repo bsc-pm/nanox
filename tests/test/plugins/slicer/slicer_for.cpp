@@ -43,7 +43,7 @@ using namespace std;
 using namespace nanos;
 using namespace nanos::ext;
 
-#define NUM_ITERS      100
+#define NUM_ITERS      20
 #define VECTOR_SIZE    1000
 #define VECTOR_MARGIN  20
 
