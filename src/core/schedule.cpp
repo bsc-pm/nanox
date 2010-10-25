@@ -23,6 +23,7 @@
 #include "system.hpp"
 #include "config.hpp"
 #include "instrumentationmodule_decl.hpp"
+#include "os.hpp"
 
 using namespace nanos;
 
@@ -80,16 +81,29 @@ void Scheduler::updateExitStats ( void )
 template<class behaviour>
 inline void Scheduler::idleLoop ()
 {
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t total_spins_key = ID->getEventKey("num-spins"); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t total_yields_key = ID->getEventKey("num-yields"); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t time_yields_key = ID->getEventKey("time-yields"); )
+   NANOS_INSTRUMENT ( nanos_event_key_t Keys[3]; )
+   NANOS_INSTRUMENT ( Keys[0] = total_spins_key; )
+   NANOS_INSTRUMENT ( Keys[1] = total_yields_key; )
+   NANOS_INSTRUMENT ( Keys[2] = time_yields_key; )
+
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_IDLE) );
 
    const int nspins = sys.getSchedulerConf().getNumSpins();
    int spins = nspins;
+   unsigned long total_spins = 0;  /* Number of spins by idle phase*/
+   unsigned long total_yields = 0; /* Number of yields by idle phase */
+   unsigned long time_yields = 0;  /* Time of yields by idle phase */
 
    WD *current = myThread->getCurrentWD();
    current->setIdle();
    sys.getSchedulerStats()._idleThreads++;
    for ( ; ; ) {
       BaseThread *thread = getMyThreadSafe();
+      spins--;
 
       if ( !thread->isRunning() ) break;
 
@@ -105,21 +119,34 @@ inline void Scheduler::idleLoop ()
          if ( next ) {
             sys.getSchedulerStats()._readyTasks--;
             sys.getSchedulerStats()._idleThreads--;
-            NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) );
+
+            total_spins+= (nspins - spins);
+            NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
+            NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) total_spins; )
+            NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) total_yields; )
+            NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) time_yields; )
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(3, Keys, Values); )
+
+            NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) )
             behaviour::switchWD(thread,current, next);
             thread = getMyThreadSafe();
             NANOS_INSTRUMENT( inst2.close() );
             sys.getSchedulerStats()._idleThreads++;
+            total_spins = 0;
+            total_yields = 0;
+            time_yields = 0;
             spins = nspins;
             continue;
          }
       }
 
-      spins--;
       if ( spins == 0 ) {
-        NANOS_INSTRUMENT( InstrumentState inst3(NANOS_YIELD) );
+        total_spins+= nspins;
+        total_yields++;
+        unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
         thread->yield();
-        NANOS_INSTRUMENT( inst3.close() );
+        unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+        time_yields += ( end_yield - begin_yield );
         spins = nspins;
       }
       else {
@@ -132,10 +159,22 @@ inline void Scheduler::idleLoop ()
 
 void Scheduler::waitOnCondition (GenericSyncCond *condition)
 {
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t total_spins_key = ID->getEventKey("num-spins"); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t total_yields_key = ID->getEventKey("num-yields"); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t time_yields_key = ID->getEventKey("time-yields"); )
+   NANOS_INSTRUMENT ( nanos_event_key_t Keys[3]; )
+   NANOS_INSTRUMENT ( Keys[0] = total_spins_key; )
+   NANOS_INSTRUMENT ( Keys[1] = total_yields_key; )
+   NANOS_INSTRUMENT ( Keys[2] = time_yields_key; )
+
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
 
    const int nspins = sys.getSchedulerConf().getNumSpins();
    int spins = nspins; 
+   unsigned long total_spins = 0;  /* Number of spins by idle phase*/
+   unsigned long total_yields = 0; /* Number of yields by idle phase */
+   unsigned long time_yields = 0;  /* Time of yields by idle phase */
 
    WD * current = myThread->getCurrentWD();
 
@@ -148,6 +187,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    while ( !condition->check() ) {
       spins--;
       if ( spins == 0 ) {
+         total_spins+= nspins;
          condition->lock();
          if ( !( condition->check() ) ) {
             condition->addWaiter( current );
@@ -159,16 +199,30 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
             if ( next ) {
                sys.getSchedulerStats()._readyTasks--;
                sys.getSchedulerStats()._idleThreads--;
+
+               NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
+               NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) total_spins; )
+               NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) total_yields; )
+               NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) time_yields; )
+               NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(3, Keys, Values); )
+
                NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) );
                switchTo ( next );
                thread = getMyThreadSafe();
                NANOS_INSTRUMENT( inst2.close() );
+
+               total_spins = 0;
+               total_yields = 0;
+               time_yields = 0;
+
                sys.getSchedulerStats()._idleThreads++;
             } else {
                condition->unlock();
-               NANOS_INSTRUMENT( InstrumentState inst3(NANOS_YIELD) );
+               total_yields++;
+               unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
                thread->yield();
-               NANOS_INSTRUMENT( inst3.close() );
+               unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+               time_yields += ( end_yield - begin_yield );
             }
          } else {
             condition->unlock();
@@ -184,6 +238,13 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    if ( !current->isReady() ) {
       current->setReady();
    }
+
+   total_spins+= (nspins - spins);
+   NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
+   NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) total_spins; )
+   NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) total_yields; )
+   NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) time_yields; )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(3, Keys, Values); )
 }
 
 void Scheduler::wakeUp ( WD *wd )

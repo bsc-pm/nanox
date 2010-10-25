@@ -206,7 +206,11 @@ namespace nanos {
 
             /* 17 */ registerEventKey("lock-addr","Lock address"); 
 
-            /* 18 */ registerEventKey("debug","Debug Key"); 
+            /* 18 */ registerEventKey("num-spins","Number of Spins"); 
+            /* 19 */ registerEventKey("num-yields","Number of Yields"); 
+            /* 20 */ registerEventKey("time-yields","Time on Yield (in nsecs)");
+
+            /* ** */ registerEventKey("debug","Debug Key"); /* Keep this key as the last one */
 #endif
 
          }
