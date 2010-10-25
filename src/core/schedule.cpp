@@ -42,30 +42,34 @@ void Scheduler::submit ( WD &wd )
 
    sys.getSchedulerStats()._createdTasks++;
    sys.getSchedulerStats()._totalTasks++;
-   sys.getSchedulerStats()._readyTasks++;
 
    debug ( "submitting task " << wd.getId() );
 
    /* handle tied tasks */
    if ( wd.isTied() && wd.isTiedTo() != mythread ) {
-      mythread->getTeam()->getSchedulePolicy().queue(wd.isTiedTo(), wd);
+      queue(wd.isTiedTo(), wd);
       return;
    }
 
    if ( !wd.canRunIn(*mythread->runningOn()) ) {
-      queue(wd);
+      queue(mythread, wd);
       return;
    }
 
-   WD *next = mythread->getTeam()->getSchedulePolicy().atSubmit( myThread, wd );
+   WD *next = getMyThreadSafe()->getTeam()->getSchedulePolicy().atSubmit( myThread, wd );
 
    if ( next ) {
       WD *slice;
       /* enqueue the remaining part of a WD */
-      if ( !next->dequeue(&slice) ) queue(*next);
-
+      if ( !next->dequeue(&slice) ) {
+         queue(mythread, *next);
+      }
       switchTo ( slice );
+   } else {
+      /* if next == NULL wd has been enqueued by SchedulePolicy.atSubmit() */
+      sys.getSchedulerStats()._readyTasks++;
    }
+
 }
 
 void Scheduler::updateExitStats ( void )
@@ -98,11 +102,12 @@ inline void Scheduler::idleLoop ()
             NANOS_INSTRUMENT( inst1.close() );
          }
 
-         if (next) {
+         if ( next ) {
             sys.getSchedulerStats()._readyTasks--;
             sys.getSchedulerStats()._idleThreads--;
             NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) );
             behaviour::switchWD(thread,current, next);
+            thread = getMyThreadSafe();
             NANOS_INSTRUMENT( inst2.close() );
             sys.getSchedulerStats()._idleThreads++;
             spins = nspins;
@@ -138,9 +143,9 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    current->setSyncCond( condition );
    current->setIdle();
    
+   BaseThread *thread = getMyThreadSafe(); /* FIXME: fuera de iteracion (ver abajo) */
+
    while ( !condition->check() ) {
-      BaseThread *thread = getMyThreadSafe();
-      
       spins--;
       if ( spins == 0 ) {
          condition->lock();
@@ -156,10 +161,10 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                sys.getSchedulerStats()._idleThreads--;
                NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) );
                switchTo ( next );
+               thread = getMyThreadSafe(); /* FIXME: xteruel -> recargar thread ??? y eliminar recarga a cada iteracion */
                NANOS_INSTRUMENT( inst2.close() );
                sys.getSchedulerStats()._idleThreads++;
-            }
-            else {
+            } else {
                condition->unlock();
                NANOS_INSTRUMENT( InstrumentState inst3(NANOS_YIELD) );
                thread->yield();
@@ -177,7 +182,6 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    current->setSyncCond( NULL );
    sys.getSchedulerStats()._idleThreads--;
    if ( !current->isReady() ) {
-      sys.getSchedulerStats()._readyTasks++;
       current->setReady();
    }
 }
@@ -186,9 +190,8 @@ void Scheduler::wakeUp ( WD *wd )
 {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
    if ( wd->isBlocked() ) {
-      sys.getSchedulerStats()._readyTasks++;
       wd->setReady();
-      Scheduler::queue( *wd );
+      Scheduler::queue(myThread, *wd );
    }
 }
 
@@ -211,7 +214,6 @@ struct WorkerBehaviour
         Scheduler::switchTo(next);
       else {
         Scheduler::inlineWork ( next );
-        Scheduler::updateExitStats ();
       }
    }
 };
@@ -221,9 +223,10 @@ void Scheduler::workerLoop ()
    idleLoop<WorkerBehaviour>();
 }
 
-void Scheduler::queue ( WD &wd )
+void Scheduler::queue ( BaseThread *thread, WD &wd )
 {
-      myThread->getTeam()->getSchedulePolicy().queue( myThread, wd );
+   sys.getSchedulerStats()._readyTasks++;
+   thread->getTeam()->getSchedulePolicy().queue( thread, wd );
 }
 
 void Scheduler::inlineWork ( WD *wd )
@@ -251,6 +254,7 @@ void Scheduler::inlineWork ( WD *wd )
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
 
    myThread->inlineWorkDependent(*wd);
+   updateExitStats ();
    wd->done();
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, false) );
@@ -284,7 +288,7 @@ void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
       oldWD->setBlocked();
       syncCond->unlock();
    } else {
-      Scheduler::queue( *oldWD );
+      Scheduler::queue( myThread, *oldWD );
    }
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldWD, NULL, false) );
@@ -318,6 +322,7 @@ void Scheduler::yield ()
    WD *next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
 
    if ( next ) {
+      sys.getSchedulerStats()._readyTasks--;
       switchTo(next);
    }
 }
