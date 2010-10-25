@@ -143,7 +143,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    current->setSyncCond( condition );
    current->setIdle();
    
-   BaseThread *thread = getMyThreadSafe(); /* FIXME: fuera de iteracion (ver abajo) */
+   BaseThread *thread = getMyThreadSafe();
 
    while ( !condition->check() ) {
       spins--;
@@ -161,7 +161,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                sys.getSchedulerStats()._idleThreads--;
                NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) );
                switchTo ( next );
-               thread = getMyThreadSafe(); /* FIXME: xteruel -> recargar thread ??? y eliminar recarga a cada iteracion */
+               thread = getMyThreadSafe();
                NANOS_INSTRUMENT( inst2.close() );
                sys.getSchedulerStats()._idleThreads++;
             } else {
