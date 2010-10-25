@@ -33,7 +33,7 @@ test_generator=gens/api-generator
 #define BOTS_APP_PARAMETERS_LIST ,bots_arg_size,bots_app_cutoff_value_1,bots_app_cutoff_value_2,bots_app_cutoff_value
 
 #define BOTS_APP_USES_ARG_SIZE
-#define BOTS_APP_DEF_ARG_SIZE (8*1024*1024)
+#define BOTS_APP_DEF_ARG_SIZE (1*1024*1024)
 #define BOTS_APP_DESC_ARG_SIZE "Array size"
 
 #define BOTS_APP_USES_ARG_CUTOFF
