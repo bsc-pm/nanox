@@ -22,7 +22,6 @@
 
 #include "config.hpp"
 #include "compatibility.hpp"
-#include "system.hpp"
 #include "directory_decl.hpp"
 #include "atomic.hpp"
 #include "processingelement_fwd.hpp"
@@ -182,8 +181,8 @@ namespace nanos {
    {
       public:
          virtual ~Cache() { }
-         virtual void * allocate( size_t size ) = 0;
-         virtual void realloc( CacheEntry * ce, size_t size ) = 0;
+         virtual void * allocate( Directory &dir, size_t size ) = 0;
+         virtual void realloc( Directory &dir, CacheEntry * ce, size_t size ) = 0;
          virtual CacheEntry& newEntry( uint64_t tag, size_t size, unsigned int version, bool dirty ) = 0;
          virtual CacheEntry& insert( uint64_t tag, CacheEntry& ce, bool& inserted ) = 0;
          virtual void deleteEntry( uint64_t tag, size_t size ) = 0;
@@ -194,6 +193,7 @@ namespace nanos {
          virtual bool copyBackFromCache( uint64_t tag, size_t size ) = 0;
          virtual void copyTo( void *dst, uint64_t tag, size_t size ) = 0;
          virtual void invalidate( uint64_t tag, size_t size, DirectoryEntry *de ) = 0;
+         virtual void invalidate( uint64_t tag, DirectoryEntry *de ) = 0;
          virtual void syncTransfer( uint64_t tag ) = 0;
          virtual int getReferences( unsigned int tag ) = 0;
    };
@@ -206,19 +206,18 @@ namespace nanos {
 
       public:
          Cache& _cache;
-         Directory& _directory;
 
-         CachePolicy( Cache& cache ) : _cache( cache ), _directory( sys.getDirectory() ) { }
+         CachePolicy( Cache& cache ) : _cache( cache ) { }
 
          virtual ~CachePolicy() { }
 
-         virtual void registerCacheAccess( uint64_t tag, size_t size, bool input, bool output );
+         virtual void registerCacheAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
 
-         virtual void unregisterCacheAccess( uint64_t tag, size_t size, bool output ) = 0;
+         virtual void unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output ) = 0;
 
-         virtual void registerPrivateAccess( uint64_t tag, size_t size, bool input, bool output );
+         virtual void registerPrivateAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
 
-         virtual void unregisterPrivateAccess( uint64_t tag, size_t size );
+         virtual void unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size );
    };
 
    // A plugin maybe??
@@ -235,7 +234,7 @@ namespace nanos {
 
          virtual ~WriteThroughPolicy() { }
 
-         virtual void unregisterCacheAccess( uint64_t tag, size_t size, bool output );
+         virtual void unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output );
    };
 
    class WriteBackPolicy : public CachePolicy
@@ -251,7 +250,7 @@ namespace nanos {
 
          virtual ~WriteBackPolicy() { }
 
-         virtual void unregisterCacheAccess( uint64_t tag, size_t size, bool output );
+         virtual void unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output );
    };
 
   /*! \brief A Cache is a class that provides basic services for registering and
@@ -268,7 +267,6 @@ namespace nanos {
       *   - check for errors 
       */
       private:
-         Directory &_directory;
          ProcessingElement *_pe;
 
          /**< Maps keys with CacheEntries  */
@@ -284,22 +282,29 @@ namespace nanos {
          DeviceCache( const DeviceCache &cache );
          const DeviceCache & operator= ( const DeviceCache &cache );
 
+         struct SyncData {
+            Directory &dir;
+            DeviceCache* _this;
+         };
+
+         void synchronize( SyncData &sd, uint64_t tag );
+ 
       public:
         /* \brief Default constructor
          */
-         DeviceCache( size_t size, ProcessingElement *pe = NULL ) : _directory( sys.getDirectory() ), _pe( pe ), _cache(), _policy( *this ), _size( size ), _usedSize(0) {}
+         DeviceCache( size_t size, ProcessingElement *pe = NULL ) : _pe( pe ), _cache(), _policy( *this ), _size( size ), _usedSize(0) {}
 
          size_t getSize();
 
          void setSize( size_t size );
 
-         void * allocate( size_t size );
+         void * allocate( Directory &dir, size_t size );
 
-         void freeSpaceToFit( size_t size );
+         void freeSpaceToFit( Directory& dir, size_t size );
 
          void deleteEntry( uint64_t tag, size_t size );
 
-         void realloc( CacheEntry *ce, size_t size );
+         void realloc( Directory &dir, CacheEntry *ce, size_t size );
 
         /* \brief get the Address in the cache for tag
          * \param tag: Identifier of the entry to look for
@@ -335,21 +340,19 @@ namespace nanos {
 
          void deleteReference( uint64_t tag );
 
-         void registerCacheAccess( uint64_t tag, size_t size, bool input, bool output );
+         void registerCacheAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
 
-         void unregisterCacheAccess( uint64_t tag, size_t size, bool output );
+         void unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output );
 
-         void registerPrivateAccess( uint64_t tag, size_t size, bool input, bool output );
+         void registerPrivateAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
 
-         void unregisterPrivateAccess( uint64_t tag, size_t size );
+         void unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size );
 
          void synchronizeTransfer( uint64_t tag );
 
-         void synchronize( uint64_t tag );
+         void synchronize( Directory &dir, uint64_t tag );
 
-         static void synchronize( DeviceCache* _this, uint64_t tag );
-
-         void synchronize( std::list<uint64_t> &tags );
+         void synchronize( Directory &dir, std::list<uint64_t> &tags );
 
          void waitInput( uint64_t tag );
 
@@ -358,6 +361,7 @@ namespace nanos {
          void waitInputs( std::list<uint64_t> &tags );
 
          void invalidate( uint64_t tag, size_t size, DirectoryEntry *de );
+         void invalidate( uint64_t tag, DirectoryEntry *de );
 
          size_t& getCacheSize();
 

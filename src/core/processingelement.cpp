@@ -30,24 +30,28 @@ using namespace nanos;
 
 void ProcessingElement::copyDataIn( WorkDescriptor &work )
 {
-   Directory &d = sys.getDirectory();
-   CopyData *copies = work.getCopies();
-   for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
-      CopyData & cd = copies[i];
-      if ( !cd.isPrivate() ) {
-           d.registerAccess( cd.getAddress(), cd.getSize(), cd.isInput(), cd.isOutput() );
+   Directory *dir = work.getParent()->getDirectory(false);
+   if ( dir != NULL ) {
+      CopyData *copies = work.getCopies();
+      for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
+         CopyData & cd = copies[i];
+         if ( !cd.isPrivate() ) {
+              dir->registerAccess( cd.getAddress(), cd.getSize(), cd.isInput(), cd.isOutput() );
+         }
       }
    }
 }
 
 void ProcessingElement::waitInputs( WorkDescriptor &work )
 {
-   Directory &d = sys.getDirectory();
-   CopyData *copies = work.getCopies();
-   for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
-      CopyData & cd = copies[i];
-      if ( !cd.isPrivate() && cd.isInput() ) {
-           d.waitInput( cd.getAddress() );
+   Directory *dir = work.getParent()->getDirectory(false);
+   if ( dir != NULL ) {
+      CopyData *copies = work.getCopies();
+      for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
+         CopyData & cd = copies[i];
+         if ( !cd.isPrivate() && cd.isInput() ) {
+              dir->waitInput( cd.getAddress() );
+         }
       }
    }
 }

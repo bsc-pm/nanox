@@ -26,7 +26,6 @@
 #include "nanos-int.h"
 #include "copydata.hpp"
 #include "os.hpp"
-#include "directory.hpp"
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
