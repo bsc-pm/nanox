@@ -26,7 +26,6 @@
 #include "nanos-int.h"
 #include "copydata.hpp"
 #include "os.hpp"
-#include "directory.hpp"
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -187,7 +186,7 @@ void System::start ()
    loadModules();
 
    // Instrumentation startup
-   NANOS_INSTRUMENT ( sys.getInstrumentor()->initialize() );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->initialize() );
    verbose0 ( "Starting runtime" );
 
    _pmInterface->start();

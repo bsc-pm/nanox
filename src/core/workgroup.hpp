@@ -66,7 +66,7 @@ namespace nanos
 
          void addWork( WorkGroup &wg );
          void sync();
-         void waitCompletion();
+         virtual void waitCompletion();
          virtual void init();
          virtual void done();
          int getId() const { return _id; }

@@ -93,7 +93,7 @@ namespace nanos
 
          //disable copy and assigment
          BaseThread( const BaseThread & );
-         const BaseThread operator= ( const BaseThread & );
+         const BaseThread & operator= ( const BaseThread & );
 
          virtual void runDependent () = 0;
 

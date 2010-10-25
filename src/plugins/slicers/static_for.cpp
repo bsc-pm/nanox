@@ -117,6 +117,8 @@ void SlicerStaticFor::submit ( SlicedWD &work )
    // if chunk != 0: generate a SlicedWD for each thread (interleaved)
    else {
 
+      BaseThread *thread = getMyThreadSafe();
+
       // Init and Submit WorkDescriptors: 1..N
       for ( i = 1; i < valid_threads; i++ ) {
          // j is the next valid thread 
@@ -131,8 +133,12 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          (( SlicerDataFor *)wd->getSlicerData())->setChunk( _chunk );
          (( SlicerDataFor *)wd->getSlicerData())->setSign( _sign );
 
-         wd->tieTo( (*myThread->getTeam())[j] );
+         wd->tieTo( (*thread->getTeam())[j] );
          Scheduler::submit ( *wd );
+
+         /* Some schedulers change to execute submited wd. We must
+          * ensure to get new myThread variable */
+         thread = getMyThreadSafe();
 
          // next wd init
          wd = NULL;
@@ -141,7 +147,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
       // (( SlicerDataFor *)work.getSlicerData())->setLower( upper );
 
       // Submit: work
-      work.tieTo( (*myThread->getTeam())[first_valid_thread] );
+      work.tieTo( (*thread->getTeam())[first_valid_thread] );
       Scheduler::submit ( work );
    }
 }
@@ -209,6 +215,9 @@ bool SlicerStaticFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
       }
       else ((nanos_loop_info_t *)((*slice)->getData()))->last = false;
    }
+
+   /* If not last, scheduler will enqueue this workdescriptor */
+   if (!last) sys.getSchedulerStats()._readyTasks++;
 
    return last;
 }

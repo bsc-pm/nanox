@@ -219,8 +219,6 @@ namespace nanos
          
          SchedulePolicy * getDefaultSchedulePolicy ( ) const;
 
-         Directory& getDirectory();
-
          SchedulerStats & getSchedulerStats ();
          SchedulerConf  & getSchedulerConf();
 
