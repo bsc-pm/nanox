@@ -121,6 +121,7 @@ namespace nanos
          void waitInput( uint64_t tag );
 
          void synchronizeHost();
+         void synchronizeHost( std::list<uint64_t> syncTags );
    };
 
 };

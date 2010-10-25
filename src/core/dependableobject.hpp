@@ -25,6 +25,7 @@
 #include <vector>
 #include "atomic.hpp"
 #include "trackableobject_fwd.hpp"
+#include "dependency.hpp"
 
 namespace nanos
 {
@@ -90,7 +91,7 @@ namespace nanos
 
          virtual void dependenciesSatisfied ( ) { }
 
-         virtual void wait ( ) { }
+         virtual void wait ( std::list<Dependency *> deps ) { }
 
          virtual bool waits ( ) { return false; }
 
