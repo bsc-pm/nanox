@@ -149,7 +149,7 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
 
    // now everything is ready
    if ( depObj.decreasePredecessors() > 0 )
-      depObj.wait();
+      depObj.wait( filteredDeps );
 }
 
 template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, Dependency* begin, Dependency* end );
