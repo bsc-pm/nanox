@@ -60,11 +60,15 @@ bool SlicerCompoundWD::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
       *slice = wd;
       return true;
    }
+   else {
+      /* If not last, scheduler will enqueue this workdescriptor */
+      sys.getSchedulerStats()._readyTasks++;
 
-   /* Pre-decrement nsect and get corresponding wd */
-   *slice = ((WorkDescriptor**)data->lwd)[--(data->nsect)];
+      /* Pre-decrement nsect and get corresponding wd */
+      *slice = ((WorkDescriptor**)data->lwd)[--(data->nsect)];
 
-   return false;
+      return false;
+   }
 }
 
 void *SlicerCompoundWD::getSpecificData ( ) const
