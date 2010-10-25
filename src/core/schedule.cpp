@@ -192,9 +192,12 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
          if ( !( condition->check() ) ) {
             condition->addWaiter( current );
 
-            NANOS_INSTRUMENT( InstrumentState inst1(NANOS_SCHEDULING) );
-            WD *next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
-            NANOS_INSTRUMENT( inst1.close() );
+            WD *next = NULL;
+            if ( sys.getSchedulerStats()._readyTasks > 0 ) {
+               NANOS_INSTRUMENT( InstrumentState inst1(NANOS_SCHEDULING) );
+               next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
+               NANOS_INSTRUMENT( inst1.close() );
+            }
 
             if ( next ) {
                sys.getSchedulerStats()._readyTasks--;
