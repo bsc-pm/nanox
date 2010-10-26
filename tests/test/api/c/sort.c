@@ -1341,7 +1341,7 @@ void bots_set_info();
  *********************************************************************/
 /* common flags */
 int bots_sequential_flag = FALSE;
-int bots_check_flag = FALSE;
+int bots_check_flag = TRUE;
 bots_verbose_mode_t bots_verbose_mode = BOTS_VERBOSE_DEFAULT;
 int bots_result = BOTS_RESULT_NOT_REQUESTED;
 int bots_output_format = 1;
@@ -1828,6 +1828,6 @@ main(int argc, char* argv[])
    BOTS_APP_FINI;
 
    bots_print_results();
-   return (0);
+   if (bots_result == BOTS_RESULT_SUCCESSFUL) { return 0; } else { return -1; }
 }
 
