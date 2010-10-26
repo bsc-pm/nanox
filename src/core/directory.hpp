@@ -107,7 +107,7 @@ inline void Directory::registerAccess( uint64_t tag, size_t size, bool input, bo
       if ( input ) {
          Cache *c = de->getOwner();
          if ( c != NULL )
-            c->invalidate( tag, size, de );
+            c->invalidate( *this, tag, size, de );
       }
       if ( output ) {
          de->setVersion(de->getVersion()+1);
@@ -134,7 +134,7 @@ inline void Directory::synchronizeHost()
          de.setVersion( de.getVersion()+1 );
       } else {
          // Froce copy back
-         c->invalidate( de.getTag(), &de );
+         c->invalidate( *this, de.getTag(), &de );
          flushings.push_back( &de );
       }
       it++;
@@ -161,7 +161,7 @@ inline void Directory::synchronizeHost( std::list<uint64_t> syncTags )
             de->setVersion( de->getVersion()+1 );
          } else {
             // Froce copy back
-            c->invalidate( de->getTag(), de );
+            c->invalidate( *this, de->getTag(), de );
             flushings.push_back( de );
          }
       }
