@@ -287,7 +287,7 @@ namespace nanos {
             DeviceCache* _this;
          };
 
-         void synchronize( SyncData &sd, uint64_t tag );
+         static void synchronizeInternal( SyncData &sd, uint64_t tag );
  
       public:
         /* \brief Default constructor
