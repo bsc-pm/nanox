@@ -417,7 +417,7 @@ inline void DeviceCache<_T,_Policy>::synchronizeTransfer( uint64_t tag )
 }
 
 template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::synchronize( SyncData &sd, uint64_t tag )
+inline void DeviceCache<_T,_Policy>::synchronizeInternal( SyncData &sd, uint64_t tag )
 {
    CacheEntry *ce = sd._this->_cache.find(tag);
    ensure( ce != NULL, "Cache has been corrupted" );
@@ -438,14 +438,14 @@ template <class _T, class _Policy>
 inline void DeviceCache<_T,_Policy>::synchronize( Directory &dir, uint64_t tag )
 {
    SyncData sd = { dir, this };
-   synchronize( sd, tag );
+   synchronizeInternal( sd, tag );
 }
 
 template <class _T, class _Policy>
 inline void DeviceCache<_T,_Policy>::synchronize( Directory &dir, std::list<uint64_t> &tags )
 {
    SyncData sd = { dir, this };
-   for_each( tags.begin(), tags.end(), std :: bind1st( std :: ptr_fun ( synchronize ), sd ) );
+   for_each( tags.begin(), tags.end(), std :: bind1st( std :: ptr_fun ( synchronizeInternal ), sd ) );
 }
 
 template <class _T, class _Policy>
