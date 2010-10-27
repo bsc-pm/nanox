@@ -90,24 +90,24 @@ void GPUProcessor::setCacheSize( size_t size )
    _cache.setSize( size );
 }
 
-void GPUProcessor::registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output )
+void GPUProcessor::registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
 {
-   _cache.registerCacheAccess( tag, size, input, output );
+   _cache.registerCacheAccess( dir, tag, size, input, output );
 }
 
-void GPUProcessor::unregisterCacheAccessDependent( uint64_t tag, size_t size, bool output )
+void GPUProcessor::unregisterCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool output )
 {
-   _cache.unregisterCacheAccess( tag, size, output );
+   _cache.unregisterCacheAccess( dir, tag, size, output );
 }
 
-void GPUProcessor::registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output )
+void GPUProcessor::registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
 {
-   _cache.registerPrivateAccess( tag, size, input, output );
+   _cache.registerPrivateAccess( dir, tag, size, input, output );
 }
 
-void GPUProcessor::unregisterPrivateAccessDependent( uint64_t tag, size_t size )
+void GPUProcessor::unregisterPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size )
 {
-   _cache.unregisterPrivateAccess( tag, size );
+   _cache.unregisterPrivateAccess( dir, tag, size );
 }
 
 void GPUProcessor::synchronize( uint64_t tag )
