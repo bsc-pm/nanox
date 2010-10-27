@@ -21,11 +21,11 @@
 #define _NANOS_GPU_PROCESSOR_DECL
 
 #include "accelerator.hpp"
+#include "gputhread.hpp"
 #include "cache.hpp"
 #include "config.hpp"
 #include "gpudevice.hpp"
 #include "gpumemorytransfer.hpp"
-#include "gputhread.hpp"
 #include "simpleallocator.hpp"
 
 #include <map>
