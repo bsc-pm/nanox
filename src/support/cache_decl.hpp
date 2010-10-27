@@ -132,7 +132,7 @@ namespace nanos {
          {
             Atomic<bool> expected = false;
             Atomic<bool> value = true;
-            return _flushing.cswap( expected, value );
+            return _copying.cswap( expected, value );
          }
 
          bool isFlushing()
