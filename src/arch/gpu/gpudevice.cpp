@@ -284,7 +284,6 @@ bool GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size, Process
 
    if ( _transferMode == NORMAL) {
       err = cudaMemcpy( localDst, ( void * ) remoteSrc, size, cudaMemcpyHostToDevice );
-      ( ( nanos::ext::GPUProcessor * ) pe )->synchronize( remoteSrc );
    }
 
    if ( err != cudaSuccess ) {
