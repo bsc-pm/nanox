@@ -43,7 +43,8 @@ void BaseThread::associate ()
 
    if ( sys.getBinding() ) bind();
 
-   _threadWD.init(false);
+   _threadWD.init();
+   _threadWD.start(false);
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, &_threadWD, false) );
 }

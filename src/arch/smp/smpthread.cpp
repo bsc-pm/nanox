@@ -113,7 +113,7 @@ void SMPThread::inlineWorkDependent ( WD &wd )
    SMPDD &dd = ( SMPDD & )wd.getActiveDevice();
 
    // Now the WD will be inminently run
-   wd.start();
+   wd.start(false);
 
    NANOS_INSTRUMENT ( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("user-code") );
    NANOS_INSTRUMENT ( nanos_event_value_t val = wd.getId() );
