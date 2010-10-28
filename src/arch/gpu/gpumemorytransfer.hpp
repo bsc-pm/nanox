@@ -36,7 +36,7 @@ namespace ext
          size_t                        _size;
          TR1::shared_ptr<DOSubmit>     _do;
 
-         GPUMemoryTransfer( void * dest, void * source, size_t s ) : _dst( dest ), _src( source ),
+         GPUMemoryTransfer( void * dest, void * source, size_t s ) : WG(), _dst( dest ), _src( source ),
                _size( s ), _do( myThread->getCurrentWD()->getDOSubmit() )
          {
             if ( _do != NULL ) {
@@ -45,6 +45,17 @@ namespace ext
          }
 
          ~GPUMemoryTransfer() {}
+
+         GPUMemoryTransfer& operator=( const nanos::ext::GPUMemoryTransfer &mt )
+         {
+            if (&mt != this) {
+               _dst = mt._dst;
+               _src = mt._src;
+               _size = mt._size;
+               _do = mt._do;
+            }
+            return *this;
+         }
 
    };
 
@@ -78,13 +89,10 @@ namespace ext
    class GPUMemoryTransferOutAsyncList : public GPUMemoryTransferList
    {
       private:
-         std::vector<GPUMemoryTransfer>   _pendingTransfersAsync;
+         std::list<GPUMemoryTransfer>   _pendingTransfersAsync;
 
       public:
-         GPUMemoryTransferOutAsyncList() : GPUMemoryTransferList()
-         {
-            _pendingTransfersAsync.reserve( 100 );
-         }
+         GPUMemoryTransferOutAsyncList() : GPUMemoryTransferList() {}
          ~GPUMemoryTransferOutAsyncList()
          {
             if ( !_pendingTransfersAsync.empty() ) {
@@ -99,7 +107,7 @@ namespace ext
             myThread->getCurrentWD()->getParent()->addWork( _pendingTransfersAsync.back() );
          }
 
-         void removeMemoryTransfer ( std::vector<GPUMemoryTransfer>::iterator it );
+         void removeMemoryTransfer ( std::list<GPUMemoryTransfer>::iterator it );
 
          void removeMemoryTransfer ( void * dstAddress );
 
@@ -112,7 +120,7 @@ namespace ext
 
          void checkAddressForMemoryTransfer ( void * address )
          {
-            for ( std::vector<GPUMemoryTransfer>::iterator it = _pendingTransfersAsync.begin();
+            for ( std::list<GPUMemoryTransfer>::iterator it = _pendingTransfersAsync.begin();
                   it != _pendingTransfersAsync.end();
                   it++ ) {
                if ( it->_src == address ) {
@@ -123,9 +131,9 @@ namespace ext
 
          void executeMemoryTransfers ();
 
-         void finishMemoryTransfer ( std::vector<GPUMemoryTransfer>::iterator it );
+         void finishMemoryTransfer ( std::list<GPUMemoryTransfer>::iterator it );
 
-         std::vector<GPUMemoryTransfer>& getList()
+         std::list<GPUMemoryTransfer>& getList()
          {
           return _pendingTransfersAsync;
          }
