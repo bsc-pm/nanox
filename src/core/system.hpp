@@ -61,6 +61,8 @@ inline void System::setDelayedStart ( bool set) { _delayedStart = set; }
 
 inline bool System::getDelayedStart () const { return _delayedStart; }
 
+inline bool System::useYield() const { return _useYield; }
+
 inline int System::getThsPerPE() const { return _thsPerPE; }
 
 inline int System::getTaskNum() const { return _schedStats._totalTasks.value(); }

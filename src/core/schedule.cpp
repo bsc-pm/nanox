@@ -142,11 +142,13 @@ inline void Scheduler::idleLoop ()
 
       if ( spins == 0 ) {
         total_spins+= nspins;
-        total_yields++;
-        unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
-        thread->yield();
-        unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
-        time_yields += ( end_yield - begin_yield );
+        if ( sys.useYield() ) {
+           total_yields++;
+           unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+           thread->yield();
+           unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+           time_yields += ( end_yield - begin_yield );
+        }
         spins = nspins;
       }
       else {
@@ -221,11 +223,13 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                sys.getSchedulerStats()._idleThreads++;
             } else {
                condition->unlock();
-               total_yields++;
-               unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
-               thread->yield();
-               unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
-               time_yields += ( end_yield - begin_yield );
+               if ( sys.useYield() ) {
+                  total_yields++;
+                  unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+                  thread->yield();
+                  unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+                  time_yields += ( end_yield - begin_yield );
+               }
             }
          } else {
             condition->unlock();
