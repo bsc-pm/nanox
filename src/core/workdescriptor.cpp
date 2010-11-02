@@ -28,27 +28,27 @@
 
 using namespace nanos;
 
-void WorkDescriptor::init (bool isUserLevelThread, WorkDescriptor *previous)
+void WorkDescriptor::init ()
 {
    ProcessingElement *pe = myThread->runningOn();
 
    /* Initializing instrumentation context */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdCreate( this ) );
 
-   _activeDevice->lazyInit(*this,isUserLevelThread,previous);
-   
    if ( getNumCopies() > 0 )
       pe->copyDataIn( *this );
-
-   setReady();
 }
 
-void WorkDescriptor::start()
+void WorkDescriptor::start(bool isUserLevelThread, WorkDescriptor *previous)
 {
+   _activeDevice->lazyInit(*this,isUserLevelThread,previous);
+   
    ProcessingElement *pe = myThread->runningOn();
 
    if ( getNumCopies() > 0 )
       pe->waitInputs( *this );
+
+   setReady();
 }
 
 DeviceData * WorkDescriptor::findDeviceData ( const Device &device ) const

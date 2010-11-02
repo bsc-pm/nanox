@@ -67,6 +67,7 @@ namespace nanos
          int                  _thsPerPE;
          bool                 _untieMaster;
          bool                 _delayedStart;
+         bool                 _useYield;
 
          //cutoff policy and related variables
          ThrottlePolicy      *_throttlePolicy;
@@ -161,6 +162,8 @@ namespace nanos
          void setDelayedStart ( bool set);
 
          bool getDelayedStart () const;
+
+         bool useYield() const;
 
          int getThsPerPE() const;
 
