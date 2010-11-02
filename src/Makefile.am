@@ -19,3 +19,20 @@
 
 SUBDIRS = arch support plugins core apis pms utils
 
+EXTRA_DIST = plugins-list.in
+
+noinst_DATA = plugins-list
+
+CLEANFILES = plugins-list
+
+plugins-list: plugins-list.in
+	rm -f plugins_list
+	tmp_builddir=$(abs_top_builddir) ; \
+	sed \
+		-e's|\(.*\)|'"$$tmp_builddir"'/src/\1/.libs|g' \
+		$(srcdir)/plugins-list.in > plugins-list.tmp
+	sed \
+		-e :a -e N -e's/\n/:/' -e ta \
+		plugins-list.tmp > plugins-list
+	rm -f plugins-list.tmp
+
