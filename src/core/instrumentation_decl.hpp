@@ -210,6 +210,9 @@ namespace nanos {
             /* 19 */ registerEventKey("num-yields","Number of Yields"); 
             /* 20 */ registerEventKey("time-yields","Time on Yield (in nsecs)");
 
+            /* 21 */ registerEventKey("user-funct-name","User Function Name");
+            /* 22 */ registerEventKey("user-funct-location","User Function Location");
+
             /* ** */ registerEventKey("debug","Debug Key"); /* Keep this key as the last one */
 #endif
 
