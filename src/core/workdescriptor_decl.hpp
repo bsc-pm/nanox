@@ -230,14 +230,14 @@ namespace nanos
           *
           *  This function is useful to perform lazy initialization in the workdescriptor
           */
-         void init ( bool isUserLevelThread, WorkDescriptor *previous = NULL );
+         void init ();
 
          /*! \brief Last operations just before WD execution
           *
           *  This function is useful to perform any operation that needs to be done at the last moment
           *  before the execution of the WD.
           */
-         void start ();
+         void start ( bool isUserLevelThread, WorkDescriptor *previous = NULL );
 
          /*! \brief Get data size
           *

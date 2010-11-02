@@ -142,11 +142,13 @@ inline void Scheduler::idleLoop ()
 
       if ( spins == 0 ) {
         total_spins+= nspins;
-        total_yields++;
-        unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
-        thread->yield();
-        unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
-        time_yields += ( end_yield - begin_yield );
+        if ( sys.useYield() ) {
+           total_yields++;
+           unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+           thread->yield();
+           unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+           time_yields += ( end_yield - begin_yield );
+        }
         spins = nspins;
       }
       else {
@@ -221,11 +223,13 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                sys.getSchedulerStats()._idleThreads++;
             } else {
                condition->unlock();
-               total_yields++;
-               unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
-               thread->yield();
-               unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
-               time_yields += ( end_yield - begin_yield );
+               if ( sys.useYield() ) {
+                  total_yields++;
+                  unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+                  thread->yield();
+                  unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+                  time_yields += ( end_yield - begin_yield );
+               }
             }
          } else {
             condition->unlock();
@@ -312,7 +316,7 @@ void Scheduler::inlineWork ( WD *wd )
    // and we don't violate rules about tied WD
    wd->tieTo(*oldwd->isTiedTo());
    if (!wd->started())
-      wd->init(false);
+      wd->init();
    myThread->setCurrentWD( *wd );
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
@@ -366,8 +370,8 @@ void Scheduler::switchTo ( WD *to )
 {
    if ( myThread->runningOn()->supportsUserLevelThreads() ) {
       if (!to->started()) {
-         to->init(true);
-         to->start();
+         to->init();
+         to->start(true);
       }
       
       debug( "switching from task " << myThread->getCurrentWD() << ":" << myThread->getCurrentWD()->getId() <<
@@ -424,8 +428,8 @@ void Scheduler::exitTo ( WD *to )
     WD *current = myThread->getCurrentWD();
 
     if (!to->started()) {
-       to->init(true,current);
-       to->start();
+       to->init();
+       to->start(true,current);
     }
 
     debug( "exiting task " << myThread->getCurrentWD() << ":" << myThread->getCurrentWD()->getId() <<

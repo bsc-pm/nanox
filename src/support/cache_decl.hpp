@@ -44,6 +44,7 @@ namespace nanos {
          volatile bool _dirty;
          Atomic<bool> _copying;
          Atomic<bool> _flushing;
+         Directory* _flushingTo;
          Atomic<unsigned int> _transfers;
          Atomic<bool> _resizing;
 
@@ -51,17 +52,17 @@ namespace nanos {
 
         /*! \brief Default constructor
          */
-         CacheEntry(): Entry(), _addr( NULL ), _size(0), _allocSize(0), _dirty( false ), _copying(false), _flushing(false), _transfers(0), _resizing(false) {}
+         CacheEntry(): Entry(), _addr( NULL ), _size(0), _allocSize(0), _dirty( false ), _copying(false), _flushing(false), _flushingTo(NULL), _transfers(0), _resizing(false) {}
 
         /*! \brief Constructor
          *  \param addr: address of the cache entry
          */
-         CacheEntry( void *addr, size_t size, uint64_t tag, unsigned int version, bool dirty, bool copying ): Entry( tag, version ), _addr( addr ), _size(size), _allocSize(0), _dirty( dirty ), _copying(copying), _flushing(false), _transfers(0), _resizing(false) {}
+         CacheEntry( void *addr, size_t size, uint64_t tag, unsigned int version, bool dirty, bool copying ): Entry( tag, version ), _addr( addr ), _size(size), _allocSize(0), _dirty( dirty ), _copying(copying), _flushing(false), _flushingTo(NULL), _transfers(0), _resizing(false) {}
 
         /*! \brief Copy constructor
          *  \param Another CacheEntry
          */
-         CacheEntry( const CacheEntry &ce ): Entry( ce.getTag(), ce.getVersion() ), _addr( ce._addr ), _size( ce._size ), _allocSize( ce._allocSize ), _dirty( ce._dirty ), _copying(ce._copying), _flushing(false), _transfers(0), _resizing(false) {}
+         CacheEntry( const CacheEntry &ce ): Entry( ce.getTag(), ce.getVersion() ), _addr( ce._addr ), _size( ce._size ), _allocSize( ce._allocSize ), _dirty( ce._dirty ), _copying(ce._copying), _flushing(false), _flushingTo(NULL), _transfers(0), _resizing(false) {}
 
         /* \brief Destructor
          */
@@ -79,6 +80,7 @@ namespace nanos {
             this->_dirty = ce._dirty;
             this->_copying = ce._copying;
             this->_flushing = ce._flushing;
+            this->_flushingTo = ce._flushingTo;
             this->_transfers = ce._transfers;
             this->_resizing = ce._resizing;
             return *this;
@@ -130,7 +132,7 @@ namespace nanos {
          {
             Atomic<bool> expected = false;
             Atomic<bool> value = true;
-            return _flushing.cswap( expected, value );
+            return _copying.cswap( expected, value );
          }
 
          bool isFlushing()
@@ -138,6 +140,12 @@ namespace nanos {
 
          void setFlushing( bool flushing )
          { _flushing = flushing; }
+
+         Directory* getFlushingTo()
+         { return _flushingTo; }
+
+         void setFlushingTo( Directory *dir )
+         { _flushingTo = dir; }
 
          bool trySetToFlushing()
          {
@@ -192,8 +200,8 @@ namespace nanos {
          virtual bool copyDataToCache( uint64_t tag, size_t size ) = 0;
          virtual bool copyBackFromCache( uint64_t tag, size_t size ) = 0;
          virtual void copyTo( void *dst, uint64_t tag, size_t size ) = 0;
-         virtual void invalidate( uint64_t tag, size_t size, DirectoryEntry *de ) = 0;
-         virtual void invalidate( uint64_t tag, DirectoryEntry *de ) = 0;
+         virtual void invalidate( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de ) = 0;
+         virtual void invalidate( Directory &dir, uint64_t tag, DirectoryEntry *de ) = 0;
          virtual void syncTransfer( uint64_t tag ) = 0;
          virtual int getReferences( unsigned int tag ) = 0;
    };
@@ -283,11 +291,10 @@ namespace nanos {
          const DeviceCache & operator= ( const DeviceCache &cache );
 
          struct SyncData {
-            Directory &dir;
             DeviceCache* _this;
          };
 
-         void synchronize( SyncData &sd, uint64_t tag );
+         static void synchronizeInternal( SyncData &sd, uint64_t tag );
  
       public:
         /* \brief Default constructor
@@ -350,9 +357,9 @@ namespace nanos {
 
          void synchronizeTransfer( uint64_t tag );
 
-         void synchronize( Directory &dir, uint64_t tag );
+         void synchronize( uint64_t tag );
 
-         void synchronize( Directory &dir, std::list<uint64_t> &tags );
+         void synchronize( std::list<uint64_t> &tags );
 
          void waitInput( uint64_t tag );
 
@@ -360,8 +367,8 @@ namespace nanos {
 
          void waitInputs( std::list<uint64_t> &tags );
 
-         void invalidate( uint64_t tag, size_t size, DirectoryEntry *de );
-         void invalidate( uint64_t tag, DirectoryEntry *de );
+         void invalidate( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de );
+         void invalidate( Directory &dir, uint64_t tag, DirectoryEntry *de );
 
          size_t& getCacheSize();
 

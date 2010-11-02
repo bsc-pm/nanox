@@ -68,7 +68,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
          if (inserted) { // allocate it
             Cache *owner = de->getOwner();
             if ( owner != NULL && !(!input && output) ) {
-               owner->invalidate( tag, size, de );
+               owner->invalidate( dir, tag, size, de );
                owner->syncTransfer(tag);
                while( de->getOwner() != NULL );
             }
@@ -98,7 +98,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                   // First approach, always copy back if size didn't match
                   if ( ce->isDirty() ) {
                      // invalidate in its own cache
-                     _cache.invalidate( tag, ce->getSize(), de );
+                     _cache.invalidate( dir, tag, ce->getSize(), de );
                      // synchronize invalidation
                      _cache.syncTransfer( tag ); // Ask the device to be nice and priorise this transfer
                      while( de->getOwner() != NULL );
@@ -121,7 +121,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                // First approach, always copy back if size didn't match
                if ( ce->isDirty() ) {
                   // invalidate in its own cache
-                  _cache.invalidate( tag, ce->getSize(), de );
+                  _cache.invalidate( dir, tag, ce->getSize(), de );
                   // synchronize invalidation
                   _cache.syncTransfer( tag ); // Ask the device to be nice and priorise this transfer
                   while( de->getOwner() != NULL );
@@ -142,7 +142,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                   Cache *owner = de->getOwner();
                   if ( owner != NULL ) {
                      // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
-                     owner->invalidate( tag, size, de );
+                     owner->invalidate( dir, tag, size, de );
                      owner->syncTransfer( tag ); // Ask the device to be nice and priorise this transfer
                      while( de->getOwner() != NULL );
                   }
@@ -211,6 +211,7 @@ inline void WriteThroughPolicy::unregisterCacheAccess( Directory& dir, uint64_t 
          de->setOwner(NULL);
       } else {
          ce->setFlushing(true);
+         ce->setFlushingTo( &dir );
          ce->setDirty(false);
       }
    }
@@ -269,7 +270,7 @@ inline void DeviceCache<_T,_Policy>::freeSpaceToFit( Directory &dir, size_t size
       if ( _cache.erase( it->second ) ) {
          if ( ce.isDirty() ) {
             DirectoryEntry *de = dir.getEntry(ce.getTag());
-            invalidate( ce.getTag(), ce.getSize(), de );
+            invalidate( dir, ce.getTag(), ce.getSize(), de );
          }
          // FIXME: this can be optimized by adding the flushing entries to a list and go to that list if not enough space was freed
          while ( ce.isFlushing() )
@@ -417,13 +418,16 @@ inline void DeviceCache<_T,_Policy>::synchronizeTransfer( uint64_t tag )
 }
 
 template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::synchronize( SyncData &sd, uint64_t tag )
+inline void DeviceCache<_T,_Policy>::synchronizeInternal( SyncData &sd, uint64_t tag )
 {
    CacheEntry *ce = sd._this->_cache.find(tag);
    ensure( ce != NULL, "Cache has been corrupted" );
    if ( ce->isFlushing() ) {
       ce->setFlushing(false);
-      DirectoryEntry *de = sd.dir.getEntry(tag);
+      Directory* dir = ce->getFlushingTo();
+      ensure( dir != NULL, "CopyBack sync lost its directory")
+      ce->setFlushingTo(NULL);
+      DirectoryEntry *de = dir->getEntry(tag);
       ensure ( !ce->isCopying(), "User program is incorrect" );
       ensure( de != NULL, "Directory has been corrupted" );
       de->setOwner(NULL);
@@ -435,17 +439,17 @@ inline void DeviceCache<_T,_Policy>::synchronize( SyncData &sd, uint64_t tag )
 }
 
 template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::synchronize( Directory &dir, uint64_t tag )
+inline void DeviceCache<_T,_Policy>::synchronize( uint64_t tag )
 {
-   SyncData sd = { dir, this };
-   synchronize( sd, tag );
+   SyncData sd = { this };
+   synchronizeInternal( sd, tag );
 }
 
 template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::synchronize( Directory &dir, std::list<uint64_t> &tags )
+inline void DeviceCache<_T,_Policy>::synchronize( std::list<uint64_t> &tags )
 {
-   SyncData sd = { dir, this };
-   for_each( tags.begin(), tags.end(), std :: bind1st( std :: ptr_fun ( synchronize ), sd ) );
+   SyncData sd = { this };
+   for_each( tags.begin(), tags.end(), std :: bind1st( std :: ptr_fun ( synchronizeInternal ), sd ) );
 }
 
 template <class _T, class _Policy>
@@ -472,11 +476,12 @@ inline void DeviceCache<_T,_Policy>::waitInputs( std::list<uint64_t> &tags )
 }
 
 template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::invalidate( uint64_t tag, DirectoryEntry *de )
+inline void DeviceCache<_T,_Policy>::invalidate( Directory &dir, uint64_t tag, DirectoryEntry *de )
 {
    CacheEntry *ce = _cache.find( tag );
    if ( de->trySetInvalidated() ) {
       if ( ce->trySetToFlushing() ) {
+         ce->setFlushingTo( &dir );
          if ( de->getOwner() != this ) {
                // someone flushed it between setting to invalidated and setting to flushing, do nothing
                ce->setFlushing(false);
@@ -491,11 +496,12 @@ inline void DeviceCache<_T,_Policy>::invalidate( uint64_t tag, DirectoryEntry *d
 } 
 
 template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::invalidate( uint64_t tag, size_t size, DirectoryEntry *de )
+inline void DeviceCache<_T,_Policy>::invalidate( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de )
 {
    CacheEntry *ce = _cache.find( tag );
    if ( de->trySetInvalidated() ) {
       if ( ce->trySetToFlushing() ) {
+         ce->setFlushingTo( &dir );
          if ( de->getOwner() != this ) {
                // someone flushed it between setting to invalidated and setting to flushing, do nothing
                ce->setFlushing(false);
