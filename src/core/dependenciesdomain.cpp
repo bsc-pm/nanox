@@ -92,8 +92,9 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
          if ( lastWriter != NULL ) {
             lastWriter->lock();
             if ( dependencyObject->getLastWriter() == lastWriter ) {
-               depObj.increasePredecessors();
-               lastWriter->addSuccessor( depObj );
+               if ( lastWriter->addSuccessor( depObj ) ) {
+                  depObj.increasePredecessors();
+               }
 #if 0
                if ( ( !(dep.isOutput()) || dep.isInput() ) ) {
                   // RaW dependency
@@ -126,8 +127,9 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
 
          for ( TrackableObject::DependableObjectList::iterator it = readersList.begin(); it != readersList.end(); it++) {
             DependableObject * predecessorReader = *it;
-            predecessorReader->addSuccessor( depObj );
-            depObj.increasePredecessors();
+            if ( predecessorReader->addSuccessor( depObj ) ) {
+               depObj.increasePredecessors();
+            }
             // WaR dependency
 #if 0
             debug (" DO_ID_" << predecessorReader->getId() << " [style=filled label=" << predecessorReader->getDescription() << " color=" << "red" << "];");
