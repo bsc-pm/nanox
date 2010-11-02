@@ -106,7 +106,7 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ()
    }
 #if 0
    while ( !_pendingTransfersAsync.empty() ) {
-      PendingCopy & copy = *_pendingTransfersAsync.begin();
+      GPUMemoryTransfer & copy = *_pendingTransfersAsync.begin();
 
       NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentor()->getInstrumentorDictionary()->getEventKey("cache-copy-out") );
       NANOS_INSTRUMENT( sys.getInstrumentor()->raiseOpenStateAndBurst( MEM_TRANSFER, key, copy._size ) );
@@ -116,7 +116,7 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ()
       GPUDevice::copyOutAsyncToHost( copy._dst, copy._src, copy._size );
 
       // Finish DO of the copy and remove it from the list
-      finishPendingCopy( _pendingTransfersAsync.begin() );
+      finishMemoryTransfer( _pendingTransfersAsync.begin() );
 
       NANOS_INSTRUMENT( sys.getInstrumentor()->raiseCloseStateAndBurst( key ) );
    }

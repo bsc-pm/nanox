@@ -211,7 +211,7 @@ void GPUDevice::free( void *address, ProcessingElement *pe )
    }
 
    if ( _transferMode == ASYNC || _transferMode == PINNED_CUDA || _transferMode == WC) {
-      uint64_t pinned = ((nanos::ext::GPUProcessor *) pe )->getPinnedAddress( address );
+      uint64_t pinned = ( ( nanos::ext::GPUProcessor * ) pe )->getPinnedAddress( address );
       if ( pinned != 0 ) {
          err = cudaFreeHost( ( void * ) pinned );
          ((nanos::ext::GPUProcessor *) pe )->removePinnedAddress( address );
@@ -239,7 +239,7 @@ bool GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size, Process
    if ( _transferMode == ASYNC ) {
       ( ( nanos::ext::GPUProcessor * ) pe )->getInTransferList()->addMemoryTransfer( remoteSrc );
       // Workaround to perform asynchronous copies
-      uint64_t pinned = ((nanos::ext::GPUProcessor *) pe )->getPinnedAddress( localDst );
+      uint64_t pinned = ( ( nanos::ext::GPUProcessor * ) pe )->getPinnedAddress( localDst );
       memcpy( ( void * ) pinned, ( void * ) remoteSrc, size );
 
       err = cudaMemcpyAsync(
