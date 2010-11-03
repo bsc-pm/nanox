@@ -42,6 +42,7 @@ template <typename _KeyType, typename _T, bool _invalidate = false, size_t _tsiz
 class HashMap
 {
    private:
+
       class MapEntry
       {
          private:
@@ -79,6 +80,91 @@ class HashMap
       typedef std::list<_T> HashList;
 #endif
 
+   public:
+      class iterator {
+         private:
+            friend class HashMap;
+            HashMap& _map;
+
+            int _currentTable;
+
+            typename HashList::iterator _currentItem;
+
+            void skip()
+            {
+                  if ( _currentTable == -1 )
+                     return;
+                  while ( _currentItem == _map._table[_currentTable].end() && _currentTable + 1 < (int)_map._tableSize ) { 
+                     _currentItem = _map._table[++_currentTable].begin();
+                  }
+
+                  if ( _currentItem == _map._table[_currentTable].end() ) {
+                     _currentTable = -1;
+                  }
+            }
+
+         public:
+            iterator( HashMap &hm, int currT, typename HashList::iterator item ) : _map(hm), _currentTable( currT ), _currentItem( item )
+            {
+               if ( currT != -1 ) skip();
+            }
+
+            iterator( iterator const &it ) : _map( it._map ), _currentTable( it._currentTable ), _currentItem( it._currentItem ) {}
+
+            ~iterator() {}
+
+            iterator const& operator=( iterator const &it )
+            {
+               _map = it._map;
+               _currentTable = it._currentTable;
+               _currentItem = it._currentItem;
+               return *this;
+            }
+
+            iterator operator++( int unused )
+            {
+               if ( _currentTable != -1 ) {
+                  _currentItem++;
+                  skip();
+               }
+               return *this;
+            }
+
+            iterator operator++()
+            {
+               if ( _currentTable != -1 ) {
+                  _currentItem++;
+                  while ( _currentTable < _map.tableSize && _currentItem == _map._table[_currentTable].end() ) {
+                     _currentTable++;
+                     _currentItem = _map._table[_currentTable].begin();
+                  }
+                  if ( _currentTable = _map._tableSize ) {
+                     _currentTable = -1;
+                  }
+               }
+               return *this;
+            }
+
+            _T const& operator*() const
+               { return _currentItem->getValue() ; }
+
+            _T& operator*()
+               { return _currentItem->getValue(); }
+
+            _T const * operator->() const
+               { return &(_currentItem->getValue()); }
+
+            _T* operator->()
+               { return &(_currentItem->getValue()); }
+
+           bool operator==( iterator const &it ) const
+              { return (_currentTable == -1 && it._currentTable == -1) || _currentItem == it.currentItem; }
+
+           bool operator!=( iterator const &it ) const
+              { return !((_currentTable == -1 && it._currentTable == -1) || _currentItem == it._currentItem); }
+      };
+
+   private:
       size_t _tableSize;
       HashList _table[_tsize];
       _HashFunction _hash; 
@@ -119,6 +205,10 @@ class HashMap
       */
       void deleteReference( _KeyType key );
 
+     /* \brief Returns the number of references
+      */
+      unsigned int getReferenceCount( _KeyType key );
+
      /* \brief Tries to erase the element identified by 'key' and returns true if successful (it had no references)
       */
       bool erase( _KeyType key );
@@ -130,6 +220,14 @@ class HashMap
      /* \brief Removes all elements in the hash, this is not thread safe
       */
       void flush( ItemList& removedItems );
+
+      iterator begin() {
+        return iterator( *this, 0, _table[0].begin() );
+      }
+
+      iterator end() {
+        return iterator( *this, -1, _table[0].begin() );
+      }
 };
 
 }

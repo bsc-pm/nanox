@@ -30,7 +30,8 @@
 #include "nanos-int.h"
 #include "dependency.hpp"
 #include "instrumentation_decl.hpp"
-#include "directory.hpp"
+#include "directory_decl.hpp"
+#include "pminterface_decl.hpp"
 
 
 namespace nanos
@@ -66,6 +67,7 @@ namespace nanos
          int                  _thsPerPE;
          bool                 _untieMaster;
          bool                 _delayedStart;
+         bool                 _useYield;
 
          //cutoff policy and related variables
          ThrottlePolicy      *_throttlePolicy;
@@ -93,6 +95,9 @@ namespace nanos
 
          // Mempory access directory
          Directory            _directory;
+
+         // Programming model interface
+         PMInterface *        _pmInterface;
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -158,6 +163,8 @@ namespace nanos
 
          bool getDelayedStart () const;
 
+         bool useYield() const;
+
          int getThsPerPE() const;
 
          int getTaskNum() const;
@@ -215,10 +222,10 @@ namespace nanos
          
          SchedulePolicy * getDefaultSchedulePolicy ( ) const;
 
-         Directory& getDirectory();
-
          SchedulerStats & getSchedulerStats ();
          SchedulerConf  & getSchedulerConf();
+
+         void setPMInterface (PMInterface *_pm);
 
    };
 

@@ -25,6 +25,7 @@
 #include <vector>
 #include "atomic.hpp"
 #include "trackableobject_fwd.hpp"
+#include "dependency.hpp"
 
 namespace nanos
 {
@@ -90,7 +91,7 @@ namespace nanos
 
          virtual void dependenciesSatisfied ( ) { }
 
-         virtual void wait ( ) { }
+         virtual void wait ( std::list<Dependency *> deps ) { }
 
          virtual bool waits ( ) { return false; }
 
@@ -151,10 +152,11 @@ namespace nanos
 
         /*! \brief Add a successor to the successors list
          *  \param depObj DependableObject to be added.
+         *  returns true if the successor didn't already exist in the list (a new edge has been added)
          */
-         void addSuccessor ( DependableObject &depObj )
+         bool addSuccessor ( DependableObject &depObj )
          {
-            _successors.insert ( &depObj );
+            return _successors.insert ( &depObj ).second;
          }
 
         /*! \brief Add an output object to the list.

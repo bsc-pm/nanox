@@ -61,6 +61,8 @@ inline void System::setDelayedStart ( bool set) { _delayedStart = set; }
 
 inline bool System::getDelayedStart () const { return _delayedStart; }
 
+inline bool System::useYield() const { return _useYield; }
+
 inline int System::getThsPerPE() const { return _thsPerPE; }
 
 inline int System::getTaskNum() const { return _schedStats._totalTasks.value(); }
@@ -109,13 +111,22 @@ inline void System::registerSlicer ( const std::string &label, Slicer *slicer) {
 inline void System::setDefaultSchedulePolicy ( SchedulePolicy *policy ) { _defSchedulePolicy = policy; }
 inline SchedulePolicy * System::getDefaultSchedulePolicy ( ) const  { return _defSchedulePolicy; }
 
-inline Directory& System::getDirectory() { return _directory; }
-
 inline SchedulerStats & System::getSchedulerStats () { return _schedStats; }
 inline SchedulerConf  & System::getSchedulerConf ()  { return _schedConf; }
 
 inline const std::string & System::getDefaultArch() const { return _defArch; }
 inline void System::setDefaultArch( const std::string &arch ) { _defArch = arch; }
+
+inline void System::setPMInterface(PMInterface *pm)
+{
+   ensure(!_pmInterface,"PM interface already in place!");
+   _pmInterface = pm;
+}
+
+inline bool System::throttleTask()
+{
+   return _throttlePolicy->throttle();
+}
 
 #endif
 

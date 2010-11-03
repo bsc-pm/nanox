@@ -28,17 +28,25 @@
 
 using namespace nanos;
 
-void WorkDescriptor::init (bool isUserLevelThread, WorkDescriptor *previous)
+void WorkDescriptor::init ()
 {
    ProcessingElement *pe = myThread->runningOn();
 
    /* Initializing instrumentation context */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdCreate( this ) );
 
+   if ( getNumCopies() > 0 )
+      pe->copyDataIn( *this );
+}
+
+void WorkDescriptor::start(bool isUserLevelThread, WorkDescriptor *previous)
+{
    _activeDevice->lazyInit(*this,isUserLevelThread,previous);
    
-   if ( getNumCopies() > 0 && pe->hasSeparatedMemorySpace() )
-      pe->copyDataIn( *this );
+   ProcessingElement *pe = myThread->runningOn();
+
+   if ( getNumCopies() > 0 )
+      pe->waitInputs( *this );
 
    setReady();
 }
@@ -89,7 +97,7 @@ void WorkDescriptor::submit( void )
 void WorkDescriptor::done ()
 {
    ProcessingElement *pe = myThread->runningOn();
-   if ( pe->hasSeparatedMemorySpace() )
+   if ( getNumCopies() > 0 )
      pe->copyDataOut( *this );
 
    // FIX-ME: We are waiting for the children tasks to avoid to keep alive only part of the parent

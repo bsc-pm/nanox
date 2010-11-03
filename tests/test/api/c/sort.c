@@ -33,7 +33,7 @@ test_generator=gens/api-generator
 #define BOTS_APP_PARAMETERS_LIST ,bots_arg_size,bots_app_cutoff_value_1,bots_app_cutoff_value_2,bots_app_cutoff_value
 
 #define BOTS_APP_USES_ARG_SIZE
-#define BOTS_APP_DEF_ARG_SIZE (8*1024*1024)
+#define BOTS_APP_DEF_ARG_SIZE (1*1024*1024)
 #define BOTS_APP_DESC_ARG_SIZE "Array size"
 
 #define BOTS_APP_USES_ARG_CUTOFF
@@ -526,8 +526,8 @@ void cilkmerge_par_1( void *ptr )
    nanos_event_key_t event_key;
    nanos_event_value_t event_value;
 
-   nanos_instrument_get_key ("user-funct", &event_key);
-   nanos_instrument_register_value ( &event_value, "user-funct", "cilk-merge", "Merge function", false );
+   nanos_instrument_get_key ("user-funct-name", &event_key);
+   nanos_instrument_register_value ( &event_value, "user-funct-name", "cilk-merge", "Merge function", false );
    nanos_instrument_enter_burst( event_key, event_value );
 
    cilkmerge_par_1_args * args = ( cilkmerge_par_1_args * ) ptr;
@@ -654,8 +654,8 @@ void cilksort_par_1( void *ptr )
    nanos_event_key_t event_key;
    nanos_event_value_t event_value;
 
-   nanos_instrument_get_key ("user-funct", &event_key);
-   nanos_instrument_register_value ( &event_value, "user-funct", "cilk-sort", "Sort function", false );
+   nanos_instrument_get_key ("user-funct-name", &event_key);
+   nanos_instrument_register_value ( &event_value, "user-funct-name", "cilk-sort", "Sort function", false );
    nanos_instrument_enter_burst( event_key, event_value );
 
    cilksort_par_1_args * args = ( cilksort_par_1_args * ) ptr;
@@ -1341,7 +1341,7 @@ void bots_set_info();
  *********************************************************************/
 /* common flags */
 int bots_sequential_flag = FALSE;
-int bots_check_flag = FALSE;
+int bots_check_flag = TRUE;
 bots_verbose_mode_t bots_verbose_mode = BOTS_VERBOSE_DEFAULT;
 int bots_result = BOTS_RESULT_NOT_REQUESTED;
 int bots_output_format = 1;
@@ -1828,6 +1828,6 @@ main(int argc, char* argv[])
    BOTS_APP_FINI;
 
    bots_print_results();
-   return (0);
+   if (bots_result == BOTS_RESULT_SUCCESSFUL) { return 0; } else { return -1; }
 }
 

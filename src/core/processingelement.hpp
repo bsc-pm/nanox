@@ -73,9 +73,13 @@ namespace nanos
          virtual bool supportsUserLevelThreads() const = 0;
          virtual bool hasSeparatedMemorySpace() const { return false; }
 
+         virtual void waitInputDependent( uint64_t tag ) {}
+
          /* Memory space suport */
-         virtual void copyDataIn( WorkDescriptor& wd ) {}
+         virtual void copyDataIn( WorkDescriptor& wd );
          virtual void copyDataOut( WorkDescriptor& wd ) {}
+
+         virtual void waitInputs( WorkDescriptor& wd );
 
          virtual void* getAddress( WorkDescriptor& wd, uint64_t tag, nanos_sharing_t sharing );
          virtual void copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );

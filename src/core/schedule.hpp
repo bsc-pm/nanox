@@ -42,7 +42,7 @@ namespace nanos
    class Scheduler
    {
       private:
-         static void queue ( WD &wd );
+         static void queue ( BaseThread *thread, WD &wd );
          static void switchHelper (WD *oldWD, WD *newWD, void *arg);
          static void exitHelper (WD *oldWD, WD *newWD, void *arg);
          
@@ -50,7 +50,7 @@ namespace nanos
          static void idleLoop (void);
 
       public:
-         static void inlineWork ( WD *work );
+         static void inlineWork ( WD *work, bool submitted );
 
          static void submit ( WD &wd );
          static void switchTo ( WD *to );
@@ -90,6 +90,11 @@ namespace nanos
    {
       friend class Scheduler;
       friend class System;
+      friend class SlicerStaticFor;
+      friend class SlicerDynamicFor;
+      friend class SlicerGuidedFor;
+      friend class SlicerRepeatN;
+      friend class SlicerCompoundWD;
       
       private:
         Atomic<int>          _createdTasks;

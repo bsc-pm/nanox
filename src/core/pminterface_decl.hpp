@@ -1,4 +1,5 @@
 /*************************************************************************************/
+/*      Copyright 2010 Barcelona Supercomputing Center                               */
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
@@ -17,55 +18,23 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "basethread.hpp"
-#include "processingelement.hpp"
-#include "system.hpp"
-#include "synchronizedcondition.hpp"
+#ifndef NANOS_PM_INTERFACE
+#define NANOS_PM_INTERFACE
 
-using namespace nanos;
+#include "config.hpp"
 
-__thread BaseThread * nanos::myThread=0;
-
-Atomic<int> BaseThread::_idSeed = 0;
-
-void BaseThread::run ()
+class PMInterface
 {
-   _threadWD.tieTo( *this );
-   associate();
-   runDependent();
-}
+   public:
+      virtual int getInternalDataSize() const { return 0; }
 
-void BaseThread::associate ()
-{
-   _started = true;
-   myThread = this;
-   setCurrentWD( _threadWD );
+      virtual void config (Config &cfg) {}
+      virtual void start () {}
+      virtual void finish() {}
 
-   if ( sys.getBinding() ) bind();
+      virtual void setupWD( WD &wd ) {}
+      virtual void wdStarted( WD &wd ) {}
+      virtual void wdFinished( WD &wd ) {}
+};
 
-   _threadWD.init();
-   _threadWD.start(false);
-
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, &_threadWD, false) );
-}
-
-bool BaseThread::singleGuard ()
-{
-   return getTeam()->singleGuard( getTeamData()->nextSingleGuard() );
-}
-
-/*
- * G++ optimizes TLS accesses by obtaining only once the address of the TLS variable
- * In this function this optimization does not work because the task can move from one thread to another
- * in different iterations and it will still be seeing the old TLS variable (creating havoc
- * and destruction and colorful runtime errors).
- * getMyThreadSafe ensures that the TLS variable is reloaded at least once per iteration while we still do some
- * reuse of the address (inside the iteration) so we're not forcing to go through TLS for each myThread access
- * It's important that the compiler doesn't inline it or the optimazer will cause the same wrong behavior anyway.
- */
-BaseThread * nanos::getMyThreadSafe()
-{
-   return myThread;
-}
-
-
+#endif /* PM_INTERFACE_HPP_ */

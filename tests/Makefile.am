@@ -27,12 +27,4 @@ check-local: $(top_srcdir)/scripts/bets
 	$(top_srcdir)/scripts/bets $(BETS_OPTIONS) -o tests.log $(srcdir)/test
 
 dist-hook:
-	mkdir $(distdir)/test; \
-	for i in $(srcdir)/test/*; \
-	do  \
-	   DIR=test/$$(basename $$i); \
-	   [ -f $$i ] && continue; \
-	   [ "$DIR" = "gens" ] && continue;\
-	   mkdir -p $(distdir)/$${DIR} ; \
-	   find $(srcdir)/$${DIR} "(" -name "*.c" -o -name "*.cpp" -o -name "*.C" -o -name "*.cc" ")" -exec cp {} $(distdir)/$${DIR} ';' ; \
-	done
+	cp -vr $(srcdir)/test $(distdir)

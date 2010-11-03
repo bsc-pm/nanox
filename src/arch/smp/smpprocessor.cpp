@@ -69,24 +69,29 @@ BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper )
 
 #if SMP_NUMA
 
-void SMPProcessor::registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output )
+void SMPProcessor::waitInputDependent( uint64_t tag )
 {
-   _cache.registerCacheAccess( tag, size, input, output );
+   _cache.waitInput(tag);
 }
 
-void SMPProcessor::unregisterCacheAccessDependent( uint64_t tag, size_t size, bool output )
+void SMPProcessor::registerCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
 {
-   _cache.unregisterCacheAccess( tag, size, output );
+   _cache.registerCacheAccess( dir, tag, size, input, output );
 }
 
-void SMPProcessor::registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output )
+void SMPProcessor::unregisterCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool output )
 {
-   _cache.registerPrivateAccess( tag, size, input, output );
+   _cache.unregisterCacheAccess( dir, tag, size, output );
 }
 
-void SMPProcessor::unregisterPrivateAccessDependent( uint64_t tag, size_t size )
+void SMPProcessor::registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
 {
-   _cache.unregisterPrivateAccess( tag, size );
+   _cache.registerPrivateAccess( dir, tag, size, input, output );
+}
+
+void SMPProcessor::unregisterPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size )
+{
+   _cache.unregisterPrivateAccess( dir, tag, size );
 }
 
 void* SMPProcessor::getAddressDependent( uint64_t tag )
@@ -97,6 +102,11 @@ void* SMPProcessor::getAddressDependent( uint64_t tag )
 void SMPProcessor::copyToDependent( void *dst, uint64_t tag, size_t size )
 {
    _cache.copyTo( dst, tag, size );
+}
+
+void SMPProcessor::synchronize( Directory &dir, uint64_t tag )
+{
+   _cache.synchronize( tag );
 }
 
 #endif

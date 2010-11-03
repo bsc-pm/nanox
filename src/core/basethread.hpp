@@ -93,7 +93,7 @@ namespace nanos
 
          //disable copy and assigment
          BaseThread( const BaseThread & );
-         const BaseThread operator= ( const BaseThread & );
+         const BaseThread & operator= ( const BaseThread & );
 
          virtual void runDependent () = 0;
 
@@ -103,7 +103,6 @@ namespace nanos
          virtual void inlineWorkDependent (WD &work) = 0;
          virtual void switchTo( WD *work, SchedulerHelper *helper ) = 0;
          virtual void exitTo( WD *work, SchedulerHelper *helper ) = 0;
-         virtual void yield() {};
 
       protected:
 
@@ -140,6 +139,7 @@ namespace nanos
          void stop() { _mustStop = true; }
 
          virtual void idle() {};
+         virtual void yield() {};
 
          virtual void join() = 0;
          virtual void bind() {};
