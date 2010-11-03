@@ -50,7 +50,8 @@ void SlicerCompoundWD::submit ( SlicedWD &work )
  */
 bool SlicerCompoundWD::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
 {
-   bool pack_cond = true;
+   bool pack_cond = ( (sys.getSchedulerStats()._readyTasks > (myThread->getTeam()->size() * 4))
+                      && (sys.getSchedulerStats()._idleThreads != 0) );
 
    /* Get compound wd data */
    nanos_compound_wd_data_t *data = (nanos_compound_wd_data_t *) wd->getData();
