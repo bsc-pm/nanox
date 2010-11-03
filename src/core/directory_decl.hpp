@@ -63,7 +63,8 @@ namespace nanos
    {
       private:
 
-         Cache *_owner;
+         //Atomic<Cache *> _owner;
+         Cache * _owner;
 
          Lock _entryLock;
 
