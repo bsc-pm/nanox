@@ -60,7 +60,12 @@ inline const DirectoryEntry& DirectoryEntry::operator= ( const DirectoryEntry &e
    return *this;
 }
 
-inline Cache * DirectoryEntry::getOwner() const { return _owner; }
+//inline Cache * DirectoryEntry::getOwner() const { return _owner.value(); }
+inline Cache * DirectoryEntry::getOwner() const
+{
+   memoryFence();
+   return _owner;
+}
 
 inline void DirectoryEntry::setOwner( Cache *owner ) { _owner = owner; }
 
