@@ -33,8 +33,8 @@ void sleep_100 ( void )
    nanos_event_key_t event_key;
    nanos_event_value_t event_value;
 
-   nanos_instrument_get_key ("user-funct", &event_key);
-   nanos_instrument_register_value ( &event_value, "user-funct", "sleep_100", "Function: sleep_100", false );
+   nanos_instrument_get_key ("user-funct-name", &event_key);
+   nanos_instrument_register_value ( &event_value, "user-funct-name", "sleep_100", "Function: sleep_100", false );
    nanos_instrument_enter_burst( event_key, event_value );
 
    usleep ( 100 );
@@ -59,8 +59,8 @@ void main__task_2 ( void *args )
    nanos_event_key_t event_key;
    nanos_event_value_t event_value;
 
-   nanos_instrument_get_key ("user-funct", &event_key);
-   nanos_instrument_register_value ( &event_value, "user-funct", "task-2", "Function: main__task_2", false );
+   nanos_instrument_get_key ("user-funct-name", &event_key);
+   nanos_instrument_register_value ( &event_value, "user-funct-name", "task-2", "Function: main__task_2", false );
    nanos_instrument_enter_burst( event_key, event_value );
 
    main__task_2_data_t *hargs = (main__task_2_data_t * ) args;
@@ -80,8 +80,8 @@ void main__task_1 ( void *args )
    nanos_event_key_t event_key;
    nanos_event_value_t event_value;
 
-   nanos_instrument_get_key ("user-funct", &event_key);
-   nanos_instrument_register_value ( &event_value, "user-funct", "task-1", "Function: main__task_1", false );
+   nanos_instrument_get_key ("user-funct-name", &event_key);
+   nanos_instrument_register_value ( &event_value, "user-funct-name", "task-1", "Function: main__task_1", false );
    nanos_instrument_enter_burst( event_key, event_value );
 
    nanos_instrument_disable_state_events( NANOS_RUNTIME );

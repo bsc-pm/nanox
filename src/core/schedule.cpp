@@ -277,7 +277,7 @@ struct WorkerBehaviour
       if (next->started())
         Scheduler::switchTo(next);
       else {
-        Scheduler::inlineWork ( next );
+        Scheduler::inlineWork ( next, true );
       }
    }
 };
@@ -293,7 +293,7 @@ void Scheduler::queue ( BaseThread *thread, WD &wd )
    thread->getTeam()->getSchedulePolicy().queue( thread, wd );
 }
 
-void Scheduler::inlineWork ( WD *wd )
+void Scheduler::inlineWork ( WD *wd, bool submitted )
 {
    // run it in the current frame
    WD *oldwd = myThread->getCurrentWD();
@@ -318,7 +318,10 @@ void Scheduler::inlineWork ( WD *wd )
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
 
    myThread->inlineWorkDependent(*wd);
-   updateExitStats ();
+
+   /* If WorkDescriptor has been submitted update statistics */
+   if ( submitted ) updateExitStats ();
+
    wd->done();
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, false) );
@@ -375,7 +378,7 @@ void Scheduler::switchTo ( WD *to )
           
       myThread->switchTo( to, switchHelper );
    } else {
-      inlineWork(to);
+      inlineWork(to, true);
       delete to;
    }
 }

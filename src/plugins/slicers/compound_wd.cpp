@@ -82,7 +82,7 @@ void SlicerCompoundWD::executeWDs ( nanos_compound_wd_data_t *data )
 
    for ( int i = 0; i < data->nsect; i++ ) {
       slice = ((WorkDescriptor**)data->lwd)[i];
-      Scheduler::inlineWork( slice );
+      Scheduler::inlineWork( slice, false );
    }
 
 }
