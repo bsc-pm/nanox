@@ -35,6 +35,8 @@ void GPUThread::runDependent ()
    setCurrentWD( work );
    setNextWD( (WD *) 0 );
 
+   _lock.acquire();
+
    cudaError_t err = cudaSetDevice( _gpuDevice );
    if ( err != cudaSuccess )
       warning( "Couldn't set the GPU device for the thread: " << cudaGetErrorString( err ) );
@@ -51,6 +53,8 @@ void GPUThread::runDependent ()
    }
 
    ((GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->init();
+
+   _lock.release();
 
    // Avoid the so slow first data allocation and transfer to device
    //bool b = true;
