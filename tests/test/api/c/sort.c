@@ -1751,7 +1751,7 @@ void bots_set_info ()
    sprintf(bots_name,BOTS_APP_NAME);
    sprintf(bots_parameters,BOTS_APP_PARAMETERS_DESC BOTS_APP_PARAMETERS_LIST);
    sprintf(bots_model,BOTS_MODEL_DESC);
-   sprintf(bots_resources,"%d", omp_get_max_threads());
+   sprintf(bots_resources,"%d", omp_get_num_procs());
 
    /* compilation info (do not modify) */
    strcpy(bots_comp_date,CDATE);
