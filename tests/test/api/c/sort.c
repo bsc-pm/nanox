@@ -17,14 +17,15 @@
 /*  along with this program; if not, write to the Free Software                               */
 /*  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA            */
 /**********************************************************************************************/
-/*                                                                                                                                                       
-<testinfo>                                                                                                                                               
-test_generator=gens/api-generator                                                                                                                        
-</testinfo>                                                                                                                                              
+/*
+<testinfo>
+test_generator=gens/api-omp-generator
+</testinfo>
 */ 
 
 #include <nanos.h>
-                                                                                                                                                         
+#include "omp.h"
+
 #define MODEL NANOX-TASKS
 #define BOTS_MODEL_DESC "Nanos++"
 
