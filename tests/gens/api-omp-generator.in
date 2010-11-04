@@ -1,0 +1,20 @@
+#!/bin/bash
+
+cat <<EOF
+
+SRC=@SRCDIR@/src
+BUILD=@BUILDDIR@/src
+
+common_includes="-I\$SRC/core -I\$SRC/apis/c -I\$SRC/pms/openmp"
+
+common_cflags="-Wall"
+
+test_CFLAGS="\$common_includes \$common_cflags"
+test_CXXFLAGS="\$common_includes \$common_cflags"
+
+test_LDFLAGS="\$BUILD/core/.libs/libnanox.so \$BUILD/apis/c/.libs/libnanox-c.so \$BUILD/pms/openmp/.libs/libnanox-omp.so"
+test_ENV="LD_LIBRARY_PATH=\$BUILD/core/.libs:\$BUILD/apis/c/.libs/:\$BUILD/pms/openmp/.libs:$LD_LIBRARY_PATH"
+
+`@SRCDIR@/tests/gens/config.py $*`
+EOF
+

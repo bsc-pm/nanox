@@ -1,8 +1,8 @@
-EXTRA_DIST = api-generator.in core-generator.in mixed-generator.in nanox-creation-generator.in config.py
+EXTRA_DIST = api-generator.in core-generator.in mixed-generator.in nanox-creation-generator.in api-omp-generator.in config.py
 
-noinst_SCRIPTS = api-generator core-generator mixed-generator nanox-creation-generator
+noinst_SCRIPTS = api-generator core-generator mixed-generator nanox-creation-generator api-omp-generator
 
-CLEANFILES = api-generator core-generator mixed-generator nanox-creation-generator
+CLEANFILES = api-generator core-generator mixed-generator nanox-creation-generator api-omp-generator
 
 api-generator: api-generator.in
 	rm -f api-generator
@@ -47,4 +47,15 @@ nanox-creation-generator: nanox-creation-generator.in
 		$(srcdir)/nanox-creation-generator.in > nanox-creation-generator.tmp
 	mv nanox-creation-generator.tmp nanox-creation-generator
 	chmod 755 nanox-creation-generator
+
+api-omp-generator: api-omp-generator.in
+	rm -f api-omp-generator
+	tmp_srcdir=$(abs_top_srcdir) ; \
+	tmp_builddir=$(abs_top_builddir) ; \
+	sed \
+		-e's,@SRCDIR\@,'"$$tmp_srcdir"',g' \
+		-e's,@BUILDDIR\@,'"$$tmp_builddir"',g' \
+		$(srcdir)/api-omp-generator.in > api-omp-generator.tmp
+	mv api-omp-generator.tmp api-omp-generator
+	chmod 755 api-omp-generator
 
