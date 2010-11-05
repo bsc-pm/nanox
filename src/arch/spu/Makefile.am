@@ -21,7 +21,6 @@ SUBDIRS = performance debug instrumentation
 
 include $(top_srcdir)/src/common.am
 
-noinst_LTLIBRARIES = libspu.la
 EXTRAD_DIST= spu_idle.spu
 
 SPUCCFLAGS=-I @CELLSDK_INC@
