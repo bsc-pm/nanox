@@ -68,15 +68,10 @@ int main (int argc, char* argv[])
       exit(0);
    }
 
-
-// FIXME: take plugins from libdir (or libdir/plugins)
-/*
    if ( listPlugins )
-      std::cout << "Nanox runtime library available plugins at '" << PluginManager::getDirectory() << "':" << std::endl;
+      std::cout << "Nanox runtime library available plugins at '" << PLUGIN_DIR << "':" << std::endl;
 
-   n = scandir( PluginManager::getDirectory().c_str(), &namelist, 0, alphasort );
-*/
-   n = scandir( "", &namelist, 0, alphasort );
+   n = scandir( PLUGIN_DIR, &namelist, 0, alphasort );
 
    if ( n < 0 )
       perror( "scandir" );

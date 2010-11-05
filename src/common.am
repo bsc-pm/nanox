@@ -10,10 +10,14 @@ common_includes= \
 	-I$(top_srcdir)/src/arch/gpu \
 	$(END)
 
+bin_cxxflags= -Wall -Werror -DLIBDIR=\"$(libdir)\" -D_NANOS_INTERNAL -O2 -g2 -DNANOS_DEBUG_ENABLED
 common_cflags= -Wall -Werror 
-#common_cxxflags= -Wall -Werror -std=c++0x
-common_cxxflags= -Wall -Werror -DLIBDIR=\"$(libdir)\" -D_NANOS_INTERNAL -DSMP_NUMA
-performance_cflags=-O3
+common_perfo_cxxflags= -Wall -Werror -DLIBDIR=\"$(libdir)\" -D_NANOS_INTERNAL -O3 
+perfo_cflags=-O3
+common_debug_cxxflags= -Wall -Werror -DLIBDIR=\"$(libdir)\" -D_NANOS_INTERNAL -O0 -g2 -fno-inline -DNANOS_DEBUG_ENABLED
+debug_cflags=-O0 -g2
+common_instr_cxxflags= -Wall -Werror -DLIBDIR=\"$(libdir)\" -D_NANOS_INTERNAL -O3 -DNANOS_INSTRUMENTATION_ENABLED
+instr_cflags=-O3
 
 version_flags= -version-info 1:0:0
 ld_plugin_flags= -avoid-version

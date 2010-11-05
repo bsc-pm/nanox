@@ -17,29 +17,13 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
+SUBDIRS = performance debug instrumentation
+
 include $(top_srcdir)/src/common.am
 
-lib_LTLIBRARIES=libnanox-c.la
+#lib_LTLIBRARIES=libnanox-c.la
 
 pkginclude_HEADERS=\
 	nanos.h \
 	$(END)
-
-sources=\
-	nanos.h\
-	nanos_pe.cpp\
-	nanos_finders.cpp\
-	nanos_wd.cpp\
-	nanos_sync.cpp\
-	nanos_team.cpp\
-	nanos_err.cpp\
-	nanos_sys.cpp\
-	nanos_instrument.cpp\
-	$(END)
-
-libnanox_c_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(performance_cflags)
-libnanox_c_la_LDFLAGS=$(version_flags)
-libnanox_c_la_LIBADD=$(top_builddir)/src/core/libnanox.la
-libnanox_c_la_SOURCES=$(sources)
-libnanox_c_la_DEPENDENCIES=$(top_builddir)/src/core/libnanox.la
 
