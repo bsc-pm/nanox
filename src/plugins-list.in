@@ -3,7 +3,6 @@ pms/openmp
 plugins/throttle
 plugins/slicers
 plugins/sched
-plugins/instrumentors
 plugins/instrumentation
 plugins/barr
 arch/smp
