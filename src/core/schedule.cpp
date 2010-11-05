@@ -111,9 +111,7 @@ inline void Scheduler::idleLoop ()
          WD * next = myThread->getNextWD();
 
          if ( !next && sys.getSchedulerStats()._readyTasks > 0 ) {
-            NANOS_INSTRUMENT( InstrumentState inst1(NANOS_SCHEDULING) );
             next = behaviour::getWD(thread,current);
-            NANOS_INSTRUMENT( inst1.close() );
          }
 
          if ( next ) {
@@ -196,9 +194,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
             WD *next = NULL;
             if ( sys.getSchedulerStats()._readyTasks > 0 ) {
-               NANOS_INSTRUMENT( InstrumentState inst1(NANOS_SCHEDULING) );
                next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
-               NANOS_INSTRUMENT( inst1.close() );
             }
 
             if ( next ) {
@@ -265,7 +261,6 @@ void Scheduler::wakeUp ( WD *wd )
 
 WD * Scheduler::prefetch( BaseThread *thread, WD &wd )
 {
-   debug ( "prefetching data for task " << wd.getId() );
    return thread->getTeam()->getSchedulePolicy().atPrefetch( thread, wd );
 }
 
@@ -281,7 +276,7 @@ struct WorkerBehaviour
       if (next->started())
         Scheduler::switchTo(next);
       else {
-        Scheduler::inlineWork ( next );
+        Scheduler::inlineWork ( next, true );
       }
    }
 };
@@ -297,7 +292,7 @@ void Scheduler::queue ( BaseThread *thread, WD &wd )
    thread->getTeam()->getSchedulePolicy().queue( thread, wd );
 }
 
-void Scheduler::inlineWork ( WD *wd )
+void Scheduler::inlineWork ( WD *wd, bool submitted )
 {
    // run it in the current frame
    WD *oldwd = myThread->getCurrentWD();
@@ -322,7 +317,10 @@ void Scheduler::inlineWork ( WD *wd )
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
 
    myThread->inlineWorkDependent(*wd);
-   updateExitStats ();
+
+   /* If WorkDescriptor has been submitted update statistics */
+   if ( submitted ) updateExitStats ();
+
    wd->done();
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, false) );
@@ -379,7 +377,7 @@ void Scheduler::switchTo ( WD *to )
           
       myThread->switchTo( to, switchHelper );
    } else {
-      inlineWork(to);
+      inlineWork(to, true);
       delete to;
    }
 }
