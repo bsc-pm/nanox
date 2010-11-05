@@ -17,30 +17,7 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
+SUBDIRS = performance debug instrumentation
+
 include $(top_srcdir)/src/common.am
-
-noinst_LTLIBRARIES = libsupport.la
-
-libsupport_la_CXXFLAGS= $(common_includes) $(common_cxxflags)
-libsupport_la_SOURCES = \
-	atomic.hpp\
-	lazy.hpp\
-	compatibility.hpp\
-	queue.hpp\
-	debug.hpp\
-	config.hpp\
-	config.cpp \
-	functors.hpp \
-	plugin.hpp \
-	plugin.cpp \
-	xstring.hpp \
-	cache_fwd.hpp \
-	cache_decl.hpp \
-	cache.hpp \
-	simpleallocator.hpp \
-	simpleallocator.cpp \
-	list.hpp \
-	hashmap.hpp \
-	hashmap_decl.hpp \
-	$(END) 
 

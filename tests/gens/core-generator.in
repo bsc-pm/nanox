@@ -3,6 +3,8 @@
 cat <<EOF
 SRC=@SRCDIR@/src
 BUILD=@BUILDDIR@/src
+PLUGINS=@PLUGINSDIRS@
+INSTR_CXXFLAGS=@INSTR_CXXFLAGS@
 
 common_includes=" 
         -I\$SRC/arch/unix-os \
@@ -14,10 +16,10 @@ common_includes="
 common_cflags="-Wall -Werror"
 
 test_CFLAGS="\$common_includes \$common_cflags"
-test_CXXFLAGS="\$common_includes \$common_cflags"
+test_CXXFLAGS="\$common_includes \$common_cflags \$INSTR_CXXFLAGS"
 
-test_LDFLAGS="\$BUILD/core/.libs/libnanox.so"
-test_ENV="LD_LIBRARY_PATH=\$BUILD/core/.libs:$LD_LIBRARY_PATH"
+test_LDFLAGS="\$BUILD/core/@USEDVERSION@/.libs/libnanox.so"
+test_ENV="LD_LIBRARY_PATH=\$BUILD/core/@USEDVERSION@/.libs:\$PLUGINS:$LD_LIBRARY_PATH"
 
 `@SRCDIR@/tests/gens/config.py $*`
 EOF

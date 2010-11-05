@@ -59,17 +59,11 @@ namespace nanos
    {
       private:
          typedef std::vector<Plugin *>    PluginList;
-         static std::string               _pluginsDir;
          static PluginList                _activePlugins;
 
       public:
 
          static void init();
-
-         static void setDirectory ( const char *dir ) {  _pluginsDir = dir;  }
-         static void setDirectory ( const std::string & dir ) { _pluginsDir = dir;  }
-
-         static const std::string &getDirectory () { return _pluginsDir; }
 
          static bool isPlugin ( const char *name );
          static bool isPlugin ( const std::string &name ) { return isPlugin( name.c_str() ); }

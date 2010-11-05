@@ -23,6 +23,15 @@ CLEANFILES=
 
 CLEANFILES+=tests.log
 
+performance:
+	$(MAKE) -C gens performance
+
+debug:
+	$(MAKE) -C gens debug
+
+instrumentation:
+	$(MAKE) -C gens instrumentation
+
 check-local: $(top_srcdir)/scripts/bets
 	$(top_srcdir)/scripts/bets $(BETS_OPTIONS) -o tests.log $(srcdir)/test
 

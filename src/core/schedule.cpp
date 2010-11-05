@@ -261,7 +261,6 @@ void Scheduler::wakeUp ( WD *wd )
 
 WD * Scheduler::prefetch( BaseThread *thread, WD &wd )
 {
-   debug ( "prefetching data for task " << wd.getId() );
    return thread->getTeam()->getSchedulePolicy().atPrefetch( thread, wd );
 }
 

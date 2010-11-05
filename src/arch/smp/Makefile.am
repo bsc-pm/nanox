@@ -17,10 +17,9 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-include $(top_srcdir)/src/common.am
+SUBDIRS = performance debug instrumentation
 
-noinst_LTLIBRARIES = libsmp.la
-lib_LTLIBRARIES = libnanox-pe-smp.la
+include $(top_srcdir)/src/common.am
 
 EXTRA_DIST= \
 	x86/stack.cpp \
@@ -33,32 +32,4 @@ EXTRA_DIST= \
 	ppc32/stack.s \
         smp_ult.hpp \
 	$(END)
-	
-if SMP_SUPPORTS_ULT
-ult_sources= \
-         @SMP_ARCH@/stack.cpp \
-	 @SMP_ARCH@/stack.s \
-         $(END)
-ult_flags=-DSMP_SUPPORTS_ULT
-endif
-
-libsmp_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags)
-libsmp_la_SOURCES = \
-		smpdevice.hpp \
-		smpdd.hpp \
-		smpdd.cpp \
-		smpprocessor.hpp \
-		smpprocessor.cpp \
-		smpthread.hpp \
-		smpthread.cpp \
-		$(ult_sources) \
-		$(END)
-
-
-
-libnanox_pe_smp_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags)
-libnanox_pe_smp_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_pe_smp_la_SOURCES = \
-		smpplugin.cpp \
-		$(END)
 

@@ -50,7 +50,11 @@ void OS::init ()
 void * OS::loadDL( const std::string &dir, const std::string &name )
 {
    std::string filename;
-   filename = dir + "/" + name + ".so";
+   if ( dir != "") {
+      filename = dir + "/" + name + ".so";
+   } else {
+      filename = name + ".so";
+   }
    /* open the module */
    return dlopen ( filename.c_str(), RTLD_NOW );
 }

@@ -17,42 +17,7 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
+SUBDIRS = performance debug instrumentation
+
 include $(top_srcdir)/src/common.am
 
-lib_LTLIBRARIES = \
-	libnanox-throttle-dummy.la \
-	libnanox-throttle-numtasks.la \
-	libnanox-throttle-idlethreads.la \
-	libnanox-throttle-taskdepth.la \
-	libnanox-throttle-readytasks.la \
-	$(END)
-
-libnanox_throttle_dummy_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
-libnanox_throttle_dummy_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_throttle_dummy_la_SOURCES = \
-        dummy_throttle.cpp \
-        $(END)
-
-libnanox_throttle_numtasks_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
-libnanox_throttle_numtasks_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_throttle_numtasks_la_SOURCES = \
-        numtasks_throttle.cpp \
-        $(END)
-
-libnanox_throttle_idlethreads_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
-libnanox_throttle_idlethreads_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_throttle_idlethreads_la_SOURCES = \
-        idlethreads_throttle.cpp \
-        $(END)
-
-libnanox_throttle_taskdepth_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
-libnanox_throttle_taskdepth_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_throttle_taskdepth_la_SOURCES = \
-        taskdepth_throttle.cpp \
-        $(END)
-
-libnanox_throttle_readytasks_la_CXXFLAGS = $(common_includes) $(common_cxxflags)
-libnanox_throttle_readytasks_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_throttle_readytasks_la_SOURCES = \
-        readytasks_throttle.cpp \
-        $(END)
