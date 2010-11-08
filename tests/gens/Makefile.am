@@ -90,11 +90,17 @@ nanox-creation-generator: nanox-creation-generator.in
 
 api-omp-generator: api-omp-generator.in
 	rm -f api-omp-generator
+	tmp_plugins_dirs=`cat $(abs_top_builddir)/src/plugins-list | grep $(USED_VERSION)\= | cut -d'=' -f2` ;\
 	tmp_srcdir=$(abs_top_srcdir) ; \
 	tmp_builddir=$(abs_top_builddir) ; \
+	tmp_used_version=$(USED_VERSION) ; \
+	tmp_instr_cxxflags=$($(USED_VERSION)_cxxflags) ; \
 	sed \
 		-e's,@SRCDIR\@,'"$$tmp_srcdir"',g' \
 		-e's,@BUILDDIR\@,'"$$tmp_builddir"',g' \
+		-e's,@PLUGINSDIRS\@,'"$$tmp_plugins_dirs"',g' \
+		-e's,@USEDVERSION\@,'"$$tmp_used_version"',g' \
+		-e's,@INSTR_CXXFLAGS\@,'"$$tmp_instr_cxxflags"',g' \
 		$(srcdir)/api-omp-generator.in > api-omp-generator.tmp
 	mv api-omp-generator.tmp api-omp-generator
 	chmod 755 api-omp-generator
