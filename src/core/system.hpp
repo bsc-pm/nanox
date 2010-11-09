@@ -72,6 +72,9 @@ inline int System::getIdleNum() const { return _schedStats._idleThreads.value();
 inline void System::setUntieMaster ( bool value ) { _untieMaster = value; }
 inline bool System::getUntieMaster () const { return _untieMaster; }
 
+inline void System::setSynchronizedStart ( bool value ) { _synchronizedStart = value; }
+inline bool System::getSynchronizedStart ( void ) const { return _synchronizedStart; }
+
 inline int System::getReadyNum() const { return _schedStats._readyTasks.value(); }
 
 inline int System::getRunningTasks() const
