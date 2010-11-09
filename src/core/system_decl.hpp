@@ -68,6 +68,7 @@ namespace nanos
          bool                 _untieMaster;
          bool                 _delayedStart;
          bool                 _useYield;
+         bool                 _synchronizedStart;
 
          //cutoff policy and related variables
          ThrottlePolicy      *_throttlePolicy;
@@ -185,6 +186,9 @@ namespace nanos
          void setUntieMaster ( bool value );
 
          bool getUntieMaster () const;
+
+         void setSynchronizedStart ( bool value );
+         bool getSynchronizedStart ( void ) const;
 
          // team related methods
          BaseThread * getUnassignedWorker ( void );
