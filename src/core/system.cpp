@@ -259,6 +259,10 @@ void System::start ()
          fatal("Unknown inital mode!");
          break;
    }
+
+   /* Master thread is ready and waiting for the rest of the gang */
+   threadReady();
+
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_RUNNING) );
 }

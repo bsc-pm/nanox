@@ -87,6 +87,11 @@ namespace nanos
 
          PEList               _pes;
          ThreadList           _workers;
+        
+         /*! It counts how many threads have finalized their initialization */
+         Atomic<unsigned int> _initializedThreads;
+         /*! This counts how many threads we're waiting to be initialized */
+         unsigned int         _targetThreads;
 
          Slicers              _slicers; /**< set of global slicers */
 
@@ -226,6 +231,8 @@ namespace nanos
          SchedulerConf  & getSchedulerConf();
 
          void setPMInterface (PMInterface *_pm);
+
+         void threadReady ();
 
    };
 
