@@ -72,6 +72,9 @@ inline int System::getIdleNum() const { return _schedStats._idleThreads.value();
 inline void System::setUntieMaster ( bool value ) { _untieMaster = value; }
 inline bool System::getUntieMaster () const { return _untieMaster; }
 
+inline void System::setSynchronizedStart ( bool value ) { _synchronizedStart = value; }
+inline bool System::getSynchronizedStart ( void ) const { return _synchronizedStart; }
+
 inline int System::getReadyNum() const { return _schedStats._readyTasks.value(); }
 
 inline int System::getRunningTasks() const
@@ -126,6 +129,17 @@ inline void System::setPMInterface(PMInterface *pm)
 inline bool System::throttleTask()
 {
    return _throttlePolicy->throttle();
+}
+
+inline void System::threadReady()
+{
+   _initializedThreads++;
+  
+   /*! It's better not to call Scheduler::waitOnCondition here as the initialization is not
+       yet finished 
+
+      TODO: we can consider thread yielding */
+   while (_initializedThreads.value() < _targetThreads);
 }
 
 #endif

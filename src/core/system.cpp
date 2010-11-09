@@ -47,8 +47,9 @@ System nanos::sys;
 System::System () :
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindThreads( true ), _profile( false ), _instrument( false ),
       _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster(true),
-      _delayedStart(false), _useYield(true), _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" ),
-      _defInstr ( "empty_trace" ), _defArch("smp"), _instrumentation ( NULL ), _defSchedulePolicy(NULL), _directory(), _pmInterface(NULL)
+      _delayedStart(false), _useYield(true), _synchronizedStart(true), _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), 
+      _defBarr( "posix" ), _defInstr ( "empty_trace" ), _defArch("smp"), _instrumentation ( NULL ), 
+      _defSchedulePolicy(NULL), _directory(), _pmInterface(NULL)
 {
    verbose0 ( "NANOS++ initializing... start" );
    // OS::init must be called here and not in System::start() as it can be too late
@@ -170,6 +171,9 @@ void System::config ()
    config.registerArgOption ( "instrumentation", "instrumentation" );
    config.registerEnvOption ( "instrumentation", "NX_INSTRUMENTATION" );
 
+   config.registerConfigOption ( "no-sync-start", new Config::FlagOption( _synchronizedStart, false), "Disables synchronized start" );
+   config.registerArgOption ( "no-sync-start", "disable-synchronized-start" );
+
    _schedConf.config(config);
    _pmInterface->config(config);
 
@@ -216,6 +220,11 @@ void System::start ()
 
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_STARTUP) );
 
+   _targetThreads = getThsPerPE() * numPes;
+#ifdef GPU_DEV
+   _targetThreads += nanos::ext::GPUDD::getGPUCount();
+#endif
+
    //start as much threads per pe as requested by the user
    for ( int ths = 1; ths < getThsPerPE(); ths++ ) {
       _workers.push_back( &pe->startWorker( ));
@@ -259,6 +268,11 @@ void System::start ()
          fatal("Unknown inital mode!");
          break;
    }
+
+   /* Master thread is ready and waiting for the rest of the gang */
+   if ( getSynchronizedStart() )   
+     threadReady();
+
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_RUNNING) );
 }

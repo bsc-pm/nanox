@@ -32,6 +32,10 @@ void BaseThread::run ()
 {
    _threadWD.tieTo( *this );
    associate();
+   initializeDependent();
+   /* Notify that the thread has finished all its initialization and it's ready to run */
+   if ( sys.getSynchronizedStart() ) 
+     sys.threadReady();
    runDependent();
 }
 
