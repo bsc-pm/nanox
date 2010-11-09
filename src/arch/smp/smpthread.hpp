@@ -59,6 +59,7 @@ namespace ext
 
          virtual void start();
          virtual void join();
+         virtual void initializeDependent( void ) {}
          virtual void runDependent ( void );
 
          virtual void inlineWorkDependent( WD &work );

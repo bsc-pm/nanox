@@ -128,5 +128,16 @@ inline bool System::throttleTask()
    return _throttlePolicy->throttle();
 }
 
+inline void System::threadReady()
+{
+   _initializedThreads++;
+  
+   /*! It's better not to call Scheduler::waitOnCondition here as the initialization is not
+       yet finished 
+
+      TODO: we can consider thread yielding */
+   while (_initializedThreads.value() < _targetThreads);
+}
+
 #endif
 
