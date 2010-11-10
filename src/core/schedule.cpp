@@ -423,11 +423,13 @@ struct ExitBehaviour
 
 void Scheduler::exitTo ( WD *to )
  {
-    WD *current = myThread->getCurrentWD();
+//   FIXME: stack reusing was wrongly implementd and it's disabled (see #374)
+//    WD *current = myThread->getCurrentWD();
 
     if (!to->started()) {
        to->init();
-       to->start(true,current);
+//       to->start(true,current);
+       to->start(true,NULL);
     }
 
     debug( "exiting task " << myThread->getCurrentWD() << ":" << myThread->getCurrentWD()->getId() <<
