@@ -52,10 +52,10 @@ namespace nanos
 
    };
 
-#ifdef NANOS_DEBUG_ENABLED
 #define fatal(msg)  throw nanos::FatalError(msg,getMyThreadSafe()->getId());
 #define fatal0(msg)  throw nanos::FatalError(msg);
 
+#ifdef NANOS_DEBUG_ENABLED
 #define ensure(cond,msg) if ( !(cond) ) throw nanos::FailedAssertion(__FILE__, __LINE__ , #cond, msg, getMyThreadSafe()->getId());
 #define ensure0(cond,msg) if ( !(cond) ) throw nanos::FailedAssertion(__FILE__, __LINE__, #cond, msg );
 
@@ -77,8 +77,6 @@ namespace nanos
 #define message0(msg) \
    std::cerr << "MSG: [?]" << msg << std::endl;
 #else
-#define fatal(msg)
-#define fatal0(msg)
 #define ensure(cond,msg)
 #define ensure0(cond,msg)
 #define warning(msg)
