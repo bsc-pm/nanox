@@ -33,6 +33,7 @@ namespace ext
          void *                        _dst;
          void *                        _src;
          size_t                        _size;
+         bool                          _requested;
 
          GPUMemoryTransfer( void * dest, void * source, size_t s ) :
             _dst( dest ), _src( source ), _size( s ) {}
@@ -46,6 +47,7 @@ namespace ext
             _dst = mt._dst;
             _src = mt._src;
             _size = mt._size;
+            _requested = mt._requested;
             return *this;
          }
    };
@@ -63,6 +65,7 @@ namespace ext
          virtual void removeMemoryTransfer () {}
          virtual void checkAddressForMemoryTransfer ( void * address ) {}
          virtual void executeMemoryTransfers () {}
+         virtual void requestTransfer( void *  address ) {}
          virtual void clearMemoryTransfers () {}
          virtual void reset () {}
    };
@@ -104,7 +107,20 @@ namespace ext
          void removeMemoryTransfer ()
          {
             if ( !_pendingTransfersAsync.empty() ) {
-               removeMemoryTransfer( _pendingTransfersAsync.begin() );
+               bool found = false;
+
+               for ( std::list<GPUMemoryTransfer>::iterator it = _pendingTransfersAsync.begin();
+                     it != _pendingTransfersAsync.end(); it++ ) {
+                  if ( it->_requested ) {
+                     found = true;
+                     removeMemoryTransfer( it );
+                     break;
+                  }
+               }
+
+               if ( !found ) {
+                  removeMemoryTransfer( _pendingTransfersAsync.begin() );
+               }
             }
          }
 
@@ -120,6 +136,16 @@ namespace ext
          }
 
          void executeMemoryTransfers ();
+
+         void requestTransfer( void *  address )
+         {
+            for ( std::list<GPUMemoryTransfer>::iterator it = _pendingTransfersAsync.begin();
+                  it != _pendingTransfersAsync.end(); it++ ) {
+               if ( it->_dst == address ) {
+                  it->_requested = true;
+               }
+            }
+         }
 
          void finishMemoryTransfer ( std::list<GPUMemoryTransfer>::iterator it );
 

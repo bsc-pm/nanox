@@ -421,6 +421,9 @@ void GPUDevice::syncTransfer( uint64_t hostAddress, ProcessingElement *pe)
    // syncTransfer() is used to ensure that somebody will update the data
    // related to 'hostAddress' of main memory at some time
    // since we use copy back, this is always ensured
+
+   // Anyway, we can help the system and tell that somebody is waiting for it
+   ( ( nanos::ext::GPUProcessor * ) pe )->getOutTransferList()->requestTransfer( (void * ) hostAddress );
 }
 
 void * GPUDevice::realloc( void * address, size_t size, size_t ceSize, ProcessingElement *pe )

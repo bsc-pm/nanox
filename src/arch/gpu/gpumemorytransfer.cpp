@@ -66,8 +66,14 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ()
 {
    if ( !_pendingTransfersAsync.empty() ) {
       // First copy
-      std::list<GPUMemoryTransfer>::iterator it = _pendingTransfersAsync.begin();
-      GPUMemoryTransfer & copy1 = *it;
+      std::list<GPUMemoryTransfer>::iterator it1 = _pendingTransfersAsync.begin();
+
+      while( it1 != _pendingTransfersAsync.end() && !( ( GPUMemoryTransfer ) *it1 )._requested ) {
+         it1++;
+      }
+      if ( it1 == _pendingTransfersAsync.end() ) it1 = _pendingTransfersAsync.begin();
+
+      GPUMemoryTransfer & copy1 = *it1;
 
       NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent( NANOS_MEM_TRANSFER ) );
       NANOS_INSTRUMENT( nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-out") );
@@ -79,7 +85,22 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ()
          GPUDevice::copyOutAsyncWait();
 
          // Second copy
-         GPUMemoryTransfer & copy2 = *(++it);
+         // Check if there is another GPUMemoryTransfer requested
+         std::list<GPUMemoryTransfer>::iterator it2 = _pendingTransfersAsync.begin();
+         while( !( ( GPUMemoryTransfer ) *it2 )._requested && it2 != _pendingTransfersAsync.end() ) {
+            it2++;
+            if ( it1 == it2 && it2 != _pendingTransfersAsync.end() ) {
+               it2++;
+            }
+         }
+         // If no requested transfer is found, take the first transfer that
+         // has not been taken by copy1
+         if ( it2 == _pendingTransfersAsync.end() ) {
+            it2 = _pendingTransfersAsync.begin();
+         }
+
+
+         GPUMemoryTransfer & copy2 = *it2;
          GPUDevice::copyOutAsyncToBuffer( copy2._dst, copy2._src, copy2._size );
 
          // First copy
@@ -91,8 +112,8 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ()
          NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, copy1._size ) );
 
          // Update second copy to be first copy at next iteration
-         it = _pendingTransfersAsync.begin();
-         copy1 = *it;
+         it1 = it2;
+         copy1 = *it1;
       }
 
       GPUDevice::copyOutAsyncWait();
