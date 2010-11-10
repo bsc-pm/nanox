@@ -24,39 +24,30 @@
 #include "compatibility.hpp"
 
 
-
 namespace nanos {
 namespace ext
 {
-   class GPUMemoryTransfer : public nanos::WG
+   class GPUMemoryTransfer
    {
       public:
          void *                        _dst;
          void *                        _src;
          size_t                        _size;
-         TR1::shared_ptr<DOSubmit>     _do;
 
-         GPUMemoryTransfer( void * dest, void * source, size_t s ) : WG(), _dst( dest ), _src( source ),
-               _size( s ), _do( myThread->getCurrentWD()->getDOSubmit() )
-         {
-            if ( _do != NULL ) {
-               _do->increaseReferences();
-            }
-         }
+         GPUMemoryTransfer( void * dest, void * source, size_t s ) :
+            _dst( dest ), _src( source ), _size( s ) {}
 
          ~GPUMemoryTransfer() {}
 
          GPUMemoryTransfer& operator=( const nanos::ext::GPUMemoryTransfer &mt )
          {
-            if (&mt != this) {
-               _dst = mt._dst;
-               _src = mt._src;
-               _size = mt._size;
-               _do = mt._do;
-            }
+            if ( &mt == this ) return *this;
+
+            _dst = mt._dst;
+            _src = mt._src;
+            _size = mt._size;
             return *this;
          }
-
    };
 
    class GPUMemoryTransferList
@@ -64,7 +55,7 @@ namespace ext
       public:
 
          GPUMemoryTransferList() {}
-         ~GPUMemoryTransferList() {}
+         virtual ~GPUMemoryTransferList() {}
 
          virtual void addMemoryTransfer ( void * dest, void * source, size_t size ) {}
          virtual void addMemoryTransfer ( uint64_t address ) {}
@@ -104,7 +95,6 @@ namespace ext
          void addMemoryTransfer ( void * dest, void * source, size_t size )
          {
             _pendingTransfersAsync.push_back( GPUMemoryTransfer ( dest, source, size ) );
-            myThread->getCurrentWD()->getParent()->addWork( _pendingTransfersAsync.back() );
          }
 
          void removeMemoryTransfer ( std::list<GPUMemoryTransfer>::iterator it );
