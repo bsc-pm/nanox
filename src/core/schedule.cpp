@@ -207,7 +207,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) time_yields; )
                NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(3, Keys, Values); )
 
-               NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) );
+               NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME); );
                switchTo ( next );
                thread = getMyThreadSafe();
                NANOS_INSTRUMENT( inst2.close() );
