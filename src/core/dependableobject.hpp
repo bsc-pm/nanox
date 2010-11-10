@@ -142,6 +142,10 @@ namespace nanos
             return numPredecessors;
          }
 
+         /*! Returns the number of predecessors of this DependableObject
+          */
+         int numPredecessors () const { return _numPredecessors.value(); }
+
         /*! \brief Obtain the list of successors
          *  \return List of DependableObject* that depend on "this"
          */
@@ -220,6 +224,12 @@ namespace nanos
          *  \sa DependableObject
          */
          void finished ( );
+
+        /*! If there is an object that only depends from this dependable object, then release it and
+            return it
+         */
+         DependableObject * releaseImmediateSuccessor ( void );
+         
    };
 
 };
