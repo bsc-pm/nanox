@@ -6,7 +6,15 @@ namespace nanos {
 
 class SlicerCompoundWD: public Slicer
 {
-   private:
+   public: /* Parameters can be changed by config module */
+      static bool _checkSingleThread;
+      static bool _modAllThreadsRunning;
+      static bool _serializeAll;
+      static int  _totalTasks;
+      static int  _totalTasksPerThread;
+      static int  _readyTasks;
+      static int  _readyTasksPerThread;
+      static int  _depthOfTask;
    public:
       // constructor
       SlicerCompoundWD ( ) : Slicer() { }
@@ -20,6 +28,16 @@ class SlicerCompoundWD: public Slicer
       void *getSpecificData() const;
       static void executeWDs ( nanos_compound_wd_data_t *data );
 };
+
+   bool SlicerCompoundWD::_checkSingleThread = true;
+   bool SlicerCompoundWD::_modAllThreadsRunning = false;
+   bool SlicerCompoundWD::_serializeAll = false;
+
+   int SlicerCompoundWD::_totalTasks = 0;
+   int SlicerCompoundWD::_totalTasksPerThread = 0;
+   int SlicerCompoundWD::_readyTasks = 0;
+   int SlicerCompoundWD::_readyTasksPerThread = 0;
+   int SlicerCompoundWD::_depthOfTask = 0;
 
 void SlicerCompoundWD::submit ( SlicedWD &work )
 {
@@ -50,13 +68,40 @@ void SlicerCompoundWD::submit ( SlicedWD &work )
  */
 bool SlicerCompoundWD::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
 {
-   bool pack_cond = true;
-
-   /* Get compound wd data */
+   /* Get commont data */
    nanos_compound_wd_data_t *data = (nanos_compound_wd_data_t *) wd->getData();
+   WorkDescriptor *current = myThread->getCurrentWD();
+   SchedulerStats ss = sys.getSchedulerStats();
+   int nthreads = myThread->getTeam()->size();
 
-   /* If pack_cond is true, it is the last section, or there is only one worker -> serialize them */
-   if ( pack_cond || ( data->nsect == 1 ) || sys.getNumWorkers() == 1 ) {
+   /* Computing Modifiers: neutral element == true */
+   bool all_threads_running = true; /* If (and only if) all threads are running allow to serialize */
+
+   if ( _modAllThreadsRunning ) {
+      if ( (current->isIdle() == false) && (ss._idleThreads != 0) ) all_threads_running = false;
+      else if ( (current->isIdle() == true) && (ss._idleThreads != 1) ) all_threads_running = false;
+   }
+
+   bool modifiers = all_threads_running; /* Sumarizes all modifiers */
+
+   /*  Computing Policies: only if modifiers allows */
+   bool serialize = false;
+
+   if ( modifiers == true ) {
+      if ( _serializeAll ) serialize = true ;
+      if ( _totalTasks != 0) serialize = serialize || (ss._totalTasks > _totalTasks );
+      if ( _totalTasksPerThread != 0) serialize = serialize || ( ss._totalTasks > ( nthreads * _totalTasksPerThread) );
+      if ( _readyTasks != 0) serialize = serialize || (ss._readyTasks > _readyTasks );
+      if ( _readyTasksPerThread != 0) serialize = serialize || (ss._readyTasks > ( nthreads * _readyTasksPerThread) );
+      if ( _depthOfTask != 0) serialize = serialize; /* TODO */
+   }
+   
+   /* Computing Checks: neutral element == false */
+   bool single_thread = ( _checkSingleThread && (sys.getNumWorkers() == 1) );
+   bool last_section = (data->nsect == 1); /* mandatory check, cannot be disabled */
+
+   /* If one check is evaluated 'true' -> serialize them */
+   if ( serialize || single_thread || last_section ) {
       *slice = wd;
       return true;
    }
@@ -94,7 +139,51 @@ class SlicerCompoundWDPlugin : public Plugin {
       SlicerCompoundWDPlugin () : Plugin("Slicer which aggregates several wd's",1) { }
       ~SlicerCompoundWDPlugin () { }
 
-      virtual void config( Config& config ) { }
+      virtual void config( Config& config )
+      {
+         config.setOptionsSection( "CWD module", "Compound WorkDescriptor module" );
+
+         config.registerConfigOption ( "cwd-single-thread",
+                                       new Config::FlagOption( SlicerCompoundWD::_checkSingleThread, true ),
+                                       "Serialize if executing with a single thread (enabled)");
+         config.registerArgOption( "cwd-single-thread", "cwd-single-thread" );
+
+         config.registerConfigOption ( "cwd-all-threads-running",
+                                       new Config::FlagOption( SlicerCompoundWD::_modAllThreadsRunning, true ),
+                                       "Serialize if (and only if) all threads are running (disabled)");
+         config.registerArgOption( "cwd-all-threads-running", "cwd-all-threads-running" );
+
+         config.registerConfigOption ( "cwd-serialize-all",
+                                       new Config::FlagOption( SlicerCompoundWD::_serializeAll, true ),
+                                       "Serialize all (disabled)");
+         config.registerArgOption( "cwd-serialize-all", "cwd-serialize-all" );
+
+         config.registerConfigOption ( "cwd-total-tasks",
+                                       new Config::PositiveVar( SlicerCompoundWD::_totalTasks ),
+                                       "Defines serialize polciy total tasks ( none )" );
+         config.registerArgOption ( "cwd-total-tasks", "cwd-total-tasks" );
+
+         config.registerConfigOption ( "cwd-total-tasks-per-thread",
+                                       new Config::PositiveVar( SlicerCompoundWD::_totalTasksPerThread ),
+                                       "Defines serialize polciy total tasks per thread ( none )" );
+         config.registerArgOption ( "cwd-total-tasks-per-thread", "cwd-total-tasks-per-thread" );
+
+         config.registerConfigOption ( "cwd-ready-tasks",
+                                       new Config::PositiveVar( SlicerCompoundWD::_readyTasks ),
+                                       "Defines serialize policiy ready tasks ( none )" );
+         config.registerArgOption ( "cwd-ready-tasks", "cwd-ready-tasks" );
+
+         config.registerConfigOption ( "cwd-ready-tasks-per-thread",
+                                       new Config::PositiveVar( SlicerCompoundWD::_readyTasksPerThread ),
+                                       "Defines serialize policiy ready tasks per thread ( none )" );
+         config.registerArgOption ( "cwd-ready-tasks-per-thread", "cwd-ready-tasks-per-thread" );
+
+         config.registerConfigOption ( "cwd-depth-of-task",
+                                       new Config::PositiveVar( SlicerCompoundWD::_depthOfTask ),
+                                       "Defines serialize policiy depth of task ( none )" );
+         config.registerArgOption ( "cwd-depth-of-task", "cwd-depth-of-task" );
+
+      }
 
       void init () { sys.registerSlicer("compound_wd", new SlicerCompoundWD() ); }
 };

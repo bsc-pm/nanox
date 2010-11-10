@@ -68,6 +68,7 @@ namespace nanos
          bool                 _untieMaster;
          bool                 _delayedStart;
          bool                 _useYield;
+         bool                 _synchronizedStart;
 
          //cutoff policy and related variables
          ThrottlePolicy      *_throttlePolicy;
@@ -87,6 +88,11 @@ namespace nanos
 
          PEList               _pes;
          ThreadList           _workers;
+        
+         /*! It counts how many threads have finalized their initialization */
+         Atomic<unsigned int> _initializedThreads;
+         /*! This counts how many threads we're waiting to be initialized */
+         unsigned int         _targetThreads;
 
          Slicers              _slicers; /**< set of global slicers */
 
@@ -181,6 +187,9 @@ namespace nanos
 
          bool getUntieMaster () const;
 
+         void setSynchronizedStart ( bool value );
+         bool getSynchronizedStart ( void ) const;
+
          // team related methods
          BaseThread * getUnassignedWorker ( void );
          ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL,
@@ -226,6 +235,8 @@ namespace nanos
          SchedulerConf  & getSchedulerConf();
 
          void setPMInterface (PMInterface *_pm);
+
+         void threadReady ();
 
    };
 

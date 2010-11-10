@@ -95,6 +95,7 @@ namespace nanos
          BaseThread( const BaseThread & );
          const BaseThread & operator= ( const BaseThread & );
 
+         virtual void initializeDependent () = 0;
          virtual void runDependent () = 0;
 
          // These must be called through the Scheduler interface
