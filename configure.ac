@@ -27,6 +27,10 @@ AC_HEADER_STDC
 # Check for typedefs, structures, and compiler characteristics
 AC_C_CONST
 
+# Set compiler default flags
+CXXFLAGS=""
+CFLAGS=""
+
 # Check for library functions
 NANOS_CONFIG_LIBDIRS=
 NANOS_CONFIG_LIBS=
