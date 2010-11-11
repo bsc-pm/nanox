@@ -61,3 +61,20 @@ void DependableObject::finished ( )
    }
 }
 
+DependableObject * DependableObject::releaseImmediateSuccessor ( void )
+{
+   DependableObject * found = NULL;
+
+   DependableObject::DependableObjectVector &succ = getSuccessors();
+   for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
+      // Is this an immediate successor? 
+      if ( (*it)->numPredecessors() == 1 ) {
+        // remove it
+        succ.erase(it);
+        found = *it;
+        break;
+      }
+   }
+
+   return found;
+}

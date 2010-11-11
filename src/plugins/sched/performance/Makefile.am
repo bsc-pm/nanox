@@ -22,6 +22,7 @@ include $(top_srcdir)/src/common.am
 
 if PERFORMANCE_VERSION
 performance_LTLIBRARIES = \
+	libnanox-sched-default.la \
 	libnanox-sched-bf.la \
 	libnanox-sched-dbf.la \
  	libnanox-sched-cilk.la \
@@ -29,6 +30,10 @@ performance_LTLIBRARIES = \
 	$(END)
 
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags)
+
+libnanox_sched_default_la_CXXFLAGS = $(nanos_perfo_cxxflags)
+libnanox_sched_default_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_sched_default_la_SOURCES = $(default_sources)
 
 libnanox_sched_bf_la_CXXFLAGS = $(nanos_perfo_cxxflags)
 libnanox_sched_bf_la_LDFLAGS = $(ld_plugin_flags)

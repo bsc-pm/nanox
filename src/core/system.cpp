@@ -47,7 +47,7 @@ System nanos::sys;
 System::System () :
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindThreads( true ), _profile( false ), _instrument( false ),
       _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster(true),
-      _delayedStart(false), _useYield(true), _synchronizedStart(true), _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), 
+      _delayedStart(false), _useYield(true), _synchronizedStart(true), _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
       _defBarr( "posix" ), _defInstr ( "empty_trace" ), _defArch("smp"), _instrumentation ( NULL ), 
       _defSchedulePolicy(NULL), _directory(), _pmInterface(NULL)
 {
@@ -765,7 +765,7 @@ void System::inlineWork ( WD &work )
 {
    setupWD( work, myThread->getCurrentWD() );
    // TODO: choose actual (active) device...
-   Scheduler::inlineWork( &work, false );
+   Scheduler::inlineWork( &work );
 }
 
 BaseThread * System:: getUnassignedWorker ( void )
