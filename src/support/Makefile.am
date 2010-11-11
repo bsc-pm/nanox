@@ -35,8 +35,12 @@ libsupport_la_SOURCES = \
 	plugin.cpp \
 	xstring.hpp \
 	cache_fwd.hpp \
+	cache_decl.hpp \
 	cache.hpp \
-   simpleallocator.hpp \
-   simpleallocator.cpp \
+	simpleallocator.hpp \
+	simpleallocator.cpp \
+	list.hpp \
+	hashmap.hpp \
+	hashmap_decl.hpp \
 	$(END) 
 

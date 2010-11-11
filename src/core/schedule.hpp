@@ -67,6 +67,8 @@ namespace nanos
          static void wakeUp ( WD *wd );
 
          static WD * prefetch ( BaseThread *thread, WD &wd );
+
+         static void updateExitStats ( void );
    };
 
    class SchedulerConf

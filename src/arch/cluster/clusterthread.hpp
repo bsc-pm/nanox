@@ -53,6 +53,7 @@ namespace ext
          virtual void inlineWorkDependent ( WD &wd );
          void addWD( WorkDescriptor *wd );
          WorkDescriptor *getWD();
+         virtual void join();
 
    };
 

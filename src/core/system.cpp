@@ -26,6 +26,7 @@
 #include "nanos-int.h"
 #include "copydata.hpp"
 #include "os.hpp"
+#include "directory.hpp"
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -37,7 +38,8 @@
 
 #ifdef CLUSTER_DEV
 #include "clusternode.hpp"
-//#include "clusternodeinfo.hpp"
+#include "clusterdevice.hpp"
+#include "clusterthread.hpp"
 #endif
 
 using namespace nanos;
@@ -207,11 +209,26 @@ void System::start ()
 
    int numPes = getNumPEs();
 
-   _pes.reserve ( numPes + nanos::ClusterDevice::getExtraPEsCount() );
+#ifdef CLUSTER_DEV
+   if ( _net.getNodeNum() == nanos::Network::MASTER_NODE_NUM )
+   {
+      _pes.reserve ( numPes + ( _net.getNumNodes() - 1 ) );
+      std::cerr << "Reserved  " << ( numPes + ( _net.getNumNodes() - 1 ) )  << " PEs " << std::endl;
+   }
+   else
+   {
+      _pes.reserve ( numPes );
+   }
+#else
+   _pes.reserve ( numPes );
+#endif
 
    PE *pe = createPE ( "smp", 0 );
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
+
+   /* Renaming currend thread as Master */
+   myThread->rename("Master");
 
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_STARTUP) );
 
@@ -220,6 +237,20 @@ void System::start ()
       _workers.push_back( &pe->startWorker( ));
    }
 
+#ifdef CLUSTER_DEV
+   int effectivePes = ( _net.getNodeNum() == 0 && numPes == 4 ) ? numPes - 1 : numPes;
+   int p;
+   for ( p = 1; p < effectivePes; p++ ) {
+      pe = createPE ( "smp", p );
+      _pes.push_back ( pe );
+
+      //starting as much threads per pe as requested by the user
+
+      for ( int ths = 0; ths < getThsPerPE(); ths++ ) {
+         _workers.push_back( &pe->startWorker() );
+      }
+   }
+#else
    int p;
    for ( p = 1; p < numPes ; p++ ) {
       pe = createPE ( "smp", p );
@@ -232,6 +263,7 @@ void System::start ()
          _workers.push_back( &pe->startWorker() );
       }
    }
+#endif
 
 #ifdef GPU_DEV
    int gpuC;
@@ -249,82 +281,48 @@ void System::start ()
 
 
 #ifdef CLUSTER_DEV
-   if ( _net.getNodeNum() == 0 )
+   if ( _net.getNodeNum() == 0)
    {
       unsigned int nodeC;
       ext::ClusterThread *clusterThread = NULL;
 
-      //char *nodePes = new char[ sizeof( nanos::ext::ClusterNode ) * ( _net.getNumNodes() - 1 ) ];
-
       for ( nodeC = 1; nodeC < _net.getNumNodes(); nodeC++ ) {
-         //PE *node = reinterpret_cast< nanos::ext::ClusterNode * >( &nodePes[ ( nodeC - 1 ) * sizeof( nanos::ext::ClusterNode )] );
-         //new ( node ) nanos::ext::ClusterNode( nodeC );
-         PE *node = new nanos::ext::ClusterNode( nodeC );
-   //std::cerr << "c:node @ is " << (void * ) node << std::endl;
+         nanos::ext::ClusterNode *node = new nanos::ext::ClusterNode( nodeC );
+         std::cerr << "c:node @ is " << (void * ) node << std::endl;
          _pes.push_back( node );
 
-   //std::cerr << "Pre start thread" << std::endl;
          if ( nodeC == 1) {
             int i;
 
             clusterThread = dynamic_cast<ext::ClusterThread *>( &node->startWorker() );
             std::cerr << "c:wd @ is " << (void * ) &clusterThread->getThreadWD() << ":" << clusterThread->getThreadWD().getId() << std::endl;
-            //clusterThread->getCurrentWD()->setPe( node );
             clusterThread->getThreadWD().tieTo( *clusterThread );
+            clusterThread->getThreadWD().setPeId( 0 );
             _workers.push_back( clusterThread );
 
             for ( i = 1; i < numPes; i++ ) {
                WD &slaveWd = node->getWorkerWD();
-               std::cerr << "c:slwd @ is " << (void * ) &slaveWd << ":" << slaveWd.getId() << std::endl;
                slaveWd.tieTo( *clusterThread );
+               slaveWd.setPeId( i );
                clusterThread->addWD( &slaveWd );
+               std::cerr << "c:slwd @ is " << (void * ) &slaveWd << ":" << slaveWd.getId() << " numPe " << i << std::endl;
             }
-            ///////////////////////////////////////////
-            switch ( getInitialMode() )
-            {
-               case POOL:
-                  createTeam( _workers.size() );
-                  break;
-               case ONE_THREAD:
-                  createTeam(1);
-                  break;
-               default:
-                  fatal("Unknown inital mode!");
-                  break;
-            }
-            ///////////////////////////////////////////
          }
          else
          {
             int i;
             for ( i = 0; i < numPes; i++ ) {
                WD &slaveWd = node->getWorkerWD();
-               std::cerr << "c:slwd @ is " << (void * ) &slaveWd << ":" << slaveWd.getId() << std::endl;
                slaveWd.tieTo( *clusterThread );
+               slaveWd.setPeId( i );
                clusterThread->addWD( &slaveWd );
+               std::cerr << "c:slwd @ is " << (void * ) &slaveWd << ":" << slaveWd.getId() << " numPe " << i << std::endl;
             }
          }
-   //std::cerr << "Post start thread" << std::endl;
       }
-   }
-   else
-   {
-   switch ( getInitialMode() )
-   {
-      case POOL:
-         createTeam( _workers.size() );
-         break;
-      case ONE_THREAD:
-         createTeam(1);
-         break;
-      default:
-         fatal("Unknown inital mode!");
-         break;
-   }
    }
 #endif
 
-#if 0
    switch ( getInitialMode() )
    {
       case POOL:
@@ -337,7 +335,6 @@ void System::start ()
          fatal("Unknown inital mode!");
          break;
    }
-#endif
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_RUNNING) );
 
@@ -346,7 +343,7 @@ void System::start ()
    if (!isMaster())
    {
        Scheduler::workerLoop();
-       fprintf(stderr, "Slave node: I have to finish.\n");
+       //fprintf(stderr, "Slave node: I have to finish.\n");
        finish();
    }
    //else
@@ -389,7 +386,15 @@ void System::finish ()
 //   nanos::ext::ClusterNodeInfo::callNetworkFinalizeFunc();
 //   fprintf(stderr, "Closed the network.\n");
 //#else
-   fprintf(stderr, "Finishing thds.\n");
+#ifdef CLUSTER_DEV
+   if (sys.getNetwork()->getNodeNum() == 0)
+   {
+      for ( unsigned int p = getNumPEs(); p < _pes.size() ; p++ )
+      {
+         std::cerr << "Node " << p << " executed " << ((nanos::ext::ClusterNode *) _pes[p])->getExecutedWDs() << " WDs." << std::endl;
+      }
+   }
+#endif
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {
        _pes[p]->stopAll();
    }
@@ -470,8 +475,11 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
                           ;
 
    char *chunk = 0;
+   char *orig_chunk = 0;
 
    if ( size_to_allocate ) chunk = new char[size_to_allocate];
+
+   orig_chunk = chunk;
 
    // allocate WD
    if ( *uwd == NULL ) {
@@ -511,6 +519,8 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    }
 
    WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, data != NULL ? *data : NULL, num_copies, num_copies == 0 ? NULL : wdCopies );
+
+   wd->setChunk( orig_chunk );
 
    // add to workgroup
    if ( uwg != NULL ) {
@@ -863,6 +873,12 @@ BaseThread * System:: getUnassignedWorker ( void )
    }
 
    return NULL;
+}
+
+BaseThread * System::getWorker ( unsigned int n )
+{
+   if ( n < _workers.size() ) return _workers[n];
+   else return NULL;
 }
 
 void System::releaseWorker ( BaseThread * thread )

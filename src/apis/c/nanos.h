@@ -24,7 +24,7 @@
 #include <stdbool.h>
 #include "nanos-int.h"
 
-#ifdef _MERCURIUM_
+#ifdef _MERCURIUM
 // define API version
 #pragma nanos interface family(master) version(5000)
 #endif

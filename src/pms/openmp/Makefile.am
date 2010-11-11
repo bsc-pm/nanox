@@ -22,7 +22,7 @@ include $(top_srcdir)/src/common.am
 
 lib_LTLIBRARIES=libnanox-omp.la libnanox-omp-stubs.la
 
-include_HEADERS=\
+pkginclude_HEADERS=\
 	omp.h \
 	$(END)
 

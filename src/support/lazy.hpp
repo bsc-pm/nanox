@@ -53,6 +53,8 @@ class LazyInit {
       }
 
       T & operator* () {  return *(operator->());   }
+
+      bool isInitialized() { return _init; }
 };
 
 #endif

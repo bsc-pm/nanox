@@ -70,6 +70,10 @@ namespace nanos
           */
          bool operator== ( const Device &arch ) { return arch._name == _name; }
 
+         /*! \brief Get device name
+          */
+         const char * getName ( void ) const { return _name; }
+
    };
 
    /*! \brief This class holds the specific data for a given device
@@ -167,6 +171,8 @@ namespace nanos
          ProcessingElement *  _myPe;
          bool                 _nodeFree;
          WorkDescriptor * _previous;
+         unsigned int _peId;
+         char *_chunk;
 
          /*! \brief WorkDescriptor assignment operator privatized
           */
@@ -182,14 +188,14 @@ namespace nanos
                           _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : 0 ),
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain(), _instrumentationContextData(), _clusterMigrable ( true ), _myPe ( NULL ), _nodeFree( true ), _previous ( NULL ) { }
+                          _depsDomain(), _instrumentationContextData(), _clusterMigrable ( true ), _myPe ( NULL ), _nodeFree( true ), _previous ( NULL ), _peId ( 0 ), _chunk( NULL ) { }
 
          WorkDescriptor ( DeviceData *device, size_t data_size = 0, void *wdata=0, size_t numCopies = 0, CopyData *copies = NULL )
                         : WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ),
                           _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( 1 ), _devices ( &_activeDevice ), _activeDevice ( device ),
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain(), _instrumentationContextData(), _clusterMigrable ( true ), _myPe ( NULL ), _nodeFree( true ), _previous ( NULL ) { }
+                          _depsDomain(), _instrumentationContextData(), _clusterMigrable ( true ), _myPe ( NULL ), _nodeFree( true ), _previous ( NULL ), _peId ( 0 ), _chunk (NULL) { }
 
          /*! \brief WorkDescriptor constructor (using a given WorkDescriptor)
           *
@@ -207,7 +213,7 @@ namespace nanos
                           _myQueue ( NULL ), _depth ( wd._depth ), _numDevices ( wd._numDevices ),
                           _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
                           _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
-                          _doSubmit(), _doWait(), _depsDomain(), _instrumentationContextData(), _clusterMigrable ( true ), _myPe ( NULL ), _nodeFree( true ), _previous ( NULL ) { }
+                          _doSubmit(), _doWait(), _depsDomain(), _instrumentationContextData(), _clusterMigrable ( true ), _myPe ( NULL ), _nodeFree( true ), _previous ( NULL ), _peId ( 0 ), _chunk(NULL) { }
 
          /*! \brief WorkDescriptor destructor
           *
@@ -217,7 +223,9 @@ namespace nanos
          virtual ~WorkDescriptor()
          {
             for ( unsigned i = 0; i < _numDevices; i++ )
+            {
                _devices[i]->~DeviceData();
+            }
          }
 
          /*! \brief Has this WorkDescriptor ever run?
@@ -228,7 +236,14 @@ namespace nanos
           *
           *  This function is useful to perform lazy initialization in the workdescriptor
           */
-         void start ( bool isUserLevelThread, WorkDescriptor *previous = NULL );
+         void init ( bool isUserLevelThread, WorkDescriptor *previous = NULL );
+
+         /*! \brief Last operations just before WD execution
+          *
+          *  This function is useful to perform any operation that needs to be done at the last moment
+          *  before the execution of the WD.
+          */
+         void start ();
 
          /*! \brief Get data size
           *
@@ -393,6 +408,10 @@ namespace nanos
          ProcessingElement * getPe( void ) { return _myPe; };
          WorkDescriptor * getPrevious() { return _previous; }
          void setPrevious( WorkDescriptor * _p ) {  _previous = _p; }
+         unsigned int getPeId( void ) { return _peId; }
+         void setPeId( unsigned int id ) { _peId = id; }
+         char * getChunk( void ) { return _chunk; }
+         void setChunk( char * ch ) { _chunk = ch; }
 
    };
 

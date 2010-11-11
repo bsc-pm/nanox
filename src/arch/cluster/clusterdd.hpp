@@ -22,14 +22,14 @@
 
 #include "config.hpp"
 #include "smpdd.hpp"
-#include "clusterdevice.hpp"
+//#include "clusterdevice.hpp"
 #include "workdescriptor.hpp"
 
 namespace nanos {
 namespace ext
 {
 
-   extern ClusterDevice Cluster;
+   //extern ClusterDevice Cluster;
 
    class ClusterPlugin;
    class ClusterDD : public SMPDD

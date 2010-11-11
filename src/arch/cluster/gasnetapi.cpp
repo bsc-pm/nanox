@@ -21,7 +21,7 @@
 #include "smpdd.hpp"
 #include "system.hpp"
 #include "os.hpp"
-#include "clusterdevice.hpp"
+#include "clusterinfo.hpp"
 
 #include <gasnet.h>
 
@@ -45,19 +45,22 @@ static void inspect_environ(void)
 struct work_wrapper_args
 {
    void ( * work ) ( void * );
-   void *arg;
+   char *arg;
+   unsigned int id;
+   unsigned int numPe;
    size_t argSize;
 };
 
 static void wk_wrapper(struct work_wrapper_args *arg)
 {
-   //fprintf(stderr, "node %d starting work> outline %p, arg struct %p\n", sys.getNetwork()->getNodeNum(), arg->work, arg->arg);
+   //fprintf(stderr, "node %d starting work> outline %p, arg struct %p rId %d, numPe %d\n", sys.getNetwork()->getNodeNum(), arg->work, arg->arg, arg->id, arg->numPe);
    arg->work(arg->arg);
 
-   delete arg;
+   //fprintf(stderr, "node %d finishing work> outline %p, arg struct %p rId %d, numPe %d\n", sys.getNetwork()->getNodeNum(), arg->work, arg->arg, arg->id, arg->numPe);
+   sys.getNetwork()->sendWorkDoneMsg( Network::MASTER_NODE_NUM, arg->numPe );
 
-   //fprintf(stderr, "node %d finishing work> outline %p, arg struct %p\n", sys.getNetwork()->getNodeNum(), arg->work, arg->arg);
-   sys.getNetwork()->sendWorkDoneMsg( Network::MASTER_NODE_NUM );
+   delete[] arg->arg;
+   delete arg;
 }
 
 static void am_exit(gasnet_token_t token)
@@ -67,7 +70,7 @@ static void am_exit(gasnet_token_t token)
     {
         fprintf(stderr, "gasnet: Error obtaining node information.\n");
     }
-    fprintf(stderr, "EXIT msg from node %d.\n", src_node);
+    //fprintf(stderr, "EXIT msg from node %d.\n", src_node);
     //gasnet_AMReplyShort0(token, 204);
     //finish_gasnet = true;
     sys.stopFirstThread();
@@ -83,7 +86,7 @@ static void am_exit_reply(gasnet_token_t token)
     fprintf(stderr, "EXIT message to node %d completed.\n", src_node);
 }
 
-static void am_work(gasnet_token_t token, void *arg, size_t argSize, void ( *work ) ( void * ), unsigned int arg0 )
+static void am_work(gasnet_token_t token, void *arg, size_t argSize, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe )
 {
     gasnet_node_t src_node;
     unsigned int i;
@@ -96,7 +99,10 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize, void ( *wor
     struct work_wrapper_args * warg = new struct work_wrapper_args;
     bzero(warg, sizeof(struct work_wrapper_args));
     warg->work = work;
-    warg->arg = arg;
+    warg->arg = new char [ arg0 ];
+    memcpy(warg->arg, arg, arg0);
+    warg->id = arg1;
+    warg->numPe = numPe;
     warg->argSize = arg0;
 
     //CopyData *recvcd = (CopyData *) &((char *) arg)[arg0];
@@ -115,6 +121,9 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize, void ( *wor
 
     SMPDD * dd = new SMPDD ( ( SMPDD::work_fct ) wk_wrapper );
     WD *wd = new WD( dd, sizeof(struct work_wrapper_args), warg, numCopies, newCopies );
+    //wd->setId( arg1 );
+
+    //fprintf(stderr, "WD %p , args->arg %p size %d args->id %d\n", wd, warg->arg, arg0, warg->id );
 
     wd->setPe( NULL );
     //WD *wd = new WD( dd/*, sizeof(struct work_wrapper_args), warg*/ );
@@ -136,18 +145,18 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize, void ( *wor
     //fprintf(stderr, "out of am_work.\n", src_node, work, argSize);
 }
 
-static void am_work_done( gasnet_token_t token )
+static void am_work_done( gasnet_token_t token, unsigned int numPe )
 {
     gasnet_node_t src_node;
     if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
     {
         fprintf( stderr, "gasnet: Error obtaining node information.\n" );
     }
-    //fprintf(stderr, "WORK DONE msg from node %d.\n", src_node);
-    sys.getNetwork()->notifyWorkDone( src_node );
+    //fprintf(stderr, "WORK DONE msg from node %d, numPe %d.\n", src_node, numPe);
+    sys.getNetwork()->notifyWorkDone( src_node, numPe );
 }
 
-static void am_malloc( gasnet_token_t token, gasnet_handlerarg_t size )
+static void am_malloc( gasnet_token_t token, gasnet_handlerarg_t size, unsigned int id )
 {
     gasnet_node_t src_node;
     void *addr = NULL;
@@ -157,13 +166,13 @@ static void am_malloc( gasnet_token_t token, gasnet_handlerarg_t size )
     }
     //fprintf(stderr, "WORK DONE msg from node %d.\n", src_node);
     addr = malloc( ( size_t ) size );
-    if ( gasnet_AMReplyShort1( token, 208, ( gasnet_handlerarg_t ) addr ) != GASNET_OK )
+    if ( gasnet_AMReplyShort2( token, 208, ( gasnet_handlerarg_t ) addr, (gasnet_handlerarg_t ) id ) != GASNET_OK )
     {
        fprintf( stderr, "gasnet: Error sending a message to node %d.\n", src_node );
     }
 }
 
-static void am_malloc_reply( gasnet_token_t token, gasnet_handlerarg_t addr )
+static void am_malloc_reply( gasnet_token_t token, gasnet_handlerarg_t addr, unsigned int id )
 {
     gasnet_node_t src_node;
     if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
@@ -171,7 +180,7 @@ static void am_malloc_reply( gasnet_token_t token, gasnet_handlerarg_t addr )
         fprintf( stderr, "gasnet: Error obtaining node information.\n" );
     }
     //fprintf(stderr, "WORK DONE msg from node %d.\n", src_node);
-    sys.getNetwork()->notifyMalloc( src_node, ( void * ) addr );
+    sys.getNetwork()->notifyMalloc( src_node, ( void * ) addr, id );
 }
 
 void GasnetAPI::initialize ( Network *net )
@@ -191,9 +200,9 @@ void GasnetAPI::initialize ( Network *net )
       { 208, (void (*)()) am_malloc_reply }
    };
 
-   //fprintf(stderr, "argc is %d\n", my_argc);
-   //for (int i = 0; i < my_argc; i++)
-   //   fprintf(stderr, "\t[%d]: %s\n", i, my_argv[i]);
+   fprintf(stderr, "argc is %d\n", my_argc);
+   for (int i = 0; i < my_argc; i++)
+      fprintf(stderr, "\t[%d]: %s\n", i, my_argv[i]);
 
    //inspect_environ();
    gasnet_init( &my_argc, &my_argv );
@@ -226,7 +235,7 @@ void GasnetAPI::initialize ( Network *net )
          segmentAddr[ idx ] = seginfoTable[ idx ].addr;
          segmentLen[ idx ] = seginfoTable[ idx ].size;
          fprintf(stderr, "\tnode %d: @=%p, len=%d\n", idx, seginfoTable[ idx ].addr, seginfoTable[ idx ].size);
-         ClusterDevice::addSegments( gasnet_nodes(), segmentAddr, segmentLen );
+         ClusterInfo::addSegments( gasnet_nodes(), segmentAddr, segmentLen );
       }
 
 
@@ -255,18 +264,18 @@ void GasnetAPI::sendExitMsg ( unsigned int dest )
    }
 }
 
-void GasnetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, size_t argSize, void * arg )
+void GasnetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, size_t argSize, void * arg )
 {
-   //fprintf(stderr, "sending msg WORK %p, arg size %d to node %d\n", work, argSize, dest);
-   if (gasnet_AMRequestMedium2( dest, 205, arg, argSize, work, arg0 ) != GASNET_OK)
+   //fprintf(stderr, "sending msg WORK %p, arg size %d to node %d, numPe %d\n", work, argSize, dest, numPe);
+   if (gasnet_AMRequestMedium4( dest, 205, arg, argSize, work, arg0, arg1, numPe ) != GASNET_OK)
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
    }
 }
 
-void GasnetAPI::sendWorkDoneMsg ( unsigned int dest )
+void GasnetAPI::sendWorkDoneMsg ( unsigned int dest, unsigned int numPe )
 {
-   if (gasnet_AMRequestShort0( dest, 206 ) != GASNET_OK)
+   if (gasnet_AMRequestShort1( dest, 206, numPe ) != GASNET_OK)
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
    }
@@ -282,9 +291,9 @@ void GasnetAPI::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteA
    gasnet_get_bulk ( localAddr, ( gasnet_node_t ) remoteNode, ( void * ) remoteAddr, size );
 }
 
-void GasnetAPI::malloc ( unsigned int remoteNode, size_t size )
+void GasnetAPI::malloc ( unsigned int remoteNode, size_t size, unsigned int id )
 {
-   if (gasnet_AMRequestShort1( remoteNode, 207, size ) != GASNET_OK)
+   if (gasnet_AMRequestShort2( remoteNode, 207, size, id ) != GASNET_OK)
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", remoteNode);
    }

@@ -131,7 +131,67 @@ void Instrumentation::createPtPEnd ( Event *e, nanos_event_domain_t domain, nano
    new (e) PtP ( false, domain, id, nkvs, kvlist );
 
 }
+/* ************************************************************************** */
+/* ***          C R E A T I N G   D E F E R R E D   E V E N T S           *** */
+/* ************************************************************************** */
 
+void Instrumentation::createDeferredPointEvent ( WorkDescriptor &wd, unsigned int nkvs, nanos_event_key_t *keys,
+                                      nanos_event_value_t *values )
+{
+   /* Creating an Event::KV vector */
+   Event::KVList kvlist = new Event::KV[nkvs];
+
+   /* Initializing kvlist elements */
+   for ( unsigned int i = 0; i < nkvs; i++ ) {
+      kvlist[i] = Event::KV ( keys[i], values[i] );
+   }
+
+   /* Creating a point event */
+   Event *e = new Point( nkvs, kvlist );
+
+   /* Inserting event into deferred event list */
+   InstrumentationContextData *icd = wd.getInstrumentationContextData();                                             
+   _instrumentationContext.insertDeferredEvent( icd, *e );
+
+}
+
+void Instrumentation::createDeferredPtPStart ( WorkDescriptor &wd, nanos_event_domain_t domain, nanos_event_id_t id,
+                      unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
+{
+   /* Creating an Event::KV vector */
+   Event::KVList kvlist = new Event::KV[nkvs];
+
+   /* Initializing kvlist elements */
+   for ( unsigned int i = 0; i < nkvs; i++ ) {
+      kvlist[i] = Event::KV ( keys[i], values[i] );
+   }
+
+   /* Creating a PtP (start) event */
+   Event *e = new PtP( true, domain, id, nkvs, kvlist );
+
+   /* Inserting event into deferred event list */
+   InstrumentationContextData *icd = wd.getInstrumentationContextData();                                             
+   _instrumentationContext.insertDeferredEvent( icd, *e );
+}
+
+void Instrumentation::createDeferredPtPEnd ( WorkDescriptor &wd, nanos_event_domain_t domain, nanos_event_id_t id,
+                      unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
+{
+   /* Creating an Event::KV vector */
+   Event::KVList kvlist = new Event::KV[nkvs];
+
+   /* Initializing kvlist elements */
+   for ( unsigned int i = 0; i < nkvs; i++ ) {
+      kvlist[i] = Event::KV ( keys[i], values[i] );
+   }
+
+   /* Creating a PtP (end) event */
+   Event *e = new PtP( false, domain, id, nkvs, kvlist );
+
+   /* Inserting event into deferred event list */
+   InstrumentationContextData *icd = wd.getInstrumentationContextData();                                             
+   _instrumentationContext.insertDeferredEvent( icd, *e );
+}
 /* ************************************************************************** */
 /* ***                   T H R O W I N G   E V E N T S                    *** */
 /* ************************************************************************** */
@@ -296,151 +356,11 @@ void Instrumentation::wdCreate( WorkDescriptor* newWD )
    _instrumentationContext.pushState( icd, NANOS_RUNTIME );
 }
 
-
-void Instrumentation::wdEnterCPU( WorkDescriptor* newWD )
-{
-   unsigned int i = 0; /* Used as Event e[] index */
-
-   /* Getting Instrumentation Context */
-   InstrumentationContextData *icd = newWD->getInstrumentationContextData();
-
-   /* Computing number of events*/
-   unsigned int numPtP, numStates, numSubStates, numBursts;
-   numPtP = 1;
-   if ( _instrumentationContext.showStackedStates () ) numStates = _instrumentationContext.getStateStackSize(icd) + 1;
-   else numStates = 1;
-   if ( !_instrumentationContext.isStateEventEnabled ( icd ) ) {
-      if ( _instrumentationContext.showStackedStates() ) numSubStates = _instrumentationContext.getSubStateStackSize(icd) + 1;
-      else numSubStates = 1;
-   }
-   else numSubStates = 0;
-   numBursts = _instrumentationContext.getNumBursts( icd );
-   unsigned int numEvents = numPtP + numStates + numSubStates + numBursts;
-
-   /* Allocating Events */
-   Event *e = (Event *) alloca(sizeof(Event) * numEvents );
-
-   /* Creating PtP event */
-   e[i++] = PtP (false, NANOS_WD_DOMAIN, (nanos_event_id_t) newWD->getId(), 0, NULL);
-
-   /* Creating State event's */
-   InstrumentationContextData::ConstStateIterator it_s;
-   nanos_event_state_value_t state;
-
-
-   /* Creating State event's: states */
-   if ( _instrumentationContext.showStackedStates() ) {
-
-      /* Close current state (+1) when computing number of states (only if not a startingWD) */
-      if ( icd->getStartingWD() == false ) {
-         e[i++] = State ( NANOS_STATE_END, NANOS_RUNTIME );
-         
-      }
-      else {
-          numEvents--;
-          icd->setStartingWD(false);
-      }
-
-      for ( it_s = _instrumentationContext.beginState( icd ); it_s != _instrumentationContext.endState( icd ); it_s++ ) {
-         e[i++] = State ( NANOS_STATE_START, *it_s );
-      }
-   }
-   else {
-      state = _instrumentationContext.getState( icd );
-      e[i++] = State ( NANOS_STATE_START, state );
-   }
-
-   /* Creating State event's: substates */
-   if ( !_instrumentationContext.isStateEventEnabled( icd ) ) {
-      if ( _instrumentationContext.showStackedStates () ) {
-         e[i++] = State ( NANOS_SUBSTATE_END, NANOS_NOT_TRACED );
-         for ( it_s = _instrumentationContext.beginSubState( icd ); it_s != _instrumentationContext.endSubState( icd ); it_s++,i++ ) {
-            e[i] = State ( NANOS_SUBSTATE_START, *it_s );
-         }
-      } else {
-         state = _instrumentationContext.getSubState( icd );
-         e[i++] = State ( NANOS_SUBSTATE_START, state );
-      }
-   }
-
-   /* Regenerating bursts for new WD: in reverse order */
-   InstrumentationContextData::ConstBurstIterator it;
-   i += (numBursts-1);
-   for ( it = _instrumentationContext.beginBurst( icd ) ; it != _instrumentationContext.endBurst( icd ); it++,i-- ) {
-      e[i] = *it;
-   }
-   i += (numBursts);
-
-   /* Spawning 'numEvents' events: specific instrumentation call */
-   addEventList ( numEvents, e );
-}
-
-void Instrumentation::wdLeaveCPU( WorkDescriptor* oldWD, bool last )
-{
-   unsigned int i = 0; /* Used as Event e[] index */
-
-   /* Getting Instrumentation Context */
-   InstrumentationContextData *icd = oldWD->getInstrumentationContextData();
-
-   /* Computing number of events*/
-   unsigned int numPtP, numStates, numSubStates, numBursts;
-   numPtP = last ? 0 : 1;
-   if ( _instrumentationContext.showStackedStates () ) numStates = _instrumentationContext.getStateStackSize(icd) + 1;
-   else numStates = 1;
-   if ( !_instrumentationContext.isStateEventEnabled ( icd ) ) {
-      if ( _instrumentationContext.showStackedStates() ) numSubStates = _instrumentationContext.getSubStateStackSize(icd) + 1;
-      else numSubStates = 1;
-   }
-   else numSubStates = 0;
-   numBursts = _instrumentationContext.getNumBursts( icd );
-   unsigned int numEvents = numPtP + numStates + numSubStates + numBursts;
-
-   /* Allocating Events */
-   Event *e = (Event *) alloca(sizeof(Event) * numEvents );
-
-   /* Creating a PtP events (if needed) */
-   if (!last) e[i++] = PtP (true,  NANOS_WD_DOMAIN, (nanos_event_id_t) oldWD->getId(), 0, NULL);
-   else numEvents--;
-
-   /* Creating State event's */
-   InstrumentationContextData::ConstStateIterator it_s;
-
-   /* Creating State event's: states */
-   if ( _instrumentationContext.showStackedStates() ) {
-      for ( it_s = _instrumentationContext.beginState( icd ); it_s != _instrumentationContext.endState( icd ); it_s++,i++ ) {
-         e[i] = State ( NANOS_STATE_END, *it_s );
-      }
-   }
-
-   /* In both cases (showStackedStates or not) keep 'current state' as RUNTIME */
-   e[i++] = State ( NANOS_STATE_START, NANOS_RUNTIME );
-
-   /* Creating State event's: substates */
-   if ( !_instrumentationContext.isStateEventEnabled( icd ) ) {
-      if ( _instrumentationContext.showStackedStates () ) {
-         for ( it_s = _instrumentationContext.beginSubState( icd ); it_s != _instrumentationContext.endSubState( icd ); it_s++,i++ ) {
-            e[i] = State ( NANOS_SUBSTATE_END, *it_s );
-         }
-      }
-      e[i++] = State ( NANOS_SUBSTATE_START, NANOS_NOT_TRACED );
-   }
-
-   /* Regenerating reverse bursts for old WD */
-   InstrumentationContextData::ConstBurstIterator it;
-   for ( it = _instrumentationContext.beginBurst( icd ); it != _instrumentationContext.endBurst( icd ); it++,i++ ) {
-      e[i] = *it;
-      e[i].reverseType();
-   }
-
-   /* Spawning 'numEvents' events: specific instrumentation call */
-   addEventList ( numEvents, e );
-}
-
 void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bool last )
 {
    unsigned int i = 0;
    unsigned int oldPtP = 0, oldStates = 0, oldSubStates = 0, oldBursts = 0;
-   unsigned int newPtP = 0, newStates = 0, newSubStates = 0, newBursts = 0;
+   unsigned int newPtP = 0, newStates = 0, newSubStates = 0, newBursts = 0, newDeferred = 0;
    InstrumentationContextData *old_icd = NULL;
    InstrumentationContextData *new_icd = NULL;
 
@@ -482,11 +402,12 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       }
       else newSubStates = 0;
       newBursts = _instrumentationContext.getNumBursts( new_icd );
+      newDeferred = _instrumentationContext.getNumDeferredEvents ( new_icd );
    }
 
    /* Allocating Events */
    unsigned int numEvents = oldPtP + oldStates + oldSubStates + oldBursts
-                          + newPtP + newStates + newSubStates + newBursts;
+                          + newPtP + newStates + newSubStates + newBursts + newDeferred;
    Event *e = (Event *) alloca(sizeof(Event) * numEvents );
 
    /* Creating leaving wd events */
@@ -568,7 +489,15 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       for ( it = _instrumentationContext.beginBurst( new_icd ) ; it != _instrumentationContext.endBurst( new_icd ); it++ ) {
          e[i--] = *it;
       }
-      i += (newBursts);
+      i += (newBursts+1);
+
+      /* Generating deferred events for new WD (and removing them) */
+      InstrumentationContextData::EventIterator itDE;
+      for ( itDE  = _instrumentationContext.beginDeferredEvents( new_icd );
+            itDE != _instrumentationContext.endDeferredEvents(new_icd); itDE++ ) {
+         e[i++] = *itDE;
+      }
+      _instrumentationContext.clearDeferredEvents( new_icd );
    }
 
    /* Spawning 'numEvents' events: specific instrumentation call */

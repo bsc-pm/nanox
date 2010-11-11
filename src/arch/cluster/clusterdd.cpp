@@ -17,11 +17,11 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "clusterdd.hpp"
-#include "clusterutils.hpp"
-
-using namespace nanos;
-using namespace nanos::ext;
-
-ClusterDevice nanos::ext::Cluster( "Cluster" );
+//#include "clusterdd.hpp"
+//#include "clusterutils.hpp"
+//
+//using namespace nanos;
+//using namespace nanos::ext;
+//
+//ClusterDevice nanos::ext::Cluster( "Cluster" );
 

@@ -21,6 +21,7 @@
 #include <iostream>
 #include "network.hpp"
 #include "schedule.hpp"
+#include "system.hpp"
 
 using namespace nanos;
 
@@ -51,15 +52,16 @@ void Network::setNumNodes ( unsigned int numNodes )
 
    _numNodes = numNodes;
    
-   _notify = new volatile unsigned int[numNodes];
-   _malloc_return = new void *[numNodes];
-   _malloc_complete = new bool[numNodes];
+   _notify = new volatile unsigned int[numNodes * sys.getNumPEs() ];
+   _malloc_return = new void *[numNodes * sys.getNumPEs()];
+   _malloc_complete = new bool[numNodes * sys.getNumPEs()];
 
-   for (i = 0; i < numNodes; i++)
+   for (i = 0; i < numNodes * sys.getNumPEs(); i++)
    {
       _notify[ i ] = 0;
       _malloc_complete[ i ] = false;
    }
+
 }
 
 unsigned int Network::getNumNodes ()
@@ -79,16 +81,17 @@ unsigned int Network::getNodeNum ()
 
 void Network::initialize()
 {
-//   ensure ( _api != NULL, "No network api loaded." );
+   //   ensure ( _api != NULL, "No network api loaded." );
    if ( _api != NULL )
       _api->initialize( this );
 }
 
 void Network::finalize()
 {
-//   ensure ( _api != NULL, "No network api loaded." );
    if ( _api != NULL )
+   {
       _api->finalize();
+   }
 }
 
 void Network::poll()
@@ -107,7 +110,7 @@ void Network::sendExitMsg( unsigned int nodeNum )
    }
 }
 
-void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, size_t argSize, void * arg )
+void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, size_t argSize, void * arg )
 {
  //  ensure ( _api != NULL, "No network api loaded." );
    if ( _api != NULL )
@@ -119,15 +122,15 @@ void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigne
       if ( _nodeNum == MASTER_NODE_NUM )
       {
        //  std::cerr << "work sent to " << dest << std::endl;
-         _api->sendWorkMsg( dest, work, arg0, argSize, arg );
+         _api->sendWorkMsg( dest, work, arg0, arg1, numPe, argSize, arg );
 
-       //  std::cerr << "waiting work from " << dest << std::endl;
-         while (_notify[dest] == 0)
+         //std::cerr << "waiting work from " << dest << " target pe " << numPe << std::endl;
+         while (_notify[ dest * sys.getNumPEs() + numPe ] == 0)
          {
             poll();
             Scheduler::yield();
          }
-         _notify[dest] = 0;
+         _notify[ dest * sys.getNumPEs() + numPe ] = 0;
        //  std::cerr << "completed work from " << dest << std::endl;
 
       }
@@ -138,21 +141,22 @@ void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigne
    }
 }
 
-void Network::sendWorkDoneMsg( unsigned int nodeNum )
+void Network::sendWorkDoneMsg( unsigned int nodeNum, unsigned int numPe )
 {
  //  ensure ( _api != NULL, "No network api loaded." );
    if ( _api != NULL )
    {
       if ( _nodeNum != MASTER_NODE_NUM )
       {
-         _api->sendWorkDoneMsg( nodeNum );
+         _api->sendWorkDoneMsg( nodeNum, numPe );
       }
    }
 }
 
-void Network::notifyWorkDone ( unsigned int nodeNum )
+void Network::notifyWorkDone ( unsigned int nodeNum, unsigned int numPe )
 {
-   _notify[nodeNum] = 1;
+   //std::cerr << "completed work from " << nodeNum << " : " << numPe << std::endl;
+   _notify[ nodeNum * sys.getNumPEs() + numPe ] = 1;
 }
 
 void Network::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size )
@@ -167,28 +171,28 @@ void Network::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAdd
       _api->get( localAddr, remoteNode, remoteAddr, size );
 }
 
-void * Network::malloc ( unsigned int remoteNode, size_t size )
+void * Network::malloc ( unsigned int remoteNode, size_t size, unsigned int id )
 {
    void * result = NULL;
 
    if ( _api != NULL )
    {
-      _api->malloc( remoteNode, size );
+      _api->malloc( remoteNode, size, id );
 
-      while ( _malloc_complete[ remoteNode ] == false )
+      while ( _malloc_complete[ remoteNode * sys.getNumPEs() + id ] == false )
       {
          poll();
       }
 
-      result = _malloc_return[ remoteNode ];
-      _malloc_complete[ remoteNode ] = false;
+      result = _malloc_return[ remoteNode * sys.getNumPEs() + id ];
+      _malloc_complete[ remoteNode * sys.getNumPEs() + id ] = false;
    }
 
    return result;
 }
 
-void Network::notifyMalloc( unsigned int remoteNode, void * addr )
+void Network::notifyMalloc( unsigned int remoteNode, void * addr, unsigned int id )
 {
-   _malloc_return[ remoteNode ] = addr;
-   _malloc_complete[ remoteNode ] = true;
+   _malloc_return[ remoteNode * sys.getNumPEs() + id ] = addr;
+   _malloc_complete[ remoteNode * sys.getNumPEs() + id ] = true;
 }

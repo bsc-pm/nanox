@@ -24,6 +24,9 @@
 
 namespace nanos
 {
+   namespace ext
+   {
+
 
 /* \brief Device specialization for cluster architecture
  * provides functions to allocate and copy data in the device
@@ -31,18 +34,6 @@ namespace nanos
 
    class ClusterDevice : public Device
    {
-      private:
-         static unsigned int _numSegments;
-         static void ** _segmentAddrList;
-         static size_t * _segmentLenList;
-
-         //typedef std::map< uintptr_t, size_t > SegmentMap;
-         //
-         //static std::vector< SegmentMap > _allocatedChunks;
-         //static std::vector< SegmentMap > _freeChunks;
-
-         static unsigned int _extraPEsCount;
-         
       public:
          /*! \brief ClusterDevice constructor
           */
@@ -54,60 +45,23 @@ namespace nanos
 
          /*! \brief ClusterDevice destructor
           */
-         ~ClusterDevice()
-         {
-            if ( _segmentAddrList != NULL )
-               delete _segmentAddrList;
+         ~ClusterDevice() { }
 
-            if ( _segmentLenList != NULL )
-               delete _segmentLenList;
-         };
 
-         static unsigned int getExtraPEsCount()
-         {
-            return _extraPEsCount;
-         }
+         static void * allocate( size_t size, ProcessingElement *pe );
+         static void free( void *address, ProcessingElement *pe );
 
-         static void setExtraPEsCount( unsigned int num)
-         {
-            _extraPEsCount = num;
-         }
+         static bool copyIn( void *localDst, uint64_t remoteSrc, size_t size, ProcessingElement *pe );
+         static bool copyOut( uint64_t remoteDst, void *localSrc, size_t size, ProcessingElement *pe );
 
-         static void * allocate( size_t size );
-         static void free( void *address );
-
-         static void copyIn( void *localDst, uint64_t remoteSrc, size_t size );
-         static void copyOut( uint64_t remoteDst, void *localSrc, size_t size );
-
-         static void copyLocal( void *dst, void *src, size_t size )
+         static void copyLocal( void *dst, void *src, size_t size, ProcessingElement *pe )
          {
             // Do not allow local copies in cluster memory
          }
 
-         static void addSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize )
-         {
-            unsigned int idx;
-            _numSegments = numSegments;
-            _segmentAddrList = new void *[ numSegments ];
-            _segmentLenList = new size_t[ numSegments ];
-
-            for ( idx = 0; idx < numSegments; idx += 1)
-            {
-               _segmentAddrList[ idx ] = segmentAddr[ idx ];
-               _segmentLenList[ idx ] = segmentSize[ idx ];
-            }
-         }
-
-         static void * getSegmentAddr( unsigned int idx )
-         {
-            return _segmentAddrList[ idx ];
-         }
-
-         static size_t getSegmentLen( unsigned int idx )
-         {
-            return _segmentLenList[ idx ];
-         }
+         static void syncTransfer ( uint64_t addr, ProcessingElement *pe);
    };
+}
 }
 
 #endif

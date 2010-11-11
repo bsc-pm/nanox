@@ -30,8 +30,8 @@
 #include "nanos-int.h"
 #include "dependency.hpp"
 #include "instrumentation_decl.hpp"
-#include "directory.hpp"
 #include "network.hpp"
+#include "directory_decl.hpp"
 
 
 namespace nanos
@@ -157,6 +157,8 @@ namespace nanos
 
          bool getVerbose () const;
 
+         void setVerbose ( bool value );
+
          void setInitialMode ( InitialMode mode );
          InitialMode getInitialMode() const;
 
@@ -184,6 +186,9 @@ namespace nanos
          BaseThread * getUnassignedWorker ( void );
          ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL,
                                    bool reuseCurrent=true,  TeamData *tdata = 0 );
+
+         BaseThread * getWorker( unsigned int n );
+
          void endTeam ( ThreadTeam *team );
          void releaseWorker ( BaseThread * thread );
 
@@ -232,7 +237,6 @@ namespace nanos
          Network * getNetwork( void );
 
          void stopFirstThread( void );
-
    };
 
    extern System sys;

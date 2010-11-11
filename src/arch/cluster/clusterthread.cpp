@@ -21,10 +21,11 @@
 #include "instrumentation.hpp"
 #include "clusterthread.hpp"
 #include "clusternode.hpp"
+#include "clusterdevice.hpp"
 #include "system.hpp"
 
 using namespace nanos;
-using namespace nanos::ext;
+using namespace ext;
 
 
 void ClusterThread::runDependent ()
@@ -48,7 +49,7 @@ void ClusterThread::inlineWorkDependent ( WD &wd )
    {
    
    ProcessingElement *pe = wd.getPe();
-   //std::cerr << "run remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << std::endl;
+   //std::cerr << "run remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " numPe " << wd.getPeId() << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << " WDprev " << wd.getPrevious() << ":" << wd.getPrevious()->getId() << std::endl;
    
    CopyData newCopies[ wd.getNumCopies() ]; 
 
@@ -74,9 +75,11 @@ void ClusterThread::inlineWorkDependent ( WD &wd )
       memcpy( &buff[ wd.getDataSize() + sizeof( CopyData ) * i ], &newCopies[i], sizeof( CopyData ) );
    }
 
-   sys.getNetwork()->sendWorkMsg( ((ClusterNode *)pe)->getClusterNodeNum(), dd.getWorkFct(), wd.getDataSize(), wd.getDataSize() + ( wd.getNumCopies() * sizeof( CopyData ) ), buff );
+   ( ( ClusterNode * ) pe )->incExecutedWDs();
+   sys.getNetwork()->sendWorkMsg( ( ( ClusterNode * ) pe )->getClusterNodeNum(), dd.getWorkFct(), wd.getDataSize(), wd.getId(), wd.getPeId(), wd.getDataSize() + ( wd.getNumCopies() * sizeof( CopyData ) ), buff );
 
    //std::cerr << "finished remote call at node " << ((ClusterNode *)pe)->getClusterNodeNum() << std::endl;
+//   std::cerr << "finished remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " numPe " << wd.getPeId() << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << " WDprev " << wd.getPrevious() << ":" << wd.getPrevious()->getId() << std::endl;
 
    //NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateAndBurst ( key ) );
    }
@@ -95,4 +98,14 @@ WorkDescriptor *ClusterThread::getWD( )
 {
    WorkDescriptor * wd = _myWDs.pop_front( this );
    return wd;
+}
+
+void ClusterThread::join()
+{
+   int i;
+   for ( i = 1; i < sys.getNetwork()->getNumNodes(); i++ )
+      sys.getNetwork()->sendExitMsg( i );
+
+   SMPThread::join();
+
 }

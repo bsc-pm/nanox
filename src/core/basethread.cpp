@@ -43,15 +43,13 @@ void BaseThread::associate ()
 
    if ( sys.getBinding() ) bind();
 
-   _threadWD.start(false);
+   _threadWD.init(false);
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdEnterCPU(&_threadWD) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, &_threadWD, false) );
 }
 
 bool BaseThread::singleGuard ()
 {
-   // return getTeam()->singleGuard(++localSingleCount); # doesn't work
-   // probably because some gcc bug
    return getTeam()->singleGuard( getTeamData()->nextSingleGuard() );
 }
 

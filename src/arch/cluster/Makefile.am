@@ -37,6 +37,8 @@ libcluster_la_SOURCES = \
 		clusternode.cpp \
 		clusterthread.hpp \
 		clusterthread.cpp \
+		clusterinfo.hpp \
+		clusterinfo.cpp \
 		clusterutils.hpp \
 		$(END)
 

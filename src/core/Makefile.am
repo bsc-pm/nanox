@@ -21,7 +21,7 @@ include $(top_srcdir)/src/common.am
 
 lib_LTLIBRARIES=libnanox.la
 
-include_HEADERS=nanos-int.h
+pkginclude_HEADERS=nanos-int.h
 
 if PERFORMANCE
   lib_LTLIBRARIES += libnanox-pfm.la
@@ -81,7 +81,7 @@ nanos_sources=\
 	instrumentation_decl.hpp \
 	instrumentation.hpp \
 	instrumentation.cpp \
-	throttle_fwdatiopp \
+	throttle_fwd.hpp \
 	throttle.hpp \
 	dependency_fwd.hpp \
 	dependency.hpp \

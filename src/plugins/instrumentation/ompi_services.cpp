@@ -1,6 +1,6 @@
 #include "system.hpp"
 #include "gpudd.hpp"
-#include "clusterdevice.hpp"
+#include "clusterinfo.hpp"
 
 namespace nanos {
 
@@ -15,7 +15,7 @@ extern "C" {
 #else
 
 #ifdef CLUSTER_DEV
-      return sys.getNumPEs() + nanos::ClusterDevice::getExtraPEsCount();
+      return sys.getNumPEs() + nanos::ext::ClusterInfo::getExtraPEsCount() ;
 #else
       return sys.getNumPEs();
 #endif

@@ -21,7 +21,7 @@ include $(top_srcdir)/src/common.am
 
 lib_LTLIBRARIES=libnanox-c.la
 
-include_HEADERS=\
+pkginclude_HEADERS=\
 	nanos.h \
 	$(END)
 

@@ -56,6 +56,18 @@ void Accelerator::copyDataIn( WorkDescriptor &work )
 #endif
 }
 
+void Accelerator::waitInputs( WorkDescriptor &work )
+{
+   CopyData *copies = work.getCopies();
+   for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
+      CopyData & cd = copies[i];
+      uint64_t tag = (uint64_t) cd.isPrivate() ? ((uint64_t) work.getData() + (unsigned long)cd.getAddress()) : cd.getAddress();
+      if ( cd.isInput() ) {
+           this->waitInputDependent( tag );
+      }
+   }
+}
+
 void Accelerator::copyDataOut( WorkDescriptor& work )
 {
 #if LOCK_TRANSFER
@@ -72,7 +84,7 @@ void Accelerator::copyDataOut( WorkDescriptor& work )
       if ( cd.isPrivate() ) {
          this->unregisterPrivateAccessDependent( tag, cd.getSize() );
       } else {
-         this->unregisterCacheAccessDependent( tag, cd.getSize() );
+         this->unregisterCacheAccessDependent( tag, cd.getSize(), cd.isOutput() );
       }
    }
 #if LOCK_TRANSFER

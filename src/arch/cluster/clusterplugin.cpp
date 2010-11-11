@@ -20,7 +20,7 @@
 #include "plugin.hpp"
 #include "system.hpp"
 #include "gasnetapi.hpp"
-#include "clusterdevice.hpp"
+#include "clusterinfo.hpp"
 
 
 namespace nanos {
@@ -48,7 +48,7 @@ class ClusterPlugin : public Plugin
 
          if (sys.getNetwork()->getNodeNum() == 0)
          {
-            ClusterDevice::setExtraPEsCount( sys.getNetwork()->getNumNodes() - 1 );
+            ClusterInfo::setExtraPEsCount( 1 ); // now we only have 1 extra thread
          }
       }
 };

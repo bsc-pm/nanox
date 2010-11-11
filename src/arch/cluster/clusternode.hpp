@@ -23,17 +23,16 @@
 #include "accelerator.hpp"
 #include "cache.hpp"
 #include "config.hpp"
-#include "clusterdevice.hpp"
-#include "clusterthread.hpp"
 #include "simpleallocator.hpp"
+#include "clusterinfo.hpp"
+#include "clusterdevice.hpp"
+#include "smpdd.hpp"
 
 namespace nanos {
-namespace ext
-{
+namespace ext {
 
    class ClusterNode : public Accelerator
    {
-
 
       private:
          // config variables
@@ -44,12 +43,13 @@ namespace ext
          ClusterNode( const ClusterNode &pe );
          const ClusterNode & operator= ( const ClusterNode &pe );
 
-         DeviceCache<ClusterDevice> _cache;
+         DeviceCache< ClusterDevice > _cache;
          SimpleAllocator _memSegment;
+         unsigned int _executedWorkDesciptors;
 
       public:
          // constructors
-         ClusterNode( int id ) : Accelerator( id, &SMP ), _memSegment( ( uintptr_t ) ClusterDevice::getSegmentAddr( id ), ClusterDevice::getSegmentLen( id ) ) { _clusterNode = id; }
+         ClusterNode( int id ) : Accelerator( id, &SMP ), _clusterNode ( id ), _cache ( ClusterInfo::getSegmentLen( id ), (ClusterNode *) this ), _memSegment( ( uintptr_t ) ClusterInfo::getSegmentAddr( id ), ClusterInfo::getSegmentLen( id ) ), _executedWorkDesciptors ( 0 ) { }
 
          virtual ~ClusterNode() {}
 
@@ -68,16 +68,20 @@ namespace ext
          virtual void* getAddressDependent( uint64_t tag );
          virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
 
-         void registerCacheAccessDependent(uint64_t a, size_t aa, bool aaa, bool aaaa);
-         void unregisterCacheAccessDependent(uint64_t a, size_t aa);
-         void registerPrivateAccessDependent(uint64_t a, size_t aa, bool aaa, bool aaaa);
-         void unregisterPrivateAccessDependent(uint64_t a, size_t aa);
+         void registerCacheAccessDependent( uint64_t addr, size_t len, bool aaa, bool aaaa );
+         void unregisterCacheAccessDependent( uint64_t addr, size_t len, bool output);
+         void registerPrivateAccessDependent( uint64_t addr, size_t len, bool aaa, bool aaaa );
+         void unregisterPrivateAccessDependent( uint64_t addr, size_t len );
+
+         void waitInputDependent( uint64_t addr );
 
          unsigned int getClusterNodeNum();
-         //static void slaveLoop ( ClusterNode *node );
          SimpleAllocator & getAllocator( void ) { return _memSegment; }
-   };
 
+         void incExecutedWDs() { _executedWorkDesciptors++; }
+         unsigned int getExecutedWDs() { return _executedWorkDesciptors; }
+         unsigned int getNodeNum() { return _clusterNode; }
+   };
 }
 }
 

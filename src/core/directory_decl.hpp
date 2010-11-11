@@ -22,6 +22,7 @@
 
 #include "compatibility.hpp"
 #include "cache_fwd.hpp"
+#include "hashmap_decl.hpp"
 #include "atomic.hpp"
 
 namespace nanos
@@ -31,7 +32,7 @@ namespace nanos
       private:
 
          uint64_t _tag;
-         unsigned int _version;
+         Atomic<unsigned int> _version;
 
       public:
 
@@ -51,7 +52,11 @@ namespace nanos
 
          unsigned int getVersion() const;
 
-         void setVersion ( unsigned int version );
+         void setVersion( unsigned int version );
+
+         void increaseVersion();
+
+         bool setVersionCS( unsigned int version );
    };
 
    class DirectoryEntry : public Entry
@@ -60,13 +65,17 @@ namespace nanos
 
          Cache *_owner;
 
+         Lock _entryLock;
+
+         Atomic<bool> _invalidated;
+
       public:
 
-         DirectoryEntry() : Entry(), _owner( NULL ) { }
+         DirectoryEntry() : Entry(), _owner( NULL ), _entryLock(), _invalidated( false ) { }
 
-         DirectoryEntry( uint64_t tag, unsigned int version, Cache *c ) : Entry( tag, version ), _owner( c ) { }
+         DirectoryEntry( uint64_t tag, unsigned int version, Cache *c ) : Entry( tag, version ), _owner( c ), _entryLock(), _invalidated( false ) { }
 
-         DirectoryEntry ( const DirectoryEntry &de) : Entry( de ), _owner( de._owner ) { }
+         DirectoryEntry ( const DirectoryEntry &de) : Entry( de ), _owner( de._owner ), _entryLock(), _invalidated( false ) { }
 
          ~DirectoryEntry () {}
 
@@ -75,13 +84,20 @@ namespace nanos
          Cache * getOwner() const;
 
          void setOwner( Cache *owner );
+
+         bool isInvalidated();
+
+         void setInvalidated( bool invalid );
+
+         bool trySetInvalidated();
+
    };
 
    class Directory
    {
       private:
 
-         typedef TR1::unordered_map< uint64_t, DirectoryEntry> DirectoryMap;
+         typedef HashMap<uint64_t, DirectoryEntry> DirectoryMap;
          DirectoryMap _directory;
          Lock _lock;
 
@@ -96,11 +112,15 @@ namespace nanos
 
          ~Directory() { }
 
+         DirectoryEntry& insert( uint64_t tag, DirectoryEntry &ent, bool &inserted );
+
          DirectoryEntry& newEntry( uint64_t tag, unsigned int version, Cache* owner );
 
          DirectoryEntry* getEntry( uint64_t tag );
 
-         void unLock( void ) { _lock.release(); }
+         void registerAccess( uint64_t tag, size_t size );
+
+         void waitInput( uint64_t tag );
    };
 
 };

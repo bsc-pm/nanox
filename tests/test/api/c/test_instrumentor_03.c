@@ -163,7 +163,7 @@ void fib0 ( int n )
 
 int main ( int argc, char **argv )
 {
-   nanos_instrument_disable_state_events( RUNTIME );
+   nanos_instrument_disable_state_events( NANOS_RUNTIME );
 
    int n=25;
 

@@ -18,7 +18,7 @@
 /*************************************************************************************/
 // FIXME: (#64) This flag ENABLE_INSTRUMENTATION has to be managed through
 //configure in order to generate an instrumentation version
-//#define NANOS_INSTRUMENTATION_ENABLED
+#define NANOS_INSTRUMENTATION_ENABLED
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 #define NANOS_INSTRUMENT(f) f;
@@ -161,7 +161,11 @@ namespace nanos {
             registerEventValue("api","sync_cond_signal","nanos_sync_cond_signal()");
             registerEventValue("api","destroy_sync_cond","nanos_destroy_sync_cond()");
             registerEventValue("api","wait_on","nanos_wait_on()");
-            registerEventValue("api","*_lock","nanos_xxx_lock()");
+            registerEventValue("api","init_lock","nanos_init_lock()");
+            registerEventValue("api","set_lock","nanos_set_lock()");
+            registerEventValue("api","unset_lock","nanos_unset_lock()");
+            registerEventValue("api","try_lock","nanos_try_lock()");
+            registerEventValue("api","destroy_lock","nanos_destroy_lock()");
             registerEventValue("api","single_guard","nanos_single_guard()");
             registerEventValue("api","team_barrier","nanos_team_barrier()");
             registerEventValue("api","current_wd", "nanos_current_wd()");
@@ -199,6 +203,10 @@ namespace nanos {
             /* 14 */ registerEventKey("create-wd-ptr","Create WD pointer:");
             /* 15 */ registerEventKey("wd-num-deps","Create WD num. deps."); 
             /* 16 */ registerEventKey("wd-deps-ptr","Create WD dependence pointer"); 
+
+            /* 17 */ registerEventKey("lock-addr","Lock address"); 
+
+            /* 18 */ registerEventKey("debug","Debug Key"); 
 #endif
 
          }
@@ -456,18 +464,6 @@ namespace nanos {
           */   
          virtual void wdCreate( WorkDescriptor* newWD );
 
-         /*! \brief Used in work descriptor context switch (entering phase)
-          *
-          *  \param[in] newWD, is the work descriptor which enters the cpu
-          */
-         virtual void wdEnterCPU( WorkDescriptor* newWD );
-
-         /*! \brief Used in work descriptor context switch (entering phase)
-          *
-          *  \param[in] oldWD, is the work descriptor which leaves the cpu
-          */
-         virtual void wdLeaveCPU( WorkDescriptor* oldWD, bool last = false );
-
          /*! \brief Used in work descriptor context switch (oldWD has finished completely its execution
           *
           *  \param[in] oldWD, is the work descriptor which leaves the cpu
@@ -546,6 +542,20 @@ namespace nanos {
          void createPtPEnd ( Event *e, nanos_event_domain_t domain, nanos_event_id_t id,
                              unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
 
+         /*! \brief Used by higher levels to create a deferred POINT event into a given WorkDescriptor (wd)
+          */
+         void createDeferredPointEvent ( WorkDescriptor &wd, unsigned int nkvs, nanos_event_key_t *keys,
+                                         nanos_event_value_t *values );
+
+         /*! \brief Used by higher levels to create a deferred PTP_START event into a given WorkDescriptor (wd)
+          */
+         void createDeferredPtPStart ( WorkDescriptor &wd, nanos_event_domain_t domain, nanos_event_id_t id,
+                                       unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
+
+         /*! \brief Used by higher levels to create a deferred PTP_END event into a given WorkDescriptor (wd)
+          */
+         void createDeferredPtPEnd ( WorkDescriptor &wd, nanos_event_domain_t domain, nanos_event_id_t id,
+                                     unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
 
          void raisePointEvent ( nanos_event_key_t key, nanos_event_value_t val );
          void raisePointEventNkvs ( unsigned int nkvs, nanos_event_key_t *key, nanos_event_value_t *val );

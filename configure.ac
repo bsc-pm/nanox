@@ -146,6 +146,7 @@ case $host in
     
     ;;
   *)
+    OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=unknown
     smp_ult=no

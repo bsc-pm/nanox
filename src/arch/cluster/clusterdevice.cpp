@@ -19,147 +19,54 @@
 
 
 #include "clusterdevice.hpp"
-#include "clusternode.hpp"
 #include "basethread.hpp"
 #include "debug.hpp"
 #include "system.hpp"
+#include "clusternode.hpp"
 #include <iostream>
 
 using namespace nanos;
-using namespace ext;
+using namespace nanos::ext;
 
-//std::vector< ClusterDevice::SegmentMap > ClusterDevice::_allocatedChunks;
-//std::vector< ClusterDevice::SegmentMap > ClusterDevice::_freeChunks;
-unsigned int ClusterDevice::_numSegments = 0;
-void ** ClusterDevice::_segmentAddrList = NULL;
-size_t * ClusterDevice::_segmentLenList = NULL;
-
-unsigned int ClusterDevice::_extraPEsCount = 0;
-
-void * ClusterDevice::allocate( size_t size )
+void * ClusterDevice::allocate( size_t size, ProcessingElement *pe )
 {
-   ClusterNode *node = ( ClusterNode * ) myThread->getCurrentWD()->getPe();
+   ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
    void *retAddr = NULL;
 
-   //std::cerr << "alloc @ node " << node->getClusterNodeNum() << std::endl;
-   //std::cerr << "allocator @ is " << (void * ) &node->getAllocator() << std::endl;
    retAddr = node->getAllocator().allocate( size );
-   /*
-   unsigned int nodeId = node->getClusterNodeNum();
-   SegmentMap &nodeFreeChunks = _freeChunks[ nodeId ];
-   SegmentMap &nodeAllocatedChunks = _allocatedChunks[ nodeId ];
-   SegmentMap::iterator mapIter = nodeFreeChunks.begin();
-   //fprintf(stderr, "[node %d] ALLOCATE %d at %d, ret %p\n", sys.getNetwork()->getNodeNum(), size, node->getClusterNodeNum(), addr );
-
-   //fprintf(stderr, "looking for chunk of %d bytes, first is %d bytes.", size, mapIter->second );
-   while( mapIter != nodeFreeChunks.end() && mapIter->second < size )
-   {
-      mapIter++;
-   }
-
-   if ( mapIter != nodeFreeChunks.end() ) {
-
-      uintptr_t targetAddr = mapIter->first;
-      size_t chunkSize = mapIter->second;
-
-      nodeFreeChunks.erase( mapIter );
-
-      //add the chunk with the new size (previous size - requested size)
-      nodeFreeChunks[ targetAddr + size ] = chunkSize - size ;
-      nodeAllocatedChunks[ targetAddr ] = size;
-
-      retAddr = ( void * ) targetAddr;
-   }
-   else {
-      fprintf(stderr, "Could not get a chunk of %d bytes at node %d\n", size, nodeId);
-   }
-   */
    //fprintf(stderr, "[node %d] ALLOCATE %d at %d, ret %p\n", sys.getNetwork()->getNodeNum(), size, node->getClusterNodeNum(), retAddr );
-   
    return retAddr;
 }
 
-void ClusterDevice::free( void *address )
+void ClusterDevice::free( void *address, ProcessingElement *pe )
 {
-   //ClusterNode *node = ( ClusterNode * ) myThread->runningOn();
-   ClusterNode *node = ( ClusterNode * ) myThread->getCurrentWD()->getPe();
+   ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
 
-   //std::cerr << "free @ node " << node->getClusterNodeNum() << std::endl;
    node->getAllocator().free( address );
    unsigned int nodeId = node->getClusterNodeNum();
-   /*
-   SegmentMap &nodeFreeChunks = _freeChunks[ nodeId ];
-   SegmentMap &nodeAllocatedChunks = _allocatedChunks[ nodeId ];
-   
-   SegmentMap::iterator mapIter = nodeAllocatedChunks.find( ( uintptr_t ) address );
-   size_t size = mapIter->second;
-
-   nodeAllocatedChunks.erase( mapIter );
-
-   if ( nodeFreeChunks.size() > 0 ) {
-      mapIter = nodeFreeChunks.lower_bound( ( uintptr_t ) address );
-
-      //case where address is the highest key, check if it can be merged with the previous chunk
-      if ( mapIter == nodeFreeChunks.end() ) {
-         mapIter--;
-         if ( mapIter->first + mapIter->second == ( uintptr_t ) address ) {
-            mapIter->second += size;
-         }
-      }
-      //address is not the hightest key, check if it can be merged with the previous and next chunks
-      else if ( nodeFreeChunks.key_comp()( ( uintptr_t ) address, mapIter->first ) ) {
-         size_t totalSize = size;
-
-         //check next chunk
-         if ( mapIter->first == ( ( uintptr_t ) address ) + size ) {
-            totalSize += mapIter->second;
-            nodeFreeChunks.erase( mapIter );
-            mapIter = nodeFreeChunks.insert( mapIter, SegmentMap::value_type( ( uintptr_t ) address, totalSize ) );
-         }
-
-         //check previous chunk
-         mapIter--;
-         if ( mapIter->first + mapIter->second == ( uintptr_t ) address ) {
-            //if totalSize > size then the next chunk was merged
-            if ( totalSize > size ) {
-               mapIter->second += totalSize;
-               mapIter++;
-               nodeFreeChunks.erase( mapIter );
-            }
-            else {
-               mapIter->second += size;
-            }
-         }
-      }
-      //duplicate key, error
-      else {
-         fprintf(stderr, "Duplicate entry in node segment map, node %d, addr %p\n.", nodeId, address);
-      }
-   }
-   else {
-      nodeFreeChunks[ ( uintptr_t ) address ] = size;
-   }
-   */
-
-
    
    fprintf(stderr, "[node %d] FREE %p\n", nodeId, address);
 }
 
-void ClusterDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size )
+bool ClusterDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size, ProcessingElement *pe )
 {
    //ClusterNode *node = (ClusterNode *) myThread->runningOn();
    ClusterNode *node = ( ClusterNode * ) myThread->getCurrentWD()->getPe();
    //fprintf(stderr, "[node %d]->[%d] COPY IN ( remote=%p, <= local=0x%llx[%d], size=%d)\n", sys.getNetwork()->getNodeNum(), node->getClusterNodeNum(), localDst, remoteSrc, *((int *)remoteSrc), size);
    sys.getNetwork()->put( node->getClusterNodeNum(), ( uint64_t ) localDst, ( void * ) remoteSrc, size );
+   return true;
 }
 
-void ClusterDevice::copyOut( uint64_t remoteDst, void *localSrc, size_t size )
+bool ClusterDevice::copyOut( uint64_t remoteDst, void *localSrc, size_t size, ProcessingElement *pe )
 {
    //ClusterNode *node = (ClusterNode *) myThread->runningOn();
    ClusterNode *node = ( ClusterNode * ) myThread->getCurrentWD()->getPe();
    //fprintf(stderr, "[node %d] COPY OUT ( remote=%p, => local=0x%llx[%d], size %d\n", sys.getNetwork()->getNodeNum(), localSrc, remoteDst, *((int *)remoteDst), size);
    sys.getNetwork()->get( ( void * ) remoteDst, node->getClusterNodeNum(), ( uint64_t ) localSrc, size );
    //fprintf(stderr, "[node %d]<-[%d] COPY OUT ( remote=%p, => local=0x%llx[%d], size %d\n", sys.getNetwork()->getNodeNum(),node->getClusterNodeNum(), localSrc, remoteDst, *((int *)remoteDst), size);
+   return true;
 }
 
+void ClusterDevice::syncTransfer ( uint64_t address, ProcessingElement *pe )
+{
+}

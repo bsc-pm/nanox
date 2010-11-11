@@ -47,18 +47,18 @@ namespace nanos {
          unsigned int getNumNodes ();
          void setNodeNum ( unsigned int nodeNum );
          unsigned int getNodeNum ();
-         void notifyWorkDone ( unsigned int nodeNum );
-         void notifyMalloc ( unsigned int nodeNum, void * result );
+         void notifyWorkDone ( unsigned int nodeNum, unsigned int numPe );
+         void notifyMalloc ( unsigned int nodeNum, void * result, unsigned int id );
 
          void initialize ( void );
          void finalize ( void );
          void poll ( void );
          void sendExitMsg( unsigned int nodeNum );
-         void sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, size_t argSize, void * arg );
-         void sendWorkDoneMsg( unsigned int nodeNum );
+         void sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, size_t argSize, void * arg );
+         void sendWorkDoneMsg( unsigned int nodeNum, unsigned int numPe );
          void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size );
          void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, size_t size );
-         void * malloc ( unsigned int remoteNode, size_t size );
+         void * malloc ( unsigned int remoteNode, size_t size, unsigned int id );
    };
 }
 

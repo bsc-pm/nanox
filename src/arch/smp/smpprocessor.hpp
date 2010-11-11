@@ -48,6 +48,7 @@ namespace ext
          // config variables
          static bool _useUserThreads;
          static size_t _threadsStackSize;
+         static size_t _cacheDefaultSize;
 
          // disable copy constructor and assignment operator
          SMPProcessor( const SMPProcessor &pe );
@@ -55,18 +56,20 @@ namespace ext
 
 #ifdef SMP_NUMA
 #ifdef CLUSTER_DEV
-         HostCache<SMPDevice> _cache;
+         DeviceCache<SMPDevice> _cache;
+         Lock _lock;
 #else
          DeviceCache<SMPDevice> _cache;
+         Lock _lock;
 #endif
 #endif
 
       public:
          // constructors
 #ifdef SMP_NUMA
-         SMPProcessor( int id ) : Accelerator( id,&SMP ), _cache() {}
+         SMPProcessor( int id ) : Accelerator( id, &SMP ), _cache(_cacheDefaultSize) {}
 #else
-         SMPProcessor( int id ) : PE( id,&SMP ) {}
+         SMPProcessor( int id ) : PE( id, &SMP ) {}
 #endif
 
          virtual ~SMPProcessor() {}
@@ -85,13 +88,17 @@ namespace ext
 
 #ifdef SMP_NUMA
          /* Memory space suport */
+         virtual void waitInputDependent( uint64_t tag );
+
          virtual void registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output );
-         virtual void unregisterCacheAccessDependent( uint64_t tag, size_t size );
+         virtual void unregisterCacheAccessDependent( uint64_t tag, size_t size, bool output );
          virtual void registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output );
          virtual void unregisterPrivateAccessDependent( uint64_t tag, size_t size );
 
          virtual void* getAddressDependent( uint64_t tag );
          virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
+
+         void synchronize( uint64_t tag );
 #endif
    };
 

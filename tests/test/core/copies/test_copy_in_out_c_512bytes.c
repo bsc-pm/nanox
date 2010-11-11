@@ -16,33 +16,63 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+/*
+<testinfo>
+test_generator='gens/api-generator -a '--numa-cache-size=512''
+</testinfo>
+*/
 
+#include <stdio.h>
+#include <sys/time.h>
+#include <stdlib.h>
+#include <string.h>
+#include <nanos.h>
 
-#ifndef _GASNET_API
-#define _GASNET_API
+typedef struct {
+   int a;
+   char *b;
+} my_args;
 
-#include "network.hpp"
-#include "networkapi.hpp"
+void first( void *ptr )
+{
+}
 
-namespace nanos {
-namespace ext {
+nanos_smp_args_t test_device_arg_1 = { first };
 
-   class GasnetAPI : public NetworkAPI
-   {
-      private:
-         Network *_net;
-         
-      public:
-         void initialize ( Network *net );
-         void finalize ();
-         void poll ();
-         void sendExitMsg ( unsigned int dest );
-         void sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, size_t argSize, void * arg );
-         void sendWorkDoneMsg ( unsigned int dest, unsigned int numPe );
-         void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size );
-         void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, size_t size );
-         void malloc ( unsigned int remoteNode, size_t size, unsigned int id );
+int main ( int argc, char **argv )
+{
+   char text[10] = "123456789";
+   char text2[10] = "987654321";
+   char* array = malloc(1024*sizeof(char));
+   char* dummy1 = text;
+   int i;
+   
+   nanos_wd_props_t props = {
+     .mandatory_creation = true,
+     .tied = false,
+     .tie_to = false,
    };
+
+   for (i=0; i < 8; i++) {
+      my_args* args = 0;
+      nanos_copy_data_t *cd = 0;
+   
+      nanos_wd_t wd1=0;
+      nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1) };
+      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), (void**)&args, nanos_current_wd(), &props, 2, &cd) );
+   
+      args->a = 1;
+      args->b = &array[i*128];
+   
+      cd[0] = (nanos_copy_data_t) {(uint64_t)&(args->a), NANOS_PRIVATE, {true, false}, sizeof(args->a)};
+      cd[1] = (nanos_copy_data_t) {(uint64_t)args->b, NANOS_SHARED, {true, false}, sizeof(char)*128}; 
+   
+      NANOS_SAFE( nanos_submit( wd1,0,0,0 ) );
+   
+   }
+
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+
+   return 0;
 }
-}
-#endif
+

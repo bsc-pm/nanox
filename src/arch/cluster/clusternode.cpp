@@ -19,6 +19,9 @@
 
 #include <iostream>
 #include "clusternode.hpp"
+#include "clusterdd.hpp"
+#include "clusterthread.hpp"
+#include "clusterdevice.hpp"
 #include "debug.hpp"
 #include "schedule.hpp"
 
@@ -33,9 +36,9 @@ using namespace nanos::ext;
 
 WorkDescriptor & ClusterNode::getWorkerWD () const
 {
-   SMPDD * dd = new ClusterDD( ( ClusterDD::work_fct )Scheduler::workerClusterLoop );
+   ClusterDD * dd = new ClusterDD( ( ClusterDD::work_fct )Scheduler::workerClusterLoop );
    WD *wd = new WD( dd );
-   std::cerr << "c:node @ is " << (void * ) this << " id " << _clusterNode << std::endl;
+   std::cerr << "c:node @ is " << (void * ) this << " id " << _clusterNode << " wd is " << wd << ":" << wd->getId() << std::endl;
    wd->setPe( (ProcessingElement *) this );
    wd->unsetClusterMigrable();
    return *wd;
@@ -91,9 +94,9 @@ void ClusterNode::registerCacheAccessDependent( uint64_t tag, size_t size, bool 
    _cache.registerCacheAccess( tag, size, input, output );
 }
 
-void ClusterNode::unregisterCacheAccessDependent( uint64_t tag, size_t size )
+void ClusterNode::unregisterCacheAccessDependent( uint64_t tag, size_t size, bool output )
 {
-   _cache.unregisterCacheAccess( tag, size );
+   _cache.unregisterCacheAccess( tag, size, output );
 }
 
 void ClusterNode::registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output )
@@ -107,3 +110,5 @@ void ClusterNode::unregisterPrivateAccessDependent( uint64_t tag, size_t size )
 }
 
 unsigned int ClusterNode::getClusterNodeNum() { return _clusterNode; }
+
+void ClusterNode::waitInputDependent( uint64_t tag ) {}
