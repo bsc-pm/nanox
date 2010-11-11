@@ -20,243 +20,203 @@
 #ifndef _NANOS_LIB_WDDEQUE
 #define _NANOS_LIB_WDDEQUE
 
-#include <list>
-#include "atomic.hpp"
-#include "debug.hpp"
-#include "workdescriptor.hpp"
-#include "basethread.hpp"
+#include "wddeque_decl.hpp"
 
-namespace nanos
+using namespace nanos;
+
+inline bool WDDeque::empty ( void ) const
 {
+   return _dq.empty();
+}
 
-   class SchedulePredicate
-   {
+inline void WDDeque::push_front ( WorkDescriptor *wd )
+{
+   wd->setMyQueue( this );
+   _lock++;
+   //dq.push_back(wd);
+   _dq.push_front( wd ); //correct: push_back in push_front?
+   memoryFence();
+   _lock--;
+}
 
-      public:
-         SchedulePredicate () {}
-         virtual bool operator() ( WorkDescriptor *wd ) = 0;
-         virtual ~SchedulePredicate() {}
-   };
-
-
-   class WDDeque
-   {
-
-      private:
-         typedef std::list<WorkDescriptor *> BaseContainer;
-
-         BaseContainer     _dq;
-         Lock              _lock;
-
-         WDDeque ( const WDDeque & );
-         const WDDeque & operator= ( const WDDeque & );
-
-      public:
-         WDDeque() {}
-         ~WDDeque() {}
-
-         bool empty () const { return _dq.empty(); }
-
-         void push_front ( WorkDescriptor *wd );
-         void push_back( WorkDescriptor *wd );
-         WorkDescriptor * pop_front ( BaseThread *thread );
-         WorkDescriptor * pop_front ( BaseThread *thread, SchedulePredicate &predicate );
-         WorkDescriptor * pop_back ( BaseThread *thread );
-         WorkDescriptor * pop_back ( BaseThread *thread, SchedulePredicate &predicate );
-
-         bool removeWD( BaseThread *thread, WorkDescriptor * toRem );
-   };
-
-   inline void WDDeque::push_front ( WorkDescriptor *wd )
-   {
-      wd->setMyQueue( this );
-      _lock++;
-      //dq.push_back(wd);
-      _dq.push_front( wd ); //correct: push_back in push_front?
-      memoryFence();
-      _lock--;
-   }
-
-   inline void WDDeque::push_back ( WorkDescriptor *wd )
-   {
-      wd->setMyQueue( this );
-      _lock++;
-      _dq.push_back( wd );
-      memoryFence();
-      _lock--;
-   }
+inline void WDDeque::push_back ( WorkDescriptor *wd )
+{
+   wd->setMyQueue( this );
+   _lock++;
+   _dq.push_back( wd );
+   memoryFence();
+   _lock--;
+}
 
 // Only ensures tie semantics
-   inline WorkDescriptor * WDDeque::pop_front ( BaseThread *thread )
-   {
-      WorkDescriptor *found = NULL;
+inline WorkDescriptor * WDDeque::pop_front ( BaseThread *thread )
+{
+   WorkDescriptor *found = NULL;
 
-      if ( _dq.empty() )
-         return NULL;
+   if ( _dq.empty() )
+      return NULL;
 
-      _lock++;
+   _lock++;
 
-      memoryFence();
+   memoryFence();
 
-      if ( !_dq.empty() ) {
-         WDDeque::BaseContainer::iterator it;
+   if ( !_dq.empty() ) {
+      WDDeque::BaseContainer::iterator it;
 
-         for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
-            if ( !(*it)->canRunIn(*thread->runningOn()) ) continue;
-            if ( !( *it )->isTied() || ( *it )->isTiedTo() == thread ) {
-               if ( (((WD*)( *it ))->dequeue( &found )) == true ) _dq.erase( it );
-               break;
-            }
+      for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
+         if ( !(*it)->canRunIn(*thread->runningOn()) ) continue;
+         if ( !( *it )->isTied() || ( *it )->isTiedTo() == thread ) {
+            if ( (((WD*)( *it ))->dequeue( &found )) == true ) _dq.erase( it );
+            break;
          }
       }
-
-      if ( found != NULL ) {found->setMyQueue( NULL );}
-
-      _lock--;
-
-      ensure( !found || !found->isTied() || found->isTiedTo() == thread, "" );
-
-      return found;
    }
+
+   if ( found != NULL ) {found->setMyQueue( NULL );}
+
+   _lock--;
+
+   ensure( !found || !found->isTied() || found->isTiedTo() == thread, "" );
+
+   return found;
+}
 
 
 // Only ensures tie semantics
-   inline WorkDescriptor * WDDeque::pop_back ( BaseThread *thread )
-   {
-      WorkDescriptor *found = NULL;
+inline WorkDescriptor * WDDeque::pop_back ( BaseThread *thread )
+{
+   WorkDescriptor *found = NULL;
 
-      if ( _dq.empty() )
-         return NULL;
+   if ( _dq.empty() )
+      return NULL;
 
-      _lock++;
+   _lock++;
 
-      memoryFence();
+   memoryFence();
 
-      if ( !_dq.empty() ) {
-         WDDeque::BaseContainer::reverse_iterator rit;
+   if ( !_dq.empty() ) {
+      WDDeque::BaseContainer::reverse_iterator rit;
 
-         for ( rit = _dq.rbegin(); rit != _dq.rend() ; rit++ ) {
-            if ( !(*rit)->canRunIn(*thread->runningOn()) ) continue;
-            if ( !( *rit )->isTied() || ( *rit )->isTiedTo() == thread ) {
-               if ( (( *rit )->dequeue( &found )) == true ) _dq.erase( ( ++rit ).base() );
-               break;
-            }
+      for ( rit = _dq.rbegin(); rit != _dq.rend() ; rit++ ) {
+         if ( !(*rit)->canRunIn(*thread->runningOn()) ) continue;
+         if ( !( *rit )->isTied() || ( *rit )->isTiedTo() == thread ) {
+            if ( (( *rit )->dequeue( &found )) == true ) _dq.erase( ( ++rit ).base() );
+            break;
          }
       }
-
-      if ( found != NULL ) {found->setMyQueue( NULL );}
-
-      _lock--;
-
-      ensure( !found || !found->isTied() || found->isTiedTo() == thread, "" );
-
-      return found;
    }
 
+   if ( found != NULL ) {found->setMyQueue( NULL );}
 
-   inline bool WDDeque::removeWD( BaseThread *thread, WorkDescriptor * toRem )
-   {
-      if ( _dq.empty() )
-         return false;
+   _lock--;
 
-      if ( toRem->isTied() && toRem->isTiedTo() != thread )
-         return false;
+   ensure( !found || !found->isTied() || found->isTiedTo() == thread, "" );
 
-      if ( !toRem->canRunIn(*thread->runningOn()) )
-         return false;
+   return found;
+}
 
-      _lock++;
 
-      memoryFence();
-
-      if ( !_dq.empty() && toRem->getMyQueue() == this ) {
-         WDDeque::BaseContainer::iterator it;
-
-         for ( it = _dq.begin(); it != _dq.end(); it++ ) {
-            if ( *it == toRem ) {
-               _dq.erase( it );
-               toRem->setMyQueue( NULL );
-
-               _lock--;
-               return true;
-            }
-         }
-      }
-
-      _lock--;
-
+inline bool WDDeque::removeWD( BaseThread *thread, WorkDescriptor * toRem )
+{
+   if ( _dq.empty() )
       return false;
-   }
 
+   if ( toRem->isTied() && toRem->isTiedTo() != thread )
+      return false;
 
-   inline WorkDescriptor * WDDeque::pop_front ( BaseThread *thread, SchedulePredicate &predicate )
-   {
-      WorkDescriptor *found = NULL;
+   if ( !toRem->canRunIn(*thread->runningOn()) )
+      return false;
 
-      if ( _dq.empty() )
-         return NULL;
+   _lock++;
 
-      _lock++;
+   memoryFence();
 
-      memoryFence();
+   if ( !_dq.empty() && toRem->getMyQueue() == this ) {
+      WDDeque::BaseContainer::iterator it;
 
-      if ( !_dq.empty() ) {
-         WDDeque::BaseContainer::iterator it;
+      for ( it = _dq.begin(); it != _dq.end(); it++ ) {
+         if ( *it == toRem ) {
+            _dq.erase( it );
+            toRem->setMyQueue( NULL );
 
-         for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
-            if ( !(*it)->canRunIn(*thread->runningOn()) ) continue;
-            if ( ( !( *it )->isTied() || ( *it )->isTiedTo() == thread ) && ( predicate( *it ) == true ) ) {
-               if ( (( *it )->dequeue( &found )) == true ) _dq.erase( it );
-               break;
-            }
+            _lock--;
+            return true;
          }
       }
-
-
-      if ( found != NULL ) {found->setMyQueue( NULL );}
-
-      _lock--;
-
-      ensure( !found || !found->isTied() || found->isTiedTo() == thread, "" );
-
-      return found;
    }
+
+   _lock--;
+
+   return false;
+}
+
+
+inline WorkDescriptor * WDDeque::pop_front ( BaseThread *thread, SchedulePredicate &predicate )
+{
+   WorkDescriptor *found = NULL;
+
+   if ( _dq.empty() )
+      return NULL;
+
+   _lock++;
+
+   memoryFence();
+
+   if ( !_dq.empty() ) {
+      WDDeque::BaseContainer::iterator it;
+
+      for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
+         if ( !(*it)->canRunIn(*thread->runningOn()) ) continue;
+         if ( ( !( *it )->isTied() || ( *it )->isTiedTo() == thread ) && ( predicate( *it ) == true ) ) {
+            if ( (( *it )->dequeue( &found )) == true ) _dq.erase( it );
+            break;
+         }
+      }
+   }
+
+
+   if ( found != NULL ) {found->setMyQueue( NULL );}
+
+   _lock--;
+
+   ensure( !found || !found->isTied() || found->isTiedTo() == thread, "" );
+
+   return found;
+}
 
 
 
 // Also ensures that the passed predicate is verified on the returned element
-   inline WorkDescriptor * WDDeque::pop_back ( BaseThread *thread, SchedulePredicate &predicate )
-   {
-      WorkDescriptor *found = NULL;
+inline WorkDescriptor * WDDeque::pop_back ( BaseThread *thread, SchedulePredicate &predicate )
+{
+   WorkDescriptor *found = NULL;
 
-      if ( _dq.empty() )
-         return NULL;
+   if ( _dq.empty() )
+      return NULL;
 
-      _lock++;
+   _lock++;
 
-      memoryFence();
+   memoryFence();
 
-      if ( !_dq.empty() ) {
-         WDDeque::BaseContainer::reverse_iterator rit;
+   if ( !_dq.empty() ) {
+      WDDeque::BaseContainer::reverse_iterator rit;
 
-         for ( rit = _dq.rbegin(); rit != _dq.rend() ; rit++ ) {
-            if ( !(*rit)->canRunIn(*thread->runningOn()) ) continue;
-            if ( ( !( *rit )->isTied() || ( *rit )->isTiedTo() == thread )  && ( predicate( *rit ) == true ) ) {
-               if ( (( *rit )->dequeue( &found )) == true ) _dq.erase( ( ++rit ).base() );
-               break;
-            }
+      for ( rit = _dq.rbegin(); rit != _dq.rend() ; rit++ ) {
+         if ( !(*rit)->canRunIn(*thread->runningOn()) ) continue;
+         if ( ( !( *rit )->isTied() || ( *rit )->isTiedTo() == thread )  && ( predicate( *rit ) == true ) ) {
+            if ( (( *rit )->dequeue( &found )) == true ) _dq.erase( ( ++rit ).base() );
+            break;
          }
       }
-
-      if ( found != NULL ) {found->setMyQueue( NULL );}
-
-      _lock--;
-
-      ensure( !found || !found->isTied() || found->isTiedTo() == thread, "" );
-
-      return found;
    }
 
+   if ( found != NULL ) {found->setMyQueue( NULL );}
+
+   _lock--;
+
+   ensure( !found || !found->isTied() || found->isTiedTo() == thread, "" );
+
+   return found;
 }
 
 #endif
