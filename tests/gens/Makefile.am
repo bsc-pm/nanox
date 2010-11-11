@@ -10,15 +10,15 @@ USED_VERSION=@USED_VERSION@
 
 performance:
 	rm -f api-generator core-generator mixed-generator nanox-creation-generator api-omp-generator
-	$(MAKE) -C. USED_VERSION=performance api-generator core-generator mixed-generator nanox-creation-generator api-omp-generator
+	$(MAKE) -C . USED_VERSION=performance api-generator core-generator mixed-generator nanox-creation-generator api-omp-generator
 
 debug:
 	rm -f api-generator core-generator mixed-generator nanox-creation-generator api-omp-generator
-	$(MAKE) -C. USED_VERSION=debug api-generator core-generator mixed-generator nanox-creation-generator api-omp-generator
+	$(MAKE) -C . USED_VERSION=debug api-generator core-generator mixed-generator nanox-creation-generator api-omp-generator
 
 instrumentation:
 	rm -f api-generator core-generator mixed-generator nanox-creation-generator api-omp-generator
-	$(MAKE) -C. USED_VERSION=instrumentation api-generator core-generator mixed-generator nanox-creation-generator api-omp-generator
+	$(MAKE) -C . USED_VERSION=instrumentation api-generator core-generator mixed-generator nanox-creation-generator api-omp-generator
 
 api-generator: api-generator.in
 	rm -f api-generator
