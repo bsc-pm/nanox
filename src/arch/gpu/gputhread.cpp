@@ -29,19 +29,15 @@ using namespace nanos;
 using namespace nanos::ext;
 
 
-void GPUThread::runDependent ()
+void GPUThread::initializeDependent ()
 {
-   WD &work = getThreadWD();
-   setCurrentWD( work );
-   setNextWD( (WD *) 0 );
-
-   _lock.acquire();
-
+   // Bind the thread to a GPU device
    cudaError_t err = cudaSetDevice( _gpuDevice );
    if ( err != cudaSuccess )
       warning( "Couldn't set the GPU device for the thread: " << cudaGetErrorString( err ) );
 
-   if ( GPUDevice::getTransferMode() == nanos::PINNED_CUDA || GPUDevice::getTransferMode() == nanos::WC ) {
+   if ( GPUDevice::getTransferMode() == nanos::PINNED_CUDA
+         || GPUDevice::getTransferMode() == nanos::WC ) {
       err = cudaSetDeviceFlags( cudaDeviceMapHost | cudaDeviceBlockingSync );
       if ( err != cudaSuccess )
          warning( "Couldn't set the GPU device flags: " << cudaGetErrorString( err ) );
@@ -53,21 +49,15 @@ void GPUThread::runDependent ()
    }
 
    ((GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->init();
+}
 
-   _lock.release();
-
-   // Avoid the so slow first data allocation and transfer to device
-   //bool b = true;
-   //bool * b_d = ( bool * ) GPUDevice::allocate( sizeof( b ) );
-   //GPUDevice::copyIn( ( void * ) b_d, ( uint64_t ) &b, sizeof( b ) );
-   //GPUDevice::free( b_d );
-
+void GPUThread::runDependent ()
+{
+   WD &work = getThreadWD();
+   setCurrentWD( work );
+   setNextWD( (WD *) 0 );
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
-
    dd.getWorkFct()( work.getData() );
-
-   //( ( GPUProcessor * ) myThread->runningOn() )->freeWholeMemory();
-
 }
 
 void GPUThread::inlineWorkDependent ( WD &wd )
