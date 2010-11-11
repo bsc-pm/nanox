@@ -115,6 +115,15 @@ inline void WorkDescriptor::waitOn( size_t numDeps, Dependency* deps )
    _depsDomain->submitDependableObject( *_doWait, numDeps, deps );
 }
 
+inline WorkDescriptor * WorkDescriptor::getImmediateSuccessor ( void )
+{
+   if ( _doSubmit == NULL ) return NULL;
+   else {
+        DependableObject * found = _doSubmit->releaseImmediateSuccessor();
+        return found ? (WD *) found->getRelatedObject() : NULL;
+   }
+}
+
 inline void WorkDescriptor::workFinished(WorkDescriptor &wd)
 {
    if ( wd._doSubmit != NULL )
@@ -137,6 +146,9 @@ inline Directory* WorkDescriptor::getDirectory(bool create)
    }
    return &(*_directory);
 }
+
+inline bool WorkDescriptor::isSubmitted() const { return _submitted; }
+inline void WorkDescriptor::submitted()  { _submitted = true; }
 
 #endif
 

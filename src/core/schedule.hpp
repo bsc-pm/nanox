@@ -50,7 +50,7 @@ namespace nanos
          static void idleLoop (void);
 
       public:
-         static void inlineWork ( WD *work, bool submitted );
+         static void inlineWork ( WD *work );
 
          static void submit ( WD &wd );
          static void switchTo ( WD *to );
@@ -67,7 +67,7 @@ namespace nanos
 
          static WD * prefetch ( BaseThread *thread, WD &wd );
 
-         static void updateExitStats ( void );
+         static void updateExitStats ( WD &wd );
    };
 
    class SchedulerConf
