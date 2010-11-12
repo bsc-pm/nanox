@@ -103,7 +103,7 @@ namespace nanos
         Atomic<int>          _totalTasks;
 
       public:
-         SchedulerStats () : _createdTasks(0), _idleThreads(0), _totalTasks(1) {}
+         SchedulerStats () : _createdTasks(0), _readyTasks(0), _idleThreads(0), _totalTasks(1) {}
    };
 
    class ScheduleTeamData {
