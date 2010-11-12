@@ -75,11 +75,12 @@ namespace nanos
          SchedulerStats       _schedStats;
          SchedulerConf        _schedConf;
 
-         /*! names of the scheduling, cutoff and barrier plugins */
+         /*! names of the scheduling, cutoff, barrier and instrumentation plugins */
          std::string          _defSchedule;
          std::string          _defThrottlePolicy;
          std::string          _defBarr;
          std::string          _defInstr;
+
          std::string          _defArch;
 
          /*! factories for scheduling, pes and barriers objects */

@@ -17,14 +17,15 @@
 /*  along with this program; if not, write to the Free Software                               */
 /*  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA            */
 /**********************************************************************************************/
-/*                                                                                                                                                       
-<testinfo>                                                                                                                                               
-test_generator=gens/api-generator                                                                                                                        
-</testinfo>                                                                                                                                              
+/*
+<testinfo>
+test_generator=gens/api-omp-generator
+</testinfo>
 */ 
 
 #include <nanos.h>
-                                                                                                                                                         
+#include "omp.h"
+
 #define MODEL NANOX-TASKS
 #define BOTS_MODEL_DESC "Nanos++"
 
@@ -1751,7 +1752,7 @@ void bots_set_info ()
    sprintf(bots_name,BOTS_APP_NAME);
    sprintf(bots_parameters,BOTS_APP_PARAMETERS_DESC BOTS_APP_PARAMETERS_LIST);
    sprintf(bots_model,BOTS_MODEL_DESC);
-   sprintf(bots_resources,"%d", omp_get_max_threads());
+   sprintf(bots_resources,"%d", omp_get_num_procs());
 
    /* compilation info (do not modify) */
    strcpy(bots_comp_date,CDATE);

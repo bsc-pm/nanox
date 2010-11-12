@@ -23,8 +23,31 @@ CLEANFILES=
 
 CLEANFILES+=tests.log
 
+performance:
+	$(MAKE) -C gens performance
+
+debug:
+	$(MAKE) -C gens debug
+
+instrumentation:
+	$(MAKE) -C gens instrumentation
+
+versions=
+if PERFORMANCE_VERSION
+versions+=performance
+endif
+if DEBUG_VERSION
+versions+=debug
+endif
+if INSTRUMENTATION_VERSION
+versions+=instrumentation
+endif
+
 check-local: $(top_srcdir)/scripts/bets
-	$(top_srcdir)/scripts/bets $(BETS_OPTIONS) -o tests.log $(srcdir)/test
+	for ver in $(versions); do \
+		$(MAKE) -C gens $$ver; \
+		$(top_srcdir)/scripts/bets $(BETS_OPTIONS) -o tests.log $(srcdir)/test; \
+	done
 
 dist-hook:
 	cp -vr $(srcdir)/test $(distdir)

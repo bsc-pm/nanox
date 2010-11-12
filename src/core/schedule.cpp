@@ -46,6 +46,8 @@ void Scheduler::submit ( WD &wd )
 
    debug ( "submitting task " << wd.getId() );
 
+   wd.submitted();
+
    /* handle tied tasks */
    if ( wd.isTied() && wd.isTiedTo() != mythread ) {
       queue(wd.isTiedTo(), wd);
@@ -73,9 +75,10 @@ void Scheduler::submit ( WD &wd )
 
 }
 
-void Scheduler::updateExitStats ( void )
+void Scheduler::updateExitStats ( WD &wd )
 {
-   sys.getSchedulerStats()._totalTasks--;
+   if ( wd.isSubmitted() ) 
+     sys.getSchedulerStats()._totalTasks--;
 }
 
 template<class behaviour>
@@ -110,9 +113,17 @@ inline void Scheduler::idleLoop ()
       if ( thread->getTeam() != NULL ) {
          WD * next = myThread->getNextWD();
 
-         if ( !next && sys.getSchedulerStats()._readyTasks > 0 ) {
-            next = behaviour::getWD(thread,current);
-         }
+         if ( next ) {
+           myThread->setNextWD(NULL);
+
+           /* Some WDs maybe prefetched without going through the submit 
+              process. Compensate the ready count for that */
+           if ( !next->isSubmitted() && !next->started() ) 
+             sys.getSchedulerStats()._readyTasks++;
+         } else {
+           if ( sys.getSchedulerStats()._readyTasks > 0 ) 
+              next = behaviour::getWD(thread,current);
+         } 
 
          if ( next ) {
             sys.getSchedulerStats()._readyTasks--;
@@ -207,7 +218,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) time_yields; )
                NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(3, Keys, Values); )
 
-               NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) );
+               NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME); );
                switchTo ( next );
                thread = getMyThreadSafe();
                NANOS_INSTRUMENT( inst2.close() );
@@ -261,7 +272,6 @@ void Scheduler::wakeUp ( WD *wd )
 
 WD * Scheduler::prefetch( BaseThread *thread, WD &wd )
 {
-   debug ( "prefetching data for task " << wd.getId() );
    return thread->getTeam()->getSchedulePolicy().atPrefetch( thread, wd );
 }
 
@@ -277,7 +287,7 @@ struct WorkerBehaviour
       if (next->started())
         Scheduler::switchTo(next);
       else {
-        Scheduler::inlineWork ( next, true );
+        Scheduler::inlineWork ( next );
       }
    }
 };
@@ -293,7 +303,7 @@ void Scheduler::queue ( BaseThread *thread, WD &wd )
    thread->getTeam()->getSchedulePolicy().queue( thread, wd );
 }
 
-void Scheduler::inlineWork ( WD *wd, bool submitted )
+void Scheduler::inlineWork ( WD *wd )
 {
    // run it in the current frame
    WD *oldwd = myThread->getCurrentWD();
@@ -320,7 +330,7 @@ void Scheduler::inlineWork ( WD *wd, bool submitted )
    myThread->inlineWorkDependent(*wd);
 
    /* If WorkDescriptor has been submitted update statistics */
-   if ( submitted ) updateExitStats ();
+   updateExitStats (*wd);
 
    wd->done();
 
@@ -378,7 +388,7 @@ void Scheduler::switchTo ( WD *to )
           
       myThread->switchTo( to, switchHelper );
    } else {
-      inlineWork(to, true);
+      inlineWork(to);
       delete to;
    }
 }
@@ -424,11 +434,13 @@ struct ExitBehaviour
 
 void Scheduler::exitTo ( WD *to )
  {
-    WD *current = myThread->getCurrentWD();
+//   FIXME: stack reusing was wrongly implementd and it's disabled (see #374)
+//    WD *current = myThread->getCurrentWD();
 
     if (!to->started()) {
        to->init();
-       to->start(true,current);
+//       to->start(true,current);
+       to->start(true,NULL);
     }
 
     debug( "exiting task " << myThread->getCurrentWD() << ":" << myThread->getCurrentWD()->getId() <<
@@ -444,9 +456,10 @@ void Scheduler::exit ( void )
    // a) We are still running in the WD stack
    // b) Resources can potentially be reused by the next WD
 
-   updateExitStats ();
-
    WD *oldwd = myThread->getCurrentWD();
+
+   updateExitStats (*oldwd);
+
    oldwd->done();
    oldwd->clear();
 

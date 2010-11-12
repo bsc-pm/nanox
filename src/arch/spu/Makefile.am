@@ -17,9 +17,10 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
+SUBDIRS = performance debug instrumentation
+
 include $(top_srcdir)/src/common.am
 
-noinst_LTLIBRARIES = libspu.la
 EXTRAD_DIST= spu_idle.spu
 
 SPUCCFLAGS=-I @CELLSDK_INC@
@@ -32,17 +33,4 @@ SPUCCFLAGS=-I @CELLSDK_INC@
 	$(AR) cru $@ null.o
 	$(RM) -rf null.o
 	$(RANLIB) $@
-
-libspu_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(SPUCCFLAGS)
-libspu_la_SOURCES = \
-                spudd.hpp \
-                spudd.cpp \
-		spuprocessor.hpp \
-		spuprocessor.cpp \
-		sputhread.hpp \
-		sputhread.cpp \
-                $(END)
-
-libspu_la_DEPENDENCIES = .libs/libspu_embed.a
-libspu_la_LIBADD=-lspu_embed
 

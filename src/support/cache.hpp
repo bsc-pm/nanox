@@ -283,7 +283,7 @@ inline void DeviceCache<_T,_Policy>::freeSpaceToFit( Directory &dir, size_t size
             break;
       }
    }
-   ensure( _usedSize + size <= _size, "Cache is full" )
+   ensure( _usedSize + size <= _size, "Cache is full" );
 }
 
 template <class _T, class _Policy>
@@ -427,7 +427,7 @@ inline void DeviceCache<_T,_Policy>::synchronizeInternal( SyncData &sd, uint64_t
    if ( ce->isFlushing() ) {
       ce->setFlushing(false);
       Directory* dir = ce->getFlushingTo();
-      ensure( dir != NULL, "CopyBack sync lost its directory")
+      ensure( dir != NULL, "CopyBack sync lost its directory");
       ce->setFlushingTo(NULL);
       DirectoryEntry *de = dir->getEntry( tag );
       ensure ( !ce->isCopying(), "User program is incorrect" );

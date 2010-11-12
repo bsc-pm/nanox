@@ -50,6 +50,8 @@ class InstrumentationExtrae: public Instrumentation
       std::string                                    _traceFileName_PRV;
       std::string                                    _traceFileName_PCF;
       std::string                                    _traceFileName_ROW;
+   public: /* must be updated by Configure */
+      static std::string                             _traceBaseName;
    public:
       // constructor
       InstrumentationExtrae ( ) : Instrumentation( *new InstrumentationContextStackedStatesAndBursts() ) {}
@@ -260,7 +262,14 @@ class InstrumentationExtrae: public Instrumentation
          int err;
          std::string full_trace_base = ( OS::getArg( 0 ) );
          size_t found = full_trace_base.find_last_of("/\\");
-         std::string trace_base = full_trace_base.substr(found+1);
+
+         /* Choose between executable name or user name */
+         std::string trace_base;
+         if ( _traceBaseName.compare("") != 0 ) {
+            trace_base = _traceBaseName;
+         } else {
+            trace_base = full_trace_base.substr(found+1);
+         }
 
          int num = 1;
          std::string trace_suffix = "_001";
@@ -501,6 +510,10 @@ class InstrumentationExtrae: public Instrumentation
 #endif
 };
 
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+std::string InstrumentationExtrae::_traceBaseName = std::string("");
+#endif
+
 namespace ext {
 
 class InstrumentationParaverPlugin : public Plugin {
@@ -508,7 +521,18 @@ class InstrumentationParaverPlugin : public Plugin {
       InstrumentationParaverPlugin () : Plugin("Instrumentation which generates a Paraver trace.",1) {}
       ~InstrumentationParaverPlugin () {}
 
-      virtual void config( Config &config ) {}
+      virtual void config( Config &config )
+      {
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+         config.setOptionsSection( "Extrae module", "Extrae instrumentation module" );
+
+         config.registerConfigOption ( "extrae-file-name",
+                                       new Config::StringVar ( InstrumentationExtrae::_traceBaseName ),
+                                       "Defines extrae instrumentation file name" );
+         config.registerArgOption ( "extrae-file-name", "extrae-file-name" );
+         config.registerEnvOption ( "extrae-file-name", "NX_EXTRAE_FILE_NAME" );
+#endif
+      }
 
       void init ()
       {
