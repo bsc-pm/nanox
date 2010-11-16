@@ -47,12 +47,14 @@ namespace nanos {
          void init( uint64_t baseAddress, size_t len );
 
          void * allocate( size_t len );
-         void free( void *address );
 
          uint64_t getBaseAddress ()
          {
             return _baseAddress;
          }
+
+         size_t free( void *address );
+         void * reallocate( void *address, size_t len );
    };
 
 }
