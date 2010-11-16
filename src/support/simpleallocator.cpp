@@ -18,6 +18,7 @@
 /*************************************************************************************/
 
 #include <iostream>
+#include <cstring>
 #include "simpleallocator.hpp"
 
 using namespace nanos;
@@ -56,7 +57,7 @@ void * SimpleAllocator::allocate( size_t size )
    return retAddr;
 }
 
-void SimpleAllocator::free( void *address )
+size_t SimpleAllocator::free( void *address )
 {
    SegmentMap::iterator mapIter = _allocatedChunks.find( ( uintptr_t ) address );
    size_t size = mapIter->second;
@@ -106,4 +107,21 @@ void SimpleAllocator::free( void *address )
    else {
       _freeChunks[ ( uintptr_t ) address ] = size;
    }
+
+   return size;
+}
+
+void * SimpleAllocator::reallocate( void *address, size_t size )
+{
+   void *newAddress;
+   size_t oldSize;
+   
+   oldSize = this->free( address );
+   newAddress = this->allocate( size );
+   
+   if ( newAddress != address )
+   {
+      std::memcpy( newAddress, address, oldSize );
+   }
+   return newAddress;
 }
