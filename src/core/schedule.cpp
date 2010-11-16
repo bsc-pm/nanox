@@ -195,7 +195,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    
    BaseThread *thread = getMyThreadSafe();
 
-   while ( !condition->check() ) {
+   while ( !condition->check() && thread->isRunning() ) {
       spins--;
       if ( spins == 0 ) {
          total_spins+= nspins;

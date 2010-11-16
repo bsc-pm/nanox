@@ -39,7 +39,8 @@ namespace nanos {
          SimpleAllocator( uintptr_t baseAddress, size_t len );
 
          void * allocate( size_t len );
-         void free( void *address );
+         size_t free( void *address );
+         void * reallocate( void *address, size_t len );
    };
 
 }

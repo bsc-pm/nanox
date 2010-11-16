@@ -11,6 +11,10 @@ AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE([-Wall -Werror dist-bzip2])
 AC_CONFIG_MACRO_DIR([m4])
 
+# Set compiler default flags
+: ${CFLAGS=""}
+: ${CXXFLAGS=""}
+
 # Check for programs
 AC_PROG_LIBTOOL
 AC_PROG_CC
@@ -26,10 +30,6 @@ AC_HEADER_STDC
 
 # Check for typedefs, structures, and compiler characteristics
 AC_C_CONST
-
-# Set compiler default flags
-CXXFLAGS=""
-CFLAGS=""
 
 # Check for library functions
 NANOS_CONFIG_LIBDIRS=
