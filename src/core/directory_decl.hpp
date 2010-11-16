@@ -33,18 +33,22 @@ namespace nanos
 
          uint64_t _tag;
          Atomic<unsigned int> _version;
-
       public:
-
+         /*! \brief Entry default constructor
+          */
          Entry() : _tag(0), _version(0) { }
-
-         Entry ( uint64_t tag, unsigned int version ) : _tag( tag ), _version( version ) { }
-
+         /*! \brief Entry copy constructor
+          */
          Entry ( const Entry &ent ) : _tag( ent._tag ), _version ( ent._version ) { }
-
-         ~Entry () {}
-
+         /*! \brief Entry copy assignment operator (private)
+          */
          const Entry& operator= ( const Entry &ent );
+         /*! \brief Entry constructor
+          */
+         Entry ( uint64_t tag, unsigned int version ) : _tag( tag ), _version( version ) { }
+         /*! \brief Entry destructor
+          */
+         ~Entry () {}
 
          uint64_t getTag() const;
 
@@ -62,25 +66,30 @@ namespace nanos
    class DirectoryEntry : public Entry
    {
       private:
-
          //Atomic<Cache *> _owner;
          Cache * _owner;
-
          Lock _entryLock;
-
          Atomic<bool> _invalidated;
+      private:
 
       public:
-
+         /*! \brief DirectoryEntry default constructor
+          */
          DirectoryEntry() : Entry(), _owner( NULL ), _entryLock(), _invalidated( false ) { }
-
-         DirectoryEntry( uint64_t tag, unsigned int version, Cache *c ) : Entry( tag, version ), _owner( c ), _entryLock(), _invalidated( false ) { }
-
+         /*! \brief DirectoryEntry copy constructor
+          */
          DirectoryEntry ( const DirectoryEntry &de) : Entry( de ), _owner( de._owner ), _entryLock(), _invalidated( false ) { }
-
+         /*! \brief DirectoryEntry copy assignment operator
+          */
+         const DirectoryEntry& operator= ( const DirectoryEntry &ent );
+         /*! \brief DirectoryEntry constructor 
+          */
+         DirectoryEntry( uint64_t tag, unsigned int version, Cache *c )
+            : Entry( tag, version ), _owner( c ), _entryLock(), _invalidated( false ) { }
+         /*! \brief DirectoryEntry destructor
+          */
          ~DirectoryEntry () {}
 
-         const DirectoryEntry& operator= ( const DirectoryEntry &ent );
 
          Cache * getOwner() const;
 
@@ -97,18 +106,22 @@ namespace nanos
    class Directory
    {
       private:
-
          typedef HashMap<uint64_t, DirectoryEntry> DirectoryMap;
          DirectoryMap _directory;
 
-         // disable copy constructor and assignment operator
+      private:
+         /*! \brief Directory copy constructor (private) 
+          */
          Directory( const Directory &dir );
+         /*! \brief Directory copy assignment operator (private) 
+          */
          const Directory & operator= ( const Directory &dir );
-
       public:
-
+         /*! \brief Directory default constructor
+          */
          Directory() : _directory() { }
-
+         /*! \brief Directory destructor
+          */
          ~Directory() { }
 
          DirectoryEntry& insert( uint64_t tag, DirectoryEntry &ent, bool &inserted );

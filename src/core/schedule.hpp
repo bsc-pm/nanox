@@ -76,45 +76,88 @@ namespace nanos
 
       private:
         unsigned int  _numSpins;
-
+      private:
+        /*! \brief SchedulerConf default constructor (private)
+         */
         SchedulerConf() : _numSpins(100) {}
+        /*! \brief SchedulerConf copy constructor (private)
+         */
+        SchedulerConf ( SchedulerConf &sc ) : _numSpins( sc._numSpins ) {}
+        /*! \brief SchedulerConf copy assignment operator (private)
+         */
+        SchedulerConf & operator= ( SchedulerConf &sc );
 
       public:
+         /*! \brief SchedulerConf destructor 
+          */
+         ~SchedulerConf() {}
+
          unsigned int getNumSpins () const { return _numSpins; }
          void setNumSpins ( const unsigned int num ) { _numSpins = num; }
-
          void config ( Config &cfg );
    };
    
    class SchedulerStats
    {
-      friend class Scheduler;
-      friend class System;
-      friend class SlicerStaticFor;
-      friend class SlicerDynamicFor;
-      friend class SlicerGuidedFor;
-      friend class SlicerRepeatN;
-      friend class SlicerCompoundWD;
-      
+         friend class Scheduler;
+         friend class System;
+         friend class SlicerStaticFor;
+         friend class SlicerDynamicFor;
+         friend class SlicerGuidedFor;
+         friend class SlicerRepeatN;
+         friend class SlicerCompoundWD;
       private:
-        Atomic<int>          _createdTasks;
-        Atomic<int>          _readyTasks;
-        Atomic<int>          _idleThreads;
-        Atomic<int>          _totalTasks;
-
+         Atomic<int>          _createdTasks;
+         Atomic<int>          _readyTasks;
+         Atomic<int>          _idleThreads;
+         Atomic<int>          _totalTasks;
+      private:
+         /*! \brief SchedulerStats copy constructor (private)
+          */
+         SchedulerStats ( SchedulerStats &ss );
+         /*! \brief SchedulerStats copy assignment operator (private)
+          */
+         SchedulerStats & operator= ( SchedulerStats &ss );
       public:
+         /*! \brief SchedulerStats default constructor
+          */
          SchedulerStats () : _createdTasks(0), _readyTasks(0), _idleThreads(0), _totalTasks(1) {}
+         /*! \brief SchedulerStats destructor
+          */
+         ~SchedulerStats () {}
    };
 
    class ScheduleTeamData {
+      private:
+         /*! \brief ScheduleTeamData copy constructor (private)
+          */
+         ScheduleTeamData ( ScheduleTeamData &std );
+         /*! \brief ScheduleTeamData copy assignment operator (private)
+          */
+         ScheduleTeamData& operator=  ( ScheduleTeamData &std );
       public:
+         /*! \brief ScheduleTeamData default constructor
+          */
          ScheduleTeamData() {}
+         /*! \brief ScheduleTeamData destructor
+          */
          virtual ~ScheduleTeamData() {}
    };
 
    class ScheduleThreadData {
+      private:
+         /*! \brief ScheduleThreadData copy constructor (private)
+          */
+         ScheduleThreadData( ScheduleThreadData &std );
+         /*! \brief ScheduleThreadData copy assignment operator (private) 
+          */
+         ScheduleThreadData& operator= ( ScheduleThreadData &std );
       public:
+         /*! \brief ScheduleThreadData default constructor
+          */
          ScheduleThreadData() {}
+         /*! \brief ScheduleThreadData destructor
+          */
          virtual ~ScheduleThreadData() {}
    };
 
@@ -122,12 +165,25 @@ namespace nanos
    {
       private:
          std::string    _name;
-         
+      private:
+         /*! \brief SchedulePolicy default constructor (private)
+          */
+         SchedulePolicy ();
+         /*! \brief SchedulePolicy copy constructor (private)
+          */
+         SchedulePolicy ( SchedulePolicy &sp );
+         /*! \brief SchedulePolicy copy assignment operator (private)
+          */
+         SchedulePolicy& operator= ( SchedulePolicy &sp );
       public:
-
+         /*! \brief SchedulePolicy constructor - with std::string &name
+          */
          SchedulePolicy ( std::string &name ) : _name(name) {}
+         /*! \brief SchedulePolicy constructor - with char *name
+          */
          SchedulePolicy ( const char *name ) : _name(name) {}
-         
+         /*! \brief SchedulePolicy destructor
+          */
          virtual ~SchedulePolicy () {};
 
          const std::string & getName () const { return _name; }

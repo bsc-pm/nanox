@@ -45,7 +45,20 @@ namespace nanos
          SchedData    * _schedData;
          // PM Data?
 
+      private:
+        /*! \brief TeamData copy constructor (private)
+         */
+         TeamData ( const TeamData &td );
+        /*! \brief TeamData copy assignment operator (private)
+         */
+         TeamData& operator= ( const TeamData &td );
       public:
+        /*! \brief TeamData default constructor
+         */
+         TeamData () : _id( 0 ), _singleCount( 0 ), _schedData( NULL ) {}
+        /*! \brief TeamData destructor
+         */
+         ~TeamData () {}
 
          unsigned getId() const { return _id; }
          unsigned getSingleCount() const { return _singleCount; }
@@ -91,10 +104,6 @@ namespace nanos
 //         int                     _teamId; //! Id of the thread inside its current team
 //          int                     _localSingleCount;
 
-         //disable copy and assigment
-         BaseThread( const BaseThread & );
-         const BaseThread & operator= ( const BaseThread & );
-
          virtual void initializeDependent () = 0;
          virtual void runDependent () = 0;
 
@@ -115,16 +124,26 @@ namespace nanos
             _started = false;
          }
 
+      private:
+        /*! \brief BaseThread default constructor
+         */
+         BaseThread ();
+        /*! \brief BaseThread copy constructor (private)
+         */
+         BaseThread( const BaseThread & );
+        /*! \brief BaseThread copy assignment operator (private)
+         */
+         const BaseThread & operator= ( const BaseThread & );
       public:
-
-         // constructor
+        /*! \brief BaseThread constructor
+         */
          BaseThread ( WD &wd, ProcessingElement *creator=0 ) :
                _id( _idSeed++ ), _name("Thread"), _description(""), _pe( creator ), _threadWD( wd ),
                _started( false ), _mustStop( false ), _currentWD( NULL),
                _nextWD( NULL), _hasTeam( false ),_team(NULL),
                _teamData(NULL) {}
-
-         // destructor
+        /*! \brief BaseThread destructor
+         */
          virtual ~BaseThread() {
             ensure0(!_hasTeam,"Destroying thread inside a team!");
             ensure0(!_started,"Trying to destroy running thread");

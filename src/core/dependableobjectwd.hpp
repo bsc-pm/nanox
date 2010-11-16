@@ -27,31 +27,28 @@
 namespace nanos
 {
 
-  /*! \brief DependableObject representing a WorkDescriptor as Dependable entity
-   */
+   /*! \class DOSubmit
+    *  \brief DependableObject representing a WorkDescriptor as Dependable entity
+    */
    class DOSubmit : public DependableObject
    {
       private:
-         /**< Pointer to the work descriptor represented by this DependableObject */
-         WorkDescriptor *_submittedWD;
+         WorkDescriptor *_submittedWD; /**< Pointer to the work descriptor represented by this DependableObject */
 
       public:
-        /*! Default constructor
-         */
+         /*! \brief DOSubmit default constructor
+          */
          DOSubmit ( ) : DependableObject(), _submittedWD(NULL) { }
-    
-        /*! \brief Constructor
-         */
+         /*! \brief DOSubmit constructor
+          */
          DOSubmit ( WorkDescriptor* wd) : DependableObject ( ), _submittedWD( wd ) { }
-   
-        /*! \brief Copy constructor
-         *  \param dos another DOSubmit
-         */
+         /*! \brief DOSubmit copy constructor
+          *  \param dos another DOSubmit
+          */
          DOSubmit ( const DOSubmit &dos ) : DependableObject(dos), _submittedWD( dos._submittedWD ) { } 
-   
-        /*! \brief Assign operator, can be self-assigned.
-         *  \param dos another DOSubmit
-         */
+         /*! \brief DOSubmit assignment operator, can be self-assigned.
+          *  \param dos another DOSubmit
+          */
          const DOSubmit & operator= ( const DOSubmit &dos )
          {
             if ( this == &dos ) return *this; 
@@ -59,20 +56,19 @@ namespace nanos
             _submittedWD = dos._submittedWD;
             return *this;
          }
-   
-        /*! \brief Virtual destructor
-         */
+         /*! \brief DOSubmit virtual destructor
+          */
          virtual ~DOSubmit ( ) { }
-
-        /*! \brief Submits WorkDescriptor when dependencies are satisfied
-         */
+         /*! \brief Submits WorkDescriptor when dependencies are satisfied
+          */
          virtual void dependenciesSatisfied ( );
-         
+         /*! \brief TODO 
+          */
          void setWD( WorkDescriptor *wd )
             { _submittedWD = wd; }
-
+         /*! \brief TODO 
+          */
          unsigned long getDescription ( );
-
          /*! \brief Get the related object which actually has the dependence
           */
          virtual void * getRelatedObject ( ) { return (void *) _submittedWD; }
@@ -80,7 +76,6 @@ namespace nanos
          /*! \brief Instrument predecessor -> successor dependency
           */
          virtual void instrument ( void *pred, void *succ );
-
    };
 
   /*! \brief DependableObject representing a WorkDescriptor as a task domain to wait on some dependencies
@@ -88,34 +83,26 @@ namespace nanos
    class DOWait : public DependableObject
    {
       private:
-        /**< Pointer to the WorkDescriptor that waits on data */
-         WorkDescriptor *_waitDomainWD;
-
-        /**< Condition to satisfy before execution can go forward */
-         volatile bool _depsSatisfied;
-         
-         SingleSyncCond<EqualConditionChecker<bool> >  _syncCond;
-
+         WorkDescriptor     *_waitDomainWD; /**< Pointer to the WorkDescriptor that waits on data */
+         volatile bool       _depsSatisfied; /**< Condition to satisfy before execution can go forward */
+         SingleSyncCond<EqualConditionChecker<bool> >  _syncCond; /**< TODO */
       public:
-        /*! Default constructor
-         */
+         /*! \brief DOWait default constructor
+          */
          DOWait ( ) : DependableObject(), _waitDomainWD(NULL), _depsSatisfied( false ),
             _syncCond( EqualConditionChecker<bool>( &_depsSatisfied, true ) ) { }
-   
-        /*! \brief Constructor
-         */
+         /*! \brief DOWait constructor
+          */
          DOWait ( WorkDescriptor *wd ) : DependableObject(), _waitDomainWD( wd ), _depsSatisfied( false ),
            _syncCond( EqualConditionChecker<bool>( &_depsSatisfied, true ) ) { }
-    
-        /*! \brief Copy constructor
-         *  \param dos another DOWait
-         */
+         /*! \brief DOWait copy constructor
+          *  \param dos another DOWait
+          */
          DOWait ( const DOWait &dow ) : DependableObject(dow), _waitDomainWD( dow._waitDomainWD ), _depsSatisfied( false ),
            _syncCond( EqualConditionChecker<bool>( &_depsSatisfied, true ) ) { }
-   
-        /*! \brief Assign operator, can be self-assigned.
-         *  param dos another DOWait
-         */
+         /*! \brief DOWait assignment operator, can be self-assigned.
+          *  param dos another DOWait
+          */
          const DOWait & operator= ( const DOWait &dow )
          {
             if ( this == &dow ) return *this; 
@@ -123,35 +110,29 @@ namespace nanos
             _depsSatisfied = dow._depsSatisfied;
             return *this;
          }
-   
-        /*! \brief Virtual destructor
-         */
+         /*! \brief Virtual destructor
+          */
          virtual ~DOWait ( ) { }
-
-        /*! \brief Initialise wait condition
-         */
+         /*! \brief Initialise wait condition
+          */
          virtual void init ( );
-
-        /*! \brief Wait method blocks execution untill dependencies are satisfied
-         */
+         /*! \brief Wait method blocks execution untill dependencies are satisfied
+          */
          virtual void wait ( std::list<Dependency *> deps );
-
-        /*! \brief whether the DO gets blocked and no more dependencies can
-         *  be submitted until it is satisfied.
-         */
+         /*! \brief whether the DO gets blocked and no more dependencies can
+          *  be submitted until it is satisfied.
+          */
          virtual bool waits ( );
-
-        /*! \brief Unblock method when dependencies are satisfied
-         */
+         /*! \brief Unblock method when dependencies are satisfied
+          */
          virtual void dependenciesSatisfied ( );
-        
+         /*! \brief TODO
+          */
          void setWD( WorkDescriptor *wd )
-            { _waitDomainWD = wd; }
-
+         { _waitDomainWD = wd; }
          /*! \brief Get the related object which actually has the dependence
           */
          virtual void * getRelatedObject ( ) { return (void *) _waitDomainWD; }
-
          /*! \brief Instrument predecessor -> successor dependency
           */
          virtual void instrument ( void *pred, void *succ );

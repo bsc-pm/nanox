@@ -31,7 +31,6 @@ namespace nanos
 
    class ThreadTeam
    {
-
       private:
          std::vector<BaseThread *>    _threads;
          int                          _idleThreads;
@@ -40,26 +39,32 @@ namespace nanos
          int                          _singleGuardCount;
          SchedulePolicy &             _schedulePolicy;
          ScheduleTeamData *           _scheduleData;
-
-         // disable copy constructor & assignment operation
+      private:
+         /*! \brief ThreadTeam default constructor (disabled)
+          */
+         ThreadTeam();
+         /*! \brief ThreadTeam copy constructor (disabled)
+          */
          ThreadTeam( const ThreadTeam &sys );
+         /*! \brief ThreadTeam copy assignment operator (disabled)
+          */
          const ThreadTeam & operator= ( const ThreadTeam &sys );
-
       public:
-
+         /*! \brief ThreadTeam constructor - 1
+          */
          ThreadTeam ( int maxThreads, SchedulePolicy &policy, ScheduleTeamData *data, Barrier &barrier )
-                    : _idleThreads( 0 ), _numTasks( 0 ), _barrier(barrier), _singleGuardCount( 0 ),
-                      _schedulePolicy(policy), _scheduleData(data)
+            : _idleThreads( 0 ), _numTasks( 0 ), _barrier(barrier), _singleGuardCount( 0 ),
+              _schedulePolicy( policy ), _scheduleData( data )
          {
                _threads.reserve( maxThreads );
          }
-
+         /*! \brief ThreadTeam destructor
+          */
          ~ThreadTeam ()
          {
             delete &_barrier;
             ensure(size() == 0, "Destroying non-empty team!");
          }
-
 
          unsigned size() const { return _threads.size(); }
 

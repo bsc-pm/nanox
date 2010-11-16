@@ -29,65 +29,98 @@ namespace nanos {
 
    class InstrumentStateAndBurst {
       private:
-         Instrumentation     &_inst;
-         nanos_event_key_t    _key;
-	 bool		      _closed;
+         Instrumentation     &_inst;   /**< Instrumentation object*/
+         nanos_event_key_t    _key;    /**< Key used in burst event */
+	 bool		      _closed; /**< Closed flag */
+      private:
+         /*! \brief InstrumentStateAndBurst default constructor (private)
+          */
+         InstrumentStateAndBurst ();
+         /*! \brief InstrumentStateAndBurst copy constructor (private)
+          */
+         InstrumentStateAndBurst ( InstrumentStateAndBurst &isb );
+         /*! \brief InstrumentStateAndBurst copy assignment operator (private)
+          */
+         InstrumentStateAndBurst& operator= ( InstrumentStateAndBurst &isb );
       public:
-         InstrumentStateAndBurst ( const char* keydesc, const char *valdesc, nanos_event_state_value_t state ) : 
-                                   _inst(*sys.getInstrumentation()),
-                                   _key( _inst.getInstrumentationDictionary()->getEventKey(keydesc)),
-                                   _closed(false)
+         /*! \brief InstrumentStateAndBurst constructor
+          */
+         InstrumentStateAndBurst ( const char* keydesc, const char *valdesc, nanos_event_state_value_t state )
+            : _inst(*sys.getInstrumentation()), _key( _inst.getInstrumentationDictionary()->getEventKey(keydesc)),
+              _closed(false)
          {
             nanos_event_value_t val = _inst.getInstrumentationDictionary()->getEventValue(keydesc,valdesc);
             _inst.raiseOpenStateAndBurst(state, _key, val);
          }
-
-         InstrumentStateAndBurst ( const char* keydesc, nanos_event_value_t val, nanos_event_state_value_t state ) :
-                                   _inst(*sys.getInstrumentation()),
-                                   _key( _inst.getInstrumentationDictionary()->getEventKey(keydesc)),
-                                   _closed(false)
+         /*! \brief InstrumentStateAndBurst constructor
+          */
+         InstrumentStateAndBurst ( const char* keydesc, nanos_event_value_t val, nanos_event_state_value_t state )
+            : _inst(*sys.getInstrumentation()), _key( _inst.getInstrumentationDictionary()->getEventKey(keydesc)),
+              _closed(false)
          {
             _inst.raiseOpenStateAndBurst(state, _key, val);
          }
-#if 0 // REMOVE
-         void changeState ( nanos_event_state_value_t state ) 
-         {
-            _inst.raiseCloseStateEvent();
-            _inst.raiseOpenStateEvent(state);
-         }
-#endif
-	 void close() { _closed=true; _inst.raiseCloseStateAndBurst(_key);  }
+         /*! \brief InstrumentStateAndBurst destructor
+          */
          ~InstrumentStateAndBurst ( ) { if (!_closed) close(); }
+         /*! \brief Closes states and burst
+          */
+	 void close() { _closed=true; _inst.raiseCloseStateAndBurst(_key);  }
    };
 
    class InstrumentState {
       private:
-         Instrumentation     &_inst;
-	 bool		      _closed;
+         Instrumentation     &_inst;    /**< Instrumentation object*/
+	 bool		      _closed;  /**< Closed flag */
+      private:
+         /*! \brief InstrumentState default constructor (private)
+          */
+         InstrumentState ();
+         /*! \brief InstrumentState copy constructor (private)
+          */
+         InstrumentState ( InstrumentState &is );
+         /*! \brief InstrumentState copy assignment operator (private)
+          */
+         InstrumentState& operator= ( InstrumentState &is );
       public:
-         InstrumentState ( nanos_event_state_value_t state ) : _inst(*sys.getInstrumentation()), _closed(false)
+         /*! \brief InstrumentState constructor
+          */
+         InstrumentState ( nanos_event_state_value_t state )
+            : _inst(*sys.getInstrumentation()), _closed(false)
          {
             _inst.raiseOpenStateEvent( state );
          }
-#if 0 // REMOVE
-         void changeState ( nanos_event_state_value_t state ) 
-         {
-            _inst.raiseCloseStateEvent();
-            _inst.raiseOpenStateEvent(state);
-         }
-#endif
-	 void close() { _closed=true; _inst.raiseCloseStateEvent();  }
+         /*! \brief InstrumentState destructor 
+          */
          ~InstrumentState ( ) { if (!_closed) close(); }
+         /*! \brief Closes states
+          */
+	 void close() { _closed=true; _inst.raiseCloseStateEvent();  }
    };
 
    class InstrumentSubState {
       private:
-         Instrumentation     &_inst;
+         Instrumentation     &_inst; /**< Instrumentation object */
+      private:
+         /*! \brief InstrumentSubState default constructor (private)
+          */
+         InstrumentSubState ();
+         /*! \brief InstrumentSubState copy constructor (private)
+          */
+         InstrumentSubState ( InstrumentSubState &iss );
+         /*! \brief InstrumentSubState copy assignment operator (private)
+          */
+         InstrumentSubState& operator= ( InstrumentSubState &iss );
       public:
-         InstrumentSubState ( nanos_event_state_value_t subState ) : _inst(*sys.getInstrumentation())
+         /*! \brief InstrumentSubState constructor
+          */
+         InstrumentSubState ( nanos_event_state_value_t subState )
+            : _inst(*sys.getInstrumentation())
          {
             _inst.disableStateEvents(subState);
          }
+         /*! \brief InstrumentSubState destructor
+          */
          ~InstrumentSubState ()
          {
             _inst.enableStateEvents();

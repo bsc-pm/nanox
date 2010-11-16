@@ -42,6 +42,16 @@ namespace nanos {
       private:
          nanos_event_value_t  _id;          /**< InstrumentationValueDescriptor id */
          std::string          _description; /**< InstrumenotrValueDescriptor description */
+      private:
+         /*! \brief InstrumentationValueDescriptor default constructor (private)
+          */
+         InstrumentationValueDescriptor ();
+         /*! \brief InstrumentationValueDescriptor copy constructor (private)
+          */
+         InstrumentationValueDescriptor ( InstrumentationValueDescriptor &ivd );
+         /*! \brief InstrumentationValueDescriptor copy assignment operator (private)
+          */
+         InstrumentationValueDescriptor& operator= ( InstrumentationValueDescriptor &ivd );
       public:
          /*! \brief InstrumentationValueDescriptor constructor
           */
@@ -77,6 +87,16 @@ namespace nanos {
          Atomic<unsigned int> _totalValues; /**< Total number of values */
          Lock                 _lock;        /**< _valueMap exclusive lock */
          ValueMap             _valueMap;    /**< Registered Value elements */
+      private:
+         /*! \brief InstrumentationKeyDescriptor default constructor (private)
+          */
+         InstrumentationKeyDescriptor ();
+         /*! \brief InstrumentationKeyDescriptor copy constructor (private)
+          */
+         InstrumentationKeyDescriptor ( InstrumentationKeyDescriptor &ikd );
+         /*! \brief InstrumentationKeyDescriptor copy assignment operator (private)
+          */
+         InstrumentationKeyDescriptor& operator= ( InstrumentationKeyDescriptor &ikd );
       public:
          /*! \brief InstrumentationKeyDescriptor constructor
           */
@@ -139,8 +159,14 @@ namespace nanos {
          Lock                 _lock;      /**< Is the _keyMap exclusive lock */
          KeyMap               _keyMap;    /**< Registered Key elements */
          
+         /*! \brief InstrumentationDictionary copy constructor (private)
+          */
+         InstrumentationDictionary ( InstrumentationDictionary &id );
+         /*! \brief InstrumentationDictionary copy assignment operator (private)
+          */
+         InstrumentationDictionary& operator= ( InstrumentationDictionary &id );
       public:
-         /*! \brief InstrumentationDictionary constructor
+         /*! \brief InstrumentationDictionary default constructor
           */
          InstrumentationDictionary () : _totalKeys(1), _lock(), _keyMap()
          {
@@ -290,12 +316,16 @@ namespace nanos {
 
 
             public:
-               /*! \brief Event constructor (generic constructor used by all other specific constructors)
+               /*! \brief Event default constructor 
+                *
                 *  \see State Burst Point PtP
                 */
                Event () : _type((nanos_event_type_t) 0), _state((nanos_event_state_value_t) 0), _nkvs(0),
                           _kvList(NULL), _kvListOwner(false), _ptpDomain((nanos_event_domain_t) 0), _ptpId(0) {}
-               /*! \brief Event constructor (generic constructor used by all other specific constructors)
+               /*! \brief Event constructor
+                *
+                *  Generic constructor used by all other specific constructors
+                *
                 *  \see State Burst Point PtP
                 */
                Event ( nanos_event_type_t type, nanos_event_state_value_t state, unsigned int nkvs, KVList kvlist,
@@ -328,7 +358,7 @@ namespace nanos {
 
                }
 
-               /*! \brief Event assignment operator
+               /*! \brief Event copy assignment operator
                 */
                void operator= ( const Event & evt ) 
                { 
@@ -383,6 +413,16 @@ namespace nanos {
                void reverseType ( );
          };
          class State : public Event {
+            private:
+              /*! \brief State event default constructor (private)
+               */
+               State();
+              /*! \brief State event copy constructor (private)
+               */
+               State( State &s);
+              /*! \brief State event copy constructor (private)
+               */
+               State& operator= ( State &s);
             public:
               /*! \brief State event constructor
                */
@@ -390,6 +430,16 @@ namespace nanos {
                     : Event (type, state, 0, NULL, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
          };
          class Burst : public Event {
+             private:
+               /*! \brief Burst event default constructor (private)
+                */
+               Burst();
+               /*! \brief Burst event copy constructor (private)
+                */
+               Burst( Burst &b);
+               /*! \brief Burst event copy constructor (private)
+                */
+               Burst& operator= ( Burst &b);
              public:
                /*! \brief Burst event constructor
                 */
@@ -397,6 +447,16 @@ namespace nanos {
                      : Event ( start? NANOS_BURST_START: NANOS_BURST_END, NANOS_ERROR, 1, &kv, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
          };
          class Point : public Event {
+             private:
+               /*! \brief Point event default constructor (private)
+                */
+               Point();
+               /*! \brief Point event copy constructor (private)
+                */
+               Point( Point &p );
+               /*! \brief Point event copy assignment operator (private)
+                */
+               Point& operator= ( Point &p );
              public:
                /*! \brief Point event constructor
                 */
@@ -404,6 +464,16 @@ namespace nanos {
                      : Event ( NANOS_POINT, NANOS_ERROR, nkvs, kvlist, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
          };
          class PtP : public Event {
+            private:
+               /*! \brief PtP event default constructor (private)
+                */
+               PtP();
+               /*! \brief PtP event copy constructor (private)
+                */
+               PtP( PtP &ptp);
+               /*! \brief PtP event copy assignment operator (private)
+                */
+               PtP& operator= ( PtP &ptp);
             public:
                /*! \brief PtP event constructor
                 */
@@ -418,6 +488,16 @@ namespace nanos {
       protected: /* They can be accessed by plugins (derived classes ) */
          InstrumentationDictionary      _instrumentationDictionary; /**< Instrumentation Dictionary (allow to register keys and values) */
          InstrumentationContext        &_instrumentationContext; /**< Instrumentation Context */
+      private:
+         /*! \brief Instrumentation default constructor (private)
+          */
+         Instrumentation();
+         /*! \brief Instrumentation copy constructor (private)
+          */
+         Instrumentation( Instrumentation &i);
+         /*! \brief Instrumentation copy assignment operator (private)
+          */
+         Instrumentation& operator= ( Instrumentation &i);
       public:
          /*! \brief Instrumentation constructor
           */
