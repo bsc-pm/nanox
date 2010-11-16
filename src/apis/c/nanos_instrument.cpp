@@ -243,13 +243,13 @@ nanos_err_t nanos_instrument_enable_state_events ( void )
 }
 
 
-nanos_err_t nanos_instrument_set_user_fun_key( nanos_event_key_t key )
+nanos_err_t nanos_instrument_close_user_fun_event()
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 #ifdef GPU_DEV
    try
    {
-      ( ( ext::GPUThread *) myThread )->setWDEvtKey( key );
+      ( ( ext::GPUThread *) myThread )->createWDClosingEvents();
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
