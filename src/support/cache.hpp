@@ -432,7 +432,11 @@ inline void DeviceCache<_T,_Policy>::synchronizeInternal( SyncData &sd, uint64_t
       DirectoryEntry *de = dir->getEntry( tag );
       ensure ( !ce->isCopying(), "User program is incorrect" );
       ensure( de != NULL, "Directory has been corrupted" );
-      de->setOwner(NULL);
+
+      // Make sure we are synchronizing the newest version
+      if (ce->getVersion() == de->getVersion()) {
+         de->setOwner(NULL);
+      }
    } else {
       ensure ( !ce->isFlushing(), "User program is incorrect" );
       ensure( ce->isCopying(), "Cache has been corrupted" );
