@@ -141,7 +141,7 @@ typedef enum { NANOS_NOT_CREATED, NANOS_NOT_TRACED, NANOS_STARTUP, NANOS_SHUTDOW
                NANOS_MEM_TRANSFER, NANOS_CACHE, NANOS_YIELD, NANOS_EVENT_STATE_TYPES
 } nanos_event_state_value_t; /**< State enum values */
 
-typedef enum { NANOS_WD_DOMAIN, NANOS_WD_DEPENDENCY } nanos_event_domain_t; /**< Specifies a domain */
+typedef enum { NANOS_WD_DOMAIN, NANOS_WD_DEPENDENCY, NANOS_WD_REMOTE } nanos_event_domain_t; /**< Specifies a domain */
 typedef long long  nanos_event_id_t;                   /**< Used as unique id within a given domain */
 
 typedef unsigned int         nanos_event_key_t;   /**< Key (on key-value pair) */

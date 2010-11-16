@@ -19,7 +19,6 @@
 extern "C" {
    unsigned int nanos_ompitrace_get_max_threads ( void );
    unsigned int nanos_ompitrace_get_thread_num ( void );
-   void TaskID_Setup( int id );
 }
 
 namespace nanos {
@@ -370,13 +369,7 @@ class InstrumentationExtrae: public Instrumentation
          putenv (env_trace_final_dir);
 
          /* OMPItrace initialization */
-         if ( sys.getNetwork() != NULL )
-         {
-            TaskID_Setup( sys.getNetwork()->getNodeNum() );
-            std::cerr << "Tracing: set node num " << sys.getNetwork()->getNodeNum() << std::endl;
-         }
          OMPItrace_init();
-            std::cerr << "Tracing: init ok " << std::endl;
       }
 
       void finalize ( void )

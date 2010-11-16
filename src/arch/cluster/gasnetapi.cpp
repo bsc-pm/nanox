@@ -86,7 +86,7 @@ static void am_exit_reply(gasnet_token_t token)
     fprintf(stderr, "EXIT message to node %d completed.\n", src_node);
 }
 
-static void am_work(gasnet_token_t token, void *arg, size_t argSize, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe )
+static void am_work(gasnet_token_t token, void *arg, size_t argSize, void ( *work ) ( void * ), unsigned int dataSize, unsigned int wdId, unsigned int numPe )
 {
     gasnet_node_t src_node;
     unsigned int i;
@@ -99,11 +99,11 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize, void ( *wor
     struct work_wrapper_args * warg = new struct work_wrapper_args;
     bzero(warg, sizeof(struct work_wrapper_args));
     warg->work = work;
-    warg->arg = new char [ arg0 ];
-    memcpy(warg->arg, arg, arg0);
-    warg->id = arg1;
+    warg->arg = new char [ dataSize ];
+    memcpy(warg->arg, arg, dataSize);
+    warg->id = wdId;
     warg->numPe = numPe;
-    warg->argSize = arg0;
+    warg->argSize = dataSize;
 
     //CopyData *recvcd = (CopyData *) &((char *) arg)[arg0];
     //fprintf(stderr, "NUM COPIES %d addr %llx, in? %s, out? %s\n",
@@ -112,16 +112,16 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize, void ( *wor
     //      recvcd->isInput() ? "yes" : "no",
     //      recvcd->isOutput() ? "yes" : "no" );
     
-    unsigned int numCopies = ( argSize - arg0 ) / sizeof( CopyData );
+    unsigned int numCopies = ( argSize - dataSize ) / sizeof( CopyData );
     CopyData *newCopies = new CopyData[ numCopies ]; 
 
     for (i = 0; i < numCopies; i += 1) {
-       new ( &newCopies[i] ) CopyData( *( (CopyData *) &( ( char * )arg)[ arg0 + i * sizeof( CopyData ) ] ) );
+       new ( &newCopies[i] ) CopyData( *( (CopyData *) &( ( char * )arg)[ dataSize + i * sizeof( CopyData ) ] ) );
     }
 
     SMPDD * dd = new SMPDD ( ( SMPDD::work_fct ) wk_wrapper );
     WD *wd = new WD( dd, sizeof(struct work_wrapper_args), warg, numCopies, newCopies );
-    //wd->setId( arg1 );
+    //wd->setId( wdId );
 
     //fprintf(stderr, "WD %p , args->arg %p size %d args->id %d\n", wd, warg->arg, arg0, warg->id );
 
@@ -139,6 +139,13 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize, void ( *wor
     //      wd->getCopies()[i].isInput() ? "yes" : "no",
     //      wd->getCopies()[i].isOutput() ? "yes" : "no",
     //      wd->getCopies()[i].getSharing());
+
+    {
+       NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+       NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wdId) << 32 ) + gasnet_mynode() ; )
+       std::cerr << "setting fini comm id " << id << " " << wdId << ":" << gasnet_mynode() << std::endl;
+       NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *wd, NANOS_WD_REMOTE, id, 0, NULL, NULL ); )
+    }
 
     sys.submit( *wd );
 
@@ -248,7 +255,8 @@ void GasnetAPI::finalize ()
     gasnet_barrier_wait( 0, GASNET_BARRIERFLAG_ANONYMOUS );
     //gasnet_AMPoll();
     fprintf(stderr, "Node %d closing the network...\n", _net->getNodeNum());
-    gasnet_exit(0);
+    //gasnet_exit(0);
+    exit(0);
 }
 
 void GasnetAPI::poll ()
@@ -264,10 +272,10 @@ void GasnetAPI::sendExitMsg ( unsigned int dest )
    }
 }
 
-void GasnetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, size_t argSize, void * arg )
+void GasnetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int dataSize, unsigned int wdId, unsigned int numPe, size_t argSize, void * arg )
 {
    //fprintf(stderr, "sending msg WORK %p, arg size %d to node %d, numPe %d\n", work, argSize, dest, numPe);
-   if (gasnet_AMRequestMedium4( dest, 205, arg, argSize, work, arg0, arg1, numPe ) != GASNET_OK)
+   if (gasnet_AMRequestMedium4( dest, 205, arg, argSize, work, dataSize, wdId, numPe ) != GASNET_OK)
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
    }

@@ -374,7 +374,7 @@ namespace nanos {
                /*! \brief Get event id (unique in a specific domain, useful in PtP events)
                 *  \see getDomain
                 */
-               unsigned int getId( void ) const;
+               long long getId( void ) const;
 
                /*! \brief Change event type to the complementary value (i.e. if type is BURST_START it changes to BURST_END)
                 */

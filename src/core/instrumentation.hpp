@@ -258,7 +258,7 @@ inline Instrumentation::Event::ConstKVList Instrumentation::Event::getKVs () con
 
 inline unsigned int Instrumentation::Event::getDomain ( void ) const { return _ptpDomain; }
 
-inline unsigned int Instrumentation::Event::getId( void ) const { return _ptpId; }
+inline long long Instrumentation::Event::getId( void ) const { return _ptpId; }
 
 inline void Instrumentation::Event::reverseType ( )
 {
