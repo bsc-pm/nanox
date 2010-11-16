@@ -36,8 +36,6 @@ namespace nanos
    {
 
       private:
-         Accelerator ( const Accelerator &pe );
-         const Accelerator & operator= ( const Accelerator &pe );
 #if LOCK_TRANSFER
          static Lock _transferLock;
 #endif
@@ -55,7 +53,7 @@ namespace nanos
          Accelerator ( const Accelerator &a );
         /*! \brief Accelerator copy assignment operator (private)
          */
-         Accelerator& operator= ( const Accelerator &a );
+         const Accelerator& operator= ( const Accelerator &a );
       public:
         /*! \brief Accelerator constructor - from 'newId' and 'arch'
          */
