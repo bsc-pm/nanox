@@ -127,9 +127,11 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
 
          for ( TrackableObject::DependableObjectList::iterator it = readersList.begin(); it != readersList.end(); it++) {
             DependableObject * predecessorReader = *it;
+            predecessorReader->lock();
             if ( predecessorReader->addSuccessor( depObj ) ) {
                depObj.increasePredecessors();
             }
+            predecessorReader->unlock();
             // WaR dependency
 #if 0
             debug (" DO_ID_" << predecessorReader->getId() << " [style=filled label=" << predecessorReader->getDescription() << " color=" << "red" << "];");
