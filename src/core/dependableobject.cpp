@@ -70,8 +70,8 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( void )
       // Is this an immediate successor? 
       if ( (*it)->numPredecessors() == 1 ) {
         // remove it
-        succ.erase(it);
         found = *it;
+        succ.erase(it);
         break;
       }
    }
