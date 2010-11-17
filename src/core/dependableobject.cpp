@@ -71,8 +71,16 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( void )
       if ( (*it)->numPredecessors() == 1 ) {
         // remove it
         found = *it;
+        this->lock();
         succ.erase(it);
-        break;
+        this->unlock();
+        if ( found->numPredecessors() != 1 ) {
+           this->lock();
+           succ.insert( found );
+           this->unlock();
+        } else {
+           break;
+        }
       }
    }
 
