@@ -30,13 +30,13 @@ namespace ext
    class GPUMemoryTransfer
    {
       public:
-         void *                        _dst;
-         void *                        _src;
-         size_t                        _size;
-         bool                          _requested;
+         void *   _dst;
+         void *   _src;
+         size_t   _size;
+         bool     _requested;
 
          GPUMemoryTransfer( void * dest, void * source, size_t s ) :
-            _dst( dest ), _src( source ), _size( s ) {}
+            _dst( dest ), _src( source ), _size( s ), _requested( false ) {}
 
          ~GPUMemoryTransfer() {}
 
@@ -83,10 +83,11 @@ namespace ext
    class GPUMemoryTransferOutAsyncList : public GPUMemoryTransferList
    {
       private:
-         std::list<GPUMemoryTransfer>   _pendingTransfersAsync;
+         std::list<GPUMemoryTransfer>  _pendingTransfersAsync;
+         Lock                          _lock;
 
       public:
-         GPUMemoryTransferOutAsyncList() : GPUMemoryTransferList() {}
+         GPUMemoryTransferOutAsyncList() : GPUMemoryTransferList(), _lock() {}
          ~GPUMemoryTransferOutAsyncList()
          {
             if ( !_pendingTransfersAsync.empty() ) {
@@ -97,7 +98,9 @@ namespace ext
 
          void addMemoryTransfer ( void * dest, void * source, size_t size )
          {
+            _lock.acquire();
             _pendingTransfersAsync.push_back( GPUMemoryTransfer ( dest, source, size ) );
+            _lock.release();
          }
 
          void removeMemoryTransfer ( std::list<GPUMemoryTransfer>::iterator it );
@@ -139,20 +142,18 @@ namespace ext
 
          void requestTransfer( void *  address )
          {
+            _lock.acquire();
             for ( std::list<GPUMemoryTransfer>::iterator it = _pendingTransfersAsync.begin();
                   it != _pendingTransfersAsync.end(); it++ ) {
                if ( it->_dst == address ) {
                   it->_requested = true;
                }
             }
+            _lock.release();
          }
 
          void finishMemoryTransfer ( std::list<GPUMemoryTransfer>::iterator it );
 
-         std::list<GPUMemoryTransfer>& getList()
-         {
-          return _pendingTransfersAsync;
-         }
    };
 
    class GPUMemoryTransferInAsyncList : public GPUMemoryTransferList
@@ -187,4 +188,3 @@ namespace ext
 }
 
 #endif
-

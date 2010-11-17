@@ -147,7 +147,10 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ()
 void GPUMemoryTransferOutAsyncList::finishMemoryTransfer( std::list<GPUMemoryTransfer>::iterator it )
 {
    ( ( GPUProcessor * ) myThread->runningOn() )->synchronize( ( uint64_t ) it->_dst );
+
+   _lock.acquire();
    _pendingTransfersAsync.erase( it );
+   _lock.release();
 }
 
 
