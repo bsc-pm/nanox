@@ -93,7 +93,7 @@ void GPUThread::inlineWorkDependent ( WD &wd )
 
    // Wait for the GPU kernel to finish
    cudaThreadSynchronize();
-   NANOS_INSTRUMENT ( _wdEvtKey ? sys.getInstrumentation()->raiseCloseBurstEvent ( _wdEvtKey ) : setWDEvtKey( _wdEvtKey ) );
+   NANOS_INSTRUMENT ( raiseWDClosingEvents() );
 }
 
 void GPUThread::yield()
@@ -106,3 +106,18 @@ void GPUThread::idle()
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->removeMemoryTransfer();
 }
 
+
+void GPUThread::raiseWDClosingEvents ()
+{
+   if ( _wdClosingEvents ) {
+      NANOS_INSTRUMENT(
+            Instrumentation::Event e[2];
+            sys.getInstrumentation()->closeBurstEvent( &e[0],
+                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-name" ) );
+            sys.getInstrumentation()->closeBurstEvent( &e[1],
+                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-location" ) );
+
+            sys.getInstrumentation()->addEventList( 2, e );
+      );
+   }
+}

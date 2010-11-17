@@ -168,7 +168,7 @@ nanos_err_t nanos_instrument_ptp_end ( nanos_event_domain_t domain, nanos_event_
 nanos_err_t nanos_instrument_disable_state_events ( nanos_event_state_value_t state );
 nanos_err_t nanos_instrument_enable_state_events ( void );
 
-nanos_err_t nanos_instrument_set_user_fun_key( nanos_event_key_t key );
+nanos_err_t nanos_instrument_close_user_fun_event();
 
 
 // utility macros
