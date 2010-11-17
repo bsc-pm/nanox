@@ -71,7 +71,7 @@ bool SlicerCompoundWD::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
    /* Get commont data */
    nanos_compound_wd_data_t *data = (nanos_compound_wd_data_t *) wd->getData();
    WorkDescriptor *current = myThread->getCurrentWD();
-   SchedulerStats ss = sys.getSchedulerStats();
+   SchedulerStats &ss = sys.getSchedulerStats();
    int nthreads = myThread->getTeam()->size();
 
    /* Computing Modifiers: neutral element == true */

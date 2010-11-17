@@ -47,9 +47,11 @@ System nanos::sys;
 System::System () :
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindThreads( true ), _profile( false ), _instrument( false ),
       _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster(true),
-      _delayedStart(false), _useYield(true), _synchronizedStart(true), _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
-      _defBarr( "posix" ), _defInstr ( "empty_trace" ), _defArch("smp"), _instrumentation ( NULL ), 
-      _defSchedulePolicy(NULL), _directory(), _pmInterface(NULL)
+      _delayedStart(false), _useYield(true), _synchronizedStart(true), _throttlePolicy ( NULL ),
+      _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
+      _defBarr( "posix" ), _defInstr ( "empty_trace" ), _defArch("smp"),
+      _initializedThreads ( 0 ), _targetThreads ( 0 ),
+      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL )
 {
    verbose0 ( "NANOS++ initializing... start" );
    // OS::init must be called here and not in System::start() as it can be too late
@@ -311,6 +313,8 @@ void System::finish ()
    // shutdown instrumentation
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->finalize() );
+
+   ensure( _schedStats._readyTasks == 0, "Ready task counter has an invalid value!");
 
    // join
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {

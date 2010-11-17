@@ -36,8 +36,6 @@ namespace nanos
    {
 
       private:
-         Accelerator ( const Accelerator &pe );
-         const Accelerator & operator= ( const Accelerator &pe );
 #if LOCK_TRANSFER
          static Lock _transferLock;
 #endif
@@ -46,11 +44,22 @@ namespace nanos
          virtual WorkDescriptor & getMasterWD () const = 0;
          virtual WorkDescriptor & getWorkerWD () const = 0;
 
+      private:
+        /*! \brief Accelerator default constructor (private)
+         */
+         Accelerator ();
+        /*! \brief Accelerator copy constructor (private)
+         */
+         Accelerator ( const Accelerator &a );
+        /*! \brief Accelerator copy assignment operator (private)
+         */
+         const Accelerator& operator= ( const Accelerator &a );
       public:
-         // constructors
+        /*! \brief Accelerator constructor - from 'newId' and 'arch'
+         */
          Accelerator ( int newId, const Device *arch ) : ProcessingElement( newId, arch) {}
-
-         // destructor
+        /*! \brief Accelerator destructor
+         */
          virtual ~Accelerator() {}
 
          virtual bool hasSeparatedMemorySpace() const { return true; };

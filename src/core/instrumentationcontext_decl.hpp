@@ -52,19 +52,23 @@ namespace nanos {
          EventList                  _burstBackup;            /**< Backup list (non-active) of opened bursts */
          EventList                  _deferredEvents;         /**< List of deferred events */
          Lock                       _deferredEventsLock;     /**< Lock in deferred event list */
+      private:
+         /*! \brief InstrumentationContextData copy assignment operator (private)
+          */
+         InstrumentationContextData& operator= (const InstrumentationContextData &icd); 
       public:
          /*! \brief InstrumentationContextData copy constructor
           */
          explicit InstrumentationContextData(const InstrumentationContextData &icd) : _startingWD(false), _stateStack(), _subStateStack(), 
-                  _stateEventEnabled(icd._stateEventEnabled), _burstList(), _burstBackup() {}
+                  _stateEventEnabled(icd._stateEventEnabled), _burstList(), _burstBackup(), _deferredEvents(), _deferredEventsLock() {}
          /*! \brief InstrumentationContextData copy constructor
           */
          explicit InstrumentationContextData(const InstrumentationContextData *icd) : _startingWD(false), _stateStack(), _subStateStack(),
-                  _stateEventEnabled(icd->_stateEventEnabled), _burstList(), _burstBackup() {}
-         /*! \brief InstrumentationContextData constructor
+                  _stateEventEnabled(icd->_stateEventEnabled), _burstList(), _burstBackup(), _deferredEvents(), _deferredEventsLock() {}
+         /*! \brief InstrumentationContextData default constructor
           */
          InstrumentationContextData() : _startingWD(false), _stateStack(), _subStateStack(),
-                   _stateEventEnabled(true), _burstList(), _burstBackup() { }
+                   _stateEventEnabled(true), _burstList(), _burstBackup(), _deferredEvents(), _deferredEventsLock() { }
          /*! \brief InstrumentationContextData destructor
           */
          ~InstrumentationContextData() {}
@@ -75,6 +79,13 @@ namespace nanos {
           */
          bool getStartingWD ( void ) { return _startingWD; }
 #else
+      private:
+         /*! \brief InstrumentationContextData copy constructor (private)
+          */
+         InstrumentationContextData(const InstrumentationContextData &icd); 
+         /*! \brief InstrumentationContextData copy assignment operator (private)
+          */
+         InstrumentationContextData& operator= (const InstrumentationContextData &icd); 
       public:
          /*! \brief InstrumentationContextData constructor (empty version)
           */
@@ -91,8 +102,15 @@ namespace nanos {
          friend class Instrumentation;
       public:
          typedef Instrumentation::Event                  Event;                /**< Class defined in instrumentation_decl.hpp */
+      private:
+         /*! \brief InstrumentationContext copy constructor (private)
+          */
+         InstrumentationContext ( const InstrumentationContext &ic );
+         /*! \brief InstrumentationContext copy assignment operator (private)
+          */
+         InstrumentationContext& operator=  ( const InstrumentationContext &ic );
       public:
-         /*! \brief InstrumentationContext constructor
+         /*! \brief InstrumentationContext default constructor
           */
          InstrumentationContext () {}
          /*! \brief InstrumentationContext destructor
@@ -193,6 +211,9 @@ namespace nanos {
    };
 
    class InstrumentationContextStackedStates : public InstrumentationContext {
+      private:
+         InstrumentationContextStackedStates ( const InstrumentationContextStackedStates &icss );
+         InstrumentationContextStackedStates& operator= ( const InstrumentationContextStackedStates &icss );
       public:
          InstrumentationContextStackedStates () : InstrumentationContext() {}
          ~InstrumentationContextStackedStates () {}
@@ -202,6 +223,9 @@ namespace nanos {
    };
 
    class InstrumentationContextStackedBursts : public InstrumentationContext {
+      private:
+         InstrumentationContextStackedBursts ( const InstrumentationContextStackedBursts &icsb );
+         InstrumentationContextStackedBursts& operator= ( const InstrumentationContextStackedBursts &icsb );
       public:
          InstrumentationContextStackedBursts () : InstrumentationContext() {}
          ~InstrumentationContextStackedBursts () {}
@@ -214,6 +238,9 @@ namespace nanos {
    };
 
    class InstrumentationContextStackedStatesAndBursts : public InstrumentationContext {
+      private:
+         InstrumentationContextStackedStatesAndBursts ( const InstrumentationContextStackedStatesAndBursts &icssb );
+         InstrumentationContextStackedStatesAndBursts& operator= ( const InstrumentationContextStackedStatesAndBursts &icssb );
       public:
          InstrumentationContextStackedStatesAndBursts () : InstrumentationContext() {}
          ~InstrumentationContextStackedStatesAndBursts () {}

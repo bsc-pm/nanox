@@ -25,7 +25,21 @@
 
 class PMInterface
 {
+   private:
+      /*! \brief PMInterface copy constructor (private)
+       */
+      PMInterface( PMInterface &pmi );
+      /*! \brief PMInterface copy assignment operator (private)
+       */
+      PMInterface& operator= ( PMInterface &pmi );
    public:
+      /*! \brief PMInterface default constructor
+       */
+      PMInterface() {}
+      /*! \brief PMInterface destructor
+       */
+      ~PMInterface() {}
+
       virtual int getInternalDataSize() const { return 0; }
 
       virtual void config (Config &cfg) {}

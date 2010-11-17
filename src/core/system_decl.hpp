@@ -116,8 +116,11 @@ namespace nanos
          PE * createPE ( std::string pe_type, int pid );
 
       public:
-         // constructor
+         /*! \brief System default constructor
+          */
          System ();
+         /*! \brief System destructor
+          */
          ~System ();
 
          void start ();

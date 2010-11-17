@@ -31,13 +31,13 @@ namespace nanos
    class CopyData : public nanos_copy_data_internal_t
    {
       public:
-         
-        /*! \brief Constructor
+        /*! \brief CopyData default constructor
          *  \param address Address of the CopyData's address 
          *  \param input Whether the CopyData is input or not 
          *  \param output Whether the CopyData is output or not
          */
-         CopyData ( uint64_t addr = NULL, nanos_sharing_t nxSharing = NANOS_SHARED, bool input = false, bool output = false, size_t storageSize = 0 )
+         CopyData ( uint64_t addr = NULL, nanos_sharing_t nxSharing = NANOS_SHARED, bool input = false,
+                    bool output = false, size_t storageSize = 0 )
          {
             address = addr;
             sharing = nxSharing;
@@ -45,8 +45,7 @@ namespace nanos
             flags.output = output;
             size = storageSize;
          }
-
-        /*! \brief Copy constructor
+        /*! \brief CopyData copy constructor
          *  \param obj another CopyData
          */
          CopyData ( const CopyData &cd )
@@ -57,12 +56,7 @@ namespace nanos
             flags.output = cd.flags.output;
             size = cd.size;
          }
- 
-        /*! \brief Destructor
-         */
-         ~CopyData () {}
-         
-        /*! \brief Assign operator, can be self-assigned.
+        /*! \brief CopyData copy assignment operator, can be self-assigned.
          *  \param obj another CopyData
          */
          const CopyData & operator= ( const CopyData &cd )
@@ -74,6 +68,9 @@ namespace nanos
             size = cd.size;
             return *this;
          }
+        /*! \brief CopyData destructor
+         */
+         ~CopyData () {}
          
         /*! \brief Obtain the CopyData's address address
          */
