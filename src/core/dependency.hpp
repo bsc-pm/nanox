@@ -31,14 +31,15 @@ namespace nanos
    class Dependency : public nanos_dependence_internal_t
    {
       public:
-         
-        /*! \brief Constructor
-         *  \param address Address of the dependency's address 
-         *  \param input Whether the dependency is input or not 
-         *  \param output Whether the dependency is output or not
-         *  \param canRename Whether the dependency can rename or not
-         */
-         Dependency ( void ** addr = NULL, ptrdiff_t offset = 0, bool input = false, bool output = false, bool canRename = false, size_t storageSize = 0 )
+         /*! \brief Dependency default constructor
+          *
+          *  \param address Address of the dependency's address 
+          *  \param input Whether the dependency is input or not 
+          *  \param output Whether the dependency is output or not
+          *  \param canRename Whether the dependency can rename or not
+          */
+         Dependency ( void ** addr = NULL, ptrdiff_t offset = 0, bool input = false, bool output = false,
+                      bool canRename = false, size_t storageSize = 0 )
          {
             address = addr;
             offset = offset;
@@ -47,10 +48,10 @@ namespace nanos
             flags.can_rename = canRename;
             size = storageSize;
          }
-
-        /*! \brief Copy constructor
-         *  \param obj another Dependency
-         */
+         /*! \brief Dependency copy constructor
+          *
+          *  \param obj another Dependency
+          */
          Dependency ( const Dependency &dep )
          {
             address = dep.address;
@@ -60,12 +61,8 @@ namespace nanos
             flags.can_rename = dep.flags.can_rename;
             size = dep.size;
          }
- 
-        /*! \brief Destructor
-         */
-         ~Dependency () {}
-         
-        /*! \brief Assign operator, can be self-assigned.
+        /*! \brief Dependency copy asssignment operator, can be self-assigned.
+         *
          *  \param obj another Dependency
          */
          const Dependency & operator= ( const Dependency &dep )
@@ -79,6 +76,9 @@ namespace nanos
             size = dep.size;
             return *this;
          }
+         /*! \brief Dependency destructor
+          */
+         ~Dependency () {}
          
         /*! \brief Obtain the dependency's address address
          */

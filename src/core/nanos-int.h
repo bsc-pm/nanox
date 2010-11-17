@@ -24,6 +24,9 @@
 #include <stdint.h>
 #include <stddef.h>
 
+/* This structure is initialized in dependency.hpp. Any change in
+ * its contents has to be reflected in Dependency constructor  
+ */
 typedef struct {
    void **address;
    ptrdiff_t offset;
@@ -40,6 +43,9 @@ typedef enum {
    NANOS_SHARED,
 } nanos_sharing_t;
 
+/* This structure is initialized in copydata.hpp. Any change in
+ * its contents has to be reflected in CopyData constructor
+ */
 typedef struct {
    uint64_t address;
    nanos_sharing_t sharing;
@@ -66,7 +72,9 @@ typedef nanos::CopyData nanos_copy_data_t;
 
 #endif
 
-// SlicerDataFor: related structures
+/* This structure is initialized in slicer.hpp. Any change in
+ * its contents has to be reflected in SlicerDataFor constructor  
+ */
 typedef struct {
    int _lower;  /**< Loop lower bound */
    int _upper;  /**< Loop upper bound */

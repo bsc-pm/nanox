@@ -44,24 +44,31 @@ namespace nanos
 
          SingleSyncCond<EqualConditionChecker<int> > _syncCond;
 
+      private:
          void addToGroup ( WorkGroup &parent );
          void exitWork ( WorkGroup &work );
 
-         //const WorkGroup & operator= ( const WorkGroup &wg );
-
+         /*! \brief WorkGroup copy assignment operator (private)
+          */
+         const WorkGroup & operator= ( const WorkGroup &wg );
       public:
-         // constructors
-         WorkGroup() : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ),
+         /*! \brief WorkGroup default constructor
+          */
+         WorkGroup()
+            : _id( _atomicSeed++ ), _components( 0 ), _phaseCounter( 0 ),
             _syncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ) {  }
-         WorkGroup( const WorkGroup &wg ) : _id( _atomicSeed++ ),_components( 0 ), _phaseCounter( 0 ),
+         /*! \brief WorkGroup copy constructor
+          */
+         WorkGroup( const WorkGroup &wg )
+            : _id( _atomicSeed++ ), _components( 0 ), _phaseCounter( 0 ),
             _syncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ) 
          {
             for ( WGList::const_iterator it = wg._partOf.begin(); it < wg._partOf.end(); it++ ) {
                if (*it) (*it)->addWork( *this );
             }
          }
-
-         // destructor
+         /*! \brief WorkGroup destructor 
+          */
          virtual ~WorkGroup();
 
          void addWork( WorkGroup &wg );

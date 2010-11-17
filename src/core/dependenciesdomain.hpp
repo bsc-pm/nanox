@@ -39,26 +39,18 @@ namespace nanos
    class DependenciesDomain
    {
       private:
-         /**< ID seed for the domains */
-         static Atomic<int> _atomicSeed;
+         typedef TR1::unordered_map<void *, TrackableObject*> DepsMap; /**< Maps addresses to Trackable objects */
 
-         /**< Domain's id */
-         int _id;
-
-         /**< Id to be given to the next submitted DependableObject */
-         unsigned int _lastDepObjId;
-         
-         /**< Maps addresses to Trackable objects */
-         typedef TR1::unordered_map<void *, TrackableObject*> DepsMap;
-         /**< Used to track dependencies between DependableObject */
-         DepsMap _addressDependencyMap;
+         static Atomic<int>   _atomicSeed;           /**< ID seed for the domains */
+         int                  _id;                   /**< Domain's id */
+         unsigned int         _lastDepObjId;         /**< Id to be given to the next submitted DependableObject */
+         DepsMap              _addressDependencyMap; /**< Used to track dependencies between DependableObject */
 
         /*! \brief Looks for the dependency's address in the domain and returns the trackableObject associated.
          *  \param dep Dependency to be checked.
          *  \sa Dependency TrackableObject
          */
          TrackableObject* lookupDependency ( const Dependency &dep );
-
         /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
          *  \param depObj DependableObject to be added to the domain.
          *  \param begin Iterator to the start of the list of dependencies to be associated to the Dependable Object.
@@ -68,28 +60,28 @@ namespace nanos
          template<typename iterator>
          void submitDependableObjectInternal ( DependableObject &depObj, iterator begin, iterator end );
 
+      private:
+        /*! \brief DependenciesDomain copy assignment operator (private)
+         */
          const DependenciesDomain & operator= ( const DependenciesDomain &depDomain );
-
       public:
-        /*! \brief Constructor
+        /*! \brief DependenciesDomain default constructor
          */
          DependenciesDomain ( ) :  _id( _atomicSeed++ ), _lastDepObjId ( 0 ), _addressDependencyMap( ) {}
-
-        /*! \brief Copy Constructor
+        /*! \brief DependenciesDomain copy constructor
          */
-         DependenciesDomain ( const DependenciesDomain &depDomain ) :  _id( _atomicSeed++ ), _lastDepObjId ( depDomain._lastDepObjId ), _addressDependencyMap ( depDomain._addressDependencyMap ) {}
-
-        /*! \brief Destructor
+         DependenciesDomain ( const DependenciesDomain &depDomain )
+            : _id( _atomicSeed++ ), _lastDepObjId ( depDomain._lastDepObjId ),
+              _addressDependencyMap ( depDomain._addressDependencyMap ) {}
+        /*! \brief DependenciesDomain destructor
          */
          ~DependenciesDomain ( ) { }
-
         /*! \brief get object's id
          */
          int getId ()
          {
             return _id;
          }
-
         /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
          *  \param depObj DependableObject to be added to the domain.
          *  \param deps List of dependencies to be associated to the Dependable Object.
@@ -99,7 +91,6 @@ namespace nanos
          {
             submitDependableObjectInternal ( depObj, deps.begin(), deps.end() );
          }
-
         /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
          *  \param depObj DependableObject to be added to the domain.
          *  \param deps List of dependencies to be associated to the Dependable Object.

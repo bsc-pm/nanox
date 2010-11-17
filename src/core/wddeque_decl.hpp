@@ -33,26 +33,39 @@ namespace nanos
    {
 
       public:
+         /*! \brief SchedulePredicate default constructor
+          */
          SchedulePredicate () {}
-         virtual bool operator() ( WorkDescriptor *wd ) = 0;
+         /*! \brief SchedulePredicate destructor
+          */
          virtual ~SchedulePredicate() {}
+         /*! \brief SchedulePredicate function call operator (pure virtual)
+          */
+         virtual bool operator() ( WorkDescriptor *wd ) = 0;
    };
 
 
    class WDDeque
    {
-
       private:
          typedef std::list<WorkDescriptor *> BaseContainer;
 
          BaseContainer     _dq;
          Lock              _lock;
 
+      private:
+         /*! \brief WDDeque copy constructor (private)
+          */
          WDDeque ( const WDDeque & );
+         /*! \brief WDDeque copy assignment operator (private)
+          */
          const WDDeque & operator= ( const WDDeque & );
-
       public:
+         /*! \brief WDDeque default constructor
+          */
          WDDeque() : _dq(), _lock() {}
+         /*! \brief WDDeque destructor
+          */
          ~WDDeque() {}
 
          bool empty ( void ) const;
