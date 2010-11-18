@@ -66,8 +66,7 @@ namespace nanos
    class DirectoryEntry : public Entry
    {
       private:
-         //Atomic<Cache *> _owner;
-         Cache * _owner;
+         Atomic<Cache *> _owner;
 
          Lock _entryLock;
          Atomic<bool> _invalidated;
@@ -95,6 +94,8 @@ namespace nanos
          Cache * getOwner() const;
 
          void setOwner( Cache *owner );
+
+         bool clearOwnerCS( Cache *current );
 
          bool isInvalidated();
 

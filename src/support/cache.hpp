@@ -442,7 +442,7 @@ inline void DeviceCache<_T,_Policy>::synchronizeInternal( SyncData &sd, CopyDesc
 
       // Make sure we are synchronizing the newest version
       if ( de->getOwner() == sd._this && ce->getVersion() == cd.getDirectoryVersion()) {
-         de->setOwner(NULL);
+         de->clearOwnerCS( sd._this );
       }
    } else {
       ensure ( !ce->isFlushing(), "User program is incorrect" );
