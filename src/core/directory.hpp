@@ -63,11 +63,17 @@ inline const DirectoryEntry& DirectoryEntry::operator= ( const DirectoryEntry &e
 //inline Cache * DirectoryEntry::getOwner() const { return _owner.value(); }
 inline Cache * DirectoryEntry::getOwner() const
 {
-   memoryFence();
-   return _owner;
+   return _owner.value();
 }
 
 inline void DirectoryEntry::setOwner( Cache *owner ) { _owner = owner; }
+
+inline bool DirectoryEntry::clearOwnerCS( Cache *current )
+{
+   Atomic<Cache *> expected = current;
+   Atomic<Cache *> null = (Cache *)NULL;
+   return _owner.cswap( expected, null );
+}
 
 inline bool DirectoryEntry::isInvalidated()
 {
