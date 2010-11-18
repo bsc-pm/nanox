@@ -25,6 +25,7 @@
 #include "directory_decl.hpp"
 #include "atomic.hpp"
 #include "processingelement_fwd.hpp"
+#include "copydescriptor_decl.hpp"
 
 namespace nanos {
 
@@ -197,8 +198,8 @@ namespace nanos {
          virtual CacheEntry* getEntry( uint64_t tag ) = 0;
          virtual void addReference( uint64_t tag ) = 0;
          virtual void deleteReference( uint64_t tag ) = 0;
-         virtual bool copyDataToCache( uint64_t tag, size_t size ) = 0;
-         virtual bool copyBackFromCache( uint64_t tag, size_t size ) = 0;
+         virtual bool copyDataToCache( CopyDescriptor& cd, size_t size ) = 0;
+         virtual bool copyBackFromCache( CopyDescriptor& cd, size_t size ) = 0;
          virtual void copyTo( void *dst, uint64_t tag, size_t size ) = 0;
          virtual void invalidate( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de ) = 0;
          virtual void invalidate( Directory &dir, uint64_t tag, DirectoryEntry *de ) = 0;
@@ -294,7 +295,7 @@ namespace nanos {
             DeviceCache* _this;
          };
 
-         static void synchronizeInternal( SyncData &sd, uint64_t tag );
+         static void synchronizeInternal( SyncData &sd, CopyDescriptor &cd );
  
       public:
         /* \brief Default constructor
@@ -319,16 +320,16 @@ namespace nanos {
          void * getAddress( uint64_t tag );
 
         /* \brief Copy data from the address represented by the tag to the entry in the device.
-         * \param tag: identifier of the entry
+         * \param cd: identifier of the entry
          * \param size: number of bytes to copy
          */
-         bool copyDataToCache( uint64_t tag, size_t size );
+         bool copyDataToCache( CopyDescriptor &cd, size_t size );
 
         /* \brief Copy back from the entry to the address represented by the tag.
-         * \param tag: Entry identifier and address of original data
+         * \param cd: Entry identifier and address of original data
          * \param size: number of bytes to copy
          */
-         bool copyBackFromCache( uint64_t tag, size_t size );
+         bool copyBackFromCache( CopyDescriptor &cd, size_t size );
 
         /* \brief Perform local copy in the device for an entry
          * \param dst: Device destination address to copy to
@@ -357,9 +358,9 @@ namespace nanos {
 
          void synchronizeTransfer( uint64_t tag );
 
-         void synchronize( uint64_t tag );
+         void synchronize( CopyDescriptor &cd );
 
-         void synchronize( std::list<uint64_t> &tags );
+         void synchronize( std::list<CopyDescriptor> &cds );
 
          void waitInput( uint64_t tag );
 
