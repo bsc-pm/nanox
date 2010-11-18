@@ -27,6 +27,7 @@
 #include "gpudevice.hpp"
 #include "gpumemorytransfer.hpp"
 #include "simpleallocator.hpp"
+#include "copydescriptor_decl.hpp"
 
 #include <map>
 
@@ -108,8 +109,8 @@ namespace ext
          virtual void unregisterCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool output );
          virtual void registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
          virtual void unregisterPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size );
-         virtual void synchronize( uint64_t tag );
-         virtual void synchronize( std::list<uint64_t> &tags );
+         virtual void synchronize( CopyDescriptor &cd );
+         virtual void synchronize( std::list<CopyDescriptor> &cds );
 
          virtual void* getAddressDependent( uint64_t tag );
          virtual void copyToDependent( void *dst, uint64_t tag, size_t size );

@@ -110,14 +110,14 @@ void GPUProcessor::unregisterPrivateAccessDependent( Directory& dir, uint64_t ta
    _cache.unregisterPrivateAccess( dir, tag, size );
 }
 
-void GPUProcessor::synchronize( uint64_t tag )
+void GPUProcessor::synchronize( CopyDescriptor &cd )
 {
-   _cache.synchronize( tag );
+   _cache.synchronize( cd );
 }
 
-void GPUProcessor::synchronize( std::list<uint64_t> &tags )
+void GPUProcessor::synchronize( std::list<CopyDescriptor> &cds )
 {
-   _cache.synchronize( tags );
+   _cache.synchronize( cds );
 }
 
 void GPUProcessor::waitInputDependent( uint64_t tag )

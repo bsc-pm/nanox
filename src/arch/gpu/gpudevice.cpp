@@ -228,7 +228,7 @@ void GPUDevice::free( void *address, ProcessingElement *pe )
    }
 }
 
-bool GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size, ProcessingElement *pe )
+bool GPUDevice::copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, ProcessingElement *pe )
 {
    // Copy from host memory to device memory
 
@@ -240,7 +240,7 @@ bool GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size, Process
       ( ( nanos::ext::GPUProcessor * ) pe )->getInTransferList()->addMemoryTransfer( remoteSrc );
       // Workaround to perform asynchronous copies
       uint64_t pinned = ( ( nanos::ext::GPUProcessor * ) pe )->getPinnedAddress( localDst );
-      memcpy( ( void * ) pinned, ( void * ) remoteSrc, size );
+      memcpy( ( void * ) pinned, ( void * ) remoteSrc.getTag(), size );
 
       err = cudaMemcpyAsync(
                localDst,
@@ -252,11 +252,11 @@ bool GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size, Process
    }
 
    if ( _transferMode == PINNED_OS ) {
-      unsigned int auxAddress = remoteSrc;
+      unsigned int auxAddress = remoteSrc.getTag();
       int error = 0;
 
       for ( int bytesLeft = size; bytesLeft > 0;  ) {
-         bool touch = * ((bool *) remoteSrc);
+         bool touch = * ((bool *) remoteSrc.getTag());
          std::cout << "aux@ = " << auxAddress << "; min(rlim,Bl) = " << std::min( _rlimit, (unsigned int) bytesLeft )
          << "; error = " << error << "; size = " << size << "; Bl = " << bytesLeft << " " << touch << std::endl;
          error += mlock( ( void * ) auxAddress, std::min( _rlimit, (unsigned int) bytesLeft ) );
@@ -279,18 +279,18 @@ bool GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size, Process
 
       std::cout << "-------------------------------------------" << std::endl;
 
-      err = cudaMemcpyAsync( localDst, ( void * ) remoteSrc, size, cudaMemcpyHostToDevice, 0 );
+      err = cudaMemcpyAsync( localDst, ( void * ) remoteSrc.getTag(), size, cudaMemcpyHostToDevice, 0 );
    }
 
    if ( _transferMode == NORMAL) {
-      err = cudaMemcpy( localDst, ( void * ) remoteSrc, size, cudaMemcpyHostToDevice );
+      err = cudaMemcpy( localDst, ( void * ) remoteSrc.getTag(), size, cudaMemcpyHostToDevice );
    }
 
    if ( err != cudaSuccess ) {
       std::stringstream sizeStr;
       sizeStr << size;
       std::stringstream srcStr;
-      srcStr << remoteSrc;
+      srcStr << remoteSrc.getTag();
       std::stringstream dstStr;
       dstStr << localDst;
       std::string what = "Trying to copy "
@@ -310,7 +310,7 @@ bool GPUDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size, Process
    return false;
 }
 
-bool GPUDevice::copyOut( uint64_t remoteDst, void *localSrc, size_t size, ProcessingElement *pe )
+bool GPUDevice::copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size, ProcessingElement *pe )
 {
    // Copy from device memory to host memory
 
@@ -343,10 +343,10 @@ bool GPUDevice::copyOut( uint64_t remoteDst, void *localSrc, size_t size, Proces
       cudaError_t err = cudaSuccess;
 
       if ( _transferMode == ASYNC ) {
-         ( ( nanos::ext::GPUProcessor * ) pe )->getOutTransferList()->addMemoryTransfer( ( void * ) remoteDst, localSrc, size );
+         ( ( nanos::ext::GPUProcessor * ) pe )->getOutTransferList()->addMemoryTransfer( remoteDst, localSrc, size );
       }
       else {
-         err = cudaMemcpy( ( void * ) remoteDst, localSrc, size, cudaMemcpyDeviceToHost );
+         err = cudaMemcpy( ( void * ) remoteDst.getTag(), localSrc, size, cudaMemcpyDeviceToHost );
       }
 
       if ( err != cudaSuccess ) {
@@ -355,7 +355,7 @@ bool GPUDevice::copyOut( uint64_t remoteDst, void *localSrc, size_t size, Proces
          std::stringstream srcStr;
          srcStr << localSrc;
          std::stringstream dstStr;
-         dstStr << remoteDst;
+         dstStr << remoteDst.getTag();
          std::string what = "Trying to copy "
                             + sizeStr.str()
                             + " bytes of data from device ("
@@ -368,7 +368,7 @@ bool GPUDevice::copyOut( uint64_t remoteDst, void *localSrc, size_t size, Proces
    }
 
    if ( _transferMode == PINNED_OS ) {
-      munlock( ( void * ) remoteDst, size );
+      munlock( ( void * ) remoteDst.getTag(), size );
    }
 
    if ( _transferMode == NORMAL ) {

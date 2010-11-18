@@ -30,6 +30,7 @@
 
 #include "workdescriptor_decl.hpp"
 #include "processingelement_fwd.hpp"
+#include "copydescriptor_decl.hpp"
 
 
 namespace nanos
@@ -112,12 +113,12 @@ typedef enum {
          /* \brief Copy from remoteSrc in the host to localDst in the device
           *        Returns true if the operation is synchronous
           */
-         static bool copyIn( void *localDst, uint64_t remoteSrc, size_t size, ProcessingElement *pe );
+         static bool copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, ProcessingElement *pe );
 
          /* \brief Copy from localSrc in the device to remoteDst in the host
           *        Returns true if the operation is synchronous
           */
-         static bool copyOut( uint64_t remoteDst, void *localSrc, size_t size, ProcessingElement *pe );
+         static bool copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size, ProcessingElement *pe );
 
          /* \brief Copy locally in the device from src to dst
           */

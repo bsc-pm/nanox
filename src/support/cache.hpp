@@ -27,6 +27,7 @@
 #include "directory.hpp"
 #include "atomic.hpp"
 #include "processingelement_fwd.hpp"
+#include "copydescriptor.hpp"
 
 using namespace nanos;
 
@@ -50,7 +51,8 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
       if (inserted) { // allocate it
          ce->setAddress( _cache.allocate( dir, size ) );
          if (input) {
-            if ( _cache.copyDataToCache( tag, size ) ) {
+            CopyDescriptor cd = CopyDescriptor(tag);
+            if ( _cache.copyDataToCache( cd, size ) ) {
                ce->setCopying(false);
             }
          }
@@ -75,7 +77,8 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
             ce->setAddress( _cache.allocate( dir, size ) );
             if (input) {
                while ( de->getOwner() != NULL ) myThread->idle();
-               if ( _cache.copyDataToCache( tag, size ) ) {
+               CopyDescriptor cd = CopyDescriptor(tag);
+               if ( _cache.copyDataToCache( cd, size ) ) {
                   ce->setCopying(false);
                }
             }
@@ -152,7 +155,8 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                   while ( ce-> isResizing() );
 
                   // Copy in
-                  if ( _cache.copyDataToCache( tag, size ) ) {
+                  CopyDescriptor cd = CopyDescriptor(tag);
+                  if ( _cache.copyDataToCache( cd, size ) ) {
                      ce->setCopying(false);
                   }
                }
@@ -180,7 +184,8 @@ inline void CachePolicy::registerPrivateAccess( Directory& dir, uint64_t tag, si
    ensure ( inserted, "Private access cannot hit the cache.");
    ce.setAddress( _cache.allocate( dir, size ) );
    if ( input ) {
-      if ( _cache.copyDataToCache( tag, size ) ) {
+      CopyDescriptor cd = CopyDescriptor(tag);
+      if ( _cache.copyDataToCache( cd, size ) ) {
          ce.setCopying(false);
       }
    }
@@ -194,7 +199,8 @@ inline void CachePolicy::unregisterPrivateAccess( Directory &dir, uint64_t tag, 
    ensure ( ce != NULL, "Private access cannot miss in the cache.");
    // FIXME: to use this output it needs to be synchronized now or somewhere in case it is asynchronous
    if ( ce->isDirty() ) {
-      _cache.copyBackFromCache( tag, size );
+      CopyDescriptor cd = CopyDescriptor(tag);
+      _cache.copyBackFromCache( cd, size );
    }
    _cache.deleteEntry( tag, size );
 }
@@ -205,11 +211,12 @@ inline void WriteThroughPolicy::unregisterCacheAccess( Directory& dir, uint64_t 
    // There's two reference deleting calls because getEntry places one reference
    _cache.deleteReference( tag );
    _cache.deleteReference( tag );
+   DirectoryEntry *de = dir.getEntry( tag );
    if ( output ) {
-      if ( _cache.copyBackFromCache( tag, size ) ) {
-         ce->setDirty( false );
-         DirectoryEntry *de = dir.getEntry( tag );
          ensure( de != NULL, "Directory has been corrupted" );
+      CopyDescriptor cd = CopyDescriptor(tag, de->getVersion());
+      if ( _cache.copyBackFromCache( cd, size ) ) {
+         ce->setDirty( false );
          de->setOwner( NULL );
       } else {
          ce->setFlushing( true );
@@ -321,24 +328,24 @@ inline void * DeviceCache<_T,_Policy>::getAddress( uint64_t tag )
 }
 
 template <class _T, class _Policy>
-inline bool DeviceCache<_T,_Policy>::copyDataToCache( uint64_t tag, size_t size )
+inline bool DeviceCache<_T,_Policy>::copyDataToCache( CopyDescriptor &cd, size_t size )
 {
    bool result;
    NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER, key, (nanos_event_value_t) size) );
-   result = _T::copyIn( _cache[tag].getAddress(), tag, size, _pe );
+   result = _T::copyIn( _cache[cd.getTag()].getAddress(), cd, size, _pe );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
    return result;
 }
 
 template <class _T, class _Policy>
-inline bool DeviceCache<_T,_Policy>::copyBackFromCache( uint64_t tag, size_t size )
+inline bool DeviceCache<_T,_Policy>::copyBackFromCache( CopyDescriptor &cd, size_t size )
 {
    bool result;
    NANOS_INSTRUMENT( static nanos_event_key_t key1 = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-out") );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER, key1, size ) );
-   CacheEntry &entry = _cache[tag];
-   result = _T::copyOut( tag, entry.getAddress(), size, _pe );
+   CacheEntry &entry = _cache[cd.getTag()];
+   result = _T::copyOut( cd, entry.getAddress(), size, _pe );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key1 ) );
    return result;
 }
@@ -420,21 +427,21 @@ inline void DeviceCache<_T,_Policy>::synchronizeTransfer( uint64_t tag )
 }
 
 template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::synchronizeInternal( SyncData &sd, uint64_t tag )
+inline void DeviceCache<_T,_Policy>::synchronizeInternal( SyncData &sd, CopyDescriptor &cd )
 {
-   CacheEntry *ce = sd._this->_cache.find( tag );
+   CacheEntry *ce = sd._this->_cache.find( cd.getTag() );
    ensure( ce != NULL, "Cache has been corrupted" );
    if ( ce->isFlushing() ) {
       ce->setFlushing(false);
       Directory* dir = ce->getFlushingTo();
       ensure( dir != NULL, "CopyBack sync lost its directory");
       ce->setFlushingTo(NULL);
-      DirectoryEntry *de = dir->getEntry( tag );
+      DirectoryEntry *de = dir->getEntry( cd.getTag() );
       ensure ( !ce->isCopying(), "User program is incorrect" );
       ensure( de != NULL, "Directory has been corrupted" );
 
       // Make sure we are synchronizing the newest version
-      if (ce->getVersion() == de->getVersion()) {
+      if ( de->getOwner() == sd._this && ce->getVersion() == cd.getDirectoryVersion()) {
          de->setOwner(NULL);
       }
    } else {
@@ -445,17 +452,21 @@ inline void DeviceCache<_T,_Policy>::synchronizeInternal( SyncData &sd, uint64_t
 }
 
 template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::synchronize( uint64_t tag )
+inline void DeviceCache<_T,_Policy>::synchronize( CopyDescriptor& cd )
 {
    SyncData sd = { this };
-   synchronizeInternal( sd, tag );
+   synchronizeInternal( sd, cd );
 }
 
 template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::synchronize( std::list<uint64_t> &tags )
+inline void DeviceCache<_T,_Policy>::synchronize( std::list<CopyDescriptor> &cds )
 {
    SyncData sd = { this };
-   for_each( tags.begin(), tags.end(), std :: bind1st( std :: ptr_fun ( synchronizeInternal ), sd ) );
+   for ( std::list<CopyDescriptor>::iterator it = cds.begin(); it != cds.end(); it++ ) {
+      synchronizeInternal( sd, *it );
+   }
+//   FIXME: Does for_each only work with basic types or am I missing some method in the CopyDescriptor?
+//   for_each( cds.begin(), cds.end(), std :: bind1st( std :: ptr_fun ( synchronizeInternal ), sd ) );
 }
 
 template <class _T, class _Policy>
@@ -492,7 +503,8 @@ inline void DeviceCache<_T,_Policy>::invalidate( Directory &dir, uint64_t tag, D
                // someone flushed it between setting to invalidated and setting to flushing, do nothing
                ce->setFlushing(false);
          } else {
-            if ( copyBackFromCache( tag, ce->getSize() ) ) {
+            CopyDescriptor cd = CopyDescriptor(tag, de->getVersion());
+            if ( copyBackFromCache( cd, ce->getSize() ) ) {
                ce->setFlushing(false);
                de->setOwner(NULL);
             }
@@ -512,7 +524,8 @@ inline void DeviceCache<_T,_Policy>::invalidate( Directory &dir, uint64_t tag, s
                // someone flushed it between setting to invalidated and setting to flushing, do nothing
                ce->setFlushing(false);
          } else {
-            if ( copyBackFromCache( tag, size ) ) {
+            CopyDescriptor cd = CopyDescriptor(tag, de->getVersion());
+            if ( copyBackFromCache( cd, size ) ) {
                ce->setFlushing(false);
                de->setOwner(NULL);
             }
