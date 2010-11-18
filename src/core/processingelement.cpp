@@ -50,7 +50,7 @@ void ProcessingElement::waitInputs( WorkDescriptor &work )
       for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
          CopyData & cd = copies[i];
          if ( !cd.isPrivate() && cd.isInput() ) {
-              dir->waitInput( cd.getAddress() );
+              dir->waitInput( cd.getAddress(), cd.isOutput() );
          }
       }
    }

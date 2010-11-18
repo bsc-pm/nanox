@@ -119,18 +119,22 @@ inline void Directory::registerAccess( uint64_t tag, size_t size, bool input, bo
          Cache *c = de->getOwner();
          if ( c != NULL )
             c->invalidate( *this, tag, size, de );
-      }
-      if ( output ) {
+      } else if ( output ) {
+         de->setOwner(NULL);
          de->setVersion(de->getVersion()+1);
       }
    }
 }
 
-inline void Directory::waitInput( uint64_t tag )
+inline void Directory::waitInput( uint64_t tag, bool output )
 {
    DirectoryEntry *de = _directory.find( tag );
-   if ( de != NULL ) // The entry may have never been registered
+   if ( de != NULL ) { // The entry may have never been registered
       while ( de->getOwner() != NULL );
+      if (output) {
+         de->setVersion(de->getVersion()+1);
+      }
+   }
 }
 
 inline void Directory::synchronizeHost()
