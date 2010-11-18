@@ -135,7 +135,7 @@ namespace nanos
 
          void registerAccess( uint64_t tag, size_t size, bool input, bool output );
 
-         void waitInput( uint64_t tag );
+         void waitInput( uint64_t tag, bool output );
 
          void synchronizeHost();
          void synchronizeHost( std::list<uint64_t> syncTags );
