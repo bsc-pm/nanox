@@ -34,6 +34,7 @@ namespace nanos {
          volatile unsigned int *_notify;
          void **_malloc_return;
          bool *_malloc_complete;
+         char *_masterHostname;
 
       public:
          static const unsigned int MASTER_NODE_NUM = 0;
@@ -59,6 +60,8 @@ namespace nanos {
          void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size );
          void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, size_t size );
          void * malloc ( unsigned int remoteNode, size_t size, unsigned int id );
+         void setMasterHostname( char *name );
+         char *getMasterHostname();
    };
 }
 

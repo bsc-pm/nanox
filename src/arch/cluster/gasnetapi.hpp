@@ -42,6 +42,7 @@ namespace ext {
          void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size );
          void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, size_t size );
          void malloc ( unsigned int remoteNode, size_t size, unsigned int id );
+         void sendMyHostName( unsigned int dest );
    };
 }
 }

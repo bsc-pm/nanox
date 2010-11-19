@@ -177,6 +177,7 @@ static void am_malloc( gasnet_token_t token, gasnet_handlerarg_t size, unsigned 
     }
 }
 
+/* GASNet medium active message handler */
 static void am_malloc_reply( gasnet_token_t token, gasnet_handlerarg_t addr, unsigned int id )
 {
     gasnet_node_t src_node;
@@ -187,12 +188,27 @@ static void am_malloc_reply( gasnet_token_t token, gasnet_handlerarg_t addr, uns
     sys.getNetwork()->notifyMalloc( src_node, ( void * ) addr, id );
 }
 
+/* GASNet medium active message handler */
+static void am_my_hostname( gasnet_token_t token, void *buff, size_t nbytes )
+{
+    gasnet_node_t src_node;
+    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
+    {
+        fprintf( stderr, "gasnet: Error obtaining node information.\n" );
+    }
+    /* for now we only allow this at node 0 */
+    if ( src_node == 0 )
+    {
+       sys.getNetwork()->setMasterHostname( ( char  *) buff );
+    }
+}
+
 void GasnetAPI::initialize ( Network *net )
 {
    int my_argc = OS::getArgc();
    char **my_argv = OS::getArgv();
    uintptr_t segSize;
-
+   
    _net = net;
 
    gasnet_handlerentry_t htable[] = {
@@ -201,7 +217,8 @@ void GasnetAPI::initialize ( Network *net )
       { 205, (void (*)()) am_work },
       { 206, (void (*)()) am_work_done },
       { 207, (void (*)()) am_malloc },
-      { 208, (void (*)()) am_malloc_reply }
+      { 208, (void (*)()) am_malloc_reply },
+      { 209, (void (*)()) am_my_hostname }
    };
 
    fprintf(stderr, "argc is %d\n", my_argc);
@@ -223,7 +240,20 @@ void GasnetAPI::initialize ( Network *net )
    gasnet_barrier_notify( 0, GASNET_BARRIERFLAG_ANONYMOUS );
    gasnet_barrier_wait( 0, GASNET_BARRIERFLAG_ANONYMOUS );
 
-   if ( gasnet_mynode() == 0)
+   if ( _net->getNodeNum() == 0)
+   {
+      char myHostname[256];
+      unsigned int i;
+
+      for ( i = 1; i < _net->getNumNodes() ; i++ )
+      {
+         sendMyHostName( i );
+      }
+   }
+   gasnet_barrier_notify( 0, GASNET_BARRIERFLAG_ANONYMOUS );
+   gasnet_barrier_wait( 0, GASNET_BARRIERFLAG_ANONYMOUS );
+
+   if ( _net->getNodeNum() == 0)
    {
       unsigned int idx;
       
@@ -302,5 +332,20 @@ void GasnetAPI::malloc ( unsigned int remoteNode, size_t size, unsigned int id )
    if (gasnet_AMRequestShort2( remoteNode, 207, size, id ) != GASNET_OK)
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", remoteNode);
+   }
+}
+
+void GasnetAPI::sendMyHostName( unsigned int dest )
+{
+   char name[256];
+
+   if ( gethostname( name, 256 ) != 0 )
+   {
+      fprintf(stderr, "os: Error getting the hostname.\n");
+   }
+
+   if ( gasnet_AMRequestMedium0( dest, 209, name, strlen( name ) ) != GASNET_OK )
+   {
+      fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest );
    }
 }

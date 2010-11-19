@@ -19,13 +19,15 @@
 
 
 #include <iostream>
+#include <cstring>
 #include "network.hpp"
 #include "schedule.hpp"
 #include "system.hpp"
 
 using namespace nanos;
 
-Network::Network () : _numNodes( 0 ), _api( (NetworkAPI *) 0 ), _nodeNum( 0 ), _notify( NULL ), _malloc_return( NULL ), _malloc_complete( NULL ) {}
+Network::Network () : _numNodes( 0 ), _api( (NetworkAPI *) 0 ), _nodeNum( 0 ), _notify( NULL ),
+                      _malloc_return( NULL ), _malloc_complete( NULL ), _masterHostname ( NULL ) {}
 Network::~Network ()
 {
    if ( _notify != NULL )
@@ -200,4 +202,11 @@ void Network::notifyMalloc( unsigned int remoteNode, void * addr, unsigned int i
 {
    _malloc_return[ remoteNode * sys.getNumPEs() + id ] = addr;
    _malloc_complete[ remoteNode * sys.getNumPEs() + id ] = true;
+}
+
+void Network::setMasterHostname( char *name )
+{
+   if ( _masterHostname == NULL )
+      _masterHostname = new char[ std::strlen( name ) ];
+   std::memcpy( _masterHostname, name, std::strlen( name ) );
 }
