@@ -161,6 +161,7 @@ inline void Directory::synchronizeHost()
          c->syncTransfer( de->getTag() );
          while (  de->getOwner() != NULL );
       }
+      de->setVersion( de->getVersion()+1 );
    }
 }
 
@@ -188,6 +189,7 @@ inline void Directory::synchronizeHost( std::list<uint64_t> syncTags )
          c->syncTransfer( de->getTag() );
          while (  de->getOwner() != NULL );
       }
+      de->setVersion( de->getVersion()+1 );
    }
 }
 
