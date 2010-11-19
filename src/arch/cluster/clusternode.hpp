@@ -68,10 +68,10 @@ namespace ext {
          virtual void* getAddressDependent( uint64_t tag );
          virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
 
-         void registerCacheAccessDependent( uint64_t addr, size_t len, bool aaa, bool aaaa );
-         void unregisterCacheAccessDependent( uint64_t addr, size_t len, bool output);
-         void registerPrivateAccessDependent( uint64_t addr, size_t len, bool aaa, bool aaaa );
-         void unregisterPrivateAccessDependent( uint64_t addr, size_t len );
+         void registerCacheAccessDependent( Directory &dir, uint64_t addr, size_t len, bool aaa, bool aaaa );
+         void unregisterCacheAccessDependent( Directory &dir, uint64_t addr, size_t len, bool output);
+         void registerPrivateAccessDependent( Directory &dir, uint64_t addr, size_t len, bool aaa, bool aaaa );
+         void unregisterPrivateAccessDependent( Directory &dir, uint64_t addr, size_t len );
 
          void waitInputDependent( uint64_t addr );
 

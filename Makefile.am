@@ -22,6 +22,3 @@ DIST_SUBDIRS = tests doc src scripts
 
 ACLOCAL_AMFLAGS=-I m4
 
-# This make install is related to tickets #160 and #161
-check-local:
-	$(MAKE) -C . install

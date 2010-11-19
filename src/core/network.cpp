@@ -125,7 +125,6 @@ void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigne
 
          NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
          NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wdId) << 32 ) + dest; )
-         std::cerr << "setting ini comm id " << id << " " << wdId << ":" << dest << std::endl;
          NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL ); )
 
          _api->sendWorkMsg( dest, work, dataSize, wdId, numPe, argSize, arg );
@@ -137,7 +136,7 @@ void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigne
             Scheduler::yield();
          }
          _notify[ dest * sys.getNumPEs() + numPe ] = 0;
-       //  std::cerr << "completed work from " << dest << std::endl;
+         //std::cerr << "completed work from " << dest << std::endl;
 
       }
       else

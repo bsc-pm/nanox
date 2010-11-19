@@ -24,6 +24,7 @@
 #include <vector>
 #include <stdlib.h>
 #include <dlfcn.h>
+#include <time.h>
 
 namespace nanos
 {
@@ -52,6 +53,9 @@ namespace nanos
          static const char * getArg (int i) { return _argv[i]; }
          static long getArgc() { return _argc; }
          static char **getArgv() { return _argv; }
+
+         static double getMonotonicTime ();
+	 static double getMonotonicTimeResolution ();
    };
 
 // inlined functions
@@ -59,6 +63,30 @@ namespace nanos
    inline const char * OS::getEnvironmentVariable ( const std::string &name )
    {
       return getenv( name.c_str() );
+   }
+
+   inline double OS::getMonotonicTime ()
+   {
+      struct timespec ts;
+      double t;
+
+      clock_gettime(CLOCK_MONOTONIC,&ts);
+
+      t = (double) (ts.tv_sec)  + (double) ts.tv_nsec * 1.0e-9;
+
+      return t;
+   }
+
+   inline double OS::getMonotonicTimeResolution ()
+   {
+      struct timespec ts;
+      double res;
+
+      clock_getres(CLOCK_MONOTONIC,&ts);
+
+      res = (double) (ts.tv_sec)  + (double) ts.tv_nsec * 1.0e-9;
+
+      return res;
    }
 
 };

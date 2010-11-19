@@ -88,25 +88,25 @@ void ClusterNode::copyToDependent( void *dst, uint64_t tag, size_t size )
    _cache.copyTo( dst, tag, size );
 }
 
-void ClusterNode::registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output )
+void ClusterNode::registerCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
 {
    //fprintf(stderr, "clusternode: registerCacheAccessDependent %llx\n", tag);
-   _cache.registerCacheAccess( tag, size, input, output );
+   _cache.registerCacheAccess( dir, tag, size, input, output );
 }
 
-void ClusterNode::unregisterCacheAccessDependent( uint64_t tag, size_t size, bool output )
+void ClusterNode::unregisterCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool output )
 {
-   _cache.unregisterCacheAccess( tag, size, output );
+   _cache.unregisterCacheAccess( dir, tag, size, output );
 }
 
-void ClusterNode::registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output )
+void ClusterNode::registerPrivateAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
 {
-   _cache.registerPrivateAccess( tag, size, input, output );
+   _cache.registerPrivateAccess( dir, tag, size, input, output );
 }
 
-void ClusterNode::unregisterPrivateAccessDependent( uint64_t tag, size_t size )
+void ClusterNode::unregisterPrivateAccessDependent( Directory &dir, uint64_t tag, size_t size )
 {
-   _cache.unregisterPrivateAccess( tag, size );
+   _cache.unregisterPrivateAccess( dir, tag, size );
 }
 
 unsigned int ClusterNode::getClusterNodeNum() { return _clusterNode; }

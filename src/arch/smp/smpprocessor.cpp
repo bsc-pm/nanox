@@ -74,31 +74,31 @@ void SMPProcessor::waitInputDependent( uint64_t tag )
    _cache.waitInput(tag);
 }
 
-void SMPProcessor::registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output )
+void SMPProcessor::registerCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
 {
    _lock.acquire(); //cluster
-   _cache.registerCacheAccess( tag, size, input, output );
+   _cache.registerCacheAccess( dir, tag, size, input, output );
    _lock.release(); //cluster
 }
 
-void SMPProcessor::unregisterCacheAccessDependent( uint64_t tag, size_t size, bool output )
+void SMPProcessor::unregisterCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool output )
 {
    _lock.acquire(); //cluster
-   _cache.unregisterCacheAccess( tag, size, output );
+   _cache.unregisterCacheAccess( dir, tag, size, output );
    _lock.release(); //cluster
 }
 
-void SMPProcessor::registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output )
+void SMPProcessor::registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
 {
    _lock.acquire(); //cluster
-   _cache.registerPrivateAccess( tag, size, input, output );
+   _cache.registerPrivateAccess( dir, tag, size, input, output );
    _lock.release(); //cluster
 }
 
-void SMPProcessor::unregisterPrivateAccessDependent( uint64_t tag, size_t size )
+void SMPProcessor::unregisterPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size )
 {
    _lock.acquire(); //cluster
-   _cache.unregisterPrivateAccess( tag, size );
+   _cache.unregisterPrivateAccess( dir, tag, size );
    _lock.release(); //cluster
 }
 
@@ -118,7 +118,7 @@ void SMPProcessor::copyToDependent( void *dst, uint64_t tag, size_t size )
    _cache.copyTo( dst, tag, size );
 }
 
-void SMPProcessor::synchronize( uint64_t tag )
+void SMPProcessor::synchronize( Directory &dir, uint64_t tag )
 {
    _cache.synchronize( tag );
 }

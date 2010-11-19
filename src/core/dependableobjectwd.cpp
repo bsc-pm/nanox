@@ -26,6 +26,7 @@
 #include "system.hpp"
 #include "instrumentation.hpp"
 #include "system.hpp"
+#include "directory.hpp"
 
 using namespace nanos;
 
@@ -60,9 +61,18 @@ void DOWait::init()
    _depsSatisfied = false;
 }
 
-void DOWait::wait ( )
+void DOWait::wait ( std::list<Dependency *> deps )
 {
    _syncCond.wait();
+
+   Directory *d = _waitDomainWD->getDirectory(false);
+   if ( d != NULL ) {
+      std::list<uint64_t> flushDeps;
+      for (std::list<Dependency *>::iterator it = deps.begin(); it != deps.end(); it++ ) {
+         flushDeps.push_back( (uint64_t) (*it)->getDepAddress() );
+      }
+      d->synchronizeHost( flushDeps );
+   }
 }
 
 void DOWait::dependenciesSatisfied ( )

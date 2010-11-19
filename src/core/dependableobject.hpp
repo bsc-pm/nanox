@@ -25,6 +25,7 @@
 #include <vector>
 #include "atomic.hpp"
 #include "trackableobject_fwd.hpp"
+#include "dependency.hpp"
 
 namespace nanos
 {
@@ -90,7 +91,7 @@ namespace nanos
 
          virtual void dependenciesSatisfied ( ) { }
 
-         virtual void wait ( ) { }
+         virtual void wait ( std::list<Dependency *> deps ) { }
 
          virtual bool waits ( ) { return false; }
 
@@ -141,6 +142,10 @@ namespace nanos
             return numPredecessors;
          }
 
+         /*! Returns the number of predecessors of this DependableObject
+          */
+         int numPredecessors () const { return _numPredecessors.value(); }
+
         /*! \brief Obtain the list of successors
          *  \return List of DependableObject* that depend on "this"
          */
@@ -151,10 +156,11 @@ namespace nanos
 
         /*! \brief Add a successor to the successors list
          *  \param depObj DependableObject to be added.
+         *  returns true if the successor didn't already exist in the list (a new edge has been added)
          */
-         void addSuccessor ( DependableObject &depObj )
+         bool addSuccessor ( DependableObject &depObj )
          {
-            _successors.insert ( &depObj );
+            return _successors.insert ( &depObj ).second;
          }
 
         /*! \brief Add an output object to the list.
@@ -218,6 +224,12 @@ namespace nanos
          *  \sa DependableObject
          */
          void finished ( );
+
+        /*! If there is an object that only depends from this dependable object, then release it and
+            return it
+         */
+         DependableObject * releaseImmediateSuccessor ( void );
+         
    };
 
 };

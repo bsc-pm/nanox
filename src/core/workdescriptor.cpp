@@ -28,7 +28,7 @@
 
 using namespace nanos;
 
-void WorkDescriptor::init (bool isUserLevelThread, WorkDescriptor *previous)
+void WorkDescriptor::init ()
 {
    BaseThread *myThd = getMyThreadSafe();
    ProcessingElement *pe = getPe();
@@ -40,27 +40,28 @@ void WorkDescriptor::init (bool isUserLevelThread, WorkDescriptor *previous)
       setPe( pe );
    }
 
-   //std::cerr << "thd: " << myThread->getId() << " -- Starting wd " << this << ":" << getId() << " pe: " << pe << " is ULT? " << isUserLevelThread << " previous " << previous << " current " << &myThread->getThreadWD() << std::endl;
+   //std::cerr << "thd: " << myThread->getId() << " -- Starting wd " << this << ":" << getId() << " pe: " << pe << " current " << &myThread->getThreadWD() << std::endl;
 
    /* Initializing instrumentation context */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdCreate( this ) );
 
-   _activeDevice->lazyInit(*this,isUserLevelThread,previous);
-   
    if ( getNumCopies() > 0 )
    {
       pe->copyDataIn( *this );
    }
 
-   setReady();
 }
 
-void WorkDescriptor::start()
+void WorkDescriptor::start(bool isUserLevelThread, WorkDescriptor *previous)
 {
+   _activeDevice->lazyInit(*this,isUserLevelThread,previous);
+   
    ProcessingElement *pe = myThread->runningOn();
 
    if ( getNumCopies() > 0 )
       pe->waitInputs( *this );
+
+   setReady();
 }
 
 DeviceData * WorkDescriptor::findDeviceData ( const Device &device ) const
@@ -118,7 +119,8 @@ void WorkDescriptor::done ()
    if ( pe->hasSeparatedMemorySpace() )
    {
       //std::cerr <<  "has separate MS ; node " << sys.getNetwork()->getNodeNum() << " wd " << this << " pe is " << pe << std::endl;
-     pe->copyDataOut( *this );
+      if ( getNumCopies() > 0 )
+         pe->copyDataOut( *this );
    }
 
    // FIX-ME: We are waiting for the children tasks to avoid to keep alive only part of the parent

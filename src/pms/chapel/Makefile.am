@@ -17,30 +17,14 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
+SUBDIRS = performance debug instrumentation
 
 include $(top_srcdir)/src/common.am
 
 if CHAPEL_SUPPORT
 
-chpl_dir=@CHAPEL_HOME@
-chpl_flags=-I$(chpl_dir)/runtime/include
-
-lib_LTLIBRARIES=libnanox-chpl.la
-
 pkginclude_HEADERS=\
         chpl_nanos.h\
 	$(END)
-
-sources=\
-	chpl_nanos.h\
-        chpl_main.cpp\
-        chpl_sync.cpp\
-	$(END)
-
-libnanox_chpl_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(performance_cflags) $(chpl_flags)
-libnanox_chpl_la_LDFLAGS=$(version_flags)
-libnanox_chpl_la_LIBADD=$(top_builddir)/src/core/libnanox.la
-libnanox_chpl_la_SOURCES=$(sources)
-libnanox_chpl_la_DEPENDENCIES=$(top_builddir)/src/core/libnanox.la
 
 endif

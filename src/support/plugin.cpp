@@ -24,15 +24,11 @@
 
 using namespace nanos;
 
-std::string PluginManager::_pluginsDir( LIBDIR );
 PluginManager::PluginList PluginManager::_activePlugins;
 
 void PluginManager::init()
 {
    Config config;
-   config.registerConfigOption ( "plugins_dir", new Config::StringVar ( _pluginsDir ), "Specifies the directory where the plugins are" );
-   config.registerArgOption ( "plugins_dir", "plugins-dir" );
-   config.registerEnvOption ( "plugins_dir", "NX_PLUGINS_DIR" );
    config.init();
 }
 
@@ -43,7 +39,7 @@ bool PluginManager::isPlugin ( const char *name )
 
    dlname = "libnanox-";
    dlname += name;
-   handler = OS::loadDL( _pluginsDir,dlname );
+   handler = OS::loadDL( "",dlname );
 
    if ( !handler ) {
       warning0 ( "plugin error=" << OS::dlError( handler ) );
@@ -67,7 +63,7 @@ Plugin * PluginManager::loadAndGetPlugin( const char *name, const bool init )
 
    dlname = "libnanox-";
    dlname += name;
-   handler = OS::loadDL( _pluginsDir,dlname );
+   handler = OS::loadDL( "",dlname );
 
    if ( !handler ) {
       warning0 ( "plugin error=" << OS::dlError( handler ) );

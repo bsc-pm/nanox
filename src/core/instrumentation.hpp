@@ -20,6 +20,7 @@
 #define __NANOS_INSTRUMENTOR_H
 
 #include "instrumentation_decl.hpp"
+#include "system.hpp"
 
 using namespace nanos;
 

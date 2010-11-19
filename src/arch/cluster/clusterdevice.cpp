@@ -48,6 +48,13 @@ void ClusterDevice::free( void *address, ProcessingElement *pe )
    fprintf(stderr, "[node %d] FREE %p\n", nodeId, address);
 }
 
+void * ClusterDevice::realloc( void *address, size_t newSize, size_t oldSize, ProcessingElement *pe )
+{
+   ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
+
+   return node->getAllocator().reallocate( address, newSize );
+}
+
 bool ClusterDevice::copyIn( void *localDst, uint64_t remoteSrc, size_t size, ProcessingElement *pe )
 {
    //ClusterNode *node = (ClusterNode *) myThread->runningOn();

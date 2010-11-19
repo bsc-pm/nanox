@@ -32,6 +32,7 @@
 #include "instrumentation_decl.hpp"
 #include "network.hpp"
 #include "directory_decl.hpp"
+#include "pminterface_decl.hpp"
 
 
 namespace nanos
@@ -67,6 +68,8 @@ namespace nanos
          int                  _thsPerPE;
          bool                 _untieMaster;
          bool                 _delayedStart;
+         bool                 _useYield;
+         bool                 _synchronizedStart;
 
          // cluster arch
          bool                 _isMaster;
@@ -76,11 +79,12 @@ namespace nanos
          SchedulerStats       _schedStats;
          SchedulerConf        _schedConf;
 
-         /*! names of the scheduling, cutoff and barrier plugins */
+         /*! names of the scheduling, cutoff, barrier and instrumentation plugins */
          std::string          _defSchedule;
          std::string          _defThrottlePolicy;
          std::string          _defBarr;
          std::string          _defInstr;
+
          std::string          _defArch;
 
          /*! factories for scheduling, pes and barriers objects */
@@ -89,6 +93,11 @@ namespace nanos
 
          PEList               _pes;
          ThreadList           _workers;
+        
+         /*! It counts how many threads have finalized their initialization */
+         Atomic<unsigned int> _initializedThreads;
+         /*! This counts how many threads we're waiting to be initialized */
+         unsigned int         _targetThreads;
 
          Slicers              _slicers; /**< set of global slicers */
 
@@ -101,6 +110,9 @@ namespace nanos
 
          // Mempory access directory
          Directory            _directory;
+
+         // Programming model interface
+         PMInterface *        _pmInterface;
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -166,6 +178,8 @@ namespace nanos
 
          bool getDelayedStart () const;
 
+         bool useYield() const;
+
          int getThsPerPE() const;
 
          int getTaskNum() const;
@@ -181,6 +195,9 @@ namespace nanos
          void setUntieMaster ( bool value );
 
          bool getUntieMaster () const;
+
+         void setSynchronizedStart ( bool value );
+         bool getSynchronizedStart ( void ) const;
 
          // team related methods
          BaseThread * getUnassignedWorker ( void );
@@ -226,8 +243,6 @@ namespace nanos
          
          SchedulePolicy * getDefaultSchedulePolicy ( ) const;
 
-         Directory& getDirectory();
-
          SchedulerStats & getSchedulerStats ();
          SchedulerConf  & getSchedulerConf();
 
@@ -237,6 +252,11 @@ namespace nanos
          Network * getNetwork( void );
 
          void stopFirstThread( void );
+
+         void setPMInterface (PMInterface *_pm);
+
+         void threadReady ();
+
    };
 
    extern System sys;

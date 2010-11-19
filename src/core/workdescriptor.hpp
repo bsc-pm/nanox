@@ -30,6 +30,7 @@
 #include "synchronizedcondition_decl.hpp"
 #include "atomic.hpp"
 #include "instrumentationcontext.hpp"
+#include "directory.hpp"
 
 using namespace nanos;
 
@@ -114,6 +115,15 @@ inline void WorkDescriptor::waitOn( size_t numDeps, Dependency* deps )
    _depsDomain->submitDependableObject( *_doWait, numDeps, deps );
 }
 
+inline WorkDescriptor * WorkDescriptor::getImmediateSuccessor ( void )
+{
+   if ( _doSubmit == NULL ) return NULL;
+   else {
+        DependableObject * found = _doSubmit->releaseImmediateSuccessor();
+        return found ? (WD *) found->getRelatedObject() : NULL;
+   }
+}
+
 inline void WorkDescriptor::workFinished(WorkDescriptor &wd)
 {
    if ( wd._doSubmit != NULL )
@@ -122,6 +132,23 @@ inline void WorkDescriptor::workFinished(WorkDescriptor &wd)
 
 inline InstrumentationContextData * WorkDescriptor::getInstrumentationContextData( void ) { return &_instrumentationContextData; }
 
+inline void WorkDescriptor::waitCompletion()
+{
+   this->WorkGroup::waitCompletion();
+   if ( _directory.isInitialized() )
+      _directory->synchronizeHost();
+}
+
+inline Directory* WorkDescriptor::getDirectory(bool create)
+{
+   if ( !_directory.isInitialized() && create == false ) {
+      return NULL;
+   }
+   return &(*_directory);
+}
+
+inline bool WorkDescriptor::isSubmitted() const { return _submitted; }
+inline void WorkDescriptor::submitted()  { _submitted = true; }
 
 #endif
 

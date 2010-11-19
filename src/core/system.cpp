@@ -26,7 +26,6 @@
 #include "nanos-int.h"
 #include "copydata.hpp"
 #include "os.hpp"
-#include "directory.hpp"
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -53,10 +52,12 @@ System nanos::sys;
 // default system values go here
 System::System () :
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindThreads( true ), _profile( false ), _instrument( false ),
-      _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster( false ), _delayedStart(false), _isMaster(true), _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ), _defBarr( "posix" ),
-      _defInstr ( "empty_trace" ), _defArch("smp"), _currentConduit( "mpi" ), _instrumentation ( NULL ), _defSchedulePolicy(NULL), _directory()
+      _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster( false ),
+      _delayedStart(false), _useYield(true), _synchronizedStart(true), _isMaster(true), _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ),
+      _defBarr( "posix" ), _defInstr ( "empty_trace" ), _defArch("smp"), _currentConduit( "mpi" ), _instrumentation ( NULL ),
+      _defSchedulePolicy(NULL), _directory(), _pmInterface(NULL)
 {
-   verbose0 ( "NANOS++ initalizing... start" );
+   verbose0 ( "NANOS++ initializing... start" );
    // OS::init must be called here and not in System::start() as it can be too late
    // to locate the program arguments at that point
    OS::init();
@@ -64,7 +65,7 @@ System::System () :
    if ( !_delayedStart ) {
       start();
    }
-   verbose0 ( "NANOS++ initalizing... end" );
+   verbose0 ( "NANOS++ initializing... end" );
 }
 
 void System::loadModules ()
@@ -130,7 +131,11 @@ void System::config ()
    Config config;
 
    if ( externInit != NULL ) {
-        externInit();
+      externInit();
+   }
+   if ( !_pmInterface ) {
+      // bare bone run
+      _pmInterface = new PMInterface();
    }
 
    verbose0 ( "Preparing library configuration" );
@@ -147,6 +152,9 @@ void System::config ()
 
    config.registerConfigOption ( "no-binding", new Config::FlagOption( _bindThreads, false), "Disables thread binding" );
    config.registerArgOption ( "no-binding", "disable-binding" );
+
+   config.registerConfigOption( "no-yield", new Config::FlagOption( _useYield, false), "Do not yield on idle and condition waits");
+   config.registerArgOption ( "no-yield", "disable-yield" );
 
    config.registerConfigOption ( "verbose", new Config::FlagOption( _verboseMode), "Activates verbose mode" );
    config.registerArgOption ( "verbose", "verbose" );
@@ -184,8 +192,12 @@ void System::config ()
    config.registerArgOption ( "conduit", "cluster-network" );
    config.registerEnvOption ( "conduit", "NX_CLUSTER_NETWORK" );
 
+   config.registerConfigOption ( "no-sync-start", new Config::FlagOption( _synchronizedStart, false), "Disables synchronized start" );
+   config.registerArgOption ( "no-sync-start", "disable-synchronized-start" );
+
    _schedConf.config(config);
-   
+   _pmInterface->config(config);
+
    verbose0 ( "Reading Configuration" );
    config.init();
 }
@@ -204,8 +216,9 @@ void System::start ()
 
    // Instrumentation startup
    NANOS_INSTRUMENT ( sys.getInstrumentation()->initialize() );
+   verbose0 ( "Starting runtime" );
 
-   verbose0 ( "Starting threads" );
+   _pmInterface->start();
 
    int numPes = getNumPEs();
 
@@ -227,10 +240,23 @@ void System::start ()
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 
+   WD &mainWD = *myThread->getCurrentWD();
+   
+   if ( _pmInterface->getInternalDataSize() > 0 )
+     // TODO: is this properly aligned?
+     mainWD.setInternalData(new char[_pmInterface->getInternalDataSize()]);
+      
+   _pmInterface->setupWD(mainWD);
+
    /* Renaming currend thread as Master */
    myThread->rename("Master");
 
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_STARTUP) );
+
+   _targetThreads = getThsPerPE() * numPes;
+#ifdef GPU_DEV
+   _targetThreads += nanos::ext::GPUDD::getGPUCount();
+#endif
 
    //start as much threads per pe as requested by the user
    for ( int ths = 1; ths < getThsPerPE(); ths++ ) {
@@ -335,6 +361,11 @@ void System::start ()
          fatal("Unknown inital mode!");
          break;
    }
+
+   /* Master thread is ready and waiting for the rest of the gang */
+   if ( getSynchronizedStart() )   
+     threadReady();
+
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_RUNNING) );
 
@@ -371,7 +402,7 @@ void System::finish ()
    myThread->getCurrentWD()->tieTo(*_workers[0]);
    Scheduler::switchToThread(_workers[0]);
    
-   //FIXME (#185) : ensure(myThread->getId() == 0, "Main thread not finishing the application!");
+   ensure(getMyThreadSafe()->getId() == 0, "Main thread not finishing the application!");
 
    verbose ( "Joining threads... phase 1" );
    // signal stop PEs
@@ -411,6 +442,9 @@ void System::finish ()
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {
       delete _pes[p];
    }
+
+   _pmInterface->finish();
+
    verbose ( "NANOS++ shutting down.... end" );
 
    _net.finalize();
@@ -466,12 +500,15 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    for ( unsigned int i = 0; i < num_devices; i++ )
       dd_size += devices[i].dd_size;
 
+   int pmDataSize = _pmInterface->getInternalDataSize();
+
    // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
    int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( WD ) : 0 ) +
                           ( ( data != NULL && *data == NULL ) ? (((data_size+7)>>3)<<3) : 0 ) +
                           sizeof( DD* ) * num_devices +
                           dd_size +
-                          ( ( copies != NULL && *copies == NULL ) ? num_copies * sizeof(CopyData) : 0 )
+                          ( ( copies != NULL && *copies == NULL ) ? num_copies * sizeof(CopyData) : 0 ) +
+                          pmDataSize
                           ;
 
    char *chunk = 0;
@@ -518,9 +555,16 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
       }
    }
 
+   void * pmData = NULL;
+   if ( pmDataSize > 0)
+   {
+       pmData = chunk;
+       chunk += pmDataSize;
+   }
+
    WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, data != NULL ? *data : NULL, num_copies, num_copies == 0 ? NULL : wdCopies );
 
-   wd->setChunk( orig_chunk );
+   if ( pmData ) wd->setInternalData(pmData);
 
    // add to workgroup
    if ( uwg != NULL ) {
@@ -591,6 +635,7 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    int dd_size = 0;
    for ( unsigned int i = 0; i < num_devices; i++ )
       dd_size += devices[i].dd_size;
+   int pmDataSize = _pmInterface->getInternalDataSize();
 
    // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
    int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( SlicedWD ) : 0 ) +
@@ -598,7 +643,8 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
                           ( ( slicer_data == NULL ) ? (((slicer_data_size+7)>>3)<<3) : 0 ) +
                           sizeof( DD* ) * num_devices +
                           dd_size +
-                          ( ( copies != NULL && *copies == NULL ) ? num_copies * sizeof(CopyData) : 0 )
+                          ( ( copies != NULL && *copies == NULL ) ? num_copies * sizeof(CopyData) : 0 ) +
+                          pmDataSize
                           ;
 
    char *chunk = 0;
@@ -649,8 +695,17 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
       chunk += (((slicer_data_size+7)>>3)<<3);
    }
 
+   void * pmData = NULL;
+   if ( pmDataSize > 0)
+   {
+       pmData = chunk;
+       chunk += pmDataSize;
+   }
+
    SlicedWD * wd =  new (*uwd) SlicedWD( *slicer, slicer_data_size, *slicer_data, num_devices, dev_ptrs, 
                        outline_data_size, outline_data != NULL ? *outline_data : NULL, num_copies, num_copies == 0 ? NULL : wdCopies );
+
+   if ( pmData ) wd->setInternalData(pmData);
 
    // add to workgroup
    if ( uwg != NULL ) {
@@ -808,6 +863,9 @@ void System::setupWD ( WD &work, WD *parent )
 
    // Prepare private copy structures to use relative addresses
    work.prepareCopies();
+
+   // Invoke pmInterface
+   _pmInterface->setupWD(work);
 }
 
 void System::submit ( WD &work )
@@ -840,13 +898,6 @@ void System::inlineWork ( WD &work )
    // TODO: choose actual (active) device...
    Scheduler::inlineWork( &work );
 }
-
-
-bool System::throttleTask()
-{
-   return _throttlePolicy->throttle();
-}
-
 
 BaseThread * System:: getUnassignedWorker ( void )
 {

@@ -22,6 +22,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 #include "workdescriptor_decl.hpp"
 #include "processingelement_fwd.hpp"
 
@@ -66,6 +67,13 @@ namespace nanos
 #else
             delete[] (char *) address;
 #endif
+         }
+
+        /* \brief Reallocate and copy from address.
+         */
+         static void * realloc( void *address, size_t size, size_t old_size, ProcessingElement *pe )
+         {
+            return ::realloc( address, size );
          }
 
         /* \brief Copy from remoteSrc in the host to localDst in the device

@@ -50,6 +50,7 @@ namespace nanos
 
          static void * allocate( size_t size, ProcessingElement *pe );
          static void free( void *address, ProcessingElement *pe );
+         static void * realloc( void *address, size_t newSize, size_t oldSize, ProcessingElement *pe );
 
          static bool copyIn( void *localDst, uint64_t remoteSrc, size_t size, ProcessingElement *pe );
          static bool copyOut( uint64_t remoteDst, void *localSrc, size_t size, ProcessingElement *pe );

@@ -17,45 +17,47 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
+SUBDIRS = performance debug instrumentation
+
 include $(top_srcdir)/src/common.am
 
-noinst_LTLIBRARIES = libcluster.la
-lib_LTLIBRARIES = libnanox-pe-cluster-mpi.la libnanox-pe-cluster-udp.la
+#noinst_LTLIBRARIES = libcluster.la
+#lib_LTLIBRARIES = libnanox-pe-cluster-mpi.la libnanox-pe-cluster-udp.la
 
 EXTRA_DIST= \
 	$(END)
 
 
-libcluster_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags)
-#libcluster_la_LDFLAGS = 
-libcluster_la_SOURCES = \
-		clusterdevice.hpp \
-		clusterdevice.cpp \
-		clusterdd.hpp \
-		clusterdd.cpp \
-		clusternode.hpp \
-		clusternode.cpp \
-		clusterthread.hpp \
-		clusterthread.cpp \
-		clusterinfo.hpp \
-		clusterinfo.cpp \
-		clusterutils.hpp \
-		$(END)
-
-
-
-libnanox_pe_cluster_mpi_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags) -DGASNET_PAR -I@GASNET_DIR@/include -I@GASNET_DIR@/include/mpi-conduit
-libnanox_pe_cluster_mpi_la_LDFLAGS = $(ld_plugin_flags) -L@GASNET_DIR@/lib -lgasnet-mpi-par -lammpi -L/opt/osshpc/mpich-mx/32/lib/shared -L/opt/osshpc/mx/lib -lmpich -lmyriexpress -L/opt/ibmcmp/vacpp/10.1/lib -lxl -lpthread -L/gpfs/apps/GCC/4.4.0/lib/
-libnanox_pe_cluster_mpi_la_SOURCES = \
-		clusterplugin.cpp \
-		gasnetapi.hpp \
-		gasnetapi.cpp \
-		$(END)
-
-libnanox_pe_cluster_udp_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags) -DGASNET_PAR -I@GASNET_DIR@/include -I@GASNET_DIR@/include/udp-conduit
-libnanox_pe_cluster_udp_la_LDFLAGS = $(ld_plugin_flags) -L@GASNET_DIR@/lib -lgasnet-udp-par -lamudp -L/gpfs/apps/GCC/4.4.0/lib/
-libnanox_pe_cluster_udp_la_SOURCES = \
-		clusterplugin.cpp \
-		gasnetapi.hpp \
-		gasnetapi.cpp \
-		$(END)
+#libcluster_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags)
+##libcluster_la_LDFLAGS = 
+#libcluster_la_SOURCES = \
+#		clusterdevice.hpp \
+#		clusterdevice.cpp \
+#		clusterdd.hpp \
+#		clusterdd.cpp \
+#		clusternode.hpp \
+#		clusternode.cpp \
+#		clusterthread.hpp \
+#		clusterthread.cpp \
+#		clusterinfo.hpp \
+#		clusterinfo.cpp \
+#		clusterutils.hpp \
+#		$(END)
+#
+#
+#
+#libnanox_pe_cluster_mpi_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags) -DGASNET_PAR -I@GASNET_DIR@/include -I@GASNET_DIR@/include/mpi-conduit
+#libnanox_pe_cluster_mpi_la_LDFLAGS = $(ld_plugin_flags) -L@GASNET_DIR@/lib -lgasnet-mpi-par -lammpi -L/opt/osshpc/mpich-mx/32/lib/shared -L/opt/osshpc/mx/lib -lmpich -lmyriexpress -L/opt/ibmcmp/vacpp/10.1/lib -lxl -lpthread -L/gpfs/apps/GCC/4.4.0/lib/
+#libnanox_pe_cluster_mpi_la_SOURCES = \
+#		clusterplugin.cpp \
+#		gasnetapi.hpp \
+#		gasnetapi.cpp \
+#		$(END)
+#
+#libnanox_pe_cluster_udp_la_CXXFLAGS=$(common_includes) $(common_cxxflags) $(ult_flags) -DGASNET_PAR -I@GASNET_DIR@/include -I@GASNET_DIR@/include/udp-conduit
+#libnanox_pe_cluster_udp_la_LDFLAGS = $(ld_plugin_flags) -L@GASNET_DIR@/lib -lgasnet-udp-par -lamudp -L/gpfs/apps/GCC/4.4.0/lib/
+#libnanox_pe_cluster_udp_la_SOURCES = \
+#		clusterplugin.cpp \
+#		gasnetapi.hpp \
+#		gasnetapi.cpp \
+#		$(END)

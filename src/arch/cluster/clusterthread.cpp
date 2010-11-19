@@ -45,6 +45,8 @@ void ClusterThread::inlineWorkDependent ( WD &wd )
    //ProcessingElement *pe = myThread->runningOn();
    if (dd.getWorkFct() == NULL ) return;
 
+   wd.start(false);
+
    if ( wd.isClusterMigrable() )
    {
    
@@ -79,7 +81,7 @@ void ClusterThread::inlineWorkDependent ( WD &wd )
    sys.getNetwork()->sendWorkMsg( ( ( ClusterNode * ) pe )->getClusterNodeNum(), dd.getWorkFct(), wd.getDataSize(), wd.getId(), wd.getPeId(), wd.getDataSize() + ( wd.getNumCopies() * sizeof( CopyData ) ), buff );
 
    //std::cerr << "finished remote call at node " << ((ClusterNode *)pe)->getClusterNodeNum() << std::endl;
-//   std::cerr << "finished remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " numPe " << wd.getPeId() << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << " WDprev " << wd.getPrevious() << ":" << wd.getPrevious()->getId() << std::endl;
+   //std::cerr << "finished remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " numPe " << wd.getPeId() << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << " WDprev " << wd.getPrevious() << ":" << wd.getPrevious()->getId() << std::endl;
 
    //NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateAndBurst ( key ) );
    }
@@ -102,7 +104,7 @@ WorkDescriptor *ClusterThread::getWD( )
 
 void ClusterThread::join()
 {
-   int i;
+   unsigned int i;
    for ( i = 1; i < sys.getNetwork()->getNumNodes(); i++ )
       sys.getNetwork()->sendExitMsg( i );
 

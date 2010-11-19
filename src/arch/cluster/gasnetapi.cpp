@@ -143,7 +143,6 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize, void ( *wor
     {
        NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
        NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wdId) << 32 ) + gasnet_mynode() ; )
-       std::cerr << "setting fini comm id " << id << " " << wdId << ":" << gasnet_mynode() << std::endl;
        NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *wd, NANOS_WD_REMOTE, id, 0, NULL, NULL ); )
     }
 
@@ -171,7 +170,6 @@ static void am_malloc( gasnet_token_t token, gasnet_handlerarg_t size, unsigned 
     {
         fprintf( stderr, "gasnet: Error obtaining node information.\n" );
     }
-    //fprintf(stderr, "WORK DONE msg from node %d.\n", src_node);
     addr = malloc( ( size_t ) size );
     if ( gasnet_AMReplyShort2( token, 208, ( gasnet_handlerarg_t ) addr, (gasnet_handlerarg_t ) id ) != GASNET_OK )
     {
@@ -186,7 +184,6 @@ static void am_malloc_reply( gasnet_token_t token, gasnet_handlerarg_t addr, uns
     {
         fprintf( stderr, "gasnet: Error obtaining node information.\n" );
     }
-    //fprintf(stderr, "WORK DONE msg from node %d.\n", src_node);
     sys.getNetwork()->notifyMalloc( src_node, ( void * ) addr, id );
 }
 
@@ -283,6 +280,7 @@ void GasnetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsi
 
 void GasnetAPI::sendWorkDoneMsg ( unsigned int dest, unsigned int numPe )
 {
+   //fprintf(stderr, "sending msg WORK DONE to node %d, numPe %d\n", dest, numPe);
    if (gasnet_AMRequestShort1( dest, 206, numPe ) != GASNET_OK)
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);

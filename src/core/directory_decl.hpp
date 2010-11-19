@@ -63,7 +63,8 @@ namespace nanos
    {
       private:
 
-         Cache *_owner;
+         //Atomic<Cache *> _owner;
+         Cache * _owner;
 
          Lock _entryLock;
 
@@ -118,9 +119,12 @@ namespace nanos
 
          DirectoryEntry* getEntry( uint64_t tag );
 
-         void registerAccess( uint64_t tag, size_t size );
+         void registerAccess( uint64_t tag, size_t size, bool input, bool output );
 
          void waitInput( uint64_t tag );
+
+         void synchronizeHost();
+         void synchronizeHost( std::list<uint64_t> syncTags );
    };
 
 };

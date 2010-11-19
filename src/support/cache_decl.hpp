@@ -22,7 +22,6 @@
 
 #include "config.hpp"
 #include "compatibility.hpp"
-#include "system.hpp"
 #include "directory_decl.hpp"
 #include "atomic.hpp"
 #include "processingelement_fwd.hpp"
@@ -39,30 +38,31 @@ namespace nanos {
 
          /**< Size of the block in the cache */
          size_t _size;
-
-         /**< Entry references counter  */
-         unsigned int _refs;
+         /**< Size of the block allocated in the device */
+         size_t _allocSize;
 
          volatile bool _dirty;
-         volatile bool _copying;
+         Atomic<bool> _copying;
          Atomic<bool> _flushing;
+         Directory* _flushingTo;
          Atomic<unsigned int> _transfers;
+         Atomic<bool> _resizing;
 
       public:
 
         /*! \brief Default constructor
          */
-         CacheEntry(): Entry(), _addr( NULL ), _size(0), _refs( 0 ), _dirty( false ), _copying(false), _flushing(false), _transfers(0) {}
+         CacheEntry(): Entry(), _addr( NULL ), _size(0), _allocSize(0), _dirty( false ), _copying(false), _flushing(false), _flushingTo(NULL), _transfers(0), _resizing(false) {}
 
         /*! \brief Constructor
          *  \param addr: address of the cache entry
          */
-         CacheEntry( void *addr, size_t size, uint64_t tag, unsigned int version, bool dirty, bool copying ): Entry( tag, version ), _addr( addr ), _size(size), _refs( 0 ), _dirty( dirty ), _copying(copying), _flushing(false), _transfers(0) {}
+         CacheEntry( void *addr, size_t size, uint64_t tag, unsigned int version, bool dirty, bool copying ): Entry( tag, version ), _addr( addr ), _size(size), _allocSize(0), _dirty( dirty ), _copying(copying), _flushing(false), _flushingTo(NULL), _transfers(0), _resizing(false) {}
 
         /*! \brief Copy constructor
          *  \param Another CacheEntry
          */
-         CacheEntry( const CacheEntry &ce ): Entry( ce.getTag(), ce.getVersion() ), _addr( ce._addr ), _size( ce._size ), _refs( ce._refs ), _dirty( ce._dirty ), _copying(ce._copying), _flushing(false), _transfers(0) {}
+         CacheEntry( const CacheEntry &ce ): Entry( ce.getTag(), ce.getVersion() ), _addr( ce._addr ), _size( ce._size ), _allocSize( ce._allocSize ), _dirty( ce._dirty ), _copying(ce._copying), _flushing(false), _flushingTo(NULL), _transfers(0), _resizing(false) {}
 
         /* \brief Destructor
          */
@@ -77,11 +77,12 @@ namespace nanos {
             this->setVersion( ce.getVersion() );
             this->_addr = ce._addr;
             this->_size = ce._size;
-            this->_refs = ce._refs;
             this->_dirty = ce._dirty;
             this->_copying = ce._copying;
             this->_flushing = ce._flushing;
+            this->_flushingTo = ce._flushingTo;
             this->_transfers = ce._transfers;
+            this->_resizing = ce._resizing;
             return *this;
          }
 
@@ -105,20 +106,15 @@ namespace nanos {
          void setSize( size_t size )
          { _size = size; }
 
-        /* \brief Whether the Entry has references or not
+        /* \brief Returns the size of the block in the device
          */
-         bool hasRefs() const
-         { return _refs > 0; }
+         size_t getAllocSize() const
+         { return _allocSize; }
 
-        /* \brief Increase the references to the entry
+        /* \brief Size setter
          */
-         void increaseRefs()
-         { _refs++; }
-
-        /* \brief Decrease the references to the entry
-         */
-         bool decreaseRefs()
-         { return (--_refs) == 0; }
+         void setAllocSize( size_t size )
+         { _allocSize = size; }
 
          bool isDirty()
          { return _dirty; }
@@ -127,16 +123,29 @@ namespace nanos {
          { _dirty = dirty; }
 
          bool isCopying() const
-         { return _copying; }
+         { return _copying.value(); }
 
          void setCopying( bool copying )
          { _copying = copying; }
+
+         bool trySetToCopying()
+         {
+            Atomic<bool> expected = false;
+            Atomic<bool> value = true;
+            return _copying.cswap( expected, value );
+         }
 
          bool isFlushing()
          { return _flushing.value(); }
 
          void setFlushing( bool flushing )
          { _flushing = flushing; }
+
+         Directory* getFlushingTo()
+         { return _flushingTo; }
+
+         void setFlushingTo( Directory *dir )
+         { _flushingTo = dir; }
 
          bool trySetToFlushing()
          {
@@ -156,6 +165,23 @@ namespace nanos {
             _transfers--;
             return hasTransfers();
          }
+
+         bool isResizing()
+         {
+            return _resizing.value();
+         }
+
+         void setResizing( bool resizing )
+         {
+            _resizing = resizing;
+         }
+
+         bool trySetToResizing()
+         {
+            Atomic<bool> expected = false;
+            Atomic<bool> value = true;
+            return _resizing.cswap( expected, value );
+         }
    };
 
 
@@ -163,7 +189,8 @@ namespace nanos {
    {
       public:
          virtual ~Cache() { }
-         virtual void * allocate( size_t size ) = 0;
+         virtual void * allocate( Directory &dir, size_t size ) = 0;
+         virtual void realloc( Directory &dir, CacheEntry * ce, size_t size ) = 0;
          virtual CacheEntry& newEntry( uint64_t tag, size_t size, unsigned int version, bool dirty ) = 0;
          virtual CacheEntry& insert( uint64_t tag, CacheEntry& ce, bool& inserted ) = 0;
          virtual void deleteEntry( uint64_t tag, size_t size ) = 0;
@@ -173,8 +200,10 @@ namespace nanos {
          virtual bool copyDataToCache( uint64_t tag, size_t size ) = 0;
          virtual bool copyBackFromCache( uint64_t tag, size_t size ) = 0;
          virtual void copyTo( void *dst, uint64_t tag, size_t size ) = 0;
-         virtual void invalidate( uint64_t tag, size_t size, DirectoryEntry *de ) = 0;
+         virtual void invalidate( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de ) = 0;
+         virtual void invalidate( Directory &dir, uint64_t tag, DirectoryEntry *de ) = 0;
          virtual void syncTransfer( uint64_t tag ) = 0;
+         virtual int getReferences( unsigned int tag ) = 0;
    };
 
    class CachePolicy
@@ -185,19 +214,18 @@ namespace nanos {
 
       public:
          Cache& _cache;
-         Directory& _directory;
 
-         CachePolicy( Cache& cache ) : _cache( cache ), _directory( sys.getDirectory() ) { }
+         CachePolicy( Cache& cache ) : _cache( cache ) { }
 
          virtual ~CachePolicy() { }
 
-         virtual void registerCacheAccess( uint64_t tag, size_t size, bool input, bool output );
+         virtual void registerCacheAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
 
-         virtual void unregisterCacheAccess( uint64_t tag, size_t size, bool output ) = 0;
+         virtual void unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output ) = 0;
 
-         virtual void registerPrivateAccess( uint64_t tag, size_t size, bool input, bool output );
+         virtual void registerPrivateAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
 
-         virtual void unregisterPrivateAccess( uint64_t tag, size_t size );
+         virtual void unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size );
    };
 
    // A plugin maybe??
@@ -214,7 +242,7 @@ namespace nanos {
 
          virtual ~WriteThroughPolicy() { }
 
-         virtual void unregisterCacheAccess( uint64_t tag, size_t size, bool output );
+         virtual void unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output );
    };
 
    class WriteBackPolicy : public CachePolicy
@@ -230,7 +258,7 @@ namespace nanos {
 
          virtual ~WriteBackPolicy() { }
 
-         virtual void unregisterCacheAccess( uint64_t tag, size_t size, bool output );
+         virtual void unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output );
    };
 
   /*! \brief A Cache is a class that provides basic services for registering and
@@ -247,7 +275,6 @@ namespace nanos {
       *   - check for errors 
       */
       private:
-         Directory &_directory;
          ProcessingElement *_pe;
 
          /**< Maps keys with CacheEntries  */
@@ -263,18 +290,28 @@ namespace nanos {
          DeviceCache( const DeviceCache &cache );
          const DeviceCache & operator= ( const DeviceCache &cache );
 
+         struct SyncData {
+            DeviceCache* _this;
+         };
+
+         static void synchronizeInternal( SyncData &sd, uint64_t tag );
+ 
       public:
         /* \brief Default constructor
          */
-         DeviceCache( size_t size, ProcessingElement *pe = NULL ) : _directory( sys.getDirectory() ), _pe( pe ), _cache(), _policy( *this ), _size( size ), _usedSize(0) {}
+         DeviceCache( size_t size, ProcessingElement *pe = NULL ) : _pe( pe ), _cache(), _policy( *this ), _size( size ), _usedSize(0) {}
 
          size_t getSize();
 
          void setSize( size_t size );
 
-         void * allocate( size_t size );
+         void * allocate( Directory &dir, size_t size );
+
+         void freeSpaceToFit( Directory& dir, size_t size );
 
          void deleteEntry( uint64_t tag, size_t size );
+
+         void realloc( Directory &dir, CacheEntry *ce, size_t size );
 
         /* \brief get the Address in the cache for tag
          * \param tag: Identifier of the entry to look for
@@ -310,19 +347,17 @@ namespace nanos {
 
          void deleteReference( uint64_t tag );
 
-         void registerCacheAccess( uint64_t tag, size_t size, bool input, bool output );
+         void registerCacheAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
 
-         void unregisterCacheAccess( uint64_t tag, size_t size, bool output );
+         void unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output );
 
-         void registerPrivateAccess( uint64_t tag, size_t size, bool input, bool output );
+         void registerPrivateAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
 
-         void unregisterPrivateAccess( uint64_t tag, size_t size );
+         void unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size );
 
          void synchronizeTransfer( uint64_t tag );
 
          void synchronize( uint64_t tag );
-
-         static void synchronize( DeviceCache* _this, uint64_t tag );
 
          void synchronize( std::list<uint64_t> &tags );
 
@@ -332,11 +367,14 @@ namespace nanos {
 
          void waitInputs( std::list<uint64_t> &tags );
 
-         void invalidate( uint64_t tag, size_t size, DirectoryEntry *de );
+         void invalidate( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de );
+         void invalidate( Directory &dir, uint64_t tag, DirectoryEntry *de );
 
          size_t& getCacheSize();
 
          void syncTransfer( uint64_t tag );
+
+         int getReferences( unsigned int tag );
    };
 
 }

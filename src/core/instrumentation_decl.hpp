@@ -16,10 +16,6 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-// FIXME: (#64) This flag ENABLE_INSTRUMENTATION has to be managed through
-//configure in order to generate an instrumentation version
-#define NANOS_INSTRUMENTATION_ENABLED
-
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 #define NANOS_INSTRUMENT(f) f;
 #else
@@ -195,7 +191,7 @@ namespace nanos {
             /* 09 */ registerEventKey("copy-in","Copying WD inputs");
             /* 10 */ registerEventKey("copy-out","Copying WD outputs");
 
-            /* 11 */ registerEventKey("user-funct","User Functions");
+            /* 11 */ registerEventKey("user-funct-name","User Function Name");
 
             /* 12 */ registerEventKey("user-code","User Code (wd)");
 
@@ -206,7 +202,13 @@ namespace nanos {
 
             /* 17 */ registerEventKey("lock-addr","Lock address"); 
 
-            /* 18 */ registerEventKey("debug","Debug Key"); 
+            /* 18 */ registerEventKey("num-spins","Number of Spins"); 
+            /* 19 */ registerEventKey("num-yields","Number of Yields"); 
+            /* 20 */ registerEventKey("time-yields","Time on Yield (in nsecs)");
+
+            /* 21 */ registerEventKey("user-funct-location","User Function Location");
+
+            /* ** */ registerEventKey("debug","Debug Key"); /* Keep this key as the last one */
 #endif
 
          }

@@ -61,6 +61,8 @@ inline void System::setDelayedStart ( bool set) { _delayedStart = set; }
 
 inline bool System::getDelayedStart () const { return _delayedStart; }
 
+inline bool System::useYield() const { return _useYield; }
+
 inline int System::getThsPerPE() const { return _thsPerPE; }
 
 inline int System::getTaskNum() const { return _schedStats._totalTasks.value(); }
@@ -69,6 +71,9 @@ inline int System::getIdleNum() const { return _schedStats._idleThreads.value();
 
 inline void System::setUntieMaster ( bool value ) { _untieMaster = value; }
 inline bool System::getUntieMaster () const { return _untieMaster; }
+
+inline void System::setSynchronizedStart ( bool value ) { _synchronizedStart = value; }
+inline bool System::getSynchronizedStart ( void ) const { return _synchronizedStart; }
 
 inline int System::getReadyNum() const { return _schedStats._readyTasks.value(); }
 
@@ -111,8 +116,6 @@ inline void System::registerSlicer ( const std::string &label, Slicer *slicer) {
 inline void System::setDefaultSchedulePolicy ( SchedulePolicy *policy ) { _defSchedulePolicy = policy; }
 inline SchedulePolicy * System::getDefaultSchedulePolicy ( ) const  { return _defSchedulePolicy; }
 
-inline Directory& System::getDirectory() { return _directory; }
-
 inline SchedulerStats & System::getSchedulerStats () { return _schedStats; }
 inline SchedulerConf  & System::getSchedulerConf ()  { return _schedConf; }
 
@@ -124,5 +127,28 @@ inline void System::setMaster( bool _isMasterNode ) { _isMaster = _isMasterNode;
 
 inline Network * System::getNetwork( void ) { return &_net; }
 inline void System::stopFirstThread( void ) { _workers[0]->stop(); }
+
+inline void System::setPMInterface(PMInterface *pm)
+{
+   ensure(!_pmInterface,"PM interface already in place!");
+   _pmInterface = pm;
+}
+
+inline bool System::throttleTask()
+{
+   return _throttlePolicy->throttle();
+}
+
+inline void System::threadReady()
+{
+   _initializedThreads++;
+  
+   /*! It's better not to call Scheduler::waitOnCondition here as the initialization is not
+       yet finished 
+
+      TODO: we can consider thread yielding */
+   while (_initializedThreads.value() < _targetThreads);
+}
+
 #endif
 

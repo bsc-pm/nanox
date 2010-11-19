@@ -1,0 +1,46 @@
+#####################################################################################
+#      Copyright 2009 Barcelona Supercomputing Center                               #
+#                                                                                   #
+#      This file is part of the NANOS++ library.                                    #
+#                                                                                   #
+#      NANOS++ is free software: you can redistribute it and/or modify              #
+#      it under the terms of the GNU Lesser General Public License as published by  #
+#      the Free Software Foundation, either version 3 of the License, or            #
+#      (at your option) any later version.                                          #
+#                                                                                   #
+#      NANOS++ is distributed in the hope that it will be useful,                   #
+#      but WITHOUT ANY WARRANTY; without even the implied warranty of               #
+#      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                #
+#      GNU Lesser General Public License for more details.                          #
+#                                                                                   #
+#      You should have received a copy of the GNU Lesser General Public License     #
+#      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
+#####################################################################################
+
+cluster_sources = \
+		$(top_srcdir)/src/arch/cluster/clusterdevice.hpp \
+		$(top_srcdir)/src/arch/cluster/clusterdevice.cpp \
+		$(top_srcdir)/src/arch/cluster/clusterdd.hpp \
+		$(top_srcdir)/src/arch/cluster/clusterdd.cpp \
+		$(top_srcdir)/src/arch/cluster/clusternode.hpp \
+		$(top_srcdir)/src/arch/cluster/clusternode.cpp \
+		$(top_srcdir)/src/arch/cluster/clusterthread.hpp \
+		$(top_srcdir)/src/arch/cluster/clusterthread.cpp \
+		$(top_srcdir)/src/arch/cluster/clusterinfo.hpp \
+		$(top_srcdir)/src/arch/cluster/clusterinfo.cpp \
+		$(top_srcdir)/src/arch/cluster/clusterutils.hpp \
+		$(END)
+
+pe_cluster_sources = \
+		$(top_srcdir)/src/arch/cluster/clusterplugin.cpp \
+		$(top_srcdir)/src/arch/cluster/gasnetapi.hpp \
+		$(top_srcdir)/src/arch/cluster/gasnetapi.cpp \
+		$(END)
+
+pe_cluster_common_includes = -DGASNET_PAR -I@GASNET_DIR@/include 
+pe_cluster_common_ldflags = -L@GASNET_DIR@/lib
+
+pe_cluster_mpi_includes = $(pe_cluster_common_includes) -I@GASNET_DIR@/include/mpi-conduit
+pe_cluster_mpi_ldflags = $(pe_cluster_common_ldflags) -lgasnet-mpi-par -lammpi -L/opt/osshpc/mpich-mx/32/lib/shared -L/opt/osshpc/mx/lib -lmpich -lmyriexpress -L/opt/ibmcmp/vacpp/10.1/lib -lxl
+pe_cluster_udp_includes = $(pe_cluster_common_includes) -I@GASNET_DIR@/include/udp-conduit
+pe_cluster_udp_ldflags = $(pe_cluster_common_ldflags) -lgasnet-udp-par -lamudp

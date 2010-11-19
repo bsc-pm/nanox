@@ -90,15 +90,15 @@ namespace ext
          /* Memory space suport */
          virtual void waitInputDependent( uint64_t tag );
 
-         virtual void registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output );
-         virtual void unregisterCacheAccessDependent( uint64_t tag, size_t size, bool output );
-         virtual void registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output );
-         virtual void unregisterPrivateAccessDependent( uint64_t tag, size_t size );
+         virtual void registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
+         virtual void unregisterCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool output );
+         virtual void registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
+         virtual void unregisterPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size );
 
          virtual void* getAddressDependent( uint64_t tag );
          virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
 
-         void synchronize( uint64_t tag );
+         void synchronize( Directory& dir, uint64_t tag );
 #endif
    };
 

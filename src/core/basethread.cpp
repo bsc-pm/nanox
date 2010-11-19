@@ -32,6 +32,10 @@ void BaseThread::run ()
 {
    _threadWD.tieTo( *this );
    associate();
+   initializeDependent();
+   /* Notify that the thread has finished all its initialization and it's ready to run */
+   if ( sys.getSynchronizedStart() ) 
+     sys.threadReady();
    runDependent();
 }
 
@@ -43,7 +47,8 @@ void BaseThread::associate ()
 
    if ( sys.getBinding() ) bind();
 
-   _threadWD.init(false);
+   _threadWD.init();
+   _threadWD.start(false);
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, &_threadWD, false) );
 }
