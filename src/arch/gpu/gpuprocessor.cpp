@@ -42,10 +42,14 @@ void GPUProcessor::init( size_t &memSize )
    _cache.setSize( memSize );
 
    // Create a list of inputs that have been ordered to transfer but the copy is still not completed
-   _gpuProcessorTransfers._pendingCopiesIn = new GPUMemoryTransferInAsyncList();
+   if ( _gpuProcessorInfo->getInTransferStream() ) {
+      delete _gpuProcessorTransfers._pendingCopiesIn;
+      _gpuProcessorTransfers._pendingCopiesIn = new GPUMemoryTransferInAsyncList();
+   }
 
    if ( _gpuProcessorInfo->getOutTransferStream() ) {
       // If overlapping outputs is defined, create the list
+      delete _gpuProcessorTransfers._pendingCopiesOut;
       _gpuProcessorTransfers._pendingCopiesOut = new GPUMemoryTransferOutAsyncList();
    }
    else {

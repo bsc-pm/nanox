@@ -105,7 +105,11 @@ namespace ext
                if ( err != cudaSuccess ) {
                   // If an error occurred, disable stream overlapping
                   _inTransferStream = 0;
+                  if ( err == cudaErrorDevicesUnavailable ) {
+                     fatal( "Error while creating the CUDA input transfer stream: all CUDA-capable devices are busy or unavailable" );
+                  }
                   warning( "Error while creating the CUDA input transfer stream: " << cudaGetErrorString( err ) );
+                  ensure( err != cudaErrorDevicesUnavailable, "Aborting execution" );
                   return;
                }
             }
@@ -116,7 +120,11 @@ namespace ext
                   // If an error occurred, disable stream overlapping
                   _inTransferStream = 0;
                   _outTransferStream = 0;
+                  if ( err == cudaErrorDevicesUnavailable ) {
+                     fatal( "Error while creating the CUDA output transfer stream: all CUDA-capable devices are busy or unavailable" );
+                  }
                   warning( "Error while creating the CUDA output transfer stream: " << cudaGetErrorString( err ) );
+                  ensure( err != cudaErrorNoDevice, "Aborting execution" );
                   return;
                }
             }
