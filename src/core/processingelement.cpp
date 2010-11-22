@@ -19,6 +19,7 @@
 
 #include <string.h>
 #include "processingelement.hpp"
+#include "basethread.hpp"
 #include "debug.hpp"
 #include "schedule.hpp"
 #include "copydata.hpp"
