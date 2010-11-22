@@ -158,10 +158,10 @@ class HashMap
                { return &(_currentItem->getValue()); }
 
            bool operator==( iterator const &it ) const
-              { return (_currentTable == -1 && it._currentTable == -1) || _currentItem == it.currentItem; }
+              { return (_currentTable == -1 && it._currentTable == -1) || ( _currentTable == it._currentTable && _currentItem == it.currentItem); }
 
            bool operator!=( iterator const &it ) const
-              { return !((_currentTable == -1 && it._currentTable == -1) || _currentItem == it._currentItem); }
+              { return !((_currentTable == -1 && it._currentTable == -1) || ( _currentTable == it._currentTable && _currentItem == it._currentItem)); }
       };
 
    private:
