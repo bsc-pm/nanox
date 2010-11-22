@@ -23,12 +23,12 @@
 
 using namespace nanos;
 
-SimpleAllocator::SimpleAllocator( uint64_t baseAddress, size_t len ) : _baseAddress( baseAddress )
+SimpleAllocator::SimpleAllocator( uintptr_t baseAddress, size_t len ) : _baseAddress( baseAddress )
 {
    _freeChunks[ baseAddress ] = len;
 }
 
-void SimpleAllocator::init( uint64_t baseAddress, size_t len )
+void SimpleAllocator::init( uintptr_t baseAddress, size_t len )
 {
    _baseAddress = baseAddress;
    _freeChunks[ baseAddress ] = len;
@@ -45,7 +45,7 @@ void * SimpleAllocator::allocate( size_t size )
    }
    if ( mapIter != _freeChunks.end() ) {
 
-      uint64_t targetAddr = mapIter->first;
+      uintptr_t targetAddr = mapIter->first;
       size_t chunkSize = mapIter->second;
 
       _freeChunks.erase( mapIter );
@@ -67,34 +67,34 @@ void * SimpleAllocator::allocate( size_t size )
 
 size_t SimpleAllocator::free( void *address )
 {
-   SegmentMap::iterator mapIter = _allocatedChunks.find( ( uint64_t ) address );
+   SegmentMap::iterator mapIter = _allocatedChunks.find( ( uintptr_t ) address );
    size_t size = mapIter->second;
    std::pair< SegmentMap::iterator, bool > ret;
 
    _allocatedChunks.erase( mapIter );
 
    if ( _freeChunks.size() > 0 ) {
-      mapIter = _freeChunks.lower_bound( ( uint64_t ) address );
+      mapIter = _freeChunks.lower_bound( ( uintptr_t ) address );
 
       //case where address is the highest key, check if it can be merged with the previous chunk
       if ( mapIter == _freeChunks.end() ) {
          mapIter--;
-         if ( mapIter->first + mapIter->second == ( uint64_t ) address ) {
+         if ( mapIter->first + mapIter->second == ( uintptr_t ) address ) {
             mapIter->second += size;
          } else {
-            _freeChunks[ ( uint64_t ) address ] = size;
+            _freeChunks[ ( uintptr_t ) address ] = size;
          }
       }
       //address is not the highest key, check if it can be merged with the previous and next chunks
-      else if ( _freeChunks.key_comp()( ( uint64_t ) address, mapIter->first ) ) {
+      else if ( _freeChunks.key_comp()( ( uintptr_t ) address, mapIter->first ) ) {
          size_t totalSize = size;
          bool firstMerge = false;
 
          //check next chunk
-         if ( mapIter->first == ( ( uint64_t ) address ) + size ) {
+         if ( mapIter->first == ( ( uintptr_t ) address ) + size ) {
             totalSize += mapIter->second;
             _freeChunks.erase( mapIter );
-            ret = _freeChunks.insert( SegmentMap::value_type( ( uint64_t ) address, totalSize ) );
+            ret = _freeChunks.insert( SegmentMap::value_type( ( uintptr_t ) address, totalSize ) );
             mapIter = ret.first;
             firstMerge = true;
          }
@@ -103,7 +103,7 @@ size_t SimpleAllocator::free( void *address )
          if ( _freeChunks.begin() != mapIter )
          {
             mapIter--;
-            if ( mapIter->first + mapIter->second == ( uint64_t ) address ) {
+            if ( mapIter->first + mapIter->second == ( uintptr_t ) address ) {
                //if totalSize > size then the next chunk was merged
                if ( totalSize > size ) {
                   mapIter->second += totalSize;
@@ -114,11 +114,11 @@ size_t SimpleAllocator::free( void *address )
                   mapIter->second += size;
                }
             } else if ( !firstMerge ) {
-               _freeChunks[ ( uint64_t ) address ] = size;
+               _freeChunks[ ( uintptr_t ) address ] = size;
             }
          }
          else if ( !firstMerge ) {
-            _freeChunks[ ( uint64_t ) address ] = size;
+            _freeChunks[ ( uintptr_t ) address ] = size;
          }
       }
       //duplicate key, error
@@ -127,7 +127,7 @@ size_t SimpleAllocator::free( void *address )
       }
    }
    else {
-      _freeChunks[ ( uint64_t ) address ] = size;
+      _freeChunks[ ( uintptr_t ) address ] = size;
    }
 
    return size;

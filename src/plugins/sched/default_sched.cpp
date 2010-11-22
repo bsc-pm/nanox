@@ -84,12 +84,12 @@ namespace nanos {
 
 	   WD * atPrefetch ( BaseThread *thread, WD &current )
 	   {
-              WD * found = current.getImmediateSuccessor();
+              WD * found = current.getImmediateSuccessor(*thread);
 
 	      return found != NULL ? found : atIdle(thread);
 	   }
       };
-
+  
       class NanosSchedPlugin : public Plugin
       {
 

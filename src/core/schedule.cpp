@@ -467,3 +467,8 @@ void Scheduler::exit ( void )
 
    fatal("A thread should never return from Scheduler::exit");
 }
+
+bool Scheduler::checkBasicConstraints ( WD &wd, BaseThread &thread )
+{
+   return wd.canRunIn(*thread.runningOn()) && ( !wd.isTied() || wd.isTiedTo() == &thread );
+}

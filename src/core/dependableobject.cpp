@@ -61,14 +61,14 @@ void DependableObject::finished ( )
    }
 }
 
-DependableObject * DependableObject::releaseImmediateSuccessor ( void )
+DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjectPredicate &condition )
 {
    DependableObject * found = NULL;
 
    DependableObject::DependableObjectVector &succ = getSuccessors();
    for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
       // Is this an immediate successor? 
-      if ( (*it)->numPredecessors() == 1 ) {
+      if ( (*it)->numPredecessors() == 1 && condition(**it) ) {
         // remove it
         found = *it;
         this->lock();

@@ -386,7 +386,7 @@ namespace nanos
 
          /*! If this WorkDescriptor has an immediate succesor (i.e., anothur WD that only depends on him)
              remove it from the dependence graph and return it. */
-         WorkDescriptor * getImmediateSuccessor ( void );
+         WorkDescriptor * getImmediateSuccessor ( BaseThread &thread );
 
          /*! \brief Make this WD's domain know a WD has finished.
           *  \paran wd Must be a wd created in this WD's context.
