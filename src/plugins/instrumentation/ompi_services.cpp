@@ -29,6 +29,13 @@ extern "C" {
       else return myThread->getId(); 
    }
 
+   void nanos_ompitrace_instrumentation_barrier ( void )
+   {
+#ifdef CLUSTER_DEV
+      sys.getNetwork()->nodeBarrier();
+#endif
+   }
+
 }
 
 } // namespace nanos
