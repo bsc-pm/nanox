@@ -19,6 +19,7 @@
 extern "C" {
    unsigned int nanos_ompitrace_get_max_threads ( void );
    unsigned int nanos_ompitrace_get_thread_num ( void );
+   void TaskID_Setup(unsigned int);
 }
 
 namespace nanos {
@@ -378,6 +379,7 @@ class InstrumentationExtrae: public Instrumentation
          putenv (env_trace_final_dir);
 
          /* OMPItrace initialization */
+         TaskID_Setup( sys.getNetwork()->getNodeNum() );
          OMPItrace_init();
       }
 
@@ -459,7 +461,7 @@ class InstrumentationExtrae: public Instrumentation
                   ce.Communications[k].tag = e.getDomain();
                   ce.Communications[k].id = e.getId();
                   ce.Communications[k].size = e.getId(); // FIXME: just in some cases size is equal to id
-                  ce.Communications[k].partner = 0;
+                  ce.Communications[k].partner = e.getPartner();
                   k++;
                   // continue...
                case NANOS_POINT:

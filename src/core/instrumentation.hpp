@@ -261,6 +261,8 @@ inline unsigned int Instrumentation::Event::getDomain ( void ) const { return _p
 
 inline long long Instrumentation::Event::getId( void ) const { return _ptpId; }
 
+inline unsigned int Instrumentation::Event::getPartner( void ) const { return _partner; }
+
 inline void Instrumentation::Event::reverseType ( )
 {
    switch ( _type )

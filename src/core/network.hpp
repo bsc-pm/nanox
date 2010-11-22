@@ -60,8 +60,9 @@ namespace nanos {
          void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size );
          void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, size_t size );
          void * malloc ( unsigned int remoteNode, size_t size, unsigned int id );
+         void nodeBarrier( void );
          void setMasterHostname( char *name );
-         char *getMasterHostname();
+         char *getMasterHostname( void );
    };
 }
 

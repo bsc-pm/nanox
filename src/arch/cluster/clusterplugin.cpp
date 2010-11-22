@@ -28,7 +28,7 @@ namespace ext {
 
 class ClusterPlugin : public Plugin
 {
-   GasnetAPI _gasnetApi;
+   GASNetAPI _gasnetApi;
    public:
       ClusterPlugin() : Plugin( "Cluster PE Plugin", 1 ) {}
 

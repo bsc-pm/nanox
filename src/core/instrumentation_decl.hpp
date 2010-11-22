@@ -287,6 +287,7 @@ namespace nanos {
 
                nanos_event_domain_t        _ptpDomain;    /**< A specific domain in which ptpId is unique */
                nanos_event_id_t            _ptpId;        /**< PtP event id */
+               unsigned int                _partner;      /**< PtP communication partner (destination or origin), only applies to Cluster (is always 0 in smp) */
 
 
             public:
@@ -294,14 +295,14 @@ namespace nanos {
                 *  \see State Burst Point PtP
                 */
                Event () : _type((nanos_event_type_t) 0), _state((nanos_event_state_value_t) 0), _nkvs(0),
-                          _kvList(NULL), _kvListOwner(false), _ptpDomain((nanos_event_domain_t) 0), _ptpId(0) {}
+                          _kvList(NULL), _kvListOwner(false), _ptpDomain((nanos_event_domain_t) 0), _ptpId(0), _partner(0) {}
                /*! \brief Event constructor (generic constructor used by all other specific constructors)
                 *  \see State Burst Point PtP
                 */
                Event ( nanos_event_type_t type, nanos_event_state_value_t state, unsigned int nkvs, KVList kvlist,
-                       nanos_event_domain_t ptp_domain, nanos_event_id_t ptp_id ) :
+                       nanos_event_domain_t ptp_domain, nanos_event_id_t ptp_id, unsigned int partner = 0 ) :
                      _type (type), _state (state), _nkvs(nkvs), _kvList (kvlist), _kvListOwner(false),
-                     _ptpDomain (ptp_domain), _ptpId (ptp_id)
+                     _ptpDomain (ptp_domain), _ptpId (ptp_id), _partner(partner)
                {
                   if ( _type == NANOS_BURST_START || _type == NANOS_BURST_END )
                   {
@@ -325,6 +326,7 @@ namespace nanos {
                   _kvListOwner = true;
                   _ptpDomain = evt._ptpDomain;
                   _ptpId     = evt._ptpId;
+                  _partner   = evt._partner;
 
                }
 
@@ -345,6 +347,7 @@ namespace nanos {
                   _kvListOwner = true;
                   _ptpDomain = evt._ptpDomain;
                   _ptpId     = evt._ptpId;
+                  _partner   = evt._partner;
 
                }
 
@@ -378,6 +381,11 @@ namespace nanos {
                 */
                long long getId( void ) const;
 
+               /*! \brief Get event partner (destination or origin of a PtP event, only applies to Cluster, returns 0 on SMP)
+                *  \see getDomain
+                */
+               unsigned int getPartner( void ) const;
+
                /*! \brief Change event type to the complementary value (i.e. if type is BURST_START it changes to BURST_END)
                 */
                void reverseType ( );
@@ -407,8 +415,8 @@ namespace nanos {
             public:
                /*! \brief PtP event constructor
                 */
-               PtP ( bool start, nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,  KVList kvlist )
-                   : Event ( start ? NANOS_PTP_START : NANOS_PTP_END , NANOS_ERROR, nkvs, kvlist, domain, id ) { }
+               PtP ( bool start, nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,  KVList kvlist, unsigned int partner = 0 )
+                   : Event ( start ? NANOS_PTP_START : NANOS_PTP_END , NANOS_ERROR, nkvs, kvlist, domain, id, partner ) { }
          };
 #ifndef NANOS_INSTRUMENTATION_ENABLED
       public:
@@ -525,9 +533,10 @@ namespace nanos {
           *  \param[in] nkvs is the number of pairs <key,value> related with the new event
           *  \param[in] key is a vector of nkvs keys 
           *  \param[in] value is a vector of nkvs  values
+          *  \param[in] partner is the origin node of the event
           */
          void createPtPStart ( Event *e, nanos_event_domain_t domain, nanos_event_id_t id,
-                               unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
+                               unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values, unsigned int partner = 0 );
 
          /*! \brief Used by higher levels to create a PTP_END event
           *
@@ -540,9 +549,10 @@ namespace nanos {
           *  \param[in] nkvs is the number of pairs <key,value> related with the new event
           *  \param[in] key is a vector of nkvs keys 
           *  \param[in] value is a vector of nkvs  values
+          *  \param[in] partner is the destination node of the event
           */
          void createPtPEnd ( Event *e, nanos_event_domain_t domain, nanos_event_id_t id,
-                             unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
+                             unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values, unsigned int partner = 0 );
 
          /*! \brief Used by higher levels to create a deferred POINT event into a given WorkDescriptor (wd)
           */
@@ -552,12 +562,12 @@ namespace nanos {
          /*! \brief Used by higher levels to create a deferred PTP_START event into a given WorkDescriptor (wd)
           */
          void createDeferredPtPStart ( WorkDescriptor &wd, nanos_event_domain_t domain, nanos_event_id_t id,
-                                       unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
+                                       unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values, unsigned int partner = 0 );
 
          /*! \brief Used by higher levels to create a deferred PTP_END event into a given WorkDescriptor (wd)
           */
          void createDeferredPtPEnd ( WorkDescriptor &wd, nanos_event_domain_t domain, nanos_event_id_t id,
-                                     unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values );
+                                     unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values, unsigned int partner = 0 );
 
          void raisePointEvent ( nanos_event_key_t key, nanos_event_value_t val );
          void raisePointEventNkvs ( unsigned int nkvs, nanos_event_key_t *key, nanos_event_value_t *val );
@@ -568,12 +578,12 @@ namespace nanos {
          void raiseOpenBurstEvent ( nanos_event_key_t key, nanos_event_value_t val );
          void raiseCloseBurstEvent ( nanos_event_key_t key );
 
-         void raiseOpenPtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val );
+         void raiseOpenPtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val, unsigned int partner = 0 );
          void raiseOpenPtPEventNkvs ( nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,
-                                      nanos_event_key_t *key, nanos_event_value_t *val );
-         void raiseClosePtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val ); 
+                                      nanos_event_key_t *key, nanos_event_value_t *val, unsigned int partner = 0 );
+         void raiseClosePtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val, unsigned int partner = 0 ); 
          void raiseClosePtPEventNkvs ( nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,
-                                       nanos_event_key_t *key, nanos_event_value_t *val ); 
+                                       nanos_event_key_t *key, nanos_event_value_t *val, unsigned int partner = 0 ); 
 
          void raiseOpenStateAndBurst ( nanos_event_state_value_t state, nanos_event_key_t key, nanos_event_value_t val );
          void raiseCloseStateAndBurst ( nanos_event_key_t key );

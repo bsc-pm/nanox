@@ -143,7 +143,7 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize, void ( *wor
     {
        NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
        NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wdId) << 32 ) + gasnet_mynode() ; )
-       NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *wd, NANOS_WD_REMOTE, id, 0, NULL, NULL ); )
+       NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *wd, NANOS_WD_REMOTE, id, 0, NULL, NULL, 0 ); )
     }
 
     sys.submit( *wd );
@@ -203,7 +203,7 @@ static void am_my_hostname( gasnet_token_t token, void *buff, size_t nbytes )
     }
 }
 
-void GasnetAPI::initialize ( Network *net )
+void GASNetAPI::initialize ( Network *net )
 {
    int my_argc = OS::getArgc();
    char **my_argv = OS::getArgv();
@@ -237,8 +237,7 @@ void GasnetAPI::initialize ( Network *net )
    _net->setNumNodes( gasnet_nodes() );
    _net->setNodeNum( gasnet_mynode() );
 
-   gasnet_barrier_notify( 0, GASNET_BARRIERFLAG_ANONYMOUS );
-   gasnet_barrier_wait( 0, GASNET_BARRIERFLAG_ANONYMOUS );
+   nodeBarrier();
 
    if ( _net->getNodeNum() == 0)
    {
@@ -250,8 +249,8 @@ void GasnetAPI::initialize ( Network *net )
          sendMyHostName( i );
       }
    }
-   gasnet_barrier_notify( 0, GASNET_BARRIERFLAG_ANONYMOUS );
-   gasnet_barrier_wait( 0, GASNET_BARRIERFLAG_ANONYMOUS );
+
+   nodeBarrier();
 
    if ( _net->getNodeNum() == 0)
    {
@@ -276,7 +275,7 @@ void GasnetAPI::initialize ( Network *net )
    }
 }
 
-void GasnetAPI::finalize ()
+void GASNetAPI::finalize ()
 {
     gasnet_barrier_notify( 0, GASNET_BARRIERFLAG_ANONYMOUS );
     gasnet_barrier_wait( 0, GASNET_BARRIERFLAG_ANONYMOUS );
@@ -286,12 +285,12 @@ void GasnetAPI::finalize ()
     exit(0);
 }
 
-void GasnetAPI::poll ()
+void GASNetAPI::poll ()
 {
    gasnet_AMPoll();
 }
 
-void GasnetAPI::sendExitMsg ( unsigned int dest )
+void GASNetAPI::sendExitMsg ( unsigned int dest )
 {
    if (gasnet_AMRequestShort0( dest, 203 ) != GASNET_OK)
    {
@@ -299,7 +298,7 @@ void GasnetAPI::sendExitMsg ( unsigned int dest )
    }
 }
 
-void GasnetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int dataSize, unsigned int wdId, unsigned int numPe, size_t argSize, void * arg )
+void GASNetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int dataSize, unsigned int wdId, unsigned int numPe, size_t argSize, void * arg )
 {
    //fprintf(stderr, "sending msg WORK %p, arg size %d to node %d, numPe %d\n", work, argSize, dest, numPe);
    if (gasnet_AMRequestMedium4( dest, 205, arg, argSize, work, dataSize, wdId, numPe ) != GASNET_OK)
@@ -308,7 +307,7 @@ void GasnetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsi
    }
 }
 
-void GasnetAPI::sendWorkDoneMsg ( unsigned int dest, unsigned int numPe )
+void GASNetAPI::sendWorkDoneMsg ( unsigned int dest, unsigned int numPe )
 {
    //fprintf(stderr, "sending msg WORK DONE to node %d, numPe %d\n", dest, numPe);
    if (gasnet_AMRequestShort1( dest, 206, numPe ) != GASNET_OK)
@@ -317,17 +316,17 @@ void GasnetAPI::sendWorkDoneMsg ( unsigned int dest, unsigned int numPe )
    }
 }
 
-void GasnetAPI::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size )
+void GASNetAPI::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size )
 {
    gasnet_put_bulk( ( gasnet_node_t ) remoteNode, ( void * ) remoteAddr, localAddr, size );
 }
 
-void GasnetAPI::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, size_t size )
+void GASNetAPI::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, size_t size )
 {
    gasnet_get_bulk ( localAddr, ( gasnet_node_t ) remoteNode, ( void * ) remoteAddr, size );
 }
 
-void GasnetAPI::malloc ( unsigned int remoteNode, size_t size, unsigned int id )
+void GASNetAPI::malloc ( unsigned int remoteNode, size_t size, unsigned int id )
 {
    if (gasnet_AMRequestShort2( remoteNode, 207, size, id ) != GASNET_OK)
    {
@@ -335,7 +334,13 @@ void GasnetAPI::malloc ( unsigned int remoteNode, size_t size, unsigned int id )
    }
 }
 
-void GasnetAPI::sendMyHostName( unsigned int dest )
+void GASNetAPI::nodeBarrier()
+{
+   gasnet_barrier_notify( 0, GASNET_BARRIERFLAG_ANONYMOUS );
+   gasnet_barrier_wait( 0, GASNET_BARRIERFLAG_ANONYMOUS );
+}
+
+void GASNetAPI::sendMyHostName( unsigned int dest )
 {
    char name[256];
 

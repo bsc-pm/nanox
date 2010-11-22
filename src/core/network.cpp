@@ -127,7 +127,7 @@ void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigne
 
          NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
          NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wdId) << 32 ) + dest; )
-         NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL ); )
+         NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL, dest ); )
 
          _api->sendWorkMsg( dest, work, dataSize, wdId, numPe, argSize, arg );
 
@@ -202,6 +202,14 @@ void Network::notifyMalloc( unsigned int remoteNode, void * addr, unsigned int i
 {
    _malloc_return[ remoteNode * sys.getNumPEs() + id ] = addr;
    _malloc_complete[ remoteNode * sys.getNumPEs() + id ] = true;
+}
+
+void Network::nodeBarrier()
+{
+   if ( _api != NULL )
+   {
+      _api->nodeBarrier();
+   }
 }
 
 void Network::setMasterHostname( char *name )
