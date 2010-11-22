@@ -38,6 +38,12 @@ namespace nanos {
       public:
          SimpleAllocator( uint64_t baseAddress, size_t len );
 
+         // WARNING: Calling this constructor requires calling init() at some time
+         // before any allocate() or free() methods are called
+         SimpleAllocator() : _baseAddress( 0 ) { }
+
+         void init( uint64_t baseAddress, size_t len );
+
          void * allocate( size_t len );
          size_t free( void *address );
          void * reallocate( void *address, size_t len );
