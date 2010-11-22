@@ -51,13 +51,15 @@ void * SimpleAllocator::allocate( size_t size )
       _freeChunks.erase( mapIter );
 
       //add the chunk with the new size (previous size - requested size)
-      _freeChunks[ targetAddr + size ] = chunkSize - size ;
+      if (chunkSize > size)
+         _freeChunks[ targetAddr + size ] = chunkSize - size ;
       _allocatedChunks[ targetAddr ] = size;
 
       retAddr = ( void * ) targetAddr;
    }
    else {
-      std::cerr << "Could not get a chunk of " << size << " bytes" << std::endl;
+      // Could not get a chunk of 'size' bytes
+      return NULL;
    }
 
    return retAddr;
@@ -67,6 +69,7 @@ size_t SimpleAllocator::free( void *address )
 {
    SegmentMap::iterator mapIter = _allocatedChunks.find( ( uint64_t ) address );
    size_t size = mapIter->second;
+   std::pair< SegmentMap::iterator, bool > ret;
 
    _allocatedChunks.erase( mapIter );
 
@@ -78,31 +81,44 @@ size_t SimpleAllocator::free( void *address )
          mapIter--;
          if ( mapIter->first + mapIter->second == ( uint64_t ) address ) {
             mapIter->second += size;
+         } else {
+            _freeChunks[ ( uint64_t ) address ] = size;
          }
       }
-      //address is not the hightest key, check if it can be merged with the previous and next chunks
+      //address is not the highest key, check if it can be merged with the previous and next chunks
       else if ( _freeChunks.key_comp()( ( uint64_t ) address, mapIter->first ) ) {
          size_t totalSize = size;
+         bool firstMerge = false;
 
          //check next chunk
          if ( mapIter->first == ( ( uint64_t ) address ) + size ) {
             totalSize += mapIter->second;
             _freeChunks.erase( mapIter );
-            mapIter = _freeChunks.insert( mapIter, SegmentMap::value_type( ( uint64_t ) address, totalSize ) );
+            ret = _freeChunks.insert( SegmentMap::value_type( ( uint64_t ) address, totalSize ) );
+            mapIter = ret.first;
+            firstMerge = true;
          }
 
          //check previous chunk
-         mapIter--;
-         if ( mapIter->first + mapIter->second == ( uint64_t ) address ) {
-            //if totalSize > size then the next chunk was merged
-            if ( totalSize > size ) {
-               mapIter->second += totalSize;
-               mapIter++;
-               _freeChunks.erase( mapIter );
+         if ( _freeChunks.begin() != mapIter )
+         {
+            mapIter--;
+            if ( mapIter->first + mapIter->second == ( uint64_t ) address ) {
+               //if totalSize > size then the next chunk was merged
+               if ( totalSize > size ) {
+                  mapIter->second += totalSize;
+                  mapIter++;
+                  _freeChunks.erase( mapIter );
+               }
+               else {
+                  mapIter->second += size;
+               }
+            } else if ( !firstMerge ) {
+               _freeChunks[ ( uint64_t ) address ] = size;
             }
-            else {
-               mapIter->second += size;
-            }
+         }
+         else if ( !firstMerge ) {
+            _freeChunks[ ( uint64_t ) address ] = size;
          }
       }
       //duplicate key, error
@@ -130,4 +146,23 @@ void * SimpleAllocator::reallocate( void *address, size_t size )
       std::memcpy( newAddress, address, oldSize );
    }
    return newAddress;
+}
+
+void SimpleAllocator::printMap()
+{
+   std::cout << "ALLOCATED CHUNKS" << std::endl;
+   for (SegmentMap::iterator it = _allocatedChunks.begin(); it != _allocatedChunks.end(); it++ ) {
+      std::cout << "|... ";
+      std::cout << it->first << " @ " << it->second;
+      std::cout << " ...";
+   }
+   std::cout << "|" << std::endl;
+
+   std::cout << "FREE CHUNKS" << std::endl;
+   for (SegmentMap::iterator it = _freeChunks.begin(); it != _freeChunks.end(); it++ ) {
+      std::cout << "|... ";
+      std::cout << it->first << " @ " << it->second;
+      std::cout << " ...";
+   }
+   std::cout << "|" << std::endl;
 }
