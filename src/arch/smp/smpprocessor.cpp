@@ -104,9 +104,9 @@ void SMPProcessor::copyToDependent( void *dst, uint64_t tag, size_t size )
    _cache.copyTo( dst, tag, size );
 }
 
-void SMPProcessor::synchronize( Directory &dir, uint64_t tag )
+void SMPProcessor::synchronize( Directory &dir, CopyDescriptor &copy )
 {
-   _cache.synchronize( tag );
+   _cache.synchronize( copy );
 }
 
 #endif
