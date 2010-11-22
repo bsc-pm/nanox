@@ -101,6 +101,25 @@ void * GPUDevice::allocate( size_t size, ProcessingElement *pe )
    void * address = 0;
    uint64_t pinned = 0;
 
+   if ( _transferMode == NORMAL || _transferMode == ASYNC || _transferMode == PINNED_OS) {
+      address = ( ( nanos::ext::GPUProcessor * ) pe )->allocate( size );
+
+      if ( address == NULL ) return NULL;
+#if 0
+      err = cudaMalloc( ( void ** ) &address, size );
+
+      if ( err != cudaSuccess ) {
+         std::stringstream sizeStr;
+         sizeStr << size;
+         std::string what = "Trying to allocate "
+                            + sizeStr.str()
+                            + " bytes of device memory with cudaMalloc(): ";
+         fatal( what + cudaGetErrorString( err ) );
+      }
+#endif
+   }
+
+
    if ( _transferMode == ASYNC ) {
       err = cudaMallocHost( ( void ** ) &pinned, size );
 
@@ -157,22 +176,6 @@ void * GPUDevice::allocate( size_t size, ProcessingElement *pe )
          std::string what = "cudaHostGetDevicePointer(): ";
          fatal( what + cudaGetErrorString( err ) );
       }
-   }
-
-   if ( _transferMode == NORMAL || _transferMode == ASYNC || _transferMode == PINNED_OS) {
-      address = ( ( nanos::ext::GPUProcessor * ) pe )->allocate( size );
-#if 0
-      err = cudaMalloc( ( void ** ) &address, size );
-
-      if ( err != cudaSuccess ) {
-         std::stringstream sizeStr;
-         sizeStr << size;
-         std::string what = "Trying to allocate "
-                            + sizeStr.str()
-                            + " bytes of device memory with cudaMalloc(): ";
-         fatal( what + cudaGetErrorString( err ) );
-      }
-#endif
    }
 
    if ( _transferMode == ASYNC || _transferMode == PINNED_CUDA || _transferMode == WC) {
