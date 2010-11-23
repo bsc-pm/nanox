@@ -19,7 +19,7 @@
 
 /*
 <testinfo>
-test_generator=gens/mixed-generator
+test_generator="gens/mixed-generator -a \"--gpus=0\""
 </testinfo>
 */
 
