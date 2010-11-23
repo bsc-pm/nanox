@@ -199,8 +199,15 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
       // TODO: choose device
       // pre-allocate device
       char chunk[devices[0].dd_size];
+      
 
       WD wd( ( DD* ) devices[0].factory( chunk, devices[0].arg ), data_size, data, num_copies, copies );
+
+      int pmDataSize = sys.getPMInterface().getInternalDataSize();
+      char pmData[pmDataSize];
+      if ( pmDataSize > 0 ) {
+        wd.setInternalData(pmData);
+      }
 
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
 

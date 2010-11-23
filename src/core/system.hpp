@@ -126,6 +126,8 @@ inline void System::setPMInterface(PMInterface *pm)
    _pmInterface = pm;
 }
 
+inline const PMInterface &  System::getPMInterface(void) const { return *_pmInterface; }
+
 inline bool System::throttleTask()
 {
    return _throttlePolicy->throttle();
