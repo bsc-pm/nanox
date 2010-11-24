@@ -33,6 +33,9 @@ template<typename _KeyType>
 class Hash
 {
    public:
+      Hash() {}
+      virtual ~Hash() {}
+
       virtual size_t operator()( _KeyType key, size_t size )
          { return ((size_t)key) % size; }
 };
