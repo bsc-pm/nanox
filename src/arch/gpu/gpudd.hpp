@@ -42,6 +42,11 @@ namespace ext
          static int     _gpuCount; // Number of CUDA-capable GPUs
          work_fct       _work;
          static bool    _prefetch; // Enable / disable data prefetching (set by the user)
+         static bool    _overlap; // Enable / disable computation and data transfer overlapping (set by the user)
+         static bool    _overlapInputs;
+         static bool    _overlapOutputs;
+         static size_t  _maxGPUMemory; // Maximum amount of memory for each GPU to use
+         static void *  _gpusProperties; // Array of structs of cudaDeviceProp
 
       public:
          // constructors
@@ -64,9 +69,20 @@ namespace ext
 
          static bool isPrefetchingDefined () { return _prefetch; }
 
+         static bool isOverlappingInputsDefined () { return _overlapInputs; }
+
+         static bool isOverlappingOutputsDefined () { return _overlapOutputs; }
+
+         static size_t getGPUMaxMemory() { return _maxGPUMemory; }
+
+         static void getGPUsProperties( int device, void * deviceProps );
+
          virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous) { }
          virtual size_t size ( void ) { return sizeof(GPUDD); }
          virtual GPUDD *copyTo ( void *toAddr );
+
+         static void printConfiguration();
+
    };
 
    inline const GPUDD & GPUDD::operator= ( const GPUDD &dd )
@@ -76,6 +92,7 @@ namespace ext
 
       DD::operator= ( dd );
       _work = dd._work;
+      _gpusProperties = dd._gpusProperties;
 
       return *this;
    }

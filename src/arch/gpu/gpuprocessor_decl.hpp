@@ -21,10 +21,13 @@
 #define _NANOS_GPU_PROCESSOR_DECL
 
 #include "accelerator.hpp"
+#include "gputhread.hpp"
 #include "cache.hpp"
 #include "config.hpp"
 #include "gpudevice.hpp"
-#include "gputhread.hpp"
+#include "gpumemorytransfer.hpp"
+#include "simpleallocator.hpp"
+#include "copydescriptor_decl.hpp"
 
 #include <map>
 
@@ -36,28 +39,44 @@ namespace ext
    class GPUProcessor : public Accelerator
    {
       public:
-         class GPUInfo
+         class GPUProcessorInfo;
+
+         class GPUProcessorStats
          {
-            private:
-               size_t _maxMemoryAvailable;
-
             public:
-               GPUInfo ( int device );
-
-               size_t getMaxMemoryAvailable () { return _maxMemoryAvailable; }
+               unsigned int   _bytesIn;
+               unsigned int   _bytesOut;
          };
 
-         class TransferInfo;
+         class GPUProcessorTransfers
+         {
+            public:
+               GPUMemoryTransferList * _pendingCopiesIn;
+               GPUMemoryTransferList * _pendingCopiesOut;
+
+
+               GPUProcessorTransfers()
+               {
+                  _pendingCopiesIn = new GPUMemoryTransferList();
+                  _pendingCopiesOut = new GPUMemoryTransferList();
+               }
+
+               ~GPUProcessorTransfers() {}
+         };
+
 
       private:
          // Configuration variables
          static Atomic<int>      _deviceSeed; // Number of GPU devices assigned to threads
          int                     _gpuDevice; // Assigned GPU device Id
-         GPUInfo                 _gpuInfo; // Information related to the GPU device that represents
-         TransferInfo *          _transferInfo; // Information used for data transfers
+         GPUProcessorInfo *      _gpuProcessorInfo; // Information related to the GPU device that represents
+         GPUProcessorStats       _gpuProcessorStats; // Statistics of data copied in and out to / from cache
+         GPUProcessorTransfers   _gpuProcessorTransfers; // Keep the list of pending memory transfers
+
 
          // Cache
          DeviceCache<GPUDevice>        _cache;
+         SimpleAllocator               _allocator;
          std::map< void *, uint64_t >  _pinnedMemory;
 
          // Disable copy constructor and assignment operator
@@ -70,7 +89,14 @@ namespace ext
          // Constructors
          GPUProcessor( int id, int gpuId );
 
-         virtual ~GPUProcessor() {}
+         virtual ~GPUProcessor()
+         {
+            printStats();
+         }
+
+         void init( size_t &memSize );
+         void freeWholeMemory();
+
 
          virtual WD & getWorkerWD () const;
          virtual WD & getMasterWD () const;
@@ -80,18 +106,35 @@ namespace ext
          virtual bool supportsUserLevelThreads () const { return false; }
 
          // Memory space support
-         virtual void registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output );
-         virtual void unregisterCacheAccessDependent( uint64_t tag, size_t size );
-         virtual void registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output );
-         virtual void unregisterPrivateAccessDependent( uint64_t tag, size_t size );
+         virtual void setCacheSize( size_t size );
+
+         virtual void waitInputDependent( uint64_t tag );
+
+         virtual void registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
+         virtual void unregisterCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool output );
+         virtual void registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
+         virtual void unregisterPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size );
+         virtual void synchronize( CopyDescriptor &cd );
+         virtual void synchronize( std::list<CopyDescriptor> &cds );
 
          virtual void* getAddressDependent( uint64_t tag );
          virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
 
-         // Get information about data transfers
-         TransferInfo * getTransferInfo ()
+         // Allocator interface
+         void * allocate ( size_t size )
          {
-            return _transferInfo;
+            return _allocator.allocate( size );
+         }
+
+         void free( void * address )
+         {
+            _allocator.free( address );
+         }
+
+         // Get information about the GPU that represents this object
+         GPUProcessorInfo * getGPUProcessorInfo ()
+         {
+            return _gpuProcessorInfo;
          }
 
          uint64_t getPinnedAddress ( void * dAddress )
@@ -107,6 +150,34 @@ namespace ext
          void removePinnedAddress ( void * dAddress )
          {
             _pinnedMemory.erase( dAddress );
+         }
+
+         void transferInput ( size_t size )
+         {
+            _gpuProcessorStats._bytesIn += ( unsigned int ) size;
+         }
+
+         void transferOutput ( size_t size )
+         {
+            _gpuProcessorStats._bytesOut += ( unsigned int ) size;
+         }
+
+         GPUMemoryTransferList * getInTransferList ()
+         {
+            return _gpuProcessorTransfers._pendingCopiesIn;
+         }
+
+         GPUMemoryTransferList * getOutTransferList ()
+         {
+            return _gpuProcessorTransfers._pendingCopiesOut;
+         }
+
+         void printStats ()
+         {
+            std::cerr << "GPU " << _gpuDevice << " TRANSFER STATISTICS" << std::endl
+                  << "Total input transfers: " << _gpuProcessorStats._bytesIn << " bytes" << std::endl
+                  << "Total output transfers: " << _gpuProcessorStats._bytesOut << " bytes" << std::endl;
+
          }
    };
 
