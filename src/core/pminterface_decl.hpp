@@ -38,7 +38,7 @@ class PMInterface
       PMInterface() {}
       /*! \brief PMInterface destructor
        */
-      ~PMInterface() {}
+      virtual ~PMInterface() {}
 
       virtual int getInternalDataSize() const { return 0; }
 
