@@ -57,13 +57,13 @@ void * GPUDevice::allocateWholeMemory( size_t &size )
    void * address = 0;
    float percentage = 1.0;
 
-   cudaError_t err = cudaMalloc( ( void ** ) &address, size * percentage );
+   cudaError_t err = cudaMalloc( ( void ** ) &address, ( size_t ) ( size * percentage ) );
 
    while ( ( err == cudaErrorMemoryValueTooLarge || err == cudaErrorMemoryAllocation )
          && percentage > 0.5 )
    {
       percentage -= 0.05;
-      err = cudaMalloc( ( void ** ) &address, size * percentage );
+      err = cudaMalloc( ( void ** ) &address, ( size_t ) ( size * percentage ) );
    }
 
    if ( err != cudaSuccess ) {
@@ -75,7 +75,7 @@ void * GPUDevice::allocateWholeMemory( size_t &size )
       fatal( what + cudaGetErrorString( err ) );
    }
 
-   size = size * percentage;
+   size = ( size_t ) ( size * percentage );
 
    return address;
 }

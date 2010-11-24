@@ -78,7 +78,7 @@ namespace ext
             // Check if the user has set the amount of memory to use (and the value is valid)
             // Otherwise, use 95% of the total GPU global memory
             size_t userDefinedMem = GPUDD::getGPUMaxMemory();
-            _maxMemoryAvailable = gpuProperties.totalGlobalMem * 0.95;
+            _maxMemoryAvailable = ( size_t ) ( gpuProperties.totalGlobalMem * 0.95 );
 
             if ( userDefinedMem > 0 ) {
                if ( userDefinedMem > _maxMemoryAvailable ) {
