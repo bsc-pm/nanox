@@ -20,7 +20,7 @@
 #ifndef _NANOS_GPU_PROCESSOR_DECL
 #define _NANOS_GPU_PROCESSOR_DECL
 
-#include "accelerator.hpp"
+#include "cachedaccelerator.hpp"
 #include "gputhread.hpp"
 #include "cache.hpp"
 #include "config.hpp"
@@ -36,7 +36,7 @@ namespace nanos {
 namespace ext
 {
 
-   class GPUProcessor : public Accelerator
+   class GPUProcessor : public CachedAccelerator<GPUDevice>
    {
       public:
          class GPUProcessorInfo;
@@ -61,7 +61,11 @@ namespace ext
                   _pendingCopiesOut = new GPUMemoryTransferList();
                }
 
-               ~GPUProcessorTransfers() {}
+               ~GPUProcessorTransfers() 
+               {
+		  delete _pendingCopiesIn;
+		  delete _pendingCopiesOut;
+               }
          };
 
 
@@ -74,8 +78,6 @@ namespace ext
          GPUProcessorTransfers   _gpuProcessorTransfers; // Keep the list of pending memory transfers
 
 
-         // Cache
-         DeviceCache<GPUDevice>        _cache;
          SimpleAllocator               _allocator;
          std::map< void *, uint64_t >  _pinnedMemory;
 
@@ -97,28 +99,27 @@ namespace ext
          void init( size_t &memSize );
          void freeWholeMemory();
 
-
-         virtual WD & getWorkerWD () const;
-         virtual WD & getMasterWD () const;
-         virtual BaseThread & createThread ( WorkDescriptor &wd );
+         WD & getWorkerWD () const;
+         WD & getMasterWD () const;
+         BaseThread & createThread ( WorkDescriptor &wd );
 
          // Capability query functions
-         virtual bool supportsUserLevelThreads () const { return false; }
+         bool supportsUserLevelThreads () const { return false; }
 
          // Memory space support
-         virtual void setCacheSize( size_t size );
+         void setCacheSize( size_t size );
 
-         virtual void waitInputDependent( uint64_t tag );
+         void waitInputDependent( uint64_t tag );
 
-         virtual void registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
-         virtual void unregisterCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool output );
-         virtual void registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
-         virtual void unregisterPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size );
-         virtual void synchronize( CopyDescriptor &cd );
-         virtual void synchronize( std::list<CopyDescriptor> &cds );
+         void registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
+         void unregisterCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool output );
+         void registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
+         void unregisterPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size );
+         void synchronize( CopyDescriptor &cd );
+         void synchronize( std::list<CopyDescriptor> &cds );
 
-         virtual void* getAddressDependent( uint64_t tag );
-         virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
+         void* getAddressDependent( uint64_t tag );
+         void copyToDependent( void *dst, uint64_t tag, size_t size );
 
          // Allocator interface
          void * allocate ( size_t size )
@@ -174,10 +175,9 @@ namespace ext
 
          void printStats ()
          {
-            std::cerr << "GPU " << _gpuDevice << " TRANSFER STATISTICS" << std::endl
-                  << "Total input transfers: " << _gpuProcessorStats._bytesIn << " bytes" << std::endl
-                  << "Total output transfers: " << _gpuProcessorStats._bytesOut << " bytes" << std::endl;
-
+            message("GPU " << _gpuDevice << " TRANSFER STATISTICS");
+            message("Total input transfers: " << _gpuProcessorStats._bytesIn << " bytes");
+            message("Total output transfers: " << _gpuProcessorStats._bytesOut << " bytes");
          }
    };
 

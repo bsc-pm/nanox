@@ -26,6 +26,11 @@
 
 #include <iostream>
 
+#if __CUDA_API_VERSION < 3020
+#define CUDANODEVERR cudaErrorDevicesUnavailable
+#else
+#define CUDANODEVERR cudaErrorNoDevice
+#endif 
 
 namespace nanos {
 namespace ext
@@ -72,12 +77,12 @@ namespace ext
             // can be done in parallel
 
             struct cudaDeviceProp gpuProperties;
-            GPUDD::getGPUsProperties( _deviceId, ( void * ) &gpuProperties );
+            GPUConfig::getGPUsProperties( _deviceId, ( void * ) &gpuProperties );
             //cudaGetDeviceProperties( &gpuProperties, _deviceId );
 
             // Check if the user has set the amount of memory to use (and the value is valid)
             // Otherwise, use 95% of the total GPU global memory
-            size_t userDefinedMem = GPUDD::getGPUMaxMemory();
+            size_t userDefinedMem = GPUConfig::getGPUMaxMemory();
             _maxMemoryAvailable = ( size_t ) ( gpuProperties.totalGlobalMem * 0.95 );
 
             if ( userDefinedMem > 0 ) {
@@ -96,21 +101,17 @@ namespace ext
                // It does not support stream overlapping, disable this feature
                warning( "Device #" << _deviceId <<
                      " does not support computation and data transfer overlapping" );
-               return;
-            }
-
+            } else {
             if ( GPUDD::isOverlappingInputsDefined() ) {
                // Initialize the CUDA streams used for input data transfers
                cudaError_t err = cudaStreamCreate( &_inTransferStream );
                if ( err != cudaSuccess ) {
                   // If an error occurred, disable stream overlapping
                   _inTransferStream = 0;
-                  if ( err == cudaErrorDevicesUnavailable ) {
+                  if ( err == CUDANODEVERR ) {
                      fatal( "Error while creating the CUDA input transfer stream: all CUDA-capable devices are busy or unavailable" );
                   }
                   warning( "Error while creating the CUDA input transfer stream: " << cudaGetErrorString( err ) );
-                  ensure( err != cudaErrorDevicesUnavailable, "Aborting execution" );
-                  return;
                }
             }
             if ( GPUDD::isOverlappingOutputsDefined() ) {
@@ -118,15 +119,13 @@ namespace ext
                cudaError_t err = cudaStreamCreate( &_outTransferStream );
                if ( err != cudaSuccess ) {
                   // If an error occurred, disable stream overlapping
-                  _inTransferStream = 0;
                   _outTransferStream = 0;
-                  if ( err == cudaErrorDevicesUnavailable ) {
+                  if ( err == CUDANODEVERR ) {
                      fatal( "Error while creating the CUDA output transfer stream: all CUDA-capable devices are busy or unavailable" );
                   }
                   warning( "Error while creating the CUDA output transfer stream: " << cudaGetErrorString( err ) );
-                  ensure( err != cudaErrorNoDevice, "Aborting execution" );
-                  return;
                }
+            }
             }
 
             // Initialize GPUProcessor --> we allocate the whole GPU memory

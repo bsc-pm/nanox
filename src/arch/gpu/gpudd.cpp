@@ -18,52 +18,15 @@
 /*************************************************************************************/
 
 #include "gpudd.hpp"
-#include "system.hpp"
-
-#include <cuda_runtime.h>
 
 using namespace nanos;
 using namespace nanos::ext;
 
 GPUDevice nanos::ext::GPU( "GPU" );
 
-int GPUDD::_gpuCount = 0;
-bool GPUDD::_prefetch = true;
-bool GPUDD::_overlap = true;
-bool GPUDD::_overlapInputs = true;
-bool GPUDD::_overlapOutputs = true;
-size_t GPUDD::_maxGPUMemory = 0;
-void * GPUDD::_gpusProperties = NULL;
-
-
-void GPUDD::getGPUsProperties( int device, void * deviceProps )
-{
-   void * props = &((struct cudaDeviceProp *) _gpusProperties)[device];
-   memcpy( deviceProps, props, sizeof( struct cudaDeviceProp ) );
-}
-
-
 GPUDD * GPUDD::copyTo ( void *toAddr )
 {
    GPUDD *dd = new ( toAddr ) GPUDD( *this );
    return dd;
-}
-
-void GPUDD::printConfiguration()
-{
-   verbose0( "--- GPUDD configuration ---" );
-   verbose0( "  Number of GPU's: " << _gpuCount );
-   verbose0( "  Prefetching: " << (_prefetch ? "Enabled" : "Disabled") );
-   verbose0( "  Overlapping: " << (_overlap ? "Enabled" : "Disabled") );
-   verbose0( "  Overlapping inputs: " << (_overlapInputs ? "Enabled" : "Disabled") );
-   verbose0( "  Overlapping outputs: " << (_overlapOutputs ? "Enabled" : "Disabled") );
-   if ( _maxGPUMemory != 0 ) {
-      verbose0( "  Limited memory: Enabled: " << _maxGPUMemory << " bytes" );
-   }
-   else {
-      verbose0( "  Limited memory: Disabled" );
-   }
-
-   verbose0( "--- end of GPUDD configuration ---" );
 }
 

@@ -17,61 +17,55 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_GPU_WD
-#define _NANOS_GPU_WD
+#ifndef _NANOS_GPU_CFG
+#define _NANOS_GPU_CFG
 
-#include "gpudevice.hpp"
-#include "workdescriptor.hpp"
+#include "config.hpp"
 
 namespace nanos {
 namespace ext
 {
-
-   extern GPUDevice GPU;
-
    class GPUPlugin;
 
-   class GPUDD : public DD
+   /*! Contains the general configuration for the GPU module */
+   class GPUConfig
    {
       friend class GPUPlugin;
-      public:
-         typedef void ( *work_fct ) ( void *self );
-
       private:
-         work_fct       _work;
+	 static bool    _disableCUDA; //! Enable/disable all CUDA support
+         static int     _numGPUs; //! Number of CUDA-capable GPUs
+         static bool    _prefetch; //! Enable / disable data prefetching (set by the user)
+         static bool    _overlap; //! Enable / disable computation and data transfer overlapping (set by the user)
+         static bool    _overlapInputs;
+         static bool    _overlapOutputs;
+         static size_t  _maxGPUMemory; //! Maximum amount of memory for each GPU to use
+         static void *  _gpusProperties; //! Array of structs of cudaDeviceProp
+
+         /*! Parses the GPU user options */
+         static void prepare ( Config &config );
+         /*! Applies the configuration options and retrieves the information of the GPUs of the system */
+         static void apply ( void );
 
       public:
-         // constructors
-         GPUDD( work_fct w ) : DD( &GPU ), _work( w ) {}
+	 GPUConfig() {}
+	 ~GPUConfig() {}
 
-         GPUDD() : DD( &GPU ), _work( 0 ) {}
+	 /*! return the number of available GPUs */
+         static int getGPUCount ( void ) { return _numGPUs; }
 
-         // copy constructors
-         GPUDD( const GPUDD &dd ) : DD( dd ), _work( dd._work ) {}
+         static bool isPrefetchingDefined ( void ) { return _prefetch; }
 
-         // assignment operator
-         const GPUDD & operator= ( const GPUDD &wd );
+         static bool isOverlappingInputsDefined ( void ) { return _overlapInputs; }
 
-         // destructor
-         virtual ~GPUDD() { }
+         static bool isOverlappingOutputsDefined ( void ) { return _overlapOutputs; }
 
-         work_fct getWorkFct() const { return _work; }
+         static size_t getGPUMaxMemory( void ) { return _maxGPUMemory; }
 
-         virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous) { }
-         virtual size_t size ( void ) { return sizeof(GPUDD); }
-         virtual GPUDD *copyTo ( void *toAddr );
+         static void getGPUsProperties( int device, void * deviceProps );
+
+         static void printConfiguration( void );
+
    };
-
-   inline const GPUDD & GPUDD::operator= ( const GPUDD &dd )
-   {
-      // self-assignment: ok
-      if ( &dd == this ) return *this;
-
-      DD::operator= ( dd );
-      _work = dd._work;
-
-      return *this;
-   }
 
 }
 }

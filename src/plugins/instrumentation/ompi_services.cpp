@@ -1,5 +1,7 @@
 #include "system.hpp"
+#ifdef GPU_DEV
 #include "gpudd.hpp"
+#endif
 
 namespace nanos {
 

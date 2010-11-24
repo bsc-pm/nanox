@@ -27,19 +27,11 @@
 #include "functors.hpp"
 #include "atomic.hpp"
 
-#define LOCK_TRANSFER 0
-
 namespace nanos
 {
 
    class Accelerator : public ProcessingElement
    {
-
-      private:
-#if LOCK_TRANSFER
-         static Lock _transferLock;
-#endif
-         
       protected:
          virtual WorkDescriptor & getMasterWD () const = 0;
          virtual WorkDescriptor & getWorkerWD () const = 0;
