@@ -75,8 +75,15 @@ intptr_t * initContext ( intptr_t *stack, size_t stackSize, void *userFunction, 
    state[60] = ( intptr_t ) userArg;
 
    // return pointer
-   // The double cast avoids a GCC warning about breaking aliasing
-   state[59] = ( intptr_t ) *( (long *)( void * )startHelper );
+   // The union here avoids breaking strict C aliasing rules for type-punning
+   // A simple cast wouldn't have worked 
+   union {
+     long * address;
+     void (*ptrfun) (); 
+   } r;
+
+   r.ptrfun = startHelper;
+   state[59] = ( intptr_t ) *r.address;
    // ar.rsc
    state[58] = ( intptr_t ) 3;
    // ar.pfs
