@@ -452,7 +452,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, align_Data, data != NULL ? *data : NULL,
                              num_copies, (copies != NULL)? *copies : NULL );
 
-   // initializing internal data data 
+   // initializing internal data
    if ( size_PMD > 0) wd->setInternalData( chunk + offset_PMD );
 
    // add to workgroup
@@ -593,7 +593,7 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
                        outline_data_size, align_Data, outline_data != NULL ? *outline_data : NULL, num_copies,
                        (copies == NULL) ? NULL : *copies );
 
-   // initializing internal data data 
+   // initializing internal data
    if ( size_PMD > 0) wd->setInternalData( chunk + offset_PMD );
 
    // add to workgroup
@@ -682,7 +682,8 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    // creating new WD 
    new (*uwd) WD( *wd, dev_ptrs, wdCopies , data);
 
-   /* FIXME: (#391) Need to call setInternaData, and Copy it */
+   // initializing internal data
+   if ( size_PMD > 0) wd->setInternalData( chunk + offset_PMD );
 }
 
 /*! \brief Duplicates a given SlicedWD
@@ -770,7 +771,9 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
    new (*uwd) SlicedWD( *(wd->getSlicer()), wd->getSlicerDataSize(), wd->getSlicerDataAlignment(),
                         *((SlicerData *)slicer_data), *((WD *)wd), dev_ptrs, wdCopies, data );
 
-   /* FIXME: (#391) Need to call setInternaData, and Copy it */
+   // initializing internal data
+   if ( size_PMD > 0) wd->setInternalData( chunk + offset_PMD );
+
 }
 
 void System::setupWD ( WD &work, WD *parent )
