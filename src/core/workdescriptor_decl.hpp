@@ -77,12 +77,12 @@ namespace nanos
 
    };
 
-   /*! \brief This class holds the specific data for a given device
-    */
+  /*! \brief This class holds the specific data for a given device
+   *
+   */
    class DeviceData
    {
       private:
-
          /**Use pointers for this as is this fastest way to compare architecture compatibility */
          const Device *_architecture; /**< Related Device (architecture). */
 
@@ -139,6 +139,7 @@ namespace nanos
          typedef enum { INIT, READY, IDLE, BLOCKED } State;
 
          size_t                        _data_size;    /**< WD data size */
+         int                           _data_align;   /**< WD data alignment */
          void                         *_data;         /**< WD data */
          void                         *_wdData;       /**< Internal WD data. this allows higher layer to associate data to the WD */
          bool                          _tie;          /**< FIXME: (#170) documentation needed */
@@ -182,9 +183,10 @@ namespace nanos
 
          /*! \brief WorkDescriptor constructor - 1
           */
-         WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0, void *wdata=0,
+         WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0, int data_align = 1, void *wdata=0,
                           size_t numCopies = 0, CopyData *copies = NULL )
-                        : WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
+                        : WorkGroup(), _data_size ( data_size ), _data_align( data_align ),  _data ( wdata ),
+                          _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
                           _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : NULL ),
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
@@ -192,8 +194,10 @@ namespace nanos
 
          /*! \brief WorkDescriptor constructor - 2
           */
-         WorkDescriptor ( DeviceData *device, size_t data_size = 0, void *wdata=0, size_t numCopies = 0, CopyData *copies = NULL )
-                        : WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
+         WorkDescriptor ( DeviceData *device, size_t data_size = 0, int data_align = 1, void *wdata=0,
+                          size_t numCopies = 0, CopyData *copies = NULL )
+                        : WorkGroup(), _data_size ( data_size ), _data_align ( data_align ), _data ( wdata ),
+                          _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
                           _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( 1 ), _devices ( &_activeDevice ), _activeDevice ( device ),
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
@@ -210,8 +214,8 @@ namespace nanos
           *  \see WorkDescriptor System::duplicateWD System::duplicateSlicedWD
           */
          WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL )
-                        : WorkGroup( wd ), _data_size( wd._data_size ), _data ( data ), _wdData ( NULL ),
-                          _tie ( wd._tie ), _tiedTo ( wd._tiedTo ),
+                        : WorkGroup( wd ), _data_size( wd._data_size ), _data_align( wd._data_align ), _data ( data ),
+                          _wdData ( NULL ), _tie ( wd._tie ), _tiedTo ( wd._tiedTo ),
                           _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ), _myQueue ( NULL ), _depth ( wd._depth ),
                           _numDevices ( wd._numDevices ), _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
                           _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
@@ -252,7 +256,7 @@ namespace nanos
           *  \return data size
           *  \see getData setData setDatasize
           */
-         size_t getDataSize ();
+         size_t getDataSize () const;
 
          /*! \brief Set data size
           *
@@ -261,6 +265,23 @@ namespace nanos
           *  \see getData setData getDataSize
           */
          void setDataSize ( size_t data_size );
+
+         /*! \brief Get data alignment
+          *
+          *  This function returns the data alignment of the user's data related with current WD
+          *
+          *  \return data alignment
+          *  \see getData setData setDatasize
+          */
+         int getDataAlignment () const;
+
+         /*! \brief Set data alignment
+          *
+          *  This function set the data alignment of the user's data related with current WD
+          *
+          *  \see getData setData setDataSize
+          */
+         void setDataAlignment ( int data_align) ;
 
          WorkDescriptor * getParent();
 

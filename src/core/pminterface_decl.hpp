@@ -41,6 +41,7 @@ class PMInterface
       ~PMInterface() {}
 
       virtual int getInternalDataSize() const { return 0; }
+      virtual int getInternalDataAlignment() const { return 1; }
 
       virtual void config (Config &cfg) {}
       virtual void start () {}

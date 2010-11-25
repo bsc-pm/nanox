@@ -75,8 +75,9 @@ void main__loop_1 ( void *args );
       _loop_data.offset = -k_offset; \
       PluginManager::load( std::string("slicer-")+std::string(get_slicer) ); \
       Slicer *slicer = sys.getSlicer ( get_slicer ); \
-      WD * wd = new SlicedWD( *slicer, sizeof(slicer_data), *new slicer_data(lower+k_offset,upper+k_offset,step,chunk),\
-                        new SMPDD( main__loop_1 ), sizeof( _loop_data ),( void * ) &_loop_data );\
+      WD * wd = new SlicedWD( *slicer, sizeof(slicer_data), __alignof__(slicer_data),\
+                        *new slicer_data(lower+k_offset,upper+k_offset,step,chunk),\
+                        new SMPDD( main__loop_1 ), sizeof( _loop_data ), __alignof__(nanos_loop_info_t),( void * ) &_loop_data );\
       WG *wg = myThread->getCurrentWD();\
       wg->addWork( *wd );\
       sys.submit( *wd );\
