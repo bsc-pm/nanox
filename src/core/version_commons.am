@@ -41,12 +41,10 @@ common_sources=\
 	$(top_srcdir)/src/core/instrumentationcontext_fwd.hpp \
 	$(top_srcdir)/src/core/instrumentationcontext_decl.hpp \
 	$(top_srcdir)/src/core/instrumentationcontext.hpp \
-	$(top_srcdir)/src/core/instrumentationcontext.cpp \
 	$(top_srcdir)/src/core/instrumentationmodule_decl.hpp \
 	$(top_srcdir)/src/core/instrumentation_fwd.hpp \
 	$(top_srcdir)/src/core/instrumentation_decl.hpp \
 	$(top_srcdir)/src/core/instrumentation.hpp \
-	$(top_srcdir)/src/core/instrumentation.cpp \
 	$(top_srcdir)/src/core/throttle_fwd.hpp \
 	$(top_srcdir)/src/core/throttle.hpp \
 	$(top_srcdir)/src/core/dependency_fwd.hpp \
@@ -71,5 +69,10 @@ common_sources=\
         $(top_srcdir)/src/core/directory.hpp \
 	$(top_srcdir)/src/core/pminterface_decl.hpp  \
 	$(top_srcdir)/src/core/basethread_decl.hpp \
+	$(END)
+
+instr_sources = \
+	$(top_srcdir)/src/core/instrumentation.cpp \
+	$(top_srcdir)/src/core/instrumentationcontext.cpp \
 	$(END)
 
