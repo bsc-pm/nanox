@@ -55,7 +55,6 @@ void GPUThread::runDependent ()
 {
    WD &work = getThreadWD();
    setCurrentWD( work );
-   setNextWD( (WD *) 0 );
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
    dd.getWorkFct()( work.getData() );
 }
@@ -63,16 +62,17 @@ void GPUThread::runDependent ()
 void GPUThread::inlineWorkDependent ( WD &wd )
 {
    GPUDD &dd = ( GPUDD & )wd.getActiveDevice();
+   GPUProcessor &myGPU = *(GPUProcessor *) myThread->runningOn();
 
    if ( GPUDevice::getTransferMode() != nanos::NANOS_GPU_TRANSFER_NORMAL ) {
       // Wait for the input transfer stream to finish
-      cudaStreamSynchronize( ( (GPUProcessor *) myThread->runningOn() )->getGPUProcessorInfo()->getInTransferStream() );
+      cudaStreamSynchronize( myGPU.getGPUProcessorInfo()->getInTransferStream() );
       // Erase the wait input list and synchronize it with cache
-      ( (GPUProcessor *) myThread->runningOn() )->getInTransferList()->clearMemoryTransfers();
+      myGPU.getInTransferList()->clearMemoryTransfers();
    }
 
    // We wait for wd inputs, but as we have just waited for them, we could skip this step
-   wd.start( false );
+   wd.start( WD::IsNotAUserLevelThread );
 
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
    ( dd.getWorkFct() )( wd.getData() );
@@ -88,11 +88,15 @@ void GPUThread::inlineWorkDependent ( WD &wd )
       }
 
       // Copy out results from tasks executed previously
-      ( (GPUProcessor *) myThread->runningOn() )->getOutTransferList()->executeMemoryTransfers();
+      myGPU.getOutTransferList()->executeMemoryTransfers();
    }
 
    // Wait for the GPU kernel to finish
    cudaThreadSynchronize();
+
+   // Normally this instrumentation code is inserted by the compiler in the task outline.
+   // But because the kernel call is asynchronous for GPUs we need to raise them manually here
+   // when we know the kernel has really finished
    NANOS_INSTRUMENT ( raiseWDClosingEvents() );
 }
 
@@ -119,5 +123,6 @@ void GPUThread::raiseWDClosingEvents ()
 
             sys.getInstrumentation()->addEventList( 2, e );
       );
+      _wdClosingEvents = false;
    }
 }

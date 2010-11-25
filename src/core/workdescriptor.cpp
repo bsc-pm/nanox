@@ -39,7 +39,7 @@ void WorkDescriptor::init ()
       pe->copyDataIn( *this );
 }
 
-void WorkDescriptor::start(bool isUserLevelThread, WorkDescriptor *previous)
+void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
 {
    _activeDevice->lazyInit(*this,isUserLevelThread,previous);
    

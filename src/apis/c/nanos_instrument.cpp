@@ -249,7 +249,7 @@ nanos_err_t nanos_instrument_close_user_fun_event()
 #ifdef GPU_DEV
    try
    {
-      ( ( ext::GPUThread *) myThread )->createWDClosingEvents();
+      ( ( ext::GPUThread *) myThread )->enableWDClosingEvents();
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }

@@ -380,7 +380,7 @@ void Scheduler::switchTo ( WD *to )
    if ( myThread->runningOn()->supportsUserLevelThreads() ) {
       if (!to->started()) {
          to->init();
-         to->start(true);
+         to->start(WD::IsAUserLevelThread);
       }
       
       debug( "switching from task " << myThread->getCurrentWD() << ":" << myThread->getCurrentWD()->getId() <<
@@ -440,7 +440,7 @@ void Scheduler::exitTo ( WD *to )
     if (!to->started()) {
        to->init();
 //       to->start(true,current);
-       to->start(true,NULL);
+       to->start(WD::IsAUserLevelThread,NULL);
     }
 
     debug( "exiting task " << myThread->getCurrentWD() << ":" << myThread->getCurrentWD()->getId() <<

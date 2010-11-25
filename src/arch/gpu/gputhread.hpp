@@ -36,7 +36,7 @@ namespace ext
 
       private:
          int                        _gpuDevice; // Assigned GPU device Id
-         bool                       _wdClosingEvents;
+         bool                       _wdClosingEvents; //! controls whether an instrumentation event should be generated at WD completion
 
          // disable copy constructor and assignment operator
          GPUThread( const GPUThread &th );
@@ -50,14 +50,14 @@ namespace ext
                _wdClosingEvents( false ) {}
 
          // destructor
-         virtual ~GPUThread() {}
+         ~GPUThread() {}
 
-         virtual void initializeDependent( void );
-         virtual void runDependent ( void );
+         void initializeDependent( void );
+         void runDependent ( void );
 
-         virtual void inlineWorkDependent( WD &work );
+         void inlineWorkDependent( WD &work );
 
-         virtual void yield();
+         void yield();
 
          void idle();
 
@@ -66,9 +66,7 @@ namespace ext
             return _gpuDevice;
          }
 
-         void addWDInputs ( WD * wd );
-
-         void createWDClosingEvents ()
+         void enableWDClosingEvents ()
          {
             _wdClosingEvents = true;
          }
