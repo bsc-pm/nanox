@@ -34,14 +34,14 @@
 using namespace nanos;
 
 
-transfer_mode GPUDevice::_transferMode = ASYNC;
+transfer_mode GPUDevice::_transferMode = NANOS_GPU_TRANSFER_ASYNC;
 
 
 unsigned int GPUDevice::_rlimit;
 
 void GPUDevice::getMemoryLockLimit()
 {
-   if ( _transferMode == PINNED_OS ) {
+   if ( _transferMode == NANOS_GPU_TRANSFER_PINNED_OS ) {
       struct rlimit rlim;
       int error = getrlimit( RLIMIT_MEMLOCK, &rlim );
       if ( error == 0 ) {
@@ -101,7 +101,7 @@ void * GPUDevice::allocate( size_t size, ProcessingElement *pe )
    void * address = 0;
    uint64_t pinned = 0;
 
-   if ( _transferMode == NORMAL || _transferMode == ASYNC || _transferMode == PINNED_OS) {
+   if ( _transferMode == NANOS_GPU_TRANSFER_NORMAL || _transferMode == NANOS_GPU_TRANSFER_ASYNC || _transferMode == NANOS_GPU_TRANSFER_PINNED_OS) {
       address = ( ( nanos::ext::GPUProcessor * ) pe )->allocate( size );
 
       if ( address == NULL ) return NULL;
@@ -120,7 +120,7 @@ void * GPUDevice::allocate( size_t size, ProcessingElement *pe )
    }
 
 
-   if ( _transferMode == ASYNC ) {
+   if ( _transferMode == NANOS_GPU_TRANSFER_ASYNC ) {
       err = cudaMallocHost( ( void ** ) &pinned, size );
 
       // Use cudaHostAllocPortable flag in order to allocate host memory that must be
@@ -137,7 +137,7 @@ void * GPUDevice::allocate( size_t size, ProcessingElement *pe )
       }
    }
 
-   if ( _transferMode == PINNED_CUDA ) {
+   if ( _transferMode == NANOS_GPU_TRANSFER_PINNED_CUDA ) {
       err = cudaHostAlloc( ( void ** ) &pinned, size, cudaHostAllocMapped );
 
       if ( err != cudaSuccess ) {
@@ -157,7 +157,7 @@ void * GPUDevice::allocate( size_t size, ProcessingElement *pe )
       }
    }
 
-   if ( _transferMode == WC ) {
+   if ( _transferMode == NANOS_GPU_TRANSFER_WC ) {
       // Find out more about this method --> it's not clear how to use it
       err = cudaHostAlloc( ( void ** ) &pinned, size, cudaHostAllocMapped | cudaHostAllocWriteCombined );
 
@@ -178,7 +178,7 @@ void * GPUDevice::allocate( size_t size, ProcessingElement *pe )
       }
    }
 
-   if ( _transferMode == ASYNC || _transferMode == PINNED_CUDA || _transferMode == WC) {
+   if ( _transferMode == NANOS_GPU_TRANSFER_ASYNC || _transferMode == NANOS_GPU_TRANSFER_PINNED_CUDA || _transferMode == NANOS_GPU_TRANSFER_WC) {
       ( ( nanos::ext::GPUProcessor * ) pe )->setPinnedAddress( address, pinned );
    }
 
@@ -190,7 +190,7 @@ void GPUDevice::free( void *address, ProcessingElement *pe )
 {
    cudaError_t err = cudaSuccess;
 
-   if ( _transferMode == NORMAL || _transferMode == ASYNC || _transferMode == PINNED_OS) {
+   if ( _transferMode == NANOS_GPU_TRANSFER_NORMAL || _transferMode == NANOS_GPU_TRANSFER_ASYNC || _transferMode == NANOS_GPU_TRANSFER_PINNED_OS) {
 
       // Check there are no pending copies to execute before we free the memory
       // (and if there are, execute them)
@@ -213,7 +213,7 @@ void GPUDevice::free( void *address, ProcessingElement *pe )
 
    }
 
-   if ( _transferMode == ASYNC || _transferMode == PINNED_CUDA || _transferMode == WC) {
+   if ( _transferMode == NANOS_GPU_TRANSFER_ASYNC || _transferMode == NANOS_GPU_TRANSFER_PINNED_CUDA || _transferMode == NANOS_GPU_TRANSFER_WC) {
       uint64_t pinned = ( ( nanos::ext::GPUProcessor * ) pe )->getPinnedAddress( address );
       if ( pinned != 0 ) {
          err = cudaFreeHost( ( void * ) pinned );
@@ -239,7 +239,7 @@ bool GPUDevice::copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, 
 
    cudaError_t err = cudaSuccess;
 
-   if ( _transferMode == ASYNC ) {
+   if ( _transferMode == NANOS_GPU_TRANSFER_ASYNC ) {
       ( ( nanos::ext::GPUProcessor * ) pe )->getInTransferList()->addMemoryTransfer( remoteSrc );
       // Workaround to perform asynchronous copies
       uint64_t pinned = ( ( nanos::ext::GPUProcessor * ) pe )->getPinnedAddress( localDst );
@@ -254,7 +254,7 @@ bool GPUDevice::copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, 
             );
    }
 
-   if ( _transferMode == PINNED_OS ) {
+   if ( _transferMode == NANOS_GPU_TRANSFER_PINNED_OS ) {
       unsigned int auxAddress = remoteSrc.getTag();
       int error = 0;
 
@@ -285,7 +285,7 @@ bool GPUDevice::copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, 
       err = cudaMemcpyAsync( localDst, ( void * ) remoteSrc.getTag(), size, cudaMemcpyHostToDevice, 0 );
    }
 
-   if ( _transferMode == NORMAL) {
+   if ( _transferMode == NANOS_GPU_TRANSFER_NORMAL) {
       err = cudaMemcpy( localDst, ( void * ) remoteSrc.getTag(), size, cudaMemcpyHostToDevice );
    }
 
@@ -306,7 +306,7 @@ bool GPUDevice::copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, 
       fatal( what + cudaGetErrorString( err ) );
    }
 
-   if ( _transferMode == NORMAL ) {
+   if ( _transferMode == NANOS_GPU_TRANSFER_NORMAL ) {
       return true;
    }
 
@@ -319,11 +319,11 @@ bool GPUDevice::copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size,
 
    ( ( nanos::ext::GPUProcessor * ) pe )->transferOutput( size );
 
-   // No need to copy back for PINNED_CUDA or WC
-   if ( _transferMode != PINNED_CUDA && _transferMode != WC ) {
+   // No need to copy back for NANOS_GPU_TRANSFER_PINNED_CUDA or NANOS_GPU_TRANSFER_WC
+   if ( _transferMode != NANOS_GPU_TRANSFER_PINNED_CUDA && _transferMode != NANOS_GPU_TRANSFER_WC ) {
 #if 0
       cudaError_t err = cudaSuccess;
-      if ( _transferMode == ASYNC ) {
+      if ( _transferMode == NANOS_GPU_TRANSFER_ASYNC ) {
          err = cudaMemcpyAsync(
                   ( void * ) _pinnedMemory[localSrc],
                   localSrc,
@@ -345,7 +345,7 @@ bool GPUDevice::copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size,
 #endif
       cudaError_t err = cudaSuccess;
 
-      if ( _transferMode == ASYNC ) {
+      if ( _transferMode == NANOS_GPU_TRANSFER_ASYNC ) {
          ( ( nanos::ext::GPUProcessor * ) pe )->getOutTransferList()->addMemoryTransfer( remoteDst, localSrc, size );
       }
       else {
@@ -370,11 +370,11 @@ bool GPUDevice::copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size,
       }
    }
 
-   if ( _transferMode == PINNED_OS ) {
+   if ( _transferMode == NANOS_GPU_TRANSFER_PINNED_OS ) {
       munlock( ( void * ) remoteDst.getTag(), size );
    }
 
-   if ( _transferMode == NORMAL ) {
+   if ( _transferMode == NANOS_GPU_TRANSFER_NORMAL ) {
       return true;
    }
 
@@ -387,7 +387,7 @@ void GPUDevice::copyLocal( void *dst, void *src, size_t size, ProcessingElement 
 
    cudaError_t err = cudaSuccess;
 
-   if (_transferMode == NORMAL ) {
+   if (_transferMode == NANOS_GPU_TRANSFER_NORMAL ) {
       err = cudaMemcpy( ( void *) dst, src, size, cudaMemcpyDeviceToDevice );
    }
    else {

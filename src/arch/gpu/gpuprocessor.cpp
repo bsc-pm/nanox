@@ -29,26 +29,71 @@ using namespace nanos::ext;
 Atomic<int> GPUProcessor::_deviceSeed = 0;
 
 
-GPUProcessor::GPUProcessor( int id, int gpuId ) : CachedAccelerator( id, &GPU ),
+GPUProcessor::GPUProcessor( int id, int gpuId ) : CachedAccelerator<GPUDevice>( id, &GPU ),
       _gpuDevice( _deviceSeed++ ), _gpuProcessorTransfers(), _allocator(), _pinnedMemory()
 {
    _gpuProcessorInfo = new GPUProcessorInfo( gpuId );
 }
 
-void GPUProcessor::init( size_t &memSize )
+void GPUProcessor::init ()
 {
-   void * baseAddress = GPUDevice::allocateWholeMemory( memSize );
-   _allocator.init( ( uint64_t ) baseAddress, memSize );
-   setSize( memSize );
+   // Each thread initializes its own GPUProcessor so that initialization
+   // can be done in parallel
 
-   // Create a list of inputs that have been ordered to transfer but the copy is still not completed
-   if ( _gpuProcessorInfo->getInTransferStream() ) {
+   struct cudaDeviceProp gpuProperties;
+   GPUConfig::getGPUsProperties( _gpuDevice, ( void * ) &gpuProperties );
+   //cudaGetDeviceProperties( &gpuProperties, _gpuDevice );
+
+   // Check if the user has set the amount of memory to use (and the value is valid)
+   // Otherwise, use 95% of the total GPU global memory
+   size_t userDefinedMem = GPUConfig::getGPUMaxMemory();
+   size_t maxMemoryAvailable = ( size_t ) ( gpuProperties.totalGlobalMem * 0.95 );
+
+   if ( userDefinedMem > 0 ) {
+      if ( userDefinedMem > maxMemoryAvailable ) {
+         warning( "Could not set memory size to " << userDefinedMem
+               << " for GPU #" << _gpuDevice
+               << " because maximum memory available is " << maxMemoryAvailable
+               << " bytes. Using " << maxMemoryAvailable << " bytes" );
+      }
+      else {
+         maxMemoryAvailable = userDefinedMem;
+      }
+   }
+
+   bool inputStream = GPUConfig::isOverlappingInputsDefined();
+   bool outputStream = GPUConfig::isOverlappingOutputsDefined();
+
+   if ( !gpuProperties.deviceOverlap ) {
+      // It does not support stream overlapping, disable this feature
+      warning( "Device #" << _gpuDevice
+            << " does not support computation and data transfer overlapping" );
+      inputStream = false;
+      outputStream = false;
+   }
+   _gpuProcessorInfo->initTransferStreams( inputStream, outputStream );
+
+   // We allocate the whole GPU memory
+   // WARNING: GPUDevice::allocateWholeMemory() must be called first, as it may
+   // modify maxMemoryAvailable, in the case of not being able to allocate as
+   // much bytes as we have asked
+   void * baseAddress = GPUDevice::allocateWholeMemory( maxMemoryAvailable );
+   _allocator.init( ( uint64_t ) baseAddress, maxMemoryAvailable );
+   setCacheSize( maxMemoryAvailable );
+   _gpuProcessorInfo->setMaxMemoryAvailable( maxMemoryAvailable );
+
+   // WARNING: initTransferStreams() can modify inputStream's and outputStream's
+   // value, so call it first
+
+   if ( inputStream ) {
+      // Create a list of inputs that have been ordered to transfer but the copy is
+      // still not completed
       delete _gpuProcessorTransfers._pendingCopiesIn;
       _gpuProcessorTransfers._pendingCopiesIn = new GPUMemoryTransferInAsyncList();
    }
 
-   if ( _gpuProcessorInfo->getOutTransferStream() ) {
-      // If overlapping outputs is defined, create the list
+   if ( outputStream ) {
+      // If we have a stream for outputs, create the list
       delete _gpuProcessorTransfers._pendingCopiesOut;
       _gpuProcessorTransfers._pendingCopiesOut = new GPUMemoryTransferOutAsyncList();
    }

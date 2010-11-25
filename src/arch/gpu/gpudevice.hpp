@@ -20,11 +20,11 @@
 #ifndef _GPU_DEVICE
 #define _GPU_DEVICE
 /*
-#define NORMAL       0 // -- Basis
-#define ASYNC        1 // -- A little bit better (gives bad results from time to time)
-#define PINNED_CUDA  0 // -- Slowdown of ~10x (gives always bad results)
-#define PINNED_OS    0 // -- Similar to NORMAL (correct results though mlock fails)
-#define WC           0 // -- Same as PINNED_CUDA: Slowdown of ~10x (gives always bad results)
+#define NANOS_GPU_TRANSFER_NORMAL       0 // -- Basis
+#define NANOS_GPU_TRANSFER_ASYNC        1 // -- A little bit better (gives bad results from time to time)
+#define NANOS_GPU_TRANSFER_PINNED_CUDA  0 // -- Slowdown of ~10x (gives always bad results)
+#define NANOS_GPU_TRANSFER_PINNED_OS    0 // -- Similar to NANOS_GPU_TRANSFER_NORMAL (correct results though mlock fails)
+#define NANOS_GPU_TRANSFER_WC           0 // -- Same as NANOS_GPU_TRANSFER_PINNED_CUDA: Slowdown of ~10x (gives always bad results)
 */
 
 
@@ -37,11 +37,11 @@ namespace nanos
 {
 
 typedef enum {
-   NORMAL,
-   ASYNC,
-   PINNED_CUDA,
-   PINNED_OS,
-   WC
+   NANOS_GPU_TRANSFER_NORMAL,
+   NANOS_GPU_TRANSFER_ASYNC,
+   NANOS_GPU_TRANSFER_PINNED_CUDA,
+   NANOS_GPU_TRANSFER_PINNED_OS,
+   NANOS_GPU_TRANSFER_WC
 } transfer_mode;
 
 /* \brief Device specialization for GPU architecture

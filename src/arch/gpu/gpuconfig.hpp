@@ -32,7 +32,7 @@ namespace ext
    {
       friend class GPUPlugin;
       private:
-	 static bool    _disableCUDA; //! Enable/disable all CUDA support
+         static bool    _disableCUDA; //! Enable/disable all CUDA support
          static int     _numGPUs; //! Number of CUDA-capable GPUs
          static bool    _prefetch; //! Enable / disable data prefetching (set by the user)
          static bool    _overlap; //! Enable / disable computation and data transfer overlapping (set by the user)
@@ -47,10 +47,10 @@ namespace ext
          static void apply ( void );
 
       public:
-	 GPUConfig() {}
-	 ~GPUConfig() {}
+         GPUConfig() {}
+         ~GPUConfig() {}
 
-	 /*! return the number of available GPUs */
+         /*! return the number of available GPUs */
          static int getGPUCount ( void ) { return _numGPUs; }
 
          static bool isPrefetchingDefined ( void ) { return _prefetch; }
