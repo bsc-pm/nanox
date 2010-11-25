@@ -1,6 +1,6 @@
 #include "system.hpp"
 #ifdef GPU_DEV
-#include "gpudd.hpp"
+#include "gpuconfig.hpp"
 #endif
 
 namespace nanos {
@@ -12,7 +12,7 @@ extern "C" {
    unsigned int nanos_ompitrace_get_max_threads ( void )
    {
 #ifdef GPU_DEV
-      return sys.getNumPEs() + nanos::ext::GPUDD::getGPUCount();
+      return sys.getNumPEs() + nanos::ext::GPUConfig::getGPUCount();
 #else
       return sys.getNumPEs();
 #endif

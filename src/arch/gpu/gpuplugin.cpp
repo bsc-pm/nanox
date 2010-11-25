@@ -30,12 +30,12 @@ class GPUPlugin : public Plugin
 
       void config( Config& config )
       {
-	 GPUConfig::config( config );
+         GPUConfig::prepare( config );
       }
 
       void init()
       {
-         GPUConfig::init();
+         GPUConfig::apply();
       }
 };
 

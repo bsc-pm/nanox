@@ -22,8 +22,7 @@
 
 #include "cachedaccelerator.hpp"
 #include "gputhread.hpp"
-#include "cache.hpp"
-#include "config.hpp"
+#include "gpuconfig.hpp"
 #include "gpudevice.hpp"
 #include "gpumemorytransfer.hpp"
 #include "simpleallocator.hpp"
@@ -63,32 +62,32 @@ namespace ext
 
                ~GPUProcessorTransfers() 
                {
-		  delete _pendingCopiesIn;
-		  delete _pendingCopiesOut;
+                  delete _pendingCopiesIn;
+                  delete _pendingCopiesOut;
                }
          };
 
 
       private:
          // Configuration variables
-         static Atomic<int>      _deviceSeed; // Number of GPU devices assigned to threads
-         int                     _gpuDevice; // Assigned GPU device Id
-         GPUProcessorInfo *      _gpuProcessorInfo; // Information related to the GPU device that represents
-         GPUProcessorStats       _gpuProcessorStats; // Statistics of data copied in and out to / from cache
-         GPUProcessorTransfers   _gpuProcessorTransfers; // Keep the list of pending memory transfers
+         static Atomic<int>      _deviceSeed; //! Number of GPU devices assigned to threads
+         int                     _gpuDevice; //! Assigned GPU device Id
+         GPUProcessorInfo *      _gpuProcessorInfo; //! Information related to the GPU device that represents
+         GPUProcessorStats       _gpuProcessorStats; //! Statistics of data copied in and out to / from cache
+         GPUProcessorTransfers   _gpuProcessorTransfers; //! Keep the list of pending memory transfers
 
 
          SimpleAllocator               _allocator;
          std::map< void *, uint64_t >  _pinnedMemory;
 
-         // Disable copy constructor and assignment operator
+         //! Disable copy constructor and assignment operator
          GPUProcessor( const GPUProcessor &pe );
          const GPUProcessor & operator= ( const GPUProcessor &pe );
 
          size_t getMaxMemoryAvailable ( int id );
 
       public:
-         // Constructors
+         //! Constructors
          GPUProcessor( int id, int gpuId );
 
          virtual ~GPUProcessor()
@@ -96,16 +95,17 @@ namespace ext
             printStats();
          }
 
-         void init( size_t &memSize );
+         void init();
          void freeWholeMemory();
 
          WD & getWorkerWD () const;
          WD & getMasterWD () const;
          BaseThread & createThread ( WorkDescriptor &wd );
 
-         // Capability query functions
+         //! Capability query functions
          bool supportsUserLevelThreads () const { return false; }
 
+#if 0
          // Memory space support
          void setCacheSize( size_t size );
 
@@ -120,7 +120,7 @@ namespace ext
 
          void* getAddressDependent( uint64_t tag );
          void copyToDependent( void *dst, uint64_t tag, size_t size );
-
+#endif
          // Allocator interface
          void * allocate ( size_t size )
          {
@@ -132,7 +132,7 @@ namespace ext
             _allocator.free( address );
          }
 
-         // Get information about the GPU that represents this object
+         //! Get information about the GPU that represents this object
          GPUProcessorInfo * getGPUProcessorInfo ()
          {
             return _gpuProcessorInfo;

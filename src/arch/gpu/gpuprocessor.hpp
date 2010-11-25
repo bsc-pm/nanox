@@ -71,76 +71,45 @@ namespace ext
             }
          }
 
-         void init ()
+         void initTransferStreams ( bool &inputStream, bool &outputStream )
          {
-            // Each thread initializes its own GPUProcessorInfo so that initialization
-            // can be done in parallel
-
-            struct cudaDeviceProp gpuProperties;
-            GPUConfig::getGPUsProperties( _deviceId, ( void * ) &gpuProperties );
-            //cudaGetDeviceProperties( &gpuProperties, _deviceId );
-
-            // Check if the user has set the amount of memory to use (and the value is valid)
-            // Otherwise, use 95% of the total GPU global memory
-            size_t userDefinedMem = GPUConfig::getGPUMaxMemory();
-            _maxMemoryAvailable = ( size_t ) ( gpuProperties.totalGlobalMem * 0.95 );
-
-            if ( userDefinedMem > 0 ) {
-               if ( userDefinedMem > _maxMemoryAvailable ) {
-                  warning( "Could not set memory size to " << userDefinedMem
-                        << " for GPU #" << _deviceId
-                        << " because maximum memory available is " << _maxMemoryAvailable
-                        << " bytes. Using " << _maxMemoryAvailable << " bytes" );
-               }
-               else {
-                  _maxMemoryAvailable = userDefinedMem;
-               }
-            }
-
-            if ( !gpuProperties.deviceOverlap ) {
-               // It does not support stream overlapping, disable this feature
-               warning( "Device #" << _deviceId <<
-                     " does not support computation and data transfer overlapping" );
-            } else {
-            if ( GPUDD::isOverlappingInputsDefined() ) {
+            if ( inputStream ) {
                // Initialize the CUDA streams used for input data transfers
                cudaError_t err = cudaStreamCreate( &_inTransferStream );
                if ( err != cudaSuccess ) {
                   // If an error occurred, disable stream overlapping
                   _inTransferStream = 0;
+                  inputStream = false;
                   if ( err == CUDANODEVERR ) {
                      fatal( "Error while creating the CUDA input transfer stream: all CUDA-capable devices are busy or unavailable" );
                   }
                   warning( "Error while creating the CUDA input transfer stream: " << cudaGetErrorString( err ) );
                }
             }
-            if ( GPUDD::isOverlappingOutputsDefined() ) {
+
+            if ( outputStream ) {
                // Initialize the CUDA streams used for output data transfers
                cudaError_t err = cudaStreamCreate( &_outTransferStream );
                if ( err != cudaSuccess ) {
                   // If an error occurred, disable stream overlapping
                   _outTransferStream = 0;
+                  outputStream = false;
                   if ( err == CUDANODEVERR ) {
                      fatal( "Error while creating the CUDA output transfer stream: all CUDA-capable devices are busy or unavailable" );
                   }
                   warning( "Error while creating the CUDA output transfer stream: " << cudaGetErrorString( err ) );
                }
             }
-            }
-
-            // Initialize GPUProcessor --> we allocate the whole GPU memory
-            // WARNING: GPUProcessor::init must be called after initializing CUDA Streams
-            size_t allocatedMemory = _maxMemoryAvailable;
-            ( ( GPUProcessor * ) myThread->runningOn() )->init( allocatedMemory );
-
-            if ( allocatedMemory != _maxMemoryAvailable ) {
-               _maxMemoryAvailable = allocatedMemory;
-            }
          }
 
          size_t getMaxMemoryAvailable ()
          {
             return _maxMemoryAvailable;
+         }
+
+         void setMaxMemoryAvailable ( size_t maxMemory )
+         {
+            _maxMemoryAvailable = maxMemory;
          }
 
          cudaStream_t getInTransferStream ()

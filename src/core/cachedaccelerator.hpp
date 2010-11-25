@@ -89,12 +89,12 @@ namespace nanos
             _cache.waitInput( tag );
          }
          
-         void* GPUProcessor::getAddressDependent( uint64_t tag )
+         void* getAddressDependent( uint64_t tag )
          {
             return _cache.getAddress( tag );
          }
          
-         void GPUProcessor::copyToDependent( void *dst, uint64_t tag, size_t size )
+         void copyToDependent( void *dst, uint64_t tag, size_t size )
          {
             _cache.copyTo( dst, tag, size );
          }
