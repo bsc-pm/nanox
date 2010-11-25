@@ -29,30 +29,45 @@ using namespace nanos::ext;
 Atomic<int> GPUProcessor::_deviceSeed = 0;
 
 
-GPUProcessor::GPUInfo::GPUInfo ( int device )
+GPUProcessor::GPUProcessor( int id, int gpuId ) : CachedAccelerator( id, &GPU ),
+      _gpuDevice( _deviceSeed++ ), _gpuProcessorTransfers(), _allocator(), _pinnedMemory()
 {
-   struct cudaDeviceProp gpuProperties;
-   cudaGetDeviceProperties( &gpuProperties, device );
-
-   _maxMemoryAvailable = gpuProperties.totalGlobalMem * 0.7;
+   _gpuProcessorInfo = new GPUProcessorInfo( gpuId );
 }
 
-
-GPUProcessor::GPUProcessor( int id, int gpuId )
-   : Accelerator( id, &GPU ), _gpuDevice( _deviceSeed++ ), _gpuInfo( gpuId ), _transferInfo(),
-     _cache(), _pinnedMemory()
+void GPUProcessor::init( size_t &memSize )
 {
-   //std::cout << "[GPUProcessor] I have " << _gpuInfo.getMaxMemoryAvailable()
-   //      << " bytes of available memory (device #" << gpuId << ")" << std::endl;
+   void * baseAddress = GPUDevice::allocateWholeMemory( memSize );
+   _allocator.init( ( uint64_t ) baseAddress, memSize );
+   setSize( memSize );
 
-   _transferInfo = new TransferInfo();
+   // Create a list of inputs that have been ordered to transfer but the copy is still not completed
+   if ( _gpuProcessorInfo->getInTransferStream() ) {
+      delete _gpuProcessorTransfers._pendingCopiesIn;
+      _gpuProcessorTransfers._pendingCopiesIn = new GPUMemoryTransferInAsyncList();
+   }
+
+   if ( _gpuProcessorInfo->getOutTransferStream() ) {
+      // If overlapping outputs is defined, create the list
+      delete _gpuProcessorTransfers._pendingCopiesOut;
+      _gpuProcessorTransfers._pendingCopiesOut = new GPUMemoryTransferOutAsyncList();
+   }
+   else {
+      // Else, create a 'fake list' which copies outputs synchronously
+      delete _gpuProcessorTransfers._pendingCopiesOut;
+      _gpuProcessorTransfers._pendingCopiesOut = new GPUMemoryTransferOutSyncList();
+   }
+}
+
+void GPUProcessor::freeWholeMemory()
+{
+   GPUDevice::freeWholeMemory( ( void * ) _allocator.getBaseAddress() );
 }
 
 size_t GPUProcessor::getMaxMemoryAvailable ( int id )
 {
-   return 0;//GPUPlugin::getMaxMemoryAvailable( id );
+   return _gpuProcessorInfo->getMaxMemoryAvailable();
 }
-
 
 WorkDescriptor & GPUProcessor::getWorkerWD () const
 {
@@ -70,39 +85,9 @@ BaseThread &GPUProcessor::createThread ( WorkDescriptor &helper )
 {
    // In fact, the GPUThread will run on the CPU, so make sure it canRunIn( SMP )
    ensure( helper.canRunIn( SMP ), "Incompatible worker thread" );
-   GPUThread &th = *new GPUThread( helper,this, _gpuDevice );
+   GPUThread &th = *new GPUThread( helper, this, _gpuDevice );
 
    return th;
-}
-
-void GPUProcessor::registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output )
-{
-   _cache.registerCacheAccess( tag, size, input, output );
-}
-
-void GPUProcessor::unregisterCacheAccessDependent( uint64_t tag, size_t size )
-{
-   _cache.unregisterCacheAccess( tag, size );
-}
-
-void GPUProcessor::registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output )
-{
-   _cache.registerPrivateAccess( tag, size, input, output );
-}
-
-void GPUProcessor::unregisterPrivateAccessDependent( uint64_t tag, size_t size )
-{
-   _cache.unregisterPrivateAccess( tag, size );
-}
-
-void* GPUProcessor::getAddressDependent( uint64_t tag )
-{
-   return _cache.getAddress( tag );
-}
-
-void GPUProcessor::copyToDependent( void *dst, uint64_t tag, size_t size )
-{
-   _cache.copyTo( dst, tag, size );
 }
 
 

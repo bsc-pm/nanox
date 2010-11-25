@@ -393,6 +393,10 @@ namespace nanos
           */
          void workFinished(WorkDescriptor &wd);
 
+         /*! \brief Returns the DependenciesDomain object.
+          */
+         DependenciesDomain & getDependenciesDomain();
+
          /*! \brief Returns embeded instrumentation context data.
           */
          InstrumentationContextData *getInstrumentationContextData( void );

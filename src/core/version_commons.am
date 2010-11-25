@@ -7,6 +7,7 @@ common_sources=\
 	$(top_srcdir)/src/core/nanos-int.h \
 	$(top_srcdir)/src/core/barrier_fwd.hpp \
 	$(top_srcdir)/src/core/barrier.hpp \
+        $(top_srcdir)/src/core/cachedaccelerator.hpp \
 	$(top_srcdir)/src/core/threadteam_fwd.hpp \
 	$(top_srcdir)/src/core/threadteam.hpp \
 	$(top_srcdir)/src/core/threadteam.cpp \
