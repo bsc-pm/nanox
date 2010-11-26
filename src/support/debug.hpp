@@ -54,6 +54,8 @@ namespace nanos
 
 #define fatal(msg)  throw nanos::FatalError(msg,getMyThreadSafe()->getId());
 #define fatal0(msg)  throw nanos::FatalError(msg);
+#define fatal_cond(cond,msg) if ( cond ) fatal(msg);
+#define fatal_cond0(cond,msg) if ( cond ) fatal0(msg);
 
 #define message(msg) \
    std::cerr << "MSG: [" << getMyThreadSafe()->getId() << "]" << msg << std::endl;
