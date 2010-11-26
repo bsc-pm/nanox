@@ -228,7 +228,6 @@ void System::start ()
    WD &mainWD = *myThread->getCurrentWD();
    
    if ( _pmInterface->getInternalDataSize() > 0 )
-     // TODO: is this properly aligned?
      mainWD.setInternalData(new char[_pmInterface->getInternalDataSize()]);
       
    _pmInterface->setupWD(mainWD);
