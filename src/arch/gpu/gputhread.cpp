@@ -29,17 +29,15 @@ using namespace nanos;
 using namespace nanos::ext;
 
 
-void GPUThread::runDependent ()
+void GPUThread::initializeDependent ()
 {
-   WD &work = getThreadWD();
-   setCurrentWD( work );
-   setNextWD( (WD *) 0 );
-
+   // Bind the thread to a GPU device
    cudaError_t err = cudaSetDevice( _gpuDevice );
    if ( err != cudaSuccess )
       warning( "Couldn't set the GPU device for the thread: " << cudaGetErrorString( err ) );
 
-   if ( GPUDevice::getTransferMode() == nanos::PINNED_CUDA || GPUDevice::getTransferMode() == nanos::WC ) {
+   if ( GPUDevice::getTransferMode() == nanos::NANOS_GPU_TRANSFER_PINNED_CUDA
+         || GPUDevice::getTransferMode() == nanos::NANOS_GPU_TRANSFER_WC ) {
       err = cudaSetDeviceFlags( cudaDeviceMapHost | cudaDeviceBlockingSync );
       if ( err != cudaSuccess )
          warning( "Couldn't set the GPU device flags: " << cudaGetErrorString( err ) );
@@ -50,41 +48,81 @@ void GPUThread::runDependent ()
          warning( "Couldn't set the GPU device flags:" << cudaGetErrorString( err ) );
    }
 
-   if ( GPUDevice::getTransferMode() != nanos::NORMAL ) {
-      ((GPUProcessor *) myThread->runningOn())->getTransferInfo()->init();
-   }
+   ((GPUProcessor *) myThread->runningOn())->init();
+}
 
-   // Avoid the so slow first data allocation and transfer to device
-   bool b = true;
-   bool * b_d = ( bool * ) GPUDevice::allocate( sizeof( b ) );
-   GPUDevice::copyIn( ( void * ) b_d, ( uint64_t ) &b, sizeof( b ) );
-   GPUDevice::free( b_d );
-
+void GPUThread::runDependent ()
+{
+   WD &work = getThreadWD();
+   setCurrentWD( work );
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
-
    dd.getWorkFct()( work.getData() );
 }
 
 void GPUThread::inlineWorkDependent ( WD &wd )
 {
    GPUDD &dd = ( GPUDD & )wd.getActiveDevice();
+   GPUProcessor &myGPU = *(GPUProcessor *) myThread->runningOn();
 
-   NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), RUNNING ) );
-   NANOS_INSTRUMENT ( InstrumentSubState inst2( RUNTIME ) );
+   if ( GPUDevice::getTransferMode() != nanos::NANOS_GPU_TRANSFER_NORMAL ) {
+      // Wait for the input transfer stream to finish
+      cudaStreamSynchronize( myGPU.getGPUProcessorInfo()->getInTransferStream() );
+      // Erase the wait input list and synchronize it with cache
+      myGPU.getInTransferList()->clearMemoryTransfers();
+   }
 
+   // We wait for wd inputs, but as we have just waited for them, we could skip this step
+   wd.start( WD::IsNotAUserLevelThread );
+
+   NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
    ( dd.getWorkFct() )( wd.getData() );
 
-   if ( GPUDevice::getTransferMode() != nanos::NORMAL ) {
+   if ( GPUDevice::getTransferMode() != nanos::NANOS_GPU_TRANSFER_NORMAL ) {
+      NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
       // Get next task in order to prefetch data to device memory
       WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, wd );
+
       setNextWD( next );
       if ( next != 0 ) {
-         next->start(false);
+         next->init();
       }
-      // Wait for the transfer stream to finish
-      cudaStreamSynchronize( ( (GPUProcessor *) myThread->runningOn() )->getTransferInfo()->getTransferStream() );
+
+      // Copy out results from tasks executed previously
+      myGPU.getOutTransferList()->executeMemoryTransfers();
    }
 
    // Wait for the GPU kernel to finish
    cudaThreadSynchronize();
+
+   // Normally this instrumentation code is inserted by the compiler in the task outline.
+   // But because the kernel call is asynchronous for GPUs we need to raise them manually here
+   // when we know the kernel has really finished
+   NANOS_INSTRUMENT ( raiseWDClosingEvents() );
+}
+
+void GPUThread::yield()
+{
+   ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->executeMemoryTransfers();
+}
+
+void GPUThread::idle()
+{
+   ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->removeMemoryTransfer();
+}
+
+
+void GPUThread::raiseWDClosingEvents ()
+{
+   if ( _wdClosingEvents ) {
+      NANOS_INSTRUMENT(
+            Instrumentation::Event e[2];
+            sys.getInstrumentation()->closeBurstEvent( &e[0],
+                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-name" ) );
+            sys.getInstrumentation()->closeBurstEvent( &e[1],
+                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-location" ) );
+
+            sys.getInstrumentation()->addEventList( 2, e );
+      );
+      _wdClosingEvents = false;
+   }
 }

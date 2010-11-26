@@ -39,9 +39,9 @@ class InstrumentationExtrae: public Instrumentation
       ~InstrumentationExtrae() {}
 
       // low-level instrumentation interface (mandatory functions)
-      virtual void initialize( void ) {}
-      virtual void finalize( void ) {}
-      virtual void addEventList ( unsigned int count, Event *events ) {}
+      void initialize( void ) {}
+      void finalize( void ) {}
+      void addEventList ( unsigned int count, Event *events ) {}
 #else
    private:
       std::string                                    _listOfTraceFileNames;
@@ -521,7 +521,7 @@ class InstrumentationParaverPlugin : public Plugin {
       InstrumentationParaverPlugin () : Plugin("Instrumentation which generates a Paraver trace.",1) {}
       ~InstrumentationParaverPlugin () {}
 
-      virtual void config( Config &config )
+      void config( Config &config )
       {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
          config.setOptionsSection( "Extrae module", "Extrae instrumentation module" );

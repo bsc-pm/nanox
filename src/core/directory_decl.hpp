@@ -110,6 +110,7 @@ namespace nanos
       private:
          typedef HashMap<uint64_t, DirectoryEntry> DirectoryMap;
          DirectoryMap _directory;
+         Lock _lock;
 
       private:
          /*! \brief Directory copy constructor (private) 

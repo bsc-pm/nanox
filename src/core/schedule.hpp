@@ -23,14 +23,13 @@
 #include <stddef.h>
 #include <string>
 
-#include "workdescriptor.hpp"
-#include "wddeque.hpp"
-#include "basethread.hpp"
+#include "workdescriptor_decl.hpp"
 #include "atomic.hpp"
 #include "functors.hpp"
 #include <algorithm>
 #include "synchronizedcondition_fwd.hpp"
 #include "system_fwd.hpp"
+#include "basethread_fwd.hpp"
 
 namespace nanos
 {
@@ -68,6 +67,9 @@ namespace nanos
          static WD * prefetch ( BaseThread *thread, WD &wd );
 
          static void updateExitStats ( WD &wd );
+
+         /*! \brief checks if a WD is elegible to run in a given thread */
+         static bool checkBasicConstraints ( WD &wd, BaseThread &thread );
    };
 
    class SchedulerConf

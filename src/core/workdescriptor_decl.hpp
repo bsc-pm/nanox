@@ -134,6 +134,9 @@ namespace nanos
     */
    class WorkDescriptor : public WorkGroup
    {
+      public:
+	 typedef enum { IsNotAUserLevelThread=false, IsAUserLevelThread=true } ULTFlag;
+
       private:
 
          typedef enum { INIT, READY, IDLE, BLOCKED } State;
@@ -247,7 +250,7 @@ namespace nanos
           *  This function is useful to perform any operation that needs to be done at the last moment
           *  before the execution of the WD.
           */
-         void start ( bool isUserLevelThread, WorkDescriptor *previous = NULL );
+         void start ( ULTFlag isUserLevelThread, WorkDescriptor *previous = NULL );
 
          /*! \brief Get data size
           *
@@ -407,12 +410,16 @@ namespace nanos
 
          /*! If this WorkDescriptor has an immediate succesor (i.e., anothur WD that only depends on him)
              remove it from the dependence graph and return it. */
-         WorkDescriptor * getImmediateSuccessor ( void );
+         WorkDescriptor * getImmediateSuccessor ( BaseThread &thread );
 
          /*! \brief Make this WD's domain know a WD has finished.
           *  \paran wd Must be a wd created in this WD's context.
           */
          void workFinished(WorkDescriptor &wd);
+
+         /*! \brief Returns the DependenciesDomain object.
+          */
+         DependenciesDomain & getDependenciesDomain();
 
          /*! \brief Returns embeded instrumentation context data.
           */

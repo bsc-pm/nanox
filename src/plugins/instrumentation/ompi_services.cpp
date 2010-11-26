@@ -1,5 +1,7 @@
 #include "system.hpp"
-#include "gpudd.hpp"
+#ifdef GPU_DEV
+#include "gpuconfig.hpp"
+#endif
 
 namespace nanos {
 
@@ -10,7 +12,7 @@ extern "C" {
    unsigned int nanos_ompitrace_get_max_threads ( void )
    {
 #ifdef GPU_DEV
-      return sys.getNumPEs() + nanos::ext::GPUDD::getGPUCount();
+      return sys.getNumPEs() + nanos::ext::GPUConfig::getGPUCount();
 #else
       return sys.getNumPEs();
 #endif
@@ -20,6 +22,13 @@ extern "C" {
    { 
       if ( myThread == NULL ) return 0;
       else return myThread->getId(); 
+   }
+
+   void nanos_ompitrace_instrumentation_barrier ( void )
+   {
+#ifdef CLUSTER_DEV
+      sys.getNetwork()->nodeBarrier();
+#endif
    }
 
 }

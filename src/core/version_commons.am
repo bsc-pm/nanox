@@ -7,6 +7,7 @@ common_sources=\
 	$(top_srcdir)/src/core/nanos-int.h \
 	$(top_srcdir)/src/core/barrier_fwd.hpp \
 	$(top_srcdir)/src/core/barrier.hpp \
+        $(top_srcdir)/src/core/cachedaccelerator.hpp \
 	$(top_srcdir)/src/core/threadteam_fwd.hpp \
 	$(top_srcdir)/src/core/threadteam.hpp \
 	$(top_srcdir)/src/core/threadteam.cpp \
@@ -41,12 +42,10 @@ common_sources=\
 	$(top_srcdir)/src/core/instrumentationcontext_fwd.hpp \
 	$(top_srcdir)/src/core/instrumentationcontext_decl.hpp \
 	$(top_srcdir)/src/core/instrumentationcontext.hpp \
-	$(top_srcdir)/src/core/instrumentationcontext.cpp \
 	$(top_srcdir)/src/core/instrumentationmodule_decl.hpp \
 	$(top_srcdir)/src/core/instrumentation_fwd.hpp \
 	$(top_srcdir)/src/core/instrumentation_decl.hpp \
 	$(top_srcdir)/src/core/instrumentation.hpp \
-	$(top_srcdir)/src/core/instrumentation.cpp \
 	$(top_srcdir)/src/core/throttle_fwd.hpp \
 	$(top_srcdir)/src/core/throttle.hpp \
 	$(top_srcdir)/src/core/dependency_fwd.hpp \
@@ -70,5 +69,11 @@ common_sources=\
         $(top_srcdir)/src/core/directory_decl.hpp \
         $(top_srcdir)/src/core/directory.hpp \
 	$(top_srcdir)/src/core/pminterface_decl.hpp  \
+	$(top_srcdir)/src/core/basethread_decl.hpp \
+	$(END)
+
+instr_sources = \
+	$(top_srcdir)/src/core/instrumentation.cpp \
+	$(top_srcdir)/src/core/instrumentationcontext.cpp \
 	$(END)
 

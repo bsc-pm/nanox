@@ -31,6 +31,7 @@
 #include "atomic.hpp"
 #include "instrumentationcontext.hpp"
 #include "directory.hpp"
+#include "schedule.hpp"
 
 using namespace nanos;
 
@@ -118,11 +119,26 @@ inline void WorkDescriptor::waitOn( size_t numDeps, Dependency* deps )
    _depsDomain->submitDependableObject( *_doWait, numDeps, deps );
 }
 
-inline WorkDescriptor * WorkDescriptor::getImmediateSuccessor ( void )
+class DOIsSchedulable : public DependableObjectPredicate
+{
+   BaseThread &    _thread;
+
+   public:
+      DOIsSchedulable(BaseThread &thread) : DependableObjectPredicate(),_thread(thread) { }
+      ~DOIsSchedulable() {}
+
+      bool operator() ( DependableObject &obj )
+      {       
+         return Scheduler::checkBasicConstraints(*(WD *)obj.getRelatedObject(),_thread);
+      }
+};
+
+inline WorkDescriptor * WorkDescriptor::getImmediateSuccessor ( BaseThread &thread )
 {
    if ( _doSubmit == NULL ) return NULL;
    else {
-        DependableObject * found = _doSubmit->releaseImmediateSuccessor();
+        DOIsSchedulable predicate(thread);
+        DependableObject * found = _doSubmit->releaseImmediateSuccessor(predicate);
         return found ? (WD *) found->getRelatedObject() : NULL;
    }
 }
@@ -132,6 +148,12 @@ inline void WorkDescriptor::workFinished(WorkDescriptor &wd)
    if ( wd._doSubmit != NULL )
       wd._doSubmit->finished();
 }
+
+inline DependenciesDomain & WorkDescriptor::getDependenciesDomain()
+{
+   return *_depsDomain;
+}
+
 
 inline InstrumentationContextData * WorkDescriptor::getInstrumentationContextData( void ) { return &_instrumentationContextData; }
 

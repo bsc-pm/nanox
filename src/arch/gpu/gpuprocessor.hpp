@@ -20,43 +20,108 @@
 #ifndef _NANOS_GPU_PROCESSOR
 #define _NANOS_GPU_PROCESSOR
 
-#include "gpuprocessor_fwd.hpp"
+#include "gpuprocessor_decl.hpp"
 
 #include <cuda_runtime.h>
 
+#include <iostream>
+
+#if __CUDA_API_VERSION < 3020
+#define CUDANODEVERR cudaErrorDevicesUnavailable
+#else
+#define CUDANODEVERR cudaErrorNoDevice
+#endif 
 
 namespace nanos {
 namespace ext
 {
 
-   class GPUProcessor::TransferInfo
+   class GPUProcessor::GPUProcessorInfo
    {
       private:
-         cudaStream_t _transferStream;
+         // Device #
+         unsigned int   _deviceId;
+
+         // Memory
+         size_t         _maxMemoryAvailable;
+
+         // Transfers
+         cudaStream_t   _inTransferStream;
+         cudaStream_t   _outTransferStream;
 
       public:
+         GPUProcessorInfo ( int device ) : _deviceId ( device ), _maxMemoryAvailable ( 0 ),
+            _inTransferStream ( 0 ), _outTransferStream ( 0 )
+         {}
 
-         TransferInfo () {}
-
-         void init ()
+         ~GPUProcessorInfo ()
          {
-#if 1
-            cudaError_t err = cudaStreamCreate( &_transferStream );
-            if ( err != cudaSuccess ) {
-               _transferStream = 0;
-               warning( "Error while creating the CUDA stream: " << cudaGetErrorString( err ) );
+            if ( _inTransferStream ) {
+               cudaError_t err = cudaStreamDestroy( _inTransferStream );
+               if ( err != cudaSuccess ) {
+                  warning( "Error while destroying the CUDA input transfer stream: " << cudaGetErrorString( err ) );
+               }
             }
-#else
-            _transferStream = 0;
-#endif
+
+            if ( _outTransferStream ) {
+               cudaError_t err = cudaStreamDestroy( _outTransferStream );
+               if ( err != cudaSuccess ) {
+                  warning( "Error while destroying the CUDA output transfer stream: " << cudaGetErrorString( err ) );
+               }
+            }
          }
 
-         cudaStream_t getTransferStream ()
+         void initTransferStreams ( bool &inputStream, bool &outputStream )
          {
-            return _transferStream;
+            if ( inputStream ) {
+               // Initialize the CUDA streams used for input data transfers
+               cudaError_t err = cudaStreamCreate( &_inTransferStream );
+               if ( err != cudaSuccess ) {
+                  // If an error occurred, disable stream overlapping
+                  _inTransferStream = 0;
+                  inputStream = false;
+                  if ( err == CUDANODEVERR ) {
+                     fatal( "Error while creating the CUDA input transfer stream: all CUDA-capable devices are busy or unavailable" );
+                  }
+                  warning( "Error while creating the CUDA input transfer stream: " << cudaGetErrorString( err ) );
+               }
+            }
+
+            if ( outputStream ) {
+               // Initialize the CUDA streams used for output data transfers
+               cudaError_t err = cudaStreamCreate( &_outTransferStream );
+               if ( err != cudaSuccess ) {
+                  // If an error occurred, disable stream overlapping
+                  _outTransferStream = 0;
+                  outputStream = false;
+                  if ( err == CUDANODEVERR ) {
+                     fatal( "Error while creating the CUDA output transfer stream: all CUDA-capable devices are busy or unavailable" );
+                  }
+                  warning( "Error while creating the CUDA output transfer stream: " << cudaGetErrorString( err ) );
+               }
+            }
+         }
+
+         size_t getMaxMemoryAvailable ()
+         {
+            return _maxMemoryAvailable;
+         }
+
+         void setMaxMemoryAvailable ( size_t maxMemory )
+         {
+            _maxMemoryAvailable = maxMemory;
+         }
+
+         cudaStream_t getInTransferStream ()
+         {
+            return _inTransferStream;
+         }
+
+         cudaStream_t getOutTransferStream ()
+         {
+            return _outTransferStream;
          }
    };
-
 }
 }
 

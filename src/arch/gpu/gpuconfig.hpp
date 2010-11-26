@@ -17,61 +17,55 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_GPU_THREAD
-#define _NANOS_GPU_THREAD
+#ifndef _NANOS_GPU_CFG
+#define _NANOS_GPU_CFG
 
-#include "compatibility.hpp"
-#include "gpudd.hpp"
-#include "smpthread.hpp"
-
+#include "config.hpp"
 
 namespace nanos {
 namespace ext
 {
+   class GPUPlugin;
 
-   class GPUThread : public SMPThread
+   /*! Contains the general configuration for the GPU module */
+   class GPUConfig
    {
-
-      friend class GPUProcessor;
-
+      friend class GPUPlugin;
       private:
-         int                        _gpuDevice; // Assigned GPU device Id
-         bool                       _wdClosingEvents; //! controls whether an instrumentation event should be generated at WD completion
+         static bool    _disableCUDA; //! Enable/disable all CUDA support
+         static int     _numGPUs; //! Number of CUDA-capable GPUs
+         static bool    _prefetch; //! Enable / disable data prefetching (set by the user)
+         static bool    _overlap; //! Enable / disable computation and data transfer overlapping (set by the user)
+         static bool    _overlapInputs;
+         static bool    _overlapOutputs;
+         static size_t  _maxGPUMemory; //! Maximum amount of memory for each GPU to use
+         static void *  _gpusProperties; //! Array of structs of cudaDeviceProp
 
-         // disable copy constructor and assignment operator
-         GPUThread( const GPUThread &th );
-         const GPUThread & operator= ( const GPUThread &th );
-
-         void raiseWDClosingEvents ();
+         /*! Parses the GPU user options */
+         static void prepare ( Config &config );
+         /*! Applies the configuration options and retrieves the information of the GPUs of the system */
+         static void apply ( void );
 
       public:
-         // constructor
-         GPUThread( WD &w, PE *pe, int device ) : SMPThread( w, pe ), _gpuDevice( device ),
-               _wdClosingEvents( false ) {}
+         GPUConfig() {}
+         ~GPUConfig() {}
 
-         // destructor
-         ~GPUThread() {}
+         /*! return the number of available GPUs */
+         static int getGPUCount ( void ) { return _numGPUs; }
 
-         void initializeDependent( void );
-         void runDependent ( void );
+         static bool isPrefetchingDefined ( void ) { return _prefetch; }
 
-         void inlineWorkDependent( WD &work );
+         static bool isOverlappingInputsDefined ( void ) { return _overlapInputs; }
 
-         void yield();
+         static bool isOverlappingOutputsDefined ( void ) { return _overlapOutputs; }
 
-         void idle();
+         static size_t getGPUMaxMemory( void ) { return _maxGPUMemory; }
 
-         int getGpuDevice ()
-         {
-            return _gpuDevice;
-         }
+         static void getGPUsProperties( int device, void * deviceProps );
 
-         void enableWDClosingEvents ()
-         {
-            _wdClosingEvents = true;
-         }
+         static void printConfiguration( void );
+
    };
-
 
 }
 }

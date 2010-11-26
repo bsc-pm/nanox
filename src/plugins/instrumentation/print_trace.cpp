@@ -15,9 +15,9 @@ class InstrumentationPrintTrace: public Instrumentation
       ~InstrumentationPrintTrace() {}
 
       // low-level instrumentation interface (mandatory functions)
-      virtual void initialize( void ) {}
-      virtual void finalize( void ) {}
-      virtual void addEventList ( unsigned int count, Event *events ) {}
+      void initialize( void ) {}
+      void finalize( void ) {}
+      void addEventList ( unsigned int count, Event *events ) {}
 #else
    public:
       // constructor
@@ -26,9 +26,9 @@ class InstrumentationPrintTrace: public Instrumentation
       ~InstrumentationPrintTrace ( ) {}
 
       // low-level instrumentation interface (mandatory functions)
-      virtual void initialize( void ) {}
-      virtual void finalize( void ) {}
-      virtual void addEventList ( unsigned int count, Event *events ) {}
+      void initialize( void ) {}
+      void finalize( void ) {}
+      void addEventList ( unsigned int count, Event *events ) {}
 #endif
 
 };
@@ -40,7 +40,7 @@ class InstrumentationPrintTracePlugin : public Plugin {
       InstrumentationPrintTracePlugin () : Plugin("Instrumentation which print the trace to std out.",1) {}
       ~InstrumentationPrintTracePlugin () {}
 
-      virtual void config( Config &config ) {}
+      void config( Config &config ) {}
 
       void init ()
       {

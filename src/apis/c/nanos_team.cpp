@@ -19,6 +19,7 @@
 
 #include "nanos.h"
 #include "system.hpp"
+#include "basethread.hpp"
 #include "debug.hpp"
 #include "instrumentationmodule_decl.hpp"
 

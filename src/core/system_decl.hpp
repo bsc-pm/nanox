@@ -240,6 +240,7 @@ namespace nanos
          SchedulerConf  & getSchedulerConf();
 
          void setPMInterface (PMInterface *_pm);
+         const PMInterface & getPMInterface ( void ) const;
 
          void threadReady ();
 

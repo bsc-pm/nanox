@@ -29,6 +29,18 @@
 
 namespace nanos
 {
+   class DependableObject;
+
+   class DependableObjectPredicate
+   {
+      public:
+         DependableObjectPredicate() {}
+         virtual ~DependableObjectPredicate() {}
+
+         virtual bool operator() (DependableObject &obj) = 0;
+   };
+
+
    /*! \class DependableObject
     *  \brief Abstract entity submitted to the Dependency system
     */
@@ -217,7 +229,7 @@ namespace nanos
         /*! If there is an object that only depends from this dependable object, then release it and
             return it
          */
-         DependableObject * releaseImmediateSuccessor ( void );
+         DependableObject * releaseImmediateSuccessor ( DependableObjectPredicate &condition );
          
    };
 

@@ -26,13 +26,14 @@
 #include "nanos-int.h"
 #include "copydata.hpp"
 #include "os.hpp"
+#include "basethread.hpp"
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
 #endif
 
 #ifdef GPU_DEV
-#include "gpuprocessor_fwd.hpp"
+#include "gpuprocessor_decl.hpp"
 #endif
 
 using namespace nanos;
@@ -239,7 +240,7 @@ void System::start ()
 
    _targetThreads = getThsPerPE() * numPes;
 #ifdef GPU_DEV
-   _targetThreads += nanos::ext::GPUDD::getGPUCount();
+   _targetThreads += nanos::ext::GPUConfig::getGPUCount();
 #endif
 
    //start as much threads per pe as requested by the user
@@ -261,7 +262,7 @@ void System::start ()
 
 #ifdef GPU_DEV
    int gpuC;
-   for ( gpuC = 0; gpuC < nanos::ext::GPUDD::getGPUCount(); gpuC++ ) {
+   for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount(); gpuC++ ) {
       PE *gpu = new nanos::ext::GPUProcessor( p++, gpuC );
       _pes.push_back( gpu );
       _workers.push_back( &gpu->startWorker() );

@@ -24,6 +24,9 @@ namespace nanos
    class Device;
    class DeviceData;
    class WorkDescriptor;
+
+   typedef WorkDescriptor WD;
+   typedef DeviceData DD;
 };
 
 #endif
