@@ -70,6 +70,7 @@ namespace nanos
          }
 
     	   virtual int getInternalDataSize() const { return sizeof(OmpData); }
+    	   virtual int getInternalDataAlignment() const { return __alignof__(OmpData); }
     	   virtual void setupWD( WD &wd )
     	   {
    		    OmpData *data = (OmpData *) wd.getInternalData();

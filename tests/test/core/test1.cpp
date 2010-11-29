@@ -81,7 +81,7 @@ int main ( int argc, char **argv )
 
    data->b = a;
 
-   WD * wd = new WD( new SMPDD( hello_world ), sizeof( hello_world_args ), data );
+   WD * wd = new WD( new SMPDD( hello_world ), sizeof( hello_world_args ), __alignof__(int), data );
 
    a = "pepe";
 
@@ -91,7 +91,7 @@ int main ( int argc, char **argv )
 
    data->b = a;
 
-   WD * wd2 = new WD( new SMPDD( hello_world ), sizeof (hello_world_args ), data );
+   WD * wd2 = new WD( new SMPDD( hello_world ), sizeof (hello_world_args ), __alignof(int), data );
 
    WG *wg = myThread->getCurrentWD();
 

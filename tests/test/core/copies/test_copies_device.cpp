@@ -98,7 +98,7 @@ int main ( int argc, char **argv )
 
    CopyData cd[2] = { CopyData( (uint64_t)&data->a, NANOS_PRIVATE, true, false, sizeof(data->a) ),
                       CopyData( (uint64_t)data->b, NANOS_SHARED, true, true, sizeof(char)*5 ) };
-   WD * wd = new WD( new SMPDD( hello_world ), sizeof( args_t ), data, 2, cd );
+   WD * wd = new WD( new SMPDD( hello_world ), sizeof( args_t ), __alignof__(args_t), data, 2, cd );
 
    WG *wg = myThread->getCurrentWD();
 

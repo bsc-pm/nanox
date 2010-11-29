@@ -77,7 +77,7 @@ int main ( int argc, char **argv )
    data->c = str;
 
    // Work descriptor creation
-   WD * wd1 = new WD( new SMPDD( hello_world ), sizeof(hello_world_args), data );
+   WD * wd1 = new WD( new SMPDD( hello_world ), sizeof(hello_world_args), __alignof__(hello_world_args), data );
 
    // Work arguments
    str = "std::string(2)";
@@ -91,10 +91,10 @@ int main ( int argc, char **argv )
    Slicer *slicer = sys.getSlicer ( "repeat_n" );
  
    // Work descriptor creation
-   WD * wd2 = new SlicedWD( *slicer, sizeof (SlicerDataRepeatN),
+   WD * wd2 = new SlicedWD( *slicer, sizeof (SlicerDataRepeatN), __alignof__(SlicerDataRepeatN),
                             *new SlicerDataRepeatN(10),
                              new SMPDD( hello_world ),
-                             sizeof(hello_world_args), data );
+                             sizeof(hello_world_args), __alignof__(hello_world_args),data );
 
    // Work Group affiliation and work submision
    WG *wg = myThread->getCurrentWD();

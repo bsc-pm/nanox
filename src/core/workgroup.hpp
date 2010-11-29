@@ -28,15 +28,16 @@
 namespace nanos
 {
 
+  /* \class WorkGroup
+   *
+   */
    class WorkGroup
    {
-
       private:
          static Atomic<int> _atomicSeed;
+         typedef std::vector<WorkGroup *> WGList; // FIXME: vector is not a safe-class here
 
-         // FIX-ME: vector is not a safe-class here
-         typedef std::vector<WorkGroup *> WGList;
-
+      private:
          WGList         _partOf;
          int            _id;
          Atomic<int>    _components;
