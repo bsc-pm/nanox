@@ -48,10 +48,11 @@ namespace ext
          // Transfers
          cudaStream_t   _inTransferStream;
          cudaStream_t   _outTransferStream;
+         cudaStream_t   _localTransferStream;
 
       public:
          GPUProcessorInfo ( int device ) : _deviceId ( device ), _maxMemoryAvailable ( 0 ),
-            _inTransferStream ( 0 ), _outTransferStream ( 0 )
+            _inTransferStream ( 0 ), _outTransferStream ( 0 ), _localTransferStream( 0 )
          {}
 
          ~GPUProcessorInfo ()
@@ -67,6 +68,13 @@ namespace ext
                cudaError_t err = cudaStreamDestroy( _outTransferStream );
                if ( err != cudaSuccess ) {
                   warning( "Error while destroying the CUDA output transfer stream: " << cudaGetErrorString( err ) );
+               }
+            }
+
+            if ( _localTransferStream ) {
+               cudaError_t err = cudaStreamDestroy( _localTransferStream );
+               if ( err != cudaSuccess ) {
+                  warning( "Error while destroying the CUDA local transfer stream: " << cudaGetErrorString( err ) );
                }
             }
          }
@@ -100,6 +108,19 @@ namespace ext
                   warning( "Error while creating the CUDA output transfer stream: " << cudaGetErrorString( err ) );
                }
             }
+
+            if ( inputStream || outputStream ) {
+               // Initialize the CUDA streams used for local data transfers
+               cudaError_t err = cudaStreamCreate( &_localTransferStream );
+               if ( err != cudaSuccess ) {
+                  // If an error occurred, disable stream overlapping
+                  _localTransferStream = 0;
+                  if ( err == CUDANODEVERR ) {
+                     fatal( "Error while creating the CUDA output transfer stream: all CUDA-capable devices are busy or unavailable" );
+                  }
+                  warning( "Error while creating the CUDA output transfer stream: " << cudaGetErrorString( err ) );
+               }
+            }
          }
 
          size_t getMaxMemoryAvailable ()
@@ -120,6 +141,11 @@ namespace ext
          cudaStream_t getOutTransferStream ()
          {
             return _outTransferStream;
+         }
+
+         cudaStream_t getLocalTransferStream ()
+         {
+            return _localTransferStream;
          }
    };
 }

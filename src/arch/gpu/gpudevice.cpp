@@ -329,7 +329,7 @@ void GPUDevice::copyLocal( void *dst, void *src, size_t size, ProcessingElement 
                src,
                size,
                cudaMemcpyDeviceToDevice,
-               ((nanos::ext::GPUProcessor *) pe )->getGPUProcessorInfo()->getInTransferStream()
+               ((nanos::ext::GPUProcessor *) pe )->getGPUProcessorInfo()->getLocalTransferStream()
             );
 
    }
