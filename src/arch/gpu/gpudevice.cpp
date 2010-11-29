@@ -351,8 +351,8 @@ void GPUDevice::syncTransfer( uint64_t hostAddress, ProcessingElement *pe)
 
 void * GPUDevice::realloc( void * address, size_t size, size_t ceSize, ProcessingElement *pe )
 {
-   fatal( "GPUDevice::realloc(): Feature not implemented yet" );
-   return 0;
+   free( address, pe );
+   return allocate( size, pe );
 }
 
 void GPUDevice::copyOutAsyncToBuffer ( void * dst, void * src, size_t size )
