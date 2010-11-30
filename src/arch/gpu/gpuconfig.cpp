@@ -29,7 +29,7 @@ namespace ext {
 
 bool GPUConfig::_disableCUDA = false;
 int  GPUConfig::_numGPUs = -1;
-bool GPUConfig::_prefetch = true;
+bool GPUConfig::_prefetch = false;
 bool GPUConfig::_overlap = false;
 bool GPUConfig::_overlapInputs = false;
 bool GPUConfig::_overlapOutputs = false;
