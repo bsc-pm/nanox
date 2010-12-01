@@ -36,8 +36,8 @@ void GPUThread::initializeDependent ()
    if ( err != cudaSuccess )
       warning( "Couldn't set the GPU device for the thread: " << cudaGetErrorString( err ) );
 
-   if ( GPUDevice::getTransferMode() == nanos::NANOS_GPU_TRANSFER_PINNED_CUDA
-         || GPUDevice::getTransferMode() == nanos::NANOS_GPU_TRANSFER_WC ) {
+   if ( GPUConfig::getTransferMode() == NANOS_GPU_TRANSFER_PINNED_CUDA
+         || GPUConfig::getTransferMode() == NANOS_GPU_TRANSFER_WC ) {
       err = cudaSetDeviceFlags( cudaDeviceMapHost | cudaDeviceBlockingSync );
       if ( err != cudaSuccess )
          warning( "Couldn't set the GPU device flags: " << cudaGetErrorString( err ) );
@@ -64,7 +64,7 @@ void GPUThread::inlineWorkDependent ( WD &wd )
    GPUDD &dd = ( GPUDD & )wd.getActiveDevice();
    GPUProcessor &myGPU = *(GPUProcessor *) myThread->runningOn();
 
-   if ( GPUDevice::getTransferMode() != nanos::NANOS_GPU_TRANSFER_NORMAL ) {
+   if ( GPUConfig::getTransferMode() != NANOS_GPU_TRANSFER_NORMAL ) {
       // Wait for the input transfer stream to finish
       cudaStreamSynchronize( myGPU.getGPUProcessorInfo()->getInTransferStream() );
       // Erase the wait input list and synchronize it with cache
@@ -77,7 +77,7 @@ void GPUThread::inlineWorkDependent ( WD &wd )
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
    ( dd.getWorkFct() )( wd.getData() );
 
-   if ( GPUDevice::getTransferMode() != nanos::NANOS_GPU_TRANSFER_NORMAL ) {
+   if ( GPUConfig::getTransferMode() != NANOS_GPU_TRANSFER_NORMAL ) {
       NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
       // Get next task in order to prefetch data to device memory
       WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, wd );
