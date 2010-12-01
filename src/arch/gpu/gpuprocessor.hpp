@@ -27,9 +27,9 @@
 #include <iostream>
 
 #if __CUDA_API_VERSION < 3020
-#define CUDANODEVERR cudaErrorDevicesUnavailable
-#else
 #define CUDANODEVERR cudaErrorNoDevice
+#else
+#define CUDANODEVERR cudaErrorDevicesUnavailable
 #endif 
 
 namespace nanos {
