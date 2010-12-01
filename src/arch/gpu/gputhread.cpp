@@ -43,7 +43,7 @@ void GPUThread::initializeDependent ()
          warning( "Couldn't set the GPU device flags: " << cudaGetErrorString( err ) );
    }
    else {
-      err = cudaSetDeviceFlags( cudaDeviceBlockingSync );
+      err = cudaSetDeviceFlags( cudaDeviceScheduleSpin );
       if ( err != cudaSuccess )
          warning( "Couldn't set the GPU device flags:" << cudaGetErrorString( err ) );
    }
