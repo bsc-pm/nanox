@@ -15,7 +15,7 @@ extern "C" {
 #else
 
 #ifdef CLUSTER_DEV
-      return sys.getNumPEs() + nanos::ext::ClusterInfo::getExtraPEsCount() ;
+      return sys.getNumPEs() + /* nanos::ext::ClusterInfo::getExtraPEsCount() */ 1;
 #else
       return sys.getNumPEs();
 #endif

@@ -70,6 +70,7 @@ namespace nanos
          virtual void init();
          virtual void done();
          int getId() const { return _id; }
+         void setId( int newId ) { _id = newId; }
 
    };
 

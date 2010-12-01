@@ -95,7 +95,7 @@ class InstrumentationExtrae: public Instrumentation
 
 
       }
-
+      
       void modifyParaverConfigFile()
       {
          // Writing paraver config 
@@ -227,6 +227,10 @@ class InstrumentationExtrae: public Instrumentation
                if ( strlen(str) > 0 )
                {
                   for (unsigned int i = 0; i < strlen(str); i++) if ( str[i] == ' ' ) str[i] = 0x0;
+
+                  // jbueno: cluster workaround until we get the new extrae
+                  str[ strlen(str) - 12 ] = '0' + ( (char) sys.getNetwork()->getNodeNum() );
+
                   if ( remove(str) != 0 ) std::cout << "nanox: Unable to delete temporary/partial trace file" << str << std::endl;
                }
             }
@@ -254,6 +258,47 @@ class InstrumentationExtrae: public Instrumentation
 
          }
          remove( _traceFinalDirectory.c_str());
+      }
+
+      void secureCopy(char *orig, std::string dest)
+      {
+         pid_t pid;
+         int status, options = 0;
+
+         std::cerr << "secure copy " << orig << " to " << dest << std::endl;
+
+         pid = fork();
+         if ( pid == (pid_t) 0 ) {
+            execl ( "/usr/bin/scp", "scp", orig, dest.c_str(), (char *) NULL); 
+         }
+         else waitpid( pid, &status, options);
+      }
+
+      void copyFilesToMaster()
+      {
+         /* Removig Temporary trace files */
+         char str[255];
+         std::fstream p_file;
+         p_file.open(_listOfTraceFileNames.c_str());
+
+         if (p_file.is_open())
+         {
+            while (!p_file.eof() )
+            {
+               p_file.getline (str, 255);
+               if ( strlen(str) > 0 )
+               {
+                  for (unsigned int i = 0; i < strlen(str); i++) if ( str[i] == ' ' ) str[i] = 0x0;
+
+                  size_t found = _traceFinalDirectory.find_last_of("/");
+                  std::string dst = std::string(sys.getNetwork()->getMasterHostname() );
+                  str[ strlen(str) - 12 ] = '0' + ( (char) sys.getNetwork()->getNodeNum() );
+                  secureCopy(str, dst + ":" + _traceFinalDirectory.substr(0,found+1));
+               }
+            }
+            p_file.close();
+         }
+         else std::cout << "Unable to open " << _listOfTraceFileNames << " file" << std::endl;  
       }
 
       void getTraceFileName ()
@@ -389,7 +434,8 @@ class InstrumentationExtrae: public Instrumentation
          getTraceFileName();
          //mergeParaverTraceFiles();
          modifyParaverConfigFile();
-         //removeTemporaryFiles();
+         copyFilesToMaster();
+         removeTemporaryFiles();
       }
 
       void addEventList ( unsigned int count, Event *events) 

@@ -49,7 +49,7 @@ namespace ext {
 
       public:
          // constructors
-         ClusterNode( int id ) : Accelerator( id, &SMP ), _clusterNode ( id ), _cache ( ClusterInfo::getSegmentLen( id ), (ClusterNode *) this ), _memSegment( ( uintptr_t ) ClusterInfo::getSegmentAddr( id ), ClusterInfo::getSegmentLen( id ) ), _executedWorkDesciptors ( 0 ) { }
+         ClusterNode( int id ) : Accelerator( sys.getNumPEs(), &SMP ), _clusterNode ( id ), _cache ( ClusterInfo::getSegmentLen( id ), (ClusterNode *) this ), _memSegment( ( uintptr_t ) ClusterInfo::getSegmentAddr( id ), ClusterInfo::getSegmentLen( id ) ), _executedWorkDesciptors ( 0 ) { }
 
          virtual ~ClusterNode() {}
 

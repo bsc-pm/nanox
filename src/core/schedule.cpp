@@ -107,6 +107,7 @@ inline void Scheduler::idleLoop ()
    unsigned long time_yields = 0;  /* Time of yields by idle phase */
 
    WD *current = myThread->getCurrentWD();
+   //WD *prefetchedWD = NULL; 
    current->setIdle();
    sys.getSchedulerStats()._idleThreads++;
    for ( ; ; ) {
@@ -125,14 +126,17 @@ inline void Scheduler::idleLoop ()
               process. Compensate the ready count for that */
            if ( !next->isSubmitted() && !next->started() ) 
              sys.getSchedulerStats()._readyTasks++;
+         //} else if ( prefetchedWD != NULL ) {
+         //   next = prefetchedWD;
+         //      std::cerr << "executing prefetched wd " << next->getId() << std::endl;
+         //   prefetchedWD = NULL;
          } else {
-           // jbueno // if ( sys.getSchedulerStats()._readyTasks > 0 ) 
+            //jbueno//if ( sys.getSchedulerStats()._readyTasks > 0 ) 
               next = behaviour::getWD(thread,current);
          } 
 
          if ( next ) {
             sys.getSchedulerStats()._readyTasks--;
-            //if (sys.getSchedulerStats()._readyTasks.value() >= 0)
             if (!current->isClusterMigrable()) 
                sys.getSchedulerStats()._readyTasks++;
             sys.getSchedulerStats()._idleThreads--;
@@ -144,10 +148,21 @@ inline void Scheduler::idleLoop ()
             NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) time_yields; )
             NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(3, Keys, Values); )
 
-            NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) )
-            behaviour::switchWD(thread,current, next);
-            thread = getMyThreadSafe();
-            NANOS_INSTRUMENT( inst2.close() );
+            if ( next->isClusterMigrable() && !next->started() )
+            {
+               NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) )
+               behaviour::switchWD(thread,current, next);
+               thread = getMyThreadSafe();
+               NANOS_INSTRUMENT( inst2.close() );
+               //prefetchedWD = next->getPrefetchedWD();
+               //if (prefetchedWD != NULL)
+               //   std::cerr << "setting prefetched wd " << prefetchedWD->getId() << std::endl;
+            }
+            else
+            {
+               behaviour::switchWD(thread,current, next);
+               thread = getMyThreadSafe();
+            }
             sys.getSchedulerStats()._idleThreads++;
             total_spins = 0;
             total_yields = 0;
@@ -228,10 +243,18 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) time_yields; )
                NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(3, Keys, Values); )
 
+            if ( next->isClusterMigrable() && !next->started() )
+            {
                NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME); );
                switchTo ( next );
                thread = getMyThreadSafe();
                NANOS_INSTRUMENT( inst2.close() );
+            }
+            else 
+            {
+               switchTo ( next );
+               thread = getMyThreadSafe();
+            }
 
                total_spins = 0;
                total_yields = 0;

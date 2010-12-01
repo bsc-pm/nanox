@@ -230,6 +230,7 @@ void System::start ()
    }
    else
    {
+      //numPes++;
       _pes.reserve ( numPes );
    }
 #else

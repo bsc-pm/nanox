@@ -80,6 +80,18 @@ void ClusterThread::inlineWorkDependent ( WD &wd )
    ( ( ClusterNode * ) pe )->incExecutedWDs();
    sys.getNetwork()->sendWorkMsg( ( ( ClusterNode * ) pe )->getClusterNodeNum(), dd.getWorkFct(), wd.getDataSize(), wd.getId(), wd.getPeId(), wd.getDataSize() + ( wd.getNumCopies() * sizeof( CopyData ) ), buff );
 
+   //WD *prefetchedWD = Scheduler::prefetch( this, wd );
+
+   //if ( prefetchedWD != NULL ) 
+   //{
+   //   prefetchedWD->setPe( pe );
+   //   prefetchedWD->setPeId( wd.getPeId() );
+   //   if ( !prefetchedWD->started() )
+   //      prefetchedWD->init();
+   //}
+   //wd.setPrefetchedWD( prefetchedWD );
+
+   sys.getNetwork()->waitWorkCompletion( ( ( ClusterNode * ) pe )->getClusterNodeNum(), wd.getPeId() );
    //std::cerr << "finished remote call at node " << ((ClusterNode *)pe)->getClusterNodeNum() << std::endl;
    //std::cerr << "finished remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " numPe " << wd.getPeId() << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << " WDprev " << wd.getPrevious() << ":" << wd.getPrevious()->getId() << std::endl;
 

@@ -126,20 +126,10 @@ void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigne
        //  std::cerr << "work sent to " << dest << std::endl;
 
          NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
-         NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wdId) << 32 ) + dest; )
+         NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) numPe) << 32 ) + dest; )
          NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL, dest ); )
 
          _api->sendWorkMsg( dest, work, dataSize, wdId, numPe, argSize, arg );
-
-         //std::cerr << "waiting work from " << dest << " target pe " << numPe << std::endl;
-         while (_notify[ dest * sys.getNumPEs() + numPe ] == 0)
-         {
-            poll();
-            Scheduler::yield();
-         }
-         _notify[ dest * sys.getNumPEs() + numPe ] = 0;
-         //std::cerr << "completed work from " << dest << std::endl;
-
       }
       else
       {
@@ -148,11 +138,26 @@ void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigne
    }
 }
 
+void Network::waitWorkCompletion(unsigned int dest, unsigned int numPe)
+{
+   //std::cerr << "waiting work from " << dest << " target pe " << numPe << std::endl;
+   while (_notify[ dest * sys.getNumPEs() + numPe ] == 0)
+   {
+      poll();
+      Scheduler::yield();
+   }
+   _notify[ dest * sys.getNumPEs() + numPe ] = 0;
+   //std::cerr << "completed work from " << dest << std::endl;
+}
+
 void Network::sendWorkDoneMsg( unsigned int nodeNum, unsigned int numPe )
 {
  //  ensure ( _api != NULL, "No network api loaded." );
    if ( _api != NULL )
    {
+      NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+      NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) numPe) << 32 ) + _nodeNum; )
+      NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL, 0 ); )
       if ( _nodeNum != MASTER_NODE_NUM )
       {
          _api->sendWorkDoneMsg( nodeNum, numPe );
@@ -163,6 +168,10 @@ void Network::sendWorkDoneMsg( unsigned int nodeNum, unsigned int numPe )
 void Network::notifyWorkDone ( unsigned int nodeNum, unsigned int numPe )
 {
    //std::cerr << "completed work from " << nodeNum << " : " << numPe << std::endl;
+   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+   NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) numPe) << 32 ) + nodeNum; )
+   NANOS_INSTRUMENT ( instr->raiseClosePtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL, nodeNum ); )
+
    _notify[ nodeNum * sys.getNumPEs() + numPe ] = 1;
 }
 
@@ -214,7 +223,15 @@ void Network::nodeBarrier()
 
 void Network::setMasterHostname( char *name )
 {
+    //  _masterHostname = std::string( name );
    if ( _masterHostname == NULL )
-      _masterHostname = new char[ std::strlen( name ) ];
-   std::memcpy( _masterHostname, name, std::strlen( name ) );
+      _masterHostname = new char[ ::strlen( name ) + 1 ];
+   ::memcpy(_masterHostname, name, ::strlen( name ) );
+   _masterHostname[ ::strlen( name ) ] = '\0';
+}
+
+//const std::string & Network::getMasterHostname() const
+const char * Network::getMasterHostname() const
+{
+   return _masterHostname; 
 }

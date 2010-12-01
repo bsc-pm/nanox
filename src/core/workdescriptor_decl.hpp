@@ -175,6 +175,7 @@ namespace nanos
          bool                 _nodeFree;
          WorkDescriptor * _previous;
          unsigned int _peId;
+         //WorkDescriptor * _prefetchedWd;
          bool                 _submitted;  /**< Has this WD been submitted to the Scheduler? */
 
          /*! \brief WorkDescriptor assignment operator privatized
@@ -191,14 +192,14 @@ namespace nanos
                           _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : 0 ),
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain(), _directory(), _instrumentationContextData(), _clusterMigrable ( true ), _myPe ( NULL ), _nodeFree( true ), _previous ( NULL ), _peId ( 0 ), _submitted(false) { }
+                          _depsDomain(), _directory(), _instrumentationContextData(), _clusterMigrable ( true ), _myPe ( NULL ), _nodeFree( true ), _previous ( NULL ), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted(false) { }
 
          WorkDescriptor ( DeviceData *device, size_t data_size = 0, void *wdata=0, size_t numCopies = 0, CopyData *copies = NULL )
                         : WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ),
                           _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( 1 ), _devices ( &_activeDevice ), _activeDevice ( device ),
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain(), _directory(),  _instrumentationContextData(), _clusterMigrable ( true ), _myPe ( NULL ), _nodeFree( true ), _previous ( NULL ), _peId ( 0 ), _submitted( false ) { }
+                          _depsDomain(), _directory(),  _instrumentationContextData(), _clusterMigrable ( true ), _myPe ( NULL ), _nodeFree( true ), _previous ( NULL ), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted( false ) { }
 
          /*! \brief WorkDescriptor constructor (using a given WorkDescriptor)
           *
@@ -216,7 +217,7 @@ namespace nanos
                           _myQueue ( NULL ), _depth ( wd._depth ), _numDevices ( wd._numDevices ),
                           _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
                           _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
-                          _doSubmit(), _doWait(), _depsDomain(), _directory(), _instrumentationContextData(), _clusterMigrable ( true ), _myPe ( NULL ), _nodeFree( true ), _previous ( NULL ), _peId ( 0 ), _submitted( false ) { }
+                          _doSubmit(), _doWait(), _depsDomain(), _directory(), _instrumentationContextData(), _clusterMigrable ( true ), _myPe ( NULL ), _nodeFree( true ), _previous ( NULL ), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted( false ) { }
 
          /*! \brief WorkDescriptor destructor
           *
@@ -417,6 +418,9 @@ namespace nanos
          void setPrevious( WorkDescriptor * _p ) {  _previous = _p; }
          unsigned int getPeId( void ) { return _peId; }
          void setPeId( unsigned int id ) { _peId = id; }
+         //WorkDescriptor * getPrefetchedWD() { return _prefetchedWd; }
+         //void setPrefetchedWD( WorkDescriptor * _p ) {  _prefetchedWd = _p; }
+         
 
          /*! \brief Get the WorkDescriptor's directory.
           *  if create is true and directory is not initialized returns NULL,

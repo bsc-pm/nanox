@@ -21,6 +21,7 @@
 #ifndef _NANOX_NETWORK
 #define _NANOX_NETWORK
 
+#include <string>
 #include "networkapi.hpp"
 
 namespace nanos {
@@ -34,7 +35,8 @@ namespace nanos {
          volatile unsigned int *_notify;
          void **_malloc_return;
          bool *_malloc_complete;
-         char *_masterHostname;
+         //std::string _masterHostname;
+         char * _masterHostname;
 
       public:
          static const unsigned int MASTER_NODE_NUM = 0;
@@ -56,13 +58,15 @@ namespace nanos {
          void poll ( void );
          void sendExitMsg( unsigned int nodeNum );
          void sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, size_t argSize, void * arg );
+         void waitWorkCompletion( unsigned int dest, unsigned int numPe );
          void sendWorkDoneMsg( unsigned int nodeNum, unsigned int numPe );
          void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size );
          void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, size_t size );
          void * malloc ( unsigned int remoteNode, size_t size, unsigned int id );
          void nodeBarrier( void );
          void setMasterHostname( char *name );
-         char *getMasterHostname( void );
+         //const std::string & getMasterHostname( void ) const;
+         const char * getMasterHostname( void ) const;
    };
 }
 

@@ -121,7 +121,7 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize, void ( *wor
 
     SMPDD * dd = new SMPDD ( ( SMPDD::work_fct ) wk_wrapper );
     WD *wd = new WD( dd, sizeof(struct work_wrapper_args), warg, numCopies, newCopies );
-    //wd->setId( wdId );
+    wd->setId( wdId );
 
     //fprintf(stderr, "WD %p , args->arg %p size %d args->id %d\n", wd, warg->arg, arg0, warg->id );
 
@@ -142,7 +142,7 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize, void ( *wor
 
     {
        NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
-       NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wdId) << 32 ) + gasnet_mynode() ; )
+       NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) numPe) << 32 ) + gasnet_mynode() ; )
        NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *wd, NANOS_WD_REMOTE, id, 0, NULL, NULL, 0 ); )
     }
 
@@ -241,8 +241,14 @@ void GASNetAPI::initialize ( Network *net )
 
    if ( _net->getNodeNum() == 0)
    {
-      char myHostname[256];
       unsigned int i;
+      char myHostname[256];
+      if ( gethostname( myHostname, 256 ) != 0 )
+      {
+         fprintf(stderr, "os: Error getting the hostname.\n");
+      }
+
+      sys.getNetwork()->setMasterHostname( (char *) myHostname );
 
       for ( i = 1; i < _net->getNumNodes() ; i++ )
       {
@@ -342,14 +348,12 @@ void GASNetAPI::nodeBarrier()
 
 void GASNetAPI::sendMyHostName( unsigned int dest )
 {
-   char name[256];
+   const char *masterHostname = sys.getNetwork()->getMasterHostname();
 
-   if ( gethostname( name, 256 ) != 0 )
-   {
-      fprintf(stderr, "os: Error getting the hostname.\n");
-   }
-
-   if ( gasnet_AMRequestMedium0( dest, 209, name, strlen( name ) ) != GASNET_OK )
+   if ( masterHostname == NULL )
+      fprintf(stderr, "Error, master hostname not set!\n" );
+   
+   if ( gasnet_AMRequestMedium0( dest, 209, ( void * ) masterHostname, strlen( masterHostname ) ) != GASNET_OK )
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest );
    }
