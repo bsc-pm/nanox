@@ -19,43 +19,27 @@
 
 #ifndef _GPU_DEVICE
 #define _GPU_DEVICE
-/*
-#define NANOS_GPU_TRANSFER_NORMAL       0 // -- Basis
-#define NANOS_GPU_TRANSFER_ASYNC        1 // -- A little bit better (gives bad results from time to time)
-#define NANOS_GPU_TRANSFER_PINNED_CUDA  0 // -- Slowdown of ~10x (gives always bad results)
-#define NANOS_GPU_TRANSFER_PINNED_OS    0 // -- Similar to NANOS_GPU_TRANSFER_NORMAL (correct results though mlock fails)
-#define NANOS_GPU_TRANSFER_WC           0 // -- Same as NANOS_GPU_TRANSFER_PINNED_CUDA: Slowdown of ~10x (gives always bad results)
-*/
-
 
 #include "workdescriptor_decl.hpp"
 #include "processingelement_fwd.hpp"
 #include "copydescriptor_decl.hpp"
 
-
 namespace nanos
 {
-
-typedef enum {
-   NANOS_GPU_TRANSFER_NORMAL,
-   NANOS_GPU_TRANSFER_ASYNC,
-   NANOS_GPU_TRANSFER_PINNED_CUDA,
-   NANOS_GPU_TRANSFER_PINNED_OS,
-   NANOS_GPU_TRANSFER_WC
-} transfer_mode;
 
 /* \brief Device specialization for GPU architecture
  * provides functions to allocate and copy data in the device
  */
-
    class GPUDevice : public Device
    {
       private:
-         static transfer_mode _transferMode;
-
          static unsigned int _rlimit;
 
          static void getMemoryLockLimit();
+
+         /*! \brief GPUDevice copy constructor
+          */
+         explicit GPUDevice ( const GPUDevice &arch );
 
       public:
          /*! \brief GPUDevice constructor
@@ -65,49 +49,27 @@ typedef enum {
             getMemoryLockLimit();
          }
 
-         /*! \brief GPUDevice copy constructor
-          */
-         GPUDevice ( const GPUDevice &arch ) : Device ( arch ) {}
-
          /*! \brief GPUDevice destructor
           */
          ~GPUDevice() {};
-
-         /* \brief choose the transfer mode for GPU devices
-          */
-         static void setTransferMode ( transfer_mode mode )
-         {
-            _transferMode = mode;
-         }
-
-         /* \brief get the transfer mode for GPU devices
-          */
-         static transfer_mode getTransferMode ()
-         {
-            return _transferMode;
-         }
 
          /* \brief allocate the whole memory of the GPU device
           *        If the allocation fails due to a CUDA memory-related error,
           *        this function keeps trying to allocate as much memory as
           *        possible by trying smaller sizes from 100% to 50%, decrementing
           *        by 5% each time
-          *        On success, returns a pointer to the memory allocated and rewrites
-          *        size with the final amount of memory allocated
+          *        On success, returns a pointer to the allocated memory and rewrites
+          *        size with the final amount of allocated memory 
           */
          static void * allocateWholeMemory( size_t &size );
 
-         /* \brief free the whole GPU device memory pointed by address
-          *
-          */
+         /* \brief free the whole GPU device memory pointed by address */
          static void freeWholeMemory( void * address );
 
-         /* \brief allocate size bytes in the device
-          */
+         /* \brief allocate size bytes in the device */
          static void * allocate( size_t size, ProcessingElement *pe );
 
-         /* \brief free address
-          */
+         /* \brief free address */
          static void free( void *address, ProcessingElement *pe );
 
          /* \brief Copy from remoteSrc in the host to localDst in the device
@@ -124,18 +86,17 @@ typedef enum {
           */
          static void copyLocal( void *dst, void *src, size_t size, ProcessingElement *pe );
 
-         /* \brief when transferring with asynchronous modes, notify to the PE that
-          *        an asynchronous copy related to hostAddress has been completed
+         /* \brief When using asynchronous transfer modes, this function is used to notify
+          *        the PE that another GPU has requested the data synchronization related to 
+          *        hostAddress
           */
          static void syncTransfer( uint64_t hostAddress, ProcessingElement *pe);
 
-         /* \brief Reallocate and copy from address.
-          */
+         /* \brief Reallocate and copy from address.  */
          static void * realloc( void * address, size_t size, size_t ceSize, ProcessingElement *pe );
 
          /* \brief when transferring with asynchronous modes, copy from src in the device
-          *        to dst in the host, where dst is an intermediate buffer
-          */
+          *        to dst in the host, where dst is an intermediate buffer */
          static void copyOutAsyncToBuffer( void * src, void * dst, size_t size );
 
          /* \brief when transferring with asynchronous modes, wait until all output copies
