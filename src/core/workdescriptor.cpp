@@ -48,6 +48,8 @@ void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
    if ( getNumCopies() > 0 )
       pe->waitInputs( *this );
 
+   if ( _tie ) tieTo(*myThread);
+
    setReady();
 }
 
