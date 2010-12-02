@@ -25,6 +25,15 @@
 namespace nanos {
 namespace ext
 {
+
+   typedef enum {
+      NANOS_GPU_TRANSFER_NORMAL,         //!  Basic transfer mode with no overlap
+      NANOS_GPU_TRANSFER_ASYNC,          //! -- A little bit better (gives bad results from time to time)
+      NANOS_GPU_TRANSFER_PINNED_CUDA,    //! -- Slowdown of ~10x (gives always bad results)
+      NANOS_GPU_TRANSFER_PINNED_OS,      //! -- Similar to NANOS_GPU_TRANSFER_NORMAL (correct results though mlock fails)
+      NANOS_GPU_TRANSFER_WC              //! -- Same as NANOS_GPU_TRANSFER_PINNED_CUDA: Slowdown of ~10x (gives always bad results)
+   } transfer_mode;
+
    class GPUPlugin;
 
    /*! Contains the general configuration for the GPU module */
@@ -32,14 +41,15 @@ namespace ext
    {
       friend class GPUPlugin;
       private:
-         static bool    _disableCUDA; //! Enable/disable all CUDA support
-         static int     _numGPUs; //! Number of CUDA-capable GPUs
-         static bool    _prefetch; //! Enable / disable data prefetching (set by the user)
-         static bool    _overlap; //! Enable / disable computation and data transfer overlapping (set by the user)
-         static bool    _overlapInputs;
-         static bool    _overlapOutputs;
-         static size_t  _maxGPUMemory; //! Maximum amount of memory for each GPU to use
-         static void *  _gpusProperties; //! Array of structs of cudaDeviceProp
+         static bool          _disableCUDA; //! Enable/disable all CUDA support
+         static int           _numGPUs; //! Number of CUDA-capable GPUs
+         static bool          _prefetch; //! Enable / disable data prefetching (set by the user)
+         static bool          _overlap; //! Enable / disable computation and data transfer overlapping (set by the user)
+         static bool          _overlapInputs;
+         static bool          _overlapOutputs;
+         static transfer_mode _transferMode; //! Data transfer's mode (synchronous / asynchronous, ...)
+         static size_t        _maxGPUMemory; //! Maximum amount of memory for each GPU to use
+         static void *        _gpusProperties; //! Array of structs of cudaDeviceProp
 
          /*! Parses the GPU user options */
          static void prepare ( Config &config );
@@ -58,6 +68,9 @@ namespace ext
          static bool isOverlappingInputsDefined ( void ) { return _overlapInputs; }
 
          static bool isOverlappingOutputsDefined ( void ) { return _overlapOutputs; }
+
+         /* \brief get the transfer mode for GPU devices */
+         static transfer_mode getTransferMode ( void ) { return _transferMode; }
 
          static size_t getGPUMaxMemory( void ) { return _maxGPUMemory; }
 

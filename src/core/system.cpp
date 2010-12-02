@@ -228,7 +228,6 @@ void System::start ()
    WD &mainWD = *myThread->getCurrentWD();
    
    if ( _pmInterface->getInternalDataSize() > 0 )
-     // TODO: is this properly aligned?
      mainWD.setInternalData(new char[_pmInterface->getInternalDataSize()]);
       
    _pmInterface->setupWD(mainWD);
@@ -312,7 +311,7 @@ void System::finish ()
 
    // we need to switch to the main thread here to finish
    // the execution correctly
-   myThread->getCurrentWD()->tieTo(*_workers[0]);
+   getMyThreadSafe()->getCurrentWD()->tieTo(*_workers[0]);
    Scheduler::switchToThread(_workers[0]);
    
    ensure(getMyThreadSafe()->getId() == 0, "Main thread not finishing the application!");

@@ -27,23 +27,12 @@
 namespace nanos
 {
 
-   typedef enum {
-      NANOS_GPU_TRANSFER_NORMAL,         //!  Basic transfer mode with no overlap
-      NANOS_GPU_TRANSFER_ASYNC,          //! -- A little bit better (gives bad results from time to time)
-      NANOS_GPU_TRANSFER_PINNED_CUDA,    //! -- Slowdown of ~10x (gives always bad results)
-      NANOS_GPU_TRANSFER_PINNED_OS,      //! -- Similar to NANOS_GPU_TRANSFER_NORMAL (correct results though mlock fails)
-      NANOS_GPU_TRANSFER_WC              //! -- Same as NANOS_GPU_TRANSFER_PINNED_CUDA: Slowdown of ~10x (gives always bad results)
-   } transfer_mode;
-
 /* \brief Device specialization for GPU architecture
  * provides functions to allocate and copy data in the device
  */
-
    class GPUDevice : public Device
    {
       private:
-         static transfer_mode _transferMode;
-
          static unsigned int _rlimit;
 
          static void getMemoryLockLimit();
@@ -63,20 +52,6 @@ namespace nanos
          /*! \brief GPUDevice destructor
           */
          ~GPUDevice() {};
-
-         /* \brief choose the transfer mode for GPU devices
-          */
-         static void setTransferMode ( transfer_mode mode )
-         {
-            _transferMode = mode;
-         }
-
-         /* \brief get the transfer mode for GPU devices
-          */
-         static transfer_mode getTransferMode ()
-         {
-            return _transferMode;
-         }
 
          /* \brief allocate the whole memory of the GPU device
           *        If the allocation fails due to a CUDA memory-related error,

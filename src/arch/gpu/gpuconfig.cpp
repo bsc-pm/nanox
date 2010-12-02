@@ -17,22 +17,24 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include <cuda_runtime.h>
 #include "gpuconfig.hpp"
 #include "gpudevice.hpp"
 // We need to include system.hpp, as debug.hpp does not include it
 // (to use verbose0(msg))
 #include "system.hpp"
 
+#include <cuda_runtime.h>
+
 namespace nanos {
 namespace ext {
 
 bool GPUConfig::_disableCUDA = false;
 int  GPUConfig::_numGPUs = -1;
-bool GPUConfig::_prefetch = true;
+bool GPUConfig::_prefetch = false;
 bool GPUConfig::_overlap = false;
 bool GPUConfig::_overlapInputs = false;
 bool GPUConfig::_overlapOutputs = false;
+transfer_mode GPUConfig::_transferMode = NANOS_GPU_TRANSFER_NORMAL;
 size_t GPUConfig::_maxGPUMemory = 0;
 void * GPUConfig::_gpusProperties = NULL;
 
@@ -131,9 +133,7 @@ void GPUConfig::apply()
       _overlapOutputs = _overlap ? true : _overlapOutputs;
 
       if ( _overlapInputs || _overlapOutputs ) {
-         GPUDevice::setTransferMode( NANOS_GPU_TRANSFER_ASYNC );
-      } else {
-         GPUDevice::setTransferMode( NANOS_GPU_TRANSFER_NORMAL );
+         _transferMode = NANOS_GPU_TRANSFER_ASYNC;
       }
    }
 
@@ -144,10 +144,11 @@ void GPUConfig::printConfiguration()
 {
    verbose0( "--- GPUDD configuration ---" );
    verbose0( "  Number of GPU's: " << _numGPUs );
-   verbose0( "  Prefetching: " << (_prefetch ? "Enabled" : "Disabled") );
-   verbose0( "  Overlapping: " << (_overlap ? "Enabled" : "Disabled") );
-   verbose0( "  Overlapping inputs: " << (_overlapInputs ? "Enabled" : "Disabled") );
-   verbose0( "  Overlapping outputs: " << (_overlapOutputs ? "Enabled" : "Disabled") );
+   verbose0( "  Prefetching: " << ( _prefetch ? "Enabled" : "Disabled" ) );
+   verbose0( "  Overlapping: " << ( _overlap ? "Enabled" : "Disabled" ) );
+   verbose0( "  Overlapping inputs: " << ( _overlapInputs ? "Enabled" : "Disabled" ) );
+   verbose0( "  Overlapping outputs: " << ( _overlapOutputs ? "Enabled" : "Disabled" ) );
+   verbose0( "  Transfer mode: " << ( _transferMode == NANOS_GPU_TRANSFER_NORMAL ? "Sync" : "Async" ) );
    if ( _maxGPUMemory != 0 ) {
       verbose0( "  Limited memory: Enabled: " << _maxGPUMemory << " bytes" );
    }
