@@ -88,6 +88,11 @@ namespace nanos {
 
 	      return found != NULL ? found : atIdle(thread);
 	   }
+        
+	   WD * atBeforeExit ( BaseThread *thread, WD &current )
+	   {
+              return current.getImmediateSuccessor(*thread);
+	   }
       };
   
       class NanosSchedPlugin : public Plugin

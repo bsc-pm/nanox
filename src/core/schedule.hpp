@@ -1,4 +1,4 @@
-/*************************************************************************************/
+
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
@@ -195,13 +195,14 @@ namespace nanos
          virtual ScheduleTeamData * createTeamData ( ScheduleTeamData *preAlloc ) = 0;
          virtual ScheduleThreadData * createThreadData ( ScheduleThreadData *preAlloc ) = 0;
          
-         virtual WD * atSubmit   ( BaseThread *thread, WD &wd ) = 0;
-         virtual WD * atIdle     ( BaseThread *thread ) = 0;
-         virtual WD * atExit     ( BaseThread *thread, WD *current ) { return atIdle( thread ); }
-         virtual WD * atBlock    ( BaseThread *thread, WD *current ) { return atIdle( thread ); }
-         virtual WD * atYield    ( BaseThread *thread, WD *current) { return atIdle( thread ); }
-         virtual WD * atWakeUp   ( BaseThread *thread, WD &wd ) { return 0; }
-         virtual WD * atPrefetch ( BaseThread *thread, WD &current ) { return atIdle( thread ); }
+         virtual WD * atSubmit      ( BaseThread *thread, WD &wd ) = 0;
+         virtual WD * atIdle        ( BaseThread *thread ) = 0;
+         virtual WD * atBeforeExit  ( BaseThread *thread, WD &current ) { return 0; }
+         virtual WD * atAfterExit   ( BaseThread *thread, WD *current ) { return atIdle( thread ); }
+         virtual WD * atBlock       ( BaseThread *thread, WD *current ) { return atIdle( thread ); }
+         virtual WD * atYield       ( BaseThread *thread, WD *current) { return atIdle( thread ); }
+         virtual WD * atWakeUp      ( BaseThread *thread, WD &wd ) { return 0; }
+         virtual WD * atPrefetch    ( BaseThread *thread, WD &current ) { return atIdle( thread ); }
 
          virtual void queue ( BaseThread *thread, WD &wd )  = 0;
    };

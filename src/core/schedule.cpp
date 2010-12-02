@@ -137,7 +137,7 @@ inline void Scheduler::idleLoop ()
             NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(3, Keys, Values); )
 
             NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) )
-            behaviour::switchWD(thread,current, next);
+            behaviour::switchWD(thread, current, next);
             thread = getMyThreadSafe();
             NANOS_INSTRUMENT( inst2.close() );
             sys.getSchedulerStats()._idleThreads++;
@@ -423,7 +423,7 @@ struct ExitBehaviour
 {
    static WD * getWD ( BaseThread *thread, WD *current )
    {
-      return thread->getTeam()->getSchedulePolicy().atExit( thread, current );
+      return thread->getTeam()->getSchedulePolicy().atAfterExit( thread, current );
    }
 
    static void switchWD ( BaseThread *thread, WD *current, WD *next )
@@ -455,15 +455,22 @@ void Scheduler::exit ( void )
    // Deallocation doesn't happen here because:
    // a) We are still running in the WD stack
    // b) Resources can potentially be reused by the next WD
+   BaseThread *thread = myThread;
 
-   WD *oldwd = myThread->getCurrentWD();
+   WD *oldwd = thread->getCurrentWD();
+   WD *next =  thread->getNextWD();
+
+   if (!next) next = thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*oldwd);
 
    updateExitStats (*oldwd);
-
    oldwd->done();
    oldwd->clear();
 
-   idleLoop<ExitBehaviour>();
+   if (!next) {
+     idleLoop<ExitBehaviour>();
+   } else {
+     Scheduler::exitTo(next);
+   } 
 
    fatal("A thread should never return from Scheduler::exit");
 }
