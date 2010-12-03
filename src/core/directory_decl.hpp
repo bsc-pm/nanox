@@ -110,7 +110,7 @@ namespace nanos
       private:
          typedef HashMap<uint64_t, DirectoryEntry> DirectoryMap;
          DirectoryMap _directory;
-         Lock _lock;
+         Directory* _parent;
 
       private:
          /*! \brief Directory copy constructor (private) 
@@ -122,10 +122,12 @@ namespace nanos
       public:
          /*! \brief Directory default constructor
           */
-         Directory() : _directory() { }
+         Directory() : _directory(), _parent(NULL) { }
          /*! \brief Directory destructor
           */
          ~Directory() { }
+
+         void setParent( Directory *parent );
 
          DirectoryEntry& insert( uint64_t tag, DirectoryEntry &ent, bool &inserted );
 
@@ -133,7 +135,10 @@ namespace nanos
 
          DirectoryEntry* getEntry( uint64_t tag );
 
+         void updateCurrentDirectory( uint64_t tag, Directory &current );
+
          void registerAccess( uint64_t tag, size_t size, bool input, bool output );
+         void unRegisterAccess( uint64_t tag, bool output, Directory *current );
 
          void waitInput( uint64_t tag, bool output );
 
