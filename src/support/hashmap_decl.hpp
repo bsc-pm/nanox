@@ -22,7 +22,7 @@
 
 #define USE_NANOS_LIST 1
 
-#include "list.hpp"
+#include "list_decl.hpp"
 #include <list>
 #include "atomic.hpp"
 
