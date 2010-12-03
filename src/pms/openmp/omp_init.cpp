@@ -86,6 +86,7 @@ namespace nanos
     		    } else {
     		      data->icvs() = globalState->getICVs();
     		    }
+                    data->setImplicit(false);
     	   }
 
     	   virtual void wdStarted( WD &wd ) {};

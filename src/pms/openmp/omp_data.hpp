@@ -53,9 +53,13 @@ namespace nanos {
       class OmpData {
          private:
             TaskICVs         _icvs;
+            bool             _implicit;
 
             explicit OmpData ( const OmpData & );
          public:
+
+            OmpData() : _icvs(), _implicit(false) {}
+            ~OmpData() {}
 
             TaskICVs & icvs() { return _icvs; }
 
@@ -67,6 +71,8 @@ namespace nanos {
               return *this;
             }
 
+            void setImplicit( bool implicit ) { _implicit = implicit; }
+	    bool isImplicit ( void ) const { return _implicit; }
       };
 
       class OmpState {

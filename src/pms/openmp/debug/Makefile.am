@@ -23,7 +23,7 @@ include $(top_srcdir)/src/common.am
 if DEBUG_VERSION
 debug_LTLIBRARIES=libnanox-omp.la libnanox-omp-stubs.la
 
-nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) 
+nanos_debug_cxxflags=$(common_includes) $(local_includes)  $(common_debug_cxxflags) 
 
 libnanox_omp_la_CXXFLAGS=$(nanos_debug_cxxflags)
 libnanox_omp_la_LDFLAGS=$(version_flags)
