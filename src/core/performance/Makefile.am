@@ -26,8 +26,6 @@ performance_LTLIBRARIES=libnanox.la
 nanos_cxxflags=$(common_includes) $(common_perfo_cxxflags) 
 nanos_ldflags=$(version_flags) @NANOS_CONFIG_LIBDIRS@ -Wl,-rpath,$(performancedir)
 
-nanos_libadd=$(common_libadd)
-
 libnanox_la_CFLAGS=$(common_cflags) $(common_perfo_cflags)
 libnanox_la_CXXFLAGS=$(nanos_cxxflags)
 libnanox_la_LDFLAGS=$(nanos_ldflags)

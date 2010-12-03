@@ -84,7 +84,7 @@ namespace nanos
 
          /* Memory space suport */
          virtual void copyDataIn( WorkDescriptor& wd );
-         virtual void copyDataOut( WorkDescriptor& wd ) {}
+         virtual void copyDataOut( WorkDescriptor& wd );
 
          virtual void waitInputs( WorkDescriptor& wd );
 

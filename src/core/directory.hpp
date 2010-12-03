@@ -60,11 +60,7 @@ inline const DirectoryEntry& DirectoryEntry::operator= ( const DirectoryEntry &e
    return *this;
 }
 
-//inline Cache * DirectoryEntry::getOwner() const { return _owner.value(); }
-inline Cache * DirectoryEntry::getOwner() const
-{
-   return _owner.value();
-}
+inline Cache * DirectoryEntry::getOwner() const { return _owner.value(); }
 
 inline void DirectoryEntry::setOwner( Cache *owner ) { _owner = owner; }
 
@@ -92,6 +88,11 @@ inline bool DirectoryEntry::trySetInvalidated()
    return _invalidated.cswap( expected, value );
 }
 
+inline void Directory::setParent( Directory *parent )
+{
+   _parent =  parent;
+}
+
 inline DirectoryEntry& Directory::insert( uint64_t tag, DirectoryEntry &ent,  bool &inserted )
 {
    return _directory.insert( tag, ent, inserted );
@@ -108,12 +109,28 @@ inline DirectoryEntry& Directory::newEntry( uint64_t tag, unsigned int version, 
 
 inline DirectoryEntry* Directory::getEntry( uint64_t tag )
 {
-   return _directory.find( tag );
+   DirectoryEntry *parents = NULL;
+   DirectoryEntry *ent = _directory.find( tag );
+
+   if ( ent != NULL ) {
+      return ent;
+   }
+
+   if ( _parent != NULL ) {
+      parents = _parent->_directory.find( tag );
+   }
+
+   ent = new DirectoryEntry(tag, (parents == NULL ? 0 : parents->getVersion()), NULL );
+
+   bool inserted = false;
+   ent = &_directory.insert( tag, *ent, inserted );
+
+   return ent;
 }
 
 inline void Directory::registerAccess( uint64_t tag, size_t size, bool input, bool output )
 {
-   DirectoryEntry *de = _directory.find( tag );
+   DirectoryEntry *de = getEntry( tag );
    if ( de != NULL ) {
       if ( input ) {
          Cache *c = de->getOwner();
@@ -121,7 +138,34 @@ inline void Directory::registerAccess( uint64_t tag, size_t size, bool input, bo
             c->invalidate( *this, tag, size, de );
       } else if ( output ) {
          de->setOwner(NULL);
-         de->setVersion(de->getVersion()+1);
+      }
+   }
+}
+
+inline void Directory::updateCurrentDirectory( uint64_t tag, Directory &current )
+{
+   DirectoryEntry *de = _directory.find( tag );
+   if ( de != NULL ) {
+      DirectoryEntry *currents = current._directory.find(tag);
+      if ( currents != NULL ) {
+         de->setVersion( currents->getVersion() + 1 );
+      }
+   }
+}
+
+inline void Directory::unRegisterAccess( uint64_t tag, bool output, Directory* current )
+{
+   DirectoryEntry *de = _directory.find( tag );
+   if ( de != NULL ) {
+      if ( output ) {
+         if ( current != NULL ) {
+            DirectoryEntry *currents = current->_directory.find(tag);
+            if ( currents != NULL ) {
+               de->setVersion( currents->getVersion() + 1 );
+            }
+         } else {
+            de->setVersion( de->getVersion() + 1 );
+         }
       }
    }
 }
@@ -131,9 +175,6 @@ inline void Directory::waitInput( uint64_t tag, bool output )
    DirectoryEntry *de = _directory.find( tag );
    if ( de != NULL ) { // The entry may have never been registered
       while ( de->getOwner() != NULL );
-      if (output) {
-         de->setVersion(de->getVersion()+1);
-      }
    }
 }
 
