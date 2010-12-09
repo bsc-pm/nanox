@@ -35,6 +35,13 @@ GPUProcessor::GPUProcessor( int id, int gpuId ) : CachedAccelerator<GPUDevice>( 
    _gpuProcessorInfo = new GPUProcessorInfo( gpuId );
 }
 
+GPUProcessor::~GPUProcessor()
+{
+   printStats();
+
+   delete _gpuProcessorInfo;
+}
+
 void GPUProcessor::init ()
 {
    // Each thread initializes its own GPUProcessor so that initialization

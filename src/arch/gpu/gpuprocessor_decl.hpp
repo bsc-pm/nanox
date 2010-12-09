@@ -90,12 +90,7 @@ namespace ext
          //! Constructors
          GPUProcessor( int id, int gpuId );
 
-         virtual ~GPUProcessor()
-         {
-            printStats();
-
-            delete _gpuProcessorInfo;
-         }
+         virtual ~GPUProcessor();
 
          void init();
          void freeWholeMemory();
