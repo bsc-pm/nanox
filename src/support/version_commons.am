@@ -15,6 +15,7 @@ support_sources = \
 	$(top_srcdir)/src/support/cache.hpp \
 	$(top_srcdir)/src/support/simpleallocator.hpp \
 	$(top_srcdir)/src/support/simpleallocator.cpp \
+	$(top_srcdir)/src/support/list_decl.hpp \
 	$(top_srcdir)/src/support/list.hpp \
 	$(top_srcdir)/src/support/hashmap.hpp \
 	$(top_srcdir)/src/support/hashmap_decl.hpp \

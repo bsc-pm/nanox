@@ -22,7 +22,7 @@
 
 #define USE_NANOS_LIST 1
 
-#include "list.hpp"
+#include "list_decl.hpp"
 #include <list>
 #include "atomic.hpp"
 
@@ -161,7 +161,7 @@ class HashMap
                { return &(_currentItem->getValue()); }
 
            bool operator==( iterator const &it ) const
-              { return (_currentTable == -1 && it._currentTable == -1) || ( _currentTable == it._currentTable && _currentItem == it.currentItem); }
+              { return (_currentTable == -1 && it._currentTable == -1) || ( _currentTable == it._currentTable && _currentItem == it._currentItem); }
 
            bool operator!=( iterator const &it ) const
               { return !((_currentTable == -1 && it._currentTable == -1) || ( _currentTable == it._currentTable && _currentItem == it._currentItem)); }
@@ -229,7 +229,7 @@ class HashMap
       }
 
       iterator end() {
-        return iterator( *this, -1, _table[0].begin() );
+        return iterator( *this, -1, _table[0].end() );
       }
 };
 

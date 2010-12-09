@@ -172,6 +172,7 @@ inline Directory* WorkDescriptor::getDirectory(bool create)
    if ( !_directory.isInitialized() && create == false ) {
       return NULL;
    }
+   _directory->setParent( (getParent() != NULL) ? getParent()->getDirectory(false) : NULL );
    return &(*_directory);
 }
 

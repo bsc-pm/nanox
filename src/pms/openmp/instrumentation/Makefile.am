@@ -23,7 +23,7 @@ include $(top_srcdir)/src/common.am
 if INSTRUMENTATION_VERSION
 instrumentation_LTLIBRARIES=libnanox-omp.la libnanox-omp-stubs.la
 
-nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags) 
+nanos_instr_cxxflags=$(common_includes) $(local_includes) $(common_instr_cxxflags) 
 
 libnanox_omp_la_CXXFLAGS=$(nanos_instr_cxxflags)
 libnanox_omp_la_LDFLAGS=$(version_flags)

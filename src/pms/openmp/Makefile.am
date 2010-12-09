@@ -24,5 +24,6 @@ include $(top_srcdir)/src/common.am
 
 pkginclude_HEADERS=\
 	omp.h \
+        nanos_omp.h \
 	$(END)
 
