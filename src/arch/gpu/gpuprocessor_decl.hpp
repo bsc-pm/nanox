@@ -57,7 +57,7 @@ namespace ext
                GPUProcessorTransfers()
                {
                   _pendingCopiesIn = new GPUMemoryTransferList();
-                  _pendingCopiesOut = new GPUMemoryTransferList();
+                  _pendingCopiesOut = new GPUMemoryTransferOutSyncList();
                }
 
                ~GPUProcessorTransfers() 
@@ -93,6 +93,8 @@ namespace ext
          virtual ~GPUProcessor()
          {
             printStats();
+
+            delete _gpuProcessorInfo;
          }
 
          void init();

@@ -97,11 +97,6 @@ void GPUProcessor::init ()
       delete _gpuProcessorTransfers._pendingCopiesOut;
       _gpuProcessorTransfers._pendingCopiesOut = new GPUMemoryTransferOutAsyncList();
    }
-   else {
-      // Else, create a 'fake list' which copies outputs synchronously
-      delete _gpuProcessorTransfers._pendingCopiesOut;
-      _gpuProcessorTransfers._pendingCopiesOut = new GPUMemoryTransferOutSyncList();
-   }
 }
 
 void GPUProcessor::freeWholeMemory()

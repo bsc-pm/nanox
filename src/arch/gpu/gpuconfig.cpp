@@ -109,7 +109,7 @@ void GPUConfig::apply()
       // Keep the information of GPUs in GPUDD, in order to avoid a second call to
       // 'cudaGetDeviceProperties()' for each GPU device
       _gpusProperties = new cudaDeviceProp[totalCount];
-      struct cudaDeviceProp * gpuProperties = (struct cudaDeviceProp *) _gpusProperties;
+      struct cudaDeviceProp * gpuProperties = ( cudaDeviceProp * ) _gpusProperties;
 
       // Machines with no GPUs can still report one emulation device
       for ( device = 0; device < totalCount; device++ ) {
@@ -161,8 +161,8 @@ void GPUConfig::printConfiguration()
 
 void GPUConfig::getGPUsProperties( int device, void * deviceProps )
 {
-   void * props = &((struct cudaDeviceProp *) _gpusProperties)[device];
-   memcpy( deviceProps, props, sizeof( struct cudaDeviceProp ) );
+   void * props = &( ( cudaDeviceProp * ) _gpusProperties)[device];
+   memcpy( deviceProps, props, sizeof( cudaDeviceProp ) );
 }
 
 }
