@@ -41,7 +41,6 @@ namespace nanos
    class Scheduler
    {
       private:
-         static void queue ( BaseThread *thread, WD &wd );
          static void switchHelper (WD *oldWD, WD *newWD, void *arg);
          static void exitHelper (WD *oldWD, WD *newWD, void *arg);
          
@@ -49,6 +48,7 @@ namespace nanos
          static void idleLoop (void);
 
       public:
+         static void queue ( BaseThread *thread, WD &wd );
          static void inlineWork ( WD *work );
 
          static void submit ( WD &wd );

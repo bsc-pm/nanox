@@ -54,23 +54,25 @@ void Scheduler::submit ( WD &wd )
       return;
    }
 
+   /* handle tasks which cannot run in current thread */
    if ( !wd.canRunIn(*mythread->runningOn()) ) {
+     /* We have to avoid work-first scheduler to return this kind of tasks, so we enqueue
+      * it in our scheduler system. Global ready task queue will take care about task/thread
+      * architecture, while local ready task queue will wait until stealing. */
       queue(mythread, wd);
       return;
    }
 
    WD *next = getMyThreadSafe()->getTeam()->getSchedulePolicy().atSubmit( myThread, wd );
 
+   /* If SchedulePolicy have returned a 'next' value, we have to context switch to
+      that WorkDescriptor */
    if ( next ) {
       WD *slice;
-      /* enqueue the remaining part of a WD */
-      if ( !next->dequeue(&slice) ) {
-         queue(mythread, *next);
-      }
+      /* We must ensure this 'next' has no sliced components. If it have them we have to
+       * queue the remaining parts of 'next' */
+      if ( !next->dequeue(&slice) ) queue(mythread, *next);
       switchTo ( slice );
-   } else {
-      /* if next == NULL wd has been enqueued by SchedulePolicy.atSubmit() */
-      sys.getSchedulerStats()._readyTasks++;
    }
 
 }
@@ -118,8 +120,7 @@ inline void Scheduler::idleLoop ()
 
            /* Some WDs maybe prefetched without going through the submit 
               process. Compensate the ready count for that */
-           if ( !next->isSubmitted() && !next->started() ) 
-             sys.getSchedulerStats()._readyTasks++;
+           if ( !next->isSubmitted() && !next->started() ) sys.getSchedulerStats()._readyTasks++;
          } else {
            if ( sys.getSchedulerStats()._readyTasks > 0 ) 
               next = behaviour::getWD(thread,current);
@@ -266,6 +267,9 @@ void Scheduler::wakeUp ( WD *wd )
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
    if ( wd->isBlocked() ) {
       wd->setReady();
+     /* FIXME: Probably we have to call SchedulePolicy->atWakeUp() and define base
+      * implementation as Scheduler::queue(). After check for basic constraints (canRunIn and
+      * tiedness and switch-to if posible */
       Scheduler::queue(myThread, *wd );
    }
 }
