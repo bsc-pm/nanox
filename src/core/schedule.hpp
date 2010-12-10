@@ -51,7 +51,7 @@ namespace nanos
          static void queue ( BaseThread *thread, WD &wd );
          static void inlineWork ( WD *work );
 
-         static void submit ( WD &wd );
+         static void submit ( WD &wd, bool allow_context_switch = true );
          static void switchTo ( WD *to );
          static void exitTo ( WD *next );
          static void switchToThread ( BaseThread * thread );

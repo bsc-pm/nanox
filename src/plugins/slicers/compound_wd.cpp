@@ -53,7 +53,7 @@ void SlicerCompoundWD::submit ( SlicedWD &work )
       sys.setupWD(*slice, &work);
    }
 
-   Scheduler::submit ( work );
+   Scheduler::submit ( work, false );
 }
 
 /* \brief Dequeue a SlicerCompoundWD WD

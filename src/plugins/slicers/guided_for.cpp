@@ -29,7 +29,7 @@ void SlicerGuidedFor::submit ( SlicedWD &work )
    (( SlicerDataFor *)work.getSlicerData())->setSign( sign );
 
    // submit wd
-   Scheduler::submit ( work );
+   Scheduler::submit ( work, false );
 }
 
 bool SlicerGuidedFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )

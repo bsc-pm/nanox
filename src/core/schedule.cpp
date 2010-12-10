@@ -36,7 +36,7 @@ void SchedulerConf::config (Config &config)
    config.registerEnvOption ( "num_spins", "NX_SPINS" );
 }
 
-void Scheduler::submit ( WD &wd )
+void Scheduler::submit ( WD &wd, bool allow_context_switch )
 {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
    BaseThread *mythread = myThread;
@@ -47,6 +47,10 @@ void Scheduler::submit ( WD &wd )
    debug ( "submitting task " << wd.getId() );
 
    wd.submitted();
+   if ( !allow_context_switch ) {
+      queue(mythread, wd);
+      return;
+   }
 
    /* handle tied tasks */
    if ( wd.isTied() && wd.isTiedTo() != mythread ) {

@@ -22,7 +22,7 @@ class SlicerRepeatN: public Slicer
 void SlicerRepeatN::submit ( SlicedWD &work )
 {
    debug0 ( "Using sliced work descriptor: RepeatN" );
-   Scheduler::submit ( work );
+   Scheduler::submit ( work, false );
 }
 
 /* \brief Dequeue a RepeatN SlicedWD
