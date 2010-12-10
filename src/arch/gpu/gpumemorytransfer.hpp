@@ -72,12 +72,9 @@ namespace ext
 
    class GPUMemoryTransferOutAsyncList : public GPUMemoryTransferList
    {
-
-      typedef TR1::shared_ptr<GPUMemoryTransfer> memTxPtr;
-
       private:
-         std::list< memTxPtr >   _pendingTransfersAsync;
-         Lock                    _lock;
+         std::list<GPUMemoryTransfer *>   _pendingTransfersAsync;
+         Lock                             _lock;
 
       public:
          GPUMemoryTransferOutAsyncList() : GPUMemoryTransferList(), _lock() {}
@@ -92,11 +89,11 @@ namespace ext
          void addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size )
          {
             _lock.acquire();
-            _pendingTransfersAsync.push_back( memTxPtr ( new GPUMemoryTransfer ( hostAddress, deviceAddress, size ) ) );
+            _pendingTransfersAsync.push_back( new GPUMemoryTransfer ( hostAddress, deviceAddress, size ) );
             _lock.release();
          }
 
-         void removeMemoryTransfer ( std::list<memTxPtr>::iterator it );
+         void removeMemoryTransfer ( std::list<GPUMemoryTransfer *>::iterator it );
 
          void removeMemoryTransfer ( CopyDescriptor &hostAddress );
 
@@ -105,9 +102,9 @@ namespace ext
             if ( !_pendingTransfersAsync.empty() ) {
                bool found = false;
 
-               for ( std::list<memTxPtr>::iterator it = _pendingTransfersAsync.begin();
+               for ( std::list<GPUMemoryTransfer *>::iterator it = _pendingTransfersAsync.begin();
                      it != _pendingTransfersAsync.end(); it++ ) {
-                  if ( it->get()->_requested ) {
+                  if ( ( *it )->_requested ) {
                      found = true;
                      removeMemoryTransfer( it );
                      break;
@@ -122,10 +119,10 @@ namespace ext
 
          void checkAddressForMemoryTransfer ( void * address )
          {
-            for ( std::list<memTxPtr>::iterator it = _pendingTransfersAsync.begin();
+            for ( std::list<GPUMemoryTransfer *>::iterator it = _pendingTransfersAsync.begin();
                   it != _pendingTransfersAsync.end();
                   it++ ) {
-               if ( it->get()->_hostAddress.getTag() == ( uint64_t ) address ) {
+               if ( ( *it )->_hostAddress.getTag() == ( uint64_t ) address ) {
                   removeMemoryTransfer( it );
                }
             }
@@ -136,10 +133,10 @@ namespace ext
          void requestTransfer( void * address )
          {
             _lock.acquire();
-            for ( std::list<memTxPtr>::iterator it = _pendingTransfersAsync.begin();
+            for ( std::list<GPUMemoryTransfer *>::iterator it = _pendingTransfersAsync.begin();
                   it != _pendingTransfersAsync.end(); it++ ) {
-               if ( it->get()->_hostAddress.getTag() == ( uint64_t ) address ) {
-                  it->get()->_requested = true;
+               if ( ( *it )->_hostAddress.getTag() == ( uint64_t ) address ) {
+                  ( *it )->_requested = true;
                }
             }
             _lock.release();
