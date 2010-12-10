@@ -35,6 +35,13 @@ GPUProcessor::GPUProcessor( int id, int gpuId ) : CachedAccelerator<GPUDevice>( 
    _gpuProcessorInfo = new GPUProcessorInfo( gpuId );
 }
 
+GPUProcessor::~GPUProcessor()
+{
+   printStats();
+
+   delete _gpuProcessorInfo;
+}
+
 void GPUProcessor::init ()
 {
    // Each thread initializes its own GPUProcessor so that initialization
@@ -96,11 +103,6 @@ void GPUProcessor::init ()
       // If we have a stream for outputs, create the list
       delete _gpuProcessorTransfers._pendingCopiesOut;
       _gpuProcessorTransfers._pendingCopiesOut = new GPUMemoryTransferOutAsyncList();
-   }
-   else {
-      // Else, create a 'fake list' which copies outputs synchronously
-      delete _gpuProcessorTransfers._pendingCopiesOut;
-      _gpuProcessorTransfers._pendingCopiesOut = new GPUMemoryTransferOutSyncList();
    }
 }
 
