@@ -269,12 +269,24 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 void Scheduler::wakeUp ( WD *wd )
 {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
+
    if ( wd->isBlocked() ) {
+      /* Setting ready wd */
       wd->setReady();
-     /* FIXME: Probably we have to call SchedulePolicy->atWakeUp() and define base
-      * implementation as Scheduler::queue(). After check for basic constraints (canRunIn and
-      * tiedness and switch-to if posible */
-      Scheduler::queue(myThread, *wd );
+      if ( checkBasicConstraints ( *wd, *myThread ) ) {
+         WD *next = getMyThreadSafe()->getTeam()->getSchedulePolicy().atWakeUp( myThread, *wd );
+         /* If SchedulePolicy have returned a 'next' value, we have to context switch to
+            that WorkDescriptor */
+         if ( next ) {
+            WD *slice;
+            /* We must ensure this 'next' has no sliced components. If it have them we have to
+             * queue the remaining parts of 'next' */
+            if ( !next->dequeue(&slice) ) queue(myThread, *next);
+            switchTo ( slice );
+         }
+      } else {
+         queue ( myThread, *wd );
+      }
    }
 }
 

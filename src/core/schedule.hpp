@@ -201,7 +201,7 @@ namespace nanos
          virtual WD * atAfterExit   ( BaseThread *thread, WD *current ) { return atIdle( thread ); }
          virtual WD * atBlock       ( BaseThread *thread, WD *current ) { return atIdle( thread ); }
          virtual WD * atYield       ( BaseThread *thread, WD *current) { return atIdle( thread ); }
-         virtual WD * atWakeUp      ( BaseThread *thread, WD &wd ) { return 0; }
+         virtual WD * atWakeUp      ( BaseThread *thread, WD &wd ) { Scheduler::queue( thread, wd ); return NULL; }
          virtual WD * atPrefetch    ( BaseThread *thread, WD &current ) { return atIdle( thread ); }
 
          virtual void queue ( BaseThread *thread, WD &wd )  = 0;
