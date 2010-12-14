@@ -34,6 +34,7 @@ typedef struct {
      bool  input: 1;
      bool  output: 1;
      bool  can_rename:1;
+     bool  commutative: 1;
    } flags;
    size_t  size;
 } nanos_dependence_internal_t;

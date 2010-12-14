@@ -39,13 +39,14 @@ namespace nanos
           *  \param canRename Whether the dependency can rename or not
           */
          Dependency ( void ** addr = NULL, ptrdiff_t offset = 0, bool input = false, bool output = false,
-                      bool canRename = false, size_t storageSize = 0 )
+                      bool canRename = false, bool commutative = false, size_t storageSize = 0 )
          {
             address = addr;
             offset = offset;
             flags.input = input;
             flags.output = output;
             flags.can_rename = canRename;
+            flags.commutative = commutative;
             size = storageSize;
          }
          /*! \brief Dependency copy constructor
@@ -59,6 +60,7 @@ namespace nanos
             flags.input = dep.flags.input;
             flags.output = dep.flags.output;
             flags.can_rename = dep.flags.can_rename;
+            flags.commutative = dep.flags.commutative;
             size = dep.size;
          }
         /*! \brief Dependency copy asssignment operator, can be self-assigned.
@@ -73,6 +75,7 @@ namespace nanos
             flags.input = dep.flags.input;
             flags.output = dep.flags.output;
             flags.can_rename = dep.flags.can_rename;
+            flags.commutative = dep.flags.commutative;
             size = dep.size;
             return *this;
          }
@@ -124,6 +127,17 @@ namespace nanos
          */
          void setCanRename( bool b )
          { flags.can_rename = b; }
+
+        /*! \brief returns true if there is a commutative over this dependency
+         */
+         bool isCommutative() const
+         { return flags.commutative; }
+
+        /*! \brief sets the dependency to be a commutative
+         */
+         void setCommutative( bool b )
+         { flags.commutative = b;}
+         
    };
 }
 
