@@ -48,7 +48,7 @@ void GPUThread::initializeDependent ()
          warning( "Couldn't set the GPU device flags:" << cudaGetErrorString( err ) );
    }
 
-   ((GPUProcessor *) myThread->runningOn())->init();
+   ( ( GPUProcessor * ) myThread->runningOn() )->init();
 }
 
 void GPUThread::runDependent ()
@@ -57,6 +57,7 @@ void GPUThread::runDependent ()
    setCurrentWD( work );
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
    dd.getWorkFct()( work.getData() );
+   ( ( GPUProcessor * ) myThread->runningOn() )->getGPUProcessorInfo()->destroyTransferStreams();
 }
 
 void GPUThread::inlineWorkDependent ( WD &wd )
