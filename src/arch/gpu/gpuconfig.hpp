@@ -67,7 +67,11 @@ namespace ext
 
          static bool isOverlappingInputsDefined ( void ) { return _overlapInputs; }
 
+         static void setOverlappingInputs ( bool overlap ) { _overlapInputs = overlap; }
+
          static bool isOverlappingOutputsDefined ( void ) { return _overlapOutputs; }
+
+         static void setOverlappingOutputs ( bool overlap ) { _overlapOutputs = overlap; }
 
          /* \brief get the transfer mode for GPU devices */
          static transfer_mode getTransferMode ( void ) { return _transferMode; }

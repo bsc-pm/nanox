@@ -18,7 +18,6 @@
 /*************************************************************************************/
 
 #include "gpuconfig.hpp"
-#include "gpudevice.hpp"
 // We need to include system.hpp, as debug.hpp does not include it
 // (to use verbose0(msg))
 #include "system.hpp"

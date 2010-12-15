@@ -55,29 +55,7 @@ namespace ext
             _inTransferStream ( 0 ), _outTransferStream ( 0 ), _localTransferStream( 0 )
          {}
 
-         ~GPUProcessorInfo ()
-         {
-            if ( _inTransferStream ) {
-               cudaError_t err = cudaStreamDestroy( _inTransferStream );
-               if ( err != cudaSuccess ) {
-                  warning( "Error while destroying the CUDA input transfer stream: " << cudaGetErrorString( err ) );
-               }
-            }
-
-            if ( _outTransferStream ) {
-               cudaError_t err = cudaStreamDestroy( _outTransferStream );
-               if ( err != cudaSuccess ) {
-                  warning( "Error while destroying the CUDA output transfer stream: " << cudaGetErrorString( err ) );
-               }
-            }
-
-            if ( _localTransferStream ) {
-               cudaError_t err = cudaStreamDestroy( _localTransferStream );
-               if ( err != cudaSuccess ) {
-                  warning( "Error while destroying the CUDA local transfer stream: " << cudaGetErrorString( err ) );
-               }
-            }
-         }
+         ~GPUProcessorInfo () {}
 
          void initTransferStreams ( bool &inputStream, bool &outputStream )
          {
@@ -119,6 +97,30 @@ namespace ext
                      fatal( "Error while creating the CUDA output transfer stream: all CUDA-capable devices are busy or unavailable" );
                   }
                   warning( "Error while creating the CUDA output transfer stream: " << cudaGetErrorString( err ) );
+               }
+            }
+         }
+
+         void destroyTransferStreams ()
+         {
+            if ( _inTransferStream ) {
+               cudaError_t err = cudaStreamDestroy( _inTransferStream );
+               if ( err != cudaSuccess ) {
+                  warning( "Error while destroying the CUDA input transfer stream: " << cudaGetErrorString( err ) );
+               }
+            }
+
+            if ( _outTransferStream ) {
+               cudaError_t err = cudaStreamDestroy( _outTransferStream );
+               if ( err != cudaSuccess ) {
+                  warning( "Error while destroying the CUDA output transfer stream: " << cudaGetErrorString( err ) );
+               }
+            }
+
+            if ( _localTransferStream ) {
+               cudaError_t err = cudaStreamDestroy( _localTransferStream );
+               if ( err != cudaSuccess ) {
+                  warning( "Error while destroying the CUDA local transfer stream: " << cudaGetErrorString( err ) );
                }
             }
          }

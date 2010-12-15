@@ -80,6 +80,9 @@ void GPUProcessor::init ()
    }
    _gpuProcessorInfo->initTransferStreams( inputStream, outputStream );
 
+   GPUConfig::setOverlappingInputs( inputStream );
+   GPUConfig::setOverlappingOutputs( outputStream );
+
    // We allocate the whole GPU memory
    // WARNING: GPUDevice::allocateWholeMemory() must be called first, as it may
    // modify maxMemoryAvailable, in the case of not being able to allocate as
