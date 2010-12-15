@@ -29,7 +29,7 @@
 #include <algorithm>
 #include "synchronizedcondition_fwd.hpp"
 #include "system_fwd.hpp"
-#include "basethread_fwd.hpp"
+#include "basethread_decl.hpp"
 
 namespace nanos
 {
@@ -48,10 +48,9 @@ namespace nanos
          static void idleLoop (void);
 
       public:
-         static void queue ( BaseThread *thread, WD &wd );
          static void inlineWork ( WD *work );
 
-         static void submit ( WD &wd, bool allow_context_switch = true );
+         static void submit ( WD &wd );
          static void switchTo ( WD *to );
          static void exitTo ( WD *next );
          static void switchToThread ( BaseThread * thread );
@@ -69,7 +68,10 @@ namespace nanos
          static void updateExitStats ( WD &wd );
 
          /*! \brief checks if a WD is elegible to run in a given thread */
-         static bool checkBasicConstraints ( WD &wd, BaseThread &thread );
+         static bool checkBasicConstraints ( WD &wd, BaseThread &thread )
+         {
+            return wd.canRunIn(*thread.runningOn()) && ( !wd.isTied() || wd.isTiedTo() == &thread );
+         }
    };
 
    class SchedulerConf
@@ -101,8 +103,10 @@ namespace nanos
    
    class SchedulerStats
    {
+         friend class WDDeque;
          friend class Scheduler;
          friend class System;
+
          friend class SlicerStaticFor;
          friend class SlicerDynamicFor;
          friend class SlicerGuidedFor;
@@ -201,7 +205,7 @@ namespace nanos
          virtual WD * atAfterExit   ( BaseThread *thread, WD *current ) { return atIdle( thread ); }
          virtual WD * atBlock       ( BaseThread *thread, WD *current ) { return atIdle( thread ); }
          virtual WD * atYield       ( BaseThread *thread, WD *current) { return atIdle( thread ); }
-         virtual WD * atWakeUp      ( BaseThread *thread, WD &wd ) { Scheduler::queue( thread, wd ); return NULL; }
+         virtual WD * atWakeUp      ( BaseThread *thread, WD &wd ) { queue( thread, wd ); return NULL; }
          virtual WD * atPrefetch    ( BaseThread *thread, WD &current ) { return atIdle( thread ); }
 
          virtual void queue ( BaseThread *thread, WD &wd )  = 0;

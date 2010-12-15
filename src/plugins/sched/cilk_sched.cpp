@@ -120,6 +120,7 @@ namespace nanos {
       WD * CilkPolicy::atIdle ( BaseThread *thread )
       {
          WorkDescriptor * wd;
+         WorkDescriptor * next = NULL;
 
          ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
 
@@ -137,8 +138,8 @@ namespace nanos {
                //Try to remove from one queue: if someone move it, I stop looking for it to avoid ping-pongs.
                if ( wd->isEnqueued() ) {
                   //not in queue = in execution, in queue = not in execution
-                  if ( wd->getMyQueue()->removeWD( thread, wd ) ) { //found it!
-                     return wd;
+                  if ( wd->getMyQueue()->removeWD( thread, wd, &next ) ) { //found it!
+                     return next;
                   }
                }
             }
