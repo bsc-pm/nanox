@@ -103,11 +103,13 @@ void GPUThread::inlineWorkDependent ( WD &wd )
 
 void GPUThread::yield()
 {
+   ( ( GPUProcessor * ) runningOn() )->getInTransferList()->executeMemoryTransfers();
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->executeMemoryTransfers();
 }
 
 void GPUThread::idle()
 {
+   ( ( GPUProcessor * ) runningOn() )->getInTransferList()->executeMemoryTransfers();
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->removeMemoryTransfer();
 }
 

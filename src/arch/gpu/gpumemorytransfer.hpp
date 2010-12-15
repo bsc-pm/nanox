@@ -165,12 +165,21 @@ namespace ext
             _pendingTransfersAsync.push_back( address );
          }
 
+         void addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size )
+         {
+            _lock.acquire();
+            _requestedTransfers.push_back( *new GPUMemoryTransfer ( hostAddress, deviceAddress, size ) );
+            _lock.release();
+         }
+
          void reset ()
          {
             _pendingTransfersAsync.clear();
          }
 
          void clearMemoryTransfers ();
+
+         void executeMemoryTransfers ();
    };
 
 }

@@ -19,7 +19,6 @@
 
 
 #include "gpumemorytransfer.hpp"
-#include "gpudevice.hpp"
 #include "gpuprocessor.hpp"
 #include "instrumentationmodule_decl.hpp"
 
@@ -162,4 +161,22 @@ void GPUMemoryTransferInAsyncList::clearMemoryTransfers()
 {
    ( ( GPUProcessor * ) myThread->runningOn() )->synchronize( _pendingTransfersAsync );
    _pendingTransfersAsync.clear();
+}
+
+void GPUMemoryTransferInAsyncList::executeMemoryTransfers ()
+{
+   while ( !_requestedTransfers.empty() ) {
+      GPUMemoryTransfer & copy = _requestedTransfers.front();
+
+      NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
+      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER, key, copy._size ) );
+
+      GPUDevice::copyInSyncToDevice( copy._deviceAddress, ( void * ) copy._hostAddress.getTag(), copy._size );
+
+      _lock.acquire();
+      _requestedTransfers.pop_front();
+      _lock.release();
+
+      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
+   }
 }
