@@ -33,6 +33,7 @@ using namespace nanos;
 
 inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
 {
+   bool didCopyIn = false;
    DirectoryEntry *de = dir.getEntry( tag );
    CacheEntry *ce;
    if ( de == NULL ) { // Memory access not registered in the directory
@@ -96,7 +97,10 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
             if ( size != ce->getSize() ) {
                if ( ce->trySetToResizing() ) {
                   // Wait until it's only me using this entry
-                  while ( _cache.getReferences( ce->getTag() ) > 1 );
+                  // FIXME: Multiple threads per cache not supported with this implementation
+                  // of resize (references must be at most two due to prefetch) (see #393)
+                  ensure( _cache.getReferences( ce->getTag() ) <= 2, "Multiple threads per cache not supported with this implementation");
+//                  while ( _cache.getReferences( ce->getTag() ) > 1 );
 
                   // First approach, always copy back if size didn't match
                   if ( ce->isDirty() ) {
@@ -110,6 +114,26 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                      _cache.realloc( dir, ce, size );
                   }
                   ce->setSize(size);
+
+                  if ( input ) {
+                     didCopyIn = true;
+                     if ( ce->trySetToCopying() ) {
+                        Cache *owner = de->getOwner();
+                        ensure( &_cache != owner, "Trying to invalidate myself" );
+                        if ( owner != NULL ) {
+                           // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
+                           owner->invalidate( dir, tag, size, de );
+                           owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
+                           while( de->getOwner() != NULL ) myThread->idle();
+                        }
+
+                        // Copy in
+                        CopyDescriptor cd = CopyDescriptor(tag);
+                        if ( _cache.copyDataToCache( cd, size ) ) {
+                           ce->setCopying(false);
+                        }
+                     }
+                  }
                   ce->setResizing(false);
                }
             }
@@ -119,7 +143,10 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
          if ( size != ce->getSize() ) {
             if ( ce->trySetToResizing() ) {
                // Wait until it's only me using this entry
-               while ( _cache.getReferences( ce->getTag() ) > 1 );
+               // FIXME: Multiple threads per cache not supported with this implementation
+               // of resize (references must be at most two due to prefetch) (see #393)
+               ensure( _cache.getReferences( ce->getTag() ) <= 2, "Multiple threads per cache not supported with this implementation");
+//               while ( _cache.getReferences( ce->getTag() ) > 1 );
 
                // First approach, always copy back if size didn't match
                if ( ce->isDirty() ) {
@@ -133,13 +160,33 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                   _cache.realloc( dir, ce, size );
                }
                ce->setSize(size);
+ 
+               if ( input ) {
+                  didCopyIn = true;
+                  if ( ce->trySetToCopying() ) {
+                     Cache *owner = de->getOwner();
+                     ensure( &_cache != owner, "Trying to invalidate myself" );
+                     if ( owner != NULL ) {
+                        // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
+                        owner->invalidate( dir, tag, size, de );
+                        owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
+                        while( de->getOwner() != NULL ) myThread->idle();
+                     }
+
+                     // Copy in
+                     CopyDescriptor cd = CopyDescriptor(tag);
+                     if ( _cache.copyDataToCache( cd, size ) ) {
+                        ce->setCopying(false);
+                     }
+                  }
+               }
                ce->setResizing(false);
             }
          }
 
          if ( de->getVersion() != ce->getVersion() ) {
             // Version doesn't match the one in the directory
-            if ( input ) {
+            if ( input && !didCopyIn ) {
                if ( ce->trySetToCopying() ) {
                   ce->setVersion( de->getVersion() );
                   Cache *owner = de->getOwner();

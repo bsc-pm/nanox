@@ -92,7 +92,7 @@ namespace nanos {
             */
             virtual WD * atSubmit ( BaseThread *thread, WD &newWD )
             {
-               queue(thread,newWD);
+               Scheduler::queue(thread,newWD);
 
                return 0;
             }

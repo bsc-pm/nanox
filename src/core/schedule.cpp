@@ -36,7 +36,7 @@ void SchedulerConf::config (Config &config)
    config.registerEnvOption ( "num_spins", "NX_SPINS" );
 }
 
-void Scheduler::submit ( WD &wd )
+void Scheduler::submit ( WD &wd, bool allow_context_switch )
 {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
    BaseThread *mythread = myThread;
@@ -47,6 +47,10 @@ void Scheduler::submit ( WD &wd )
    debug ( "submitting task " << wd.getId() );
 
    wd.submitted();
+   if ( !allow_context_switch ) {
+      queue(mythread, wd);
+      return;
+   }
 
    /* handle tied tasks */
    if ( wd.isTied() && wd.isTiedTo() != mythread ) {
@@ -54,23 +58,25 @@ void Scheduler::submit ( WD &wd )
       return;
    }
 
+   /* handle tasks which cannot run in current thread */
    if ( !wd.canRunIn(*mythread->runningOn()) ) {
+     /* We have to avoid work-first scheduler to return this kind of tasks, so we enqueue
+      * it in our scheduler system. Global ready task queue will take care about task/thread
+      * architecture, while local ready task queue will wait until stealing. */
       queue(mythread, wd);
       return;
    }
 
    WD *next = getMyThreadSafe()->getTeam()->getSchedulePolicy().atSubmit( myThread, wd );
 
+   /* If SchedulePolicy have returned a 'next' value, we have to context switch to
+      that WorkDescriptor */
    if ( next ) {
       WD *slice;
-      /* enqueue the remaining part of a WD */
-      if ( !next->dequeue(&slice) ) {
-         queue(mythread, *next);
-      }
+      /* We must ensure this 'next' has no sliced components. If it have them we have to
+       * queue the remaining parts of 'next' */
+      if ( !next->dequeue(&slice) ) queue(mythread, *next);
       switchTo ( slice );
-   } else {
-      /* if next == NULL wd has been enqueued by SchedulePolicy.atSubmit() */
-      sys.getSchedulerStats()._readyTasks++;
    }
 
 }
@@ -118,8 +124,7 @@ inline void Scheduler::idleLoop ()
 
            /* Some WDs maybe prefetched without going through the submit 
               process. Compensate the ready count for that */
-           if ( !next->isSubmitted() && !next->started() ) 
-             sys.getSchedulerStats()._readyTasks++;
+           if ( !next->isSubmitted() && !next->started() ) sys.getSchedulerStats()._readyTasks++;
          } else {
            if ( sys.getSchedulerStats()._readyTasks > 0 ) 
               next = behaviour::getWD(thread,current);
@@ -264,9 +269,24 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 void Scheduler::wakeUp ( WD *wd )
 {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
+
    if ( wd->isBlocked() ) {
+      /* Setting ready wd */
       wd->setReady();
-      Scheduler::queue(myThread, *wd );
+      if ( checkBasicConstraints ( *wd, *myThread ) ) {
+         WD *next = getMyThreadSafe()->getTeam()->getSchedulePolicy().atWakeUp( myThread, *wd );
+         /* If SchedulePolicy have returned a 'next' value, we have to context switch to
+            that WorkDescriptor */
+         if ( next ) {
+            WD *slice;
+            /* We must ensure this 'next' has no sliced components. If it have them we have to
+             * queue the remaining parts of 'next' */
+            if ( !next->dequeue(&slice) ) queue(myThread, *next);
+            switchTo ( slice );
+         }
+      } else {
+         queue ( myThread, *wd );
+      }
    }
 }
 

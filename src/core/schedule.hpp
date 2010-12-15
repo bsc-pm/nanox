@@ -41,7 +41,6 @@ namespace nanos
    class Scheduler
    {
       private:
-         static void queue ( BaseThread *thread, WD &wd );
          static void switchHelper (WD *oldWD, WD *newWD, void *arg);
          static void exitHelper (WD *oldWD, WD *newWD, void *arg);
          
@@ -49,9 +48,10 @@ namespace nanos
          static void idleLoop (void);
 
       public:
+         static void queue ( BaseThread *thread, WD &wd );
          static void inlineWork ( WD *work );
 
-         static void submit ( WD &wd );
+         static void submit ( WD &wd, bool allow_context_switch = true );
          static void switchTo ( WD *to );
          static void exitTo ( WD *next );
          static void switchToThread ( BaseThread * thread );
@@ -201,7 +201,7 @@ namespace nanos
          virtual WD * atAfterExit   ( BaseThread *thread, WD *current ) { return atIdle( thread ); }
          virtual WD * atBlock       ( BaseThread *thread, WD *current ) { return atIdle( thread ); }
          virtual WD * atYield       ( BaseThread *thread, WD *current) { return atIdle( thread ); }
-         virtual WD * atWakeUp      ( BaseThread *thread, WD &wd ) { return 0; }
+         virtual WD * atWakeUp      ( BaseThread *thread, WD &wd ) { Scheduler::queue( thread, wd ); return NULL; }
          virtual WD * atPrefetch    ( BaseThread *thread, WD &current ) { return atIdle( thread ); }
 
          virtual void queue ( BaseThread *thread, WD &wd )  = 0;

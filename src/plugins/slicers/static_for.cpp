@@ -103,7 +103,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          ((nanos_loop_info_t *)(slice->getData()))->last = ( i == (valid_threads - 1) );
 
          slice->tieTo( (*myThread->getTeam())[j] );
-         Scheduler::submit ( *slice );
+         Scheduler::submit ( *slice, false );
 
          // next slice init
          _lower = upper + _step;
@@ -112,7 +112,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
 
       // Submit: work
       work.tieTo( (*myThread->getTeam())[first_valid_thread] );
-      Scheduler::submit ( work );
+      Scheduler::submit ( work, false );
    }
    // if chunk != 0: generate a SlicedWD for each thread (interleaved)
    else {
@@ -134,11 +134,11 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          (( SlicerDataFor *)wd->getSlicerData())->setSign( _sign );
 
          wd->tieTo( (*thread->getTeam())[j] );
-         Scheduler::submit ( *wd );
+         Scheduler::submit ( *wd, false );
 
          /* Some schedulers change to execute submited wd. We must
           * ensure to get new myThread variable */
-         thread = getMyThreadSafe();
+         // xteruel:FIXME thread = getMyThreadSafe();
 
          // next wd init
          wd = NULL;
@@ -148,7 +148,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
 
       // Submit: work
       work.tieTo( (*thread->getTeam())[first_valid_thread] );
-      Scheduler::submit ( work );
+      Scheduler::submit ( work, false );
    }
 }
 

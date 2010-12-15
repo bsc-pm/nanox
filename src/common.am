@@ -12,7 +12,7 @@ common_includes= \
 
 common_cflags= -Wall -Werror 
 bin_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -D_NANOS_INTERNAL -O2 -g2 -DNANOS_DEBUG_ENABLED
-common_perfo_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -D_NANOS_INTERNAL -O3 
+common_perfo_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -D_NANOS_INTERNAL -O3
 perfo_cflags=-O3
 common_debug_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -D_NANOS_INTERNAL -O0 -g2 -fno-inline -DNANOS_DEBUG_ENABLED
 debug_cflags=-O0 -g2
