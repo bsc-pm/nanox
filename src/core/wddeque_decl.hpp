@@ -73,11 +73,9 @@ namespace nanos
          void push_front ( WorkDescriptor *wd );
          void push_back( WorkDescriptor *wd );
          WorkDescriptor * pop_front ( BaseThread *thread );
-         WorkDescriptor * pop_front ( BaseThread *thread, SchedulePredicate &predicate );
          WorkDescriptor * pop_back ( BaseThread *thread );
-         WorkDescriptor * pop_back ( BaseThread *thread, SchedulePredicate &predicate );
 
-         bool removeWD( BaseThread *thread, WorkDescriptor * toRem );
+         bool removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
    };
 
 }

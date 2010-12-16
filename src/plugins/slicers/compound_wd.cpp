@@ -53,7 +53,7 @@ void SlicerCompoundWD::submit ( SlicedWD &work )
       sys.setupWD(*slice, &work);
    }
 
-   Scheduler::submit ( work, false );
+   Scheduler::submit ( work );
 }
 
 /* \brief Dequeue a SlicerCompoundWD WD
@@ -107,9 +107,6 @@ bool SlicerCompoundWD::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
       return true;
    }
    else {
-      /* If not last, scheduler will enqueue this workdescriptor */
-      sys.getSchedulerStats()._readyTasks++;
-
       /* Pre-decrement nsect and get corresponding wd */
       *slice = (WorkDescriptor*)data->lwd[--data->nsect];
 
