@@ -95,15 +95,17 @@ void GPUProcessor::init ()
    // WARNING: initTransferStreams() can modify inputStream's and outputStream's
    // value, so call it first
 
+   /*
    if ( inputStream ) {
       // Create a list of inputs that have been ordered to transfer but the copy is
       // still not completed
       delete _gpuProcessorTransfers._pendingCopiesIn;
       _gpuProcessorTransfers._pendingCopiesIn = new GPUMemoryTransferInAsyncList();
    }
+   */
 
    if ( outputStream ) {
-      // If we have a stream for outputs, create the list
+      // If we have a stream for outputs, create the list with asynchronous behaviour
       delete _gpuProcessorTransfers._pendingCopiesOut;
       _gpuProcessorTransfers._pendingCopiesOut = new GPUMemoryTransferOutAsyncList();
    }

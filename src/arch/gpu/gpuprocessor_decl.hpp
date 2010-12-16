@@ -56,7 +56,7 @@ namespace ext
 
                GPUProcessorTransfers()
                {
-                  _pendingCopiesIn = new GPUMemoryTransferList();
+                  _pendingCopiesIn = new GPUMemoryTransferInAsyncList();
                   _pendingCopiesOut = new GPUMemoryTransferOutSyncList();
                }
 
