@@ -128,6 +128,15 @@ namespace nanos {
           */
          nanos_event_value_t registerValue ( const char *value, const char *description="", bool abort_when_registered=true );
 
+         /*! \brief Inserts a value into valueMap (the value is given by user)
+          */
+         void registerValue ( const std::string &value, nanos_event_value_t val,
+                              const std::string &description="", bool abort_when_registered=true );
+
+         /*! \brief Inserts a value into valueMap (the value is given by user)
+          */
+         void registerValue ( const char *value, nanos_event_value_t val,
+                              const char *description="", bool abort_when_registered=true );
          /*! \brief Gets a value into (from) valueMap 
           */
          nanos_event_value_t getValue ( const std::string &value );
@@ -264,6 +273,17 @@ namespace nanos {
          /*! \brief Inserts (or gets) a value into (from) the valueMap (which belongs to 'key' parameter )
           */
          nanos_event_value_t registerEventValue ( const char *key, const char *value, const char *description="", bool abort_when_registered=true );
+
+         /*! \brief Inserts a value into the valueMap, which belongs to 'key' parameter (value is given by user)
+          */
+         void registerEventValue ( const std::string &key, const std::string &value,
+                                   nanos_event_value_t val,
+                                   const std::string &description="", bool abort_when_registered=true );
+
+         /*! \brief Inserts a value into the valueMap, which belongs to 'key' parameter (value is given by user)
+          */
+         void registerEventValue ( const char *key, const char *value, nanos_event_value_t val,
+                                   const char *description="", bool abort_when_registered=true );
 
          /*! \brief Gets a value into (from) the valueMap (which belongs to 'key' parameter )
           */
