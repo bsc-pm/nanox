@@ -53,7 +53,7 @@ namespace nanos {
               TeamData *data;
 
               if ( preAlloc ) data = new (preAlloc) TeamData();
-              else data = new TeamData();
+              else data = NEW TeamData();
 
               return data;
            }
@@ -96,7 +96,7 @@ namespace nanos {
             virtual void config ( Config &config )
             {
                config.setOptionsSection( "BF module", "Breadth-first scheduling module" );
-               config.registerConfigOption ( "bf-use-stack", new Config::FlagOption( BreadthFirst::_useStack ), "Stack usage for the breadth-first policy");
+               config.registerConfigOption ( "bf-use-stack", NEW Config::FlagOption( BreadthFirst::_useStack ), "Stack usage for the breadth-first policy");
                config.registerArgOption( "bf-use-stack", "bf-use-stack" );
 
                config.registerAlias ( "bf-use-stack", "bf-stack", "Stack usage for the breadth-first policy" );
@@ -104,7 +104,7 @@ namespace nanos {
             }
 
             virtual void init() {
-               sys.setDefaultSchedulePolicy(new BreadthFirst());
+               sys.setDefaultSchedulePolicy(NEW BreadthFirst());
             }
       };
 

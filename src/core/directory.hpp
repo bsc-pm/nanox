@@ -120,7 +120,7 @@ inline DirectoryEntry* Directory::getEntry( uint64_t tag )
       parents = _parent->_directory.find( tag );
    }
 
-   ent = new DirectoryEntry(tag, (parents == NULL ? 0 : parents->getVersion()), NULL );
+   ent = NEW DirectoryEntry(tag, (parents == NULL ? 0 : parents->getVersion()), NULL );
 
    bool inserted = false;
    ent = &_directory.insert( tag, *ent, inserted );

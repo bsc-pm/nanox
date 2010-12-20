@@ -74,7 +74,7 @@ class SlicerRepeatNPlugin : public Plugin {
 
       void init ()
       {
-         sys.registerSlicer("repeat_n", new SlicerRepeatN() );	
+         sys.registerSlicer("repeat_n", NEW SlicerRepeatN() );	
       }
 };
 

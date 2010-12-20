@@ -68,7 +68,7 @@ namespace nanos {
               ThreadData *data;
 
               if ( preAlloc ) data = new (preAlloc) ThreadData();
-              else data = new ThreadData();
+              else data = NEW ThreadData();
 
               return data;
            }
@@ -189,13 +189,13 @@ namespace nanos {
             {
                config.setOptionsSection( "WF module", "Work-first scheduling module" );
 
-               config.registerConfigOption ( "wf-steal-parent", new Config::FlagOption( WorkFirst::_stealParent ),
+               config.registerConfigOption ( "wf-steal-parent", NEW Config::FlagOption( WorkFirst::_stealParent ),
                                              "Defines if tries to steal the parent" );
                config.registerArgOption ( "wf-steal-parent", "steal-parent" );
 
                typedef Config::MapVar<WorkFirst::QueuePolicy> QueueConfig;
                
-               QueueConfig *queuePolicyLocalConfig = new QueueConfig ( WorkFirst::_localPolicy );
+               QueueConfig *queuePolicyLocalConfig = NEW QueueConfig ( WorkFirst::_localPolicy );
                queuePolicyLocalConfig
                   ->addOption ( "FIFO", WorkFirst::FIFO )
                    .addOption ( "LIFO", WorkFirst::LIFO );
@@ -203,7 +203,7 @@ namespace nanos {
                                              "Defines the local queue access policy");
                config.registerArgOption ( "wf-local-policy", "wf-local-policy" );
  
-               QueueConfig *queuePolicyStealConfig = new QueueConfig ( WorkFirst::_stealPolicy );
+               QueueConfig *queuePolicyStealConfig = NEW QueueConfig ( WorkFirst::_stealPolicy );
                queuePolicyStealConfig
                   ->addOption ( "FIFO", WorkFirst::FIFO )
                    .addOption ( "LIFO", WorkFirst::LIFO );
@@ -215,7 +215,7 @@ namespace nanos {
             }
 
             virtual void init() {
-               sys.setDefaultSchedulePolicy(new WorkFirst());
+               sys.setDefaultSchedulePolicy(NEW WorkFirst());
             }
       };
 

@@ -335,7 +335,7 @@ namespace nanos {
                {
                   if ( _type == NANOS_BURST_START || _type == NANOS_BURST_END )
                   {
-                     _kvList = new KV[1];
+                     _kvList = NEW KV[1];
                      _kvList[0] = *kvlist;
                      _kvListOwner = true;
                   }
@@ -348,7 +348,7 @@ namespace nanos {
                   _type = evt._type;
                   _state = evt._state;
                   _nkvs = evt._nkvs;
-                  _kvList = new KV[_nkvs];
+                  _kvList = NEW KV[_nkvs];
                   for ( unsigned int i = 0; i < _nkvs; i++ ) {
                      _kvList[i] = evt._kvList[i];
                   }
@@ -368,7 +368,7 @@ namespace nanos {
                   _type = evt._type;
                   _state = evt._state;
                   _nkvs = evt._nkvs;
-                  _kvList = new KV[_nkvs];
+                  _kvList = NEW KV[_nkvs];
                   for ( unsigned int i = 0; i < _nkvs; i++ ) {
                      _kvList[i] = evt._kvList[i];
                   }

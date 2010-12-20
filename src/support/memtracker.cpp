@@ -154,6 +154,7 @@ class MemTracker
 	    }
 	}
         message0("=========================================================");
+#if 0        
 	message0("======================= Block Sizes Stats ===============");
 	message0("Size   Unfreed   Max   Total");
 	for ( SizeMap::iterator it = _stats.begin(); it != _stats.end(); it ++ ) {
@@ -161,6 +162,7 @@ class MemTracker
 	    message0(it->first << " " << info._current << " " << info._max << " " << info._total );    
 	}
 	message0("=========================================================");
+#endif        
       }
 };
 
@@ -195,9 +197,9 @@ void operator delete ( void *p )
    getMemTracker().deallocate( p );
 }
 
-void operator delete ( void *p, char *file, int line )
+void operator delete[] ( void *p )
 {
-   getMemTracker().deallocate( p, file, line );
+   getMemTracker().deallocate( p );
 }
 
 class A {

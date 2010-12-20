@@ -64,7 +64,7 @@ namespace nanos {
       //factory
       static IdleThreadsThrottle * createIdleThrottle( int actualLimit )
       {
-         return new IdleThreadsThrottle( actualLimit );
+         return NEW IdleThreadsThrottle( actualLimit );
       }
 
 
@@ -82,7 +82,7 @@ namespace nanos {
                                          "Throttle policy based on idle threads" );
                                          
                config.registerConfigOption ( "throttle-limit",
-                  new Config::PositiveVar( "throttle-limit", _actualLimit),
+                  NEW Config::PositiveVar( "throttle-limit", _actualLimit),
                   "Defines maximum number of Idle Threads" );
                config.registerArgOption ( "throttle-limit", "throttle-limit" );
             }

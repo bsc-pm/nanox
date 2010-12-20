@@ -32,7 +32,7 @@ template<typename T>
 void pair_deleter2 ( std::pair<std::string,T *> pair ) { delete pair.second; }
 
 template<typename T>
-T * creator ( T *p ) { return new T( *p ); }
+T * creator ( T *p ) { return NEW T( *p ); }
 
 template<typename T>
 T * cloner ( T *p ) { return p->clone(); }

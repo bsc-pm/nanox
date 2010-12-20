@@ -89,7 +89,7 @@ void Instrumentation::createPointEvent ( Event *e, unsigned int nkvs, nanos_even
                                       nanos_event_value_t *values )
 {
    /* Creating an Event::KV vector */
-   Event::KVList kvlist = new Event::KV[nkvs];
+   Event::KVList kvlist = NEW Event::KV[nkvs];
 
    /* Initializing kvlist elements */
    for ( unsigned int i = 0; i < nkvs; i++ ) {
@@ -105,7 +105,7 @@ void Instrumentation::createPtPStart ( Event *e, nanos_event_domain_t domain, na
                       unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
 {
    /* Creating an Event::KV vector */
-   Event::KVList kvlist = new Event::KV[nkvs];
+   Event::KVList kvlist = NEW Event::KV[nkvs];
 
    /* Initializing kvlist elements */
    for ( unsigned int i = 0; i < nkvs; i++ ) {
@@ -120,7 +120,7 @@ void Instrumentation::createPtPEnd ( Event *e, nanos_event_domain_t domain, nano
                       unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
 {
    /* Creating an Event::KV vector */
-   Event::KVList kvlist = new Event::KV[nkvs];
+   Event::KVList kvlist = NEW Event::KV[nkvs];
 
    /* Initializing kvlist elements */
    for ( unsigned int i = 0; i < nkvs; i++ ) {
@@ -139,7 +139,7 @@ void Instrumentation::createDeferredPointEvent ( WorkDescriptor &wd, unsigned in
                                       nanos_event_value_t *values )
 {
    /* Creating an Event::KV vector */
-   Event::KVList kvlist = new Event::KV[nkvs];
+   Event::KVList kvlist = NEW Event::KV[nkvs];
 
    /* Initializing kvlist elements */
    for ( unsigned int i = 0; i < nkvs; i++ ) {
@@ -147,7 +147,7 @@ void Instrumentation::createDeferredPointEvent ( WorkDescriptor &wd, unsigned in
    }
 
    /* Creating a point event */
-   Event *e = new Point( nkvs, kvlist );
+   Event *e = NEW Point( nkvs, kvlist );
 
    /* Inserting event into deferred event list */
    InstrumentationContextData *icd = wd.getInstrumentationContextData();                                             
@@ -159,7 +159,7 @@ void Instrumentation::createDeferredPtPStart ( WorkDescriptor &wd, nanos_event_d
                       unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
 {
    /* Creating an Event::KV vector */
-   Event::KVList kvlist = new Event::KV[nkvs];
+   Event::KVList kvlist = NEW Event::KV[nkvs];
 
    /* Initializing kvlist elements */
    for ( unsigned int i = 0; i < nkvs; i++ ) {
@@ -167,7 +167,7 @@ void Instrumentation::createDeferredPtPStart ( WorkDescriptor &wd, nanos_event_d
    }
 
    /* Creating a PtP (start) event */
-   Event *e = new PtP( true, domain, id, nkvs, kvlist );
+   Event *e = NEW PtP( true, domain, id, nkvs, kvlist );
 
    /* Inserting event into deferred event list */
    InstrumentationContextData *icd = wd.getInstrumentationContextData();                                             
@@ -178,7 +178,7 @@ void Instrumentation::createDeferredPtPEnd ( WorkDescriptor &wd, nanos_event_dom
                       unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
 {
    /* Creating an Event::KV vector */
-   Event::KVList kvlist = new Event::KV[nkvs];
+   Event::KVList kvlist = NEW Event::KV[nkvs];
 
    /* Initializing kvlist elements */
    for ( unsigned int i = 0; i < nkvs; i++ ) {
@@ -186,7 +186,7 @@ void Instrumentation::createDeferredPtPEnd ( WorkDescriptor &wd, nanos_event_dom
    }
 
    /* Creating a PtP (end) event */
-   Event *e = new PtP( false, domain, id, nkvs, kvlist );
+   Event *e = NEW PtP( false, domain, id, nkvs, kvlist );
 
    /* Inserting event into deferred event list */
    InstrumentationContextData *icd = wd.getInstrumentationContextData();                                             
@@ -348,7 +348,7 @@ void Instrumentation::wdCreate( WorkDescriptor* newWD )
 
    /* Creating key value and Burst event */
    Event::KV kv( key, wd_id );
-   Event *e = new Burst( true, kv );
+   Event *e = NEW Burst( true, kv );
 
    /* Update InstrumentationContextData */
    InstrumentationContextData *icd = newWD->getInstrumentationContextData();

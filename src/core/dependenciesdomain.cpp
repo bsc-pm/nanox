@@ -34,7 +34,7 @@ TrackableObject* DependenciesDomain::lookupDependency ( const Dependency& dep )
    
    DepsMap::iterator it = _addressDependencyMap.find( address ); 
    if ( it == _addressDependencyMap.end() ) {
-      trackableObject = new TrackableObject( address );
+      trackableObject = NEW TrackableObject( address );
       _addressDependencyMap.insert( std::make_pair( address, trackableObject) );
    } else {
       trackableObject = it->second;

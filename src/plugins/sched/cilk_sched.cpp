@@ -68,7 +68,7 @@ namespace nanos {
                ThreadData *data;
 
                if ( preAlloc ) data = new (preAlloc) ThreadData();
-               else data = new ThreadData();
+               else data = NEW ThreadData();
 
                return data;
             }
@@ -176,7 +176,7 @@ namespace nanos {
             virtual void config( Config& config ) {}
 
             virtual void init() {
-               sys.setDefaultSchedulePolicy(new CilkPolicy());
+               sys.setDefaultSchedulePolicy(NEW CilkPolicy());
             }
       };
 

@@ -233,7 +233,7 @@ class SlicerStaticForPlugin : public Plugin {
 
       void init ()
       {
-         sys.registerSlicer("static_for", new SlicerStaticFor() );	
+         sys.registerSlicer("static_for", NEW SlicerStaticFor() );	
       }
 };
 

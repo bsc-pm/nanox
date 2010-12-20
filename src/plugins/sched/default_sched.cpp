@@ -53,7 +53,7 @@ namespace nanos {
               TeamData *data;
 
               if ( preAlloc ) data = new (preAlloc) TeamData();
-              else data = new TeamData();
+              else data = NEW TeamData();
 
               return data;
            }
@@ -106,7 +106,7 @@ namespace nanos {
             }
 
             virtual void init() {
-               sys.setDefaultSchedulePolicy(new NanosPolicy());
+               sys.setDefaultSchedulePolicy(NEW NanosPolicy());
             }
       };
 
