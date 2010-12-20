@@ -23,7 +23,7 @@
 #include "cachedaccelerator.hpp"
 #include "gputhread.hpp"
 #include "gpuconfig.hpp"
-#include "gpudevice.hpp"
+#include "gpudevice_decl.hpp"
 #include "gpumemorytransfer.hpp"
 #include "simpleallocator.hpp"
 #include "copydescriptor_decl.hpp"
@@ -56,7 +56,7 @@ namespace ext
 
                GPUProcessorTransfers()
                {
-                  _pendingCopiesIn = new GPUMemoryTransferList();
+                  _pendingCopiesIn = new GPUMemoryTransferInAsyncList();
                   _pendingCopiesOut = new GPUMemoryTransferOutSyncList();
                }
 

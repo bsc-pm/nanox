@@ -82,6 +82,38 @@ inline nanos_event_value_t InstrumentationKeyDescriptor::registerValue ( const c
    return valueDescriptor->getId();
 }
 
+
+inline void InstrumentationKeyDescriptor::registerValue ( const std::string &value, nanos_event_value_t val,
+                                                          const std::string &description, bool abort_when_registered )
+{
+   registerValue( value.c_str(), val, description.c_str(), abort_when_registered );
+}
+
+inline void InstrumentationKeyDescriptor::registerValue ( const char *value, nanos_event_value_t val,
+                                                          const char *description, bool abort_when_registered )
+{
+   InstrumentationValueDescriptor *valueDescriptor = NULL;
+
+   ValueMapIterator it = _valueMap.find( value );
+
+   if ( it == _valueMap.end() ) {
+      _lock++;
+      it = _valueMap.find( value );
+      if ( it == _valueMap.end() ) {
+         _totalValues++; // keeping total values counter, although it is not used as 'val'
+         valueDescriptor = new InstrumentationValueDescriptor ( val, description );
+         _valueMap.insert( std::make_pair( value, valueDescriptor ) );
+      }
+      else {
+         if ( abort_when_registered ) fatal0("Event Value was already registered (lock taken)\n");
+      }
+      _lock--;
+   }
+   else {
+      if ( abort_when_registered ) fatal0("Event Value was already registered (lock not taken)\n");
+   }
+}
+
 inline nanos_event_value_t InstrumentationKeyDescriptor::getValue ( const std::string &value )
 {
    return getValue( value.c_str() );
@@ -191,6 +223,38 @@ inline nanos_event_value_t InstrumentationDictionary::registerEventValue ( const
    else keyDescriptor = it->second;
 
    return keyDescriptor->registerValue( value, description, abort_when_registered );
+}
+
+inline void InstrumentationDictionary::registerEventValue ( const std::string &key, const std::string &value,
+                                                            nanos_event_value_t val,
+                                                            const std::string &description, bool abort_when_registered )
+{
+   return registerEventValue ( key.c_str(), value.c_str(), val, description.c_str(), abort_when_registered );
+}
+
+inline void InstrumentationDictionary::registerEventValue ( const char *key, const char *value,
+                                                            nanos_event_value_t val,
+                                                            const char *description, bool abort_when_registered )
+{
+   InstrumentationKeyDescriptor *keyDescriptor = NULL;
+
+   KeyMapIterator it = _keyMap.find( key );
+
+   if ( it == _keyMap.end() ) {
+      _lock++;
+      it = _keyMap.find( key );
+      if ( it == _keyMap.end() ) {
+         keyDescriptor = new InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, "" );
+         _keyMap.insert( std::make_pair( key, keyDescriptor ) );
+      }
+      else {
+         keyDescriptor = it->second;
+      }
+      _lock--;
+   }
+   else keyDescriptor = it->second;
+
+   return keyDescriptor->registerValue( value, val, description, abort_when_registered );
 }
 
 inline nanos_event_value_t InstrumentationDictionary::getEventValue ( const std::string &key, const std::string &value )

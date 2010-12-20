@@ -30,16 +30,15 @@ using namespace nanos;
 /* ************************************************************************** */
 /* ***                   C R E A T I N G   E V E N T S                    *** */
 /* ************************************************************************** */
+void Instrumentation::createStateEvent( Event *e, nanos_event_state_value_t state )
+{
+   /* Registering a state event in instrucmentor context */
+   InstrumentationContextData *icd = myThread->getCurrentWD()->getInstrumentationContextData();
+   _instrumentationContext.pushState(icd, state);
 
-void Instrumentation::createStateEvent( Event *e, nanos_event_state_value_t state )                                                         
-{                                                                                                                                           
-   /* Registering a state event in instrucmentor context */                                                                                 
-   InstrumentationContextData *icd = myThread->getCurrentWD()->getInstrumentationContextData();                                                
-   _instrumentationContext.pushState(icd, state);                                                                                          
-                                                                                                                                            
-   /* Creating a state event */                                                                                                             
-   if ( _instrumentationContext.isStateEventEnabled( icd ) ) new (e) State(NANOS_STATE_START, state);                                            
-   else new (e) State(NANOS_SUBSTATE_START, state);                                                                                               
+   /* Creating a state event */
+   if ( _instrumentationContext.isStateEventEnabled( icd ) ) new (e) State(NANOS_STATE_START, state);
+   else new (e) State(NANOS_SUBSTATE_START, state);
 }
 
 void Instrumentation::returnPreviousStateEvent ( Event *e )
