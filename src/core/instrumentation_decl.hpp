@@ -170,7 +170,6 @@ namespace nanos {
           */
          InstrumentationDictionary () : _totalKeys(1), _lock(), _keyMap()
          {
-#ifdef NANOS_INSTRUMENTATION_ENABLED
             /* ******************************************** */
             /* Instrumentation events: In order initialization */
             /* ******************************************** */
@@ -235,8 +234,6 @@ namespace nanos {
             /* 21 */ registerEventKey("user-funct-location","User Function Location");
 
             /* ** */ registerEventKey("debug","Debug Key"); /* Keep this key as the last one */
-#endif
-
          }
 
          /*! \brief InstrumentationDictionary destructor
@@ -662,10 +659,5 @@ namespace nanos {
          void enableStateEvents ( void ); 
 #endif
    };
-
-#ifdef NANOS_INSTRUMENTATION_ENABLED
-
-#endif
-
 }
 #endif
