@@ -12,7 +12,7 @@ PLUGINS_instrumentation=@PLUGINS_INSTRUMENTATION@
 
 common_includes="-I\$SRC/core -I\$SRC/apis/c"
 
-common_cflags="-Wall -Werror"
+common_cflags="-Wall -Werror -include memtracker.hpp"
 common_includes=" 
         -I\$SRC/arch/unix-os \
         -I\$SRC/support \
