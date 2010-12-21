@@ -135,8 +135,17 @@ void SlicerStaticFor::submit ( SlicedWD &work )
 
          (( SlicerDataFor *)wd->getSlicerData())->setLower( _lower + ( i * _chunk * _step ));
          (( SlicerDataFor *)wd->getSlicerData())->setUpper( _upper );
-         (( SlicerDataFor *)wd->getSlicerData())->setStep( _step );
-         (( SlicerDataFor *)wd->getSlicerData())->setChunk( _chunk );
+
+         // if chunk == 1 then, adjust chunk and step to minimize wd's creation
+         if ( _chunk == 1 ) {
+            int _chunk2 = (((_upper - _lower) / _step ) / valid_threads) +1;
+            int _step2 = _step * valid_threads;
+            (( SlicerDataFor *)wd->getSlicerData())->setStep( _step2 );
+            (( SlicerDataFor *)wd->getSlicerData())->setChunk( _chunk2 );
+         } else {
+            (( SlicerDataFor *)wd->getSlicerData())->setStep( _step );
+            (( SlicerDataFor *)wd->getSlicerData())->setChunk( _chunk );
+        }
          (( SlicerDataFor *)wd->getSlicerData())->setSign( _sign );
 
          // submit: wd (tied to 'j' thread)
@@ -150,6 +159,14 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          // next wd init
          wd = NULL;
 
+      }
+
+      // if chunk == 1 then, adjust chunk and step to minimize wd's creation
+      if ( _chunk == 1 ) {
+         _chunk = (((_upper - _lower) / _step ) / valid_threads) +1;
+         _step = _step * valid_threads;
+         ((SlicerDataFor *) work.getSlicerData())->setStep(_step);
+         ((SlicerDataFor *) work.getSlicerData())->setChunk(_chunk);
       }
 
       // Submit: work (tied to first valid thread)
@@ -236,7 +253,7 @@ class SlicerStaticForPlugin : public Plugin {
 
       void init ()
       {
-         sys.registerSlicer("static_for", new SlicerStaticFor() );	
+         sys.registerSlicer("static_for", NEW SlicerStaticFor() );	
       }
 };
 

@@ -141,28 +141,28 @@ void System::config ()
    }
    if ( !_pmInterface ) {
       // bare bone run
-      _pmInterface = new PMInterface();
+      _pmInterface = NEW PMInterface();
    }
 
    verbose0 ( "Preparing library configuration" );
 
    config.setOptionsSection ( "Core", "Core options of the core of Nanos++ runtime"  );
 
-   config.registerConfigOption ( "num_pes", new Config::PositiveVar( _numPEs ), "Defines the number of processing elements" );
+   config.registerConfigOption ( "num_pes", NEW Config::PositiveVar( _numPEs ), "Defines the number of processing elements" );
    config.registerArgOption ( "num_pes", "pes" );
    config.registerEnvOption ( "num_pes", "NX_PES" );
 
-   config.registerConfigOption ( "stack-size", new Config::PositiveVar( _deviceStackSize ), "Defines the default stack size for all devices" );
+   config.registerConfigOption ( "stack-size", NEW Config::PositiveVar( _deviceStackSize ), "Defines the default stack size for all devices" );
    config.registerArgOption ( "stack-size", "stack-size" );
    config.registerEnvOption ( "stack-size", "NX_STACK_SIZE" );
 
-   config.registerConfigOption ( "no-binding", new Config::FlagOption( _bindThreads, false), "Disables thread binding" );
+   config.registerConfigOption ( "no-binding", NEW Config::FlagOption( _bindThreads, false), "Disables thread binding" );
    config.registerArgOption ( "no-binding", "disable-binding" );
 
-   config.registerConfigOption( "no-yield", new Config::FlagOption( _useYield, false), "Do not yield on idle and condition waits");
+   config.registerConfigOption( "no-yield", NEW Config::FlagOption( _useYield, false), "Do not yield on idle and condition waits");
    config.registerArgOption ( "no-yield", "disable-yield" );
 
-   config.registerConfigOption ( "verbose", new Config::FlagOption( _verboseMode), "Activates verbose mode" );
+   config.registerConfigOption ( "verbose", NEW Config::FlagOption( _verboseMode), "Activates verbose mode" );
    config.registerArgOption ( "verbose", "verbose" );
 
 #if 0
@@ -173,23 +173,23 @@ void System::config ()
    config.registerArgOption ( "exec_mode", "mode" );
 #endif
 
-   config.registerConfigOption ( "schedule", new Config::StringVar ( _defSchedule ), "Defines the scheduling policy" );
+   config.registerConfigOption ( "schedule", NEW Config::StringVar ( _defSchedule ), "Defines the scheduling policy" );
    config.registerArgOption ( "schedule", "schedule" );
    config.registerEnvOption ( "schedule", "NX_SCHEDULE" );
 
-   config.registerConfigOption ( "throttle", new Config::StringVar ( _defThrottlePolicy ), "Defines the throttle policy" );
+   config.registerConfigOption ( "throttle", NEW Config::StringVar ( _defThrottlePolicy ), "Defines the throttle policy" );
    config.registerArgOption ( "throttle", "throttle" );
    config.registerEnvOption ( "throttle", "NX_THROTTLE" );
 
-   config.registerConfigOption ( "barrier", new Config::StringVar ( _defBarr ), "Defines barrier algorithm" );
+   config.registerConfigOption ( "barrier", NEW Config::StringVar ( _defBarr ), "Defines barrier algorithm" );
    config.registerArgOption ( "barrier", "barrier" );
    config.registerEnvOption ( "barrier", "NX_BARRIER" );
 
-   config.registerConfigOption ( "instrumentation", new Config::StringVar ( _defInstr ), "Defines instrumentation format" );
+   config.registerConfigOption ( "instrumentation", NEW Config::StringVar ( _defInstr ), "Defines instrumentation format" );
    config.registerArgOption ( "instrumentation", "instrumentation" );
    config.registerEnvOption ( "instrumentation", "NX_INSTRUMENTATION" );
 
-   config.registerConfigOption ( "no-sync-start", new Config::FlagOption( _synchronizedStart, false), "Disables synchronized start" );
+   config.registerConfigOption ( "no-sync-start", NEW Config::FlagOption( _synchronizedStart, false), "Disables synchronized start" );
    config.registerArgOption ( "no-sync-start", "disable-synchronized-start" );
 
    _schedConf.config(config);
@@ -228,7 +228,7 @@ void System::start ()
    WD &mainWD = *myThread->getCurrentWD();
    
    if ( _pmInterface->getInternalDataSize() > 0 )
-     mainWD.setInternalData(new char[_pmInterface->getInternalDataSize()]);
+     mainWD.setInternalData(NEW char[_pmInterface->getInternalDataSize()]);
       
    _pmInterface->setupWD(mainWD);
 
@@ -262,14 +262,14 @@ void System::start ()
 #ifdef GPU_DEV
    int gpuC;
    for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount(); gpuC++ ) {
-      PE *gpu = new nanos::ext::GPUProcessor( p++, gpuC );
+      PE *gpu = NEW nanos::ext::GPUProcessor( p++, gpuC );
       _pes.push_back( gpu );
       _workers.push_back( &gpu->startWorker() );
    }
 #endif
 
 #ifdef SPU_DEV
-   PE *spu = new nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);
+   PE *spu = NEW nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);
    spu->startWorker();
 #endif
 
@@ -430,7 +430,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
     * in the storage allocated (until the storage is explicitly deallocated by a call
     * to a corresponding deallocation function).
     */
-   if ( total_size ) chunk = new char[total_size];
+   if ( total_size ) chunk = NEW char[total_size];
 
    // allocating WD and DATA
    if ( *uwd == NULL ) *uwd = (WD *) (chunk + offset_WD);
@@ -567,7 +567,7 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
     * in the storage allocated (until the storage is explicitly deallocated by a call
     * to a corresponding deallocation function).
     */
-   if ( total_size ) chunk = new char[total_size];
+   if ( total_size ) chunk = NEW char[total_size];
 
    // allocating WD and DATA
    if ( *uwd == NULL ) *uwd = (SlicedWD *) (chunk + offset_WD);
@@ -652,7 +652,7 @@ void System::duplicateWD ( WD **uwd, WD *wd)
 
    char *chunk = 0;
 
-   if ( total_size ) chunk = new char[total_size];
+   if ( total_size ) chunk = NEW char[total_size];
 
    // allocating WD and DATA
    if ( *uwd == NULL ) *uwd = (WD *) (chunk + offset_WD);
@@ -734,7 +734,7 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
 
    char *chunk = 0;
 
-   if ( total_size ) chunk = new char[total_size];
+   if ( total_size ) chunk = NEW char[total_size];
 
    // allocating WD and DATA
    if ( *uwd == NULL ) *uwd = (SlicedWD *) (chunk + offset_WD);
@@ -879,7 +879,7 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
       stdata = sched->createTeamData(NULL);
 
    // create team
-   ThreadTeam * team = new ThreadTeam( nthreads, *sched, stdata, *_defBarrFactory() );
+   ThreadTeam * team = NEW ThreadTeam( nthreads, *sched, stdata, *_defBarrFactory() );
 
    debug( "Creating team " << team << " of " << nthreads << " threads" );
 
@@ -893,7 +893,7 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
 
       
       if (tdata) data = &tdata[thId];
-      else data = new TeamData();
+      else data = NEW TeamData();
 
       ScheduleThreadData *stdata = 0;
       if ( sched->getThreadDataSize() > 0 )
@@ -922,7 +922,7 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
       debug( "adding thread " << thread << " with id " << toString<int>(thId) << " to " << team );
 
       if (tdata) data = &tdata[thId];
-      else data = new TeamData();
+      else data = NEW TeamData();
 
       ScheduleThreadData *stdata = 0;
       if ( sched->getThreadDataSize() > 0 )

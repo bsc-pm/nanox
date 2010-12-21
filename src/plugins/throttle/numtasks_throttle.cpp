@@ -62,7 +62,7 @@ namespace nanos {
       //factory
       static NumTasksThrottle * createNumTasksThrottle( int actualLimit )
       {
-         return new NumTasksThrottle( actualLimit );
+         return NEW NumTasksThrottle( actualLimit );
       }
 
 
@@ -78,7 +78,7 @@ namespace nanos {
             {
                config.setOptionsSection( "Num tasks throttle", "Scheduling throttle policy based on the number of tasks" );
                config.registerConfigOption ( "throttle-limit",
-                  new Config::PositiveVar( _actualLimit ),
+                  NEW Config::PositiveVar( _actualLimit ),
                   "Defines the number of tasks per thread allowed" );
                config.registerArgOption ( "throttle-limit", "throttle-limit" );
             }

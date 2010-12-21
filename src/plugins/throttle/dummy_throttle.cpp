@@ -58,7 +58,7 @@ namespace nanos {
       //factory
       DummyThrottle * createDummyThrottle()
       {
-         return new DummyThrottle();
+         return NEW DummyThrottle();
       }
 
      class DummyThrottlePlugin : public Plugin

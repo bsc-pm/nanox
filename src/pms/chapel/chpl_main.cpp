@@ -64,7 +64,7 @@ void CHPL_BEGIN(chpl_fn_p fp,
 
    assert(!ltask);
 
-   WD * wd = new WD( new SMPDD( fp ), 0, 0, a );
+   WD * wd = NEW WD( NEW SMPDD( fp ), 0, 0, a );
    sys.submit(*wd);
 }
 

@@ -31,7 +31,7 @@ void SchedulerConf::config (Config &config)
 {
    config.setOptionsSection ( "Core [Scheduler]", "Policy independent scheduler options"  );
 
-   config.registerConfigOption ( "num_spins", new Config::UintVar( _numSpins ), "Determines the amount of spinning before yielding" );
+   config.registerConfigOption ( "num_spins", NEW Config::UintVar( _numSpins ), "Determines the amount of spinning before yielding" );
    config.registerArgOption ( "num_spins", "spins" );
    config.registerEnvOption ( "num_spins", "NX_SPINS" );
 }

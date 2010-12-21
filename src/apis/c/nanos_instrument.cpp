@@ -54,6 +54,19 @@ nanos_err_t nanos_instrument_register_value ( nanos_event_value_t *event_value, 
    return NANOS_OK;
 }
 
+nanos_err_t nanos_instrument_register_value_with_val ( nanos_event_value_t val, const char *key, const char *value, const char *description, bool abort_when_registered )
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   try
+   {
+      sys.getInstrumentation()->getInstrumentationDictionary()->registerEventValue(key, value, val, description, abort_when_registered);
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+#endif
+   return NANOS_OK;
+}
+
 nanos_err_t nanos_instrument_get_key (const char *key, nanos_event_key_t *event_key)
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED

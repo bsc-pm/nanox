@@ -26,6 +26,6 @@ noinst_LTLIBRARIES=libsupport.la
 nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) 
 
 libsupport_la_CXXFLAGS=$(nanos_debug_cxxflags)
-libsupport_la_SOURCES=$(support_sources)
+libsupport_la_SOURCES=$(support_sources) $(debug_sources)
 endif
 
