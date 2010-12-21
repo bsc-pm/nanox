@@ -136,24 +136,28 @@ void GPUDevice::copyInSyncToDevice ( void * dst, void * src, size_t size )
 
 void GPUDevice::copyInAsyncToBuffer( void * dst, void * src, size_t size )
 {
-   SMPDevice::copyLocal(
-            ( void * ) ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->getPinnedAddress( dst ),
-            src,
-            size,
-            NULL
-         );
+   nanos::ext::GPUProcessor * myPE = ( nanos::ext::GPUProcessor * ) myThread->runningOn();
+
+   // Workaround to perform asynchronous copies
+   uint64_t pinned = myPE->getPinnedAddress( dst );
+   if ( pinned == NULL )
+      pinned = ( uint64_t ) allocateIntermediateBuffer( dst, size, myPE );
+
+   SMPDevice::copyLocal( ( void * ) myPE->getPinnedAddress( dst ), src, size, NULL );
 }
 
 void GPUDevice::copyInAsyncToDevice( void * dst, void * src, size_t size )
 {
-   ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->transferInput( size );
+   nanos::ext::GPUProcessor * myPE = ( nanos::ext::GPUProcessor * ) myThread->runningOn();
+
+   myPE->transferInput( size );
 
    cudaError_t err = cudaMemcpyAsync(
             dst,
-            ( void * ) ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->getPinnedAddress( dst ),
+            ( void * ) myPE->getPinnedAddress( dst ),
             size,
             cudaMemcpyHostToDevice,
-            ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->getGPUProcessorInfo()->getOutTransferStream()
+            myPE->getGPUProcessorInfo()->getOutTransferStream()
          );
 
    fatal_cond( err != cudaSuccess, "Trying to copy " + toString<size_t>( size )
@@ -179,14 +183,20 @@ void GPUDevice::copyOutSyncToHost ( void * dst, void * src, size_t size )
 
 void GPUDevice::copyOutAsyncToBuffer ( void * dst, void * src, size_t size )
 {
-   ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->transferOutput( size );
+   nanos::ext::GPUProcessor * myPE = ( nanos::ext::GPUProcessor * ) myThread->runningOn();
+   myPE->transferOutput( size );
+
+   // Workaround to perform asynchronous copies
+   uint64_t pinned = myPE->getPinnedAddress( src );
+   if ( pinned == NULL )
+      pinned = ( uint64_t ) allocateIntermediateBuffer( src, size, myPE );
 
    cudaError_t err = cudaMemcpyAsync(
-            ( void * ) ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->getPinnedAddress( src ),
+            ( void * ) myPE->getPinnedAddress( src ),
             src,
             size,
             cudaMemcpyDeviceToHost,
-            ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->getGPUProcessorInfo()->getOutTransferStream()
+            myPE->getGPUProcessorInfo()->getOutTransferStream()
          );
 
    fatal_cond( err != cudaSuccess, "Trying to copy " + toString<size_t>( size )
