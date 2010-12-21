@@ -140,7 +140,7 @@ void GPUDevice::copyInAsyncToBuffer( void * dst, void * src, size_t size )
 
    // Workaround to perform asynchronous copies
    uint64_t pinned = myPE->getPinnedAddress( dst );
-   if ( pinned == NULL )
+   if ( pinned == 0 )
       pinned = ( uint64_t ) allocateIntermediateBuffer( dst, size, myPE );
 
    SMPDevice::copyLocal( ( void * ) myPE->getPinnedAddress( dst ), src, size, NULL );
@@ -188,7 +188,7 @@ void GPUDevice::copyOutAsyncToBuffer ( void * dst, void * src, size_t size )
 
    // Workaround to perform asynchronous copies
    uint64_t pinned = myPE->getPinnedAddress( src );
-   if ( pinned == NULL )
+   if ( pinned == 0 )
       pinned = ( uint64_t ) allocateIntermediateBuffer( src, size, myPE );
 
    cudaError_t err = cudaMemcpyAsync(

@@ -50,7 +50,7 @@ void GPUDevice::free( void *address, ProcessingElement *pe )
    ( ( nanos::ext::GPUProcessor * ) pe )->free( address );
 
    uint64_t pinned = ( ( nanos::ext::GPUProcessor * ) pe )->getPinnedAddress( address );
-   if ( pinned != NULL ) {
+   if ( pinned != 0 ) {
       freeIntermediateBuffer( pinned, address, pe );
    }
 }
