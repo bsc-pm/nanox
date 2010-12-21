@@ -80,7 +80,7 @@ namespace ext
          virtual void addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size )
          {
             _lock.acquire();
-            _pendingTransfersAsync.push_back( *new GPUMemoryTransfer ( hostAddress, deviceAddress, size ) );
+            _pendingTransfersAsync.push_back( *NEW GPUMemoryTransfer ( hostAddress, deviceAddress, size ) );
             _lock.release();
          }
 
@@ -192,7 +192,7 @@ namespace ext
          void addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size )
          {
             _lock.acquire();
-            _requestedTransfers.push_back( *new GPUMemoryTransfer ( hostAddress, deviceAddress, size ) );
+            _requestedTransfers.push_back( *NEW GPUMemoryTransfer ( hostAddress, deviceAddress, size ) );
             _lock.release();
          }
 
