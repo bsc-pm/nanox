@@ -279,14 +279,14 @@ static void am_transfer_get( gasnet_token_t token,
    gasnet_node_t src_node;
    void *origAddr = ( void * ) MERGE_ARG( origAddrHi, origAddrLo );
    void *destAddr = ( void * ) MERGE_ARG( destAddrHi, destAddrLo );
-   uint64_t last = ( uint64_t ) MERGE_ARG( lastHi, lastLo );
+   NANOS_INSTRUMENT ( uint64_t last = ( uint64_t ) MERGE_ARG( lastHi, lastLo ); )
 
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
        fprintf( stderr, "gasnet: Error obtaining node information.\n" );
    }
 
-   if ( len <= gasnet_AMMaxLongRequest() )
+   if ( ( unsigned int ) len <= gasnet_AMMaxLongRequest() )
    {
       NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
@@ -320,7 +320,7 @@ static void am_flash_put( gasnet_token_t token,
       gasnet_handlerarg_t valueHi )
 {
    gasnet_node_t src_node;
-   unsigned int i;
+   int i;
    void *destAddr = ( void * ) MERGE_ARG( destAddrHi, destAddrLo );
    uint64_t value = ( uint64_t ) MERGE_ARG( valueHi, valueLo );
 
@@ -560,7 +560,7 @@ void GASNetAPI::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localA
    }
    if ( i == totalWords)
    {
-      fprintf(stderr, "I can do a flash put here!, selected size %d\n", selectedSize);
+      //fprintf(stderr, "I can do a flash put here!, selected size %d\n", selectedSize);
 
       NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
