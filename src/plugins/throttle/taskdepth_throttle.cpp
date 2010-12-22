@@ -62,7 +62,7 @@ namespace nanos {
       //factory
       static TaskDepthThrottle * createTaskDepthThrottle( int actualLimit )
       {
-         return new TaskDepthThrottle( actualLimit );
+         return NEW TaskDepthThrottle( actualLimit );
       }
 
       class TaskDepthThrottlePlugin : public Plugin
@@ -75,7 +75,7 @@ namespace nanos {
             virtual void config( Config& config )
             {
                config.setOptionsSection( "Task depth throttle", "Throttle policy based on tasks depth" );
-               config.registerConfigOption ( "throttle-limit",  new Config::PositiveVar( _actualLimit ),
+               config.registerConfigOption ( "throttle-limit",  NEW Config::PositiveVar( _actualLimit ),
                                              "Defines maximum depth of tasks" );
                config.registerArgOption ( "throttle-limit", "throttle-limit" );
             }

@@ -65,7 +65,7 @@ inline nanos_event_value_t InstrumentationKeyDescriptor::registerValue ( const c
       _lock++;
       it = _valueMap.find( value );
       if ( it == _valueMap.end() ) {
-         valueDescriptor = new InstrumentationValueDescriptor ( (nanos_event_value_t) _totalValues++, description );
+         valueDescriptor = NEW InstrumentationValueDescriptor ( (nanos_event_value_t) _totalValues++, description );
          _valueMap.insert( std::make_pair( value, valueDescriptor ) );
       }
       else {
@@ -167,7 +167,7 @@ inline nanos_event_key_t InstrumentationDictionary::registerEventKey ( const cha
       _lock++;
       it = _keyMap.find( key );
       if ( it == _keyMap.end() ) {
-         keyDescriptor = new InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, description );
+         keyDescriptor = NEW InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, description );
          _keyMap.insert( std::make_pair( key, keyDescriptor ) );
       }
       else {
@@ -212,7 +212,7 @@ inline nanos_event_value_t InstrumentationDictionary::registerEventValue ( const
       _lock++;
       it = _keyMap.find( key );
       if ( it == _keyMap.end() ) {
-         keyDescriptor = new InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, "" );
+         keyDescriptor = NEW InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, "" );
          _keyMap.insert( std::make_pair( key, keyDescriptor ) );
       }
       else {

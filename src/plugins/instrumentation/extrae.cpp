@@ -54,7 +54,7 @@ class InstrumentationExtrae: public Instrumentation
       static std::string                             _traceBaseName;
    public:
       // constructor
-      InstrumentationExtrae ( ) : Instrumentation( *new InstrumentationContextStackedStatesAndBursts() ) {}
+      InstrumentationExtrae ( ) : Instrumentation( *NEW InstrumentationContextStackedStatesAndBursts() ) {}
       // destructor
       ~InstrumentationExtrae ( ) { }
 
@@ -305,15 +305,15 @@ class InstrumentationExtrae: public Instrumentation
          char *mpi_trace_final_dir;
          char *tmp_dir;
          char *tmp_dir_backup;
-         char *env_tmp_dir = new char[255];
-         char *env_trace_dir = new char[255];
-         char *env_trace_final_dir = new char[255];
+         char *env_tmp_dir = NEW char[255];
+         char *env_trace_dir = NEW char[255];
+         char *env_trace_final_dir = NEW char[255];
 
          /* check environment variable: EXTRAE_ON */
          mpi_trace_on = getenv("EXTRAE_ON");
          /* if MPITRAE_ON not defined, active it */
          if ( mpi_trace_on == NULL ) {
-            mpi_trace_on = new char[12];
+            mpi_trace_on = NEW char[12];
             strcpy(mpi_trace_on, "EXTRAE_ON=1");
             putenv (mpi_trace_on);
          }
@@ -322,7 +322,7 @@ class InstrumentationExtrae: public Instrumentation
          mpi_trace_final_dir = getenv("EXTRAE_FINAL_DIR");
          /* if EXTRAE_FINAL_DIR not defined, active it */
          if ( mpi_trace_final_dir == NULL ) {
-            mpi_trace_final_dir = new char[3];
+            mpi_trace_final_dir = NEW char[3];
             strcpy(mpi_trace_final_dir, "./");
          }
 
@@ -330,7 +330,7 @@ class InstrumentationExtrae: public Instrumentation
          mpi_trace_dir = getenv("EXTRAE_DIR");
          /* if EXTRAE_DIR not defined, active it */
          if ( mpi_trace_dir == NULL ) {
-            mpi_trace_dir = new char[3];
+            mpi_trace_dir = NEW char[3];
             strcpy(mpi_trace_dir, "./");
          }
 
@@ -338,13 +338,13 @@ class InstrumentationExtrae: public Instrumentation
          tmp_dir = getenv("TMPDIR");
          /* if TMPDIR defined, save it and remove it */
          if ( tmp_dir != NULL ) {
-            tmp_dir_backup = new char[strlen(tmp_dir)];
+            tmp_dir_backup = NEW char[strlen(tmp_dir)];
             strcpy(tmp_dir_backup, tmp_dir);
             sprintf(env_tmp_dir, "TMPDIR=");
             putenv (env_tmp_dir);
          }
          else {
-            tmp_dir_backup = new char[3];
+            tmp_dir_backup = NEW char[3];
             strcpy(tmp_dir_backup, "./");
          }
 
@@ -527,7 +527,7 @@ class InstrumentationParaverPlugin : public Plugin {
          config.setOptionsSection( "Extrae module", "Extrae instrumentation module" );
 
          config.registerConfigOption ( "extrae-file-name",
-                                       new Config::StringVar ( InstrumentationExtrae::_traceBaseName ),
+                                       NEW Config::StringVar ( InstrumentationExtrae::_traceBaseName ),
                                        "Defines extrae instrumentation file name" );
          config.registerArgOption ( "extrae-file-name", "extrae-file-name" );
          config.registerEnvOption ( "extrae-file-name", "NX_EXTRAE_FILE_NAME" );
@@ -536,7 +536,7 @@ class InstrumentationParaverPlugin : public Plugin {
 
       void init ()
       {
-         sys.setInstrumentation( new InstrumentationExtrae() );
+         sys.setInstrumentation( NEW InstrumentationExtrae() );
       }
 };
 
