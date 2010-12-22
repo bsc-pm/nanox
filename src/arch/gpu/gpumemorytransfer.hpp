@@ -97,7 +97,6 @@ namespace ext
                      found = true;
                      _lock.release();
                      removeMemoryTransfer( it );
-                     _lock.acquire();
                      break;
                   }
                   _lock.release();
@@ -126,14 +125,14 @@ namespace ext
 
          virtual void requestTransfer( void * address )
          {
+            _lock.acquire();
             for ( std::list<GPUMemoryTransfer>::iterator it = _pendingTransfersAsync.begin();
                   it != _pendingTransfersAsync.end(); it++ ) {
-               _lock.acquire();
                if ( it->_hostAddress.getTag() == ( uint64_t ) address ) {
                   it->_requested = true;
                }
-               _lock.release();
             }
+            _lock.release();
          }
    };
 
