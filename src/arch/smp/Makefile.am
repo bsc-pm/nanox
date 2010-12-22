@@ -30,6 +30,8 @@ EXTRA_DIST= \
 	ia64/stack.s \
 	ppc32/stack.cpp \
 	ppc32/stack.s \
+	ppc64/stack.cpp \
+	ppc64/stack.s \
         smp_ult.hpp \
 	$(END)
 
