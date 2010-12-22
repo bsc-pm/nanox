@@ -21,6 +21,9 @@
 #include "atomic.hpp"
 #include "schedule.hpp"
 #include "synchronizedcondition.hpp"
+#include "system.hpp"
+#include "instrumentation.hpp"
+#include "workdescriptor_decl.hpp"
 
 using namespace nanos;
 
@@ -65,11 +68,17 @@ void WorkGroup::init ()
 
 void WorkGroup::done ()
 {
-   for ( WGList::iterator it = _partOf.begin();
-         it != _partOf.end();
-         it++ ) {
-      if ( *it )
-        ( *it )->exitWork( *this );
+   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+
+   for ( WGList::iterator it = _partOf.begin(); it != _partOf.end(); it++ ) {
+      if ( *it ) {
+         NANOS_INSTRUMENT ( if ( ((WorkDescriptor *)(*it))->isBlocked()) { )
+            NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) getId()) << 32 ) + (*it)->getId(); )
+            NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs ( NANOS_WAIT, id, 0, NULL, NULL );)
+            NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *((WorkDescriptor *)(*it)), NANOS_WAIT, id, 0, NULL, NULL ); )
+         NANOS_INSTRUMENT ( } )
+         ( *it )->exitWork( *this );
+      }
       *it = 0;
    }
 }

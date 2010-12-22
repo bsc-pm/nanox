@@ -54,7 +54,7 @@ namespace nanos
          {
             // Must be allocated through new to avoid problems with the order of
             // initialization of global objects
-            globalState = new OmpState();
+            globalState = NEW OmpState();
 
             TaskICVs & icvs = globalState->getICVs();
             icvs.setSchedule(LoopSchedule(omp_sched_static));
@@ -95,7 +95,7 @@ namespace nanos
 
       static void ompInit()
       {
-         sys.setPMInterface(new OpenMPInterface());
+         sys.setPMInterface(NEW OpenMPInterface());
       }
    }
 

@@ -22,6 +22,7 @@
 
 #include "compatibility.hpp"
 #include "nanos-int.h"
+#include <algorithm> // for min/max
 
 /* TODO: move to configure
 #include <ext/atomicity.h>
@@ -167,6 +168,22 @@ namespace nanos
    inline void memoryFence () { __sync_synchronize(); }
 
    inline bool compareAndSwap( int *ptr, int oldval, int newval ) { return __sync_bool_compare_and_swap ( ptr, oldval, newval );}
+
+   class LockBlock
+   {
+     private:
+       Lock & _lock;
+
+       // disable copy-constructor
+       explicit LockBlock ( const LockBlock & );
+
+     public:
+       LockBlock ( Lock & lock ) : _lock(lock) { acquire(); }
+       ~LockBlock ( ) { release(); }
+
+       void acquire() { _lock++; }
+       void release() { _lock--; }
+   };
 
 };
 

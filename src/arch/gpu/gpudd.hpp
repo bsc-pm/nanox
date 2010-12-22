@@ -20,7 +20,7 @@
 #ifndef _NANOS_GPU_WD
 #define _NANOS_GPU_WD
 
-#include "gpudevice.hpp"
+#include "gpudevice_decl.hpp"
 #include "workdescriptor.hpp"
 
 namespace nanos {

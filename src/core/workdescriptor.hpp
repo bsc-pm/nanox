@@ -108,7 +108,7 @@ inline TR1::shared_ptr<DOSubmit> & WorkDescriptor::getDOSubmit() { return _doSub
 
 inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t numDeps, Dependency* deps )
 {
-   wd._doSubmit.reset( new DOSubmit() );
+   wd._doSubmit.reset( NEW DOSubmit() );
    wd._doSubmit->setWD(&wd);
    _depsDomain->submitDependableObject( *(wd._doSubmit), numDeps, deps );
 }
@@ -130,9 +130,9 @@ class DOIsSchedulable : public DependableObjectPredicate
       bool operator() ( DependableObject &obj )
       {       
          WD *wd = (WD *)obj.getRelatedObject();
-         // FIXME: The isReady condition here ensures that doWait objects are not release as
+         // FIXME: The started condition here ensures that doWait objects are not released as
          // they do not work properly if there is no dependenceSatisfied called before
-         return (wd != NULL) && Scheduler::checkBasicConstraints(*wd,_thread) && wd->isReady() ;
+         return (wd != NULL) && Scheduler::checkBasicConstraints(*wd,_thread) && !wd->started() ;
       }
 };
 

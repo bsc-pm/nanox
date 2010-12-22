@@ -22,7 +22,7 @@ class SlicerRepeatN: public Slicer
 void SlicerRepeatN::submit ( SlicedWD &work )
 {
    debug0 ( "Using sliced work descriptor: RepeatN" );
-   Scheduler::submit ( work, false );
+   Scheduler::submit ( work );
 }
 
 /* \brief Dequeue a RepeatN SlicedWD
@@ -50,9 +50,6 @@ bool SlicerRepeatN::dequeue ( SlicedWD *wd, WorkDescriptor **slice)
       *slice = NULL;
       sys.duplicateWD( slice, wd );
 
-      /* If not last, scheduler will enqueue this workdescriptor */
-      sys.getSchedulerStats()._readyTasks++;
-
       return false;
    }
    else
@@ -74,7 +71,7 @@ class SlicerRepeatNPlugin : public Plugin {
 
       void init ()
       {
-         sys.registerSlicer("repeat_n", new SlicerRepeatN() );	
+         sys.registerSlicer("repeat_n", NEW SlicerRepeatN() );	
       }
 };
 

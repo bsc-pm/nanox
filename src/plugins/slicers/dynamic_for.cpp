@@ -29,7 +29,7 @@ void SlicerDynamicFor::submit ( SlicedWD &work )
    (( SlicerDataFor *)work.getSlicerData())->setSign( sign );
 
    // submit wd
-   Scheduler::submit ( work, false );
+   Scheduler::submit ( work );
 }
 
 bool SlicerDynamicFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
@@ -69,9 +69,6 @@ bool SlicerDynamicFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
    ((nanos_loop_info_t *)((*slice)->getData()))->step = _step;
    ((nanos_loop_info_t *)((*slice)->getData()))->last = last;
 
-   /* If not last, scheduler will enqueue this workdescriptor */
-   if (!last) sys.getSchedulerStats()._readyTasks++;
-
    return last;
 }
 
@@ -86,7 +83,7 @@ class SlicerDynamicForPlugin : public Plugin {
 
       void init ()
       {
-         sys.registerSlicer("dynamic_for", new SlicerDynamicFor() );	
+         sys.registerSlicer("dynamic_for", NEW SlicerDynamicFor() );	
       }
 };
 

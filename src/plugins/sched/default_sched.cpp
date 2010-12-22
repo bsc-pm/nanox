@@ -53,7 +53,7 @@ namespace nanos {
               TeamData *data;
 
               if ( preAlloc ) data = new (preAlloc) TeamData();
-              else data = new TeamData();
+              else data = NEW TeamData();
 
               return data;
            }
@@ -71,7 +71,7 @@ namespace nanos {
 
            virtual WD *atSubmit ( BaseThread *thread, WD &newWD )
            {
-              Scheduler::queue( thread,newWD );
+              queue( thread,newWD );
               return 0;
            }
 
@@ -106,7 +106,7 @@ namespace nanos {
             }
 
             virtual void init() {
-               sys.setDefaultSchedulePolicy(new NanosPolicy());
+               sys.setDefaultSchedulePolicy(NEW NanosPolicy());
             }
       };
 

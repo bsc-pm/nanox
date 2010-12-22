@@ -27,12 +27,13 @@ using namespace nanos;
 using namespace nanos::ext;
 
 Atomic<int> GPUProcessor::_deviceSeed = 0;
+size_t GPUProcessor::_memoryAlignment = 256;
 
 
 GPUProcessor::GPUProcessor( int id, int gpuId ) : CachedAccelerator<GPUDevice>( id, &GPU ),
       _gpuDevice( _deviceSeed++ ), _gpuProcessorTransfers(), _allocator(), _pinnedMemory()
 {
-   _gpuProcessorInfo = new GPUProcessorInfo( gpuId );
+   _gpuProcessorInfo = NEW GPUProcessorInfo( gpuId );
 }
 
 GPUProcessor::~GPUProcessor()
@@ -80,6 +81,9 @@ void GPUProcessor::init ()
    }
    _gpuProcessorInfo->initTransferStreams( inputStream, outputStream );
 
+   GPUConfig::setOverlappingInputs( inputStream );
+   GPUConfig::setOverlappingOutputs( outputStream );
+
    // We allocate the whole GPU memory
    // WARNING: GPUDevice::allocateWholeMemory() must be called first, as it may
    // modify maxMemoryAvailable, in the case of not being able to allocate as
@@ -92,17 +96,19 @@ void GPUProcessor::init ()
    // WARNING: initTransferStreams() can modify inputStream's and outputStream's
    // value, so call it first
 
+   /*
    if ( inputStream ) {
       // Create a list of inputs that have been ordered to transfer but the copy is
       // still not completed
       delete _gpuProcessorTransfers._pendingCopiesIn;
-      _gpuProcessorTransfers._pendingCopiesIn = new GPUMemoryTransferInAsyncList();
+      _gpuProcessorTransfers._pendingCopiesIn = NEW GPUMemoryTransferInAsyncList();
    }
+   */
 
    if ( outputStream ) {
-      // If we have a stream for outputs, create the list
+      // If we have a stream for outputs, create the list with asynchronous behaviour
       delete _gpuProcessorTransfers._pendingCopiesOut;
-      _gpuProcessorTransfers._pendingCopiesOut = new GPUMemoryTransferOutAsyncList();
+      _gpuProcessorTransfers._pendingCopiesOut = NEW GPUMemoryTransferOutAsyncList();
    }
 }
 
@@ -118,8 +124,8 @@ size_t GPUProcessor::getMaxMemoryAvailable ( int id )
 
 WorkDescriptor & GPUProcessor::getWorkerWD () const
 {
-   SMPDD * dd = new SMPDD( ( SMPDD::work_fct )Scheduler::workerLoop );
-   WD *wd = new WD( dd );
+   SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct )Scheduler::workerLoop );
+   WD *wd = NEW WD( dd );
    return *wd;
 }
 
@@ -132,7 +138,7 @@ BaseThread &GPUProcessor::createThread ( WorkDescriptor &helper )
 {
    // In fact, the GPUThread will run on the CPU, so make sure it canRunIn( SMP )
    ensure( helper.canRunIn( SMP ), "Incompatible worker thread" );
-   GPUThread &th = *new GPUThread( helper, this, _gpuDevice );
+   GPUThread &th = *NEW GPUThread( helper, this, _gpuDevice );
 
    return th;
 }

@@ -48,7 +48,7 @@ void GPUThread::initializeDependent ()
          warning( "Couldn't set the GPU device flags:" << cudaGetErrorString( err ) );
    }
 
-   ((GPUProcessor *) myThread->runningOn())->init();
+   ( ( GPUProcessor * ) myThread->runningOn() )->init();
 }
 
 void GPUThread::runDependent ()
@@ -57,6 +57,7 @@ void GPUThread::runDependent ()
    setCurrentWD( work );
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
    dd.getWorkFct()( work.getData() );
+   ( ( GPUProcessor * ) myThread->runningOn() )->getGPUProcessorInfo()->destroyTransferStreams();
 }
 
 void GPUThread::inlineWorkDependent ( WD &wd )
@@ -64,7 +65,7 @@ void GPUThread::inlineWorkDependent ( WD &wd )
    GPUDD &dd = ( GPUDD & )wd.getActiveDevice();
    GPUProcessor &myGPU = *(GPUProcessor *) myThread->runningOn();
 
-   if ( GPUConfig::getTransferMode() != NANOS_GPU_TRANSFER_NORMAL ) {
+   if ( GPUConfig::isOverlappingInputsDefined() ) {
       // Wait for the input transfer stream to finish
       cudaStreamSynchronize( myGPU.getGPUProcessorInfo()->getInTransferStream() );
       // Erase the wait input list and synchronize it with cache
@@ -77,7 +78,12 @@ void GPUThread::inlineWorkDependent ( WD &wd )
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
    ( dd.getWorkFct() )( wd.getData() );
 
-   if ( GPUConfig::getTransferMode() != NANOS_GPU_TRANSFER_NORMAL ) {
+   if ( GPUConfig::isOverlappingOutputsDefined() ) {
+      // Copy out results from tasks executed previously
+      myGPU.getOutTransferList()->executeMemoryTransfers();
+   }
+
+   if ( GPUConfig::isPrefetchingDefined() ) {
       NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
       // Get next task in order to prefetch data to device memory
       WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, wd );
@@ -86,9 +92,6 @@ void GPUThread::inlineWorkDependent ( WD &wd )
       if ( next != 0 ) {
          next->init();
       }
-
-      // Copy out results from tasks executed previously
-      myGPU.getOutTransferList()->executeMemoryTransfers();
    }
 
    // Wait for the GPU kernel to finish
@@ -102,11 +105,13 @@ void GPUThread::inlineWorkDependent ( WD &wd )
 
 void GPUThread::yield()
 {
+   ( ( GPUProcessor * ) runningOn() )->getInTransferList()->executeMemoryTransfers();
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->executeMemoryTransfers();
 }
 
 void GPUThread::idle()
 {
+   ( ( GPUProcessor * ) runningOn() )->getInTransferList()->executeMemoryTransfers();
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->removeMemoryTransfer();
 }
 

@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2011 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,26 +16,22 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+#ifndef _NANOS_MEMORY_ALIGNMENT_HPP
+#define _NANOS_MEMORY_ALIGNMENT_HPP
 
-#ifndef _NANOS_FUNCTORS
-#define _NANOS_FUNCTORS
-
-#include <string>
-
-template<typename T>
-void deleter( T *p ) { delete p; }
-
-template<typename T>
-void pair_deleter1 ( std::pair<std::string,T *> pair ) { delete pair.first; }
-
-template<typename T>
-void pair_deleter2 ( std::pair<std::string,T *> pair ) { delete pair.second; }
-
-template<typename T>
-T * creator ( T *p ) { return NEW T( *p ); }
-
-template<typename T>
-T * cloner ( T *p ) { return p->clone(); }
+/* This macro computes the memory offset for a given element (ce) with taking into account its own *type*
+ * and the *base* and *size* of the previous element e.g.:
+ *
+ *    +---------+---+------+          It is important to realize that first two parameters 
+ *    |++++pe+++|···|++ce++|          refer to previous element and only *type* parameter refers
+ *    +---------+---+------+          to current element (which we want to align). This is because
+ *    ^         ^   ^                 we want to add padding to the previous structure in order to
+ *    base   size   align (return)    aling the current one.
+ *
+ * If we use this macro with *base* and *size* of the last element (and with any type given as a parameter
+ * we get the size of the whole chunk.
+ */
+#define NANOS_ALIGNED_MEMORY_OFFSET(base,size,alignment) \
+   ( ((uintptr_t)(base+size+alignment-1)) & (~(uintptr_t)(alignment-1)) )
 
 #endif
-
