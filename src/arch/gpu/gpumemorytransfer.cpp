@@ -85,10 +85,12 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ()
       // First copy
       std::list<GPUMemoryTransfer>::iterator it1 = _pendingTransfersAsync.begin();
 
+      _lock.acquire();
       while( it1 != _pendingTransfersAsync.end() && !it1->_requested ) {
          it1++;
       }
       if ( it1 == _pendingTransfersAsync.end() ) it1 = _pendingTransfersAsync.begin();
+      _lock.release();
 
       GPUMemoryTransfer & copy1 = *it1;
 
@@ -104,6 +106,7 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ()
 
          // Second copy
          // Check if there is another GPUMemoryTransfer requested
+         _lock.acquire();
          std::list<GPUMemoryTransfer>::iterator it2 = _pendingTransfersAsync.begin();
          while( !it2->_requested && it2 != _pendingTransfersAsync.end() ) {
             it2++;
@@ -117,6 +120,10 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ()
             it2 = _pendingTransfersAsync.begin();
          }
 
+         // Check it2 != it1; as we are at the beginning of the list, we can safely do it2++
+         // because at least, there are two elements in the list
+         if ( it2 == it1 ) it2++;
+         _lock.release();
 
          GPUMemoryTransfer & copy2 = *it2;
          NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, copy2._size ) );
@@ -127,7 +134,7 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ()
 
          // Remove first copy from the list
          _lock.acquire();
-         _pendingTransfersAsync.pop_front();
+         _pendingTransfersAsync.erase( it1 );
          _lock.release();
 
          // Update second copy to be first copy at next iteration
@@ -142,7 +149,7 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ()
 
       // Remove copy from the list
       _lock.acquire();
-      _pendingTransfersAsync.pop_front();
+      _pendingTransfersAsync.erase( it1 );
       _lock.release();
    }
 }

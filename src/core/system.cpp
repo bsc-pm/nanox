@@ -27,6 +27,7 @@
 #include "copydata.hpp"
 #include "os.hpp"
 #include "basethread.hpp"
+#include "malign.hpp"
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -37,21 +38,6 @@
 #endif
 
 using namespace nanos;
-
-/* This macro computes the memory offset for a given element (ce) with taking into account its own *type*
- * and the *base* and *size* of the previous element e.g.:
- *
- *    +---------+---+------+          It is important to realize that first two parameters 
- *    |++++pe+++|···|++ce++|          refer to previous element and only *type* parameter refers
- *    +---------+---+------+          to current element (which we want to align). This is because
- *    ^         ^   ^                 we want to add padding to the previous structure in order to
- *    base   size   align (return)    aling the current one.
- *
- * If we use this macro with *base* and *size* of the last element (and with any type given as a parameter
- * we get the size of the whole chunk.
- */
-#define NANOS_ALIGNED_MEMORY_OFFSET(base,size,alignment) \
-   ( ((uintptr_t)(base+size+alignment-1)) & (~(uintptr_t)(alignment-1)) )
 
 namespace nanos {
   System::Init externInit __attribute__((weak));
@@ -816,7 +802,11 @@ void System::inlineWork ( WD &work )
 {
    setupWD( work, myThread->getCurrentWD() );
    // TODO: choose actual (active) device...
-   Scheduler::inlineWork( &work );
+   if ( Scheduler::checkBasicConstraints( work, *myThread ) ) {
+      Scheduler::inlineWork( &work );
+   } else {
+      Scheduler::submitAndWait( work );
+   }
 }
 
 BaseThread * System:: getUnassignedWorker ( void )

@@ -80,7 +80,7 @@ namespace ext
          virtual void addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size )
          {
             _lock.acquire();
-            _pendingTransfersAsync.push_back( *new GPUMemoryTransfer ( hostAddress, deviceAddress, size ) );
+            _pendingTransfersAsync.push_back( *NEW GPUMemoryTransfer ( hostAddress, deviceAddress, size ) );
             _lock.release();
          }
 
@@ -90,15 +90,17 @@ namespace ext
          {
             if ( !_pendingTransfersAsync.empty() ) {
                bool found = false;
-
                for ( std::list<GPUMemoryTransfer>::iterator it = _pendingTransfersAsync.begin();
                      it != _pendingTransfersAsync.end(); it++ ) {
+                  _lock.acquire();
                   if ( it->_requested ) {
                      found = true;
+                     _lock.release();
                      removeMemoryTransfer( it );
                      break;
                   }
-               }
+                  _lock.release();
+              }
 
                if ( !found ) {
                   removeMemoryTransfer( _pendingTransfersAsync.begin() );
@@ -111,10 +113,14 @@ namespace ext
             for ( std::list<GPUMemoryTransfer>::iterator it = _pendingTransfersAsync.begin();
                   it != _pendingTransfersAsync.end();
                   it++ ) {
-               if ( it->_hostAddress.getTag() == ( uint64_t ) address ) {
+               _lock.acquire();
+              if ( it->_hostAddress.getTag() == ( uint64_t ) address ) {
+                  _lock.release();
                   removeMemoryTransfer( it );
+                  _lock.acquire();
                }
-            }
+              _lock.release();
+           }
          }
 
          virtual void requestTransfer( void * address )
@@ -185,7 +191,7 @@ namespace ext
          void addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size )
          {
             _lock.acquire();
-            _requestedTransfers.push_back( *new GPUMemoryTransfer ( hostAddress, deviceAddress, size ) );
+            _requestedTransfers.push_back( *NEW GPUMemoryTransfer ( hostAddress, deviceAddress, size ) );
             _lock.release();
          }
 
