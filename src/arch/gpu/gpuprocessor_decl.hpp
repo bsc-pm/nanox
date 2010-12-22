@@ -25,6 +25,7 @@
 #include "gpuconfig.hpp"
 #include "gpudevice_decl.hpp"
 #include "gpumemorytransfer.hpp"
+#include "malign.hpp"
 #include "simpleallocator.hpp"
 #include "copydescriptor_decl.hpp"
 
@@ -72,6 +73,7 @@ namespace ext
          // Configuration variables
          static Atomic<int>      _deviceSeed; //! Number of GPU devices assigned to threads
          int                     _gpuDevice; //! Assigned GPU device Id
+         static size_t           _memoryAlignment;
          GPUProcessorInfo *      _gpuProcessorInfo; //! Information related to the GPU device that represents
          GPUProcessorStats       _gpuProcessorStats; //! Statistics of data copied in and out to / from cache
          GPUProcessorTransfers   _gpuProcessorTransfers; //! Keep the list of pending memory transfers
@@ -121,7 +123,7 @@ namespace ext
          // Allocator interface
          void * allocate ( size_t size )
          {
-            return _allocator.allocate( size );
+            return _allocator.allocate( NANOS_ALIGNED_MEMORY_OFFSET( 0, size, _memoryAlignment ) );
          }
 
          void free( void * address )

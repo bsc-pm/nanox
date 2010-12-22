@@ -27,6 +27,7 @@ using namespace nanos;
 using namespace nanos::ext;
 
 Atomic<int> GPUProcessor::_deviceSeed = 0;
+size_t GPUProcessor::_memoryAlignment = 256;
 
 
 GPUProcessor::GPUProcessor( int id, int gpuId ) : CachedAccelerator<GPUDevice>( id, &GPU ),
