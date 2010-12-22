@@ -29,7 +29,7 @@ using namespace nanos::ext;
 
 SMPDevice nanos::ext::SMP( "SMP" );
 
-size_t SMPDD::_stackSize = 16*1024;
+size_t SMPDD::_stackSize = 32*1024;
 
 /*!
   \brief Registers the Device's configuration options

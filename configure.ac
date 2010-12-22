@@ -71,9 +71,19 @@ case $host in
   powerpc-*-linux* | powerpc64-*-linux*)
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
-    SMP_ARCH=ppc32
-    CXXFLAGS="$CXXFLAGS -m32"
-    CFLAGS="$CFLAGS -m32"
+
+    case $CC in
+      *-m32*)
+         SMP_ARCH=ppc32
+         ;;
+      *-m64*)
+         SMP_ARCH=ppc64
+         ;;
+      *)
+         # GCC generates ppc32 code by default
+         SMP_ARCH=ppc32
+         ;;
+    esac
 
     # Check if it is a Cell system
     if cat /proc/cpuinfo | grep Cell &> /dev/null ; then
