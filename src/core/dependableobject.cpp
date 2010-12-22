@@ -66,18 +66,19 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
    for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
       // Is this an immediate successor? 
       if ( (*it)->numPredecessors() == 1 && condition(**it) ) {
-        // remove it
-        found = *it;
-        this->lock();
-        succ.erase(it);
-        this->unlock();
-        if ( found->numPredecessors() != 1 ) {
-           this->lock();
-           succ.insert( found );
-           this->unlock();
-        } else {
-           break;
-        }
+         // remove it
+         found = *it;
+         this->lock();
+         succ.erase(it);
+         this->unlock();
+         if ( found->numPredecessors() != 1 ) {
+            this->lock();
+            succ.insert( found );
+            this->unlock();
+            found = NULL;
+         } else {
+            break;
+         }
       }
    }
    return found;
