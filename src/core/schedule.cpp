@@ -317,7 +317,8 @@ struct WorkerBehaviour
       if (next->started())
         Scheduler::switchTo(next);
       else {
-        Scheduler::inlineWork ( next );
+        Scheduler::inlineWork ( next, true );
+        delete next;
       }
    }
 };
@@ -327,10 +328,12 @@ void Scheduler::workerLoop ()
    idleLoop<WorkerBehaviour>();
 }
 
-void Scheduler::inlineWork ( WD *wd )
+void Scheduler::inlineWork ( WD *wd, bool schedule )
 {
+   BaseThread *thread = getMyThreadSafe();
+
    // run it in the current frame
-   WD *oldwd = myThread->getCurrentWD();
+   WD *oldwd = thread->getCurrentWD();
 
    GenericSyncCond *syncCond = oldwd->getSyncCond();
    if ( syncCond != NULL ) {
@@ -347,11 +350,16 @@ void Scheduler::inlineWork ( WD *wd )
    wd->tieTo(*oldwd->isTiedTo());
    if (!wd->started())
       wd->init();
-   myThread->setCurrentWD( *wd );
+   thread->setCurrentWD( *wd );
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
 
-   myThread->inlineWorkDependent(*wd);
+   thread->inlineWorkDependent(*wd);
+
+   // reload thread after running WD
+   thread = getMyThreadSafe();
+
+   if (schedule) thread->setNextWD(thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*wd));
 
    /* If WorkDescriptor has been submitted update statistics */
    updateExitStats (*wd);
@@ -365,7 +373,6 @@ void Scheduler::inlineWork ( WD *wd )
           " to " << oldwd << ":" << oldwd->getId() );
 
 
-   BaseThread *thread = getMyThreadSafe();
    thread->setCurrentWD( *oldwd );
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, oldwd, false) );
