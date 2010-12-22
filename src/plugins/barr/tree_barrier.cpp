@@ -188,7 +188,7 @@ namespace nanos {
 
       static Barrier * createTreeBarrier()
       {
-         return new TreeBarrier();
+         return NEW TreeBarrier();
       }
 
 

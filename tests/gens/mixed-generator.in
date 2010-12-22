@@ -19,7 +19,7 @@ common_includes+="
         -I\$SRC/arch/smp \
         -I\$SRC/arch/spu"
 
-common_cflags="-Wall -Werror"
+common_cflags="-Wall -Werror -include memtracker.hpp"
 
 compile_versions="@COMPILE_VERSIONS@"
 

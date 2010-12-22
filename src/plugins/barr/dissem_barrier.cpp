@@ -129,7 +129,7 @@ namespace nanos {
 
       static Barrier * createDisseminationBarrier()
       {
-         return new DisseminationBarrier();
+         return NEW DisseminationBarrier();
       }
 
       /*! \class DisseminationBarrierPlugin

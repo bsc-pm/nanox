@@ -21,5 +21,11 @@ support_sources = \
 	$(top_srcdir)/src/support/hashmap_decl.hpp \
 	$(top_srcdir)/src/support/copydescriptor.hpp \
 	$(top_srcdir)/src/support/copydescriptor_decl.hpp \
+	$(top_srcdir)/src/support/malign.hpp \
 	$(END) 
+
+debug_sources = \
+	$(top_srcdir)/src/support/memtracker.hpp\
+	$(top_srcdir)/src/support/memtracker.cpp
+        $(END)
 

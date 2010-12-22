@@ -56,7 +56,7 @@ void SMPThread::start ()
        _stackSize = PTHREAD_STACK_MIN;
      }
 
-     char *stack = new char[_stackSize];
+     char *stack = NEW char[_stackSize];
 
      if ( stack == NULL || pthread_attr_setstack( &attr, stack, _stackSize ) )
        warning("couldn't create pthread stack");

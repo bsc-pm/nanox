@@ -120,7 +120,7 @@ namespace nanos {
 
       static Barrier * createCentralizedBarrier()
       {
-         return new CentralizedBarrier();
+         return NEW CentralizedBarrier();
       }
 
 
