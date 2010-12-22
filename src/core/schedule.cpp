@@ -343,7 +343,9 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    // reload thread after running WD
    thread = getMyThreadSafe();
 
-   if (schedule) thread->setNextWD(thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*wd));
+   if (schedule && thread->getNextWD() == NULL ) {
+        thread->setNextWD(thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*wd));
+   }
 
    /* If WorkDescriptor has been submitted update statistics */
    updateExitStats (*wd);

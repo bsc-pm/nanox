@@ -130,9 +130,9 @@ class DOIsSchedulable : public DependableObjectPredicate
       bool operator() ( DependableObject &obj )
       {       
          WD &wd = *(WD *)obj.getRelatedObject();
-         // FIXME: The isReady condition here ensures that doWait objects are not release as
+         // FIXME: The started condition here ensures that doWait objects are not released as
          // they do not work properly if there is no dependenceSatisfied called before
-         return Scheduler::checkBasicConstraints(wd,_thread) && wd.isReady() ;
+         return Scheduler::checkBasicConstraints(wd,_thread) && !wd.started() ;
       }
 };
 
