@@ -19,6 +19,7 @@
 
 #include <utility>
 #include "dependenciesdomain.hpp"
+#include "commutationdepobj.hpp"
 #include "debug.hpp"
 #include "system.hpp"
 #include <iostream>
@@ -85,10 +86,78 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
       // the storage to change it if renaming happened.
       TrackableObject * dependencyObject = lookupDependency( dep );
 
+      CommutationDO *initialCommDO = NULL;
+      CommutationDO *commDO = dependencyObject->getCommDO();
+
+      if ( dep.isCommutative() ) {
+         if ( !( dep.isInput() && dep.isOutput() ) || depObj.waits() ) {
+            fatal( "Commutation task must be inout" );
+         }
+         /* FIXME: this must be atomic */
+
+         if ( commDO == NULL ) {
+            commDO = new CommutationDO();
+            commDO->increasePredecessors();
+            dependencyObject->setCommDO( commDO );
+            commDO->addOutputObject( dependencyObject );
+         } else {
+            if ( commDO->increasePredecessors() == 0 ) {
+               commDO = new CommutationDO();
+               commDO->increasePredecessors();
+               dependencyObject->setCommDO( commDO );
+               commDO->addOutputObject( dependencyObject );
+            }
+         }
+
+         if ( dependencyObject->hasReaders() ) {
+            initialCommDO = new CommutationDO();
+            initialCommDO->increasePredecessors();
+            // add dependencies to all previous reads using a CommutationDO
+            TrackableObject::DependableObjectList &readersList = dependencyObject->getReaders();
+            dependencyObject->lockReaders();
+
+            for ( TrackableObject::DependableObjectList::iterator it = readersList.begin(); it != readersList.end(); it++) {
+               DependableObject * predecessorReader = *it;
+               predecessorReader->lock();
+               if ( predecessorReader->addSuccessor( *initialCommDO ) ) {
+                  initialCommDO->increasePredecessors();
+               }
+               predecessorReader->unlock();
+            }
+            dependencyObject->flushReaders();
+
+            dependencyObject->unlockReaders();
+            initialCommDO->addOutputObject( dependencyObject );
+            // Replace the lastWriter with the initial CommutationDO
+            dependencyObject->setLastWriter( *initialCommDO );
+         }
+      } else {
+         ensure( initialCommDO == NULL, "initialCommDO must be resetted when the commutation finishes" );
+
+         // Finalize "reduction"
+         if ( commDO != NULL ) {
+            dependencyObject->setCommDO( NULL );
+
+            // This ensures that even if commDO's dependencies are satisfied
+            // during this step, lastWriter will be reseted 
+            DependableObject *lw = dependencyObject->getLastWriter();
+            if ( commDO->increasePredecessors() == 0 ) {
+               // We increased the number of predecessors but someone just decreased them to 0
+               // that will execute finished and we need to wait for the lastWriter to be deleted
+               if ( lw == commDO ) {
+                  while ( dependencyObject->getLastWriter() != NULL );
+               }
+            }
+            dependencyObject->setLastWriter( *commDO );
+            commDO->resetReferences();
+            commDO->decreasePredecessors();
+         }
+      }
+
       // assumes no new readers added concurrently
       if ( dep.isInput() || (dep.isOutput() && !(dependencyObject->hasReaders()) ) ) {
          DependableObject *lastWriter = dependencyObject->getLastWriter();
-         
+
          if ( lastWriter != NULL ) {
             lastWriter->lock();
             if ( dependencyObject->getLastWriter() == lastWriter ) {
@@ -111,6 +180,12 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
          }
       }
 
+      // The dummy predecessor is to make sure that initialCommDO does not execute 'finished'
+      // while depObj is being added as its successor
+      if ( initialCommDO != NULL ) {
+         initialCommDO->decreasePredecessors();
+      }
+
       // only for non-inout dependencies
       if ( dep.isInput() && !( dep.isOutput() ) && !( depObj.waits() ) ) {
          depObj.addReadObject( dependencyObject );
@@ -121,31 +196,36 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
       }
 
       if ( dep.isOutput() ) {
-         // add dependencies to all previous reads
-         TrackableObject::DependableObjectList &readersList = dependencyObject->getReaders();
-         dependencyObject->lockReaders();
+         if ( dep.isCommutative() ) {
+            // Add the Commutation object as successor of the current DO (depObj)
+            depObj.addSuccessor( *commDO );
+         } else {
+            // add dependencies to all previous reads
+            TrackableObject::DependableObjectList &readersList = dependencyObject->getReaders();
+            dependencyObject->lockReaders();
 
-         for ( TrackableObject::DependableObjectList::iterator it = readersList.begin(); it != readersList.end(); it++) {
-            DependableObject * predecessorReader = *it;
-            predecessorReader->lock();
-            if ( predecessorReader->addSuccessor( depObj ) ) {
-               depObj.increasePredecessors();
-            }
-            predecessorReader->unlock();
-            // WaR dependency
+            for ( TrackableObject::DependableObjectList::iterator it = readersList.begin(); it != readersList.end(); it++) {
+               DependableObject * predecessorReader = *it;
+               predecessorReader->lock();
+               if ( predecessorReader->addSuccessor( depObj ) ) {
+                  depObj.increasePredecessors();
+               }
+               predecessorReader->unlock();
+               // WaR dependency
 #if 0
-            debug (" DO_ID_" << predecessorReader->getId() << " [style=filled label=" << predecessorReader->getDescription() << " color=" << "red" << "];");
-            debug (" DO_ID_" << predecessorReader->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=red];");
+               debug (" DO_ID_" << predecessorReader->getId() << " [style=filled label=" << predecessorReader->getDescription() << " color=" << "red" << "];");
+               debug (" DO_ID_" << predecessorReader->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=red];");
 #endif
-         }
-         dependencyObject->flushReaders();
+            }
+            dependencyObject->flushReaders();
 
-         dependencyObject->unlockReaders();
-         
-         if ( !depObj.waits() ) {
-            // set depObj as writer of dependencyObject
-            depObj.addOutputObject( dependencyObject );
-            dependencyObject->setLastWriter( depObj );
+            dependencyObject->unlockReaders();
+            
+            if ( !depObj.waits() ) {
+               // set depObj as writer of dependencyObject
+               depObj.addOutputObject( dependencyObject );
+               dependencyObject->setLastWriter( depObj );
+            }
          }
       }
 

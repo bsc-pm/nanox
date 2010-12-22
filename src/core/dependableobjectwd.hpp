@@ -75,7 +75,7 @@ namespace nanos
 
          /*! \brief Instrument predecessor -> successor dependency
           */
-         virtual void instrument ( void *pred, void *succ );
+         virtual void instrument ( DependableObject& successor );
    };
 
   /*! \brief DependableObject representing a WorkDescriptor as a task domain to wait on some dependencies
@@ -135,7 +135,7 @@ namespace nanos
          virtual void * getRelatedObject ( ) { return (void *) _waitDomainWD; }
          /*! \brief Instrument predecessor -> successor dependency
           */
-         virtual void instrument ( void *pred, void *succ );
+         virtual void instrument ( DependableObject& successor );
    };
 };
 

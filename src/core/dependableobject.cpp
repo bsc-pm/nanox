@@ -48,13 +48,10 @@ void DependableObject::finished ( )
          readObject->unlockReaders();
       }
 
-      NANOS_INSTRUMENT ( void * predObj = getRelatedObject(); )
-
       DependableObject::DependableObjectVector &succ = depObj.getSuccessors();
       for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
 
-         NANOS_INSTRUMENT ( void * succObj = (*it)->getRelatedObject(); )
-         NANOS_INSTRUMENT ( instrument ( predObj, succObj ); ) 
+         NANOS_INSTRUMENT ( instrument ( *(*it) ); ) 
 
          (*it)->decreasePredecessors();
       }
@@ -83,6 +80,5 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
         }
       }
    }
-
    return found;
 }

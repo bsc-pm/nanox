@@ -23,6 +23,7 @@
 #include <list>
 #include <algorithm>
 #include "dependableobject.hpp"
+#include "commutationdepobj_decl.hpp"
 #include "atomic.hpp"
 
 namespace nanos
@@ -41,19 +42,20 @@ namespace nanos
          DependableObjectList   _versionReaders; /**< List of readers of the last version of the object */
          Lock                   _readersLock; /**< Lock to provide exclusive access to the readers list */
          Lock                   _writerLock; /**< Lock internally the object for secure access to _lastWriter */
+         CommutationDO         *_commDO; /**< Will be successor of all commutation tasks using this object untill a new reader/writer appears */
       public:
         /*! \brief TrackableObject default constructor
          *
          *  Creates a TrackableObject with the given address associated.
          */
          TrackableObject ( void * address = NULL )
-            : _address(address), _lastWriter ( NULL ), _versionReaders(), _readersLock(), _writerLock() {}
+            : _address(address), _lastWriter ( NULL ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL) {}
         /*! \brief TrackableObject copy constructor
          *
          *  \param obj another TrackableObject
          */
          TrackableObject ( const TrackableObject &obj ) 
-            :  _address ( obj._address ), _lastWriter ( obj._lastWriter ), _versionReaders(), _readersLock(), _writerLock() {}
+            :  _address ( obj._address ), _lastWriter ( obj._lastWriter ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL) {}
         /*! \brief TrackableObject destructor
          */
          ~TrackableObject () {}
@@ -169,6 +171,21 @@ namespace nanos
          {
             memoryFence();
             _readersLock.release();
+         }
+
+        /*! \brief Returns the commutationDO if it exists
+         */
+         CommutationDO* getCommDO()
+         {
+            return _commDO;
+         }
+
+        /*! \brief Set the commutationDO
+         *  \param commDO to set in this object
+         */
+         void setCommDO( CommutationDO *commDO )
+         {
+            _commDO = commDO;
          }
    };
 

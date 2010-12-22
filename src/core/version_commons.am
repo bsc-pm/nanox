@@ -58,6 +58,8 @@ common_sources=\
 	$(top_srcdir)/src/core/dependableobjectwd.hpp \
 	$(top_srcdir)/src/core/dependableobjectwd_fwd.hpp \
 	$(top_srcdir)/src/core/dependableobjectwd.cpp \
+	$(top_srcdir)/src/core/commutationdepobj_decl.hpp \
+	$(top_srcdir)/src/core/commutationdepobj.hpp \
 	$(top_srcdir)/src/core/trackableobject_fwd.hpp \
 	$(top_srcdir)/src/core/trackableobject.hpp \
 	$(top_srcdir)/src/core/dependenciesdomain_fwd.hpp \

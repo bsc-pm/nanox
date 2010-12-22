@@ -40,8 +40,19 @@ unsigned long DOSubmit::getDescription ( )
    return (unsigned long) ((nanos::ext::SMPDD &) _submittedWD->getActiveDevice()).getWorkFct();
 }
 
-void DOSubmit::instrument ( void *pred, void *succ )
+void DOSubmit::instrument ( DependableObject &successor )
 {
+   NANOS_INSTRUMENT ( void * pred = getRelatedObject(); )
+   NANOS_INSTRUMENT ( void * succ = successor.getRelatedObject(); )
+   NANOS_INSTRUMENT (
+                      if ( succ == NULL ) {
+                         DependableObject::DependableObjectVector &succ2 = successor.getSuccessors();
+                         for ( DependableObject::DependableObjectVector::iterator it = succ2.begin(); it != succ2.end(); it++ ) {
+                            instrument ( *(*it) ); 
+                         }
+                         return;
+                      }
+                    )
    NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
    NANOS_INSTRUMENT ( WorkDescriptor *wd_sender = (WorkDescriptor *) pred; )
    NANOS_INSTRUMENT ( WorkDescriptor *wd_receiver = (WorkDescriptor *) succ; )
@@ -81,8 +92,19 @@ void DOWait::dependenciesSatisfied ( )
    _syncCond.signal();
 }
 
-void DOWait::instrument ( void *pred, void *succ )
+void DOWait::instrument ( DependableObject &successor )
 {
+   NANOS_INSTRUMENT ( void * pred = getRelatedObject(); )
+   NANOS_INSTRUMENT ( void * succ = successor.getRelatedObject(); )
+   NANOS_INSTRUMENT (
+                      if ( succ == NULL ) {
+                         DependableObject::DependableObjectVector &succ2 = successor.getSuccessors();
+                         for ( DependableObject::DependableObjectVector::iterator it = succ2.begin(); it != succ2.end(); it++ ) {
+                            instrument ( *(*it) ); 
+                         }
+                         return;
+                      }
+                    )
    NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
    NANOS_INSTRUMENT ( WorkDescriptor *wd_sender = (WorkDescriptor *) pred; )
    NANOS_INSTRUMENT ( WorkDescriptor *wd_receiver = (WorkDescriptor *) succ; )
