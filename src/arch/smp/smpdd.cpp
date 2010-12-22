@@ -64,13 +64,19 @@ void SMPDD::initStack ( void *data )
 
 void SMPDD::workWrapper( void *data )
 {
-   SMPDD &dd = ( SMPDD & ) myThread->getCurrentWD()->getActiveDevice();
+   BaseThread *myThd = getMyThreadSafe();
+   SMPDD &dd = ( SMPDD & ) myThd->getCurrentWD()->getActiveDevice();
+   if (myThd->getId() < sys.getNumPEs())
+   {
+      NANOS_INSTRUMENT ( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("user-code") );
+      NANOS_INSTRUMENT ( nanos_event_value_t val = myThread->getCurrentWD()->getId() );
+      NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_RUNNING, key, val ) );
+      dd.getWorkFct()( data );
+      NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateAndBurst ( key ) );
+   }
+   else
+      dd.getWorkFct()( data );
 
-   NANOS_INSTRUMENT ( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("user-code") );
-   NANOS_INSTRUMENT ( nanos_event_value_t val = myThread->getCurrentWD()->getId() );
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_RUNNING, key, val ) );
-   dd.getWorkFct()( data );
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateAndBurst ( key ) );
 }
 
 void SMPDD::lazyInit (WD &wd, bool isUserLevelThread, WD *previous)

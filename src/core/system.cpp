@@ -862,6 +862,36 @@ void System::setupWD ( WD &work, WD *parent )
    work.setParent ( parent );
    work.setDepth( parent->getDepth() +1 );
 
+#ifdef CLUSTER_DEV
+   if (sys.getNetwork()->getNodeNum() == 0)
+   {
+      //std::cerr << "tie wd " << work.getId() << " to my thread" << std::endl;
+      //ext::SMPDD * workDD = dynamic_cast<ext::SMPDD *>( &work.getActiveDevice());
+      unsigned int selectedNode;
+      switch ( work.getDepth() )
+      {
+         //case 1:
+         //   //std::cerr << "tie wd " << work.getId() << " to my thread, @func: " << (void *) workDD->getWorkFct() << std::endl;
+         //   work.tieTo( *myThread );
+         //   break;
+         case 1:
+            selectedNode = work.getId() % sys.getNetwork()->getNumNodes();
+            if ( selectedNode == 0)
+            {
+               work.tieTo( *myThread );
+            }
+            else
+            {
+               work.tieTo( *( _workers[ _workers.size() - 1 ] ) );
+               work.setPe( _pes[ _pes.size() - selectedNode ] );
+            }
+            break;
+         default:
+            break;
+            //std::cerr << "wd " << work.getId() << " depth is: " << work.getDepth() << " @func: " << (void *) workDD->getWorkFct() << std::endl;
+      }
+   }
+#endif
    // Prepare private copy structures to use relative addresses
    work.prepareCopies();
 

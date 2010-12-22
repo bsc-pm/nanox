@@ -208,6 +208,8 @@ namespace nanos {
 
             /* 21 */ registerEventKey("user-funct-location","User Function Location");
 
+            /* 22 */ registerEventKey("xfer-size","Transfer size");
+
             /* ** */ registerEventKey("debug","Debug Key"); /* Keep this key as the last one */
 #endif
 

@@ -137,8 +137,8 @@ case $host in
         ]
     )
     if test x$cluster_enabled = xyes; then
-        CFLAGS="$CFLAGS -DCLUSTER_DEV -DSMP_NUMA"
-        CXXFLAGS="$CXXFLAGS -DCLUSTER_DEV -DSMP_NUMA"
+        CFLAGS="$CFLAGS -DCLUSTER_DEV"
+        CXXFLAGS="$CXXFLAGS -DCLUSTER_DEV"
         ARCHITECTURES="$ARCHITECTURES cluster"
 
         AC_ARG_WITH([gasnet],
@@ -459,5 +459,5 @@ echo ""
 echo "Configuration summary of Nanos++"
 echo "================================"
 echo ""
-echo "Configured architectures:" $ARCHITECTURES
+echo "Configured architectures:" $ARCHITECTURES $SMP_ARCH
 echo ""

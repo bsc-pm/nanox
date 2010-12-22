@@ -47,9 +47,9 @@ namespace nanos {
          void setAPI ( NetworkAPI *api );
          NetworkAPI *getAPI ();
          void setNumNodes ( unsigned int numNodes );
-         unsigned int getNumNodes ();
+         unsigned int getNumNodes () const;
          void setNodeNum ( unsigned int nodeNum );
-         unsigned int getNodeNum ();
+         unsigned int getNodeNum () const;
          void notifyWorkDone ( unsigned int nodeNum, unsigned int numPe );
          void notifyMalloc ( unsigned int nodeNum, void * result, unsigned int id );
 
@@ -64,6 +64,8 @@ namespace nanos {
          void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, size_t size );
          void * malloc ( unsigned int remoteNode, size_t size, unsigned int id );
          void nodeBarrier( void );
+         void getNotify( unsigned int node, uint64_t remoteAddr );
+
          void setMasterHostname( char *name );
          //const std::string & getMasterHostname( void ) const;
          const char * getMasterHostname( void ) const;

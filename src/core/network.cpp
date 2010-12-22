@@ -66,7 +66,7 @@ void Network::setNumNodes ( unsigned int numNodes )
 
 }
 
-unsigned int Network::getNumNodes ()
+unsigned int Network::getNumNodes () const
 {
    return _numNodes;
 }
@@ -76,7 +76,7 @@ void Network::setNodeNum ( unsigned int nodeNum )
    _nodeNum = nodeNum;
 }
 
-unsigned int Network::getNodeNum ()
+unsigned int Network::getNodeNum () const
 {
    return _nodeNum;
 }
@@ -218,6 +218,14 @@ void Network::nodeBarrier()
    if ( _api != NULL )
    {
       _api->nodeBarrier();
+   }
+}
+
+void Network::getNotify( unsigned int remoteNode, uint64_t remoteAddr )
+{
+   if ( _api != NULL )
+   {
+      _api->getNotify( remoteNode, remoteAddr );
    }
 }
 

@@ -76,30 +76,22 @@ void SMPProcessor::waitInputDependent( uint64_t tag )
 
 void SMPProcessor::registerCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
 {
-   _lock.acquire(); //cluster
    _cache.registerCacheAccess( dir, tag, size, input, output );
-   _lock.release(); //cluster
 }
 
 void SMPProcessor::unregisterCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool output )
 {
-   _lock.acquire(); //cluster
    _cache.unregisterCacheAccess( dir, tag, size, output );
-   _lock.release(); //cluster
 }
 
 void SMPProcessor::registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
 {
-   _lock.acquire(); //cluster
    _cache.registerPrivateAccess( dir, tag, size, input, output );
-   _lock.release(); //cluster
 }
 
 void SMPProcessor::unregisterPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size )
 {
-   _lock.acquire(); //cluster
    _cache.unregisterPrivateAccess( dir, tag, size );
-   _lock.release(); //cluster
 }
 
 void* SMPProcessor::getAddressDependent( uint64_t tag )
@@ -109,7 +101,7 @@ void* SMPProcessor::getAddressDependent( uint64_t tag )
    res = (void *) tag;
    return res;
 #else
-   return _cache.getAddress( tag );
+ return _cache.getAddress( tag );
 #endif
 }
 

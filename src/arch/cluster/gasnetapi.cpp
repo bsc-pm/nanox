@@ -22,8 +22,24 @@
 #include "system.hpp"
 #include "os.hpp"
 #include "clusterinfo.hpp"
+#include "instrumentation.hpp"
 
 #include <gasnet.h>
+
+#ifdef _PPC64
+
+#define MERGE_ARG( _Hi, _Lo) ( ( ( uintptr_t ) ( _Lo ) ) + ( ( ( uintptr_t ) ( _Hi ) ) << 32 ) )
+#define ARG_HI( _Arg ) ( ( uint32_t ) ( ( _Arg ) >> 32 ) )
+#define ARG_LO( _Arg ) ( ( uint32_t ) _Arg )
+
+#else
+
+#define MERGE_ARG( _Hi, _Lo) ( ( uintptr_t ) ( _Lo ) )
+#define ARG_HI( _Arg ) ( ( uint32_t ) 0 )
+#define ARG_LO( _Arg ) ( ( uint32_t ) _Arg )
+
+#endif
+
 
 using namespace nanos;
 using namespace ext;
@@ -203,6 +219,166 @@ static void am_my_hostname( gasnet_token_t token, void *buff, size_t nbytes )
     }
 }
 
+static void am_transfer_put( gasnet_token_t token,
+      void *buf,
+      size_t len)
+{
+   gasnet_node_t src_node;
+   if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
+   {
+       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
+   }
+
+   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
+   NANOS_INSTRUMENT ( nanos_event_value_t xferSize = len; )
+   NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( buf ) ; )
+   NANOS_INSTRUMENT ( instr->raiseClosePtPEvent( NANOS_XFER_PUT, id, sizeKey, xferSize, src_node ); )
+
+   //fprintf(stderr, "put copy>  buff %p, %u\n",  buf, len);
+}
+
+static void am_transfer_put_after_get( gasnet_token_t token,
+      void *buf,
+      size_t len,
+      gasnet_handlerarg_t lastLo,
+      gasnet_handlerarg_t lastHi)
+{
+   gasnet_node_t src_node;
+   uint64_t last = ( uint64_t ) MERGE_ARG( lastHi, lastLo );
+
+   if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
+   {
+       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
+   }
+
+   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
+   NANOS_INSTRUMENT ( nanos_event_value_t xferSize = len; )
+   NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) last; )
+   NANOS_INSTRUMENT ( instr->raiseClosePtPEvent ( NANOS_XFER_GET, id, sizeKey, xferSize, src_node ); )
+
+   if ( last != 0 )
+   {
+      sys.getNetwork()->getNotify( src_node, last );
+   }
+   //fprintf(stderr, "get copy>  buff %p, %u, %llu\n",  buf, len, last);
+}
+
+static void am_transfer_get( gasnet_token_t token,
+      gasnet_handlerarg_t destAddrLo,
+      gasnet_handlerarg_t destAddrHi,
+      gasnet_handlerarg_t origAddrLo,
+      gasnet_handlerarg_t origAddrHi,
+      gasnet_handlerarg_t len,
+      gasnet_handlerarg_t lastLo,
+      gasnet_handlerarg_t lastHi )
+{
+   gasnet_node_t src_node;
+   void *origAddr = ( void * ) MERGE_ARG( origAddrHi, origAddrLo );
+   void *destAddr = ( void * ) MERGE_ARG( destAddrHi, destAddrLo );
+   uint64_t last = ( uint64_t ) MERGE_ARG( lastHi, lastLo );
+
+   if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
+   {
+       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
+   }
+
+   if ( len <= gasnet_AMMaxLongRequest() )
+   {
+      NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+      NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
+      NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
+      NANOS_INSTRUMENT ( nanos_event_value_t xferSize = 0; )
+      NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) last; )
+      NANOS_INSTRUMENT ( instr->raiseClosePtPEvent ( NANOS_XFER_GET, id, sizeKey, xferSize, src_node ); )
+      //NANOS_INSTRUMENT ( instr->raiseClosePtPEventNkvs ( NANOS_XFER_GET, id, 0, NULL, NULL, src_node ); )
+
+      NANOS_INSTRUMENT ( xferSize = len; )
+      NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_XFER_GET, id, sizeKey, xferSize, src_node ); )
+
+      if ( gasnet_AMReplyLong2( token, 212, origAddr, len, destAddr, lastLo, lastHi ) != GASNET_OK )
+      {
+         fprintf( stderr, "gasnet: Error sending reply msg.\n" );
+      }
+
+   }
+   else
+   {
+       fprintf( stderr, "gasnet: Error, requested a GET of size > gasnet_AMMaxLong() bytes.\n" );
+   }
+}
+
+static void am_flash_put( gasnet_token_t token,
+      gasnet_handlerarg_t destAddrLo,
+      gasnet_handlerarg_t destAddrHi,
+      gasnet_handlerarg_t len,
+      gasnet_handlerarg_t wordSize,
+      gasnet_handlerarg_t valueLo,
+      gasnet_handlerarg_t valueHi )
+{
+   gasnet_node_t src_node;
+   unsigned int i;
+   void *destAddr = ( void * ) MERGE_ARG( destAddrHi, destAddrLo );
+   uint64_t value = ( uint64_t ) MERGE_ARG( valueHi, valueLo );
+
+   if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
+   {
+       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
+   }
+
+   uint64_t *ptr64 = ( uint64_t * ) destAddr;
+   uint32_t *ptr32 = ( uint32_t * ) destAddr;
+   uint16_t *ptr16 = ( uint16_t * ) destAddr;
+   uint8_t *ptr8  = ( uint8_t * ) destAddr;
+
+   uint64_t val64 = ( uint64_t ) value;
+   uint32_t val32 = ( uint32_t ) value;
+   uint16_t val16 = ( uint16_t ) value;
+   uint8_t val8  = ( uint8_t ) value;
+
+   switch ( wordSize )
+   {
+      case 8:
+         for ( i = 0; i < (len/8) ; i++ )
+         {
+            ptr64[ i ] = val64;
+         }
+         break;
+      case 4:
+         for ( i = 0; i < (len/4) ; i++ )
+         {
+            ptr32[ i ] = val32;
+         }
+         break;
+      case 2:
+         for ( i = 0; i < (len/2) ; i++ )
+         {
+            ptr16[ i ] = val16;
+         }
+         break;
+      case 1:
+         for ( i = 0; i < len ; i++ )
+         {
+            ptr8[ i ] = val8;
+         }
+         break;
+      default:
+         break;
+   }
+   
+      
+   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
+   NANOS_INSTRUMENT ( nanos_event_value_t xferSize = len; )
+   NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( destAddr ) ; )
+   NANOS_INSTRUMENT ( instr->raiseClosePtPEvent( NANOS_XFER_PUT, id, sizeKey, xferSize, src_node ); )
+}
+
+
 void GASNetAPI::initialize ( Network *net )
 {
    int my_argc = OS::getArgc();
@@ -218,7 +394,11 @@ void GASNetAPI::initialize ( Network *net )
       { 206, (void (*)()) am_work_done },
       { 207, (void (*)()) am_malloc },
       { 208, (void (*)()) am_malloc_reply },
-      { 209, (void (*)()) am_my_hostname }
+      { 209, (void (*)()) am_my_hostname },
+      { 210, (void (*)()) am_transfer_put },
+      { 211, (void (*)()) am_transfer_get },
+      { 212, (void (*)()) am_transfer_put_after_get },
+      { 213, (void (*)()) am_flash_put }
    };
 
    fprintf(stderr, "argc is %d\n", my_argc);
@@ -232,10 +412,17 @@ void GASNetAPI::initialize ( Network *net )
 
    gasnet_attach( htable, sizeof( htable ) / sizeof( gasnet_handlerentry_t ), segSize, 0);
 
-   fprintf(stderr, "gasnet: segment size was %d bytes\n", segSize);
+   fprintf(stderr, "gasnet: segment size was %p bytes\n", ( void * ) segSize);
 
    _net->setNumNodes( gasnet_nodes() );
    _net->setNodeNum( gasnet_mynode() );
+
+   _getRequests.reserve( _net->getNumNodes() );
+
+   for (unsigned int i = 0; i < _net->getNumNodes(); i++ )
+   {
+      _getRequests.push_back( new GetRequestCtl );
+   }
 
    nodeBarrier();
 
@@ -273,11 +460,10 @@ void GASNetAPI::initialize ( Network *net )
       {
          segmentAddr[ idx ] = seginfoTable[ idx ].addr;
          segmentLen[ idx ] = seginfoTable[ idx ].size;
-         fprintf(stderr, "\tnode %d: @=%p, len=%d\n", idx, seginfoTable[ idx ].addr, seginfoTable[ idx ].size);
+         fprintf(stderr, "\tnode %d: @=%p, len=%p\n", idx, seginfoTable[ idx ].addr, (void *) seginfoTable[ idx ].size);
          ClusterInfo::addSegments( gasnet_nodes(), segmentAddr, segmentLen );
       }
-
-
+      _thisNodeSegment = new SimpleAllocator( ( uintptr_t ) ClusterInfo::getSegmentAddr( 0 ), ClusterInfo::getSegmentLen( 0 ) );
    }
 }
 
@@ -324,12 +510,151 @@ void GASNetAPI::sendWorkDoneMsg ( unsigned int dest, unsigned int numPe )
 
 void GASNetAPI::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size )
 {
+#if 0
    gasnet_put_bulk( ( gasnet_node_t ) remoteNode, ( void * ) remoteAddr, localAddr, size );
+#endif
+
+   size_t sent = 0, thisReqSize;
+
+
+   unsigned int i = 1;
+   unsigned int totalWords;
+   unsigned int selectedSize;
+   uint64_t value;
+   //test the buffer:
+   if ( size % 8 == 0 )
+   {
+      uint64_t *ptr = ( uint64_t * ) localAddr;
+      totalWords = size / 8;
+      selectedSize = 8;
+      value = ptr[ 0 ];
+      while ( ptr[ 0 ] == ptr[ i ] )
+         i++;
+   }
+   else if ( size % 4 )
+   {
+      uint32_t *ptr = (uint32_t *) localAddr;
+      totalWords = size / 4;
+      selectedSize = 4;
+      value = ( uint64_t ) ptr[ 0 ];
+      while (ptr[0] == ptr[i])
+         i++;
+   }
+   else if ( size % 2 )
+   {
+      uint16_t *ptr = (uint16_t *) localAddr;
+      totalWords = size / 2;
+      selectedSize = 2;
+      value = ( uint64_t ) ptr[ 0 ];
+      while (ptr[0] == ptr[i])
+         i++;
+   }
+   else
+   {
+      uint8_t *ptr = (uint8_t *) localAddr;
+      totalWords = size;
+      selectedSize = 1;
+      value = ( uint64_t ) ptr[ 0 ];
+      while (ptr[0] == ptr[i])
+         i++;
+   }
+   if ( i == totalWords)
+   {
+      fprintf(stderr, "I can do a flash put here!, selected size %d\n", selectedSize);
+
+      NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+      NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
+      NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
+      NANOS_INSTRUMENT ( nanos_event_value_t xferSize = size; )
+      NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( remoteAddr ) ; )
+      NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_XFER_PUT, id, sizeKey, xferSize, remoteNode ); )
+
+      if ( gasnet_AMRequestShort6( remoteNode, 213,
+               ( gasnet_handlerarg_t ) ARG_LO( remoteAddr ),
+               ( gasnet_handlerarg_t ) ARG_HI( remoteAddr ),
+               ( gasnet_handlerarg_t ) size,
+               ( gasnet_handlerarg_t ) selectedSize,
+               ( gasnet_handlerarg_t ) ARG_LO( value ),
+               ( gasnet_handlerarg_t ) ARG_HI( value )) != GASNET_OK )
+         {
+            fprintf(stderr, "gasnet: Error sending a message to node %d.\n", remoteNode);
+         }
+   }
+   else
+   {
+   //fprintf(stderr, "put ( dest=%d, remote=%p, locla=%p, size=%d)\n", remoteNode, (void *) remoteAddr, localAddr, size);
+   
+   while ( sent < size )
+   {
+      thisReqSize = ( ( size - sent ) <= gasnet_AMMaxLongRequest() ) ? size - sent : gasnet_AMMaxLongRequest();
+      
+      NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+      NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
+      NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
+      NANOS_INSTRUMENT ( nanos_event_value_t xferSize = thisReqSize; )
+      NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( remoteAddr + sent ) ; )
+      NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_XFER_PUT, id, sizeKey, xferSize, remoteNode ); )
+
+      if ( gasnet_AMRequestLong0( remoteNode, 210,
+               &( ( char *) localAddr )[ sent ],
+               thisReqSize,
+               ( char *) ( remoteAddr + sent ) ) != GASNET_OK)
+      {
+         fprintf(stderr, "gasnet: Error sending a message to node %d.\n", remoteNode);
+      }
+      sent += thisReqSize;
+   }
+   //fprintf(stderr, "end put ( dest=%d, remote=%p, locla=%p, size=%d)\n", remoteNode, (void *) remoteAddr, localAddr, size);
+   }
 }
 
 void GASNetAPI::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, size_t size )
 {
+#if 0
    gasnet_get_bulk ( localAddr, ( gasnet_node_t ) remoteNode, ( void * ) remoteAddr, size );
+#endif
+   size_t sent = 0, thisReqSize;
+
+   void *addr = _thisNodeSegment->allocate( size );
+   //fprintf(stderr, "get ( dest=%d, remote=%p, locla=%p, size=%d)\n", remoteNode, (void *) remoteAddr, localAddr, size);
+
+   (*_getRequests[ remoteNode ])[ remoteAddr ] = GET_WAITING;
+   
+   while ( sent < size )
+   {
+      thisReqSize = ( ( size - sent ) <= gasnet_AMMaxLongRequest() ) ? size - sent : gasnet_AMMaxLongRequest();
+
+      NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+      NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
+      NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
+      NANOS_INSTRUMENT ( nanos_event_value_t xferSize = 0; )
+      NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( ( ( sent + thisReqSize ) == size ) * remoteAddr ) ; )
+      NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent ( NANOS_XFER_GET, id, sizeKey, xferSize, remoteNode ); )
+
+      if ( gasnet_AMRequestShort7( remoteNode, 211,
+               ( gasnet_handlerarg_t ) ARG_LO( ( ( uintptr_t ) addr ) + sent ),
+               ( gasnet_handlerarg_t ) ARG_HI( ( ( uintptr_t ) addr ) + sent ),
+               ( gasnet_handlerarg_t ) ARG_LO( remoteAddr + sent ),
+               ( gasnet_handlerarg_t ) ARG_HI( remoteAddr + sent ),
+               ( gasnet_handlerarg_t ) thisReqSize,
+               ( gasnet_handlerarg_t ) ARG_LO( ( ( sent + thisReqSize ) == size ) * remoteAddr ),
+               ( gasnet_handlerarg_t ) ARG_HI( ( ( sent + thisReqSize ) == size ) * remoteAddr ) ) != GASNET_OK)
+      {
+         fprintf(stderr, "gasnet: Error sending a message to node %d.\n", remoteNode);
+      }
+      sent += thisReqSize;
+   }
+
+   while ( (*_getRequests[ remoteNode ])[ remoteAddr ] == GET_WAITING )
+      poll();
+   _getRequests[ remoteNode ]->erase( remoteAddr );
+
+   //fprintf(stderr, "end get ( dest=%d, remote=%p, locla=%p, size=%d)\n", remoteNode, (void *) remoteAddr, localAddr, size);
+
+   // copy the data to the correct addr;
+   ::memcpy( localAddr, addr, size );
+   _thisNodeSegment->free( addr );
+   //fprintf(stderr, "!!!!!!!! end get ( dest=%d, remote=%p, locla=%p, size=%d)\n", remoteNode, (void *) remoteAddr, localAddr, size);
 }
 
 void GASNetAPI::malloc ( unsigned int remoteNode, size_t size, unsigned int id )
@@ -344,6 +669,11 @@ void GASNetAPI::nodeBarrier()
 {
    gasnet_barrier_notify( 0, GASNET_BARRIERFLAG_ANONYMOUS );
    gasnet_barrier_wait( 0, GASNET_BARRIERFLAG_ANONYMOUS );
+}
+
+void GASNetAPI::getNotify( unsigned int node, uint64_t remoteAddr )
+{
+   (*_getRequests[ node ])[ remoteAddr ] = GET_COMPLETE;
 }
 
 void GASNetAPI::sendMyHostName( unsigned int dest )

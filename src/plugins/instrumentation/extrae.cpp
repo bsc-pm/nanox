@@ -19,7 +19,7 @@
 extern "C" {
    unsigned int nanos_ompitrace_get_max_threads ( void );
    unsigned int nanos_ompitrace_get_thread_num ( void );
-   void TaskID_Setup(unsigned int);
+   void nanos_extrae_instrumentation_barrier( void );
 }
 
 namespace nanos {
@@ -229,7 +229,9 @@ class InstrumentationExtrae: public Instrumentation
                   for (unsigned int i = 0; i < strlen(str); i++) if ( str[i] == ' ' ) str[i] = 0x0;
 
                   // jbueno: cluster workaround until we get the new extrae
-                  str[ strlen(str) - 12 ] = '0' + ( (char) sys.getNetwork()->getNodeNum() );
+                  std::cerr << "File mpit is: " << str << std::endl;
+                  str[ strlen(str) - 12 ] = '0' + ( (char) ( sys.getNetwork()->getNodeNum() % 10 ) );
+                  str[ strlen(str) - 13 ] = '0' + ( (char) ( sys.getNetwork()->getNodeNum() / 10 ) );
 
                   if ( remove(str) != 0 ) std::cout << "nanox: Unable to delete temporary/partial trace file" << str << std::endl;
                }
@@ -260,7 +262,7 @@ class InstrumentationExtrae: public Instrumentation
          remove( _traceFinalDirectory.c_str());
       }
 
-      void secureCopy(char *orig, std::string dest)
+      void secureCopy(const char *orig, std::string dest)
       {
          pid_t pid;
          int status, options = 0;
@@ -281,6 +283,9 @@ class InstrumentationExtrae: public Instrumentation
          std::fstream p_file;
          p_file.open(_listOfTraceFileNames.c_str());
 
+         size_t found = _traceFinalDirectory.find_last_of("/");
+         std::string dst = std::string(sys.getNetwork()->getMasterHostname() );
+
          if (p_file.is_open())
          {
             while (!p_file.eof() )
@@ -289,16 +294,26 @@ class InstrumentationExtrae: public Instrumentation
                if ( strlen(str) > 0 )
                {
                   for (unsigned int i = 0; i < strlen(str); i++) if ( str[i] == ' ' ) str[i] = 0x0;
-
-                  size_t found = _traceFinalDirectory.find_last_of("/");
-                  std::string dst = std::string(sys.getNetwork()->getMasterHostname() );
-                  str[ strlen(str) - 12 ] = '0' + ( (char) sys.getNetwork()->getNodeNum() );
-                  secureCopy(str, dst + ":" + _traceFinalDirectory.substr(0,found+1));
+                  // jbueno: cluster workaround until we get the new extrae
+                  std::cerr << "File mpit is: " << str << std::endl;
+                  str[ strlen(str) - 12 ] = '0' + ( (char) ( sys.getNetwork()->getNodeNum() % 10 ) );
+                  str[ strlen(str) - 13 ] = '0' + ( (char) ( sys.getNetwork()->getNodeNum() / 10 ) );
+                  for ( unsigned int j = 0; j < sys.getNetwork()->getNumNodes(); j++ )
+                  {
+                     if ( j == sys.getNetwork()->getNodeNum() )
+                        secureCopy(str, dst + ":" + _traceFinalDirectory.substr(0,found+1));
+                     nanos_extrae_instrumentation_barrier();
+                  }
                }
             }
             p_file.close();
          }
          else std::cout << "Unable to open " << _listOfTraceFileNames << " file" << std::endl;  
+
+         // copy pcf file too
+         //        std::cerr << "Copying pcf file: " << _traceFileName_PCF << std::endl;
+         //secureCopy( _traceFileName_PCF.c_str(), dst + ":" + _traceFinalDirectory.substr(0,found+1));
+
       }
 
       void getTraceFileName ()
@@ -424,7 +439,6 @@ class InstrumentationExtrae: public Instrumentation
          putenv (env_trace_final_dir);
 
          /* OMPItrace initialization */
-         TaskID_Setup( sys.getNetwork()->getNodeNum() );
          OMPItrace_init();
       }
 
@@ -441,6 +455,7 @@ class InstrumentationExtrae: public Instrumentation
       void addEventList ( unsigned int count, Event *events) 
       {
          struct extrae_CombinedEvents ce;
+         InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
 
          ce.HardwareCounters = 1;
          ce.Callers = 0;
@@ -506,7 +521,29 @@ class InstrumentationExtrae: public Instrumentation
                   else ce.Communications[k].type = EXTRAE_USER_RECV;
                   ce.Communications[k].tag = e.getDomain();
                   ce.Communications[k].id = e.getId();
-                  ce.Communications[k].size = e.getId(); // FIXME: just in some cases size is equal to id
+                  switch ( e.getId() )
+                  {
+                     case NANOS_WD_DOMAIN:
+                     case NANOS_WD_DEPENDENCY:
+                     case NANOS_WD_REMOTE:
+                        ce.Communications[k].size = e.getId(); // FIXME: just in some cases size is equal to id
+                        break;
+                     case NANOS_XFER_PUT:
+                     case NANOS_XFER_GET:
+                        {
+
+                        nanos_event_key_t sizeKey = iD->getEventKey("xfer-size");
+                        for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
+                           if ( kvs->first == sizeKey ) {
+                              ce.Communications[k].size = kvs->second;
+                           }
+                        }
+                        }
+                        break;
+                     default: 
+                        break; // FIXME here goes a fatal
+                  }
+                     
                   ce.Communications[k].partner = e.getPartner();
                   k++;
                   // continue...

@@ -4,9 +4,10 @@ PES=1
 USE_MPI="yes"
 TRACE="no"
 MPI_TRACE_FLAGS=""
-INTERACTIVE="no"
+INTERACTIVE="yes"
 NUM_NODES=0
 MACHINEFILE=""
+QUEUE="no"
 
 function parseCommandLine
 {
@@ -17,11 +18,8 @@ function parseCommandLine
         PES="$2"
         shift;
         ;;
-     --trace)
-        TRACE="yes"
-        ;;
-     --interactive)
-        INTERACTIVE="yes"
+     --no-interactive)
+        INTERACTIVE="no"
         ;;
      --np)
         NUM_NODES=$2
@@ -30,6 +28,9 @@ function parseCommandLine
      --machinefile)
         MACHINEFILE=$2
         shift;
+        ;;
+     --queue)
+        QUEUE="yes"
         ;;
      *)
         echo "$0: Not valid argument [$1]";
@@ -44,6 +45,14 @@ function parseCommandLine
    APP=$1
    shift
    APP_ARGS=$@
+}
+
+function getModeAndLibPath
+{
+   NANOX_LIB=`ldd $APP | grep libnanox.so | cut -d " " -f3 | sed -e s#\/libnanox.so.*## `
+   NANOX_MODE=`echo $NANOX_LIB | sed -e s#.*/##`
+   echo Nanox dir: $NANOX_LIB
+   echo Nanox mode: $NANOX_MODE
 }
 
 function generateMlistAndMachinefile
@@ -84,21 +93,35 @@ function generateMlistAndMachinefile
 
 function initializeTracing
 {
+   if [ x$NANOX_MODE = xinstrumentation ] ; then
+      TRACE="yes"
+   fi
+
    if [ x$TRACE = xyes ] ; then
       MPI_TRACE_FLAGS="--trace"
+      NANOS_TRACE_FLAGS="--instrumentation=extrae"
+      export TMPDIR=/scratch
+      export EXTRAE_DIR=/scratch
+      export EXTRAE_FINAL_DIR=/scratch
    fi
 }
 
 function runApp
 {
    if [ x$USE_MPI = xyes ] ; then
-      CMD="./mpirun -np $NUM_NODES $MPI_TRACE_FLAGS --nanoxpes $PES -machinefile $MACHINEFILE ./$APP $APP_ARGS"
+      if [ x$INTERACTIVE = xyes ] ; then
+         CMD="./mpirun -np $NUM_NODES $MPI_TRACE_FLAGS --nanoxpes $PES -machinefile $MACHINEFILE ./$APP $APP_ARGS"
+      else
+         export LD_LIBRARY_PATH=$NANOX_LIB:/gpfs/apps/GCC/4.4.0/lib:/opt/osshpc/mpich-mx/32/lib/shared
+         export NX_ARGS="--pes $PES $NANOS_TRACE_FLAGS"
+         CMD="srun ./$APP $APP_ARGS"
+      fi
    else
       export SSH_SERVERS=MLIST
       CMD="./$APP -np $NUM_NODES $APP_ARGS"
    fi
    echo "Executing command: $CMD"
-   ./$CMD
+   $CMD
 
 }
 
@@ -110,19 +133,21 @@ function finalizeTracing
       ITER=0
       for i in $USED_MLIST ; do
          FILE_EXP=`printf "/scratch/TRACE.??????????%06d??????.mpit" $ITER`
-         for j in $FILE_EXP ; do
-            FILES=`ssh $MASTER ls $j`
-            for k in $FILES ; do
-               ssh $MASTER "echo $k on $i >> /scratch/tmp.$ID.mpits"
-            done
+         FILES=`ssh $MASTER ls $FILE_EXP`
+         for k in $FILES ; do
+            ssh $MASTER "echo $k on $i >> /scratch/tmp.$ID.mpits"
          done
       ITER=$(($ITER + 1))
       done
       ssh $MASTER cat /scratch/tmp.$ID.mpits
       echo Merging mpit files into a prv file...
+      FILEID=$APP.`printf "%04d" $NUM_NODES`.$PES.$ID
       ssh $MASTER ls -lh "/scratch/*.mpit"
-      ssh $MASTER $HOME/extrae_install/bin/mpi2prv -f /scratch/tmp.$ID.mpits -o /scratch/$APP.$ID.prv
-      scp $MASTER:/scratch/$APP.$ID.* .
+      PCF_FILE=`ssh $MASTER ls /scratch/*.pcf`
+      scp $MASTER:$PCF_FILE $FILEID.pcf
+      ssh $MASTER $HOME/extrae_install/bin/mpi2prv -f /scratch/tmp.$ID.mpits -o /scratch/$FILEID.prv
+      ssh $MASTER rm /scratch/$FILEID.pcf
+      scp $MASTER:/scratch/$FILEID.* .
       ssh $MASTER "rm /scratch/*mpit* /scratch/*prv /scratch/*pcf /scratch/*row"
    fi
 }
@@ -134,9 +159,42 @@ function cleanUp
    fi
 }
 
+function makeCmd
+{
+   FILEID=$APP.`printf "%04d" $NUM_NODES`.$PES.`date +%s`
+   CMDFILE=tmp.$FILEID.cmd
+   {
+      echo \#!/bin/bash
+      echo \#@ job_name = $FILEID
+      echo \#@ class = bsc_cs
+      echo \#@ initialdir = .
+      echo \#@ output = $FILEID.%j.out
+      echo \#@ error= $FILEID.%j.err
+      echo \#@ total_tasks = $NUM_NODES
+      echo \#@ cpus_per_task = 4
+      echo \#@ nodeset= clos
+      echo \#@ wall_clock_limit = 00:20:00
+      echo \#@ tracing = 1
+      echo ""
+      echo ./nanoxrun.sh --no-interactive --nanoxpes $PES -- $APP $APP_ARGS
+   } > $CMDFILE
+#cat $CMDFILE
+}
+
+########## "main" ##########
 parseCommandLine $@
-generateMlistAndMachinefile
-initializeTracing
-runApp
-finalizeTracing
-cleanUp
+
+if [ x$QUEUE = xyes ] ; then
+   #generate script and submit
+   makeCmd
+   mnsubmit $CMDFILE
+   rm $CMDFILE
+else
+   # execute
+   getModeAndLibPath
+   generateMlistAndMachinefile
+   initializeTracing
+   runApp
+   finalizeTracing
+   cleanUp
+fi

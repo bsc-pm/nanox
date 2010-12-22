@@ -23,6 +23,8 @@
 
 #include "network.hpp"
 #include "networkapi.hpp"
+#include "simpleallocator.hpp"
+#include <map>
 
 namespace nanos {
 namespace ext {
@@ -30,7 +32,11 @@ namespace ext {
    class GASNetAPI : public NetworkAPI
    {
       private:
+         enum GetState { GET_WAITING, GET_COMPLETE };
+         typedef std::map< uint64_t, enum GetState > GetRequestCtl;
          Network *_net;
+         SimpleAllocator *_thisNodeSegment;
+         std::vector< GetRequestCtl * > _getRequests;
          
       public:
          void initialize ( Network *net );
@@ -43,6 +49,7 @@ namespace ext {
          void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, size_t size );
          void malloc ( unsigned int remoteNode, size_t size, unsigned int id );
          void nodeBarrier( void );
+         void getNotify( unsigned int node, uint64_t remoteAddr );
          
          void sendMyHostName( unsigned int dest );
    };
