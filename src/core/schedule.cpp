@@ -79,6 +79,22 @@ void Scheduler::submit ( WD &wd )
 
 }
 
+void Scheduler::submitAndWait ( WD &wd )
+{
+   debug ( "submitting and waiting task " << wd.getId() );
+   fatal ( "Scheduler::submitAndWait(): This feature is still not supported" );
+
+   // Create a new WorkGroup and add WD
+   WG myWG;
+   myWG.addWork( wd );
+
+   // Submit WD
+   submit( wd );
+
+   // Wait for WD to be finished
+   myWG.waitCompletion();
+}
+
 void Scheduler::updateExitStats ( WD &wd )
 {
    if ( wd.isSubmitted() ) 
@@ -361,7 +377,7 @@ void Scheduler::inlineWork ( WD *wd )
       switchToThread(oldwd->isTiedTo());
    #endif
 
-   ensure(oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(), 
+   ensure(oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(),
            "Violating tied rules " + toString<BaseThread*>(thread) + "!=" + toString<BaseThread*>(oldwd->isTiedTo()));
 
 }

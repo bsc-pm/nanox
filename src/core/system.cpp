@@ -816,7 +816,11 @@ void System::inlineWork ( WD &work )
 {
    setupWD( work, myThread->getCurrentWD() );
    // TODO: choose actual (active) device...
-   Scheduler::inlineWork( &work );
+   if ( Scheduler::checkBasicConstraints( work, *myThread ) ) {
+      Scheduler::inlineWork( &work );
+   } else {
+      Scheduler::submitAndWait( work );
+   }
 }
 
 BaseThread * System:: getUnassignedWorker ( void )
