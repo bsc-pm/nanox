@@ -48,7 +48,7 @@ namespace nanos
          static void idleLoop (void);
 
       public:
-         static void inlineWork ( WD *work );
+         static void inlineWork ( WD *work, bool schedule = false );
 
          static void submit ( WD &wd );
          static void switchTo ( WD *to );
