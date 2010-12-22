@@ -302,6 +302,7 @@ struct WorkerBehaviour
         Scheduler::switchTo(next);
       else {
         Scheduler::inlineWork ( next );
+        delete next;
       }
    }
 };
