@@ -92,13 +92,11 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ()
       if ( it1 == _pendingTransfersAsync.end() ) it1 = _pendingTransfersAsync.begin();
       _lock.release();
 
-      GPUMemoryTransfer & copy1 = *it1;
-
       NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent( NANOS_MEM_TRANSFER ) );
       NANOS_INSTRUMENT( nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-out") );
-      NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, copy1._size ) );
+      NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, it1->_size ) );
 
-      GPUDevice::copyOutAsyncToBuffer( ( void * ) copy1._hostAddress.getTag(), copy1._deviceAddress, copy1._size );
+      GPUDevice::copyOutAsyncToBuffer( ( void * ) it1->_hostAddress.getTag(), it1->_deviceAddress, it1->_size );
 
       while ( _pendingTransfersAsync.size() > 1) {
          // First copy
@@ -115,7 +113,7 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ()
             }
          }
          // If no requested transfer is found, take the first transfer that
-         // has not been taken by copy1
+         // has not been taken by it1
          if ( it2 == _pendingTransfersAsync.end() ) {
             it2 = _pendingTransfersAsync.begin();
          }
@@ -125,25 +123,23 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ()
          if ( it2 == it1 ) it2++;
          _lock.release();
 
-         GPUMemoryTransfer & copy2 = *it2;
-         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, copy2._size ) );
-         GPUDevice::copyOutAsyncToBuffer( ( void * ) copy2._hostAddress.getTag(), copy2._deviceAddress, copy2._size );
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, it2->_size ) );
+         GPUDevice::copyOutAsyncToBuffer( ( void * ) it2->_hostAddress.getTag(), it2->_deviceAddress, it2->_size );
 
          // First copy
-         GPUDevice::copyOutAsyncToHost( ( void * ) copy1._hostAddress.getTag(), copy1._deviceAddress, copy1._size );
+         GPUDevice::copyOutAsyncToHost( ( void * ) it1->_hostAddress.getTag(), it1->_deviceAddress, it1->_size );
 
          // Remove first copy from the list
          _lock.acquire();
          _pendingTransfersAsync.erase( it1 );
-         _lock.release();
 
          // Update second copy to be first copy at next iteration
          it1 = it2;
-         copy1 = *it1;
+         _lock.release();
       }
 
       GPUDevice::copyOutAsyncWait();
-      GPUDevice::copyOutAsyncToHost( ( void * ) copy1._hostAddress.getTag(), copy1._deviceAddress, copy1._size );
+      GPUDevice::copyOutAsyncToHost( ( void * ) it1->_hostAddress.getTag(), it1->_deviceAddress, it1->_size );
 
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateEvent() );
 
