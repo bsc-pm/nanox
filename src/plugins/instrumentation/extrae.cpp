@@ -117,7 +117,9 @@ class InstrumentationExtrae: public Instrumentation
             p_file << NANOS_SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
             p_file << NANOS_SCHEDULING       << "     SCHEDULING" << std::endl;
             p_file << NANOS_CREATION         << "     CREATION" << std::endl;
-            p_file << NANOS_MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
+            p_file << NANOS_MEM_TRANSFER_IN  << "     DATA TRANSFER TO DEVICE" << std::endl;
+            p_file << NANOS_MEM_TRANSFER_OUT << "     DATA TRANSFER TO HOST" << std::endl;
+            p_file << NANOS_MEM_TRANSFER_LOCAL << "     LOCAL DATA TRANSFER IN DEVICE" << std::endl;
             p_file << NANOS_CACHE            << "     CACHE ALLOC/FREE" << std::endl;
             p_file << NANOS_YIELD            << "     YIELD" << std::endl;
             p_file << std::endl;
@@ -147,7 +149,9 @@ class InstrumentationExtrae: public Instrumentation
             p_file << NANOS_SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
             p_file << NANOS_SCHEDULING       << "     SCHEDULING" << std::endl;
             p_file << NANOS_CREATION         << "     CREATION" << std::endl;
-            p_file << NANOS_MEM_TRANSFER     << "     DATA TRANSFER" << std::endl;
+            p_file << NANOS_MEM_TRANSFER_IN  << "     DATA TRANSFER TO DEVICE" << std::endl;
+            p_file << NANOS_MEM_TRANSFER_OUT << "     DATA TRANSFER TO HOST" << std::endl;
+            p_file << NANOS_MEM_TRANSFER_LOCAL << "     LOCAL DATA TRANSFER IN DEVICE" << std::endl;
             p_file << NANOS_CACHE            << "     CACHE ALLOC/FREE" << std::endl;
             p_file << NANOS_YIELD            << "     YIELD" << std::endl;
             p_file << std::endl;
