@@ -77,6 +77,7 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
             this->unlock();
             found = NULL;
          } else {
+            DependenciesDomain::decreaseTasksInGraph();
             break;
          }
       }
