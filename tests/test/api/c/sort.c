@@ -1,36 +1,104 @@
-/**********************************************************************************************/
-/*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
-/*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
-/*  Copyright (C) 2009 Universitat Politecnica de Catalunya                                   */
-/*                                                                                            */
-/*  This program is free software; you can redistribute it and/or modify                      */
-/*  it under the terms of the GNU General Public License as published by                      */
-/*  the Free Software Foundation; either version 2 of the License, or                         */
-/*  (at your option) any later version.                                                       */
-/*                                                                                            */
-/*  This program is distributed in the hope that it will be useful,                           */
-/*  but WITHOUT ANY WARRANTY; without even the implied warranty of                            */
-/*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                             */
-/*  GNU General Public License for more details.                                              */
-/*                                                                                            */
-/*  You should have received a copy of the GNU General Public License                         */
-/*  along with this program; if not, write to the Free Software                               */
-/*  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA            */
-/**********************************************************************************************/
+/*************************************************************************************/
+/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+/*************************************************************************************/
+/*  This program is part of the Barcelona OpenMP Tasks Suite                         */
+/*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de          */
+/*  Supercomputacion                                                                 */
+/*  Copyright (C) 2009 Universitat Politecnica de Catalunya                          */
+/*                                                                                   */
+/*  This program is free software; you can redistribute it and/or modify             */
+/*  it under the terms of the GNU General Public License as published by             */
+/*  the Free Software Foundation; either version 2 of the License, or                */
+/*  (at your option) any later version.                                              */
+/*                                                                                   */
+/*  This program is distributed in the hope that it will be useful,                  */
+/*  but WITHOUT ANY WARRANTY; without even the implied warranty of                   */
+/*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                    */
+/*  GNU General Public License for more details.                                     */
+/*                                                                                   */
+/*  You should have received a copy of the GNU General Public License                */
+/*  along with this program; if not, write to the Free Software                      */
+/*  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA   */
+/*************************************************************************************/
+/*************************************************************************************/
+/*  Original code from the Cilk project                                              */
+/*                                                                                   */
+/* Copyright (c) 2000 Massachusetts Institute of Technology                          */
+/* Copyright (c) 2000 Matteo Frigo                                                   */
+/*************************************************************************************/
+/*
+ * this program uses an algorithm that we call `cilksort'.
+ * The algorithm is essentially mergesort:
+ *
+ *   cilksort(in[1..n]) =
+ *       spawn cilksort(in[1..n/2], tmp[1..n/2])
+ *       spawn cilksort(in[n/2..n], tmp[n/2..n])
+ *       sync
+ *       spawn cilkmerge(tmp[1..n/2], tmp[n/2..n], in[1..n])
+ *
+ *
+ * The procedure cilkmerge does the following:
+ *       
+ *       cilkmerge(A[1..n], B[1..m], C[1..(n+m)]) =
+ *          find the median of A \union B using binary
+ *          search.  The binary search gives a pair
+ *          (ma, mb) such that ma + mb = (n + m)/2
+ *          and all elements in A[1..ma] are smaller than
+ *          B[mb..m], and all the B[1..mb] are smaller
+ *          than all elements in A[ma..n].
+ *
+ *          spawn cilkmerge(A[1..ma], B[1..mb], C[1..(n+m)/2])
+ *          spawn cilkmerge(A[ma..m], B[mb..n], C[(n+m)/2 .. (n+m)])
+ *          sync
+ *
+ * The algorithm appears for the first time (AFAIK) in S. G. Akl and
+ * N. Santoro, "Optimal Parallel Merging and Sorting Without Memory
+ * Conflicts", IEEE Trans. Comp., Vol. C-36 No. 11, Nov. 1987 .  The
+ * paper does not express the algorithm using recursion, but the
+ * idea of finding the median is there.
+ *
+ * For cilksort of n elements, T_1 = O(n log n) and
+ * T_\infty = O(log^3 n).  There is a way to shave a
+ * log factor in the critical path (left as homework).
+ */
 /*
 ================ VERSION SUFFIXES ================
 serial = serial version
        = parallel version (regular)
-mc     = paralele version with mandatory creation
+mc     = parallel version with mandatory creation
+cwd    = parallel version using compound wd's
 ==================================================
 <testinfo>
-compile_versions="sort_serial sort sort_mc"
+compile_versions="sort_serial sort sort_mc sort_cwd"
 test_CFLAGS_sort_serial="-DSERIAL_VERSION"
 test_CFLAGS_sort=""
 test_CFLAGS_sort_mc="-DFORCE_MANDATORY_CREATION"
+test_CFLAGS_sort_cwd="-DUSE_COMPOUND_WD"
 test_generator=gens/api-omp-generator
 </testinfo>
-*/ 
+*/
+
+#ifdef USE_COMPOUND_WD
+#ifndef FORCE_MANDATORY_CREATION
+#define FORCE_MANDATORY_CREATION
+#endif
+#endif
 
 #include <nanos.h>
 #include "omp.h"
@@ -38,7 +106,20 @@ test_generator=gens/api-omp-generator
 #define MODEL NANOX-TASKS
 #define BOTS_MODEL_DESC "Nanos++"
 
-#define BOTS_APP_NAME "Sort"
+#ifdef SERIAL_VERSION
+#define BOTS_APP_NAME "Sort (serial version)"
+#else
+#ifdef MANDATORY_CREATION
+#ifdef USE_COMPOUND_WD
+#define BOTS_APP_NAME "Sort (parallel: compound wd's slicer)"
+#else
+#define BOTS_APP_NAME "Sort (parallel: mandatory wd creation)"
+#endif
+#else
+#define BOTS_APP_NAME "Sort (parallel version)"
+#endif
+#endif
+
 #define BOTS_APP_PARAMETERS_DESC "N=%d:Q=%d:I=%d:M=%d"
 #define BOTS_APP_PARAMETERS_LIST ,bots_arg_size,bots_app_cutoff_value_1,bots_app_cutoff_value_2,bots_app_cutoff_value
 
@@ -119,92 +200,10 @@ void bots_print_results(void);
 void bots_print_usage(void);
 void bots_print_usage_option(char opt, int type, char* description, char *val, int subc, char **subv);
 
-/**********************************************************************************************/
-/*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
-/*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
-/*  Copyright (C) 2009 Universitat Politecnica de Catalunya                                   */
-/*                                                                                            */
-/*  This program is free software; you can redistribute it and/or modify                      */
-/*  it under the terms of the GNU General Public License as published by                      */
-/*  the Free Software Foundation; either version 2 of the License, or                         */
-/*  (at your option) any later version.                                                       */
-/*                                                                                            */
-/*  This program is distributed in the hope that it will be useful,                           */
-/*  but WITHOUT ANY WARRANTY; without even the implied warranty of                            */
-/*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                             */
-/*  GNU General Public License for more details.                                              */
-/*                                                                                            */
-/*  You should have received a copy of the GNU General Public License                         */
-/*  along with this program; if not, write to the Free Software                               */
-/*  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA            */
-/**********************************************************************************************/
-
-/*
- *  Original code from the Cilk project
- *
- * Copyright (c) 2000 Massachusetts Institute of Technology
- * Copyright (c) 2000 Matteo Frigo
- */
-
-/*
- * this program uses an algorithm that we call `cilksort'.
- * The algorithm is essentially mergesort:
- *
- *   cilksort(in[1..n]) =
- *       spawn cilksort(in[1..n/2], tmp[1..n/2])
- *       spawn cilksort(in[n/2..n], tmp[n/2..n])
- *       sync
- *       spawn cilkmerge(tmp[1..n/2], tmp[n/2..n], in[1..n])
- *
- *
- * The procedure cilkmerge does the following:
- *       
- *       cilkmerge(A[1..n], B[1..m], C[1..(n+m)]) =
- *          find the median of A \union B using binary
- *          search.  The binary search gives a pair
- *          (ma, mb) such that ma + mb = (n + m)/2
- *          and all elements in A[1..ma] are smaller than
- *          B[mb..m], and all the B[1..mb] are smaller
- *          than all elements in A[ma..n].
- *
- *          spawn cilkmerge(A[1..ma], B[1..mb], C[1..(n+m)/2])
- *          spawn cilkmerge(A[ma..m], B[mb..n], C[(n+m)/2 .. (n+m)])
- *          sync
- *
- * The algorithm appears for the first time (AFAIK) in S. G. Akl and
- * N. Santoro, "Optimal Parallel Merging and Sorting Without Memory
- * Conflicts", IEEE Trans. Comp., Vol. C-36 No. 11, Nov. 1987 .  The
- * paper does not express the algorithm using recursion, but the
- * idea of finding the median is there.
- *
- * For cilksort of n elements, T_1 = O(n log n) and
- * T_\infty = O(log^3 n).  There is a way to shave a
- * log factor in the critical path (left as homework).
- */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-/**********************************************************************************************/
-/*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
-/*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
-/*  Copyright (C) 2009 Universitat Politecnica de Catalunya                                   */
-/*                                                                                            */
-/*  This program is free software; you can redistribute it and/or modify                      */
-/*  it under the terms of the GNU General Public License as published by                      */
-/*  the Free Software Foundation; either version 2 of the License, or                         */
-/*  (at your option) any later version.                                                       */
-/*                                                                                            */
-/*  This program is distributed in the hope that it will be useful,                           */
-/*  but WITHOUT ANY WARRANTY; without even the implied warranty of                            */
-/*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                             */
-/*  GNU General Public License for more details.                                              */
-/*                                                                                            */
-/*  You should have received a copy of the GNU General Public License                         */
-/*  along with this program; if not, write to the Free Software                               */
-/*  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA            */
-/**********************************************************************************************/
 
 #ifndef _BOTS_H_
 
@@ -607,9 +606,6 @@ void cilkmerge_par(ELM *low1, ELM *high1, ELM *low2, ELM *high2, ELM *lowdest)
 
 #else
       {
-         nanos_wd_t wd = NULL;
-         cilkmerge_par_1_args *args = NULL;
-         nanos_device_t cilkmerge_par_1_devices_1[1] = { NANOS_SMP_DESC( cilkmerge_par_1_device_arg ) };
          nanos_wd_props_t props = {
 #ifdef FORCE_MANDATORY_CREATION
            .mandatory_creation = true,
@@ -620,20 +616,29 @@ void cilkmerge_par(ELM *low1, ELM *high1, ELM *low2, ELM *high2, ELM *lowdest)
            .tie_to = false,
          };
 
-         NANOS_SAFE( nanos_create_wd ( &wd, 1, cilkmerge_par_1_devices_1 , sizeof( cilkmerge_par_1_args ),
-                                       ( void ** )&args, nanos_current_wd(), &props, 0, NULL ) );
+         nanos_wd_t wd[2] = {NULL,NULL};
+         cilkmerge_par_1_args *args_w1 = NULL;
+         cilkmerge_par_1_args *args_w2 = NULL;
+
+         nanos_device_t cilkmerge_par_1_devices_1[1] = { NANOS_SMP_DESC( cilkmerge_par_1_device_arg ) };
+
+         NANOS_SAFE( nanos_create_wd ( &wd[0], 1, cilkmerge_par_1_devices_1 , sizeof( cilkmerge_par_1_args ),
+                                       ( void ** )&args_w1, nanos_current_wd(), &props, 0, NULL ) );
 
 #ifndef FORCE_MANDATORY_CREATION
-         if (wd != (nanos_wd_t) 0)
+         if (wd[0] != (nanos_wd_t) 0)
          {       
 #endif
-            args->low1 = low1;
-            args->high1 = split1 - 1;
-            args->low2 = low2;
-            args->high2 = split2;
-            args->lowdest = lowdest;
-         
-            NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
+            args_w1->low1 = low1;
+            args_w1->high1 = split1 - 1;
+            args_w1->low2 = low2;
+            args_w1->high2 = split2;
+            args_w1->lowdest = lowdest;
+
+#ifndef USE_COMPOUND_WD
+            NANOS_SAFE( nanos_submit( wd[0],0,0,0 ) );
+#endif
+
 #ifndef FORCE_MANDATORY_CREATION
          } else {       
             cilkmerge_par_1_args imm_args;
@@ -649,35 +654,23 @@ void cilkmerge_par(ELM *low1, ELM *high1, ELM *low2, ELM *high2, ELM *lowdest)
          }
 #endif
 
-      }
-      {
-         nanos_wd_t wd = NULL;
-         cilkmerge_par_1_args *args = NULL;
-         nanos_device_t cilkmerge_par_1_devices_1[1] = { NANOS_SMP_DESC( cilkmerge_par_1_device_arg ) };
-         nanos_wd_props_t props = {
-#ifdef FORCE_MANDATORY_CREATION
-           .mandatory_creation = true,
-#else
-           .mandatory_creation = false,
-#endif
-           .tied = false,
-           .tie_to = false,
-         };
-
-         NANOS_SAFE( nanos_create_wd ( &wd, 1, cilkmerge_par_1_devices_1 , sizeof( cilkmerge_par_1_args ),
-                                       ( void ** )&args, nanos_current_wd(), &props, 0, NULL ) );
+         NANOS_SAFE( nanos_create_wd ( &wd[1], 1, cilkmerge_par_1_devices_1 , sizeof( cilkmerge_par_1_args ),
+                                       ( void ** )&args_w2, nanos_current_wd(), &props, 0, NULL ) );
 
 #ifndef FORCE_MANDATORY_CREATION
-         if (wd != (nanos_wd_t) 0)
+         if (wd[1] != (nanos_wd_t) 0)
          {       
 #endif
-            args->low1 = split1 + 1;
-            args->high1 = high1;
-            args->low2 = split2 + 1;
-            args->high2 = high2;
-            args->lowdest = lowdest + lowsize + 2;
+            args_w2->low1 = split1 + 1;
+            args_w2->high1 = high1;
+            args_w2->low2 = split2 + 1;
+            args_w2->high2 = high2;
+            args_w2->lowdest = lowdest + lowsize + 2;
 
-            NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
+#ifndef USE_COMPOUND_WD
+            NANOS_SAFE( nanos_submit( wd[1],0,0,0 ) );
+#endif
+
 #ifndef FORCE_MANDATORY_CREATION
          } else {       
             cilkmerge_par_1_args imm_args;
@@ -692,6 +685,29 @@ void cilkmerge_par(ELM *low1, ELM *high1, ELM *low2, ELM *high2, ELM *lowdest)
                                        &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, NULL ) );
          }
 #endif
+
+#ifdef USE_COMPOUND_WD
+         nanos_slicer_t slicer = nanos_find_slicer("compound_wd");
+         nanos_wd_t cwd = NULL;
+         void * compound_f;
+         nanos_slicer_get_specific_data ( slicer, &compound_f );
+         nanos_smp_args_t main__sections_device_args = { compound_f };
+         nanos_device_t main__sections_device[1] = { NANOS_SMP_DESC( main__sections_device_args ) };
+         nanos_compound_wd_data_t *list_of_wds = NULL;
+
+         /* slicer data pointer */
+         void *dummy;
+         NANOS_SAFE( nanos_create_sliced_wd ( &cwd, 1, main__sections_device,
+                                       sizeof(nanos_compound_wd_data_t) + (2) * sizeof(nanos_wd_t), (void **) &list_of_wds,
+                                       nanos_current_wd(), slicer, 0, &dummy, &props , 0, NULL ) );
+
+         /* Initializing data */
+         list_of_wds->nsect = 2;
+         list_of_wds->lwd[0] = wd[0];
+         list_of_wds->lwd[1] = wd[1];
+         NANOS_SAFE( nanos_submit( cwd,0,0,0 ) );
+#endif
+
       }
 
       NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
@@ -759,9 +775,6 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
      cilksort_par (D,tmpD,size - 3*quarter);
 #else
       {
-         nanos_wd_t wd = NULL;
-         cilksort_par_1_args *args = NULL;
-         nanos_device_t cilksort_par_1_devices_1[1] = { NANOS_SMP_DESC( cilksort_par_1_device_arg ) };
          nanos_wd_props_t props = {
 #ifdef FORCE_MANDATORY_CREATION
            .mandatory_creation = true,
@@ -772,18 +785,29 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
            .tie_to = false,
          };
 
-         NANOS_SAFE( nanos_create_wd ( &wd, 1, cilksort_par_1_devices_1 , sizeof( cilksort_par_1_args ),
-                                       ( void ** )&args, nanos_current_wd(), &props, 0, NULL ) );
+         nanos_wd_t wd[4] = {NULL,NULL,NULL,NULL};
+         cilksort_par_1_args *args_w0 = NULL;
+         cilksort_par_1_args *args_w1 = NULL;
+         cilksort_par_1_args *args_w2 = NULL;
+         cilksort_par_1_args *args_w3 = NULL;
+
+         nanos_device_t cilksort_par_1_devices_1[1] = { NANOS_SMP_DESC( cilksort_par_1_device_arg ) };
+
+         NANOS_SAFE( nanos_create_wd ( &wd[0], 1, cilksort_par_1_devices_1 , sizeof( cilksort_par_1_args ),
+                                       ( void ** )&args_w0, nanos_current_wd(), &props, 0, NULL ) );
 
 #ifndef FORCE_MANDATORY_CREATION
-         if (wd != (nanos_wd_t) 0)
+         if (wd[0] != (nanos_wd_t) 0)
          {       
 #endif
-            args->low = A;
-            args->tmp = tmpA;
-            args->size = quarter;
-         
-            NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
+            args_w0->low = A;
+            args_w0->tmp = tmpA;
+            args_w0->size = quarter;
+
+#ifndef USE_COMPOUND_WD
+            NANOS_SAFE( nanos_submit( wd[0],0,0,0 ) );
+#endif
+
 #ifndef FORCE_MANDATORY_CREATION
          } else {       
             cilksort_par_1_args imm_args;
@@ -797,33 +821,21 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
          }
 #endif
 
-      }
-      {
-         nanos_wd_t wd = NULL;
-         cilksort_par_1_args *args = NULL;
-         nanos_device_t cilksort_par_1_devices_1[1] = { NANOS_SMP_DESC( cilksort_par_1_device_arg ) };
-         nanos_wd_props_t props = {
-#ifdef FORCE_MANDATORY_CREATION
-           .mandatory_creation = true,
-#else
-           .mandatory_creation = false,
-#endif
-           .tied = false,
-           .tie_to = false,
-         };
-
-         NANOS_SAFE( nanos_create_wd ( &wd, 1, cilksort_par_1_devices_1 , sizeof( cilksort_par_1_args ),
-                                       ( void ** )&args, nanos_current_wd(), &props, 0, NULL ) );
+         NANOS_SAFE( nanos_create_wd ( &wd[1], 1, cilksort_par_1_devices_1 , sizeof( cilksort_par_1_args ),
+                                       ( void ** )&args_w1, nanos_current_wd(), &props, 0, NULL ) );
 
 #ifndef FORCE_MANDATORY_CREATION
-         if (wd != (nanos_wd_t) 0)
+         if (wd[1] != (nanos_wd_t) 0)
          {       
 #endif
-            args->low = B;
-            args->tmp = tmpB;
-            args->size = quarter;
-         
-            NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
+            args_w1->low = B;
+            args_w1->tmp = tmpB;
+            args_w1->size = quarter;
+
+#ifndef USE_COMPOUND_WD
+            NANOS_SAFE( nanos_submit( wd[1],0,0,0 ) );
+#endif
+
 #ifndef FORCE_MANDATORY_CREATION
          } else {       
             cilksort_par_1_args imm_args;
@@ -836,33 +848,22 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
                                        &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, NULL ) );
          }
 #endif
-      }
-      {
-         nanos_wd_t wd = NULL;
-         cilksort_par_1_args *args = NULL;
-         nanos_device_t cilksort_par_1_devices_1[1] = { NANOS_SMP_DESC( cilksort_par_1_device_arg ) };
-         nanos_wd_props_t props = {
-#ifdef FORCE_MANDATORY_CREATION
-           .mandatory_creation = true,
-#else
-           .mandatory_creation = false,
-#endif
-           .tied = false,
-           .tie_to = false,
-         };
 
-         NANOS_SAFE( nanos_create_wd ( &wd, 1, cilksort_par_1_devices_1 , sizeof( cilksort_par_1_args ),
-                                       ( void ** )&args, nanos_current_wd(), &props, 0, NULL ) );
+         NANOS_SAFE( nanos_create_wd ( &wd[2], 1, cilksort_par_1_devices_1 , sizeof( cilksort_par_1_args ),
+                                       ( void ** )&args_w2, nanos_current_wd(), &props, 0, NULL ) );
 
 #ifndef FORCE_MANDATORY_CREATION
-         if (wd != (nanos_wd_t) 0)
+         if (wd[2] != (nanos_wd_t) 0)
          {       
 #endif
-            args->low = C;
-            args->tmp = tmpC;
-            args->size = quarter;
-         
-            NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
+            args_w2->low = C;
+            args_w2->tmp = tmpC;
+            args_w2->size = quarter;
+
+#ifndef USE_COMPOUND_WD
+            NANOS_SAFE( nanos_submit( wd[2],0,0,0 ) );
+#endif
+
 #ifndef FORCE_MANDATORY_CREATION
          } else {       
             cilksort_par_1_args imm_args;
@@ -875,33 +876,22 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
                                        &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, NULL ) );
          }
 #endif
-      }
-      {
-         nanos_wd_t wd = NULL;
-         cilksort_par_1_args *args = NULL;
-         nanos_device_t cilksort_par_1_devices_1[1] = { NANOS_SMP_DESC( cilksort_par_1_device_arg ) };
-         nanos_wd_props_t props = {
-#ifdef FORCE_MANDATORY_CREATION
-           .mandatory_creation = true,
-#else
-           .mandatory_creation = false,
-#endif
-           .tied = false,
-           .tie_to = false,
-         };
 
-         NANOS_SAFE( nanos_create_wd ( &wd, 1, cilksort_par_1_devices_1 , sizeof( cilksort_par_1_args ),
-                                       ( void ** )&args, nanos_current_wd(), &props, 0, NULL ) );
+         NANOS_SAFE( nanos_create_wd ( &wd[3], 1, cilksort_par_1_devices_1 , sizeof( cilksort_par_1_args ),
+                                       ( void ** )&args_w3, nanos_current_wd(), &props, 0, NULL ) );
 
 #ifndef FORCE_MANDATORY_CREATION
-         if (wd != (nanos_wd_t) 0)
+         if (wd[3] != (nanos_wd_t) 0)
          {       
 #endif
-            args->low = D;
-            args->tmp = tmpD;
-            args->size = size - 3 * quarter;
-         
-            NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
+            args_w3->low = D;
+            args_w3->tmp = tmpD;
+            args_w3->size = size - 3 * quarter;
+
+#ifndef USE_COMPOUND_WD
+            NANOS_SAFE( nanos_submit( wd[3],0,0,0 ) );
+#endif
+
 #ifndef FORCE_MANDATORY_CREATION
          } else {       
             cilksort_par_1_args imm_args;
@@ -914,6 +904,36 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
                                        &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, NULL ) );
          }
 #endif
+
+#ifdef USE_COMPOUND_WD
+         nanos_slicer_t slicer = nanos_find_slicer("compound_wd");
+
+         nanos_wd_t cwd = NULL;
+
+         void * compound_f;
+         nanos_slicer_get_specific_data ( slicer, &compound_f );
+
+         nanos_smp_args_t main__sections_device_args = { compound_f };
+         nanos_device_t main__sections_device[1] = { NANOS_SMP_DESC( main__sections_device_args ) };
+         nanos_compound_wd_data_t *list_of_wds = NULL;
+
+         /* slicer data pointer */
+         void *dummy;
+
+         NANOS_SAFE( nanos_create_sliced_wd ( &cwd, 1, main__sections_device,
+                                       sizeof(nanos_compound_wd_data_t) + (4) * sizeof(nanos_wd_t), (void **) &list_of_wds,
+                                       nanos_current_wd(), slicer, 0, &dummy, &props , 0, NULL ) );
+
+         /* Initializing data */
+         list_of_wds->nsect = 4;
+         list_of_wds->lwd[0] = wd[0];
+         list_of_wds->lwd[1] = wd[1];
+         list_of_wds->lwd[2] = wd[2];
+         list_of_wds->lwd[3] = wd[3];
+
+         NANOS_SAFE( nanos_submit( cwd,0,0,0 ) );
+#endif
+
       }
 
       NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
@@ -924,9 +944,6 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
       cilkmerge_par(C, C + quarter - 1, D, low + size - 1, tmpC);
 #else
       {
-         nanos_wd_t wd = NULL;
-         cilkmerge_par_1_args *args = NULL;
-         nanos_device_t cilkmerge_par_1_devices_1[1] = { NANOS_SMP_DESC( cilkmerge_par_1_device_arg ) };
          nanos_wd_props_t props = {
 #ifdef FORCE_MANDATORY_CREATION
            .mandatory_creation = true,
@@ -937,20 +954,30 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
            .tie_to = false,
          };
 
-         NANOS_SAFE( nanos_create_wd ( &wd, 1, cilkmerge_par_1_devices_1 , sizeof( cilkmerge_par_1_args ),
-                                       ( void ** )&args, nanos_current_wd(), &props, 0, NULL ) );
+         nanos_wd_t wd[2] = {NULL,NULL};
+
+         cilkmerge_par_1_args *args_w0 = NULL;
+         cilkmerge_par_1_args *args_w1 = NULL;
+ 
+         nanos_device_t cilkmerge_par_1_devices_1[1] = { NANOS_SMP_DESC( cilkmerge_par_1_device_arg ) };
+
+         NANOS_SAFE( nanos_create_wd ( &wd[0], 1, cilkmerge_par_1_devices_1 , sizeof( cilkmerge_par_1_args ),
+                                       ( void ** )&args_w0, nanos_current_wd(), &props, 0, NULL ) );
 
 #ifndef FORCE_MANDATORY_CREATION
-         if (wd != (nanos_wd_t) 0)
+         if (wd[0] != (nanos_wd_t) 0)
          {       
 #endif
-            args->low1 = A;
-            args->high1 = A + quarter - 1;
-            args->low2 = B;
-            args->high2 = B + quarter - 1;
-            args->lowdest = tmpA;
-         
-            NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
+            args_w0->low1 = A;
+            args_w0->high1 = A + quarter - 1;
+            args_w0->low2 = B;
+            args_w0->high2 = B + quarter - 1;
+            args_w0->lowdest = tmpA;
+
+#ifndef USE_COMPOUND_WD
+            NANOS_SAFE( nanos_submit( wd[0],0,0,0 ) );
+#endif
+
 #ifndef FORCE_MANDATORY_CREATION
          } else {       
             cilkmerge_par_1_args imm_args;
@@ -965,35 +992,24 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
                                        &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, NULL ) );
          }
 #endif
-      }
-      {
-         nanos_wd_t wd = NULL;
-         cilkmerge_par_1_args *args = NULL;
-         nanos_device_t cilkmerge_par_1_devices_1[1] = { NANOS_SMP_DESC( cilkmerge_par_1_device_arg ) };
-         nanos_wd_props_t props = {
-#ifdef FORCE_MANDATORY_CREATION
-           .mandatory_creation = true,
-#else
-           .mandatory_creation = false,
-#endif
-           .tied = false,
-           .tie_to = false,
-         };
 
-         NANOS_SAFE( nanos_create_wd ( &wd, 1, cilkmerge_par_1_devices_1 , sizeof( cilkmerge_par_1_args ),
-                                       ( void ** )&args, nanos_current_wd(), &props, 0, NULL ) );
+         NANOS_SAFE( nanos_create_wd ( &wd[1], 1, cilkmerge_par_1_devices_1 , sizeof( cilkmerge_par_1_args ),
+                                       ( void ** )&args_w1, nanos_current_wd(), &props, 0, NULL ) );
 
 #ifndef FORCE_MANDATORY_CREATION
-         if (wd != (nanos_wd_t) 0)
+         if (wd[1] != (nanos_wd_t) 0)
          {       
 #endif
-            args->low1 = C;
-            args->high1 = C + quarter - 1;
-            args->low2 = D;
-            args->high2 = low + size - 1;
-            args->lowdest = tmpC;
-         
-            NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
+            args_w1->low1 = C;
+            args_w1->high1 = C + quarter - 1;
+            args_w1->low2 = D;
+            args_w1->high2 = low + size - 1;
+            args_w1->lowdest = tmpC;
+
+#ifndef USE_COMPOUND_WD
+            NANOS_SAFE( nanos_submit( wd[1],0,0,0 ) );
+#endif
+
 #ifndef FORCE_MANDATORY_CREATION
          } else {       
             cilkmerge_par_1_args imm_args;
@@ -1008,6 +1024,29 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
                                        &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, NULL ) );
          }
 #endif
+
+#ifdef USE_COMPOUND_WD
+         nanos_slicer_t slicer = nanos_find_slicer("compound_wd");
+         nanos_wd_t cwd = NULL;
+         void * compound_f;
+         nanos_slicer_get_specific_data ( slicer, &compound_f );
+         nanos_smp_args_t main__sections_device_args = { compound_f };
+         nanos_device_t main__sections_device[1] = { NANOS_SMP_DESC( main__sections_device_args ) };
+         nanos_compound_wd_data_t *list_of_wds = NULL;
+
+         /* slicer data pointer */
+         void *dummy;
+         NANOS_SAFE( nanos_create_sliced_wd ( &cwd, 1, main__sections_device,
+                                       sizeof(nanos_compound_wd_data_t) + (2) * sizeof(nanos_wd_t), (void **) &list_of_wds,
+                                       nanos_current_wd(), slicer, 0, &dummy, &props , 0, NULL ) );
+
+         /* Initializing data */
+         list_of_wds->nsect = 2;
+         list_of_wds->lwd[0] = wd[0];
+         list_of_wds->lwd[1] = wd[1];
+         NANOS_SAFE( nanos_submit( cwd,0,0,0 ) );
+#endif
+
       }
 
       NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
@@ -1099,49 +1138,6 @@ int sort_verify ( void )
 
      return success ? BOTS_RESULT_SUCCESSFUL : BOTS_RESULT_UNSUCCESSFUL;
 }
-
-
-
-/**********************************************************************************************/
-/*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
-/*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
-/*  Copyright (C) 2009 Universitat Politecnica de Catalunya                                   */
-/*                                                                                            */
-/*  This program is free software; you can redistribute it and/or modify                      */
-/*  it under the terms of the GNU General Public License as published by                      */
-/*  the Free Software Foundation; either version 2 of the License, or                         */
-/*  (at your option) any later version.                                                       */
-/*                                                                                            */
-/*  This program is distributed in the hope that it will be useful,                           */
-/*  but WITHOUT ANY WARRANTY; without even the implied warranty of                            */
-/*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                             */
-/*  GNU General Public License for more details.                                              */
-/*                                                                                            */
-/*  You should have received a copy of the GNU General Public License                         */
-/*  along with this program; if not, write to the Free Software                               */
-/*  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA            */
-/**********************************************************************************************/
-
-
-/**********************************************************************************************/
-/*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
-/*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
-/*  Copyright (C) 2009 Universitat Politecnica de Catalunya                                   */
-/*                                                                                            */
-/*  This program is free software; you can redistribute it and/or modify                      */
-/*  it under the terms of the GNU General Public License as published by                      */
-/*  the Free Software Foundation; either version 2 of the License, or                         */
-/*  (at your option) any later version.                                                       */
-/*                                                                                            */
-/*  This program is distributed in the hope that it will be useful,                           */
-/*  but WITHOUT ANY WARRANTY; without even the implied warranty of                            */
-/*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                             */
-/*  GNU General Public License for more details.                                              */
-/*                                                                                            */
-/*  You should have received a copy of the GNU General Public License                         */
-/*  along with this program; if not, write to the Free Software                               */
-/*  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA            */
-/**********************************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1457,28 +1453,6 @@ Nodes;Nodes/Sec;\n");
    }
 }
 
-
-
-/**********************************************************************************************/
-/*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
-/*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
-/*  Copyright (C) 2009 Universitat Politecnica de Catalunya                                   */
-/*                                                                                            */
-/*  This program is free software; you can redistribute it and/or modify                      */
-/*  it under the terms of the GNU General Public License as published by                      */
-/*  the Free Software Foundation; either version 2 of the License, or                         */
-/*  (at your option) any later version.                                                       */
-/*                                                                                            */
-/*  This program is distributed in the hope that it will be useful,                           */
-/*  but WITHOUT ANY WARRANTY; without even the implied warranty of                            */
-/*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                             */
-/*  GNU General Public License for more details.                                              */
-/*                                                                                            */
-/*  You should have received a copy of the GNU General Public License                         */
-/*  along with this program; if not, write to the Free Software                               */
-/*  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA            */
-/**********************************************************************************************/
-
 /***********************************************************************
  * main function & common behaviour of the benchmark.
  **********************************************************************/
@@ -1490,27 +1464,6 @@ Nodes;Nodes/Sec;\n");
 #include <memory.h>
 #include <sys/time.h>
 #include <libgen.h>
-
-
-/**********************************************************************************************/
-/*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
-/*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
-/*  Copyright (C) 2009 Universitat Politecnica de Catalunya                                   */
-/*                                                                                            */
-/*  This program is free software; you can redistribute it and/or modify                      */
-/*  it under the terms of the GNU General Public License as published by                      */
-/*  the Free Software Foundation; either version 2 of the License, or                         */
-/*  (at your option) any later version.                                                       */
-/*                                                                                            */
-/*  This program is distributed in the hope that it will be useful,                           */
-/*  but WITHOUT ANY WARRANTY; without even the implied warranty of                            */
-/*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                             */
-/*  GNU General Public License for more details.                                              */
-/*                                                                                            */
-/*  You should have received a copy of the GNU General Public License                         */
-/*  along with this program; if not, write to the Free Software                               */
-/*  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA            */
-/**********************************************************************************************/
 
 /***********************************************************************
  * BENCHMARK HEADERS 
