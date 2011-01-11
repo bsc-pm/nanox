@@ -45,6 +45,8 @@ namespace nanos
          int                  _id;                   /**< Domain's id */
          unsigned int         _lastDepObjId;         /**< Id to be given to the next submitted DependableObject */
          DepsMap              _addressDependencyMap; /**< Used to track dependencies between DependableObject */
+         static Atomic<int>   _tasksInGraph;         /**< Current number of tasks in the graph */
+         static Lock          _lock;
 
         /*! \brief Looks for the dependency's address in the domain and returns the trackableObject associated.
          *  \param dep Dependency to be checked.
@@ -75,7 +77,13 @@ namespace nanos
               _addressDependencyMap ( depDomain._addressDependencyMap ) {}
         /*! \brief DependenciesDomain destructor
          */
-         ~DependenciesDomain ( ) { }
+         ~DependenciesDomain ( )
+         {
+            for ( DepsMap::iterator it = _addressDependencyMap.begin(); it != _addressDependencyMap.end(); it++ ) {
+               delete it->second;
+            }
+         }
+
         /*! \brief get object's id
          */
          int getId ()
@@ -101,6 +109,28 @@ namespace nanos
          {
             submitDependableObjectInternal ( depObj, deps, deps+numDeps );
          }
+
+         static void increaseTasksInGraph();
+
+         static void decreaseTasksInGraph();
+
+        /*! \brief Get exclusive access to the object
+         */
+         static void lock ( )
+         {
+            _lock.acquire();
+            memoryFence();
+         }
+
+        /*! \brief Release object's lock
+         */
+         static void unlock ( )
+         {
+            memoryFence();
+            _lock.release();
+         }
+
+
    };
 
 };

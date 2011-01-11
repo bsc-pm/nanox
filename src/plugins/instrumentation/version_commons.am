@@ -1,5 +1,5 @@
 
-mpitrace_cxxflags=-I@MPITRACE_INC@ -DMPITRACE_BIN='"@MPITRACE_BIN@"'
+mpitrace_cxxflags=-I@MPITRACE_INC@ -DMPITRACE_BIN='"@MPITRACE_BIN@"' -DPREFIX='"$(prefix)"'
 mpitrace_ldflags=-L@MPITRACE_LIB@ -lnanostrace
 
 empty_sources = \

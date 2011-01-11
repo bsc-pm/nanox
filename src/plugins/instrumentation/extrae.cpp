@@ -52,6 +52,7 @@ class InstrumentationExtrae: public Instrumentation
       std::string                                    _traceFileName_ROW;
    public: /* must be updated by Configure */
       static std::string                             _traceBaseName;
+      static std::string                             _postProcessScriptPath;
    public:
       // constructor
       InstrumentationExtrae ( ) : Instrumentation( *NEW InstrumentationContextStackedStatesAndBursts() ) {}
@@ -88,11 +89,36 @@ class InstrumentationExtrae: public Instrumentation
 
          pid = fork();
          if ( pid == (pid_t) 0 ) {
-            execl ( str, "mpi2prv", "-f", _listOfTraceFileNames.c_str(), "-o", _traceFileName_PRV.c_str(), (char *) NULL); 
+            int result = execl ( str, "mpi2prv", "-f", _listOfTraceFileNames.c_str(), "-o", _traceFileName_PRV.c_str(), (char *) NULL); 
+            exit(result);
+         }
+         else waitpid( pid, &status, options);
+      }
+
+      void postProcessTraceFile ()
+      {
+         char str[255];
+         int status, options = 0;
+         pid_t pid;
+
+         if ( _postProcessScriptPath == "" ) {
+            strcpy(str, PREFIX);
+            strcat(str,"/bin/extrae_post_process.sh");
+         } else {
+            strcpy(str, _postProcessScriptPath.c_str());
+            strcat(str,"/extrae_post_process.sh");
+         }
+
+         pid = fork();
+         if ( pid == (pid_t) 0 ) {
+            int result = execlp ( "sh", "sh", str, _traceFileName_PRV.c_str(), (char *) NULL); 
+            exit(result);
          }
          else waitpid( pid, &status, options);
 
-
+         if ( status != 0 ) {
+            std::cerr << "Error in trace post-process. Trace generated but might be incorrect" << std::endl;
+         }
       }
 
       void modifyParaverConfigFile()
@@ -390,6 +416,7 @@ class InstrumentationExtrae: public Instrumentation
          OMPItrace_fini();
          getTraceFileName();
          mergeParaverTraceFiles();
+         postProcessTraceFile();
          modifyParaverConfigFile();
          modifyParaverRowFile();
          removeTemporaryFiles();
@@ -516,6 +543,7 @@ class InstrumentationExtrae: public Instrumentation
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 std::string InstrumentationExtrae::_traceBaseName = std::string("");
+std::string InstrumentationExtrae::_postProcessScriptPath = std::string("");
 #endif
 
 namespace ext {
@@ -535,6 +563,12 @@ class InstrumentationParaverPlugin : public Plugin {
                                        "Defines extrae instrumentation file name" );
          config.registerArgOption ( "extrae-file-name", "extrae-file-name" );
          config.registerEnvOption ( "extrae-file-name", "NX_EXTRAE_FILE_NAME" );
+
+         config.registerConfigOption ( "extrae-post-process",
+                                       NEW Config::StringVar ( InstrumentationExtrae::_postProcessScriptPath ),
+                                       "Defines extrae post processing script location" );
+         config.registerArgOption ( "extrae-post-process", "extrae-post-processor-path" );
+         config.registerEnvOption ( "extrae-post-process", "NX_EXTRAE_POST_PROCESSOR_PATH" );
 #endif
       }
 
