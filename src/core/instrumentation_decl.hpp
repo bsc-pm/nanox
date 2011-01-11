@@ -242,6 +242,9 @@ namespace nanos {
 
             /* 21 */ registerEventKey("user-funct-location","User Function Location");
 
+            /* 22 */ registerEventKey("num-ready","Number of ready tasks in the queues");
+            /* 23 */ registerEventKey("graph-size","Number tasks in the graph");
+
             /* ** */ registerEventKey("debug","Debug Key"); /* Keep this key as the last one */
          }
 
