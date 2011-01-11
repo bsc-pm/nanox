@@ -206,9 +206,10 @@ bool single_inout_chain()
 bool multiple_inout_chains()
 {
    int i, j;
-   int my_value[100];
+   int size = 10;
+   int my_value[size];
 
-   for ( i = 0; i < 100; i++ ) {
+   for ( i = 0; i < size; i++ ) {
       int * dep_addr = &my_value[i];
       my_args *args1=0;
       nanos_dependence_t deps1 = {(void **)&dep_addr,0, {0,1,0,0}, 0};
@@ -223,7 +224,7 @@ bool multiple_inout_chains()
       args1->p_i = dep_addr;
       NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
 
-      for ( j = 0; j < 100; j++ ) {
+      for ( j = 0; j < size; j++ ) {
          my_args *args2=0;
          nanos_dependence_t deps2 = {(void **)&dep_addr,0, {1,1,0,0}, 0};
          nanos_wd_t wd2 = 0;
@@ -236,8 +237,8 @@ bool multiple_inout_chains()
 
    NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
 
-   for ( i = 0; i < 100; i++ ) {
-      if ( my_value[i] != 100 ) return false;
+   for ( i = 0; i < size; i++ ) {
+      if ( my_value[i] != size ) return false;
    }
    return true;
 }
@@ -245,14 +246,15 @@ bool multiple_inout_chains()
 bool multiple_predecessors()
 {
    int j;
-   int my_value[100];
+   int size=100;
+   int my_value[size];
    nanos_wd_props_t props = {
      .mandatory_creation = true,
      .tied = false,
      .tie_to = false,
    };
 
-   for ( j = 0; j < 100; j++ ) {
+   for ( j = 0; j < size; j++ ) {
       int * dep_addr1 = &my_value[j];
       my_args *args1=0;
       nanos_dependence_t deps1 = {(void **)&dep_addr1,0, {0,1,0,0}, 0};
@@ -264,23 +266,23 @@ bool multiple_predecessors()
       NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
    }
 
-   nanos_dependence_t deps2[100];
-   int *dep_addr2[100];
+   nanos_dependence_t deps2[size];
+   int *dep_addr2[size];
    my_args *args2=0;
-   for ( j = 0; j < 100; j++ ) {
+   for ( j = 0; j < size; j++ ) {
       dep_addr2[j] = &my_value[j];
       deps2[j] = (nanos_dependence_t){(void **) &dep_addr2[j],0, {1,1,0,0},0};
    }
 
    nanos_wd_t wd2=0;
    nanos_device_t test_devices_3[1] = { NANOS_SMP_DESC( test_device_arg_3) };
-   NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_3, sizeof(my_args)*100, (void**)&args2, nanos_current_wd(), &props, 0, NULL) );
-   for ( j = 0; j < 100; j++)
+   NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_3, sizeof(my_args)*size, (void**)&args2, nanos_current_wd(), &props, 0, NULL) );
+   for ( j = 0; j < size; j++)
       args2[j].p_i = dep_addr2[j];
-   NANOS_SAFE( nanos_submit( wd2,100,&deps2[0],0 ) );
+   NANOS_SAFE( nanos_submit( wd2,size,&deps2[0],0 ) );
 
    NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
-   for ( j = 0; j < 100; j++ ) {
+   for ( j = 0; j < size; j++ ) {
       if ( my_value[j] != 1 ) return false;
    }
    return true;
@@ -674,7 +676,7 @@ int main ( int argc, char **argv )
       fflush(stdout);
       return 1;
    }
- 
+
    printf("task with multiple predecessors... \n");
    fflush(stdout);
    if ( multiple_predecessors() ) {
@@ -685,7 +687,6 @@ int main ( int argc, char **argv )
       fflush(stdout);
       return 1;
    }
- 
    printf("task with multiple anti-dependencies... \n");
    fflush(stdout);
    if ( multiple_antidependencies() ) {
