@@ -25,3 +25,7 @@ EXTRA_DIST=\
            Makefile.am \
            preamble.txt \
            $(END)
+
+bin_SCRIPTS=\
+	extrae_post_process.sh\
+	$(END)

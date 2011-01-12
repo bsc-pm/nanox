@@ -4,7 +4,13 @@ cat <<EOF
 
 SRC=@SRCDIR@/src
 BUILD=@BUILDDIR@/src
-INSTR_CXXFLAGS=-DNANOS_INSTRUMENTATION_ENABLED
+
+PERFO_CFLAGS=@PERFO_CFLAGS@
+PERFO_CXXFLAGS=@PERFO_CXXFLAGS@
+DEBUG_CFLAGS=@DEBUG_CFLAGS@
+DEBUG_CXXFLAGS=@DEBUG_CXXFLAGS@
+INSTR_CFLAGS=@INSTR_CFLAGS@
+INSTR_CXXFLAGS=@INSTR_CXXFLAGS@
 
 PLUGINS_performance=@PLUGINS_PERFORMANCE@
 PLUGINS_debug=@PLUGINS_DEBUG@
@@ -12,13 +18,16 @@ PLUGINS_instrumentation=@PLUGINS_INSTRUMENTATION@
 
 common_includes="-I\$SRC/core -I\$SRC/apis/c -I\$SRC/pms/openmp"
 
-common_cflags="-Wall"
-
 compile_versions="@COMPILE_VERSIONS@"
 
-test_CFLAGS="\$common_includes \$common_cflags"
-test_CFLAGS_instrumentation="\$INSTR_CXXFLAGS"
-test_CXXFLAGS="\$common_includes \$common_cflags"
+test_CFLAGS="\$common_includes"
+test_CXXFLAGS="\$common_includes"
+
+test_CFLAGS_performance="\$PERFO_CFLAGS"
+test_CXXFLAGS_performance="\$PERFO_CXXFLAGS"
+test_CFLAGS_debug="\$DEBUG_CFLAGS"
+test_CXXFLAGS_debug="\$DEBUG_CXXFLAGS"
+test_CFLAGS_instrumentation="\$INSTR_CFLAGS"
 test_CXXFLAGS_instrumentation="\$INSTR_CXXFLAGS"
 
 test_LDFLAGS_performance="\$BUILD/core/performance/.libs/libnanox.so \$BUILD/apis/c/performance/.libs/libnanox-c.so \$BUILD/pms/openmp/performance/.libs/libnanox-omp.so"

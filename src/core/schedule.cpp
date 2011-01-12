@@ -393,6 +393,10 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
 
 void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
 {
+
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldWD, NULL, false) );
+   myThread->switchHelperDependent(oldWD, newWD, arg);
+
    GenericSyncCond *syncCond = oldWD->getSyncCond();
    if ( syncCond != NULL ) {
       oldWD->setBlocked();
@@ -400,9 +404,6 @@ void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
    } else {
       myThread->getTeam()->getSchedulePolicy().queue( myThread, *oldWD );
    }
-
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldWD, NULL, false) );
-   myThread->switchHelperDependent(oldWD, newWD, arg);
 
    myThread->setCurrentWD( *newWD );
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, newWD, false) );

@@ -23,6 +23,7 @@
 #include "wddeque_decl.hpp"
 #include "schedule.hpp"
 #include "system.hpp"
+#include "instrumentation.hpp"
 
 using namespace nanos;
 
@@ -36,9 +37,10 @@ inline void WDDeque::push_front ( WorkDescriptor *wd )
    wd->setMyQueue( this );
    _lock++;
    _dq.push_front( wd );
+   int tasks = ++( sys.getSchedulerStats()._readyTasks );
+   increaseTasksInQueues(tasks);
    memoryFence();
    _lock--;
-   sys.getSchedulerStats()._readyTasks++;
 }
 
 inline void WDDeque::push_back ( WorkDescriptor *wd )
@@ -46,9 +48,10 @@ inline void WDDeque::push_back ( WorkDescriptor *wd )
    wd->setMyQueue( this );
    _lock++;
    _dq.push_back( wd );
+   int tasks = ++( sys.getSchedulerStats()._readyTasks );
+   increaseTasksInQueues(tasks);
    memoryFence();
    _lock--;
-   sys.getSchedulerStats()._readyTasks++;
 }
 
 // Only ensures tie semantics
@@ -70,7 +73,8 @@ inline WorkDescriptor * WDDeque::pop_front ( BaseThread *thread )
          if ( Scheduler::checkBasicConstraints( *((WD*)*it), *thread) ) {
             if ( (((WD*)( *it ))->dequeue( &found )) == true ) {
                 _dq.erase( it );
-                sys.getSchedulerStats()._readyTasks--;
+                int tasks = --(sys.getSchedulerStats()._readyTasks);
+                decreaseTasksInQueues(tasks);
             }
             break;
          }
@@ -106,7 +110,8 @@ inline WorkDescriptor * WDDeque::pop_back ( BaseThread *thread )
          if ( Scheduler::checkBasicConstraints( *((WD*)*rit), *thread) ) {
             if ( (( *rit )->dequeue( &found )) == true ) {
                _dq.erase( ( ++rit ).base() );
-               sys.getSchedulerStats()._readyTasks--;
+               int tasks = --(sys.getSchedulerStats()._readyTasks);
+               decreaseTasksInQueues(tasks);
             }
             break;
          }
@@ -141,7 +146,8 @@ inline bool WDDeque::removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDe
          if ( *it == toRem ) {
             if ( (( *it )->dequeue( next )) == true ) {
                _dq.erase( it );
-               sys.getSchedulerStats()._readyTasks--;
+               int tasks = --(sys.getSchedulerStats()._readyTasks);
+               decreaseTasksInQueues(tasks);
             }
             (*next)->setMyQueue( NULL );
             _lock--;
@@ -153,6 +159,18 @@ inline bool WDDeque::removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDe
    _lock--;
    return false;
 
+}
+
+inline void WDDeque::increaseTasksInQueues( int tasks )
+{
+   NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("num-ready");)
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) tasks );)
+}
+
+inline void WDDeque::decreaseTasksInQueues( int tasks )
+{
+   NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("num-ready");)
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) tasks );)
 }
 
 #endif

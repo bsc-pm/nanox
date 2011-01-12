@@ -32,7 +32,8 @@ using namespace nanos;
 
 void DOSubmit::dependenciesSatisfied ( )
 {
-     _submittedWD->submit();
+   DependenciesDomain::decreaseTasksInGraph();
+   _submittedWD->submit();
 }
 
 unsigned long DOSubmit::getDescription ( )
@@ -88,6 +89,7 @@ void DOWait::wait ( std::list<Dependency *> deps )
 
 void DOWait::dependenciesSatisfied ( )
 {
+   DependenciesDomain::decreaseTasksInGraph();
    _depsSatisfied = true;
    _syncCond.signal();
 }

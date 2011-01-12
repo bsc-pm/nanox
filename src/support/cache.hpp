@@ -379,7 +379,7 @@ inline bool DeviceCache<_T,_Policy>::copyDataToCache( CopyDescriptor &cd, size_t
 {
    bool result;
    NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER, key, (nanos_event_value_t) size) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_IN, key, (nanos_event_value_t) size) );
    result = _T::copyIn( _cache[cd.getTag()].getAddress(), cd, size, _pe );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
    return result;
@@ -390,7 +390,7 @@ inline bool DeviceCache<_T,_Policy>::copyBackFromCache( CopyDescriptor &cd, size
 {
    bool result;
    NANOS_INSTRUMENT( static nanos_event_key_t key1 = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-out") );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER, key1, size ) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_OUT, key1, size ) );
    CacheEntry &entry = _cache[cd.getTag()];
    result = _T::copyOut( cd, entry.getAddress(), size, _pe );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key1 ) );
@@ -401,7 +401,7 @@ template <class _T, class _Policy>
 inline void DeviceCache<_T,_Policy>::copyTo( void *dst, uint64_t tag, size_t size )
 {
    NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-local-copy") );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER, key, size ) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_LOCAL, key, size ) );
    _T::copyLocal( dst, _cache[tag].getAddress(), size, _pe );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
 }

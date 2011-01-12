@@ -25,7 +25,7 @@ test_generator=gens/api-generator
 
 
 const char *__nanos_family __attribute__((weak))  = "master";
-int __nanos_version __attribute__((weak))  = 5000;
+int __nanos_version __attribute__((weak))  = 5002;
 typedef unsigned char __u_char;
 typedef unsigned short int __u_short;
 typedef unsigned int __u_int;
@@ -736,6 +736,7 @@ typedef struct
                 _Bool input : 1;
                 _Bool output : 1;
                 _Bool can_rename : 1;
+                _Bool aa : 1;
         } flags;
         size_t size;
 } nanos_dependence_internal_t;
@@ -1009,7 +1010,8 @@ int main()
                             {
                                 1,
                                 1,
-                                1
+                                1,
+                                0
                             },
                             sizeof(int)
                         },
@@ -1019,7 +1021,8 @@ int main()
                             {
                                 1,
                                 1,
-                                1
+                                1,
+                                0
                             },
                             sizeof(int)
                         }

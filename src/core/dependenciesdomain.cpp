@@ -22,11 +22,14 @@
 #include "commutationdepobj.hpp"
 #include "debug.hpp"
 #include "system.hpp"
+#include "instrumentation.hpp"
 #include <iostream>
 
 using namespace nanos;
 
 Atomic<int> DependenciesDomain::_atomicSeed( 0 );
+Atomic<int> DependenciesDomain::_tasksInGraph( 0 );
+Lock DependenciesDomain::_lock;
 
 TrackableObject* DependenciesDomain::lookupDependency ( const Dependency& dep )
 {
@@ -231,6 +234,10 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
 
    }
 
+
+   // To keep the count consistent we have to increase the number of tasks in the graph before releasing the fake dependency
+   increaseTasksInGraph();
+
    // now everything is ready
    if ( depObj.decreasePredecessors() > 0 )
       depObj.wait( filteredDeps );
@@ -238,4 +245,22 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
 
 template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, Dependency* begin, Dependency* end );
 template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, std::vector<Dependency>::iterator begin, std::vector<Dependency>::iterator end );
+
+void DependenciesDomain::increaseTasksInGraph()
+{
+   NANOS_INSTRUMENT(lock();)
+   NANOS_INSTRUMENT(int tasks = ++_tasksInGraph;)
+   NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("graph-size");)
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) tasks );)
+   NANOS_INSTRUMENT(unlock();)
+}
+
+void DependenciesDomain::decreaseTasksInGraph()
+{
+   NANOS_INSTRUMENT(lock();)
+   NANOS_INSTRUMENT(int tasks = --_tasksInGraph;)
+   NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("graph-size");)
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) tasks );)
+   NANOS_INSTRUMENT(unlock();)
+}
 
