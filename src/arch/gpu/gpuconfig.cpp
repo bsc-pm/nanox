@@ -34,6 +34,7 @@ bool GPUConfig::_overlapInputs = false;
 bool GPUConfig::_overlapOutputs = false;
 transfer_mode GPUConfig::_transferMode = NANOS_GPU_TRANSFER_NORMAL;
 size_t GPUConfig::_maxGPUMemory = 0;
+bool GPUConfig::_gpuWarmup = true;
 void * GPUConfig::_gpusProperties = NULL;
 
 void GPUConfig::prepare( Config& config )
@@ -84,6 +85,12 @@ void GPUConfig::prepare( Config& config )
                                  "Defines the maximum amount of GPU memory (in bytes) to use for each GPU (defaults to the total amount of shared memory that each GPU has)" );
    config.registerEnvOption ( "gpu-max-memory", "NX_GPUMAXMEM" );
    config.registerArgOption ( "gpu-max-memory", "gpu-max-memory" );
+
+   // Enable / disable GPU warmup
+   config.registerConfigOption( "gpu-warmup", NEW Config::FlagOption( _gpuWarmup ),
+                                "Enable or disable warming up the GPU (enabled by default)" );
+   config.registerEnvOption( "gpu-warmup", "NX_GPUWARMUP" );
+   config.registerArgOption( "gpu-warmup", "gpu-warmup" );
 }
 
 void GPUConfig::apply()
@@ -95,6 +102,7 @@ void GPUConfig::apply()
       _overlapInputs = false;
       _overlapOutputs = false;
       _maxGPUMemory = 0;
+      _gpuWarmup = false;
    } else {
       // Find out how many CUDA-capable GPUs the system has
       int totalCount, device, deviceCount = 0;
@@ -153,6 +161,7 @@ void GPUConfig::printConfiguration()
    else {
       verbose0( "  Limited memory: Disabled" );
    }
+   verbose0( "  GPU warm up: " << ( _gpuWarmup ? "Enabled" : "Disabled" ) );
 
    verbose0( "--- end of GPUDD configuration ---" );
 }
