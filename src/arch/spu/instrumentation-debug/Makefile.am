@@ -1,5 +1,5 @@
 #####################################################################################
-#      Copyright 2010 Barcelona Supercomputing Center                               #
+#      Copyright 2009 Barcelona Supercomputing Center                               #
 #                                                                                   #
 #      This file is part of the NANOS++ library.                                    #
 #                                                                                   #
@@ -17,14 +17,17 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = performance debug instrumentation instrumentation-debug
-
+include $(top_srcdir)/src/arch/spu/version_commons.am
 include $(top_srcdir)/src/common.am
 
-if CHAPEL_SUPPORT
+if INSTRUMENTATION_DEBUG_VERSION
+noinst_LTLIBRARIES = libspu.la
 
-pkginclude_HEADERS=\
-        chpl_nanos.h\
-	$(END)
+nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) $(spu_ccflags)
 
+libspu_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
+libspu_la_SOURCES=$(spu_sources)
+libspu_la_DEPENDENCIES=../.libs/libspu_embed.a
+libspu_la_LIBADD=$(spu_libadd)
 endif
+

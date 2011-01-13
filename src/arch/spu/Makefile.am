@@ -17,7 +17,7 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = performance debug instrumentation
+SUBDIRS = performance debug instrumentation instrumentation-debug
 
 include $(top_srcdir)/src/common.am
 

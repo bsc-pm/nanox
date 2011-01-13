@@ -1,5 +1,5 @@
 #####################################################################################
-#      Copyright 2010 Barcelona Supercomputing Center                               #
+#      Copyright 2009 Barcelona Supercomputing Center                               #
 #                                                                                   #
 #      This file is part of the NANOS++ library.                                    #
 #                                                                                   #
@@ -17,14 +17,22 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = performance debug instrumentation instrumentation-debug
-
+include $(top_srcdir)/src/core/version_commons.am
 include $(top_srcdir)/src/common.am
 
-if CHAPEL_SUPPORT
+if INSTRUMENTATION_DEBUG_VERSION
+instrumentation_LTLIBRARIES=libnanox.la
 
-pkginclude_HEADERS=\
-        chpl_nanos.h\
-	$(END)
+nanos_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) 
+nanos_ldflags=$(version_flags) @NANOS_CONFIG_LIBDIRS@ -Wl,-rpath,$(instrdebugdir)
 
+nanos_libadd=$(common_libadd)
+
+libnanox_la_CFLAGS=$(common_cflags) $(common_instrdebug_cflags)
+libnanox_la_CXXFLAGS=$(nanos_cxxflags)
+libnanox_la_LDFLAGS=$(nanos_ldflags)
+libnanox_la_LIBADD=$(common_libadd) @NANOS_CONFIG_LIBS_INSTRDEBUG@
+libnanox_la_SOURCES=$(common_sources) $(instr_sources)
+libnanox_la_DEPENDENCIES=$(common_libadd) @NANOS_CONFIG_LIBS_INSTRDEBUG@
 endif
+

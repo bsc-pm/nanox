@@ -1,5 +1,5 @@
 #####################################################################################
-#      Copyright 2010 Barcelona Supercomputing Center                               #
+#      Copyright 2009 Barcelona Supercomputing Center                               #
 #                                                                                   #
 #      This file is part of the NANOS++ library.                                    #
 #                                                                                   #
@@ -17,14 +17,38 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = performance debug instrumentation instrumentation-debug
-
+include $(top_srcdir)/src/plugins/sched/version_commons.am
 include $(top_srcdir)/src/common.am
 
-if CHAPEL_SUPPORT
-
-pkginclude_HEADERS=\
-        chpl_nanos.h\
+if INSTRUMENTATION_DEBUG_VERSION
+instrumentation_LTLIBRARIES = \
+        libnanox-sched-default.la\
+	libnanox-sched-bf.la \
+	libnanox-sched-dbf.la \
+ 	libnanox-sched-cilk.la \
+ 	libnanox-sched-wf.la \
 	$(END)
 
+nanos_instrdebug_cxxflags=$(common_includes) $(common_instr_cxxflags)
+
+libnanox_sched_default_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
+libnanox_sched_default_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_sched_default_la_SOURCES = $(default_sources)
+
+libnanox_sched_bf_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
+libnanox_sched_bf_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_sched_bf_la_SOURCES = $(bf_sources)
+
+libnanox_sched_dbf_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
+libnanox_sched_dbf_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_sched_dbf_la_SOURCES = $(dbf_sources)
+
+libnanox_sched_wf_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
+libnanox_sched_wf_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_sched_wf_la_SOURCES = $(wf_sources)
+ 
+libnanox_sched_cilk_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
+libnanox_sched_cilk_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_sched_cilk_la_SOURCES = $(cilk_sources)
 endif
+

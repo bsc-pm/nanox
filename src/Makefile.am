@@ -34,8 +34,11 @@ endif
 if INSTRUMENTATION_VERSION
 instr=instrumentation
 endif
+if INSTRUMENTATION_DEBUG_VERSION
+instrdebug=instrumentation_debug
+endif
 
-plugins-list: $(perfo) $(debug) $(instr)
+plugins-list: $(perfo) $(debug) $(instr) $(instrdebug)
 	rm -f plugins-list
 	if test -e plugins-list-perfo; then \
 	cat plugins-list-perfo >> plugins-list; \
@@ -46,7 +49,10 @@ plugins-list: $(perfo) $(debug) $(instr)
 	if test -e plugins-list-instr; then \
 	cat plugins-list-instr >> plugins-list; \
 	fi
-	rm -rf plugins-list-perfo plugins-list-debug plugins-list-instr
+	if test -e plugins-list-instrdebug; then \
+	cat plugins-list-instrdebug >> plugins-list; \
+	fi
+	rm -rf plugins-list-perfo plugins-list-debug plugins-list-instr plugins-list-instrdebug
 
 performance: plugins-list.in
 	tmp_builddir=$(abs_top_builddir) ; \
@@ -89,4 +95,18 @@ instrumentation: plugins-list.in
 		-e's|\(.*\)|instrumentation=\1|g' \
 		plugins-list-instr.tmp2 > plugins-list-instr
 	rm -f plugins-list-instr.tmp plugins-list-instr.tmp2
+
+instrumentation_debug: plugins-list.in
+	tmp_builddir=$(abs_top_builddir) ; \
+	tmp_srcdir=$(srcdir) ; \
+	sed \
+		-e's|\(.*\)|'"$$tmp_builddir"'/src/\1/instrumentation-debug/.libs|g' \
+		$$tmp_srcdir/plugins-list.in > plugins-list-instrdebug.tmp
+	sed \
+		-e :a -e N -e's/\n/:/' -e ta \
+		plugins-list-instrdebug.tmp > plugins-list-instrdebug.tmp2
+	sed \
+		-e's|\(.*\)|instrumentation_debug=\1|g' \
+		plugins-list-instrdebug.tmp2 > plugins-list-instrdebug
+	rm -f plugins-list-instrdebug.tmp plugins-list-instrdebug.tmp2
 
