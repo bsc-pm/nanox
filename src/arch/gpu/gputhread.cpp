@@ -98,10 +98,9 @@ void GPUThread::inlineWorkDependent ( WD &wd )
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
    ( dd.getWorkFct() )( wd.getData() );
 
-   if ( GPUConfig::isOverlappingOutputsDefined() ) {
-      // Copy out results from tasks executed previously
-      myGPU.getOutTransferList()->executeMemoryTransfers();
-   }
+   // Copy out results from tasks executed previously
+   // Do it always, as another GPU may be waiting for results
+   myGPU.getOutTransferList()->executeMemoryTransfers();
 
    if ( GPUConfig::isPrefetchingDefined() ) {
       NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
