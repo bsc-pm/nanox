@@ -35,7 +35,7 @@ GPUMemoryTransfer::~GPUMemoryTransfer()
 
 void GPUMemoryTransferOutSyncList::removeMemoryTransfer ( std::list<GPUMemoryTransfer>::iterator it )
 {
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateEvent( NANOS_MEM_TRANSFER ) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateEvent( NANOS_MEM_TRANSFER_OUT ) );
    NANOS_INSTRUMENT( nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-out") );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, it->_size ) );
 
@@ -51,7 +51,7 @@ void GPUMemoryTransferOutSyncList::removeMemoryTransfer ( std::list<GPUMemoryTra
 
 void GPUMemoryTransferOutAsyncList::removeMemoryTransfer ( std::list<GPUMemoryTransfer>::iterator it )
 {
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateEvent( NANOS_MEM_TRANSFER ) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateEvent( NANOS_MEM_TRANSFER_OUT ) );
    NANOS_INSTRUMENT( nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-out") );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, it->_size ) );
 
@@ -92,7 +92,7 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ()
       if ( it1 == _pendingTransfersAsync.end() ) it1 = _pendingTransfersAsync.begin();
       _lock.release();
 
-      NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent( NANOS_MEM_TRANSFER ) );
+      NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent( NANOS_MEM_TRANSFER_OUT ) );
       NANOS_INSTRUMENT( nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-out") );
       NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, it1->_size ) );
 
@@ -159,7 +159,7 @@ void GPUMemoryTransferInAsyncList::clearMemoryTransfers()
 
 void GPUMemoryTransferInAsyncList::removeMemoryTransfer ( std::list<GPUMemoryTransfer>::iterator it )
 {
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateEvent( NANOS_MEM_TRANSFER ) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateEvent( NANOS_MEM_TRANSFER_IN ) );
    NANOS_INSTRUMENT( nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-out") );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, it->_size ) );
 
