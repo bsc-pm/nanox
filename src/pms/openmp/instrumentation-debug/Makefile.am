@@ -1,5 +1,5 @@
 #####################################################################################
-#      Copyright 2010 Barcelona Supercomputing Center                               #
+#      Copyright 2009 Barcelona Supercomputing Center                               #
 #                                                                                   #
 #      This file is part of the NANOS++ library.                                    #
 #                                                                                   #
@@ -17,14 +17,22 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = performance debug instrumentation instrumentation-debug
-
+include $(top_srcdir)/src/pms/openmp/version_commons.am
 include $(top_srcdir)/src/common.am
 
-if CHAPEL_SUPPORT
+if INSTRUMENTATION_DEBUG_VERSION
+instrdebug_LTLIBRARIES=libnanox-omp.la libnanox-omp-stubs.la
 
-pkginclude_HEADERS=\
-        chpl_nanos.h\
-	$(END)
+nanos_instrdebug_cxxflags=$(common_includes) $(local_includes) $(common_instrdebug_cxxflags) 
 
+libnanox_omp_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
+libnanox_omp_la_LDFLAGS=$(version_flags)
+libnanox_omp_la_LIBADD=$(top_builddir)/src/core/instrumentation-debug/libnanox.la
+libnanox_omp_la_SOURCES=$(omp_sources)
+libnanox_omp_la_DEPENDENCIES=$(top_builddir)/src/core/instrumentation-debug/libnanox.la
+
+libnanox_omp_stubs_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
+libnanox_omp_stubs_la_LDFLAGS=$(version_flags)
+libnanox_omp_stubs_la_SOURCES=$(omp_stub_sources)
 endif
+

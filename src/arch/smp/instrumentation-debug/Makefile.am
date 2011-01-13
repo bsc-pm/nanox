@@ -1,5 +1,5 @@
 #####################################################################################
-#      Copyright 2010 Barcelona Supercomputing Center                               #
+#      Copyright 2009 Barcelona Supercomputing Center                               #
 #                                                                                   #
 #      This file is part of the NANOS++ library.                                    #
 #                                                                                   #
@@ -17,14 +17,25 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = performance debug instrumentation instrumentation-debug
-
+include $(top_srcdir)/src/arch/smp/version_commons.am
 include $(top_srcdir)/src/common.am
 
-if CHAPEL_SUPPORT
+if INSTRUMENTATION_DEBUG_VERSION
+noinst_LTLIBRARIES = libsmp.la
+instrdebug_LTLIBRARIES = libnanox-pe-smp.la
 
-pkginclude_HEADERS=\
-        chpl_nanos.h\
-	$(END)
-
+if SMP_SUPPORTS_ULT
+smp_ult_sources=$(ult_sources)
+smp_ult_flags=$(ult_flags)
 endif
+
+nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) $(smp_ult_flags)
+
+libsmp_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
+libsmp_la_SOURCES=$(smp_sources) $(smp_ult_sources)
+
+libnanox_pe_smp_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
+libnanox_pe_smp_la_LDFLAGS=$(ld_plugin_flags)
+libnanox_pe_smp_la_SOURCES=$(pe_smp_sources)
+endif
+
