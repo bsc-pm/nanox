@@ -160,7 +160,7 @@ void GPUMemoryTransferInAsyncList::clearMemoryTransfers()
 void GPUMemoryTransferInAsyncList::removeMemoryTransfer ( std::list<GPUMemoryTransfer>::iterator it )
 {
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateEvent( NANOS_MEM_TRANSFER_IN ) );
-   NANOS_INSTRUMENT( nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-out") );
+   NANOS_INSTRUMENT( nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, it->_size ) );
 
    GPUDevice::copyInSyncToDevice( it->_deviceAddress, ( void * ) it->_hostAddress.getTag(), it->_size );
