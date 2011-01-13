@@ -21,7 +21,7 @@ include $(top_srcdir)/src/plugins/instrumentation/version_commons.am
 include $(top_srcdir)/src/common.am
 
 if INSTRUMENTATION_DEBUG_VERSION
-instrumentation_LTLIBRARIES = \
+instrdebug_LTLIBRARIES = \
 	libnanox-instrumentation-empty_trace.la \
 	libnanox-instrumentation-print_trace.la \
 	$(END)
@@ -30,7 +30,7 @@ if INSTRUMENTATION_EXTRAE
 extrae_mpitrace_cxxflags=$(mpitrace_cxxflags)
 extrae_mpitrace_ldflags=$(mpitrace_ldflags)
 
-instrumentation_LTLIBRARIES+=libnanox-instrumentation-extrae.la
+instrdebug_LTLIBRARIES+=libnanox-instrumentation-extrae.la
 endif
 
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags)

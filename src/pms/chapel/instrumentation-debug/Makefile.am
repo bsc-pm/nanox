@@ -22,7 +22,7 @@ include $(top_srcdir)/src/common.am
 
 if CHAPEL_SUPPORT
 if INSTRUMENTATION_DEBUG_VERSION
-instrumentation_LTLIBRARIES=libnanox-chpl.la
+instrdebug_LTLIBRARIES=libnanox-chpl.la
 
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) 
 

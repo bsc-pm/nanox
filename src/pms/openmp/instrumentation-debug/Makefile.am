@@ -21,7 +21,7 @@ include $(top_srcdir)/src/pms/openmp/version_commons.am
 include $(top_srcdir)/src/common.am
 
 if INSTRUMENTATION_DEBUG_VERSION
-instrumentation_LTLIBRARIES=libnanox-omp.la libnanox-omp-stubs.la
+instrdebug_LTLIBRARIES=libnanox-omp.la libnanox-omp-stubs.la
 
 nanos_instrdebug_cxxflags=$(common_includes) $(local_includes) $(common_instrdebug_cxxflags) 
 

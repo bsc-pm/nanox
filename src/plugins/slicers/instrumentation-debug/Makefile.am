@@ -21,7 +21,7 @@ include $(top_srcdir)/src/plugins/slicers/version_commons.am
 include $(top_srcdir)/src/common.am
 
 if INSTRUMENTATION_DEBUG_VERSION
-instrumentation_LTLIBRARIES = \
+instrdebug_LTLIBRARIES = \
 	libnanox-slicer-static_for.la \
 	libnanox-slicer-dynamic_for.la \
 	libnanox-slicer-guided_for.la \

@@ -21,7 +21,7 @@ include $(top_srcdir)/src/plugins/sched/version_commons.am
 include $(top_srcdir)/src/common.am
 
 if INSTRUMENTATION_DEBUG_VERSION
-instrumentation_LTLIBRARIES = \
+instrdebug_LTLIBRARIES = \
         libnanox-sched-default.la\
 	libnanox-sched-bf.la \
 	libnanox-sched-dbf.la \

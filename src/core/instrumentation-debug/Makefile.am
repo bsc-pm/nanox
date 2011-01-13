@@ -21,7 +21,7 @@ include $(top_srcdir)/src/core/version_commons.am
 include $(top_srcdir)/src/common.am
 
 if INSTRUMENTATION_DEBUG_VERSION
-instrumentation_LTLIBRARIES=libnanox.la
+instrdebug_LTLIBRARIES=libnanox.la
 
 nanos_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) 
 nanos_ldflags=$(version_flags) @NANOS_CONFIG_LIBDIRS@ -Wl,-rpath,$(instrdebugdir)

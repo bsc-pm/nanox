@@ -22,7 +22,7 @@ include $(top_srcdir)/src/common.am
 
 if INSTRUMENTATION_DEBUG_VERSION
 noinst_LTLIBRARIES = libsmp.la
-instrumentation_LTLIBRARIES = libnanox-pe-smp.la
+instrdebug_LTLIBRARIES = libnanox-pe-smp.la
 
 if SMP_SUPPORTS_ULT
 smp_ult_sources=$(ult_sources)
