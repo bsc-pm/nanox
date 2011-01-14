@@ -98,6 +98,16 @@ void GPUThread::inlineWorkDependent ( WD &wd )
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
    ( dd.getWorkFct() )( wd.getData() );
 
+   if ( !GPUConfig::isOverlappingOutputsDefined() && !GPUConfig::isOverlappingInputsDefined() ) {
+      // Wait for the GPU kernel to finish
+      cudaThreadSynchronize();
+
+      // Normally this instrumentation code is inserted by the compiler in the task outline.
+      // But because the kernel call is asynchronous for GPUs we need to raise them manually here
+      // when we know the kernel has really finished
+      NANOS_INSTRUMENT ( raiseWDClosingEvents() );
+   }
+
    // Copy out results from tasks executed previously
    // Do it always, as another GPU may be waiting for results
    myGPU.getOutTransferList()->executeMemoryTransfers();
@@ -113,13 +123,15 @@ void GPUThread::inlineWorkDependent ( WD &wd )
       }
    }
 
-   // Wait for the GPU kernel to finish
-   cudaThreadSynchronize();
+   if ( GPUConfig::isOverlappingOutputsDefined() || GPUConfig::isOverlappingInputsDefined() ) {
+      // Wait for the GPU kernel to finish, if we have not waited before
+      cudaThreadSynchronize();
 
-   // Normally this instrumentation code is inserted by the compiler in the task outline.
-   // But because the kernel call is asynchronous for GPUs we need to raise them manually here
-   // when we know the kernel has really finished
-   NANOS_INSTRUMENT ( raiseWDClosingEvents() );
+      // Normally this instrumentation code is inserted by the compiler in the task outline.
+      // But because the kernel call is asynchronous for GPUs we need to raise them manually here
+      // when we know the kernel has really finished
+      NANOS_INSTRUMENT ( raiseWDClosingEvents() );
+   }
 }
 
 void GPUThread::yield()
