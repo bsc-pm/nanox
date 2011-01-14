@@ -28,12 +28,12 @@ void barrier_code ( void * )
               nanos_team_barrier();
 
               cout << "Before the " << i << " barrier" << endl;
-              counts[myThread->getId()]++;
+              counts[getMyThreadSafe()->getId()]++;
 
               nanos_team_barrier();
 
               cout << "After the " << i << " barrier" << endl;
-              if ( counts[ (myThread->getId()+1)%size ] != i+1 ) {
+              if ( counts[ (getMyThreadSafe()->getId()+1)%size ] != i+1 ) {
                  cerr << "Error: the barrier is broken." << std::endl;
                  abort();
               }
@@ -44,7 +44,7 @@ int main (int argc, char **argv)
 {
        cout << "start" << endl;
        //all threads perform a barrier: 
-       ThreadTeam &team = *myThread->getTeam();
+       ThreadTeam &team = *getMyThreadSafe()->getTeam();
 
        size = team.size();
        counts = new int[team.size()];
@@ -58,8 +58,8 @@ int main (int argc, char **argv)
        }
        usleep(100);
 
-       WD *wd = myThread->getCurrentWD();
-       wd->tieTo(*myThread);
+       WD *wd = getMyThreadSafe()->getCurrentWD();
+       wd->tieTo(*getMyThreadSafe());
        barrier_code(NULL);
 
        cout << "end" << endl;

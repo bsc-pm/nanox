@@ -42,7 +42,7 @@ typedef struct {
 
 void hello_world ( void *args )
 {
-   WD *wd = myThread->getCurrentWD();
+   WD *wd = getMyThreadSafe()->getCurrentWD();
    hello_world_args *hargs = ( hello_world_args * ) args;
    CopyData* cd = wd->getCopies();
 
@@ -122,7 +122,7 @@ int main ( int argc, char **argv )
 
    WD * wd = new WD( new SMPDD( hello_world ), sizeof( hello_world_args ), __alignof__( hello_world_args ), data, 2, cd );
 
-   WG *wg = myThread->getCurrentWD();
+   WG *wg = getMyThreadSafe()->getCurrentWD();
 
    wg->addWork( *wd );
 

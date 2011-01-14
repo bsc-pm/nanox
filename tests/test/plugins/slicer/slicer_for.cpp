@@ -78,7 +78,7 @@ void main__loop_1 ( void *args );
       WD * wd = new SlicedWD( *slicer, sizeof(slicer_data), __alignof__(slicer_data),\
                         *new slicer_data(lower+k_offset,upper+k_offset,step,chunk),\
                         new SMPDD( main__loop_1 ), sizeof( _loop_data ), __alignof__(nanos_loop_info_t),( void * ) &_loop_data );\
-      WG *wg = myThread->getCurrentWD();\
+      WG *wg = getMyThreadSafe()->getCurrentWD();\
       wg->addWork( *wd );\
       sys.submit( *wd );\
       wg->waitCompletion();\

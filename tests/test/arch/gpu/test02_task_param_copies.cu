@@ -78,7 +78,7 @@ int main ( int argc, char **argv )
    int i, j;
    test_args ** args = new test_args*[ntasks];
 
-   nanos::WG *wg = nanos::myThread->getCurrentWD();
+   nanos::WG *wg = nanos::getMyThreadSafe()->getCurrentWD();
 
    for ( i = 0; i < ntasks; i++ ) {
       // Data structures initialization

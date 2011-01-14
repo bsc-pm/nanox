@@ -43,7 +43,7 @@ void single_code ( void *a )
       nanos_single_guard( &b );
 
       if ( b ) {
-         cerr << "it: " << i << " th: " << myThread->getId() << endl ;
+         cerr << "it: " << i << " th: " << getMyThreadSafe()->getId() << endl ;
          usleep( 10 );
       }
       nanos_team_barrier();
@@ -54,7 +54,7 @@ int main ( int argc, char **argv )
 {
    cout << "start" << endl;
 
-   ThreadTeam &team = *myThread->getTeam();
+   ThreadTeam &team = *getMyThreadSafe()->getTeam();
    for ( int i = 1; i < sys.getNumPEs(); i++ ) {
       WD * wd = new WD( new SMPDD( single_code ) );
       wd->tieTo(team[i]);

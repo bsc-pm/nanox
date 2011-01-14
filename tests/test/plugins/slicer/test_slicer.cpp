@@ -97,7 +97,7 @@ int main ( int argc, char **argv )
                              sizeof(hello_world_args), __alignof__(hello_world_args),data );
 
    // Work Group affiliation and work submision
-   WG *wg = myThread->getCurrentWD();
+   WG *wg = getMyThreadSafe()->getCurrentWD();
    wg->addWork( *wd1 );
    wg->addWork( *wd2 );
 
