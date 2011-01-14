@@ -64,11 +64,12 @@ intptr_t * initContext ( intptr_t *stack, size_t stackSize, void *userFunction, 
    // stack grows down
    intptr_t *state = stack;
    state += stackSize;
+   intptr_t *tmpStartHelperPtr = ( intptr_t * ) startHelper;
 
    state -= 53; // (368 + 56)/sizeof(intptr_t)
 
    // return link
-   state[48] = *( (intptr_t *) startHelper );
+   state[48] = *tmpStartHelperPtr;
    // back chain
    state[44] = 0;
       
