@@ -45,7 +45,7 @@ void ClusterDevice::free( void *address, ProcessingElement *pe )
    node->getAllocator().free( address );
    unsigned int nodeId = node->getClusterNodeNum();
    
-   fprintf(stderr, "[node %d] FREE %p\n", nodeId, address);
+   //fprintf(stderr, "[node %d] FREE %p\n", nodeId, address);
 }
 
 void * ClusterDevice::realloc( void *address, size_t newSize, size_t oldSize, ProcessingElement *pe )

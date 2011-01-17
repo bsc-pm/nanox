@@ -862,6 +862,7 @@ void System::setupWD ( WD &work, WD *parent )
    work.setParent ( parent );
    work.setDepth( parent->getDepth() +1 );
 
+#if 0
 #ifdef CLUSTER_DEV
    if (sys.getNetwork()->getNodeNum() == 0)
    {
@@ -891,6 +892,7 @@ void System::setupWD ( WD &work, WD *parent )
             //std::cerr << "wd " << work.getId() << " depth is: " << work.getDepth() << " @func: " << (void *) workDD->getWorkFct() << std::endl;
       }
    }
+#endif
 #endif
    // Prepare private copy structures to use relative addresses
    work.prepareCopies();

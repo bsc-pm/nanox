@@ -26,11 +26,11 @@
 
 #include <gasnet.h>
 
-#ifdef _PPC64
+#ifdef __powerpc64__
 
 #define MERGE_ARG( _Hi, _Lo) ( ( ( uintptr_t ) ( _Lo ) ) + ( ( ( uintptr_t ) ( _Hi ) ) << 32 ) )
-#define ARG_HI( _Arg ) ( ( uint32_t ) ( ( _Arg ) >> 32 ) )
-#define ARG_LO( _Arg ) ( ( uint32_t ) _Arg )
+#define ARG_HI( _Arg ) ( ( uint32_t ) ( ( ( uintptr_t ) ( _Arg ) ) >> 32 ) )
+#define ARG_LO( _Arg ) ( ( uint32_t ) ( ( uintptr_t ) _Arg ) )
 
 #else
 
@@ -102,8 +102,9 @@ static void am_exit_reply(gasnet_token_t token)
     fprintf(stderr, "EXIT message to node %d completed.\n", src_node);
 }
 
-static void am_work(gasnet_token_t token, void *arg, size_t argSize, void ( *work ) ( void * ), unsigned int dataSize, unsigned int wdId, unsigned int numPe )
+static void am_work(gasnet_token_t token, void *arg, size_t argSize, void *workLo, void * workHi, unsigned int dataSize, unsigned int wdId, unsigned int numPe )
 {
+   void (*work)( void *) = (void (*)(void *)) MERGE_ARG( workHi, workLo );
     gasnet_node_t src_node;
     unsigned int i;
     if (gasnet_AMGetMsgSource(token, &src_node) != GASNET_OK)
@@ -187,15 +188,16 @@ static void am_malloc( gasnet_token_t token, gasnet_handlerarg_t size, unsigned 
         fprintf( stderr, "gasnet: Error obtaining node information.\n" );
     }
     addr = malloc( ( size_t ) size );
-    if ( gasnet_AMReplyShort2( token, 208, ( gasnet_handlerarg_t ) addr, (gasnet_handlerarg_t ) id ) != GASNET_OK )
+    if ( gasnet_AMReplyShort3( token, 208, ( gasnet_handlerarg_t ) ARG_LO( addr ), ( gasnet_handlerarg_t ) ARG_HI( addr ), (gasnet_handlerarg_t ) id ) != GASNET_OK )
     {
        fprintf( stderr, "gasnet: Error sending a message to node %d.\n", src_node );
     }
 }
 
 /* GASNet medium active message handler */
-static void am_malloc_reply( gasnet_token_t token, gasnet_handlerarg_t addr, unsigned int id )
+static void am_malloc_reply( gasnet_token_t token, gasnet_handlerarg_t addrLo, gasnet_handlerarg_t addrHi, unsigned int id )
 {
+   void * addr = (void *) MERGE_ARG( addrHi, addrLo );
     gasnet_node_t src_node;
     if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
     {
@@ -493,7 +495,7 @@ void GASNetAPI::sendExitMsg ( unsigned int dest )
 void GASNetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int dataSize, unsigned int wdId, unsigned int numPe, size_t argSize, void * arg )
 {
    //fprintf(stderr, "sending msg WORK %p, arg size %d to node %d, numPe %d\n", work, argSize, dest, numPe);
-   if (gasnet_AMRequestMedium4( dest, 205, arg, argSize, work, dataSize, wdId, numPe ) != GASNET_OK)
+   if (gasnet_AMRequestMedium5( dest, 205, arg, argSize, (gasnet_handlerarg_t ) ARG_LO( work ), (gasnet_handlerarg_t) ARG_HI( work ), dataSize, wdId, numPe ) != GASNET_OK)
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
    }
@@ -516,7 +518,7 @@ void GASNetAPI::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localA
 
    size_t sent = 0, thisReqSize;
 
-
+#if 0
    unsigned int i = 1;
    unsigned int totalWords;
    unsigned int selectedSize;
@@ -581,6 +583,7 @@ void GASNetAPI::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localA
          }
    }
    else
+#endif
    {
    //fprintf(stderr, "put ( dest=%d, remote=%p, locla=%p, size=%d)\n", remoteNode, (void *) remoteAddr, localAddr, size);
    

@@ -41,6 +41,11 @@ pe_cluster_common_includes = -DGASNET_PAR -I@GASNET_DIR@/include
 pe_cluster_common_ldflags = -L@GASNET_DIR@/lib
 
 pe_cluster_mpi_includes = $(pe_cluster_common_includes) -I@GASNET_DIR@/include/mpi-conduit
+if ARCH_IS_64_BITS
+pe_cluster_mpi_ldflags = $(pe_cluster_common_ldflags) -lgasnet-mpi-par -lammpi -L/opt/osshpc/mpich-mx/64/lib/shared -L/opt/osshpc/mx/lib64 -lmpich -lmyriexpress -L/opt/ibmcmp/vacpp/10.1/lib64 -lxl
+else
 pe_cluster_mpi_ldflags = $(pe_cluster_common_ldflags) -lgasnet-mpi-par -lammpi -L/opt/osshpc/mpich-mx/32/lib/shared -L/opt/osshpc/mx/lib -lmpich -lmyriexpress -L/opt/ibmcmp/vacpp/10.1/lib -lxl
+endif
+
 pe_cluster_udp_includes = $(pe_cluster_common_includes) -I@GASNET_DIR@/include/udp-conduit
 pe_cluster_udp_ldflags = $(pe_cluster_common_ldflags) -lgasnet-udp-par -lamudp

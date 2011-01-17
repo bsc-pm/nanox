@@ -75,6 +75,7 @@ case $host in
     case $CC in
       *-m32*)
          SMP_ARCH=ppc32
+         AM_CONDITIONAL([PERFORMANCE_VERSION], [test x$performance_disabled = xno])
          ;;
       *-m64*)
          SMP_ARCH=ppc64
@@ -82,8 +83,11 @@ case $host in
       *)
          # GCC generates ppc32 code by default
          SMP_ARCH=ppc32
+         AM_CONDITIONAL([PERFORMANCE_VERSION], [test x$performance_disabled = xno])
          ;;
     esac
+    
+    AM_CONDITIONAL([ARCH_IS_64_BITS], [test x$SMP_ARCH = xppc64])
 
     # Check if it is a Cell system
     if cat /proc/cpuinfo | grep Cell &> /dev/null ; then
