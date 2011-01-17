@@ -20,43 +20,131 @@
 #ifndef _NANOS_GPU_PROCESSOR
 #define _NANOS_GPU_PROCESSOR
 
-#include "gpuprocessor_fwd.hpp"
+#include "gpuprocessor_decl.hpp"
 
 #include <cuda_runtime.h>
+
+#include <iostream>
 
 
 namespace nanos {
 namespace ext
 {
 
-   class GPUProcessor::TransferInfo
+   class GPUProcessor::GPUProcessorInfo
    {
       private:
-         cudaStream_t _transferStream;
+         // Device #
+         unsigned int   _deviceId;
+
+         // Memory
+         size_t         _maxMemoryAvailable;
+
+         // Transfers
+         cudaStream_t   _inTransferStream;
+         cudaStream_t   _outTransferStream;
+         cudaStream_t   _localTransferStream;
 
       public:
+         GPUProcessorInfo ( int device ) : _deviceId ( device ), _maxMemoryAvailable ( 0 ),
+            _inTransferStream ( 0 ), _outTransferStream ( 0 ), _localTransferStream( 0 )
+         {}
 
-         TransferInfo () {}
+         ~GPUProcessorInfo () {}
 
-         void init ()
+         void initTransferStreams ( bool &inputStream, bool &outputStream )
          {
-#if 1
-            cudaError_t err = cudaStreamCreate( &_transferStream );
-            if ( err != cudaSuccess ) {
-               _transferStream = 0;
-               warning( "Error while creating the CUDA stream: " << cudaGetErrorString( err ) );
+            if ( inputStream ) {
+               // Initialize the CUDA streams used for input data transfers
+               cudaError_t err = cudaStreamCreate( &_inTransferStream );
+               if ( err != cudaSuccess ) {
+                  // If an error occurred, disable stream overlapping
+                  _inTransferStream = 0;
+                  inputStream = false;
+                  if ( err == CUDANODEVERR ) {
+                     fatal( "Error while creating the CUDA input transfer stream: all CUDA-capable devices are busy or unavailable" );
+                  }
+                  warning( "Error while creating the CUDA input transfer stream: " << cudaGetErrorString( err ) );
+               }
             }
-#else
-            _transferStream = 0;
-#endif
+
+            if ( outputStream ) {
+               // Initialize the CUDA streams used for output data transfers
+               cudaError_t err = cudaStreamCreate( &_outTransferStream );
+               if ( err != cudaSuccess ) {
+                  // If an error occurred, disable stream overlapping
+                  _outTransferStream = 0;
+                  outputStream = false;
+                  if ( err == CUDANODEVERR ) {
+                     fatal( "Error while creating the CUDA output transfer stream: all CUDA-capable devices are busy or unavailable" );
+                  }
+                  warning( "Error while creating the CUDA output transfer stream: " << cudaGetErrorString( err ) );
+               }
+            }
+
+            if ( inputStream || outputStream ) {
+               // Initialize the CUDA streams used for local data transfers
+               cudaError_t err = cudaStreamCreate( &_localTransferStream );
+               if ( err != cudaSuccess ) {
+                  // If an error occurred, disable stream overlapping
+                  _localTransferStream = 0;
+                  if ( err == CUDANODEVERR ) {
+                     fatal( "Error while creating the CUDA output transfer stream: all CUDA-capable devices are busy or unavailable" );
+                  }
+                  warning( "Error while creating the CUDA output transfer stream: " << cudaGetErrorString( err ) );
+               }
+            }
          }
 
-         cudaStream_t getTransferStream ()
+         void destroyTransferStreams ()
          {
-            return _transferStream;
+            if ( _inTransferStream ) {
+               cudaError_t err = cudaStreamDestroy( _inTransferStream );
+               if ( err != cudaSuccess ) {
+                  warning( "Error while destroying the CUDA input transfer stream: " << cudaGetErrorString( err ) );
+               }
+            }
+
+            if ( _outTransferStream ) {
+               cudaError_t err = cudaStreamDestroy( _outTransferStream );
+               if ( err != cudaSuccess ) {
+                  warning( "Error while destroying the CUDA output transfer stream: " << cudaGetErrorString( err ) );
+               }
+            }
+
+            if ( _localTransferStream ) {
+               cudaError_t err = cudaStreamDestroy( _localTransferStream );
+               if ( err != cudaSuccess ) {
+                  warning( "Error while destroying the CUDA local transfer stream: " << cudaGetErrorString( err ) );
+               }
+            }
+         }
+
+         size_t getMaxMemoryAvailable ()
+         {
+            return _maxMemoryAvailable;
+         }
+
+         void setMaxMemoryAvailable ( size_t maxMemory )
+         {
+            _maxMemoryAvailable = maxMemory;
+         }
+
+         cudaStream_t getInTransferStream ()
+         {
+            return _inTransferStream;
+         }
+
+         cudaStream_t getOutTransferStream ()
+         {
+            return _outTransferStream;
+         }
+
+         cudaStream_t getLocalTransferStream ()
+         {
+            return _localTransferStream;
          }
    };
-
 }
 }
 

@@ -71,7 +71,7 @@ int fib ( int n, int d )
    if ( n < 2 ) return n;
 
    if ( d < cutoff_value ) {
-      nanos::WG *wg = nanos::myThread->getCurrentWD();
+      nanos::WG *wg = nanos::getMyThreadSafe()->getCurrentWD();
 
 //		#pragma omp task untied shared(x) firstprivate(n,d)
 //		x = fib(n - 2,d+1);
@@ -80,7 +80,7 @@ int fib ( int n, int d )
          args->n = n;
          args->d = d;
          args->x = &x;
-         nanos::WD * wd = new nanos::WD( new nanos::ext::SMPDD( fib_0 ), sizeof(fib_args), args );
+         nanos::WD * wd = new nanos::WD( new nanos::ext::SMPDD( fib_0 ), sizeof(fib_args), __alignof__(fib_args), args );
          wg->addWork( *wd );
          nanos::sys.submit( *wd );
       }
@@ -92,7 +92,7 @@ int fib ( int n, int d )
          args->n = n;
          args->d = d;
          args->x = &y;
-         nanos::WD * wd = new nanos::WD( new nanos::ext::SMPDD( fib_1 ), sizeof(fib_args),args );
+         nanos::WD * wd = new nanos::WD( new nanos::ext::SMPDD( fib_1 ), sizeof(fib_args), __alignof__(fib_args), args );
          wg->addWork( *wd );
          nanos::sys.submit( *wd );
       }

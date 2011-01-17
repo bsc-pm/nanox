@@ -52,7 +52,7 @@ void WorkDescriptor::init ()
 
 }
 
-void WorkDescriptor::start(bool isUserLevelThread, WorkDescriptor *previous)
+void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
 {
    _activeDevice->lazyInit(*this,isUserLevelThread,previous);
    
@@ -60,6 +60,8 @@ void WorkDescriptor::start(bool isUserLevelThread, WorkDescriptor *previous)
 
    if ( getNumCopies() > 0 )
       pe->waitInputs( *this );
+
+   if ( _tie ) tieTo(*myThread);
 
    setReady();
 }

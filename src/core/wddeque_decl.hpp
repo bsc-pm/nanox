@@ -33,26 +33,39 @@ namespace nanos
    {
 
       public:
+         /*! \brief SchedulePredicate default constructor
+          */
          SchedulePredicate () {}
-         virtual bool operator() ( WorkDescriptor *wd ) = 0;
+         /*! \brief SchedulePredicate destructor
+          */
          virtual ~SchedulePredicate() {}
+         /*! \brief SchedulePredicate function call operator (pure virtual)
+          */
+         virtual bool operator() ( WorkDescriptor *wd ) = 0;
    };
 
 
    class WDDeque
    {
-
       private:
          typedef std::list<WorkDescriptor *> BaseContainer;
 
          BaseContainer     _dq;
          Lock              _lock;
 
+      private:
+         /*! \brief WDDeque copy constructor (private)
+          */
          WDDeque ( const WDDeque & );
+         /*! \brief WDDeque copy assignment operator (private)
+          */
          const WDDeque & operator= ( const WDDeque & );
-
       public:
+         /*! \brief WDDeque default constructor
+          */
          WDDeque() : _dq(), _lock() {}
+         /*! \brief WDDeque destructor
+          */
          ~WDDeque() {}
 
          bool empty ( void ) const;
@@ -60,11 +73,14 @@ namespace nanos
          void push_front ( WorkDescriptor *wd );
          void push_back( WorkDescriptor *wd );
          WorkDescriptor * pop_front ( BaseThread *thread );
-         WorkDescriptor * pop_front ( BaseThread *thread, SchedulePredicate &predicate );
          WorkDescriptor * pop_back ( BaseThread *thread );
-         WorkDescriptor * pop_back ( BaseThread *thread, SchedulePredicate &predicate );
 
-         bool removeWD( BaseThread *thread, WorkDescriptor * toRem );
+         static void increaseTasksInQueues( int tasks );
+
+         static void decreaseTasksInQueues( int tasks );
+
+
+         bool removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
    };
 
 }

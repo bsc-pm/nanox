@@ -74,10 +74,10 @@ int main ( int argc, char **argv )
       _loop_data.loop_info.step = + 1;
 
       // Work descriptor creation
-      WD * wd = new WD( new SMPDD( main__loop_1 ), sizeof( _loop_data ),( void * ) &_loop_data );
+      WD * wd = new WD( new SMPDD( main__loop_1 ), sizeof( _loop_data ), __alignof__(nanos_loop_info_t), ( void * ) &_loop_data );
 
       // Work Group affiliation
-      WG *wg = myThread->getCurrentWD();
+      WG *wg = getMyThreadSafe()->getCurrentWD();
       wg->addWork( *wd );
 
       // Work submission

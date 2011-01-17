@@ -73,9 +73,6 @@ bool SlicerGuidedFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
    ((nanos_loop_info_t *)((*slice)->getData()))->step = _step;
    ((nanos_loop_info_t *)((*slice)->getData()))->last = last;
 
-   /* If not last, scheduler will enqueue this workdescriptor */
-   if (!last) sys.getSchedulerStats()._readyTasks++;
-
    return last;
 }
 
@@ -90,7 +87,7 @@ class SlicerGuidedForPlugin : public Plugin {
 
       void init ()
       {
-         sys.registerSlicer("guided_for", new SlicerGuidedFor() );	
+         sys.registerSlicer("guided_for", NEW SlicerGuidedFor() );	
       }
 };
 

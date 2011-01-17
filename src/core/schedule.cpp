@@ -36,7 +36,7 @@ void SchedulerConf::config (Config &config)
 {
    config.setOptionsSection ( "Core [Scheduler]", "Policy independent scheduler options"  );
 
-   config.registerConfigOption ( "num_spins", new Config::UintVar( _numSpins ), "Determines the amount of spinning before yielding" );
+   config.registerConfigOption ( "num_spins", NEW Config::UintVar( _numSpins ), "Determines the amount of spinning before yielding" );
    config.registerArgOption ( "num_spins", "spins" );
    config.registerEnvOption ( "num_spins", "NX_SPINS" );
 }
@@ -55,29 +55,49 @@ void Scheduler::submit ( WD &wd )
 
    /* handle tied tasks */
    if ( wd.isTied() && wd.isTiedTo() != mythread ) {
-      queue(wd.isTiedTo(), wd);
+      wd.isTiedTo()->getTeam()->getSchedulePolicy().queue( wd.isTiedTo(), wd );
       return;
    }
 
+   /* handle tasks which cannot run in current thread */
    if ( !wd.canRunIn(*mythread->runningOn()) ) {
-      queue(mythread, wd);
+     /* We have to avoid work-first scheduler to return this kind of tasks, so we enqueue
+      * it in our scheduler system. Global ready task queue will take care about task/thread
+      * architecture, while local ready task queue will wait until stealing. */
+      mythread->getTeam()->getSchedulePolicy().queue( mythread, wd );
       return;
    }
 
    WD *next = getMyThreadSafe()->getTeam()->getSchedulePolicy().atSubmit( myThread, wd );
 
+   /* If SchedulePolicy have returned a 'next' value, we have to context switch to
+      that WorkDescriptor */
    if ( next ) {
       WD *slice;
-      /* enqueue the remaining part of a WD */
+      /* We must ensure this 'next' has no sliced components. If it have them we have to
+       * queue the remaining parts of 'next' */
       if ( !next->dequeue(&slice) ) {
-         queue(mythread, *next);
+         mythread->getTeam()->getSchedulePolicy().queue( mythread, *next );
       }
       switchTo ( slice );
-   } else {
-      /* if next == NULL wd has been enqueued by SchedulePolicy.atSubmit() */
-      sys.getSchedulerStats()._readyTasks++;
    }
 
+}
+
+void Scheduler::submitAndWait ( WD &wd )
+{
+   debug ( "submitting and waiting task " << wd.getId() );
+   fatal ( "Scheduler::submitAndWait(): This feature is still not supported" );
+
+   // Create a new WorkGroup and add WD
+   WG myWG;
+   myWG.addWork( wd );
+
+   // Submit WD
+   submit( wd );
+
+   // Wait for WD to be finished
+   myWG.waitCompletion();
 }
 
 void Scheduler::updateExitStats ( WD &wd )
@@ -124,8 +144,8 @@ inline void Scheduler::idleLoop ()
 
            /* Some WDs maybe prefetched without going through the submit 
               process. Compensate the ready count for that */
-           if ( !next->isSubmitted() && !next->started() ) 
-             sys.getSchedulerStats()._readyTasks++;
+         //  if ( !next->isSubmitted() && !next->started() ) 
+         //    sys.getSchedulerStats()._readyTasks++;
          //} else if ( prefetchedWD != NULL ) {
          //   next = prefetchedWD;
          //      std::cerr << "executing prefetched wd " << next->getId() << std::endl;
@@ -136,9 +156,9 @@ inline void Scheduler::idleLoop ()
          } 
 
          if ( next ) {
-            sys.getSchedulerStats()._readyTasks--;
-            if (!current->isClusterMigrable()) 
-               sys.getSchedulerStats()._readyTasks++;
+         //   sys.getSchedulerStats()._readyTasks--;
+         //   if (!current->isClusterMigrable()) 
+         //      sys.getSchedulerStats()._readyTasks++;
             sys.getSchedulerStats()._idleThreads--;
 
             total_spins+= (nspins - spins);
@@ -234,7 +254,6 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
             }
 
             if ( next ) {
-               sys.getSchedulerStats()._readyTasks--;
                sys.getSchedulerStats()._idleThreads--;
 
                NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
@@ -297,9 +316,26 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 void Scheduler::wakeUp ( WD *wd )
 {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
+
    if ( wd->isBlocked() ) {
+      /* Setting ready wd */
       wd->setReady();
-      Scheduler::queue(myThread, *wd );
+      if ( checkBasicConstraints ( *wd, *myThread ) ) {
+         WD *next = getMyThreadSafe()->getTeam()->getSchedulePolicy().atWakeUp( myThread, *wd );
+         /* If SchedulePolicy have returned a 'next' value, we have to context switch to
+            that WorkDescriptor */
+         if ( next ) {
+            WD *slice;
+            /* We must ensure this 'next' has no sliced components. If it have them we have to
+             * queue the remaining parts of 'next' */
+            if ( !next->dequeue(&slice) ) {
+               myThread->getTeam()->getSchedulePolicy().queue( myThread, *next );
+            }
+            switchTo ( slice );
+         }
+      } else {
+         myThread->getTeam()->getSchedulePolicy().queue( myThread, *wd );
+      }
    }
 }
 
@@ -379,7 +415,8 @@ struct WorkerBehaviour
       }
       else
       {
-        Scheduler::inlineWork ( next );
+        Scheduler::inlineWork ( next, true );
+        delete next;
       }
    }
    static bool checkThreadRunning( WD *current) { return true; }
@@ -390,16 +427,12 @@ void Scheduler::workerLoop ()
    idleLoop<WorkerBehaviour>();
 }
 
-void Scheduler::queue ( BaseThread *thread, WD &wd )
+void Scheduler::inlineWork ( WD *wd, bool schedule )
 {
-   sys.getSchedulerStats()._readyTasks++;
-   thread->getTeam()->getSchedulePolicy().queue( thread, wd );
-}
+   BaseThread *thread = getMyThreadSafe();
 
-void Scheduler::inlineWork ( WD *wd )
-{
    // run it in the current frame
-   WD *oldwd = myThread->getCurrentWD();
+   WD *oldwd = thread->getCurrentWD();
 
    GenericSyncCond *syncCond = oldwd->getSyncCond();
    if ( syncCond != NULL ) {
@@ -418,11 +451,18 @@ void Scheduler::inlineWork ( WD *wd )
    wd->tieTo(*oldwd->isTiedTo());
    if (!wd->started())
       wd->init();
-   myThread->setCurrentWD( *wd );
+   thread->setCurrentWD( *wd );
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
 
-   myThread->inlineWorkDependent(*wd);
+   thread->inlineWorkDependent(*wd);
+
+   // reload thread after running WD
+   thread = getMyThreadSafe();
+
+   if (schedule && thread->getNextWD() == NULL ) {
+        thread->setNextWD(thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*wd));
+   }
 
    /* If WorkDescriptor has been submitted update statistics */
    updateExitStats (*wd);
@@ -438,7 +478,6 @@ void Scheduler::inlineWork ( WD *wd )
           " to " << oldwd << ":" << oldwd->getId() );
 
 
-   BaseThread *thread = getMyThreadSafe();
    thread->setCurrentWD( *oldwd );
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, oldwd, false) );
@@ -450,13 +489,17 @@ void Scheduler::inlineWork ( WD *wd )
       switchToThread(oldwd->isTiedTo());
    #endif
 
-   ensure(oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(), 
+   ensure(oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(),
            "Violating tied rules " + toString<BaseThread*>(thread) + "!=" + toString<BaseThread*>(oldwd->isTiedTo()));
 
 }
 
 void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
 {
+
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldWD, NULL, false) );
+   myThread->switchHelperDependent(oldWD, newWD, arg);
+
    GenericSyncCond *syncCond = oldWD->getSyncCond();
    if ( syncCond != NULL ) {
       oldWD->setBlocked();
@@ -519,7 +562,7 @@ void Scheduler::switchTo ( WD *to )
    if ( myThread->runningOn()->supportsUserLevelThreads() ) {
       if (!to->started()) {
          to->init();
-         to->start(true);
+         to->start(WD::IsAUserLevelThread);
       }
       
       debug( "switching from task " << myThread->getCurrentWD() << ":" << myThread->getCurrentWD()->getId() <<
@@ -585,7 +628,6 @@ void Scheduler::yield ()
    
    
    if ( next ) {
-      sys.getSchedulerStats()._readyTasks--;
       switchTo(next);
    }
 }
@@ -609,10 +651,7 @@ struct ExitBehaviour
 {
    static WD * getWD ( BaseThread *thread, WD *current )
    {
-      WD * nextwd;
-      nextwd = thread->getTeam()->getSchedulePolicy().atExit( thread, current );
-      //std::cout << "Thd " << thread->getId() << " Exit getWD " << nextwd << ":" << ( nextwd != NULL ? nextwd->getId() : -1 ) << " current is " << current << ":" << current->getId() << std::endl;
-      return nextwd;
+      return thread->getTeam()->getSchedulePolicy().atAfterExit( thread, current );
    }
 
    static void switchWD ( BaseThread *thread, WD *current, WD *next )
@@ -630,7 +669,7 @@ void Scheduler::exitTo ( WD *to )
     if (!to->started()) {
        to->init();
 //       to->start(true,current);
-       to->start(true,NULL);
+       to->start(WD::IsAUserLevelThread,NULL);
     }
 
     //std::cerr << "thd " << myThread->getId() << "exiting task " << myThread->getCurrentWD() << ":" << myThread->getCurrentWD()->getId() <<
@@ -647,15 +686,23 @@ void Scheduler::exit ( void )
    // Deallocation doesn't happen here because:
    // a) We are still running in the WD stack
    // b) Resources can potentially be reused by the next WD
+   BaseThread *thread = myThread;
 
-   WD *oldwd = myThread->getCurrentWD();
+   WD *oldwd = thread->getCurrentWD();
+   WD *next =  thread->getNextWD();
+
+   if (!next) next = thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*oldwd);
 
    updateExitStats (*oldwd);
-
    oldwd->done();
    oldwd->clear();
 
-   idleLoop<ExitBehaviour>();
+   if (!next) {
+     idleLoop<ExitBehaviour>();
+   } else {
+     Scheduler::exitTo(next);
+   } 
 
    fatal("A thread should never return from Scheduler::exit");
 }
+

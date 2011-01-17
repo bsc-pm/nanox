@@ -26,13 +26,15 @@
 #include "nanos-int.h"
 #include "copydata.hpp"
 #include "os.hpp"
+#include "basethread.hpp"
+#include "malign.hpp"
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
 #endif
 
 #ifdef GPU_DEV
-#include "gpuprocessor_fwd.hpp"
+#include "gpuprocessor_decl.hpp"
 #endif
 
 #ifdef CLUSTER_DEV
@@ -52,10 +54,12 @@ System nanos::sys;
 // default system values go here
 System::System () :
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindThreads( true ), _profile( false ), _instrument( false ),
-      _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster( false ),
-      _delayedStart(false), _useYield(true), _synchronizedStart(true), _isMaster(true), _defSchedule( "bf" ), _defThrottlePolicy( "numtasks" ),
-      _defBarr( "posix" ), _defInstr ( "empty_trace" ), _defArch("smp"), _currentConduit( "mpi" ), _instrumentation ( NULL ),
-      _defSchedulePolicy(NULL), _directory(), _pmInterface(NULL)
+      _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster(true),
+      _delayedStart(false), _useYield(true), _synchronizedStart(true), _isMaster(true), _throttlePolicy ( NULL ),
+      _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
+      _defBarr( "posix" ), _defInstr ( "empty_trace" ), _defArch("smp"),
+      _initializedThreads ( 0 ), _targetThreads ( 0 ), _currentConduit( "mpi" ),
+      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL )
 {
    verbose0 ( "NANOS++ initializing... start" );
    // OS::init must be called here and not in System::start() as it can be too late
@@ -135,28 +139,28 @@ void System::config ()
    }
    if ( !_pmInterface ) {
       // bare bone run
-      _pmInterface = new PMInterface();
+      _pmInterface = NEW PMInterface();
    }
 
    verbose0 ( "Preparing library configuration" );
 
    config.setOptionsSection ( "Core", "Core options of the core of Nanos++ runtime"  );
 
-   config.registerConfigOption ( "num_pes", new Config::PositiveVar( _numPEs ), "Defines the number of processing elements" );
+   config.registerConfigOption ( "num_pes", NEW Config::PositiveVar( _numPEs ), "Defines the number of processing elements" );
    config.registerArgOption ( "num_pes", "pes" );
    config.registerEnvOption ( "num_pes", "NX_PES" );
 
-   config.registerConfigOption ( "stack-size", new Config::PositiveVar( _deviceStackSize ), "Defines the default stack size for all devices" );
+   config.registerConfigOption ( "stack-size", NEW Config::PositiveVar( _deviceStackSize ), "Defines the default stack size for all devices" );
    config.registerArgOption ( "stack-size", "stack-size" );
    config.registerEnvOption ( "stack-size", "NX_STACK_SIZE" );
 
-   config.registerConfigOption ( "no-binding", new Config::FlagOption( _bindThreads, false), "Disables thread binding" );
+   config.registerConfigOption ( "no-binding", NEW Config::FlagOption( _bindThreads, false), "Disables thread binding" );
    config.registerArgOption ( "no-binding", "disable-binding" );
 
-   config.registerConfigOption( "no-yield", new Config::FlagOption( _useYield, false), "Do not yield on idle and condition waits");
+   config.registerConfigOption( "no-yield", NEW Config::FlagOption( _useYield, false), "Do not yield on idle and condition waits");
    config.registerArgOption ( "no-yield", "disable-yield" );
 
-   config.registerConfigOption ( "verbose", new Config::FlagOption( _verboseMode), "Activates verbose mode" );
+   config.registerConfigOption ( "verbose", NEW Config::FlagOption( _verboseMode), "Activates verbose mode" );
    config.registerArgOption ( "verbose", "verbose" );
 
 #if 0
@@ -167,32 +171,32 @@ void System::config ()
    config.registerArgOption ( "exec_mode", "mode" );
 #endif
 
-   config.registerConfigOption ( "schedule", new Config::StringVar ( _defSchedule ), "Defines the scheduling policy" );
+   config.registerConfigOption ( "schedule", NEW Config::StringVar ( _defSchedule ), "Defines the scheduling policy" );
    config.registerArgOption ( "schedule", "schedule" );
    config.registerEnvOption ( "schedule", "NX_SCHEDULE" );
 
-   config.registerConfigOption ( "throttle", new Config::StringVar ( _defThrottlePolicy ), "Defines the throttle policy" );
+   config.registerConfigOption ( "throttle", NEW Config::StringVar ( _defThrottlePolicy ), "Defines the throttle policy" );
    config.registerArgOption ( "throttle", "throttle" );
    config.registerEnvOption ( "throttle", "NX_THROTTLE" );
 
-   config.registerConfigOption ( "barrier", new Config::StringVar ( _defBarr ), "Defines barrier algorithm" );
+   config.registerConfigOption ( "barrier", NEW Config::StringVar ( _defBarr ), "Defines barrier algorithm" );
    config.registerArgOption ( "barrier", "barrier" );
    config.registerEnvOption ( "barrier", "NX_BARRIER" );
 
-   config.registerConfigOption ( "instrumentation", new Config::StringVar ( _defInstr ), "Defines instrumentation format" );
+   config.registerConfigOption ( "instrumentation", NEW Config::StringVar ( _defInstr ), "Defines instrumentation format" );
    config.registerArgOption ( "instrumentation", "instrumentation" );
    config.registerEnvOption ( "instrumentation", "NX_INSTRUMENTATION" );
 
    /* Cluster: select wich module to load mpi or udp */
-   //config.registerConfigOption ( "enable-cluster", new Config::FlagOption ( _useCluster, false ), "Enables the usage of Nanos++ Cluster" );
+   //config.registerConfigOption ( "enable-cluster", NEW Config::FlagOption ( _useCluster, false ), "Enables the usage of Nanos++ Cluster" );
    //config.registerArgOption ( "enable-cluster", "enable-cluster" );
    //config.registerEnvOption ( "enable-cluster", "NX_ENABLE_CLUSTER" );
 
-   config.registerConfigOption ( "conduit", new Config::StringVar ( _currentConduit ), "Selects which GasNet conduit will be used" );
+   config.registerConfigOption ( "conduit", NEW Config::StringVar ( _currentConduit ), "Selects which GasNet conduit will be used" );
    config.registerArgOption ( "conduit", "cluster-network" );
    config.registerEnvOption ( "conduit", "NX_CLUSTER_NETWORK" );
 
-   config.registerConfigOption ( "no-sync-start", new Config::FlagOption( _synchronizedStart, false), "Disables synchronized start" );
+   config.registerConfigOption ( "no-sync-start", NEW Config::FlagOption( _synchronizedStart, false), "Disables synchronized start" );
    config.registerArgOption ( "no-sync-start", "disable-synchronized-start" );
 
    _schedConf.config(config);
@@ -244,8 +248,7 @@ void System::start ()
    WD &mainWD = *myThread->getCurrentWD();
    
    if ( _pmInterface->getInternalDataSize() > 0 )
-     // TODO: is this properly aligned?
-     mainWD.setInternalData(new char[_pmInterface->getInternalDataSize()]);
+     mainWD.setInternalData(NEW char[_pmInterface->getInternalDataSize()]);
       
    _pmInterface->setupWD(mainWD);
 
@@ -256,7 +259,7 @@ void System::start ()
 
    _targetThreads = getThsPerPE() * numPes;
 #ifdef GPU_DEV
-   _targetThreads += nanos::ext::GPUDD::getGPUCount();
+   _targetThreads += nanos::ext::GPUConfig::getGPUCount();
 #endif
 
    //start as much threads per pe as requested by the user
@@ -294,15 +297,15 @@ void System::start ()
 
 #ifdef GPU_DEV
    int gpuC;
-   for ( gpuC = 0; gpuC < nanos::ext::GPUDD::getGPUCount(); gpuC++ ) {
-      PE *gpu = new nanos::ext::GPUProcessor( p++, gpuC );
+   for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount(); gpuC++ ) {
+      PE *gpu = NEW nanos::ext::GPUProcessor( p++, gpuC );
       _pes.push_back( gpu );
       _workers.push_back( &gpu->startWorker() );
    }
 #endif
 
 #ifdef SPU_DEV
-   PE *spu = new nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);
+   PE *spu = NEW nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);
    spu->startWorker();
 #endif
 
@@ -400,7 +403,7 @@ void System::finish ()
 
    // we need to switch to the main thread here to finish
    // the execution correctly
-   myThread->getCurrentWD()->tieTo(*_workers[0]);
+   getMyThreadSafe()->getCurrentWD()->tieTo(*_workers[0]);
    Scheduler::switchToThread(_workers[0]);
    
    ensure(getMyThreadSafe()->getId() == 0, "Main thread not finishing the application!");
@@ -438,6 +441,8 @@ void System::finish ()
    // shutdown instrumentation
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->finalize() );
+
+   ensure( _schedStats._readyTasks == 0, "Ready task counter has an invalid value!");
 
    // join
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {
@@ -490,82 +495,80 @@ void System::finish ()
  *  +---------------+
  *  |     ....      |
  *  +---------------+
- *  |    copyN      |
+ *  |    copyM      |
+ *  +---------------+
+ *  |   PM Data     |
  *  +---------------+
  *
  */
-void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t data_size,
+void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align,
                         void **data, WG *uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies )
 {
-   int dd_size = 0;
-   for ( unsigned int i = 0; i < num_devices; i++ )
-      dd_size += devices[i].dd_size;
+   ensure(num_devices > 0,"WorkDescriptor has no devices");
 
-   int pmDataSize = _pmInterface->getInternalDataSize();
+   size_t  size_WD = (*uwd == NULL)? sizeof(WD):0;
+   size_t align_WD = (*uwd == NULL)? __alignof__(WD):1;
 
-   // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
-   int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( WD ) : 0 ) +
-                          ( ( data != NULL && *data == NULL ) ? (((data_size+7)>>3)<<3) : 0 ) +
-                          sizeof( DD* ) * num_devices +
-                          dd_size +
-                          ( ( copies != NULL && *copies == NULL ) ? num_copies * sizeof(CopyData) : 0 ) +
-                          pmDataSize
-                          ;
+   size_t  size_Data = (data != NULL && *data == NULL)? data_size:0;
+   size_t align_Data = (data != NULL && *data == NULL)? data_align:1;
+
+   size_t  size_DPtrs = sizeof(DD *) * num_devices;
+   size_t align_DPtrs = __alignof__( DD * );
+
+   size_t  size_DDs = 0;
+   for ( unsigned int i = 0; i < num_devices; i++ ) size_DDs += devices[i].dd_size;
+   size_t align_DDs = __alignof__(DeviceData);
+
+   size_t  size_Copies = (copies != NULL && *copies == NULL)? num_copies*sizeof(CopyData):0;
+   size_t align_Copies = (copies != NULL && *copies == NULL)? __alignof__( nanos_copy_data_t ):1;
+
+   size_t  size_PMD = _pmInterface->getInternalDataSize();
+   size_t align_PMD = (size_PMD)? _pmInterface->getInternalDataAlignment():1;
+
+   size_t offset_WD, offset_Data, offset_DPtrs, offset_DDs, offset_Copies, offset_PMD, total_size;
+
+   offset_WD     = NANOS_ALIGNED_MEMORY_OFFSET(0, 0, align_WD);
+   offset_Data   = NANOS_ALIGNED_MEMORY_OFFSET(offset_WD, size_WD, align_Data);
+   offset_DPtrs  = NANOS_ALIGNED_MEMORY_OFFSET(offset_Data, size_Data, align_DPtrs);
+   offset_DDs    = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, align_DDs);
+   offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, align_Copies);
+   offset_PMD    = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies,align_PMD);
+   total_size    = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD,size_PMD,1);
 
    char *chunk = 0;
-   char *orig_chunk = 0;
 
-   if ( size_to_allocate ) chunk = new char[size_to_allocate];
+   /* Standard C++ ISO/IEC 14882:2003(E)
+    *
+    * 3.7.3.1 Allocation functions
+    * The pointer returned shall be suitably aligned so that it can be converted to a
+    * pointer of any complete object type and then used to access the object or array
+    * in the storage allocated (until the storage is explicitly deallocated by a call
+    * to a corresponding deallocation function).
+    */
+   if ( total_size ) chunk = NEW char[total_size];
 
-   orig_chunk = chunk;
+   // allocating WD and DATA
+   if ( *uwd == NULL ) *uwd = (WD *) (chunk + offset_WD);
+   if ( data != NULL && *data == NULL ) *data = (chunk + offset_Data);
 
-   // allocate WD
-   if ( *uwd == NULL ) {
-      *uwd = ( WD * ) chunk;
-      chunk += sizeof( WD );
-   }
-
-   // allocate WD data
-   // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
-   if ( data != NULL && *data == NULL ) {
-      *data = chunk;
-      chunk += (((data_size+7)>>3)<<3);
-   }
-
-   // allocate device pointers vector
-   DD **dev_ptrs = ( DD ** ) chunk;
-   chunk += sizeof( DD* ) * num_devices;
-
-   // allocate device data
+   // allocating Device Data
+   DD **dev_ptrs = ( DD ** ) (chunk + offset_DPtrs);
+   char *dd_location = chunk + offset_DDs;
    for ( unsigned int i = 0 ; i < num_devices ; i ++ ) {
-      dev_ptrs[i] = ( DD* ) devices[i].factory( chunk , devices[i].arg );
-      chunk += devices[i].dd_size;
+      dev_ptrs[i] = ( DD* ) devices[i].factory( dd_location , devices[i].arg );
+      dd_location += devices[i].dd_size;
    }
 
-   // allocate copy-ins/copy-outs
-   CopyData *wdCopies = NULL;
-   if ( copies != NULL ) {
-      if ( *copies == NULL ) {
-         if ( num_copies > 0 ) {
-            wdCopies = ( CopyData * ) chunk;
-            *copies = wdCopies;
-            chunk += num_copies * sizeof( CopyData );
-         }
-      } else {
-         wdCopies = *copies;
-      }
-   }
+   ensure ((num_copies==0 && copies==NULL) || (num_copies!=0 && copies!=NULL), "Number of copies and copy data conflict" );
 
-   void * pmData = NULL;
-   if ( pmDataSize > 0)
-   {
-       pmData = chunk;
-       chunk += pmDataSize;
-   }
+   // allocating copy-ins/copy-outs
+   if ( copies != NULL && *copies == NULL ) *copies = ( CopyData * ) (chunk + offset_Copies);
 
-   WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, data != NULL ? *data : NULL, num_copies, num_copies == 0 ? NULL : wdCopies );
+   WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, align_Data, data != NULL ? *data : NULL,
+                             num_copies, (copies != NULL)? *copies : NULL );
 
-   if ( pmData ) wd->setInternalData(pmData);
+   // initializing internal data
+   if ( size_PMD > 0) wd->setInternalData( chunk + offset_PMD );
 
    // add to workgroup
    if ( uwg != NULL ) {
@@ -578,7 +581,6 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
       if ( props->tied ) wd->tied();
       if ( props->tie_to ) wd->tieTo( *( BaseThread * )props->tie_to );
    }
-
 }
 
 /*! \brief Creates a new Sliced WD
@@ -622,91 +624,92 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
  *  +---------------+
  *  |     ....      |
  *  +---------------+
- *  |    copyN      |
+ *  |    copyM      |
  *  +---------------+
  *  |  SlicerData   |
+ *  +---------------+
+ *  |   PM Data     |
  *  +---------------+
  *
  */
 void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
-                        void **outline_data, WG *uwg, Slicer *slicer, size_t slicer_data_size,
-                        SlicerData *&slicer_data, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies )
+                        int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, size_t slicer_data_size,
+                        int slicer_data_align, SlicerData *&slicer_data, nanos_wd_props_t *props, size_t num_copies,
+                        nanos_copy_data_t **copies )
 {
+   ensure(num_devices > 0,"WorkDescriptor has no devices");
 
-   int dd_size = 0;
-   for ( unsigned int i = 0; i < num_devices; i++ )
-      dd_size += devices[i].dd_size;
-   int pmDataSize = _pmInterface->getInternalDataSize();
+   size_t  size_WD = (*uwd == NULL)? sizeof(SlicedWD):0;
+   size_t align_WD = (*uwd == NULL)? __alignof__(SlicedWD):1;
 
-   // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
-   int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( SlicedWD ) : 0 ) +
-                          ( ( outline_data != NULL && *outline_data == NULL ) ? (((outline_data_size+7)>>3)<<3) : 0 ) +
-                          ( ( slicer_data == NULL ) ? (((slicer_data_size+7)>>3)<<3) : 0 ) +
-                          sizeof( DD* ) * num_devices +
-                          dd_size +
-                          ( ( copies != NULL && *copies == NULL ) ? num_copies * sizeof(CopyData) : 0 ) +
-                          pmDataSize
-                          ;
+   size_t  size_Data = (outline_data != NULL && *outline_data == NULL)? outline_data_size:0;
+   size_t align_Data = (outline_data != NULL && *outline_data == NULL)? outline_data_align:1;
+
+   size_t  size_DPtrs = sizeof(DD *) * num_devices;
+   size_t align_DPtrs = __alignof__( DD * );
+
+   size_t  size_DDs = 0;
+   for ( unsigned int i = 0; i < num_devices; i++ ) size_DDs += devices[i].dd_size;
+   size_t align_DDs = __alignof__(DeviceData);
+
+   size_t  size_Copies = (copies != NULL && *copies == NULL)? num_copies*sizeof(CopyData):0;
+   size_t align_Copies = (copies != NULL && *copies == NULL)? __alignof__( nanos_copy_data_t ):1;
+
+   size_t  size_SData = (slicer_data == NULL)? slicer_data_size:0;
+   size_t align_SData = (slicer_data == NULL)? slicer_data_align:1;
+
+   size_t  size_PMD = _pmInterface->getInternalDataSize();
+   size_t align_PMD = (size_PMD)? _pmInterface->getInternalDataAlignment():1;
+
+   size_t offset_WD, offset_Data, offset_DPtrs, offset_DDs, offset_Copies, offset_PMD, offset_SData, total_size;
+
+   offset_WD     = NANOS_ALIGNED_MEMORY_OFFSET(0, 0, align_WD);
+   offset_Data   = NANOS_ALIGNED_MEMORY_OFFSET(offset_WD, size_WD, align_Data);
+   offset_DPtrs  = NANOS_ALIGNED_MEMORY_OFFSET(offset_Data, size_Data, align_DPtrs);
+   offset_DDs    = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, align_DDs);
+   offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, align_Copies);
+   offset_PMD    = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, align_PMD);
+   offset_SData  = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD, size_PMD, align_SData);
+   total_size    = NANOS_ALIGNED_MEMORY_OFFSET(offset_SData, size_SData, 1);
 
    char *chunk = 0;
 
-   if ( size_to_allocate ) chunk = new char[size_to_allocate];
+   /* Standard C++ ISO/IEC 14882:2003(E)
+    *
+    * 3.7.3.1 Allocation functions
+    * The pointer returned shall be suitably aligned so that it can be converted to a
+    * pointer of any complete object type and then used to access the object or array
+    * in the storage allocated (until the storage is explicitly deallocated by a call
+    * to a corresponding deallocation function).
+    */
+   if ( total_size ) chunk = NEW char[total_size];
 
-   // allocate WD
-   if ( *uwd == NULL ) {
-      *uwd = ( SlicedWD * ) chunk;
-      chunk += sizeof( SlicedWD );
-   }
+   // allocating WD and DATA
+   if ( *uwd == NULL ) *uwd = (SlicedWD *) (chunk + offset_WD);
+   if ( outline_data != NULL && *outline_data == NULL ) *outline_data = (chunk + offset_Data);
 
-   // allocate WD data
-   // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
-   if ( outline_data != NULL && *outline_data == NULL ) {
-      *outline_data = chunk;
-      chunk += (((outline_data_size+7)>>3)<<3);
-   }
-
-   // allocate device pointers vector
-   DD **dev_ptrs = ( DD ** ) chunk;
-   chunk += sizeof( DD* ) * num_devices;
-
-   // allocate device data
+   // allocating Device Data
+   DD **dev_ptrs = ( DD ** ) (chunk + offset_DPtrs);
+   char *dd_location = chunk + offset_DDs;
    for ( unsigned int i = 0 ; i < num_devices ; i ++ ) {
-      dev_ptrs[i] = ( DD* ) devices[i].factory( chunk , devices[i].arg );
-      chunk += devices[i].dd_size;
+      dev_ptrs[i] = ( DD* ) devices[i].factory( dd_location , devices[i].arg );
+      dd_location += devices[i].dd_size;
    }
 
-   // allocate copy-ins/copy-outs
-   CopyData *wdCopies = NULL;
-   if ( copies != NULL ) {
-      if ( *copies == NULL ) {
-         if ( num_copies > 0 ) {
-            wdCopies = ( CopyData * ) chunk;
-            *copies = wdCopies;
-            chunk += num_copies * sizeof( CopyData );
-         }
-      } else {
-         wdCopies = *copies;
-      }
-   }
+   ensure ((num_copies==0 && copies==NULL) || (num_copies!=0 && copies!=NULL), "Number of copies and copy data conflict" );
 
-   // allocate SlicerData
-   // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
-   if ( slicer_data == NULL ) {
-      slicer_data = ( SlicerData * )chunk;
-      chunk += (((slicer_data_size+7)>>3)<<3);
-   }
+   // allocating copy-ins/copy-outs
+   if ( copies != NULL && *copies == NULL ) *copies = ( CopyData * ) (chunk + offset_Copies);
 
-   void * pmData = NULL;
-   if ( pmDataSize > 0)
-   {
-       pmData = chunk;
-       chunk += pmDataSize;
-   }
+   // allocating Slicer Data
+   if ( slicer_data == NULL ) slicer_data = (SlicerData *) (chunk + offset_SData);
 
-   SlicedWD * wd =  new (*uwd) SlicedWD( *slicer, slicer_data_size, *slicer_data, num_devices, dev_ptrs, 
-                       outline_data_size, outline_data != NULL ? *outline_data : NULL, num_copies, num_copies == 0 ? NULL : wdCopies );
+   SlicedWD * wd =  new (*uwd) SlicedWD( *slicer, slicer_data_size, align_SData,*slicer_data, num_devices, dev_ptrs, 
+                       outline_data_size, align_Data, outline_data != NULL ? *outline_data : NULL, num_copies,
+                       (copies == NULL) ? NULL : *copies );
 
-   if ( pmData ) wd->setInternalData(pmData);
+   // initializing internal data
+   if ( size_PMD > 0) wd->setInternalData( chunk + offset_PMD );
 
    // add to workgroup
    if ( uwg != NULL ) {
@@ -731,57 +734,71 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
  */
 void System::duplicateWD ( WD **uwd, WD *wd)
 {
-   int dd_size = 0;
    void *data = NULL;
 
-   // computing size of device(s)
-   for ( unsigned int i = 0; i < wd->getNumDevices(); i++ )
-      dd_size += wd->getDevices()[i]->size();
+   size_t  size_WD = (*uwd == NULL)? sizeof(WD):0;
+   size_t align_WD = (*uwd == NULL)? __alignof__(WD):1;
 
-   // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
-   int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( WD ) : 0 ) + (((wd->getDataSize()+7)>>3)<<3) +
-                          sizeof( DD* ) * wd->getNumDevices() + dd_size +
-                          sizeof( CopyData )* wd->getNumCopies() ;
+   size_t  size_Data = wd->getDataSize();
+   size_t align_Data = wd->getDataAlignment();
+
+   size_t  size_DPtrs = sizeof(DD *) * wd->getNumDevices();
+   size_t align_DPtrs = __alignof__( DD * );
+
+   size_t  size_DDs = 0;
+   for ( unsigned int i = 0; i < wd->getNumDevices(); i++ ) size_DDs += wd->getDevices()[i]->size();
+   size_t align_DDs = __alignof__(DeviceData);
+
+   size_t  size_Copies = sizeof( CopyData ) * wd->getNumCopies();
+   size_t align_Copies = ( size_Copies )? __alignof__( nanos_copy_data_t ):1;
+
+   size_t  size_PMD = _pmInterface->getInternalDataSize();
+   size_t align_PMD = (size_PMD)? _pmInterface->getInternalDataAlignment():1;
+
+   size_t offset_WD, offset_Data, offset_DPtrs, offset_DDs, offset_Copies, offset_PMD, total_size;
+
+   offset_WD     = NANOS_ALIGNED_MEMORY_OFFSET(0, 0, align_WD);
+   offset_Data   = NANOS_ALIGNED_MEMORY_OFFSET(offset_WD, size_WD, align_Data);
+   offset_DPtrs  = NANOS_ALIGNED_MEMORY_OFFSET(offset_Data, size_Data, align_DPtrs);
+   offset_DDs    = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, align_DDs);
+   offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, align_Copies);
+   offset_PMD    = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies,align_PMD);
+   total_size    = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD,size_PMD,1);
 
    char *chunk = 0;
 
-   if ( size_to_allocate ) chunk = new char[size_to_allocate];
+   if ( total_size ) chunk = NEW char[total_size];
 
-   // allocate WD
-   if ( *uwd == NULL ) {
-      *uwd = ( WD * ) chunk;
-      chunk += sizeof( WD );
+   // allocating WD and DATA
+   if ( *uwd == NULL ) *uwd = (WD *) (chunk + offset_WD);
+   if ( size_Data != 0 ) {
+      data = (chunk + offset_Data);
+      memcpy ( data, wd->getData(), size_Data );
    }
 
-   // allocate WD data
-   // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
-   if ( wd->getDataSize() != 0 ) {
-      data = (void * ) chunk;
-      memcpy ( data, wd->getData(), wd->getDataSize());
-      chunk += (((wd->getDataSize()+7)>>3)<<3);
-   }
-
-   // allocate device pointers vector
-   DD **dev_ptrs = ( DD ** ) chunk;
-   chunk += sizeof( DD* ) * wd->getNumDevices();
-
-   // allocate device data
+   // allocating Device Data
+   DD **dev_ptrs = ( DD ** ) (chunk + offset_DPtrs);
+   char *dd_location = chunk + offset_DDs;
    for ( unsigned int i = 0 ; i < wd->getNumDevices(); i ++ ) {
-      wd->getDevices()[i]->copyTo(chunk);
-      dev_ptrs[i] = ( DD * ) chunk;
-      chunk += wd->getDevices()[i]->size();
+      wd->getDevices()[i]->copyTo(dd_location);
+      dev_ptrs[i] = ( DD* ) dd_location;
+      dd_location += wd->getDevices()[i]->size();
    }
 
    // allocate copy-in/copy-outs
-   CopyData *wdCopies = ( CopyData * ) chunk;
+   CopyData *wdCopies = ( CopyData * ) (chunk + offset_Copies);
+   char * chunk_iter = (chunk + offset_Copies);
    for ( unsigned int i = 0; i < wd->getNumCopies(); i++ ) {
-      CopyData *wdCopiesCurr = ( CopyData * ) chunk;
+      CopyData *wdCopiesCurr = ( CopyData * ) chunk_iter;
       *wdCopiesCurr = wd->getCopies()[i];
-      chunk += sizeof( CopyData );
+      chunk_iter += sizeof( CopyData );
    }
 
    // creating new WD 
    new (*uwd) WD( *wd, dev_ptrs, wdCopies , data);
+
+   // initializing internal data
+   if ( size_PMD > 0) wd->setInternalData( chunk + offset_PMD );
 }
 
 /*! \brief Duplicates a given SlicedWD
@@ -794,66 +811,83 @@ void System::duplicateWD ( WD **uwd, WD *wd)
  */
 void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
 {
-   int dd_size = 0;
    void *data = NULL;
    void *slicer_data = NULL;
 
-   // computing size of device(s)
-   for ( unsigned int i = 0; i < wd->getNumDevices(); i++ )
-      dd_size += wd->getDevices()[i]->size();
+   size_t  size_WD = (*uwd == NULL)? sizeof(SlicedWD):0;
+   size_t align_WD = (*uwd == NULL)? __alignof__(SlicedWD):1;
 
-   // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
-   int size_to_allocate = ( ( *uwd == NULL ) ? sizeof( SlicedWD ) : 0 ) + (((wd->getDataSize()+7)>>3)<<3) +
-                          sizeof( DD* ) * wd->getNumDevices() + dd_size + (((wd->getSlicerDataSize()+7)>>3)<<3) +
-                          sizeof( CopyData )* wd->getNumCopies() ;
+   size_t  size_Data = wd->getDataSize();
+   size_t align_Data = wd->getDataAlignment();
+
+   size_t  size_DPtrs = sizeof(DD *) * wd->getNumDevices();
+   size_t align_DPtrs = __alignof__( DD * );
+
+   size_t  size_DDs = 0;
+   for ( unsigned int i = 0; i < wd->getNumDevices(); i++ ) size_DDs += wd->getDevices()[i]->size();
+   size_t align_DDs = __alignof__(DeviceData);
+
+   size_t  size_Copies = sizeof( CopyData ) * wd->getNumCopies();
+   size_t align_Copies = ( size_Copies )? __alignof__( nanos_copy_data_t ):1;
+
+   size_t  size_SData = wd->getSlicerDataSize();
+   size_t align_SData = (size_SData)? wd->getSlicerDataAlignment():1;
+
+   size_t  size_PMD = _pmInterface->getInternalDataSize();
+   size_t align_PMD = (size_PMD)? _pmInterface->getInternalDataAlignment():1;
+
+   size_t offset_WD, offset_Data, offset_DPtrs, offset_DDs, offset_Copies, offset_PMD, offset_SData, total_size;
+
+   offset_WD     = NANOS_ALIGNED_MEMORY_OFFSET(0, 0, align_WD);
+   offset_Data   = NANOS_ALIGNED_MEMORY_OFFSET(offset_WD, size_WD, align_Data);
+   offset_DPtrs  = NANOS_ALIGNED_MEMORY_OFFSET(offset_Data, size_Data, align_DPtrs);
+   offset_DDs    = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, align_DDs);
+   offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, align_Copies);
+   offset_PMD    = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, align_PMD);
+   offset_SData  = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD, size_PMD, align_SData);
+   total_size    = NANOS_ALIGNED_MEMORY_OFFSET(offset_SData, size_SData, 1);
 
    char *chunk = 0;
 
-   if ( size_to_allocate ) chunk = new char[size_to_allocate];
+   if ( total_size ) chunk = NEW char[total_size];
 
-   // allocate WD
-   if ( *uwd == NULL ) {
-      *uwd = ( SlicedWD * ) chunk;
-      chunk += sizeof( SlicedWD );
+   // allocating WD and DATA
+   if ( *uwd == NULL ) *uwd = (SlicedWD *) (chunk + offset_WD);
+   if ( size_Data != 0 ) {
+      data = (chunk + offset_Data);
+      memcpy ( data, wd->getData(), size_Data );
    }
 
-   // allocate WD data
-   // FIXME: (#104) Memory is requiered to be aligned to 8 bytes in some architectures (temporary solved)
-   if ( wd->getDataSize() != 0 ) {
-      data = (void * ) chunk;
-      memcpy ( data, wd->getData(), wd->getDataSize());
-      chunk += (((wd->getDataSize()+7)>>3)<<3);
-   }
-
-   // allocate device pointers vector
-   DD **dev_ptrs = ( DD ** ) chunk;
-   chunk += sizeof( DD* ) * wd->getNumDevices();
-
-   // allocate device data
+   // allocating Device Data
+   DD **dev_ptrs = ( DD ** ) (chunk + offset_DPtrs);
+   char *dd_location = chunk + offset_DDs;
    for ( unsigned int i = 0 ; i < wd->getNumDevices(); i ++ ) {
-      wd->getDevices()[i]->copyTo(chunk);
-      dev_ptrs[i] = ( DD * ) chunk;
-      chunk += wd->getDevices()[i]->size();
+      wd->getDevices()[i]->copyTo(dd_location);
+      dev_ptrs[i] = ( DD* ) dd_location;
+      dd_location += wd->getDevices()[i]->size();
    }
 
    // allocate copy-in/copy-outs
-   CopyData *wdCopies = ( CopyData * ) chunk;
+   CopyData *wdCopies = ( CopyData * ) (chunk + offset_Copies);
+   char * chunk_iter = (chunk + offset_Copies);
    for ( unsigned int i = 0; i < wd->getNumCopies(); i++ ) {
-      CopyData *wdCopiesCurr = ( CopyData * ) chunk;
+      CopyData *wdCopiesCurr = ( CopyData * ) chunk_iter;
       *wdCopiesCurr = wd->getCopies()[i];
-      chunk += sizeof( CopyData );
+      chunk_iter += sizeof( CopyData );
    }
 
    // copy SlicerData
-   if ( wd->getSlicerDataSize() != 0 ) {
-      slicer_data = (void * ) chunk;
-      memcpy ( slicer_data, wd->getSlicerData(), wd->getSlicerDataSize());
-      chunk += (((wd->getSlicerDataSize()+7)>>3)<<3);
+   if ( size_SData != 0 ) {
+      slicer_data = chunk + offset_SData;
+      memcpy ( slicer_data, wd->getSlicerData(), size_SData );
    }
 
    // creating new SlicedWD 
-   new (*uwd) SlicedWD( *(wd->getSlicer()), wd->getSlicerDataSize(), *((SlicerData *)slicer_data),
-                        *((WD *)wd), dev_ptrs, wdCopies, data );
+   new (*uwd) SlicedWD( *(wd->getSlicer()), wd->getSlicerDataSize(), wd->getSlicerDataAlignment(),
+                        *((SlicerData *)slicer_data), *((WD *)wd), dev_ptrs, wdCopies, data );
+
+   // initializing internal data
+   if ( size_PMD > 0) wd->setInternalData( chunk + offset_PMD );
 
 }
 
@@ -929,7 +963,11 @@ void System::inlineWork ( WD &work )
 {
    setupWD( work, myThread->getCurrentWD() );
    // TODO: choose actual (active) device...
-   Scheduler::inlineWork( &work );
+   if ( Scheduler::checkBasicConstraints( work, *myThread ) ) {
+      Scheduler::inlineWork( &work );
+   } else {
+      Scheduler::submitAndWait( work );
+   }
 }
 
 BaseThread * System:: getUnassignedWorker ( void )
@@ -992,7 +1030,7 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
       stdata = sched->createTeamData(NULL);
 
    // create team
-   ThreadTeam * team = new ThreadTeam( nthreads, *sched, stdata, *_defBarrFactory() );
+   ThreadTeam * team = NEW ThreadTeam( nthreads, *sched, stdata, *_defBarrFactory() );
 
    debug( "Creating team " << team << " of " << nthreads << " threads" );
 
@@ -1006,7 +1044,7 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
 
       
       if (tdata) data = &tdata[thId];
-      else data = new TeamData();
+      else data = NEW TeamData();
 
       ScheduleThreadData *stdata = 0;
       if ( sched->getThreadDataSize() > 0 )
@@ -1035,7 +1073,7 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
       debug( "adding thread " << thread << " with id " << toString<int>(thId) << " to " << team );
 
       if (tdata) data = &tdata[thId];
-      else data = new TeamData();
+      else data = NEW TeamData();
 
       ScheduleThreadData *stdata = 0;
       if ( sched->getThreadDataSize() > 0 )

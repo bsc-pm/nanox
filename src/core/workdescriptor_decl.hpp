@@ -77,12 +77,12 @@ namespace nanos
 
    };
 
-   /*! \brief This class holds the specific data for a given device
-    */
+  /*! \brief This class holds the specific data for a given device
+   *
+   */
    class DeviceData
    {
       private:
-
          /**Use pointers for this as is this fastest way to compare architecture compatibility */
          const Device *_architecture; /**< Related Device (architecture). */
 
@@ -134,41 +134,44 @@ namespace nanos
     */
    class WorkDescriptor : public WorkGroup
    {
+      public:
+	 typedef enum { IsNotAUserLevelThread=false, IsAUserLevelThread=true } ULTFlag;
+
       private:
 
          typedef enum { INIT, READY, IDLE, BLOCKED } State;
 
-         size_t               _data_size;    /**< WD data size */
-         void *               _data;         /**< WD data */
-         void *               _wdData;       /**< Internal WD data. this allows higher layer to associate data to the WD */
-         bool                 _tie;          /**< FIXME: (#170) documentation needed */
-         BaseThread *         _tiedTo;       /**< FIXME: (#170) documentation needed */
+         size_t                        _data_size;    /**< WD data size */
+         int                           _data_align;   /**< WD data alignment */
+         void                         *_data;         /**< WD data */
+         void                         *_wdData;       /**< Internal WD data. this allows higher layer to associate data to the WD */
+         bool                          _tie;          /**< FIXME: (#170) documentation needed */
+         BaseThread                   *_tiedTo;       /**< FIXME: (#170) documentation needed */
 
-         State                _state;        /**< Workdescriptor current state */
+         State                         _state;        /**< Workdescriptor current state */
 
-         GenericSyncCond *    _syncCond;     /**< FIXME: (#170) documentation needed */
+         GenericSyncCond              *_syncCond;     /**< FIXME: (#170) documentation needed */
 
-         WorkDescriptor *     _parent;       /**< Parent WD (task hierarchy). Cilk sched.: first steal parent task, next other tasks */
+         WorkDescriptor               *_parent;       /**< Parent WD (task hierarchy). Cilk sched.: first steal parent, next other tasks */
 
-         WDDeque *            _myQueue;      /**< Reference to a queue. Allows dequeuing from third party (e.g. Cilk schedulers */
+         WDDeque                      *_myQueue;      /**< Reference to a queue. Allows dequeuing from third party (e.g. Cilk schedulers */
 
-         unsigned             _depth;        /**< Level (depth) of the task */
+         unsigned                      _depth;        /**< Level (depth) of the task */
 
-         unsigned             _numDevices;   /**< Number of suported devices for this workdescriptor */
-         DeviceData **        _devices;      /**< Supported devices for this workdescriptor */
-         DeviceData *         _activeDevice; /**< Active device (if any) */
+         unsigned                      _numDevices;   /**< Number of suported devices for this workdescriptor */
+         DeviceData                  **_devices;      /**< Supported devices for this workdescriptor */
+         DeviceData                   *_activeDevice; /**< Active device (if any) */
 
-         size_t               _numCopies;    /**< Copy-in / Copy-out data */
-         CopyData *           _copies;       /**< Copy-in / Copy-out data */
+         size_t                        _numCopies;    /**< Copy-in / Copy-out data */
+         CopyData                     *_copies;       /**< Copy-in / Copy-out data */
 
-         TR1::shared_ptr<DOSubmit>                      _doSubmit;     /**< DependableObject representing this WD in its parent's depsendencies domain */
-         LazyInit<DOWait>               _doWait;       /**< DependableObject used by this task to wait on dependencies */
+         TR1::shared_ptr<DOSubmit>     _doSubmit;     /**< DependableObject representing this WD in its parent's depsendencies domain */
+         LazyInit<DOWait>              _doWait;       /**< DependableObject used by this task to wait on dependencies */
 
-         LazyInit<DependenciesDomain>   _depsDomain;   /**< Dependences domain. Each WD has a domain where DependableObjects can be submitted */
+         LazyInit<DependenciesDomain>  _depsDomain;   /**< Dependences domain. Each WD has one where DependableObjects can be submitted */
+         LazyInit<Directory>           _directory;    /**< Directory to mantain cache coherence */
 
-         LazyInit<Directory>            _directory; /**< Directory to mantain cache coherence */
-
-         InstrumentationContextData     _instrumentationContextData; /**< Instrumentation Context Data (may be empty if no instrumentation enabled) */
+         InstrumentationContextData    _instrumentationContextData; /**< Instrumentation Context Data (empty if no instr. enabled) */
 
          bool                 _clusterMigrable;
          ProcessingElement *  _myPe;
@@ -176,32 +179,40 @@ namespace nanos
          WorkDescriptor * _previous;
          unsigned int _peId;
          //WorkDescriptor * _prefetchedWd;
-         bool                 _submitted;  /**< Has this WD been submitted to the Scheduler? */
+         bool                          _submitted;  /**< Has this WD been submitted to the Scheduler? */
 
-         /*! \brief WorkDescriptor assignment operator privatized
+      private: /* private methods */
+         /*! \brief WorkDescriptor copy assignment operator (private)
           */
          const WorkDescriptor & operator= ( const WorkDescriptor &wd );
-
-      public:
-
-         /*! \brief WorkDescriptor constructor
+         /*! \brief WorkDescriptor default constructor (private) 
           */
-         WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0, void *wdata=0,
+         WorkDescriptor ();
+      public: /* public methods */
+
+         /*! \brief WorkDescriptor constructor - 1
+          */
+         WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0, int data_align = 1, void *wdata=0,
                           size_t numCopies = 0, CopyData *copies = NULL )
-                        : WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ),
+                        : WorkGroup(), _data_size ( data_size ), _data_align( data_align ),  _data ( wdata ),
+                          _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
                           _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
-                          _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : 0 ),
+                          _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : NULL ),
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
                           _depsDomain(), _directory(), _instrumentationContextData(), _clusterMigrable ( true ), _myPe ( NULL ), _nodeFree( true ), _previous ( NULL ), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted(false) { }
 
-         WorkDescriptor ( DeviceData *device, size_t data_size = 0, void *wdata=0, size_t numCopies = 0, CopyData *copies = NULL )
-                        : WorkGroup(), _data_size ( data_size ), _data ( wdata ), _wdData ( 0 ), _tie ( false ), _tiedTo ( 0 ),
+         /*! \brief WorkDescriptor constructor - 2
+          */
+         WorkDescriptor ( DeviceData *device, size_t data_size = 0, int data_align = 1, void *wdata=0,
+                          size_t numCopies = 0, CopyData *copies = NULL )
+                        : WorkGroup(), _data_size ( data_size ), _data_align ( data_align ), _data ( wdata ),
+                          _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
                           _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( 1 ), _devices ( &_activeDevice ), _activeDevice ( device ),
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
                           _depsDomain(), _directory(),  _instrumentationContextData(), _clusterMigrable ( true ), _myPe ( NULL ), _nodeFree( true ), _previous ( NULL ), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted( false ) { }
 
-         /*! \brief WorkDescriptor constructor (using a given WorkDescriptor)
+         /*! \brief WorkDescriptor copy constructor (using a given WorkDescriptor)
           *
           *  This function is used as a constructor, receiving as a parameter other WorkDescriptor.
           *  The constructor uses a DeviceData vector and a new void * data which will be completely
@@ -212,16 +223,16 @@ namespace nanos
           *  \see WorkDescriptor System::duplicateWD System::duplicateSlicedWD
           */
          WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL )
-                        : WorkGroup( wd ), _data_size( wd._data_size ), _data ( data ), _wdData ( NULL ),
-                          _tie ( wd._tie ), _tiedTo ( wd._tiedTo ), _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ),
-                          _myQueue ( NULL ), _depth ( wd._depth ), _numDevices ( wd._numDevices ),
-                          _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
+                        : WorkGroup( wd ), _data_size( wd._data_size ), _data_align( wd._data_align ), _data ( data ),
+                          _wdData ( NULL ), _tie ( wd._tie ), _tiedTo ( wd._tiedTo ),
+                          _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ), _myQueue ( NULL ), _depth ( wd._depth ),
+                          _numDevices ( wd._numDevices ), _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
                           _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
                           _doSubmit(), _doWait(), _depsDomain(), _directory(), _instrumentationContextData(), _clusterMigrable ( true ), _myPe ( NULL ), _nodeFree( true ), _previous ( NULL ), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted( false ) { }
 
          /*! \brief WorkDescriptor destructor
           *
-          * all data will be allocated in a single chunk so only the destructors need to be invoked
+          * All data will be allocated in a single chunk so only the destructors need to be invoked
           * but not the allocator
           */
          virtual ~WorkDescriptor()
@@ -247,7 +258,7 @@ namespace nanos
           *  This function is useful to perform any operation that needs to be done at the last moment
           *  before the execution of the WD.
           */
-         void start ( bool isUserLevelThread, WorkDescriptor *previous = NULL );
+         void start ( ULTFlag isUserLevelThread, WorkDescriptor *previous = NULL );
 
          /*! \brief Get data size
           *
@@ -256,7 +267,7 @@ namespace nanos
           *  \return data size
           *  \see getData setData setDatasize
           */
-         size_t getDataSize ();
+         size_t getDataSize () const;
 
          /*! \brief Set data size
           *
@@ -265,6 +276,23 @@ namespace nanos
           *  \see getData setData getDataSize
           */
          void setDataSize ( size_t data_size );
+
+         /*! \brief Get data alignment
+          *
+          *  This function returns the data alignment of the user's data related with current WD
+          *
+          *  \return data alignment
+          *  \see getData setData setDatasize
+          */
+         int getDataAlignment () const;
+
+         /*! \brief Set data alignment
+          *
+          *  This function set the data alignment of the user's data related with current WD
+          *
+          *  \see getData setData setDataSize
+          */
+         void setDataAlignment ( int data_align) ;
 
          WorkDescriptor * getParent();
 
@@ -390,12 +418,16 @@ namespace nanos
 
          /*! If this WorkDescriptor has an immediate succesor (i.e., anothur WD that only depends on him)
              remove it from the dependence graph and return it. */
-         WorkDescriptor * getImmediateSuccessor ( void );
+         WorkDescriptor * getImmediateSuccessor ( BaseThread &thread );
 
          /*! \brief Make this WD's domain know a WD has finished.
           *  \paran wd Must be a wd created in this WD's context.
           */
          void workFinished(WorkDescriptor &wd);
+
+         /*! \brief Returns the DependenciesDomain object.
+          */
+         DependenciesDomain & getDependenciesDomain();
 
          /*! \brief Returns embeded instrumentation context data.
           */

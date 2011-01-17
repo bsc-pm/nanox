@@ -60,14 +60,16 @@ inline const DirectoryEntry& DirectoryEntry::operator= ( const DirectoryEntry &e
    return *this;
 }
 
-//inline Cache * DirectoryEntry::getOwner() const { return _owner.value(); }
-inline Cache * DirectoryEntry::getOwner() const
-{
-   memoryFence();
-   return _owner;
-}
+inline Cache * DirectoryEntry::getOwner() const { return _owner.value(); }
 
 inline void DirectoryEntry::setOwner( Cache *owner ) { _owner = owner; }
+
+inline bool DirectoryEntry::clearOwnerCS( Cache *current )
+{
+   Atomic<Cache *> expected = current;
+   Atomic<Cache *> null = (Cache *)NULL;
+   return _owner.cswap( expected, null );
+}
 
 inline bool DirectoryEntry::isInvalidated()
 {
@@ -84,6 +86,11 @@ inline bool DirectoryEntry::trySetInvalidated()
    Atomic<bool> expected = false;
    Atomic<bool> value = true;
    return _invalidated.cswap( expected, value );
+}
+
+inline void Directory::setParent( Directory *parent )
+{
+   _parent =  parent;
 }
 
 inline DirectoryEntry& Directory::insert( uint64_t tag, DirectoryEntry &ent,  bool &inserted )
@@ -103,29 +110,73 @@ inline DirectoryEntry& Directory::newEntry( uint64_t tag, unsigned int version, 
 
 inline DirectoryEntry* Directory::getEntry( uint64_t tag )
 {
-   return _directory.find( tag );
+   DirectoryEntry *parents = NULL;
+   DirectoryEntry *ent = _directory.find( tag );
+
+   if ( ent != NULL ) {
+      return ent;
+   }
+
+   if ( _parent != NULL ) {
+      parents = _parent->_directory.find( tag );
+   }
+
+   ent = NEW DirectoryEntry(tag, (parents == NULL ? 0 : parents->getVersion()), NULL );
+
+   bool inserted = false;
+   ent = &_directory.insert( tag, *ent, inserted );
+
+   return ent;
 }
 
 inline void Directory::registerAccess( uint64_t tag, size_t size, bool input, bool output )
 {
-   DirectoryEntry *de = _directory.find( tag );
+   DirectoryEntry *de = getEntry( tag );
    if ( de != NULL ) {
       if ( input ) {
          Cache *c = de->getOwner();
          if ( c != NULL )
             c->invalidate( *this, tag, size, de );
-      }
-      if ( output ) {
-         de->setVersion(de->getVersion()+1);
+      } else if ( output ) {
+         de->setOwner(NULL);
       }
    }
 }
 
-inline void Directory::waitInput( uint64_t tag )
+inline void Directory::updateCurrentDirectory( uint64_t tag, Directory &current )
 {
    DirectoryEntry *de = _directory.find( tag );
-   if ( de != NULL ) // The entry may have never been registered
+   if ( de != NULL ) {
+      DirectoryEntry *currents = current._directory.find(tag);
+      if ( currents != NULL ) {
+         de->setVersion( currents->getVersion() + 1 );
+      }
+   }
+}
+
+inline void Directory::unRegisterAccess( uint64_t tag, bool output, Directory* current )
+{
+   DirectoryEntry *de = _directory.find( tag );
+   if ( de != NULL ) {
+      if ( output ) {
+         if ( current != NULL ) {
+            DirectoryEntry *currents = current->_directory.find(tag);
+            if ( currents != NULL ) {
+               de->setVersion( currents->getVersion() + 1 );
+            }
+         } else {
+            de->setVersion( de->getVersion() + 1 );
+         }
+      }
+   }
+}
+
+inline void Directory::waitInput( uint64_t tag, bool output )
+{
+   DirectoryEntry *de = _directory.find( tag );
+   if ( de != NULL ) { // The entry may have never been registered
       while ( de->getOwner() != NULL );
+   }
 }
 
 inline void Directory::synchronizeHost()
@@ -152,6 +203,7 @@ inline void Directory::synchronizeHost()
          c->syncTransfer( de->getTag() );
          while (  de->getOwner() != NULL );
       }
+      de->setVersion( de->getVersion()+1 );
    }
 }
 
@@ -179,6 +231,7 @@ inline void Directory::synchronizeHost( std::list<uint64_t> syncTags )
          c->syncTransfer( de->getTag() );
          while (  de->getOwner() != NULL );
       }
+      de->setVersion( de->getVersion()+1 );
    }
 }
 

@@ -21,6 +21,7 @@
 #define _NANOS_HASH_MAP
 
 #include "hashmap_decl.hpp"
+#include "list.hpp"
 #include <algorithm>
 
 using namespace nanos;

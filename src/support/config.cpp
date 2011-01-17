@@ -125,25 +125,35 @@ void Config::parseFiles ()
 
 void Config::registerEnvOption ( const std::string &option, const std::string &envVar )
 {
+	if ( _configOptions[option]->getEnvVar() != "" ) {
+      message0("WARNING: EnvOption '" << envVar << "' overwrites '" << _configOptions[option]->getEnvVar()
+         << "' previously defined for the config option '" << option << "'"
+         << std::endl << "Try using 'Config::registerAlias() instead.");
+   }
    _configOptions[option]->setEnvVar( envVar );
 }
 
 void Config::registerArgOption ( const std::string &option, const std::string &arg )
 {
+	if ( _configOptions[option]->getArg() != "" ) {
+      message0("WARNING: ArgOption '" << arg << "' overwrites '" << _configOptions[option]->getArg()
+         << "' previously defined for the config option '" << option << "'"
+         << std::endl << "Try using 'Config::registerAlias() instead.");
+   }
    _configOptions[option]->setArg( arg );
    _argOptionsMap[arg] = _configOptions[option];
 }
 
 void Config::registerConfigOption ( const std::string &optionName, Option *option, const std::string &helpMessage )
 {
-   ConfigOption *configOption = new ConfigOption( optionName, *option, helpMessage, _currentSection );
+   ConfigOption *configOption = NEW ConfigOption( optionName, *option, helpMessage, _currentSection );
    _configOptions[optionName] = configOption;
 }
 
 void Config::registerAlias ( const std::string &optionName, const std::string &alias, const std::string &helpMessage )
 {
    ConfigOption *option = _configOptions[optionName];
-   ConfigOption *aliasOption = new ConfigOption( alias, option->getOption(), helpMessage, _currentSection );
+   ConfigOption *aliasOption = NEW ConfigOption( alias, option->getOption(), helpMessage, _currentSection );
    _configOptions[alias] = aliasOption;
 }
 
@@ -253,7 +263,7 @@ void Config::init ()
    parseArguments();
 
    if ( _nanosHelp == NULL ) {
-      _nanosHelp = new NanosHelp();
+      _nanosHelp = NEW NanosHelp();
    }
 
    for ( ConfigOptionMap::iterator it = _configOptions.begin(); it != _configOptions.end(); it++ ) {
@@ -266,7 +276,7 @@ void Config::setOptionsSection( const std::string &sectionName, const std::strin
    _currentSection = sectionName;
 
    if ( _nanosHelp == NULL ) {
-     _nanosHelp = new NanosHelp();
+     _nanosHelp = NEW NanosHelp();
    }
    _nanosHelp->addSectionDescription ( sectionName, sectionDescription );
 }

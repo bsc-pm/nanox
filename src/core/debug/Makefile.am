@@ -31,6 +31,6 @@ libnanox_la_CXXFLAGS=$(nanos_cxxflags)
 libnanox_la_LDFLAGS=$(nanos_ldflags)
 libnanox_la_LIBADD=$(common_libadd) @NANOS_CONFIG_LIBS_DEBUG@
 libnanox_la_SOURCES=$(common_sources)
-libnanox_la_DEPENDENCIES=$(common_libadd)
+libnanox_la_DEPENDENCIES=$(common_libadd) @NANOS_CONFIG_LIBS_DEBUG@
 endif
 

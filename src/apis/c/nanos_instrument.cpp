@@ -22,6 +22,10 @@
 #include "instrumentation.hpp"
 #include <alloca.h>
 
+#ifdef GPU_DEV
+#include "gputhread.hpp"
+#endif
+
 using namespace nanos;
 
 nanos_err_t nanos_instrument_register_key ( nanos_event_key_t *event_key, const char *key, const char *description, bool abort_when_registered )
@@ -43,6 +47,19 @@ nanos_err_t nanos_instrument_register_value ( nanos_event_value_t *event_value, 
    try
    {
       *event_value = sys.getInstrumentation()->getInstrumentationDictionary()->registerEventValue(key, value,  description, abort_when_registered);
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+#endif
+   return NANOS_OK;
+}
+
+nanos_err_t nanos_instrument_register_value_with_val ( nanos_event_value_t val, const char *key, const char *value, const char *description, bool abort_when_registered )
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   try
+   {
+      sys.getInstrumentation()->getInstrumentationDictionary()->registerEventValue(key, value, val, description, abort_when_registered);
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -234,6 +251,22 @@ nanos_err_t nanos_instrument_enable_state_events ( void )
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
+#endif
+   return NANOS_OK;
+}
+
+
+nanos_err_t nanos_instrument_close_user_fun_event()
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+#ifdef GPU_DEV
+   try
+   {
+      ( ( ext::GPUThread *) myThread )->enableWDClosingEvents();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+#endif
 #endif
    return NANOS_OK;
 }

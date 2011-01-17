@@ -21,6 +21,9 @@
 #define _NANOS_LIB_WDDEQUE
 
 #include "wddeque_decl.hpp"
+#include "schedule.hpp"
+#include "system.hpp"
+#include "instrumentation.hpp"
 
 using namespace nanos;
 
@@ -33,8 +36,9 @@ inline void WDDeque::push_front ( WorkDescriptor *wd )
 {
    wd->setMyQueue( this );
    _lock++;
-   //dq.push_back(wd);
-   _dq.push_front( wd ); //correct: push_back in push_front?
+   _dq.push_front( wd );
+   int tasks = ++( sys.getSchedulerStats()._readyTasks );
+   increaseTasksInQueues(tasks);
    memoryFence();
    _lock--;
 }
@@ -44,6 +48,8 @@ inline void WDDeque::push_back ( WorkDescriptor *wd )
    wd->setMyQueue( this );
    _lock++;
    _dq.push_back( wd );
+   int tasks = ++( sys.getSchedulerStats()._readyTasks );
+   increaseTasksInQueues(tasks);
    memoryFence();
    _lock--;
 }
@@ -64,15 +70,18 @@ inline WorkDescriptor * WDDeque::pop_front ( BaseThread *thread )
       WDDeque::BaseContainer::iterator it;
 
       for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
-         if ( !(*it)->canRunIn(*thread->runningOn()) ) continue;
-         if ( !( *it )->isTied() || ( *it )->isTiedTo() == thread ) {
-            if ( (((WD*)( *it ))->dequeue( &found )) == true ) _dq.erase( it );
+         if ( Scheduler::checkBasicConstraints( *((WD*)*it), *thread) ) {
+            if ( (((WD*)( *it ))->dequeue( &found )) == true ) {
+                _dq.erase( it );
+                int tasks = --(sys.getSchedulerStats()._readyTasks);
+                decreaseTasksInQueues(tasks);
+            }
             break;
          }
       }
    }
 
-   if ( found != NULL ) {found->setMyQueue( NULL );}
+   if ( found != NULL ) found->setMyQueue( NULL );
 
    _lock--;
 
@@ -98,15 +107,18 @@ inline WorkDescriptor * WDDeque::pop_back ( BaseThread *thread )
       WDDeque::BaseContainer::reverse_iterator rit;
 
       for ( rit = _dq.rbegin(); rit != _dq.rend() ; rit++ ) {
-         if ( !(*rit)->canRunIn(*thread->runningOn()) ) continue;
-         if ( !( *rit )->isTied() || ( *rit )->isTiedTo() == thread ) {
-            if ( (( *rit )->dequeue( &found )) == true ) _dq.erase( ( ++rit ).base() );
+         if ( Scheduler::checkBasicConstraints( *((WD*)*rit), *thread) ) {
+            if ( (( *rit )->dequeue( &found )) == true ) {
+               _dq.erase( ( ++rit ).base() );
+               int tasks = --(sys.getSchedulerStats()._readyTasks);
+               decreaseTasksInQueues(tasks);
+            }
             break;
          }
       }
    }
 
-   if ( found != NULL ) {found->setMyQueue( NULL );}
+   if ( found != NULL ) found->setMyQueue( NULL );
 
    _lock--;
 
@@ -116,29 +128,28 @@ inline WorkDescriptor * WDDeque::pop_back ( BaseThread *thread )
 }
 
 
-inline bool WDDeque::removeWD( BaseThread *thread, WorkDescriptor * toRem )
+inline bool WDDeque::removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next )
 {
-   if ( _dq.empty() )
-      return false;
+   if ( _dq.empty() ) return false;
 
-   if ( toRem->isTied() && toRem->isTiedTo() != thread )
-      return false;
+   if ( Scheduler::checkBasicConstraints( *toRem, *thread) ) return false;
 
-   if ( !toRem->canRunIn(*thread->runningOn()) )
-      return false;
+   *next = NULL;
+   WDDeque::BaseContainer::iterator it;
 
    _lock++;
 
    memoryFence();
 
    if ( !_dq.empty() && toRem->getMyQueue() == this ) {
-      WDDeque::BaseContainer::iterator it;
-
       for ( it = _dq.begin(); it != _dq.end(); it++ ) {
          if ( *it == toRem ) {
-            _dq.erase( it );
-            toRem->setMyQueue( NULL );
-
+            if ( (( *it )->dequeue( next )) == true ) {
+               _dq.erase( it );
+               int tasks = --(sys.getSchedulerStats()._readyTasks);
+               decreaseTasksInQueues(tasks);
+            }
+            (*next)->setMyQueue( NULL );
             _lock--;
             return true;
          }
@@ -146,77 +157,20 @@ inline bool WDDeque::removeWD( BaseThread *thread, WorkDescriptor * toRem )
    }
 
    _lock--;
-
    return false;
+
 }
 
-
-inline WorkDescriptor * WDDeque::pop_front ( BaseThread *thread, SchedulePredicate &predicate )
+inline void WDDeque::increaseTasksInQueues( int tasks )
 {
-   WorkDescriptor *found = NULL;
-
-   if ( _dq.empty() )
-      return NULL;
-
-   _lock++;
-
-   memoryFence();
-
-   if ( !_dq.empty() ) {
-      WDDeque::BaseContainer::iterator it;
-
-      for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
-         if ( !(*it)->canRunIn(*thread->runningOn()) ) continue;
-         if ( ( !( *it )->isTied() || ( *it )->isTiedTo() == thread ) && ( predicate( *it ) == true ) ) {
-            if ( (( *it )->dequeue( &found )) == true ) _dq.erase( it );
-            break;
-         }
-      }
-   }
-
-
-   if ( found != NULL ) {found->setMyQueue( NULL );}
-
-   _lock--;
-
-   ensure( !found || !found->isTied() || found->isTiedTo() == thread, "" );
-
-   return found;
+   NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("num-ready");)
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) tasks );)
 }
 
-
-
-// Also ensures that the passed predicate is verified on the returned element
-inline WorkDescriptor * WDDeque::pop_back ( BaseThread *thread, SchedulePredicate &predicate )
+inline void WDDeque::decreaseTasksInQueues( int tasks )
 {
-   WorkDescriptor *found = NULL;
-
-   if ( _dq.empty() )
-      return NULL;
-
-   _lock++;
-
-   memoryFence();
-
-   if ( !_dq.empty() ) {
-      WDDeque::BaseContainer::reverse_iterator rit;
-
-      for ( rit = _dq.rbegin(); rit != _dq.rend() ; rit++ ) {
-         if ( !(*rit)->canRunIn(*thread->runningOn()) ) continue;
-         if ( ( !( *rit )->isTied() || ( *rit )->isTiedTo() == thread )  && ( predicate( *rit ) == true ) ) {
-            if ( (( *rit )->dequeue( &found )) == true ) _dq.erase( ( ++rit ).base() );
-            break;
-         }
-      }
-   }
-
-   if ( found != NULL ) {found->setMyQueue( NULL );}
-
-   _lock--;
-
-   ensure( !found || !found->isTied() || found->isTiedTo() == thread, "" );
-
-   return found;
+   NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("num-ready");)
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) tasks );)
 }
 
 #endif

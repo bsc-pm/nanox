@@ -2,7 +2,7 @@
 <testinfo>
 compile_versions="stdlist nanoslist"
 test_CXXFLAGS_nanoslist="-DUSE_NANOS_LIST"
-test_generator=gens/mixed-generator
+test_generator="gens/mixed-generator -a \"--gpus=0\""
 </testinfo>
 */
 
@@ -43,7 +43,7 @@ void barrier_code ( void * )
    nanos_team_barrier();
 /*
    // Test concurrent access to a node and deletion
-   if ( mainWD != myThread->getCurrentWD())
+   if ( mainWD != getMyThreadSafe()->getCurrentWD())
       usleep(50);
 
    IntNode *node = myList.reference( 50 );
@@ -58,12 +58,12 @@ void barrier_code ( void * )
 
    nanos_team_barrier();
 
-   if ( mainWD == myThread->getCurrentWD()) {
+   if ( mainWD == getMyThreadSafe()->getCurrentWD()) {
       std::cout << "After second barrier" << std::endl;
    }
 
    IntList::NodeList deletedNodes;
-   if ( mainWD == myThread->getCurrentWD()) {
+   if ( mainWD == getMyThreadSafe()->getCurrentWD()) {
       myList.invalidateUnreferencedNodes( deletedNodes );
    }
 
@@ -80,7 +80,7 @@ void barrier_code ( void * )
 
    nanos_team_barrier();
 
-   if ( mainWD == myThread->getCurrentWD()) {
+   if ( mainWD == getMyThreadSafe()->getCurrentWD()) {
       std::cout << "List size: " << myList.getSize() << std::endl;
    }
 
@@ -90,7 +90,7 @@ void barrier_code ( void * )
 
    volatile bool abort = false;
 
-   if ( mainWD == myThread->getCurrentWD()) {
+   if ( mainWD == getMyThreadSafe()->getCurrentWD()) {
       std::cout << "deletedNodes List size: " << deletedNodes.size() << std::endl;
       while ( !deletedNodes.empty() ) {
          myList.insert( (deletedNodes.front()).getKey(), *(deletedNodes.front()) );
@@ -100,7 +100,7 @@ void barrier_code ( void * )
 
    nanos_team_barrier();
 
-   if ( mainWD == myThread->getCurrentWD()) {
+   if ( mainWD == getMyThreadSafe()->getCurrentWD()) {
       // Get the node and delete the two references it has
       IntNode *node = myList.reference(50);
 
@@ -208,7 +208,7 @@ int main (int argc, char **argv)
 
    cout << "start threaded tests" << endl;
    //all threads perform a barrier , before the barrier they will freely access the list
-   ThreadTeam &team = *myThread->getTeam();
+   ThreadTeam &team = *getMyThreadSafe()->getTeam();
    size = team.size();
    for ( unsigned i = 1; i < team.size(); i++ ) {
           WD * wd = new WD(new SMPDD(barrier_code));
@@ -217,8 +217,8 @@ int main (int argc, char **argv)
    }
    usleep(100);
 
-   WD *wd = myThread->getCurrentWD();
-   wd->tieTo(*myThread);
+   WD *wd = getMyThreadSafe()->getCurrentWD();
+   wd->tieTo(*getMyThreadSafe());
 
    mainWD = wd;
    barrier_code(NULL);

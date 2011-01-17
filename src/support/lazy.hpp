@@ -26,35 +26,33 @@
 template <class T>
 class LazyInit {
    private:
-      bool _init;
+      T *  _ptr;
       char _storage[sizeof(T)] __attribute__((aligned(8)));
 
       void construct ()
       {
-         _init = true;
-         new (&_storage) T();
+         _ptr = new (_storage) T();
       }
 
       void destroy ()
       {
-         T * ptr = (T *) &_storage;
-         ptr->~T();
+          _ptr->~T();
       }
 
    public:
-      LazyInit() : _init(false) {}
+      LazyInit() : _ptr(NULL) {}
 
-      ~LazyInit () { if (_init) destroy();  }
+      ~LazyInit () { if (_ptr != NULL) destroy();  }
 
       T * operator-> ()
       {
-         if (unlikely(!_init)) construct();
-         return (T *)&_storage;
+         if (unlikely(_ptr == NULL)) construct();
+         return _ptr;
       }
 
       T & operator* () {  return *(operator->());   }
 
-      bool isInitialized() { return _init; }
+      bool isInitialized() { return _ptr != NULL; }
 };
 
 #endif

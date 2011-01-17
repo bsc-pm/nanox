@@ -56,7 +56,7 @@ void SMPThread::start ()
        _stackSize = PTHREAD_STACK_MIN;
      }
 
-     char *stack = new char[_stackSize];
+     char *stack = NEW char[_stackSize];
 
      if ( stack == NULL || pthread_attr_setstack( &attr, stack, _stackSize ) )
        warning("couldn't create pthread stack");
@@ -113,7 +113,7 @@ void SMPThread::inlineWorkDependent ( WD &wd )
    SMPDD &dd = ( SMPDD & )wd.getActiveDevice();
 
    // Now the WD will be inminently run
-   wd.start(false);
+   wd.start(WD::IsNotAUserLevelThread);
 
    NANOS_INSTRUMENT ( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("user-code") );
    NANOS_INSTRUMENT ( nanos_event_value_t val = wd.getId() );

@@ -37,18 +37,25 @@ namespace nanos
          const Device *                       _device;
          ThreadList                           _threads;
 
+      private:
+         /*! \brief ProcessinElement default constructor
+          */
+         ProcessingElement ();
+         /*! \brief ProcessinElement copy constructor (private)
+          */
          ProcessingElement ( const ProcessingElement &pe );
+         /*! \brief ProcessinElement copy assignment operator (private)
+          */
          const ProcessingElement & operator= ( const ProcessingElement &pe );
-         
       protected:
          virtual WorkDescriptor & getMasterWD () const = 0;
          virtual WorkDescriptor & getWorkerWD () const = 0;
-
       public:
-         // constructors
+         /*! \brief ProcessinElement constructor
+          */
          ProcessingElement ( int newId, const Device *arch ) : _id ( newId ), _device ( arch ) {}
-
-         // destructor
+         /*! \brief ProcessinElement destructor
+          */
          virtual ~ProcessingElement()
          {
             std::for_each(_threads.begin(),_threads.end(),deleter<BaseThread>);
@@ -78,7 +85,7 @@ namespace nanos
 
          /* Memory space suport */
          virtual void copyDataIn( WorkDescriptor& wd );
-         virtual void copyDataOut( WorkDescriptor& wd ) {}
+         virtual void copyDataOut( WorkDescriptor& wd );
 
          virtual void waitInputs( WorkDescriptor& wd );
 

@@ -64,7 +64,7 @@ void CHPL_BEGIN(chpl_fn_p fp,
 
    assert(!ltask);
 
-   WD * wd = new WD( new SMPDD( fp ), 0, a );
+   WD * wd = NEW WD( NEW SMPDD( fp ), 0, 0, a );
    sys.submit(*wd);
 }
 
@@ -74,7 +74,7 @@ void CHPL_TASKING_INIT()
 {
    sys.setInitialMode( System::POOL );
    sys.setUntieMaster(true);
-   sys.setNumPEs(maxThreads);
+   sys.setNumPEs(maxThreadsPerLocale);
    sys.start();
 
 /*  tp = chpl_alloc(sizeof(thread_private_data_t), CHPL_RT_MD_THREAD_PRIVATE_DATA, 0, 0);

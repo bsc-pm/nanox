@@ -85,6 +85,9 @@ void Accelerator::copyDataOut( WorkDescriptor& work )
          this->unregisterPrivateAccessDependent( *(work.getParent()->getDirectory(true)), tag, cd.getSize() );
       } else {
          this->unregisterCacheAccessDependent( *(work.getParent()->getDirectory(true)), tag, cd.getSize(), cd.isOutput() );
+         if ( cd.isOutput() && (work.getDirectory(false) != NULL) ) {
+            work.getParent()->getDirectory(false)->updateCurrentDirectory( tag, *(work.getDirectory(true)) );
+         }
       }
    }
 #if LOCK_TRANSFER

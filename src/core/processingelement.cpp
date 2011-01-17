@@ -19,6 +19,7 @@
 
 #include <string.h>
 #include "processingelement.hpp"
+#include "basethread.hpp"
 #include "debug.hpp"
 #include "schedule.hpp"
 #include "copydata.hpp"
@@ -42,6 +43,20 @@ void ProcessingElement::copyDataIn( WorkDescriptor &work )
    }
 }
 
+void ProcessingElement::copyDataOut( WorkDescriptor &work )
+{
+   Directory *dir = work.getParent()->getDirectory(false);
+   if ( dir != NULL ) {
+      CopyData *copies = work.getCopies();
+      for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
+         CopyData & cd = copies[i];
+         if ( !cd.isPrivate() ) {
+              dir->unRegisterAccess( cd.getAddress(), cd.isOutput(), work.getDirectory(false) );
+         }
+      }
+   }
+}
+
 void ProcessingElement::waitInputs( WorkDescriptor &work )
 {
    Directory *dir = work.getParent()->getDirectory(false);
@@ -50,7 +65,7 @@ void ProcessingElement::waitInputs( WorkDescriptor &work )
       for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
          CopyData & cd = copies[i];
          if ( !cd.isPrivate() && cd.isInput() ) {
-              dir->waitInput( cd.getAddress() );
+              dir->waitInput( cd.getAddress(), cd.isOutput() );
          }
       }
    }

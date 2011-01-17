@@ -1,5 +1,7 @@
 #include "system.hpp"
-#include "gpudd.hpp"
+#ifdef GPU_DEV
+#include "gpuconfig.hpp"
+#endif
 #include "clusterinfo.hpp"
 
 namespace nanos {
@@ -11,7 +13,7 @@ extern "C" {
    unsigned int nanos_extrae_get_max_threads ( void )
    {
 #ifdef GPU_DEV
-      return sys.getNumPEs() + nanos::ext::GPUDD::getGPUCount();
+      return sys.getNumPEs() + nanos::ext::GPUConfig::getGPUCount();
 #else
 
 #ifdef CLUSTER_DEV
@@ -45,7 +47,6 @@ extern "C" {
    {
       return sys.getNetwork()->getNumNodes();
    }
-
 }
 
 } // namespace nanos

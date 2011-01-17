@@ -38,7 +38,8 @@ namespace nanos
             config.setOptionsSection("OpenMP specific","OpenMP related options");
 
             // OMP_NUM_THREADS
-            config.registerEnvOption("num_pes","OMP_NUM_THREADS");
+            config.registerAlias("num_pes","omp-threads","Configures the number of OpenMP Threads to use");
+            config.registerEnvOption("omp-threads","OMP_NUM_THREADS");
 
             // OMP_SCHEDULE
             // OMP_DYNAMIC
@@ -53,7 +54,7 @@ namespace nanos
          {
             // Must be allocated through new to avoid problems with the order of
             // initialization of global objects
-            globalState = new OmpState();
+            globalState = NEW OmpState();
 
             TaskICVs & icvs = globalState->getICVs();
             icvs.setSchedule(LoopSchedule(omp_sched_static));
@@ -70,6 +71,7 @@ namespace nanos
          }
 
     	   virtual int getInternalDataSize() const { return sizeof(OmpData); }
+    	   virtual int getInternalDataAlignment() const { return __alignof__(OmpData); }
     	   virtual void setupWD( WD &wd )
     	   {
    		    OmpData *data = (OmpData *) wd.getInternalData();
@@ -84,6 +86,7 @@ namespace nanos
     		    } else {
     		      data->icvs() = globalState->getICVs();
     		    }
+                    data->setImplicit(false);
     	   }
 
     	   virtual void wdStarted( WD &wd ) {};
@@ -92,7 +95,7 @@ namespace nanos
 
       static void ompInit()
       {
-         sys.setPMInterface(new OpenMPInterface());
+         sys.setPMInterface(NEW OpenMPInterface());
       }
    }
 

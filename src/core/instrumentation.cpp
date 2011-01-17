@@ -30,16 +30,15 @@ using namespace nanos;
 /* ************************************************************************** */
 /* ***                   C R E A T I N G   E V E N T S                    *** */
 /* ************************************************************************** */
+void Instrumentation::createStateEvent( Event *e, nanos_event_state_value_t state )
+{
+   /* Registering a state event in instrucmentor context */
+   InstrumentationContextData *icd = myThread->getCurrentWD()->getInstrumentationContextData();
+   _instrumentationContext.pushState(icd, state);
 
-void Instrumentation::createStateEvent( Event *e, nanos_event_state_value_t state )                                                         
-{                                                                                                                                           
-   /* Registering a state event in instrucmentor context */                                                                                 
-   InstrumentationContextData *icd = myThread->getCurrentWD()->getInstrumentationContextData();                                                
-   _instrumentationContext.pushState(icd, state);                                                                                          
-                                                                                                                                            
-   /* Creating a state event */                                                                                                             
-   if ( _instrumentationContext.isStateEventEnabled( icd ) ) new (e) State(NANOS_STATE_START, state);                                            
-   else new (e) State(NANOS_SUBSTATE_START, state);                                                                                               
+   /* Creating a state event */
+   if ( _instrumentationContext.isStateEventEnabled( icd ) ) new (e) State(NANOS_STATE_START, state);
+   else new (e) State(NANOS_SUBSTATE_START, state);
 }
 
 void Instrumentation::returnPreviousStateEvent ( Event *e )
@@ -89,7 +88,7 @@ void Instrumentation::createPointEvent ( Event *e, unsigned int nkvs, nanos_even
                                       nanos_event_value_t *values )
 {
    /* Creating an Event::KV vector */
-   Event::KVList kvlist = new Event::KV[nkvs];
+   Event::KVList kvlist = NEW Event::KV[nkvs];
 
    /* Initializing kvlist elements */
    for ( unsigned int i = 0; i < nkvs; i++ ) {
@@ -105,7 +104,7 @@ void Instrumentation::createPtPStart ( Event *e, nanos_event_domain_t domain, na
                       unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values, unsigned int partner )
 {
    /* Creating an Event::KV vector */
-   Event::KVList kvlist = new Event::KV[nkvs];
+   Event::KVList kvlist = NEW Event::KV[nkvs];
 
    /* Initializing kvlist elements */
    for ( unsigned int i = 0; i < nkvs; i++ ) {
@@ -120,7 +119,7 @@ void Instrumentation::createPtPEnd ( Event *e, nanos_event_domain_t domain, nano
                       unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values, unsigned int partner )
 {
    /* Creating an Event::KV vector */
-   Event::KVList kvlist = new Event::KV[nkvs];
+   Event::KVList kvlist = NEW Event::KV[nkvs];
 
    /* Initializing kvlist elements */
    for ( unsigned int i = 0; i < nkvs; i++ ) {
@@ -139,7 +138,7 @@ void Instrumentation::createDeferredPointEvent ( WorkDescriptor &wd, unsigned in
                                       nanos_event_value_t *values )
 {
    /* Creating an Event::KV vector */
-   Event::KVList kvlist = new Event::KV[nkvs];
+   Event::KVList kvlist = NEW Event::KV[nkvs];
 
    /* Initializing kvlist elements */
    for ( unsigned int i = 0; i < nkvs; i++ ) {
@@ -147,7 +146,7 @@ void Instrumentation::createDeferredPointEvent ( WorkDescriptor &wd, unsigned in
    }
 
    /* Creating a point event */
-   Event *e = new Point( nkvs, kvlist );
+   Event *e = NEW Point( nkvs, kvlist );
 
    /* Inserting event into deferred event list */
    InstrumentationContextData *icd = wd.getInstrumentationContextData();                                             
@@ -159,7 +158,7 @@ void Instrumentation::createDeferredPtPStart ( WorkDescriptor &wd, nanos_event_d
                       unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values, unsigned int partner )
 {
    /* Creating an Event::KV vector */
-   Event::KVList kvlist = new Event::KV[nkvs];
+   Event::KVList kvlist = NEW Event::KV[nkvs];
 
    /* Initializing kvlist elements */
    for ( unsigned int i = 0; i < nkvs; i++ ) {
@@ -178,7 +177,7 @@ void Instrumentation::createDeferredPtPEnd ( WorkDescriptor &wd, nanos_event_dom
                       unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values, unsigned int partner )
 {
    /* Creating an Event::KV vector */
-   Event::KVList kvlist = new Event::KV[nkvs];
+   Event::KVList kvlist = NEW Event::KV[nkvs];
 
    /* Initializing kvlist elements */
    for ( unsigned int i = 0; i < nkvs; i++ ) {
@@ -348,7 +347,7 @@ void Instrumentation::wdCreate( WorkDescriptor* newWD )
 
    /* Creating key value and Burst event */
    Event::KV kv( key, wd_id );
-   Event *e = new Burst( true, kv );
+   Event *e = NEW Burst( true, kv );
 
    /* Update InstrumentationContextData */
    InstrumentationContextData *icd = newWD->getInstrumentationContextData();

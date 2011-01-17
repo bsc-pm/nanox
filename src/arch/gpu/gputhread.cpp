@@ -29,62 +29,136 @@ using namespace nanos;
 using namespace nanos::ext;
 
 
-void GPUThread::runDependent ()
+void GPUThread::initializeDependent ()
 {
-   WD &work = getThreadWD();
-   setCurrentWD( work );
-   setNextWD( (WD *) 0 );
-
+   // Bind the thread to a GPU device
    cudaError_t err = cudaSetDevice( _gpuDevice );
    if ( err != cudaSuccess )
       warning( "Couldn't set the GPU device for the thread: " << cudaGetErrorString( err ) );
 
-   if ( GPUDevice::getTransferMode() == nanos::PINNED_CUDA || GPUDevice::getTransferMode() == nanos::WC ) {
+   // Configure some GPU device flags
+   if ( GPUConfig::getTransferMode() == NANOS_GPU_TRANSFER_PINNED_CUDA
+         || GPUConfig::getTransferMode() == NANOS_GPU_TRANSFER_WC ) {
       err = cudaSetDeviceFlags( cudaDeviceMapHost | cudaDeviceBlockingSync );
       if ( err != cudaSuccess )
          warning( "Couldn't set the GPU device flags: " << cudaGetErrorString( err ) );
    }
    else {
-      err = cudaSetDeviceFlags( cudaDeviceBlockingSync );
+      err = cudaSetDeviceFlags( cudaDeviceScheduleSpin );
       if ( err != cudaSuccess )
          warning( "Couldn't set the GPU device flags:" << cudaGetErrorString( err ) );
    }
 
-   if ( GPUDevice::getTransferMode() != nanos::NORMAL ) {
-      ((GPUProcessor *) myThread->runningOn())->getTransferInfo()->init();
+   // Warming up GPU's...
+   if ( GPUConfig::isGPUWarmupDefined() ) {
+      int n = 65536;
+      int *warmup = NEW int[n];
+      int *warmup_d;
+      err = cudaMalloc( &warmup_d, n * sizeof( int ) );
+      err = cudaMemcpy( warmup_d, warmup, n * sizeof( int ) , cudaMemcpyHostToDevice );
+      err = cudaMemcpy( warmup, warmup_d, n * sizeof( int ) , cudaMemcpyDeviceToHost );
+      if ( err != cudaSuccess ) {
+         if ( err == CUDANODEVERR ) {
+            fatal( "Error while warming up the GPUs: all CUDA-capable devices are busy or unavailable" );
+         }
+         warning( "Error while warming up the GPUs: " << cudaGetErrorString( err ) );
+      }
+      cudaFree( warmup_d );
+      delete warmup;
    }
 
-   // Avoid the so slow first data allocation and transfer to device
-   bool b = true;
-   bool * b_d = ( bool * ) GPUDevice::allocate( sizeof( b ) );
-   GPUDevice::copyIn( ( void * ) b_d, ( uint64_t ) &b, sizeof( b ) );
-   GPUDevice::free( b_d );
+   // Initialize GPUProcessor
+   ( ( GPUProcessor * ) myThread->runningOn() )->init();
+}
 
+void GPUThread::runDependent ()
+{
+   WD &work = getThreadWD();
+   setCurrentWD( work );
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
-
    dd.getWorkFct()( work.getData() );
+   ( ( GPUProcessor * ) myThread->runningOn() )->getGPUProcessorInfo()->destroyTransferStreams();
 }
 
 void GPUThread::inlineWorkDependent ( WD &wd )
 {
    GPUDD &dd = ( GPUDD & )wd.getActiveDevice();
+   GPUProcessor &myGPU = * ( GPUProcessor * ) myThread->runningOn();
 
-   NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), RUNNING ) );
-   NANOS_INSTRUMENT ( InstrumentSubState inst2( RUNTIME ) );
-
-   ( dd.getWorkFct() )( wd.getData() );
-
-   if ( GPUDevice::getTransferMode() != nanos::NORMAL ) {
-      // Get next task in order to prefetch data to device memory
-      WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, wd );
-      setNextWD( next );
-      if ( next != 0 ) {
-         next->start(false);
-      }
-      // Wait for the transfer stream to finish
-      cudaStreamSynchronize( ( (GPUProcessor *) myThread->runningOn() )->getTransferInfo()->getTransferStream() );
+   if ( GPUConfig::isOverlappingInputsDefined() ) {
+      // Wait for the input transfer stream to finish
+      cudaStreamSynchronize( myGPU.getGPUProcessorInfo()->getInTransferStream() );
+      // Erase the wait input list and synchronize it with cache
+      myGPU.getInTransferList()->clearMemoryTransfers();
    }
 
-   // Wait for the GPU kernel to finish
-   cudaThreadSynchronize();
+   // We wait for wd inputs, but as we have just waited for them, we could skip this step
+   wd.start( WD::IsNotAUserLevelThread );
+
+   NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
+   ( dd.getWorkFct() )( wd.getData() );
+
+   if ( !GPUConfig::isOverlappingOutputsDefined() && !GPUConfig::isOverlappingInputsDefined() ) {
+      // Wait for the GPU kernel to finish
+      cudaThreadSynchronize();
+
+      // Normally this instrumentation code is inserted by the compiler in the task outline.
+      // But because the kernel call is asynchronous for GPUs we need to raise them manually here
+      // when we know the kernel has really finished
+      NANOS_INSTRUMENT ( raiseWDClosingEvents() );
+   }
+
+   // Copy out results from tasks executed previously
+   // Do it always, as another GPU may be waiting for results
+   myGPU.getOutTransferList()->executeMemoryTransfers();
+
+   if ( GPUConfig::isPrefetchingDefined() ) {
+      NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
+      // Get next task in order to prefetch data to device memory
+      WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, wd );
+
+      setNextWD( next );
+      if ( next != 0 ) {
+         next->init();
+      }
+   }
+
+   if ( GPUConfig::isOverlappingOutputsDefined() || GPUConfig::isOverlappingInputsDefined() ) {
+      // Wait for the GPU kernel to finish, if we have not waited before
+      cudaThreadSynchronize();
+
+      // Normally this instrumentation code is inserted by the compiler in the task outline.
+      // But because the kernel call is asynchronous for GPUs we need to raise them manually here
+      // when we know the kernel has really finished
+      NANOS_INSTRUMENT ( raiseWDClosingEvents() );
+   }
+}
+
+void GPUThread::yield()
+{
+   ( ( GPUProcessor * ) runningOn() )->getInTransferList()->executeMemoryTransfers();
+   ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->executeMemoryTransfers();
+}
+
+void GPUThread::idle()
+{
+   ( ( GPUProcessor * ) runningOn() )->getInTransferList()->executeMemoryTransfers();
+   ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->removeMemoryTransfer();
+}
+
+
+void GPUThread::raiseWDClosingEvents ()
+{
+   if ( _wdClosingEvents ) {
+      NANOS_INSTRUMENT(
+            Instrumentation::Event e[2];
+            sys.getInstrumentation()->closeBurstEvent( &e[0],
+                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-name" ) );
+            sys.getInstrumentation()->closeBurstEvent( &e[1],
+                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-location" ) );
+
+            sys.getInstrumentation()->addEventList( 2, e );
+      );
+      _wdClosingEvents = false;
+   }
 }

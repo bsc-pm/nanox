@@ -24,6 +24,9 @@
 #include <stdint.h>
 #include <stddef.h>
 
+/* This structure is initialized in dependency.hpp. Any change in
+ * its contents has to be reflected in Dependency constructor  
+ */
 typedef struct {
    void **address;
    ptrdiff_t offset;
@@ -31,6 +34,7 @@ typedef struct {
      bool  input: 1;
      bool  output: 1;
      bool  can_rename:1;
+     bool  commutative: 1;
    } flags;
    size_t  size;
 } nanos_dependence_internal_t;
@@ -40,6 +44,9 @@ typedef enum {
    NANOS_SHARED,
 } nanos_sharing_t;
 
+/* This structure is initialized in copydata.hpp. Any change in
+ * its contents has to be reflected in CopyData constructor
+ */
 typedef struct {
    uint64_t address;
    nanos_sharing_t sharing;
@@ -66,7 +73,9 @@ typedef nanos::CopyData nanos_copy_data_t;
 
 #endif
 
-// SlicerDataFor: related structures
+/* This structure is initialized in slicer.hpp. Any change in
+ * its contents has to be reflected in SlicerDataFor constructor  
+ */
 typedef struct {
    int _lower;  /**< Loop lower bound */
    int _upper;  /**< Loop upper bound */
@@ -138,10 +147,11 @@ typedef enum { NANOS_STATE_START, NANOS_STATE_END, NANOS_SUBSTATE_START, NANOS_S
 
 typedef enum { NANOS_NOT_CREATED, NANOS_NOT_TRACED, NANOS_STARTUP, NANOS_SHUTDOWN, NANOS_ERROR, NANOS_IDLE,
                NANOS_RUNTIME, NANOS_RUNNING, NANOS_SYNCHRONIZATION, NANOS_SCHEDULING, NANOS_CREATION,
-               NANOS_MEM_TRANSFER, NANOS_CACHE, NANOS_YIELD, NANOS_EVENT_STATE_TYPES
+               NANOS_MEM_TRANSFER_IN, NANOS_MEM_TRANSFER_OUT, NANOS_MEM_TRANSFER_LOCAL, NANOS_CACHE, NANOS_YIELD,
+               NANOS_EVENT_STATE_TYPES
 } nanos_event_state_value_t; /**< State enum values */
 
-typedef enum { NANOS_WD_DOMAIN, NANOS_WD_DEPENDENCY, NANOS_WD_REMOTE, NANOS_XFER_PUT, NANOS_XFER_GET } nanos_event_domain_t; /**< Specifies a domain */
+typedef enum { NANOS_WD_DOMAIN, NANOS_WD_DEPENDENCY, NANOS_WAIT, NANOS_WD_REMOTE, NANOS_XFER_PUT, NANOS_XFER_GET } nanos_event_domain_t; /**< Specifies a domain */
 typedef long long  nanos_event_id_t;                   /**< Used as unique id within a given domain */
 
 typedef unsigned int         nanos_event_key_t;   /**< Key (on key-value pair) */

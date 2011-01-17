@@ -32,35 +32,35 @@ size_t SMPProcessor::_cacheDefaultSize = 1048580;
 
 void SMPProcessor::prepareConfig ( Config &config )
 {
-   config.registerConfigOption( "user-threads", new Config::FlagOption( _useUserThreads, false), "Disable use of user threads to implement workdescriptor" );
+   config.registerConfigOption( "user-threads", NEW Config::FlagOption( _useUserThreads, false), "Disable use of user threads to implement workdescriptor" );
    config.registerArgOption( "user-threads", "disable-ut" );
 
-   config.registerConfigOption ( "pthreads-stack-size", new Config::SizeVar( _threadsStackSize ), "Defines pthreads stack size" );
+   config.registerConfigOption ( "pthreads-stack-size", NEW Config::SizeVar( _threadsStackSize ), "Defines pthreads stack size" );
    config.registerArgOption( "pthreads-stack-size", "pthreads-stack-size" );
 
 #if SMP_NUMA
-   config.registerConfigOption ( "numa-cache-size", new Config::SizeVar( _cacheDefaultSize ), "Defines size of the cache for SMP_NUMA architectures" );
+   config.registerConfigOption ( "numa-cache-size", NEW Config::SizeVar( _cacheDefaultSize ), "Defines size of the cache for SMP_NUMA architectures" );
    config.registerArgOption( "numa-cache-size", "numa-cache-size" );
 #endif
 }
 
 WorkDescriptor & SMPProcessor::getWorkerWD () const
 {
-   SMPDD * dd = new SMPDD( ( SMPDD::work_fct )Scheduler::workerLoop );
-   WD *wd = new WD( dd );
+   SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct )Scheduler::workerLoop );
+   WD *wd = NEW WD( dd );
    return *wd;
 }
 
 WorkDescriptor & SMPProcessor::getMasterWD () const
 {
-   WD * wd = new WD( new SMPDD() );
+   WD * wd = NEW WD( NEW SMPDD() );
    return *wd;
 }
 
 BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper )
 {
    ensure( helper.canRunIn( SMP ),"Incompatible worker thread" );
-   SMPThread &th = *new SMPThread( helper,this );
+   SMPThread &th = *NEW SMPThread( helper,this );
    th.stackSize(_threadsStackSize).useUserThreads(_useUserThreads);
 
    return th;
@@ -110,9 +110,9 @@ void SMPProcessor::copyToDependent( void *dst, uint64_t tag, size_t size )
    _cache.copyTo( dst, tag, size );
 }
 
-void SMPProcessor::synchronize( Directory &dir, uint64_t tag )
+void SMPProcessor::synchronize( Directory &dir, CopyDescriptor &copy )
 {
-   _cache.synchronize( tag );
+   _cache.synchronize( copy );
 }
 
 #endif

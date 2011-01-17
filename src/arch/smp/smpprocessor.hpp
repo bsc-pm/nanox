@@ -26,6 +26,7 @@
 #ifdef SMP_NUMA
 #include "cache.hpp"
 #include "accelerator.hpp"
+#include "copydescriptor_decl.hpp"
 #else
 #include "processingelement.hpp"
 #endif
@@ -92,7 +93,7 @@ namespace ext
          virtual void* getAddressDependent( uint64_t tag );
          virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
 
-         void synchronize( Directory& dir, uint64_t tag );
+         void synchronize( Directory& dir, CopyDescriptor &copy );
 #endif
    };
 

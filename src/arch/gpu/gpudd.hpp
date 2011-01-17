@@ -20,8 +20,7 @@
 #ifndef _NANOS_GPU_WD
 #define _NANOS_GPU_WD
 
-#include "config.hpp"
-#include "gpudevice.hpp"
+#include "gpudevice_decl.hpp"
 #include "workdescriptor.hpp"
 
 namespace nanos {
@@ -39,9 +38,7 @@ namespace ext
          typedef void ( *work_fct ) ( void *self );
 
       private:
-         static int     _gpuCount; // Number of CUDA-capable GPUs
          work_fct       _work;
-         static bool    _prefetch; // Enable / disable data prefetching (set by the user)
 
       public:
          // constructors
@@ -59,10 +56,6 @@ namespace ext
          virtual ~GPUDD() { }
 
          work_fct getWorkFct() const { return _work; }
-
-         static int getGPUCount () { return _gpuCount; }
-
-         static bool isPrefetchingDefined () { return _prefetch; }
 
          virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous) { }
          virtual size_t size ( void ) { return sizeof(GPUDD); }

@@ -31,6 +31,7 @@
 #include "atomic.hpp"
 #include "instrumentationcontext.hpp"
 #include "directory.hpp"
+#include "schedule.hpp"
 
 using namespace nanos;
 
@@ -40,8 +41,11 @@ inline bool DeviceData::isCompatible ( const Device &arch ) { return _architectu
 /* WorkDescriptor inlined functions */
 inline bool WorkDescriptor::started ( void ) const { return _state != INIT; }
 
-inline size_t WorkDescriptor::getDataSize () { return _data_size; }
+inline size_t WorkDescriptor::getDataSize () const { return _data_size; }
 inline void WorkDescriptor::setDataSize ( size_t data_size ) { _data_size = data_size; }
+
+inline int WorkDescriptor::getDataAlignment () const { return _data_align; }
+inline void WorkDescriptor::setDataAlignment ( int data_align ) { _data_align = data_align; }
 
 inline WorkDescriptor * WorkDescriptor::getParent() { return _parent; }
 inline void WorkDescriptor::setParent ( WorkDescriptor * p ) { _parent = p; }
@@ -104,7 +108,7 @@ inline TR1::shared_ptr<DOSubmit> & WorkDescriptor::getDOSubmit() { return _doSub
 
 inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t numDeps, Dependency* deps )
 {
-   wd._doSubmit.reset( new DOSubmit() );
+   wd._doSubmit.reset( NEW DOSubmit() );
    wd._doSubmit->setWD(&wd);
    _depsDomain->submitDependableObject( *(wd._doSubmit), numDeps, deps );
 }
@@ -115,11 +119,29 @@ inline void WorkDescriptor::waitOn( size_t numDeps, Dependency* deps )
    _depsDomain->submitDependableObject( *_doWait, numDeps, deps );
 }
 
-inline WorkDescriptor * WorkDescriptor::getImmediateSuccessor ( void )
+class DOIsSchedulable : public DependableObjectPredicate
+{
+   BaseThread &    _thread;
+
+   public:
+      DOIsSchedulable(BaseThread &thread) : DependableObjectPredicate(),_thread(thread) { }
+      ~DOIsSchedulable() {}
+
+      bool operator() ( DependableObject &obj )
+      {       
+         WD *wd = (WD *)obj.getRelatedObject();
+         // FIXME: The started condition here ensures that doWait objects are not released as
+         // they do not work properly if there is no dependenceSatisfied called before
+         return (wd != NULL) && Scheduler::checkBasicConstraints(*wd,_thread) && !wd->started() ;
+      }
+};
+
+inline WorkDescriptor * WorkDescriptor::getImmediateSuccessor ( BaseThread &thread )
 {
    if ( _doSubmit == NULL ) return NULL;
    else {
-        DependableObject * found = _doSubmit->releaseImmediateSuccessor();
+        DOIsSchedulable predicate(thread);
+        DependableObject * found = _doSubmit->releaseImmediateSuccessor(predicate);
         return found ? (WD *) found->getRelatedObject() : NULL;
    }
 }
@@ -129,6 +151,12 @@ inline void WorkDescriptor::workFinished(WorkDescriptor &wd)
    if ( wd._doSubmit != NULL )
       wd._doSubmit->finished();
 }
+
+inline DependenciesDomain & WorkDescriptor::getDependenciesDomain()
+{
+   return *_depsDomain;
+}
+
 
 inline InstrumentationContextData * WorkDescriptor::getInstrumentationContextData( void ) { return &_instrumentationContextData; }
 
@@ -144,6 +172,7 @@ inline Directory* WorkDescriptor::getDirectory(bool create)
    if ( !_directory.isInitialized() && create == false ) {
       return NULL;
    }
+   _directory->setParent( (getParent() != NULL) ? getParent()->getDirectory(false) : NULL );
    return &(*_directory);
 }
 

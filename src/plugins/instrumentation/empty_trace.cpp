@@ -14,9 +14,9 @@ class InstrumentationEmptyTrace: public Instrumentation
       ~InstrumentationEmptyTrace() {}
 
       // low-level instrumentation interface (mandatory functions)
-      virtual void initialize( void ) {}
-      virtual void finalize( void ) {}
-      virtual void addEventList ( unsigned int count, Event *events ) {}
+      void initialize( void ) {}
+      void finalize( void ) {}
+      void addEventList ( unsigned int count, Event *events ) {}
 #else
    public:
       // constructor
@@ -25,9 +25,9 @@ class InstrumentationEmptyTrace: public Instrumentation
       ~InstrumentationEmptyTrace () {}
 
       // low-level instrumentation interface (mandatory functions)
-      virtual void initialize( void ) {}
-      virtual void finalize( void ) {}
-      virtual void addEventList ( unsigned int count, Event *events ) {}
+      void initialize( void ) {}
+      void finalize( void ) {}
+      void addEventList ( unsigned int count, Event *events ) {}
 #endif
 };
 
@@ -38,7 +38,7 @@ class InstrumentationEmptyTracePlugin : public Plugin {
       InstrumentationEmptyTracePlugin () : Plugin("Instrumentation which doesn't generate any trace.",1) {}
       ~InstrumentationEmptyTracePlugin () {}
 
-      virtual void config( Config &config ) {}
+      void config( Config &config ) {}
 
       void init ()
       {

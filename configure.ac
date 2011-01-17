@@ -41,6 +41,7 @@ AC_SUBST([NANOS_CONFIG_LIBDIRS])
 AC_SUBST([NANOS_CONFIG_LIBS_PERFO])
 AC_SUBST([NANOS_CONFIG_LIBS_DEBUG])
 AC_SUBST([NANOS_CONFIG_LIBS_INSTR])
+AC_SUBST([NANOS_CONFIG_LIBS_INSTRDEBUG])
 
 # Check for architecture
 ARCHITECTURES=
@@ -50,7 +51,7 @@ AC_SUBST([ARCHITECTURES])
 AC_SUBST([OS])
 AC_SUBST([SMP_ARCH])
 
-AC_MSG_CHECKING([for architecture])
+#AC_MSG_CHECKING([for architecture])
 smp_ult=yes
 case $host in
   i?86-*-linux*)
@@ -75,7 +76,6 @@ case $host in
     case $CC in
       *-m32*)
          SMP_ARCH=ppc32
-         AM_CONDITIONAL([PERFORMANCE_VERSION], [test x$performance_disabled = xno])
          ;;
       *-m64*)
          SMP_ARCH=ppc64
@@ -83,7 +83,6 @@ case $host in
       *)
          # GCC generates ppc32 code by default
          SMP_ARCH=ppc32
-         AM_CONDITIONAL([PERFORMANCE_VERSION], [test x$performance_disabled = xno])
          ;;
     esac
     
@@ -180,7 +179,21 @@ esac
 
 # Check if it has nVidia GPUs / CUDA is installed
 gpu_valid=no
+gpu_disabled=no
 CUDA=""
+
+AC_MSG_CHECKING([if the use of GPU devices was disabled])
+AC_ARG_ENABLE([gpu-arch],
+  AS_HELP_STRING([--disable-gpu-arch], [Disables the use of GPU devices]),
+  [
+    gpu_valid="no"
+    gpu_disabled="yes"
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    AC_MSG_RESULT([no])
+  ]
+)
 
 AC_ARG_WITH([cuda],
 AS_HELP_STRING([--with-cuda=dir], [Directory of CUDA installation]),
@@ -191,21 +204,27 @@ AS_HELP_STRING([--with-cuda=dir], [Directory of CUDA installation]),
 		CUDA="/usr/local/cuda"
 	])
 
-if ls "$CUDA" &> /dev/null ; then
-	AC_ARG_VAR([NVCC],[CUDA compiler])
-	AC_CHECK_PROG( [NVCC], [nvcc], nvcc, no)
-	if test x$NVCC = xno ; then
-		AC_MSG_WARN([nvcc not found. Disabling GPU support])
-		gpu_valid=no
-	else
-		CUDA_INC="$CUDA/include"
-		CUDA_LIB="$CUDA/lib64"
+if test x$gpu_disabled = xno ; then
+    if ls "$CUDA" &> /dev/null ; then
+        AC_ARG_VAR([NVCC],[CUDA compiler])
+        NVCC="nvcc"
+        AC_CHECK_PROG( [NVCC], ["CUDA compiler"], nvcc, no)
+        if test x$NVCC = xno ; then
+            AC_MSG_WARN([nvcc not found. Disabling GPU support])
+            gpu_valid=no
+        else
+            CUDA_INC="$CUDA/include"
+            CUDA_LIB="$CUDA/lib"
+            if ls "$CUDA/lib64" &> /dev/null ; then
+                CUDA_LIB="$CUDA/lib64"
+            fi
 
-		AC_SUBST([CUDA_INC])
-		AC_SUBST([CUDA_LIB])
+            AC_SUBST([CUDA_INC])
+            AC_SUBST([CUDA_LIB])
 
-		gpu_valid=yes
-	fi
+            gpu_valid=yes
+        fi
+    fi
 fi
 
 if test x$gpu_valid = xyes; then
@@ -214,22 +233,56 @@ if test x$gpu_valid = xyes; then
 	ARCHITECTURES="$ARCHITECTURES gpu"
 fi
 
+AC_SUBST([gpu_valid])
+
+AC_MSG_CHECKING([for architecture])
 
 # Add architecture libraries
 for arch in $ARCHITECTURES; do
 	NANOS_CONFIG_LIBS_PERFO="$NANOS_CONFIG_LIBS_PERFO $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/performance/lib$arch.la"
 	NANOS_CONFIG_LIBS_DEBUG="$NANOS_CONFIG_LIBS_DEBUG $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/debug/lib$arch.la"
 	NANOS_CONFIG_LIBS_INSTR="$NANOS_CONFIG_LIBS_INSTR $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/instrumentation/lib$arch.la"
+	NANOS_CONFIG_LIBS_INSTRDEBUG="$NANOS_CONFIG_LIBS_INSTRDEBUG $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/instrumentation-debug/lib$arch.la"
 done
 NANOS_CONFIG_LIBS_PERFO="$NANOS_CONFIG_LIBS_PERFO \$(abs_top_builddir)/src/arch/$OS/performance/libos.la \$(abs_top_builddir)/src/support/performance/libsupport.la"
 NANOS_CONFIG_LIBS_DEBUG="$NANOS_CONFIG_LIBS_DEBUG \$(abs_top_builddir)/src/arch/$OS/debug/libos.la \$(abs_top_builddir)/src/support/debug/libsupport.la"
 NANOS_CONFIG_LIBS_INSTR="$NANOS_CONFIG_LIBS_INSTR \$(abs_top_builddir)/src/arch/$OS/instrumentation/libos.la \$(abs_top_builddir)/src/support/instrumentation/libsupport.la"
+NANOS_CONFIG_LIBS_INSTRDEBUG="$NANOS_CONFIG_LIBS_INSTRDEBUG \$(abs_top_builddir)/src/arch/$OS/instrumentation-debug/libos.la \$(abs_top_builddir)/src/support/instrumentation-debug/libsupport.la"
 
 AM_CONDITIONAL([SMP_SUPPORTS_ULT],[test $smp_ult = yes])
 
 AC_MSG_RESULT([$ARCHITECTURES/$OS])
 
 USED_VERSION=""
+
+# Enable instrumentation-debug version
+instrumentation_debug_disabled="yes"
+AC_MSG_CHECKING([if instrumentation-debug version was enabled])
+AC_ARG_ENABLE([instrumentation-debug],
+  AS_HELP_STRING([--enable-instrumentation-debug], [Enables generation of instrumentation-debug version]),
+  [
+    if test x$enableval = xyes -o x$enableval = x;
+    then
+        instrumentation_debug_disabled="no"
+        AC_MSG_RESULT([yes])
+    else if test x$enableval = xno;
+         then
+            AC_MSG_RESULT([no])
+            instrumentation_debug_disabled="yes"
+            USED_VERSION="instrumentation-debug"
+         else
+            AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
+         fi
+    fi
+  ],
+  [
+      AC_MSG_RESULT([no])
+      instrumentation_debug_disabled="yes"
+  ]
+)
+
+AM_CONDITIONAL([INSTRUMENTATION_DEBUG_VERSION], [test x$instrumentation_debug_disabled = xno])
+AC_SUBST([instrdebugdir],['${libdir}/instrumentation-debug'])
 
 # Enable instrumentation version
 instrumentation_disabled="no"
@@ -391,70 +444,86 @@ AC_CONFIG_FILES([Makefile
                  src/core/performance/Makefile
                  src/core/debug/Makefile
                  src/core/instrumentation/Makefile
+                 src/core/instrumentation-debug/Makefile
 		 src/support/Makefile
 		 src/support/performance/Makefile
 		 src/support/debug/Makefile
 		 src/support/instrumentation/Makefile
+		 src/support/instrumentation-debug/Makefile
 		 src/plugins/Makefile
 		 src/plugins/sched/Makefile
 		 src/plugins/sched/performance/Makefile
 		 src/plugins/sched/debug/Makefile
 		 src/plugins/sched/instrumentation/Makefile
+		 src/plugins/sched/instrumentation-debug/Makefile
 		 src/plugins/throttle/Makefile
 		 src/plugins/throttle/performance/Makefile
 		 src/plugins/throttle/debug/Makefile
 		 src/plugins/throttle/instrumentation/Makefile
+		 src/plugins/throttle/instrumentation-debug/Makefile
 		 src/plugins/barr/Makefile
 		 src/plugins/barr/performance/Makefile
 		 src/plugins/barr/debug/Makefile
 		 src/plugins/barr/instrumentation/Makefile
+		 src/plugins/barr/instrumentation-debug/Makefile
 		 src/plugins/slicers/Makefile
 		 src/plugins/slicers/performance/Makefile
 		 src/plugins/slicers/debug/Makefile
 		 src/plugins/slicers/instrumentation/Makefile
+		 src/plugins/slicers/instrumentation-debug/Makefile
 		 src/plugins/instrumentation/Makefile
 		 src/plugins/instrumentation/performance/Makefile
 		 src/plugins/instrumentation/debug/Makefile
 		 src/plugins/instrumentation/instrumentation/Makefile
+		 src/plugins/instrumentation/instrumentation-debug/Makefile
 		 src/apis/Makefile
 		 src/apis/c/Makefile
 		 src/apis/c/performance/Makefile
 		 src/apis/c/debug/Makefile
 		 src/apis/c/instrumentation/Makefile
+		 src/apis/c/instrumentation-debug/Makefile
 		 src/pms/Makefile
 		 src/pms/openmp/Makefile
 		 src/pms/openmp/performance/Makefile
 		 src/pms/openmp/debug/Makefile
 		 src/pms/openmp/instrumentation/Makefile
+		 src/pms/openmp/instrumentation-debug/Makefile
 		 src/pms/ss/Makefile
 		 src/pms/ss/performance/Makefile
 		 src/pms/ss/debug/Makefile
 		 src/pms/ss/instrumentation/Makefile
+		 src/pms/ss/instrumentation-debug/Makefile
 		 src/pms/chapel/Makefile
 		 src/pms/chapel/performance/Makefile
 		 src/pms/chapel/debug/Makefile
 		 src/pms/chapel/instrumentation/Makefile
+		 src/pms/chapel/instrumentation-debug/Makefile
                  src/arch/Makefile
 		 src/arch/unix-os/Makefile
 		 src/arch/unix-os/performance/Makefile
 		 src/arch/unix-os/debug/Makefile
 		 src/arch/unix-os/instrumentation/Makefile
+		 src/arch/unix-os/instrumentation-debug/Makefile
 		 src/arch/smp/Makefile
 		 src/arch/smp/performance/Makefile
 		 src/arch/smp/debug/Makefile
 		 src/arch/smp/instrumentation/Makefile
+		 src/arch/smp/instrumentation-debug/Makefile
 		 src/arch/fpga/Makefile
 		 src/arch/fpga/performance/Makefile
 		 src/arch/fpga/debug/Makefile
 		 src/arch/fpga/instrumentation/Makefile
+		 src/arch/fpga/instrumentation-debug/Makefile
 		 src/arch/spu/Makefile
 		 src/arch/spu/performance/Makefile
 		 src/arch/spu/debug/Makefile
 		 src/arch/spu/instrumentation/Makefile
+		 src/arch/spu/instrumentation-debug/Makefile
 		 src/arch/gpu/Makefile
 		 src/arch/gpu/performance/Makefile
 		 src/arch/gpu/debug/Makefile
 		 src/arch/gpu/instrumentation/Makefile
+		 src/arch/gpu/instrumentation-debug/Makefile
 		 src/arch/cluster/Makefile
 		 src/arch/cluster/performance/Makefile
 		 src/arch/cluster/debug/Makefile

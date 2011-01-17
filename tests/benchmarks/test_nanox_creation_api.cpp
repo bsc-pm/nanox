@@ -48,7 +48,7 @@ double *times;
 void barrier_code ( void * )
 {
        double start,end;
-       unsigned int me = myThread->getTeamId();
+       unsigned int me = getMyThreadSafe()->getTeamId();
        nanos_team_barrier();
 
        start = get_wtime();
@@ -80,9 +80,9 @@ int main (int argc, char **argv)
 
        cout << "start" << endl;
        //all threads perform a barrier: 
-       ThreadTeam &team = *myThread->getTeam();
+       ThreadTeam &team = *getMyThreadSafe()->getTeam();
 
-       me = myThread->getTeamId();
+       me = getMyThreadSafe()->getTeamId();
        times = new double[team.size()];
 
        for ( unsigned i = 1; i < team.size(); i++ ) {
@@ -92,8 +92,8 @@ int main (int argc, char **argv)
        }
        usleep(100);
 
-       WD *wd = myThread->getCurrentWD();
-       wd->tieTo(*myThread);
+       WD *wd = getMyThreadSafe()->getCurrentWD();
+       wd->tieTo(*getMyThreadSafe());
 
        nanos_team_barrier();
 

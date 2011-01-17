@@ -23,6 +23,7 @@
 #include <list>
 #include <algorithm>
 #include "dependableobject.hpp"
+#include "commutationdepobj_decl.hpp"
 #include "atomic.hpp"
 
 namespace nanos
@@ -33,43 +34,33 @@ namespace nanos
    */
    class TrackableObject
    {
-
       public:
-         /**< Type list of DependableObject */
-         typedef std::list< DependableObject *> DependableObjectList;
-      
+         typedef std::list< DependableObject *> DependableObjectList; /**< Type list of DependableObject */
       private:
-
-         /**< Pointer to the dependency address */
-         void * _address;
-
-         /**< Points to the last DependableObject registered as writer of the TrackableObject */
-         DependableObject *_lastWriter;
-         
-         /**< List of readers of the last version of the object */
-         DependableObjectList _versionReaders;
-
-         /**< Lock to provide exclusive access to the readers list */
-         Lock _readersLock;
-
-         /**< Lock internally the object for secure access to _lastWriter */
-         Lock _writerLock;
-
+         void                  * _address; /**< Pointer to the dependency address */
+         DependableObject      *_lastWriter; /**< Points to the last DependableObject registered as writer of the TrackableObject */
+         DependableObjectList   _versionReaders; /**< List of readers of the last version of the object */
+         Lock                   _readersLock; /**< Lock to provide exclusive access to the readers list */
+         Lock                   _writerLock; /**< Lock internally the object for secure access to _lastWriter */
+         CommutationDO         *_commDO; /**< Will be successor of all commutation tasks using this object untill a new reader/writer appears */
       public:
-        /*! \brief Creates a TrackableObject with the given address associated.
+        /*! \brief TrackableObject default constructor
+         *
+         *  Creates a TrackableObject with the given address associated.
          */
-         TrackableObject ( void * address = NULL ) : _address(address), _lastWriter ( NULL ), _versionReaders(), _readersLock(), _writerLock() {}
-
-        /*! \brief Copy constructor
+         TrackableObject ( void * address = NULL )
+            : _address(address), _lastWriter ( NULL ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL) {}
+        /*! \brief TrackableObject copy constructor
+         *
          *  \param obj another TrackableObject
          */
-         TrackableObject ( const TrackableObject &obj ) :  _address ( obj._address ), _lastWriter ( obj._lastWriter ), _versionReaders(), _readersLock(), _writerLock() {}
-         
-        /*! \brief Destructor
+         TrackableObject ( const TrackableObject &obj ) 
+            :  _address ( obj._address ), _lastWriter ( obj._lastWriter ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL) {}
+        /*! \brief TrackableObject destructor
          */
          ~TrackableObject () {}
-
-        /*! \brief Assign operator, can be self-assigned.
+        /*! \brief TrackableObject assignment operator, can be self-assigned.
+         *
          *  \param obj another TrackableObject
          */
          const TrackableObject & operator= ( const TrackableObject &obj )
@@ -78,21 +69,18 @@ namespace nanos
             _lastWriter = obj._lastWriter;
             return *this;
          }
-
         /*! \brief Obtain the address associated to the TrackableObject
          */
          void * getAddress ( )
          {
             return _address;
          }
-
         /*! \brief Returns true if the TrackableObject has a DependableObject as LastWriter
          */
          bool hasLastWriter ( )
          {
             return _lastWriter != NULL;
          }
-
         /*! \brief Get the last writer
          *  \sa DependableObject
          */
@@ -100,7 +88,6 @@ namespace nanos
          {
             return _lastWriter;
          }
-
         /*! \brief Set the last writer
          *  \sa DependableObject
          */
@@ -114,7 +101,6 @@ namespace nanos
             memoryFence();
             _writerLock.release();
          }
-
         /*! \brief Delete the last writer if it matches the given one
          *  \param depObj DependableObject to compare with _lastWriter
          *  \sa DependableObject
@@ -134,7 +120,6 @@ namespace nanos
                _writerLock.release();
             }
          }
-         
         /*! \brief Get the list of readers
          *  \sa DependableObjectList
          */
@@ -142,7 +127,6 @@ namespace nanos
          {
             return _versionReaders;
          }
-         
         /*! \brief Add a new reader
          *  \sa DependableObject
          */
@@ -150,35 +134,30 @@ namespace nanos
          {
             _versionReaders.push_back( &reader );
          }
-
         /*! \brief Returns true if do is reader of the TrackableObject
          */
          bool hasReader ( DependableObject &depObj )
          {
             return ( find( _versionReaders.begin(), _versionReaders.end(), &depObj ) != _versionReaders.end() );
          }
-         
         /*! \brief Delete all readers from the object
          */ 
          void flushReaders ( )
          {
             _versionReaders.clear();
          }
-         
         /*! \brief Deletes a reader from the object's list
          */
          void deleteReader ( DependableObject &reader )
          {
             _versionReaders.remove( &reader );
          }
-
         /*! \brief Whether the object has readers or not
          */
          bool hasReaders ()
          {
             return !( _versionReaders.empty() );
          }
-
         /*! \brief Get exclusive access to the readers list
          */
          void lockReaders ( )
@@ -186,13 +165,27 @@ namespace nanos
             _readersLock.acquire();
             memoryFence();
          }
-
         /*! \brief Release the readers' list lock
          */
          void unlockReaders ( )
          {
             memoryFence();
             _readersLock.release();
+         }
+
+        /*! \brief Returns the commutationDO if it exists
+         */
+         CommutationDO* getCommDO()
+         {
+            return _commDO;
+         }
+
+        /*! \brief Set the commutationDO
+         *  \param commDO to set in this object
+         */
+         void setCommDO( CommutationDO *commDO )
+         {
+            _commDO = commDO;
          }
    };
 

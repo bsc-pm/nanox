@@ -27,37 +27,105 @@ using namespace nanos;
 using namespace nanos::ext;
 
 Atomic<int> GPUProcessor::_deviceSeed = 0;
+size_t GPUProcessor::_memoryAlignment = 256;
 
 
-GPUProcessor::GPUInfo::GPUInfo ( int device )
+GPUProcessor::GPUProcessor( int id, int gpuId ) : CachedAccelerator<GPUDevice>( id, &GPU ),
+      _gpuDevice( _deviceSeed++ ), _gpuProcessorTransfers(), _allocator(), _pinnedMemory()
 {
-   struct cudaDeviceProp gpuProperties;
-   cudaGetDeviceProperties( &gpuProperties, device );
-
-   _maxMemoryAvailable = gpuProperties.totalGlobalMem * 0.7;
+   _gpuProcessorInfo = NEW GPUProcessorInfo( gpuId );
 }
 
-
-GPUProcessor::GPUProcessor( int id, int gpuId )
-   : Accelerator( id, &GPU ), _gpuDevice( _deviceSeed++ ), _gpuInfo( gpuId ), _transferInfo(),
-     _cache(), _pinnedMemory()
+GPUProcessor::~GPUProcessor()
 {
-   //std::cout << "[GPUProcessor] I have " << _gpuInfo.getMaxMemoryAvailable()
-   //      << " bytes of available memory (device #" << gpuId << ")" << std::endl;
+   printStats();
 
-   _transferInfo = new TransferInfo();
+   delete _gpuProcessorInfo;
+}
+
+void GPUProcessor::init ()
+{
+   // Each thread initializes its own GPUProcessor so that initialization
+   // can be done in parallel
+
+   struct cudaDeviceProp gpuProperties;
+   GPUConfig::getGPUsProperties( _gpuDevice, ( void * ) &gpuProperties );
+   //cudaGetDeviceProperties( &gpuProperties, _gpuDevice );
+
+   // Check if the user has set the amount of memory to use (and the value is valid)
+   // Otherwise, use 95% of the total GPU global memory
+   size_t userDefinedMem = GPUConfig::getGPUMaxMemory();
+   size_t maxMemoryAvailable = ( size_t ) ( gpuProperties.totalGlobalMem * 0.95 );
+
+   if ( userDefinedMem > 0 ) {
+      if ( userDefinedMem > maxMemoryAvailable ) {
+         warning( "Could not set memory size to " << userDefinedMem
+               << " for GPU #" << _gpuDevice
+               << " because maximum memory available is " << maxMemoryAvailable
+               << " bytes. Using " << maxMemoryAvailable << " bytes" );
+      }
+      else {
+         maxMemoryAvailable = userDefinedMem;
+      }
+   }
+
+   bool inputStream = GPUConfig::isOverlappingInputsDefined();
+   bool outputStream = GPUConfig::isOverlappingOutputsDefined();
+
+   if ( !gpuProperties.deviceOverlap ) {
+      // It does not support stream overlapping, disable this feature
+      warning( "Device #" << _gpuDevice
+            << " does not support computation and data transfer overlapping" );
+      inputStream = false;
+      outputStream = false;
+   }
+   _gpuProcessorInfo->initTransferStreams( inputStream, outputStream );
+
+   GPUConfig::setOverlappingInputs( inputStream );
+   GPUConfig::setOverlappingOutputs( outputStream );
+
+   // We allocate the whole GPU memory
+   // WARNING: GPUDevice::allocateWholeMemory() must be called first, as it may
+   // modify maxMemoryAvailable, in the case of not being able to allocate as
+   // much bytes as we have asked
+   void * baseAddress = GPUDevice::allocateWholeMemory( maxMemoryAvailable );
+   _allocator.init( ( uint64_t ) baseAddress, maxMemoryAvailable );
+   setCacheSize( maxMemoryAvailable );
+   _gpuProcessorInfo->setMaxMemoryAvailable( maxMemoryAvailable );
+
+   // WARNING: initTransferStreams() can modify inputStream's and outputStream's
+   // value, so call it first
+
+   /*
+   if ( inputStream ) {
+      // Create a list of inputs that have been ordered to transfer but the copy is
+      // still not completed
+      delete _gpuProcessorTransfers._pendingCopiesIn;
+      _gpuProcessorTransfers._pendingCopiesIn = NEW GPUMemoryTransferInAsyncList();
+   }
+   */
+
+   if ( outputStream ) {
+      // If we have a stream for outputs, create the list with asynchronous behaviour
+      delete _gpuProcessorTransfers._pendingCopiesOut;
+      _gpuProcessorTransfers._pendingCopiesOut = NEW GPUMemoryTransferOutAsyncList();
+   }
+}
+
+void GPUProcessor::freeWholeMemory()
+{
+   GPUDevice::freeWholeMemory( ( void * ) _allocator.getBaseAddress() );
 }
 
 size_t GPUProcessor::getMaxMemoryAvailable ( int id )
 {
-   return 0;//GPUPlugin::getMaxMemoryAvailable( id );
+   return _gpuProcessorInfo->getMaxMemoryAvailable();
 }
-
 
 WorkDescriptor & GPUProcessor::getWorkerWD () const
 {
-   SMPDD * dd = new SMPDD( ( SMPDD::work_fct )Scheduler::workerLoop );
-   WD *wd = new WD( dd );
+   SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct )Scheduler::workerLoop );
+   WD *wd = NEW WD( dd );
    return *wd;
 }
 
@@ -70,39 +138,9 @@ BaseThread &GPUProcessor::createThread ( WorkDescriptor &helper )
 {
    // In fact, the GPUThread will run on the CPU, so make sure it canRunIn( SMP )
    ensure( helper.canRunIn( SMP ), "Incompatible worker thread" );
-   GPUThread &th = *new GPUThread( helper,this, _gpuDevice );
+   GPUThread &th = *NEW GPUThread( helper, this, _gpuDevice );
 
    return th;
-}
-
-void GPUProcessor::registerCacheAccessDependent( uint64_t tag, size_t size, bool input, bool output )
-{
-   _cache.registerCacheAccess( tag, size, input, output );
-}
-
-void GPUProcessor::unregisterCacheAccessDependent( uint64_t tag, size_t size )
-{
-   _cache.unregisterCacheAccess( tag, size );
-}
-
-void GPUProcessor::registerPrivateAccessDependent( uint64_t tag, size_t size, bool input, bool output )
-{
-   _cache.registerPrivateAccess( tag, size, input, output );
-}
-
-void GPUProcessor::unregisterPrivateAccessDependent( uint64_t tag, size_t size )
-{
-   _cache.unregisterPrivateAccess( tag, size );
-}
-
-void* GPUProcessor::getAddressDependent( uint64_t tag )
-{
-   return _cache.getAddress( tag );
-}
-
-void GPUProcessor::copyToDependent( void *dst, uint64_t tag, size_t size )
-{
-   _cache.copyTo( dst, tag, size );
 }
 
 

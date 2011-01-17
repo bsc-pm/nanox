@@ -86,6 +86,9 @@ int nanos_get_wd_id ( nanos_wd_t wd )
 nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t data_size,
                                void ** data, nanos_wg_t uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies )
 {
+   /* FIXME (#104) These variables have to be received as a parameters */
+   const int data_align = 16;
+  
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",NANOS_CREATION) );
 
    try 
@@ -94,7 +97,7 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
          *uwd = 0;
          return NANOS_OK;
       }
-      sys.createWD ( (WD **) uwd, num_devices, devices, data_size, (void **) data, (WG *) uwg, props, num_copies, copies );
+      sys.createWD ( (WD **) uwd, num_devices, devices, data_size, data_align, (void **) data, (WG *) uwg, props, num_copies, copies );
 
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
@@ -111,6 +114,10 @@ nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_
                                void ** outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, size_t slicer_data_size,
                                nanos_slicer_data_t * slicer_data, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies )
 {
+   /* FIXME (#104) These variables have to be received as a parameters */
+   const int outline_data_align = 16;
+   const int slicer_data_align = 16;
+  
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",NANOS_CREATION) );
 
    try 
@@ -123,8 +130,9 @@ nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_
          return NANOS_UNKNOWN_ERR;
       }
 
-      sys.createSlicedWD ( (WD **) uwd, num_devices, devices, outline_data_size, outline_data, (WG *) uwg,
-                           (Slicer *) slicer, slicer_data_size, (SlicerData *&) *slicer_data, props, num_copies, copies );
+      sys.createSlicedWD ( (WD **) uwd, num_devices, devices, outline_data_size, outline_data_align, outline_data, (WG *) uwg,
+                           (Slicer *) slicer, slicer_data_size, slicer_data_align, (SlicerData *&) *slicer_data, props,
+                           num_copies, copies );
 
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
@@ -191,6 +199,9 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
                                       size_t num_deps, nanos_dependence_t *deps, nanos_wd_props_t *props,
                                       size_t num_copies, nanos_copy_data_t *copies )
 {
+   /* FIXME (#104) These variables have to be received as a parameters */
+   const int data_align = 16;
+  
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","create_wd_and_run", NANOS_CREATION) );
 
    try {
@@ -199,8 +210,15 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
       // TODO: choose device
       // pre-allocate device
       char chunk[devices[0].dd_size];
+      
 
-      WD wd( ( DD* ) devices[0].factory( chunk, devices[0].arg ), data_size, data, num_copies, copies );
+      WD wd( ( DD* ) devices[0].factory( chunk, devices[0].arg ), data_size, data_align, data, num_copies, copies );
+
+      int pmDataSize = sys.getPMInterface().getInternalDataSize();
+      char pmData[pmDataSize];
+      if ( pmDataSize > 0 ) {
+        wd.setInternalData(pmData);
+      }
 
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
 

@@ -25,11 +25,18 @@ namespace nanos
    class ThrottlePolicy
    {
       private:
+         /*! \brief ThrottlePolicy copy constructor (private)
+          */
          ThrottlePolicy ( const ThrottlePolicy & );
+         /*! \brief ThrottlePolicy copy assignment opeator (private)
+          */
          const ThrottlePolicy & operator= ( const ThrottlePolicy & );
-         
       public:
+         /*! \brief ThrottlePolicy default constructor
+          */
          ThrottlePolicy() {};
+         /*! \brief ThrottlePolicy destructor
+          */
          virtual ~ThrottlePolicy() {}
 
          virtual bool throttle() = 0;

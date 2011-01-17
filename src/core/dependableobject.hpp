@@ -29,47 +29,49 @@
 
 namespace nanos
 {
-  /*! \brief Abstract entity submitted to the Dependency system
-   */
+   class DependableObject;
+
+   class DependableObjectPredicate
+   {
+      public:
+         DependableObjectPredicate() {}
+         virtual ~DependableObjectPredicate() {}
+
+         virtual bool operator() (DependableObject &obj) = 0;
+   };
+
+
+   /*! \class DependableObject
+    *  \brief Abstract entity submitted to the Dependency system
+    */
    class DependableObject
    {
       public:
-         /**< Type vector of successors  */
-         typedef std::set<DependableObject *> DependableObjectVector;
-         /**< Type vector of output objects */
-         typedef std::vector<TrackableObject *> TrackableObjectVector;
+         typedef std::set<DependableObject *> DependableObjectVector; /**< Type vector of successors  */
+         typedef std::vector<TrackableObject *> TrackableObjectVector; /**< Type vector of output objects */
          
       private:
-         /**< DependableObject identifier */
-         unsigned int _id;
-         /**< Number of predecessors locking this object */
-         Atomic<unsigned int> _numPredecessors;
-         /** References counter */
-         unsigned int _references;
-
-         /**< List of successiors */
-         DependableObjectVector _successors;
-
-         /**< List of output objects */
-         TrackableObjectVector _outputObjects;
-         
-         /**< List of read objects */
-         TrackableObjectVector _readObjects;
-
-         /**< Lock to do exclusive use of the DependableObject */
-         Lock _objectLock;
+         unsigned int             _id;              /**< DependableObject identifier */
+         Atomic<unsigned int>     _numPredecessors; /**< Number of predecessors locking this object */
+         unsigned int             _references;      /** References counter */
+         DependableObjectVector   _successors;      /**< List of successiors */
+         TrackableObjectVector    _outputObjects;   /**< List of output objects */
+         TrackableObjectVector    _readObjects;     /**< List of read objects */
+         Lock                     _objectLock;      /**< Lock to do exclusive use of the DependableObject */
 
       public:
-        /*! \brief Constructor
+        /*! \brief DependableObject default constructor
          */
-         DependableObject ( ) :  _id ( 0 ), _numPredecessors ( 0 ), _references(1), _successors(), _outputObjects(), _readObjects(), _objectLock() {}
-
-        /*! \brief Copy constructor
+         DependableObject ( ) 
+            :  _id ( 0 ), _numPredecessors ( 0 ), _references(1), _successors(), _outputObjects(),
+               _readObjects(), _objectLock() {}
+        /*! \brief DependableObject copy constructor
          *  \param depObj another DependableObject
          */
-         DependableObject ( const DependableObject &depObj ) :  _id ( depObj._id ), _numPredecessors ( depObj._numPredecessors ), _references(depObj._references), _successors ( depObj._successors ), _outputObjects( ), _readObjects(), _objectLock() {}
-
-        /*! \brief Assign operator, can be self-assigned.
+         DependableObject ( const DependableObject &depObj )
+            : _id ( depObj._id ), _numPredecessors ( depObj._numPredecessors ), _references(depObj._references),
+              _successors ( depObj._successors ), _outputObjects( ), _readObjects(), _objectLock() {}
+        /*! \brief DependableObject copy assignment operator, can be self-assigned.
          *  \param depObj another DependableObject
          */
          const DependableObject & operator= ( const DependableObject &depObj )
@@ -82,8 +84,7 @@ namespace nanos
             _outputObjects = depObj._outputObjects;
             return *this;
          }
-
-        /*! \brief Virtual destructor
+        /*! \brief DependableObject virtual destructor
          */
          virtual ~DependableObject ( ) { }
 
@@ -103,7 +104,7 @@ namespace nanos
 
          /*! \brief Instrument predecessor -> successor dependency
           */
-         virtual void instrument ( void *pred, void *succ ) { }
+         virtual void instrument ( DependableObject& successor ) { }
 
         /*! \brief Id setter function.
          *         The id will be unique for DependableObjects in the same Dependency Domain.
@@ -124,9 +125,9 @@ namespace nanos
 
         /*! \brief Increase the number of predecessors of the DependableObject.
          */
-         void increasePredecessors ( )
+         int increasePredecessors ( )
          {
-              _numPredecessors++; 
+              return _numPredecessors++; 
          }
 
         /*! \brief Decrease the number of predecessors of the DependableObject
@@ -142,7 +143,7 @@ namespace nanos
             return numPredecessors;
          }
 
-         /*! Returns the number of predecessors of this DependableObject
+         /*! \brief  Returns the number of predecessors of this DependableObject
           */
          int numPredecessors () const { return _numPredecessors.value(); }
 
@@ -202,6 +203,13 @@ namespace nanos
             _references++;
          }
 
+        /*! \brief Sets references to 1 as the object had just been initialized
+         */
+         void resetReferences()
+         {
+            _references = 1;
+         }
+
         /*! \brief Get exclusive access to the object
          */
          void lock ( )
@@ -228,7 +236,7 @@ namespace nanos
         /*! If there is an object that only depends from this dependable object, then release it and
             return it
          */
-         DependableObject * releaseImmediateSuccessor ( void );
+         DependableObject * releaseImmediateSuccessor ( DependableObjectPredicate &condition );
          
    };
 
