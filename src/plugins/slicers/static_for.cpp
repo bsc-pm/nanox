@@ -63,16 +63,16 @@ void SlicerStaticFor::submit ( SlicedWD &work )
 
    // if chunk == 0: generate a WD for each thread (STATIC)
    if ( _chunk == 0 ) {
-      // compute chunk and adjustment
+      // Compute chunk and adjustment
       int _niters = (((_upper - _lower) / _step ) + 1 );
       int _adjust =  _niters % valid_threads;
       _chunk = _niters / valid_threads;
 
-      // computing upper bound
+      // Computing upper bound
       upper = _lower + ( (_chunk-1) * _step ) + (( _adjust > 0) ? _step : 0);
       if ( ( upper * _sign ) > ( _upper * _sign ) ) upper = _upper;
 
-      // computing specific loop boundaries for current slice
+      // Computing specific loop boundaries for WorkDescriptor 0
       nanos_loop_info_t *nli = ( nanos_loop_info_t * ) work.getData();
       nli->lower = _lower;
       nli->upper = upper; 
@@ -80,160 +80,156 @@ void SlicerStaticFor::submit ( SlicedWD &work )
       nli->last = (valid_threads == 1 );
 
       j = first_valid_thread;
-      // Init and Submit WorkDescriptors: 1..N
+      // Creating additional WorkDescriptors: 1..N
       for ( i = 1; i < valid_threads; i++ ) {
-         // next slice lower bound
+
+         // Next slice lower bound
          _lower = upper + _step;
 
-         // finding 'j', as the next valid thread 
+         // Finding 'j', as the next valid thread 
          while ( (j < num_threads) && (thread_map[j] != i) ) j++;
 
-         // debug code
+         // Debug code
          ensure ( thread_map[j] == i, "Slicer for (static) doesn't found target thread");
 
-         // computing upper bound
+         // Computing upper bound
          upper = _lower + ( (_chunk-1) * _step ) + (( _adjust > i ) ? _step : 0);
          if ( ( upper * _sign ) > ( _upper * _sign ) ) upper = _upper;
 
-         // duplicating slice
+         // Duplicating slice
          slice = NULL;
          sys.duplicateWD( &slice, &work );
 
-         // computing specific loop boundaries for current slice
+         // Computing specific loop boundaries for current slice
          nli = ( nanos_loop_info_t * ) slice->getData();
          nli->lower = _lower;
          nli->upper = upper;
          nli->step = _step;
          nli->last = ( i == (valid_threads - 1) );
 
+         // Submit: slice (WorkDescriptor i, running on Thread j)
          slice->tieTo( (*team)[j] );
          Scheduler::submit ( *slice );
       }
 
-      // Submit: work
+      // Submit: work (WorkDescriptor 0, running on thread 'first')
       work.tieTo( (*team)[first_valid_thread] );
       Scheduler::submit ( work );
    }
    // if chunk != 0: generate a SlicedWD for each thread (INTERLEAVED)
    else {
 
-      BaseThread *thread = getMyThreadSafe();
+      // Duplicated slicer data for for each thread
+      SlicerDataFor *dsdf;
 
-      j = 0;
-      // Init and Submit WorkDescriptors: 1..N
-      for ( i = 1; i < valid_threads; i++ ) {
-         // j is the next valid thread 
-         while ( (j < num_threads) && (thread_map [j] != i) ) j++;
-
-         ensure (thread_map[j] == i, "Slicer for (interleaved) doesn't found target thread");
-
-         // duplicating slice into wd
-         sys.duplicateSlicedWD( &wd, &work );
-
-         (( SlicerDataFor *)wd->getSlicerData())->setLower( _lower + ( i * _chunk * _step ));
-         (( SlicerDataFor *)wd->getSlicerData())->setUpper( _upper );
-
-         // if chunk == 1 then, adjust chunk and step to minimize wd's creation
-         if ( _chunk == 1 ) {
-            int _chunk2 = (((_upper - _lower) / _step ) / valid_threads) +1;
-            int _step2 = _step * valid_threads;
-            (( SlicerDataFor *)wd->getSlicerData())->setStep( _step2 );
-            (( SlicerDataFor *)wd->getSlicerData())->setChunk( _chunk2 );
-         } else {
-            (( SlicerDataFor *)wd->getSlicerData())->setStep( _step );
-            (( SlicerDataFor *)wd->getSlicerData())->setChunk( _chunk );
-        }
-         (( SlicerDataFor *)wd->getSlicerData())->setSign( _sign );
-
-         // submit: wd (tied to 'j' thread)
-         wd->tieTo( (*thread->getTeam())[j] );
-         Scheduler::submit ( *wd );
-
-         /* Some schedulers change to execute submited wd. We must
-          * ensure to get new myThread variable */
-         thread = getMyThreadSafe();
-
-         // next wd init
-         wd = NULL;
-
-      }
+      // Computing offset between threads
+      int _offset = _chunk * _step;
 
       // if chunk == 1 then, adjust chunk and step to minimize wd's creation
       if ( _chunk == 1 ) {
          _chunk = (((_upper - _lower) / _step ) / valid_threads) +1;
          _step = _step * valid_threads;
-         ((SlicerDataFor *) work.getSlicerData())->setStep(_step);
-         ((SlicerDataFor *) work.getSlicerData())->setChunk(_chunk);
+         sdf->setChunk( _chunk );
+         sdf->setStep( _step );
+      }
+
+      j = first_valid_thread;
+      // Init and Submit WorkDescriptors: 1..N
+      for ( i = 1; i < valid_threads; i++ ) {
+
+         // Avoiding to create 'empty' WorkDescriptors
+         if ( ((_lower + (i * _offset)) * _sign) > ( _upper * _sign ) ) break;
+
+         // Finding 'j', as the next valid thread 
+         while ( (j < num_threads) && (thread_map [j] != i) ) j++;
+
+         // Debug code
+         ensure (thread_map[j] == i, "Slicer for (interleaved) doesn't found target thread");
+
+         // Duplicating slice into wd
+         wd = NULL;
+         sys.duplicateSlicedWD( &wd, &work );
+
+         dsdf = (SlicerDataFor *) wd->getSlicerData();
+
+         dsdf->setLower( _lower + ( i * _offset ) );
+         dsdf->setUpper( _upper );
+         dsdf->setStep( _step );
+         dsdf->setChunk( _chunk );
+         dsdf->setSign( _sign );
+
+         // submit: wd (tied to 'j' thread)
+         wd->tieTo( (*team)[j] );
+         Scheduler::submit ( *wd );
       }
 
       // Submit: work (tied to first valid thread)
-      work.tieTo( (*thread->getTeam())[first_valid_thread] );
+      work.tieTo( (*team)[first_valid_thread] );
       Scheduler::submit ( work );
-   }
+   } // close chunk selector
 }
 
 bool SlicerStaticFor::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
 {
-   int lower, i, upper, valid_threads = 0, num_threads = myThread->getTeam()->size();
+   // TODO: (#107) performance evaluation on this algorithm
+   ThreadTeam *team = myThread->getTeam();
+   int lower, i, upper, valid_threads = 0, num_threads = team->size();
    bool last = false;
 
-   // TODO: (#107) performance evaluation on this algorithm
-
-   // copying slicer data values
-   int _chunk = ((SlicerDataFor *)wd->getSlicerData())->getChunk();
+   // copying chunk slicer data value
+   SlicerDataFor *sdf = (SlicerDataFor *) wd->getSlicerData();
+   int _chunk = sdf->getChunk();
 
    // if chunk == 0: do nothing (fields are already computed)
    if ( _chunk == 0 ) {
-      *slice = wd;
-      last = true;
+     *slice = wd;
+     last = true;
    }
    // if chunk != 0: generate a SlicedWD for each thread (interleaved)
    else {
 
       /* Determine the number of valid threads */
       for ( i = 0; i < num_threads; i++) {
-        if (  wd->canRunIn( *(((*myThread->getTeam())[i]).runningOn()) ) ) valid_threads++;
+         if (  wd->canRunIn( *(((*team)[i]).runningOn()) ) ) valid_threads++;
       }
 
       // copying slicer data values
-      int _lower = ((SlicerDataFor *)wd->getSlicerData())->getLower();
-      int _upper = ((SlicerDataFor *)wd->getSlicerData())->getUpper();
-      int _step = ((SlicerDataFor *)wd->getSlicerData())->getStep();
-      int _sign = ((SlicerDataFor *)wd->getSlicerData())->getSign();
+      int _lower = sdf->getLower();
+      int _upper = sdf->getUpper();
+      int _step = sdf->getStep();
+      int _sign = sdf->getSign();
 
-      // computing initial bounds
+      // Computing current bounds
       lower = _lower;
       upper = _lower + ( _chunk * _step ) - _sign;
 
-      // computing next lower
-      _lower = _lower + ( _chunk * _step * valid_threads );
-
-      // checking boundaries
+      // Checking boundaries for current chunk
       if ( ( upper * _sign ) >= ( _upper * _sign ) ) {
          upper = _upper;
          last = true;
       }
 
-      if ( (_lower * _sign) > (_upper * _sign)) {
-         last = true;
-      }
+      // Computing next lower and checking boundaries for next chunk
+      // avoiding to create an 'empty' WorkDescriptor
+      _lower = _lower + ( _chunk * _step * valid_threads );
+      if ( (_lower * _sign) > (_upper * _sign)) last = true;
+      else (( SlicerDataFor *)wd->getSlicerData())->setLower( _lower );
 
+      // Duplicate WorkDescriptor (if needed)
       if ( last ) *slice = wd;
       else {
          *slice = NULL;
          sys.duplicateWD( slice, wd );
-         (( SlicerDataFor *)wd->getSlicerData())->setLower( _lower );
       }
 
-      ((nanos_loop_info_t *)((*slice)->getData()))->lower = lower;
-      ((nanos_loop_info_t *)((*slice)->getData()))->upper = upper;
-      ((nanos_loop_info_t *)((*slice)->getData()))->step = _step;
+      nanos_loop_info_t *nli = ( nanos_loop_info_t * ) (*slice)->getData();
+      nli->lower = lower;
+      nli->upper = upper;
+      nli->step = _step;
 
-      // If it is 'actually' a chunk of iterations and it is the last one...
-      if ( ((_lower * _sign) < (_upper * _sign)) && ( upper == _upper ) ) {
-         ((nanos_loop_info_t *)((*slice)->getData()))->last = true;
-      }
-      else ((nanos_loop_info_t *)((*slice)->getData()))->last = false;
+      // If it is the last iteration ( last is a field in the loop_info_t struct )
+      if ( upper == _upper ) nli->last = true;
+      else nli->last = false;
    }
 
    return last;
