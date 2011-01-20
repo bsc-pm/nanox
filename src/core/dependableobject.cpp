@@ -48,13 +48,10 @@ void DependableObject::finished ( )
          readObject->unlockReaders();
       }
 
-      NANOS_INSTRUMENT ( void * predObj = getRelatedObject(); )
-
       DependableObject::DependableObjectVector &succ = depObj.getSuccessors();
       for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
 
-         NANOS_INSTRUMENT ( void * succObj = (*it)->getRelatedObject(); )
-         NANOS_INSTRUMENT ( instrument ( predObj, succObj ); ) 
+         NANOS_INSTRUMENT ( instrument ( *(*it) ); ) 
 
          (*it)->decreasePredecessors();
       }
@@ -69,20 +66,21 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
    for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
       // Is this an immediate successor? 
       if ( (*it)->numPredecessors() == 1 && condition(**it) ) {
-        // remove it
-        found = *it;
-        this->lock();
-        succ.erase(it);
-        this->unlock();
-        if ( found->numPredecessors() != 1 ) {
-           this->lock();
-           succ.insert( found );
-           this->unlock();
-        } else {
-           break;
-        }
+         // remove it
+         found = *it;
+         this->lock();
+         succ.erase(it);
+         this->unlock();
+         if ( found->numPredecessors() != 1 ) {
+            this->lock();
+            succ.insert( found );
+            this->unlock();
+            found = NULL;
+         } else {
+            DependenciesDomain::decreaseTasksInGraph();
+            break;
+         }
       }
    }
-
    return found;
 }

@@ -31,7 +31,7 @@ void SchedulerConf::config (Config &config)
 {
    config.setOptionsSection ( "Core [Scheduler]", "Policy independent scheduler options"  );
 
-   config.registerConfigOption ( "num_spins", new Config::UintVar( _numSpins ), "Determines the amount of spinning before yielding" );
+   config.registerConfigOption ( "num_spins", NEW Config::UintVar( _numSpins ), "Determines the amount of spinning before yielding" );
    config.registerArgOption ( "num_spins", "spins" );
    config.registerEnvOption ( "num_spins", "NX_SPINS" );
 }
@@ -77,6 +77,22 @@ void Scheduler::submit ( WD &wd )
       switchTo ( slice );
    }
 
+}
+
+void Scheduler::submitAndWait ( WD &wd )
+{
+   debug ( "submitting and waiting task " << wd.getId() );
+   fatal ( "Scheduler::submitAndWait(): This feature is still not supported" );
+
+   // Create a new WorkGroup and add WD
+   WG myWG;
+   myWG.addWork( wd );
+
+   // Submit WD
+   submit( wd );
+
+   // Wait for WD to be finished
+   myWG.waitCompletion();
 }
 
 void Scheduler::updateExitStats ( WD &wd )
@@ -301,7 +317,8 @@ struct WorkerBehaviour
       if (next->started())
         Scheduler::switchTo(next);
       else {
-        Scheduler::inlineWork ( next );
+        Scheduler::inlineWork ( next, true );
+        delete next;
       }
    }
 };
@@ -311,10 +328,12 @@ void Scheduler::workerLoop ()
    idleLoop<WorkerBehaviour>();
 }
 
-void Scheduler::inlineWork ( WD *wd )
+void Scheduler::inlineWork ( WD *wd, bool schedule )
 {
+   BaseThread *thread = getMyThreadSafe();
+
    // run it in the current frame
-   WD *oldwd = myThread->getCurrentWD();
+   WD *oldwd = thread->getCurrentWD();
 
    GenericSyncCond *syncCond = oldwd->getSyncCond();
    if ( syncCond != NULL ) {
@@ -331,11 +350,18 @@ void Scheduler::inlineWork ( WD *wd )
    wd->tieTo(*oldwd->isTiedTo());
    if (!wd->started())
       wd->init();
-   myThread->setCurrentWD( *wd );
+   thread->setCurrentWD( *wd );
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
 
-   myThread->inlineWorkDependent(*wd);
+   thread->inlineWorkDependent(*wd);
+
+   // reload thread after running WD
+   thread = getMyThreadSafe();
+
+   if (schedule && thread->getNextWD() == NULL ) {
+        thread->setNextWD(thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*wd));
+   }
 
    /* If WorkDescriptor has been submitted update statistics */
    updateExitStats (*wd);
@@ -349,7 +375,6 @@ void Scheduler::inlineWork ( WD *wd )
           " to " << oldwd << ":" << oldwd->getId() );
 
 
-   BaseThread *thread = getMyThreadSafe();
    thread->setCurrentWD( *oldwd );
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, oldwd, false) );
@@ -361,13 +386,17 @@ void Scheduler::inlineWork ( WD *wd )
       switchToThread(oldwd->isTiedTo());
    #endif
 
-   ensure(oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(), 
+   ensure(oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(),
            "Violating tied rules " + toString<BaseThread*>(thread) + "!=" + toString<BaseThread*>(oldwd->isTiedTo()));
 
 }
 
 void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
 {
+
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldWD, NULL, false) );
+   myThread->switchHelperDependent(oldWD, newWD, arg);
+
    GenericSyncCond *syncCond = oldWD->getSyncCond();
    if ( syncCond != NULL ) {
       oldWD->setBlocked();
@@ -375,9 +404,6 @@ void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
    } else {
       myThread->getTeam()->getSchedulePolicy().queue( myThread, *oldWD );
    }
-
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldWD, NULL, false) );
-   myThread->switchHelperDependent(oldWD, newWD, arg);
 
    myThread->setCurrentWD( *newWD );
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, newWD, false) );

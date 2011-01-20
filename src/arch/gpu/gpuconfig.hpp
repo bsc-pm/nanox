@@ -22,6 +22,13 @@
 
 #include "config.hpp"
 
+#if __CUDA_API_VERSION < 3020
+#define CUDANODEVERR cudaErrorNoDevice
+#else
+#define CUDANODEVERR cudaErrorDevicesUnavailable
+#endif
+
+
 namespace nanos {
 namespace ext
 {
@@ -49,6 +56,7 @@ namespace ext
          static bool          _overlapOutputs;
          static transfer_mode _transferMode; //! Data transfer's mode (synchronous / asynchronous, ...)
          static size_t        _maxGPUMemory; //! Maximum amount of memory for each GPU to use
+         static bool          _gpuWarmup; //! Enable / disable driver warmup (during runtime startup)
          static void *        _gpusProperties; //! Array of structs of cudaDeviceProp
 
          /*! Parses the GPU user options */
@@ -77,6 +85,8 @@ namespace ext
          static transfer_mode getTransferMode ( void ) { return _transferMode; }
 
          static size_t getGPUMaxMemory( void ) { return _maxGPUMemory; }
+
+         static bool isGPUWarmupDefined ( void ) { return _gpuWarmup; }
 
          static void getGPUsProperties( int device, void * deviceProps );
 

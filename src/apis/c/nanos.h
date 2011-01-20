@@ -26,7 +26,7 @@
 
 #ifdef _MERCURIUM
 // define API version
-#pragma nanos interface family(master) version(5001)
+#pragma nanos interface family(master) version(5002)
 #endif
 
 // data types
@@ -149,6 +149,8 @@ extern const size_t nanos_gpu_dd_size;
 // instrumentation interface
 nanos_err_t nanos_instrument_register_key ( nanos_event_key_t *event_key, const char *key, const char *description, bool abort_when_registered );
 nanos_err_t nanos_instrument_register_value ( nanos_event_value_t *event_value, const char *key, const char *value, const char *description, bool abort_when_registered );
+
+nanos_err_t nanos_instrument_register_value_with_val ( nanos_event_value_t val, const char *key, const char *value, const char *description, bool abort_when_registered );
 
 nanos_err_t nanos_instrument_get_key (const char *key, nanos_event_key_t *event_key);
 nanos_err_t nanos_instrument_get_value (const char *key, const char *value, nanos_event_value_t *event_value);

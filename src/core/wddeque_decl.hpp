@@ -75,6 +75,11 @@ namespace nanos
          WorkDescriptor * pop_front ( BaseThread *thread );
          WorkDescriptor * pop_back ( BaseThread *thread );
 
+         static void increaseTasksInQueues( int tasks );
+
+         static void decreaseTasksInQueues( int tasks );
+
+
          bool removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
    };
 

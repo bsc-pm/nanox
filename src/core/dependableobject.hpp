@@ -104,7 +104,7 @@ namespace nanos
 
          /*! \brief Instrument predecessor -> successor dependency
           */
-         virtual void instrument ( void *pred, void *succ ) { }
+         virtual void instrument ( DependableObject& successor ) { }
 
         /*! \brief Id setter function.
          *         The id will be unique for DependableObjects in the same Dependency Domain.
@@ -125,9 +125,9 @@ namespace nanos
 
         /*! \brief Increase the number of predecessors of the DependableObject.
          */
-         void increasePredecessors ( )
+         int increasePredecessors ( )
          {
-              _numPredecessors++; 
+              return _numPredecessors++; 
          }
 
         /*! \brief Decrease the number of predecessors of the DependableObject
@@ -201,6 +201,13 @@ namespace nanos
          void increaseReferences()
          {
             _references++;
+         }
+
+        /*! \brief Sets references to 1 as the object had just been initialized
+         */
+         void resetReferences()
+         {
+            _references = 1;
          }
 
         /*! \brief Get exclusive access to the object

@@ -30,7 +30,7 @@ void barrier_code ( void * )
 {
    int i, its=0;
    // PARALLEL tests
-   if ( mainWD == myThread->getCurrentWD()) {
+   if ( mainWD == getMyThreadSafe()->getCurrentWD()) {
       // 4 items per list
       for (i=0; i < 16; i++) {
          _map[i] = i;
@@ -44,7 +44,7 @@ void barrier_code ( void * )
    nanos_team_barrier();
 
    // Main erases one element other threads read it 100 times
-   if ( mainWD == myThread->getCurrentWD()) {
+   if ( mainWD == getMyThreadSafe()->getCurrentWD()) {
       std::cout << "passed first barrier" << std::endl;
       for (i=0; i < 100; i++);
       while (!_map.erase(8))
@@ -53,7 +53,7 @@ void barrier_code ( void * )
    } else {
       while ( _map.find(8) != NULL )
          its++;
-      std::cout <<  myThread->getCurrentWD() << " readed element " << std::setbase(10) << (int)its << " times until it got erased." << std::endl;
+      std::cout <<  getMyThreadSafe()->getCurrentWD() << " readed element " << std::setbase(10) << (int)its << " times until it got erased." << std::endl;
       std::cout.flush();
    }
    nanos_team_barrier();
@@ -122,7 +122,7 @@ int main (int argc, char **argv)
 
    cout << "start threaded tests" << endl;
    //all threads perform a barrier , before the barrier they will freely access the list
-   ThreadTeam &team = *myThread->getTeam();
+   ThreadTeam &team = *getMyThreadSafe()->getTeam();
    size = team.size();
    for ( unsigned i = 1; i < team.size(); i++ ) {
           WD * wd = new WD(new SMPDD(barrier_code));
@@ -131,8 +131,8 @@ int main (int argc, char **argv)
    }
    usleep(100);
 
-   WD *wd = myThread->getCurrentWD();
-   wd->tieTo(*myThread);
+   WD *wd = getMyThreadSafe()->getCurrentWD();
+   wd->tieTo(*getMyThreadSafe());
 
    mainWD = wd;
    barrier_code(NULL);

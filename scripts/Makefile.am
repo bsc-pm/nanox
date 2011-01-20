@@ -24,4 +24,9 @@ EXTRA_DIST=\
            headerfy.sh \
            Makefile.am \
            preamble.txt \
+           extrae_post_process.sh \
            $(END)
+
+bin_SCRIPTS=\
+	extrae_post_process.sh\
+	$(END)

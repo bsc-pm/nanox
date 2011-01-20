@@ -70,7 +70,7 @@ namespace nanos {
 
       static Barrier * createPosixBarrier()
       {
-         return new PosixBarrier();
+         return NEW PosixBarrier();
       }
 
       /*! \class PosixBarrierPlugin

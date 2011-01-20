@@ -36,6 +36,7 @@ void GPUThread::initializeDependent ()
    if ( err != cudaSuccess )
       warning( "Couldn't set the GPU device for the thread: " << cudaGetErrorString( err ) );
 
+   // Configure some GPU device flags
    if ( GPUConfig::getTransferMode() == NANOS_GPU_TRANSFER_PINNED_CUDA
          || GPUConfig::getTransferMode() == NANOS_GPU_TRANSFER_WC ) {
       err = cudaSetDeviceFlags( cudaDeviceMapHost | cudaDeviceBlockingSync );
@@ -48,6 +49,25 @@ void GPUThread::initializeDependent ()
          warning( "Couldn't set the GPU device flags:" << cudaGetErrorString( err ) );
    }
 
+   // Warming up GPU's...
+   if ( GPUConfig::isGPUWarmupDefined() ) {
+      int n = 65536;
+      int *warmup = NEW int[n];
+      int *warmup_d;
+      err = cudaMalloc( &warmup_d, n * sizeof( int ) );
+      err = cudaMemcpy( warmup_d, warmup, n * sizeof( int ) , cudaMemcpyHostToDevice );
+      err = cudaMemcpy( warmup, warmup_d, n * sizeof( int ) , cudaMemcpyDeviceToHost );
+      if ( err != cudaSuccess ) {
+         if ( err == CUDANODEVERR ) {
+            fatal( "Error while warming up the GPUs: all CUDA-capable devices are busy or unavailable" );
+         }
+         warning( "Error while warming up the GPUs: " << cudaGetErrorString( err ) );
+      }
+      cudaFree( warmup_d );
+      delete warmup;
+   }
+
+   // Initialize GPUProcessor
    ( ( GPUProcessor * ) myThread->runningOn() )->init();
 }
 
@@ -63,7 +83,7 @@ void GPUThread::runDependent ()
 void GPUThread::inlineWorkDependent ( WD &wd )
 {
    GPUDD &dd = ( GPUDD & )wd.getActiveDevice();
-   GPUProcessor &myGPU = *(GPUProcessor *) myThread->runningOn();
+   GPUProcessor &myGPU = * ( GPUProcessor * ) myThread->runningOn();
 
    if ( GPUConfig::isOverlappingInputsDefined() ) {
       // Wait for the input transfer stream to finish
@@ -78,10 +98,19 @@ void GPUThread::inlineWorkDependent ( WD &wd )
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
    ( dd.getWorkFct() )( wd.getData() );
 
-   if ( GPUConfig::isOverlappingOutputsDefined() ) {
-      // Copy out results from tasks executed previously
-      myGPU.getOutTransferList()->executeMemoryTransfers();
+   if ( !GPUConfig::isOverlappingOutputsDefined() && !GPUConfig::isOverlappingInputsDefined() ) {
+      // Wait for the GPU kernel to finish
+      cudaThreadSynchronize();
+
+      // Normally this instrumentation code is inserted by the compiler in the task outline.
+      // But because the kernel call is asynchronous for GPUs we need to raise them manually here
+      // when we know the kernel has really finished
+      NANOS_INSTRUMENT ( raiseWDClosingEvents() );
    }
+
+   // Copy out results from tasks executed previously
+   // Do it always, as another GPU may be waiting for results
+   myGPU.getOutTransferList()->executeMemoryTransfers();
 
    if ( GPUConfig::isPrefetchingDefined() ) {
       NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
@@ -94,13 +123,15 @@ void GPUThread::inlineWorkDependent ( WD &wd )
       }
    }
 
-   // Wait for the GPU kernel to finish
-   cudaThreadSynchronize();
+   if ( GPUConfig::isOverlappingOutputsDefined() || GPUConfig::isOverlappingInputsDefined() ) {
+      // Wait for the GPU kernel to finish, if we have not waited before
+      cudaThreadSynchronize();
 
-   // Normally this instrumentation code is inserted by the compiler in the task outline.
-   // But because the kernel call is asynchronous for GPUs we need to raise them manually here
-   // when we know the kernel has really finished
-   NANOS_INSTRUMENT ( raiseWDClosingEvents() );
+      // Normally this instrumentation code is inserted by the compiler in the task outline.
+      // But because the kernel call is asynchronous for GPUs we need to raise them manually here
+      // when we know the kernel has really finished
+      NANOS_INSTRUMENT ( raiseWDClosingEvents() );
+   }
 }
 
 void GPUThread::yield()

@@ -18,8 +18,7 @@
 /*************************************************************************************/
 
 #include "gpuconfig.hpp"
-// We need to include system.hpp, as debug.hpp does not include it
-// (to use verbose0(msg))
+// We need to include system.hpp (to use verbose0(msg)), as debug.hpp does not include it
 #include "system.hpp"
 
 #include <cuda_runtime.h>
@@ -35,6 +34,7 @@ bool GPUConfig::_overlapInputs = false;
 bool GPUConfig::_overlapOutputs = false;
 transfer_mode GPUConfig::_transferMode = NANOS_GPU_TRANSFER_NORMAL;
 size_t GPUConfig::_maxGPUMemory = 0;
+bool GPUConfig::_gpuWarmup = true;
 void * GPUConfig::_gpusProperties = NULL;
 
 void GPUConfig::prepare( Config& config )
@@ -42,49 +42,55 @@ void GPUConfig::prepare( Config& config )
    config.setOptionsSection( "GPU Arch", "GPU specific options" );
 
    // Enable / disable CUDA
-   config.registerConfigOption( "disable-cuda", new Config::FlagOption( _disableCUDA ),
-                                "Enable or disable the use of GPUs with CUDA" );
+   config.registerConfigOption( "disable-cuda", NEW Config::FlagOption( _disableCUDA ),
+                                "Enable or disable the use of GPUs with CUDA (enabled by default)" );
    config.registerEnvOption( "disable-cuda", "NX_DISABLECUDA" );
    config.registerArgOption( "disable-cuda", "disable-cuda" );
 
    // Set #GPUs
-   config.registerConfigOption ( "num-gpus", new Config::IntegerVar( _numGPUs ),
-                                 "Defines the maximum number of GPUs to use" );
+   config.registerConfigOption ( "num-gpus", NEW Config::IntegerVar( _numGPUs ),
+                                 "Defines the maximum number of GPUs to use (defaults to the available number of GPUs in the system)" );
    config.registerEnvOption ( "num-gpus", "NX_GPUS" );
    config.registerArgOption ( "num-gpus", "gpus" );
 
    // Enable / disable prefetching
-   config.registerConfigOption( "gpu-prefetch", new Config::FlagOption( _prefetch ),
-                                "Set whether data prefetching must be activated or not" );
+   config.registerConfigOption( "gpu-prefetch", NEW Config::FlagOption( _prefetch ),
+                                "Set whether data prefetching must be activated or not (disabled by default)" );
    config.registerEnvOption( "gpu-prefetch", "NX_GPUPREFETCH" );
    config.registerArgOption( "gpu-prefetch", "gpu-prefetch" );
 
    // Enable / disable overlapping
-   config.registerConfigOption( "gpu-overlap", new Config::FlagOption( _overlap ),
+   config.registerConfigOption( "gpu-overlap", NEW Config::FlagOption( _overlap ),
                                 "Set whether GPU computation should be overlapped with\n\
-                                     all data transfers, whenever possible, or not" );
+                                     all data transfers, whenever possible, or not (disabled by default)" );
    config.registerEnvOption( "gpu-overlap", "NX_GPUOVERLAP" );
    config.registerArgOption( "gpu-overlap", "gpu-overlap" );
 
    // Enable / disable overlapping of inputs
-   config.registerConfigOption( "gpu-overlap-inputs", new Config::FlagOption( _overlapInputs ),
+   config.registerConfigOption( "gpu-overlap-inputs", NEW Config::FlagOption( _overlapInputs ),
                                 "Set whether GPU computation should be overlapped with\n\
-                                     host --> device data transfers, whenever possible, or not" );
+                                     host --> device data transfers, whenever possible, or not (disabled by default)" );
    config.registerEnvOption( "gpu-overlap-inputs", "NX_GPUOVERLAP_INPUTS" );
    config.registerArgOption( "gpu-overlap-inputs", "gpu-overlap-inputs" );
 
    // Enable / disable overlapping of outputs
-   config.registerConfigOption( "gpu-overlap-outputs", new Config::FlagOption( _overlapOutputs ),
+   config.registerConfigOption( "gpu-overlap-outputs", NEW Config::FlagOption( _overlapOutputs ),
                                 "Set whether GPU computation should be overlapped with\n\
-                                     device --> host data transfers, whenever possible, or not" );
+                                     device --> host data transfers, whenever possible, or not (disabled by default)" );
    config.registerEnvOption( "gpu-overlap-outputs", "NX_GPUOVERLAP_OUTPUTS" );
    config.registerArgOption( "gpu-overlap-outputs", "gpu-overlap-outputs" );
 
    // Set maximum GPU memory available for each GPU
-   config.registerConfigOption ( "gpu-max-memory", new Config::SizeVar( _maxGPUMemory ),
-                                 "Defines the maximum amount of GPU memory (in bytes) to use for each GPU" );
+   config.registerConfigOption ( "gpu-max-memory", NEW Config::SizeVar( _maxGPUMemory ),
+                                 "Defines the maximum amount of GPU memory (in bytes) to use for each GPU (defaults to the total amount of shared memory that each GPU has)" );
    config.registerEnvOption ( "gpu-max-memory", "NX_GPUMAXMEM" );
    config.registerArgOption ( "gpu-max-memory", "gpu-max-memory" );
+
+   // Enable / disable GPU warmup
+   config.registerConfigOption( "gpu-warmup", NEW Config::FlagOption( _gpuWarmup ),
+                                "Enable or disable warming up the GPU (enabled by default)" );
+   config.registerEnvOption( "gpu-warmup", "NX_GPUWARMUP" );
+   config.registerArgOption( "gpu-warmup", "gpu-warmup" );
 }
 
 void GPUConfig::apply()
@@ -96,6 +102,7 @@ void GPUConfig::apply()
       _overlapInputs = false;
       _overlapOutputs = false;
       _maxGPUMemory = 0;
+      _gpuWarmup = false;
    } else {
       // Find out how many CUDA-capable GPUs the system has
       int totalCount, device, deviceCount = 0;
@@ -107,7 +114,7 @@ void GPUConfig::apply()
 
       // Keep the information of GPUs in GPUDD, in order to avoid a second call to
       // 'cudaGetDeviceProperties()' for each GPU device
-      _gpusProperties = new cudaDeviceProp[totalCount];
+      _gpusProperties = NEW cudaDeviceProp[totalCount];
       struct cudaDeviceProp * gpuProperties = ( cudaDeviceProp * ) _gpusProperties;
 
       // Machines with no GPUs can still report one emulation device
@@ -154,6 +161,7 @@ void GPUConfig::printConfiguration()
    else {
       verbose0( "  Limited memory: Disabled" );
    }
+   verbose0( "  GPU warm up: " << ( _gpuWarmup ? "Enabled" : "Disabled" ) );
 
    verbose0( "--- end of GPUDD configuration ---" );
 }

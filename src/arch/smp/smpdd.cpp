@@ -29,7 +29,7 @@ using namespace nanos::ext;
 
 SMPDevice nanos::ext::SMP( "SMP" );
 
-size_t SMPDD::_stackSize = 16*1024;
+size_t SMPDD::_stackSize = 32*1024;
 
 /*!
   \brief Registers the Device's configuration options
@@ -48,7 +48,7 @@ void SMPDD::prepareConfig( Config &config )
    /*!
       Get the stack size for this device
    */
-   config.registerConfigOption ( "smp-stack-size", new Config::SizeVar( _stackSize ), "Defines SMP workdescriptor stack size" );
+   config.registerConfigOption ( "smp-stack-size", NEW Config::SizeVar( _stackSize ), "Defines SMP workdescriptor stack size" );
    config.registerArgOption ( "smp-stack-size", "smp-stack-size" );
    config.registerEnvOption ( "smp-stack-size", "NX_SMP_STACK_SIZE" );
 }
@@ -77,7 +77,7 @@ void SMPDD::lazyInit (WD &wd, bool isUserLevelThread, WD *previous)
 {
    if (isUserLevelThread) {
      if ( previous == NULL )
-       _stack = new intptr_t[_stackSize];
+       _stack = NEW intptr_t[_stackSize];
      else {
         SMPDD &oldDD = (SMPDD &) previous->getActiveDevice();
 

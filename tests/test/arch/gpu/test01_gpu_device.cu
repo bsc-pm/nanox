@@ -93,7 +93,7 @@ int main ( int argc, char **argv )
       args[i]->task = 0;
    }
 
-   nanos::WG *wg = nanos::myThread->getCurrentWD();
+   nanos::WG *wg = nanos::getMyThreadSafe()->getCurrentWD();
 
    // Execution of tasks: for every kind of task, create 100 times the number of GPUs, so that we
    // assume that each GPU will pick at least one task of each type.
@@ -227,7 +227,7 @@ int main ( int argc, char **argv )
 ///#pragma omp task inout (args)
 void test_init ( void * args )
 {
-   int id = ((nanos::ext::GPUThread *)nanos::myThread)->getGpuDevice();
+   int id = ((nanos::ext::GPUThread *)nanos::getMyThreadSafe())->getGpuDevice();
    
    test_args ** full_args = ( test_args ** ) args;
    test_args * targs = full_args[id];
@@ -257,7 +257,7 @@ void test_init ( void * args )
 ///#pragma omp task inout (args)
 void test_cleanup ( void * args )
 {
-   int id = ((nanos::ext::GPUThread *)nanos::myThread)->getGpuDevice();
+   int id = ((nanos::ext::GPUThread *)nanos::getMyThreadSafe())->getGpuDevice();
    
    test_args ** full_args = ( test_args ** ) args;
    test_args * targs = full_args[id];
@@ -281,7 +281,7 @@ void test_cleanup ( void * args )
 ///#pragma omp task inout (args)
 void test_host_to_device ( void * args )
 {
-   int id = ((nanos::ext::GPUThread *)nanos::myThread)->getGpuDevice();
+   int id = ((nanos::ext::GPUThread *)nanos::getMyThreadSafe())->getGpuDevice();
    
    test_args ** full_args = ( test_args ** ) args;
    test_args * targs = full_args[id];
@@ -291,7 +291,7 @@ void test_host_to_device ( void * args )
    
    targs->task++;
 
-   cudaStream_t inStream = ((nanos::ext::GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->getInTransferStream();
+   cudaStream_t inStream = ((nanos::ext::GPUProcessor *) getMyThreadSafe()->runningOn())->getGPUProcessorInfo()->getInTransferStream();
    
    int i;   
    size_t size = targs->n * sizeof ( int );
@@ -326,7 +326,7 @@ void test_host_to_device ( void * args )
 ///#pragma omp task inout (args)
 void test_device_to_device ( void * args )
 {
-   int id = ((nanos::ext::GPUThread *)nanos::myThread)->getGpuDevice();
+   int id = ((nanos::ext::GPUThread *)nanos::getMyThreadSafe())->getGpuDevice();
    
    test_args ** full_args = ( test_args ** ) args;
    test_args * targs = full_args[id];
@@ -336,7 +336,7 @@ void test_device_to_device ( void * args )
    
    targs->task++;
 
-   cudaStream_t inStream = ((nanos::ext::GPUProcessor *) myThread->runningOn())->getGPUProcessorInfo()->getInTransferStream();
+   cudaStream_t inStream = ((nanos::ext::GPUProcessor *) getMyThreadSafe()->runningOn())->getGPUProcessorInfo()->getInTransferStream();
    
    int i;   
    size_t size = targs->n * sizeof ( int );
@@ -371,7 +371,7 @@ void test_device_to_device ( void * args )
 ///#pragma omp task inout (args)
 void test_device_to_host ( void * args )
 {
-   int id = ((nanos::ext::GPUThread *)nanos::myThread)->getGpuDevice();
+   int id = ((nanos::ext::GPUThread *)nanos::getMyThreadSafe())->getGpuDevice();
    
    test_args ** full_args = ( test_args ** ) args;
    test_args * targs = full_args[id];
@@ -394,7 +394,7 @@ void test_device_to_host ( void * args )
    // As asynchronous copies involve the cache management, make always synchronous copy out's
    GPUDevice::copyOutSyncToHost( targs->Bh, targs->Bd, size );
 
-   ( ( GPUThread * ) myThread)->executePendingCopies();
+   ( ( GPUThread * ) getMyThreadSafe())->executePendingCopies();
 
    targs->err = 0;
    for ( i = 0; i < targs->n; i++ ) {

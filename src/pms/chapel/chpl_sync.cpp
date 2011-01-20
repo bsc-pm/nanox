@@ -42,7 +42,7 @@ void CHPL_MUTEX_INIT(chpl_mutex_t* mutex)
 
 chpl_mutex_t* CHPL_MUTEX_NEW(void)
 {
-   return (chpl_mutex_t*) new Lock();
+   return (chpl_mutex_t*) NEW Lock();
 }
 
 void CHPL_MUTEX_LOCK(chpl_mutex_t* mutex)
@@ -63,10 +63,10 @@ void CHPL_SYNC_INIT_AUX(chpl_sync_aux_t *s)
 {
    s->is_full = false;
 
-   s->empty = (void * )new MultipleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>( &s->is_full, false ) , 4);
-   s->full = (void *) new MultipleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>( &s->is_full, true ) , 4);
+   s->empty = (void * )NEW MultipleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>( &s->is_full, false ) , 4);
+   s->full = (void *) NEW MultipleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>( &s->is_full, true ) , 4);
 
-   s->lock = (void *) new Lock();
+   s->lock = (void *) NEW Lock();
 }
 
 void CHPL_SYNC_DESTROY_AUX(chpl_sync_aux_t *s)
@@ -148,7 +148,7 @@ void CHPL_SYNC_UNLOCK(chpl_sync_aux_t *s)
 void CHPL_SINGLE_INIT_AUX(chpl_single_aux_t *s)
 {
    s->is_full = false;
-   s->full = (void *) new SingleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>( &s->is_full, true ) );
+   s->full = (void *) NEW SingleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>( &s->is_full, true ) );
 }
 
 void CHPL_SINGLE_DESTROY_AUX(chpl_single_aux_t *s)

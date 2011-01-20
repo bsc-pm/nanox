@@ -42,12 +42,12 @@ typedef struct {
 
 void hello_world ( void *args )
 {
-   WD *wd = myThread->getCurrentWD();
+   WD *wd = getMyThreadSafe()->getCurrentWD();
    args_t *hargs = ( args_t * ) args;
 
    args_t localArgs;
    CopyData* copies = wd->getCopies();
-   ProcessingElement *pe = myThread->runningOn();
+   ProcessingElement *pe = getMyThreadSafe()->runningOn();
 
    if ( !copies[0].isPrivate() ) {
       std::cout << "Error, CopyData was supposed to be private.   FAIL" << std::endl;
@@ -100,7 +100,7 @@ int main ( int argc, char **argv )
                       CopyData( (uint64_t)data->b, NANOS_SHARED, true, true, sizeof(char)*5 ) };
    WD * wd = new WD( new SMPDD( hello_world ), sizeof( args_t ), __alignof__(args_t), data, 2, cd );
 
-   WG *wg = myThread->getCurrentWD();
+   WG *wg = getMyThreadSafe()->getCurrentWD();
 
    wg->addWork( *wd );
 

@@ -17,7 +17,7 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = performance debug instrumentation
+SUBDIRS = performance debug instrumentation instrumentation-debug
 
 include $(top_srcdir)/src/common.am
 
@@ -30,6 +30,8 @@ EXTRA_DIST= \
 	ia64/stack.s \
 	ppc32/stack.cpp \
 	ppc32/stack.s \
+	ppc64/stack.cpp \
+	ppc64/stack.s \
         smp_ult.hpp \
 	$(END)
 

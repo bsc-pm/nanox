@@ -87,7 +87,7 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
                                void ** data, nanos_wg_t uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies )
 {
    /* FIXME (#104) These variables have to be received as a parameters */
-   const int data_align = 8;
+   const int data_align = 16;
   
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",NANOS_CREATION) );
 
@@ -115,8 +115,8 @@ nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_
                                nanos_slicer_data_t * slicer_data, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies )
 {
    /* FIXME (#104) These variables have to be received as a parameters */
-   const int outline_data_align = 8;
-   const int slicer_data_align = 8;
+   const int outline_data_align = 16;
+   const int slicer_data_align = 16;
   
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",NANOS_CREATION) );
 
@@ -200,7 +200,7 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
                                       size_t num_copies, nanos_copy_data_t *copies )
 {
    /* FIXME (#104) These variables have to be received as a parameters */
-   const int data_align = 8;
+   const int data_align = 16;
   
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","create_wd_and_run", NANOS_CREATION) );
 
