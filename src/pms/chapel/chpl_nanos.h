@@ -21,10 +21,6 @@
 #ifndef NANOS_CHPL_H
 #define NANOS_CHPL_H
 
-#ifndef CHPL_TASKS
-#define CHPL_TASKS nanox
-#endif
-
 #include <stdbool.h>
 
 #ifdef __cplusplus
@@ -44,13 +40,7 @@ typedef struct {
    void *lock;
 } chpl_sync_aux_t;
 
-typedef struct {
-   bool is_full;
-   void *full;
-} chpl_single_aux_t;
-
 #include <chpltypes.h>
-#include <chpltasks_func_names.h>
 #include <chpltasks.h>
 
 #ifdef __cplusplus
