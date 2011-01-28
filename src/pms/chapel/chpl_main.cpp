@@ -36,6 +36,7 @@
 
 extern chpl_fn_p chpl_ftable[];
 
+static uint64_t taskCallStackSize;
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -56,7 +57,7 @@ namespace nanos
 //
 // interface function with begin-statement
 //
-void CHPL_BEGIN(chpl_fn_p fp,
+void chpl_begin(chpl_fn_p fp,
                 void* a,
                 chpl_bool ignore_serial,  // always add task to pool
                 chpl_bool serial_state,
@@ -70,12 +71,18 @@ void CHPL_BEGIN(chpl_fn_p fp,
 
 // Tasks
 
-void CHPL_TASKING_INIT() 
+void chpl_tasking_init(int32_t maxThreadsPerLocale, uint64_t callStackSize) 
 {
    sys.setInitialMode( System::POOL );
    sys.setUntieMaster(true);
    sys.setNumPEs(maxThreadsPerLocale);
    sys.start();
+
+   //
+   // TODO: Should verify that callStackSize is a reasonable value and
+   // use it to set Nanos++'s task callstack size.
+   //
+   taskCallStackSize = callStackSize;
 
 /*  tp = chpl_alloc(sizeof(thread_private_data_t), CHPL_RT_MD_THREAD_PRIVATE_DATA, 0, 0);
   threadlayer_set_thread_private_data(tp);
@@ -83,94 +90,110 @@ void CHPL_TASKING_INIT()
 }
 
 
-void CHPL_TASKING_EXIT()
+void chpl_tasking_call_main(void (*chpl_main)(void)) {
+  chpl_main();
+}
+
+void chpl_tasking_exit()
 {
    sys.finish();
 }
 
-void CHPL_ADD_TO_TASK_LIST(chpl_fn_int_t fid, void* arg,
+void chpl_add_to_task_list(chpl_fn_int_t fid, void* arg,
                            chpl_task_list_p *task_list,
                            int32_t task_list_locale,
                            chpl_bool call_chpl_begin,
                            int lineno, chpl_string filename) {
     chpl_fn_p fp = chpl_ftable[fid];
-    CHPL_BEGIN(fp, arg, false, false, NULL);
+    chpl_begin(fp, arg, false, false, NULL);
 }
 
-void CHPL_PROCESS_TASK_LIST(chpl_task_list_p task_list)
+void chpl_process_task_list(chpl_task_list_p task_list)
 {
 }
 
-void CHPL_EXECUTE_TASKS_IN_LIST(chpl_task_list_p task_list)
+void chpl_execute_tasks_in_list(chpl_task_list_p task_list)
 {
 }
 
-void CHPL_FREE_TASK_LIST(chpl_task_list_p task_list)
+void chpl_free_task_list(chpl_task_list_p task_list)
 {
 }
 
 //TODO
-void CHPL_TASK_SLEEP(int secs)
+void chpl_task_sleep(int secs)
 {
   sleep(secs);
 }
 
 //TODO
-chpl_bool CHPL_GET_SERIAL(void)
+chpl_bool chpl_get_serial(void)
 {
   return 0;
 }
 
 //TODO
-void CHPL_SET_SERIAL(chpl_bool state)
+void chpl_set_serial(chpl_bool state)
 {
+}
+
+uint64_t chpl_task_callstacksize(void) {
+  return taskCallStackSize;
 }
 
 
 // Task stats routines
 
-uint32_t CHPL_NUMQUEUEDTASKS(void)
+uint32_t chpl_numQueuedTasks(void)
 {
    return sys.getReadyNum();
 }
 
-uint32_t CHPL_NUMRUNNINGTASKS(void)
+uint32_t chpl_numRunningTasks(void)
 {
   return sys.getRunningTasks();
 }
 
-int32_t  CHPL_NUMBLOCKEDTASKS(void)
+int32_t  chpl_numBlockedTasks(void)
 {
   return sys.getTaskNum() - sys.getReadyNum() -  sys.getRunningTasks();
 }
 
 //TODO
-chpl_taskID_t CHPL_TASK_ID(void)
+chpl_taskID_t chpl_task_id(void)
 {
   return myThread->getCurrentWD()->getId();
 }
 
 // Threads stat routines
 
-int32_t  CHPL_THREADS_GETMAXTHREADS(void)
+int32_t  chpl_threads_getMaxThreads(void)
 {
    // TODO: Alex
    return 0;
 }
 
-int32_t  CHPL_THREADS_MAXTHREADSLIMIT(void)
+int32_t  chpl_threads_maxThreadsLimit(void)
 {
    // TODO: Alex
    return 0;
 }
 
-uint32_t CHPL_NUMTHREADS(void)
+uint32_t chpl_numThreads(void)
 {
    return sys.getNumWorkers();
 }
 
-uint32_t CHPL_NUMIDLETHREADS(void)
+uint32_t chpl_numIdleThreads(void)
 {
     return sys.getIdleNum();
 }
 
+void chpl_per_pthread_tasking_init(void) {
+  // TODO: This function is called for any pthreads that are created
+  // outside the tasking layer -- for example, a progress thread used
+  // to ensure progress in a one-sided communication layer that needs
+  // software support.  If anything needs to be done with these
+  // threads to help them coexist with those owned by the tasking
+  // layer, it should be done here.
+}

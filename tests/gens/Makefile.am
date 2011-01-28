@@ -15,14 +15,16 @@ api-generator: api-generator.in
 	tmp_compile_versions=`cat $(abs_top_builddir)/src/plugins-list | cut -d'=' -f1 | sed -e :a -e '$!N; s/\n/ /; ta'` ;\
 	tmp_srcdir=$(abs_top_srcdir) ; \
 	tmp_builddir=$(abs_top_builddir) ; \
-        tmp_perfo_cflags='"$(perfo_cflags)"' ; \
-        tmp_debug_cflags='"$(debug_cflags)"' ; \
-        tmp_instr_cflags='"$(instr_cflags)"' ; \
-        tmp_instrdebug_cflags='"$(instrdebug_cflags)"' ; \
-        tmp_perfo_cxxflags='"$(global_perfo_cxxflags)"' ; \
-        tmp_debug_cxxflags='"$(global_debug_cxxflags)"' ; \
-        tmp_instr_cxxflags='"$(global_instr_cxxflags)"' ; \
-        tmp_instrdebug_cxxflags='"$(global_instrdebug_cxxflags)"' ; \
+	tmp_perfo_cflags='"$(perfo_cflags)"' ; \
+	tmp_debug_cflags='"$(debug_cflags)"' ; \
+	tmp_instr_cflags='"$(instr_cflags)"' ; \
+	tmp_instrdebug_cflags='"$(instrdebug_cflags)"' ; \
+	tmp_perfo_cxxflags='"$(global_perfo_cxxflags)"' ; \
+	tmp_debug_cxxflags='"$(global_debug_cxxflags)"' ; \
+	tmp_instr_cxxflags='"$(global_instr_cxxflags)"' ; \
+	tmp_instrdebug_cxxflags='"$(global_instrdebug_cxxflags)"' ; \
+	tmp_cc='"$(CC)"' ; \
+	tmp_cxx='"$(CXX)"' ; \
 	sed \
 		-e's,@SRCDIR\@,'"$$tmp_srcdir"',g' \
 		-e's,@BUILDDIR\@,'"$$tmp_builddir"',g' \
@@ -39,6 +41,8 @@ api-generator: api-generator.in
 		-e's,@DEBUG_CXXFLAGS\@,'"$$tmp_debug_cxxflags"',g' \
 		-e's,@INSTR_CXXFLAGS\@,'"$$tmp_instr_cxxflags"',g' \
 		-e's,@INSTRDEBUG_CXXFLAGS\@,'"$$tmp_instrdebug_cxxflags"',g' \
+		-e's,@CONFIG_CC\@,'"$$tmp_cc"',g' \
+		-e's,@CONFIG_CXX\@,'"$$tmp_cxx"',g' \
 		$(srcdir)/api-generator.in > api-generator.tmp
 	mv api-generator.tmp api-generator
 	chmod 755 api-generator
@@ -52,14 +56,16 @@ core-generator: core-generator.in
 	tmp_compile_versions=`cat $(abs_top_builddir)/src/plugins-list | cut -d'=' -f1 | sed -e :a -e '$!N; s/\n/ /; ta'` ;\
 	tmp_srcdir=$(abs_top_srcdir) ; \
 	tmp_builddir=$(abs_top_builddir) ; \
-        tmp_perfo_cflags='"$(perfo_cflags)"' ; \
-        tmp_debug_cflags='"$(debug_cflags)"' ; \
-        tmp_instr_cflags='"$(instr_cflags)"' ; \
-        tmp_instrdebug_cflags='"$(instrdebug_cflags)"' ; \
-        tmp_perfo_cxxflags='"$(global_perfo_cxxflags)"' ; \
-        tmp_debug_cxxflags='"$(global_debug_cxxflags)"' ; \
-        tmp_instr_cxxflags='"$(global_instr_cxxflags)"' ; \
-        tmp_instrdebug_cxxflags='"$(global_instrdebug_cxxflags)"' ; \
+	tmp_perfo_cflags='"$(perfo_cflags)"' ; \
+	tmp_debug_cflags='"$(debug_cflags)"' ; \
+	tmp_instr_cflags='"$(instr_cflags)"' ; \
+	tmp_instrdebug_cflags='"$(instrdebug_cflags)"' ; \
+	tmp_perfo_cxxflags='"$(global_perfo_cxxflags)"' ; \
+	tmp_debug_cxxflags='"$(global_debug_cxxflags)"' ; \
+	tmp_instr_cxxflags='"$(global_instr_cxxflags)"' ; \
+	tmp_instrdebug_cxxflags='"$(global_instrdebug_cxxflags)"' ; \
+	tmp_cc='"$(CC)"' ; \
+	tmp_cxx='"$(CXX)"' ; \
 	sed \
 		-e's,@SRCDIR\@,'"$$tmp_srcdir"',g' \
 		-e's,@BUILDDIR\@,'"$$tmp_builddir"',g' \
@@ -76,6 +82,8 @@ core-generator: core-generator.in
 		-e's,@DEBUG_CXXFLAGS\@,'"$$tmp_debug_cxxflags"',g' \
 		-e's,@INSTR_CXXFLAGS\@,'"$$tmp_instr_cxxflags"',g' \
 		-e's,@INSTRDEBUG_CXXFLAGS\@,'"$$tmp_instrdebug_cxxflags"',g' \
+		-e's,@CONFIG_CC\@,'"$$tmp_cc"',g' \
+		-e's,@CONFIG_CXX\@,'"$$tmp_cxx"',g' \
 		$(srcdir)/core-generator.in > core-generator.tmp
 	mv core-generator.tmp core-generator
 	chmod 755 core-generator
@@ -89,14 +97,16 @@ gpu-generator: gpu-generator.in
 	tmp_compile_versions=`cat $(abs_top_builddir)/src/plugins-list | cut -d'=' -f1 | sed -e :a -e '$!N; s/\n/ /; ta'` ;\
 	tmp_srcdir=$(abs_top_srcdir) ; \
 	tmp_builddir=$(abs_top_builddir) ; \
-        tmp_perfo_cflags='"$(perfo_cflags)"' ; \
-        tmp_debug_cflags='"$(debug_cflags)"' ; \
-        tmp_instr_cflags='"$(instr_cflags)"' ; \
-        tmp_instrdebug_cflags='"$(instrdebug_cflags)"' ; \
-        tmp_perfo_cxxflags='"$(global_perfo_cxxflags)"' ; \
-        tmp_debug_cxxflags='"$(global_debug_cxxflags)"' ; \
-        tmp_instr_cxxflags='"$(global_instr_cxxflags)"' ; \
-        tmp_instrdebug_cxxflags='"$(global_instrdebug_cxxflags)"' ; \
+	tmp_perfo_cflags='"$(perfo_cflags)"' ; \
+	tmp_debug_cflags='"$(debug_cflags)"' ; \
+	tmp_instr_cflags='"$(instr_cflags)"' ; \
+	tmp_instrdebug_cflags='"$(instrdebug_cflags)"' ; \
+	tmp_perfo_cxxflags='"$(global_perfo_cxxflags)"' ; \
+	tmp_debug_cxxflags='"$(global_debug_cxxflags)"' ; \
+	tmp_instr_cxxflags='"$(global_instr_cxxflags)"' ; \
+	tmp_instrdebug_cxxflags='"$(global_instrdebug_cxxflags)"' ; \
+	tmp_cc='"$(CC)"' ; \
+	tmp_cxx='"$(CXX)"' ; \
 	sed \
 		-e's,@SRCDIR\@,'"$$tmp_srcdir"',g' \
 		-e's,@BUILDDIR\@,'"$$tmp_builddir"',g' \
@@ -113,6 +123,8 @@ gpu-generator: gpu-generator.in
 		-e's,@DEBUG_CXXFLAGS\@,'"$$tmp_debug_cxxflags"',g' \
 		-e's,@INSTR_CXXFLAGS\@,'"$$tmp_instr_cxxflags"',g' \
 		-e's,@INSTRDEBUG_CXXFLAGS\@,'"$$tmp_instrdebug_cxxflags"',g' \
+		-e's,@CONFIG_CC\@,'"$$tmp_cc"',g' \
+		-e's,@CONFIG_CXX\@,'"$$tmp_cxx"',g' \
 		$(srcdir)/gpu-generator.in > gpu-generator.tmp
 	mv gpu-generator.tmp gpu-generator
 	chmod 755 gpu-generator
@@ -126,14 +138,16 @@ mixed-generator: mixed-generator.in
 	tmp_compile_versions=`cat $(abs_top_builddir)/src/plugins-list | cut -d'=' -f1 | sed -e :a -e '$!N; s/\n/ /; ta'` ;\
 	tmp_srcdir=$(abs_top_srcdir) ; \
 	tmp_builddir=$(abs_top_builddir) ; \
-        tmp_perfo_cflags='"$(perfo_cflags)"' ; \
-        tmp_debug_cflags='"$(debug_cflags)"' ; \
-        tmp_instr_cflags='"$(instr_cflags)"' ; \
-        tmp_instrdebug_cflags='"$(instrdebug_cflags)"' ; \
-        tmp_perfo_cxxflags='"$(global_perfo_cxxflags)"' ; \
-        tmp_debug_cxxflags='"$(global_debug_cxxflags)"' ; \
-        tmp_instr_cxxflags='"$(global_instr_cxxflags)"' ; \
-        tmp_instrdebug_cxxflags='"$(global_instrdebug_cxxflags)"' ; \
+	tmp_perfo_cflags='"$(perfo_cflags)"' ; \
+	tmp_debug_cflags='"$(debug_cflags)"' ; \
+	tmp_instr_cflags='"$(instr_cflags)"' ; \
+	tmp_instrdebug_cflags='"$(instrdebug_cflags)"' ; \
+	tmp_perfo_cxxflags='"$(global_perfo_cxxflags)"' ; \
+	tmp_debug_cxxflags='"$(global_debug_cxxflags)"' ; \
+	tmp_instr_cxxflags='"$(global_instr_cxxflags)"' ; \
+	tmp_instrdebug_cxxflags='"$(global_instrdebug_cxxflags)"' ; \
+	tmp_cc='"$(CC)"' ; \
+	tmp_cxx='"$(CXX)"' ; \
 	sed \
 		-e's,@SRCDIR\@,'"$$tmp_srcdir"',g' \
 		-e's,@BUILDDIR\@,'"$$tmp_builddir"',g' \
@@ -150,6 +164,8 @@ mixed-generator: mixed-generator.in
 		-e's,@DEBUG_CXXFLAGS\@,'"$$tmp_debug_cxxflags"',g' \
 		-e's,@INSTR_CXXFLAGS\@,'"$$tmp_instr_cxxflags"',g' \
 		-e's,@INSTRDEBUG_CXXFLAGS\@,'"$$tmp_instrdebug_cxxflags"',g' \
+		-e's,@CONFIG_CC\@,'"$$tmp_cc"',g' \
+		-e's,@CONFIG_CXX\@,'"$$tmp_cxx"',g' \
 		$(srcdir)/mixed-generator.in > mixed-generator.tmp
 	mv mixed-generator.tmp mixed-generator
 	chmod 755 mixed-generator
@@ -163,14 +179,16 @@ nanox-creation-generator: nanox-creation-generator.in
 	tmp_compile_versions=`cat $(abs_top_builddir)/src/plugins-list | cut -d'=' -f1 | sed -e :a -e '$!N; s/\n/ /; ta'` ;\
 	tmp_srcdir=$(abs_top_srcdir) ; \
 	tmp_builddir=$(abs_top_builddir) ; \
-        tmp_perfo_cflags='"$(perfo_cflags)"' ; \
-        tmp_debug_cflags='"$(debug_cflags)"' ; \
-        tmp_instr_cflags='"$(instr_cflags)"' ; \
-        tmp_instrdebug_cflags='"$(instrdebug_cflags)"' ; \
-        tmp_perfo_cxxflags='"$(global_perfo_cxxflags)"' ; \
-        tmp_debug_cxxflags='"$(global_debug_cxxflags)"' ; \
-        tmp_instr_cxxflags='"$(global_instr_cxxflags)"' ; \
-        tmp_instrdebug_cxxflags='"$(global_instrdebug_cxxflags)"' ; \
+	tmp_perfo_cflags='"$(perfo_cflags)"' ; \
+	tmp_debug_cflags='"$(debug_cflags)"' ; \
+	tmp_instr_cflags='"$(instr_cflags)"' ; \
+	tmp_instrdebug_cflags='"$(instrdebug_cflags)"' ; \
+	tmp_perfo_cxxflags='"$(global_perfo_cxxflags)"' ; \
+	tmp_debug_cxxflags='"$(global_debug_cxxflags)"' ; \
+	tmp_instr_cxxflags='"$(global_instr_cxxflags)"' ; \
+	tmp_instrdebug_cxxflags='"$(global_instrdebug_cxxflags)"' ; \
+	tmp_cc='"$(CC)"' ; \
+	tmp_cxx='"$(CXX)"' ; \
 	sed \
 		-e's,@SRCDIR\@,'"$$tmp_srcdir"',g' \
 		-e's,@BUILDDIR\@,'"$$tmp_builddir"',g' \
@@ -187,6 +205,8 @@ nanox-creation-generator: nanox-creation-generator.in
 		-e's,@DEBUG_CXXFLAGS\@,'"$$tmp_debug_cxxflags"',g' \
 		-e's,@INSTR_CXXFLAGS\@,'"$$tmp_instr_cxxflags"',g' \
 		-e's,@INSTRDEBUG_CXXFLAGS\@,'"$$tmp_instrdebug_cxxflags"',g' \
+		-e's,@CONFIG_CC\@,'"$$tmp_cc"',g' \
+		-e's,@CONFIG_CXX\@,'"$$tmp_cxx"',g' \
 		$(srcdir)/nanox-creation-generator.in > nanox-creation-generator.tmp
 	mv nanox-creation-generator.tmp nanox-creation-generator
 	chmod 755 nanox-creation-generator
@@ -200,14 +220,16 @@ api-omp-generator: api-omp-generator.in
 	tmp_compile_versions=`cat $(abs_top_builddir)/src/plugins-list | cut -d'=' -f1 | sed -e :a -e '$!N; s/\n/ /; ta'` ;\
 	tmp_srcdir=$(abs_top_srcdir) ; \
 	tmp_builddir=$(abs_top_builddir) ; \
-        tmp_perfo_cflags='"$(perfo_cflags)"' ; \
-        tmp_debug_cflags='"$(debug_cflags)"' ; \
-        tmp_instr_cflags='"$(instr_cflags)"' ; \
-        tmp_instrdebug_cflags='"$(instrdebug_cflags)"' ; \
-        tmp_perfo_cxxflags='"$(global_perfo_cxxflags)"' ; \
-        tmp_debug_cxxflags='"$(global_debug_cxxflags)"' ; \
-        tmp_instr_cxxflags='"$(global_instr_cxxflags)"' ; \
-        tmp_instrdebug_cxxflags='"$(global_instrdebug_cxxflags)"' ; \
+	tmp_perfo_cflags='"$(perfo_cflags)"' ; \
+	tmp_debug_cflags='"$(debug_cflags)"' ; \
+	tmp_instr_cflags='"$(instr_cflags)"' ; \
+	tmp_instrdebug_cflags='"$(instrdebug_cflags)"' ; \
+	tmp_perfo_cxxflags='"$(global_perfo_cxxflags)"' ; \
+	tmp_debug_cxxflags='"$(global_debug_cxxflags)"' ; \
+	tmp_instr_cxxflags='"$(global_instr_cxxflags)"' ; \
+	tmp_instrdebug_cxxflags='"$(global_instrdebug_cxxflags)"' ; \
+	tmp_cc='"$(CC)"' ; \
+	tmp_cxx='"$(CXX)"' ; \
 	sed \
 		-e's,@SRCDIR\@,'"$$tmp_srcdir"',g' \
 		-e's,@BUILDDIR\@,'"$$tmp_builddir"',g' \
@@ -224,6 +246,8 @@ api-omp-generator: api-omp-generator.in
 		-e's,@DEBUG_CXXFLAGS\@,'"$$tmp_debug_cxxflags"',g' \
 		-e's,@INSTR_CXXFLAGS\@,'"$$tmp_instr_cxxflags"',g' \
 		-e's,@INSTRDEBUG_CXXFLAGS\@,'"$$tmp_instrdebug_cxxflags"',g' \
+		-e's,@CONFIG_CC\@,'"$$tmp_cc"',g' \
+		-e's,@CONFIG_CXX\@,'"$$tmp_cxx"',g' \
 		$(srcdir)/api-omp-generator.in > api-omp-generator.tmp
 	mv api-omp-generator.tmp api-omp-generator
 	chmod 755 api-omp-generator
