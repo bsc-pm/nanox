@@ -22,7 +22,7 @@ include $(top_srcdir)/src/common.am
 
 if INSTRUMENTATION_VERSION
 noinst_LTLIBRARIES = libgpu.la
-instrumentation_LTLIBRARIES = libnanox-pe-gpu.la
+instrumentation_LTLIBRARIES = libnanox-pe-gpu.la libnanox-gpu-cublas.la
 
 nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags) $(gpu_includes)
 
@@ -33,5 +33,9 @@ libgpu_la_SOURCES=$(gpu_sources)
 libnanox_pe_gpu_la_CXXFLAGS=$(nanos_instr_cxxflags)
 libnanox_pe_gpu_la_LDFLAGS=$(ld_plugin_flags) $(gpu_ldflags)
 libnanox_pe_gpu_la_SOURCES=$(pe_gpu_sources)
+
+libnanox_gpu_cublas_la_CXXFLAGS=$(nanos_instr_cxxflags)
+libnanox_gpu_cublas_la_LDFLAGS=$(ld_plugin_flags) $(gpu_cublas_ldflags)
+libnanox_gpu_cublas_la_SOURCES=$(gpu_cublas_sources)
 endif
 

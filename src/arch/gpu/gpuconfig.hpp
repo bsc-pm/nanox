@@ -57,6 +57,7 @@ namespace ext
          static transfer_mode _transferMode; //! Data transfer's mode (synchronous / asynchronous, ...)
          static size_t        _maxGPUMemory; //! Maximum amount of memory for each GPU to use
          static bool          _gpuWarmup; //! Enable / disable driver warmup (during runtime startup)
+         static bool          _initCublas; //! Init CUBLAS library during runtime startup
          static void *        _gpusProperties; //! Array of structs of cudaDeviceProp
 
          /*! Parses the GPU user options */
