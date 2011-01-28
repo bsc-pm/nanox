@@ -30,6 +30,9 @@ common_includes+="
 
 compile_versions="@COMPILE_VERSIONS@"
 
+test_CC=@CONFIG_CC@
+test_CXX=@CONFIG_CXX@
+
 test_CFLAGS="\$common_includes"
 test_CXXFLAGS="\$common_includes"
 
