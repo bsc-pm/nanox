@@ -27,6 +27,7 @@ instrdebug_LTLIBRARIES = \
 	libnanox-sched-dbf.la \
  	libnanox-sched-cilk.la \
  	libnanox-sched-wf.la \
+ 	libnanox-sched-cache.la \
 	$(END)
 
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instr_cxxflags)
@@ -50,5 +51,9 @@ libnanox_sched_wf_la_SOURCES = $(wf_sources)
 libnanox_sched_cilk_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
 libnanox_sched_cilk_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_sched_cilk_la_SOURCES = $(cilk_sources)
+ 
+libnanox_sched_cache_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
+libnanox_sched_cache_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_sched_cache_la_SOURCES = $(cache_sources)
 endif
 

@@ -70,6 +70,7 @@ common_sources=\
 	$(top_srcdir)/src/core/synchronizedcondition.hpp \
         $(top_srcdir)/src/core/directory_decl.hpp \
         $(top_srcdir)/src/core/directory.hpp \
+        $(top_srcdir)/src/core/directory.cpp \
 	$(top_srcdir)/src/core/pminterface_decl.hpp  \
 	$(top_srcdir)/src/core/basethread_decl.hpp \
 	$(END)

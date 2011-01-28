@@ -94,6 +94,8 @@ namespace ext
          virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
 
          void synchronize( Directory& dir, CopyDescriptor &copy );
+
+         unsigned int getMemorySpaceId() const { return _cache.getId(); }
 #endif
    };
 

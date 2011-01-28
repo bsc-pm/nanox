@@ -24,6 +24,7 @@
 #include "cache_fwd.hpp"
 #include "hashmap_decl.hpp"
 #include "atomic.hpp"
+#include "cache_map_decl.hpp"
 
 namespace nanos
 {
@@ -94,16 +95,18 @@ namespace nanos
 
          Lock _entryLock;           /**< Lock for atomic operations in the directory (entry insertion) */
          Atomic<bool> _invalidated; /**< Invalidated flag*/
+
+         CacheAccessMap _cacheAccesses;
       private:
 
       public:
          /*! \brief DirectoryEntry default constructor
           */
-         DirectoryEntry() : Entry(), _owner( NULL ), _entryLock(), _invalidated( false ) { }
+         DirectoryEntry();
 
          /*! \brief DirectoryEntry copy constructor
           */
-         DirectoryEntry ( const DirectoryEntry &de) : Entry( de ), _owner( de._owner ), _entryLock(), _invalidated( false ) { }
+         DirectoryEntry ( const DirectoryEntry &de) : Entry( de ), _owner( de._owner ), _entryLock(), _invalidated( false ), _cacheAccesses( de._cacheAccesses ) { }
 
          /*! \brief DirectoryEntry copy assignment operator
           */
@@ -111,8 +114,8 @@ namespace nanos
 
          /*! \brief DirectoryEntry constructor 
           */
-         DirectoryEntry( uint64_t tag, unsigned int version, Cache *c )
-            : Entry( tag, version ), _owner( c ), _entryLock(), _invalidated( false ) { }
+         DirectoryEntry( uint64_t tag, unsigned int version, Cache *c, unsigned int cacheMapSize )
+            : Entry( tag, version ), _owner( c ), _entryLock(), _invalidated( false ), _cacheAccesses( cacheMapSize ) { }
 
          /*! \brief DirectoryEntry destructor
           */
@@ -143,6 +146,15 @@ namespace nanos
          */
          bool trySetInvalidated();
 
+        /*! \brief add an acces to this entry for the cache 'cache'
+         */
+         void addAccess( unsigned int cacheId );
+
+        /*! \brief remove an acces to this entry for the cache 'cache'
+         */
+         void removeAccess( unsigned int cacheId );
+
+         unsigned int getAccess( unsigned int cacheId );
    };
 
   /*! \class Directory
@@ -154,6 +166,7 @@ namespace nanos
          typedef HashMap<uint64_t, DirectoryEntry> DirectoryMap; /**< Directorie's HashMap*/
          DirectoryMap _directory; /**< The map will store the entries indexed by they tag */
          Directory* _parent; /**< Parent directory (following the WD's hierarchy */
+         unsigned int _cacheMapSize;
 
       private:
 
@@ -169,7 +182,7 @@ namespace nanos
 
          /*! \brief Directory default constructor
           */
-         Directory() : _directory(), _parent(NULL) { }
+         Directory();
 
          /*! \brief Directory destructor
           */
@@ -178,6 +191,10 @@ namespace nanos
         /*! \brief Set the parent Directory to 'parent'
          */
          void setParent( Directory *parent );
+
+        /*! \brief Returns the cache map size
+         */
+         unsigned int getCacheMapSize();
 
         /*! \brief Insert an entry into the directory. Returns a reference to the inserted entry
          *  \param tag Identifier key of the entry
@@ -193,9 +210,13 @@ namespace nanos
          */
          DirectoryEntry& newEntry( uint64_t tag, unsigned int version, Cache* owner );
 
-        /*! \brief returns the entry identified by 'tag' or NULL if it was not found
+        /*! \brief returns the entry identified by 'tag' or creates it empty if it was not found
          */
          DirectoryEntry* getEntry( uint64_t tag );
+
+        /*! \brief returns the entry identified by 'tag' or NULL if it was not found
+         */
+         DirectoryEntry* findEntry( uint64_t tag );
 
         /*! \brief Set the directory version to the current's one incremented by one for the entry with key 'tag'
          *  \param tag Identifier key of the entry to update
