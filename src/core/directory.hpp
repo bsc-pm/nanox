@@ -23,6 +23,7 @@
 #include "directory_decl.hpp"
 #include "hashmap.hpp"
 #include "cache_decl.hpp"
+#include "cache_map.hpp"
 
 using namespace nanos;
 
