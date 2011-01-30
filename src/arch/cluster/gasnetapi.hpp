@@ -52,6 +52,7 @@ namespace ext {
          void getNotify( unsigned int node, uint64_t remoteAddr );
          
          void sendMyHostName( unsigned int dest );
+void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, size_t len );
    };
 }
 }

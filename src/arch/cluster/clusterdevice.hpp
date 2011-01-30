@@ -21,6 +21,7 @@
 #define _CLUSTER_DEVICE
 
 #include "workdescriptor_decl.hpp"
+#include "copydescriptor_decl.hpp"
 
 namespace nanos
 {
@@ -52,8 +53,9 @@ namespace nanos
          static void free( void *address, ProcessingElement *pe );
          static void * realloc( void *address, size_t newSize, size_t oldSize, ProcessingElement *pe );
 
-         static bool copyIn( void *localDst, uint64_t remoteSrc, size_t size, ProcessingElement *pe );
-         static bool copyOut( uint64_t remoteDst, void *localSrc, size_t size, ProcessingElement *pe );
+         static bool copyDevToDev( void* addrSrc, size_t size, ProcessingElement *pe, ProcessingElement *peDst, void *addrDst);
+         static bool copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, ProcessingElement *pe );
+         static bool copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size, ProcessingElement *pe );
 
          static void copyLocal( void *dst, void *src, size_t size, ProcessingElement *pe )
          {

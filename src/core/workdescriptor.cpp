@@ -46,17 +46,21 @@ void WorkDescriptor::init ()
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdCreate( this ) );
 
    if ( getNumCopies() > 0 )
-   {
       pe->copyDataIn( *this );
-   }
 
 }
 
 void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
 {
+   BaseThread *myThd = getMyThreadSafe();
+   ProcessingElement *pe = getPe();
    _activeDevice->lazyInit(*this,isUserLevelThread,previous);
    
-   ProcessingElement *pe = myThread->runningOn();
+   //ProcessingElement *pe = myThread->runningOn();
+   if (pe == NULL) {
+      pe = myThd->runningOn();
+      setPe( pe );
+   }
 
    if ( getNumCopies() > 0 )
       pe->waitInputs( *this );

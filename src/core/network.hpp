@@ -69,6 +69,7 @@ namespace nanos {
          void setMasterHostname( char *name );
          //const std::string & getMasterHostname( void ) const;
          const char * getMasterHostname( void ) const;
+void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, size_t len );
    };
 }
 

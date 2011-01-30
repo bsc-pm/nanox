@@ -23,6 +23,7 @@
 #include "os.hpp"
 #include "clusterinfo.hpp"
 #include "instrumentation.hpp"
+#include <list>
 
 #include <gasnet.h>
 
@@ -57,6 +58,28 @@ static void inspect_environ(void)
 	fprintf(stderr, "+-------------- Environ End = %p ---------------\n", &environ[i]);
 }
 #endif
+
+struct put_req_desc {
+   unsigned int dest;
+   void *origAddr;
+   void *destAddr;
+   size_t len;
+};
+
+static std::list<struct put_req_desc * > put_req_vector;
+Lock put_req_vector_lock;
+
+void enqueue_put_request( unsigned int dest, void *origAddr, void *destAddr, size_t len)
+{
+   struct put_req_desc *prd = new struct put_req_desc();
+   //fprintf(stderr, "enqueue req to node %d\n", dest);
+   prd->dest = dest;
+   prd->origAddr = origAddr;
+   prd->destAddr = destAddr;
+   prd->len = len;
+
+   put_req_vector.push_back( prd );
+}
 
 struct work_wrapper_args
 {
@@ -137,7 +160,7 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize, void *workL
     }
 
     SMPDD * dd = new SMPDD ( ( SMPDD::work_fct ) wk_wrapper );
-    WD *wd = new WD( dd, sizeof(struct work_wrapper_args), warg, numCopies, newCopies );
+    WD *wd = new WD( dd, sizeof(struct work_wrapper_args), 1, warg, numCopies, newCopies );
     wd->setId( wdId );
 
     //fprintf(stderr, "WD %p , args->arg %p size %d args->id %d\n", wd, warg->arg, arg0, warg->id );
@@ -380,6 +403,26 @@ static void am_flash_put( gasnet_token_t token,
    NANOS_INSTRUMENT ( instr->raiseClosePtPEvent( NANOS_XFER_PUT, id, sizeKey, xferSize, src_node ); )
 }
 
+static void am_request_put( gasnet_token_t token,
+      gasnet_handlerarg_t destAddrLo,
+      gasnet_handlerarg_t destAddrHi,
+      gasnet_handlerarg_t origAddrLo,
+      gasnet_handlerarg_t origAddrHi,
+      gasnet_handlerarg_t len,
+      gasnet_handlerarg_t dst )
+{
+   gasnet_node_t src_node;
+   void *origAddr = ( void * ) MERGE_ARG( origAddrHi, origAddrLo );
+   void *destAddr = ( void * ) MERGE_ARG( destAddrHi, destAddrLo );
+
+   if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
+   {
+       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
+   }
+   //fprintf(stderr, "req put from %d to send stuff to %d, addr %p to %p\n", src_node, dst, origAddr, destAddr);
+
+   enqueue_put_request( dst, origAddr, destAddr, len );
+}
 
 void GASNetAPI::initialize ( Network *net )
 {
@@ -400,7 +443,8 @@ void GASNetAPI::initialize ( Network *net )
       { 210, (void (*)()) am_transfer_put },
       { 211, (void (*)()) am_transfer_get },
       { 212, (void (*)()) am_transfer_put_after_get },
-      { 213, (void (*)()) am_flash_put }
+      { 213, (void (*)()) am_flash_put },
+      { 214, (void (*)()) am_request_put }
    };
 
    fprintf(stderr, "argc is %d\n", my_argc);
@@ -479,8 +523,26 @@ void GASNetAPI::finalize ()
     exit(0);
 }
 
+
+
 void GASNetAPI::poll ()
 {
+   if (put_req_vector_lock.tryAcquire())
+   {
+      while (put_req_vector.size() > 0)
+      {
+         struct put_req_desc *prd = put_req_vector.front();//.pop_front();
+         //fprintf(stderr, "process req to node %d / queue size %d\n", prd->dest, put_req_vector.size());
+
+         //void GASNetAPI::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size )
+         put(prd->dest, (uint64_t) prd->destAddr, prd->origAddr, prd->len);
+
+         put_req_vector.pop_front();
+         //  fprintf(stderr, "del prd %p size %d\n", prd, put_req_vector.size());
+         delete prd;
+      }
+      put_req_vector_lock.release();
+   }
    gasnet_AMPoll();
 }
 
@@ -689,5 +751,21 @@ void GASNetAPI::sendMyHostName( unsigned int dest )
    if ( gasnet_AMRequestMedium0( dest, 209, ( void * ) masterHostname, strlen( masterHostname ) ) != GASNET_OK )
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest );
+   }
+}
+
+void GASNetAPI::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, size_t len )
+{
+   //fprintf(stderr, "req put to %d to send stuff to %d\n", dest, dataDest);
+   if ( gasnet_AMRequestShort6( dest, 214,
+            ( gasnet_handlerarg_t ) ARG_LO( dstAddr ),
+            ( gasnet_handlerarg_t ) ARG_HI( dstAddr ),
+            ( gasnet_handlerarg_t ) ARG_LO( ( ( uintptr_t ) origAddr ) ),
+            ( gasnet_handlerarg_t ) ARG_HI( ( ( uintptr_t ) origAddr ) ),
+            ( gasnet_handlerarg_t ) len,
+            ( gasnet_handlerarg_t ) dataDest ) != GASNET_OK )
+
+   {
+      fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
    }
 }

@@ -51,6 +51,7 @@ function getModeAndLibPath
 {
    NANOX_LIB=`ldd $APP | grep libnanox.so | cut -d " " -f3 | sed -e s#\/libnanox.so.*## `
    NANOX_MODE=`echo $NANOX_LIB | sed -e s#.*/##`
+   ldd $APP
    echo Nanox dir: $NANOX_LIB
    echo Nanox mode: $NANOX_MODE
 }
@@ -112,13 +113,13 @@ function runApp
       if [ x$INTERACTIVE = xyes ] ; then
          CMD="./mpirun -np $NUM_NODES $MPI_TRACE_FLAGS --nanoxpes $PES -machinefile $MACHINEFILE ./$APP $APP_ARGS"
       else
-         export LD_LIBRARY_PATH=$NANOX_LIB:/gpfs/apps/GCC/4.4.0/lib:/opt/osshpc/mpich-mx/32/lib/shared
+         export LD_LIBRARY_PATH=$NANOX_LIB:/gpfs/apps/GCC/4.4.0/lib64:/opt/osshpc/mpich-mx/64/lib/shared:/gpfs/apps/GCC/4.4.0/lib:/opt/osshpc/mpich-mx/32/lib/shared
          export NX_ARGS="--pes $PES $NANOS_TRACE_FLAGS"
          CMD="srun ./$APP $APP_ARGS"
       fi
    else
-      export SSH_SERVERS=MLIST
-      CMD="./$APP -np $NUM_NODES $APP_ARGS"
+      export SSH_SERVERS=$MLIST
+      CMD="./$APP $NUM_NODES $APP_ARGS"
    fi
    echo "Executing command: $CMD"
    $CMD
@@ -173,7 +174,7 @@ function makeCmd
       echo \#@ total_tasks = $NUM_NODES
       echo \#@ cpus_per_task = 4
       echo \#@ nodeset= clos
-      echo \#@ wall_clock_limit = 00:20:00
+      echo \#@ wall_clock_limit = 00:45:00
       echo \#@ tracing = 1
       echo ""
       echo ./nanoxrun.sh --no-interactive --nanoxpes $PES -- $APP $APP_ARGS

@@ -45,7 +45,7 @@ void ClusterThread::inlineWorkDependent ( WD &wd )
    //ProcessingElement *pe = myThread->runningOn();
    if (dd.getWorkFct() == NULL ) return;
 
-   wd.start(false);
+   wd.start(WorkDescriptor::IsNotAUserLevelThread);
 
    if ( wd.isClusterMigrable() )
    {

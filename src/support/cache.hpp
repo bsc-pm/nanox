@@ -71,6 +71,8 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
          CacheEntry c = CacheEntry( NULL, size, tag, 0, output, input );
          ce = &(_cache.insert( tag, c, inserted ));
          if (inserted) { // allocate it
+            
+#if 0 /* jbueno*/
             Cache *owner = de->getOwner();
             if ( owner != NULL && !(!input && output) ) {
                owner->invalidate( dir, tag, size, de );
@@ -91,6 +93,38 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                de->increaseVersion();
             }
             ce->setVersion( de->getVersion() );
+#else
+            Cache *owner = de->getOwner();
+
+   //std::cerr<<"registerCacheAccess already here in other cache "<<(void*)tag<<" is input "<<input<<" is output "<<output<<" owner "<<owner<<" nodeAddr "<<(void*)((owner != NULL)?(void*)(owner->getEntry(tag)->getAddress()):(void*)0)<<std::endl;
+            // same as above,
+            ce->setAddress( _cache.allocate( dir, size ) );
+
+            if ( owner != NULL && !(!input && output) ) {
+               CopyDescriptor cd = CopyDescriptor(tag);
+               owner->invalidateAndTransfer( dir, tag, size, de, _cache, ce->getAddress()  );
+                  ce->setCopying(false);
+               owner->syncTransfer(tag);
+               while( de->getOwner() != NULL ) myThread->idle();
+               
+            }
+            else if ( input )
+            {
+               while ( de->getOwner() != NULL ) myThread->idle();
+               CopyDescriptor cd = CopyDescriptor(tag);
+               if ( _cache.copyDataToCache( cd, size ) ) {
+                  ce->setCopying(false);
+               }
+            }
+
+            if (output) {
+               de->setOwner( &_cache );
+               de->setInvalidated( false );
+               de->increaseVersion();
+            }
+            ce->setVersion( de->getVersion() );
+   //std::cerr<<"registerCacheAccess doone "<<std::endl;
+#endif
          } else {        // wait for address
             // has to be input, otherwise the program is incorrect so just wait the address to exist
             while ( ce->getAddress() == NULL );
@@ -107,6 +141,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                   // First approach, always copy back if size didn't match
                   if ( ce->isDirty() ) {
                      // invalidate in its own cache
+            std::cerr<<"inv 3"<<std::endl;
                      _cache.invalidate( dir, tag, ce->getSize(), de );
                      // synchronize invalidation
                      _cache.syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
@@ -122,6 +157,8 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                      if ( ce->trySetToCopying() ) {
                         Cache *owner = de->getOwner();
                         ensure( &_cache != owner, "Trying to invalidate myself" );
+                        /* jbueno */
+#if 0
                         if ( owner != NULL ) {
                            // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
                            owner->invalidate( dir, tag, size, de );
@@ -134,6 +171,24 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                         if ( _cache.copyDataToCache( cd, size ) ) {
                            ce->setCopying(false);
                         }
+#else
+                        if ( owner != NULL ) {
+                           // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
+                           CopyDescriptor cd = CopyDescriptor(tag);
+                           owner->invalidateAndTransfer( dir, tag, size, de, _cache, _cache.getEntry(tag)->getAddress() );
+                           owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
+                  ce->setCopying(false);
+                           while( de->getOwner() != NULL ) myThread->idle();
+                        }
+                        else
+                        {
+                           // Copy in
+                           CopyDescriptor cd = CopyDescriptor(tag);
+                           if ( _cache.copyDataToCache( cd, size ) ) {
+                              ce->setCopying(false);
+                           }
+                        }
+#endif
                      }
                   }
                   ce->setResizing(false);
@@ -142,6 +197,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
          }
       } else {
          // Cache entry already exists in the cache
+   //std::cerr<<"registerCacheAccess already here "<<(void*)tag<<std::endl;
          if ( size != ce->getSize() ) {
             if ( ce->trySetToResizing() ) {
                // Wait until it's only me using this entry
@@ -153,6 +209,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                // First approach, always copy back if size didn't match
                if ( ce->isDirty() ) {
                   // invalidate in its own cache
+            std::cerr<<"inv 2"<<std::endl;
                   _cache.invalidate( dir, tag, ce->getSize(), de );
                   // synchronize invalidation
                   _cache.syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
@@ -170,6 +227,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                      ensure( &_cache != owner, "Trying to invalidate myself" );
                      if ( owner != NULL ) {
                         // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
+            std::cerr<<"inv 1"<<std::endl;
                         owner->invalidate( dir, tag, size, de );
                         owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
                         while( de->getOwner() != NULL ) myThread->idle();
@@ -193,6 +251,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                   ce->setVersion( de->getVersion() );
                   Cache *owner = de->getOwner();
                   ensure( &_cache != owner, "Trying to invalidate myself" );
+#if 0
                   if ( owner != NULL ) {
                      // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
                      owner->invalidate( dir, tag, size, de );
@@ -208,6 +267,29 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                   if ( _cache.copyDataToCache( cd, size ) ) {
                      ce->setCopying(false);
                   }
+#else
+                  if ( owner != NULL ) {
+                     // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
+                     CopyDescriptor cd = CopyDescriptor(tag);
+                     owner->invalidateAndTransfer( dir, tag, size, de, _cache, _cache.getEntry(tag)->getAddress() );
+                     owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
+                  ce->setCopying(false);
+                     while( de->getOwner() != NULL ) myThread->idle();
+                     //while ( ce-> isResizing() );
+                  }
+                  else
+                  {
+
+                     // Wait while it's resizing
+                     while ( ce-> isResizing() );
+
+                     // Copy in
+                     CopyDescriptor cd = CopyDescriptor(tag);
+                     if ( _cache.copyDataToCache( cd, size ) ) {
+                        ce->setCopying(false);
+                     }
+                  }
+#endif
                }
             } else {
                // Since there's no input, it is output and we don't care about what may be in other caches, just update this version
@@ -325,9 +407,10 @@ inline void DeviceCache<_T,_Policy>::freeSpaceToFit( Directory &dir, size_t size
    for ( it = kl.begin(); it != kl.end(); it++ ) {
       // Copy the entry because once erased it can be recycled
       CacheEntry &ce = *( _cache.find( it->second ) );
-      if ( _cache.erase( it->second ) ) {
+      //if ( _cache.erase( it->second ) ) {
          if ( ce.isDirty() ) {
             DirectoryEntry *de = dir.getEntry( ce.getTag() );
+            //std::cerr << "free space to fit invalidate> Owner:" << de->getOwner() << " this:" << &_cache << std::endl;
             invalidate( dir, ce.getTag(), ce.getSize(), de );
          }
          // FIXME: this can be optimized by adding the flushing entries to a list and go to that list if not enough space was freed
@@ -335,9 +418,10 @@ inline void DeviceCache<_T,_Policy>::freeSpaceToFit( Directory &dir, size_t size
             _T::syncTransfer( (uint64_t)it->second, _pe );
          _T::free( ce.getAddress(), _pe );
          _usedSize -= ce.getSize();
+_cache.erase( it->second );
          if ( _usedSize + size <= _size )
             break;
-      }
+      //}
    }
    ensure( _usedSize + size <= _size, "Cache is full" );
 }
@@ -373,6 +457,18 @@ template <class _T, class _Policy>
 inline void * DeviceCache<_T,_Policy>::getAddress( uint64_t tag )
 {
    void *result = _cache[tag].getAddress();
+   return result;
+}
+
+template <class _T, class _Policy>
+inline bool DeviceCache<_T,_Policy>::copyToCacheFromCache( void *addrSrc, size_t size, Cache &dest, void *addrDest )
+{
+   bool result;
+   DeviceCache< _T, _Policy > *dstCache = dynamic_cast<DeviceCache< _T, _Policy > *>(&dest);
+   //NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
+   //NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_IN, key, (nanos_event_value_t) size) );
+   result = _T::copyDevToDev( addrSrc, size, _pe, dstCache->_pe, addrDest );
+   //NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
    return result;
 }
 
@@ -576,6 +672,28 @@ inline void DeviceCache<_T,_Policy>::invalidate( Directory &dir, uint64_t tag, s
             CopyDescriptor cd = CopyDescriptor(tag, de->getVersion());
             if ( copyBackFromCache( cd, size ) ) {
                ce->setFlushing(false);
+               de->setOwner(NULL);
+            }
+         }
+      }
+   }
+}
+
+template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::invalidateAndTransfer( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de, Cache &dest, void *addrDest )
+{
+   CacheEntry *ce = _cache.find( tag );
+   if ( de->trySetInvalidated() ) {
+      if ( ce->trySetToFlushing() ) {
+         ce->setFlushingTo( &dir );
+         if ( de->getOwner() != this ) {
+               // someone flushed it between setting to invalidated and setting to flushing, do nothing
+               ce->setFlushing(false);
+         } else {
+            CopyDescriptor cd = CopyDescriptor(tag, de->getVersion());
+            if ( copyToCacheFromCache( ce->getAddress(), size, dest, addrDest ) ) {
+               ce->setFlushing(false);
+               ce->setCopying(false);
                de->setOwner(NULL);
             }
          }

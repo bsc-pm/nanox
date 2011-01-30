@@ -21,6 +21,7 @@
 #define _NANOS_WORK_DESCRIPTOR_DECL_H
 
 #include <stdlib.h>
+#include <cstring>
 #include <utility>
 #include <vector>
 #include "workgroup.hpp"
@@ -69,7 +70,7 @@ namespace nanos
 
          /*! \brief Device equals operator
           */
-         bool operator== ( const Device &arch ) { return arch._name == _name; }
+         bool operator== ( const Device &arch ) { return ( 0 == std::strcmp( arch._name , _name ) ); }
 
          /*! \brief Get device name
           */

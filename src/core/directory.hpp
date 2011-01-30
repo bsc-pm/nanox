@@ -100,7 +100,6 @@ inline DirectoryEntry& Directory::insert( uint64_t tag, DirectoryEntry &ent,  bo
 
 inline DirectoryEntry& Directory::newEntry( uint64_t tag, unsigned int version, Cache* owner )
 {
-   _lock.acquire();
    DirectoryEntry& de = _directory[tag];
    de.setTag( tag );
    de.setVersion( version );

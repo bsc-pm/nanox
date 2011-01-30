@@ -41,6 +41,7 @@ namespace nanos {
          virtual void malloc ( unsigned int remoteNode, size_t size, unsigned int id ) = 0;
          virtual void nodeBarrier( void ) = 0;
          virtual void getNotify ( unsigned int node, uint64_t remoteAddr ) = 0;
+virtual void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, size_t len ) = 0;
    };
 }
 

@@ -243,3 +243,13 @@ const char * Network::getMasterHostname() const
 {
    return _masterHostname; 
 }
+
+
+void Network::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, size_t len )
+{
+   if ( _api != NULL )
+         {
+                  _api->sendRequestPut(dest, origAddr, dataDest, dstAddr, len);
+         }
+
+}

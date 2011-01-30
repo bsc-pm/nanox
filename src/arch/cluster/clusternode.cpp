@@ -78,37 +78,37 @@ BaseThread &ClusterNode::createThread ( WorkDescriptor &helper )
 //   _cache.copyBack( tag, size );
 //}
 
-void* ClusterNode::getAddressDependent( uint64_t tag )
-{
-   return _cache.getAddress(tag);
-}
+//void* ClusterNode::getAddressDependent( uint64_t tag )
+//{
+//   return _cache.getAddress(tag);
+//}
+//
+//void ClusterNode::copyToDependent( void *dst, uint64_t tag, size_t size )
+//{
+//   _cache.copyTo( dst, tag, size );
+//}
 
-void ClusterNode::copyToDependent( void *dst, uint64_t tag, size_t size )
-{
-   _cache.copyTo( dst, tag, size );
-}
-
-void ClusterNode::registerCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
-{
-   //fprintf(stderr, "clusternode: registerCacheAccessDependent %llx\n", tag);
-   _cache.registerCacheAccess( dir, tag, size, input, output );
-}
-
-void ClusterNode::unregisterCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool output )
-{
-   _cache.unregisterCacheAccess( dir, tag, size, output );
-}
-
-void ClusterNode::registerPrivateAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
-{
-   _cache.registerPrivateAccess( dir, tag, size, input, output );
-}
-
-void ClusterNode::unregisterPrivateAccessDependent( Directory &dir, uint64_t tag, size_t size )
-{
-   _cache.unregisterPrivateAccess( dir, tag, size );
-}
+//void ClusterNode::registerCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
+//{
+//   //fprintf(stderr, "clusternode: registerCacheAccessDependent %llx\n", tag);
+//   _cache.registerCacheAccess( dir, tag, size, input, output );
+//}
+//
+//void ClusterNode::unregisterCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool output )
+//{
+//   _cache.unregisterCacheAccess( dir, tag, size, output );
+//}
+//
+//void ClusterNode::registerPrivateAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
+//{
+//   _cache.registerPrivateAccess( dir, tag, size, input, output );
+//}
+//
+//void ClusterNode::unregisterPrivateAccessDependent( Directory &dir, uint64_t tag, size_t size )
+//{
+//   _cache.unregisterPrivateAccess( dir, tag, size );
+//}
 
 unsigned int ClusterNode::getClusterNodeNum() { return _clusterNode; }
 
-void ClusterNode::waitInputDependent( uint64_t tag ) {}
+//void ClusterNode::waitInputDependent( uint64_t tag ) {}

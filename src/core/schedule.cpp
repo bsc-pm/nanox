@@ -353,7 +353,7 @@ struct ClusterWorkerBehaviour
 
       next = thread->getTeam()->getSchedulePolicy().atIdle ( thread );
 
-      //std::cerr << "current " << current->getId() << " next is " << next << ":" << (unsigned int) (next != NULL ? next->getId() : 0) << std::endl;
+      //if (next != NULL) std::cerr << "current " << current->getId() << " next is " << next << ":" << (unsigned int) (next != NULL ? next->getId() : 0) << std::endl;
       if ( next == NULL )
       {
          ext::ClusterThread *cThd = dynamic_cast<ext::ClusterThread*>( myThread );
@@ -510,11 +510,11 @@ void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
       {
          if ( oldWD->getPrevious() == NULL )
          {
-            Scheduler::queue( myThread, *oldWD );
+            myThread->getTeam()->getSchedulePolicy().queue( myThread, *oldWD );
          }
          else if ( oldWD->getPrevious()->isClusterMigrable() )
          {
-            Scheduler::queue( myThread, *oldWD );
+            myThread->getTeam()->getSchedulePolicy().queue( myThread, *oldWD );
          }
       }
    }
@@ -565,8 +565,7 @@ void Scheduler::switchTo ( WD *to )
          to->start(WD::IsAUserLevelThread);
       }
       
-      debug( "switching from task " << myThread->getCurrentWD() << ":" << myThread->getCurrentWD()->getId() <<
-          " to " << to << ":" << to->getId() );
+      debug( "switching from task " << myThread->getCurrentWD() << ":" << myThread->getCurrentWD()->getId() << " to " << to << ":" << to->getId() );
           
       myThread->switchTo( to, switchHelper );
    } else {

@@ -20,18 +20,18 @@
 #ifndef _NANOS_CLUSTER_NODE
 #define _NANOS_CLUSTER_NODE
 
-#include "accelerator.hpp"
-#include "cache.hpp"
+#include "cachedaccelerator.hpp"
+//#include "cache.hpp"
 #include "config.hpp"
 #include "simpleallocator.hpp"
 #include "clusterinfo.hpp"
 #include "clusterdevice.hpp"
-#include "smpdd.hpp"
+#include "clusterdd.hpp"
 
 namespace nanos {
 namespace ext {
 
-   class ClusterNode : public Accelerator
+   class ClusterNode : public CachedAccelerator< ClusterDevice, WriteBackPolicy >
    {
 
       private:
@@ -43,13 +43,14 @@ namespace ext {
          ClusterNode( const ClusterNode &pe );
          const ClusterNode & operator= ( const ClusterNode &pe );
 
-         DeviceCache< ClusterDevice > _cache;
+      //   DeviceCache< ClusterDevice > _cache;
          SimpleAllocator _memSegment;
          unsigned int _executedWorkDesciptors;
 
       public:
          // constructors
-         ClusterNode( int id ) : Accelerator( sys.getNumPEs(), &SMP ), _clusterNode ( id ), _cache ( ClusterInfo::getSegmentLen( id ), (ClusterNode *) this ), _memSegment( ( uintptr_t ) ClusterInfo::getSegmentAddr( id ), ClusterInfo::getSegmentLen( id ) ), _executedWorkDesciptors ( 0 ) { }
+         ClusterNode( int id ) : CachedAccelerator< ClusterDevice, WriteBackPolicy >( sys.getNumPEs(), &Cluster, ( int ) ClusterInfo::getSegmentLen( id ) ), 
+            _clusterNode ( id ), _memSegment( ( uintptr_t ) ClusterInfo::getSegmentAddr( id ), ClusterInfo::getSegmentLen( id ) ), _executedWorkDesciptors ( 0 ) { }
 
          virtual ~ClusterNode() {}
 
@@ -65,15 +66,15 @@ namespace ext {
          //virtual void copyDataDependent( uint64_t tag, size_t size );
          //virtual void unregisterDataAccessDependent( uint64_t tag );
          //virtual void copyBackDependent( uint64_t tag, size_t size );
-         virtual void* getAddressDependent( uint64_t tag );
-         virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
+         //virtual void* getAddressDependent( uint64_t tag );
+         //virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
 
-         void registerCacheAccessDependent( Directory &dir, uint64_t addr, size_t len, bool aaa, bool aaaa );
-         void unregisterCacheAccessDependent( Directory &dir, uint64_t addr, size_t len, bool output);
-         void registerPrivateAccessDependent( Directory &dir, uint64_t addr, size_t len, bool aaa, bool aaaa );
-         void unregisterPrivateAccessDependent( Directory &dir, uint64_t addr, size_t len );
+         //void registerCacheAccessDependent( Directory &dir, uint64_t addr, size_t len, bool aaa, bool aaaa );
+         //void unregisterCacheAccessDependent( Directory &dir, uint64_t addr, size_t len, bool output);
+         //void registerPrivateAccessDependent( Directory &dir, uint64_t addr, size_t len, bool aaa, bool aaaa );
+         //void unregisterPrivateAccessDependent( Directory &dir, uint64_t addr, size_t len );
 
-         void waitInputDependent( uint64_t addr );
+         //void waitInputDependent( uint64_t addr );
 
          unsigned int getClusterNodeNum();
          SimpleAllocator & getAllocator( void ) { return _memSegment; }

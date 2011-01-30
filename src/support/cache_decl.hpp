@@ -280,6 +280,7 @@ namespace nanos {
          *  \param cd Copy descriptor with the information about the addresses to be copied
          *  \param size Size of the data to be copied
          */
+virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void* addrDest ) = 0;
          virtual bool copyDataToCache( CopyDescriptor& cd, size_t size ) = 0;
 
         /*! \brief Copy data back to the host
@@ -301,6 +302,7 @@ namespace nanos {
          *  \param size Size of the entry in the cache
          *  \param de DirectoryEntry to be updated
          */
+         virtual void invalidateAndTransfer( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de, Cache &dest, void *addrDest ) = 0;
          virtual void invalidate( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de ) = 0;
 
         /*! \brief Force an entry to be copied back to the Host
@@ -535,6 +537,7 @@ namespace nanos {
          * \param cd: identifier of the entry
          * \param size: number of bytes to copy
          */
+bool copyToCacheFromCache( void *addrSrc, size_t size, Cache &dest, void *addrDest );
          bool copyDataToCache( CopyDescriptor &cd, size_t size );
 
         /* \brief Copy back from the entry to the address represented by the tag.
@@ -638,6 +641,7 @@ namespace nanos {
          *  \param size Size of the entry in the cache
          *  \param de DirectoryEntry to be updated
          */
+         void invalidateAndTransfer( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de, Cache &dest, void *dstAddr );
          void invalidate( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de );
 
         /*! \brief Force an entry to be copied back to the Host
