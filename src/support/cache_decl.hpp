@@ -225,7 +225,13 @@ namespace nanos {
    */
    class Cache
    {
+         unsigned int _id;
       public:
+
+        /*! \brief Default constructor
+         */
+         Cache();
+
         /*! \brief Destructor
          */
          virtual ~Cache() { }
@@ -321,6 +327,10 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
          *  \param tag Identifier of the cache entry
          */
          virtual int getReferences( unsigned int tag ) = 0;
+
+        /*! \brief Returns the cache identifier
+         */
+         unsigned int getId() const;
    };
 
   /*! \class CachePolicy
@@ -494,6 +504,10 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
         /* \brief Default constructor
          */
          DeviceCache( size_t size, ProcessingElement *pe = NULL ) : _pe( pe ), _cache(), _policy( *this ), _size( size ), _usedSize(0) {}
+
+        /*! \brief Destructor
+         */
+         virtual ~DeviceCache() {}
 
         /*! \brief Returns the size of the cache
          */

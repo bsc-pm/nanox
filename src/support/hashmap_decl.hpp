@@ -24,6 +24,7 @@
 
 #include "list_decl.hpp"
 #include <list>
+#include <map>
 #include "atomic.hpp"
 
 

@@ -1,5 +1,4 @@
 /*************************************************************************************/
-/*      Copyright 2010 Barcelona Supercomputing Center                               */
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
@@ -18,34 +17,12 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef NANOS_CHPL_H
-#define NANOS_CHPL_H
+#include "directory.hpp"
+#include "system.hpp"
 
-#include <stdbool.h>
+using namespace nanos;
 
-#ifdef __cplusplus
-#define _Bool bool
-extern "C" {
-#endif
+DirectoryEntry::DirectoryEntry() : Entry(), _owner( NULL ), _entryLock(), _invalidated( false ), _cacheAccesses( sys.getCacheMap().getSize() ) {}
 
-typedef int chpl_taskID_t;
-#define chpl_nullTaskID 0
-
-typedef void * chpl_mutex_t;
-
-typedef struct {
-   bool is_full;
-   void *empty;
-   void *full;
-   void *lock;
-} chpl_sync_aux_t;
-
-#include <chpltypes.h>
-#include <chpltasks.h>
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+Directory::Directory() : _directory(), _parent(NULL), _cacheMapSize( sys.getCacheMap().getSize() ) {}
 

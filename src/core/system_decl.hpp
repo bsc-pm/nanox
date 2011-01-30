@@ -33,6 +33,7 @@
 #include "network.hpp"
 #include "directory_decl.hpp"
 #include "pminterface_decl.hpp"
+#include "cache_map.hpp"
 
 
 namespace nanos
@@ -113,6 +114,9 @@ namespace nanos
 
          // Programming model interface
          PMInterface *        _pmInterface;
+
+         // CacheMap register
+         CacheMap             _cacheMap;
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -259,6 +263,7 @@ namespace nanos
 
          void setPMInterface (PMInterface *_pm);
          const PMInterface & getPMInterface ( void ) const;
+         CacheMap& getCacheMap();
 
          void threadReady ();
 

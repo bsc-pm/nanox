@@ -136,6 +136,8 @@ inline void System::setPMInterface(PMInterface *pm)
 
 inline const PMInterface &  System::getPMInterface(void) const { return *_pmInterface; }
 
+inline CacheMap& System::getCacheMap() { return _cacheMap; }
+
 inline bool System::throttleTask()
 {
    return _throttlePolicy->throttle();

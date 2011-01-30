@@ -54,7 +54,8 @@ namespace nanos
          */
          virtual ~Accelerator() {}
 
-         virtual bool hasSeparatedMemorySpace() const { return true; };
+         virtual bool hasSeparatedMemorySpace() const { return true; }
+         virtual unsigned int getMemorySpaceId() const {return 0; }
 
          virtual void copyDataIn( WorkDescriptor& wd );
          virtual void copyDataOut( WorkDescriptor& wd );

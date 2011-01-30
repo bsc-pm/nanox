@@ -33,33 +33,9 @@ using namespace nanos;
 // 
 // extern chpl_fn_p chpl_ftable[];
 
-// Mutex interface
-
-void CHPL_MUTEX_INIT(chpl_mutex_t* mutex)
-{
-   fatal("Unimplemented service");
-}
-
-chpl_mutex_t* CHPL_MUTEX_NEW(void)
-{
-   return (chpl_mutex_t*) NEW Lock();
-}
-
-void CHPL_MUTEX_LOCK(chpl_mutex_t* mutex)
-{
-   Lock *l = ( Lock * ) mutex;
-   l++;
-}
-
-void CHPL_MUTEX_UNLOCK(chpl_mutex_t* mutex)
-{
-   Lock *l = ( Lock * ) mutex;
-   l--;
-}
-
 // Sync variables interface
 
-void CHPL_SYNC_INIT_AUX(chpl_sync_aux_t *s)
+void chpl_sync_init_aux(chpl_sync_aux_t *s)
 {
    s->is_full = false;
 
@@ -69,13 +45,13 @@ void CHPL_SYNC_INIT_AUX(chpl_sync_aux_t *s)
    s->lock = (void *) NEW Lock();
 }
 
-void CHPL_SYNC_DESTROY_AUX(chpl_sync_aux_t *s)
+void chpl_sync_destroy_aux(chpl_sync_aux_t *s)
 {
    delete (GenericSyncCond *)s->empty;
    delete (GenericSyncCond *)s->full;
 }
 
-void CHPL_SYNC_WAIT_FULL_AND_LOCK(chpl_sync_aux_t *s,
+void chpl_sync_wait_full_and_lock(chpl_sync_aux_t *s,
                                   int32_t lineno, chpl_string filename)
 {
    GenericSyncCond *sync = (GenericSyncCond *) s->full;
@@ -89,7 +65,7 @@ void CHPL_SYNC_WAIT_FULL_AND_LOCK(chpl_sync_aux_t *s,
    }
 }
 
-void CHPL_SYNC_WAIT_EMPTY_AND_LOCK(chpl_sync_aux_t *s,
+void chpl_sync_wait_empty_and_lock(chpl_sync_aux_t *s,
                                    int32_t lineno, chpl_string filename)
 {
    GenericSyncCond *sync = (GenericSyncCond *) s->empty;
@@ -104,7 +80,7 @@ void CHPL_SYNC_WAIT_EMPTY_AND_LOCK(chpl_sync_aux_t *s,
   
 }
 
-void CHPL_SYNC_MARK_AND_SIGNAL_FULL(chpl_sync_aux_t *s)
+void chpl_sync_mark_and_signal_full(chpl_sync_aux_t *s)
 {
    GenericSyncCond *sync = (GenericSyncCond *) s->full;
    Lock *l = (Lock *)s->lock;
@@ -114,7 +90,7 @@ void CHPL_SYNC_MARK_AND_SIGNAL_FULL(chpl_sync_aux_t *s)
    l->release();
 }
 
-void CHPL_SYNC_MARK_AND_SIGNAL_EMPTY(chpl_sync_aux_t *s)
+void chpl_sync_mark_and_signal_empty(chpl_sync_aux_t *s)
 {
    GenericSyncCond *sync = (GenericSyncCond *) s->empty;
    Lock *l = (Lock *)s->lock;
@@ -124,57 +100,21 @@ void CHPL_SYNC_MARK_AND_SIGNAL_EMPTY(chpl_sync_aux_t *s)
    l->release();
 }
 
-chpl_bool CHPL_SYNC_IS_FULL(void *val_ptr,
+chpl_bool chpl_sync_is_full(void *val_ptr,
                             chpl_sync_aux_t *s,
                             chpl_bool simple_sync_var)
 {
    return s->is_full;
 }
 
-void CHPL_SYNC_LOCK(chpl_sync_aux_t *s)
+void chpl_sync_lock(chpl_sync_aux_t *s)
 {
    Lock *l = (Lock *)s->lock;
    l->acquire();
 }
 
-void CHPL_SYNC_UNLOCK(chpl_sync_aux_t *s)
+void chpl_sync_unlock(chpl_sync_aux_t *s)
 {
    Lock *l = (Lock *)s->lock;
    l->release();
 }
-
-// Single variables interface
-
-void CHPL_SINGLE_INIT_AUX(chpl_single_aux_t *s)
-{
-   s->is_full = false;
-   s->full = (void *) NEW SingleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>( &s->is_full, true ) );
-}
-
-void CHPL_SINGLE_DESTROY_AUX(chpl_single_aux_t *s)
-{
-   delete (GenericSyncCond *)s->full;
-}
-
-void CHPL_SINGLE_WAIT_FULL(chpl_single_aux_t *s,
-                           int32_t lineno, chpl_string filename)
-{
-  GenericSyncCond *sync = (GenericSyncCond *) s->full;
-  sync->wait();
-}
-
-void CHPL_SINGLE_MARK_AND_SIGNAL_FULL(chpl_single_aux_t *s)
-{
-  s->is_full = true;
-  GenericSyncCond *sync = (GenericSyncCond *) s->full;
-  sync->signal_one();
-}
-
-chpl_bool CHPL_SINGLE_IS_FULL(void *val_ptr,
-                              chpl_single_aux_t *s,
-                              chpl_bool simple_single_var)
-{
-  return s->is_full;
-}
-
-

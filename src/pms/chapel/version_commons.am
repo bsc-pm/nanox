@@ -5,5 +5,5 @@ sources = \
 	$(END) 
 
 chpl_dir=@CHAPEL_HOME@
-chpl_flags=-I$(chpl_dir)/runtime/include
+chpl_flags=-I$(chpl_dir)/runtime/include -Wmissing-declarations -Werror
 

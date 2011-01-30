@@ -49,6 +49,8 @@ namespace nanos
          */
          virtual ~CachedAccelerator() {}
 
+         unsigned int getMemorySpaceId() const { return _cache.getId(); }
+
          void setCacheSize( size_t size )
          {
             _cache.setSize( size );

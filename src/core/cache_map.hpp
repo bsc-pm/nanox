@@ -1,5 +1,4 @@
 /*************************************************************************************/
-/*      Copyright 2010 Barcelona Supercomputing Center                               */
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
@@ -18,34 +17,63 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef NANOS_CHPL_H
-#define NANOS_CHPL_H
+#ifndef _NANOS_CACHE_MAP_H
+#define _NANOS_CACHE_MAP_H
 
-#include <stdbool.h>
+#include "cache_map_decl.hpp"
+#include "memtracker.hpp"
 
-#ifdef __cplusplus
-#define _Bool bool
-extern "C" {
-#endif
+using namespace nanos;
 
-typedef int chpl_taskID_t;
-#define chpl_nullTaskID 0
-
-typedef void * chpl_mutex_t;
-
-typedef struct {
-   bool is_full;
-   void *empty;
-   void *full;
-   void *lock;
-} chpl_sync_aux_t;
-
-#include <chpltypes.h>
-#include <chpltasks.h>
-
-#ifdef __cplusplus
+inline unsigned int CacheMap::registerCache()
+{
+   return _numCaches++;
 }
-#endif
+
+inline unsigned int CacheMap::getSize() const
+{
+   return _numCaches.value() - 1;
+}
+
+inline CacheAccessMap::CacheAccessMap( unsigned int size ) : _size(size)
+{
+   _cacheAccessesById = NEW Atomic<unsigned int>[size];
+}
+
+inline CacheAccessMap::~CacheAccessMap()
+{
+   delete[] _cacheAccessesById;
+}
+
+inline CacheAccessMap::CacheAccessMap( const CacheAccessMap &map ) : _size( map._size )
+{
+   if ( this == &map )
+      return;
+   _cacheAccessesById = NEW Atomic<unsigned int>[_size];
+   for ( unsigned int i = 0; i < _size; i++ ) {
+      _cacheAccessesById[i] = map._cacheAccessesById[i];
+   }
+}
+
+inline const CacheAccessMap& CacheAccessMap::operator= ( const CacheAccessMap &map )
+{
+   if ( this == &map )
+      return *this;
+   _size = map._size;
+   _cacheAccessesById = NEW Atomic<unsigned int>[_size];
+   for ( unsigned int i = 0; i < _size; i++ ) {
+      _cacheAccessesById[i] = map._cacheAccessesById[i];
+   }
+}
+
+inline Atomic<unsigned int>& CacheAccessMap::operator[] ( unsigned int cacheId )
+{
+   return _cacheAccessesById[cacheId - 1];
+}
+
+inline unsigned int CacheAccessMap::getAccesses( unsigned int cacheId )
+{
+   return _cacheAccessesById[cacheId - 1].value();
+}
 
 #endif
-
