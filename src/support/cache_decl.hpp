@@ -75,6 +75,7 @@ namespace nanos {
             this->setVersion( ce.getVersion() );
             this->_addr = ce._addr;
             this->_size = ce._size;
+            this->_allocSize = ce._allocSize;
             this->_dirty = ce._dirty;
             this->_copying = ce._copying;
             this->_flushing = ce._flushing;
