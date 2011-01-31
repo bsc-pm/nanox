@@ -103,6 +103,7 @@ namespace nanos {
                 ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
                 if ( !data._init ) {
                    data._cacheId = thread->runningOn()->getMemorySpaceId();
+                   data._init = true;
                 }
                 TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
 
@@ -170,7 +171,8 @@ namespace nanos {
 
          ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
          if ( !data._init ) {
-            thread->runningOn()->getMemorySpaceId();
+            data._cacheId = thread->runningOn()->getMemorySpaceId();
+            data._init = true;
          }
          TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
 
@@ -189,11 +191,7 @@ namespace nanos {
             for ( unsigned int i = 0; i < sys.getCacheMap().getSize(); i++ ) {
                wd = tdata._readyQueues[i+1].pop_front( thread );
                if ( wd != NULL ) {
-                  if ( wd->getNumCopies() == 0 ) {
-                     return wd;
-                  }
-                  // MAYBE submit again so its data locality gets recomputed
-                  tdata._readyQueues[i+1].push_front( wd );
+                  return wd;
                } 
             }
          }
