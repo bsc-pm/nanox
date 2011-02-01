@@ -19,7 +19,7 @@ wf_sources = \
 	$(top_srcdir)/src/plugins/sched/wf_sched.cpp \
 	$(END)
 
-cache_sources = \
-        $(top_srcdir)/src/plugins/sched/cache_sched.cpp \
+affinity_sources = \
+        $(top_srcdir)/src/plugins/sched/affinity_sched.cpp \
         $(END)
 

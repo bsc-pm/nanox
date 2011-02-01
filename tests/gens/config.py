@@ -61,7 +61,7 @@ if options.cpus:
 
 max_cpus=int(max_cpus)
 
-scheduling_small=['--schedule=default','--schedule=dbf','--schedule=cache']
+scheduling_small=['--schedule=default','--schedule=dbf','--schedule=affinity']
 #scheduling_small=['--schedule=default','--schedule=dbf','--schedule=wf','--schedule=cilk']
 
 scheduling_full=['--schedule=default','--schedule=bf --bf-stack','--schedule=bf --no-bf-stack','--schedule=dbf']
