@@ -120,7 +120,7 @@ namespace nanos {
                          if ( parent != NULL ) {
                             Directory *dir = parent->getDirectory();
                             if ( dir != NULL ) {
-                               DirectoryEntry *de = dir->getEntry(copies[i].getAddress());
+                               DirectoryEntry *de = dir->findEntry(copies[i].getAddress());
                                if ( de != NULL ) {
                                   for ( unsigned int j = 0; j < numCaches; j++ ) {
                                      ranks[j]+=((unsigned int)(de->getAccess( j+1 ) > 0))*copies[i].getSize();
