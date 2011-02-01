@@ -23,6 +23,7 @@ include $(top_srcdir)/src/common.am
 if PERFORMANCE_VERSION
 noinst_LTLIBRARIES = libsmp.la
 performance_LTLIBRARIES = libnanox-pe-smp.la
+performance_LTLIBRARIES += libnanox-pe-smp-numa.la
 
 if SMP_SUPPORTS_ULT
 smp_ult_sources=$(ult_sources)
@@ -37,5 +38,9 @@ libsmp_la_SOURCES=$(smp_sources) $(smp_ult_sources)
 libnanox_pe_smp_la_CXXFLAGS=$(nanos_perfo_cxxflags)
 libnanox_pe_smp_la_LDFLAGS=$(ld_plugin_flags)
 libnanox_pe_smp_la_SOURCES=$(pe_smp_sources)
+
+libnanox_pe_smp_numa_la_CXXFLAGS=$(nanos_perfo_cxxflags) $(smp_numa_flags)
+libnanox_pe_smp_numa_la_LDFLAGS=$(ld_plugin_flags)
+libnanox_pe_smp_numa_la_SOURCES=$(pe_smp_sources)
 endif
 

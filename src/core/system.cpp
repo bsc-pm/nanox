@@ -178,6 +178,10 @@ void System::config ()
    config.registerConfigOption ( "no-sync-start", NEW Config::FlagOption( _synchronizedStart, false), "Disables synchronized start" );
    config.registerArgOption ( "no-sync-start", "disable-synchronized-start" );
 
+   config.registerConfigOption ( "architecture", NEW Config::StringVar ( _defArch ), "Defines the architecture to use (smp by default)" );
+   config.registerArgOption ( "architecture", "architecture" );
+   config.registerEnvOption ( "architecture", "NX_ARCHITECTURE" );
+
    _schedConf.config(config);
    _pmInterface->config(config);
 
@@ -207,7 +211,7 @@ void System::start ()
 
    _pes.reserve ( numPes );
 
-   PE *pe = createPE ( "smp", 0 );
+   PE *pe = createPE ( _defArch, 0 );
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 

@@ -61,7 +61,7 @@ if options.cpus:
 
 max_cpus=int(max_cpus)
 
-scheduling_small=['--schedule=default','--schedule=dbf']
+scheduling_small=['--schedule=default','--schedule=dbf','--schedule=cache']
 #scheduling_small=['--schedule=default','--schedule=dbf','--schedule=wf','--schedule=cilk']
 
 scheduling_full=['--schedule=default','--schedule=bf --bf-stack','--schedule=bf --no-bf-stack','--schedule=dbf']
@@ -70,7 +70,7 @@ scheduling_full=['--schedule=default','--schedule=bf --bf-stack','--schedule=bf 
 throttle=['--throttle=dummy','--throttle=idlethreads','--throttle=numtasks','--throttle=readytasks','--throttle=taskdepth']
 #barriers=['--barrier=centralized','--barrier=tree','--barrier=dissemination']
 barriers=['--barrier=centralized','--barrier=tree']
-others=[cpus(max_cpus),['--disable-binding','--no-disable-binding']]
+others=[cpus(max_cpus),['--disable-binding','--no-disable-binding'],['--architecture=smp','--architecture=smp-numa']]
 
 if test_mode == 'small':
 	configs=cross(*others+[scheduling_small]+addlist)
