@@ -53,7 +53,7 @@ System::System () :
       _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
       _defBarr( "posix" ), _defInstr ( "empty_trace" ), _defArch("smp"),
       _initializedThreads ( 0 ), _targetThreads ( 0 ),
-      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL )
+      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL ), _cacheMap()
 {
    verbose0 ( "NANOS++ initializing... start" );
    // OS::init must be called here and not in System::start() as it can be too late
@@ -178,6 +178,10 @@ void System::config ()
    config.registerConfigOption ( "no-sync-start", NEW Config::FlagOption( _synchronizedStart, false), "Disables synchronized start" );
    config.registerArgOption ( "no-sync-start", "disable-synchronized-start" );
 
+   config.registerConfigOption ( "architecture", NEW Config::StringVar ( _defArch ), "Defines the architecture to use (smp by default)" );
+   config.registerArgOption ( "architecture", "architecture" );
+   config.registerEnvOption ( "architecture", "NX_ARCHITECTURE" );
+
    _schedConf.config(config);
    _pmInterface->config(config);
 
@@ -207,7 +211,7 @@ void System::start ()
 
    _pes.reserve ( numPes );
 
-   PE *pe = createPE ( "smp", 0 );
+   PE *pe = createPE ( _defArch, 0 );
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 

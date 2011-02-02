@@ -31,6 +31,11 @@
 
 using namespace nanos;
 
+inline unsigned int Cache::getId() const
+{
+  return _id;
+}
+
 inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
 {
    bool didCopyIn = false;
@@ -38,7 +43,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
    CacheEntry *ce;
    if ( de == NULL ) { // Memory access not registered in the directory
       bool inserted;
-      DirectoryEntry d = DirectoryEntry( tag, 0, ( output ? &_cache : NULL ) );
+      DirectoryEntry d = DirectoryEntry( tag, 0, ( output ? &_cache : NULL ), dir.getCacheMapSize() );
       de = &(dir.insert( tag, d, inserted ));
       if (!inserted) {
          if ( output ) {
@@ -51,6 +56,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
       ce = &(_cache.insert( tag, c, inserted ));
       if (inserted) { // allocate it
          ce->setAddress( _cache.allocate( dir, size ) );
+         ce->setAllocSize( size );
          if (input) {
             CopyDescriptor cd = CopyDescriptor(tag);
             if ( _cache.copyDataToCache( cd, size ) ) {
@@ -76,6 +82,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                while( de->getOwner() != NULL ) myThread->idle();
             }
             ce->setAddress( _cache.allocate( dir, size ) );
+            ce->setAllocSize( size );
             if (input) {
                while ( de->getOwner() != NULL ) myThread->idle();
                CopyDescriptor cd = CopyDescriptor(tag);
@@ -221,6 +228,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
          }
       }
    }
+   de->addAccess( _cache.getId() );
 }
 
 inline void CachePolicy::registerPrivateAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
@@ -230,6 +238,7 @@ inline void CachePolicy::registerPrivateAccess( Directory& dir, uint64_t tag, si
    CacheEntry& ce = _cache.insert( tag, c, inserted );
    ensure ( inserted, "Private access cannot hit the cache.");
    ce.setAddress( _cache.allocate( dir, size ) );
+   ce.setAllocSize( size );
    if ( input ) {
       CopyDescriptor cd = CopyDescriptor(tag);
       if ( _cache.copyDataToCache( cd, size ) ) {
@@ -271,6 +280,11 @@ inline void WriteThroughPolicy::unregisterCacheAccess( Directory& dir, uint64_t 
          ce->setDirty( false );
       }
    }
+   if ( de != NULL ) {
+      de->removeAccess( _cache.getId() );
+   } else {
+      warning("Directory entry not found at unregisterCacheAcces, this can be a problem.");
+   }
 }
 
 inline void WriteBackPolicy::unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output )
@@ -280,11 +294,8 @@ inline void WriteBackPolicy::unregisterCacheAccess( Directory &dir, uint64_t tag
    _cache.deleteReference( tag );
 }
 
- /*! \brief A Cache is a class that provides basic services for registering and
-  *         searching for memory blocks in a device using an identifier represented
-  *         by an unsigned int of 64 bits which represents the address of the original
-  *         data in the host. 
-  */
+inline Cache::Cache() : _id( sys.getCacheMap().registerCache() ) {}
+
 template <class _T, class _Policy>
 inline size_t DeviceCache<_T,_Policy>::getSize()
    { return _size; }
@@ -361,6 +372,7 @@ inline void DeviceCache<_T,_Policy>::realloc( Directory& dir, CacheEntry *ce, si
    }
    _usedSize += size - ce->getSize();
    void *addr = ce->getAddress();
+   ensure( size > ce->getSize() , "Trying to downsize a cache entry" );
    addr = _T::realloc( addr, size, ce->getSize(), _pe );
    ce->setAllocSize( size );
    ce->setSize( size );

@@ -75,6 +75,7 @@ namespace nanos {
             this->setVersion( ce.getVersion() );
             this->_addr = ce._addr;
             this->_size = ce._size;
+            this->_allocSize = ce._allocSize;
             this->_dirty = ce._dirty;
             this->_copying = ce._copying;
             this->_flushing = ce._flushing;
@@ -225,7 +226,13 @@ namespace nanos {
    */
    class Cache
    {
+         unsigned int _id;
       public:
+
+        /*! \brief Default constructor
+         */
+         Cache();
+
         /*! \brief Destructor
          */
          virtual ~Cache() { }
@@ -319,6 +326,10 @@ namespace nanos {
          *  \param tag Identifier of the cache entry
          */
          virtual int getReferences( unsigned int tag ) = 0;
+
+        /*! \brief Returns the cache identifier
+         */
+         unsigned int getId() const;
    };
 
   /*! \class CachePolicy
@@ -492,6 +503,10 @@ namespace nanos {
         /* \brief Default constructor
          */
          DeviceCache( size_t size, ProcessingElement *pe = NULL ) : _pe( pe ), _cache(), _policy( *this ), _size( size ), _usedSize(0) {}
+
+        /*! \brief Destructor
+         */
+         virtual ~DeviceCache() {}
 
         /*! \brief Returns the size of the cache
          */

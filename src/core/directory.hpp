@@ -23,6 +23,7 @@
 #include "directory_decl.hpp"
 #include "hashmap.hpp"
 #include "cache_decl.hpp"
+#include "cache_map.hpp"
 
 using namespace nanos;
 
@@ -88,9 +89,29 @@ inline bool DirectoryEntry::trySetInvalidated()
    return _invalidated.cswap( expected, value );
 }
 
+inline void DirectoryEntry::addAccess( unsigned int cacheId )
+{
+   _cacheAccesses[cacheId]++;
+}
+
+inline void DirectoryEntry::removeAccess( unsigned int cacheId )
+{
+   _cacheAccesses[cacheId]--;
+}
+
+inline unsigned int DirectoryEntry::getAccess( unsigned int cacheId )
+{
+   return _cacheAccesses[cacheId].value();
+}
+
 inline void Directory::setParent( Directory *parent )
 {
    _parent =  parent;
+}
+
+inline unsigned int Directory::getCacheMapSize()
+{
+   return _cacheMapSize;
 }
 
 inline DirectoryEntry& Directory::insert( uint64_t tag, DirectoryEntry &ent,  bool &inserted )
@@ -120,13 +141,29 @@ inline DirectoryEntry* Directory::getEntry( uint64_t tag )
       parents = _parent->_directory.find( tag );
    }
 
-   ent = NEW DirectoryEntry(tag, (parents == NULL ? 0 : parents->getVersion()), NULL );
+   ent = NEW DirectoryEntry(tag, (parents == NULL ? 0 : parents->getVersion()), NULL, _cacheMapSize );
 
    bool inserted = false;
    ent = &_directory.insert( tag, *ent, inserted );
 
    return ent;
 }
+
+inline DirectoryEntry* Directory::findEntry( uint64_t tag )
+{
+   DirectoryEntry *ent = _directory.find( tag );
+
+   if ( ent != NULL ) {
+      return ent;
+   }
+
+   if ( _parent != NULL ) {
+      return _parent->_directory.find( tag );
+   }
+
+   return NULL;
+}
+
 
 inline void Directory::registerAccess( uint64_t tag, size_t size, bool input, bool output )
 {
