@@ -63,8 +63,7 @@ bool ClusterDevice::copyDevToDev( void *addrSrc, size_t size, ProcessingElement 
 
 bool ClusterDevice::copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, ProcessingElement *pe )
 {
-   //ClusterNode *node = (ClusterNode *) myThread->runningOn();
-   ClusterNode *node = ( ClusterNode * ) myThread->getCurrentWD()->getPe();
+   ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
    //fprintf(stderr, "[node %d]->[%d] COPY IN ( remote=%p, <= local=0x%llx[%d], size=%d)\n", sys.getNetwork()->getNodeNum(), node->getClusterNodeNum(), localDst, remoteSrc, *((int *)remoteSrc), size);
    sys.getNetwork()->put( node->getClusterNodeNum(), ( uint64_t ) localDst, ( void * ) remoteSrc.getTag(), size );
    return true;
@@ -72,9 +71,8 @@ bool ClusterDevice::copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t si
 
 bool ClusterDevice::copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size, ProcessingElement *pe )
 {
-   //ClusterNode *node = (ClusterNode *) myThread->runningOn();
-   ClusterNode *node = ( ClusterNode * ) myThread->getCurrentWD()->getPe();
-   //fprintf(stderr, "[node %d] COPY OUT ( remote=%p, => local=0x%llx[%d], size %d\n", sys.getNetwork()->getNodeNum(), localSrc, remoteDst, *((int *)remoteDst), size);
+   ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
+   //fprintf(stderr, "[node %d] COPY OUT from %d ( remote=%p, => local=0x%llx, size %d\n", sys.getNetwork()->getNodeNum(), node->getClusterNodeNum(), localSrc, remoteDst.getTag(), size);
    sys.getNetwork()->get( ( void * ) remoteDst.getTag(), node->getClusterNodeNum(), ( uint64_t ) localSrc, size );
    //fprintf(stderr, "[node %d]<-[%d] COPY OUT ( remote=%p, => local=0x%llx[%d], size %d\n", sys.getNetwork()->getNodeNum(),node->getClusterNodeNum(), localSrc, remoteDst, *((int *)remoteDst), size);
    return true;

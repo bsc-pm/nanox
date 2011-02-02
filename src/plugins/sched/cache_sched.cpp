@@ -102,7 +102,18 @@ namespace nanos {
             {
                 ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
                 if ( !data._init ) {
-                   data._cacheId = thread->runningOn()->getMemorySpaceId();
+            //if (!thread->getCurrentWD()->isClusterMigrable())
+            //{
+            //   std::cerr << " queue thread " << thread->getId() << " at idle, WD " << thread->getCurrentWD()->getId() << " MemorySpaceID  " << thread->getCurrentWD()->getPe()->getMemorySpaceId()  << std::endl;
+            //   data._cacheId = thread->getCurrentWD()->getPe()->getMemorySpaceId();
+            //}
+            //else
+            //{
+            //   std::cerr << "queue thread " << thread->getId() << " at idle " << wd.getId() << std::endl;
+            //   data._cacheId = thread->runningOn()->getMemorySpaceId();
+            //}
+               data._cacheId = thread->getCurrentWD()->getPe()->getMemorySpaceId();
+                   //data._cacheId = thread->runningOn()->getMemorySpaceId();
                 }
                 TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
 
@@ -137,8 +148,10 @@ namespace nanos {
                          maxRank = ranks[i];
                       }
                    }
+                   //std::cerr << "winner is " << winner << std::endl;
                    tdata._readyQueues[winner].push_front( &wd );
                 } else {
+                   //std::cerr << "_winner is 0" << std::endl;
                    tdata._readyQueues[0].push_front ( &wd );
                 }
             }
@@ -167,10 +180,21 @@ namespace nanos {
       WD * CacheSchedPolicy::atIdle ( BaseThread *thread )
       {
          WorkDescriptor * wd = NULL;
+         //bool print = false;
 
          ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
          if ( !data._init ) {
-            thread->runningOn()->getMemorySpaceId();
+            if (!thread->getCurrentWD()->isClusterMigrable())
+            {
+               //std::cerr << "thread " << thread->getId() << " at idle, WD " << thread->getCurrentWD()->getId() << " MemorySpaceID  " << thread->getCurrentWD()->getPe()->getMemorySpaceId()  << std::endl;
+               //print = true;
+               data._cacheId = thread->getCurrentWD()->getPe()->getMemorySpaceId();
+            }
+            else
+            {
+               //std::cerr << "+thread " << thread->getId() << " at idle" << std::endl;
+               data._cacheId = thread->runningOn()->getMemorySpaceId();
+            }
          }
          TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
 
@@ -189,9 +213,9 @@ namespace nanos {
             for ( unsigned int i = 0; i < sys.getCacheMap().getSize(); i++ ) {
                wd = tdata._readyQueues[i+1].pop_front( thread );
                if ( wd != NULL ) {
-                  if ( wd->getNumCopies() == 0 ) {
+                 // if ( wd->getNumCopies() == 0 ) {
                      return wd;
-                  }
+                  //}
                   // MAYBE submit again so its data locality gets recomputed
                   tdata._readyQueues[i+1].push_front( wd );
                } 

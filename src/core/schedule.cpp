@@ -162,14 +162,14 @@ inline void Scheduler::idleLoop ()
             sys.getSchedulerStats()._idleThreads--;
 
             total_spins+= (nspins - spins);
+
+            if ( next->isClusterMigrable() && !next->started() )
+            {
             NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
             NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) total_spins; )
             NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) total_yields; )
             NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) time_yields; )
             NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(3, Keys, Values); )
-
-            if ( next->isClusterMigrable() && !next->started() )
-            {
                NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) )
                behaviour::switchWD(thread,current, next);
                thread = getMyThreadSafe();
@@ -497,7 +497,11 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
 void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
 {
 
+   //if (newWD->isClusterMigrable())
+   if (newWD->getPrevious() == NULL)
+   {
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldWD, NULL, false) );
+   }
    myThread->switchHelperDependent(oldWD, newWD, arg);
 
    GenericSyncCond *syncCond = oldWD->getSyncCond();

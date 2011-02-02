@@ -391,6 +391,7 @@ System::~System ()
    if ( !_delayedStart ) finish();
 }
 
+int createdWds=0;
 void System::finish ()
 {
    /* Instrumentation: First removing RUNNING state from top of the state statck */
@@ -424,6 +425,7 @@ void System::finish ()
 #ifdef CLUSTER_DEV
    if (sys.getNetwork()->getNodeNum() == 0)
    {
+      std::cerr << "Created " << createdWds << " wds" << std::endl;
       for ( unsigned int p = getNumPEs(); p < _pes.size() ; p++ )
       {
          std::cerr << "Node " << p << " executed " << ((nanos::ext::ClusterNode *) _pes[p])->getExecutedWDs() << " WDs." << std::endl;
@@ -527,6 +529,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
 
    size_t offset_WD, offset_Data, offset_DPtrs, offset_DDs, offset_Copies, offset_PMD, total_size;
 
+   createdWds++;
    offset_WD     = NANOS_ALIGNED_MEMORY_OFFSET(0, 0, align_WD);
    offset_Data   = NANOS_ALIGNED_MEMORY_OFFSET(offset_WD, size_WD, align_Data);
    offset_DPtrs  = NANOS_ALIGNED_MEMORY_OFFSET(offset_Data, size_Data, align_DPtrs);
@@ -932,6 +935,7 @@ void System::setupWD ( WD &work, WD *parent )
    work.prepareCopies();
 
    // Invoke pmInterface
+   
    _pmInterface->setupWD(work);
 }
 

@@ -32,30 +32,30 @@ inline bool WDDeque::empty ( void ) const
    return _dq.empty();
 }
 
-inline void WDDeque::push_front ( WorkDescriptor *wd )
+inline void WDDeque::push_front ( WorkDescriptor *wd, bool trace)
 {
    wd->setMyQueue( this );
    _lock++;
    _dq.push_front( wd );
    int tasks = ++( sys.getSchedulerStats()._readyTasks );
-   increaseTasksInQueues(tasks);
+   if ( trace ) increaseTasksInQueues(tasks);
    memoryFence();
    _lock--;
 }
 
-inline void WDDeque::push_back ( WorkDescriptor *wd )
+inline void WDDeque::push_back ( WorkDescriptor *wd, bool trace )
 {
    wd->setMyQueue( this );
    _lock++;
    _dq.push_back( wd );
    int tasks = ++( sys.getSchedulerStats()._readyTasks );
-   increaseTasksInQueues(tasks);
+   if ( trace ) increaseTasksInQueues(tasks);
    memoryFence();
    _lock--;
 }
 
 // Only ensures tie semantics
-inline WorkDescriptor * WDDeque::pop_front ( BaseThread *thread )
+inline WorkDescriptor * WDDeque::pop_front ( BaseThread *thread, bool trace )
 {
    WorkDescriptor *found = NULL;
 
@@ -74,7 +74,7 @@ inline WorkDescriptor * WDDeque::pop_front ( BaseThread *thread )
             if ( (((WD*)( *it ))->dequeue( &found )) == true ) {
                 _dq.erase( it );
                 int tasks = --(sys.getSchedulerStats()._readyTasks);
-                decreaseTasksInQueues(tasks);
+                if ( trace ) decreaseTasksInQueues(tasks);
             }
             break;
          }
@@ -92,7 +92,7 @@ inline WorkDescriptor * WDDeque::pop_front ( BaseThread *thread )
 
 
 // Only ensures tie semantics
-inline WorkDescriptor * WDDeque::pop_back ( BaseThread *thread )
+inline WorkDescriptor * WDDeque::pop_back ( BaseThread *thread, bool trace )
 {
    WorkDescriptor *found = NULL;
 
@@ -111,7 +111,7 @@ inline WorkDescriptor * WDDeque::pop_back ( BaseThread *thread )
             if ( (( *rit )->dequeue( &found )) == true ) {
                _dq.erase( ( ++rit ).base() );
                int tasks = --(sys.getSchedulerStats()._readyTasks);
-               decreaseTasksInQueues(tasks);
+               if ( trace ) decreaseTasksInQueues(tasks);
             }
             break;
          }
@@ -128,7 +128,7 @@ inline WorkDescriptor * WDDeque::pop_back ( BaseThread *thread )
 }
 
 
-inline bool WDDeque::removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next )
+inline bool WDDeque::removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next, bool trace )
 {
    if ( _dq.empty() ) return false;
 
@@ -147,7 +147,7 @@ inline bool WDDeque::removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDe
             if ( (( *it )->dequeue( next )) == true ) {
                _dq.erase( it );
                int tasks = --(sys.getSchedulerStats()._readyTasks);
-               decreaseTasksInQueues(tasks);
+               if ( trace ) decreaseTasksInQueues(tasks);
             }
             (*next)->setMyQueue( NULL );
             _lock--;

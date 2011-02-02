@@ -106,11 +106,11 @@ void ClusterThread::inlineWorkDependent ( WD &wd )
 
 void ClusterThread::addWD( WorkDescriptor *wd )
 {
-   _myWDs.push_back( wd );
+   _myWDs.push_back( wd, false );
 }
 WorkDescriptor *ClusterThread::getWD( )
 {
-   WorkDescriptor * wd = _myWDs.pop_front( this );
+   WorkDescriptor * wd = _myWDs.pop_front( this, false );
    return wd;
 }
 

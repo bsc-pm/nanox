@@ -70,17 +70,17 @@ namespace nanos
 
          bool empty ( void ) const;
 
-         void push_front ( WorkDescriptor *wd );
-         void push_back( WorkDescriptor *wd );
-         WorkDescriptor * pop_front ( BaseThread *thread );
-         WorkDescriptor * pop_back ( BaseThread *thread );
+         void push_front ( WorkDescriptor *wd, bool trace=true );
+         void push_back( WorkDescriptor *wd, bool trace=true );
+         WorkDescriptor * pop_front ( BaseThread *thread, bool trace=true );
+         WorkDescriptor * pop_back ( BaseThread *thread, bool trace=true );
 
          static void increaseTasksInQueues( int tasks );
 
          static void decreaseTasksInQueues( int tasks );
 
 
-         bool removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
+         bool removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next, bool trace=true );
    };
 
 }
