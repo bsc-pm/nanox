@@ -102,18 +102,9 @@ namespace nanos {
             {
                 ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
                 if ( !data._init ) {
-            //if (!thread->getCurrentWD()->isClusterMigrable())
-            //{
-            //   std::cerr << " queue thread " << thread->getId() << " at idle, WD " << thread->getCurrentWD()->getId() << " MemorySpaceID  " << thread->getCurrentWD()->getPe()->getMemorySpaceId()  << std::endl;
-            //   data._cacheId = thread->getCurrentWD()->getPe()->getMemorySpaceId();
-            //}
-            //else
-            //{
-            //   std::cerr << "queue thread " << thread->getId() << " at idle " << wd.getId() << std::endl;
-            //   data._cacheId = thread->runningOn()->getMemorySpaceId();
-            //}
-               data._cacheId = thread->getCurrentWD()->getPe()->getMemorySpaceId();
-                   //data._cacheId = thread->runningOn()->getMemorySpaceId();
+                   // jbueno: data._cacheId = thread->runningOn()->getMemorySpaceId();
+	           data._cacheId = thread->getCurrentWD()->getPe()->getMemorySpaceId();
+                   data._init = true;
                 }
                 TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
 
@@ -130,10 +121,10 @@ namespace nanos {
                          if ( parent != NULL ) {
                             Directory *dir = parent->getDirectory();
                             if ( dir != NULL ) {
-                               DirectoryEntry *de = dir->getEntry(copies[i].getAddress());
+                               DirectoryEntry *de = dir->findEntry(copies[i].getAddress());
                                if ( de != NULL ) {
                                   for ( unsigned int j = 0; j < numCaches; j++ ) {
-                                     ranks[j]+=de->getAccess( j+1 );
+                                     ranks[j]+=((unsigned int)(de->getAccess( j+1 ) > 0))*copies[i].getSize();
                                   }
                                }
                             }
@@ -186,13 +177,11 @@ namespace nanos {
          if ( !data._init ) {
             if (!thread->getCurrentWD()->isClusterMigrable())
             {
-               //std::cerr << "thread " << thread->getId() << " at idle, WD " << thread->getCurrentWD()->getId() << " MemorySpaceID  " << thread->getCurrentWD()->getPe()->getMemorySpaceId()  << std::endl;
-               //print = true;
+               // jbueno: data._cacheId = thread->runningOn()->getMemorySpaceId();
                data._cacheId = thread->getCurrentWD()->getPe()->getMemorySpaceId();
             }
             else
             {
-               //std::cerr << "+thread " << thread->getId() << " at idle" << std::endl;
                data._cacheId = thread->runningOn()->getMemorySpaceId();
             }
          }
@@ -210,14 +199,16 @@ namespace nanos {
              wd = tdata._readyQueues[0].pop_front ( thread );
          }
          if ( wd == NULL ) {
-            for ( unsigned int i = 0; i < sys.getCacheMap().getSize(); i++ ) {
+            for ( unsigned int i = data._cacheId; i < sys.getCacheMap().getSize(); i++ ) {
                wd = tdata._readyQueues[i+1].pop_front( thread );
                if ( wd != NULL ) {
-                 // if ( wd->getNumCopies() == 0 ) {
-                     return wd;
-                  //}
-                  // MAYBE submit again so its data locality gets recomputed
-                  tdata._readyQueues[i+1].push_front( wd );
+                  return wd;
+               } 
+            }
+            for ( unsigned int i = 0; i < data._cacheId; i++ ) {
+               wd = tdata._readyQueues[i+1].pop_front( thread );
+               if ( wd != NULL ) {
+                  return wd;
                } 
             }
          }

@@ -27,7 +27,7 @@ instrumentation_LTLIBRARIES = \
 	libnanox-sched-dbf.la \
  	libnanox-sched-cilk.la \
  	libnanox-sched-wf.la \
- 	libnanox-sched-cache.la \
+ 	libnanox-sched-affinity.la \
 	$(END)
 
 nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags)
@@ -52,8 +52,8 @@ libnanox_sched_cilk_la_CXXFLAGS = $(nanos_instr_cxxflags)
 libnanox_sched_cilk_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_sched_cilk_la_SOURCES = $(cilk_sources)
  
-libnanox_sched_cache_la_CXXFLAGS = $(nanos_instr_cxxflags)
-libnanox_sched_cache_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_sched_cache_la_SOURCES = $(cache_sources)
+libnanox_sched_affinity_la_CXXFLAGS = $(nanos_instr_cxxflags)
+libnanox_sched_affinity_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_sched_affinity_la_SOURCES = $(affinity_sources)
 endif
 

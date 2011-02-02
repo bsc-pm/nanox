@@ -5,6 +5,8 @@ ult_sources= \
          $(END)
 ult_flags=-DSMP_SUPPORTS_ULT
 
+smp_numa_flags=-DSMP_NUMA
+
 smp_sources = \
 	$(top_srcdir)/src/arch/smp/smpdevice.hpp \
 	$(top_srcdir)/src/arch/smp/smpdd.hpp \

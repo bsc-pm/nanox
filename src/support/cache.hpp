@@ -58,6 +58,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
       ce = &(_cache.insert( tag, c, inserted ));
       if (inserted) { // allocate it
          ce->setAddress( _cache.allocate( dir, size ) );
+         ce->setAllocSize( size );
          if (input) {
             CopyDescriptor cd = CopyDescriptor(tag);
             if ( _cache.copyDataToCache( cd, size ) ) {
@@ -85,6 +86,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                while( de->getOwner() != NULL ) myThread->idle();
             }
             ce->setAddress( _cache.allocate( dir, size ) );
+            ce->setAllocSize( size );
             if (input) {
                while ( de->getOwner() != NULL ) myThread->idle();
                CopyDescriptor cd = CopyDescriptor(tag);
@@ -320,6 +322,7 @@ inline void CachePolicy::registerPrivateAccess( Directory& dir, uint64_t tag, si
    CacheEntry& ce = _cache.insert( tag, c, inserted );
    ensure ( inserted, "Private access cannot hit the cache.");
    ce.setAddress( _cache.allocate( dir, size ) );
+   ce.setAllocSize( size );
    if ( input ) {
       CopyDescriptor cd = CopyDescriptor(tag);
       if ( _cache.copyDataToCache( cd, size ) ) {
@@ -455,6 +458,7 @@ inline void DeviceCache<_T,_Policy>::realloc( Directory& dir, CacheEntry *ce, si
    }
    _usedSize += size - ce->getSize();
    void *addr = ce->getAddress();
+   ensure( size > ce->getSize() , "Trying to downsize a cache entry" );
    addr = _T::realloc( addr, size, ce->getSize(), _pe );
    ce->setAllocSize( size );
    ce->setSize( size );
