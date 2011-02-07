@@ -159,6 +159,19 @@ namespace nanos {
             }
 
             virtual WD *atIdle ( BaseThread *thread );
+
+            WD * atPrefetch ( BaseThread *thread, WD &current )
+            {
+               WD * found = current.getImmediateSuccessor(*thread);
+         
+               return found != NULL ? found : atIdle(thread);
+            }
+         
+            WD * atBeforeExit ( BaseThread *thread, WD &current )
+            {
+               return current.getImmediateSuccessor(*thread);
+            }
+
       };
 
 
@@ -189,14 +202,14 @@ namespace nanos {
          }
          if ( wd == NULL ) {
             for ( unsigned int i = data._cacheId; i < sys.getCacheMap().getSize(); i++ ) {
-               wd = tdata._readyQueues[i+1].pop_front( thread );
-               if ( wd != NULL ) {
+               if ( tdata._readyQueues[i+1].size() > 1 ) {
+                  wd = tdata._readyQueues[i+1].pop_front( thread );
                   return wd;
                } 
             }
             for ( unsigned int i = 0; i < data._cacheId; i++ ) {
-               wd = tdata._readyQueues[i+1].pop_front( thread );
-               if ( wd != NULL ) {
+               if ( tdata._readyQueues[i+1].size() > 1 ) {
+                  wd = tdata._readyQueues[i+1].pop_front( thread );
                   return wd;
                } 
             }

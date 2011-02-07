@@ -82,17 +82,17 @@ namespace nanos {
               return tdata._readyQueue.pop_back( thread );
            }
 
-	   WD * atPrefetch ( BaseThread *thread, WD &current )
-	   {
+           WD * atPrefetch ( BaseThread *thread, WD &current )
+           {
               WD * found = current.getImmediateSuccessor(*thread);
-
-	      return found != NULL ? found : atIdle(thread);
-	   }
         
-	   WD * atBeforeExit ( BaseThread *thread, WD &current )
-	   {
+              return found != NULL ? found : atIdle(thread);
+           }
+        
+           WD * atBeforeExit ( BaseThread *thread, WD &current )
+           {
               return current.getImmediateSuccessor(*thread);
-	   }
+           }
       };
   
       class NanosSchedPlugin : public Plugin
