@@ -24,6 +24,10 @@
 #include <stdbool.h>
 #include "nanos-int.h"
 
+#ifdef GPU_DEV
+#include "gpuprocessor.hpp"
+#endif
+
 #ifdef _MERCURIUM
 // define API version
 #pragma nanos interface family(master) version(5002)
@@ -145,6 +149,10 @@ extern const size_t nanos_smp_dd_size;
 void * nanos_gpu_factory( void *prealloc ,void *args);
 extern const size_t nanos_gpu_dd_size;
 #define NANOS_GPU_DESC( args ) { nanos_gpu_factory, nanos_gpu_dd_size, &( args ) }
+
+#ifdef GPU_DEV
+cudaStream_t nanos_get_kernel_execution_stream();
+#endif
 
 // instrumentation interface
 nanos_err_t nanos_instrument_register_key ( nanos_event_key_t *event_key, const char *key, const char *description, bool abort_when_registered );

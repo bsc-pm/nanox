@@ -82,6 +82,10 @@ void GPUThread::inlineWorkDependent ( WD &wd )
    // We wait for wd inputs, but as we have just waited for them, we could skip this step
    wd.start( WD::IsNotAUserLevelThread );
 
+   if ( GPUConfig::isOverlappingOutputsDefined() ) {
+      cudaStreamSynchronize( myGPU.getGPUProcessorInfo()->getOutTransferStream() );
+   }
+
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
    ( dd.getWorkFct() )( wd.getData() );
 
@@ -93,11 +97,16 @@ void GPUThread::inlineWorkDependent ( WD &wd )
       // But because the kernel call is asynchronous for GPUs we need to raise them manually here
       // when we know the kernel has really finished
       NANOS_INSTRUMENT ( raiseWDClosingEvents() );
-   }
 
-   // Copy out results from tasks executed previously
-   // Do it always, as another GPU may be waiting for results
-   myGPU.getOutTransferList()->executeMemoryTransfers();
+      // Copy out results from tasks executed previously
+      // Do it always, as another GPU may be waiting for results
+      myGPU.getOutTransferList()->executeMemoryTransfers();
+   }
+   else {
+      // Open a new substate instrumentation phase before copying out the results
+      NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
+      myGPU.getOutTransferList()->executeMemoryTransfers();
+   }
 
    if ( GPUConfig::isPrefetchingDefined() ) {
       NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
@@ -112,7 +121,8 @@ void GPUThread::inlineWorkDependent ( WD &wd )
 
    if ( GPUConfig::isOverlappingOutputsDefined() || GPUConfig::isOverlappingInputsDefined() ) {
       // Wait for the GPU kernel to finish, if we have not waited before
-      cudaThreadSynchronize();
+      //cudaThreadSynchronize();
+      cudaStreamSynchronize( myGPU.getGPUProcessorInfo()->getKernelExecStream() );
 
       // Normally this instrumentation code is inserted by the compiler in the task outline.
       // But because the kernel call is asynchronous for GPUs we need to raise them manually here
