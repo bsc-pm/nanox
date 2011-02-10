@@ -90,6 +90,9 @@ struct work_wrapper_args
    size_t argSize;
 };
 
+static char *work_data = NULL;
+static size_t work_data_len;
+
 static void wk_wrapper(struct work_wrapper_args *arg)
 {
    //fprintf(stderr, "node %d starting work> outline %p, arg struct %p rId %d, numPe %d\n", sys.getNetwork()->getNodeNum(), arg->work, arg->arg, arg->id, arg->numPe);
@@ -125,51 +128,77 @@ static void am_exit_reply(gasnet_token_t token)
     fprintf(stderr, "EXIT message to node %d completed.\n", src_node);
 }
 
-static void am_work(gasnet_token_t token, void *arg, size_t argSize, void *workLo, void * workHi, unsigned int dataSize, unsigned int wdId, unsigned int numPe )
+static void am_work(gasnet_token_t token, void *arg, size_t argSize,
+      gasnet_handlerarg_t workLo,
+      gasnet_handlerarg_t workHi,
+      unsigned int dataSize, unsigned int wdId, unsigned int numPe )
 {
    void (*work)( void *) = (void (*)(void *)) MERGE_ARG( workHi, workLo );
     gasnet_node_t src_node;
     unsigned int i;
+    size_t realSize;
     if (gasnet_AMGetMsgSource(token, &src_node) != GASNET_OK)
     {
         fprintf(stderr, "gasnet: Error obtaining node information.\n");
     }
-    //fprintf(stderr, "am_work: WORK message from node %d: fct %p, argSize %d.\n", src_node, work, argSize);
+
+    if ( work_data == NULL )
+    {
+       work_data = new char[ argSize ];
+       memcpy( work_data, arg, argSize );
+       realSize = argSize;
+    }
+    else
+    {
+       memcpy( &work_data[ work_data_len ], arg, argSize );
+       realSize = work_data_len + argSize;
+    }
+    //fprintf(stderr, "am_work: WORK message from node %d: fct %p, argSize %d.\n", src_node, work, realSize);
 
     struct work_wrapper_args * warg = new struct work_wrapper_args;
     bzero(warg, sizeof(struct work_wrapper_args));
     warg->work = work;
     warg->arg = new char [ dataSize ];
-    memcpy(warg->arg, arg, dataSize);
+    memcpy(warg->arg, work_data, dataSize);
     warg->id = wdId;
     warg->numPe = numPe;
     warg->argSize = dataSize;
 
-    //CopyData *recvcd = (CopyData *) &((char *) arg)[arg0];
     //fprintf(stderr, "NUM COPIES %d addr %llx, in? %s, out? %s\n",
     //      1,
     //      recvcd->getAddress(),
     //      recvcd->isInput() ? "yes" : "no",
     //      recvcd->isOutput() ? "yes" : "no" );
     
-    unsigned int numCopies = ( argSize - dataSize ) / sizeof( CopyData );
+    unsigned int numCopies = ( realSize - dataSize ) / sizeof( CopyData );
+
+
+    //fprintf(stderr, "NUM COPIES %d %ld %d %ld %ld\n", numCopies, realSize, dataSize, sizeof(CopyData), sizeof(size_t));
     CopyData *newCopies = new CopyData[ numCopies ]; 
 
     for (i = 0; i < numCopies; i += 1) {
-       new ( &newCopies[i] ) CopyData( *( (CopyData *) &( ( char * )arg)[ dataSize + i * sizeof( CopyData ) ] ) );
+       new ( &newCopies[i] ) CopyData( *( (CopyData *) &work_data[ dataSize + i * sizeof( CopyData ) ] ) );
     }
+
+    //for (int i = 0; i < numCopies; i++)
+    //fprintf(stderr, "NUM COPIES %d addr %llx, in? %s, out? %s, sharing %d\n",
+    //      numCopies,
+    //      newCopies[i].getAddress(),
+    //      newCopies[i].isInput() ? "yes" : "no",
+    //      newCopies[i].isOutput() ? "yes" : "no",
+    //      newCopies[i].getSharing());
 
     SMPDD * dd = new SMPDD ( ( SMPDD::work_fct ) wk_wrapper );
     WD *wd = new WD( dd, sizeof(struct work_wrapper_args), 1, warg, numCopies, newCopies );
     wd->setId( wdId );
 
-    //fprintf(stderr, "WD %p , args->arg %p size %d args->id %d\n", wd, warg->arg, arg0, warg->id );
+    //fprintf(stderr, "WD %p , args->arg %p size %d args->id %d\n", wd, warg->arg, realSize, warg->id );
 
     wd->setPe( NULL );
     //WD *wd = new WD( dd/*, sizeof(struct work_wrapper_args), warg*/ );
 
     //SMPDD * dd = new SMPDD ( ( SMPDD::work_fct ) work);
-    //WD *wd = new WD( dd, argSize, arg );
+    //WD *wd = new WD( dd, realSize, arg );
 
     //fprintf(stderr, "WD is %p\n", wd);
     //for (int i = 0; i < wd->getNumCopies(); i++)
@@ -186,9 +215,36 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize, void *workL
        NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *wd, NANOS_WD_REMOTE, id, 0, NULL, NULL, 0 ); )
     }
 
+    delete work_data;
+    work_data = NULL;
+    work_data_len = 0;
+
     sys.submit( *wd );
 
-    //fprintf(stderr, "out of am_work.\n", src_node, work, argSize);
+    //fprintf(stderr, "out of am_work.\n", src_node, work, realSize);
+}
+
+static void am_work_data(gasnet_token_t token, void *buff, size_t len,
+      gasnet_handlerarg_t msgNum,
+      gasnet_handlerarg_t totalLenLo,
+      gasnet_handlerarg_t totalLenHi)
+{
+   gasnet_node_t src_node;
+   size_t totalLen = (size_t) MERGE_ARG( totalLenHi, totalLenLo );
+   if (gasnet_AMGetMsgSource(token, &src_node) != GASNET_OK)
+   {
+       fprintf(stderr, "gasnet: Error obtaining node information.\n");
+   }
+
+   if ( msgNum == 0 )
+   {
+      if (work_data != NULL)
+         delete work_data;
+      work_data = new char[ totalLen ];
+      work_data_len = 0;
+   }
+   memcpy( &work_data[ work_data_len ], buff, len );
+   work_data_len += len;
 }
 
 static void am_work_done( gasnet_token_t token, unsigned int numPe )
@@ -444,7 +500,8 @@ void GASNetAPI::initialize ( Network *net )
       { 211, (void (*)()) am_transfer_get },
       { 212, (void (*)()) am_transfer_put_after_get },
       { 213, (void (*)()) am_flash_put },
-      { 214, (void (*)()) am_request_put }
+      { 214, (void (*)()) am_request_put },
+      { 215, (void (*)()) am_work_data }
    };
 
    fprintf(stderr, "argc is %d\n", my_argc);
@@ -554,10 +611,30 @@ void GASNetAPI::sendExitMsg ( unsigned int dest )
    }
 }
 
-void GASNetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int dataSize, unsigned int wdId, unsigned int numPe, size_t argSize, void * arg )
+void GASNetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int dataSize, unsigned int wdId, unsigned int numPe, size_t argSize, char * arg )
 {
-   //fprintf(stderr, "sending msg WORK %p, arg size %d to node %d, numPe %d\n", work, argSize, dest, numPe);
-   if (gasnet_AMRequestMedium5( dest, 205, arg, argSize, (gasnet_handlerarg_t ) ARG_LO( work ), (gasnet_handlerarg_t) ARG_HI( work ), dataSize, wdId, numPe ) != GASNET_OK)
+   //fprintf(stderr, "sending msg WORK %p, arg size %d to node %d, numPe %d %d max med req\n", work, argSize, dest, numPe, gasnet_AMMaxMedium());
+   size_t sent = 0;
+   unsigned int msgCount = 0;
+   while ( (argSize - sent) > gasnet_AMMaxMedium() )
+   {
+      if ( gasnet_AMRequestMedium3( dest, 215, &arg[ sent ], gasnet_AMMaxMedium(),
+               msgCount, 
+               ARG_LO( argSize ),
+               ARG_HI( argSize ) ) != GASNET_OK )
+      {
+         fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
+      }
+      msgCount++;
+      sent += gasnet_AMMaxMedium();
+         //fprintf(stderr, "gasnet: sending msg_data %d.\n", sent);
+   }
+
+
+   if (gasnet_AMRequestMedium5( dest, 205, &arg[ sent ], argSize - sent,
+            ( gasnet_handlerarg_t ) ARG_LO( work ),
+            ( gasnet_handlerarg_t ) ARG_HI( work ),
+            dataSize, wdId, numPe ) != GASNET_OK)
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
    }

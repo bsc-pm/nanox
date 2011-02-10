@@ -57,7 +57,7 @@ namespace nanos {
          void finalize ( void );
          void poll ( void );
          void sendExitMsg( unsigned int nodeNum );
-         void sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, size_t argSize, void * arg );
+         void sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, size_t argSize, char * arg );
          void waitWorkCompletion( unsigned int dest, unsigned int numPe );
          void sendWorkDoneMsg( unsigned int nodeNum, unsigned int numPe );
          void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size );

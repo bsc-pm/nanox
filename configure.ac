@@ -528,6 +528,7 @@ AC_CONFIG_FILES([Makefile
 		 src/arch/cluster/performance/Makefile
 		 src/arch/cluster/debug/Makefile
 		 src/arch/cluster/instrumentation/Makefile
+		 src/arch/cluster/instrumentation-debug/Makefile
 		 src/utils/Makefile
 		 scripts/Makefile
 		 tests/Makefile

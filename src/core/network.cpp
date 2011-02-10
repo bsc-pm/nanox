@@ -112,7 +112,7 @@ void Network::sendExitMsg( unsigned int nodeNum )
    }
 }
 
-void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigned int dataSize, unsigned int wdId, unsigned int numPe, size_t argSize, void * arg )
+void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigned int dataSize, unsigned int wdId, unsigned int numPe, size_t argSize, char * arg )
 {
  //  ensure ( _api != NULL, "No network api loaded." );
    if ( _api != NULL )
@@ -140,7 +140,7 @@ void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigne
 
 void Network::waitWorkCompletion(unsigned int dest, unsigned int numPe)
 {
-   //std::cerr << "waiting work from " << dest << " target pe " << numPe << std::endl;
+   //std::cerr << "waiting work from " << dest << " target pe " << numPe << " sys.getNumPEs() is " << sys.getNumPEs()<< std::endl;
    while (_notify[ dest * sys.getNumPEs() + numPe ] == 0)
    {
       poll();

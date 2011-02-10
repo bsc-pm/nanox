@@ -34,7 +34,7 @@ namespace nanos {
          virtual void finalize () = 0;
          virtual void poll () = 0;
          virtual void sendExitMsg ( unsigned int dest ) = 0;
-         virtual void sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, size_t argSize, void * arg ) = 0;
+         virtual void sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, size_t argSize, char * arg ) = 0;
          virtual void sendWorkDoneMsg ( unsigned int dest, unsigned int numPe ) = 0;
          virtual void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size ) = 0;
          virtual void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, size_t size ) = 0;

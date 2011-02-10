@@ -51,7 +51,7 @@ void ClusterThread::inlineWorkDependent ( WD &wd )
    {
    
    ProcessingElement *pe = wd.getPe();
-   //std::cerr << "run remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " numPe " << wd.getPeId() << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << " WDprev " << wd.getPrevious() << ":" << wd.getPrevious()->getId() << std::endl;
+   //std::cerr << "run remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " numPe " << wd.getPeId() << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << " WDprev " << wd.getPrevious() << ":" << wd.getPrevious()->getId() << " data size is " << wd.getDataSize() << std::endl;
    
    CopyData newCopies[ wd.getNumCopies() ]; 
 
@@ -65,10 +65,11 @@ void ClusterThread::inlineWorkDependent ( WD &wd )
 
    for (i = 0; i < wd.getNumCopies(); i += 1) {
       newCopies[i].setAddress( ( uint64_t ) pe->getAddress( wd, newCopies[i].getAddress(), newCopies[i].getSharing() ) );
-    //  std::cerr << "copy " << i << " addr " << (void *) newCopies[i].getAddress() << std::endl;
+      //std::cerr << "copy " << i << " addr " << (void *) newCopies[i].getAddress() << std::endl;
    }
 
-   char buff[ wd.getDataSize() + wd.getNumCopies() * sizeof( CopyData ) ];
+   //char buff[ wd.getDataSize() + wd.getNumCopies() * sizeof( CopyData ) ];
+   char *buff = new char[ wd.getDataSize() + wd.getNumCopies() * sizeof( CopyData )];
    if ( wd.getDataSize() > 0 )
    {
       memcpy( &buff[ 0 ], wd.getData(), wd.getDataSize() );

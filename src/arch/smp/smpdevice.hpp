@@ -114,6 +114,11 @@ namespace nanos
          static void syncTransfer( uint64_t hostAddress, ProcessingElement *pe)
          {
          }
+
+         static bool copyDevToDev( void *addrSrc, size_t size, ProcessingElement *pe, ProcessingElement *peDst, void *addrDst )
+         {
+            return true;
+         }
    };
 }
 

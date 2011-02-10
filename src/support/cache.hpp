@@ -106,6 +106,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
    //std::cerr<<"registerCacheAccess already here in other cache "<<(void*)tag<<" is input "<<input<<" is output "<<output<<" owner "<<owner<<" nodeAddr "<<(void*)((owner != NULL)?(void*)(owner->getEntry(tag)->getAddress()):(void*)0)<<std::endl;
             // same as above,
             ce->setAddress( _cache.allocate( dir, size ) );
+            ce->setAllocSize( size );
 
             if ( owner != NULL && !(!input && output) ) {
                CopyDescriptor cd = CopyDescriptor(tag);
