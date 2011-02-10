@@ -57,11 +57,11 @@ namespace nanos
 //
 // interface function with begin-statement
 //
-void chpl_begin(chpl_fn_p fp,
-                void* a,
-                chpl_bool ignore_serial,  // always add task to pool
-                chpl_bool serial_state,
-                chpl_task_list_p ltask) {
+void chpl_task_begin(chpl_fn_p fp,
+                     void* a,
+                     chpl_bool ignore_serial,  // always add task to pool
+                     chpl_bool serial_state,
+                     chpl_task_list_p ltask) {
 
    assert(!ltask);
 
@@ -71,8 +71,7 @@ void chpl_begin(chpl_fn_p fp,
 
 // Tasks
 
-void chpl_tasking_init(int32_t maxThreadsPerLocale, uint64_t callStackSize) 
-{
+void chpl_task_init(int32_t maxThreadsPerLocale, uint64_t callStackSize) {
    sys.setInitialMode( System::POOL );
    sys.setUntieMaster(true);
    sys.setNumPEs(maxThreadsPerLocale);
@@ -90,33 +89,33 @@ void chpl_tasking_init(int32_t maxThreadsPerLocale, uint64_t callStackSize)
 }
 
 
-void chpl_tasking_call_main(void (*chpl_main)(void)) {
+void chpl_task_callMain(void (*chpl_main)(void)) {
   chpl_main();
 }
 
-void chpl_tasking_exit()
+void chpl_task_exit()
 {
    sys.finish();
 }
 
-void chpl_add_to_task_list(chpl_fn_int_t fid, void* arg,
-                           chpl_task_list_p *task_list,
-                           int32_t task_list_locale,
-                           chpl_bool call_chpl_begin,
-                           int lineno, chpl_string filename) {
+void chpl_task_addToTaskList(chpl_fn_int_t fid, void* arg,
+                             chpl_task_list_p *task_list,
+                             int32_t task_list_locale,
+                             chpl_bool call_chpl_begin,
+                             int lineno, chpl_string filename) {
     chpl_fn_p fp = chpl_ftable[fid];
-    chpl_begin(fp, arg, false, false, NULL);
+    chpl_task_begin(fp, arg, false, false, NULL);
 }
 
-void chpl_process_task_list(chpl_task_list_p task_list)
+void chpl_task_processTaskList(chpl_task_list_p task_list)
 {
 }
 
-void chpl_execute_tasks_in_list(chpl_task_list_p task_list)
+void chpl_task_executeTasksInList(chpl_task_list_p task_list)
 {
 }
 
-void chpl_free_task_list(chpl_task_list_p task_list)
+void chpl_task_freeTaskList(chpl_task_list_p task_list)
 {
 }
 
@@ -127,69 +126,69 @@ void chpl_task_sleep(int secs)
 }
 
 //TODO
-chpl_bool chpl_get_serial(void)
+chpl_bool chpl_task_getSerial(void)
 {
   return 0;
 }
 
 //TODO
-void chpl_set_serial(chpl_bool state)
+void chpl_task_setSerial(chpl_bool state)
 {
 }
 
-uint64_t chpl_task_callstacksize(void) {
+uint64_t chpl_task_getCallStackSize(void) {
   return taskCallStackSize;
 }
 
 
 // Task stats routines
 
-uint32_t chpl_numQueuedTasks(void)
+uint32_t chpl_task_getNumQueuedTasks(void)
 {
    return sys.getReadyNum();
 }
 
-uint32_t chpl_numRunningTasks(void)
+uint32_t chpl_task_getNumRunningTasks(void)
 {
   return sys.getRunningTasks();
 }
 
-int32_t  chpl_numBlockedTasks(void)
+int32_t  chpl_task_getNumBlockedTasks(void)
 {
   return sys.getTaskNum() - sys.getReadyNum() -  sys.getRunningTasks();
 }
 
 //TODO
-chpl_taskID_t chpl_task_id(void)
+chpl_taskID_t chpl_task_getId(void)
 {
   return myThread->getCurrentWD()->getId();
 }
 
 // Threads stat routines
 
-int32_t  chpl_threads_getMaxThreads(void)
+int32_t  chpl_task_getMaxThreads(void)
 {
    // TODO: Alex
    return 0;
 }
 
-int32_t  chpl_threads_maxThreadsLimit(void)
+int32_t  chpl_task_getMaxThreadsLimit(void)
 {
    // TODO: Alex
    return 0;
 }
 
-uint32_t chpl_numThreads(void)
+uint32_t chpl_task_getNumThreads(void)
 {
    return sys.getNumWorkers();
 }
 
-uint32_t chpl_numIdleThreads(void)
+uint32_t chpl_task_getNumIdleThreads(void)
 {
     return sys.getIdleNum();
 }
 
-void chpl_per_pthread_tasking_init(void) {
+void chpl_task_perPthreadInit(void) {
   // TODO: This function is called for any pthreads that are created
   // outside the tasking layer -- for example, a progress thread used
   // to ensure progress in a one-sided communication layer that needs

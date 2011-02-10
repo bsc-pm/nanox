@@ -69,6 +69,7 @@ namespace nanos
          ~WDDeque() {}
 
          bool empty ( void ) const;
+         size_t size() const;
 
          void push_front ( WorkDescriptor *wd, bool trace=true );
          void push_back( WorkDescriptor *wd, bool trace=true );

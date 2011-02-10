@@ -418,16 +418,27 @@ inline void DeviceCache<_T,_Policy>::freeSpaceToFit( Directory &dir, size_t size
    CacheHash::KeyList::iterator it;
    for ( it = kl.begin(); it != kl.end(); it++ ) {
       // Copy the entry because once erased it can be recycled
-      CacheEntry &ce = *( _cache.find( it->second ) );
-      //if ( _cache.erase( it->second ) ) {
-         if ( ce.isDirty() ) {
-            DirectoryEntry *de = dir.getEntry( ce.getTag() );
-            //std::cerr << "free space to fit invalidate> Owner:" << de->getOwner() << " this:" << &_cache << std::endl;
-            invalidate( dir, ce.getTag(), ce.getSize(), de );
+      CacheEntry ce = *( _cache.find( it->second ) );
+      if ( ce.isDirty() ) {
+         DirectoryEntry *de = dir.getEntry( ce.getTag() );
+         if ( ce.trySetToFlushing() ) {
+            ce.setFlushingTo( &dir );
+            if ( de->getOwner() != this ) {
+                  // someone flushed it between setting to invalidated and setting to flushing, do nothing
+                  ce.setFlushing(false);
+            } else {
+               CopyDescriptor cd = CopyDescriptor(ce.getTag(), de->getVersion());
+               if ( copyBackFromCache( cd, ce.getSize() ) ) {
+                  ce.setFlushing(false);
+                  de->setOwner(NULL);
+               }
+            }
          }
-         // FIXME: this can be optimized by adding the flushing entries to a list and go to that list if not enough space was freed
-         while ( ce.isFlushing() )
-            _T::syncTransfer( (uint64_t)it->second, _pe );
+      }
+      // FIXME: this can be optimized by adding the flushing entries to a list and go to that list if not enough space was freed
+      while ( ce.isFlushing() )
+         _T::syncTransfer( (uint64_t)it->second, _pe );
+      if ( _cache.erase( it->second ) ) {
          _T::free( ce.getAddress(), _pe );
          _usedSize -= ce.getSize();
 _cache.erase( it->second );
@@ -600,7 +611,7 @@ inline void DeviceCache<_T,_Policy>::synchronizeInternal( SyncData &sd, CopyDesc
 
       // Make sure we are synchronizing the newest version
       if ( de->getOwner() == sd._this && ce->getVersion() == cd.getDirectoryVersion()) {
-         de->clearOwnerCS( sd._this );
+          de->clearOwnerCS( sd._this ); 
       }
    } else {
       ensure ( !ce->isFlushing(), "User program is incorrect" );

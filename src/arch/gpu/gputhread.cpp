@@ -49,26 +49,13 @@ void GPUThread::initializeDependent ()
          warning( "Couldn't set the GPU device flags:" << cudaGetErrorString( err ) );
    }
 
-   // Warming up GPU's...
-   if ( GPUConfig::isGPUWarmupDefined() ) {
-      int n = 65536;
-      int *warmup = NEW int[n];
-      int *warmup_d;
-      err = cudaMalloc( &warmup_d, n * sizeof( int ) );
-      err = cudaMemcpy( warmup_d, warmup, n * sizeof( int ) , cudaMemcpyHostToDevice );
-      err = cudaMemcpy( warmup, warmup_d, n * sizeof( int ) , cudaMemcpyDeviceToHost );
-      if ( err != cudaSuccess ) {
-         if ( err == CUDANODEVERR ) {
-            fatal( "Error while warming up the GPUs: all CUDA-capable devices are busy or unavailable" );
-         }
-         warning( "Error while warming up the GPUs: " << cudaGetErrorString( err ) );
-      }
-      cudaFree( warmup_d );
-      delete warmup;
-   }
-
    // Initialize GPUProcessor
    ( ( GPUProcessor * ) myThread->runningOn() )->init();
+
+   // Warming up GPU's...
+   if ( GPUConfig::isGPUWarmupDefined() ) {
+      cudaFree(0);
+   }
 }
 
 void GPUThread::runDependent ()

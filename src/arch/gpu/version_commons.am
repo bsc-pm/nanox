@@ -22,6 +22,13 @@ pe_gpu_sources = \
 	$(top_srcdir)/src/arch/gpu/gpuplugin.cpp \
 	$(END)
 
+gpu_cublas_sources = \
+	$(top_srcdir)/src/arch/gpu/gpucublasplugin.cpp \
+	$(END)
+
 gpu_ldflags = -L@CUDA_LIB@ -lcudart
 gpu_includes = -I @CUDA_INC@
+
+gpu_cublas_ldflags = -L@CUDA_LIB@ -lcudart -lcublas
+gpu_cublas_includes = -I @CUDA_INC@
 

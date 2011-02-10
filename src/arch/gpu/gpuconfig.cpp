@@ -18,6 +18,7 @@
 /*************************************************************************************/
 
 #include "gpuconfig.hpp"
+#include "plugin.hpp"
 // We need to include system.hpp (to use verbose0(msg)), as debug.hpp does not include it
 #include "system.hpp"
 
@@ -35,6 +36,7 @@ bool GPUConfig::_overlapOutputs = false;
 transfer_mode GPUConfig::_transferMode = NANOS_GPU_TRANSFER_NORMAL;
 size_t GPUConfig::_maxGPUMemory = 0;
 bool GPUConfig::_gpuWarmup = true;
+bool GPUConfig::_initCublas = false;
 void * GPUConfig::_gpusProperties = NULL;
 
 void GPUConfig::prepare( Config& config )
@@ -91,6 +93,12 @@ void GPUConfig::prepare( Config& config )
                                 "Enable or disable warming up the GPU (enabled by default)" );
    config.registerEnvOption( "gpu-warmup", "NX_GPUWARMUP" );
    config.registerArgOption( "gpu-warmup", "gpu-warmup" );
+
+   // Enable / disable CUBLAS initialization
+   config.registerConfigOption( "gpu-cublas-init", NEW Config::FlagOption( _initCublas ),
+                                "Enable or disable CUBLAS initialization (disabled by default)" );
+   config.registerEnvOption( "gpu-cublas-init", "NX_GPUCUBLASINIT" );
+   config.registerArgOption( "gpu-cublas-init", "gpu-cublas-init" );
 }
 
 void GPUConfig::apply()
@@ -103,6 +111,8 @@ void GPUConfig::apply()
       _overlapOutputs = false;
       _maxGPUMemory = 0;
       _gpuWarmup = false;
+      _initCublas = false;
+      _gpusProperties = NULL;
    } else {
       // Find out how many CUDA-capable GPUs the system has
       int totalCount, device, deviceCount = 0;
@@ -140,6 +150,13 @@ void GPUConfig::apply()
 
       if ( _overlapInputs || _overlapOutputs ) {
          _transferMode = NANOS_GPU_TRANSFER_ASYNC;
+      }
+
+      if ( _initCublas ) {
+         verbose( "initializing CUBLAS Library" );
+         if ( !PluginManager::load ( "gpu-cublas", 1 ) ) {
+            warning ( "Couldn't initialize CUBLAS library at runtime startup" );
+         }
       }
    }
 
