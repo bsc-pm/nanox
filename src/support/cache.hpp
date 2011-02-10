@@ -441,10 +441,9 @@ inline void DeviceCache<_T,_Policy>::freeSpaceToFit( Directory &dir, size_t size
       if ( _cache.erase( it->second ) ) {
          _T::free( ce.getAddress(), _pe );
          _usedSize -= ce.getSize();
-_cache.erase( it->second );
          if ( _usedSize + size <= _size )
             break;
-      //}
+      }
    }
    ensure( _usedSize + size <= _size, "Cache is full" );
 }

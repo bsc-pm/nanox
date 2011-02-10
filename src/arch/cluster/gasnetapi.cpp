@@ -25,7 +25,9 @@
 #include "instrumentation.hpp"
 #include <list>
 
+extern "C" {
 #include <gasnet.h>
+}
 
 #ifdef __powerpc64__
 
