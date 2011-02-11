@@ -56,6 +56,9 @@ void GPUThread::initializeDependent ()
    if ( GPUConfig::isGPUWarmupDefined() ) {
       cudaFree(0);
    }
+
+   // Reset CUDA errors that may have occurred inside the runtime initialization
+   err = cudaGetLastError();
 }
 
 void GPUThread::runDependent ()
