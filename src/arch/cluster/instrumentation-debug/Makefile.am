@@ -20,7 +20,7 @@
 include $(top_srcdir)/src/arch/cluster/version_commons.am
 include $(top_srcdir)/src/common.am
 
-if INSTRUMENTATION_VERSION
+if INSTRUMENTATION_DEBUG_VERSION
 noinst_LTLIBRARIES = libcluster.la
 
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags)
