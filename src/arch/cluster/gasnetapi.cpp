@@ -29,7 +29,11 @@ extern "C" {
 #include <gasnet.h>
 }
 
-#ifdef __powerpc64__
+#ifndef __SIZEOF_POINTER__
+#error This compiler does not define __SIZEOF_POINTER__ :( 
+#else
+
+#if __SIZEOF_POINTER__ == 8
 
 #define MERGE_ARG( _Hi, _Lo) ( ( ( uintptr_t ) ( _Lo ) ) + ( ( ( uintptr_t ) ( _Hi ) ) << 32 ) )
 #define ARG_HI( _Arg ) ( ( uint32_t ) ( ( ( uintptr_t ) ( _Arg ) ) >> 32 ) )
@@ -43,6 +47,7 @@ extern "C" {
 
 #endif
 
+#endif
 
 using namespace nanos;
 using namespace ext;

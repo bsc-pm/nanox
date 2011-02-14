@@ -49,3 +49,6 @@ endif
 
 pe_cluster_udp_includes = $(pe_cluster_common_includes) -I@GASNET_DIR@/include/udp-conduit
 pe_cluster_udp_ldflags = $(pe_cluster_common_ldflags) -lgasnet-udp-par -lamudp
+
+pe_cluster_smp_includes = $(pe_cluster_common_includes) -I@GASNET_DIR@/include/smp-conduit
+pe_cluster_smp_ldflags = $(pe_cluster_common_ldflags) -lgasnet-smp-par

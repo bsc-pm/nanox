@@ -22,18 +22,33 @@ include $(top_srcdir)/src/common.am
 
 if PERFORMANCE_VERSION
 noinst_LTLIBRARIES = libcluster.la
-performance_LTLIBRARIES = libnanox-pe-cluster-mpi.la libnanox-pe-cluster-udp.la
 
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags)
 
 libcluster_la_CXXFLAGS=$(nanos_perfo_cxxflags)
 libcluster_la_SOURCES=$(cluster_sources)
 
+performance_LTLIBRARIES =
+
+if CONDUIT_MPI
+performance_LTLIBRARIES += libnanox-pe-cluster-mpi.la
 libnanox_pe_cluster_mpi_la_CXXFLAGS=$(nanos_perfo_cxxflags) $(pe_cluster_mpi_includes)
 libnanox_pe_cluster_mpi_la_LDFLAGS=$(ld_plugin_flags) $(pe_cluster_mpi_ldflags)
 libnanox_pe_cluster_mpi_la_SOURCES=$(pe_cluster_sources)
+endif
 
+if CONDUIT_UDP
+performance_LTLIBRARIES += libnanox-pe-cluster-udp.la
 libnanox_pe_cluster_udp_la_CXXFLAGS=$(nanos_perfo_cxxflags) $(pe_cluster_udp_includes)
 libnanox_pe_cluster_udp_la_LDFLAGS=$(ld_plugin_flags) $(pe_cluster_udp_ldflags)
 libnanox_pe_cluster_udp_la_SOURCES=$(pe_cluster_sources)
+endif
+
+if CONDUIT_SMP
+performance_LTLIBRARIES += libnanox-pe-cluster-smp.la
+libnanox_pe_cluster_smp_la_CXXFLAGS=$(nanos_perfo_cxxflags) $(pe_cluster_smp_includes)
+libnanox_pe_cluster_smp_la_LDFLAGS=$(ld_plugin_flags) $(pe_cluster_smp_ldflags)
+libnanox_pe_cluster_smp_la_SOURCES=$(pe_cluster_sources)
+endif
+
 endif
