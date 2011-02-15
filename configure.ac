@@ -160,6 +160,9 @@ AC_ARG_ENABLE([cluster],
         AC_MSG_RESULT([yes])
     ]
 )
+with_mpi_conduit="no"
+with_udp_conduit="no"
+with_smp_conduit="no"
 if test x$cluster_enabled = xyes; then
     CFLAGS="$CFLAGS -DCLUSTER_DEV"
     CXXFLAGS="$CXXFLAGS -DCLUSTER_DEV"
@@ -176,9 +179,6 @@ if test x$cluster_enabled = xyes; then
 
     AC_SUBST([GASNET_DIR])
     CONDUITS=`ls -d $GASNET_DIR/include/*-conduit | sed -e "s#$GASNET_DIR/include/##" | cut -d - -f 1`
-    with_mpi_conduit="no"
-    with_udp_conduit="no"
-    with_smp_conduit="no"
     for this_conduit in $CONDUITS ; do
         if test x$this_conduit = xmpi ; then
             with_mpi_conduit="yes"
@@ -192,10 +192,10 @@ if test x$cluster_enabled = xyes; then
             with_smp_conduit="yes"
         fi
     done
-    AM_CONDITIONAL([CONDUIT_MPI], [test x$with_mpi_conduit = xyes])
-    AM_CONDITIONAL([CONDUIT_UDP], [test x$with_udp_conduit = xyes])
-    AM_CONDITIONAL([CONDUIT_SMP], [test x$with_smp_conduit = xyes])
 fi
+AM_CONDITIONAL([CONDUIT_MPI], [test x$with_mpi_conduit = xyes])
+AM_CONDITIONAL([CONDUIT_UDP], [test x$with_udp_conduit = xyes])
+AM_CONDITIONAL([CONDUIT_SMP], [test x$with_smp_conduit = xyes])
 
 # Check if it has nVidia GPUs / CUDA is installed
 gpu_valid=no

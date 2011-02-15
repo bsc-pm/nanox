@@ -94,7 +94,7 @@ function generateMlistAndMachinefile
 
 function initializeTracing
 {
-   if [ x$NANOX_MODE = xinstrumentation ] ; then
+   if [ x$NANOX_MODE = xinstrumentation -o x$NANOX_MODE = xinstrumentation-debug ] ; then
       TRACE="yes"
    fi
 
@@ -114,7 +114,11 @@ function runApp
          CMD="./mpirun -np $NUM_NODES $MPI_TRACE_FLAGS --nanoxpes $PES -machinefile $MACHINEFILE ./$APP $APP_ARGS"
       else
          export LD_LIBRARY_PATH=$NANOX_LIB:/gpfs/apps/GCC/4.4.0/lib64:/opt/osshpc/mpich-mx/64/lib/shared:/gpfs/apps/GCC/4.4.0/lib:/opt/osshpc/mpich-mx/32/lib/shared
-         export NX_ARGS="--pes $PES $NANOS_TRACE_FLAGS"
+         export NX_ARGS="--pes $PES --throttle-limit 10000000 $NANOS_TRACE_FLAGS"
+         export NX_THROTTLE=idlethreads
+         export NX_SCHEDULE=default
+         echo NX_THROTTLE is $NX_THROTTLE
+         echo NX_SCHEDULE is $NX_SCHEDULE
          CMD="srun ./$APP $APP_ARGS"
       fi
    else
@@ -134,11 +138,12 @@ function finalizeTracing
       ITER=0
       for i in $USED_MLIST ; do
          FILE_EXP=`printf "/scratch/TRACE.??????????%06d??????.mpit" $ITER`
-         FILES=`ssh $MASTER ls $FILE_EXP`
+         FILES=`ssh $MASTER ls "$FILE_EXP"`
+         echo Moving files from $i $FILE_EXP $FILES
          for k in $FILES ; do
             ssh $MASTER "echo $k on $i >> /scratch/tmp.$ID.mpits"
          done
-      ITER=$(($ITER + 1))
+         ITER=$(($ITER + 1))
       done
       ssh $MASTER cat /scratch/tmp.$ID.mpits
       echo Merging mpit files into a prv file...
@@ -174,7 +179,7 @@ function makeCmd
       echo \#@ total_tasks = $NUM_NODES
       echo \#@ cpus_per_task = 4
       echo \#@ nodeset= clos
-      echo \#@ wall_clock_limit = 00:45:00
+      echo \#@ wall_clock_limit = 01:30:00
       echo \#@ tracing = 1
       echo ""
       echo ./nanoxrun.sh --no-interactive --nanoxpes $PES -- $APP $APP_ARGS
