@@ -1,4 +1,4 @@
-/*************************************************************************************/
+
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
@@ -77,6 +77,7 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
             this->unlock();
             found = NULL;
          } else {
+            NANOS_INSTRUMENT ( instrument ( *(*it) ); ) 
             DependenciesDomain::decreaseTasksInGraph();
             break;
          }
