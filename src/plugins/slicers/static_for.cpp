@@ -1,6 +1,7 @@
 #include "plugin.hpp"
 #include "slicer.hpp"
 #include "system.hpp"
+#include "instrumentation.hpp"
 
 namespace nanos {
 
@@ -122,13 +123,14 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          nli->step = _step;
          nli->last = ( i == (valid_threads - 1) );
 
-         // Submit: slice (WorkDescriptor i, running on Thread j)
-         slice->tieTo( (*team)[j] );
          NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
          NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) nli->lower; )
          NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) nli->upper; )
          NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) nli->step; )
          NANOS_INSTRUMENT( sys.getInstrumentation()->createDeferredPointEvent (*slice, 3, Keys, Values); )
+
+         // Submit: slice (WorkDescriptor i, running on Thread j)
+         slice->tieTo( (*team)[j] );
          Scheduler::submit ( *slice );
       }
 
