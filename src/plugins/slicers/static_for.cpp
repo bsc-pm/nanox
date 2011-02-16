@@ -21,6 +21,15 @@ class SlicerStaticFor: public Slicer
 
 void SlicerStaticFor::submit ( SlicedWD &work )
 {
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t loop_lower = ID->getEventKey("loop-lower"); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t loop_upper = ID->getEventKey("loop-upper"); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t loop_step  = ID->getEventKey("loop-step"); )
+   NANOS_INSTRUMENT ( nanos_event_key_t Keys[3]; )
+   NANOS_INSTRUMENT ( Keys[0] = loop_lower; )
+   NANOS_INSTRUMENT ( Keys[1] = loop_upper; )
+   NANOS_INSTRUMENT ( Keys[2] = loop_step; )
+   
    debug ( "Using sliced work descriptor: Static For" );
 
    SlicedWD *wd = NULL;
@@ -79,6 +88,12 @@ void SlicerStaticFor::submit ( SlicedWD &work )
       nli->step = _step;
       nli->last = (valid_threads == 1 );
 
+      NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
+      NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) nli->lower; )
+      NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) nli->upper; )
+      NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) nli->step; )
+      NANOS_INSTRUMENT( sys.getInstrumentation()->createDeferredPointEvent (work, 3, Keys, Values); )
+
       j = first_valid_thread;
       // Creating additional WorkDescriptors: 1..N
       for ( i = 1; i < valid_threads; i++ ) {
@@ -109,6 +124,11 @@ void SlicerStaticFor::submit ( SlicedWD &work )
 
          // Submit: slice (WorkDescriptor i, running on Thread j)
          slice->tieTo( (*team)[j] );
+         NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
+         NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) nli->lower; )
+         NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) nli->upper; )
+         NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) nli->step; )
+         NANOS_INSTRUMENT( sys.getInstrumentation()->createDeferredPointEvent (*slice, 3, Keys, Values); )
          Scheduler::submit ( *slice );
       }
 
