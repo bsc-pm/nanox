@@ -38,12 +38,14 @@ namespace nanos
          typedef std::vector<WorkGroup *> WGList; // FIXME: vector is not a safe-class here
 
       private:
-         WGList         _partOf;
+         WGList         _partOf; // other than parent
          int            _id;
          Atomic<int>    _components;
          Atomic<int>    _phaseCounter;
 
          SingleSyncCond<EqualConditionChecker<int> > _syncCond;
+
+         WorkGroup     *_parent; // most WG will only have one parent
 
       private:
          void addToGroup ( WorkGroup &parent );
@@ -57,15 +59,18 @@ namespace nanos
           */
          WorkGroup()
             : _id( _atomicSeed++ ), _components( 0 ), _phaseCounter( 0 ),
-            _syncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ) {  }
+            _syncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL) {  }
          /*! \brief WorkGroup copy constructor
           */
          WorkGroup( const WorkGroup &wg )
             : _id( _atomicSeed++ ), _components( 0 ), _phaseCounter( 0 ),
-            _syncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ) 
+            _syncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ), _parent(NULL)  
          {
-            for ( WGList::const_iterator it = wg._partOf.begin(); it < wg._partOf.end(); it++ ) {
-               if (*it) (*it)->addWork( *this );
+            if ( wg._parent != NULL ) { 
+               wg._parent->addWork(*this);
+               for ( WGList::const_iterator it = wg._partOf.begin(); it < wg._partOf.end(); it++ ) {
+                  if (*it) (*it)->addWork( *this );
+               }
             }
          }
          /*! \brief WorkGroup destructor 

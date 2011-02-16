@@ -37,7 +37,10 @@ void WorkGroup::addWork ( WorkGroup &work )
 
 void WorkGroup::addToGroup ( WorkGroup &parent )
 {
-   _partOf.push_back( &parent );
+   if ( _parent == NULL ) 
+      _parent = &parent;
+   else 
+      _partOf.push_back( &parent );
 }
 
 void WorkGroup::exitWork ( WorkGroup &work )
@@ -70,16 +73,20 @@ void WorkGroup::done ()
 {
    NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
 
-   for ( WGList::iterator it = _partOf.begin(); it != _partOf.end(); it++ ) {
-      if ( *it ) {
-         NANOS_INSTRUMENT ( if ( ((WorkDescriptor *)(*it))->isBlocked()) { )
-            NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) getId()) << 32 ) + (*it)->getId(); )
-            NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs ( NANOS_WAIT, id, 0, NULL, NULL );)
-            NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *((WorkDescriptor *)(*it)), NANOS_WAIT, id, 0, NULL, NULL ); )
-         NANOS_INSTRUMENT ( } )
-         ( *it )->exitWork( *this );
-      }
-      *it = 0;
+   if ( _parent != NULL ) {
+     _parent->exitWork(*this);
+     _parent = NULL;
+     for ( WGList::iterator it = _partOf.begin(); it != _partOf.end(); it++ ) {
+        if ( *it ) {
+           NANOS_INSTRUMENT ( if ( ((WorkDescriptor *)(*it))->isBlocked()) { )
+              NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) getId()) << 32 ) + (*it)->getId(); )
+              NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs ( NANOS_WAIT, id, 0, NULL, NULL );)
+              NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *((WorkDescriptor *)(*it)), NANOS_WAIT, id, 0, NULL, NULL ); )
+           NANOS_INSTRUMENT ( } )
+           ( *it )->exitWork( *this );
+        }
+        *it = 0;
+     }
    }
 }
 
