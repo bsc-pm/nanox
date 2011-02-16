@@ -14,3 +14,23 @@ nanos_err_t nanos_omp_single ( bool *b )
     *b=true;
     return NANOS_OK;
 }
+
+nanos_err_t nanos_omp_barrier ( void )
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","omp_barrier",NANOS_SYNCHRONIZATION) );
+
+   try {
+      WD &wd = *myThread->getCurrentWD();
+      OmpData *data = (OmpData *) wd.getInternalData();
+    
+      if ( data->isImplicit() )
+         myThread->getTeam()->barrier();
+      else
+         wd.waitCompletion();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+

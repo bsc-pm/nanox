@@ -212,6 +212,7 @@ namespace nanos {
             registerEventValue("api","get_num_runnin_tasks","nanos_get_num_runnin_tasks()");
             registerEventValue("api","get_addr","nanos_get_addr()");
             registerEventValue("api","copy_value","nanos_copy_value()");
+            registerEventValue("api","omp_barrier","nanos_omp_barrier()");
 
             /* 02 */ registerEventKey("wd-id","Work Descriptor id:");
 
