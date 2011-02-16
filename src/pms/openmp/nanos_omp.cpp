@@ -1,6 +1,8 @@
+#include "nanos.h"
 #include "nanos_omp.h"
 #include "omp_data.hpp"
 #include "basethread.hpp"
+#include "instrumentationmodule_decl.hpp"
 
 using namespace nanos;
 using namespace nanos::OpenMP;

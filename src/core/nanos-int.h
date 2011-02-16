@@ -118,6 +118,9 @@ typedef struct {
    int upper;
    int step;
    bool last;
+   int chunk;
+   int stride;
+   void *args;
 } nanos_loop_info_t;
 
 typedef struct {
