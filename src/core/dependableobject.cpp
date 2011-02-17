@@ -63,25 +63,33 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
    DependableObject * found = NULL;
 
    DependableObject::DependableObjectVector &succ = getSuccessors();
-   for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
+   DependableObject::DependableObjectVector incorrectlyErased;
+
+   // NOTE: it gets incremented in the erase
+   for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); ) {
       // Is this an immediate successor? 
       if ( (*it)->numPredecessors() == 1 && condition(**it) ) {
          // remove it
          found = *it;
          this->lock();
-         succ.erase(it);
+         succ.erase(it++);
          this->unlock();
          if ( found->numPredecessors() != 1 ) {
-            this->lock();
-            succ.insert( found );
-            this->unlock();
+            incorrectlyErased.insert( found );
             found = NULL;
          } else {
-            NANOS_INSTRUMENT ( instrument ( *(*it) ); ) 
+            NANOS_INSTRUMENT ( instrument ( *found ); ) 
             DependenciesDomain::decreaseTasksInGraph();
             break;
          }
+      } else {
+         it++;
       }
    }
+   this->lock();
+   for ( DependableObject::DependableObjectVector::iterator it = incorrectlyErased.begin(); it != incorrectlyErased.end(); it++) {
+      succ.insert(*it);
+   }
+   this->unlock();
    return found;
 }

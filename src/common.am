@@ -26,7 +26,7 @@ common_instr_cxxflags= $(global_instr_cxxflags) -D_NANOS_INTERNAL
 instr_cflags=-O3
 
 global_instrdebug_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -O0 -g2 -fno-inline -DNANOS_DEBUG_ENABLED -DNANOS_INSTRUMENTATION_ENABLED 
-common_instrdebug_cxxflags= $(global_instr_cxxflags) -D_NANOS_INTERNAL
+common_instrdebug_cxxflags= $(global_instrdebug_cxxflags) -D_NANOS_INTERNAL
 instrdebug_cflags=-O0 -g2
 
 version_flags= -version-info 1:0:0
