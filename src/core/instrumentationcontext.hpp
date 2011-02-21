@@ -101,9 +101,10 @@ inline InstrumentationContextData::ConstBurstIterator InstrumentationContext::en
 inline void InstrumentationContext::insertDeferredEvent ( InstrumentationContextData *icd, const Event &e )
 {
    /* insert the event into the list */
-   icd->_deferredEventsLock++;
-   icd->_deferredEvents.push_front ( e );
-   icd->_deferredEventsLock--;
+   {
+      LockBlock( icd->_deferredEventsLock );
+      icd->_deferredEvents.push_front ( e );
+   }
 }
 
 inline void InstrumentationContext::clearDeferredEvents ( InstrumentationContextData *icd )

@@ -210,22 +210,12 @@ namespace nanos
             _references = 1;
          }
 
-        /*! \brief Get exclusive access to the object
+	/*! \brief returns a reference to the object's lock
          */
-         void lock ( )
+         Lock& getLock()
          {
-            _objectLock.acquire();
-            memoryFence();
+            return _objectLock;
          }
-
-        /*! \brief Release object's lock
-         */
-         void unlock ( )
-         {
-            memoryFence();
-            _objectLock.release();
-         }
-
         /*! \brief Dependable Object depObj is finished and its outgoing dependencies are removed.
          *  NOTE: this function is not thread safe
          *  \param desObj Dependable Object that finished

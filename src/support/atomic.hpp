@@ -185,6 +185,18 @@ namespace nanos
        void release() { _lock--; }
    };
 
+   class SyncLockBlock : public LockBlock
+   {
+     private:
+       // disable copy-constructor
+       explicit SyncLockBlock ( const SyncLockBlock & );
+
+     public:
+       SyncLockBlock ( Lock & lock ) : LockBlock(lock)  { memoryFence(); }
+       ~SyncLockBlock ( ) { memoryFence(); }
+   };
+
+
 };
 
 #endif

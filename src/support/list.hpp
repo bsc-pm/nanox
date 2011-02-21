@@ -123,6 +123,12 @@ inline size_t List<_T>::size() const
 }
 
 template<class _T>
+inline Lock& List<_T>::getLock ( )
+{
+   return _lock;
+}
+/*
+template<class _T>
 inline void List<_T>::lock ( )
 {
    _lock.acquire();
@@ -135,6 +141,6 @@ inline void List<_T>::unlock ( )
    memoryFence();
    _lock.release();
 }
-
+*/
 #endif
 

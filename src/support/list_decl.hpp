@@ -575,6 +575,11 @@ class List {
       */
       size_t size() const;
 
+     /*! \brief Returns the Lock of this list
+      */
+      Lock& getLock();
+
+#if 0
      /*! \brief Get exclusive access to the list
       */
       void lock ( );
@@ -582,6 +587,7 @@ class List {
      /*! \brief Release list's lock
       */
       void unlock ( );
+#endif
 };
 
 }

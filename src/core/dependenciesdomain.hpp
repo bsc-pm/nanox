@@ -130,7 +130,6 @@ namespace nanos
             _lock.release();
          }
 
-
    };
 
 };

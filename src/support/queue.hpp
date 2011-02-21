@@ -55,10 +55,11 @@ namespace nanos
 
    template<typename T> void Queue<T>::push ( T data )
    {
-      _qLock++;
-      _q.push( data );
-      memoryFence();
-      _qLock--;
+      {
+         LockBlock lock( _qLock );
+         _q.push( data );
+         memoryFence();
+      }
    }
 
    template<typename T> T Queue<T>::pop ( void )
@@ -69,16 +70,16 @@ namespace nanos
       while ( _q.empty() ) memoryFence();
 
       // not empty
-      _qLock++;
+      {
+         LockBlock lock( _qLock );
 
-      if ( !_q.empty() ) {
-         T tmp = _q.front();
-         _q.pop();
-         _qLock--;
-         return tmp;
+         if ( !_q.empty() ) {
+            T tmp = _q.front();
+            _q.pop();
+            return tmp;
+         }
+
       }
-
-      _qLock--;
 
       goto spin;
    }
@@ -91,15 +92,16 @@ namespace nanos
 
       memory_fence();
 
-      _qLock++;
+      {
+         LockBlock lock( _qLock );
 
-      if ( !_q.empty() ) {
-         result = _q.front();
-         _q.pop();
-         found = true;
+         if ( !_q.empty() ) {
+            result = _q.front();
+            _q.pop();
+            found = true;
+         }
+
       }
-
-      _qLock--;
 
       return found;
    }
