@@ -33,6 +33,15 @@ void SynchronizedCondition< _T>::wait()
 }
 
 template <class _T>
+void SynchronizedCondition< _T>::waitConditionAndSignalers()
+{
+   Scheduler::waitOnCondition(this);
+   while ( _refcount.value() > 0 ) {
+      memoryFence();
+   }
+}
+
+template <class _T>
 void SynchronizedCondition< _T>::signal()
 {
    lock();

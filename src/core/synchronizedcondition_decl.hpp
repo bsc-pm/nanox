@@ -173,7 +173,7 @@ namespace nanos
          */
          virtual WorkDescriptor* getAndRemoveWaiter() = 0;
 
-        
+       
         /*! \brief acquire the lock.
          */
          void lock()
@@ -200,47 +200,75 @@ namespace nanos
    {
       protected:
          _T _conditionChecker; /**< ConditionChecker associated to the SynchronizedCondition. */
+         Atomic<int> _refcount; /**< References counter for waits that need to make sure there are no pending signals */
       
       public:
-         /*! \brief SynchronizedCondition default constructor
-          */
-         SynchronizedCondition ( ) : GenericSyncCond(), _conditionChecker() { }
+        /*! \brief SynchronizedCondition default constructor
+         */
+         SynchronizedCondition ( ) : GenericSyncCond(), _conditionChecker(), _refcount(0) { }
 
-         /*! \brief SynchronizedCondition copy constructor
-          */
-         SynchronizedCondition ( const SynchronizedCondition & sc ) : GenericSyncCond(), _conditionChecker( sc._conditionChecker )
-         {
-         }
-         /*! \brief SynchronizedCondition copy assignment operator
-          */
+        /*! \brief SynchronizedCondition copy constructor
+         */
+         SynchronizedCondition ( const SynchronizedCondition & sc ) : GenericSyncCond(), _conditionChecker( sc._conditionChecker ), _refcount(0) { }
+
+        /*! \brief SynchronizedCondition copy assignment operator
+         */
          SynchronizedCondition& operator=( const SynchronizedCondition & sc )
          {
             this->_conditionChecker = sc._conditionChecker;
             return *this;
          }
-         /*! \brief SynchronizedCondition constructor - 1
-          */
-         SynchronizedCondition ( _T cc ) : GenericSyncCond(), _conditionChecker(cc) { }
-         /*! \brief SynchronizedCondition destructor
-          */
+
+        /*! \brief SynchronizedCondition constructor - 1
+         */
+         SynchronizedCondition ( _T cc ) : GenericSyncCond(), _conditionChecker(cc), _refcount(0) { }
+
+        /*! \brief SynchronizedCondition destructor
+         */
          virtual ~SynchronizedCondition() { }
-         /*! \brief Wait until the condition has been satisfied
-          */
+
+        /*! \brief increase references
+         */
+         void reference()
+         {
+            _refcount++;
+            memoryFence();
+         }
+
+        /*! \brief decrease references
+         */
+         void unreference()
+         {
+            _refcount--;
+         }
+ 
+        /*! \brief Wait until the condition has been satisfied ensures that there condition will not be signaled after the wait
+         */
+         void waitConditionAndSignalers();
+
+        /*! \brief Wait until the condition has been satisfied
+         */
          void wait();
-         /*! \brief Signal the waiters if the condition has been satisfied. If they
-          * are blocked they will be set to ready and enqueued.
-          */
+
+        /*! \brief Signal the waiters if the condition has been satisfied. If they
+         * are blocked they will be set to ready and enqueued.
+         */
          void signal();
-         /*! \brief Signal only one waiter if the condition has been satisfied. If it
-          * is blocked it will be set to ready and enqueued.
-          */
+
+        /*! \brief Signal only one waiter if the condition has been satisfied. If it
+         * is blocked it will be set to ready and enqueued.
+         */
          void signal_one();
+
         /*! \brief Change the condition checker associated to the synchronizedConditon object.
          */
          void setConditionChecker( _T cc )
          {
             _conditionChecker = cc;
          }
+
+        /*! \brief Check the condition
+         */
          bool check ()
          {
             return _conditionChecker.checkCondition();
