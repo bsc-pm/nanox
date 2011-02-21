@@ -81,9 +81,6 @@ namespace nanos {
             */
             virtual void queue ( BaseThread *thread, WD &wd )
             {
-               /* FIXME: At submit @ schedule.cpp is also taking into account if isTiedTo. Review if
-                * that part of code is necesary and remove if doesn't */
-
 		ThreadData *data;
 		if ( wd.isTied() ) {
                     data = ( ThreadData * ) wd.isTiedTo()->getTeamData()->getScheduleData();
