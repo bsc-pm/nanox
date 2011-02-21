@@ -436,6 +436,7 @@ namespace nanos
          Directory* getDirectory(bool create=false);
 
          virtual void waitCompletion();
+         virtual void waitCompletionAndSignalers();
 
          bool isSubmitted( void ) const;
          void submitted( void );

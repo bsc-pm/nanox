@@ -103,7 +103,7 @@ void WorkDescriptor::done ()
      pe->copyDataOut( *this );
 
    // FIX-ME: We are waiting for the children tasks to avoid to keep alive only part of the parent
-   waitCompletion();
+   waitCompletionAndSignalers();
    this->getParent()->workFinished( *this );
    WorkGroup::done();
 }

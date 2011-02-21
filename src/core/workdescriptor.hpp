@@ -167,6 +167,13 @@ inline void WorkDescriptor::waitCompletion()
       _directory->synchronizeHost();
 }
 
+inline void WorkDescriptor::waitCompletionAndSignalers()
+{
+   this->WorkGroup::waitCompletionAndSignalers();
+   if ( _directory.isInitialized() )
+      _directory->synchronizeHost();
+}
+
 inline Directory* WorkDescriptor::getDirectory(bool create)
 {
    if ( !_directory.isInitialized() && create == false ) {

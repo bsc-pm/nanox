@@ -45,9 +45,11 @@ void WorkGroup::addToGroup ( WorkGroup &parent )
 
 void WorkGroup::exitWork ( WorkGroup &work )
 {
+   _syncCond.reference();
    int componentsLeft = --_components;
    if (componentsLeft == 0)
       _syncCond.signal();
+   _syncCond.unreference();
 }
 
 void WorkGroup::sync ()
@@ -63,6 +65,11 @@ void WorkGroup::sync ()
 void WorkGroup::waitCompletion ()
 {
      _syncCond.wait();
+}
+
+void WorkGroup::waitCompletionAndSignalers ()
+{
+     _syncCond.waitConditionAndSignalers();
 }
 
 void WorkGroup::init ()
