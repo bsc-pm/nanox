@@ -169,6 +169,8 @@ namespace nanos
 
    inline bool compareAndSwap( int *ptr, int oldval, int newval ) { return __sync_bool_compare_and_swap ( ptr, oldval, newval );}
 
+   inline bool compareAndSwap( unsigned long *ptr, unsigned long oldval, unsigned long  newval ) { return __sync_bool_compare_and_swap ( ptr, oldval, newval );}
+
    class LockBlock
    {
      private:
