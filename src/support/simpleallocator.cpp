@@ -133,21 +133,6 @@ size_t SimpleAllocator::free( void *address )
    return size;
 }
 
-void * SimpleAllocator::reallocate( void *address, size_t size )
-{
-   void *newAddress;
-   size_t oldSize;
-   
-   oldSize = this->free( address );
-   newAddress = this->allocate( size );
-   
-   if ( newAddress != address )
-   {
-      std::memcpy( newAddress, address, oldSize );
-   }
-   return newAddress;
-}
-
 void SimpleAllocator::printMap()
 {
    std::cout << "ALLOCATED CHUNKS" << std::endl;
