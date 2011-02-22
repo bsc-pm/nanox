@@ -54,7 +54,6 @@ namespace nanos {
          }
 
          size_t free( void *address );
-         void * reallocate( void *address, size_t len );
 
          void printMap();
    };
