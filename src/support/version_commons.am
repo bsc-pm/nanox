@@ -2,6 +2,7 @@ support_sources = \
 	$(top_srcdir)/src/support/atomic_decl.hpp\
 	$(top_srcdir)/src/support/atomic.hpp\
 	$(top_srcdir)/src/support/lazy.hpp\
+	$(top_srcdir)/src/support/lazy_decl.hpp\
 	$(top_srcdir)/src/support/compatibility.hpp\
 	$(top_srcdir)/src/support/queue_decl.hpp\
 	$(top_srcdir)/src/support/queue.hpp\
