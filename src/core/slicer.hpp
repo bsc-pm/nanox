@@ -131,7 +131,10 @@ namespace nanos
           *  This function calls the specific code for WD submission which is
           *  implemented in the related slicer.
           */ 
-         void submit () { if (_isSliceable) { _isSliceable=false; _slicer.submit(*this); } else { Scheduler::submit(*this); } }
+         void submit () {
+            if ( _isSliceable ) _slicer.submit(*this);
+            else WD::submit();
+         }
          /*! \brief WD dequeue
           *
           *  This function calls the specific code for WD dequeue which is
@@ -140,7 +143,17 @@ namespace nanos
           *  \param[in,out] slice : Resulting slice.
           *  \return  true if the resulting slice is the final slice and false otherwise.
           */ 
-         bool dequeue ( WorkDescriptor **slice ) { return _slicer.dequeue( this, slice ); }
+         bool dequeue ( WorkDescriptor **slice ) {
+            if ( _isSliceable ) return _slicer.dequeue( this, slice );
+            else return WD::dequeue (slice);
+         }
+
+         /*! \brief Convert SlicedWD to a regular WD (changing the behaviour)
+          *
+          *  This functions change _isSliceable attribute which is used in
+          *  submit and dequeue slicedWD function.
+          */
+         void convertToRegularWD() { _isSliceable=false; }
    };
 
    class SlicerDataRepeatN : public SlicerData
