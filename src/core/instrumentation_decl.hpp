@@ -30,7 +30,7 @@
 #include "compatibility.hpp"
 #include "debug.hpp"
 #include "nanos-int.h"
-#include "atomic.hpp"
+#include "atomic_decl.hpp"
 #include "instrumentationcontext_fwd.hpp"
 #include "workdescriptor_fwd.hpp"
 

@@ -27,6 +27,7 @@
 #include "schedule_fwd.hpp"
 #include "threadteam_fwd.hpp"
 #include "basethread_decl.hpp"
+#include "atomic.hpp"
 
 namespace nanos
 {
@@ -54,7 +55,7 @@ namespace nanos
    inline void BaseThread::enterTeam( ThreadTeam *newTeam, TeamData *data ) 
    {
       _teamData = data;
-      ::memoryFence();
+      memoryFence();
       _team = newTeam;
       _hasTeam=1;
    }

@@ -19,7 +19,7 @@
 
 #ifndef _NANOS_COMMUTATONDEPOBJ_DECL
 #define _NANOS_COMMUTATONDEPOBJ_DECL
-#include "dependableobject.hpp"
+#include "dependableobject_decl.hpp"
 
 namespace nanos
 {

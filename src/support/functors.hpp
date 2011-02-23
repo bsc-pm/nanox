@@ -21,6 +21,7 @@
 #define _NANOS_FUNCTORS
 
 #include <string>
+#include "functors_decl.hpp"
 
 template<typename T>
 void deleter( T *p ) { delete p; }

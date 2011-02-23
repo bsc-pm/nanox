@@ -20,19 +20,21 @@
 #ifndef _NANOS_SYSTEM_DECL_H
 #define _NANOS_SYSTEM_DECL_H
 
-#include "processingelement.hpp"
-#include "throttle.hpp"
+#include "processingelement_decl.hpp"
+#include "throttle_decl.hpp"
 #include <vector>
 #include <string>
-#include "schedule.hpp"
-#include "threadteam.hpp"
-#include "slicer.hpp"
+#include "schedule_decl.hpp"
+#include "threadteam_decl.hpp"
+#include "slicer_decl.hpp"
 #include "nanos-int.h"
-#include "dependency.hpp"
+#include "dependency_decl.hpp"
 #include "instrumentation_decl.hpp"
 #include "directory_decl.hpp"
 #include "pminterface_decl.hpp"
-#include "cache_map.hpp"
+#include "cache_map_decl.hpp"
+
+#include "barrier_decl.hpp"
 
 
 namespace nanos

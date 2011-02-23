@@ -17,12 +17,14 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "accelerator.hpp"
+#include <algorithm>
+#include "accelerator_decl.hpp"
 #include "debug.hpp"
 #include "schedule.hpp"
 #include "copydata.hpp"
 #include "instrumentation.hpp"
 #include "system.hpp"
+#include "functors.hpp"
 
 using namespace nanos;
 

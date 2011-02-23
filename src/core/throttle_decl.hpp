@@ -17,8 +17,8 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef __NANOS_THROTTLE_POLICY_H
-#define __NANOS_THROTTLE_POLICY_H
+#ifndef __NANOS_THROTTLE_POLICY_DECL_H
+#define __NANOS_THROTTLE_POLICY_DECL_H
 
 namespace nanos
 {

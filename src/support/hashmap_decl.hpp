@@ -25,7 +25,7 @@
 #include "list_decl.hpp"
 #include <list>
 #include <map>
-#include "atomic.hpp"
+#include "atomic_decl.hpp"
 
 
 namespace nanos {

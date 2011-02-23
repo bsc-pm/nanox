@@ -23,6 +23,7 @@
 #include <map>
 #include <list>
 #include <vector>
+#include "dependenciesdomain_decl.hpp"
 #include "atomic.hpp"
 #include "dependableobject.hpp"
 #include "trackableobject.hpp"
@@ -30,109 +31,36 @@
 #include "compatibility.hpp"
 
 
-namespace nanos
+using namespace nanos;
+
+inline DependenciesDomain::~DependenciesDomain ( )
 {
+   for ( DepsMap::iterator it = _addressDependencyMap.begin(); it != _addressDependencyMap.end(); it++ ) {
+      delete it->second;
+   }
+}
 
-  /*! \class DependenciesDomain
-   *  \brief Each domain is an independent context in which dependencies between DependableObject are managed
-   */
-   class DependenciesDomain
-   {
-      private:
-         typedef TR1::unordered_map<void *, TrackableObject*> DepsMap; /**< Maps addresses to Trackable objects */
+inline void DependenciesDomain::submitDependableObject ( DependableObject &depObj, std::vector<Dependency> &deps )
+{
+   submitDependableObjectInternal ( depObj, deps.begin(), deps.end() );
+}
 
-         static Atomic<int>   _atomicSeed;           /**< ID seed for the domains */
-         int                  _id;                   /**< Domain's id */
-         unsigned int         _lastDepObjId;         /**< Id to be given to the next submitted DependableObject */
-         DepsMap              _addressDependencyMap; /**< Used to track dependencies between DependableObject */
-         static Atomic<int>   _tasksInGraph;         /**< Current number of tasks in the graph */
-         static Lock          _lock;
+inline void DependenciesDomain::submitDependableObject ( DependableObject &depObj, size_t numDeps, Dependency* deps)
+{
+   submitDependableObjectInternal ( depObj, deps, deps+numDeps );
+}
 
-        /*! \brief Looks for the dependency's address in the domain and returns the trackableObject associated.
-         *  \param dep Dependency to be checked.
-         *  \sa Dependency TrackableObject
-         */
-         TrackableObject* lookupDependency ( const Dependency &dep );
-        /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
-         *  \param depObj DependableObject to be added to the domain.
-         *  \param begin Iterator to the start of the list of dependencies to be associated to the Dependable Object.
-         *  \param end Iterator to the end of the mentioned list.
-         *  \sa Dependency DependableObject TrackableObject
-         */
-         template<typename iterator>
-         void submitDependableObjectInternal ( DependableObject &depObj, iterator begin, iterator end );
+inline void DependenciesDomain::lock ( )
+{
+   _lock.acquire();
+   memoryFence();
+}
 
-      private:
-        /*! \brief DependenciesDomain copy assignment operator (private)
-         */
-         const DependenciesDomain & operator= ( const DependenciesDomain &depDomain );
-      public:
-        /*! \brief DependenciesDomain default constructor
-         */
-         DependenciesDomain ( ) :  _id( _atomicSeed++ ), _lastDepObjId ( 0 ), _addressDependencyMap( ) {}
-        /*! \brief DependenciesDomain copy constructor
-         */
-         DependenciesDomain ( const DependenciesDomain &depDomain )
-            : _id( _atomicSeed++ ), _lastDepObjId ( depDomain._lastDepObjId ),
-              _addressDependencyMap ( depDomain._addressDependencyMap ) {}
-        /*! \brief DependenciesDomain destructor
-         */
-         ~DependenciesDomain ( )
-         {
-            for ( DepsMap::iterator it = _addressDependencyMap.begin(); it != _addressDependencyMap.end(); it++ ) {
-               delete it->second;
-            }
-         }
-
-        /*! \brief get object's id
-         */
-         int getId ()
-         {
-            return _id;
-         }
-        /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
-         *  \param depObj DependableObject to be added to the domain.
-         *  \param deps List of dependencies to be associated to the Dependable Object.
-         *  \sa Dependency DependableObject TrackableObject
-         */
-         void submitDependableObject ( DependableObject &depObj, std::vector<Dependency> &deps )
-         {
-            submitDependableObjectInternal ( depObj, deps.begin(), deps.end() );
-         }
-        /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
-         *  \param depObj DependableObject to be added to the domain.
-         *  \param deps List of dependencies to be associated to the Dependable Object.
-         *  \param numDeps Number of dependenices in the list.
-         *  \sa Dependency DependableObject TrackableObject
-         */
-         void submitDependableObject ( DependableObject &depObj, size_t numDeps, Dependency* deps)
-         {
-            submitDependableObjectInternal ( depObj, deps, deps+numDeps );
-         }
-
-         static void increaseTasksInGraph();
-
-         static void decreaseTasksInGraph();
-
-        /*! \brief Get exclusive access to the object
-         */
-         static void lock ( )
-         {
-            _lock.acquire();
-            memoryFence();
-         }
-
-        /*! \brief Release object's lock
-         */
-         static void unlock ( )
-         {
-            memoryFence();
-            _lock.release();
-         }
-
-   };
-
-};
+inline void DependenciesDomain::unlock ( )
+{
+   memoryFence();
+   _lock.release();
+}
 
 #endif
 

@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <list>
 #include <vector>
-#include "atomic.hpp"
+#include "atomic_decl.hpp"
 #include "debug.hpp"
 #include "workdescriptor_fwd.hpp"
 
@@ -176,21 +176,13 @@ namespace nanos
        
         /*! \brief acquire the lock.
          */
-         void lock()
-         {
-            _lock.acquire();
-            memoryFence();
-         }
+         void lock();
 
          /*! \brief Release the lock. The wait() method can switch context
           * so it is necessary this function to be public so that the switchHelper
           * can unlock it after removing the current WD from the stack.
           */
-         void unlock()
-         {
-            memoryFence();
-            _lock.release();
-         }
+         void unlock();
    };
 
   /*! \brief Abstract template synchronization class.
@@ -229,18 +221,11 @@ namespace nanos
 
         /*! \brief increase references
          */
-         void reference()
-         {
-            _refcount++;
-            memoryFence();
-         }
+         void reference();
 
         /*! \brief decrease references
          */
-         void unreference()
-         {
-            _refcount--;
-         }
+         void unreference();
  
         /*! \brief Wait until the condition has been satisfied ensures that there condition will not be signaled after the wait
          */

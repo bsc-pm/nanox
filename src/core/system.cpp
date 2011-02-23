@@ -28,6 +28,7 @@
 #include "os.hpp"
 #include "basethread.hpp"
 #include "malign.hpp"
+#include "processingelement.hpp"
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"

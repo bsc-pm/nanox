@@ -20,7 +20,6 @@
 #ifndef _NANOS_COPY_DESCRIPTOR_DECL
 #define _NANOS_COPY_DESCRIPTOR_DECL
 
-#include "config.hpp"
 #include "compatibility.hpp"
 
 namespace nanos {

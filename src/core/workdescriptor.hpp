@@ -29,9 +29,11 @@
 #include "copydata.hpp"
 #include "synchronizedcondition_decl.hpp"
 #include "atomic.hpp"
+#include "lazy.hpp"
 #include "instrumentationcontext.hpp"
 #include "directory.hpp"
 #include "schedule.hpp"
+#include "dependenciesdomain.hpp"
 
 using namespace nanos;
 
