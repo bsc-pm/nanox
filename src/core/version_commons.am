@@ -56,7 +56,6 @@ common_sources=\
 	$(top_srcdir)/src/core/instrumentation.hpp \
 	$(top_srcdir)/src/core/throttle_fwd.hpp \
 	$(top_srcdir)/src/core/throttle_decl.hpp \
-	$(top_srcdir)/src/core/throttle.hpp \
 	$(top_srcdir)/src/core/dependency_fwd.hpp \
 	$(top_srcdir)/src/core/dependency_decl.hpp \
 	$(top_srcdir)/src/core/dependency.hpp \
