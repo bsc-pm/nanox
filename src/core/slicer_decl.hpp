@@ -140,6 +140,12 @@ namespace nanos
           *  \return  true if the resulting slice is the final slice and false otherwise.
           */ 
          bool dequeue ( WorkDescriptor **slice );
+         /*! \brief Convert SlicedWD to a regular WD (changing the behaviour)
+          *
+          *  This functions change _isSliceable attribute which is used in
+          *  submit and dequeue slicedWD function.
+          */
+         void convertToRegularWD():
    };
 
    class SlicerDataRepeatN : public SlicerData

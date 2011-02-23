@@ -51,7 +51,6 @@ namespace nanos {
          uint64_t getBaseAddress ();
 
          size_t free( void *address );
-         void * reallocate( void *address, size_t len );
 
          void printMap();
    };

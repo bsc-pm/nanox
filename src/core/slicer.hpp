@@ -63,6 +63,23 @@ inline bool SlicedWD::dequeue ( WorkDescriptor **slice )
    return _slicer.dequeue( this, slice );
 }
 
+inline void SlicedWD::submit ()
+{
+   if ( _isSliceable ) _slicer.submit(*this);
+   else WD::submit();
+}
+
+inline bool SlicedWD::dequeue ( WorkDescriptor **slice )
+{
+   if ( _isSliceable ) return _slicer.dequeue( this, slice );
+   else return WD::dequeue (slice);
+}
+
+inline void SlicedWD::convertToRegularWD()
+{
+   _isSliceable=false;
+}
+
 inline void SlicerDataRepeatN::setN ( int n )
 {
    _n = n;

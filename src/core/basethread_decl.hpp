@@ -171,7 +171,8 @@ namespace nanos
 
          WD & getThreadWD () const;
 
-         void setNextWD ( WD *next );
+         void resetNextWD ();
+         bool setNextWD ( WD *next );
 
          WD * getNextWD () const;
 

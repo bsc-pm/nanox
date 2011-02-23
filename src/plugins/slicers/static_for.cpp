@@ -131,12 +131,13 @@ void SlicerStaticFor::submit ( SlicedWD &work )
 
          // Submit: slice (WorkDescriptor i, running on Thread j)
          slice->tieTo( (*team)[j] );
-         Scheduler::submit ( *slice );
+         if ( (*team)[j].setNextWD(slice) == false )
+            Scheduler::submit ( *slice );
       }
 
       // Submit: work (WorkDescriptor 0, running on thread 'first')
       work.tieTo( (*team)[first_valid_thread] );
-      Scheduler::submit ( work );
+      if ( (*team)[first_valid_thread].setNextWD( &work ) == false ) Scheduler::submit ( work );
    }
    // if chunk != 0: generate a SlicedWD for each thread (INTERLEAVED)
    else {
@@ -182,12 +183,18 @@ void SlicerStaticFor::submit ( SlicedWD &work )
 
          // submit: wd (tied to 'j' thread)
          wd->tieTo( (*team)[j] );
-         Scheduler::submit ( *wd );
+         // FIXME: as 'wd' is not a single wd but is a sliced wd, it
+         // cannot be set as next WD
+         // if ( (*team)[j].setNextWD(wd) == false )
+            Scheduler::submit ( *wd );
       }
 
       // Submit: work (tied to first valid thread)
       work.tieTo( (*team)[first_valid_thread] );
-      Scheduler::submit ( work );
+      // FIXME: as 'work' is not a single wd but is a sliced wd, it
+      // cannot be set as next WD
+      // if ( (*team)[first_valid_thread].setNextWD( &work ) == false )
+         Scheduler::submit ( work );
    } // close chunk selector
 }
 
