@@ -81,6 +81,7 @@ namespace nanos
          size_t       _slicerDataSize;       /**< SlicerData size    */
          int          _slicerDataAlignment;  /**< SlicerData alignment */
          SlicerData  &_slicerData;           /**< Related SlicerData */
+         bool         _isSliceable;          /**< WD is sliceable (true by deafault) */
       private:
          /*! \brief SlicedWD default constructor (disabled)
           */
@@ -97,19 +98,21 @@ namespace nanos
           SlicedWD ( Slicer &slicer, size_t sdata_size, int sdata_align, SlicerData &sdata, int ndevices, DeviceData **devs,
                      size_t data_size, int data_align=1, void *wdata=0, size_t numCopies=0, CopyData *copies=NULL )
              : WorkDescriptor ( ndevices, devs, data_size, data_align, wdata, numCopies, copies ),
-               _slicer(slicer), _slicerDataSize(sdata_size), _slicerDataAlignment(sdata_align), _slicerData(sdata)  {}
+               _slicer(slicer), _slicerDataSize(sdata_size), _slicerDataAlignment(sdata_align), _slicerData(sdata), _isSliceable(true)  {}
+
          /*! \brief SlicedWD constructor - 1 device
           */
           SlicedWD ( Slicer &slicer, size_t sdata_size, int sdata_align, SlicerData &sdata, DeviceData *device,
                      size_t data_size, int data_align, void *wdata=0, size_t numCopies=0, CopyData* copies=NULL )
              : WorkDescriptor ( device, data_size, data_align, wdata, numCopies, copies ),
-               _slicer(slicer), _slicerDataSize(sdata_size), _slicerDataAlignment(sdata_align), _slicerData(sdata)  {}
+               _slicer(slicer), _slicerDataSize(sdata_size), _slicerDataAlignment(sdata_align), _slicerData(sdata), _isSliceable(true)  {}
          /*! \brief SlicedWD constructor - from wd
           */
           SlicedWD ( Slicer &slicer, size_t sdata_size, int sdata_align, SlicerData &sdata, WD &wd,
                       DeviceData **device, CopyData *copies, void *wdata=0 )
              : WorkDescriptor ( wd, device, copies, wdata),
-               _slicer(slicer), _slicerDataSize(sdata_size), _slicerDataAlignment(sdata_align), _slicerData(sdata)  {}
+               _slicer(slicer), _slicerDataSize(sdata_size), _slicerDataAlignment(sdata_align), _slicerData(sdata), _isSliceable(true)  {}
+
          /*! \brief SlicedWD destructor
           */
          ~SlicedWD  ( ) { }
@@ -145,7 +148,7 @@ namespace nanos
           *  This functions change _isSliceable attribute which is used in
           *  submit and dequeue slicedWD function.
           */
-         void convertToRegularWD():
+         void convertToRegularWD();
    };
 
    class SlicerDataRepeatN : public SlicerData

@@ -55,16 +55,6 @@ inline SlicerData * SlicedWD::getSlicerData ( void ) const
 
 inline void SlicedWD::submit ()
 {
-   _slicer.submit(*this);
-}
-
-inline bool SlicedWD::dequeue ( WorkDescriptor **slice )
-{
-   return _slicer.dequeue( this, slice );
-}
-
-inline void SlicedWD::submit ()
-{
    if ( _isSliceable ) _slicer.submit(*this);
    else WD::submit();
 }

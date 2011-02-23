@@ -222,7 +222,8 @@ inline void nanos::memoryFence ()
     __sync_synchronize();
 }
 
-inline bool compareAndSwap( int *ptr, int oldval, int newval )
+template<typename T>
+inline bool nanos::compareAndSwap( T *ptr, T oldval, T  newval )
 {
     return __sync_bool_compare_and_swap ( ptr, oldval, newval );
 }
