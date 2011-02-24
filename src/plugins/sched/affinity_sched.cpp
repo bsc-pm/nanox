@@ -102,8 +102,7 @@ namespace nanos {
             {
                 ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
                 if ( !data._init ) {
-                   // jbueno: data._cacheId = thread->runningOn()->getMemorySpaceId();
-	           data._cacheId = thread->getCurrentWD()->getPe()->getMemorySpaceId();
+                   data._cacheId = thread->runningOn()->getMemorySpaceId();
                    data._init = true;
                 }
                 TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
@@ -139,10 +138,8 @@ namespace nanos {
                          maxRank = ranks[i];
                       }
                    }
-                   //std::cerr << "winner is " << winner << std::endl;
                    tdata._readyQueues[winner].push_front( &wd );
                 } else {
-                   //std::cerr << "_winner is 0" << std::endl;
                    tdata._readyQueues[0].push_front ( &wd );
                 }
             }
@@ -184,19 +181,11 @@ namespace nanos {
       WD * CacheSchedPolicy::atIdle ( BaseThread *thread )
       {
          WorkDescriptor * wd = NULL;
-         //bool print = false;
 
          ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
          if ( !data._init ) {
-            if (!thread->getCurrentWD()->isClusterMigrable())
-            {
-               // jbueno: data._cacheId = thread->runningOn()->getMemorySpaceId();
-               data._cacheId = thread->getCurrentWD()->getPe()->getMemorySpaceId();
-            }
-            else
-            {
-               data._cacheId = thread->runningOn()->getMemorySpaceId();
-            }
+            data._cacheId = thread->runningOn()->getMemorySpaceId();
+            data._init = true;
          }
          TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
 

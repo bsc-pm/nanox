@@ -73,7 +73,9 @@ namespace nanos
          SchedData * getScheduleData () const { return _schedData; }
    };
 
-
+   namespace ext {
+   class SMPMultiThread;
+   };
 
    class BaseThread
    {
@@ -87,6 +89,8 @@ namespace nanos
          int                     _id;
          std::string             _name;
          std::string             _description;
+         ext::SMPMultiThread *   _parent;
+         int                     _state;
 
          ProcessingElement *     _pe;         /**< Threads are binded to a PE for its life-time */
          WD &                    _threadWD;
@@ -111,8 +115,11 @@ namespace nanos
          virtual void switchHelperDependent( WD* oldWD, WD* newWD, void *arg ) = 0;
          virtual void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) = 0;
          virtual void inlineWorkDependent (WD &work) = 0;
+         virtual void outlineWorkDependent (WD &work) = 0;
          virtual void switchTo( WD *work, SchedulerHelper *helper ) = 0;
          virtual void exitTo( WD *work, SchedulerHelper *helper ) = 0;
+
+         virtual int checkStateDependent( void ) = 0;
 
       protected:
 
@@ -137,8 +144,8 @@ namespace nanos
       public:
         /*! \brief BaseThread constructor
          */
-         BaseThread ( WD &wd, ProcessingElement *creator=0 ) :
-               _id( _idSeed++ ), _name("Thread"), _description(""), _pe( creator ), _threadWD( wd ),
+         BaseThread ( WD &wd, ProcessingElement *creator=0, ext::SMPMultiThread *parent=NULL ) :
+               _id( _idSeed++ ), _name("Thread"), _description(""), _parent( parent ), _state( 0 ), _pe( creator ), _threadWD( wd ),
                _started( false ), _mustStop( false ), _currentWD( NULL),
                _nextWD( NULL), _hasTeam( false ),_team(NULL),
                _teamData(NULL) {}
@@ -166,6 +173,7 @@ namespace nanos
 
          // set/get methods
          void setCurrentWD ( WD &current );
+         //void setCurrentNullWD ( );
 
          WD * getCurrentWD () const;
 
@@ -174,6 +182,9 @@ namespace nanos
          void setNextWD ( WD *next );
 
          WD * getNextWD () const;
+
+         ext::SMPMultiThread *getParent() ;
+         virtual BaseThread *getNextThread() = 0;
 
          // team related methods
          void reserve();
@@ -213,6 +224,11 @@ namespace nanos
          /*! \brief Get BaseThread description
           */
          const std::string &getDescription ( void );
+
+         virtual void switchToNextThread() = 0;
+         void setWorking ( void );
+         void setIdle ( void );
+         int isWorking ( void );
    };
 
    extern __thread BaseThread *myThread;

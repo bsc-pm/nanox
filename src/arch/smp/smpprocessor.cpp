@@ -51,13 +51,20 @@ WorkDescriptor & SMPProcessor::getWorkerWD () const
    return *wd;
 }
 
+WorkDescriptor & SMPProcessor::getMultiWorkerWD () const
+{
+   SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct )Scheduler::workerClusterLoop );
+   WD *wd = NEW WD( dd );
+   return *wd;
+}
+
 WorkDescriptor & SMPProcessor::getMasterWD () const
 {
    WD * wd = NEW WD( NEW SMPDD() );
    return *wd;
 }
 
-BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper )
+BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper, SMPMultiThread *parent )
 {
    ensure( helper.canRunIn( SMP ),"Incompatible worker thread" );
    SMPThread &th = *NEW SMPThread( helper,this );
@@ -66,6 +73,15 @@ BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper )
    return th;
 }
 
+BaseThread &SMPProcessor::createMultiThread ( WorkDescriptor &helper, unsigned int numPEs, PE **repPEs )
+{
+   std::cerr << "create multi worker with " << numPEs << " PEs" << std::endl;
+   ensure( helper.canRunIn( SMP ),"Incompatible worker thread" );
+   SMPThread &th = *NEW SMPMultiThread( helper, this, numPEs, repPEs );
+   th.stackSize(_threadsStackSize).useUserThreads(_useUserThreads);
+
+   return th;
+}
 
 #ifdef SMP_NUMA
 

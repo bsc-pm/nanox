@@ -48,7 +48,7 @@ class ClusterPlugin : public Plugin
 
          if (sys.getNetwork()->getNodeNum() == 0)
          {
-            ClusterInfo::setExtraPEsCount( 1 ); // now we only have 1 extra thread
+            ClusterInfo::setExtraPEsCount( sys.getNetwork()->getNumNodes() ); // we have num_nodes-1 "soft" threads, and 1 "container" thread
          }
       }
 };

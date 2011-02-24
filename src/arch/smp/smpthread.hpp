@@ -29,6 +29,7 @@
 namespace nanos {
 namespace ext
 {
+   class SMPMultiThread;
 
    class SMPThread : public BaseThread
    {
@@ -46,7 +47,7 @@ namespace ext
 
       public:
          // constructor
-         SMPThread( WD &w, PE *pe ) : BaseThread( w,pe ),_stackSize(0), _useUserThreads(true) {}
+         SMPThread( WD &w, PE *pe, SMPMultiThread *parent=NULL ) : BaseThread( w,pe, parent ),_stackSize(0), _useUserThreads(true) {}
 
          // named parameter idiom
          SMPThread & stackSize( size_t size ) { _stackSize = size; return *this; }
@@ -63,6 +64,7 @@ namespace ext
          virtual void runDependent ( void );
 
          virtual void inlineWorkDependent( WD &work );
+         virtual void outlineWorkDependent( WD &work ) {fatal( "SMPThread does not support outlineWorkDependent()" ); } ;
          virtual void switchTo( WD *work, SchedulerHelper *helper );
          virtual void exitTo( WD *work, SchedulerHelper *helper );
 
@@ -74,9 +76,57 @@ namespace ext
          /** \brief SMP specific yield implementation
          */
          virtual void yield();
+
+         virtual void switchToNextThread() {
+            fatal( "SMPThread does not support switchToNextThread()" );
+         }
+         virtual BaseThread *getNextThread()
+         {
+            return this;
+         }
+
+         virtual int checkStateDependent() {
+            fatal( "SMPThread does not support checkStateDependent()" );
+         }
    };
 
+   class SMPMultiThread : public SMPThread
+   {
+      friend class SMPProcessor;
 
+      private:
+         std::list< BaseThread * > _threadList;
+
+         // disable copy constructor and assignment operator
+         SMPMultiThread( const SMPThread &th );
+         const SMPMultiThread & operator= ( const SMPMultiThread &th );
+
+      public:
+         // constructor
+         SMPMultiThread( WD &w, PE *pe, unsigned int representingPEsCount, PE **representingPEs ) : SMPThread ( w, pe ) {
+            for ( unsigned int i = 0; i < representingPEsCount; i++ )
+            {
+               _threadList.push_back( &( representingPEs[ i ]->startWorker( this ) ) );
+            }
+         }
+
+         // destructor
+         virtual ~SMPMultiThread() { }
+
+         virtual BaseThread * getNextThread()
+         {
+            BaseThread *nextThread = _threadList.front();
+            _threadList.pop_front();
+            _threadList.push_back( nextThread );
+            //std::cerr << "returning thread " << nextThread->getId() << std::endl;
+            return nextThread;
+         }
+
+         unsigned int getNumThreads() const
+         {
+            return _threadList.size();
+         }
+   };
 }
 }
 

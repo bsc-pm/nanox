@@ -28,6 +28,10 @@
 
 namespace nanos
 {
+   namespace ext {
+   class SMPMultiThread;
+   }
+
    class ProcessingElement
    {
       friend class System;
@@ -50,6 +54,7 @@ namespace nanos
       protected:
          virtual WorkDescriptor & getMasterWD () const = 0;
          virtual WorkDescriptor & getWorkerWD () const = 0;
+         virtual WorkDescriptor & getMultiWorkerWD () const = 0;
       public:
          /*! \brief ProcessinElement constructor
           */
@@ -70,11 +75,14 @@ namespace nanos
             return *_device;
          }
 
-         BaseThread & startThread ( WorkDescriptor &wd );
-         virtual BaseThread & createThread ( WorkDescriptor &wd ) = 0;
+         BaseThread & startThread ( WorkDescriptor &wd, ext::SMPMultiThread *parent=NULL );
+         BaseThread & startMultiThread ( WorkDescriptor &wd, unsigned int numPEs, ProcessingElement **repPEs );
+         virtual BaseThread & createThread ( WorkDescriptor &wd, ext::SMPMultiThread *parent=NULL ) = 0;
+         virtual BaseThread & createMultiThread ( WorkDescriptor &wd, unsigned int numPEs, ProcessingElement **repPEs ) = 0;
          BaseThread & associateThisThread ( bool untieMain=true );
 
-         BaseThread & startWorker ( );
+         BaseThread & startWorker ( ext::SMPMultiThread *parent=NULL );
+         BaseThread & startMultiWorker ( unsigned int numPEs, ProcessingElement **repPEs );
          void stopAll();
 
          /* capabilitiy query functions */

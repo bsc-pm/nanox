@@ -21,6 +21,7 @@
 #include "processingelement.hpp"
 #include "system.hpp"
 #include "synchronizedcondition.hpp"
+#include "smpthread.hpp"
 
 using namespace nanos;
 
@@ -71,5 +72,4 @@ BaseThread * nanos::getMyThreadSafe()
 {
    return myThread;
 }
-
 

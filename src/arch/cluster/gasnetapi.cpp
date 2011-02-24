@@ -132,7 +132,7 @@ static void am_exit_reply(gasnet_token_t token)
     {
         fprintf(stderr, "gasnet: Error obtaining node information.\n");
     }
-    fprintf(stderr, "EXIT message to node %d completed.\n", src_node);
+    //fprintf(stderr, "EXIT message to node %d completed.\n", src_node);
 }
 
 static void am_work(gasnet_token_t token, void *arg, size_t argSize,
@@ -201,7 +201,6 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize,
 
     //fprintf(stderr, "WD %p , args->arg %p size %d args->id %d\n", wd, warg->arg, realSize, warg->id );
 
-    wd->setPe( NULL );
     //WD *wd = new WD( dd/*, sizeof(struct work_wrapper_args), warg*/ );
 
     //SMPDD * dd = new SMPDD ( ( SMPDD::work_fct ) work);

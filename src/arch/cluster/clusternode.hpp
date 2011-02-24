@@ -56,7 +56,15 @@ namespace ext {
 
          virtual WD & getWorkerWD () const;
          virtual WD & getMasterWD () const;
-         virtual BaseThread & createThread ( WorkDescriptor &wd );
+         virtual WD & getMultiWorkerWD () const
+         {
+            fatal( "getMultiWorkerWD: ClusterNode is not allowed to create MultiThreads" );
+         }
+         virtual BaseThread & createThread ( WorkDescriptor &wd, SMPMultiThread *parent );
+         virtual BaseThread & createMultiThread ( WorkDescriptor &wd, unsigned int numPEs, PE **repPEs )
+         {
+            fatal( "ClusterNode is not allowed to create MultiThreads" );
+         }
 
          // capability query functions
          virtual bool supportsUserLevelThreads () const { return true; }

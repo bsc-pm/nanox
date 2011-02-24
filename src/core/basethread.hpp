@@ -39,7 +39,7 @@ namespace nanos
  
    // set/get methods
    inline void BaseThread::setCurrentWD ( WD &current ) { _currentWD = &current; }
- 
+   
    inline WD * BaseThread::getCurrentWD () const { return _currentWD; }
  
    inline WD & BaseThread::getThreadWD () const { return _threadWD; }
@@ -47,7 +47,9 @@ namespace nanos
    inline void BaseThread::setNextWD ( WD *next ) { _nextWD = next; }
  
    inline WD * BaseThread::getNextWD () const { return _nextWD; }
- 
+
+   inline ext::SMPMultiThread * BaseThread::getParent() { return _parent; }
+
    // team related methods
    inline void BaseThread::reserve() { _hasTeam = 1; }
  
@@ -115,6 +117,9 @@ namespace nanos
      return _description;
    }
 
+   inline void BaseThread::setWorking( void ) { _state = 1; }
+   inline void BaseThread::setIdle( void ) { _state = 0; }
+   inline int BaseThread::isWorking( void ) { _state = checkStateDependent() ; return _state == 1; }
 }
 
 #endif

@@ -30,17 +30,7 @@ using namespace nanos;
 
 void WorkDescriptor::init ()
 {
-   BaseThread *myThd = getMyThreadSafe();
-   ProcessingElement *pe = getPe();
-
-   setPrevious( myThd->getCurrentWD() );
-
-   if (pe == NULL) {
-      pe = myThd->runningOn();
-      setPe( pe );
-   }
-
-   //std::cerr << "thd: " << myThread->getId() << " -- Starting wd " << this << ":" << getId() << " pe: " << pe << " current " << &myThread->getThreadWD() << std::endl;
+   ProcessingElement *pe = myThread->runningOn();
 
    /* Initializing instrumentation context */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdCreate( this ) );
@@ -52,15 +42,9 @@ void WorkDescriptor::init ()
 
 void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
 {
-   BaseThread *myThd = getMyThreadSafe();
-   ProcessingElement *pe = getPe();
    _activeDevice->lazyInit(*this,isUserLevelThread,previous);
    
-   //ProcessingElement *pe = myThread->runningOn();
-   if (pe == NULL) {
-      pe = myThd->runningOn();
-      setPe( pe );
-   }
+   ProcessingElement *pe = myThread->runningOn();
 
    if ( getNumCopies() > 0 )
       pe->waitInputs( *this );
@@ -115,16 +99,13 @@ void WorkDescriptor::submit( void )
 
 void WorkDescriptor::done ()
 {
-   //ProcessingElement *pe = myThread->runningOn();
-   //ProcessingElement *pe = myThread->getThreadWD().getPe();
-   ProcessingElement *pe = getPe();
+   ProcessingElement *pe = myThread->runningOn();
 
    if (pe == NULL)
       pe = getMyThreadSafe()->runningOn();
 
    if ( pe->hasSeparatedMemorySpace() )
    {
-      //std::cerr <<  "has separate MS ; node " << sys.getNetwork()->getNodeNum() << " wd " << this << " pe is " << pe << std::endl;
       if ( getNumCopies() > 0 )
          pe->copyDataOut( *this );
    }
@@ -133,7 +114,6 @@ void WorkDescriptor::done ()
    waitCompletion();
    this->getParent()->workFinished( *this );
 
-   //std::cerr << "wg done wd " << getId() << std::endl;
    WorkGroup::done();
 
 }

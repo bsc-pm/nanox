@@ -134,7 +134,7 @@ inline void Scheduler::idleLoop ()
       BaseThread *thread = getMyThreadSafe();
       spins--;
 
-      if ( !thread->isRunning() && behaviour::checkThreadRunning( current ) ) break;
+      if ( !thread->isRunning() ) break;
 
       if ( thread->getTeam() != NULL ) {
          WD * next = myThread->getNextWD();
@@ -151,38 +151,27 @@ inline void Scheduler::idleLoop ()
          //      std::cerr << "executing prefetched wd " << next->getId() << std::endl;
          //   prefetchedWD = NULL;
          } else {
-            //jbueno//if ( sys.getSchedulerStats()._readyTasks > 0 ) 
+            if ( sys.getSchedulerStats()._readyTasks > 0 ) 
               next = behaviour::getWD(thread,current);
          } 
 
          if ( next ) {
-         //   sys.getSchedulerStats()._readyTasks--;
-         //   if (!current->isClusterMigrable()) 
-         //      sys.getSchedulerStats()._readyTasks++;
             sys.getSchedulerStats()._idleThreads--;
 
             total_spins+= (nspins - spins);
 
-            if ( next->isClusterMigrable() && !next->started() )
-            {
             NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
             NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) total_spins; )
             NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) total_yields; )
             NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) time_yields; )
             NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(3, Keys, Values); )
-               NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) )
-               behaviour::switchWD(thread,current, next);
-               thread = getMyThreadSafe();
-               NANOS_INSTRUMENT( inst2.close() );
-               //prefetchedWD = next->getPrefetchedWD();
-               //if (prefetchedWD != NULL)
-               //   std::cerr << "setting prefetched wd " << prefetchedWD->getId() << std::endl;
-            }
-            else
-            {
-               behaviour::switchWD(thread,current, next);
-               thread = getMyThreadSafe();
-            }
+            NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) )
+            behaviour::switchWD(thread,current, next);
+            thread = getMyThreadSafe();
+            NANOS_INSTRUMENT( inst2.close() );
+            //prefetchedWD = next->getPrefetchedWD();
+            //if (prefetchedWD != NULL)
+            //   std::cerr << "setting prefetched wd " << prefetchedWD->getId() << std::endl;
             sys.getSchedulerStats()._idleThreads++;
             total_spins = 0;
             total_yields = 0;
@@ -191,8 +180,8 @@ inline void Scheduler::idleLoop ()
             continue;
          }
       }
-
       sys.getNetwork()->poll();
+
 
       if ( spins == 0 ) {
         total_spins+= nspins;
@@ -262,18 +251,10 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) time_yields; )
                NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(3, Keys, Values); )
 
-            if ( next->isClusterMigrable() && !next->started() )
-            {
                NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME); );
                switchTo ( next );
                thread = getMyThreadSafe();
                NANOS_INSTRUMENT( inst2.close() );
-            }
-            else 
-            {
-               switchTo ( next );
-               thread = getMyThreadSafe();
-            }
 
                total_spins = 0;
                total_yields = 0;
@@ -344,60 +325,50 @@ WD * Scheduler::prefetch( BaseThread *thread, WD &wd )
    return thread->getTeam()->getSchedulePolicy().atPrefetch( thread, wd );
 }
 
-#ifdef CLUSTER_DEV
-struct ClusterWorkerBehaviour
-{
-   static WD * getWD ( BaseThread *thread, WD *current )
-   {
-      WD *next = NULL;
-
-      next = thread->getTeam()->getSchedulePolicy().atIdle ( thread );
-
-      //if (next != NULL) std::cerr << "current " << current->getId() << " next is " << next << ":" << (unsigned int) (next != NULL ? next->getId() : 0) << std::endl;
-      if ( next == NULL )
-      {
-         ext::ClusterThread *cThd = dynamic_cast<ext::ClusterThread*>( myThread );
-         next = cThd->getWD();
-      }
-      //std::cerr << "current " << current->getId() << " next is " << next << ":" << (unsigned int) (next != NULL ? next->getId() : 0) << std::endl;
-      return next;
-   }
-
-   static void switchWD ( BaseThread *thread, WD *current, WD *next )
-   {
-      //std::cerr << "CLUSTER switchWD " << next << " - "<< myThread->getCurrentWD() << std::endl;
-      if ( !next->isClusterMigrable() || next->started())
-      {
-         ext::ClusterThread *cThd = dynamic_cast<ext::ClusterThread*>( myThread );
-         cThd->addWD( current );
-         //std::cerr << "added to queue... " << current->getId() << std::endl;
-         Scheduler::switchTo(next);
-      }
-      else
-      {
-         //std::cerr << "Current PE is " << current->getPe() << std::endl;
-         next->setPe( current->getPe() );
-         next->setPeId( current->getPeId() );
-         current->unsetNodeFree();
-         //std::cerr << "CLUSTER INLINE WORK, current PE is " << current->getPe() << " nextwd " << next << ":" << next->getId() << std::endl;
-         Scheduler::inlineWork ( next );
-         current->setNodeFree();
-      }
-   }
-   static bool checkThreadRunning( WD *current ) {
-      if ( ( ( ext::ClusterNode *) current->getPe() )->getNodeNum() == 1 && current->getPeId() == 0 )
-         return true;
-      else
-         return false;
-   }
-};
 void Scheduler::workerClusterLoop ()
 {
-   std::cerr << "workeLoop started " << myThread->getCurrentWD()->getId() << std::endl;
+   std::cerr << "workeLoop started 1: " << myThread->getId() << std::endl;
+   BaseThread *parent = myThread;
+   myThread = myThread->getNextThread();
+   
+   for ( ; ; ) {
+      if ( !parent->isRunning() ) break;
 
-   idleLoop<ClusterWorkerBehaviour>();
+      if ( !myThread->isWorking() )
+      {
+         if ( myThread->getTeam() != NULL ) {
+            WD *current = myThread->getCurrentWD();
+            if ( current != &( myThread->getThreadWD() ) )
+            {
+               Scheduler::postOutlineWork(current);
+               delete current;
+            }
+
+            WD * wd = myThread->getNextWD();
+
+            if ( wd )
+            {
+               myThread->setNextWD(NULL);
+            }
+            else
+            {
+               wd = myThread->getTeam()->getSchedulePolicy().atIdle ( myThread );
+            }
+            if ( wd )
+            {
+               Scheduler::preOutlineWork(wd);
+               myThread->outlineWorkDependent(*wd);
+            }
+         }
+      }
+      else
+      {
+         //std::cerr << "Thread " << myThread->getId() << " already working" << std::endl;
+      }
+      sys.getNetwork()->poll();
+      myThread = myThread->getNextThread();
+   }
 }
-#endif
 
 
 struct WorkerBehaviour
@@ -427,38 +398,38 @@ void Scheduler::workerLoop ()
    idleLoop<WorkerBehaviour>();
 }
 
-void Scheduler::inlineWork ( WD *wd, bool schedule )
+void Scheduler::preOutlineWork ( WD *wd )
 {
    BaseThread *thread = getMyThreadSafe();
 
    // run it in the current frame
-   WD *oldwd = thread->getCurrentWD();
+   //WD *oldwd = thread->getCurrentWD();
 
-   GenericSyncCond *syncCond = oldwd->getSyncCond();
-   if ( syncCond != NULL ) {
-      syncCond->unlock();
-   }
+   //GenericSyncCond *syncCond = oldwd->getSyncCond();
+   //if ( syncCond != NULL ) {
+   //   syncCond->unlock();
+   //}
 
    //std::cerr << "thd " << myThread->getId() <<  " switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
    //       " to " << wd << ":" << wd->getId() << std::endl;
-   debug( "switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
-          " to " << wd << ":" << wd->getId() );
+   //debug( "switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
+   //       " to " << wd << ":" << wd->getId() );
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldwd, NULL, false) );
+   //NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldwd, NULL, false) );
 
    // This ensures that when we return from the inlining is still the same thread
    // and we don't violate rules about tied WD
-   wd->tieTo(*oldwd->isTiedTo());
+   //wd->tieTo(*oldwd->isTiedTo());
+   thread->setCurrentWD( *wd );
    if (!wd->started())
       wd->init();
-   thread->setCurrentWD( *wd );
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
+}
 
-   thread->inlineWorkDependent(*wd);
-
-   // reload thread after running WD
-   thread = getMyThreadSafe();
+void Scheduler::postOutlineWork ( WD *wd, bool schedule )
+{
+   BaseThread *thread = getMyThreadSafe();
 
    if (schedule && thread->getNextWD() == NULL ) {
         thread->setNextWD(thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*wd));
@@ -474,9 +445,66 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
 
    //std::cerr << "thd " << myThread->getId() << "exiting task(inlined) " << wd << ":" << wd->getId() <<
    //       " to " << oldwd << ":" << oldwd->getId() << std::endl;
+   //debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
+   //       " to " << oldwd << ":" << oldwd->getId() );
+
+
+   thread->setCurrentWD( thread->getThreadWD() );
+
+   //NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, oldwd, false) );
+
+   // While we tie the inlined tasks this is not needed
+   // as we will always return to the current thread
+   #if 0
+   if ( oldwd->isTiedTo() != NULL )
+      switchToThread(oldwd->isTiedTo());
+   #endif
+
+   //ensure(oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(),
+   //        "Violating tied rules " + toString<BaseThread*>(thread) + "!=" + toString<BaseThread*>(oldwd->isTiedTo()));
+
+}
+
+void Scheduler::inlineWork ( WD *wd, bool schedule )
+{
+   BaseThread *thread = getMyThreadSafe();
+
+   // run it in the current frame
+   WD *oldwd = thread->getCurrentWD();
+
+   GenericSyncCond *syncCond = oldwd->getSyncCond();
+   if ( syncCond != NULL ) {
+      syncCond->unlock();
+   }
+
+   debug( "switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
+          " to " << wd << ":" << wd->getId() );
+
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldwd, NULL, false) );
+
+   // This ensures that when we return from the inlining is still the same thread
+   // and we don't violate rules about tied WD
+   wd->tieTo(*oldwd->isTiedTo());
+   if (!wd->started())
+      wd->init();
+   thread->setCurrentWD( *wd );
+
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
+   myThread->inlineWorkDependent(*wd);
+
+   if (schedule && thread->getNextWD() == NULL ) {
+        thread->setNextWD(thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*wd));
+   }
+
+   /* If WorkDescriptor has been submitted update statistics */
+   updateExitStats (*wd);
+
+   wd->done();
+
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, false) );
+
    debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
           " to " << oldwd << ":" << oldwd->getId() );
-
 
    thread->setCurrentWD( *oldwd );
 
@@ -496,12 +524,7 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
 
 void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
 {
-
-   //if (newWD->isClusterMigrable())
-   if (newWD->getPrevious() == NULL)
-   {
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldWD, NULL, false) );
-   }
    myThread->switchHelperDependent(oldWD, newWD, arg);
 
    GenericSyncCond *syncCond = oldWD->getSyncCond();
@@ -509,56 +532,11 @@ void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
       oldWD->setBlocked();
       syncCond->unlock();
    } else {
-
-      if ( oldWD->isClusterMigrable() )
-      {
-         if ( oldWD->getPrevious() == NULL )
-         {
-            myThread->getTeam()->getSchedulePolicy().queue( myThread, *oldWD );
-         }
-         else if ( oldWD->getPrevious()->isClusterMigrable() )
-         {
-            myThread->getTeam()->getSchedulePolicy().queue( myThread, *oldWD );
-         }
-      }
+      myThread->getTeam()->getSchedulePolicy().queue( myThread, *oldWD );
    }
 
-#if 1
-   if ( oldWD->isClusterMigrable() )
-   {
-      if ( oldWD->getPrevious() == NULL || oldWD->getPrevious()->isClusterMigrable() )
-      {
-         //not cluster thread wd, trace
-
-         NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldWD, NULL, false) );
-         myThread->switchHelperDependent(oldWD, newWD, arg);
-
-         myThread->setCurrentWD( *newWD );
-         NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, newWD, false) );
-
-      }
-      else
-      {
-         // cluster wd, current is cluster migrable but previous is not (
-         myThread->switchHelperDependent(oldWD, newWD, arg);
-
-         myThread->setCurrentWD( *newWD );
-      }
-
-
-   }
-   else
-   {
-      myThread->switchHelperDependent(oldWD, newWD, arg);
-
-      myThread->setCurrentWD( *newWD );
-   }
-#endif
-   //NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldWD, NULL, false) );
-   //myThread->switchHelperDependent(oldWD, newWD, arg);
-
-   //myThread->setCurrentWD( *newWD );
-   //NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, newWD, false) );
+   myThread->setCurrentWD( *newWD );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, newWD, false) );
 }
 
 void Scheduler::switchTo ( WD *to )
@@ -580,56 +558,9 @@ void Scheduler::switchTo ( WD *to )
 
 void Scheduler::yield ()
 {
-   //NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
-   WD *next = NULL;
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
+   WD *next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
 
-#ifdef CLUSTER_DEV
-   if ( ! myThread->getCurrentWD()->getPrevious()->isClusterMigrable() ) {
-      // I'm running on a Cluster Thread (but Im a "work" WD)
-      // I've reached here because I am waiting the remote call to complete.
-
-      ext::ClusterThread *cThd = dynamic_cast<ext::ClusterThread*>( myThread );
-
-      if ( myThread->getCurrentWD()->getPrevious()->isNodeFree() ) {
-         // can the node be free at this point? if we reach here only from waiting work to be done
-         // then this branch makes no sense.
-         next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
-         if ( next == NULL )
-            next = cThd->getWD();
-      }
-      else 
-      {
-         next = cThd->getWD();
-      }
-
-      if (next == myThread->getCurrentWD())
-         next = NULL;
-
-      if (next != NULL)
-      {
-         cThd->addWD( myThread->getCurrentWD() );
-      }
-
-      //std::cerr << "wd " << myThread->getCurrentWD() << ":" << myThread->getCurrentWD()->getId() <<  " worker yield to " << next << ":" << next->getId() << "next is started? " << next->started() << std::endl;
-
-   }
-   //else if ( ! myThread->getCurrentWD()->isClusterMigrable() )
-   //{
-   //   // finishing clusterthread, we want to go back to the original idleLoop
-   //   next = myThread->getCurrentWD()->getPrevious();
-   //}
-   else
-   {
-      // SMPThread, do SMP stuff
-      //std::cerr << "SMP Detected: wd " << myThread->getCurrentWD() << ":" << myThread->getCurrentWD()->getId() <<  " worker yield to " << next << ":" << next->getId() << std::endl;
-      next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
-   }
-#else
-      next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
-#endif
-
-   
-   
    if ( next ) {
       switchTo(next);
    }

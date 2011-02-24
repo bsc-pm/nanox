@@ -259,7 +259,7 @@ class InstrumentationExtrae: public Instrumentation
                   for (unsigned int i = 0; i < strlen(str); i++) if ( str[i] == ' ' ) str[i] = 0x0;
 
                   // jbueno: cluster workaround until we get the new extrae
-                  std::cerr << "File mpit is: " << str << std::endl;
+                  std::cerr << "Removing file " << str << std::endl;
                   str[ strlen(str) - 12 ] = '0' + ( (char) ( sys.getNetwork()->getNodeNum() % 10 ) );
                   str[ strlen(str) - 13 ] = '0' + ( (char) ( sys.getNetwork()->getNodeNum() / 10 ) );
 
@@ -313,32 +313,35 @@ class InstrumentationExtrae: public Instrumentation
          std::fstream p_file;
          p_file.open(_listOfTraceFileNames.c_str());
 
-         size_t found = _traceFinalDirectory.find_last_of("/");
-         std::string dst = std::string(sys.getNetwork()->getMasterHostname() );
-
-         if (p_file.is_open())
+         for ( unsigned int j = 0; j < sys.getNetwork()->getNumNodes(); j++ )
          {
-            while (!p_file.eof() )
+            if ( j == sys.getNetwork()->getNodeNum() )
             {
-               p_file.getline (str, 255);
-               if ( strlen(str) > 0 )
+               p_file.open(_listOfTraceFileNames.c_str());
+               size_t found = _traceFinalDirectory.find_last_of("/");
+               std::string dst = std::string(sys.getNetwork()->getMasterHostname() );
+
+               if (p_file.is_open())
                {
-                  for (unsigned int i = 0; i < strlen(str); i++) if ( str[i] == ' ' ) str[i] = 0x0;
-                  // jbueno: cluster workaround until we get the new extrae
-                  std::cerr << "File mpit is: " << str << std::endl;
-                  str[ strlen(str) - 12 ] = '0' + ( (char) ( sys.getNetwork()->getNodeNum() % 10 ) );
-                  str[ strlen(str) - 13 ] = '0' + ( (char) ( sys.getNetwork()->getNodeNum() / 10 ) );
-                  for ( unsigned int j = 0; j < sys.getNetwork()->getNumNodes(); j++ )
+                  while (!p_file.eof() )
                   {
-                     if ( j == sys.getNetwork()->getNodeNum() )
+                     p_file.getline (str, 255);
+                     if ( strlen(str) > 0 )
+                     {
+                        for (unsigned int i = 0; i < strlen(str); i++) if ( str[i] == ' ' ) str[i] = 0x0;
+                        // jbueno: cluster workaround until we get the new extrae
+                        str[ strlen(str) - 12 ] = '0' + ( (char) ( sys.getNetwork()->getNodeNum() % 10 ) );
+                        str[ strlen(str) - 13 ] = '0' + ( (char) ( sys.getNetwork()->getNodeNum() / 10 ) );
                         secureCopy(str, dst + ":" + _traceFinalDirectory.substr(0,found+1));
-                     nanos_extrae_instrumentation_barrier();
+                     }
                   }
+                  p_file.close();
                }
+               else std::cout << "Unable to open " << _listOfTraceFileNames << " file" << std::endl;  
+
             }
-            p_file.close();
+            nanos_extrae_instrumentation_barrier();
          }
-         else std::cout << "Unable to open " << _listOfTraceFileNames << " file" << std::endl;  
 
          // copy pcf file too
          //        std::cerr << "Copying pcf file: " << _traceFileName_PCF << std::endl;

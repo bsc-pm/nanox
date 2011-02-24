@@ -28,19 +28,11 @@
 using namespace nanos;
 using namespace nanos::ext;
 
-//void ClusterNode::slaveLoop ( ClusterNode *node)
-//{
-//   Scheduler::workerLoop();
-//   sys.getNetwork()->sendExitMsg( node->getClusterNodeNum() );
-//}
-
 WorkDescriptor & ClusterNode::getWorkerWD () const
 {
-   ClusterDD * dd = new ClusterDD( ( ClusterDD::work_fct )Scheduler::workerClusterLoop );
+   ClusterDD * dd = new ClusterDD( ( ClusterDD::work_fct )0xdeadbeef );
    WD *wd = new WD( dd );
    std::cerr << "c:node @ is " << (void * ) this << " id " << _clusterNode << " wd is " << wd << ":" << wd->getId() << std::endl;
-   wd->setPe( (ProcessingElement *) this );
-   wd->unsetClusterMigrable();
    return *wd;
 }
 
@@ -49,66 +41,13 @@ WorkDescriptor & ClusterNode::getMasterWD () const
    fatal("Attempting to create a cluster master thread");
 }
 
-BaseThread &ClusterNode::createThread ( WorkDescriptor &helper )
+BaseThread &ClusterNode::createThread ( WorkDescriptor &helper, SMPMultiThread *parent )
 {
    // In fact, the GPUThread will run on the CPU, so make sure it canRunIn( SMP )
    ensure( helper.canRunIn( SMP ), "Incompatible worker thread" );
-   ClusterThread &th = *new ClusterThread( helper, this, _clusterNode );
+   ClusterThread &th = *new ClusterThread( helper, this, parent, _clusterNode );
 
    return th;
 }
 
-//void ClusterNode::registerDataAccessDependent( uint64_t tag, size_t size )
-//{
-//   _cache.cacheData( tag, size );
-//}
-
-//void ClusterNode::copyDataDependent( uint64_t tag, size_t size )
-//{
-//   _cache.copyData( tag, size );
-//}
-
-//void ClusterNode::unregisterDataAccessDependent( uint64_t tag )
-//{
-//   _cache.flush( tag );
-//}
-
-//void ClusterNode::copyBackDependent( uint64_t tag, size_t size )
-//{
-//   _cache.copyBack( tag, size );
-//}
-
-//void* ClusterNode::getAddressDependent( uint64_t tag )
-//{
-//   return _cache.getAddress(tag);
-//}
-//
-//void ClusterNode::copyToDependent( void *dst, uint64_t tag, size_t size )
-//{
-//   _cache.copyTo( dst, tag, size );
-//}
-
-//void ClusterNode::registerCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
-//{
-//   //fprintf(stderr, "clusternode: registerCacheAccessDependent %llx\n", tag);
-//   _cache.registerCacheAccess( dir, tag, size, input, output );
-//}
-//
-//void ClusterNode::unregisterCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool output )
-//{
-//   _cache.unregisterCacheAccess( dir, tag, size, output );
-//}
-//
-//void ClusterNode::registerPrivateAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
-//{
-//   _cache.registerPrivateAccess( dir, tag, size, input, output );
-//}
-//
-//void ClusterNode::unregisterPrivateAccessDependent( Directory &dir, uint64_t tag, size_t size )
-//{
-//   _cache.unregisterPrivateAccess( dir, tag, size );
-//}
-
 unsigned int ClusterNode::getClusterNodeNum() { return _clusterNode; }
-
-//void ClusterNode::waitInputDependent( uint64_t tag ) {}

@@ -26,7 +26,7 @@
 
 using namespace nanos;
 
-Network::Network () : _numNodes( 0 ), _api( (NetworkAPI *) 0 ), _nodeNum( 0 ), _notify( NULL ),
+Network::Network () : _numNodes( 1 ), _api( (NetworkAPI *) 0 ), _nodeNum( 0 ), _notify( NULL ),
                       _malloc_return( NULL ), _malloc_complete( NULL ), _masterHostname ( NULL ) {}
 Network::~Network ()
 {
@@ -130,6 +130,7 @@ void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigne
          NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL, dest ); )
 
          _api->sendWorkMsg( dest, work, dataSize, wdId, numPe, argSize, arg );
+         _notify[ dest * sys.getNumPEs() + numPe ] = 1;
       }
       else
       {
@@ -138,16 +139,9 @@ void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigne
    }
 }
 
-void Network::waitWorkCompletion(unsigned int dest, unsigned int numPe)
+bool Network::isWorking(unsigned int dest, unsigned int numPe) const
 {
-   //std::cerr << "waiting work from " << dest << " target pe " << numPe << " sys.getNumPEs() is " << sys.getNumPEs()<< std::endl;
-   while (_notify[ dest * sys.getNumPEs() + numPe ] == 0)
-   {
-      poll();
-      Scheduler::yield();
-   }
-   _notify[ dest * sys.getNumPEs() + numPe ] = 0;
-   //std::cerr << "completed work from " << dest << std::endl;
+   return ( _notify[ dest * sys.getNumPEs() + numPe ] == 1 );
 }
 
 void Network::sendWorkDoneMsg( unsigned int nodeNum, unsigned int numPe )
@@ -172,7 +166,7 @@ void Network::notifyWorkDone ( unsigned int nodeNum, unsigned int numPe )
    NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) numPe) << 32 ) + nodeNum; )
    NANOS_INSTRUMENT ( instr->raiseClosePtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL, nodeNum ); )
 
-   _notify[ nodeNum * sys.getNumPEs() + numPe ] = 1;
+   _notify[ nodeNum * sys.getNumPEs() + numPe ] = 0;
 }
 
 void Network::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size )

@@ -318,49 +318,31 @@ void System::start ()
    if ( _net.getNodeNum() == 0)
    {
       unsigned int nodeC;
-      ext::ClusterThread *clusterThread = NULL;
+
+      PE *_peArray[ _net.getNumNodes() - 1];
+      PE * smpRep = createPE ( "smp", p );
+      _pes.push_back( smpRep );
+
 
       for ( nodeC = 1; nodeC < _net.getNumNodes(); nodeC++ ) {
          nanos::ext::ClusterNode *node = new nanos::ext::ClusterNode( nodeC );
          std::cerr << "c:node @ is " << (void * ) node << std::endl;
          _pes.push_back( node );
 
-         if ( nodeC == 1) {
-            int i;
-
-            clusterThread = dynamic_cast<ext::ClusterThread *>( &node->startWorker() );
-            std::cerr << "c:wd @ is " << (void * ) &clusterThread->getThreadWD() << ":" << clusterThread->getThreadWD().getId() << std::endl;
-            clusterThread->getThreadWD().tieTo( *clusterThread );
-            clusterThread->getThreadWD().setPeId( 0 );
-            _workers.push_back( clusterThread );
-
-            for ( i = 1; i < numPes; i++ ) {
-               WD &slaveWd = node->getWorkerWD();
-               slaveWd.tieTo( *clusterThread );
-               slaveWd.setPeId( i );
-               clusterThread->addWD( &slaveWd );
-               std::cerr << "c:slwd @ is " << (void * ) &slaveWd << ":" << slaveWd.getId() << " numPe " << i << std::endl;
-            }
-         }
-         else
-         {
-            int i;
-            for ( i = 0; i < numPes; i++ ) {
-               WD &slaveWd = node->getWorkerWD();
-               slaveWd.tieTo( *clusterThread );
-               slaveWd.setPeId( i );
-               clusterThread->addWD( &slaveWd );
-               std::cerr << "c:slwd @ is " << (void * ) &slaveWd << ":" << slaveWd.getId() << " numPe " << i << std::endl;
-            }
-         }
+         _peArray[ nodeC - 1 ] = node;
       }
+      ext::SMPMultiThread *smpRepThd = dynamic_cast<ext::SMPMultiThread *>( &smpRep->startMultiWorker( _net.getNumNodes() - 1, _peArray ) );
+
+      for (unsigned int i = 0 ; i < smpRepThd->getNumThreads(); i++ )
+         _workers.push_back( smpRepThd->getNextThread() );
+
    }
 #endif
 
    switch ( getInitialMode() )
    {
       case POOL:
-         createTeam( _workers.size() );
+         createTeam( _workers.size() + ( _net.getNumNodes() ) );
          break;
       case ONE_THREAD:
          createTeam(1);
@@ -416,26 +398,17 @@ void System::finish ()
    verbose ( "Joining threads... phase 1" );
    // signal stop PEs
 
-//#ifdef CLUSTER_DEV
-//   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
-//       if (_pes[p] != nanos::ext::ClusterNodeInfo::getThisNodePE())
-//       {
-//           ((nanos::ext::ClusterNode *) _pes[p])->stopAll();
-//       }
-//   }
-//   nanos::ext::ClusterNodeInfo::callNetworkFinalizeFunc();
-//   fprintf(stderr, "Closed the network.\n");
-//#else
 #ifdef CLUSTER_DEV
    if (sys.getNetwork()->getNodeNum() == 0)
    {
       std::cerr << "Created " << createdWds << " wds" << std::endl;
-      for ( unsigned int p = getNumPEs(); p < _pes.size() ; p++ )
+      for ( unsigned int p = getNumPEs() + 1; p < _pes.size() ; p++ )
       {
          std::cerr << "Node " << p << " executed " << ((nanos::ext::ClusterNode *) _pes[p])->getExecutedWDs() << " WDs." << std::endl;
       }
    }
 #endif
+   std::cerr<<"stoping PES"<<std::endl;
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {
        _pes[p]->stopAll();
    }

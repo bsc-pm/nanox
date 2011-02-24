@@ -69,9 +69,11 @@ namespace ext
 
          virtual ~SMPProcessor() {}
 
+         virtual WD & getMultiWorkerWD () const;
          virtual WD & getWorkerWD () const;
          virtual WD & getMasterWD () const;
-         virtual BaseThread & createThread ( WorkDescriptor &wd );
+         virtual BaseThread & createThread ( WorkDescriptor &wd, SMPMultiThread *parent=NULL );
+         virtual BaseThread & createMultiThread ( WorkDescriptor &wd, unsigned int numPEs, PE **repPEs );
 
          static void prepareConfig ( Config &config );
          // capability query functions

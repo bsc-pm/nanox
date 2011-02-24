@@ -36,7 +36,7 @@ namespace ext
 
       private:
          unsigned int                     _clusterNode; // Assigned Cluster device Id
-         WDDeque                          _myWDs;
+         //WDDeque                          _myWDs;
 
          // disable copy constructor and assignment operator
          ClusterThread( const ClusterThread &th );
@@ -44,16 +44,33 @@ namespace ext
 
       public:
          // constructor
-         ClusterThread( WD &w, PE *pe, int device ) : SMPThread( w, pe ), _clusterNode( device ) {}
+         ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : SMPThread( w, pe, parent ), _clusterNode( device ) { setCurrentWD( w ); }
 
          // destructor
          virtual ~ClusterThread() {}
 
          virtual void runDependent ( void );
-         virtual void inlineWorkDependent ( WD &wd );
-         void addWD( WorkDescriptor *wd );
-         WorkDescriptor *getWD();
+         virtual void inlineWorkDependent ( WD &wd ) { fatal( "inline execution is not supported in this architecture (cluster)."); }
+         virtual void outlineWorkDependent ( WD &wd );
+         //void addWD( WorkDescriptor *wd );
+         //WorkDescriptor *getWD();
          virtual void join();
+         virtual void start() {}
+         virtual BaseThread * getNextThread ()
+         {
+            BaseThread *next;
+            if ( getParent() != NULL )
+            {
+               next = getParent()->getNextThread();
+            }
+            else
+            {
+               next = this;
+            }
+            return next;
+         }
+
+         virtual int checkStateDependent();
 
    };
 
