@@ -497,7 +497,7 @@ namespace nanos
 
                const ConfigOption & operator= ( const ConfigOption &co );
 
-               ~ConfigOption () {}
+               ~ConfigOption () { delete &_option; }
 
               /* \brief Returns the formatted help message for the ConfigOption's argument.
                */

@@ -329,6 +329,13 @@ void System::finish ()
 
    _pmInterface->finish();
 
+   /* System mem free */
+   delete _pmInterface;
+
+   for ( Slicers::const_iterator it = _slicers.begin(); it !=   _slicers.end(); it++ ) {
+      delete (Slicer *)  it->second;
+   }
+
    verbose ( "NANOS++ shutting down.... end" );
 }
 
