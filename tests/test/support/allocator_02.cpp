@@ -16,12 +16,14 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+/* DESCRIPTION: Checking Allocator overlapping memory allocations in several threads
+ * and memory deallocations in a different thread from this in which memory has been
+ * allocated.
+ */
 
-/*
-<testinfo>
+/*<testinfo>
 test_generator="gens/mixed-generator -a \"--gpus=0\""
-</testinfo>
-*/
+</testinfo>*/
 
 #include <iostream>
 #include <string.h>

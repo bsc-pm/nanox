@@ -16,11 +16,13 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-/*
-<testinfo>
+/* DESCRIPTION: Just checking basic functionality of Allocator alternating memory
+ * allocations and memory deallocations in a single thread.
+ */
+
+/*<testinfo>
 test_generator="gens/mixed-generator"
-</testinfo>
-*/
+</testinfo>*/
 
 #include <iostream>
 #include "allocator.hpp"

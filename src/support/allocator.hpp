@@ -76,7 +76,7 @@ inline void * Allocator::allocate ( size_t size )
    size_t headerSize = NANOS_ALIGNED_MEMORY_OFFSET(0,sizeof(ObjectHeader),16);
    size_t allocSize = realSize + headerSize;
 
-   ObjectHeader * ptr;
+   ObjectHeader * ptr = NULL;
    unsigned int i;
 
    for ( i = 0; i < _nArenas ; i++ ) {
