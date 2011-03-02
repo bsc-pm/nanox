@@ -30,62 +30,106 @@
 namespace nanos
 {
 
+/*! \class Allocator
+ */
 class Allocator
 {
    private:
+     /*! \class Arena
+      */
       class Arena
       {
-         private:
-            static const size_t numObjects = 100;
+         private: /* Arena data members and disabled constructors */
+            static const size_t numObjects = 100;      /** Number of maximum objects allocated in this arena*/
 
             union bitmap_entry {
                bool             _bit;
                char             pad[CACHELINE];
-            };
+            };                                         /**< bitmap_entry struct */
 
-            size_t            _objectSize;
-            char *            _arena;
-            bitmap_entry      *_bitmap;
-            Arena             *_next;
+            size_t            _objectSize;             /**< Object size in current Arena  */
+            char *            _arena;                  /**< Memory region used by Arena */
+            bitmap_entry      *_bitmap;                /**< Bit map (free/busy) */
+            Arena             *_next;                  /**< Next Arena in the list */
 
-         public:
+            /*! \brief Arena copy constructor (disabled)
+             */
+            Arena ( const Arena &a );
+            /*! \brief Arena copy assignment operator (disabled)
+             */
+            Arena & operator= ( const Arena &a );
+           /*! \brief Arena default constructor (disabled)
+            */
+            Arena ();
+
+         public: /* Arena method members */
+           /*! \brief Arena constructor
+            */
             Arena ( size_t objectSize ) : _objectSize(objectSize), _next (NULL)
             {
                _arena = (char *) malloc( objectSize * numObjects );
                _bitmap = (bitmap_entry *) malloc( sizeof(bitmap_entry) * numObjects ) ;
                for ( size_t i = 0; i < numObjects; i++ ) _bitmap[i]._bit = true;
             }
-
+           /*! \brief Arena destructor
+            */
             ~Arena ()
             {
                if ( _next ) delete _next;
                free(_arena);
                free(_bitmap);
             }
-
+           /*! \brief Returns the size of allocated object
+            */
             size_t getObjectSize ( void ) const ; 
+           /*! \brief Returns a free object address (and mark it as busy)
+            */
             void * allocate ( void ) ;
+           /*! \brief Mark 'object' as free
+            */
             void deallocate ( void *object ) ;
+           /*! \brief Returns next Arena object in the list
+            */
             Arena * getNext ( void ) const;
+           /*! \brief Set as next Arena object 'a'
+            */
             void setNext ( Arena * a );
-
       };
 
       struct ObjectHeader { Arena *_arena; };
 
-   private: /* Allocator Data Members */
-      std::vector<Arena *> _arenas;
-      size_t               _nArenas;
+   private: /* Allocator data members */
+      std::vector<Arena *> _arenas;      /**< Vector of Arenas in Allocator*/
+      size_t               _nArenas;     /**< Number of Arenas */
 
-   public:
+     /*! \brief Allocator copy constructor (disabled)
+      */
+      Allocator ( const Allocator &a );
+     /*! \brief Allocator copy assignment operator (disabled)
+      */
+      Allocator & operator= ( const Allocator &a );
 
+   public: /* Allocator method members */
+    /*! \brief Allocator default constructor 
+     */
      Allocator () : _arenas(), _nArenas(0)
      {
         _arenas.reserve(10);
      }
-
+    /*! \brief Allocator destructor 
+     */
+     ~Allocator () { }
+    /*! \brief Allocates 'size' bytes in memory and returns memory pointer
+     *
+     *  This function will check in his list of Arenas looking for one who
+     *  stores objects of the given 'size'. If Allocator finds an Arena region
+     *  with this 'size' will ask to it for a new object. If none of the current
+     *  Arenas works with the given 'size' Allocator will create a new Arena entry
+     *  in order to manage this (and future) objects of the given 'size'.
+     */
      void * allocate ( size_t size ) ;
-
+    /*! \brief Deallocates 'object' (object has a header which identifies related Arena
+     */
      static void deallocate ( void *object ) ;
 };
 
