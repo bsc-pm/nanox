@@ -29,9 +29,11 @@
 #include "copydata.hpp"
 #include "synchronizedcondition_decl.hpp"
 #include "atomic.hpp"
+#include "lazy.hpp"
 #include "instrumentationcontext.hpp"
 #include "directory.hpp"
 #include "schedule.hpp"
+#include "dependenciesdomain.hpp"
 
 using namespace nanos;
 
@@ -163,6 +165,13 @@ inline InstrumentationContextData * WorkDescriptor::getInstrumentationContextDat
 inline void WorkDescriptor::waitCompletion()
 {
    this->WorkGroup::waitCompletion();
+   if ( _directory.isInitialized() )
+      _directory->synchronizeHost();
+}
+
+inline void WorkDescriptor::waitCompletionAndSignalers()
+{
+   this->WorkGroup::waitCompletionAndSignalers();
    if ( _directory.isInitialized() )
       _directory->synchronizeHost();
 }

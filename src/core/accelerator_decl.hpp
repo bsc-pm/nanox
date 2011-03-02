@@ -17,15 +17,14 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_ACCELERATOR
-#define _NANOS_ACCELERATOR
+#ifndef _NANOS_ACCELERATOR_DECL
+#define _NANOS_ACCELERATOR_DECL
 
 #include <stdint.h>
-#include "workdescriptor.hpp"
-#include "processingelement.hpp"
-#include <algorithm>
-#include "functors.hpp"
-#include "atomic.hpp"
+#include "workdescriptor_decl.hpp"
+#include "processingelement_decl.hpp"
+#include "functors_decl.hpp"
+#include "atomic_decl.hpp"
 
 namespace nanos
 {

@@ -26,7 +26,7 @@
 #include "gpudevice_decl.hpp"
 #include "gpumemorytransfer.hpp"
 #include "malign.hpp"
-#include "simpleallocator.hpp"
+#include "simpleallocator_decl.hpp"
 #include "copydescriptor_decl.hpp"
 
 #include <map>

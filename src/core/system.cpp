@@ -28,6 +28,7 @@
 #include "os.hpp"
 #include "basethread.hpp"
 #include "malign.hpp"
+#include "processingelement.hpp"
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -39,8 +40,7 @@
 
 #ifdef CLUSTER_DEV
 #include "clusternode.hpp"
-#include "clusterdevice.hpp"
-#include "clusterthread.hpp"
+#include "smpthread.hpp"
 #endif
 
 using namespace nanos;
@@ -55,7 +55,7 @@ System nanos::sys;
 System::System () :
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindThreads( true ), _profile( false ), _instrument( false ),
       _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster(false),
-      _delayedStart(false), _useYield(true), _synchronizedStart(true), _isMaster(true), _throttlePolicy ( NULL ),
+      _delayedStart(false), _useYield(true), _synchronizedStart(true), _useCluster( false ), _isMaster(true), _throttlePolicy ( NULL ),
       _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
       _defBarr( "posix" ), _defInstr ( "empty_trace" ), _defArch("smp"),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _currentConduit( "mpi" ),
@@ -96,9 +96,12 @@ void System::loadModules ()
 #endif
 
 #ifdef CLUSTER_DEV
-   if ( !PluginManager::load ( "pe-cluster-"+getCurrentConduit() ) )
-      fatal0 ( "Couldn't load Cluster support" );
-   fprintf(stderr, "Cluster plugin loaded!\n");
+   if ( useCluster() )
+   {
+      if ( !PluginManager::load ( "pe-cluster-"+getCurrentConduit() ) )
+         fatal0 ( "Couldn't load Cluster support" );
+      fprintf(stderr, "Cluster plugin loaded!\n");
+   }
 #endif
 
    // load default schedule plugin
@@ -187,11 +190,12 @@ void System::config ()
    config.registerArgOption ( "instrumentation", "instrumentation" );
    config.registerEnvOption ( "instrumentation", "NX_INSTRUMENTATION" );
 
-   /* Cluster: select wich module to load mpi or udp */
-   //config.registerConfigOption ( "enable-cluster", NEW Config::FlagOption ( _useCluster, false ), "Enables the usage of Nanos++ Cluster" );
-   //config.registerArgOption ( "enable-cluster", "enable-cluster" );
+   /* Cluster: load the cluster support */
+   config.registerConfigOption ( "enable-cluster", NEW Config::FlagOption ( _useCluster, true ), "Enables the usage of Nanos++ Cluster" );
+   config.registerArgOption ( "enable-cluster", "cluster" );
    //config.registerEnvOption ( "enable-cluster", "NX_ENABLE_CLUSTER" );
 
+   /* Cluster: select wich module to load mpi or udp */
    config.registerConfigOption ( "conduit", NEW Config::StringVar ( _currentConduit ), "Selects which GasNet conduit will be used" );
    config.registerArgOption ( "conduit", "cluster-network" );
    config.registerEnvOption ( "conduit", "NX_CLUSTER_NETWORK" );
@@ -231,14 +235,21 @@ void System::start ()
    int numPes = getNumPEs();
 
 #ifdef CLUSTER_DEV
-   if ( _net.getNodeNum() == nanos::Network::MASTER_NODE_NUM )
+   if ( useCluster() )
    {
-      _pes.reserve ( numPes + ( _net.getNumNodes() - 1 ) );
-      std::cerr << "Reserved  " << ( numPes + ( _net.getNumNodes() - 1 ) )  << " PEs " << std::endl;
+      if ( _net.getNodeNum() == nanos::Network::MASTER_NODE_NUM )
+      {
+         _pes.reserve ( numPes + ( _net.getNumNodes() - 1 ) );
+         std::cerr << "Reserved  " << ( numPes + ( _net.getNumNodes() - 1 ) )  << " PEs " << std::endl;
+      }
+      else
+      {
+         // numPes++;
+         _pes.reserve ( numPes );
+      }
    }
    else
    {
-     // numPes++;
       _pes.reserve ( numPes );
    }
 #else
@@ -271,21 +282,37 @@ void System::start ()
       _workers.push_back( &pe->startWorker( ));
    }
 
-#ifdef CLUSTER_DEV
-   int effectivePes = ( _net.getNodeNum() == 0 && numPes == 4 ) ? numPes - 1 : numPes;
    int p;
-   for ( p = 1; p < effectivePes; p++ ) {
-      pe = createPE ( "smp", p );
-      _pes.push_back ( pe );
+#ifdef CLUSTER_DEV
+   if ( useCluster() )
+   {
+      int effectivePes = ( _net.getNodeNum() == 0 && numPes == 4 ) ? numPes - 1 : numPes;
+      for ( p = 1; p < effectivePes; p++ ) {
+         pe = createPE ( "smp", p );
+         _pes.push_back ( pe );
 
-      //starting as much threads per pe as requested by the user
+         //starting as much threads per pe as requested by the user
 
-      for ( int ths = 0; ths < getThsPerPE(); ths++ ) {
-         _workers.push_back( &pe->startWorker() );
+         for ( int ths = 0; ths < getThsPerPE(); ths++ ) {
+            _workers.push_back( &pe->startWorker() );
+         }
+      }
+   }
+   else
+   {
+      for ( p = 1; p < numPes ; p++ ) {
+         pe = createPE ( "smp", p );
+         _pes.push_back ( pe );
+
+         //starting as much threads per pe as requested by the user
+
+         //if ( _net.getNodeNum() > 0 )
+         for ( int ths = 0; ths < getThsPerPE(); ths++ ) {
+            _workers.push_back( &pe->startWorker() );
+         }
       }
    }
 #else
-   int p;
    for ( p = 1; p < numPes ; p++ ) {
       pe = createPE ( "smp", p );
       _pes.push_back ( pe );
@@ -315,27 +342,30 @@ void System::start ()
 
 
 #ifdef CLUSTER_DEV
-   if ( _net.getNodeNum() == 0)
+   if ( useCluster() )
    {
-      unsigned int nodeC;
+      if ( _net.getNodeNum() == 0)
+      {
+         unsigned int nodeC;
 
-      PE *_peArray[ _net.getNumNodes() - 1];
-      PE * smpRep = createPE ( "smp", p );
-      _pes.push_back( smpRep );
+         PE *_peArray[ _net.getNumNodes() - 1];
+         PE * smpRep = createPE ( "smp", p );
+         _pes.push_back( smpRep );
 
 
-      for ( nodeC = 1; nodeC < _net.getNumNodes(); nodeC++ ) {
-         nanos::ext::ClusterNode *node = new nanos::ext::ClusterNode( nodeC );
-         std::cerr << "c:node @ is " << (void * ) node << std::endl;
-         _pes.push_back( node );
+         for ( nodeC = 1; nodeC < _net.getNumNodes(); nodeC++ ) {
+            nanos::ext::ClusterNode *node = new nanos::ext::ClusterNode( nodeC );
+            std::cerr << "c:node @ is " << (void * ) node << std::endl;
+            _pes.push_back( node );
 
-         _peArray[ nodeC - 1 ] = node;
+            _peArray[ nodeC - 1 ] = node;
+         }
+         ext::SMPMultiThread *smpRepThd = dynamic_cast<ext::SMPMultiThread *>( &smpRep->startMultiWorker( _net.getNumNodes() - 1, _peArray ) );
+
+         for (unsigned int i = 0 ; i < smpRepThd->getNumThreads(); i++ )
+            _workers.push_back( smpRepThd->getNextThread() );
+
       }
-      ext::SMPMultiThread *smpRepThd = dynamic_cast<ext::SMPMultiThread *>( &smpRep->startMultiWorker( _net.getNumNodes() - 1, _peArray ) );
-
-      for (unsigned int i = 0 ; i < smpRepThd->getNumThreads(); i++ )
-         _workers.push_back( smpRepThd->getNextThread() );
-
    }
 #endif
 
@@ -360,15 +390,18 @@ void System::start ()
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_RUNNING) );
 
 #ifdef CLUSTER_DEV
-   setMaster(_net.getNodeNum() == nanos::Network::MASTER_NODE_NUM);
-   if (!isMaster())
+   if ( useCluster() )
    {
-       Scheduler::workerLoop();
-       //fprintf(stderr, "Slave node: I have to finish.\n");
-       finish();
+      setMaster(_net.getNodeNum() == nanos::Network::MASTER_NODE_NUM);
+      if (!isMaster())
+      {
+         Scheduler::workerLoop();
+         //fprintf(stderr, "Slave node: I have to finish.\n");
+         finish();
+      }
+      //else
+      //   fprintf(stderr, "Im only allowed here if im the master.\n");
    }
-   //else
-   //   fprintf(stderr, "Im only allowed here if im the master.\n");
 #endif
 }
 
@@ -386,7 +419,7 @@ void System::finish ()
 
    verbose ( "NANOS++ shutting down.... init" );
    verbose ( "Wait for main workgroup to complete" );
-   myThread->getCurrentWD()->waitCompletion();
+   myThread->getCurrentWD()->waitCompletionAndSignalers();
 
    // we need to switch to the main thread here to finish
    // the execution correctly
@@ -399,16 +432,18 @@ void System::finish ()
    // signal stop PEs
 
 #ifdef CLUSTER_DEV
-   if (sys.getNetwork()->getNodeNum() == 0)
+   if ( useCluster() )
    {
-      std::cerr << "Created " << createdWds << " wds" << std::endl;
-      for ( unsigned int p = getNumPEs() + 1; p < _pes.size() ; p++ )
+      if (sys.getNetwork()->getNodeNum() == 0)
       {
-         std::cerr << "Node " << p << " executed " << ((nanos::ext::ClusterNode *) _pes[p])->getExecutedWDs() << " WDs." << std::endl;
+         std::cerr << "Created " << createdWds << " wds" << std::endl;
+         for ( unsigned int p = getNumPEs() + 1; p < _pes.size() ; p++ )
+         {
+            std::cerr << "Node " << p << " executed " << ((nanos::ext::ClusterNode *) _pes[p])->getExecutedWDs() << " WDs." << std::endl;
+         }
       }
    }
 #endif
-   std::cerr<<"stoping PES"<<std::endl;
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {
        _pes[p]->stopAll();
    }
@@ -485,55 +520,58 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
 {
    ensure(num_devices > 0,"WorkDescriptor has no devices");
 
-   size_t  size_WD = (*uwd == NULL)? sizeof(WD):0;
-   size_t align_WD = (*uwd == NULL)? __alignof__(WD):1;
+   unsigned int i;
+   char *chunk = 0, *dd_location;
 
-   size_t  size_Data = (data != NULL && *data == NULL)? data_size:0;
-   size_t align_Data = (data != NULL && *data == NULL)? data_align:1;
+   size_t size_CopyData;
+   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_DDs, offset_DDs, size_Copies, offset_Copies, offset_PMD;
+   size_t total_size;
 
-   size_t  size_DPtrs = sizeof(DD *) * num_devices;
-   size_t align_DPtrs = __alignof__( DD * );
+   // WD doesn't need to compute offset, it will always be the chunk allocated address
 
-   size_t  size_DDs = 0;
-   for ( unsigned int i = 0; i < num_devices; i++ ) size_DDs += devices[i].dd_size;
-   size_t align_DDs = __alignof__(DeviceData);
+   // Computing Data info
+   size_Data = (data != NULL && *data == NULL)? data_size:0;
+   if ( *uwd == NULL ) offset_Data = NANOS_ALIGNED_MEMORY_OFFSET(0, sizeof(WD), data_align );
+   else offset_Data = 0; // if there are no wd allocated, it will always be the chunk allocated address
 
-   size_t  size_Copies = (copies != NULL && *copies == NULL)? num_copies*sizeof(CopyData):0;
-   size_t align_Copies = (copies != NULL && *copies == NULL)? __alignof__( nanos_copy_data_t ):1;
+   // Computing Data Device pointers and Data Devicesinfo
+   size_DPtrs    = sizeof(DD *) * num_devices;
+   offset_DPtrs  = NANOS_ALIGNED_MEMORY_OFFSET(offset_Data, size_Data, __alignof__( DD*) );
 
-   size_t  size_PMD = _pmInterface->getInternalDataSize();
-   size_t align_PMD = (size_PMD)? _pmInterface->getInternalDataAlignment():1;
+   size_DDs = 0;
+   for ( i = 0; i < num_devices; i++ ) size_DDs += devices[i].dd_size;
+   offset_DDs    = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(DeviceData) );
 
-   size_t offset_WD, offset_Data, offset_DPtrs, offset_DDs, offset_Copies, offset_PMD, total_size;
+   // Computing Copies info
+   if ( num_copies != 0 ) {
+      size_CopyData = sizeof(CopyData);
+      size_Copies   = size_CopyData * num_copies;
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, __alignof__(nanos_copy_data_t) );
+   } else {
+      size_Copies = 0;
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, 1);
+   }
 
-   createdWds++;
-   offset_WD     = NANOS_ALIGNED_MEMORY_OFFSET(0, 0, align_WD);
-   offset_Data   = NANOS_ALIGNED_MEMORY_OFFSET(offset_WD, size_WD, align_Data);
-   offset_DPtrs  = NANOS_ALIGNED_MEMORY_OFFSET(offset_Data, size_Data, align_DPtrs);
-   offset_DDs    = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, align_DDs);
-   offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, align_Copies);
-   offset_PMD    = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies,align_PMD);
-   total_size    = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD,size_PMD,1);
+   // Computing Internal Data info and total size
+   static size_t size_PMD   = _pmInterface->getInternalDataSize();
+   if ( size_PMD != 0 ) {
+      static size_t align_PMD = _pmInterface->getInternalDataAlignment();
+      offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, align_PMD);
+      total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD,size_PMD,1);
+   } else {
+      offset_PMD = 0; // needed for a gcc warning
+      total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, 1);
+   }
 
-   char *chunk = 0;
-
-   /* Standard C++ ISO/IEC 14882:2003(E)
-    *
-    * 3.7.3.1 Allocation functions
-    * The pointer returned shall be suitably aligned so that it can be converted to a
-    * pointer of any complete object type and then used to access the object or array
-    * in the storage allocated (until the storage is explicitly deallocated by a call
-    * to a corresponding deallocation function).
-    */
-   if ( total_size ) chunk = NEW char[total_size];
+   chunk = NEW char[total_size];
 
    // allocating WD and DATA
-   if ( *uwd == NULL ) *uwd = (WD *) (chunk + offset_WD);
+   if ( *uwd == NULL ) *uwd = (WD *) chunk;
    if ( data != NULL && *data == NULL ) *data = (chunk + offset_Data);
 
    // allocating Device Data
    DD **dev_ptrs = ( DD ** ) (chunk + offset_DPtrs);
-   char *dd_location = chunk + offset_DDs;
+   dd_location = chunk + offset_DDs;
    for ( unsigned int i = 0 ; i < num_devices ; i ++ ) {
       dev_ptrs[i] = ( DD* ) devices[i].factory( dd_location , devices[i].arg );
       dd_location += devices[i].dd_size;
@@ -544,7 +582,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    // allocating copy-ins/copy-outs
    if ( copies != NULL && *copies == NULL ) *copies = ( CopyData * ) (chunk + offset_Copies);
 
-   WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, align_Data, data != NULL ? *data : NULL,
+   WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, data_align, data != NULL ? *data : NULL,
                              num_copies, (copies != NULL)? *copies : NULL );
 
    // initializing internal data
@@ -619,58 +657,66 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
 {
    ensure(num_devices > 0,"WorkDescriptor has no devices");
 
-   size_t  size_WD = (*uwd == NULL)? sizeof(SlicedWD):0;
-   size_t align_WD = (*uwd == NULL)? __alignof__(SlicedWD):1;
+   unsigned int i;
+   char *chunk = 0, *dd_location;
 
-   size_t  size_Data = (outline_data != NULL && *outline_data == NULL)? outline_data_size:0;
-   size_t align_Data = (outline_data != NULL && *outline_data == NULL)? outline_data_align:1;
+   size_t size_CopyData;
+   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_DDs, offset_DDs;
+   size_t size_Copies, offset_Copies, offset_PMD, offset_SData;
+   size_t total_size;
 
-   size_t  size_DPtrs = sizeof(DD *) * num_devices;
-   size_t align_DPtrs = __alignof__( DD * );
+   // WD doesn't need to compute offset, it will always be the chunk allocated address
 
-   size_t  size_DDs = 0;
-   for ( unsigned int i = 0; i < num_devices; i++ ) size_DDs += devices[i].dd_size;
-   size_t align_DDs = __alignof__(DeviceData);
+   // Computing Data info
+   size_Data = (outline_data != NULL && *outline_data == NULL)? outline_data_size:0;
+   if ( *uwd == NULL ) offset_Data = NANOS_ALIGNED_MEMORY_OFFSET(0, sizeof(SlicedWD), outline_data_align );
+   else offset_Data = 0; // if there are no wd allocated, it will always be the chunk allocated address
 
-   size_t  size_Copies = (copies != NULL && *copies == NULL)? num_copies*sizeof(CopyData):0;
-   size_t align_Copies = (copies != NULL && *copies == NULL)? __alignof__( nanos_copy_data_t ):1;
+   // Computing Data Device pointers and Data Devicesinfo
+   size_DPtrs    = sizeof(DD *) * num_devices;
+   offset_DPtrs  = NANOS_ALIGNED_MEMORY_OFFSET(offset_Data, size_Data, __alignof__( DD*) );
 
-   size_t  size_SData = (slicer_data == NULL)? slicer_data_size:0;
-   size_t align_SData = (slicer_data == NULL)? slicer_data_align:1;
+   size_DDs = 0;
+   for ( i = 0; i < num_devices; i++ ) size_DDs += devices[i].dd_size;
+   offset_DDs    = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(DeviceData) );
 
-   size_t  size_PMD = _pmInterface->getInternalDataSize();
-   size_t align_PMD = (size_PMD)? _pmInterface->getInternalDataAlignment():1;
+   // Computing Copies info
+   if ( num_copies != 0 ) {
+      size_CopyData = sizeof(CopyData);
+      size_Copies   = size_CopyData * num_copies;
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, __alignof__(nanos_copy_data_t) );
+   } else {
+      size_Copies = 0;
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, 1);
+   }
 
-   size_t offset_WD, offset_Data, offset_DPtrs, offset_DDs, offset_Copies, offset_PMD, offset_SData, total_size;
+   // Computing Internal Data info and total size
+   static size_t size_PMD   = _pmInterface->getInternalDataSize();
+   if ( size_PMD != 0 ) {
+      static size_t align_PMD = _pmInterface->getInternalDataAlignment();
+      offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, align_PMD);
+   } else {
+      offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, 1);
+   }
 
-   offset_WD     = NANOS_ALIGNED_MEMORY_OFFSET(0, 0, align_WD);
-   offset_Data   = NANOS_ALIGNED_MEMORY_OFFSET(offset_WD, size_WD, align_Data);
-   offset_DPtrs  = NANOS_ALIGNED_MEMORY_OFFSET(offset_Data, size_Data, align_DPtrs);
-   offset_DDs    = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, align_DDs);
-   offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, align_Copies);
-   offset_PMD    = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, align_PMD);
-   offset_SData  = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD, size_PMD, align_SData);
-   total_size    = NANOS_ALIGNED_MEMORY_OFFSET(offset_SData, size_SData, 1);
+   // Computing Slicer Data info
+   if ( slicer_data_size != 0) {
+      offset_SData  = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD, size_PMD, slicer_data_align );
+   } else {
+      offset_SData  = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD, size_PMD, 1);
+   }
 
-   char *chunk = 0;
+   total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_SData, slicer_data_size, 1);
 
-   /* Standard C++ ISO/IEC 14882:2003(E)
-    *
-    * 3.7.3.1 Allocation functions
-    * The pointer returned shall be suitably aligned so that it can be converted to a
-    * pointer of any complete object type and then used to access the object or array
-    * in the storage allocated (until the storage is explicitly deallocated by a call
-    * to a corresponding deallocation function).
-    */
-   if ( total_size ) chunk = NEW char[total_size];
+   chunk = NEW char[total_size];
 
    // allocating WD and DATA
-   if ( *uwd == NULL ) *uwd = (SlicedWD *) (chunk + offset_WD);
+   if ( *uwd == NULL ) *uwd = (SlicedWD *) chunk;
    if ( outline_data != NULL && *outline_data == NULL ) *outline_data = (chunk + offset_Data);
 
    // allocating Device Data
    DD **dev_ptrs = ( DD ** ) (chunk + offset_DPtrs);
-   char *dd_location = chunk + offset_DDs;
+   dd_location = chunk + offset_DDs;
    for ( unsigned int i = 0 ; i < num_devices ; i ++ ) {
       dev_ptrs[i] = ( DD* ) devices[i].factory( dd_location , devices[i].arg );
       dd_location += devices[i].dd_size;
@@ -684,8 +730,8 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    // allocating Slicer Data
    if ( slicer_data == NULL ) slicer_data = (SlicerData *) (chunk + offset_SData);
 
-   SlicedWD * wd =  new (*uwd) SlicedWD( *slicer, slicer_data_size, align_SData,*slicer_data, num_devices, dev_ptrs, 
-                       outline_data_size, align_Data, outline_data != NULL ? *outline_data : NULL, num_copies,
+   SlicedWD * wd =  new (*uwd) SlicedWD( *slicer, slicer_data_size, slicer_data_align, *slicer_data, num_devices, dev_ptrs, 
+                       outline_data_size, outline_data_align, outline_data != NULL ? *outline_data : NULL, num_copies,
                        (copies == NULL) ? NULL : *copies );
 
    // initializing internal data
@@ -714,71 +760,88 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
  */
 void System::duplicateWD ( WD **uwd, WD *wd)
 {
+   unsigned int i, num_Devices, num_Copies;
+   CopyData *copy_data = NULL;
+   DeviceData **dev_data;
    void *data = NULL;
+   char *chunk = 0, *dd_location, *chunk_iter;
 
-   size_t  size_WD = (*uwd == NULL)? sizeof(WD):0;
-   size_t align_WD = (*uwd == NULL)? __alignof__(WD):1;
+   size_t size_CopyData;
+   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_DDs, offset_DDs, size_Copies, offset_Copies, offset_PMD;
+   size_t total_size;
 
-   size_t  size_Data = wd->getDataSize();
-   size_t align_Data = wd->getDataAlignment();
+   // WD doesn't need to compute offset, it will always be the chunk allocated address
 
-   size_t  size_DPtrs = sizeof(DD *) * wd->getNumDevices();
-   size_t align_DPtrs = __alignof__( DD * );
+   // Computing Data info
+   size_Data = wd->getDataSize();
+   if ( *uwd == NULL ) offset_Data = NANOS_ALIGNED_MEMORY_OFFSET(0, sizeof(WD), wd->getDataAlignment() );
+   else offset_Data = 0; // if there are no wd allocated, it will always be the chunk allocated address
 
-   size_t  size_DDs = 0;
-   for ( unsigned int i = 0; i < wd->getNumDevices(); i++ ) size_DDs += wd->getDevices()[i]->size();
-   size_t align_DDs = __alignof__(DeviceData);
+   // Computing Data Device pointers and Data Devicesinfo
+   num_Devices = wd->getNumDevices();
+   dev_data = wd->getDevices();
+   size_DPtrs    = sizeof(DD *) * num_Devices;
+   offset_DPtrs  = NANOS_ALIGNED_MEMORY_OFFSET(offset_Data, size_Data, __alignof__( DD*) );
 
-   size_t  size_Copies = sizeof( CopyData ) * wd->getNumCopies();
-   size_t align_Copies = ( size_Copies )? __alignof__( nanos_copy_data_t ):1;
+   size_DDs = 0;
+   for ( i = 0; i < num_Devices; i++ ) size_DDs += dev_data[i]->size();
+   offset_DDs    = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(DeviceData) );
 
-   size_t  size_PMD = _pmInterface->getInternalDataSize();
-   size_t align_PMD = (size_PMD)? _pmInterface->getInternalDataAlignment():1;
+   // Computing Copies info
+   num_Copies = wd->getNumCopies();
+   if ( num_Copies != 0 ) {
+      size_CopyData = sizeof(CopyData);
+      copy_data = wd->getCopies();
+      size_Copies   = size_CopyData * num_Copies;
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, __alignof__(nanos_copy_data_t) );
+   } else {
+      size_Copies = 0;
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, 1);
+   }
 
-   size_t offset_WD, offset_Data, offset_DPtrs, offset_DDs, offset_Copies, offset_PMD, total_size;
+   // Computing Internal Data info and total size
+   static size_t size_PMD   = _pmInterface->getInternalDataSize();
+   if ( size_PMD != 0 ) {
+      static size_t align_PMD = _pmInterface->getInternalDataAlignment();
+      offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, align_PMD);
+      total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD,size_PMD,1);
+   } else {
+      offset_PMD = 0; // needed for a gcc warning
+      total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, 1);
+   }
 
-   offset_WD     = NANOS_ALIGNED_MEMORY_OFFSET(0, 0, align_WD);
-   offset_Data   = NANOS_ALIGNED_MEMORY_OFFSET(offset_WD, size_WD, align_Data);
-   offset_DPtrs  = NANOS_ALIGNED_MEMORY_OFFSET(offset_Data, size_Data, align_DPtrs);
-   offset_DDs    = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, align_DDs);
-   offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, align_Copies);
-   offset_PMD    = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies,align_PMD);
-   total_size    = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD,size_PMD,1);
+   chunk = NEW char[total_size];
 
-   char *chunk = 0;
-
-   if ( total_size ) chunk = NEW char[total_size];
-
-   // allocating WD and DATA
-   if ( *uwd == NULL ) *uwd = (WD *) (chunk + offset_WD);
+   // allocating WD and DATA; if size_Data == 0 data keep the NULL value
+   if ( *uwd == NULL ) *uwd = (WD *) chunk;
    if ( size_Data != 0 ) {
-      data = (chunk + offset_Data);
+      data = chunk + offset_Data;
       memcpy ( data, wd->getData(), size_Data );
    }
 
    // allocating Device Data
    DD **dev_ptrs = ( DD ** ) (chunk + offset_DPtrs);
-   char *dd_location = chunk + offset_DDs;
-   for ( unsigned int i = 0 ; i < wd->getNumDevices(); i ++ ) {
-      wd->getDevices()[i]->copyTo(dd_location);
+   dd_location = chunk + offset_DDs;
+   for ( i = 0 ; i < num_Devices; i ++ ) {
+      dev_data[i]->copyTo(dd_location);
       dev_ptrs[i] = ( DD* ) dd_location;
-      dd_location += wd->getDevices()[i]->size();
+      dd_location += dev_data[i]->size();
    }
 
    // allocate copy-in/copy-outs
    CopyData *wdCopies = ( CopyData * ) (chunk + offset_Copies);
-   char * chunk_iter = (chunk + offset_Copies);
-   for ( unsigned int i = 0; i < wd->getNumCopies(); i++ ) {
+   chunk_iter = chunk + offset_Copies;
+   for ( i = 0; i < num_Copies; i++ ) {
       CopyData *wdCopiesCurr = ( CopyData * ) chunk_iter;
       *wdCopiesCurr = wd->getCopies()[i];
-      chunk_iter += sizeof( CopyData );
+      chunk_iter += size_CopyData;
    }
 
    // creating new WD 
    new (*uwd) WD( *wd, dev_ptrs, wdCopies , data);
 
    // initializing internal data
-   if ( size_PMD > 0) wd->setInternalData( chunk + offset_PMD );
+   if ( size_PMD != 0) (*uwd)->setInternalData( chunk + offset_PMD );
 }
 
 /*! \brief Duplicates a given SlicedWD
@@ -791,69 +854,90 @@ void System::duplicateWD ( WD **uwd, WD *wd)
  */
 void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
 {
+   unsigned int i, num_Devices, num_Copies;
+   CopyData *copy_data = NULL;
+   DeviceData **dev_data;
    void *data = NULL;
    void *slicer_data = NULL;
+   char *chunk = 0, *dd_location, *chunk_iter;
 
-   size_t  size_WD = (*uwd == NULL)? sizeof(SlicedWD):0;
-   size_t align_WD = (*uwd == NULL)? __alignof__(SlicedWD):1;
+   size_t size_CopyData;
+   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_DDs, offset_DDs;
+   size_t size_Copies, offset_Copies, size_PMD, offset_PMD, size_SData, offset_SData;
+   size_t total_size;
 
-   size_t  size_Data = wd->getDataSize();
-   size_t align_Data = wd->getDataAlignment();
+   // WD doesn't need to compute offset, it will always be the chunk allocated address
 
-   size_t  size_DPtrs = sizeof(DD *) * wd->getNumDevices();
-   size_t align_DPtrs = __alignof__( DD * );
+   // Computing Data info
+   size_Data = wd->getDataSize();
+   if ( *uwd == NULL ) offset_Data = NANOS_ALIGNED_MEMORY_OFFSET(0, sizeof(SlicedWD), wd->getDataAlignment() );
+   else offset_Data = 0; // if there are no wd allocated, it will always be the chunk allocated address
 
-   size_t  size_DDs = 0;
-   for ( unsigned int i = 0; i < wd->getNumDevices(); i++ ) size_DDs += wd->getDevices()[i]->size();
-   size_t align_DDs = __alignof__(DeviceData);
+   // Computing Data Device pointers and Data Devicesinfo
+   num_Devices = wd->getNumDevices();
+   dev_data = wd->getDevices();
+   size_DPtrs    = sizeof(DD *) * num_Devices;
+   offset_DPtrs  = NANOS_ALIGNED_MEMORY_OFFSET(offset_Data, size_Data, __alignof__( DD*) );
 
-   size_t  size_Copies = sizeof( CopyData ) * wd->getNumCopies();
-   size_t align_Copies = ( size_Copies )? __alignof__( nanos_copy_data_t ):1;
+   size_DDs = 0;
+   for ( i = 0; i < num_Devices; i++ ) size_DDs += dev_data[i]->size();
+   offset_DDs    = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(DeviceData) );
 
-   size_t  size_SData = wd->getSlicerDataSize();
-   size_t align_SData = (size_SData)? wd->getSlicerDataAlignment():1;
+   // Computing Copies info
+   num_Copies = wd->getNumCopies();
+   if ( num_Copies != 0 ) {
+      size_CopyData = sizeof(CopyData);
+      copy_data = wd->getCopies();
+      size_Copies   = size_CopyData * num_Copies;
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, __alignof__(nanos_copy_data_t) );
+   } else {
+      size_Copies = 0;
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, 1);
+   }
 
-   size_t  size_PMD = _pmInterface->getInternalDataSize();
-   size_t align_PMD = (size_PMD)? _pmInterface->getInternalDataAlignment():1;
+   // Computing Internal Data info and total size
+   size_PMD   = _pmInterface->getInternalDataSize();
+   if ( size_PMD != 0 ) {
+      offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, _pmInterface->getInternalDataAlignment());
+   } else {
+      offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, 1);
+   }
 
-   size_t offset_WD, offset_Data, offset_DPtrs, offset_DDs, offset_Copies, offset_PMD, offset_SData, total_size;
+   // Computing Slicer Data info
+   size_SData = wd->getSlicerDataSize();
+   if ( size_SData != 0) {
+      offset_SData  = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD, size_PMD, wd->getSlicerDataAlignment());
+   } else {
+      offset_SData  = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD, size_PMD, 1);
+   }
 
-   offset_WD     = NANOS_ALIGNED_MEMORY_OFFSET(0, 0, align_WD);
-   offset_Data   = NANOS_ALIGNED_MEMORY_OFFSET(offset_WD, size_WD, align_Data);
-   offset_DPtrs  = NANOS_ALIGNED_MEMORY_OFFSET(offset_Data, size_Data, align_DPtrs);
-   offset_DDs    = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, align_DDs);
-   offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, align_Copies);
-   offset_PMD    = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, align_PMD);
-   offset_SData  = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD, size_PMD, align_SData);
-   total_size    = NANOS_ALIGNED_MEMORY_OFFSET(offset_SData, size_SData, 1);
+   total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_SData, size_SData, 1);
 
-   char *chunk = 0;
-
-   if ( total_size ) chunk = NEW char[total_size];
+   chunk = NEW char[total_size];
 
    // allocating WD and DATA
-   if ( *uwd == NULL ) *uwd = (SlicedWD *) (chunk + offset_WD);
+   if ( *uwd == NULL ) *uwd = (SlicedWD *) chunk;
    if ( size_Data != 0 ) {
-      data = (chunk + offset_Data);
+      data = chunk + offset_Data;
       memcpy ( data, wd->getData(), size_Data );
    }
 
    // allocating Device Data
    DD **dev_ptrs = ( DD ** ) (chunk + offset_DPtrs);
-   char *dd_location = chunk + offset_DDs;
-   for ( unsigned int i = 0 ; i < wd->getNumDevices(); i ++ ) {
-      wd->getDevices()[i]->copyTo(dd_location);
+   dd_location = chunk + offset_DDs;
+   for ( i = 0 ; i < num_Devices; i ++ ) {
+      dev_data[i]->copyTo(dd_location);
       dev_ptrs[i] = ( DD* ) dd_location;
-      dd_location += wd->getDevices()[i]->size();
+      dd_location += dev_data[i]->size();
    }
 
    // allocate copy-in/copy-outs
    CopyData *wdCopies = ( CopyData * ) (chunk + offset_Copies);
-   char * chunk_iter = (chunk + offset_Copies);
-   for ( unsigned int i = 0; i < wd->getNumCopies(); i++ ) {
+   chunk_iter = (chunk + offset_Copies);
+   for ( i = 0; i < num_Copies; i++ ) {
       CopyData *wdCopiesCurr = ( CopyData * ) chunk_iter;
       *wdCopiesCurr = wd->getCopies()[i];
-      chunk_iter += sizeof( CopyData );
+      chunk_iter += size_CopyData;
    }
 
    // copy SlicerData
@@ -867,8 +951,7 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
                         *((SlicerData *)slicer_data), *((WD *)wd), dev_ptrs, wdCopies, data );
 
    // initializing internal data
-   if ( size_PMD > 0) wd->setInternalData( chunk + offset_PMD );
-
+   if ( size_PMD != 0) (*uwd)->setInternalData( chunk + offset_PMD );
 }
 
 void System::setupWD ( WD &work, WD *parent )

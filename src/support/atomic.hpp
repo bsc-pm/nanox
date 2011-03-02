@@ -20,6 +20,7 @@
 #ifndef _NANOS_ATOMIC
 #define _NANOS_ATOMIC
 
+#include "atomic_decl.hpp"
 #include "compatibility.hpp"
 #include "nanos-int.h"
 #include <algorithm> // for min/max
@@ -32,159 +33,229 @@
 */
 
 
-namespace nanos
+using namespace nanos;
+
+template<typename T>
+inline T Atomic<T>::fetchAndAdd ( const T& val )
+{
+   return __sync_fetch_and_add( &_value,val );
+}
+
+template<typename T>
+inline T Atomic<T>::addAndFetch ( const T& val )
+{
+   return __sync_add_and_fetch( &_value,val );
+}
+
+template<typename T>
+inline T Atomic<T>::fetchAndSub ( const T& val )
+{
+   return __sync_fetch_and_sub( &_value,val );
+}
+
+template<typename T>
+inline T Atomic<T>::subAndFetch ( const T& val )
+{
+   return __sync_sub_and_fetch( &_value,val );
+}
+
+template<typename T>
+inline T Atomic<T>::value() const
+{
+   return _value;
+}
+
+template<typename T>
+inline T Atomic<T>::operator++ ()
+{
+   return addAndFetch();
+}
+
+template<typename T>
+inline T Atomic<T>::operator-- ()
+{
+   return subAndFetch();
+}
+
+template<typename T>
+inline T Atomic<T>::operator++ ( int val )
+{
+   return fetchAndAdd();
+}
+
+template<typename T>
+inline T Atomic<T>::operator-- ( int val )
+{
+   return fetchAndSub();
+}
+
+template<typename T>
+inline T Atomic<T>::operator+= ( const T val )
+{
+   return addAndFetch(val);
+}
+
+template<typename T>
+inline T Atomic<T>::operator+= ( const Atomic<T> &val )
+{
+   return addAndFetch(val.value());
+}
+
+template<typename T>
+inline T Atomic<T>::operator-= ( const T val )
+{
+   return subAndFetch(val);
+}
+
+template<typename T>
+inline T Atomic<T>::operator-= ( const Atomic<T> &val )
+{
+   return subAndFetch(val.value());
+}
+
+template<typename T>
+inline bool Atomic<T>::operator== ( const Atomic<T> &val )
+{
+   return value() == val.value();
+}
+
+template<typename T>
+inline bool Atomic<T>::operator!= ( const Atomic<T> &val )
+{
+   return value() != val.value();
+}
+
+template<typename T>
+inline bool Atomic<T>::operator< (const Atomic<T> &val )
+{
+   return value() < val.value();
+}
+
+template<typename T>
+inline bool Atomic<T>::operator> ( const Atomic<T> &val )
+{
+   return value() > val.value();
+}
+
+template<typename T>
+inline bool Atomic<T>::operator<= ( const Atomic<T> &val )
+{
+   return value() <= val.value();
+}
+
+template<typename T>
+inline bool Atomic<T>::operator>= ( const Atomic<T> &val )
+{
+   return value() >= val.value();
+}
+
+template<typename T>
+inline bool Atomic<T>::cswap ( const Atomic<T> &oldval, const Atomic<T> &newval )
+{
+   return __sync_bool_compare_and_swap ( &_value, oldval.value(), newval.value() );
+}
+
+template<typename T>
+inline volatile T & Atomic<T>::override ()
+{
+    return _value;
+}
+
+template<typename T>
+inline Atomic<T> & Atomic<T>::operator= ( const T val )
+{
+   this->_value = val;
+   return *this;
+}
+
+template<typename T>
+inline Atomic<T> & Atomic<T>::operator= ( const Atomic<T> &val )
+{
+   return operator=( val._value );
+}
+
+inline Lock::state_t Lock::operator* () const
+{
+   return _state;
+}
+
+inline Lock::state_t Lock::getState () const
+{
+   return _state;
+}
+
+inline void Lock::operator++ ( int val )
+{
+   acquire();
+}
+
+inline void Lock::operator-- ( int val )
+{
+   release();
+}
+
+inline void Lock::acquire ( void )
 {
 
-   template<typename T>
+spin:
 
-   class Atomic
-   {
+   while ( _state == NANOS_LOCK_BUSY );
 
-      private:
-         volatile T     _value;
+   if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) goto spin;
+}
 
-      public:
-         // constructor
-         Atomic () {}
+inline bool Lock::tryAcquire ( void )
+{
+   if ( _state == NANOS_LOCK_FREE ) {
+      if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) return false;
+      else return true;
+   } else return false;
+}
 
-         Atomic ( T init ) : _value( init ) {}
+inline void Lock::release ( void )
+{
+   __sync_lock_release( &_state );
+}
 
-         // copy constructor
-         Atomic ( const Atomic &atm ) : _value( atm._value ) {}
+inline void nanos::memoryFence ()
+{
+    __sync_synchronize();
+}
 
-         // assignment operator
-         Atomic & operator= ( const Atomic &atm );
-         Atomic & operator= ( const T val );
-         // destructor
-         ~Atomic() {}
+template<typename T>
+inline bool nanos::compareAndSwap( T *ptr, T oldval, T  newval )
+{
+    return __sync_bool_compare_and_swap ( ptr, oldval, newval );
+}
 
-         T fetchAndAdd ( const T& val=1 ) { return __sync_fetch_and_add( &_value,val ); }
-         T addAndFetch ( const T& val=1 ) { return __sync_add_and_fetch( &_value,val ); }
-         T fetchAndSub ( const T& val=1 ) { return __sync_fetch_and_sub( &_value,val ); }
-         T subAndFetch ( const T& val=1 ) { return __sync_sub_and_fetch( &_value,val ); }
-         T value() const { return _value; }
+inline LockBlock::LockBlock ( Lock & lock ) : _lock(lock)
+{
+   acquire();
+}
 
-         //! pre-increment ++
-         T operator++ ()               { return addAndFetch(); }
-         T operator-- ()               { return subAndFetch(); }
+inline LockBlock::~LockBlock ( )
+{
+   release();
+}
 
-         //! post-increment ++
-         T operator++ ( int val )      { return fetchAndAdd(); }
-         T operator-- ( int val )      { return fetchAndSub(); }
+inline void LockBlock::acquire()
+{
+   _lock++;
+}
 
-         //! += operator
-         T operator+= ( const T val ) { return addAndFetch(val); }
-         T operator+= ( const Atomic<T> &val ) { return addAndFetch(val.value()); }
+inline void LockBlock::release()
+{
+   _lock--;
+}
 
-         T operator-= ( const T val ) { return subAndFetch(val); }
-         T operator-= ( const Atomic<T> &val ) { return subAndFetch(val.value()); }
+inline SyncLockBlock::SyncLockBlock ( Lock & lock ) : LockBlock(lock)
+{
+   memoryFence();
+}
 
-         //! equal operator
-         bool operator== ( const Atomic<T> &val ) { return value() == val.value(); }
-         bool operator!= ( const Atomic<T> &val ) { return value() != val.value(); }
-
-         bool operator< (const Atomic<T> &val ) { return value() < val.value(); }
-         bool operator> ( const Atomic<T> &val ) { return value() > val.value(); }
-         bool operator<= ( const Atomic<T> &val ) { return value() <= val.value(); }
-         bool operator>= ( const Atomic<T> &val ) { return value() >= val.value(); }
-
-         // other atomic operations
-
-         //! compare and swap
-         bool cswap ( const Atomic<T> &oldval, const Atomic<T> &newval )
-         {
-            return __sync_bool_compare_and_swap ( &_value, oldval.value(), newval.value() );
-         }
-
-         volatile T & override () { return _value; }
-   };
-
-   template<typename T>
-   Atomic<T> & Atomic<T>::operator= ( const T val )
-   {
-      this->_value = val;
-      return *this;
-   }
-
-   template<typename T>
-   Atomic<T> & Atomic<T>::operator= ( const Atomic<T> &val )
-   {
-      return operator=( val._value );
-   }
-
-   class Lock : public nanos_lock_t
-   {
-
-      private:
-         typedef nanos_lock_state_t state_t;
-
-         // disable copy constructor and assignment operator
-         Lock( const Lock &lock );
-         const Lock & operator= ( const Lock& );
-
-      public:
-         // constructor
-         Lock( state_t init=NANOS_LOCK_FREE ) : nanos_lock_t( init ) {};
-
-         // destructor
-         ~Lock() {}
-
-         void acquire ( void );
-         bool tryAcquire ( void );
-         void release ( void );
-
-         state_t operator* () const { return _state; }
-
-         state_t getState () const { return _state; }
-
-         void operator++ ( int val ) { acquire(); }
-
-         void operator-- ( int val ) { release(); }
-   };
-
-   inline void Lock::acquire ( void )
-   {
-
-   spin:
-
-      while ( _state == NANOS_LOCK_BUSY );
-
-      if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) goto spin;
-   }
-
-   inline bool Lock::tryAcquire ( void )
-   {
-      if ( _state == NANOS_LOCK_FREE ) {
-         if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) return false;
-         else return true;
-      } else return false;
-   }
-
-   inline void Lock::release ( void )
-   {
-      __sync_lock_release( &_state );
-   }
-
-   inline void memoryFence () { __sync_synchronize(); }
-
-   inline bool compareAndSwap( int *ptr, int oldval, int newval ) { return __sync_bool_compare_and_swap ( ptr, oldval, newval );}
-
-   class LockBlock
-   {
-     private:
-       Lock & _lock;
-
-       // disable copy-constructor
-       explicit LockBlock ( const LockBlock & );
-
-     public:
-       LockBlock ( Lock & lock ) : _lock(lock) { acquire(); }
-       ~LockBlock ( ) { release(); }
-
-       void acquire() { _lock++; }
-       void release() { _lock--; }
-   };
-
-};
+inline SyncLockBlock::~SyncLockBlock ( )
+{
+   memoryFence();
+}
 
 #endif

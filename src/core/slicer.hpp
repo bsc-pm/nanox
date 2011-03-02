@@ -23,225 +23,126 @@
 #include "workdescriptor.hpp"
 #include "schedule.hpp"
 #include "nanos-int.h"
-#include "slicer_fwd.hpp"
+#include "slicer_decl.hpp"
 #include <list>                                                                                                                                          
 
-namespace nanos
+using namespace nanos;
+
+inline void *Slicer::getSpecificData ( ) const
 {
+   return NULL;
+}
 
-   class Slicer
-   {
-      private:
-         /*! \brief Slicer copy constructor (disabled)
-          */
-         Slicer ( const Slicer &s );
-         /*! \brief Slicer copy assignment operator
-          */
-         Slicer & operator= ( const Slicer &s );
-      public:
-         /*! \brief Slicer default constructor
-          */
-         Slicer () { }
-         /*! \brief Slicer destructor
-          */
-         virtual ~Slicer () { }
-         /*! \brief Submit a WorkDescriptor (pure virtual)
-          */
-         virtual void submit ( SlicedWD &work ) = 0;
-         /*! \brief Dequeue on a WorkDescriptor getting a slice (pure virtual)
-          */
-         virtual bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) = 0;
-         /*! \brief Get Slicer specific data 
-          */
-         virtual void *getSpecificData ( ) const { return NULL; }
-   };
+inline Slicer * SlicedWD::getSlicer ( void ) const
+{
+   return &_slicer;
+}
 
-   class SlicerData
-   {
-      private:
-         /*! \brief SlicerData copy constructor (disabled)
-          */
-         SlicerData ( const SlicerData &sd );
-         /*! \brief SlicerData copy assignment operator (disabled)
-          */
-         SlicerData & operator= ( const SlicerData &sd );
-      public:
-         /*! \brief SlicerData default constructor
-          */
-         SlicerData ( ) { }
-         /*! \brief SlicerData destructor
-          */
-         ~SlicerData ( ) { }
-   };
+inline size_t SlicedWD::getSlicerDataSize ( void ) const
+{
+   return _slicerDataSize;
+}
 
-   class SlicedWD : public WD
-   {
-      private:
-         Slicer      &_slicer;               /**< Related Slicer     */
-         size_t       _slicerDataSize;       /**< SlicerData size    */
-         int          _slicerDataAlignment;  /**< SlicerData alignment */
-         SlicerData  &_slicerData;           /**< Related SlicerData */
-      private:
-         /*! \brief SlicedWD default constructor (disabled)
-          */
-         SlicedWD ();
-         /*! \brief SlicedWD copy constructor (disabled)
-          */
-         SlicedWD ( const SlicedWD &swd );
-         /*! \brief SlicedWD copy assignment operator (disabled) 
-          */
-         SlicedWD & operator= ( const SlicedWD &swd );
-      public:
-         /*! \brief SlicedWD constructor - n devices
-          */
-          SlicedWD ( Slicer &slicer, size_t sdata_size, int sdata_align, SlicerData &sdata, int ndevices, DeviceData **devs,
-                     size_t data_size, int data_align=1, void *wdata=0, size_t numCopies=0, CopyData *copies=NULL )
-             : WorkDescriptor ( ndevices, devs, data_size, data_align, wdata, numCopies, copies ),
-               _slicer(slicer), _slicerDataSize(sdata_size), _slicerDataAlignment(sdata_align), _slicerData(sdata)  {}
-         /*! \brief SlicedWD constructor - 1 device
-          */
-          SlicedWD ( Slicer &slicer, size_t sdata_size, int sdata_align, SlicerData &sdata, DeviceData *device,
-                     size_t data_size, int data_align, void *wdata=0, size_t numCopies=0, CopyData* copies=NULL )
-             : WorkDescriptor ( device, data_size, data_align, wdata, numCopies, copies ),
-               _slicer(slicer), _slicerDataSize(sdata_size), _slicerDataAlignment(sdata_align), _slicerData(sdata)  {}
-         /*! \brief SlicedWD constructor - from wd
-          */
-          SlicedWD ( Slicer &slicer, size_t sdata_size, int sdata_align, SlicerData &sdata, WD &wd,
-                      DeviceData **device, CopyData *copies, void *wdata=0 )
-             : WorkDescriptor ( wd, device, copies, wdata),
-               _slicer(slicer), _slicerDataSize(sdata_size), _slicerDataAlignment(sdata_align), _slicerData(sdata)  {}
-         /*! \brief SlicedWD destructor
-          */
-         ~SlicedWD  ( ) { }
-         /*! \brief Get related slicer
-          */
-         Slicer * getSlicer ( void ) const { return &_slicer; }
-         /*! \brief Get SlicerData size, for duplicating purposes
-          */
-         size_t getSlicerDataSize ( void ) const { return _slicerDataSize; }
-         /*! \brief Get SlicerData alignment, for duplicating purposes
-          */
-         int getSlicerDataAlignment ( void ) const { return _slicerDataAlignment; }
-         /*! \brief Get SlicerData
-          */
-         SlicerData * getSlicerData ( void ) const { return &_slicerData; }
-         /*! \brief WD submission
-          *
-          *  This function calls the specific code for WD submission which is
-          *  implemented in the related slicer.
-          */ 
-         void submit () { _slicer.submit(*this); }
-         /*! \brief WD dequeue
-          *
-          *  This function calls the specific code for WD dequeue which is
-          *  implemented in the related slicer.
-          *
-          *  \param[in,out] slice : Resulting slice.
-          *  \return  true if the resulting slice is the final slice and false otherwise.
-          */ 
-         bool dequeue ( WorkDescriptor **slice ) { return _slicer.dequeue( this, slice ); }
-   };
+inline int SlicedWD::getSlicerDataAlignment ( void ) const
+{
+   return _slicerDataAlignment;
+}
 
-   class SlicerDataRepeatN : public SlicerData
-   {
-      private:
-         int _n; /**< Number of Repetitions */
-      private:
-         /*! \brief SlicerDataRepeatN default construcotr (disableD)
-          */
-         SlicerDataRepeatN ();
-         /*! \brief SlicerDataRepeatN copy constructor (disableD)
-          */
-         SlicerDataRepeatN ( const SlicerDataRepeatN &sdrp );
-         /*! \brief SlicerDataRepeatN copy assignment operator (disableD)
-          */
-         SlicerDataRepeatN & operator= ( const SlicerDataRepeatN &sdrp );
-      public:
-         /*! \brief SlicerDataRepeatN constructor
-          */
-         SlicerDataRepeatN ( int n) : _n (n) { }
-         /*! \brief SlicerDataRepeatN destructor
-          */
-         ~SlicerDataRepeatN ( ) { }
-         /*! \brief Set N
-          */
-         void setN ( int n ) { _n = n; }
-         /*! \brief Get N
-          */
-         int getN ( void ) const { return _n; }
-         /*! \brief Decrement internal counter by one
-          *
-          *  This function decrements the internal variable counter by one
-          *
-          *  \return Internal counter after decrementing its value
-          */ 
-         int decN () { return --_n; }
-   };
+inline SlicerData * SlicedWD::getSlicerData ( void ) const
+{
+   return &_slicerData;
+}
 
-   class SlicerDataFor : public nanos_slicer_data_for_internal_t, public SlicerData
-   {
-         /* int _lower: Loop lower bound */
-         /* int _upper: Loop upper bound */
-         /* int _step: Loop step */
-         /* int _chunk: Slice chunk */
-         /* int _sign: Loop sign 1 ascendant, -1 descendant */
-      private:
-         /*! \brief SlicerDataFor default constructor (disabled)
-          */
-         SlicerDataFor ();
-         /*! \brief SlicerDataFor copy constructor (disabled)
-          */
-         SlicerDataFor ( const SlicerDataFor &sdf );
-         /*! \brief SlicerDataFor copy assignment operator (disabled)
-          */
-         SlicerDataFor& operator= ( const SlicerDataFor &sdf );
-      public:
-         /*! \brief SlicerDataFor constructor
-          */
-         SlicerDataFor ( int lower, int upper, int step, int chunk = 1 )
-         {
-            _lower = lower;
-            _upper = upper;
-            _step = step;
-            _chunk = chunk; 
-            _sign = ( step < 0 ) ? -1 : +1;
-         }
-         /*! \brief SlicerDataFor destructor
-          */
-         ~SlicerDataFor ( ) { }
-         /*! \brief Set lower bound
-          */
-         void setLower ( int n ) { _lower = n; }
-         /*! \brief Set upper bound
-          */
-         void setUpper ( int n ) { _upper = n; }
-         /*! \brief Set step
-          */
-         void setStep  ( int n ) {  _step = n; }
-         /*! \brief Set chunk size
-          */
-         void setChunk ( int n ) { _chunk = n; }
-         /*! \brief Set increment sign
-          */
-         void setSign  ( int n ) { _sign = n; }
-         /*! \brief Get lower bound
-          */
-         int getLower ( void ) const { return _lower; }
-         /*! \brief Get upper bound
-          */
-         int getUpper ( void ) const { return _upper; }
-         /*! \brief Get step
-          */
-         int getStep  ( void ) const { return _step; }
-         /*! \brief Get chunk size
-          */
-         int getChunk ( void ) const { return _chunk; }
-         /*! \brief Get increment sign
-          */
-         int getSign  ( void ) const { return _sign; }
-   };
+inline void SlicedWD::submit ()
+{
+   if ( _isSliceable ) _slicer.submit(*this);
+   else WD::submit();
+}
 
-};
+inline bool SlicedWD::dequeue ( WorkDescriptor **slice )
+{
+   if ( _isSliceable ) return _slicer.dequeue( this, slice );
+   else return WD::dequeue (slice);
+}
+
+inline void SlicedWD::convertToRegularWD()
+{
+   _isSliceable=false;
+}
+
+inline void SlicerDataRepeatN::setN ( int n )
+{
+   _n = n;
+}
+
+inline int SlicerDataRepeatN::getN ( void ) const
+{
+   return _n;
+}
+
+inline int SlicerDataRepeatN::decN ()
+{
+   return --_n;
+}
+
+inline SlicerDataFor::SlicerDataFor ( int lower, int upper, int step, int chunk )
+{
+   _lower = lower;
+   _upper = upper;
+   _step = step;
+   _chunk = chunk; 
+   _sign = ( step < 0 ) ? -1 : +1;
+}
+
+inline void SlicerDataFor::setLower ( int n )
+{
+   _lower = n;
+}
+
+inline void SlicerDataFor::setUpper ( int n )
+{
+   _upper = n;
+}
+
+inline void SlicerDataFor::setStep  ( int n )
+{
+   _step = n;
+}
+
+inline void SlicerDataFor::setChunk ( int n )
+{
+   _chunk = n;
+}
+
+inline void SlicerDataFor::setSign  ( int n )
+{
+   _sign = n;
+}
+
+inline int SlicerDataFor::getLower ( void ) const
+{
+   return _lower;
+}
+
+inline int SlicerDataFor::getUpper ( void ) const
+{
+   return _upper;
+}
+
+inline int SlicerDataFor::getStep  ( void ) const
+{
+   return _step;
+}
+
+inline int SlicerDataFor::getChunk ( void ) const
+{
+   return _chunk;
+}
+
+inline int SlicerDataFor::getSign  ( void ) const
+{
+   return _sign;
+}
 
 #endif
 

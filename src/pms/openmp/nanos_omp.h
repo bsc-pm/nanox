@@ -28,10 +28,11 @@ extern "C" {
 
 #ifdef _MERCURIUM
 // define OpenMP API version
-#pragma nanos interface family(openmp) version(1)
+#pragma nanos interface family(openmp) version(2)
 #endif
 
 nanos_err_t nanos_omp_single ( bool *);
+nanos_err_t nanos_omp_barrier ( void );
 
 #ifdef __cplusplus
 }

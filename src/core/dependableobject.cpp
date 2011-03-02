@@ -32,20 +32,22 @@ void DependableObject::finished ( )
       // before we continue or, alternatively, won't do it.
       DependableObject::TrackableObjectVector &outs = depObj.getOutputObjects();
       if (outs.size() > 0) {
-         depObj.lock();
-         for ( unsigned int i = 0; i < outs.size(); i++ ) {
-            outs[i]->deleteLastWriter(depObj);
+         {
+            SyncLockBlock lock( depObj.getLock() );
+            for ( unsigned int i = 0; i < outs.size(); i++ ) {
+               outs[i]->deleteLastWriter(depObj);
+            }
          }
-         depObj.unlock();
       }
       
       //  Delete depObj from all trackableObjects it reads 
       DependableObject::TrackableObjectVector &reads = depObj.getReadObjects();
       for ( DependableObject::TrackableObjectVector::iterator it = reads.begin(); it != reads.end(); it++ ) {
          TrackableObject* readObject = *it;
-         readObject->lockReaders();
-         readObject->deleteReader(depObj);
-         readObject->unlockReaders();
+         {
+            SyncLockBlock lock( readObject->getReadersLock() );
+            readObject->deleteReader(depObj);
+         }
       }
 
       DependableObject::DependableObjectVector &succ = depObj.getSuccessors();
@@ -63,23 +65,37 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
    DependableObject * found = NULL;
 
    DependableObject::DependableObjectVector &succ = getSuccessors();
-   for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
+   DependableObject::DependableObjectVector incorrectlyErased;
+
+   // NOTE: it gets incremented in the erase
+   for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); ) {
       // Is this an immediate successor? 
       if ( (*it)->numPredecessors() == 1 && condition(**it) ) {
          // remove it
          found = *it;
-         this->lock();
-         succ.erase(it);
-         this->unlock();
+         {
+            SyncLockBlock lock( this->getLock() );
+            succ.erase(it++);
+         }
          if ( found->numPredecessors() != 1 ) {
-            this->lock();
-            succ.insert( found );
-            this->unlock();
+            {
+               SyncLockBlock lock( this->getLock() );
+               incorrectlyErased.insert( found );
+            }
             found = NULL;
          } else {
+            NANOS_INSTRUMENT ( instrument ( *found ); )
             DependenciesDomain::decreaseTasksInGraph();
             break;
          }
+      } else {
+         it++;
+      }
+   }
+   {
+      SyncLockBlock lock( this->getLock() );
+      for ( DependableObject::DependableObjectVector::iterator it = incorrectlyErased.begin(); it != incorrectlyErased.end(); it++) {
+         succ.insert(*it);
       }
    }
    return found;

@@ -24,12 +24,12 @@
 #include <cstring>
 #include <utility>
 #include <vector>
-#include "workgroup.hpp"
-#include "dependableobjectwd.hpp"
-#include "copydata.hpp"
+#include "workgroup_decl.hpp"
+#include "dependableobjectwd_decl.hpp"
+#include "copydata_decl.hpp"
 #include "synchronizedcondition_decl.hpp"
-#include "atomic.hpp"
-#include "lazy.hpp"
+#include "atomic_decl.hpp"
+#include "lazy_decl.hpp"
 #include "instrumentationcontext_decl.hpp"
 #include "compatibility.hpp"
 
@@ -451,6 +451,7 @@ namespace nanos
          Directory* getDirectory(bool create=false);
 
          virtual void waitCompletion();
+         virtual void waitCompletionAndSignalers();
 
          bool isSubmitted( void ) const;
          void submitted( void );

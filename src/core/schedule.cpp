@@ -97,7 +97,7 @@ void Scheduler::submitAndWait ( WD &wd )
    submit( wd );
 
    // Wait for WD to be finished
-   myWG.waitCompletion();
+   myWG.waitCompletionAndSignalers();
 }
 
 void Scheduler::updateExitStats ( WD &wd )
@@ -140,16 +140,13 @@ inline void Scheduler::idleLoop ()
          WD * next = myThread->getNextWD();
 
          if ( next ) {
-           myThread->setNextWD(NULL);
-
-           /* Some WDs maybe prefetched without going through the submit 
-              process. Compensate the ready count for that */
          //  if ( !next->isSubmitted() && !next->started() ) 
          //    sys.getSchedulerStats()._readyTasks++;
          //} else if ( prefetchedWD != NULL ) {
          //   next = prefetchedWD;
          //      std::cerr << "executing prefetched wd " << next->getId() << std::endl;
          //   prefetchedWD = NULL;
+            myThread->resetNextWD();
          } else {
             if ( sys.getSchedulerStats()._readyTasks > 0 ) 
               next = behaviour::getWD(thread,current);
@@ -237,8 +234,11 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
          if ( !( condition->check() ) ) {
             condition->addWaiter( current );
 
-            WD *next = NULL;
-            if ( sys.getSchedulerStats()._readyTasks > 0 ) {
+            WD * next = myThread->getNextWD();
+
+            if ( next) {
+               myThread->resetNextWD();
+            } else if ( sys.getSchedulerStats()._readyTasks > 0 ) {
                next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
             }
 
@@ -492,7 +492,7 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
    myThread->inlineWorkDependent(*wd);
 
-   if (schedule && thread->getNextWD() == NULL ) {
+   if (schedule) {
         thread->setNextWD(thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*wd));
    }
 

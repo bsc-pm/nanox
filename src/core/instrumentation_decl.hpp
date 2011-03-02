@@ -30,7 +30,7 @@
 #include "compatibility.hpp"
 #include "debug.hpp"
 #include "nanos-int.h"
-#include "atomic.hpp"
+#include "atomic_decl.hpp"
 #include "instrumentationcontext_fwd.hpp"
 #include "workdescriptor_fwd.hpp"
 
@@ -212,6 +212,7 @@ namespace nanos {
             registerEventValue("api","get_num_runnin_tasks","nanos_get_num_runnin_tasks()");
             registerEventValue("api","get_addr","nanos_get_addr()");
             registerEventValue("api","copy_value","nanos_copy_value()");
+            registerEventValue("api","omp_barrier","nanos_omp_barrier()");
 
             /* 02 */ registerEventKey("wd-id","Work Descriptor id:");
 
@@ -245,7 +246,11 @@ namespace nanos {
             /* 22 */ registerEventKey("num-ready","Number of ready tasks in the queues");
             /* 23 */ registerEventKey("graph-size","Number tasks in the graph");
 
-            /* 24 */ registerEventKey("xfer-size","Transfer size");
+            /* 24 */ registerEventKey("loop-lower","Loop lower bound");
+            /* 25 */ registerEventKey("loop-upper","Loop upper");
+            /* 26 */ registerEventKey("loop-step","Loop step");
+
+            /* 27 */ registerEventKey("xfer-size","Transfer size");
 
             /* ** */ registerEventKey("debug","Debug Key"); /* Keep this key as the last one */
          }

@@ -20,39 +20,46 @@
 #ifndef _NANOS_LAZY_INIT
 #define _NANOS_LAZY_INIT
 
+#include "lazy_decl.hpp"
+
 #define likely(x)       __builtin_expect((x),1)
 #define unlikely(x)     __builtin_expect((x),0)
 
 template <class T>
-class LazyInit {
-   private:
-      T *  _ptr;
-      char _storage[sizeof(T)] __attribute__((aligned(8)));
+inline void LazyInit<T>::construct ()
+{
+   _ptr = new (_storage) T();
+}
 
-      void construct ()
-      {
-         _ptr = new (_storage) T();
-      }
+template <class T>
+inline void LazyInit<T>::destroy ()
+{
+    _ptr->~T();
+}
 
-      void destroy ()
-      {
-          _ptr->~T();
-      }
+template <class T>
+inline LazyInit<T>::~LazyInit ()
+{
+   if (_ptr != NULL) destroy();
+}
 
-   public:
-      LazyInit() : _ptr(NULL) {}
+template <class T>
+inline T * LazyInit<T>::operator-> ()
+{
+   if (unlikely(_ptr == NULL)) construct();
+   return _ptr;
+}
 
-      ~LazyInit () { if (_ptr != NULL) destroy();  }
+template <class T>
+inline T & LazyInit<T>::operator* ()
+{
+   return *(operator->());
+}
 
-      T * operator-> ()
-      {
-         if (unlikely(_ptr == NULL)) construct();
-         return _ptr;
-      }
-
-      T & operator* () {  return *(operator->());   }
-
-      bool isInitialized() { return _ptr != NULL; }
-};
+template <class T>
+inline bool LazyInit<T>::isInitialized()
+{
+   return _ptr != NULL;
+}
 
 #endif

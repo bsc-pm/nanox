@@ -20,106 +20,86 @@
 #ifndef _NANOS_COPYDATA
 #define _NANOS_COPYDATA
 
-#include "nanos-int.h"
+#include "copydata_decl.hpp"
 
-namespace nanos
+using namespace nanos;
+
+inline CopyData::CopyData ( uint64_t addr, nanos_sharing_t nxSharing, bool input, bool output, size_t storageSize )
 {
+   address = addr;
+   sharing = nxSharing;
+   flags.input = input;
+   flags.output = output;
+   size = storageSize;
+}
 
-  /*! \class CopyData
-   *  \brief Contains information about Copies
-   */
-   class CopyData : public nanos_copy_data_internal_t
-   {
-      public:
-        /*! \brief CopyData default constructor
-         *  \param address Address of the CopyData's address 
-         *  \param input Whether the CopyData is input or not 
-         *  \param output Whether the CopyData is output or not
-         */
-         CopyData ( uint64_t addr = NULL, nanos_sharing_t nxSharing = NANOS_SHARED, bool input = false,
-                    bool output = false, size_t storageSize = 0 )
-         {
-            address = addr;
-            sharing = nxSharing;
-            flags.input = input;
-            flags.output = output;
-            size = storageSize;
-         }
-        /*! \brief CopyData copy constructor
-         *  \param obj another CopyData
-         */
-         CopyData ( const CopyData &cd )
-         {
-            address = cd.address;
-            sharing = cd.sharing;
-            flags.input = cd.flags.input;
-            flags.output = cd.flags.output;
-            size = cd.size;
-         }
-        /*! \brief CopyData copy assignment operator, can be self-assigned.
-         *  \param obj another CopyData
-         */
-         const CopyData & operator= ( const CopyData &cd )
-         {
-            if ( this == &cd ) return *this; 
-            address = cd.address;
-            flags.input = cd.flags.input;
-            flags.output = cd.flags.output;
-            size = cd.size;
-            return *this;
-         }
-        /*! \brief CopyData destructor
-         */
-         ~CopyData () {}
-         
-        /*! \brief Obtain the CopyData's address address
-         */
-         uint64_t getAddress() const
-         { return address; }
-         
-        /*! \brief Set the CopyData's address address
-         */
-         void setAddress( uint64_t addr )
-         { address = addr; }
-         
-        /*! \brief returns true if it is an input CopyData
-         */
-         bool isInput() const
-         { return flags.input; }
+inline CopyData::CopyData ( const CopyData &cd )
+{
+   address = cd.address;
+   sharing = cd.sharing;
+   flags.input = cd.flags.input;
+   flags.output = cd.flags.output;
+   size = cd.size;
+}
 
-        /*! \brief sets the CopyData input clause to b
-         */
-         void setInput( bool b )
-         { flags.input = b; }
-         
-        /*! \brief returns true if it is an output CopyData
-         */
-         bool isOutput() const
-         { return flags.output; }
+inline const CopyData & CopyData::operator= ( const CopyData &cd )
+{
+   if ( this == &cd ) return *this; 
+   address = cd.address;
+   flags.input = cd.flags.input;
+   flags.output = cd.flags.output;
+   size = cd.size;
+   return *this;
+}
 
-        /*! \brief sets the CopyData output clause to b
-         */
-         void setOutput( bool b )
-         { flags.output = b;}
-         
-        /*! \brief  returns the CopyData's size
-         */
-         size_t getSize() const
-         { return size; }
+inline uint64_t CopyData::getAddress() const
+{
+   return address;
+}
 
-        /*! \brief Returns true if the data to copy is shared
-         */
-         bool isShared() const
-         { return sharing ==  NANOS_SHARED; }
+inline void CopyData::setAddress( uint64_t addr )
+{
+   address = addr;
+}
 
-        /*! \brief Returns true if the data to copy is private
-         */
-         bool isPrivate() const
-         { return sharing ==  NANOS_PRIVATE; }
+inline bool CopyData::isInput() const
+{
+   return flags.input;
+}
 
-         nanos_sharing_t getSharing() const
-         { return sharing; }
-   };
+inline void CopyData::setInput( bool b )
+{
+   flags.input = b;
+}
+
+inline bool CopyData::isOutput() const
+{
+   return flags.output;
+}
+
+inline void CopyData::setOutput( bool b )
+{
+   flags.output = b;
+}
+
+inline size_t CopyData::getSize() const
+{
+   return size;
+}
+
+inline bool CopyData::isShared() const
+{
+   return sharing ==  NANOS_SHARED;
+}
+
+inline bool CopyData::isPrivate() const
+{
+   return sharing ==  NANOS_PRIVATE;
+}
+
+inline nanos_sharing_t CopyData::getSharing() const
+{
+   return sharing;
 }
 
 #endif

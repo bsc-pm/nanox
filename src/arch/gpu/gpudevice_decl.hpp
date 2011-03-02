@@ -164,6 +164,9 @@ namespace nanos
           *        to dst in the host, where src is an intermediate buffer
           */
          static void copyOutAsyncToHost( void * src, void * dst, size_t size );
+
+         static bool copyDevToDev( void* addrSrc, size_t size, ProcessingElement *pe, ProcessingElement *peDst, void *addrDst)
+            { return true; }
    };
 }
 

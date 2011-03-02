@@ -27,6 +27,7 @@
 #include "schedule_fwd.hpp"
 #include "threadteam_fwd.hpp"
 #include "basethread_decl.hpp"
+#include "atomic.hpp"
 
 namespace nanos
 {
@@ -44,7 +45,11 @@ namespace nanos
  
    inline WD & BaseThread::getThreadWD () const { return _threadWD; }
  
-   inline void BaseThread::setNextWD ( WD *next ) { _nextWD = next; }
+   inline void BaseThread::resetNextWD () { _nextWD = NULL; }
+ 
+   inline bool BaseThread::setNextWD ( WD *next ) { 
+      return compareAndSwap( (unsigned long *) &_nextWD, (unsigned long) NULL, (unsigned long) next);
+   }
  
    inline WD * BaseThread::getNextWD () const { return _nextWD; }
 
@@ -56,7 +61,7 @@ namespace nanos
    inline void BaseThread::enterTeam( ThreadTeam *newTeam, TeamData *data ) 
    {
       _teamData = data;
-      ::memoryFence();
+      memoryFence();
       _team = newTeam;
       _hasTeam=1;
    }

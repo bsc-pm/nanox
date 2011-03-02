@@ -17,74 +17,29 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_WORK_GROUP
-#define _NANOS_WORK_GROUP
+#ifndef _NANOS_WORK_GROUP_H
+#define _NANOS_WORK_GROUP_H
 
-#include <vector>
+#include "workgroup_decl.hpp"
 #include "atomic.hpp"
-#include "dependenciesdomain.hpp"
-#include "synchronizedcondition_decl.hpp"
+#include "schedule.hpp"
+#include "synchronizedcondition.hpp"
+#include "system.hpp"
+#include "instrumentation.hpp"
+#include "workdescriptor_decl.hpp"
 
-namespace nanos
+using namespace nanos;
+
+inline WorkGroup::WorkGroup( const WorkGroup &wg ) : _id( _atomicSeed++ ), _components( 0 ), _phaseCounter( 0 ),
+            _syncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ), _parent(NULL)  
 {
-
-  /* \class WorkGroup
-   *
-   */
-   class WorkGroup
-   {
-      private:
-         static Atomic<int> _atomicSeed;
-         typedef std::vector<WorkGroup *> WGList; // FIXME: vector is not a safe-class here
-
-      private:
-         WGList         _partOf;
-         int            _id;
-         Atomic<int>    _components;
-         Atomic<int>    _phaseCounter;
-
-         SingleSyncCond<EqualConditionChecker<int> > _syncCond;
-
-      private:
-         void addToGroup ( WorkGroup &parent );
-         void exitWork ( WorkGroup &work );
-
-         /*! \brief WorkGroup copy assignment operator (private)
-          */
-         const WorkGroup & operator= ( const WorkGroup &wg );
-      public:
-         /*! \brief WorkGroup default constructor
-          */
-         WorkGroup()
-            : _id( _atomicSeed++ ), _components( 0 ), _phaseCounter( 0 ),
-            _syncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ) {  }
-         /*! \brief WorkGroup copy constructor
-          */
-         WorkGroup( const WorkGroup &wg )
-            : _id( _atomicSeed++ ), _components( 0 ), _phaseCounter( 0 ),
-            _syncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ) 
-         {
-            for ( WGList::const_iterator it = wg._partOf.begin(); it < wg._partOf.end(); it++ ) {
-               if (*it) (*it)->addWork( *this );
-            }
-         }
-         /*! \brief WorkGroup destructor 
-          */
-         virtual ~WorkGroup();
-
-         void addWork( WorkGroup &wg );
-         void sync();
-         virtual void waitCompletion();
-         virtual void init();
-         virtual void done();
-         int getId() const { return _id; }
-         void setId( int newId ) { _id = newId; }
-
-   };
-
-   typedef WorkGroup WG;
-
-};
+   if ( wg._parent != NULL ) { 
+      wg._parent->addWork(*this);
+      for ( WGList::const_iterator it = wg._partOf.begin(); it < wg._partOf.end(); it++ ) {
+         if (*it) (*it)->addWork( *this );
+      }
+   }
+}
 
 #endif
 

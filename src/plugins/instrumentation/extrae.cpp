@@ -311,7 +311,6 @@ class InstrumentationExtrae: public Instrumentation
          /* Removig Temporary trace files */
          char str[255];
          std::fstream p_file;
-         p_file.open(_listOfTraceFileNames.c_str());
 
          for ( unsigned int j = 0; j < sys.getNetwork()->getNumNodes(); j++ )
          {

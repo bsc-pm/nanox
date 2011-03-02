@@ -21,7 +21,7 @@
 #define _NANOS_CACHE_MAP_DECL_H
 
 #include "compatibility.hpp"
-#include "atomic.hpp"
+#include "atomic_decl.hpp"
 #include "cache_fwd.hpp"
 
 namespace nanos

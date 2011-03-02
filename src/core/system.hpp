@@ -21,8 +21,6 @@
 #define _NANOS_SYSTEM_H
 
 #include "system_decl.hpp"
-#include "processingelement.hpp"
-#include "throttle.hpp"
 #include <vector>
 #include <string>
 #include "schedule.hpp"
@@ -31,6 +29,7 @@
 #include "nanos-int.h"
 #include "dependency.hpp"
 #include "instrumentation_decl.hpp"
+#include "cache_map.hpp"
 
 using namespace nanos;
 
@@ -122,7 +121,9 @@ inline SchedulerConf  & System::getSchedulerConf ()  { return _schedConf; }
 inline const std::string & System::getDefaultArch() const { return _defArch; }
 inline void System::setDefaultArch( const std::string &arch ) { _defArch = arch; }
 
-inline bool System::isMaster( void ) { return _isMaster; }
+inline bool System::useCluster( void ) const { return _useCluster; }
+
+inline bool System::isMaster( void ) const { return _isMaster; }
 inline void System::setMaster( bool _isMasterNode ) { _isMaster = _isMasterNode; }
 
 inline Network * System::getNetwork( void ) { return &_net; }

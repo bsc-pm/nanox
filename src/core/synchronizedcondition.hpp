@@ -21,15 +21,50 @@
 #define _NANOS_SYNCRHONIZED_CONDITION
 
 #include "synchronizedcondition_decl.hpp"
+#include "atomic.hpp"
 #include "basethread.hpp"
 #include "schedule.hpp"
 
 using namespace nanos;
 
+inline void GenericSyncCond::lock()
+{
+   _lock.acquire();
+   memoryFence();
+}
+
+inline void GenericSyncCond::unlock()
+{
+   memoryFence();
+   _lock.release();
+}
+
 template <class _T>
 void SynchronizedCondition< _T>::wait()
 {
    Scheduler::waitOnCondition(this);
+}
+
+template <class _T>
+void SynchronizedCondition< _T>::reference()
+{
+   _refcount++;
+   memoryFence();
+}
+
+template <class _T>
+void SynchronizedCondition< _T>::unreference()
+{
+   _refcount--;
+}
+
+template <class _T>
+void SynchronizedCondition< _T>::waitConditionAndSignalers()
+{
+   Scheduler::waitOnCondition(this);
+   while ( _refcount.value() > 0 ) {
+      memoryFence();
+   }
 }
 
 template <class _T>

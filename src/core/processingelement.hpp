@@ -20,90 +20,27 @@
 #ifndef _NANOS_PROCESSING_ELEMENT
 #define _NANOS_PROCESSING_ELEMENT
 
-#include "workdescriptor.hpp"
-#include <algorithm>
+#include <string.h>
 #include "functors.hpp"
-#include "basethread_fwd.hpp"
-#include "schedule_fwd.hpp"
+#include "processingelement_decl.hpp"
+#include "workdescriptor.hpp"
 
-namespace nanos
+using namespace nanos;
+
+inline ProcessingElement::~ProcessingElement()
 {
-   namespace ext {
-   class SMPMultiThread;
-   }
+   std::for_each(_threads.begin(),_threads.end(),deleter<BaseThread>);
+}
 
-   class ProcessingElement
-   {
-      friend class System;
-      private:
-         typedef std::vector<BaseThread *>    ThreadList;
-         int                                  _id;
-         const Device *                       _device;
-         ThreadList                           _threads;
+inline int ProcessingElement::getId() const
+{
+   return _id;
+}
 
-      private:
-         /*! \brief ProcessinElement default constructor
-          */
-         ProcessingElement ();
-         /*! \brief ProcessinElement copy constructor (private)
-          */
-         ProcessingElement ( const ProcessingElement &pe );
-         /*! \brief ProcessinElement copy assignment operator (private)
-          */
-         const ProcessingElement & operator= ( const ProcessingElement &pe );
-      protected:
-         virtual WorkDescriptor & getMasterWD () const = 0;
-         virtual WorkDescriptor & getWorkerWD () const = 0;
-         virtual WorkDescriptor & getMultiWorkerWD () const = 0;
-      public:
-         /*! \brief ProcessinElement constructor
-          */
-         ProcessingElement ( int newId, const Device *arch ) : _id ( newId ), _device ( arch ) {}
-         /*! \brief ProcessinElement destructor
-          */
-         virtual ~ProcessingElement()
-         {
-            std::for_each(_threads.begin(),_threads.end(),deleter<BaseThread>);
-         }
-
-         /* get/put methods */
-         int getId() const {
-            return _id;
-         }
-
-         const Device & getDeviceType () const {
-            return *_device;
-         }
-
-         BaseThread & startThread ( WorkDescriptor &wd, ext::SMPMultiThread *parent=NULL );
-         BaseThread & startMultiThread ( WorkDescriptor &wd, unsigned int numPEs, ProcessingElement **repPEs );
-         virtual BaseThread & createThread ( WorkDescriptor &wd, ext::SMPMultiThread *parent=NULL ) = 0;
-         virtual BaseThread & createMultiThread ( WorkDescriptor &wd, unsigned int numPEs, ProcessingElement **repPEs ) = 0;
-         BaseThread & associateThisThread ( bool untieMain=true );
-
-         BaseThread & startWorker ( ext::SMPMultiThread *parent=NULL );
-         BaseThread & startMultiWorker ( unsigned int numPEs, ProcessingElement **repPEs );
-         void stopAll();
-
-         /* capabilitiy query functions */
-         virtual bool supportsUserLevelThreads() const = 0;
-         virtual bool hasSeparatedMemorySpace() const { return false; }
-         virtual unsigned int getMemorySpaceId() const { return 0; }
-
-         virtual void waitInputDependent( uint64_t tag ) {}
-
-         /* Memory space suport */
-         virtual void copyDataIn( WorkDescriptor& wd );
-         virtual void copyDataOut( WorkDescriptor& wd );
-
-         virtual void waitInputs( WorkDescriptor& wd );
-
-         virtual void* getAddress( WorkDescriptor& wd, uint64_t tag, nanos_sharing_t sharing );
-         virtual void copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );
-   };
-
-   typedef class ProcessingElement PE;
-   typedef PE * ( *peFactory ) ( int pid );
-};
+inline const Device & ProcessingElement::getDeviceType () const
+{
+   return *_device;
+}
 
 #endif
+

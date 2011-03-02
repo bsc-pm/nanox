@@ -50,9 +50,11 @@ void ClusterDevice::free( void *address, ProcessingElement *pe )
 
 void * ClusterDevice::realloc( void *address, size_t newSize, size_t oldSize, ProcessingElement *pe )
 {
-   ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
+   //ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
 
-   return node->getAllocator().reallocate( address, newSize );
+   //return node->getAllocator().reallocate( address, newSize );
+   fatal ( "ClusterDevice::realloc not implemented" );
+   return NULL;
 }
 
 bool ClusterDevice::copyDevToDev( void *addrSrc, size_t size, ProcessingElement *pe, ProcessingElement *peDst, void *addrDst )

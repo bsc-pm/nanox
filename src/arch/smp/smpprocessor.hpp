@@ -25,7 +25,7 @@
 #include "smpdevice.hpp"
 #ifdef SMP_NUMA
 #include "cache.hpp"
-#include "accelerator.hpp"
+#include "accelerator_decl.hpp"
 #include "copydescriptor_decl.hpp"
 #else
 #include "processingelement.hpp"

@@ -355,6 +355,20 @@ void Instrumentation::wdCreate( WorkDescriptor* newWD )
    _instrumentationContext.pushState( icd, NANOS_RUNTIME );
 }
 
+//
+// Dan Tsafrir [11/2/2011]: ugly hack to match the ugliness it fixes.
+//
+// Explanation:
+//
+// For the statements to which this macro is applied, gcc-4.1
+//   (a) creates a temporary,
+//   (b) copies it using the copy ctor to another temporary,
+//   (c) invokes the operator=.
+// But since the copy ctor in (b) does not exist => compile error.
+// This macro prevents (b) from happening.
+//
+#define ASSIGN_EVENT(event,type,args) do {type tmp_event args; event = tmp_event;} while(0)
+
 void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bool last )
 {
    unsigned int i = 0;
@@ -412,7 +426,7 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
    /* Creating leaving wd events */
    if ( old_icd!= NULL ) {
       /* Creating a starting PtP event (if needed) */
-      if (!last) e[i++] = PtP (true,  NANOS_WD_DOMAIN, (nanos_event_id_t) oldWD->getId(), 0, NULL);
+      if (!last) ASSIGN_EVENT( e[i++] , PtP , (true,  NANOS_WD_DOMAIN, (nanos_event_id_t) oldWD->getId(), 0, NULL) );
 
       /* Creating State event's */
       InstrumentationContextData::ConstStateIterator it_s;
@@ -420,21 +434,21 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       /* Creating State event's: states */
       if ( _instrumentationContext.showStackedStates() ) {
          for ( it_s = _instrumentationContext.beginState( old_icd ); it_s != _instrumentationContext.endState( old_icd ); it_s++ ) {
-            e[i++] = State ( NANOS_STATE_END, *it_s );
+	     ASSIGN_EVENT( e[i++] ,  State , (NANOS_STATE_END, *it_s) );
          }
       }
 
       /* In both cases (showStackedStates or not) keep 'current state' as RUNTIME */
-      e[i++] = State ( NANOS_STATE_START, NANOS_RUNTIME );
+      ASSIGN_EVENT( e[i++] , State , ( NANOS_STATE_START, NANOS_RUNTIME ) );
 
       /* Creating State event's: substates */
       if ( !_instrumentationContext.isStateEventEnabled( old_icd ) ) {
          if ( _instrumentationContext.showStackedStates () ) {
             for ( it_s = _instrumentationContext.beginSubState(old_icd); it_s != _instrumentationContext.endSubState(old_icd); it_s++ ) {
-               e[i++] = State ( NANOS_SUBSTATE_END, *it_s );
+		ASSIGN_EVENT( e[i++] , State , ( NANOS_SUBSTATE_END, *it_s ) );
             }
          }
-         e[i++] = State ( NANOS_SUBSTATE_START, NANOS_NOT_TRACED );
+         ASSIGN_EVENT( e[i++] , State , ( NANOS_SUBSTATE_START, NANOS_NOT_TRACED ) );
       }
 
       /* Regenerating reverse bursts for old WD */
@@ -448,7 +462,7 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
    /* Creating entering wd events */
    if ( new_icd!=NULL) {
       /* Creating PtP event */
-      e[i++] = PtP (false, NANOS_WD_DOMAIN, (nanos_event_id_t) newWD->getId(), 0, NULL);
+      ASSIGN_EVENT( e[i++] , PtP , (false, NANOS_WD_DOMAIN, (nanos_event_id_t) newWD->getId(), 0, NULL) );
 
       /* Creating State event's */
       InstrumentationContextData::ConstStateIterator it_s;
@@ -458,27 +472,27 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       if ( _instrumentationContext.showStackedStates() ) {
 
          /* Close current state (+1) when computing number of states (only if not a startingWD) */
-         if ( new_icd->getStartingWD() == false ) e[i++] = State ( NANOS_STATE_END, NANOS_RUNTIME );
+         if ( new_icd->getStartingWD() == false ) ASSIGN_EVENT( e[i++] , State , ( NANOS_STATE_END, NANOS_RUNTIME ) );
          else new_icd->setStartingWD(false);
 
          for ( it_s = _instrumentationContext.beginState( new_icd ); it_s != _instrumentationContext.endState( new_icd ); it_s++) {
-            e[i++] = State ( NANOS_STATE_START, *it_s );
+            ASSIGN_EVENT( e[i++] , State , ( NANOS_STATE_START, *it_s ) );
          }
       } else {
          state = _instrumentationContext.getState( new_icd );
-         e[i++] = State ( NANOS_STATE_START, state );
+         ASSIGN_EVENT( e[i++] , State , ( NANOS_STATE_START, state ) );
       }
 
       /* Creating State event's: substates */
       if ( !_instrumentationContext.isStateEventEnabled( new_icd ) ) {
          if ( _instrumentationContext.showStackedStates () ) {
-            e[i++] = State ( NANOS_SUBSTATE_END, NANOS_NOT_TRACED );
+            ASSIGN_EVENT( e[i++] , State , ( NANOS_SUBSTATE_END, NANOS_NOT_TRACED ) );
             for ( it_s = _instrumentationContext.beginSubState(new_icd); it_s != _instrumentationContext.endSubState(new_icd); it_s++ ) {
-                e[i++] = State ( NANOS_SUBSTATE_START, *it_s );
+                ASSIGN_EVENT( e[i++] , State , ( NANOS_SUBSTATE_START, *it_s ) );
             }
          } else {
             state = _instrumentationContext.getSubState( new_icd );
-            e[i++] = State ( NANOS_SUBSTATE_START, state );
+            ASSIGN_EVENT( e[i++] , State , ( NANOS_SUBSTATE_START, state ) );
          }
       }
 
