@@ -27,12 +27,12 @@
 
 #define CACHELINE 128 /* FIXME: This definition must be architectural dependant */
 
+namespace nanos
+{
+
 class Allocator
 {
    private:
-
-      struct ObjectHeader { Arena *_arena; };
-
       class Arena
       {
          private:
@@ -63,11 +63,16 @@ class Allocator
                free(_bitmap);
             }
 
-            size_t getObjectSize () const ; 
-            void * allocate () ;
+            size_t getObjectSize ( void ) const ; 
+            void * allocate ( void ) ;
             void deallocate ( void *object ) ;
+            Arena * getNext ( void ) const;
+            void setNext ( Arena * a );
 
       };
+
+      struct ObjectHeader { Arena *_arena; };
+
    private: /* Allocator Data Members */
       std::vector<Arena *> _arenas;
       size_t               _nArenas;
@@ -83,5 +88,7 @@ class Allocator
 
      static void deallocate ( void *object ) ;
 };
+
+}; // namespace: nanos
 
 #endif
