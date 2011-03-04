@@ -24,6 +24,7 @@
 #include <cstring>
 #include "malign.hpp"
 #include <iostream>
+#include "debug.hpp"
 #include "allocator_decl.hpp"
 
 using namespace nanos;
@@ -53,10 +54,14 @@ void * Allocator::Arena::allocate ( void )
 
 void Allocator::Arena::deallocate ( void *object )
 {
-   int obj = ((char *) object - _arena)/ _objectSize;
+   unsigned long offset = ((char *) object - _arena);
+   unsigned long index = offset / _objectSize;
+
+   ensure0 ( (offset % _objectSize) == 0, "Invalid pointer in Allocator::deallocate()");
+   ensure0 ( index >= numObjects, "Invalid index in Allocator::deallocate()");
 
    //_free = 1;
-   _bitmap[obj]._bit = true;
+   _bitmap[index]._bit = true;
 }
 
 inline Allocator::Arena * Allocator::Arena::getNext ( void ) const
@@ -71,34 +76,35 @@ inline void Allocator::Arena::setNext ( Arena * a )
 
 inline void * Allocator::allocate ( size_t size )
 {
-
    size_t realSize = NANOS_ALIGNED_MEMORY_OFFSET (0, size, 16);
    size_t headerSize = NANOS_ALIGNED_MEMORY_OFFSET(0,sizeof(ObjectHeader),16);
    size_t allocSize = realSize + headerSize;
 
-   ObjectHeader * ptr = NULL;
-   unsigned int i;
-
-   for ( i = 0; i < _nArenas ; i++ ) {
-      if ( _arenas[i]->getObjectSize() == allocSize ) break;
+   ArenaCollection::iterator it;
+   for ( it = _arenas.begin(); it != _arenas.end(); it++ ) {
+      if ( (*it)->getObjectSize() == allocSize ) break;
    }
 
-   if ( i == _nArenas ) {
+   Arena *arena = NULL;
+
+   if ( it == _arenas.end() ) {
       // no arena found for that size, create a new one
-      Arena *arena = new Arena(allocSize);
-
-      _arenas.push_back(arena);
-      _nArenas++;
-
+      arena = (Arena *) malloc ( sizeof(Arena) );
+      new ( arena ) Arena( allocSize );
+      _arenas.push_back( arena );
    }
+   else arena = *it;
 
-   Arena *arena = _arenas[i];
+
+   ObjectHeader * ptr = NULL;
 
    while ( ptr == NULL ) {
       ptr = (ObjectHeader *) arena->allocate();
       if ( ptr == NULL ) { 
           if ( arena->getNext() == NULL ) {
-             arena->setNext( new Arena(allocSize) );
+             Arena *next = ( Arena *) malloc ( sizeof(Arena) );
+             new (next) Arena(allocSize);
+             arena->setNext( next );
           }
           arena = arena->getNext(); 
       }
@@ -114,6 +120,7 @@ inline void Allocator::deallocate ( void *object )
    size_t headerSize = NANOS_ALIGNED_MEMORY_OFFSET(0,sizeof(ObjectHeader),16);
    ObjectHeader * ptr = (ObjectHeader *) ( ((char *)object) - headerSize );
    Arena *arena = ptr->_arena;
+     
    arena->deallocate(ptr);
 }
 

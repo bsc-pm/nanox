@@ -19,13 +19,14 @@
 #ifndef _NANOS_ALLOCATOR_DECL
 #define _NANOS_ALLOCATOR_DECL
 
-#include <vector>
+#include <list>
 #include <cstdlib>
 #include <cstring>
 #include "malign.hpp"
 #include <iostream>
 
-#define CACHELINE 128 /* FIXME: This definition must be architectural dependant */
+#define NANOS_CACHELINE 128 /* FIXME: This definition must be architectural dependant */
+#define NANOS_OBJECTS_PER_ARENA 100
 
 namespace nanos
 {
@@ -40,18 +41,17 @@ class Allocator
       class Arena
       {
          private: /* Arena data members and disabled constructors */
-            static const size_t numObjects = 100;      /** Number of maximum objects allocated in this arena*/
+            static const size_t numObjects = NANOS_OBJECTS_PER_ARENA;      /** Number of maximum objects allocated in this arena*/
 
             union bitmap_entry {
                bool             _bit;
-               char             pad[CACHELINE];
+               char             pad[NANOS_CACHELINE];
             };                                         /**< bitmap_entry struct */
 
             size_t            _objectSize;             /**< Object size in current Arena  */
             char *            _arena;                  /**< Memory region used by Arena */
             bitmap_entry      *_bitmap;                /**< Bit map (free/busy) */
             Arena             *_next;                  /**< Next Arena in the list */
-
             /*! \brief Arena copy constructor (disabled)
              */
             Arena ( const Arena &a );
@@ -61,12 +61,12 @@ class Allocator
            /*! \brief Arena default constructor (disabled)
             */
             Arena ();
-
          public: /* Arena method members */
            /*! \brief Arena constructor
             */
             Arena ( size_t objectSize ) : _objectSize(objectSize), _next (NULL)
             {
+               // TODO: fusionar malloc
                _arena = (char *) malloc( objectSize * numObjects );
                _bitmap = (bitmap_entry *) malloc( sizeof(bitmap_entry) * numObjects ) ;
                for ( size_t i = 0; i < numObjects; i++ ) _bitmap[i]._bit = true;
@@ -75,7 +75,7 @@ class Allocator
             */
             ~Arena ()
             {
-               if ( _next ) delete _next;
+               delete _next;
                free(_arena);
                free(_bitmap);
             }
@@ -99,9 +99,8 @@ class Allocator
       struct ObjectHeader { Arena *_arena; };
 
    private: /* Allocator data members */
-      std::vector<Arena *> _arenas;      /**< Vector of Arenas in Allocator*/
-      size_t               _nArenas;     /**< Number of Arenas */
-
+      typedef std::list<Arena *>    ArenaCollection;
+      ArenaCollection               _arenas;      /**< Vector of Arenas in Allocator*/
      /*! \brief Allocator copy constructor (disabled)
       */
       Allocator ( const Allocator &a );
@@ -112,13 +111,10 @@ class Allocator
    public: /* Allocator method members */
     /*! \brief Allocator default constructor 
      */
-     Allocator () : _arenas(), _nArenas(0)
-     {
-        _arenas.reserve(10);
-     }
+     Allocator () : _arenas() { }
     /*! \brief Allocator destructor 
      */
-     ~Allocator () { }
+     ~Allocator () { for ( ArenaCollection::iterator it = _arenas.begin(); it != _arenas.end(); it++ ) delete (*it); }
     /*! \brief Allocates 'size' bytes in memory and returns memory pointer
      *
      *  This function will check in his list of Arenas looking for one who
