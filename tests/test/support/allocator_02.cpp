@@ -37,6 +37,7 @@ using namespace std;
 using namespace nanos;
 using namespace nanos::ext;
 
+#define CHECK_VALUE 3456
 #define TIMES 1000
 
 int sizes[] = { 7, 17, 33, 63, 123 };
@@ -53,6 +54,7 @@ void allocate( void *args )
    int num_pes = sys.getNumPEs();
    int id = *((int *) args);
 
+    WG *wg = getMyThreadSafe()->getCurrentWD();
    //cerr << "   start of thread id: " << id << endl;
 
    Allocator allocator;
@@ -60,22 +62,21 @@ void allocate( void *args )
    for ( int  n = 1; n <= TIMES; n++ ) {
       for ( unsigned int i = 0; i < (sizeof( sizes )/sizeof(int)); i++ ) {
 
-         int *ptr = (int *) allocator.allocate( sizes[i] );
+         int *ptr = (int *) allocator.allocate( sizes[i] * sizeof(int) );
          if ( ptr == NULL ) check = false;
 
          //cerr << "      thread id[" << getMyThreadSafe() << "] allocates: " << ptr << endl;
 
-         for ( int j = 0; j < sizes[i]; j++ ) ptr[j]=0; // INI
+         for ( int j = 0; j < sizes[i]; j++ ) ptr[j]=CHECK_VALUE; // INI
          for ( int j = 0; j < sizes[i]; j++ ) ptr[j]++; // INC
          for ( int j = 0; j < sizes[i]; j++ ) ptr[j]--; // DEC
 
          // Check result
          for ( int j = 0; j < sizes[i]; j++ ) {
-            if ( ptr[j] != 0 ) check = false;
+            if ( ptr[j] != CHECK_VALUE ) exit(-1);
          }
 
          // Creating a work descriptor to deallocate ptr in other thread
-         WG *wg = getMyThreadSafe()->getCurrentWD();
          ThreadTeam &team = *getMyThreadSafe()->getTeam();
          WD * wd = new WD( new SMPDD( deallocate ), sizeof( void * ), __alignof__( void * ), ptr  );
          wg->addWork( *wd );
@@ -87,6 +88,8 @@ void allocate( void *args )
       }
    }
 
+   wg->waitCompletion();
+   //nanos_team_barrier();
    //cerr << "   end of thread id: " << getMyThreadSafe() << endl;
 
 }

@@ -39,6 +39,7 @@ using namespace nanos;
 using namespace nanos::ext;
 
 #define TIMES 1000
+#define CHECK_VALUE 3456
 
 int sizes[] = { 7, 17, 33, 63, 123 };
 bool check = true;
@@ -62,18 +63,18 @@ void allocate( void *args )
    for ( int  n = 1; n <= TIMES; n++ ) {
       for ( unsigned int i = 0; i < (sizeof( sizes )/sizeof(int)); i++ ) {
 
-         int *ptr = (int *) allocator.allocate( sizes[i] );
+         int *ptr = (int *) allocator.allocate( sizes[i] * sizeof(int) );
          if ( ptr == NULL ) check = false;
 
          //cerr << "      thread id[" << getMyThreadSafe() << "] allocates: " << ptr << endl;
 
-         for ( int j = 0; j < sizes[i]; j++ ) ptr[j]=0; // INI
+         for ( int j = 0; j < sizes[i]; j++ ) ptr[j]=CHECK_VALUE; // INI
          for ( int j = 0; j < sizes[i]; j++ ) ptr[j]++; // INC
          for ( int j = 0; j < sizes[i]; j++ ) ptr[j]--; // DEC
 
          // Check result
          for ( int j = 0; j < sizes[i]; j++ ) {
-            if ( ptr[j] != 0 ) check = false;
+            if ( ptr[j] != CHECK_VALUE ) exit(-1);
          }
 
          // Creating a work descriptor to deallocate ptr in other thread
@@ -86,7 +87,7 @@ void allocate( void *args )
       }
    }
 
-   // Waiting decendants ( after allocating everything )
+   // Waiting decendants (deallocators) after allocating everything
    wg->waitCompletion();
 
 
