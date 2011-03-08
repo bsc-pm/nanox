@@ -34,11 +34,57 @@ namespace nanos
 
    class OS
    {
+      public:
+         class ModuleList {
+            public:
+               typedef const char ** const const_char_ptr;
+               typedef const_char_ptr const_iterator;
+
+            private:
+               const_char_ptr _first;
+               const_char_ptr _last;
+
+            public:
+               ModuleList ( const_char_ptr first, const_char_ptr last ) : _first (first), _last(last) { }
+               ~ModuleList () {}
+
+               const_iterator begin() const { return _first; }
+               const_iterator end() const { return _last; }
+         };
+
+         typedef void (init_func_t) ( void * );
+         typedef struct {
+           init_func_t  *func;
+           void         *data;
+         } init_t;
+         
+         class InitList {
+            public:
+               typedef const init_t * const const_init_ptr;
+               typedef const_init_ptr const_iterator;
+
+            private:
+               const_init_ptr _first;
+               const_init_ptr _last;
+
+            public:
+               InitList ( const_init_ptr first, const_init_ptr last ) : _first (first), _last(last) { }
+               ~InitList () {}
+
+               const_iterator begin() const { return _first; }
+               const_iterator end() const { return _last; }
+         };
+
+         
+      private:
       // All members are static so we don't need a constructor/destructor/...
       
          static long _argc; 
-         static char ** _argv; 
-      public:
+         static char ** _argv;
+
+         static InitList   *_initList;
+         static ModuleList *_moduleList;
+      public:         
 
          static void init ();
 
@@ -54,7 +100,10 @@ namespace nanos
          static long getArgc() { return _argc; }
 
          static double getMonotonicTime ();
-	 static double getMonotonicTimeResolution ();
+         static double getMonotonicTimeResolution ();
+         
+         static const InitList & getInitializationFunctions ( ) { return *_initList;}
+         static const ModuleList & getRequestedModules () { return *_moduleList; }
    };
 
 // inlined functions

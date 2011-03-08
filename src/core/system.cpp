@@ -67,6 +67,17 @@ System::System () :
    verbose0 ( "NANOS++ initializing... end" );
 }
 
+struct LoadModule
+{
+   void operator() ( const char *module )
+   {
+      if ( module ) {
+        verbose0( "loading " << module << " module"  );
+        PluginManager::load(module);
+      }
+   }
+};
+
 void System::loadModules ()
 {
    verbose0 ( "Configuring module manager" );
@@ -74,6 +85,9 @@ void System::loadModules ()
    PluginManager::init();
 
    verbose0 ( "Loading modules" );
+
+   const OS::ModuleList & modules = OS::getRequestedModules();
+   std::for_each(modules.begin(),modules.end(), LoadModule());
 
    // load host processor module
    verbose0( "loading SMP support" );
@@ -83,6 +97,8 @@ void System::loadModules ()
 
    ensure( _hostFactory,"No default host factory" );
 
+
+   
 #ifdef GPU_DEV
    verbose0( "loading GPU support" );
 
@@ -118,6 +134,11 @@ void System::loadModules ()
 
 }
 
+// Config Functor
+struct ExecInit
+{
+   void operator() ( const OS::init_t & init ) { init.func(init.data); }
+};
 
 void System::config ()
 {
@@ -126,6 +147,10 @@ void System::config ()
    if ( externInit != NULL ) {
       externInit();
    }
+   
+   const OS::InitList & externalInits = OS::getInitializationFunctions();
+   std::for_each(externalInits.begin(),externalInits.end(), ExecInit());
+   
    if ( !_pmInterface ) {
       // bare bone run
       _pmInterface = NEW PMInterface();
