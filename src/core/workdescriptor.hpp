@@ -94,6 +94,8 @@ inline void WorkDescriptor::setInternalData ( void *data ) { _wdData = data; }
 
 inline void * WorkDescriptor::getInternalData () const { return _wdData; }
 
+inline void WorkDescriptor::setTranslateArgs( nanos_translate_args_t translateArgs ) { _translateArgs = translateArgs; }
+
 inline unsigned int WorkDescriptor::getNumDevices ( void ) { return _numDevices; }
 
 inline DeviceData ** WorkDescriptor::getDevices ( void ) { return _devices; }

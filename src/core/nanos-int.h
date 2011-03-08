@@ -202,5 +202,7 @@ typedef struct nanos_lock_t {
 #endif
 } nanos_lock_t;
 
+/* Translation function type  */
+typedef void (* nanos_translate_args_t) (void *);
 
 #endif
