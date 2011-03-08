@@ -106,23 +106,13 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
    return NANOS_OK;
 }
 
-nanos_err_t nanos_create_wd_2 (  nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t data_size,
-                               void ** data, nanos_wg_t uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies,
-                              nanos_translate_args_t translate_args )
+nanos_err_t nanos_set_translate_function ( nanos_wd_t wd, nanos_translate_args_t translate_args )
 {
-   /* FIXME (#104) These variables have to be received as a parameters */
-   const int data_align = 16;
-  
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",NANOS_CREATION) );
-
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_set_translate_function",NANOS_CREATION) );
    try 
    {
-      if ( ( props == NULL  || ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTask() ) {
-         *uwd = 0;
-         return NANOS_OK;
-      }
-      sys.createWD ( (WD **) uwd, num_devices, devices, data_size, data_align, (void **) data, (WG *) uwg, props, num_copies, copies, translate_args );
-
+      WD *lwd = ( WD * ) wd;
+      lwd->setTranslateArgs( translate_args );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }

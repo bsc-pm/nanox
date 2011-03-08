@@ -36,8 +36,8 @@ void WorkDescriptor::init ()
 
    if ( getNumCopies() > 0 ) {
       pe->copyDataIn( *this );
-      if ( _translate_args != NULL ) {
-         _translate_args( _data );
+      if ( _translateArgs != NULL ) {
+         _translateArgs( _data );
       }
    }
 }
