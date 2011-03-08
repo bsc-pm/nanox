@@ -21,7 +21,7 @@
 #define _NANOS_CACHED_ACCELERATOR
 
 #include "cachedaccelerator_decl.hpp"
-#include "accelerator.hpp"
+#include "accelerator_decl.hpp"
 #include "cache.hpp"
 
 using namespace nanos;
