@@ -20,7 +20,7 @@
 #ifndef _NANOS_LIST_DECL
 #define _NANOS_LIST_DECL
 
-#include "atomic.hpp"
+#include "atomic_decl.hpp"
 #include <list>
 #include <limits.h>
 #include <iterator>
@@ -575,6 +575,11 @@ class List {
       */
       size_t size() const;
 
+     /*! \brief Returns the Lock of this list
+      */
+      Lock& getLock();
+
+#if 0
      /*! \brief Get exclusive access to the list
       */
       void lock ( );
@@ -582,6 +587,7 @@ class List {
      /*! \brief Release list's lock
       */
       void unlock ( );
+#endif
 };
 
 }

@@ -29,9 +29,11 @@
 #include "copydata.hpp"
 #include "synchronizedcondition_decl.hpp"
 #include "atomic.hpp"
+#include "lazy.hpp"
 #include "instrumentationcontext.hpp"
 #include "directory.hpp"
 #include "schedule.hpp"
+#include "dependenciesdomain.hpp"
 
 using namespace nanos;
 
@@ -91,6 +93,8 @@ inline bool WorkDescriptor::hasActiveDevice() const { return _activeDevice != NU
 inline void WorkDescriptor::setInternalData ( void *data ) { _wdData = data; }
 
 inline void * WorkDescriptor::getInternalData () const { return _wdData; }
+
+inline void WorkDescriptor::setTranslateArgs( nanos_translate_args_t translateArgs ) { _translateArgs = translateArgs; }
 
 inline unsigned int WorkDescriptor::getNumDevices ( void ) { return _numDevices; }
 
@@ -163,6 +167,13 @@ inline InstrumentationContextData * WorkDescriptor::getInstrumentationContextDat
 inline void WorkDescriptor::waitCompletion()
 {
    this->WorkGroup::waitCompletion();
+   if ( _directory.isInitialized() )
+      _directory->synchronizeHost();
+}
+
+inline void WorkDescriptor::waitCompletionAndSignalers()
+{
+   this->WorkGroup::waitCompletionAndSignalers();
    if ( _directory.isInitialized() )
       _directory->synchronizeHost();
 }

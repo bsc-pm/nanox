@@ -22,42 +22,13 @@
 
 #include <stdint.h>
 #include <map>
+#include "simpleallocator_decl.hpp"
 
-namespace nanos {
+using namespace nanos;
 
-   /*! \brief Simple memory allocator to manage a given contiguous memory area
-    */
-   class SimpleAllocator
-   {
-      private:
-         typedef std::map < uint64_t, size_t > SegmentMap;
-
-         SegmentMap _allocatedChunks;
-         SegmentMap _freeChunks;
-
-         uint64_t _baseAddress;
-
-      public:
-         SimpleAllocator( uint64_t baseAddress, size_t len );
-
-         // WARNING: Calling this constructor requires calling init() at some time
-         // before any allocate() or free() methods are called
-         SimpleAllocator() : _baseAddress( 0 ) { }
-
-         void init( uint64_t baseAddress, size_t len );
-
-         void * allocate( size_t len );
-
-         uint64_t getBaseAddress ()
-         {
-            return _baseAddress;
-         }
-
-         size_t free( void *address );
-         void * reallocate( void *address, size_t len );
-
-         void printMap();
-   };
-
+inline uint64_t SimpleAllocator::getBaseAddress ()
+{
+   return _baseAddress;
 }
+
 #endif /* _NANOS_SIMPLEALLOCATOR */

@@ -17,14 +17,14 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_LIB_WDDEQUE_DECL
-#define _NANOS_LIB_WDDEQUE_DECL
+#ifndef _NANOS_LIB_WDDEQUE_DECL_H
+#define _NANOS_LIB_WDDEQUE_DECL_H
 
 #include <list>
-#include "atomic.hpp"
+#include "atomic_decl.hpp"
 #include "debug.hpp"
-#include "workdescriptor.hpp"
-#include "basethread.hpp"
+#include "workdescriptor_decl.hpp"
+#include "basethread_decl.hpp"
 
 namespace nanos
 {

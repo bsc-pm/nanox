@@ -118,6 +118,9 @@ typedef struct {
    int upper;
    int step;
    bool last;
+   int chunk;
+   int stride;
+   void *args;
 } nanos_loop_info_t;
 
 typedef struct {
@@ -200,5 +203,7 @@ typedef struct nanos_lock_t {
 #endif
 } nanos_lock_t;
 
+/* Translation function type  */
+typedef void (* nanos_translate_args_t) (void *);
 
 #endif

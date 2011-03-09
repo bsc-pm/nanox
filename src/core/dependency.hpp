@@ -20,125 +20,99 @@
 #ifndef _NANOS_DEPENDENCY
 #define _NANOS_DEPENDENCY
 
-#include "nanos-int.h"
+#include "dependency_decl.hpp"
 
-namespace nanos
+using namespace nanos;
+
+inline Dependency::Dependency ( void ** addr, ptrdiff_t offset, bool input, bool output,
+             bool canRename, bool commutative, size_t storageSize )
 {
+   address = addr;
+   offset = offset;
+   flags.input = input;
+   flags.output = output;
+   flags.can_rename = canRename;
+   flags.commutative = commutative;
+   size = storageSize;
+}
 
-  /*! \class Dependency
-   *  \brief Contains information about dependencies necessary to add a DependableObject to the Dependencies system
-   */
-   class Dependency : public nanos_dependence_internal_t
-   {
-      public:
-         /*! \brief Dependency default constructor
-          *
-          *  \param address Address of the dependency's address 
-          *  \param input Whether the dependency is input or not 
-          *  \param output Whether the dependency is output or not
-          *  \param canRename Whether the dependency can rename or not
-          */
-         Dependency ( void ** addr = NULL, ptrdiff_t offset = 0, bool input = false, bool output = false,
-                      bool canRename = false, bool commutative = false, size_t storageSize = 0 )
-         {
-            address = addr;
-            offset = offset;
-            flags.input = input;
-            flags.output = output;
-            flags.can_rename = canRename;
-            flags.commutative = commutative;
-            size = storageSize;
-         }
-         /*! \brief Dependency copy constructor
-          *
-          *  \param obj another Dependency
-          */
-         Dependency ( const Dependency &dep )
-         {
-            address = dep.address;
-            offset = dep.offset;
-            flags.input = dep.flags.input;
-            flags.output = dep.flags.output;
-            flags.can_rename = dep.flags.can_rename;
-            flags.commutative = dep.flags.commutative;
-            size = dep.size;
-         }
-        /*! \brief Dependency copy asssignment operator, can be self-assigned.
-         *
-         *  \param obj another Dependency
-         */
-         const Dependency & operator= ( const Dependency &dep )
-         {
-            if ( this == &dep ) return *this; 
-            address = dep.address;
-            offset = dep.offset;
-            flags.input = dep.flags.input;
-            flags.output = dep.flags.output;
-            flags.can_rename = dep.flags.can_rename;
-            flags.commutative = dep.flags.commutative;
-            size = dep.size;
-            return *this;
-         }
-         /*! \brief Dependency destructor
-          */
-         ~Dependency () {}
-         
-        /*! \brief Obtain the dependency's address address
-         */
-         void ** getAddress() const
-         { return address; }
-         
-        /*! \brief Obtain the dependency's address address
-         */
-         ptrdiff_t getOffset() const
-         { return offset; }
+inline Dependency::Dependency ( const Dependency &dep )
+{
+   address = dep.address;
+   offset = dep.offset;
+   flags.input = dep.flags.input;
+   flags.output = dep.flags.output;
+   flags.can_rename = dep.flags.can_rename;
+   flags.commutative = dep.flags.commutative;
+   size = dep.size;
+}
 
-        /*! \brief Compute the dependency address
-         */
-         void * getDepAddress() const
-         { return (void *) ( (char *) (*address) + offset ); }
-         
-        /*! \brief returns true if it is an input dependency
-         */
-         bool isInput() const
-         { return flags.input; }
+inline const Dependency & Dependency::operator= ( const Dependency &dep )
+{
+   if ( this == &dep ) return *this; 
+   address = dep.address;
+   offset = dep.offset;
+   flags.input = dep.flags.input;
+   flags.output = dep.flags.output;
+   flags.can_rename = dep.flags.can_rename;
+   flags.commutative = dep.flags.commutative;
+   size = dep.size;
+   return *this;
+}
 
-        /*! \brief sets the dependency input clause to b
-         */
-         void setInput( bool b )
-         { flags.input = b; }
-         
-        /*! \brief returns true if it is an output dependency
-         */
-         bool isOutput() const
-         { return flags.output; }
+inline void ** Dependency::getAddress() const
+{
+   return address;
+}
 
-        /*! \brief sets the dependency output clause to b
-         */
-         void setOutput( bool b )
-         { flags.output = b;}
-         
-        /*! \brief return true if the dependency can rename
-         */
-         bool canRename() const
-         { return flags.can_rename; }
+inline ptrdiff_t Dependency::getOffset() const
+{
+   return offset;
+}
 
-        /*! \brief sets the rename attribute to b
-         */
-         void setCanRename( bool b )
-         { flags.can_rename = b; }
+inline void * Dependency::getDepAddress() const
+{
+   return (void *) ( (char *) (*address) + offset );
+}
 
-        /*! \brief returns true if there is a commutative over this dependency
-         */
-         bool isCommutative() const
-         { return flags.commutative; }
+inline bool Dependency::isInput() const
+{
+   return flags.input;
+}
 
-        /*! \brief sets the dependency to be a commutative
-         */
-         void setCommutative( bool b )
-         { flags.commutative = b;}
-         
-   };
+inline void Dependency::setInput( bool b )
+{
+ flags.input = b;
+}
+
+inline bool Dependency::isOutput() const
+{
+   return flags.output;
+}
+
+inline void Dependency::setOutput( bool b )
+{
+   flags.output = b;
+}
+
+inline bool Dependency::canRename() const
+{
+   return flags.can_rename;
+}
+
+inline void Dependency::setCanRename( bool b )
+{
+   flags.can_rename = b;
+}
+
+inline bool Dependency::isCommutative() const
+{
+   return flags.commutative;
+}
+
+inline void Dependency::setCommutative( bool b )
+{
+   flags.commutative = b;
 }
 
 #endif

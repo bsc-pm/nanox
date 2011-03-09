@@ -117,19 +117,20 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
             initialCommDO->increasePredecessors();
             // add dependencies to all previous reads using a CommutationDO
             TrackableObject::DependableObjectList &readersList = dependencyObject->getReaders();
-            dependencyObject->lockReaders();
+            {
+               SyncLockBlock lock1( dependencyObject->getReadersLock() );
 
-            for ( TrackableObject::DependableObjectList::iterator it = readersList.begin(); it != readersList.end(); it++) {
-               DependableObject * predecessorReader = *it;
-               predecessorReader->lock();
-               if ( predecessorReader->addSuccessor( *initialCommDO ) ) {
-                  initialCommDO->increasePredecessors();
+               for ( TrackableObject::DependableObjectList::iterator it = readersList.begin(); it != readersList.end(); it++) {
+                  DependableObject * predecessorReader = *it;
+                  {
+                     SyncLockBlock lock2( predecessorReader->getLock() );
+                     if ( predecessorReader->addSuccessor( *initialCommDO ) ) {
+                        initialCommDO->increasePredecessors();
+                     }
+                  }
                }
-               predecessorReader->unlock();
+               dependencyObject->flushReaders();
             }
-            dependencyObject->flushReaders();
-
-            dependencyObject->unlockReaders();
             initialCommDO->addOutputObject( dependencyObject );
             // Replace the lastWriter with the initial CommutationDO
             dependencyObject->setLastWriter( *initialCommDO );
@@ -162,24 +163,25 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
          DependableObject *lastWriter = dependencyObject->getLastWriter();
 
          if ( lastWriter != NULL ) {
-            lastWriter->lock();
-            if ( dependencyObject->getLastWriter() == lastWriter ) {
-               if ( lastWriter->addSuccessor( depObj ) ) {
-                  depObj.increasePredecessors();
-               }
+            {
+               SyncLockBlock lock( lastWriter->getLock() );
+               if ( dependencyObject->getLastWriter() == lastWriter ) {
+                  if ( lastWriter->addSuccessor( depObj ) ) {
+                     depObj.increasePredecessors();
+                  }
 #if 0
-               if ( ( !(dep.isOutput()) || dep.isInput() ) ) {
-                  // RaW dependency
-                  debug (" DO_ID_" << lastWriter->getId() << " [style=filled label=" << lastWriter->getDescription() << " color=" << "red" << "];");
-                  debug (" DO_ID_" << lastWriter->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=green];");
-               } else {
-                  // WaW dependency
-                  debug (" DO_ID_" << lastWriter->getId() << " [style=filled label=" << lastWriter->getDescription() << " color=" << "red" << "];");
-                  debug (" DO_ID_" << lastWriter->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=blue];");
-               }
+                  if ( ( !(dep.isOutput()) || dep.isInput() ) ) {
+                     // RaW dependency
+                     debug (" DO_ID_" << lastWriter->getId() << " [style=filled label=" << lastWriter->getDescription() << " color=" << "red" << "];");
+                     debug (" DO_ID_" << lastWriter->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=green];");
+                  } else {
+                     // WaW dependency
+                     debug (" DO_ID_" << lastWriter->getId() << " [style=filled label=" << lastWriter->getDescription() << " color=" << "red" << "];");
+                     debug (" DO_ID_" << lastWriter->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=blue];");
+                  }
 #endif
+               }
             }
-            lastWriter->unlock();
          }
       }
 
@@ -193,9 +195,10 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
       if ( dep.isInput() && !( dep.isOutput() ) && !( depObj.waits() ) ) {
          depObj.addReadObject( dependencyObject );
 
-         dependencyObject->lockReaders();
-         dependencyObject->setReader( depObj );
-         dependencyObject->unlockReaders();
+         {
+            SyncLockBlock lock( dependencyObject->getReadersLock() );
+            dependencyObject->setReader( depObj );
+         }
       }
 
       if ( dep.isOutput() ) {
@@ -205,24 +208,25 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
          } else {
             // add dependencies to all previous reads
             TrackableObject::DependableObjectList &readersList = dependencyObject->getReaders();
-            dependencyObject->lockReaders();
 
-            for ( TrackableObject::DependableObjectList::iterator it = readersList.begin(); it != readersList.end(); it++) {
-               DependableObject * predecessorReader = *it;
-               predecessorReader->lock();
-               if ( predecessorReader->addSuccessor( depObj ) ) {
-                  depObj.increasePredecessors();
-               }
-               predecessorReader->unlock();
-               // WaR dependency
+            {
+               SyncLockBlock lock( dependencyObject->getReadersLock() );
+               for ( TrackableObject::DependableObjectList::iterator it = readersList.begin(); it != readersList.end(); it++) {
+                  DependableObject * predecessorReader = *it;
+                  {
+                     SyncLockBlock lock(predecessorReader->getLock());
+                     if ( predecessorReader->addSuccessor( depObj ) ) {
+                        depObj.increasePredecessors();
+                     }
+                  }
+                  // WaR dependency
 #if 0
-               debug (" DO_ID_" << predecessorReader->getId() << " [style=filled label=" << predecessorReader->getDescription() << " color=" << "red" << "];");
-               debug (" DO_ID_" << predecessorReader->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=red];");
+                  debug (" DO_ID_" << predecessorReader->getId() << " [style=filled label=" << predecessorReader->getDescription() << " color=" << "red" << "];");
+                  debug (" DO_ID_" << predecessorReader->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=red];");
 #endif
+               }
+               dependencyObject->flushReaders();
             }
-            dependencyObject->flushReaders();
-
-            dependencyObject->unlockReaders();
             
             if ( !depObj.waits() ) {
                // set depObj as writer of dependencyObject

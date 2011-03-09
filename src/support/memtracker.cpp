@@ -38,8 +38,9 @@ class MemTracker
 	public :
 	    inline explicit IntAllocator() {}
 	    inline ~IntAllocator() {}
+	    /* Dan Tsafrir [11/2/2011]: 'explicit' here, for gcc-4.1, results in compile error */
 	    template<typename U>
-	    inline explicit IntAllocator( const IntAllocator<U> & ) {}
+	    inline /*explicit*/ IntAllocator( const IntAllocator<U> & ) {}
 
 	    //    memory allocation
 	    inline pointer allocate( size_type cnt,

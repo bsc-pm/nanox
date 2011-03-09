@@ -20,10 +20,10 @@
 #ifndef _NANOS_CACHE_DECL
 #define _NANOS_CACHE_DECL
 
-#include "config.hpp"
+#include "config_decl.hpp"
 #include "compatibility.hpp"
 #include "directory_decl.hpp"
-#include "atomic.hpp"
+#include "atomic_decl.hpp"
 #include "processingelement_fwd.hpp"
 #include "copydescriptor_decl.hpp"
 
