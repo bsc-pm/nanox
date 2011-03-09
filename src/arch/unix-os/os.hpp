@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <dlfcn.h>
 #include <time.h>
+#include "nanos-int.h"
 
 namespace nanos
 {
@@ -51,16 +52,10 @@ namespace nanos
                const_iterator begin() const { return _first; }
                const_iterator end() const { return _last; }
          };
-
-         typedef void (init_func_t) ( void * );
-         typedef struct {
-           init_func_t  *func;
-           void         *data;
-         } init_t;
          
          class InitList {
             public:
-               typedef const init_t * const const_init_ptr;
+               typedef const nanos_init_desc_t * const const_init_ptr;
                typedef const_init_ptr const_iterator;
 
             private:

@@ -29,7 +29,7 @@ static void do_nothing(void *) {}
 
 // Make sure the two special linker sections exist
 LINKER_SECTION(nanos_modules, const char *, NULL)
-LINKER_SECTION(nanos_init, OS::init_t, INIT_NULL)
+LINKER_SECTION(nanos_init, nanos_init_desc_t , INIT_NULL)
 
 long OS::_argc = 0; 
 char ** OS::_argv = 0;

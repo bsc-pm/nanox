@@ -137,7 +137,7 @@ void System::loadModules ()
 // Config Functor
 struct ExecInit
 {
-   void operator() ( const OS::init_t & init ) { init.func(init.data); }
+   void operator() ( const nanos_init_desc_t & init ) { init.func(init.data); }
 };
 
 void System::config ()
