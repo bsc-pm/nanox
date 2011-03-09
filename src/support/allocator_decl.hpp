@@ -25,6 +25,11 @@
 #include "malign.hpp"
 #include <iostream>
 
+#include <new>
+
+void* operator new ( size_t size );
+void  operator delete ( void *p );
+
 #define NANOS_CACHELINE 128 /* FIXME: This definition must be architectural dependant */
 #define NANOS_OBJECTS_PER_ARENA 100
 
@@ -36,6 +41,60 @@ namespace nanos
 class Allocator
 {
    private:
+     /*! \class InternalAllocator
+      */
+      template<typename T>
+      class InternalAllocator
+      {
+	public :
+	    /* typedefs */
+	    typedef T value_type;
+	    typedef value_type* pointer;
+	    typedef const value_type* const_pointer;
+	    typedef value_type& reference;
+	    typedef const value_type& const_reference;
+            typedef std::size_t size_type;
+	public :
+           /* \brief Convert an allocator<T> to allocator<U>
+            */
+	    template<typename U>
+	    struct rebind {
+	      typedef InternalAllocator<U> other;
+	    };
+
+	public :
+           /* \brief InternalAllocator default constructor
+            */
+	    inline explicit InternalAllocator() {}
+           /* \brief InternalAllocator destructor
+            */
+            inline ~InternalAllocator() {}
+           /* \brief InternalAllocator copy constructor
+            *
+            * Dan Tsafrir [11/2/2011]: 'explicit' here, for gcc-4.1, results in
+            * compile error
+            */
+	    template<typename U>
+	    inline /*explicit*/ InternalAllocator( const InternalAllocator<U> & ) {}
+           /* \brief Memory allocation
+            */
+	    inline pointer allocate( size_type N, typename std::allocator<void>::const_pointer = 0 ) {
+	      return reinterpret_cast<pointer>( malloc( N * sizeof ( T ) ) );
+	    }
+           /* \brief Memory allocation
+            */
+            inline void deallocate( pointer p, size_type ) { free( p ); }
+           /* \brief Construction
+            */
+	    inline void construct( pointer p, const T& t ) { new( p ) T( t ); }
+           /* \brief Destruction
+            */
+	    inline void destroy( pointer p ) { p->~T(); }
+      };
+      template<typename T>
+      struct InternalCollection {
+	typedef std::list<T, InternalAllocator<T> > type;
+      };
      /*! \class Arena
       */
       class Arena
@@ -99,7 +158,8 @@ class Allocator
       struct ObjectHeader { Arena *_arena; };
 
    private: /* Allocator data members */
-      typedef std::list<Arena *>    ArenaCollection;
+      //typedef std::list<Arena *>  ArenaCollection;
+      typedef InternalCollection<Arena *>::type  ArenaCollection;
       ArenaCollection               _arenas;      /**< Vector of Arenas in Allocator*/
      /*! \brief Allocator copy constructor (disabled)
       */
@@ -114,7 +174,7 @@ class Allocator
      Allocator () : _arenas() { }
     /*! \brief Allocator destructor 
      */
-     ~Allocator () { for ( ArenaCollection::iterator it = _arenas.begin(); it != _arenas.end(); it++ ) delete (*it); }
+     ~Allocator () { for ( ArenaCollection::iterator it = _arenas.begin(); it != _arenas.end(); it++ ) free(*it); }
     /*! \brief Allocates 'size' bytes in memory and returns memory pointer
      *
      *  This function will check in his list of Arenas looking for one who

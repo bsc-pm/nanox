@@ -1,6 +1,8 @@
 support_sources = \
+	$(top_srcdir)/src/support/allocator_fwd.hpp\
 	$(top_srcdir)/src/support/allocator_decl.hpp\
 	$(top_srcdir)/src/support/allocator.hpp\
+	$(top_srcdir)/src/support/allocator.cpp\
 	$(top_srcdir)/src/support/atomic_decl.hpp\
 	$(top_srcdir)/src/support/atomic.hpp\
 	$(top_srcdir)/src/support/lazy.hpp\

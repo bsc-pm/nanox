@@ -85,6 +85,7 @@ namespace nanos
  
    inline int BaseThread::getCpuId() { return runningOn()->getId(); }
  
+   inline Allocator & BaseThread::getAllocator() { return _allocator; }
    /*! \brief Rename the basethread
    */
    inline void BaseThread::rename ( const char *name )

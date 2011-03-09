@@ -26,8 +26,31 @@
 #include <iostream>
 #include "debug.hpp"
 #include "allocator_decl.hpp"
+#include "basethread.hpp"
 
 using namespace nanos;
+
+Allocator *alloc = NULL;
+
+inline Allocator & getAllocator ( void )
+{
+   BaseThread *my_thread = getMyThreadSafe();
+
+   if ( my_thread == NULL ) {
+      if ( alloc == NULL) {
+         alloc = (Allocator *) malloc(sizeof(Allocator));
+         new (alloc) Allocator();
+      }
+      return *alloc;
+   } else if (my_thread->getId() == 0 ) {
+      if ( alloc == NULL) {
+         alloc = (Allocator *) malloc(sizeof(Allocator));
+         new (alloc) Allocator();
+      }
+      return *alloc;
+   }
+   else return my_thread->getAllocator();
+}
 
 inline size_t Allocator::Arena::getObjectSize () const
 {
