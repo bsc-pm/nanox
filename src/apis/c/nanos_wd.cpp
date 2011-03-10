@@ -97,8 +97,22 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
          *uwd = 0;
          return NANOS_OK;
       }
-      sys.createWD ( (WD **) uwd, num_devices, devices, data_size, data_align, (void **) data, (WG *) uwg, props, num_copies, copies );
+      sys.createWD ( (WD **) uwd, num_devices, devices, data_size, data_align, (void **) data, (WG *) uwg, props, num_copies, copies, NULL );
 
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+nanos_err_t nanos_set_translate_function ( nanos_wd_t wd, nanos_translate_args_t translate_args )
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_set_translate_function",NANOS_CREATION) );
+   try 
+   {
+      WD *lwd = ( WD * ) wd;
+      lwd->setTranslateArgs( translate_args );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
