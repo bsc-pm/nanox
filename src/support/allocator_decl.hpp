@@ -20,15 +20,30 @@
 #define _NANOS_ALLOCATOR_DECL
 
 #include <list>
+#include <map>
+#include <new>
 #include <cstdlib>
 #include <cstring>
-#include "malign.hpp"
 #include <iostream>
+#include "malign.hpp"
 
-#include <new>
+#ifdef NANOS_DEBUG_ENABLED
+   #define NANOS_MEMTRACKER
+#endif
+
+#ifdef NANOS_MEMTRACKER
+   #include "atomic.hpp" /* Only for locking purposes in debug mode */
+   #define NEW new(__FILE__, __LINE__)
+   void* operator new ( size_t size, const char *file, int line );
+   void* operator new[] ( size_t size, const char *file, int line );
+#else
+   #define NEW new
+#endif
 
 void* operator new ( size_t size );
+void* operator new[] ( size_t size );
 void  operator delete ( void *p );
+void  operator delete[] ( void *p );
 
 #define NANOS_CACHELINE 128 /* FIXME: This definition must be architectural dependant */
 #define NANOS_OBJECTS_PER_ARENA 100
@@ -154,13 +169,51 @@ class Allocator
             */
             void setNext ( Arena * a );
       };
+#ifdef NANOS_MEMTRACKER
+      struct BlockInfo {
+	size_t       _size;
+	const char * _file;
+	int          _line;
 
-      struct ObjectHeader { Arena *_arena; };
+	BlockInfo ( ) { }
+	BlockInfo ( const size_t size, const char *file, const int line ) : _size(size), _file(file), _line(line) {}
+      };
+      struct DistrInfo {
+	size_t _current;
+	size_t _max;
+	size_t _total;
+      };
+      template<class K, class T>
+      struct InternalMap {
+         typedef std::map <K, T, std::less<K>, InternalAllocator<std::pair<const K,T> > > type;
+      };
+      typedef InternalMap<void *,BlockInfo>::type AddrMap;
+      typedef InternalMap<size_t,DistrInfo>::type SizeMap;
+#endif
+
+      struct ObjectHeader {
+         Arena     *_arena;
+#ifdef NANOS_MEMTRACKER
+         Allocator *_allocator;
+#endif
+      };
 
    private: /* Allocator data members */
-      //typedef std::list<Arena *>  ArenaCollection;
       typedef InternalCollection<Arena *>::type  ArenaCollection;
+
+      int                           _id;
       ArenaCollection               _arenas;      /**< Vector of Arenas in Allocator*/
+#ifdef NANOS_MEMTRACKER
+      AddrMap                       _blocks;
+      SizeMap                       _stats;
+      size_t                        _localMem;
+      size_t                        _localBlocks;
+      size_t                        _maxLocalMem;
+
+      static Lock                   _lock;        /**< Lock used by memtracker (register new/delete and show statistics) */
+      static bool                   _active;
+#endif
+
      /*! \brief Allocator copy constructor (disabled)
       */
       Allocator ( const Allocator &a );
@@ -171,10 +224,24 @@ class Allocator
    public: /* Allocator method members */
     /*! \brief Allocator default constructor 
      */
-     Allocator () : _arenas() { }
+#ifndef NANOS_MEMTRACKER
+     Allocator ( int id = -1) : _id(id), _arenas() { }
+#else
+     Allocator ( int id = -1) : _id(id), _arenas(), _blocks(), _stats(), _localMem(0), _localBlocks(0), _maxLocalMem(0) {}
+#endif
     /*! \brief Allocator destructor 
      */
-     ~Allocator () { for ( ArenaCollection::iterator it = _arenas.begin(); it != _arenas.end(); it++ ) free(*it); }
+     ~Allocator () { 
+//        for ( ArenaCollection::iterator it = _arenas.begin(); it != _arenas.end(); it++ ) free(*it);
+#ifdef NANOS_MEMTRACKER
+        _lock.acquire();
+        memoryFence();
+        _active = false;
+        showStatistics();
+        memoryFence();
+        _lock.release();
+#endif
+     }
     /*! \brief Allocates 'size' bytes in memory and returns memory pointer
      *
      *  This function will check in his list of Arenas looking for one who
@@ -183,12 +250,20 @@ class Allocator
      *  Arenas works with the given 'size' Allocator will create a new Arena entry
      *  in order to manage this (and future) objects of the given 'size'.
      */
-     void * allocate ( size_t size ) ;
+     void * allocate ( size_t size, const char *file = NULL, int line = 0 ) ;
     /*! \brief Deallocates 'object' (object has a header which identifies related Arena
      */
-     static void deallocate ( void *object ) ;
+     static void deallocate ( void *object, const char *file = NULL, int line = 0 ) ;
+
+#ifdef NANOS_MEMTRACKER
+    /*! \brief Show statistics (in debug mode)
+     */
+     void showStatistics( void ) const;
+#endif
+
 };
 
 }; // namespace: nanos
 
 #endif
+

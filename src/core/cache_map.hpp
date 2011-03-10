@@ -22,6 +22,7 @@
 
 #include "cache_map_decl.hpp"
 #include "memtracker.hpp"
+#include "allocator_decl.hpp"
 
 using namespace nanos;
 

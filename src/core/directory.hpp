@@ -24,6 +24,7 @@
 #include "hashmap.hpp"
 #include "cache_decl.hpp"
 #include "cache_map.hpp"
+#include "allocator_decl.hpp"
 
 using namespace nanos;
 

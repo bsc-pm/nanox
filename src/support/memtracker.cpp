@@ -9,7 +9,7 @@
 #include "atomic.hpp"
 
 using namespace nanos;
-
+#if 0
 
 class MemTracker
 {
@@ -210,3 +210,4 @@ class A {
 };
 
 A dummy;
+#endif

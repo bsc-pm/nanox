@@ -33,6 +33,7 @@
 #include "atomic_decl.hpp"
 #include "instrumentationcontext_fwd.hpp"
 #include "workdescriptor_fwd.hpp"
+#include "allocator_decl.hpp"
 
 namespace nanos {
 

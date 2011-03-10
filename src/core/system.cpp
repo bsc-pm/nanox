@@ -322,11 +322,6 @@ void System::finish ()
 
    ensure( _schedStats._readyTasks == 0, "Ready task counter has an invalid value!");
 
-   // join
-   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
-      delete _pes[p];
-   }
-
    _pmInterface->finish();
 
    /* System mem free */
@@ -334,6 +329,11 @@ void System::finish ()
 
    for ( Slicers::const_iterator it = _slicers.begin(); it !=   _slicers.end(); it++ ) {
       delete (Slicer *)  it->second;
+   }
+
+   // join
+   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
+      delete _pes[p];
    }
 
    verbose ( "NANOS++ shutting down.... end" );

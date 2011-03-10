@@ -1,6 +1,7 @@
 #ifndef _NANOS_MEMTRACKER
 #define _NANOS_MEMTRACKER
 
+#if 0
 #ifdef NANOS_DEBUG_ENABLED
 
 #include <new>
@@ -16,6 +17,8 @@ void operator delete ( void *p, char *file, char *line );
 #else 
 
 #define NEW new
+
+#endif
 
 #endif
 
