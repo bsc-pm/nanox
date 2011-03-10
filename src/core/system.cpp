@@ -369,7 +369,7 @@ void System::start ()
 #ifdef CLUSTER_DEV
    if ( useCluster() )
    {
-      if ( _net.getNodeNum() == 0)
+      if ( _net.getNodeNum() == 0 && _net.getNumNodes() > 1 )
       {
          unsigned int nodeC;
 
