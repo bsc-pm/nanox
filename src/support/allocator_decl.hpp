@@ -101,6 +101,7 @@ class Allocator
             char *            _arena;                  /**< Memory region used by Arena */
             bitmap_entry      *_bitmap;                /**< Bit map (free/busy) */
             Arena             *_next;                  /**< Next Arena in the list */
+            bool               _free;
             /*! \brief Arena copy constructor (disabled)
              */
             Arena ( const Arena &a );
@@ -113,7 +114,7 @@ class Allocator
          public: /* Arena method members */
            /*! \brief Arena constructor
             */
-            Arena ( size_t objectSize ) : _objectSize(objectSize), _next (NULL)
+            Arena ( size_t objectSize ) : _objectSize(objectSize), _next (NULL), _free(true)
             {
                // TODO: fusionar malloc
                _arena = (char *) malloc( objectSize * numObjects );
