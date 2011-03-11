@@ -56,7 +56,7 @@ void Instrumentation::returnPreviousStateEvent ( Event *e )
 void Instrumentation::createBurstEvent ( Event *e, nanos_event_key_t key, nanos_event_value_t value )
 {
    /* Creating burst  event */
-   Event::KV kv( key, value );
+   Event::KV *kv = NEW Event::KV( key, value );
    new (e) Burst( true, kv );
 
    InstrumentationContextData *icd = myThread->getCurrentWD()->getInstrumentationContextData();
@@ -346,7 +346,7 @@ void Instrumentation::wdCreate( WorkDescriptor* newWD )
    nanos_event_value_t wd_id = newWD->getId();
 
    /* Creating key value and Burst event */
-   Event::KV kv( key, wd_id );
+   Event::KV *kv = NEW Event::KV( key, wd_id );
    Event *e = NEW Burst( true, kv );
 
    /* Update InstrumentationContextData */

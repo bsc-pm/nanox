@@ -335,7 +335,6 @@ namespace nanos {
 
                unsigned int                _nkvs;         /**< Number of kvs elements */
                KVList                      _kvList;       /**< List of elements kv (key.value) */
-               bool                        _kvListOwner;  /**< Is the object the owner of kvList */
 
                nanos_event_domain_t        _ptpDomain;    /**< A specific domain in which ptpId is unique */
                nanos_event_id_t            _ptpId;        /**< PtP event id */
@@ -347,7 +346,7 @@ namespace nanos {
                 *  \see State Burst Point PtP
                 */
                Event () : _type((nanos_event_type_t) 0), _state((nanos_event_state_value_t) 0), _nkvs(0),
-                          _kvList(NULL), _kvListOwner(false), _ptpDomain((nanos_event_domain_t) 0), _ptpId(0) {}
+                          _kvList(NULL), _ptpDomain((nanos_event_domain_t) 0), _ptpId(0) {}
                /*! \brief Event constructor
                 *
                 *  Generic constructor used by all other specific constructors
@@ -356,16 +355,9 @@ namespace nanos {
                 */
                Event ( nanos_event_type_t type, nanos_event_state_value_t state, unsigned int nkvs, KVList kvlist,
                        nanos_event_domain_t ptp_domain, nanos_event_id_t ptp_id ) :
-                     _type (type), _state (state), _nkvs(nkvs), _kvList (kvlist), _kvListOwner(false),
+                     _type (type), _state (state), _nkvs(nkvs), _kvList (kvlist), 
                      _ptpDomain (ptp_domain), _ptpId (ptp_id)
-               {
-                  if ( _type == NANOS_BURST_START || _type == NANOS_BURST_END )
-                  {
-                     _kvList = NEW KV[1];
-                     _kvList[0] = *kvlist;
-                     _kvListOwner = true;
-                  }
-               }
+               { }
 
                /*! \brief Event copy constructor
                 */
@@ -378,7 +370,6 @@ namespace nanos {
                   for ( unsigned int i = 0; i < _nkvs; i++ ) {
                      _kvList[i] = evt._kvList[i];
                   }
-                  _kvListOwner = true;
                   _ptpDomain = evt._ptpDomain;
                   _ptpId     = evt._ptpId;
 
@@ -398,7 +389,6 @@ namespace nanos {
                   for ( unsigned int i = 0; i < _nkvs; i++ ) {
                      _kvList[i] = evt._kvList[i];
                   }
-                  _kvListOwner = true;
                   _ptpDomain = evt._ptpDomain;
                   _ptpId     = evt._ptpId;
 
@@ -406,7 +396,7 @@ namespace nanos {
 
                /*! \brief Event destructor
                 */
-               ~Event() { if ( _kvListOwner ) delete[] _kvList; }
+               ~Event() { delete[] _kvList; }
 
                /*! \brief Get event type
                 */
@@ -469,8 +459,8 @@ namespace nanos {
              public:
                /*! \brief Burst event constructor
                 */
-               Burst ( bool start, KV kv )
-                     : Event ( start? NANOS_BURST_START: NANOS_BURST_END, NANOS_ERROR, 1, &kv, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
+               Burst ( bool start, KV *kv )
+                     : Event ( start? NANOS_BURST_START: NANOS_BURST_END, NANOS_ERROR, 1, kv, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
          };
          class Point : public Event {
              private:
