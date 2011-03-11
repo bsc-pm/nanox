@@ -18,17 +18,16 @@
 /*************************************************************************************/
 #ifndef _NANOS_ALLOCATOR_HPP
 #define _NANOS_ALLOCATOR_HPP
-
+#include "allocator_decl.hpp"
+#include "malign.hpp"
+#include "debug.hpp"
+#include "basethread.hpp"
 #include <vector>
 #include <cstdlib>
 #include <cstring>
-#include "malign.hpp"
 #include <iostream>
-#include "debug.hpp"
-#include "allocator_decl.hpp"
-#include "basethread.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 extern Allocator nanos_alloc;
 
@@ -227,5 +226,7 @@ inline void Allocator::showStatistics( void ) const {
 #endif        
 }
 #endif
+
+} // namespace nanos
 
 #endif

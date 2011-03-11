@@ -1,3 +1,4 @@
+
 /*************************************************************************************/
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
@@ -16,13 +17,9 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-#ifndef _NANOS_ALLOCATOR_FWD_HPP
-#define _NANOS_ALLOCATOR_FWD_HPP
-
-namespace nanos
-{
-   //class InternalAllocator;
-   class Allocator;
+#ifndef _NANOS_MEMTRACKER_FWD_HPP
+#define _NANOS_MEMTRACKER_FWD_HPP
+namespace nanos {
+   class Memtracker;
 };
-
 #endif

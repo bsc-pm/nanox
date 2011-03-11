@@ -16,13 +16,28 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-#ifndef _NANOS_ALLOCATOR_FWD_HPP
-#define _NANOS_ALLOCATOR_FWD_HPP
+#include "new_decl.hpp"
 
-namespace nanos
-{
-   //class InternalAllocator;
-   class Allocator;
-};
+#ifdef NANOS_DEBUG_ENABLED
+
+#include "memtracker.hpp"
+
+void* operator new ( size_t size, const char *file, int line ) { return nanos::getMemTracker().allocate( size, file, line ); }
+void* operator new[] ( size_t size, const char *file, int line ) { return nanos::getMemTracker().allocate( size, file, line ); }
+
+void* operator new ( size_t size ) { return nanos::getMemTracker().allocate( size ); }
+void* operator new[] ( size_t size ) { return nanos::getMemTracker().allocate( size ); }
+void operator delete ( void *p ) { nanos::getMemTracker().deallocate( p ); }
+void operator delete[] ( void *p ) { nanos::getMemTracker().deallocate( p ); }
+
+#else
+
+#include "allocator.hpp"
+
+void* operator new ( size_t size ) { return nanos::getAllocator().allocate( size ); }
+void* operator new[] ( size_t size ) { return nanos::getAllocator().allocate( size ); }
+void operator delete ( void *p ) { nanos::getAllocator().deallocate( p ); }
+void operator delete[] ( void *p ) { nanos::getAllocator().deallocate( p ); }
 
 #endif
+

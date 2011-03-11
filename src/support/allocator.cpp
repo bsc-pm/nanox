@@ -18,40 +18,7 @@
 /*************************************************************************************/
 #include "allocator.hpp"
 
-Allocator nanos_alloc;
+using namespace nanos;
 
-#ifdef NANOS_MEMTRACKER
-Lock nanos::Allocator::_lock;
-bool nanos::Allocator::_active = true;
-
-void* operator new ( size_t size, const char *file, int line )
-{
-   return getAllocator().allocate( size, file, line );
-}
-
-void* operator new[] ( size_t size, const char *file, int line )
-{
-   return getAllocator().allocate( size, file, line );
-}
-#endif
-
-void* operator new ( size_t size )
-{
-   return getAllocator().allocate( size );
-}
-
-void* operator new[] ( size_t size )
-{
-   return getAllocator().allocate( size );
-}
-
-void operator delete ( void *p )
-{
-   getAllocator().deallocate( p );
-}
-
-void operator delete[] ( void *p )
-{
-   getAllocator().deallocate( p );
-}
+Allocator nanos::nanos_alloc; // FIXME: to-remove, include it in system
 

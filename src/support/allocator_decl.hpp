@@ -16,100 +16,75 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-#ifndef _NANOS_ALLOCATOR_DECL
-#define _NANOS_ALLOCATOR_DECL
-
+#ifndef _NANOS_ALLOCATOR_DECL_HPP
+#define _NANOS_ALLOCATOR_DECL_HPP
+#include "allocator_fwd.hpp"
+#include "new_decl.hpp"
+#include "malign.hpp"
 #include <list>
 #include <map>
-#include <new>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
-#include "malign.hpp"
-
-#ifdef NANOS_DEBUG_ENABLED
-   #define NANOS_MEMTRACKER
-#endif
-
-#ifdef NANOS_MEMTRACKER
-   #include "atomic.hpp" /* Only for locking purposes in debug mode */
-   #define NEW new(__FILE__, __LINE__)
-   void* operator new ( size_t size, const char *file, int line );
-   void* operator new[] ( size_t size, const char *file, int line );
-#else
-   #define NEW new
-#endif
-
-void* operator new ( size_t size );
-void* operator new[] ( size_t size );
-void  operator delete ( void *p );
-void  operator delete[] ( void *p );
 
 #define NANOS_CACHELINE 128 /* FIXME: This definition must be architectural dependant */
 #define NANOS_OBJECTS_PER_ARENA 100
 
 namespace nanos
 {
+/*! \class InternalAllocator
+ */
+template<typename T>
+class InternalAllocator
+{
+   public :
+      /* typedefs */
+       typedef T value_type;
+       typedef value_type* pointer;
+       typedef const value_type* const_pointer;
+       typedef value_type& reference;
+       typedef const value_type& const_reference;
+       typedef std::size_t size_type;
+      /* \brief Convert an allocator<T> to allocator<U>
+       */
+       template<typename U>
+       struct rebind {
+          typedef InternalAllocator<U> other;
+       };
 
+      /* \brief InternalAllocator default constructor
+       */
+       inline explicit InternalAllocator() {}
+      /* \brief InternalAllocator destructor
+       */
+       inline ~InternalAllocator() {}
+      /* \brief InternalAllocator copy constructor
+       *
+       * Dan Tsafrir [11/2/2011]: 'explicit' here, for gcc-4.1, results in
+       * compile error
+       */
+       template<typename U>
+       inline /*explicit*/ InternalAllocator( const InternalAllocator<U> & ) {}
+      /* \brief Memory allocation
+       */
+       inline pointer allocate( size_type N, typename std::allocator<void>::const_pointer = 0 ) {
+          return reinterpret_cast<pointer>( malloc( N * sizeof ( T ) ) );
+       }
+      /* \brief Memory allocation
+       */
+       inline void deallocate( pointer p, size_type ) { free( p ); }
+      /* \brief Construction
+       */
+       inline void construct( pointer p, const T& t ) { new( p ) T( t ); }
+      /* \brief Destruction
+       */
+       inline void destroy( pointer p ) { p->~T(); }
+};
 /*! \class Allocator
  */
 class Allocator
 {
    private:
-     /*! \class InternalAllocator
-      */
-      template<typename T>
-      class InternalAllocator
-      {
-	public :
-	    /* typedefs */
-	    typedef T value_type;
-	    typedef value_type* pointer;
-	    typedef const value_type* const_pointer;
-	    typedef value_type& reference;
-	    typedef const value_type& const_reference;
-            typedef std::size_t size_type;
-	public :
-           /* \brief Convert an allocator<T> to allocator<U>
-            */
-	    template<typename U>
-	    struct rebind {
-	      typedef InternalAllocator<U> other;
-	    };
-
-	public :
-           /* \brief InternalAllocator default constructor
-            */
-	    inline explicit InternalAllocator() {}
-           /* \brief InternalAllocator destructor
-            */
-            inline ~InternalAllocator() {}
-           /* \brief InternalAllocator copy constructor
-            *
-            * Dan Tsafrir [11/2/2011]: 'explicit' here, for gcc-4.1, results in
-            * compile error
-            */
-	    template<typename U>
-	    inline /*explicit*/ InternalAllocator( const InternalAllocator<U> & ) {}
-           /* \brief Memory allocation
-            */
-	    inline pointer allocate( size_type N, typename std::allocator<void>::const_pointer = 0 ) {
-	      return reinterpret_cast<pointer>( malloc( N * sizeof ( T ) ) );
-	    }
-           /* \brief Memory allocation
-            */
-            inline void deallocate( pointer p, size_type ) { free( p ); }
-           /* \brief Construction
-            */
-	    inline void construct( pointer p, const T& t ) { new( p ) T( t ); }
-           /* \brief Destruction
-            */
-	    inline void destroy( pointer p ) { p->~T(); }
-      };
-      template<typename T>
-      struct InternalCollection {
-	typedef std::list<T, InternalAllocator<T> > type;
-      };
      /*! \class Arena
       */
       class Arena
@@ -169,6 +144,10 @@ class Allocator
             */
             void setNext ( Arena * a );
       };
+      template<typename T>
+      struct InternalCollection {
+	typedef std::list<T, InternalAllocator<T> > type;
+      };
 #ifdef NANOS_MEMTRACKER
       struct BlockInfo {
 	size_t       _size;
@@ -183,12 +162,6 @@ class Allocator
 	size_t _max;
 	size_t _total;
       };
-      template<class K, class T>
-      struct InternalMap {
-         typedef std::map <K, T, std::less<K>, InternalAllocator<std::pair<const K,T> > > type;
-      };
-      typedef InternalMap<void *,BlockInfo>::type AddrMap;
-      typedef InternalMap<size_t,DistrInfo>::type SizeMap;
 #endif
 
       struct ObjectHeader {
@@ -263,7 +236,7 @@ class Allocator
 
 };
 
-}; // namespace: nanos
+} // namespace: nanos
 
 #endif
 

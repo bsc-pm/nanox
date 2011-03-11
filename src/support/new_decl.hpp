@@ -16,13 +16,28 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-#ifndef _NANOS_ALLOCATOR_FWD_HPP
-#define _NANOS_ALLOCATOR_FWD_HPP
+#ifndef _NANOS_NEW_DECL
+#define _NANOS_NEW_DECL
 
-namespace nanos
-{
-   //class InternalAllocator;
-   class Allocator;
-};
+#include <new>
+
+#ifdef NANOS_DEBUG_ENABLED
+
+   #define NEW new(__FILE__, __LINE__)
+
+   void* operator new ( size_t size, const char *file, int line );
+   void* operator new[] ( size_t size, const char *file, int line );
+
+#else
+
+   #define NEW new
 
 #endif
+
+void* operator new ( size_t size );
+void* operator new[] ( size_t size );
+void  operator delete ( void *p );
+void  operator delete[] ( void *p );
+
+#endif
+
