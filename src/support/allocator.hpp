@@ -29,13 +29,17 @@
 
 namespace nanos {
 
-extern Allocator nanos_alloc;
+extern Allocator *allocator;
 
 inline Allocator & getAllocator ( void )
 {
+   if (!allocator) {
+      allocator = (Allocator *) malloc(sizeof(Allocator));
+      new (allocator) Allocator();
+   }
+
    BaseThread *my_thread = getMyThreadSafe();
-   if ( my_thread == NULL ) return nanos_alloc;
-   else if ( my_thread->getId() == 0 ) return nanos_alloc;
+   if ( my_thread == NULL ) return *allocator;
    else return my_thread->getAllocator();
 }
 

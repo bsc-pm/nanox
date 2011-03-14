@@ -20,5 +20,5 @@
 
 using namespace nanos;
 
-Allocator nanos::nanos_alloc; // FIXME: to-remove, include it in system
+Allocator *nanos::allocator;
 

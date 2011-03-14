@@ -17,7 +17,6 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include <string.h>
 #include "system.hpp"
 #include "config.hpp"
 #include "plugin.hpp"
@@ -29,6 +28,8 @@
 #include "basethread.hpp"
 #include "malign.hpp"
 #include "processingelement.hpp"
+#include "allocator.hpp"
+#include <string.h>
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -335,6 +336,8 @@ void System::finish ()
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {
       delete _pes[p];
    }
+
+   if ( allocator != NULL ) free (allocator);
 
    verbose ( "NANOS++ shutting down.... end" );
 }
