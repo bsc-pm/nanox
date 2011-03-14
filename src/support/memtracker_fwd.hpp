@@ -19,7 +19,9 @@
 /*************************************************************************************/
 #ifndef _NANOS_MEMTRACKER_FWD_HPP
 #define _NANOS_MEMTRACKER_FWD_HPP
+#ifdef NANOS_DEBUG_ENABLED
 namespace nanos {
    class Memtracker;
 };
+#endif
 #endif

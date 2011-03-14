@@ -18,6 +18,9 @@
 /*************************************************************************************/
 #ifndef _NANOS_MEMTRACKER_DECL_HPP
 #define _NANOS_MEMTRACKER_DECL_HPP
+
+#ifdef NANOS_DEBUG_ENABLED
+
 #include "memtracker_fwd.hpp"
 #include "debug.hpp"
 #include "atomic.hpp"
@@ -92,6 +95,7 @@ class NanosMemTrackerHelper {
     ~NanosMemTrackerHelper() { getMemTracker().showStats(); }
 };
 
-} // namespace nanos
 
+} // namespace nanos
+#endif
 #endif

@@ -18,6 +18,9 @@
 /*************************************************************************************/
 #ifndef _NANOS_MEMTRACKER_HPP
 #define _NANOS_MEMTRACKER_HPP
+
+#ifdef NANOS_DEBUG_ENABLED
+
 #include "memtracker_decl.hpp"
 #include "allocator.hpp"
 
@@ -75,11 +78,9 @@ namespace nanos {
       inline void MemTracker::showStats ()
       {
 	message0("======================= General Memory stats ============");
-	std::cout
-	    << "# blocks              " << _numBlocks << std::endl
-	    << "total unfreed memory  " << _totalMem << " bytes" << std::endl
-	    << "max allocated memory  " << _maxMem << " bytes" << std::endl
-	    ;
+	message0("# blocks              " << _numBlocks);
+	message0("total unfreed memory  " << _totalMem << " bytes");
+	message0("max allocated memory  " << _maxMem << " bytes");
         message0("=========================================================");
 	message0("======================= Unfreed blocks ==================");
 	for ( AddrMap::iterator it = _blocks.begin(); it != _blocks.end(); it++ )
@@ -105,4 +106,5 @@ namespace nanos {
 
 } // namespace nanos
 
+#endif
 #endif
