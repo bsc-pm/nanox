@@ -40,9 +40,10 @@ class MemTracker
 	size_t       _size;
 	const char * _file;
 	int          _line;
+        int          _thread;
 
 	BlockInfo ( ) { }
-	BlockInfo ( const size_t size, const char *file, const int line ) : _size(size), _file(file), _line(line) {}
+	BlockInfo ( const size_t size, const char *file, const int line, const int thread ) : _size(size), _file(file), _line(line), _thread(thread) {}
       };
 
       struct DistrInfo {

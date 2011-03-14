@@ -28,25 +28,31 @@ namespace nanos {
 
       inline void * MemTracker::allocate ( size_t size, const char *file, int line )
       {
+         int thread_id;
+
+         BaseThread *thread = getMyThreadSafe();
+
+         if ( thread != NULL ) thread_id = thread->getId();
+         else thread_id = -1;
+
          LockBlock guard(_lock);
 
-//         void *p = malloc( size );
-           void *p = nanos::getAllocator().allocate( size );
+         void *p = nanos::getAllocator().allocate( size );
 
 
-	if ( p ) {
-	    _blocks[p] = BlockInfo(size,file,line);
+         if ( p ) {
+	    _blocks[p] = BlockInfo(size,file,line, thread_id);
 	    _numBlocks++;
 	    _totalMem += size;
 	    _stats[size]._current++;
 	    _stats[size]._total++;
 	    _stats[size]._max = std::max( _stats[size]._max, _stats[size]._current );
 	    _maxMem = std::max( _maxMem, _totalMem );
-	} else {
+         } else {
 	    throw std::bad_alloc();
-	}
+         }
 	
-	return p;
+         return p;
       }
 
       inline void MemTracker::deallocate ( void * p, const char *file, int line )
@@ -87,9 +93,9 @@ namespace nanos {
 	{
 	    BlockInfo &info = it->second;
 	    if ( info._file != NULL ) {
-	      message0(info._size << " bytes allocated in " << info._file << ":" << info._line);
+	      message0(info._size << " bytes allocated in " << info._file << ":" << info._line << " @ thread " << info._thread );
 	    } else {
-	      message0(info._size << " bytes allocated in an unknown location");
+	      message0(info._size << " bytes allocated in an unknown location @ thread " << info._thread );
 	    }
 	}
         message0("=========================================================");
