@@ -134,11 +134,11 @@ WorkDescriptor & GPUProcessor::getMasterWD () const
    fatal("Attempting to create a GPU master thread");
 }
 
-BaseThread &GPUProcessor::createThread ( WorkDescriptor &helper )
+BaseThread &GPUProcessor::createThread ( WorkDescriptor &helper, SMPMultiThread *parent )
 {
    // In fact, the GPUThread will run on the CPU, so make sure it canRunIn( SMP )
    ensure( helper.canRunIn( SMP ), "Incompatible worker thread" );
-   GPUThread &th = *NEW GPUThread( helper, this, _gpuDevice );
+   GPUThread &th = *NEW GPUThread( helper, this, parent, _gpuDevice );
 
    return th;
 }

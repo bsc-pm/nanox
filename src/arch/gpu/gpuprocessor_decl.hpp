@@ -36,7 +36,7 @@ namespace nanos {
 namespace ext
 {
 
-   class GPUProcessor : public CachedAccelerator<GPUDevice>
+   class GPUProcessor : public CachedAccelerator<GPUDevice, WriteThroughPolicy>
    {
       public:
          class GPUProcessorInfo;
@@ -99,7 +99,15 @@ namespace ext
 
          WD & getWorkerWD () const;
          WD & getMasterWD () const;
-         BaseThread & createThread ( WorkDescriptor &wd );
+         virtual WD & getMultiWorkerWD () const
+         {
+            fatal( "getMultiWorkerWD: GPUProcessor is not allowed to create MultiThreads" );
+         }
+         BaseThread & createThread ( WorkDescriptor &wd, SMPMultiThread *parent );
+         virtual BaseThread & createMultiThread ( WorkDescriptor &wd, unsigned int numPEs, PE **repPEs )
+         {
+            fatal( "ClusterNode is not allowed to create MultiThreads" );
+         }
 
          //! Capability query functions
          bool supportsUserLevelThreads () const { return false; }

@@ -47,7 +47,7 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
 
    wd.start(WorkDescriptor::IsNotAUserLevelThread);
 
-   //std::cerr << "run remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " numPe " << wd.getPeId() << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << " WDprev " << wd.getPrevious() << " data size is " << wd.getDataSize() << std::endl;
+   //std::cerr << "run remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " numPe " << wd.getPeId() << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << " data size is " << wd.getDataSize() << std::endl;
    
    CopyData newCopies[ wd.getNumCopies() ]; 
 

@@ -19,14 +19,49 @@
 
 #include "gasnetapi.hpp"
 #include "smpdd.hpp"
+//FIXME: GPU Support
+//#include "gpudd.hpp"
 #include "system.hpp"
 #include "os.hpp"
 #include "clusterinfo.hpp"
 #include "instrumentation.hpp"
+#include "remoteworkgroup_decl.hpp"
 #include <list>
+
+RemoteWorkGroup *rwg;
 
 extern "C" {
 #include <gasnet.h>
+}
+typedef struct {
+   void (*outline) (void *);
+} nanos_smp_args_t;
+
+//FIXME: GPU Support
+//void * local_nanos_gpu_factory( void *prealloc, void *args )
+//{
+//   nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
+//   if ( prealloc != NULL )
+//   {
+//      return ( void * )new (prealloc) ext::GPUDD( smp->outline );
+//   }
+//   else
+//   {
+//      return ( void * ) new ext::GPUDD( smp->outline );
+//   }
+//}
+void * local_nanos_smp_factory( void *prealloc, void *args )
+{
+   nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
+
+   if ( prealloc != NULL )
+   {
+      return ( void * )new (prealloc) ext::SMPDD( smp->outline );
+   }
+   else 
+   {
+      return ( void * )new ext::SMPDD( smp->outline );
+   }
 }
 
 #ifndef __SIZEOF_POINTER__
@@ -35,7 +70,7 @@ extern "C" {
 
 #if __SIZEOF_POINTER__ == 8
 
-#define MERGE_ARG( _Hi, _Lo) ( ( ( uintptr_t ) ( _Lo ) ) + ( ( ( uintptr_t ) ( _Hi ) ) << 32 ) )
+#define MERGE_ARG( _Hi, _Lo) (  ( uint32_t ) _Lo + ( ( ( uintptr_t ) ( ( uint32_t ) _Hi ) ) << 32 ) )
 #define ARG_HI( _Arg ) ( ( uint32_t ) ( ( ( uintptr_t ) ( _Arg ) ) >> 32 ) )
 #define ARG_LO( _Arg ) ( ( uint32_t ) ( ( uintptr_t ) _Arg ) )
 
@@ -100,17 +135,15 @@ struct work_wrapper_args
 static char *work_data = NULL;
 static size_t work_data_len;
 
-static void wk_wrapper(struct work_wrapper_args *arg)
-{
-   //fprintf(stderr, "node %d starting work> outline %p, arg struct %p rId %d, numPe %d\n", sys.getNetwork()->getNodeNum(), arg->work, arg->arg, arg->id, arg->numPe);
-   arg->work(arg->arg);
-
-   //fprintf(stderr, "node %d finishing work> outline %p, arg struct %p rId %d, numPe %d\n", sys.getNetwork()->getNodeNum(), arg->work, arg->arg, arg->id, arg->numPe);
-   sys.getNetwork()->sendWorkDoneMsg( Network::MASTER_NODE_NUM, arg->numPe );
-
-   delete[] arg->arg;
-   delete arg;
-}
+//static void wk_wrapper(struct work_wrapper_args *arg)
+//{
+//   fprintf(stderr, "node %d starting work> outline %p, arg struct %p rId %d, numPe %d\n", sys.getNetwork()->getNodeNum(), arg->work, arg->arg, arg->id, arg->numPe);
+//   arg->work(arg->arg);
+//
+//   fprintf(stderr, "node %d finishing work> outline %p, arg struct %p rId %d, numPe %d\n", sys.getNetwork()->getNodeNum(), arg->work, arg->arg, arg->id, arg->numPe);
+//   sys.getNetwork()->sendWorkDoneMsg( Network::MASTER_NODE_NUM, arg->numPe );
+//
+//}
 
 static void am_exit(gasnet_token_t token)
 {
@@ -162,14 +195,36 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize,
     }
     //fprintf(stderr, "am_work: WORK message from node %d: fct %p, argSize %d.\n", src_node, work, realSize);
 
-    struct work_wrapper_args * warg = new struct work_wrapper_args;
-    bzero(warg, sizeof(struct work_wrapper_args));
-    warg->work = work;
-    warg->arg = new char [ dataSize ];
-    memcpy(warg->arg, work_data, dataSize);
-    warg->id = wdId;
-    warg->numPe = numPe;
-    warg->argSize = dataSize;
+    //struct work_wrapper_args * warg = new struct work_wrapper_args;
+    //bzero(warg, sizeof(struct work_wrapper_args));
+    //warg->work = work;
+    //warg->arg = new char [ dataSize ];
+    //memcpy(warg->arg, work_data, dataSize);
+    //warg->id = wdId;
+    //warg->numPe = numPe;
+    //warg->argSize = dataSize;
+
+
+    nanos_smp_args_t smp_args;
+    smp_args.outline = (void (*)(void *)) work; //wk_wrapper; 
+    
+    WD *localWD = NULL;
+    char *data = NULL;
+    unsigned int numCopies = ( realSize - dataSize ) / sizeof( CopyData );
+    CopyData *newCopies = NULL;
+    CopyData **newCopiesPtr = ( numCopies > 0 ) ? &newCopies : NULL ;
+
+
+//FIXME: GPU support
+    //nanos_device_t newDevice = { local_nanos_gpu_factory, sizeof(GPUDD), (void *) &smp_args } ;
+    //CopyData **newCopiesPtr = &newCopies;
+//Cluster
+    nanos_device_t newDevice = { local_nanos_smp_factory, sizeof(SMPDD), (void *) &smp_args } ;
+
+    sys.createWD( &localWD, (size_t) 1, &newDevice, (size_t) dataSize, (int) ( sizeof(void *) ), (void **) &data, (WG *)rwg, (nanos_wd_props_t *) NULL, (size_t) numCopies, newCopiesPtr );
+
+    //warg->arg = data;
+    ::memcpy(data, work_data, dataSize);
 
     //fprintf(stderr, "NUM COPIES %d addr %llx, in? %s, out? %s\n",
     //      1,
@@ -177,14 +232,17 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize,
     //      recvcd->isInput() ? "yes" : "no",
     //      recvcd->isOutput() ? "yes" : "no" );
     
-    unsigned int numCopies = ( realSize - dataSize ) / sizeof( CopyData );
 
 
     //fprintf(stderr, "NUM COPIES %d %ld %d %ld %ld\n", numCopies, realSize, dataSize, sizeof(CopyData), sizeof(size_t));
-    CopyData *newCopies = new CopyData[ numCopies ]; 
+    //CopyData *newCopies = new CopyData[ numCopies ]; 
 
     for (i = 0; i < numCopies; i += 1) {
        new ( &newCopies[i] ) CopyData( *( (CopyData *) &work_data[ dataSize + i * sizeof( CopyData ) ] ) );
+       //char *tmp = new char[ newCopies[i].getSize() ];
+       //fprintf(stderr, "copiant new copy %p to %p, size %ld bytes\n", (void *) newCopies[i].getAddress(), tmp, newCopies[i].getSize());
+       //::memcpy(tmp, (void *) newCopies[i].getAddress(), newCopies[i].getSize() );
+       //newCopies[i].setAddress( (uint64_t) tmp );
     }
 
     //for (int i = 0; i < numCopies; i++)
@@ -195,9 +253,8 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize,
     //      newCopies[i].isOutput() ? "yes" : "no",
     //      newCopies[i].getSharing());
 
-    SMPDD * dd = new SMPDD ( ( SMPDD::work_fct ) wk_wrapper );
-    WD *wd = new WD( dd, sizeof(struct work_wrapper_args), 1, warg, numCopies, newCopies );
-    wd->setId( wdId );
+    //WD *wd = new WD( dd, sizeof(struct work_wrapper_args), 1, warg, numCopies, newCopies );
+    localWD->setId( wdId );
 
     //fprintf(stderr, "WD %p , args->arg %p size %d args->id %d\n", wd, warg->arg, realSize, warg->id );
 
@@ -218,14 +275,14 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize,
     {
        NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
        NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) numPe) << 32 ) + gasnet_mynode() ; )
-       NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *wd, NANOS_WD_REMOTE, id, 0, NULL, NULL, 0 ); )
+       NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *localWD, NANOS_WD_REMOTE, id, 0, NULL, NULL, 0 ); )
     }
 
     delete work_data;
     work_data = NULL;
     work_data_len = 0;
 
-    sys.submit( *wd );
+    sys.submit( *localWD );
 
     //fprintf(stderr, "out of am_work.\n", src_node, work, realSize);
 }
@@ -323,7 +380,7 @@ static void am_transfer_put( gasnet_token_t token,
    NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( buf ) ; )
    NANOS_INSTRUMENT ( instr->raiseClosePtPEvent( NANOS_XFER_PUT, id, sizeKey, xferSize, src_node ); )
 
-   //fprintf(stderr, "put copy>  buff %p, %u\n",  buf, len);
+   //fprintf(stderr, "put copy>  buff %p, %u res=%f\n",  buf, len, *((float*)buf));
 }
 
 static void am_transfer_put_after_get( gasnet_token_t token,
@@ -372,6 +429,8 @@ static void am_transfer_get( gasnet_token_t token,
    {
        fprintf( stderr, "gasnet: Error obtaining node information.\n" );
    }
+
+   //fprintf(stderr, "am_xfer_get: srcAddr=%p, srcHi=%p, srcLo=%p, dstAddr=%p, dstHi=%p, dstLo=%p res=%f\n", origAddr, (void *)origAddrHi, (void *)origAddrLo, destAddr, (void*)destAddrHi, (void*)destAddrLo, *((float*)origAddr) );
 
    if ( ( unsigned int ) len <= gasnet_AMMaxLongRequest() )
    {
@@ -491,6 +550,8 @@ void GASNetAPI::initialize ( Network *net )
    int my_argc = OS::getArgc();
    char **my_argv = OS::getArgv();
    uintptr_t segSize;
+
+   rwg = NEW RemoteWorkGroup( 0 );
    
    _net = net;
 
@@ -764,7 +825,7 @@ void GASNetAPI::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteA
    size_t sent = 0, thisReqSize;
 
    void *addr = _thisNodeSegment->allocate( size );
-   //fprintf(stderr, "get ( dest=%d, remote=%p, locla=%p, size=%d)\n", remoteNode, (void *) remoteAddr, localAddr, size);
+   //fprintf(stderr, "get ( dest=%d, remote=%p, locla=%p, size=%ld, localtmp=%p, maxreq=%ld)\n", remoteNode, (void *) remoteAddr, localAddr, size, addr, gasnet_AMMaxLongRequest());
 
    (*_getRequests[ remoteNode ])[ remoteAddr ] = GET_WAITING;
    
@@ -779,9 +840,10 @@ void GASNetAPI::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteA
       NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( ( ( sent + thisReqSize ) == size ) * remoteAddr ) ; )
       NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent ( NANOS_XFER_GET, id, sizeKey, xferSize, remoteNode ); )
 
+      //fprintf(stderr, "send get req(src=%p, srcHi=%p, srcLo=%p, dst=%p dstHi=%p, dstLo=%p)\n", (void *) remoteAddr, (void *) ARG_HI( remoteAddr + sent ), (void *) ARG_LO( remoteAddr + sent ), (void *) ( ( uintptr_t ) ( ( uintptr_t ) addr ) + sent ), (void *) ARG_HI( ( ( uintptr_t ) ( ( uintptr_t ) addr ) + sent )  ), (void *) ARG_LO( ( ( uintptr_t ) ( ( uintptr_t ) addr ) + sent )  )  );
       if ( gasnet_AMRequestShort7( remoteNode, 211,
-               ( gasnet_handlerarg_t ) ARG_LO( ( ( uintptr_t ) addr ) + sent ),
-               ( gasnet_handlerarg_t ) ARG_HI( ( ( uintptr_t ) addr ) + sent ),
+               ( gasnet_handlerarg_t ) ARG_LO( ( ( uintptr_t ) ( ( uintptr_t ) addr ) + sent )  ),
+               ( gasnet_handlerarg_t ) ARG_HI( ( ( uintptr_t ) ( ( uintptr_t ) addr ) + sent )  ),
                ( gasnet_handlerarg_t ) ARG_LO( remoteAddr + sent ),
                ( gasnet_handlerarg_t ) ARG_HI( remoteAddr + sent ),
                ( gasnet_handlerarg_t ) thisReqSize,
@@ -802,7 +864,7 @@ void GASNetAPI::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteA
    // copy the data to the correct addr;
    ::memcpy( localAddr, addr, size );
    _thisNodeSegment->free( addr );
-   //fprintf(stderr, "!!!!!!!! end get ( dest=%d, remote=%p, locla=%p, size=%d)\n", remoteNode, (void *) remoteAddr, localAddr, size);
+   //fprintf(stderr, "!!!!!!!! end get ( dest=%d, remote=%p, locla=%p, size=%d, res=%f)\n", remoteNode, (void *) remoteAddr, localAddr, size, *((float*)addr));
 }
 
 void GASNetAPI::malloc ( unsigned int remoteNode, size_t size, unsigned int id )

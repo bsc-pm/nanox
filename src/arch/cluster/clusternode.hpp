@@ -20,12 +20,13 @@
 #ifndef _NANOS_CLUSTER_NODE
 #define _NANOS_CLUSTER_NODE
 
-//#include "cache.hpp"
 #include "config.hpp"
 #include "simpleallocator.hpp"
 #include "clusterinfo.hpp"
 #include "clusterdevice.hpp"
 #include "clusterdd.hpp"
+//FIXME: GPU support
+//#include "gpudd.hpp"
 #include "cachedaccelerator.hpp"
 
 namespace nanos {
@@ -48,7 +49,8 @@ namespace ext {
 
       public:
          // constructors
-         ClusterNode( int id ) : CachedAccelerator< ClusterDevice, WriteBackPolicy >( sys.getNumPEs(), &Cluster, ( int ) ClusterInfo::getSegmentLen( id ) ), 
+         //FIXME: GPU support
+         ClusterNode( int id ) : CachedAccelerator< ClusterDevice, WriteBackPolicy >( sys.getNumPEs(), &Cluster, NULL/*&GPU*/, ( int ) ClusterInfo::getSegmentLen( id ) ), 
             _clusterNode ( id ), _memSegment( ( uintptr_t ) ClusterInfo::getSegmentAddr( id ), ClusterInfo::getSegmentLen( id ) ), _executedWorkDesciptors ( 0 ) { }
 
          virtual ~ClusterNode() {}
