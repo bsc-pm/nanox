@@ -122,8 +122,8 @@ nanos_err_t nanos_set_translate_function ( nanos_wd_t wd, nanos_translate_args_t
  *  \sa nanos::WorkDescriptor
  */
 nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size, int outline_data_align,
-                               void ** outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, size_t slicer_data_size,
-                               nanos_slicer_data_t * slicer_data, int slicer_data_align, nanos_wd_props_t *props,
+                               void ** outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, size_t slicer_data_size, int slicer_data_align,
+                               nanos_slicer_data_t * slicer_data, nanos_wd_props_t *props,
                                size_t num_copies, nanos_copy_data_t **copies )
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",NANOS_CREATION) );
@@ -203,7 +203,7 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *
 
 
 // data must be not null
-nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *devices, size_t data_size, void * data, int data_align,
+nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align, void * data,
                                       size_t num_deps, nanos_dependence_t *deps, nanos_wd_props_t *props,
                                       size_t num_copies, nanos_copy_data_t *copies )
 {
