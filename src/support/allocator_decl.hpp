@@ -149,27 +149,9 @@ class Allocator
       struct InternalCollection {
 	typedef std::list<T, InternalAllocator<T> > type;
       };
-#ifdef NANOS_MEMTRACKER
-      struct BlockInfo {
-	size_t       _size;
-	const char * _file;
-	int          _line;
-
-	BlockInfo ( ) { }
-	BlockInfo ( const size_t size, const char *file, const int line ) : _size(size), _file(file), _line(line) {}
-      };
-      struct DistrInfo {
-	size_t _current;
-	size_t _max;
-	size_t _total;
-      };
-#endif
 
       struct ObjectHeader {
          Arena     *_arena;
-#ifdef NANOS_MEMTRACKER
-         Allocator *_allocator;
-#endif
       };
 
    private: /* Allocator data members */
@@ -177,16 +159,6 @@ class Allocator
 
       int                           _id;
       ArenaCollection               _arenas;      /**< Vector of Arenas in Allocator*/
-#ifdef NANOS_MEMTRACKER
-      AddrMap                       _blocks;
-      SizeMap                       _stats;
-      size_t                        _localMem;
-      size_t                        _localBlocks;
-      size_t                        _maxLocalMem;
-
-      static Lock                   _lock;        /**< Lock used by memtracker (register new/delete and show statistics) */
-      static bool                   _active;
-#endif
 
      /*! \brief Allocator copy constructor (disabled)
       */
@@ -198,24 +170,10 @@ class Allocator
    public: /* Allocator method members */
     /*! \brief Allocator default constructor 
      */
-#ifndef NANOS_MEMTRACKER
-     Allocator ( int id = -1) : _id(id), _arenas() { }
-#else
      Allocator ( int id = -1) : _id(id), _arenas(), _blocks(), _stats(), _localMem(0), _localBlocks(0), _maxLocalMem(0) {}
-#endif
     /*! \brief Allocator destructor 
      */
-     ~Allocator () { 
-//        for ( ArenaCollection::iterator it = _arenas.begin(); it != _arenas.end(); it++ ) free(*it);
-#ifdef NANOS_MEMTRACKER
-        _lock.acquire();
-        memoryFence();
-        _active = false;
-        showStatistics();
-        memoryFence();
-        _lock.release();
-#endif
-     }
+     ~Allocator () { }
     /*! \brief Allocates 'size' bytes in memory and returns memory pointer
      *
      *  This function will check in his list of Arenas looking for one who
@@ -228,13 +186,6 @@ class Allocator
     /*! \brief Deallocates 'object' (object has a header which identifies related Arena
      */
      static void deallocate ( void *object, const char *file = NULL, int line = 0 ) ;
-
-#ifdef NANOS_MEMTRACKER
-    /*! \brief Show statistics (in debug mode)
-     */
-     void showStatistics( void ) const;
-#endif
-
 };
 
 } // namespace: nanos

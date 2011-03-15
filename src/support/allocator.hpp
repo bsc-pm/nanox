@@ -126,28 +126,6 @@ inline void * Allocator::allocate ( size_t size, const char* file, int line )
 
    ptr->_arena = arena;
 
-#ifdef NANOS_MEMTRACKER
-   ptr->_allocator = this;
-
-   _lock.acquire();
-   memoryFence();
-
-   if ( ptr ) {
-      _blocks[ptr] = BlockInfo(allocSize, file, line);
-      _localMem += allocSize;
-      _localBlocks++;
-      _maxLocalMem = std::max( _maxLocalMem, _localMem );
-      _stats[size]._current++;
-      _stats[size]._total++;
-      _stats[size]._max = std::max( _stats[size]._max, _stats[size]._current );
-   } else {
-      throw std::bad_alloc();
-   }
-
-   memoryFence();
-   _lock.release();
-#endif
-
    return  ((char *) ptr ) + headerSize;
 }
 
@@ -157,81 +135,8 @@ inline void Allocator::deallocate ( void *object, const char *file, int line )
    ObjectHeader * ptr = (ObjectHeader *) ( ((char *)object) - headerSize );
    Arena *arena = ptr->_arena;
 
-#ifdef NANOS_MEMTRACKER
-   Allocator *allocator = ptr->_allocator;
-
-   _lock.acquire();
-   memoryFence();
-
-   if ( _active == false ) {
       arena->deallocate(ptr);
-      memoryFence();
-      _lock.release();
-      return;
-   }
-
-   AddrMap::iterator it = allocator->_blocks.find( ptr );
-
-   if ( it != allocator->_blocks.end() ) {
-      allocator->_localBlocks--;
-      allocator->_localMem -= it->second._size;
-#endif
-
-      arena->deallocate(ptr);
-
-#ifdef NANOS_MEMTRACKER
-      allocator->_blocks.erase( it );
-      allocator->_stats[it->second._size]._current--;
-   } else {
-      if ( file != NULL ) {
-         message0("Trying to free invalid pointer " << ptr << " at " << file << ":" << line);
-      } else {
-         message0("Trying to free invalid pointer " << ptr );
-      }    
-   }
-   memoryFence();
-   _lock.release();
-#endif
-
 }
-
-#ifdef NANOS_MEMTRACKER
-inline void Allocator::showStatistics( void ) const {
-   std::cout << "Showing statitstics for Allocator" << std::endl;
-	message0("======================= General Memory stats ============");
-        if ( _id == -1 ) {
-           std::cout << "Arena id                   = " << "global" << std::endl;
-        } else {
-           std::cout << "Arena id                   = " << _id << std::endl;
-        }
-	std::cout
-	    << "# of local blocks          = " << _localBlocks << std::endl
-	    << "Total unfreed local memory = " << _localMem << " bytes" << std::endl
-	    << "Max allocated local memory = " << _maxLocalMem << " bytes" << std::endl
-	    ;
-        message0("=========================================================");
-	message0("======================= Unfreed blocks ==================");
-	for ( AddrMap::const_iterator it = _blocks.begin(); it != _blocks.end(); it++ )
-	{
-	    BlockInfo const &info = it->second;
-	    if ( info._file != NULL ) {
-	      message0(info._size << " bytes allocated in " << info._file << ":" << info._line);
-	    } else {
-	      message0(info._size << " bytes allocated in an unknown location");
-	    }
-	}
-        message0("=========================================================");
-#if 0        
-	message0("======================= Block Sizes Stats ===============");
-	message0("Size   Unfreed   Max   Total");
-	for ( SizeMap::iterator it = _stats.begin(); it != _stats.end(); it ++ ) {
-	    DistrInfo &info = it->second;
-	    message0(it->first << " " << info._current << " " << info._max << " " << info._total );    
-	}
-	message0("=========================================================");
-#endif        
-}
-#endif
 
 } // namespace nanos
 
