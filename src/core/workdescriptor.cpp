@@ -56,6 +56,21 @@ void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
    setReady();
 }
 
+void WorkDescriptor::prepareDevice ()
+{
+   // Do nothing if there is already an active device
+   if ( _activeDevice ) return;
+
+   if ( _numDevices == 1 ) {
+      _activeDevice = _devices[0];
+      return;
+   }
+
+   // Choose between the supported devices
+   message("No active device --> selecting one");
+   _activeDevice = _devices[_numDevices-1];
+}
+
 DeviceData * WorkDescriptor::findDeviceData ( const Device &device ) const
 {
    for ( unsigned i = 0; i < _numDevices; i++ ) {

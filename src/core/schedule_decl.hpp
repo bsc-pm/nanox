@@ -208,6 +208,49 @@ namespace nanos
          virtual void queue ( BaseThread *thread, WD &wd )  = 0;
    };
    
+   class ScheduleWDVersion
+   {
+      private:
+         static Lock  _lock;
+      public:
+
+      /*
+         struct {
+            int                  _wdId;
+            size_t               _paramSize;
+         } WDExecInfoKey;
+      */
+      /*
+         struct {
+            double               _elapsedTime;
+            ProcessingElement *  _bestPE;
+         } WDExecInfoData;
+      */
+
+         typedef std::pair<int, size_t> WDExecInfoKey;
+         typedef std::pair<double, ProcessingElement *> WDExecInfoData;
+
+         /*struct WDExecInfoComp {
+           bool operator< (const WDExecInfoKey& key1, const WDExecInfoKey& key2) const
+           { return key1.first == key2.first && key1.second == key2.second; }
+         };*/
+
+         typedef std::map<WDExecInfoKey, WDExecInfoData> WDExecInfo;
+
+         static WDExecInfo  _wdExecInfo;
+
+
+      //public:
+
+         ScheduleWDVersion() {}
+         ~ScheduleWDVersion() {}
+
+         static ProcessingElement * getFastestPE( WD * wd );
+
+         static double getBestElapsedTime( int wdId, size_t paramSize );
+         static void setBestElapsedTime( int wdId, size_t paramSize, double time, ProcessingElement * pe);
+   };
+
 };
 
 #endif

@@ -25,7 +25,12 @@
 #include "instrumentationmodule_decl.hpp"
 #include "os.hpp"
 
+#include <limits>
+
 using namespace nanos;
+
+Lock ScheduleWDVersion::_lock;
+ScheduleWDVersion::WDExecInfo ScheduleWDVersion::_wdExecInfo;
 
 void SchedulerConf::config (Config &config)
 {
@@ -138,7 +143,20 @@ inline void Scheduler::idleLoop ()
          } else {
            if ( sys.getSchedulerStats()._readyTasks > 0 ) 
               next = behaviour::getWD(thread,current);
-         } 
+         }
+
+         // Choose the device where the task will be executed
+         if ( next && !( next->hasActiveDevice() ) ) {
+            ProcessingElement *pe = ScheduleWDVersion::getFastestPE( next );
+            if ( pe ) {
+               next->activateDevice( pe->getDeviceType() );
+               if ( !next->canRunIn( *thread->runningOn() ) ) {
+                  next = NULL;
+               }
+            } else {
+               next->activateDevice( thread->runningOn()->getDeviceType() );
+            }
+         }
 
          if ( next ) {
             sys.getSchedulerStats()._idleThreads--;
@@ -151,7 +169,16 @@ inline void Scheduler::idleLoop ()
             NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(3, Keys, Values); )
 
             NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) )
+
+            double start = OS::getMonotonicTime();
+            int wdId = next->getId();
+            size_t paramSize = next->getDataSize();
             behaviour::switchWD(thread, current, next);
+            double end = OS::getMonotonicTime() - start;
+            if ( ScheduleWDVersion::getBestElapsedTime( wdId, paramSize ) > end ) {
+               ScheduleWDVersion::setBestElapsedTime( wdId, paramSize, end, thread->runningOn() );
+            }
+
             thread = getMyThreadSafe();
             NANOS_INSTRUMENT( inst2.close() );
             sys.getSchedulerStats()._idleThreads++;
@@ -509,5 +536,24 @@ void Scheduler::exit ( void )
    } 
 
    fatal("A thread should never return from Scheduler::exit");
+}
+
+ProcessingElement * ScheduleWDVersion::getFastestPE( WD * wd )
+{
+   WDExecInfo::iterator it = _wdExecInfo.find( WDExecInfoKey( wd->getId(), wd->getDataSize() ) );
+   return ( it != _wdExecInfo.end() ) ? it->second.second : NULL;
+}
+
+double ScheduleWDVersion::getBestElapsedTime( int wdId, size_t paramSize )
+{
+   WDExecInfo::iterator it = _wdExecInfo.find( WDExecInfoKey( wdId, paramSize ) );
+   return ( it != _wdExecInfo.end() ) ? it->second.first : std::numeric_limits<double>::max();
+}
+
+void ScheduleWDVersion::setBestElapsedTime( int wdId, size_t paramSize, double time, ProcessingElement * pe)
+{
+   _lock.acquire();
+   _wdExecInfo[WDExecInfoKey( wdId, paramSize )] = WDExecInfoData( time, pe );
+   _lock.release();
 }
 
