@@ -327,7 +327,6 @@ WD * Scheduler::prefetch( BaseThread *thread, WD &wd )
 
 void Scheduler::workerClusterLoop ()
 {
-   std::cerr << "workeLoop started 1: " << myThread->getId() << std::endl;
    BaseThread *parent = myThread;
    myThread = myThread->getNextThread();
    
@@ -361,10 +360,10 @@ void Scheduler::workerClusterLoop ()
             }
          }
       }
-      else
-      {
-         //std::cerr << "Thread " << myThread->getId() << " already working" << std::endl;
-      }
+      //else
+      //{
+      //   std::cerr << "Thread " << myThread->getId() << " already working" << std::endl;
+      //}
       sys.getNetwork()->poll();
       myThread = myThread->getNextThread();
    }
