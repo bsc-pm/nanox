@@ -20,6 +20,13 @@
 #ifndef _NANOS_COMPATIBILITY_HPP
 #define _NANOS_COMPATIBILITY_HPP
 
+// Define a linker section with GCC
+#define LINKER_SECTION(name,type,nop) \
+    __attribute__((weak, section( #name ))) type __section_##name = nop; \
+    extern type __start_##name; \
+    extern type __stop_##name;
+
+
 #if __CUDACC__
 
 #define BROKEN_COMPARE_AND_SWAP
@@ -68,7 +75,6 @@ template<> struct hash<unsigned long long> : public std::unary_function<unsigned
 bool __sync_bool_compare_and_swap( int *ptr, int oldval, int newval );
 
 #endif
-
 
 #endif
 

@@ -48,7 +48,7 @@ namespace nanos
    inline void BaseThread::resetNextWD () { _nextWD = NULL; }
  
    inline bool BaseThread::setNextWD ( WD *next ) { 
-      return compareAndSwap( (unsigned long *) &_nextWD, (unsigned long) NULL, (unsigned long) next);
+      return compareAndSwap( &_nextWD, (WD *) NULL, next);
    }
  
    inline WD * BaseThread::getNextWD () const { return _nextWD; }
