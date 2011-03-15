@@ -92,13 +92,15 @@ namespace nanos
     	   virtual void wdStarted( WD &wd ) {};
     	   virtual void wdFinished( WD &wd ) {};
       };
-
-      static void ompInit()
-      {
-         sys.setPMInterface(NEW OpenMPInterface());
-      }
    }
-
-   System::Init externInit = OpenMP::ompInit;
 }
 
+/*
+   This function must have C linkage to avoid that C applications need to link against the C++ library
+*/   
+extern "C" {
+  void nanos_omp_set_interface()
+  {
+     sys.setPMInterface(NEW nanos::OpenMP::OpenMPInterface());
+  }
+}

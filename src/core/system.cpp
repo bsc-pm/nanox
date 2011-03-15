@@ -72,6 +72,17 @@ System::System () :
    verbose0 ( "NANOS++ initializing... end" );
 }
 
+struct LoadModule
+{
+   void operator() ( const char *module )
+   {
+      if ( module ) {
+        verbose0( "loading " << module << " module"  );
+        PluginManager::load(module);
+      }
+   }
+};
+
 void System::loadModules ()
 {
    verbose0 ( "Configuring module manager" );
@@ -80,6 +91,9 @@ void System::loadModules ()
 
    verbose0 ( "Loading modules" );
 
+   const OS::ModuleList & modules = OS::getRequestedModules();
+   std::for_each(modules.begin(),modules.end(), LoadModule());
+
    // load host processor module
    verbose0( "loading SMP support" );
 
@@ -87,7 +101,6 @@ void System::loadModules ()
       fatal0 ( "Couldn't load host support" );
 
    ensure( _hostFactory,"No default host factory" );
-
 
 #ifdef CLUSTER_DEV
    if ( useCluster() )
@@ -98,16 +111,15 @@ void System::loadModules ()
    }
 #endif
 
-if ( _net.getNodeNum() > 0  || !useCluster())
-{
-std::cerr << "Im loading GPU plugin" << std::endl;
 #ifdef GPU_DEV
-   verbose0( "loading GPU support" );
+   if ( _net.getNodeNum() > 0  || !useCluster()) //FIXME: hardcoded for use GPUs only in nodes > 0
+   {
+      verbose0( "loading GPU support" );
 
-   if ( !PluginManager::load ( "pe-gpu" ) )
-      fatal0 ( "Couldn't load GPU support" );
+      if ( !PluginManager::load ( "pe-gpu" ) )
+         fatal0 ( "Couldn't load GPU support" );
+   }
 #endif
-}
 
    // load default schedule plugin
    verbose0( "loading " << getDefaultSchedule() << " scheduling policy support" );
@@ -137,6 +149,11 @@ std::cerr << "Im loading GPU plugin" << std::endl;
 
 }
 
+// Config Functor
+struct ExecInit
+{
+   void operator() ( const nanos_init_desc_t & init ) { init.func(init.data); }
+};
 
 void System::config ()
 {
@@ -145,6 +162,10 @@ void System::config ()
    if ( externInit != NULL ) {
       externInit();
    }
+   
+   const OS::InitList & externalInits = OS::getInitializationFunctions();
+   std::for_each(externalInits.begin(),externalInits.end(), ExecInit());
+   
    if ( !_pmInterface ) {
       // bare bone run
       _pmInterface = NEW PMInterface();
@@ -365,7 +386,11 @@ else
 #ifdef CLUSTER_DEV
    if ( useCluster() )
    {
+<<<<<<< HEAD
       if ( _net.getNodeNum() == 0 && _net.getNumNodes() > 1)
+=======
+      if ( _net.getNodeNum() == 0 && _net.getNumNodes() > 1 )
+>>>>>>> 2e1e4cdc54e9739472388b3e3b6b0b89f27a9fc6
       {
          unsigned int nodeC;
 
@@ -505,6 +530,13 @@ void System::finish ()
 
    _pmInterface->finish();
 
+   /* System mem free */
+   delete _pmInterface;
+
+   for ( Slicers::const_iterator it = _slicers.begin(); it !=   _slicers.end(); it++ ) {
+      delete (Slicer *)  it->second;
+   }
+
    verbose ( "NANOS++ shutting down.... end" );
 
    _net.finalize();
@@ -556,7 +588,7 @@ void System::finish ()
  *
  */
 void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align,
-                        void **data, WG *uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies )
+                        void **data, WG *uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies, nanos_translate_args_t translate_args )
 {
    ensure(num_devices > 0,"WorkDescriptor has no devices");
 
@@ -623,7 +655,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    if ( copies != NULL && *copies == NULL ) *copies = ( CopyData * ) (chunk + offset_Copies);
 
    WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, data_align, data != NULL ? *data : NULL,
-                             num_copies, (copies != NULL)? *copies : NULL );
+                             num_copies, (copies != NULL)? *copies : NULL, translate_args );
 
    // initializing internal data
    if ( size_PMD > 0) wd->setInternalData( chunk + offset_PMD );

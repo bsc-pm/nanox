@@ -21,66 +21,67 @@
 #define _NANOS_CACHED_ACCELERATOR
 
 #include "cachedaccelerator_decl.hpp"
+#include "accelerator_decl.hpp"
 #include "cache.hpp"
 
 using namespace nanos;
 
 template <class CacheDevice, class Policy>
-inline void CachedAccelerator<CacheDevice, Policy>::setCacheSize( size_t size )
+inline void CachedAccelerator<CacheDevice,Policy>::setCacheSize( size_t size )
 {
    _cache.setSize( size );
 }
 
 template <class CacheDevice, class Policy>
-inline void CachedAccelerator<CacheDevice, Policy>::registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
+inline void CachedAccelerator<CacheDevice,Policy>::registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
 {
    _cache.registerCacheAccess( dir, tag, size, input, output );
 }
 
 template <class CacheDevice, class Policy>
-inline void CachedAccelerator<CacheDevice, Policy>::unregisterCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool output )
+inline void CachedAccelerator<CacheDevice,Policy>::unregisterCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool output )
 {
    _cache.unregisterCacheAccess( dir, tag, size, output );
 }
 
 template <class CacheDevice, class Policy>
-inline void CachedAccelerator<CacheDevice, Policy>::registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
+inline void CachedAccelerator<CacheDevice,Policy>::registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
 {
    _cache.registerPrivateAccess( dir, tag, size, input, output );
 }
 
 template <class CacheDevice, class Policy>
-inline void CachedAccelerator<CacheDevice, Policy>::unregisterPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size )
+inline void CachedAccelerator<CacheDevice,Policy>::unregisterPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size )
 {
    _cache.unregisterPrivateAccess( dir, tag, size );
 }
 
 template <class CacheDevice, class Policy>
-inline void CachedAccelerator<CacheDevice, Policy>::synchronize( CopyDescriptor &cd )
+inline void CachedAccelerator<CacheDevice,Policy>::synchronize( CopyDescriptor &cd )
 {
    _cache.synchronize( cd );
 }
 
 template <class CacheDevice, class Policy>
-inline void CachedAccelerator<CacheDevice, Policy>::synchronize( std::list<CopyDescriptor> &cds )
+inline void CachedAccelerator<CacheDevice,Policy>::synchronize( std::list<CopyDescriptor> &cds )
 {
    _cache.synchronize( cds );
 }
 
 template <class CacheDevice, class Policy>
-inline void CachedAccelerator<CacheDevice, Policy>::waitInputDependent( uint64_t tag )
+inline void CachedAccelerator<CacheDevice,Policy>::waitInputDependent( uint64_t tag )
 {
    _cache.waitInput( tag );
 }
 
 template <class CacheDevice, class Policy>
-inline void* CachedAccelerator<CacheDevice, Policy>::getAddressDependent( uint64_t tag )
+inline void* CachedAccelerator<CacheDevice,Policy>::getAddressDependent( uint64_t tag )
 {
    return _cache.getAddress( tag );
 }
 
 template <class CacheDevice, class Policy>
-inline void CachedAccelerator<CacheDevice, Policy>::copyToDependent( void *dst, uint64_t tag, size_t size )
+inline void CachedAccelerator<CacheDevice,Policy>::copyToDependent( void *dst, uint64_t tag, size_t size )
 {
    _cache.copyTo( dst, tag, size );
 }
