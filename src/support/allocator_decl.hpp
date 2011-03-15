@@ -157,7 +157,6 @@ class Allocator
    private: /* Allocator data members */
       typedef InternalCollection<Arena *>::type  ArenaCollection;
 
-      int                           _id;
       ArenaCollection               _arenas;      /**< Vector of Arenas in Allocator*/
 
      /*! \brief Allocator copy constructor (disabled)
@@ -170,7 +169,7 @@ class Allocator
    public: /* Allocator method members */
     /*! \brief Allocator default constructor 
      */
-     Allocator ( int id = -1) : _id(id), _arenas(), _blocks(), _stats(), _localMem(0), _localBlocks(0), _maxLocalMem(0) {}
+     Allocator ( ) : _arenas() {}
     /*! \brief Allocator destructor 
      */
      ~Allocator () { }

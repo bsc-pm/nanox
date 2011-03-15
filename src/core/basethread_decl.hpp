@@ -144,7 +144,7 @@ namespace nanos
                _id( _idSeed++ ), _name("Thread"), _description(""), _pe( creator ), _threadWD( wd ),
                _started( false ), _mustStop( false ), _currentWD( NULL),
                _nextWD( NULL), _hasTeam( false ),_team(NULL),
-               _teamData(NULL), _allocator( _id ) {}
+               _teamData(NULL), _allocator() {}
         /*! \brief BaseThread destructor
          */
          virtual ~BaseThread() {
