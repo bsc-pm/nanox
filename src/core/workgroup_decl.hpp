@@ -49,7 +49,7 @@ namespace nanos
 
       private:
          void addToGroup ( WorkGroup &parent );
-         void exitWork ( WorkGroup &work );
+         virtual void exitWork ( WorkGroup &work );
 
          /*! \brief WorkGroup copy assignment operator (private)
           */
