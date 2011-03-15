@@ -108,6 +108,7 @@ void Network::sendExitMsg( unsigned int nodeNum )
  //  ensure ( _api != NULL, "No network api loaded." );
    if ( _nodeNum == MASTER_NODE_NUM )
    {
+      //std::cerr << "[" << _nodeNum << "] => " << nodeNum << " " << __FUNCTION__ << std::endl;
       _api->sendExitMsg( nodeNum );
    }
 }
@@ -129,6 +130,7 @@ void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigne
          NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) numPe) << 32 ) + dest; )
          NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL, dest ); )
 
+      //std::cerr << "[" << _nodeNum << "] => " << dest << " " << __FUNCTION__ << std::endl;
          _api->sendWorkMsg( dest, work, dataSize, wdId, numPe, argSize, arg );
          _notify[ dest * sys.getNumPEs() + numPe ] = 1;
       }
@@ -154,6 +156,7 @@ void Network::sendWorkDoneMsg( unsigned int nodeNum, unsigned int numPe )
       NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL, 0 ); )
       if ( _nodeNum != MASTER_NODE_NUM )
       {
+      //std::cerr << "[" << _nodeNum << "] => " << nodeNum << " " << __FUNCTION__ << std::endl;
          _api->sendWorkDoneMsg( nodeNum, numPe );
       }
    }
@@ -172,13 +175,19 @@ void Network::notifyWorkDone ( unsigned int nodeNum, unsigned int numPe )
 void Network::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size )
 {
    if ( _api != NULL )
+{
+      //std::cerr << "[" << _nodeNum << ":" << localAddr << "] => " << remoteNode << ":" << ((void *) remoteAddr) << " " << __FUNCTION__ << std::endl;
       _api->put( remoteNode, remoteAddr, localAddr, size );
+}
 }
 
 void Network::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, size_t size )
 {
    if ( _api != NULL )
+{
+      //std::cerr << "[" << _nodeNum << ":" << localAddr << "] => " << remoteNode << ":" << ((void *) remoteAddr) << " " << __FUNCTION__ << std::endl;
       _api->get( localAddr, remoteNode, remoteAddr, size );
+}
 }
 
 void * Network::malloc ( unsigned int remoteNode, size_t size, unsigned int id )
@@ -243,6 +252,7 @@ void Network::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int
 {
    if ( _api != NULL )
          {
+      //std::cerr << "[" << _nodeNum << "] => " << dest << " " << __FUNCTION__ << std::endl;
                   _api->sendRequestPut(dest, origAddr, dataDest, dstAddr, len);
          }
 
