@@ -22,15 +22,16 @@
 
 #include "accelerator_decl.hpp"
 #include "cache_decl.hpp"
+#include "workdescriptor_fwd.hpp"
 
 namespace nanos
 {
 
-   template <class Device, class Policy = WriteThroughPolicy>
+   template <class CacheDevice, class Policy = WriteThroughPolicy>
    class CachedAccelerator : public Accelerator
    {
       private:
-        DeviceCache<Device,Policy>        _cache;
+        DeviceCache<CacheDevice,Policy>        _cache;
 
         /*! \brief CachedAccelerator default constructor (private)
          */
@@ -44,7 +45,7 @@ namespace nanos
       public:
         /*! \brief CachedAccelerator constructor - from 'newId' and 'arch'
          */
-         CachedAccelerator ( int newId, const Device *arch, int cacheSize = 0 ) : Accelerator( newId, arch), _cache( cacheSize, this ) {}
+         CachedAccelerator ( int newId, const CacheDevice *arch, const Device *subArch = NULL, int cacheSize = 0 ) : Accelerator( newId, arch, subArch ), _cache( cacheSize, this ) {}
         /*! \brief CachedAccelerator destructor
          */
          virtual ~CachedAccelerator() {}

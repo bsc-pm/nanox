@@ -38,6 +38,7 @@ namespace nanos
          typedef std::vector<BaseThread *>    ThreadList;
          int                                  _id;
          const Device *                       _device;
+         const Device *                       _subDevice;
          ThreadList                           _threads;
 
       private:
@@ -57,7 +58,7 @@ namespace nanos
       public:
          /*! \brief ProcessinElement constructor
           */
-         ProcessingElement ( int newId, const Device *arch ) : _id ( newId ), _device ( arch ) {}
+         ProcessingElement ( int newId, const Device *arch, const Device *subArch = NULL ) : _id ( newId ), _device ( arch ) , _subDevice( subArch ) {}
 
          /*! \brief ProcessinElement destructor
           */
@@ -67,6 +68,7 @@ namespace nanos
          int getId() const;
 
          const Device & getDeviceType () const;
+         const Device * getSubDeviceType () const;
 
          BaseThread & startThread ( WorkDescriptor &wd, ext::SMPMultiThread *parent=NULL );
          BaseThread & startMultiThread ( WorkDescriptor &wd, unsigned int numPEs, ProcessingElement **repPEs );

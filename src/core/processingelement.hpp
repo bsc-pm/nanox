@@ -42,5 +42,10 @@ inline const Device & ProcessingElement::getDeviceType () const
    return *_device;
 }
 
+inline const Device * ProcessingElement::getSubDeviceType () const
+{
+   return _subDevice;
+}
+
 #endif
 
