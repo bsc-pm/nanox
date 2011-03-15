@@ -73,15 +73,21 @@ namespace nanos
 
          void push_front ( WorkDescriptor *wd );
          void push_back( WorkDescriptor *wd );
+
+         template <typename Constraints>
+         WorkDescriptor * popFrontWithConstraints ( BaseThread *thread );
+         template <typename Constraints>
+         WorkDescriptor * popBackWithConstraints ( BaseThread *thread );
+         template <typename Constraints>
+         bool removeWDWithConstraints( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
+
          WorkDescriptor * pop_front ( BaseThread *thread );
          WorkDescriptor * pop_back ( BaseThread *thread );
 
-         static void increaseTasksInQueues( int tasks );
-
-         static void decreaseTasksInQueues( int tasks );
-
-
          bool removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
+
+         static void increaseTasksInQueues( int tasks );
+         static void decreaseTasksInQueues( int tasks );
    };
 
 }
