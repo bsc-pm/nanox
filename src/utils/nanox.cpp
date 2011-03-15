@@ -40,7 +40,11 @@ namespace nanos {
   System::Init externInit = utilInit;
 }
 
-int main (int argc, char* argv[])
+extern "C" {
+int _nanox_main (int argc, char* argv[]);
+}
+
+int _nanox_main (int argc, char* argv[])
 {
 
    struct dirent **namelist;
@@ -116,5 +120,5 @@ int main (int argc, char* argv[])
 
       std::cout << Config::getNanosHelp();
    }
-
+   return 0;
 }

@@ -49,7 +49,7 @@ namespace nanos {
   System::Init externInit __attribute__((weak));
 }
 
-System nanos::sys;
+System nanos::sys;// __attribute__((init_priority (205)));
 
 // default system values go here
 System::System () :
@@ -88,12 +88,6 @@ void System::loadModules ()
 
    ensure( _hostFactory,"No default host factory" );
 
-#ifdef GPU_DEV
-   verbose0( "loading GPU support" );
-
-   if ( !PluginManager::load ( "pe-gpu" ) )
-      fatal0 ( "Couldn't load GPU support" );
-#endif
 
 #ifdef CLUSTER_DEV
    if ( useCluster() )
@@ -103,6 +97,17 @@ void System::loadModules ()
       fprintf(stderr, "Cluster plugin loaded!\n");
    }
 #endif
+
+if ( _net.getNodeNum() > 0  || !useCluster())
+{
+std::cerr << "Im loading GPU plugin" << std::endl;
+#ifdef GPU_DEV
+   verbose0( "loading GPU support" );
+
+   if ( !PluginManager::load ( "pe-gpu" ) )
+      fatal0 ( "Couldn't load GPU support" );
+#endif
+}
 
    // load default schedule plugin
    verbose0( "loading " << getDefaultSchedule() << " scheduling policy support" );
@@ -327,12 +332,28 @@ void System::start ()
 #endif
 
 #ifdef GPU_DEV
+if ( useCluster() )
+{
+   if ( _net.getNodeNum() == 1 )
+   {
+std::cerr << "node " << _net.getNodeNum() << " starting 1 gpu" << std::endl;
+      int gpuC;
+      for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount(); gpuC++ ) {
+         PE *gpu = NEW nanos::ext::GPUProcessor( p++, gpuC );
+         _pes.push_back( gpu );
+         _workers.push_back( &gpu->startWorker() );
+      }
+   }
+}
+else
+{
    int gpuC;
    for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount(); gpuC++ ) {
       PE *gpu = NEW nanos::ext::GPUProcessor( p++, gpuC );
       _pes.push_back( gpu );
       _workers.push_back( &gpu->startWorker() );
    }
+}
 #endif
 
 #ifdef SPU_DEV
@@ -344,7 +365,7 @@ void System::start ()
 #ifdef CLUSTER_DEV
    if ( useCluster() )
    {
-      if ( _net.getNodeNum() == 0)
+      if ( _net.getNodeNum() == 0 && _net.getNumNodes() > 1)
       {
          unsigned int nodeC;
 
@@ -389,20 +410,39 @@ void System::start ()
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_RUNNING) );
 
-#ifdef CLUSTER_DEV
-   if ( useCluster() )
+//#ifdef CLUSTER_DEV
+//   if ( useCluster() )
+//   {
+//      setMaster(_net.getNodeNum() == nanos::Network::MASTER_NODE_NUM);
+//      if (!isMaster())
+//      {
+//         Scheduler::workerLoop();
+//         //fprintf(stderr, "Slave node: I have to finish.\n");
+//         finish();
+//      }
+//      //else
+//      //   fprintf(stderr, "Im only allowed here if im the master.\n");
+//   }
+//#endif
+}
+
+extern "C" {
+extern int _nanox_main( int argc, char *argv[]);
+};
+
+int main( int argc, char *argv[] )
+{
+   if ( sys.getNetwork()->getNodeNum() == 0  ) 
    {
-      setMaster(_net.getNodeNum() == nanos::Network::MASTER_NODE_NUM);
-      if (!isMaster())
-      {
-         Scheduler::workerLoop();
-         //fprintf(stderr, "Slave node: I have to finish.\n");
-         finish();
-      }
-      //else
-      //   fprintf(stderr, "Im only allowed here if im the master.\n");
+std::cerr << "Im jumping to main" << std::endl;
+      _nanox_main(argc, argv);
    }
-#endif
+   else
+   {
+      Scheduler::workerLoop();
+      std::cerr << " SLAVE FINISH" << std::endl;
+      //sys.finish();
+   }
 }
 
 System::~System ()
