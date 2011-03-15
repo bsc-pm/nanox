@@ -386,11 +386,7 @@ else
 #ifdef CLUSTER_DEV
    if ( useCluster() )
    {
-<<<<<<< HEAD
-      if ( _net.getNodeNum() == 0 && _net.getNumNodes() > 1)
-=======
       if ( _net.getNodeNum() == 0 && _net.getNumNodes() > 1 )
->>>>>>> 2e1e4cdc54e9739472388b3e3b6b0b89f27a9fc6
       {
          unsigned int nodeC;
 

@@ -221,7 +221,7 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize,
 //Cluster
     nanos_device_t newDevice = { local_nanos_smp_factory, sizeof(SMPDD), (void *) &smp_args } ;
 
-    sys.createWD( &localWD, (size_t) 1, &newDevice, (size_t) dataSize, (int) ( sizeof(void *) ), (void **) &data, (WG *)rwg, (nanos_wd_props_t *) NULL, (size_t) numCopies, newCopiesPtr );
+    sys.createWD( &localWD, (size_t) 1, &newDevice, (size_t) dataSize, (int) ( sizeof(void *) ), (void **) &data, (WG *)rwg, (nanos_wd_props_t *) NULL, (size_t) numCopies, newCopiesPtr, NULL );
 
     //warg->arg = data;
     ::memcpy(data, work_data, dataSize);
