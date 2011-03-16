@@ -189,6 +189,8 @@ if test x$gpu_valid = xyes; then
 	ARCHITECTURES="$ARCHITECTURES gpu"
 fi
 
+AM_CONDITIONAL([GPU_SUPPORT],[test $gpu_valid = yes])
+
 AC_SUBST([gpu_valid])
 
 AC_MSG_CHECKING([for architecture])
