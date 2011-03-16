@@ -17,7 +17,6 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include <string.h>
 #include "system.hpp"
 #include "config.hpp"
 #include "plugin.hpp"
@@ -29,6 +28,8 @@
 #include "basethread.hpp"
 #include "malign.hpp"
 #include "processingelement.hpp"
+#include "allocator.hpp"
+#include <string.h>
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -347,11 +348,6 @@ void System::finish ()
 
    ensure( _schedStats._readyTasks == 0, "Ready task counter has an invalid value!");
 
-   // join
-   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
-      delete _pes[p];
-   }
-
    _pmInterface->finish();
 
    /* System mem free */
@@ -360,6 +356,13 @@ void System::finish ()
    for ( Slicers::const_iterator it = _slicers.begin(); it !=   _slicers.end(); it++ ) {
       delete (Slicer *)  it->second;
    }
+
+   // join
+   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
+      delete _pes[p];
+   }
+
+   if ( allocator != NULL ) free (allocator);
 
    verbose ( "NANOS++ shutting down.... end" );
 }

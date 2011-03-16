@@ -16,62 +16,46 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-#ifndef _NANOS_CACHE_MAP_HPP
-#define _NANOS_CACHE_MAP_HPP
-#include "cache_map_decl.hpp"
-#include "new_decl.hpp"
+/* DESCRIPTION: Just checking basic functionality of Allocator alternating memory
+ * allocations and memory deallocations in a single thread.
+ */
 
-using namespace nanos;
+/*<testinfo>
+test_generator="gens/mixed-generator"
+</testinfo>*/
 
-inline unsigned int CacheMap::registerCache()
+#include <iostream>
+#include "allocator.hpp"
+
+#define CHECK_VALUE 3456
+#define TIMES 100000
+
+int sizes[] = { 7, 17, 33, 63, 123 };
+
+int main (int argc, char **argv)
 {
-   return _numCaches++;
-}
+   bool check = true;
+   Allocator allocator;
 
-inline unsigned int CacheMap::getSize() const
-{
-   return _numCaches.value() - 1;
-}
+   for ( int  n = 0; n < TIMES; n++ ) {
+      for ( unsigned int i = 0; i < (sizeof( sizes )/sizeof(int)); i++ ) {
 
-inline CacheAccessMap::CacheAccessMap( unsigned int size ) : _size(size)
-{
-   _cacheAccessesById = NEW Atomic<unsigned int>[size];
-}
+         int *ptr = (int *) allocator.allocate( sizes[i] * sizeof(int) );
+         if ( ptr == NULL ) check = false;
 
-inline CacheAccessMap::~CacheAccessMap()
-{
-   delete[] _cacheAccessesById;
-}
+         for ( int j = 0; j < sizes[i]; j++ ) ptr[j] = CHECK_VALUE; // INI
+         for ( int j = 0; j < sizes[i]; j++ ) ptr[j]++; // INC
+         for ( int j = 0; j < sizes[i]; j++ ) ptr[j]--; // DEC
 
-inline CacheAccessMap::CacheAccessMap( const CacheAccessMap &map ) : _size( map._size )
-{
-   if ( this == &map )
-      return;
-   _cacheAccessesById = NEW Atomic<unsigned int>[_size];
-   for ( unsigned int i = 0; i < _size; i++ ) {
-      _cacheAccessesById[i] = map._cacheAccessesById[i];
+         // Check result
+         for ( int j = 0; j < sizes[i]; j++ ) {
+            if ( ptr[j] != CHECK_VALUE ) exit(-1);
+         }
+
+         Allocator::deallocate( ptr );
+      }
    }
+
+   if (check) { return 0; } else { return -1; }
 }
 
-inline const CacheAccessMap& CacheAccessMap::operator= ( const CacheAccessMap &map )
-{
-   if ( this == &map )
-      return *this;
-   _size = map._size;
-   _cacheAccessesById = NEW Atomic<unsigned int>[_size];
-   for ( unsigned int i = 0; i < _size; i++ ) {
-      _cacheAccessesById[i] = map._cacheAccessesById[i];
-   }
-}
-
-inline Atomic<unsigned int>& CacheAccessMap::operator[] ( unsigned int cacheId )
-{
-   return _cacheAccessesById[cacheId - 1];
-}
-
-inline unsigned int CacheAccessMap::getAccesses( unsigned int cacheId )
-{
-   return _cacheAccessesById[cacheId - 1].value();
-}
-
-#endif

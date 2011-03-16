@@ -16,62 +16,28 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-#ifndef _NANOS_CACHE_MAP_HPP
-#define _NANOS_CACHE_MAP_HPP
-#include "cache_map_decl.hpp"
 #include "new_decl.hpp"
 
-using namespace nanos;
+#ifdef NANOS_DEBUG_ENABLED
 
-inline unsigned int CacheMap::registerCache()
-{
-   return _numCaches++;
-}
+#include "memtracker.hpp"
 
-inline unsigned int CacheMap::getSize() const
-{
-   return _numCaches.value() - 1;
-}
+void* operator new ( size_t size, const char *file, int line ) { return nanos::getMemTracker().allocate( size, file, line ); }
+void* operator new[] ( size_t size, const char *file, int line ) { return nanos::getMemTracker().allocate( size, file, line ); }
 
-inline CacheAccessMap::CacheAccessMap( unsigned int size ) : _size(size)
-{
-   _cacheAccessesById = NEW Atomic<unsigned int>[size];
-}
+void* operator new ( size_t size ) { return nanos::getMemTracker().allocate( size ); }
+void* operator new[] ( size_t size ) { return nanos::getMemTracker().allocate( size ); }
+void operator delete ( void *p ) { nanos::getMemTracker().deallocate( p ); }
+void operator delete[] ( void *p ) { nanos::getMemTracker().deallocate( p ); }
 
-inline CacheAccessMap::~CacheAccessMap()
-{
-   delete[] _cacheAccessesById;
-}
+#else
 
-inline CacheAccessMap::CacheAccessMap( const CacheAccessMap &map ) : _size( map._size )
-{
-   if ( this == &map )
-      return;
-   _cacheAccessesById = NEW Atomic<unsigned int>[_size];
-   for ( unsigned int i = 0; i < _size; i++ ) {
-      _cacheAccessesById[i] = map._cacheAccessesById[i];
-   }
-}
+#include "allocator.hpp"
 
-inline const CacheAccessMap& CacheAccessMap::operator= ( const CacheAccessMap &map )
-{
-   if ( this == &map )
-      return *this;
-   _size = map._size;
-   _cacheAccessesById = NEW Atomic<unsigned int>[_size];
-   for ( unsigned int i = 0; i < _size; i++ ) {
-      _cacheAccessesById[i] = map._cacheAccessesById[i];
-   }
-}
-
-inline Atomic<unsigned int>& CacheAccessMap::operator[] ( unsigned int cacheId )
-{
-   return _cacheAccessesById[cacheId - 1];
-}
-
-inline unsigned int CacheAccessMap::getAccesses( unsigned int cacheId )
-{
-   return _cacheAccessesById[cacheId - 1].value();
-}
+void* operator new ( size_t size ) { return nanos::getAllocator().allocate( size ); }
+void* operator new[] ( size_t size ) { return nanos::getAllocator().allocate( size ); }
+void operator delete ( void *p ) { nanos::getAllocator().deallocate( p ); }
+void operator delete[] ( void *p ) { nanos::getAllocator().deallocate( p ); }
 
 #endif
+
