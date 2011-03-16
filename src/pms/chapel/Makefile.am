@@ -27,10 +27,10 @@ pkginclude_HEADERS=\
         chpl_nanos.h\
 	$(END)
 
-lib_LIBRARIES=libnanos-chpl-init.a
+lib_LIBRARIES=libnanox-chpl-init.a
 
-libnanos_chpl_init_a_SOURCES= $(top_srcdir)/src/pms/chapel/chpl_init.c
-libnanos_chpl_init_a_CFLAGS= $(common_includes)
+libnanox_chpl_init_a_SOURCES= $(top_srcdir)/src/pms/chapel/chpl_init.c
+libnanox_chpl_init_a_CFLAGS= $(common_includes)
 
 endif
 
