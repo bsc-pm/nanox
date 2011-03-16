@@ -68,7 +68,7 @@ namespace ext {
          }
 
          // capability query functions
-         virtual bool supportsUserLevelThreads () const { return true; }
+         virtual bool supportsUserLevelThreads () const { return false; }
 
          unsigned int getClusterNodeNum();
          SimpleAllocator & getAllocator( void ) { return _memSegment; }
