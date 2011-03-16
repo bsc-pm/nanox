@@ -21,7 +21,6 @@
 #define _NANOS_H_
 
 #include <unistd.h>
-#include <stdbool.h>
 #include "nanos-int.h"
 
 #ifdef _MERCURIUM

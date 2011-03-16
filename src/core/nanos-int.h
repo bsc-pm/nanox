@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 /* This structure is initialized in dependency.hpp. Any change in
  * its contents has to be reflected in Dependency constructor  
