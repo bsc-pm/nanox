@@ -34,6 +34,7 @@
 #include "directory.hpp"
 #include "schedule.hpp"
 #include "dependenciesdomain.hpp"
+#include "allocator_decl.hpp"
 
 using namespace nanos;
 

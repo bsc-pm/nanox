@@ -1,5 +1,4 @@
 /*************************************************************************************/
-/*      Copyright 2010 Barcelona Supercomputing Center                               */
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
@@ -17,37 +16,46 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+/* DESCRIPTION: Just checking basic functionality of Allocator alternating memory
+ * allocations and memory deallocations in a single thread.
+ */
 
-#ifndef NANOS_CHPL_H
-#define NANOS_CHPL_H
+/*<testinfo>
+test_generator="gens/mixed-generator"
+</testinfo>*/
 
-#include <stdbool.h>
+#include <iostream>
+#include "allocator.hpp"
 
-#ifdef __cplusplus
-#define _Bool bool
-extern "C" {
-#endif
+#define CHECK_VALUE 3456
+#define TIMES 100000
 
-typedef int chpl_taskID_t;
-#define chpl_nullTaskID 0
+int sizes[] = { 7, 17, 33, 63, 123 };
 
-typedef void * chpl_mutex_t;
+int main (int argc, char **argv)
+{
+   bool check = true;
+   Allocator allocator;
 
-typedef struct {
-   bool is_full;
-   void *empty;
-   void *full;
-   void *lock;
-} chpl_sync_aux_t;
+   for ( int  n = 0; n < TIMES; n++ ) {
+      for ( unsigned int i = 0; i < (sizeof( sizes )/sizeof(int)); i++ ) {
 
-#include <chpltypes.h>
-#include <chpltasks.h>
+         int *ptr = (int *) allocator.allocate( sizes[i] * sizeof(int) );
+         if ( ptr == NULL ) check = false;
 
-void nanos_chapel_pre_init ( void * );
+         for ( int j = 0; j < sizes[i]; j++ ) ptr[j] = CHECK_VALUE; // INI
+         for ( int j = 0; j < sizes[i]; j++ ) ptr[j]++; // INC
+         for ( int j = 0; j < sizes[i]; j++ ) ptr[j]--; // DEC
 
-#ifdef __cplusplus
+         // Check result
+         for ( int j = 0; j < sizes[i]; j++ ) {
+            if ( ptr[j] != CHECK_VALUE ) exit(-1);
+         }
+
+         Allocator::deallocate( ptr );
+      }
+   }
+
+   if (check) { return 0; } else { return -1; }
 }
-#endif
-
-#endif
 

@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 /* This structure is initialized in dependency.hpp. Any change in
  * its contents has to be reflected in Dependency constructor  
@@ -205,5 +206,12 @@ typedef struct nanos_lock_t {
 
 /* Translation function type  */
 typedef void (* nanos_translate_args_t) (void *);
+
+/* This types are for the symbols in the linker section for function initialization */
+typedef void (nanos_init_func_t) ( void * );
+typedef struct {
+   nanos_init_func_t  *func;
+   void               *data;
+} nanos_init_desc_t;
 
 #endif

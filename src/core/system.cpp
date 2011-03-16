@@ -17,7 +17,6 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include <string.h>
 #include "system.hpp"
 #include "config.hpp"
 #include "plugin.hpp"
@@ -29,6 +28,8 @@
 #include "basethread.hpp"
 #include "malign.hpp"
 #include "processingelement.hpp"
+#include "allocator.hpp"
+#include <string.h>
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -67,6 +68,17 @@ System::System () :
    verbose0 ( "NANOS++ initializing... end" );
 }
 
+struct LoadModule
+{
+   void operator() ( const char *module )
+   {
+      if ( module ) {
+        verbose0( "loading " << module << " module"  );
+        PluginManager::load(module);
+      }
+   }
+};
+
 void System::loadModules ()
 {
    verbose0 ( "Configuring module manager" );
@@ -74,6 +86,9 @@ void System::loadModules ()
    PluginManager::init();
 
    verbose0 ( "Loading modules" );
+
+   const OS::ModuleList & modules = OS::getRequestedModules();
+   std::for_each(modules.begin(),modules.end(), LoadModule());
 
    // load host processor module
    verbose0( "loading SMP support" );
@@ -83,6 +98,8 @@ void System::loadModules ()
 
    ensure( _hostFactory,"No default host factory" );
 
+
+   
 #ifdef GPU_DEV
    verbose0( "loading GPU support" );
 
@@ -118,6 +135,11 @@ void System::loadModules ()
 
 }
 
+// Config Functor
+struct ExecInit
+{
+   void operator() ( const nanos_init_desc_t & init ) { init.func(init.data); }
+};
 
 void System::config ()
 {
@@ -126,6 +148,10 @@ void System::config ()
    if ( externInit != NULL ) {
       externInit();
    }
+   
+   const OS::InitList & externalInits = OS::getInitializationFunctions();
+   std::for_each(externalInits.begin(),externalInits.end(), ExecInit());
+   
    if ( !_pmInterface ) {
       // bare bone run
       _pmInterface = NEW PMInterface();
@@ -322,11 +348,6 @@ void System::finish ()
 
    ensure( _schedStats._readyTasks == 0, "Ready task counter has an invalid value!");
 
-   // join
-   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
-      delete _pes[p];
-   }
-
    _pmInterface->finish();
 
    /* System mem free */
@@ -335,6 +356,13 @@ void System::finish ()
    for ( Slicers::const_iterator it = _slicers.begin(); it !=   _slicers.end(); it++ ) {
       delete (Slicer *)  it->second;
    }
+
+   // join
+   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
+      delete _pes[p];
+   }
+
+   if ( allocator != NULL ) free (allocator);
 
    verbose ( "NANOS++ shutting down.... end" );
 }

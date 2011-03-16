@@ -153,7 +153,7 @@ bool single_dependency()
    };
    nanos_wd_t wd1=0;
    nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1) };
-   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
+   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), __alignof__(my_args), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
    args1->p_i = dep_addr;
    NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
 
@@ -161,7 +161,7 @@ bool single_dependency()
    nanos_dependence_t deps2 = {(void **)&dep_addr,0, {1,1,0,0}, 0};
    nanos_wd_t wd2 = 0;
    nanos_device_t test_devices_2[1] = { NANOS_SMP_DESC( test_device_arg_2 ) };
-   NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_2, sizeof(my_args), (void**)&args2, nanos_current_wd(), &props, 0, NULL) );
+   NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_2, sizeof(my_args), __alignof__(my_args), (void**)&args2, nanos_current_wd(), &props, 0, NULL) );
    args2->p_i = dep_addr;
    NANOS_SAFE( nanos_submit( wd2,1,&deps2,0 ) );
 
@@ -184,7 +184,7 @@ bool single_inout_chain()
    };
    nanos_wd_t wd1=0;
    nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1) };
-   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
+   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), __alignof__(my_args), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
    args1->p_i = dep_addr;
    NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
 
@@ -193,7 +193,7 @@ bool single_inout_chain()
       nanos_dependence_t deps2 = {(void **)&dep_addr,0, {1,1,0,0}, 0};
       nanos_wd_t wd2 = 0;
       nanos_device_t test_devices_2[1] = { NANOS_SMP_DESC( test_device_arg_2 ) };
-      NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_2, sizeof(my_args), (void**)&args2, nanos_current_wd(), &props, 0, NULL) );
+      NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_2, sizeof(my_args), __alignof__(my_args), (void**)&args2, nanos_current_wd(), &props, 0, NULL) );
       args2->p_i = dep_addr;
       NANOS_SAFE( nanos_submit( wd2,1,&deps2,0 ) );
    }
@@ -220,7 +220,7 @@ bool multiple_inout_chains()
       };
       nanos_wd_t wd1=0;
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1) };
-      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
+      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), __alignof__(my_args), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
       args1->p_i = dep_addr;
       NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
 
@@ -229,7 +229,7 @@ bool multiple_inout_chains()
          nanos_dependence_t deps2 = {(void **)&dep_addr,0, {1,1,0,0}, 0};
          nanos_wd_t wd2 = 0;
          nanos_device_t test_devices_2[1] = { NANOS_SMP_DESC( test_device_arg_2 ) };
-         NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_2, sizeof(my_args), (void**)&args2, nanos_current_wd(), &props, 0, NULL) );
+         NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_2, sizeof(my_args), __alignof__(my_args), (void**)&args2, nanos_current_wd(), &props, 0, NULL) );
          args2->p_i = dep_addr;
          NANOS_SAFE( nanos_submit( wd2,1,&deps2,0 ) );
       }
@@ -261,7 +261,7 @@ bool multiple_predecessors()
       nanos_wd_t wd1 = 0;
 
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1 ) };
-      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
+      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), __alignof(my_args), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
       args1->p_i = dep_addr1;
       NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
    }
@@ -276,7 +276,7 @@ bool multiple_predecessors()
 
    nanos_wd_t wd2=0;
    nanos_device_t test_devices_3[1] = { NANOS_SMP_DESC( test_device_arg_3) };
-   NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_3, sizeof(my_args)*size, (void**)&args2, nanos_current_wd(), &props, 0, NULL) );
+   NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_3, sizeof(my_args)*size, __alignof__(my_args), (void**)&args2, nanos_current_wd(), &props, 0, NULL) );
    for ( j = 0; j < size; j++)
       args2[j].p_i = dep_addr2[j];
    NANOS_SAFE( nanos_submit( wd2,size,&deps2[0],0 ) );
@@ -307,7 +307,7 @@ bool multiple_antidependencies()
 
       nanos_wd_t wd1 = 0;
       nanos_device_t test_devices_4[1] = { NANOS_SMP_DESC( test_device_arg_4 ) };
-      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_4, sizeof(my_args)*2, (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
+      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_4, sizeof(my_args)*2, __alignof__(my_args), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
       args1[0].p_i = dep_addr1;
       args1[1].p_i = reslt_addr;
       NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
@@ -319,7 +319,7 @@ bool multiple_antidependencies()
 
    nanos_wd_t wd2=0;
    nanos_device_t test_devices_2[1] = { NANOS_SMP_DESC( test_device_arg_2) };
-   NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_2, sizeof(my_args), (void**)&args2, nanos_current_wd(), &props, 0, NULL) );
+   NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_2, sizeof(my_args), __alignof__(my_args), (void**)&args2, nanos_current_wd(), &props, 0, NULL) );
    args2->p_i = dep_addr2;
    NANOS_SAFE( nanos_submit( wd2,1,&deps2,0 ) );
 
@@ -347,7 +347,7 @@ bool out_dep_chain()
       nanos_dependence_t deps2 = {(void **)&dep_addr,0, {0,1,0,0}, 0};
       nanos_wd_t wd2 = 0;
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1 ) };
-      NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_1, sizeof(my_args), (void**)&args2, nanos_current_wd(), &props, 0, NULL) );
+      NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_1, sizeof(my_args), __alignof__(my_args),(void**)&args2, nanos_current_wd(), &props, 0, NULL) );
       args2->p_i = dep_addr;
       NANOS_SAFE( nanos_submit( wd2,1,&deps2,0 ) );
    }
@@ -358,7 +358,7 @@ bool out_dep_chain()
    my_args *args1=0;
    nanos_wd_t wd1=0;
    nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_4) };
-   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args)*2, (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
+   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args)*2, __alignof__(my_args), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
    args1[0].p_i = input_addr;
    args1[1].p_i = dep_addr;
    NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
@@ -387,7 +387,7 @@ bool wait_on_test()
       nanos_wd_t wd1 = 0;
 
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1 ) };
-      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
+      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), __alignof__(my_args), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
       args1->p_i = dep_addr1;
       NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
    }
@@ -426,7 +426,7 @@ bool create_and_run_test()
       nanos_wd_t wd1 = 0;
 
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1 ) };
-      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
+      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), __alignof__(my_args), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
       args1->p_i = dep_addr1;
       NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
    }
@@ -442,7 +442,7 @@ bool create_and_run_test()
    arg.p_i = &other_value;
    nanos_device_t test_devices_2[1] = { NANOS_SMP_DESC( test_device_arg_1 ) };
 
-   NANOS_SAFE( nanos_create_wd_and_run( 1, test_devices_2, sizeof(my_args), (void *)&arg, 100, &deps2[0], &props , 0, NULL) );
+   NANOS_SAFE( nanos_create_wd_and_run( 1, test_devices_2, sizeof(my_args), __alignof__(my_args),  (void *)&arg, 100, &deps2[0], &props , 0, NULL) );
 
    for ( j = 0; j < 100; j++ ) {
     if ( my_value[j] != 0 ) return false;
@@ -475,7 +475,7 @@ bool commutative_task_1()
    nanos_wd_t wd1 = 0;
 
    nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_6 ) };
-   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args2), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
+   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args2), __alignof__(my_args2), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
    args1->p_i = my_value;
    args1->index = size;
    NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
@@ -486,7 +486,7 @@ bool commutative_task_1()
       nanos_wd_t wd1 = 0;
 
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_5 ) };
-      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args2), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
+      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args2), __alignof__(my_args2), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
       args1->p_i = my_value;
       args1->index = j;
       NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
@@ -526,7 +526,7 @@ bool commutative_task_2()
    nanos_wd_t wd1 = 0;
 
    nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_6 ) };
-   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args2), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
+   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args2), __alignof__(my_args2), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
    args1->p_i = my_value;
    args1->index = size;
    NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
@@ -537,7 +537,7 @@ bool commutative_task_2()
       nanos_wd_t wd1 = 0;
 
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_5 ) };
-      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args2), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
+      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args2), __alignof__(my_args2), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
       args1->p_i = my_value;
       args1->index = j;
       NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
@@ -549,7 +549,7 @@ bool commutative_task_2()
       nanos_wd_t wd1 = 0;
 
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_7 ) };
-      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args3), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
+      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args3), __alignof__(my_args3), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
       args1->p_i = my_value;
       args1->p_result = &my_results[j];
       args1->index = j;
@@ -592,7 +592,7 @@ bool commutative_task_3()
    nanos_wd_t wd1 = 0;
 
    nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_6 ) };
-   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args2), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
+   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args2), __alignof__(my_args2), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
    args1->p_i = my_value;
    args1->index = size;
    NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
@@ -603,7 +603,7 @@ bool commutative_task_3()
       nanos_wd_t wd1 = 0;
 
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_8 ) };
-      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args2), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
+      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args2), __alignof__(my_args2), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
       args1->p_i = my_value;
       args1->index = j;
       NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
@@ -615,7 +615,7 @@ bool commutative_task_3()
       nanos_wd_t wd1 = 0;
 
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_5 ) };
-      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args2), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
+      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args2), __alignof__(my_args2), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
       args1->p_i = my_value;
       args1->index = j;
       NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
@@ -627,7 +627,7 @@ bool commutative_task_3()
       nanos_wd_t wd1 = 0;
 
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_7 ) };
-      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args3), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
+      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args3), __alignof__(my_args3), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
       args1->p_i = my_value;
       args1->p_result = &my_results[j];
       args1->index = j;

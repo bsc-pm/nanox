@@ -1,5 +1,4 @@
 /*************************************************************************************/
-/*      Copyright 2010 Barcelona Supercomputing Center                               */
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
@@ -17,37 +16,28 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+#include "new_decl.hpp"
 
-#ifndef NANOS_CHPL_H
-#define NANOS_CHPL_H
+#ifdef NANOS_DEBUG_ENABLED
 
-#include <stdbool.h>
+#include "memtracker.hpp"
 
-#ifdef __cplusplus
-#define _Bool bool
-extern "C" {
-#endif
+void* operator new ( size_t size, const char *file, int line ) { return nanos::getMemTracker().allocate( size, file, line ); }
+void* operator new[] ( size_t size, const char *file, int line ) { return nanos::getMemTracker().allocate( size, file, line ); }
 
-typedef int chpl_taskID_t;
-#define chpl_nullTaskID 0
+void* operator new ( size_t size ) { return nanos::getMemTracker().allocate( size ); }
+void* operator new[] ( size_t size ) { return nanos::getMemTracker().allocate( size ); }
+void operator delete ( void *p ) { nanos::getMemTracker().deallocate( p ); }
+void operator delete[] ( void *p ) { nanos::getMemTracker().deallocate( p ); }
 
-typedef void * chpl_mutex_t;
+#else
 
-typedef struct {
-   bool is_full;
-   void *empty;
-   void *full;
-   void *lock;
-} chpl_sync_aux_t;
+#include "allocator.hpp"
 
-#include <chpltypes.h>
-#include <chpltasks.h>
-
-void nanos_chapel_pre_init ( void * );
-
-#ifdef __cplusplus
-}
-#endif
+void* operator new ( size_t size ) { return nanos::getAllocator().allocate( size ); }
+void* operator new[] ( size_t size ) { return nanos::getAllocator().allocate( size ); }
+void operator delete ( void *p ) { nanos::getAllocator().deallocate( p ); }
+void operator delete[] ( void *p ) { nanos::getAllocator().deallocate( p ); }
 
 #endif
 
