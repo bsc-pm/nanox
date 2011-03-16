@@ -36,9 +36,14 @@ void WorkDescriptor::init ()
 
    if ( getNumCopies() > 0 ) {
       pe->copyDataIn( *this );
+
+WD *cwd = myThread->getCurrentWD(); 
+myThread->setCurrentWD( *this );
       if ( _translateArgs != NULL ) {
+//std::cerr << "Calling translate args of WD " << getId() << std::endl;
          _translateArgs( _data );
       }
+myThread->setCurrentWD( *cwd );
    }
 }
 
