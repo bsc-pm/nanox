@@ -43,6 +43,8 @@ typedef struct {
 #include <chpltypes.h>
 #include <chpltasks.h>
 
+void nanos_chapel_pre_init ( void * );
+
 #ifdef __cplusplus
 }
 #endif
