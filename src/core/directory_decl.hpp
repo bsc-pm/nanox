@@ -212,7 +212,7 @@ namespace nanos
 
         /*! \brief returns the entry identified by 'tag' or creates it empty if it was not found
          */
-         DirectoryEntry* getEntry( uint64_t tag );
+         DirectoryEntry* getEntry( uint64_t tag, unsigned int cVersion=0 );
 
         /*! \brief returns the entry identified by 'tag' or NULL if it was not found
          */

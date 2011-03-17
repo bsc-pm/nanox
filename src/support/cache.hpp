@@ -39,8 +39,12 @@ inline unsigned int Cache::getId() const
 inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
 {
    bool didCopyIn = false;
-   DirectoryEntry *de = dir.getEntry( tag );
    CacheEntry *ce;
+   ce = _cache.getEntry( tag );
+   unsigned int version=0;
+   if ( ce != NULL ) version = ce->getVersion()+1;
+   DirectoryEntry *de = dir.getEntry( tag, version );
+
    if ( de == NULL ) { // Memory access not registered in the directory
       bool inserted;
       DirectoryEntry d = DirectoryEntry( tag, 0, ( output ? &_cache : NULL ), dir.getCacheMapSize() );
@@ -69,7 +73,6 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
    } else {
       // DirectoryEntry exists
       bool inserted = false;
-      ce = _cache.getEntry( tag );
       if ( ce == NULL ) {
          // Create a new CacheEntry
          CacheEntry c = CacheEntry( NULL, size, tag, 0, output, input );
