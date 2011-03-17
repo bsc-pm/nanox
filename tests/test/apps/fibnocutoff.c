@@ -78,7 +78,7 @@ int fib ( int n, int d )
       fib_args *args=0;
       nanos_device_t fib_devices_1[1] = { NANOS_SMP_DESC( fib_device_arg_1 ) };
 
-      nanos_create_wd ( &wd, 1, fib_devices_1 , sizeof( fib_args ),
+      nanos_create_wd ( &wd, 1, fib_devices_1 , sizeof( fib_args ), __alignof__( fib_args ),
                         ( void ** )&args, nanos_current_wd(), 0, 0, NULL );
 
       if ( wd != 0 ) {
@@ -97,8 +97,7 @@ int fib ( int n, int d )
       fib_args *args=0;
       nanos_device_t fib_devices_2[1] = { NANOS_SMP_DESC( fib_device_arg_2 ) };
       
-      nanos_create_wd ( &wd, 1, fib_devices_2 , sizeof( fib_args ),
-                        ( void ** )&args, nanos_current_wd(), 0, 0, NULL );
+      nanos_create_wd ( &wd, 1, fib_devices_2 , sizeof( fib_args ), __alignof__(fib_args), ( void ** )&args, nanos_current_wd(), 0, 0, NULL );
 
       if ( wd != 0 ) {
          args->n = n;

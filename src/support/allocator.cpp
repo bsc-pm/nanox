@@ -22,3 +22,5 @@ using namespace nanos;
 
 Allocator *nanos::allocator;
 
+size_t Allocator::_headerSize = NANOS_ALIGNED_MEMORY_OFFSET( 0, sizeof(Allocator::ObjectHeader), 16 );
+

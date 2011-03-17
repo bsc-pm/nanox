@@ -19,7 +19,6 @@
 #ifndef _NANOS_ALLOCATOR_HPP
 #define _NANOS_ALLOCATOR_HPP
 #include "allocator_decl.hpp"
-#include "malign.hpp"
 #include "debug.hpp"
 #include "basethread.hpp"
 #include <vector>
@@ -89,14 +88,19 @@ inline void Allocator::Arena::setNext ( Arena * a )
 
 inline void * Allocator::allocate ( size_t size, const char* file, int line )
 {
-
-   size_t realSize = NANOS_ALIGNED_MEMORY_OFFSET (0, size, 16);
-   size_t headerSize = NANOS_ALIGNED_MEMORY_OFFSET(0,sizeof(ObjectHeader),16);
-   size_t allocSize = realSize + headerSize;
+   /* realSize is (size + header )'s next power of 2 */
+   size_t realSize = size + _headerSize + 1;
+   realSize |= realSize >> 1;
+   realSize |= realSize >> 2;
+   realSize |= realSize >> 4;
+   realSize |= realSize >> 8;
+   realSize |= realSize >> 16;
+   realSize++;
+ 
 
    ArenaCollection::iterator it;
    for ( it = _arenas.begin(); it != _arenas.end(); it++ ) {
-      if ( (*it)->getObjectSize() == allocSize ) break;
+      if ( (*it)->getObjectSize() == realSize ) break;
    }
 
    Arena *arena = NULL;
@@ -104,7 +108,7 @@ inline void * Allocator::allocate ( size_t size, const char* file, int line )
    if ( it == _arenas.end() ) {
       // no arena found for that size, create a new one
       arena = (Arena *) malloc ( sizeof(Arena) );
-      new ( arena ) Arena( allocSize );
+      new ( arena ) Arena( realSize );
       _arenas.push_back( arena );
    }
    else arena = *it;
@@ -117,7 +121,7 @@ inline void * Allocator::allocate ( size_t size, const char* file, int line )
       if ( ptr == NULL ) { 
           if ( arena->getNext() == NULL ) {
              Arena *next = ( Arena *) malloc ( sizeof(Arena) );
-             new (next) Arena(allocSize);
+             new (next) Arena(realSize);
              arena->setNext( next );
           }
           arena = arena->getNext(); 
@@ -126,16 +130,14 @@ inline void * Allocator::allocate ( size_t size, const char* file, int line )
 
    ptr->_arena = arena;
 
-   return  ((char *) ptr ) + headerSize;
+   return  ((char *) ptr ) + _headerSize;
 }
 
 inline void Allocator::deallocate ( void *object, const char *file, int line )
 {
-   size_t headerSize = NANOS_ALIGNED_MEMORY_OFFSET(0,sizeof(ObjectHeader),16);
-   ObjectHeader * ptr = (ObjectHeader *) ( ((char *)object) - headerSize );
+   ObjectHeader * ptr = (ObjectHeader *) ( ((char *)object) - _headerSize );
    Arena *arena = ptr->_arena;
-
-      arena->deallocate(ptr);
+   arena->deallocate(ptr);
 }
 
 } // namespace nanos

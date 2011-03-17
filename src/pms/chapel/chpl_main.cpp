@@ -41,17 +41,9 @@ static uint64_t taskCallStackSize;
 using namespace nanos;
 using namespace nanos::ext;
 
-namespace nanos
+void nanos_chapel_pre_init ( void * dummy )
 {
-   namespace Chapel
-   {
-      static void init()
-      {
-	 sys.setDelayedStart(true);
-      }
-   }
-
-   System::Init externInit = Chapel::init;
+   sys.setDelayedStart(true);
 }
 
 //
