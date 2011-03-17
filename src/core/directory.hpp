@@ -129,7 +129,7 @@ inline DirectoryEntry& Directory::newEntry( uint64_t tag, unsigned int version, 
    return de;
 }
 
-inline DirectoryEntry* Directory::getEntry( uint64_t tag )
+inline DirectoryEntry* Directory::getEntry( uint64_t tag , unsigned int cVersion )
 {
    DirectoryEntry *parents = NULL;
    DirectoryEntry *ent = _directory.find( tag );
@@ -142,7 +142,7 @@ inline DirectoryEntry* Directory::getEntry( uint64_t tag )
       parents = _parent->_directory.find( tag );
    }
 
-   ent = NEW DirectoryEntry(tag, (parents == NULL ? 0 : parents->getVersion()), NULL, _cacheMapSize );
+   ent = NEW DirectoryEntry(tag, (parents == NULL ? cVersion : parents->getVersion()), NULL, _cacheMapSize );
 
    bool inserted = false;
    ent = &_directory.insert( tag, *ent, inserted );
@@ -168,14 +168,17 @@ inline DirectoryEntry* Directory::findEntry( uint64_t tag )
 
 inline void Directory::registerAccess( uint64_t tag, size_t size, bool input, bool output )
 {
-   DirectoryEntry *de = getEntry( tag );
+   DirectoryEntry *de = getEntry( tag, true);
    if ( de != NULL ) {
       if ( input ) {
          Cache *c = de->getOwner();
-         if ( c != NULL )
+         if ( c != NULL ) {
             c->invalidate( *this, tag, size, de );
-      } else if ( output ) {
-         de->setOwner(NULL);
+         }
+      } 
+      if ( output ) {
+         if (!input) de->setOwner(NULL);
+         de->setVersion( de->getVersion() + 1 );
       }
    }
 }
@@ -183,10 +186,14 @@ inline void Directory::registerAccess( uint64_t tag, size_t size, bool input, bo
 inline void Directory::updateCurrentDirectory( uint64_t tag, Directory &current )
 {
    DirectoryEntry *de = _directory.find( tag );
-   if ( de != NULL ) {
-      DirectoryEntry *currents = current._directory.find(tag);
-      if ( currents != NULL ) {
+   DirectoryEntry *currents = current._directory.find(tag);
+   if ( currents != NULL ) {
+      if ( de != NULL ) {
          de->setVersion( currents->getVersion() + 1 );
+      } else {
+         de = NEW DirectoryEntry(tag, currents->getVersion() + 1, NULL, _cacheMapSize );
+         bool inserted = false;
+         _directory.insert( tag, *de, inserted );
       }
    }
 }

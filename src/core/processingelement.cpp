@@ -31,7 +31,7 @@ using namespace nanos;
 
 void ProcessingElement::copyDataIn( WorkDescriptor &work )
 {
-   Directory *dir = work.getParent()->getDirectory(false);
+   Directory *dir = work.getParent()->getDirectory(true);
    if ( dir != NULL ) {
       CopyData *copies = work.getCopies();
       for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
@@ -51,7 +51,13 @@ void ProcessingElement::copyDataOut( WorkDescriptor &work )
       for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
          CopyData & cd = copies[i];
          if ( !cd.isPrivate() ) {
-              dir->unRegisterAccess( cd.getAddress(), cd.isOutput(), work.getDirectory(false) );
+            dir->unRegisterAccess( cd.getAddress(), cd.isOutput(), work.getDirectory(false) );
+            if ( cd.isOutput() ) {
+               Directory *sons = work.getDirectory(false);
+               if ( sons!=NULL ) {
+                  dir->updateCurrentDirectory( cd.getAddress(), *sons );
+               }
+            }
          }
       }
    }
