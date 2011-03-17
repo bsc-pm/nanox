@@ -97,11 +97,11 @@ class Allocator
                char             pad[NANOS_CACHELINE];
             };                                         /**< bitmap_entry struct */
 
-            size_t            _objectSize;             /**< Object size in current Arena  */
-            char *            _arena;                  /**< Memory region used by Arena */
-            bitmap_entry      *_bitmap;                /**< Bit map (free/busy) */
-            Arena             *_next;                  /**< Next Arena in the list */
-            bool               _free;
+            size_t            _objectSize;            /**< Object size in current Arena  */
+            char             *_arena;                 /**< Memory region used by Arena */
+            bitmap_entry     *_bitmap;                /**< Bit map (free/busy) */
+            Arena            *_next;                  /**< Next Arena in the list */
+            bool              _free;                  /**< Are there free entries */
             /*! \brief Arena copy constructor (disabled)
              */
             Arena ( const Arena &a );
@@ -116,9 +116,8 @@ class Allocator
             */
             Arena ( size_t objectSize ) : _objectSize(objectSize), _next (NULL), _free(true)
             {
-               // TODO: fusionar malloc
-               _arena = (char *) malloc( objectSize * numObjects );
-               _bitmap = (bitmap_entry *) malloc( sizeof(bitmap_entry) * numObjects ) ;
+               _arena = (char *) malloc( (objectSize + sizeof(bitmap_entry) ) * numObjects );
+               _bitmap = (bitmap_entry *) (_arena + objectSize * numObjects);
                for ( size_t i = 0; i < numObjects; i++ ) _bitmap[i]._bit = true;
             }
            /*! \brief Arena destructor
@@ -147,7 +146,7 @@ class Allocator
       };
       template<typename T>
       struct InternalCollection {
-	typedef std::list<T, InternalAllocator<T> > type;
+         typedef std::list<T, InternalAllocator<T> > type;
       };
 
       struct ObjectHeader {
@@ -158,6 +157,7 @@ class Allocator
       typedef InternalCollection<Arena *>::type  ArenaCollection;
 
       ArenaCollection               _arenas;      /**< Vector of Arenas in Allocator*/
+      static size_t                 _headerSize;  /**< Size of ObjectHeader */
 
      /*! \brief Allocator copy constructor (disabled)
       */
