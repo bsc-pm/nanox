@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 /* This structure is initialized in dependency.hpp. Any change in
  * its contents has to be reflected in Dependency constructor  
@@ -150,8 +151,9 @@ typedef enum { NANOS_STATE_START, NANOS_STATE_END, NANOS_SUBSTATE_START, NANOS_S
 
 typedef enum { NANOS_NOT_CREATED, NANOS_NOT_TRACED, NANOS_STARTUP, NANOS_SHUTDOWN, NANOS_ERROR, NANOS_IDLE,
                NANOS_RUNTIME, NANOS_RUNNING, NANOS_SYNCHRONIZATION, NANOS_SCHEDULING, NANOS_CREATION,
-               NANOS_MEM_TRANSFER_IN, NANOS_MEM_TRANSFER_OUT, NANOS_MEM_TRANSFER_LOCAL, NANOS_CACHE, NANOS_YIELD,
-               NANOS_EVENT_STATE_TYPES
+               NANOS_MEM_TRANSFER_IN, NANOS_MEM_TRANSFER_OUT, NANOS_MEM_TRANSFER_LOCAL,
+               NANOS_MEM_TRANSFER_DEVICE_IN, NANOS_MEM_TRANSFER_DEVICE_OUT, NANOS_MEM_TRANSFER_DEVICE_LOCAL,
+               NANOS_CACHE, NANOS_YIELD, NANOS_EVENT_STATE_TYPES
 } nanos_event_state_value_t; /**< State enum values */
 
 typedef enum { NANOS_WD_DOMAIN, NANOS_WD_DEPENDENCY, NANOS_WAIT } nanos_event_domain_t; /**< Specifies a domain */
@@ -202,5 +204,14 @@ typedef struct nanos_lock_t {
 #endif
 } nanos_lock_t;
 
+/* Translation function type  */
+typedef void (* nanos_translate_args_t) (void *);
+
+/* This types are for the symbols in the linker section for function initialization */
+typedef void (nanos_init_func_t) ( void * );
+typedef struct {
+   nanos_init_func_t  *func;
+   void               *data;
+} nanos_init_desc_t;
 
 #endif

@@ -21,6 +21,7 @@
 #define _NANOS_GPU_PROCESSOR
 
 #include "gpuprocessor_decl.hpp"
+#include "simpleallocator.hpp"
 
 #include <cuda_runtime.h>
 
@@ -44,10 +45,11 @@ namespace ext
          cudaStream_t   _inTransferStream;
          cudaStream_t   _outTransferStream;
          cudaStream_t   _localTransferStream;
+         cudaStream_t   _kernelExecStream;
 
       public:
-         GPUProcessorInfo ( int device ) : _deviceId ( device ), _maxMemoryAvailable ( 0 ),
-            _inTransferStream ( 0 ), _outTransferStream ( 0 ), _localTransferStream( 0 )
+         GPUProcessorInfo ( int device ) : _deviceId( device ), _maxMemoryAvailable( 0 ),
+            _inTransferStream( 0 ), _outTransferStream( 0 ), _localTransferStream( 0 ), _kernelExecStream( 0 )
          {}
 
          ~GPUProcessorInfo () {}
@@ -83,7 +85,7 @@ namespace ext
             }
 
             if ( inputStream || outputStream ) {
-               // Initialize the CUDA streams used for local data transfers
+               // Initialize the CUDA streams used for local data transfers and kernel execution
                cudaError_t err = cudaStreamCreate( &_localTransferStream );
                if ( err != cudaSuccess ) {
                   // If an error occurred, disable stream overlapping
@@ -91,7 +93,16 @@ namespace ext
                   if ( err == CUDANODEVERR ) {
                      fatal( "Error while creating the CUDA output transfer stream: all CUDA-capable devices are busy or unavailable" );
                   }
-                  warning( "Error while creating the CUDA output transfer stream: " << cudaGetErrorString( err ) );
+                  warning( "Error while creating the CUDA local transfer stream: " << cudaGetErrorString( err ) );
+               }
+               err = cudaStreamCreate( &_kernelExecStream );
+               if ( err != cudaSuccess ) {
+                  // If an error occurred, disable stream overlapping
+                  _kernelExecStream = 0;
+                  if ( err == CUDANODEVERR ) {
+                     fatal( "Error while creating the CUDA output transfer stream: all CUDA-capable devices are busy or unavailable" );
+                  }
+                  warning( "Error while creating the CUDA kernel execution stream: " << cudaGetErrorString( err ) );
                }
             }
          }
@@ -116,6 +127,13 @@ namespace ext
                cudaError_t err = cudaStreamDestroy( _localTransferStream );
                if ( err != cudaSuccess ) {
                   warning( "Error while destroying the CUDA local transfer stream: " << cudaGetErrorString( err ) );
+               }
+            }
+
+            if ( _kernelExecStream ) {
+               cudaError_t err = cudaStreamDestroy( _kernelExecStream );
+               if ( err != cudaSuccess ) {
+                  warning( "Error while destroying the CUDA kernel execution stream: " << cudaGetErrorString( err ) );
                }
             }
          }
@@ -143,6 +161,11 @@ namespace ext
          cudaStream_t getLocalTransferStream ()
          {
             return _localTransferStream;
+         }
+
+         cudaStream_t getKernelExecStream ()
+         {
+            return _kernelExecStream;
          }
    };
 }

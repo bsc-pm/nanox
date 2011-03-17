@@ -17,14 +17,14 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_LIB_WDDEQUE_DECL
-#define _NANOS_LIB_WDDEQUE_DECL
+#ifndef _NANOS_LIB_WDDEQUE_DECL_H
+#define _NANOS_LIB_WDDEQUE_DECL_H
 
 #include <list>
-#include "atomic.hpp"
+#include "atomic_decl.hpp"
 #include "debug.hpp"
-#include "workdescriptor.hpp"
-#include "basethread.hpp"
+#include "workdescriptor_decl.hpp"
+#include "basethread_decl.hpp"
 
 namespace nanos
 {
@@ -73,15 +73,21 @@ namespace nanos
 
          void push_front ( WorkDescriptor *wd );
          void push_back( WorkDescriptor *wd );
+
+         template <typename Constraints>
+         WorkDescriptor * popFrontWithConstraints ( BaseThread *thread );
+         template <typename Constraints>
+         WorkDescriptor * popBackWithConstraints ( BaseThread *thread );
+         template <typename Constraints>
+         bool removeWDWithConstraints( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
+
          WorkDescriptor * pop_front ( BaseThread *thread );
          WorkDescriptor * pop_back ( BaseThread *thread );
 
-         static void increaseTasksInQueues( int tasks );
-
-         static void decreaseTasksInQueues( int tasks );
-
-
          bool removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
+
+         static void increaseTasksInQueues( int tasks );
+         static void decreaseTasksInQueues( int tasks );
    };
 
 }

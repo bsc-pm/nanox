@@ -77,7 +77,7 @@ int main ( int argc, char **argv )
    main__task_1_data_t *task_data[10] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
 
    for ( i = 0; i < 10; i++ ) {
-      NANOS_SAFE( nanos_create_wd ( &wd[i], 1, main__task_1_device , sizeof( main__task_1_data_t ),
+      NANOS_SAFE( nanos_create_wd ( &wd[i], 1, main__task_1_device , sizeof( main__task_1_data_t ), __alignof__(main__task_1_data_t),
                                     (void **) &task_data[i], nanos_current_wd(), &props , 0, NULL ));
       task_data[i]->value = 100;
       NANOS_SAFE( nanos_submit( wd[i],0,0,0 ) );

@@ -17,179 +17,103 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_TRACKABLE_OBJECT
-#define _NANOS_TRACKABLE_OBJECT
+#ifndef _NANOS_TRACKABLE_OBJECT_H
+#define _NANOS_TRACKABLE_OBJECT_H
 #include <stdlib.h>
 #include <list>
 #include <algorithm>
+#include "trackableobject_decl.hpp"
 #include "dependableobject.hpp"
-#include "commutationdepobj_decl.hpp"
 #include "atomic.hpp"
 
-namespace nanos
+using namespace nanos;
+
+inline const TrackableObject & TrackableObject::operator= ( const TrackableObject &obj )
 {
+   _address = obj._address;
+   _lastWriter = obj._lastWriter;
+   return *this;
+}
 
-  /*! \class TrackableObject
-   *  \brief Object associated to an address with which different DependableObject operate
-   */
-   class TrackableObject
+inline void * TrackableObject::getAddress ( )
+{
+   return _address;
+}
+
+inline bool TrackableObject::hasLastWriter ( )
+{
+   return _lastWriter != NULL;
+}
+
+inline DependableObject* TrackableObject::getLastWriter ( )
+{
+   return _lastWriter;
+}
+
+inline void TrackableObject::setLastWriter ( DependableObject &depObj )
+{
    {
-      public:
-         typedef std::list< DependableObject *> DependableObjectList; /**< Type list of DependableObject */
-      private:
-         void                  * _address; /**< Pointer to the dependency address */
-         DependableObject      *_lastWriter; /**< Points to the last DependableObject registered as writer of the TrackableObject */
-         DependableObjectList   _versionReaders; /**< List of readers of the last version of the object */
-         Lock                   _readersLock; /**< Lock to provide exclusive access to the readers list */
-         Lock                   _writerLock; /**< Lock internally the object for secure access to _lastWriter */
-         CommutationDO         *_commDO; /**< Will be successor of all commutation tasks using this object untill a new reader/writer appears */
-      public:
+      SyncLockBlock lock( _writerLock );
+      _lastWriter = &depObj;
+   }
+}
 
-        /*! \brief TrackableObject default constructor
-         *
-         *  Creates a TrackableObject with the given address associated.
-         */
-         TrackableObject ( void * address = NULL )
-            : _address(address), _lastWriter ( NULL ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL) {}
+inline void TrackableObject::deleteLastWriter ( DependableObject &depObj )
+{
+   if ( _lastWriter == &depObj ) {
 
-        /*! \brief TrackableObject copy constructor
-         *
-         *  \param obj another TrackableObject
-         */
-         TrackableObject ( const TrackableObject &obj ) 
-            :  _address ( obj._address ), _lastWriter ( obj._lastWriter ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL) {}
-
-        /*! \brief TrackableObject destructor
-         */
-         ~TrackableObject () {}
-
-        /*! \brief TrackableObject assignment operator, can be self-assigned.
-         *
-         *  \param obj another TrackableObject
-         */
-         const TrackableObject & operator= ( const TrackableObject &obj )
-         {
-            _address = obj._address;
-            _lastWriter = obj._lastWriter;
-            return *this;
+      {
+         SyncLockBlock lock( _writerLock );
+         if ( _lastWriter ==  &depObj ) {
+            _lastWriter = NULL;
          }
+      }
+   }
+}
 
-        /*! \brief Obtain the address associated to the TrackableObject
-         */
-         void * getAddress ( )
-         {
-            return _address;
-         }
+inline TrackableObject::DependableObjectList & TrackableObject::getReaders ( )
+{
+   return _versionReaders;
+}
 
-        /*! \brief Returns true if the TrackableObject has a DependableObject as LastWriter
-         */
-         bool hasLastWriter ( )
-         {
-            return _lastWriter != NULL;
-         }
+inline void TrackableObject::setReader ( DependableObject &reader )
+{
+   _versionReaders.push_back( &reader );
+}
 
-        /*! \brief Get the last writer
-         *  \sa DependableObject
-         */
-         DependableObject* getLastWriter ( )
-         {
-            return _lastWriter;
-         }
+inline bool TrackableObject::hasReader ( DependableObject &depObj )
+{
+   return ( find( _versionReaders.begin(), _versionReaders.end(), &depObj ) != _versionReaders.end() );
+}
 
-        /*! \brief Set the last writer
-         *  \sa DependableObject
-         */
-         void setLastWriter ( DependableObject &depObj )
-         {
-            {
-               SyncLockBlock lock( _writerLock );
-               _lastWriter = &depObj;
-            }
-         }
+inline void TrackableObject::flushReaders ( )
+{
+   _versionReaders.clear();
+}
 
-        /*! \brief Delete the last writer if it matches the given one
-         *  \param depObj DependableObject to compare with _lastWriter
-         *  \sa DependableObject
-         */
-         void deleteLastWriter ( DependableObject &depObj )
-         {
-            if ( _lastWriter == &depObj ) {
+inline void TrackableObject::deleteReader ( DependableObject &reader )
+{
+   _versionReaders.remove( &reader );
+}
 
-               {
-                  SyncLockBlock lock( _writerLock );
-                  if ( _lastWriter ==  &depObj ) {
-                     _lastWriter = NULL;
-                  }
-               }
-            }
-         }
+inline bool TrackableObject::hasReaders ()
+{
+   return !( _versionReaders.empty() );
+}
 
-        /*! \brief Get the list of readers
-         *  \sa DependableObjectList
-         */
-         DependableObjectList & getReaders ( )
-         {
-            return _versionReaders;
-         }
+inline Lock& TrackableObject::getReadersLock()
+{
+   return _readersLock;
+}
 
-        /*! \brief Add a new reader
-         *  \sa DependableObject
-         */
-         void setReader ( DependableObject &reader )
-         {
-            _versionReaders.push_back( &reader );
-         }
+inline CommutationDO* TrackableObject::getCommDO()
+{
+   return _commDO;
+}
 
-        /*! \brief Returns true if do is reader of the TrackableObject
-         */
-         bool hasReader ( DependableObject &depObj )
-         {
-            return ( find( _versionReaders.begin(), _versionReaders.end(), &depObj ) != _versionReaders.end() );
-         }
-
-        /*! \brief Delete all readers from the object
-         */ 
-         void flushReaders ( )
-         {
-            _versionReaders.clear();
-         }
-
-        /*! \brief Deletes a reader from the object's list
-         */
-         void deleteReader ( DependableObject &reader )
-         {
-            _versionReaders.remove( &reader );
-         }
-
-        /*! \brief Whether the object has readers or not
-         */
-         bool hasReaders ()
-         {
-            return !( _versionReaders.empty() );
-         }
-
-        /*! \brief Returns the readers lock
-         */
-         Lock& getReadersLock()
-         {
-            return _readersLock;
-         }
-        /*! \brief Returns the commutationDO if it exists
-         */
-         CommutationDO* getCommDO()
-         {
-            return _commDO;
-         }
-
-        /*! \brief Set the commutationDO
-         *  \param commDO to set in this object
-         */
-         void setCommDO( CommutationDO *commDO )
-         {
-            _commDO = commDO;
-         }
-   };
-
-};
+inline void TrackableObject::setCommDO( CommutationDO *commDO )
+{
+   _commDO = commDO;
+}
 
 #endif

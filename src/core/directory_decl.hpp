@@ -23,7 +23,7 @@
 #include "compatibility.hpp"
 #include "cache_fwd.hpp"
 #include "hashmap_decl.hpp"
-#include "atomic.hpp"
+#include "atomic_decl.hpp"
 #include "cache_map_decl.hpp"
 
 namespace nanos

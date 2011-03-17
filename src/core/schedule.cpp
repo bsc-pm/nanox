@@ -134,7 +134,7 @@ inline void Scheduler::idleLoop ()
          WD * next = myThread->getNextWD();
 
          if ( next ) {
-           myThread->setNextWD(NULL);
+            myThread->resetNextWD();
          } else {
            if ( sys.getSchedulerStats()._readyTasks > 0 ) 
               next = behaviour::getWD(thread,current);
@@ -217,8 +217,11 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
          if ( !( condition->check() ) ) {
             condition->addWaiter( current );
 
-            WD *next = NULL;
-            if ( sys.getSchedulerStats()._readyTasks > 0 ) {
+            WD * next = myThread->getNextWD();
+
+            if ( next) {
+               myThread->resetNextWD();
+            } else if ( sys.getSchedulerStats()._readyTasks > 0 ) {
                next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
             }
 
@@ -359,7 +362,7 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    // reload thread after running WD
    thread = getMyThreadSafe();
 
-   if (schedule && thread->getNextWD() == NULL ) {
+   if (schedule) {
         thread->setNextWD(thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*wd));
    }
 

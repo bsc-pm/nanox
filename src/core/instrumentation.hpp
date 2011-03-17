@@ -21,6 +21,7 @@
 
 #include "instrumentation_decl.hpp"
 #include "system.hpp"
+#include "allocator_decl.hpp"
 
 using namespace nanos;
 
@@ -100,6 +101,13 @@ inline void InstrumentationKeyDescriptor::registerValue ( const char *value, nan
    if ( it == _valueMap.end() ) {
       {
          LockBlock lock( _lock );
+         // Checking if val was already used
+         if ( abort_when_registered ) {
+            for ( ValueMapIterator it2 = _valueMap.begin(); it2 != _valueMap.end(); it2++ ) {
+               InstrumentationValueDescriptor *vD = it2->second;
+               if ( vD->getId() == val ) fatal("Event Value 'id' was already registered");
+            }
+         }
          it = _valueMap.find( value );
          if ( it == _valueMap.end() ) {
             _totalValues++; // keeping total values counter, although it is not used as 'val'

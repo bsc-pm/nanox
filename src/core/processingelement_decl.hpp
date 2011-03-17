@@ -17,65 +17,78 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_ACCELERATOR
-#define _NANOS_ACCELERATOR
+#ifndef _NANOS_PROCESSING_ELEMENT_DECL
+#define _NANOS_PROCESSING_ELEMENT_DECL
 
-#include <stdint.h>
-#include "workdescriptor.hpp"
-#include "processingelement.hpp"
+#include "workdescriptor_decl.hpp"
 #include <algorithm>
-#include "functors.hpp"
-#include "atomic.hpp"
+#include "functors_decl.hpp"
+#include "basethread_fwd.hpp"
+#include "schedule_fwd.hpp"
 
 namespace nanos
 {
-
-   class Accelerator : public ProcessingElement
+   class ProcessingElement
    {
+      private:
+         typedef std::vector<BaseThread *>    ThreadList;
+         int                                  _id;
+         const Device *                       _device;
+         ThreadList                           _threads;
+
+      private:
+         /*! \brief ProcessinElement default constructor
+          */
+         ProcessingElement ();
+         /*! \brief ProcessinElement copy constructor (private)
+          */
+         ProcessingElement ( const ProcessingElement &pe );
+         /*! \brief ProcessinElement copy assignment operator (private)
+          */
+         const ProcessingElement & operator= ( const ProcessingElement &pe );
       protected:
          virtual WorkDescriptor & getMasterWD () const = 0;
          virtual WorkDescriptor & getWorkerWD () const = 0;
-
-      private:
-        /*! \brief Accelerator default constructor (private)
-         */
-         Accelerator ();
-        /*! \brief Accelerator copy constructor (private)
-         */
-         Accelerator ( const Accelerator &a );
-        /*! \brief Accelerator copy assignment operator (private)
-         */
-         const Accelerator& operator= ( const Accelerator &a );
       public:
-        /*! \brief Accelerator constructor - from 'newId' and 'arch'
-         */
-         Accelerator ( int newId, const Device *arch ) : ProcessingElement( newId, arch) {}
-        /*! \brief Accelerator destructor
-         */
-         virtual ~Accelerator() {}
+         /*! \brief ProcessinElement constructor
+          */
+         ProcessingElement ( int newId, const Device *arch ) : _id ( newId ), _device ( arch ) {}
 
-         virtual bool hasSeparatedMemorySpace() const { return true; }
-         virtual unsigned int getMemorySpaceId() const {return 0; }
+         /*! \brief ProcessinElement destructor
+          */
+         virtual ~ProcessingElement();
 
+         /* get/put methods */
+         int getId() const;
+
+         const Device & getDeviceType () const;
+
+         BaseThread & startThread ( WorkDescriptor &wd );
+         virtual BaseThread & createThread ( WorkDescriptor &wd ) = 0;
+         BaseThread & associateThisThread ( bool untieMain=true );
+
+         BaseThread & startWorker ( );
+         void stopAll();
+
+         /* capabilitiy query functions */
+         virtual bool supportsUserLevelThreads() const = 0;
+         virtual bool hasSeparatedMemorySpace() const { return false; }
+         virtual unsigned int getMemorySpaceId() const { return 0; }
+
+         virtual void waitInputDependent( uint64_t tag ) {}
+
+         /* Memory space suport */
          virtual void copyDataIn( WorkDescriptor& wd );
          virtual void copyDataOut( WorkDescriptor& wd );
 
          virtual void waitInputs( WorkDescriptor& wd );
 
-         virtual void waitInputDependent( uint64_t tag ) = 0;
-
-         virtual void registerCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output ) = 0;
-         virtual void unregisterCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool output ) = 0;
-         virtual void registerPrivateAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output ) = 0;
-         virtual void unregisterPrivateAccessDependent( Directory &dir, uint64_t tag, size_t size ) = 0;
-
          virtual void* getAddress( WorkDescriptor& wd, uint64_t tag, nanos_sharing_t sharing );
          virtual void copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );
-
-         virtual void* getAddressDependent( uint64_t tag ) = 0;
-         virtual void copyToDependent( void *dst, uint64_t tag, size_t size ) = 0;
    };
 
+   typedef class ProcessingElement PE;
+   typedef PE * ( *peFactory ) ( int pid );
 };
 
 #endif

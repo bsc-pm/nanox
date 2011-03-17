@@ -20,124 +20,46 @@
 #ifndef _NANOS_DEPENDABLE_OBJECT_WD
 #define _NANOS_DEPENDABLE_OBJECT_WD
 
-#include "synchronizedcondition_decl.hpp"
+#include "dependableobjectwd_decl.hpp"
 #include "dependableobject.hpp"
-#include "workdescriptor_fwd.hpp"
 
-namespace nanos
+using namespace nanos;
+
+inline const DOSubmit & DOSubmit::operator= ( const DOSubmit &dos )
 {
+   if ( this == &dos ) return *this; 
+   DependableObject::operator= (dos);
+   _submittedWD = dos._submittedWD;
+   return *this;
+}
 
-   /*! \class DOSubmit
-    *  \brief DependableObject representing a WorkDescriptor as Dependable entity
-    */
-   class DOSubmit : public DependableObject
-   {
-      private:
-         WorkDescriptor *_submittedWD; /**< Pointer to the work descriptor represented by this DependableObject */
+inline void DOSubmit::setWD( WorkDescriptor *wd )
+{
+   _submittedWD = wd;
+}
 
-      public:
-         /*! \brief DOSubmit default constructor
-          */
-         DOSubmit ( ) : DependableObject(), _submittedWD(NULL) { }
-         /*! \brief DOSubmit constructor
-          */
-         DOSubmit ( WorkDescriptor* wd) : DependableObject ( ), _submittedWD( wd ) { }
-         /*! \brief DOSubmit copy constructor
-          *  \param dos another DOSubmit
-          */
-         DOSubmit ( const DOSubmit &dos ) : DependableObject(dos), _submittedWD( dos._submittedWD ) { } 
-         /*! \brief DOSubmit assignment operator, can be self-assigned.
-          *  \param dos another DOSubmit
-          */
-         const DOSubmit & operator= ( const DOSubmit &dos )
-         {
-            if ( this == &dos ) return *this; 
-            DependableObject::operator= (dos);
-            _submittedWD = dos._submittedWD;
-            return *this;
-         }
-         /*! \brief DOSubmit virtual destructor
-          */
-         virtual ~DOSubmit ( ) { }
-         /*! \brief Submits WorkDescriptor when dependencies are satisfied
-          */
-         virtual void dependenciesSatisfied ( );
-         /*! \brief TODO 
-          */
-         void setWD( WorkDescriptor *wd )
-            { _submittedWD = wd; }
-         /*! \brief TODO 
-          */
-         unsigned long getDescription ( );
-         /*! \brief Get the related object which actually has the dependence
-          */
-         virtual void * getRelatedObject ( ) { return (void *) _submittedWD; }
+inline void * DOSubmit::getRelatedObject ( )
+{
+   return (void *) _submittedWD;
+}
 
-         /*! \brief Instrument predecessor -> successor dependency
-          */
-         virtual void instrument ( DependableObject& successor );
-   };
+inline const DOWait & DOWait::operator= ( const DOWait &dow )
+{
+   if ( this == &dow ) return *this; 
+   DependableObject::operator= ( dow );
+   _depsSatisfied = dow._depsSatisfied;
+   return *this;
+}
 
-  /*! \brief DependableObject representing a WorkDescriptor as a task domain to wait on some dependencies
-   */
-   class DOWait : public DependableObject
-   {
-      private:
-         WorkDescriptor     *_waitDomainWD; /**< Pointer to the WorkDescriptor that waits on data */
-         volatile bool       _depsSatisfied; /**< Condition to satisfy before execution can go forward */
-         SingleSyncCond<EqualConditionChecker<bool> >  _syncCond; /**< TODO */
-      public:
-         /*! \brief DOWait default constructor
-          */
-         DOWait ( ) : DependableObject(), _waitDomainWD(NULL), _depsSatisfied( false ),
-            _syncCond( EqualConditionChecker<bool>( &_depsSatisfied, true ) ) { }
-         /*! \brief DOWait constructor
-          */
-         DOWait ( WorkDescriptor *wd ) : DependableObject(), _waitDomainWD( wd ), _depsSatisfied( false ),
-           _syncCond( EqualConditionChecker<bool>( &_depsSatisfied, true ) ) { }
-         /*! \brief DOWait copy constructor
-          *  \param dos another DOWait
-          */
-         DOWait ( const DOWait &dow ) : DependableObject(dow), _waitDomainWD( dow._waitDomainWD ), _depsSatisfied( false ),
-           _syncCond( EqualConditionChecker<bool>( &_depsSatisfied, true ) ) { }
-         /*! \brief DOWait assignment operator, can be self-assigned.
-          *  param dos another DOWait
-          */
-         const DOWait & operator= ( const DOWait &dow )
-         {
-            if ( this == &dow ) return *this; 
-            DependableObject::operator= ( dow );
-            _depsSatisfied = dow._depsSatisfied;
-            return *this;
-         }
-         /*! \brief Virtual destructor
-          */
-         virtual ~DOWait ( ) { }
-         /*! \brief Initialise wait condition
-          */
-         virtual void init ( );
-         /*! \brief Wait method blocks execution untill dependencies are satisfied
-          */
-         virtual void wait ( std::list<Dependency *> deps );
-         /*! \brief whether the DO gets blocked and no more dependencies can
-          *  be submitted until it is satisfied.
-          */
-         virtual bool waits ( );
-         /*! \brief Unblock method when dependencies are satisfied
-          */
-         virtual void dependenciesSatisfied ( );
-         /*! \brief TODO
-          */
-         void setWD( WorkDescriptor *wd )
-         { _waitDomainWD = wd; }
-         /*! \brief Get the related object which actually has the dependence
-          */
-         virtual void * getRelatedObject ( ) { return (void *) _waitDomainWD; }
-         /*! \brief Instrument predecessor -> successor dependency
-          */
-         virtual void instrument ( DependableObject& successor );
-   };
-};
+inline void DOWait::setWD( WorkDescriptor *wd )
+{
+   _waitDomainWD = wd;
+}
+
+inline void * DOWait::getRelatedObject ( )
+{
+   return (void *) _waitDomainWD;
+}
 
 #endif
 

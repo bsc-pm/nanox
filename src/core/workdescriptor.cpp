@@ -23,7 +23,6 @@
 #include "basethread.hpp"
 #include "debug.hpp"
 #include "schedule.hpp"
-#include "dependableobjectwd.hpp"
 #include "system.hpp"
 
 using namespace nanos;
@@ -35,8 +34,12 @@ void WorkDescriptor::init ()
    /* Initializing instrumentation context */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdCreate( this ) );
 
-   if ( getNumCopies() > 0 )
+   if ( getNumCopies() > 0 ) {
       pe->copyDataIn( *this );
+      if ( _translateArgs != NULL ) {
+         _translateArgs( _data );
+      }
+   }
 }
 
 void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)

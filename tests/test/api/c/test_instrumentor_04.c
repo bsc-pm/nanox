@@ -101,7 +101,7 @@ void main__task_1 ( void *args )
          .tie_to = false
       };
 
-      NANOS_SAFE( nanos_create_wd ( &wd, 1, main__task_2_device , sizeof( main__task_2_data_t ),
+      NANOS_SAFE( nanos_create_wd ( &wd, 1, main__task_2_device , sizeof( main__task_2_data_t ), __alignof__( main__task_2_data_t),
                                     (void **) &task_data, nanos_current_wd(), &props , 0, NULL ));
 
       task_data->value = 1000;
@@ -136,7 +136,7 @@ int main ( int argc, char **argv )
       .tie_to = false
    };
 
-   NANOS_SAFE( nanos_create_wd ( &wd, 1, main__task_1_device , sizeof( main__task_1_data_t ),
+   NANOS_SAFE( nanos_create_wd ( &wd, 1, main__task_1_device , sizeof( main__task_1_data_t ), __alignof__(main__task_1_data_t),
                                     (void **) &task_data, nanos_current_wd(), &props , 0, NULL ));
 
    task_data->value = 100;

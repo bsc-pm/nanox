@@ -189,6 +189,8 @@ if test x$gpu_valid = xyes; then
 	ARCHITECTURES="$ARCHITECTURES gpu"
 fi
 
+AM_CONDITIONAL([GPU_SUPPORT],[test $gpu_valid = yes])
+
 AC_SUBST([gpu_valid])
 
 AC_MSG_CHECKING([for architecture])
@@ -331,7 +333,7 @@ AM_CONDITIONAL([PERFORMANCE_VERSION], [test x$performance_disabled = xno])
 AC_SUBST([performancedir],['${libdir}/performance'])
 
 AC_MSG_CHECKING([if any version is to be compiled])
-if test x$performance_disabled = xyes -a x$debug_disabled = xyes -a x$instrumentation_disabled = xyes;
+if test x$performance_disabled = xyes -a x$debug_disabled = xyes -a x$instrumentation_disabled = xyes -a x$instrumentation_debug_disabled= xyes;
 then
 	AC_MSG_RESULT([no])
 	AC_MSG_ERROR([At least one version needs to be compiled])

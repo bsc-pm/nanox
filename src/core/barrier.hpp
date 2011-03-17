@@ -20,42 +20,8 @@
 #ifndef __NANOS_BARRIER_H
 #define __NANOS_BARRIER_H
 
-namespace nanos
-{
-   class Barrier
-   {
-      public:
-        /*! \brief Barrier default constructor
-         */
-         Barrier() {}
-        /*! \brief Barrier copy constructor
-         */
-         Barrier(const Barrier &) {}
-        /*! \brief Barrier copy assignment operator 
-         */
-         const Barrier & operator= ( const Barrier & ) { return *this; }
-        /*! \brief Barrier destructor
-         */
-         virtual ~Barrier() {}
-        /*! Init is called when the number of participants in the barrier are known so the barrier
-         *  can initialize the proper data structures if needed
-         *  \warning Must be called by just one thread
-         */
-         virtual void init ( int numParticipants ) { }
-        /*! Called when the number of number of participants in the barrier changes to
-         *  restructure data structures if needed
-         *  \warning Must be called by just one thread
-         */
-         virtual void resize ( int numThreads ) { }
-        /*! \brief Perform a barrier among the participants
-         *
-         *  When it returns it guarantees that all participants have reached the barrier
-         */
-         virtual void barrier (int participant) = 0;
-   };
+#include "barrier_decl.hpp"
 
-   typedef Barrier * ( *barrFactory ) ();
-
-}
+using namespace nanos;
 
 #endif
