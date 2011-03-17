@@ -55,3 +55,9 @@ nanos_err_t nanos_copy_value ( void *dst, nanos_copy_id_t copy_id )
    return NANOS_OK;
 }
 
+#ifdef GPU_DEV
+cudaStream_t nanos_get_kernel_execution_stream()
+{
+   return ( ( nanos::ext::GPUProcessor *) getMyThreadSafe()->runningOn() )->getGPUProcessorInfo()->getKernelExecStream();
+}
+#endif

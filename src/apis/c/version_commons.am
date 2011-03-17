@@ -10,3 +10,5 @@ nanos_c_sources = \
 	$(top_srcdir)/src/apis/c/nanos_instrument.cpp\
 	$(END) 
 
+gpu_includes = -I @CUDA_INC@
+
