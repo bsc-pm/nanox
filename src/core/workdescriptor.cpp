@@ -102,11 +102,10 @@ void WorkDescriptor::submit( void )
 void WorkDescriptor::done ()
 {
    ProcessingElement *pe = myThread->runningOn();
+   waitCompletionAndSignalers();
    if ( getNumCopies() > 0 )
      pe->copyDataOut( *this );
 
-   // FIX-ME: We are waiting for the children tasks to avoid to keep alive only part of the parent
-   waitCompletionAndSignalers();
    this->getParent()->workFinished( *this );
    WorkGroup::done();
 }
