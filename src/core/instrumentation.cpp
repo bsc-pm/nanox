@@ -20,6 +20,7 @@
 
 #include "instrumentationcontext.hpp"
 #include "system.hpp"
+#include "compatibility.hpp"
 #include "workdescriptor.hpp"
 #include <alloca.h>
 
@@ -354,20 +355,6 @@ void Instrumentation::wdCreate( WorkDescriptor* newWD )
    _instrumentationContext.insertBurst( icd, e );
    _instrumentationContext.pushState( icd, NANOS_RUNTIME );
 }
-
-//
-// Dan Tsafrir [11/2/2011]: ugly hack to match the ugliness it fixes.
-//
-// Explanation:
-//
-// For the statements to which this macro is applied, gcc-4.1
-//   (a) creates a temporary,
-//   (b) copies it using the copy ctor to another temporary,
-//   (c) invokes the operator=.
-// But since the copy ctor in (b) does not exist => compile error.
-// This macro prevents (b) from happening.
-//
-#define ASSIGN_EVENT(event,type,args) do {type tmp_event args; event = tmp_event;} while(0)
 
 void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bool last )
 {

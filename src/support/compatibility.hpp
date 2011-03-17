@@ -20,6 +20,9 @@
 #ifndef _NANOS_COMPATIBILITY_HPP
 #define _NANOS_COMPATIBILITY_HPP
 
+// Define GCC Version
+#define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
+
 // Define a linker section with GCC
 #define LINKER_SECTION(name,type,nop) \
     __attribute__((weak, section( #name ))) type __section_##name = nop; \
@@ -74,6 +77,23 @@ template<> struct hash<unsigned long long> : public std::unary_function<unsigned
 
 bool __sync_bool_compare_and_swap( int *ptr, int oldval, int newval );
 
+#endif
+
+// Dan Tsafrir [11/2/2011]: ugly hack to match the ugliness it fixes.
+//
+// Explanation:
+//
+// For the statements to which this macro is applied, gcc-4.1
+//   (a) creates a temporary,
+//   (b) copies it using the copy ctor to another temporary,
+//   (c) invokes the operator=.
+// But since the copy ctor in (b) does not exist => compile error.
+// This macro prevents (b) from happening.
+
+#if GCC_VERSION == 40100 
+#define ASSIGN_EVENT(event,type,args) do {type tmp_event args; event = tmp_event;} while(0)
+#else
+#define ASSIGN_EVENT(event,type,args) event = type args
 #endif
 
 #endif
