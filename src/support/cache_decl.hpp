@@ -42,7 +42,7 @@ namespace nanos {
          volatile bool _dirty; /**< Dirty flag */
          Atomic<bool> _copying; /**< Copying status of the entry */
          Atomic<bool> _flushing; /**< Flushing status of the entry */
-         Directory* _flushingTo; /**< If the entry is being flushed, points to the directoryEntry that will be updated. */
+         Directory* _flushTo; /**< If the entry is being flushed, points to the directoryEntry that will be updated. */
          Atomic<unsigned int> _transfers; /**< Counts the number of in-flight transfers for dev-to-dev copies. */
          Atomic<bool> _resizing; /**< Tells whether the entry is being resized. */
 
@@ -50,17 +50,17 @@ namespace nanos {
 
         /*! \brief Default constructor
          */
-         CacheEntry(): Entry(), _addr( NULL ), _size(0), _allocSize(0), _dirty( false ), _copying(false), _flushing(false), _flushingTo(NULL), _transfers(0), _resizing(false) {}
+         CacheEntry(): Entry(), _addr( NULL ), _size(0), _allocSize(0), _dirty( false ), _copying(false), _flushing(false), _flushTo(NULL), _transfers(0), _resizing(false) {}
 
         /*! \brief Constructor
          *  \param addr: address of the cache entry
          */
-         CacheEntry( void *addr, size_t size, uint64_t tag, unsigned int version, bool dirty, bool copying ): Entry( tag, version ), _addr( addr ), _size(size), _allocSize(0), _dirty( dirty ), _copying(copying), _flushing(false), _flushingTo(NULL), _transfers(0), _resizing(false) {}
+         CacheEntry( void *addr, size_t size, uint64_t tag, unsigned int version, bool dirty, bool copying ): Entry( tag, version ), _addr( addr ), _size(size), _allocSize(0), _dirty( dirty ), _copying(copying), _flushing(false), _flushTo(NULL), _transfers(0), _resizing(false) {}
 
         /*! \brief Copy constructor
          *  \param Another CacheEntry
          */
-         CacheEntry( const CacheEntry &ce ): Entry( ce.getTag(), ce.getVersion() ), _addr( ce._addr ), _size( ce._size ), _allocSize( ce._allocSize ), _dirty( ce._dirty ), _copying(ce._copying), _flushing(false), _flushingTo(NULL), _transfers(0), _resizing(false) {}
+         CacheEntry( const CacheEntry &ce ): Entry( ce.getTag(), ce.getVersion() ), _addr( ce._addr ), _size( ce._size ), _allocSize( ce._allocSize ), _dirty( ce._dirty ), _copying(ce._copying), _flushing(false), _flushTo(NULL), _transfers(0), _resizing(false) {}
 
         /* \brief Destructor
          */
@@ -79,7 +79,7 @@ namespace nanos {
             this->_dirty = ce._dirty;
             this->_copying = ce._copying;
             this->_flushing = ce._flushing;
-            this->_flushingTo = ce._flushingTo;
+            this->_flushTo = ce._flushTo;
             this->_transfers = ce._transfers;
             this->_resizing = ce._resizing;
             return *this;
@@ -159,14 +159,14 @@ namespace nanos {
 
         /*! \brief Returns the directory that will be updated when the entry flush finishes
          */
-         Directory* getFlushingTo()
-         { return _flushingTo; }
+         Directory* getFlushTo()
+         { return _flushTo; }
 
         /*! \brief Set the entrie's flushing directory
          *  \param dir
          */
-         void setFlushingTo( Directory *dir )
-         { _flushingTo = dir; }
+         void setFlushTo( Directory *dir )
+         { _flushTo = dir; }
 
         /*! \brief set flushing  status to ture if it wansn't atomically.
          */
