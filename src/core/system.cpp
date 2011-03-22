@@ -30,6 +30,7 @@
 #include "processingelement.hpp"
 #include "allocator.hpp"
 #include <string.h>
+#include <set>
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -138,7 +139,17 @@ void System::loadModules ()
 // Config Functor
 struct ExecInit
 {
-   void operator() ( const nanos_init_desc_t & init ) { init.func(init.data); }
+   std::set<void *> _initialized;
+
+   ExecInit() : _initialized() {}
+
+   void operator() ( const nanos_init_desc_t & init )
+   {
+      if ( _initialized.find( (void *)init.func ) == _initialized.end() ) {
+         init.func(init.data);
+         _initialized.insert( (void *)init.func );
+      }
+   }
 };
 
 void System::config ()
