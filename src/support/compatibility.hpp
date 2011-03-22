@@ -73,12 +73,8 @@ template<> struct hash<unsigned long long> : public std::unary_function<unsigned
 #endif // __GNUC__ == 4 && __GNUC_MINOR__ < 2
 #endif // __GNUC__
 
-#ifdef BROKEN_COMPARE_AND_SWAP
 
-bool __sync_bool_compare_and_swap( int *ptr, int oldval, int newval );
-
-#endif
-
+#ifdef __GNUC__
 // Dan Tsafrir [11/2/2011]: ugly hack to match the ugliness it fixes.
 //
 // Explanation:
@@ -89,11 +85,17 @@ bool __sync_bool_compare_and_swap( int *ptr, int oldval, int newval );
 //   (c) invokes the operator=.
 // But since the copy ctor in (b) does not exist => compile error.
 // This macro prevents (b) from happening.
-
-#if GCC_VERSION == 40100 
+#if __GNUC__ == 4 && (__GNUC_MINOR__ == 1 || __GNUC_MINOR__ == 2)
 #define ASSIGN_EVENT(event,type,args) do {type tmp_event args; event = tmp_event;} while(0)
 #else
 #define ASSIGN_EVENT(event,type,args) event = type args
+#endif // __GNUC__ == 4 && (__GNUC_MINOR__ == 1 || __GNUC_MINOR__ == 2)
+#endif // __GNUC__
+
+#ifdef BROKEN_COMPARE_AND_SWAP
+
+bool __sync_bool_compare_and_swap( int *ptr, int oldval, int newval );
+
 #endif
 
 #endif
