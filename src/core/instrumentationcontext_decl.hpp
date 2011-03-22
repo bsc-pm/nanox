@@ -122,7 +122,7 @@ namespace nanos {
          /*! \brief Removes top state from the state stack
           */
          void popState ( InstrumentationContextData *icd ); 
-         /*! \brief Gets current state/substate from top of stack
+         /*! \brief Gets current state/substate from top of stack (acording with current behaviour)
           */
          nanos_event_state_value_t topState ( InstrumentationContextData *icd );
          /*! \brief Gets current state from top of stack
