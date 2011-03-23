@@ -130,9 +130,9 @@ nanos_err_t nanos_try_lock ( nanos_lock_t *lock, bool *result );
 nanos_err_t nanos_destroy_lock ( nanos_lock_t *lock );
 
 // Device copies
-nanos_err_t nanos_get_addr ( nanos_copy_id_t copy_id, void **addr );
+nanos_err_t nanos_get_addr ( nanos_copy_id_t copy_id, void **addr, nanos_wd_t cwd );
 
-nanos_err_t nanos_copy_value ( void *dst, nanos_copy_id_t copy_id );
+nanos_err_t nanos_copy_value ( void *dst, nanos_copy_id_t copy_id, nanos_wd_t cwd );
 
 // system interface
 nanos_err_t nanos_get_num_running_tasks ( int *num );

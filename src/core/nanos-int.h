@@ -205,7 +205,7 @@ typedef struct nanos_lock_t {
 } nanos_lock_t;
 
 /* Translation function type  */
-typedef void (* nanos_translate_args_t) (void *);
+typedef void (* nanos_translate_args_t) (void *, nanos_wd_t);
 
 /* This types are for the symbols in the linker section for function initialization */
 typedef void (nanos_init_func_t) ( void * );
