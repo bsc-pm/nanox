@@ -31,6 +31,23 @@ extern "C" {
 #endif
    }
 
+   unsigned int nanos_extrae_node_id ( void )
+   {
+#ifdef CLUSTER_DEV
+      return sys.getNetwork()->getNodeNum();
+#else
+      return 0;
+#endif
+   }
+
+   unsigned int nanos_extrae_num_nodes ( void )
+   {
+#ifdef CLUSTER_DEV
+      return sys.getNetwork()->getNumNodes();
+#else
+      return 1;
+#endif
+   }
 }
 
 } // namespace nanos
