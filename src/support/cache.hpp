@@ -488,10 +488,10 @@ inline bool DeviceCache<_T,_Policy>::copyToCacheFromCache( void *addrSrc, size_t
 {
    bool result;
    DeviceCache< _T, _Policy > *dstCache = dynamic_cast<DeviceCache< _T, _Policy > *>(&dest);
-   //NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
-   //NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_IN, key, (nanos_event_value_t) size) );
+   NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_IN, key, (nanos_event_value_t) size) );
    result = _T::copyDevToDev( addrSrc, size, _pe, dstCache->_pe, addrDest );
-   //NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
    return result;
 }
 

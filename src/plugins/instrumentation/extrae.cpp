@@ -524,6 +524,7 @@ class InstrumentationExtrae: public Instrumentation
 
          int j = 0; int k = 0;
          Event::ConstKVList kvs = NULL;
+         nanos_event_key_t sizeKey = iD->getEventKey("xfer-size");
 
          for (unsigned int i = 0; i < count; i++)
          {
@@ -553,7 +554,7 @@ class InstrumentationExtrae: public Instrumentation
                   else ce.Communications[k].type = EXTRAE_USER_RECV;
                   ce.Communications[k].tag = e.getDomain();
                   ce.Communications[k].id = e.getId();
-                  switch ( e.getId() )
+                  switch ( e.getDomain() )
                   {
                      case NANOS_WD_DOMAIN:
                      case NANOS_WD_DEPENDENCY:
@@ -563,13 +564,12 @@ class InstrumentationExtrae: public Instrumentation
                      case NANOS_XFER_PUT:
                      case NANOS_XFER_GET:
                         {
-
-                        nanos_event_key_t sizeKey = iD->getEventKey("xfer-size");
-                        for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
-                           if ( kvs->first == sizeKey ) {
-                              ce.Communications[k].size = kvs->second;
+                           kvs = e.getKVs();
+                           for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
+                              if ( kvs->first == sizeKey ) {
+                                 ce.Communications[k].size = kvs->second;
+                              }
                            }
-                        }
                         }
                         break;
                      default: 

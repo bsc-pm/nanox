@@ -105,9 +105,9 @@ void System::loadModules ()
 #ifdef CLUSTER_DEV
    if ( useCluster() )
    {
+      std::cerr << "Loading Cluster plugin (" + getCurrentConduit() + ")" << std::endl;
       if ( !PluginManager::load ( "pe-cluster-"+getCurrentConduit() ) )
          fatal0 ( "Couldn't load Cluster support" );
-      fprintf(stderr, "Cluster plugin loaded!\n");
    }
 #endif
 
@@ -271,7 +271,7 @@ void System::start ()
       else
       {
          // numPes++;
-         _pes.reserve ( numPes );
+         _pes.reserve ( numPes + 1 );
       }
    }
    else
@@ -384,17 +384,16 @@ else
 
 
 #ifdef CLUSTER_DEV
-   if ( useCluster() )
+   if ( useCluster() && _net.getNumNodes() > 1)
    {
-      if ( _net.getNodeNum() == 0 && _net.getNumNodes() > 1 )
+      PE * smpRep = createPE ( "smp", p );
+      _pes.push_back( smpRep );
+
+      if ( _net.getNodeNum() == 0 )
       {
          unsigned int nodeC;
 
          PE *_peArray[ _net.getNumNodes() - 1];
-         PE * smpRep = createPE ( "smp", p );
-         _pes.push_back( smpRep );
-
-
          for ( nodeC = 1; nodeC < _net.getNumNodes(); nodeC++ ) {
             nanos::ext::ClusterNode *node = new nanos::ext::ClusterNode( nodeC );
             std::cerr << "c:node @ is " << (void * ) node << std::endl;
@@ -404,9 +403,24 @@ else
          }
          ext::SMPMultiThread *smpRepThd = dynamic_cast<ext::SMPMultiThread *>( &smpRep->startMultiWorker( _net.getNumNodes() - 1, _peArray ) );
 
-         for (unsigned int i = 0 ; i < smpRepThd->getNumThreads(); i++ )
-            _workers.push_back( smpRepThd->getNextThread() );
+         for ( ext::SMPMultiThread::iterator threadIterator = smpRepThd->getThreadList().begin();
+               threadIterator != smpRepThd->getThreadList().end(); 
+               threadIterator++ )
+         {
 
+            _workers.push_back( *threadIterator );
+         }
+
+      }
+      else
+      {
+         std::cerr << "starting a multiworker thread as comm thd on node " << _net.getNodeNum() << std::endl;
+         //smpRep->startMultiWorker( 0, NULL );
+         ext::SMPMultiThread *smpRepThd = dynamic_cast<ext::SMPMultiThread *>( &smpRep->startMultiWorker( 0, NULL ) );
+         if ( _pmInterface->getInternalDataSize() > 0 )
+            smpRepThd->getThreadWD().setInternalData(NEW char[_pmInterface->getInternalDataSize()]);
+         _pmInterface->setupWD( smpRepThd->getThreadWD() );
+         _workers.push_back( smpRepThd ); 
       }
    }
 #endif
@@ -414,7 +428,8 @@ else
    switch ( getInitialMode() )
    {
       case POOL:
-         createTeam( _workers.size() + ( _net.getNumNodes() ) );
+         //createTeam( ( _net.getNodeNum() == 0 ) ? _workers.size() + ( _net.getNumNodes() ) : _workers.size() );
+         createTeam( _workers.size() );
          break;
       case ONE_THREAD:
          createTeam(1);

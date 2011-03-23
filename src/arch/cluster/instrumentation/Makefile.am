@@ -23,7 +23,7 @@ include $(top_srcdir)/src/common.am
 if INSTRUMENTATION_VERSION
 noinst_LTLIBRARIES = libcluster.la
 
-nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags)
+nanos_instr_cxxflags=$(common_includes) $(cluster_common_instr_cxxflags)
 
 libcluster_la_CXXFLAGS=$(nanos_instr_cxxflags)
 libcluster_la_SOURCES=$(cluster_sources)
@@ -49,6 +49,13 @@ instrumentation_LTLIBRARIES += libnanox-pe-cluster-smp.la
 libnanox_pe_cluster_smp_la_CXXFLAGS=$(nanos_instr_cxxflags) $(pe_cluster_smp_includes)
 libnanox_pe_cluster_smp_la_LDFLAGS=$(ld_plugin_flags) $(pe_cluster_smp_ldflags)
 libnanox_pe_cluster_smp_la_SOURCES=$(pe_cluster_sources)
+endif
+
+if CONDUIT_IBV
+instrumentation_LTLIBRARIES += libnanox-pe-cluster-ibv.la
+libnanox_pe_cluster_ibv_la_CXXFLAGS=$(nanos_instr_cxxflags) $(pe_cluster_ibv_includes)
+libnanox_pe_cluster_ibv_la_LDFLAGS=$(ld_plugin_flags) $(pe_cluster_ibv_ldflags)
+libnanox_pe_cluster_ibv_la_SOURCES=$(pe_cluster_sources)
 endif
 
 endif

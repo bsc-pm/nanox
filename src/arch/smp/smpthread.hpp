@@ -102,8 +102,10 @@ namespace ext
          const SMPMultiThread & operator= ( const SMPMultiThread &th );
 
       public:
+         typedef std::list< BaseThread * >::iterator iterator;
          // constructor
          SMPMultiThread( WD &w, PE *pe, unsigned int representingPEsCount, PE **representingPEs ) : SMPThread ( w, pe ) {
+            setCurrentWD( w );
             for ( unsigned int i = 0; i < representingPEsCount; i++ )
             {
                _threadList.push_back( &( representingPEs[ i ]->startWorker( this ) ) );
@@ -113,8 +115,13 @@ namespace ext
          // destructor
          virtual ~SMPMultiThread() { }
 
+         std::list< BaseThread * >& getThreadList() { return _threadList; }
+
          virtual BaseThread * getNextThread()
          {
+            if ( _threadList.size() == 0 )
+               return this;
+
             BaseThread *nextThread = _threadList.front();
             _threadList.pop_front();
             _threadList.push_back( nextThread );

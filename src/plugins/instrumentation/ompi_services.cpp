@@ -1,4 +1,5 @@
 #include "system.hpp"
+#include "smpthread.hpp"
 #ifdef GPU_DEV
 #include "gpuconfig.hpp"
 #endif
@@ -27,8 +28,12 @@ extern "C" {
 
    unsigned int nanos_extrae_get_thread_num ( void )
    { 
-      if ( myThread == NULL ) return 0;
-      else return myThread->getId(); 
+      if ( myThread == NULL )
+         return 0;
+      else if ( myThread->getParent() != NULL )
+         return myThread->getParent()->getId();
+      else
+         return myThread->getId(); 
    }
 
    void nanos_extrae_instrumentation_barrier ( void )

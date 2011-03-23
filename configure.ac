@@ -163,6 +163,7 @@ AC_ARG_ENABLE([cluster],
 with_mpi_conduit="no"
 with_udp_conduit="no"
 with_smp_conduit="no"
+with_ibv_conduit="no"
 if test x$cluster_enabled = xyes; then
     CFLAGS="$CFLAGS -DCLUSTER_DEV"
     CXXFLAGS="$CXXFLAGS -DCLUSTER_DEV"
@@ -177,7 +178,17 @@ if test x$cluster_enabled = xyes; then
     	GASNET_DIR=/opt/gasnet
           ])
 
+    AC_ARG_WITH([mpi],
+          AS_HELP_STRING([--with-mpi=dir], [Directory of MPI installation]),
+          [
+    	MPI_DIR="${withval}"
+          ],
+          [
+    	MPI_DIR=/opt/mpi
+          ])
+
     AC_SUBST([GASNET_DIR])
+    AC_SUBST([MPI_DIR])
     CONDUITS=`ls -d $GASNET_DIR/include/*-conduit | sed -e "s#$GASNET_DIR/include/##" | cut -d - -f 1`
     for this_conduit in $CONDUITS ; do
         if test x$this_conduit = xmpi ; then
@@ -191,11 +202,16 @@ if test x$cluster_enabled = xyes; then
         if test x$this_conduit = xsmp ; then
             with_smp_conduit="yes"
         fi
+
+        if test x$this_conduit = xibv ; then
+            with_ibv_conduit="yes"
+        fi
     done
 fi
 AM_CONDITIONAL([CONDUIT_MPI], [test x$with_mpi_conduit = xyes])
 AM_CONDITIONAL([CONDUIT_UDP], [test x$with_udp_conduit = xyes])
 AM_CONDITIONAL([CONDUIT_SMP], [test x$with_smp_conduit = xyes])
+AM_CONDITIONAL([CONDUIT_IBV], [test x$with_ibv_conduit = xyes])
 
 # Check if it has nVidia GPUs / CUDA is installed
 gpu_valid=no

@@ -89,7 +89,7 @@ using namespace ext;
 
 extern char **environ;
 
-#if 0
+#if 1
 static void inspect_environ(void)
 {
 	int i = 0;
@@ -113,7 +113,7 @@ Lock put_req_vector_lock;
 
 void enqueue_put_request( unsigned int dest, void *origAddr, void *destAddr, size_t len)
 {
-   struct put_req_desc *prd = new struct put_req_desc();
+   struct put_req_desc *prd = NEW struct put_req_desc();
    //fprintf(stderr, "enqueue req to node %d\n", dest);
    prd->dest = dest;
    prd->origAddr = origAddr;
@@ -184,7 +184,7 @@ static void am_work(gasnet_token_t token, void *arg, size_t argSize,
 
     if ( work_data == NULL )
     {
-       work_data = new char[ argSize ];
+       work_data = NEW char[ argSize ];
        memcpy( work_data, arg, argSize );
        realSize = argSize;
     }
@@ -303,7 +303,7 @@ static void am_work_data(gasnet_token_t token, void *buff, size_t len,
    {
       if (work_data != NULL)
          delete work_data;
-      work_data = new char[ totalLen ];
+      work_data = NEW char[ totalLen ];
       work_data_len = 0;
    }
    memcpy( &work_data[ work_data_len ], buff, len );
@@ -555,6 +555,8 @@ void GASNetAPI::initialize ( Network *net )
    
    _net = net;
 
+   inspect_environ();
+
    gasnet_handlerentry_t htable[] = {
       { 203, (void (*)()) am_exit },
       { 204, (void (*)()) am_exit_reply },
@@ -591,7 +593,7 @@ void GASNetAPI::initialize ( Network *net )
 
    for (unsigned int i = 0; i < _net->getNumNodes(); i++ )
    {
-      _getRequests.push_back( new GetRequestCtl );
+      _getRequests.push_back( NEW GetRequestCtl );
    }
 
    nodeBarrier();
@@ -633,7 +635,7 @@ void GASNetAPI::initialize ( Network *net )
          fprintf(stderr, "\tnode %d: @=%p, len=%p\n", idx, seginfoTable[ idx ].addr, (void *) seginfoTable[ idx ].size);
          ClusterInfo::addSegments( gasnet_nodes(), segmentAddr, segmentLen );
       }
-      _thisNodeSegment = new SimpleAllocator( ( uintptr_t ) ClusterInfo::getSegmentAddr( 0 ), ClusterInfo::getSegmentLen( 0 ) );
+      _thisNodeSegment = NEW SimpleAllocator( ( uintptr_t ) ClusterInfo::getSegmentAddr( 0 ), ClusterInfo::getSegmentLen( 0 ) );
    }
 }
 
@@ -659,7 +661,10 @@ void GASNetAPI::poll ()
          //fprintf(stderr, "process req to node %d / queue size %d\n", prd->dest, put_req_vector.size());
 
          //void GASNetAPI::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size )
+   NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_IN, key, (nanos_event_value_t) prd->len) );
          put(prd->dest, (uint64_t) prd->destAddr, prd->origAddr, prd->len);
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
 
          put_req_vector.pop_front();
          //  fprintf(stderr, "del prd %p size %d\n", prd, put_req_vector.size());

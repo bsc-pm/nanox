@@ -177,7 +177,7 @@ inline void Scheduler::idleLoop ()
             continue;
          }
       }
-      sys.getNetwork()->poll();
+      //sys.getNetwork()->poll();
 
 
       if ( spins == 0 ) {
@@ -333,37 +333,40 @@ void Scheduler::workerClusterLoop ()
    for ( ; ; ) {
       if ( !parent->isRunning() ) break;
 
-      if ( !myThread->isWorking() )
+      if ( parent != myThread ) // if parent == myThread, then there are no "soft" threads and just do nothing but polling.
       {
-         if ( myThread->getTeam() != NULL ) {
-            WD *current = myThread->getCurrentWD();
-            if ( current != &( myThread->getThreadWD() ) )
-            {
-               Scheduler::postOutlineWork(current);
-               delete current;
-            }
+         if ( !myThread->isWorking() )
+         {
+            if ( myThread->getTeam() != NULL ) {
+               WD *current = myThread->getCurrentWD();
+               if ( current != &( myThread->getThreadWD() ) )
+               {
+                  Scheduler::postOutlineWork(current);
+                  delete current;
+               }
 
-            WD * wd = myThread->getNextWD();
+               WD * wd = myThread->getNextWD();
 
-            if ( wd )
-            {
-               myThread->setNextWD(NULL);
-            }
-            else
-            {
-               wd = myThread->getTeam()->getSchedulePolicy().atIdle ( myThread );
-            }
-            if ( wd )
-            {
-               Scheduler::preOutlineWork(wd);
-               myThread->outlineWorkDependent(*wd);
+               if ( wd )
+               {
+                  myThread->setNextWD(NULL);
+               }
+               else
+               {
+                  wd = myThread->getTeam()->getSchedulePolicy().atIdle ( myThread );
+               }
+               if ( wd )
+               {
+                  Scheduler::preOutlineWork(wd);
+                  myThread->outlineWorkDependent(*wd);
+               }
             }
          }
+         //else
+         //{
+         //   std::cerr << "Thread " << myThread->getId() << " already working" << std::endl;
+         //}
       }
-      //else
-      //{
-      //   std::cerr << "Thread " << myThread->getId() << " already working" << std::endl;
-      //}
       sys.getNetwork()->poll();
       myThread = myThread->getNextThread();
    }
@@ -409,8 +412,7 @@ void Scheduler::preOutlineWork ( WD *wd )
    //   syncCond->unlock();
    //}
 
-   //std::cerr << "thd " << myThread->getId() <<  " switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
-   //       " to " << wd << ":" << wd->getId() << std::endl;
+   //std::cerr << "thd " << myThread->getId() <<  " switching(outlined) to task " << wd << ":" << wd->getId() << std::endl;
    //debug( "switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
    //       " to " << wd << ":" << wd->getId() );
 
@@ -423,7 +425,7 @@ void Scheduler::preOutlineWork ( WD *wd )
    if (!wd->started())
       wd->init();
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
+   //NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
 }
 
 void Scheduler::postOutlineWork ( WD *wd, bool schedule )
@@ -439,7 +441,7 @@ void Scheduler::postOutlineWork ( WD *wd, bool schedule )
 
    wd->done();
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, false) );
+   //NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, false) );
 
 
    //std::cerr << "thd " << myThread->getId() << "exiting task(inlined) " << wd << ":" << wd->getId() <<
@@ -484,9 +486,9 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    // This ensures that when we return from the inlining is still the same thread
    // and we don't violate rules about tied WD
    wd->tieTo(*oldwd->isTiedTo());
+   thread->setCurrentWD( *wd );
    if (!wd->started())
       wd->init();
-   thread->setCurrentWD( *wd );
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
    myThread->inlineWorkDependent(*wd);
