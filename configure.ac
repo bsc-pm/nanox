@@ -223,11 +223,11 @@ AC_ARG_ENABLE([instrumentation-debug],
     then
         instrumentation_debug_disabled="no"
         AC_MSG_RESULT([yes])
+        USED_VERSION="instrumentation-debug"
     else if test x$enableval = xno;
          then
             AC_MSG_RESULT([no])
             instrumentation_debug_disabled="yes"
-            USED_VERSION="instrumentation-debug"
          else
             AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
          fi
