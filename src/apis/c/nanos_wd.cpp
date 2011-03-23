@@ -205,7 +205,7 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *
 // data must be not null
 nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align, void * data,
                                       size_t num_deps, nanos_dependence_t *deps, nanos_wd_props_t *props,
-                                      size_t num_copies, nanos_copy_data_t *copies )
+                                      size_t num_copies, nanos_copy_data_t *copies, nanos_translate_args_t translate_args )
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","create_wd_and_run", NANOS_CREATION) );
 
@@ -218,6 +218,7 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
       
 
       WD wd( ( DD* ) devices[0].factory( chunk, devices[0].arg ), data_size, data_align, data, num_copies, copies );
+      wd.setTranslateArgs( translate_args );
 
       int pmDataSize = sys.getPMInterface().getInternalDataSize();
       char pmData[pmDataSize];
