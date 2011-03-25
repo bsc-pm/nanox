@@ -76,13 +76,11 @@ extern void omp_set_lock(omp_lock_t *lock);
 extern void omp_unset_lock(omp_lock_t *lock);
 extern int  omp_test_lock(omp_lock_t *lock);
 
-/* TODO:
 extern void omp_init_nest_lock(omp_nest_lock_t *lock);
 extern void omp_destroy_nest_lock(omp_nest_lock_t *lock);
 extern void omp_set_nest_lock(omp_nest_lock_t *lock);
 extern void omp_unset_nest_lock(omp_nest_lock_t *lock);
 extern int  omp_test_nest_lock(omp_nest_lock_t *lock);
-*/
 
 extern double omp_get_wtime(void);
 extern double omp_get_wtick(void);
