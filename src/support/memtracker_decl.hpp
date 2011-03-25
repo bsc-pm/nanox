@@ -68,10 +68,12 @@ class MemTracker
       size_t      _maxMem;
 
       Lock        _lock;
+      bool        _showStats;
 
   public:
 
-      MemTracker() : _blocks(),_stats(), _totalMem( 0 ), _numBlocks( 0 ),_maxMem( 0 ), _lock() {}
+      MemTracker();
+
       ~MemTracker() { showStats(); }
 
       void *allocate ( size_t size, const char *file = 0, int line = 0 );
