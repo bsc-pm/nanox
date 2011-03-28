@@ -23,8 +23,18 @@
 
 #include "memtracker_decl.hpp"
 #include "allocator.hpp"
+#include "config.hpp"
 
 namespace nanos {
+
+      inline MemTracker::MemTracker() : _blocks(),_stats(), _totalMem( 0 ), _numBlocks( 0 ),_maxMem( 0 ), _lock(), _showStats( false )
+      {
+         Config config;
+         config.registerConfigOption ( "mem-stats", NEW Config::FlagOption( _showStats ), "Show memory leak stats" );
+         config.registerArgOption ( "mem-stats", "mem-stats" );
+         config.registerEnvOption ( "mem-stats", "NX_DEBUG_MEM_STATS" );
+         config.init();
+      }
 
       inline void * MemTracker::allocate ( size_t size, const char *file, int line )
       {
@@ -83,6 +93,8 @@ namespace nanos {
 
       inline void MemTracker::showStats ()
       {
+        if ( !_showStats )
+           return;
 	message0("======================= General Memory stats ============");
 	message0("# blocks              " << _numBlocks);
 	message0("total unfreed memory  " << _totalMem << " bytes");

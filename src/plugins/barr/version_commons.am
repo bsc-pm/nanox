@@ -7,7 +7,7 @@ posix_sources = \
 	$(top_srcdir)/src/plugins/barr/posix_barrier.cpp \
 	$(END)
 
-dissem_sources = \
+dissemination_sources = \
 	$(top_srcdir)/src/plugins/barr/dissem_barrier.cpp \
 	$(END)
 

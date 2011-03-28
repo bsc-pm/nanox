@@ -442,7 +442,7 @@ bool create_and_run_test()
    arg.p_i = &other_value;
    nanos_device_t test_devices_2[1] = { NANOS_SMP_DESC( test_device_arg_1 ) };
 
-   NANOS_SAFE( nanos_create_wd_and_run( 1, test_devices_2, sizeof(my_args), __alignof__(my_args),  (void *)&arg, 100, &deps2[0], &props , 0, NULL) );
+   NANOS_SAFE( nanos_create_wd_and_run( 1, test_devices_2, sizeof(my_args), __alignof__(my_args),  (void *)&arg, 100, &deps2[0], &props , 0, NULL, NULL ) );
 
    for ( j = 0; j < 100; j++ ) {
     if ( my_value[j] != 0 ) return false;

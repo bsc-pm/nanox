@@ -50,8 +50,8 @@ void first( void *ptr )
 {
    int i,j;
    my_args local;
-   nanos_copy_value( (void *)&local.a, 0 );
-   nanos_get_addr( 1, (void **)&local.b );
+   nanos_copy_value( (void *)&local.a, 0, nanos_current_wd() );
+   nanos_get_addr( 1, (void **)&local.b, nanos_current_wd() );
 
    for (i=0; i < local.a; i++) {
       submit_task( TASK_2, i, local.b );
@@ -73,8 +73,8 @@ void second( void *ptr )
    int i;
 
    my_args local;
-   nanos_copy_value( &local.a, 0 );
-   nanos_get_addr( 1, (void **)&local.b );
+   nanos_copy_value( &local.a, 0, nanos_current_wd() );
+   nanos_get_addr( 1, (void **)&local.b, nanos_current_wd() );
 
    printf( "Checking for copy-in correctness...  " );
    for (i=0; i < 10; i++) {

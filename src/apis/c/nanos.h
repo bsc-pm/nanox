@@ -29,7 +29,7 @@
 
 #ifdef _MERCURIUM
 // define API version
-#pragma nanos interface family(master) version(5004)
+#pragma nanos interface family(master) version(5005)
 #endif
 
 // data types
@@ -85,7 +85,7 @@ nanos_err_t nanos_submit ( nanos_wd_t wd, size_t num_deps, nanos_dependence_t *d
 
 nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align, void * data,
                                       size_t num_deps, nanos_dependence_t *deps, nanos_wd_props_t *props,
-                                      size_t num_copies, nanos_copy_data_t *copies );
+                                      size_t num_copies, nanos_copy_data_t *copies, nanos_translate_args_t translate_args );
 
 nanos_err_t nanos_create_for ( void );
 
@@ -130,9 +130,9 @@ nanos_err_t nanos_try_lock ( nanos_lock_t *lock, bool *result );
 nanos_err_t nanos_destroy_lock ( nanos_lock_t *lock );
 
 // Device copies
-nanos_err_t nanos_get_addr ( nanos_copy_id_t copy_id, void **addr );
+nanos_err_t nanos_get_addr ( nanos_copy_id_t copy_id, void **addr, nanos_wd_t cwd );
 
-nanos_err_t nanos_copy_value ( void *dst, nanos_copy_id_t copy_id );
+nanos_err_t nanos_copy_value ( void *dst, nanos_copy_id_t copy_id, nanos_wd_t cwd );
 
 // system interface
 nanos_err_t nanos_get_num_running_tasks ( int *num );

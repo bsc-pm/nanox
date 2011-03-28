@@ -39,8 +39,8 @@ void first( void *ptr )
 
    my_args *args = (my_args *)ptr;
    my_args local;
-   nanos_copy_value( &local.a, 0 );
-   nanos_get_addr( 1, (void **)&local.b );
+   nanos_copy_value( &local.a, 0, nanos_current_wd() );
+   nanos_get_addr( 1, (void **)&local.b, nanos_current_wd() );
 
    if ( args->a != local.a ) {
       printf( "Error private argument is incorrect, %d in args and %d through the copies  FAIL\n", args->a, local.a );

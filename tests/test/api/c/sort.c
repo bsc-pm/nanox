@@ -650,7 +650,7 @@ void cilkmerge_par(ELM *low1, ELM *high1, ELM *low2, ELM *high2, ELM *lowdest)
             imm_args.lowdest = lowdest;
 
             NANOS_SAFE( nanos_create_wd_and_run( 1, cilkmerge_par_1_devices_1 , sizeof( cilkmerge_par_1_args ), __alignof__(cilkmerge_par_1_args),
-                                       &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, NULL ) );
+                                       &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, NULL, NULL ) );
          }
 #endif
 
@@ -682,7 +682,7 @@ void cilkmerge_par(ELM *low1, ELM *high1, ELM *low2, ELM *high2, ELM *lowdest)
             imm_args.lowdest = lowdest + lowsize + 2;
 
             NANOS_SAFE( nanos_create_wd_and_run ( 1, cilkmerge_par_1_devices_1 , sizeof( cilkmerge_par_1_args ), __alignof__(cilkmerge_par_1_args),
-                                       &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, NULL ) );
+                                       &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, NULL, NULL ) );
          }
 #endif
 
@@ -818,7 +818,7 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
             imm_args.size = quarter;
 
             NANOS_SAFE( nanos_create_wd_and_run ( 1, cilksort_par_1_devices_1 , sizeof( cilksort_par_1_args ), __alignof__(cilksort_par_1_args),
-                                       &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, NULL ) );
+                                       &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, NULL, NULL ) );
          }
 #endif
 
@@ -846,7 +846,7 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
             imm_args.size = quarter;
 
             NANOS_SAFE( nanos_create_wd_and_run ( 1, cilksort_par_1_devices_1 , sizeof( cilksort_par_1_args ), __alignof__(cilksort_par_1_args),
-                                       &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, NULL ) );
+                                       &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, NULL, NULL ) );
          }
 #endif
 
@@ -874,7 +874,7 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
             imm_args.size = quarter;
 
             NANOS_SAFE( nanos_create_wd_and_run ( 1, cilksort_par_1_devices_1 , sizeof( cilksort_par_1_args ), __alignof__(cilksort_par_1_args),
-                                       &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, NULL ) );
+                                       &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, NULL, NULL ) );
          }
 #endif
 
@@ -902,7 +902,7 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
             imm_args.size = size - 3 * quarter;
 
             NANOS_SAFE( nanos_create_wd_and_run ( 1, cilksort_par_1_devices_1 , sizeof( cilksort_par_1_args ), __alignof__(cilksort_par_1_args),
-                                       &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, NULL ) );
+                                       &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, NULL, NULL ) );
          }
 #endif
 
@@ -991,7 +991,7 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
             imm_args.lowdest = tmpA;
 
             NANOS_SAFE( nanos_create_wd_and_run ( 1, cilkmerge_par_1_devices_1 , sizeof( cilkmerge_par_1_args ), __alignof__(cilkmerge_par_1_args),
-                                       &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, NULL ) );
+                                       &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, NULL, NULL ) );
          }
 #endif
 
@@ -1023,7 +1023,7 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
             imm_args.lowdest = tmpC;
 
             NANOS_SAFE( nanos_create_wd_and_run ( 1, cilkmerge_par_1_devices_1 , sizeof( cilkmerge_par_1_args ), __alignof__(cilkmerge_par_1_args),
-                                       &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, NULL ) );
+                                       &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, NULL, NULL ) );
          }
 #endif
 
