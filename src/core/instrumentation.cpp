@@ -20,6 +20,7 @@
 
 #include "instrumentationcontext.hpp"
 #include "system.hpp"
+#include "compatibility.hpp"
 #include "workdescriptor.hpp"
 #include <alloca.h>
 
@@ -56,7 +57,7 @@ void Instrumentation::returnPreviousStateEvent ( Event *e )
 void Instrumentation::createBurstEvent ( Event *e, nanos_event_key_t key, nanos_event_value_t value )
 {
    /* Creating burst  event */
-   Event::KV kv( key, value );
+   Event::KV *kv = NEW Event::KV( key, value );
    new (e) Burst( true, kv );
 
    InstrumentationContextData *icd = myThread->getCurrentWD()->getInstrumentationContextData();
@@ -137,59 +138,41 @@ void Instrumentation::createPtPEnd ( Event *e, nanos_event_domain_t domain, nano
 void Instrumentation::createDeferredPointEvent ( WorkDescriptor &wd, unsigned int nkvs, nanos_event_key_t *keys,
                                       nanos_event_value_t *values )
 {
-   /* Creating an Event::KV vector */
-   Event::KVList kvlist = NEW Event::KV[nkvs];
+   Event e; /* Event */
 
-   /* Initializing kvlist elements */
-   for ( unsigned int i = 0; i < nkvs; i++ ) {
-      kvlist[i] = Event::KV ( keys[i], values[i] );
-   }
-
-   /* Creating a point event */
-   Event *e = NEW Point( nkvs, kvlist );
-
+   /* Create point event */
+   createPointEvent ( &e, nkvs, keys, values );
+   
    /* Inserting event into deferred event list */
    InstrumentationContextData *icd = wd.getInstrumentationContextData();                                             
-   _instrumentationContext.insertDeferredEvent( icd, *e );
+   _instrumentationContext.insertDeferredEvent( icd, e );
 
 }
 
 void Instrumentation::createDeferredPtPStart ( WorkDescriptor &wd, nanos_event_domain_t domain, nanos_event_id_t id,
                       unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
 {
-   /* Creating an Event::KV vector */
-   Event::KVList kvlist = NEW Event::KV[nkvs];
+   Event e; /* Event */
 
-   /* Initializing kvlist elements */
-   for ( unsigned int i = 0; i < nkvs; i++ ) {
-      kvlist[i] = Event::KV ( keys[i], values[i] );
-   }
-
-   /* Creating a PtP (start) event */
-   Event *e = NEW PtP( true, domain, id, nkvs, kvlist );
+   /* Create event: PtP */
+   createPtPStart( &e, domain, id, nkvs, keys, values );
 
    /* Inserting event into deferred event list */
    InstrumentationContextData *icd = wd.getInstrumentationContextData();                                             
-   _instrumentationContext.insertDeferredEvent( icd, *e );
+   _instrumentationContext.insertDeferredEvent( icd, e );
 }
 
 void Instrumentation::createDeferredPtPEnd ( WorkDescriptor &wd, nanos_event_domain_t domain, nanos_event_id_t id,
                       unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
 {
-   /* Creating an Event::KV vector */
-   Event::KVList kvlist = NEW Event::KV[nkvs];
+   Event e; /* Event */
 
-   /* Initializing kvlist elements */
-   for ( unsigned int i = 0; i < nkvs; i++ ) {
-      kvlist[i] = Event::KV ( keys[i], values[i] );
-   }
-
-   /* Creating a PtP (end) event */
-   Event *e = NEW PtP( false, domain, id, nkvs, kvlist );
+   /* Create event: PtP */
+   createPtPEnd( &e, domain, id, nkvs, keys, values );
 
    /* Inserting event into deferred event list */
    InstrumentationContextData *icd = wd.getInstrumentationContextData();                                             
-   _instrumentationContext.insertDeferredEvent( icd, *e );
+   _instrumentationContext.insertDeferredEvent( icd, e );
 }
 /* ************************************************************************** */
 /* ***                   T H R O W I N G   E V E N T S                    *** */
@@ -341,33 +324,20 @@ void Instrumentation::raiseCloseStateAndBurst ( nanos_event_key_t key )
 
 void Instrumentation::wdCreate( WorkDescriptor* newWD )
 {
+   Event e; /* Event */
+
    /* Gets key for wd-id bursts and wd->id as value*/
    static nanos_event_key_t key = getInstrumentationDictionary()->getEventKey("wd-id");
    nanos_event_value_t wd_id = newWD->getId();
-
-   /* Creating key value and Burst event */
-   Event::KV kv( key, wd_id );
-   Event *e = NEW Burst( true, kv );
+   
+   /* Create event: BURST */
+   createBurstEvent( &e, key, wd_id );
 
    /* Update InstrumentationContextData */
    InstrumentationContextData *icd = newWD->getInstrumentationContextData();
-   _instrumentationContext.insertBurst( icd, *e );
+   _instrumentationContext.insertBurst( icd, e );
    _instrumentationContext.pushState( icd, NANOS_RUNTIME );
 }
-
-//
-// Dan Tsafrir [11/2/2011]: ugly hack to match the ugliness it fixes.
-//
-// Explanation:
-//
-// For the statements to which this macro is applied, gcc-4.1
-//   (a) creates a temporary,
-//   (b) copies it using the copy ctor to another temporary,
-//   (c) invokes the operator=.
-// But since the copy ctor in (b) does not exist => compile error.
-// This macro prevents (b) from happening.
-//
-#define ASSIGN_EVENT(event,type,args) do {type tmp_event args; event = tmp_event;} while(0)
 
 void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bool last )
 {
@@ -381,7 +351,7 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
    /* Computing number of leaving wd related events*/
    if ( oldWD!=NULL ) {
       /* Getting Instrumentation Context */
-      if (oldWD!=NULL) old_icd = oldWD->getInstrumentationContextData();
+      old_icd = oldWD->getInstrumentationContextData();
 
       oldPtP = last ? 0 : 1;
       if ( _instrumentationContext.showStackedStates () ) {
@@ -421,6 +391,7 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
    /* Allocating Events */
    unsigned int numEvents = oldPtP + oldStates + oldSubStates + oldBursts
                           + newPtP + newStates + newSubStates + newBursts + newDeferred;
+
    Event *e = (Event *) alloca(sizeof(Event) * numEvents );
 
    /* Creating leaving wd events */
@@ -515,6 +486,9 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
 
    /* Spawning 'numEvents' events: specific instrumentation call */
    addEventList ( numEvents, e );
+
+   /* Calling array event's destructor: cleaning events */
+   for ( i = 0; i <numEvents; i++ ) e[i].~Event();
 }
 
 void Instrumentation::enableStateEvents()

@@ -59,6 +59,8 @@ void GPUThread::initializeDependent ()
 
    // Reset CUDA errors that may have occurred inside the runtime initialization
    err = cudaGetLastError();
+   if ( err != cudaSuccess )
+      warning( "CUDA errors occurred during initialization:" << cudaGetErrorString( err ) );
 }
 
 void GPUThread::runDependent ()

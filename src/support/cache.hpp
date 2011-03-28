@@ -39,8 +39,12 @@ inline unsigned int Cache::getId() const
 inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
 {
    bool didCopyIn = false;
-   DirectoryEntry *de = dir.getEntry( tag );
    CacheEntry *ce;
+   ce = _cache.getEntry( tag );
+   unsigned int version=0;
+   if ( ce != NULL ) version = ce->getVersion()+1;
+   DirectoryEntry *de = dir.getEntry( tag, version );
+
    if ( de == NULL ) { // Memory access not registered in the directory
       bool inserted;
       DirectoryEntry d = DirectoryEntry( tag, 0, ( output ? &_cache : NULL ), dir.getCacheMapSize() );
@@ -49,6 +53,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
          if ( output ) {
             de->setOwner(&_cache);
             de->setInvalidated(false);
+            ce->setFlushTo( &dir );
          }
       }
 
@@ -69,7 +74,6 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
    } else {
       // DirectoryEntry exists
       bool inserted = false;
-      ce = _cache.getEntry( tag );
       if ( ce == NULL ) {
          // Create a new CacheEntry
          CacheEntry c = CacheEntry( NULL, size, tag, 0, output, input );
@@ -94,6 +98,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                de->setOwner( &_cache );
                de->setInvalidated( false );
                de->increaseVersion();
+               ce->setFlushTo( &dir );
             }
             ce->setVersion( de->getVersion() );
          } else {        // wait for address
@@ -224,6 +229,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
             de->setInvalidated(false);
             de->increaseVersion();
             ce->increaseVersion();
+            ce->setFlushTo( &dir );
             ensure( de->getVersion() == ce->getVersion(), "Version mismatch between cache and directory entry.");
          }
       }
@@ -276,7 +282,6 @@ inline void WriteThroughPolicy::unregisterCacheAccess( Directory& dir, uint64_t 
          de->setOwner( NULL );
       } else {
          ce->setFlushing( true );
-         ce->setFlushingTo( &dir );
          ce->setDirty( false );
       }
    }
@@ -337,7 +342,6 @@ inline void DeviceCache<_T,_Policy>::freeSpaceToFit( Directory &dir, size_t size
       if ( ce.isDirty() ) {
          DirectoryEntry *de = dir.getEntry( ce.getTag() );
          if ( ce.trySetToFlushing() ) {
-            ce.setFlushingTo( &dir );
             if ( de->getOwner() != this ) {
                   // someone flushed it between setting to invalidated and setting to flushing, do nothing
                   ce.setFlushing(false);
@@ -504,9 +508,9 @@ inline void DeviceCache<_T,_Policy>::synchronizeInternal( SyncData &sd, CopyDesc
    ensure( ce != NULL, "Cache has been corrupted" );
    if ( ce->isFlushing() ) {
       ce->setFlushing(false);
-      Directory* dir = ce->getFlushingTo();
+      Directory* dir = ce->getFlushTo();
       ensure( dir != NULL, "CopyBack sync lost its directory");
-      ce->setFlushingTo(NULL);
+      ce->setFlushTo(NULL);
       DirectoryEntry *de = dir->getEntry( cd.getTag() );
       ensure ( !ce->isCopying(), "User program is incorrect" );
       ensure( de != NULL, "Directory has been corrupted" );
@@ -569,7 +573,6 @@ inline void DeviceCache<_T,_Policy>::invalidate( Directory &dir, uint64_t tag, D
    CacheEntry *ce = _cache.find( tag );
    if ( de->trySetInvalidated() ) {
       if ( ce->trySetToFlushing() ) {
-         ce->setFlushingTo( &dir );
          if ( de->getOwner() != this ) {
                // someone flushed it between setting to invalidated and setting to flushing, do nothing
                ce->setFlushing(false);
@@ -590,7 +593,6 @@ inline void DeviceCache<_T,_Policy>::invalidate( Directory &dir, uint64_t tag, s
    CacheEntry *ce = _cache.find( tag );
    if ( de->trySetInvalidated() ) {
       if ( ce->trySetToFlushing() ) {
-         ce->setFlushingTo( &dir );
          if ( de->getOwner() != this ) {
                // someone flushed it between setting to invalidated and setting to flushing, do nothing
                ce->setFlushing(false);

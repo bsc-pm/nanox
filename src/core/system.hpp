@@ -121,7 +121,7 @@ inline void System::setDefaultArch( const std::string &arch ) { _defArch = arch;
 
 inline void System::setPMInterface(PMInterface *pm)
 {
-   ensure(!_pmInterface,"PM interface already in place!");
+   ensure0(!_pmInterface,"PM interface already in place!");
    _pmInterface = pm;
 }
 

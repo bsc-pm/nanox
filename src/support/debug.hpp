@@ -57,17 +57,17 @@ namespace nanos
 #define fatal_cond(cond,msg) if ( cond ) fatal(msg);
 #define fatal_cond0(cond,msg) if ( cond ) fatal0(msg);
 
+#define warning(msg) { std::cerr << "WARNING: [" << getMyThreadSafe()->getId() << "]" << msg << std::endl; }
+#define warning0(msg) { std::cerr << "WARNING: [?]" << msg << std::endl; }
+
 #define message(msg) \
-   std::cerr << "MSG: [" << getMyThreadSafe()->getId() << "]" << msg << std::endl;
+   std::cerr << "MSG: [" << getMyThreadSafe()->getId() << "] " << msg << std::endl;
 #define message0(msg) \
-   std::cerr << "MSG: [?]" << msg << std::endl;
+   std::cerr << "MSG: [?] " << msg << std::endl;
 
 #ifdef NANOS_DEBUG_ENABLED
 #define ensure(cond,msg) if ( !(cond) ) throw nanos::FailedAssertion(__FILE__, __LINE__ , #cond, msg, getMyThreadSafe()->getId());
 #define ensure0(cond,msg) if ( !(cond) ) throw nanos::FailedAssertion(__FILE__, __LINE__, #cond, msg );
-
-#define warning(msg) { std::cerr << "WARNING: [" << getMyThreadSafe()->getId() << "]" << msg << std::endl; }
-#define warning0(msg) { std::cerr << "WARNING: [?]" << msg << std::endl; }
 
 #define verbose(msg) \
    if (sys.getVerbose()) std::cerr << "[" << getMyThreadSafe()->getId() << "]" << msg << std::endl;
@@ -81,8 +81,6 @@ namespace nanos
 #else
 #define ensure(cond,msg)
 #define ensure0(cond,msg)
-#define warning(msg)
-#define warning0(msg)
 #define verbose(msg)
 #define verbose0(msg)
 #define debug(msg)

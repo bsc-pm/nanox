@@ -1,5 +1,4 @@
 /*************************************************************************************/
-/*      Copyright 2010 Barcelona Supercomputing Center                               */
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
@@ -17,37 +16,28 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+#ifndef _NANOS_NEW_DECL
+#define _NANOS_NEW_DECL
 
-#ifndef NANOS_CHPL_H
-#define NANOS_CHPL_H
+#include <new>
 
-#include <stdbool.h>
+#ifdef NANOS_DEBUG_ENABLED
 
-#ifdef __cplusplus
-#define _Bool bool
-extern "C" {
+   #define NEW new(__FILE__, __LINE__)
+
+   void* operator new ( size_t size, const char *file, int line );
+   void* operator new[] ( size_t size, const char *file, int line );
+
+#else
+
+   #define NEW new
+
 #endif
 
-typedef int chpl_taskID_t;
-#define chpl_nullTaskID 0
-
-typedef void * chpl_mutex_t;
-
-typedef struct {
-   bool is_full;
-   void *empty;
-   void *full;
-   void *lock;
-} chpl_sync_aux_t;
-
-#include <chpltypes.h>
-#include <chpltasks.h>
-
-void nanos_chapel_pre_init ( void * );
-
-#ifdef __cplusplus
-}
-#endif
+void* operator new ( size_t size );
+void* operator new[] ( size_t size );
+void  operator delete ( void *p );
+void  operator delete[] ( void *p );
 
 #endif
 
