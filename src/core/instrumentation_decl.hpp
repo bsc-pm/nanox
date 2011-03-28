@@ -575,7 +575,7 @@ namespace nanos {
           *  \param[in] key is the key in the related  pair <key,value>
           *  \param[in] value is the value in related pair <key,value>
           */
-         void  createBurstEvent ( Event *e, nanos_event_key_t key, nanos_event_value_t value );
+         void  createBurstEvent ( Event *e, nanos_event_key_t key, nanos_event_value_t value, InstrumentationContextData *icd = NULL );
 
          /*! \brief Used by higher levels to create a BURST_END event
           *
@@ -583,7 +583,7 @@ namespace nanos {
           *  \param[in] key is the key in the related  pair <key,value>
           *  \param[in] value is the value in related pair <key,value>
           */
-         void closeBurstEvent ( Event *e, nanos_event_key_t key );
+         void closeBurstEvent ( Event *e, nanos_event_key_t key, InstrumentationContextData *icd = NULL );
 
          /*! \brief Used by higher levels to create a STATE event
           *
