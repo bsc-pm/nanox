@@ -21,7 +21,7 @@
 #include "system.hpp"
 #include <cstdlib>
 #include "config.hpp"
-#include "omp_data.hpp"
+#include "omp_wd_data.hpp"
 
 using namespace nanos;
 

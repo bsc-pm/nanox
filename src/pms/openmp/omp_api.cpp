@@ -21,7 +21,7 @@
 #include "basethread.hpp"
 #include "threadteam.hpp"
 #include "system.hpp"
-#include "omp_data.hpp"
+#include "omp_wd_data.hpp"
 
 using namespace nanos;
 using namespace nanos::OpenMP;
