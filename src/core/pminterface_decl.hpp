@@ -23,6 +23,7 @@
 
 #include "config_fwd.hpp"
 #include "workdescriptor_decl.hpp"
+#include "threadteam_decl.hpp"
 
 class PMInterface
 {
@@ -51,6 +52,8 @@ class PMInterface
       virtual void setupWD( nanos::WD &wd ) {}
       virtual void wdStarted( nanos::WD &wd ) {}
       virtual void wdFinished( nanos::WD &wd ) {}
+
+      virtual nanos::ThreadTeamData* getThreadTeamData() { return NULL; }
 };
 
 #endif /* PM_INTERFACE_HPP_ */

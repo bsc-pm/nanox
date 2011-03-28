@@ -25,9 +25,9 @@
 
 using namespace nanos;
 
-inline ThreadTeam::ThreadTeam ( int maxThreads, SchedulePolicy &policy, ScheduleTeamData *data, Barrier &barrier )
+inline ThreadTeam::ThreadTeam ( int maxThreads, SchedulePolicy &policy, ScheduleTeamData *data, Barrier &barrier, ThreadTeamData * ttd )
    : _idleThreads( 0 ), _numTasks( 0 ), _barrier(barrier), _singleGuardCount( 0 ),
-     _schedulePolicy( policy ), _scheduleData( data )
+     _schedulePolicy( policy ), _scheduleData( data ), _threadTeamData( ttd )
 {
       _threads.reserve( maxThreads );
 }
@@ -94,6 +94,11 @@ inline ScheduleTeamData * ThreadTeam::getScheduleData() const
 inline SchedulePolicy & ThreadTeam::getSchedulePolicy() const
 {
    return _schedulePolicy;
+}
+
+inline ThreadTeamData * ThreadTeam::getThreadTeamData() const
+{
+   return _threadTeamData;
 }
 
 #endif

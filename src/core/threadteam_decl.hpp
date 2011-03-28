@@ -29,6 +29,23 @@
 namespace nanos
 {
 
+   class ThreadTeamData {
+      private:
+         /*! \brief ThreadTeamData copy constructor (private)
+          */
+         ThreadTeamData ( ThreadTeamData &ttd );
+         /*! \brief ThreadTeamData copy assignment operator (private)
+          */
+         ThreadTeamData& operator=  ( ThreadTeamData &ttd );
+      public:
+         /*! \brief ThreadTeamData default constructor
+          */
+         ThreadTeamData() {}
+         /*! \brief ThreadTeamData destructor
+          */
+         virtual ~ThreadTeamData() {}
+   };
+
    class ThreadTeam
    {
       private:
@@ -39,6 +56,7 @@ namespace nanos
          int                          _singleGuardCount;
          SchedulePolicy &             _schedulePolicy;
          ScheduleTeamData *           _scheduleData;
+         ThreadTeamData *             _threadTeamData;
       private:
 
          /*! \brief ThreadTeam default constructor (disabled)
@@ -56,7 +74,7 @@ namespace nanos
       public:
          /*! \brief ThreadTeam constructor - 1
           */
-         ThreadTeam ( int maxThreads, SchedulePolicy &policy, ScheduleTeamData *data, Barrier &barrier );
+         ThreadTeam ( int maxThreads, SchedulePolicy &policy, ScheduleTeamData *data, Barrier &barrier, ThreadTeamData * ttd );
 
          /*! \brief ThreadTeam destructor
           */
@@ -94,6 +112,8 @@ namespace nanos
 
          ScheduleTeamData * getScheduleData() const;
          SchedulePolicy & getSchedulePolicy() const;
+
+         ThreadTeamData * getThreadTeamData() const;
    };
 
 }
