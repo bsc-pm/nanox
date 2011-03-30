@@ -54,20 +54,23 @@ void Instrumentation::returnPreviousStateEvent ( Event *e )
    else new (e) State(NANOS_SUBSTATE_END, state);
 }
 
-void Instrumentation::createBurstEvent ( Event *e, nanos_event_key_t key, nanos_event_value_t value )
+void Instrumentation::createBurstEvent ( Event *e, nanos_event_key_t key, nanos_event_value_t value, InstrumentationContextData *icd )
 {
+   /* Recovering a state event in instrumentation context */
+   if ( icd == NULL ) icd = myThread->getCurrentWD()->getInstrumentationContextData();
+
    /* Creating burst  event */
    Event::KV *kv = NEW Event::KV( key, value );
    new (e) Burst( true, kv );
 
-   InstrumentationContextData *icd = myThread->getCurrentWD()->getInstrumentationContextData();
    _instrumentationContext.insertBurst( icd, *e );
 }
 
-void Instrumentation::closeBurstEvent ( Event *e, nanos_event_key_t key )
+void Instrumentation::closeBurstEvent ( Event *e, nanos_event_key_t key, InstrumentationContextData *icd )
 {
-   /* Removing burst event in instrumentation context */
-   InstrumentationContextData *icd = myThread->getCurrentWD()->getInstrumentationContextData();
+   /* Recovering a state event in instrumentation context */
+   if ( icd == NULL ) icd = myThread->getCurrentWD()->getInstrumentationContextData();
+
    InstrumentationContextData::BurstIterator it;
 
    /* find given key in the burst list */
@@ -330,13 +333,13 @@ void Instrumentation::wdCreate( WorkDescriptor* newWD )
    static nanos_event_key_t key = getInstrumentationDictionary()->getEventKey("wd-id");
    nanos_event_value_t wd_id = newWD->getId();
    
-   /* Create event: BURST */
-   createBurstEvent( &e, key, wd_id );
-
    /* Update InstrumentationContextData */
    InstrumentationContextData *icd = newWD->getInstrumentationContextData();
-   _instrumentationContext.insertBurst( icd, e );
    _instrumentationContext.pushState( icd, NANOS_RUNTIME );
+   
+   /* Create event: BURST */
+   createBurstEvent( &e, key, wd_id, icd );
+
 }
 
 void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bool last )
@@ -483,6 +486,8 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       }
       _instrumentationContext.clearDeferredEvents( new_icd );
    }
+   
+   ensure0( i == numEvents , "Computed number of events doesn't fit with number of real events");
 
    /* Spawning 'numEvents' events: specific instrumentation call */
    addEventList ( numEvents, e );
