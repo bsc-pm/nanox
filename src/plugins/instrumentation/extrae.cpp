@@ -92,7 +92,10 @@ class InstrumentationExtrae: public Instrumentation
             int result = execl ( str, "mpi2prv", "-f", _listOfTraceFileNames.c_str(), "-o", _traceFileName_PRV.c_str(), (char *) NULL); 
             exit(result);
          }
-         else waitpid( pid, &status, options);
+         else {
+            waitpid( pid, &status, options);
+            if ( status != 0 ) message0("Error while merging trace (mpi2prv returns: " << status << ")");
+         }
       }
 
       void postProcessTraceFile ()
@@ -117,7 +120,7 @@ class InstrumentationExtrae: public Instrumentation
          else waitpid( pid, &status, options);
 
          if ( status != 0 ) {
-            std::cerr << "Error in trace post-process. Trace generated but might be incorrect" << std::endl;
+            message0("Error in trace post-process. Trace generated but might be incorrect");
          }
       }
 
@@ -219,7 +222,7 @@ class InstrumentationExtrae: public Instrumentation
             /* Closing configuration file */
             p_file.close();
          }
-         else std::cout << "Unable to open paraver config file" << std::endl;  
+         else message0("Unable to open paraver config file");
       }
 
       void modifyParaverRowFile()
@@ -241,7 +244,7 @@ class InstrumentationExtrae: public Instrumentation
             /* Closing configuration file */
             p_file.close();
          }
-         else std::cout << "Unable to open paraver config file" << std::endl;  
+         else message0("Unable to open paraver config file");  
       }
 
       void removeTemporaryFiles()
@@ -259,14 +262,14 @@ class InstrumentationExtrae: public Instrumentation
                if ( strlen(str) > 0 )
                {
                   for (unsigned int i = 0; i < strlen(str); i++) if ( str[i] == ' ' ) str[i] = 0x0;
-                  if ( remove(str) != 0 ) std::cout << "nanox: Unable to delete temporary/partial trace file" << str << std::endl;
+                  if ( remove(str) != 0 ) message0("nanox: Unable to delete temporary/partial trace file" << str);
                }
             }
             p_file.close();
          }
-         else std::cout << "Unable to open " << _listOfTraceFileNames << " file" << std::endl;  
+         else message0("Unable to open " << _listOfTraceFileNames << " file");
 
-         if ( remove(_listOfTraceFileNames.c_str()) != 0 ) std::cout << "Unable to delete TRACE.mpits file" << std::endl;
+         if ( remove(_listOfTraceFileNames.c_str()) != 0 ) message0("Unable to delete TRACE.mpits file");
 
          /* Removing EXTRAE_DIR temporary directories and files */
          char *file_name    = (char *) alloca ( 255 * sizeof (char));

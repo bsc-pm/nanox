@@ -104,7 +104,7 @@ namespace nanos
    */
    inline const std::string & BaseThread::getDescription ( void ) 
    {
-     if ( !_description.empty() ) {
+     if ( _description.empty() ) {
  
         /* description name */
         _description = getName();
