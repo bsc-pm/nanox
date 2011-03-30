@@ -41,9 +41,12 @@ static uint64_t taskCallStackSize;
 using namespace nanos;
 using namespace nanos::ext;
 
+static bool chapel_hooked = false;
+
 void nanos_chapel_pre_init ( void * dummy )
 {
    sys.setDelayedStart(true);
+   chapel_hooked = true;
 }
 
 //
@@ -53,7 +56,8 @@ void chpl_task_begin(chpl_fn_p fp,
                      void* a,
                      chpl_bool ignore_serial,  // always add task to pool
                      chpl_bool serial_state,
-                     chpl_task_list_p ltask) {
+                     chpl_task_list_p ltask) 
+{
 
    assert(!ltask);
 
@@ -63,7 +67,9 @@ void chpl_task_begin(chpl_fn_p fp,
 
 // Tasks
 
-void chpl_task_init(int32_t maxThreadsPerLocale, uint64_t callStackSize) {
+void nanos_chpl_task_init(int32_t maxThreadsPerLocale, uint64_t callStackSize) {
+   fatal_cond0(!chapel_hooked, "Chapel layer has not been correctly initialized");
+
    sys.setInitialMode( System::POOL );
    sys.setUntieMaster(true);
    sys.setNumPEs(maxThreadsPerLocale);
