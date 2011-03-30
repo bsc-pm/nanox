@@ -24,16 +24,26 @@
 #include "debug.hpp"
 #include "schedule.hpp"
 #include "system.hpp"
+#include "os.hpp"
 
 using namespace nanos;
 
 void WorkDescriptor::init ()
 {
+   // Get copies' size
+   if ( _numCopies > 0 ) {
+      for ( unsigned int i = 0; i < _numCopies; i++ ) {
+         _copiesSize += _copies[i].getSize();
+      }
+   }
+   _paramsSize = _copiesSize;
+
    ProcessingElement *pe = myThread->runningOn();
 
    /* Initializing instrumentation context */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdCreate( this ) );
 
+   _executionTime = OS::getMonotonicTime();
    if ( getNumCopies() > 0 ) {
       pe->copyDataIn( *this );
       if ( _translateArgs != NULL ) {
@@ -120,6 +130,9 @@ void WorkDescriptor::done ()
    waitCompletionAndSignalers();
    if ( getNumCopies() > 0 )
      pe->copyDataOut( *this );
+
+   _executionTime = OS::getMonotonicTime() - _executionTime;
+   myThread->getTeam()->getSchedulePolicy().atBeforeExit( myThread, *this );
 
    this->getParent()->workFinished( *this );
    WorkGroup::done();

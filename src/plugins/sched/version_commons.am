@@ -20,6 +20,10 @@ wf_sources = \
 	$(END)
 
 affinity_sources = \
-        $(top_srcdir)/src/plugins/sched/affinity_sched.cpp \
-        $(END)
+	$(top_srcdir)/src/plugins/sched/affinity_sched.cpp \
+	$(END)
 
+versioning_sources = \
+	$(top_srcdir)/src/plugins/sched/versioning_sched.cpp \
+	$(END)
+	

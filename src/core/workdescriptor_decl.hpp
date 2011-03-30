@@ -164,6 +164,10 @@ namespace nanos
 
          size_t                        _numCopies;    /**< Copy-in / Copy-out data */
          CopyData                     *_copies;       /**< Copy-in / Copy-out data */
+         size_t                        _copiesSize;   /**< Total size of copy-in / copy-out data */
+         size_t                        _paramsSize;   /**< Total size of WD's parameters */
+
+         double                        _executionTime;    /**< WD starting wall-clock time */
 
          TR1::shared_ptr<DOSubmit>     _doSubmit;     /**< DependableObject representing this WD in its parent's depsendencies domain */
          LazyInit<DOWait>              _doWait;       /**< DependableObject used by this task to wait on dependencies */
@@ -194,7 +198,7 @@ namespace nanos
                           _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
                           _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : NULL ),
-                          _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
+                          _numCopies( numCopies ), _copies( copies ), _copiesSize( 0 ), _paramsSize( 0 ), _executionTime( 0 ), _doSubmit(), _doWait(),
                           _depsDomain(), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ) {
 
             std::cout << "WD " << this->getId() << " has " << ndevices << " devices and _active device is "
@@ -209,7 +213,7 @@ namespace nanos
                           _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
                           _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( 1 ), _devices ( &_activeDevice ), _activeDevice ( device ),
-                          _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
+                          _numCopies( numCopies ), _copies( copies ), _copiesSize( 0 ), _paramsSize( 0 ), _executionTime( 0 ), _doSubmit(), _doWait(),
                           _depsDomain(), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ) { }
 
          /*! \brief WorkDescriptor copy constructor (using a given WorkDescriptor)
@@ -227,7 +231,7 @@ namespace nanos
                           _wdData ( NULL ), _tie ( wd._tie ), _tiedTo ( wd._tiedTo ),
                           _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ), _myQueue ( NULL ), _depth ( wd._depth ),
                           _numDevices ( wd._numDevices ), _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
-                          _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
+                          _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ), _copiesSize( wd._copiesSize ), _paramsSize( wd._paramsSize ), _executionTime( wd._executionTime ),
                           _doSubmit(), _doWait(), _depsDomain(), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( wd._translateArgs ) { }
 
          /*! \brief WorkDescriptor destructor
@@ -405,6 +409,18 @@ namespace nanos
          /*! \brief returns the CopyData vector that describes the copy-ins/copy-outs of the WD
           */
          CopyData * getCopies() const;
+
+         /*! \brief returns the total size of copy-ins/copy-outs of the WD
+          */
+         size_t getCopiesSize() const;
+
+         /*! \brief returns the total size of the WD's parameters
+          */
+         size_t getParamsSize() const;
+
+         /*! \brief returns the total execution time of the WD
+          */
+         double getExecutionTime() const;
 
          /*! \brief Returns a pointer to the DOSubmit of the WD
           */

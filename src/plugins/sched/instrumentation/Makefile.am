@@ -22,12 +22,13 @@ include $(top_srcdir)/src/common.am
 
 if INSTRUMENTATION_VERSION
 instrumentation_LTLIBRARIES = \
-        libnanox-sched-default.la\
+	libnanox-sched-default.la\
 	libnanox-sched-bf.la \
 	libnanox-sched-dbf.la \
  	libnanox-sched-cilk.la \
  	libnanox-sched-wf.la \
  	libnanox-sched-affinity.la \
+ 	libnanox-sched-versioning.la \
 	$(END)
 
 nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags)
@@ -55,5 +56,9 @@ libnanox_sched_cilk_la_SOURCES = $(cilk_sources)
 libnanox_sched_affinity_la_CXXFLAGS = $(nanos_instr_cxxflags)
 libnanox_sched_affinity_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_sched_affinity_la_SOURCES = $(affinity_sources)
+
+libnanox_sched_versioning_la_CXXFLAGS = $(nanos_instr_cxxflags)
+libnanox_sched_versioning_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_sched_versioning_la_SOURCES = $(versioning_sources)
 endif
 
