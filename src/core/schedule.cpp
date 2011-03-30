@@ -371,7 +371,7 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
 
    wd->done();
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, false) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, true) );
 
 
    debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
