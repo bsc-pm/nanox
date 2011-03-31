@@ -111,7 +111,7 @@ nanos_smp_args_t main__loop_1_device_args = { main__loop_1 };
       slicer_data_for->_chunk = chunk;\
 \
       NANOS_SAFE( nanos_submit( wd,0,0,0 ) );\
-      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );\
+      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );\
       if (step > 0 ) for ( j = lower+k_offset; j <= upper+k_offset; j+= step ) A[j-k_offset]--;\
       else if ( step < 0 ) for ( j = lower+k_offset; j >= upper+k_offset; j+= step ) A[j-k_offset]--;\
    }

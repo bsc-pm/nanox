@@ -74,7 +74,7 @@ int main ( int argc, char **argv )
    NANOS_SAFE( nanos_submit( wd2,1,&deps,0 ) );
 
 
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
 
    if ( orderer != 2 ) {
       printf("Error: Dependencies have not been respected or a task(s) has not been executed.\n");

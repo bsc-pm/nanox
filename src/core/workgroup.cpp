@@ -62,7 +62,7 @@ void WorkGroup::sync ()
    //TODO: reinit phase_counter
 }
 
-void WorkGroup::waitCompletion ()
+void WorkGroup::waitCompletion ( bool avoidFlush )
 {
      _syncCond.wait();
 }

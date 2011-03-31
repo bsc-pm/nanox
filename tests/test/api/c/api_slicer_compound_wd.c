@@ -214,7 +214,7 @@ int main ( int argc, char **argv )
       NANOS_SAFE( nanos_submit( wd[3],0,0,0 ) );
 #endif
 
-      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
    }
    
 
