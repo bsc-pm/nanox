@@ -346,6 +346,7 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    debug( "switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
           " to " << wd << ":" << wd->getId() );
 
+   /* Instrumenting context switch: oldwd leaves cpu but will come back (last = false) */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldwd, NULL, false) );
 
    // This ensures that when we return from the inlining is still the same thread
@@ -355,6 +356,7 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
       wd->init();
    thread->setCurrentWD( *wd );
 
+   /* Instrumenting context switch: wd enters cpu (last = n/a) */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
 
    thread->inlineWorkDependent(*wd);
@@ -371,7 +373,8 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
 
    wd->done();
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, false) );
+   /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) */
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, true) );
 
 
    debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
@@ -380,6 +383,7 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
 
    thread->setCurrentWD( *oldwd );
 
+   /* Instrumenting context switch: oldwd is comming back cpu (last = n/a) */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, oldwd, false) );
 
    // While we tie the inlined tasks this is not needed

@@ -153,6 +153,10 @@ extern const size_t nanos_gpu_dd_size;
 
 #ifdef GPU_DEV
 cudaStream_t nanos_get_kernel_execution_stream();
+#else
+#ifdef __CUDACC__
+cudaStream_t nanos_get_kernel_execution_stream();
+#endif
 #endif
 
 // instrumentation interface
