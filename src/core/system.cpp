@@ -42,10 +42,6 @@
 
 using namespace nanos;
 
-namespace nanos {
-  System::Init externInit __attribute__((weak));
-}
-
 System nanos::sys;
 
 // default system values go here
@@ -156,10 +152,6 @@ void System::config ()
 {
    Config config;
 
-   if ( externInit != NULL ) {
-      externInit();
-   }
-   
    const OS::InitList & externalInits = OS::getInitializationFunctions();
    std::for_each(externalInits.begin(),externalInits.end(), ExecInit());
    
