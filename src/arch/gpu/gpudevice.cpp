@@ -48,14 +48,19 @@ void * GPUDevice::allocateWholeMemory( size_t &size )
 {
    void * address = 0;
    float percentage = 1.0;
+   cudaError_t err;
 
-   cudaError_t err = cudaMalloc( ( void ** ) &address, ( size_t ) ( size * percentage ) );
+   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MALLOC_EVENT );
+   err = cudaMalloc( ( void ** ) &address, ( size_t ) ( size * percentage ) );
+   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
    while ( ( err == cudaErrorMemoryValueTooLarge || err == cudaErrorMemoryAllocation )
          && percentage > 0.5 )
    {
       percentage -= 0.05;
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MALLOC_EVENT );
       err = cudaMalloc( ( void ** ) &address, ( size_t ) ( size * percentage ) );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
    }
 
    size = ( size_t ) ( size * percentage );
@@ -68,7 +73,10 @@ void * GPUDevice::allocateWholeMemory( size_t &size )
 
 void GPUDevice::freeWholeMemory( void * address )
 {
-   cudaError_t err = cudaFree( address );
+   cudaError_t err;
+   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_FREE_EVENT );
+   err = cudaFree( address );
+   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
    fatal_cond( err != cudaSuccess, "Trying to free device memory at " + toString<void *>( address ) +
          + " with cudaFree(): " + cudaGetErrorString( err ) );
@@ -77,7 +85,10 @@ void GPUDevice::freeWholeMemory( void * address )
 uint64_t GPUDevice::allocateIntermediateBuffer( void * deviceAddress, size_t size, ProcessingElement *pe )
 {
    uint64_t pinned;
-   cudaError_t err = cudaMallocHost( ( void ** ) &pinned, size );
+   cudaError_t err;
+   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MALLOC_HOST_EVENT );
+   err = cudaMallocHost( ( void ** ) &pinned, size );
+   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
    // Note: Use cudaHostAllocPortable flag in order to allocate host memory that must be
    // accessed from more than one GPU
@@ -93,7 +104,10 @@ uint64_t GPUDevice::allocateIntermediateBuffer( void * deviceAddress, size_t siz
 
 void GPUDevice::freeIntermediateBuffer( uint64_t pinnedAddress, void * deviceAddress, ProcessingElement *pe )
 {
-   cudaError_t err = cudaFreeHost( ( void * ) pinnedAddress );
+   cudaError_t err;
+   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_FREE_HOST_EVENT );
+   err = cudaFreeHost( ( void * ) pinnedAddress );
+   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
    ( ( nanos::ext::GPUProcessor * ) pe )->removePinnedAddress( deviceAddress );
 
    fatal_cond( err != cudaSuccess, "Trying to free host memory at " + toString<uint64_t>( pinnedAddress ) +
@@ -106,6 +120,7 @@ void GPUDevice::copyLocal( void *dst, void *src, size_t size, ProcessingElement 
    cudaError_t err = cudaSuccess;
 
    if ( ( ( nanos::ext::GPUProcessor * ) pe )->getGPUProcessorInfo()->getLocalTransferStream() != 0 ) {
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_DEVICE_EVENT );
       err = cudaMemcpyAsync(
                dst,
                src,
@@ -113,9 +128,12 @@ void GPUDevice::copyLocal( void *dst, void *src, size_t size, ProcessingElement 
                cudaMemcpyDeviceToDevice,
                ((nanos::ext::GPUProcessor *) pe )->getGPUProcessorInfo()->getLocalTransferStream()
             );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
     }
     else {
+       NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MEMCOPY_TO_DEVICE_EVENT );
        err = cudaMemcpy( dst, src, size, cudaMemcpyDeviceToDevice );
+       NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
    }
 
    fatal_cond( err != cudaSuccess, "Trying to copy " + toString<size_t>( size )
@@ -126,8 +144,11 @@ void GPUDevice::copyLocal( void *dst, void *src, size_t size, ProcessingElement 
 void GPUDevice::copyInSyncToDevice ( void * dst, void * src, size_t size )
 {
    ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->transferInput( size );
+   cudaError_t err;
 
-   cudaError_t err = cudaMemcpy( dst, src, size, cudaMemcpyHostToDevice );
+   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MEMCOPY_TO_DEVICE_EVENT );
+   err = cudaMemcpy( dst, src, size, cudaMemcpyHostToDevice );
+   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
    fatal_cond( err != cudaSuccess, "Trying to copy " + toString<size_t>( size )
          + " bytes of data from host (" + toString<void *>( src ) + ") to device ("
@@ -151,14 +172,17 @@ void GPUDevice::copyInAsyncToDevice( void * dst, void * src, size_t size )
    nanos::ext::GPUProcessor * myPE = ( nanos::ext::GPUProcessor * ) myThread->runningOn();
 
    myPE->transferInput( size );
+   cudaError_t err;
 
-   cudaError_t err = cudaMemcpyAsync(
+   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_DEVICE_EVENT );
+   err = cudaMemcpyAsync(
             dst,
             ( void * ) myPE->getPinnedAddress( dst ),
             size,
             cudaMemcpyHostToDevice,
             myPE->getGPUProcessorInfo()->getOutTransferStream()
          );
+   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
    fatal_cond( err != cudaSuccess, "Trying to copy " + toString<size_t>( size )
          + " bytes of data from host (" + toString<void *>( src ) + ") to device ("
@@ -167,14 +191,19 @@ void GPUDevice::copyInAsyncToDevice( void * dst, void * src, size_t size )
 
 void GPUDevice::copyInAsyncWait()
 {
+   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_INPUT_STREAM_SYNC_EVENT );
    cudaStreamSynchronize( ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->getGPUProcessorInfo()->getInTransferStream() );
+   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 }
 
 void GPUDevice::copyOutSyncToHost ( void * dst, void * src, size_t size )
 {
    ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->transferOutput( size );
+   cudaError_t err;
 
-   cudaError_t err = cudaMemcpy( dst, src, size, cudaMemcpyDeviceToHost );
+   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MEMCOPY_TO_HOST_EVENT );
+   err = cudaMemcpy( dst, src, size, cudaMemcpyDeviceToHost );
+   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
    fatal_cond( err != cudaSuccess, "Trying to copy " + toString<size_t>( size )
          + " bytes of data from device (" + toString<void *>( src ) + ") to host ("
@@ -191,13 +220,16 @@ void GPUDevice::copyOutAsyncToBuffer ( void * dst, void * src, size_t size )
    if ( pinned == 0 )
       pinned = ( uint64_t ) allocateIntermediateBuffer( src, size, myPE );
 
-   cudaError_t err = cudaMemcpyAsync(
+   cudaError_t err;
+   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_HOST_EVENT );
+   err = cudaMemcpyAsync(
             ( void * ) myPE->getPinnedAddress( src ),
             src,
             size,
             cudaMemcpyDeviceToHost,
             myPE->getGPUProcessorInfo()->getOutTransferStream()
          );
+   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
    fatal_cond( err != cudaSuccess, "Trying to copy " + toString<size_t>( size )
          + " bytes of data from device (" + toString<void *>( src ) + ") to host ("
@@ -206,7 +238,9 @@ void GPUDevice::copyOutAsyncToBuffer ( void * dst, void * src, size_t size )
 
 void GPUDevice::copyOutAsyncWait ()
 {
+   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_OUTPUT_STREAM_SYNC_EVENT );
    cudaStreamSynchronize( ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->getGPUProcessorInfo()->getOutTransferStream() );
+   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 }
 
 void GPUDevice::copyOutAsyncToHost ( void * dst, void * src, size_t size )

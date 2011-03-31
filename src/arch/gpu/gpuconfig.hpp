@@ -95,6 +95,40 @@ namespace ext
 
    };
 
+
+   // Macro's to instrument the code and make it cleaner
+#define NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT(x)   NANOS_INSTRUMENT( { \
+      Instrumentation::Event e; \
+		sys.getInstrumentation()->createBurstEvent( \
+		      &e, \
+		      sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-cuda-runtime" ), \
+		      x ); \
+      )
+
+#define NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT       NANOS_INSTRUMENT( \
+      sys.getInstrumentation()->closeBurstEvent( \
+            &e, sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-cuda-runtime" ) ); \
+      } )
+
+   typedef enum {
+      NANOS_GPU_CUDA_MALLOC_EVENT,
+      NANOS_GPU_CUDA_FREE_EVENT,
+      NANOS_GPU_CUDA_MALLOC_HOST_EVENT,
+      NANOS_GPU_CUDA_FREE_HOST_EVENT,
+      NANOS_GPU_CUDA_MEMCOPY_TO_HOST_EVENT,
+      NANOS_GPU_CUDA_MEMCOPY_TO_DEVICE_EVENT,
+      NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_HOST_EVENT,
+      NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_DEVICE_EVENT,
+      NANOS_GPU_CUDA_INPUT_STREAM_SYNC_EVENT,
+      NANOS_GPU_CUDA_OUTPUT_STREAM_SYNC_EVENT,
+      NANOS_GPU_CUDA_KERNEL_STREAM_SYNC_EVENT,
+      NANOS_GPU_CUDA_THREAD_SYNC_EVENT,
+      NANOS_GPU_CUDA_SET_DEVICE_EVENT,
+      NANOS_GPU_CUDA_GET_DEVICE_PROPS_EVENT,
+      NANOS_GPU_CUDA_SET_DEVICE_FLAGS_EVENT,
+      NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT,
+      NANOS_GPU_CUDA_GENERIC_EVENT
+ } in_cuda_runtime_event_value;
 }
 }
 
