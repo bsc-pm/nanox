@@ -2,6 +2,7 @@ omp_sources = \
         $(top_srcdir)/src/pms/openmp/omp_init.cpp\
         $(top_srcdir)/src/pms/openmp/omp.h\
         $(top_srcdir)/src/pms/openmp/omp_wd_data.hpp\
+        $(top_srcdir)/src/pms/openmp/omp_threadteam_data.hpp\
         $(top_srcdir)/src/pms/openmp/omp_api.cpp\
         $(top_srcdir)/src/pms/openmp/omp_time.cpp\
         $(top_srcdir)/src/pms/openmp/omp_locks.cpp\

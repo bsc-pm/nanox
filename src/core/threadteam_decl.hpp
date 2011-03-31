@@ -44,6 +44,8 @@ namespace nanos
          /*! \brief ThreadTeamData destructor
           */
          virtual ~ThreadTeamData() {}
+
+         virtual void init( ThreadTeam *parent ) {}
    };
 
    class ThreadTeam
@@ -56,7 +58,10 @@ namespace nanos
          int                          _singleGuardCount;
          SchedulePolicy &             _schedulePolicy;
          ScheduleTeamData *           _scheduleData;
-         ThreadTeamData *             _threadTeamData;
+         ThreadTeamData &             _threadTeamData;
+         ThreadTeam *                 _parent;           /**< Parent ThreadTeam */
+         int                          _level;            /**< Nesting level of the team */
+         int                          _creatorId;               /**< Team Id of the thread that created the team */
       private:
 
          /*! \brief ThreadTeam default constructor (disabled)
@@ -74,7 +79,7 @@ namespace nanos
       public:
          /*! \brief ThreadTeam constructor - 1
           */
-         ThreadTeam ( int maxThreads, SchedulePolicy &policy, ScheduleTeamData *data, Barrier &barrier, ThreadTeamData * ttd );
+         ThreadTeam ( int maxThreads, SchedulePolicy &policy, ScheduleTeamData *data, Barrier &barrier, ThreadTeamData & ttd, ThreadTeam * parent );
 
          /*! \brief ThreadTeam destructor
           */
@@ -102,9 +107,9 @@ namespace nanos
          BaseThread & operator[]  ( int i );
 
          /*! \brief adds a thread to the team pool, returns the thread id in the team
-          *
+          *  \param creator: If true the thread ID is set as the creatorID for this team
           */
-         unsigned addThread ( BaseThread *thread );
+         unsigned addThread ( BaseThread *thread, bool creator = false );
 
          void barrier();
 
@@ -113,7 +118,21 @@ namespace nanos
          ScheduleTeamData * getScheduleData() const;
          SchedulePolicy & getSchedulePolicy() const;
 
-         ThreadTeamData * getThreadTeamData() const;
+        /*! \brief Returns the ThreadTeamData
+         */
+         ThreadTeamData & getThreadTeamData() const;
+
+        /*! \brief Returns the parent of this team, if any
+         */
+         ThreadTeam * getParent() const;
+
+        /*! \brief returns the depth level of the Team
+         */
+         int getLevel() const;
+
+        /*! \brief returns the team's creator Id, -1 if not set
+         */
+         int getCreatorId() const;
    };
 
 }

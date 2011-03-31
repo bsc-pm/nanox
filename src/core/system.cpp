@@ -969,7 +969,7 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
       stdata = sched->createTeamData(NULL);
 
    // create team
-   ThreadTeam * team = NEW ThreadTeam( nthreads, *sched, stdata, *_defBarrFactory(), _pmInterface->getThreadTeamData() );
+   ThreadTeam * team = NEW ThreadTeam( nthreads, *sched, stdata, *_defBarrFactory(), *(_pmInterface->getThreadTeamData()), NULL );
 
    debug( "Creating team " << team << " of " << nthreads << " threads" );
 
@@ -977,7 +977,7 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
    if ( reuseCurrent ) {
       nthreads --;
 
-      thId = team->addThread( myThread );
+      thId = team->addThread( myThread, true );
 
       debug( "adding thread " << myThread << " with id " << toString<int>(thId) << " to " << team );
 

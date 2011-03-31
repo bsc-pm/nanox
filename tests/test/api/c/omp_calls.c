@@ -1,5 +1,4 @@
 /*************************************************************************************/
-/*      Copyright 2010 Barcelona Supercomputing Center                               */
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
@@ -18,42 +17,57 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef NANOS_PM_INTERFACE_DECL
-#define NANOS_PM_INTERFACE_DECL
+/*
+<testinfo>
+test_generator=gens/api-omp-generator
+</testinfo>
+*/
 
-#include "config_fwd.hpp"
-#include "workdescriptor_decl.hpp"
-#include "threadteam_decl.hpp"
+#include <stdio.h>
+#include <sys/time.h>
+#include <stdlib.h>
 
-class PMInterface
-{
-   private:
-      /*! \brief PMInterface copy constructor (private)
-       */
-      PMInterface( PMInterface &pmi );
-      /*! \brief PMInterface copy assignment operator (private)
-       */
-      PMInterface& operator= ( PMInterface &pmi );
-   public:
-      /*! \brief PMInterface default constructor
-       */
-      PMInterface() {}
-      /*! \brief PMInterface destructor
-       */
-      virtual ~PMInterface() {}
+#include "nanos.h"
+#include "omp.h"
 
-      virtual int getInternalDataSize() const { return 0; }
-      virtual int getInternalDataAlignment() const { return 1; }
-
-      virtual void config (nanos::Config &cfg) {}
-      virtual void start () {}
-      virtual void finish() {}
-
-      virtual void setupWD( nanos::WD &wd ) {}
-      virtual void wdStarted( nanos::WD &wd ) {}
-      virtual void wdFinished( nanos::WD &wd ) {}
-
-      virtual nanos::ThreadTeamData* getThreadTeamData() { return NEW nanos::ThreadTeamData(); }
+void nanos_omp_set_interface(void *);
+__attribute__((weak, section("nanos_init"))) nanos_init_desc_t __section__nanos_init = {
+    nanos_omp_set_interface,
+    (void *) 0
 };
 
-#endif /* PM_INTERFACE_HPP_ */
+int main ( int argc, char **argv )
+{
+   int result = 0;
+   int i;
+   nanos_wd_props_t props = {
+     .mandatory_creation = true,
+     .tied = false,
+     .tie_to = false,
+   };
+
+   int level = omp_get_level();
+   int ancestor_num = omp_get_ancestor_thread_num( level );
+   int team_size = omp_get_team_size(level);
+   int active_level = omp_get_active_level();
+   int in_final = omp_in_final();
+
+   printf ( " OpenMP API calls simple test:\n" );
+   printf ( "\tomp_get_level() = %d\n", level );
+   printf ( "\tomp_get_ancestor_thread_num(%d) = %d\n", level, ancestor_num );
+   printf ( "\tomp_get_team_size(%d) = %d\n", level, team_size );
+   printf ( "\tomp_get_active_level() = %d\n", active_level );
+   printf ( "\tomp_in_final() = %d\n", in_final );
+
+   if ( in_final != 0 )
+      result = 1;
+   if ( active_level != 0 )
+      result = 2;
+   if ( level != 0 )
+      result = 3;
+   if ( ancestor_num != 0 )
+      result = 4;
+
+   return result;
+}
+

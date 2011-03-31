@@ -22,6 +22,7 @@
 #include "threadteam.hpp"
 #include "system.hpp"
 #include "omp_wd_data.hpp"
+#include "omp_threadteam_data.hpp"
 
 using namespace nanos;
 using namespace nanos::OpenMP;
@@ -118,28 +119,50 @@ extern "C"
 
    int omp_get_level ( void )
    {
-      //TODO
-      return 0;
+      return getMyThreadSafe()->getTeam()->getLevel();
    }
 
    int omp_get_ancestor_thread_num ( int level )
    {
-      //TODO
-      if ( level == 0 ) return 0;
-      else return -1;
+      ThreadTeam* ancestor = getMyThreadSafe()->getTeam();
+      int currentLevel = ancestor->getLevel();
+
+      if ( level >= 0 && level <= currentLevel ) {
+         while ( level != currentLevel ) {
+            ancestor = ancestor->getParent();
+            currentLevel = ancestor->getLevel();
+         }
+         int id = ancestor->getCreatorId();
+         ensure ( id != -1, "Error in OpenMP Team initialization, team creator id was not set" );
+         return id;
+      }
+      return -1;
    }
 
    int omp_get_team_size ( int level )
    {
-      //TODO
-      if ( level == 0 ) return 1;
-      else return -1;
+      ThreadTeam* ancestor = getMyThreadSafe()->getTeam();
+      int currentLevel = ancestor->getLevel();
+
+      if ( level >= 0 && level <= currentLevel ) {
+         while ( level != currentLevel ) {
+            ancestor = ancestor->getParent();
+            currentLevel = ancestor->getLevel();
+         }
+         return ancestor->size();
+      }
+      return -1;
    }
 
    int omp_get_active_level ( void )
    {
-      //TODO
-      return 0;
+      return ((OmpThreadTeamData &)getMyThreadSafe()->getTeam()->getThreadTeamData()).getActiveLevel();
+   }
+
+   int omp_in_final ( void )
+   {
+      OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+      return (int)data->isFinal();
    }
 }
 
