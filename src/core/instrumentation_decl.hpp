@@ -245,6 +245,12 @@ namespace nanos {
             /* 22 */ registerEventKey("num-ready","Number of ready tasks in the queues");
             /* 23 */ registerEventKey("graph-size","Number tasks in the graph");
 
+            /* 24 */ registerEventKey("loop-lower","Loop lower bound");
+            /* 25 */ registerEventKey("loop-upper","Loop upper");
+            /* 26 */ registerEventKey("loop-step","Loop step");
+
+            /* 27 */ registerEventKey("in-cuda-runtime","Inside CUDA runtime");
+
             /* ** */ registerEventKey("debug","Debug Key"); /* Keep this key as the last one */
          }
 
