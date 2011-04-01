@@ -83,7 +83,7 @@ namespace nanos {
 
            /*! \brief Set the Data to be final
             */
-            bool setFinal ( bool final ) { _final = final; }
+            void setFinal ( bool final ) { _final = final; }
            /*! \brief Whether the WD is final or not
             */
             bool isFinal ( void ) const { return _final; }
