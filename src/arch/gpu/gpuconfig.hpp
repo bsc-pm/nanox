@@ -97,18 +97,12 @@ namespace ext
 
 
    // Macro's to instrument the code and make it cleaner
-#define NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT(x)   NANOS_INSTRUMENT( { \
-      Instrumentation::Event e; \
-		sys.getInstrumentation()->createBurstEvent( \
-		      &e, \
-		      sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-cuda-runtime" ), \
-		      x ); \
-      )
+#define NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT(x)   NANOS_INSTRUMENT( \
+		sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-cuda-runtime" ), (x) ); )
 
 #define NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT       NANOS_INSTRUMENT( \
-      sys.getInstrumentation()->closeBurstEvent( \
-            &e, sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-cuda-runtime" ) ); \
-      } )
+		sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-cuda-runtime" ) ); )
+
 
    typedef enum {
       NANOS_GPU_CUDA_MALLOC_EVENT,
