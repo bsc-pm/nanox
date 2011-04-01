@@ -711,7 +711,7 @@ void cilkmerge_par(ELM *low1, ELM *high1, ELM *low2, ELM *high2, ELM *lowdest)
 
       }
 
-      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
 #endif // !SERIAL_VERSION
 
      return;
@@ -938,7 +938,7 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
 
       }
 
-      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
 #endif // !SERIAL_VERSION
 
 #ifdef SERIAL_VERSON
@@ -1052,7 +1052,7 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
 
       }
 
-      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
 #endif // !SERIAL_VERSION
 
       cilkmerge_par(tmpA, tmpC - 1, tmpC, tmpA + size - 1, A);

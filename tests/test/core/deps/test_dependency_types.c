@@ -165,7 +165,7 @@ bool single_dependency()
    args2->p_i = dep_addr;
    NANOS_SAFE( nanos_submit( wd2,1,&deps2,0 ) );
 
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
    
    return (my_value == 1);
 }
@@ -198,7 +198,7 @@ bool single_inout_chain()
       NANOS_SAFE( nanos_submit( wd2,1,&deps2,0 ) );
    }
 
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
    
    return (my_value == 100);
 }
@@ -235,7 +235,7 @@ bool multiple_inout_chains()
       }
    }
 
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
 
    for ( i = 0; i < size; i++ ) {
       if ( my_value[i] != size ) return false;
@@ -281,7 +281,7 @@ bool multiple_predecessors()
       args2[j].p_i = dep_addr2[j];
    NANOS_SAFE( nanos_submit( wd2,size,&deps2[0],0 ) );
 
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
    for ( j = 0; j < size; j++ ) {
       if ( my_value[j] != 1 ) return false;
    }
@@ -323,7 +323,7 @@ bool multiple_antidependencies()
    args2->p_i = dep_addr2;
    NANOS_SAFE( nanos_submit( wd2,1,&deps2,0 ) );
 
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
    for ( j = 0; j < 100; j++ ) {
       if ( my_reslt[j] != 1500 ) return false;
    }
@@ -363,7 +363,7 @@ bool out_dep_chain()
    args1[1].p_i = dep_addr;
    NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
 
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
    
    return (my_value == 500);
 }
@@ -492,7 +492,7 @@ bool commutative_task_1()
       NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
    }
 
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
    for ( j = 0; j < 100; j++ ) {
       if ( my_value[j] != 2 ) return false;
    }
@@ -556,7 +556,7 @@ bool commutative_task_2()
       NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
    }
 
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
 
    for ( j = 0; j < size; j++ ) {
       if ( my_results[j] < 0 ) return false;
@@ -634,7 +634,7 @@ bool commutative_task_3()
       NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
    }
 
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
 
    for ( j = 0; j < size; j++ ) {
       if ( my_results[j] < 0 ) return false;

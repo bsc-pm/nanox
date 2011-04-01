@@ -73,7 +73,7 @@ namespace nanos
 
          void addWork( WorkGroup &wg );
          void sync();
-         virtual void waitCompletion();
+         virtual void waitCompletion( bool avoidFlush = false );
          virtual void waitCompletionAndSignalers();
          virtual void init();
          virtual void done();

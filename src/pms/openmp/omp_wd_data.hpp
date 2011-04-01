@@ -2,6 +2,7 @@
 #define _NANOX_OMP_DATA
 
 #include "omp.h"
+#include <iostream>
 
 namespace nanos {
    namespace OpenMP {
@@ -54,11 +55,17 @@ namespace nanos {
          private:
             TaskICVs         _icvs;
             bool             _implicit;
+            bool             _final; /**< This is a final WD */
 
             explicit OmpData ( const OmpData & );
          public:
 
-            OmpData() : _icvs(), _implicit(false) {}
+           /*! \brief Default constructor
+            *  NOTE: This constructor is never called because the object is allocated by the system
+            *  and initialized in omp_init by setting its fields individually or copying from another object.
+            */
+            OmpData() : _icvs(), _implicit(false), _final(false) { }
+
             ~OmpData() {}
 
             TaskICVs & icvs() { return _icvs; }
@@ -73,6 +80,13 @@ namespace nanos {
 
             void setImplicit( bool implicit ) { _implicit = implicit; }
 	    bool isImplicit ( void ) const { return _implicit; }
+
+           /*! \brief Set the Data to be final
+            */
+            bool setFinal ( bool final ) { _final = final; }
+           /*! \brief Whether the WD is final or not
+            */
+            bool isFinal ( void ) const { return _final; }
       };
 
       class OmpState {
