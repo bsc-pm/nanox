@@ -31,11 +31,9 @@ using namespace nanos::ext;
 
 void GPUThread::initializeDependent ()
 {
-   cudaError_t err;
-
    // Bind the thread to a GPU device
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_SET_DEVICE_EVENT );
-   err = cudaSetDevice( _gpuDevice );
+   cudaError_t err = cudaSetDevice( _gpuDevice );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
    if ( err != cudaSuccess )
       warning( "Couldn't set the GPU device for the thread: " << cudaGetErrorString( err ) );

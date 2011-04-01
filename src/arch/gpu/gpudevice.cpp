@@ -48,10 +48,9 @@ void * GPUDevice::allocateWholeMemory( size_t &size )
 {
    void * address = 0;
    float percentage = 1.0;
-   cudaError_t err;
 
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MALLOC_EVENT );
-   err = cudaMalloc( ( void ** ) &address, ( size_t ) ( size * percentage ) );
+   cudaError_t err = cudaMalloc( ( void ** ) &address, ( size_t ) ( size * percentage ) );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
    while ( ( err == cudaErrorMemoryValueTooLarge || err == cudaErrorMemoryAllocation )
@@ -73,9 +72,8 @@ void * GPUDevice::allocateWholeMemory( size_t &size )
 
 void GPUDevice::freeWholeMemory( void * address )
 {
-   cudaError_t err;
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_FREE_EVENT );
-   err = cudaFree( address );
+   cudaError_t err = cudaFree( address );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
    fatal_cond( err != cudaSuccess, "Trying to free device memory at " + toString<void *>( address ) +
@@ -85,9 +83,8 @@ void GPUDevice::freeWholeMemory( void * address )
 uint64_t GPUDevice::allocateIntermediateBuffer( void * deviceAddress, size_t size, ProcessingElement *pe )
 {
    uint64_t pinned;
-   cudaError_t err;
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MALLOC_HOST_EVENT );
-   err = cudaMallocHost( ( void ** ) &pinned, size );
+   cudaError_t err = cudaMallocHost( ( void ** ) &pinned, size );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
    // Note: Use cudaHostAllocPortable flag in order to allocate host memory that must be
@@ -104,9 +101,8 @@ uint64_t GPUDevice::allocateIntermediateBuffer( void * deviceAddress, size_t siz
 
 void GPUDevice::freeIntermediateBuffer( uint64_t pinnedAddress, void * deviceAddress, ProcessingElement *pe )
 {
-   cudaError_t err;
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_FREE_HOST_EVENT );
-   err = cudaFreeHost( ( void * ) pinnedAddress );
+   cudaError_t err = cudaFreeHost( ( void * ) pinnedAddress );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
    ( ( nanos::ext::GPUProcessor * ) pe )->removePinnedAddress( deviceAddress );
 
@@ -144,10 +140,9 @@ void GPUDevice::copyLocal( void *dst, void *src, size_t size, ProcessingElement 
 void GPUDevice::copyInSyncToDevice ( void * dst, void * src, size_t size )
 {
    ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->transferInput( size );
-   cudaError_t err;
 
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MEMCOPY_TO_DEVICE_EVENT );
-   err = cudaMemcpy( dst, src, size, cudaMemcpyHostToDevice );
+   cudaError_t err = cudaMemcpy( dst, src, size, cudaMemcpyHostToDevice );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
    fatal_cond( err != cudaSuccess, "Trying to copy " + toString<size_t>( size )
@@ -172,10 +167,9 @@ void GPUDevice::copyInAsyncToDevice( void * dst, void * src, size_t size )
    nanos::ext::GPUProcessor * myPE = ( nanos::ext::GPUProcessor * ) myThread->runningOn();
 
    myPE->transferInput( size );
-   cudaError_t err;
 
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_DEVICE_EVENT );
-   err = cudaMemcpyAsync(
+   cudaError_t err = cudaMemcpyAsync(
             dst,
             ( void * ) myPE->getPinnedAddress( dst ),
             size,
@@ -199,10 +193,9 @@ void GPUDevice::copyInAsyncWait()
 void GPUDevice::copyOutSyncToHost ( void * dst, void * src, size_t size )
 {
    ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->transferOutput( size );
-   cudaError_t err;
 
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MEMCOPY_TO_HOST_EVENT );
-   err = cudaMemcpy( dst, src, size, cudaMemcpyDeviceToHost );
+   cudaError_t err = cudaMemcpy( dst, src, size, cudaMemcpyDeviceToHost );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
    fatal_cond( err != cudaSuccess, "Trying to copy " + toString<size_t>( size )
@@ -220,9 +213,8 @@ void GPUDevice::copyOutAsyncToBuffer ( void * dst, void * src, size_t size )
    if ( pinned == 0 )
       pinned = ( uint64_t ) allocateIntermediateBuffer( src, size, myPE );
 
-   cudaError_t err;
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_HOST_EVENT );
-   err = cudaMemcpyAsync(
+   cudaError_t err = cudaMemcpyAsync(
             ( void * ) myPE->getPinnedAddress( src ),
             src,
             size,
