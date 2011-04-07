@@ -168,7 +168,7 @@ inline InstrumentationContextData * WorkDescriptor::getInstrumentationContextDat
 inline void WorkDescriptor::waitCompletion( bool avoidFlush )
 {
    this->WorkGroup::waitCompletion();
-   if ( _directory.isInitialized() && avoidFlush )
+   if ( _directory.isInitialized() && !avoidFlush )
       _directory->synchronizeHost();
 }
 
