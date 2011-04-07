@@ -38,7 +38,7 @@ void * GPUDevice::allocate( size_t size, ProcessingElement *pe )
    void * address = ( ( nanos::ext::GPUProcessor * ) pe )->allocate( size );
    if ( address == NULL ) return NULL;
 
-   ( ( nanos::ext::GPUProcessor * ) pe )->setPinnedAddress( address, NULL );
+   //( ( nanos::ext::GPUProcessor * ) pe )->setPinnedAddress( address, NULL );
    return address;
 }
 
@@ -49,10 +49,12 @@ void GPUDevice::free( void *address, ProcessingElement *pe )
    ( ( nanos::ext::GPUProcessor * ) pe )->getOutTransferList()->checkAddressForMemoryTransfer( address );
    ( ( nanos::ext::GPUProcessor * ) pe )->free( address );
 
+#if 0
    uint64_t pinned = ( ( nanos::ext::GPUProcessor * ) pe )->getPinnedAddress( address );
    if ( pinned != 0 ) {
       freeIntermediateBuffer( pinned, address, pe );
    }
+#endif
 }
 
 bool GPUDevice::copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, ProcessingElement *pe )
@@ -70,12 +72,15 @@ bool GPUDevice::isNotMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t
 
 bool GPUDevice::isMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, ProcessingElement *pe )
 {
+   nanos::ext::GPUProcessor * myPE = ( nanos::ext::GPUProcessor * ) pe;
+
    // Copy from host memory to device memory
    // Check for synchronous or asynchronous mode
-   if ( ( ( nanos::ext::GPUProcessor * ) pe )->getGPUProcessorInfo()->getInTransferStream() != 0 ) {
-      copyInAsyncToBuffer( localDst, ( void * ) remoteSrc.getTag(), size );
-      ( ( nanos::ext::GPUProcessor * ) pe )->getInTransferList()->addMemoryTransfer( remoteSrc );
-      copyInAsyncToDevice( localDst, ( void * ) remoteSrc.getTag(), size );
+   if ( myPE->getGPUProcessorInfo()->getInTransferStream() != 0 ) {
+      void * pinned = myPE->allocateInputPinnedMemory( size );
+      copyInAsyncToBuffer( pinned, ( void * ) remoteSrc.getTag(), size );
+      myPE->getInTransferList()->addMemoryTransfer( remoteSrc );
+      copyInAsyncToDevice( localDst, pinned, size );
       return false;
    }
    else {

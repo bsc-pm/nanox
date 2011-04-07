@@ -80,6 +80,31 @@ void GPUDevice::freeWholeMemory( void * address )
          + " with cudaFree(): " + cudaGetErrorString( err ) );
 }
 
+void * GPUDevice::allocatePinnedMemory( size_t size )
+{
+   void * address = 0;
+
+   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MALLOC_HOST_EVENT );
+   cudaError_t err = cudaMallocHost( &address, size );
+   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
+   fatal_cond( err != cudaSuccess, "Trying to allocate " +  toString<size_t>( size ) +
+         + " bytes of host memory with cudaMallocHost(): " +  cudaGetErrorString( err ) );
+
+   return address;
+}
+
+void GPUDevice::freePinnedMemory( void * address )
+{
+   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_FREE_HOST_EVENT );
+   cudaError_t err = cudaFreeHost( address );
+   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
+   fatal_cond( err != cudaSuccess, "Trying to free host memory at " + toString<void *>( address ) +
+         + " with cudaFreeHost(): " + cudaGetErrorString( err ) );
+}
+
+#if 0
 uint64_t GPUDevice::allocateIntermediateBuffer( void * deviceAddress, size_t size, ProcessingElement *pe )
 {
    uint64_t pinned;
@@ -109,6 +134,7 @@ void GPUDevice::freeIntermediateBuffer( uint64_t pinnedAddress, void * deviceAdd
    fatal_cond( err != cudaSuccess, "Trying to free host memory at " + toString<uint64_t>( pinnedAddress ) +
          + " with cudaFreeHost(): " + cudaGetErrorString( err ) );
 }
+#endif
 
 void GPUDevice::copyLocal( void *dst, void *src, size_t size, ProcessingElement *pe )
 {
@@ -152,14 +178,23 @@ void GPUDevice::copyInSyncToDevice ( void * dst, void * src, size_t size )
 
 void GPUDevice::copyInAsyncToBuffer( void * dst, void * src, size_t size )
 {
-   nanos::ext::GPUProcessor * myPE = ( nanos::ext::GPUProcessor * ) myThread->runningOn();
+   //nanos::ext::GPUProcessor * myPE = ( nanos::ext::GPUProcessor * ) myThread->runningOn();
 
+#if 0
    // Workaround to perform asynchronous copies
    uint64_t pinned = myPE->getPinnedAddress( dst );
    if ( pinned == 0 )
       pinned = ( uint64_t ) allocateIntermediateBuffer( dst, size, myPE );
+#elif 0
+   void * pinned = ( void * ) myPE->getPinnedAddress( dst );
+   if ( pinned == 0 ) {
+      pinned = myPE->allocatePinnedMemory( size );
+      myPE->setPinnedAddress( dst, ( uint64_t ) pinned );
+   }
+#endif
 
-   SMPDevice::copyLocal( ( void * ) myPE->getPinnedAddress( dst ), src, size, NULL );
+   SMPDevice::copyLocal( dst, src, size, NULL );
+   //SMPDevice::copyLocal( ( void * ) myPE->getPinnedAddress( dst ), src, size, NULL );
 }
 
 void GPUDevice::copyInAsyncToDevice( void * dst, void * src, size_t size )
@@ -171,7 +206,7 @@ void GPUDevice::copyInAsyncToDevice( void * dst, void * src, size_t size )
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_DEVICE_EVENT );
    cudaError_t err = cudaMemcpyAsync(
             dst,
-            ( void * ) myPE->getPinnedAddress( dst ),
+            src,
             size,
             cudaMemcpyHostToDevice,
             myPE->getGPUProcessorInfo()->getOutTransferStream()
@@ -208,14 +243,23 @@ void GPUDevice::copyOutAsyncToBuffer ( void * dst, void * src, size_t size )
    nanos::ext::GPUProcessor * myPE = ( nanos::ext::GPUProcessor * ) myThread->runningOn();
    myPE->transferOutput( size );
 
+#if 0
    // Workaround to perform asynchronous copies
    uint64_t pinned = myPE->getPinnedAddress( src );
    if ( pinned == 0 )
       pinned = ( uint64_t ) allocateIntermediateBuffer( src, size, myPE );
+#elif 0
+   void * pinned = ( void * ) myPE->getPinnedAddress( src );
+   if ( pinned == 0 ) {
+      pinned = myPE->allocatePinnedMemory( size );
+      myPE->setPinnedAddress( src, ( uint64_t ) pinned );
+   }
+#endif
 
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_HOST_EVENT );
    cudaError_t err = cudaMemcpyAsync(
-            ( void * ) myPE->getPinnedAddress( src ),
+            dst,
+            //( void * ) myPE->getPinnedAddress( src ),
             src,
             size,
             cudaMemcpyDeviceToHost,
@@ -237,10 +281,11 @@ void GPUDevice::copyOutAsyncWait ()
 
 void GPUDevice::copyOutAsyncToHost ( void * dst, void * src, size_t size )
 {
-   SMPDevice::copyLocal(
-            dst,
-            ( void * ) ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->getPinnedAddress( src ),
-            size,
-            NULL
-         );
+   //nanos::ext::GPUProcessor * myPE = ( nanos::ext::GPUProcessor * ) myThread->runningOn();
+   //void * pinned = ( void * ) myPE->getPinnedAddress( src );
+
+   SMPDevice::copyLocal( dst, src, size, NULL );
+
+   //myPE->removePinnedAddress( src );
+   //myPE->freePinnedMemory( pinned );
 }
