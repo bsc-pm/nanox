@@ -60,7 +60,7 @@ namespace nanos {
         /*! \brief Copy constructor
          *  \param Another CacheEntry
          */
-         CacheEntry( const CacheEntry &ce ): Entry( ce.getTag(), ce.getVersion() ), _addr( ce._addr ), _size( ce._size ), _allocSize( ce._allocSize ), _dirty( ce._dirty ), _copying(ce._copying), _flushing(false), _flushTo(NULL), _transfers(0), _resizing(false) {}
+         CacheEntry( const CacheEntry &ce ): Entry( ce.getTag(), ce.getVersion() ), _addr( ce._addr ), _size( ce._size ), _allocSize( ce._allocSize ), _dirty( ce._dirty ), _copying(ce._copying), _flushing(ce._flushing), _flushTo(ce._flushTo), _transfers(ce._transfers), _resizing(ce._resizing) {}
 
         /* \brief Destructor
          */

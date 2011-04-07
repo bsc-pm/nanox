@@ -234,6 +234,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
          }
       }
    }
+
    de->addAccess( _cache.getId() );
 }
 
@@ -337,8 +338,7 @@ inline void DeviceCache<_T,_Policy>::freeSpaceToFit( Directory &dir, size_t size
    _cache.listUnreferencedKeys( kl );
    CacheHash::KeyList::iterator it;
    for ( it = kl.begin(); it != kl.end(); it++ ) {
-      // Copy the entry because once erased it can be recycled
-      CacheEntry ce = *( _cache.find( it->second ) );
+      CacheEntry &ce = *( _cache.find( it->second ) );
       if ( ce.isDirty() ) {
          DirectoryEntry *de = dir.getEntry( ce.getTag() );
          if ( ce.trySetToFlushing() ) {
@@ -355,11 +355,15 @@ inline void DeviceCache<_T,_Policy>::freeSpaceToFit( Directory &dir, size_t size
          }
       }
       // FIXME: this can be optimized by adding the flushing entries to a list and go to that list if not enough space was freed
-      while ( ce.isFlushing() )
+      while ( ce.isFlushing() ) {
          _T::syncTransfer( (uint64_t)it->second, _pe );
+         myThread->idle();
+      }
+      // Copy the entry because once erased it can be recycled
+      CacheEntry ce2 = ce;
       if ( _cache.erase( it->second ) ) {
-         _T::free( ce.getAddress(), _pe );
-         _usedSize -= ce.getSize();
+         _T::free( ce2.getAddress(), _pe );
+         _usedSize -= ce2.getSize();
          if ( _usedSize + size <= _size )
             break;
       }
