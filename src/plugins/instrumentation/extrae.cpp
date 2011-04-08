@@ -50,6 +50,7 @@ class InstrumentationExtrae: public Instrumentation
       std::string                                    _traceFileName_PRV;
       std::string                                    _traceFileName_PCF;
       std::string                                    _traceFileName_ROW;
+      std::string                                    _binFileName;
    public: /* must be updated by Configure */
       static std::string                             _traceBaseName;
       static std::string                             _postProcessScriptPath;
@@ -90,7 +91,7 @@ class InstrumentationExtrae: public Instrumentation
 
          pid = fork();
          if ( pid == (pid_t) 0 ) {
-            int result = execl ( str, "mpi2prv", "-f", _listOfTraceFileNames.c_str(), "-o", _traceFileName_PRV.c_str(), (char *) NULL); 
+            int result = execl ( str, "mpi2prv", "-f", _listOfTraceFileNames.c_str(), "-o", _traceFileName_PRV.c_str(), "-e", _binFileName.c_str(), (char *) NULL); 
             exit(result);
          }
          else {
@@ -266,15 +267,19 @@ class InstrumentationExtrae: public Instrumentation
                   p_file.getline (str, 255);
                   if ( strlen(str) > 0 )
                   {
-                     for (unsigned int i = 0; i < strlen(str); i++) if ( str[i] == ' ' ) str[i] = 0x0;
+                     unsigned int i;
+                     for (i = 0; i < strlen(str); i++) { if ( str[i] == ' ' ) {str[i] = 0x0; break;} }
                      if ( remove(str) != 0 ) message0("nanox: Unable to delete temporary/partial trace file" << str);
+                     /* Try to remove sample file: if present */
+                     str[i-4]='s';str[i-3]='a';str[i-2]='m';str[i-1]='p';str[i]='l';str[i+1]='e';str[i+2]=0x0;
+                     remove(str);
                   }
                }
                p_file.close();
             }
             else message0("Unable to open " << _listOfTraceFileNames << " file");
 
-            if ( remove(_listOfTraceFileNames.c_str()) != 0 ) message0("Unable to delete TRACE.mpits file");
+            if ( remove(_listOfTraceFileNames.c_str()) != 0 ) message0("Unable to delete "<< _listOfTraceFileNames << " file");
          
             /* Removing EXTRAE_FINAL_DIR temporary directories and files */
             file_exists = true; num = 0;
@@ -302,15 +307,15 @@ class InstrumentationExtrae: public Instrumentation
          // Check if the trace file exists
          struct stat buffer;
          int err;
-         std::string full_trace_base = ( OS::getArg( 0 ) );
-         size_t found = full_trace_base.find_last_of("/\\");
+         _binFileName = ( OS::getArg( 0 ) );
+         size_t found = _binFileName.find_last_of("/\\");
 
          /* Choose between executable name or user name */
          std::string trace_base;
          if ( _traceBaseName.compare("") != 0 ) {
             trace_base = _traceBaseName;
          } else {
-            trace_base = full_trace_base.substr(found+1);
+            trace_base = _binFileName.substr(found+1);
          }
 
          int num = 1;
