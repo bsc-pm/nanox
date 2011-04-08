@@ -20,6 +20,7 @@
 SUBDIRS = performance debug instrumentation instrumentation-debug
 
 include $(top_srcdir)/src/common.am
+include version_commons.am
 
 if CHAPEL_SUPPORT
 
@@ -27,4 +28,11 @@ pkginclude_HEADERS=\
         chpl_nanos.h\
 	$(END)
 
+lib_LIBRARIES=libnanox-chpl-init.a
+
+libnanox_chpl_init_a_SOURCES= $(top_srcdir)/src/pms/chapel/chpl_init.c
+libnanox_chpl_init_a_CFLAGS= $(common_includes) $(chpl_flags)
+
 endif
+
+

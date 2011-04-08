@@ -17,12 +17,14 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "accelerator.hpp"
+#include <algorithm>
+#include "accelerator_decl.hpp"
 #include "debug.hpp"
 #include "schedule.hpp"
 #include "copydata.hpp"
 #include "instrumentation.hpp"
 #include "system.hpp"
+#include "functors.hpp"
 
 using namespace nanos;
 
@@ -85,8 +87,15 @@ void Accelerator::copyDataOut( WorkDescriptor& work )
          this->unregisterPrivateAccessDependent( *(work.getParent()->getDirectory(true)), tag, cd.getSize() );
       } else {
          this->unregisterCacheAccessDependent( *(work.getParent()->getDirectory(true)), tag, cd.getSize(), cd.isOutput() );
+/*
+         // FIXME: This part is commented out because it is reduntant with the next step. Just keep it in case the change has to be reverted
          if ( cd.isOutput() && (work.getDirectory(false) != NULL) ) {
             work.getParent()->getDirectory(false)->updateCurrentDirectory( tag, *(work.getDirectory(true)) );
+         }
+*/
+         if ( work.getParent()->getParent() != work.getParent() && work.getParent()->getParent()!= NULL ) {
+            Directory * dir = work.getParent()->getParent()->getDirectory(false);
+            dir->updateCurrentDirectory( tag, *(work.getParent()->getDirectory(false)) );
          }
       }
    }

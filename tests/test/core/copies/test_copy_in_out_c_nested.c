@@ -50,12 +50,12 @@ void first( void *ptr )
 {
    int i,j;
    my_args local;
-   nanos_copy_value( (void *)&local.a, 0 );
-   nanos_get_addr( 1, (void **)&local.b );
+   nanos_copy_value( (void *)&local.a, 0, nanos_current_wd() );
+   nanos_get_addr( 1, (void **)&local.b, nanos_current_wd() );
 
    for (i=0; i < local.a; i++) {
       submit_task( TASK_2, i, local.b );
-      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
       printf( "Checking in level 1 task...  " );
       for (j=0; j < 10; j++) {
          if ( local.b[j] != ( base + 1 + i ) ) {
@@ -73,8 +73,8 @@ void second( void *ptr )
    int i;
 
    my_args local;
-   nanos_copy_value( &local.a, 0 );
-   nanos_get_addr( 1, (void **)&local.b );
+   nanos_copy_value( &local.a, 0, nanos_current_wd() );
+   nanos_get_addr( 1, (void **)&local.b, nanos_current_wd() );
 
    printf( "Checking for copy-in correctness...  " );
    for (i=0; i < 10; i++) {
@@ -100,7 +100,7 @@ void submit_task( nanos_smp_args_t task, int intarg, int* text )
 
    nanos_wd_t wd1=0;
    nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( task ) };
-   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), (void**)&args, nanos_current_wd(), &props, 2, &cd) );
+   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), __alignof__(my_args), (void**)&args, nanos_current_wd(), &props, 2, &cd) );
 
    args->a = intarg;
    args->b = text;
@@ -120,7 +120,7 @@ int main ( int argc, char **argv )
 
    submit_task( TASK_1, FIRST, dummy1 );
 
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
 
    base = FIRST;
 
@@ -135,7 +135,7 @@ int main ( int argc, char **argv )
 
    submit_task( TASK_1, SECOND, dummy1 );
 
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
 
    printf( "Checking for copy-back correctness..." );
    for ( i = 0; i < 10; i++ ) {

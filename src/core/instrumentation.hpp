@@ -21,6 +21,7 @@
 
 #include "instrumentation_decl.hpp"
 #include "system.hpp"
+#include "allocator_decl.hpp"
 
 using namespace nanos;
 
@@ -62,17 +63,18 @@ inline nanos_event_value_t InstrumentationKeyDescriptor::registerValue ( const c
    ValueMapIterator it = _valueMap.find( value );
 
    if ( it == _valueMap.end() ) {
-      _lock++;
-      it = _valueMap.find( value );
-      if ( it == _valueMap.end() ) {
-         valueDescriptor = NEW InstrumentationValueDescriptor ( (nanos_event_value_t) _totalValues++, description );
-         _valueMap.insert( std::make_pair( value, valueDescriptor ) );
+      {
+         LockBlock lock( _lock );
+         it = _valueMap.find( value );
+         if ( it == _valueMap.end() ) {
+            valueDescriptor = NEW InstrumentationValueDescriptor ( (nanos_event_value_t) _totalValues++, description );
+            _valueMap.insert( std::make_pair( value, valueDescriptor ) );
+         }
+         else {
+            if ( abort_when_registered ) fatal0("Event Value was already registered (lock taken)\n");
+            valueDescriptor = it->second;
+         }
       }
-      else {
-         if ( abort_when_registered ) fatal0("Event Value was already registered (lock taken)\n");
-         valueDescriptor = it->second;
-      }
-      _lock--;
    }
    else {
       if ( abort_when_registered ) fatal0("Event Value was already registered (lock not taken)\n");
@@ -97,17 +99,25 @@ inline void InstrumentationKeyDescriptor::registerValue ( const char *value, nan
    ValueMapIterator it = _valueMap.find( value );
 
    if ( it == _valueMap.end() ) {
-      _lock++;
-      it = _valueMap.find( value );
-      if ( it == _valueMap.end() ) {
-         _totalValues++; // keeping total values counter, although it is not used as 'val'
-         valueDescriptor = new InstrumentationValueDescriptor ( val, description );
-         _valueMap.insert( std::make_pair( value, valueDescriptor ) );
+      {
+         LockBlock lock( _lock );
+         // Checking if val was already used
+         if ( abort_when_registered ) {
+            for ( ValueMapIterator it2 = _valueMap.begin(); it2 != _valueMap.end(); it2++ ) {
+               InstrumentationValueDescriptor *vD = it2->second;
+               if ( vD->getId() == val ) fatal("Event Value 'id' was already registered");
+            }
+         }
+         it = _valueMap.find( value );
+         if ( it == _valueMap.end() ) {
+            _totalValues++; // keeping total values counter, although it is not used as 'val'
+            valueDescriptor = new InstrumentationValueDescriptor ( val, description );
+            _valueMap.insert( std::make_pair( value, valueDescriptor ) );
+         }
+         else {
+            if ( abort_when_registered ) fatal0("Event Value was already registered (lock taken)\n");
+         }
       }
-      else {
-         if ( abort_when_registered ) fatal0("Event Value was already registered (lock taken)\n");
-      }
-      _lock--;
    }
    else {
       if ( abort_when_registered ) fatal0("Event Value was already registered (lock not taken)\n");
@@ -164,17 +174,18 @@ inline nanos_event_key_t InstrumentationDictionary::registerEventKey ( const cha
    KeyMapIterator it = _keyMap.find( key );
 
    if ( it == _keyMap.end() ) {
-      _lock++;
-      it = _keyMap.find( key );
-      if ( it == _keyMap.end() ) {
-         keyDescriptor = NEW InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, description );
-         _keyMap.insert( std::make_pair( key, keyDescriptor ) );
+      {
+         LockBlock lock( _lock );
+         it = _keyMap.find( key );
+         if ( it == _keyMap.end() ) {
+            keyDescriptor = NEW InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, description );
+            _keyMap.insert( std::make_pair( key, keyDescriptor ) );
+         }
+         else {
+            if ( abort_when_registered ) fatal0("Event Key was already registered (lock taken)\n");
+            keyDescriptor = it->second;
+         }
       }
-      else {
-         if ( abort_when_registered ) fatal0("Event Key was already registered (lock taken)\n");
-         keyDescriptor = it->second;
-      }
-      _lock--;
    }
    else {
       if ( abort_when_registered ) fatal0("Event Key was already registered (lock not taken)\n");
@@ -209,16 +220,17 @@ inline nanos_event_value_t InstrumentationDictionary::registerEventValue ( const
    KeyMapIterator it = _keyMap.find( key );
 
    if ( it == _keyMap.end() ) {
-      _lock++;
-      it = _keyMap.find( key );
-      if ( it == _keyMap.end() ) {
-         keyDescriptor = NEW InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, "" );
-         _keyMap.insert( std::make_pair( key, keyDescriptor ) );
+      {
+         LockBlock lock( _lock );
+         it = _keyMap.find( key );
+         if ( it == _keyMap.end() ) {
+            keyDescriptor = NEW InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, "" );
+            _keyMap.insert( std::make_pair( key, keyDescriptor ) );
+         }
+         else {
+            keyDescriptor = it->second;
+         }
       }
-      else {
-         keyDescriptor = it->second;
-      }
-      _lock--;
    }
    else keyDescriptor = it->second;
 
@@ -241,16 +253,17 @@ inline void InstrumentationDictionary::registerEventValue ( const char *key, con
    KeyMapIterator it = _keyMap.find( key );
 
    if ( it == _keyMap.end() ) {
-      _lock++;
-      it = _keyMap.find( key );
-      if ( it == _keyMap.end() ) {
-         keyDescriptor = new InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, "" );
-         _keyMap.insert( std::make_pair( key, keyDescriptor ) );
+      {
+         LockBlock lock( _lock );
+         it = _keyMap.find( key );
+         if ( it == _keyMap.end() ) {
+            keyDescriptor = new InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, "" );
+            _keyMap.insert( std::make_pair( key, keyDescriptor ) );
+         }
+         else {
+            keyDescriptor = it->second;
+         }
       }
-      else {
-         keyDescriptor = it->second;
-      }
-      _lock--;
    }
    else keyDescriptor = it->second;
 

@@ -33,14 +33,15 @@ _T& HashMap<_KeyType,_T,_invalidate,_tsize,_HashFunction>::operator[]( _KeyType 
    HashList& list = _table[_hash(key,_tsize)];
    typename HashList::iterator it = std::find( list.begin(), list.end(), MapEntry(key) );
    if ( it == list.end() ) {
-      list.lock();
+      {
+         SyncLockBlock lock( list.getLock() );
          it = std::find( list.begin(), list.end(), MapEntry(key) );
          if ( it == list.end() ) {
             entry = &(list.push_front(MapEntry(key)));
          } else {
             entry = &(*it);
          }
-      list.unlock();
+      }
    } else {
       entry = &(*it);
    }
@@ -53,18 +54,18 @@ _T& HashMap<_KeyType,_T,_invalidate,_tsize,_HashFunction>::insert( _KeyType key,
    inserted = false;
    MapEntry *entry;
    HashList& list = _table[_hash(key,_tsize)];
-   list.lock();
-   typename HashList::iterator it = std::find( list.begin(), list.end(), MapEntry(key) );
-   if ( it == list.end() ) {
-      entry = &(list.push_front(MapEntry(key,elem)));
-      it = std::find( list.begin(), list.end(), MapEntry(key) );
-      it.addReference();
-      inserted = true;
-      list.unlock();
-   } else {
-      entry = &(*it);
-      it.addReference();
-      list.unlock();
+   {
+      SyncLockBlock lock( list.getLock() );
+      typename HashList::iterator it = std::find( list.begin(), list.end(), MapEntry(key) );
+      if ( it == list.end() ) {
+         entry = &(list.push_front(MapEntry(key,elem)));
+         it = std::find( list.begin(), list.end(), MapEntry(key) );
+         it.addReference();
+         inserted = true;
+      } else {
+         entry = &(*it);
+         it.addReference();
+      }
    }
    return (entry->getValue());
 }

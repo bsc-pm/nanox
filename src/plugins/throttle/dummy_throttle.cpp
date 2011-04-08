@@ -17,7 +17,7 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "throttle.hpp"
+#include "throttle_decl.hpp"
 #include "plugin.hpp"
 #include "system.hpp"
 

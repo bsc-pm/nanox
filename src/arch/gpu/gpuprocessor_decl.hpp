@@ -26,7 +26,7 @@
 #include "gpudevice_decl.hpp"
 #include "gpumemorytransfer.hpp"
 #include "malign.hpp"
-#include "simpleallocator.hpp"
+#include "simpleallocator_decl.hpp"
 #include "copydescriptor_decl.hpp"
 
 #include <map>
@@ -80,6 +80,9 @@ namespace ext
 
 
          SimpleAllocator               _allocator;
+         SimpleAllocator               _pinnedMemoryAllocator;
+         BufferManager                 _inputPinnedMemoryBuffer;
+         BufferManager                 _outputPinnedMemoryBuffer;
          std::map< void *, uint64_t >  _pinnedMemory;
 
          //! Disable copy constructor and assignment operator
@@ -131,6 +134,37 @@ namespace ext
             _allocator.free( address );
          }
 
+         void * allocateInputPinnedMemory ( size_t size )
+         {
+#if 0
+            void * add = _pinnedMemoryAllocator.allocate( size );
+            fatal_cond( add == 0, "Not enough pinned memory to use (size = " + toString<size_t>( size ) + ")");
+            return add;
+            //return _pinnedMemoryAllocator.allocate( size );
+#else
+            return _inputPinnedMemoryBuffer.allocate( size );
+#endif
+         }
+
+         void freeInputPinnedMemory () //( void * address )
+         {
+#if 0
+            _pinnedMemoryAllocator.free( address );
+#else
+            _inputPinnedMemoryBuffer.reset();
+#endif
+         }
+
+         void * allocateOutputPinnedMemory ( size_t size )
+         {
+            return _outputPinnedMemoryBuffer.allocate( size );
+         }
+
+         void freeOutputPinnedMemory () //( void * address )
+         {
+            _outputPinnedMemoryBuffer.reset();
+         }
+
          //! Get information about the GPU that represents this object
          GPUProcessorInfo * getGPUProcessorInfo ()
          {
@@ -139,7 +173,7 @@ namespace ext
 
          uint64_t getPinnedAddress ( void * dAddress )
          {
-            return _pinnedMemory[dAddress];
+            return _pinnedMemory.count( dAddress ) == 0 ? 0 : _pinnedMemory[dAddress];
          }
 
          void setPinnedAddress ( void * dAddress, uint64_t pinned )

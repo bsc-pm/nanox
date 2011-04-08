@@ -21,8 +21,6 @@
 #define _NANOS_SYSTEM_H
 
 #include "system_decl.hpp"
-#include "processingelement.hpp"
-#include "throttle.hpp"
 #include <vector>
 #include <string>
 #include "schedule.hpp"
@@ -31,6 +29,7 @@
 #include "nanos-int.h"
 #include "dependency.hpp"
 #include "instrumentation_decl.hpp"
+#include "cache_map.hpp"
 
 using namespace nanos;
 
@@ -122,7 +121,7 @@ inline void System::setDefaultArch( const std::string &arch ) { _defArch = arch;
 
 inline void System::setPMInterface(PMInterface *pm)
 {
-   ensure(!_pmInterface,"PM interface already in place!");
+   ensure0(!_pmInterface,"PM interface already in place!");
    _pmInterface = pm;
 }
 

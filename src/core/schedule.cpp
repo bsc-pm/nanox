@@ -92,7 +92,7 @@ void Scheduler::submitAndWait ( WD &wd )
    submit( wd );
 
    // Wait for WD to be finished
-   myWG.waitCompletion();
+   myWG.waitCompletionAndSignalers();
 }
 
 void Scheduler::updateExitStats ( WD &wd )
@@ -134,7 +134,7 @@ inline void Scheduler::idleLoop ()
          WD * next = myThread->getNextWD();
 
          if ( next ) {
-           myThread->setNextWD(NULL);
+            myThread->resetNextWD();
          } else {
            if ( sys.getSchedulerStats()._readyTasks > 0 ) 
               next = behaviour::getWD(thread,current);
@@ -217,8 +217,11 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
          if ( !( condition->check() ) ) {
             condition->addWaiter( current );
 
-            WD *next = NULL;
-            if ( sys.getSchedulerStats()._readyTasks > 0 ) {
+            WD * next = myThread->getNextWD();
+
+            if ( next) {
+               myThread->resetNextWD();
+            } else if ( sys.getSchedulerStats()._readyTasks > 0 ) {
                next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
             }
 
@@ -343,6 +346,7 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    debug( "switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
           " to " << wd << ":" << wd->getId() );
 
+   /* Instrumenting context switch: oldwd leaves cpu but will come back (last = false) */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldwd, NULL, false) );
 
    // This ensures that when we return from the inlining is still the same thread
@@ -352,6 +356,7 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
       wd->init();
    thread->setCurrentWD( *wd );
 
+   /* Instrumenting context switch: wd enters cpu (last = n/a) */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
 
    thread->inlineWorkDependent(*wd);
@@ -359,7 +364,7 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    // reload thread after running WD
    thread = getMyThreadSafe();
 
-   if (schedule && thread->getNextWD() == NULL ) {
+   if (schedule) {
         thread->setNextWD(thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*wd));
    }
 
@@ -368,7 +373,8 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
 
    wd->done();
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, false) );
+   /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) */
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, true) );
 
 
    debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
@@ -377,6 +383,7 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
 
    thread->setCurrentWD( *oldwd );
 
+   /* Instrumenting context switch: oldwd is comming back cpu (last = n/a) */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, oldwd, false) );
 
    // While we tie the inlined tasks this is not needed

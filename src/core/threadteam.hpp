@@ -17,100 +17,107 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_THREAD_TEAM
-#define _NANOS_THREAD_TEAM
+#ifndef _NANOS_THREAD_TEAM_H
+#define _NANOS_THREAD_TEAM_H
+#include "threadteam_decl.hpp"
+#include "atomic.hpp"
+#include "debug.hpp"
 
-#include <vector>
-#include "basethread.hpp"
-#include "schedule.hpp"
-#include "barrier.hpp"
+using namespace nanos;
 
-
-namespace nanos
+inline ThreadTeam::ThreadTeam ( int maxThreads, SchedulePolicy &policy, ScheduleTeamData *data, Barrier &barrier, ThreadTeamData & ttd, ThreadTeam * parent )
+   : _idleThreads( 0 ), _numTasks( 0 ), _barrier(barrier), _singleGuardCount( 0 ),
+     _schedulePolicy( policy ), _scheduleData( data ), _threadTeamData( ttd ), _parent( parent ), _level( parent == NULL ? 0 : parent->getLevel() + 1 ), _creatorId(-1)
 {
+      _threads.reserve( maxThreads );
+}
 
-   class ThreadTeam
-   {
-      private:
-         std::vector<BaseThread *>    _threads;
-         int                          _idleThreads;
-         int                          _numTasks;
-         Barrier &                    _barrier;
-         int                          _singleGuardCount;
-         SchedulePolicy &             _schedulePolicy;
-         ScheduleTeamData *           _scheduleData;
-      private:
-         /*! \brief ThreadTeam default constructor (disabled)
-          */
-         ThreadTeam();
-         /*! \brief ThreadTeam copy constructor (disabled)
-          */
-         ThreadTeam( const ThreadTeam &sys );
-         /*! \brief ThreadTeam copy assignment operator (disabled)
-          */
-         const ThreadTeam & operator= ( const ThreadTeam &sys );
-      public:
-         /*! \brief ThreadTeam constructor - 1
-          */
-         ThreadTeam ( int maxThreads, SchedulePolicy &policy, ScheduleTeamData *data, Barrier &barrier )
-            : _idleThreads( 0 ), _numTasks( 0 ), _barrier(barrier), _singleGuardCount( 0 ),
-              _schedulePolicy( policy ), _scheduleData( data )
-         {
-               _threads.reserve( maxThreads );
-         }
-         /*! \brief ThreadTeam destructor
-          */
-         ~ThreadTeam ()
-         {
-            delete &_barrier;
-            ensure(size() == 0, "Destroying non-empty team!");
-         }
+inline ThreadTeam::~ThreadTeam ()
+{
+   delete &_barrier;
+   ensure(size() == 0, "Destroying non-empty team!");
+}
 
-         unsigned size() const { return _threads.size(); }
+inline unsigned ThreadTeam::size() const
+{
+   return _threads.size();
+}
 
-         /*! \brief Initializes team structures dependent on the number of threads.
-          *
-          *  This method initializes the team structures that depend on the number of threads.
-          *  It *must* be called after all threads have entered the team
-          *  It *must* be called by a single thread
-          */
-         void init ()
-         {
-            _barrier.init( size() );
-         }
+inline void ThreadTeam::init ()
+{
+   _barrier.init( size() );
+   _threadTeamData.init( _parent );
+}
 
-         /*! This method should be called when there's a change in the team size to readjust all structures
-          *  \warn Not implemented yet!
-          */
-         void resized ()
-         {
-            // TODO
-            _barrier.resize(size());
-         }
+inline void ThreadTeam::resized ()
+{
+   // TODO
+   _barrier.resize(size());
+}
 
-         BaseThread & getThread ( int i ) const { return *_threads[i]; }
-         BaseThread & getThread ( int i ) { return *_threads[i]; }
+inline BaseThread & ThreadTeam::getThread ( int i ) const
+{
+   return *_threads[i];
+}
 
-         const BaseThread & operator[]  ( int i ) const { return getThread(i); }
-         BaseThread & operator[]  ( int i ) { return getThread(i); }
+inline BaseThread & ThreadTeam::getThread ( int i )
+{
+   return *_threads[i];
+}
 
-         /*! \brief adds a thread to the team pool, returns the thread id in the team
-          *
-          */
-         unsigned addThread ( BaseThread *thread ) {
-            unsigned id = size();
-            _threads.push_back( thread );
-            return id;
-         }
+inline const BaseThread & ThreadTeam::operator[]  ( int i ) const
+{
+   return getThread(i);
+}
 
-         void barrier() { _barrier.barrier( myThread->getTeamId() ); }
+inline BaseThread & ThreadTeam::operator[]  ( int i )
+{
+   return getThread(i);
+}
 
-         bool singleGuard( int local );
+inline unsigned ThreadTeam::addThread ( BaseThread *thread, bool creator )
+{
+   unsigned id = size();
+   _threads.push_back( thread );
+   if ( creator ) {
+      _creatorId = (int) id;
+   }
+   return id;
+}
 
-         ScheduleTeamData * getScheduleData() const { return _scheduleData; }
-         SchedulePolicy & getSchedulePolicy() const { return _schedulePolicy; }
-   };
+inline void ThreadTeam::barrier()
+{
+   _barrier.barrier( myThread->getTeamId() );
+}
 
+inline ScheduleTeamData * ThreadTeam::getScheduleData() const
+{
+   return _scheduleData;
+}
+
+inline SchedulePolicy & ThreadTeam::getSchedulePolicy() const
+{
+   return _schedulePolicy;
+}
+
+inline ThreadTeamData & ThreadTeam::getThreadTeamData() const
+{
+   return _threadTeamData;
+}
+
+inline ThreadTeam * ThreadTeam::getParent() const
+{
+   return _parent;
+}
+
+inline int ThreadTeam::getLevel() const
+{
+   return _level;
+}
+
+inline int ThreadTeam::getCreatorId() const
+{
+   return _creatorId;
 }
 
 #endif

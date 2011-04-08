@@ -18,10 +18,12 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef NANOS_PM_INTERFACE
-#define NANOS_PM_INTERFACE
+#ifndef NANOS_PM_INTERFACE_DECL
+#define NANOS_PM_INTERFACE_DECL
 
-#include "config.hpp"
+#include "config_fwd.hpp"
+#include "workdescriptor_decl.hpp"
+#include "threadteam_decl.hpp"
 
 class PMInterface
 {
@@ -43,13 +45,15 @@ class PMInterface
       virtual int getInternalDataSize() const { return 0; }
       virtual int getInternalDataAlignment() const { return 1; }
 
-      virtual void config (Config &cfg) {}
+      virtual void config (nanos::Config &cfg) {}
       virtual void start () {}
       virtual void finish() {}
 
-      virtual void setupWD( WD &wd ) {}
-      virtual void wdStarted( WD &wd ) {}
-      virtual void wdFinished( WD &wd ) {}
+      virtual void setupWD( nanos::WD &wd ) {}
+      virtual void wdStarted( nanos::WD &wd ) {}
+      virtual void wdFinished( nanos::WD &wd ) {}
+
+      virtual nanos::ThreadTeamData* getThreadTeamData() { return NEW nanos::ThreadTeamData(); }
 };
 
 #endif /* PM_INTERFACE_HPP_ */

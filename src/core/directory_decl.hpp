@@ -23,7 +23,7 @@
 #include "compatibility.hpp"
 #include "cache_fwd.hpp"
 #include "hashmap_decl.hpp"
-#include "atomic.hpp"
+#include "atomic_decl.hpp"
 #include "cache_map_decl.hpp"
 
 namespace nanos
@@ -212,7 +212,7 @@ namespace nanos
 
         /*! \brief returns the entry identified by 'tag' or creates it empty if it was not found
          */
-         DirectoryEntry* getEntry( uint64_t tag );
+         DirectoryEntry* getEntry( uint64_t tag, unsigned int cVersion=0 );
 
         /*! \brief returns the entry identified by 'tag' or NULL if it was not found
          */

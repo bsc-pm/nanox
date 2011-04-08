@@ -18,7 +18,7 @@
 /*************************************************************************************/
 
 #include "system.hpp"
-#include "throttle.hpp"
+#include "throttle_decl.hpp"
 #include "plugin.hpp"
 #include "config.hpp"
 

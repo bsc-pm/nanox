@@ -59,6 +59,7 @@ void * SimpleAllocator::allocate( size_t size )
    }
    else {
       // Could not get a chunk of 'size' bytes
+      std::cout << "WARNING: Allocator is full" << std::endl;
       return NULL;
    }
 
@@ -133,21 +134,6 @@ size_t SimpleAllocator::free( void *address )
    return size;
 }
 
-void * SimpleAllocator::reallocate( void *address, size_t size )
-{
-   void *newAddress;
-   size_t oldSize;
-   
-   oldSize = this->free( address );
-   newAddress = this->allocate( size );
-   
-   if ( newAddress != address )
-   {
-      std::memcpy( newAddress, address, oldSize );
-   }
-   return newAddress;
-}
-
 void SimpleAllocator::printMap()
 {
    std::cout << "ALLOCATED CHUNKS" << std::endl;
@@ -166,3 +152,29 @@ void SimpleAllocator::printMap()
    }
    std::cout << "|" << std::endl;
 }
+
+
+BufferManager::BufferManager( void * address, size_t size )
+{
+   init(address,size);
+}
+
+void BufferManager::init ( void * address, size_t size )
+{
+   _baseAddress = address;
+   _index = 0;
+   _size = size;
+}
+
+void * BufferManager::allocate ( size_t size )
+{
+   void * address = ( void * ) ( ( uint64_t ) _baseAddress + _index );
+   _index = _index + size;
+   return  _size >= _index ? address : NULL;
+}
+
+void BufferManager::reset ()
+{
+   _index = 0;
+}
+

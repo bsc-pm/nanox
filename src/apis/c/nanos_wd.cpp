@@ -83,12 +83,9 @@ int nanos_get_wd_id ( nanos_wd_t wd )
  *
  *  \sa nanos::WorkDescriptor
  */
-nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t data_size,
+nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align,
                                void ** data, nanos_wg_t uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies )
 {
-   /* FIXME (#104) These variables have to be received as a parameters */
-   const int data_align = 16;
-  
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",NANOS_CREATION) );
 
    try 
@@ -97,8 +94,22 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
          *uwd = 0;
          return NANOS_OK;
       }
-      sys.createWD ( (WD **) uwd, num_devices, devices, data_size, data_align, (void **) data, (WG *) uwg, props, num_copies, copies );
+      sys.createWD ( (WD **) uwd, num_devices, devices, data_size, data_align, (void **) data, (WG *) uwg, props, num_copies, copies, NULL );
 
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+nanos_err_t nanos_set_translate_function ( nanos_wd_t wd, nanos_translate_args_t translate_args )
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_set_translate_function",NANOS_CREATION) );
+   try 
+   {
+      WD *lwd = ( WD * ) wd;
+      lwd->setTranslateArgs( translate_args );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -110,14 +121,11 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
  *
  *  \sa nanos::WorkDescriptor
  */
-nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
-                               void ** outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, size_t slicer_data_size,
-                               nanos_slicer_data_t * slicer_data, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies )
+nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size, int outline_data_align,
+                               void ** outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, size_t slicer_data_size, int slicer_data_align,
+                               nanos_slicer_data_t * slicer_data, nanos_wd_props_t *props,
+                               size_t num_copies, nanos_copy_data_t **copies )
 {
-   /* FIXME (#104) These variables have to be received as a parameters */
-   const int outline_data_align = 16;
-   const int slicer_data_align = 16;
-  
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",NANOS_CREATION) );
 
    try 
@@ -195,13 +203,10 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *
 
 
 // data must be not null
-nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *devices, size_t data_size, void * data, 
+nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align, void * data,
                                       size_t num_deps, nanos_dependence_t *deps, nanos_wd_props_t *props,
-                                      size_t num_copies, nanos_copy_data_t *copies )
+                                      size_t num_copies, nanos_copy_data_t *copies, nanos_translate_args_t translate_args )
 {
-   /* FIXME (#104) These variables have to be received as a parameters */
-   const int data_align = 16;
-  
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","create_wd_and_run", NANOS_CREATION) );
 
    try {
@@ -213,6 +218,7 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
       
 
       WD wd( ( DD* ) devices[0].factory( chunk, devices[0].arg ), data_size, data_align, data, num_copies, copies );
+      wd.setTranslateArgs( translate_args );
 
       int pmDataSize = sys.getPMInterface().getInternalDataSize();
       char pmData[pmDataSize];

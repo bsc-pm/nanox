@@ -53,6 +53,7 @@ class InstrumentationExtrae: public Instrumentation
    public: /* must be updated by Configure */
       static std::string                             _traceBaseName;
       static std::string                             _postProcessScriptPath;
+      static bool                                    _keepMpits; /*<< Keeps mpits temporary files (default = no)*/
    public:
       // constructor
       InstrumentationExtrae ( ) : Instrumentation( *NEW InstrumentationContextStackedStatesAndBursts() ) {}
@@ -92,7 +93,10 @@ class InstrumentationExtrae: public Instrumentation
             int result = execl ( str, "mpi2prv", "-f", _listOfTraceFileNames.c_str(), "-o", _traceFileName_PRV.c_str(), (char *) NULL); 
             exit(result);
          }
-         else waitpid( pid, &status, options);
+         else {
+            waitpid( pid, &status, options);
+            if ( status != 0 ) message0("Error while merging trace (mpi2prv returns: " << status << ")");
+         }
       }
 
       void postProcessTraceFile ()
@@ -117,7 +121,7 @@ class InstrumentationExtrae: public Instrumentation
          else waitpid( pid, &status, options);
 
          if ( status != 0 ) {
-            std::cerr << "Error in trace post-process. Trace generated but might be incorrect" << std::endl;
+            message0("Error in trace post-process. Trace generated but might be incorrect");
          }
       }
 
@@ -219,7 +223,7 @@ class InstrumentationExtrae: public Instrumentation
             /* Closing configuration file */
             p_file.close();
          }
-         else std::cout << "Unable to open paraver config file" << std::endl;  
+         else message0("Unable to open paraver config file");
       }
 
       void modifyParaverRowFile()
@@ -241,36 +245,49 @@ class InstrumentationExtrae: public Instrumentation
             /* Closing configuration file */
             p_file.close();
          }
-         else std::cout << "Unable to open paraver config file" << std::endl;  
+         else message0("Unable to open paraver config file");  
       }
 
       void removeTemporaryFiles()
       {
-         /* Removig Temporary trace files */
-         char str[255];
-         std::fstream p_file;
-         p_file.open(_listOfTraceFileNames.c_str());
-
-         if (p_file.is_open())
-         {
-            while (!p_file.eof() )
-            {
-               p_file.getline (str, 255);
-               if ( strlen(str) > 0 )
-               {
-                  for (unsigned int i = 0; i < strlen(str); i++) if ( str[i] == ' ' ) str[i] = 0x0;
-                  if ( remove(str) != 0 ) std::cout << "nanox: Unable to delete temporary/partial trace file" << str << std::endl;
-               }
-            }
-            p_file.close();
-         }
-         else std::cout << "Unable to open " << _listOfTraceFileNames << " file" << std::endl;  
-
-         if ( remove(_listOfTraceFileNames.c_str()) != 0 ) std::cout << "Unable to delete TRACE.mpits file" << std::endl;
-
-         /* Removing EXTRAE_DIR temporary directories and files */
          char *file_name    = (char *) alloca ( 255 * sizeof (char));
-         bool file_exists = true; int num = 0;
+         bool file_exists; int num;
+
+         if ( !_keepMpits ) {
+            /* Removig Temporary trace files */
+            char str[255];
+            std::fstream p_file;
+            p_file.open(_listOfTraceFileNames.c_str());
+
+            if (p_file.is_open())
+            {
+               while (!p_file.eof() )
+               {
+                  p_file.getline (str, 255);
+                  if ( strlen(str) > 0 )
+                  {
+                     for (unsigned int i = 0; i < strlen(str); i++) if ( str[i] == ' ' ) str[i] = 0x0;
+                     if ( remove(str) != 0 ) message0("nanox: Unable to delete temporary/partial trace file" << str);
+                  }
+               }
+               p_file.close();
+            }
+            else message0("Unable to open " << _listOfTraceFileNames << " file");
+
+            if ( remove(_listOfTraceFileNames.c_str()) != 0 ) message0("Unable to delete TRACE.mpits file");
+         
+            /* Removing EXTRAE_FINAL_DIR temporary directories and files */
+            file_exists = true; num = 0;
+            while ( file_exists ) {
+               sprintf( file_name, "%s/set-%d", _traceFinalDirectory.c_str(), num++ );
+               if ( remove( file_name ) != 0 ) file_exists = false;
+
+            } 
+            remove( _traceFinalDirectory.c_str());
+         }
+
+         /* Removing (always) EXTRAE_DIR temporary directories and files */
+         file_exists = true; num = 0;
          while ( file_exists ) {
             sprintf( file_name, "%s/set-%d", _traceDirectory.c_str(), num++ );
             if ( remove( file_name ) != 0 ) file_exists = false;
@@ -278,14 +295,6 @@ class InstrumentationExtrae: public Instrumentation
          }
          remove( _traceDirectory.c_str());
 
-         /* Removing EXTRAE_FINAL_DIR temporary directories and files */
-         file_exists = true; num = 0;
-         while ( file_exists ) {
-            sprintf( file_name, "%s/set-%d", _traceFinalDirectory.c_str(), num++ );
-            if ( remove( file_name ) != 0 ) file_exists = false;
-
-         }
-         remove( _traceFinalDirectory.c_str());
       }
 
       void getTraceFileName ()
@@ -547,6 +556,7 @@ class InstrumentationExtrae: public Instrumentation
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 std::string InstrumentationExtrae::_traceBaseName = std::string("");
 std::string InstrumentationExtrae::_postProcessScriptPath = std::string("");
+bool InstrumentationExtrae::_keepMpits = false;
 #endif
 
 namespace ext {
@@ -572,6 +582,12 @@ class InstrumentationParaverPlugin : public Plugin {
                                        "Defines extrae post processing script location" );
          config.registerArgOption ( "extrae-post-process", "extrae-post-processor-path" );
          config.registerEnvOption ( "extrae-post-process", "NX_EXTRAE_POST_PROCESSOR_PATH" );
+         
+
+         config.registerConfigOption ( "keep-mpits", NEW Config::FlagOption( InstrumentationExtrae::_keepMpits ),
+                                       "Keeps mpits temporary files generated by extrae library" );
+         config.registerArgOption ( "keep-mpits", "keep-mpits" );
+
 #endif
       }
 

@@ -18,13 +18,13 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "chpl_nanos.h"
 #include <assert.h>
 
 #include "system.hpp"
 #include "basethread.hpp"
 #include "schedule.hpp"
 #include "smpdd.hpp"
+#include "chpl_nanos.h"
 
 // // TODO: include chpl headers?
 // typedef char * chpl_string;
@@ -41,17 +41,12 @@ static uint64_t taskCallStackSize;
 using namespace nanos;
 using namespace nanos::ext;
 
-namespace nanos
-{
-   namespace Chapel
-   {
-      static void init()
-      {
-	 sys.setDelayedStart(true);
-      }
-   }
+static bool chapel_hooked = false;
 
-   System::Init externInit = Chapel::init;
+void nanos_chapel_pre_init ( void * dummy )
+{
+   sys.setDelayedStart(true);
+   chapel_hooked = true;
 }
 
 //
@@ -61,7 +56,8 @@ void chpl_task_begin(chpl_fn_p fp,
                      void* a,
                      chpl_bool ignore_serial,  // always add task to pool
                      chpl_bool serial_state,
-                     chpl_task_list_p ltask) {
+                     chpl_task_list_p ltask) 
+{
 
    assert(!ltask);
 
@@ -71,7 +67,9 @@ void chpl_task_begin(chpl_fn_p fp,
 
 // Tasks
 
-void chpl_task_init(int32_t maxThreadsPerLocale, uint64_t callStackSize) {
+void nanos_chpl_task_init(int32_t maxThreadsPerLocale, uint64_t callStackSize) {
+   fatal_cond0(!chapel_hooked, "Chapel layer has not been correctly initialized");
+
    sys.setInitialMode( System::POOL );
    sys.setUntieMaster(true);
    sys.setNumPEs(maxThreadsPerLocale);

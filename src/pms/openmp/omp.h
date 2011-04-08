@@ -63,12 +63,10 @@ extern int  omp_get_max_active_levels(void);
 extern void omp_set_schedule(omp_sched_t kind, int modifier);
 extern void omp_get_schedule(omp_sched_t *kind, int *modifier);
 
-/* TODO:
 extern int  omp_get_level(void);
 extern int  omp_get_ancestor_thread_num(int level);
 extern int  omp_get_team_size(int level);
 extern int  omp_get_active_level(void);
-*/
 
 extern void omp_init_lock(omp_lock_t *lock);
 extern void omp_destroy_lock(omp_lock_t *lock);
@@ -76,16 +74,16 @@ extern void omp_set_lock(omp_lock_t *lock);
 extern void omp_unset_lock(omp_lock_t *lock);
 extern int  omp_test_lock(omp_lock_t *lock);
 
-/* TODO:
 extern void omp_init_nest_lock(omp_nest_lock_t *lock);
 extern void omp_destroy_nest_lock(omp_nest_lock_t *lock);
 extern void omp_set_nest_lock(omp_nest_lock_t *lock);
 extern void omp_unset_nest_lock(omp_nest_lock_t *lock);
 extern int  omp_test_nest_lock(omp_nest_lock_t *lock);
-*/
 
 extern double omp_get_wtime(void);
 extern double omp_get_wtick(void);
+
+extern int omp_in_final(void);
 
 
 #ifdef __cplusplus

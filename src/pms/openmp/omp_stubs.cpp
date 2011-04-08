@@ -112,5 +112,9 @@ extern "C"
       return 0;
    }
 
+   int omp_in_final ( void )
+   {
+      return 0;
+   }
 }
 

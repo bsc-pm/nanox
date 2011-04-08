@@ -22,6 +22,7 @@
 
 #include "compatibility.hpp"
 #include "gpudd.hpp"
+#include "gpuprocessor_fwd.hpp"
 #include "smpthread.hpp"
 
 
@@ -31,9 +32,6 @@ namespace ext
 
    class GPUThread : public SMPThread
    {
-
-      friend class GPUProcessor;
-
       private:
          int                        _gpuDevice; // Assigned GPU device Id
          bool                       _wdClosingEvents; //! controls whether an instrumentation event should be generated at WD completion

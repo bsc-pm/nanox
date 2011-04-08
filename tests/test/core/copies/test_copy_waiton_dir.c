@@ -39,8 +39,8 @@ void first( void *ptr )
 
    my_args *args = (my_args *)ptr;
    my_args local;
-   nanos_copy_value( &local.a, 0 );
-   nanos_get_addr( 1, (void **)&local.b );
+   nanos_copy_value( &local.a, 0, nanos_current_wd() );
+   nanos_get_addr( 1, (void **)&local.b, nanos_current_wd() );
 
    if ( args->a != local.a ) {
       printf( "Error private argument is incorrect, %d in args and %d through the copies  FAIL\n", args->a, local.a );
@@ -68,8 +68,8 @@ void second( void *ptr )
 
    my_args *args = (my_args *)ptr;
    my_args local;
-   nanos_copy_value( &local.a, 0 );
-   nanos_get_addr( 1, (void **)&local.b );
+   nanos_copy_value( &local.a, 0, nanos_current_wd() );
+   nanos_get_addr( 1, (void **)&local.b, nanos_current_wd() );
 
    if ( args->a != local.a ) {
       printf( "Error private argument is incorrect, %d in args and %d through the copies  FAIL\n", args->a, local.a );
@@ -114,7 +114,7 @@ int main ( int argc, char **argv )
 
    nanos_wd_t wd1=0;
    nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1) };
-   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), (void**)&args, nanos_current_wd(), &props, 2, &cd) );
+   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), __alignof__(my_args), (void**)&args, nanos_current_wd(), &props, 2, &cd) );
 
    args->a = 1;
    args->b = dummy1;
@@ -135,7 +135,7 @@ int main ( int argc, char **argv )
    cd = 0;
    wd1=0;
    nanos_device_t test_devices_2[1] = { NANOS_SMP_DESC( test_device_arg_2) };
-   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_2, sizeof(my_args), (void**)&args, nanos_current_wd(), &props, 2, &cd) );
+   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_2, sizeof(my_args), __alignof__(my_args), (void**)&args, nanos_current_wd(), &props, 2, &cd) );
 
    args->a = 1;
    args->b = dummy1;
@@ -146,7 +146,7 @@ int main ( int argc, char **argv )
 
    NANOS_SAFE( nanos_submit( wd1,1,&deps2,0 ) );
 
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
 
    if ( strcmp( text2, dummy1 ) == 0 ) {
       printf( "Checking for copy-back correctness...  PASS\n" );

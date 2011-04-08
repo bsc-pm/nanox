@@ -23,58 +23,33 @@
 #include <string>
 #include <vector>
 #include "config.hpp"
+#include "plugin_decl.hpp"
 
-namespace nanos
+using namespace nanos;
+
+inline const std::string & Plugin::getName() const
 {
+   return _name;
+}
 
-   class Plugin
-   {
+inline int Plugin::getVersion() const
+{
+   return _version;
+}
 
-      private:
-         std::string    _name;
-         int            _version;
-         void  *        _handler;
+inline bool PluginManager::isPlugin ( const std::string &name )
+{
+   return isPlugin( name.c_str() );
+}
 
-         Plugin ( const Plugin & );
-         const Plugin operator= ( const Plugin & );
-         
-      public:
-         Plugin( std::string &_name, int _version ) : _name( _name ),_version( _version ) {}
+inline bool PluginManager::load ( const std::string &plugin_name, const bool init )
+{
+   return load( plugin_name.c_str(), init );
+}
 
-         Plugin( const char *_name, int _version ) : _name( _name ),_version( _version ) {}
-
-         virtual ~Plugin() {}
-
-         virtual void config(Config &cfg) {}
-         virtual void init() {}
-
-         virtual void fini() {}
-
-         const std::string & getName() const { return _name; }
-
-         int getVersion() const { return _version; }
-   };
-
-   class PluginManager
-   {
-      private:
-         typedef std::vector<Plugin *>    PluginList;
-         static PluginList                _activePlugins;
-
-      public:
-
-         static void init();
-
-         static bool isPlugin ( const char *name );
-         static bool isPlugin ( const std::string &name ) { return isPlugin( name.c_str() ); }
-
-         static bool load ( const char *plugin_name, const bool init=true );
-         static bool load ( const std::string &plugin_name, const bool init=true ) { return load( plugin_name.c_str(), init ); };
-         static Plugin* loadAndGetPlugin ( const char *plugin_name, const bool init=true );
-         static Plugin* loadAndGetPlugin ( const std::string &plugin_name, const bool init=true ) { return loadAndGetPlugin( plugin_name.c_str(), init ); }
-
-   };
-
+inline Plugin* PluginManager::loadAndGetPlugin ( const std::string &plugin_name, const bool init )
+{
+   return loadAndGetPlugin( plugin_name.c_str(), init );
 }
 
 #endif
