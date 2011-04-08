@@ -67,6 +67,11 @@ void * GPUDevice::allocateWholeMemory( size_t &size )
    fatal_cond( err != cudaSuccess, "Trying to allocate " +  toString<size_t>( size ) +
          + " bytes of device memory with cudaMalloc(): " +  cudaGetErrorString( err ) );
 
+   // Reset CUDA errors that may have occurred during this memory allocation
+   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT );
+   err = cudaGetLastError();
+   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
    return address;
 }
 
