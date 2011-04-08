@@ -21,7 +21,6 @@
 #define _NANOS_GPU_PROCESSOR
 
 #include "gpuprocessor_decl.hpp"
-#include "simpleallocator.hpp"
 
 #include <cuda_runtime.h>
 

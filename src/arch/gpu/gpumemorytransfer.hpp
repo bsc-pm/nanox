@@ -57,7 +57,6 @@ namespace ext
          virtual void executeMemoryTransfers () {}
          virtual void requestTransfer( void * address ) {}
          virtual void clearMemoryTransfers () {}
-         virtual void reset () {}
    };
 
    class GPUMemoryTransferOutList : public GPUMemoryTransferList
@@ -193,11 +192,6 @@ namespace ext
             _lock.acquire();
             _requestedTransfers.push_back( *NEW GPUMemoryTransfer ( hostAddress, deviceAddress, size ) );
             _lock.release();
-         }
-
-         void reset ()
-         {
-            _pendingTransfersAsync.clear();
          }
 
          void clearMemoryTransfers ();

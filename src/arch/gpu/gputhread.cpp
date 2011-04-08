@@ -94,6 +94,7 @@ void GPUThread::inlineWorkDependent ( WD &wd )
       NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
       // Erase the wait input list and synchronize it with cache
       myGPU.getInTransferList()->clearMemoryTransfers();
+      myGPU.freeInputPinnedMemory();
    }
 
    // We wait for wd inputs, but as we have just waited for them, we could skip this step
@@ -103,6 +104,7 @@ void GPUThread::inlineWorkDependent ( WD &wd )
       NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_OUTPUT_STREAM_SYNC_EVENT );
       cudaStreamSynchronize( myGPU.getGPUProcessorInfo()->getOutTransferStream() );
       NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+      myGPU.freeOutputPinnedMemory();
    }
 
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );

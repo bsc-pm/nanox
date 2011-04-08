@@ -38,6 +38,7 @@ inline const DependableObject & DependableObject::operator= ( const DependableOb
    _references = depObj._references;
    _successors = depObj._successors;
    _outputObjects = depObj._outputObjects;
+   _submitted = depObj._submitted;
    return *this;
 }
 
@@ -68,7 +69,7 @@ inline unsigned int DependableObject::getId ()
 
 inline int DependableObject::increasePredecessors ( )
 {
-     return _numPredecessors++; 
+	  return _numPredecessors++;
 }
 
 inline int DependableObject::decreasePredecessors ( )
@@ -123,6 +124,18 @@ inline void DependableObject::increaseReferences()
 inline void DependableObject::resetReferences()
 {
    _references = 1;
+}
+
+
+inline bool DependableObject::isSubmitted()
+{
+   return _submitted;
+}
+
+inline void DependableObject::submitted()
+{
+   _submitted = true;
+   memoryFence();
 }
 
 inline Lock& DependableObject::getLock()
