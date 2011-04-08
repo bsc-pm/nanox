@@ -55,7 +55,7 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
    depObj.setId ( _lastDepObjId++ );
 
    depObj.init();
-   
+
    // Object is not ready to get its dependencies satisfied
    // so we increase the number of predecessor to permit other dependableObjects to free some of
    // its dependencies without triggerinf the "dependenciesSatisfied" method
@@ -241,6 +241,8 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
 
    // To keep the count consistent we have to increase the number of tasks in the graph before releasing the fake dependency
    increaseTasksInGraph();
+
+   depObj.submitted();
 
    // now everything is ready
    if ( depObj.decreasePredecessors() > 0 )
