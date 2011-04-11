@@ -198,8 +198,10 @@ void GPUDevice::copyInAsyncToBuffer( void * dst, void * src, size_t size )
    }
 #endif
 
+   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_MEMCOPY_EVENT );
    SMPDevice::copyLocal( dst, src, size, NULL );
    //SMPDevice::copyLocal( ( void * ) myPE->getPinnedAddress( dst ), src, size, NULL );
+   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 }
 
 void GPUDevice::copyInAsyncToDevice( void * dst, void * src, size_t size )
@@ -289,7 +291,9 @@ void GPUDevice::copyOutAsyncToHost ( void * dst, void * src, size_t size )
    //nanos::ext::GPUProcessor * myPE = ( nanos::ext::GPUProcessor * ) myThread->runningOn();
    //void * pinned = ( void * ) myPE->getPinnedAddress( src );
 
+   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_MEMCOPY_EVENT );
    SMPDevice::copyLocal( dst, src, size, NULL );
+   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
    //myPE->removePinnedAddress( src );
    //myPE->freePinnedMemory( pinned );
