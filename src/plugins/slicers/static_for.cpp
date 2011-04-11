@@ -33,7 +33,7 @@ static void interleavedLoop ( void *arg )
    NANOS_INSTRUMENT ( Keys[1] = loop_upper; )
    NANOS_INSTRUMENT ( Keys[2] = loop_step; )
    
-   debug0 ( "Executing static loop wrapper");
+   debug ( "Executing static loop wrapper");
    int _upper, _stride, _chunk;
 
    nanos_loop_info_t * nli = (nanos_loop_info_t *) arg;
@@ -94,6 +94,8 @@ void SlicerStaticFor::submit ( SlicedWD &work )
    NANOS_INSTRUMENT ( Keys[0] = loop_lower; )
    NANOS_INSTRUMENT ( Keys[1] = loop_upper; )
    NANOS_INSTRUMENT ( Keys[2] = loop_step; )
+   
+   debug ( "Submitting sliced task " << &work << ":" << work.getId() );
    
    BaseThread *mythread = myThread;
    ThreadTeam *team = mythread->getTeam();
@@ -165,6 +167,8 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          // Duplicating slice
          slice = NULL;
          sys.duplicateWD( &slice, &work );
+   
+         debug ( "Creating task " << slice << ":" << slice->getId() << " from sliced one " << &work << ":" << work.getId() );
 
          // Computing specific loop boundaries for current slice
          nli = ( nanos_loop_info_t * ) slice->getData();
@@ -205,6 +209,9 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          // Duplicating slice into wd
          slice = NULL;
          sys.duplicateWD( &slice, &work );
+
+         debug ( "Creating task " << slice << ":" << slice->getId() << " from sliced one " << &work << ":" << work.getId() );
+
          // Computing specific loop boundaries for current slice
          nli = ( nanos_loop_info_t * ) slice->getData();
          nli->lower = _lower + ( j * _offset);

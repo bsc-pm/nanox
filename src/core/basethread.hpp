@@ -28,6 +28,7 @@
 #include "threadteam_fwd.hpp"
 #include "basethread_decl.hpp"
 #include "atomic.hpp"
+#include "system.hpp"
 
 namespace nanos
 {
@@ -48,6 +49,7 @@ namespace nanos
    inline void BaseThread::resetNextWD () { _nextWD = NULL; }
  
    inline bool BaseThread::setNextWD ( WD *next ) { 
+      debug("Set next WD as: " << next << ":??" << " @ thread " << _id );
       return compareAndSwap( &_nextWD, (WD *) NULL, next);
    }
  

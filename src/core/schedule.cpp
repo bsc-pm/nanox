@@ -498,9 +498,14 @@ void Scheduler::exit ( void )
    BaseThread *thread = myThread;
 
    WD *oldwd = thread->getCurrentWD();
+
+   /* get next WorkDescriptor (if any) */
    WD *next =  thread->getNextWD();
 
-   if (!next) next = thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*oldwd);
+  /* if getNextWD() has returned a WD, we need to resetNextWD(). If no WD has
+   * been returned call scheduler policy */
+   if (next) thread->resetNextWD();
+   else next = thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*oldwd);
 
    updateExitStats (*oldwd);
    oldwd->done();
