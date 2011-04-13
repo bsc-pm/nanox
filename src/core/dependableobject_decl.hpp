@@ -58,19 +58,20 @@ namespace nanos
          TrackableObjectVector    _outputObjects;   /**< List of output objects */
          TrackableObjectVector    _readObjects;     /**< List of read objects */
          Lock                     _objectLock;      /**< Lock to do exclusive use of the DependableObject */
+         volatile bool            _submitted;
 
       public:
         /*! \brief DependableObject default constructor
          */
          DependableObject ( ) 
             :  _id ( 0 ), _numPredecessors ( 0 ), _references(1), _successors(), _outputObjects(),
-               _readObjects(), _objectLock() {}
+               _readObjects(), _objectLock(), _submitted(false) {}
         /*! \brief DependableObject copy constructor
          *  \param depObj another DependableObject
          */
          DependableObject ( const DependableObject &depObj )
             : _id ( depObj._id ), _numPredecessors ( depObj._numPredecessors ), _references(depObj._references),
-              _successors ( depObj._successors ), _outputObjects( ), _readObjects(), _objectLock() {}
+              _successors ( depObj._successors ), _outputObjects( ), _readObjects(), _objectLock(), _submitted(false) {}
 
         /*! \brief DependableObject copy assignment operator, can be self-assigned.
          *  \param depObj another DependableObject
@@ -164,7 +165,15 @@ namespace nanos
          */
          void resetReferences();
 
-	/*! \brief returns a reference to the object's lock
+        /*! \brief returns true if the DependableObject has been submitted in the domain
+         */
+         bool isSubmitted();
+
+        /*! \breif sets the DO to submitted state
+         */
+         void submitted();
+
+        /*! \brief returns a reference to the object's lock
          */
          Lock& getLock();
 

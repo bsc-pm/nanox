@@ -354,7 +354,13 @@ inline void DeviceCache<_T,_Policy>::freeSpaceToFit( Directory &dir, size_t size
             }
          }
       }
-      // FIXME: this can be optimized by adding the flushing entries to a list and go to that list if not enough space was freed
+     /* FIXME: this can be optimized by adding the flushing entries to a
+      * list and go to that list if not enough space was freed
+      */
+     /* Wait loop:
+      *  - requesting the transfer to the device.
+      *  - idle must be done to allow the thread to manage the copies
+      */
       while ( ce.isFlushing() ) {
          _T::syncTransfer( (uint64_t)it->second, _pe );
          myThread->idle();
