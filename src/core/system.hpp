@@ -142,7 +142,7 @@ inline void System::threadReady()
        yet finished 
 
       TODO: we can consider thread yielding */
-   while (_initializedThreads.value() < _targetThreads);
+   while (_initializedThreads.value() < _targetThreads) {}
 }
 
 #endif

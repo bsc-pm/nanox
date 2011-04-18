@@ -71,7 +71,7 @@ namespace nanos
          EqualConditionChecker(volatile T* var, T condition) : ConditionChecker(), _var( var ), _condition( condition ) {}
          /*! \brief EqualConditionChecker copy constructor
           */
-         EqualConditionChecker ( const EqualConditionChecker & cc ) 
+         EqualConditionChecker ( const EqualConditionChecker & cc ) : ConditionChecker(cc)
          {
             this->_var = cc._var;
             this->_condition = cc._condition;

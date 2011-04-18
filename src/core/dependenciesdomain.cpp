@@ -149,7 +149,7 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
                // We increased the number of predecessors but someone just decreased them to 0
                // that will execute finished and we need to wait for the lastWriter to be deleted
                if ( lw == commDO ) {
-                  while ( dependencyObject->getLastWriter() != NULL );
+                  while ( dependencyObject->getLastWriter() != NULL ) {}
                }
             }
             dependencyObject->setLastWriter( *commDO );

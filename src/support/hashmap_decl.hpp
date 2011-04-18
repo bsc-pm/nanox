@@ -48,8 +48,8 @@ class Hash
       *  \param key compute the hash value for this key
       *  \param size size of the map
       */
-      virtual size_t operator()( _KeyType key, size_t size )
-         { return ((size_t)key) % size; }
+      virtual size_t operator()( _KeyType key, size_t sz )
+         { return ((size_t)key) % sz; }
 };
 
 

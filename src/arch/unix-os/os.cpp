@@ -48,7 +48,7 @@ static void findArgs (long *argc, char ***argv)
    // go backwards until we find argc 
    p--; 
 
-   for ( i = 0 ; *( --p ) != i; i++ ); 
+   for ( i = 0 ; *( --p ) != i; i++ ) {}
 
    *argc = *p; 
    *argv = ( char ** ) p+1; 

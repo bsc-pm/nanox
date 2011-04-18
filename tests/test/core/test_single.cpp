@@ -35,6 +35,8 @@ using namespace std;
 using namespace nanos;
 using namespace nanos::ext;
 
+void single_code ( void *a );
+
 void single_code ( void *a )
 {
    bool b = true;
