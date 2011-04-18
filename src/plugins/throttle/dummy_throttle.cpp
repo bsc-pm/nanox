@@ -56,6 +56,8 @@ namespace nanos {
       }
 
       //factory
+      DummyThrottle * createDummyThrottle();
+
       DummyThrottle * createDummyThrottle()
       {
          return NEW DummyThrottle();

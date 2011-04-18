@@ -25,7 +25,9 @@
 namespace nanos {
 namespace ext {
 
-PE * smpProcessorFactory ( int id )
+nanos::PE * smpProcessorFactory ( int id );
+
+nanos::PE * smpProcessorFactory ( int id )
 {
    return new SMPProcessor( id );
 }

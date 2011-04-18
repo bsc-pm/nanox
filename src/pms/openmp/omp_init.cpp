@@ -23,6 +23,7 @@
 #include "config.hpp"
 #include "omp_wd_data.hpp"
 #include "omp_threadteam_data.hpp"
+#include "nanos_omp.h"
 
 using namespace nanos;
 
@@ -106,7 +107,7 @@ namespace nanos
    This function must have C linkage to avoid that C applications need to link against the C++ library
 */   
 extern "C" {
-  void nanos_omp_set_interface()
+  void nanos_omp_set_interface( void * )
   {
      sys.setPMInterface(NEW nanos::OpenMP::OpenMPInterface());
   }
