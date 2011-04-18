@@ -27,13 +27,13 @@
 
 using namespace nanos;
 
-void SchedulerConf::config (Config &config)
+void SchedulerConf::config (Config &cfg)
 {
-   config.setOptionsSection ( "Core [Scheduler]", "Policy independent scheduler options"  );
+   cfg.setOptionsSection ( "Core [Scheduler]", "Policy independent scheduler options"  );
 
-   config.registerConfigOption ( "num_spins", NEW Config::UintVar( _numSpins ), "Determines the amount of spinning before yielding" );
-   config.registerArgOption ( "num_spins", "spins" );
-   config.registerEnvOption ( "num_spins", "NX_SPINS" );
+   cfg.registerConfigOption ( "num_spins", NEW Config::UintVar( _numSpins ), "Determines the amount of spinning before yielding" );
+   cfg.registerArgOption ( "num_spins", "spins" );
+   cfg.registerEnvOption ( "num_spins", "NX_SPINS" );
 }
 
 void Scheduler::submit ( WD &wd )

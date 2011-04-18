@@ -235,7 +235,7 @@ class SlicerStaticForPlugin : public Plugin {
       SlicerStaticForPlugin () : Plugin("Slicer for Loops using a static policy",1) {}
       ~SlicerStaticForPlugin () {}
 
-      virtual void config( Config& config ) {}
+      virtual void config( Config& cfg ) {}
 
       void init ()
       {

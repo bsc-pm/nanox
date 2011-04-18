@@ -38,7 +38,7 @@ class InstrumentationEmptyTracePlugin : public Plugin {
       InstrumentationEmptyTracePlugin () : Plugin("Instrumentation which doesn't generate any trace.",1) {}
       ~InstrumentationEmptyTracePlugin () {}
 
-      void config( Config &config ) {}
+      void config( Config &cfg ) {}
 
       void init ()
       {

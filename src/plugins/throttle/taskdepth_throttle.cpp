@@ -72,12 +72,12 @@ namespace nanos {
          public:
             TaskDepthThrottlePlugin() : Plugin( "Task Tree Level CutOff Plugin",1 ), _actualLimit(TaskDepthThrottle::_defaultLimit) {}
 
-            virtual void config( Config& config )
+            virtual void config( Config& cfg )
             {
-               config.setOptionsSection( "Task depth throttle", "Throttle policy based on tasks depth" );
-               config.registerConfigOption ( "throttle-limit",  NEW Config::PositiveVar( _actualLimit ),
+               cfg.setOptionsSection( "Task depth throttle", "Throttle policy based on tasks depth" );
+               cfg.registerConfigOption ( "throttle-limit",  NEW Config::PositiveVar( _actualLimit ),
                                              "Defines maximum depth of tasks" );
-               config.registerArgOption ( "throttle-limit", "throttle-limit" );
+               cfg.registerArgOption ( "throttle-limit", "throttle-limit" );
             }
 
             virtual void init() {

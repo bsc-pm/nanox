@@ -34,13 +34,13 @@ namespace nanos
 
       class OpenMPInterface : public PMInterface
       {
-         virtual void config ( Config & config )
+         virtual void config ( Config & cfg )
          {
-            config.setOptionsSection("OpenMP specific","OpenMP related options");
+            cfg.setOptionsSection("OpenMP specific","OpenMP related options");
 
             // OMP_NUM_THREADS
-            config.registerAlias("num_pes","omp-threads","Configures the number of OpenMP Threads to use");
-            config.registerEnvOption("omp-threads","OMP_NUM_THREADS");
+            cfg.registerAlias("num_pes","omp-threads","Configures the number of OpenMP Threads to use");
+            cfg.registerEnvOption("omp-threads","OMP_NUM_THREADS");
 
             // OMP_SCHEDULE
             // OMP_DYNAMIC

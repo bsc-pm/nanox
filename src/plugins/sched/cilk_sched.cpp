@@ -156,8 +156,8 @@ namespace nanos {
                BaseThread &victim = thread->getTeam()->getThread(thid);
 
                if ( victim.getTeam() != NULL ) {
-                 ThreadData &data = ( ThreadData & ) *victim.getTeamData()->getScheduleData();
-                 wd = data._readyQueue.pop_back ( thread );
+                 ThreadData &tdata = ( ThreadData & ) *victim.getTeamData()->getScheduleData();
+                 wd = tdata._readyQueue.pop_back ( thread );
                }
 
             } while ( wd == NULL && thid != thread->getTeamId() );
@@ -171,7 +171,7 @@ namespace nanos {
          public:
             CilkSchedPlugin() : Plugin( "Cilk scheduling Plugin",1 ) {}
 
-            virtual void config( Config& config ) {}
+            virtual void config( Config& cfg ) {}
 
             virtual void init() {
                sys.setDefaultSchedulePolicy(NEW CilkPolicy());
