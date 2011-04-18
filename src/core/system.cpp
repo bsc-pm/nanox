@@ -88,15 +88,14 @@ void System::loadModules ()
    std::for_each(modules.begin(),modules.end(), LoadModule());
 
    // load host processor module
-   verbose0( "loading SMP support" );
+   if ( _hostFactory == NULL ) {
+     verbose0( "loading Host support" );
 
-   if ( !PluginManager::load ( "pe-"+getDefaultArch() ) )
-      fatal0 ( "Couldn't load host support" );
-
+     if ( !PluginManager::load ( "pe-"+getDefaultArch() ) )
+       fatal0 ( "Couldn't load host support" );
+   }
    ensure( _hostFactory,"No default host factory" );
 
-
-   
 #ifdef GPU_DEV
    verbose0( "loading GPU support" );
 
