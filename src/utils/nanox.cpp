@@ -31,6 +31,8 @@
 
 using namespace nanos;
 
+void utilInit ( void * );
+
 void utilInit ( void * ) 
 {
    sys.setDelayedStart(true);

@@ -219,7 +219,7 @@ inline void Directory::waitInput( uint64_t tag, bool output )
 {
    DirectoryEntry *de = _directory.find( tag );
    if ( de != NULL ) { // The entry may have never been registered
-      while ( de->getOwner() != NULL );
+      while ( de->getOwner() != NULL ) {}
    }
 }
 
@@ -245,7 +245,7 @@ inline void Directory::synchronizeHost()
       Cache *c = de->getOwner();
       if ( c != NULL ) {
          c->syncTransfer( de->getTag() );
-         while (  de->getOwner() != NULL );
+         while (  de->getOwner() != NULL ) {}
       }
       de->setVersion( de->getVersion()+1 );
    }
@@ -273,7 +273,7 @@ inline void Directory::synchronizeHost( std::list<uint64_t> syncTags )
       Cache *c = de->getOwner();
       if ( c != NULL ) {
          c->syncTransfer( de->getTag() );
-         while (  de->getOwner() != NULL );
+         while (  de->getOwner() != NULL ) {}
       }
       de->setVersion( de->getVersion()+1 );
    }

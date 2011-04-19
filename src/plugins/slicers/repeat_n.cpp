@@ -67,7 +67,7 @@ class SlicerRepeatNPlugin : public Plugin {
       SlicerRepeatNPlugin () : Plugin("Slicer for repeating n times a given wd",1) {}
       ~SlicerRepeatNPlugin () {}
 
-      virtual void config( Config& config ) {}
+      virtual void config( Config& cfg ) {}
 
       void init ()
       {

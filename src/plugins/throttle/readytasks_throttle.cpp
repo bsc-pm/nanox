@@ -73,12 +73,12 @@ namespace nanos {
          public:
             ReadyTasksThrottlePlugin() : Plugin( "Ready Task Throttle Plugin",1 ), _actualLimit( ReadyTasksThrottle::_defaultLimit ) {}
 
-            virtual void config( Config &config )
+            virtual void config( Config &cfg )
             {
-               config.setOptionsSection( "Ready tasks throttle", "Throttle policy based on the number of ready tasks" );
-               config.registerConfigOption ( "throttle-limit",  NEW Config::PositiveVar( _actualLimit ),
+               cfg.setOptionsSection( "Ready tasks throttle", "Throttle policy based on the number of ready tasks" );
+               cfg.registerConfigOption ( "throttle-limit",  NEW Config::PositiveVar( _actualLimit ),
                                              "Maximum number of ready tasks" );
-               config.registerArgOption ( "throttle-limit", "throttle-limit" );
+               cfg.registerArgOption ( "throttle-limit", "throttle-limit" );
             }
 
             virtual void init() {

@@ -44,6 +44,7 @@ typedef struct {
    nanos_loop_info_t loop_info;
 } main__loop_1_data_t;
 
+void main__loop_1 ( void *args );
 
 void main__loop_1 ( void *args )
 {

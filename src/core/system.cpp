@@ -88,15 +88,14 @@ void System::loadModules ()
    std::for_each(modules.begin(),modules.end(), LoadModule());
 
    // load host processor module
-   verbose0( "loading SMP support" );
+   if ( _hostFactory == NULL ) {
+     verbose0( "loading Host support" );
 
-   if ( !PluginManager::load ( "pe-"+getDefaultArch() ) )
-      fatal0 ( "Couldn't load host support" );
-
+     if ( !PluginManager::load ( "pe-"+getDefaultArch() ) )
+       fatal0 ( "Couldn't load host support" );
+   }
    ensure( _hostFactory,"No default host factory" );
 
-
-   
 #ifdef GPU_DEV
    verbose0( "loading GPU support" );
 
@@ -150,7 +149,7 @@ struct ExecInit
 
 void System::config ()
 {
-   Config config;
+   Config cfg;
 
    const OS::InitList & externalInits = OS::getInitializationFunctions();
    std::for_each(externalInits.begin(),externalInits.end(), ExecInit());
@@ -162,61 +161,61 @@ void System::config ()
 
    verbose0 ( "Preparing library configuration" );
 
-   config.setOptionsSection ( "Core", "Core options of the core of Nanos++ runtime"  );
+   cfg.setOptionsSection ( "Core", "Core options of the core of Nanos++ runtime"  );
 
-   config.registerConfigOption ( "num_pes", NEW Config::PositiveVar( _numPEs ), "Defines the number of processing elements" );
-   config.registerArgOption ( "num_pes", "pes" );
-   config.registerEnvOption ( "num_pes", "NX_PES" );
+   cfg.registerConfigOption ( "num_pes", NEW Config::PositiveVar( _numPEs ), "Defines the number of processing elements" );
+   cfg.registerArgOption ( "num_pes", "pes" );
+   cfg.registerEnvOption ( "num_pes", "NX_PES" );
 
-   config.registerConfigOption ( "stack-size", NEW Config::PositiveVar( _deviceStackSize ), "Defines the default stack size for all devices" );
-   config.registerArgOption ( "stack-size", "stack-size" );
-   config.registerEnvOption ( "stack-size", "NX_STACK_SIZE" );
+   cfg.registerConfigOption ( "stack-size", NEW Config::PositiveVar( _deviceStackSize ), "Defines the default stack size for all devices" );
+   cfg.registerArgOption ( "stack-size", "stack-size" );
+   cfg.registerEnvOption ( "stack-size", "NX_STACK_SIZE" );
 
-   config.registerConfigOption ( "no-binding", NEW Config::FlagOption( _bindThreads, false), "Disables thread binding" );
-   config.registerArgOption ( "no-binding", "disable-binding" );
+   cfg.registerConfigOption ( "no-binding", NEW Config::FlagOption( _bindThreads, false), "Disables thread binding" );
+   cfg.registerArgOption ( "no-binding", "disable-binding" );
 
-   config.registerConfigOption( "no-yield", NEW Config::FlagOption( _useYield, false), "Do not yield on idle and condition waits");
-   config.registerArgOption ( "no-yield", "disable-yield" );
+   cfg.registerConfigOption( "no-yield", NEW Config::FlagOption( _useYield, false), "Do not yield on idle and condition waits");
+   cfg.registerArgOption ( "no-yield", "disable-yield" );
 
-   config.registerConfigOption ( "verbose", NEW Config::FlagOption( _verboseMode), "Activates verbose mode" );
-   config.registerArgOption ( "verbose", "verbose" );
+   cfg.registerConfigOption ( "verbose", NEW Config::FlagOption( _verboseMode), "Activates verbose mode" );
+   cfg.registerArgOption ( "verbose", "verbose" );
 
 #if 0
    FIXME: implement execution modes (#146)
-   Config::MapVar<ExecutionMode> map( _executionMode );
+   cfg::MapVar<ExecutionMode> map( _executionMode );
    map.addOption( "dedicated", DEDICATED).addOption( "shared", SHARED );
-   config.registerConfigOption ( "exec_mode", &map, "Execution mode" );
-   config.registerArgOption ( "exec_mode", "mode" );
+   cfg.registerConfigOption ( "exec_mode", &map, "Execution mode" );
+   cfg.registerArgOption ( "exec_mode", "mode" );
 #endif
 
-   config.registerConfigOption ( "schedule", NEW Config::StringVar ( _defSchedule ), "Defines the scheduling policy" );
-   config.registerArgOption ( "schedule", "schedule" );
-   config.registerEnvOption ( "schedule", "NX_SCHEDULE" );
+   cfg.registerConfigOption ( "schedule", NEW Config::StringVar ( _defSchedule ), "Defines the scheduling policy" );
+   cfg.registerArgOption ( "schedule", "schedule" );
+   cfg.registerEnvOption ( "schedule", "NX_SCHEDULE" );
 
-   config.registerConfigOption ( "throttle", NEW Config::StringVar ( _defThrottlePolicy ), "Defines the throttle policy" );
-   config.registerArgOption ( "throttle", "throttle" );
-   config.registerEnvOption ( "throttle", "NX_THROTTLE" );
+   cfg.registerConfigOption ( "throttle", NEW Config::StringVar ( _defThrottlePolicy ), "Defines the throttle policy" );
+   cfg.registerArgOption ( "throttle", "throttle" );
+   cfg.registerEnvOption ( "throttle", "NX_THROTTLE" );
 
-   config.registerConfigOption ( "barrier", NEW Config::StringVar ( _defBarr ), "Defines barrier algorithm" );
-   config.registerArgOption ( "barrier", "barrier" );
-   config.registerEnvOption ( "barrier", "NX_BARRIER" );
+   cfg.registerConfigOption ( "barrier", NEW Config::StringVar ( _defBarr ), "Defines barrier algorithm" );
+   cfg.registerArgOption ( "barrier", "barrier" );
+   cfg.registerEnvOption ( "barrier", "NX_BARRIER" );
 
-   config.registerConfigOption ( "instrumentation", NEW Config::StringVar ( _defInstr ), "Defines instrumentation format" );
-   config.registerArgOption ( "instrumentation", "instrumentation" );
-   config.registerEnvOption ( "instrumentation", "NX_INSTRUMENTATION" );
+   cfg.registerConfigOption ( "instrumentation", NEW Config::StringVar ( _defInstr ), "Defines instrumentation format" );
+   cfg.registerArgOption ( "instrumentation", "instrumentation" );
+   cfg.registerEnvOption ( "instrumentation", "NX_INSTRUMENTATION" );
 
-   config.registerConfigOption ( "no-sync-start", NEW Config::FlagOption( _synchronizedStart, false), "Disables synchronized start" );
-   config.registerArgOption ( "no-sync-start", "disable-synchronized-start" );
+   cfg.registerConfigOption ( "no-sync-start", NEW Config::FlagOption( _synchronizedStart, false), "Disables synchronized start" );
+   cfg.registerArgOption ( "no-sync-start", "disable-synchronized-start" );
 
-   config.registerConfigOption ( "architecture", NEW Config::StringVar ( _defArch ), "Defines the architecture to use (smp by default)" );
-   config.registerArgOption ( "architecture", "architecture" );
-   config.registerEnvOption ( "architecture", "NX_ARCHITECTURE" );
+   cfg.registerConfigOption ( "architecture", NEW Config::StringVar ( _defArch ), "Defines the architecture to use (smp by default)" );
+   cfg.registerArgOption ( "architecture", "architecture" );
+   cfg.registerEnvOption ( "architecture", "NX_ARCHITECTURE" );
 
-   _schedConf.config(config);
-   _pmInterface->config(config);
+   _schedConf.config(cfg);
+   _pmInterface->config(cfg);
 
    verbose0 ( "Reading Configuration" );
-   config.init();
+   cfg.init();
 }
 
 PE * System::createPE ( std::string pe_type, int pid )
@@ -472,7 +471,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    // allocating Device Data
    DD **dev_ptrs = ( DD ** ) (chunk + offset_DPtrs);
    dd_location = chunk + offset_DDs;
-   for ( unsigned int i = 0 ; i < num_devices ; i ++ ) {
+   for ( i = 0 ; i < num_devices ; i ++ ) {
       dev_ptrs[i] = ( DD* ) devices[i].factory( dd_location , devices[i].arg );
       dd_location += devices[i].dd_size;
    }
@@ -617,7 +616,7 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    // allocating Device Data
    DD **dev_ptrs = ( DD ** ) (chunk + offset_DPtrs);
    dd_location = chunk + offset_DDs;
-   for ( unsigned int i = 0 ; i < num_devices ; i ++ ) {
+   for ( i = 0 ; i < num_devices ; i ++ ) {
       dev_ptrs[i] = ( DD* ) devices[i].factory( dd_location , devices[i].arg );
       dd_location += devices[i].dd_size;
    }
@@ -977,14 +976,14 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
       if (tdata) data = &tdata[thId];
       else data = NEW TeamData();
 
-      ScheduleThreadData *stdata = 0;
+      ScheduleThreadData* sthdata = 0;
       if ( sched->getThreadDataSize() > 0 )
-        stdata = sched->createThreadData(NULL);
+        sthdata = sched->createThreadData(NULL);
       
 //       data->parentTeam = myThread->getTeamData();
 
       data->setId(thId);
-      data->setScheduleData(stdata);
+      data->setScheduleData(sthdata);
       
       myThread->enterTeam( team,  data );
 
@@ -1006,12 +1005,12 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
       if (tdata) data = &tdata[thId];
       else data = NEW TeamData();
 
-      ScheduleThreadData *stdata = 0;
+      ScheduleThreadData *sthdata = 0;
       if ( sched->getThreadDataSize() > 0 )
-        stdata = sched->createThreadData(NULL);
+        sthdata = sched->createThreadData(NULL);
 
       data->setId(thId);
-      data->setScheduleData(stdata);
+      data->setScheduleData(sthdata);
       
       thread->enterTeam( team, data );
       debug( "added thread " << thread << " with id " << toString<int>(thId) << " to " << thread->getTeam() );

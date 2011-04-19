@@ -274,7 +274,7 @@ namespace nanos {
          public:
             CacheSchedPlugin() : Plugin( "Cache-guided scheduling Plugin",1 ) {}
 
-            virtual void config( Config& config ) {}
+            virtual void config( Config& cfg ) {}
 
             virtual void init() {
                sys.setDefaultSchedulePolicy(NEW CacheSchedPolicy());

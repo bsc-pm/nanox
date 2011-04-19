@@ -101,7 +101,7 @@ namespace nanos {
          public:
             NanosSchedPlugin() : Plugin( "Nanos++ default scheduling policy Plugin",1 ) {}
 
-            virtual void config ( Config &config )
+            virtual void config ( Config &cfg )
             {
             }
 

@@ -143,7 +143,7 @@ namespace nanos {
          public:
             DisseminationBarrierPlugin() : Plugin( "Dissemination Barrier Plugin",1 ) {}
 
-            virtual void config( Config &config ) {}
+            virtual void config( Config &cfg ) {}
 
             virtual void init() {
                sys.setDefaultBarrFactory( createDisseminationBarrier );

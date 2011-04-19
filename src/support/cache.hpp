@@ -69,7 +69,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
             }
          }
       } else {        // wait for address
-         while ( ce->getAddress() == NULL );
+         while ( ce->getAddress() == NULL ) {}
       }
    } else {
       // DirectoryEntry exists
@@ -103,7 +103,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
             ce->setVersion( de->getVersion() );
          } else {        // wait for address
             // has to be input, otherwise the program is incorrect so just wait the address to exist
-            while ( ce->getAddress() == NULL );
+            while ( ce->getAddress() == NULL ) {}
             _cache.addReference( tag );
 
             if ( size != ce->getSize() ) {
@@ -211,7 +211,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                   }
 
                   // Wait while it's resizing
-                  while ( ce-> isResizing() );
+                  while ( ce-> isResizing() ) {}
 
                   // Copy in
                   CopyDescriptor cd = CopyDescriptor(tag);
@@ -559,7 +559,7 @@ inline void DeviceCache<_T,_Policy>::waitInput( uint64_t tag )
 {
    CacheEntry *ce = _cache.find(tag);
    ensure( ce != NULL, "Cache has been corrupted" );
-   while ( ce->isCopying() );
+   while ( ce->isCopying() ) {}
 }
 
 template <class _T, class _Policy>
@@ -567,7 +567,7 @@ inline void DeviceCache<_T,_Policy>::waitInput( DeviceCache<_T,_Policy>* _this, 
 {
    CacheEntry *ce = _this->_cache.find(tag);
    ensure( ce != NULL, "Cache has been corrupted" );
-   while ( ce->isCopying() );
+   while ( ce->isCopying() ) {}
 }
 
 template <class _T, class _Policy>

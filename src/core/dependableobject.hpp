@@ -74,11 +74,11 @@ inline int DependableObject::increasePredecessors ( )
 
 inline int DependableObject::decreasePredecessors ( )
 {
-   int  numPredecessors = --_numPredecessors; 
-   if ( numPredecessors == 0 ) {
+   int  numPred = --_numPredecessors; 
+   if ( numPred == 0 ) {
       dependenciesSatisfied( );
    }
-   return numPredecessors;
+   return numPred;
 }
 
 inline int DependableObject::numPredecessors () const

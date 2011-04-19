@@ -39,9 +39,9 @@ namespace nanos
          const Plugin operator= ( const Plugin & );
          
       public:
-         Plugin( std::string &_name, int _version ) : _name( _name ),_version( _version ) {}
+         Plugin( std::string &name, int version ) : _name( name ),_version( version ) {}
 
-         Plugin( const char *_name, int _version ) : _name( _name ),_version( _version ) {}
+         Plugin( const char *name, int version ) : _name( name ),_version( version ) {}
 
          virtual ~Plugin() {}
 
