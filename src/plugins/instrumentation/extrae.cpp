@@ -535,9 +535,9 @@ class InstrumentationExtrae: public Instrumentation
             int rmValues = 0;
             for ( int i = 0; i < ce.nEvents; i++ )
             {
-               for ( int j = i+1; j < ce.nEvents; j++ )
+               for ( int jj = i+1; jj < ce.nEvents; jj++ )
                {
-                  if ( ce.Types[i] == ce.Types[j] )
+                  if ( ce.Types[i] == ce.Types[jj] )
                   {
                      ce.Types[i] = 0;
                      rmValues++;
@@ -545,11 +545,11 @@ class InstrumentationExtrae: public Instrumentation
                }
             }
             ce.nEvents -= rmValues;
-            for ( int j = 0, i = 0; i < ce.nEvents; i++ )
+            for ( int jj = 0, i = 0; i < ce.nEvents; i++ )
             {
-               while ( ce.Types[j] == 0 ) j++;
-               ce.Types[i] = ce.Types[j];
-               ce.Values[i] = ce.Values[j++];
+               while ( ce.Types[jj] == 0 ) jj++;
+               ce.Types[i] = ce.Types[jj];
+               ce.Values[i] = ce.Values[jj++];
             }
          }
 
