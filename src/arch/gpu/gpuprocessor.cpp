@@ -59,6 +59,9 @@ void GPUProcessor::init ()
    size_t maxMemoryAvailable = ( size_t ) ( gpuProperties.totalGlobalMem * 0.95 );
 
    if ( userDefinedMem > 0 ) {
+      if ( userDefinedMem <= 100 ) {
+         userDefinedMem = ( size_t ) ( maxMemoryAvailable * ( userDefinedMem / 100.0 ) );
+      }
       if ( userDefinedMem > maxMemoryAvailable ) {
          warning( "Could not set memory size to " << userDefinedMem
                << " for GPU #" << _gpuDevice

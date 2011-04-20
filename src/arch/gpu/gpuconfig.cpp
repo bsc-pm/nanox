@@ -84,7 +84,7 @@ void GPUConfig::prepare( Config& config )
 
    // Set maximum GPU memory available for each GPU
    config.registerConfigOption ( "gpu-max-memory", NEW Config::SizeVar( _maxGPUMemory ),
-                                 "Defines the maximum amount of GPU memory (in bytes) to use for each GPU (defaults to the total amount of shared memory that each GPU has)" );
+                                 "Defines the maximum amount of GPU memory (in bytes) to use for each GPU (defaults to the total amount of shared memory that each GPU has). If this number is below 100, the amount of memory is taken as a percentage of the total device memory" );
    config.registerEnvOption ( "gpu-max-memory", "NX_GPUMAXMEM" );
    config.registerArgOption ( "gpu-max-memory", "gpu-max-memory" );
 
