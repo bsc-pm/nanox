@@ -642,6 +642,41 @@ bool commutative_task_3()
    return true;
 }
 
+bool dependency_offset()
+{
+   int i;
+   int my_value;
+   int * dep_addr = &my_value;
+   my_args *args1=0;
+   nanos_dependence_t deps1 = {(void **)&dep_addr,0, {0,1,0,0}, 0};
+   nanos_wd_props_t props = {
+     .mandatory_creation = true,
+     .tied = false,
+     .tie_to = false,
+   };
+   nanos_wd_t wd1=0;
+   nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1) };
+   NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), __alignof__(my_args), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
+   args1->p_i = dep_addr;
+   NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
+
+   for ( i = 0; i < 100; i++ ) {
+      my_args *args2=0;
+      // It is easier to check that using offsets that lead to the same dependency they are not broken than the oposite
+      int * local_dep_addr = &my_value + i; // NOTE: if renaming is implemented this is not safe
+      nanos_dependence_t deps2 = {(void **)&local_dep_addr,-1*i*sizeof(int), {1,1,0,0}, 0};
+      nanos_wd_t wd2 = 0;
+      nanos_device_t test_devices_2[1] = { NANOS_SMP_DESC( test_device_arg_2 ) };
+      NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_2, sizeof(my_args), __alignof__(my_args), (void**)&args2, nanos_current_wd(), &props, 0, NULL) );
+      args2->p_i = dep_addr;
+      NANOS_SAFE( nanos_submit( wd2,1,&deps2,0 ) );
+   }
+
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
+   
+   return (my_value == 100);
+}
+
 
 
 int main ( int argc, char **argv )
@@ -756,6 +791,17 @@ int main ( int argc, char **argv )
    printf("commutative tasks 3 test...\n");
    fflush(stdout);
    if ( commutative_task_3() ) {
+      printf("PASS\n");
+      fflush(stdout);
+   } else {
+      printf("FAIL\n");
+      fflush(stdout);
+      return 1;
+   }
+
+   printf("offset in dependencies test...\n");
+   fflush(stdout);
+   if ( dependency_offset() ) {
       printf("PASS\n");
       fflush(stdout);
    } else {
