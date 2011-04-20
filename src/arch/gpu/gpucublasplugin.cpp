@@ -22,7 +22,12 @@
 #include <iostream>
 
 #include <cuda_runtime.h>
-#include <cublas.h>
+// Cannot include cublas.h, as the redeclaration of two CUBLAS functions makes the
+// compiler crash because we are treating warnings as errors
+//#include <cublas.h>
+
+extern void cublasInit();
+
 
 
 namespace nanos {
@@ -33,7 +38,7 @@ class GPUCublasPlugin : public Plugin
    public:
       GPUCublasPlugin() : Plugin( "CUBLAS Warmup Plugin", 1 ) {}
 
-      void config( Config& config ) {}
+      void config( Config& cfg ) {}
 
       void init()
       {
