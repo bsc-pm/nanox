@@ -165,7 +165,7 @@ void GPUMemoryTransferInAsyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt 
    NANOS_INSTRUMENT( nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, mt._size ) );
 
-   void *pinned = ( nanos::ext::GPUProcessor * ) myThread->runningOn()->allocateInputPinnedMemory( mt._size );
+   void *pinned = ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->allocateInputPinnedMemory( mt._size );
 
    GPUDevice::copyInAsyncToBuffer( pinned, ( void * ) mt._hostAddress.getTag(), mt._size );
    GPUDevice::copyInAsyncToDevice( mt._deviceAddress, pinned, mt._size );
