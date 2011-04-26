@@ -305,6 +305,10 @@ void System::start ()
          break;
    }
 
+   // All initialization is ready, call postInit hooks
+   const OS::InitList & externalInits = OS::getPostInitializationFunctions();
+   std::for_each(externalInits.begin(),externalInits.end(), ExecInit());
+
    /* Master thread is ready and waiting for the rest of the gang */
    if ( getSynchronizedStart() )   
      threadReady();
