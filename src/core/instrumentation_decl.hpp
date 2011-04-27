@@ -284,7 +284,7 @@ namespace nanos {
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT", "cudaGetLastError()" );                       /* 16 */
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GENERIC_EVENT", "CUDA generic event" );                              /* 17 */
             registerEventValue("in-cuda-runtime", "NANOS_GPU_MEMCOPY_EVENT", "memcpy()" );                                             /* 18 */
-            /* 28 */ registerEventKey("xfer-size","Transfer size");
+            /* 29 */ registerEventKey("xfer-size","Transfer size");
 
             /* ** */ registerEventKey("debug","Debug Key"); /* Keep this key as the last one */
          }
