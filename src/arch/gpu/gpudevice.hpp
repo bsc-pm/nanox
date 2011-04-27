@@ -38,23 +38,14 @@ void * GPUDevice::allocate( size_t size, ProcessingElement *pe )
    void * address = ( ( nanos::ext::GPUProcessor * ) pe )->allocate( size );
    if ( address == NULL ) return NULL;
 
-   //( ( nanos::ext::GPUProcessor * ) pe )->setPinnedAddress( address, NULL );
    return address;
 }
 
 void GPUDevice::free( void *address, ProcessingElement *pe )
 {
-   // Check there are no pending copies to execute before we free the memory
-   // (and if there are, execute them)
+   // Check there are no pending copies to execute before we free the memory (and if there are, execute them)
    ( ( nanos::ext::GPUProcessor * ) pe )->getOutTransferList()->checkAddressForMemoryTransfer( address );
    ( ( nanos::ext::GPUProcessor * ) pe )->free( address );
-
-#if 0
-   uint64_t pinned = ( ( nanos::ext::GPUProcessor * ) pe )->getPinnedAddress( address );
-   if ( pinned != 0 ) {
-      freeIntermediateBuffer( pinned, address, pe );
-   }
-#endif
 }
 
 bool GPUDevice::copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, ProcessingElement *pe )
@@ -122,7 +113,7 @@ bool GPUDevice::isMycopyOut( CopyDescriptor &remoteDst, void *localSrc, size_t s
 void GPUDevice::syncTransfer( uint64_t hostAddress, ProcessingElement *pe)
 {
    // syncTransfer() is used to ensure that somebody will update the data related to
-   // 'hostAddress' of main memory at some time since we use copy back, this is always ensured
+   // 'hostAddress' of main memory at some time (when using copy back, this is always ensured)
 
    // Anyway, we can help the system and tell that somebody is waiting for it
    ( ( nanos::ext::GPUProcessor * ) pe )->getOutTransferList()->requestTransfer( ( void * ) hostAddress );

@@ -109,38 +109,6 @@ void GPUDevice::freePinnedMemory( void * address )
          + " with cudaFreeHost(): " + cudaGetErrorString( err ) );
 }
 
-#if 0
-uint64_t GPUDevice::allocateIntermediateBuffer( void * deviceAddress, size_t size, ProcessingElement *pe )
-{
-   uint64_t pinned;
-   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MALLOC_HOST_EVENT );
-   cudaError_t err = cudaMallocHost( ( void ** ) &pinned, size );
-   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-
-   // Note: Use cudaHostAllocPortable flag in order to allocate host memory that must be
-   // accessed from more than one GPU
-   //err = cudaHostAlloc( ( void ** ) &pinned, size, cudaHostAllocPortable);
-
-   fatal_cond( err != cudaSuccess, "Trying to allocate " + toString<size_t>( size )
-         + " bytes of host memory with cudaMallocHost(): " + cudaGetErrorString( err ) );
-
-   ( ( nanos::ext::GPUProcessor * ) pe )->setPinnedAddress( deviceAddress, pinned );
-
-   return pinned;
-}
-
-void GPUDevice::freeIntermediateBuffer( uint64_t pinnedAddress, void * deviceAddress, ProcessingElement *pe )
-{
-   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_FREE_HOST_EVENT );
-   cudaError_t err = cudaFreeHost( ( void * ) pinnedAddress );
-   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-   ( ( nanos::ext::GPUProcessor * ) pe )->removePinnedAddress( deviceAddress );
-
-   fatal_cond( err != cudaSuccess, "Trying to free host memory at " + toString<uint64_t>( pinnedAddress ) +
-         + " with cudaFreeHost(): " + cudaGetErrorString( err ) );
-}
-#endif
-
 void GPUDevice::copyLocal( void *dst, void *src, size_t size, ProcessingElement *pe )
 {
    // Copy from device memory to device memory
@@ -183,24 +151,8 @@ void GPUDevice::copyInSyncToDevice ( void * dst, void * src, size_t size )
 
 void GPUDevice::copyInAsyncToBuffer( void * dst, void * src, size_t size )
 {
-   //nanos::ext::GPUProcessor * myPE = ( nanos::ext::GPUProcessor * ) myThread->runningOn();
-
-#if 0
-   // Workaround to perform asynchronous copies
-   uint64_t pinned = myPE->getPinnedAddress( dst );
-   if ( pinned == 0 )
-      pinned = ( uint64_t ) allocateIntermediateBuffer( dst, size, myPE );
-#elif 0
-   void * pinned = ( void * ) myPE->getPinnedAddress( dst );
-   if ( pinned == 0 ) {
-      pinned = myPE->allocatePinnedMemory( size );
-      myPE->setPinnedAddress( dst, ( uint64_t ) pinned );
-   }
-#endif
-
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_MEMCOPY_EVENT );
    SMPDevice::copyLocal( dst, src, size, NULL );
-   //SMPDevice::copyLocal( ( void * ) myPE->getPinnedAddress( dst ), src, size, NULL );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 }
 
@@ -250,23 +202,9 @@ void GPUDevice::copyOutAsyncToBuffer ( void * dst, void * src, size_t size )
    nanos::ext::GPUProcessor * myPE = ( nanos::ext::GPUProcessor * ) myThread->runningOn();
    myPE->transferOutput( size );
 
-#if 0
-   // Workaround to perform asynchronous copies
-   uint64_t pinned = myPE->getPinnedAddress( src );
-   if ( pinned == 0 )
-      pinned = ( uint64_t ) allocateIntermediateBuffer( src, size, myPE );
-#elif 0
-   void * pinned = ( void * ) myPE->getPinnedAddress( src );
-   if ( pinned == 0 ) {
-      pinned = myPE->allocatePinnedMemory( size );
-      myPE->setPinnedAddress( src, ( uint64_t ) pinned );
-   }
-#endif
-
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_HOST_EVENT );
    cudaError_t err = cudaMemcpyAsync(
             dst,
-            //( void * ) myPE->getPinnedAddress( src ),
             src,
             size,
             cudaMemcpyDeviceToHost,
@@ -288,13 +226,7 @@ void GPUDevice::copyOutAsyncWait ()
 
 void GPUDevice::copyOutAsyncToHost ( void * dst, void * src, size_t size )
 {
-   //nanos::ext::GPUProcessor * myPE = ( nanos::ext::GPUProcessor * ) myThread->runningOn();
-   //void * pinned = ( void * ) myPE->getPinnedAddress( src );
-
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_MEMCOPY_EVENT );
    SMPDevice::copyLocal( dst, src, size, NULL );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-
-   //myPE->removePinnedAddress( src );
-   //myPE->freePinnedMemory( pinned );
 }
