@@ -507,8 +507,29 @@ class InstrumentationExtrae: public Instrumentation
                   else ce.Communications[k].type = EXTRAE_USER_RECV;
                   ce.Communications[k].tag = e.getDomain();
                   ce.Communications[k].id = e.getId();
-                  ce.Communications[k].size = e.getId(); // FIXME: just in some cases size is equal to id
-                  ce.Communications[k].partner = 0;
+                  switch ( e.getDomain() )
+                  {
+                     case NANOS_WD_DOMAIN:
+                     case NANOS_WD_DEPENDENCY:
+                     case NANOS_WD_REMOTE:
+                        ce.Communications[k].size = e.getId(); // FIXME: just in some cases size is equal to id
+                        break;
+                     case NANOS_XFER_PUT:
+                     case NANOS_XFER_GET:
+                        {
+                           kvs = e.getKVs();
+                           for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
+                              if ( kvs->first == sizeKey ) {
+                                 ce.Communications[k].size = kvs->second;
+                              }
+                           }
+                        }
+                        break;
+                     default: 
+                        break; // FIXME here goes a fatal
+                  }
+                     
+                  ce.Communications[k].partner = e.getPartner();
                   k++;
                   // continue...
                case NANOS_POINT:
