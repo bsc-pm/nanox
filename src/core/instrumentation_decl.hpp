@@ -223,35 +223,49 @@ namespace nanos {
             /* 06 */ registerEventKey("cache-malloc","Memory allocation in device cache");
             /* 07 */ registerEventKey("cache-free","Memory free in device cache");
             /* 08 */ registerEventKey("cache-hit","Hit in the cache");
+            /* 09 */ registerEventKey("cache-wait","Cache waiting for something");
+            registerEventValue("cache-wait","registerCacheAccess() L.94","registerCacheAccess() waiting for data allocation (not registered in directory)");
+            registerEventValue("cache-wait","registerCacheAccess() L.112","registerCacheAccess() waiting for data invalidation in another cache (new entry)");
+            registerEventValue("cache-wait","registerCacheAccess() L.122","registerCacheAccess() waiting for data to have no owner");
+            registerEventValue("cache-wait","registerCacheAccess() L.141","registerCacheAccess() waiting for data allocation (registered in directory)");
+            registerEventValue("cache-wait","registerCacheAccess() L.163","registerCacheAccess() waiting for data invalidation (size has changed)");
+            registerEventValue("cache-wait","registerCacheAccess() L.185","registerCacheAccess() waiting for data invalidation in another cache (size has changed)");
+            registerEventValue("cache-wait","registerCacheAccess() L.221","registerCacheAccess() waiting for data to be copied back (size has changed)");
+            registerEventValue("cache-wait","registerCacheAccess() L.239","registerCacheAccess() waiting for data invalidation in another cache (old version)");
+            registerEventValue("cache-wait","registerCacheAccess() L.260","registerCacheAccess() invalidating another cache");
+            registerEventValue("cache-wait","registerCacheAccess() L.292","registerCacheAccess() waiting for resize");
+            registerEventValue("cache-wait","registerCacheAccess() L.300","registerCacheAccess() waiting for flush");
+            registerEventValue("cache-wait","freeSpaceToFit()","freeSpaceToFit()");
+            registerEventValue("cache-wait","waitInput()","waitInput()");
 
-            /* 09 */ registerEventKey("copy-in","Copying WD inputs");
-            /* 10 */ registerEventKey("copy-out","Copying WD outputs");
+            /* 10 */ registerEventKey("copy-in","Copying WD inputs");
+            /* 11 */ registerEventKey("copy-out","Copying WD outputs");
 
-            /* 11 */ registerEventKey("user-funct-name","User Function Name");
+            /* 12 */ registerEventKey("user-funct-name","User Function Name");
 
-            /* 12 */ registerEventKey("user-code","User Code (wd)");
+            /* 13 */ registerEventKey("user-code","User Code (wd)");
 
-            /* 13 */ registerEventKey("create-wd-id","Create WD Id:");
-            /* 14 */ registerEventKey("create-wd-ptr","Create WD pointer:");
-            /* 15 */ registerEventKey("wd-num-deps","Create WD num. deps."); 
-            /* 16 */ registerEventKey("wd-deps-ptr","Create WD dependence pointer"); 
+            /* 14 */ registerEventKey("create-wd-id","Create WD Id:");
+            /* 15 */ registerEventKey("create-wd-ptr","Create WD pointer:");
+            /* 16 */ registerEventKey("wd-num-deps","Create WD num. deps."); 
+            /* 17 */ registerEventKey("wd-deps-ptr","Create WD dependence pointer"); 
 
-            /* 17 */ registerEventKey("lock-addr","Lock address"); 
+            /* 18 */ registerEventKey("lock-addr","Lock address"); 
 
-            /* 18 */ registerEventKey("num-spins","Number of Spins"); 
-            /* 19 */ registerEventKey("num-yields","Number of Yields"); 
-            /* 20 */ registerEventKey("time-yields","Time on Yield (in nsecs)");
+            /* 19 */ registerEventKey("num-spins","Number of Spins"); 
+            /* 20 */ registerEventKey("num-yields","Number of Yields"); 
+            /* 21 */ registerEventKey("time-yields","Time on Yield (in nsecs)");
 
-            /* 21 */ registerEventKey("user-funct-location","User Function Location");
+            /* 22 */ registerEventKey("user-funct-location","User Function Location");
 
-            /* 22 */ registerEventKey("num-ready","Number of ready tasks in the queues");
-            /* 23 */ registerEventKey("graph-size","Number tasks in the graph");
+            /* 23 */ registerEventKey("num-ready","Number of ready tasks in the queues");
+            /* 24 */ registerEventKey("graph-size","Number tasks in the graph");
 
-            /* 24 */ registerEventKey("loop-lower","Loop lower bound");
-            /* 25 */ registerEventKey("loop-upper","Loop upper");
-            /* 26 */ registerEventKey("loop-step","Loop step");
+            /* 25 */ registerEventKey("loop-lower","Loop lower bound");
+            /* 26 */ registerEventKey("loop-upper","Loop upper");
+            /* 27 */ registerEventKey("loop-step","Loop step");
 
-            /* 27 */ registerEventKey("in-cuda-runtime","Inside CUDA runtime");
+            /* 28 */ registerEventKey("in-cuda-runtime","Inside CUDA runtime");
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MALLOC_EVENT", "cudaMalloc()" );                                     /* 1 */
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_FREE_EVENT", "cudaFree()" );                                         /* 2 */
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MALLOC_HOST_EVENT", "cudaMallocHost()" );                            /* 3 */

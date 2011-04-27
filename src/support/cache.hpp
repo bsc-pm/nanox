@@ -23,6 +23,7 @@
 #include "config.hpp"
 #include "compatibility.hpp"
 #include "instrumentation.hpp"
+#include "instrumentationmodule_decl.hpp"
 #include "cache_decl.hpp"
 #include "directory.hpp"
 #include "atomic.hpp"
@@ -30,6 +31,26 @@
 #include "copydescriptor.hpp"
 
 using namespace nanos;
+
+typedef enum {
+   NANOS_CACHE_EVENT_NULL_EVENT,
+   NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_94,
+   NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_112,
+   NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_122,
+   NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_141,
+   NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_163,
+   NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_185,
+   NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_221,
+   NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_239,
+   NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_260,
+   NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_292,
+   NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_300,
+   NANOS_CACHE_EVENT_FREE_SPACE_TO_FIT,
+   NANOS_CACHE_EVENT_WAIT_INPUT,
+   NANOS_CACHE_EVENT_GENERIC_EVENT
+} cache_wait_event_value;
+   
+
 
 inline unsigned int Cache::getId() const
 {
@@ -69,7 +90,9 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
             }
          }
       } else {        // wait for address
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_94 ); )
          while ( ce->getAddress() == NULL ) {}
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
       }
    } else {
       // DirectoryEntry exists
@@ -83,12 +106,23 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
             if ( owner != NULL && !(!input && output) ) {
                owner->invalidate( dir, tag, size, de );
                owner->syncTransfer(tag);
-               while( de->getOwner() != NULL ) myThread->idle();
+               NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_112 ); )
+               {
+                  NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
+                  while( de->getOwner() != NULL ) myThread->idle();
+               }
+               NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
             }
             ce->setAddress( _cache.allocate( dir, size ) );
             ce->setAllocSize( size );
             if (input) {
-               while ( de->getOwner() != NULL ) myThread->idle();
+               NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_122 ); )
+               {
+                  NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
+                  while ( de->getOwner() != NULL ) myThread->idle();
+               }
+               NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
+
                CopyDescriptor cd = CopyDescriptor(tag);
                if ( _cache.copyDataToCache( cd, size ) ) {
                   ce->setCopying(false);
@@ -103,7 +137,10 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
             ce->setVersion( de->getVersion() );
          } else {        // wait for address
             // has to be input, otherwise the program is incorrect so just wait the address to exist
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_141 ); )
             while ( ce->getAddress() == NULL ) {}
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
+
             _cache.addReference( tag );
 
             if ( size != ce->getSize() ) {
@@ -120,7 +157,13 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                      _cache.invalidate( dir, tag, ce->getSize(), de );
                      // synchronize invalidation
                      _cache.syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
-                     while( de->getOwner() != NULL ) myThread->idle();
+                     NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_163 ); )
+                     {
+                        NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
+                        while( de->getOwner() != NULL ) myThread->idle();
+                     }
+                     NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
+
                   }
                   if ( size > ce->getAllocSize() ) {
                      _cache.realloc( dir, ce, size );
@@ -136,7 +179,13 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                            // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
                            owner->invalidate( dir, tag, size, de );
                            owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
-                           while( de->getOwner() != NULL ) myThread->idle();
+                           NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_185 ); )
+                           {
+                              NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
+                              while( de->getOwner() != NULL ) myThread->idle();
+                           }
+                           NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
+
                         }
 
                         // Copy in
@@ -166,7 +215,13 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                   _cache.invalidate( dir, tag, ce->getSize(), de );
                   // synchronize invalidation
                   _cache.syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
-                  while( de->getOwner() != NULL ) myThread->idle();
+                  NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_221 ); )
+                  {
+                     NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
+                     while( de->getOwner() != NULL ) myThread->idle();
+                  }
+                  NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
+
                }
                if ( size > ce->getAllocSize() ) {
                   _cache.realloc( dir, ce, size );
@@ -175,20 +230,44 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
  
                if ( input ) {
                   didCopyIn = true;
-                  if ( ce->trySetToCopying() ) {
+                  if ( ce->isFlushing() ) {
                      Cache *owner = de->getOwner();
-                     ensure( &_cache != owner, "Trying to invalidate myself" );
-                     if ( owner != NULL ) {
-                        // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
-                        owner->invalidate( dir, tag, size, de );
-                        owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
+                     owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
+                     NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_239 ); )
+                     {
+                        NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
                         while( de->getOwner() != NULL ) myThread->idle();
                      }
+                     NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
+                     if ( ce->trySetToCopying() ) {
+                        // Copy in
+                        CopyDescriptor cd = CopyDescriptor(tag);
+                        if ( _cache.copyDataToCache( cd, size ) ) {
+                           ce->setCopying(false);
+                        }
+                     }
+                  } else { 
+                     if ( ce->trySetToCopying() ) {
+                        Cache *owner = de->getOwner();
+                        ensure( &_cache != owner, "Trying to invalidate myself" );
+                        if ( owner != NULL ) {
+                           // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
+                           owner->invalidate( dir, tag, size, de );
+                           owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
+                           NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_260 ); )
+                           {
+                              NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
+                              while( de->getOwner() != NULL ) myThread->idle();
+                           }
+                           NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
 
-                     // Copy in
-                     CopyDescriptor cd = CopyDescriptor(tag);
-                     if ( _cache.copyDataToCache( cd, size ) ) {
-                        ce->setCopying(false);
+                        }
+
+                        // Copy in
+                        CopyDescriptor cd = CopyDescriptor(tag);
+                        if ( _cache.copyDataToCache( cd, size ) ) {
+                           ce->setCopying(false);
+                        }
                      }
                   }
                }
@@ -207,11 +286,20 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                      // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
                      owner->invalidate( dir, tag, size, de );
                      owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
-                     while( de->getOwner() != NULL ) myThread->idle();
+                     NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_292 ); )
+                     {
+                        NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
+                        while( de->getOwner() != NULL ) myThread->idle();
+                     }
+                     NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
+
                   }
 
                   // Wait while it's resizing
+                  NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_300 ); )
                   while ( ce-> isResizing() ) {}
+                  NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
+
 
                   // Copy in
                   CopyDescriptor cd = CopyDescriptor(tag);
@@ -361,10 +449,16 @@ inline void DeviceCache<_T,_Policy>::freeSpaceToFit( Directory &dir, size_t size
       *  - requesting the transfer to the device.
       *  - idle must be done to allow the thread to manage the copies
       */
-      while ( ce.isFlushing() ) {
-         _T::syncTransfer( (uint64_t)it->second, _pe );
-         myThread->idle();
+      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_FREE_SPACE_TO_FIT ); )
+      {
+         NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
+         while ( ce.isFlushing() ) {
+            _T::syncTransfer( (uint64_t)it->second, _pe );
+            myThread->idle();
+         }
       }
+      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
+
       // Copy the entry because once erased it can be recycled
       CacheEntry ce2 = ce;
       if ( _cache.erase( it->second ) ) {
@@ -559,7 +653,13 @@ inline void DeviceCache<_T,_Policy>::waitInput( uint64_t tag )
 {
    CacheEntry *ce = _cache.find(tag);
    ensure( ce != NULL, "Cache has been corrupted" );
-   while ( ce->isCopying() ) {}
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_WAIT_INPUT ); )
+   {
+      NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
+      while ( ce->isCopying() ) {}
+   }
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
+
 }
 
 template <class _T, class _Policy>
@@ -567,7 +667,13 @@ inline void DeviceCache<_T,_Policy>::waitInput( DeviceCache<_T,_Policy>* _this, 
 {
    CacheEntry *ce = _this->_cache.find(tag);
    ensure( ce != NULL, "Cache has been corrupted" );
-   while ( ce->isCopying() ) {}
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_WAIT_INPUT ); )
+   {
+      NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
+      while ( ce->isCopying() ) {}
+   }
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
+
 }
 
 template <class _T, class _Policy>
