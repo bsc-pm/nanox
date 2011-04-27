@@ -105,7 +105,7 @@ void Instrumentation::createPointEvent ( Event *e, unsigned int nkvs, nanos_even
 }
 
 void Instrumentation::createPtPStart ( Event *e, nanos_event_domain_t domain, nanos_event_id_t id,
-                      unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
+                      unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values, unsigned int partner )
 {
    /* Creating an Event::KV vector */
    Event::KVList kvlist = NEW Event::KV[nkvs];
@@ -116,11 +116,11 @@ void Instrumentation::createPtPStart ( Event *e, nanos_event_domain_t domain, na
    }
 
    /* Creating a PtP (start) event */
-   new (e) PtP ( true, domain, id, nkvs, kvlist );
+   new (e) PtP ( true, domain, id, nkvs, kvlist, partner );
 }
 
 void Instrumentation::createPtPEnd ( Event *e, nanos_event_domain_t domain, nanos_event_id_t id,
-                      unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
+                      unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values, unsigned int partner )
 {
    /* Creating an Event::KV vector */
    Event::KVList kvlist = NEW Event::KV[nkvs];
@@ -131,7 +131,7 @@ void Instrumentation::createPtPEnd ( Event *e, nanos_event_domain_t domain, nano
    }
 
    /* Creating a PtP (end) event */
-   new (e) PtP ( false, domain, id, nkvs, kvlist );
+   new (e) PtP ( false, domain, id, nkvs, kvlist, partner );
 
 }
 /* ************************************************************************** */
@@ -153,12 +153,12 @@ void Instrumentation::createDeferredPointEvent ( WorkDescriptor &wd, unsigned in
 }
 
 void Instrumentation::createDeferredPtPStart ( WorkDescriptor &wd, nanos_event_domain_t domain, nanos_event_id_t id,
-                      unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
+                      unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values, unsigned int partner )
 {
    Event e; /* Event */
 
    /* Create event: PtP */
-   createPtPStart( &e, domain, id, nkvs, keys, values );
+   createPtPStart( &e, domain, id, nkvs, keys, values, partner );
 
    /* Inserting event into deferred event list */
    InstrumentationContextData *icd = wd.getInstrumentationContextData();                                             
@@ -166,12 +166,12 @@ void Instrumentation::createDeferredPtPStart ( WorkDescriptor &wd, nanos_event_d
 }
 
 void Instrumentation::createDeferredPtPEnd ( WorkDescriptor &wd, nanos_event_domain_t domain, nanos_event_id_t id,
-                      unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
+                      unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values, unsigned int partner )
 {
    Event e; /* Event */
 
    /* Create event: PtP */
-   createPtPEnd( &e, domain, id, nkvs, keys, values );
+   createPtPEnd( &e, domain, id, nkvs, keys, values, partner );
 
    /* Inserting event into deferred event list */
    InstrumentationContextData *icd = wd.getInstrumentationContextData();                                             
@@ -248,35 +248,35 @@ void Instrumentation::raiseCloseBurstEvent ( nanos_event_key_t key )
    addEventList ( 1, &e );
 }
 
-void Instrumentation::raiseOpenPtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val )
+void Instrumentation::raiseOpenPtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val, unsigned int partner )
 {
    Event e; /* Event */
 
    /* Create event: PtP */
-   createPtPStart( &e, domain, id, 1, &key, &val );
+   createPtPStart( &e, domain, id, 1, &key, &val, partner );
 
    /* Spawning event: specific instrumentation call */
    addEventList ( 1, &e );
 }
 
 void Instrumentation::raiseOpenPtPEventNkvs ( nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,
-                                           nanos_event_key_t *key, nanos_event_value_t *val )
+                                           nanos_event_key_t *key, nanos_event_value_t *val, unsigned int partner )
 {
    Event e; /* Event */
 
    /* Create event: PtP */
-   createPtPStart( &e, domain, id, nkvs, key, val );
+   createPtPStart( &e, domain, id, nkvs, key, val, partner );
 
    /* Spawning event: specific instrumentation call */
    addEventList ( 1, &e );
 }
 
-void Instrumentation::raiseClosePtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val )
+void Instrumentation::raiseClosePtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val, unsigned int partner )
 {
    Event e; /* Event */
 
    /* Create event: PtP */
-   createPtPEnd( &e, domain, id, 1, &key, &val );
+   createPtPEnd( &e, domain, id, 1, &key, &val, partner );
 
    /* Spawning event: specific instrumentation call */
    addEventList ( 1, &e );
@@ -284,12 +284,12 @@ void Instrumentation::raiseClosePtPEvent ( nanos_event_domain_t domain, nanos_ev
 }
 
 void Instrumentation::raiseClosePtPEventNkvs ( nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,
-                                            nanos_event_key_t *key, nanos_event_value_t *val )
+                                            nanos_event_key_t *key, nanos_event_value_t *val, unsigned int partner )
 {
    Event e; /* Event */
 
    /* Create event: PtP */
-   createPtPEnd( &e, domain, id, nkvs, key, val );
+   createPtPEnd( &e, domain, id, nkvs, key, val, partner );
 
    /* Spawning event: specific instrumentation call */
    addEventList ( 1, &e );
