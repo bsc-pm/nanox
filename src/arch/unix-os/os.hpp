@@ -82,6 +82,7 @@ namespace nanos
          static char ** _argv;
 
          static InitList   *_initList;
+         static InitList   *_postInitList;
          static ModuleList *_moduleList;
       public:         
 
@@ -103,6 +104,7 @@ namespace nanos
          static double getMonotonicTimeResolution ();
          
          static const InitList & getInitializationFunctions ( ) { return *_initList;}
+         static const InitList & getPostInitializationFunctions ( ) { return *_postInitList;}
          static const ModuleList & getRequestedModules () { return *_moduleList; }
    };
 
