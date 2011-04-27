@@ -196,7 +196,7 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
          depObj.addReadObject( dependencyObject );
 
          {
-            SyncLockBlock( dependencyObject->getReadersLock() );
+            SyncLockBlock lock3( dependencyObject->getReadersLock() );
             dependencyObject->setReader( depObj );
          }
       }
@@ -210,11 +210,11 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
             TrackableObject::DependableObjectList &readersList = dependencyObject->getReaders();
 
             {
-               SyncLockBlock( dependencyObject->getReadersLock() );
+               SyncLockBlock lock4( dependencyObject->getReadersLock() );
                for ( TrackableObject::DependableObjectList::iterator i = readersList.begin(); i != readersList.end(); i++) {
                   DependableObject * predecessorReader = *i;
                   {
-                     SyncLockBlock(predecessorReader->getLock());
+                     SyncLockBlock lock5(predecessorReader->getLock());
                      if ( predecessorReader->addSuccessor( depObj ) ) {
                         depObj.increasePredecessors();
                      }
