@@ -159,12 +159,18 @@ class Allocator
       ArenaCollection               _arenas;      /**< Vector of Arenas in Allocator*/
       static size_t                 _headerSize;  /**< Size of ObjectHeader */
 
+      static const size_t                  _sizeOfBig = 1024*1024*10;
+
      /*! \brief Allocator copy constructor (disabled)
       */
       Allocator ( const Allocator &a );
      /*! \brief Allocator copy assignment operator (disabled)
       */
       Allocator & operator= ( const Allocator &a );
+
+
+     /*! \brief Alternative allocation method for big objects */
+      void * allocateBigObject ( size_t size ); 
 
    public: /* Allocator method members */
     /*! \brief Allocator default constructor 
