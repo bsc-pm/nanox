@@ -164,7 +164,7 @@ void GPUMemoryTransferOutAsyncList::removeMemoryTransfer ( CopyDescriptor &hostA
    }
 }
 
-void executeRequestedMemoryTransfers ()
+void GPUMemoryTransferOutAsyncList::executeRequestedMemoryTransfers ()
 {
    std::list<GPUMemoryTransfer> itemsToRemove;
    _lock.acquire();
