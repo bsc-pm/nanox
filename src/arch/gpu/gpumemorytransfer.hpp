@@ -65,6 +65,7 @@ namespace ext
          virtual void executeMemoryTransfers () {}
          virtual void requestTransfer( void * address ) {}
          virtual void clearMemoryTransfers () {}
+         virtual void clearRequestedMemoryTransfers () {}
    };
 
    class GPUMemoryTransferOutList : public GPUMemoryTransferList
@@ -160,6 +161,24 @@ namespace ext
 
          void removeMemoryTransfer ( GPUMemoryTransfer &mt );
 
+         void clearRequestedMemoryTransfers ()
+         {
+            _lock.acquire();
+            for ( std::list<GPUMemoryTransfer>::iterator it = _pendingTransfersAsync.begin();
+                  it != _pendingTransfersAsync.end();
+                  it++ )
+            {
+               if ( it->_requested ) {
+                  //_lock.acquire();
+                  GPUMemoryTransfer mt ( *it );
+                  _pendingTransfersAsync.erase( it );
+                  //_lock.release();
+                  removeMemoryTransfer( mt );
+               }
+            }
+            _lock.release();
+         }
+
          void executeMemoryTransfers ()
          {
             while ( !_pendingTransfersAsync.empty() ) {
@@ -175,6 +194,9 @@ namespace ext
 
    class GPUMemoryTransferOutAsyncList : public GPUMemoryTransferOutList
    {
+      private:
+         void executeMemoryTransfers ( std::list<GPUMemoryTransfer> &pendingTransfersAsync );
+
       public:
          GPUMemoryTransferOutAsyncList() : GPUMemoryTransferOutList() {}
          ~GPUMemoryTransferOutAsyncList() {}
@@ -183,7 +205,29 @@ namespace ext
 
          void removeMemoryTransfer ( CopyDescriptor &hostAddress );
 
-         void executeMemoryTransfers ();
+         void executeMemoryTransfers ()
+         {
+            executeMemoryTransfers( _pendingTransfersAsync );
+         }
+
+         void executeRequestedMemoryTransfers ()
+         {
+            std::list<GPUMemoryTransfer> itemsToRemove;
+            _lock.acquire();
+            for ( std::list<GPUMemoryTransfer>::iterator it = _pendingTransfersAsync.begin();
+                  it != _pendingTransfersAsync.end();
+                  it++ )
+            {
+               if ( it->_requested ) {
+                  //_lock.acquire();
+                  itemsToRemove.push_back(*it);
+                  _pendingTransfersAsync.erase( it );
+                  //_lock.release();
+               }
+            }
+            _lock.release();
+            executeMemoryTransfers( itemsToRemove );
+         }
    };
 
    class GPUMemoryTransferInAsyncList : public GPUMemoryTransferList

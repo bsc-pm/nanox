@@ -76,23 +76,23 @@ void GPUMemoryTransferOutAsyncList::removeMemoryTransfer ( CopyDescriptor &hostA
    }
 }
 
-void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ()
+void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ( std::list<GPUMemoryTransfer> &pendingTransfersAsync )
 {
-   if ( !_pendingTransfersAsync.empty() ) {
+   if ( !pendingTransfersAsync.empty() ) {
 
       nanos::ext::GPUProcessor * myPE = ( nanos::ext::GPUProcessor * ) myThread->runningOn();
 
       // First copy
-      std::list<GPUMemoryTransfer>::iterator it1 = _pendingTransfersAsync.begin();
+      std::list<GPUMemoryTransfer>::iterator it1 = pendingTransfersAsync.begin();
 
       _lock.acquire();
-      while( it1 != _pendingTransfersAsync.end() && !it1->_requested ) {
+      while( it1 != pendingTransfersAsync.end() && !it1->_requested ) {
          it1++;
       }
-      if ( it1 == _pendingTransfersAsync.end() ) it1 = _pendingTransfersAsync.begin();
+      if ( it1 == pendingTransfersAsync.end() ) it1 = pendingTransfersAsync.begin();
 
       GPUMemoryTransfer mt1 ( *it1 );
-      _pendingTransfersAsync.erase( it1 );
+      pendingTransfersAsync.erase( it1 );
       _lock.release();
 
       void * pinned1 = myPE->allocateOutputPinnedMemory( mt1._size );
@@ -103,24 +103,24 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ()
 
       GPUDevice::copyOutAsyncToBuffer( pinned1, mt1._deviceAddress, mt1._size );
 
-      while ( _pendingTransfersAsync.size() > 1) {
+      while ( pendingTransfersAsync.size() > 1) {
          // First copy
          GPUDevice::copyOutAsyncWait();
 
          // Second copy
          // Check if there is another GPUMemoryTransfer requested
          _lock.acquire();
-         std::list<GPUMemoryTransfer>::iterator it2 = _pendingTransfersAsync.begin();
-         while( !it2->_requested && it2 != _pendingTransfersAsync.end() ) {
+         std::list<GPUMemoryTransfer>::iterator it2 = pendingTransfersAsync.begin();
+         while( !it2->_requested && it2 != pendingTransfersAsync.end() ) {
             it2++;
          }
          // If no requested transfer is found, take the first transfer
-         if ( it2 == _pendingTransfersAsync.end() ) {
-            it2 = _pendingTransfersAsync.begin();
+         if ( it2 == pendingTransfersAsync.end() ) {
+            it2 = pendingTransfersAsync.begin();
          }
 
          GPUMemoryTransfer mt2 ( *it2 );
-         _pendingTransfersAsync.erase( it2 );
+         pendingTransfersAsync.erase( it2 );
          _lock.release();
 
          void * pinned2 = myPE->allocateOutputPinnedMemory( mt2._size );
