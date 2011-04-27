@@ -55,7 +55,7 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
    depObj.setId ( _lastDepObjId++ );
 
    depObj.init();
-   
+
    // Object is not ready to get its dependencies satisfied
    // so we increase the number of predecessor to permit other dependableObjects to free some of
    // its dependencies without triggerinf the "dependenciesSatisfied" method
@@ -120,8 +120,8 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
             {
                SyncLockBlock lock1( dependencyObject->getReadersLock() );
 
-               for ( TrackableObject::DependableObjectList::iterator it = readersList.begin(); it != readersList.end(); it++) {
-                  DependableObject * predecessorReader = *it;
+               for ( TrackableObject::DependableObjectList::iterator i = readersList.begin(); i != readersList.end(); i++) {
+                  DependableObject * predecessorReader = *i;
                   {
                      SyncLockBlock lock2( predecessorReader->getLock() );
                      if ( predecessorReader->addSuccessor( *initialCommDO ) ) {
@@ -149,7 +149,7 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
                // We increased the number of predecessors but someone just decreased them to 0
                // that will execute finished and we need to wait for the lastWriter to be deleted
                if ( lw == commDO ) {
-                  while ( dependencyObject->getLastWriter() != NULL );
+                  while ( dependencyObject->getLastWriter() != NULL ) {}
                }
             }
             dependencyObject->setLastWriter( *commDO );
@@ -164,7 +164,7 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
 
          if ( lastWriter != NULL ) {
             {
-               SyncLockBlock lock( lastWriter->getLock() );
+               SyncLockBlock lck( lastWriter->getLock() );
                if ( dependencyObject->getLastWriter() == lastWriter ) {
                   if ( lastWriter->addSuccessor( depObj ) ) {
                      depObj.increasePredecessors();
@@ -196,7 +196,7 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
          depObj.addReadObject( dependencyObject );
 
          {
-            SyncLockBlock lock( dependencyObject->getReadersLock() );
+            SyncLockBlock lock3( dependencyObject->getReadersLock() );
             dependencyObject->setReader( depObj );
          }
       }
@@ -210,11 +210,11 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
             TrackableObject::DependableObjectList &readersList = dependencyObject->getReaders();
 
             {
-               SyncLockBlock lock( dependencyObject->getReadersLock() );
-               for ( TrackableObject::DependableObjectList::iterator it = readersList.begin(); it != readersList.end(); it++) {
-                  DependableObject * predecessorReader = *it;
+               SyncLockBlock lock4( dependencyObject->getReadersLock() );
+               for ( TrackableObject::DependableObjectList::iterator i = readersList.begin(); i != readersList.end(); i++) {
+                  DependableObject * predecessorReader = *i;
                   {
-                     SyncLockBlock lock(predecessorReader->getLock());
+                     SyncLockBlock lock5(predecessorReader->getLock());
                      if ( predecessorReader->addSuccessor( depObj ) ) {
                         depObj.increasePredecessors();
                      }
@@ -241,6 +241,8 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
 
    // To keep the count consistent we have to increase the number of tasks in the graph before releasing the fake dependency
    increaseTasksInGraph();
+
+   depObj.submitted();
 
    // now everything is ready
    if ( depObj.decreasePredecessors() > 0 )

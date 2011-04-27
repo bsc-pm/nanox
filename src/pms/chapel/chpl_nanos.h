@@ -43,6 +43,9 @@ typedef struct {
 #include <chpltypes.h>
 #include <chpltasks.h>
 
+void nanos_chapel_pre_init ( void * );
+void nanos_chpl_task_init(int32_t maxThreadsPerLocale, uint64_t callStackSize);
+
 #ifdef __cplusplus
 }
 #endif

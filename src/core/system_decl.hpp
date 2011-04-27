@@ -51,8 +51,6 @@ namespace nanos
          typedef enum { DEDICATED, SHARED } ExecutionMode;
          typedef enum { POOL, ONE_THREAD } InitialMode;
 
-         typedef void (*Init) ();
-
       private:
          // types
          typedef std::vector<PE *>         PEList;

@@ -76,15 +76,15 @@ namespace nanos {
          public:
             IdleThreadsThrottlePlugin() : Plugin( "Idle Threads Throttling Plugin",1 ), _actualLimit( IdleThreadsThrottle::_defaultLimit ) {}
 
-            virtual void config( Config &config )
+            virtual void config( Config &cfg )
             {
-               config.setOptionsSection( "Idle threads throttle",
+               cfg.setOptionsSection( "Idle threads throttle",
                                          "Throttle policy based on idle threads" );
                                          
-               config.registerConfigOption ( "throttle-limit",
+               cfg.registerConfigOption ( "throttle-limit",
                   NEW Config::PositiveVar( "throttle-limit", _actualLimit),
                   "Defines maximum number of Idle Threads" );
-               config.registerArgOption ( "throttle-limit", "throttle-limit" );
+               cfg.registerArgOption ( "throttle-limit", "throttle-limit" );
             }
 
             virtual void init() {

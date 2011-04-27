@@ -54,13 +54,13 @@ int main ( int argc, char **argv )
          .tie_to = false
       };
 
-      NANOS_SAFE( nanos_create_wd ( &wd, 1, main__task_1_device , sizeof( main__task_1_data_t ),
+      NANOS_SAFE( nanos_create_wd ( &wd, 1, main__task_1_device , sizeof( main__task_1_data_t ), __alignof__(main__task_1_data_t),
                                     (void **) &task_data, nanos_current_wd(), &props , 0, NULL ));
 
       task_data->value = 100;
 
       NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
-      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
 
       return 0; 
 }

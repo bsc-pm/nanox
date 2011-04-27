@@ -27,13 +27,13 @@
 
 using namespace nanos;
 
-nanos_err_t nanos_wg_wait_completion ( nanos_wg_t uwg )
+nanos_err_t nanos_wg_wait_completion ( nanos_wg_t uwg, bool avoid_flush )
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","wg_wait_completion",NANOS_SYNCHRONIZATION) );
 
    try {
       WG *wg = ( WG * )uwg;
-      wg->waitCompletion();
+      wg->waitCompletion( avoid_flush );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }

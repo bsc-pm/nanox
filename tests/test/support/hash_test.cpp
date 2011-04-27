@@ -25,6 +25,8 @@ WD *mainWD;
 /*      key, val      */
 HashMap<int, int, false, 4, Hash<int> > _map;
 
+void barrier_code ( void * );
+
 /*! works only with bf scheduler */
 void barrier_code ( void * )
 {
@@ -46,7 +48,7 @@ void barrier_code ( void * )
    // Main erases one element other threads read it 100 times
    if ( mainWD == getMyThreadSafe()->getCurrentWD()) {
       std::cout << "passed first barrier" << std::endl;
-      for (i=0; i < 100; i++);
+      for (i=0; i < 100; i++) {}
       while (!_map.erase(8))
          its++;
       std::cout << "Main needed " << std::setbase(10) << its << " iterations to erase the element." << std::endl;
@@ -62,7 +64,7 @@ void barrier_code ( void * )
 
 int main (int argc, char **argv)
 {
-   int i, size;
+   unsigned int i, size;
 
 
    if ( _map.find(0) != NULL ) {
@@ -124,7 +126,7 @@ int main (int argc, char **argv)
    //all threads perform a barrier , before the barrier they will freely access the list
    ThreadTeam &team = *getMyThreadSafe()->getTeam();
    size = team.size();
-   for ( unsigned i = 1; i < team.size(); i++ ) {
+   for ( i = 1; i < team.size(); i++ ) {
           WD * wd = new WD(new SMPDD(barrier_code));
           wd->tieTo(team[i]);
           sys.submit(*wd);

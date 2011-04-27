@@ -100,9 +100,9 @@ nanos_smp_args_t main__loop_1_device_args = { main__loop_1 };
       nanos_slicer_t slicer = nanos_find_slicer(slicer_type);\
       nanos_slicer_data_for_t *slicer_data_for = NULL;\
 \
-      NANOS_SAFE( nanos_create_sliced_wd ( &wd, 1, main__loop_1_device , sizeof( main__loop_1_data_t ),\
+      NANOS_SAFE( nanos_create_sliced_wd ( &wd, 1, main__loop_1_device , sizeof( main__loop_1_data_t ), __alignof__(main__loop_1_data_t),\
                                     (void **) &loop_data, nanos_current_wd(), slicer,\
-                                    sizeof(nanos_slicer_data_for_t), (void **) &slicer_data_for, &props , 0, NULL ));\
+                                    sizeof(nanos_slicer_data_for_t), __alignof__(nanos_slicer_data_for_t), (void **) &slicer_data_for, &props , 0, NULL ));\
 \
       loop_data->offset = -k_offset;\
       slicer_data_for->_upper = upper+k_offset;\
@@ -111,7 +111,7 @@ nanos_smp_args_t main__loop_1_device_args = { main__loop_1 };
       slicer_data_for->_chunk = chunk;\
 \
       NANOS_SAFE( nanos_submit( wd,0,0,0 ) );\
-      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );\
+      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );\
       if (step > 0 ) for ( j = lower+k_offset; j <= upper+k_offset; j+= step ) A[j-k_offset]--;\
       else if ( step < 0 ) for ( j = lower+k_offset; j >= upper+k_offset; j+= step ) A[j-k_offset]--;\
    }

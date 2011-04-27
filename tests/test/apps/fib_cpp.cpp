@@ -29,6 +29,12 @@ test_generator=gens/core-generator
 #include "basethread.hpp"
 #include <sys/time.h>
 
+int fib_seq ( int n );
+void fib_0( void *ptr );
+void fib_1( void *ptr );
+double get_wtime( void );
+int fib0 ( int n );
+
 int cutoff_value = 10;
 
 int fib_seq ( int n )

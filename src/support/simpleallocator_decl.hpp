@@ -55,5 +55,27 @@ namespace nanos {
          void printMap();
    };
 
+   class BufferManager
+   {
+      private:
+         void *   _baseAddress;
+         size_t   _index;
+         size_t   _size;
+
+      public:
+         BufferManager( void * address, size_t size );
+         BufferManager() : _baseAddress(0),_index(0),_size(0) {} 
+
+         ~BufferManager() {}
+
+         void init ( void * address, size_t size );
+
+         void * getBaseAddress ();
+
+         void * allocate ( size_t size );
+
+         void reset ();
+   };
+
 }
 #endif /* _NANOS_SIMPLEALLOCATOR */

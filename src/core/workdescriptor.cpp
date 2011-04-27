@@ -37,13 +37,9 @@ void WorkDescriptor::init ()
    if ( getNumCopies() > 0 ) {
       pe->copyDataIn( *this );
 
-WD *cwd = myThread->getCurrentWD(); 
-myThread->setCurrentWD( *this );
       if ( _translateArgs != NULL ) {
-//std::cerr << "Calling translate args of WD " << getId() << std::endl;
-         _translateArgs( _data );
+         _translateArgs( _data, this );
       }
-myThread->setCurrentWD( *cwd );
    }
 }
 
@@ -107,18 +103,10 @@ void WorkDescriptor::submit( void )
 void WorkDescriptor::done ()
 {
    ProcessingElement *pe = myThread->runningOn();
-
-   if (pe == NULL)
-      pe = getMyThreadSafe()->runningOn();
-
-   if ( pe->hasSeparatedMemorySpace() )
-   {
-      if ( getNumCopies() > 0 )
-         pe->copyDataOut( *this );
-   }
-
-   // FIX-ME: We are waiting for the children tasks to avoid to keep alive only part of the parent
    waitCompletionAndSignalers();
+   if ( getNumCopies() > 0 )
+     pe->copyDataOut( *this );
+
    this->getParent()->workFinished( *this );
 
    WorkGroup::done();

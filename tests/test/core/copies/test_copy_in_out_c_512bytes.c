@@ -59,7 +59,7 @@ int main ( int argc, char **argv )
    
       nanos_wd_t wd1=0;
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1) };
-      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), (void**)&args, nanos_current_wd(), &props, 2, &cd) );
+      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), __alignof__(my_args), (void**)&args, nanos_current_wd(), &props, 2, &cd) );
    
       args->a = 1;
       args->b = &array[i*128];
@@ -71,7 +71,7 @@ int main ( int argc, char **argv )
    
    }
 
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
 
    return 0;
 }

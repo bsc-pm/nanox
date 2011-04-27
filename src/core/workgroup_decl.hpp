@@ -41,7 +41,6 @@ namespace nanos
          WGList         _partOf; // other than parent
          int            _id;
          Atomic<int>    _components;
-         Atomic<int>    _phaseCounter;
 
          SingleSyncCond<EqualConditionChecker<int> > _syncCond;
 
@@ -60,7 +59,7 @@ namespace nanos
          /*! \brief WorkGroup default constructor
           */
          WorkGroup()
-            : _id( _atomicSeed++ ), _components( 0 ), _phaseCounter( 0 ),
+            : _id( _atomicSeed++ ), _components( 0 ), 
             _syncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL) {  }
 
          /*! \brief WorkGroup copy constructor
@@ -72,8 +71,7 @@ namespace nanos
          virtual ~WorkGroup();
 
          void addWork( WorkGroup &wg );
-         void sync();
-         virtual void waitCompletion();
+         virtual void waitCompletion( bool avoidFlush = false );
          virtual void waitCompletionAndSignalers();
          virtual void init();
          virtual void done();

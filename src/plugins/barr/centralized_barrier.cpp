@@ -44,10 +44,10 @@ namespace nanos {
             CentralizedBarrier () : Barrier(), _sem(0), _flag(false),
                _syncCondTrue( EqualConditionChecker<bool>( &(_flag.override()), true ), 1 ),
                _syncCondFalse( EqualConditionChecker<bool>( &(_flag.override()), false ), 1 ) {}
-            CentralizedBarrier ( const CentralizedBarrier& barrier ) : Barrier(barrier), _sem(0), _flag(false),
-               _syncCondTrue( EqualConditionChecker<bool>( &(_flag.override()), true ), barrier._numParticipants ),
-               _syncCondFalse( EqualConditionChecker<bool>( &(_flag.override()), false ), barrier._numParticipants )
-               { init( barrier._numParticipants ); }
+            CentralizedBarrier ( const CentralizedBarrier& orig ) : Barrier(orig), _sem(0), _flag(false),
+               _syncCondTrue( EqualConditionChecker<bool>( &(_flag.override()), true ), orig._numParticipants ),
+               _syncCondFalse( EqualConditionChecker<bool>( &(_flag.override()), false ), orig._numParticipants )
+               { init( orig._numParticipants ); }
 
             const CentralizedBarrier & operator= ( const CentralizedBarrier & barrier );
 
@@ -59,17 +59,17 @@ namespace nanos {
             void barrier ( int participant );
       };
 
-      const CentralizedBarrier & CentralizedBarrier::operator= ( const CentralizedBarrier & barrier )
+      const CentralizedBarrier & CentralizedBarrier::operator= ( const CentralizedBarrier & orig )
       {
          // self-assignment
-         if ( &barrier == this ) return *this;
+         if ( &orig == this ) return *this;
 
-         Barrier::operator=(barrier);
+         Barrier::operator=(orig);
          _sem = 0;
          _flag = false;
 
-         if ( barrier._numParticipants != _numParticipants )
-            resize(barrier._numParticipants);
+         if ( orig._numParticipants != _numParticipants )
+            resize(orig._numParticipants);
          
          return *this;
       }
@@ -134,7 +134,7 @@ namespace nanos {
          public:
             CentralizedBarrierPlugin() : Plugin( "Centralized Barrier Plugin",1 ) {}
 
-            virtual void config( Config &config ) {}
+            virtual void config( Config &cfg ) {}
 
             virtual void init() {
                sys.setDefaultBarrFactory( createCentralizedBarrier );

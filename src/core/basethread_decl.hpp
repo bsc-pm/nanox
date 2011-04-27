@@ -26,6 +26,7 @@
 #include "atomic_decl.hpp"
 #include "schedule_fwd.hpp"
 #include "threadteam_fwd.hpp"
+#include "allocator_decl.hpp"
 
 namespace nanos
 {
@@ -108,6 +109,8 @@ namespace nanos
 //         int                     _teamId; //! Id of the thread inside its current team
 //          int                     _localSingleCount;
 
+         Allocator               _allocator;
+
          virtual void initializeDependent () = 0;
          virtual void runDependent () = 0;
 
@@ -148,7 +151,7 @@ namespace nanos
                _id( _idSeed++ ), _name("Thread"), _description(""), _parent( parent ), _state( 0 ), _pe( creator ), _threadWD( wd ),
                _started( false ), _mustStop( false ), _currentWD( NULL),
                _nextWD( NULL), _hasTeam( false ),_team(NULL),
-               _teamData(NULL) {}
+               _teamData(NULL), _allocator() {}
         /*! \brief BaseThread destructor
          */
          virtual ~BaseThread() {
@@ -213,6 +216,10 @@ namespace nanos
          int getCpuId();
 
          bool singleGuard();
+
+         /*! \brief Get allocator for current thread 
+          */
+         Allocator & getAllocator();
 
          /*! \brief Rename the basethread
           */

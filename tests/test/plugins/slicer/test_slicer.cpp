@@ -46,6 +46,7 @@ typedef struct {
    std::string c;
 } hello_world_args;
 
+void hello_world ( void *args );
 void hello_world ( void *args )
 {
    hello_world_args *hargs = ( hello_world_args * ) args;

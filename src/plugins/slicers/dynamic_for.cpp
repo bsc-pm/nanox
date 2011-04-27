@@ -156,7 +156,7 @@ class SlicerDynamicForPlugin : public Plugin {
       SlicerDynamicForPlugin () : Plugin("Slicer for Loops using a dynamic policy",1) {}
       ~SlicerDynamicForPlugin () {}
 
-      virtual void config( Config& config ) {}
+      virtual void config( Config& cfg ) {}
 
       void init ()
       {

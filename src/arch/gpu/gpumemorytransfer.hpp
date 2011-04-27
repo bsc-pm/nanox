@@ -39,7 +39,15 @@ namespace ext
          GPUMemoryTransfer( CopyDescriptor &hostAddress, void * deviceAddress, size_t s ) :
             _hostAddress( hostAddress ), _deviceAddress( deviceAddress ), _size( s ), _requested( false ) {}
 
-         ~GPUMemoryTransfer();
+         GPUMemoryTransfer( GPUMemoryTransfer &mt ) :
+            _hostAddress( mt._hostAddress ), _deviceAddress( mt._deviceAddress ), _size( mt._size ),
+            _requested( mt._requested ) {}
+
+         GPUMemoryTransfer ( const GPUMemoryTransfer &mt ) :
+                     _hostAddress( mt._hostAddress ), _deviceAddress( mt._deviceAddress ), _size( mt._size ),
+                     _requested( mt._requested ) {}
+
+         ~GPUMemoryTransfer() {}
    };
 
    class GPUMemoryTransferList
@@ -57,7 +65,6 @@ namespace ext
          virtual void executeMemoryTransfers () {}
          virtual void requestTransfer( void * address ) {}
          virtual void clearMemoryTransfers () {}
-         virtual void reset () {}
    };
 
    class GPUMemoryTransferOutList : public GPUMemoryTransferList
@@ -84,7 +91,7 @@ namespace ext
             _lock.release();
          }
 
-         virtual void removeMemoryTransfer ( std::list<GPUMemoryTransfer>::iterator it ) {}
+         virtual void removeMemoryTransfer ( GPUMemoryTransfer &mt ) {}
 
          virtual void removeMemoryTransfer ()
          {
@@ -95,15 +102,21 @@ namespace ext
                   _lock.acquire();
                   if ( it->_requested ) {
                      found = true;
+                     GPUMemoryTransfer mt ( *it );
+                     _pendingTransfersAsync.erase( it );
                      _lock.release();
-                     removeMemoryTransfer( it );
+                     removeMemoryTransfer( mt );
                      break;
                   }
                   _lock.release();
               }
 
                if ( !found ) {
-                  removeMemoryTransfer( _pendingTransfersAsync.begin() );
+                  _lock.acquire();
+                  GPUMemoryTransfer mt ( *_pendingTransfersAsync.begin() );
+                  _pendingTransfersAsync.erase( _pendingTransfersAsync.begin() );
+                  _lock.release();
+                  removeMemoryTransfer( mt );
                }
             }
          }
@@ -114,13 +127,15 @@ namespace ext
                   it != _pendingTransfersAsync.end();
                   it++ ) {
                _lock.acquire();
-              if ( it->_hostAddress.getTag() == ( uint64_t ) address ) {
+               if ( it->_hostAddress.getTag() == ( uint64_t ) address ) {
+                  GPUMemoryTransfer mt ( *it );
+                  _pendingTransfersAsync.erase( it );
                   _lock.release();
-                  removeMemoryTransfer( it );
+                  removeMemoryTransfer( mt );
                   _lock.acquire();
                }
-              _lock.release();
-           }
+               _lock.release();
+            }
          }
 
          virtual void requestTransfer( void * address )
@@ -143,12 +158,17 @@ namespace ext
          GPUMemoryTransferOutSyncList() : GPUMemoryTransferOutList() {}
          ~GPUMemoryTransferOutSyncList() {}
 
-         void removeMemoryTransfer ( std::list<GPUMemoryTransfer>::iterator it );
+         void removeMemoryTransfer ( GPUMemoryTransfer &mt );
 
          void executeMemoryTransfers ()
          {
             while ( !_pendingTransfersAsync.empty() ) {
-               removeMemoryTransfer( _pendingTransfersAsync.begin() );
+               _lock.acquire();
+               GPUMemoryTransfer mt ( *_pendingTransfersAsync.begin() );
+               _pendingTransfersAsync.erase( _pendingTransfersAsync.begin() );
+               _lock.release();
+
+               removeMemoryTransfer( mt );
             }
          }
    };
@@ -159,7 +179,7 @@ namespace ext
          GPUMemoryTransferOutAsyncList() : GPUMemoryTransferOutList() {}
          ~GPUMemoryTransferOutAsyncList() {}
 
-         void removeMemoryTransfer ( std::list<GPUMemoryTransfer>::iterator it );
+         void removeMemoryTransfer ( GPUMemoryTransfer &mt );
 
          void removeMemoryTransfer ( CopyDescriptor &hostAddress );
 
@@ -177,10 +197,9 @@ namespace ext
          GPUMemoryTransferInAsyncList() : GPUMemoryTransferList(), _lock() {}
          ~GPUMemoryTransferInAsyncList()
          {
-            if ( !_pendingTransfersAsync.empty() ) {
-               warning ( "Attempting to delete the input pending transfers list with already "
-                     << _pendingTransfersAsync.size() << " pending transfers to perform" );
-            }
+            ensure( _pendingTransfersAsync.empty(),
+                  "Attempting to delete the input pending transfers list with already "
+                  + toString<size_t>( _pendingTransfersAsync.size() ) + " pending transfers to perform" );
          }
 
          void addMemoryTransfer ( CopyDescriptor &address )
@@ -195,14 +214,9 @@ namespace ext
             _lock.release();
          }
 
-         void reset ()
-         {
-            _pendingTransfersAsync.clear();
-         }
-
          void clearMemoryTransfers ();
 
-         void removeMemoryTransfer ( std::list<GPUMemoryTransfer>::iterator it );
+         void removeMemoryTransfer ( GPUMemoryTransfer &mt );
 
          void executeMemoryTransfers ();
    };

@@ -1,4 +1,4 @@
-/*************************************************************************************/
+
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
@@ -67,33 +67,29 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
    DependableObject::DependableObjectVector &succ = getSuccessors();
    DependableObject::DependableObjectVector incorrectlyErased;
 
-   // NOTE: it gets incremented in the erase
-   for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); ) {
-      // Is this an immediate successor? 
-      if ( (*it)->numPredecessors() == 1 && condition(**it) ) {
-         // remove it
-         found = *it;
-         {
-            SyncLockBlock lock( this->getLock() );
-            succ.erase(it++);
-         }
-         if ( found->numPredecessors() != 1 ) {
-            {
-               SyncLockBlock lock( this->getLock() );
-               incorrectlyErased.insert( found );
-            }
-            found = NULL;
-         } else {
-            NANOS_INSTRUMENT ( instrument ( *found ); )
-            DependenciesDomain::decreaseTasksInGraph();
-            break;
-         }
-      } else {
-         it++;
-      }
-   }
    {
       SyncLockBlock lock( this->getLock() );
+      // NOTE: it gets incremented in the erase
+      for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); ) {
+         // Is this an immediate successor? 
+         if ( (*it)->numPredecessors() == 1 && condition(**it) && !((*it)->waits()) ) {
+            // remove it
+            found = *it;
+            if ((*it)->isSubmitted()) {
+               succ.erase(it++);
+               if ( found->numPredecessors() != 1 ) {
+                  incorrectlyErased.insert( found );
+                  found = NULL;
+               } else {
+                  NANOS_INSTRUMENT ( instrument ( *found ); )
+                  DependenciesDomain::decreaseTasksInGraph();
+                  break;
+               }
+            }
+         } else {
+            it++;
+         }
+      }
       for ( DependableObject::DependableObjectVector::iterator it = incorrectlyErased.begin(); it != incorrectlyErased.end(); it++) {
          succ.insert(*it);
       }

@@ -20,6 +20,7 @@
 #include "gpuprocessor.hpp"
 #include "debug.hpp"
 #include "schedule.hpp"
+#include "simpleallocator.hpp"
 
 #include "cuda_runtime.h"
 
@@ -31,7 +32,7 @@ size_t GPUProcessor::_memoryAlignment = 256;
 
 
 GPUProcessor::GPUProcessor( int id, int gpuId ) : CachedAccelerator<GPUDevice>( id, &GPU ),
-      _gpuDevice( _deviceSeed++ ), _gpuProcessorTransfers(), _allocator(), _pinnedMemory()
+      _gpuDevice( _deviceSeed++ ), _gpuProcessorTransfers(), _allocator(), _pinnedMemoryAllocator(), _inputPinnedMemoryBuffer(), _pinnedMemory()
 {
    _gpuProcessorInfo = NEW GPUProcessorInfo( gpuId );
 }
@@ -93,6 +94,19 @@ void GPUProcessor::init ()
    setCacheSize( maxMemoryAvailable );
    _gpuProcessorInfo->setMaxMemoryAvailable( maxMemoryAvailable );
 
+   // If some kind of overlapping is defined, allocate some pinned memory
+
+   if ( inputStream ) {
+      size_t pinnedSize = std::min( maxMemoryAvailable, ( size_t ) 1*1024*1024*1024 );
+      void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
+      _inputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );
+   }
+
+   if ( outputStream ) {
+      size_t pinnedSize = std::min( maxMemoryAvailable, ( size_t ) 1*1024*1024*1024 );
+      void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
+      _outputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );
+   }
    // WARNING: initTransferStreams() can modify inputStream's and outputStream's
    // value, so call it first
 

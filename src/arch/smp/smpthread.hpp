@@ -137,4 +137,6 @@ namespace ext
 }
 }
 
+void * smp_bootthread ( void *arg );
+
 #endif

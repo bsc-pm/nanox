@@ -33,6 +33,7 @@
 #include "atomic_decl.hpp"
 #include "instrumentationcontext_fwd.hpp"
 #include "workdescriptor_fwd.hpp"
+#include "allocator_decl.hpp"
 
 namespace nanos {
 
@@ -250,7 +251,26 @@ namespace nanos {
             /* 25 */ registerEventKey("loop-upper","Loop upper");
             /* 26 */ registerEventKey("loop-step","Loop step");
 
-            /* 27 */ registerEventKey("xfer-size","Transfer size");
+            /* 27 */ registerEventKey("in-cuda-runtime","Inside CUDA runtime");
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MALLOC_EVENT", "cudaMalloc()" );                                     /* 1 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_FREE_EVENT", "cudaFree()" );                                         /* 2 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MALLOC_HOST_EVENT", "cudaMallocHost()" );                            /* 3 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_FREE_HOST_EVENT", "cudaFreeHost()" );                                /* 4 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_TO_HOST_EVENT", "cudaMemcpyDeviceToHost()" );                /* 5 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_TO_DEVICE_EVENT", "cudaMemcpyHostToDevice()" );              /* 6 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_HOST_EVENT", "cudaMemcpyAsyncDeviceToHost()" );     /* 7 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_DEVICE_EVENT", "cudaMemcpyAsyncHostToDevice()" );   /* 8 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_INPUT_STREAM_SYNC_EVENT", "cudaInputStreamSynchronize()" );          /* 9 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_OUTPUT_STREAM_SYNC_EVENT", "cudaOutputStreamSynchronize()" );        /* 10 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_KERNEL_STREAM_SYNC_EVENT", "cudaKernelStreamSynchronize()" );        /* 11 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_THREAD_SYNC_EVENT", "cudaThreadSynchronize()" );                     /* 12 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_SET_DEVICE_EVENT", "cudaSetDevice()" );                              /* 13 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GET_DEVICE_PROPS_EVENT", "cudaGetDeviceProperties()" );              /* 14 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_SET_DEVICE_FLAGS_EVENT", "cudaSetDeviceFlags()" );                   /* 15 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT", "cudaGetLastError()" );                       /* 16 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GENERIC_EVENT", "CUDA generic event" );                              /* 17 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_MEMCOPY_EVENT", "memcpy()" );                                             /* 18 */
+            /* 28 */ registerEventKey("xfer-size","Transfer size");
 
             /* ** */ registerEventKey("debug","Debug Key"); /* Keep this key as the last one */
          }
@@ -336,7 +356,6 @@ namespace nanos {
 
                unsigned int                _nkvs;         /**< Number of kvs elements */
                KVList                      _kvList;       /**< List of elements kv (key.value) */
-               bool                        _kvListOwner;  /**< Is the object the owner of kvList */
 
                nanos_event_domain_t        _ptpDomain;    /**< A specific domain in which ptpId is unique */
                nanos_event_id_t            _ptpId;        /**< PtP event id */
@@ -349,7 +368,7 @@ namespace nanos {
                 *  \see State Burst Point PtP
                 */
                Event () : _type((nanos_event_type_t) 0), _state((nanos_event_state_value_t) 0), _nkvs(0),
-                          _kvList(NULL), _kvListOwner(false), _ptpDomain((nanos_event_domain_t) 0), _ptpId(0), _partner(0) {}
+                          _kvList(NULL), _ptpDomain((nanos_event_domain_t) 0), _ptpId(0), _partner(0) {}
                /*! \brief Event constructor
                 *
                 *  Generic constructor used by all other specific constructors
@@ -358,16 +377,9 @@ namespace nanos {
                 */
                Event ( nanos_event_type_t type, nanos_event_state_value_t state, unsigned int nkvs, KVList kvlist,
                        nanos_event_domain_t ptp_domain, nanos_event_id_t ptp_id, unsigned int partner = 0 ) :
-                     _type (type), _state (state), _nkvs(nkvs), _kvList (kvlist), _kvListOwner(false),
+                     _type (type), _state (state), _nkvs(nkvs), _kvList (kvlist), 
                      _ptpDomain (ptp_domain), _ptpId (ptp_id), _partner(partner)
-               {
-                  if ( _type == NANOS_BURST_START || _type == NANOS_BURST_END )
-                  {
-                     _kvList = NEW KV[1];
-                     _kvList[0] = *kvlist;
-                     _kvListOwner = true;
-                  }
-               }
+               { }
 
                /*! \brief Event copy constructor
                 */
@@ -380,7 +392,6 @@ namespace nanos {
                   for ( unsigned int i = 0; i < _nkvs; i++ ) {
                      _kvList[i] = evt._kvList[i];
                   }
-                  _kvListOwner = true;
                   _ptpDomain = evt._ptpDomain;
                   _ptpId     = evt._ptpId;
                   _partner   = evt._partner;
@@ -401,7 +412,6 @@ namespace nanos {
                   for ( unsigned int i = 0; i < _nkvs; i++ ) {
                      _kvList[i] = evt._kvList[i];
                   }
-                  _kvListOwner = true;
                   _ptpDomain = evt._ptpDomain;
                   _ptpId     = evt._ptpId;
                   _partner   = evt._partner;
@@ -410,7 +420,7 @@ namespace nanos {
 
                /*! \brief Event destructor
                 */
-               ~Event() { if ( _kvListOwner ) delete[] _kvList; }
+               ~Event() { delete[] _kvList; }
 
                /*! \brief Get event type
                 */
@@ -478,8 +488,8 @@ namespace nanos {
              public:
                /*! \brief Burst event constructor
                 */
-               Burst ( bool start, KV kv )
-                     : Event ( start? NANOS_BURST_START: NANOS_BURST_END, NANOS_ERROR, 1, &kv, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
+               Burst ( bool start, KV *kv )
+                     : Event ( start? NANOS_BURST_START: NANOS_BURST_END, NANOS_ERROR, 1, kv, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
          };
          class Point : public Event {
              private:
@@ -594,7 +604,7 @@ namespace nanos {
           *  \param[in] key is the key in the related  pair <key,value>
           *  \param[in] value is the value in related pair <key,value>
           */
-         void  createBurstEvent ( Event *e, nanos_event_key_t key, nanos_event_value_t value );
+         void  createBurstEvent ( Event *e, nanos_event_key_t key, nanos_event_value_t value, InstrumentationContextData *icd = NULL );
 
          /*! \brief Used by higher levels to create a BURST_END event
           *
@@ -602,7 +612,7 @@ namespace nanos {
           *  \param[in] key is the key in the related  pair <key,value>
           *  \param[in] value is the value in related pair <key,value>
           */
-         void closeBurstEvent ( Event *e, nanos_event_key_t key );
+         void closeBurstEvent ( Event *e, nanos_event_key_t key, InstrumentationContextData *icd = NULL );
 
          /*! \brief Used by higher levels to create a STATE event
           *

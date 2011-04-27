@@ -90,8 +90,8 @@ const std::string Config::NanosHelp::getHelp()
 
    for ( SectionsMap::iterator it = _helpSections.begin(); it != _helpSections.end(); it++ ) {
       HelpStringList &optionsHelpList = it->second;
-      for ( HelpStringList::iterator it = optionsHelpList.begin(); it != optionsHelpList.end(); it++ ) {
-         size_t length = it->getHelpLength();
+      for ( HelpStringList::iterator i = optionsHelpList.begin(); i != optionsHelpList.end(); i++ ) {
+         size_t length = i->getHelpLength();
          if ( length > helpLength ) helpLength = length;
       }
    }

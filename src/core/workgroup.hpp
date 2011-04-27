@@ -30,7 +30,7 @@
 
 using namespace nanos;
 
-inline WorkGroup::WorkGroup( const WorkGroup &wg ) : _id( _atomicSeed++ ), _components( 0 ), _phaseCounter( 0 ),
+inline WorkGroup::WorkGroup( const WorkGroup &wg ) : _id( _atomicSeed++ ), _components( 0 ), 
             _syncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ), _parent(NULL)  
 {
    if ( wg._parent != NULL ) { 

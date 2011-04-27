@@ -36,6 +36,8 @@ typedef std::list<int> IntList;
 IntList myList;
 WD *mainWD;
 
+void barrier_code ( void * );
+
 /*! works only with bf scheduler */
 void barrier_code ( void * )
 {
@@ -151,7 +153,7 @@ void barrier_code ( void * )
 
 int main (int argc, char **argv)
 {
-   int i;
+   unsigned int i;
   
    // Create 100 nodes in the list and leave them all unreferenced
    for ( i = 0; i < 100; i++ ) {
@@ -210,7 +212,7 @@ int main (int argc, char **argv)
    //all threads perform a barrier , before the barrier they will freely access the list
    ThreadTeam &team = *getMyThreadSafe()->getTeam();
    size = team.size();
-   for ( unsigned i = 1; i < team.size(); i++ ) {
+   for ( i = 1; i < team.size(); i++ ) {
           WD * wd = new WD(new SMPDD(barrier_code));
           wd->tieTo(team[i]);
           sys.submit(*wd);

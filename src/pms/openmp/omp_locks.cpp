@@ -19,6 +19,7 @@
 /*************************************************************************************/
 
 #include "omp.h"
+#include "nanos.h"
 #include "atomic.hpp"
 
 extern "C"
@@ -27,6 +28,7 @@ extern "C"
 
    void omp_init_lock( omp_lock_t *arg )
    {
+      // NOTE: This assumes Lock is the same size than Void * so nothing has to be allocated
       Lock *lock = (Lock *) arg;
 
       new (lock) Lock;
@@ -54,69 +56,66 @@ extern "C"
       return lock.tryAcquire();
    }
 
-#if 0
    struct __omp_nest_lock {
-      short owner;
+      Lock lock;
+      nanos_wd_t owner;
       short count;
    };
 
-   enum { NOOWNER = -1, MASTER = 0 };
    void omp_init_nest_lock( omp_nest_lock_t *arg ) {
-
-      struct __omp_nest_lock *nlock=( struct __omp_nest_lock * )arg;
-      nlock->owner = NOOWNER;
+      struct __omp_nest_lock *nlock = NEW struct __omp_nest_lock();
+      nlock->owner = NULL;
       nlock->count = 0;
+      *arg = nlock;
    }
 
    void omp_destroy_nest_lock( omp_nest_lock_t *arg ) {
-
-      struct __omp_nest_lock *nlock=( struct __omp_nest_lock * )arg;
-      nlock->owner = NOOWNER;
-      nlock->count = UNLOCKED;
+      struct __omp_nest_lock *nlock=( struct __omp_nest_lock * )*arg;
+      delete nlock;
    }
 
    void omp_set_nest_lock( omp_nest_lock_t *arg ) {
 
-      struct __omp_nest_lock *nlock=( struct __omp_nest_lock * )arg;
+      struct __omp_nest_lock *nlock=( struct __omp_nest_lock * )*arg;
 
-      if ( nlock->owner == MASTER && nlock->count >= 1 ) {
+      if ( nlock->owner == nanos_current_wd() ) {
+         // count >=1 is assumed because only the owner can set it
          nlock->count++;
-      } else if ( nlock->owner == NOOWNER && nlock->count == 0 ) {
-         nlock->owner = MASTER;
-         nlock->count = 1;
       } else {
-         fprintf( stderr,
-                  "error: lock corrupted or not initialized\n" );
-         exit( 1 );
+         nlock->lock++;
+         // count == 0 is assumed because we just acquired the lock
+         nlock->owner = nanos_current_wd();
+         nlock->count++;
       }
    }
 
    void omp_unset_nest_lock( omp_nest_lock_t *arg ) {
 
-      struct __omp_nest_lock *nlock=( struct __omp_nest_lock * )arg;
+      struct __omp_nest_lock *nlock=( struct __omp_nest_lock * )*arg;
 
-      if ( nlock->owner == MASTER && nlock->count >= 1 ) {
-         nlock->count--;
-
-         if ( nlock->count == 0 ) {
-            nlock->owner = NOOWNER;
-         }
-      } else if ( nlock->owner == NOOWNER && nlock->count == 0 ) {
-         fprintf( stderr, "error: lock not set\n" );
-         exit( 1 );
-      } else {
-         fprintf( stderr,
-                  "error: lock corrupted or not initialized\n" );
-         exit( 1 );
+      nlock->count--;
+      if ( nlock->count == 0 ) {
+         nlock->owner = NULL;
+         nlock->lock--;
       }
    }
 
    int omp_test_nest_lock( omp_nest_lock_t *arg ) {
-
-      struct __omp_nest_lock *nlock=( struct __omp_nest_lock * )arg;
-      omp_set_nest_lock( arg );
-      return nlock->count;
+      struct __omp_nest_lock *nlock=( struct __omp_nest_lock * )*arg;
+     
+      if ( nlock->owner == nanos_current_wd() ) {
+         // count >=1 is assumed because only the owner can set it
+         nlock->count++;
+         return 1;
+      } else {
+         int result = nlock->lock.tryAcquire();
+         if ( result != 0 ) {
+            // count == 0 is assumed because we just acquired the lock
+            nlock->owner = nanos_current_wd();
+            nlock->count++;
+         }
+         return result;
+      }
    }
-#endif   
 }
 

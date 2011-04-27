@@ -28,9 +28,9 @@ class GPUPlugin : public Plugin
    public:
       GPUPlugin() : Plugin( "GPU PE Plugin", 1 ) {}
 
-      void config( Config& config )
+      void config( Config& cfg )
       {
-         GPUConfig::prepare( config );
+         GPUConfig::prepare( cfg );
       }
 
       void init()

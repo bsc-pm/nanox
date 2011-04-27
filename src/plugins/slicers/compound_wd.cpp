@@ -137,49 +137,49 @@ class SlicerCompoundWDPlugin : public Plugin {
       SlicerCompoundWDPlugin () : Plugin("Slicer which aggregates several wd's",1) { }
       ~SlicerCompoundWDPlugin () { }
 
-      virtual void config( Config& config )
+      virtual void config( Config& cfg )
       {
-         config.setOptionsSection( "CWD module", "Compound WorkDescriptor module" );
+         cfg.setOptionsSection( "CWD module", "Compound WorkDescriptor module" );
 
-         config.registerConfigOption ( "cwd-single-thread",
+         cfg.registerConfigOption ( "cwd-single-thread",
                                        NEW Config::FlagOption( SlicerCompoundWD::_checkSingleThread, true ),
                                        "Serialize if executing with a single thread (enabled)");
-         config.registerArgOption( "cwd-single-thread", "cwd-single-thread" );
+         cfg.registerArgOption( "cwd-single-thread", "cwd-single-thread" );
 
-         config.registerConfigOption ( "cwd-all-threads-running",
+         cfg.registerConfigOption ( "cwd-all-threads-running",
                                        NEW Config::FlagOption( SlicerCompoundWD::_modAllThreadsRunning, true ),
                                        "Serialize if (and only if) all threads are running (disabled)");
-         config.registerArgOption( "cwd-all-threads-running", "cwd-all-threads-running" );
+         cfg.registerArgOption( "cwd-all-threads-running", "cwd-all-threads-running" );
 
-         config.registerConfigOption ( "cwd-serialize-all",
+         cfg.registerConfigOption ( "cwd-serialize-all",
                                        NEW Config::FlagOption( SlicerCompoundWD::_serializeAll, true ),
                                        "Serialize all (disabled)");
-         config.registerArgOption( "cwd-serialize-all", "cwd-serialize-all" );
+         cfg.registerArgOption( "cwd-serialize-all", "cwd-serialize-all" );
 
-         config.registerConfigOption ( "cwd-total-tasks",
+         cfg.registerConfigOption ( "cwd-total-tasks",
                                        NEW Config::PositiveVar( SlicerCompoundWD::_totalTasks ),
                                        "Defines serialize polciy total tasks ( none )" );
-         config.registerArgOption ( "cwd-total-tasks", "cwd-total-tasks" );
+         cfg.registerArgOption ( "cwd-total-tasks", "cwd-total-tasks" );
 
-         config.registerConfigOption ( "cwd-total-tasks-per-thread",
+         cfg.registerConfigOption ( "cwd-total-tasks-per-thread",
                                        NEW Config::PositiveVar( SlicerCompoundWD::_totalTasksPerThread ),
                                        "Defines serialize polciy total tasks per thread ( none )" );
-         config.registerArgOption ( "cwd-total-tasks-per-thread", "cwd-total-tasks-per-thread" );
+         cfg.registerArgOption ( "cwd-total-tasks-per-thread", "cwd-total-tasks-per-thread" );
 
-         config.registerConfigOption ( "cwd-ready-tasks",
+         cfg.registerConfigOption ( "cwd-ready-tasks",
                                        NEW Config::PositiveVar( SlicerCompoundWD::_readyTasks ),
                                        "Defines serialize policiy ready tasks ( none )" );
-         config.registerArgOption ( "cwd-ready-tasks", "cwd-ready-tasks" );
+         cfg.registerArgOption ( "cwd-ready-tasks", "cwd-ready-tasks" );
 
-         config.registerConfigOption ( "cwd-ready-tasks-per-thread",
+         cfg.registerConfigOption ( "cwd-ready-tasks-per-thread",
                                        NEW Config::PositiveVar( SlicerCompoundWD::_readyTasksPerThread ),
                                        "Defines serialize policiy ready tasks per thread ( none )" );
-         config.registerArgOption ( "cwd-ready-tasks-per-thread", "cwd-ready-tasks-per-thread" );
+         cfg.registerArgOption ( "cwd-ready-tasks-per-thread", "cwd-ready-tasks-per-thread" );
 
-         config.registerConfigOption ( "cwd-depth-of-task",
+         cfg.registerConfigOption ( "cwd-depth-of-task",
                                        NEW Config::PositiveVar( SlicerCompoundWD::_depthOfTask ),
                                        "Defines serialize policiy depth of task ( none )" );
-         config.registerArgOption ( "cwd-depth-of-task", "cwd-depth-of-task" );
+         cfg.registerArgOption ( "cwd-depth-of-task", "cwd-depth-of-task" );
 
       }
 

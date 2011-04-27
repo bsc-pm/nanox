@@ -92,7 +92,7 @@ int fib ( int n, int d )
            .tie_to = false,
          };
 
-         NANOS_SAFE( nanos_create_wd ( &wd, 1, fib_devices_1 , sizeof( fib_args ),
+         NANOS_SAFE( nanos_create_wd ( &wd, 1, fib_devices_1 , sizeof( fib_args ), __alignof__( fib_args),
                                        ( void ** )&args, nanos_current_wd(), &props, 0, NULL ) );
          args->n = n;
          args->d = d;
@@ -113,7 +113,7 @@ int fib ( int n, int d )
            .tie_to = false,
          };
 
-         NANOS_SAFE( nanos_create_wd ( &wd, 1, fib_devices_2 , sizeof( fib_args ),
+         NANOS_SAFE( nanos_create_wd ( &wd, 1, fib_devices_2 , sizeof( fib_args ), __alignof__( fib_args),
                                        ( void ** )&args, nanos_current_wd(), &props, 0, NULL ) );
          args->n = n;
          args->d = d;
@@ -123,7 +123,7 @@ int fib ( int n, int d )
       }
 
 //		#pragma omp taskwait
-      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
    } else {
       x = fib_seq( n-1 );
       y = fib_seq( n-2 );

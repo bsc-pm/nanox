@@ -52,17 +52,7 @@ void WorkGroup::exitWork ( WorkGroup &work )
    _syncCond.unreference();
 }
 
-void WorkGroup::sync ()
-{
-   _phaseCounter++;
-   //TODO: block and switch
-
-   while ( _phaseCounter < _components );
-
-   //TODO: reinit phase_counter
-}
-
-void WorkGroup::waitCompletion ()
+void WorkGroup::waitCompletion ( bool avoidFlush )
 {
      _syncCond.wait();
 }

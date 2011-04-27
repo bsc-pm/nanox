@@ -215,18 +215,28 @@ AM_CONDITIONAL([CONDUIT_IBV], [test x$with_ibv_conduit = xyes])
 
 # Check if it has nVidia GPUs / CUDA is installed
 gpu_valid=no
-gpu_disabled=no
+gpu_enabled=yes
 CUDA=""
 
 AC_MSG_CHECKING([if the use of GPU devices was disabled])
 AC_ARG_ENABLE([gpu-arch],
   AS_HELP_STRING([--disable-gpu-arch], [Disables the use of GPU devices]),
   [
-    gpu_valid="no"
-    gpu_disabled="yes"
-    AC_MSG_RESULT([yes])
+    if test x"$enableval" = x"yes" -o x"$enableval" = x"";
+    then
+        gpu_enabled="yes"
+        AC_MSG_RESULT([no])
+    else if test x"$enableval" = x"no";
+         then
+            AC_MSG_RESULT([yes])
+            gpu_enabled="no"
+         else
+            AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
+         fi
+    fi
   ],
   [
+    gpu_enabled="yes"
     AC_MSG_RESULT([no])
   ]
 )
@@ -234,25 +244,24 @@ AC_ARG_ENABLE([gpu-arch],
 AC_ARG_WITH([cuda],
 AS_HELP_STRING([--with-cuda=dir], [Directory of CUDA installation]),
 	[
-		CUDA="${withval}"
+		CUDADIR="${withval}"
 	],
 	[
-		CUDA="/usr/local/cuda"
+		CUDADIR="/usr/local/cuda"
 	])
 
-if test x$gpu_disabled = xno ; then
-    if ls "$CUDA" &> /dev/null ; then
-        AC_ARG_VAR([NVCC],[CUDA compiler])
-        NVCC="nvcc"
-        AC_CHECK_PROG( [NVCC], ["CUDA compiler"], nvcc, no)
-        if test x$NVCC = xno ; then
+if test x$gpu_enabled = xyes ; then
+    if test -d "$CUDADIR" ;
+    then
+        AC_PATH_PROG([NVCC], [nvcc], [], [$PATH$PATHSEPARATOR$CUDADIR/bin])
+        if test x$NVCC = x ; then
             AC_MSG_WARN([nvcc not found. Disabling GPU support])
             gpu_valid=no
         else
-            CUDA_INC="$CUDA/include"
-            CUDA_LIB="$CUDA/lib"
-            if ls "$CUDA/lib64" &> /dev/null ; then
-                CUDA_LIB="$CUDA/lib64"
+            CUDA_INC="$CUDADIR/include"
+            CUDA_LIB="$CUDADIR/lib"
+            if ls "$CUDADIR/lib64" &> /dev/null ; then
+                CUDA_LIB="$CUDADIR/lib64"
             fi
 
             AC_SUBST([CUDA_INC])
@@ -260,6 +269,9 @@ if test x$gpu_disabled = xno ; then
 
             gpu_valid=yes
         fi
+    else
+             AC_MSG_WARN([Directory "$CUDADIR" does not exist. Disabling GPU Support])
+             gpu_valid=no
     fi
 fi
 
@@ -268,6 +280,8 @@ if test x$gpu_valid = xyes; then
 	CXXFLAGS="$CXXFLAGS -DGPU_DEV"
 	ARCHITECTURES="$ARCHITECTURES gpu"
 fi
+
+AM_CONDITIONAL([GPU_SUPPORT],[test $gpu_valid = yes])
 
 AC_SUBST([gpu_valid])
 
@@ -301,11 +315,11 @@ AC_ARG_ENABLE([instrumentation-debug],
     then
         instrumentation_debug_disabled="no"
         AC_MSG_RESULT([yes])
+        USED_VERSION="instrumentation-debug"
     else if test x$enableval = xno;
          then
             AC_MSG_RESULT([no])
             instrumentation_debug_disabled="yes"
-            USED_VERSION="instrumentation-debug"
          else
             AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
          fi
@@ -411,7 +425,7 @@ AM_CONDITIONAL([PERFORMANCE_VERSION], [test x$performance_disabled = xno])
 AC_SUBST([performancedir],['${libdir}/performance'])
 
 AC_MSG_CHECKING([if any version is to be compiled])
-if test x$performance_disabled = xyes -a x$debug_disabled = xyes -a x$instrumentation_disabled = xyes;
+if test x$performance_disabled = xyes -a x$debug_disabled = xyes -a x$instrumentation_disabled = xyes -a x$instrumentation_debug_disabled = xyes;
 then
 	AC_MSG_RESULT([no])
 	AC_MSG_ERROR([At least one version needs to be compiled])

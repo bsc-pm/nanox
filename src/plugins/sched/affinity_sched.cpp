@@ -107,6 +107,11 @@ namespace nanos {
                 }
                 TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
 
+		if ( wd.isTied() ) {
+                    unsigned int index = wd.isTiedTo()->runningOn()->getMemorySpaceId();
+                    tdata._readyQueues[index].push_front ( &wd );
+                    return;
+                }
                 if ( wd.getNumCopies() > 0 ){
                    unsigned int numCaches = sys.getCacheMap().getSize();
                    unsigned int ranks[numCaches];
@@ -159,6 +164,12 @@ namespace nanos {
             }
 
             virtual WD *atIdle ( BaseThread *thread );
+            virtual WD *atBlock ( BaseThread *thread, WD *current );
+
+            virtual WD *atAfterExit ( BaseThread *thread, WD *current )
+            {
+               return atBlock(thread, current );
+            }
 
             WD * atPrefetch ( BaseThread *thread, WD &current )
             {
@@ -174,7 +185,46 @@ namespace nanos {
 
       };
 
+      WD *CacheSchedPolicy::atBlock ( BaseThread *thread, WD *current )
+      {
+         WorkDescriptor * wd = NULL;
 
+         ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
+         if ( !data._init ) {
+            data._cacheId = thread->runningOn()->getMemorySpaceId();
+            data._init = true;
+         }
+         TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+
+         /*
+          *  First try to schedule the thread with a task from its queue
+          */
+         if ( ( wd = tdata._readyQueues[data._cacheId].pop_front ( thread ) ) != NULL ) {
+            return wd;
+         } else {
+            /*
+             * Then try to get it from the global queue
+             */
+             wd = tdata._readyQueues[0].pop_front ( thread );
+         }
+         if ( wd == NULL ) {
+            for ( unsigned int i = data._cacheId; i < sys.getCacheMap().getSize(); i++ ) {
+//               if ( tdata._readyQueues[i+1].size() > 1 ) {
+               if ( tdata._readyQueues[i+1].size() > 0 ) {
+                  wd = tdata._readyQueues[i+1].pop_front( thread );
+                  return wd;
+               } 
+            }
+            for ( unsigned int i = 0; i < data._cacheId; i++ ) {
+//               if ( tdata._readyQueues[i+1].size() > 1 ) {
+               if ( tdata._readyQueues[i+1].size() > 0 ) {
+                  wd = tdata._readyQueues[i+1].pop_front( thread );
+                  return wd;
+               } 
+            }
+         }
+         return wd;
+      }
 
       /*! 
        */
@@ -203,12 +253,14 @@ namespace nanos {
          if ( wd == NULL ) {
             for ( unsigned int i = data._cacheId; i < sys.getCacheMap().getSize(); i++ ) {
                if ( tdata._readyQueues[i+1].size() > 1 ) {
+//               if ( tdata._readyQueues[i+1].size() > 0 ) {
                   wd = tdata._readyQueues[i+1].pop_front( thread );
                   return wd;
                } 
             }
             for ( unsigned int i = 0; i < data._cacheId; i++ ) {
                if ( tdata._readyQueues[i+1].size() > 1 ) {
+//               if ( tdata._readyQueues[i+1].size() > 0 ) {
                   wd = tdata._readyQueues[i+1].pop_front( thread );
                   return wd;
                } 
@@ -222,7 +274,7 @@ namespace nanos {
          public:
             CacheSchedPlugin() : Plugin( "Cache-guided scheduling Plugin",1 ) {}
 
-            virtual void config( Config& config ) {}
+            virtual void config( Config& cfg ) {}
 
             virtual void init() {
                sys.setDefaultSchedulePolicy(NEW CacheSchedPolicy());

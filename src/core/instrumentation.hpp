@@ -21,6 +21,7 @@
 
 #include "instrumentation_decl.hpp"
 #include "system.hpp"
+#include "allocator_decl.hpp"
 
 using namespace nanos;
 

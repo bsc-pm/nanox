@@ -40,7 +40,7 @@ class InstrumentationPrintTracePlugin : public Plugin {
       InstrumentationPrintTracePlugin () : Plugin("Instrumentation which print the trace to std out.",1) {}
       ~InstrumentationPrintTracePlugin () {}
 
-      void config( Config &config ) {}
+      void config( Config &cfg ) {}
 
       void init ()
       {

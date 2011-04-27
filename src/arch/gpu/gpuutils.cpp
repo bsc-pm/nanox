@@ -30,6 +30,38 @@ namespace nanos {
 namespace ext
 {
 
+void displayProperties( cudaDeviceProp* pDeviceProp, int device );
+
+
+void displayAllGPUsProperties( void )
+{
+   cudaDeviceProp deviceProp;
+   int idx, deviceCount = 0;
+
+   cudaError_t err = cudaGetDeviceCount( &deviceCount );
+
+   if ( err != cudaSuccess ) {
+      std::cerr << cudaGetErrorString( err ) << std::endl;
+      return;
+   }
+
+   std::cout << "Total number of GPUs found: " << deviceCount;
+
+   for ( idx = 0; idx < deviceCount; idx++ ) {
+      memset( &deviceProp, 0, sizeof( deviceProp ) );
+      err = cudaGetDeviceProperties( &deviceProp, idx );
+
+      if ( err == cudaSuccess ) {
+         displayProperties( &deviceProp, idx );
+      }
+      else {
+         std::cerr << cudaGetErrorString( err ) << std::endl;
+      }
+   }
+
+   std::cout << std::endl;
+}
+
 void displayProperties( cudaDeviceProp* pDeviceProp, int device )
 {
    if( !pDeviceProp )
@@ -70,35 +102,6 @@ void displayProperties( cudaDeviceProp* pDeviceProp, int device )
    } else {
       std::cout << "Not specified";
    }
-}
-
-void displayAllGPUsProperties( void )
-{
-   cudaDeviceProp deviceProp;
-   int idx, deviceCount = 0;
-
-   cudaError_t err = cudaGetDeviceCount( &deviceCount );
-
-   if ( err != cudaSuccess ) {
-      std::cerr << cudaGetErrorString( err ) << std::endl;
-      return;
-   }
-
-   std::cout << "Total number of GPUs found: " << deviceCount;
-
-   for ( idx = 0; idx < deviceCount; idx++ ) {
-      memset( &deviceProp, 0, sizeof( deviceProp ) );
-      err = cudaGetDeviceProperties( &deviceProp, idx );
-
-      if ( err == cudaSuccess ) {
-         displayProperties( &deviceProp, idx );
-      }
-      else {
-         std::cerr << cudaGetErrorString( err ) << std::endl;
-      }
-   }
-
-   std::cout << std::endl;
 }
 
 } // namespace ext

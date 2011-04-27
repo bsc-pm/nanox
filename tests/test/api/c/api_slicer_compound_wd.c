@@ -139,7 +139,7 @@ int main ( int argc, char **argv )
       /* Creating section 1 wd */
       nanos_device_t main__section_1_device[1] = { NANOS_SMP_DESC( main__section_1_device_args ) };
       main__section_1_data_t *section_data_1 = NULL;
-      NANOS_SAFE( nanos_create_wd ( &wd[0], 1, main__section_1_device, sizeof(section_data_1), (void **) &section_data_1,
+      NANOS_SAFE( nanos_create_wd ( &wd[0], 1, main__section_1_device, sizeof(section_data_1), __alignof__(section_data_1), (void **) &section_data_1,
                                     nanos_current_wd(), &props , 0, NULL ) );
       /* Initializing section 1 data */
       section_data_1->M = A;
@@ -147,7 +147,7 @@ int main ( int argc, char **argv )
       /* Creating section 2 wd */
       nanos_device_t main__section_2_device[1] = { NANOS_SMP_DESC( main__section_2_device_args ) };
       main__section_2_data_t *section_data_2 = NULL;
-      NANOS_SAFE( nanos_create_wd ( &wd[1], 1, main__section_2_device, sizeof(section_data_2), (void **) &section_data_2,
+      NANOS_SAFE( nanos_create_wd ( &wd[1], 1, main__section_2_device, sizeof(section_data_2), __alignof__(section_data_2), (void **) &section_data_2,
                                     nanos_current_wd(), &props , 0, NULL ) );
       /* Initializing section 2 data */
       section_data_2->M = B;
@@ -155,7 +155,7 @@ int main ( int argc, char **argv )
       /* Creating section 3 wd */
       nanos_device_t main__section_3_device[1] = { NANOS_SMP_DESC( main__section_3_device_args ) };
       main__section_3_data_t *section_data_3 = NULL;
-      NANOS_SAFE( nanos_create_wd ( &wd[2], 1, main__section_3_device, sizeof(section_data_3), (void **) &section_data_3,
+      NANOS_SAFE( nanos_create_wd ( &wd[2], 1, main__section_3_device, sizeof(section_data_3), __alignof__(section_data_3), (void **) &section_data_3,
                                     nanos_current_wd(), &props , 0, NULL ) );
       /* Initializing section 3 data */
       section_data_3->M = C;
@@ -163,7 +163,7 @@ int main ( int argc, char **argv )
       /* Creating section 4 wd */
       nanos_device_t main__section_4_device[1] = { NANOS_SMP_DESC( main__section_4_device_args ) };
       main__section_4_data_t *section_data_4 = NULL;
-      NANOS_SAFE( nanos_create_wd ( &wd[3], 1, main__section_4_device, sizeof(section_data_4), (void **) &section_data_4,
+      NANOS_SAFE( nanos_create_wd ( &wd[3], 1, main__section_4_device, sizeof(section_data_4), __alignof__(section_data_4), (void **) &section_data_4,
                                     nanos_current_wd(), &props , 0, NULL ) );
 
       /* Creating section 4 wd */
@@ -193,9 +193,9 @@ int main ( int argc, char **argv )
 
 
       NANOS_SAFE( nanos_create_sliced_wd ( &cwd, 1, main__sections_device,
-                                    sizeof(nanos_compound_wd_data_t) + (4) * sizeof(nanos_wd_t), (void **) &list_of_wds,
-                                    nanos_current_wd(), slicer,
-                                    0, &dummy, &props , 0, NULL ) );
+                                    sizeof(nanos_compound_wd_data_t) + (4) * sizeof(nanos_wd_t), __alignof__(nanos_compound_wd_data_t),
+                                    (void **) &list_of_wds, nanos_current_wd(), slicer,
+                                    0, (int) 1, &dummy, &props , 0, NULL ) );
 
       /* Initializing data */
       //nanos_wd_t *lwd = &list_of_wds->lwd;
@@ -214,7 +214,7 @@ int main ( int argc, char **argv )
       NANOS_SAFE( nanos_submit( wd[3],0,0,0 ) );
 #endif
 
-      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
    }
    
 

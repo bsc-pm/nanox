@@ -38,7 +38,8 @@ inline size_t WDDeque::size() const
    return _dq.size();
 }
 
-inline void WDDeque::push_front ( WorkDescriptor *wd, bool trace)
+
+inline void WDDeque::push_front ( WorkDescriptor *wd )
 {
    wd->setMyQueue( this );
    {
@@ -50,7 +51,7 @@ inline void WDDeque::push_front ( WorkDescriptor *wd, bool trace)
    }
 }
 
-inline void WDDeque::push_back ( WorkDescriptor *wd, bool trace )
+inline void WDDeque::push_back ( WorkDescriptor *wd )
 {
    wd->setMyQueue( this );
    {
@@ -62,8 +63,28 @@ inline void WDDeque::push_back ( WorkDescriptor *wd, bool trace )
    }
 }
 
-// Only ensures tie semantics
-inline WorkDescriptor * WDDeque::pop_front ( BaseThread *thread, bool trace )
+struct NoConstraints
+{
+   static inline bool check ( WD &wd, BaseThread &thread ) { return true; }
+};
+
+inline WorkDescriptor * WDDeque::pop_front ( BaseThread *thread )
+{
+  return popFrontWithConstraints<NoConstraints>(thread);
+}
+
+inline WorkDescriptor * WDDeque::pop_back ( BaseThread *thread )
+{
+  return popFrontWithConstraints<NoConstraints>(thread);
+}
+
+inline bool WDDeque::removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next )
+{
+  return removeWDWithConstraints<NoConstraints>(thread,toRem,next);
+}
+
+template <typename Constraints>
+inline WorkDescriptor * WDDeque::popFrontWithConstraints ( BaseThread *thread )
 {
    WorkDescriptor *found = NULL;
 
@@ -79,8 +100,9 @@ inline WorkDescriptor * WDDeque::pop_front ( BaseThread *thread, bool trace )
          WDDeque::BaseContainer::iterator it;
 
          for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
-            if ( Scheduler::checkBasicConstraints( *((WD*)*it), *thread) ) {
-               if ( (((WD*)( *it ))->dequeue( &found )) == true ) {
+            WD &wd = *(WD *)*it; 
+            if ( Scheduler::checkBasicConstraints( wd, *thread) && Constraints::check(wd,*thread) ) {
+               if ( wd.dequeue( &found ) ) {
                    _dq.erase( it );
                    int tasks = --(sys.getSchedulerStats()._readyTasks);
                    decreaseTasksInQueues(tasks);
@@ -101,7 +123,8 @@ inline WorkDescriptor * WDDeque::pop_front ( BaseThread *thread, bool trace )
 
 
 // Only ensures tie semantics
-inline WorkDescriptor * WDDeque::pop_back ( BaseThread *thread, bool trace )
+template <typename Constraints>
+inline WorkDescriptor * WDDeque::popBackWithConstraints ( BaseThread *thread )
 {
    WorkDescriptor *found = NULL;
 
@@ -117,8 +140,9 @@ inline WorkDescriptor * WDDeque::pop_back ( BaseThread *thread, bool trace )
          WDDeque::BaseContainer::reverse_iterator rit;
    
          for ( rit = _dq.rbegin(); rit != _dq.rend() ; rit++ ) {
-            if ( Scheduler::checkBasicConstraints( *((WD*)*rit), *thread) ) {
-               if ( (( *rit )->dequeue( &found )) == true ) {
+            WD &wd = *(WD *)*rit; 
+            if ( Scheduler::checkBasicConstraints( wd, *thread) && Constraints::check(wd,*thread)) {
+               if ( wd.dequeue( &found ) ) {
                   _dq.erase( ( ++rit ).base() );
                   int tasks = --(sys.getSchedulerStats()._readyTasks);
                   decreaseTasksInQueues(tasks);
@@ -138,11 +162,12 @@ inline WorkDescriptor * WDDeque::pop_back ( BaseThread *thread, bool trace )
 }
 
 
-inline bool WDDeque::removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next, bool trace )
+template <typename Constraints>
+inline bool WDDeque::removeWDWithConstraints( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next )
 {
    if ( _dq.empty() ) return false;
 
-   if ( Scheduler::checkBasicConstraints( *toRem, *thread) ) return false;
+   if ( !Scheduler::checkBasicConstraints( *toRem, *thread) || !Constraints::check(*toRem, *thread) ) return false;
 
    *next = NULL;
    WDDeque::BaseContainer::iterator it;
@@ -155,7 +180,7 @@ inline bool WDDeque::removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDe
       if ( !_dq.empty() && toRem->getMyQueue() == this ) {
          for ( it = _dq.begin(); it != _dq.end(); it++ ) {
             if ( *it == toRem ) {
-               if ( (( *it )->dequeue( next )) == true ) {
+               if ( ( *it )->dequeue( next ) ) {
                   _dq.erase( it );
                   int tasks = --(sys.getSchedulerStats()._readyTasks);
                   decreaseTasksInQueues(tasks);
@@ -168,7 +193,6 @@ inline bool WDDeque::removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDe
    }
 
    return false;
-
 }
 
 inline void WDDeque::increaseTasksInQueues( int tasks )

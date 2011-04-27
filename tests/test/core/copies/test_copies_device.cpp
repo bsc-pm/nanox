@@ -40,6 +40,8 @@ typedef struct {
    char *b;
 } args_t;
 
+void hello_world ( void *args );
+
 void hello_world ( void *args )
 {
    WD *wd = getMyThreadSafe()->getCurrentWD();

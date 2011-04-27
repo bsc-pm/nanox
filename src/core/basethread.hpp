@@ -28,6 +28,7 @@
 #include "threadteam_fwd.hpp"
 #include "basethread_decl.hpp"
 #include "atomic.hpp"
+#include "system.hpp"
 
 namespace nanos
 {
@@ -48,7 +49,8 @@ namespace nanos
    inline void BaseThread::resetNextWD () { _nextWD = NULL; }
  
    inline bool BaseThread::setNextWD ( WD *next ) { 
-      return compareAndSwap( (unsigned long *) &_nextWD, (unsigned long) NULL, (unsigned long) next);
+      debug("Set next WD as: " << next << ":??" << " @ thread " << _id );
+      return compareAndSwap( &_nextWD, (WD *) NULL, next);
    }
  
    inline WD * BaseThread::getNextWD () const { return _nextWD; }
@@ -87,6 +89,7 @@ namespace nanos
  
    inline int BaseThread::getCpuId() { return runningOn()->getId(); }
  
+   inline Allocator & BaseThread::getAllocator() { return _allocator; }
    /*! \brief Rename the basethread
    */
    inline void BaseThread::rename ( const char *name )
@@ -105,7 +108,7 @@ namespace nanos
    */
    inline const std::string & BaseThread::getDescription ( void ) 
    {
-     if ( !_description.empty() ) {
+     if ( _description.empty() ) {
  
         /* description name */
         _description = getName();
