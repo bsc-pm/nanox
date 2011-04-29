@@ -87,14 +87,7 @@ void GPUMemoryTransferOutList::requestTransfer( void * address )
 
 void GPUMemoryTransferOutSyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt )
 {
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateEvent( NANOS_MEM_TRANSFER_DEVICE_OUT ) );
-   NANOS_INSTRUMENT( nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-out") );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, mt._size ) );
-
    GPUDevice::copyOutSyncToHost( ( void * ) mt._hostAddress.getTag(), mt._deviceAddress, mt._size );
-
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateEvent() );
-
    ( ( GPUProcessor * ) myThread->runningOn() )->synchronize( mt._hostAddress );
 }
 
@@ -134,16 +127,10 @@ void GPUMemoryTransferOutAsyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt
    nanos::ext::GPUProcessor * myPE = ( nanos::ext::GPUProcessor * ) myThread->runningOn();
    void * pinned = myPE->allocateOutputPinnedMemory( mt._size );
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateEvent( NANOS_MEM_TRANSFER_DEVICE_OUT ) );
-   NANOS_INSTRUMENT( nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-out") );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, mt._size ) );
-
    // Even there is only one copy, we must do it asynchronously, as we may be doing something else
    GPUDevice::copyOutAsyncToBuffer( pinned, mt._deviceAddress, mt._size );
    GPUDevice::copyOutAsyncWait();
    GPUDevice::copyOutAsyncToHost( ( void * ) mt._hostAddress.getTag(), pinned, mt._size );
-
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateEvent() );
 
    ( ( GPUProcessor * ) myThread->runningOn() )->synchronize( mt._hostAddress );
 }
@@ -204,10 +191,6 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ( std::list<GPUMemory
 
       void * pinned1 = myPE->allocateOutputPinnedMemory( mt1._size );
 
-      NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent( NANOS_MEM_TRANSFER_DEVICE_OUT ) );
-      NANOS_INSTRUMENT( nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-out") );
-      NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, mt1._size ) );
-
       GPUDevice::copyOutAsyncToBuffer( pinned1, mt1._deviceAddress, mt1._size );
 
       while ( pendingTransfersAsync.size() > 1) {
@@ -232,7 +215,6 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ( std::list<GPUMemory
 
          void * pinned2 = myPE->allocateOutputPinnedMemory( mt2._size );
 
-         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, mt2._size ) );
          GPUDevice::copyOutAsyncToBuffer( pinned2, mt2._deviceAddress, mt2._size );
 
          // First copy
@@ -248,8 +230,6 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ( std::list<GPUMemory
 
       GPUDevice::copyOutAsyncWait();
       GPUDevice::copyOutAsyncToHost( ( void * ) mt1._hostAddress.getTag(), pinned1, mt1._size );
-
-      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateEvent() );
 
       // Synchronize copy
       myPE->synchronize( mt1._hostAddress );
@@ -268,16 +248,10 @@ void GPUMemoryTransferInAsyncList::clearMemoryTransfers()
 
 void GPUMemoryTransferInAsyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt )
 {
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateEvent( NANOS_MEM_TRANSFER_DEVICE_IN ) );
-   NANOS_INSTRUMENT( nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, mt._size ) );
-
    void *pinned = ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->allocateInputPinnedMemory( mt._size );
 
    GPUDevice::copyInAsyncToBuffer( pinned, ( void * ) mt._hostAddress.getTag(), mt._size );
    GPUDevice::copyInAsyncToDevice( mt._deviceAddress, pinned, mt._size );
-
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateEvent() );
 }
 
 void GPUMemoryTransferInAsyncList::executeMemoryTransfers ()
