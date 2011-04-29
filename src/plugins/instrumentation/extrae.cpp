@@ -442,6 +442,7 @@ class InstrumentationExtrae: public Instrumentation
       void addEventList ( unsigned int count, Event *events) 
       {
          struct extrae_CombinedEvents ce;
+         InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
 
          ce.HardwareCounters = 1;
          ce.Callers = 0;
@@ -478,6 +479,7 @@ class InstrumentationExtrae: public Instrumentation
 
          int j = 0; int k = 0;
          Event::ConstKVList kvs = NULL;
+         nanos_event_key_t sizeKey = iD->getEventKey("xfer-size");
 
          for (unsigned int i = 0; i < count; i++)
          {
