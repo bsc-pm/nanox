@@ -168,7 +168,7 @@ void GPUDevice::copyInAsyncToDevice( void * dst, void * src, size_t size )
             src,
             size,
             cudaMemcpyHostToDevice,
-            myPE->getGPUProcessorInfo()->getOutTransferStream()
+            myPE->getGPUProcessorInfo()->getInTransferStream()
          );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
