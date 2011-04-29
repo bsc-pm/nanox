@@ -390,16 +390,12 @@ inline void WriteBackPolicy::unregisterCacheAccess( Directory &dir, uint64_t tag
 
 inline Cache::Cache() : _id( sys.getCacheMap().registerCache() ) {}
 
-template <class _T, class _Policy>
-inline size_t DeviceCache<_T,_Policy>::getSize()
+template <class _T>
+inline size_t DeviceCache<_T>::getSize()
    { return _size; }
 
-template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::setSize( size_t size )
-   { _size = size; }
-
-template <class _T, class _Policy>
-inline void * DeviceCache<_T,_Policy>::allocate( Directory &dir, size_t size )
+template <class _T>
+inline void * DeviceCache<_T>::allocate( Directory &dir, size_t size )
 {
    void *result;
    NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-malloc") );
@@ -419,8 +415,8 @@ inline void * DeviceCache<_T,_Policy>::allocate( Directory &dir, size_t size )
    return result;
 }
 
-template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::freeSpaceToFit( Directory &dir, size_t size )
+template <class _T>
+inline void DeviceCache<_T>::freeSpaceToFit( Directory &dir, size_t size )
 {
    CacheHash::KeyList kl;
    _cache.listUnreferencedKeys( kl );
@@ -471,8 +467,8 @@ inline void DeviceCache<_T,_Policy>::freeSpaceToFit( Directory &dir, size_t size
    ensure( _usedSize + size <= _size, "Cache is full" );
 }
 
-template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::deleteEntry( uint64_t tag, size_t size )
+template <class _T>
+inline void DeviceCache<_T>::deleteEntry( uint64_t tag, size_t size )
 {
    NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-free") );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_CACHE, key, (nanos_event_value_t) size) );
@@ -484,8 +480,8 @@ inline void DeviceCache<_T,_Policy>::deleteEntry( uint64_t tag, size_t size )
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
 }
 
-template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::realloc( Directory& dir, CacheEntry *ce, size_t size )
+template <class _T>
+inline void DeviceCache<_T>::realloc( Directory& dir, CacheEntry *ce, size_t size )
 {
    if ( _usedSize + size - ce->getSize() < _size ) {
       freeSpaceToFit( dir, size - ce->getSize() );
@@ -499,15 +495,15 @@ inline void DeviceCache<_T,_Policy>::realloc( Directory& dir, CacheEntry *ce, si
    ce->setAddress( addr );
 }
 
-template <class _T, class _Policy>
-inline void * DeviceCache<_T,_Policy>::getAddress( uint64_t tag )
+template <class _T>
+inline void * DeviceCache<_T>::getAddress( uint64_t tag )
 {
    void *result = _cache[tag].getAddress();
    return result;
 }
 
-template <class _T, class _Policy>
-inline bool DeviceCache<_T,_Policy>::copyDataToCache( CopyDescriptor &cd, size_t size )
+template <class _T>
+inline bool DeviceCache<_T>::copyDataToCache( CopyDescriptor &cd, size_t size )
 {
    bool result;
    NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
@@ -517,8 +513,8 @@ inline bool DeviceCache<_T,_Policy>::copyDataToCache( CopyDescriptor &cd, size_t
    return result;
 }
 
-template <class _T, class _Policy>
-inline bool DeviceCache<_T,_Policy>::copyBackFromCache( CopyDescriptor &cd, size_t size )
+template <class _T>
+inline bool DeviceCache<_T>::copyBackFromCache( CopyDescriptor &cd, size_t size )
 {
    bool result;
    NANOS_INSTRUMENT( static nanos_event_key_t key1 = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-out") );
@@ -529,8 +525,8 @@ inline bool DeviceCache<_T,_Policy>::copyBackFromCache( CopyDescriptor &cd, size
    return result;
 }
 
-template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::copyTo( void *dst, uint64_t tag, size_t size )
+template <class _T>
+inline void DeviceCache<_T>::copyTo( void *dst, uint64_t tag, size_t size )
 {
    NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-local-copy") );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_LOCAL, key, size ) );
@@ -538,8 +534,8 @@ inline void DeviceCache<_T,_Policy>::copyTo( void *dst, uint64_t tag, size_t siz
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
 }
 
-template <class _T, class _Policy>
-inline CacheEntry& DeviceCache<_T,_Policy>::newEntry( uint64_t tag, size_t size, unsigned int version, bool dirty )
+template <class _T>
+inline CacheEntry& DeviceCache<_T>::newEntry( uint64_t tag, size_t size, unsigned int version, bool dirty )
 {
    CacheEntry& ce = _cache[tag];
    ce.setTag( tag );
@@ -549,64 +545,64 @@ inline CacheEntry& DeviceCache<_T,_Policy>::newEntry( uint64_t tag, size_t size,
    return ce;
 }
 
-template <class _T, class _Policy>
-inline CacheEntry& DeviceCache<_T,_Policy>::insert( uint64_t tag, CacheEntry& ce, bool& inserted )
+template <class _T>
+inline CacheEntry& DeviceCache<_T>::insert( uint64_t tag, CacheEntry& ce, bool& inserted )
 {
    return _cache.insert( tag, ce, inserted );
 }
 
-template <class _T, class _Policy>
-inline CacheEntry* DeviceCache<_T,_Policy>::getEntry( uint64_t tag )
+template <class _T>
+inline CacheEntry* DeviceCache<_T>::getEntry( uint64_t tag )
 {
    return _cache.findAndReference( tag );
 }
 
-template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::addReference( uint64_t tag )
+template <class _T>
+inline void DeviceCache<_T>::addReference( uint64_t tag )
 {
    _cache.findAndReference( tag );
 }
 
-template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::deleteReference( uint64_t tag )
+template <class _T>
+inline void DeviceCache<_T>::deleteReference( uint64_t tag )
 {
    _cache.deleteReference( tag );
 }
 
-template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::registerCacheAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
+template <class _T>
+inline void DeviceCache<_T>::registerCacheAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
 {
-   _policy.registerCacheAccess( dir, tag, size, input, output );
+   _policy->registerCacheAccess( dir, tag, size, input, output );
 }
 
-template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output )
+template <class _T>
+inline void DeviceCache<_T>::unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output )
 {
-   _policy.unregisterCacheAccess( dir, tag, size, output );
+   _policy->unregisterCacheAccess( dir, tag, size, output );
 }
 
-template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::registerPrivateAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
+template <class _T>
+inline void DeviceCache<_T>::registerPrivateAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
 {
-   _policy.registerPrivateAccess( dir, tag, size, input, output );
+   _policy->registerPrivateAccess( dir, tag, size, input, output );
 }
 
-template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size )
+template <class _T>
+inline void DeviceCache<_T>::unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size )
 {
-   _policy.unregisterPrivateAccess( dir, tag, size );
+   _policy->unregisterPrivateAccess( dir, tag, size );
 }
 
-template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::synchronizeTransfer( uint64_t tag )
+template <class _T>
+inline void DeviceCache<_T>::synchronizeTransfer( uint64_t tag )
 {
    CacheEntry *ce = _cache.find( tag );
    ensure( ce != NULL && ce->hasTransfers(), "Cache has been corrupted" );
    ce->decreaseTransfers();
 }
 
-template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::synchronizeInternal( SyncData &sd, CopyDescriptor &cd )
+template <class _T>
+inline void DeviceCache<_T>::synchronizeInternal( SyncData &sd, CopyDescriptor &cd )
 {
    CacheEntry *ce = sd._this->_cache.find( cd.getTag() );
    ensure( ce != NULL, "Cache has been corrupted" );
@@ -630,15 +626,15 @@ inline void DeviceCache<_T,_Policy>::synchronizeInternal( SyncData &sd, CopyDesc
    }
 }
 
-template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::synchronize( CopyDescriptor& cd )
+template <class _T>
+inline void DeviceCache<_T>::synchronize( CopyDescriptor& cd )
 {
    SyncData sd = { this };
    synchronizeInternal( sd, cd );
 }
 
-template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::synchronize( std::list<CopyDescriptor> &cds )
+template <class _T>
+inline void DeviceCache<_T>::synchronize( std::list<CopyDescriptor> &cds )
 {
    SyncData sd = { this };
    for ( std::list<CopyDescriptor>::iterator it = cds.begin(); it != cds.end(); it++ ) {
@@ -648,8 +644,8 @@ inline void DeviceCache<_T,_Policy>::synchronize( std::list<CopyDescriptor> &cds
 //   for_each( cds.begin(), cds.end(), std :: bind1st( std :: ptr_fun ( synchronizeInternal ), sd ) );
 }
 
-template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::waitInput( uint64_t tag )
+template <class _T>
+inline void DeviceCache<_T>::waitInput( uint64_t tag )
 {
    CacheEntry *ce = _cache.find(tag);
    ensure( ce != NULL, "Cache has been corrupted" );
@@ -662,8 +658,8 @@ inline void DeviceCache<_T,_Policy>::waitInput( uint64_t tag )
 
 }
 
-template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::waitInput( DeviceCache<_T,_Policy>* _this, uint64_t tag )
+template <class _T>
+inline void DeviceCache<_T>::waitInput( DeviceCache<_T>* _this, uint64_t tag )
 {
    CacheEntry *ce = _this->_cache.find(tag);
    ensure( ce != NULL, "Cache has been corrupted" );
@@ -676,15 +672,15 @@ inline void DeviceCache<_T,_Policy>::waitInput( DeviceCache<_T,_Policy>* _this, 
 
 }
 
-template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::waitInputs( std::list<uint64_t> &tags )
+template <class _T>
+inline void DeviceCache<_T>::waitInputs( std::list<uint64_t> &tags )
 {
    for_each( tags.begin(), tags.end(), std :: bind1st( std :: ptr_fun ( waitInput ), this ) );
    for_each( tags.begin(), tags.end(), waitInput );
 }
 
-template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::invalidate( Directory &dir, uint64_t tag, DirectoryEntry *de )
+template <class _T>
+inline void DeviceCache<_T>::invalidate( Directory &dir, uint64_t tag, DirectoryEntry *de )
 {
    CacheEntry *ce = _cache.find( tag );
    if ( de->trySetInvalidated() ) {
@@ -703,8 +699,8 @@ inline void DeviceCache<_T,_Policy>::invalidate( Directory &dir, uint64_t tag, D
    }
 } 
 
-template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::invalidate( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de )
+template <class _T>
+inline void DeviceCache<_T>::invalidate( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de )
 {
    CacheEntry *ce = _cache.find( tag );
    if ( de->trySetInvalidated() ) {
@@ -723,20 +719,20 @@ inline void DeviceCache<_T,_Policy>::invalidate( Directory &dir, uint64_t tag, s
    }
 }
 
-template <class _T, class _Policy>
-inline size_t& DeviceCache<_T,_Policy>::getCacheSize()
+template <class _T>
+inline size_t& DeviceCache<_T>::getCacheSize()
 {
    return _size;
 }
 
-template <class _T, class _Policy>
-inline void DeviceCache<_T,_Policy>::syncTransfer( uint64_t tag )
+template <class _T>
+inline void DeviceCache<_T>::syncTransfer( uint64_t tag )
 {
    _T::syncTransfer( tag, _pe );
 }
 
-template <class _T, class _Policy>
-int DeviceCache<_T,_Policy>::getReferences( unsigned int tag )
+template <class _T>
+int DeviceCache<_T>::getReferences( unsigned int tag )
 {
    return _cache.getReferenceCount( tag );
 }

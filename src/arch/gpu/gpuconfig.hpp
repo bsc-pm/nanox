@@ -50,6 +50,7 @@ namespace ext
       private:
          static bool          _disableCUDA; //! Enable/disable all CUDA support
          static int           _numGPUs; //! Number of CUDA-capable GPUs
+         static std::string   _cachePolicy; //! Defines the cache policy used by GPU devices
          static bool          _prefetch; //! Enable / disable data prefetching (set by the user)
          static bool          _overlap; //! Enable / disable computation and data transfer overlapping (set by the user)
          static bool          _overlapInputs;
@@ -71,6 +72,8 @@ namespace ext
 
          /*! return the number of available GPUs */
          static int getGPUCount ( void ) { return _numGPUs; }
+
+         static std::string getCachePolicy ( void ) { return _cachePolicy; }
 
          static bool isPrefetchingDefined ( void ) { return _prefetch; }
 

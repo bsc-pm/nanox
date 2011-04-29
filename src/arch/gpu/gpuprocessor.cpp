@@ -30,6 +30,7 @@ using namespace nanos::ext;
 Atomic<int> GPUProcessor::_deviceSeed = 0;
 size_t GPUProcessor::_memoryAlignment = 256;
 
+
 GPUProcessor::GPUProcessor( int id, int gpuId ) : CachedAccelerator<GPUDevice>( id, &GPU ),
       _gpuDevice( _deviceSeed++ ), _gpuProcessorTransfers(), _allocator(), _inputPinnedMemoryBuffer()
 {
@@ -91,7 +92,7 @@ void GPUProcessor::init ()
    // much bytes as we have asked
    void * baseAddress = GPUDevice::allocateWholeMemory( maxMemoryAvailable );
    _allocator.init( ( uint64_t ) baseAddress, maxMemoryAvailable );
-   setCacheSize( maxMemoryAvailable );
+   configureCache( maxMemoryAvailable, toCachePolicy( GPUConfig::getCachePolicy() ) );
    _gpuProcessorInfo->setMaxMemoryAvailable( maxMemoryAvailable );
 
    // If some kind of overlapping is defined, allocate some pinned memory

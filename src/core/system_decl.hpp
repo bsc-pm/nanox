@@ -107,6 +107,8 @@ namespace nanos
          // Programming model interface
          PMInterface *        _pmInterface;
 
+         // General cache policy (if not specifically redefined for a certain architecture)
+         std::string          _cachePolicy;
          // CacheMap register
          CacheMap             _cacheMap;
 
@@ -245,6 +247,7 @@ namespace nanos
 
          void setPMInterface (PMInterface *_pm);
          const PMInterface & getPMInterface ( void ) const;
+         std::string getCachePolicy();
          CacheMap& getCacheMap();
 
          void threadReady ();

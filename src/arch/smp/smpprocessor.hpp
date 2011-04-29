@@ -24,8 +24,7 @@
 #include "smpthread.hpp"
 #include "smpdevice.hpp"
 #ifdef SMP_NUMA
-#include "cache.hpp"
-#include "accelerator_decl.hpp"
+#include "cachedaccelerator.hpp"
 #include "copydescriptor_decl.hpp"
 #else
 #include "processingelement.hpp"
@@ -38,7 +37,8 @@ namespace ext
 {
 
 #ifdef SMP_NUMA
-   class SMPProcessor : public Accelerator
+
+   class SMPProcessor : public nanos::CachedAccelerator<SMPDevice>
 #else
    class SMPProcessor : public PE
 #endif
@@ -50,19 +50,18 @@ namespace ext
          static bool _useUserThreads;
          static size_t _threadsStackSize;
          static size_t _cacheDefaultSize;
+         static std::string _cachePolicy;
 
          // disable copy constructor and assignment operator
          SMPProcessor( const SMPProcessor &pe );
          const SMPProcessor & operator= ( const SMPProcessor &pe );
 
-#ifdef SMP_NUMA
-         DeviceCache<SMPDevice> _cache;
-#endif
 
       public:
          // constructors
 #ifdef SMP_NUMA
-         SMPProcessor( int id ) : Accelerator( id, &SMP ), _cache(_cacheDefaultSize) {}
+         SMPProcessor( int id ) :
+            CachedAccelerator<SMPDevice>( id, &SMP ) {}
 #else
          SMPProcessor( int id ) : PE( id, &SMP ) {}
 #endif
@@ -79,23 +78,6 @@ namespace ext
          virtual bool supportsUserLevelThreads () const { return _useUserThreads; }
 #else
          virtual bool supportsUserLevelThreads () const { return false; }
-#endif
-
-#ifdef SMP_NUMA
-         /* Memory space suport */
-         virtual void waitInputDependent( uint64_t tag );
-
-         virtual void registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
-         virtual void unregisterCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool output );
-         virtual void registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
-         virtual void unregisterPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size );
-
-         virtual void* getAddressDependent( uint64_t tag );
-         virtual void copyToDependent( void *dst, uint64_t tag, size_t size );
-
-         void synchronize( Directory& dir, CopyDescriptor &copy );
-
-         unsigned int getMemorySpaceId() const { return _cache.getId(); }
 #endif
    };
 

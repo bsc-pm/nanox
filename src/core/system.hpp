@@ -127,6 +127,8 @@ inline void System::setPMInterface(PMInterface *pm)
 
 inline const PMInterface &  System::getPMInterface(void) const { return *_pmInterface; }
 
+inline std::string System::getCachePolicy() { return _cachePolicy; }
+
 inline CacheMap& System::getCacheMap() { return _cacheMap; }
 
 inline bool System::throttleTask()
