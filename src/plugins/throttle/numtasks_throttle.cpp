@@ -48,7 +48,7 @@ namespace nanos {
             ~NumTasksThrottle() {}
       };
 
-      const int NumTasksThrottle::_defaultLimit = 5;
+      const int NumTasksThrottle::_defaultLimit = 500;
 
       bool NumTasksThrottle::throttle()
       {
