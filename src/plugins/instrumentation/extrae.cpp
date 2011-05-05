@@ -42,6 +42,8 @@ class InstrumentationExtrae: public Instrumentation
       void initialize( void ) {}
       void finalize( void ) {}
       void addEventList ( unsigned int count, Event *events ) {}
+      void threadStart( BaseThread &thread ) {}
+      void threadFinish ( BaseThread &thread ) {}
 #else
    private:
       std::string                                    _listOfTraceFileNames;
@@ -578,6 +580,8 @@ class InstrumentationExtrae: public Instrumentation
 
          Extrae_emit_CombinedEvents ( &ce );
       }
+      void threadStart( BaseThread &thread ) {}
+      void threadFinish ( BaseThread &thread ) {}
 #endif
 };
 

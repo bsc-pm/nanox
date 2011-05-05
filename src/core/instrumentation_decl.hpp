@@ -34,6 +34,7 @@
 #include "instrumentationcontext_fwd.hpp"
 #include "workdescriptor_fwd.hpp"
 #include "allocator_decl.hpp"
+#include "basethread_decl.hpp"
 
 namespace nanos {
 
@@ -587,6 +588,16 @@ namespace nanos {
           *  to be consistent with the instrumentation model
           */
          virtual void finalize( void ) = 0;
+
+         /*! \brief Pure virtual function executed on each thread initialization
+          *
+          */
+         virtual void threadStart( BaseThread &thread ) = 0;
+
+         /*! \brief Pure virtual function executed on each thread finalization
+          *
+          */
+         virtual void threadFinish ( BaseThread &thread ) = 0;
 
          /*! \brief Pure virtual functions executed each time runtime wants to add an event
           *
