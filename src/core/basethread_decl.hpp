@@ -140,17 +140,11 @@ namespace nanos
       public:
         /*! \brief BaseThread constructor
          */
-         BaseThread ( WD &wd, ProcessingElement *creator=0 ) :
-               _id( _idSeed++ ), _name("Thread"), _description(""), _pe( creator ), _threadWD( wd ),
-               _started( false ), _mustStop( false ), _currentWD( NULL),
-               _nextWD( NULL), _hasTeam( false ),_team(NULL),
-               _teamData(NULL), _allocator() {}
+         BaseThread ( WD &wd, ProcessingElement *creator=0 );
+
         /*! \brief BaseThread destructor
          */
-         virtual ~BaseThread() {
-            ensure0(!_hasTeam,"Destroying thread inside a team!");
-            ensure0(!_started,"Trying to destroy running thread");
-         }
+         virtual ~BaseThread();
 
          // atomic access
          void lock ();
