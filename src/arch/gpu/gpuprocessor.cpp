@@ -19,6 +19,7 @@
 
 #include "gpuprocessor.hpp"
 #include "debug.hpp"
+#include "gpudd.hpp"
 #include "schedule.hpp"
 #include "simpleallocator.hpp"
 
