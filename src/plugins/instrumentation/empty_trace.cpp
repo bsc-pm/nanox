@@ -17,6 +17,8 @@ class InstrumentationEmptyTrace: public Instrumentation
       void initialize( void ) {}
       void finalize( void ) {}
       void addEventList ( unsigned int count, Event *events ) {}
+      void threadStart( BaseThread &thread ) {}
+      void threadFinish ( BaseThread &thread ) {}
 #else
    public:
       // constructor
@@ -28,6 +30,8 @@ class InstrumentationEmptyTrace: public Instrumentation
       void initialize( void ) {}
       void finalize( void ) {}
       void addEventList ( unsigned int count, Event *events ) {}
+      void threadStart( BaseThread &thread ) {}
+      void threadFinish ( BaseThread &thread ) {}
 #endif
 };
 
