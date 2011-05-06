@@ -28,31 +28,17 @@ __thread BaseThread * nanos::myThread=0;
 
 Atomic<int> BaseThread::_idSeed = 0;
 
-BaseThread::BaseThread ( WD &wd, ProcessingElement *creator ) :
-      _id( _idSeed++ ), _name("Thread"), _description(""), _pe( creator ), _threadWD( wd ),
-      _started( false ), _mustStop( false ), _currentWD( NULL),
-      _nextWD( NULL), _hasTeam( false ),_team(NULL),
-      _teamData(NULL), _allocator()
-{
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->threadStart ( *this ) );
-}
-
-BaseThread::~BaseThread()
-{
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->threadFinish ( *this ) );
-   ensure0(!_hasTeam,"Destroying thread inside a team!");
-   ensure0(!_started,"Trying to destroy running thread");
-}
-
 void BaseThread::run ()
 {
    _threadWD.tieTo( *this );
    associate();
    initializeDependent();
    /* Notify that the thread has finished all its initialization and it's ready to run */
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->threadStart ( *this ) );
    if ( sys.getSynchronizedStart() ) 
      sys.threadReady();
    runDependent();
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->threadFinish ( *this ) );
 }
 
 void BaseThread::associate ()
