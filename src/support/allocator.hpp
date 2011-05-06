@@ -86,8 +86,19 @@ inline void Allocator::Arena::setNext ( Arena * a )
    _next = a;
 }
 
+inline void * Allocator::allocateBigObject ( size_t size )
+{
+   ObjectHeader * ptr = NULL;
+
+   ptr = (ObjectHeader *) malloc( size + _headerSize );
+   ptr->_arena = NULL; 
+   return ptr;
+}
+
 inline void * Allocator::allocate ( size_t size, const char* file, int line )
 {
+   if ( size > _sizeOfBig ) return allocateBigObject(size);
+
    /* realSize is (size + header )'s next power of 2 */
    size_t realSize = size + _headerSize + 1;
    realSize |= realSize >> 1;
@@ -136,8 +147,14 @@ inline void * Allocator::allocate ( size_t size, const char* file, int line )
 inline void Allocator::deallocate ( void *object, const char *file, int line )
 {
    ObjectHeader * ptr = (ObjectHeader *) ( ((char *)object) - _headerSize );
+
    Arena *arena = ptr->_arena;
-   arena->deallocate(ptr);
+
+   // If there is no arena then it was a big object that just needs to be freed
+   if ( arena == NULL )
+     free(ptr);
+   else
+     arena->deallocate(ptr);
 }
 
 } // namespace nanos

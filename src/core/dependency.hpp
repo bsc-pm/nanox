@@ -24,14 +24,14 @@
 
 using namespace nanos;
 
-inline Dependency::Dependency ( void ** addr, ptrdiff_t offset, bool input, bool output,
-             bool canRename, bool commutative, size_t storageSize )
+inline Dependency::Dependency ( void ** addr, ptrdiff_t elementOffset, bool input, bool output,
+             bool canRenameFlag, bool commutative, size_t storageSize )
 {
    address = addr;
-   offset = offset;
+   offset = elementOffset;
    flags.input = input;
    flags.output = output;
-   flags.can_rename = canRename;
+   flags.can_rename = canRenameFlag;
    flags.commutative = commutative;
    size = storageSize;
 }

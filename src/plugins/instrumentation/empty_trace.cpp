@@ -17,6 +17,8 @@ class InstrumentationEmptyTrace: public Instrumentation
       void initialize( void ) {}
       void finalize( void ) {}
       void addEventList ( unsigned int count, Event *events ) {}
+      void threadStart( BaseThread &thread ) {}
+      void threadFinish ( BaseThread &thread ) {}
 #else
    public:
       // constructor
@@ -28,6 +30,8 @@ class InstrumentationEmptyTrace: public Instrumentation
       void initialize( void ) {}
       void finalize( void ) {}
       void addEventList ( unsigned int count, Event *events ) {}
+      void threadStart( BaseThread &thread ) {}
+      void threadFinish ( BaseThread &thread ) {}
 #endif
 };
 
@@ -38,7 +42,7 @@ class InstrumentationEmptyTracePlugin : public Plugin {
       InstrumentationEmptyTracePlugin () : Plugin("Instrumentation which doesn't generate any trace.",1) {}
       ~InstrumentationEmptyTracePlugin () {}
 
-      void config( Config &config ) {}
+      void config( Config &cfg ) {}
 
       void init ()
       {

@@ -38,7 +38,9 @@ namespace nanos
       public:
          class ModuleList {
             public:
-               typedef const char ** const const_char_ptr;
+               typedef const char ** char_ptr;
+               typedef char_ptr const const_char_ptr;
+               typedef char_ptr iterator;
                typedef const_char_ptr const_iterator;
 
             private:
@@ -49,13 +51,15 @@ namespace nanos
                ModuleList ( const_char_ptr first, const_char_ptr last ) : _first (first), _last(last) { }
                ~ModuleList () {}
 
-               const_iterator begin() const { return _first; }
-               const_iterator end() const { return _last; }
+               iterator begin() const { return _first; }
+               iterator end() const { return _last; }
          };
          
          class InitList {
             public:
-               typedef const nanos_init_desc_t * const const_init_ptr;
+               typedef const nanos_init_desc_t * init_ptr;
+               typedef init_ptr const const_init_ptr;
+               typedef init_ptr iterator;
                typedef const_init_ptr const_iterator;
 
             private:
@@ -66,8 +70,8 @@ namespace nanos
                InitList ( const_init_ptr first, const_init_ptr last ) : _first (first), _last(last) { }
                ~InitList () {}
 
-               const_iterator begin() const { return _first; }
-               const_iterator end() const { return _last; }
+               iterator begin() const { return _first; }
+               iterator end() const { return _last; }
          };
 
          
@@ -78,6 +82,7 @@ namespace nanos
          static char ** _argv;
 
          static InitList   *_initList;
+         static InitList   *_postInitList;
          static ModuleList *_moduleList;
       public:         
 
@@ -98,6 +103,7 @@ namespace nanos
          static double getMonotonicTimeResolution ();
          
          static const InitList & getInitializationFunctions ( ) { return *_initList;}
+         static const InitList & getPostInitializationFunctions ( ) { return *_postInitList;}
          static const ModuleList & getRequestedModules () { return *_moduleList; }
    };
 

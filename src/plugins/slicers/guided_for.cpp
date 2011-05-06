@@ -172,7 +172,7 @@ class SlicerGuidedForPlugin : public Plugin {
       SlicerGuidedForPlugin () : Plugin("Slicer for Loops using a guided policy",1) {}
       ~SlicerGuidedForPlugin () {}
 
-      virtual void config( Config& config ) {}
+      virtual void config( Config& cfg ) {}
 
       void init ()
       {

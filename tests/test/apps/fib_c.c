@@ -115,7 +115,7 @@ int fib ( int n, int d )
       }
 
 //		#pragma omp taskwait
-      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
    } else {
       x = fib_seq( n-1 );
       y = fib_seq( n-2 );

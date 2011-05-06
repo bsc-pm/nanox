@@ -199,7 +199,7 @@ inline void Lock::acquire ( void )
 
 spin:
 
-   while ( _state == NANOS_LOCK_BUSY );
+   while ( _state == NANOS_LOCK_BUSY ) {}
 
    if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) goto spin;
 }

@@ -7,6 +7,16 @@ namespace nanos {
 
 extern "C" {
 
+   // Forward function declarations
+   unsigned int   nanos_extrae_get_max_threads();
+   unsigned int   nanos_ompitrace_get_max_threads();
+   unsigned int   nanos_extrae_get_thread_num();
+   unsigned int   nanos_ompitrace_get_thread_num();
+   void           nanos_extrae_instrumentation_barrier();
+   void           nanos_ompitrace_instrumentation_barrier();
+   unsigned int   nanos_extrae_node_id();
+   unsigned int   nanos_extrae_num_nodes();
+
    void OMPItrace_neventandcounters (unsigned int count, unsigned int *types, unsigned int *values);
 
    unsigned int nanos_extrae_get_max_threads ( void )

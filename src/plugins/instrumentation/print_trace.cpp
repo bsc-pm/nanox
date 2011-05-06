@@ -18,6 +18,8 @@ class InstrumentationPrintTrace: public Instrumentation
       void initialize( void ) {}
       void finalize( void ) {}
       void addEventList ( unsigned int count, Event *events ) {}
+      void threadStart( BaseThread &thread ) {}
+      void threadFinish ( BaseThread &thread ) {}
 #else
    public:
       // constructor
@@ -29,6 +31,8 @@ class InstrumentationPrintTrace: public Instrumentation
       void initialize( void ) {}
       void finalize( void ) {}
       void addEventList ( unsigned int count, Event *events ) {}
+      void threadStart( BaseThread &thread ) {}
+      void threadFinish ( BaseThread &thread ) {}
 #endif
 
 };
@@ -40,7 +44,7 @@ class InstrumentationPrintTracePlugin : public Plugin {
       InstrumentationPrintTracePlugin () : Plugin("Instrumentation which print the trace to std out.",1) {}
       ~InstrumentationPrintTracePlugin () {}
 
-      void config( Config &config ) {}
+      void config( Config &cfg ) {}
 
       void init ()
       {

@@ -21,7 +21,9 @@
 #include "system.hpp"
 #include <cstdlib>
 #include "config.hpp"
-#include "omp_data.hpp"
+#include "omp_wd_data.hpp"
+#include "omp_threadteam_data.hpp"
+#include "nanos_omp.h"
 
 using namespace nanos;
 
@@ -33,13 +35,13 @@ namespace nanos
 
       class OpenMPInterface : public PMInterface
       {
-         virtual void config ( Config & config )
+         virtual void config ( Config & cfg )
          {
-            config.setOptionsSection("OpenMP specific","OpenMP related options");
+            cfg.setOptionsSection("OpenMP specific","OpenMP related options");
 
             // OMP_NUM_THREADS
-            config.registerAlias("num_pes","omp-threads","Configures the number of OpenMP Threads to use");
-            config.registerEnvOption("omp-threads","OMP_NUM_THREADS");
+            cfg.registerAlias("num_pes","omp-threads","Configures the number of OpenMP Threads to use");
+            cfg.registerEnvOption("omp-threads","OMP_NUM_THREADS");
 
             // OMP_SCHEDULE
             // OMP_DYNAMIC
@@ -70,27 +72,33 @@ namespace nanos
             }
          }
 
-    	   virtual int getInternalDataSize() const { return sizeof(OmpData); }
-    	   virtual int getInternalDataAlignment() const { return __alignof__(OmpData); }
-    	   virtual void setupWD( WD &wd )
-    	   {
-   		    OmpData *data = (OmpData *) wd.getInternalData();
-   		    ensure(data,"OpenMP data is missing!");
-    		    WD *parent = wd.getParent();
+          virtual int getInternalDataSize() const { return sizeof(OmpData); }
+          virtual int getInternalDataAlignment() const { return __alignof__(OmpData); }
+          virtual void setupWD( WD &wd )
+          {
+                    OmpData *data = (OmpData *) wd.getInternalData();
+                    ensure(data,"OpenMP data is missing!");
+                    WD *parent = wd.getParent();
 
-    		    if ( parent != NULL ) {
-    		      OmpData *parentData = (OmpData *) parent->getInternalData();
-    		      ensure(data,"parent OpenMP data is missing!");
+                    if ( parent != NULL ) {
+                       OmpData *parentData = (OmpData *) parent->getInternalData();
+                       ensure(data,"parent OpenMP data is missing!");
 
-    		      data = parentData;
-    		    } else {
-    		      data->icvs() = globalState->getICVs();
-    		    }
+                data = parentData;
+              } else {
+                      data->icvs() = globalState->getICVs();
+                      data->setFinal(false);
+                    }
                     data->setImplicit(false);
-    	   }
+          }
 
-    	   virtual void wdStarted( WD &wd ) {};
-    	   virtual void wdFinished( WD &wd ) {};
+          virtual void wdStarted( WD &wd ) {};
+          virtual void wdFinished( WD &wd ) {};
+
+           virtual ThreadTeamData * getThreadTeamData()
+           {
+              return (ThreadTeamData *) NEW OmpThreadTeamData();
+           }
       };
    }
 }
@@ -99,7 +107,7 @@ namespace nanos
    This function must have C linkage to avoid that C applications need to link against the C++ library
 */   
 extern "C" {
-  void nanos_omp_set_interface()
+  void nanos_omp_set_interface( void * )
   {
      sys.setPMInterface(NEW nanos::OpenMP::OpenMPInterface());
   }

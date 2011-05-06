@@ -37,14 +37,6 @@ namespace nanos
 
          static void getMemoryLockLimit();
 
-         /*! \brief allocate a chunk of pinned host memory
-          */
-         static uint64_t allocateIntermediateBuffer( void * deviceAddress, size_t size, ProcessingElement *pe );
-
-         /*! \brief free a chunk of pinned host memory
-          */
-         static void freeIntermediateBuffer( uint64_t pinnedAddress, void * deviceAddress, ProcessingElement *pe );
-
          /*! \brief copy in when the thread invoking this function belongs to pe
           */
          static bool isMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, ProcessingElement *pe );
@@ -93,6 +85,14 @@ namespace nanos
          /* \brief free the whole GPU device memory pointed by address
           */
          static void freeWholeMemory( void * address );
+
+         /* \brief allocate a chunk of pinned memory of the host
+          */
+         static void * allocatePinnedMemory( size_t size );
+
+         /* \brief free the chunk of pinned host memory pointed by address
+          */
+         static void freePinnedMemory( void * address );
 
          /* \brief allocate size bytes in the device
           */

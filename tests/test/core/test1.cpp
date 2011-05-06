@@ -43,6 +43,7 @@ typedef struct {
    std::string b;
 } hello_world_args;
 
+void hello_world ( void *args );
 void hello_world ( void *args )
 {
    hello_world_args *hargs = ( hello_world_args * ) args;
@@ -73,23 +74,23 @@ int main ( int argc, char **argv )
 
    cout << "start" << endl;
 
-   const char *a = "alex";
+   const char *str = "alex";
 
    hello_world_args *data = new hello_world_args();
 
    data->a = 1;
 
-   data->b = a;
+   data->b = str;
 
    WD * wd = new WD( new SMPDD( hello_world ), sizeof( hello_world_args ), __alignof__(int), data );
 
-   a = "pepe";
+   str = "pepe";
 
    data = new hello_world_args();
 
    data->a = 2;
 
-   data->b = a;
+   data->b = str;
 
    WD * wd2 = new WD( new SMPDD( hello_world ), sizeof (hello_world_args ), __alignof(int), data );
 

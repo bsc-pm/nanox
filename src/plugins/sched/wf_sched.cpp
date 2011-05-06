@@ -169,8 +169,8 @@ namespace nanos {
                BaseThread &victim = thread->getTeam()->getThread(thid);
 
                if ( victim.getTeam() != NULL ) {
-                 ThreadData &data = ( ThreadData & ) *victim.getTeamData()->getScheduleData();
-                 wd = pop( data._readyQueue, _stealPolicy, thread );
+                 ThreadData &tdata = ( ThreadData & ) *victim.getTeamData()->getScheduleData();
+                 wd = pop( tdata._readyQueue, _stealPolicy, thread );
                }
 
             } while ( wd == NULL && thid != thread->getTeamId() );
@@ -186,13 +186,13 @@ namespace nanos {
          public:
             WFSchedPlugin() : Plugin( "WF scheduling Plugin",1 ) {}
 
-            virtual void config( Config& config )
+            virtual void config( Config& cfg )
             {
-               config.setOptionsSection( "WF module", "Work-first scheduling module" );
+               cfg.setOptionsSection( "WF module", "Work-first scheduling module" );
 
-               config.registerConfigOption ( "wf-steal-parent", NEW Config::FlagOption( WorkFirst::_stealParent ),
+               cfg.registerConfigOption ( "wf-steal-parent", NEW Config::FlagOption( WorkFirst::_stealParent ),
                                              "Defines if tries to steal the parent" );
-               config.registerArgOption ( "wf-steal-parent", "steal-parent" );
+               cfg.registerArgOption ( "wf-steal-parent", "steal-parent" );
 
                typedef Config::MapVar<WorkFirst::QueuePolicy> QueueConfig;
                
@@ -200,18 +200,18 @@ namespace nanos {
                queuePolicyLocalConfig
                   ->addOption ( "FIFO", WorkFirst::FIFO )
                    .addOption ( "LIFO", WorkFirst::LIFO );
-               config.registerConfigOption ( "wf-local-policy", queuePolicyLocalConfig,
+               cfg.registerConfigOption ( "wf-local-policy", queuePolicyLocalConfig,
                                              "Defines the local queue access policy");
-               config.registerArgOption ( "wf-local-policy", "wf-local-policy" );
+               cfg.registerArgOption ( "wf-local-policy", "wf-local-policy" );
  
                QueueConfig *queuePolicyStealConfig = NEW QueueConfig ( WorkFirst::_stealPolicy );
                queuePolicyStealConfig
                   ->addOption ( "FIFO", WorkFirst::FIFO )
                    .addOption ( "LIFO", WorkFirst::LIFO );
 
-               config.registerConfigOption ( "wf-steal-policy", queuePolicyStealConfig,
+               cfg.registerConfigOption ( "wf-steal-policy", queuePolicyStealConfig,
                                              "Defines the steal access policy");
-               config.registerArgOption ( "wf-steal-policy", "wf-steal-policy" );
+               cfg.registerArgOption ( "wf-steal-policy", "wf-steal-policy" );
 
             }
 

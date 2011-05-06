@@ -115,7 +115,7 @@ void main__task_1 ( void *args )
    nanos_yield();
    usleep ( hargs->value );
 
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
 
    nanos_instrument_enable_state_events();
 
@@ -143,7 +143,7 @@ int main ( int argc, char **argv )
 
    NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
 
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
 
    return 0; 
 }

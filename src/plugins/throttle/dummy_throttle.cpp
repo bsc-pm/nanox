@@ -56,6 +56,8 @@ namespace nanos {
       }
 
       //factory
+      DummyThrottle * createDummyThrottle();
+
       DummyThrottle * createDummyThrottle()
       {
          return NEW DummyThrottle();
@@ -66,7 +68,7 @@ namespace nanos {
        public:
          DummyThrottlePlugin() : Plugin( "Simple (all/nothing) Throttle Plugin",1 ) {}
 
-         virtual void config( Config& config ) {}
+         virtual void config( Config& cfg ) {}
 
          virtual void init() {
            sys.setThrottlePolicy( createDummyThrottle() );

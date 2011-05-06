@@ -26,11 +26,11 @@
 namespace nanos
 {
 
-   template <class Device, class Policy = WriteThroughPolicy>
+   template <class Device>
    class CachedAccelerator : public Accelerator
    {
       private:
-        DeviceCache<Device,Policy>        _cache;
+        DeviceCache<Device>        *_cache;
 
         /*! \brief CachedAccelerator default constructor (private)
          */
@@ -44,14 +44,23 @@ namespace nanos
       public:
         /*! \brief CachedAccelerator constructor - from 'newId' and 'arch'
          */
-         CachedAccelerator ( int newId, const Device *arch, int cacheSize = 0 ) : Accelerator( newId, arch), _cache( cacheSize, this ) {}
+         CachedAccelerator ( int newId, const Device *arch, NANOS_CACHE_POLICY policy, int cacheSize = 0 ) :
+            Accelerator( newId, arch ), _cache( NEW DeviceCache<Device>( cacheSize, policy, this ) ) {}
+
+         /*! \brief CachedAccelerator constructor - from 'newId' and 'arch'
+          *
+          *  Function 'configureCache()' needs to be called at some point in order to initialize it.
+          */
+          CachedAccelerator ( int newId, const Device *arch ) :
+             Accelerator( newId, arch ), _cache( NULL ) {}
+
         /*! \brief CachedAccelerator destructor
          */
-         virtual ~CachedAccelerator() {}
+         virtual ~CachedAccelerator() { delete _cache; }
 
-         unsigned int getMemorySpaceId() const { return _cache.getId(); }
+         unsigned int getMemorySpaceId() const { return _cache->getId(); }
 
-         void setCacheSize( size_t size );
+         void configureCache( int cacheSize, NANOS_CACHE_POLICY cachePolicy );
 
          void registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
 

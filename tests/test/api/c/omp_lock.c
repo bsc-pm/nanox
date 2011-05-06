@@ -61,7 +61,7 @@ int test_single_lock()
       NANOS_SAFE( nanos_submit( wd1,1,0,0 ) );
    }
 
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
 
    omp_destroy_lock( &mylock );
 
@@ -129,7 +129,7 @@ int test_nest_lock()
       NANOS_SAFE( nanos_submit( wd1,1,0,0 ) );
    }
 
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
    omp_destroy_nest_lock( &mynlock );
    if ( count == 200 ) return 0;
    return count;

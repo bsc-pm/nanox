@@ -28,6 +28,7 @@ using namespace nanos::ext;
 
 bool SMPProcessor::_useUserThreads = true;
 size_t SMPProcessor::_threadsStackSize = 0;
+std::string _cachePolicy = "";
 size_t SMPProcessor::_cacheDefaultSize = 1048580;
 
 void SMPProcessor::prepareConfig ( Config &config )
@@ -39,8 +40,26 @@ void SMPProcessor::prepareConfig ( Config &config )
    config.registerArgOption( "pthreads-stack-size", "pthreads-stack-size" );
 
 #if SMP_NUMA
+   config.registerConfigOption ( "numa-cache-policy", NEW Config::StringVar( _cachePolicy ), "Defines the cache policy for SMP_NUMA architectures" );
+   config.registerEnvOption ( "numa-cache-policy", "NX_NUMA_CACHE_POLICY" );
+   config.registerArgOption( "numa-cache-policy", "numa-cache-policy" );
+
    config.registerConfigOption ( "numa-cache-size", NEW Config::SizeVar( _cacheDefaultSize ), "Defines size of the cache for SMP_NUMA architectures" );
    config.registerArgOption( "numa-cache-size", "numa-cache-size" );
+
+   // Check if the cache policy for SMP_NUMA has been defined
+   if ( !_cachePolicy.compare( "" ) ) {
+      // The user has not defined a specific cache policy for SMP_NUMA,
+      // check if he has defined a global cache policy
+      _cachePolicy = sys.getCachePolicy();
+      if ( !_cachePolicy.compare( "" ) ) {
+         // There is no global cache policy specified, assign it the default value (write-through)
+         _cachePolicy = "wt";
+      }
+   }
+
+   configureCache( _cacheDefaultSize, toCachePolicy( _cachePolicy ) );
+
 #endif
 }
 
@@ -61,53 +80,8 @@ BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper )
 {
    ensure( helper.canRunIn( SMP ),"Incompatible worker thread" );
    SMPThread &th = *NEW SMPThread( helper,this );
-   th.stackSize(_threadsStackSize).useUserThreads(_useUserThreads);
+   th.stackSize( _threadsStackSize ).useUserThreads( _useUserThreads );
 
    return th;
 }
-
-
-#if SMP_NUMA
-
-void SMPProcessor::waitInputDependent( uint64_t tag )
-{
-   _cache.waitInput(tag);
-}
-
-void SMPProcessor::registerCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
-{
-   _cache.registerCacheAccess( dir, tag, size, input, output );
-}
-
-void SMPProcessor::unregisterCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool output )
-{
-   _cache.unregisterCacheAccess( dir, tag, size, output );
-}
-
-void SMPProcessor::registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
-{
-   _cache.registerPrivateAccess( dir, tag, size, input, output );
-}
-
-void SMPProcessor::unregisterPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size )
-{
-   _cache.unregisterPrivateAccess( dir, tag, size );
-}
-
-void* SMPProcessor::getAddressDependent( uint64_t tag )
-{
-   return _cache.getAddress( tag );
-}
-
-void SMPProcessor::copyToDependent( void *dst, uint64_t tag, size_t size )
-{
-   _cache.copyTo( dst, tag, size );
-}
-
-void SMPProcessor::synchronize( Directory &dir, CopyDescriptor &copy )
-{
-   _cache.synchronize( copy );
-}
-
-#endif
 

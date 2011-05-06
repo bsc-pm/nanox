@@ -31,4 +31,10 @@ inline uint64_t SimpleAllocator::getBaseAddress ()
    return _baseAddress;
 }
 
+
+inline void * BufferManager::getBaseAddress ()
+{
+   return _baseAddress;
+}
+
 #endif /* _NANOS_SIMPLEALLOCATOR */

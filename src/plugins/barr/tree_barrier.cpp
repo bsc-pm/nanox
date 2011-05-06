@@ -62,10 +62,10 @@ namespace nanos {
 
          public:
             TreeBarrier () : Barrier() {}
-            TreeBarrier ( const TreeBarrier& barrier ) : Barrier(barrier)
-               { init( barrier._numParticipants ); }
+            TreeBarrier ( const TreeBarrier& orig ) : Barrier(orig)
+               { init( orig._numParticipants ); }
 
-            const TreeBarrier & operator= ( const TreeBarrier & barrier );
+            const TreeBarrier & operator= ( const TreeBarrier & orig );
 
             virtual ~TreeBarrier() { }
 
@@ -75,16 +75,16 @@ namespace nanos {
             void barrier ( int participant );
       };
 
-      const TreeBarrier & TreeBarrier::operator= ( const TreeBarrier & barrier )
+      const TreeBarrier & TreeBarrier::operator= ( const TreeBarrier & orig )
       {
          // self-assignment
-         if ( &barrier == this ) return *this;
+         if ( &orig == this ) return *this;
 
-         Barrier::operator=(barrier);
+         Barrier::operator=(orig);
          /*! \todo copy the _sems variable */
 
-         if ( barrier._numParticipants != _numParticipants )
-            resize(barrier._numParticipants);
+         if ( orig._numParticipants != _numParticipants )
+            resize(orig._numParticipants);
 
          return *this;
       }
@@ -202,7 +202,7 @@ namespace nanos {
          public:
             TreeBarrierPlugin() : Plugin( "Tree Barrier Plugin",1 ) {}
 
-            virtual void config( Config &config ) {}
+            virtual void config( Config &cfg ) {}
 
             virtual void init() {
                sys.setDefaultBarrFactory( createTreeBarrier );

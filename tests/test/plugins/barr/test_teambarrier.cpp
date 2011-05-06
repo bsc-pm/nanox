@@ -21,6 +21,8 @@ using namespace nanos::ext;
 int* counts;
 int size;
 
+void barrier_code ( void * );
+
 /*! works only with bf scheduler */
 void barrier_code ( void * )
 {

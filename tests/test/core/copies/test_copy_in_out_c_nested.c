@@ -55,7 +55,7 @@ void first( void *ptr )
 
    for (i=0; i < local.a; i++) {
       submit_task( TASK_2, i, local.b );
-      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+      NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
       printf( "Checking in level 1 task...  " );
       for (j=0; j < 10; j++) {
          if ( local.b[j] != ( base + 1 + i ) ) {
@@ -120,7 +120,7 @@ int main ( int argc, char **argv )
 
    submit_task( TASK_1, FIRST, dummy1 );
 
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
 
    base = FIRST;
 
@@ -135,7 +135,7 @@ int main ( int argc, char **argv )
 
    submit_task( TASK_1, SECOND, dummy1 );
 
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd() ) );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
 
    printf( "Checking for copy-back correctness..." );
    for ( i = 0; i < 10; i++ ) {

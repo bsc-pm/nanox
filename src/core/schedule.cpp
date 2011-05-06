@@ -29,14 +29,13 @@
 
 using namespace nanos;
 
-
-void SchedulerConf::config (Config &config)
+void SchedulerConf::config (Config &cfg)
 {
-   config.setOptionsSection ( "Core [Scheduler]", "Policy independent scheduler options"  );
+   cfg.setOptionsSection ( "Core [Scheduler]", "Policy independent scheduler options"  );
 
-   config.registerConfigOption ( "num_spins", NEW Config::UintVar( _numSpins ), "Determines the amount of spinning before yielding" );
-   config.registerArgOption ( "num_spins", "spins" );
-   config.registerEnvOption ( "num_spins", "NX_SPINS" );
+   cfg.registerConfigOption ( "num_spins", NEW Config::UintVar( _numSpins ), "Determines the amount of spinning before yielding" );
+   cfg.registerArgOption ( "num_spins", "spins" );
+   cfg.registerEnvOption ( "num_spins", "NX_SPINS" );
 }
 
 void Scheduler::submit ( WD &wd )
@@ -351,6 +350,7 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    debug( "switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
           " to " << wd << ":" << wd->getId() );
 
+   /* Instrumenting context switch: oldwd leaves cpu but will come back (last = false) */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldwd, NULL, false) );
 
    // This ensures that when we return from the inlining is still the same thread
@@ -360,6 +360,7 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
       wd->init();
    thread->setCurrentWD( *wd );
 
+   /* Instrumenting context switch: wd enters cpu (last = n/a) */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
 
    thread->inlineWorkDependent(*wd);
@@ -376,7 +377,8 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
 
    wd->done();
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, false) );
+   /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) */
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, true) );
 
 
    debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
@@ -385,6 +387,7 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
 
    thread->setCurrentWD( *oldwd );
 
+   /* Instrumenting context switch: oldwd is comming back cpu (last = n/a) */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, oldwd, false) );
 
    // While we tie the inlined tasks this is not needed
@@ -499,9 +502,14 @@ void Scheduler::exit ( void )
    BaseThread *thread = myThread;
 
    WD *oldwd = thread->getCurrentWD();
+
+   /* get next WorkDescriptor (if any) */
    WD *next =  thread->getNextWD();
 
-   if (!next) next = thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*oldwd);
+  /* if getNextWD() has returned a WD, we need to resetNextWD(). If no WD has
+   * been returned call scheduler policy */
+   if (next) thread->resetNextWD();
+   else next = thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*oldwd);
 
    updateExitStats (*oldwd);
    oldwd->done();

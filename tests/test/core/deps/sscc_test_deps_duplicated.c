@@ -923,7 +923,7 @@ nanos_err_t nanos_leave_team();
 nanos_err_t nanos_end_team(nanos_team_t team);
 nanos_err_t nanos_team_barrier(void);
 nanos_err_t nanos_single_guard(_Bool *);
-nanos_err_t nanos_wg_wait_completion(nanos_wg_t wg);
+nanos_err_t nanos_wg_wait_completion(nanos_wg_t wg, int);
 nanos_err_t nanos_create_int_sync_cond(nanos_sync_cond_t *sync_cond, volatile int *p, int condition);
 nanos_err_t nanos_create_bool_sync_cond(nanos_sync_cond_t *sync_cond, volatile _Bool *p, _Bool condition);
 nanos_err_t nanos_sync_cond_wait(nanos_sync_cond_t *sync_cond);
@@ -1067,5 +1067,5 @@ int main()
             }
         }
     }
-    nanos_wg_wait_completion(nanos_current_wd());
+    nanos_wg_wait_completion( nanos_current_wd(), 0 );
 }

@@ -171,10 +171,10 @@ inline DependenciesDomain & WorkDescriptor::getDependenciesDomain()
 
 inline InstrumentationContextData * WorkDescriptor::getInstrumentationContextData( void ) { return &_instrumentationContextData; }
 
-inline void WorkDescriptor::waitCompletion()
+inline void WorkDescriptor::waitCompletion( bool avoidFlush )
 {
    this->WorkGroup::waitCompletion();
-   if ( _directory.isInitialized() )
+   if ( _directory.isInitialized() && !avoidFlush )
       _directory->synchronizeHost();
 }
 

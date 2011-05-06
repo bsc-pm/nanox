@@ -43,6 +43,9 @@ using namespace nanos::ext;
 int sizes[] = { 7, 17, 33, 63, 123 };
 bool check = true;
 
+void allocate( void *args );
+void deallocate ( void *ptr );
+
 void deallocate ( void *ptr )
 {
    //cerr << "      thread [" << getMyThreadSafe() << " ]deallocating: " << ptr << endl;

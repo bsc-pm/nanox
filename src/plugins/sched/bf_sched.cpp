@@ -93,14 +93,14 @@ namespace nanos {
          public:
             BFSchedPlugin() : Plugin( "BF scheduling Plugin",1 ) {}
 
-            virtual void config ( Config &config )
+            virtual void config ( Config &cfg )
             {
-               config.setOptionsSection( "BF module", "Breadth-first scheduling module" );
-               config.registerConfigOption ( "bf-use-stack", NEW Config::FlagOption( BreadthFirst::_useStack ), "Stack usage for the breadth-first policy");
-               config.registerArgOption( "bf-use-stack", "bf-use-stack" );
+               cfg.setOptionsSection( "BF module", "Breadth-first scheduling module" );
+               cfg.registerConfigOption ( "bf-use-stack", NEW Config::FlagOption( BreadthFirst::_useStack ), "Stack usage for the breadth-first policy");
+               cfg.registerArgOption( "bf-use-stack", "bf-use-stack" );
 
-               config.registerAlias ( "bf-use-stack", "bf-stack", "Stack usage for the breadth-first policy" );
-               config.registerArgOption ( "bf-stack", "bf-stack" );
+               cfg.registerAlias ( "bf-use-stack", "bf-stack", "Stack usage for the breadth-first policy" );
+               cfg.registerArgOption ( "bf-stack", "bf-stack" );
             }
 
             virtual void init() {

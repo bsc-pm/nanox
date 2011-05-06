@@ -127,6 +127,8 @@ inline void System::setPMInterface(PMInterface *pm)
 
 inline const PMInterface &  System::getPMInterface(void) const { return *_pmInterface; }
 
+inline std::string System::getCachePolicy() { return _cachePolicy; }
+
 inline CacheMap& System::getCacheMap() { return _cacheMap; }
 
 inline bool System::throttleTask()
@@ -142,7 +144,7 @@ inline void System::threadReady()
        yet finished 
 
       TODO: we can consider thread yielding */
-   while (_initializedThreads.value() < _targetThreads);
+   while (_initializedThreads.value() < _targetThreads) {}
 }
 
 #endif

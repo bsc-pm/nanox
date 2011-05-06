@@ -30,12 +30,14 @@ static void do_nothing(void *) {}
 // Make sure the two special linker sections exist
 LINKER_SECTION(nanos_modules, const char *, NULL)
 LINKER_SECTION(nanos_init, nanos_init_desc_t , INIT_NULL)
+LINKER_SECTION(nanos_post_init, nanos_init_desc_t , INIT_NULL)
 
 long OS::_argc = 0; 
 char ** OS::_argv = 0;
 
 OS::ModuleList * OS::_moduleList = 0;
 OS::InitList * OS::_initList = 0;
+OS::InitList * OS::_postInitList = 0;
 
 static void findArgs (long *argc, char ***argv) 
 {
@@ -48,7 +50,7 @@ static void findArgs (long *argc, char ***argv)
    // go backwards until we find argc 
    p--; 
 
-   for ( i = 0 ; *( --p ) != i; i++ ); 
+   for ( i = 0 ; *( --p ) != i; i++ ) {}
 
    *argc = *p; 
    *argv = ( char ** ) p+1; 
@@ -59,6 +61,7 @@ void OS::init ()
    findArgs(&_argc,&_argv);
    _moduleList = new ModuleList(&__start_nanos_modules,&__stop_nanos_modules);
    _initList = new InitList(&__start_nanos_init, &__stop_nanos_init);
+   _postInitList = new InitList(&__start_nanos_post_init, &__stop_nanos_post_init);
 }
 
 void * OS::loadDL( const std::string &dir, const std::string &name )

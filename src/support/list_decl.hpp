@@ -55,13 +55,13 @@ class List {
             *  \param object Element to initialize this node with
             *  \param next Next node in the list (if any)
             */
-            ListNode( _T &object, ListNode* next = NULL ) : _object(object), _next(next), _refs(0), _valid(false) {}
+            ListNode( _T &object, ListNode* nextNode = NULL ) : _object(object), _next(nextNode), _refs(0), _valid(false) {}
 
            /*! \brief Constructor
             *  \param object Element to initialize this node with
             *  \param next Next node in the list (if any)
             */
-            ListNode( const _T &object, ListNode* next = NULL ) : _object(object), _next(next), _refs(0), _valid(false) {}
+            ListNode( const _T &object, ListNode* nextNode = NULL ) : _object(object), _next(nextNode), _refs(0), _valid(false) {}
 
            /*! \brief Copy constructor
             *  \param node Another list node
@@ -109,8 +109,8 @@ class List {
            /*! \brief Sets the next node in the list
             * \param next Another list node
             */
-            void setNext( ListNode* next )
-               { _next = next; }
+            void setNext( ListNode* nextNode )
+               { _next = nextNode; }
 
            /*! \brief Returns whether this node has external references or not
             */

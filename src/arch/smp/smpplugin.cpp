@@ -25,7 +25,9 @@
 namespace nanos {
 namespace ext {
 
-PE * smpProcessorFactory ( int id )
+nanos::PE * smpProcessorFactory ( int id );
+
+nanos::PE * smpProcessorFactory ( int id )
 {
    return new SMPProcessor( id );
 }
@@ -36,11 +38,11 @@ class SMPPlugin : public Plugin
    public:
       SMPPlugin() : Plugin( "SMP PE Plugin",1 ) {}
 
-      virtual void config( Config& config )
+      virtual void config ( Config& cfg )
       {
-         config.setOptionsSection( "SMP Arch", "SMP specific options" );
-         SMPProcessor::prepareConfig( config );
-         SMPDD::prepareConfig( config );
+         cfg.setOptionsSection( "SMP Arch", "SMP specific options" );
+         SMPProcessor::prepareConfig( cfg );
+         SMPDD::prepareConfig( cfg );
       }
 
       virtual void init() {
