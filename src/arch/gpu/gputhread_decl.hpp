@@ -17,28 +17,58 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_GPU_THREAD
-#define _NANOS_GPU_THREAD
+#ifndef _NANOS_GPU_THREAD_DECL
+#define _NANOS_GPU_THREAD_DECL
 
-#include "gputhread_decl.hpp"
-#include "compatibility.hpp"
-#include "gpudd.hpp"
-#include "gpuprocessor.hpp"
+//#include "compatibility.hpp"
+//#include "gpudd.hpp"
+#include "gpuprocessor_fwd.hpp"
+#include "smpthread.hpp"
 
 
 namespace nanos {
 namespace ext
 {
 
-int GPUThread::getGPUDevice ()
-{
-   return _gpuDevice;
-}
+   class GPUThread : public SMPThread
+   {
+      private:
+         int                           _gpuDevice; // Assigned GPU device Id
+         bool                          _wdClosingEvents; //! controls whether an instrumentation event should be generated at WD completion
 
-void GPUThread::enableWDClosingEvents ()
-{
-   _wdClosingEvents = true;
-}
+         // disable copy constructor and assignment operator
+         GPUThread( const GPUThread &th );
+         const GPUThread & operator= ( const GPUThread &th );
+
+         void raiseWDClosingEvents ();
+
+
+         WD * getNextTask ( WD &wd );
+         void prefetchNextTask( WD * next );
+         void executeRequestedTransfers( GPUProcessor & myGPU );
+         void executeOutputTransfers( GPUProcessor & myGPU );
+
+      public:
+         // constructor
+         GPUThread( WD &w, PE *pe, int device ) : SMPThread( w, pe ), _gpuDevice( device ),
+         _wdClosingEvents( false ) {}
+
+         // destructor
+         ~GPUThread() {}
+
+         void initializeDependent( void );
+         void runDependent ( void );
+
+         void inlineWorkDependent( WD &work );
+
+         void yield();
+
+         void idle();
+
+         int getGPUDevice ();
+
+         void enableWDClosingEvents ();
+   };
 
 
 }

@@ -21,7 +21,7 @@
 #define _NANOS_GPU_PROCESSOR_DECL
 
 #include "cachedaccelerator.hpp"
-#include "gputhread.hpp"
+#include "gputhread_decl.hpp"
 #include "gpuconfig.hpp"
 #include "gpudevice_decl.hpp"
 #include "gpumemorytransfer.hpp"
