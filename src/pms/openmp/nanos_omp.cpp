@@ -7,6 +7,17 @@
 using namespace nanos;
 using namespace nanos::OpenMP;
 
+nanos_err_t nanos_omp_set_implicit ( nanos_wd_t *uwd )
+{
+    WD *wd = (WD *) uwd;
+
+    OmpData *data = (OmpData *) wd->getInternalData();
+
+    data->setImplicit(true);
+
+    return NANOS_OK;
+}
+
 nanos_err_t nanos_omp_single ( bool *b )
 {
     OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();

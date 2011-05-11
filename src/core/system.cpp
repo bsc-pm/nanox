@@ -1031,6 +1031,8 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
 
 void System::endTeam ( ThreadTeam *team )
 {
+   while ( team->size() != 1 ) {}
+
    if ( team->size() > 1 ) {
      fatal("Trying to end a team with running threads");
    }
