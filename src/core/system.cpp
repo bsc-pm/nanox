@@ -943,20 +943,31 @@ BaseThread * System::getWorker ( unsigned int n )
 
 void System::releaseWorker ( BaseThread * thread )
 {
+   ThreadTeam *team = thread->getTeam();
+   TeamData * parentData = thread->getTeamData()->getParentTeamData();
+
    //TODO: destroy if too many?
-   //TODO: to free or not to free team data?
-   debug("Releasing thread " << thread << " from team " << thread->getTeam() );
-   thread->leaveTeam();
+
+   debug("Releasing thread " << thread << " from team " << team );
+   thread->leaveTeam();   
+   delete thread->getTeamData();
+   team->removeThread(thread);
+
+   if ( parentData != NULL )
+   {
+      ThreadTeam *parent = team->getParent();
+      myThread->enterTeam(parent,parentData);
+   }
+
 }
 
 ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
-                                   bool reuseCurrent, TeamData *tdata )
+                                   bool reuseCurrent )
 {
    int thId;
    TeamData *data;
 
    if ( nthreads == 0 ) {
-      nthreads = 1;
       nthreads = getNumPEs()*getThsPerPE();
    }
    
@@ -968,34 +979,32 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
       stdata = sched->createTeamData(NULL);
 
    // create team
-   ThreadTeam * team = NEW ThreadTeam( nthreads, *sched, stdata, *_defBarrFactory(), *(_pmInterface->getThreadTeamData()), NULL );
+   ThreadTeam * team = NEW ThreadTeam( nthreads, *sched, stdata, *_defBarrFactory(), *(_pmInterface->getThreadTeamData()),
+                                       reuseCurrent ? myThread->getTeam() : NULL );
 
    debug( "Creating team " << team << " of " << nthreads << " threads" );
 
    // find threads
    if ( reuseCurrent ) {
-      nthreads --;
-
-      thId = team->addThread( myThread, true );
-
-      debug( "adding thread " << myThread << " with id " << toString<int>(thId) << " to " << team );
-
+      BaseThread *current = myThread;
       
-      if (tdata) data = &tdata[thId];
-      else data = NEW TeamData();
+      nthreads --;      
+
+      thId = team->addThread( current, true );
+
+      data = NEW TeamData();
 
       ScheduleThreadData* sthdata = 0;
       if ( sched->getThreadDataSize() > 0 )
         sthdata = sched->createThreadData(NULL);
       
-//       data->parentTeam = myThread->getTeamData();
-
       data->setId(thId);
       data->setScheduleData(sthdata);
+      data->setParentTeamData(current->getTeamData());
       
-      myThread->enterTeam( team,  data );
+      current->enterTeam( team,  data );
 
-      debug( "added thread " << myThread << " with id " << toString<int>(thId) << " to " << team );
+      debug( "added thread " << current << " with id " << toString<int>(thId) << " to " << team );
    }
 
    while ( nthreads > 0 ) {
@@ -1008,10 +1017,8 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
 
       nthreads--;
       thId = team->addThread( thread );
-      debug( "adding thread " << thread << " with id " << toString<int>(thId) << " to " << team );
 
-      if (tdata) data = &tdata[thId];
-      else data = NEW TeamData();
+      data = NEW TeamData();
 
       ScheduleThreadData *sthdata = 0;
       if ( sched->getThreadDataSize() > 0 )
@@ -1031,17 +1038,11 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
 
 void System::endTeam ( ThreadTeam *team )
 {
-   while ( team->size() != 1 ) {}
+   message("Destroying thread team " << team << " with size " << team->size() );
 
-   if ( team->size() > 1 ) {
-     fatal("Trying to end a team with running threads");
-   }
-
-//    if ( myThread->getTeamData()->parentTeam )
-//    {
-//       myThread->restoreTeam(myThread->getTeamData()->parentTeam);
-//    }
-
+   while ( team->size ( ) > 0 ) {}
+   
+   fatal_cond( team->size() > 0, "Trying to end a team with running threads");
    
    delete team;
 }

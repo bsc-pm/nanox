@@ -36,10 +36,10 @@ nanos_err_t nanos_omp_barrier ( void )
       WD &wd = *myThread->getCurrentWD();
       OmpData *data = (OmpData *) wd.getInternalData();
     
-      if ( data->isImplicit() )
+      wd.waitCompletion();
+      if ( data->isImplicit() ) {
          myThread->getTeam()->barrier();
-      else
-         wd.waitCompletion();
+      }
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
