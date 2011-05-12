@@ -1,3 +1,6 @@
+common_libadd=\
+        -lpthreads \
+        $(END)
 
 ult_sources= \
          $(top_srcdir)/src/arch/smp/@SMP_ARCH@/stack.cpp \
