@@ -1038,7 +1038,7 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
 
 void System::endTeam ( ThreadTeam *team )
 {
-   message("Destroying thread team " << team << " with size " << team->size() );
+   debug("Destroying thread team " << team << " with size " << team->size() );
 
    while ( team->size ( ) > 0 ) {}
    
