@@ -74,6 +74,7 @@ namespace nanos {
             {
               if ( &parent != this ) {
                  _icvs = parent._icvs;
+                 _final = parent._final;
               }
               return *this;
             }

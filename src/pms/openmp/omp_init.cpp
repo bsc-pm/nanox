@@ -76,29 +76,37 @@ namespace nanos
           virtual int getInternalDataAlignment() const { return __alignof__(OmpData); }
           virtual void setupWD( WD &wd )
           {
-                    OmpData *data = (OmpData *) wd.getInternalData();
-                    ensure(data,"OpenMP data is missing!");
-                    WD *parent = wd.getParent();
+             OmpData *data = (OmpData *) wd.getInternalData();
+             ensure(data,"OpenMP data is missing!");
+             WD *parent = wd.getParent();
 
-                    if ( parent != NULL ) {
-                       OmpData *parentData = (OmpData *) parent->getInternalData();
-                       ensure(data,"parent OpenMP data is missing!");
+             if ( parent != NULL ) {
+               OmpData *parentData = (OmpData *) parent->getInternalData();
+               ensure(data,"parent OpenMP data is missing!");
 
-                data = parentData;
-              } else {
-                      data->icvs() = globalState->getICVs();
-                      data->setFinal(false);
-                    }
-                    data->setImplicit(false);
+               *data = *parentData;
+             } else {
+               data->icvs() = globalState->getICVs();
+               data->setFinal(false);
+             }
+             data->setImplicit(false);
           }
 
           virtual void wdStarted( WD &wd ) {};
-          virtual void wdFinished( WD &wd ) {};
+          virtual void wdFinished( WD &wd ) 
+          {
+             OmpData *data = (OmpData *) wd.getInternalData();
+             ensure(data,"OpenMP data is missing!");
 
-           virtual ThreadTeamData * getThreadTeamData()
-           {
-              return (ThreadTeamData *) NEW OmpThreadTeamData();
-           }
+             if ( data->isImplicit() ) {
+               sys.releaseWorker(myThread);
+	     }
+          };
+
+          virtual ThreadTeamData * getThreadTeamData()
+          {
+             return (ThreadTeamData *) NEW OmpThreadTeamData();
+          }
       };
    }
 }

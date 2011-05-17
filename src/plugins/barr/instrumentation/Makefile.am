@@ -23,10 +23,10 @@ include $(top_srcdir)/src/common.am
 if INSTRUMENTATION_VERSION
 instrumentation_LTLIBRARIES = \
         libnanox-barrier-centralized.la \
-        libnanox-barrier-posix.la \
-        libnanox-barrier-dissemination.la \
-        libnanox-barrier-tree.la \
 	$(END)
+#        libnanox-barrier-posix.la \
+#        libnanox-barrier-dissemination.la \
+#        libnanox-barrier-tree.la 
 
 nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags)
 
@@ -34,16 +34,16 @@ libnanox_barrier_centralized_la_CXXFLAGS=$(nanos_instr_cxxflags)
 libnanox_barrier_centralized_la_LDFLAGS=$(ld_plugin_flags)
 libnanox_barrier_centralized_la_SOURCES=$(centralized_sources)
 
-libnanox_barrier_posix_la_CXXFLAGS=$(nanos_instr_cxxflags)
-libnanox_barrier_posix_la_LDFLAGS=$(ld_plugin_flags)
-libnanox_barrier_posix_la_SOURCES=$(posix_sources)
+#libnanox_barrier_posix_la_CXXFLAGS=$(nanos_instr_cxxflags)
+#libnanox_barrier_posix_la_LDFLAGS=$(ld_plugin_flags)
+#libnanox_barrier_posix_la_SOURCES=$(posix_sources)
 
-libnanox_barrier_dissemination_la_CXXFLAGS=$(nanos_instr_cxxflags)
-libnanox_barrier_dissemination_la_LDFLAGS=$(ld_plugin_flags)
-libnanox_barrier_dissemination_la_SOURCES=$(dissemination_sources)
+#libnanox_barrier_dissemination_la_CXXFLAGS=$(nanos_instr_cxxflags)
+#libnanox_barrier_dissemination_la_LDFLAGS=$(ld_plugin_flags)
+#libnanox_barrier_dissemination_la_SOURCES=$(dissemination_sources)
 
-libnanox_barrier_tree_la_CXXFLAGS=$(nanos_instr_cxxflags)
-libnanox_barrier_tree_la_LDFLAGS=$(ld_plugin_flags)
-libnanox_barrier_tree_la_SOURCES=$(tree_sources)
+#libnanox_barrier_tree_la_CXXFLAGS=$(nanos_instr_cxxflags)
+#libnanox_barrier_tree_la_LDFLAGS=$(ld_plugin_flags)
+#libnanox_barrier_tree_la_SOURCES=$(tree_sources)
 endif
 
