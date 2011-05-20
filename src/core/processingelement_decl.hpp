@@ -37,13 +37,13 @@ namespace nanos
          ThreadList                           _threads;
 
       private:
-         /*! \brief ProcessinElement default constructor
+         /*! \brief ProcessingElement default constructor
           */
          ProcessingElement ();
-         /*! \brief ProcessinElement copy constructor (private)
+         /*! \brief ProcessingElement copy constructor (private)
           */
          ProcessingElement ( const ProcessingElement &pe );
-         /*! \brief ProcessinElement copy assignment operator (private)
+         /*! \brief ProcessingElement copy assignment operator (private)
           */
          const ProcessingElement & operator= ( const ProcessingElement &pe );
       protected:

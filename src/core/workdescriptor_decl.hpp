@@ -205,11 +205,7 @@ namespace nanos
                           _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : NULL ),
                           _numCopies( numCopies ), _copies( copies ), _copiesSize( 0 ), _paramsSize( 0 ), _executionTime( 0 ), _doSubmit(), _doWait(),
-                          _depsDomain(), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ) {
-
-            std::cout << "WD " << this->getId() << " has " << ndevices << " devices and _active device is "
-                  << _activeDevice << std::endl;
-         }
+                          _depsDomain(), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ) { }
 
          /*! \brief WorkDescriptor constructor - 2
           */
