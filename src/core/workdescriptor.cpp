@@ -116,7 +116,7 @@ void WorkDescriptor::submit( void )
    Scheduler::submit(*this);
 } 
 
-void WorkDescriptor::done ()
+void WorkDescriptor::finish ()
 {
    ProcessingElement *pe = myThread->runningOn();
    waitCompletionAndSignalers();
@@ -124,8 +124,10 @@ void WorkDescriptor::done ()
      pe->copyDataOut( *this );
 
    _executionTime = OS::getMonotonicTime() - _executionTime;
-   myThread->getTeam()->getSchedulePolicy().atBeforeExit( myThread, *this );
+}
 
+void WorkDescriptor::done ()
+{
    this->getParent()->workFinished( *this );
    WorkGroup::done();
 }

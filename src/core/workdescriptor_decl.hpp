@@ -398,6 +398,8 @@ namespace nanos
          // headers
          virtual void submit ( void );
 
+         virtual void finish ();
+
          virtual void done ();
 
          void clear ();

@@ -99,7 +99,7 @@ void Scheduler::submitAndWait ( WD &wd )
 
 void Scheduler::updateExitStats ( WD &wd )
 {
-   if ( wd.isSubmitted() ) 
+   if ( wd.isSubmitted() )
      sys.getSchedulerStats()._totalTasks--;
 }
 
@@ -368,6 +368,8 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    // reload thread after running WD
    thread = getMyThreadSafe();
 
+   wd->finish();
+
    if (schedule) {
         thread->setNextWD(thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*wd));
    }
@@ -505,6 +507,8 @@ void Scheduler::exit ( void )
 
    /* get next WorkDescriptor (if any) */
    WD *next =  thread->getNextWD();
+
+   oldwd->finish();
 
   /* if getNextWD() has returned a WD, we need to resetNextWD(). If no WD has
    * been returned call scheduler policy */
