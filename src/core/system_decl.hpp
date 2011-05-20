@@ -203,8 +203,7 @@ namespace nanos
 
          // team related methods
          BaseThread * getUnassignedWorker ( void );
-         ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL,
-                                   bool reuseCurrent=true,  TeamData *tdata = 0 );
+         ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuseCurrent=true );
 
          BaseThread * getWorker( unsigned int n );
 
@@ -246,7 +245,7 @@ namespace nanos
          SchedulerConf  & getSchedulerConf();
 
          void setPMInterface (PMInterface *_pm);
-         const PMInterface & getPMInterface ( void ) const;
+         PMInterface & getPMInterface ( void ) const;
          std::string getCachePolicy();
          CacheMap& getCacheMap();
 

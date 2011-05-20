@@ -37,10 +37,12 @@ libsmp_la_SOURCES=$(smp_sources) $(smp_ult_sources)
 
 libnanox_pe_smp_la_CXXFLAGS=$(nanos_perfo_cxxflags)
 libnanox_pe_smp_la_LDFLAGS=$(ld_plugin_flags)
+libnanox_pe_smp_la_LIBADD=$(common_libadd)
 libnanox_pe_smp_la_SOURCES=$(pe_smp_sources)
 
 libnanox_pe_smp_numa_la_CXXFLAGS=$(nanos_perfo_cxxflags) $(smp_numa_flags)
 libnanox_pe_smp_numa_la_LDFLAGS=$(ld_plugin_flags)
+libnanox_pe_smp_numa_la_LIBADD=$(common_libadd)
 libnanox_pe_smp_numa_la_SOURCES=$(pe_smp_sources)
 endif
 

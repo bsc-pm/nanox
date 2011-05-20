@@ -75,7 +75,7 @@ inline WorkDescriptor * WDDeque::pop_front ( BaseThread *thread )
 
 inline WorkDescriptor * WDDeque::pop_back ( BaseThread *thread )
 {
-  return popFrontWithConstraints<NoConstraints>(thread);
+  return popBackWithConstraints<NoConstraints>(thread);
 }
 
 inline bool WDDeque::removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next )

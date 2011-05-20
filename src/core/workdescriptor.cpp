@@ -55,6 +55,7 @@ void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
 
    if ( _tie ) tieTo(*myThread);
 
+   sys.getPMInterface().wdStarted( *this );
    setReady();
 }
 
@@ -128,6 +129,7 @@ void WorkDescriptor::finish ()
 
 void WorkDescriptor::done ()
 {
+   sys.getPMInterface().wdFinished( *this );
    this->getParent()->workFinished( *this );
    WorkGroup::done();
 }
