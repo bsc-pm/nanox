@@ -30,14 +30,6 @@ using namespace nanos;
 
 void WorkDescriptor::init ()
 {
-   // Get copies' size
-   if ( _numCopies > 0 ) {
-      for ( unsigned int i = 0; i < _numCopies; i++ ) {
-         _copiesSize += _copies[i].getSize();
-      }
-   }
-   _paramsSize = _copiesSize;
-
    ProcessingElement *pe = myThread->runningOn();
 
    /* Initializing instrumentation context */
@@ -141,8 +133,12 @@ void WorkDescriptor::done ()
 void WorkDescriptor::prepareCopies()
 {
    for (unsigned int i = 0; i < _numCopies; i++ ) {
+      _copiesSize += _copies[i].getSize();
+
       if ( _copies[i].isPrivate() )
          _copies[i].setAddress( ( (uint64_t)_copies[i].getAddress() - (unsigned long)_data ) );
    }
+
+   _paramsSize = _copiesSize;
 }
 
