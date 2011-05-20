@@ -109,6 +109,12 @@ namespace nanos
             return *this;
          }
 
+         /*! \brief Returns the device associated to this DeviceData
+          *
+          *  \return the Device pointer.
+          */
+         const Device * getDevice () const;
+
          /*! \brief Indicates if DeviceData is compatible with a given Device
           *
           *  \param[in] arch is the Device which we have to compare to.

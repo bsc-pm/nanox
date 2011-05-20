@@ -39,6 +39,8 @@
 using namespace nanos;
 
 /* DeviceData inlined functions */
+inline const Device * DeviceData::getDevice () const { return _architecture; }
+
 inline bool DeviceData::isCompatible ( const Device &arch ) { return _architecture == &arch; }
 
 /* WorkDescriptor inlined functions */
