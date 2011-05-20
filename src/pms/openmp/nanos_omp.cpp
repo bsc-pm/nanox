@@ -7,7 +7,7 @@
 using namespace nanos;
 using namespace nanos::OpenMP;
 
-nanos_err_t nanos_omp_set_implicit ( nanos_wd_t *uwd )
+nanos_err_t nanos_omp_set_implicit ( nanos_wd_t uwd )
 {
     WD *wd = (WD *) uwd;
 
