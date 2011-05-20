@@ -39,6 +39,7 @@ extern "C"
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
       return data->icvs().getNumThreads();
    }
+   int nanos_omp_get_max_threads ( void ) __attribute__ ((alias ("omp_get_max_threads")));
 
    void omp_set_num_threads ( int nthreads )
    {
