@@ -147,5 +147,30 @@ inline void System::threadReady()
    while (_initializedThreads.value() < _targetThreads) {}
 }
 
+inline void System::registerPlugin ( Plugin &plugin )
+{
+   _pluginManager.registerPlugin(plugin);
+}
+
+inline bool System::loadPlugin ( const char * name )
+{
+   return _pluginManager.load(name);
+}
+
+inline bool System::loadPlugin ( const std::string & name )
+{
+   return _pluginManager.load(name);
+}
+
+inline Plugin * System::loadAndGetPlugin ( const char *name )
+{
+   return _pluginManager.loadAndGetPlugin(name, false);
+}
+
+inline Plugin * System::loadAndGetPlugin ( const std::string & name )
+{
+   return _pluginManager.loadAndGetPlugin(name, false);
+}
+
 #endif
 

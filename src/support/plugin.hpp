@@ -42,14 +42,14 @@ inline bool PluginManager::isPlugin ( const std::string &name )
    return isPlugin( name.c_str() );
 }
 
-inline bool PluginManager::load ( const std::string &plugin_name, const bool init )
+inline bool PluginManager::load ( const std::string &plugin_name, const bool initPlugin )
 {
-   return load( plugin_name.c_str(), init );
+   return load( plugin_name.c_str(), initPlugin );
 }
 
-inline Plugin* PluginManager::loadAndGetPlugin ( const std::string &plugin_name, const bool init )
+inline Plugin* PluginManager::loadAndGetPlugin ( const std::string &plugin_name, const bool initPlugin )
 {
-   return loadAndGetPlugin( plugin_name.c_str(), init );
+   return loadAndGetPlugin( plugin_name.c_str(), initPlugin );
 }
 
 #endif

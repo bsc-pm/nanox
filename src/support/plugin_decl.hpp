@@ -21,8 +21,8 @@
 #define _NANOS_PLUGIN_DECL
 
 #include <string>
-#include <vector>
 #include "config_decl.hpp"
+#include "compatibility.hpp"
 
 namespace nanos
 {
@@ -57,21 +57,31 @@ namespace nanos
 
    class PluginManager
    {
+      public:
+         typedef TR1::unordered_map<std::string, Plugin *> PluginMap;
+
       private:
-         typedef std::vector<Plugin *>    PluginList;
-         static PluginList                _activePlugins;
+         PluginMap   _availablePlugins;
+         PluginMap   _activePlugins;
+
+         explicit PluginManager ( PluginManager & );
+         const PluginManager operator= ( const PluginManager & );
 
       public:
+         PluginManager() {}
+         ~PluginManager() {}
 
-         static void init();
+         void init();
 
-         static bool isPlugin ( const char *name );
-         static bool isPlugin ( const std::string &name );
+         bool isPlugin ( const char *name );
+         bool isPlugin ( const std::string &name );
 
-         static bool load ( const char *plugin_name, const bool init=true );
-         static bool load ( const std::string &plugin_name, const bool init=true );
-         static Plugin* loadAndGetPlugin ( const char *plugin_name, const bool init=true );
-         static Plugin* loadAndGetPlugin ( const std::string &plugin_name, const bool init=true );
+         void registerPlugin ( Plugin &plugin );
+
+         bool load ( const char *plugin_name, const bool init=true );
+         bool load ( const std::string &plugin_name, const bool init=true );
+         Plugin* loadAndGetPlugin ( const char *plugin_name, const bool init=true );
+         Plugin* loadAndGetPlugin ( const std::string &plugin_name, const bool init=true );
 
    };
 

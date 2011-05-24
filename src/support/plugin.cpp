@@ -24,12 +24,8 @@
 
 using namespace nanos;
 
-PluginManager::PluginList PluginManager::_activePlugins;
-
 void PluginManager::init()
 {
-   Config config;
-   config.init();
 }
 
 bool PluginManager::isPlugin ( const char *name )
@@ -51,39 +47,56 @@ bool PluginManager::isPlugin ( const char *name )
    return plugin != NULL;
 }
 
-bool PluginManager::load ( const char *name, const bool init )
+void PluginManager::registerPlugin ( Plugin & plugin )
 {
-   return loadAndGetPlugin ( name, init ) != NULL;
+   _availablePlugins[plugin.getName().c_str()] = &plugin;
 }
 
-Plugin * PluginManager::loadAndGetPlugin( const char *name, const bool init )
+bool PluginManager::load ( const char *name, const bool initPlugin )
+{
+   return loadAndGetPlugin ( name, initPlugin ) != NULL;
+}
+
+Plugin * PluginManager::loadAndGetPlugin( const char *name, const bool initPlugin )
 {
    std::string dlname;
    void * handler;
 
-   dlname = "libnanox-";
-   dlname += name;
-   handler = OS::loadDL( "",dlname );
+   Plugin * plugin = NULL;
+   PluginMap::iterator it;
+   
+   if ( (it = _availablePlugins.find(name)) != _availablePlugins.end() )
+   {
+     plugin = it->second;
+     
+   } else {
 
-   if ( !handler ) {
-      warning0 ( "plugin error=" << OS::dlError( handler ) );
-      return NULL;
+     dlname = "libnanox-";
+     dlname += name;
+     handler = OS::loadDL( "",dlname );
+
+     if ( !handler ) {
+       warning0 ( "plugin error=" << OS::dlError( handler ) );
+       return NULL;
+     }
+
+     plugin = ( Plugin * ) OS::dlFindSymbol( handler, "NanosXPlugin" );
+
+     if ( !plugin ) {
+       warning0 ( "plugin error=" << OS::dlError( handler ) );
+       return NULL;
+     }
+      
    }
 
-   Plugin *plugin = ( Plugin * ) OS::dlFindSymbol( handler, "NanosXPlugin" );
-
-   if ( !plugin ) {
-      warning0 ( "plugin error=" << OS::dlError( handler ) );
-      return NULL;
-   }
-
- 
    Config config;
    plugin->config(config);
    config.init();
-   
-   if ( init )
+
+   if ( initPlugin )
       plugin->init();
+
+   _activePlugins[plugin->getName().c_str()] = plugin;
 
    return plugin;
 }

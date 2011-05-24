@@ -38,7 +38,7 @@ nanos_slicer_t nanos_find_slicer ( const char * label )
       slicer = sys.getSlicer ( std::string(label) );
       if ( slicer == NULL ) {
          std::string plugin = "slicer-" + std::string(label);
-         if ( !PluginManager::load( plugin )) fatal0( "Could not load " + std::string(label) + "slicer" );
+         if ( !sys.loadPlugin( plugin )) fatal0( "Could not load " + std::string(label) + "slicer" );
          slicer = sys.getSlicer ( std::string(label) );
       }
 
