@@ -47,9 +47,9 @@ bool PluginManager::isPlugin ( const char *name )
    return plugin != NULL;
 }
 
-void PluginManager::registerPlugin ( Plugin & plugin )
+void PluginManager::registerPlugin ( const char *name, Plugin & plugin )
 {
-   _availablePlugins[plugin.getName().c_str()] = &plugin;
+   _availablePlugins[name] = &plugin;
 }
 
 bool PluginManager::load ( const char *name, const bool initPlugin )
@@ -96,7 +96,7 @@ Plugin * PluginManager::loadAndGetPlugin( const char *name, const bool initPlugi
    if ( initPlugin )
       plugin->init();
 
-   _activePlugins[plugin->getName().c_str()] = plugin;
+   _activePlugins[plugin->getName()] = plugin;
 
    return plugin;
 }

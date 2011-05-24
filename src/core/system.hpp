@@ -147,9 +147,9 @@ inline void System::threadReady()
    while (_initializedThreads.value() < _targetThreads) {}
 }
 
-inline void System::registerPlugin ( Plugin &plugin )
+inline void System::registerPlugin ( const char *name, Plugin &plugin )
 {
-   _pluginManager.registerPlugin(plugin);
+   _pluginManager.registerPlugin(name, plugin);
 }
 
 inline bool System::loadPlugin ( const char * name )

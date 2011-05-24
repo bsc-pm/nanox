@@ -33,7 +33,7 @@
 #include "directory_decl.hpp"
 #include "pminterface_decl.hpp"
 #include "cache_map_decl.hpp"
-#include "plugin.hpp"
+#include "plugin_decl.hpp"
 #include "barrier_decl.hpp"
 
 
@@ -254,7 +254,7 @@ namespace nanos
 
          void threadReady ();
 
-         void registerPlugin ( Plugin &plugin );
+         void registerPlugin ( const char *name, Plugin &plugin );
          bool loadPlugin ( const char *name );
          bool loadPlugin ( const std::string &name );
          Plugin * loadAndGetPlugin ( const char *name );

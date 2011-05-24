@@ -31,7 +31,7 @@ namespace nanos
    {
 
       private:
-         std::string    _name;
+         const char *  	_name;
          int            _version;
          void  *        _handler;
 
@@ -39,9 +39,7 @@ namespace nanos
          const Plugin operator= ( const Plugin & );
          
       public:
-         Plugin( std::string &name, int version ) : _name( name ),_version( version ) {}
-
-         Plugin( const char *name, int version ) : _name( name ),_version( version ) {}
+         Plugin( const char *name, int version ) : _name( name ), _version( version ) {}
 
          virtual ~Plugin() {}
 
@@ -50,7 +48,7 @@ namespace nanos
 
          virtual void fini() {}
 
-         const std::string & getName() const;
+         const char * getName() const;
 
          int getVersion() const;
    };
@@ -76,7 +74,7 @@ namespace nanos
          bool isPlugin ( const char *name );
          bool isPlugin ( const std::string &name );
 
-         void registerPlugin ( Plugin &plugin );
+         void registerPlugin ( const char *name, Plugin &plugin );
 
          bool load ( const char *plugin_name, const bool init=true );
          bool load ( const std::string &plugin_name, const bool init=true );
