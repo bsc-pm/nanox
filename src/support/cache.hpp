@@ -30,6 +30,7 @@
 #include "atomic.hpp"
 #include "processingelement_fwd.hpp"
 #include "copydescriptor.hpp"
+#include "clusternode.hpp"
 
 using namespace nanos;
 
@@ -38,15 +39,69 @@ inline unsigned int Cache::getId() const
   return _id;
 }
 
+inline bool CachePolicy::checkBlockingCacheAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
+{
+	bool result = false;
+	CacheEntry *ce = _cache.find( tag );
+	DirectoryEntry *de = dir.getEntry( tag );
+	if ( ce != NULL)
+	{
+		if ( ce->isFlushing() || ce->isCopying() || ce->getAddress() == NULL )
+			result = true;
+		else if ( de->getOwner() != NULL ) 
+		{
+			CacheEntry *oce = de->getOwner()->find( tag );
+			if ( oce != NULL )
+			{
+				if (oce->isFlushing() || oce->isCopying() || oce->getAddress() == NULL) 
+					result = true;
+			}
+		}
+	}
+	else if ( de->getOwner() != NULL ) 
+	{
+		CacheEntry *oce = de->getOwner()->find( tag );
+		if ( oce != NULL )
+		{
+			if (oce->isFlushing() || oce->isCopying() || oce->getAddress() == NULL) 
+				result = true;
+		}
+	}
+	return result;
+}
+
+//#define NLCLUSTER /* I think there were concurrency problems when running on a cluster of 1 GPU per node, this avoided some problems */
 inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
 {
    bool didCopyIn = false;
+#ifdef NLCLUSTER
+   if (sys.getNetwork()->getNodeNum() == 0)
+   { 
+            if ( myThread->getId() == 1 ) 
+            {
+//		   std::cerr << "t:" << myThread->getId() <<"checking tag " << (void *) tag << " against "<< (void *) sys.getNetwork()->_nodeRCAaddr.value() << std::endl;
+		   while ( sys.getNetwork()->_nodeRCAaddr.value() ==  tag ) myThread->idle();
+		    sys.getNetwork()->_nodeRCAaddrOther.cswap(0, tag ); 
+            }
+            else if ( myThread->getId() > 2 ) 
+            {
+//		   std::cerr << "t:" << myThread->getId() <<"checking tag " << (void *) tag << " against "<< (void *) sys.getNetwork()->_nodeRCAaddrOther.value() << std::endl;
+		   while ( sys.getNetwork()->_nodeRCAaddrOther.value() ==  tag ) myThread->idle();
+		    sys.getNetwork()->_nodeRCAaddr.cswap(0, tag ); 
+            }
+           else {  std::cerr << "t:" << myThread->getId() <<" unhandle thread " << std::endl; }
+            
+   }
+#endif
+   //oldcache DirectoryEntry *de = dir.getEntry( tag );
    CacheEntry *ce;
+   //if ( sys.getNetwork()->getNodeNum() == 1  ) std::cerr << "n:" << sys.getNetwork()->getNodeNum() << " " << __FUNCTION__ << " tag " << (void *) tag << " input: " << input << " output: "<< output << std::endl;
+//newcache
    ce = _cache.getEntry( tag );
    unsigned int version=0;
    if ( ce != NULL ) version = ce->getVersion()+1;
    DirectoryEntry *de = dir.getEntry( tag, version );
-
+//newcache
    if ( de == NULL ) { // Memory access not registered in the directory
       bool inserted;
       DirectoryEntry d = DirectoryEntry( tag, 0, ( output ? &_cache : NULL ), dir.getCacheMapSize() );
@@ -55,7 +110,9 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
          if ( output ) {
             de->setOwner(&_cache);
             de->setInvalidated(false);
+//newcache
             ce->setFlushTo( &dir );
+//newcache
          }
       }
 
@@ -76,68 +133,189 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
    } else {
       // DirectoryEntry exists
       bool inserted = false;
+//newcache
+//      ce = _cache.getEntry( tag );
+//newcache
       if ( ce == NULL ) {
+
          // Create a new CacheEntry
          CacheEntry c = CacheEntry( NULL, size, tag, 0, output, input );
          ce = &(_cache.insert( tag, c, inserted ));
          if (inserted) { // allocate it
             
-#if 0 /* jbueno*/
+        //if ( _cache.getPE()->isGPU() || owner->getPE()->isGPU())
+//#if 1 /* jbueno: no SlaveToSlave */
+//            Cache *owner = de->getOwner();
+//            if ( owner != NULL && !(!input && output) ) {
+//               owner->invalidate( dir, tag, size, de );
+//               owner->syncTransfer(tag);
+//               while( de->getOwner() != NULL ) myThread->idle();
+//            }
+//            ce->setAddress( _cache.allocate( dir, size ) );
+//            ce->setAllocSize( size );
+//            if (input) {
+//               while ( de->getOwner() != NULL ) myThread->idle();
+//               CopyDescriptor cd = CopyDescriptor(tag);
+//               if ( _cache.copyDataToCache( cd, size ) ) {
+//                  ce->setCopying(false);
+//               }
+//            }
+//            if (output) {
+//               de->setOwner( &_cache );
+//               de->setInvalidated( false );
+//               de->increaseVersion();
+//            }
+//            ce->setVersion( de->getVersion() );
+//#else /* transfer SlaveToSlave */
+//            Cache *owner = de->getOwner();
+//
+//            // same as above,
+//            ce->setAddress( _cache.allocate( dir, size ) );
+//            ce->setAllocSize( size );
+//
+//            if ( owner != NULL && !(!input && output) ) {
+//               CopyDescriptor cd = CopyDescriptor(tag);
+//               owner->invalidateAndTransfer( dir, tag, size, de, _cache, ce->getAddress()  );
+//                  ce->setCopying(false);
+//               owner->syncTransfer(tag);
+//               while( de->getOwner() != NULL ) myThread->idle();
+//               
+//            }
+//            else if ( input )
+//            {
+//               while ( de->getOwner() != NULL ) myThread->idle();
+//               CopyDescriptor cd = CopyDescriptor(tag);
+//               if ( _cache.copyDataToCache( cd, size ) ) {
+//                  ce->setCopying(false);
+//               }
+//            }
+//
+//            if (output) {
+//               de->setOwner( &_cache );
+//               de->setInvalidated( false );
+//               de->increaseVersion();
+//            }
+//            ce->setVersion( de->getVersion() );
+//#endif
+
             Cache *owner = de->getOwner();
-            if ( owner != NULL && !(!input && output) ) {
-               owner->invalidate( dir, tag, size, de );
-               owner->syncTransfer(tag);
-               while( de->getOwner() != NULL ) myThread->idle();
-            }
-            ce->setAddress( _cache.allocate( dir, size ) );
-            ce->setAllocSize( size );
-            if (input) {
-               while ( de->getOwner() != NULL ) myThread->idle();
-               CopyDescriptor cd = CopyDescriptor(tag);
-               if ( _cache.copyDataToCache( cd, size ) ) {
-                  ce->setCopying(false);
+
+            if ( _cache.getPE()->isGPU()) 
+            { //regular code
+               if ( owner != NULL && !(!input && output) ) {
+                  owner->invalidate( dir, tag, size, de );
+                  owner->syncTransfer(tag);
+                  while( de->getOwner() != NULL ) myThread->idle();
                }
+               ce->setAddress( _cache.allocate( dir, size ) );
+               ce->setAllocSize( size );
+               if (input) {
+                  while ( de->getOwner() != NULL ) myThread->idle();
+                  CopyDescriptor cd = CopyDescriptor(tag);
+                  if ( _cache.copyDataToCache( cd, size ) ) {
+                     ce->setCopying(false);
+                  }
+               }
+               if (output) {
+                  de->setOwner( &_cache );
+                  de->setInvalidated( false );
+                  de->increaseVersion();
+                  ce->setFlushTo( &dir );
+               }
+               ce->setVersion( de->getVersion() );
             }
-            if (output) {
-               de->setOwner( &_cache );
-               de->setInvalidated( false );
-               de->increaseVersion();
-               ce->setFlushTo( &dir );
-            }
-            ce->setVersion( de->getVersion() );
-#else
-            Cache *owner = de->getOwner();
-
-   //std::cerr<<"registerCacheAccess already here in other cache "<<(void*)tag<<" is input "<<input<<" is output "<<output<<" owner "<<owner<<" nodeAddr "<<(void*)((owner != NULL)?(void*)(owner->getEntry(tag)->getAddress()):(void*)0)<<std::endl;
-            // same as above,
-            ce->setAddress( _cache.allocate( dir, size ) );
-            ce->setAllocSize( size );
-
-            if ( owner != NULL && !(!input && output) ) {
-               CopyDescriptor cd = CopyDescriptor(tag);
-               owner->invalidateAndTransfer( dir, tag, size, de, _cache, ce->getAddress()  );
-                  ce->setCopying(false);
-               owner->syncTransfer(tag);
-               while( de->getOwner() != NULL ) myThread->idle();
-               
-            }
-            else if ( input )
+            else 
             {
-               while ( de->getOwner() != NULL ) myThread->idle();
-               CopyDescriptor cd = CopyDescriptor(tag);
-               if ( _cache.copyDataToCache( cd, size ) ) {
-                  ce->setCopying(false);
+               if ( owner != NULL) 
+               {
+                  if ( owner->getPE()->isGPU()) 
+                  { //regular code
+                     if ( owner != NULL && !(!input && output) ) {
+                        owner->invalidate( dir, tag, size, de );
+                        owner->syncTransfer(tag);
+                        while( de->getOwner() != NULL ) myThread->idle();
+                     }
+                     ce->setAddress( _cache.allocate( dir, size ) );
+                     ce->setAllocSize( size );
+                     if (input) {
+                        while ( de->getOwner() != NULL ) myThread->idle();
+                        CopyDescriptor cd = CopyDescriptor(tag);
+                        if ( _cache.copyDataToCache( cd, size ) ) {
+                           ce->setCopying(false);
+                        }
+                     }
+                     if (output) {
+                        de->setOwner( &_cache );
+                        de->setInvalidated( false );
+                        de->increaseVersion();
+                        ce->setFlushTo( &dir );
+                     }
+                     ce->setVersion( de->getVersion() );
+                  }
+                  else
+                  { // node2node
+                     ce->setAddress( _cache.allocate( dir, size ) );
+                     ce->setAllocSize( size );
+
+                     if ( owner != NULL && input && !output ) {
+                        CopyDescriptor cd = CopyDescriptor(tag);
+                        owner->nNoinvalidateAndTransfer( dir, tag, size, de, _cache, ce->getAddress()  );
+                        ce->setCopying(false);
+                        owner->syncTransfer(tag);
+                     }
+                     else if ( owner != NULL && input && output ) 
+                     {
+                        CopyDescriptor cd = CopyDescriptor(tag);
+                        owner->invalidateAndTransfer( dir, tag, size, de, _cache, ce->getAddress()  );
+                        ce->setCopying(false);
+                        owner->syncTransfer(tag);
+                        while( de->getOwner() != NULL ) myThread->idle();
+                     }
+                     else if ( input )
+                     {
+                        while ( de->getOwner() != NULL ) myThread->idle();
+                        CopyDescriptor cd = CopyDescriptor(tag);
+                        if ( _cache.copyDataToCache( cd, size ) ) {
+                           ce->setCopying(false);
+                        }
+                     }
+
+                     if (output) {
+                        de->setOwner( &_cache );
+                        de->setInvalidated( false );
+                        de->increaseVersion();
+                        ce->setFlushTo( &dir );
+                     }
+                     ce->setVersion( de->getVersion() );
+                  }
+
+               }
+               else
+               {
+                  if ( owner != NULL && !(!input && output) ) {
+                     owner->invalidate( dir, tag, size, de );
+                     owner->syncTransfer(tag);
+                     while( de->getOwner() != NULL ) myThread->idle();
+                  }
+                  ce->setAddress( _cache.allocate( dir, size ) );
+                  ce->setAllocSize( size );
+                  if (input) {
+                     while ( de->getOwner() != NULL ) myThread->idle();
+                     CopyDescriptor cd = CopyDescriptor(tag);
+                     if ( _cache.copyDataToCache( cd, size ) ) {
+                        ce->setCopying(false);
+                     }
+                  }
+                  if (output) {
+                     de->setOwner( &_cache );
+                     de->setInvalidated( false );
+                     de->increaseVersion();
+                     ce->setFlushTo( &dir );
+                  }
+                  ce->setVersion( de->getVersion() );
                }
             }
 
-            if (output) {
-               de->setOwner( &_cache );
-               de->setInvalidated( false );
-               de->increaseVersion();
-            }
-            ce->setVersion( de->getVersion() );
-   //std::cerr<<"registerCacheAccess doone "<<std::endl;
-#endif
          } else {        // wait for address
             // has to be input, otherwise the program is incorrect so just wait the address to exist
             while ( ce->getAddress() == NULL ) {}
@@ -154,7 +332,6 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                   // First approach, always copy back if size didn't match
                   if ( ce->isDirty() ) {
                      // invalidate in its own cache
-            std::cerr<<"inv 3"<<std::endl;
                      _cache.invalidate( dir, tag, ce->getSize(), de );
                      // synchronize invalidation
                      _cache.syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
@@ -171,7 +348,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                         Cache *owner = de->getOwner();
                         ensure( &_cache != owner, "Trying to invalidate myself" );
                         /* jbueno */
-#if 0
+#if 1 /* No SlaveToSlave */
                         if ( owner != NULL ) {
                            // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
                            owner->invalidate( dir, tag, size, de );
@@ -184,11 +361,11 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                         if ( _cache.copyDataToCache( cd, size ) ) {
                            ce->setCopying(false);
                         }
-#else
+#else /* SlaveToSlave */
                         if ( owner != NULL ) {
                            // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
                            CopyDescriptor cd = CopyDescriptor(tag);
-                           owner->invalidateAndTransfer( dir, tag, size, de, _cache, _cache.getEntry(tag)->getAddress() );
+                           owner->invalidateAndTransfer( dir, tag, size, de, _cache, _cache.find(tag)->getAddress() );
                            owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
                   ce->setCopying(false);
                            while( de->getOwner() != NULL ) myThread->idle();
@@ -202,11 +379,11 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                            }
                         }
 #endif
-                     }
                   }
                   ce->setResizing(false);
                }
             }
+         }
          }
       } else {
          // Cache entry already exists in the cache
@@ -222,7 +399,6 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                // First approach, always copy back if size didn't match
                if ( ce->isDirty() ) {
                   // invalidate in its own cache
-            std::cerr<<"inv 2"<<std::endl;
                   _cache.invalidate( dir, tag, ce->getSize(), de );
                   // synchronize invalidation
                   _cache.syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
@@ -240,7 +416,6 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                      ensure( &_cache != owner, "Trying to invalidate myself" );
                      if ( owner != NULL ) {
                         // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
-            std::cerr<<"inv 1"<<std::endl;
                         owner->invalidate( dir, tag, size, de );
                         owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
                         while( de->getOwner() != NULL ) myThread->idle();
@@ -261,10 +436,13 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
             // Version doesn't match the one in the directory
             if ( input && !didCopyIn ) {
                if ( ce->trySetToCopying() ) {
-                  ce->setVersion( de->getVersion() );
                   Cache *owner = de->getOwner();
+                  //std::cerr << ":n " << sys.getNetwork()->getNodeNum() << " Ok, tag is " << (void *) tag << " didCopyIn? " << didCopyIn << " inpuT? " << input << " output? " <<output << " owner is self? " << (owner == &_cache) << " dir version " << de->getVersion() << " cache version " << ce->getVersion() << std::endl;
+                  ce->setVersion( de->getVersion() );
                   ensure( &_cache != owner, "Trying to invalidate myself" );
+/* jbueno */
 #if 0
+                  //std::cerr << "n:" << sys.getNetwork()->getNodeNum() << " Versions differ, invalidating owner, tag is " << (void *) tag << " " << std::endl;  
                   if ( owner != NULL ) {
                      // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
                      owner->invalidate( dir, tag, size, de );
@@ -273,33 +451,96 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                   }
 
                   // Wait while it's resizing
-                  while ( ce-> isResizing() ) {}
+                  while ( ce-> isResizing() );
 
+
+                  //std::cerr << "n:" << sys.getNetwork()->getNodeNum() << " Copying new data to cache, tag is " << (void *) tag << " data is " << *((float *) tag) << std::endl;  
                   // Copy in
                   CopyDescriptor cd = CopyDescriptor(tag);
                   if ( _cache.copyDataToCache( cd, size ) ) {
                      ce->setCopying(false);
                   }
 #else
-                  if ( owner != NULL ) {
-                     // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
-                     CopyDescriptor cd = CopyDescriptor(tag);
-                     owner->invalidateAndTransfer( dir, tag, size, de, _cache, _cache.getEntry(tag)->getAddress() );
-                     owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
-                  ce->setCopying(false);
-                     while( de->getOwner() != NULL ) myThread->idle();
-                     //while ( ce-> isResizing() );
-                  }
-                  else
+                  if ( _cache.getPE()->isGPU() ) 
                   {
+                     if ( owner != NULL ) {
+                        // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
+                        owner->invalidate( dir, tag, size, de );
+                        owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
+                        while( de->getOwner() != NULL ) myThread->idle();
+                     }
 
                      // Wait while it's resizing
-                     while ( ce-> isResizing() );
+                     while ( ce-> isResizing() ) {}
 
                      // Copy in
                      CopyDescriptor cd = CopyDescriptor(tag);
                      if ( _cache.copyDataToCache( cd, size ) ) {
                         ce->setCopying(false);
+                     }
+                  }
+                  else
+                  {
+                     if ( owner != NULL )
+                     {
+                        if ( owner->getPE()->isGPU() )
+                        {
+                           if ( owner != NULL ) {
+                              owner->invalidate( dir, tag, size, de );
+                              owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
+                              while( de->getOwner() != NULL ) myThread->idle();
+                           }
+
+                           // Wait while it's resizing
+                           while ( ce-> isResizing() ) {}
+
+                           // Copy in
+                           CopyDescriptor cd = CopyDescriptor(tag);
+                           if ( _cache.copyDataToCache( cd, size ) ) {
+                              ce->setCopying(false);
+                           }
+                        } 
+                        else
+                        {
+                           if ( owner != NULL ) {
+                              // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
+                              CopyDescriptor cd = CopyDescriptor(tag);
+                              owner->invalidateAndTransfer( dir, tag, size, de, _cache, _cache.find(tag)->getAddress() );
+                              owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
+                              ce->setCopying(false);
+                              while( de->getOwner() != NULL ) myThread->idle();
+                              //while ( ce-> isResizing() );
+                           }
+                           else
+                           {
+
+                              // Wait while it's resizing
+                              while ( ce-> isResizing() ) {}
+
+                              // Copy in
+                              CopyDescriptor cd = CopyDescriptor(tag);
+                              if ( _cache.copyDataToCache( cd, size ) ) {
+                                 ce->setCopying(false);
+                              }
+                           }
+                        } 
+                     }
+                     else
+                     {
+                        //if ( owner != NULL ) {
+                        //   owner->invalidate( dir, tag, size, de );
+                        //   owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
+                        //   while( de->getOwner() != NULL ) myThread->idle();
+                        //}
+
+                        // Wait while it's resizing
+                        while ( ce-> isResizing() ) {}
+
+                        // Copy in
+                        CopyDescriptor cd = CopyDescriptor(tag);
+                        if ( _cache.copyDataToCache( cd, size ) ) {
+                           ce->setCopying(false);
+                        }
                      }
                   }
 #endif
@@ -319,8 +560,21 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
          }
       }
    }
-
+//if (sys.getNetwork()->getNodeNum() == 0) std::cerr << "n:" << (unsigned int ) sys.getNetwork()->getNodeNum() << " end of " << __FUNCTION__ << " thd " << (unsigned int ) myThread->getId() <<std::endl;
    de->addAccess( _cache.getId() );
+#ifdef NLCLUSTER
+   if (sys.getNetwork()->getNodeNum() == 0){
+            if ( myThread->getId() == 1 ) 
+            {
+		    sys.getNetwork()->_nodeRCAaddrOther.cswap( tag, 0 ); 
+            }
+            else if ( myThread->getId() > 2 ) 
+            {
+		    sys.getNetwork()->_nodeRCAaddr.cswap( tag, 0 ); 
+            }
+           else {  std::cerr << "t:" << myThread->getId() <<" unhandle thread " << std::endl; }
+   }
+#endif
 }
 
 inline void CachePolicy::registerPrivateAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
@@ -368,6 +622,7 @@ inline void WriteThroughPolicy::unregisterCacheAccess( Directory& dir, uint64_t 
          de->setOwner( NULL );
       } else {
          ce->setFlushing( true );
+   //newcache      ce->setFlushingTo( &dir );
          ce->setDirty( false );
       }
    }
@@ -380,9 +635,11 @@ inline void WriteThroughPolicy::unregisterCacheAccess( Directory& dir, uint64_t 
 
 inline void WriteBackPolicy::unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output )
 {
+   //std::cerr<<"n:" << sys.getNetwork()->getNodeNum() << " unregisterCacheAccess( " << (void *)tag << " output " << output << " ) " << std::endl;
    // There's two reference deleting calls because getEntry places one reference
    _cache.deleteReference( tag );
    _cache.deleteReference( tag );
+   //std::cerr<<"n:" << sys.getNetwork()->getNodeNum() << " unregisterCacheAccess( " << (void *)tag << " output " << output << " ) " << std::endl;
 }
 
 inline Cache::Cache() : _id( sys.getCacheMap().registerCache() ) {}
@@ -423,10 +680,12 @@ inline void DeviceCache<_T,_Policy>::freeSpaceToFit( Directory &dir, size_t size
    _cache.listUnreferencedKeys( kl );
    CacheHash::KeyList::iterator it;
    for ( it = kl.begin(); it != kl.end(); it++ ) {
+      // Copy the entry because once erased it can be recycled
       CacheEntry &ce = *( _cache.find( it->second ) );
       if ( ce.isDirty() ) {
          DirectoryEntry *de = dir.getEntry( ce.getTag() );
          if ( ce.trySetToFlushing() ) {
+      //newcache      ce.setFlushingTo( &dir );
             if ( de->getOwner() != this ) {
                   // someone flushed it between setting to invalidated and setting to flushing, do nothing
                   ce.setFlushing(false);
@@ -577,6 +836,12 @@ inline void DeviceCache<_T,_Policy>::deleteReference( uint64_t tag )
 }
 
 template <class _T, class _Policy>
+inline bool DeviceCache<_T,_Policy>::checkBlockingCacheAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
+{
+   return _policy.checkBlockingCacheAccess( dir, tag, size, input, output );
+}
+
+template <class _T, class _Policy>
 inline void DeviceCache<_T,_Policy>::registerCacheAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
 {
    _policy.registerCacheAccess( dir, tag, size, input, output );
@@ -615,8 +880,10 @@ inline void DeviceCache<_T,_Policy>::synchronizeInternal( SyncData &sd, CopyDesc
    ensure( ce != NULL, "Cache has been corrupted" );
    if ( ce->isFlushing() ) {
       ce->setFlushing(false);
+//newcache      Directory* dir = ce->getFlushingTo();
       Directory* dir = ce->getFlushTo();
       ensure( dir != NULL, "CopyBack sync lost its directory");
+      //newcache ce->setFlushingTo(NULL);
       ce->setFlushTo(NULL);
       DirectoryEntry *de = dir->getEntry( cd.getTag() );
       ensure ( !ce->isCopying(), "User program is incorrect" );
@@ -675,6 +942,23 @@ inline void DeviceCache<_T,_Policy>::waitInputs( std::list<uint64_t> &tags )
 }
 
 template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::discard( Directory &dir, uint64_t tag, DirectoryEntry *de )
+{
+   CacheEntry *ce = _cache.find( tag );
+   if ( de->trySetInvalidated() ) {
+      if ( ce->trySetToFlushing() ) {
+         if ( de->getOwner() != this ) {
+               // someone flushed it between setting to invalidated and setting to flushing, do nothing
+               ce->setFlushing(false);
+         } else {
+               ce->setFlushing(false);
+               de->setOwner(NULL);
+         }
+      }
+   }
+} 
+
+template <class _T, class _Policy>
 inline void DeviceCache<_T,_Policy>::invalidate( Directory &dir, uint64_t tag, DirectoryEntry *de )
 {
    CacheEntry *ce = _cache.find( tag );
@@ -715,6 +999,24 @@ inline void DeviceCache<_T,_Policy>::invalidate( Directory &dir, uint64_t tag, s
 }
 
 template <class _T, class _Policy>
+inline void DeviceCache<_T,_Policy>::nNoinvalidateAndTransfer( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de, Cache &dest, void *addrDest )
+{
+   CacheEntry *ce = _cache.find( tag );
+   if ( ce->trySetToFlushing() ) {
+	   if ( de->getOwner() != this ) {
+		   // someone flushed it between setting to invalidated and setting to flushing, do nothing
+		   ce->setFlushing(false);
+	   } else {
+		   CopyDescriptor cd = CopyDescriptor(tag, de->getVersion());
+		   if ( copyToCacheFromCache( ce->getAddress(), size, dest, addrDest ) ) {
+			   ce->setFlushing(false);
+			   ce->setCopying(false);
+		   }
+	   }
+   }
+}
+
+template <class _T, class _Policy>
 inline void DeviceCache<_T,_Policy>::invalidateAndTransfer( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de, Cache &dest, void *addrDest )
 {
    CacheEntry *ce = _cache.find( tag );
@@ -751,6 +1053,12 @@ template <class _T, class _Policy>
 int DeviceCache<_T,_Policy>::getReferences( unsigned int tag )
 {
    return _cache.getReferenceCount( tag );
+}
+
+template <class _T, class _Policy>
+ProcessingElement * DeviceCache<_T,_Policy>::getPE()
+{
+   return _pe;
 }
 
 #endif

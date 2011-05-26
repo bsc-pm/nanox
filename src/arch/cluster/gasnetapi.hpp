@@ -24,6 +24,7 @@
 #include "network.hpp"
 #include "networkapi.hpp"
 #include "simpleallocator.hpp"
+#include "directory.hpp"
 #include <map>
 
 namespace nanos {
@@ -43,16 +44,19 @@ namespace ext {
          void finalize ();
          void poll ();
          void sendExitMsg ( unsigned int dest );
-         void sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, size_t argSize, char * arg );
-         void sendWorkDoneMsg ( unsigned int dest, unsigned int numPe );
+         void sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, size_t argSize, char * arg, void ( *xlate ) ( void *, void * ), int arch, void *wd );
+         void sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr, int peId);
          void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size );
          void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, size_t size );
          void malloc ( unsigned int remoteNode, size_t size, unsigned int id );
+         void memFree ( unsigned int remoteNode, void *addr );
+         void memRealloc ( unsigned int remoteNode, void *oldAddr, size_t oldSize, void *newAddr, size_t newSize );
          void nodeBarrier( void );
          void getNotify( unsigned int node, uint64_t remoteAddr );
          
          void sendMyHostName( unsigned int dest );
 void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, size_t len );
+        void setMasterDirectory(Directory *dir);
    };
 }
 }

@@ -165,6 +165,9 @@ with_udp_conduit="no"
 with_smp_conduit="no"
 with_ibv_conduit="no"
 if test x$cluster_enabled = xyes; then
+
+    m4_include(lx_find_mpi.m4)
+
     CFLAGS="$CFLAGS -DCLUSTER_DEV"
     CXXFLAGS="$CXXFLAGS -DCLUSTER_DEV"
     ARCHITECTURES="$ARCHITECTURES cluster"
@@ -178,21 +181,18 @@ if test x$cluster_enabled = xyes; then
     	GASNET_DIR=/opt/gasnet
           ])
 
-    AC_ARG_WITH([mpi],
-          AS_HELP_STRING([--with-mpi=dir], [Directory of MPI installation]),
-          [
-    	MPI_DIR="${withval}"
-          ],
-          [
-    	MPI_DIR=/opt/mpi
-          ])
-
     AC_SUBST([GASNET_DIR])
-    AC_SUBST([MPI_DIR])
+    AC_SUBST([MPI_CLDFLAGS])
     CONDUITS=`ls -d $GASNET_DIR/include/*-conduit | sed -e "s#$GASNET_DIR/include/##" | cut -d - -f 1`
     for this_conduit in $CONDUITS ; do
         if test x$this_conduit = xmpi ; then
             with_mpi_conduit="yes"
+            #AC_LANG_PUSH([C++])
+            export MP_CXX=gcc
+            LX_FIND_MPI()
+            #AC_LANG_POP([C++])
+            #echo have_C_mpi is $have_C_mpi : MPICC is $MPICC / MPI_CFLAGS is $MPI_CFLAGS / MPI_CLDFLAGS is $MPI_CLDFLAGS
+            #echo have_CXX_mpi is $have_CXX_mpi : MPICXX is $MPICXX / MPI_CXXFLAGS is $MPI_CXXFLAGS / MPI_CXXLDFLAGS is $MPI_CXXLDFLAGS
         fi
 
         if test x$this_conduit = xudp ; then
@@ -597,5 +597,8 @@ echo "Host arch:" $SMP_ARCH
 echo "Configured architectures:" $ARCHITECTURES
 if test x$cluster_enabled = xyes ; then
 echo "With cluster/gasnet conduits:" $CONDUITS
+if test x$have_C_mpi = xyes ; then
+echo "MPI_CLDFLAGS: " $MPI_CLDFLAGS
+fi
 fi
 echo ""

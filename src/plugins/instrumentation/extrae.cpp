@@ -90,7 +90,7 @@ class InstrumentationExtrae: public Instrumentation
          strcpy(str, MPITRACE_BIN);
          strcat(str, "/mpi2prv");
 
-         pid = fork();
+         pid = vfork();
          if ( pid == (pid_t) 0 ) {
             int result = execl ( str, "mpi2prv", "-f", _listOfTraceFileNames.c_str(), "-o", _traceFileName_PRV.c_str(), "-e", _binFileName.c_str(), (char *) NULL); 
             exit(result);
@@ -115,7 +115,7 @@ class InstrumentationExtrae: public Instrumentation
             strcat(str,"/extrae_post_process.sh");
          }
 
-         pid = fork();
+         pid = vfork();
          if ( pid == (pid_t) 0 ) {
             int result = execlp ( "sh", "sh", str, _traceFileName_PRV.c_str(), (char *) NULL); 
             exit(result);
@@ -316,9 +316,14 @@ class InstrumentationExtrae: public Instrumentation
 
          std::cerr << "secure copy " << orig << " to " << dest << std::endl;
 
-         pid = fork();
+         pid = vfork();
          if ( pid == (pid_t) 0 ) {
-            execl ( "/usr/bin/scp", "scp", orig, dest.c_str(), (char *) NULL); 
+            int execret = execl ( "/usr/bin/scp", "scp", orig, dest.c_str(), (char *) NULL); 
+            if ( execret == -1 )
+            {
+               std::cerr << "Error calling /usr/bin/scp " << orig << " " << dest.c_str() << std::endl;
+               exit(-1);
+            }
          }
          else waitpid( pid, &status, options);
       }

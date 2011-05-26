@@ -114,6 +114,7 @@ namespace ext
 
          //! Capability query functions
          bool supportsUserLevelThreads () const { return false; }
+         bool isGPU () const { return true; }
 
 #if 0
          // Memory space support

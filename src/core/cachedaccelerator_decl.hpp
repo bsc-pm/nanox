@@ -54,6 +54,8 @@ namespace nanos
 
          void setCacheSize( size_t size );
 
+         bool checkBlockingCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
+
          void registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
 
          void unregisterCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool output );

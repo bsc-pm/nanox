@@ -51,6 +51,8 @@ namespace nanos
          typedef enum { DEDICATED, SHARED } ExecutionMode;
          typedef enum { POOL, ONE_THREAD } InitialMode;
 
+         typedef void (*Init) ();
+
       private:
          // types
          typedef std::vector<PE *>         PEList;
@@ -75,6 +77,8 @@ namespace nanos
          // cluster arch
          bool                 _useCluster;
          bool                 _isMaster;
+         Atomic<unsigned int> _preMainBarrier;
+         Atomic<unsigned int> _preMainBarrierLast;
 
          //cutoff policy and related variables
          ThrottlePolicy      *_throttlePolicy;
@@ -118,6 +122,15 @@ namespace nanos
 
          // CacheMap register
          CacheMap             _cacheMap;
+         
+         std::set<void *> _dataToInv;
+         volatile void * _dataToInvAddr;
+         Lock _dataToInvLock;
+         std::set<void *> _dataToIncVer;
+         Lock _dataToIncVerLock;
+         Directory *_myFavDir;
+         WD *slaveParentWD;
+         BaseThread *_masterGpuThd;
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -269,7 +282,53 @@ namespace nanos
          CacheMap& getCacheMap();
 
          void threadReady ();
+         void preMainBarrier();
+         
+         void setMyFavDir( Directory * dir) { _myFavDir = dir; };
+         void setSlaveParentWD( WD * wd ){ slaveParentWD = wd ; };
+         WD* getSlaveParentWD( ){ return slaveParentWD ; };
 
+	 void addInvData( void * addr ){ std::cerr << "Added to inval addr " << addr << std::endl; _dataToInvLock.acquire(); _dataToInvAddr = addr; _dataToInvLock.release(); while ( _dataToInvAddr != NULL) {} }
+	 //void invThisData( void * addr )
+	 void invThisData( )
+         {
+		 _dataToInvLock.acquire();
+                 if ( _dataToInvAddr != NULL )
+                 {
+                         std::cerr << "I should invalidate data " << _dataToInvAddr << std::endl;
+			 //DirectoryEntry *ent = _myFavDir->findEntry( (uint64_t) addr );
+			 //if (ent != NULL) 
+			 //{
+			 //        if (ent->getOwner() != NULL )
+			 //       	 if ( !ent->isInvalidated() )
+			 //       	 {
+			 //       		 std::list<uint64_t> tagsToInvalidate;
+			 //       		 tagsToInvalidate.push_back( ( uint64_t ) addr );
+			 //       		 //std::cerr  <<"n:" << gasnet_mynode() << " sync host (tag)" << std::endl;
+			 //       		 _myFavDir->synchronizeHost( tagsToInvalidate );
+			 //       		 //std::cerr <<"n:" << gasnet_mynode() << " go on with get req " << *(( float *) tagAddr )<< std::endl;
+			 //       	 }
+			 //}
+                         _dataToInvAddr = NULL;
+                 }
+		 _dataToInvLock.release();
+	 }
+
+
+
+         void addIncVerData( void * addr ) { _dataToIncVerLock.acquire(); _dataToIncVer.insert( addr ); _dataToIncVerLock.release(); }
+	 void incVerThisData( void * addr ) { 
+		 _dataToIncVerLock.acquire(); 
+		 std::set<void *>::iterator it = _dataToIncVer.find( addr ); 
+		 if (it != _dataToIncVer.end()) 
+		 {
+			 _dataToIncVer.erase(it);  
+                         std::cerr << "I should inc data " << addr << std::endl;
+			 DirectoryEntry *ent = _myFavDir->findEntry( (uint64_t) addr );
+			 if (ent != NULL) ent->increaseVersion();
+                 }
+		 _dataToIncVerLock.release(); 
+	 }
    };
 
    extern System sys;

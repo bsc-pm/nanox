@@ -155,5 +155,16 @@ inline void System::threadReady()
    while (_initializedThreads.value() < _targetThreads) {}
 }
 
+
+inline void System::preMainBarrier()
+{
+   _preMainBarrier--;
+   _preMainBarrierLast++;
+   while (_preMainBarrier.value() > 0) {}
+   if ( myThread->getId() == 0 ) _net.nodeBarrier(); 
+   _preMainBarrierLast--;
+   while (_preMainBarrier.value() > 0) {}
+}
+
 #endif
 

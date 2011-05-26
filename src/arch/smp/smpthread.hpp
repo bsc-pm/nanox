@@ -85,7 +85,7 @@ namespace ext
             return this;
          }
 
-         virtual int checkStateDependent() {
+         virtual int checkStateDependent( int numPe ) {
             fatal( "SMPThread does not support checkStateDependent()" );
          }
    };

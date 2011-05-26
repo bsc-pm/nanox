@@ -23,6 +23,7 @@
 #include "cachedaccelerator_decl.hpp"
 #include "accelerator_decl.hpp"
 #include "cache.hpp"
+#include "system.hpp"
 
 using namespace nanos;
 
@@ -33,14 +34,23 @@ inline void CachedAccelerator<CacheDevice,Policy>::setCacheSize( size_t size )
 }
 
 template <class CacheDevice, class Policy>
+inline bool CachedAccelerator<CacheDevice,Policy>::checkBlockingCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
+{
+   //std::cerr << "n:" << sys.getNetwork()->getNodeNum() << " register cache access: dir " << (void *) &dir << " addr " << (void *) tag << std::endl;
+   return _cache.checkBlockingCacheAccess( dir, tag, size, input, output );
+}
+
+template <class CacheDevice, class Policy>
 inline void CachedAccelerator<CacheDevice,Policy>::registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
 {
+   //std::cerr << "n:" << sys.getNetwork()->getNodeNum() << " register cache access: dir " << (void *) &dir << " addr " << (void *) tag << std::endl;
    _cache.registerCacheAccess( dir, tag, size, input, output );
 }
 
 template <class CacheDevice, class Policy>
 inline void CachedAccelerator<CacheDevice,Policy>::unregisterCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool output )
 {
+   //std::cerr << "n:" << sys.getNetwork()->getNodeNum() << " UNregister cache access: dir " << (void *) &dir << " addr " << (void *) tag << std::endl;
    _cache.unregisterCacheAccess( dir, tag, size, output );
 }
 

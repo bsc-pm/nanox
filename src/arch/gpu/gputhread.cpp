@@ -78,6 +78,7 @@ void GPUThread::runDependent ()
    WD &work = getThreadWD();
    setCurrentWD( work );
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
+   sys.preMainBarrier();
    dd.getWorkFct()( work.getData() );
    ( ( GPUProcessor * ) myThread->runningOn() )->getGPUProcessorInfo()->destroyTransferStreams();
 }

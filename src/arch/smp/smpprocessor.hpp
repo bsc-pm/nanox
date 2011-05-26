@@ -82,11 +82,13 @@ namespace ext
 #else
          virtual bool supportsUserLevelThreads () const { return false; }
 #endif
+         virtual bool isGPU () const { return false; }
 
 #ifdef SMP_NUMA
          /* Memory space suport */
          virtual void waitInputDependent( uint64_t tag );
 
+         virtual bool checkBlockingCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
          virtual void registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
          virtual void unregisterCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool output );
          virtual void registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );

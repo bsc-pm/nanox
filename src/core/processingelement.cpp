@@ -29,6 +29,11 @@
 
 using namespace nanos;
 
+bool ProcessingElement::dataCanBlockUs( WorkDescriptor& wd )
+{
+   return false;
+}
+
 void ProcessingElement::copyDataIn( WorkDescriptor &work )
 {
    Directory *dir = work.getParent()->getDirectory(true);

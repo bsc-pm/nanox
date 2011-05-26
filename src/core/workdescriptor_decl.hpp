@@ -71,6 +71,7 @@ namespace nanos
          /*! \brief Device equals operator
           */
          bool operator== ( const Device &arch ) { return ( 0 == std::strcmp( arch._name , _name ) ); }
+         //bool operator== ( const Device &arch ) { return arch._name == _name; }
 
          /*! \brief Get device name
           */
@@ -128,6 +129,7 @@ namespace nanos
          /*! \brief FIXME: (#170) documentation needed 
           */
          virtual DeviceData *copyTo ( void *addr ) = 0;
+         const char * getName ( void ) const { return _architecture->getName(); }
 
     };
 
@@ -357,6 +359,7 @@ namespace nanos
          void * getInternalData () const;
 
          void setTranslateArgs( nanos_translate_args_t translateArgs );
+         nanos_translate_args_t getTranslateArgs( void );
 
          /*! \brief Get the number of devices
           *
@@ -459,6 +462,7 @@ namespace nanos
 
          bool isSubmitted( void ) const;
          void submitted( void );
+         bool canBeBlocked( void );
    };
 
    typedef class WorkDescriptor WD;

@@ -38,6 +38,7 @@
 
 #ifdef GPU_DEV
 #include "gpuprocessor_decl.hpp"
+#include "gpudd.hpp"
 #endif
 
 #ifdef CLUSTER_DEV
@@ -53,11 +54,11 @@ System nanos::sys;
 System::System () :
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindThreads( true ), _profile( false ), _instrument( false ),
       _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster(false),
-      _delayedStart(false), _useYield(true), _synchronizedStart(true), _useCluster( false ), _isMaster(true), _throttlePolicy ( NULL ),
+      _delayedStart(false), _useYield(true), _synchronizedStart(true), _useCluster( false ), _isMaster(true), _preMainBarrier ( 1 ),_preMainBarrierLast ( 0 ), _throttlePolicy ( NULL ),
       _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
       _defBarr( "posix" ), _defInstr ( "empty_trace" ), _defArch("smp"),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _currentConduit( "mpi" ),
-      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL ), _cacheMap()
+      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL ), _cacheMap(), _masterGpuThd(NULL)
 {
    verbose0 ( "NANOS++ initializing... start" );
    // OS::init must be called here and not in System::start() as it can be too late
@@ -111,20 +112,25 @@ void System::loadModules ()
 #endif
 
 #ifdef GPU_DEV
-   if ( _net.getNodeNum() > 0  || !useCluster()) //FIXME: hardcoded for use GPUs only in nodes > 0
-   {
-      verbose0( "loading GPU support" );
+   verbose0( "loading GPU support" );
 
-      if ( !PluginManager::load ( "pe-gpu" ) )
-         fatal0 ( "Couldn't load GPU support" );
-   }
+   if ( !PluginManager::load ( "pe-gpu" ) )
+      fatal0 ( "Couldn't load GPU support" );
 #endif
 
    // load default schedule plugin
    verbose0( "loading " << getDefaultSchedule() << " scheduling policy support" );
 
-   if ( !PluginManager::load ( "sched-"+getDefaultSchedule() ) )
-      fatal0 ( "Couldn't load main scheduling policy" );
+   if ( _net.getNodeNum() > 0 ) 
+   {
+      if ( !PluginManager::load ( "sched-default" ) )
+         fatal0 ( "Couldn't load main scheduling policy" );
+   }
+   else
+   {
+      if ( !PluginManager::load ( "sched-"+getDefaultSchedule() ) )
+         fatal0 ( "Couldn't load main scheduling policy" );
+   }
 
    ensure( _defSchedulePolicy,"No default system scheduling factory" );
 
@@ -358,28 +364,31 @@ void System::start ()
 #endif
 
 #ifdef GPU_DEV
-if ( useCluster() )
-{
-   if ( _net.getNodeNum() == 1 )
-   {
-std::cerr << "node " << _net.getNodeNum() << " starting 1 gpu" << std::endl;
-      int gpuC;
-      for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount(); gpuC++ ) {
-         PE *gpu = NEW nanos::ext::GPUProcessor( p++, gpuC );
-         _pes.push_back( gpu );
-         _workers.push_back( &gpu->startWorker() );
-      }
-   }
-}
-else
-{
+//if ( useCluster() )
+//{
+//   if ( _net.getNodeNum() == 1 )
+//   {
+//std::cerr << "node " << _net.getNodeNum() << " starting 1 gpu" << std::endl;
+//      int gpuC;
+//      for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount(); gpuC++ ) {
+//         PE *gpu = NEW nanos::ext::GPUProcessor( p++, gpuC );
+//         _pes.push_back( gpu );
+//         _workers.push_back( &gpu->startWorker() );
+//      }
+//   }
+//}
+//else
+//{
    int gpuC;
    for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount(); gpuC++ ) {
       PE *gpu = NEW nanos::ext::GPUProcessor( p++, gpuC );
       _pes.push_back( gpu );
-      _workers.push_back( &gpu->startWorker() );
+         _preMainBarrier++;
+      BaseThread *gpuThd = &gpu->startWorker();
+      _workers.push_back( gpuThd );
+      _masterGpuThd = ( _masterGpuThd == NULL ) ? gpuThd : _masterGpuThd;
    }
-}
+//}
 #endif
 
 #ifdef SPU_DEV
@@ -406,26 +415,42 @@ else
 
             _peArray[ nodeC - 1 ] = node;
          }
+         _preMainBarrier++;
          ext::SMPMultiThread *smpRepThd = dynamic_cast<ext::SMPMultiThread *>( &smpRep->startMultiWorker( _net.getNumNodes() - 1, _peArray ) );
 
+         _net.setPollingMinThd( smpRepThd->getId() );
+          
+         _net.addNodes( (ext::ClusterNode **) _peArray , _net.getNumNodes() - 1 ); 
+         ext::ClusterThread *nodeThds[ _net.getNumNodes() - 1 ];
+         int i = 0;
          for ( ext::SMPMultiThread::iterator threadIterator = smpRepThd->getThreadList().begin();
                threadIterator != smpRepThd->getThreadList().end(); 
                threadIterator++ )
          {
-
+            nodeThds[ i++ ]= (ext::ClusterThread *) *threadIterator ;
+            std::cerr << " Thread " << (i-1) << " has id " << ((BaseThread *) nodeThds[i-1])->getId() << " addr is " << nodeThds[i-1] << std::endl;
             _workers.push_back( *threadIterator );
+            _net.setPollingMaxThd( (*threadIterator)->getId() );
          }
+         _net.addThds( nodeThds, _net.getNumNodes() - 1 ); 
 
+         _net.setMasterDirectory( mainWD.getDirectory(true) );
       }
       else
       {
          std::cerr << "starting a multiworker thread as comm thd on node " << _net.getNodeNum() << std::endl;
          //smpRep->startMultiWorker( 0, NULL );
+         _preMainBarrier++;
          ext::SMPMultiThread *smpRepThd = dynamic_cast<ext::SMPMultiThread *>( &smpRep->startMultiWorker( 0, NULL ) );
          if ( _pmInterface->getInternalDataSize() > 0 )
             smpRepThd->getThreadWD().setInternalData(NEW char[_pmInterface->getInternalDataSize()]);
          _pmInterface->setupWD( smpRepThd->getThreadWD() );
          _workers.push_back( smpRepThd ); 
+	 _net.setMasterDirectory( smpRepThd->getThreadWD().getDirectory(true)  );
+         setMyFavDir( smpRepThd->getThreadWD().getDirectory(true)  ); 
+         _net.setPollingMinThd( smpRepThd->getId() );
+         _net.setPollingMaxThd( smpRepThd->getId() );
+         setSlaveParentWD( &smpRepThd->getThreadWD() );
       }
    }
 #endif
@@ -447,6 +472,11 @@ else
    // All initialization is ready, call postInit hooks
    const OS::InitList & externalInits = OS::getPostInitializationFunctions();
    std::for_each(externalInits.begin(),externalInits.end(), ExecInit());
+
+   if ( useCluster() )
+   {
+      _net.nodeBarrier();
+   }
 
    /* Master thread is ready and waiting for the rest of the gang */
    if ( getSynchronizedStart() )   
@@ -477,16 +507,15 @@ extern int _nanox_main( int argc, char *argv[]);
 
 int main( int argc, char *argv[] )
 {
+   sys.preMainBarrier();
+
    if ( sys.getNetwork()->getNodeNum() == 0  ) 
    {
-std::cerr << "Im jumping to main" << std::endl;
       _nanox_main(argc, argv);
    }
    else
    {
       Scheduler::workerLoop();
-      std::cerr << " SLAVE FINISH" << std::endl;
-      //sys.finish();
    }
 }
 
@@ -522,9 +551,13 @@ void System::finish ()
       if (sys.getNetwork()->getNodeNum() == 0)
       {
          std::cerr << "Created " << createdWds << " wds" << std::endl;
-         for ( unsigned int p = getNumPEs() + 1; p < _pes.size() ; p++ )
+#ifdef GPU_DEV
+         for ( unsigned int p = 3; p < _net.getNumNodes()+2 ; p++ )
+#else
+         for ( unsigned int p = 2; p < _net.getNumNodes()+1 ; p++ )
+#endif
          {
-            std::cerr << "Node " << p << " executed " << ((nanos::ext::ClusterNode *) _pes[p])->getExecutedWDs() << " WDs." << std::endl;
+            std::cerr << "Node " << p-1 << " executed " << ((nanos::ext::ClusterNode *) _pes[p])->getExecutedWDs() << " WDs." << std::endl;
          }
       }
    }
@@ -622,6 +655,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    size_t total_size;
 
    // WD doesn't need to compute offset, it will always be the chunk allocated address
+   createdWds++;
 
    // Computing Data info
    size_Data = (data != NULL && *data == NULL)? data_size:0;
@@ -1059,7 +1093,6 @@ void System::setupWD ( WD &work, WD *parent )
    {
       //std::cerr << "tie wd " << work.getId() << " to my thread" << std::endl;
       //ext::SMPDD * workDD = dynamic_cast<ext::SMPDD *>( &work.getActiveDevice());
-      unsigned int selectedNode;
       switch ( work.getDepth() )
       {
          //case 1:
@@ -1067,15 +1100,9 @@ void System::setupWD ( WD &work, WD *parent )
          //   work.tieTo( *myThread );
          //   break;
          case 1:
-            selectedNode = work.getId() % sys.getNetwork()->getNumNodes();
-            if ( selectedNode == 0)
+            if (work.canRunIn( ext::GPU) )
             {
-               work.tieTo( *myThread );
-            }
-            else
-            {
-               work.tieTo( *( _workers[ _workers.size() - 1 ] ) );
-               work.setPe( _pes[ _pes.size() - selectedNode ] );
+               work.tieTo( *_masterGpuThd );
             }
             break;
          default:
@@ -1095,7 +1122,8 @@ void System::setupWD ( WD &work, WD *parent )
 
 void System::submit ( WD &work )
 {
-   setupWD( work, myThread->getCurrentWD() );
+   if (_net.getNodeNum() > 0 ) setupWD( work, getSlaveParentWD() );
+   else setupWD( work, myThread->getCurrentWD() );
    work.submit();
 }
 

@@ -40,25 +40,31 @@ void * ClusterDevice::allocate( size_t size, ProcessingElement *pe )
 
 void ClusterDevice::free( void *address, ProcessingElement *pe )
 {
+#if 1
    ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
 
    node->getAllocator().free( address );
 
    //unsigned int nodeId = node->getClusterNodeNum();
-   //fprintf(stderr, "[node %d] FREE %p\n", nodeId, address);
+   sys.getNetwork()->memFree( ((ClusterNode *) pe)->getClusterNodeNum(), address );
+   fprintf(stderr, "[node %d] FREE %p -------------------------------------------------------------!!!\n", node->getClusterNodeNum(), address);
+#endif
 }
 
 void * ClusterDevice::realloc( void *address, size_t newSize, size_t oldSize, ProcessingElement *pe )
 {
-   //ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
+   ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
+   void *retAddr = NULL;
 
-   //return node->getAllocator().reallocate( address, newSize );
-   fatal ( "ClusterDevice::realloc not implemented" );
-   return NULL;
+   retAddr = node->getAllocator().allocate( newSize );
+   
+   sys.getNetwork()->memRealloc(((ClusterNode *) pe)->getClusterNodeNum(), address, oldSize, retAddr, newSize );
+   return retAddr;
 }
 
 bool ClusterDevice::copyDevToDev( void *addrSrc, size_t size, ProcessingElement *pe, ProcessingElement *peDst, void *addrDst )
 {
+   //std::cerr<<"n:"<<sys.getNetwork()->getNodeNum()<<" requesting node "<<((ClusterNode *) pe)->getClusterNodeNum()<<" to send tag " << addrSrc <<" to node " << ((ClusterNode *) peDst)->getClusterNodeNum() <<" addr "<<addrDst<< std::endl;
    sys.getNetwork()->sendRequestPut( ((ClusterNode *) pe)->getClusterNodeNum(), (uint64_t )addrSrc, ((ClusterNode *) peDst)->getClusterNodeNum(), (uint64_t)addrDst, size );
    return true;
 }

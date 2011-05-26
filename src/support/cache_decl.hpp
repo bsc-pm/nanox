@@ -26,6 +26,7 @@
 #include "atomic_decl.hpp"
 #include "processingelement_fwd.hpp"
 #include "copydescriptor_decl.hpp"
+#include <iostream>
 
 namespace nanos {
 
@@ -274,6 +275,7 @@ namespace nanos {
          *  \param tag Identifier key to look for
          */
          virtual CacheEntry* getEntry( uint64_t tag ) = 0;
+         virtual CacheEntry *find( uint64_t tag ) = 0; 
 
         /*! \brief Increase the number of references of an entry
          */
@@ -310,6 +312,7 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
          *  \param de DirectoryEntry to be updated
          */
          virtual void invalidateAndTransfer( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de, Cache &dest, void *addrDest ) = 0;
+         virtual void nNoinvalidateAndTransfer( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de, Cache &dest, void *addrDest ) = 0;
          virtual void invalidate( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de ) = 0;
 
         /*! \brief Force an entry to be copied back to the Host
@@ -318,6 +321,7 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
          *  \param de DirectoryEntry to be updated
          */
          virtual void invalidate( Directory &dir, uint64_t tag, DirectoryEntry *de ) = 0;
+         virtual void discard( Directory &dir, uint64_t tag, DirectoryEntry *de ) = 0;
 
         /*! \brief Request the Device to priorize an asynchronous transfer
          *  \param tag Identifier to locate the transfer to be priorized
@@ -332,6 +336,7 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
         /*! \brief Returns the cache identifier
          */
          unsigned int getId() const;
+         virtual ProcessingElement *getPE( void ) = 0; 
    };
 
   /*! \class CachePolicy
@@ -368,6 +373,7 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
          *  \param output Whether the acces writes the data (the Cache entry must be marked as dirty)
          */
          virtual void registerCacheAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
+         virtual bool checkBlockingCacheAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
 
         /*! \brief Notify the cache that one usage of an entry has finished
          *  \param dir Current directory
@@ -587,6 +593,7 @@ bool copyToCacheFromCache( void *addrSrc, size_t size, Cache &dest, void *addrDe
          *  \param tag Identifier key to look for
          */
          CacheEntry* getEntry( uint64_t tag );
+         virtual CacheEntry *find( uint64_t tag ) { return _cache.find(tag); }; 
 
         /*! \brief Increase the number of references of an entry
          */
@@ -604,6 +611,7 @@ bool copyToCacheFromCache( void *addrSrc, size_t size, Cache &dest, void *addrDe
          *  \param output Whether the acces writes the data (the Cache entry must be marked as dirty)
          */
          void registerCacheAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
+         bool checkBlockingCacheAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
 
         /*! \brief Notify the cache that one usage of an entry has finished
          *  \param dir Current directory
@@ -657,6 +665,7 @@ bool copyToCacheFromCache( void *addrSrc, size_t size, Cache &dest, void *addrDe
          *  \param de DirectoryEntry to be updated
          */
          void invalidateAndTransfer( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de, Cache &dest, void *dstAddr );
+         void nNoinvalidateAndTransfer( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de, Cache &dest, void *dstAddr );
          void invalidate( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de );
 
         /*! \brief Force an entry to be copied back to the Host
@@ -665,6 +674,7 @@ bool copyToCacheFromCache( void *addrSrc, size_t size, Cache &dest, void *addrDe
          *  \param de DirectoryEntry to be updated
          */
          void invalidate( Directory &dir, uint64_t tag, DirectoryEntry *de );
+         void discard( Directory &dir, uint64_t tag, DirectoryEntry *de );
 
         /*! \brief get a reference to the size variable to allow using it as a ConfigOption
          */
@@ -679,6 +689,7 @@ bool copyToCacheFromCache( void *addrSrc, size_t size, Cache &dest, void *addrDe
          *  \param tag Identifier of the cache entry
          */
          int getReferences( unsigned int tag );
+         ProcessingElement *getPE( void ); 
    };
 
 }

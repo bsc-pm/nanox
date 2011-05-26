@@ -122,7 +122,7 @@ namespace nanos
          virtual void switchTo( WD *work, SchedulerHelper *helper ) = 0;
          virtual void exitTo( WD *work, SchedulerHelper *helper ) = 0;
 
-         virtual int checkStateDependent( void ) = 0;
+         virtual int checkStateDependent( int numPe ) = 0;
 
       protected:
 
@@ -236,7 +236,7 @@ namespace nanos
          virtual void switchToNextThread() = 0;
          void setWorking ( void );
          void setIdle ( void );
-         int isWorking ( void );
+         int isWorking ( int numPe );
    };
 
    extern __thread BaseThread *myThread;

@@ -65,17 +65,35 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
    }
 
    //char buff[ wd.getDataSize() + wd.getNumCopies() * sizeof( CopyData ) ];
-   char *buff = new char[ wd.getDataSize() + wd.getNumCopies() * sizeof( CopyData )];
+   size_t totalBufferSize = wd.getDataSize() + 
+                            sizeof(int) + wd.getNumCopies() * sizeof( CopyData ) + 
+                            sizeof(int) + wd.getNumCopies() * sizeof( uint64_t );
+   char *buff = new char[ totalBufferSize ];
    if ( wd.getDataSize() > 0 )
    {
       memcpy( &buff[ 0 ], wd.getData(), wd.getDataSize() );
    }
+   *((int *) &buff[ wd.getDataSize() ] ) = wd.getNumCopies();
    for (i = 0; i < wd.getNumCopies(); i += 1) {
-      memcpy( &buff[ wd.getDataSize() + sizeof( CopyData ) * i ], &newCopies[i], sizeof( CopyData ) );
+      memcpy( &buff[ wd.getDataSize() + sizeof(int) + sizeof( CopyData ) * i ], &newCopies[i], sizeof( CopyData ) );
    }
 
+#ifdef GPU_DEV
+   int arch = -1;
+   if (wd.canRunIn( GPU) )
+{
+      arch = 1;
+}
+   else if (wd.canRunIn( SMP ) )
+{
+      arch = 0;
+}
+#else
+   int arch = 0;
+#endif
+
    ( ( ClusterNode * ) pe )->incExecutedWDs();
-   sys.getNetwork()->sendWorkMsg( ( ( ClusterNode * ) pe )->getClusterNodeNum(), dd.getWorkFct(), wd.getDataSize(), wd.getId(), wd.getPeId(), wd.getDataSize() + ( wd.getNumCopies() * sizeof( CopyData ) ), buff );
+   sys.getNetwork()->sendWorkMsg( ( ( ClusterNode * ) pe )->getClusterNodeNum(), dd.getWorkFct(), wd.getDataSize(), wd.getId(), /* this should be the PE id */ arch, totalBufferSize, buff, wd.getTranslateArgs(), arch, (void *) &wd );
 
    this->setWorking();
 }
@@ -87,9 +105,9 @@ void ClusterThread::join()
       sys.getNetwork()->sendExitMsg( i );
 }
 
-int ClusterThread::checkStateDependent()
+int ClusterThread::checkStateDependent( int numPe )
 {
-   if ( sys.getNetwork()->isWorking( ( ( ClusterNode * ) runningOn() )->getClusterNodeNum(), 0 ) )
+   if ( sys.getNetwork()->isWorking( ( ( ClusterNode * ) runningOn() )->getClusterNodeNum(), numPe ) )
    {
       return 1;
    }

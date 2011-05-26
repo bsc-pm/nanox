@@ -25,8 +25,10 @@
 #include "clusterinfo.hpp"
 #include "clusterdevice.hpp"
 #include "clusterdd.hpp"
+#ifdef GPU_DEV
 //FIXME: GPU support
-//#include "gpudd.hpp"
+#include "gpudd.hpp"
+#endif
 #include "cachedaccelerator.hpp"
 
 namespace nanos {
@@ -50,8 +52,13 @@ namespace ext {
       public:
          // constructors
          //FIXME: GPU support
-         ClusterNode( int id ) : CachedAccelerator< ClusterDevice, WriteBackPolicy >( sys.getNumPEs(), &Cluster, NULL/*&GPU*/, ( int ) ClusterInfo::getSegmentLen( id ) ), 
-            _clusterNode ( id ), _memSegment( ( uintptr_t ) ClusterInfo::getSegmentAddr( id ), ClusterInfo::getSegmentLen( id ) ), _executedWorkDesciptors ( 0 ) { }
+#ifdef GPU_DEV
+         ClusterNode( int id ) : CachedAccelerator< ClusterDevice, WriteBackPolicy >( sys.getNumPEs(), &Cluster, &GPU, ( int )
+#else
+         ClusterNode( int id ) : CachedAccelerator< ClusterDevice, WriteBackPolicy >( sys.getNumPEs(), &Cluster, NULL, ( int )
+#endif
+            ClusterInfo::getSegmentLen( id ) ), _clusterNode ( id ), _memSegment( ( uintptr_t ) ClusterInfo::getSegmentAddr( id ),
+            ClusterInfo::getSegmentLen( id ) ), _executedWorkDesciptors ( 0 ) { }
 
          virtual ~ClusterNode() {}
 
@@ -69,6 +76,7 @@ namespace ext {
 
          // capability query functions
          virtual bool supportsUserLevelThreads () const { return false; }
+         virtual bool isGPU () const { return false; }
 
          unsigned int getClusterNodeNum();
          SimpleAllocator & getAllocator( void ) { return _memSegment; }

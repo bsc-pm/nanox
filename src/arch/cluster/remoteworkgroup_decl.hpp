@@ -31,7 +31,12 @@ namespace nanos
       public:
          RemoteWorkGroup(unsigned int rId) : _remoteId ( rId ) {}
       
-         virtual void exitWork( WorkGroup &work ) { sys.getNetwork()->sendWorkDoneMsg( Network::MASTER_NODE_NUM, _remoteId ); }
+         virtual void exitWork( WorkGroup &work ) { 
+		sys.getNetwork()->sendWorkDoneMsg( 
+			Network::MASTER_NODE_NUM, 
+			/*new queue */work.getRemoteAddr() , _remoteId
+                        /* (void *) work.getId() */ 
+                        /*(void *) _remoteId*/ ); }
    };
 
 };

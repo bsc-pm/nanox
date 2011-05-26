@@ -115,7 +115,7 @@ namespace nanos
         _description.append("-");
  
         /* adding device type */
-        _description.append( _pe->getDeviceType().getName() );
+        _description.append( _pe->getDeviceType()->getName() );
         _description.append("-");
  
         /* adding global id */
@@ -127,7 +127,7 @@ namespace nanos
 
    inline void BaseThread::setWorking( void ) { _state = 1; }
    inline void BaseThread::setIdle( void ) { _state = 0; }
-   inline int BaseThread::isWorking( void ) { _state = checkStateDependent() ; return _state == 1; }
+   inline int BaseThread::isWorking( int numPe ) { _state = checkStateDependent( numPe ) ; return _state == 1; }
 }
 
 #endif

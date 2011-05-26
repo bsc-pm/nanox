@@ -48,7 +48,7 @@ namespace nanos
 
       public:
          static void preOutlineWork ( WD *work );
-         static void postOutlineWork ( WD *work, bool schedule = false );
+         static void postOutlineWork ( WD *work, bool schedule, BaseThread *owner );
          static void inlineWork ( WD *work, bool schedule = false );
 
          static void submit ( WD &wd );
@@ -72,6 +72,7 @@ namespace nanos
 
          /*! \brief checks if a WD is elegible to run in a given thread */
          static bool checkBasicConstraints ( WD &wd, BaseThread &thread );
+	 static WD * getClusterWD( BaseThread *thread );
    };
 
    class SchedulerConf

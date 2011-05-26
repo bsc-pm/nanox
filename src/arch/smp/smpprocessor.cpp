@@ -90,6 +90,11 @@ void SMPProcessor::waitInputDependent( uint64_t tag )
    _cache.waitInput(tag);
 }
 
+bool SMPProcessor::checkBlockingCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
+{
+   _cache.checkBlockingCacheAccess( dir, tag, size, input, output ) ;
+}
+
 void SMPProcessor::registerCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
 {
    _cache.registerCacheAccess( dir, tag, size, input, output );

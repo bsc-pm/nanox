@@ -33,8 +33,8 @@
 #include "instrumentationcontext.hpp"
 #include "directory.hpp"
 #include "schedule.hpp"
+#include "system.hpp"
 #include "dependenciesdomain.hpp"
-#include "allocator_decl.hpp"
 
 using namespace nanos;
 
@@ -97,6 +97,8 @@ inline void * WorkDescriptor::getInternalData () const { return _wdData; }
 
 inline void WorkDescriptor::setTranslateArgs( nanos_translate_args_t translateArgs ) { _translateArgs = translateArgs; }
 
+inline nanos_translate_args_t WorkDescriptor::getTranslateArgs() { return _translateArgs; }
+
 inline unsigned int WorkDescriptor::getNumDevices ( void ) { return _numDevices; }
 
 inline DeviceData ** WorkDescriptor::getDevices ( void ) { return _devices; }
@@ -145,6 +147,7 @@ inline WorkDescriptor * WorkDescriptor::getImmediateSuccessor ( BaseThread &thre
 {
    if ( _doSubmit == NULL ) return NULL;
    else {
+        //if (sys.getNetwork()->getNodeNum() == 0)std::cerr << "This code is buggy." << std::endl;
         DOIsSchedulable predicate(thread);
         DependableObject * found = _doSubmit->releaseImmediateSuccessor(predicate);
         return found ? (WD *) found->getRelatedObject() : NULL;
@@ -185,11 +188,19 @@ inline Directory* WorkDescriptor::getDirectory(bool create)
       return NULL;
    }
    _directory->setParent( (getParent() != NULL) ? getParent()->getDirectory(false) : NULL );
+   //if ( sys.getNetwork()->getNodeNum() > 0)
+   //{
+   //std::cerr << "Node " << sys.getNetwork()->getNodeNum() << " this WD is " << getId() << " parent is " << (int )(getParent() != NULL ? getParent()->getId() : -1 ) << std::endl;
+   //        if (getParent() != NULL) std::cerr << "Ive used the parent directory!!! " << std::endl;
+   //        else  std::cerr << "Ive NOT used the parent directory!!! N/A" << std::endl;
+   //}
    return &(*_directory);
 }
 
 inline bool WorkDescriptor::isSubmitted() const { return _submitted; }
 inline void WorkDescriptor::submitted()  { _submitted = true; }
+
+inline bool WorkDescriptor::canBeBlocked() { PE *pe = myThread->runningOn(); return pe->dataCanBlockUs( *this ); /*return false; */ }
 
 #endif
 

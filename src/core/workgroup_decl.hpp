@@ -40,6 +40,7 @@ namespace nanos
       private:
          WGList         _partOf; // other than parent
          int            _id;
+         void *            _remoteAddr;
          Atomic<int>    _components;
 
          SingleSyncCond<EqualConditionChecker<int> > _syncCond;
@@ -71,12 +72,15 @@ namespace nanos
          virtual ~WorkGroup();
 
          void addWork( WorkGroup &wg );
+         void sync();
          virtual void waitCompletion( bool avoidFlush = false );
          virtual void waitCompletionAndSignalers();
          virtual void init();
          virtual void done();
          int getId() const { return _id; }
          void setId( int val ) { _id = val; }
+         void setRemoteAddr( void *remoteAddr ) { _remoteAddr = remoteAddr; }
+         void * getRemoteAddr( void ) { return _remoteAddr; }
 
    };
 

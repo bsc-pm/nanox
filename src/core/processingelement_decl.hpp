@@ -39,6 +39,8 @@ namespace nanos
          int                                  _id;
          const Device *                       _device;
          const Device *                       _subDevice;
+         const Device *                       _deviceNo;
+         const Device *                       _subDeviceNo;
          ThreadList                           _threads;
 
       private:
@@ -58,7 +60,8 @@ namespace nanos
       public:
          /*! \brief ProcessinElement constructor
           */
-         ProcessingElement ( int newId, const Device *arch, const Device *subArch = NULL ) : _id ( newId ), _device ( arch ) , _subDevice( subArch ) {}
+         ProcessingElement ( int newId, const Device *arch, const Device *subArch = NULL ) : _id ( newId ), _device ( arch ) , _subDevice( subArch ), _deviceNo ( NULL ), _subDeviceNo ( NULL ) 
+         { std::cerr << "creating PE with arch " << arch->getName() << " and subArch " << (void *) subArch << std::endl; }
 
          /*! \brief ProcessinElement destructor
           */
@@ -67,7 +70,7 @@ namespace nanos
          /* get/put methods */
          int getId() const;
 
-         const Device & getDeviceType () const;
+         const Device * getDeviceType () const;
          const Device * getSubDeviceType () const;
 
          BaseThread & startThread ( WorkDescriptor &wd, ext::SMPMultiThread *parent=NULL );
@@ -79,6 +82,17 @@ namespace nanos
 
          BaseThread & startWorker ( ext::SMPMultiThread *parent=NULL );
          BaseThread & startMultiWorker ( unsigned int numPEs, ProcessingElement **repPEs );
+         
+         void disableDevice( int num )
+{
+ if ( num == 0 ) { _deviceNo = _device; _device = NULL; } 
+ if ( num == 1 ) { _subDeviceNo = _subDevice; _subDevice = NULL; } 
+}
+         void enableDevice( int num )
+{
+ if ( num == 0 ) { _device = _deviceNo; _deviceNo = NULL; } 
+ if ( num == 1 ) { _subDevice = _subDeviceNo; _subDeviceNo = NULL; } 
+}
 
          void stopAll();
 
@@ -92,11 +106,13 @@ namespace nanos
          /* Memory space suport */
          virtual void copyDataIn( WorkDescriptor& wd );
          virtual void copyDataOut( WorkDescriptor& wd );
+         virtual bool dataCanBlockUs( WorkDescriptor& wd );
 
          virtual void waitInputs( WorkDescriptor& wd );
 
          virtual void* getAddress( WorkDescriptor& wd, uint64_t tag, nanos_sharing_t sharing );
          virtual void copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );
+         virtual bool isGPU() const = 0;
    };
 
    typedef class ProcessingElement PE;

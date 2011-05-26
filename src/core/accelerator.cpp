@@ -32,6 +32,20 @@ using namespace nanos;
 Lock Accelerator::_transferLock;
 #endif
 
+bool Accelerator::dataCanBlockUs( WorkDescriptor &work ) 
+{
+   bool result = false;
+   CopyData *copies = work.getCopies();
+   for ( unsigned int i = 0; i < work.getNumCopies() && !result; i++ ) {
+      CopyData & cd = copies[i];
+      if ( !cd.isPrivate() )
+      {
+	      uint64_t tag = cd.getAddress();
+	      result = this->checkBlockingCacheAccessDependent( *(work.getParent()->getDirectory(true)), tag, cd.getSize(), cd.isInput(), cd.isOutput() ); 
+      }
+   }
+   return result;
+}
 
 void Accelerator::copyDataIn( WorkDescriptor &work )
 {
