@@ -98,6 +98,9 @@ void GPUThread::inlineWorkDependent ( WD &wd )
       myGPU.freeInputPinnedMemory();
    }
 
+   // Check if someone is waiting for our data
+   myGPU.getOutTransferList()->clearRequestedMemoryTransfers();
+
    // We wait for wd inputs, but as we have just waited for them, we could skip this step
    wd.start( WD::IsNotAUserLevelThread );
 

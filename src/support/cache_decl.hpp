@@ -20,12 +20,15 @@
 #ifndef _NANOS_CACHE_DECL
 #define _NANOS_CACHE_DECL
 
+#include "cache_fwd.hpp"
 #include "config_decl.hpp"
 #include "compatibility.hpp"
+#include "debug.hpp"
 #include "directory_decl.hpp"
 #include "atomic_decl.hpp"
 #include "processingelement_fwd.hpp"
 #include "copydescriptor_decl.hpp"
+#include "new_decl.hpp"
 #include <iostream>
 
 namespace nanos {
@@ -51,17 +54,23 @@ namespace nanos {
 
         /*! \brief Default constructor
          */
-         CacheEntry(): Entry(), _addr( NULL ), _size(0), _allocSize(0), _dirty( false ), _copying(false), _flushing(false), _flushTo(NULL), _transfers(0), _resizing(false) {}
+         CacheEntry(): Entry(), _addr( NULL ), _size( 0 ), _allocSize( 0 ), _dirty( false ), _copying( false ),
+         _flushing( false ), _flushTo( NULL ), _transfers( 0 ), _resizing( false ) {}
 
         /*! \brief Constructor
          *  \param addr: address of the cache entry
          */
-         CacheEntry( void *addr, size_t size, uint64_t tag, unsigned int version, bool dirty, bool copying ): Entry( tag, version ), _addr( addr ), _size(size), _allocSize(0), _dirty( dirty ), _copying(copying), _flushing(false), _flushTo(NULL), _transfers(0), _resizing(false) {}
+         CacheEntry( void *addr, size_t size, uint64_t tag, unsigned int version, bool dirty, bool copying ) :
+            Entry( tag, version ), _addr( addr ), _size( size ), _allocSize( 0 ), _dirty( dirty ),
+            _copying( copying ), _flushing( false ), _flushTo( NULL ), _transfers( 0 ), _resizing( false ) {}
 
         /*! \brief Copy constructor
          *  \param Another CacheEntry
          */
-         CacheEntry( const CacheEntry &ce ): Entry( ce.getTag(), ce.getVersion() ), _addr( ce._addr ), _size( ce._size ), _allocSize( ce._allocSize ), _dirty( ce._dirty ), _copying(ce._copying), _flushing(ce._flushing), _flushTo(ce._flushTo), _transfers(ce._transfers), _resizing(ce._resizing) {}
+         CacheEntry( const CacheEntry &ce ): Entry( ce.getTag(), ce.getVersion() ), _addr( ce._addr ),
+               _size( ce._size ), _allocSize( ce._allocSize ), _dirty( ce._dirty ), _copying( ce._copying ),
+               _flushing( ce._flushing ), _flushTo( ce._flushTo ), _transfers( ce._transfers ),
+               _resizing( ce._resizing ) {}
 
         /* \brief Destructor
          */
@@ -221,6 +230,25 @@ namespace nanos {
          }
    };
 
+
+   enum NANOS_CACHE_POLICY {
+      NANOS_CACHE_NO_POLICY,
+      NANOS_CACHE_WT_POLICY,
+      NANOS_CACHE_WB_POLICY
+   };
+
+   inline NANOS_CACHE_POLICY toCachePolicy ( std::string policy )
+   {
+      if ( !policy.compare( "wt" ) ) {
+         return NANOS_CACHE_WT_POLICY;
+      }
+
+      if ( !policy.compare( "cb" ) ) {
+         return NANOS_CACHE_WB_POLICY;
+      }
+
+      return NANOS_CACHE_NO_POLICY;
+   }
 
   /*! \class Cache
    *  \brief Generic interface of a Cache
@@ -468,8 +496,7 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
    *         by an unsigned int of 64 bits which represents the address of the original
    *         data in the host. 
    */
-   template <class _T, class _Policy = WriteThroughPolicy>
-   //template <class _T, class _Policy = WriteBackPolicy>
+   template <class _T>
    class DeviceCache : public Cache
    {
      /* FIXME (see #195)
@@ -482,14 +509,14 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
          typedef HashMap<uint64_t, CacheEntry> CacheHash; /**< Maps keys with CacheEntries  */
          CacheHash _cache; /**< HashMap where the cache entries are stored */
 
-         _Policy _policy; /**< Cache Policy used by this cache */
+         CachePolicy *_policy; /**< Cache Policy used by this cache */
 
          size_t _size; /**< Size of the cache in bytes */
          size_t _usedSize; /**< Cache space usage counter */
 
         /*! \brief Copy Constructor
          */
-         DeviceCache( const DeviceCache &cache );
+         DeviceCache( const DeviceCache &cache, NANOS_CACHE_POLICY policy );
 
         /*! \brief Assign operator
          */
@@ -510,20 +537,32 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
       public:
         /* \brief Default constructor
          */
-         DeviceCache( size_t size, ProcessingElement *pe = NULL ) : _pe( pe ), _cache(), _policy( *this ), _size( size ), _usedSize(0) {}
+         DeviceCache( size_t size, NANOS_CACHE_POLICY policy, ProcessingElement *pe = NULL ) :
+            _pe( pe ), _cache(), _size( size ), _usedSize( 0 )
+         {
+            switch ( policy ) {
+               case NANOS_CACHE_WT_POLICY:
+                  _policy = NEW WriteThroughPolicy( *this );
+                  break;
+               case NANOS_CACHE_WB_POLICY:
+                  _policy = NEW WriteBackPolicy( *this );
+                  break;
+               default:
+                  fatal0( "Unknown cache policy" );
+                  break;
+            }
+         }
 
         /*! \brief Destructor
          */
-         virtual ~DeviceCache() {}
+         virtual ~DeviceCache()
+         {
+            delete _policy;
+         }
 
         /*! \brief Returns the size of the cache
          */
          size_t getSize();
-
-        /*! \brief Set the size of the cache
-         *  \param size new size for the cache
-         */
-         void setSize( size_t size );
 
         /*! \brief Allocate a block of memory in the device
          *  \param dir Directory to look for entries if the it needs to free space in the device.

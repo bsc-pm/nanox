@@ -45,6 +45,7 @@ namespace nanos
          unsigned       _singleCount;
          SchedData    * _schedData;
          // PM Data?
+         TeamData     * _parentData;
 
       private:
         /*! \brief TeamData copy constructor (private)
@@ -56,10 +57,10 @@ namespace nanos
       public:
         /*! \brief TeamData default constructor
          */
-         TeamData () : _id( 0 ), _singleCount( 0 ), _schedData( NULL ) {}
+         TeamData () : _id( 0 ), _singleCount( 0 ), _schedData( NULL ), _parentData( NULL ) {}
         /*! \brief TeamData destructor
          */
-         ~TeamData () {}
+         ~TeamData ();
 
          unsigned getId() const { return _id; }
          unsigned getSingleCount() const { return _singleCount; }
@@ -72,6 +73,9 @@ namespace nanos
 
          void setScheduleData ( SchedData *data ) { _schedData = data; }
          SchedData * getScheduleData () const { return _schedData; }
+
+         void setParentTeamData ( TeamData *data ) { _parentData = data; }
+         TeamData * getParentTeamData () const { return _parentData; }
    };
 
    namespace ext {
@@ -152,12 +156,15 @@ namespace nanos
                _started( false ), _mustStop( false ), _currentWD( NULL),
                _nextWD( NULL), _hasTeam( false ),_team(NULL),
                _teamData(NULL), _allocator() {}
+
         /*! \brief BaseThread destructor
          */
-         virtual ~BaseThread() {
+         virtual ~BaseThread()
+         {
             ensure0(!_hasTeam,"Destroying thread inside a team!");
             ensure0(!_started,"Trying to destroy running thread");
          }
+
 
          // atomic access
          void lock ();

@@ -43,19 +43,23 @@ class InstrumentationExtrae: public Instrumentation
       void initialize( void ) {}
       void finalize( void ) {}
       void addEventList ( unsigned int count, Event *events ) {}
+      void threadStart( BaseThread &thread ) {}
+      void threadFinish ( BaseThread &thread ) {}
 #else
    private:
       std::string                                    _listOfTraceFileNames;
-      std::string                                    _traceDirectory;
-      std::string                                    _traceFinalDirectory;
-      std::string                                    _traceFileName_PRV;
-      std::string                                    _traceFileName_PCF;
-      std::string                                    _traceFileName_ROW;
-      std::string                                    _binFileName;
+      std::string                                    _traceDirectory;        /*<< Extrae directory: EXTRAE_DIR */
+      std::string                                    _traceFinalDirectory;   /*<< Extrae final directory: EXTRAE_FINAL_DIR */
+      std::string                                    _traceParaverDirectory; /*<< Paraver output files directory */
+      std::string                                    _traceFileName_PRV;     /*<< Paraver: file.prv */
+      std::string                                    _traceFileName_PCF;     /*<< Paraver: file.pcf */
+      std::string                                    _traceFileName_ROW;     /*<< Paraver: file.row */
+      std::string                                    _binFileName;           /*<< Binnary file name */
    public: /* must be updated by Configure */
       static std::string                             _traceBaseName;
       static std::string                             _postProcessScriptPath;
       static bool                                    _keepMpits; /*<< Keeps mpits temporary files (default = no)*/
+      static bool                                    _skipMerge; /*<< Skip merge phase and keeps mpits temporary files (default = no)*/
    public:
       // constructor
       InstrumentationExtrae ( ) : Instrumentation( *NEW InstrumentationContextStackedStatesAndBursts() ) {}
@@ -255,7 +259,7 @@ class InstrumentationExtrae: public Instrumentation
          char *file_name    = (char *) alloca ( 255 * sizeof (char));
          bool file_exists; int num;
 
-         if ( !_keepMpits ) {
+         if ( !_keepMpits && !_skipMerge ) {
             /* Removig Temporary trace files */
             char str[255];
             std::fstream p_file;
@@ -374,7 +378,8 @@ class InstrumentationExtrae: public Instrumentation
       {
          // Check if the trace file exists
          struct stat buffer;
-         int err;
+         int err1, err2, err3;
+         std::string file_name;
          _binFileName = ( OS::getArg( 0 ) );
          size_t found = _binFileName.find_last_of("/\\");
 
@@ -386,16 +391,23 @@ class InstrumentationExtrae: public Instrumentation
             trace_base = _binFileName.substr(found+1);
          }
 
+         if ( _skipMerge) trace_base = trace_base + "-local";
+
          int num = 1;
          std::string trace_suffix = "_001";
          bool file_exists = true;
 
          while ( file_exists ) {
             // Attempt to get the file attributes
-            std::string file_name = _traceFinalDirectory + "/../" + trace_base + trace_suffix + ".prv";
-            err = stat( file_name.c_str(), &buffer );
-            if ( err == 0 ) {
-               // The file exists
+            file_name = _traceParaverDirectory + "/" + trace_base + trace_suffix + ".prv";
+            err1 = stat( file_name.c_str(), &buffer );
+            file_name = _traceParaverDirectory + "/" + trace_base + trace_suffix + ".pcf";
+            err2 = stat( file_name.c_str(), &buffer );
+            file_name = _traceParaverDirectory + "/" + trace_base + trace_suffix + ".row";
+            err3 = stat( file_name.c_str(), &buffer );
+
+            if ( err1 == 0 || err2 == 0 || err3 == 0) {
+               // Some of the files exist
                num++;
                std::stringstream trace_num;
                trace_num << "_" << (num < 100 ? "0" : "") << (num < 10 ? "0" : "") << num;
@@ -407,10 +419,9 @@ class InstrumentationExtrae: public Instrumentation
          }
 
          /* New file names */
-         found = _traceFinalDirectory.find_last_of("/");
-         _traceFileName_PRV = _traceFinalDirectory.substr(0,found+1) + trace_base + trace_suffix + ".prv" ;
-         _traceFileName_PCF = _traceFinalDirectory.substr(0,found+1) + trace_base + trace_suffix + ".pcf";
-         _traceFileName_ROW = _traceFinalDirectory.substr(0,found+1) + trace_base + trace_suffix + ".row";
+         _traceFileName_PRV = _traceParaverDirectory + "/" + trace_base + trace_suffix + ".prv" ;
+         _traceFileName_PCF = _traceParaverDirectory + "/" + trace_base + trace_suffix + ".pcf";
+         _traceFileName_ROW = _traceParaverDirectory + "/" + trace_base + trace_suffix + ".row";
       }
 
       void initialize ( void )
@@ -466,15 +477,20 @@ class InstrumentationExtrae: public Instrumentation
          recursiveMkdir(mpi_trace_dir, S_IRWXU);
          recursiveMkdir(mpi_trace_final_dir, S_IRWXU);
 
+         /* Creating temporary directory and setting directory */
          _traceDirectory = tempnam(mpi_trace_dir, "trace");
-         _traceFinalDirectory = tempnam(mpi_trace_final_dir, "trace");
-
          if ( recursiveMkdir(_traceDirectory.c_str(), S_IRWXU ) != 0 )
             fatal0 ( "Trace directory doesn't exists or user has no permissions on this directory" ); ;
+
+         /* Creating temporary final directory and setting final directory */
+         _traceFinalDirectory = tempnam(mpi_trace_final_dir, "trace");
          if ( recursiveMkdir(_traceFinalDirectory.c_str(), S_IRWXU) != 0 ) {
             remove ( _traceDirectory.c_str());
             fatal0 ( "Trace final directory doesn't exists or user has no permissions on this directory" ); ;
          }
+
+         if ( _skipMerge ) _traceParaverDirectory = _traceFinalDirectory;
+         else   _traceParaverDirectory = mpi_trace_final_dir; 
 
          _listOfTraceFileNames = _traceFinalDirectory + "/TRACE.mpits";
 
@@ -500,7 +516,10 @@ class InstrumentationExtrae: public Instrumentation
       {
          OMPItrace_fini();
          getTraceFileName();
-         //mergeParaverTraceFiles();
+         if ( !_skipMerge ) {
+            mergeParaverTraceFiles();
+            postProcessTraceFile();
+         }
          modifyParaverConfigFile();
          copyFilesToMaster();
          removeTemporaryFiles();
@@ -645,6 +664,8 @@ class InstrumentationExtrae: public Instrumentation
 
          Extrae_emit_CombinedEvents ( &ce );
       }
+      void threadStart( BaseThread &thread ) {}
+      void threadFinish ( BaseThread &thread ) {}
 #endif
 };
 
@@ -652,6 +673,7 @@ class InstrumentationExtrae: public Instrumentation
 std::string InstrumentationExtrae::_traceBaseName = std::string("");
 std::string InstrumentationExtrae::_postProcessScriptPath = std::string("");
 bool InstrumentationExtrae::_keepMpits = false;
+bool InstrumentationExtrae::_skipMerge = false;
 #endif
 
 namespace ext {
@@ -683,6 +705,9 @@ class InstrumentationParaverPlugin : public Plugin {
                                        "Keeps mpits temporary files generated by extrae library" );
          cfg.registerArgOption ( "keep-mpits", "keep-mpits" );
 
+         cfg.registerConfigOption ( "extrae-skip-merge", NEW Config::FlagOption( InstrumentationExtrae::_skipMerge ),
+                                       "Skips merge phase in trace generation (also keeps mpits temporary files)" );
+         cfg.registerArgOption ( "extrae-skip-merge", "extrae-skip-merge" );
 #endif
       }
 

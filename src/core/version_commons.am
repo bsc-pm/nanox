@@ -1,6 +1,4 @@
 common_libadd=\
-	-lpthread \
-	-ldl \
 	$(END)
 
 common_sources=\

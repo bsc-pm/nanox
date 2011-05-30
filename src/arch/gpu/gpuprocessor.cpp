@@ -19,6 +19,7 @@
 
 #include "gpuprocessor.hpp"
 #include "debug.hpp"
+#include "gpudd.hpp"
 #include "schedule.hpp"
 #include "simpleallocator.hpp"
 
@@ -32,7 +33,7 @@ size_t GPUProcessor::_memoryAlignment = 256;
 
 
 GPUProcessor::GPUProcessor( int id, int gpuId ) : CachedAccelerator<GPUDevice>( id, &GPU ),
-      _gpuDevice( _deviceSeed++ ), _gpuProcessorTransfers(), _allocator(), _pinnedMemoryAllocator(), _inputPinnedMemoryBuffer(), _pinnedMemory()
+      _gpuDevice( _deviceSeed++ ), _gpuProcessorTransfers(), _allocator(), _inputPinnedMemoryBuffer()
 {
    _gpuProcessorInfo = NEW GPUProcessorInfo( gpuId );
 }
@@ -51,7 +52,6 @@ void GPUProcessor::init ()
 
    struct cudaDeviceProp gpuProperties;
    GPUConfig::getGPUsProperties( _gpuDevice, ( void * ) &gpuProperties );
-   //cudaGetDeviceProperties( &gpuProperties, _gpuDevice );
 
    // Check if the user has set the amount of memory to use (and the value is valid)
    // Otherwise, use 95% of the total GPU global memory
@@ -59,11 +59,13 @@ void GPUProcessor::init ()
    size_t maxMemoryAvailable = ( size_t ) ( gpuProperties.totalGlobalMem * 0.95 );
 
    if ( userDefinedMem > 0 ) {
+      if ( userDefinedMem <= 100 ) {
+         userDefinedMem = ( size_t ) ( maxMemoryAvailable * ( userDefinedMem / 100.0 ) );
+      }
       if ( userDefinedMem > maxMemoryAvailable ) {
-         warning( "Could not set memory size to " << userDefinedMem
-               << " for GPU #" << _gpuDevice
-               << " because maximum memory available is " << maxMemoryAvailable
-               << " bytes. Using " << maxMemoryAvailable << " bytes" );
+         warning( "Could not set memory size to " << userDefinedMem << " for GPU #" << _gpuDevice
+               << " because maximum memory available is " << maxMemoryAvailable << " bytes. Using "
+               << maxMemoryAvailable << " bytes" );
       }
       else {
          maxMemoryAvailable = userDefinedMem;
@@ -91,7 +93,7 @@ void GPUProcessor::init ()
    // much bytes as we have asked
    void * baseAddress = GPUDevice::allocateWholeMemory( maxMemoryAvailable );
    _allocator.init( ( uint64_t ) baseAddress, maxMemoryAvailable );
-   setCacheSize( maxMemoryAvailable );
+   configureCache( maxMemoryAvailable, toCachePolicy( GPUConfig::getCachePolicy() ) );
    _gpuProcessorInfo->setMaxMemoryAvailable( maxMemoryAvailable );
 
    // If some kind of overlapping is defined, allocate some pinned memory
@@ -107,20 +109,12 @@ void GPUProcessor::init ()
       void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
       _outputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );
    }
-   // WARNING: initTransferStreams() can modify inputStream's and outputStream's
-   // value, so call it first
-
-   /*
-   if ( inputStream ) {
-      // Create a list of inputs that have been ordered to transfer but the copy is
-      // still not completed
-      delete _gpuProcessorTransfers._pendingCopiesIn;
-      _gpuProcessorTransfers._pendingCopiesIn = NEW GPUMemoryTransferInAsyncList();
-   }
-   */
+   // WARNING: initTransferStreams() can modify inputStream's and outputStream's value,
+   // so call it first
 
    if ( outputStream ) {
       // If we have a stream for outputs, create the list with asynchronous behaviour
+      // There is no need to do it for inputs, as it is already asynchronous
       delete _gpuProcessorTransfers._pendingCopiesOut;
       _gpuProcessorTransfers._pendingCopiesOut = NEW GPUMemoryTransferOutAsyncList();
    }
@@ -158,3 +152,86 @@ BaseThread &GPUProcessor::createThread ( WorkDescriptor &helper, SMPMultiThread 
 }
 
 
+void GPUProcessor::GPUProcessorInfo::initTransferStreams ( bool &inputStream, bool &outputStream )
+{
+   if ( inputStream ) {
+      // Initialize the CUDA streams used for input data transfers
+      cudaError_t err = cudaStreamCreate( &_inTransferStream );
+      if ( err != cudaSuccess ) {
+         // If an error occurred, disable stream overlapping
+         _inTransferStream = 0;
+         inputStream = false;
+         if ( err == CUDANODEVERR ) {
+            fatal( "Error while creating the CUDA input transfer stream: all CUDA-capable devices are busy or unavailable" );
+         }
+         warning( "Error while creating the CUDA input transfer stream: " << cudaGetErrorString( err ) );
+      }
+   }
+
+   if ( outputStream ) {
+      // Initialize the CUDA streams used for output data transfers
+      cudaError_t err = cudaStreamCreate( &_outTransferStream );
+      if ( err != cudaSuccess ) {
+         // If an error occurred, disable stream overlapping
+         _outTransferStream = 0;
+         outputStream = false;
+         if ( err == CUDANODEVERR ) {
+            fatal( "Error while creating the CUDA output transfer stream: all CUDA-capable devices are busy or unavailable" );
+         }
+         warning( "Error while creating the CUDA output transfer stream: " << cudaGetErrorString( err ) );
+      }
+   }
+
+   if ( inputStream || outputStream ) {
+      // Initialize the CUDA streams used for local data transfers and kernel execution
+      cudaError_t err = cudaStreamCreate( &_localTransferStream );
+      if ( err != cudaSuccess ) {
+         // If an error occurred, disable stream overlapping
+         _localTransferStream = 0;
+         if ( err == CUDANODEVERR ) {
+            fatal( "Error while creating the CUDA output transfer stream: all CUDA-capable devices are busy or unavailable" );
+         }
+         warning( "Error while creating the CUDA local transfer stream: " << cudaGetErrorString( err ) );
+      }
+      err = cudaStreamCreate( &_kernelExecStream );
+      if ( err != cudaSuccess ) {
+         // If an error occurred, disable stream overlapping
+         _kernelExecStream = 0;
+         if ( err == CUDANODEVERR ) {
+            fatal( "Error while creating the CUDA output transfer stream: all CUDA-capable devices are busy or unavailable" );
+         }
+         warning( "Error while creating the CUDA kernel execution stream: " << cudaGetErrorString( err ) );
+      }
+   }
+}
+
+void GPUProcessor::GPUProcessorInfo::destroyTransferStreams ()
+{
+   if ( _inTransferStream ) {
+      cudaError_t err = cudaStreamDestroy( _inTransferStream );
+      if ( err != cudaSuccess ) {
+         warning( "Error while destroying the CUDA input transfer stream: " << cudaGetErrorString( err ) );
+      }
+   }
+
+   if ( _outTransferStream ) {
+      cudaError_t err = cudaStreamDestroy( _outTransferStream );
+      if ( err != cudaSuccess ) {
+         warning( "Error while destroying the CUDA output transfer stream: " << cudaGetErrorString( err ) );
+      }
+   }
+
+   if ( _localTransferStream ) {
+      cudaError_t err = cudaStreamDestroy( _localTransferStream );
+      if ( err != cudaSuccess ) {
+         warning( "Error while destroying the CUDA local transfer stream: " << cudaGetErrorString( err ) );
+      }
+   }
+
+   if ( _kernelExecStream ) {
+      cudaError_t err = cudaStreamDestroy( _kernelExecStream );
+      if ( err != cudaSuccess ) {
+         warning( "Error while destroying the CUDA kernel execution stream: " << cudaGetErrorString( err ) );
+      }
+   }
+}

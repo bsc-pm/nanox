@@ -21,7 +21,7 @@
 #define _NANOS_GPU_PROCESSOR_DECL
 
 #include "cachedaccelerator.hpp"
-#include "gputhread.hpp"
+#include "gputhread_decl.hpp"
 #include "gpuconfig.hpp"
 #include "gpudevice_decl.hpp"
 #include "gpumemorytransfer.hpp"
@@ -36,7 +36,7 @@ namespace nanos {
 namespace ext
 {
 
-   class GPUProcessor : public CachedAccelerator<GPUDevice, WriteThroughPolicy>
+   class GPUProcessor : public CachedAccelerator<GPUDevice>
    {
       public:
          class GPUProcessorInfo;
@@ -80,10 +80,8 @@ namespace ext
 
 
          SimpleAllocator               _allocator;
-         SimpleAllocator               _pinnedMemoryAllocator;
          BufferManager                 _inputPinnedMemoryBuffer;
          BufferManager                 _outputPinnedMemoryBuffer;
-         std::map< void *, uint64_t >  _pinnedMemory;
 
          //! Disable copy constructor and assignment operator
          GPUProcessor( const GPUProcessor &pe );
@@ -116,22 +114,6 @@ namespace ext
          bool supportsUserLevelThreads () const { return false; }
          bool isGPU () const { return true; }
 
-#if 0
-         // Memory space support
-         void setCacheSize( size_t size );
-
-         void waitInputDependent( uint64_t tag );
-
-         void registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
-         void unregisterCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool output );
-         void registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
-         void unregisterPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size );
-         void synchronize( CopyDescriptor &cd );
-         void synchronize( std::list<CopyDescriptor> &cds );
-
-         void* getAddressDependent( uint64_t tag );
-         void copyToDependent( void *dst, uint64_t tag, size_t size );
-#endif
          // Allocator interface
          void * allocate ( size_t size )
          {
@@ -145,23 +127,12 @@ namespace ext
 
          void * allocateInputPinnedMemory ( size_t size )
          {
-#if 0
-            void * add = _pinnedMemoryAllocator.allocate( size );
-            fatal_cond( add == 0, "Not enough pinned memory to use (size = " + toString<size_t>( size ) + ")");
-            return add;
-            //return _pinnedMemoryAllocator.allocate( size );
-#else
             return _inputPinnedMemoryBuffer.allocate( size );
-#endif
          }
 
-         void freeInputPinnedMemory () //( void * address )
+         void freeInputPinnedMemory ()
          {
-#if 0
-            _pinnedMemoryAllocator.free( address );
-#else
             _inputPinnedMemoryBuffer.reset();
-#endif
          }
 
          void * allocateOutputPinnedMemory ( size_t size )
@@ -169,7 +140,7 @@ namespace ext
             return _outputPinnedMemoryBuffer.allocate( size );
          }
 
-         void freeOutputPinnedMemory () //( void * address )
+         void freeOutputPinnedMemory ()
          {
             _outputPinnedMemoryBuffer.reset();
          }
@@ -178,21 +149,6 @@ namespace ext
          GPUProcessorInfo * getGPUProcessorInfo ()
          {
             return _gpuProcessorInfo;
-         }
-
-         uint64_t getPinnedAddress ( void * dAddress )
-         {
-            return _pinnedMemory.count( dAddress ) == 0 ? 0 : _pinnedMemory[dAddress];
-         }
-
-         void setPinnedAddress ( void * dAddress, uint64_t pinned )
-         {
-            _pinnedMemory[dAddress] = pinned;
-         }
-
-         void removePinnedAddress ( void * dAddress )
-         {
-            _pinnedMemory.erase( dAddress );
          }
 
          void transferInput ( size_t size )

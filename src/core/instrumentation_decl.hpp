@@ -34,6 +34,7 @@
 #include "instrumentationcontext_fwd.hpp"
 #include "workdescriptor_fwd.hpp"
 #include "allocator_decl.hpp"
+#include "basethread_decl.hpp"
 
 namespace nanos {
 
@@ -271,6 +272,21 @@ namespace nanos {
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GENERIC_EVENT", "CUDA generic event" );                              /* 17 */
             registerEventValue("in-cuda-runtime", "NANOS_GPU_MEMCOPY_EVENT", "memcpy()" );                                             /* 18 */
             /* 28 */ registerEventKey("xfer-size","Transfer size");
+
+            /* 29 */ registerEventKey("cache-wait","Cache waiting for something");
+            registerEventValue("cache-wait","registerCacheAccess() L.94","registerCacheAccess() waiting for data allocation (not registered in directory)");
+            registerEventValue("cache-wait","registerCacheAccess() L.112","registerCacheAccess() waiting for data invalidation in another cache (new entry)");
+            registerEventValue("cache-wait","registerCacheAccess() L.122","registerCacheAccess() waiting for data to have no owner");
+            registerEventValue("cache-wait","registerCacheAccess() L.141","registerCacheAccess() waiting for data allocation (registered in directory)");
+            registerEventValue("cache-wait","registerCacheAccess() L.163","registerCacheAccess() waiting for data invalidation (size has changed)");
+            registerEventValue("cache-wait","registerCacheAccess() L.185","registerCacheAccess() waiting for data invalidation in another cache (size has changed)");
+            registerEventValue("cache-wait","registerCacheAccess() L.221","registerCacheAccess() waiting for data to be copied back (size has changed)");
+            registerEventValue("cache-wait","registerCacheAccess() L.239","registerCacheAccess() waiting for data invalidation in another cache (old version)");
+            registerEventValue("cache-wait","registerCacheAccess() L.260","registerCacheAccess() invalidating another cache");
+            registerEventValue("cache-wait","registerCacheAccess() L.292","registerCacheAccess() waiting for resize");
+            registerEventValue("cache-wait","registerCacheAccess() L.300","registerCacheAccess() waiting for flush");
+            registerEventValue("cache-wait","freeSpaceToFit()","freeSpaceToFit()");
+            registerEventValue("cache-wait","waitInput()","waitInput()");
 
             /* ** */ registerEventKey("debug","Debug Key"); /* Keep this key as the last one */
          }
@@ -572,6 +588,16 @@ namespace nanos {
           *  to be consistent with the instrumentation model
           */
          virtual void finalize( void ) = 0;
+
+         /*! \brief Pure virtual function executed on each thread initialization
+          *
+          */
+         virtual void threadStart( BaseThread &thread ) = 0;
+
+         /*! \brief Pure virtual function executed on each thread finalization
+          *
+          */
+         virtual void threadFinish ( BaseThread &thread ) = 0;
 
          /*! \brief Pure virtual functions executed each time runtime wants to add an event
           *

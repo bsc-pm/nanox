@@ -13,6 +13,7 @@ gpu_sources = \
 	$(top_srcdir)/src/arch/gpu/gpuprocessor_decl.hpp \
 	$(top_srcdir)/src/arch/gpu/gpuprocessor.hpp \
 	$(top_srcdir)/src/arch/gpu/gpuprocessor.cpp \
+	$(top_srcdir)/src/arch/gpu/gputhread_decl.hpp \
 	$(top_srcdir)/src/arch/gpu/gputhread.hpp \
 	$(top_srcdir)/src/arch/gpu/gputhread.cpp \
 	$(top_srcdir)/src/arch/gpu/gpuutils.hpp \

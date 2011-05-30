@@ -26,21 +26,24 @@
 using namespace nanos;
 
 inline ThreadTeam::ThreadTeam ( int maxThreads, SchedulePolicy &policy, ScheduleTeamData *data, Barrier &barrierImpl, ThreadTeamData & ttd, ThreadTeam * parent )
-   : _idleThreads( 0 ), _numTasks( 0 ), _barrier(barrierImpl), _singleGuardCount( 0 ),
+   : _size(0), _idleThreads( 0 ), _numTasks( 0 ), _barrier(barrierImpl), _singleGuardCount( 0 ),
      _schedulePolicy( policy ), _scheduleData( data ), _threadTeamData( ttd ), _parent( parent ), _level( parent == NULL ? 0 : parent->getLevel() + 1 ), _creatorId(-1)
 {
-      _threads.reserve( maxThreads );
+      _threads = NEW BaseThread *[maxThreads];
 }
 
 inline ThreadTeam::~ThreadTeam ()
 {
-   delete &_barrier;
    ensure(size() == 0, "Destroying non-empty team!");
+   delete[] _threads;
+   delete &_barrier;
+   delete _scheduleData;
+   delete &_threadTeamData;
 }
 
 inline unsigned ThreadTeam::size() const
 {
-   return _threads.size();
+   return _size.value();
 }
 
 inline void ThreadTeam::init ()
@@ -77,12 +80,19 @@ inline BaseThread & ThreadTeam::operator[]  ( int i )
 
 inline unsigned ThreadTeam::addThread ( BaseThread *thread, bool creator )
 {
-   unsigned id = size();
-   _threads.push_back( thread );
+   unsigned id = _size++;
+   _threads[id] =  thread;
    if ( creator ) {
       _creatorId = (int) id;
    }
    return id;
+}
+
+inline void ThreadTeam::removeThread ( BaseThread *thread )
+{
+   unsigned id = thread->getTeamData()->getId();
+   _threads[id] = 0;
+   _size--;
 }
 
 inline void ThreadTeam::barrier()

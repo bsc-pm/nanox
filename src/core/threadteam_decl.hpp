@@ -29,7 +29,8 @@
 namespace nanos
 {
 
-   class ThreadTeamData {
+   class ThreadTeamData
+   {
       private:
          /*! \brief ThreadTeamData copy constructor (private)
           */
@@ -51,7 +52,8 @@ namespace nanos
    class ThreadTeam
    {
       private:
-         std::vector<BaseThread *>    _threads;
+         BaseThread **                _threads;
+         Atomic<size_t>               _size;
          int                          _idleThreads;
          int                          _numTasks;
          Barrier &                    _barrier;
@@ -110,6 +112,9 @@ namespace nanos
           *  \param creator: If true the thread ID is set as the creatorID for this team
           */
          unsigned addThread ( BaseThread *thread, bool creator = false );
+         /*! \brief removes a thread from the team pool
+          */
+         void removeThread ( BaseThread *thread );
 
          void barrier();
 

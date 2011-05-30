@@ -23,7 +23,7 @@
 #include <alloca.h>
 
 #ifdef GPU_DEV
-#include "gputhread.hpp"
+#include "gputhread_decl.hpp"
 #endif
 
 using namespace nanos;

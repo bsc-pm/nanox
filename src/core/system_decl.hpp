@@ -120,6 +120,8 @@ namespace nanos
          // Programming model interface
          PMInterface *        _pmInterface;
 
+         // General cache policy (if not specifically redefined for a certain architecture)
+         std::string          _cachePolicy;
          // CacheMap register
          CacheMap             _cacheMap;
          
@@ -223,8 +225,7 @@ namespace nanos
 
          // team related methods
          BaseThread * getUnassignedWorker ( void );
-         ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL,
-                                   bool reuseCurrent=true,  TeamData *tdata = 0 );
+         ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuseCurrent=true );
 
          BaseThread * getWorker( unsigned int n );
 
@@ -278,7 +279,8 @@ namespace nanos
          void stopFirstThread( void );
 
          void setPMInterface (PMInterface *_pm);
-         const PMInterface & getPMInterface ( void ) const;
+         PMInterface & getPMInterface ( void ) const;
+         std::string getCachePolicy();
          CacheMap& getCacheMap();
 
          void threadReady ();

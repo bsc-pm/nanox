@@ -34,7 +34,7 @@
 namespace nanos {
 namespace ext {
 
-   class ClusterNode : public CachedAccelerator< ClusterDevice, WriteBackPolicy >
+   class ClusterNode : public CachedAccelerator< ClusterDevice >
    {
 
       private:
@@ -53,11 +53,11 @@ namespace ext {
          // constructors
          //FIXME: GPU support
 #ifdef GPU_DEV
-         ClusterNode( int id ) : CachedAccelerator< ClusterDevice, WriteBackPolicy >( sys.getNumPEs(), &Cluster, &GPU, ( int )
+         ClusterNode( int id ) : CachedAccelerator< ClusterDevice >( id, &Cluster, NANOS_CACHE_WB_POLICY, &GPU, ( int ) ClusterInfo::getSegmentLen( id ) ),
 #else
-         ClusterNode( int id ) : CachedAccelerator< ClusterDevice, WriteBackPolicy >( sys.getNumPEs(), &Cluster, NULL, ( int )
+         ClusterNode( int id ) : CachedAccelerator< ClusterDevice >( id, &Cluster, NANOS_CACHE_WB_POLICY, NULL, ( int ) ClusterInfo::getSegmentLen( id ) ),
 #endif
-            ClusterInfo::getSegmentLen( id ) ), _clusterNode ( id ), _memSegment( ( uintptr_t ) ClusterInfo::getSegmentAddr( id ),
+            _clusterNode ( id ), _memSegment( ( uintptr_t ) ClusterInfo::getSegmentAddr( id ),
             ClusterInfo::getSegmentLen( id ) ), _executedWorkDesciptors ( 0 ) { }
 
          virtual ~ClusterNode() {}

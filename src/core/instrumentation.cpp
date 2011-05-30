@@ -46,12 +46,24 @@ void Instrumentation::returnPreviousStateEvent ( Event *e )
 {
    /* Recovering a state event in instrumentation context */
    InstrumentationContextData  *icd = myThread->getCurrentWD()->getInstrumentationContextData();
-   _instrumentationContext.popState( icd );
+
+   /* Getting top of state stack: before pop (for stacked states backends) */
    nanos_event_state_value_t state = _instrumentationContext.topState( icd ); 
 
+   /* Stack Pop */
+   _instrumentationContext.popState( icd );
+
    /* Creating a state event */
-   if ( _instrumentationContext.isStateEventEnabled( icd ) ) new (e) State(NANOS_STATE_END,state);
-   else new (e) State(NANOS_SUBSTATE_END, state);
+   if ( _instrumentationContext.showStackedStates () ) {
+      if ( _instrumentationContext.isStateEventEnabled( icd ) ) new (e) State(NANOS_STATE_END,state);
+      else new (e) State(NANOS_SUBSTATE_END, state);
+   } else {
+      /* Getting top of state stack: after pop (for non-stacked states backends) */
+      state = _instrumentationContext.topState( icd ); 
+
+      if ( _instrumentationContext.isStateEventEnabled( icd ) ) new (e) State(NANOS_STATE_START,state);
+      else new (e) State(NANOS_SUBSTATE_START, state);
+   }
 }
 
 void Instrumentation::createBurstEvent ( Event *e, nanos_event_key_t key, nanos_event_value_t value, InstrumentationContextData *icd )

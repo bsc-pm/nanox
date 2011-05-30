@@ -54,11 +54,12 @@ System nanos::sys;
 System::System () :
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindThreads( true ), _profile( false ), _instrument( false ),
       _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster(false),
-      _delayedStart(false), _useYield(true), _synchronizedStart(true), _useCluster( false ), _isMaster(true), _preMainBarrier ( 1 ),_preMainBarrierLast ( 0 ), _throttlePolicy ( NULL ),
+      _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
+      _useCluster( false ), _isMaster( true ), _preMainBarrier ( 1 ), _preMainBarrierLast ( 0 ), _throttlePolicy ( NULL ),
       _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
-      _defBarr( "posix" ), _defInstr ( "empty_trace" ), _defArch("smp"),
+      _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _currentConduit( "mpi" ),
-      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL ), _cacheMap(), _masterGpuThd(NULL)
+      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL ), _cachePolicy(), _cacheMap(), _masterGpuThd( NULL )
 {
    verbose0 ( "NANOS++ initializing... start" );
    // OS::init must be called here and not in System::start() as it can be too late
@@ -76,7 +77,7 @@ struct LoadModule
    void operator() ( const char *module )
    {
       if ( module ) {
-        verbose0( "loading " << module << " module"  );
+        verbose0( "loading " << module << " module" );
         PluginManager::load(module);
       }
    }
@@ -139,7 +140,7 @@ void System::loadModules ()
    if ( !PluginManager::load( "throttle-"+getDefaultThrottlePolicy() ) )
       fatal0( "Could not load main cutoff policy" );
 
-   ensure(_throttlePolicy, "No default throttle policy");
+   ensure( _throttlePolicy, "No default throttle policy" );
 
    verbose0( "loading " << getDefaultBarrier() << " barrier algorithm" );
 
@@ -164,8 +165,8 @@ struct ExecInit
    void operator() ( const nanos_init_desc_t & init )
    {
       if ( _initialized.find( (void *)init.func ) == _initialized.end() ) {
-         init.func(init.data);
-         _initialized.insert( (void *)init.func );
+         init.func( init.data );
+         _initialized.insert( ( void * ) init.func );
       }
    }
 };
@@ -184,7 +185,7 @@ void System::config ()
 
    verbose0 ( "Preparing library configuration" );
 
-   cfg.setOptionsSection ( "Core", "Core options of the core of Nanos++ runtime"  );
+   cfg.setOptionsSection ( "Core", "Core options of the core of Nanos++ runtime" );
 
    cfg.registerConfigOption ( "num_pes", NEW Config::PositiveVar( _numPEs ), "Defines the number of processing elements" );
    cfg.registerArgOption ( "num_pes", "pes" );
@@ -194,13 +195,13 @@ void System::config ()
    cfg.registerArgOption ( "stack-size", "stack-size" );
    cfg.registerEnvOption ( "stack-size", "NX_STACK_SIZE" );
 
-   cfg.registerConfigOption ( "no-binding", NEW Config::FlagOption( _bindThreads, false), "Disables thread binding" );
+   cfg.registerConfigOption ( "no-binding", NEW Config::FlagOption( _bindThreads, false ), "Disables thread binding" );
    cfg.registerArgOption ( "no-binding", "disable-binding" );
 
-   cfg.registerConfigOption( "no-yield", NEW Config::FlagOption( _useYield, false), "Do not yield on idle and condition waits");
+   cfg.registerConfigOption( "no-yield", NEW Config::FlagOption( _useYield, false ), "Do not yield on idle and condition waits" );
    cfg.registerArgOption ( "no-yield", "disable-yield" );
 
-   cfg.registerConfigOption ( "verbose", NEW Config::FlagOption( _verboseMode), "Activates verbose mode" );
+   cfg.registerConfigOption ( "verbose", NEW Config::FlagOption( _verboseMode ), "Activates verbose mode" );
    cfg.registerArgOption ( "verbose", "verbose" );
 
 #if 0
@@ -244,8 +245,12 @@ void System::config ()
    cfg.registerArgOption ( "architecture", "architecture" );
    cfg.registerEnvOption ( "architecture", "NX_ARCHITECTURE" );
 
-   _schedConf.config(cfg);
-   _pmInterface->config(cfg);
+   cfg.registerConfigOption ( "cache-policy", NEW Config::StringVar ( _cachePolicy ), "Defines the general cache policy to use (copy-back by default). Can be overwritten for specific architectures" );
+   cfg.registerArgOption ( "cache-policy", "cache-policy" );
+   cfg.registerEnvOption ( "cache-policy", "NX_CACHE_POLICY" );
+
+   _schedConf.config( cfg );
+   _pmInterface->config( cfg );
 
    verbose0 ( "Reading Configuration" );
    cfg.init();
@@ -300,9 +305,9 @@ void System::start ()
    WD &mainWD = *myThread->getCurrentWD();
    
    if ( _pmInterface->getInternalDataSize() > 0 )
-     mainWD.setInternalData(NEW char[_pmInterface->getInternalDataSize()]);
+     mainWD.setInternalData( NEW char[_pmInterface->getInternalDataSize()] );
       
-   _pmInterface->setupWD(mainWD);
+   _pmInterface->setupWD( mainWD );
 
    /* Renaming currend thread as Master */
    myThread->rename("Master");
@@ -1191,20 +1196,31 @@ BaseThread * System::getWorker ( unsigned int n )
 
 void System::releaseWorker ( BaseThread * thread )
 {
+   ThreadTeam *team = thread->getTeam();
+   TeamData * parentData = thread->getTeamData()->getParentTeamData();
+
    //TODO: destroy if too many?
-   //TODO: to free or not to free team data?
-   debug("Releasing thread " << thread << " from team " << thread->getTeam() );
-   thread->leaveTeam();
+
+   debug("Releasing thread " << thread << " from team " << team );
+   thread->leaveTeam();   
+   delete thread->getTeamData();
+   team->removeThread(thread);
+
+   if ( parentData != NULL )
+   {
+      ThreadTeam *parent = team->getParent();
+      myThread->enterTeam(parent,parentData);
+   }
+
 }
 
 ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
-                                   bool reuseCurrent, TeamData *tdata )
+                                   bool reuseCurrent )
 {
    int thId;
    TeamData *data;
 
    if ( nthreads == 0 ) {
-      nthreads = 1;
       nthreads = getNumPEs()*getThsPerPE();
    }
    
@@ -1216,34 +1232,32 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
       stdata = sched->createTeamData(NULL);
 
    // create team
-   ThreadTeam * team = NEW ThreadTeam( nthreads, *sched, stdata, *_defBarrFactory(), *(_pmInterface->getThreadTeamData()), NULL );
+   ThreadTeam * team = NEW ThreadTeam( nthreads, *sched, stdata, *_defBarrFactory(), *(_pmInterface->getThreadTeamData()),
+                                       reuseCurrent ? myThread->getTeam() : NULL );
 
    debug( "Creating team " << team << " of " << nthreads << " threads" );
 
    // find threads
    if ( reuseCurrent ) {
-      nthreads --;
-
-      thId = team->addThread( myThread, true );
-
-      debug( "adding thread " << myThread << " with id " << toString<int>(thId) << " to " << team );
-
+      BaseThread *current = myThread;
       
-      if (tdata) data = &tdata[thId];
-      else data = NEW TeamData();
+      nthreads --;      
+
+      thId = team->addThread( current, true );
+
+      data = NEW TeamData();
 
       ScheduleThreadData* sthdata = 0;
       if ( sched->getThreadDataSize() > 0 )
         sthdata = sched->createThreadData(NULL);
       
-//       data->parentTeam = myThread->getTeamData();
-
       data->setId(thId);
       data->setScheduleData(sthdata);
+      data->setParentTeamData(current->getTeamData());
       
-      myThread->enterTeam( team,  data );
+      current->enterTeam( team,  data );
 
-      debug( "added thread " << myThread << " with id " << toString<int>(thId) << " to " << team );
+      debug( "added thread " << current << " with id " << toString<int>(thId) << " to " << team );
    }
 
    while ( nthreads > 0 ) {
@@ -1256,10 +1270,8 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
 
       nthreads--;
       thId = team->addThread( thread );
-      debug( "adding thread " << thread << " with id " << toString<int>(thId) << " to " << team );
 
-      if (tdata) data = &tdata[thId];
-      else data = NEW TeamData();
+      data = NEW TeamData();
 
       ScheduleThreadData *sthdata = 0;
       if ( sched->getThreadDataSize() > 0 )
@@ -1279,15 +1291,11 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
 
 void System::endTeam ( ThreadTeam *team )
 {
-   if ( team->size() > 1 ) {
-     fatal("Trying to end a team with running threads");
-   }
+   debug("Destroying thread team " << team << " with size " << team->size() );
 
-//    if ( myThread->getTeamData()->parentTeam )
-//    {
-//       myThread->restoreTeam(myThread->getTeamData()->parentTeam);
-//    }
-
+   while ( team->size ( ) > 0 ) {}
+   
+   fatal_cond( team->size() > 0, "Trying to end a team with running threads");
    
    delete team;
 }

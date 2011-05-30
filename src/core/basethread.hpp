@@ -32,6 +32,11 @@
 
 namespace nanos
 {
+   inline TeamData::~TeamData ()
+   {
+      delete _schedData;
+   }
+   
    // atomic access
    inline void BaseThread::lock () { _mlock++; }
  

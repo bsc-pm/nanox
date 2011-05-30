@@ -54,6 +54,7 @@ void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
 
    if ( _tie ) tieTo(*myThread);
 
+   sys.getPMInterface().wdStarted( *this );
    setReady();
 }
 
@@ -112,6 +113,8 @@ void WorkDescriptor::done ()
    waitCompletionAndSignalers();
    if ( getNumCopies() > 0 )
      pe->copyDataOut( *this );
+
+   sys.getPMInterface().wdFinished( *this );
 
    this->getParent()->workFinished( *this );
 

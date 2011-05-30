@@ -27,73 +27,70 @@
 
 using namespace nanos;
 
-template <class CacheDevice, class Policy>
-inline void CachedAccelerator<CacheDevice,Policy>::setCacheSize( size_t size )
+
+template <class CacheDevice>
+void CachedAccelerator<CacheDevice>::configureCache( int cacheSize, NANOS_CACHE_POLICY cachePolicy )
 {
-   _cache.setSize( size );
+   _cache = NEW DeviceCache<CacheDevice>( cacheSize, cachePolicy, this );
 }
 
-template <class CacheDevice, class Policy>
-inline bool CachedAccelerator<CacheDevice,Policy>::checkBlockingCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
+template <class CacheDevice>
+inline void CachedAccelerator<CacheDevice>::registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
 {
-   //std::cerr << "n:" << sys.getNetwork()->getNodeNum() << " register cache access: dir " << (void *) &dir << " addr " << (void *) tag << std::endl;
-   return _cache.checkBlockingCacheAccess( dir, tag, size, input, output );
+   _cache->registerCacheAccess( dir, tag, size, input, output );
 }
 
-template <class CacheDevice, class Policy>
-inline void CachedAccelerator<CacheDevice,Policy>::registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
+template <class CacheDevice>
+inline void CachedAccelerator<CacheDevice>::unregisterCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool output )
 {
-   //std::cerr << "n:" << sys.getNetwork()->getNodeNum() << " register cache access: dir " << (void *) &dir << " addr " << (void *) tag << std::endl;
-   _cache.registerCacheAccess( dir, tag, size, input, output );
+   _cache->unregisterCacheAccess( dir, tag, size, output );
 }
 
-template <class CacheDevice, class Policy>
-inline void CachedAccelerator<CacheDevice,Policy>::unregisterCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool output )
+template <class CacheDevice>
+inline void CachedAccelerator<CacheDevice>::registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
 {
-   //std::cerr << "n:" << sys.getNetwork()->getNodeNum() << " UNregister cache access: dir " << (void *) &dir << " addr " << (void *) tag << std::endl;
-   _cache.unregisterCacheAccess( dir, tag, size, output );
+   _cache->registerPrivateAccess( dir, tag, size, input, output );
 }
 
-template <class CacheDevice, class Policy>
-inline void CachedAccelerator<CacheDevice,Policy>::registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
+template <class CacheDevice>
+inline void CachedAccelerator<CacheDevice>::unregisterPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size )
 {
-   _cache.registerPrivateAccess( dir, tag, size, input, output );
+   _cache->unregisterPrivateAccess( dir, tag, size );
 }
 
-template <class CacheDevice, class Policy>
-inline void CachedAccelerator<CacheDevice,Policy>::unregisterPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size )
+template <class CacheDevice>
+inline void CachedAccelerator<CacheDevice>::synchronize( CopyDescriptor &cd )
 {
-   _cache.unregisterPrivateAccess( dir, tag, size );
+   _cache->synchronize( cd );
 }
 
-template <class CacheDevice, class Policy>
-inline void CachedAccelerator<CacheDevice,Policy>::synchronize( CopyDescriptor &cd )
+template <class CacheDevice>
+inline void CachedAccelerator<CacheDevice>::synchronize( std::list<CopyDescriptor> &cds )
 {
-   _cache.synchronize( cd );
+   _cache->synchronize( cds );
 }
 
-template <class CacheDevice, class Policy>
-inline void CachedAccelerator<CacheDevice,Policy>::synchronize( std::list<CopyDescriptor> &cds )
+template <class CacheDevice>
+inline void CachedAccelerator<CacheDevice>::waitInputDependent( uint64_t tag )
 {
-   _cache.synchronize( cds );
+   _cache->waitInput( tag );
 }
 
-template <class CacheDevice, class Policy>
-inline void CachedAccelerator<CacheDevice,Policy>::waitInputDependent( uint64_t tag )
+template <class CacheDevice>
+inline void* CachedAccelerator<CacheDevice>::getAddressDependent( uint64_t tag )
 {
-   _cache.waitInput( tag );
+   return _cache->getAddress( tag );
 }
 
-template <class CacheDevice, class Policy>
-inline void* CachedAccelerator<CacheDevice,Policy>::getAddressDependent( uint64_t tag )
+template <class CacheDevice>
+inline void CachedAccelerator<CacheDevice>::copyToDependent( void *dst, uint64_t tag, size_t size )
 {
-   return _cache.getAddress( tag );
+   _cache->copyTo( dst, tag, size );
 }
 
-template <class CacheDevice, class Policy>
-inline void CachedAccelerator<CacheDevice,Policy>::copyToDependent( void *dst, uint64_t tag, size_t size )
+template <class CacheDevice>
+inline bool CachedAccelerator<CacheDevice>::checkBlockingCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
 {
-   _cache.copyTo( dst, tag, size );
+   return _cache->checkBlockingCacheAccess( dir, tag, size, input, output ) ;
 }
-
 #endif
