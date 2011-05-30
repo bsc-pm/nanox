@@ -28,10 +28,12 @@ static void interleavedLoop ( void *arg )
    NANOS_INSTRUMENT ( static nanos_event_key_t loop_lower = ID->getEventKey("loop-lower"); )
    NANOS_INSTRUMENT ( static nanos_event_key_t loop_upper = ID->getEventKey("loop-upper"); )
    NANOS_INSTRUMENT ( static nanos_event_key_t loop_step  = ID->getEventKey("loop-step"); )
-   NANOS_INSTRUMENT ( nanos_event_key_t Keys[3]; )
+   NANOS_INSTRUMENT ( static nanos_event_key_t chunk_size  = ID->getEventKey("chunk-size"); )
+   NANOS_INSTRUMENT ( nanos_event_key_t Keys[4]; )
    NANOS_INSTRUMENT ( Keys[0] = loop_lower; )
    NANOS_INSTRUMENT ( Keys[1] = loop_upper; )
    NANOS_INSTRUMENT ( Keys[2] = loop_step; )
+   NANOS_INSTRUMENT ( Keys[3] = chunk_size; )
    
    debug ( "Executing static loop wrapper");
    int _upper, _stride, _chunk;
@@ -56,11 +58,12 @@ static void interleavedLoop ( void *arg )
             nli->last = true;
          }
          // calling realwork
-         NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
+         NANOS_INSTRUMENT ( nanos_event_value_t Values[4]; )
          NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) nli->lower; )
          NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) nli->upper; )
          NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) nli->step; )
-         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(3, Keys, Values); )
+         NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) nli->chunk; )
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(4, Keys, Values); )
          ((SMPDD::work_fct)(nli->args))(arg);
       }
    } else {
@@ -74,11 +77,12 @@ static void interleavedLoop ( void *arg )
             nli->last = true;
          }
          // calling realwork
-         NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
+         NANOS_INSTRUMENT ( nanos_event_value_t Values[4]; )
          NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) nli->lower; )
          NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) nli->upper; )
          NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) nli->step; )
-         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(3, Keys, Values); )
+         NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) nli->chunk; )
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(4, Keys, Values); )
          ((SMPDD::work_fct)(nli->args))(arg);
       }
    }
@@ -90,10 +94,12 @@ void SlicerStaticFor::submit ( SlicedWD &work )
    NANOS_INSTRUMENT ( static nanos_event_key_t loop_lower = ID->getEventKey("loop-lower"); )
    NANOS_INSTRUMENT ( static nanos_event_key_t loop_upper = ID->getEventKey("loop-upper"); )
    NANOS_INSTRUMENT ( static nanos_event_key_t loop_step  = ID->getEventKey("loop-step"); )
-   NANOS_INSTRUMENT ( nanos_event_key_t Keys[3]; )
+   NANOS_INSTRUMENT ( static nanos_event_key_t chunk_size = ID->getEventKey("chunk-size"); )
+   NANOS_INSTRUMENT ( nanos_event_key_t Keys[4]; )
    NANOS_INSTRUMENT ( Keys[0] = loop_lower; )
    NANOS_INSTRUMENT ( Keys[1] = loop_upper; )
    NANOS_INSTRUMENT ( Keys[2] = loop_step; )
+   NANOS_INSTRUMENT ( Keys[3] = chunk_size; )
    
    debug ( "Submitting sliced task " << &work << ":" << work.getId() );
    
@@ -149,11 +155,12 @@ void SlicerStaticFor::submit ( SlicedWD &work )
       nli->upper = _upper; 
       nli->step = _step;
       nli->last = (valid_threads == 1 );
-      NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
+      NANOS_INSTRUMENT ( nanos_event_value_t Values[4]; )
       NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) nli->lower; )
       NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) nli->upper; )
       NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) nli->step; )
-      NANOS_INSTRUMENT( sys.getInstrumentation()->createDeferredPointEvent (work, 3, Keys, Values); )
+      NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) _chunk; )
+      NANOS_INSTRUMENT( sys.getInstrumentation()->createDeferredPointEvent (work, 4, Keys, Values); )
       // Creating additional WorkDescriptors: 1..N
       int j = 0; /* initializing thread id */
       for ( i = 1; i < valid_threads; i++ ) {
@@ -179,7 +186,8 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) nli->lower; )
          NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) nli->upper; )
          NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) nli->step; )
-         NANOS_INSTRUMENT( sys.getInstrumentation()->createDeferredPointEvent (*slice, 3, Keys, Values); )
+         NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) _chunk; )
+         NANOS_INSTRUMENT( sys.getInstrumentation()->createDeferredPointEvent (*slice, 4, Keys, Values); )
          slice->tieTo( (*team)[j] );
          if ( (*team)[j].setNextWD(slice) == false ) Scheduler::submit ( *slice );
       }
