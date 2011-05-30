@@ -172,7 +172,7 @@ void GPUConfig::apply()
 
       if ( _initCublas ) {
          verbose( "initializing CUBLAS Library" );
-         if ( !PluginManager::load ( "gpu-cublas", 1 ) ) {
+         if ( !sys.loadPlugin( "gpu-cublas" ) ) {
             warning ( "Couldn't initialize CUBLAS library at runtime startup" );
          }
       }
