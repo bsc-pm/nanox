@@ -33,7 +33,7 @@
 #include "directory_decl.hpp"
 #include "pminterface_decl.hpp"
 #include "cache_map_decl.hpp"
-
+#include "plugin_decl.hpp"
 #include "barrier_decl.hpp"
 
 
@@ -101,7 +101,10 @@ namespace nanos
          Instrumentation     *_instrumentation; /**< Instrumentation object used in current execution */
          SchedulePolicy      *_defSchedulePolicy;
 
-         // Mempory access directory
+         /*! It manages all registered and active plugins */
+         PluginManager        _pluginManager;
+
+         // Memory access directory
          Directory            _directory;
 
          // Programming model interface
@@ -251,6 +254,11 @@ namespace nanos
 
          void threadReady ();
 
+         void registerPlugin ( const char *name, Plugin &plugin );
+         bool loadPlugin ( const char *name );
+         bool loadPlugin ( const std::string &name );
+         Plugin * loadAndGetPlugin ( const char *name );
+         Plugin * loadAndGetPlugin ( const std::string &name );
    };
 
    extern System sys;

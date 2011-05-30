@@ -71,7 +71,7 @@ struct LoadModule
    {
       if ( module ) {
         verbose0( "loading " << module << " module" );
-        PluginManager::load(module);
+        sys.loadPlugin(module);
       }
    }
 };
@@ -80,7 +80,7 @@ void System::loadModules ()
 {
    verbose0 ( "Configuring module manager" );
 
-   PluginManager::init();
+   _pluginManager.init();
 
    verbose0 ( "Loading modules" );
 
@@ -91,7 +91,7 @@ void System::loadModules ()
    if ( _hostFactory == NULL ) {
      verbose0( "loading Host support" );
 
-     if ( !PluginManager::load ( "pe-"+getDefaultArch() ) )
+     if ( !loadPlugin( "pe-"+getDefaultArch() ) )
        fatal0 ( "Couldn't load host support" );
    }
    ensure( _hostFactory,"No default host factory" );
@@ -99,33 +99,32 @@ void System::loadModules ()
 #ifdef GPU_DEV
    verbose0( "loading GPU support" );
 
-   if ( !PluginManager::load ( "pe-gpu" ) )
+   if ( !loadPlugin( "pe-gpu" ) )
       fatal0 ( "Couldn't load GPU support" );
 #endif
 
    // load default schedule plugin
    verbose0( "loading " << getDefaultSchedule() << " scheduling policy support" );
 
-   if ( !PluginManager::load ( "sched-"+getDefaultSchedule() ) )
+   if ( !loadPlugin( "sched-"+getDefaultSchedule() ) )
       fatal0 ( "Couldn't load main scheduling policy" );
 
    ensure( _defSchedulePolicy,"No default system scheduling factory" );
 
    verbose0( "loading " << getDefaultThrottlePolicy() << " throttle policy" );
 
-   if ( !PluginManager::load( "throttle-"+getDefaultThrottlePolicy() ) )
+   if ( !loadPlugin( "throttle-"+getDefaultThrottlePolicy() ) )
       fatal0( "Could not load main cutoff policy" );
 
    ensure( _throttlePolicy, "No default throttle policy" );
 
    verbose0( "loading " << getDefaultBarrier() << " barrier algorithm" );
 
-   if ( !PluginManager::load( "barrier-"+getDefaultBarrier() ) )
+   if ( !loadPlugin( "barrier-"+getDefaultBarrier() ) )
       fatal0( "Could not load main barrier algorithm" );
 
-   if ( !PluginManager::load( "instrumentation-"+getDefaultInstrumentation() ) )
+   if ( !loadPlugin( "instrumentation-"+getDefaultInstrumentation() ) )
       fatal0( "Could not load " + getDefaultInstrumentation() + " instrumentation" );
-
 
    ensure( _defBarrFactory,"No default system barrier factory" );
 
