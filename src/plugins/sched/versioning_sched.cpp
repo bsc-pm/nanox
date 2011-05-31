@@ -40,6 +40,7 @@ namespace ext
       double                  _elapsedTime;
       double                  _lastElapsedTime;
       int                     _numRecords;
+      int                     _numAssigned;
    };
 
    // WDBestRecordKey { wdType, paramsSize }
@@ -162,6 +163,7 @@ namespace ext
                      data[i]._elapsedTime = 0.0;
                      data[i]._lastElapsedTime = 0.0;
                      data[i]._numRecords = -1;
+                     data[i]._numAssigned = 0;
                      data[i]._pe = NULL;
                      data[i]._device = NULL;
                   }
@@ -191,7 +193,7 @@ namespace ext
 
                      if ( records._device == NULL ) records._device = &pe->getDeviceType();
                      if ( records._device->getName() == pe->getDeviceType().getName() ) {
-                        if ( records._numRecords < MIN_RECORDS ) {
+                        if ( records._numAssigned < MIN_RECORDS ) {
                            // Not enough records to have reliable values
 
                            debug("[versioning] Less than 3 records for my device ("
@@ -199,6 +201,8 @@ namespace ext
                                  + toString<unsigned long>( key.first ) + ", "
                                  + toString<size_t>( key.second ) + ") device "
                                  + records._device->getName() );
+
+                           records._numAssigned++;
 
                            _lock.release();
                            return setDevice( thread, next, records._device );
@@ -216,6 +220,8 @@ namespace ext
                                  + toString<size_t>( key.second ) + ") device "
                                  + records._device->getName() );
 
+                           records._numAssigned++;
+
                            _lock.release();
                            return setDevice( thread, next, records._device );
                         }
@@ -226,7 +232,7 @@ namespace ext
                for ( i = 0; i < data.size(); i++ ) {
                   WDExecRecords & records = data[i];
 
-                  if ( records._numRecords < MIN_RECORDS ) {
+                  if ( records._numAssigned < MIN_RECORDS ) {
                      // Not enough records to have reliable values
 
                      debug("[versioning] Less than 3 records ("
@@ -234,6 +240,8 @@ namespace ext
                            + toString<unsigned long>( key.first ) + ", "
                            + toString<size_t>( key.second ) + ") device "
                            + records._device->getName() );
+
+                     records._numAssigned++;
 
                      _lock.release();
                      return setDevice( thread, next, records._device );
@@ -251,6 +259,8 @@ namespace ext
                            + toString<size_t>( key.second ) + ") device "
                            + records._device->getName() );
 
+                     records._numAssigned++;
+
                      _lock.release();
                      return setDevice( thread, next, records._device );
                   }
@@ -264,6 +274,12 @@ namespace ext
                      + toString<size_t>( key.second ) + ") device "
                      + bestPE->getDeviceType().getName() );
 
+               for ( i = 0; i < data.size(); i++ ) {
+                  if ( data[i]._device->getName() == bestPE->getDeviceType().getName() ) {
+                     data[i]._numAssigned++;
+                  }
+               }
+
                _lock.release();
                return setDevice( thread, next, &( bestPE->getDeviceType() ) );
             }
@@ -274,7 +290,6 @@ namespace ext
          WD * atBeforeExit ( BaseThread *thread, WD &currentWD )
          {
             if ( currentWD.getNumDevices() > 1 ) {
-               TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
                unsigned long wdId = currentWD.getVersionGroupId();
                size_t paramsSize = currentWD.getParamsSize();
                ProcessingElement * pe = thread->runningOn();
@@ -283,6 +298,7 @@ namespace ext
                WDExecInfoKey key = std::make_pair( wdId, paramsSize );
 
                _lock.acquire();
+               TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
                WDExecInfoData & data = tdata._wdExecStats[key];
 
                // Record statistic values
