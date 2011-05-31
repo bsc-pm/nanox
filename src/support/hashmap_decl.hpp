@@ -49,7 +49,10 @@ class Hash
       *  \param size size of the map
       */
       virtual size_t operator()( _KeyType key, size_t sz )
-         { return ((size_t)key) % sz; }
+      {
+         size_t * hash = ( size_t * ) &key;
+         return ( ( size_t ) *hash % sz );
+      }
 };
 
 
