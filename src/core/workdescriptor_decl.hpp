@@ -173,6 +173,8 @@ namespace nanos
          size_t                        _copiesSize;   /**< Total size of copy-in / copy-out data */
          size_t                        _paramsSize;   /**< Total size of WD's parameters */
 
+         unsigned long                 _versionGroupId;     /**< The way to link different implementations of a task into the same group */
+
          double                        _executionTime;    /**< WD starting wall-clock time */
 
          TR1::shared_ptr<DOSubmit>     _doSubmit;     /**< DependableObject representing this WD in its parent's depsendencies domain */
@@ -204,8 +206,9 @@ namespace nanos
                           _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
                           _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : NULL ),
-                          _numCopies( numCopies ), _copies( copies ), _copiesSize( 0 ), _paramsSize( 0 ), _executionTime( 0 ), _doSubmit(), _doWait(),
-                          _depsDomain(), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ) { }
+                          _numCopies( numCopies ), _copies( copies ), _copiesSize( 0 ), _paramsSize( 0 ),
+                          _versionGroupId( 0 ), _executionTime( 0 ), _doSubmit(), _doWait(), _depsDomain(),
+                          _directory(), _instrumentationContextData(), _submitted(false), _translateArgs( translate_args ) { }
 
          /*! \brief WorkDescriptor constructor - 2
           */
@@ -215,8 +218,9 @@ namespace nanos
                           _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
                           _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( 1 ), _devices ( &_activeDevice ), _activeDevice ( device ),
-                          _numCopies( numCopies ), _copies( copies ), _copiesSize( 0 ), _paramsSize( 0 ), _executionTime( 0 ), _doSubmit(), _doWait(),
-                          _depsDomain(), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ) { }
+                          _numCopies( numCopies ), _copies( copies ), _copiesSize( 0 ), _paramsSize( 0 ),
+                          _versionGroupId( 0 ), _executionTime( 0 ), _doSubmit(), _doWait(), _depsDomain(),
+                          _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ) { }
 
          /*! \brief WorkDescriptor copy constructor (using a given WorkDescriptor)
           *
@@ -233,8 +237,9 @@ namespace nanos
                           _wdData ( NULL ), _tie ( wd._tie ), _tiedTo ( wd._tiedTo ),
                           _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ), _myQueue ( NULL ), _depth ( wd._depth ),
                           _numDevices ( wd._numDevices ), _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
-                          _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ), _copiesSize( wd._copiesSize ), _paramsSize( wd._paramsSize ), _executionTime( wd._executionTime ),
-                          _doSubmit(), _doWait(), _depsDomain(), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( wd._translateArgs ) { }
+                          _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ), _copiesSize( wd._copiesSize ), _paramsSize( wd._paramsSize ),
+                          _versionGroupId( wd._versionGroupId ), _executionTime( wd._executionTime ), _doSubmit(), _doWait(), _depsDomain(),
+                          _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( wd._translateArgs ) { }
 
          /*! \brief WorkDescriptor destructor
           *
@@ -421,6 +426,14 @@ namespace nanos
          /*! \brief returns the total size of the WD's parameters
           */
          size_t getParamsSize() const;
+
+         /*! \brief returns the WD's implementation group ID
+          */
+         unsigned long getVersionGroupId( void );
+
+         /*! \brief sets the WD's implementation group ID
+          */
+         void setVersionGroupId( unsigned long id );
 
          /*! \brief returns the total execution time of the WD
           */

@@ -115,6 +115,10 @@ inline size_t WorkDescriptor::getCopiesSize() const { return _copiesSize; }
 
 inline size_t WorkDescriptor::getParamsSize() const { return _paramsSize; }
 
+inline unsigned long WorkDescriptor::getVersionGroupId( void ) { return _versionGroupId; }
+
+inline void WorkDescriptor::setVersionGroupId( unsigned long id ) { _versionGroupId = id; }
+
 inline double WorkDescriptor::getExecutionTime() const { return _executionTime; }
 
 inline TR1::shared_ptr<DOSubmit> & WorkDescriptor::getDOSubmit() { return _doSubmit; }
