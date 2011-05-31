@@ -139,7 +139,7 @@ namespace ext
             // Choose the device where the task will be executed
             if ( next && !( next->hasActiveDevice() ) ) {
                // Check we have recorded good (and reliable) enough results for each PE
-               unsigned long wdId = ( unsigned long ) next->getDevices()[0]->getDevice()->getName();
+               unsigned long wdId =  next->getVersionGroupId();
                size_t paramsSize = next->getParamsSize();
                WDExecInfoKey key = std::make_pair( wdId, paramsSize );
                WDExecInfoData &data = tdata._wdExecStats[key];
@@ -156,8 +156,6 @@ namespace ext
                   // Reserve as much memory as we need for all the implementations
                   data.reserve( next->getNumDevices() );
                   data = *NEW WDExecInfoData( next->getNumDevices() );
-
-                  debug( "[versioning]  " + toString<int>( next->getNumDevices() ) + " positions" );
 
                   unsigned int i;
                   for ( i = 0; i < data.size(); i++ ) {
@@ -277,7 +275,7 @@ namespace ext
          {
             if ( currentWD.getNumDevices() > 1 ) {
                TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
-               unsigned long wdId = ( unsigned long ) currentWD.getDevices()[0]->getDevice()->getName();
+               unsigned long wdId = currentWD.getVersionGroupId();
                size_t paramsSize = currentWD.getParamsSize();
                ProcessingElement * pe = thread->runningOn();
                double executionTime = currentWD.getExecutionTime();
