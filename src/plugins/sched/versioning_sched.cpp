@@ -63,6 +63,9 @@ namespace ext
                WDBestRecord      _wdExecBest;
                WDExecInfo        _wdExecStats;
 
+               static Lock       _bestLock;
+               static Lock       _statsLock;
+
                WDDeque           _readyQueue;
 
                TeamData () : ScheduleTeamData(), _wdExecBest(), _wdExecStats(), _readyQueue() {}
@@ -72,7 +75,6 @@ namespace ext
 
       public:
          static bool       _useStack;
-         static Lock       _lock;
 
          Versioning() : SchedulePolicy( "Versioning" ) {}
          virtual ~Versioning () {}
@@ -153,7 +155,7 @@ namespace ext
                         + ", " + toString<size_t>( key.second ) + ") with "
                         + toString<int>( next->getNumDevices() ) + " versions" );
 
-                  _lock.acquire();
+                  tdata._statsLock.acquire();
                   // Reserve as much memory as we need for all the implementations
                   data.reserve( next->getNumDevices() );
                   data = *NEW WDExecInfoData( next->getNumDevices() );
@@ -167,7 +169,7 @@ namespace ext
                      data[i]._pe = NULL;
                      data[i]._device = NULL;
                   }
-                  _lock.release();
+                  tdata._statsLock.release();
 
                   if ( next->canRunIn( *pe ) ) {
                      // If the thread can run the task, activate its device
@@ -183,7 +185,7 @@ namespace ext
                   return setDevice( thread, next, next->getDevices()[i] );
                }
 
-               _lock.acquire();
+               tdata._statsLock.acquire();
                unsigned int i;
 
                // First, check if the thread can run and, in fact, has to run the task
@@ -204,7 +206,7 @@ namespace ext
 
                            records._numAssigned++;
 
-                           _lock.release();
+                           tdata._statsLock.release();
                            return setDevice( thread, next, records._device );
                         }
 
@@ -222,7 +224,7 @@ namespace ext
 
                            records._numAssigned++;
 
-                           _lock.release();
+                           tdata._statsLock.release();
                            return setDevice( thread, next, records._device );
                         }
                      }
@@ -243,7 +245,7 @@ namespace ext
 
                      records._numAssigned++;
 
-                     _lock.release();
+                     tdata._statsLock.release();
                      return setDevice( thread, next, records._device );
                   }
 
@@ -261,11 +263,12 @@ namespace ext
 
                      records._numAssigned++;
 
-                     _lock.release();
+                     tdata._statsLock.release();
                      return setDevice( thread, next, records._device );
                   }
                }
 
+               tdata._bestLock.acquire();
                // Reaching this point means that we have enough records to decide
                ProcessingElement * bestPE = tdata._wdExecBest.find( key )->first;
 
@@ -280,7 +283,8 @@ namespace ext
                   }
                }
 
-               _lock.release();
+               tdata._bestLock.release();
+               tdata._statsLock.release();
                return setDevice( thread, next, &( bestPE->getDeviceType() ) );
             }
 
@@ -297,8 +301,8 @@ namespace ext
 
                WDExecInfoKey key = std::make_pair( wdId, paramsSize );
 
-               _lock.acquire();
                TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
+               tdata._statsLock.acquire();
                WDExecInfoData & data = tdata._wdExecStats[key];
 
                // Record statistic values
@@ -353,6 +357,9 @@ namespace ext
 
                }
 
+               tdata._statsLock.release();
+               tdata._bestLock.acquire();
+
                // Check if it is the best time
                WDBestRecordData &bestData = tdata._wdExecBest[key];
                bool isBestTime = ( bestData.second > executionTime ) || ( bestData.first == NULL );
@@ -365,7 +372,8 @@ namespace ext
                         + ", T=" + toString<double>( bestData.second ) + "}" );
 
                }
-               _lock.release();
+
+               tdata._bestLock.release();
             }
 
             return NULL;
@@ -373,7 +381,8 @@ namespace ext
    };
 
    bool Versioning::_useStack = false;
-   Lock Versioning::_lock;
+   Lock Versioning::TeamData::_bestLock;
+   Lock Versioning::TeamData::_statsLock;
 
    class VersioningSchedPlugin : public Plugin
    {
