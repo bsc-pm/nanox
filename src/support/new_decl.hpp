@@ -25,8 +25,8 @@
 
    #define NEW new(__FILE__, __LINE__)
 
-   void* operator new ( size_t size, const char *file, int line );
-   void* operator new[] ( size_t size, const char *file, int line );
+   void* operator new ( std::size_t size, const char *file, int line );
+   void* operator new[] ( std::size_t size, const char *file, int line );
 
 #else
 
