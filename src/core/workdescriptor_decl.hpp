@@ -70,8 +70,8 @@ namespace nanos
 
          /*! \brief Device equals operator
           */
-         bool operator== ( const Device &arch ) { return ( 0 == std::strcmp( arch._name , _name ) ); }
-         //bool operator== ( const Device &arch ) { return arch._name == _name; }
+         //bool operator== ( const Device &arch ) { return ( 0 == std::strcmp( arch._name , _name ) ); }
+         bool operator== ( const Device &arch ) { return arch._name == _name; }
 
          /*! \brief Get device name
           */
@@ -176,11 +176,11 @@ namespace nanos
 
          InstrumentationContextData    _instrumentationContextData; /**< Instrumentation Context Data (empty if no instr. enabled) */
 
-         bool                 _clusterMigrable;
-         ProcessingElement *  _myPe;
-         bool                 _nodeFree;
-         WorkDescriptor * _previous;
-         unsigned int _peId;
+         //bool                 _clusterMigrable;
+         //ProcessingElement *  _myPe;
+         //bool                 _nodeFree;
+         //WorkDescriptor * _previous;
+         //unsigned int _peId;
          //WorkDescriptor * _prefetchedWd;
          bool                          _submitted;  /**< Has this WD been submitted to the Scheduler? */
 
@@ -204,7 +204,8 @@ namespace nanos
                           _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : NULL ),
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain(), _directory(), _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted(false), _translateArgs( translate_args ) { }
+                          _depsDomain(), _directory(), _instrumentationContextData(), _submitted(false), _translateArgs( translate_args ) { }
+                          //_depsDomain(), _directory(), _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted(false), _translateArgs( translate_args ) { }
 
          /*! \brief WorkDescriptor constructor - 2
           */
@@ -215,7 +216,8 @@ namespace nanos
                           _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( 1 ), _devices ( &_activeDevice ), _activeDevice ( device ),
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain(), _directory(),  _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted( false ), _translateArgs( translate_args ) { }
+                          _depsDomain(), _directory(),  _instrumentationContextData(), _submitted( false ), _translateArgs( translate_args ) { }
+                          //_depsDomain(), _directory(),  _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted( false ), _translateArgs( translate_args ) { }
 
          /*! \brief WorkDescriptor copy constructor (using a given WorkDescriptor)
           *
@@ -233,7 +235,8 @@ namespace nanos
                           _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ), _myQueue ( NULL ), _depth ( wd._depth ),
                           _numDevices ( wd._numDevices ), _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
                           _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
-                          _doSubmit(), _doWait(), _depsDomain(), _directory(), _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted( false ), _translateArgs( wd._translateArgs ) { }
+                          _doSubmit(), _doWait(), _depsDomain(), _directory(), _instrumentationContextData(), _submitted( false ), _translateArgs( wd._translateArgs ) { }
+                          //_doSubmit(), _doWait(), _depsDomain(), _directory(), _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted( false ), _translateArgs( wd._translateArgs ) { }
 
          /*! \brief WorkDescriptor destructor
           *
@@ -243,9 +246,7 @@ namespace nanos
          virtual ~WorkDescriptor()
          {
             for ( unsigned i = 0; i < _numDevices; i++ )
-            {
                _devices[i]->~DeviceData();
-            }
          }
 
          /*! \brief Has this WorkDescriptor ever run?
@@ -359,6 +360,7 @@ namespace nanos
          void * getInternalData () const;
 
          void setTranslateArgs( nanos_translate_args_t translateArgs );
+         
          nanos_translate_args_t getTranslateArgs( void );
 
          /*! \brief Get the number of devices
@@ -445,12 +447,10 @@ namespace nanos
           */
          void prepareCopies();
 
-         unsigned int getPeId( void ) { return _peId; }
-         void setPeId( unsigned int id ) { _peId = id; }
+         //unsigned int getPeId( void ) { return _peId; }
+         //void setPeId( unsigned int id ) { _peId = id; }
          //WorkDescriptor * getPrefetchedWD() { return _prefetchedWd; }
          //void setPrefetchedWD( WorkDescriptor * _p ) {  _prefetchedWd = _p; }
-         
-
          /*! \brief Get the WorkDescriptor's directory.
           *  if create is true and directory is not initialized returns NULL,
           *  otherwise it is created (if necessary) and a pointer to it is returned.

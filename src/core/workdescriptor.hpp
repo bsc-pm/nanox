@@ -33,13 +33,13 @@
 #include "instrumentationcontext.hpp"
 #include "directory.hpp"
 #include "schedule.hpp"
-#include "system.hpp"
 #include "dependenciesdomain.hpp"
+#include "allocator_decl.hpp"
 
 using namespace nanos;
 
 /* DeviceData inlined functions */
-inline bool DeviceData::isCompatible ( const Device &arch ) { return ((Device) *_architecture) == arch; }
+inline bool DeviceData::isCompatible ( const Device &arch ) { return _architecture == &arch; }
 
 /* WorkDescriptor inlined functions */
 inline bool WorkDescriptor::started ( void ) const { return _state != INIT; }
@@ -147,7 +147,6 @@ inline WorkDescriptor * WorkDescriptor::getImmediateSuccessor ( BaseThread &thre
 {
    if ( _doSubmit == NULL ) return NULL;
    else {
-        //if (sys.getNetwork()->getNodeNum() == 0)std::cerr << "This code is buggy." << std::endl;
         DOIsSchedulable predicate(thread);
         DependableObject * found = _doSubmit->releaseImmediateSuccessor(predicate);
         return found ? (WD *) found->getRelatedObject() : NULL;
@@ -188,12 +187,6 @@ inline Directory* WorkDescriptor::getDirectory(bool create)
       return NULL;
    }
    _directory->setParent( (getParent() != NULL) ? getParent()->getDirectory(false) : NULL );
-   //if ( sys.getNetwork()->getNodeNum() > 0)
-   //{
-   //std::cerr << "Node " << sys.getNetwork()->getNodeNum() << " this WD is " << getId() << " parent is " << (int )(getParent() != NULL ? getParent()->getId() : -1 ) << std::endl;
-   //        if (getParent() != NULL) std::cerr << "Ive used the parent directory!!! " << std::endl;
-   //        else  std::cerr << "Ive NOT used the parent directory!!! N/A" << std::endl;
-   //}
    return &(*_directory);
 }
 

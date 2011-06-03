@@ -95,7 +95,6 @@ namespace nanos
          std::string             _name;
          std::string             _description;
          ext::SMPMultiThread *   _parent;
-         int                     _state;
 
          ProcessingElement *     _pe;         /**< Threads are binded to a PE for its life-time */
          WD &                    _threadWD;
@@ -126,8 +125,6 @@ namespace nanos
          virtual void switchTo( WD *work, SchedulerHelper *helper ) = 0;
          virtual void exitTo( WD *work, SchedulerHelper *helper ) = 0;
 
-         virtual int checkStateDependent( int numPe ) = 0;
-
       protected:
 
          /*!
@@ -152,7 +149,7 @@ namespace nanos
         /*! \brief BaseThread constructor
          */
          BaseThread ( WD &wd, ProcessingElement *creator=0, ext::SMPMultiThread *parent=NULL ) :
-               _id( _idSeed++ ), _name("Thread"), _description(""), _parent( parent ), _state( 0 ), _pe( creator ), _threadWD( wd ),
+               _id( _idSeed++ ), _name("Thread"), _description(""), _parent( parent ), _pe( creator ), _threadWD( wd ),
                _started( false ), _mustStop( false ), _currentWD( NULL),
                _nextWD( NULL), _hasTeam( false ),_team(NULL),
                _teamData(NULL), _allocator() {}
@@ -183,7 +180,6 @@ namespace nanos
 
          // set/get methods
          void setCurrentWD ( WD &current );
-         //void setCurrentNullWD ( );
 
          WD * getCurrentWD () const;
 
@@ -241,9 +237,6 @@ namespace nanos
          const std::string &getDescription ( void );
 
          virtual void switchToNextThread() = 0;
-         void setWorking ( void );
-         void setIdle ( void );
-         int isWorking ( int numPe );
    };
 
    extern __thread BaseThread *myThread;

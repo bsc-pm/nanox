@@ -128,7 +128,7 @@ inline void Scheduler::idleLoop ()
 
    WD *current = myThread->getCurrentWD();
    //WD *prefetchedWD = NULL; 
-   current->setIdle();
+   //current->setIdle();
    sys.getSchedulerStats()._idleThreads++;
    for ( ; ; ) {
       BaseThread *thread = getMyThreadSafe();
@@ -223,7 +223,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
    sys.getSchedulerStats()._idleThreads++;
    current->setSyncCond( condition );
-   current->setIdle();
+   //current->setIdle();
    
    BaseThread *thread = getMyThreadSafe();
 

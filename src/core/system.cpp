@@ -550,23 +550,24 @@ void System::finish ()
    verbose ( "Joining threads... phase 1" );
    // signal stop PEs
 
-#ifdef CLUSTER_DEV
-   if ( useCluster() )
-   {
-      if (sys.getNetwork()->getNodeNum() == 0)
-      {
-         std::cerr << "Created " << createdWds << " wds" << std::endl;
-#ifdef GPU_DEV
-         for ( unsigned int p = 3; p < _net.getNumNodes()+2 ; p++ )
-#else
-         for ( unsigned int p = 2; p < _net.getNumNodes()+1 ; p++ )
-#endif
-         {
-            std::cerr << "Node " << p-1 << " executed " << ((nanos::ext::ClusterNode *) _pes[p])->getExecutedWDs() << " WDs." << std::endl;
-         }
-      }
-   }
-#endif
+// Awful code
+//#ifdef CLUSTER_DEV
+//   if ( useCluster() )
+//   {
+//      if (sys.getNetwork()->getNodeNum() == 0)
+//      {
+//         std::cerr << "Created " << createdWds << " wds" << std::endl;
+//#ifdef GPU_DEV
+//         for ( unsigned int p = 3; p < _net.getNumNodes()+2 ; p++ )
+//#else
+//         for ( unsigned int p = 2; p < _net.getNumNodes()+1 ; p++ )
+//#endif
+//         {
+//            std::cerr << "Node " << p-1 << " executed " << ((nanos::ext::ClusterNode *) _pes[p])->getExecutedWDs() << " WDs." << std::endl;
+//         }
+//      }
+//   }
+//#endif
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {
        _pes[p]->stopAll();
    }

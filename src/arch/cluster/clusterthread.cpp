@@ -95,7 +95,7 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
    ( ( ClusterNode * ) pe )->incExecutedWDs();
    sys.getNetwork()->sendWorkMsg( ( ( ClusterNode * ) pe )->getClusterNodeNum(), dd.getWorkFct(), wd.getDataSize(), wd.getId(), /* this should be the PE id */ arch, totalBufferSize, buff, wd.getTranslateArgs(), arch, (void *) &wd );
 
-   this->setWorking();
+   //this->setWorking();
 }
 
 void ClusterThread::join()
@@ -105,14 +105,14 @@ void ClusterThread::join()
       sys.getNetwork()->sendExitMsg( i );
 }
 
-int ClusterThread::checkStateDependent( int numPe )
-{
-   if ( sys.getNetwork()->isWorking( ( ( ClusterNode * ) runningOn() )->getClusterNodeNum(), numPe ) )
-   {
-      return 1;
-   }
-   else
-   {
-      return 0;
-   }
-}
+//int ClusterThread::checkStateDependent( int numPe )
+//{
+//   if ( sys.getNetwork()->isWorking( ( ( ClusterNode * ) runningOn() )->getClusterNodeNum(), numPe ) )
+//   {
+//      return 1;
+//   }
+//   else
+//   {
+//      return 0;
+//   }
+//}

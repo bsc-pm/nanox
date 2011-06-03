@@ -85,9 +85,9 @@ namespace ext
             return this;
          }
 
-         virtual int checkStateDependent( int numPe ) {
-            fatal( "SMPThread does not support checkStateDependent()" );
-         }
+         //virtual int checkStateDependent( int numPe ) {
+         //   fatal( "SMPThread does not support checkStateDependent()" );
+         //}
    };
 
    class SMPMultiThread : public SMPThread

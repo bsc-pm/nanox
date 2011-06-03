@@ -61,7 +61,7 @@ namespace nanos
          /*! \brief ProcessinElement constructor
           */
          ProcessingElement ( int newId, const Device *arch, const Device *subArch = NULL ) : _id ( newId ), _device ( arch ) , _subDevice( subArch ), _deviceNo ( NULL ), _subDeviceNo ( NULL ) 
-         { std::cerr << "creating PE with arch " << arch->getName() << " and subArch " << (void *) subArch << std::endl; }
+         { }
 
          /*! \brief ProcessinElement destructor
           */

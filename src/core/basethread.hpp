@@ -46,7 +46,7 @@ namespace nanos
  
    // set/get methods
    inline void BaseThread::setCurrentWD ( WD &current ) { _currentWD = &current; }
-   
+ 
    inline WD * BaseThread::getCurrentWD () const { return _currentWD; }
  
    inline WD & BaseThread::getThreadWD () const { return _threadWD; }
@@ -130,9 +130,6 @@ namespace nanos
      return _description;
    }
 
-   inline void BaseThread::setWorking( void ) { _state = 1; }
-   inline void BaseThread::setIdle( void ) { _state = 0; }
-   inline int BaseThread::isWorking( int numPe ) { _state = checkStateDependent( numPe ) ; return _state == 1; }
 }
 
 #endif
