@@ -24,6 +24,7 @@
 #include "config.hpp"
 
 #include <math.h>
+#include <limits>
 
 
 namespace nanos {
@@ -33,6 +34,7 @@ namespace ext
 //#define MAX_STDDEV   0.1
 #define MAX_DEVIATION   0.01
 #define MIN_RECORDS     3
+#define MAX_DIFFERENCE  4
 
    struct WDExecRecords {
       ProcessingElement *     _pe;
@@ -185,6 +187,10 @@ namespace ext
                   return setDevice( thread, next, next->getDevices()[i] );
                }
 
+               double bestTime = std::numeric_limits<double>::max();
+               if ( tdata._wdExecBest.find( key ) )
+                  bestTime = tdata._wdExecBest.find( key )->second * MAX_DIFFERENCE;
+
                tdata._statsLock.acquire();
                unsigned int i;
 
@@ -195,37 +201,40 @@ namespace ext
 
                      if ( records._device == NULL ) records._device = &pe->getDeviceType();
                      if ( records._device->getName() == pe->getDeviceType().getName() ) {
-                        if ( records._numAssigned < MIN_RECORDS ) {
-                           // Not enough records to have reliable values
+                        if ( records._elapsedTime < bestTime ) {
+                           // It is worth trying this device, so go on
+                           if ( records._numAssigned < MIN_RECORDS ) {
+                              // Not enough records to have reliable values
 
-                           debug("[versioning] Less than 3 records for my device ("
-                                 + toString<int>( records._numRecords ) + ") for key ("
-                                 + toString<unsigned long>( key.first ) + ", "
-                                 + toString<size_t>( key.second ) + ") device "
-                                 + records._device->getName() );
+                              debug("[versioning] Less than 3 records for my device ("
+                                    + toString<int>( records._numRecords ) + ") for key ("
+                                    + toString<unsigned long>( key.first ) + ", "
+                                    + toString<size_t>( key.second ) + ") device "
+                                    + records._device->getName() );
 
-                           records._numAssigned++;
+                              records._numAssigned++;
 
-                           tdata._statsLock.release();
-                           return setDevice( thread, next, records._device );
-                        }
+                              tdata._statsLock.release();
+                              return setDevice( thread, next, records._device );
+                           }
 
-                        double sqDev = records._elapsedTime - records._lastElapsedTime;
-                        sqDev *= sqDev;
-                        if ( sqrt( sqDev ) > MAX_DEVIATION ) {
-                           // Values differ too much from each other, compute again
+                           double sqDev = records._elapsedTime - records._lastElapsedTime;
+                           sqDev *= sqDev;
+                           if ( sqrt( sqDev ) > MAX_DEVIATION ) {
+                              // Values differ too much from each other, compute again
 
-                           debug("[versioning] Too much difference in records for my device ("
-                                 + toString<double>( sqrt( sqDev ) ) + " > "
-                                 + toString<double>( MAX_DEVIATION ) + ") for key ("
-                                 + toString<unsigned long>( key.first ) + ", "
-                                 + toString<size_t>( key.second ) + ") device "
-                                 + records._device->getName() );
+                              debug("[versioning] Too much difference in records for my device ("
+                                    + toString<double>( sqrt( sqDev ) ) + " > "
+                                    + toString<double>( MAX_DEVIATION ) + ") for key ("
+                                    + toString<unsigned long>( key.first ) + ", "
+                                    + toString<size_t>( key.second ) + ") device "
+                                    + records._device->getName() );
 
-                           records._numAssigned++;
+                              records._numAssigned++;
 
-                           tdata._statsLock.release();
-                           return setDevice( thread, next, records._device );
+                              tdata._statsLock.release();
+                              return setDevice( thread, next, records._device );
+                           }
                         }
                      }
                   }
@@ -233,38 +242,41 @@ namespace ext
 
                for ( i = 0; i < data.size(); i++ ) {
                   WDExecRecords & records = data[i];
+                  if ( records._elapsedTime < bestTime ) {
+                     // It is worth trying this device, so go on
 
-                  if ( records._numAssigned < MIN_RECORDS ) {
-                     // Not enough records to have reliable values
+                     if ( records._numAssigned < MIN_RECORDS ) {
+                        // Not enough records to have reliable values
 
-                     debug("[versioning] Less than 3 records ("
-                           + toString<int>( records._numRecords ) + ") for key ("
-                           + toString<unsigned long>( key.first ) + ", "
-                           + toString<size_t>( key.second ) + ") device "
-                           + records._device->getName() );
+                        debug("[versioning] Less than 3 records ("
+                              + toString<int>( records._numRecords ) + ") for key ("
+                              + toString<unsigned long>( key.first ) + ", "
+                              + toString<size_t>( key.second ) + ") device "
+                              + records._device->getName() );
 
-                     records._numAssigned++;
+                        records._numAssigned++;
 
-                     tdata._statsLock.release();
-                     return setDevice( thread, next, records._device );
-                  }
+                        tdata._statsLock.release();
+                        return setDevice( thread, next, records._device );
+                     }
 
-                  double sqDev = records._elapsedTime - records._lastElapsedTime;
-                  sqDev *= sqDev;
-                  if ( sqrt( sqDev ) > MAX_DEVIATION ) {
-                     // Values differ too much from each other, compute again
+                     double sqDev = records._elapsedTime - records._lastElapsedTime;
+                     sqDev *= sqDev;
+                     if ( sqrt( sqDev ) > MAX_DEVIATION ) {
+                        // Values differ too much from each other, compute again
 
-                     debug("[versioning] Too much difference in records ("
-                           + toString<double>( sqrt( sqDev ) ) + " > "
-                           + toString<double>( MAX_DEVIATION ) + ") for key ("
-                           + toString<unsigned long>( key.first ) + ", "
-                           + toString<size_t>( key.second ) + ") device "
-                           + records._device->getName() );
+                        debug("[versioning] Too much difference in records ("
+                              + toString<double>( sqrt( sqDev ) ) + " > "
+                              + toString<double>( MAX_DEVIATION ) + ") for key ("
+                              + toString<unsigned long>( key.first ) + ", "
+                              + toString<size_t>( key.second ) + ") device "
+                              + records._device->getName() );
 
-                     records._numAssigned++;
+                        records._numAssigned++;
 
-                     tdata._statsLock.release();
-                     return setDevice( thread, next, records._device );
+                        tdata._statsLock.release();
+                        return setDevice( thread, next, records._device );
+                     }
                   }
                }
 
