@@ -18,7 +18,7 @@
 /*************************************************************************************/
 
 #include "dependableobject.hpp"
-#include "trackableobject.hpp"
+#include "regionstatus.hpp"
 #include "instrumentation.hpp"
 #include "system.hpp"
 
@@ -30,23 +30,25 @@ void DependableObject::finished ( )
       DependableObject& depObj = *this;
       // This step guarantees that any Object that wants to add depObj as a successor has done it
       // before we continue or, alternatively, won't do it.
-      DependableObject::TrackableObjectVector &outs = depObj.getOutputObjects();
-      if (outs.size() > 0) {
-         {
-            SyncLockBlock lock( depObj.getLock() );
-            for ( unsigned int i = 0; i < outs.size(); i++ ) {
-               outs[i]->deleteLastWriter(depObj);
-            }
+      DependableObject::RegionContainer const &outs = depObj.getWrittenRegions();
+      DependenciesDomain *domain = depObj.getDependenciesDomain();
+      if ( domain != 0 && outs.size() > 0 ) {
+         SyncRecursiveLockBlock lock1( domain->getInstanceLock() ); // This is needed here to avoid a dead-lock
+         SyncLockBlock lock2( depObj.getLock() );
+         for ( unsigned int i = 0; i < outs.size(); i++ ) {
+            Region const &region = outs[i];
+            
+            domain->deleteLastWriter ( depObj, region );
          }
       }
       
       //  Delete depObj from all trackableObjects it reads 
-      DependableObject::TrackableObjectVector &reads = depObj.getReadObjects();
-      for ( DependableObject::TrackableObjectVector::iterator it = reads.begin(); it != reads.end(); it++ ) {
-         TrackableObject* readObject = *it;
-         {
-            SyncLockBlock lock( readObject->getReadersLock() );
-            readObject->deleteReader(depObj);
+      if ( domain != 0 ) {
+         DependableObject::RegionContainer const &reads = depObj.getReadRegions();
+         for ( DependableObject::RegionContainer::const_iterator it = reads.begin(); it != reads.end(); it++ ) {
+            Region const & region = *it;
+            
+            domain->deleteReader ( depObj, region );
          }
       }
 

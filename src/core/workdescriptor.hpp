@@ -111,17 +111,17 @@ inline CopyData * WorkDescriptor::getCopies() const { return _copies; }
 
 inline TR1::shared_ptr<DOSubmit> & WorkDescriptor::getDOSubmit() { return _doSubmit; }
 
-inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t numDeps, Dependency* deps )
+inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t numDataAccesses, DataAccess const *dataAccesses )
 {
    wd._doSubmit.reset( NEW DOSubmit() );
    wd._doSubmit->setWD(&wd);
-   _depsDomain->submitDependableObject( *(wd._doSubmit), numDeps, deps );
+   _depsDomain->submitDependableObject( *(wd._doSubmit), numDataAccesses, dataAccesses );
 }
 
-inline void WorkDescriptor::waitOn( size_t numDeps, Dependency* deps )
+inline void WorkDescriptor::waitOn( size_t numDataAccesses, DataAccess const *dataAccesses )
 {
    _doWait->setWD(this);
-   _depsDomain->submitDependableObject( *_doWait, numDeps, deps );
+   _depsDomain->submitDependableObject( *_doWait, numDataAccesses, dataAccesses );
 }
 
 class DOIsSchedulable : public DependableObjectPredicate

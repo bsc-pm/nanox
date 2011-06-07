@@ -26,8 +26,8 @@
 #include "dependenciesdomain_decl.hpp"
 #include "atomic.hpp"
 #include "dependableobject.hpp"
-#include "trackableobject.hpp"
-#include "dependency.hpp"
+#include "regionstatus.hpp"
+#include "dataaccess.hpp"
 #include "compatibility.hpp"
 
 
@@ -35,19 +35,31 @@ using namespace nanos;
 
 inline DependenciesDomain::~DependenciesDomain ( )
 {
-   for ( DepsMap::iterator it = _addressDependencyMap.begin(); it != _addressDependencyMap.end(); it++ ) {
-      delete it->second;
-   }
 }
 
-inline void DependenciesDomain::submitDependableObject ( DependableObject &depObj, std::vector<Dependency> &deps )
+inline int DependenciesDomain::getId()
 {
-   submitDependableObjectInternal ( depObj, deps.begin(), deps.end() );
+   return _id;
 }
 
-inline void DependenciesDomain::submitDependableObject ( DependableObject &depObj, size_t numDeps, Dependency* deps)
+inline void DependenciesDomain::submitDependableObject ( DependableObject &depObj, std::vector<DataAccess> const &dataAccesses )
 {
-   submitDependableObjectInternal ( depObj, deps, deps+numDeps );
+   submitDependableObjectInternal ( depObj, dataAccesses.begin(), dataAccesses.end() );
+}
+
+inline void DependenciesDomain::submitDependableObject ( DependableObject& depObj, size_t numDataAccesses, const DataAccess* dataAccesses)
+{
+   submitDependableObjectInternal ( depObj, dataAccesses, dataAccesses+numDataAccesses );
+}
+
+inline RecursiveLock& DependenciesDomain::getInstanceLock()
+{
+   return _instanceLock;
+}
+
+inline Lock& DependenciesDomain::getLock()
+{
+   return _lock;
 }
 
 inline void DependenciesDomain::lock ( )

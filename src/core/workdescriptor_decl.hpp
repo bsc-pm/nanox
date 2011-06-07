@@ -401,16 +401,16 @@ namespace nanos
          /*! \brief Add a new WD to the domain of this WD.
           *  \param wd Must be a WD created by "this". wd will be submitted to the
           *  scheduler when its dependencies are satisfied.
-          *  \param numDeps Number of dependencies.
-          *  \param deps Array with dependencies associated to the submitted wd.
+          *  \param numDataAccesses Number of data acceddes.
+          *  \param dataAccesses Array with DataAccesses associated to the submitted wd.
           */
-         void submitWithDependencies( WorkDescriptor &wd, size_t numDeps, Dependency* deps );
+         void submitWithDependencies( WorkDescriptor &wd, size_t numDataAccesses, DataAccess const *dataAccesses );
 
-         /*! \brief Waits untill all (input) dependencies passed are satisfied for the _doWait object.
-          *  \param numDeps Number of de dependencies.
-          *  \param deps dependencies to wait on, should be input dependencies.
+         /*! \brief Waits untill the (input) dependencies determined by the data accesses passed are satisfied for the _doWait object.
+          *  \param numDataAccesses Number of de data accesses.
+          *  \param dataAccesses dependencies to wait on, should be input dependencies.
           */
-         void waitOn( size_t numDeps, Dependency* deps );
+         void waitOn( size_t numDataAccesses, DataAccess const *dataAccesses );
 
          /*! If this WorkDescriptor has an immediate succesor (i.e., anothur WD that only depends on him)
              remove it from the dependence graph and return it. */

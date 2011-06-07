@@ -19,7 +19,10 @@
 
 #ifndef _NANOS_COMMUTATONDEPOBJ_DECL
 #define _NANOS_COMMUTATONDEPOBJ_DECL
+
 #include "dependableobject_decl.hpp"
+#include "region_decl.hpp"
+
 
 namespace nanos
 {
@@ -29,15 +32,17 @@ namespace nanos
    class CommutationDO : public DependableObject
    {
       private:
+         Region   _region; //! Region that determines the reduction
+         
       public:
         /*! \brief Default constructor
          */
-         CommutationDO ( ) : DependableObject() { }
+         CommutationDO ( Region const &region ) : DependableObject(), _region ( region ) { }
 
         /*! \brief Copy constructor
          *  \param cdo another CommutationDO
          */
-         CommutationDO( const CommutationDO &cdo ) : DependableObject() { }
+         CommutationDO( const CommutationDO &cdo ) : DependableObject(), _region ( cdo._region )  { }
 
         /*! \brief Assignment operator
          *  \param cdo another CommutationDO
@@ -46,6 +51,7 @@ namespace nanos
          {
             if ( this == &cdo ) return *this;
             DependableObject::operator= ( cdo );
+            _region = cdo._region;
             return *this;
          }
 

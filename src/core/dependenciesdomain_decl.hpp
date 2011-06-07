@@ -25,58 +25,124 @@
 #include <vector>
 #include "atomic_decl.hpp"
 #include "dependableobject_decl.hpp"
-#include "trackableobject_decl.hpp"
-#include "dependency_decl.hpp"
+#include "regionstatus_decl.hpp"
+#include "dataaccess_decl.hpp"
+#include "regiontree_decl.hpp"
 #include "compatibility.hpp"
 
 
 namespace nanos
 {
 
+   namespace dependencies_domain_internal {
+      class AccessType;
+   }
+
+
+   using namespace dependencies_domain_internal;
+   
+   
   /*! \class DependenciesDomain
    *  \brief Each domain is an independent context in which dependencies between DependableObject are managed
    */
    class DependenciesDomain
    {
       private:
-         typedef TR1::unordered_map<void *, TrackableObject*> DepsMap; /**< Maps addresses to Trackable objects */
+         typedef RegionTree<RegionStatus> RegionMap; /**< Maps regions to \a RegionStatus objects */
 
          static Atomic<int>   _atomicSeed;           /**< ID seed for the domains */
          int                  _id;                   /**< Domain's id */
          unsigned int         _lastDepObjId;         /**< Id to be given to the next submitted DependableObject */
-         DepsMap              _addressDependencyMap; /**< Used to track dependencies between DependableObject */
+         RegionMap            _regionMap;            /**< Used to track dependencies between DependableObject */
+         RecursiveLock        _instanceLock;         /**< Needed to access _regionMap */
+         
          static Atomic<int>   _tasksInGraph;         /**< Current number of tasks in the graph */
          static Lock          _lock;
 
-        /*! \brief Looks for the dependency's address in the domain and returns the trackableObject associated.
-         *  \param dep Dependency to be checked.
-         *  \sa Dependency TrackableObject
+        /*! \brief Finalizes a reduction if active.
+         *  \param[in,out] regionStatus status of the subregion
+         *  \param region accessed region
          */
-         TrackableObject* lookupDependency ( const Dependency &dep );
+         inline void finalizeReduction( RegionStatus &regionStatus, Region const &region );
+         
+        /*! \brief Makes a DependableObject depend on the last writer of a region.
+         *  \param depObj target DependableObject
+         *  \param regionStatus status of the region
+         */
+         inline void dependOnLastWriter( DependableObject &depObj, RegionStatus const &regionStatus );
+         
+        /*! \brief Makes a DependableObject depend on the the readers of a region and sets it as its last writer.
+         *  \param depObj target DependableObject
+         *  \param regionStatus status of the region
+         */
+         inline void dependOnReadersAndSetAsWriter( DependableObject &depObj, RegionStatus &regionStatus, Region const &region );
+         
+        /*! \brief Makes a DependableObject a reader of a region.
+         *  \param depObj target DependableObject
+         *  \param regionStatus status of the region
+         *  \param region accessed region
+         */
+         inline void addAsReader( DependableObject &depObj, RegionStatus &regionStatus );
+         
+        /*! \brief Adds a commutative region access of a DependableObject to the domains dependency system.
+         *  \param depObj target DependableObject
+         *  \param subregion accessed region
+         *  \param accessType kind of region access
+         *  \param[in,out] regionStatus status of the subregion
+         */
+         inline void submitDependableObjectCommutativeDataAccess( DependableObject &depObj, Region const &subregion, AccessType const &accessType, RegionStatus &regionStatus );
+         
+        /*! \brief Adds an inout region access of a DependableObject to the domains dependency system.
+         *  \param depObj target DependableObject
+         *  \param subregion accessed region
+         *  \param accessType kind of region access
+         *  \param[in,out] regionStatus status of the subregion
+         */
+         inline void submitDependableObjectInoutDataAccess( DependableObject &depObj, Region const &subregion, AccessType const &accessType, RegionStatus &regionStatus );
+         
+        /*! \brief Adds an input region access of a DependableObject to the domains dependency system.
+         *  \param depObj target DependableObject
+         *  \param subregion accessed region
+         *  \param accessType kind of region access
+         *  \param[in,out] regionStatus status of the subregion
+         */
+         inline void submitDependableObjectInputDataAccess( DependableObject &depObj, Region const &subregion, AccessType const &accessType, RegionStatus &regionStatus );
+         
+        /*! \brief Adds an output region access of a DependableObject to the domains dependency system.
+         *  \param depObj target DependableObject
+         *  \param subregion accessed region
+         *  \param accessType kind of region access
+         *  \param[in,out] regionStatus status of the subregion
+         */
+         inline void submitDependableObjectOutputDataAccess( DependableObject &depObj, Region const &subregion, AccessType const &accessType, RegionStatus &regionStatus );
+         
+        /*! \brief Adds a region access of a DependableObject to the domains dependency system.
+         *  \param depObj target DependableObject
+         *  \param region accessed region
+         *  \param accessType kind of region access
+         */
+         inline void submitDependableObjectDataAccess( DependableObject &depObj, Region const &region, AccessType const &accessType );
+         
         /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
          *  \param depObj DependableObject to be added to the domain.
-         *  \param begin Iterator to the start of the list of dependencies to be associated to the Dependable Object.
+         *  \param begin Iterator to the start of the list of data accesses that determine the dependencies to be associated to the Dependable Object.
          *  \param end Iterator to the end of the mentioned list.
-         *  \sa Dependency DependableObject TrackableObject
+         *  \sa DataAccess DependableObject TrackableObject
          */
-         template<typename iterator>
-         void submitDependableObjectInternal ( DependableObject &depObj, iterator begin, iterator end );
-
-      private:
-        /*! \brief DependenciesDomain copy assignment operator (private)
-         */
-         const DependenciesDomain & operator= ( const DependenciesDomain &depDomain );
+         template<typename const_iterator>
+         void submitDependableObjectInternal ( DependableObject &depObj, const_iterator begin, const_iterator end );
+         
       public:
 
         /*! \brief DependenciesDomain default constructor
          */
-         DependenciesDomain ( ) :  _id( _atomicSeed++ ), _lastDepObjId ( 0 ), _addressDependencyMap( ) {}
+         DependenciesDomain ( ) :  _id( _atomicSeed++ ), _lastDepObjId ( 0 ), _regionMap( ) {}
 
         /*! \brief DependenciesDomain copy constructor
          */
          DependenciesDomain ( const DependenciesDomain &depDomain )
             : _id( _atomicSeed++ ), _lastDepObjId ( depDomain._lastDepObjId ),
-              _addressDependencyMap ( depDomain._addressDependencyMap ) {}
+              _regionMap ( depDomain._regionMap ) {}
 
         /*! \brief DependenciesDomain destructor
          */
@@ -88,30 +154,59 @@ namespace nanos
 
         /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
          *  \param depObj DependableObject to be added to the domain.
-         *  \param deps List of dependencies to be associated to the Dependable Object.
-         *  \sa Dependency DependableObject TrackableObject
+         *  \param dataAccesses List of data accesses that determine the dependencies to be associated to the Dependable Object.
+         *  \sa DataAccess DependableObject TrackableObject
          */
-         void submitDependableObject ( DependableObject &depObj, std::vector<Dependency> &deps );
+         void submitDependableObject ( DependableObject& depObj, std::vector< DataAccess > const &dataAccesses );
 
         /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
          *  \param depObj DependableObject to be added to the domain.
-         *  \param deps List of dependencies to be associated to the Dependable Object.
-         *  \param numDeps Number of dependenices in the list.
-         *  \sa Dependency DependableObject TrackableObject
+         *  \param dataAccesses List of data accesses that determine the dependencies to be associated to the Dependable Object.
+         *  \param numDataAccesses Number of data accesses in the list.
+         *  \sa DataAccess DependableObject TrackableObject
          */
-         void submitDependableObject ( DependableObject &depObj, size_t numDeps, Dependency* deps);
+         void submitDependableObject ( DependableObject &depObj, size_t numDataAccesses, DataAccess const *dataAccesses );
 
+        /*! \brief Removes the DependableObject from the role of last writer of a region.
+         *  \param depObj DependableObject to be stripped of the last writer role
+         *  \param region Region that must be affected
+         */
+         void deleteLastWriter ( DependableObject &depObj, Region const &region );
+         
+        /*! \brief Removes the DependableObject from the reader list of a region.
+         *  \param depObj DependableObject to be removed as a reader
+         *  \param region Region that must be affected
+         */
+         void deleteReader ( DependableObject &depObj, Region const &region );
+         
+        /*! \brief Removes a CommutableDO from a region.
+         *  \param commDO CommutationDO to be removed
+         *  \param region Region that must be affected
+         */
+         void removeCommDO ( CommutationDO *commDO, Region const &region );
+         
          static void increaseTasksInGraph();
 
          static void decreaseTasksInGraph();
 
-        /*! \brief Get exclusive access to the object
+        /*! \brief Returns a reference to the instance lock
+         */
+         RecursiveLock& getInstanceLock();
+         
+        /*! \brief returns a reference to the static lock
+         */
+         Lock& getLock();
+         
+        /*! \brief Get exclusive access to static data
          */
          static void lock ( );
 
-        /*! \brief Release object's lock
+        /*! \brief Release the static lock
          */
          static void unlock ( );
+         
+         
+         void dump(std::string const &function = "", std::string const &file = "", size_t line = 0);
    };
 
 };

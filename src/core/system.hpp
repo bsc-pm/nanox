@@ -27,7 +27,7 @@
 #include "threadteam.hpp"
 #include "slicer.hpp"
 #include "nanos-int.h"
-#include "dependency.hpp"
+#include "dataaccess_fwd.hpp"
 #include "instrumentation_decl.hpp"
 #include "cache_map.hpp"
 

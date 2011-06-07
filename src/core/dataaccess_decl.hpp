@@ -17,87 +17,82 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_DEPENDENCY_DECL
-#define _NANOS_DEPENDENCY_DECL
+#ifndef _NANOS_DATA_ACCESS_DECL
+#define _NANOS_DATA_ACCESS_DECL
 
 #include "nanos-int.h"
-
+// 
 namespace nanos
 {
 
-  /*! \class Dependency
-   *  \brief Contains information about dependencies necessary to add a DependableObject to the Dependencies system
+  /*! \class DataAccess
+   *  \brief Contains information about dependency data access necessary to add a \a DependableObject to the Dependencies system
    */
-   class Dependency : public nanos_dependence_internal_t
+   class DataAccess : public nanos_data_access_internal_t
    {
       public:
-         /*! \brief Dependency default constructor
+         /*! \brief DataAccess default constructor
           *
-          *  \param address Address of the dependency's address 
-          *  \param input Whether the dependency is input or not 
-          *  \param output Whether the dependency is output or not
-          *  \param canRename Whether the dependency can rename or not
+          *  \param address Address of the data 
+          *  \param input Whether the access is input or not 
+          *  \param output Whether the access is output or not
+          *  \param canRename Whether the access can rename or not
+          *  \param dimensionCount Number of dimensions
+          *  \param dimensions Array of dimension descriptors from least significant to most significant
           */
-         Dependency ( void ** addr = NULL, ptrdiff_t offset = 0, bool input = false, bool output = false,
-                      bool canRename = false, bool commutative = false, size_t storageSize = 0 );
+         DataAccess ( void * addr, bool input, bool output,
+                      bool canRename, bool commutative, short dimensionCount,
+                      nanos_region_dimension_internal_t const *dimensions );
 
-         /*! \brief Dependency copy constructor
+         /*! \brief DataAccess copy constructor
           *
-          *  \param obj another Dependency
+          *  \param dataAccess another DataAccess
           */
-         Dependency ( const Dependency &dep );
+         DataAccess ( const DataAccess &dataAccess );
 
-        /*! \brief Dependency copy asssignment operator, can be self-assigned.
+        /*! \brief DataAccess copy asssignment operator, can be self-assigned.
          *
-         *  \param obj another Dependency
+         *  \param dataAccess another DataAccess
          */
-         const Dependency & operator= ( const Dependency &dep );
+         const DataAccess & operator= ( const DataAccess &dataAccess );
 
-         /*! \brief Dependency destructor
+         /*! \brief DataAccess destructor
           */
-         ~Dependency () {}
+         ~DataAccess () {}
          
-        /*! \brief Obtain the dependency's address address
+        /*! \brief Obtain the base address of the access
          */
-         void ** getAddress() const;
+         void * getAddress() const;
          
-        /*! \brief Obtain the dependency's address address
-         */
-         ptrdiff_t getOffset() const;
-
-        /*! \brief Compute the dependency address
-         */
-         void * getDepAddress() const;
-         
-        /*! \brief returns true if it is an input dependency
+        /*! \brief returns true if it is an input access
          */
          bool isInput() const;
 
-        /*! \brief sets the dependency input clause to b
+        /*! \brief sets the access input clause to b
          */
          void setInput( bool b );
          
-        /*! \brief returns true if it is an output dependency
+        /*! \brief returns true if it is an output access
          */
          bool isOutput() const;
 
-        /*! \brief sets the dependency output clause to b
+        /*! \brief sets the access output clause to b
          */
          void setOutput( bool b );
          
-        /*! \brief return true if the dependency can rename
+        /*! \brief return true if the access can rename
          */
          bool canRename() const;
 
-        /*! \brief sets the rename attribute to b
+        /*! \brief sets the access attribute to b
          */
          void setCanRename( bool b );
 
-        /*! \brief returns true if there is a commutative over this dependency
+        /*! \brief returns true if there is commutativity over this access
          */
          bool isCommutative() const;
 
-        /*! \brief sets the dependency to be a commutative
+        /*! \brief sets the access to be commutative
          */
          void setCommutative( bool b );
          
