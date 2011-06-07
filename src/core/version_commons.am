@@ -94,6 +94,8 @@ common_sources=\
 	$(top_srcdir)/src/core/region_decl.hpp \
 	$(top_srcdir)/src/core/region.hpp \
 	$(top_srcdir)/src/core/region.cpp \
+	$(top_srcdir)/src/core/regioncollection_fwd.hpp \
+	$(top_srcdir)/src/core/regioncollection_decl.hpp \
 	$(top_srcdir)/src/core/regionpart_fwd.hpp \
 	$(top_srcdir)/src/core/regionpart_decl.hpp \
 	$(END)
