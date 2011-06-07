@@ -90,6 +90,10 @@ common_sources=\
 	$(top_srcdir)/src/core/pminterface_decl.hpp  \
 	$(top_srcdir)/src/core/basethread_decl.hpp \
 	$(top_srcdir)/src/core/bitcounter.h \
+	$(top_srcdir)/src/core/region_fwd.hpp \
+	$(top_srcdir)/src/core/region_decl.hpp \
+	$(top_srcdir)/src/core/region.hpp \
+	$(top_srcdir)/src/core/region.cpp \
 	$(END)
 
 instr_sources = \
