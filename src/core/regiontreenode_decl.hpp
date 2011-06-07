@@ -1,0 +1,261 @@
+/*
+   Cell/SMP Superscalar (CellSs/SMPSs): Easy programming the Cell BE/Shared Memory Processors
+   Copyright (C) 2008 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion
+   
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+   
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+   
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+   
+   The GNU Lesser General Public License is contained in the file COPYING.
+*/
+
+#ifndef _NANOS_REGION_TREE_NODE_DECL
+#define _NANOS_REGION_TREE_NODE_DECL
+
+#include "region.hpp"
+
+
+namespace nanos {
+
+
+namespace region_tree_private {
+
+
+/*! \class RegionTreeNode
+ *  \brief Node from the region tree
+ *  \tparam T Type of the elements stored in the tree.
+ */
+template<typename T>
+struct RegionTreeNode {
+   //! Segment of the Region represented by the node.
+   Region m_regionSegment;
+#if REGION_TREE_BOUNDING
+   //! Minimum superset that covers the regions represented by the children (if not a leaf), or itself (if a leaf).
+   Region m_fullRegion;
+#endif
+   //! Parent node in the tree
+   RegionTreeNode *m_parent;
+   //! Children nodes indexed by their discriminating in Region::bit_value_t value.
+   RegionTreeNode *m_children[3]; // 0, 1, X
+   //! Number of bit splits due to partitioning.
+   unsigned int m_partitionLevel; // Indicates the number of times that a region has been partitioned until arriving to this node
+   //! Actual data indexed by the tree.
+   T m_data;
+   
+   //! \brief Default constructor
+   RegionTreeNode(): // This constructor is for the memory manager
+#if REGION_TREE_BOUNDING
+      m_regionSegment(), m_fullRegion(), m_parent(NULL), m_children(), m_partitionLevel(0), m_data(T())
+#else
+      m_regionSegment(), m_parent(NULL), m_children(), m_partitionLevel(0), m_data(T())
+#endif
+      {}
+   
+   //! \brief Unlinked contructor with data
+   //! \param data the data that the node must contain
+   RegionTreeNode(T const &data):
+#if REGION_TREE_BOUNDING
+      m_regionSegment(), m_fullRegion(), m_parent(NULL), m_children(), m_partitionLevel(0), m_data(data)
+#else
+      m_regionSegment(), m_parent(NULL), m_children(), m_partitionLevel(0), m_data(data)
+#endif
+      {}
+   
+   //! \brief Full constructor
+   //! \param regionSegment the region segment represented by the node
+   //! \param parent the node parent in the tree (it is not linked back)
+   //! \param data the data that the node must contain
+   RegionTreeNode(Region const &regionSegment, RegionTreeNode *parent, T const &data):
+#if REGION_TREE_BOUNDING
+      m_regionSegment(regionSegment), m_fullRegion(), m_parent(parent), m_children(), m_partitionLevel(0), m_data(data)
+#else
+      m_regionSegment(regionSegment), m_parent(parent), m_children(), m_partitionLevel(0), m_data(data)
+#endif
+      {}
+   
+   //! \brief Unlinked initializer with data
+   //! \param data the data that the node must contain
+   void init(T const &data)
+      {
+         m_regionSegment.clear();
+#if REGION_TREE_BOUNDING
+         m_fullRegion.clear();
+#endif
+         m_parent = NULL;
+         m_children[Region::BIT_0] = NULL;
+         m_children[Region::BIT_1] = NULL;
+         m_children[Region::X] = NULL;
+         m_partitionLevel = 0;
+         m_data = data;
+      }
+   
+   //! \brief Full initializer
+   //! \param regionSegment the region segment represented by the node
+   //! \param parent the node parent in the tree (it is not linked back)
+   //! \param data the data that the node must contain
+   void init(Region const &regionSegment, RegionTreeNode *parent, T const &data)
+      {
+         m_regionSegment = regionSegment;
+#if REGION_TREE_BOUNDING
+         m_fullRegion.clear();
+#endif
+         m_parent = parent;
+         m_children[Region::BIT_0] = NULL;
+         m_children[Region::BIT_1] = NULL;
+         m_children[Region::X] = NULL;
+         m_partitionLevel = 0;
+         m_data = data;
+      }
+   
+   //! \brief Clear the node
+   void clear()
+      {
+         m_regionSegment.clear();
+#if REGION_TREE_BOUNDING
+         m_fullRegion.clear();
+#endif
+         m_parent = NULL;
+         m_children[Region::BIT_0] = NULL;
+         m_children[Region::BIT_1] = NULL;
+         m_children[Region::X] = NULL;
+         m_partitionLevel = 0;
+         m_data = T();
+      }
+   
+   //! \brief Create a child for a certain Region::bit_value_t if it does not exist yet and return it
+   //! \param child bit value of the child
+#if REGION_TREE_BOUNDING
+   //! \param fullRegion the region of the new child node (if it must be created)
+   RegionTreeNode * createChildIfNecessary(Region::bit_value_t child, Region const &fullRegion, Region const &regionSegment)
+#else
+   RegionTreeNode * createChildIfNecessary(Region::bit_value_t child, Region const &regionSegment)
+#endif
+   //! \param regionSegment the region segment of the new child node (if it must be created)
+   //! \returns the child
+      {
+         if (m_children[child] == NULL) {
+            m_children[child] = NEW RegionTreeNode();
+            m_children[child]->init(regionSegment, this, T());
+#if REGION_TREE_BOUNDING
+            m_children[child]->m_fullRegion = fullRegion;
+#endif
+            //Tracing::regionTreeAddedNodes(1);
+         }
+         return m_children[child];
+      }
+   
+#if REGION_TREE_BOUNDING
+   //! \brief Split the node by a certain region segment
+   //! \param otherRegionSegment a region segment with a possible common prefix that determines the actual split point in the region segment.
+   //! \param newFullRegion the region that is going to be inserted
+   //! \param root a reference to where the root node pointer is stored. May be needed to split the root node.
+   //! \param createNewChild determines if a new child must be created that representd the otherRegionSegment
+   //! \returns the new parent that covers both region segments
+   RegionTreeNode * split(Region otherRegionSegment, Region const &newFullRegion, RegionTreeNode *&root, bool createNewChild = true);
+#else
+   RegionTreeNode * split(Region otherRegionSegment, RegionTreeNode *&root, bool createNewChild = true);
+#endif
+   
+#if REGION_TREE_BOUNDING
+   //! \brief Minimum superset of the regions covered
+   //! \returns the minimum superser of the regions covered by the node
+   Region const & getFullRegion() const
+      { return m_fullRegion; }
+   //! \brief Set the minimum superset of the regions covered
+   //! \param fullRegion the minimum superset of the regions covered
+   void setFullRegion(Region const &fullRegion)
+      { m_fullRegion = fullRegion; }
+   
+   //! \brief Update the minimum superset of the regions covered by visiting the children and propagating upwards
+   // Recalculation cannot be limited to a number of levels since it may prevent X's from forming upwards, and thus incorrectly bonding searches
+   void inline recalculateFullRegionFromChildren()
+      {
+         Region oldRegion = m_fullRegion;
+         
+         if (m_children[Region::BIT_0] !=  NULL) {
+            m_fullRegion = m_children[Region::BIT_0]->m_fullRegion;
+            if (m_children[Region::BIT_1] !=  NULL) {
+               m_fullRegion |= m_children[Region::BIT_1]->m_fullRegion;
+            }
+            if (m_children[Region::X] !=  NULL) {
+               m_fullRegion |= m_children[Region::X]->m_fullRegion;
+            }
+         } else if (m_children[Region::BIT_1] !=  NULL) {
+            m_fullRegion = m_children[Region::BIT_1]->m_fullRegion;
+            if (m_children[Region::X] !=  NULL) {
+               m_fullRegion |= m_children[Region::X]->m_fullRegion;
+            }
+         } else if (m_children[Region::X] !=  NULL) {
+            m_fullRegion = m_children[Region::X]->m_fullRegion;
+         } else {
+            m_fullRegion.clear();
+         }
+         
+         if (m_parent !=  NULL && m_fullRegion != oldRegion) {
+            //Tracing::regionTreeTraversedNodes(1);
+            m_parent->recalculateFullRegionFromChildren();
+         }
+      }
+   
+#else
+   //! \brief Full Region of the node
+   //! \returns the full Region of the node
+   Region getFullRegion() const
+      {
+         Region result;
+         if (m_parent != NULL) {
+            //Tracing::regionTreeTrackBack(1);
+            //Tracing::regionTreeTraversedNodes(1);
+            result = m_parent->getFullRegion();
+            if (m_parent->m_children[Region::BIT_0] == this) {
+               result.addBit(Region::BIT_0);
+            } else if (m_parent->m_children[Region::BIT_1] == this) {
+               result.addBit(Region::BIT_1);
+            } else {
+               result.addBit(Region::X);
+            }
+         }
+         result += m_regionSegment;
+         return result;
+      }
+#endif
+   
+};
+
+
+
+//! \brief RegionTree node graphviz formatter
+//! \tparam T the type of the contents of the tree
+//! \param o the output stream
+//! \param regionTreeNode the node to be formatted
+//! \returns the output stream
+template<typename T>
+std::ostream &operator<< (std::ostream &o, RegionTreeNode<T> const &regionTreeNode);
+
+
+//! \brief Recursive RegionTree node graphviz formatter 
+//! \tparam T the type of the contents of the tree
+//! \param o the output stream
+//! \param regionTreeNode the node to be formatted
+//! \returns the output stream
+template<typename T>
+std::ostream &printRecursive (std::ostream &o, RegionTreeNode<T> const &regionTreeNode);
+
+
+} // namespace region_tree_private
+
+
+} // namespace nanos
+
+
+#endif // _NANOS_REGION_TREE_NODE_DECL

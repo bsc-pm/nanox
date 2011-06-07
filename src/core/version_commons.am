@@ -98,6 +98,12 @@ common_sources=\
 	$(top_srcdir)/src/core/regioncollection_decl.hpp \
 	$(top_srcdir)/src/core/regionpart_fwd.hpp \
 	$(top_srcdir)/src/core/regionpart_decl.hpp \
+	$(top_srcdir)/src/core/regiontree_fwd.hpp \
+	$(top_srcdir)/src/core/regiontree_decl.hpp \
+	$(top_srcdir)/src/core/regiontree.hpp \
+	$(top_srcdir)/src/core/regiontreenode_fwd.hpp \
+	$(top_srcdir)/src/core/regiontreenode_decl.hpp \
+	$(top_srcdir)/src/core/regiontreenode.hpp \
 	$(END)
 
 instr_sources = \
