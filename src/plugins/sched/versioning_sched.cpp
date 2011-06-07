@@ -201,7 +201,7 @@ namespace ext
 
                      if ( records._device == NULL ) records._device = &pe->getDeviceType();
                      if ( records._device->getName() == pe->getDeviceType().getName() ) {
-                        if ( records._elapsedTime < bestTime ) {
+                        if ( records._lastElapsedTime < bestTime ) {
                            // It is worth trying this device, so go on
                            if ( records._numAssigned < MIN_RECORDS ) {
                               // Not enough records to have reliable values
@@ -242,7 +242,7 @@ namespace ext
 
                for ( i = 0; i < data.size(); i++ ) {
                   WDExecRecords & records = data[i];
-                  if ( records._elapsedTime < bestTime ) {
+                  if ( records._lastElapsedTime < bestTime ) {
                      // It is worth trying this device, so go on
 
                      if ( records._numAssigned < MIN_RECORDS ) {
@@ -283,21 +283,59 @@ namespace ext
                tdata._bestLock.acquire();
                // Reaching this point means that we have enough records to decide
                ProcessingElement * bestPE = tdata._wdExecBest.find( key )->first;
+               const Device * device = &( bestPE->getDeviceType() );
 
-               debug("[versioning] Autochoosing for key ("
-                     + toString<unsigned long>( key.first ) + ", "
-                     + toString<size_t>( key.second ) + ") device "
-                     + bestPE->getDeviceType().getName() );
+               if ( bestPE->getDeviceType().getName() == pe->getDeviceType().getName() ) {
+                  // My PE has the best record
+                  for ( i = 0; i < data.size(); i++ ) {
+                     if ( data[i]._device->getName() == bestPE->getDeviceType().getName() ) {
+                        data[i]._numAssigned++;
+                    }
+                  }
+
+                  debug("[versioning] Autochoosing for key ("
+                        + toString<unsigned long>( key.first ) + ", " + toString<size_t>( key.second )
+                        + ") my device " + bestPE->getDeviceType().getName() );
+
+                  tdata._bestLock.release();
+                  tdata._statsLock.release();
+                  return setDevice( thread, next, device );
+               }
+
+               // Estimate the remaining amount of time to execute the assigned tasks
+               double remTime = 0.0;
+               double remBest = 0.0;
+               int index = 0;
+               int myIndex = 0;
 
                for ( i = 0; i < data.size(); i++ ) {
-                  if ( data[i]._device->getName() == bestPE->getDeviceType().getName() ) {
-                     data[i]._numAssigned++;
+                  WDExecRecords & records = data[i];
+                  if ( records._device->getName() == bestPE->getDeviceType().getName() ) {
+                     index = i;
+                     remBest = ( records._numAssigned - records._numRecords ) * records._elapsedTime;
+                  }  else if ( records._device->getName() == pe->getDeviceType().getName() ) {
+                     myIndex = i;
+                  } else {
+                     remTime += ( records._numAssigned - records._numRecords ) * records._elapsedTime;
                   }
                }
 
+               if ( remBest * 0.9 > data[myIndex]._elapsedTime ) {
+                  // This PE has enough time to execute one instance of its own version
+                  index = myIndex;
+                  device = &( pe->getDeviceType() );
+               }
+
+               data[index]._numAssigned++;
+
+               debug("[versioning] Autochoosing for key ("
+                     + toString<unsigned long>( key.first ) + ", " + toString<size_t>( key.second )
+                     + ") best device is " + bestPE->getDeviceType().getName()
+                     + " chosen device is " + device->getName() );
+
                tdata._bestLock.release();
                tdata._statsLock.release();
-               return setDevice( thread, next, &( bestPE->getDeviceType() ) );
+               return setDevice( thread, next, device );
             }
 
             return next;
@@ -339,7 +377,7 @@ namespace ext
                   records._device = &pe->getDeviceType();
                   records._elapsedTime = 0.0; // Should be 'executionTime'
                   records._numRecords++; // Should be '1' but in fact it is -1+1 = 0
-                  records._lastElapsedTime = 0.0; // Should be 'executionTime'
+                  records._lastElapsedTime = executionTime;
 
                   debug("[versioning] First recording for key (" + toString<unsigned long>( key.first )
                         + ", " + toString<size_t>( key.second )
