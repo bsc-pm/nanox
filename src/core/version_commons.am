@@ -89,6 +89,7 @@ common_sources=\
 	$(top_srcdir)/src/core/cache_map.hpp \
 	$(top_srcdir)/src/core/pminterface_decl.hpp  \
 	$(top_srcdir)/src/core/basethread_decl.hpp \
+	$(top_srcdir)/src/core/bitcounter.h \
 	$(END)
 
 instr_sources = \
