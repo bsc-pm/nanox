@@ -19,7 +19,7 @@
 
 #include "plugin.hpp"
 #include "system.hpp"
-#include "gasnetapi.hpp"
+#include "gasnetapi_decl.hpp"
 #include "clusterinfo.hpp"
 
 
@@ -35,10 +35,6 @@ class ClusterPlugin : public Plugin
       virtual void config( Config& config )
       {
          config.setOptionsSection( "Cluster Arch", "Cluster specific options" );
-         //config.registerConfigOption ( "num-gpus", new Config::IntegerVar( _numGPUs ),
-         //                              "Defines the maximum number of GPUs to use" );
-         //config.registerArgOption ( "num-gpus", "gpus" );
-         //config.registerEnvOption ( "num-gpus", "NX_GPUS" );
       }
 
       virtual void init()

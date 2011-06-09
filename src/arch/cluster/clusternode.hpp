@@ -53,9 +53,9 @@ namespace ext {
          // constructors
          //FIXME: GPU support
 #ifdef GPU_DEV
-         ClusterNode( int id ) : CachedAccelerator< ClusterDevice >( id, &Cluster, NANOS_CACHE_WB_POLICY, &GPU, ( int ) ClusterInfo::getSegmentLen( id ) ),
+         ClusterNode( int id ) : CachedAccelerator< ClusterDevice >( id, &SMP, NANOS_CACHE_WB_POLICY, &GPU, ( int ) ClusterInfo::getSegmentLen( id ) ),
 #else
-         ClusterNode( int id ) : CachedAccelerator< ClusterDevice >( id, &Cluster, NANOS_CACHE_WB_POLICY, NULL, ( int ) ClusterInfo::getSegmentLen( id ) ),
+         ClusterNode( int id ) : CachedAccelerator< ClusterDevice >( id, &SMP, NANOS_CACHE_WB_POLICY, NULL, ( int ) ClusterInfo::getSegmentLen( id ) ),
 #endif
             _clusterNode ( id ), _memSegment( ( uintptr_t ) ClusterInfo::getSegmentAddr( id ),
             ClusterInfo::getSegmentLen( id ) ), _executedWorkDesciptors ( 0 ) { }

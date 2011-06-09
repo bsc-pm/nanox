@@ -47,7 +47,7 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
 
    wd.start(WorkDescriptor::IsNotAUserLevelThread);
 
-   //std::cerr << "run remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " numPe " << wd.getPeId() << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << " data size is " << wd.getDataSize() << std::endl;
+   //std::cerr << "run remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << " data size is " << wd.getDataSize() << std::endl;
    
    CopyData newCopies[ wd.getNumCopies() ]; 
 
@@ -101,6 +101,7 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
 void ClusterThread::join()
 {
    unsigned int i;
+   message( "Node " << ( ( ClusterNode * ) this->runningOn() )->getClusterNodeNum() << " executed " <<( ( ClusterNode * ) this->runningOn() )->getExecutedWDs() << " WDs" );
    for ( i = 1; i < sys.getNetwork()->getNumNodes(); i++ )
       sys.getNetwork()->sendExitMsg( i );
 }

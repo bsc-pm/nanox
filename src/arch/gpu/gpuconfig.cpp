@@ -111,7 +111,7 @@ void GPUConfig::apply()
 {
    if ( _disableCUDA ) {
       _numGPUs = 0;
-      _cachePolicy = "";
+      //_cachePolicy = "";
       _prefetch = false;
       _overlap = false;
       _overlapInputs = false;

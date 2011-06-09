@@ -423,8 +423,6 @@ void System::start ()
          _preMainBarrier++;
          ext::SMPMultiThread *smpRepThd = dynamic_cast<ext::SMPMultiThread *>( &smpRep->startMultiWorker( _net.getNumNodes() - 1, _peArray ) );
 
-         _net.setPollingMinThd( smpRepThd->getId() );
-          
          _net.addNodes( (ext::ClusterNode **) _peArray , _net.getNumNodes() - 1 ); 
          ext::ClusterThread *nodeThds[ _net.getNumNodes() - 1 ];
          int i = 0;
@@ -435,7 +433,6 @@ void System::start ()
             nodeThds[ i++ ]= (ext::ClusterThread *) *threadIterator ;
             std::cerr << " Thread " << (i-1) << " has id " << ((BaseThread *) nodeThds[i-1])->getId() << " addr is " << nodeThds[i-1] << std::endl;
             _workers.push_back( *threadIterator );
-            _net.setPollingMaxThd( (*threadIterator)->getId() );
          }
          _net.addThds( nodeThds, _net.getNumNodes() - 1 ); 
 
@@ -453,8 +450,6 @@ void System::start ()
          _workers.push_back( smpRepThd ); 
 	 _net.setMasterDirectory( smpRepThd->getThreadWD().getDirectory(true)  );
          setMyFavDir( smpRepThd->getThreadWD().getDirectory(true)  ); 
-         _net.setPollingMinThd( smpRepThd->getId() );
-         _net.setPollingMaxThd( smpRepThd->getId() );
          setSlaveParentWD( &smpRepThd->getThreadWD() );
       }
    }

@@ -45,7 +45,7 @@ namespace nanos
       public:
         /*! \brief CachedAccelerator constructor - from 'newId' and 'arch'
          */
-         CachedAccelerator ( int newId, const CacheDevice *arch, NANOS_CACHE_POLICY policy, const Device *subArch = NULL, int cacheSize = 0 ) :
+         CachedAccelerator ( int newId, const Device *arch, NANOS_CACHE_POLICY policy, const Device *subArch = NULL, int cacheSize = 0 ) :
             Accelerator( newId, arch, subArch ), _cache( NEW DeviceCache<CacheDevice>( cacheSize, policy, this ) ) {}
 
          /*! \brief CachedAccelerator constructor - from 'newId' and 'arch'

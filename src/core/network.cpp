@@ -32,17 +32,8 @@ Lock Network::_nodeLock;
 Atomic<uint64_t> Network::_nodeRCAaddr;
 Atomic<uint64_t> Network::_nodeRCAaddrOther;
 
-Network::Network () : _numNodes( 1 ), _api( (NetworkAPI *) 0 ), _nodeNum( 0 ), _notify( NULL ),
-                      _malloc_return( NULL ), _malloc_complete( NULL ), _masterHostname ( NULL ), _pollingMinThd(999), _pollingMaxThd( 999 ) {}
-Network::~Network ()
-{
-   if ( _notify != NULL )
-      delete _notify;
-   if ( _malloc_return != NULL )
-      delete _malloc_return;
-   if ( _malloc_complete != NULL )
-      delete _malloc_complete;
-}
+Network::Network () : _numNodes( 1 ), _api( (NetworkAPI *) 0 ), _nodeNum( 0 ), _masterHostname ( NULL ) {}
+Network::~Network () {}
 
 void Network::setAPI ( NetworkAPI *api )
 {
@@ -56,22 +47,7 @@ NetworkAPI *Network::getAPI ()
 
 void Network::setNumNodes ( unsigned int numNodes )
 {
-   unsigned int i;
-   unsigned int totalPEs = numNodes * 2 ; //( sys.getNumPEs() + 1 );
-
    _numNodes = numNodes;
-   
-//std::cerr << "initializing network with " << sys.getNumPEs() << " PEs per mode" << std::endl;
-   _notify = new volatile unsigned int[ totalPEs ];
-   _malloc_return = new void *[ totalPEs ];
-   _malloc_complete = new bool[ totalPEs ];
-
-   for (i = 0; i < totalPEs; i++)
-   {
-      _notify[ i ] = 0;
-      _malloc_complete[ i ] = false;
-   }
-
 }
 
 unsigned int Network::getNumNodes () const
@@ -106,24 +82,23 @@ void Network::finalize()
 
 void Network::poll( unsigned int id)
 {
-//   ensure ( _api != NULL, "No network api loaded." );
+   //   ensure ( _api != NULL, "No network api loaded." );
    if (_api != NULL /*&& (id >= _pollingMinThd && id <= _pollingMaxThd) */)
       _api->poll();
 }
 
 void Network::sendExitMsg( unsigned int nodeNum )
 {
- //  ensure ( _api != NULL, "No network api loaded." );
+   //  ensure ( _api != NULL, "No network api loaded." );
    if ( _nodeNum == MASTER_NODE_NUM )
    {
-      //std::cerr << "[" << _nodeNum << "] => " << nodeNum << " " << __FUNCTION__ << std::endl;
       _api->sendExitMsg( nodeNum );
    }
 }
 
 void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigned int dataSize, unsigned int wdId, unsigned int numPe, size_t argSize, char * arg, void ( *xlate ) ( void *, void * ), int arch, void *remoteWd )
 {
- //  ensure ( _api != NULL, "No network api loaded." );
+   //  ensure ( _api != NULL, "No network api loaded." );
    if ( _api != NULL )
    {
       if (work == NULL)
@@ -132,15 +107,11 @@ void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigne
       }
       if ( _nodeNum == MASTER_NODE_NUM )
       {
-       //  std::cerr << "work sent to " << dest << std::endl;
-
          NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
          NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) numPe) << 32 ) + dest; )
          NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL, dest ); )
 
-      //std::cerr << "[" << _nodeNum << "] => " << dest << " " << __FUNCTION__ << std::endl;
          _api->sendWorkMsg( dest, work, dataSize, wdId, numPe, argSize, arg, xlate, arch, remoteWd );
-         _notify[ dest * 2 /*sys.getNumPEs()*/ + numPe ] = 1; //FIXME: hardcoded for 1 GPU + 1 SMP per node
       }
       else
       {
@@ -149,14 +120,9 @@ void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigne
    }
 }
 
-bool Network::isWorking(unsigned int dest, unsigned int numPe) const
-{
-   return ( _notify[ dest * 2 /*sys.getNumPEs()*/ + numPe ] == 1 );  //FIXME: hardcoded for 1 GPU + 1 SMP per node
-}
-
 void Network::sendWorkDoneMsg( unsigned int nodeNum, void *remoteWdAddr, int peId )
 {
- //  ensure ( _api != NULL, "No network api loaded." );
+   //  ensure ( _api != NULL, "No network api loaded." );
    if ( _api != NULL )
    {
       NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
@@ -164,7 +130,6 @@ void Network::sendWorkDoneMsg( unsigned int nodeNum, void *remoteWdAddr, int peI
       NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL, 0 ); )
       if ( _nodeNum != MASTER_NODE_NUM )
       {
-      //std::cerr << "[" << _nodeNum << "] => " << nodeNum << " " << __FUNCTION__ << std::endl;
          _api->sendWorkDoneMsg( nodeNum, remoteWdAddr, peId );
       }
    }
@@ -172,57 +137,52 @@ void Network::sendWorkDoneMsg( unsigned int nodeNum, void *remoteWdAddr, int peI
 
 void Network::notifyWorkDone ( unsigned int nodeNum, void *remoteWdAddr, int peId)
 {
-   //std::cerr << "completed work from " << nodeNum << " : " << numPe << std::endl;
    NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
    NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) 0) << 32 ) + nodeNum; )
    NANOS_INSTRUMENT ( instr->raiseClosePtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL, nodeNum ); )
 
-   //_notify[ nodeNum * 2 /*sys.getNumPEs()*/ + 1 ] = 0;
-   //_thds[ nodeNum - 1 ]->completeWDGPU(  remoteWdAddr );
    if ( peId == 0) 
-   _thds[ nodeNum - 1 ]->completeWDSMP_2( remoteWdAddr );
+      _thds[ nodeNum - 1 ]->completeWDSMP_2( remoteWdAddr );
    else if ( peId == 1)
-   _thds[ nodeNum - 1 ]->completeWDGPU_2( remoteWdAddr );
+      _thds[ nodeNum - 1 ]->completeWDGPU_2( remoteWdAddr );
    else
-    std::cerr << "unhandled peid" << std::endl;
+      std::cerr << "unhandled peid" << std::endl;
 }
 
 void Network::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size )
 {
    if ( _api != NULL )
-{
-      //std::cerr << "[" << _nodeNum << ":" << localAddr << "] => " << remoteNode << ":" << ((void *) remoteAddr) << " " << __FUNCTION__ << std::endl;
+   {
       _api->put( remoteNode, remoteAddr, localAddr, size );
-}
+   }
 }
 
 void Network::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, size_t size )
 {
    if ( _api != NULL )
-{
-      //std::cerr << "[" << _nodeNum << ":" << localAddr << "] => " << remoteNode << ":" << ((void *) remoteAddr) << " " << __FUNCTION__ << std::endl;
+   {
       _api->get( localAddr, remoteNode, remoteAddr, size );
-}
+   }
 }
 
-void * Network::malloc ( unsigned int remoteNode, size_t size, unsigned int id )
+void * Network::malloc ( unsigned int remoteNode, size_t size )
 {
-   void * result = NULL;
+   mallocWaitObj request;
+
+   request.complete = 0;
+   request.resultAddr = NULL;
 
    if ( _api != NULL )
    {
-      _api->malloc( remoteNode, size, id );
+      _api->malloc( remoteNode, size, ( void * ) &request );
 
-      while ( _malloc_complete[ remoteNode * 2 /*sys.getNumPEs()*/ + id ] == false )
+      while ( ( (volatile int) request.complete ) == 0 )
       {
-         poll( myThread->getId() );
+         poll( /*myThread->getId()*/0 );
       }
-
-      result = _malloc_return[ remoteNode * 2/*sys.getNumPEs()*/ + id ];
-      _malloc_complete[ remoteNode * 2/*sys.getNumPEs()*/ + id ] = false;
    }
 
-   return result;
+   return request.resultAddr;
 }
 
 void Network::memFree ( unsigned int remoteNode, void *addr )
@@ -241,10 +201,10 @@ void Network::memRealloc ( unsigned int remoteNode, void *oldAddr, size_t oldSiz
    }
 }
 
-void Network::notifyMalloc( unsigned int remoteNode, void * addr, unsigned int id )
+void Network::notifyMalloc( unsigned int remoteNode, void * addr, mallocWaitObj *request )
 {
-   _malloc_return[ remoteNode * 2/* sys.getNumPEs()*/ + id ] = addr;
-   _malloc_complete[ remoteNode * 2 /*sys.getNumPEs()*/ + id ] = true;
+   request->resultAddr = addr;
+   request->complete = 1;
 }
 
 void Network::nodeBarrier()
@@ -255,17 +215,9 @@ void Network::nodeBarrier()
    }
 }
 
-void Network::getNotify( unsigned int remoteNode, uint64_t remoteAddr )
-{
-   if ( _api != NULL )
-   {
-      _api->getNotify( remoteNode, remoteAddr );
-   }
-}
-
 void Network::setMasterHostname( char *name )
 {
-    //  _masterHostname = std::string( name );
+   //  _masterHostname = std::string( name );
    if ( _masterHostname == NULL )
       _masterHostname = new char[ ::strlen( name ) + 1 ];
    ::memcpy(_masterHostname, name, ::strlen( name ) );
@@ -282,26 +234,15 @@ const char * Network::getMasterHostname() const
 void Network::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, size_t len )
 {
    if ( _api != NULL )
-         {
-      //std::cerr << "[" << _nodeNum << "] => " << dest << " " << __FUNCTION__ << std::endl;
-                  _api->sendRequestPut(dest, origAddr, dataDest, dstAddr, len);
-         }
-
+   {
+      _api->sendRequestPut(dest, origAddr, dataDest, dstAddr, len);
+   }
 }
 
 void Network::setMasterDirectory(Directory *dir)
 {
- if ( _api != NULL) 
-{
-_api->setMasterDirectory( dir );
-}
-}
-
-void Network::setPollingMinThd( unsigned int id)
-{
-	_pollingMinThd = id;
-}
-void Network::setPollingMaxThd( unsigned int id)
-{
-	_pollingMaxThd = id;
+   if ( _api != NULL) 
+   {
+      _api->setMasterDirectory( dir );
+   }
 }
