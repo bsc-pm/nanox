@@ -78,15 +78,29 @@ namespace nanos {
            WD * atIdle ( BaseThread *thread )
            {
               TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
-              
-              return tdata._readyQueue.pop_back( thread );
+
+              WD * result = tdata._readyQueue.pop_back( thread );
+        
+              struct timespec req, rem;
+              req.tv_sec=0;
+              req.tv_nsec=100;
+              if (!result) nanosleep(&req, &rem);
+              return result;
+              //return tdata._readyQueue.pop_back( thread );
            }
 
            WD * atPrefetch ( BaseThread *thread, WD &current )
            {
               WD * found = current.getImmediateSuccessor(*thread);
-        
-              return found != NULL ? found : atIdle(thread);
+
+              if ( found != NULL ) return found;
+
+              struct timespec req, rem;
+              req.tv_sec=0;
+              req.tv_nsec=100;
+              nanosleep(&req, &rem);
+              return NULL;
+              //return found != NULL ? found : atIdle(thread);
            }
         
            WD * atBeforeExit ( BaseThread *thread, WD &current )
