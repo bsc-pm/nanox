@@ -129,6 +129,211 @@ namespace ext
             return setDevice( thread, wd, dd->getDevice() );
          }
 
+         WD * selectWD ( BaseThread *thread, WD *next )
+         {
+            TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
+            return selectWD( tdata, thread, next );
+         }
+
+         WD * selectWD ( TeamData & tdata, BaseThread *thread, WD *next )
+         {
+            // Choose the device where the task will be executed
+            // Check we have recorded good (and reliable) enough results for each PE
+            unsigned long wdId =  next->getVersionGroupId();
+            size_t paramsSize = next->getParamsSize();
+            WDExecInfoKey key = std::make_pair( wdId, paramsSize );
+            WDExecInfoData &data = tdata._wdExecStats[key];
+            ProcessingElement *pe = thread->runningOn();
+
+            // First record for the given { wdId, paramsSize }
+            if ( data.size() == 0 ) {
+
+               debug( "[versioning] First record for wd key (" + toString<unsigned long>( key.first )
+                     + ", " + toString<size_t>( key.second ) + ") with "
+                     + toString<int>( next->getNumDevices() ) + " versions" );
+
+               tdata._statsLock.acquire();
+               // Reserve as much memory as we need for all the implementations
+               data.reserve( next->getNumDevices() );
+               data = *NEW WDExecInfoData( next->getNumDevices() );
+
+               unsigned int i;
+               for ( i = 0; i < data.size(); i++ ) {
+                  data[i]._elapsedTime = 0.0;
+                  data[i]._lastElapsedTime = 0.0;
+                  data[i]._numRecords = -1;
+                  data[i]._numAssigned = 0;
+                  data[i]._pe = NULL;
+                  data[i]._device = NULL;
+               }
+               tdata._statsLock.release();
+
+               if ( next->canRunIn( *pe ) ) {
+                  // If the thread can run the task, activate its device
+
+                  for ( i = 0; i < next->getNumDevices(); i++ ) {
+                     if ( next->getDevices()[i]->isCompatible( pe->getDeviceType() ) ) break;
+                  }
+               } else {
+                  // Else, activate the first device
+                  i = 0;
+               }
+
+               return setDevice( thread, next, next->getDevices()[i] );
+            }
+
+            double bestTime = std::numeric_limits<double>::max();
+            if ( tdata._wdExecBest.find( key ) )
+               bestTime = tdata._wdExecBest.find( key )->second * MAX_DIFFERENCE;
+
+            tdata._statsLock.acquire();
+            unsigned int i;
+
+            // First, check if the thread can run and, in fact, has to run the task
+            if ( next->canRunIn( *pe ) ) {
+               for ( i = 0; i < data.size(); i++ ) {
+                  WDExecRecords & records = data[i];
+
+                  if ( records._device == NULL ) records._device = &pe->getDeviceType();
+                  if ( records._device->getName() == pe->getDeviceType().getName() ) {
+                     if ( records._lastElapsedTime < bestTime ) {
+                        // It is worth trying this device, so go on
+                        if ( records._numAssigned < MIN_RECORDS ) {
+                           // Not enough records to have reliable values
+
+                           debug("[versioning] Less than 3 records for my device ("
+                                 + toString<int>( records._numRecords ) + ") for key ("
+                                 + toString<unsigned long>( key.first ) + ", "
+                                 + toString<size_t>( key.second ) + ") device "
+                                 + records._device->getName() );
+
+                           records._numAssigned++;
+
+                           tdata._statsLock.release();
+                           return setDevice( thread, next, records._device );
+                        }
+
+                        double sqDev = records._elapsedTime - records._lastElapsedTime;
+                        sqDev *= sqDev;
+                        if ( sqrt( sqDev ) > MAX_DEVIATION ) {
+                           // Values differ too much from each other, compute again
+
+                           debug("[versioning] Too much difference in records for my device ("
+                                 + toString<double>( sqrt( sqDev ) ) + " > "
+                                 + toString<double>( MAX_DEVIATION ) + ") for key ("
+                                 + toString<unsigned long>( key.first ) + ", "
+                                 + toString<size_t>( key.second ) + ") device "
+                                 + records._device->getName() );
+
+                           records._numAssigned++;
+
+                           tdata._statsLock.release();
+                           return setDevice( thread, next, records._device );
+                        }
+                     }
+                  }
+               }
+            }
+
+            for ( i = 0; i < data.size(); i++ ) {
+               WDExecRecords & records = data[i];
+               if ( records._lastElapsedTime < bestTime ) {
+                  // It is worth trying this device, so go on
+
+                  if ( records._numAssigned < MIN_RECORDS ) {
+                     // Not enough records to have reliable values
+
+                     debug("[versioning] Less than 3 records ("
+                           + toString<int>( records._numRecords ) + ") for key ("
+                           + toString<unsigned long>( key.first ) + ", "
+                           + toString<size_t>( key.second ) + ") device "
+                           + records._device->getName() );
+
+                     records._numAssigned++;
+
+                     tdata._statsLock.release();
+                     return setDevice( thread, next, records._device );
+                  }
+
+                  double sqDev = records._elapsedTime - records._lastElapsedTime;
+                  sqDev *= sqDev;
+                  if ( sqrt( sqDev ) > MAX_DEVIATION ) {
+                     // Values differ too much from each other, compute again
+
+                     debug("[versioning] Too much difference in records ("
+                           + toString<double>( sqrt( sqDev ) ) + " > "
+                           + toString<double>( MAX_DEVIATION ) + ") for key ("
+                           + toString<unsigned long>( key.first ) + ", "
+                           + toString<size_t>( key.second ) + ") device "
+                           + records._device->getName() );
+
+                     records._numAssigned++;
+
+                     tdata._statsLock.release();
+                     return setDevice( thread, next, records._device );
+                  }
+               }
+            }
+
+            tdata._bestLock.acquire();
+            // Reaching this point means that we have enough records to decide
+            ProcessingElement * bestPE = tdata._wdExecBest.find( key )->first;
+            const Device * device = &( bestPE->getDeviceType() );
+
+            if ( bestPE->getDeviceType().getName() == pe->getDeviceType().getName() ) {
+               // My PE has the best record
+               for ( i = 0; i < data.size(); i++ ) {
+                  if ( data[i]._device->getName() == bestPE->getDeviceType().getName() ) {
+                     data[i]._numAssigned++;
+                 }
+               }
+
+               debug("[versioning] Autochoosing for key ("
+                     + toString<unsigned long>( key.first ) + ", " + toString<size_t>( key.second )
+                     + ") my device " + bestPE->getDeviceType().getName() );
+
+               tdata._bestLock.release();
+               tdata._statsLock.release();
+               return setDevice( thread, next, device );
+            }
+
+            // Estimate the remaining amount of time to execute the assigned tasks
+            double remTime = 0.0;
+            double remBest = 0.0;
+            int index = 0;
+            int myIndex = 0;
+
+            for ( i = 0; i < data.size(); i++ ) {
+               WDExecRecords & records = data[i];
+               if ( records._device->getName() == bestPE->getDeviceType().getName() ) {
+                  index = i;
+                  remBest = ( records._numAssigned - records._numRecords ) * records._elapsedTime;
+               }  else if ( records._device->getName() == pe->getDeviceType().getName() ) {
+                  myIndex = i;
+               } else {
+                  remTime += ( records._numAssigned - records._numRecords ) * records._elapsedTime;
+               }
+            }
+
+            if ( remBest * 0.9 > data[myIndex]._elapsedTime ) {
+               // This PE has enough time to execute one instance of its own version
+               index = myIndex;
+               device = &( pe->getDeviceType() );
+            }
+
+            data[index]._numAssigned++;
+
+            debug("[versioning] Autochoosing for key ("
+                  + toString<unsigned long>( key.first ) + ", " + toString<size_t>( key.second )
+                  + ") best device is " + bestPE->getDeviceType().getName()
+                  + " chosen device is " + device->getName() );
+
+            tdata._bestLock.release();
+            tdata._statsLock.release();
+            return setDevice( thread, next, device );
+
+         }
+
          WD * atIdle ( BaseThread *thread )
          {
             TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
@@ -141,204 +346,32 @@ namespace ext
                next = tdata._readyQueue.pop_front( thread );
             }
 
-            // Choose the device where the task will be executed
-            if ( next && !( next->hasActiveDevice() ) ) {
-               // Check we have recorded good (and reliable) enough results for each PE
-               unsigned long wdId =  next->getVersionGroupId();
-               size_t paramsSize = next->getParamsSize();
-               WDExecInfoKey key = std::make_pair( wdId, paramsSize );
-               WDExecInfoData &data = tdata._wdExecStats[key];
-               ProcessingElement *pe = thread->runningOn();
-
-               // First record for the given { wdId, paramsSize }
-               if ( data.size() == 0 ) {
-
-                  debug( "[versioning] First record for wd key (" + toString<unsigned long>( key.first )
-                        + ", " + toString<size_t>( key.second ) + ") with "
-                        + toString<int>( next->getNumDevices() ) + " versions" );
-
-                  tdata._statsLock.acquire();
-                  // Reserve as much memory as we need for all the implementations
-                  data.reserve( next->getNumDevices() );
-                  data = *NEW WDExecInfoData( next->getNumDevices() );
-
-                  unsigned int i;
-                  for ( i = 0; i < data.size(); i++ ) {
-                     data[i]._elapsedTime = 0.0;
-                     data[i]._lastElapsedTime = 0.0;
-                     data[i]._numRecords = -1;
-                     data[i]._numAssigned = 0;
-                     data[i]._pe = NULL;
-                     data[i]._device = NULL;
-                  }
-                  tdata._statsLock.release();
-
-                  if ( next->canRunIn( *pe ) ) {
-                     // If the thread can run the task, activate its device
-
-                     for ( i = 0; i < next->getNumDevices(); i++ ) {
-                        if ( next->getDevices()[i]->isCompatible( pe->getDeviceType() ) ) break;
-                     }
-                  } else {
-                     // Else, activate the first device
-                     i = 0;
-                  }
-
-                  return setDevice( thread, next, next->getDevices()[i] );
-               }
-
-               double bestTime = std::numeric_limits<double>::max();
-               if ( tdata._wdExecBest.find( key ) )
-                  bestTime = tdata._wdExecBest.find( key )->second * MAX_DIFFERENCE;
-
-               tdata._statsLock.acquire();
-               unsigned int i;
-
-               // First, check if the thread can run and, in fact, has to run the task
-               if ( next->canRunIn( *pe ) ) {
-                  for ( i = 0; i < data.size(); i++ ) {
-                     WDExecRecords & records = data[i];
-
-                     if ( records._device == NULL ) records._device = &pe->getDeviceType();
-                     if ( records._device->getName() == pe->getDeviceType().getName() ) {
-                        if ( records._lastElapsedTime < bestTime ) {
-                           // It is worth trying this device, so go on
-                           if ( records._numAssigned < MIN_RECORDS ) {
-                              // Not enough records to have reliable values
-
-                              debug("[versioning] Less than 3 records for my device ("
-                                    + toString<int>( records._numRecords ) + ") for key ("
-                                    + toString<unsigned long>( key.first ) + ", "
-                                    + toString<size_t>( key.second ) + ") device "
-                                    + records._device->getName() );
-
-                              records._numAssigned++;
-
-                              tdata._statsLock.release();
-                              return setDevice( thread, next, records._device );
-                           }
-
-                           double sqDev = records._elapsedTime - records._lastElapsedTime;
-                           sqDev *= sqDev;
-                           if ( sqrt( sqDev ) > MAX_DEVIATION ) {
-                              // Values differ too much from each other, compute again
-
-                              debug("[versioning] Too much difference in records for my device ("
-                                    + toString<double>( sqrt( sqDev ) ) + " > "
-                                    + toString<double>( MAX_DEVIATION ) + ") for key ("
-                                    + toString<unsigned long>( key.first ) + ", "
-                                    + toString<size_t>( key.second ) + ") device "
-                                    + records._device->getName() );
-
-                              records._numAssigned++;
-
-                              tdata._statsLock.release();
-                              return setDevice( thread, next, records._device );
-                           }
-                        }
-                     }
-                  }
-               }
-
-               for ( i = 0; i < data.size(); i++ ) {
-                  WDExecRecords & records = data[i];
-                  if ( records._lastElapsedTime < bestTime ) {
-                     // It is worth trying this device, so go on
-
-                     if ( records._numAssigned < MIN_RECORDS ) {
-                        // Not enough records to have reliable values
-
-                        debug("[versioning] Less than 3 records ("
-                              + toString<int>( records._numRecords ) + ") for key ("
-                              + toString<unsigned long>( key.first ) + ", "
-                              + toString<size_t>( key.second ) + ") device "
-                              + records._device->getName() );
-
-                        records._numAssigned++;
-
-                        tdata._statsLock.release();
-                        return setDevice( thread, next, records._device );
-                     }
-
-                     double sqDev = records._elapsedTime - records._lastElapsedTime;
-                     sqDev *= sqDev;
-                     if ( sqrt( sqDev ) > MAX_DEVIATION ) {
-                        // Values differ too much from each other, compute again
-
-                        debug("[versioning] Too much difference in records ("
-                              + toString<double>( sqrt( sqDev ) ) + " > "
-                              + toString<double>( MAX_DEVIATION ) + ") for key ("
-                              + toString<unsigned long>( key.first ) + ", "
-                              + toString<size_t>( key.second ) + ") device "
-                              + records._device->getName() );
-
-                        records._numAssigned++;
-
-                        tdata._statsLock.release();
-                        return setDevice( thread, next, records._device );
-                     }
-                  }
-               }
-
-               tdata._bestLock.acquire();
-               // Reaching this point means that we have enough records to decide
-               ProcessingElement * bestPE = tdata._wdExecBest.find( key )->first;
-               const Device * device = &( bestPE->getDeviceType() );
-
-               if ( bestPE->getDeviceType().getName() == pe->getDeviceType().getName() ) {
-                  // My PE has the best record
-                  for ( i = 0; i < data.size(); i++ ) {
-                     if ( data[i]._device->getName() == bestPE->getDeviceType().getName() ) {
-                        data[i]._numAssigned++;
-                    }
-                  }
-
-                  debug("[versioning] Autochoosing for key ("
-                        + toString<unsigned long>( key.first ) + ", " + toString<size_t>( key.second )
-                        + ") my device " + bestPE->getDeviceType().getName() );
-
-                  tdata._bestLock.release();
-                  tdata._statsLock.release();
-                  return setDevice( thread, next, device );
-               }
-
-               // Estimate the remaining amount of time to execute the assigned tasks
-               double remTime = 0.0;
-               double remBest = 0.0;
-               int index = 0;
-               int myIndex = 0;
-
-               for ( i = 0; i < data.size(); i++ ) {
-                  WDExecRecords & records = data[i];
-                  if ( records._device->getName() == bestPE->getDeviceType().getName() ) {
-                     index = i;
-                     remBest = ( records._numAssigned - records._numRecords ) * records._elapsedTime;
-                  }  else if ( records._device->getName() == pe->getDeviceType().getName() ) {
-                     myIndex = i;
-                  } else {
-                     remTime += ( records._numAssigned - records._numRecords ) * records._elapsedTime;
-                  }
-               }
-
-               if ( remBest * 0.9 > data[myIndex]._elapsedTime ) {
-                  // This PE has enough time to execute one instance of its own version
-                  index = myIndex;
-                  device = &( pe->getDeviceType() );
-               }
-
-               data[index]._numAssigned++;
-
-               debug("[versioning] Autochoosing for key ("
-                     + toString<unsigned long>( key.first ) + ", " + toString<size_t>( key.second )
-                     + ") best device is " + bestPE->getDeviceType().getName()
-                     + " chosen device is " + device->getName() );
-
-               tdata._bestLock.release();
-               tdata._statsLock.release();
-               return setDevice( thread, next, device );
+            if ( next ) {
+               return ( !( next->hasActiveDevice() ) ) ? selectWD( tdata, thread, next ) : next ;
             }
 
-            return next;
+            struct timespec req, rem;
+            req.tv_sec = 0;
+            req.tv_nsec = 100;
+            nanosleep( &req, &rem );
+
+            return NULL;
+         }
+
+         WD * atPrefetch ( BaseThread *thread, WD &current )
+         {
+            WD * found = current.getImmediateSuccessor( *thread );
+
+            if ( found ) {
+               return ( !( found->hasActiveDevice() ) ) ? selectWD( thread, found ) : found ;
+            }
+
+            struct timespec req, rem;
+            req.tv_sec = 0;
+            req.tv_nsec = 100;
+            nanosleep( &req, &rem );
+
+            return NULL;
          }
 
          WD * atBeforeExit ( BaseThread *thread, WD &currentWD )
@@ -425,6 +458,18 @@ namespace ext
 
                tdata._bestLock.release();
             }
+
+
+            WD * found = currentWD.getImmediateSuccessor( *thread );
+
+            if ( found ) {
+               return ( !( found->hasActiveDevice() ) ) ? selectWD( thread, found ) : found ;
+            }
+
+            struct timespec req, rem;
+            req.tv_sec = 0;
+            req.tv_nsec = 100;
+            nanosleep( &req, &rem );
 
             return NULL;
          }
