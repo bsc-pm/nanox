@@ -125,12 +125,6 @@ namespace nanos
          // CacheMap register
          CacheMap             _cacheMap;
          
-         std::set<void *> _dataToInv;
-         volatile void * _dataToInvAddr;
-         Lock _dataToInvLock;
-         std::set<void *> _dataToIncVer;
-         Lock _dataToIncVerLock;
-         Directory *_myFavDir;
          WD *slaveParentWD;
          BaseThread *_masterGpuThd;
 
@@ -286,7 +280,6 @@ namespace nanos
          void threadReady ();
          void preMainBarrier();
          
-         void setMyFavDir( Directory * dir) { _myFavDir = dir; };
          void setSlaveParentWD( WD * wd ){ slaveParentWD = wd ; };
          WD* getSlaveParentWD( ){ return slaveParentWD ; };
 

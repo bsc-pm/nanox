@@ -48,7 +48,6 @@ void SMPThread::start ()
    pthread_attr_t attr;
    pthread_attr_init(&attr);
 
-   std::cerr << "thread " << getId() << " start" << std::endl;
    // user-defined stack size
    if ( _stackSize > 0 ) {
      // TODO: check alignment?

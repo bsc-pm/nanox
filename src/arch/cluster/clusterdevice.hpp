@@ -64,7 +64,11 @@ namespace nanos
 
          static void syncTransfer ( uint64_t addr, ProcessingElement *pe);
    };
+
+   extern ClusterDevice Cluster;
+
 }
 }
+
 
 #endif

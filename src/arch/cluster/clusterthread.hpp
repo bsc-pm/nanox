@@ -20,7 +20,6 @@
 #ifndef _NANOS_GPU_THREAD
 #define _NANOS_GPU_THREAD
 
-#include "clusterdd.hpp"
 #include "smpthread.hpp"
 #include "wddeque.hpp"
 #include <queue>

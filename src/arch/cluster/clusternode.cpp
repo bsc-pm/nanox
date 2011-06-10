@@ -19,7 +19,6 @@
 
 #include <iostream>
 #include "clusternode.hpp"
-#include "clusterdd.hpp"
 #include "clusterthread.hpp"
 #include "clusterdevice.hpp"
 #include "debug.hpp"
@@ -30,9 +29,8 @@ using namespace nanos::ext;
 
 WorkDescriptor & ClusterNode::getWorkerWD () const
 {
-   ClusterDD * dd = new ClusterDD( ( ClusterDD::work_fct )0xdeadbeef );
+   SMPDD * dd = new SMPDD( ( SMPDD::work_fct )0xdeadbeef );
    WD *wd = new WD( dd );
-   std::cerr << "c:node @ is " << (void * ) this << " id " << _clusterNode << " wd is " << wd << ":" << wd->getId() << std::endl;
    return *wd;
 }
 

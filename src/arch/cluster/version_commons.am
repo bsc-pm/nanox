@@ -20,15 +20,12 @@
 cluster_sources = \
 		$(top_srcdir)/src/arch/cluster/clusterdevice.hpp \
 		$(top_srcdir)/src/arch/cluster/clusterdevice.cpp \
-		$(top_srcdir)/src/arch/cluster/clusterdd.hpp \
-		$(top_srcdir)/src/arch/cluster/clusterdd.cpp \
 		$(top_srcdir)/src/arch/cluster/clusternode.hpp \
 		$(top_srcdir)/src/arch/cluster/clusternode.cpp \
 		$(top_srcdir)/src/arch/cluster/clusterthread.hpp \
 		$(top_srcdir)/src/arch/cluster/clusterthread.cpp \
 		$(top_srcdir)/src/arch/cluster/clusterinfo.hpp \
 		$(top_srcdir)/src/arch/cluster/clusterinfo.cpp \
-		$(top_srcdir)/src/arch/cluster/clusterutils.hpp \
 		$(END)
 
 pe_cluster_sources = \

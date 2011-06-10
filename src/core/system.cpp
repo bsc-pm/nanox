@@ -106,7 +106,7 @@ void System::loadModules ()
 #ifdef CLUSTER_DEV
    if ( useCluster() )
    {
-      std::cerr << "Loading Cluster plugin (" + getCurrentConduit() + ")" << std::endl;
+      verbose0( "Loading Cluster plugin (" + getCurrentConduit() + ")" ) ;
       if ( !PluginManager::load ( "pe-cluster-"+getCurrentConduit() ) )
          fatal0 ( "Couldn't load Cluster support" );
    }
@@ -282,11 +282,9 @@ void System::start ()
       if ( _net.getNodeNum() == nanos::Network::MASTER_NODE_NUM )
       {
          _pes.reserve ( numPes + ( _net.getNumNodes() - 1 ) );
-         std::cerr << "Reserved  " << ( numPes + ( _net.getNumNodes() - 1 ) )  << " PEs " << std::endl;
       }
       else
       {
-         // numPes++;
          _pes.reserve ( numPes + 1 );
       }
    }
@@ -348,7 +346,6 @@ void System::start ()
 
          //starting as much threads per pe as requested by the user
 
-         //if ( _net.getNodeNum() > 0 )
          for ( int ths = 0; ths < getThsPerPE(); ths++ ) {
             _workers.push_back( &pe->startWorker() );
          }
@@ -361,7 +358,6 @@ void System::start ()
 
       //starting as much threads per pe as requested by the user
 
-   //if ( _net.getNodeNum() > 0 )
       for ( int ths = 0; ths < getThsPerPE(); ths++ ) {
          _workers.push_back( &pe->startWorker() );
       }
@@ -369,21 +365,6 @@ void System::start ()
 #endif
 
 #ifdef GPU_DEV
-//if ( useCluster() )
-//{
-//   if ( _net.getNodeNum() == 1 )
-//   {
-//std::cerr << "node " << _net.getNodeNum() << " starting 1 gpu" << std::endl;
-//      int gpuC;
-//      for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount(); gpuC++ ) {
-//         PE *gpu = NEW nanos::ext::GPUProcessor( p++, gpuC );
-//         _pes.push_back( gpu );
-//         _workers.push_back( &gpu->startWorker() );
-//      }
-//   }
-//}
-//else
-//{
    int gpuC;
    for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount(); gpuC++ ) {
       PE *gpu = NEW nanos::ext::GPUProcessor( p++, gpuC );
@@ -393,7 +374,6 @@ void System::start ()
       _workers.push_back( gpuThd );
       _masterGpuThd = ( _masterGpuThd == NULL ) ? gpuThd : _masterGpuThd;
    }
-//}
 #endif
 
 #ifdef SPU_DEV
@@ -415,7 +395,6 @@ void System::start ()
          PE *_peArray[ _net.getNumNodes() - 1];
          for ( nodeC = 1; nodeC < _net.getNumNodes(); nodeC++ ) {
             nanos::ext::ClusterNode *node = new nanos::ext::ClusterNode( nodeC );
-            std::cerr << "c:node @ is " << (void * ) node << std::endl;
             _pes.push_back( node );
 
             _peArray[ nodeC - 1 ] = node;
@@ -431,7 +410,6 @@ void System::start ()
                threadIterator++ )
          {
             nodeThds[ i++ ]= (ext::ClusterThread *) *threadIterator ;
-            std::cerr << " Thread " << (i-1) << " has id " << ((BaseThread *) nodeThds[i-1])->getId() << " addr is " << nodeThds[i-1] << std::endl;
             _workers.push_back( *threadIterator );
          }
          _net.addThds( nodeThds, _net.getNumNodes() - 1 ); 
@@ -440,16 +418,13 @@ void System::start ()
       }
       else
       {
-         std::cerr << "starting a multiworker thread as comm thd on node " << _net.getNodeNum() << std::endl;
-         //smpRep->startMultiWorker( 0, NULL );
          _preMainBarrier++;
          ext::SMPMultiThread *smpRepThd = dynamic_cast<ext::SMPMultiThread *>( &smpRep->startMultiWorker( 0, NULL ) );
          if ( _pmInterface->getInternalDataSize() > 0 )
             smpRepThd->getThreadWD().setInternalData(NEW char[_pmInterface->getInternalDataSize()]);
          _pmInterface->setupWD( smpRepThd->getThreadWD() );
          _workers.push_back( smpRepThd ); 
-	 _net.setMasterDirectory( smpRepThd->getThreadWD().getDirectory(true)  );
-         setMyFavDir( smpRepThd->getThreadWD().getDirectory(true)  ); 
+         _net.setMasterDirectory( smpRepThd->getThreadWD().getDirectory(true)  );
          setSlaveParentWD( &smpRepThd->getThreadWD() );
       }
    }
@@ -458,7 +433,6 @@ void System::start ()
    switch ( getInitialMode() )
    {
       case POOL:
-         //createTeam( ( _net.getNodeNum() == 0 ) ? _workers.size() + ( _net.getNumNodes() ) : _workers.size() );
          createTeam( _workers.size() );
          break;
       case ONE_THREAD:
@@ -485,20 +459,6 @@ void System::start ()
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_RUNNING) );
 
-//#ifdef CLUSTER_DEV
-//   if ( useCluster() )
-//   {
-//      setMaster(_net.getNodeNum() == nanos::Network::MASTER_NODE_NUM);
-//      if (!isMaster())
-//      {
-//         Scheduler::workerLoop();
-//         //fprintf(stderr, "Slave node: I have to finish.\n");
-//         finish();
-//      }
-//      //else
-//      //   fprintf(stderr, "Im only allowed here if im the master.\n");
-//   }
-//#endif
 }
 
 extern "C" {
@@ -544,29 +504,9 @@ void System::finish ()
 
    verbose ( "Joining threads... phase 1" );
    // signal stop PEs
-
-// Awful code
-//#ifdef CLUSTER_DEV
-//   if ( useCluster() )
-//   {
-//      if (sys.getNetwork()->getNodeNum() == 0)
-//      {
-//         std::cerr << "Created " << createdWds << " wds" << std::endl;
-//#ifdef GPU_DEV
-//         for ( unsigned int p = 3; p < _net.getNumNodes()+2 ; p++ )
-//#else
-//         for ( unsigned int p = 2; p < _net.getNumNodes()+1 ; p++ )
-//#endif
-//         {
-//            std::cerr << "Node " << p-1 << " executed " << ((nanos::ext::ClusterNode *) _pes[p])->getExecutedWDs() << " WDs." << std::endl;
-//         }
-//      }
-//   }
-//#endif
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {
        _pes[p]->stopAll();
    }
-//#endif
 
    verbose ( "Joining threads... phase 2" );
 

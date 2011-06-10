@@ -94,7 +94,6 @@ BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper, SMPMultiThread 
 
 BaseThread &SMPProcessor::createMultiThread ( WorkDescriptor &helper, unsigned int numPEs, PE **repPEs )
 {
-   std::cerr << "create multi worker with " << numPEs << " PEs" << std::endl;
    ensure( helper.canRunIn( SMP ),"Incompatible worker thread" );
    SMPThread &th = *NEW SMPMultiThread( helper, this, numPEs, repPEs );
    th.stackSize(_threadsStackSize).useUserThreads(_useUserThreads);

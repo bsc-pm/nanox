@@ -24,7 +24,7 @@
 #include "simpleallocator.hpp"
 #include "clusterinfo.hpp"
 #include "clusterdevice.hpp"
-#include "clusterdd.hpp"
+#include "smpdd.hpp"
 #ifdef GPU_DEV
 //FIXME: GPU support
 #include "gpudd.hpp"

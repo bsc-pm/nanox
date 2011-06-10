@@ -28,6 +28,8 @@
 using namespace nanos;
 using namespace nanos::ext;
 
+ClusterDevice nanos::ext::Cluster( "SMP" );
+
 void * ClusterDevice::allocate( size_t size, ProcessingElement *pe )
 {
    ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
