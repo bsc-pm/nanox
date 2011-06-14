@@ -88,7 +88,7 @@ common_sources=\
 	$(top_srcdir)/src/core/pminterface_decl.hpp  \
 	$(top_srcdir)/src/core/basethread_decl.hpp \
 	$(top_srcdir)/src/core/networkapi.hpp  \
-	$(top_srcdir)/src/core/network.hpp  \
+	$(top_srcdir)/src/core/network_decl.hpp  \
 	$(top_srcdir)/src/core/network.cpp  \
 	$(END)
 

@@ -30,7 +30,7 @@
 #include "nanos-int.h"
 #include "dependency_decl.hpp"
 #include "instrumentation_decl.hpp"
-#include "network.hpp"
+#include "network_decl.hpp"
 #include "directory_decl.hpp"
 #include "pminterface_decl.hpp"
 #include "cache_map_decl.hpp"

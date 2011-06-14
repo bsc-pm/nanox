@@ -3,7 +3,7 @@
 #ifdef GPU_DEV
 #include "gpuconfig.hpp"
 #endif
-#include "clusterinfo.hpp"
+#include "clusterinfo_decl.hpp"
 
 namespace nanos {
 

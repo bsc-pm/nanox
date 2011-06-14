@@ -27,11 +27,6 @@
 
 namespace nanos {
 
-   namespace ext {
-      class ClusterNode;
-      class ClusterThread;
-   };
-
    class Network
    {
       private:
@@ -41,9 +36,6 @@ namespace nanos {
 
          //std::string _masterHostname;
          char * _masterHostname;
-
-         std::vector<ext::ClusterNode *> _nodes;
-         std::vector<ext::ClusterThread *> _thds;
 
       public:
          static const unsigned int MASTER_NODE_NUM = 0;
@@ -88,8 +80,6 @@ namespace nanos {
          static Lock _nodeLock;
          static Atomic<uint64_t> _nodeRCAaddr;
          static Atomic<uint64_t> _nodeRCAaddrOther;
-         void addNodes( ext::ClusterNode **nodeArray, int num ) { int i; for (i = 0; i < num; i++) _nodes.push_back(nodeArray[i]); }; 
-         void addThds( ext::ClusterThread **thdArray, int num ) { int i; for (i = 0; i < num; i++) _thds.push_back(thdArray[i]); }; 
    };
 }
 

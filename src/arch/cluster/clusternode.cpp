@@ -18,9 +18,8 @@
 /*************************************************************************************/
 
 #include <iostream>
-#include "clusternode.hpp"
-#include "clusterthread.hpp"
-#include "clusterdevice.hpp"
+#include "clusternode_decl.hpp"
+#include "clusterthread_decl.hpp"
 #include "debug.hpp"
 #include "schedule.hpp"
 

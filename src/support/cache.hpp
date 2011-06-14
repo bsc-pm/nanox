@@ -31,7 +31,10 @@
 #include "atomic.hpp"
 #include "processingelement_fwd.hpp"
 #include "copydescriptor.hpp"
-#include "clusternode.hpp"
+
+#ifdef CLUSTER_DEV
+#include "clusternode_decl.hpp"
+#endif
 
 using namespace nanos;
 

@@ -237,6 +237,9 @@ namespace nanos
          const std::string &getDescription ( void );
 
          virtual void switchToNextThread() = 0;
+         virtual void notifyOutlinedCompletionDependent( WD &completedWD ) {
+            fatal0( "::notifyOutlinedCompletionDependent() not available for this thread type." );
+         }
    };
 
    extern __thread BaseThread *myThread;

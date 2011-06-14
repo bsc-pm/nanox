@@ -18,14 +18,15 @@
 #####################################################################################
 
 cluster_sources = \
-		$(top_srcdir)/src/arch/cluster/clusterdevice.hpp \
+		$(top_srcdir)/src/arch/cluster/clusterdevice_decl.hpp \
 		$(top_srcdir)/src/arch/cluster/clusterdevice.cpp \
-		$(top_srcdir)/src/arch/cluster/clusternode.hpp \
+		$(top_srcdir)/src/arch/cluster/clusternode_decl.hpp \
 		$(top_srcdir)/src/arch/cluster/clusternode.cpp \
-		$(top_srcdir)/src/arch/cluster/clusterthread.hpp \
+		$(top_srcdir)/src/arch/cluster/clusterthread_decl.hpp \
 		$(top_srcdir)/src/arch/cluster/clusterthread.cpp \
-		$(top_srcdir)/src/arch/cluster/clusterinfo.hpp \
+		$(top_srcdir)/src/arch/cluster/clusterinfo_decl.hpp \
 		$(top_srcdir)/src/arch/cluster/clusterinfo.cpp \
+		$(top_srcdir)/src/arch/cluster/remoteworkgroup_decl.hpp \
 		$(END)
 
 pe_cluster_sources = \

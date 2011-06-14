@@ -20,7 +20,7 @@
 #include "plugin.hpp"
 #include "system.hpp"
 #include "gasnetapi_decl.hpp"
-#include "clusterinfo.hpp"
+#include "clusterinfo_decl.hpp"
 
 
 namespace nanos {

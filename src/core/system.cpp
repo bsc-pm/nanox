@@ -42,7 +42,8 @@
 #endif
 
 #ifdef CLUSTER_DEV
-#include "clusternode.hpp"
+#include "clusternode_decl.hpp"
+#include "clusterthread_decl.hpp"
 #include "smpthread.hpp"
 #endif
 
@@ -401,8 +402,6 @@ void System::start ()
          }
          _preMainBarrier++;
          ext::SMPMultiThread *smpRepThd = dynamic_cast<ext::SMPMultiThread *>( &smpRep->startMultiWorker( _net.getNumNodes() - 1, _peArray ) );
-
-         _net.addNodes( (ext::ClusterNode **) _peArray , _net.getNumNodes() - 1 ); 
          ext::ClusterThread *nodeThds[ _net.getNumNodes() - 1 ];
          int i = 0;
          for ( ext::SMPMultiThread::iterator threadIterator = smpRepThd->getThreadList().begin();
@@ -412,7 +411,6 @@ void System::start ()
             nodeThds[ i++ ]= (ext::ClusterThread *) *threadIterator ;
             _workers.push_back( *threadIterator );
          }
-         _net.addThds( nodeThds, _net.getNumNodes() - 1 ); 
 
          _net.setMasterDirectory( mainWD.getDirectory(true) );
       }

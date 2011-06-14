@@ -26,8 +26,8 @@
 #include "os.hpp"
 
 #ifdef CLUSTER_DEV
-#include "clusterthread.hpp"
-#include "clusternode.hpp"
+#include "clusterthread_decl.hpp"
+#include "clusternode_decl.hpp"
 #endif
 
 using namespace nanos;
@@ -511,9 +511,11 @@ void Scheduler::preOutlineWork ( WD *wd )
 
    //NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldwd, NULL, false) );
 
-   // This ensures that when we return from the inlining is still the same thread
-   // and we don't violate rules about tied WD
-   //wd->tieTo(*oldwd->isTiedTo());
+   // OLD: This ensures that when we return from the inlining is still the same thread
+   // OLD: and we don't violate rules about tied WD
+
+   // we tie to when outlining, because we will notify the tied thread when the execution completes
+   wd->tieTo( *thread );
    thread->setCurrentWD( *wd );
    if (!wd->started())
       wd->init();
@@ -582,29 +584,22 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
 
    // This ensures that when we return from the inlining is still the same thread
    // and we don't violate rules about tied WD
-//if (sys.getNetwork()->getNodeNum() == 1)    std::cerr << "pre'0 inlineWorkDependent wd " << wd->getId() << std::endl;
    wd->tieTo(*oldwd->isTiedTo());
-//if (sys.getNetwork()->getNodeNum() == 1)   std::cerr << "pre'1 inlineWorkDependent wd " << wd->getId() << std::endl;
    thread->setCurrentWD( *wd );
-//if (sys.getNetwork()->getNodeNum() == 1)   std::cerr << "pre'2 inlineWorkDependent wd " << wd->getId() << std::endl;
    if (!wd->started())
       wd->init();
 
-//if (sys.getNetwork()->getNodeNum() == 1)   std::cerr << "pre inlineWorkDependent wd " << wd->getId() << std::endl;
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
    myThread->inlineWorkDependent(*wd);
 
-//if (sys.getNetwork()->getNodeNum() == 1)   std::cerr << "post inlineWorkDependent wd " << wd->getId() << std::endl;
    if (schedule) {
         thread->setNextWD(thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*wd));
    }
 
-//if (sys.getNetwork()->getNodeNum() == 1)   std::cerr << "post2 inlineWorkDependent wd " << wd->getId() << std::endl;
    /* If WorkDescriptor has been submitted update statistics */
    updateExitStats (*wd);
 
    wd->done();
-//if (sys.getNetwork()->getNodeNum() == 1)   std::cerr << "post3 inlineWorkDependent wd " << wd->getId() << std::endl;
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, false) );
 

@@ -19,9 +19,8 @@
 
 #include <iostream>
 #include "instrumentation.hpp"
-#include "clusterthread.hpp"
-#include "clusternode.hpp"
-#include "clusterdevice.hpp"
+#include "clusterthread_decl.hpp"
+#include "clusternode_decl.hpp"
 #include "system.hpp"
 
 using namespace nanos;
@@ -48,11 +47,11 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
    wd.start(WorkDescriptor::IsNotAUserLevelThread);
 
    //std::cerr << "run remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << " data size is " << wd.getDataSize() << std::endl;
-   
+
    CopyData newCopies[ wd.getNumCopies() ]; 
 
    for (i = 0; i < wd.getNumCopies(); i += 1) {
-       new ( &newCopies[i] ) CopyData( wd.getCopies()[i] );
+      new ( &newCopies[i] ) CopyData( wd.getCopies()[i] );
    }
 
    //NANOS_INSTRUMENT ( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("user-code") );
@@ -61,13 +60,11 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
 
    for (i = 0; i < wd.getNumCopies(); i += 1) {
       newCopies[i].setAddress( ( uint64_t ) pe->getAddress( wd, newCopies[i].getAddress(), newCopies[i].getSharing() ) );
-      //std::cerr << "copy " << i << " addr " << (void *) newCopies[i].getAddress() << std::endl;
    }
 
-   //char buff[ wd.getDataSize() + wd.getNumCopies() * sizeof( CopyData ) ];
    size_t totalBufferSize = wd.getDataSize() + 
-                            sizeof(int) + wd.getNumCopies() * sizeof( CopyData ) + 
-                            sizeof(int) + wd.getNumCopies() * sizeof( uint64_t );
+      sizeof(int) + wd.getNumCopies() * sizeof( CopyData ) + 
+      sizeof(int) + wd.getNumCopies() * sizeof( uint64_t );
    char *buff = new char[ totalBufferSize ];
    if ( wd.getDataSize() > 0 )
    {
@@ -81,13 +78,13 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
 #ifdef GPU_DEV
    int arch = -1;
    if (wd.canRunIn( GPU) )
-{
+   {
       arch = 1;
-}
+   }
    else if (wd.canRunIn( SMP ) )
-{
+   {
       arch = 0;
-}
+   }
 #else
    int arch = 0;
 #endif
@@ -95,7 +92,6 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
    ( ( ClusterNode * ) pe )->incExecutedWDs();
    sys.getNetwork()->sendWorkMsg( ( ( ClusterNode * ) pe )->getClusterNodeNum(), dd.getWorkFct(), wd.getDataSize(), wd.getId(), /* this should be the PE id */ arch, totalBufferSize, buff, wd.getTranslateArgs(), arch, (void *) &wd );
 
-   //this->setWorking();
 }
 
 void ClusterThread::join()
@@ -106,14 +102,131 @@ void ClusterThread::join()
       sys.getNetwork()->sendExitMsg( i );
 }
 
-//int ClusterThread::checkStateDependent( int numPe )
-//{
-//   if ( sys.getNetwork()->isWorking( ( ( ClusterNode * ) runningOn() )->getClusterNodeNum(), numPe ) )
-//   {
-//      return 1;
-//   }
-//   else
-//   {
-//      return 0;
-//   }
-//}
+BaseThread * ClusterThread::getNextThread ()
+{
+   BaseThread *next;
+   if ( getParent() != NULL )
+   {
+      next = getParent()->getNextThread();
+   }
+   else
+   {
+      next = this;
+   }
+   return next;
+}
+
+void ClusterThread::notifyOutlinedCompletionDependent( WD &completedWD ) {
+#ifdef GPU_DEV
+   int arch = -1;
+   if ( completedWD.canRunIn( GPU ) )
+   {
+      arch = 1;
+   }
+   else if ( completedWD.canRunIn( SMP ) )
+   {
+      arch = 0;
+   }
+#else
+   int arch = 0;
+#endif
+   if ( arch == 0) 
+      completeWDSMP_2( &completedWD );
+   else if ( arch == 1)
+      completeWDGPU_2( &completedWD );
+   else
+      std::cerr << "unhandled arch" << std::endl;
+}
+
+void ClusterThread::addRunningWDSMP( WorkDescriptor *wd ) { 
+   _numRunningSMP++;
+}
+unsigned int ClusterThread::numRunningWDsSMP() {
+   return _numRunningSMP.value();
+}
+void ClusterThread::clearCompletedWDsSMP2( ) {
+   unsigned int lowval = _completedSMPTail % 16;
+   unsigned int highval = ( _completedSMPHead2.value() ) % 16;
+   unsigned int pos = lowval;
+   if ( lowval > highval ) highval +=16;
+   //if (lowval < highval) std::cerr << "thd: "<< getId() << "clear wd from " << lowval << " to " << highval << std::endl;
+   while ( lowval < highval )
+   {
+      WD *completedWD = _completedWDsSMP[pos];
+      Scheduler::postOutlineWork( completedWD, false, this );
+      delete completedWD;
+      _completedWDsSMP[pos] =(WD *) 0xdeadbeef;
+      pos = (pos+1) % 16;
+      lowval += 1;
+      _completedSMPTail += 1;
+   }
+}
+void ClusterThread::completeWDSMP_2( void *remoteWdAddr ) {
+   unsigned int realpos = _completedSMPHead++;
+   _numRunningSMP--;
+   //if (pos == 16) pos = 0; 
+   unsigned int pos = realpos %16;
+   _completedWDsSMP[pos] = (WD *) remoteWdAddr;
+   while( !_completedSMPHead2.cswap( realpos, realpos+1) ) {}
+}
+
+void ClusterThread::addRunningWDGPU( WorkDescriptor *wd ) { 
+   _numRunningGPU++;
+}
+
+unsigned int ClusterThread::numRunningWDsGPU() {
+   return _numRunningGPU.value();
+}
+
+void ClusterThread::clearCompletedWDsGPU2( ) {
+   unsigned int lowval = _completedGPUTail % 16;
+   unsigned int highval = ( _completedGPUHead2.value() ) % 16;
+   unsigned int pos = lowval;
+   if ( lowval > highval ) highval +=16;
+   //if (lowval < highval) std::cerr << "thd: "<< getId() << "clear wd from " << lowval << " to " << highval << std::endl;
+   while ( lowval < highval )
+   {
+      WD *completedWD = _completedWDsGPU[pos];
+      Scheduler::postOutlineWork( completedWD, false, this );
+      delete completedWD;
+      _completedWDsGPU[pos] =(WD *) 0xdeadbeef;
+      pos = (pos+1) % 16;
+      lowval += 1;
+      _completedGPUTail += 1;
+   }
+}
+
+void ClusterThread::completeWDGPU_2( void *remoteWdAddr ) {
+   unsigned int realpos = _completedGPUHead++;
+   _numRunningGPU--;
+   //if (pos == 16) pos = 0; 
+   unsigned int pos = realpos %16;
+   _completedWDsGPU[pos] = (WD *) remoteWdAddr;
+   while( !_completedGPUHead2.cswap( realpos, realpos+1) ) {}
+}
+
+void ClusterThread::addBlockingWDSMP( WD * wd ) {
+   _blockedWDsSMP.push(wd);
+}
+
+WD *ClusterThread::fetchBlockingWDSMP() {
+   WD *wd = NULL;
+   if ( !_blockedWDsSMP.empty() ) {
+      wd = _blockedWDsSMP.front();
+      _blockedWDsSMP.pop();
+   }
+   return wd;
+}
+
+void ClusterThread::addBlockingWDGPU( WD * wd ) {
+   _blockedWDsGPU.push(wd);
+}
+
+WD *ClusterThread::fetchBlockingWDGPU() {
+   WD *wd = NULL;
+   if ( !_blockedWDsGPU.empty() ) {
+      wd = _blockedWDsGPU.front();
+      _blockedWDsGPU.pop();
+   }
+   return wd;
+}

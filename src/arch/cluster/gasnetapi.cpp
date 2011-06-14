@@ -27,7 +27,7 @@
 
 #include "system.hpp"
 #include "os.hpp"
-#include "clusterinfo.hpp"
+#include "clusterinfo_decl.hpp"
 #include "instrumentation.hpp"
 #include "atomic_decl.hpp"
 #include <list>

@@ -20,11 +20,10 @@
 
 #include <iostream>
 #include <cstring>
-#include "network.hpp"
+#include "network_decl.hpp"
 #include "schedule.hpp"
 #include "system.hpp"
 #include "directory_decl.hpp"
-#include "clusterthread.hpp"
 
 using namespace nanos;
 
@@ -141,12 +140,7 @@ void Network::notifyWorkDone ( unsigned int nodeNum, void *remoteWdAddr, int peI
    NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) 0) << 32 ) + nodeNum; )
    NANOS_INSTRUMENT ( instr->raiseClosePtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL, nodeNum ); )
 
-   if ( peId == 0) 
-      _thds[ nodeNum - 1 ]->completeWDSMP_2( remoteWdAddr );
-   else if ( peId == 1)
-      _thds[ nodeNum - 1 ]->completeWDGPU_2( remoteWdAddr );
-   else
-      std::cerr << "unhandled peid" << std::endl;
+   ( (WD *) remoteWdAddr )->notifyOutlinedCompletion();
 }
 
 void Network::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size )

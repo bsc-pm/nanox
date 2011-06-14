@@ -21,7 +21,7 @@
 #ifndef _GASNET_API
 #define _GASNET_API
 
-#include "network.hpp"
+#include "network_decl.hpp"
 #include "networkapi.hpp"
 #include "simpleallocator.hpp"
 #include "directory.hpp"

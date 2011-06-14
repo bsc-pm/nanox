@@ -176,11 +176,6 @@ namespace nanos
 
          InstrumentationContextData    _instrumentationContextData; /**< Instrumentation Context Data (empty if no instr. enabled) */
 
-         //bool                 _clusterMigrable;
-         //ProcessingElement *  _myPe;
-         //bool                 _nodeFree;
-         //WorkDescriptor * _previous;
-         //unsigned int _peId;
          //WorkDescriptor * _prefetchedWd;
          bool                          _submitted;  /**< Has this WD been submitted to the Scheduler? */
 
@@ -463,6 +458,8 @@ namespace nanos
          bool isSubmitted( void ) const;
          void submitted( void );
          bool canBeBlocked( void );
+
+         void notifyOutlinedCompletion();
    };
 
    typedef class WorkDescriptor WD;
