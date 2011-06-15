@@ -44,6 +44,7 @@
 #ifdef CLUSTER_DEV
 #include "clusternode_decl.hpp"
 #include "clusterthread_decl.hpp"
+#include "clusterinfo_decl.hpp"
 #include "smpthread.hpp"
 #endif
 
@@ -56,10 +57,10 @@ System::System () :
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindThreads( true ), _profile( false ), _instrument( false ),
       _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster(false),
       _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
-      _useCluster( false ), _isMaster( true ), _preMainBarrier ( 1 ), _preMainBarrierLast ( 0 ), _throttlePolicy ( NULL ),
+      _preMainBarrier ( 1 ), _preMainBarrierLast ( 0 ), _throttlePolicy ( NULL ),
       _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ),
-      _initializedThreads ( 0 ), _targetThreads ( 0 ), _currentConduit( "mpi" ),
+      _initializedThreads ( 0 ), _targetThreads ( 0 ), _usingCluster( false ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL ), _cachePolicy(), _cacheMap(), _masterGpuThd( NULL )
 {
    verbose0 ( "NANOS++ initializing... start" );
@@ -105,10 +106,10 @@ void System::loadModules ()
    ensure( _hostFactory,"No default host factory" );
 
 #ifdef CLUSTER_DEV
-   if ( useCluster() )
+   if ( usingCluster() )
    {
-      verbose0( "Loading Cluster plugin (" + getCurrentConduit() + ")" ) ;
-      if ( !PluginManager::load ( "pe-cluster-"+getCurrentConduit() ) )
+      verbose0( "Loading Cluster plugin (" + getNetworkConduit() + ")" ) ;
+      if ( !PluginManager::load ( "pe-cluster-"+getNetworkConduit() ) )
          fatal0 ( "Couldn't load Cluster support" );
    }
 #endif
@@ -229,16 +230,6 @@ void System::config ()
    cfg.registerArgOption ( "instrumentation", "instrumentation" );
    cfg.registerEnvOption ( "instrumentation", "NX_INSTRUMENTATION" );
 
-   /* Cluster: load the cluster support */
-   cfg.registerConfigOption ( "enable-cluster", NEW Config::FlagOption ( _useCluster, true ), "Enables the usage of Nanos++ Cluster" );
-   cfg.registerArgOption ( "enable-cluster", "cluster" );
-   //cfg.registerEnvOption ( "enable-cluster", "NX_ENABLE_CLUSTER" );
-
-   /* Cluster: select wich module to load mpi or udp */
-   cfg.registerConfigOption ( "conduit", NEW Config::StringVar ( _currentConduit ), "Selects which GasNet conduit will be used" );
-   cfg.registerArgOption ( "conduit", "cluster-network" );
-   cfg.registerEnvOption ( "conduit", "NX_CLUSTER_NETWORK" );
-
    cfg.registerConfigOption ( "no-sync-start", NEW Config::FlagOption( _synchronizedStart, false), "Disables synchronized start" );
    cfg.registerArgOption ( "no-sync-start", "disable-synchronized-start" );
 
@@ -249,6 +240,16 @@ void System::config ()
    cfg.registerConfigOption ( "cache-policy", NEW Config::StringVar ( _cachePolicy ), "Defines the general cache policy to use (copy-back by default). Can be overwritten for specific architectures" );
    cfg.registerArgOption ( "cache-policy", "cache-policy" );
    cfg.registerEnvOption ( "cache-policy", "NX_CACHE_POLICY" );
+
+   /* Cluster: load the cluster support */
+   cfg.registerConfigOption ( "enable-cluster", NEW Config::FlagOption ( _usingCluster, true ), "Enables the usage of Nanos++ Cluster" );
+   cfg.registerArgOption ( "enable-cluster", "cluster" );
+   //cfg.registerEnvOption ( "enable-cluster", "NX_ENABLE_CLUSTER" );
+
+   /* Cluster: select wich module to load mpi or udp */
+   cfg.registerConfigOption ( "conduit", NEW Config::StringVar ( _conduit ), "Selects which GasNet conduit will be used" );
+   cfg.registerArgOption ( "conduit", "cluster-network" );
+   cfg.registerEnvOption ( "conduit", "NX_CLUSTER_NETWORK" );
 
    _schedConf.config( cfg );
    _pmInterface->config( cfg );
@@ -278,7 +279,7 @@ void System::start ()
    int numPes = getNumPEs();
 
 #ifdef CLUSTER_DEV
-   if ( useCluster() )
+   if ( usingCluster() )
    {
       if ( _net.getNodeNum() == nanos::Network::MASTER_NODE_NUM )
       {
@@ -325,7 +326,7 @@ void System::start ()
 
    int p;
 #ifdef CLUSTER_DEV
-   if ( useCluster() )
+   if ( usingCluster() )
    {
       int effectivePes = ( _net.getNodeNum() == 0 && numPes == 4 ) ? numPes - 1 : numPes;
       for ( p = 1; p < effectivePes; p++ ) {
@@ -384,7 +385,7 @@ void System::start ()
 
 
 #ifdef CLUSTER_DEV
-   if ( useCluster() && _net.getNumNodes() > 1)
+   if ( usingCluster() && _net.getNumNodes() > 1)
    {
       PE * smpRep = createPE ( "smp", p );
       _pes.push_back( smpRep );
@@ -445,7 +446,7 @@ void System::start ()
    const OS::InitList & externalInits = OS::getPostInitializationFunctions();
    std::for_each(externalInits.begin(),externalInits.end(), ExecInit());
 
-   if ( useCluster() )
+   if ( usingCluster() )
    {
       _net.nodeBarrier();
    }

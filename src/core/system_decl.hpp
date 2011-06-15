@@ -75,8 +75,6 @@ namespace nanos
          bool                 _synchronizedStart;
 
          // cluster arch
-         bool                 _useCluster;
-         bool                 _isMaster;
          Atomic<unsigned int> _preMainBarrier;
          Atomic<unsigned int> _preMainBarrierLast;
 
@@ -107,9 +105,10 @@ namespace nanos
 
          Slicers              _slicers; /**< set of global slicers */
 
-         /*! Cluster: GasNet conduit to use and system Network object */
-         std::string          _currentConduit;
+         /*! Cluster: system Network object */
          Network              _net;
+         bool                 _usingCluster;
+         std::string          _conduit;
 
          Instrumentation     *_instrumentation; /**< Instrumentation object used in current execution */
          SchedulePolicy      *_defSchedulePolicy;
@@ -240,8 +239,6 @@ namespace nanos
 
          const std::string & getDefaultArch() const;
          
-         const std::string & getCurrentConduit() const;
-         
          void setDefaultArch( const std::string &arch );
 
          void setHostFactory ( peFactory factory );
@@ -263,12 +260,9 @@ namespace nanos
          SchedulerStats & getSchedulerStats ();
          SchedulerConf  & getSchedulerConf();
 
-         bool useCluster( void ) const;
-
-         bool isMaster( void ) const;
-         void setMaster( bool );
-
          Network * getNetwork( void );
+         bool usingCluster( void ) const;
+         const std::string & getNetworkConduit() const;
 
          void stopFirstThread( void );
 

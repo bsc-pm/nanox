@@ -35,6 +35,7 @@ class ClusterPlugin : public Plugin
       virtual void config( Config& config )
       {
          config.setOptionsSection( "Cluster Arch", "Cluster specific options" );
+         ClusterInfo::prepare( config );
       }
 
       virtual void init()

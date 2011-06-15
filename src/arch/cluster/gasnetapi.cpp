@@ -760,7 +760,6 @@ void GASNetAPI::initialize ( Network *net )
 #else
    if ( _net->getNodeNum() == 0)
    {
-#define NETWORK_SEGMENT_LEN (1024*1024*1024*1)
       //fprintf(stderr, "GASNet was configured with GASNET_SEGMENT_EVERYTHING\n");
       void *segmentAddr[ gasnet_nodes() ];
       std::size_t segmentLen[ gasnet_nodes() ];
@@ -770,8 +769,8 @@ void GASNetAPI::initialize ( Network *net )
       segmentLen[ 0 ] = 0;
       for ( idx = 1; idx < gasnet_nodes(); idx += 1)
       {
-         segmentAddr[ idx ] = _net->malloc( idx, NETWORK_SEGMENT_LEN );
-         segmentLen[ idx ] = NETWORK_SEGMENT_LEN; 
+         segmentAddr[ idx ] = _net->malloc( idx, ClusterInfo::getNodeMem() );
+         segmentLen[ idx ] = ClusterInfo::getNodeMem(); 
       }
       ClusterInfo::addSegments( gasnet_nodes(), segmentAddr, segmentLen );
    }

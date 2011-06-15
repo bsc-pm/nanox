@@ -93,8 +93,6 @@ inline const std::string & System::getDefaultBarrier() const { return _defBarr; 
 
 inline const std::string & System::getDefaultInstrumentation() const { return _defInstr; }
 
-inline const std::string & System::getCurrentConduit() const { return _currentConduit; }
-
 inline void System::setHostFactory ( peFactory factory ) { _hostFactory = factory; }
 
 inline void System::setDefaultBarrFactory ( barrFactory factory ) { _defBarrFactory = factory; }
@@ -121,12 +119,9 @@ inline SchedulerConf  & System::getSchedulerConf ()  { return _schedConf; }
 inline const std::string & System::getDefaultArch() const { return _defArch; }
 inline void System::setDefaultArch( const std::string &arch ) { _defArch = arch; }
 
-inline bool System::useCluster( void ) const { return _useCluster; }
-
-inline bool System::isMaster( void ) const { return _isMaster; }
-inline void System::setMaster( bool _isMasterNode ) { _isMaster = _isMasterNode; }
-
 inline Network * System::getNetwork( void ) { return &_net; }
+inline bool System::usingCluster( void ) const { return _usingCluster; }
+inline const std::string & System::getNetworkConduit( void ) const { return _conduit; }
 inline void System::stopFirstThread( void ) { _workers[0]->stop(); }
 
 inline void System::setPMInterface(PMInterface *pm)
