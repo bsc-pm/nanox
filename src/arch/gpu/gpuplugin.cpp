@@ -42,5 +42,4 @@ class GPUPlugin : public Plugin
 }
 }
 
-nanos::ext::GPUPlugin NanosXPlugin;
-
+DECLARE_PLUGIN("arch-gpu",nanos::ext::GPUPlugin);

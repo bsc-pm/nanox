@@ -116,4 +116,3 @@ namespace nanos {
 }
 
 DECLARE_PLUGIN("sched-default",nanos::ext::NanosSchedPlugin);
-

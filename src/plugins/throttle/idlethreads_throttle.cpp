@@ -95,4 +95,4 @@ namespace nanos {
    }
 }
 
-nanos::ext::IdleThreadsThrottlePlugin NanosXPlugin;
+DECLARE_PLUGIN("throttle-idlethreads",nanos::ext::IdleThreadsThrottlePlugin);

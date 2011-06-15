@@ -202,4 +202,4 @@ class SlicerGuidedForPlugin : public Plugin {
 } // namespace ext
 } // namespace nanos
 
-nanos::ext::SlicerGuidedForPlugin NanosXPlugin;
+DECLARE_PLUGIN("slicer-guided_for",nanos::ext::SlicerGuidedForPlugin);

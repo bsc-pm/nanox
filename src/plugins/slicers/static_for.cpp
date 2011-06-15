@@ -254,4 +254,4 @@ class SlicerStaticForPlugin : public Plugin {
 } // namespace ext
 } // namespace nanos
 
-nanos::ext::SlicerStaticForPlugin NanosXPlugin;
+DECLARE_PLUGIN("slicer-static_for",nanos::ext::SlicerStaticForPlugin);

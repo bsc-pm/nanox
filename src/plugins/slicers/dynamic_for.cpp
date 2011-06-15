@@ -187,4 +187,4 @@ class SlicerDynamicForPlugin : public Plugin {
 } // namespace ext
 } // namespace nanos
 
-nanos::ext::SlicerDynamicForPlugin NanosXPlugin;
+DECLARE_PLUGIN("slicer-dynamic_for",nanos::ext::SlicerDynamicForPlugin);

@@ -89,4 +89,4 @@ namespace nanos {
    }
 }
 
-nanos::ext::ReadyTasksThrottlePlugin NanosXPlugin;
+DECLARE_PLUGIN("throttle-readytasks",nanos::ext::ReadyTasksThrottlePlugin);
