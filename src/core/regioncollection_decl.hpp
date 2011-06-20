@@ -31,6 +31,15 @@
 
 namespace nanos {
    
+   //! \brief Region stream formatter
+   //! \param o the output stream
+   //! \tparam container_t the type of the collection container
+   //! \param regionCollection the region collection
+   //! \returns the output stream
+   template <class container_t>
+   std::ostream& operator<< (std::ostream& o, nanos::RegionCollection<container_t> const &regionCollection);
+   
+   
    //! \brief Collection of RegionPart possibly to represent a shape that cannot be represented by a single Region
    //! \ptype container_t type of the container that stores each RegionPart
    template < class container_t = std::list<RegionPart> >
@@ -236,9 +245,22 @@ namespace nanos {
             regions.clear();
             // regions2.clear();
          }
-
+      
    };
-
+   
+   template <class container_t>
+   std::ostream& operator<< (std::ostream& o, RegionCollection<container_t> const &regionCollection)
+   {
+      container_t const &contents = regionCollection.getRegionCollectionReference();
+      for (typename container_t::const_iterator it = contents.begin(); it != contents.end(); it++) {
+         RegionPart const &part = *it;
+         
+         o << "\t" << part << std::endl;
+      }
+      
+      return o;
+   }
+   
 } // namespace nanos
 
 
