@@ -35,6 +35,10 @@ namespace nanos
 {
    
    
+   //! \brief Region stream formatter
+   //! \param o the output stream
+   //! \param region the region
+   //! \returns the output stream
    std::ostream& operator<< (std::ostream& o, nanos::Region const &region);
 
 
