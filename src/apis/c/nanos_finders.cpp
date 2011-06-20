@@ -34,12 +34,13 @@ nanos_slicer_t nanos_find_slicer ( const char * label )
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","find_slicer",NANOS_RUNTIME) );
 
    nanos_slicer_t slicer;
+   
    try {
-      slicer = sys.getSlicer ( std::string(label) );
+      std::string plugin = std::string(label);
+      slicer = sys.getSlicer ( plugin );
       if ( slicer == NULL ) {
-         std::string plugin = "slicer-" + std::string(label);
-         if ( !sys.loadPlugin( plugin )) fatal0( "Could not load " + std::string(label) + "slicer" );
-         slicer = sys.getSlicer ( std::string(label) );
+         if ( !sys.loadPlugin( "slicer-" + plugin )) fatal0( "Could not load " + plugin + "slicer" );
+         slicer = sys.getSlicer ( plugin );
       }
 
    } catch ( ... ) {

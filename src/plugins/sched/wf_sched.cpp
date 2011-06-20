@@ -223,6 +223,4 @@ namespace nanos {
    }
 }
 
-nanos::ext::WFSchedPlugin NanosXPlugin;
-
-
+DECLARE_PLUGIN("sched-wf",nanos::ext::WFSchedPlugin);

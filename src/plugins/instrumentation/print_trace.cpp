@@ -56,5 +56,4 @@ class InstrumentationPrintTracePlugin : public Plugin {
 
 } // namespace nanos
 
-nanos::ext::InstrumentationPrintTracePlugin NanosXPlugin;
-
+DECLARE_PLUGIN("intrumentation-print_trace",nanos::ext::InstrumentationPrintTracePlugin);

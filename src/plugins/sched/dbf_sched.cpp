@@ -175,4 +175,4 @@ namespace nanos {
    }
 }
 
-nanos::ext::DistributedBFSchedPlugin NanosXPlugin;
+DECLARE_PLUGIN("sched-dbf",nanos::ext::DistributedBFSchedPlugin);

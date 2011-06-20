@@ -50,5 +50,4 @@ class GPUCublasPlugin : public Plugin
 }
 }
 
-nanos::ext::GPUCublasPlugin NanosXPlugin;
-
+DECLARE_PLUGIN("arch-gpucublas",nanos::ext::GPUCublasPlugin);

@@ -144,5 +144,4 @@ namespace nanos {
    }
 }
 
-nanos::ext::CentralizedBarrierPlugin NanosXPlugin;
-
+DECLARE_PLUGIN("barr-centralized",nanos::ext::CentralizedBarrierPlugin);
