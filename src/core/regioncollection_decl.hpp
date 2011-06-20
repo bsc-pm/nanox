@@ -181,6 +181,11 @@ namespace nanos {
       container_t &getRegionCollectionReference()
          { return m_parts; }
       
+      //! \brief Unmodificable reference to the contents
+      //! \returns a unmodificable reference to the contents
+      container_t const &getRegionCollectionReference() const
+         { return m_parts; }
+      
       //! \brief Join parts that can be represented with one RegionPart without adding aliasing
       void defragment()
          {
