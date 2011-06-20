@@ -105,7 +105,7 @@ namespace nanos {
             RegionCollection result(*this);
             for (typename container_t::const_iterator it = substracted.m_parts.begin(); it != substracted.m_parts.end(); it++) {
                RegionPart const &part = *it;
-               result.minus(part, maxPartitioningLevels);
+               result = result.minus(part, maxPartitioningLevels);
             }
             return result;
          }
