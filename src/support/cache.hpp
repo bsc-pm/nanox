@@ -391,6 +391,12 @@ inline void WriteBackPolicy::unregisterCacheAccess( Directory &dir, uint64_t tag
 inline Cache::Cache() : _id( sys.getCacheMap().registerCache() ) {}
 
 template <class _T>
+inline void DeviceCache<_T>::setPolicy( CachePolicy * policy )
+{
+   _policy = policy;
+}
+
+template <class _T>
 inline size_t DeviceCache<_T>::getSize()
    { return _size; }
 

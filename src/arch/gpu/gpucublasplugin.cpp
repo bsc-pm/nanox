@@ -18,6 +18,7 @@
 /*************************************************************************************/
 
 #include "plugin.hpp"
+#include "system_decl.hpp"
 
 #include <iostream>
 

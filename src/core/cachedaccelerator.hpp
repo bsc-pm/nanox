@@ -28,9 +28,25 @@ using namespace nanos;
 
 
 template <class Device>
-void CachedAccelerator<Device>::configureCache( int cacheSize, NANOS_CACHE_POLICY cachePolicy )
+void CachedAccelerator<Device>::configureCache( int cacheSize, System::CachePolicyType cachePolicy )
 {
-   _cache = NEW DeviceCache<Device>( cacheSize, cachePolicy, this );
+   if ( _cache == NULL )
+      _cache = NEW DeviceCache<Device>( cacheSize, NULL, this );
+
+   switch ( cachePolicy ) {
+      case System::WRITE_THROUGH:
+         _cachePolicy = NEW WriteThroughPolicy( *_cache );
+         break;
+      case System::WRITE_BACK:
+         _cachePolicy = NEW WriteBackPolicy( *_cache );
+         break;
+      default:
+         // We should not get here with the System::DEFAULT value
+         fatal0( "Unknown cache policy" );
+         break;
+   }
+
+   _cache->setPolicy( _cachePolicy );
 }
 
 template <class Device>

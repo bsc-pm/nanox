@@ -29,7 +29,7 @@ namespace ext {
 
 bool GPUConfig::_disableCUDA = false;
 int  GPUConfig::_numGPUs = -1;
-std::string   GPUConfig::_cachePolicy = "";
+System::CachePolicyType GPUConfig::_cachePolicy = System::DEFAULT;
 bool GPUConfig::_prefetch = false;
 bool GPUConfig::_overlap = false;
 bool GPUConfig::_overlapInputs = false;
@@ -57,7 +57,10 @@ void GPUConfig::prepare( Config& config )
    config.registerArgOption ( "num-gpus", "gpus" );
 
    // Set the cache policy for GPU devices
-   config.registerConfigOption ( "gpu-cache-policy", NEW Config::StringVar( _cachePolicy ), "Defines the cache policy for GPU architectures" );
+   System::CachePolicyConfig *cachePolicyCfg = NEW System::CachePolicyConfig ( _cachePolicy );
+   cachePolicyCfg->addOption("wt", System::WRITE_THROUGH );
+   cachePolicyCfg->addOption("wb", System::WRITE_BACK );
+   config.registerConfigOption ( "gpu-cache-policy", cachePolicyCfg, "Defines the cache policy for GPU architectures: write-through / write-back (wb by default)" );
    config.registerEnvOption ( "gpu-cache-policy", "NX_GPU_CACHE_POLICY" );
    config.registerArgOption( "gpu-cache-policy", "gpu-cache-policy" );
 
@@ -111,7 +114,7 @@ void GPUConfig::apply()
 {
    if ( _disableCUDA ) {
       _numGPUs = 0;
-      _cachePolicy = "";
+      _cachePolicy = System::DEFAULT;
       _prefetch = false;
       _overlap = false;
       _overlapInputs = false;
@@ -152,13 +155,13 @@ void GPUConfig::apply()
          _numGPUs = deviceCount;
 
       // Check if the cache policy for GPUs has been defined
-      if ( !_cachePolicy.compare( "" ) ) {
+      if ( _cachePolicy == System::DEFAULT ) {
          // The user has not defined a specific cache policy for GPUs,
          // check if he has defined a global cache policy
          _cachePolicy = sys.getCachePolicy();
-         if ( !_cachePolicy.compare( "" ) ) {
-            // There is no global cache policy specified, assign it the default value (copy-back)
-            _cachePolicy = "cb";
+         if ( _cachePolicy == System::DEFAULT ) {
+            // There is no global cache policy specified, assign it the default value (write-back)
+            _cachePolicy = System::WRITE_BACK;
          }
       }
 
@@ -185,7 +188,7 @@ void GPUConfig::printConfiguration()
 {
    verbose0( "--- GPUDD configuration ---" );
    verbose0( "  Number of GPU's: " << _numGPUs );
-   verbose0( "  GPU cache policy: " << _cachePolicy );
+   verbose0( "  GPU cache policy: " << ( _cachePolicy == System::WRITE_THROUGH ? "write-through" : "write-back" ) );
    verbose0( "  Prefetching: " << ( _prefetch ? "Enabled" : "Disabled" ) );
    verbose0( "  Overlapping: " << ( _overlap ? "Enabled" : "Disabled" ) );
    verbose0( "  Overlapping inputs: " << ( _overlapInputs ? "Enabled" : "Disabled" ) );

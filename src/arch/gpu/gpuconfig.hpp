@@ -21,6 +21,7 @@
 #define _NANOS_GPU_CFG
 
 #include "config.hpp"
+#include "system_decl.hpp"
 
 #if __CUDA_API_VERSION < 3020
 #define CUDANODEVERR cudaErrorNoDevice
@@ -48,18 +49,18 @@ namespace ext
    {
       friend class GPUPlugin;
       private:
-         static bool          _disableCUDA; //! Enable/disable all CUDA support
-         static int           _numGPUs; //! Number of CUDA-capable GPUs
-         static std::string   _cachePolicy; //! Defines the cache policy used by GPU devices
-         static bool          _prefetch; //! Enable / disable data prefetching (set by the user)
-         static bool          _overlap; //! Enable / disable computation and data transfer overlapping (set by the user)
-         static bool          _overlapInputs;
-         static bool          _overlapOutputs;
-         static transfer_mode _transferMode; //! Data transfer's mode (synchronous / asynchronous, ...)
-         static size_t        _maxGPUMemory; //! Maximum amount of memory for each GPU to use
-         static bool          _gpuWarmup; //! Enable / disable driver warmup (during runtime startup)
-         static bool          _initCublas; //! Init CUBLAS library during runtime startup
-         static void *        _gpusProperties; //! Array of structs of cudaDeviceProp
+         static bool                      _disableCUDA; //! Enable/disable all CUDA support
+         static int                       _numGPUs; //! Number of CUDA-capable GPUs
+         static System::CachePolicyType   _cachePolicy; //! Defines the cache policy used by GPU devices
+         static bool                      _prefetch; //! Enable / disable data prefetching (set by the user)
+         static bool                      _overlap; //! Enable / disable computation and data transfer overlapping (set by the user)
+         static bool                      _overlapInputs;
+         static bool                      _overlapOutputs;
+         static transfer_mode             _transferMode; //! Data transfer's mode (synchronous / asynchronous, ...)
+         static size_t                    _maxGPUMemory; //! Maximum amount of memory for each GPU to use
+         static bool                      _gpuWarmup; //! Enable / disable driver warmup (during runtime startup)
+         static bool                      _initCublas; //! Init CUBLAS library during runtime startup
+         static void *                    _gpusProperties; //! Array of structs of cudaDeviceProp
 
          /*! Parses the GPU user options */
          static void prepare ( Config &config );
@@ -73,7 +74,7 @@ namespace ext
          /*! return the number of available GPUs */
          static int getGPUCount ( void ) { return _numGPUs; }
 
-         static std::string getCachePolicy ( void ) { return _cachePolicy; }
+         static System::CachePolicyType getCachePolicy ( void ) { return _cachePolicy; }
 
          static bool isPrefetchingDefined ( void ) { return _prefetch; }
 

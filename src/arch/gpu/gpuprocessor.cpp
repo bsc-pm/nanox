@@ -93,7 +93,7 @@ void GPUProcessor::init ()
    // much bytes as we have asked
    void * baseAddress = GPUDevice::allocateWholeMemory( maxMemoryAvailable );
    _allocator.init( ( uint64_t ) baseAddress, maxMemoryAvailable );
-   configureCache( maxMemoryAvailable, toCachePolicy( GPUConfig::getCachePolicy() ) );
+   configureCache( maxMemoryAvailable, GPUConfig::getCachePolicy() );
    _gpuProcessorInfo->setMaxMemoryAvailable( maxMemoryAvailable );
 
    // If some kind of overlapping is defined, allocate some pinned memory
