@@ -91,4 +91,4 @@ namespace nanos {
    }
 }
 
-nanos::ext::NumTasksThrottlePlugin NanosXPlugin;
+DECLARE_PLUGIN("throttle-numtasks",nanos::ext::NumTasksThrottlePlugin);

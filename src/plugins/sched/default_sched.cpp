@@ -113,7 +113,9 @@ namespace nanos {
       {
 
          public:
-            NanosSchedPlugin() : Plugin( "Nanos++ default scheduling policy Plugin",1 ) {}
+            NanosSchedPlugin() : Plugin( "Nanos++ default scheduling policy Plugin",1 )
+            {
+            }
 
             virtual void config ( Config &cfg )
             {
@@ -127,5 +129,4 @@ namespace nanos {
    }
 }
 
-nanos::ext::NanosSchedPlugin NanosXPlugin;
-
+DECLARE_PLUGIN("sched-default",nanos::ext::NanosSchedPlugin);

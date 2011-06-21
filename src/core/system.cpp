@@ -52,7 +52,7 @@ System::System () :
       _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ),
-      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL ), _cachePolicy(), _cacheMap()
+      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL ), _cachePolicy( System::DEFAULT ), _cacheMap()
 {
    verbose0 ( "NANOS++ initializing... start" );
    // OS::init must be called here and not in System::start() as it can be too late
@@ -71,7 +71,7 @@ struct LoadModule
    {
       if ( module ) {
         verbose0( "loading " << module << " module" );
-        PluginManager::load(module);
+        sys.loadPlugin(module);
       }
    }
 };
@@ -80,7 +80,7 @@ void System::loadModules ()
 {
    verbose0 ( "Configuring module manager" );
 
-   PluginManager::init();
+   _pluginManager.init();
 
    verbose0 ( "Loading modules" );
 
@@ -91,7 +91,7 @@ void System::loadModules ()
    if ( _hostFactory == NULL ) {
      verbose0( "loading Host support" );
 
-     if ( !PluginManager::load ( "pe-"+getDefaultArch() ) )
+     if ( !loadPlugin( "pe-"+getDefaultArch() ) )
        fatal0 ( "Couldn't load host support" );
    }
    ensure( _hostFactory,"No default host factory" );
@@ -99,33 +99,32 @@ void System::loadModules ()
 #ifdef GPU_DEV
    verbose0( "loading GPU support" );
 
-   if ( !PluginManager::load ( "pe-gpu" ) )
+   if ( !loadPlugin( "pe-gpu" ) )
       fatal0 ( "Couldn't load GPU support" );
 #endif
 
    // load default schedule plugin
    verbose0( "loading " << getDefaultSchedule() << " scheduling policy support" );
 
-   if ( !PluginManager::load ( "sched-"+getDefaultSchedule() ) )
+   if ( !loadPlugin( "sched-"+getDefaultSchedule() ) )
       fatal0 ( "Couldn't load main scheduling policy" );
 
    ensure( _defSchedulePolicy,"No default system scheduling factory" );
 
    verbose0( "loading " << getDefaultThrottlePolicy() << " throttle policy" );
 
-   if ( !PluginManager::load( "throttle-"+getDefaultThrottlePolicy() ) )
+   if ( !loadPlugin( "throttle-"+getDefaultThrottlePolicy() ) )
       fatal0( "Could not load main cutoff policy" );
 
    ensure( _throttlePolicy, "No default throttle policy" );
 
    verbose0( "loading " << getDefaultBarrier() << " barrier algorithm" );
 
-   if ( !PluginManager::load( "barrier-"+getDefaultBarrier() ) )
+   if ( !loadPlugin( "barrier-"+getDefaultBarrier() ) )
       fatal0( "Could not load main barrier algorithm" );
 
-   if ( !PluginManager::load( "instrumentation-"+getDefaultInstrumentation() ) )
+   if ( !loadPlugin( "instrumentation-"+getDefaultInstrumentation() ) )
       fatal0( "Could not load " + getDefaultInstrumentation() + " instrumentation" );
-
 
    ensure( _defBarrFactory,"No default system barrier factory" );
 
@@ -211,7 +210,11 @@ void System::config ()
    cfg.registerArgOption ( "architecture", "architecture" );
    cfg.registerEnvOption ( "architecture", "NX_ARCHITECTURE" );
 
-   cfg.registerConfigOption ( "cache-policy", NEW Config::StringVar ( _cachePolicy ), "Defines the general cache policy to use (copy-back by default). Can be overwritten for specific architectures" );
+   CachePolicyConfig *cachePolicyCfg = NEW CachePolicyConfig ( _cachePolicy );
+   cachePolicyCfg->addOption("wt", System::WRITE_THROUGH );
+   cachePolicyCfg->addOption("wb", System::WRITE_BACK );
+
+   cfg.registerConfigOption ( "cache-policy", cachePolicyCfg, "Defines the general cache policy to use: write-through / write-back. Can be overwritten for specific architectures" );
    cfg.registerArgOption ( "cache-policy", "cache-policy" );
    cfg.registerEnvOption ( "cache-policy", "NX_CACHE_POLICY" );
 

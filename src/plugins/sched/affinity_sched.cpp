@@ -284,4 +284,4 @@ namespace nanos {
    }
 }
 
-nanos::ext::CacheSchedPlugin NanosXPlugin;
+DECLARE_PLUGIN("sched-affinity",nanos::ext::CacheSchedPlugin);

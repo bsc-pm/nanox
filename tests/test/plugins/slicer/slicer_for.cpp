@@ -73,7 +73,7 @@ void main__loop_1 ( void *args );
 #define EXECUTE(get_slicer,slicer_data,lower,upper,k_offset,step,chunk)\
    for ( i = 0; i < NUM_ITERS; i++ ) {\
       _loop_data.offset = -k_offset; \
-      PluginManager::load( std::string("slicer-")+std::string(get_slicer) ); \
+      sys.loadPlugin( "slicer-" + std::string(get_slicer) ); \
       Slicer *slicer = sys.getSlicer ( get_slicer ); \
       WD * wd = new SlicedWD( *slicer, sizeof(slicer_data), __alignof__(slicer_data),\
                         *new slicer_data(lower+k_offset,upper+k_offset,step,chunk),\

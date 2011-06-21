@@ -189,5 +189,4 @@ class SlicerCompoundWDPlugin : public Plugin {
 } // namespace ext
 } // namespace nanos
 
-nanos::ext::SlicerCompoundWDPlugin NanosXPlugin;
-
+DECLARE_PLUGIN("slicer-compound_wd",nanos::ext::SlicerCompoundWDPlugin);

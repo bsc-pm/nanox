@@ -111,5 +111,4 @@ namespace nanos {
    }
 }
 
-nanos::ext::BFSchedPlugin NanosXPlugin;
-
+DECLARE_PLUGIN("sched-bf",nanos::ext::BFSchedPlugin);

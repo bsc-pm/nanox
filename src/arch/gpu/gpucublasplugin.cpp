@@ -18,6 +18,7 @@
 /*************************************************************************************/
 
 #include "plugin.hpp"
+#include "system_decl.hpp"
 
 #include <iostream>
 
@@ -50,5 +51,4 @@ class GPUCublasPlugin : public Plugin
 }
 }
 
-nanos::ext::GPUCublasPlugin NanosXPlugin;
-
+DECLARE_PLUGIN("arch-gpucublas",nanos::ext::GPUCublasPlugin);

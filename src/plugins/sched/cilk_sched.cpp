@@ -181,4 +181,4 @@ namespace nanos {
    }
 }
 
-nanos::ext::CilkSchedPlugin NanosXPlugin;
+DECLARE_PLUGIN("sched-cilk",nanos::ext::CilkSchedPlugin);

@@ -21,18 +21,18 @@
 
 #include <new>
 
-#ifdef NANOS_DEBUG_ENABLED
+#ifdef NANOS_DEBUG_ENABLED // ----- debug -----
 
    #define NEW new(__FILE__, __LINE__)
 
    void* operator new ( size_t size, const char *file, int line );
    void* operator new[] ( size_t size, const char *file, int line );
+   
+#else // ----- performance ------
 
-#else
+#define NEW new
 
-   #define NEW new
+#endif // ----- all versions -----
 
-#endif
-
-#endif
+#endif // _NANOS_NEW_DECL
 

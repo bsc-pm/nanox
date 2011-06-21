@@ -22,6 +22,7 @@
 
 #include "accelerator_decl.hpp"
 #include "cache_decl.hpp"
+#include "system_decl.hpp"
 
 namespace nanos
 {
@@ -30,7 +31,8 @@ namespace nanos
    class CachedAccelerator : public Accelerator
    {
       private:
-        DeviceCache<Device>        *_cache;
+        DeviceCache<Device> * _cache;
+        CachePolicy         * _cachePolicy;
 
         /*! \brief CachedAccelerator default constructor (private)
          */
@@ -44,8 +46,11 @@ namespace nanos
       public:
         /*! \brief CachedAccelerator constructor - from 'newId' and 'arch'
          */
-         CachedAccelerator ( int newId, const Device *arch, NANOS_CACHE_POLICY policy, int cacheSize = 0 ) :
-            Accelerator( newId, arch ), _cache( NEW DeviceCache<Device>( cacheSize, policy, this ) ) {}
+         CachedAccelerator ( int newId, const Device *arch, System::CachePolicyType policy, int cacheSize = 0 ) :
+            Accelerator( newId, arch ), _cache( NEW DeviceCache<Device>( cacheSize, NULL, this ) )
+         {
+            configureCache( cacheSize, policy );
+         }
 
          /*! \brief CachedAccelerator constructor - from 'newId' and 'arch'
           *
@@ -60,7 +65,7 @@ namespace nanos
 
          unsigned int getMemorySpaceId() const { return _cache->getId(); }
 
-         void configureCache( int cacheSize, NANOS_CACHE_POLICY cachePolicy );
+         void configureCache( int cacheSize, System::CachePolicyType cachePolicy );
 
          void registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
 

@@ -228,26 +228,6 @@ namespace nanos {
          }
    };
 
-
-   enum NANOS_CACHE_POLICY {
-      NANOS_CACHE_NO_POLICY,
-      NANOS_CACHE_WT_POLICY,
-      NANOS_CACHE_WB_POLICY
-   };
-
-   inline NANOS_CACHE_POLICY toCachePolicy ( std::string policy )
-   {
-      if ( !policy.compare( "wt" ) ) {
-         return NANOS_CACHE_WT_POLICY;
-      }
-
-      if ( !policy.compare( "cb" ) ) {
-         return NANOS_CACHE_WB_POLICY;
-      }
-
-      return NANOS_CACHE_NO_POLICY;
-   }
-
   /*! \class Cache
    *  \brief Generic interface of a Cache
    */
@@ -495,19 +475,19 @@ namespace nanos {
       *   - check for errors 
       */
       private:
-         ProcessingElement *_pe; /**< PE used to manage asynchronous copies */
+         ProcessingElement * _pe; /**< PE used to manage asynchronous copies */
 
          typedef HashMap<uint64_t, CacheEntry> CacheHash; /**< Maps keys with CacheEntries  */
          CacheHash _cache; /**< HashMap where the cache entries are stored */
 
-         CachePolicy *_policy; /**< Cache Policy used by this cache */
+         CachePolicy * _policy; /**< Cache Policy used by this cache */
 
          size_t _size; /**< Size of the cache in bytes */
          size_t _usedSize; /**< Cache space usage counter */
 
         /*! \brief Copy Constructor
          */
-         DeviceCache( const DeviceCache &cache, NANOS_CACHE_POLICY policy );
+         DeviceCache( const DeviceCache &cache, CachePolicy &policy );
 
         /*! \brief Assign operator
          */
@@ -516,7 +496,7 @@ namespace nanos {
         /*! \brief Internal data structure for copy synchronization
          */
          struct SyncData {
-            DeviceCache* _this;
+            DeviceCache * _this;
          };
 
         /*! \brief Internal synchronization function
@@ -528,21 +508,8 @@ namespace nanos {
       public:
         /* \brief Default constructor
          */
-         DeviceCache( size_t size, NANOS_CACHE_POLICY policy, ProcessingElement *pe = NULL ) :
-            _pe( pe ), _cache(), _size( size ), _usedSize( 0 )
-         {
-            switch ( policy ) {
-               case NANOS_CACHE_WT_POLICY:
-                  _policy = NEW WriteThroughPolicy( *this );
-                  break;
-               case NANOS_CACHE_WB_POLICY:
-                  _policy = NEW WriteBackPolicy( *this );
-                  break;
-               default:
-                  fatal0( "Unknown cache policy" );
-                  break;
-            }
-         }
+         DeviceCache( size_t size, CachePolicy * policy, ProcessingElement *pe = NULL ) :
+            _pe( pe ), _cache(), _policy( policy ), _size( size ), _usedSize( 0 ) {}
 
         /*! \brief Destructor
          */
@@ -550,6 +517,10 @@ namespace nanos {
          {
             delete _policy;
          }
+
+         /*! \brief Sets a pointer to the policy used by this cache
+          */
+         void setPolicy( CachePolicy * policy );
 
         /*! \brief Returns the size of the cache
          */

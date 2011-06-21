@@ -127,7 +127,7 @@ inline void System::setPMInterface(PMInterface *pm)
 
 inline PMInterface &  System::getPMInterface(void) const { return *_pmInterface; }
 
-inline std::string System::getCachePolicy() { return _cachePolicy; }
+inline System::CachePolicyType System::getCachePolicy() { return _cachePolicy; }
 
 inline CacheMap& System::getCacheMap() { return _cacheMap; }
 
@@ -145,6 +145,31 @@ inline void System::threadReady()
 
       TODO: we can consider thread yielding */
    while (_initializedThreads.value() < _targetThreads) {}
+}
+
+inline void System::registerPlugin ( const char *name, Plugin &plugin )
+{
+   _pluginManager.registerPlugin(name, plugin);
+}
+
+inline bool System::loadPlugin ( const char * name )
+{
+   return _pluginManager.load(name);
+}
+
+inline bool System::loadPlugin ( const std::string & name )
+{
+   return _pluginManager.load(name);
+}
+
+inline Plugin * System::loadAndGetPlugin ( const char *name )
+{
+   return _pluginManager.loadAndGetPlugin(name, false);
+}
+
+inline Plugin * System::loadAndGetPlugin ( const std::string & name )
+{
+   return _pluginManager.loadAndGetPlugin(name, false);
 }
 
 #endif

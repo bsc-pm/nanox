@@ -18,10 +18,9 @@
 /*************************************************************************************/
 #include "new_decl.hpp"
 
-#ifdef NANOS_DEBUG_ENABLED
+#ifdef NANOS_DEBUG_ENABLED // ----- debug -----
 
 #include "memtracker.hpp"
-
 void* operator new ( size_t size, const char *file, int line ) { return nanos::getMemTracker().allocate( size, file, line ); }
 void* operator new[] ( size_t size, const char *file, int line ) { return nanos::getMemTracker().allocate( size, file, line ); }
 
@@ -30,14 +29,15 @@ void* operator new[] ( size_t size ) { return nanos::getMemTracker().allocate( s
 void operator delete ( void *p ) { nanos::getMemTracker().deallocate( p ); }
 void operator delete[] ( void *p ) { nanos::getMemTracker().deallocate( p ); }
 
-#else
+#else // ----- performance -----
 
+#ifndef NANOS_DISABLE_ALLOCATOR
 #include "allocator.hpp"
-
 void* operator new ( size_t size ) { return nanos::getAllocator().allocate( size ); }
 void* operator new[] ( size_t size ) { return nanos::getAllocator().allocate( size ); }
 void operator delete ( void *p ) { nanos::getAllocator().deallocate( p ); }
 void operator delete[] ( void *p ) { nanos::getAllocator().deallocate( p ); }
+#endif
 
 #endif
 
