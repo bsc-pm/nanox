@@ -121,14 +121,14 @@ namespace ext
       NANOS_GPU_CUDA_INPUT_STREAM_SYNC_EVENT,               /* 9 */
       NANOS_GPU_CUDA_OUTPUT_STREAM_SYNC_EVENT,              /* 10 */
       NANOS_GPU_CUDA_KERNEL_STREAM_SYNC_EVENT,              /* 11 */
-      NANOS_GPU_CUDA_THREAD_SYNC_EVENT,                     /* 12 */
+      NANOS_GPU_CUDA_DEVICE_SYNC_EVENT,                     /* 12 */
       NANOS_GPU_CUDA_SET_DEVICE_EVENT,                      /* 13 */
       NANOS_GPU_CUDA_GET_DEVICE_PROPS_EVENT,                /* 14 */
       NANOS_GPU_CUDA_SET_DEVICE_FLAGS_EVENT,                /* 15 */
       NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT,                  /* 16 */
       NANOS_GPU_CUDA_GENERIC_EVENT,                         /* 17 */
       NANOS_GPU_MEMCOPY_EVENT                               /* 18 */
- } in_cuda_runtime_event_value;
+   } in_cuda_runtime_event_value;
 }
 }
 
