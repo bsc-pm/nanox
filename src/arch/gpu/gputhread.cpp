@@ -38,23 +38,6 @@ void GPUThread::initializeDependent ()
    if ( err != cudaSuccess )
       warning( "Couldn't set the GPU device for the thread: " << cudaGetErrorString( err ) );
 
-   // Configure some GPU device flags
-   if ( GPUConfig::getTransferMode() == NANOS_GPU_TRANSFER_PINNED_CUDA
-         || GPUConfig::getTransferMode() == NANOS_GPU_TRANSFER_WC ) {
-      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_SET_DEVICE_FLAGS_EVENT );
-      err = cudaSetDeviceFlags( cudaDeviceMapHost | cudaDeviceBlockingSync );
-      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-      if ( err != cudaSuccess )
-         warning( "Couldn't set the GPU device flags: " << cudaGetErrorString( err ) );
-   }
-   else {
-      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_SET_DEVICE_FLAGS_EVENT );
-      err = cudaSetDeviceFlags( cudaDeviceScheduleSpin );
-      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-      if ( err != cudaSuccess )
-         warning( "Couldn't set the GPU device flags:" << cudaGetErrorString( err ) );
-   }
-
    // Initialize GPUProcessor
    ( ( GPUProcessor * ) myThread->runningOn() )->init();
 
@@ -115,8 +98,8 @@ void GPUThread::inlineWorkDependent ( WD &wd )
 
    if ( !GPUConfig::isOverlappingOutputsDefined() && !GPUConfig::isOverlappingInputsDefined() ) {
       // Wait for the GPU kernel to finish
-      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_THREAD_SYNC_EVENT );
-      cudaThreadSynchronize();
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_DEVICE_SYNC_EVENT );
+      cudaDeviceSynchronize();
       NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
       // Normally this instrumentation code is inserted by the compiler in the task outline.
