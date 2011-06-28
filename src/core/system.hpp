@@ -42,6 +42,14 @@ inline void System::setDeviceStackSize ( int stackSize ) { _deviceStackSize = st
 
 inline int System::getDeviceStackSize () const {return _deviceStackSize; }
 
+inline void System::setCpuSetStart ( int value ) { _cpuSetStart = value; }
+
+inline int System::getCpuSetStart () const { return _cpuSetStart; }
+
+inline void System::setCpuSetStride ( int value ) { _cpuSetStride = value;  }
+
+inline int System::getCpuSetStride () const { return _cpuSetStride; }
+
 inline void System::setBinding ( bool set ) { _bindThreads = set; }
 
 inline bool System::getBinding () const { return _bindThreads; }
