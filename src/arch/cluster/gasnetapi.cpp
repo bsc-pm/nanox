@@ -352,6 +352,12 @@ void GASNetAPI::amMalloc( gasnet_token_t token, gasnet_handlerarg_t size,
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
    }
    addr = std::malloc( ( std::size_t ) size );
+   std::cerr<<"Malloc size " << size << " returns "<<addr<<std::endl;
+   if ( addr == NULL )
+   {
+      message0 ( "I could not allocate " << (std::size_t) size << " bytes of memory on node " << gasnet_mynode() << ". Try setting NX_CLUSTER_NODE_MEMORY to a lower value." );
+      fatal0 ("I can not continue." );
+   }
    if ( gasnet_AMReplyShort4( token, 208, ( gasnet_handlerarg_t ) ARG_LO( addr ),
             ( gasnet_handlerarg_t ) ARG_HI( addr ),
             ( gasnet_handlerarg_t ) waitObjAddrLo,
@@ -1057,7 +1063,7 @@ void GASNetAPI::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteA
          {
             std::list<uint64_t> tagsToInvalidate;
             tagsToInvalidate.push_back( ( uint64_t ) localAddr );
-            _masterDir->synchronizeHost( tagsToInvalidate );
+            _masterDir->synchronizeHostSoft( tagsToInvalidate );
          }
       }
    }
@@ -1100,6 +1106,7 @@ void GASNetAPI::memFree ( unsigned int remoteNode, void *addr )
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", remoteNode);
    }
+   //std::cerr << "FIXME: I should do something in GASNetAPI::memFree." << std::endl;
 }
 
 void GASNetAPI::nodeBarrier()

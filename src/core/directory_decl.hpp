@@ -253,6 +253,11 @@ namespace nanos
          *  \param syncTags List of identifier keys of the entries to synchronize
          */
          void synchronizeHost( std::list<uint64_t> syncTags );
+
+        /*! \brief same as synchronizeHost, but data is not transfered from the cache
+         *  \param syncTags List of identifier keys of the entries to synchronize
+         */
+         void synchronizeHostSoft( std::list<uint64_t> syncTags );
    };
 
 };
