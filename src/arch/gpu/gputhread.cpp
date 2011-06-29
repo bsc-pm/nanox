@@ -99,7 +99,11 @@ void GPUThread::inlineWorkDependent ( WD &wd )
    if ( !GPUConfig::isOverlappingOutputsDefined() && !GPUConfig::isOverlappingInputsDefined() ) {
       // Wait for the GPU kernel to finish
       NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_DEVICE_SYNC_EVENT );
+#ifdef NANOS_GPU_USE_CUDA32
+      cudaThreadSynchronize();
+#else
       cudaDeviceSynchronize();
+#endif
       NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
       // Normally this instrumentation code is inserted by the compiler in the task outline.
