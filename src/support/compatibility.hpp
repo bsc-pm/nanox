@@ -98,11 +98,8 @@ bool __sync_bool_compare_and_swap( int *ptr, int oldval, int newval );
 
 #endif
 
-#ifdef __CUDACC__
-#include <cuda.h>
-#if CUDA_VERSION <= 3020
+#ifdef GPU_DEV
 #define NANOS_GPU_USE_CUDA32
-#endif
 #endif
 
 #endif
