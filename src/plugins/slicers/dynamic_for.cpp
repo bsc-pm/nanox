@@ -91,11 +91,10 @@ void SlicerDynamicFor::submit ( SlicedWD &work )
     *     - thread_map = | -1 |  0 |  1 | -1 |  2 |  3 |
     *                    +----+----+----+----+----+----+
     */
-   int valid_threads = 0, first_valid_thread = 0;
+   int valid_threads = 0;
    int *thread_map = (int *) alloca ( sizeof(int) * num_threads );
    for ( i = 0; i < num_threads; i++) {
      if (  work.canRunIn( *((*team)[i].runningOn()) ) ) {
-       if ( valid_threads == 0 ) first_valid_thread = i;
        thread_map[i] = valid_threads++;
      }
      else thread_map[i] = -1;
