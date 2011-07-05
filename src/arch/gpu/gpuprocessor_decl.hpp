@@ -106,6 +106,11 @@ namespace ext
          //! Capability query functions
          bool supportsUserLevelThreads () const { return false; }
 
+         int getDeviceId ()
+         {
+            return _gpuDevice;
+         }
+
          // Allocator interface
          void * allocate ( size_t size )
          {
