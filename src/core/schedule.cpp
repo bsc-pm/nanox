@@ -390,6 +390,9 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
 
 void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
 {
+   /* Instrumenting context switch: oldwd leaves cpu but will come back (last = false) and newWD enters */
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldWD, newWD, false) );
+
    myThread->switchHelperDependent(oldWD, newWD, arg);
 
    GenericSyncCond *syncCond = oldWD->getSyncCond();
@@ -400,8 +403,6 @@ void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
       myThread->getTeam()->getSchedulePolicy().queue( myThread, *oldWD );
    }
 
-   /* Instrumenting context switch: oldwd leaves cpu but will come back (last = false) and newWD enters */
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldWD, newWD, false) );
    myThread->setCurrentWD( *newWD );
 }
 
