@@ -59,7 +59,7 @@ class Hash
 /*! \class HashMap
  *  \brief HashMap that uses the List that allows concurrent access and deletion of entries
  */
-template <typename _KeyType, typename _T, bool _invalidate = false, size_t _tsize = 256, typename _HashFunction = Hash<_KeyType> >
+template <typename _KeyType, typename _T, bool _invalidate = false, size_t _tsize = 257, typename _HashFunction = Hash<_KeyType> >
 class HashMap
 {
    private:

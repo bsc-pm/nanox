@@ -23,7 +23,15 @@
 #include <iostream>
 
 #include <cuda_runtime.h>
+
+#ifdef NANOS_GPU_USE_CUDA32
+// Cannot include cublas.h, as the redeclaration of two CUBLAS functions makes the
+// compiler crash because we are treating warnings as errors
+//#include <cublas.h>
+extern void cublasInit();
+#else
 #include <cublas.h>
+#endif
 
 
 namespace nanos {

@@ -290,6 +290,10 @@ namespace nanos {
          */
          virtual void deleteReference( uint64_t tag ) = 0;
 
+         /*! \brief Copy data from one device address to another device address
+          */
+          virtual bool copyData( void * dstAddr, void * srcAddr, size_t size, Cache & owner ) = 0;
+
         /*! \brief Copy data from the host to a device address
          *  \param cd Copy descriptor with the information about the addresses to be copied
          *  \param size Size of the data to be copied
@@ -315,14 +319,17 @@ namespace nanos {
          *  \param size Size of the entry in the cache
          *  \param de DirectoryEntry to be updated
          */
-         virtual void invalidate( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de ) = 0;
+         virtual void invalidateAndFlush( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de ) = 0;
 
         /*! \brief Force an entry to be copied back to the Host
          *  \param dir Directory to update when copy finishes
          *  \param tag Identifier key of the entry to invalidate
          *  \param de DirectoryEntry to be updated
          */
+         virtual void invalidateAndFlush( Directory &dir, uint64_t tag, DirectoryEntry *de ) = 0;
+
          virtual void invalidate( Directory &dir, uint64_t tag, DirectoryEntry *de ) = 0;
+
 
         /*! \brief Request the Device to priorize an asynchronous transfer
          *  \param tag Identifier to locate the transfer to be priorized
@@ -526,6 +533,10 @@ namespace nanos {
          */
          size_t getSize();
 
+         /*! \brief Returns a pointer to the PE of the cache
+          */
+         ProcessingElement * getPE();
+
         /*! \brief Allocate a block of memory in the device
          *  \param dir Directory to look for entries if the it needs to free space in the device.
          *  \param size size of the entry to allocate.
@@ -554,6 +565,10 @@ namespace nanos {
          * \param tag: Identifier of the entry to look for
          */
          void * getAddress( uint64_t tag );
+
+         /*! \brief Copy data from one device address to another device address
+          */
+         bool copyData( void * dstAddr, void * srcAddr, size_t size, Cache & owner );
 
         /* \brief Copy data from the address represented by the tag to the entry in the device.
          * \param cd: identifier of the entry
@@ -662,13 +677,15 @@ namespace nanos {
          *  \param size Size of the entry in the cache
          *  \param de DirectoryEntry to be updated
          */
-         void invalidate( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de );
+         void invalidateAndFlush( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de );
 
         /*! \brief Force an entry to be copied back to the Host
          *  \param dir Directory to update when copy finishes
          *  \param tag Identifier key of the entry to invalidate
          *  \param de DirectoryEntry to be updated
          */
+         void invalidateAndFlush( Directory &dir, uint64_t tag, DirectoryEntry *de );
+
          void invalidate( Directory &dir, uint64_t tag, DirectoryEntry *de );
 
         /*! \brief get a reference to the size variable to allow using it as a ConfigOption

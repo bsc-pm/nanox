@@ -337,7 +337,7 @@ void System::finish ()
 
    verbose ( "NANOS++ shutting down.... init" );
    verbose ( "Wait for main workgroup to complete" );
-   myThread->getCurrentWD()->waitCompletionAndSignalers();
+   myThread->getCurrentWD()->waitCompletionAndSignalers( true );
 
    // we need to switch to the main thread here to finish
    // the execution correctly
@@ -674,7 +674,6 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
 void System::duplicateWD ( WD **uwd, WD *wd)
 {
    unsigned int i, num_Devices, num_Copies;
-   CopyData *copy_data = NULL;
    DeviceData **dev_data;
    void *data = NULL;
    char *chunk = 0, *dd_location, *chunk_iter;
@@ -704,7 +703,6 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    num_Copies = wd->getNumCopies();
    if ( num_Copies != 0 ) {
       size_CopyData = sizeof(CopyData);
-      copy_data = wd->getCopies();
       size_Copies   = size_CopyData * num_Copies;
       offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, __alignof__(nanos_copy_data_t) );
    } else {
@@ -768,7 +766,6 @@ void System::duplicateWD ( WD **uwd, WD *wd)
 void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
 {
    unsigned int i, num_Devices, num_Copies;
-   CopyData *copy_data = NULL;
    DeviceData **dev_data;
    void *data = NULL;
    void *slicer_data = NULL;
@@ -800,7 +797,6 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
    num_Copies = wd->getNumCopies();
    if ( num_Copies != 0 ) {
       size_CopyData = sizeof(CopyData);
-      copy_data = wd->getCopies();
       size_Copies   = size_CopyData * num_Copies;
       offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, __alignof__(nanos_copy_data_t) );
    } else {

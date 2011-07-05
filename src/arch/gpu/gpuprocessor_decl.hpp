@@ -96,6 +96,7 @@ namespace ext
          virtual ~GPUProcessor();
 
          void init();
+         void cleanUp();
          void freeWholeMemory();
 
          WD & getWorkerWD () const;
@@ -104,6 +105,11 @@ namespace ext
 
          //! Capability query functions
          bool supportsUserLevelThreads () const { return false; }
+
+         int getDeviceId ()
+         {
+            return _gpuDevice;
+         }
 
          // Allocator interface
          void * allocate ( size_t size )

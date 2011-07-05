@@ -98,5 +98,9 @@ bool __sync_bool_compare_and_swap( int *ptr, int oldval, int newval );
 
 #endif
 
+#ifdef GPU_DEV
+#define NANOS_GPU_USE_CUDA32
+#endif
+
 #endif
 
