@@ -62,7 +62,7 @@ void GPUThread::runDependent ()
    setCurrentWD( work );
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
    dd.getWorkFct()( work.getData() );
-   ( ( GPUProcessor * ) myThread->runningOn() )->getGPUProcessorInfo()->destroyTransferStreams();
+   ( ( GPUProcessor * ) myThread->runningOn() )->cleanUp();
 }
 
 void GPUThread::inlineWorkDependent ( WD &wd )

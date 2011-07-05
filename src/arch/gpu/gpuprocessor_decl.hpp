@@ -96,6 +96,7 @@ namespace ext
          virtual ~GPUProcessor();
 
          void init();
+         void cleanUp();
          void freeWholeMemory();
 
          WD & getWorkerWD () const;
