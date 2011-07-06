@@ -402,6 +402,44 @@ inline void CachePolicy::unregisterPrivateAccess( Directory &dir, uint64_t tag, 
    _cache.deleteEntry( tag, size );
 }
 
+inline void NoCache::registerCacheAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
+{
+   bool inserted;
+   CacheEntry c =  CacheEntry( NULL, size, tag, 0, output, input );
+   CacheEntry& ce = _cache.insert( tag, c, inserted );
+   // TODO: The ensure is activated... why?
+   //ensure ( inserted, "Private access cannot hit the cache.");
+   ce.setAddress( _cache.allocate( dir, size ) );
+   ce.setAllocSize( size );
+   if ( input ) {
+      CopyDescriptor cd = CopyDescriptor( tag );
+      _cache.copyDataToCache( cd, size );
+      ce.setCopying( false );
+   }
+}
+
+inline void NoCache::unregisterCacheAccess( Directory& dir, uint64_t tag, size_t size, bool output )
+{
+   if ( output ) {
+      CopyDescriptor cd = CopyDescriptor( tag );
+      _cache.copyBackFromCache( cd, size );
+   }
+
+   _cache.deleteEntry( tag, size );
+}
+
+inline void NoCache::registerPrivateAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
+{
+   registerCacheAccess( dir, tag, size, input, output );
+}
+
+inline void NoCache::unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size )
+{
+   CacheEntry *ce = _cache.getEntry( tag );
+   ensure ( ce != NULL, "Private access cannot miss in the cache.");
+   unregisterCacheAccess( dir, tag, size, ce->isDirty() );
+}
+
 inline void WriteThroughPolicy::unregisterCacheAccess( Directory& dir, uint64_t tag, size_t size, bool output )
 {
    CacheEntry *ce = _cache.getEntry( tag );

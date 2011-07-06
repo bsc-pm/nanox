@@ -121,7 +121,8 @@ void GPUProcessor::init ()
 void GPUProcessor::cleanUp()
 {
    _gpuProcessorInfo->destroyTransferStreams();
-   freeWholeMemory();
+   // When cache is disabled, calling this function hangs the execution
+   if ( sys.isCacheEnabled() ) freeWholeMemory();
    printStats();
 }
 

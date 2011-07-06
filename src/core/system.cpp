@@ -52,7 +52,8 @@ System::System () :
       _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ),
-      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL ), _cachePolicy( System::DEFAULT ), _cacheMap()
+      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL ),
+      _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap()
 {
    verbose0 ( "NANOS++ initializing... start" );
    // OS::init must be called here and not in System::start() as it can be too late
@@ -210,6 +211,9 @@ void System::config ()
    cfg.registerArgOption ( "architecture", "architecture" );
    cfg.registerEnvOption ( "architecture", "NX_ARCHITECTURE" );
 
+   cfg.registerConfigOption ( "no-caches", NEW Config::FlagOption( _useCaches, false ), "Disables the use of caches" );
+   cfg.registerArgOption ( "no-caches", "disable-caches" );
+
    CachePolicyConfig *cachePolicyCfg = NEW CachePolicyConfig ( _cachePolicy );
    cachePolicyCfg->addOption("wt", System::WRITE_THROUGH );
    cachePolicyCfg->addOption("wb", System::WRITE_BACK );
@@ -235,6 +239,8 @@ PE * System::createPE ( std::string pe_type, int pid )
 
 void System::start ()
 {
+   if ( !_useCaches ) _cachePolicy = System::NONE;
+
    loadModules();
 
    // Instrumentation startup
