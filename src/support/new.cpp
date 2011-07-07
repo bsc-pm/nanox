@@ -36,6 +36,8 @@ void operator delete[] ( void *p ) { nanos::getMemTracker().deallocate( p ); }
 
 void* operator new ( size_t size ) { return nanos::getAllocator().allocate( size ); }
 void* operator new[] ( size_t size ) { return nanos::getAllocator().allocate( size ); }
+void* operator new ( size_t size, std::nothrow_t const& ) { return nanos::getAllocator().allocate( size ); }
+void* operator new[] ( size_t size, std::nothrow_t const& ) { return nanos::getAllocator().allocate( size ); }
 void operator delete ( void *p ) { nanos::getAllocator().deallocate( p ); }
 void operator delete[] ( void *p ) { nanos::getAllocator().deallocate( p ); }
 
