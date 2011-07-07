@@ -16,6 +16,31 @@
 #include <libgen.h>
 #include "os.hpp"
 
+#define NANOX_EXTRAE_CONTEXT_SWITCH false
+
+#ifndef EXTRAE_VERSION
+/* Once Extrae 2.2.0 has been published this option must be an error: see #525 */
+//#  error Extrae library version is not supported (use >= 2.2.0)
+//#  undef NANOS_INSTRUMENTATION_ENABLED
+#      undef  NANOX_EXTRAE_CONTEXT_SWITCH
+#      define NANOX_EXTRAE_CONTEXT_SWITCH true
+#      define extrae_combined_events_t struct extrae_CombinedEvents
+#      define extrae_type_t unsigned
+#      define extrae_value_t unsigned
+#      define extrae_user_communication_t struct extrae_UserCommunication
+#      define extrae_size_t int
+#      define NANOX_EXTRAE_DISCARD_SUSPEND
+#      define NANOX_EXTRAE_DISCARD_RESUME
+#else
+#  if EXTRAE_VERSION_MAJOR(EXTRAE_VERSION) == 2
+#    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 2 /* version 2.2.x */
+#      define extrae_size_t unsigned int
+#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 0 /* version 2.2.0 */
+#      endif
+#    endif
+#  endif
+#endif
+
 extern "C" {
    unsigned int nanos_ompitrace_get_max_threads ( void );
    unsigned int nanos_ompitrace_get_thread_num ( void );
@@ -34,7 +59,7 @@ class InstrumentationExtrae: public Instrumentation
 #ifndef NANOS_INSTRUMENTATION_ENABLED
    public:
       // constructor
-      InstrumentationExtrae( ): Instrumentation( ) {}
+      InstrumentationExtrae( ) : Instrumentation( *new InstrumentationContext() ) {}
       // destructor
       ~InstrumentationExtrae() {}
 
@@ -459,7 +484,7 @@ class InstrumentationExtrae: public Instrumentation
 
       void addEventList ( unsigned int count, Event *events) 
       {
-         struct extrae_CombinedEvents ce;
+         extrae_combined_events_t ce;
          InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
 
          ce.HardwareCounters = 1;
@@ -491,9 +516,9 @@ class InstrumentationExtrae: public Instrumentation
             }
          }
 
-         ce.Types = (unsigned int *) alloca (ce.nEvents * sizeof (unsigned int));
-         ce.Values = (unsigned int *) alloca (ce.nEvents * sizeof (unsigned int));
-         ce.Communications = (struct extrae_UserCommunication *) alloca (ce.nCommunications * sizeof (struct extrae_UserCommunication));
+         ce.Types = (extrae_type_t *) alloca (ce.nEvents * sizeof (extrae_type_t));
+         ce.Values = (extrae_value_t *) alloca (ce.nEvents * sizeof (extrae_type_t));
+         ce.Communications = (extrae_user_communication_t *) alloca (ce.nCommunications * sizeof ( extrae_user_communication_t));
 
          int j = 0; int k = 0;
          Event::ConstKVList kvs = NULL;
@@ -574,9 +599,9 @@ class InstrumentationExtrae: public Instrumentation
          // if showing stacked burst is false remove duplicates
          if ( !_instrumentationContext.showStackedBursts() ) {
             int rmValues = 0;
-            for ( int i = 0; i < ce.nEvents; i++ )
+            for ( extrae_size_t i = 0; i < ce.nEvents; i++ )
             {
-               for ( int jj = i+1; jj < ce.nEvents; jj++ )
+               for ( extrae_size_t jj = i+1; jj < ce.nEvents; jj++ )
                {
                   if ( ce.Types[i] == ce.Types[jj] )
                   {
@@ -586,7 +611,7 @@ class InstrumentationExtrae: public Instrumentation
                }
             }
             ce.nEvents -= rmValues;
-            for ( int jj = 0, i = 0; i < ce.nEvents; i++ )
+            for ( extrae_size_t jj = 0, i = 0; i < ce.nEvents; i++ )
             {
                while ( ce.Types[jj] == 0 ) jj++;
                ce.Types[i] = ce.Types[jj];
