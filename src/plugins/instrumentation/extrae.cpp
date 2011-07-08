@@ -16,14 +16,10 @@
 #include <libgen.h>
 #include "os.hpp"
 
-#define NANOX_EXTRAE_CONTEXT_SWITCH false
-
 #ifndef EXTRAE_VERSION
 /* Once Extrae 2.2.0 has been published this option must be an error: see #525 */
 //#  error Extrae library version is not supported (use >= 2.2.0)
 //#  undef NANOS_INSTRUMENTATION_ENABLED
-#      undef  NANOX_EXTRAE_CONTEXT_SWITCH
-#      define NANOX_EXTRAE_CONTEXT_SWITCH true
 #      define extrae_combined_events_t struct extrae_CombinedEvents
 #      define extrae_type_t unsigned
 #      define extrae_value_t unsigned
@@ -31,6 +27,7 @@
 #      define extrae_size_t int
 #      define NANOX_EXTRAE_DISCARD_SUSPEND
 #      define NANOX_EXTRAE_DISCARD_RESUME
+#      define NANOX_EXTRAE_STACKED_CONTEXT_SWITCH
 #else
 #  if EXTRAE_VERSION_MAJOR(EXTRAE_VERSION) == 2
 #    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 2 /* version 2.2.x */
@@ -67,6 +64,8 @@ class InstrumentationExtrae: public Instrumentation
       void initialize( void ) {}
       void finalize( void ) {}
       void addEventList ( unsigned int count, Event *events ) {}
+      void addResumeTask( WorkDescriptor &w ) {}
+      void addSuspendTask( WorkDescriptor &w ) {}
       void threadStart( BaseThread &thread ) {}
       void threadFinish ( BaseThread &thread ) {}
 #else
@@ -86,7 +85,11 @@ class InstrumentationExtrae: public Instrumentation
       static bool                                    _skipMerge; /*<< Skip merge phase and keeps mpits temporary files (default = no)*/
    public:
       // constructor
+#ifdef NANOX_EXTRAE_STACKED_CONTEXT_SWITCH
       InstrumentationExtrae ( ) : Instrumentation( *NEW InstrumentationContextStackedStatesAndBursts() ) {}
+#else
+      InstrumentationExtrae ( ) : Instrumentation( *NEW InstrumentationContextDisabled() ) {}
+#endif
       // destructor
       ~InstrumentationExtrae ( ) { }
 
@@ -621,6 +624,21 @@ class InstrumentationExtrae: public Instrumentation
 
          Extrae_emit_CombinedEvents ( &ce );
       }
+      void addResumeTask( WorkDescriptor &w )
+      {
+#ifndef NANOX_EXTRAE_DISCARD_RESUME
+          //Extrae_resume_virtual_thread ( w.getId() + nanos_ompitrace_get_max_threads() - 1 );
+          Extrae_resume_virtual_thread ( w.getId() );
+#endif
+      }
+
+      void addSuspendTask( WorkDescriptor &w )
+      {
+#ifndef NANOX_EXTRAE_DISCARD_SUSPEND
+         Extrae_suspend_virtual_thread ();
+#endif
+      }
+
       void threadStart( BaseThread &thread ) {}
       void threadFinish ( BaseThread &thread ) {}
 #endif

@@ -39,6 +39,10 @@ bool InstrumentationContextStackedBursts::showStackedStates ( void ) { return fa
 bool InstrumentationContextStackedStatesAndBursts::showStackedBursts ( void ) { return true; }
 bool InstrumentationContextStackedStatesAndBursts::showStackedStates ( void ) { return true; }
 
+bool InstrumentationContextDisabled::showStackedBursts ( void ) { return false; }
+bool InstrumentationContextDisabled::showStackedStates ( void ) { return false; }
+
+
 
 void InstrumentationContext::insertBurst ( InstrumentationContextData *icd, const Event &e )
 {
@@ -60,7 +64,6 @@ void InstrumentationContext::insertBurst ( InstrumentationContextData *icd, cons
    icd->_burstList.push_front ( e );
 
 }
-
 void InstrumentationContext::removeBurst ( InstrumentationContextData *icd, InstrumentationContextData::BurstIterator it )
 {
    bool found = false;
@@ -85,7 +88,6 @@ void InstrumentationContextStackedBursts::insertBurst ( InstrumentationContextDa
    /* insert the event into the list */
    icd->_burstList.push_front ( e );
 }
-
 void InstrumentationContextStackedBursts::removeBurst ( InstrumentationContextData *icd, InstrumentationContextData::BurstIterator it )
 {
    /* remove event from the list */
@@ -97,11 +99,68 @@ void InstrumentationContextStackedStatesAndBursts::insertBurst ( Instrumentation
    /* insert the event into the list */
    icd->_burstList.push_front ( e );
 }
-
 void InstrumentationContextStackedStatesAndBursts::removeBurst ( InstrumentationContextData *icd, InstrumentationContextData::BurstIterator it )
 {
    /* remove event from the list */
    icd->_burstList.erase ( it );
 }
+
+
+void InstrumentationContextDisabled::insertBurst ( InstrumentationContextData *icd, const Event &e ) { }
+void InstrumentationContextDisabled::removeBurst ( InstrumentationContextData *icd, InstrumentationContextData::BurstIterator it ) {}
+
+
+bool InstrumentationContext::isContextSwitchEnabled ( void ) const { return true; }
+bool InstrumentationContextDisabled::isContextSwitchEnabled ( void ) const { return false; }
+
+ 
+void InstrumentationContext::pushState ( InstrumentationContextData *icd, nanos_event_state_value_t state )
+{
+   if ( icd->_stateEventEnabled ) icd->_stateStack.push_back( state );
+   else icd->_subStateStack.push_back ( state );
+}
+void InstrumentationContextDisabled::pushState ( InstrumentationContextData *icd, nanos_event_state_value_t state ) {}
+
+
+void InstrumentationContext::popState ( InstrumentationContextData *icd )
+{
+   if ( (icd->_stateEventEnabled ) && !(icd->_stateStack.empty()) ) icd->_stateStack.pop_back();
+   else if ( !(icd->_subStateStack.empty()) ) icd->_subStateStack.pop_back();
+}
+void InstrumentationContextDisabled::popState ( InstrumentationContextData *icd ) {}
+
+
+nanos_event_state_value_t InstrumentationContext::topState ( InstrumentationContextData *icd )
+{
+   if ( (icd->_stateEventEnabled) && !(icd->_stateStack.empty()) ) return icd->_stateStack.back();
+   else if ( !(icd->_subStateStack.empty()) ) return icd->_subStateStack.back();
+   else return NANOS_ERROR;
+}
+nanos_event_state_value_t InstrumentationContextDisabled::topState ( InstrumentationContextData *icd ) { return NANOS_ERROR; }
+
+nanos_event_state_value_t InstrumentationContext::getState ( InstrumentationContextData *icd )
+{
+   if ( !(icd->_stateStack.empty()) ) return icd->_stateStack.back();
+   else return NANOS_ERROR;
+}
+nanos_event_state_value_t InstrumentationContextDisabled::getState ( InstrumentationContextData *icd ) { return NANOS_ERROR; }
+
+
+nanos_event_state_value_t InstrumentationContext::getSubState ( InstrumentationContextData *icd )
+{
+   if ( !(icd->_subStateStack.empty()) ) return icd->_subStateStack.back();
+   else return NANOS_ERROR;
+}
+nanos_event_state_value_t InstrumentationContextDisabled::getSubState ( InstrumentationContextData *icd ) { return NANOS_ERROR; }
+
+
+size_t InstrumentationContext::getStateStackSize ( InstrumentationContextData *icd ) { return (size_t) icd->_stateStack.size(); }
+size_t InstrumentationContextDisabled::getStateStackSize ( InstrumentationContextData *icd ) { return (size_t) 0; }
+
+size_t InstrumentationContext::getSubStateStackSize ( InstrumentationContextData *icd ) { return (size_t) icd->_subStateStack.size(); }
+size_t InstrumentationContextDisabled::getSubStateStackSize ( InstrumentationContextData *icd ) { return (size_t) 0; }
+
+size_t InstrumentationContext::getNumBursts( InstrumentationContextData *icd ) const { return icd->_burstList.size(); }
+size_t InstrumentationContextDisabled::getNumBursts( InstrumentationContextData *icd ) const { return (size_t) 0; }
 
 #endif

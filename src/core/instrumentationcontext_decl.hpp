@@ -99,6 +99,7 @@ namespace nanos {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 
    class InstrumentationContext {
+      protected:
          friend class Instrumentation;
       public:
          typedef Instrumentation::Event                  Event;                /**< Class defined in instrumentation_decl.hpp */
@@ -116,27 +117,30 @@ namespace nanos {
          /*! \brief InstrumentationContext destructor
           */
          virtual ~InstrumentationContext() {}
+         /*! \brief Is context switch enabled 
+          */
+         virtual bool isContextSwitchEnabled ( void ) const; 
          /*! \brief Adds a state value into the state stack 
           */
-         void pushState ( InstrumentationContextData *icd, nanos_event_state_value_t state ); 
+         virtual void pushState ( InstrumentationContextData *icd, nanos_event_state_value_t state ); 
          /*! \brief Removes top state from the state stack
           */
-         void popState ( InstrumentationContextData *icd ); 
+         virtual void popState ( InstrumentationContextData *icd ); 
          /*! \brief Gets current state/substate from top of stack (acording with current behaviour)
           */
-         nanos_event_state_value_t topState ( InstrumentationContextData *icd );
+         virtual nanos_event_state_value_t topState ( InstrumentationContextData *icd );
          /*! \brief Gets current state from top of stack
           */
-         nanos_event_state_value_t getState ( InstrumentationContextData *icd );
+         virtual nanos_event_state_value_t getState ( InstrumentationContextData *icd );
          /*! \brief Gets current substate from top of stack
           */
-         nanos_event_state_value_t getSubState ( InstrumentationContextData *icd );
+         virtual nanos_event_state_value_t getSubState ( InstrumentationContextData *icd );
          /*! \brief Gets stack of state's size
           */
-         size_t getStateStackSize ( InstrumentationContextData *icd );
+         virtual size_t getStateStackSize ( InstrumentationContextData *icd );
          /*! \brief Gets stack of substate's size 
           */
-         size_t getSubStateStackSize ( InstrumentationContextData *icd );
+         virtual size_t getSubStateStackSize ( InstrumentationContextData *icd );
 
          /*! \brief Inserts a Burst into the burst list
           *
@@ -156,7 +160,7 @@ namespace nanos {
          bool findBurstByKey ( InstrumentationContextData *icd, nanos_event_key_t key, InstrumentationContextData::BurstIterator &ret );
          /*! \brief Get the number of bursts in the main list
           */
-         size_t getNumBursts( InstrumentationContextData *icd ) const ; 
+         virtual size_t getNumBursts( InstrumentationContextData *icd ) const ; 
          /*! \brief Gets the starting element in the burst list
           */
          InstrumentationContextData::ConstBurstIterator beginBurst( InstrumentationContextData *icd ) const ; 
@@ -201,7 +205,7 @@ namespace nanos {
          void disableStateEvents ( InstrumentationContextData *icd ) ;
          /*! \brief Get state events status
           */
-         bool isStateEventEnabled ( InstrumentationContextData *icd ) ;
+         virtual bool isStateEventEnabled ( InstrumentationContextData *icd ) ;
          /*!
           */
          virtual bool showStackedBursts( void );
@@ -245,6 +249,32 @@ namespace nanos {
          InstrumentationContextStackedStatesAndBursts () : InstrumentationContext() {}
          ~InstrumentationContextStackedStatesAndBursts () {}
     
+         bool showStackedBursts( void );
+         bool showStackedStates( void );
+
+         void insertBurst ( InstrumentationContextData *icd, const Event &e );
+         void removeBurst ( InstrumentationContextData *icd, InstrumentationContextData::BurstIterator it ); 
+   };
+
+   class InstrumentationContextDisabled : public InstrumentationContext {
+      private:
+         InstrumentationContextDisabled ( const InstrumentationContextDisabled &icssb );
+         InstrumentationContextDisabled& operator= ( const InstrumentationContextDisabled &icssb );
+      public:
+         InstrumentationContextDisabled () : InstrumentationContext() {}
+         ~InstrumentationContextDisabled () {}
+    
+         bool isContextSwitchEnabled ( void ) const; 
+
+         void pushState ( InstrumentationContextData *icd, nanos_event_state_value_t state ); 
+         void popState ( InstrumentationContextData *icd ); 
+         nanos_event_state_value_t topState ( InstrumentationContextData *icd );
+         nanos_event_state_value_t getState ( InstrumentationContextData *icd );
+         nanos_event_state_value_t getSubState ( InstrumentationContextData *icd );
+         size_t getStateStackSize ( InstrumentationContextData *icd );
+         size_t getSubStateStackSize ( InstrumentationContextData *icd );
+         size_t getNumBursts( InstrumentationContextData *icd ) const ; 
+
          bool showStackedBursts( void );
          bool showStackedStates( void );
 

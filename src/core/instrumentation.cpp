@@ -31,10 +31,10 @@ using namespace nanos;
 /* ************************************************************************** */
 /* ***                   C R E A T I N G   E V E N T S                    *** */
 /* ************************************************************************** */
-void Instrumentation::createStateEvent( Event *e, nanos_event_state_value_t state )
+void Instrumentation::createStateEvent( Event *e, nanos_event_state_value_t state, InstrumentationContextData *icd )
 {
    /* Registering a state event in instrucmentor context */
-   InstrumentationContextData *icd = myThread->getCurrentWD()->getInstrumentationContextData();
+   if ( icd == NULL ) icd = myThread->getCurrentWD()->getInstrumentationContextData();
    _instrumentationContext.pushState(icd, state);
 
    /* Creating a state event */
@@ -42,10 +42,10 @@ void Instrumentation::createStateEvent( Event *e, nanos_event_state_value_t stat
    else new (e) State(NANOS_SUBSTATE_START, state);
 }
 
-void Instrumentation::returnPreviousStateEvent ( Event *e )
+void Instrumentation::returnPreviousStateEvent ( Event *e, InstrumentationContextData *icd  )
 {
    /* Recovering a state event in instrumentation context */
-   InstrumentationContextData  *icd = myThread->getCurrentWD()->getInstrumentationContextData();
+   if ( icd == NULL ) icd = myThread->getCurrentWD()->getInstrumentationContextData();
 
    /* Getting top of state stack: before pop (for stacked states backends) */
    nanos_event_state_value_t state = _instrumentationContext.topState( icd ); 
@@ -92,7 +92,10 @@ void Instrumentation::closeBurstEvent ( Event *e, nanos_event_key_t key, Instrum
       e->reverseType();
       _instrumentationContext.removeBurst( icd, it ); 
    }
-   else fatal("Burst type doesn't exists");
+   else {
+      Event::KV *kv = NEW Event::KV( key, (nanos_event_value_t) 0 );
+      new (e) Burst( false, kv );
+   }
 
    /* If not needed to show stacked bursts then close current event by openning next one (if any)  */
    if ( ( !_instrumentationContext.showStackedBursts()) && (_instrumentationContext.findBurstByKey( icd, key, it )) ) {
@@ -339,19 +342,25 @@ void Instrumentation::raiseCloseStateAndBurst ( nanos_event_key_t key )
 
 void Instrumentation::wdCreate( WorkDescriptor* newWD )
 {
-   Event e; /* Event */
+   Event e1,e2; /* Event */
 
    /* Gets key for wd-id bursts and wd->id as value*/
+   InstrumentationContextData *icd = newWD->getInstrumentationContextData();
+
+   /* Create event: BURST */
    static nanos_event_key_t key = getInstrumentationDictionary()->getEventKey("wd-id");
    nanos_event_value_t wd_id = newWD->getId();
+   createBurstEvent( &e2, key, wd_id, icd );
    
-   /* Update InstrumentationContextData */
-   InstrumentationContextData *icd = newWD->getInstrumentationContextData();
-   _instrumentationContext.pushState( icd, NANOS_RUNTIME );
+   /* Create event: STATE */
+   createStateEvent( &e1, NANOS_RUNTIME, icd );
    
-   /* Create event: BURST */
-   createBurstEvent( &e, key, wd_id, icd );
 
+   /* insert burst as deferred event if oontext switch is not enabled */
+   if ( !_instrumentationContext.isContextSwitchEnabled() ) {
+       _instrumentationContext.insertDeferredEvent( icd, e1 );
+       _instrumentationContext.insertDeferredEvent( icd, e2 );
+   }
 }
 
 void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bool last )
@@ -404,8 +413,9 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
    }
 
    /* Allocating Events */
-   unsigned int numEvents = oldPtP + oldStates + oldSubStates + oldBursts
-                          + newPtP + newStates + newSubStates + newBursts + newDeferred;
+   unsigned int numOldEvents = oldPtP + oldStates + oldSubStates + oldBursts;
+   unsigned int numNewEvents =  newPtP + newStates + newSubStates + newBursts + newDeferred;
+   unsigned int numEvents = numOldEvents + numNewEvents;
 
    Event *e = (Event *) alloca(sizeof(Event) * numEvents );
 
@@ -502,7 +512,13 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
    ensure0( i == numEvents , "Computed number of events doesn't fit with number of real events");
 
    /* Spawning 'numEvents' events: specific instrumentation call */
-   addEventList ( numEvents, e );
+   if ( _instrumentationContext.isContextSwitchEnabled() ) addEventList ( numEvents, e );
+   else {
+      addEventList (numOldEvents, &e[0]);
+      if ( oldWD != NULL) addSuspendTask( *oldWD );
+      addEventList (numNewEvents, &e[numOldEvents]);
+      if ( newWD != NULL) addResumeTask( *newWD );
+   }
 
    /* Calling array event's destructor: cleaning events */
    for ( i = 0; i <numEvents; i++ ) e[i].~Event();
