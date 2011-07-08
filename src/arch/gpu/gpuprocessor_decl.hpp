@@ -44,8 +44,14 @@ namespace ext
          class GPUProcessorStats
          {
             public:
-               unsigned int   _bytesIn;
-               unsigned int   _bytesOut;
+               Atomic<unsigned int>    _bytesIn;
+               Atomic<unsigned int>    _bytesOut;
+
+               GPUProcessorStats()
+               {
+                  _bytesIn = 0;
+                  _bytesOut = 0;
+               }
          };
 
          class GPUProcessorTransfers
@@ -171,8 +177,8 @@ namespace ext
          void printStats ()
          {
             message("GPU " << _gpuDevice << " TRANSFER STATISTICS");
-            message("Total input transfers: " << _gpuProcessorStats._bytesIn << " bytes");
-            message("Total output transfers: " << _gpuProcessorStats._bytesOut << " bytes");
+            message("Total input transfers: " << _gpuProcessorStats._bytesIn.value() << " bytes");
+            message("Total output transfers: " << _gpuProcessorStats._bytesOut.value() << " bytes");
          }
    };
 

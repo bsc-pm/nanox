@@ -33,7 +33,8 @@ size_t GPUProcessor::_memoryAlignment = 256;
 
 
 GPUProcessor::GPUProcessor( int id, int gpuId ) : CachedAccelerator<GPUDevice>( id, &GPU ),
-      _gpuDevice( _deviceSeed++ ), _gpuProcessorTransfers(), _allocator(), _inputPinnedMemoryBuffer()
+      _gpuDevice( _deviceSeed++ ), _gpuProcessorStats(), _gpuProcessorTransfers(), _allocator(),
+      _inputPinnedMemoryBuffer()
 {
    _gpuProcessorInfo = NEW GPUProcessorInfo( gpuId );
 }
