@@ -31,6 +31,7 @@ namespace nanos {
          friend class InstrumentationContextStackedStates;
          friend class InstrumentationContextStackedBursts;
          friend class InstrumentationContextStackedStatesAndBursts;
+         friend class InstrumentationContextDisabled;
       public:
          typedef Instrumentation::Event                  Event;                /**< Class defined in instrumentation_decl.hpp */
          typedef Instrumentation::Burst                  Burst;                /**< Class defined in instrumentation_decl.hpp */
@@ -163,6 +164,11 @@ namespace nanos {
          virtual size_t getNumBursts( InstrumentationContextData *icd ) const ; 
          /*! \brief Gets the starting element in the burst list
           */
+         virtual size_t getNumStates( InstrumentationContextData *icd ) const ;
+         /*! \brief Gets the starting element in the burst list
+          */
+         virtual size_t getNumSubStates( InstrumentationContextData *icd ) const ;
+
          InstrumentationContextData::ConstBurstIterator beginBurst( InstrumentationContextData *icd ) const ; 
          /*! \brief Gets the last element in the burst list
           */
@@ -187,10 +193,10 @@ namespace nanos {
 
          /*! \brief Gets the starting element in the state stack
           */
-         InstrumentationContextData::ConstStateIterator beginState( InstrumentationContextData *icd ) const ; 
+         virtual InstrumentationContextData::ConstStateIterator beginState( InstrumentationContextData *icd ) const ; 
          /*! \brief Gets the last element in the state stack
           */
-         InstrumentationContextData::ConstStateIterator endState( InstrumentationContextData *icd ) const ; 
+         virtual InstrumentationContextData::ConstStateIterator endState( InstrumentationContextData *icd ) const ; 
          /*! \brief Gets the starting element in the sub-state stack
           */
          InstrumentationContextData::ConstStateIterator beginSubState( InstrumentationContextData *icd ) const ; 
@@ -224,6 +230,12 @@ namespace nanos {
     
          bool showStackedBursts( void );
          bool showStackedStates( void );
+
+         size_t getNumStates( InstrumentationContextData *icd ) const ;
+         size_t getNumSubStates( InstrumentationContextData *icd ) const ;
+
+         InstrumentationContextData::ConstStateIterator beginState( InstrumentationContextData *icd ) const ; 
+         InstrumentationContextData::ConstStateIterator beginSubState( InstrumentationContextData *icd ) const ; 
    };
 
    class InstrumentationContextStackedBursts : public InstrumentationContext {
@@ -239,6 +251,7 @@ namespace nanos {
 
          void insertBurst ( InstrumentationContextData *icd, const Event &e );
          void removeBurst ( InstrumentationContextData *icd, InstrumentationContextData::BurstIterator it ); 
+
    };
 
    class InstrumentationContextStackedStatesAndBursts : public InstrumentationContext {
@@ -254,6 +267,12 @@ namespace nanos {
 
          void insertBurst ( InstrumentationContextData *icd, const Event &e );
          void removeBurst ( InstrumentationContextData *icd, InstrumentationContextData::BurstIterator it ); 
+
+         size_t getNumStates( InstrumentationContextData *icd ) const ;
+         size_t getNumSubStates( InstrumentationContextData *icd ) const ;
+
+         InstrumentationContextData::ConstStateIterator beginState( InstrumentationContextData *icd ) const ; 
+         InstrumentationContextData::ConstStateIterator beginSubState( InstrumentationContextData *icd ) const ; 
    };
 
    class InstrumentationContextDisabled : public InstrumentationContext {
@@ -280,6 +299,12 @@ namespace nanos {
 
          void insertBurst ( InstrumentationContextData *icd, const Event &e );
          void removeBurst ( InstrumentationContextData *icd, InstrumentationContextData::BurstIterator it ); 
+
+         size_t getNumStates( InstrumentationContextData *icd ) const ;
+         size_t getNumSubStates( InstrumentationContextData *icd ) const ;
+
+         InstrumentationContextData::ConstStateIterator beginState( InstrumentationContextData *icd ) const ; 
+         InstrumentationContextData::ConstStateIterator beginSubState( InstrumentationContextData *icd ) const ; 
    };
 
 #endif

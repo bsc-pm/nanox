@@ -32,6 +32,7 @@
 #  if EXTRAE_VERSION_MAJOR(EXTRAE_VERSION) == 2
 #    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 2 /* version 2.2.x */
 #      define extrae_size_t unsigned int
+#      define NANOX_EXTRAE_DISCARD_THREAD_NAME
 #      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 0 /* version 2.2.0 */
 #      endif
 #    endif
@@ -170,7 +171,7 @@ class InstrumentationExtrae: public Instrumentation
             p_file << "9    " << _eventState  << "    Thread state: " << std::endl;
             p_file << "VALUES" << std::endl;
             p_file << NANOS_NOT_CREATED      << "     NOT CREATED" << std::endl;
-            p_file << NANOS_NOT_TRACED       << "     NOT TRACED" << std::endl;
+            p_file << NANOS_NOT_RUNNING      << "     NOT RUNNING" << std::endl;
             p_file << NANOS_STARTUP          << "     STARTUP" << std::endl;
             p_file << NANOS_SHUTDOWN         << "     SHUTDOWN" << std::endl;
             p_file << NANOS_ERROR            << "     ERROR" << std::endl;
@@ -204,8 +205,8 @@ class InstrumentationExtrae: public Instrumentation
             p_file << "EVENT_TYPE" << std::endl;
             p_file << "9    " << _eventSubState  << "    Thread sub-state: " << std::endl;
             p_file << "VALUES" << std::endl;
-            p_file << NANOS_NOT_CREATED      << "     NOT_CREATED" << std::endl;
-            p_file << NANOS_NOT_TRACED       << "     NOT TRACED" << std::endl;
+            p_file << NANOS_NOT_CREATED      << "     NOT CREATED" << std::endl;
+            p_file << NANOS_NOT_RUNNING      << "     NOT RUNNING" << std::endl;
             p_file << NANOS_STARTUP          << "     STARTUP" << std::endl;
             p_file << NANOS_SHUTDOWN         << "     SHUTDOWN" << std::endl;
             p_file << NANOS_ERROR            << "     ERROR" << std::endl;
@@ -261,6 +262,7 @@ class InstrumentationExtrae: public Instrumentation
 
       void modifyParaverRowFile()
       {
+#ifndef NANOX_EXTRAE_DISCARD_THREAD_NAME
          unsigned int num_threads = sys.getNumWorkers();
          // Writing paraver config 
          std::fstream p_file;
@@ -279,6 +281,7 @@ class InstrumentationExtrae: public Instrumentation
             p_file.close();
          }
          else message0("Unable to open paraver config file");  
+#endif
       }
 
       void removeTemporaryFiles()
@@ -632,9 +635,24 @@ class InstrumentationExtrae: public Instrumentation
 #endif
       }
 
-      void addSuspendTask( WorkDescriptor &w )
+      void addSuspendTask( WorkDescriptor &w, bool last )
       {
 #ifndef NANOX_EXTRAE_DISCARD_SUSPEND
+
+         extrae_combined_events_t ce;
+         extrae_type_t types[1] = { _eventState };
+         extrae_value_t values[1] = { NANOS_NOT_RUNNING }; 
+
+         ce.HardwareCounters = 1;
+         ce.Callers = 0;
+         ce.UserFunction = 0;
+         ce.nEvents = 1;
+         ce.nCommunications = 0;
+         ce.Types = types;
+         ce.Values = values;
+
+         Extrae_emit_CombinedEvents ( &ce );
+
          Extrae_suspend_virtual_thread ();
 #endif
       }

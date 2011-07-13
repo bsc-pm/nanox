@@ -18,7 +18,7 @@ class InstrumentationPrintTrace: public Instrumentation
       void initialize( void ) {}
       void finalize( void ) {}
       void addResumeTask( WorkDescriptor &w ) {}
-      void addSuspendTask( WorkDescriptor &w ) {}
+      void addSuspendTask( WorkDescriptor &w, bool last ) {}
       void addEventList ( unsigned int count, Event *events ) {}
       void threadStart( BaseThread &thread ) {}
       void threadFinish ( BaseThread &thread ) {}
@@ -33,7 +33,7 @@ class InstrumentationPrintTrace: public Instrumentation
       void initialize( void ) {}
       void finalize( void ) {}
       void addResumeTask( WorkDescriptor &w ) {}
-      void addSuspendTask( WorkDescriptor &w ) {}
+      void addSuspendTask( WorkDescriptor &w, bool last ) {}
       void addEventList ( unsigned int count, Event *events ) {}
       void threadStart( BaseThread &thread ) {}
       void threadFinish ( BaseThread &thread ) {}

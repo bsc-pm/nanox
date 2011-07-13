@@ -602,7 +602,7 @@ namespace nanos {
 
          virtual void addResumeTask( WorkDescriptor &w ) = 0 ;
 
-         virtual void addSuspendTask( WorkDescriptor &w ) = 0 ;
+         virtual void addSuspendTask( WorkDescriptor &w, bool last = false ) = 0 ;
          
          /*! \brief Pure virtual functions executed each time runtime wants to add an event
           *

@@ -80,40 +80,9 @@ inline InstrumentationContextData::EventIterator InstrumentationContext::endDefe
    return icd->_deferredEvents.end();
 }
 
-inline InstrumentationContextData::ConstStateIterator InstrumentationContext::beginState( InstrumentationContextData *icd ) const
-{
-   return icd->_stateStack.begin();
-}
-
-inline InstrumentationContextData::ConstStateIterator InstrumentationContext::endState( InstrumentationContextData *icd ) const
-{
-   return icd->_stateStack.end();
-}
-
-inline InstrumentationContextData::ConstStateIterator InstrumentationContext::beginSubState( InstrumentationContextData *icd ) const
-{
-   return icd->_subStateStack.begin();
-}
-
-inline InstrumentationContextData::ConstStateIterator InstrumentationContext::endSubState( InstrumentationContextData *icd ) const
-{
-   return icd->_subStateStack.end();
-}
-
-inline void InstrumentationContext::disableStateEvents ( InstrumentationContextData *icd )
-{
-   icd->_stateEventEnabled = false;
-}
-
-inline void InstrumentationContext::enableStateEvents ( InstrumentationContextData *icd )
-{
-   icd->_stateEventEnabled = true;
-}
-
-inline bool InstrumentationContext::isStateEventEnabled ( InstrumentationContextData *icd )
-{
-   return icd->_stateEventEnabled;
-}
+inline void InstrumentationContext::disableStateEvents ( InstrumentationContextData *icd ) { icd->_stateEventEnabled = false; }
+inline void InstrumentationContext::enableStateEvents ( InstrumentationContextData *icd ) { icd->_stateEventEnabled = true; }
+inline bool InstrumentationContext::isStateEventEnabled ( InstrumentationContextData *icd ) { return icd->_stateEventEnabled; }
 
 #endif
 
