@@ -242,8 +242,7 @@ bool GPUDevice::copyDevToDev( void * addrDst, void * addrSrc, std::size_t size, 
    nanos::ext::GPUProcessor * gpuDst = ( nanos::ext::GPUProcessor * ) peDst;
    nanos::ext::GPUProcessor * gpuSrc = ( nanos::ext::GPUProcessor * ) peSrc;
 
-   gpuDst->transferInput( size );
-   gpuSrc->transferOutput( size );
+   gpuSrc->transferDevice( size );
 
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MEMCOPY_TO_DEVICE_EVENT );
    cudaError_t err = cudaMemcpyPeer( addrDst, gpuDst->getDeviceId(), addrSrc, gpuSrc->getDeviceId(), size );

@@ -46,11 +46,13 @@ namespace ext
             public:
                Atomic<unsigned int>    _bytesIn;
                Atomic<unsigned int>    _bytesOut;
+               Atomic<unsigned int>    _bytesDevice;
 
                GPUProcessorStats()
                {
                   _bytesIn = 0;
                   _bytesOut = 0;
+                  _bytesDevice = 0;
                }
          };
 
@@ -164,6 +166,11 @@ namespace ext
             _gpuProcessorStats._bytesOut += ( unsigned int ) size;
          }
 
+         void transferDevice ( size_t size )
+         {
+            _gpuProcessorStats._bytesDevice += ( unsigned int ) size;
+         }
+
          GPUMemoryTransferList * getInTransferList ()
          {
             return _gpuProcessorTransfers._pendingCopiesIn;
@@ -179,6 +186,7 @@ namespace ext
             message("GPU " << _gpuDevice << " TRANSFER STATISTICS");
             message("Total input transfers: " << _gpuProcessorStats._bytesIn.value() << " bytes");
             message("Total output transfers: " << _gpuProcessorStats._bytesOut.value() << " bytes");
+            message("Total device transfers: " << _gpuProcessorStats._bytesDevice.value() << " bytes");
          }
    };
 
