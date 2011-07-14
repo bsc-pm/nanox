@@ -429,7 +429,7 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
    unsigned int numNewEvents =  newPtP + newStates + newSubStates + newBursts + newDeferred;
    unsigned int numEvents = numOldEvents + numNewEvents;
 
-   Event *e = (Event *) alloca(sizeof(Event) * numEvents );
+   Event *e = (Event *) alloca(sizeof(Event) * (numEvents + 1) );
 
    /* Creating leaving wd events */
    if ( old_icd!= NULL ) {
@@ -555,7 +555,11 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
    if ( _instrumentationContext.isContextSwitchEnabled() ) addEventList ( numEvents, e );
    else {
       if ( oldWD != NULL) {
-         addEventList (numOldEvents, &e[0]);
+         createStateEvent( &e[numEvents], NANOS_NOT_RUNNING, old_icd ); //NEW
+         addEventList ( numOldEvents, &e[0] );
+         addEventList ( 1, &e[numEvents] ); //NEW
+         returnPreviousStateEvent( &e[numEvents], old_icd ); //NEW
+         _instrumentationContext.insertDeferredEvent( old_icd, e[numEvents]  ); //NEW
          addSuspendTask( *oldWD, last );
       }
       if ( newWD != NULL) {
@@ -565,7 +569,7 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
    }
 
    /* Calling array event's destructor: cleaning events */
-   for ( i = 0; i <numEvents; i++ ) e[i].~Event();
+   for ( i = 0; i < numEvents; i++ ) e[i].~Event();
 }
 
 void Instrumentation::enableStateEvents()

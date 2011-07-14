@@ -638,7 +638,7 @@ class InstrumentationExtrae: public Instrumentation
       void addSuspendTask( WorkDescriptor &w, bool last )
       {
 #ifndef NANOX_EXTRAE_DISCARD_SUSPEND
-
+#if 0
          extrae_combined_events_t ce;
          extrae_type_t types[1] = { _eventState };
          extrae_value_t values[1] = { NANOS_NOT_RUNNING }; 
@@ -652,6 +652,7 @@ class InstrumentationExtrae: public Instrumentation
          ce.Values = values;
 
          Extrae_emit_CombinedEvents ( &ce );
+#endif
 
          Extrae_suspend_virtual_thread ();
 #endif
