@@ -46,9 +46,9 @@ System nanos::sys;
 
 // default system values go here
 System::System () :
-      _numPEs( 1 ), _deviceStackSize( 0 ), _bindThreads( true ), _profile( false ), _instrument( false ),
-      _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ), _thsPerPE( 1 ), _untieMaster( true ),
-      _delayedStart( false ), _useYield( true ), _synchronizedStart( true ), _throttlePolicy ( NULL ),
+      _numPEs( 1 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
+      _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ), _thsPerPE( 1 ),
+      _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ), _throttlePolicy ( NULL ),
       _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ),
@@ -169,6 +169,14 @@ void System::config ()
    cfg.registerConfigOption ( "stack-size", NEW Config::PositiveVar( _deviceStackSize ), "Defines the default stack size for all devices" );
    cfg.registerArgOption ( "stack-size", "stack-size" );
    cfg.registerEnvOption ( "stack-size", "NX_STACK_SIZE" );
+
+   cfg.registerConfigOption ( "binding-start", NEW Config::PositiveVar ( _bindingStart ), "Set initial cpu id for binding (binding requiered)" );
+   cfg.registerArgOption ( "binding-start", "binding-start" );
+   cfg.registerEnvOption ( "binding-start", "NX_BINDING_START" );
+
+   cfg.registerConfigOption ( "binding-stride", NEW Config::PositiveVar ( _bindingStride ), "Set binding stride (binding requiered)" );
+   cfg.registerArgOption ( "binding-stride", "binding-stride" );
+   cfg.registerEnvOption ( "binding-stride", "NX_BINDING_STRIDE" );
 
    cfg.registerConfigOption ( "no-binding", NEW Config::FlagOption( _bindThreads, false ), "Disables thread binding" );
    cfg.registerArgOption ( "no-binding", "disable-binding" );

@@ -42,6 +42,14 @@ inline void System::setDeviceStackSize ( int stackSize ) { _deviceStackSize = st
 
 inline int System::getDeviceStackSize () const {return _deviceStackSize; }
 
+inline void System::setBindingStart ( int value ) { _bindingStart = value; }
+
+inline int System::getBindingStart () const { return _bindingStart; }
+
+inline void System::setBindingStride ( int value ) { _bindingStride = value;  }
+
+inline int System::getBindingStride () const { return _bindingStride; }
+
 inline void System::setBinding ( bool set ) { _bindThreads = set; }
 
 inline bool System::getBinding () const { return _bindThreads; }
