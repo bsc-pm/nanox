@@ -46,9 +46,9 @@ System nanos::sys;
 
 // default system values go here
 System::System () :
-      _numPEs( 1 ), _deviceStackSize( 0 ), _bindThreads( true ), _profile( false ), _instrument( false ),
-      _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ), _thsPerPE( 1 ), _untieMaster( true ),
-      _delayedStart( false ), _useYield( true ), _synchronizedStart( true ), _throttlePolicy ( NULL ),
+      _numPEs( 1 ), _deviceStackSize( 0 ), _cpuSetStart (0), _cpuSetStride(1),  _bindThreads( true ), _profile( false ),
+      _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ), _thsPerPE( 1 ),
+      _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ), _throttlePolicy ( NULL ),
       _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ),
@@ -170,6 +170,14 @@ void System::config ()
    cfg.registerConfigOption ( "stack-size", NEW Config::PositiveVar( _deviceStackSize ), "Defines the default stack size for all devices" );
    cfg.registerArgOption ( "stack-size", "stack-size" );
    cfg.registerEnvOption ( "stack-size", "NX_STACK_SIZE" );
+
+   cfg.registerConfigOption ( "cpuset-start", NEW Config::PositiveVar ( _cpuSetStart ), "Set initial cpu id for cpuset (binding requiered)" );
+   cfg.registerArgOption ( "cpuset-start", "cpuset-start" );
+   cfg.registerEnvOption ( "cpuset-start", "NX_CPUSET_START" );
+
+   cfg.registerConfigOption ( "cpuset-stride", NEW Config::PositiveVar ( _cpuSetStride ), "Set cpuset stride (binding requiered)" );
+   cfg.registerArgOption ( "cpuset-stride", "cpuset-stride" );
+   cfg.registerEnvOption ( "cpuset-stride", "NX_CPUSET_STRIDE" );
 
    cfg.registerConfigOption ( "no-binding", NEW Config::FlagOption( _bindThreads, false ), "Disables thread binding" );
    cfg.registerArgOption ( "no-binding", "disable-binding" );

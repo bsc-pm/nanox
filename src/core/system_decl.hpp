@@ -61,6 +61,8 @@ namespace nanos
          // configuration variables
          int                  _numPEs;
          int                  _deviceStackSize;
+         int                  _cpuSetStart;
+         int                  _cpuSetStride;
          bool                 _bindThreads;
          bool                 _profile;
          bool                 _instrument;
@@ -169,6 +171,14 @@ namespace nanos
          void setDeviceStackSize ( int stackSize );
 
          int getDeviceStackSize () const;
+
+         void setCpuSetStart ( int value );
+
+         int getCpuSetStart () const;
+
+         void setCpuSetStride ( int value );
+
+         int getCpuSetStride () const;
 
          void setBinding ( bool set );
 
