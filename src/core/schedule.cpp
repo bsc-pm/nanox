@@ -443,11 +443,11 @@ void Scheduler::switchToThread ( BaseThread *thread )
 void Scheduler::exitHelper (WD *oldWD, WD *newWD, void *arg)
 {
     myThread->exitHelperDependent(oldWD, newWD, arg);
-   /* Instrumenting context switch: oldwd leaves cpu and will not come back (last = true) and newWD enters */
-    NANOS_INSTRUMENT ( sys.getInstrumentation()->wdSwitch(oldWD,newWD,true) );
+    NANOS_INSTRUMENT ( sys.getInstrumentation()->wdSwitch(oldWD,NULL,true) );
     oldWD->~WorkDescriptor();
     delete[] (char *)oldWD;
     myThread->setCurrentWD( *newWD );
+    NANOS_INSTRUMENT ( sys.getInstrumentation()->wdSwitch(NULL,newWD,false) );
 }
 
 struct ExitBehaviour

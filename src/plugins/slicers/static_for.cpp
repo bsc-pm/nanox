@@ -189,6 +189,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) _chunk; )
          NANOS_INSTRUMENT( sys.getInstrumentation()->createDeferredPointEvent (*slice, 4, Keys, Values); )
          slice->tieTo( (*team)[j] );
+         sys.setupWD ( *slice, work.getParent() ); //FIXME: Probably will cause a conflict on merge
          if ( (*team)[j].setNextWD(slice) == false ) Scheduler::submit ( *slice );
       }
    } else {
