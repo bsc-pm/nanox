@@ -42,13 +42,13 @@ inline void System::setDeviceStackSize ( int stackSize ) { _deviceStackSize = st
 
 inline int System::getDeviceStackSize () const {return _deviceStackSize; }
 
-inline void System::setCpuSetStart ( int value ) { _cpuSetStart = value; }
+inline void System::setBindingStart ( int value ) { _bindingStart = value; }
 
-inline int System::getCpuSetStart () const { return _cpuSetStart; }
+inline int System::getBindingStart () const { return _bindingStart; }
 
-inline void System::setCpuSetStride ( int value ) { _cpuSetStride = value;  }
+inline void System::setBindingStride ( int value ) { _bindingStride = value;  }
 
-inline int System::getCpuSetStride () const { return _cpuSetStride; }
+inline int System::getBindingStride () const { return _bindingStride; }
 
 inline void System::setBinding ( bool set ) { _bindThreads = set; }
 

@@ -46,7 +46,7 @@ System nanos::sys;
 
 // default system values go here
 System::System () :
-      _numPEs( 1 ), _deviceStackSize( 0 ), _cpuSetStart (0), _cpuSetStride(1),  _bindThreads( true ), _profile( false ),
+      _numPEs( 1 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ), _thsPerPE( 1 ),
       _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ), _throttlePolicy ( NULL ),
       _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
@@ -171,13 +171,13 @@ void System::config ()
    cfg.registerArgOption ( "stack-size", "stack-size" );
    cfg.registerEnvOption ( "stack-size", "NX_STACK_SIZE" );
 
-   cfg.registerConfigOption ( "cpuset-start", NEW Config::PositiveVar ( _cpuSetStart ), "Set initial cpu id for cpuset (binding requiered)" );
-   cfg.registerArgOption ( "cpuset-start", "cpuset-start" );
-   cfg.registerEnvOption ( "cpuset-start", "NX_CPUSET_START" );
+   cfg.registerConfigOption ( "binding-start", NEW Config::PositiveVar ( _bindingStart ), "Set initial cpu id for binding (binding requiered)" );
+   cfg.registerArgOption ( "binding-start", "binding-start" );
+   cfg.registerEnvOption ( "binding-start", "NX_BINDING_START" );
 
-   cfg.registerConfigOption ( "cpuset-stride", NEW Config::PositiveVar ( _cpuSetStride ), "Set cpuset stride (binding requiered)" );
-   cfg.registerArgOption ( "cpuset-stride", "cpuset-stride" );
-   cfg.registerEnvOption ( "cpuset-stride", "NX_CPUSET_STRIDE" );
+   cfg.registerConfigOption ( "binding-stride", NEW Config::PositiveVar ( _bindingStride ), "Set binding stride (binding requiered)" );
+   cfg.registerArgOption ( "binding-stride", "binding-stride" );
+   cfg.registerEnvOption ( "binding-stride", "NX_BINDING_STRIDE" );
 
    cfg.registerConfigOption ( "no-binding", NEW Config::FlagOption( _bindThreads, false ), "Disables thread binding" );
    cfg.registerArgOption ( "no-binding", "disable-binding" );
