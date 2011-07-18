@@ -31,9 +31,17 @@ void SchedulerConf::config (Config &cfg)
 {
    cfg.setOptionsSection ( "Core [Scheduler]", "Policy independent scheduler options"  );
 
-   cfg.registerConfigOption ( "num_spins", NEW Config::UintVar( _numSpins ), "Determines the amount of spinning before yielding" );
+   cfg.registerConfigOption ( "num_spins", NEW Config::UintVar( _numSpins ), "Determines the amount of spinning before sleeping" );
    cfg.registerArgOption ( "num_spins", "spins" );
    cfg.registerEnvOption ( "num_spins", "NX_SPINS" );
+
+   cfg.registerConfigOption ( "num_sleeps", NEW Config::UintVar( _numSleeps ), "Determines the amount of sleeping before yielding" );
+   cfg.registerArgOption ( "num_sleeps", "sleeps" );
+   cfg.registerEnvOption ( "num_sleeps", "NX_SLEEPS" );
+
+   cfg.registerConfigOption ( "sleep_time", NEW Config::UintVar( _timeSleep ), "Determines amount of time in each sleeping phase (in nsec)" );
+   cfg.registerArgOption ( "sleep_time", "sleep-time" );
+   cfg.registerEnvOption ( "sleep_time", "NX_SLEEP_TIME" );
 }
 
 void Scheduler::submit ( WD &wd )
@@ -116,7 +124,10 @@ inline void Scheduler::idleLoop ()
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_IDLE) );
 
    const int nspins = sys.getSchedulerConf().getNumSpins();
+   const int nsleeps = sys.getSchedulerConf().getNumSleeps();
+   const int tsleep = sys.getSchedulerConf().getTimeSleep();
    int spins = nspins;
+   int sleeps = nsleeps;
    unsigned long total_spins = 0;  /* Number of spins by idle phase*/
    unsigned long total_yields = 0; /* Number of yields by idle phase */
    unsigned long time_yields = 0;  /* Time of yields by idle phase */
@@ -165,12 +176,19 @@ inline void Scheduler::idleLoop ()
 
       if ( spins == 0 ) {
         total_spins+= nspins;
-        if ( sys.useYield() ) {
-           total_yields++;
-           unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
-           thread->yield();
-           unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
-           time_yields += ( end_yield - begin_yield );
+        sleeps--;
+        if ( sleeps < 0 ) {
+           if ( sys.useYield() ) {
+              total_yields++;
+              unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+              thread->yield();
+              unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+              time_yields += ( end_yield - begin_yield );
+           }
+           sleeps = nsleeps;
+        } else {
+           struct timespec req ={0,tsleep};
+           nanosleep ( &req, NULL );
         }
         spins = nspins;
       }
@@ -196,7 +214,10 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
 
    const int nspins = sys.getSchedulerConf().getNumSpins();
+   const int nsleeps = sys.getSchedulerConf().getNumSleeps();
+   const int tsleep = sys.getSchedulerConf().getTimeSleep();
    int spins = nspins; 
+   int sleeps = nsleeps;
    unsigned long total_spins = 0;  /* Number of spins by idle phase*/
    unsigned long total_yields = 0; /* Number of yields by idle phase */
    unsigned long time_yields = 0;  /* Time of yields by idle phase */
@@ -213,6 +234,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
       spins--;
       if ( spins == 0 ) {
          total_spins+= nspins;
+         sleeps--;
          condition->lock();
          if ( !( condition->check() ) ) {
             condition->addWaiter( current );
@@ -246,12 +268,18 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                sys.getSchedulerStats()._idleThreads++;
             } else {
                condition->unlock();
-               if ( sys.useYield() ) {
-                  total_yields++;
-                  unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
-                  thread->yield();
-                  unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
-                  time_yields += ( end_yield - begin_yield );
+               if ( sleeps < 0 ) {
+                  if ( sys.useYield() ) {
+                     total_yields++;
+                     unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+                     thread->yield();
+                     unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+                     time_yields += ( end_yield - begin_yield );
+                  }
+                  sleeps = nsleeps;
+               } else {
+                  struct timespec req = {0,tsleep};
+                  nanosleep ( &req, NULL );
                }
             }
          } else {

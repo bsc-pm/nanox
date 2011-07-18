@@ -49,6 +49,14 @@ inline void SchedulerConf::setNumSpins ( const unsigned int num )
    _numSpins = num;
 }
    
+inline unsigned int SchedulerConf::getNumSleeps () const
+{
+   return _numSleeps;
+}
+inline unsigned int SchedulerConf::getTimeSleep () const
+{
+   return _timeSleep;
+}
 inline const std::string & SchedulePolicy::getName () const
 {
    return _name;
