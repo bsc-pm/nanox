@@ -23,9 +23,6 @@
 #include <unistd.h>
 #include "nanos-int.h"
 
-#ifdef GPU_DEV
-#include "gpuprocessor.hpp"
-#endif
 
 #ifdef _MERCURIUM
 // define API version
@@ -161,19 +158,6 @@ NANOS_API_DECL(void, nanos_handle_error, ( nanos_err_t err ));
 NANOS_API_DECL(void *, nanos_smp_factory,( void *prealloc ,void *args));
 extern const size_t nanos_smp_dd_size;
 #define NANOS_SMP_DESC( args ) { nanos_smp_factory, nanos_smp_dd_size, &( args ) }
-
-   // gpu
-NANOS_API_DECL(void *, nanos_gpu_factory,( void *prealloc ,void *args));
-extern const size_t nanos_gpu_dd_size;
-#define NANOS_GPU_DESC( args ) { nanos_gpu_factory, nanos_gpu_dd_size, &( args ) }
-
-#ifdef GPU_DEV
-NANOS_API_DECL(cudaStream_t, nanos_get_kernel_execution_stream,());
-#else
-#ifdef __CUDACC__
-NANOS_API_DECL(cudaStream_t, nanos_get_kernel_execution_stream,());
-#endif
-#endif
 
 // instrumentation interface
 NANOS_API_DECL(nanos_err_t, nanos_instrument_register_key, ( nanos_event_key_t *event_key, const char *key, const char *description, bool abort_when_registered ));

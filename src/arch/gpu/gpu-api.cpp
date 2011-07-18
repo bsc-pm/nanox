@@ -17,39 +17,32 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+#include "nanos-gpu.h"
 #include "nanos.h"
 #include "basethread.hpp"
-#include "debug.hpp"
-#include "system.hpp"
-#include "workdescriptor.hpp"
-#include "plugin.hpp"
-#include "instrumentationmodule_decl.hpp"
+#include "gpudd.hpp"
+#include "gpuprocessor.hpp"
 
 using namespace nanos;
 
-NANOS_API_DEF(nanos_err_t, nanos_get_addr, ( nanos_copy_id_t copy_id, void **addr, nanos_wd_t cwd ))
+
+const size_t nanos_gpu_dd_size = sizeof(ext::GPUDD);
+
+void * nanos_gpu_factory( void *prealloc, void *args )
 {
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_addr",NANOS_RUNTIME) );
-
-   WD *wd = ( WD * )cwd;
-   CopyData &cd = wd->getCopies()[copy_id];
-
-   ProcessingElement *pe = myThread->runningOn();
-   *addr = pe->getAddress( *wd, cd.getAddress(), cd.getSharing() );
-
-   return NANOS_OK;
+   nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
+   if ( prealloc != NULL )
+   {
+      return ( void * )new (prealloc) ext::GPUDD( smp->outline );
+   }
+   else
+   {
+      return ( void * ) new ext::GPUDD( smp->outline );
+   }
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_copy_value, ( void *dst, nanos_copy_id_t copy_id, nanos_wd_t cwd ))
+
+cudaStream_t nanos_get_kernel_execution_stream()
 {
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","copy_value",NANOS_RUNTIME) );
-
-   WD *wd = ( WD * )cwd;
-   CopyData &cd = wd->getCopies()[copy_id];
-
-   ProcessingElement *pe = myThread->runningOn();
-   pe->copyTo( *wd, dst, cd.getAddress(), cd.getSharing(), cd.getSize() );
-
-   return NANOS_OK;
+   return ( ( nanos::ext::GPUProcessor *) getMyThreadSafe()->runningOn() )->getGPUProcessorInfo()->getKernelExecStream();
 }
-
