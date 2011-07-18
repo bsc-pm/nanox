@@ -289,6 +289,9 @@ namespace nanos {
             registerEventValue("cache-wait","waitInput()","waitInput()");
 
             /* 30 */ registerEventKey("chunk-size","Chunk size");
+
+            /* 31 */ registerEventKey("time-sleeps","Time on Sleep (in nsecs)");
+
             /* ** */ registerEventKey("debug","Debug Key"); /* Keep this key as the last one */
          }
 

@@ -31,15 +31,15 @@ void SchedulerConf::config (Config &cfg)
 {
    cfg.setOptionsSection ( "Core [Scheduler]", "Policy independent scheduler options"  );
 
-   cfg.registerConfigOption ( "num_spins", NEW Config::UintVar( _numSpins ), "Determines the amount of spinning before sleeping" );
+   cfg.registerConfigOption ( "num_spins", NEW Config::UintVar( _numSpins ), "Determines the amount of spinning before sleeping (default = 100)" );
    cfg.registerArgOption ( "num_spins", "spins" );
    cfg.registerEnvOption ( "num_spins", "NX_SPINS" );
 
-   cfg.registerConfigOption ( "num_sleeps", NEW Config::UintVar( _numSleeps ), "Determines the amount of sleeping before yielding" );
+   cfg.registerConfigOption ( "num_sleeps", NEW Config::UintVar( _numSleeps ), "Determines the amount of sleeping before yielding (default = 20)" );
    cfg.registerArgOption ( "num_sleeps", "sleeps" );
    cfg.registerEnvOption ( "num_sleeps", "NX_SLEEPS" );
 
-   cfg.registerConfigOption ( "sleep_time", NEW Config::UintVar( _timeSleep ), "Determines amount of time in each sleeping phase (in nsec)" );
+   cfg.registerConfigOption ( "sleep_time", NEW Config::UintVar( _timeSleep ), "Determines amount of time (in nsec) in each sleeping phase (default = 100)" );
    cfg.registerArgOption ( "sleep_time", "sleep-time" );
    cfg.registerEnvOption ( "sleep_time", "NX_SLEEP_TIME" );
 }
@@ -115,11 +115,13 @@ inline void Scheduler::idleLoop ()
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t total_spins_key = ID->getEventKey("num-spins"); )
    NANOS_INSTRUMENT ( static nanos_event_key_t total_yields_key = ID->getEventKey("num-yields"); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t time_sleeps_key = ID->getEventKey("time-sleeps"); )
    NANOS_INSTRUMENT ( static nanos_event_key_t time_yields_key = ID->getEventKey("time-yields"); )
-   NANOS_INSTRUMENT ( nanos_event_key_t Keys[3]; )
+   NANOS_INSTRUMENT ( nanos_event_key_t Keys[4]; )
    NANOS_INSTRUMENT ( Keys[0] = total_spins_key; )
    NANOS_INSTRUMENT ( Keys[1] = total_yields_key; )
-   NANOS_INSTRUMENT ( Keys[2] = time_yields_key; )
+   NANOS_INSTRUMENT ( Keys[2] = time_sleeps_key; )
+   NANOS_INSTRUMENT ( Keys[3] = time_yields_key; )
 
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_IDLE) );
 
@@ -130,6 +132,7 @@ inline void Scheduler::idleLoop ()
    int sleeps = nsleeps;
    unsigned long total_spins = 0;  /* Number of spins by idle phase*/
    unsigned long total_yields = 0; /* Number of yields by idle phase */
+   unsigned long time_sleeps = 0;  /* Time of sleeps by idle phase */
    unsigned long time_yields = 0;  /* Time of yields by idle phase */
 
    WD *current = myThread->getCurrentWD();
@@ -155,11 +158,12 @@ inline void Scheduler::idleLoop ()
             sys.getSchedulerStats()._idleThreads--;
 
             total_spins+= (nspins - spins);
-            NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
+            NANOS_INSTRUMENT ( nanos_event_value_t Values[4]; )
             NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) total_spins; )
             NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) total_yields; )
-            NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) time_yields; )
-            NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(3, Keys, Values); )
+            NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) time_sleeps; )
+            NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) time_yields; )
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(4, Keys, Values); )
 
             NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) )
             behaviour::switchWD(thread, current, next);
@@ -168,6 +172,7 @@ inline void Scheduler::idleLoop ()
             sys.getSchedulerStats()._idleThreads++;
             total_spins = 0;
             total_yields = 0;
+            time_sleeps = 0;
             time_yields = 0;
             spins = nspins;
             continue;
@@ -189,6 +194,7 @@ inline void Scheduler::idleLoop ()
         } else {
            struct timespec req ={0,tsleep};
            nanosleep ( &req, NULL );
+           time_sleeps += time_sleeps + tsleep;
         }
         spins = nspins;
       }
@@ -205,11 +211,13 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t total_spins_key = ID->getEventKey("num-spins"); )
    NANOS_INSTRUMENT ( static nanos_event_key_t total_yields_key = ID->getEventKey("num-yields"); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t time_sleeps_key = ID->getEventKey("time-sleeps"); )
    NANOS_INSTRUMENT ( static nanos_event_key_t time_yields_key = ID->getEventKey("time-yields"); )
-   NANOS_INSTRUMENT ( nanos_event_key_t Keys[3]; )
+   NANOS_INSTRUMENT ( nanos_event_key_t Keys[4]; )
    NANOS_INSTRUMENT ( Keys[0] = total_spins_key; )
    NANOS_INSTRUMENT ( Keys[1] = total_yields_key; )
-   NANOS_INSTRUMENT ( Keys[2] = time_yields_key; )
+   NANOS_INSTRUMENT ( Keys[2] = time_sleeps_key; )
+   NANOS_INSTRUMENT ( Keys[3] = time_yields_key; )
 
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
 
@@ -220,6 +228,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    int sleeps = nsleeps;
    unsigned long total_spins = 0;  /* Number of spins by idle phase*/
    unsigned long total_yields = 0; /* Number of yields by idle phase */
+   unsigned long time_sleeps = 0;  /* Time of sleeps by idle phase */
    unsigned long time_yields = 0;  /* Time of yields by idle phase */
 
    WD * current = myThread->getCurrentWD();
@@ -250,10 +259,11 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
             if ( next ) {
                sys.getSchedulerStats()._idleThreads--;
 
-               NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
+               NANOS_INSTRUMENT ( nanos_event_value_t Values[4]; )
                NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) total_spins; )
                NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) total_yields; )
-               NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) time_yields; )
+               NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) time_sleeps; )
+               NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) time_yields; )
                NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(3, Keys, Values); )
 
                NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME); );
@@ -263,6 +273,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
                total_spins = 0;
                total_yields = 0;
+               time_sleeps = 0;
                time_yields = 0;
 
                sys.getSchedulerStats()._idleThreads++;
@@ -280,6 +291,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                } else {
                   struct timespec req = {0,tsleep};
                   nanosleep ( &req, NULL );
+                  time_sleeps += time_sleeps + tsleep;
                }
             }
          } else {
