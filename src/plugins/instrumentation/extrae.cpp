@@ -57,7 +57,8 @@ class InstrumentationExtrae: public Instrumentation
 #ifndef NANOS_INSTRUMENTATION_ENABLED
    public:
       // constructor
-      InstrumentationExtrae( ) : Instrumentation( *new InstrumentationContext() ) {}
+      InstrumentationExtrae( ) : Instrumentation() {}
+
       // destructor
       ~InstrumentationExtrae() {}
 
