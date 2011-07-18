@@ -17,39 +17,13 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "nanos.h"
-#include "basethread.hpp"
-#include "debug.hpp"
-#include "system.hpp"
-#include "workdescriptor.hpp"
-#include "plugin.hpp"
-#include "instrumentationmodule_decl.hpp"
+#ifndef _NANOS_GPU_PROCESSOR_DECL
+#define _NANOS_GPU_PROCESSOR_DECL
 
-using namespace nanos;
+#include <cuda.h>
 
-nanos_err_t nanos_get_addr ( nanos_copy_id_t copy_id, void **addr, nanos_wd_t cwd )
-{
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_addr",NANOS_RUNTIME) );
+#if CUDA_VERSION <= 3020
+#define NANOS_GPU_USE_CUDA32
+#endif
 
-   WD *wd = ( WD * )cwd;
-   CopyData &cd = wd->getCopies()[copy_id];
-
-   ProcessingElement *pe = myThread->runningOn();
-   *addr = pe->getAddress( *wd, cd.getAddress(), cd.getSharing() );
-
-   return NANOS_OK;
-}
-
-nanos_err_t nanos_copy_value ( void *dst, nanos_copy_id_t copy_id, nanos_wd_t cwd )
-{
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","copy_value",NANOS_RUNTIME) );
-
-   WD *wd = ( WD * )cwd;
-   CopyData &cd = wd->getCopies()[copy_id];
-
-   ProcessingElement *pe = myThread->runningOn();
-   pe->copyTo( *wd, dst, cd.getAddress(), cd.getSharing(), cd.getSize() );
-
-   return NANOS_OK;
-}
-
+#endif

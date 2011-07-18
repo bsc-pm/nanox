@@ -33,23 +33,6 @@ using namespace nanos;
 // TODO: move to dependent part
 const size_t nanos_smp_dd_size = sizeof(ext::SMPDD);
 
-#ifdef GPU_DEV
-const size_t nanos_gpu_dd_size = sizeof(ext::GPUDD);
-
-void * nanos_gpu_factory( void *prealloc, void *args )
-{
-   nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
-   if ( prealloc != NULL )
-   {
-      return ( void * )new (prealloc) ext::GPUDD( smp->outline );
-   }
-   else
-   {
-      return ( void * ) new ext::GPUDD( smp->outline );
-   }
-}
-#endif
-
 void * nanos_smp_factory( void *prealloc, void *args )
 {
    nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;

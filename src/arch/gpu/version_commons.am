@@ -1,4 +1,9 @@
 
+gpu_api_sources = \
+	$(top_srcdir)/src/arch/gpu/nanos-gpu.h \
+	$(top_srcdir)/src/arch/gpu/gpu-api.cpp \
+	$(END)
+		
 gpu_sources = \
 	$(top_srcdir)/src/arch/gpu/gpuconfig.cpp \
 	$(top_srcdir)/src/arch/gpu/gpuconfig.hpp \
@@ -27,10 +32,11 @@ pe_gpu_sources = \
 gpu_cublas_sources = \
 	$(top_srcdir)/src/arch/gpu/gpucublasplugin.cpp \
 	$(END)
+	
+gpu_api_flags = -I$(top_srcdir)/src/apis/c
 
 gpu_ldflags = -L@CUDA_LIB@ -lcudart
 gpu_includes = -I @CUDA_INC@
 
 gpu_cublas_ldflags = -L@CUDA_LIB@ -lcudart -lcublas
 gpu_cublas_includes = -I @CUDA_INC@
-

@@ -23,11 +23,7 @@ include $(top_srcdir)/src/common.am
 if PERFORMANCE_VERSION
 performance_LTLIBRARIES=libnanox-c.la
 
-if GPU_SUPPORT
-nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags) $(gpu_includes)
-else
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags)
-endif
 
 libnanox_c_la_CXXFLAGS=$(nanos_perfo_cxxflags)
 libnanox_c_la_LDFLAGS=$(version_flags)
