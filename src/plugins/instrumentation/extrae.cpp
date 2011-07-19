@@ -721,5 +721,4 @@ class InstrumentationParaverPlugin : public Plugin {
 
 } // namespace nanos
 
-nanos::ext::InstrumentationParaverPlugin NanosXPlugin;
-
+DECLARE_PLUGIN("instrumentation-paraver",nanos::ext::InstrumentationParaverPlugin);

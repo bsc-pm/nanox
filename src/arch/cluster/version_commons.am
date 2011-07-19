@@ -66,4 +66,4 @@ pe_cluster_smp_includes = $(pe_cluster_common_includes) -I@GASNET_DIR@/include/s
 pe_cluster_smp_ldflags = $(pe_cluster_common_ldflags) -lgasnet-smp-par
 
 pe_cluster_ibv_includes = $(pe_cluster_common_includes) -I@GASNET_DIR@/include/ibv-conduit -DGASNET_CONDUIT_IBV
-pe_cluster_ibv_ldflags = $(pe_cluster_common_ldflags) -lgasnet-ibv-par -libverbs -lmpi -lrt
+pe_cluster_ibv_ldflags = $(pe_cluster_common_ldflags) -lgasnet-ibv-par -libverbs @MPI_CLDFLAGS@

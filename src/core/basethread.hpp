@@ -51,7 +51,9 @@ namespace nanos
  
    inline WD & BaseThread::getThreadWD () const { return _threadWD; }
  
-   inline void BaseThread::resetNextWD () { _nextWD = NULL; }
+   inline void BaseThread::resetNextWD () {
+      compareAndSwap( &_nextWD, _nextWD, (WD *) NULL );
+   }
  
    inline bool BaseThread::setNextWD ( WD *next ) { 
       debug("Set next WD as: " << next << ":??" << " @ thread " << _id );

@@ -22,6 +22,7 @@
 #ifdef NANOS_DEBUG_ENABLED
 
 #include "memtracker_decl.hpp"
+#include "new_decl.hpp"
 #include "allocator.hpp"
 #include "config.hpp"
 
@@ -47,7 +48,11 @@ namespace nanos {
 
          LockBlock guard(_lock);
 
+#ifdef NANOS_DISABLE_ALLOCATOR
+         void *p = malloc ( size );
+#else
          void *p = nanos::getAllocator().allocate( size );
+#endif
 
 
          if ( p ) {
@@ -75,8 +80,11 @@ namespace nanos {
 	    _numBlocks--;
 	    _totalMem -= it->second._size;
 
-	    //free( p );
+#ifdef NANOS_DISABLE_ALLOCATOR
+	          free( p );
+#else
             nanos::getAllocator().deallocate( p );
+#endif
 
 	    _blocks.erase( it );
 	    _stats[it->second._size]._current--;

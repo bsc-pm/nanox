@@ -50,7 +50,7 @@ namespace ext
          static bool _useUserThreads;
          static size_t _threadsStackSize;
          static size_t _cacheDefaultSize;
-         static std::string _cachePolicy;
+         static System::CachePolicyType _cachePolicy;
 
          // disable copy constructor and assignment operator
          SMPProcessor( const SMPProcessor &pe );

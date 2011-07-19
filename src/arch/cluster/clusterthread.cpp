@@ -153,7 +153,7 @@ void ClusterThread::clearCompletedWDsSMP2( ) {
    while ( lowval < highval )
    {
       WD *completedWD = _completedWDsSMP[pos];
-      Scheduler::postOutlineWork( completedWD, false, this );
+      Scheduler::postOutlineWork( completedWD, true, this );
       delete completedWD;
       _completedWDsSMP[pos] =(WD *) 0xdeadbeef;
       pos = (pos+1) % 16;
@@ -187,7 +187,7 @@ void ClusterThread::clearCompletedWDsGPU2( ) {
    while ( lowval < highval )
    {
       WD *completedWD = _completedWDsGPU[pos];
-      Scheduler::postOutlineWork( completedWD, false, this );
+      Scheduler::postOutlineWork( completedWD, true, this );
       delete completedWD;
       _completedWDsGPU[pos] =(WD *) 0xdeadbeef;
       pos = (pos+1) % 16;

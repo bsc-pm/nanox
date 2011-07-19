@@ -22,7 +22,7 @@
 
 #include "accelerator_decl.hpp"
 #include "cache_decl.hpp"
-#include "workdescriptor_fwd.hpp"
+#include "system_decl.hpp"
 
 namespace nanos
 {
@@ -31,7 +31,8 @@ namespace nanos
    class CachedAccelerator : public Accelerator
    {
       private:
-        DeviceCache<CacheDevice>        *_cache;
+        DeviceCache<CacheDevice> * _cache;
+        CachePolicy         * _cachePolicy;
 
         /*! \brief CachedAccelerator default constructor (private)
          */
@@ -45,8 +46,11 @@ namespace nanos
       public:
         /*! \brief CachedAccelerator constructor - from 'newId' and 'arch'
          */
-         CachedAccelerator ( int newId, const Device *arch, NANOS_CACHE_POLICY policy, const Device *subArch = NULL, int cacheSize = 0 ) :
-            Accelerator( newId, arch, subArch ), _cache( NEW DeviceCache<CacheDevice>( cacheSize, policy, this ) ) {}
+         CachedAccelerator ( int newId, const Device *arch, System::CachePolicyType policy, const Device *subArch = NULL, int cacheSize = 0 ) :
+            Accelerator( newId, arch, subArch ), _cache( NEW DeviceCache<CacheDevice>( cacheSize, NULL, this ) )
+         {
+            configureCache( cacheSize, policy );
+         }
 
          /*! \brief CachedAccelerator constructor - from 'newId' and 'arch'
           *
@@ -61,7 +65,7 @@ namespace nanos
 
          unsigned int getMemorySpaceId() const { return _cache->getId(); }
 
-         void configureCache( int cacheSize, NANOS_CACHE_POLICY cachePolicy );
+         void configureCache( int cacheSize, System::CachePolicyType cachePolicy );
 
          bool checkBlockingCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
 

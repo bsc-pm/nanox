@@ -28,7 +28,7 @@ using namespace nanos::ext;
 
 bool SMPProcessor::_useUserThreads = true;
 size_t SMPProcessor::_threadsStackSize = 0;
-std::string _cachePolicy = "";
+System::CachePolicyType SMPProcessor::_cachePolicy = System::DEFAULT;
 size_t SMPProcessor::_cacheDefaultSize = 1048580;
 
 void SMPProcessor::prepareConfig ( Config &config )
@@ -40,7 +40,10 @@ void SMPProcessor::prepareConfig ( Config &config )
    config.registerArgOption( "pthreads-stack-size", "pthreads-stack-size" );
 
 #if SMP_NUMA
-   config.registerConfigOption ( "numa-cache-policy", NEW Config::StringVar( _cachePolicy ), "Defines the cache policy for SMP_NUMA architectures" );
+   System::CachePolicyConfig *cachePolicyCfg = NEW System::CachePolicyConfig ( _cachePolicy );
+   cachePolicyCfg->addOption("wt", System::WRITE_THROUGH );
+   cachePolicyCfg->addOption("wb", System::WRITE_BACK );
+   config.registerConfigOption ( "numa-cache-policy", cachePolicyCfg, "Defines the cache policy for SMP_NUMA architectures: write-through / write-back (wt by default)" );
    config.registerEnvOption ( "numa-cache-policy", "NX_NUMA_CACHE_POLICY" );
    config.registerArgOption( "numa-cache-policy", "numa-cache-policy" );
 
@@ -48,13 +51,13 @@ void SMPProcessor::prepareConfig ( Config &config )
    config.registerArgOption( "numa-cache-size", "numa-cache-size" );
 
    // Check if the cache policy for SMP_NUMA has been defined
-   if ( !_cachePolicy.compare( "" ) ) {
+   if ( _cachePolicy == System::DEFAULT ) {
       // The user has not defined a specific cache policy for SMP_NUMA,
       // check if he has defined a global cache policy
       _cachePolicy = sys.getCachePolicy();
-      if ( !_cachePolicy.compare( "" ) ) {
+      if ( _cachePolicy == System::DEFAULT ) {
          // There is no global cache policy specified, assign it the default value (write-through)
-         _cachePolicy = "wt";
+         _cachePolicy = System::WRITE_THROUGH;
       }
    }
 

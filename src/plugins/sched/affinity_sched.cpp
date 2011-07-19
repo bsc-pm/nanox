@@ -75,7 +75,8 @@ namespace nanos {
                TeamData *data;
 
                /* Queue 0 will be the global one */
-               unsigned int numQueues = sys.getCacheMap().getSize() + 1;
+               //unsigned int numQueues = sys.getCacheMap().getSize() + 1;
+               unsigned int numQueues = 32;
                if ( preAlloc ) data = new (preAlloc) TeamData( numQueues );
                else data = NEW TeamData( numQueues );
 
@@ -284,4 +285,4 @@ namespace nanos {
    }
 }
 
-nanos::ext::CacheSchedPlugin NanosXPlugin;
+DECLARE_PLUGIN("sched-affinity",nanos::ext::CacheSchedPlugin);

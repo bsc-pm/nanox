@@ -211,5 +211,4 @@ namespace nanos {
    }
 }
 
-nanos::ext::TreeBarrierPlugin NanosXPlugin;
-
+DECLARE_PLUGIN("barr-tree",nanos::ext::TreeBarrierPlugin);

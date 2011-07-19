@@ -817,6 +817,12 @@ inline void WriteBackPolicy::unregisterCacheAccess( Directory &dir, uint64_t tag
 inline Cache::Cache() : _id( sys.getCacheMap().registerCache() ) {}
 
 template <class _T>
+inline void DeviceCache<_T>::setPolicy( CachePolicy * policy )
+{
+   _policy = policy;
+}
+
+template <class _T>
 inline size_t DeviceCache<_T>::getSize()
    { return _size; }
 
@@ -847,6 +853,7 @@ inline void DeviceCache<_T>::freeSpaceToFit( Directory &dir, size_t size )
    CacheHash::KeyList kl;
    _cache.listUnreferencedKeys( kl );
    CacheHash::KeyList::iterator it;
+   message0("Warning: calling freeSpaceToFit may degrade performance, try increasing node memory.");
    for ( it = kl.begin(); it != kl.end(); it++ ) {
       // Copy the entry because once erased it can be recycled
       CacheEntry &ce = *( _cache.find( it->second ) );

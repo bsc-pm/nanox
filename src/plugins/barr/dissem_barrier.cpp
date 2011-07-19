@@ -153,4 +153,4 @@ namespace nanos {
    }
 }
 
-nanos::ext::DisseminationBarrierPlugin NanosXPlugin;
+DECLARE_PLUGIN("barr-dissemination",nanos::ext::DisseminationBarrier);

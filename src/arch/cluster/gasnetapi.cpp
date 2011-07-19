@@ -342,11 +342,12 @@ void GASNetAPI::amWorkDone( gasnet_token_t token, gasnet_handlerarg_t addrLo, ga
    sys.getNetwork()->notifyWorkDone( src_node, addr, peId );
 }
 
-void GASNetAPI::amMalloc( gasnet_token_t token, gasnet_handlerarg_t size,
+void GASNetAPI::amMalloc( gasnet_token_t token, gasnet_handlerarg_t sizeLo, gasnet_handlerarg_t sizeHi,
       gasnet_handlerarg_t waitObjAddrLo, gasnet_handlerarg_t waitObjAddrHi )
 {
    gasnet_node_t src_node;
    void *addr = NULL;
+   std::size_t size = ( std::size_t ) MERGE_ARG( sizeHi, sizeLo );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
@@ -355,7 +356,7 @@ void GASNetAPI::amMalloc( gasnet_token_t token, gasnet_handlerarg_t size,
    std::cerr<<"Malloc size " << size << " returns "<<addr<<std::endl;
    if ( addr == NULL )
    {
-      message0 ( "I could not allocate " << (std::size_t) size << " bytes of memory on node " << gasnet_mynode() << ". Try setting NX_CLUSTER_NODE_MEMORY to a lower value." );
+      message0 ( "I could not allocate " << (std::size_t) size << " (sizeof std::size_t is " << sizeof(std::size_t) << " ) " << (void *) size << " bytes of memory on node " << gasnet_mynode() << ". Try setting NX_CLUSTER_NODE_MEMORY to a lower value." );
       fatal0 ("I can not continue." );
    }
    if ( gasnet_AMReplyShort4( token, 208, ( gasnet_handlerarg_t ) ARG_LO( addr ),
@@ -1079,8 +1080,9 @@ void GASNetAPI::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteA
 
 void GASNetAPI::malloc ( unsigned int remoteNode, std::size_t size, void * waitObjAddr )
 {
-   if (gasnet_AMRequestShort3( remoteNode, 207,
-            size,
+   message0("Requesting alloc of " << size << " bytes (" << (void *) size << ") to node " << remoteNode );
+   if (gasnet_AMRequestShort4( remoteNode, 207,
+            ARG_LO( size ), ARG_HI( size ),
             ARG_LO( waitObjAddr ), ARG_HI( waitObjAddr ) ) != GASNET_OK)
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", remoteNode);

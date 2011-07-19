@@ -90,12 +90,10 @@ int _nanox_main (int argc, char* argv[])
             name.erase( name.size()-3 );
             name.erase( 0, std::string("libnanox-").size() );
 
-            if ( PluginManager::isPlugin( name ) ) {
-               Plugin *plugin = PluginManager::loadAndGetPlugin( name , false );
+            Plugin *plugin = sys.loadAndGetPlugin( name );
 
-               if ( listPlugins && plugin != NULL )
-                  std::cout << "   " << name << " - " << plugin->getName() << " - version " << plugin->getVersion() << std::endl;
-            }
+            if ( listPlugins && plugin != NULL )
+               std::cout << "   " << name << " - " << plugin->getName() << " - version " << plugin->getVersion() << std::endl;
          }
 
          free( namelist[n] );

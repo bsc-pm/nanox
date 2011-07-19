@@ -52,7 +52,7 @@ namespace nanos {
          public:
             // constructors
 #ifdef GPU_DEV
-            ClusterNode( int id ) : CachedAccelerator< ClusterDevice >( id, &SMP, NANOS_CACHE_WB_POLICY, &GPU, ( int ) ClusterInfo::getSegmentLen( id ) ),
+            ClusterNode( int id ) : CachedAccelerator< ClusterDevice >( id, &SMP, System::WRITE_BACK, &GPU, ( int ) ClusterInfo::getSegmentLen( id ) ),
 #else
             ClusterNode( int id ) : CachedAccelerator< ClusterDevice >( id, &SMP, NANOS_CACHE_WB_POLICY, NULL, ( int ) ClusterInfo::getSegmentLen( id ) ),
 #endif

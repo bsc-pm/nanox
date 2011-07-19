@@ -4,7 +4,8 @@
 using namespace nanos;
 using namespace ext;
 
-#define DEFAULT_NODE_MEM (1024*1024*1024*1) // 2 Gb of memory
+#define DEFAULT_NODE_MEM (0xc0000000ULL) // 2 Gb of memory
+#define MAX_NODE_MEM (0xc0000000ULL) // 2 Gb of memory
 
 unsigned int ClusterInfo::_numSegments = 0;
 void ** ClusterInfo::_segmentAddrList = NULL;
@@ -49,7 +50,6 @@ void ClusterInfo::setExtraPEsCount( unsigned int num)
 
 void ClusterInfo::prepare( Config& cfg )
 {
-
    /* Cluster: memory size to be allocated on remote nodes */
    cfg.registerConfigOption ( "node-memory", NEW Config::SizeVar ( _nodeMem ), "Sets the memory size that will be used on each node to send and receive data." );
    cfg.registerArgOption ( "node-memory", "cluster-node-memory" );

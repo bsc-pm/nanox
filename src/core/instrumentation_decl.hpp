@@ -264,7 +264,7 @@ namespace nanos {
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_INPUT_STREAM_SYNC_EVENT", "cudaInputStreamSynchronize()" );          /* 9 */
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_OUTPUT_STREAM_SYNC_EVENT", "cudaOutputStreamSynchronize()" );        /* 10 */
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_KERNEL_STREAM_SYNC_EVENT", "cudaKernelStreamSynchronize()" );        /* 11 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_THREAD_SYNC_EVENT", "cudaThreadSynchronize()" );                     /* 12 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_DEVICE_SYNC_EVENT", "cudaDeviceSynchronize()" );                     /* 12 */
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_SET_DEVICE_EVENT", "cudaSetDevice()" );                              /* 13 */
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GET_DEVICE_PROPS_EVENT", "cudaGetDeviceProperties()" );              /* 14 */
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_SET_DEVICE_FLAGS_EVENT", "cudaSetDeviceFlags()" );                   /* 15 */
@@ -288,6 +288,7 @@ namespace nanos {
             registerEventValue("cache-wait","freeSpaceToFit()","freeSpaceToFit()");
             registerEventValue("cache-wait","waitInput()","waitInput()");
 
+            /* 30 */ registerEventKey("chunk-size","Chunk size");
             /* ** */ registerEventKey("debug","Debug Key"); /* Keep this key as the last one */
          }
 

@@ -327,7 +327,7 @@ WD * Scheduler::prefetch( BaseThread *thread, WD &wd )
 }
 
 #define MAX_RUNNING_WD_PER_SMP 1
-#define MAX_RUNNING_WD_PER_GPU 1
+#define MAX_RUNNING_WD_PER_GPU 4
 
 WD * Scheduler::getClusterWD( BaseThread *thread )
 {
@@ -337,7 +337,7 @@ WD * Scheduler::getClusterWD( BaseThread *thread )
 		wd = thread->getNextWD();
 		if ( wd )
 		{
-			thread->setNextWD(NULL);
+			thread->resetNextWD();
 		}
 		else
 		{
@@ -580,17 +580,19 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    debug( "switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
           " to " << wd << ":" << wd->getId() );
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldwd, NULL, false) );
-
    // This ensures that when we return from the inlining is still the same thread
    // and we don't violate rules about tied WD
    wd->tieTo(*oldwd->isTiedTo());
-   thread->setCurrentWD( *wd );
-   if (!wd->started())
-      wd->init();
+   if (!wd->started()) wd->init();
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
-   myThread->inlineWorkDependent(*wd);
+   /* Instrumenting context switch: oldwd leaves cpu but will come back (last = false) and wd enters */
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldwd, wd, false) );
+   thread->setCurrentWD( *wd );
+
+   thread->inlineWorkDependent(*wd);
+
+   // reload thread after running WD
+   thread = getMyThreadSafe();
 
    if (schedule) {
         thread->setNextWD(thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*wd));
@@ -601,14 +603,12 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
 
    wd->done();
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, false) );
-
    debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
           " to " << oldwd << ":" << oldwd->getId() );
 
+   /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters */
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
    thread->setCurrentWD( *oldwd );
-
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, oldwd, false) );
 
    // While we tie the inlined tasks this is not needed
    // as we will always return to the current thread
@@ -624,7 +624,6 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
 
 void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
 {
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldWD, NULL, false) );
    myThread->switchHelperDependent(oldWD, newWD, arg);
 
    GenericSyncCond *syncCond = oldWD->getSyncCond();
@@ -635,8 +634,9 @@ void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
       myThread->getTeam()->getSchedulePolicy().queue( myThread, *oldWD );
    }
 
+   /* Instrumenting context switch: oldwd leaves cpu but will come back (last = false) and newWD enters */
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldWD, newWD, false) );
    myThread->setCurrentWD( *newWD );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, newWD, false) );
 }
 
 void Scheduler::switchTo ( WD *to )
@@ -675,6 +675,7 @@ void Scheduler::switchToThread ( BaseThread *thread )
 void Scheduler::exitHelper (WD *oldWD, WD *newWD, void *arg)
 {
     myThread->exitHelperDependent(oldWD, newWD, arg);
+   /* Instrumenting context switch: oldwd leaves cpu and will not come back (last = true) and newWD enters */
     NANOS_INSTRUMENT ( sys.getInstrumentation()->wdSwitch(oldWD,newWD,true) );
     oldWD->~WorkDescriptor();
     delete[] (char *)oldWD;

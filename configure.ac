@@ -285,6 +285,25 @@ AM_CONDITIONAL([GPU_SUPPORT],[test $gpu_valid = yes])
 
 AC_SUBST([gpu_valid])
 
+# Allocator support
+allocator_disabled=no
+AC_MSG_CHECKING([if Nanos++ Allocator has been disabled])
+AC_ARG_ENABLE([allocator],
+  AS_HELP_STRING([--disable-allocator], [Disables Allocator module]),
+  [
+    allocator_disabled="yes"
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    allocator_disabled="no"
+    AC_MSG_RESULT([no])
+  ]
+)
+if test x$allocator_disabled = xyes; then
+	CFLAGS="$CFLAGS -DNANOS_DISABLE_ALLOCATOR"
+	CXXFLAGS="$CXXFLAGS -DNANOS_DISABLE_ALLOCATOR"
+fi
+
 AC_MSG_CHECKING([for architecture])
 
 # Add architecture libraries

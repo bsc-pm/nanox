@@ -18,16 +18,20 @@
 /*************************************************************************************/
 
 #include "plugin.hpp"
+#include "system_decl.hpp"
 
 #include <iostream>
 
 #include <cuda_runtime.h>
+
+#ifdef NANOS_GPU_USE_CUDA32
 // Cannot include cublas.h, as the redeclaration of two CUBLAS functions makes the
 // compiler crash because we are treating warnings as errors
 //#include <cublas.h>
-
 extern void cublasInit();
-
+#else
+#include <cublas.h>
+#endif
 
 
 namespace nanos {
@@ -50,5 +54,4 @@ class GPUCublasPlugin : public Plugin
 }
 }
 
-nanos::ext::GPUCublasPlugin NanosXPlugin;
-
+DECLARE_PLUGIN("arch-gpucublas",nanos::ext::GPUCublasPlugin);

@@ -54,4 +54,4 @@ class InstrumentationEmptyTracePlugin : public Plugin {
 
 } // namespace nanos
 
-nanos::ext::InstrumentationEmptyTracePlugin NanosXPlugin;
+DECLARE_PLUGIN("instrumentation-empty_trace",nanos::ext::InstrumentationEmptyTracePlugin);
