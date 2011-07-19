@@ -81,7 +81,7 @@ namespace ext
          // Configuration variables
          static Atomic<int>      _deviceSeed; //! Number of GPU devices assigned to threads
          int                     _gpuDevice; //! Assigned GPU device Id
-         static size_t           _memoryAlignment;
+         size_t                  _memoryAlignment;
          GPUProcessorInfo *      _gpuProcessorInfo; //! Information related to the GPU device that represents
          GPUProcessorStats       _gpuProcessorStats; //! Statistics of data copied in and out to / from cache
          GPUProcessorTransfers   _gpuProcessorTransfers; //! Keep the list of pending memory transfers

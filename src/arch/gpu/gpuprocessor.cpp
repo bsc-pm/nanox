@@ -29,7 +29,6 @@ using namespace nanos;
 using namespace nanos::ext;
 
 Atomic<int> GPUProcessor::_deviceSeed = 0;
-size_t GPUProcessor::_memoryAlignment = 256;
 
 
 GPUProcessor::GPUProcessor( int id, int gpuId ) : CachedAccelerator<GPUDevice>( id, &GPU ),
@@ -85,6 +84,9 @@ void GPUProcessor::init ()
 
    GPUConfig::setOverlappingInputs( inputStream );
    GPUConfig::setOverlappingOutputs( outputStream );
+
+   // Get GPU memory alignment to allow the use of textures
+   _memoryAlignment = gpuProperties.textureAlignment;
 
    // We allocate the whole GPU memory
    // WARNING: GPUDevice::allocateWholeMemory() must be called first, as it may
