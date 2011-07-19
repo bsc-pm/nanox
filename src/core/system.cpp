@@ -54,9 +54,9 @@ System nanos::sys;
 
 // default system values go here
 System::System () :
-      _numPEs( 1 ), _deviceStackSize( 0 ), _bindThreads( true ), _profile( false ), _instrument( false ),
-      _verboseMode( false ), _executionMode( DEDICATED ), _initialMode(POOL), _thsPerPE( 1 ), _untieMaster(false),
-      _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
+      _numPEs( 1 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
+      _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ), _thsPerPE( 1 ),
+      _untieMaster( false ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
       _preMainBarrier ( 1 ), _preMainBarrierLast ( 0 ), _throttlePolicy ( NULL ),
       _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ),
@@ -195,6 +195,14 @@ void System::config ()
    cfg.registerConfigOption ( "stack-size", NEW Config::PositiveVar( _deviceStackSize ), "Defines the default stack size for all devices" );
    cfg.registerArgOption ( "stack-size", "stack-size" );
    cfg.registerEnvOption ( "stack-size", "NX_STACK_SIZE" );
+
+   cfg.registerConfigOption ( "binding-start", NEW Config::PositiveVar ( _bindingStart ), "Set initial cpu id for binding (binding requiered)" );
+   cfg.registerArgOption ( "binding-start", "binding-start" );
+   cfg.registerEnvOption ( "binding-start", "NX_BINDING_START" );
+
+   cfg.registerConfigOption ( "binding-stride", NEW Config::PositiveVar ( _bindingStride ), "Set binding stride (binding requiered)" );
+   cfg.registerArgOption ( "binding-stride", "binding-stride" );
+   cfg.registerEnvOption ( "binding-stride", "NX_BINDING_STRIDE" );
 
    cfg.registerConfigOption ( "no-binding", NEW Config::FlagOption( _bindThreads, false ), "Disables thread binding" );
    cfg.registerArgOption ( "no-binding", "disable-binding" );
@@ -833,7 +841,6 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
 void System::duplicateWD ( WD **uwd, WD *wd)
 {
    unsigned int i, num_Devices, num_Copies;
-   CopyData *copy_data = NULL;
    DeviceData **dev_data;
    void *data = NULL;
    char *chunk = 0, *dd_location, *chunk_iter;
@@ -863,7 +870,6 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    num_Copies = wd->getNumCopies();
    if ( num_Copies != 0 ) {
       size_CopyData = sizeof(CopyData);
-      copy_data = wd->getCopies();
       size_Copies   = size_CopyData * num_Copies;
       offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, __alignof__(nanos_copy_data_t) );
    } else {
@@ -927,7 +933,6 @@ void System::duplicateWD ( WD **uwd, WD *wd)
 void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
 {
    unsigned int i, num_Devices, num_Copies;
-   CopyData *copy_data = NULL;
    DeviceData **dev_data;
    void *data = NULL;
    void *slicer_data = NULL;
@@ -959,7 +964,6 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
    num_Copies = wd->getNumCopies();
    if ( num_Copies != 0 ) {
       size_CopyData = sizeof(CopyData);
-      copy_data = wd->getCopies();
       size_Copies   = size_CopyData * num_Copies;
       offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, __alignof__(nanos_copy_data_t) );
    } else {
