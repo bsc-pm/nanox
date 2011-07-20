@@ -78,7 +78,7 @@ DeviceData & WorkDescriptor::activateDevice ( const Device &device )
 
    DD * dd = findDeviceData( device );
 
-   ensure( dd,"Did not find requested device in activation" );
+//   ensure( dd,"Did not find requested device in activation" );
    _activeDevice = dd;
    return *dd;
 }

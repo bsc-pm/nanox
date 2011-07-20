@@ -94,6 +94,9 @@ namespace nanos
          std::string          _defInstr;
 
          std::string          _defArch;
+         std::string          _defDeviceName;
+
+         const Device              *_defDevice;
 
          /*! factories for scheduling, pes and barriers objects */
          peFactory            _hostFactory;

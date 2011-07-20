@@ -194,6 +194,8 @@ do {\
    if ( err != NANOS_OK ) nanos_handle_error( err );\
 } while (0)
 
+extern int _nanox_main( int argc, char *argv[] );
+
 #ifdef __cplusplus
 }
 #endif

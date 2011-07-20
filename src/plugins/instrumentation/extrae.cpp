@@ -520,9 +520,12 @@ class InstrumentationExtrae: public Instrumentation
             mergeParaverTraceFiles();
             postProcessTraceFile();
          }
-         modifyParaverConfigFile();
-         copyFilesToMaster();
-         removeTemporaryFiles();
+	 else
+         {
+            copyFilesToMaster();
+         }
+         //modifyParaverConfigFile();
+         //removeTemporaryFiles();
       }
 
       void addEventList ( unsigned int count, Event *events) 

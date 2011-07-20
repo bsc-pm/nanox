@@ -59,7 +59,7 @@ System::System () :
       _untieMaster( false ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
       _preMainBarrier ( 1 ), _preMainBarrierLast ( 0 ), _throttlePolicy ( NULL ),
       _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
-      _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ),
+      _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ), _defDeviceName("SMP"),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _usingCluster( false ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL ), _cachePolicy( System::DEFAULT ), _cacheMap(), _masterGpuThd( NULL )
 {
@@ -262,6 +262,10 @@ void System::config ()
    cfg.registerArgOption ( "conduit", "cluster-network" );
    cfg.registerEnvOption ( "conduit", "NX_CLUSTER_NETWORK" );
 
+   cfg.registerConfigOption ( "device-priority", NEW Config::StringVar ( _defDeviceName ), "Defines the default device to use");
+   cfg.registerArgOption ( "device-priority", "--use-device");
+   cfg.registerEnvOption ( "device-priority", "NX_USE_DEVICE");
+
    _schedConf.config( cfg );
    _pmInterface->config( cfg );
 
@@ -439,6 +443,17 @@ void System::start ()
       }
    }
 #endif
+
+   if ( !_defDeviceName.empty() ) 
+   {
+       PEList::iterator it;
+       for ( it = _pes.begin() ; it != _pes.end(); it++ )
+       {
+           pe = *it;
+           if ( _defDeviceName == pe->getDeviceType()->getName()  )
+             _defDevice = pe->getDeviceType();
+       }
+   }
 
    switch ( getInitialMode() )
    {
@@ -1066,6 +1081,10 @@ void System::setupWD ( WD &work, WD *parent )
    // Invoke pmInterface
    
    _pmInterface->setupWD(work);
+
+   if ( _defDevice != NULL && !work.hasActiveDevice() ) {
+         work.activateDevice(*_defDevice);
+   }
 }
 
 void System::submit ( WD &work )
