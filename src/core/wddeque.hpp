@@ -32,12 +32,10 @@ inline bool WDDeque::empty ( void ) const
 {
    return _dq.empty();
 }
-
 inline size_t WDDeque::size() const
 {
    return _dq.size();
 }
-
 
 inline void WDDeque::push_front ( WorkDescriptor *wd )
 {
