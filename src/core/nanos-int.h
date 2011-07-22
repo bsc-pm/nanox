@@ -121,6 +121,7 @@ typedef struct {
    bool last;
    int chunk;
    int stride;
+   int thid;
    void *args;
 } nanos_loop_info_t;
 

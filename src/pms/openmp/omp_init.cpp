@@ -65,7 +65,7 @@ namespace nanos
             if ( ssCompatibility != NULL ) {
                // Enable Ss compatibility mode
                sys.setInitialMode( System::POOL );
-               sys.setUntieMaster(true);
+               sys.setUntieMaster(false);
             } else {
                sys.setInitialMode( System::ONE_THREAD );
                sys.setUntieMaster(false);
