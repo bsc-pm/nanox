@@ -74,7 +74,7 @@ size_t SimpleAllocator::free( void *address )
 
    _allocatedChunks.erase( mapIter );
 
-   if ( _freeChunks.size() > 0 ) {
+   if ( !_freeChunks.empty() ) {
       mapIter = _freeChunks.lower_bound( ( uint64_t ) address );
 
       //case where address is the highest key, check if it can be merged with the previous chunk

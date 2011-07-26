@@ -209,15 +209,13 @@ namespace nanos {
          }
          if ( wd == NULL ) {
             for ( unsigned int i = data._cacheId; i < sys.getCacheMap().getSize(); i++ ) {
-//               if ( tdata._readyQueues[i+1].size() > 1 ) {
-               if ( tdata._readyQueues[i+1].size() > 0 ) {
+               if ( !tdata._readyQueues[i+1].empty() ) {
                   wd = tdata._readyQueues[i+1].pop_front( thread );
                   return wd;
                } 
             }
             for ( unsigned int i = 0; i < data._cacheId; i++ ) {
-//               if ( tdata._readyQueues[i+1].size() > 1 ) {
-               if ( tdata._readyQueues[i+1].size() > 0 ) {
+               if ( !tdata._readyQueues[i+1].empty() ) {
                   wd = tdata._readyQueues[i+1].pop_front( thread );
                   return wd;
                } 
@@ -253,14 +251,12 @@ namespace nanos {
          if ( wd == NULL ) {
             for ( unsigned int i = data._cacheId; i < sys.getCacheMap().getSize(); i++ ) {
                if ( tdata._readyQueues[i+1].size() > 1 ) {
-//               if ( tdata._readyQueues[i+1].size() > 0 ) {
                   wd = tdata._readyQueues[i+1].pop_front( thread );
                   return wd;
                } 
             }
             for ( unsigned int i = 0; i < data._cacheId; i++ ) {
-               if ( tdata._readyQueues[i+1].size() > 1 ) {
-//               if ( tdata._readyQueues[i+1].size() > 0 ) {
+               if ( tdata._readyQueues[i+1].size() > 1 ) { 
                   wd = tdata._readyQueues[i+1].pop_front( thread );
                   return wd;
                } 

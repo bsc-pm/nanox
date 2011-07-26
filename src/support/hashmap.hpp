@@ -162,7 +162,7 @@ template <typename _KeyType, typename _T, bool _invalidate, size_t _tsize, typen
 void HashMap<_KeyType,_T,_invalidate,_tsize,_HashFunction>::flush( ItemList& removedItems )
 {
    for (size_t i=0; i < _tsize; i++) {
-      while ( _table[i].size() > 0 ) {
+      while ( !_table[i].empty() ) {
          removedItems.add(_table[i].front());
          _table[i].pop_front();
       }

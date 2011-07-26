@@ -92,7 +92,8 @@ inline void * Allocator::allocateBigObject ( size_t size )
 
    ptr = (ObjectHeader *) malloc( size + _headerSize );
    ptr->_arena = NULL; 
-   return ptr;
+
+   return  ((char *) ptr ) + _headerSize;
 }
 
 inline void * Allocator::allocate ( size_t size, const char* file, int line )

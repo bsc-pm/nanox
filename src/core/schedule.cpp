@@ -230,6 +230,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    unsigned long total_yields = 0; /* Number of yields by idle phase */
    unsigned long time_sleeps = 0;  /* Time of sleeps by idle phase */
    unsigned long time_yields = 0;  /* Time of yields by idle phase */
+   bool inlineWD;
 
    WD * current = myThread->getCurrentWD();
 
@@ -252,8 +253,10 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
             if ( next) {
                myThread->resetNextWD();
+               inlineWD = true;
             } else if ( sys.getSchedulerStats()._readyTasks > 0 ) {
                next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
+               inlineWD = false;
             }
 
             if ( next ) {
@@ -267,8 +270,16 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(3, Keys, Values); )
 
                NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME); );
-               switchTo ( next );
+
+               if ( inlineWD ){
+                  Scheduler::inlineWork ( next, false );
+               }
+               else {
+                  switchTo ( next );
+               }
+
                thread = getMyThreadSafe();
+
                NANOS_INSTRUMENT( inst2.close() );
 
                total_spins = 0;
@@ -357,8 +368,9 @@ struct WorkerBehaviour
 
    static void switchWD ( BaseThread *thread, WD *current, WD *next )
    {
-      if (next->started())
+      if (next->started()){
         Scheduler::switchTo(next);
+      }
       else {
         Scheduler::inlineWork ( next, true );
         delete next;
@@ -379,9 +391,7 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    WD *oldwd = thread->getCurrentWD();
 
    GenericSyncCond *syncCond = oldwd->getSyncCond();
-   if ( syncCond != NULL ) {
-      syncCond->unlock();
-   }
+   if ( syncCond != NULL ) syncCond->unlock();
 
    debug( "switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
           " to " << wd << ":" << wd->getId() );
@@ -391,9 +401,9 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
 
    // This ensures that when we return from the inlining is still the same thread
    // and we don't violate rules about tied WD
-   wd->tieTo(*oldwd->isTiedTo());
-   if (!wd->started())
-      wd->init();
+   if ( wd->isTiedTo() == NULL ) wd->tieTo(*oldwd->isTiedTo());
+
+   if (!wd->started()) wd->init();
    thread->setCurrentWD( *wd );
 
    /* Instrumenting context switch: wd enters cpu (last = n/a) */
@@ -401,7 +411,8 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
 
    thread->inlineWorkDependent(*wd);
 
-   // reload thread after running WD
+   // reload thread after running WD due wd may be not tied to thread if
+   // both work descriptor were not tied to any thread
    thread = getMyThreadSafe();
 
    if (schedule) {
