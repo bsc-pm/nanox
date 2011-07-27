@@ -17,58 +17,13 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _CLUSTER_DEVICE
-#define _CLUSTER_DEVICE
+#ifndef _NANOS_GPU_PROCESSOR_DECL
+#define _NANOS_GPU_PROCESSOR_DECL
 
-#include "workdescriptor_decl.hpp"
-#include "copydescriptor_decl.hpp"
+#include <cuda.h>
 
-namespace nanos
-{
-   namespace ext
-   {
-
-
-/* \brief Device specialization for cluster architecture
- * provides functions to allocate and copy data in the device
- */
-
-   class ClusterDevice : public Device
-   {
-      public:
-         /*! \brief ClusterDevice constructor
-          */
-         ClusterDevice ( const char *n ) : Device ( n ) {}
-
-         /*! \brief ClusterDevice copy constructor
-          */
-         ClusterDevice ( const ClusterDevice &arch ) : Device ( arch ) {}
-
-         /*! \brief ClusterDevice destructor
-          */
-         ~ClusterDevice() { }
-
-
-         static void * allocate( size_t size, ProcessingElement *pe );
-         static void free( void *address, ProcessingElement *pe );
-         static void * realloc( void *address, size_t newSize, size_t oldSize, ProcessingElement *pe );
-
-         static bool copyDevToDev( void * addrDst, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc );
-         static bool copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, ProcessingElement *pe );
-         static bool copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size, ProcessingElement *pe );
-
-         static void copyLocal( void *dst, void *src, size_t size, ProcessingElement *pe )
-         {
-            // Do not allow local copies in cluster memory
-         }
-
-         static void syncTransfer ( uint64_t addr, ProcessingElement *pe);
-   };
-
-   extern ClusterDevice Cluster;
-
-}
-}
-
+#if CUDA_VERSION <= 3020
+#define NANOS_GPU_USE_CUDA32
+#endif
 
 #endif

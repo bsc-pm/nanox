@@ -50,7 +50,7 @@ namespace nanos
          // constants
          typedef enum { DEDICATED, SHARED } ExecutionMode;
          typedef enum { POOL, ONE_THREAD } InitialMode;
-         typedef enum { WRITE_THROUGH, WRITE_BACK, DEFAULT } CachePolicyType;
+         typedef enum { NONE, WRITE_THROUGH, WRITE_BACK, DEFAULT } CachePolicyType;
          typedef Config::MapVar<CachePolicyType> CachePolicyConfig;
 
          typedef void (*Init) ();
@@ -129,6 +129,8 @@ namespace nanos
          // Programming model interface
          PMInterface *        _pmInterface;
 
+         // Enable or disable the use of caches
+         bool                 _useCaches;
          // General cache policy (if not specifically redefined for a certain architecture)
          CachePolicyType      _cachePolicy;
          // CacheMap register
@@ -286,6 +288,7 @@ namespace nanos
 
          void setPMInterface (PMInterface *_pm);
          PMInterface & getPMInterface ( void ) const;
+         bool isCacheEnabled();
          CachePolicyType getCachePolicy();
          CacheMap& getCacheMap();
 

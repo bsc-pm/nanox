@@ -35,6 +35,9 @@ void CachedAccelerator<CacheDevice>::configureCache( int cacheSize, System::Cach
       _cache = NEW DeviceCache<CacheDevice>( cacheSize, NULL, this );
 
    switch ( cachePolicy ) {
+      case System::NONE:
+         _cachePolicy = NEW NoCache( *_cache );
+         break;
       case System::WRITE_THROUGH:
          _cachePolicy = NEW WriteThroughPolicy( *_cache );
          break;

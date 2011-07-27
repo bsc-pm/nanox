@@ -28,47 +28,6 @@ using namespace nanos;
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 
-inline void InstrumentationContext::pushState ( InstrumentationContextData *icd, nanos_event_state_value_t state )
-{
-   if ( icd->_stateEventEnabled ) icd->_stateStack.push_back( state );
-   else icd->_subStateStack.push_back ( state );
-}
-
-inline void InstrumentationContext::popState ( InstrumentationContextData *icd )
-{
-   if ( (icd->_stateEventEnabled ) && !(icd->_stateStack.empty()) ) icd->_stateStack.pop_back();
-   else if ( !(icd->_subStateStack.empty()) ) icd->_subStateStack.pop_back();
-}
-
-inline nanos_event_state_value_t InstrumentationContext::topState ( InstrumentationContextData *icd )
-{
-   if ( (icd->_stateEventEnabled) && !(icd->_stateStack.empty()) ) return icd->_stateStack.back();
-   else if ( !(icd->_subStateStack.empty()) ) return icd->_subStateStack.back();
-   else return NANOS_ERROR;
-}
-
-inline nanos_event_state_value_t InstrumentationContext::getState ( InstrumentationContextData *icd )
-{
-   if ( !(icd->_stateStack.empty()) ) return icd->_stateStack.back();
-   else return NANOS_ERROR;
-}
-
-inline nanos_event_state_value_t InstrumentationContext::getSubState ( InstrumentationContextData *icd )
-{
-   if ( !(icd->_subStateStack.empty()) ) return icd->_subStateStack.back();
-   else return NANOS_ERROR;
-}
-
-inline size_t InstrumentationContext::getStateStackSize ( InstrumentationContextData *icd )
-{
-   return (size_t) icd->_stateStack.size();
-}
-
-inline size_t InstrumentationContext::getSubStateStackSize ( InstrumentationContextData *icd )
-{
-   return (size_t) icd->_subStateStack.size();
-}
-
 inline bool InstrumentationContext::findBurstByKey ( InstrumentationContextData *icd, nanos_event_key_t key,
                                                      InstrumentationContextData::BurstIterator &ret )
 {
@@ -78,14 +37,9 @@ inline bool InstrumentationContext::findBurstByKey ( InstrumentationContextData 
    for ( it = icd->_burstList.begin() ; !found && (it != icd->_burstList.end()) ; it++ ) {
       Instrumentation::Event::ConstKVList kvlist = (*it).getKVs();
       if ( kvlist[0].first == key  ) { ret = it; found = true;}
-   }
+  }
 
    return found;
-}
-
-inline size_t InstrumentationContext::getNumBursts( InstrumentationContextData *icd ) const
-{
-   return icd->_burstList.size();
 }
 
 inline InstrumentationContextData::ConstBurstIterator InstrumentationContext::beginBurst( InstrumentationContextData *icd ) const
@@ -126,40 +80,9 @@ inline InstrumentationContextData::EventIterator InstrumentationContext::endDefe
    return icd->_deferredEvents.end();
 }
 
-inline InstrumentationContextData::ConstStateIterator InstrumentationContext::beginState( InstrumentationContextData *icd ) const
-{
-   return icd->_stateStack.begin();
-}
-
-inline InstrumentationContextData::ConstStateIterator InstrumentationContext::endState( InstrumentationContextData *icd ) const
-{
-   return icd->_stateStack.end();
-}
-
-inline InstrumentationContextData::ConstStateIterator InstrumentationContext::beginSubState( InstrumentationContextData *icd ) const
-{
-   return icd->_subStateStack.begin();
-}
-
-inline InstrumentationContextData::ConstStateIterator InstrumentationContext::endSubState( InstrumentationContextData *icd ) const
-{
-   return icd->_subStateStack.end();
-}
-
-inline void InstrumentationContext::disableStateEvents ( InstrumentationContextData *icd )
-{
-   icd->_stateEventEnabled = false;
-}
-
-inline void InstrumentationContext::enableStateEvents ( InstrumentationContextData *icd )
-{
-   icd->_stateEventEnabled = true;
-}
-
-inline bool InstrumentationContext::isStateEventEnabled ( InstrumentationContextData *icd )
-{
-   return icd->_stateEventEnabled;
-}
+inline void InstrumentationContext::disableStateEvents ( InstrumentationContextData *icd ) { icd->_stateEventEnabled = false; }
+inline void InstrumentationContext::enableStateEvents ( InstrumentationContextData *icd ) { icd->_stateEventEnabled = true; }
+inline bool InstrumentationContext::isStateEventEnabled ( InstrumentationContextData *icd ) { return icd->_stateEventEnabled; }
 
 #endif
 

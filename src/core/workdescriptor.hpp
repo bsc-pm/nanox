@@ -174,10 +174,10 @@ inline void WorkDescriptor::waitCompletion( bool avoidFlush )
       _directory->synchronizeHost();
 }
 
-inline void WorkDescriptor::waitCompletionAndSignalers()
+inline void WorkDescriptor::waitCompletionAndSignalers( bool avoidFlush )
 {
    this->WorkGroup::waitCompletionAndSignalers();
-   if ( _directory.isInitialized() )
+   if ( _directory.isInitialized() && !avoidFlush )
       _directory->synchronizeHost();
 }
 

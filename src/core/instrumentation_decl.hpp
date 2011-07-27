@@ -600,6 +600,10 @@ namespace nanos {
           */
          virtual void threadFinish ( BaseThread &thread ) = 0;
 
+         virtual void addResumeTask( WorkDescriptor &w ) = 0 ;
+
+         virtual void addSuspendTask( WorkDescriptor &w, bool last = false ) = 0 ;
+         
          /*! \brief Pure virtual functions executed each time runtime wants to add an event
           *
           *  Each of (specific) instrumentation modules have to implement this function in order
@@ -646,13 +650,13 @@ namespace nanos {
           *  \param[in,out] e is an event reference, preallocated by the caller
           *  \param[in] state is the state value for the event
           */
-         void createStateEvent ( Event *e, nanos_event_state_value_t state );
+         void createStateEvent ( Event *e, nanos_event_state_value_t state, InstrumentationContextData *icd = NULL );
 
          /*! \brief Used by higher levels to create a STATE event (value will be previous state in instrumentation context info) 
           *
           *  \param[in,out] e is an event reference, preallocated by the caller
           */
-         void returnPreviousStateEvent ( Event *e );
+         void returnPreviousStateEvent ( Event *e, InstrumentationContextData *icd = NULL );
 
          /*! \brief Used by higher levels to create a POINT (punctual) event
           *

@@ -17,58 +17,25 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _CLUSTER_DEVICE
-#define _CLUSTER_DEVICE
+#ifndef _NANOS_GPU_H_
+#define _NANOS_GPU_H_
 
-#include "workdescriptor_decl.hpp"
-#include "copydescriptor_decl.hpp"
+#include <cuda_runtime.h>
+#include <vector_types.h>
 
-namespace nanos
-{
-   namespace ext
-   {
+#ifdef __cplusplus
+extern "C" {
+#endif
 
+   // gpu factory
+void * nanos_gpu_factory( void *prealloc ,void *args);
+extern const size_t nanos_gpu_dd_size;
+#define NANOS_GPU_DESC( args ) { nanos_gpu_factory, nanos_gpu_dd_size, &( args ) }
 
-/* \brief Device specialization for cluster architecture
- * provides functions to allocate and copy data in the device
- */
+cudaStream_t nanos_get_kernel_execution_stream();
 
-   class ClusterDevice : public Device
-   {
-      public:
-         /*! \brief ClusterDevice constructor
-          */
-         ClusterDevice ( const char *n ) : Device ( n ) {}
-
-         /*! \brief ClusterDevice copy constructor
-          */
-         ClusterDevice ( const ClusterDevice &arch ) : Device ( arch ) {}
-
-         /*! \brief ClusterDevice destructor
-          */
-         ~ClusterDevice() { }
-
-
-         static void * allocate( size_t size, ProcessingElement *pe );
-         static void free( void *address, ProcessingElement *pe );
-         static void * realloc( void *address, size_t newSize, size_t oldSize, ProcessingElement *pe );
-
-         static bool copyDevToDev( void * addrDst, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc );
-         static bool copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, ProcessingElement *pe );
-         static bool copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size, ProcessingElement *pe );
-
-         static void copyLocal( void *dst, void *src, size_t size, ProcessingElement *pe )
-         {
-            // Do not allow local copies in cluster memory
-         }
-
-         static void syncTransfer ( uint64_t addr, ProcessingElement *pe);
-   };
-
-   extern ClusterDevice Cluster;
-
+#ifdef __cplusplus
 }
-}
-
+#endif
 
 #endif

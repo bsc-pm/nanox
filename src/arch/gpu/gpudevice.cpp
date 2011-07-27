@@ -230,3 +230,29 @@ void GPUDevice::copyOutAsyncToHost ( void * dst, void * src, size_t size )
    SMPDevice::copyLocal( dst, src, size, NULL );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 }
+
+// TODO: Consider implementing the asynchronous version, too
+bool GPUDevice::copyDevToDev( void * addrDst, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc )
+{
+#ifndef NANOS_GPU_USE_CUDA32
+//   fatal_cond( peDst->getDeviceType().getName() != peSrc->getDeviceType().getName(),
+//         "Do not know how to copy between different devices: from " +  peSrc->getDeviceType().getName()
+//         + " to " + peDst->getDeviceType().getName() );
+
+   nanos::ext::GPUProcessor * gpuDst = ( nanos::ext::GPUProcessor * ) peDst;
+   nanos::ext::GPUProcessor * gpuSrc = ( nanos::ext::GPUProcessor * ) peSrc;
+
+   gpuSrc->transferDevice( size );
+
+   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MEMCOPY_TO_DEVICE_EVENT );
+   cudaError_t err = cudaMemcpyPeer( addrDst, gpuDst->getDeviceId(), addrSrc, gpuSrc->getDeviceId(), size );
+   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
+   fatal_cond( err != cudaSuccess, "Trying to copy " + toString<size_t>( size )
+         + " bytes of data from device #" + toString<int>( gpuSrc->getDeviceId() ) + " (" + toString<void *>( addrSrc )
+         + ") to device #" + toString<int>( gpuDst->getDeviceId() ) + " ("
+         + toString<void *>( addrDst ) + ") with cudaMemcpy*(): " + cudaGetErrorString( err ) );
+#endif
+   return true;
+}
+

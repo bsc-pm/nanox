@@ -353,7 +353,7 @@ void GASNetAPI::amMalloc( gasnet_token_t token, gasnet_handlerarg_t sizeLo, gasn
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
    }
    addr = std::malloc( ( std::size_t ) size );
-   std::cerr<<"Malloc size " << size << " returns "<<addr<<std::endl;
+   //std::cerr<<"Malloc size " << size << " returns "<<addr<<std::endl;
    if ( addr == NULL )
    {
       message0 ( "I could not allocate " << (std::size_t) size << " (sizeof std::size_t is " << sizeof(std::size_t) << " ) " << (void *) size << " bytes of memory on node " << gasnet_mynode() << ". Try setting NX_CLUSTER_NODE_MEMORY to a lower value." );
@@ -724,7 +724,6 @@ void GASNetAPI::initialize ( Network *net )
 
    nodeBarrier();
 
-   if ( _net->getNodeNum() == 0)
    {
       unsigned int i;
       char myHostname[256];
@@ -732,12 +731,16 @@ void GASNetAPI::initialize ( Network *net )
       {
          fprintf(stderr, "os: Error getting the hostname.\n");
       }
+	//message0("Node " << _net->getNodeNum() << " running " << myHostname );
 
-      sys.getNetwork()->setMasterHostname( (char *) myHostname );
-
-      for ( i = 1; i < _net->getNumNodes() ; i++ )
+      if ( _net->getNodeNum() == 0)
       {
-         sendMyHostName( i );
+	      sys.getNetwork()->setMasterHostname( (char *) myHostname );
+
+	      for ( i = 1; i < _net->getNumNodes() ; i++ )
+	      {
+		      sendMyHostName( i );
+	      }
       }
    }
 
@@ -1080,7 +1083,7 @@ void GASNetAPI::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteA
 
 void GASNetAPI::malloc ( unsigned int remoteNode, std::size_t size, void * waitObjAddr )
 {
-   message0("Requesting alloc of " << size << " bytes (" << (void *) size << ") to node " << remoteNode );
+   //message0("Requesting alloc of " << size << " bytes (" << (void *) size << ") to node " << remoteNode );
    if (gasnet_AMRequestShort4( remoteNode, 207,
             ARG_LO( size ), ARG_HI( size ),
             ARG_LO( waitObjAddr ), ARG_HI( waitObjAddr ) ) != GASNET_OK)

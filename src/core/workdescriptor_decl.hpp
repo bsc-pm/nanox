@@ -453,7 +453,7 @@ namespace nanos
          Directory* getDirectory(bool create=false);
 
          virtual void waitCompletion( bool avoidFlush = false );
-         virtual void waitCompletionAndSignalers();
+         virtual void waitCompletionAndSignalers( bool avoidFlush = false);
 
          bool isSubmitted( void ) const;
          void submitted( void );

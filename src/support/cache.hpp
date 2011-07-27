@@ -435,7 +435,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                   // First approach, always copy back if size didn't match
                   if ( ce->isDirty() ) {
                      // invalidate in its own cache
-                     _cache.invalidate( dir, tag, ce->getSize(), de );
+                     _cache.invalidateAndFlush( dir, tag, ce->getSize(), de );
                      // synchronize invalidation
                      _cache.syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
                      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_163 ); )
@@ -460,7 +460,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
 #if 1 /* No SlaveToSlave */
                         if ( owner != NULL ) {
                            // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
-                           owner->invalidate( dir, tag, size, de );
+                           owner->invalidateAndFlush( dir, tag, size, de );
                            owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
                            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_185 ); )
                            {
@@ -519,7 +519,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                // First approach, always copy back if size didn't match
                if ( ce->isDirty() ) {
                   // invalidate in its own cache
-                  _cache.invalidate( dir, tag, ce->getSize(), de );
+                  _cache.invalidateAndFlush( dir, tag, ce->getSize(), de );
                   // synchronize invalidation
                   _cache.syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
                   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_221 ); )
@@ -559,7 +559,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                         ensure( &_cache != owner, "Trying to invalidate myself" );
                         if ( owner != NULL ) {
                            // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
-                           owner->invalidate( dir, tag, size, de );
+                           owner->invalidateAndFlush( dir, tag, size, de );
                            owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
                            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_260 ); )
                            {
@@ -595,7 +595,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                   //std::cerr << "n:" << sys.getNetwork()->getNodeNum() << " Versions differ, invalidating owner, tag is " << (void *) tag << " " << std::endl;  
                   if ( owner != NULL ) {
                      // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
-                     owner->invalidate( dir, tag, size, de );
+                     owner->invalidateAndFlush( dir, tag, size, de );
                      owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
                      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_292 ); )
                      {
@@ -608,7 +608,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
 
                   // Wait while it's resizing
                   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_300 ); )
-                  while ( ce-> isResizing() ) {}
+                  while ( ce->isResizing() ) {}
                   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
 
 
@@ -722,13 +722,13 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                ce->setVersion( de->getVersion() );
             }
          }
-         if (output) {
-            de->setOwner(&_cache);
-            de->setInvalidated(false);
+         if ( output ) {
+            de->setOwner( &_cache );
+            de->setInvalidated( false );
             de->increaseVersion();
             ce->increaseVersion();
             ce->setFlushTo( &dir );
-            ensure( de->getVersion() == ce->getVersion(), "Version mismatch between cache and directory entry.");
+            ensure( de->getVersion() == ce->getVersion(), "Version mismatch between cache and directory entry." );
          }
       }
    }
@@ -779,6 +779,44 @@ inline void CachePolicy::unregisterPrivateAccess( Directory &dir, uint64_t tag, 
    _cache.deleteEntry( tag, size );
 }
 
+inline void NoCache::registerCacheAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
+{
+   bool inserted;
+   CacheEntry c =  CacheEntry( NULL, size, tag, 0, output, input );
+   CacheEntry& ce = _cache.insert( tag, c, inserted );
+   // TODO: The ensure is activated... why?
+   //ensure ( inserted, "Private access cannot hit the cache.");
+   ce.setAddress( _cache.allocate( dir, size ) );
+   ce.setAllocSize( size );
+   if ( input ) {
+      CopyDescriptor cd = CopyDescriptor( tag );
+      _cache.copyDataToCache( cd, size );
+      ce.setCopying( false );
+   }
+}
+
+inline void NoCache::unregisterCacheAccess( Directory& dir, uint64_t tag, size_t size, bool output )
+{
+   if ( output ) {
+      CopyDescriptor cd = CopyDescriptor( tag );
+      _cache.copyBackFromCache( cd, size );
+   }
+
+   _cache.deleteEntry( tag, size );
+}
+
+inline void NoCache::registerPrivateAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
+{
+   registerCacheAccess( dir, tag, size, input, output );
+}
+
+inline void NoCache::unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size )
+{
+   CacheEntry *ce = _cache.getEntry( tag );
+   ensure ( ce != NULL, "Private access cannot miss in the cache.");
+   unregisterCacheAccess( dir, tag, size, ce->isDirty() );
+}
+
 inline void WriteThroughPolicy::unregisterCacheAccess( Directory& dir, uint64_t tag, size_t size, bool output )
 {
    CacheEntry *ce = _cache.getEntry( tag );
@@ -825,6 +863,12 @@ inline void DeviceCache<_T>::setPolicy( CachePolicy * policy )
 template <class _T>
 inline size_t DeviceCache<_T>::getSize()
    { return _size; }
+
+template <class _T>
+ProcessingElement * DeviceCache<_T>::getPE()
+{
+   return _pe;
+}
 
 template <class _T>
 inline void * DeviceCache<_T>::allocate( Directory &dir, size_t size )
@@ -938,13 +982,13 @@ inline void * DeviceCache<_T>::getAddress( uint64_t tag )
 }
 
 template <class _T>
-inline bool DeviceCache<_T>::copyToCacheFromCache( void *addrSrc, size_t size, Cache &dest, void *addrDest )
+inline bool DeviceCache<_T>::copyToCacheFromCache( void *addrSrc, size_t size, Cache &src, void *addrDest )
 {
    bool result;
-   DeviceCache< _T > *dstCache = dynamic_cast<DeviceCache< _T > *>(&dest);
+   DeviceCache< _T > *srcCache = dynamic_cast<DeviceCache< _T > *>(&src);
    NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_IN, key, (nanos_event_value_t) size) );
-   result = _T::copyDevToDev( addrSrc, size, _pe, dstCache->_pe, addrDest );
+   result = _T::copyDevToDev( addrDest, addrSrc, size, _pe, srcCache->getPE() );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
    return result;
 }
@@ -1151,6 +1195,12 @@ inline void DeviceCache<_T>::discard( Directory &dir, uint64_t tag, DirectoryEnt
    }
 } 
 
+//template <class _T>
+//inline void DeviceCache<_T>::invalidate( Directory &dir, uint64_t tag, DirectoryEntry *de )
+//{
+//  de->trySetInvalidated();
+//}
+
 template <class _T>
 inline void DeviceCache<_T>::invalidate( Directory &dir, uint64_t tag, DirectoryEntry *de )
 {
@@ -1192,6 +1242,46 @@ inline void DeviceCache<_T>::invalidate( Directory &dir, uint64_t tag, size_t si
 }
 
 template <class _T>
+inline void DeviceCache<_T>::invalidateAndFlush( Directory &dir, uint64_t tag, DirectoryEntry *de )
+{
+   CacheEntry *ce = _cache.find( tag );
+   if ( de->trySetInvalidated() ) {
+      if ( ce->trySetToFlushing() ) {
+         if ( de->getOwner() != this ) {
+               // someone flushed it between setting to invalidated and setting to flushing, do nothing
+               ce->setFlushing(false);
+         } else {
+            CopyDescriptor cd = CopyDescriptor(tag, de->getVersion());
+            if ( copyBackFromCache( cd, ce->getSize() ) ) {
+               ce->setFlushing(false);
+               de->setOwner(NULL);
+            }
+         }
+      }
+   }
+} 
+
+template <class _T>
+inline void DeviceCache<_T>::invalidateAndFlush( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de )
+{
+   CacheEntry *ce = _cache.find( tag );
+   if ( de->trySetInvalidated() ) {
+      if ( ce->trySetToFlushing() ) {
+         if ( de->getOwner() != this ) {
+               // someone flushed it between setting to invalidated and setting to flushing, do nothing
+               ce->setFlushing(false);
+         } else {
+            CopyDescriptor cd = CopyDescriptor(tag, de->getVersion());
+            if ( copyBackFromCache( cd, size ) ) {
+               ce->setFlushing(false);
+               de->setOwner(NULL);
+            }
+         }
+      }
+   }
+}
+
+template <class _T>
 inline void DeviceCache<_T>::nNoinvalidateAndTransfer( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de, Cache &dest, void *addrDest )
 {
    CacheEntry *ce = _cache.find( tag );
@@ -1201,7 +1291,7 @@ inline void DeviceCache<_T>::nNoinvalidateAndTransfer( Directory &dir, uint64_t 
 		   ce->setFlushing(false);
 	   } else {
 		   CopyDescriptor cd = CopyDescriptor(tag, de->getVersion());
-		   if ( copyToCacheFromCache( ce->getAddress(), size, dest, addrDest ) ) {
+		   if ( dest.copyToCacheFromCache( ce->getAddress(), size, *this, addrDest ) ) {
 			   ce->setFlushing(false);
 			   ce->setCopying(false);
 		   }
@@ -1220,7 +1310,7 @@ inline void DeviceCache<_T>::invalidateAndTransfer( Directory &dir, uint64_t tag
                ce->setFlushing(false);
          } else {
             CopyDescriptor cd = CopyDescriptor(tag, de->getVersion());
-            if ( copyToCacheFromCache( ce->getAddress(), size, dest, addrDest ) ) {
+            if ( dest.copyToCacheFromCache( ce->getAddress(), size, *this, addrDest ) ) {
                ce->setFlushing(false);
                ce->setCopying(false);
                de->setOwner(NULL);
@@ -1246,12 +1336,6 @@ template <class _T>
 int DeviceCache<_T>::getReferences( unsigned int tag )
 {
    return _cache.getReferenceCount( tag );
-}
-
-template <class _T>
-ProcessingElement * DeviceCache<_T>::getPE()
-{
-   return _pe;
 }
 
 #endif

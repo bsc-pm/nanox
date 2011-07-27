@@ -16,6 +16,29 @@
 #include <libgen.h>
 #include "os.hpp"
 
+#ifndef EXTRAE_VERSION
+/* Once Extrae 2.2.0 has been published this option must be an error: see #525 */
+//#  error Extrae library version is not supported (use >= 2.2.0)
+//#  undef NANOS_INSTRUMENTATION_ENABLED
+#      define extrae_combined_events_t struct extrae_CombinedEvents
+#      define extrae_type_t unsigned
+#      define extrae_value_t unsigned
+#      define extrae_user_communication_t struct extrae_UserCommunication
+#      define extrae_size_t int
+#      define NANOX_EXTRAE_DISCARD_SUSPEND
+#      define NANOX_EXTRAE_DISCARD_RESUME
+#      define NANOX_EXTRAE_STACKED_CONTEXT_SWITCH
+#else
+#  if EXTRAE_VERSION_MAJOR(EXTRAE_VERSION) == 2
+#    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 2 /* version 2.2.x */
+#      define extrae_size_t unsigned int
+#      define NANOX_EXTRAE_DISCARD_THREAD_NAME
+#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 0 /* version 2.2.0 */
+#      endif
+#    endif
+#  endif
+#endif
+
 extern "C" {
    unsigned int nanos_ompitrace_get_max_threads ( void );
    unsigned int nanos_ompitrace_get_thread_num ( void );
@@ -35,7 +58,8 @@ class InstrumentationExtrae: public Instrumentation
 #ifndef NANOS_INSTRUMENTATION_ENABLED
    public:
       // constructor
-      InstrumentationExtrae( ): Instrumentation( ) {}
+      InstrumentationExtrae( ) : Instrumentation() {}
+
       // destructor
       ~InstrumentationExtrae() {}
 
@@ -43,6 +67,8 @@ class InstrumentationExtrae: public Instrumentation
       void initialize( void ) {}
       void finalize( void ) {}
       void addEventList ( unsigned int count, Event *events ) {}
+      void addResumeTask( WorkDescriptor &w ) {}
+      void addSuspendTask( WorkDescriptor &w ) {}
       void threadStart( BaseThread &thread ) {}
       void threadFinish ( BaseThread &thread ) {}
 #else
@@ -62,7 +88,11 @@ class InstrumentationExtrae: public Instrumentation
       static bool                                    _skipMerge; /*<< Skip merge phase and keeps mpits temporary files (default = no)*/
    public:
       // constructor
+#ifdef NANOX_EXTRAE_STACKED_CONTEXT_SWITCH
       InstrumentationExtrae ( ) : Instrumentation( *NEW InstrumentationContextStackedStatesAndBursts() ) {}
+#else
+      InstrumentationExtrae ( ) : Instrumentation( *NEW InstrumentationContextDisabled() ) {}
+#endif
       // destructor
       ~InstrumentationExtrae ( ) { }
 
@@ -143,7 +173,7 @@ class InstrumentationExtrae: public Instrumentation
             p_file << "9    " << _eventState  << "    Thread state: " << std::endl;
             p_file << "VALUES" << std::endl;
             p_file << NANOS_NOT_CREATED      << "     NOT CREATED" << std::endl;
-            p_file << NANOS_NOT_TRACED       << "     NOT TRACED" << std::endl;
+            p_file << NANOS_NOT_RUNNING      << "     NOT RUNNING" << std::endl;
             p_file << NANOS_STARTUP          << "     STARTUP" << std::endl;
             p_file << NANOS_SHUTDOWN         << "     SHUTDOWN" << std::endl;
             p_file << NANOS_ERROR            << "     ERROR" << std::endl;
@@ -177,8 +207,8 @@ class InstrumentationExtrae: public Instrumentation
             p_file << "EVENT_TYPE" << std::endl;
             p_file << "9    " << _eventSubState  << "    Thread sub-state: " << std::endl;
             p_file << "VALUES" << std::endl;
-            p_file << NANOS_NOT_CREATED      << "     NOT_CREATED" << std::endl;
-            p_file << NANOS_NOT_TRACED       << "     NOT TRACED" << std::endl;
+            p_file << NANOS_NOT_CREATED      << "     NOT CREATED" << std::endl;
+            p_file << NANOS_NOT_RUNNING      << "     NOT RUNNING" << std::endl;
             p_file << NANOS_STARTUP          << "     STARTUP" << std::endl;
             p_file << NANOS_SHUTDOWN         << "     SHUTDOWN" << std::endl;
             p_file << NANOS_ERROR            << "     ERROR" << std::endl;
@@ -234,6 +264,7 @@ class InstrumentationExtrae: public Instrumentation
 
       void modifyParaverRowFile()
       {
+#ifndef NANOX_EXTRAE_DISCARD_THREAD_NAME
          unsigned int num_threads = sys.getNumWorkers();
          // Writing paraver config 
          std::fstream p_file;
@@ -252,6 +283,7 @@ class InstrumentationExtrae: public Instrumentation
             p_file.close();
          }
          else message0("Unable to open paraver config file");  
+#endif
       }
 
       void removeTemporaryFiles()
@@ -524,13 +556,13 @@ class InstrumentationExtrae: public Instrumentation
          {
             copyFilesToMaster();
          }
-         //modifyParaverConfigFile();
-         //removeTemporaryFiles();
+         modifyParaverConfigFile();
+         removeTemporaryFiles();
       }
 
       void addEventList ( unsigned int count, Event *events) 
       {
-         struct extrae_CombinedEvents ce;
+         extrae_combined_events_t ce;
          InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
 
          ce.HardwareCounters = 1;
@@ -562,9 +594,9 @@ class InstrumentationExtrae: public Instrumentation
             }
          }
 
-         ce.Types = (unsigned int *) alloca (ce.nEvents * sizeof (unsigned int));
-         ce.Values = (unsigned int *) alloca (ce.nEvents * sizeof (unsigned int));
-         ce.Communications = (struct extrae_UserCommunication *) alloca (ce.nCommunications * sizeof (struct extrae_UserCommunication));
+         ce.Types = (extrae_type_t *) alloca (ce.nEvents * sizeof (extrae_type_t));
+         ce.Values = (extrae_value_t *) alloca (ce.nEvents * sizeof (extrae_type_t));
+         ce.Communications = (extrae_user_communication_t *) alloca (ce.nCommunications * sizeof ( extrae_user_communication_t));
 
          int j = 0; int k = 0;
          Event::ConstKVList kvs = NULL;
@@ -645,9 +677,9 @@ class InstrumentationExtrae: public Instrumentation
          // if showing stacked burst is false remove duplicates
          if ( !_instrumentationContext.showStackedBursts() ) {
             int rmValues = 0;
-            for ( int i = 0; i < ce.nEvents; i++ )
+            for ( extrae_size_t i = 0; i < ce.nEvents; i++ )
             {
-               for ( int jj = i+1; jj < ce.nEvents; jj++ )
+               for ( extrae_size_t jj = i+1; jj < ce.nEvents; jj++ )
                {
                   if ( ce.Types[i] == ce.Types[jj] )
                   {
@@ -657,7 +689,7 @@ class InstrumentationExtrae: public Instrumentation
                }
             }
             ce.nEvents -= rmValues;
-            for ( int jj = 0, i = 0; i < ce.nEvents; i++ )
+            for ( extrae_size_t jj = 0, i = 0; i < ce.nEvents; i++ )
             {
                while ( ce.Types[jj] == 0 ) jj++;
                ce.Types[i] = ce.Types[jj];
@@ -667,6 +699,37 @@ class InstrumentationExtrae: public Instrumentation
 
          Extrae_emit_CombinedEvents ( &ce );
       }
+      void addResumeTask( WorkDescriptor &w )
+      {
+#ifndef NANOX_EXTRAE_DISCARD_RESUME
+          //Extrae_resume_virtual_thread ( w.getId() + nanos_ompitrace_get_max_threads() - 1 );
+          Extrae_resume_virtual_thread ( w.getId() );
+#endif
+      }
+
+      void addSuspendTask( WorkDescriptor &w, bool last )
+      {
+#ifndef NANOX_EXTRAE_DISCARD_SUSPEND
+#if 0
+         extrae_combined_events_t ce;
+         extrae_type_t types[1] = { _eventState };
+         extrae_value_t values[1] = { NANOS_NOT_RUNNING }; 
+
+         ce.HardwareCounters = 1;
+         ce.Callers = 0;
+         ce.UserFunction = 0;
+         ce.nEvents = 1;
+         ce.nCommunications = 0;
+         ce.Types = types;
+         ce.Values = values;
+
+         Extrae_emit_CombinedEvents ( &ce );
+#endif
+
+         Extrae_suspend_virtual_thread ();
+#endif
+      }
+
       void threadStart( BaseThread &thread ) {}
       void threadFinish ( BaseThread &thread ) {}
 #endif

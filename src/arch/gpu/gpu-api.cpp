@@ -17,58 +17,32 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _CLUSTER_DEVICE
-#define _CLUSTER_DEVICE
+#include "nanos-gpu.h"
+#include "nanos.h"
+#include "basethread.hpp"
+#include "gpudd.hpp"
+#include "gpuprocessor.hpp"
 
-#include "workdescriptor_decl.hpp"
-#include "copydescriptor_decl.hpp"
+using namespace nanos;
 
-namespace nanos
+
+const size_t nanos_gpu_dd_size = sizeof(ext::GPUDD);
+
+void * nanos_gpu_factory( void *prealloc, void *args )
 {
-   namespace ext
+   nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
+   if ( prealloc != NULL )
    {
-
-
-/* \brief Device specialization for cluster architecture
- * provides functions to allocate and copy data in the device
- */
-
-   class ClusterDevice : public Device
+      return ( void * )new (prealloc) ext::GPUDD( smp->outline );
+   }
+   else
    {
-      public:
-         /*! \brief ClusterDevice constructor
-          */
-         ClusterDevice ( const char *n ) : Device ( n ) {}
-
-         /*! \brief ClusterDevice copy constructor
-          */
-         ClusterDevice ( const ClusterDevice &arch ) : Device ( arch ) {}
-
-         /*! \brief ClusterDevice destructor
-          */
-         ~ClusterDevice() { }
-
-
-         static void * allocate( size_t size, ProcessingElement *pe );
-         static void free( void *address, ProcessingElement *pe );
-         static void * realloc( void *address, size_t newSize, size_t oldSize, ProcessingElement *pe );
-
-         static bool copyDevToDev( void * addrDst, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc );
-         static bool copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, ProcessingElement *pe );
-         static bool copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size, ProcessingElement *pe );
-
-         static void copyLocal( void *dst, void *src, size_t size, ProcessingElement *pe )
-         {
-            // Do not allow local copies in cluster memory
-         }
-
-         static void syncTransfer ( uint64_t addr, ProcessingElement *pe);
-   };
-
-   extern ClusterDevice Cluster;
-
-}
+      return ( void * ) new ext::GPUDD( smp->outline );
+   }
 }
 
 
-#endif
+cudaStream_t nanos_get_kernel_execution_stream()
+{
+   return ( ( nanos::ext::GPUProcessor *) getMyThreadSafe()->runningOn() )->getGPUProcessorInfo()->getKernelExecStream();
+}

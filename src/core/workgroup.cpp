@@ -57,7 +57,7 @@ void WorkGroup::waitCompletion ( bool avoidFlush )
      _syncCond.wait();
 }
 
-void WorkGroup::waitCompletionAndSignalers ()
+void WorkGroup::waitCompletionAndSignalers ( bool avoidFlush )
 {
      _syncCond.waitConditionAndSignalers();
 }

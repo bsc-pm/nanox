@@ -50,18 +50,23 @@ void SMPProcessor::prepareConfig ( Config &config )
    config.registerConfigOption ( "numa-cache-size", NEW Config::SizeVar( _cacheDefaultSize ), "Defines size of the cache for SMP_NUMA architectures" );
    config.registerArgOption( "numa-cache-size", "numa-cache-size" );
 
-   // Check if the cache policy for SMP_NUMA has been defined
-   if ( _cachePolicy == System::DEFAULT ) {
-      // The user has not defined a specific cache policy for SMP_NUMA,
-      // check if he has defined a global cache policy
-      _cachePolicy = sys.getCachePolicy();
+   // Check if the use of caches has been disabled
+   if ( sys.isCacheEnabled() ) {
+      // Check if the cache policy for SMP_NUMA has been defined
       if ( _cachePolicy == System::DEFAULT ) {
-         // There is no global cache policy specified, assign it the default value (write-through)
-         _cachePolicy = System::WRITE_THROUGH;
+         // The user has not defined a specific cache policy for SMP_NUMA,
+         // check if he has defined a global cache policy
+         _cachePolicy = sys.getCachePolicy();
+         if ( _cachePolicy == System::DEFAULT ) {
+            // There is no global cache policy specified, assign it the default value (write-through)
+            _cachePolicy = System::WRITE_THROUGH;
+         }
       }
+   } else {
+      _cachePolicy = System::NONE;
    }
 
-   configureCache( _cacheDefaultSize, toCachePolicy( _cachePolicy ) );
+   configureCache( _cacheDefaultSize, _cachePolicy );
 
 #endif
 }

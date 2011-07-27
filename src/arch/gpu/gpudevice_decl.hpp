@@ -165,8 +165,10 @@ namespace nanos
           */
          static void copyOutAsyncToHost( void * src, void * dst, size_t size );
 
-         static bool copyDevToDev( void* addrSrc, size_t size, ProcessingElement *pe, ProcessingElement *peDst, void *addrDst)
-            { return true; }
+         /* \brief Copy from addrSrc in peSrc device to addrDst in peDst device
+          *        Returns true if the operation is synchronous
+          */
+         static bool copyDevToDev( void * addrDst, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc );
    };
 }
 

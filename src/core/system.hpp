@@ -140,6 +140,8 @@ inline void System::setPMInterface(PMInterface *pm)
 
 inline PMInterface &  System::getPMInterface(void) const { return *_pmInterface; }
 
+inline bool System::isCacheEnabled() { return _useCaches; }
+
 inline System::CachePolicyType System::getCachePolicy() { return _cachePolicy; }
 
 inline CacheMap& System::getCacheMap() { return _cacheMap; }

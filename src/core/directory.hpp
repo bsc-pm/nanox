@@ -173,7 +173,7 @@ inline void Directory::registerAccess( uint64_t tag, size_t size, bool input, bo
       if ( input ) {
          Cache *c = de->getOwner();
          if ( c != NULL ) {
-            c->invalidate( *this, tag, size, de );
+            c->invalidateAndFlush( *this, tag, size, de );
          }
       } 
       if ( output ) {
@@ -234,8 +234,8 @@ inline void Directory::synchronizeHost()
          // Invalidate all non-dirty copies
          de.setVersion( de.getVersion()+1 );
       } else {
-         // Froce copy back
-         c->invalidate( *this, de.getTag(), &de );
+         // Force copy back
+         c->invalidateAndFlush( *this, de.getTag(), &de );
          flushings.push_back( &de );
       }
       it++;
