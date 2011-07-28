@@ -112,7 +112,7 @@ void GPUConfig::prepare( Config& config )
 
 void GPUConfig::apply()
 {
-   if ( _disableCUDA ) {
+   if ( _disableCUDA || _numGPUs == 0 ) {
       _numGPUs = 0;
       _cachePolicy = System::DEFAULT;
       _prefetch = false;
