@@ -83,7 +83,7 @@ common_sources=\
 	$(top_srcdir)/src/core/cache_map.hpp \
 	$(top_srcdir)/src/core/pminterface_decl.hpp  \
 	$(top_srcdir)/src/core/basethread_decl.hpp \
-	$(top_srcdir)/src/core/bitcounter.h \
+	$(top_srcdir)/src/core/bitcounter.hpp \
 	$(top_srcdir)/src/core/dataaccess_fwd.hpp \
 	$(top_srcdir)/src/core/dataaccess_decl.hpp \
 	$(top_srcdir)/src/core/dataaccess.hpp \
