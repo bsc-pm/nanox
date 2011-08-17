@@ -150,6 +150,7 @@ inline void Scheduler::idleLoop ()
          if ( next ) {
             myThread->resetNextWD();
          } else {
+           memoryFence();
            if ( sys.getSchedulerStats()._readyTasks > 0 ) {
               NANOS_INSTRUMENT( InstrumentState inst1(NANOS_SCHEDULING) )
               next = behaviour::getWD(thread,current);
@@ -257,11 +258,14 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
             if ( next) {
                myThread->resetNextWD();
                inlineWD = true;
-            } else if ( sys.getSchedulerStats()._readyTasks > 0 ) {
-               NANOS_INSTRUMENT( InstrumentState inst1(NANOS_SCHEDULING) )
-               next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
-               NANOS_INSTRUMENT( inst1.close() );
-               inlineWD = false;
+            } else {
+               memoryFence();
+               if ( sys.getSchedulerStats()._readyTasks > 0 ) {
+                  NANOS_INSTRUMENT( InstrumentState inst1(NANOS_SCHEDULING) )
+                  next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
+                  NANOS_INSTRUMENT( inst1.close() );
+                  inlineWD = false;
+                }
             }
 
             if ( next ) {
