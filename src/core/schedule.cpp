@@ -234,7 +234,6 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    unsigned long total_yields = 0; /* Number of yields by idle phase */
    unsigned long time_sleeps = 0;  /* Time of sleeps by idle phase */
    unsigned long time_yields = 0;  /* Time of yields by idle phase */
-   bool inlineWD;
 
    WD * current = myThread->getCurrentWD();
 
@@ -257,14 +256,12 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
             if ( next) {
                myThread->resetNextWD();
-               inlineWD = true;
             } else {
                memoryFence();
                if ( sys.getSchedulerStats()._readyTasks > 0 ) {
                   NANOS_INSTRUMENT( InstrumentState inst1(NANOS_SCHEDULING) )
                   next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
                   NANOS_INSTRUMENT( inst1.close() );
-                  inlineWD = false;
                 }
             }
 
@@ -279,16 +276,8 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(3, Keys, Values); )
 
                NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME); );
-
-               if ( inlineWD ){
-                  Scheduler::inlineWork ( next, false );
-               }
-               else {
-                  switchTo ( next );
-               }
-
+               switchTo ( next );
                thread = getMyThreadSafe();
-
                NANOS_INSTRUMENT( inst2.close() );
 
                total_spins = 0;
