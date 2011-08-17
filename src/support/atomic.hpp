@@ -24,6 +24,7 @@
 #include "compatibility.hpp"
 #include "nanos-int.h"
 #include <algorithm> // for min/max
+#include "instrumentationmodule_decl.hpp"
 
 /* TODO: move to configure
 #include <ext/atomicity.h>
@@ -196,12 +197,17 @@ inline void Lock::operator-- ( int val )
 
 inline void Lock::acquire ( void )
 {
+   if ( (_state == NANOS_LOCK_FREE) &&  !__sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) return;
+
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_ACQUIRING_LOCK) )
 
 spin:
 
    while ( _state == NANOS_LOCK_BUSY ) {}
 
    if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) goto spin;
+
+   NANOS_INSTRUMENT( inst.close() )
 }
 
 inline bool Lock::tryAcquire ( void )
