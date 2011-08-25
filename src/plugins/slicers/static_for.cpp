@@ -51,6 +51,7 @@ static void staticLoop ( void *arg )
       nli_1->lower = nli->lower;
       nli_1->upper = nli->upper;
       nli_1->step  = nli->step;
+      nli_1->args  = nli->args;
 
       // Submit: slice (WorkDescriptor i, running on Thread j)
       slice->tieTo( (*team)[nli_1->thid] );
@@ -70,6 +71,7 @@ static void staticLoop ( void *arg )
       nli_2->lower = nli->lower;
       nli_2->upper = nli->upper;
       nli_2->step = nli->step;
+      nli_2->args  = nli->args;
 
       // Submit: slice (WorkDescriptor i, running on Thread j)
       slice->tieTo( (*team)[nli_2->thid] );
@@ -86,6 +88,8 @@ static void staticLoop ( void *arg )
    }
    nli->upper = nli->lower + _chunk + (( _adjust > nli->thid ) ? nli->step : 0);
    if ( nli->thid == (num_threads - 1) ) nli->last = true;
+
+//fprintf(stderr, "lower=%d, upper=%d, step=%d\n",nli->lower, nli->upper, nli->step); //FIXME
 
    ((SMPDD::work_fct)(nli->args))(arg);
 }
@@ -175,6 +179,8 @@ void SlicerStaticFor::submit ( SlicedWD &work )
    int _lower = sdf->getLower();
    int _upper = sdf->getUpper();
    int _step  = sdf->getStep();
+
+//fprintf(stderr, "whole loop lower=%d, upper=%d, step=%d (among %d threads)\n",_lower,_upper,_step, num_threads); // FIXME
 
 // XXX: static
    if ( _chunk == 0 ) {
