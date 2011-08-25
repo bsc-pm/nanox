@@ -759,7 +759,10 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    new (*uwd) WD( *wd, dev_ptrs, wdCopies , data);
 
    // initializing internal data
-   if ( size_PMD != 0) (*uwd)->setInternalData( chunk + offset_PMD );
+   if ( size_PMD != 0) {
+      (*uwd)->setInternalData( chunk + offset_PMD );
+      memcpy ( chunk + offset_PMD, wd->getInternalData(), size_PMD );
+   }
 }
 
 /*! \brief Duplicates a given SlicedWD
@@ -869,7 +872,10 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
                         *((SlicerData *)slicer_data), *((WD *)wd), dev_ptrs, wdCopies, data );
 
    // initializing internal data
-   if ( size_PMD != 0) (*uwd)->setInternalData( chunk + offset_PMD );
+   if ( size_PMD != 0) {
+      (*uwd)->setInternalData( chunk + offset_PMD );
+      memcpy ( chunk + offset_PMD, wd->getInternalData(), size_PMD );
+   }
 }
 
 void System::setupWD ( WD &work, WD *parent )
