@@ -637,7 +637,7 @@ class InstrumentationExtrae: public Instrumentation
       {
 #ifndef NANOX_EXTRAE_DISCARD_RESUME
           //Extrae_resume_virtual_thread ( w.getId() + nanos_ompitrace_get_max_threads() - 1 );
-          Extrae_resume_virtual_thread ( w.getId() );
+          Extrae_resume_virtual_thread ( w.getId() - 1 );
 #endif
       }
 
