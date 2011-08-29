@@ -30,6 +30,9 @@
 #      define NANOX_EXTRAE_STACKED_CONTEXT_SWITCH
 #else
 #  if EXTRAE_VERSION_MAJOR(EXTRAE_VERSION) == 2
+#      define NANOX_EXTRAE_DISCARD_SUSPEND         //FIXME
+#      define NANOX_EXTRAE_DISCARD_RESUME          //FIXME
+#      define NANOX_EXTRAE_STACKED_CONTEXT_SWITCH  //FIXME
 #    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 2 /* version 2.2.x */
 #      define extrae_size_t unsigned int
 #      define NANOX_EXTRAE_DISCARD_THREAD_NAME
