@@ -36,12 +36,12 @@ extern "C" {
    unsigned int nanos_extrae_get_thread_num ( void )
    { 
       if ( myThread == NULL ) return 1;
-      else return myThread->getId() + 1; 
+      else return myThread->getId(); 
    }
 
    unsigned int nanos_ompitrace_get_thread_num ( void )
    {
-      return nanos_extrae_get_thread_num() + 1;
+      return nanos_extrae_get_thread_num();
    }
 
 
