@@ -35,7 +35,7 @@ extern "C" {
 
    unsigned int nanos_extrae_get_thread_num ( void )
    { 
-      if ( myThread == NULL ) return 1;
+      if ( myThread == NULL ) return 0;
       else return myThread->getId(); 
    }
 
