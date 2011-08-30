@@ -428,6 +428,7 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
    unsigned int numOldEvents = oldPtP + oldStates + oldSubStates + oldBursts;
    unsigned int numNewEvents =  newPtP + newStates + newSubStates + newBursts + newDeferred;
    unsigned int numEvents = numOldEvents + numNewEvents;
+   bool csEvent = _instrumentationContext.isContextSwitchEnabled() && ( ((newWD!=NULL)&&(oldWD==NULL)) || ((newWD==NULL)&&(oldWD!=NULL)) );
 
    Event *e = (Event *) alloca(sizeof(Event) * (numEvents + 1) );
 
@@ -436,14 +437,17 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       /* Creating a starting PtP event (if needed) */
       if (!last) ASSIGN_EVENT( e[i++] , PtP , (true,  NANOS_WD_DOMAIN, (nanos_event_id_t) oldWD->getId(), 0, NULL) );
 
-      ensure0(i == oldPtP, "Final point-to-point events doesn't fit with computed.");
-
       /* Creating State event's */
       InstrumentationContextData::ConstStateIterator it_s;
       for ( it_s = _instrumentationContext.beginState( old_icd ); it_s != _instrumentationContext.endState( old_icd ); it_s++ ) {
          ASSIGN_EVENT( e[i++] ,  State , (NANOS_STATE_END, *it_s) );
       }
-      ensure0(i == oldPtP + oldStates, "Final state events doesn't fit with computed value.");
+
+      if ( csEvent ) {
+         ASSIGN_EVENT( e[i++] , State , ( NANOS_STATE_START, NANOS_CONTEXT_SWITCH ) );
+         numOldEvents++;
+         numEvents++;
+      }
 
 #if 0
       /* In both cases (showStackedStates or not) keep 'current state' as RUNTIME */
@@ -460,25 +464,23 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
          ASSIGN_EVENT( e[i++] , State , ( NANOS_SUBSTATE_START, NANOS_NOT_RUNNING ) );
       }
 
-      ensure0(i == oldPtP + oldStates + oldSubStates, "Final substate events doesn't fit with computed value.");
-
       /* Regenerating reverse bursts for old WD */
       InstrumentationContextData::ConstBurstIterator it;
       for ( it = _instrumentationContext.beginBurst( old_icd ); it != _instrumentationContext.endBurst( old_icd ); it++ ) {
          e[i] = *it; e[i++].reverseType();
       }
-
-      ensure0(i == oldPtP + oldStates + oldSubStates + oldBursts, "Final bursts events doesn't fit with computed value.");
-
    }
-
 
    /* Creating entering wd events */
    if ( new_icd != NULL) {
       /* Creating PtP event */
       ASSIGN_EVENT( e[i++] , PtP , (false, NANOS_WD_DOMAIN, (nanos_event_id_t) newWD->getId(), 0, NULL) );
 
-      ensure0(i == numOldEvents + newPtP, "Starting point-to-point events doesn't fit with computed value.");
+      if ( csEvent ) {
+         ASSIGN_EVENT( e[i++] , State , ( NANOS_STATE_END, NANOS_CONTEXT_SWITCH ) );
+         numNewEvents++;
+         numEvents++;
+      }
 
       /* Creating State event's */
       InstrumentationContextData::ConstStateIterator it_s;
@@ -487,8 +489,6 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       }
 
       //nanos_event_state_value_t state;
-
-      ensure0(i == numOldEvents + newPtP + newStates, "Starting states events doesn't fit with computed value.");
 
 #if 0
       /* Creating State event's: states */
@@ -526,8 +526,6 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       }
 #endif
 
-      ensure0(i == numOldEvents + newPtP + newStates + newSubStates, "Starting substates events doesn't fit with computed value.");
-
       /* Regenerating bursts for new WD: in reverse order */
       InstrumentationContextData::ConstBurstIterator it;
       i += (newBursts-1);
@@ -536,8 +534,6 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       }
       i += (newBursts+1);
 
-      ensure0(i == numOldEvents + newPtP + newStates + newSubStates + newBursts, "Starting bursts events doesn't fit with computed value.");
-
       /* Generating deferred events for new WD (and removing them) */
       InstrumentationContextData::EventIterator itDE;
       for ( itDE  = _instrumentationContext.beginDeferredEvents( new_icd );
@@ -545,10 +541,8 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
          e[i++] = *itDE;
       }
       _instrumentationContext.clearDeferredEvents( new_icd );
-      ensure0(i == numOldEvents + newPtP + newStates + newSubStates + newBursts + newDeferred, "Starting deferred events doesn't fit with computed value.");
    }
    
-
    ensure0( i == numEvents , "Computed number of events doesn't fit with number of real events");
 
    /* Spawning 'numEvents' events: specific instrumentation call */
