@@ -379,24 +379,6 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       oldStates = _instrumentationContext.getNumStates( old_icd );
       oldSubStates = _instrumentationContext.getNumSubStates(old_icd);
       oldBursts = _instrumentationContext.getNumBursts( old_icd );
-
-#if 0
-      if ( _instrumentationContext.showStackedStates () ) {
-         oldStates = _instrumentationContext.getStateStackSize(old_icd); //+1
-      }
-      else oldStates = 1;
-
-
-
-      if ( !_instrumentationContext.isStateEventEnabled ( old_icd ) ) {
-         if ( _instrumentationContext.showStackedStates() ) {
-            oldSubStates = _instrumentationContext.getSubStateStackSize(old_icd) + 1;
-         }
-         else oldSubStates = 1;
-      }
-      else oldSubStates = 0;
-#endif
-
    }
 
    /* Computing number of entering wd related events*/
@@ -408,25 +390,11 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       newSubStates = _instrumentationContext.getNumSubStates(new_icd);
       newBursts = _instrumentationContext.getNumBursts( new_icd );
       newDeferred = _instrumentationContext.getNumDeferredEvents ( new_icd );
-
-#if 0
-      if ( _instrumentationContext.showStackedStates () ) {
-         newStates = _instrumentationContext.getStateStackSize(new_icd);
-         if ( !(new_icd->getStartingWD()) ) newStates++;
-      }
-      else if ( _instrumentationContext.isContextSwitchEnabled() ) newStates = 1;
-
-      if ( !_instrumentationContext.isStateEventEnabled ( new_icd ) ) {
-         if ( _instrumentationContext.showStackedStates() ) newSubStates = _instrumentationContext.getSubStateStackSize(new_icd) + 1;
-         else newSubStates = 1;
-      }
-      else newSubStates = 0;
-#endif
    }
 
    /* Allocating Events */
    unsigned int numOldEvents = oldPtP + oldStates + oldSubStates + oldBursts;
-   unsigned int numNewEvents =  newPtP + newStates + newSubStates + newBursts + newDeferred;
+   unsigned int numNewEvents =  newPtP + newStates + newSubStates + newBursts /* + newDeferred */;
    unsigned int numEvents = numOldEvents + numNewEvents;
    bool csEvent = _instrumentationContext.isContextSwitchEnabled() && ( ((newWD!=NULL)&&(oldWD==NULL)) || ((newWD==NULL)&&(oldWD!=NULL)) );
 
@@ -448,11 +416,6 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
          numOldEvents++;
          numEvents++;
       }
-
-#if 0
-      /* In both cases (showStackedStates or not) keep 'current state' as RUNTIME */
-      ASSIGN_EVENT( e[i++] , State , ( NANOS_STATE_START, NANOS_RUNTIME ) );
-#endif
 
       /* Creating State event's: substates */
       if ( !_instrumentationContext.isStateEventEnabled( old_icd ) ) {
@@ -481,51 +444,15 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
          numNewEvents++;
          numEvents++;
       }
-
       /* Creating State event's */
       InstrumentationContextData::ConstStateIterator it_s;
       for ( it_s = _instrumentationContext.beginState( new_icd ); it_s != _instrumentationContext.endState( new_icd ); it_s++) {
          ASSIGN_EVENT( e[i++] , State , ( NANOS_STATE_START, *it_s ) );
       }
-
-      //nanos_event_state_value_t state;
-
-#if 0
-      /* Creating State event's: states */
-      if ( _instrumentationContext.showStackedStates() ) {
-
-         /* Close current state (+1) when computing number of states (only if not a startingWD) */
-         if ( new_icd->getStartingWD() == false ) ASSIGN_EVENT( e[i++] , State , ( NANOS_STATE_END, NANOS_RUNTIME ) );
-         else new_icd->setStartingWD(false);
-
-         for ( it_s = _instrumentationContext.beginState( new_icd ); it_s != _instrumentationContext.endState( new_icd ); it_s++) {
-            ASSIGN_EVENT( e[i++] , State , ( NANOS_STATE_START, *it_s ) );
-         }
-      } else {
-         if ( _instrumentationContext.isContextSwitchEnabled() ) {
-            state = _instrumentationContext.getState( new_icd );
-            ASSIGN_EVENT( e[i++] , State , ( NANOS_STATE_START, state ) );
-         }
-      }
-#endif
-
       /* Creating State event's: substates */
-#if 0
-      if ( !_instrumentationContext.isStateEventEnabled( new_icd ) ) {
-         if ( _instrumentationContext.showStackedStates () ) {
-            ASSIGN_EVENT( e[i++] , State , ( NANOS_SUBSTATE_END, NANOS_NOT_RUNNING ) );
-#endif
-            for ( it_s = _instrumentationContext.beginSubState(new_icd); it_s != _instrumentationContext.endSubState(new_icd); it_s++ ) {
-                ASSIGN_EVENT( e[i++] , State , ( NANOS_SUBSTATE_START, *it_s ) );
-            }
-#if 0
-         } else {
-            state = _instrumentationContext.getSubState( new_icd );
-            ASSIGN_EVENT( e[i++] , State , ( NANOS_SUBSTATE_START, state ) );
-         }
+      for ( it_s = _instrumentationContext.beginSubState(new_icd); it_s != _instrumentationContext.endSubState(new_icd); it_s++ ) {
+         ASSIGN_EVENT( e[i++] , State , ( NANOS_SUBSTATE_START, *it_s ) );
       }
-#endif
-
       /* Regenerating bursts for new WD: in reverse order */
       InstrumentationContextData::ConstBurstIterator it;
       i += (newBursts-1);
@@ -533,7 +460,8 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
          e[i--] = *it;
       }
       i += (newBursts+1);
-
+/*FIXME*/
+#if 0 
       /* Generating deferred events for new WD (and removing them) */
       InstrumentationContextData::EventIterator itDE;
       for ( itDE  = _instrumentationContext.beginDeferredEvents( new_icd );
@@ -541,19 +469,24 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
          e[i++] = *itDE;
       }
       _instrumentationContext.clearDeferredEvents( new_icd );
+#endif
+
    }
    
    ensure0( i == numEvents , "Computed number of events doesn't fit with number of real events");
 
+   /* FIXME: to remove */ if ( i != numEvents) fatal("Computed number of events doesn't fit with number of real events");
+
    /* Spawning 'numEvents' events: specific instrumentation call */
-   if ( _instrumentationContext.isContextSwitchEnabled() ) addEventList ( numEvents, e );
-   else {
+   if ( _instrumentationContext.isContextSwitchEnabled() ) {
+      addEventList ( numEvents, &e[0] );
+   } else {
       if ( oldWD != NULL) {
-         createStateEvent( &e[numEvents], NANOS_NOT_RUNNING, old_icd ); //NEW
+         createStateEvent( &e[numEvents], NANOS_NOT_RUNNING, old_icd );
          addEventList ( numOldEvents, &e[0] );
-         addEventList ( 1, &e[numEvents] ); //NEW
-         returnPreviousStateEvent( &e[numEvents], old_icd ); //NEW
-         _instrumentationContext.insertDeferredEvent( old_icd, e[numEvents]  ); //NEW
+         addEventList ( 1, &e[numEvents] );
+         returnPreviousStateEvent( &e[numEvents], old_icd );
+         _instrumentationContext.insertDeferredEvent( old_icd, e[numEvents]  );
          addSuspendTask( *oldWD, last );
       }
       if ( newWD != NULL) {
