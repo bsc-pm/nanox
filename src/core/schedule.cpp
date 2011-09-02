@@ -35,11 +35,11 @@ void SchedulerConf::config (Config &cfg)
    cfg.registerArgOption ( "num_spins", "spins" );
    cfg.registerEnvOption ( "num_spins", "NX_SPINS" );
 
-   cfg.registerConfigOption ( "num_sleeps", NEW Config::UintVar( _numSleeps ), "Determines the amount of sleeping before yielding (default = 20)" );
+   cfg.registerConfigOption ( "num_sleeps", NEW Config::IntegerVar( _numSleeps ), "Determines the amount of sleeping before yielding (default = 20)" );
    cfg.registerArgOption ( "num_sleeps", "sleeps" );
    cfg.registerEnvOption ( "num_sleeps", "NX_SLEEPS" );
 
-   cfg.registerConfigOption ( "sleep_time", NEW Config::UintVar( _timeSleep ), "Determines amount of time (in nsec) in each sleeping phase (default = 100)" );
+   cfg.registerConfigOption ( "sleep_time", NEW Config::IntegerVar( _timeSleep ), "Determines amount of time (in nsec) in each sleeping phase (default = 100)" );
    cfg.registerArgOption ( "sleep_time", "sleep-time" );
    cfg.registerEnvOption ( "sleep_time", "NX_SLEEP_TIME" );
 }
@@ -228,7 +228,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    const int nspins = sys.getSchedulerConf().getNumSpins();
    const int nsleeps = sys.getSchedulerConf().getNumSleeps();
    const int tsleep = sys.getSchedulerConf().getTimeSleep();
-   int spins = nspins; 
+   unsigned int spins = nspins; 
    int sleeps = nsleeps;
    unsigned long total_spins = 0;  /* Number of spins by idle phase*/
    unsigned long total_yields = 0; /* Number of yields by idle phase */

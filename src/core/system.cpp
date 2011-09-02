@@ -49,7 +49,7 @@ System::System () :
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ), _thsPerPE( 1 ),
       _untieMaster( false ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ), _throttlePolicy ( NULL ),
-      _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
+      _schedStats(), _schedConf(), _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL ), _cachePolicy( System::DEFAULT ), _cacheMap()

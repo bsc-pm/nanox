@@ -77,8 +77,8 @@ namespace nanos
 
       private:
         unsigned int  _numSpins;
-        unsigned int  _numSleeps;
-        unsigned int  _timeSleep;
+        int  _numSleeps;
+        int  _timeSleep;
       private:
         /*! \brief SchedulerConf default constructor (private)
          */
@@ -97,8 +97,8 @@ namespace nanos
 
          unsigned int getNumSpins () const;
          void setNumSpins ( const unsigned int num );
-         unsigned int getNumSleeps () const;
-         unsigned int getTimeSleep () const;
+         int getNumSleeps () const;
+         int getTimeSleep () const;
          void config ( Config &cfg );
    };
    
