@@ -136,13 +136,11 @@ namespace nanos
 
         /*! \brief DependenciesDomain default constructor
          */
-         DependenciesDomain ( ) :  _id( _atomicSeed++ ), _lastDepObjId ( 0 ), _regionMap( ) {}
+         DependenciesDomain ( );
 
         /*! \brief DependenciesDomain copy constructor
          */
-         DependenciesDomain ( const DependenciesDomain &depDomain )
-            : _id( _atomicSeed++ ), _lastDepObjId ( depDomain._lastDepObjId ),
-              _regionMap ( depDomain._regionMap ) {}
+         DependenciesDomain ( const DependenciesDomain &depDomain );
 
         /*! \brief DependenciesDomain destructor
          */

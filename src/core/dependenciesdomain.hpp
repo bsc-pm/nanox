@@ -26,12 +26,23 @@
 #include "dependenciesdomain_decl.hpp"
 #include "atomic.hpp"
 #include "dependableobject.hpp"
+#include "regiontree.hpp"
 #include "regionstatus.hpp"
 #include "dataaccess.hpp"
 #include "compatibility.hpp"
 
 
 using namespace nanos;
+
+inline DependenciesDomain::DependenciesDomain ( ) :  _id( _atomicSeed++ ), _lastDepObjId ( 0 ), _regionMap( )
+{
+}
+
+inline DependenciesDomain::DependenciesDomain ( const DependenciesDomain &depDomain )
+   : _id( _atomicSeed++ ), _lastDepObjId ( depDomain._lastDepObjId ),
+      _regionMap ( depDomain._regionMap )
+{
+}
 
 inline DependenciesDomain::~DependenciesDomain ( )
 {

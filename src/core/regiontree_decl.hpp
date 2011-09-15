@@ -33,10 +33,6 @@
 #include "regioncollection_fwd.hpp"
 #include "regionpart_fwd.hpp"
 #include "regiontree_fwd.hpp"
-#include "regiontreenode.hpp"
-
-
-
 
 
 namespace nanos  {
@@ -62,9 +58,14 @@ using namespace region_tree_private;
  */
 template<typename T>
 class RegionTree {
+public:
+   // The node structure
+   struct Node;
+   
+   
 private:
    //! The root node
-   RegionTreeNode<T> *m_root;
+   Node *m_root;
    
    
 public:
@@ -103,21 +104,16 @@ protected:
    
 #if 0
 #if REGION_TREE_BOUNDING
-   bool find(Region const &string, Region const &fullRegion, RegionTreeNode<T> *node);
+   bool find(Region const &string, Region const &fullRegion, Node *node);
 #else
-   bool find(Region const &string, RegionTreeNode<T> *node);
+   bool find(Region const &string, Node *node);
 #endif
 #endif
    
    
 public:
    //! \brief Default constructor
-   RegionTree(): m_root(0)
-      {
-         m_root = new RegionTreeNode<T>();
-         m_root->init(T());
-         //Tracing::regionTreeAddedNodes(1);
-      }
+   RegionTree();
    
    //! \brief Find all regions that intersect with a given one
    //! \param region the region
@@ -180,7 +176,7 @@ public:
    //! \param from the starting point in the tree
    //! \param[out] output an accessor list to the new node
    //! \param partitionLevel partition level of the new node
-   void addOverlappingFrom(Region const &region, Region const &fullRegion, RegionTreeNode<T> *from, iterator_list_t &output, int partitionLevel=0);
+   void addOverlappingFrom(Region const &region, Region const &fullRegion, Node *from, iterator_list_t &output, int partitionLevel=0);
    
    //! \brief Remove an element from the tree
    //! \param it an iterator pointing to the element

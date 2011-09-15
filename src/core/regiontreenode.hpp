@@ -24,6 +24,7 @@
 
 
 #include "region.hpp"
+#include "regiontree_decl.hpp"
 #include "regiontreenode_decl.hpp"
 
 #include <ostream>
@@ -32,19 +33,137 @@
 namespace nanos {
 
 
-namespace region_tree_private {
+template<typename T>
+void RegionTree<T>::Node::init(T const &data) {
+   m_regionSegment.clear();
+#if REGION_TREE_BOUNDING
+   m_fullRegion.clear();
+#endif
+   m_parent = NULL;
+   m_children[Region::BIT_0] = NULL;
+   m_children[Region::BIT_1] = NULL;
+   m_children[Region::X] = NULL;
+   m_partitionLevel = 0;
+   m_data = data;
+}
+
+template<typename T>
+void RegionTree<T>::Node::init(Region const &regionSegment, Node *parent, T const &data) {
+   m_regionSegment = regionSegment;
+#if REGION_TREE_BOUNDING
+   m_fullRegion.clear();
+#endif
+   m_parent = parent;
+   m_children[Region::BIT_0] = NULL;
+   m_children[Region::BIT_1] = NULL;
+   m_children[Region::X] = NULL;
+   m_partitionLevel = 0;
+   m_data = data;
+}
+
+template<typename T>
+void RegionTree<T>::Node::clear() {
+   m_regionSegment.clear();
+#if REGION_TREE_BOUNDING
+   m_fullRegion.clear();
+#endif
+   m_parent = NULL;
+   m_children[Region::BIT_0] = NULL;
+   m_children[Region::BIT_1] = NULL;
+   m_children[Region::X] = NULL;
+   m_partitionLevel = 0;
+   m_data = T();
+}
+
+template<typename T>
+#if REGION_TREE_BOUNDING
+typename RegionTree<T>::Node * RegionTree<T>::Node::createChildIfNecessary(Region::bit_value_t child, Region const &fullRegion, Region const &regionSegment) {
+#else
+typename RegionTree<T>::Node * RegionTree<T>::Node::createChildIfNecessary(Region::bit_value_t child, Region const &regionSegment) {
+#endif
+   if (m_children[child] == NULL) {
+      m_children[child] = NEW Node();
+      m_children[child]->init(regionSegment, this, T());
+#if REGION_TREE_BOUNDING
+      m_children[child]->m_fullRegion = fullRegion;
+#endif
+      //Tracing::regionTreeAddedNodes(1);
+   }
+   return m_children[child];
+}
+
+#if REGION_TREE_BOUNDING
+template<typename T>
+Region const & RegionTree<T>::Node::getFullRegion() const {
+   return m_fullRegion;
+}
+
+template<typename T>
+void RegionTree<T>::Node::setFullRegion(Region const &fullRegion) {
+   m_fullRegion = fullRegion;
+}
+
+template<typename T>
+void inline RegionTree<T>::Node::recalculateFullRegionFromChildren() {
+   Region oldRegion = m_fullRegion;
+   
+   if (m_children[Region::BIT_0] !=  NULL) {
+      m_fullRegion = m_children[Region::BIT_0]->m_fullRegion;
+      if (m_children[Region::BIT_1] !=  NULL) {
+         m_fullRegion |= m_children[Region::BIT_1]->m_fullRegion;
+      }
+      if (m_children[Region::X] !=  NULL) {
+         m_fullRegion |= m_children[Region::X]->m_fullRegion;
+      }
+   } else if (m_children[Region::BIT_1] !=  NULL) {
+      m_fullRegion = m_children[Region::BIT_1]->m_fullRegion;
+      if (m_children[Region::X] !=  NULL) {
+         m_fullRegion |= m_children[Region::X]->m_fullRegion;
+      }
+   } else if (m_children[Region::X] !=  NULL) {
+      m_fullRegion = m_children[Region::X]->m_fullRegion;
+   } else {
+      m_fullRegion.clear();
+   }
+   
+   if (m_parent !=  NULL && m_fullRegion != oldRegion) {
+      //Tracing::regionTreeTraversedNodes(1);
+      m_parent->recalculateFullRegionFromChildren();
+   }
+}
+
+#else
+template<typename T>
+Region RegionTree<T>::Node::getFullRegion() const {
+   Region result;
+   if (m_parent != NULL) {
+      //Tracing::regionTreeTrackBack(1);
+      //Tracing::regionTreeTraversedNodes(1);
+      result = m_parent->getFullRegion();
+      if (m_parent->m_children[Region::BIT_0] == this) {
+         result.addBit(Region::BIT_0);
+      } else if (m_parent->m_children[Region::BIT_1] == this) {
+         result.addBit(Region::BIT_1);
+      } else {
+         result.addBit(Region::X);
+      }
+   }
+   result += m_regionSegment;
+   return result;
+}
+#endif
 
 
 template<typename T>
 #if REGION_TREE_BOUNDING
-RegionTreeNode<T> * RegionTreeNode<T>::split(Region otherRegionSegment, Region const &newFullRegion, RegionTreeNode<T> *& root, bool createNewChild) {
+typename RegionTree<T>::Node * RegionTree<T>::Node::split(Region otherRegionSegment, Region const &newFullRegion, Node *& root, bool createNewChild) {
 #else
-RegionTreeNode<T> * RegionTreeNode<T>::split(Region otherRegionSegment, RegionTreeNode<T> *& root, bool createNewChild) {
+typename RegionTree<T>::Node * RegionTree<T>::Node::split(Region otherRegionSegment, Node *& root, bool createNewChild) {
 #endif
    Region newParentRegion;
    m_regionSegment.getCommonPrefix(otherRegionSegment, newParentRegion);
    
-   RegionTreeNode<T> *newParent = new RegionTreeNode<T>();
+   Node *newParent = new Node();
    newParent->init(newParentRegion, m_parent, T());
 #if REGION_TREE_BOUNDING
    newParent->m_fullRegion = m_fullRegion;
@@ -78,7 +197,7 @@ RegionTreeNode<T> * RegionTreeNode<T>::split(Region otherRegionSegment, RegionTr
       otherRegionSegment.advance(newParentRegion.getLength());
       int newIndex = otherRegionSegment.getFirstBit();
       otherRegionSegment.advance();
-      newParent->m_children[newIndex] = new RegionTreeNode<T>();
+      newParent->m_children[newIndex] = new RegionTree<T>::Node();
       newParent->m_children[newIndex]->init(otherRegionSegment, newParent, T());
 #if REGION_TREE_BOUNDING
       newParent->m_children[newIndex]->m_fullRegion = newFullRegion;
@@ -91,7 +210,7 @@ RegionTreeNode<T> * RegionTreeNode<T>::split(Region otherRegionSegment, RegionTr
 
 
 template<typename T>
-inline std::ostream &operator<< (std::ostream &o, RegionTreeNode<T> const &regionTreeNode) {
+inline std::ostream &operator<< (std::ostream &o, typename RegionTree<T>::Node const &regionTreeNode) {
    o << "node" << &regionTreeNode.m_data;
    o << " [shape=record,label=\""
       << "{"
@@ -118,7 +237,7 @@ inline std::ostream &operator<< (std::ostream &o, RegionTreeNode<T> const &regio
 
 
 template<typename T>
-inline std::ostream &printRecursive (std::ostream &o, RegionTreeNode<T> const &regionTreeNode) {
+inline std::ostream &printRecursive (std::ostream &o, typename RegionTree<T>::Node const &regionTreeNode) {
    o << "node" << &regionTreeNode.m_data;
    o << " [shape=record,label=\""
       << "{"
@@ -154,9 +273,6 @@ inline std::ostream &printRecursive (std::ostream &o, RegionTreeNode<T> const &r
    }
    return o;
 }
-
-
-} // namespace region_tree_private
 
 
 } // namespace nanos

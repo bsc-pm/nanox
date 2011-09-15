@@ -51,20 +51,20 @@ struct TraversalNode {
    Region m_fullRegion;
 #endif
    //! RegionTree node
-   RegionTreeNode<T> *m_branch;
+   typename RegionTree<T>::Node *m_branch;
    
 #if REGION_TREE_BOUNDING
    //! \brief Full constructor
    //! \param regionSegment the regionSegment that corresponds to the path remaining to be traversed up to and including the branch
    //! \param fullRegion minimum superset that covers the regions represented by node and its children
    //! \param branch actual RegionTree node
-   TraversalNode(Region const &regionSegment, Region const &fullRegion, RegionTreeNode<T> *branch):
+   TraversalNode(Region const &regionSegment, Region const &fullRegion, typename RegionTree<T>::Node *branch):
       m_regionSegment(regionSegment), m_fullRegion(fullRegion), m_branch(branch)
 #else
    //! \brief Full constructor
    //! \param regionSegment the regionSegment that corresponds to the path remaining to be traversed up to and including the branch
    //! \param branch actual RegionTree node
-   TraversalNode(Region const &regionSegment, RegionTreeNode<T> *branch):
+   TraversalNode(Region const &regionSegment, typename RegionTree<T>::Node *branch):
       m_regionSegment(regionSegment), m_branch(branch)
 #endif
       {}
@@ -117,14 +117,14 @@ template <typename T>
 class RegionTree<T>::iterator {
 private:
    //! Pointer to the tree node
-   RegionTreeNode<T> *m_node;
+   typename RegionTree<T>::Node *m_node;
    
 public:
    //! \brief Default constructor (the end iterator)
    iterator(): m_node(NULL)
       {}
    //! \brief Copy constructor
-   iterator(RegionTreeNode<T> *node): m_node(node)
+   iterator(typename RegionTree<T>::Node *node): m_node(node)
       {}
    
    //! \brief Checks if it does not point to any node (for instance the end iterator)
@@ -160,9 +160,9 @@ public:
    //! \brief Remove the node from the RegionTree
    void erase()
       {
-         RegionTreeNode<T> *currentNode = m_node;
+         typename RegionTree<T>::Node *currentNode = m_node;
          while (currentNode->m_parent != NULL) {
-            RegionTreeNode<T> *parent = currentNode->m_parent;
+            typename RegionTree<T>::Node *parent = currentNode->m_parent;
             if (parent->m_children[Region::BIT_0] == currentNode) {
                parent->m_children[Region::BIT_0] = NULL;
             } else if (parent->m_children[Region::BIT_1] == currentNode) {
@@ -215,12 +215,20 @@ public:
 
 
 template<typename T>
+RegionTree<T>::RegionTree(): m_root(0) {
+   m_root = new Node();
+   m_root->init(T());
+   //Tracing::regionTreeAddedNodes(1);
+}
+
+
+template<typename T>
 void RegionTree<T>::find(iterator_list_t &output, traversal_queue_t &pendingNodes)
 {
    while (!pendingNodes.empty()) {
       TraversalNode<T> traversalNode = pendingNodes.back();
       pendingNodes.pop_back();
-      RegionTreeNode<T> *currentNode = traversalNode.m_branch;
+      typename RegionTree<T>::Node *currentNode = traversalNode.m_branch;
       //Tracing::regionTreeTraversedNodes(1);
       
       Region &regionSegment = traversalNode.m_regionSegment;
@@ -290,7 +298,7 @@ bool RegionTree<T>::findConstrained(iterator_list_t &output, traversal_queue_t &
    while (!pendingNodes.empty()) {
       TraversalNode<T> traversalNode = pendingNodes.back();
       pendingNodes.pop_back();
-      RegionTreeNode<T> *currentNode = traversalNode.m_branch;
+      typename RegionTree<T>::Node *currentNode = traversalNode.m_branch;
       //Tracing::regionTreeTraversedNodes(1);
       
       Region &regionSegment = traversalNode.m_regionSegment;
@@ -367,7 +375,7 @@ typename RegionTree<T>::iterator RegionTree<T>::findExactAndMatching(Region cons
    while (!pendingNodes.empty()) {
       TraversalNode<T> traversalNode = pendingNodes.back();
       pendingNodes.pop_back();
-      RegionTreeNode<T> *currentNode = traversalNode.m_branch;
+      typename RegionTree<T>::Node *currentNode = traversalNode.m_branch;
       //Tracing::regionTreeTraversedNodes(1);
       
       Region &regionSegment = traversalNode.m_regionSegment;
@@ -440,7 +448,7 @@ template<typename T>
 typename RegionTree<T>::iterator RegionTree<T>::findExact(Region const &fullRegion)
 {
    Region regionSegment = fullRegion;
-   RegionTreeNode<T> *currentNode = m_root;
+   typename RegionTree<T>::Node *currentNode = m_root;
    while (currentNode != NULL) {
       //Tracing::regionTreeTraversedNodes(1);
       
@@ -516,7 +524,7 @@ void RegionTree<T>::addOverlapping(Region const &region, iterator_list_t &output
       return;
    }
    
-   RegionTreeNode<T> *currentNode = m_root;
+   typename RegionTree<T>::Node *currentNode = m_root;
    Region regionSegment = region;
    
    while (true) {
@@ -550,9 +558,9 @@ void RegionTree<T>::addOverlapping(Region const &region, iterator_list_t &output
       } else {
          // No match possible, so then split the node
 #if REGION_TREE_BOUNDING
-         RegionTreeNode<T> *splittedNode = currentNode->split(regionSegment, region, m_root);
+         typename RegionTree<T>::Node *splittedNode = currentNode->split(regionSegment, region, m_root);
 #else
-         RegionTreeNode<T> *splittedNode = currentNode->split(regionSegment, m_root);
+         typename RegionTree<T>::Node *splittedNode = currentNode->split(regionSegment, m_root);
 #endif
          //Tracing::regionTreeSplittedNodes(1);
          currentNode = splittedNode;
@@ -583,7 +591,7 @@ typename RegionTree<T>::iterator RegionTree<T>::addOverlapping(Region const &reg
       return iterator(m_root);
    }
    
-   RegionTreeNode<T> *currentNode = m_root;
+   typename RegionTree<T>::Node *currentNode = m_root;
    Region regionSegment = region;
    
    while (true) {
@@ -615,9 +623,9 @@ typename RegionTree<T>::iterator RegionTree<T>::addOverlapping(Region const &reg
       } else {
          // No match possible, so then split the node
 #if REGION_TREE_BOUNDING
-         RegionTreeNode<T> *splittedNode = currentNode->split(regionSegment, region, m_root);
+         typename RegionTree<T>::Node *splittedNode = currentNode->split(regionSegment, region, m_root);
 #else
-         RegionTreeNode<T> *splittedNode = currentNode->split(regionSegment, m_root);
+         typename RegionTree<T>::Node *splittedNode = currentNode->split(regionSegment, m_root);
 #endif
          //Tracing::regionTreeSplittedNodes(1);
          currentNode = splittedNode;
@@ -632,7 +640,7 @@ typename RegionTree<T>::iterator RegionTree<T>::addOverlapping(Region const &reg
 
 
 template<typename T>
-void RegionTree<T>::addOverlappingFrom(Region const &region, Region const &fullRegion, RegionTreeNode<T> *from, iterator_list_t &output, int partitionLevel)
+void RegionTree<T>::addOverlappingFrom(Region const &region, Region const &fullRegion, typename RegionTree<T>::Node *from, iterator_list_t &output, int partitionLevel)
 {
    if ( m_root->m_regionSegment.isEmpty()
         && m_root->m_children[Region::BIT_0] == NULL
@@ -649,7 +657,7 @@ void RegionTree<T>::addOverlappingFrom(Region const &region, Region const &fullR
       return;
    }
    
-   RegionTreeNode<T> *currentNode = from;
+   typename RegionTree<T>::Node *currentNode = from;
    Region regionSegment = region;
    
    while (true) {
@@ -683,9 +691,9 @@ void RegionTree<T>::addOverlappingFrom(Region const &region, Region const &fullR
       } else {
          // No match possible, so then split the node
 #if REGION_TREE_BOUNDING
-         RegionTreeNode<T> *splittedNode = currentNode->split(regionSegment, fullRegion, m_root);
+         typename RegionTree<T>::Node *splittedNode = currentNode->split(regionSegment, fullRegion, m_root);
 #else
-         RegionTreeNode<T> *splittedNode = currentNode->split(regionSegment, m_root);
+         typename RegionTree<T>::Node *splittedNode = currentNode->split(regionSegment, m_root);
 #endif
          //Tracing::regionTreeSplittedNodes(1);
          currentNode = splittedNode;
@@ -704,7 +712,7 @@ template<class output_container_t>
 void RegionTree<T>::partition(iterator_list_t &nodes, Region const &region,  bool outputOnlyMatchingPart, bool removeExactMatch, output_container_t &output, int maxPartitioningLevels)
 {
    for (typename iterator_list_t::iterator it = nodes.begin(); it != nodes.end(); it++) {
-      RegionTreeNode<T> *node = it->m_node;
+      typename RegionTree<T>::Node *node = it->m_node;
       int originalPartitionLevel = node->m_partitionLevel;
       
       Region nodeRegion = node->getFullRegion();
@@ -729,12 +737,12 @@ void RegionTree<T>::partition(iterator_list_t &nodes, Region const &region,  boo
          T data = node->m_data;
          
          // Find the first ancestor that has at least 2 children and delete everything else
-         RegionTreeNode<T> *ancestor = NULL;
+         typename RegionTree<T>::Node *ancestor = NULL;
          
          if (node->m_parent == NULL) {
             node->clear();
          } else {
-            RegionTreeNode<T> *last = node;
+            typename RegionTree<T>::Node *last = node;
             ancestor = node->m_parent;
             
             while (ancestor != NULL) {
@@ -843,9 +851,9 @@ void RegionTree<T>::partition(iterator_list_t &nodes, Region const &region,  boo
 #if 0
 template<typename T>
 #if REGION_TREE_BOUNDING
-bool RegionTree<T>::find(Region const &string, Region const &fullRegion, RegionTreeNode<T> *node)
+bool RegionTree<T>::find(Region const &string, Region const &fullRegion, typename RegionTree<T>::Node *node)
 #else
-bool RegionTree<T>::find(Region const &string, RegionTreeNode<T> *node)
+bool RegionTree<T>::find(Region const &string, typename RegionTree<T>::Node *node)
 #endif
 {
    traversal_queue_t pendingNodes;
@@ -1067,7 +1075,7 @@ template<typename ITERATOR_LIST_T>
 void RegionTree<T>::removeMany(ITERATOR_LIST_T &removeList)
 {
    while (!removeList.empty()) {
-      RegionTreeNode<T> *node =  ContainerAdapter<ITERATOR_LIST_T>::pop(removeList).m_node;
+      typename RegionTree<T>::Node *node =  ContainerAdapter<ITERATOR_LIST_T>::pop(removeList).m_node;
       //Tracing::regionTreeTraversedNodes(1);
       
       // The root node must not be removed
@@ -1076,7 +1084,7 @@ void RegionTree<T>::removeMany(ITERATOR_LIST_T &removeList)
          continue;
       }
       
-      RegionTreeNode<T> *parent = node->m_parent;
+      typename RegionTree<T>::Node *parent = node->m_parent;
       if (parent->m_children[Region::BIT_0] == node) {
          if (parent->m_children[Region::BIT_1] == NULL && parent->m_children[Region::X] == NULL) {
             ContainerAdapter<ITERATOR_LIST_T>::insert(removeList, parent);
@@ -1252,7 +1260,7 @@ inline std::ostream & nanos::operator<< (std::ostream &o, RegionTree<T> const &r
    o << "digraph {" << std::endl;
    o << "node[shape=record];" << std::endl;
    if (regionTree.m_root != NULL) {
-      RegionTreeNode<T> const &root = *regionTree.m_root;
+      typename RegionTree<T>::Node const &root = *regionTree.m_root;
       // We would like to do this, but it fails in g++ and xlC
       // o << root;
       // So we do this instead
