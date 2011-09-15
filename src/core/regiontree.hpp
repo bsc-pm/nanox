@@ -1192,6 +1192,7 @@ void RegionTree<T>::defragment(/* Inout */ iterator_list_t &candidates)
       }
       
       if (effective) {
+         currentList.clear();
          currentList.splice(currentList.end(), nextStepList);
       }
       nextStepList.clear();
