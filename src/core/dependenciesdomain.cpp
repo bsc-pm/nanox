@@ -61,8 +61,8 @@ namespace dependencies_domain_internal {
          {
             input |= accessType.input;
             output |= accessType.output;
-            can_rename |= accessType.can_rename;
-            commutative |= accessType.commutative;
+            can_rename &= accessType.can_rename;
+            commutative &= accessType.commutative;
             
             return *this;
          }
