@@ -44,6 +44,10 @@ namespace region_tree_private {
 //! \tparam T type of the data indexed by the region tree
 template <typename T>
 struct TraversalNode {
+#if !REGION_TREE_BOUNDING
+   //! Region segment that corresponds to the path already traversed
+   Region m_traversedRegionSegment;
+#endif
    //! Region segment that corresponds to the path remaining to be traversed up to and including the branch
    Region m_regionSegment;
 #if REGION_TREE_BOUNDING
@@ -55,17 +59,17 @@ struct TraversalNode {
    
 #if REGION_TREE_BOUNDING
    //! \brief Full constructor
-   //! \param regionSegment the regionSegment that corresponds to the path remaining to be traversed up to and including the branch
+   //! \param regionSegment the region segment that corresponds to the path remaining to be traversed up to and including the branch
    //! \param fullRegion minimum superset that covers the regions represented by node and its children
    //! \param branch actual RegionTree node
    TraversalNode(Region const &regionSegment, Region const &fullRegion, typename RegionTree<T>::Node *branch):
       m_regionSegment(regionSegment), m_fullRegion(fullRegion), m_branch(branch)
 #else
    //! \brief Full constructor
-   //! \param regionSegment the regionSegment that corresponds to the path remaining to be traversed up to and including the branch
+   //! \param regionSegment the region segment that corresponds to the path remaining to be traversed up to and including the branch
    //! \param branch actual RegionTree node
-   TraversalNode(Region const &regionSegment, typename RegionTree<T>::Node *branch):
-      m_regionSegment(regionSegment), m_branch(branch)
+   TraversalNode(Region const &traversedRegionSegment, Region const &regionSegment, typename RegionTree<T>::Node *branch):
+      m_traversedRegionSegment(traversedRegionSegment), m_regionSegment(regionSegment), m_branch(branch)
 #endif
       {}
    
@@ -73,7 +77,7 @@ struct TraversalNode {
 #if REGION_TREE_BOUNDING
    TraversalNode(): m_regionSegment(), m_fullRegion(), m_branch(NULL)
 #else
-   TraversalNode(): m_regionSegment(), m_branch(NULL)
+   TraversalNode(): m_traversedRegionSegment(), m_regionSegment(), m_branch(NULL)
 #endif
       {}
 };
@@ -118,13 +122,15 @@ class RegionTree<T>::iterator {
 private:
    //! Pointer to the tree node
    typename RegionTree<T>::Node *m_node;
+   //! Region pointed by the node
+   Region m_region;
    
 public:
    //! \brief Default constructor (the end iterator)
-   iterator(): m_node(NULL)
+   iterator(): m_node(NULL), m_region()
       {}
    //! \brief Copy constructor
-   iterator(typename RegionTree<T>::Node *node): m_node(node)
+   iterator(typename RegionTree<T>::Node *node, Region const &region): m_node(node), m_region(region)
       {}
    
    //! \brief Checks if it does not point to any node (for instance the end iterator)
@@ -133,7 +139,10 @@ public:
    
    //! \brief Do not point to any node
    void clear()
-      { m_node = NULL; }
+      {
+         m_node = NULL;
+         m_region = Region();
+      }
    
    //! \brief Access the node data
    T const & operator*() const
@@ -191,20 +200,8 @@ public:
       }
    
    //! \brief Full Region of the node
-#if REGION_TREE_BOUNDING
    Region const & getRegion() const
-#else
-   Region getRegion() const
-#endif
-      { return m_node->getFullRegion(); }
-   
-   //! \brief Full Region of the node
-#if REGION_TREE_BOUNDING
-   Region const & getRegion()
-#else
-   Region getRegion()
-#endif
-      { return m_node->getFullRegion(); }
+      { return m_region; }
    
    template<typename T2>
    friend std::ostream &operator<< (std::ostream &o, typename RegionTree<T2>::iterator const &it);
@@ -232,15 +229,22 @@ void RegionTree<T>::find(iterator_list_t &output, traversal_queue_t &pendingNode
       //Tracing::regionTreeTraversedNodes(1);
       
       Region &regionSegment = traversalNode.m_regionSegment;
-#if REGION_TREE_BOUNDING
-      Region const &fullRegion = traversalNode.m_fullRegion;
-#endif
       
       if (currentNode->m_regionSegment.containedMatch(regionSegment)) {
+#if REGION_TREE_BOUNDING
+         Region const &fullRegion = traversalNode.m_fullRegion;
+#else
+         Region traversedSegment = traversalNode.m_traversedRegionSegment;
+         traversedSegment += currentNode->m_regionSegment;
+#endif
          regionSegment.advance(currentNode->m_regionSegment.getLength());
          if (regionSegment.getFirstBitNumber() == sizeof(size_t)*8) {
             //Tracing::regionTreeMatchingRegions(1);
-            output.push_back(iterator(currentNode));
+#if REGION_TREE_BOUNDING
+            output.push_back( iterator(currentNode, fullRegion) );
+#else
+            output.push_back( iterator(currentNode, traversedSegment) );
+#endif
             continue;
          }
          // Match 0
@@ -254,7 +258,7 @@ void RegionTree<T>::find(iterator_list_t &output, traversal_queue_t &pendingNode
 #if REGION_TREE_BOUNDING
             pendingNodes.push_back( TraversalNode<T>(regionSegment+1, fullRegion, currentNode->m_children[Region::BIT_0]) );
 #else
-            pendingNodes.push_back( TraversalNode<T>(regionSegment+1, currentNode->m_children[Region::BIT_0]) );
+            pendingNodes.push_back( TraversalNode<T>(traversedSegment+Region::BIT_0, regionSegment+1, currentNode->m_children[Region::BIT_0]) );
 #endif
          }
          // Match 1
@@ -268,7 +272,7 @@ void RegionTree<T>::find(iterator_list_t &output, traversal_queue_t &pendingNode
 #if REGION_TREE_BOUNDING
             pendingNodes.push_back( TraversalNode<T>(regionSegment+1, fullRegion, currentNode->m_children[Region::BIT_1]) );
 #else
-            pendingNodes.push_back( TraversalNode<T>(regionSegment+1, currentNode->m_children[Region::BIT_1]) );
+            pendingNodes.push_back( TraversalNode<T>(traversedSegment+Region::BIT_1, regionSegment+1, currentNode->m_children[Region::BIT_1]) );
 #endif
          }
          // Match X
@@ -283,7 +287,7 @@ void RegionTree<T>::find(iterator_list_t &output, traversal_queue_t &pendingNode
 #if REGION_TREE_BOUNDING
             pendingNodes.push_back( TraversalNode<T>(regionSegment+1, fullRegion, currentNode->m_children[Region::X]) );
 #else
-            pendingNodes.push_back( TraversalNode<T>(regionSegment+1, currentNode->m_children[Region::X]) );
+            pendingNodes.push_back( TraversalNode<T>(traversedSegment+Region::X, regionSegment+1, currentNode->m_children[Region::X]) );
 #endif
          }
       }
@@ -302,11 +306,14 @@ bool RegionTree<T>::findConstrained(iterator_list_t &output, traversal_queue_t &
       //Tracing::regionTreeTraversedNodes(1);
       
       Region &regionSegment = traversalNode.m_regionSegment;
-#if REGION_TREE_BOUNDING
-      Region const &fullRegion = traversalNode.m_fullRegion;
-#endif
       
       if (currentNode->m_regionSegment.containedMatch(regionSegment)) {
+#if REGION_TREE_BOUNDING
+         Region const &fullRegion = traversalNode.m_fullRegion;
+#else
+         Region traversedSegment = traversalNode.m_traversedRegionSegment;
+         traversedSegment += currentNode->m_regionSegment;
+#endif
          regionSegment.advance(currentNode->m_regionSegment.getLength());
          if (regionSegment.getFirstBitNumber() == sizeof(size_t)*8) {
             //Tracing::regionTreeMatchingRegions(1);
@@ -314,7 +321,11 @@ bool RegionTree<T>::findConstrained(iterator_list_t &output, traversal_queue_t &
                return true;
             }
             limit--;
-            output.push_back(iterator(currentNode));
+#if REGION_TREE_BOUNDING
+            output.push_back( iterator(currentNode, fullRegion) );
+#else
+            output.push_back( iterator(currentNode, traversedSegment) );
+#endif
             continue;
          }
          // Match 0
@@ -328,7 +339,7 @@ bool RegionTree<T>::findConstrained(iterator_list_t &output, traversal_queue_t &
 #if REGION_TREE_BOUNDING
             pendingNodes.push_back( TraversalNode<T>(regionSegment+1, fullRegion, currentNode->m_children[Region::BIT_0]) );
 #else
-            pendingNodes.push_back( TraversalNode<T>(regionSegment+1, currentNode->m_children[Region::BIT_0]) );
+            pendingNodes.push_back( TraversalNode<T>(traversedSegment+Region::BIT_0, regionSegment+1, currentNode->m_children[Region::BIT_0]) );
 #endif
          }
          // Match 1
@@ -342,7 +353,7 @@ bool RegionTree<T>::findConstrained(iterator_list_t &output, traversal_queue_t &
 #if REGION_TREE_BOUNDING
             pendingNodes.push_back( TraversalNode<T>(regionSegment+1, fullRegion, currentNode->m_children[Region::BIT_1]) );
 #else
-            pendingNodes.push_back( TraversalNode<T>(regionSegment+1, currentNode->m_children[Region::BIT_1]) );
+            pendingNodes.push_back( TraversalNode<T>(traversedSegment+Region::BIT_1, regionSegment+1, currentNode->m_children[Region::BIT_1]) );
 #endif
          }
          // Match X
@@ -357,7 +368,7 @@ bool RegionTree<T>::findConstrained(iterator_list_t &output, traversal_queue_t &
 #if REGION_TREE_BOUNDING
             pendingNodes.push_back( TraversalNode<T>(regionSegment+1, fullRegion, currentNode->m_children[Region::X]) );
 #else
-            pendingNodes.push_back( TraversalNode<T>(regionSegment+1, currentNode->m_children[Region::X]) );
+            pendingNodes.push_back( TraversalNode<T>(traversedSegment+Region::X, regionSegment+1, currentNode->m_children[Region::X]) );
 #endif
          }
       }
@@ -379,19 +390,28 @@ typename RegionTree<T>::iterator RegionTree<T>::findExactAndMatching(Region cons
       //Tracing::regionTreeTraversedNodes(1);
       
       Region &regionSegment = traversalNode.m_regionSegment;
-#if REGION_TREE_BOUNDING
-      Region const &fullRegion = traversalNode.m_fullRegion;
-#endif
       
       if (currentNode->m_regionSegment.containedMatch(regionSegment)) {
+#if !REGION_TREE_BOUNDING
+         Region traversedSegment = traversalNode.m_traversedRegionSegment;
+         traversedSegment += currentNode->m_regionSegment;
+#endif
          regionSegment.advance(currentNode->m_regionSegment.getLength());
          if (regionSegment.getFirstBitNumber() == sizeof(size_t)*8) {
             //Tracing::regionTreeMatchingRegions(1);
+#if REGION_TREE_BOUNDING
             if (fullRegion == currentNode->getFullRegion()) {
-               exactMatch = iterator(currentNode);
+               exactMatch = iterator(currentNode, fullRegion);
             } else {
-               matching.push_back(iterator(currentNode));
+               matching.push_back( iterator(currentNode, currentNode->getFullRegion()) );
             }
+#else
+            if (fullRegion == traversedSegment) {
+               exactMatch = iterator(currentNode, traversedSegment);
+            } else {
+               matching.push_back( iterator(currentNode, traversedSegment) );
+            }
+#endif
             continue;
          }
          // Match 0
@@ -405,7 +425,7 @@ typename RegionTree<T>::iterator RegionTree<T>::findExactAndMatching(Region cons
 #if REGION_TREE_BOUNDING
             pendingNodes.push_back( TraversalNode<T>(regionSegment+1, fullRegion, currentNode->m_children[Region::BIT_0]) );
 #else
-            pendingNodes.push_back( TraversalNode<T>(regionSegment+1, currentNode->m_children[Region::BIT_0]) );
+            pendingNodes.push_back( TraversalNode<T>(traversedSegment+Region::BIT_0, regionSegment+1, currentNode->m_children[Region::BIT_0]) );
 #endif
          }
          // Match 1
@@ -419,7 +439,7 @@ typename RegionTree<T>::iterator RegionTree<T>::findExactAndMatching(Region cons
 #if REGION_TREE_BOUNDING
             pendingNodes.push_back( TraversalNode<T>(regionSegment+1, fullRegion, currentNode->m_children[Region::BIT_1]) );
 #else
-            pendingNodes.push_back( TraversalNode<T>(regionSegment+1, currentNode->m_children[Region::BIT_1]) );
+            pendingNodes.push_back( TraversalNode<T>(traversedSegment+Region::BIT_1, regionSegment+1, currentNode->m_children[Region::BIT_1]) );
 #endif
          }
          // Match X
@@ -434,7 +454,7 @@ typename RegionTree<T>::iterator RegionTree<T>::findExactAndMatching(Region cons
 #if REGION_TREE_BOUNDING
             pendingNodes.push_back( TraversalNode<T>(regionSegment+1, fullRegion, currentNode->m_children[Region::X]) );
 #else
-            pendingNodes.push_back( TraversalNode<T>(regionSegment+1, currentNode->m_children[Region::X]) );
+            pendingNodes.push_back( TraversalNode<T>(traversedSegment+Region::X, regionSegment+1, currentNode->m_children[Region::X]) );
 #endif
          }
       }
@@ -456,7 +476,7 @@ typename RegionTree<T>::iterator RegionTree<T>::findExact(Region const &fullRegi
          regionSegment.advance(currentNode->m_regionSegment.getLength());
          if (regionSegment.getFirstBitNumber() == sizeof(size_t)*8) {
             //Tracing::regionTreeMatchingRegions(1);
-            return iterator(currentNode);
+            return iterator(currentNode, fullRegion);
          }
          // Match 0
          if (
@@ -520,7 +540,7 @@ void RegionTree<T>::addOverlapping(Region const &region, iterator_list_t &output
       m_root->m_partitionLevel = partitionLevel;
       
       //Tracing::regionTreeMatchingRegions(1);
-      ContainerAdapter<iterator_list_t>::insert(output, iterator(m_root));
+      ContainerAdapter<iterator_list_t>::insert( output, iterator(m_root, region) );
       return;
    }
    
@@ -535,7 +555,7 @@ void RegionTree<T>::addOverlapping(Region const &region, iterator_list_t &output
          if (regionSegment.getFirstBitNumber() == sizeof(size_t)*8) {
             //Tracing::regionTreeMatchingRegions(1);
             currentNode->m_partitionLevel = partitionLevel;
-            ContainerAdapter<iterator_list_t>::insert(output, iterator(currentNode));
+            ContainerAdapter<iterator_list_t>::insert( output, iterator(currentNode, region) );
             return;
          }
          
@@ -588,7 +608,7 @@ typename RegionTree<T>::iterator RegionTree<T>::addOverlapping(Region const &reg
 #endif
       
       //Tracing::regionTreeMatchingRegions(1);
-      return iterator(m_root);
+      return iterator(m_root, region);
    }
    
    typename RegionTree<T>::Node *currentNode = m_root;
@@ -601,7 +621,7 @@ typename RegionTree<T>::iterator RegionTree<T>::addOverlapping(Region const &reg
          regionSegment.advance(currentNode->m_regionSegment.getLength());
          if (regionSegment.getFirstBitNumber() == sizeof(size_t)*8) {
             //Tracing::regionTreeMatchingRegions(1);
-            return iterator(currentNode);
+            return iterator(currentNode, region);
          }
          
          // Advance to (and create if necessary) the next node
@@ -653,7 +673,7 @@ void RegionTree<T>::addOverlappingFrom(Region const &region, Region const &fullR
 #endif
       
       //Tracing::regionTreeMatchingRegions(1);
-      output.push_back(iterator(m_root));
+      output.push_back( iterator(m_root, fullRegion) );
       return;
    }
    
@@ -668,7 +688,7 @@ void RegionTree<T>::addOverlappingFrom(Region const &region, Region const &fullR
          if (regionSegment.getFirstBitNumber() == sizeof(size_t)*8) {
             //Tracing::regionTreeMatchingRegions(1);
             currentNode->m_partitionLevel = partitionLevel;
-            output.push_back( iterator(currentNode) );
+            output.push_back( iterator(currentNode, fullRegion) );
             return;
          }
          
@@ -715,7 +735,7 @@ void RegionTree<T>::partition(iterator_list_t &nodes, Region const &region,  boo
       typename RegionTree<T>::Node *node = it->m_node;
       int originalPartitionLevel = node->m_partitionLevel;
       
-      Region nodeRegion = node->getFullRegion();
+      Region nodeRegion = it->getRegion();
       RegionPart nodeRegionSegment(nodeRegion.trim(node->m_regionSegment.getBitsToEnd()), originalPartitionLevel);
       
       Region prefix;
@@ -848,28 +868,6 @@ void RegionTree<T>::partition(iterator_list_t &nodes, Region const &region,  boo
 }
 
 
-#if 0
-template<typename T>
-#if REGION_TREE_BOUNDING
-bool RegionTree<T>::find(Region const &string, Region const &fullRegion, typename RegionTree<T>::Node *node)
-#else
-bool RegionTree<T>::find(Region const &string, typename RegionTree<T>::Node *node)
-#endif
-{
-   traversal_queue_t pendingNodes;
-   
-#if REGION_TREE_BOUNDING
-   pendingNodes.push_back(TraversalNode<T>(string, fullRegion, node));
-#else
-   pendingNodes.push_back(TraversalNode<T>(string, node));
-#endif
-   bool result = find(pendingNodes);
-   
-   return result;
-}
-#endif
-
-
 template<typename T>
 void RegionTree<T>::find(Region const &region, iterator_list_t &output) const
 {
@@ -878,7 +876,7 @@ void RegionTree<T>::find(Region const &region, iterator_list_t &output) const
 #if REGION_TREE_BOUNDING
    pendingNodes.push_back(TraversalNode<T>(region, region, m_root));
 #else
-   pendingNodes.push_back(TraversalNode<T>(region, m_root));
+   pendingNodes.push_back(TraversalNode<T>(Region(), region, m_root));
 #endif
    find(output, pendingNodes);
 }
@@ -892,7 +890,7 @@ bool RegionTree<T>::findConstrained(Region const &region, iterator_list_t &outpu
 #if REGION_TREE_BOUNDING
    pendingNodes.push_back(TraversalNode<T>(region, region, m_root));
 #else
-   pendingNodes.push_back(TraversalNode<T>(region, m_root));
+   pendingNodes.push_back(TraversalNode<T>(Region(), region, m_root));
 #endif
    
    bool tooMany = findConstrained(output, pendingNodes, limit);
@@ -909,7 +907,7 @@ typename RegionTree<T>::iterator RegionTree<T>::findExactAndMatching(Region cons
 #if REGION_TREE_BOUNDING
    pendingNodes.push_back(TraversalNode<T>(region, region, m_root));
 #else
-   pendingNodes.push_back(TraversalNode<T>(region, m_root));
+   pendingNodes.push_back(TraversalNode<T>(Region(), region, m_root));
 #endif
    return findExactAndMatching(region, matching, pendingNodes);
 }
@@ -934,12 +932,12 @@ void RegionTree<T>::insertMissingAndConsolidate(Region const &region, iterator e
       iterator &accessor = *it;
       bool matches, regionSegmentSubsumes, partSubsumes;
       
-      region.compare(accessor.m_node->getFullRegion(), /* Outputs: */ matches, regionSegmentSubsumes, partSubsumes);
+      region.compare(accessor.getRegion(), /* Outputs: */ matches, regionSegmentSubsumes, partSubsumes);
       if (partSubsumes) {
          // The part has subparts outside of the regionSegment
          if (accessor.m_node->m_partitionLevel < maxPartitioningLevels) {
             // Try to partition it
-            RegionPart(accessor.m_node->getFullRegion(), accessor.m_node->m_partitionLevel).partition(region, /* Output */ parts, 0, true, true, maxPartitioningLevels); // Partition into matching, partially matching and non-matching parts
+            RegionPart(accessor.getRegion(), accessor.m_node->m_partitionLevel).partition(region, /* Output */ parts, 0, true, true, maxPartitioningLevels); // Partition into matching, partially matching and non-matching parts
             
             T const data = *accessor;
             remove(accessor);
@@ -956,7 +954,7 @@ void RegionTree<T>::insertMissingAndConsolidate(Region const &region, iterator e
                   for (; it3 != matchingParts.end(); it3++) {
                      iterator accessor3 = *it3;
                      bool subpartSubsumes, alreadyExistingNodeSubsumes, theyMatch;
-                     subpart.compare(accessor3.m_node->getFullRegion(), /* Outputs: */ theyMatch, subpartSubsumes, alreadyExistingNodeSubsumes);
+                     subpart.compare(accessor3.getRegion(), /* Outputs: */ theyMatch, subpartSubsumes, alreadyExistingNodeSubsumes);
                      if (theyMatch) {
                         if (subpartSubsumes && !alreadyExistingNodeSubsumes) {
                            // The new subpart totally overlaps a part, but we cannot make it any thinner, so we erase the small one
@@ -1027,7 +1025,7 @@ typename RegionTree<T>::iterator RegionTree<T>::findAndPopulate(Region const &re
       // No whole region found, so create the regions that are not present in the tree
       RegionCollection<> alreadyAddedRegionCollection;
       for (typename iterator_list_t::const_iterator it = output.begin(); it != output.end(); it++) {
-         RegionPart alreadyAddedRegion(it->m_node->getFullRegion(), it->m_node->m_partitionLevel);
+         RegionPart alreadyAddedRegion(it->getRegion(), it->m_node->m_partitionLevel);
          alreadyAddedRegionCollection.addPart(alreadyAddedRegion);
       }
       
@@ -1087,7 +1085,7 @@ void RegionTree<T>::removeMany(ITERATOR_LIST_T &removeList)
       typename RegionTree<T>::Node *parent = node->m_parent;
       if (parent->m_children[Region::BIT_0] == node) {
          if (parent->m_children[Region::BIT_1] == NULL && parent->m_children[Region::X] == NULL) {
-            ContainerAdapter<ITERATOR_LIST_T>::insert(removeList, parent);
+            ContainerAdapter<ITERATOR_LIST_T>::insert(removeList, iterator(parent, Region()));
          } else {
             parent->m_children[Region::BIT_0] = NULL;
 #if REGION_TREE_BOUNDING
@@ -1096,7 +1094,7 @@ void RegionTree<T>::removeMany(ITERATOR_LIST_T &removeList)
          }
       } else if (parent->m_children[Region::BIT_1] == node) {
          if (parent->m_children[Region::BIT_0] == NULL && parent->m_children[Region::X] == NULL) {
-            ContainerAdapter<ITERATOR_LIST_T>::insert(removeList, parent);
+            ContainerAdapter<ITERATOR_LIST_T>::insert(removeList, iterator(parent, Region()));
          } else {
             parent->m_children[Region::BIT_1] = NULL;
 #if REGION_TREE_BOUNDING
@@ -1106,7 +1104,7 @@ void RegionTree<T>::removeMany(ITERATOR_LIST_T &removeList)
       } else {
          // X
          if (parent->m_children[Region::BIT_0] == NULL && parent->m_children[Region::BIT_1] == NULL) {
-            ContainerAdapter<ITERATOR_LIST_T>::insert(removeList, parent);
+            ContainerAdapter<ITERATOR_LIST_T>::insert(removeList, iterator(parent, Region()));
          } else {
             parent->m_children[Region::X] = NULL;
 #if REGION_TREE_BOUNDING
@@ -1134,7 +1132,7 @@ void RegionTree<T>::defragment(/* Inout */ iterator_list_t &candidates)
    std::list<RegionAndPosition> nextStepList;
    
    for (unsigned int i=0; i < candidates.size(); i++) {
-      currentList.push_back( RegionAndPosition(candidates[i].m_node->m_fullRegion, candidates[i].m_node->m_partitionLevel, i) );
+      currentList.push_back( RegionAndPosition(candidates[i].getRegion(), candidates[i].m_node->m_partitionLevel, i) );
    }
    
    bool effective;

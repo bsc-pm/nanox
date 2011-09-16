@@ -141,7 +141,17 @@ namespace nanos
             m_nextBit = m_nextBit + bits;
          }
       
-      //! \brief Return the result of skiping high order bits
+      //! \brief Return the result of appeding a bit
+      //! \param bit the value of the bit
+      //! \returns result of appending the bit
+      Region operator+(bit_value_t bit) const
+         {
+            Region result(*this);
+            result.addBit(bit);
+            return result;
+         }
+      
+      //! \brief Return the result of appeding a bit
       //! \param bit number of high order bits to skip
       //! \returns result of skipping the bits
       Region operator+(int bits) const
