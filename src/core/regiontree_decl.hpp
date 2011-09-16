@@ -102,15 +102,6 @@ protected:
    iterator findExactAndMatching(Region const &fullRegion, iterator_list_t &matching, traversal_queue_t &pendingNodes);
    
    
-#if 0
-#if REGION_TREE_BOUNDING
-   bool find(Region const &string, Region const &fullRegion, Node *node);
-#else
-   bool find(Region const &string, Node *node);
-#endif
-#endif
-   
-   
 public:
    //! \brief Default constructor
    RegionTree();
