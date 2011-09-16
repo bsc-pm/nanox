@@ -22,6 +22,79 @@ class SlicerStaticFor: public Slicer
       bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) { *slice = wd; return true; }
 };
 
+// FIXME: Temporary defined to enable/disable hierarchical slicer creation
+//#define NANOS_TREE_CREATION
+#ifdef NANOS_TREE_CREATION
+static void staticLoop ( void *arg )
+{
+   debug ( "Executing static loop wrapper");
+
+   WorkDescriptor *slice = NULL;
+   BaseThread *mythread = myThread;
+   ThreadTeam *team = mythread->getTeam();
+   int num_threads = team->size();
+   WorkDescriptor *work = mythread->getCurrentWD();
+
+   nanos_loop_info_t * nli = (nanos_loop_info_t *) arg;
+   nanos_loop_info_t * nli_1, *nli_2;
+
+   if ( (nli->thid * 2 + 1) < num_threads ) {
+      // Duplicating slice into wd
+      slice = NULL;
+      sys.duplicateWD( &slice, work );
+
+      debug ( "Creating task " << slice << ":" << slice->getId() << " from sliced one " << work << ":" << work->getId() );
+
+      // Computing specific loop boundaries for 1st child slice
+      nli_1 = ( nanos_loop_info_t * ) slice->getData();
+      nli_1->thid  = nli->thid * 2 + 1;
+      nli_1->lower = nli->lower;
+      nli_1->upper = nli->upper;
+      nli_1->step  = nli->step;
+      nli_1->args  = nli->args;
+
+      // Submit: slice (WorkDescriptor i, running on Thread j)
+      slice->tieTo( (*team)[nli_1->thid] );
+      if ( (*team)[nli_1->thid].setNextWD(slice) == false ) Scheduler::submit ( *slice );
+   }
+
+   if ( (nli->thid * 2 + 2) < num_threads ) {
+      // Duplicating slice into wd
+      slice = NULL;
+      sys.duplicateWD( &slice, work );
+
+      debug ( "Creating task " << slice << ":" << slice->getId() << " from sliced one " << work << ":" << work->getId() );
+
+      // Computing specific loop boundaries for 1st child slice
+      nli_2 = ( nanos_loop_info_t * ) slice->getData();
+      nli_2->thid = nli->thid * 2 + 2;
+      nli_2->lower = nli->lower;
+      nli_2->upper = nli->upper;
+      nli_2->step = nli->step;
+      nli_2->args  = nli->args;
+
+      // Submit: slice (WorkDescriptor i, running on Thread j)
+      slice->tieTo( (*team)[nli_2->thid] );
+      if ( (*team)[nli_2->thid].setNextWD(slice) == false ) Scheduler::submit ( *slice );
+   }
+
+   int _niters = (((nli->upper - nli->lower) / nli->step ) + 1 );
+   int _adjust = _niters % num_threads;
+   int _chunk  = ((_niters / num_threads) -1 ) * nli->step;
+   int i;
+
+   for ( i = 0; i < nli->thid; i++) {
+      nli->lower = nli->lower + _chunk + ((_adjust > i )? nli->step : 0) + nli->step;
+   }
+   nli->upper = nli->lower + _chunk + (( _adjust > nli->thid ) ? nli->step : 0);
+   if ( nli->thid == (num_threads - 1) ) nli->last = true;
+
+//fprintf(stderr, "lower=%d, upper=%d, step=%d\n",nli->lower, nli->upper, nli->step); //FIXME
+
+   ((SMPDD::work_fct)(nli->args))(arg);
+}
+#endif
+
 static void interleavedLoop ( void *arg )
 {
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
@@ -89,6 +162,81 @@ static void interleavedLoop ( void *arg )
 }
 
 void SlicerStaticFor::submit ( SlicedWD &work )
+#ifdef NANOS_TREE_CREATION
+{
+   debug ( "Submitting sliced task " << &work << ":" << work.getId() );
+   
+   BaseThread *mythread = myThread;
+   ThreadTeam *team = mythread->getTeam();
+   int i, num_threads = team->size();
+   WorkDescriptor *slice = NULL;
+   nanos_loop_info_t *nli;
+
+   // copying rest of slicer data values and computing sign value
+   // getting user defined chunk, lower, upper and step
+   SlicerDataFor * sdf = (SlicerDataFor *) work.getSlicerData();
+   int _chunk = sdf->getChunk();
+   int _lower = sdf->getLower();
+   int _upper = sdf->getUpper();
+   int _step  = sdf->getStep();
+
+//fprintf(stderr, "whole loop lower=%d, upper=%d, step=%d (among %d threads)\n",_lower,_upper,_step, num_threads); // FIXME
+
+// XXX: static
+   if ( _chunk == 0 ) {
+      nli = ( nanos_loop_info_t * ) work.getData();
+      nli->thid  = 0;
+      nli->lower = _lower;
+      nli->upper = _upper; 
+      nli->step  = _step;
+      SMPDD &dd = ( SMPDD & ) work.getActiveDevice();
+      nli->args = ( void * ) dd.getWorkFct();
+      dd = SMPDD(staticLoop);
+// XXX: static
+   } else {
+      // Computing offset between threads
+      int _sign = ( _step < 0 ) ? -1 : +1;
+      int _offset = _chunk * _step;
+      // record original work function
+      SMPDD &dd = ( SMPDD & ) work.getActiveDevice();
+      // setting new arguments
+      nli = (nanos_loop_info_t *) work.getData();
+      nli->lower = _lower;
+      nli->upper = _upper; 
+      nli->step = _step;
+      nli->chunk = _offset; 
+      nli->stride = _offset * num_threads; 
+      nli->args = ( void * ) dd.getWorkFct();
+      // change to our wrapper
+      dd = SMPDD(interleavedLoop);
+      // Init and Submit WorkDescriptors: 1..N
+      for ( i = 1; i < num_threads; i++ ) {
+         // Avoiding to create 'empty' WorkDescriptors
+         if ( ((_lower + (i * _offset)) * _sign) > ( _upper * _sign ) ) break;
+         // Duplicating slice into wd
+         slice = NULL;
+         sys.duplicateWD( &slice, &work );
+
+         debug ( "Creating task " << slice << ":" << slice->getId() << " from sliced one " << &work << ":" << work.getId() );
+
+         // Computing specific loop boundaries for current slice
+         nli = ( nanos_loop_info_t * ) slice->getData();
+         nli->lower = _lower + ( i * _offset);
+         nli->upper = _upper;
+         nli->step = _step;
+         nli->chunk = _offset;
+         nli->stride = _offset * num_threads; 
+         // Submit: slice (WorkDescriptor i, running on Thread i)
+         slice->tieTo( (*team)[i] );
+         if ( (*team)[i].setNextWD(slice) == false ) Scheduler::submit ( *slice );
+      }
+   }
+   // Submit: work
+   work.convertToRegularWD();
+   work.tieTo( (*team)[0] );
+   if ( (*team)[0].setNextWD( (WorkDescriptor *) &work) == false ) Scheduler::submit ( work );
+}
+#else
 {
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t loop_lower = ID->getEventKey("loop-lower"); )
@@ -236,8 +384,10 @@ void SlicerStaticFor::submit ( SlicedWD &work )
    // Submit: work (WorkDescriptor 0, running on thread 'first')
    work.convertToRegularWD();
    work.tieTo( (*team)[first_valid_thread] );
-   if ( (*team)[first_valid_thread].setNextWD( (WorkDescriptor *) &work) == false ) Scheduler::submit ( work );
+   if ( mythread == &((*team)[first_valid_thread]) ) Scheduler::inlineWork( &work, false );
+   else if ( (*team)[first_valid_thread].setNextWD( (WorkDescriptor *) &work) == false ) Scheduler::submit ( work );
 }
+#endif
 
 class SlicerStaticForPlugin : public Plugin {
    public:

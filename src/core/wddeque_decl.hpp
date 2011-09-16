@@ -52,6 +52,7 @@ namespace nanos
 
          BaseContainer     _dq;
          Lock              _lock;
+         size_t            _nelems;
 
       private:
          /*! \brief WDDeque copy constructor (private)
@@ -86,8 +87,8 @@ namespace nanos
 
          bool removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
 
-         static void increaseTasksInQueues( int tasks );
-         static void decreaseTasksInQueues( int tasks );
+         void increaseTasksInQueues( int tasks );
+         void decreaseTasksInQueues( int tasks );
    };
 
 }
