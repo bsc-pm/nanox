@@ -184,12 +184,11 @@ public:
    void defragment(/* Inout */ iterator_list_t &candidates);
    
    //! \brief Partition a set of nodes according to their intersection with another region
-   //! \tparam output_container_t type of the output container
-   //! \param nodes list of iterators corresponding to the nodes to be partitioned
+   //! \tparam output_container_t the type of the output container. Usually std::set<iterator>
+   //! \param nodes list of iterators corresponding to the (leaf) nodes to be partitioned
    //! \param region the region that determines the partitioning boundary
    //! \param outputOnlyMatchingPart true if the output should receive only the list of intersecting subregions and false if it should receive all fragments
    //! \param removeExactMatch true if a node containing the exact region should be removed
-   //! \tparam output_container_t the type of the output container. Usually std::set<iterator>
    //! \param[out] output the list of (intersecting if \a outputOnlyMatchingPart is true) fragments
    //! \param  maxPartitioningLevels the maximum levels of fragmentation allowed for any region
    template <class output_container_t>
