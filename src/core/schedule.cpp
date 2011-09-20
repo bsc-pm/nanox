@@ -361,7 +361,9 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    thread = getMyThreadSafe();
 
    if (schedule) {
-        thread->setNextWD(thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*wd));
+        if ( thread->reserveNextWD() ) {
+           thread->setReservedNextWD(thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*wd));
+        }
    }
 
    /* If WorkDescriptor has been submitted update statistics */

@@ -182,6 +182,9 @@ namespace nanos
          void resetNextWD ();
          bool setNextWD ( WD *next );
 
+         bool reserveNextWD ( void );
+         bool setReservedNextWD ( WD *next );
+
          WD * getNextWD () const;
 
          // team related methods
