@@ -369,6 +369,7 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    /* If WorkDescriptor has been submitted update statistics */
    updateExitStats (*wd);
 
+   wd->clear();
    wd->done();
 
    debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
