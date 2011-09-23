@@ -20,6 +20,7 @@
 #ifndef _NANOS_DIRECTORY_H
 #define _NANOS_DIRECTORY_H
 
+#include "system.hpp"
 #include "directory_decl.hpp"
 #include "hashmap.hpp"
 #include "cache_decl.hpp"
@@ -218,8 +219,19 @@ inline void Directory::unRegisterAccess( uint64_t tag, bool output, Directory* c
 inline void Directory::waitInput( uint64_t tag, bool output )
 {
    DirectoryEntry *de = _directory.find( tag );
+
    if ( de != NULL ) { // The entry may have never been registered
-      while ( de->getOwner() != NULL ) {}
+      BaseThread *thread = getMyThreadSafe();
+      const int nspins = sys.getSchedulerConf().getNumSpins();
+      int spins = nspins; 
+
+      while ( de->getOwner() != NULL ) {
+         if ( spins == 0 ) {
+            if ( sys.useYield() ) thread->yield();
+            spins = nspins; 
+         }
+         else spins--;
+      }
    }
 }
 
@@ -244,8 +256,18 @@ inline void Directory::synchronizeHost()
       DirectoryEntry *de = *deIt;
       Cache *c = de->getOwner();
       if ( c != NULL ) {
+         BaseThread *thread = getMyThreadSafe();
+         const int nspins = sys.getSchedulerConf().getNumSpins();
+         int spins = nspins; 
+
          c->syncTransfer( de->getTag() );
-         while (  de->getOwner() != NULL ) {}
+         while ( de->getOwner() != NULL ) {
+            if ( spins == 0 ) {
+               if ( sys.useYield() ) thread->yield();
+               spins = nspins; 
+            }
+            else spins--;
+         }
       }
       de->setVersion( de->getVersion()+1 );
    }
@@ -272,8 +294,18 @@ inline void Directory::synchronizeHost( std::list<uint64_t> syncTags )
       DirectoryEntry *de = *deIt;
       Cache *c = de->getOwner();
       if ( c != NULL ) {
+         BaseThread *thread = getMyThreadSafe();
+         const int nspins = sys.getSchedulerConf().getNumSpins();
+         int spins = nspins; 
+
          c->syncTransfer( de->getTag() );
-         while (  de->getOwner() != NULL ) {}
+         while ( de->getOwner() != NULL ) {
+            if ( spins == 0 ) {
+               if ( sys.useYield() ) thread->yield();
+               spins = nspins; 
+            }
+            else spins--;
+         }
       }
       de->setVersion( de->getVersion()+1 );
    }
