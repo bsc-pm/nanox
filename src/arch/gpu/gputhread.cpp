@@ -142,7 +142,6 @@ void GPUThread::inlineWorkDependent ( WD &wd )
          WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, wd );
          setReservedNextWD( next );  
          if ( next != NULL ) next->init();
-         }
       }
    }
 
