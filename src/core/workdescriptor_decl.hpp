@@ -139,7 +139,7 @@ namespace nanos
 
       private:
 
-         typedef enum { INIT, READY, IDLE, BLOCKED } State;
+         typedef enum { INIT, START, READY, IDLE, BLOCKED } State;
 
          size_t                        _data_size;    /**< WD data size */
          int                           _data_align;   /**< WD data alignment */
@@ -313,6 +313,8 @@ namespace nanos
          void setData ( void *wdata );
 
          void * getData () const;
+
+         void setStart ();
 
          bool isIdle () const;
 
