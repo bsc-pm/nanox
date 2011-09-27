@@ -394,14 +394,14 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    debug( "switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
           " to " << wd << ":" << wd->getId() );
 
-   /* Instrumenting context switch: oldwd leaves cpu but will come back (last = false) */
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldwd, NULL, false) );
+   // Initializing wd if necessary
+   // It will be started later in inlineWorkDependent call
+   if ( !wd->started() ) wd->init();
 
    // This ensures that when we return from the inlining is still the same thread
    // and we don't violate rules about tied WD
-   if ( wd->isTiedTo() == NULL ) wd->tieTo(*oldwd->isTiedTo());
+   if ( oldwd->isTiedTo() != NULL && (wd->isTiedTo() == NULL)) wd->tieTo(*oldwd->isTiedTo());
 
-   if (!wd->started()) wd->init();
    thread->setCurrentWD( *wd );
 
    /* Instrumenting context switch: wd enters cpu (last = n/a) */

@@ -216,9 +216,17 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
       // pre-allocate device
       char chunk[devices[0].dd_size];
       
-
       WD wd( ( DD* ) devices[0].factory( chunk, devices[0].arg ), data_size, data_align, data, num_copies, copies );
       wd.setTranslateArgs( translate_args );
+
+      // set properties
+      if ( props != NULL ) {
+         if ( props->tied ) wd.tied();
+         if ( props->tie_to ) {
+            if ( props->tie_to != myThread) fatal ("Tiedness violation");
+            wd.tieTo( *( BaseThread * ) props->tie_to );
+         }
+      }
 
       int pmDataSize = sys.getPMInterface().getInternalDataSize();
       char pmData[pmDataSize];
@@ -255,7 +263,7 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
       if ( deps != NULL ) {
          sys.waitOn( num_deps, deps );
       }
-      
+
       NANOS_INSTRUMENT( InstrumentState inst1(NANOS_RUNTIME) );
       sys.inlineWork( wd );
       NANOS_INSTRUMENT( inst1.close() );
