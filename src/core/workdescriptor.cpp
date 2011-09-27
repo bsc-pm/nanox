@@ -29,7 +29,7 @@ using namespace nanos;
 
 void WorkDescriptor::init ()
 {
-   ensure ( _state == INIT, "Trying to initialize a wd twice");
+   if ( _state != INIT ) return;
 
    ProcessingElement *pe = myThread->runningOn();
 
