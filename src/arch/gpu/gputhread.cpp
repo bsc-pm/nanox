@@ -124,17 +124,11 @@ void GPUThread::inlineWorkDependent ( WD &wd )
    if ( GPUConfig::isPrefetchingDefined() ) {
       NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
       // Get next task in order to prefetch data to device memory
-      WD *next = getNextWD();
-      ensure( !next, "Attempting to overwrite nextWD." );
-      // Having nextWD at that point is incorrect by now,
-      // but occasionally it could be possible, so check for it before we overwrite it
-      if ( next == NULL ) {
-         next = Scheduler::prefetch( ( nanos::BaseThread * ) this, wd );
-         setNextWD( next );
-      }
 
-      if ( next ) {
-         next->init();
+      if ( reserveNextWD () ) {
+         WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, wd );
+         setReservedNextWD( next );  
+         if ( next != NULL ) next->init();
       }
    }
 

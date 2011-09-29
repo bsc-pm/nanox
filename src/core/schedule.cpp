@@ -394,12 +394,13 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    debug( "switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
           " to " << wd << ":" << wd->getId() );
 
+   // Initializing wd if necessary
+   // It will be started later in inlineWorkDependent call
+   if ( !wd->started() ) wd->init();
+
    // This ensures that when we return from the inlining is still the same thread
    // and we don't violate rules about tied WD
-   if ( wd->isTiedTo() == NULL ) wd->tieTo(*oldwd->isTiedTo());
-
-   if (!wd->started()) wd->init();
-   thread->setCurrentWD( *wd );
+   if ( oldwd->isTiedTo() != NULL && (wd->isTiedTo() == NULL)) wd->tieTo(*oldwd->isTiedTo());
 
    /* Instrumenting context switch: oldwd leaves cpu but will come back (last = false) and wd enters */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldwd, wd, false) );
@@ -411,14 +412,17 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    // both work descriptor were not tied to any thread
    thread = getMyThreadSafe();
 
-   if ( schedule && !thread->getNextWD() ) {
-        thread->setNextWD( thread->getTeam()->getSchedulePolicy().atBeforeExit( thread, *wd ) );
+   if (schedule) {
+        if ( thread->reserveNextWD() ) {
+           thread->setReservedNextWD(thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*wd));
+        }
    }
 
    /* If WorkDescriptor has been submitted update statistics */
    updateExitStats (*wd);
 
    wd->done();
+   wd->clear();
 
    debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
           " to " << oldwd << ":" << oldwd->getId() );
