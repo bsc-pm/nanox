@@ -142,6 +142,8 @@ void GPUConfig::apply()
          _initCublas = false;
          _gpusProperties = NULL;
          warning0( "Couldn't initialize the GPU support component at runtime startup: " << cudaGetErrorString( cudaErr ) );
+
+         return;
       }
 
       // Keep the information of GPUs in GPUDD, in order to avoid a second call to
@@ -163,8 +165,9 @@ void GPUConfig::apply()
       // Check if the user has set a different number of GPUs to use
       if ( _numGPUs >= 0 ) {
          _numGPUs = std::min( _numGPUs, deviceCount );
-      } else
+      } else {
          _numGPUs = deviceCount;
+      }
 
       // Check if the use of caches has been disabled
       if ( sys.isCacheEnabled() ) {
