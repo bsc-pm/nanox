@@ -372,6 +372,10 @@ void System::finish ()
    _pmInterface->finish();
 
    /* System mem free */
+
+   /* deleting master WD */
+   delete[] (char *) getMyThreadSafe()->getCurrentWD();
+
    delete _pmInterface;
 
    for ( Slicers::const_iterator it = _slicers.begin(); it !=   _slicers.end(); it++ ) {

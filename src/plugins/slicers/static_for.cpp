@@ -386,6 +386,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
    work.tieTo( (*team)[first_valid_thread] );
    if ( mythread == &((*team)[first_valid_thread]) ) {
       Scheduler::inlineWork( &work, false );
+      work.~WorkDescriptor();
       delete[] (char *) &work;
    }
    else if ( (*team)[first_valid_thread].setNextWD( (WorkDescriptor *) &work) == false ) Scheduler::submit ( work );

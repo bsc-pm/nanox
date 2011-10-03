@@ -208,6 +208,8 @@ inline void Scheduler::idleLoop ()
    }
    sys.getSchedulerStats()._idleThreads--;
    current->setReady();
+   current->~WorkDescriptor();
+   delete[] (char *) current;
 }
 
 void Scheduler::waitOnCondition (GenericSyncCond *condition)
@@ -371,6 +373,7 @@ struct WorkerBehaviour
       }
       else {
         Scheduler::inlineWork ( next, true );
+        next->~WorkDescriptor();
         delete[] (char *)next;
       }
    }
@@ -479,6 +482,7 @@ void Scheduler::switchTo ( WD *to )
       myThread->switchTo( to, switchHelper );
    } else {
       inlineWork(to);
+      to->~WorkDescriptor();
       delete[] (char *)to;
    }
 }
@@ -503,9 +507,9 @@ void Scheduler::exitHelper (WD *oldWD, WD *newWD, void *arg)
 {
     myThread->exitHelperDependent(oldWD, newWD, arg);
     NANOS_INSTRUMENT ( sys.getInstrumentation()->wdSwitch(oldWD,NULL,true) );
+    myThread->setCurrentWD( *newWD );
     oldWD->~WorkDescriptor();
     delete[] (char *)oldWD;
-    myThread->setCurrentWD( *newWD );
     NANOS_INSTRUMENT ( sys.getInstrumentation()->wdSwitch(NULL,newWD,false) );
 }
 

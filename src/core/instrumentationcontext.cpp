@@ -217,6 +217,7 @@ InstrumentationContextData::ConstStateIterator InstrumentationContext::endState(
 
 InstrumentationContextData::ConstStateIterator InstrumentationContext::beginSubState( InstrumentationContextData *icd ) const
 {
+   if ( icd->_stateEventEnabled ) return icd->_subStateStack.end();
    if ( !(icd->_subStateStack.empty()) ) return --(icd->_subStateStack.end());
    else return icd->_subStateStack.end();
 }
@@ -225,10 +226,12 @@ InstrumentationContextData::ConstStateIterator InstrumentationContext::beginSubS
 
 InstrumentationContextData::ConstStateIterator InstrumentationContextStackedStates::beginSubState( InstrumentationContextData *icd ) const
 {
+   if ( icd->_stateEventEnabled ) return icd->_subStateStack.end();
    return icd->_subStateStack.begin();
 }
 InstrumentationContextData::ConstStateIterator InstrumentationContextStackedStatesAndBursts::beginSubState( InstrumentationContextData *icd ) const
 {
+   if ( icd->_stateEventEnabled ) return icd->_subStateStack.end();
    return icd->_subStateStack.begin();
 }
 InstrumentationContextData::ConstStateIterator InstrumentationContextDisabled::beginSubState( InstrumentationContextData *icd ) const
