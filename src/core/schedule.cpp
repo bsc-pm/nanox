@@ -371,7 +371,7 @@ struct WorkerBehaviour
       }
       else {
         Scheduler::inlineWork ( next, true );
-        delete next;
+        delete[] (char *)next;
       }
    }
 };
@@ -479,7 +479,7 @@ void Scheduler::switchTo ( WD *to )
       myThread->switchTo( to, switchHelper );
    } else {
       inlineWork(to);
-      delete to;
+      delete[] (char *)to;
    }
 }
 
