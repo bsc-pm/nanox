@@ -35,20 +35,21 @@ pe_cluster_sources = \
 		$(top_srcdir)/src/arch/cluster/gasnetapi.cpp \
 		$(END)
 
-cluster_common_cflags= -Wall -include "memtracker.hpp"
-cluster_global_perfo_cxxflags= $(cluster_common_cflags) -DLIBDIR=\"$(libdir)\" -O3
-cluster_common_perfo_cxxflags= $(cluster_global_perfo_cxxflags) -D_NANOS_INTERNAL
 
-cluster_global_debug_cxxflags= $(cluster_common_cflags) -DLIBDIR=\"$(libdir)\" -O0 -g2 -fno-inline -DNANOS_DEBUG_ENABLED
-cluster_common_debug_cxxflags= $(cluster_global_debug_cxxflags) -D_NANOS_INTERNAL
+#cluster_common_cflags= -Wall -include "memtracker.hpp"
+#cluster_global_perfo_cxxflags= $(cluster_common_cflags) -DLIBDIR=\"$(libdir)\" -O3
+#cluster_common_perfo_cxxflags= $(cluster_global_perfo_cxxflags) -D_NANOS_INTERNAL
 
-cluster_global_instr_cxxflags= $(cluster_common_cflags) -DLIBDIR=\"$(libdir)\" -O3 -DNANOS_INSTRUMENTATION_ENABLED
-cluster_common_instr_cxxflags= $(cluster_global_instr_cxxflags) -D_NANOS_INTERNAL
+#cluster_global_debug_cxxflags= $(cluster_common_cflags) -DLIBDIR=\"$(libdir)\" -O0 -g2 -fno-inline -DNANOS_DEBUG_ENABLED
+#cluster_common_debug_cxxflags= $(cluster_global_debug_cxxflags) -D_NANOS_INTERNAL
 
-cluster_global_instrdebug_cxxflags= $(cluster_common_cflags) -DLIBDIR=\"$(libdir)\" -O0 -g2 -fno-inline -DNANOS_DEBUG_ENABLED -DNANOS_INSTRUMENTATION_ENABLED 
-cluster_common_instrdebug_cxxflags= $(cluster_global_instrdebug_cxxflags) -D_NANOS_INTERNAL
+#cluster_global_instr_cxxflags= $(cluster_common_cflags) -DLIBDIR=\"$(libdir)\" -O3 -DNANOS_INSTRUMENTATION_ENABLED
+#cluster_common_instr_cxxflags= $(cluster_global_instr_cxxflags) -D_NANOS_INTERNAL
 
-pe_cluster_common_includes = -DGASNET_PAR -I@GASNET_DIR@/include 
+#cluster_global_instrdebug_cxxflags= $(cluster_common_cflags) -DLIBDIR=\"$(libdir)\" -O0 -g2 -fno-inline -DNANOS_DEBUG_ENABLED -DNANOS_INSTRUMENTATION_ENABLED 
+#cluster_common_instrdebug_cxxflags= $(cluster_global_instrdebug_cxxflags) -D_NANOS_INTERNAL
+
+pe_cluster_common_includes = -DGASNET_PAR -isystem @GASNET_DIR@/include
 pe_cluster_common_ldflags = -L@GASNET_DIR@/lib
 
 pe_cluster_mpi_includes = $(pe_cluster_common_includes) -I@GASNET_DIR@/include/mpi-conduit

@@ -24,7 +24,8 @@ include $(top_srcdir)/src/common.am
 if PERFORMANCE_VERSION
 noinst_LTLIBRARIES = libcluster.la
 
-nanos_perfo_cxxflags=$(common_includes) $(cluster_common_perfo_cxxflags)
+#nanos_perfo_cxxflags=$(common_includes) $(cluster_common_perfo_cxxflags)
+nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags)
 
 libcluster_la_CXXFLAGS=$(nanos_perfo_cxxflags)
 libcluster_la_SOURCES=$(cluster_sources)

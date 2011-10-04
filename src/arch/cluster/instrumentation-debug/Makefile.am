@@ -23,7 +23,8 @@ include $(top_srcdir)/src/common.am
 if INSTRUMENTATION_DEBUG_VERSION
 noinst_LTLIBRARIES = libcluster.la
 
-nanos_instrdebug_cxxflags=$(common_includes) $(cluster_common_instrdebug_cxxflags)
+#nanos_instrdebug_cxxflags=$(common_includes) $(cluster_common_instrdebug_cxxflags)
+nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags)
 
 libcluster_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
 libcluster_la_SOURCES=$(cluster_sources)

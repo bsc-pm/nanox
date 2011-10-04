@@ -47,6 +47,7 @@ typedef struct {
 
 #ifdef GPU_DEV
 //FIXME: GPU Support
+void * local_nanos_gpu_factory( void *prealloc, void *args );
 void * local_nanos_gpu_factory( void *prealloc, void *args )
 {
    nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
@@ -60,6 +61,7 @@ void * local_nanos_gpu_factory( void *prealloc, void *args )
    }
 }
 #endif
+void * local_nanos_smp_factory( void *prealloc, void *args );
 void * local_nanos_smp_factory( void *prealloc, void *args )
 {
    nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
@@ -196,7 +198,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
          NANOS_INSTRUMENT ( instr->raiseClosePtPEvent( NANOS_AM_WORK, id, 0, 0, src_node ); )
    }
    char *work_data = NULL;
-   std::size_t work_data_len;
+   std::size_t work_data_len = 0;
 
    if ( work_data == NULL )
    {
@@ -205,6 +207,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
    }
    else
    {
+      fatal0("Unsupported: work_data bigger than a max gasnet request.");
       memcpy( &work_data[ work_data_len ], arg, argSize );
    }
 

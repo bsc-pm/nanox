@@ -32,10 +32,10 @@ class ClusterPlugin : public Plugin
    public:
       ClusterPlugin() : Plugin( "Cluster PE Plugin", 1 ) {}
 
-      virtual void config( Config& config )
+      virtual void config( Config& cfg )
       {
-         config.setOptionsSection( "Cluster Arch", "Cluster specific options" );
-         ClusterInfo::prepare( config );
+         cfg.setOptionsSection( "Cluster Arch", "Cluster specific options" );
+         ClusterInfo::prepare( cfg );
       }
 
       virtual void init()
