@@ -401,8 +401,12 @@ class InstrumentationExtrae: public Instrumentation
          }
 
          // copy pcf file too
-         //        std::cerr << "Copying pcf file: " << _traceFileName_PCF << std::endl;
-         //secureCopy( _traceFileName_PCF.c_str(), dst + ":" + _traceFinalDirectory.substr(0,found+1));
+         {
+            std::string dst = std::string(sys.getNetwork()->getMasterHostname() );
+            size_t found = _traceFinalDirectory.find_last_of("/");
+            std::cerr << "Copying pcf file: " << _traceFileName_PCF << std::endl;
+            secureCopy( _traceFileName_PCF.c_str(), dst + ":" + _traceFinalDirectory.substr(0,found+1));
+         }
 
       }
 
@@ -548,15 +552,15 @@ class InstrumentationExtrae: public Instrumentation
       {
          OMPItrace_fini();
          getTraceFileName();
+         modifyParaverConfigFile();
          if ( !_skipMerge ) {
             mergeParaverTraceFiles();
             postProcessTraceFile();
          }
-	 else
+         else
          {
             copyFilesToMaster();
          }
-         modifyParaverConfigFile();
          removeTemporaryFiles();
       }
 
