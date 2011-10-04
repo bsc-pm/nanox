@@ -46,6 +46,9 @@ namespace ext {
 #ifndef GASNET_SEGMENT_EVERYTHING
          static SimpleAllocator *_thisNodeSegment;
 #endif
+         static std::set< void * > _waitingPutRequests;
+         static std::set< void * > _receivedUnmatchedPutRequests;
+         static Lock _waitingPutRequestsLock;
 
          // data dependencies for data comming via a node different than the one sending the work
          // e.g. node 1 sends work to 2 but some data comes from node 3, the work message can
@@ -71,6 +74,9 @@ namespace ext {
          };
          static std::list<struct putReqDesc * > _putReqs;
          static Lock _putReqsLock;
+         static std::size_t rxBytes;
+         static std::size_t txBytes;
+         static std::size_t _totalBytes;
          
       public:
          void initialize ( Network *net );
@@ -89,9 +95,13 @@ namespace ext {
          void sendMyHostName( unsigned int dest );
          void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, size_t len );
          void setMasterDirectory(Directory *dir);
+         std::size_t getTotalBytes();
+         static std::size_t getRxBytes();
+         static std::size_t getTxBytes();
 
       private:
          static void enqueuePutReq( unsigned int dest, void *origAddr, void *destAddr, std::size_t len);
+         static void sendWaitForRequestPut( unsigned int dest, uint64_t addr );
 
          // Active Message handlers
          static void amFinalize( gasnet_token_t token );
@@ -130,7 +140,8 @@ namespace ext {
                gasnet_handlerarg_t origAddrHi,
                gasnet_handlerarg_t tagAddrLo,
                gasnet_handlerarg_t tagAddrHi,
-               gasnet_handlerarg_t len,
+               gasnet_handlerarg_t lenLo,
+               gasnet_handlerarg_t lenHi,
                gasnet_handlerarg_t waitObjLo,
                gasnet_handlerarg_t waitObjHi );
          static void amGetReply( gasnet_token_t token,
@@ -152,7 +163,11 @@ namespace ext {
                gasnet_handlerarg_t origAddrHi,
                gasnet_handlerarg_t len,
                gasnet_handlerarg_t dst );
-            };
+         static void amWaitRequestPut( gasnet_token_t token, 
+               gasnet_handlerarg_t addrLo,
+               gasnet_handlerarg_t addrHi );
+         static void print_copies( WD *wd );
+   };
 }
 }
 #endif
