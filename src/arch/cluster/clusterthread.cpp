@@ -145,18 +145,17 @@ unsigned int ClusterThread::numRunningWDsSMP() {
    return _numRunningSMP.value();
 }
 void ClusterThread::clearCompletedWDsSMP2( ) {
-   unsigned int lowval = _completedSMPTail % 16;
-   unsigned int highval = ( _completedSMPHead2.value() ) % 16;
+   unsigned int lowval = _completedSMPTail % MAX_PRESEND;
+   unsigned int highval = ( _completedSMPHead2.value() ) % MAX_PRESEND;
    unsigned int pos = lowval;
-   if ( lowval > highval ) highval +=16;
-   //if (lowval < highval) std::cerr << "thd: "<< getId() << "clear wd from " << lowval << " to " << highval << std::endl;
+   if ( lowval > highval ) highval +=MAX_PRESEND;
    while ( lowval < highval )
    {
       WD *completedWD = _completedWDsSMP[pos];
       Scheduler::postOutlineWork( completedWD, true, this );
       delete completedWD;
       _completedWDsSMP[pos] =(WD *) 0xdeadbeef;
-      pos = (pos+1) % 16;
+      pos = (pos+1) % MAX_PRESEND;
       lowval += 1;
       _completedSMPTail += 1;
    }
@@ -164,8 +163,7 @@ void ClusterThread::clearCompletedWDsSMP2( ) {
 void ClusterThread::completeWDSMP_2( void *remoteWdAddr ) {
    unsigned int realpos = _completedSMPHead++;
    _numRunningSMP--;
-   //if (pos == 16) pos = 0; 
-   unsigned int pos = realpos %16;
+   unsigned int pos = realpos %MAX_PRESEND;
    _completedWDsSMP[pos] = (WD *) remoteWdAddr;
    while( !_completedSMPHead2.cswap( realpos, realpos+1) ) {}
 }
@@ -179,18 +177,17 @@ unsigned int ClusterThread::numRunningWDsGPU() {
 }
 
 void ClusterThread::clearCompletedWDsGPU2( ) {
-   unsigned int lowval = _completedGPUTail % 16;
-   unsigned int highval = ( _completedGPUHead2.value() ) % 16;
+   unsigned int lowval = _completedGPUTail % MAX_PRESEND;
+   unsigned int highval = ( _completedGPUHead2.value() ) % MAX_PRESEND;
    unsigned int pos = lowval;
-   if ( lowval > highval ) highval +=16;
-   //if (lowval < highval) std::cerr << "thd: "<< getId() << "clear wd from " << lowval << " to " << highval << std::endl;
+   if ( lowval > highval ) highval +=MAX_PRESEND;
    while ( lowval < highval )
    {
       WD *completedWD = _completedWDsGPU[pos];
       Scheduler::postOutlineWork( completedWD, true, this );
       delete completedWD;
       _completedWDsGPU[pos] =(WD *) 0xdeadbeef;
-      pos = (pos+1) % 16;
+      pos = (pos+1) % MAX_PRESEND;
       lowval += 1;
       _completedGPUTail += 1;
    }
@@ -199,8 +196,7 @@ void ClusterThread::clearCompletedWDsGPU2( ) {
 void ClusterThread::completeWDGPU_2( void *remoteWdAddr ) {
    unsigned int realpos = _completedGPUHead++;
    _numRunningGPU--;
-   //if (pos == 16) pos = 0; 
-   unsigned int pos = realpos %16;
+   unsigned int pos = realpos %MAX_PRESEND;
    _completedWDsGPU[pos] = (WD *) remoteWdAddr;
    while( !_completedGPUHead2.cswap( realpos, realpos+1) ) {}
 }

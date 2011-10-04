@@ -25,6 +25,7 @@
 //#include "clusternode.hpp"
 #include <queue>
 
+#define MAX_PRESEND 64
 
 namespace nanos {
 namespace ext
@@ -45,12 +46,12 @@ namespace ext
       Atomic<unsigned int> _completedSMPHead;
       Atomic<unsigned int> _completedSMPHead2;
       unsigned int _completedSMPTail;
-      WD* _completedWDsGPU[16];
+      WD* _completedWDsGPU[MAX_PRESEND];
       Atomic<unsigned int> _numRunningGPU;
       Atomic<unsigned int> _completedGPUHead;
       Atomic<unsigned int> _completedGPUHead2;
       unsigned int _completedGPUTail;
-      WD* _completedWDsSMP[16];
+      WD* _completedWDsSMP[MAX_PRESEND];
 
       // disable copy constructor and assignment operator
       ClusterThread( const ClusterThread &th );
@@ -71,7 +72,8 @@ namespace ext
       {
          setCurrentWD( w );
          (void) w.getDirectory(true); 
-         for (int i=0;i<16;i++){
+         for ( int i = 0; i < MAX_PRESEND; i++ )
+         {
             _completedWDsGPU[i]=NULL; 
             _completedWDsSMP[i]=NULL;
          }
