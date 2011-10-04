@@ -61,6 +61,7 @@ namespace nanos {
             const CacheSchedPolicy & operator= ( const CacheSchedPolicy & );
 
          public:
+            static bool _noSteal;
             // constructor
             CacheSchedPolicy() : SchedulePolicy ( "Cache" ) {}
 
@@ -108,10 +109,10 @@ namespace nanos {
                 }
                 TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
 
-		if ( wd.isTied() ) {
-                    unsigned int index = wd.isTiedTo()->runningOn()->getMemorySpaceId();
-                    tdata._readyQueues[index].push_front ( &wd );
-                    return;
+                if ( wd.isTied() ) {
+                   unsigned int index = wd.isTiedTo()->runningOn()->getMemorySpaceId();
+                   tdata._readyQueues[index].push_front ( &wd );
+                   return;
                 }
                 if ( wd.getNumCopies() > 0 ){
                    unsigned int numCaches = sys.getCacheMap().getSize();
@@ -208,20 +209,23 @@ namespace nanos {
              */
              wd = tdata._readyQueues[0].pop_front ( thread );
          }
-         if ( wd == NULL ) {
-            for ( unsigned int i = data._cacheId; i < sys.getCacheMap().getSize(); i++ ) {
-//               if ( tdata._readyQueues[i+1].size() > 1 ) {
-               if ( tdata._readyQueues[i+1].size() > 0 ) {
-                  wd = tdata._readyQueues[i+1].pop_front( thread );
-                  return wd;
-               } 
-            }
-            for ( unsigned int i = 0; i < data._cacheId; i++ ) {
-//               if ( tdata._readyQueues[i+1].size() > 1 ) {
-               if ( tdata._readyQueues[i+1].size() > 0 ) {
-                  wd = tdata._readyQueues[i+1].pop_front( thread );
-                  return wd;
-               } 
+         if ( !_noSteal )
+         {
+            if ( wd == NULL ) {
+               for ( unsigned int i = data._cacheId; i < sys.getCacheMap().getSize(); i++ ) {
+//                  if ( tdata._readyQueues[i+1].size() > 1 ) {
+                  if ( tdata._readyQueues[i+1].size() > 0 ) {
+                     wd = tdata._readyQueues[i+1].pop_front( thread );
+                     return wd;
+                  } 
+               }
+               for ( unsigned int i = 0; i < data._cacheId; i++ ) {
+//                  if ( tdata._readyQueues[i+1].size() > 1 ) {
+                  if ( tdata._readyQueues[i+1].size() > 0 ) {
+                     wd = tdata._readyQueues[i+1].pop_front( thread );
+                     return wd;
+                  } 
+               }
             }
          }
          return wd;
@@ -251,31 +255,41 @@ namespace nanos {
              */
              wd = tdata._readyQueues[0].pop_front ( thread );
          }
-         if ( wd == NULL ) {
-            for ( unsigned int i = data._cacheId; i < sys.getCacheMap().getSize(); i++ ) {
-               if ( tdata._readyQueues[i+1].size() > 1 ) {
-//               if ( tdata._readyQueues[i+1].size() > 0 ) {
-                  wd = tdata._readyQueues[i+1].pop_front( thread );
-                  return wd;
-               } 
-            }
-            for ( unsigned int i = 0; i < data._cacheId; i++ ) {
-               if ( tdata._readyQueues[i+1].size() > 1 ) {
-//               if ( tdata._readyQueues[i+1].size() > 0 ) {
-                  wd = tdata._readyQueues[i+1].pop_front( thread );
-                  return wd;
-               } 
+         if ( !_noSteal )
+         {
+            if ( wd == NULL ) {
+               for ( unsigned int i = data._cacheId; i < sys.getCacheMap().getSize(); i++ ) {
+                  if ( tdata._readyQueues[i+1].size() > 1 ) {
+//                  if ( tdata._readyQueues[i+1].size() > 0 ) {
+                     wd = tdata._readyQueues[i+1].pop_front( thread );
+                     return wd;
+                  } 
+               }
+               for ( unsigned int i = 0; i < data._cacheId; i++ ) {
+                  if ( tdata._readyQueues[i+1].size() > 1 ) {
+//                  if ( tdata._readyQueues[i+1].size() > 0 ) {
+                     wd = tdata._readyQueues[i+1].pop_front( thread );
+                     return wd;
+                  } 
+               }
             }
          }
          return wd;
       }
+
+      bool CacheSchedPolicy::_noSteal = false;
 
       class CacheSchedPlugin : public Plugin
       {
          public:
             CacheSchedPlugin() : Plugin( "Cache-guided scheduling Plugin",1 ) {}
 
-            virtual void config( Config& cfg ) {}
+            virtual void config( Config& cfg )
+            {
+               cfg.setOptionsSection( "Affinity module", "Data Affinity scheduling module" );
+               cfg.registerConfigOption ( "affinity-no-steal", NEW Config::FlagOption( CacheSchedPolicy::_noSteal ), "Steal tasks from other threads");
+               cfg.registerArgOption( "affinity-no-steal", "affinity-no-steal" );
+            }
 
             virtual void init() {
                sys.setDefaultSchedulePolicy(NEW CacheSchedPolicy());
