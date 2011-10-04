@@ -44,7 +44,8 @@ namespace nanos {
          virtual void memRealloc ( unsigned int remoteNode, void *oldAddr, size_t oldSize, void *newAddr, size_t newSize ) = 0;
          virtual void nodeBarrier( void ) = 0;
          //virtual void getNotify ( unsigned int node, uint64_t remoteAddr ) = 0;
-	 virtual void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, size_t len ) = 0;
+         virtual void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, size_t len ) = 0;
+         virtual std::size_t getTotalBytes() = 0;
         
          virtual void setMasterDirectory(Directory *d) = 0;
          //virtual void setGpuCache(Cache *_cache) = 0;

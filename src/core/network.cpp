@@ -240,3 +240,13 @@ void Network::setMasterDirectory(Directory *dir)
       _api->setMasterDirectory( dir );
    }
 }
+
+std::size_t Network::getTotalBytes()
+{
+   std::size_t result = 0;
+   if ( _api != NULL )
+   {
+      result = _api->getTotalBytes();
+   }
+   return result;
+}
