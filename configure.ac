@@ -72,6 +72,11 @@ case $host in
     SMP_ARCH=ia64
     AM_CONDITIONAL([ARCH_IS_64_BITS], [test x$SMP_ARCH = xia64])
     ;;
+  armv7l-*-linux*)
+    OS=unix-os
+    ARCHITECTURES="$ARCHITECTURES smp"
+    SMP_ARCH=armv7l
+    ;;
   powerpc-*-linux* | powerpc64-*-linux*)
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"

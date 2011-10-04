@@ -16,10 +16,14 @@
 #include <libgen.h>
 #include "os.hpp"
 
+#define NANOX_EXTRAE_CONTEXT_SWITCH false
+
 #ifndef EXTRAE_VERSION
 /* Once Extrae 2.2.0 has been published this option must be an error: see #525 */
 //#  error Extrae library version is not supported (use >= 2.2.0)
 //#  undef NANOS_INSTRUMENTATION_ENABLED
+#      undef  NANOX_EXTRAE_CONTEXT_SWITCH
+#      define NANOX_EXTRAE_CONTEXT_SWITCH true
 #      define extrae_combined_events_t struct extrae_CombinedEvents
 #      define extrae_type_t unsigned
 #      define extrae_value_t unsigned
@@ -27,12 +31,10 @@
 #      define extrae_size_t int
 #      define NANOX_EXTRAE_DISCARD_SUSPEND
 #      define NANOX_EXTRAE_DISCARD_RESUME
-#      define NANOX_EXTRAE_STACKED_CONTEXT_SWITCH
 #else
 #  if EXTRAE_VERSION_MAJOR(EXTRAE_VERSION) == 2
 #    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 2 /* version 2.2.x */
 #      define extrae_size_t unsigned int
-#      define NANOX_EXTRAE_DISCARD_THREAD_NAME
 #      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 0 /* version 2.2.0 */
 #      endif
 #    endif
