@@ -35,6 +35,8 @@ namespace ext
       private:
          int                           _gpuDevice; // Assigned GPU device Id
          bool                          _wdClosingEvents; //! controls whether an instrumentation event should be generated at WD completion
+         unsigned int                  _executedWDs;
+         unsigned int                  _prefetchedWDs;
 
          // disable copy constructor and assignment operator
          GPUThread( const GPUThread &th );
