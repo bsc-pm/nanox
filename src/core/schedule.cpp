@@ -28,6 +28,8 @@
 #ifdef CLUSTER_DEV
 #include "clusterthread_decl.hpp"
 #include "clusternode_decl.hpp"
+#include "gpudd.hpp"
+#include "smpdd.hpp"
 #endif
 
 using namespace nanos;
@@ -178,7 +180,6 @@ inline void Scheduler::idleLoop ()
             continue;
          }
       }
-      //sys.getNetwork()->poll();
 
 
       if ( spins == 0 ) {
@@ -329,7 +330,7 @@ WD * Scheduler::prefetch( BaseThread *thread, WD &wd )
 #define MAX_RUNNING_WD_PER_SMP 1
 #define MAX_RUNNING_WD_PER_GPU 4
 
-WD * Scheduler::getClusterWD( BaseThread *thread )
+WD * Scheduler::getClusterWD( BaseThread *thread, int inGPU )
 {
 	WD * wd = NULL;
 	if ( thread->getTeam() != NULL )
@@ -337,7 +338,13 @@ WD * Scheduler::getClusterWD( BaseThread *thread )
 		wd = thread->getNextWD();
 		if ( wd )
 		{
-			thread->resetNextWD();
+         if ( ( inGPU == 1 && !wd->canRunIn( ext::GPU ) ) || ( inGPU == 0 && !wd->canRunIn( ext::SMP ) ) )
+         { // found a non compatible wd in "nextWD", ignore it
+            wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread );
+         }
+         else {
+            thread->resetNextWD();
+         }
 		}
 		else
 		{
@@ -356,14 +363,14 @@ void Scheduler::workerClusterLoop ()
 	sys.preMainBarrier();
 
 	for ( ; ; ) {
-		if ( !parent->isRunning() ) break;
+		if ( !parent->isRunning() ) break; //{ std::cerr << "FINISHING CLUSTER THD!" << std::endl; break; }
 
 		if ( parent != myThread ) // if parent == myThread, then there are no "soft" threads and just do nothing but polling.
 		{
 			ext::ClusterThread *myClusterThread = dynamic_cast< ext::ClusterThread * >( myThread );
 			ext::ClusterNode *thisNode = dynamic_cast< ext::ClusterNode * >( myThread->runningOn() );
 			thisNode->disableDevice( 1 ); 
-			if ( myClusterThread->numRunningWDsSMP() < MAX_RUNNING_WD_PER_SMP )
+			if ( ( (int) myClusterThread->numRunningWDsSMP() ) < ext::ClusterInfo::getSmpPresend() )
 			{
 				myClusterThread->clearCompletedWDsSMP2();
 				//WD * wd = myClusterThread->getBlockingWDSMP();
@@ -382,7 +389,7 @@ void Scheduler::workerClusterLoop ()
 				//}
 				//else
 				{
-					WD * wd = getClusterWD( myThread );
+					WD * wd = getClusterWD( myThread, 0 );
 					if ( wd )
 					{
 						if ( /*!wd->canBeBlocked()*/ true ) 
@@ -409,7 +416,8 @@ void Scheduler::workerClusterLoop ()
 			thisNode->enableDevice( 1 ); 
 #ifdef GPU_DEV
 			thisNode->disableDevice( 0 ); 
-			if ( myClusterThread->numRunningWDsGPU() < MAX_RUNNING_WD_PER_GPU )
+         myClusterThread->clearCompletedWDsGPU2();
+			if ( ( (int) myClusterThread->numRunningWDsGPU() ) < ext::ClusterInfo::getGpuPresend() )
 				//if ( !myThread->isWorking(1) )
 			{
 				//WD * runningWD = myClusterThread->getRunningWD( 1 );
@@ -419,38 +427,37 @@ void Scheduler::workerClusterLoop ()
 				//   Scheduler::postOutlineWork( runningWD, false, myThread );
 				//   delete runningWD;
 				//} 
-				myClusterThread->clearCompletedWDsGPU2();
-				//WD * wd = myClusterThread->getBlockingWDGPU();
-				//WD * wd = myClusterThread->fetchBlockingWDGPU();
-				//if ( wd )
-				//{ 
-				//	if ( !wd->canBeBlocked() ) 
-				//	{
-				//		myClusterThread->addRunningWDGPU( wd );
-				//		//myClusterThread->setBlockingWDGPU( NULL );
-				//		Scheduler::preOutlineWork(wd);
-				//		myThread->outlineWorkDependent(*wd);
-				//	} else myClusterThread->addBlockingWDGPU(wd );
-				//	//else
-				//	//	std::cerr << "Data can block me AGAIN GPU (node " << thisNode->getClusterNodeNum() << ") task is " << wd->getId() <<std::endl;
-				//}
-				//else
-				{
-					WD* wd = getClusterWD( myThread );
-					if ( wd )
+				WD * wd = myClusterThread->fetchBlockingWDGPU();
+				if ( wd )
+				{ 
+					if ( !wd->canBeBlocked() ) 
 					{
-						if ( true /*!wd->canBeBlocked() */) 
+						myClusterThread->addRunningWDGPU( wd );
+							//message("adding a GPU task for node " << thisNode->getClusterNodeNum() << " task is " << wd->getId() << " RELEASE TASK " );
+						Scheduler::preOutlineWork(wd);
+						myThread->outlineWorkDependent(*wd);
+					} else {
+                  myClusterThread->addBlockingWDGPU(wd );
+						//message("Data can block me AGAIN GPU (node " << thisNode->getClusterNodeNum() << ") task is " << wd->getId() );
+               }
+				}
+				else
+				{
+					WD* newwd = getClusterWD( myThread, 1 );
+					if ( newwd )
+					{
+						//if ( true /*!wd->canBeBlocked() */) 
+						if ( !newwd->canBeBlocked() ) 
 						{
-							//std::cerr << "adding a GPU task for node " << thisNode->getClusterNodeNum() << " task is " << wd->getId() <<std::endl;
-							myClusterThread->addRunningWDGPU( wd );
-							Scheduler::preOutlineWork(wd);
-							myThread->outlineWorkDependent(*wd);
+							//message("adding a GPU task for node " << thisNode->getClusterNodeNum() << " task is " << newwd->getId());
+							myClusterThread->addRunningWDGPU( newwd );
+							Scheduler::preOutlineWork(newwd);
+							myThread->outlineWorkDependent(*newwd);
 						}
 						else
 						{
-							//std::cerr << "Data can block me GPU (node " << thisNode->getClusterNodeNum() << ") task is " << wd->getId() <<std::endl;
-							//myClusterThread->setBlockingWDGPU(wd );
-							myClusterThread->addBlockingWDGPU(wd );
+							//message( "Data can block me GPU (node " << thisNode->getClusterNodeNum() << ") task is " << newwd->getId() );
+							myClusterThread->addBlockingWDGPU(newwd );
 						}
 					}
 				}
@@ -538,6 +545,7 @@ void Scheduler::postOutlineWork ( WD *wd, bool schedule, BaseThread *owner )
    updateExitStats (*wd);
 
    wd->done();
+   wd->clear();
 
    //NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, false) );
 
@@ -594,7 +602,7 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    // reload thread after running WD
    thread = getMyThreadSafe();
 
-   if (schedule) {
+   if (schedule && !thread->getNextWD() ) {
         thread->setNextWD(thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*wd));
    }
 

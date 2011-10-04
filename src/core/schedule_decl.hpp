@@ -72,7 +72,7 @@ namespace nanos
 
          /*! \brief checks if a WD is elegible to run in a given thread */
          static bool checkBasicConstraints ( WD &wd, BaseThread &thread );
-	 static WD * getClusterWD( BaseThread *thread );
+	 static WD * getClusterWD( BaseThread *thread, int inGPU );
    };
 
    class SchedulerConf
