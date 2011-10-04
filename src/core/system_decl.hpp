@@ -115,6 +115,7 @@ namespace nanos
          /*! Cluster: system Network object */
          Network              _net;
          bool                 _usingCluster;
+         bool                 _usingNode2Node;
          std::string          _conduit;
 
          Instrumentation     *_instrumentation; /**< Instrumentation object used in current execution */
@@ -282,6 +283,7 @@ namespace nanos
 
          Network * getNetwork( void );
          bool usingCluster( void ) const;
+         bool useNode2Node( void ) const;
          const std::string & getNetworkConduit() const;
 
          void stopFirstThread( void );

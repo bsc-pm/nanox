@@ -129,6 +129,7 @@ inline void System::setDefaultArch( const std::string &arch ) { _defArch = arch;
 
 inline Network * System::getNetwork( void ) { return &_net; }
 inline bool System::usingCluster( void ) const { return _usingCluster; }
+inline bool System::useNode2Node( void ) const { return _usingNode2Node; }
 inline const std::string & System::getNetworkConduit( void ) const { return _conduit; }
 inline void System::stopFirstThread( void ) { _workers[0]->stop(); }
 

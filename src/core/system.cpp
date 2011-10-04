@@ -60,7 +60,7 @@ System::System () :
       _preMainBarrier ( 1 ), _preMainBarrierLast ( 0 ), _throttlePolicy ( NULL ),
       _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ), _defDeviceName("SMP"),
-      _initializedThreads ( 0 ), _targetThreads ( 0 ), _usingCluster( false ), _conduit( "udp" ),
+      _initializedThreads ( 0 ), _targetThreads ( 0 ), _usingCluster( false ),_usingNode2Node( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL ), _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap(), _masterGpuThd( NULL )
 {
    verbose0 ( "NANOS++ initializing... start" );
@@ -69,6 +69,7 @@ System::System () :
    OS::init();
    config();
    if ( !_delayedStart ) {
+   std::cerr << "NX_ARGS is:" << (char *)(OS::getEnvironmentVariable( "NX_ARGS" ) != NULL ? OS::getEnvironmentVariable( "NX_ARGS" ) : "NO NX_ARGS: GG!") << std::endl;
       start();
    }
    verbose0 ( "NANOS++ initializing... end" );
@@ -105,6 +106,13 @@ void System::loadModules ()
    }
    ensure( _hostFactory,"No default host factory" );
 
+#ifdef GPU_DEV
+   verbose0( "loading GPU support" );
+
+   if ( !loadPlugin( "pe-gpu" ) )
+      fatal0 ( "Couldn't load GPU support" );
+#endif
+
 #ifdef CLUSTER_DEV
    if ( usingCluster() )
    {
@@ -112,13 +120,6 @@ void System::loadModules ()
       if ( !loadPlugin( "pe-cluster-"+getNetworkConduit() ) )
          fatal0 ( "Couldn't load Cluster support" );
    }
-#endif
-
-#ifdef GPU_DEV
-   verbose0( "loading GPU support" );
-
-   if ( !loadPlugin( "pe-gpu" ) )
-      fatal0 ( "Couldn't load GPU support" );
 #endif
 
    // load default schedule plugin
@@ -260,6 +261,9 @@ void System::config ()
    cfg.registerArgOption ( "enable-cluster", "cluster" );
    //cfg.registerEnvOption ( "enable-cluster", "NX_ENABLE_CLUSTER" );
 
+   cfg.registerConfigOption ( "no-node2node", NEW Config::FlagOption ( _usingNode2Node, false ), "Disables the usage of Slave-to-Slave transfers" );
+   cfg.registerArgOption ( "no-node2node", "disable-node2node" );
+
    /* Cluster: select wich module to load mpi or udp */
    cfg.registerConfigOption ( "conduit", NEW Config::StringVar ( _conduit ), "Selects which GasNet conduit will be used" );
    cfg.registerArgOption ( "conduit", "cluster-network" );
@@ -301,6 +305,7 @@ void System::start ()
 #ifdef CLUSTER_DEV
    if ( usingCluster() )
    {
+         nanos::ext::ClusterInfo::setUpCache();
       if ( _net.getNodeNum() == nanos::Network::MASTER_NODE_NUM )
       {
          _pes.reserve ( numPes + ( _net.getNumNodes() - 1 ) );
@@ -328,6 +333,7 @@ void System::start ()
      mainWD.setInternalData( NEW char[_pmInterface->getInternalDataSize()] );
       
    _pmInterface->setupWD( mainWD );
+   (void) mainWD.getDirectory(true);
 
    /* Renaming currend thread as Master */
    myThread->rename("Master");
@@ -533,6 +539,13 @@ void System::finish ()
    ensure(getMyThreadSafe()->getId() == 0, "Main thread not finishing the application!");
 
    verbose ( "Joining threads... phase 1" );
+   message0("Network traffic: " << sys.getNetwork()->getTotalBytes() << " bytes");
+   for (unsigned int i=0; i < sys.getNetwork()->getNumNodes(); i += 1 )
+   {
+      if ( i == sys.getNetwork()->getNodeNum() )
+      {
+      message("Shutting down node " << i);
+
    // signal stop PEs
    if ( _net.getNodeNum() == 0 ) message("Created " << createdWds << " WDs.");
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {
@@ -565,6 +578,9 @@ void System::finish ()
    if ( allocator != NULL ) free (allocator);
 
    verbose ( "NANOS++ shutting down.... end" );
+      }
+      sys.getNetwork()->nodeBarrier();
+   }
 
    _net.finalize();
 }
