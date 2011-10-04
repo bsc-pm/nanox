@@ -46,7 +46,7 @@ namespace nanos
       public:
         /*! \brief CachedAccelerator constructor - from 'newId' and 'arch'
          */
-         CachedAccelerator ( int newId, const Device *arch, System::CachePolicyType policy, const Device *subArch = NULL, int cacheSize = 0 ) :
+         CachedAccelerator ( int newId, const Device *arch, System::CachePolicyType policy, const Device *subArch = NULL, std::size_t cacheSize = 0 ) :
             Accelerator( newId, arch, subArch ), _cache( NEW DeviceCache<CacheDevice>( cacheSize, NULL, this ) )
          {
             configureCache( cacheSize, policy );
@@ -65,7 +65,7 @@ namespace nanos
 
          unsigned int getMemorySpaceId() const { return _cache->getId(); }
 
-         void configureCache( int cacheSize, System::CachePolicyType cachePolicy );
+         void configureCache( std::size_t cacheSize, System::CachePolicyType cachePolicy );
 
          bool checkBlockingCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
 

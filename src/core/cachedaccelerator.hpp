@@ -29,7 +29,7 @@ using namespace nanos;
 
 
 template <class CacheDevice>
-void CachedAccelerator<CacheDevice>::configureCache( int cacheSize, System::CachePolicyType cachePolicy )
+void CachedAccelerator<CacheDevice>::configureCache( std::size_t cacheSize, System::CachePolicyType cachePolicy )
 {
    if ( _cache == NULL )
       _cache = NEW DeviceCache<CacheDevice>( cacheSize, NULL, this );
@@ -61,6 +61,7 @@ inline void CachedAccelerator<CacheDevice>::registerCacheAccessDependent( Direct
 
 template <class CacheDevice>
 inline void CachedAccelerator<CacheDevice>::unregisterCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool output )
+
 {
    _cache->unregisterCacheAccess( dir, tag, size, output );
 }
