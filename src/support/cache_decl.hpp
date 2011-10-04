@@ -278,6 +278,7 @@ namespace nanos {
          *  \param tag Idetifier of the entry to be deleted from the cache
          */
          virtual void deleteEntry( uint64_t tag, size_t size ) = 0;
+         virtual void deleteEntry2( uint64_t tag, size_t size, CacheEntry *ce ) = 0;
 
         /*! \brief Get an entry from the cache
          *  \param tag Identifier key to look for
@@ -295,7 +296,7 @@ namespace nanos {
 
          /*! \brief Copy data from one device address to another device address
           */
-         virtual bool copyData( void * dstAddr, void * srcAddr, size_t size, Cache & owner ) = 0;
+         //virtual bool copyData( void * dstAddr, void * srcAddr, size_t size, Cache & owner ) = 0;
 
         /*! \brief Copy data from the host to a device address
          *  \param cd Copy descriptor with the information about the addresses to be copied
@@ -613,6 +614,7 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
          *  \param tag Idetifier of the entry to be deleted from the cache
          */
          void deleteEntry( uint64_t tag, size_t size );
+         void deleteEntry2( uint64_t tag, size_t size, CacheEntry *ce );
 
         /*! \brief Resize a CacheEntry
          *  \param dir Directory to look for entries if the it needs to free space in the device.
@@ -628,7 +630,7 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
 
          /*! \brief Copy data from one device address to another device address
           */
-         bool copyData( void * dstAddr, void * srcAddr, size_t size, Cache & owner );
+         //bool copyData( void * dstAddr, void * srcAddr, size_t size, Cache & owner );
 
         /* \brief Copy data from the address represented by the tag to the entry in the device.
          * \param cd: identifier of the entry
