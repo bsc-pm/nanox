@@ -99,17 +99,19 @@ void GPUProcessor::init ()
 
    // If some kind of overlapping is defined, allocate some pinned memory
 
-   if ( inputStream ) {
-      size_t pinnedSize = std::min( maxMemoryAvailable, ( size_t ) 1*1024*1024*1024 );
-      void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
-      _inputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );
-   }
+   // jbueno: no pinning if ( inputStream ) {
+   // jbueno: no pinning    size_t pinnedSize = std::min( maxMemoryAvailable, ( size_t ) 2*1024*1024*1024 );
+   // jbueno: no pinning    void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
+   // jbueno: no pinning    message("Memory available for pinning (input): " << pinnedSize << " address: " << pinnedAddress );
+   // jbueno: no pinning    _inputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );
+   // jbueno: no pinning }
 
-   if ( outputStream ) {
-      size_t pinnedSize = std::min( maxMemoryAvailable, ( size_t ) 1*1024*1024*1024 );
-      void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
-      _outputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );
-   }
+   // jbueno: no pinning if ( outputStream ) {
+   // jbueno: no pinning    size_t pinnedSize = std::min( maxMemoryAvailable, ( size_t ) 2*1024*1024*1024 );
+   // jbueno: no pinning    void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
+   // jbueno: no pinning    message("Memory available for pinning (output): " << pinnedSize << " address: " << pinnedAddress );
+   // jbueno: no pinning    _outputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );
+   // jbueno: no pinning }
    // WARNING: initTransferStreams() can modify inputStream's and outputStream's value,
    // so call it first
 
