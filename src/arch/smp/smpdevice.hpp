@@ -106,6 +106,7 @@ namespace nanos
          static void copyLocal( void *dst, void *src, size_t size, ProcessingElement *pe )
          {
 #ifdef CLUSTER_DEV
+            memcpy( dst, src, size );
 #else
             memcpy( dst, src, size );
 #endif
