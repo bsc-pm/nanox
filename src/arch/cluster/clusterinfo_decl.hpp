@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include "config_decl.hpp"
+#include "system_decl.hpp"
 
 namespace nanos {
    namespace ext {
@@ -16,6 +17,9 @@ namespace nanos {
             static unsigned int _extraPEsCount;
             static std::string _conduit;
             static std::size_t _nodeMem;
+            static int _gpuPresend;
+            static int _smpPresend;
+            static System::CachePolicyType _cachePolicy;
 
          public:
             ClusterInfo() {}
@@ -36,7 +40,11 @@ namespace nanos {
             static unsigned int getExtraPEsCount();
             static void setExtraPEsCount( unsigned int num );
             static std::size_t getNodeMem();
+            static int getGpuPresend();
+            static int getSmpPresend();
             //static const std::string & getNetworkConduit();
+            static void setUpCache();
+            static System::CachePolicyType getCachePolicy ( void );
       };
    }
 }
