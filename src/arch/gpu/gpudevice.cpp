@@ -98,6 +98,17 @@ void * GPUDevice::allocatePinnedMemory( size_t size )
 
    return address;
 }
+void * GPUDevice::allocatePinnedMemory2( size_t size )
+{
+   void * address = 0;
+
+   cudaError_t err = cudaHostAlloc( &address, size, cudaHostAllocDefault );
+
+   fatal_cond( err != cudaSuccess, "Trying to allocate " +  toString<size_t>( size ) +
+         + " bytes of host memory with cudaHostAlloc(): " +  cudaGetErrorString( err ) );
+
+   return address;
+}
 
 void GPUDevice::freePinnedMemory( void * address )
 {
