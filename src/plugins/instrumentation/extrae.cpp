@@ -501,7 +501,7 @@ class InstrumentationExtrae: public Instrumentation
 
          ce.HardwareCounters = 1;
          ce.Callers = 0;
-         ce.UserFunction = 0;
+         ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
          ce.nEvents = 0;
          ce.nCommunications = 0;
 
@@ -529,7 +529,7 @@ class InstrumentationExtrae: public Instrumentation
          }
 
          ce.Types = (extrae_type_t *) alloca (ce.nEvents * sizeof (extrae_type_t));
-         ce.Values = (extrae_value_t *) alloca (ce.nEvents * sizeof (extrae_type_t));
+         ce.Values = (extrae_value_t *) alloca (ce.nEvents * sizeof (extrae_value_t));
          ce.Communications = (extrae_user_communication_t *) alloca (ce.nCommunications * sizeof ( extrae_user_communication_t));
 
          int j = 0; int k = 0;
