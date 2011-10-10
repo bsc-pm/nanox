@@ -270,3 +270,30 @@ nanos_err_t nanos_instrument_close_user_fun_event()
 #endif
    return NANOS_OK;
 }
+
+nanos_err_t nanos_instrument_enable()
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   try
+   {
+      sys.getInstrumentation()->enable();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+#endif
+   return NANOS_OK;
+}
+
+nanos_err_t nanos_instrument_disable()
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   try
+   {
+      sys.getInstrumentation()->disable();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+#endif
+   return NANOS_OK;
+}
+

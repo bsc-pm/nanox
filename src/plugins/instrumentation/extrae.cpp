@@ -68,6 +68,8 @@ class InstrumentationExtrae: public Instrumentation
       // low-level instrumentation interface (mandatory functions)
       void initialize( void ) {}
       void finalize( void ) {}
+      void disable( void ) {}
+      void enable( void ) {}
       void addEventList ( unsigned int count, Event *events ) {}
       void addResumeTask( WorkDescriptor &w ) {}
       void addSuspendTask( WorkDescriptor &w ) {}
@@ -493,6 +495,9 @@ class InstrumentationExtrae: public Instrumentation
          modifyParaverRowFile();
          removeTemporaryFiles();
       }
+
+      void disable( void ) { Extrae_shutdown(); }
+      void enable( void ) { Extrae_restart(); }
 
       void addEventList ( unsigned int count, Event *events) 
       {

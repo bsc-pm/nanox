@@ -593,6 +593,19 @@ namespace nanos {
           */
          virtual void finalize( void ) = 0;
 
+         /*! \brief Pure virtual functions executed to enable again instrumentation
+          *
+          *  Each of (specific) instrumentation modules have to implement this function in order
+          *  to be consistent with the instrumentation model
+          */
+         virtual void enable( void ) = 0;
+         /*! \brief Pure virtual functions executed to disable instrumentation
+          *
+          *  Each of (specific) instrumentation modules have to implement this function in order
+          *  to be consistent with the instrumentation model
+          */
+         virtual void disable( void ) = 0;
+
          /*! \brief Pure virtual function executed on each thread initialization
           *
           */

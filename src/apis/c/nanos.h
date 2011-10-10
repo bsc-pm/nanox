@@ -29,7 +29,7 @@
 
 #ifdef _MERCURIUM
 // define API version
-#pragma nanos interface family(master) version(5006)
+#pragma nanos interface family(master) version(5007)
 #endif
 
 // data types
@@ -185,6 +185,9 @@ nanos_err_t nanos_instrument_enable_state_events ( void );
 
 nanos_err_t nanos_instrument_close_user_fun_event();
 
+nanos_err_t nanos_instrument_enable( void );
+
+nanos_err_t nanos_instrument_disable( void );
 
 // utility macros
 
