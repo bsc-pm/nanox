@@ -43,6 +43,7 @@ void SMPProcessor::prepareConfig ( Config &config )
    System::CachePolicyConfig *cachePolicyCfg = NEW System::CachePolicyConfig ( _cachePolicy );
    cachePolicyCfg->addOption("wt", System::WRITE_THROUGH );
    cachePolicyCfg->addOption("wb", System::WRITE_BACK );
+   cachePolicyCfg->addOption( "nocache", System::NONE );
    config.registerConfigOption ( "numa-cache-policy", cachePolicyCfg, "Defines the cache policy for SMP_NUMA architectures: write-through / write-back (wt by default)" );
    config.registerEnvOption ( "numa-cache-policy", "NX_NUMA_CACHE_POLICY" );
    config.registerArgOption( "numa-cache-policy", "numa-cache-policy" );

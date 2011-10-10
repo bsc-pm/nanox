@@ -60,6 +60,7 @@ void GPUConfig::prepare( Config& config )
    System::CachePolicyConfig *cachePolicyCfg = NEW System::CachePolicyConfig ( _cachePolicy );
    cachePolicyCfg->addOption("wt", System::WRITE_THROUGH );
    cachePolicyCfg->addOption("wb", System::WRITE_BACK );
+   cachePolicyCfg->addOption( "nocache", System::NONE );
    config.registerConfigOption ( "gpu-cache-policy", cachePolicyCfg, "Defines the cache policy for GPU architectures: write-through / write-back (wb by default)" );
    config.registerEnvOption ( "gpu-cache-policy", "NX_GPU_CACHE_POLICY" );
    config.registerArgOption( "gpu-cache-policy", "gpu-cache-policy" );

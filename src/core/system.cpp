@@ -225,6 +225,7 @@ void System::config ()
    CachePolicyConfig *cachePolicyCfg = NEW CachePolicyConfig ( _cachePolicy );
    cachePolicyCfg->addOption("wt", System::WRITE_THROUGH );
    cachePolicyCfg->addOption("wb", System::WRITE_BACK );
+   cachePolicyCfg->addOption( "nocache", System::NONE );
 
    cfg.registerConfigOption ( "cache-policy", cachePolicyCfg, "Defines the general cache policy to use: write-through / write-back. Can be overwritten for specific architectures" );
    cfg.registerArgOption ( "cache-policy", "cache-policy" );
