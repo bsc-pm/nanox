@@ -266,6 +266,7 @@ void System::start ()
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 
    WD &mainWD = *myThread->getCurrentWD();
+   (void) mainWD.getDirectory(true);
    
    if ( _pmInterface->getInternalDataSize() > 0 )
      mainWD.setInternalData( NEW char[_pmInterface->getInternalDataSize()] );
