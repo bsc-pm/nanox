@@ -58,7 +58,20 @@ namespace nanos
       return compareAndSwap( &_nextWD, (WD *) NULL, next);
    }
  
-   inline WD * BaseThread::getNextWD () const { return _nextWD; }
+   inline bool BaseThread::reserveNextWD ( void ) { 
+      return compareAndSwap( &_nextWD, (WD *) NULL, (WD *) 1);
+   }
+ 
+   inline bool BaseThread::setReservedNextWD ( WD *next ) { 
+      debug("Set next WD as: " << next << ":??" << " @ thread " << _id );
+      return compareAndSwap( &_nextWD, (WD *) 1, next);
+   }
+ 
+   inline WD * BaseThread::getNextWD () const
+   { 
+      if ( _nextWD == (WD *) 1 ) return NULL;
+      return _nextWD;
+   }
  
    // team related methods
    inline void BaseThread::reserve() { _hasTeam = 1; }

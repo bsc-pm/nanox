@@ -267,6 +267,7 @@ void System::start ()
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 
    WD &mainWD = *myThread->getCurrentWD();
+   (void) mainWD.getDirectory(true);
    
    if ( _pmInterface->getInternalDataSize() > 0 )
      mainWD.setInternalData( NEW char[_pmInterface->getInternalDataSize()] );
@@ -379,6 +380,10 @@ void System::finish ()
    _pmInterface->finish();
 
    /* System mem free */
+
+   /* deleting master WD */
+   delete[] (char *) getMyThreadSafe()->getCurrentWD();
+
    delete _pmInterface;
 
    for ( Slicers::const_iterator it = _slicers.begin(); it !=   _slicers.end(); it++ ) {
