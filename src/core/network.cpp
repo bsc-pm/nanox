@@ -22,8 +22,7 @@
 #include <cstring>
 #include "network_decl.hpp"
 #include "schedule.hpp"
-#include "system.hpp"
-#include "directory_decl.hpp"
+#include "system_decl.hpp"
 
 using namespace nanos;
 

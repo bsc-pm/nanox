@@ -117,6 +117,7 @@ class Allocator
             Arena ( size_t objectSize ) : _objectSize(objectSize), _next (NULL), _free(true)
             {
                _arena = (char *) malloc( (objectSize + sizeof(bitmap_entry) ) * numObjects );
+               memset(_arena, 0x77, (objectSize + sizeof(bitmap_entry) ) * numObjects );
                _bitmap = (bitmap_entry *) (_arena + objectSize * numObjects);
                for ( size_t i = 0; i < numObjects; i++ ) _bitmap[i]._bit = true;
             }

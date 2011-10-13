@@ -71,7 +71,7 @@ namespace ext
       _completedGPUTail(0)
       {
          setCurrentWD( w );
-         (void) w.getDirectory(true); 
+         //(void) w.getDirectory(true); 
          for ( int i = 0; i < MAX_PRESEND; i++ )
          {
             _completedWDsGPU[i]=NULL; 

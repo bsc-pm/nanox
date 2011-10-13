@@ -47,6 +47,8 @@ namespace nanos
    class System
    {
       public:
+         static void printBt();
+
          // constants
          typedef enum { DEDICATED, SHARED } ExecutionMode;
          typedef enum { POOL, ONE_THREAD } InitialMode;

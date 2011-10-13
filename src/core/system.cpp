@@ -48,9 +48,24 @@
 #include "smpthread.hpp"
 #endif
 
+#include <execinfo.h>
+
 using namespace nanos;
 
 System nanos::sys;
+
+void System::printBt() {
+   void* tracePtrs[100];
+   int count = backtrace( tracePtrs, 100 );
+   char** funcNames = backtrace_symbols( tracePtrs, count );
+
+   // Print the stack trace
+   for( int ii = 0; ii < count; ii++ )
+      printf( "%s\n", funcNames[ii] );
+
+   // Free the string pointers
+   free( funcNames );
+}
 
 // default system values go here
 System::System () :
@@ -333,7 +348,6 @@ void System::start ()
      mainWD.setInternalData( NEW char[_pmInterface->getInternalDataSize()] );
       
    _pmInterface->setupWD( mainWD );
-   (void) mainWD.getDirectory(true);
 
    /* Renaming currend thread as Master */
    myThread->rename("Master");
@@ -429,17 +443,14 @@ void System::start ()
          }
          _preMainBarrier++;
          ext::SMPMultiThread *smpRepThd = dynamic_cast<ext::SMPMultiThread *>( &smpRep->startMultiWorker( _net.getNumNodes() - 1, _peArray ) );
-         ext::ClusterThread *nodeThds[ _net.getNumNodes() - 1 ];
-         int i = 0;
          for ( ext::SMPMultiThread::iterator threadIterator = smpRepThd->getThreadList().begin();
                threadIterator != smpRepThd->getThreadList().end(); 
                threadIterator++ )
          {
-            nodeThds[ i++ ]= (ext::ClusterThread *) *threadIterator ;
             _workers.push_back( *threadIterator );
          }
 
-         _net.setMasterDirectory( mainWD.getDirectory(true) );
+         _net.setMasterDirectory( &_directory );
       }
       else
       {
@@ -449,7 +460,7 @@ void System::start ()
             smpRepThd->getThreadWD().setInternalData(NEW char[_pmInterface->getInternalDataSize()]);
          _pmInterface->setupWD( smpRepThd->getThreadWD() );
          _workers.push_back( smpRepThd ); 
-         _net.setMasterDirectory( smpRepThd->getThreadWD().getDirectory(true)  );
+         _net.setMasterDirectory( &_directory );
          setSlaveParentWD( &smpRepThd->getThreadWD() );
       }
    }
@@ -461,8 +472,9 @@ void System::start ()
        for ( it = _pes.begin() ; it != _pes.end(); it++ )
        {
            pe = *it;
-           if ( _defDeviceName == pe->getDeviceType()->getName()  )
-             _defDevice = pe->getDeviceType();
+           if ( pe->getDeviceType()->getName() != NULL)
+              if ( _defDeviceName == pe->getDeviceType()->getName()  )
+                 _defDevice = pe->getDeviceType();
        }
    }
 

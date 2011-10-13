@@ -23,7 +23,6 @@
 
 #include <string>
 #include "networkapi.hpp"
-#include "directory_decl.hpp"
 
 namespace nanos {
 

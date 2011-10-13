@@ -86,8 +86,8 @@ namespace nanos {
             nanos::getAllocator().deallocate( p );
 #endif
 
-	    _blocks.erase( it );
 	    _stats[it->second._size]._current--;
+	    _blocks.erase( it );
 	} else {
 	    guard.release();
 	    

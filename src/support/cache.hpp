@@ -107,19 +107,20 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
 #ifdef NLCLUSTER
    if (sys.getNetwork()->getNodeNum() == 0)
    { 
-            if ( myThread->getId() == 1 ) 
+            int mythdid = myThread->getId();
+            if ( mythdid == 1 ) 
             {
 //		   std::cerr << "t:" << myThread->getId() <<"checking tag " << (void *) tag << " against "<< (void *) sys.getNetwork()->_nodeRCAaddr.value() << std::endl;
 		   while ( sys.getNetwork()->_nodeRCAaddr.value() ==  tag ) myThread->idle();
 		    sys.getNetwork()->_nodeRCAaddrOther.cswap(0, tag ); 
             }
-            else if ( myThread->getId() > 2 ) 
+            else if ( ( ( mythdid > 1 ) && ( sys.getNetwork()->getNodeNum() == 0 ) ) || ( ( mythdid > 2 ) && ( sys.getNetwork()->getNodeNum() > 0 ) ) ) 
             {
 //		   std::cerr << "t:" << myThread->getId() <<"checking tag " << (void *) tag << " against "<< (void *) sys.getNetwork()->_nodeRCAaddrOther.value() << std::endl;
 		   while ( sys.getNetwork()->_nodeRCAaddrOther.value() ==  tag ) myThread->idle();
 		    sys.getNetwork()->_nodeRCAaddr.cswap(0, tag ); 
             }
-           else {  std::cerr << "t:" << myThread->getId() <<" unhandle thread " << std::endl; }
+           else {  std::cerr << "t:" << mythdid <<" unhandle thread at node " << sys.getNetwork()->getNodeNum() << std::endl; }
             
    }
 #endif
@@ -600,15 +601,16 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
    de->addAccess( _cache.getId() );
 #ifdef NLCLUSTER
    if (sys.getNetwork()->getNodeNum() == 0){
-            if ( myThread->getId() == 1 ) 
+            int mythdid = myThread->getId();
+            if ( mythdid == 1 ) 
             {
 		    sys.getNetwork()->_nodeRCAaddrOther.cswap( tag, 0 ); 
             }
-            else if ( myThread->getId() > 2 ) 
+            else if ( ( ( mythdid > 1 ) && ( sys.getNetwork()->getNodeNum() == 0 ) ) || ( ( mythdid > 2 ) && ( sys.getNetwork()->getNodeNum() > 0 ) ) ) 
             {
 		    sys.getNetwork()->_nodeRCAaddr.cswap( tag, 0 ); 
             }
-           else {  std::cerr << "t:" << myThread->getId() <<" unhandle thread " << std::endl; }
+           else {  std::cerr << "t:" << mythdid <<" unhandle thread at node " << sys.getNetwork()->getNodeNum() << std::endl; }
    }
 #endif
 }

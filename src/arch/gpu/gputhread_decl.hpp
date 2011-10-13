@@ -53,7 +53,7 @@ namespace ext
       public:
          // constructor
          GPUThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : SMPThread( w, pe, parent ), _gpuDevice( device ),
-               _wdClosingEvents( false ) { setCurrentWD( w ); }
+               _wdClosingEvents( false ), _executedWDs( 0 ), _prefetchedWDs( 0 ) { setCurrentWD( w ); }
 
          // destructor
          ~GPUThread() {}

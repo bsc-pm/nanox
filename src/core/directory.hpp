@@ -60,6 +60,7 @@ inline const DirectoryEntry& DirectoryEntry::operator= ( const DirectoryEntry &e
    setTag( ent.getTag() );
    setVersion( ent.getVersion() );
    _owner = ent._owner;
+   fatal("CHECK: should I copy cache accesses?");
    return *this;
 }
 

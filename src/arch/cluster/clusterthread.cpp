@@ -21,7 +21,8 @@
 #include "instrumentation.hpp"
 #include "clusterthread_decl.hpp"
 #include "clusternode_decl.hpp"
-#include "system.hpp"
+#include "system_decl.hpp"
+#include "workdescriptor_decl.hpp"
 
 using namespace nanos;
 using namespace ext;
@@ -153,7 +154,7 @@ void ClusterThread::clearCompletedWDsSMP2( ) {
    {
       WD *completedWD = _completedWDsSMP[pos];
       Scheduler::postOutlineWork( completedWD, true, this );
-      delete completedWD;
+      delete[] (char *) completedWD;
       _completedWDsSMP[pos] =(WD *) 0xdeadbeef;
       pos = (pos+1) % MAX_PRESEND;
       lowval += 1;
@@ -185,7 +186,7 @@ void ClusterThread::clearCompletedWDsGPU2( ) {
    {
       WD *completedWD = _completedWDsGPU[pos];
       Scheduler::postOutlineWork( completedWD, true, this );
-      delete completedWD;
+      delete[] (char *) completedWD;
       _completedWDsGPU[pos] =(WD *) 0xdeadbeef;
       pos = (pos+1) % MAX_PRESEND;
       lowval += 1;

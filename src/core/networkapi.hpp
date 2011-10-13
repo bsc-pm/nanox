@@ -22,7 +22,7 @@
 
 #include <stdint.h>
 #include <vector>
-#include "directory.hpp"
+#include "directory_decl.hpp"
 
 namespace nanos {
 

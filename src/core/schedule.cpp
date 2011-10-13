@@ -487,7 +487,8 @@ struct WorkerBehaviour
       else
       {
         Scheduler::inlineWork ( next /*, true*/ );
-        delete next;
+        //delete next;
+        delete[] ( ( char * ) next );
       }
    }
    static bool checkThreadRunning( WD *current) { return true; }
@@ -667,7 +668,8 @@ void Scheduler::switchTo ( WD *to )
       myThread->switchTo( to, switchHelper );
    } else {
       inlineWork(to);
-      delete to;
+      //delete to;
+      delete[] ( ( char * ) to );
    }
 }
 

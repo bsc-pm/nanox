@@ -64,7 +64,7 @@ namespace nanos
       public:
          /*! \brief WDDeque default constructor
           */
-         WDDeque() : _dq(), _lock() {}
+         WDDeque() : _dq(), _lock(), _nelems( 0 ) {}
          /*! \brief WDDeque destructor
           */
          ~WDDeque() {}
