@@ -25,6 +25,7 @@
 #include "processingelement_decl.hpp"
 #include "functors_decl.hpp"
 #include "atomic_decl.hpp"
+#include "copydescriptor_decl.hpp"
 
 namespace nanos
 {
@@ -70,6 +71,7 @@ namespace nanos
          virtual void unregisterCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool output ) = 0;
          virtual void registerPrivateAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output ) = 0;
          virtual void unregisterPrivateAccessDependent( Directory &dir, uint64_t tag, size_t size ) = 0;
+         virtual void synchronize( CopyDescriptor &cd ) = 0;
 
          virtual void* getAddress( WorkDescriptor& wd, uint64_t tag, nanos_sharing_t sharing );
          virtual void copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );

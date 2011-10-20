@@ -32,8 +32,8 @@ Atomic<int> GPUProcessor::_deviceSeed = 0;
 
 
 GPUProcessor::GPUProcessor( int id, int gpuId ) : CachedAccelerator<GPUDevice>( id, &GPU ),
-      _gpuDevice( _deviceSeed++ ), _gpuProcessorStats(), _gpuProcessorTransfers(), _allocator(),
-      _inputPinnedMemoryBuffer()
+      _gpuDevice( _deviceSeed++ ), _gpuProcessorStats(), _gpuProcessorTransfers(),
+      _initialized( false ), _allocator(), _inputPinnedMemoryBuffer()
 {
    _gpuProcessorInfo = NEW GPUProcessorInfo( gpuId );
 }

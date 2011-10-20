@@ -198,5 +198,7 @@ inline Plugin * System::loadAndGetPlugin ( const std::string & name )
    return _pluginManager.loadAndGetPlugin(name, false);
 }
 
+inline System::AList & System::getLocalAccelerators() { return _localAccelerators; }
+
 #endif
 

@@ -231,6 +231,7 @@ namespace nanos
          *  \param output Whether the access is a write
          */
          void registerAccess( uint64_t tag, size_t size, bool input, bool output );
+         void fwAccess( uint64_t tag, size_t size, bool input, bool output );
 
         /*! \brief Unregister an access to a copy by the host
          *  \param tag Identifier key of the access (address)

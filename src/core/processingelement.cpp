@@ -65,6 +65,21 @@ void ProcessingElement::copyDataOut( WorkDescriptor &work )
             }
          }
       }
+      //if ( sys.getNetwork()->getNodeNum() > 0 ) { 
+      unsigned int wo_copies = 0;
+      for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
+       wo_copies += ( copies[i].isOutput() && !copies[i].isInput() );
+      }
+      if ( wo_copies == work.getNumCopies() )
+      {
+
+      for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
+         CopyData & cd = copies[i];
+              dir->fwAccess( cd.getAddress(), cd.getSize(), cd.isInput(), cd.isOutput() );
+      }
+        
+      }
+      //}
    }
 }
 

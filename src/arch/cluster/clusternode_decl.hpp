@@ -76,6 +76,7 @@ namespace nanos {
             // capability query functions
             virtual bool supportsUserLevelThreads () const { return false; }
             virtual bool isGPU () const { return false; }
+            virtual unsigned int getMyNodeNumber() const { return _clusterNode; }
 
             unsigned int getClusterNodeNum();
             SimpleAllocator & getAllocator( void ) { return _memSegment; }

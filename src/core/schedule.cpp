@@ -487,7 +487,6 @@ struct WorkerBehaviour
       else
       {
         Scheduler::inlineWork ( next /*, true*/ );
-        //delete next;
         delete[] ( ( char * ) next );
       }
    }
@@ -514,8 +513,7 @@ void Scheduler::preOutlineWork ( WD *wd )
    //}
 
    //std::cerr << "thd " << myThread->getId() <<  " switching(outlined) to task " << wd << ":" << wd->getId() << std::endl;
-   //debug( "switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
-   //       " to " << wd << ":" << wd->getId() );
+   debug( "switching(pre outline) from task " << &(thread->getThreadWD()) << ":" << thread->getThreadWD().getId() << " to " << wd << ":" << wd->getId() );
 
    //NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldwd, NULL, false) );
 
@@ -553,8 +551,7 @@ void Scheduler::postOutlineWork ( WD *wd, bool schedule, BaseThread *owner )
 
    //std::cerr << "thd " << myThread->getId() << "exiting task(inlined) " << wd << ":" << wd->getId() <<
    //       " to " << oldwd << ":" << oldwd->getId() << std::endl;
-   //debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
-   //       " to " << oldwd << ":" << oldwd->getId() );
+   debug( "exiting task(post outline) " << wd << ":" << wd->getId() << " to " << &(thread->getThreadWD()) << ":" << thread->getThreadWD().getId() );
 
 
    thread->setCurrentWD( thread->getThreadWD() );
@@ -585,9 +582,8 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    if ( syncCond != NULL ) {
       syncCond->unlock();
    }
-
    debug( "switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
-          " to " << wd << ":" << wd->getId() );
+          " to " << wd << ":" << wd->getId() << " at node " << sys.getNetwork()->getNodeNum() );
 
    // Initializing wd if necessary
    // It will be started later in inlineWorkDependent call
@@ -657,7 +653,7 @@ void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
 
 void Scheduler::switchTo ( WD *to )
 {
-   if ( myThread->runningOn()->supportsUserLevelThreads() ) {
+   if ( false /*myThread->runningOn()->supportsUserLevelThreads() */) {
       if (!to->started()) {
          to->init();
          to->start(WD::IsAUserLevelThread);
@@ -726,8 +722,8 @@ void Scheduler::exitTo ( WD *to )
 
     //std::cerr << "thd " << myThread->getId() << "exiting task " << myThread->getCurrentWD() << ":" << myThread->getCurrentWD()->getId() <<
     //      " to " << to << ":" << to->getId() << std::endl;;
-    //debug( "exiting task " << myThread->getCurrentWD() << ":" << myThread->getCurrentWD()->getId() <<
-    //      " to " << to << ":" << to->getId() );
+    debug( "exiting task " << myThread->getCurrentWD() << ":" << myThread->getCurrentWD()->getId() <<
+          " to " << to << ":" << to->getId() );
 
     myThread->exitTo ( to, Scheduler::exitHelper );
 }

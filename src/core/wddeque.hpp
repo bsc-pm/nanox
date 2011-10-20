@@ -209,5 +209,21 @@ inline void WDDeque::decreaseTasksInQueues( int tasks )
    _nelems--;
 }
 
+inline void WDDeque::transferElemsFrom( WDDeque &dq )
+{
+   LockBlock lock( _lock );
+   memoryFence();
+   WDDeque::BaseContainer::iterator it;
+
+   while( !dq._dq.empty() )
+   {
+      _dq.push_back( dq._dq.front() );
+      dq._dq.pop_front();
+   }
+   _nelems = dq._nelems;
+   dq._nelems = 0;
+   memoryFence();
+}
+
 #endif
 

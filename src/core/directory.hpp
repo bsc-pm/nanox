@@ -185,6 +185,20 @@ inline void Directory::registerAccess( uint64_t tag, size_t size, bool input, bo
    }
 }
 
+inline void Directory::fwAccess( uint64_t tag, size_t size, bool input, bool output )
+{
+   DirectoryEntry *de = getEntry( tag, true);
+   if ( de != NULL ) {
+      if ( output && !input ) {
+	//message("I can fw to local accelerator at node " << sys.getNetwork()->getNodeNum() );
+	sys.getLocalAccelerators()[0]->registerCacheAccessDependent( *this, tag, size, true, false ); 
+	CopyDescriptor cd = CopyDescriptor( tag );
+	sys.getLocalAccelerators()[0]->synchronize( cd ); 
+	//message("fw done to local accelerator at node " << sys.getNetwork()->getNodeNum() );
+      }
+   }
+}
+
 inline void Directory::updateCurrentDirectory( uint64_t tag, Directory &current )
 {
    DirectoryEntry *de = _directory.find( tag );

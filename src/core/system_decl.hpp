@@ -36,6 +36,7 @@
 #include "cache_map_decl.hpp"
 #include "plugin_decl.hpp"
 #include "barrier_decl.hpp"
+#include "accelerator_decl.hpp"
 
 
 namespace nanos
@@ -56,6 +57,7 @@ namespace nanos
          typedef Config::MapVar<CachePolicyType> CachePolicyConfig;
 
          typedef void (*Init) ();
+         typedef std::vector<Accelerator *> AList;
 
       private:
          // types
@@ -105,6 +107,7 @@ namespace nanos
          barrFactory          _defBarrFactory;
 
          PEList               _pes;
+         AList                _localAccelerators;
          ThreadList           _workers;
         
          /*! It counts how many threads have finalized their initialization */
@@ -307,6 +310,7 @@ namespace nanos
          bool loadPlugin ( const std::string &name );
          Plugin * loadAndGetPlugin ( const char *name );
          Plugin * loadAndGetPlugin ( const std::string &name );
+         AList& getLocalAccelerators();
    };
 
    extern System sys;

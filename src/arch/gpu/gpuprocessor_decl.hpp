@@ -85,6 +85,7 @@ namespace ext
          GPUProcessorInfo *      _gpuProcessorInfo; //! Information related to the GPU device that represents
          GPUProcessorStats       _gpuProcessorStats; //! Statistics of data copied in and out to / from cache
          GPUProcessorTransfers   _gpuProcessorTransfers; //! Keep the list of pending memory transfers
+         volatile bool           _initialized; //! Object is initialized
 
 
          SimpleAllocator               _allocator;
@@ -196,6 +197,15 @@ namespace ext
             message("Total input transfers: " << _gpuProcessorStats._bytesIn.value() << " bytes");
             message("Total output transfers: " << _gpuProcessorStats._bytesOut.value() << " bytes");
             message("Total device transfers: " << _gpuProcessorStats._bytesDevice.value() << " bytes");
+         }
+
+         void setInitialized ()
+         {
+            _initialized = true;
+         }
+         void waitInitialized ()
+         {
+            while ( !_initialized ) { }
          }
    };
 

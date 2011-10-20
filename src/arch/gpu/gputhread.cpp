@@ -54,6 +54,9 @@ void GPUThread::initializeDependent ()
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
    if ( err != cudaSuccess )
       warning( "CUDA errors occurred during initialization:" << cudaGetErrorString( err ) );
+
+   
+   ( ( GPUProcessor * ) myThread->runningOn() )->setInitialized();
 }
 
 void GPUThread::runDependent ()

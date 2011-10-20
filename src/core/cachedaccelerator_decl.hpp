@@ -23,6 +23,7 @@
 #include "accelerator_decl.hpp"
 #include "cache_decl.hpp"
 #include "system_decl.hpp"
+#include "copydescriptor_decl.hpp"
 
 namespace nanos
 {

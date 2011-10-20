@@ -89,6 +89,7 @@ namespace nanos
 
          void increaseTasksInQueues( int tasks );
          void decreaseTasksInQueues( int tasks );
+         void transferElemsFrom( WDDeque &dq );
    };
 
 }

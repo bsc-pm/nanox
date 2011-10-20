@@ -357,6 +357,7 @@ void System::start ()
    _targetThreads = getThsPerPE() * numPes;
 #ifdef GPU_DEV
    _targetThreads += nanos::ext::GPUConfig::getGPUCount();
+   _localAccelerators.reserve( nanos::ext::GPUConfig::getGPUCount() );
 #endif
 
    //start as much threads per pe as requested by the user
@@ -411,10 +412,12 @@ void System::start ()
    for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount(); gpuC++ ) {
       PE *gpu = NEW nanos::ext::GPUProcessor( p++, gpuC );
       _pes.push_back( gpu );
+      _localAccelerators.push_back( dynamic_cast<nanos::ext::GPUProcessor *>( gpu ) );
          _preMainBarrier++;
       BaseThread *gpuThd = &gpu->startWorker();
       _workers.push_back( gpuThd );
       _masterGpuThd = ( _masterGpuThd == NULL ) ? gpuThd : _masterGpuThd;
+      dynamic_cast<nanos::ext::GPUProcessor *>( gpu )->waitInitialized();
    }
 #endif
 

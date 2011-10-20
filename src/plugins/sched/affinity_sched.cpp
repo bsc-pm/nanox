@@ -33,13 +33,25 @@ namespace nanos {
             struct TeamData : public ScheduleTeamData
             {
                WDDeque*           _readyQueues;
+               WDDeque*           _bufferQueues;
+               std::size_t*       _createdData;
+               Atomic<bool>       _holdTasks;
  
                TeamData ( unsigned int size ) : ScheduleTeamData()
                {
                   _readyQueues = NEW WDDeque[size];
+                  _bufferQueues = NEW WDDeque[size];
+                  _createdData = NEW std::size_t[size];
+	          for (unsigned int i = 0; i < size; i += 1) _createdData[i] = 0;
+                  _holdTasks = false;
                }
 
-               ~TeamData () { delete[] _readyQueues; }
+               ~TeamData ()
+               {
+                  delete[] _readyQueues;
+                  delete[] _bufferQueues;
+                  delete[] _createdData;
+               }
             };
 
             /** \brief Cache Scheduler data associated to each thread
@@ -102,53 +114,94 @@ namespace nanos {
             */
             virtual void queue ( BaseThread *thread, WD &wd )
             {
-                ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
-                if ( !data._init ) {
-                   data._cacheId = thread->runningOn()->getMemorySpaceId();
-                   data._init = true;
-                }
-                TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+               ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
+               if ( !data._init ) {
+                  //data._cacheId = thread->runningOn()->getMemorySpaceId();
+                  data._cacheId = thread->runningOn()->getMyNodeNumber() + 1;
+                  data._init = true;
+               }
+               TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
 
-                if ( wd.isTied() ) {
-                   unsigned int index = wd.isTiedTo()->runningOn()->getMemorySpaceId();
-                   tdata._readyQueues[index].push_front ( &wd );
-                   return;
-                }
-                if ( wd.getNumCopies() > 0 ){
-                   unsigned int numCaches = sys.getCacheMap().getSize();
-                   unsigned int ranks[numCaches];
-                   for (unsigned int i = 0; i < numCaches; i++ ) {
-                      ranks[i] = 0;
-                   }
-                   CopyData * copies = wd.getCopies();
-                   for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
-                      if ( !copies[i].isPrivate() ) {
-                         WorkDescriptor* parent = wd.getParent();
-                         if ( parent != NULL ) {
-                            Directory *dir = parent->getDirectory();
-                            if ( dir != NULL ) {
-                               DirectoryEntry *de = dir->findEntry(copies[i].getAddress());
-                               if ( de != NULL ) {
-                                  for ( unsigned int j = 0; j < numCaches; j++ ) {
-                                     ranks[j]+=((unsigned int)(de->getAccess( j+1 ) > 0))*copies[i].getSize();
-                                  }
-                               }
-                            }
-                         }
-                      }
-                   }
-                   unsigned int winner = 0;
-                   unsigned int maxRank = 0;
-                   for ( unsigned int i = 0; i < numCaches; i++ ) {
-                      if ( ranks[i] > maxRank ) {
-                         winner = i+1;
-                         maxRank = ranks[i];
-                      }
-                   }
-                   tdata._readyQueues[winner].push_front( &wd );
-                } else {
-                   tdata._readyQueues[0].push_front ( &wd );
-                }
+            //message("in queue node " << sys.getNetwork()->getNodeNum()<< " wd os " << wd.getId());
+               if ( wd.isTied() ) {
+                  //unsigned int index = wd.isTiedTo()->runningOn()->getMemorySpaceId();
+                  unsigned int index = wd.isTiedTo()->runningOn()->getMyNodeNumber() + 1;
+                  tdata._readyQueues[index].push_front ( &wd );
+                  return;
+               }
+               if ( wd.getNumCopies() > 0 ){
+                  CopyData * copies = wd.getCopies();
+                  unsigned int wo_copies = 0, ro_copies = 0, rw_copies = 0;
+                  std::size_t createdDataSize = 0;
+                  for (unsigned int idx = 0; idx < wd.getNumCopies(); idx += 1)
+                  {
+                     if ( !copies[idx].isPrivate() ) {
+                        rw_copies += (  copies[idx].isInput() &&  copies[idx].isOutput() );
+                        ro_copies += (  copies[idx].isInput() && !copies[idx].isOutput() );
+                        wo_copies += ( !copies[idx].isInput() &&  copies[idx].isOutput() );
+                        createdDataSize += ( !copies[idx].isInput() &&  copies[idx].isOutput() ) * copies[idx].getSize();
+                     }
+                  }
+
+                  if ( wo_copies == wd.getNumCopies() ) /* init task */
+                  {
+                     unsigned int numCaches = sys.getCacheMap().getSize();
+                     unsigned int winner = numCaches - 1;
+                     for ( int i = winner - 1; i >= 0; i -= 1 )
+                     {
+                        winner = ( tdata._createdData[ winner ] < tdata._createdData[ i ] ) ? winner : i ;
+                     }
+                     tdata._createdData[ winner ] += createdDataSize;
+                     tdata._bufferQueues[winner + 1].push_back( &wd );
+                     //tdata._readyQueues[winner + 1].push_back( &wd );
+                     //message("init: queue " << (winner+1) << " for wd " << wd.getId() );
+                     tdata._holdTasks = true;
+                  }
+                  else
+                  {
+                     unsigned int numCaches = sys.getCacheMap().getSize();
+                     unsigned int ranks[numCaches];
+                     if ( tdata._holdTasks.cswap( true, false ) )
+                     {
+                        for ( unsigned int idx = 1; idx <= numCaches; idx += 1) 
+                        {
+                           tdata._readyQueues[ idx ].transferElemsFrom( tdata._bufferQueues[ idx] );
+                        }
+                     }
+                     for (unsigned int i = 0; i < numCaches; i++ ) {
+                        ranks[i] = 0;
+                     }
+                     for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
+                        if ( !copies[i].isPrivate() && copies[i].isOutput() ) {
+                           WorkDescriptor* parent = wd.getParent();
+                           if ( parent != NULL ) {
+                              Directory *dir = parent->getDirectory();
+                              if ( dir != NULL ) {
+                                 DirectoryEntry *de = dir->findEntry(copies[i].getAddress());
+                                 if ( de != NULL ) {
+                                    for ( unsigned int j = 0; j < numCaches; j++ ) {
+                                       ranks[j]+=((unsigned int)(de->getAccess( j+1 ) > 0))*copies[i].getSize();
+                                    }
+                                 }
+                              }
+                           }
+		     //message("check wd " << wd.getId() << " tag " << (void*)copies[i].getAddress()  << " ranks " << ranks[0] << "," << ranks[1] << "," << ranks[2] << "," << ranks[3] );
+                        }
+                     }
+                     unsigned int winner = 1;
+                     unsigned int maxRank = 0;
+                     for ( unsigned int i = 0; i < numCaches; i++ ) {
+                        if ( ranks[i] > maxRank ) {
+                           winner = i+1;
+                           maxRank = ranks[i];
+                        }
+                     }
+		     //message("queued wd " << wd.getId() << " to queue " << winner << " ranks " << ranks[0] << "," << ranks[1] << "," << ranks[2] << "," << ranks[3] );
+                     tdata._readyQueues[winner].push_back( &wd );
+                  }
+               } else {
+                  tdata._readyQueues[0].push_front ( &wd );
+               }
             }
 
             /*!
@@ -193,15 +246,25 @@ namespace nanos {
 
          ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
          if ( !data._init ) {
-            data._cacheId = thread->runningOn()->getMemorySpaceId();
+            //data._cacheId = thread->runningOn()->getMemorySpaceId();
+            data._cacheId = thread->runningOn()->getMyNodeNumber() + 1;
             data._init = true;
          }
          TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
 
+                     if ( tdata._holdTasks.cswap( true, false ) )
+                     {
+                     unsigned int numCaches = sys.getCacheMap().getSize();
+                        for ( unsigned int idx = 1; idx <= numCaches; idx += 1) 
+                        {
+                           tdata._readyQueues[ idx ].transferElemsFrom( tdata._bufferQueues[ idx] );
+                        }
+                     }
          /*
           *  First try to schedule the thread with a task from its queue
           */
          if ( ( wd = tdata._readyQueues[data._cacheId].pop_front ( thread ) ) != NULL ) {
+//            message("Block:: Ive got a wd, Im at node " << sys.getNetwork()->getNodeNum() );
             return wd;
          } else {
             /*
@@ -239,7 +302,8 @@ namespace nanos {
 
          ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
          if ( !data._init ) {
-            data._cacheId = thread->runningOn()->getMemorySpaceId();
+            //data._cacheId = thread->runningOn()->getMemorySpaceId();
+            data._cacheId = thread->runningOn()->getMyNodeNumber() + 1;
             data._init = true;
          }
          TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
@@ -248,6 +312,7 @@ namespace nanos {
           *  First try to schedule the thread with a task from its queue
           */
          if ( ( wd = tdata._readyQueues[data._cacheId].pop_front ( thread ) ) != NULL ) {
+            //message("Ive got a wd, Im at node " << sys.getNetwork()->getNodeNum() );
             return wd;
          } else {
             /*

@@ -100,6 +100,7 @@ namespace nanos
          virtual bool supportsUserLevelThreads() const = 0;
          virtual bool hasSeparatedMemorySpace() const { return false; }
          virtual unsigned int getMemorySpaceId() const { return 0; }
+         virtual unsigned int getMyNodeNumber() const { return 0; }
 
          virtual void waitInputDependent( uint64_t tag ) {}
 
