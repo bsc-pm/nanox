@@ -73,10 +73,11 @@ System::System () :
       _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ), _thsPerPE( 1 ),
       _untieMaster( false ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
       _preMainBarrier ( 1 ), _preMainBarrierLast ( 0 ), _throttlePolicy ( NULL ),
-      _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
-      _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ), _defDeviceName("SMP"),
+      _schedStats(), _schedConf(), _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
+      _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _usingCluster( false ),_usingNode2Node( true ), _conduit( "udp" ),
-      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL ), _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap(), _masterGpuThd( NULL )
+      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL ),
+      _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap(), _masterGpuThd( NULL )
 {
    verbose0 ( "NANOS++ initializing... start" );
    // OS::init must be called here and not in System::start() as it can be too late
@@ -266,6 +267,7 @@ void System::config ()
    CachePolicyConfig *cachePolicyCfg = NEW CachePolicyConfig ( _cachePolicy );
    cachePolicyCfg->addOption("wt", System::WRITE_THROUGH );
    cachePolicyCfg->addOption("wb", System::WRITE_BACK );
+   cachePolicyCfg->addOption( "nocache", System::NONE );
 
    cfg.registerConfigOption ( "cache-policy", cachePolicyCfg, "Defines the general cache policy to use: write-through / write-back. Can be overwritten for specific architectures" );
    cfg.registerArgOption ( "cache-policy", "cache-policy" );
@@ -579,6 +581,10 @@ void System::finish ()
    _pmInterface->finish();
 
    /* System mem free */
+
+   /* deleting master WD */
+   delete[] (char *) getMyThreadSafe()->getCurrentWD();
+
    delete _pmInterface;
 
    for ( Slicers::const_iterator it = _slicers.begin(); it !=   _slicers.end(); it++ ) {
@@ -970,7 +976,10 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    new (*uwd) WD( *wd, dev_ptrs, wdCopies , data);
 
    // initializing internal data
-   if ( size_PMD != 0) (*uwd)->setInternalData( chunk + offset_PMD );
+   if ( size_PMD != 0) {
+      (*uwd)->setInternalData( chunk + offset_PMD );
+      memcpy ( chunk + offset_PMD, wd->getInternalData(), size_PMD );
+   }
 }
 
 /*! \brief Duplicates a given SlicedWD
@@ -1078,7 +1087,10 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
                         *((SlicerData *)slicer_data), *((WD *)wd), dev_ptrs, wdCopies, data );
 
    // initializing internal data
-   if ( size_PMD != 0) (*uwd)->setInternalData( chunk + offset_PMD );
+   if ( size_PMD != 0) {
+      (*uwd)->setInternalData( chunk + offset_PMD );
+      memcpy ( chunk + offset_PMD, wd->getInternalData(), size_PMD );
+   }
 }
 
 void System::setupWD ( WD &work, WD *parent )

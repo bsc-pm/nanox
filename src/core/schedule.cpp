@@ -38,9 +38,17 @@ void SchedulerConf::config (Config &cfg)
 {
    cfg.setOptionsSection ( "Core [Scheduler]", "Policy independent scheduler options"  );
 
-   cfg.registerConfigOption ( "num_spins", NEW Config::UintVar( _numSpins ), "Determines the amount of spinning before yielding" );
+   cfg.registerConfigOption ( "num_spins", NEW Config::UintVar( _numSpins ), "Determines the amount of spinning before sleeping (default = 100)" );
    cfg.registerArgOption ( "num_spins", "spins" );
    cfg.registerEnvOption ( "num_spins", "NX_SPINS" );
+
+   cfg.registerConfigOption ( "num_sleeps", NEW Config::IntegerVar( _numSleeps ), "Determines the amount of sleeping before yielding (default = 20)" );
+   cfg.registerArgOption ( "num_sleeps", "sleeps" );
+   cfg.registerEnvOption ( "num_sleeps", "NX_SLEEPS" );
+
+   cfg.registerConfigOption ( "sleep_time", NEW Config::IntegerVar( _timeSleep ), "Determines amount of time (in nsec) in each sleeping phase (default = 100)" );
+   cfg.registerArgOption ( "sleep_time", "sleep-time" );
+   cfg.registerEnvOption ( "sleep_time", "NX_SLEEP_TIME" );
 }
 
 void Scheduler::submit ( WD &wd )
@@ -114,18 +122,24 @@ inline void Scheduler::idleLoop ()
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t total_spins_key = ID->getEventKey("num-spins"); )
    NANOS_INSTRUMENT ( static nanos_event_key_t total_yields_key = ID->getEventKey("num-yields"); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t time_sleeps_key = ID->getEventKey("time-sleeps"); )
    NANOS_INSTRUMENT ( static nanos_event_key_t time_yields_key = ID->getEventKey("time-yields"); )
-   NANOS_INSTRUMENT ( nanos_event_key_t Keys[3]; )
+   NANOS_INSTRUMENT ( nanos_event_key_t Keys[4]; )
    NANOS_INSTRUMENT ( Keys[0] = total_spins_key; )
    NANOS_INSTRUMENT ( Keys[1] = total_yields_key; )
-   NANOS_INSTRUMENT ( Keys[2] = time_yields_key; )
+   NANOS_INSTRUMENT ( Keys[2] = time_sleeps_key; )
+   NANOS_INSTRUMENT ( Keys[3] = time_yields_key; )
 
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_IDLE) );
 
    const int nspins = sys.getSchedulerConf().getNumSpins();
+   const int nsleeps = sys.getSchedulerConf().getNumSleeps();
+   const int tsleep = sys.getSchedulerConf().getTimeSleep();
    int spins = nspins;
+   int sleeps = nsleeps;
    unsigned long total_spins = 0;  /* Number of spins by idle phase*/
    unsigned long total_yields = 0; /* Number of yields by idle phase */
+   unsigned long time_sleeps = 0;  /* Time of sleeps by idle phase */
    unsigned long time_yields = 0;  /* Time of yields by idle phase */
 
    WD *current = myThread->getCurrentWD();
@@ -150,20 +164,25 @@ inline void Scheduler::idleLoop ()
          //   prefetchedWD = NULL;
             myThread->resetNextWD();
          } else {
-            if ( sys.getSchedulerStats()._readyTasks > 0 ) 
+           memoryFence();
+           if ( sys.getSchedulerStats()._readyTasks > 0 ) {
+              NANOS_INSTRUMENT( InstrumentState inst1(NANOS_SCHEDULING) )
               next = behaviour::getWD(thread,current);
+              NANOS_INSTRUMENT( inst1.close() );
+           }
          } 
 
          if ( next ) {
             sys.getSchedulerStats()._idleThreads--;
 
             total_spins+= (nspins - spins);
-
-            NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
+            NANOS_INSTRUMENT ( nanos_event_value_t Values[4]; )
             NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) total_spins; )
             NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) total_yields; )
-            NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) time_yields; )
-            NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(3, Keys, Values); )
+            NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) time_sleeps; )
+            NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) time_yields; )
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(4, Keys, Values); )
+
             NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) )
             behaviour::switchWD(thread,current, next);
 //std::cerr <<"n:" << sys.getNetwork()->getNodeNum() << " finished switchWD" << std::endl;
@@ -175,6 +194,7 @@ inline void Scheduler::idleLoop ()
             sys.getSchedulerStats()._idleThreads++;
             total_spins = 0;
             total_yields = 0;
+            time_sleeps = 0;
             time_yields = 0;
             spins = nspins;
             continue;
@@ -184,12 +204,20 @@ inline void Scheduler::idleLoop ()
 
       if ( spins == 0 ) {
         total_spins+= nspins;
-        if ( sys.useYield() ) {
-           total_yields++;
-           unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
-           thread->yield();
-           unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
-           time_yields += ( end_yield - begin_yield );
+        sleeps--;
+        if ( sleeps < 0 ) {
+           if ( sys.useYield() ) {
+              total_yields++;
+              unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+              thread->yield();
+              unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+              time_yields += ( end_yield - begin_yield );
+           }
+           sleeps = nsleeps;
+        } else {
+           struct timespec req ={0,tsleep};
+           nanosleep ( &req, NULL );
+           time_sleeps += time_sleeps + tsleep;
         }
         spins = nspins;
       }
@@ -199,6 +227,8 @@ inline void Scheduler::idleLoop ()
    }
    sys.getSchedulerStats()._idleThreads--;
    current->setReady();
+   //current->~WorkDescriptor();
+   //delete[] (char *) current;
 }
 
 void Scheduler::waitOnCondition (GenericSyncCond *condition)
@@ -206,18 +236,24 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t total_spins_key = ID->getEventKey("num-spins"); )
    NANOS_INSTRUMENT ( static nanos_event_key_t total_yields_key = ID->getEventKey("num-yields"); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t time_sleeps_key = ID->getEventKey("time-sleeps"); )
    NANOS_INSTRUMENT ( static nanos_event_key_t time_yields_key = ID->getEventKey("time-yields"); )
-   NANOS_INSTRUMENT ( nanos_event_key_t Keys[3]; )
+   NANOS_INSTRUMENT ( nanos_event_key_t Keys[4]; )
    NANOS_INSTRUMENT ( Keys[0] = total_spins_key; )
    NANOS_INSTRUMENT ( Keys[1] = total_yields_key; )
-   NANOS_INSTRUMENT ( Keys[2] = time_yields_key; )
+   NANOS_INSTRUMENT ( Keys[2] = time_sleeps_key; )
+   NANOS_INSTRUMENT ( Keys[3] = time_yields_key; )
 
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
 
    const int nspins = sys.getSchedulerConf().getNumSpins();
-   int spins = nspins; 
+   const int nsleeps = sys.getSchedulerConf().getNumSleeps();
+   const int tsleep = sys.getSchedulerConf().getTimeSleep();
+   unsigned int spins = nspins; 
+   int sleeps = nsleeps;
    unsigned long total_spins = 0;  /* Number of spins by idle phase*/
    unsigned long total_yields = 0; /* Number of yields by idle phase */
+   unsigned long time_sleeps = 0;  /* Time of sleeps by idle phase */
    unsigned long time_yields = 0;  /* Time of yields by idle phase */
 
    WD * current = myThread->getCurrentWD();
@@ -232,6 +268,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
       spins--;
       if ( spins == 0 ) {
          total_spins+= nspins;
+         sleeps--;
          condition->lock();
          if ( !( condition->check() ) ) {
             condition->addWaiter( current );
@@ -240,17 +277,23 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
             if ( next) {
                myThread->resetNextWD();
-            } else if ( sys.getSchedulerStats()._readyTasks > 0 ) {
-               next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
+            } else {
+               memoryFence();
+               if ( sys.getSchedulerStats()._readyTasks > 0 ) {
+                  NANOS_INSTRUMENT( InstrumentState inst1(NANOS_SCHEDULING) )
+                  next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
+                  NANOS_INSTRUMENT( inst1.close() );
+                }
             }
 
             if ( next ) {
                sys.getSchedulerStats()._idleThreads--;
 
-               NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
+               NANOS_INSTRUMENT ( nanos_event_value_t Values[4]; )
                NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) total_spins; )
                NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) total_yields; )
-               NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) time_yields; )
+               NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) time_sleeps; )
+               NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) time_yields; )
                NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(3, Keys, Values); )
 
                NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME); );
@@ -260,17 +303,25 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
                total_spins = 0;
                total_yields = 0;
+               time_sleeps = 0;
                time_yields = 0;
 
                sys.getSchedulerStats()._idleThreads++;
             } else {
                condition->unlock();
-               if ( sys.useYield() ) {
-                  total_yields++;
-                  unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
-                  thread->yield();
-                  unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
-                  time_yields += ( end_yield - begin_yield );
+               if ( sleeps < 0 ) {
+                  if ( sys.useYield() ) {
+                     total_yields++;
+                     unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+                     thread->yield();
+                     unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+                     time_yields += ( end_yield - begin_yield );
+                  }
+                  sleeps = nsleeps;
+               } else {
+                  struct timespec req = {0,tsleep};
+                  nanosleep ( &req, NULL );
+                  time_sleeps += time_sleeps + tsleep;
                }
             }
          } else {
@@ -480,14 +531,13 @@ struct WorkerBehaviour
 
    static void switchWD ( BaseThread *thread, WD *current, WD *next )
    {
-      if (next->started())
-      {
+      if (next->started()){
         Scheduler::switchTo(next);
       }
-      else
-      {
-        Scheduler::inlineWork ( next /*, true*/ );
-        delete[] ( ( char * ) next );
+      else {
+        Scheduler::inlineWork ( next /*, true */ );
+        next->~WorkDescriptor();
+        delete[] (char *)next;
       }
    }
    static bool checkThreadRunning( WD *current) { return true; }
@@ -579,9 +629,8 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    WD *oldwd = thread->getCurrentWD();
 
    GenericSyncCond *syncCond = oldwd->getSyncCond();
-   if ( syncCond != NULL ) {
-      syncCond->unlock();
-   }
+   if ( syncCond != NULL ) syncCond->unlock();
+
    debug( "switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
           " to " << wd << ":" << wd->getId() << " at node " << sys.getNetwork()->getNodeNum() );
 
@@ -593,13 +642,12 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    // and we don't violate rules about tied WD
    if ( oldwd->isTiedTo() != NULL && (wd->isTiedTo() == NULL)) wd->tieTo(*oldwd->isTiedTo());
 
-   /* Instrumenting context switch: oldwd leaves cpu but will come back (last = false) and wd enters */
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldwd, wd, false) );
    thread->setCurrentWD( *wd );
 
    thread->inlineWorkDependent(*wd);
 
-   // reload thread after running WD
+   // reload thread after running WD due wd may be not tied to thread if
+   // both work descriptor were not tied to any thread
    thread = getMyThreadSafe();
 
    if (schedule) {
@@ -664,8 +712,8 @@ void Scheduler::switchTo ( WD *to )
       myThread->switchTo( to, switchHelper );
    } else {
       inlineWork(to);
-      //delete to;
-      delete[] ( ( char * ) to );
+      to->~WorkDescriptor();
+      delete[] (char *)to;
    }
 }
 
@@ -689,9 +737,9 @@ void Scheduler::exitHelper (WD *oldWD, WD *newWD, void *arg)
 {
     myThread->exitHelperDependent(oldWD, newWD, arg);
     NANOS_INSTRUMENT ( sys.getInstrumentation()->wdSwitch(oldWD,NULL,true) );
+    myThread->setCurrentWD( *newWD );
     oldWD->~WorkDescriptor();
     delete[] (char *)oldWD;
-    myThread->setCurrentWD( *newWD );
     NANOS_INSTRUMENT ( sys.getInstrumentation()->wdSwitch(NULL,newWD,false) );
 }
 

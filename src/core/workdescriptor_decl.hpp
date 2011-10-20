@@ -240,8 +240,9 @@ namespace nanos
           */
          virtual ~WorkDescriptor()
          {
-            for ( unsigned i = 0; i < _numDevices; i++ )
+            for ( unsigned i = 0; i < _numDevices; i++ ) {
                _devices[i]->~DeviceData();
+            }
          }
 
          /*! \brief Has this WorkDescriptor ever run?

@@ -31,7 +31,7 @@ void DependableObject::finished ( )
       // This step guarantees that any Object that wants to add depObj as a successor has done it
       // before we continue or, alternatively, won't do it.
       DependableObject::TrackableObjectVector &outs = depObj.getOutputObjects();
-      if (outs.size() > 0) {
+      if ( !outs.empty() ) {
          {
             SyncLockBlock lock( depObj.getLock() );
             for ( unsigned int i = 0; i < outs.size(); i++ ) {

@@ -296,7 +296,7 @@ namespace nanos {
 
          /*! \brief Copy data from one device address to another device address
           */
-         //virtual bool copyData( void * dstAddr, void * srcAddr, size_t size, Cache & owner ) = 0;
+          //virtual bool copyData( void * dstAddr, void * srcAddr, size_t size, Cache & owner ) = 0;
 
         /*! \brief Copy data from the host to a device address
          *  \param cd Copy descriptor with the information about the addresses to be copied
@@ -338,6 +338,7 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
 
          virtual void invalidate( Directory &dir, uint64_t tag, DirectoryEntry *de ) = 0;
          virtual void discard( Directory &dir, uint64_t tag, DirectoryEntry *de ) = 0;
+
 
 
         /*! \brief Request the Device to priorize an asynchronous transfer

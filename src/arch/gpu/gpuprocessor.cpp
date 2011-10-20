@@ -125,8 +125,13 @@ void GPUProcessor::init ()
 
 void GPUProcessor::cleanUp()
 {
+   cudaError_t err = cudaGetLastError();
+   if ( err != cudaSuccess ) {
+      warning("WARNING: CUDA reported errors during application's execution: " << cudaGetErrorString(err));
+   }
    _gpuProcessorInfo->destroyTransferStreams();
    // When cache is disabled, calling this function hangs the execution
+   // Otherwise, it can take ages to finish, so we avoid calling it by now
    //if ( sys.isCacheEnabled() ) freeWholeMemory();
    printStats();
 }

@@ -60,7 +60,7 @@ void GPUConfig::prepare( Config& config )
    System::CachePolicyConfig *cachePolicyCfg = NEW System::CachePolicyConfig ( _cachePolicy );
    cachePolicyCfg->addOption("wt", System::WRITE_THROUGH );
    cachePolicyCfg->addOption("wb", System::WRITE_BACK );
-   cachePolicyCfg->addOption("no", System::NONE );
+   cachePolicyCfg->addOption( "nocache", System::NONE );
    config.registerConfigOption ( "gpu-cache-policy", cachePolicyCfg, "Defines the cache policy for GPU architectures: write-through / write-back (wb by default)" );
    config.registerEnvOption ( "gpu-cache-policy", "NX_GPU_CACHE_POLICY" );
    config.registerArgOption( "gpu-cache-policy", "gpu-cache-policy" );
@@ -113,7 +113,7 @@ void GPUConfig::prepare( Config& config )
 
 void GPUConfig::apply()
 {
-   if ( _disableCUDA ) {
+   if ( _disableCUDA || _numGPUs == 0 ) {
       _numGPUs = 0;
       _cachePolicy = System::DEFAULT;
       _prefetch = false;
@@ -143,6 +143,8 @@ void GPUConfig::apply()
          _initCublas = false;
          _gpusProperties = NULL;
          warning0( "Couldn't initialize the GPU support component at runtime startup: " << cudaGetErrorString( cudaErr ) );
+
+         return;
       }
 
       // Keep the information of GPUs in GPUDD, in order to avoid a second call to
@@ -164,8 +166,9 @@ void GPUConfig::apply()
       // Check if the user has set a different number of GPUs to use
       if ( _numGPUs >= 0 ) {
          _numGPUs = std::min( _numGPUs, deviceCount );
-      } else
+      } else {
          _numGPUs = deviceCount;
+      }
 
       // Check if the use of caches has been disabled
       if ( sys.isCacheEnabled() ) {

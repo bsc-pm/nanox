@@ -1419,6 +1419,7 @@ inline void DeviceCache<_T>::discard( Directory &dir, uint64_t tag, DirectoryEnt
 template <class _T>
 inline void DeviceCache<_T>::invalidate( Directory &dir, uint64_t tag, DirectoryEntry *de )
 {
+ // de->trySetInvalidated();
    CacheEntry *ce = _cache.find( tag );
    if ( de->trySetInvalidated() ) {
       if ( ce->trySetToFlushing() ) {
@@ -1434,11 +1435,12 @@ inline void DeviceCache<_T>::invalidate( Directory &dir, uint64_t tag, Directory
          }
       }
    }
-} 
+}
 
 template <class _T>
 inline void DeviceCache<_T>::invalidate( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de )
 {
+ // de->trySetInvalidated();
    CacheEntry *ce = _cache.find( tag );
    if ( de->trySetInvalidated() ) {
       if ( ce->trySetToFlushing() ) {
