@@ -366,7 +366,7 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
 {
    unsigned int i = 0;
    unsigned int oldPtP = 0, oldStates = 0, oldSubStates = 0, oldBursts = 0;
-   unsigned int newPtP = 0, newStates = 0, newSubStates = 0, newBursts = 0, newDeferred = 0;
+   unsigned int newPtP = 0, newStates = 0, newSubStates = 0, newBursts = 0;//, newDeferred = 0;
    InstrumentationContextData *old_icd = NULL;
    InstrumentationContextData *new_icd = NULL;
 
@@ -389,7 +389,7 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       newStates = _instrumentationContext.getNumStates(new_icd);
       newSubStates = _instrumentationContext.getNumSubStates(new_icd);
       newBursts = _instrumentationContext.getNumBursts( new_icd );
-      newDeferred = _instrumentationContext.getNumDeferredEvents ( new_icd );
+      //newDeferred = _instrumentationContext.getNumDeferredEvents ( new_icd );
    }
 
    /* Allocating Events */
