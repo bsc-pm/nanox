@@ -465,7 +465,7 @@ void System::start ()
             smpRepThd->getThreadWD().setInternalData(NEW char[_pmInterface->getInternalDataSize()]);
          _pmInterface->setupWD( smpRepThd->getThreadWD() );
          _workers.push_back( smpRepThd ); 
-         _net.setMasterDirectory( &_directory );
+         _net.setMasterDirectory( smpRepThd->getThreadWD().getDirectory(true) );
          setSlaveParentWD( &smpRepThd->getThreadWD() );
       }
    }
