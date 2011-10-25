@@ -642,7 +642,9 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    // and we don't violate rules about tied WD
    if ( oldwd->isTiedTo() != NULL && (wd->isTiedTo() == NULL)) wd->tieTo(*oldwd->isTiedTo());
 
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldwd, NULL, false) );
    thread->setCurrentWD( *wd );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(NULL, wd, false) );
 
    thread->inlineWorkDependent(*wd);
 
@@ -661,13 +663,14 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
 
    wd->done();
    wd->clear();
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, true) );
 
    debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
           " to " << oldwd << ":" << oldwd->getId() );
 
-   /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters */
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
    thread->setCurrentWD( *oldwd );
+   /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters */
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(NULL, oldwd, false) );
 
    // While we tie the inlined tasks this is not needed
    // as we will always return to the current thread

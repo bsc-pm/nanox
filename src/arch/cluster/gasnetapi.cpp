@@ -257,6 +257,11 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
 
    localWD->setId( wdId );
    localWD->setRemoteAddr( rmwd );
+   {
+           NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+           NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wdId)  )  ; )
+           NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *localWD, NANOS_WD_REMOTE, id, 0, NULL, NULL, 0 ); )
+   }
 
    if ( numDeps > 0 )
    {
@@ -298,11 +303,6 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
       _depsLock.release();
       if ( thisWdDeps->count == 0) 
       {
-         {
-            NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
-               NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) numPe) << 32 ) + gasnet_mynode() ; )
-               NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *localWD, NANOS_WD_REMOTE, id, 0, NULL, NULL, 0 ); )
-         }
 #ifdef HALF_PRESEND
          if ( wdindc++ == 0 ) { sys.submit( *localWD ); /* std::cerr<<"n:" <<gasnet_mynode()<< " submitted wd " << localWD->getId() <<std::endl; */}
          else { buffWD = localWD; /* std::cerr<<"n:" <<gasnet_mynode()<< " saved wd " << buffWD->getId() <<std::endl; */}
@@ -332,10 +332,6 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
       _depsLock.release();
       if ( thisWdDeps == NULL)
       {
-         NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
-         NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) numPe) << 32 ) + gasnet_mynode() ; )
-         NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *localWD, NANOS_WD_REMOTE, id, 0, NULL, NULL, 0 ); )
-
 #ifdef HALF_PRESEND
          if ( wdindc++ == 0 ) { sys.submit( *localWD ); /* std::cerr<<"n:" <<gasnet_mynode()<< " submitted+ wd " << localWD->getId() <<std::endl;*/ }
          else { buffWD = localWD; /*std::cerr<<"n:" <<gasnet_mynode()<< " saved+ wd " << buffWD->getId() <<std::endl;*/ }
@@ -601,7 +597,6 @@ void GASNetAPI::amGet( gasnet_token_t token,
    void *tagAddr = ( void * ) MERGE_ARG( tagAddrHi, tagAddrLo );
    NANOS_INSTRUMENT ( int *waitObj = ( int * ) MERGE_ARG( waitObjHi, waitObjLo ); )
    std::size_t realLen = ( std::size_t ) MERGE_ARG( lenHi, lenLo );
-   //NANOS_INSTRUMENT ( int * waitObj = ( int * ) MERGE_ARG( waitObjHi, waitObjLo ); )
 
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
@@ -995,8 +990,8 @@ void GASNetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsi
    }
 
    NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
-      NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( wdId ) ; )
-      NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_AM_WORK, id, 0, 0, dest ); )
+   NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( wdId ) ; )
+   NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_AM_WORK, id, 0, 0, dest ); )
 
       if (gasnet_AMRequestMedium10( dest, 205, &arg[ sent ], argSize - sent,
                ARG_LO( work ),

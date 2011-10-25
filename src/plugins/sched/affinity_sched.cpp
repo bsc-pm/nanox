@@ -161,11 +161,14 @@ namespace nanos {
                   {
                      unsigned int numCaches = sys.getCacheMap().getSize();
                      unsigned int ranks[numCaches];
-                     if ( tdata._holdTasks.cswap( true, false ) )
+                     if ( tdata._holdTasks.value() )
                      {
-                        for ( unsigned int idx = 1; idx <= numCaches; idx += 1) 
+                        if ( tdata._holdTasks.cswap( true, false ) )
                         {
-                           tdata._readyQueues[ idx ].transferElemsFrom( tdata._bufferQueues[ idx] );
+                           for ( unsigned int idx = 1; idx <= numCaches; idx += 1) 
+                           {
+                              tdata._readyQueues[ idx ].transferElemsFrom( tdata._bufferQueues[ idx] );
+                           }
                         }
                      }
                      for (unsigned int i = 0; i < numCaches; i++ ) {
@@ -252,14 +255,17 @@ namespace nanos {
          }
          TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
 
-                     if ( tdata._holdTasks.cswap( true, false ) )
-                     {
-                     unsigned int numCaches = sys.getCacheMap().getSize();
-                        for ( unsigned int idx = 1; idx <= numCaches; idx += 1) 
-                        {
-                           tdata._readyQueues[ idx ].transferElemsFrom( tdata._bufferQueues[ idx] );
-                        }
-                     }
+         if ( tdata._holdTasks.value() ) 
+         {
+            if ( tdata._holdTasks.cswap( true, false ) )
+            {
+               unsigned int numCaches = sys.getCacheMap().getSize();
+               for ( unsigned int idx = 1; idx <= numCaches; idx += 1) 
+               {
+                  tdata._readyQueues[ idx ].transferElemsFrom( tdata._bufferQueues[ idx] );
+               }
+            }
+         }
          /*
           *  First try to schedule the thread with a task from its queue
           */

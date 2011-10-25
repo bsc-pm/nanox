@@ -106,7 +106,7 @@ void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigne
       if ( _nodeNum == MASTER_NODE_NUM )
       {
          NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
-         NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) numPe) << 32 ) + dest; )
+         NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wdId) ) ; )
          NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL, dest ); )
 
          _api->sendWorkMsg( dest, work, dataSize, wdId, numPe, argSize, arg, xlate, arch, remoteWd );
@@ -124,7 +124,7 @@ void Network::sendWorkDoneMsg( unsigned int nodeNum, void *remoteWdAddr, int peI
    if ( _api != NULL )
    {
       NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
-      NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) 0) << 32 ) + _nodeNum; )
+      NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) remoteWdAddr)  ) ; )
       NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL, 0 ); )
       if ( _nodeNum != MASTER_NODE_NUM )
       {
@@ -136,7 +136,7 @@ void Network::sendWorkDoneMsg( unsigned int nodeNum, void *remoteWdAddr, int peI
 void Network::notifyWorkDone ( unsigned int nodeNum, void *remoteWdAddr, int peId)
 {
    NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
-   NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) 0) << 32 ) + nodeNum; )
+   NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) remoteWdAddr) ) ; )
    NANOS_INSTRUMENT ( instr->raiseClosePtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL, nodeNum ); )
 
    ( (WD *) remoteWdAddr )->notifyOutlinedCompletion();

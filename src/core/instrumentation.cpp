@@ -366,7 +366,7 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
 {
    unsigned int i = 0;
    unsigned int oldPtP = 0, oldStates = 0, oldSubStates = 0, oldBursts = 0;
-   unsigned int newPtP = 0, newStates = 0, newSubStates = 0, newBursts = 0;//, newDeferred = 0;
+   unsigned int newPtP = 0, newStates = 0, newSubStates = 0, newBursts = 0, newDeferred = 0;
    InstrumentationContextData *old_icd = NULL;
    InstrumentationContextData *new_icd = NULL;
 
@@ -389,12 +389,12 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       newStates = _instrumentationContext.getNumStates(new_icd);
       newSubStates = _instrumentationContext.getNumSubStates(new_icd);
       newBursts = _instrumentationContext.getNumBursts( new_icd );
-      //newDeferred = _instrumentationContext.getNumDeferredEvents ( new_icd );
+      newDeferred = _instrumentationContext.getNumDeferredEvents ( new_icd );
    }
 
    /* Allocating Events */
    unsigned int numOldEvents = oldPtP + oldStates + oldSubStates + oldBursts;
-   unsigned int numNewEvents =  newPtP + newStates + newSubStates + newBursts /* + newDeferred */;
+   unsigned int numNewEvents =  newPtP + newStates + newSubStates + newBursts + newDeferred ;
    unsigned int numEvents = numOldEvents + numNewEvents;
    bool csEvent = _instrumentationContext.isContextSwitchEnabled() && ( ((newWD!=NULL)&&(oldWD==NULL)) || ((newWD==NULL)&&(oldWD!=NULL)) );
 
@@ -466,9 +466,7 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
          e[i--] = *it;
       }
       i += (newBursts+1);
-/*FIXME*/
-#if 0 
->>>>>>> gpu
+
       /* Generating deferred events for new WD (and removing them) */
       InstrumentationContextData::EventIterator itDE;
       for ( itDE  = _instrumentationContext.beginDeferredEvents( new_icd );
@@ -476,10 +474,6 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
          e[i++] = *itDE;
       }
       _instrumentationContext.clearDeferredEvents( new_icd );
-<<<<<<< HEAD
-      ensure0(i == numOldEvents + newPtP + newStates + newSubStates + newBursts + newDeferred, "Starting deferred events doesn't fit with computed value.");
-=======
-#endif
 
    }
    
