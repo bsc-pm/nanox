@@ -68,11 +68,15 @@ bool GPUDevice::isMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t si
    // Copy from host memory to device memory
    // Check for synchronous or asynchronous mode
    if ( myPE->getGPUProcessorInfo()->getInTransferStream() != 0 ) {
-      //void * pinned = myPE->allocateInputPinnedMemory( size );
-      //copyInAsyncToBuffer( pinned, ( void * ) remoteSrc.getTag(), size );
+#ifndef JBUENO_NO_PINNING
+      void * pinned = myPE->allocateInputPinnedMemory( size );
+      copyInAsyncToBuffer( pinned, ( void * ) remoteSrc.getTag(), size );
       myPE->getInTransferList()->addMemoryTransfer( remoteSrc );
-      //copyInAsyncToDevice( localDst, pinned, size );
+      copyInAsyncToDevice( localDst, pinned, size );
+#else
+      myPE->getInTransferList()->addMemoryTransfer( remoteSrc );
       copyInAsyncToDevice( localDst, (void *) remoteSrc.getTag(), size );
+#endif
       return false;
    }
    else {
