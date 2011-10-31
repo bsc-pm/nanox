@@ -378,9 +378,6 @@ WD * Scheduler::prefetch( BaseThread *thread, WD &wd )
    return thread->getTeam()->getSchedulePolicy().atPrefetch( thread, wd );
 }
 
-#define MAX_RUNNING_WD_PER_SMP 1
-#define MAX_RUNNING_WD_PER_GPU 4
-
 WD * Scheduler::getClusterWD( BaseThread *thread, int inGPU )
 {
 	WD * wd = NULL;

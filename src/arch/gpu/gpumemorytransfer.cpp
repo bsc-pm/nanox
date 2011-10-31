@@ -269,6 +269,7 @@ void GPUMemoryTransferInAsyncList::clearMemoryTransfers()
 
 void GPUMemoryTransferInAsyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt )
 {
+   nanos::ext::GPUProcessor * myPE = ( nanos::ext::GPUProcessor * ) myThread->runningOn();
 #ifndef JBUENO_NO_PINNING
    void *pinned = ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->allocateInputPinnedMemory( mt._size );
 
@@ -277,6 +278,7 @@ void GPUMemoryTransferInAsyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt 
 #else
    GPUDevice::copyInAsyncToDevice( mt._deviceAddress, (void *)mt._hostAddress.getTag(), mt._size );
 #endif
+   myPE->synchronize( mt._hostAddress );
 }
 
 void GPUMemoryTransferInAsyncList::executeMemoryTransfers ()

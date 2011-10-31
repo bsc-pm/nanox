@@ -190,11 +190,7 @@ inline void Directory::fwAccess( uint64_t tag, size_t size, bool input, bool out
    DirectoryEntry *de = getEntry( tag, true);
    if ( de != NULL ) {
       if ( output && !input ) {
-	//message("I can fw to local accelerator at node " << sys.getNetwork()->getNodeNum() );
-	sys.getLocalAccelerators()[0]->registerCacheAccessDependent( *this, tag, size, true, false ); 
-	CopyDescriptor cd = CopyDescriptor( tag );
-	sys.getLocalAccelerators()[0]->synchronize( cd ); 
-	//message("fw done to local accelerator at node " << sys.getNetwork()->getNodeNum() );
+         sys.getLocalAccelerators()[0]->registerCacheAccessDependent( *this, tag, size, true, false ); 
       }
    }
 }
