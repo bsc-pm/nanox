@@ -37,7 +37,7 @@ void GPUMemoryTransferOutList::removeMemoryTransfer ()
          if ( it->_requested ) {
             found = true;
             GPUMemoryTransfer mt ( *it );
-            _pendingTransfersAsync.erase( it );
+            it = _pendingTransfersAsync.erase( it );
             _lock.release();
             removeMemoryTransfer( mt );
             break;
@@ -63,7 +63,7 @@ void GPUMemoryTransferOutList::checkAddressForMemoryTransfer ( void * address )
       _lock.acquire();
       if ( it->_hostAddress.getTag() == ( uint64_t ) address ) {
          GPUMemoryTransfer mt ( *it );
-         _pendingTransfersAsync.erase( it );
+         it = _pendingTransfersAsync.erase( it );
          _lock.release();
          removeMemoryTransfer( mt );
          _lock.acquire();
@@ -101,7 +101,7 @@ void GPUMemoryTransferOutSyncList::clearRequestedMemoryTransfers ()
       if ( it->_requested ) {
          //_lock.acquire();
          GPUMemoryTransfer mt ( *it );
-         _pendingTransfersAsync.erase( it );
+         it = _pendingTransfersAsync.erase( it );
          //_lock.release();
          removeMemoryTransfer( mt );
       }
@@ -144,7 +144,7 @@ void GPUMemoryTransferOutAsyncList::removeMemoryTransfer ( CopyDescriptor &hostA
       if ( it->_hostAddress.getTag() == hostAddress.getTag() ) {
          _lock.acquire();
          GPUMemoryTransfer mt ( *it );
-         _pendingTransfersAsync.erase( it );
+         it = _pendingTransfersAsync.erase( it );
          _lock.release();
          removeMemoryTransfer( mt );
       }
@@ -162,7 +162,7 @@ void GPUMemoryTransferOutAsyncList::executeRequestedMemoryTransfers ()
       if ( it->_requested ) {
          //_lock.acquire();
          itemsToRemove.push_back(*it);
-         _pendingTransfersAsync.erase( it );
+         it = _pendingTransfersAsync.erase( it );
          //_lock.release();
       }
    }
@@ -186,7 +186,7 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ( std::list<GPUMemory
       if ( it1 == pendingTransfersAsync.end() ) it1 = pendingTransfersAsync.begin();
 
       GPUMemoryTransfer mt1 ( *it1 );
-      pendingTransfersAsync.erase( it1 );
+      it1 = pendingTransfersAsync.erase( it1 );
       _lock.release();
 
       void * pinned1 = myPE->allocateOutputPinnedMemory( mt1._size );
@@ -210,7 +210,7 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ( std::list<GPUMemory
          }
 
          GPUMemoryTransfer mt2 ( *it2 );
-         pendingTransfersAsync.erase( it2 );
+         it2 = pendingTransfersAsync.erase( it2 );
          _lock.release();
 
          void * pinned2 = myPE->allocateOutputPinnedMemory( mt2._size );
