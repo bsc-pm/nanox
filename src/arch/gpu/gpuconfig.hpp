@@ -93,6 +93,8 @@ namespace ext
 
          static bool isGPUWarmupDefined ( void ) { return _gpuWarmup; }
 
+         static bool isCUBLASInitDefined ( void ) { return _initCublas; }
+
          static void getGPUsProperties( int device, void * deviceProps );
 
          static void printConfiguration( void );

@@ -46,3 +46,8 @@ cudaStream_t nanos_get_kernel_execution_stream()
 {
    return ( ( nanos::ext::GPUProcessor *) getMyThreadSafe()->runningOn() )->getGPUProcessorInfo()->getKernelExecStream();
 }
+
+cublasHandle_t nanos_get_cublas_handle()
+{
+   return ( cublasHandle_t ) ( ( nanos::ext::GPUThread *)getMyThreadSafe() )->getCUBLASHandle();
+}

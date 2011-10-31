@@ -40,6 +40,11 @@ void GPUThread::enableWDClosingEvents ()
    _wdClosingEvents = true;
 }
 
+void * GPUThread::getCUBLASHandle()
+{
+   return _cublasHandle;
+}
+
 
 }
 }

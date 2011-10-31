@@ -23,6 +23,12 @@
 #include <cuda_runtime.h>
 #include <vector_types.h>
 
+#ifdef NANOS_GPU_USE_CUDA32
+#include <cublas_api.h>
+#else
+#include <cublas_v2.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -33,6 +39,8 @@ extern const size_t nanos_gpu_dd_size;
 #define NANOS_GPU_DESC( args ) { nanos_gpu_factory, nanos_gpu_dd_size, &( args ) }
 
 cudaStream_t nanos_get_kernel_execution_stream();
+
+cublasHandle_t nanos_get_cublas_handle();
 
 #ifdef __cplusplus
 }

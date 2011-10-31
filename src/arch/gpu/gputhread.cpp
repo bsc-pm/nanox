@@ -24,6 +24,12 @@
 #include "system.hpp"
 
 #include <cuda_runtime.h>
+#ifdef NANOS_GPU_USE_CUDA32
+extern void cublasShutdown();
+extern void cublasSetKernelStream( cudaStream_t );
+#else
+#include <cublas_v2.h>
+#endif
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -48,6 +54,24 @@ void GPUThread::initializeDependent ()
       NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
    }
 
+#ifndef NANOS_GPU_USE_CUDA32
+   // Initialize CUBLAS handle in case of potentially using CUBLAS
+   if ( GPUConfig::isCUBLASInitDefined() ) {
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_GENERIC_EVENT );
+      cublasStatus_t cublasErr = cublasCreate( ( cublasHandle_t * ) &_cublasHandle );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+      if ( cublasErr != CUBLAS_STATUS_SUCCESS ) {
+         if ( cublasErr == CUBLAS_STATUS_NOT_INITIALIZED ) {
+            warning( "Couldn't set the context handle for CUBLAS library: the CUDA Runtime initialization failed" );
+         } else if ( cublasErr == CUBLAS_STATUS_ALLOC_FAILED ) {
+            warning( "Couldn't set the context handle for CUBLAS library: the resources could not be allocated" );
+         } else {
+            warning( "Couldn't set the context handle for CUBLAS library: unknown error" );
+         }
+      }
+   }
+#endif
+
    // Reset CUDA errors that may have occurred inside the runtime initialization
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT );
    err = cudaGetLastError();
@@ -62,6 +86,15 @@ void GPUThread::runDependent ()
    setCurrentWD( work );
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
    dd.getWorkFct()( work.getData() );
+
+   if ( GPUConfig::isCUBLASInitDefined() ) {
+#ifdef NANOS_GPU_USE_CUDA32
+      cublasShutdown();
+#else
+      cublasDestroy( ( cublasHandle_t ) _cublasHandle );
+#endif
+   }
+
    ( ( GPUProcessor * ) myThread->runningOn() )->cleanUp();
 }
 

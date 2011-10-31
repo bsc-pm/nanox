@@ -46,7 +46,9 @@ class GPUCublasPlugin : public Plugin
 
       void init()
       {
+#ifdef NANOS_GPU_USE_CUDA32
          cublasInit();
+#endif
          cudaFree( NULL );
       }
 };

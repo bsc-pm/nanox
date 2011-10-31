@@ -35,7 +35,7 @@ gpu_cublas_sources = \
 	
 gpu_api_flags = -I$(top_srcdir)/src/apis/c
 
-gpu_ldflags = -L@CUDA_LIB@ -lcudart
+gpu_ldflags = -L@CUDA_LIB@ -lcudart -lcublas
 gpu_includes = -I @CUDA_INC@
 
 gpu_cublas_ldflags = -L@CUDA_LIB@ -lcudart -lcublas
