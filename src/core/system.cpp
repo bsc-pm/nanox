@@ -573,8 +573,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
  *
  */
 void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
-                        int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, size_t slicer_data_size,
-                        int slicer_data_align, SlicerData *&slicer_data, nanos_wd_props_t *props, size_t num_copies,
+                        int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props, size_t num_copies,
                         nanos_copy_data_t **copies )
 {
    ensure(num_devices > 0,"WorkDescriptor has no devices");
@@ -584,7 +583,7 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
 
    size_t size_CopyData;
    size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_DDs, offset_DDs;
-   size_t size_Copies, offset_Copies, offset_PMD, offset_SData;
+   size_t size_Copies, offset_Copies, offset_PMD;
    size_t total_size;
 
    // WD doesn't need to compute offset, it will always be the chunk allocated address
@@ -621,14 +620,7 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
       offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, 1);
    }
 
-   // Computing Slicer Data info
-   if ( slicer_data_size != 0) {
-      offset_SData  = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD, size_PMD, slicer_data_align );
-   } else {
-      offset_SData  = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD, size_PMD, 1);
-   }
-
-   total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_SData, slicer_data_size, 1);
+   total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD, size_PMD, 1);
 
    chunk = NEW char[total_size];
 
@@ -649,12 +641,8 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    // allocating copy-ins/copy-outs
    if ( copies != NULL && *copies == NULL ) *copies = ( CopyData * ) (chunk + offset_Copies);
 
-   // allocating Slicer Data
-   if ( slicer_data == NULL ) slicer_data = (SlicerData *) (chunk + offset_SData);
-
-   SlicedWD * wd =  new (*uwd) SlicedWD( *slicer, slicer_data_size, slicer_data_align, *slicer_data, num_devices, dev_ptrs, 
-                       outline_data_size, outline_data_align, outline_data != NULL ? *outline_data : NULL, num_copies,
-                       (copies == NULL) ? NULL : *copies );
+   SlicedWD * wd =  new (*uwd) SlicedWD( *slicer, num_devices, dev_ptrs, outline_data_size, outline_data_align,
+                                         outline_data != NULL ? *outline_data : NULL, num_copies, (copies == NULL) ? NULL : *copies );
 
    // initializing internal data
    if ( size_PMD > 0) wd->setInternalData( chunk + offset_PMD );
@@ -783,12 +771,11 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
    CopyData *copy_data = NULL;
    DeviceData **dev_data;
    void *data = NULL;
-   void *slicer_data = NULL;
    char *chunk = 0, *dd_location, *chunk_iter;
 
    size_t size_CopyData;
    size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_DDs, offset_DDs;
-   size_t size_Copies, offset_Copies, size_PMD, offset_PMD, size_SData, offset_SData;
+   size_t size_Copies, offset_Copies, size_PMD, offset_PMD;
    size_t total_size;
 
    // WD doesn't need to compute offset, it will always be the chunk allocated address
@@ -828,15 +815,7 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
       offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, 1);
    }
 
-   // Computing Slicer Data info
-   size_SData = wd->getSlicerDataSize();
-   if ( size_SData != 0) {
-      offset_SData  = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD, size_PMD, wd->getSlicerDataAlignment());
-   } else {
-      offset_SData  = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD, size_PMD, 1);
-   }
-
-   total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_SData, size_SData, 1);
+   total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD, size_PMD, 1);
 
    chunk = NEW char[total_size];
 
@@ -865,15 +844,8 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
       chunk_iter += size_CopyData;
    }
 
-   // copy SlicerData
-   if ( size_SData != 0 ) {
-      slicer_data = chunk + offset_SData;
-      memcpy ( slicer_data, wd->getSlicerData(), size_SData );
-   }
-
    // creating new SlicedWD 
-   new (*uwd) SlicedWD( *(wd->getSlicer()), wd->getSlicerDataSize(), wd->getSlicerDataAlignment(),
-                        *((SlicerData *)slicer_data), *((WD *)wd), dev_ptrs, wdCopies, data );
+   new (*uwd) SlicedWD( *(wd->getSlicer()), *((WD *)wd), dev_ptrs, wdCopies, data );
 
    // initializing internal data
    if ( size_PMD != 0) {

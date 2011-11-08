@@ -98,11 +98,9 @@ nanos_smp_args_t main__loop_1_device_args = { main__loop_1 };
          .tie_to = false\
       };\
       nanos_slicer_t slicer = nanos_find_slicer(slicer_type);\
-      nanos_slicer_data_for_t *slicer_data_for = NULL;\
 \
       NANOS_SAFE( nanos_create_sliced_wd ( &wd, 1, main__loop_1_device , sizeof( main__loop_1_data_t ), __alignof__(main__loop_1_data_t),\
-                                    (void **) &loop_data, nanos_current_wd(), slicer,\
-                                    sizeof(nanos_slicer_data_for_t), __alignof__(nanos_slicer_data_for_t), (void **) &slicer_data_for, &props , 0, NULL ));\
+                                    (void **) &loop_data, nanos_current_wd(), slicer, &props , 0, NULL ));\
 \
       loop_data->offset = -k_offset;\
       loop_data->loop_info.upper = upper2+k_offset;\

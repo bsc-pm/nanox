@@ -187,15 +187,9 @@ int main ( int argc, char **argv )
       nanos_compound_wd_data_t *list_of_wds = NULL;
 
       /* slicer data pointer */
-      void *dummy;
-      //nanos_slicer_data_compound_wd_t *slicer_data_compound_wd = NULL;
-                                    //sizeof(nanos_slicer_data_compound_wd_t), (void **) &slicer_data_compound_wd,
-
-
       NANOS_SAFE( nanos_create_sliced_wd ( &cwd, 1, main__sections_device,
                                     sizeof(nanos_compound_wd_data_t) + (4) * sizeof(nanos_wd_t), __alignof__(nanos_compound_wd_data_t),
-                                    (void **) &list_of_wds, nanos_current_wd(), slicer,
-                                    0, (int) 1, &dummy, &props , 0, NULL ) );
+                                    (void **) &list_of_wds, nanos_current_wd(), slicer, &props , 0, NULL ) );
 
       /* Initializing data */
       //nanos_wd_t *lwd = &list_of_wds->lwd;

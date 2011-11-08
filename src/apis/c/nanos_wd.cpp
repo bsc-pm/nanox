@@ -122,8 +122,7 @@ nanos_err_t nanos_set_translate_function ( nanos_wd_t wd, nanos_translate_args_t
  *  \sa nanos::WorkDescriptor
  */
 nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size, int outline_data_align,
-                               void ** outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, size_t slicer_data_size, int slicer_data_align,
-                               nanos_slicer_data_t * slicer_data, nanos_wd_props_t *props,
+                               void ** outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, nanos_wd_props_t *props,
                                size_t num_copies, nanos_copy_data_t **copies )
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",NANOS_CREATION) );
@@ -134,13 +133,9 @@ nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_
          *uwd = 0;
          return NANOS_OK;
       }
-      if ( slicer_data == NULL ) {
-         return NANOS_UNKNOWN_ERR;
-      }
 
       sys.createSlicedWD ( (WD **) uwd, num_devices, devices, outline_data_size, outline_data_align, outline_data, (WG *) uwg,
-                           (Slicer *) slicer, slicer_data_size, slicer_data_align, (SlicerData *&) *slicer_data, props,
-                           num_copies, copies );
+                           (Slicer *) slicer, props, num_copies, copies );
 
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;

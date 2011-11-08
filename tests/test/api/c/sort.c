@@ -696,11 +696,9 @@ void cilkmerge_par(ELM *low1, ELM *high1, ELM *low2, ELM *high2, ELM *lowdest)
          nanos_compound_wd_data_t *list_of_wds = NULL;
 
          /* slicer data pointer */
-         void *dummy;
          NANOS_SAFE( nanos_create_sliced_wd ( &cwd, 1, main__sections_device,
                                        sizeof(nanos_compound_wd_data_t) + (2) * sizeof(nanos_wd_t), __alignof__(nanos_compound_wd_data_t),
-                                       (void **) &list_of_wds,
-                                       nanos_current_wd(), slicer, 0, 1, &dummy, &props , 0, NULL ) );
+                                       (void **) &list_of_wds, nanos_current_wd(), slicer, &props , 0, NULL ) );
 
          /* Initializing data */
          list_of_wds->nsect = 2;
@@ -919,12 +917,10 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
          nanos_compound_wd_data_t *list_of_wds = NULL;
 
          /* slicer data pointer */
-         void *dummy;
-
          NANOS_SAFE( nanos_create_sliced_wd ( &cwd, 1, main__sections_device,
                                        sizeof(nanos_compound_wd_data_t) + (4) * sizeof(nanos_wd_t), __alignof__( nanos_compound_wd_data_t),
                                        (void **) &list_of_wds,
-                                       nanos_current_wd(), slicer, 0, 1, &dummy, &props , 0, NULL ) );
+                                       nanos_current_wd(), slicer, &props , 0, NULL ) );
 
          /* Initializing data */
          list_of_wds->nsect = 4;
@@ -1037,11 +1033,10 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
          nanos_compound_wd_data_t *list_of_wds = NULL;
 
          /* slicer data pointer */
-         void *dummy;
          NANOS_SAFE( nanos_create_sliced_wd ( &cwd, 1, main__sections_device,
                                        sizeof(nanos_compound_wd_data_t) + (2) * sizeof(nanos_wd_t), __alignof__(nanos_compound_wd_data_t),
                                        (void **) &list_of_wds,
-                                       nanos_current_wd(), slicer, 0, 1, &dummy, &props , 0, NULL ) );
+                                       nanos_current_wd(), slicer, &props , 0, NULL ) );
 
          /* Initializing data */
          list_of_wds->nsect = 2;
