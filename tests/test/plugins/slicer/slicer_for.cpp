@@ -68,22 +68,35 @@ int *A;
 
 void print_vector();
 
+typedef struct {
+   nanos_loop_info_t loop_info;
+   int offset;
+} main__loop_1_data_t;
+
 void main__loop_1 ( void *args );
 
-#define EXECUTE(get_slicer,slicer_data,lower,upper,k_offset,step,chunk)\
+#if 0
+
+#endif
+
+#define EXECUTE(get_slicer,slicer_data,lower2,upper2,k_offset,step2,chunk2)\
    for ( i = 0; i < NUM_ITERS; i++ ) {\
       _loop_data.offset = -k_offset; \
       sys.loadPlugin( "slicer-" + std::string(get_slicer) ); \
       Slicer *slicer = sys.getSlicer ( get_slicer ); \
       WD * wd = new SlicedWD( *slicer, sizeof(slicer_data), __alignof__(slicer_data),\
-                        *new slicer_data(lower+k_offset,upper+k_offset,step,chunk),\
+                        *new slicer_data(lower2+k_offset,upper2+k_offset,step2,chunk2),\
                         new SMPDD( main__loop_1 ), sizeof( _loop_data ), __alignof__(nanos_loop_info_t),( void * ) &_loop_data );\
+      _loop_data.loop_info.lower = lower2 + k_offset; \
+      _loop_data.loop_info.upper = upper2 + k_offset; \
+      _loop_data.loop_info.step = step2; \
+      _loop_data.loop_info.chunk = chunk2; \
       WG *wg = getMyThreadSafe()->getCurrentWD();\
       wg->addWork( *wd );\
       sys.submit( *wd );\
       wg->waitCompletion();\
-      if (step > 0 ) for ( int j = lower+k_offset; j <= upper+k_offset; j+= step ) A[j+_loop_data.offset]--; \
-      else if ( step < 0 ) for ( int j = lower+k_offset; j >= upper+k_offset; j+= step ) A[j+_loop_data.offset]--; \
+      if (step2 > 0 ) for ( int j = lower2+k_offset; j <= upper2+k_offset; j+= step2 ) A[j+_loop_data.offset]--; \
+      else if ( step2 < 0 ) for ( int j = lower2+k_offset; j >= upper2+k_offset; j+= step2 ) A[j+_loop_data.offset]--; \
    }
 
 #define FINALIZE(type,lower,upper,offset,step,chunk)\
@@ -137,11 +150,6 @@ void main__loop_1 ( void *args );
    TEST(test_slicer_type, test_slicer_slicer_data, NUM_A, NUM_C)\
    TEST(test_slicer_type, test_slicer_slicer_data, NUM_B, NUM_C)\
    TEST(test_slicer_type, test_slicer_slicer_data, NUM_C, NUM_C)
-
-typedef struct {
-   nanos_loop_info_t loop_info;
-   int offset;
-} main__loop_1_data_t;
 
 
 void main__loop_1 ( void *args )

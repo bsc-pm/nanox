@@ -107,8 +107,6 @@ void SlicerGuidedFor::submit ( SlicedWD &work )
    ThreadTeam *team = mythread->getTeam();
    int i, num_threads = team->size();
 
-   SlicerDataFor * sdf = (SlicerDataFor *) work.getSlicerData();
-   
    /* Determine which threads are compatible with the work descriptor:
     *   - number of valid threads
     *   - first valid thread (i.e. master thread)
@@ -134,10 +132,11 @@ void SlicerGuidedFor::submit ( SlicedWD &work )
      else thread_map[i] = -1;
    }
 
-   int _lower = sdf->getLower();
-   int _upper = sdf->getUpper();
-   int _step  = sdf->getStep();
-   int _chunk = std::max( 1, sdf->getChunk());
+   nanos_loop_info_t *nlip = ( nanos_loop_info_t * ) work.getData();
+   int _lower = nlip->lower;
+   int _upper = nlip->upper;
+   int _step  = nlip->step;
+   int _chunk = std::max(1, nlip->chunk);
 
    int _nchunks = 0, _niters = (((_upper - _lower) / _step ) + 1 );
    while ( _niters > 0 ) {
