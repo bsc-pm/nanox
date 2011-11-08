@@ -30,7 +30,7 @@ void SlicerRepeatN::submit ( SlicedWD &work )
  *  This function dequeues a RepeantN SlicedWD returning true if there
  *  will be no more slices to manage (i.e. this is the last chunk to
  *  execute. The received paramenter wd has to be associated with a
- *  SlicerRepeatN and SlicerDataRepeatN objects.
+ *  SlicerRepeatN.
  *
  *  \param [in] wd is the former WorkDescriptor
  *  \param [out] slice is the next portion to execute

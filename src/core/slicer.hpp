@@ -55,22 +55,5 @@ inline void SlicedWD::convertToRegularWD()
    _isSliceable=false;
 }
 
-/*
-inline void SlicerDataRepeatN::setN ( int n )
-{
-   _n = n;
-}
-
-inline int SlicerDataRepeatN::getN ( void ) const
-{
-   return _n;
-}
-
-inline int SlicerDataRepeatN::decN ()
-{
-   return --_n;
-}
-*/
-
 #endif
 
