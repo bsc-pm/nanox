@@ -74,36 +74,6 @@ typedef nanos::CopyData nanos_copy_data_t;
 
 #endif
 
-/* This structure is initialized in slicer.hpp. Any change in
- * its contents has to be reflected in SlicerDataFor constructor  
- */
-typedef struct {
-   int _lower;  /**< Loop lower bound */
-   int _upper;  /**< Loop upper bound */
-   int _step;   /**< Loop step */
-   int _chunk;  /**< Slice chunk */
-   int _sign;   /**< Loop sign 1 ascendant, -1 descendant */
-} nanos_slicer_data_for_internal_t;
-
-#ifndef _NANOS_INTERNAL
-
-typedef nanos_slicer_data_for_internal_t           nanos_slicer_data_for_t;
-
-#else
-
-namespace nanos {
-   class SlicerDataFor;
-}
-typedef nanos::SlicerDataFor          nanos_slicer_data_for_t;
-
-#endif
-
-#if 0
-typedef struct {
-   int _nWD;    /**< Number of WorkDescriptors */
-} nanos_slicer_data_compound_wd_internal_t;
-#endif
-
 // C++ types hidden as void *
 typedef void * nanos_thread_t;
 typedef void * nanos_wd_t;                                                                                                                               
@@ -113,6 +83,10 @@ typedef struct {
    int nsect;
    nanos_wd_t lwd[];
 } nanos_compound_wd_data_t;
+
+typedef struct {
+   int n;
+} nanos_repeat_n_info_t;
 
 typedef struct {
    int lower;

@@ -42,7 +42,7 @@ bool SlicerRepeatN::dequeue ( SlicedWD *wd, WorkDescriptor **slice)
 
    debug0 ( "Dequeueing sliced work: RepeatN start" );
 
-   int n = ((SlicerDataRepeatN *)(wd->getSlicerData()))->decN();
+   int n = --((( nanos_repeat_n_info_t * )wd->getData())->n);
 
    if ( n > 0 )
    {

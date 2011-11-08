@@ -41,6 +41,7 @@ std::string b( "default" );
 bool c = false;
 
 typedef struct {
+   nanos_repeat_n_info_t repeat_n_info;
    int a;
    char b[20];
    std::string c;
@@ -83,6 +84,7 @@ int main ( int argc, char **argv )
    // Work arguments
    str = "std::string(2)";
    data = new hello_world_args();
+   data->repeat_n_info.n = 10;
    data->a = 2;
    strncpy(data->b, "char *string(2)", strlen("char *string(2)"));
    data->c = str;
@@ -92,10 +94,7 @@ int main ( int argc, char **argv )
    Slicer *slicer = sys.getSlicer ( "repeat_n" );
  
    // Work descriptor creation
-   WD * wd2 = new SlicedWD( *slicer, sizeof (SlicerDataRepeatN), __alignof__(SlicerDataRepeatN),
-                            *new SlicerDataRepeatN(10),
-                             new SMPDD( hello_world ),
-                             sizeof(hello_world_args), __alignof__(hello_world_args),data );
+   WD * wd2 = new SlicedWD( *slicer, new SMPDD( hello_world ), sizeof(hello_world_args), __alignof__(hello_world_args),data );
 
    // Work Group affiliation and work submision
    WG *wg = getMyThreadSafe()->getCurrentWD();
