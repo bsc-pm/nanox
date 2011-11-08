@@ -174,7 +174,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
 
    // copying rest of slicer data values and computing sign value
    // getting user defined chunk, lower, upper and step
-   SlicerDataFor * sdf = (SlicerDataFor *) work.getSlicerData();
+   // SlicerDataFor * sdf = (SlicerDataFor *) work.getSlicerData(); /* FIXME: deprecated*/
    int _chunk = sdf->getChunk();
    int _lower = sdf->getLower();
    int _upper = sdf->getUpper();

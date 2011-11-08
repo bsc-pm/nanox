@@ -39,7 +39,6 @@ typedef void * nanos_wg_t;
 typedef void * nanos_team_t;
 typedef void * nanos_sched_t;
 typedef void * nanos_slicer_t;
-typedef void * nanos_slicer_data_t;
 typedef void * nanos_dd_t;
 typedef void * nanos_sync_cond_t;
 typedef unsigned int nanos_copy_id_t;

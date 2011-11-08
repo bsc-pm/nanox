@@ -77,17 +77,18 @@ typedef nanos::CopyData nanos_copy_data_t;
 // C++ types hidden as void *
 typedef void * nanos_thread_t;
 typedef void * nanos_wd_t;                                                                                                                               
-
-// SlicerDataCompoundWD: related structures
+// SlicerCompoundWD data structure
 typedef struct {
    int nsect;
    nanos_wd_t lwd[];
 } nanos_compound_wd_data_t;
 
+// SlicerRepeatN data structure
 typedef struct {
    int n;
 } nanos_repeat_n_info_t;
 
+// SlicerFor data structure
 typedef struct {
    int lower;
    int upper;
@@ -99,6 +100,7 @@ typedef struct {
    void *args;
 } nanos_loop_info_t;
 
+// WD properties
 typedef struct {
    bool mandatory_creation:1;
    bool tied:1;

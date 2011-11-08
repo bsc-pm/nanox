@@ -92,7 +92,7 @@ namespace nanos
 
          /*! \brief SlicedWD destructor
           */
-         ~SlicedWD  ( ) { }
+         ~SlicedWD  () {}
          /*! \brief Get related slicer
           */
          Slicer * getSlicer ( void ) const;

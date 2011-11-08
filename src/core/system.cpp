@@ -535,9 +535,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
  *  \param [in] outline_data_size is the size of the related data
  *  \param [in,out] outline_data is the related data (allocated if needed)
  *  \param [in] uwg work group to relate with
- *  \param [in] slicer is the related slicer which contains all the methods to manage
- *              this WD
- *  \param [in] slicer_data_size is the size of the related slicer data
+ *  \param [in] slicer is the related slicer which contains all the methods to manage this WD
  *  \param [in,out] data used as the slicer data (allocated if needed)
  *  \param [in] props new WD properties
  *
@@ -565,8 +563,6 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
  *  |     ....      |
  *  +---------------+
  *  |    copyM      |
- *  +---------------+
- *  |  SlicerData   |
  *  +---------------+
  *  |   PM Data     |
  *  +---------------+
