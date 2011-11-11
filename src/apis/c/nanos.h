@@ -26,7 +26,7 @@
 
 #ifdef _MERCURIUM
 // define API version
-#pragma nanos interface family(master) version(5007)
+#pragma nanos interface family(master) version(5008)
 #endif
 
 // data types
@@ -36,7 +36,6 @@ typedef void * nanos_wg_t;
 typedef void * nanos_team_t;
 typedef void * nanos_sched_t;
 typedef void * nanos_slicer_t;
-typedef void * nanos_slicer_data_t;
 typedef void * nanos_dd_t;
 typedef void * nanos_sync_cond_t;
 typedef unsigned int nanos_copy_id_t;
@@ -74,9 +73,10 @@ nanos_err_t nanos_create_wd ( nanos_wd_t *wd, size_t num_devices, nanos_device_t
 
 nanos_err_t nanos_set_translate_function ( nanos_wd_t wd, nanos_translate_args_t translate_args );
 
-nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size, int outline_data_align,
-                               void **outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, size_t slicer_data_size,
-                               int slicer_data_align, void **slicer_data, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies );
+nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices,
+                                     size_t outline_data_size, int outline_data_align,
+                                     void **outline_data, nanos_wg_t uwg, nanos_slicer_t slicer,
+                                     nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies );
 
 nanos_err_t nanos_submit ( nanos_wd_t wd, size_t num_deps, nanos_dependence_t *deps, nanos_team_t team );
 

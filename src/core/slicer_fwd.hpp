@@ -22,10 +22,7 @@
 namespace nanos
 {
    class Slicer;
-   class SlicerData;
    class SlicedWD;
-   class SlicerDataRepeatN;
-   class SlicerDataFor;
 };
 
 #endif
