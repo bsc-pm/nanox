@@ -386,7 +386,11 @@ WD * Scheduler::getClusterWD( BaseThread *thread, int inGPU )
 		wd = thread->getNextWD();
 		if ( wd )
 		{
+#ifdef GPU_DEV
          if ( ( inGPU == 1 && !wd->canRunIn( ext::GPU ) ) || ( inGPU == 0 && !wd->canRunIn( ext::SMP ) ) )
+#else
+         if ( inGPU == 0 && !wd->canRunIn( ext::SMP ) )
+#endif
          { // found a non compatible wd in "nextWD", ignore it
             wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread );
          }
