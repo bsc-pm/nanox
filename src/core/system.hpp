@@ -23,7 +23,7 @@
 #include "system_decl.hpp"
 #include <vector>
 #include <string>
-#include "schedule.hpp"
+#include "schedule_decl.hpp"
 #include "threadteam.hpp"
 #include "slicer.hpp"
 #include "nanos-int.h"

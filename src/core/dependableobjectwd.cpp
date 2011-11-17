@@ -33,12 +33,12 @@ using namespace nanos;
 void DOSubmit::dependenciesSatisfied ( )
 {
    DependenciesDomain::decreaseTasksInGraph();
-   _submittedWD->submit();
+   getWD()->submit();
 }
 
 unsigned long DOSubmit::getDescription ( )
 {
-   return (unsigned long) ((nanos::ext::SMPDD &) _submittedWD->getActiveDevice()).getWorkFct();
+   return (unsigned long) ((nanos::ext::SMPDD &) getWD()->getActiveDevice()).getWorkFct();
 }
 
 void DOSubmit::instrument ( DependableObject &successor )
@@ -77,7 +77,7 @@ void DOWait::wait ( std::list<Dependency *> deps )
 {
    _syncCond.wait();
 
-   Directory *d = _waitDomainWD->getDirectory(false);
+   Directory *d = getWD()->getDirectory(false);
    if ( d != NULL ) {
       std::list<uint64_t> flushDeps;
       for (std::list<Dependency *>::iterator it = deps.begin(); it != deps.end(); it++ ) {

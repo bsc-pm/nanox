@@ -22,7 +22,7 @@
 
 #include "workgroup_decl.hpp"
 #include "atomic.hpp"
-#include "schedule.hpp"
+#include "schedule_decl.hpp"
 #include "synchronizedcondition.hpp"
 #include "system.hpp"
 #include "instrumentation.hpp"
@@ -30,8 +30,9 @@
 
 using namespace nanos;
 
-inline WorkGroup::WorkGroup( const WorkGroup &wg ) : _id( _atomicSeed++ ), _components( 0 ), 
-            _syncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ), _parent(NULL)  
+inline WorkGroup::WorkGroup( const WorkGroup &wg ) : _id( _atomicSeed++ ),
+            _syncCount(0), _ge(NEW GraphEntry(_id) ), _geNext( NULL ), _components( 0 ),
+            _syncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ), _parent(NULL) 
 {
    if ( wg._parent != NULL ) { 
       wg._parent->addWork(*this);

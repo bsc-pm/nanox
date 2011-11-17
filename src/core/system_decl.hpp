@@ -26,7 +26,7 @@
 #include <string>
 #include "schedule_decl.hpp"
 #include "threadteam_decl.hpp"
-#include "slicer_decl.hpp"
+#include "slicer_fwd.hpp"
 #include "nanos-int.h"
 #include "dependency_decl.hpp"
 #include "instrumentation_decl.hpp"
@@ -311,6 +311,13 @@ namespace nanos
          Plugin * loadAndGetPlugin ( const char *name );
          Plugin * loadAndGetPlugin ( const std::string &name );
          AList& getLocalAccelerators();
+
+      private:
+         std::list< std::list<GraphEntry *> * > _graphRepLists;
+         Lock _graphRepListsLock;
+      public:
+         std::list<GraphEntry *> *getGraphRepList();
+         
    };
 
    extern System sys;

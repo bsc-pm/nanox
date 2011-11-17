@@ -135,7 +135,7 @@ namespace nanos
         _description.append("-");
  
         /* adding device type */
-        _description.append( _pe->getDeviceType()->getName() );
+        _description.append( /*_pe->getDeviceType()->getName()*/"" );
         _description.append("-");
  
         /* adding global id */

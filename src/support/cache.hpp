@@ -63,7 +63,7 @@ inline unsigned int Cache::getId() const
   return _id;
 }
 
-inline bool CachePolicy::checkBlockingCacheAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
+inline bool CachePolicy::checkBlockingCacheAccess( Directory& dir, uint64_t tag, std::size_t size, bool input, bool output )
 {
 	bool result = false;
 	CacheEntry *ce = _cache.find( tag );
@@ -101,7 +101,7 @@ inline bool CachePolicy::checkBlockingCacheAccess( Directory& dir, uint64_t tag,
 }
 
 #define NLCLUSTER /* I think there were concurrency problems when running on a cluster of 1 GPU per node, this avoided some problems */
-inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
+inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, std::size_t size, bool input, bool output )
 {
    bool didCopyIn = false;
 #ifdef NLCLUSTER
@@ -450,7 +450,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                   } else { 
                      if ( ce->trySetToCopying() ) {
                         Cache *owner = de->getOwner();
-                        ensure( &_cache != owner, "Trying to invalidate myself" );
+                        //ensure( &_cache != owner, "Trying to invalidate myself" );
                         if ( owner != NULL ) {
                            // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
                            owner->invalidateAndFlush( dir, tag, size, de );
@@ -615,7 +615,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
 #endif
 }
 
-inline void CachePolicy::registerPrivateAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
+inline void CachePolicy::registerPrivateAccess( Directory& dir, uint64_t tag, std::size_t size, bool input, bool output )
 {
    bool inserted;
    CacheEntry c =  CacheEntry( NULL, size, tag, 0, output, input );
@@ -631,7 +631,7 @@ inline void CachePolicy::registerPrivateAccess( Directory& dir, uint64_t tag, si
    }
 }
 
-inline void CachePolicy::unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size )
+inline void CachePolicy::unregisterPrivateAccess( Directory &dir, uint64_t tag, std::size_t size )
 {
    CacheEntry *ce = _cache.getEntry( tag );
    _cache.deleteReference(tag);
@@ -645,7 +645,7 @@ inline void CachePolicy::unregisterPrivateAccess( Directory &dir, uint64_t tag, 
    _cache.deleteEntry( tag, size );
 }
 
-inline void NoCache::registerCacheAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
+inline void NoCache::registerCacheAccess( Directory& dir, uint64_t tag, std::size_t size, bool input, bool output )
 {
    //bool inserted;
    bool didCopyIn = false;
@@ -968,7 +968,7 @@ inline void NoCache::registerCacheAccess( Directory& dir, uint64_t tag, size_t s
 #endif
 }
 
-inline void NoCache::unregisterCacheAccess( Directory& dir, uint64_t tag, size_t size, bool output )
+inline void NoCache::unregisterCacheAccess( Directory& dir, uint64_t tag, std::size_t size, bool output )
 {
    //if ( output ) {
    //   CopyDescriptor cd = CopyDescriptor( tag );
@@ -1011,19 +1011,19 @@ inline void NoCache::unregisterCacheAccess( Directory& dir, uint64_t tag, size_t
    }
 }
 
-inline void NoCache::registerPrivateAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
+inline void NoCache::registerPrivateAccess( Directory& dir, uint64_t tag, std::size_t size, bool input, bool output )
 {
    registerCacheAccess( dir, tag, size, input, output );
 }
 
-inline void NoCache::unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size )
+inline void NoCache::unregisterPrivateAccess( Directory &dir, uint64_t tag, std::size_t size )
 {
    CacheEntry *ce = _cache.getEntry( tag );
    ensure ( ce != NULL, "Private access cannot miss in the cache.");
    unregisterCacheAccess( dir, tag, size, ce->isDirty() );
 }
 
-inline void WriteThroughPolicy::unregisterCacheAccess( Directory& dir, uint64_t tag, size_t size, bool output )
+inline void WriteThroughPolicy::unregisterCacheAccess( Directory& dir, uint64_t tag, std::size_t size, bool output )
 {
    CacheEntry *ce = _cache.getEntry( tag );
    // There's two reference deleting calls because getEntry places one reference
@@ -1050,7 +1050,7 @@ inline void WriteThroughPolicy::unregisterCacheAccess( Directory& dir, uint64_t 
    }
 }
 
-inline void WriteBackPolicy::unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output )
+inline void WriteBackPolicy::unregisterCacheAccess( Directory &dir, uint64_t tag, std::size_t size, bool output )
 {
    // There's two reference deleting calls because getEntry places one reference
    _cache.deleteReference( tag );
@@ -1066,7 +1066,7 @@ inline void DeviceCache<_T>::setPolicy( CachePolicy * policy )
 }
 
 template <class _T>
-inline size_t DeviceCache<_T>::getSize()
+inline std::size_t DeviceCache<_T>::getSize()
    { return _size; }
 
 template <class _T>
@@ -1076,7 +1076,7 @@ ProcessingElement * DeviceCache<_T>::getPE()
 }
 
 template <class _T>
-inline void * DeviceCache<_T>::allocate( Directory &dir, size_t size )
+inline void * DeviceCache<_T>::allocate( Directory &dir, std::size_t size )
 {
    void *result;
    NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-malloc") );
@@ -1086,6 +1086,7 @@ inline void * DeviceCache<_T>::allocate( Directory &dir, size_t size )
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
    } else {
       // FIXME: lock the cache
+      message("WARNING: really full??? size is " << _size << " used " << _usedSize << " requested " << size );
       freeSpaceToFit( dir, size );
       // FIXME: unlock
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_CACHE, key, (nanos_event_value_t) size) );
@@ -1097,7 +1098,7 @@ inline void * DeviceCache<_T>::allocate( Directory &dir, size_t size )
 }
 
 template <class _T>
-inline void DeviceCache<_T>::freeSpaceToFit( Directory &dir, size_t size )
+inline void DeviceCache<_T>::freeSpaceToFit( Directory &dir, std::size_t size )
 {
    CacheHash::KeyList kl;
    _cache.listUnreferencedKeys( kl );
@@ -1152,7 +1153,7 @@ inline void DeviceCache<_T>::freeSpaceToFit( Directory &dir, size_t size )
 }
 
 template <class _T>
-inline void DeviceCache<_T>::deleteEntry2( uint64_t tag, size_t size, CacheEntry *ce )
+inline void DeviceCache<_T>::deleteEntry2( uint64_t tag, std::size_t size, CacheEntry *ce )
 {
    if ( _cache.erase( tag ) ) {
       //std::cerr << __FUNCTION__ << " IM FREEING SOME SHIT UH! " << (void *) ce->getAddress() << std::endl;
@@ -1162,7 +1163,7 @@ inline void DeviceCache<_T>::deleteEntry2( uint64_t tag, size_t size, CacheEntry
 }
 
 template <class _T>
-inline void DeviceCache<_T>::deleteEntry( uint64_t tag, size_t size )
+inline void DeviceCache<_T>::deleteEntry( uint64_t tag, std::size_t size )
 {
    NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-free") );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_CACHE, key, (nanos_event_value_t) size) );
@@ -1175,9 +1176,10 @@ inline void DeviceCache<_T>::deleteEntry( uint64_t tag, size_t size )
 }
 
 template <class _T>
-inline void DeviceCache<_T>::realloc( Directory& dir, CacheEntry *ce, size_t size )
+inline void DeviceCache<_T>::realloc( Directory& dir, CacheEntry *ce, std::size_t size )
 {
-   if ( _usedSize + size - ce->getSize() < _size ) {
+   if ( (_usedSize + size - ce->getSize()) > _size ) {
+      message("WARNING: realloc, used+size-entrysize "<< (_usedSize + size - ce->getSize()) << " well, size is " << _size );
       freeSpaceToFit( dir, size - ce->getSize() );
    }
    _usedSize += size - ce->getSize();
@@ -1197,7 +1199,7 @@ inline void * DeviceCache<_T>::getAddress( uint64_t tag )
 }
 
 template <class _T>
-inline bool DeviceCache<_T>::copyToCacheFromCache( void *addrSrc, size_t size, Cache &src, void *addrDest )
+inline bool DeviceCache<_T>::copyToCacheFromCache( void *addrSrc, std::size_t size, Cache &src, void *addrDest )
 {
    bool result;
    DeviceCache< _T > *srcCache = dynamic_cast<DeviceCache< _T > *>(&src);
@@ -1209,7 +1211,7 @@ inline bool DeviceCache<_T>::copyToCacheFromCache( void *addrSrc, size_t size, C
 }
 
 template <class _T>
-inline bool DeviceCache<_T>::copyDataToCache( CopyDescriptor &cd, size_t size )
+inline bool DeviceCache<_T>::copyDataToCache( CopyDescriptor &cd, std::size_t size )
 {
    bool result;
    NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
@@ -1220,7 +1222,7 @@ inline bool DeviceCache<_T>::copyDataToCache( CopyDescriptor &cd, size_t size )
 }
 
 template <class _T>
-inline bool DeviceCache<_T>::copyBackFromCache( CopyDescriptor &cd, size_t size )
+inline bool DeviceCache<_T>::copyBackFromCache( CopyDescriptor &cd, std::size_t size )
 {
    bool result;
    NANOS_INSTRUMENT( static nanos_event_key_t key1 = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-out") );
@@ -1232,7 +1234,7 @@ inline bool DeviceCache<_T>::copyBackFromCache( CopyDescriptor &cd, size_t size 
 }
 
 template <class _T>
-inline void DeviceCache<_T>::copyTo( void *dst, uint64_t tag, size_t size )
+inline void DeviceCache<_T>::copyTo( void *dst, uint64_t tag, std::size_t size )
 {
    NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-local-copy") );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_LOCAL, key, size ) );
@@ -1241,7 +1243,7 @@ inline void DeviceCache<_T>::copyTo( void *dst, uint64_t tag, size_t size )
 }
 
 template <class _T>
-inline CacheEntry& DeviceCache<_T>::newEntry( uint64_t tag, size_t size, unsigned int version, bool dirty )
+inline CacheEntry& DeviceCache<_T>::newEntry( uint64_t tag, std::size_t size, unsigned int version, bool dirty )
 {
    CacheEntry& ce = _cache[tag];
    ce.setTag( tag );
@@ -1276,31 +1278,31 @@ inline void DeviceCache<_T>::deleteReference( uint64_t tag )
 }
 
 template <class _T>
-inline bool DeviceCache<_T>::checkBlockingCacheAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
+inline bool DeviceCache<_T>::checkBlockingCacheAccess( Directory &dir, uint64_t tag, std::size_t size, bool input, bool output )
 {
    return _policy->checkBlockingCacheAccess( dir, tag, size, input, output );
 }
 
 template <class _T>
-inline void DeviceCache<_T>::registerCacheAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
+inline void DeviceCache<_T>::registerCacheAccess( Directory &dir, uint64_t tag, std::size_t size, bool input, bool output )
 {
    _policy->registerCacheAccess( dir, tag, size, input, output );
 }
 
 template <class _T>
-inline void DeviceCache<_T>::unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output )
+inline void DeviceCache<_T>::unregisterCacheAccess( Directory &dir, uint64_t tag, std::size_t size, bool output )
 {
    _policy->unregisterCacheAccess( dir, tag, size, output );
 }
 
 template <class _T>
-inline void DeviceCache<_T>::registerPrivateAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
+inline void DeviceCache<_T>::registerPrivateAccess( Directory &dir, uint64_t tag, std::size_t size, bool input, bool output )
 {
    _policy->registerPrivateAccess( dir, tag, size, input, output );
 }
 
 template <class _T>
-inline void DeviceCache<_T>::unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size )
+inline void DeviceCache<_T>::unregisterPrivateAccess( Directory &dir, uint64_t tag, std::size_t size )
 {
    _policy->unregisterPrivateAccess( dir, tag, size );
 }
@@ -1438,7 +1440,7 @@ inline void DeviceCache<_T>::invalidate( Directory &dir, uint64_t tag, Directory
 }
 
 template <class _T>
-inline void DeviceCache<_T>::invalidate( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de )
+inline void DeviceCache<_T>::invalidate( Directory &dir, uint64_t tag, std::size_t size, DirectoryEntry *de )
 {
  // de->trySetInvalidated();
    CacheEntry *ce = _cache.find( tag );
@@ -1479,7 +1481,7 @@ inline void DeviceCache<_T>::invalidateAndFlush( Directory &dir, uint64_t tag, D
 } 
 
 template <class _T>
-inline void DeviceCache<_T>::invalidateAndFlush( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de )
+inline void DeviceCache<_T>::invalidateAndFlush( Directory &dir, uint64_t tag, std::size_t size, DirectoryEntry *de )
 {
    CacheEntry *ce = _cache.find( tag );
    if ( de->trySetInvalidated() ) {
@@ -1499,25 +1501,26 @@ inline void DeviceCache<_T>::invalidateAndFlush( Directory &dir, uint64_t tag, s
 }
 
 template <class _T>
-inline void DeviceCache<_T>::nNoinvalidateAndTransfer( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de, Cache &dest, void *addrDest )
+inline void DeviceCache<_T>::nNoinvalidateAndTransfer( Directory &dir, uint64_t tag, std::size_t size, DirectoryEntry *de, Cache &dest, void *addrDest )
 {
    CacheEntry *ce = _cache.find( tag );
    if ( ce->trySetToFlushing() ) {
-	   if ( de->getOwner() != this ) {
-		   // someone flushed it between setting to invalidated and setting to flushing, do nothing
-		   ce->setFlushing(false);
-	   } else {
-		   CopyDescriptor cd = CopyDescriptor(tag, de->getVersion());
-		   if ( dest.copyToCacheFromCache( ce->getAddress(), size, *this, addrDest ) ) {
-			   ce->setFlushing(false);
-			   ce->setCopying(false);
-		   }
-	   }
+      if ( de->getOwner() != this ) {
+         // someone flushed it between setting to invalidated and setting to flushing, do nothing
+         ce->setFlushing(false);
+      } else {
+         CopyDescriptor cd = CopyDescriptor(tag, de->getVersion());
+         //message("moving from node 2 node tag " << (void *)tag);
+         if ( dest.copyToCacheFromCache( ce->getAddress(), size, *this, addrDest ) ) {
+            ce->setFlushing(false);
+            ce->setCopying(false);
+         }
+      }
    }
 }
 
 template <class _T>
-inline void DeviceCache<_T>::invalidateAndTransfer( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de, Cache &dest, void *addrDest )
+inline void DeviceCache<_T>::invalidateAndTransfer( Directory &dir, uint64_t tag, std::size_t size, DirectoryEntry *de, Cache &dest, void *addrDest )
 {
    CacheEntry *ce = _cache.find( tag );
    if ( de->trySetInvalidated() ) {
@@ -1538,7 +1541,7 @@ inline void DeviceCache<_T>::invalidateAndTransfer( Directory &dir, uint64_t tag
 }
 
 template <class _T>
-inline size_t& DeviceCache<_T>::getCacheSize()
+inline std::size_t& DeviceCache<_T>::getCacheSize()
 {
    return _size;
 }

@@ -26,6 +26,7 @@
 #include "atomic_decl.hpp"
 #include "trackableobject_fwd.hpp"
 #include "dependency_decl.hpp"
+#include "workdescriptor_fwd.hpp"
 
 namespace nanos
 {
@@ -59,19 +60,26 @@ namespace nanos
          TrackableObjectVector    _readObjects;     /**< List of read objects */
          Lock                     _objectLock;      /**< Lock to do exclusive use of the DependableObject */
          volatile bool            _submitted;
+         WorkDescriptor           *_wd;             /**< Pointer to the work descriptor represented by this DependableObject */
 
       public:
         /*! \brief DependableObject default constructor
          */
          DependableObject ( ) 
             :  _id ( 0 ), _numPredecessors ( 0 ), _references(1), _successors(), _outputObjects(),
-               _readObjects(), _objectLock(), _submitted(false) {}
+               _readObjects(), _objectLock(), _submitted(false), _wd(NULL) {}
+        /*! \brief DependableObject wd constructor
+         *  \param wd WorkDescriptor to be associated
+         */
+         DependableObject ( WorkDescriptor *wd ) 
+            :  _id ( 0 ), _numPredecessors ( 0 ), _references(1), _successors(), _outputObjects(),
+               _readObjects(), _objectLock(), _submitted(false), _wd( wd ) {}
         /*! \brief DependableObject copy constructor
          *  \param depObj another DependableObject
          */
          DependableObject ( const DependableObject &depObj )
             : _id ( depObj._id ), _numPredecessors ( depObj._numPredecessors ), _references(depObj._references),
-              _successors ( depObj._successors ), _outputObjects( ), _readObjects(), _objectLock(), _submitted(false) {}
+              _successors ( depObj._successors ), _outputObjects( ), _readObjects(), _objectLock(), _submitted(false), _wd( depObj._wd ) {}
 
         /*! \brief DependableObject copy assignment operator, can be self-assigned.
          *  \param depObj another DependableObject
@@ -120,7 +128,7 @@ namespace nanos
          *         if it becomes 0, the dependencies are satisfied and the virtual
          *         method dependenciesSatisfied is invoked.
          */
-         int decreasePredecessors ( );
+         int decreasePredecessors ( DependableObject *predecessor = NULL );
 
          /*! \brief  Returns the number of predecessors of this DependableObject
           */
@@ -188,6 +196,9 @@ namespace nanos
             return it
          */
          DependableObject * releaseImmediateSuccessor ( DependableObjectPredicate &condition );
+
+         void setWD( WorkDescriptor *wd );
+         WorkDescriptor * getWD( void );
          
    };
 

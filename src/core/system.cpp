@@ -602,6 +602,55 @@ void System::finish ()
       }
       sys.getNetwork()->nodeBarrier();
    }
+   if (sys.getNetwork()->getNodeNum() == 0 && _verboseMode )
+   {
+      unsigned int palette[8] = {0x003380, 0x0044aa, 0x0055d4, 0x0066ff, 0x2a7fff, 0x5599ff, 0x00112b, 0x002255}; 
+      message("I have " << _graphRepLists.size() << " lists" );
+      std::vector<std::list<GraphEntry *> > nodeLists(sys.getNetwork()->getNumNodes());
+      std::set<GraphEntry *> nodeSet;
+      for ( std::list< std::list<GraphEntry *> *>::iterator it = _graphRepLists.begin(); it != _graphRepLists.end(); it++ )
+      {
+         std::list<GraphEntry *>::iterator internalIt = (*it)->begin();
+         while(  internalIt != (*it)->end() ) 
+         {
+             std::set<GraphEntry *>::iterator nodeIt = nodeSet.find( *internalIt );
+             if ( nodeIt == nodeSet.end() )
+             {
+                GraphEntry &ge = *(*internalIt);
+                nodeSet.insert( *internalIt );
+                nodeLists[ge.getNode()].push_back( *internalIt ); 
+            }
+            internalIt++;
+         }
+      }
+      for ( unsigned int i = 0; i < sys.getNetwork()->getNumNodes(); i++ )
+      {
+         fprintf(stderr, "subgraph clusternode%d { label=\"Node %d\"; style=filled; color=\"#%06x\"; ", i, i, palette[(i%8)]);
+         for ( std::list<GraphEntry *>::iterator it = nodeLists[i].begin(); it != nodeLists[i].end(); it++ )
+         {
+             GraphEntry &ge = *(*it);
+             if ( ge.isWait() )
+                std::cerr << "Wait" << ge.getCount() << " [shape=box]; ";
+             else
+                fprintf(stderr, "%d; ", ge.getId());
+                //fprintf(stderr, "%d [color=\"#%08x\",style=filled]; ", ge.getId(), palette[(ge.getNode()%8)*2]);
+         }
+         std::cerr << "}" << std::endl;
+      }
+      for ( std::list< std::list<GraphEntry *> *>::iterator it = _graphRepLists.begin(); it != _graphRepLists.end(); it++ )
+      {
+         std::list<GraphEntry *>::iterator internalIt = (*it)->begin();
+         while(  internalIt != (*it)->end() ) 
+         {
+            GraphEntry &ge = *(*internalIt);
+            std::cerr << ge;
+            internalIt++;
+            if (internalIt != (*it)->end() ) std::cerr <<" -> ";
+         }
+         std::cerr << ";" << std::endl;
+      } 
+   }
+   sys.getNetwork()->nodeBarrier();
 
    _net.finalize();
 }
@@ -1308,4 +1357,13 @@ void System::endTeam ( ThreadTeam *team )
    fatal_cond( team->size() > 0, "Trying to end a team with running threads");
    
    delete team;
+}
+
+std::list<GraphEntry *> *System::getGraphRepList()
+{
+   std::list<GraphEntry *> * newList = NEW std::list<GraphEntry *>();
+   _graphRepListsLock.acquire();
+   _graphRepLists.push_back( newList );
+   _graphRepListsLock.release();
+   return newList;
 }

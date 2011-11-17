@@ -24,6 +24,7 @@
 #include "atomic_decl.hpp"
 #include "dependenciesdomain_decl.hpp"
 #include "synchronizedcondition_decl.hpp"
+#include "graphentry_decl.hpp"
 
 namespace nanos
 {
@@ -40,7 +41,10 @@ namespace nanos
       private:
          WGList         _partOf; // other than parent
          int            _id;
-         void *            _remoteAddr;
+         int            _syncCount;
+         GraphEntry*    _ge;
+         GraphEntry*    _geNext;
+         void *         _remoteAddr;
          Atomic<int>    _components;
 
          SingleSyncCond<EqualConditionChecker<int> > _syncCond;
@@ -60,8 +64,8 @@ namespace nanos
          /*! \brief WorkGroup default constructor
           */
          WorkGroup()
-            : _id( _atomicSeed++ ), _components( 0 ), 
-            _syncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL) {  }
+            : _id( _atomicSeed++ ), _syncCount(0), _ge(NEW GraphEntry(_id) ), _geNext( NEW GraphEntry(_id) ) , _components( 0 ), 
+            _syncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL) { _ge->setIsWait(); _ge->setCount(0); _geNext->setIsWait(); _geNext->setCount(1);  }
 
          /*! \brief WorkGroup copy constructor
           */
@@ -81,6 +85,8 @@ namespace nanos
          void setId( int val ) { _id = val; }
          void setRemoteAddr( void *remoteAddr ) { _remoteAddr = remoteAddr; }
          void * getRemoteAddr( void ) { return _remoteAddr; }
+         GraphEntry* getGE( void ) { return _ge; }
+         GraphEntry* getGENext( void ) { return _geNext; }
 
    };
 

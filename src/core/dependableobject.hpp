@@ -27,6 +27,7 @@
 #include "dependableobject_decl.hpp"
 #include "trackableobject_fwd.hpp"
 #include "dependency.hpp"
+#include "workdescriptor_decl.hpp"
 
 using namespace nanos;
 
@@ -39,6 +40,7 @@ inline const DependableObject & DependableObject::operator= ( const DependableOb
    _successors = depObj._successors;
    _outputObjects = depObj._outputObjects;
    _submitted = depObj._submitted;
+   _wd = depObj._wd;
    return *this;
 }
 
@@ -72,10 +74,12 @@ inline int DependableObject::increasePredecessors ( )
 	  return _numPredecessors++;
 }
 
-inline int DependableObject::decreasePredecessors ( )
+inline int DependableObject::decreasePredecessors ( DependableObject *predecessor )
 {
    int  numPred = --_numPredecessors; 
+   if ( predecessor != NULL ) getWD()->predecessorFinished( predecessor->getWD() );
    if ( numPred == 0 ) {
+      if ( predecessor == NULL )getWD()->initMyGraphRepListNoPred();
       dependenciesSatisfied( );
    }
    return numPred;
@@ -141,6 +145,16 @@ inline void DependableObject::submitted()
 inline Lock& DependableObject::getLock()
 {
    return _objectLock;
+}
+
+inline void DependableObject::setWD( WorkDescriptor *wd )
+{
+   _wd = wd;
+}
+
+inline WorkDescriptor * DependableObject::getWD( void )
+{
+   return _wd;
 }
 
 #endif

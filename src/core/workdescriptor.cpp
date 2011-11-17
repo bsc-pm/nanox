@@ -123,6 +123,7 @@ void WorkDescriptor::done ()
 
    this->getParent()->workFinished( *this );
 
+   this->wgdone();
    WorkGroup::done();
 
 }
@@ -139,4 +140,57 @@ void WorkDescriptor::notifyOutlinedCompletion()
 {
    ensure( isTied(), "Outlined WD completed, but it is untied!");
    _tiedTo->notifyOutlinedCompletionDependent( *this );
+}
+void WorkDescriptor::predecessorFinished( WorkDescriptor *predecessorWd )
+{
+   if ( predecessorWd != NULL )
+   {
+      setMyGraphRepList( predecessorWd->getMyGraphRepList() );
+   }
+
+   if ( _myGraphRepList == NULL ) {
+      _myGraphRepList = sys.getGraphRepList();
+      if ( predecessorWd != NULL ) {
+         _myGraphRepList.value()->push_back( predecessorWd->getGE() );
+         predecessorWd->listed();
+      }
+   }
+   _myGraphRepList.value()->push_back( getGE() );
+   if (predecessorWd != NULL) predecessorWd->listed();
+   
+}
+void WorkDescriptor::initMyGraphRepListNoPred( )
+{
+   _myGraphRepList = sys.getGraphRepList();
+   _myGraphRepList.value()->push_back( this->getParent()->getGE() );
+   _myGraphRepList.value()->push_back( getGE() );
+}
+void WorkDescriptor::setMyGraphRepList( std::list<GraphEntry *> *myList )
+{
+   _myGraphRepList = myList;
+}
+std::list<GraphEntry *> *WorkDescriptor::getMyGraphRepList(  )
+{
+   std::list<GraphEntry *> *myList;
+   do {
+      myList = _myGraphRepList.value();
+   }
+   while ( ! _myGraphRepList.cswap( myList, NULL ) );
+   return myList;
+}
+
+void WorkDescriptor::wgdone()
+{
+   if (!_listed)
+   {
+      if ( _myGraphRepList == NULL ) {
+         _myGraphRepList = sys.getGraphRepList();
+      }
+      _myGraphRepList.value()->push_back( this->getParent()->getGENext() );
+   }
+}
+
+void WorkDescriptor::listed()
+{
+   _listed = true;
 }

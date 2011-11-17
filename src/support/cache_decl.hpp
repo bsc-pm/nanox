@@ -40,8 +40,8 @@ namespace nanos {
       private:
          void *_addr; /**< Address identifier of the cache entry  */
 
-         size_t _size; /**< Size of the block in the cache */
-         size_t _allocSize; /**< Size of the block allocated in the device */
+         std::size_t _size; /**< Size of the block in the cache */
+         std::size_t _allocSize; /**< Size of the block allocated in the device */
 
          volatile bool _dirty; /**< Dirty flag */
          Atomic<bool> _copying; /**< Copying status of the entry */
@@ -60,7 +60,7 @@ namespace nanos {
         /*! \brief Constructor
          *  \param addr: address of the cache entry
          */
-         CacheEntry( void *addr, size_t size, uint64_t tag, unsigned int version, bool dirty, bool copying ) :
+         CacheEntry( void *addr, std::size_t size, uint64_t tag, unsigned int version, bool dirty, bool copying ) :
             Entry( tag, version ), _addr( addr ), _size( size ), _allocSize( 0 ), _dirty( dirty ),
             _copying( copying ), _flushing( false ), _flushTo( NULL ), _transfers( 0 ), _resizing( false ) {}
 
@@ -107,22 +107,22 @@ namespace nanos {
 
         /* \brief Returns the size of the block in the cache
          */
-         size_t getSize() const
+         std::size_t getSize() const
          { return _size; }
 
         /* \brief Size setter
          */
-         void setSize( size_t size )
+         void setSize( std::size_t size )
          { _size = size; }
 
         /* \brief Returns the size of the block in the device
          */
-         size_t getAllocSize() const
+         std::size_t getAllocSize() const
          { return _allocSize; }
 
         /* \brief Size setter
          */
-         void setAllocSize( size_t size )
+         void setAllocSize( std::size_t size )
          { _allocSize = size; }
 
         /*! \brief Returns whether the entry is dirty
@@ -250,14 +250,14 @@ namespace nanos {
          *  \param dir Directory to look for entries if the it needs to free space in the device.
          *  \param size size of the entry to allocate.
          */
-         virtual void * allocate( Directory &dir, size_t size ) = 0;
+         virtual void * allocate( Directory &dir, std::size_t size ) = 0;
 
         /*! \brief Resize a CacheEntry
          *  \param dir Directory to look for entries if the it needs to free space in the device.
          *  \param ce Entry to resize.
          *  \param size New size for the reallocated entry.
          */
-         virtual void realloc( Directory &dir, CacheEntry * ce, size_t size ) = 0;
+         virtual void realloc( Directory &dir, CacheEntry * ce, std::size_t size ) = 0;
 
         /*! \brief Create a new entry in the cache
          *  \param tag tag identifier of the entry.
@@ -265,7 +265,7 @@ namespace nanos {
          *  \param version initial version of the entry.
          *  \param dirty whether it is dirty from the beginning.
          */
-         virtual CacheEntry& newEntry( uint64_t tag, size_t size, unsigned int version, bool dirty ) = 0;
+         virtual CacheEntry& newEntry( uint64_t tag, std::size_t size, unsigned int version, bool dirty ) = 0;
 
         /*! \brief Insert an entry into the cache
          *  \param tag Tag identifier of the entry.
@@ -277,8 +277,8 @@ namespace nanos {
         /*! \brief Delete an entry from the cache
          *  \param tag Idetifier of the entry to be deleted from the cache
          */
-         virtual void deleteEntry( uint64_t tag, size_t size ) = 0;
-         virtual void deleteEntry2( uint64_t tag, size_t size, CacheEntry *ce ) = 0;
+         virtual void deleteEntry( uint64_t tag, std::size_t size ) = 0;
+         virtual void deleteEntry2( uint64_t tag, std::size_t size, CacheEntry *ce ) = 0;
 
         /*! \brief Get an entry from the cache
          *  \param tag Identifier key to look for
@@ -296,27 +296,27 @@ namespace nanos {
 
          /*! \brief Copy data from one device address to another device address
           */
-          //virtual bool copyData( void * dstAddr, void * srcAddr, size_t size, Cache & owner ) = 0;
+          //virtual bool copyData( void * dstAddr, void * srcAddr, std::size_t size, Cache & owner ) = 0;
 
         /*! \brief Copy data from the host to a device address
          *  \param cd Copy descriptor with the information about the addresses to be copied
          *  \param size Size of the data to be copied
          */
-virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void* addrDest ) = 0;
-         virtual bool copyDataToCache( CopyDescriptor& cd, size_t size ) = 0;
+virtual bool copyToCacheFromCache( void *srcAddr, std::size_t size, Cache &dest, void* addrDest ) = 0;
+         virtual bool copyDataToCache( CopyDescriptor& cd, std::size_t size ) = 0;
 
         /*! \brief Copy data back to the host
          *  \param cd Copy descriptor with the information about the addresses to be copied
          *  \param size Size of the data to be copied
          */
-         virtual bool copyBackFromCache( CopyDescriptor& cd, size_t size ) = 0;
+         virtual bool copyBackFromCache( CopyDescriptor& cd, std::size_t size ) = 0;
 
         /*! \brief Local copy in the device
          *  \param dst Device address to copy the entry to
          *  \param tag identifier of the cache entry to be copied
          *  \param size Size of the data to be copied
          */
-         virtual void copyTo( void *dst, uint64_t tag, size_t size ) = 0;
+         virtual void copyTo( void *dst, uint64_t tag, std::size_t size ) = 0;
 
         /*! \brief Force an entry to be copied back to the Host
          *  \param dir Directory to update when copy finishes
@@ -324,10 +324,10 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
          *  \param size Size of the entry in the cache
          *  \param de DirectoryEntry to be updated
          */
-         virtual void invalidateAndTransfer( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de, Cache &dest, void *addrDest ) = 0;
-         virtual void nNoinvalidateAndTransfer( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de, Cache &dest, void *addrDest ) = 0;
-         virtual void invalidate( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de ) = 0;
-         virtual void invalidateAndFlush( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de ) = 0;
+         virtual void invalidateAndTransfer( Directory &dir, uint64_t tag, std::size_t size, DirectoryEntry *de, Cache &dest, void *addrDest ) = 0;
+         virtual void nNoinvalidateAndTransfer( Directory &dir, uint64_t tag, std::size_t size, DirectoryEntry *de, Cache &dest, void *addrDest ) = 0;
+         virtual void invalidate( Directory &dir, uint64_t tag, std::size_t size, DirectoryEntry *de ) = 0;
+         virtual void invalidateAndFlush( Directory &dir, uint64_t tag, std::size_t size, DirectoryEntry *de ) = 0;
 
         /*! \brief Force an entry to be copied back to the Host
          *  \param dir Directory to update when copy finishes
@@ -390,8 +390,8 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
          *  \param input Whether the access will read the data (it has to be updated to the latest version known to the directory)
          *  \param output Whether the acces writes the data (the Cache entry must be marked as dirty)
          */
-         virtual void registerCacheAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
-         virtual bool checkBlockingCacheAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
+         virtual void registerCacheAccess( Directory &dir, uint64_t tag, std::size_t size, bool input, bool output );
+         virtual bool checkBlockingCacheAccess( Directory& dir, uint64_t tag, std::size_t size, bool input, bool output );
 
         /*! \brief Notify the cache that one usage of an entry has finished
          *  \param dir Current directory
@@ -399,15 +399,15 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
          *  \param size Size of the entry
          *  \param output If the entry has been written it must be copied back to the host at some point.
          */
-         virtual void unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output ) = 0;
+         virtual void unregisterCacheAccess( Directory &dir, uint64_t tag, std::size_t size, bool output ) = 0;
 
         /*! \brief Register an acces tot the Cache for an address that will only exist for one user
          */
-         virtual void registerPrivateAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
+         virtual void registerPrivateAccess( Directory &dir, uint64_t tag, std::size_t size, bool input, bool output );
 
         /*! \brief Unregister an acces tot the Cache for an address that will only exist for one user
          */
-         virtual void unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size );
+         virtual void unregisterPrivateAccess( Directory &dir, uint64_t tag, std::size_t size );
    };
 
    /*! \class NoCache
@@ -441,7 +441,7 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
           *  \param input Whether the access will read the data (it has to be updated to the latest version known to the directory)
           *  \param output Whether the acces writes the data (the Cache entry must be marked as dirty)
           */
-         virtual void registerCacheAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
+         virtual void registerCacheAccess( Directory &dir, uint64_t tag, std::size_t size, bool input, bool output );
 
          /*! \brief Notify the cache that one usage of an entry has finished
           *  \param dir Current directory
@@ -449,15 +449,15 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
           *  \param size Size of the entry
           *  \param output If the entry has been written it must be copied back to the host at some point.
           */
-         virtual void unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output );
+         virtual void unregisterCacheAccess( Directory &dir, uint64_t tag, std::size_t size, bool output );
 
          /*! \brief Register an acces tot the Cache for an address that will only exist for one user
           */
-         virtual void registerPrivateAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
+         virtual void registerPrivateAccess( Directory &dir, uint64_t tag, std::size_t size, bool input, bool output );
 
          /*! \brief Unregister an acces tot the Cache for an address that will only exist for one user
           */
-         virtual void unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size );
+         virtual void unregisterPrivateAccess( Directory &dir, uint64_t tag, std::size_t size );
    };
 
    // FIXME: A plugin maybe?? (see #405)
@@ -493,7 +493,7 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
          *  \param size Size of the entry
          *  \param output If the entry has been written it must be copied back to the host at some point.
          */
-         virtual void unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output );
+         virtual void unregisterCacheAccess( Directory &dir, uint64_t tag, std::size_t size, bool output );
    };
 
   /*! \class WriteBackPolicy
@@ -528,7 +528,7 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
          *  \param size Size of the entry
          *  \param output If the entry has been written it must be copied back to the host at some point.
          */
-         virtual void unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output );
+         virtual void unregisterCacheAccess( Directory &dir, uint64_t tag, std::size_t size, bool output );
    };
 
   /*! \brief A Cache is a class that provides basic services for registering and
@@ -551,8 +551,8 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
 
          CachePolicy * _policy; /**< Cache Policy used by this cache */
 
-         size_t _size; /**< Size of the cache in bytes */
-         size_t _usedSize; /**< Cache space usage counter */
+         std::size_t _size; /**< Size of the cache in bytes */
+         std::size_t _usedSize; /**< Cache space usage counter */
 
         /*! \brief Copy Constructor
          */
@@ -577,7 +577,7 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
       public:
         /* \brief Default constructor
          */
-         DeviceCache( size_t size, CachePolicy * policy, ProcessingElement *pe = NULL ) :
+         DeviceCache( std::size_t size, CachePolicy * policy, ProcessingElement *pe = NULL ) :
             _pe( pe ), _cache(), _policy( policy ), _size( size ), _usedSize( 0 ) {}
 
         /*! \brief Destructor
@@ -593,7 +593,7 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
 
         /*! \brief Returns the size of the cache
          */
-         size_t getSize();
+         std::size_t getSize();
 
          /*! \brief Returns a pointer to the PE of the cache
           */
@@ -603,26 +603,26 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
          *  \param dir Directory to look for entries if the it needs to free space in the device.
          *  \param size size of the entry to allocate.
          */
-         void * allocate( Directory &dir, size_t size );
+         void * allocate( Directory &dir, std::size_t size );
 
         /*! \brief delete unused entries to make space in the cache (flush them if necessary)
          *  \param dir Directory to be able to synchronize flushed entries
          *  \param size
          */
-         void freeSpaceToFit( Directory& dir, size_t size );
+         void freeSpaceToFit( Directory& dir, std::size_t size );
 
         /*! \brief Delete an entry from the cache
          *  \param tag Idetifier of the entry to be deleted from the cache
          */
-         void deleteEntry( uint64_t tag, size_t size );
-         void deleteEntry2( uint64_t tag, size_t size, CacheEntry *ce );
+         void deleteEntry( uint64_t tag, std::size_t size );
+         void deleteEntry2( uint64_t tag, std::size_t size, CacheEntry *ce );
 
         /*! \brief Resize a CacheEntry
          *  \param dir Directory to look for entries if the it needs to free space in the device.
          *  \param ce Entry to resize.
          *  \param size New size for the reallocated entry.
          */
-         void realloc( Directory &dir, CacheEntry *ce, size_t size );
+         void realloc( Directory &dir, CacheEntry *ce, std::size_t size );
 
         /* \brief get the Address in the cache for tag
          * \param tag: Identifier of the entry to look for
@@ -631,27 +631,27 @@ virtual bool copyToCacheFromCache( void *srcAddr, size_t size, Cache &dest, void
 
          /*! \brief Copy data from one device address to another device address
           */
-         //bool copyData( void * dstAddr, void * srcAddr, size_t size, Cache & owner );
+         //bool copyData( void * dstAddr, void * srcAddr, std::size_t size, Cache & owner );
 
         /* \brief Copy data from the address represented by the tag to the entry in the device.
          * \param cd: identifier of the entry
          * \param size: number of bytes to copy
          */
-bool copyToCacheFromCache( void *addrSrc, size_t size, Cache &dest, void *addrDest );
-         bool copyDataToCache( CopyDescriptor &cd, size_t size );
+bool copyToCacheFromCache( void *addrSrc, std::size_t size, Cache &dest, void *addrDest );
+         bool copyDataToCache( CopyDescriptor &cd, std::size_t size );
 
         /* \brief Copy back from the entry to the address represented by the tag.
          * \param cd: Entry identifier and address of original data
          * \param size: number of bytes to copy
          */
-         bool copyBackFromCache( CopyDescriptor &cd, size_t size );
+         bool copyBackFromCache( CopyDescriptor &cd, std::size_t size );
 
         /* \brief Perform local copy in the device for an entry
          * \param dst: Device destination address to copy to
          * \param tag: entry identifier to look for the source data
          * \param size: number of bytes to copy
          */
-         void copyTo( void *dst, uint64_t tag, size_t size );
+         void copyTo( void *dst, uint64_t tag, std::size_t size );
 
         /*! \brief Create a new entry in the cache
          *  \param tag tag identifier of the entry.
@@ -659,7 +659,7 @@ bool copyToCacheFromCache( void *addrSrc, size_t size, Cache &dest, void *addrDe
          *  \param version initial version of the entry.
          *  \param dirty whether it is dirty from the beginning.
          */
-         CacheEntry& newEntry( uint64_t tag, size_t size, unsigned int version, bool dirty );
+         CacheEntry& newEntry( uint64_t tag, std::size_t size, unsigned int version, bool dirty );
 
         /*! \brief Insert an entry into the cache
          *  \param tag Tag identifier of the entry.
@@ -689,8 +689,8 @@ bool copyToCacheFromCache( void *addrSrc, size_t size, Cache &dest, void *addrDe
          *  \param input Whether the access will read the data (it has to be updated to the latest version known to the directory)
          *  \param output Whether the acces writes the data (the Cache entry must be marked as dirty)
          */
-         void registerCacheAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
-         bool checkBlockingCacheAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
+         void registerCacheAccess( Directory &dir, uint64_t tag, std::size_t size, bool input, bool output );
+         bool checkBlockingCacheAccess( Directory& dir, uint64_t tag, std::size_t size, bool input, bool output );
 
         /*! \brief Notify the cache that one usage of an entry has finished
          *  \param dir Current directory
@@ -698,15 +698,15 @@ bool copyToCacheFromCache( void *addrSrc, size_t size, Cache &dest, void *addrDe
          *  \param size Size of the entry
          *  \param output If the entry has been written it must be copied back to the host at some point.
          */
-         void unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output );
+         void unregisterCacheAccess( Directory &dir, uint64_t tag, std::size_t size, bool output );
 
         /*! \brief Register an acces tot the Cache for an address that will only exist for one user
          */
-         void registerPrivateAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
+         void registerPrivateAccess( Directory &dir, uint64_t tag, std::size_t size, bool input, bool output );
 
         /*! \brief Unregister an acces tot the Cache for an address that will only exist for one user
          */
-         void unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size );
+         void unregisterPrivateAccess( Directory &dir, uint64_t tag, std::size_t size );
 
         /*! \brief Use to synchronize a transfer when the copy is finished
          *  \param tag Identifier key of the entry to be synchronized
@@ -743,10 +743,10 @@ bool copyToCacheFromCache( void *addrSrc, size_t size, Cache &dest, void *addrDe
          *  \param size Size of the entry in the cache
          *  \param de DirectoryEntry to be updated
          */
-         void invalidateAndTransfer( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de, Cache &dest, void *dstAddr );
-         void nNoinvalidateAndTransfer( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de, Cache &dest, void *dstAddr );
-         void invalidate( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de );
-         void invalidateAndFlush( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de );
+         void invalidateAndTransfer( Directory &dir, uint64_t tag, std::size_t size, DirectoryEntry *de, Cache &dest, void *dstAddr );
+         void nNoinvalidateAndTransfer( Directory &dir, uint64_t tag, std::size_t size, DirectoryEntry *de, Cache &dest, void *dstAddr );
+         void invalidate( Directory &dir, uint64_t tag, std::size_t size, DirectoryEntry *de );
+         void invalidateAndFlush( Directory &dir, uint64_t tag, std::size_t size, DirectoryEntry *de );
 
         /*! \brief Force an entry to be copied back to the Host
          *  \param dir Directory to update when copy finishes
@@ -760,7 +760,7 @@ bool copyToCacheFromCache( void *addrSrc, size_t size, Cache &dest, void *addrDe
 
         /*! \brief get a reference to the size variable to allow using it as a ConfigOption
          */
-         size_t& getCacheSize();
+         std::size_t& getCacheSize();
 
         /*! \brief Request the Device to priorize an asynchronous transfer
          *  \param tag Identifier to locate the transfer to be priorized

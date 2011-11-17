@@ -55,7 +55,7 @@ void DependableObject::finished ( )
 
          NANOS_INSTRUMENT ( instrument ( *(*it) ); ) 
 
-         (*it)->decreasePredecessors();
+         (*it)->decreasePredecessors( this );
       }
    }
 }

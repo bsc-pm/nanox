@@ -36,6 +36,7 @@ void * ClusterDevice::allocate( size_t size, ProcessingElement *pe )
    void *retAddr = NULL;
 
    retAddr = node->getAllocator().allocate( size );
+   //retAddr = sys.getNetwork()->malloc( node->getClusterNodeNum(), size );
    return retAddr;
 }
 
@@ -45,7 +46,7 @@ void ClusterDevice::free( void *address, ProcessingElement *pe )
 
    node->getAllocator().free( address );
 
-   sys.getNetwork()->memFree( ((ClusterNode *) pe)->getClusterNodeNum(), address );
+   //sys.getNetwork()->memFree( node->getClusterNodeNum(), address );
 }
 
 void * ClusterDevice::realloc( void *address, size_t newSize, size_t oldSize, ProcessingElement *pe )
@@ -55,7 +56,7 @@ void * ClusterDevice::realloc( void *address, size_t newSize, size_t oldSize, Pr
 
    retAddr = node->getAllocator().allocate( newSize );
    
-   sys.getNetwork()->memRealloc(((ClusterNode *) pe)->getClusterNodeNum(), address, oldSize, retAddr, newSize );
+   //sys.getNetwork()->memRealloc(node->getClusterNodeNum(), address, oldSize, retAddr, newSize );
    return retAddr;
 }
 

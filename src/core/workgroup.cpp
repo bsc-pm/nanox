@@ -47,8 +47,14 @@ void WorkGroup::exitWork ( WorkGroup &work )
 {
    _syncCond.reference();
    int componentsLeft = --_components;
-   if (componentsLeft == 0)
+   if (componentsLeft == 0) { 
+      _syncCount++;
+      _ge = _geNext;
+      _geNext = NEW GraphEntry(getId());
+      _geNext->setCount(_syncCount+1);
+      _geNext->setIsWait();
       _syncCond.signal();
+   }
    _syncCond.unreference();
 }
 

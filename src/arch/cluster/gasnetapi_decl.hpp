@@ -49,6 +49,9 @@ namespace ext {
          static std::set< void * > _waitingPutRequests;
          static std::set< void * > _receivedUnmatchedPutRequests;
          static Lock _waitingPutRequestsLock;
+         static std::vector< SimpleAllocator * > _pinnedAllocators;
+         static std::vector< Lock * > _pinnedAllocatorsLocks;
+         static Atomic<unsigned int> *_seqN;
 
          // data dependencies for data comming via a node different than the one sending the work
          // e.g. node 1 sends work to 2 but some data comes from node 3, the work message can
@@ -71,12 +74,21 @@ namespace ext {
             void *origAddr;
             void *destAddr;
             std::size_t len;
+            void *tmpBuffer;
          };
          static std::list<struct putReqDesc * > _putReqs;
          static Lock _putReqsLock;
          static std::size_t rxBytes;
          static std::size_t txBytes;
          static std::size_t _totalBytes;
+         
+         static std::list< void * > _freeBufferReqs;
+         static Lock _freeBufferReqsLock;
+         static std::list< std::pair<void *, unsigned int> > _workDoneReqs;
+         static Lock _workDoneReqsLock;
+         static std::list< std::pair< unsigned int, std::pair<WD *, std::vector<uint64_t> *> > > _deferredWorkReqs;
+         static Lock _deferredWorkReqsLock;
+         static Atomic<unsigned int> _recvSeqN;
          
       public:
          void initialize ( Network *net );
@@ -85,6 +97,7 @@ namespace ext {
          void sendExitMsg ( unsigned int dest );
          void sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, size_t argSize, char * arg, void ( *xlate ) ( void *, void * ), int arch, void *wd );
          void sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr, int peId);
+         static void _sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr, int peId);
          void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size );
          void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, size_t size );
          void malloc ( unsigned int remoteNode, size_t size, void *waitObjAddr );
@@ -96,12 +109,22 @@ namespace ext {
          void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, size_t len );
          void setMasterDirectory(Directory *dir);
          std::size_t getTotalBytes();
+         static void testForDependencies( WD *localWD, std::vector<uint64_t> *deps );
          static std::size_t getRxBytes();
          static std::size_t getTxBytes();
 
       private:
-         static void enqueuePutReq( unsigned int dest, void *origAddr, void *destAddr, std::size_t len);
+         void _put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size, void *remoteTmpBuffer );
+         static void enqueuePutReq( unsigned int dest, void *origAddr, void *destAddr, std::size_t len, void *tmpBuffer );
+         void checkForPutReqs();
          static void sendWaitForRequestPut( unsigned int dest, uint64_t addr );
+         static void print_copies( WD *wd, int deps );
+         static void releaseWDsFromDataDep( void *addr );
+         static void enqueueFreeBufferNotify( void *bufferAddr );
+         static void checkForFreeBufferReqs();
+         static void checkWorkDoneReqs();
+         static void checkDeferredWorkReqs();
+         static void sendFreeTmpBuffer( void *addr );
 
          // Active Message handlers
          static void amFinalize( gasnet_token_t token );
@@ -113,7 +136,7 @@ namespace ext {
                              gasnet_handlerarg_t xlateHi,
                              gasnet_handlerarg_t rmwdLo,
                              gasnet_handlerarg_t rmwdHi,
-                             unsigned int dataSize, unsigned int wdId, unsigned int numPe, int arch );
+                             unsigned int dataSize, unsigned int wdId, unsigned int numPe, int arch, unsigned int seq );
          static void amWorkData(gasnet_token_t token, void *buff, std::size_t len,
                gasnet_handlerarg_t msgNum,
                gasnet_handlerarg_t totalLenLo,
@@ -132,7 +155,13 @@ namespace ext {
          static void amMasterHostname( gasnet_token_t token, void *buff, std::size_t nbytes );
          static void amPut( gasnet_token_t token,
                void *buf,
-               std::size_t len);
+               std::size_t len,
+               gasnet_handlerarg_t origAddrLo,
+               gasnet_handlerarg_t origAddrHi,
+               gasnet_handlerarg_t tagAddrLo,
+               gasnet_handlerarg_t tagAddrHi,
+               gasnet_handlerarg_t first,
+               gasnet_handlerarg_t last);
          static void amGet( gasnet_token_t token,
                gasnet_handlerarg_t destAddrLo,
                gasnet_handlerarg_t destAddrHi,
@@ -161,12 +190,17 @@ namespace ext {
                gasnet_handlerarg_t destAddrHi,
                gasnet_handlerarg_t origAddrLo,
                gasnet_handlerarg_t origAddrHi,
-               gasnet_handlerarg_t len,
+               gasnet_handlerarg_t tmpBufferLo,
+               gasnet_handlerarg_t tmpBufferHi,
+               gasnet_handlerarg_t lenLo,
+               gasnet_handlerarg_t lenHi,
                gasnet_handlerarg_t dst );
          static void amWaitRequestPut( gasnet_token_t token, 
                gasnet_handlerarg_t addrLo,
                gasnet_handlerarg_t addrHi );
-         static void print_copies( WD *wd );
+         static void amFreeTmpBuffer( gasnet_token_t token, 
+               gasnet_handlerarg_t addrLo,
+               gasnet_handlerarg_t addrHi );
    };
 }
 }

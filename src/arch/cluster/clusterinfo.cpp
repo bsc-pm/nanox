@@ -6,12 +6,15 @@
 using namespace nanos;
 using namespace ext;
 
-#define DEFAULT_NODE_MEM (0xc0000000ULL) // 2 Gb of memory
-#define MAX_NODE_MEM (0xc0000000ULL) // 2 Gb of memory
+#define DEFAULT_NODE_MEM (0x200000000ULL) 
+#define MAX_NODE_MEM (0x200000000ULL) 
 
 unsigned int ClusterInfo::_numSegments = 0;
 void ** ClusterInfo::_segmentAddrList = NULL;
-size_t * ClusterInfo::_segmentLenList = NULL;
+std::size_t * ClusterInfo::_segmentLenList = NULL;
+unsigned int ClusterInfo::_numPinnedSegments = 0;
+void ** ClusterInfo::_pinnedSegmentAddrList = NULL;
+std::size_t * ClusterInfo::_pinnedSegmentLenList = NULL;
 unsigned int ClusterInfo::_extraPEsCount = 0;
 std::string ClusterInfo::_conduit;
 std::size_t ClusterInfo::_nodeMem = DEFAULT_NODE_MEM;
@@ -19,12 +22,36 @@ int ClusterInfo::_gpuPresend = 1;
 int ClusterInfo::_smpPresend = 1;
 System::CachePolicyType ClusterInfo::_cachePolicy = System::DEFAULT;
 
-void ClusterInfo::addSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize )
+void ClusterInfo::addPinnedSegments( unsigned int numSegments, void **segmentAddr, std::size_t *segmentSize )
+{
+   unsigned int idx;
+   _numPinnedSegments = numSegments;
+   _pinnedSegmentAddrList = new void *[ numSegments ];
+   _pinnedSegmentLenList = new std::size_t[ numSegments ];
+
+   for ( idx = 0; idx < numSegments; idx += 1)
+   {
+      _pinnedSegmentAddrList[ idx ] = segmentAddr[ idx ];
+      _pinnedSegmentLenList[ idx ] = segmentSize[ idx ];
+   }
+}
+
+void * ClusterInfo::getPinnedSegmentAddr( unsigned int idx )
+{
+   return _pinnedSegmentAddrList[ idx ];
+}
+
+std::size_t ClusterInfo::getPinnedSegmentLen( unsigned int idx )
+{
+   return _pinnedSegmentLenList[ idx ];
+}
+
+void ClusterInfo::addSegments( unsigned int numSegments, void **segmentAddr, std::size_t *segmentSize )
 {
    unsigned int idx;
    _numSegments = numSegments;
    _segmentAddrList = new void *[ numSegments ];
-   _segmentLenList = new size_t[ numSegments ];
+   _segmentLenList = new std::size_t[ numSegments ];
 
    for ( idx = 0; idx < numSegments; idx += 1)
    {
@@ -38,7 +65,7 @@ void * ClusterInfo::getSegmentAddr( unsigned int idx )
    return _segmentAddrList[ idx ];
 }
 
-size_t ClusterInfo::getSegmentLen( unsigned int idx )
+std::size_t ClusterInfo::getSegmentLen( unsigned int idx )
 {
    return _segmentLenList[ idx ];
 }
