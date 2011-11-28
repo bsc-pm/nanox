@@ -86,7 +86,7 @@ void main__loop_1 ( void *args )
 // compiler: smp device for main__loop_1 function
 nanos_smp_args_t main__loop_1_device_args = { main__loop_1 };
 
-#define EXECUTE(slicer_type,lower,upper,k_offset,step,chunk)\
+#define EXECUTE(slicer_type,lower2,upper2,k_offset,step2,chunk2)\
    for ( i = 0; i < NUM_ITERS; i++ ) { \
 \
       nanos_wd_t wd = NULL;\
@@ -98,22 +98,19 @@ nanos_smp_args_t main__loop_1_device_args = { main__loop_1 };
          .tie_to = false\
       };\
       nanos_slicer_t slicer = nanos_find_slicer(slicer_type);\
-      nanos_slicer_data_for_t *slicer_data_for = NULL;\
 \
       NANOS_SAFE( nanos_create_sliced_wd ( &wd, 1, main__loop_1_device , sizeof( main__loop_1_data_t ), __alignof__(main__loop_1_data_t),\
-                                    (void **) &loop_data, nanos_current_wd(), slicer,\
-                                    sizeof(nanos_slicer_data_for_t), __alignof__(nanos_slicer_data_for_t), (void **) &slicer_data_for, &props , 0, NULL ));\
+                                    (void **) &loop_data, nanos_current_wd(), slicer, &props , 0, NULL ));\
 \
       loop_data->offset = -k_offset;\
-      slicer_data_for->_upper = upper+k_offset;\
-      slicer_data_for->_lower = lower+k_offset;\
-      slicer_data_for->_step = step;\
-      slicer_data_for->_chunk = chunk;\
-\
+      loop_data->loop_info.upper = upper2+k_offset;\
+      loop_data->loop_info.lower = lower2+k_offset;\
+      loop_data->loop_info.step = step2;\
+      loop_data->loop_info.chunk = chunk2;\
       NANOS_SAFE( nanos_submit( wd,0,0,0 ) );\
       NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );\
-      if (step > 0 ) for ( j = lower+k_offset; j <= upper+k_offset; j+= step ) A[j-k_offset]--;\
-      else if ( step < 0 ) for ( j = lower+k_offset; j >= upper+k_offset; j+= step ) A[j-k_offset]--;\
+      if (step2 > 0 ) for ( j = lower2+k_offset; j <= upper2+k_offset; j+= step2 ) A[j-k_offset]--;\
+      else if ( step2 < 0 ) for ( j = lower2+k_offset; j >= upper2+k_offset; j+= step2 ) A[j-k_offset]--;\
    }
 
 #define FINALIZE(type,lower,upper,offset,step,chunk)\

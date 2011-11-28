@@ -174,7 +174,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
 
    // copying rest of slicer data values and computing sign value
    // getting user defined chunk, lower, upper and step
-   SlicerDataFor * sdf = (SlicerDataFor *) work.getSlicerData();
+   // SlicerDataFor * sdf = (SlicerDataFor *) work.getSlicerData(); /* FIXME: deprecated*/
    int _chunk = sdf->getChunk();
    int _lower = sdf->getLower();
    int _upper = sdf->getUpper();
@@ -284,11 +284,11 @@ void SlicerStaticFor::submit ( SlicedWD &work )
 
    // copying rest of slicer data values and computing sign value
    // getting user defined chunk, lower, upper and step
-   SlicerDataFor * sdf = (SlicerDataFor *) work.getSlicerData();
-   int _chunk = sdf->getChunk();
-   int _lower = sdf->getLower();
-   int _upper = sdf->getUpper();
-   int _step  = sdf->getStep();
+   nli = ( nanos_loop_info_t * ) work.getData();
+   int _chunk = nli->chunk;
+   int _lower = nli->lower;
+   int _upper = nli->upper;
+   int _step  = nli->step;
 
    if ( _chunk == 0 ) {
       // Compute chunk and adjustment
@@ -298,10 +298,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
       // Computing upper bound
       _upper = _lower + _chunk + (( _adjust > 0) ? _step : 0);
       // Computing specific loop boundaries for WorkDescriptor 0
-      nli = ( nanos_loop_info_t * ) work.getData();
-      nli->lower = _lower;
       nli->upper = _upper; 
-      nli->step = _step;
       nli->last = (valid_threads == 1 );
       NANOS_INSTRUMENT ( nanos_event_value_t Values[4]; )
       NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) nli->lower; )
