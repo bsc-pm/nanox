@@ -290,7 +290,11 @@ namespace nanos {
 
             /* 30 */ registerEventKey("chunk-size","Chunk size");
 
-            /* 31 */ registerEventKey("time-sleeps","Time on Sleep (in nsecs)");
+            /* 31 */ registerEventKey("num-sleeps","Number of Sleep operations");
+            /* 32 */ registerEventKey("time-sleeps","Time on Sleep (in nsecs)");
+
+            /* 33 */ registerEventKey("num-scheds","Number of scheduler operations"); 
+            /* 34 */ registerEventKey("time-scheds","Time on scheduler operations (in nsecs)");
 
             /* ** */ registerEventKey("debug","Debug Key"); /* Keep this key as the last one */
          }
