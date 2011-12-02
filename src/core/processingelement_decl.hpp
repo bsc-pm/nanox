@@ -42,6 +42,7 @@ namespace nanos
          const Device *                       _deviceNo;
          const Device *                       _subDeviceNo;
          ThreadList                           _threads;
+         unsigned int                         _memorySpaceId;
 
       private:
          /*! \brief ProcessinElement default constructor
@@ -60,7 +61,7 @@ namespace nanos
       public:
          /*! \brief ProcessinElement constructor
           */
-         ProcessingElement ( int newId, const Device *arch, const Device *subArch = NULL ) : _id ( newId ), _device ( arch ) , _subDevice( subArch ), _deviceNo ( NULL ), _subDeviceNo ( NULL ) 
+         ProcessingElement ( int newId, const Device *arch, const Device *subArch, unsigned int memSpaceId ) : _id ( newId ), _device ( arch ) , _subDevice( subArch ), _deviceNo ( NULL ), _subDeviceNo ( NULL ), _memorySpaceId( memSpaceId )
          { }
 
          /*! \brief ProcessinElement destructor
@@ -99,7 +100,7 @@ namespace nanos
          /* capabilitiy query functions */
          virtual bool supportsUserLevelThreads() const = 0;
          virtual bool hasSeparatedMemorySpace() const { return false; }
-         virtual unsigned int getMemorySpaceId() const { return 0; }
+         unsigned int getMemorySpaceId() const { return _memorySpaceId; }
          virtual unsigned int getMyNodeNumber() const { return 0; }
 
          virtual void waitInputDependent( uint64_t tag ) {}

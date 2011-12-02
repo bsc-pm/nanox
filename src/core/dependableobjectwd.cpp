@@ -77,6 +77,8 @@ void DOWait::wait ( std::list<Dependency *> deps )
 {
    _syncCond.wait();
 
+   getWD()->getNewDirectory()->consolidate();
+
    Directory *d = getWD()->getDirectory(false);
    if ( d != NULL ) {
       std::list<uint64_t> flushDeps;

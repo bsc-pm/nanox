@@ -31,6 +31,12 @@ size_t SMPProcessor::_threadsStackSize = 0;
 System::CachePolicyType SMPProcessor::_cachePolicy = System::DEFAULT;
 size_t SMPProcessor::_cacheDefaultSize = 1048580;
 
+#ifdef SMP_NUMA
+SMPProcessor::SMPProcessor( int id ) : CachedAccelerator<SMPDevice>( id, &SMP ) {}
+#else
+SMPProcessor::SMPProcessor( int id ) : PE( id, &SMP, NULL, sys.getRootMemorySpaceId() ) {}
+#endif
+
 void SMPProcessor::prepareConfig ( Config &config )
 {
    config.registerConfigOption( "user-threads", NEW Config::FlagOption( _useUserThreads, false), "Disable use of user threads to implement workdescriptor" );

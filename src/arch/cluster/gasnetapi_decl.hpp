@@ -25,7 +25,8 @@
 #include "networkapi.hpp"
 #include "simpleallocator.hpp"
 #include "directory.hpp"
-#include "remoteworkgroup_decl.hpp"
+#include "clusterinfo_decl.hpp"
+//#include "remoteworkgroup_decl.hpp"
 #include <map>
 
 extern "C" {

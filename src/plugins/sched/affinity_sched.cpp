@@ -146,32 +146,38 @@ namespace nanos {
                   if ( wo_copies == wd.getNumCopies() ) /* init task */
                   {
                      unsigned int numCaches = sys.getCacheMap().getSize();
-                     unsigned int winner = numCaches - 1;
+                     message("numcaches is " << numCaches);
+                     if (numCaches > 0) {
+                     //int winner = numCaches - 1;
+                     int winner = numCaches ;
                      for ( int i = winner - 1; i >= 0; i -= 1 )
                      {
                         winner = ( tdata._createdData[ winner ] < tdata._createdData[ i ] ) ? winner : i ;
                      }
                      tdata._createdData[ winner ] += createdDataSize;
                      tdata._bufferQueues[winner + 1].push_back( &wd );
+                     message("init: queue " << (winner+1) << " for wd " << wd.getId() );
+                     } else {
+                        tdata._readyQueues[0].push_back( &wd );
+                     }
                      //tdata._readyQueues[winner + 1].push_back( &wd );
-                     //message("init: queue " << (winner+1) << " for wd " << wd.getId() );
                      tdata._holdTasks = true;
                   }
                   else
                   {
                      unsigned int numCaches = sys.getCacheMap().getSize();
-                     unsigned int ranks[numCaches];
+                     unsigned int ranks[numCaches+1];
                      if ( tdata._holdTasks.value() )
                      {
                         if ( tdata._holdTasks.cswap( true, false ) )
                         {
-                           for ( unsigned int idx = 1; idx <= numCaches; idx += 1) 
+                           for ( unsigned int idx = 1; idx <= numCaches+1; idx += 1) 
                            {
                               tdata._readyQueues[ idx ].transferElemsFrom( tdata._bufferQueues[ idx] );
                            }
                         }
                      }
-                     for (unsigned int i = 0; i < numCaches; i++ ) {
+                     for (unsigned int i = 0; i < numCaches+1; i++ ) {
                         ranks[i] = 0;
                      }
                      for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
@@ -193,13 +199,13 @@ namespace nanos {
                      }
                      unsigned int winner = 1;
                      unsigned int maxRank = 0;
-                     for ( unsigned int i = 0; i < numCaches; i++ ) {
+                     for ( unsigned int i = 0; i < numCaches+1; i++ ) {
                         if ( ranks[i] > maxRank ) {
                            winner = i+1;
                            maxRank = ranks[i];
                         }
                      }
-		     //message("queued wd " << wd.getId() << " to queue " << winner << " ranks " << ranks[0] << "," << ranks[1] << "," << ranks[2] << "," << ranks[3] );
+		     message("queued wd " << wd.getId() << " to queue " << winner << " ranks " << ranks[0] << "," << ranks[1] << "," << ranks[2] << "," << ranks[3] );
                      tdata._readyQueues[winner].push_back( &wd );
                   }
                } else {
@@ -260,7 +266,7 @@ namespace nanos {
             if ( tdata._holdTasks.cswap( true, false ) )
             {
                unsigned int numCaches = sys.getCacheMap().getSize();
-               for ( unsigned int idx = 1; idx <= numCaches; idx += 1) 
+               for ( unsigned int idx = 1; idx <= numCaches+1; idx += 1) 
                {
                   tdata._readyQueues[ idx ].transferElemsFrom( tdata._bufferQueues[ idx] );
                }
@@ -270,7 +276,7 @@ namespace nanos {
           *  First try to schedule the thread with a task from its queue
           */
          if ( ( wd = tdata._readyQueues[data._cacheId].pop_front ( thread ) ) != NULL ) {
-//            message("Block:: Ive got a wd, Im at node " << sys.getNetwork()->getNodeNum() );
+            message("Block:: Ive got a wd, Im at node " << data._cacheId );
             return wd;
          } else {
             /*
@@ -316,12 +322,13 @@ namespace nanos {
           *  First try to schedule the thread with a task from its queue
           */
          if ( ( wd = tdata._readyQueues[data._cacheId].pop_front ( thread ) ) != NULL ) {
-            //message("Ive got a wd, Im at node " << sys.getNetwork()->getNodeNum() );
+           message("Ive got a wd, Im at node " << data._cacheId );
             return wd;
          } else {
             /*
              * Then try to get it from the global queue
              */
+             //message("getting from global... im " << data._cacheId);
              wd = tdata._readyQueues[0].pop_front ( thread );
          }
          if ( !_noSteal )

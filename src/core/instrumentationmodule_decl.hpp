@@ -21,7 +21,7 @@
 #include "debug.hpp"
 #include "nanos-int.h"
 #include "instrumentation.hpp"
-#include "system.hpp"
+#include "system_decl.hpp"
 
 namespace nanos {
 

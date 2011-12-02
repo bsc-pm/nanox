@@ -49,7 +49,7 @@ namespace nanos
       public:
         /*! \brief Accelerator constructor - from 'newId' and 'arch'
          */
-         Accelerator ( int newId, const Device *arch, const Device *subArch=NULL ) : ProcessingElement( newId, arch, subArch ) {}
+         Accelerator ( int newId, const Device *arch, const Device *subArch );
         /*! \brief Accelerator destructor
          */
          virtual ~Accelerator() {}

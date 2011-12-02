@@ -35,8 +35,22 @@ void WorkDescriptor::init ()
 
    /* Initializing instrumentation context */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdCreate( this ) );
+  
+   message("init wd " << getId() );
+   if ( getNewDirectory() == NULL )
+      initNewDirectory();
+   getNewDirectory()->setParent( ( getParent() != NULL ) ? getParent()->getNewDirectory() : NULL );   
 
    if ( getNumCopies() > 0 ) {
+      
+      CopyData *copies = getCopies();
+      for ( unsigned int i = 0; i < getNumCopies(); i++ ) {
+         CopyData & cd = copies[i];
+         if ( !cd.isPrivate() ) {
+              getNewDirectory()->registerAccess( cd.getAddress(), cd.getSize(), cd.isInput(), cd.isOutput(), pe->getMemorySpaceId() );
+         }
+      }
+      
       pe->copyDataIn( *this );
 
       if ( _translateArgs != NULL ) {
@@ -157,8 +171,13 @@ void WorkDescriptor::predecessorFinished( WorkDescriptor *predecessorWd )
    }
    _myGraphRepList.value()->push_back( getGE() );
    if (predecessorWd != NULL) predecessorWd->listed();
-   
+
+   message("wd " << getId() << " getting directory from previous wd");
+      if ( getNewDirectory() == NULL )
+         initNewDirectory();
+   _newDirectory->merge( *predecessorWd->getNewDirectory() );
 }
+
 void WorkDescriptor::initMyGraphRepListNoPred( )
 {
    _myGraphRepList = sys.getGraphRepList();

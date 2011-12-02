@@ -27,7 +27,7 @@
 
 using namespace nanos;
 
-Atomic<int> WorkGroup::_atomicSeed( 1 + 10000000 * ( sys.getNetwork() != NULL ? sys.getNetwork()->getNodeNum() : 0 ) );
+//Atomic<int> WorkGroup::_atomicSeed( 22 );
 
 void WorkGroup::addWork ( WorkGroup &work )
 {

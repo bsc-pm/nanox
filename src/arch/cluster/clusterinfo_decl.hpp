@@ -4,6 +4,7 @@
 #include <iostream>
 #include "config_decl.hpp"
 #include "system_decl.hpp"
+#include "remoteworkgroup_fwd.hpp"
 
 namespace nanos {
    namespace ext {
@@ -51,6 +52,7 @@ namespace nanos {
             //static const std::string & getNetworkConduit();
             static void setUpCache();
             static System::CachePolicyType getCachePolicy ( void );
+            static RemoteWorkGroup * getRemoteWorkGroup( int archId );
       };
    }
 }

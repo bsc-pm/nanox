@@ -153,6 +153,8 @@ namespace nanos
          void loadModules();
          
          PE * createPE ( std::string pe_type, int pid );
+         Atomic<int> _atomicSeedWg;
+         Atomic<int> _atomicSeedMemorySpace;
 
       public:
          /*! \brief System default constructor
@@ -311,6 +313,10 @@ namespace nanos
          Plugin * loadAndGetPlugin ( const char *name );
          Plugin * loadAndGetPlugin ( const std::string &name );
          AList& getLocalAccelerators();
+         int getWgId();
+         unsigned int getMemorySpaceId();
+         unsigned int getRootMemorySpaceId();
+         unsigned int getNumMemorySpaces();
 
       private:
          std::list< std::list<GraphEntry *> * > _graphRepLists;

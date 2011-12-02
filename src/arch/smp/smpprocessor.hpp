@@ -59,12 +59,7 @@ namespace ext
 
       public:
          // constructors
-#ifdef SMP_NUMA
-         SMPProcessor( int id ) :
-            CachedAccelerator<SMPDevice>( id, &SMP ) {}
-#else
-         SMPProcessor( int id ) : PE( id, &SMP ) {}
-#endif
+         SMPProcessor( int id );
 
          virtual ~SMPProcessor() {}
 

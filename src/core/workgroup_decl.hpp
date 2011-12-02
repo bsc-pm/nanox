@@ -21,7 +21,6 @@
 #define _NANOS_WORK_GROUP_DECL_H
 
 #include <vector>
-#include "atomic_decl.hpp"
 #include "dependenciesdomain_decl.hpp"
 #include "synchronizedcondition_decl.hpp"
 #include "graphentry_decl.hpp"
@@ -35,7 +34,6 @@ namespace nanos
    class WorkGroup
    {
       private:
-         static Atomic<int> _atomicSeed;
          typedef std::vector<WorkGroup *> WGList; // FIXME: vector is not a safe-class here
 
       private:
@@ -63,9 +61,7 @@ namespace nanos
 
          /*! \brief WorkGroup default constructor
           */
-         WorkGroup()
-            : _id( _atomicSeed++ ), _syncCount(0), _ge(NEW GraphEntry(_id) ), _geNext( NEW GraphEntry(_id) ) , _components( 0 ), 
-            _syncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL) { _ge->setIsWait(); _ge->setCount(0); _geNext->setIsWait(); _geNext->setCount(1);  }
+         WorkGroup();
 
          /*! \brief WorkGroup copy constructor
           */

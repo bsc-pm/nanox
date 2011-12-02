@@ -24,7 +24,14 @@
 #include "compatibility.hpp"
 #include "nanos-int.h"
 #include <algorithm> // for min/max
+#ifdef NANOS_INSTRUMENTATION_ENABLED
 #include "instrumentationmodule_decl.hpp"
+#else
+#ifdef NANOS_INSTRUMENT
+#undef NANOS_INSTRUMENT
+#endif
+#define NANOS_INSTRUMENT(x)
+#endif
 
 /* TODO: move to configure
 #include <ext/atomicity.h>
@@ -263,5 +270,9 @@ inline SyncLockBlock::~SyncLockBlock ( )
 {
    memoryFence();
 }
+
+#ifndef NANOS_INSTRUMENTATION_ENABLED
+#undef NANOS_INSTRUMENT
+#endif
 
 #endif

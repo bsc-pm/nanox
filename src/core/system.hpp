@@ -200,5 +200,10 @@ inline Plugin * System::loadAndGetPlugin ( const std::string & name )
 
 inline System::AList & System::getLocalAccelerators() { return _localAccelerators; }
 
+inline int System::getWgId() { return _atomicSeedWg++; }
+inline unsigned int System::getMemorySpaceId() { return _atomicSeedMemorySpace++; }
+inline unsigned int System::getRootMemorySpaceId() { return 0; }
+inline unsigned int System::getNumMemorySpaces() { return _atomicSeedMemorySpace.value(); }
+
 #endif
 

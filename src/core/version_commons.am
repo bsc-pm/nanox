@@ -90,6 +90,9 @@ common_sources=\
 	$(top_srcdir)/src/core/networkapi.hpp  \
 	$(top_srcdir)/src/core/network_decl.hpp  \
 	$(top_srcdir)/src/core/network.cpp  \
+	$(top_srcdir)/src/core/newdirectory.cpp  \
+	$(top_srcdir)/src/core/newdirectory.hpp  \
+	$(top_srcdir)/src/core/newdirectory_decl.hpp  \
 	$(END)
 
 instr_sources = \

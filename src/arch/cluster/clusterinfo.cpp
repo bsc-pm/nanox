@@ -2,6 +2,7 @@
 #include "new_decl.hpp"
 #include "system.hpp"
 #include "config.hpp"
+#include "remoteworkgroup_decl.hpp"
 
 using namespace nanos;
 using namespace ext;
@@ -159,4 +160,9 @@ int ClusterInfo::getGpuPresend()
 System::CachePolicyType ClusterInfo::getCachePolicy ( void )
 {
    return _cachePolicy;
+}
+
+RemoteWorkGroup * ClusterInfo::getRemoteWorkGroup( int archId )
+{
+   return NEW RemoteWorkGroup( archId );
 }

@@ -35,6 +35,7 @@
 #include "schedule.hpp"
 #include "dependenciesdomain.hpp"
 #include "allocator_decl.hpp"
+#include "newdirectory_decl.hpp"
 
 using namespace nanos;
 
@@ -159,6 +160,9 @@ inline void WorkDescriptor::workFinished(WorkDescriptor &wd)
 {
    if ( wd._doSubmit != NULL )
       wd._doSubmit->finished();
+   if (sys.getNetwork()->getNodeNum()==0){ message("a child, " << wd.getId() << " has finished, im " << getId() ); }
+   if ( _newDirectory == NULL ) initNewDirectory();
+   _newDirectory->mergeOutput( *(wd.getNewDirectory()) );
 }
 
 inline DependenciesDomain & WorkDescriptor::getDependenciesDomain()
@@ -172,6 +176,8 @@ inline InstrumentationContextData * WorkDescriptor::getInstrumentationContextDat
 inline void WorkDescriptor::waitCompletion( bool avoidFlush )
 {
    this->WorkGroup::waitCompletion();
+   getNewDirectory()->consolidate();
+   if (sys.getNetwork()->getNodeNum()==0){ message("WorkDescriptor::waitCompletion, " << getId() ); }
    if ( _directory.isInitialized() && !avoidFlush )
       _directory->synchronizeHost();
 }
@@ -179,6 +185,8 @@ inline void WorkDescriptor::waitCompletion( bool avoidFlush )
 inline void WorkDescriptor::waitCompletionAndSignalers( bool avoidFlush )
 {
    this->WorkGroup::waitCompletionAndSignalers();
+   //getNewDirectory()->consolidate();
+   //if (sys.getNetwork()->getNodeNum()==0){ message("WorkDescriptor::waitCompletionAndSignalers, " << getId() ); }
    if ( _directory.isInitialized() && !avoidFlush )
       _directory->synchronizeHost();
 }
@@ -190,6 +198,14 @@ inline Directory* WorkDescriptor::getDirectory(bool create)
    }
    _directory->setParent( (getParent() != NULL) ? getParent()->getDirectory(false) : NULL );
    return &(*_directory);
+}
+inline NewDirectory* WorkDescriptor::getNewDirectory()
+{
+   return _newDirectory;
+}
+inline void WorkDescriptor::initNewDirectory()
+{
+   _newDirectory = NEW NewDirectory() ;
 }
 
 inline bool WorkDescriptor::isSubmitted() const { return _submitted; }

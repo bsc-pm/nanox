@@ -17,35 +17,18 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_PROCESSING_ELEMENT
-#define _NANOS_PROCESSING_ELEMENT
+#ifndef _NANOS_NEWDIRECTORY_FWD_H
+#define _NANOS_NEWDIRECTORY_FWD_H
 
-#include <string.h>
-#include "functors.hpp"
-#include "processingelement_decl.hpp"
-#include "workdescriptor_decl.hpp"
-
-using namespace nanos;
-
-inline ProcessingElement::~ProcessingElement()
+namespace nanos
 {
-   std::for_each(_threads.begin(),_threads.end(),deleter<BaseThread>);
-}
 
-inline int ProcessingElement::getId() const
-{
-   return _id;
-}
+   class NewEntry;
 
-inline const Device * ProcessingElement::getDeviceType () const
-{
-   return _device;
-}
+   class NewDirectoryEntry;
 
-inline const Device * ProcessingElement::getSubDeviceType () const
-{
-   return _subDevice;
-}
+   class NewDirectory ;
+
+};
 
 #endif
-

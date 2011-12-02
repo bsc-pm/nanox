@@ -1086,7 +1086,6 @@ inline void * DeviceCache<_T>::allocate( Directory &dir, std::size_t size )
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
    } else {
       // FIXME: lock the cache
-      message("WARNING: really full??? size is " << _size << " used " << _usedSize << " requested " << size );
       freeSpaceToFit( dir, size );
       // FIXME: unlock
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_CACHE, key, (nanos_event_value_t) size) );
@@ -1179,7 +1178,6 @@ template <class _T>
 inline void DeviceCache<_T>::realloc( Directory& dir, CacheEntry *ce, std::size_t size )
 {
    if ( (_usedSize + size - ce->getSize()) > _size ) {
-      message("WARNING: realloc, used+size-entrysize "<< (_usedSize + size - ce->getSize()) << " well, size is " << _size );
       freeSpaceToFit( dir, size - ce->getSize() );
    }
    _usedSize += size - ce->getSize();

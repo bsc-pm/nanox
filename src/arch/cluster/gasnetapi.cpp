@@ -419,7 +419,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
    void *rmwd = (void *) MERGE_ARG( rmwdHi, rmwdLo );
    gasnet_node_t src_node;
    unsigned int i;
-   WG *rwg;
+   WorkGroup *rwg;
 
    if (gasnet_AMGetMsgSource(token, &src_node) != GASNET_OK)
    {
@@ -462,14 +462,22 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
    {
       //SMP
       devPtr = &newDeviceSMP;
-      rwg = GASNetAPI::_rwgSMP;
+
+      if (GASNetAPI::_rwgSMP == NULL) 
+         GASNetAPI::_rwgSMP = ClusterInfo::getRemoteWorkGroup( 0 );
+
+      rwg = (WorkGroup *) GASNetAPI::_rwgSMP;
    }
 #ifdef GPU_DEV
    else if (arch == 1)
    {
       //FIXME: GPU support
       devPtr = &newDeviceGPU;
-      rwg = GASNetAPI::_rwgGPU;
+
+      if (GASNetAPI::_rwgGPU == NULL)
+         GASNetAPI::_rwgGPU = ClusterInfo::getRemoteWorkGroup( 1 );
+
+      rwg = (WorkGroup *) GASNetAPI::_rwgGPU;
    }
 #endif
    else
@@ -1064,9 +1072,6 @@ void GASNetAPI::initialize ( Network *net )
    int my_argc = OS::getArgc();
    char **my_argv = OS::getArgv();
    uintptr_t segSize;
-
-   _rwgSMP = NEW RemoteWorkGroup( 0 );
-   _rwgGPU = NEW RemoteWorkGroup( 1 );
 
 
    _net = net;

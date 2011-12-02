@@ -21,16 +21,24 @@
 #define _NANOS_WORK_GROUP_H
 
 #include "workgroup_decl.hpp"
-#include "atomic.hpp"
 #include "schedule_decl.hpp"
 #include "synchronizedcondition.hpp"
-#include "system.hpp"
 #include "instrumentation.hpp"
 #include "workdescriptor_decl.hpp"
+#include "system.hpp"
 
 using namespace nanos;
 
-inline WorkGroup::WorkGroup( const WorkGroup &wg ) : _id( _atomicSeed++ ),
+inline WorkGroup::WorkGroup() : _id( sys.getWgId() ), _syncCount(0), _ge(NEW GraphEntry(_id) ), _geNext( NEW GraphEntry(_id) ),
+            _components( 0 ), _syncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL)
+{
+   _ge->setIsWait();
+   _ge->setCount(0);
+   _geNext->setIsWait();
+   _geNext->setCount(1);
+}
+
+inline WorkGroup::WorkGroup( const WorkGroup &wg ) : _id( sys.getWgId() ),
             _syncCount(0), _ge(NEW GraphEntry(_id) ), _geNext( NULL ), _components( 0 ),
             _syncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ), _parent(NULL) 
 {

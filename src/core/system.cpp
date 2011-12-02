@@ -77,7 +77,7 @@ System::System () :
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _usingCluster( false ),_usingNode2Node( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL ),
-      _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap(), _masterGpuThd( NULL )
+      _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap(), _masterGpuThd( NULL ), _atomicSeedWg( 1 ), _atomicSeedMemorySpace( 1 )
 {
    verbose0 ( "NANOS++ initializing... start" );
    // OS::init must be called here and not in System::start() as it can be too late
@@ -350,6 +350,9 @@ void System::start ()
      mainWD.setInternalData( NEW char[_pmInterface->getInternalDataSize()] );
       
    _pmInterface->setupWD( mainWD );
+   mainWD.initNewDirectory();
+   mainWD.getNewDirectory()->setRoot();
+   message0("mainWD is id " << mainWD.getId() << " and dir addr is " << (void *) mainWD.getNewDirectory() );
 
    /* Renaming currend thread as Master */
    myThread->rename("Master");
@@ -466,7 +469,7 @@ void System::start ()
          _pmInterface->setupWD( smpRepThd->getThreadWD() );
          _workers.push_back( smpRepThd ); 
          _net.setMasterDirectory( smpRepThd->getThreadWD().getDirectory(true) );
-         setSlaveParentWD( &smpRepThd->getThreadWD() );
+         setSlaveParentWD( &mainWD );
       }
    }
 #endif

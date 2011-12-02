@@ -34,7 +34,7 @@
 #include "instrumentationcontext_fwd.hpp"
 #include "workdescriptor_fwd.hpp"
 #include "allocator_decl.hpp"
-#include "basethread_decl.hpp"
+#include "basethread_fwd.hpp"
 
 namespace nanos {
 

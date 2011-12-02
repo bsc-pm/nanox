@@ -32,6 +32,8 @@ using namespace nanos;
 Lock Accelerator::_transferLock;
 #endif
 
+Accelerator::Accelerator ( int newId, const Device *arch, const Device *subArch ) : ProcessingElement( newId, arch, subArch, sys.getMemorySpaceId() ) {}
+
 bool Accelerator::dataCanBlockUs( WorkDescriptor &work ) 
 {
    bool result = false;
