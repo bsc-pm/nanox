@@ -17,31 +17,23 @@
 #include "os.hpp"
 
 #ifndef EXTRAE_VERSION
-/* Once Extrae 2.2.0 has been published this option must be an error: see #525 */
-//#  error Extrae library version is not supported (use >= 2.2.0)
-//#  undef NANOS_INSTRUMENTATION_ENABLED
-#      define extrae_combined_events_t struct extrae_CombinedEvents
-#      define extrae_type_t unsigned
-#      define extrae_value_t unsigned
-#      define extrae_user_communication_t struct extrae_UserCommunication
-#      define extrae_size_t int
-#      define NANOX_EXTRAE_DISCARD_SUSPEND
-#      define NANOX_EXTRAE_DISCARD_RESUME
-#      define NANOX_EXTRAE_STACKED_CONTEXT_SWITCH
+#warning Extrae library version is not supported (use >= 2.2.0):
 #else
-#  if EXTRAE_VERSION_MAJOR(EXTRAE_VERSION) == 2
-#      define NANOX_EXTRAE_DISCARD_SUSPEND         //FIXME
-#      define NANOX_EXTRAE_DISCARD_RESUME          //FIXME
-#      define NANOX_EXTRAE_STACKED_CONTEXT_SWITCH  //FIXME
-#    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 2 /* version 2.2.x */
+#  if EXTRAE_VERSION_MAJOR(EXTRAE_VERSION) == 2 /* version 2.x.x */
+#      define NANOX_EXTRAE_DISCARD_SUSPEND         //FIXME: Using old instrumentation fashion
+#      define NANOX_EXTRAE_DISCARD_RESUME          //FIXME: Using old instrumentation fashion
+#      define NANOX_EXTRAE_STACKED_CONTEXT_SWITCH  //FIXME: Using old instrumentation fashion
 #      define extrae_size_t unsigned int
 #      define NANOX_EXTRAE_DISCARD_THREAD_NAME
+#    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 2 /* version 2.2.x */
 #      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 0 /* version 2.2.0 */
+#      define NANOX_EXTRAE_SUPPORTED_VERSION
 #      endif
 #    endif
 #  endif
 #endif
 
+#ifdef NANOX_EXTRAE_SUPPORTED_VERSION
 extern "C" {
    unsigned int nanos_ompitrace_get_max_threads ( void );
    unsigned int nanos_ompitrace_get_thread_num ( void );
@@ -727,3 +719,5 @@ class InstrumentationParaverPlugin : public Plugin {
 } // namespace nanos
 
 DECLARE_PLUGIN("instrumentation-paraver",nanos::ext::InstrumentationParaverPlugin);
+
+#endif
