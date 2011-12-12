@@ -49,6 +49,7 @@ int test_single_lock()
      .mandatory_creation = true,
      .tied = false,
      .tie_to = false,
+     .priority = 0,
    };
 
    omp_init_lock( &mylock );
@@ -111,6 +112,7 @@ int test_nest_lock()
      .mandatory_creation = true,
      .tied = false,
      .tie_to = false,
+     .priority = 0,
    };
 
    omp_init_nest_lock( &mynlock );

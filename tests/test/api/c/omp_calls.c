@@ -44,6 +44,7 @@ int main ( int argc, char **argv )
      .mandatory_creation = true,
      .tied = false,
      .tie_to = false,
+     .priority = 0,
    };
 
    int level = omp_get_level();
