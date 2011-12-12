@@ -191,5 +191,8 @@ inline Directory* WorkDescriptor::getDirectory(bool create)
 inline bool WorkDescriptor::isSubmitted() const { return _submitted; }
 inline void WorkDescriptor::submitted()  { _submitted = true; }
 
+inline void WorkDescriptor::setPriority( unsigned int priority ) { _priority = priority; }
+inline unsigned int WorkDescriptor::getPriority() const{ return _priority; }
+
 #endif
 

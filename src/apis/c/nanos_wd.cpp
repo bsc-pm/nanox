@@ -221,6 +221,8 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
             if ( props->tie_to != myThread) fatal ("Tiedness violation");
             wd.tieTo( *( BaseThread * ) props->tie_to );
          }
+         // Set priority
+         wd.setPriority( props->priority );
       }
 
       int pmDataSize = sys.getPMInterface().getInternalDataSize();
