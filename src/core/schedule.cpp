@@ -125,14 +125,16 @@ inline void Scheduler::idleLoop ()
 
    NANOS_INSTRUMENT ( nanos_event_key_t Keys[7]; )
 
-   NANOS_INSTRUMENT ( Keys[0] = total_spins_key; )
-   NANOS_INSTRUMENT ( Keys[1] = total_yields_key; )
+   NANOS_INSTRUMENT ( Keys[0] = total_yields_key; )
+   NANOS_INSTRUMENT ( Keys[1] = time_yields_key; )
    NANOS_INSTRUMENT ( Keys[2] = total_sleeps_key; )
-   NANOS_INSTRUMENT ( Keys[3] = total_scheds_key; )
-
-   NANOS_INSTRUMENT ( Keys[4] = time_yields_key; )
-   NANOS_INSTRUMENT ( Keys[5] = time_sleeps_key; )
+   NANOS_INSTRUMENT ( Keys[3] = time_sleeps_key; )
+   NANOS_INSTRUMENT ( Keys[4] = total_spins_key; )
+   NANOS_INSTRUMENT ( Keys[5] = total_scheds_key; )
    NANOS_INSTRUMENT ( Keys[6] = time_scheds_key; )
+
+   NANOS_INSTRUMENT ( unsigned event_start; )
+   NANOS_INSTRUMENT ( unsigned event_num; )
 
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_IDLE) );
 
@@ -182,16 +184,24 @@ inline void Scheduler::idleLoop ()
             total_spins+= (nspins - spins);
             NANOS_INSTRUMENT ( nanos_event_value_t Values[7]; )
 
-            NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) total_spins; )
-            NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) total_yields; )
-            NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) total_sleeps; )
-            NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) total_scheds; )
+            NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) total_yields; )
+            NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) time_yields; )
 
-            NANOS_INSTRUMENT ( Values[4] = (nanos_event_value_t) time_yields; )
-            NANOS_INSTRUMENT ( Values[5] = (nanos_event_value_t) time_sleeps; )
+            NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) total_sleeps; )
+            NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) time_sleeps; )
+
+            NANOS_INSTRUMENT ( Values[4] = (nanos_event_value_t) total_spins; )
+
+            NANOS_INSTRUMENT ( Values[5] = (nanos_event_value_t) total_scheds; )
             NANOS_INSTRUMENT ( Values[6] = (nanos_event_value_t) time_scheds; )
 
-            NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(7, Keys, Values); )
+            NANOS_INSTRUMENT ( event_start = 0; event_num = 7; )
+
+            NANOS_INSTRUMENT ( if (total_yields == 0 ) { event_start = 2; event_num = 5; } )
+            NANOS_INSTRUMENT ( if (total_yields == 0 && total_sleeps == 0) { event_start = 4; event_num = 3; } )
+            NANOS_INSTRUMENT ( if (total_scheds == 0 ) { event_num -= 2; } )
+
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(event_num, &Keys[event_start], &Values[event_start]); )
 
             NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) )
             behaviour::switchWD(thread, current, next);
