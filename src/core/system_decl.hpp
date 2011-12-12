@@ -108,9 +108,6 @@ namespace nanos
          /*! It manages all registered and active plugins */
          PluginManager        _pluginManager;
 
-         // Memory access directory
-         Directory            _directory;
-
          // Programming model interface
          PMInterface *        _pmInterface;
 
