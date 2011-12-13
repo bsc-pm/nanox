@@ -36,6 +36,8 @@
 #include "allocator_decl.hpp"
 #include "basethread_decl.hpp"
 
+#define NANOX_INSTRUMENTATION_PARTNER_MYSELF 0xFFFFFFFF
+
 namespace nanos {
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
@@ -392,7 +394,7 @@ namespace nanos {
                 *  \see State Burst Point PtP
                 */
                Event () : _type((nanos_event_type_t) 0), _state((nanos_event_state_value_t) 0), _nkvs(0),
-                          _kvList(NULL), _ptpDomain((nanos_event_domain_t) 0), _ptpId(0), _partner(0) {}
+                          _kvList(NULL), _ptpDomain((nanos_event_domain_t) 0), _ptpId(0), _partner( NANOX_INSTRUMENTATION_PARTNER_MYSELF ) {}
                /*! \brief Event constructor
                 *
                 *  Generic constructor used by all other specific constructors
@@ -400,7 +402,7 @@ namespace nanos {
                 *  \see State Burst Point PtP
                 */
                Event ( nanos_event_type_t type, nanos_event_state_value_t state, unsigned int nkvs, KVList kvlist,
-                       nanos_event_domain_t ptp_domain, nanos_event_id_t ptp_id, unsigned int partner = 0 ) :
+                       nanos_event_domain_t ptp_domain, nanos_event_id_t ptp_id, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF ) :
                      _type (type), _state (state), _nkvs(nkvs), _kvList (kvlist), 
                      _ptpDomain (ptp_domain), _ptpId (ptp_id), _partner(partner)
                { }
