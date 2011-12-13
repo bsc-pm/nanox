@@ -24,6 +24,7 @@
 #ifndef EXTRAE_VERSION
 #warning Extrae library version is not supported (use >= 2.2.0):
 #else
+#  define NANOX_EXTRAE_SUPPORTED_VERSION
 #  if EXTRAE_VERSION_MAJOR(EXTRAE_VERSION) == 2 /* version 2.x.x */
 #      define NANOX_EXTRAE_DISCARD_SUSPEND         //FIXME: Using old instrumentation fashion
 #      define NANOX_EXTRAE_DISCARD_RESUME          //FIXME: Using old instrumentation fashion
@@ -32,7 +33,6 @@
 #      define NANOX_EXTRAE_DISCARD_THREAD_NAME
 #    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 2 /* version 2.2.x */
 #      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 0 /* version 2.2.0 */
-#      define NANOX_EXTRAE_SUPPORTED_VERSION
 #      undef  NANOX_EXTRAE_DEFINE_CALLBACKS
 #      endif
 #    endif
