@@ -33,6 +33,7 @@
 #      define NANOX_EXTRAE_DISCARD_THREAD_NAME
 #    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 2 /* version 2.2.x */
 #      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 0 /* version 2.2.0 */
+#      define EXTRAE_COMM_PARTNER_MYSELF ((extrae_comm_partner_t) 0x00000000)
 #      undef  NANOX_EXTRAE_DEFINE_CALLBACKS
 #      endif
 #    endif
@@ -602,8 +603,13 @@ class InstrumentationExtrae: public Instrumentation
                      default: 
                         break; // FIXME here goes a fatal
                   }
-                     
-                  ce.Communications[k].partner = e.getPartner();
+
+                  if ( e.getPartner() == NANOX_INSTRUMENTATION_PARTNER_MYSELF ) {
+                     ce.Communications[k].partner = EXTRAE_COMM_PARTNER_MYSELF;
+                  } else {
+                     ce.Communications[k].partner = (extrae_comm_partner_t) e.getPartner();
+                  }
+
                   k++;
                   // continue...
                case NANOS_POINT:
