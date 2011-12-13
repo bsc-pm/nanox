@@ -16,6 +16,11 @@
 #include <libgen.h>
 #include "os.hpp"
 
+/* NANOX_EXTRAE_DEFINE_CALLBACKS will allow to define which are our external services
+ * to specify the execution environment ( thread id, total threads, etc ). They are
+ * defined on Extrae 2.2.1 and above */
+#define NANOX_EXTRAE_DEFINE_CALLBACKS
+
 #ifndef EXTRAE_VERSION
 #warning Extrae library version is not supported (use >= 2.2.0):
 #else
@@ -28,6 +33,7 @@
 #    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 2 /* version 2.2.x */
 #      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 0 /* version 2.2.0 */
 #      define NANOX_EXTRAE_SUPPORTED_VERSION
+#      undef  NANOX_EXTRAE_DEFINE_CALLBACKS
 #      endif
 #    endif
 #  endif
@@ -37,6 +43,9 @@
 extern "C" {
    unsigned int nanos_ompitrace_get_max_threads ( void );
    unsigned int nanos_ompitrace_get_thread_num ( void );
+   unsigned int nanos_extrae_node_id();
+   unsigned int nanos_extrae_num_nodes();
+   void         nanos_ompitrace_instrumentation_barrier();
 }
 
 namespace nanos {
@@ -470,6 +479,17 @@ class InstrumentationExtrae: public Instrumentation
          /* Setting EXTRAE_FINAL_DIR environment variable */
          sprintf(env_trace_final_dir, "EXTRAE_FINAL_DIR=%s", _traceFinalDirectory.c_str());
          putenv (env_trace_final_dir);
+
+#ifdef NANOX_EXTRAE_DEFINE_CALLBACKS
+        // Common thread information
+        Extrae_set_threadid_function ( nanos_ompitrace_get_thread_num );
+        Extrae_set_numthreads_function ( nanos_ompitrace_get_max_threads );
+
+        // Cluster specific information
+        void Extrae_set_taskid_function ( nanos_extrae_node_id );
+        void Extrae_set_numtasks_function ( nanos_extrae_num_nodes );
+        void Extrae_set_barrier_tasks_function ( nanos_ompitrace_instrumentation_barrier );
+#endif
 
          /* OMPItrace initialization */
          OMPItrace_init();
