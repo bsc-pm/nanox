@@ -18,7 +18,7 @@
 /*************************************************************************************/
 
 #include "schedule.hpp"
-#include "wdpriorityqueue.hpp"
+#include "wddeque.hpp"
 #include "plugin.hpp"
 #include "system.hpp"
 #include "config.hpp"

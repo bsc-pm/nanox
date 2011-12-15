@@ -105,6 +105,7 @@ namespace nanos
    class SchedulerStats
    {
          friend class WDDeque;
+         friend class WDLFQueue;
          friend class WDPriorityQueue;
          friend class Scheduler;
          friend class System;

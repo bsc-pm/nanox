@@ -53,8 +53,8 @@ inline void WorkDescriptor::setDataAlignment ( int data_align ) { _data_align = 
 inline WorkDescriptor * WorkDescriptor::getParent() { return _parent; }
 inline void WorkDescriptor::setParent ( WorkDescriptor * p ) { _parent = p; }
 
-inline WDDeque * WorkDescriptor::getMyQueue() { return _myQueue; }
-inline void WorkDescriptor::setMyQueue ( WDDeque * myQ ) { _myQueue = myQ; }
+inline WDPool * WorkDescriptor::getMyQueue() { return _myQueue; }
+inline void WorkDescriptor::setMyQueue ( WDPool * myQ ) { _myQueue = myQ; }
 
 inline bool WorkDescriptor::isEnqueued() { return ( _myQueue != NULL ); }
 
