@@ -416,7 +416,7 @@ inline WorkDescriptor * WDPriorityQueue::pop ( BaseThread *thread )
  */
 inline WorkDescriptor * WDPriorityQueue::pop_back ( BaseThread *thread )
 {
-      return pop( thread );
+   return pop( thread );
 }
 
 /*!
@@ -424,7 +424,7 @@ inline WorkDescriptor * WDPriorityQueue::pop_back ( BaseThread *thread )
  */
 inline WorkDescriptor * WDPriorityQueue::pop_front ( BaseThread *thread )
 {
-      return pop( thread );
+   return pop( thread );
 }
 
 inline bool WDPriorityQueue::removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next )
@@ -448,8 +448,7 @@ inline WorkDescriptor * WDPriorityQueue::popWithConstraints ( BaseThread *thread
 
       if ( !_dq.empty() ) {
          WDPriorityQueue::BaseContainer::iterator it;
-
-         for ( it = _dq.begin(); it != _dq.end() ; it++ ) {
+         for ( it = _dq.begin(); it != _dq.end() ; ++it ) {
             WD &wd = *(WD *)*it;
             if ( Scheduler::checkBasicConstraints( wd, *thread) && Constraints::check(wd,*thread)) {
                if ( wd.dequeue( &found ) ) {
