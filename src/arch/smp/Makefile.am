@@ -34,6 +34,8 @@ EXTRA_DIST= \
 	ppc64/stack.s \
 	armv7l/stack.cpp \
 	armv7l/stack.s \
-        smp_ult.hpp \
+	tile64/stack.cpp \
+	tile64/stack.s \
+   smp_ult.hpp \
 	$(END)
 
