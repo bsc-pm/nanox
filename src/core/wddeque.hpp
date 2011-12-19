@@ -383,25 +383,21 @@ inline void WDPriorityQueue::push ( WorkDescriptor *wd )
 }
 
 /*!
- * \brief Same as calling WDPriorityQueue::push.
- * The priority queue will insert the element in the position
- * it considers based on priority.
+ * \brief This method is not supported.
  * \see WDPriorityQueue::push
  */
 inline void WDPriorityQueue::push_back ( WorkDescriptor *wd )
 {
-   return push( wd );
+   fatal("Method not implemented" );
 }
 
 /*!
- * \brief Same as calling WDPriorityQueue::push.
- * The priority queue will insert the element in the position
- * it considers based on priority.
+ * \brief This method is not supported.
  * \see WDPriorityQueue::push
  */
 inline void WDPriorityQueue::push_front ( WorkDescriptor *wd )
 {
-   return push( wd );
+   fatal("Method not implemented" );
 }
 
 
@@ -416,7 +412,7 @@ inline WorkDescriptor * WDPriorityQueue::pop ( BaseThread *thread )
  */
 inline WorkDescriptor * WDPriorityQueue::pop_back ( BaseThread *thread )
 {
-   return pop( thread );
+   fatal("Method not implemented" );
 }
 
 /*!
@@ -424,7 +420,7 @@ inline WorkDescriptor * WDPriorityQueue::pop_back ( BaseThread *thread )
  */
 inline WorkDescriptor * WDPriorityQueue::pop_front ( BaseThread *thread )
 {
-   return pop( thread );
+   fatal("Method not implemented" );
 }
 
 inline bool WDPriorityQueue::removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next )
