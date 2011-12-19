@@ -407,7 +407,7 @@ inline void WDPriorityQueue::push_front ( WorkDescriptor *wd )
 
 inline WorkDescriptor * WDPriorityQueue::pop ( BaseThread *thread )
 {
-  return popWithConstraints<NoConstraints>(thread);
+   return popWithConstraints<NoConstraints>(thread);
 }
 
 /*!
@@ -429,7 +429,7 @@ inline WorkDescriptor * WDPriorityQueue::pop_front ( BaseThread *thread )
 
 inline bool WDPriorityQueue::removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next )
 {
-  return removeWDWithConstraints<NoConstraints>(thread,toRem,next);
+   return removeWDWithConstraints<NoConstraints>(thread,toRem,next);
 }
 
 // Only ensures tie semantics
