@@ -20,6 +20,7 @@
 /*
 <testinfo>
 test_generator=gens/mixed-generator
+export NX_TEST_SCHEDULE=priority
 </testinfo>
 */
 
@@ -46,13 +47,39 @@ typedef struct {
 
 void main__loop_1 ( void *args );
 
+/**
+ * This task should have enough granularity so that the second
+ * loop is queued when these are still running.
+ */
 void main__loop_1 ( void *args )
 {
    int i;
    main__loop_1_data_t *hargs = (main__loop_1_data_t * ) args;
 
    for ( i = hargs->loop_info.lower; i < hargs->loop_info.upper; i += hargs->loop_info.step) {
-      A[i]++;
+      A[i] += 100;
+   }
+   // Granularity should be adjusted here
+   usleep( 1000 );
+}
+
+/**
+ * This loop will set all elements to zero.
+ * If the priority scheduler is working properly, after both
+ * loops have run, the resulting array will contains elements
+ * > 0.
+ */
+void main__loop_2 ( void *args );
+
+// OLD The operations of this loop over A must be executed after ops of the first
+// one. ( ( A[i]++) *= 2 ) != ( ( A[i]*=2 )++ )
+void main__loop_2 ( void *args )
+{
+   int i;
+   main__loop_1_data_t *hargs = (main__loop_1_data_t * ) args;
+
+   for ( i = hargs->loop_info.lower; i < hargs->loop_info.upper; i += hargs->loop_info.step) {
+      A[i]=0;
    }
 }
 
@@ -64,7 +91,7 @@ int main ( int argc, char **argv )
    main__loop_1_data_t _loop_data;
 
    // initialize vector
-      for ( i = 0; i < VECTOR_SIZE; i++ ) A[i] = 0;
+   for ( i = 0; i < VECTOR_SIZE; i++ ) A[i] = 0;
 
    // increment vector
    for ( i = 0; i < NUM_ITERS; i++ ) {
@@ -81,8 +108,8 @@ int main ( int argc, char **argv )
         return -1;
       }
 
-      wd->setPriority( 200 );
-      if( wd->getPriority() != 200 ){
+      wd->setPriority( 100 );
+      if( wd->getPriority() != 100 ){
         fprintf(stderr, "%s : WD setted priority is not 200 [KO].", argv[0] );
         return -1;
       }
@@ -94,15 +121,33 @@ int main ( int argc, char **argv )
       // Work submission
       sys.submit( *wd );
 
+#else
+      for ( int j = 0; j < VECTOR_SIZE; j++ ) A[j] += 100;
+#endif
+   }
+   {
+#if USE_NANOS
+      // Second task: set to 0
+      WD* wd = new WD( new SMPDD( main__loop_2 ), sizeof( _loop_data ), __alignof__(nanos_loop_info_t), ( void * ) &_loop_data );
+      // Use a higher priority
+      wd->setPriority( 150 );
+      WG *wg = getMyThreadSafe()->getCurrentWD();
+      wg->addWork( *wd );
+      // Work submission
+      sys.submit( *wd );
+
       // barrier (kind of)
       wg->waitCompletion();
 #else
-      for ( int j = 0; j < VECTOR_SIZE; j++ ) A[j]++;
+      for ( int j = 0; j < VECTOR_SIZE; j++ ) A[j] = 0;
 #endif
    }
+   
 
    // check vector
-   for ( i = 0; i < VECTOR_SIZE; i++ ) if ( A[i] != NUM_ITERS ) check = false;
+   for ( i = 0; i < VECTOR_SIZE; i++ ) if ( A[i] == 0 ) check = false;
+   for(i=0;i<25;++i) printf("%d", A[i]);
+   printf("\n");
 
    if ( check ) {
       fprintf(stderr, "%s : %s\n", argv[0], "successful");
