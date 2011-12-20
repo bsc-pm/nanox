@@ -28,73 +28,73 @@ namespace nanos {
 
       class Priority : public SchedulePolicy
       {
-        private:
-           struct TeamData : public ScheduleTeamData
-           {
-              WDPriorityQueue           _readyQueue;
-
-              TeamData () : ScheduleTeamData(), _readyQueue() {}
-              ~TeamData () {}
-           };
-
-         public:
-           Priority() : SchedulePolicy("Priority First") {}
-           virtual ~Priority () {}
-
-         private:
+      private:
+         struct TeamData : public ScheduleTeamData
+         {
+            WDPriorityQueue           _readyQueue;
             
-           virtual size_t getTeamDataSize () const { return sizeof(TeamData); }
-           virtual size_t getThreadDataSize () const { return 0; }
+            TeamData () : ScheduleTeamData(), _readyQueue() {}
+            ~TeamData () {}
+         };
 
-           virtual ScheduleTeamData * createTeamData ( ScheduleTeamData *preAlloc )
-           {
-              TeamData *data;
+      public:
+         Priority() : SchedulePolicy("Priority First") {}
+         virtual ~Priority () {}
 
-              if ( preAlloc ) data = new (preAlloc) TeamData();
-              else data = NEW TeamData();
-
-              return data;
-           }
-
-           virtual ScheduleThreadData * createThreadData ( ScheduleThreadData *preAlloc )
-           {
-              return 0;
-           }
-
-           virtual void queue ( BaseThread *thread, WD &wd )
-           {
-              TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
-              tdata._readyQueue.push( &wd );
-           }
-
-           virtual WD *atSubmit ( BaseThread *thread, WD &newWD )
-           {
-              queue( thread, newWD );
-              return 0;
-           }
-
-           WD * atIdle ( BaseThread *thread )
-           {
-              TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
-              
-              return tdata._readyQueue.pop( thread );
-           }
+      private:
+            
+         virtual size_t getTeamDataSize () const { return sizeof(TeamData); }
+         virtual size_t getThreadDataSize () const { return 0; }
+         
+         virtual ScheduleTeamData * createTeamData ( ScheduleTeamData *preAlloc )
+         {
+            TeamData *data;
+            
+            if ( preAlloc ) data = new (preAlloc) TeamData();
+            else data = NEW TeamData();
+            
+            return data;
+         }
+         
+         virtual ScheduleThreadData * createThreadData ( ScheduleThreadData *preAlloc )
+         {
+            return 0;
+         }
+         
+         virtual void queue ( BaseThread *thread, WD &wd )
+         {
+            TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+            tdata._readyQueue.push( &wd );
+         }
+         
+         virtual WD *atSubmit ( BaseThread *thread, WD &newWD )
+         {
+            queue( thread, newWD );
+            return 0;
+         }
+         
+         WD * atIdle ( BaseThread *thread )
+         {
+            TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+           
+            return tdata._readyQueue.pop( thread );
+         }
       };
 
       class PrioritySchedPlugin : public Plugin
       {
 
-         public:
-            PrioritySchedPlugin() : Plugin( "Priority scheduling Plugin",1 ) {}
+      public:
+         PrioritySchedPlugin() : Plugin( "Priority scheduling Plugin",1 ) {}
 
-            virtual void config ( Config &cfg )
-            {
-               cfg.setOptionsSection( "Priority module", "Priority scheduling module" );
-            }
+         virtual void config ( Config &cfg )
+         {
+            cfg.setOptionsSection( "Priority module", "Priority scheduling module" );
+         }
 
-            virtual void init() {
-               sys.setDefaultSchedulePolicy(NEW Priority());
-            }
+         virtual void init() {
+            sys.setDefaultSchedulePolicy(NEW Priority());
+         }
       };
 
    }
