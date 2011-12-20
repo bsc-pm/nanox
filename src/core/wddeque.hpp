@@ -388,7 +388,7 @@ inline void WDPriorityQueue::push ( WorkDescriptor *wd )
  */
 inline void WDPriorityQueue::push_back ( WorkDescriptor *wd )
 {
-   fatal("Method not implemented" );
+   fatal( "Method not implemented" );
 }
 
 /*!
@@ -397,7 +397,7 @@ inline void WDPriorityQueue::push_back ( WorkDescriptor *wd )
  */
 inline void WDPriorityQueue::push_front ( WorkDescriptor *wd )
 {
-   fatal("Method not implemented" );
+   fatal( "Method not implemented" );
 }
 
 
@@ -412,7 +412,7 @@ inline WorkDescriptor * WDPriorityQueue::pop ( BaseThread *thread )
  */
 inline WorkDescriptor * WDPriorityQueue::pop_back ( BaseThread *thread )
 {
-   fatal("Method not implemented" );
+   fatal( "Method not implemented" );
 }
 
 /*!
@@ -420,7 +420,7 @@ inline WorkDescriptor * WDPriorityQueue::pop_back ( BaseThread *thread )
  */
 inline WorkDescriptor * WDPriorityQueue::pop_front ( BaseThread *thread )
 {
-   fatal("Method not implemented" );
+   fatal( "Method not implemented" );
 }
 
 inline bool WDPriorityQueue::removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next )
