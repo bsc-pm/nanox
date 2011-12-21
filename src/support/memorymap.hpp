@@ -871,7 +871,6 @@ void MemoryMap< _Type >::merge2( const MemoryMap< _Type > &mm )
             prevIt--;
             if ( prevIt->first.getAddress() + prevIt->first.getLength() == thisIt->first.getAddress() ) {
                if ( prevIt->second->equal( *thisIt->second ) ) { 
-                  //fprintf(stderr, "LocalFunctions::mergeEntry can merge\n");
                   MemoryChunk &prevNoConst = const_cast< MemoryChunk & >( prevIt->first );
                   prevNoConst.expandIncluding( thisIt->first );
                   _thisMap.erase( thisIt );
@@ -1148,7 +1147,6 @@ void MemoryMap< _Type >::merge2( const MemoryMap< _Type > &mm )
 
          iterator nextIt = thisIt;
          nextIt++;
-         MemoryChunk thisKey = thisIt->first;
          _Type *thisData = thisIt->second;
          bool thisAndInputDataAreEqual = thisData->equal( *inputData );
          //fprintf(stderr, "entry %s, this %d-%d  input %d-%d\n", __FUNCTION__, thisKey.getAddress(), thisKey.getLength(), inputKey.getAddress(), inputKey.getLength() );
@@ -1181,140 +1179,21 @@ void MemoryMap< _Type >::merge2( const MemoryMap< _Type > &mm )
                   tryToMergeWithPreviousEntry( nextIt );
                }
             } else {
-               fprintf(stderr, "entry %s, next %d-%d  input %d-%d, overlap is %s\n", __FUNCTION__, nextKey.getAddress(), nextKey.getLength(), inputKey.getAddress(), inputKey.getLength(), MemoryChunk::strOverlap[ nextKey.checkOverlap( inputKey ) ] );
+               fprintf(stderr, "entry %s, next %ld-%ld  input %ld-%ld, overlap is %s\n", __FUNCTION__, nextKey.getAddress(), nextKey.getLength(), inputKey.getAddress(), inputKey.getLength(), MemoryChunk::strOverlap[ nextKey.checkOverlap( inputKey ) ] );
                /* check overlap with the next item in the map! */
                switch ( nextKey.checkOverlap( inputKey ) ) {
                   case MemoryChunk::NO_OVERLAP:
-                     //     fprintf(stderr, "case NO_OVERLAP %s\n", __FUNCTION__ );
                      localexp.expandNoOverlap();
-                     //if ( thisAndInputDataAreEqual ) {
-                     //   /* we can expand safetly, and we finish */
-                     //   MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
-                     //   thisNoConst.expandIncluding( inputKey );
-                     //} else {
-                     //   thisIt = _thisMap.insert( thisIt, typename BaseMap::value_type( inputKey, NEW _Type ( *inputData ) ) );
-                     //}
-                     //thisIt++;
                      break;
                   case MemoryChunk::BEGIN_OVERLAP:
-                     //fprintf(stderr, "case BEGIN_OVERLAP %s\n", __FUNCTION__ );
                      localexp.expandBeginOverlap( nextIt );
-                     //if ( thisAndInputDataAreEqual ) {
-                     //   /* if the chunk Data is equivalent, we can expan all chunks and we finish */
-                     //   if ( nextAndInputDataAreEqual )
-                     //   {
-                     //      /* expand to fit [this ... inputKey ... next]
-                     //       * then erase next entry
-                     //       */
-                     //      MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
-                     //      thisNoConst.expandIncluding( nextKey );
-                     //      delete nextIt->second;
-                     //      _thisMap.erase( nextIt );
-                     //      thisIt = _thisMap.find( thisKey );
-                     //   } else {
-                     //      /* fit [this ... inputKey ... ]{next:overlap_with_input}(next:leftover)
-                     //       */
-                     //      MemoryChunk rightLeftOver;
-                     //      MemoryChunk inputKeyCopy = inputKey;
-                     //      MemoryChunk &rightChunk = const_cast< MemoryChunk & >( nextIt->first );
-                     //      /* we can not merge both already-inserted entries,
-                     //       * expand "this" as much as possible and partition
-                     //       * the leftover of "inputKey" that intersects with hintCopy
-                     //       */
-                     //      MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
-                     //      thisNoConst.expandExcluding( nextIt->first );
-                     //      MemoryChunk::intersect( inputKeyCopy, rightChunk, rightLeftOver ); //this modifies nextIt->first!!
-                     //      thisIt = _thisMap.insert( nextIt, typename BaseMap::value_type( rightLeftOver, NEW _Type( *nextIt->second ) ) );
-                     //      thisIt--;
-                     //      thisIt->second->merge( *inputData );
-                     //      thisIt++;
-                     //   }
-                     //} else {
-                     //   if ( nextAndInputDataAreEqual )
-                     //   {
-                     //      /* expand to fit: (this)[... inputKey ... next]
-                     //       */
-                     //      std::pair<typename BaseMap::iterator, bool> insertResult;
-                     //      inputKey.expandIncluding( nextKey );
-                     //      _Type *data = nextIt->second;
-                     //      _thisMap.erase( nextIt );
-                     //      insertResult = _thisMap.insert( typename BaseMap::value_type( inputKey, data ) ); //reuse data entry
-                     //      thisIt = insertResult.first;
-                     //   } else {
-                     //      /* fit (this)[ ... inputKey ... ]{next:overlap_with_input}(next:leftover)
-                     //       */
-                     //      MemoryChunk rightLeftOver;
-                     //      MemoryChunk inputKeyCopy = inputKey;
-                     //      MemoryChunk &rightChunk = const_cast< MemoryChunk & >( nextIt->first );
-                     //      /* we can not merge both already-inserted entries,
-                     //       * expand "this" as much as possible and partition
-                     //       * the leftover of "inputKey" that intersects with hintCopy
-                     //       */
-                     //      MemoryChunk::intersect( inputKeyCopy, rightChunk, rightLeftOver ); //this modifies nextIt->first!!
-                     //      thisIt = _thisMap.insert( thisIt, typename BaseMap::value_type( inputKeyCopy, NEW _Type( *inputData ) ) );
-                     //      thisIt++;
-                     //      thisIt = _thisMap.insert( thisIt, typename BaseMap::value_type( rightLeftOver, NEW _Type( *thisIt->second ) ) );
-                     //      thisIt--;
-                     //      thisIt->second->merge( *inputData ); //merge overlapped chunk
-                     //      thisIt++;
-                     //   }
-                     //}
                      break;
                   case MemoryChunk::END_OVERLAP:
                      /* ERROR, it is impossible to have End Overlap with hintNext */
                      fprintf(stderr, "error END_OVERLAP %s\n", __FUNCTION__ );
                      break;
                   case MemoryChunk::TOTAL_OVERLAP:
-                     //fprintf(stderr, "case TOTAL_OVERLAP %s\n", __FUNCTION__ );
                      localexp.expandTotalOverlap( nextIt );
-                     //if ( thisAndInputDataAreEqual ) {
-                     //   MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
-                     //   if ( nextAndInputDataAreEqual )
-                     //   {
-                     //      /* [this .. inputKey .. next]{..inputKey..} */
-                     //      thisNoConst.expandIncluding( nextKey );
-                     //      MemoryChunk key = thisIt->first;
-                     //      delete nextIt->second;
-                     //      _thisMap.erase( nextIt );
-                     //      thisIt = nextIt = _thisMap.find( key );
-                     //      nextIt++;
-                     //      inputKey.cutAfter( thisIt->first );
-                     //      /* try expanding from this new state */
-                     //      expand( inputKey, inputData, thisIt );
-                     //   } else {
-                     //      /* [this .. inputKey .. ][next]{..inputKey..} */
-                     //      thisNoConst.expandExcluding( nextKey );
-                     //      nextIt->second->merge( *inputData );
-                     //      inputKey.cutAfter( nextKey );
-                     //      /* try expanding from this new state */
-                     //      expand( inputKey, inputData, nextIt );
-                     //   }
-                     //} else {
-                     //   if ( nextAndInputDataAreEqual )
-                     //   {
-                     //      /* (this)[.. inputKey .. next]{..inputKey..} */
-                     //      std::pair<typename BaseMap::iterator, bool> insertResult;
-                     //      MemoryChunk key = inputKey;
-                     //      key.expandIncluding( nextKey );
-                     //      _Type *data = nextIt->second;
-                     //      _thisMap.erase( nextIt );
-                     //      insertResult = _thisMap.insert( typename BaseMap::value_type( inputKey, data ) ); //reuse data entry
-                     //      thisIt = insertResult.first;
-                     //      inputKey.cutAfter( thisIt->first );
-                     //      /* try expanding from this new state */
-                     //      expand( inputKey, inputData, thisIt );
-                     //   } else {
-                     //      /* (this)[.. inputKey .. ][next]{inputKey} */
-                     //      MemoryChunk key = inputKey;
-                     //      key.expandExcluding( nextKey );
-                     //      nextIt->second->merge( *inputData );
-                     //      inputKey.cutAfter( nextKey );
-                     //      thisIt = _thisMap.insert( thisIt, typename BaseMap::value_type( key, NEW _Type( *inputData ) ) );
-                     //      thisIt++;
-                     //      /* try expanding from this new state */
-                     //      expand( inputKey, inputData, thisIt );
-                     //   }
-                     //}
                      expand( inputKey, inputData, thisIt );
                      break;
                   case MemoryChunk::SUBCHUNK_OVERLAP:
@@ -1322,132 +1201,14 @@ void MemoryMap< _Type >::merge2( const MemoryMap< _Type > &mm )
                      fprintf(stderr, "error SUBCHUNK_OVERLAP %s\n", __FUNCTION__ );
                      break;
                   case MemoryChunk::TOTAL_BEGIN_OVERLAP:
-                     fprintf(stderr, "case TOTAL_BEGIN_OVERLAP %s this %d-%d next %d-%d input %d-%d\n", __FUNCTION__, thisKey.getAddress(), thisKey.getLength(), nextKey.getAddress(), nextKey.getLength(), inputKey.getAddress(), inputKey.getLength() );
                      localexp.expandTotalBeginOverlap( nextIt );
-                     //if ( thisAndInputDataAreEqual ) {
-                     //   if ( nextAndInputDataAreEqual ) {
-                     //      /* expand to fit [this][next]{next:leftover}
-                     //       * then erase next entry
-                     //       */
-                     //      MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
-                     //      thisNoConst.expandIncluding( nextKey );
-                     //      inputKey.cutAfter( nextKey );
-                     //      delete nextIt->second;
-                     //      _thisMap.erase( nextIt );
-                     //      thisIt = _thisMap.find( thisKey );
-                     //      expand( inputKey, inputData, nextIt );
-                     //   } else {
-                     //      /* fit (this){next:partition_with_input}(next:leftover)
-                     //       * merge partition, continue processing leftover
-                     //       */
-                     //      MemoryChunk inputKeyCopy = inputKey;
-                     //      //MemoryChunk &rightChunk = const_cast< MemoryChunk & >( nextIt->first );
-                     //      /* we can not merge both already-inserted entries,
-                     //       * expand "this" as much as possible and partition
-                     //       * the leftover of "inputKey" that intersects with hintCopy
-                     //       */
-                     //      MemoryChunk::partitionBeginAltB( nextKey, inputKey );
-                     //      nextIt->second->merge( *inputData );
-                     //      expand( inputKey, inputData, nextIt );
-                     //   }
-                     //} else {
-                     //   if ( nextAndInputDataAreEqual ) {
-                     //      /* expand to fit (this)[next]{next:leftover}
-                     //       * since next and input are equal, no action is required,
-                     //       * just adjust the input key and call recursively to keep
-                     //       * processing if there are more chunks that can be merged.
-                     //       */
-                     //      inputKey.cutAfter( nextKey );
-                     //      expand( inputKey, inputData, nextIt);
-                     //   } else {
-                     //      /* expand to fit (this)[next]{next:leftover}
-                     //       * similar than before but we need to merge the information
-                     //       * of "next" and "input".
-                     //       */
-                     //      nextIt->second->merge( *inputData );
-                     //      inputKey.cutAfter( nextKey );
-                     //      expand( inputKey, inputData, nextIt);
-                     //   }
-                     //}
                      expand( inputKey, inputData, nextIt );
                      break;
                   case MemoryChunk::SUBCHUNK_BEGIN_OVERLAP:
-                     //fprintf(stderr, "error SUBCHUNK_BEGIN_OVERLAP %s\n", __FUNCTION__ );
                      localexp.expandSubchunkBeginOverlap( nextIt );
-                     //if ( thisAndInputDataAreEqual ) {
-                     //   if ( nextAndInputDataAreEqual ) {
-                     //      MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
-                     //      thisNoConst.expandIncluding( nextKey );
-                     //      _thisMap.erase( nextIt );
-                     //   } else {
-                     //      if ( !nextData->contains( *inputData ) ) {
-                     //         MemoryChunk &nextNoConst = const_cast< MemoryChunk & >( nextIt->first );
-                     //         nextNoConst = inputKey;
-                     //         nextKey.cutAfter( inputKey );
-                     //         thisIt = _thisMap.insert( nextIt, typename BaseMap::value_type( nextKey, NEW _Type ( *nextData ) ) );
-                     //         nextData->merge( *inputData ); //merge after insert to create a copy of the original "next" entry.
-                     //      }
-                     //   }
-                     //} else {
-                     //   if ( nextAndInputDataAreEqual ) {
-                     //      //no expand with "this" and "next" already ok, do nothing
-                     //   } else {
-                     //      _Type * tmpData = NEW _Type ( *inputData );
-                     //      tmpData->merge( *nextData );
-                     //      if ( tmpData->equal( *thisData ) ) {
-                     //         if ( thisData->equal( *nextData ) ) { //merge Equal with BOTH next and this
-                     //            //I think this can not happen!! 
-                     //            MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
-                     //            thisNoConst.expandIncluding( nextKey );
-                     //            _thisMap.erase( nextIt );
-                     //            thisIt = _thisMap.find( thisKey );
-                     //         } else {
-                     //            std::pair<typename BaseMap::iterator, bool> insertResult;
-                     //            MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
-                     //            thisNoConst.expandIncluding( inputKey );
-                     //            _thisMap.erase( nextIt );
-                     //            MemoryChunk::partitionBeginAgtB( nextKey, inputKey );
-                     //            insertResult = _thisMap.insert( typename BaseMap::value_type( inputKey, nextData ) ); //reuse entry
-                     //            thisIt = insertResult.first;
-                     //            delete tmpData;
-                     //         }
-                     //      } else {
-                     //         MemoryChunk &nextNoConst = const_cast< MemoryChunk & >( nextIt->first );
-                     //         nextNoConst = inputKey;
-                     //         nextKey.cutAfter( inputKey );
-                     //         thisIt = _thisMap.insert( nextIt, typename BaseMap::value_type( nextKey, tmpData ) );
-                     //      }
-                     //   }
-                     //}
                      break;
                   case MemoryChunk::TOTAL_END_OVERLAP:
-                     //fprintf(stderr, "case TOTAL_END_OVERLAP %s\n", __FUNCTION__ );
                      localexp.expandTotalEndOverlap( nextIt );
-                     //if ( thisAndInputDataAreEqual ) {
-                     //   MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
-                     //   if ( nextAndInputDataAreEqual ) {
-                     //      thisNoConst.expandIncluding( nextKey );
-                     //      delete nextIt->second;
-                     //      _thisMap.erase( nextIt );
-                     //   } else {
-                     //      thisNoConst.expandExcluding( nextKey );
-                     //      nextIt->second->merge( *inputData );
-                     //   }
-                     //   thisIt++;
-                     //} else {
-                     //   if ( nextAndInputDataAreEqual ) {
-                     //      thisIt = _thisMap.insert( thisIt, typename BaseMap::value_type( inputKey, nextIt->second ) );
-                     //      thisIt++;
-                     //      delete thisIt->second;
-                     //      _thisMap.erase( thisIt );
-                     //      thisIt = _thisMap.find( inputKey );
-                     //   } else {
-                     //      inputKey.expandExcluding( nextKey );
-                     //      nextIt->second->merge( *inputData );
-                     //      thisIt = _thisMap.insert( thisIt, typename BaseMap::value_type( inputKey, NEW _Type ( *inputData ) ) );
-                     //   }
-                     //   thisIt++;
-                     //}
                      break;
                   case MemoryChunk::SUBCHUNK_END_OVERLAP:
                      /* ERROR, it is impossible to have Subchunk End Overlap with hintNext */
@@ -1456,7 +1217,6 @@ void MemoryMap< _Type >::merge2( const MemoryMap< _Type > &mm )
                }
             }
          }
-         //fprintf(stderr, "exit %s\n", __FUNCTION__ );
       }
 
       void mergeNoOverlap( iterator &thisIt, const_iterator &inputIt ) {
@@ -1489,23 +1249,23 @@ void MemoryMap< _Type >::merge2( const MemoryMap< _Type > &mm )
          _Type *inputData = inputIt->second;
          _Type *thisData = thisIt->second;
          bool thisAndInputDataAreEqual = thisData->equal( *inputData );
-                  if ( thisAndInputDataAreEqual ) {
-                     /* I CAN MERGE */
-                     std::pair<typename BaseMap::iterator, bool> insertResult;
-                     inputKey.expandIncluding( thisKey );
-                     _thisMap.erase( thisIt );
-                     insertResult = _thisMap.insert( typename BaseMap::value_type( inputKey, thisData ) ); //reuse data
-                     // insertResult.second must be true
-                     thisIt = insertResult.first;
-                  } else {
-                     MemoryChunk rightLeftOver;
-                     MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
-                     MemoryChunk::intersect( inputKey, thisNoConst, rightLeftOver );
-                     thisIt = _thisMap.insert( thisIt, typename BaseMap::value_type( inputKey, NEW _Type( *inputData ) ));
-                     thisIt = _thisMap.insert( thisIt, typename BaseMap::value_type( rightLeftOver, NEW _Type( *thisData ) ));
-                     thisData->merge( *inputData );
-                  }
-                  inputIt++;
+         if ( thisAndInputDataAreEqual ) {
+            /* I CAN MERGE */
+            std::pair<typename BaseMap::iterator, bool> insertResult;
+            inputKey.expandIncluding( thisKey );
+            _thisMap.erase( thisIt );
+            insertResult = _thisMap.insert( typename BaseMap::value_type( inputKey, thisData ) ); //reuse data
+            // insertResult.second must be true
+            thisIt = insertResult.first;
+         } else {
+            MemoryChunk rightLeftOver;
+            MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
+            MemoryChunk::intersect( inputKey, thisNoConst, rightLeftOver );
+            thisIt = _thisMap.insert( thisIt, typename BaseMap::value_type( inputKey, NEW _Type( *inputData ) ));
+            thisIt = _thisMap.insert( thisIt, typename BaseMap::value_type( rightLeftOver, NEW _Type( *thisData ) ));
+            thisData->merge( *inputData );
+         }
+         inputIt++;
       }
 
       void mergeEndOverlap( iterator &thisIt, const_iterator &inputIt ) {
@@ -1515,18 +1275,18 @@ void MemoryMap< _Type >::merge2( const MemoryMap< _Type > &mm )
          _Type *thisData = thisIt->second;
          MemoryChunk rightLeftOver;
          bool thisAndInputDataAreEqual = thisData->equal( *inputData );
-                  if ( thisAndInputDataAreEqual || thisData->contains( *inputData ) ) {
-                     MemoryChunk::intersect( thisKey, inputKey, rightLeftOver );
-                  }
-                  else {
-                     MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
-                     MemoryChunk::intersect( thisNoConst, inputKey, rightLeftOver );
-                     thisIt = _thisMap.insert( thisIt, typename BaseMap::value_type( inputKey, NEW _Type( *thisData ) ));
-                     thisIt->second->merge( *inputData );
-                     tryToMergeWithPreviousEntry( thisIt );
-                  }
-                     expand( rightLeftOver, inputData, thisIt );
-                  inputIt++;
+         if ( thisAndInputDataAreEqual || thisData->contains( *inputData ) ) {
+            MemoryChunk::intersect( thisKey, inputKey, rightLeftOver );
+         }
+         else {
+            MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
+            MemoryChunk::intersect( thisNoConst, inputKey, rightLeftOver );
+            thisIt = _thisMap.insert( thisIt, typename BaseMap::value_type( inputKey, NEW _Type( *thisData ) ));
+            thisIt->second->merge( *inputData );
+            tryToMergeWithPreviousEntry( thisIt );
+         }
+         expand( rightLeftOver, inputData, thisIt );
+         inputIt++;
       }
 
       void mergeTotalOverlap( iterator &thisIt, const_iterator &inputIt ) {
@@ -1536,39 +1296,38 @@ void MemoryMap< _Type >::merge2( const MemoryMap< _Type > &mm )
          _Type *thisData = thisIt->second;
          MemoryChunk leftLeftOver;
          bool thisAndInputDataAreEqual = thisData->equal( *inputData );
-                  MemoryChunk::partition( inputKey, thisKey, leftLeftOver );
-                  if ( thisAndInputDataAreEqual ) {
-                     std::pair<typename BaseMap::iterator, bool> insertResult;
-                     inputKey.expandIncluding( thisKey );
-                     _thisMap.erase( thisIt );
-                     insertResult = _thisMap.insert( typename BaseMap::value_type( inputKey, thisData ) ); // do not allocate new data, reuse old
-                     thisIt = insertResult.first;
-                  } else {
-                     thisIt->second->merge( *inputData );
-                     thisIt = _thisMap.insert( thisIt, typename BaseMap::value_type( inputKey, inputData ));
-                     thisIt++;
-                  }
-                  expand( leftLeftOver, inputData, thisIt );
-                  inputIt++;
+         MemoryChunk::partition( inputKey, thisKey, leftLeftOver );
+         if ( thisAndInputDataAreEqual ) {
+            std::pair<typename BaseMap::iterator, bool> insertResult;
+            inputKey.expandIncluding( thisKey );
+            _thisMap.erase( thisIt );
+            insertResult = _thisMap.insert( typename BaseMap::value_type( inputKey, thisData ) ); // do not allocate new data, reuse old
+            thisIt = insertResult.first;
+         } else {
+            thisIt->second->merge( *inputData );
+            thisIt = _thisMap.insert( thisIt, typename BaseMap::value_type( inputKey, inputData ));
+            thisIt++;
+         }
+         expand( leftLeftOver, inputData, thisIt );
+         inputIt++;
       }
 
       void mergeSubchunkOverlap( iterator &thisIt, const_iterator &inputIt ) {
-         const MemoryChunk &thisKey = thisIt->first;
          MemoryChunk inputKey = inputIt->first;
          _Type *inputData = inputIt->second;
          _Type *thisData = thisIt->second;
          MemoryChunk leftLeftOver;
          bool thisAndInputDataAreEqual = thisData->equal( *inputData );
-                  if ( thisAndInputDataAreEqual || thisData->contains( *inputData ) ) {
-                     //do nothing
-                  } else {
-                     MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
-                     MemoryChunk::partition( thisNoConst, inputKey, leftLeftOver );
-                     thisIt = _thisMap.insert( thisIt, typename BaseMap::value_type( inputKey, NEW _Type( *inputData ) ) );
-                     thisIt->second->merge( *thisData );
-                     thisIt = _thisMap.insert( thisIt, typename BaseMap::value_type( leftLeftOver, NEW _Type( *thisData ) ) );
-                  }
-                  inputIt++;
+         if ( thisAndInputDataAreEqual || thisData->contains( *inputData ) ) {
+            //do nothing
+         } else {
+            MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
+            MemoryChunk::partition( thisNoConst, inputKey, leftLeftOver );
+            thisIt = _thisMap.insert( thisIt, typename BaseMap::value_type( inputKey, NEW _Type( *inputData ) ) );
+            thisIt->second->merge( *thisData );
+            thisIt = _thisMap.insert( thisIt, typename BaseMap::value_type( leftLeftOver, NEW _Type( *thisData ) ) );
+         }
+         inputIt++;
       }
 
       void mergeTotalBeginOverlap( iterator &thisIt, const_iterator &inputIt ) {
@@ -1589,54 +1348,51 @@ void MemoryMap< _Type >::merge2( const MemoryMap< _Type > &mm )
       }
 
       void mergeSubchunkBeginOverlap( iterator &thisIt, const_iterator &inputIt ) {
-         const MemoryChunk &thisKey = thisIt->first;
          MemoryChunk inputKey = inputIt->first;
          _Type *inputData = inputIt->second;
          _Type *thisData = thisIt->second;
          bool thisAndInputDataAreEqual = thisData->equal( *inputData );
-                  if ( thisAndInputDataAreEqual || thisData->contains( *inputData ) ) {
-                     //do_nothing
-                  } else {
-                     iterator thisItCopy;
-                     MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
-                     MemoryChunk::partitionBeginAgtB( thisNoConst, inputKey );
-                     thisIt = _thisMap.insert( thisIt, typename BaseMap::value_type( inputKey, NEW _Type( *thisData ) ) );
-                     thisItCopy = thisIt; thisItCopy--;
-                     thisData->merge( *inputData );
-                     tryToMergeWithPreviousEntry( thisItCopy );
-                  }
-                  inputIt++;
+         if ( thisAndInputDataAreEqual || thisData->contains( *inputData ) ) {
+            //do_nothing
+         } else {
+            iterator thisItCopy;
+            MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
+            MemoryChunk::partitionBeginAgtB( thisNoConst, inputKey );
+            thisIt = _thisMap.insert( thisIt, typename BaseMap::value_type( inputKey, NEW _Type( *thisData ) ) );
+            thisItCopy = thisIt; thisItCopy--;
+            thisData->merge( *inputData );
+            tryToMergeWithPreviousEntry( thisItCopy );
+         }
+         inputIt++;
       }
 
       void mergeTotalEndOverlap( iterator &thisIt, const_iterator &inputIt ) {
-         const MemoryChunk &thisKey = thisIt->first;
          MemoryChunk inputKey = inputIt->first;
          _Type *inputData = inputIt->second;
          _Type *thisData = thisIt->second;
          bool thisAndInputDataAreEqual = thisData->equal( *inputData );
-                  if ( thisAndInputDataAreEqual ) {
-                     std::pair<typename BaseMap::iterator, bool> insertResult;
-                     _thisMap.erase( thisIt );
-                     insertResult = _thisMap.insert( typename BaseMap::value_type( inputKey, thisData ) ); //reuse data
-                     thisIt = insertResult.first;
-                  } else {
-                     MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
-                     MemoryChunk::partitionEnd( inputKey, thisNoConst );
-                     thisIt = _thisMap.insert( thisIt, typename BaseMap::value_type( inputKey, NEW _Type ( *inputData ) ) );
-                     thisIt++;
-                     thisData->merge( *inputData );
-                     iterator nextIt = thisIt;
-                     nextIt++;
-                     if ( nextIt != _thisMap.end() ) {
-                        tryToMergeWithPreviousEntry( nextIt );
-                     }
-                  }
-                  thisIt++;
-                  inputIt++;
+         if ( thisAndInputDataAreEqual ) {
+            std::pair<typename BaseMap::iterator, bool> insertResult;
+            _thisMap.erase( thisIt );
+            insertResult = _thisMap.insert( typename BaseMap::value_type( inputKey, thisData ) ); //reuse data
+            thisIt = insertResult.first;
+         } else {
+            MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
+            MemoryChunk::partitionEnd( inputKey, thisNoConst );
+            thisIt = _thisMap.insert( thisIt, typename BaseMap::value_type( inputKey, NEW _Type ( *inputData ) ) );
+            thisIt++;
+            thisData->merge( *inputData );
+            iterator nextIt = thisIt;
+            nextIt++;
+            if ( nextIt != _thisMap.end() ) {
+               tryToMergeWithPreviousEntry( nextIt );
+            }
+         }
+         thisIt++;
+         inputIt++;
       }
 
       void mergeSubchunkEndOverlap( iterator &thisIt, const_iterator &inputIt ) {
-         const MemoryChunk &thisKey = thisIt->first;
          MemoryChunk inputKey = inputIt->first;
          _Type *inputData = inputIt->second;
          _Type *thisData = thisIt->second;
@@ -1659,7 +1415,6 @@ void MemoryMap< _Type >::merge2( const MemoryMap< _Type > &mm )
    const_iterator inputIt = mm.begin();
    iterator thisIt = this->begin();
 
-            //fprintf(stderr, "ENTRY %s\n", __FUNCTION__ );
    while ( inputIt != mm.end() )
    {
       if ( thisIt == this->end() ) {
@@ -1692,156 +1447,33 @@ void MemoryMap< _Type >::merge2( const MemoryMap< _Type > &mm )
             {
                case MemoryChunk::NO_OVERLAP:
                   local.mergeNoOverlap( thisIt, inputIt );
-                  //this->print();
-                  //if ( inputKey.getAddress() + inputKey.getLength() == thisKey.getAddress() && thisAndInputDataAreEqual ) {
-                  //   std::pair<iterator, bool> insertResult;
-                  //   inputKey.expandIncluding( thisKey );
-                  //   this->erase( thisIt );
-                  //   insertResult = this->insert( typename BaseMap::value_type( inputKey, thisData ) ); //reuse data
-                  //   thisIt = insertResult.first;
-                  //   local.tryToMergeWithPreviousEntry( thisIt );
-                  //} else if ( thisKey.getAddress() > inputKey.getAddress() ) {
-                  //   thisIt = this->insert( thisIt, typename BaseMap::value_type( inputKey, NEW _Type( *inputData ) ) );
-                  //   local.tryToMergeWithPreviousEntry( thisIt );
-                  //   thisIt++;
-                  //   inputIt++;
-                  //} else { thisIt++; }
                   break;
                case MemoryChunk::BEGIN_OVERLAP:
                   local.mergeBeginOverlap( thisIt, inputIt );
-                  //if ( thisAndInputDataAreEqual ) {
-                  //   /* I CAN MERGE */
-                  //   std::pair<typename BaseMap::iterator, bool> insertResult;
-                  //   inputKey.expandIncluding( thisKey );
-                  //   this->erase( thisIt );
-                  //   insertResult = this->insert( typename BaseMap::value_type( inputKey, thisData ) ); //reuse data
-                  //   // insertResult.second must be true
-                  //   thisIt = insertResult.first;
-                  //} else {
-                  //   MemoryChunk rightLeftOver;
-                  //   MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
-                  //   MemoryChunk::intersect( inputKey, thisNoConst, rightLeftOver );
-                  //   thisIt = this->insert( thisIt, typename BaseMap::value_type( inputKey, NEW _Type( *inputData ) ));
-                  //   thisIt = this->insert( thisIt, typename BaseMap::value_type( rightLeftOver, NEW _Type( *thisData ) ));
-                  //   thisData->merge( *inputData );
-                  //}
-                  //inputIt++;
                   break;
                case MemoryChunk::END_OVERLAP:
                   local.mergeEndOverlap( thisIt, inputIt );
-                  //if ( thisAndInputDataAreEqual || thisData->contains( *inputData ) ) {
-                  //   MemoryChunk rightLeftOver;
-                  //   MemoryChunk::intersect( thisKey, inputKey, rightLeftOver );
-                  //   //this->expand( rightLeftOver, inputData, thisIt );
-                  //   local.expand( rightLeftOver, inputData, thisIt );
-                  //}
-                  //else {
-                  //   MemoryChunk rightLeftOver;
-                  //   MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
-                  //   MemoryChunk::intersect( thisNoConst, inputKey, rightLeftOver );
-                  //   thisIt = this->insert( thisIt, typename BaseMap::value_type( inputKey, NEW _Type( *thisData ) ));
-                  //   thisIt->second->merge( *inputData );
-                  //   local.tryToMergeWithPreviousEntry( thisIt );
-                  //   local.expand( rightLeftOver, inputData, thisIt );
-                  //}
-                  //if (thisIt == this->end() ) fprintf(stderr, "err,,,");
-                  //inputIt++;
                   break;
                case MemoryChunk::TOTAL_OVERLAP:
                   local.mergeTotalOverlap( thisIt, inputIt );
-                  //MemoryChunk::partition( inputKey, thisKey, leftLeftOver );
-                  //if ( thisAndInputDataAreEqual ) {
-                  //   std::pair<typename BaseMap::iterator, bool> insertResult;
-                  //   inputKey.expandIncluding( thisKey );
-                  //   this->erase( thisIt );
-                  //   insertResult = this->insert( typename BaseMap::value_type( inputKey, thisData ) ); // do not allocate new data, reuse old
-                  //   thisIt = insertResult.first;
-                  //} else {
-                  //   thisIt->second->merge( *inputData );
-                  //   thisIt = this->insert( thisIt, typename BaseMap::value_type( inputKey, inputData ));
-                  //   thisIt++;
-                  //}
-                  //local.expand( leftLeftOver, inputData, thisIt );
-                  //inputIt++;
                   break;
                case MemoryChunk::SUBCHUNK_OVERLAP:
                   local.mergeSubchunkOverlap( thisIt, inputIt );
-                  //if ( thisAndInputDataAreEqual || thisData->contains( *inputData ) ) {
-                  //   //do nothing
-                  //} else {
-                  //   MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
-                  //   MemoryChunk::partition( thisNoConst, inputKey, leftLeftOver );
-                  //   thisIt = this->insert( thisIt, typename BaseMap::value_type( inputKey, NEW _Type( *inputData ) ) );
-                  //   thisIt->second->merge( *thisData );
-                  //   thisIt = this->insert( thisIt, typename BaseMap::value_type( leftLeftOver, NEW _Type( *thisData ) ) );
-                  //}
-                  //inputIt++;
                   break;
                case MemoryChunk::TOTAL_BEGIN_OVERLAP:
                   local.mergeTotalBeginOverlap( thisIt, inputIt );
-                  //MemoryChunk::partitionBeginAltB( thisKey, inputKey );
-                  //if ( thisAndInputDataAreEqual ) { //do nothing
-                  //} else {
-                  //   thisIt->second->merge( *inputData );
-                  //   local.tryToMergeWithPreviousEntry( thisIt );
-                  //}
-                  //inputKey.cutAfter( thisKey );
-                  //local.expand( inputKey, inputData, thisIt );
-                  //inputIt++;
                   break;
                case MemoryChunk::SUBCHUNK_BEGIN_OVERLAP:
                   local.mergeSubchunkBeginOverlap( thisIt, inputIt );
-                  //if ( thisAndInputDataAreEqual || thisData->contains( *inputData ) ) {
-                  //   //do_nothing
-                  //} else {
-                  //   iterator thisItCopy;
-                  //   MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
-                  //   MemoryChunk::partitionBeginAgtB( thisNoConst, inputKey );
-                  //   thisIt = this->insert( thisIt, typename BaseMap::value_type( inputKey, NEW _Type( *thisData ) ) );
-                  //   thisItCopy = thisIt; thisItCopy--;
-                  //   thisData->merge( *inputData );
-                  //   local.tryToMergeWithPreviousEntry( thisItCopy );
-                  //}
-                  //inputIt++;
                   break;
                case MemoryChunk::TOTAL_END_OVERLAP:
                   local.mergeTotalEndOverlap( thisIt, inputIt );
-                  //if ( thisAndInputDataAreEqual ) {
-                  //   std::pair<typename BaseMap::iterator, bool> insertResult;
-                  //   this->erase( thisIt );
-                  //   insertResult = this->insert( typename BaseMap::value_type( inputKey, thisData ) ); //reuse data
-                  //   thisIt = insertResult.first;
-                  //} else {
-                  //   MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
-                  //   MemoryChunk::partitionEnd( inputKey, thisNoConst );
-                  //   thisIt = this->insert( thisIt, typename BaseMap::value_type( inputKey, NEW _Type ( *inputData ) ) );
-                  //   thisIt++;
-                  //   thisData->merge( *inputData );
-                  //   iterator nextIt = thisIt;
-                  //   nextIt++;
-                  //   if ( nextIt != this->end() ) {
-                  //      local.tryToMergeWithPreviousEntry( nextIt );
-                  //   }
-                  //}
-                  //thisIt++;
-                  //inputIt++;
                   break;
                case MemoryChunk::SUBCHUNK_END_OVERLAP:
                   local.mergeSubchunkEndOverlap( thisIt, inputIt );
-                  //if ( thisAndInputDataAreEqual ) {
-                  //   //do_nothing;
-                  //} else {
-                  //   MemoryChunk &thisNoConst = const_cast< MemoryChunk & >( thisIt->first );
-                  //   MemoryChunk::partitionEnd( thisNoConst, inputKey );
-                  //   thisIt = this->insert( thisIt, typename BaseMap::value_type( inputKey, NEW _Type( *inputData ) ) );
-                  //   thisIt->second->merge( *thisData );
-                  //}
-                  //thisIt++;
-                  //inputIt++;
                   break;
             }
          }
-//this->print();
       }
    }
    while ( thisIt != this->end() ) {
