@@ -2,7 +2,9 @@
 #define MEMORYMAP_DECL_H
 
 #include <map>
+#include <list>
 #include <stdint.h>
+#include <stdio.h>
 //#include "atomic_decl.hpp"
 
 namespace nanos {
@@ -23,6 +25,8 @@ class MemoryChunk {
          TOTAL_END_OVERLAP,
          SUBCHUNK_END_OVERLAP
        } OverlapType;
+      
+      static const char* strOverlap[];
 
       MemoryChunk( uint64_t addr, std::size_t len ) : _addr( addr ), _len( len ) { }
       MemoryChunk( const MemoryChunk &mc ) : _addr( mc._addr ), _len( mc._len ) { }
@@ -62,6 +66,7 @@ class MemoryMap : public std::map< MemoryChunk, _Type * > {
       typedef std::pair< const MemoryChunk *, _Type ** > MemChunkPair;
       typedef std::list< MemChunkPair > MemChunkList;
       typedef typename BaseMap::iterator iterator;
+      typedef typename BaseMap::const_iterator const_iterator;
 
       MemoryMap() { }
       ~MemoryMap() {
@@ -98,7 +103,6 @@ class MemoryMap : public std::map< MemoryChunk, _Type * > {
       void getChunk2( uint64_t addr, std::size_t len, MemChunkList &resultEntries );
       void merge( const MemoryMap< _Type > &mm );
       void merge2( const MemoryMap< _Type > &mm );
-      void expand( MemoryChunk &inputKey, _Type *inputData, typename BaseMap::iterator &thisIt );
       void print() const;
 };
 

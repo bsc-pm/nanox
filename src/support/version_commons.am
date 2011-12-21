@@ -38,6 +38,7 @@ support_sources = \
 	$(top_srcdir)/src/support/malign.hpp \
 	$(top_srcdir)/src/support/memorymap_decl.hpp \
 	$(top_srcdir)/src/support/memorymap.hpp \
+	$(top_srcdir)/src/support/memorymap.cpp \
 	$(END) 
 
 debug_sources = \

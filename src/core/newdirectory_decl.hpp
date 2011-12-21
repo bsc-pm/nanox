@@ -91,6 +91,13 @@ namespace nanos
             }
             return soFarOk;
          }
+         bool contains( const NewDirectoryEntryData &d ) const {
+            bool soFarOk = ( _version == d._version && _writeLocation == d._writeLocation );
+            for ( std::set<int>::iterator it = d._location.begin(); it != d._location.end() && soFarOk; it++ ) {
+               soFarOk = ( soFarOk && _location.count( *it ) == 1 );
+            }
+            return soFarOk;
+         }
    };
 
   /*! \class NewDirectory
@@ -146,6 +153,7 @@ namespace nanos
          bool isRoot() const;
          void consolidate();
          void print() const;
+         bool checkConsistency( uint64_t tag, std::size_t size, unsigned int memorySpaceId );
    };
 };
 

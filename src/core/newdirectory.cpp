@@ -196,3 +196,21 @@ void NewDirectory::print() const {
    fprintf(stderr, "printing directory:\n");
    _directory.print();
 }
+
+bool NewDirectory::checkConsistency( uint64_t tag, std::size_t size, unsigned int memorySpaceId ) {
+   bool ok = true;
+   MemoryMap< NewDirectoryEntryData >::MemChunkList subchunkResults;
+   _inputDirectory.getChunk2( tag, size, subchunkResults );
+   for ( MemoryMap< NewDirectoryEntryData >::MemChunkList::iterator it = subchunkResults.begin(); it != subchunkResults.end() && ok; it++ ) {
+      if ( it->second != NULL ) {
+         if ( *(it->second) != NULL ) {
+            ok = ok && (*(it->second))->isLocatedIn( memorySpaceId );
+         } else {
+            ok = false;
+         }
+      } else {
+         ok = false;
+      }
+   }
+   return ok;
+}
