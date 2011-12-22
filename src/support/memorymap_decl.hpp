@@ -65,6 +65,8 @@ class MemoryMap : public std::map< MemoryChunk, _Type * > {
       typedef enum { MEM_CHUNK_FOUND, MEM_CHUNK_NOT_FOUND, MEM_CHUNK_NOT_FOUND_BUT_ALLOCATED } QueryResult;
       typedef std::pair< const MemoryChunk *, _Type ** > MemChunkPair;
       typedef std::list< MemChunkPair > MemChunkList;
+      typedef std::pair< const MemoryChunk *, _Type * const * > ConstMemChunkPair;
+      typedef std::list< ConstMemChunkPair > ConstMemChunkList;
       typedef typename BaseMap::iterator iterator;
       typedef typename BaseMap::const_iterator const_iterator;
 
@@ -76,22 +78,12 @@ class MemoryMap : public std::map< MemoryChunk, _Type * > {
       }
 
    private:
-      void insertWithOverlap( const MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList );
-      void processNoOverlap( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList );
-      void processBeginOverlap( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList );
-      void processEndOverlap( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList );
-      void processTotalOverlap( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList );
-      void processSubchunkOverlap( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList );
-      void processTotalBeginOverlap( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList );
-      void processSubchunkBeginOverlap( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList );
-      void processTotalEndOverlap( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList );
-      void processSubchunkEndOverlap( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList );
-
-      void getWithOverlap( const MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList );
+      void insertWithOverlap( const MemoryChunk &key, iterator &hint, MemChunkList &ptrList );
+      void getWithOverlap( const MemoryChunk &key, const_iterator &hint, ConstMemChunkList &ptrList ) const;
 
    public:
       void getOrAddChunk( uint64_t addr, std::size_t len, MemChunkList &resultEntries );
-      void getChunk2( uint64_t addr, std::size_t len, MemChunkList &resultEntries );
+      void getChunk2( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
       void merge( const MemoryMap< _Type > &mm );
       void merge2( const MemoryMap< _Type > &mm );
       void print() const;

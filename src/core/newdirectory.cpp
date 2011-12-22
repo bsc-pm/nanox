@@ -73,13 +73,13 @@ void NewDirectory::registerAccess( uint64_t tag, std::size_t len, bool input, bo
             message("This is an error because _root directory is not supposed to use [registerAccess]");
          } else {
             message("lookup parent "<<(void*)&_parent->_inputDirectory << " tag "<<(void*)it->first->getAddress());
-            MemoryMap< NewDirectoryEntryData >::MemChunkList subchunkResults;
-            MemoryMap< NewDirectoryEntryData >::MemChunkList::iterator subIt;
+            MemoryMap< NewDirectoryEntryData >::ConstMemChunkList subchunkResults;
+            MemoryMap< NewDirectoryEntryData >::ConstMemChunkList::iterator subIt;
             _parent->_inputDirectory.getChunk2( it->first->getAddress(), it->first->getLength(), subchunkResults );
             ensure(subchunkResults.size() > 0, "parent query result must be > 0");
             for (subIt = subchunkResults.begin(); subIt != subchunkResults.end(); subIt++ )
             {
-               NewDirectoryEntryData **pEnt = subIt->second;
+               NewDirectoryEntryData * const *pEnt = subIt->second;
                if ( pEnt == NULL )
                {
                   if ( _parent->isRoot() )
@@ -199,9 +199,9 @@ void NewDirectory::print() const {
 
 bool NewDirectory::checkConsistency( uint64_t tag, std::size_t size, unsigned int memorySpaceId ) {
    bool ok = true;
-   MemoryMap< NewDirectoryEntryData >::MemChunkList subchunkResults;
+   MemoryMap< NewDirectoryEntryData >::ConstMemChunkList subchunkResults;
    _inputDirectory.getChunk2( tag, size, subchunkResults );
-   for ( MemoryMap< NewDirectoryEntryData >::MemChunkList::iterator it = subchunkResults.begin(); it != subchunkResults.end() && ok; it++ ) {
+   for ( MemoryMap< NewDirectoryEntryData >::ConstMemChunkList::iterator it = subchunkResults.begin(); it != subchunkResults.end() && ok; it++ ) {
       if ( it->second != NULL ) {
          if ( *(it->second) != NULL ) {
             ok = ok && (*(it->second))->isLocatedIn( memorySpaceId );
