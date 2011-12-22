@@ -88,15 +88,6 @@ class MemoryMap : public std::map< MemoryChunk, _Type * > {
       void processSubchunkEndOverlap( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList );
 
       void getWithOverlap( const MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList );
-      void processNoOverlapNI( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList );
-      void processBeginOverlapNI( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList );
-      void processEndOverlapNI( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList );
-      void processTotalOverlapNI( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList );
-      void processSubchunkOverlapNI( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList );
-      void processTotalBeginOverlapNI( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList );
-      void processSubchunkBeginOverlapNI( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList );
-      void processTotalEndOverlapNI( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList );
-      void processSubchunkEndOverlapNI( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList );
 
    public:
       void getOrAddChunk( uint64_t addr, std::size_t len, MemChunkList &resultEntries );

@@ -383,269 +383,6 @@ void MemoryMap< _Type >::processSubchunkEndOverlap( MemoryChunk &key, typename B
    ptrList.push_back( MemChunkPair ( &(hint->first), &(hint->second) ) ); //return: rightChunk
 }
 
-template < typename _Type >
-void MemoryMap< _Type >::processNoOverlapNI( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList )
-{
-   //_Type *ptr = (_Type *) NULL;
-   //message0("NO_OVERLAP detected " << (void *) iterKey.getAddress() << " : " << iterKey.getLength() << " versus " << (void *) hint->first.getAddress() << " : " << hint->first.getLength() );
-   //hint = this->insert( hint, typename BaseMap::value_type( key, ptr ) );
-   ptrList.push_back( MemChunkPair ( NEW MemoryChunk( key ), NULL ) );
-}
-
-template < typename _Type >
-void MemoryMap< _Type >::processBeginOverlapNI( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList )
-{
-   /*
-    *                +=====================+
-    *                |     rightChunk      |
-    *                | (already inserted)  |
-    *                +=====================+
-    *   +-----------------------+
-    *   |      leftChunk        |
-    *   |    (to be inserted)   |
-    *   +-----------------------+
-    *           == intersect ==
-    *   +------------+
-    *   | leftChunk  |
-    *   +------------+
-    *        ^       +==========+............+
-    *        |       |rightChunk|righLeftOver|
-    *        |       +==========+............+
-    *   added to result----^
-    */
-   //_Type *ptr = (_Type *) NULL;
-   MemoryChunk leftChunk = key;
-   MemoryChunk rightChunk = hint->first ;
-   MemoryChunk rightLeftOver;
-   //message0("BEGIN_OVERLAP detected " << (void *) iterKey.getAddress() << " : " << iterKey.getLength() << " versus " << (void *) hint->first.getAddress() << " : " << hint->first.getLength() );
-
-   MemoryChunk::intersect( leftChunk, rightChunk, rightLeftOver );
-
-   //hint = this->insert( hint, typename BaseMap::value_type( leftChunk, ptr ) ); //add the left chunk, 
-   ptrList.push_back( MemChunkPair ( NEW MemoryChunk( leftChunk ) , NULL ) );
-   //hint++; //advance the iterator (it should reach "rightChunk"!)
-   ptrList.push_back( MemChunkPair ( NEW MemoryChunk( rightChunk ) , &(hint->second) ) );
-
-   //hint = this->insert( hint, typename BaseMap::value_type( rightLeftOver, NEW _Type( *hint->second ) ) );
-}
-
-template < typename _Type >
-void MemoryMap< _Type >::processEndOverlapNI( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList )
-{
-   MemoryChunk leftChunk = hint->first ;
-   MemoryChunk rightChunk = key;
-   MemoryChunk rightLeftOver;
-   /*
-    *   +=======================+
-    *   |      leftChunk        |
-    *   |   (already inserted)  |
-    *   +=======================+
-    *                +---------------------+
-    *                |     rightChunk      |
-    *                |  (to be inserted)   |
-    *                +---------------------+
-    *           == intersect ==
-    *   +============+
-    *   | leftChunk  |
-    *   +============+
-    *                +----------+............+
-    *                |rightChunk|righLeftOver| <- not to be inserted yet.
-    *                +----------+............+
-    *   added to result-----^        ^------ not added to result (processed on next iterations)
-    */
-
-   MemoryChunk::intersect( leftChunk, rightChunk, rightLeftOver );
-
-   //add the right chunk 
-   //hint = this->insert( hint, typename BaseMap::value_type( rightChunk, NEW _Type( *hint->second ) ) );
-   //result: right chunk
-   ptrList.push_back( MemChunkPair ( NEW MemoryChunk( rightChunk ), &(hint->second) ) );
-   //leftover not added to result since more overlapping may exist
-   key = rightLeftOver;  //try to add what is left
-}
-
-template < typename _Type >
-void MemoryMap< _Type >::processTotalOverlapNI( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList )
-{
-   //_Type *ptr = (_Type *) NULL;
-   //message0("TOTAL_OVERLAP detected " << (void *) iterKey.getAddress() << " : " << iterKey.getLength() << " versus " << (void *) hint->first.getAddress() << " : " << hint->first.getLength() );
-   MemoryChunk leftChunk = key;
-   MemoryChunk rightChunk = hint->first ;
-   MemoryChunk leftLeftOver;
-   /*
-    *                +=====================+
-    *                |     rightChunk      |
-    *                |  (already inserted) |
-    *                +=====================+
-    *   +-----------------------------------------------+
-    *   |                  leftChunk                    |
-    *   |               (to be inserted)                |
-    *   +-----------------------------------------------+
-    *                    == partition ==
-    *                +=====================+
-    *                |     rightChunk      |
-    *                +=====================+
-    *   +------------+        ^            +............+
-    *   | leftChunk  |        |            |leftLeftOver|
-    *   +------------+        |            +............+
-    *         ^------  added to result          ^-- not added (keep processing)
-    */
-
-   MemoryChunk::partition( leftChunk, rightChunk, leftLeftOver );
-
-   //hint = this->insert( hint, typename BaseMap::value_type( leftChunk, ptr ) ); //add the left chunk, 
-   ptrList.push_back( MemChunkPair ( NEW MemoryChunk ( leftChunk ), NULL ) ); //return: leftChunk
-   ptrList.push_back( MemChunkPair ( NEW MemoryChunk ( rightChunk ), &(hint->second) ) ); //return: rightChunk
-   key = leftLeftOver; //try to add what is left
-}
-
-template < typename _Type >
-void MemoryMap< _Type >::processSubchunkOverlapNI( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList )
-{
-   MemoryChunk leftChunk = hint->first ;
-   MemoryChunk rightChunk = key;
-   MemoryChunk leftLeftOver;
-   /*
-    *   +===============================================+
-    *   |                  leftChunk                    |
-    *   |               (already inserted)              |
-    *   +===============================================+
-    *                +---------------------+
-    *                |     rightChunk      |
-    *                |  (to be inserted)   |
-    *                +---------------------+
-    *                    == partition ==
-    *   +============+                     +............+
-    *   | leftChunk  |                     |leftLeftOver|
-    *   +============+                     +............+
-    *                +---------------------+
-    *                |     rightChunk      |
-    *                +---------------------+
-    *                   added to result
-    */
-
-   MemoryChunk::partition( leftChunk, rightChunk, leftLeftOver );
-
-   //hint = this->insert( hint, typename BaseMap::value_type( rightChunk, NEW _Type( *hint->second ) ) ); //add the right chunk, 
-   ptrList.push_back( MemChunkPair ( NEW MemoryChunk( rightChunk ), &(hint->second) ) ); //return: rightChunk
-   //hint = this->insert( hint, typename BaseMap::value_type( leftLeftOver, NEW _Type( *hint->second ) ) ); //add the leftover
-}
-
-template < typename _Type >
-void MemoryMap< _Type >::processTotalBeginOverlapNI( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList )
-{
-   MemoryChunk leftChunk = hint->first ;
-   MemoryChunk rightChunk = key;
-   /*
-    *   +=====================+
-    *   |      leftChunk      |
-    *   |  (already inserted) |
-    *   +=====================+
-    *   +-----------------------------------------------+
-    *   |                 rightChunk                    |
-    *   |               (to be inserted)                |
-    *   +-----------------------------------------------+
-    *                    == partitionBeginAltB ==
-    *   +=====================+
-    *   |      leftChunk      |
-    *   +=====================+
-    *             ^           ...........................
-    *             |           :       rightChunk        :
-    *             |           :.........................:
-    *       added to result         ^-- not added (keep processing)
-    */
-   MemoryChunk::partitionBeginAltB( leftChunk, rightChunk );
-   ptrList.push_back( MemChunkPair ( NEW MemoryChunk ( rightChunk ), &(hint->second) ) ); //return: leftChunk
-   key = rightChunk;
-}
-
-template < typename _Type >
-void MemoryMap< _Type >::processSubchunkBeginOverlapNI( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList )
-{
-   MemoryChunk leftChunk = hint->first ;
-   MemoryChunk rightChunk = key;
-   /*
-    *   +===============================================+
-    *   |                  leftChunk                    |
-    *   |               (already inserted)              |
-    *   +===============================================+
-    *   +---------------------+
-    *   |     rightChunk      |
-    *   |  (to be inserted)   |
-    *   +---------------------+
-    *                == partitionBeginAgtB ==
-    *                         +-------------------------+
-    *                         |        rightChunk       |
-    *                         +-------------------------+
-    *   +=====================+
-    *   |     leftchunk       |
-    *   +=====================+
-    *       added to result
-    */
-   MemoryChunk::partitionBeginAgtB( leftChunk, rightChunk );
-   ptrList.push_back( MemChunkPair ( NEW MemoryChunk( leftChunk ), &(hint->second) ) ); //return: leftChunk
-   //hint = this->insert( hint, typename BaseMap::value_type( rightChunk, NEW _Type( *hint->second ) ) ); //add the rightChunk
-}
-
-template < typename _Type >
-void MemoryMap< _Type >::processTotalEndOverlapNI( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList )
-{
-   //_Type *ptr = (_Type *) NULL;
-   MemoryChunk leftChunk = key;
-   MemoryChunk rightChunk = hint->first ;
-   //const MemoryChunk *rightChunkPtr = &( hint->first );
-   _Type ** rightChunkDataPtr = &( hint->second );
-   /*
-    *                             +=====================+
-    *                             |     rightChunk      |
-    *                             |  (already inserted) |
-    *                             +=====================+
-    *   +-----------------------------------------------+
-    *   |                  leftChunk                    |
-    *   |               (to be inserted)                |
-    *   +-----------------------------------------------+
-    *                    == partition ==
-    *                             +=====================+
-    *                             |     rightChunk      |
-    *                             +=====================+
-    *   +-------------------------+        ^
-    *   |        leftChunk        |        |
-    *   +-------------------------+        |
-    *         ^------  added to result ----+
-    */
-   MemoryChunk::partitionEnd( leftChunk, rightChunk );
-   //hint = this->insert( hint, typename BaseMap::value_type( rightChunk, ptr ) ); //add the leftChunk
-   ptrList.push_back( MemChunkPair ( NEW MemoryChunk ( leftChunk ), NULL ) ); //return: leftChunk
-   ptrList.push_back( MemChunkPair ( NEW MemoryChunk ( rightChunk ), rightChunkDataPtr ) ); //return: rightChunk
-}
-
-template < typename _Type >
-void MemoryMap< _Type >::processSubchunkEndOverlapNI( MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList )
-{
-   MemoryChunk leftChunk = hint->first ;
-   MemoryChunk rightChunk = key;
-   /*
-    *   +===============================================+
-    *   |                  leftChunk                    |
-    *   |               (already inserted)              |
-    *   +===============================================+
-    *                             +---------------------+
-    *                             |     rightChunk      |
-    *                             |  (to be inserted)   |
-    *                             +---------------------+
-    *                    == partition ==
-    *   +=========================+
-    *   |        leftChunk        |
-    *   +=========================+
-    *                             +---------------------+
-    *                             |     rightChunk      |
-    *                             +---------------------+
-    *                                added to result
-    */
-   MemoryChunk::partitionEnd( leftChunk, rightChunk );
-   //hint = this->insert( hint, typename BaseMap::value_type( rightChunk, NEW _Type( *hint->second ) ) ); //add the rightChunk
-   ptrList.push_back( MemChunkPair ( NEW MemoryChunk ( rightChunk ), &(hint->second) ) ); //return: rightChunk
-}
 
 template < typename _Type >
 void MemoryMap< _Type >::insertWithOverlap( const MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList )
@@ -714,9 +451,266 @@ void MemoryMap< _Type >::insertWithOverlap( const MemoryChunk &key, typename Bas
 template < typename _Type >
 void MemoryMap< _Type >::getWithOverlap( const MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList )
 {
+   struct LocalFunctions {
+      MemoryChunk   &_key;
+      iterator            &_hint;
+      MemChunkList        &_ptrList;
+
+      LocalFunctions( MemoryChunk &key, iterator &hint, MemChunkList &ptrList ) :
+         _key( key ), _hint( hint ), _ptrList( ptrList ) { }
+
+      void processNoOverlapNI()
+      {
+         _ptrList.push_back( MemChunkPair ( NEW MemoryChunk( _key ), NULL ) );
+      }
+
+      void processBeginOverlapNI( )
+      {
+         /*
+          *                +=====================+
+          *                |     rightChunk      |
+          *                | (already inserted)  |
+          *                +=====================+
+          *   +-----------------------+
+          *   |      leftChunk        |
+          *   |    (to be inserted)   |
+          *   +-----------------------+
+          *           == intersect ==
+          *   +------------+
+          *   | leftChunk  |
+          *   +------------+
+          *        ^       +==========+............+
+          *        |       |rightChunk|righLeftOver|
+          *        |       +==========+............+
+          *   added to result----^
+          */
+         //_Type *ptr = (_Type *) NULL;
+         MemoryChunk leftChunk = _key;
+         MemoryChunk rightChunk = _hint->first ;
+         MemoryChunk rightLeftOver;
+
+         MemoryChunk::intersect( leftChunk, rightChunk, rightLeftOver );
+
+         _ptrList.push_back( MemChunkPair ( NEW MemoryChunk( leftChunk ) , NULL ) );
+         _ptrList.push_back( MemChunkPair ( NEW MemoryChunk( rightChunk ) , &(_hint->second) ) );
+      }
+
+      void processEndOverlapNI( )
+      {
+         MemoryChunk leftChunk = _hint->first ;
+         MemoryChunk rightChunk = _key;
+         MemoryChunk rightLeftOver;
+         /*
+          *   +=======================+
+          *   |      leftChunk        |
+          *   |   (already inserted)  |
+          *   +=======================+
+          *                +---------------------+
+          *                |     rightChunk      |
+          *                |  (to be inserted)   |
+          *                +---------------------+
+          *           == intersect ==
+          *   +============+
+          *   | leftChunk  |
+          *   +============+
+          *                +----------+............+
+          *                |rightChunk|righLeftOver| <- not to be inserted yet.
+          *                +----------+............+
+          *   added to result-----^        ^------ not added to result (processed on next iterations)
+          */
+
+         MemoryChunk::intersect( leftChunk, rightChunk, rightLeftOver );
+
+         //add the right chunk 
+         //hint = this->insert( hint, typename BaseMap::value_type( rightChunk, NEW _Type( *hint->second ) ) );
+         //result: right chunk
+         _ptrList.push_back( MemChunkPair ( NEW MemoryChunk( rightChunk ), &(_hint->second) ) );
+         //leftover not added to result since more overlapping may exist
+         _key = rightLeftOver;  //try to add what is left
+      }
+
+      void processTotalOverlapNI( )
+      {
+         //_Type *ptr = (_Type *) NULL;
+         //message0("TOTAL_OVERLAP detected " << (void *) iterKey.getAddress() << " : " << iterKey.getLength() << " versus " << (void *) hint->first.getAddress() << " : " << hint->first.getLength() );
+         MemoryChunk leftChunk = _key;
+         MemoryChunk rightChunk = _hint->first ;
+         MemoryChunk leftLeftOver;
+         /*
+          *                +=====================+
+          *                |     rightChunk      |
+          *                |  (already inserted) |
+          *                +=====================+
+          *   +-----------------------------------------------+
+          *   |                  leftChunk                    |
+          *   |               (to be inserted)                |
+          *   +-----------------------------------------------+
+          *                    == partition ==
+          *                +=====================+
+          *                |     rightChunk      |
+          *                +=====================+
+          *   +------------+        ^            +............+
+          *   | leftChunk  |        |            |leftLeftOver|
+          *   +------------+        |            +............+
+          *         ^------  added to result          ^-- not added (keep processing)
+          */
+
+         MemoryChunk::partition( leftChunk, rightChunk, leftLeftOver );
+
+         //hint = this->insert( hint, typename BaseMap::value_type( leftChunk, ptr ) ); //add the left chunk, 
+         _ptrList.push_back( MemChunkPair ( NEW MemoryChunk ( leftChunk ), NULL ) ); //return: leftChunk
+         _ptrList.push_back( MemChunkPair ( NEW MemoryChunk ( rightChunk ), &(_hint->second) ) ); //return: rightChunk
+         _key = leftLeftOver; //try to add what is left
+      }
+
+      void processSubchunkOverlapNI()
+      {
+         MemoryChunk leftChunk = _hint->first ;
+         MemoryChunk rightChunk = _key;
+         MemoryChunk leftLeftOver;
+         /*
+          *   +===============================================+
+          *   |                  leftChunk                    |
+          *   |               (already inserted)              |
+          *   +===============================================+
+          *                +---------------------+
+          *                |     rightChunk      |
+          *                |  (to be inserted)   |
+          *                +---------------------+
+          *                    == partition ==
+          *   +============+                     +............+
+          *   | leftChunk  |                     |leftLeftOver|
+          *   +============+                     +............+
+          *                +---------------------+
+          *                |     rightChunk      |
+          *                +---------------------+
+          *                   added to result
+          */
+
+         MemoryChunk::partition( leftChunk, rightChunk, leftLeftOver );
+
+         //hint = this->insert( hint, typename BaseMap::value_type( rightChunk, NEW _Type( *hint->second ) ) ); //add the right chunk, 
+         _ptrList.push_back( MemChunkPair ( NEW MemoryChunk( rightChunk ), &(_hint->second) ) ); //return: rightChunk
+         //hint = this->insert( hint, typename BaseMap::value_type( leftLeftOver, NEW _Type( *hint->second ) ) ); //add the leftover
+      }
+
+      void processTotalBeginOverlapNI()
+      {
+         MemoryChunk leftChunk = _hint->first ;
+         MemoryChunk rightChunk = _key;
+         /*
+          *   +=====================+
+          *   |      leftChunk      |
+          *   |  (already inserted) |
+          *   +=====================+
+          *   +-----------------------------------------------+
+          *   |                 rightChunk                    |
+          *   |               (to be inserted)                |
+          *   +-----------------------------------------------+
+          *                    == partitionBeginAltB ==
+          *   +=====================+
+          *   |      leftChunk      |
+          *   +=====================+
+          *             ^           ...........................
+          *             |           :       rightChunk        :
+          *             |           :.........................:
+          *       added to result         ^-- not added (keep processing)
+          */
+         MemoryChunk::partitionBeginAltB( leftChunk, rightChunk );
+         _ptrList.push_back( MemChunkPair ( NEW MemoryChunk ( rightChunk ), &(_hint->second) ) ); //return: leftChunk
+         _key = rightChunk;
+      }
+
+      void processSubchunkBeginOverlapNI()
+      {
+         MemoryChunk leftChunk = _hint->first ;
+         MemoryChunk rightChunk = _key;
+         /*
+          *   +===============================================+
+          *   |                  leftChunk                    |
+          *   |               (already inserted)              |
+          *   +===============================================+
+          *   +---------------------+
+          *   |     rightChunk      |
+          *   |  (to be inserted)   |
+          *   +---------------------+
+          *                == partitionBeginAgtB ==
+          *                         +-------------------------+
+          *                         |        rightChunk       |
+          *                         +-------------------------+
+          *   +=====================+
+          *   |     leftchunk       |
+          *   +=====================+
+          *       added to result
+          */
+         MemoryChunk::partitionBeginAgtB( leftChunk, rightChunk );
+         _ptrList.push_back( MemChunkPair ( NEW MemoryChunk( leftChunk ), &(_hint->second) ) ); //return: leftChunk
+         //hint = this->insert( hint, typename BaseMap::value_type( rightChunk, NEW _Type( *hint->second ) ) ); //add the rightChunk
+      }
+
+      void processTotalEndOverlapNI()
+      {
+         //_Type *ptr = (_Type *) NULL;
+         MemoryChunk leftChunk = _key;
+         MemoryChunk rightChunk = _hint->first ;
+         //const MemoryChunk *rightChunkPtr = &( hint->first );
+         _Type ** rightChunkDataPtr = &( _hint->second );
+         /*
+          *                             +=====================+
+          *                             |     rightChunk      |
+          *                             |  (already inserted) |
+          *                             +=====================+
+          *   +-----------------------------------------------+
+          *   |                  leftChunk                    |
+          *   |               (to be inserted)                |
+          *   +-----------------------------------------------+
+          *                    == partition ==
+          *                             +=====================+
+          *                             |     rightChunk      |
+          *                             +=====================+
+          *   +-------------------------+        ^
+          *   |        leftChunk        |        |
+          *   +-------------------------+        |
+          *         ^------  added to result ----+
+          */
+         MemoryChunk::partitionEnd( leftChunk, rightChunk );
+         //hint = this->insert( hint, typename BaseMap::value_type( rightChunk, ptr ) ); //add the leftChunk
+         _ptrList.push_back( MemChunkPair ( NEW MemoryChunk ( leftChunk ), NULL ) ); //return: leftChunk
+         _ptrList.push_back( MemChunkPair ( NEW MemoryChunk ( rightChunk ), rightChunkDataPtr ) ); //return: rightChunk
+      }
+
+      void processSubchunkEndOverlapNI()
+      {
+         MemoryChunk leftChunk = _hint->first ;
+         MemoryChunk rightChunk = _key;
+         /*
+          *   +===============================================+
+          *   |                  leftChunk                    |
+          *   |               (already inserted)              |
+          *   +===============================================+
+          *                             +---------------------+
+          *                             |     rightChunk      |
+          *                             |  (to be inserted)   |
+          *                             +---------------------+
+          *                    == partition ==
+          *   +=========================+
+          *   |        leftChunk        |
+          *   +=========================+
+          *                             +---------------------+
+          *                             |     rightChunk      |
+          *                             +---------------------+
+          *                                added to result
+          */
+         MemoryChunk::partitionEnd( leftChunk, rightChunk );
+         //hint = this->insert( hint, typename BaseMap::value_type( rightChunk, NEW _Type( *hint->second ) ) ); //add the rightChunk
+         _ptrList.push_back( MemChunkPair ( NEW MemoryChunk ( rightChunk ), &(_hint->second) ) ); //return: rightChunk
+      }
+   };
+
    // precondition: there is no exact match
    bool lastChunk = false;
    MemoryChunk iterKey = key;
+   LocalFunctions local( iterKey, hint, ptrList );
    if ( !this->empty() )
    {
       if ( hint != this->begin() )
@@ -728,37 +722,37 @@ void MemoryMap< _Type >::getWithOverlap( const MemoryChunk &key, typename BaseMa
             case MemoryChunk::NO_OVERLAP:
                if ( iterKey.getAddress() < hint->first.getAddress() )
                {
-                  processNoOverlapNI( iterKey, hint, ptrList );
+                  local.processNoOverlapNI();
                   lastChunk = true;
                }
                break;
             case MemoryChunk::BEGIN_OVERLAP:
-               processBeginOverlapNI( iterKey, hint, ptrList );
+               local.processBeginOverlapNI();
                lastChunk = true; //this is a final situation since the to-be-inserted chunk ends.
                break;
             case MemoryChunk::END_OVERLAP:
-               processEndOverlapNI( iterKey, hint, ptrList );
+               local.processEndOverlapNI();
                break;
             case MemoryChunk::TOTAL_OVERLAP:
-               processTotalOverlapNI( iterKey, hint, ptrList );
+               local.processTotalOverlapNI();
                break;
             case MemoryChunk::SUBCHUNK_OVERLAP:
-               processSubchunkOverlapNI( iterKey, hint, ptrList );
+               local.processSubchunkOverlapNI();
                lastChunk = true;
                break;
             case MemoryChunk::TOTAL_BEGIN_OVERLAP:
-               processTotalBeginOverlapNI( iterKey, hint, ptrList );
+               local.processTotalBeginOverlapNI();
                break;
             case MemoryChunk::SUBCHUNK_BEGIN_OVERLAP:
-               processSubchunkBeginOverlapNI( iterKey, hint, ptrList );
+               local.processSubchunkBeginOverlapNI();
                lastChunk = true;
                break;
             case MemoryChunk::TOTAL_END_OVERLAP:
-               processTotalEndOverlapNI( iterKey, hint, ptrList );
+               local.processTotalEndOverlapNI();
                lastChunk = true;
                break;
             case MemoryChunk::SUBCHUNK_END_OVERLAP:
-               processSubchunkEndOverlapNI( iterKey, hint, ptrList );
+               local.processSubchunkEndOverlapNI();
                lastChunk = true;
                break;
          }
