@@ -57,6 +57,14 @@ inline int SchedulerConf::getTimeSleep () const
 {
    return _timeSleep;
 }
+inline void SchedulerConf::setSchedulerEnabled ( bool value )
+{
+   _schedulerEnabled = value;
+}
+inline bool SchedulerConf::getSchedulerEnabled () const
+{
+   return _schedulerEnabled;
+}
 inline const std::string & SchedulePolicy::getName () const
 {
    return _name;

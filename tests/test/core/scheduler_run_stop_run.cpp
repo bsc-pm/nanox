@@ -20,7 +20,7 @@
 /*
 <testinfo>
 test_generator=gens/mixed-generator
-export NX_TEST_SCHEDULE=priority
+export NX_TEST_SCHEDULE=cilk
 </testinfo>
 */
 
@@ -36,53 +36,22 @@ using namespace std;
 using namespace nanos;
 using namespace nanos::ext;
 
-#define USE_NANOS     true
-#define NUM_ITERS     100
+#define NUM_ITERS     2000
 #define VECTOR_SIZE   100
 
-int A[VECTOR_SIZE];
-Lock l;
+Atomic<int> A;
+
 typedef struct {
    nanos_loop_info_t loop_info;
 } main__loop_1_data_t;
 
 void main__loop_1 ( void *args );
 
-/**
- * This task increments by 1 the elements in the array.
- */
 void main__loop_1 ( void *args )
 {
-   int i;
-   main__loop_1_data_t *hargs = (main__loop_1_data_t * ) args;
-
-   for ( i = hargs->loop_info.lower; i < hargs->loop_info.upper; i += hargs->loop_info.step) {
-      LockBlock lock( l );
-      ++A[i];
-      memoryFence();
-   }
-   
-   // Increase granularity artificially
-   usleep( 1000 );
+   A++;
 }
 
-/**
- * This loop will set all elements to zero.
- * If the priority scheduler is working properly, after both
- * loops have run, the resulting array will contains elements
- * with value <> 0.
- */
-void main__loop_2 ( void *args );
-
-void main__loop_2 ( void *args )
-{
-   int i;
-   main__loop_1_data_t *hargs = (main__loop_1_data_t * ) args;
-
-   for ( i = hargs->loop_info.lower; i < hargs->loop_info.upper; i += hargs->loop_info.step) {
-      A[i]=0;
-   }
-}
 
 int main ( int argc, char **argv )
 {
@@ -91,69 +60,42 @@ int main ( int argc, char **argv )
 
    main__loop_1_data_t _loop_data;
 
-   // initialize vector
-   for ( i = 0; i < VECTOR_SIZE; i++ ) A[i] = 0;
+   A = 0;
 
-   WG *wg = getMyThreadSafe()->getCurrentWD();
-   // increment vector
+   WG *wg = getMyThreadSafe()->getCurrentWD(); 
    for ( i = 0; i < NUM_ITERS; i++ ) {
-#if USE_NANOS
-      // loop info initialization
-      _loop_data.loop_info.lower = 0;
-      _loop_data.loop_info.upper = VECTOR_SIZE;
-      _loop_data.loop_info.step = + 1;
-
+      
+      // If we're done processing half of the dataset
+      if ( i == NUM_ITERS/2 ) {
+         // Stop scheduler
+         sys.getSchedulerConf().setSchedulerEnabled( false );
+      }
+      
       // Work descriptor creation
       WD * wd = new WD( new SMPDD( main__loop_1 ), sizeof( _loop_data ), __alignof__(nanos_loop_info_t), ( void * ) &_loop_data );
-      if( wd->getPriority() != 0 ){
-        fprintf(stderr, "%s : WD default priority is not 0 [KO].", argv[0] );
-        return -1;
-      }
-
       wd->setPriority( 100 );
-      if( wd->getPriority() != 100 ){
-        fprintf(stderr, "%s : WD setted priority is not 200 [KO].", argv[0] );
-        return -1;
-      }
 
       // Work Group affiliation
       wg->addWork( *wd );
 
       // Work submission
       sys.submit( *wd );
-
-#else
-      for ( int j = 0; j < VECTOR_SIZE; j++ ) A[j] += 100;
-#endif
+      
+      if ( i == ( NUM_ITERS/2 + 5 ) ){
+         // Keep going
+         sys.getSchedulerConf().setSchedulerEnabled( true );
+      }
    }
-   {
-#if USE_NANOS
-      // Second task: set to 0
-      WD* wd = new WD( new SMPDD( main__loop_2 ), sizeof( _loop_data ), __alignof__(nanos_loop_info_t), ( void * ) &_loop_data );
-      // Use a higher priority
-      wd->setPriority( 150 );
-      wg->addWork( *wd );
-      // Work submission
-      sys.submit( *wd );
-
-      #else
-      for ( int j = 0; j < VECTOR_SIZE; j++ ) A[j] = 0;
-#endif
-   }
-   
    // barrier (kind of)
    wg->waitCompletion();
    
 
    /*
-    * Verification criteria: The priority scheduler must ensure that the
-    * highest priority task that was submitted the latest is executed before
-    * at least one lower priority task.
-    * In this case, as the highest priority task sets the elements in the A
-    * array to 0, it is as simple as checking if that's the value at the end of
-    * the execution. If it is, the test failed, otherwise, succeeded.
+    * How can we be sure the test passed? Each task increments A. If we run N
+    * tasks, A should be equal to N.
+    * If it's less than N, that'd mean the scheduler lost something.
     */
-   for ( i = 0; i < VECTOR_SIZE; i++ ) if ( A[i] == 0 ) check = false;
+   if ( A.value() != NUM_ITERS ) check = false;
 
    if ( check ) {
       fprintf(stderr, "%s : %s\n", argv[0], "successful");

@@ -71,6 +71,13 @@ void Scheduler::submit ( WD &wd )
       return;
    }
 
+   // TODO (#581): move this to the upper if
+   if ( !sys.getSchedulerConf().getSchedulerEnabled() ) {
+      // Scheduler stopped, enqueue work.
+      mythread->getTeam()->getSchedulePolicy().queue( mythread, wd );
+      return;
+   }
+   
    WD *next = getMyThreadSafe()->getTeam()->getSchedulePolicy().atSubmit( myThread, wd );
 
    /* If SchedulePolicy have returned a 'next' value, we have to context switch to
@@ -318,7 +325,10 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                if ( sys.getSchedulerStats()._readyTasks > 0 ) {
                   total_scheds++;
                   unsigned long begin_sched = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
-                  next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
+                  // If the scheduler is running
+                  if( sys.getSchedulerConf().getSchedulerEnabled() ){
+                     next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
+                  }
                   unsigned long end_sched = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
                   time_scheds += ( end_sched - begin_sched );
                 }
@@ -433,14 +443,25 @@ void Scheduler::wakeUp ( WD *wd )
 
 WD * Scheduler::prefetch( BaseThread *thread, WD &wd )
 {
-   return thread->getTeam()->getSchedulePolicy().atPrefetch( thread, wd );
+   // If the scheduler is running
+   if ( sys.getSchedulerConf().getSchedulerEnabled() ){
+      return thread->getTeam()->getSchedulePolicy().atPrefetch( thread, wd );
+   }
+   // Otherwise, do nothing
+   // FIXME (#581): Consequences?
+   return NULL;
 }
 
 struct WorkerBehaviour
 {
    static WD * getWD ( BaseThread *thread, WD *current )
    {
-      return thread->getTeam()->getSchedulePolicy().atIdle ( thread );
+      if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
+         return thread->getTeam()->getSchedulePolicy().atIdle ( thread );
+      }
+      else {
+         return NULL;
+      }
    }
 
    static void switchWD ( BaseThread *thread, WD *current, WD *next )
@@ -569,10 +590,16 @@ void Scheduler::switchTo ( WD *to )
 void Scheduler::yield ()
 {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
-   WD *next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
+   // If the scheduler is running
+   if( sys.getSchedulerConf().getSchedulerEnabled() ){
+      WD *next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
 
-   if ( next ) {
-      switchTo(next);
+      if ( next ) {
+         switchTo(next);
+      }
+   }
+   else{
+      // FIXME (#581): Do nothing? really?
    }
 }
 
