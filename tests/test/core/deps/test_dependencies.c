@@ -61,6 +61,7 @@ int main ( int argc, char **argv )
      .mandatory_creation = true,
      .tied = false,
      .tie_to = false,
+     .priority = 0,
    };
    nanos_wd_t wd1=0;
    nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1) };
