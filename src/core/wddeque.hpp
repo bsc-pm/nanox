@@ -367,15 +367,19 @@ inline size_t WDPriorityQueue::size() const
    return _nelems;
 }
 
+inline void WDPriorityQueue::insertOrdered( WorkDescriptor *wd )
+{
+   // Find where to insert the wd
+   BaseContainer::iterator it = std::upper_bound( _dq.begin(), _dq.end(), wd, WDPriorityComparison() );
+   _dq.insert( it, wd );
+}
+
 inline void WDPriorityQueue::push ( WorkDescriptor *wd )
 {
    wd->setMyQueue( this );
    {
       LockBlock lock( _lock );
-      //_dq.push( wd );
-      // Find where to insert the wd
-      BaseContainer::iterator it = std::upper_bound( _dq.begin(), _dq.end(), wd, WDPriorityComparison() );
-      _dq.insert( it, wd );
+      insertOrdered( wd );
       int tasks = ++( sys.getSchedulerStats()._readyTasks );
       increaseTasksInQueues(tasks);
       memoryFence();
@@ -436,7 +440,6 @@ inline WorkDescriptor * WDPriorityQueue::popWithConstraints ( BaseThread *thread
 
    if ( _dq.empty() )
       return NULL;
-
    {
       LockBlock lock( _lock );
 
@@ -498,6 +501,26 @@ inline bool WDPriorityQueue::removeWDWithConstraints( BaseThread *thread, WorkDe
    }
 
    return false;
+}
+
+inline bool WDPriorityQueue::reorderWD( WorkDescriptor *wd )
+{
+   LockBlock l( _lock );
+   
+   // Find the WD
+   BaseContainer::iterator it =
+      find( _dq.begin(), _dq.end(), wd );
+
+   // If the WD was not found, return false
+   if( it == _dq.end() ){
+      return false;
+   }
+
+   // Otherwise, reorder it
+   _dq.erase( it );
+   insertOrdered( wd );
+
+   return true;
 }
 
 inline void WDPriorityQueue::increaseTasksInQueues( int tasks )

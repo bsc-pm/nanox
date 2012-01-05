@@ -229,7 +229,6 @@ namespace nanos
       private:
          // TODO (gmiranda): Measure if vector is better as a container
          typedef std::list<WorkDescriptor *> BaseContainer;
-
          BaseContainer     _dq;
          Lock              _lock;
          size_t            _nelems;
@@ -241,6 +240,10 @@ namespace nanos
          /*! \brief WDPriorityQueue copy assignment operator (private)
           */
          const WDPriorityQueue & operator= ( const WDPriorityQueue & );
+         
+         /*! \brief Inserts a WD in the expected order.
+          */
+         void insertOrdered ( WorkDescriptor *wd );
       public:
          /*! \brief WDPriorityQueue default constructor
           */
@@ -267,6 +270,14 @@ namespace nanos
 
 
          bool removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
+
+         /*! \brief Reorders the list a WD in the current queue.
+          * It is needed when the priority of a WD is changed.
+          * \note This just removes and pushes the WD into the list.
+          * \return If the WD was found or not.
+          * \note This method sets the lock uppon entry (using LockBlock).
+          */
+         bool reorderWD( WorkDescriptor *wd );
 
          void increaseTasksInQueues( int tasks );
          void decreaseTasksInQueues( int tasks );
