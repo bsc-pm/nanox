@@ -30,8 +30,6 @@ namespace nanos {
        * \brief Smart Priority scheduler.
        * This priority-based scheduler propagates the priority of a task to its
        * preceeding tasks (those the task depends on).
-       * Please note that, given the current algorithm, this might be resource
-       * intensive.
        */
       class SmartPriority : public SchedulePolicy
       {
