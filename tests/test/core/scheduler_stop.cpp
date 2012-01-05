@@ -20,7 +20,7 @@
 /*
 <testinfo>
 test_generator=gens/mixed-generator
-export NX_TEST_SCHEDULE=cilk
+test_schedule=cilk
 </testinfo>
 */
 
