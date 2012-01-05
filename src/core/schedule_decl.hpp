@@ -175,6 +175,10 @@ namespace nanos
 
    class SchedulePolicy
    {
+      public:
+         typedef enum {
+            SYS_SUBMIT, SYS_SUBMIT_WITH_DEPENDENCIES, SYS_INLINE_WORK
+         } SystemSubmitFlag;
       private:
          std::string    _name;
       private:
@@ -215,6 +219,13 @@ namespace nanos
          virtual WD * atPrefetch    ( BaseThread *thread, WD &current );
 
          virtual void queue ( BaseThread *thread, WD &wd )  = 0;
+         
+         /*! \brief Hook function called when a WD is submitted.
+          \param wd [in] The WD to be submitted.
+          \param from [in] A flag indicating where the method is called from.
+          \sa SystemSubmitFlag.
+          */
+         virtual void onSystemSubmit( const WD &wd, SystemSubmitFlag from ) {}
    };
    
 };
