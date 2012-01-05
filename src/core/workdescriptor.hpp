@@ -115,7 +115,8 @@ inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t n
 {
    wd._doSubmit.reset( NEW DOSubmit() );
    wd._doSubmit->setWD(&wd);
-   _depsDomain->submitDependableObject( *(wd._doSubmit), numDeps, deps );
+   SchedulePolicySuccessorFunctor cb( *sys.getDefaultSchedulePolicy() );
+   _depsDomain->submitDependableObject( *(wd._doSubmit), numDeps, deps, &cb );
 }
 
 inline void WorkDescriptor::waitOn( size_t numDeps, Dependency* deps )

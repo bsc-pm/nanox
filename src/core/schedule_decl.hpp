@@ -226,6 +226,24 @@ namespace nanos
           \sa SystemSubmitFlag.
           */
          virtual void onSystemSubmit( const WD &wd, SystemSubmitFlag from ) {}
+         
+         /*! \brief This method will be called when a pair of preceeding and
+          succeeding work descriptors is found.
+          \param predecessor Preceeding Dependable Object pointer.
+          \param successor ...
+          */
+         virtual void successorFound( DependableObject *predecessor, DependableObject *successor ) {}
+   };
+   /*! \brief Functor that will be used when a WD's predecessor is found.
+    */
+   struct SchedulePolicySuccessorFunctor
+   {
+      SchedulePolicy& _obj;
+      
+      SchedulePolicySuccessorFunctor( SchedulePolicy& obj ) : _obj( obj ) {}
+      void operator() ( DependableObject *predecessor, DependableObject *successor ) {
+         _obj.successorFound( predecessor, successor );
+      }
    };
    
 };
