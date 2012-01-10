@@ -254,6 +254,18 @@ namespace nanos
 
          SchedulerStats & getSchedulerStats ();
          SchedulerConf  & getSchedulerConf();
+         
+         /*! \brief Disables the execution of pending WDs in the scheduler's
+          queue.
+         */
+         void stopScheduler ();
+         /*! \brief Resumes the execution of pending WDs in the scheduler's
+          queue.
+         */
+         void startScheduler ();
+         
+         //! \brief Checks if the scheduler is stopped or not.
+         bool isSchedulerStopped ();
 
          void setPMInterface (PMInterface *_pm);
          PMInterface & getPMInterface ( void ) const;
