@@ -101,5 +101,10 @@ inline WD * SchedulePolicy::atPrefetch    ( BaseThread *thread, WD &current )
    return atIdle( thread );
 }
 
+inline void SchedulePolicySuccessorFunctor::operator() ( DependableObject *predecessor, DependableObject *successor )
+{
+   _obj.successorFound( predecessor, successor );
+}
+
 #endif
 

@@ -241,9 +241,8 @@ namespace nanos
       SchedulePolicy& _obj;
       
       SchedulePolicySuccessorFunctor( SchedulePolicy& obj ) : _obj( obj ) {}
-      void operator() ( DependableObject *predecessor, DependableObject *successor ) {
-         _obj.successorFound( predecessor, successor );
-      }
+      
+      void operator() ( DependableObject *predecessor, DependableObject *successor );
    };
    
 };
