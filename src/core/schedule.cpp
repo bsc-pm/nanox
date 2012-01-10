@@ -73,11 +73,10 @@ void Scheduler::submit ( WD &wd )
 
    // TODO (#581): move this to the upper if
    if ( !sys.getSchedulerConf().getSchedulerEnabled() ) {
-      // Scheduler stopped, enqueue work.
+      // Scheduler stopped, queue work.
       mythread->getTeam()->getSchedulePolicy().queue( mythread, wd );
       return;
    }
-   
    WD *next = getMyThreadSafe()->getTeam()->getSchedulePolicy().atSubmit( myThread, wd );
 
    /* If SchedulePolicy have returned a 'next' value, we have to context switch to
@@ -326,7 +325,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                   total_scheds++;
                   unsigned long begin_sched = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
                   // If the scheduler is running
-                  if( sys.getSchedulerConf().getSchedulerEnabled() ){
+                  if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
                      next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
                   }
                   unsigned long end_sched = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
@@ -423,7 +422,9 @@ void Scheduler::wakeUp ( WD *wd )
       /* Setting ready wd */
       wd->setReady();
       if ( checkBasicConstraints ( *wd, *myThread ) ) {
-         WD *next = getMyThreadSafe()->getTeam()->getSchedulePolicy().atWakeUp( myThread, *wd );
+         WD *next = NULL;
+         if ( sys.getSchedulerConf().getSchedulerEnabled() )
+            next = getMyThreadSafe()->getTeam()->getSchedulePolicy().atWakeUp( myThread, *wd );
          /* If SchedulePolicy have returned a 'next' value, we have to context switch to
             that WorkDescriptor */
          if ( next ) {
@@ -593,13 +594,9 @@ void Scheduler::yield ()
    // If the scheduler is running
    if( sys.getSchedulerConf().getSchedulerEnabled() ){
       WD *next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
-
       if ( next ) {
          switchTo(next);
       }
-   }
-   else{
-      // FIXME (#581): Do nothing? really?
    }
 }
 
@@ -623,7 +620,10 @@ struct ExitBehaviour
 {
    static WD * getWD ( BaseThread *thread, WD *current )
    {
-      return thread->getTeam()->getSchedulePolicy().atAfterExit( thread, current );
+      if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
+         return thread->getTeam()->getSchedulePolicy().atAfterExit( thread, current );
+      }
+      return NULL;
    }
 
    static void switchWD ( BaseThread *thread, WD *current, WD *next )
@@ -665,7 +665,8 @@ void Scheduler::exit ( void )
   /* if getNextWD() has returned a WD, we need to resetNextWD(). If no WD has
    * been returned call scheduler policy */
    if (next) thread->resetNextWD();
-   else next = thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*oldwd);
+   else if ( sys.getSchedulerConf().getSchedulerEnabled() )
+      next = thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*oldwd);
 
    updateExitStats (*oldwd);
    oldwd->done();

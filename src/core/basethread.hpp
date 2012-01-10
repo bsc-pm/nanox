@@ -68,7 +68,10 @@ namespace nanos
    }
  
    inline WD * BaseThread::getNextWD () const
-   { 
+   {
+      if ( !sys.getSchedulerConf().getSchedulerEnabled() )
+         return NULL;
+      
       if ( _nextWD == (WD *) 1 ) return NULL;
       return _nextWD;
    }
