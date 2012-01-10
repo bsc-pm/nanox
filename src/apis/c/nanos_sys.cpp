@@ -35,3 +35,34 @@ nanos_err_t nanos_get_num_running_tasks ( int *num )
 
    return NANOS_OK;
 }
+
+nanos_err_t nanos_stop_scheduler ()
+{
+   try {
+      sys.stopScheduler();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+nanos_err_t nanos_start_scheduler ()
+{
+   try {
+      sys.startScheduler();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+bool nanos_scheduler_enabled ()
+{
+   try {
+      return sys.isSchedulerStopped();
+   } catch ( ... ) {
+   }
+   return false;
+}
