@@ -58,11 +58,12 @@ nanos_err_t nanos_start_scheduler ()
    return NANOS_OK;
 }
 
-bool nanos_scheduler_enabled ()
+nanos_err_t nanos_scheduler_enabled ( bool *res )
 {
    try {
-      return sys.isSchedulerStopped();
+      *res = sys.isSchedulerStopped();
    } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
    }
-   return false;
+   return NANOS_OK;
 }
