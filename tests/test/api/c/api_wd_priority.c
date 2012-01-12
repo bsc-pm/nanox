@@ -27,64 +27,64 @@ test_generator=gens/api-generator
 #include <nanos.h>
 #include <alloca.h>
 
-#define NUM_TASKS 100
 
+/* ******************************* SECTION 1 ***************************** */
 // compiler: outlined function arguments
-typedef struct {
-   int value;
-} main__task_1_data_t;
-// --
+typedef struct { int *M; } main__section_1_data_t;
 // compiler: outlined function
-void main__task_1 ( void *args )
+void main__section_1 ( void *p_args )
 {
-   /* User Function: main__task_1: enter burst */
-   nanos_event_key_t ek;
-   nanos_event_value_t ev;
-   nanos_instrument_register_key ( &ek, "user-funct-name", "User Functions", true );
-   nanos_instrument_register_value ( &ev, "user-funct-name", "main__task_1", "main__task_1 user's function", true );
-   nanos_instrument_enter_burst( ek, ev );
-
-   main__task_1_data_t *hargs = (main__task_1_data_t * ) args;
-
-   usleep ( hargs->value );
-   nanos_yield();
-   usleep ( hargs->value );
-
-   usleep ( hargs->value );
-   nanos_yield();
-   usleep ( hargs->value );
-
-   /* User Function: main__task_1: leave burst */
-   nanos_instrument_leave_burst( ek );
+   int i;
+   main__section_1_data_t *args = (main__section_1_data_t *) p_args;
+   fprintf( stderr,"Section 1\n" );
+//fprintf(stderr,"section 1: vector @=%p\n",args->M );
+//   for ( i = 0; i < VECTOR_SIZE; i++) args->M[i]++;
+//fprintf(stderr,"section 1: vector @=%p has finished\n",args->M );
 }
-// --
-// compiler: smp device for main__loop_1 function
-nanos_smp_args_t main__task_1_device_args = { main__task_1 };
-// --
+// compiler: smp device for main__section_1 function
+nanos_smp_args_t main__section_1_device_args = { main__section_1 };
+
+/* ******************************* SECTIONS ***************************** */
+// compiler: outlined function
+void main__sections ( void *p_args ) { fprintf(stderr,"es\n"); }
 
 int main ( int argc, char **argv )
 {
    int i;
+   bool check = true;
 
-   nanos_device_t main__task_1_device[1] = { NANOS_SMP_DESC( main__task_1_device_args ) };
+   /* COMMON INFO */
    nanos_wd_props_t props = {
       .mandatory_creation = true,
       .tied = false,
       .tie_to = false,
-         .priority = 0,
+      .priority = 0
    };
 
-   nanos_wd_t wd[10] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
-   main__task_1_data_t *task_data[10] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
 
-   for ( i = 0; i < 10; i++ ) {
-      NANOS_SAFE( nanos_create_wd ( &wd[i], 1, main__task_1_device , sizeof( main__task_1_data_t ), __alignof__(main__task_1_data_t),
-                                    (void **) &task_data[i], nanos_current_wd(), &props , 0, NULL ));
-      task_data[i]->value = 100;
-      NANOS_SAFE( nanos_submit( wd[i],0,0,0 ) );
-   }
+   nanos_wd_t wd[4] = { NULL, NULL, NULL, NULL };
+
+   /* Creating section 1 wd */
+   nanos_device_t main__section_1_device[1] = { NANOS_SMP_DESC( main__section_1_device_args ) };
+   main__section_1_data_t *section_data_1 = NULL;
+   fprintf(stderr, "Creating WD\n" );
+   NANOS_SAFE( nanos_create_wd ( &wd[0], 1, main__section_1_device, sizeof(section_data_1), __alignof__(section_data_1), (void **) &section_data_1,
+                             nanos_current_wd(), &props , 0, NULL ) );
+   fprintf(stderr, "Created WD\n" );
+
+   NANOS_SAFE( nanos_submit( wd[0],0,0,0 ) );
+
    NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
 
-   return 0; 
+   // WD creation (and run
+   fprintf(stderr, "Creating and running WD\n" );
+   props.priority = 3;
+   NANOS_SAFE( nanos_create_wd_and_run( 1, main__section_1_device, sizeof(section_data_1), __alignof__(section_data_1), (void *) section_data_1,
+             0, (nanos_dependence_t *) 0, &props, 0, NULL, NULL ) );
+   fprintf(stderr, "Created WD\n" );
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
+
+   fprintf(stderr, "%s : %s\n", argv[0], check ? "  successful" : "unsuccessful");
+   if (check) { return 0; } else { return -1; }
 }
 

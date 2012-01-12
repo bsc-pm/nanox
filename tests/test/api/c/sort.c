@@ -614,6 +614,7 @@ void cilkmerge_par(ELM *low1, ELM *high1, ELM *low2, ELM *high2, ELM *lowdest)
 #endif
            .tied = false,
            .tie_to = false,
+           .priority = 0,
          };
 
          nanos_wd_t wd[2] = {NULL,NULL};
@@ -782,6 +783,7 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
 #endif
            .tied = false,
            .tie_to = false,
+           .priority = 0,
          };
 
          nanos_wd_t wd[4] = {NULL,NULL,NULL,NULL};
@@ -950,6 +952,7 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
 #endif
            .tied = false,
            .tie_to = false,
+           .priority = 0,
          };
 
          nanos_wd_t wd[2] = {NULL,NULL};

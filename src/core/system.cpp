@@ -528,6 +528,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
       if ( props->tie_to ) wd->tieTo( *( BaseThread * )props->tie_to );
+      wd->setPriority( props->priority );
    }
 }
 
@@ -661,6 +662,7 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
       if ( props->tie_to ) wd->tieTo( *( BaseThread * )props->tie_to );
+      wd->setPriority( props->priority );
    }
 }
 
@@ -868,6 +870,8 @@ void System::setupWD ( WD &work, WD *parent )
 
 void System::submit ( WD &work )
 {
+   SchedulePolicy* policy = getDefaultSchedulePolicy();
+   policy->onSystemSubmit( work, SchedulePolicy::SYS_SUBMIT );
    setupWD( work, myThread->getCurrentWD() );
    work.submit();
 }
@@ -876,6 +880,8 @@ void System::submit ( WD &work )
  */
 void System::submitWithDependencies (WD& work, size_t numDeps, Dependency* deps)
 {
+   SchedulePolicy* policy = getDefaultSchedulePolicy();
+   policy->onSystemSubmit( work, SchedulePolicy::SYS_SUBMIT_WITH_DEPENDENCIES );
    setupWD( work, myThread->getCurrentWD() );
    WD *current = myThread->getCurrentWD();
    current->submitWithDependencies( work, numDeps , deps);
@@ -892,6 +898,8 @@ void System::waitOn( size_t numDeps, Dependency* deps )
 
 void System::inlineWork ( WD &work )
 {
+   SchedulePolicy* policy = getDefaultSchedulePolicy();
+   policy->onSystemSubmit( work, SchedulePolicy::SYS_INLINE_WORK );
    setupWD( work, myThread->getCurrentWD() );
    // TODO: choose actual (active) device...
    if ( Scheduler::checkBasicConstraints( work, *myThread ) ) {

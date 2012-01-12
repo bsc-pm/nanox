@@ -390,19 +390,47 @@ MPITRACE_BIN=""
 AC_ARG_WITH([mpitrace],
            AS_HELP_STRING([--with-mpitrace=dir], [Directory of Extrae installation (deprecated)]),
            [
-                MPITRACE_HOME="$withval"
-                MPITRACE_INC="$withval/include"
-                MPITRACE_LIB="$withval/lib"
-                MPITRACE_BIN="$withval/bin"
+                extrae_version_h=$withval/include/extrae_version.h
+                if test -e $extrae_version_h ;
+                then
+                   extrae_version_string=`sed -ne '/^\s*#\s*define\s\+EXTRAE_VERSION .*$/p' $extrae_version_h`
+                   extrae_version=`echo $extrae_version_string | sed -e 's/#define EXTRAE_VERSION EXTRAE_VERSION_NUMBER(\([0-9]*\),\([0-9]*\),\([0-9]*\).*$/\1\2\3/'`
+                   if test "$extrae_version" -ge 220;
+                   then
+                      MPITRACE_HOME="$withval"
+                      MPITRACE_INC="$withval/include"
+                      MPITRACE_LIB="$withval/lib"
+                      MPITRACE_BIN="$withval/bin"
+                      AC_MSG_RESULT([checking if Extrae library is compatible... yes])
+                   else
+                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                   fi
+                else
+                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                fi
            ]
 )
 AC_ARG_WITH([extrae],
            AS_HELP_STRING([--with-extrae=dir], [Directory of Extrae installation]),
            [
-                MPITRACE_HOME="$withval"
-                MPITRACE_INC="$withval/include"
-                MPITRACE_LIB="$withval/lib"
-                MPITRACE_BIN="$withval/bin"
+                extrae_version_h=$withval/include/extrae_version.h
+                if test -e $extrae_version_h ;
+                then
+                   extrae_version_string=`sed -ne '/^\s*#\s*define\s\+EXTRAE_VERSION .*$/p' $extrae_version_h`
+                   extrae_version=`echo $extrae_version_string | sed -e 's/#define EXTRAE_VERSION EXTRAE_VERSION_NUMBER(\([0-9]*\),\([0-9]*\),\([0-9]*\).*$/\1\2\3/'`
+                   if test "$extrae_version" -ge 220;
+                   then
+                      MPITRACE_HOME="$withval"
+                      MPITRACE_INC="$withval/include"
+                      MPITRACE_LIB="$withval/lib"
+                      MPITRACE_BIN="$withval/bin"
+                      AC_MSG_RESULT([checking if Extrae library is compatible... yes])
+                   else
+                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                   fi
+                else
+                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                fi
            ]
 )
 
@@ -414,7 +442,7 @@ AC_SUBST([MPITRACE_BIN])
 
 AM_CONDITIONAL([INSTRUMENTATION_EXTRAE], test x"$MPITRACE_HOME" != x)
 
-# Chechk for Chapel support
+# Check for Chapel support
 AC_ARG_WITH([chapel],
             AS_HELP_STRING([--with-chapel=dir], [Directory of Chapel installation]),
 	    [

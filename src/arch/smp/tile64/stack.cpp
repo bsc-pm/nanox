@@ -16,22 +16,33 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-#ifndef _NANOS_SCHEDULE_FWD_H
-#define _NANOS_SCHEDULE_FWD_H
+/*      Port Tilera Tile64PRO by Artur Podobas (podobas@kth.se) under prof. Mats     */
+/*      Brorsson (matsbror@kth.se)  and Vladimir Vlassov (vladv@kth.se) for the      */
+/*      ENCORE project. February 2011 Royal Institute of Technology.                 */
+/*************************************************************************************/
 
-namespace nanos
+#include "smp_ult.hpp"
+
+extern "C"
 {
-   class Scheduler;
-   class SchedulerStats;
-   class ScheduleTeamData;
-   class ScheduleThreadData;
-   class SchedulePolicy;
-   class SchedulePolicySuccessorFunctor;
+// low-level helper routine to start a new user-thread
+   void startHelper();
+}
 
-   class SchedulingGroup;
-   class SchedulingData;
-   class SchedulingConf;
-};
+intptr_t * initContext ( intptr_t *stack, size_t stackSize, void *userFunction, void *userArg,
+                         void *cleanup, void *cleanupArg )
+{
+   intptr_t * state = stack;
 
-#endif
+   state += stackSize - 96;
+
+   state[0]  = ( intptr_t ) startHelper;
+   state[1]  = ( intptr_t ) userFunction; // r31
+   state[2]  = ( intptr_t ) userArg;
+   state[3]  = ( intptr_t ) cleanup;
+   state[4]  = ( intptr_t ) cleanupArg; // r34
+   state[21] = ( intptr_t ) &state[0];
+
+   return &state[0];
+}
 

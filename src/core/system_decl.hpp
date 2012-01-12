@@ -108,9 +108,6 @@ namespace nanos
          /*! It manages all registered and active plugins */
          PluginManager        _pluginManager;
 
-         // Memory access directory
-         Directory            _directory;
-
          // Programming model interface
          PMInterface *        _pmInterface;
 
@@ -259,6 +256,18 @@ namespace nanos
 
          SchedulerStats & getSchedulerStats ();
          SchedulerConf  & getSchedulerConf();
+         
+         /*! \brief Disables the execution of pending WDs in the scheduler's
+          queue.
+         */
+         void stopScheduler ();
+         /*! \brief Resumes the execution of pending WDs in the scheduler's
+          queue.
+         */
+         void startScheduler ();
+         
+         //! \brief Checks if the scheduler is stopped or not.
+         bool isSchedulerStopped ();
 
          void setPMInterface (PMInterface *_pm);
          PMInterface & getPMInterface ( void ) const;

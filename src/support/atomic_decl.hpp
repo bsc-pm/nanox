@@ -36,7 +36,6 @@ namespace nanos
 {
 
    template<typename T>
-
    class Atomic
    {
 
@@ -97,12 +96,12 @@ namespace nanos
    };
 
    void memoryFence ();
+
    template<typename T>
    bool compareAndSwap( T *ptr, T oldval, T  newval );
 
    class Lock : public nanos_lock_t
    {
-
       private:
          typedef nanos_lock_state_t state_t;
 
@@ -118,6 +117,7 @@ namespace nanos
          ~Lock() {}
 
          void acquire ( void );
+         void acquire_noinst ( void );
          bool tryAcquire ( void );
          void release ( void );
 
@@ -141,6 +141,22 @@ namespace nanos
      public:
        LockBlock ( Lock & lock );
        ~LockBlock ( );
+
+       void acquire();
+       void release();
+   };
+
+   class LockBlock_noinst
+   {
+     private:
+       Lock & _lock;
+
+       // disable copy-constructor
+       explicit LockBlock_noinst ( const LockBlock_noinst & );
+
+     public:
+       LockBlock_noinst ( Lock & lock );
+       ~LockBlock_noinst ( );
 
        void acquire();
        void release();
