@@ -28,7 +28,7 @@
 
 using namespace nanos;
 
-nanos_err_t nanos_instrument_register_key ( nanos_event_key_t *event_key, const char *key, const char *description, bool abort_when_registered )
+NANOS_API_DEF(nanos_err_t, nanos_instrument_register_key, ( nanos_event_key_t *event_key, const char *key, const char *description, bool abort_when_registered ))
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
@@ -41,7 +41,7 @@ nanos_err_t nanos_instrument_register_key ( nanos_event_key_t *event_key, const 
    return NANOS_OK;
 }
 
-nanos_err_t nanos_instrument_register_value ( nanos_event_value_t *event_value, const char *key, const char *value, const char *description, bool abort_when_registered )
+NANOS_API_DEF(nanos_err_t, nanos_instrument_register_value, ( nanos_event_value_t *event_value, const char *key, const char *value, const char *description, bool abort_when_registered ))
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
@@ -54,7 +54,7 @@ nanos_err_t nanos_instrument_register_value ( nanos_event_value_t *event_value, 
    return NANOS_OK;
 }
 
-nanos_err_t nanos_instrument_register_value_with_val ( nanos_event_value_t val, const char *key, const char *value, const char *description, bool abort_when_registered )
+NANOS_API_DEF(nanos_err_t, nanos_instrument_register_value_with_val, ( nanos_event_value_t val, const char *key, const char *value, const char *description, bool abort_when_registered ))
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
@@ -67,7 +67,7 @@ nanos_err_t nanos_instrument_register_value_with_val ( nanos_event_value_t val, 
    return NANOS_OK;
 }
 
-nanos_err_t nanos_instrument_get_key (const char *key, nanos_event_key_t *event_key)
+NANOS_API_DEF(nanos_err_t, nanos_instrument_get_key, (const char *key, nanos_event_key_t *event_key))
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
@@ -80,7 +80,7 @@ nanos_err_t nanos_instrument_get_key (const char *key, nanos_event_key_t *event_
    return NANOS_OK;
 }
 
-nanos_err_t nanos_instrument_get_value (const char *key, const char *value, nanos_event_value_t *event_value)
+NANOS_API_DEF(nanos_err_t, nanos_instrument_get_value, (const char *key, const char *value, nanos_event_value_t *event_value))
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
@@ -93,7 +93,7 @@ nanos_err_t nanos_instrument_get_value (const char *key, const char *value, nano
    return NANOS_OK;
 }
 
-nanos_err_t nanos_instrument_events ( unsigned int num_events, nanos_event_t events[] )
+NANOS_API_DEF(nanos_err_t, nanos_instrument_events, ( unsigned int num_events, nanos_event_t events[] ))
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
@@ -136,7 +136,7 @@ nanos_err_t nanos_instrument_events ( unsigned int num_events, nanos_event_t eve
    return NANOS_OK;
 }
 
-nanos_err_t nanos_instrument_enter_state ( nanos_event_state_value_t state )
+NANOS_API_DEF(nanos_err_t, nanos_instrument_enter_state, ( nanos_event_state_value_t state ))
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
@@ -149,7 +149,7 @@ nanos_err_t nanos_instrument_enter_state ( nanos_event_state_value_t state )
    return NANOS_OK;
 }
 
-nanos_err_t nanos_instrument_leave_state ( void )
+NANOS_API_DEF(nanos_err_t, nanos_instrument_leave_state, ( void ))
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
@@ -162,7 +162,7 @@ nanos_err_t nanos_instrument_leave_state ( void )
    return NANOS_OK;
 }
 
-nanos_err_t nanos_instrument_enter_burst( nanos_event_key_t key, nanos_event_value_t value )
+NANOS_API_DEF(nanos_err_t, nanos_instrument_enter_burst, ( nanos_event_key_t key, nanos_event_value_t value ))
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
@@ -175,7 +175,7 @@ nanos_err_t nanos_instrument_enter_burst( nanos_event_key_t key, nanos_event_val
    return NANOS_OK;
 }
 
-nanos_err_t nanos_instrument_leave_burst( nanos_event_key_t key )
+NANOS_API_DEF(nanos_err_t, nanos_instrument_leave_burst, ( nanos_event_key_t key ))
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
@@ -188,7 +188,7 @@ nanos_err_t nanos_instrument_leave_burst( nanos_event_key_t key )
    return NANOS_OK;
 }
 
-nanos_err_t nanos_instrument_point_event ( unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
+NANOS_API_DEF(nanos_err_t, nanos_instrument_point_event, ( unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values ))
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
@@ -201,8 +201,8 @@ nanos_err_t nanos_instrument_point_event ( unsigned int nkvs, nanos_event_key_t 
    return NANOS_OK;
 }
 
-nanos_err_t nanos_instrument_ptp_start ( nanos_event_domain_t domain, nanos_event_id_t id,
-                                         unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
+NANOS_API_DEF(nanos_err_t, nanos_instrument_ptp_start, ( nanos_event_domain_t domain, nanos_event_id_t id,
+                                         unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values ))
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
@@ -215,8 +215,8 @@ nanos_err_t nanos_instrument_ptp_start ( nanos_event_domain_t domain, nanos_even
    return NANOS_OK;
 }
 
-nanos_err_t nanos_instrument_ptp_end ( nanos_event_domain_t domain, nanos_event_id_t id,
-                                         unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values )
+NANOS_API_DEF(nanos_err_t, nanos_instrument_ptp_end, ( nanos_event_domain_t domain, nanos_event_id_t id,
+                                         unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values ))
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
@@ -229,7 +229,7 @@ nanos_err_t nanos_instrument_ptp_end ( nanos_event_domain_t domain, nanos_event_
    return NANOS_OK;
 }
 
-nanos_err_t nanos_instrument_disable_state_events ( nanos_event_state_value_t state )
+NANOS_API_DEF(nanos_err_t, nanos_instrument_disable_state_events, ( nanos_event_state_value_t state ))
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
@@ -242,7 +242,7 @@ nanos_err_t nanos_instrument_disable_state_events ( nanos_event_state_value_t st
    return NANOS_OK;
 }
 
-nanos_err_t nanos_instrument_enable_state_events ( void )
+NANOS_API_DEF(nanos_err_t, nanos_instrument_enable_state_events, ( void ))
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
@@ -256,7 +256,7 @@ nanos_err_t nanos_instrument_enable_state_events ( void )
 }
 
 
-nanos_err_t nanos_instrument_close_user_fun_event()
+NANOS_API_DEF(nanos_err_t, nanos_instrument_close_user_fun_event, ( void ))
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 #ifdef GPU_DEV
