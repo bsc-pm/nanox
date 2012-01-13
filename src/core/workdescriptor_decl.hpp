@@ -154,7 +154,7 @@ namespace nanos
 
          WorkDescriptor               *_parent;       /**< Parent WD (task hierarchy). Cilk sched.: first steal parent, next other tasks */
 
-         WDDeque                      *_myQueue;      /**< Reference to a queue. Allows dequeuing from third party (e.g. Cilk schedulers */
+         WDPool                      *_myQueue;      /**< Reference to a queue. Allows dequeuing from third party (e.g. Cilk schedulers */
 
          unsigned                      _depth;        /**< Level (depth) of the task */
 
@@ -298,9 +298,9 @@ namespace nanos
 
          void setParent ( WorkDescriptor * p );
 
-         WDDeque * getMyQueue();
+         WDPool * getMyQueue();
 
-         void setMyQueue ( WDDeque * myQ );
+         void setMyQueue ( WDPool * myQ );
 
          bool isEnqueued();
 

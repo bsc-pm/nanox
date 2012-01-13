@@ -61,16 +61,13 @@ void main__loop_1 ( void *args )
       ++A[i];
       memoryFence();
    }
-   
-   // Increase granularity artificially
-   usleep( 1000 );
 }
 
 /**
  * This loop will set all elements to zero.
  * If the priority scheduler is working properly, after both
  * loops have run, the resulting array will contains elements
- * with value <> 0.
+ * with value NUM_ITERS (or close to).
  */
 void main__loop_2 ( void *args );
 
@@ -94,6 +91,8 @@ int main ( int argc, char **argv )
    // initialize vector
    for ( i = 0; i < VECTOR_SIZE; i++ ) A[i] = 0;
 
+   // Stop scheduler
+   sys.getSchedulerConf().setSchedulerEnabled( false );
    WG *wg = getMyThreadSafe()->getCurrentWD();
    // increment vector
    for ( i = 0; i < NUM_ITERS; i++ ) {
@@ -105,16 +104,7 @@ int main ( int argc, char **argv )
 
       // Work descriptor creation
       WD * wd = new WD( new SMPDD( main__loop_1 ), sizeof( _loop_data ), __alignof__(nanos_loop_info_t), ( void * ) &_loop_data );
-      if( wd->getPriority() != 0 ){
-        fprintf(stderr, "%s : WD default priority is not 0 [KO].", argv[0] );
-        return -1;
-      }
-
       wd->setPriority( 100 );
-      if( wd->getPriority() != 100 ){
-        fprintf(stderr, "%s : WD setted priority is not 200 [KO].", argv[0] );
-        return -1;
-      }
 
       // Work Group affiliation
       wg->addWork( *wd );
@@ -136,7 +126,9 @@ int main ( int argc, char **argv )
       // Work submission
       sys.submit( *wd );
 
-      #else
+      // Re-enable the scheduler
+      sys.getSchedulerConf().setSchedulerEnabled( true );
+#else
       for ( int j = 0; j < VECTOR_SIZE; j++ ) A[j] = 0;
 #endif
    }

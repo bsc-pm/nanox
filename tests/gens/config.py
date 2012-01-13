@@ -21,6 +21,8 @@ max_cpus=os.environ.get('NX_TEST_MAX_CPUS')
 if ( max_cpus == None ):
 	max_cpus=2
 
+test_schedule=os.environ.get('NX_TEST_SCHEDULE')
+
 # Process program arguments (priority to env vars)
 from optparse import OptionParser
 import sys
@@ -67,6 +69,12 @@ scheduling_small=['--schedule=default','--schedule=affinity']
 scheduling_full=['--schedule=default','--schedule=bf --bf-stack','--schedule=bf --no-bf-stack','--schedule=dbf', '--schedule=affinity']
 #scheduling_small=['--schedule=bf','--schedule=wf','--schedule=dbf','--schedule=cilk']
 #scheduling_full=['--schedule=bf --bf-stack','--schedule=bf --no-bf-stack', '--schedule=wf --steal-parent --wf-local-policy=FIFO --wf-steal-policy=FIFO','--schedule=wf --steal-parent --wf-local-policy=FIFO --wf-steal-policy=LIFO','--schedule=wf --steal-parent --wf-local-policy=LIFO --wf-steal-policy=FIFO','--schedule=wf --steal-parent --wf-local-policy=LIFO --wf-steal-policy=LIFO','--schedule=wf --no-steal-parent --wf-local-policy=FIFO --wf-steal-policy=FIFO', '--schedule=wf --no-steal-parent --wf-local-policy=FIFO --wf-steal-policy=LIFO','--schedule=wf --no-steal-parent --wf-local-policy=LIFO --wf-steal-policy=FIFO','--schedule=wf --no-steal-parent --wf-local-policy=LIFO --wf-steal-policy=LIFO','--schedule=dbf','--schedule=cilk']
+
+if test_schedule is not None:
+   scheduling_small=['--schedule='+test_schedule]
+   scheduling_full=['--schedule='+test_schedule]
+
+
 throttle=['--throttle=dummy','--throttle=idlethreads','--throttle=numtasks','--throttle=readytasks','--throttle=taskdepth']
 #barriers=['--barrier=centralized','--barrier=tree','--barrier=dissemination']
 barriers=['--barrier=centralized','--barrier=tree']

@@ -124,6 +124,21 @@ inline SchedulePolicy * System::getDefaultSchedulePolicy ( ) const  { return _de
 inline SchedulerStats & System::getSchedulerStats () { return _schedStats; }
 inline SchedulerConf  & System::getSchedulerConf ()  { return _schedConf; }
 
+inline void System::stopScheduler ()
+{
+   _schedConf.setSchedulerEnabled( false );
+}
+
+inline void System::startScheduler ()
+{
+   _schedConf.setSchedulerEnabled( true );
+}
+
+inline bool System::isSchedulerStopped ()
+{
+   return _schedConf.getSchedulerEnabled();
+}
+
 inline const std::string & System::getDefaultArch() const { return _defArch; }
 inline void System::setDefaultArch( const std::string &arch ) { _defArch = arch; }
 

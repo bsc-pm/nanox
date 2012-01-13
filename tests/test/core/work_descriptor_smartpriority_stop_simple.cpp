@@ -20,7 +20,7 @@
 /*
 <testinfo>
 test_generator=gens/mixed-generator
-test_schedule=priority
+test_schedule=smartpriority
 </testinfo>
 */
 
@@ -36,7 +36,6 @@ using namespace std;
 using namespace nanos;
 using namespace nanos::ext;
 
-#define USE_NANOS     true
 #define NUM_ITERS     100
 #define VECTOR_SIZE   100
 
@@ -44,25 +43,24 @@ int A[VECTOR_SIZE];
 Lock l;
 typedef struct {
    nanos_loop_info_t loop_info;
-} main__loop_1_data_t;
+} task_data_t;
 
-void main__loop_1 ( void *args );
+void task_a ( void *args );
 
 /**
  * This task increments by 1 the elements in the array.
  */
-void main__loop_1 ( void *args )
+void task_a ( void *args )
 {
+   debug( "Task A" );
    int i;
-   main__loop_1_data_t *hargs = (main__loop_1_data_t * ) args;
+   task_data_t *hargs = (task_data_t * ) args;
 
    for ( i = hargs->loop_info.lower; i < hargs->loop_info.upper; i += hargs->loop_info.step) {
       LockBlock lock( l );
       ++A[i];
       memoryFence();
    }
-   
-   // Increase granularity artificially
    usleep( 1000 );
 }
 
@@ -70,17 +68,50 @@ void main__loop_1 ( void *args )
  * This loop will set all elements to zero.
  * If the priority scheduler is working properly, after both
  * loops have run, the resulting array will contains elements
- * with value <> 0.
+ * with value NUM_ITERS (or close to).
  */
-void main__loop_2 ( void *args );
+void task_b ( void *args );
 
-void main__loop_2 ( void *args )
+void task_b ( void *args )
 {
+   debug( "Task B" );
    int i;
-   main__loop_1_data_t *hargs = (main__loop_1_data_t * ) args;
+   task_data_t *hargs = (task_data_t * ) args;
 
    for ( i = hargs->loop_info.lower; i < hargs->loop_info.upper; i += hargs->loop_info.step) {
+      LockBlock lock( l );
       A[i]=0;
+      memoryFence();
+   }
+}
+
+void task_c ( void *args );
+
+void task_c ( void *args )
+{
+   debug( "Task C" );
+   int i;
+   task_data_t *hargs = (task_data_t * ) args;
+
+   for ( i = hargs->loop_info.lower; i < hargs->loop_info.upper; i += hargs->loop_info.step) {
+      LockBlock lock( l );
+      A[i]*=10;
+      memoryFence();
+   }
+}
+
+void task_d ( void *args );
+
+void task_d ( void *args )
+{
+   debug( "Task D" );
+   int i;
+   task_data_t *hargs = (task_data_t * ) args;
+
+   for ( i = hargs->loop_info.lower; i < hargs->loop_info.upper; i += hargs->loop_info.step) {
+      LockBlock lock( l );
+      A[i]/=2;
+      memoryFence();
    }
 }
 
@@ -89,57 +120,85 @@ int main ( int argc, char **argv )
    int i;
    bool check = true;
 
-   main__loop_1_data_t _loop_data;
+   task_data_t task_data;
+   
+   int depA;
+   int *dep_addrA = &depA;
+   nanos_dependence_t depsA = {(void **)&dep_addrA,0, {0,1,0,0}, 0};
+   int /*depA,*/ depB/*, depD*/;
+   int /** dep_addrA = &depA, */* dep_addrB = &depB/*, *dep_addrD = &depD*/;
+  
+   nanos_dependence_t depsB = {(void **)&dep_addrB,0, {0,1,0,0}, 0};
+   int depC;
+   int *dep_addrC = &depC;
+   nanos_dependence_t depsC[] = { {(void **)&dep_addrA,0, {1,0,0,0}, 0},
+      {(void **)&dep_addrC,0, {0,1,0,0}, 0} };
+   nanos_dependence_t depsD[] = { {(void **)&dep_addrB,0, {1,0,0,0}, 0},
+      {(void **)&dep_addrC,0, {1,0,0,0}, 0} };
 
    // initialize vector
    for ( i = 0; i < VECTOR_SIZE; i++ ) A[i] = 0;
 
+   // Stop scheduler
+   sys.getSchedulerConf().setSchedulerEnabled( false );
    WG *wg = getMyThreadSafe()->getCurrentWD();
+   WD * wd;
+   // loop info initialization
+   task_data.loop_info.lower = 0;
+   task_data.loop_info.upper = VECTOR_SIZE;
+   task_data.loop_info.step = + 1;
    // increment vector
    for ( i = 0; i < NUM_ITERS; i++ ) {
-#if USE_NANOS
-      // loop info initialization
-      _loop_data.loop_info.lower = 0;
-      _loop_data.loop_info.upper = VECTOR_SIZE;
-      _loop_data.loop_info.step = + 1;
 
       // Work descriptor creation
-      WD * wd = new WD( new SMPDD( main__loop_1 ), sizeof( _loop_data ), __alignof__(nanos_loop_info_t), ( void * ) &_loop_data );
-      if( wd->getPriority() != 0 ){
-        fprintf(stderr, "%s : WD default priority is not 0 [KO].", argv[0] );
-        return -1;
-      }
-
-      wd->setPriority( 100 );
-      if( wd->getPriority() != 100 ){
-        fprintf(stderr, "%s : WD setted priority is not 200 [KO].", argv[0] );
-        return -1;
-      }
+      wd = new WD( new SMPDD( task_a ), sizeof( task_data ), __alignof__(nanos_loop_info_t), ( void * ) &task_data );
+      //wd->setPriority( 0 );
 
       // Work Group affiliation
       wg->addWork( *wd );
 
       // Work submission
-      sys.submit( *wd );
+      sys.submitWithDependencies( *wd, 1, (nanos::Dependency*)&depsA );
+      //sys.submit( *wd );
 
-#else
-      for ( int j = 0; j < VECTOR_SIZE; j++ ) A[j] += 100;
-#endif
    }
-   {
-#if USE_NANOS
-      // Second task: set to 0
-      WD* wd = new WD( new SMPDD( main__loop_2 ), sizeof( _loop_data ), __alignof__(nanos_loop_info_t), ( void * ) &_loop_data );
-      // Use a higher priority
-      wd->setPriority( 150 );
-      wg->addWork( *wd );
-      // Work submission
-      sys.submit( *wd );
+   // Second task: set to 0
+   wd = new WD( new SMPDD( task_b ), sizeof( task_data ), __alignof__(nanos_loop_info_t), ( void * ) &task_data );
+   // Use a higher priority
+   //wd->setPriority( 300 );
+   wg->addWork( *wd );
+   // Work submission
+   debug( "Submitting B" );
+   sys.submitWithDependencies( *wd, 1, (nanos::Dependency*)&depsB );
+   // Keep a pointer to this WD
+   WD* wdB = wd;
+   
+   // Third task: multiply by 10
+   wd = new WD( new SMPDD( task_c ), sizeof( task_data ), __alignof__(nanos_loop_info_t), ( void * ) &task_data );
+   //wd->setPriority( 251 );
+   wg->addWork( *wd );
+   // Work submission
+   debug( "Submitting C" );
+   sys.submitWithDependencies( *wd, 2, (nanos::Dependency*)&depsC );
+   WD* wdC = wd;
+   
+   // Fourth task: divide by 2
+   wd = new WD( new SMPDD( task_d ), sizeof( task_data ), __alignof__(nanos_loop_info_t), ( void * ) &task_data );
+   wd->setPriority( 250 );
+   wg->addWork( *wd );
+   // Work submission
+   debug( "Submitting D" );
+   sys.submitWithDependencies( *wd, 2, (nanos::Dependency*)&depsD );
+   
+   // D's priority should've been propagated to B and C
+   if ( ( wdB->getPriority() != 250 ) || ( wdC->getPriority() != 250 ) ) {
+      check = false;
+      fprintf(stderr, "Priority of task D not propagated to task B and task C (%d)\n", wdB->getPriority() );
+   }
 
-      #else
-      for ( int j = 0; j < VECTOR_SIZE; j++ ) A[j] = 0;
-#endif
-   }
+   // Re-enable the scheduler
+   sys.getSchedulerConf().setSchedulerEnabled( true );
+
    
    // barrier (kind of)
    wg->waitCompletion();
@@ -154,6 +213,7 @@ int main ( int argc, char **argv )
     * the execution. If it is, the test failed, otherwise, succeeded.
     */
    for ( i = 0; i < VECTOR_SIZE; i++ ) if ( A[i] == 0 ) check = false;
+   for(i=0; i < 25; ++i) printf( "%d,", A[i] );
 
    if ( check ) {
       fprintf(stderr, "%s : %s\n", argv[0], "successful");
