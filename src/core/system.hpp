@@ -126,17 +126,46 @@ inline SchedulerConf  & System::getSchedulerConf ()  { return _schedConf; }
 
 inline void System::stopScheduler ()
 {
+   myThread->pause();
    _schedConf.setSchedulerEnabled( false );
 }
 
 inline void System::startScheduler ()
 {
+   myThread->unpause();
    _schedConf.setSchedulerEnabled( true );
 }
 
-inline bool System::isSchedulerStopped ()
+inline bool System::isSchedulerStopped () const
 {
    return _schedConf.getSchedulerEnabled();
+}
+
+inline void System::pausedThread ()
+{
+   _pausedThreadsCond.reference();
+   _unpausedThreadsCond.reference();
+   ++_pausedThreads;
+   //fprintf( stderr, "Thread paused (%d)\n", _pausedThreads.value() );
+   if ( _pausedThreadsCond.check() ) {
+      _pausedThreadsCond.signal();
+   }
+   _pausedThreadsCond.unreference();
+   _unpausedThreadsCond.unreference();
+}
+
+inline void System::unpausedThread ()
+{
+   _pausedThreadsCond.reference();
+   _unpausedThreadsCond.reference();
+   // TODO (#582): Do we need a reference and unreference block here?
+   --_pausedThreads;
+   //fprintf( stderr, "Thread unpaused (%d paused)\n", _pausedThreads.value() );
+   if ( _unpausedThreadsCond.check() ) {
+      _unpausedThreadsCond.signal();
+   }
+   _unpausedThreadsCond.unreference();
+   _pausedThreadsCond.unreference();
 }
 
 inline const std::string & System::getDefaultArch() const { return _defArch; }

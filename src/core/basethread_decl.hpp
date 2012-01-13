@@ -97,6 +97,7 @@ namespace nanos
          // Thread status
          bool                    _started;
          volatile bool           _mustStop;
+         volatile bool           _paused;
          WD *                    _currentWD;
          WD *                    _nextWD;
 
@@ -144,7 +145,7 @@ namespace nanos
          */
          BaseThread ( WD &wd, ProcessingElement *creator=0 ) :
             _id( _idSeed++ ), _name("Thread"), _description(""), _pe( creator ), _threadWD( wd ),
-            _started( false ), _mustStop( false ), _currentWD( NULL),
+            _started( false ), _mustStop( false ), _paused( false ), _currentWD( NULL),
             _nextWD( NULL), _hasTeam( false ),_team(NULL),
             _teamData(NULL), _allocator() { }
 
@@ -165,6 +166,9 @@ namespace nanos
          virtual void start () = 0;
          void run();
          void stop();
+         
+         void pause ();
+         void unpause ();
 
          virtual void idle() {};
          virtual void yield() {};
@@ -203,6 +207,9 @@ namespace nanos
          bool isStarted () const;
 
          bool isRunning () const;
+         
+         //! \brief Is the thread paused as the result of stopping the scheduler?
+         bool isPaused () const;
 
          ProcessingElement * runningOn() const;
 

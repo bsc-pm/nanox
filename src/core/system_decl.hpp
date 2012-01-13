@@ -99,6 +99,13 @@ namespace nanos
          Atomic<unsigned int> _initializedThreads;
          /*! This counts how many threads we're waiting to be initialized */
          unsigned int         _targetThreads;
+         /*! \brief How many threads have been already paused (since the
+          scheduler's halt). */
+         Atomic<unsigned int> _pausedThreads;
+         //! Condition to wait until all threads are paused
+         SingleSyncCond<EqualConditionChecker<unsigned int> >  _pausedThreadsCond;
+         //! Condition to wait until all threads are un paused
+         SingleSyncCond<EqualConditionChecker<unsigned int> >  _unpausedThreadsCond;
 
          Slicers              _slicers; /**< set of global slicers */
 
@@ -265,7 +272,30 @@ namespace nanos
          void startScheduler ();
          
          //! \brief Checks if the scheduler is stopped or not.
-         bool isSchedulerStopped ();
+         bool isSchedulerStopped () const;
+         
+         /*! \brief Waits until all threads are paused. This is useful if you
+          * want that no task is executed after the scheduler is disabled.
+          * \note The scheduler must be stopped first.
+          * \sa stopScheduler(), waitUntilThreadsUnpaused
+          */
+         void waitUntilThreadsPaused();
+         
+         /*! \brief Waits until all threads are unpaused. Use this
+          * when you require that no task is running in a certain section.
+          * In that case, you'll probably disable the scheduler, wait for
+          * threads to be paused, do something, and then start over. Before
+          * starting over, you need to call this function, because if you don't
+          * there is the potential risk of threads been unpaused causing a race
+          * condition.
+          * \note The scheduler must be started first.
+          * \sa stopScheduler(), waitUntilThreadsUnpaused
+          */
+         void waitUntilThreadsUnpaused();
+         
+         void pausedThread();
+         
+         void unpausedThread();
 
          void setPMInterface (PMInterface *_pm);
          PMInterface & getPMInterface ( void ) const;

@@ -140,6 +140,8 @@ nanos_err_t nanos_get_num_running_tasks ( int *num );
 nanos_err_t nanos_start_scheduler ();
 nanos_err_t nanos_stop_scheduler ();
 nanos_err_t nanos_scheduler_enabled ( bool *res );
+nanos_err_t nanos_wait_until_threads_paused ();
+nanos_err_t nanos_wait_until_threads_unpaused ();
 
 // error handling
 void nanos_handle_error ( nanos_err_t err );

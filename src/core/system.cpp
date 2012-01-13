@@ -51,7 +51,8 @@ System::System () :
       _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ),
-      _initializedThreads ( 0 ), _targetThreads ( 0 ),
+      _initializedThreads ( 0 ), _targetThreads ( 0 ), _pausedThreads( 0 ),
+      _pausedThreadsCond(), _unpausedThreadsCond(),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _pmInterface( NULL ), _cachePolicy( System::DEFAULT ), _cacheMap()
 {
    verbose0 ( "NANOS++ initializing... start" );
@@ -319,6 +320,10 @@ void System::start ()
          fatal("Unknown inital mode!");
          break;
    }
+   
+   // Paused threads: set the condition checker 
+   _pausedThreadsCond.setConditionChecker( EqualConditionChecker<unsigned int >( &_pausedThreads.override(), getThsPerPE() * numPes ) );
+   _unpausedThreadsCond.setConditionChecker( EqualConditionChecker<unsigned int >( &_pausedThreads.override(), 0 ) );
 
    // All initialization is ready, call postInit hooks
    const OS::InitList & externalInits = OS::getPostInitializationFunctions();
@@ -1042,4 +1047,18 @@ void System::endTeam ( ThreadTeam *team )
    fatal_cond( team->size() > 0, "Trying to end a team with running threads");
    
    delete team;
+}
+
+void System::waitUntilThreadsPaused ()
+{
+   // Wait until all threads are paused
+   _pausedThreadsCond.wait();
+}
+
+void System::waitUntilThreadsUnpaused ()
+{
+   //fprintf( stderr, "System::waitUntilThreadsUnpaused currently paused %d\n", _pausedThreads.value() );
+   // Wait until all threads are paused
+   _unpausedThreadsCond.wait();
+   //fprintf( stderr, "System::waitUntilThreadsUnpaused wait done\n" );
 }
