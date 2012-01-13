@@ -271,7 +271,7 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_close_user_fun_event, ( void ))
    return NANOS_OK;
 }
 
-nanos_err_t nanos_instrument_enable()
+NANOS_API_DEF(nanos_err_t, nanos_instrument_enable,())
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
@@ -284,7 +284,7 @@ nanos_err_t nanos_instrument_enable()
    return NANOS_OK;
 }
 
-nanos_err_t nanos_instrument_disable()
+NANOS_API_DEF(nanos_err_t, nanos_instrument_disable,())
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
