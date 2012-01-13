@@ -562,6 +562,9 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    // and we don't violate rules about tied WD
    if ( oldwd->isTiedTo() != NULL && (wd->isTiedTo() == NULL)) wd->tieTo(*oldwd->isTiedTo());
 
+   /* Instrumenting context switch: wd enters cpu (last = n/a) */
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( oldwd, NULL, false) );
+
    thread->setCurrentWD( *wd );
 
    /* Instrumenting context switch: wd enters cpu (last = n/a) */

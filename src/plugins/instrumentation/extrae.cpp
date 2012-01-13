@@ -520,9 +520,9 @@ class InstrumentationExtrae: public Instrumentation
         Extrae_set_numthreads_function ( nanos_ompitrace_get_max_threads );
 
         // Cluster specific information
-        void Extrae_set_taskid_function ( nanos_extrae_node_id );
-        void Extrae_set_numtasks_function ( nanos_extrae_num_nodes );
-        void Extrae_set_barrier_tasks_function ( nanos_ompitrace_instrumentation_barrier );
+        Extrae_set_taskid_function ( nanos_extrae_node_id );
+        Extrae_set_numtasks_function ( nanos_extrae_num_nodes );
+        Extrae_set_barrier_tasks_function ( nanos_ompitrace_instrumentation_barrier );
 #endif
 
          /* OMPItrace initialization */
