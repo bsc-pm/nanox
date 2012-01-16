@@ -146,7 +146,6 @@ inline void System::pausedThread ()
    _pausedThreadsCond.reference();
    _unpausedThreadsCond.reference();
    ++_pausedThreads;
-   //fprintf( stderr, "Thread paused (%d)\n", _pausedThreads.value() );
    if ( _pausedThreadsCond.check() ) {
       _pausedThreadsCond.signal();
    }
@@ -160,7 +159,6 @@ inline void System::unpausedThread ()
    _unpausedThreadsCond.reference();
    // TODO (#582): Do we need a reference and unreference block here?
    --_pausedThreads;
-   //fprintf( stderr, "Thread unpaused (%d paused)\n", _pausedThreads.value() );
    if ( _unpausedThreadsCond.check() ) {
       _unpausedThreadsCond.signal();
    }

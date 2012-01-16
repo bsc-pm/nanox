@@ -69,8 +69,7 @@ int main ( int argc, char **argv )
 
    // Repeat the test NUM_RUNS times
    int testNumber;
-   for ( testNumber = 0; testNumber < /*NUM_RUNS*/1000; ++testNumber ) {
-      fprintf( stderr, "[TEST] Starting\n" );
+   for ( testNumber = 0; testNumber < NUM_RUNS; ++testNumber ) {
       NANOS_SAFE( nanos_stop_scheduler() );
       A = 0;
       nanos_wd_t wd[4] = { NULL, NULL, NULL, NULL };
@@ -78,16 +77,12 @@ int main ( int argc, char **argv )
       /* Creating section 1 wd */
       nanos_device_t main__section_1_device[1] = { NANOS_SMP_DESC( main__section_1_device_args ) };
       main__section_1_data_t *section_data_1 = NULL;
-      fprintf(stderr, "[TEST] Creating WD\n" );
       NANOS_SAFE( nanos_create_wd ( &wd[0], 1, main__section_1_device, sizeof(section_data_1), __alignof__(section_data_1), (void **) &section_data_1,
                                 nanos_current_wd(), &props , 0, NULL ) );
-      fprintf(stderr, "[TEST] Created WD %d\n", nanos_get_wd_id( wd[0]) );
    
       NANOS_SAFE( nanos_submit( wd[0],0,0,0 ) );
       
-      fprintf( stderr, "[TEST] Esperando por la tarea\n" );
       NANOS_SAFE( nanos_wait_until_threads_paused() );
-      fprintf( stderr, "[TEST] A partir de ahora no debería pasar nada\n" );
       // We should be guaranteed that A will not be modified since this point
       omp_set_lock( &mylock );
       int previousA = A;
@@ -101,21 +96,14 @@ int main ( int argc, char **argv )
          break;
       }
       omp_unset_lock( &mylock );
-      fprintf( stderr, "[TEST] Poniendo en marcha el scheduler\n" );
       NANOS_SAFE( nanos_start_scheduler() );
-      fprintf( stderr, "[TEST] Esperando ejecución de la tarea\n" );
       NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
-      fprintf( stderr, "[TEST] Tarea finalizada. A = %d\n", A );
       if ( A != 1 ) {
          fprintf( stderr, "[TEST] A is not 1\n" );
          check = false;
          break;
       }
-      fprintf( stderr, "[TEST] Finished\n" );
       // Make sure all threads are unpaused before running the next test
-      //usleep( 1000 );
-      //NANOS_SAFE( nanos_wait_until_threads_unpaused() );
-      fprintf( stderr, "[TEST] Esperando a threads en pausa\n" );
       NANOS_SAFE( nanos_wait_until_threads_unpaused() );
    }
 

@@ -46,30 +46,24 @@ namespace nanos
    
    inline void BaseThread::pause ()
    {
-      //fprintf( stderr, "BaseThread::pause (%d) Pausing, it was previously paused: %d\n", getId(), _paused );
       // If the thread was already paused, do nothing
       if ( _paused ){
-         //fprintf( stderr, "BaseThread::pause (%d) done\n", getId() );
          return;
       }
       // Otherwise, notify this change
       _paused = true;
       sys.pausedThread();
-      //fprintf( stderr, "BaseThread::pause (%d) done\n", getId() );
    }
    
    inline void BaseThread::unpause ()
    {
-      //fprintf( stderr, "BaseThread::unpause (%d) Unpausing, it was previously paused: %d\n", getId(), _paused );
       // If the thread was already unpaused, do nothing
       if ( !_paused ){
-         //fprintf( stderr, "BaseThread::unpause (%d) done\n", getId() );
          return;
       }
       // Otherwise, notify this change
       _paused = false;
       sys.unpausedThread();
-      //fprintf( stderr, "BaseThread::unpause (%d) done\n", getId() );
    }
  
    // set/get methods

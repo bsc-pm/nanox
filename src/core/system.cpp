@@ -1057,8 +1057,6 @@ void System::waitUntilThreadsPaused ()
 
 void System::waitUntilThreadsUnpaused ()
 {
-   //fprintf( stderr, "System::waitUntilThreadsUnpaused currently paused %d\n", _pausedThreads.value() );
    // Wait until all threads are paused
    _unpausedThreadsCond.wait();
-   //fprintf( stderr, "System::waitUntilThreadsUnpaused wait done\n" );
 }
