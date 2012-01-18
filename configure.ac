@@ -192,6 +192,15 @@ if test x$gpu_enabled = xyes ; then
             AC_SUBST([CUDA_INC])
             AC_SUBST([CUDA_LIB])
 
+            cuda_version_h="$CUDA_INC/cuda.h"
+            if test -e $cuda_version_h ;
+            then
+               cuda_version_string=`sed -ne '/^\s*#\s*define\s\+CUDA_VERSION .*$/p' $cuda_version_h`
+               cuda_version=`echo $cuda_version_string | sed -e 's/#define CUDA_VERSION \([0-9]*\).*$/\1/'`
+            else
+               cuda_version=0
+            fi
+
             gpu_valid=yes
         fi
     else
@@ -201,8 +210,8 @@ if test x$gpu_enabled = xyes ; then
 fi
 
 if test x$gpu_valid = xyes; then
-	CFLAGS="$CFLAGS -DGPU_DEV"
-	CXXFLAGS="$CXXFLAGS -DGPU_DEV"
+	CFLAGS="$CFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version"
+	CXXFLAGS="$CXXFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version"
 	ARCHITECTURES="$ARCHITECTURES gpu"
 fi
 
