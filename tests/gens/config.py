@@ -63,7 +63,9 @@ if options.cpus:
 
 max_cpus=int(max_cpus)
 
-scheduling_small=['--schedule=default','--schedule=affinity']
+# FIXME (#591): Temporarily disabling 'affinity' scheduler in gpu branch
+#scheduling_small=['--schedule=default','--schedule=affinity']
+scheduling_small=['--schedule=default']
 #scheduling_small=['--schedule=default','--schedule=dbf','--schedule=wf','--schedule=cilk']
 
 scheduling_full=['--schedule=default','--schedule=bf --bf-stack','--schedule=bf --no-bf-stack','--schedule=dbf', '--schedule=affinity']
