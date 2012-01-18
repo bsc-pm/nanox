@@ -52,7 +52,7 @@ System::System () :
       _schedStats(), _schedConf(), _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ),
-      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL ),
+      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _pmInterface( NULL ),
       _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap()
 {
    verbose0 ( "NANOS++ initializing... start" );
