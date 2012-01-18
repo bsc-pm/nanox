@@ -98,5 +98,14 @@ bool __sync_bool_compare_and_swap( int *ptr, int oldval, int newval );
 
 #endif
 
+#ifdef GPU_DEV
+#  ifdef NANOS_CUDA_VERSION
+#    if NANOS_CUDA_VERSION <= 3020
+#      error abortar compilacion xteruel
+#      define NANOS_GPU_USE_CUDA32
+#    endif
+#  endif
+#endif
+
 #endif
 
