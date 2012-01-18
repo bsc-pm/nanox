@@ -24,6 +24,13 @@
 #include "system.hpp"
 
 #include <cuda_runtime.h>
+#ifdef NANOS_GPU_USE_CUDA32
+extern void cublasShutdown();
+extern void cublasSetKernelStream( cudaStream_t );
+#else
+#include <cublas.h>
+#include <cublas_v2.h>
+#endif
 
 using namespace nanos;
 using namespace nanos::ext;

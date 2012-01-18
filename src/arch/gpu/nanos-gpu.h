@@ -17,42 +17,34 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "plugin.hpp"
-#include "system_decl.hpp"
-
-#include <iostream>
+#ifndef _NANOS_GPU_H_
+#define _NANOS_GPU_H_
 
 #include <cuda_runtime.h>
-#ifdef NANOS_GPU_USE_CUDA32
-// Cannot include cublas.h, as the redeclaration of two CUBLAS functions makes the
-// compiler crash because we are treating warnings as errors
-//#include <cublas.h>
+#include <vector_types.h>
 
-extern void cublasInit();
+#ifdef NANOS_GPU_USE_CUDA32
+#include <cublas_api.h>
 #else
 #include <cublas.h>
 #include <cublas_v2.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-namespace nanos {
-namespace ext {
+   // gpu factory
+void * nanos_gpu_factory( void *prealloc ,void *args);
+extern const size_t nanos_gpu_dd_size;
+#define NANOS_GPU_DESC( args ) { nanos_gpu_factory, nanos_gpu_dd_size, &( args ) }
 
-class GPUCublasPlugin : public Plugin
-{
-   public:
-      GPUCublasPlugin() : Plugin( "CUBLAS Warmup Plugin", 1 ) {}
+cudaStream_t nanos_get_kernel_execution_stream();
 
-      void config( Config& cfg ) {}
+cublasHandle_t nanos_get_cublas_handle();
 
-      void init()
-      {
-         cublasInit();
-         cudaFree( NULL );
-      }
-};
-
+#ifdef __cplusplus
 }
-}
+#endif
 
-DECLARE_PLUGIN("arch-gpucublas",nanos::ext::GPUCublasPlugin);
+#endif
