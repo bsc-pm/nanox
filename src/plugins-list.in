@@ -6,3 +6,4 @@ plugins/sched
 plugins/instrumentation
 plugins/barr
 arch/smp
+arch/gpu
