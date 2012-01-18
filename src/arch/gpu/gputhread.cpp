@@ -28,6 +28,7 @@
 extern void cublasShutdown();
 extern void cublasSetKernelStream( cudaStream_t );
 #else
+#include <cublas.h>
 #include <cublas_v2.h>
 #endif
 

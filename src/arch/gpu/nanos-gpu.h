@@ -26,6 +26,7 @@
 #ifdef NANOS_GPU_USE_CUDA32
 #include <cublas_api.h>
 #else
+#include <cublas.h>
 #include <cublas_v2.h>
 #endif
 

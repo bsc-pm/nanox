@@ -30,6 +30,7 @@
 //#include <cublas.h>
 extern void cublasInit();
 #else
+#include <cublas.h>
 #include <cublas_v2.h>
 #endif
 
