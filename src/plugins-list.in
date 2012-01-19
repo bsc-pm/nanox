@@ -5,4 +5,5 @@ plugins/slicers
 plugins/sched
 plugins/instrumentation
 plugins/barr
+plugins/deps
 arch/smp

@@ -166,6 +166,16 @@ inline void System::unpausedThread ()
    _pausedThreadsCond.unreference();
 }
 
+inline void System::setDefaultDependenciesManager ( DependenciesManager *manager )
+{
+   _defDependenciesManager = manager;
+}
+
+inline DependenciesManager * System::getDefaultDependenciesManager ( ) const
+{
+   return _defDependenciesManager;
+}
+
 inline const std::string & System::getDefaultArch() const { return _defArch; }
 inline void System::setDefaultArch( const std::string &arch ) { _defArch = arch; }
 

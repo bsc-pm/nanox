@@ -498,6 +498,11 @@ AC_CONFIG_FILES([Makefile
 		 src/plugins/instrumentation/debug/Makefile
 		 src/plugins/instrumentation/instrumentation/Makefile
 		 src/plugins/instrumentation/instrumentation-debug/Makefile
+		 src/plugins/deps/Makefile
+		 src/plugins/deps/performance/Makefile
+		 src/plugins/deps/debug/Makefile
+		 src/plugins/deps/instrumentation/Makefile
+		 src/plugins/deps/instrumentation-debug/Makefile
 		 src/apis/Makefile
 		 src/apis/c/Makefile
 		 src/apis/c/performance/Makefile

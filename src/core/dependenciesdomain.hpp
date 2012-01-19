@@ -62,5 +62,10 @@ inline void DependenciesDomain::unlock ( )
    _lock.release();
 }
 
+inline const std::string & DependenciesManager::getName () const
+{
+   return _name;
+}
+
 #endif
 

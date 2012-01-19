@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2012 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,14 +16,39 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-#ifndef _NANOS_DEPENDENCIES_DOMAIN_FWD
-#define _NANOS_DEPENDENCIES_DOMAIN_FWD
 
-namespace nanos
-{
-   class DependenciesDomain;
-   class DependenciesManager;
-};
+#include "dependenciesdomain.hpp"
+#include "plugin.hpp"
+#include "system.hpp"
+#include "config.hpp"
 
-#endif
+namespace nanos {
+   namespace ext {
 
+      class NanosDependencies : public DependenciesManager
+      {
+         public:
+            NanosDependencies() : DependenciesManager("Nanos default dependencies manager") {}
+            virtual ~NanosDependencies () {}
+      };
+  
+      class NanosDepsPlugin : public Plugin
+      {
+         public:
+            NanosDepsPlugin() : Plugin( "Nanos++ default dependencies management plugin",1 )
+            {
+            }
+
+            virtual void config ( Config &cfg )
+            {
+            }
+
+            virtual void init() {
+               sys.setDefaultDependenciesManager(NEW NanosDependencies());
+            }
+      };
+
+   }
+}
+
+DECLARE_PLUGIN("deps-default",nanos::ext::NanosDepsPlugin);

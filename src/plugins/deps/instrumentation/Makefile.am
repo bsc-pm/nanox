@@ -17,5 +17,18 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = sched throttle barr slicers instrumentation deps
+include $(top_srcdir)/src/plugins/deps/version_commons.am
+include $(top_srcdir)/src/common.am
+
+if INSTRUMENTATION_VERSION
+instrumentation_LTLIBRARIES = \
+        libnanox-deps-default.la\
+	$(END)
+
+nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags)
+
+libnanox_deps_default_la_CXXFLAGS = $(nanos_instr_cxxflags)
+libnanox_deps_default_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_deps_default_la_SOURCES = $(default_sources)
+endif
 

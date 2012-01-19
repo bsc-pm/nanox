@@ -23,6 +23,7 @@
 #include <map>
 #include <list>
 #include <vector>
+#include <string>
 #include "atomic_decl.hpp"
 #include "dependableobject_decl.hpp"
 #include "trackableobject_decl.hpp"
@@ -116,6 +117,37 @@ namespace nanos
         /*! \brief Release object's lock
          */
          static void unlock ( );
+   };
+   
+   /*! \class DependenciesManager
+    * \brief Interface class of plugins used for dependencies domain.
+    */
+   class DependenciesManager
+   {
+      private:
+         std::string _name;
+      private:
+         /*! \brief DependenciesManager default constructor (private)
+          */
+         DependenciesManager ();
+         /*! \brief DependenciesManager copy constructor (private)
+          */
+         DependenciesManager ( DependenciesManager &sp );
+         /*! \brief DependenciesManager copy assignment operator (private)
+          */
+         DependenciesManager& operator= ( DependenciesManager &sp );
+      public:
+         /*! \brief DependenciesManager constructor - with std::string &name
+          */
+         DependenciesManager ( const std::string &name ) : _name(name) {}
+         /*! \brief DependenciesManager constructor - with char *name
+          */
+         DependenciesManager ( const char *name ) : _name(name) {}
+         /*! \brief DependenciesManager destructor
+          */
+         virtual ~DependenciesManager () {};
+
+         const std::string & getName () const;
    };
 
 };

@@ -111,6 +111,9 @@ namespace nanos
 
          Instrumentation     *_instrumentation; /**< Instrumentation object used in current execution */
          SchedulePolicy      *_defSchedulePolicy;
+         
+         /*! Dependencies domain manager */
+         DependenciesManager *_defDependenciesManager;
 
          /*! It manages all registered and active plugins */
          PluginManager        _pluginManager;
@@ -296,6 +299,15 @@ namespace nanos
          void pausedThread();
          
          void unpausedThread();
+         
+         /*! \brief Specifies the dependencies manager to be used.
+          * \param manager DependenciesManager.
+          */
+         void setDefaultDependenciesManager ( DependenciesManager *manager );
+         
+         /*! \brief Returns the dependencies manager in use.
+          */
+         DependenciesManager * getDefaultDependenciesManager ( ) const;
 
          void setPMInterface (PMInterface *_pm);
          PMInterface & getPMInterface ( void ) const;
