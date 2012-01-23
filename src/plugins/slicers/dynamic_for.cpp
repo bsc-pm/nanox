@@ -150,7 +150,7 @@ void SlicerDynamicFor::submit ( SlicedWD &work )
    nanos_loop_info_t *nli = (nanos_loop_info_t *) work.getData();
    nli->args = dsd;
 
-   int j = 0; /* initializing thread id */
+   int j = first_valid_thread; /* initializing thread id */
    for ( i = 1; i < valid_threads; i++ )
    {
       WorkDescriptor *wd = NULL;
@@ -165,7 +165,7 @@ void SlicerDynamicFor::submit ( SlicedWD &work )
    }
     
    work.tieTo(*mythread);
-   if ( (*team)[j].setNextWD(&work) == false ) Scheduler::submit ( work );
+   if ( (*team)[first_valid_thread].setNextWD(&work) == false ) Scheduler::submit ( work );
 }
 
 

@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-void nanos_handle_error ( nanos_err_t err )
+NANOS_API_DEF(void, nanos_handle_error, ( nanos_err_t err ))
 {
    switch ( err ) {
 

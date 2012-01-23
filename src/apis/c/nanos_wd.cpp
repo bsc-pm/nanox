@@ -33,7 +33,7 @@ using namespace nanos;
 // TODO: move to dependent part
 const size_t nanos_smp_dd_size = sizeof(ext::SMPDD);
 
-void * nanos_smp_factory( void *prealloc, void *args )
+NANOS_API_DEF(void *, nanos_smp_factory, ( void *prealloc, void *args ))
 {
    nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
 
@@ -47,14 +47,14 @@ void * nanos_smp_factory( void *prealloc, void *args )
    }
 }
 
-nanos_wd_t nanos_current_wd()
+NANOS_API_DEF(nanos_wd_t, nanos_current_wd, (void))
 {
    nanos_wd_t cwd = myThread->getCurrentWD();
 
    return cwd;
 }
 
-int nanos_get_wd_id ( nanos_wd_t wd )
+NANOS_API_DEF(int, nanos_get_wd_id, ( nanos_wd_t wd ))
 {
    WD *lwd = ( WD * )wd;
    int id = lwd->getId();
@@ -66,8 +66,8 @@ int nanos_get_wd_id ( nanos_wd_t wd )
  *
  *  \sa nanos::WorkDescriptor
  */
-nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align,
-                               void ** data, nanos_wg_t uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies )
+NANOS_API_DEF(nanos_err_t, nanos_create_wd, (  nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align,
+                               void ** data, nanos_wg_t uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",NANOS_CREATION) );
 
@@ -86,7 +86,7 @@ nanos_err_t nanos_create_wd (  nanos_wd_t *uwd, size_t num_devices, nanos_device
    return NANOS_OK;
 }
 
-nanos_err_t nanos_set_translate_function ( nanos_wd_t wd, nanos_translate_args_t translate_args )
+NANOS_API_DEF(nanos_err_t, nanos_set_translate_function, ( nanos_wd_t wd, nanos_translate_args_t translate_args ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_set_translate_function",NANOS_CREATION) );
    try 
@@ -104,9 +104,9 @@ nanos_err_t nanos_set_translate_function ( nanos_wd_t wd, nanos_translate_args_t
  *
  *  \sa nanos::WorkDescriptor
  */
-nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size, int outline_data_align,
+NANOS_API_DEF(nanos_err_t, nanos_create_sliced_wd, ( nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size, int outline_data_align,
                                void ** outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, nanos_wd_props_t *props,
-                               size_t num_copies, nanos_copy_data_t **copies )
+                               size_t num_copies, nanos_copy_data_t **copies ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",NANOS_CREATION) );
 
@@ -127,7 +127,7 @@ nanos_err_t nanos_create_sliced_wd ( nanos_wd_t *uwd, size_t num_devices, nanos_
    return NANOS_OK;
 }
 
-nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *deps, nanos_team_t team )
+NANOS_API_DEF(nanos_err_t, nanos_submit, ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *deps, nanos_team_t team ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","submit",NANOS_SCHEDULING) );
 
@@ -181,9 +181,9 @@ nanos_err_t nanos_submit ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *
 
 
 // data must be not null
-nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align, void * data,
+NANOS_API_DEF(nanos_err_t, nanos_create_wd_and_run, ( size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align, void * data,
                                       size_t num_deps, nanos_dependence_t *deps, nanos_wd_props_t *props,
-                                      size_t num_copies, nanos_copy_data_t *copies, nanos_translate_args_t translate_args )
+                                      size_t num_copies, nanos_copy_data_t *copies, nanos_translate_args_t translate_args ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","create_wd_and_run", NANOS_CREATION) );
 
@@ -255,7 +255,7 @@ nanos_err_t nanos_create_wd_and_run ( size_t num_devices, nanos_device_t *device
    return NANOS_OK;
 }
 
-nanos_err_t nanos_set_internal_wd_data ( nanos_wd_t wd, void *data )
+NANOS_API_DEF(nanos_err_t, nanos_set_internal_wd_data, ( nanos_wd_t wd, void *data ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","set_internal_wd_data",NANOS_RUNTIME) );
 
@@ -270,7 +270,7 @@ nanos_err_t nanos_set_internal_wd_data ( nanos_wd_t wd, void *data )
    return NANOS_OK;
 }
 
-nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data )
+NANOS_API_DEF(nanos_err_t, nanos_get_internal_wd_data, ( nanos_wd_t wd, void **data ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_internal_wd_data",NANOS_RUNTIME) );
 
@@ -288,7 +288,7 @@ nanos_err_t nanos_get_internal_wd_data ( nanos_wd_t wd, void **data )
    return NANOS_OK;
 }
 
-nanos_err_t nanos_yield ( void )
+NANOS_API_DEF(nanos_err_t, nanos_yield, ( void ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","yield",NANOS_SCHEDULING) );
 
@@ -303,7 +303,7 @@ nanos_err_t nanos_yield ( void )
 }
 
 
-nanos_err_t nanos_slicer_get_specific_data ( nanos_slicer_t slicer, void ** data )
+NANOS_API_DEF(nanos_err_t, nanos_slicer_get_specific_data, ( nanos_slicer_t slicer, void ** data ))
 {                                                                                                                                                        
    //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_specific_data",NANOS_RUNTIME) );
 

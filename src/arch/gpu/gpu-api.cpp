@@ -28,7 +28,7 @@ using namespace nanos;
 
 const size_t nanos_gpu_dd_size = sizeof(ext::GPUDD);
 
-void * nanos_gpu_factory( void *prealloc, void *args )
+NANOS_API_DEF(void *, nanos_gpu_factory, ( void *prealloc, void *args ))
 {
    nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
    if ( prealloc != NULL )

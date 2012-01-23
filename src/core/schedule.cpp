@@ -73,10 +73,15 @@ void Scheduler::submit ( WD &wd )
 
    // TODO (#581): move this to the upper if
    if ( !sys.getSchedulerConf().getSchedulerEnabled() ) {
+      // Pause this thread
+      mythread->pause();
       // Scheduler stopped, queue work.
       mythread->getTeam()->getSchedulePolicy().queue( mythread, wd );
       return;
    }
+   // The thread is not paused, mark it as so
+   myThread->unpause();
+   // And go on
    WD *next = getMyThreadSafe()->getTeam()->getSchedulePolicy().atSubmit( myThread, wd );
 
    /* If SchedulePolicy have returned a 'next' value, we have to context switch to
@@ -170,6 +175,15 @@ inline void Scheduler::idleLoop ()
 
       if ( thread->getTeam() != NULL ) {
          WD * next = myThread->getNextWD();
+         // This should be ideally performed in getNextWD, but it's const...
+         if ( !sys.getSchedulerConf().getSchedulerEnabled() ) {
+            // The thread is paused, mark it as so
+            myThread->pause();
+         }
+         else {
+            // The thread is not paused, mark it as so
+            myThread->unpause();
+         }
 
          if ( next ) {
             myThread->resetNextWD();
@@ -326,11 +340,18 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                   unsigned long begin_sched = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
                   // If the scheduler is running
                   if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
+                     // The thread is not paused, mark it as so
+                     thread->unpause();
+                     
                      next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
+                  }
+                  else {
+                     // Pause this thread
+                     thread->pause();
                   }
                   unsigned long end_sched = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
                   time_scheds += ( end_sched - begin_sched );
-                }
+               }
             }
 
             if ( next ) {
@@ -423,8 +444,16 @@ void Scheduler::wakeUp ( WD *wd )
       wd->setReady();
       if ( checkBasicConstraints ( *wd, *myThread ) ) {
          WD *next = NULL;
-         if ( sys.getSchedulerConf().getSchedulerEnabled() )
+         if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
+            // The thread is not paused, mark it as so
+            myThread->unpause();
+            
             next = getMyThreadSafe()->getTeam()->getSchedulePolicy().atWakeUp( myThread, *wd );
+         }
+         else {
+            // Pause this thread
+            myThread->pause();
+         }
          /* If SchedulePolicy have returned a 'next' value, we have to context switch to
             that WorkDescriptor */
          if ( next ) {
@@ -445,8 +474,15 @@ void Scheduler::wakeUp ( WD *wd )
 WD * Scheduler::prefetch( BaseThread *thread, WD &wd )
 {
    // If the scheduler is running
-   if ( sys.getSchedulerConf().getSchedulerEnabled() ){
+   if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
+      // The thread is not paused, mark it as so
+      thread->unpause();
+      
       return thread->getTeam()->getSchedulePolicy().atPrefetch( thread, wd );
+   }
+   else {
+      // Pause this thread
+      thread->pause();
    }
    // Otherwise, do nothing
    // FIXME (#581): Consequences?
@@ -458,11 +494,14 @@ struct WorkerBehaviour
    static WD * getWD ( BaseThread *thread, WD *current )
    {
       if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
+         // The thread is not paused, mark it as so
+         thread->unpause();
+         
          return thread->getTeam()->getSchedulePolicy().atIdle ( thread );
       }
-      else {
-         return NULL;
-      }
+      // Pause this thread
+      thread->pause();
+      return NULL;
    }
 
    static void switchWD ( BaseThread *thread, WD *current, WD *next )
@@ -503,6 +542,9 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    // This ensures that when we return from the inlining is still the same thread
    // and we don't violate rules about tied WD
    if ( oldwd->isTiedTo() != NULL && (wd->isTiedTo() == NULL)) wd->tieTo(*oldwd->isTiedTo());
+
+   /* Instrumenting context switch: wd enters cpu (last = n/a) */
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( oldwd, NULL, false) );
 
    thread->setCurrentWD( *wd );
 
@@ -584,11 +626,18 @@ void Scheduler::yield ()
 {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
    // If the scheduler is running
-   if( sys.getSchedulerConf().getSchedulerEnabled() ){
+   if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
+      // The thread is not paused, mark it as so
+      myThread->unpause();
+      
       WD *next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
       if ( next ) {
          switchTo(next);
       }
+   }
+   else {
+      // Pause this thread
+      myThread->pause();
    }
 }
 
@@ -613,8 +662,14 @@ struct ExitBehaviour
    static WD * getWD ( BaseThread *thread, WD *current )
    {
       if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
+         // The thread is not paused, mark it as so
+         thread->unpause();
+         
          return thread->getTeam()->getSchedulePolicy().atAfterExit( thread, current );
       }
+      
+      // Pause this thread
+      thread->pause();
       return NULL;
    }
 
@@ -657,8 +712,16 @@ void Scheduler::exit ( void )
   /* if getNextWD() has returned a WD, we need to resetNextWD(). If no WD has
    * been returned call scheduler policy */
    if (next) thread->resetNextWD();
-   else if ( sys.getSchedulerConf().getSchedulerEnabled() )
+   else if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
+      // The thread is not paused, mark it as so
+      thread->unpause();
+   
       next = thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*oldwd);
+   }
+   else {
+      // Pause this thread
+      thread->pause();
+   }
 
    updateExitStats (*oldwd);
    oldwd->done();
