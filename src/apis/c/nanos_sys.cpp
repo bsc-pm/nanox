@@ -67,3 +67,25 @@ NANOS_API_DEF(nanos_err_t, nanos_scheduler_enabled, ( bool *res ))
    }
    return NANOS_OK;
 }
+
+NANOS_API_DEF(nanos_err_t, nanos_wait_until_threads_paused, ())
+{
+   try {
+      sys.waitUntilThreadsPaused();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_wait_until_threads_unpaused, ())
+{
+   try {
+      sys.waitUntilThreadsUnpaused();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}

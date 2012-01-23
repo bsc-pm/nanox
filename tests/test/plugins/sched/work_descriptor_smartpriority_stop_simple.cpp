@@ -61,7 +61,7 @@ void task_a ( void *args )
       ++A[i];
       memoryFence();
    }
-   usleep( 1000 );
+   //usleep( 1000 );
 }
 
 /**
@@ -213,7 +213,6 @@ int main ( int argc, char **argv )
     * the execution. If it is, the test failed, otherwise, succeeded.
     */
    for ( i = 0; i < VECTOR_SIZE; i++ ) if ( A[i] == 0 ) check = false;
-   for(i=0; i < 25; ++i) printf( "%d,", A[i] );
 
    if ( check ) {
       fprintf(stderr, "%s : %s\n", argv[0], "successful");

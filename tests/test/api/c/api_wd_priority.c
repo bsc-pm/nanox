@@ -20,38 +20,61 @@
 /*
 <testinfo>
 test_generator=gens/api-generator
+test_schedule=priority
 </testinfo>
 */
+
+/*
+ * Test description:
+ * This tests setting a WD's priority via the C API. It will create several
+ * tasks with zero priority, and a high-priority task. If the higher priority
+ * task is not executed before (at least) one of the others, the shared variable
+ * will be 0, so the test will fail.
+ *
+ * To ensure no low priority task is executed until the high priority task is
+ * submitted (the last one to be submitted), this test stops the scheduler.
+ */
 
 #include <stdio.h>
 #include <nanos.h>
 #include <alloca.h>
 
+#define NUM_ITERS   100
+
 
 /* ******************************* SECTION 1 ***************************** */
 // compiler: outlined function arguments
-typedef struct { int *M; } main__section_1_data_t;
+typedef struct { int *M; } task_arguments_t;
 // compiler: outlined function
-void main__section_1 ( void *p_args )
+void task_1 ( void *p_args )
 {
    int i;
-   main__section_1_data_t *args = (main__section_1_data_t *) p_args;
-   fprintf( stderr,"Section 1\n" );
-//fprintf(stderr,"section 1: vector @=%p\n",args->M );
-//   for ( i = 0; i < VECTOR_SIZE; i++) args->M[i]++;
-//fprintf(stderr,"section 1: vector @=%p has finished\n",args->M );
+   task_arguments_t *args = (task_arguments_t *) p_args;
+   ++(*args->M);
 }
-// compiler: smp device for main__section_1 function
-nanos_smp_args_t main__section_1_device_args = { main__section_1 };
+
+// compiler: smp device for task_1 function
+nanos_smp_args_t task_1_device_args = { task_1 };
+
+void task_2 ( void *p_args )
+{
+   int i;
+   task_arguments_t *args = (task_arguments_t *) p_args;
+
+   *args->M=0;
+
+}
+
+// compiler: smp device for task_2 function
+nanos_smp_args_t task_2_device_args = { task_2 };
 
 /* ******************************* SECTIONS ***************************** */
-// compiler: outlined function
-void main__sections ( void *p_args ) { fprintf(stderr,"es\n"); }
 
 int main ( int argc, char **argv )
 {
-   int i;
+   int A = 0;
    bool check = true;
+   int i;
 
    /* COMMON INFO */
    nanos_wd_props_t props = {
@@ -60,30 +83,56 @@ int main ( int argc, char **argv )
       .tie_to = false,
       .priority = 0
    };
+   
+
+   // Stop scheduler, no task should be run until told so
+   nanos_stop_scheduler();
+   nanos_wait_until_threads_paused();
 
 
-   nanos_wd_t wd[4] = { NULL, NULL, NULL, NULL };
+   nanos_device_t task_1_device[1] = { NANOS_SMP_DESC( task_1_device_args ) };
+   nanos_device_t task_2_device[1] = { NANOS_SMP_DESC( task_2_device_args ) };
 
-   /* Creating section 1 wd */
-   nanos_device_t main__section_1_device[1] = { NANOS_SMP_DESC( main__section_1_device_args ) };
-   main__section_1_data_t *section_data_1 = NULL;
-   fprintf(stderr, "Creating WD\n" );
-   NANOS_SAFE( nanos_create_wd ( &wd[0], 1, main__section_1_device, sizeof(section_data_1), __alignof__(section_data_1), (void **) &section_data_1,
-                             nanos_current_wd(), &props , 0, NULL ) );
-   fprintf(stderr, "Created WD\n" );
-
-   NANOS_SAFE( nanos_submit( wd[0],0,0,0 ) );
-
+   for ( i = 0; i < NUM_ITERS; ++i ) {
+      nanos_wd_t wd = NULL;
+      
+      task_arguments_t *section_data_1 = NULL;
+      
+      NANOS_SAFE( nanos_create_wd ( &wd, 1, task_1_device, sizeof(section_data_1), __alignof__(section_data_1), (void **) &section_data_1,
+                                nanos_current_wd(), &props , 0, NULL ) );
+      section_data_1->M = &A;
+      
+      NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
+   }
+   
+   // Second task
+   {
+      task_arguments_t *section_data_2 = NULL;
+      props.priority = 100;
+      nanos_wd_t wd = NULL;
+      NANOS_SAFE( nanos_create_wd ( &wd, 1, task_2_device, sizeof(section_data_2), __alignof__(section_data_2), (void **) &section_data_2,
+                                nanos_current_wd(), &props , 0, NULL ) );
+      
+      section_data_2->M = &A;
+   
+      NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
+   }
+   
+   
+   // Now the scheduler can make put the threads to work
+   nanos_start_scheduler();
+   nanos_wait_until_threads_unpaused();
+   
+   // Wait until all tasks have been executed
    NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
-
-   // WD creation (and run
-   fprintf(stderr, "Creating and running WD\n" );
-   props.priority = 3;
-   NANOS_SAFE( nanos_create_wd_and_run( 1, main__section_1_device, sizeof(section_data_1), __alignof__(section_data_1), (void *) section_data_1,
-             0, (nanos_dependence_t *) 0, &props, 0, NULL, NULL ) );
-   fprintf(stderr, "Created WD\n" );
-   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
-
+   
+   /*
+    * Condition: A is > 0, that means that
+    * the second task was executed before at least one of the first ones.
+    */
+   check = A != 0;
+   fprintf( stderr, "A == %d?: A = %d\n", NUM_ITERS, A );
+   
    fprintf(stderr, "%s : %s\n", argv[0], check ? "  successful" : "unsuccessful");
    if (check) { return 0; } else { return -1; }
 }
