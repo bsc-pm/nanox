@@ -53,7 +53,6 @@ namespace nanos
          //! In the regions version, this would be Region.
          typedef void* Target;
       private:
-         //typedef TR1::unordered_map<void *, TrackableObject*> DepsMap; /**< Maps addresses to Trackable objects */
          typedef TR1::unordered_map<Target, MappedType*> DepsMap; /**< Maps addresses to Trackable objects */
 
          static Atomic<int>   _atomicSeed;           /**< ID seed for the domains */

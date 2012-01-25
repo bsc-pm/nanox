@@ -25,7 +25,6 @@
 #include <vector>
 #include "atomic.hpp"
 #include "dependableobject_decl.hpp"
-#include "trackableobject_fwd.hpp"
 #include "dependency.hpp"
 
 using namespace nanos;

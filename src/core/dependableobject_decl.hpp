@@ -24,7 +24,6 @@
 #include <set>
 #include <vector>
 #include "atomic_decl.hpp"
-#include "trackableobject_fwd.hpp"
 #include "dependency_decl.hpp"
 #include "dependenciesdomain_fwd.hpp"
 
@@ -50,11 +49,8 @@ namespace nanos
       public:
          //! TODO (gmiranda): Move TargetType and other defs to a central header file
          typedef void* TargetType;
-         //typedef TrackableObject TargetType;
          typedef std::set<DependableObject *> DependableObjectVector; /**< Type vector of successors  */
-         //typedef std::vector<TargetType*> TrackableObjectVector; /**< Type vector of output objects */
          typedef std::vector<TargetType> TargetVector; /**< Type vector of output objects */
-         //typedef std::vector<TrackableObject *> TrackableObjectVector; /**< Type vector of output objects */
          
       private:
          unsigned int             _id;              /**< DependableObject identifier */
