@@ -50,6 +50,16 @@ inline void DependenciesDomain::submitDependableObject ( DependableObject &depOb
    submitDependableObjectInternal ( depObj, deps, deps+numDeps, callback );
 }
 
+inline RecursiveLock& DependenciesDomain::getInstanceLock()
+{
+   return _instanceLock;
+}
+
+inline Lock& DependenciesDomain::getLock()
+{
+   return _lock;
+}
+
 inline void DependenciesDomain::lock ( )
 {
    _lock.acquire();

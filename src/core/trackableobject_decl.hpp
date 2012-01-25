@@ -79,7 +79,7 @@ namespace nanos
         /*! \brief Get the last writer
          *  \sa DependableObject
          */
-         DependableObject* getLastWriter ( );
+         DependableObject* getLastWriter ( ) const;
 
         /*! \brief Set the last writer
          *  \sa DependableObject
@@ -91,6 +91,11 @@ namespace nanos
          *  \sa DependableObject
          */
          void deleteLastWriter ( DependableObject &depObj );
+
+        /*! \brief Get the list of readers
+         *  \sa DependableObjectList
+         */
+         DependableObjectList const & getReaders ( ) const;
 
         /*! \brief Get the list of readers
          *  \sa DependableObjectList
@@ -124,7 +129,7 @@ namespace nanos
 
         /*! \brief Returns the commutationDO if it exists
          */
-         CommutationDO* getCommDO();
+         CommutationDO* getCommDO() const;
 
         /*! \brief Set the commutationDO
          *  \param commDO to set in this object

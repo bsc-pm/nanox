@@ -31,27 +31,399 @@ Atomic<int> DependenciesDomain::_atomicSeed( 0 );
 Atomic<int> DependenciesDomain::_tasksInGraph( 0 );
 Lock DependenciesDomain::_lock;
 
-TrackableObject* DependenciesDomain::lookupDependency ( const Dependency& dep )
+namespace nanos{
+   namespace dependencies_domain_internal {
+      class AccessType: public nanos_access_type_internal_t {
+      public:
+         AccessType()
+            {
+               input = 0;
+               output = 0;
+               can_rename = 0;
+               commutative = 0;
+            }
+         
+         AccessType(nanos_access_type_internal_t const &accessType)
+            {
+               input = accessType.input;
+               output = accessType.output;
+               can_rename = accessType.can_rename;
+               commutative = accessType.commutative;
+            }
+         
+         AccessType const &operator|=(nanos_access_type_internal_t const &accessType)
+            {
+               input |= accessType.input;
+               output |= accessType.output;
+               can_rename &= accessType.can_rename;
+               commutative &= accessType.commutative;
+               
+               return *this;
+            }
+         friend std::ostream &operator<<( std::ostream &o, nanos::AccessType const &accessType);
+      };
+   
+   
+      inline std::ostream & operator<<( std::ostream &o, nanos::AccessType const &accessType)
+      {
+         if ( accessType.input && accessType.output ) {
+            if ( accessType.commutative ) {
+               o << "RED";
+            } else {
+               o << "INOUT";
+            }
+         } else if ( accessType.input && !accessType.commutative ) {
+            o << "IN";
+         } else if ( accessType.output && !accessType.commutative ) {
+            o << "OUT";
+         } else {
+            o << "ERR";
+         }
+         return o;
+      }
+   } // namespace dependencies_domain_internal
+} //namespace nanos
+
+
+using namespace dependencies_domain_internal;
+
+DependenciesDomain::MappedType* DependenciesDomain::lookupDependency ( const Target& target )
+{
+   MappedType* status = NULL;
+   //Target address = dep.getDepAddress();
+   
+   DepsMap::iterator it = _addressDependencyMap.find( target ); 
+   if ( it == _addressDependencyMap.end() ) {
+      status = NEW MappedType( target );
+      _addressDependencyMap.insert( std::make_pair( target, status ) );
+   } else {
+      status = it->second;
+   }
+   
+   return status;
+}
+#if 0
+DependenciesDomain::MappedType* DependenciesDomain::lookupDependency ( const Dependency& dep )
 {
    TrackableObject *trackableObject = NULL;
    void * address = dep.getDepAddress();
    
    DepsMap::iterator it = _addressDependencyMap.find( address ); 
    if ( it == _addressDependencyMap.end() ) {
-      trackableObject = NEW TrackableObject( address );
+      trackableObject = NEW MappedType( address );
       _addressDependencyMap.insert( std::make_pair( address, trackableObject) );
    } else {
       trackableObject = it->second;
    }
-   
+      
    return trackableObject;
+}
+#endif
+
+inline void DependenciesDomain::finalizeReduction( MappedType &status,  const Target& target )
+{
+   CommutationDO *commDO = status.getCommDO();
+   if ( commDO != NULL ) {
+      status.setCommDO( NULL );
+
+      // This ensures that even if commDO's dependencies are satisfied
+      // during this step, lastWriter will be reseted 
+      DependableObject *lw = status.getLastWriter();
+      if ( commDO->increasePredecessors() == 0 ) {
+         // We increased the number of predecessors but someone just decreased them to 0
+         // that will execute finished and we need to wait for the lastWriter to be deleted
+         if ( lw == commDO ) {
+            while ( status.getLastWriter() != NULL ) {}
+         }
+      }
+      commDO->addWriteTarget( target );
+      status.setLastWriter( *commDO );
+      commDO->resetReferences();
+      commDO->decreasePredecessors();
+   }
+}
+
+inline void DependenciesDomain::dependOnLastWriter( DependableObject &depObj, MappedType const & status, SchedulePolicySuccessorFunctor* callback )
+{
+   DependableObject *lastWriter = status.getLastWriter();
+   if ( lastWriter != NULL ) {
+      SyncLockBlock lck( lastWriter->getLock() );
+      if ( status.getLastWriter() == lastWriter ) {
+         if ( lastWriter->addSuccessor( depObj ) ) {
+            depObj.increasePredecessors();
+            if ( callback != NULL ) {
+               debug( "Calling callback" );
+               ( *callback )( lastWriter, &depObj );
+            }
+         }
+      }
+   }
+}
+
+inline void DependenciesDomain::dependOnReadersAndSetAsWriter( DependableObject &depObj, MappedType &status, Target const &target, SchedulePolicySuccessorFunctor* callback )
+{
+   MappedType::DependableObjectList &readersList = status.getReaders();
+   SyncLockBlock lock4( status.getReadersLock() );
+   for ( MappedType::DependableObjectList::iterator i = readersList.begin(); i != readersList.end(); i++) {
+      DependableObject * predecessorReader = *i;
+      SyncLockBlock lock5(predecessorReader->getLock());
+      if ( predecessorReader->addSuccessor( depObj ) ) {
+         depObj.increasePredecessors();
+         if ( callback != NULL ) {
+            debug( "Calling callback" );
+            ( *callback )( predecessorReader, &depObj );
+         }
+      }
+      // WaR dependency
+#if 0
+      debug (" DO_ID_" << predecessorReader->getId() << " [style=filled label=" << predecessorReader->getDescription() << " color=" << "red" << "];");
+      debug (" DO_ID_" << predecessorReader->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=red];");
+#endif
+   }
+   
+   status.flushReaders();
+   if ( !depObj.waits() ) {
+      // set depObj as writer of dependencyObject
+      depObj.addWriteTarget( target );
+      status.setLastWriter( depObj );
+   }
+}
+
+inline void DependenciesDomain::addAsReader( DependableObject &depObj, MappedType &status )
+{
+   SyncLockBlock lock3( status.getReadersLock() );
+   status.setReader( depObj );
+}
+
+inline void DependenciesDomain::submitDependableObjectCommutativeDataAccess ( DependableObject &depObj, Target const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback )
+{
+   CommutationDO *initialCommDO = NULL;
+   CommutationDO *commDO = status.getCommDO();
+   
+   /* FIXME: this must be atomic */
+
+   if ( commDO == NULL ) {
+      commDO = new CommutationDO( target );
+      commDO->setDependenciesDomain( this );
+      commDO->increasePredecessors();
+      status.setCommDO( commDO );
+      commDO->addWriteTarget( target );
+   } else {
+      if ( commDO->increasePredecessors() == 0 ) {
+         commDO = new CommutationDO( target );
+         commDO->setDependenciesDomain( this );
+         commDO->increasePredecessors();
+         status.setCommDO( commDO );
+         commDO->addWriteTarget( target );
+      }
+   }
+
+   if ( status.hasReaders() ) {
+      initialCommDO = new CommutationDO( target );
+      initialCommDO->setDependenciesDomain( this );
+      initialCommDO->increasePredecessors();
+      // add dependencies to all previous reads using a CommutationDO
+      MappedType::DependableObjectList &readersList = status.getReaders();
+      {
+         SyncLockBlock lock1( status.getReadersLock() );
+
+         for ( MappedType::DependableObjectList::iterator i = readersList.begin(); i != readersList.end(); i++) {
+            DependableObject * predecessorReader = *i;
+            {
+               SyncLockBlock lock2( predecessorReader->getLock() );
+               if ( predecessorReader->addSuccessor( *initialCommDO ) ) {
+                  initialCommDO->increasePredecessors();
+               }
+            }
+         }
+         status.flushReaders();
+      }
+      initialCommDO->addWriteTarget( target );
+      // Replace the lastWriter with the initial CommutationDO
+      status.setLastWriter( *initialCommDO );
+   }
+   
+   // Add the Commutation object as successor of the current DO (depObj)
+   depObj.addSuccessor( *commDO );
+   
+   // assumes no new readers added concurrently
+   dependOnLastWriter( depObj, status, callback );
+
+   // The dummy predecessor is to make sure that initialCommDO does not execute 'finished'
+   // while depObj is being added as its successor
+   if ( initialCommDO != NULL ) {
+      initialCommDO->decreasePredecessors();
+   }
+
+   dependOnReadersAndSetAsWriter( depObj, status, target, callback );
+}
+
+
+inline void DependenciesDomain::submitDependableObjectInoutDataAccess ( DependableObject &depObj, Target const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback )
+{
+   finalizeReduction( status, target );
+   
+   dependOnLastWriter( depObj, status, callback );
+   dependOnReadersAndSetAsWriter( depObj, status, target, callback );
+}
+
+
+inline void DependenciesDomain::submitDependableObjectInputDataAccess ( DependableObject &depObj, Target const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback )
+{
+   finalizeReduction( status, target );
+   dependOnLastWriter( depObj, status, callback );
+
+   if ( !depObj.waits() ) {
+      addAsReader( depObj, status );
+   }
+}
+
+
+inline void DependenciesDomain::submitDependableObjectOutputDataAccess ( DependableObject &depObj, Target const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback )
+{
+   finalizeReduction( status, target );
+   
+   // assumes no new readers added concurrently
+   if ( !status.hasReaders() ) {
+      dependOnLastWriter( depObj, status, callback );
+   }
+
+   dependOnReadersAndSetAsWriter( depObj, status, target, callback );
+}
+
+
+inline void DependenciesDomain::submitDependableObjectDataAccess ( DependableObject &depObj, Target const &target, AccessType const &accessType, SchedulePolicySuccessorFunctor* callback )
+{
+   if ( accessType.commutative ) {
+      if ( !( accessType.input && accessType.output ) || depObj.waits() ) {
+         fatal( "Commutation task must be inout" );
+      }
+   }
+   
+   // TODO (gmiranda): enable this!
+   SyncRecursiveLockBlock lock1( _instanceLock );
+   //typedef std::set<RegionMap::iterator> subregion_set_t;
+   // TODO (gmiranda): replace this by a call to findAndPopulate
+#if 0
+   typedef RegionMap::iterator_list_t subregion_set_t;
+   subregion_set_t subregions;
+
+   RegionMap::iterator wholeRegion = _regionMap.findAndPopulate( target, /* out */subregions );
+   if ( !wholeRegion.isEmpty() ) {
+      subregions.push_back(wholeRegion);
+   }
+   
+   for (
+      subregion_set_t::iterator it = subregions.begin();
+      it != subregions.end();
+      it++
+   ) {
+      RegionMap::iterator &accessor = *it;
+      RegionStatus &regionStatus = *accessor;
+      regionStatus.hold(); // This is necessary since we may trigger a removal in finalizeReduction
+   }
+   
+   for (
+      subregion_set_t::iterator it = subregions.begin();
+      it != subregions.end();
+      it++
+   ) {
+#endif
+   //DepsMap::iterator it = _addressDependencyMap.find( target );
+   //if ( it != _addressDependencyMap.end() ) {
+      
+      //MappedType &status = *it->second;
+      MappedType &status = *lookupDependency( target );
+      //! TODO (gmiranda): enable this if required
+      //status.hold(); // This is necessary since we may trigger a removal in finalizeReduction
+      
+      if ( accessType.commutative ) {
+         submitDependableObjectCommutativeDataAccess( depObj, target, accessType, status, callback );
+      } else if ( accessType.input && accessType.output ) {
+         submitDependableObjectInoutDataAccess( depObj, target, accessType, status, callback );
+      } else if ( accessType.input ) {
+         submitDependableObjectInputDataAccess( depObj, target, accessType, status, callback );
+      } else if ( accessType.output ) {
+         submitDependableObjectOutputDataAccess( depObj, target, accessType, status, callback );
+      } else {
+         fatal( "Invalid dara access" );
+      }
+      
+      //! TODO (gmiranda): renable this if required
+      //status.unhold();
+   //}
+   
+   if ( !depObj.waits() && !accessType.commutative ) {
+      if ( accessType.output ) {
+         depObj.addWriteTarget( target );
+      } else if (accessType.input /* && !accessType.output && !accessType.commutative */ ) {
+         depObj.addReadTarget( target );
+      }
+   }
 }
 
 template<typename iterator>
-void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, iterator begin, iterator end, SchedulePolicySuccessorFunctor* callback )
+void DependenciesDomain::submitDependableObjectInternal ( DependableObject& depObj, iterator begin, iterator end, SchedulePolicySuccessorFunctor* callback )
 {
+   depObj.setId ( _lastDepObjId++ );
+   depObj.init();
+   depObj.setDependenciesDomain( this );
 
+   // Object is not ready to get its dependencies satisfied
+   // so we increase the number of predecessors to permit other dependableObjects to free some of
+   // its dependencies without triggering the "dependenciesSatisfied" method
+   depObj.increasePredecessors();
 
+   std::list<Dependency *> filteredDeps;
+   for ( iterator it = begin; it != end; it++ ) {
+      Dependency* newDep = &(*it);
+      bool found = false;
+      for ( std::list<Dependency *>::iterator current = filteredDeps.begin(); current != filteredDeps.end(); current++ ) {
+         Dependency* currentDep = *current;
+         if ( newDep->getDepAddress() == currentDep->getDepAddress() ) {
+            // Both dependencies use the same address, put them in common
+            currentDep->setInput( newDep->isInput() || currentDep->isInput() );
+            currentDep->setOutput( newDep->isOutput() || currentDep->isOutput() );
+            found = true;
+            break;
+         }
+      }
+      if ( !found ) {
+         filteredDeps.push_back(newDep);
+      }
+   }
+   
+   // This list is needed for waiting
+   std::list<Target> targets;
+   
+   for ( std::list<Dependency *>::iterator it = filteredDeps.begin(); it != filteredDeps.end(); it++ ) {
+      Dependency &dep = *(*it);
+      
+      // TODO (gmiranda): getAddress returns void**. Understand why.
+      //Target* target = dep.getAddress();
+      Target target = dep.getDepAddress();
+      AccessType const &accessType = dep.flags;
+      
+      submitDependableObjectDataAccess( depObj, target, accessType, callback );
+      targets.push_back(target);
+   }
+      
+   // To keep the count consistent we have to increase the number of tasks in the graph before releasing the fake dependency
+   increaseTasksInGraph();
+
+   depObj.submitted();
+
+   // now everything is ready
+   if ( depObj.decreasePredecessors() > 0 )
+      // TODO (gmiranda): change filteredDeps by targets?
+      //depObj.wait( targets );
+      depObj.wait( filteredDeps );
+}
+
+#if 0 // old version
+template<typename const_iterator>
+void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, const_iterator begin, const_iterator end, SchedulePolicySuccessorFunctor* callback )
+{
    depObj.setId ( _lastDepObjId++ );
 
    depObj.init();
@@ -87,7 +459,7 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
       // where this address is stored for the DependableObject that will use it. This last address is not the same
       // for all DependableObjects so it needs to be stored somewhere accessible when the dependableObject will use
       // the storage to change it if renaming happened.
-      TrackableObject * dependencyObject = lookupDependency( dep );
+      MappedType * dependencyObject = lookupDependency( dep );
 
       CommutationDO *initialCommDO = NULL;
       CommutationDO *commDO = dependencyObject->getCommDO();
@@ -102,13 +474,13 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
             commDO = new CommutationDO();
             commDO->increasePredecessors();
             dependencyObject->setCommDO( commDO );
-            commDO->addOutputObject( dependencyObject );
+            commDO->addWriteTarget( dependencyObject );
          } else {
             if ( commDO->increasePredecessors() == 0 ) {
                commDO = new CommutationDO();
                commDO->increasePredecessors();
                dependencyObject->setCommDO( commDO );
-               commDO->addOutputObject( dependencyObject );
+               commDO->addWriteTarget( dependencyObject );
             }
          }
 
@@ -116,7 +488,7 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
             initialCommDO = new CommutationDO();
             initialCommDO->increasePredecessors();
             // add dependencies to all previous reads using a CommutationDO
-            TrackableObject::DependableObjectList &readersList = dependencyObject->getReaders();
+            MappedType::DependableObjectList &readersList = dependencyObject->getReaders();
             {
                SyncLockBlock lock1( dependencyObject->getReadersLock() );
 
@@ -131,7 +503,7 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
                }
                dependencyObject->flushReaders();
             }
-            initialCommDO->addOutputObject( dependencyObject );
+            initialCommDO->addWriteTarget( dependencyObject );
             // Replace the lastWriter with the initial CommutationDO
             dependencyObject->setLastWriter( *initialCommDO );
          }
@@ -197,7 +569,7 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
 
       // only for non-inout dependencies
       if ( dep.isInput() && !( dep.isOutput() ) && !( depObj.waits() ) ) {
-         depObj.addReadObject( dependencyObject );
+         depObj.addReadTarget( dependencyObject );
 
          {
             SyncLockBlock lock3( dependencyObject->getReadersLock() );
@@ -238,7 +610,7 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
             
             if ( !depObj.waits() ) {
                // set depObj as writer of dependencyObject
-               depObj.addOutputObject( dependencyObject );
+               depObj.addWriteTarget( dependencyObject );
                dependencyObject->setLastWriter( depObj );
             }
          }
@@ -256,9 +628,56 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
    if ( depObj.decreasePredecessors() > 0 )
       depObj.wait( filteredDeps );
 }
+#endif
 
 template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, Dependency* begin, Dependency* end, SchedulePolicySuccessorFunctor* callback );
 template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, std::vector<Dependency>::iterator begin, std::vector<Dependency>::iterator end, SchedulePolicySuccessorFunctor* callback );
+
+
+void DependenciesDomain::deleteLastWriter ( DependableObject &depObj, Target const &target )
+{
+   // TODO (gmiranda): enable this!
+   SyncRecursiveLockBlock lock1( _instanceLock );
+   DepsMap::iterator it = _addressDependencyMap.find( target );
+   
+   if ( it != _addressDependencyMap.end() ) {
+      MappedType &status = *it->second;
+      
+      status.deleteLastWriter(depObj);
+   }
+}
+
+
+void DependenciesDomain::deleteReader ( DependableObject &depObj, Target const &target )
+{
+   // TODO (gmiranda): enable this!
+   SyncRecursiveLockBlock lock1( _instanceLock );
+   DepsMap::iterator it = _addressDependencyMap.find( target );
+   
+   if ( it != _addressDependencyMap.end() ) {
+      MappedType &status = *it->second;
+      
+      {
+         SyncLockBlock lock2( status.getReadersLock() );
+         status.deleteReader(depObj);
+      }
+   }
+}
+
+void DependenciesDomain::removeCommDO ( CommutationDO *commDO, Target const &target )
+{
+   // TODO (gmiranda): enable this!
+   SyncRecursiveLockBlock lock1( _instanceLock );
+   DepsMap::iterator it = _addressDependencyMap.find( target );
+   
+   if ( it != _addressDependencyMap.end() ) {
+      MappedType &status = *it->second;
+      
+      if ( status.getCommDO ( ) == commDO ) {
+         status.setCommDO ( 0 );
+      }
+   }
+}
 
 void DependenciesDomain::increaseTasksInGraph()
 {

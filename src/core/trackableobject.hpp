@@ -45,7 +45,7 @@ inline bool TrackableObject::hasLastWriter ( )
    return _lastWriter != NULL;
 }
 
-inline DependableObject* TrackableObject::getLastWriter ( )
+inline DependableObject* TrackableObject::getLastWriter() const
 {
    return _lastWriter;
 }
@@ -72,6 +72,11 @@ inline void TrackableObject::deleteLastWriter ( DependableObject &depObj )
 }
 
 inline TrackableObject::DependableObjectList & TrackableObject::getReaders ( )
+{
+   return _versionReaders;
+}
+
+inline TrackableObject::DependableObjectList const & TrackableObject::getReaders ( ) const
 {
    return _versionReaders;
 }
@@ -106,7 +111,7 @@ inline Lock& TrackableObject::getReadersLock()
    return _readersLock;
 }
 
-inline CommutationDO* TrackableObject::getCommDO()
+inline CommutationDO* TrackableObject::getCommDO() const
 {
    return _commDO;
 }

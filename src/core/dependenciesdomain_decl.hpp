@@ -27,6 +27,7 @@
 #include "atomic_decl.hpp"
 #include "dependableobject_decl.hpp"
 #include "trackableobject_decl.hpp"
+//#include "regionstatus_decl.hpp"
 #include "dependency_decl.hpp"
 #include "compatibility.hpp"
 #include "schedule_fwd.hpp"
@@ -35,26 +36,110 @@
 namespace nanos
 {
 
+   namespace dependencies_domain_internal {
+      class AccessType;
+   }
+
+
+   using namespace dependencies_domain_internal;
+
   /*! \class DependenciesDomain
    *  \brief Each domain is an independent context in which dependencies between DependableObject are managed
    */
    class DependenciesDomain
    {
+      public:
+         typedef TrackableObject MappedType;
+         //! In the regions version, this would be Region.
+         typedef void* Target;
       private:
-         typedef TR1::unordered_map<void *, TrackableObject*> DepsMap; /**< Maps addresses to Trackable objects */
+         //typedef TR1::unordered_map<void *, TrackableObject*> DepsMap; /**< Maps addresses to Trackable objects */
+         typedef TR1::unordered_map<Target, MappedType*> DepsMap; /**< Maps addresses to Trackable objects */
 
          static Atomic<int>   _atomicSeed;           /**< ID seed for the domains */
          int                  _id;                   /**< Domain's id */
          unsigned int         _lastDepObjId;         /**< Id to be given to the next submitted DependableObject */
          DepsMap              _addressDependencyMap; /**< Used to track dependencies between DependableObject */
+         RecursiveLock        _instanceLock;         /**< Needed to access _addressDependencyMap */
          static Atomic<int>   _tasksInGraph;         /**< Current number of tasks in the graph */
          static Lock          _lock;
+         
+         /*! \brief Finalizes a reduction if active.
+          *  \param[in,out] trackableObject status of the target.
+         *  \param target accessed memory address
+          */
+         inline void finalizeReduction( MappedType &trackableObject, const Target& target );
+         
+        /*! \brief Makes a DependableObject depend on the last writer of a region.
+         *  \param depObj target DependableObject
+         *  \param status status of the address
+         *  \param callback Function to call if an immediate predecessor is found.
+         */
+         inline void dependOnLastWriter( DependableObject &depObj, MappedType const &status, SchedulePolicySuccessorFunctor* callback );
+         
+        /*! \brief Makes a DependableObject depend on the the readers of a region and sets it as its last writer.
+         *  \param depObj target DependableObject
+         *  \param status status of the address
+         *  \param callback Function to call if an immediate predecessor is found.
+         */
+         inline void dependOnReadersAndSetAsWriter( DependableObject &depObj, MappedType &status, Target const &target, SchedulePolicySuccessorFunctor* callback );
+         
+        /*! \brief Makes a DependableObject a reader of a region.
+         *  \param depObj target DependableObject
+         *  \param status status of the address
+         *  \param target accessed base address
+         */
+         inline void addAsReader( DependableObject &depObj, MappedType &status );
+         
+        /*! \brief Adds a commutative region access of a DependableObject to the domains dependency system.
+         *  \param depObj target DependableObject
+         *  \param target accessed base address
+         *  \param accessType kind of region access
+         *  \param[in,out] status status of the base address
+         *  \param callback Function to call if an immediate predecessor is found.
+         */
+         inline void submitDependableObjectCommutativeDataAccess( DependableObject &depObj, Target const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback );
+         
+        /*! \brief Adds an inout region access of a DependableObject to the domains dependency system.
+         *  \param depObj target DependableObject
+         *  \param target accessed memory address
+         *  \param accessType kind of region access
+         *  \param[in,out] status status of the base address
+         *  \param callback Function to call if an immediate predecessor is found.
+         */
+         inline void submitDependableObjectInoutDataAccess( DependableObject &depObj, Target const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback );
+         
+        /*! \brief Adds an input region access of a DependableObject to the domains dependency system.
+         *  \param depObj target DependableObject
+         *  \param target accessed memory address
+         *  \param accessType kind of region access
+         *  \param[in,out] status status of the base address
+         *  \param callback Function to call if an immediate predecessor is found.
+         */
+         inline void submitDependableObjectInputDataAccess( DependableObject &depObj, Target const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback );
+         
+        /*! \brief Adds an output region access of a DependableObject to the domains dependency system.
+         *  \param depObj target DependableObject
+         *  \param target accessed memory address
+         *  \param accessType kind of region access
+         *  \param[in,out] status status of the base address
+         *  \param callback Function to call if an immediate predecessor is found.
+         */
+         inline void submitDependableObjectOutputDataAccess( DependableObject &depObj, Target const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback );
+         
+        /*! \brief Adds a region access of a DependableObject to the domains dependency system.
+         *  \param depObj target DependableObject
+         *  \param target accessed memory address
+         *  \param accessType kind of region access
+         *  \param callback Function to call if an immediate predecessor is found.
+         */
+         inline void submitDependableObjectDataAccess( DependableObject &depObj, Target const &target, AccessType const &accessType, SchedulePolicySuccessorFunctor* callback );
 
         /*! \brief Looks for the dependency's address in the domain and returns the trackableObject associated.
          *  \param dep Dependency to be checked.
          *  \sa Dependency TrackableObject
          */
-         TrackableObject* lookupDependency ( const Dependency &dep );
+         MappedType* lookupDependency ( const Target &target );
         /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
          *  \param depObj DependableObject to be added to the domain.
          *  \param begin Iterator to the start of the list of dependencies to be associated to the Dependable Object.
@@ -106,9 +191,35 @@ namespace nanos
          */
          void submitDependableObject ( DependableObject &depObj, size_t numDeps, Dependency* deps, SchedulePolicySuccessorFunctor* callback = NULL );
 
+         /*! \brief Removes the DependableObject from the role of last writer of a region.
+         *  \param depObj DependableObject to be stripped of the last writer role
+         *  \param target Address/region that must be affected
+         */
+         void deleteLastWriter ( DependableObject &depObj, Target const &target );
+         
+        /*! \brief Removes the DependableObject from the reader list of a region.
+         *  \param depObj DependableObject to be removed as a reader
+         *  \param target Address/region that must be affected
+         */
+         void deleteReader ( DependableObject &depObj, Target const &target );
+
+        /*! \brief Removes a CommutableDO from a region.
+         *  \param commDO CommutationDO to be removed
+         *  \param target Address/region that must be affected
+         */
+         void removeCommDO ( CommutationDO *commDO, Target const &target );
+
          static void increaseTasksInGraph();
 
          static void decreaseTasksInGraph();
+
+        /*! \brief Returns a reference to the instance lock
+         */
+         RecursiveLock& getInstanceLock();
+         
+        /*! \brief returns a reference to the static lock
+         */
+         Lock& getLock();
 
         /*! \brief Get exclusive access to the object
          */

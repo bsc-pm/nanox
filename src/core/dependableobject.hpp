@@ -37,6 +37,7 @@ inline const DependableObject & DependableObject::operator= ( const DependableOb
    _numPredecessors = depObj._numPredecessors;
    _references = depObj._references;
    _successors = depObj._successors;
+   _domain = depObj._domain;
    _outputObjects = depObj._outputObjects;
    _submitted = depObj._submitted;
    return *this;
@@ -96,22 +97,32 @@ inline bool DependableObject::addSuccessor ( DependableObject &depObj )
    return _successors.insert ( &depObj ).second;
 }
 
-inline void DependableObject::addOutputObject ( TrackableObject *outObj )
+inline DependenciesDomain * DependableObject::getDependenciesDomain ( ) const
+{
+   return _domain;
+}
+
+inline void DependableObject::setDependenciesDomain ( DependenciesDomain *dependenciesDomain )
+{
+   _domain = dependenciesDomain;
+}
+
+inline void DependableObject::addWriteTarget ( TargetType const &outObj )
 {
    _outputObjects.push_back ( outObj );
 }
 
-inline DependableObject::TrackableObjectVector & DependableObject::getOutputObjects ( )
+inline DependableObject::TargetVector const & DependableObject::getWrittenTargets ( )
 {
    return _outputObjects;
 }
 
-inline void DependableObject::addReadObject ( TrackableObject *readObj )
+inline void DependableObject::addReadTarget ( TargetType const &readObj )
 {
    _readObjects.push_back( readObj );
 }
 
-inline DependableObject::TrackableObjectVector & DependableObject::getReadObjects ( )
+inline DependableObject::TargetVector const & DependableObject::getReadTargets ( )
 {
    return _readObjects;
 }

@@ -25,18 +25,23 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C"
+#endif
+typedef struct {
+   bool  input: 1;
+   bool  output: 1;
+   bool  can_rename:1;
+   bool  commutative: 1;
+} nanos_access_type_internal_t;
+
 /* This structure is initialized in dependency.hpp. Any change in
  * its contents has to be reflected in Dependency constructor  
  */
 typedef struct {
    void **address;
    ptrdiff_t offset;
-   struct {
-     bool  input: 1;
-     bool  output: 1;
-     bool  can_rename:1;
-     bool  commutative: 1;
-   } flags;
+   nanos_access_type_internal_t flags;
    size_t  size;
 } nanos_dependence_internal_t;
 
@@ -57,6 +62,8 @@ typedef struct {
    } flags;
    size_t size;
 } nanos_copy_data_internal_t;
+
+typedef nanos_access_type_internal_t nanos_access_type_t;
 
 #ifndef _NANOS_INTERNAL
 

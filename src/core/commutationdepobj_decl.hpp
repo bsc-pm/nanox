@@ -29,15 +29,17 @@ namespace nanos
    class CommutationDO : public DependableObject
    {
       private:
+         //! Base address that determines the reduction
+         TargetType  _target;
       public:
         /*! \brief Default constructor
          */
-         CommutationDO ( ) : DependableObject() { }
+         CommutationDO ( TargetType const& target) : DependableObject(), _target( target ) { }
 
         /*! \brief Copy constructor
          *  \param cdo another CommutationDO
          */
-         CommutationDO( const CommutationDO &cdo ) : DependableObject() { }
+         CommutationDO( const CommutationDO &cdo ) : DependableObject(), _target( cdo._target ) { }
 
         /*! \brief Assignment operator
          *  \param cdo another CommutationDO
@@ -46,6 +48,7 @@ namespace nanos
          {
             if ( this == &cdo ) return *this;
             DependableObject::operator= ( cdo );
+            _target = cdo._target;
             return *this;
          }
 
