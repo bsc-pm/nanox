@@ -147,6 +147,7 @@ int main ( int argc, char **argv )
    task_data.loop_info.lower = 0;
    task_data.loop_info.upper = VECTOR_SIZE;
    task_data.loop_info.step = + 1;
+   WD* wdLastA = NULL;
    // increment vector
    for ( i = 0; i < NUM_ITERS; i++ ) {
 
@@ -162,6 +163,8 @@ int main ( int argc, char **argv )
       //sys.submit( *wd );
 
    }
+   wdLastA = wd;
+   
    // Second task: set to 0
    wd = new WD( new SMPDD( task_b ), sizeof( task_data ), __alignof__(nanos_loop_info_t), ( void * ) &task_data );
    // Use a higher priority
@@ -194,6 +197,10 @@ int main ( int argc, char **argv )
    if ( ( wdB->getPriority() != 250 ) || ( wdC->getPriority() != 250 ) ) {
       check = false;
       fprintf(stderr, "Priority of task D not propagated to task B and task C (%d)\n", wdB->getPriority() );
+   }
+   if ( wdLastA->getPriority() != 0 ) {
+      check = false;
+      fprintf(stderr, "Priority of task A was altered by someone (is %d)\n", wdLastA->getPriority() );
    }
 
    // Re-enable the scheduler
