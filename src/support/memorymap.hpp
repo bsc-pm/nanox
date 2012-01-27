@@ -3,16 +3,17 @@
 
 #include "memorymap_decl.hpp"
 #include <iostream>
+#include <stdio.h>
 
 namespace nanos {
 
-inline MemoryChunk& MemoryChunk::operator=( const MemoryChunk &mc ) {
+inline MemoryChunk& MemoryChunk::operator=( MemoryChunk const &mc ) {
    _addr = mc._addr;
    _len = mc._len;
    return *this;
 }
 
-inline bool MemoryChunk::operator<( const MemoryChunk &chunk ) const {
+inline bool MemoryChunk::operator<( MemoryChunk const &chunk ) const {
    return _addr < chunk._addr;
 } 
 
@@ -23,15 +24,15 @@ inline std::size_t MemoryChunk::getLength() const {
    return _len;
 }
 
-inline bool MemoryChunk::equal( const MemoryChunk &target ) const {
+inline bool MemoryChunk::equal( MemoryChunk const &target ) const {
    return ( _addr == target._addr && _len == target._len );
 }
 
-inline bool MemoryChunk::contains( const MemoryChunk &target ) const {
+inline bool MemoryChunk::contains( MemoryChunk const &target ) const {
    return ( ( _addr <= target._addr) && ( ( _addr + _len ) >= ( target._addr + target._len ) ) );
 }
 
-inline MemoryChunk::OverlapType MemoryChunk::checkOverlap( const MemoryChunk &target ) const {
+inline MemoryChunk::OverlapType MemoryChunk::checkOverlap( MemoryChunk const &target ) const {
    OverlapType ret;
    if ( _addr < target._addr ) {
       if ( _addr + _len > target._addr ) {
@@ -77,7 +78,7 @@ inline void MemoryChunk::intersect( MemoryChunk &mcA, MemoryChunk &mcB, MemoryCh
    mcA._len -= intersectionLen;
 }
 
-inline void MemoryChunk::partition( MemoryChunk &mcA, MemoryChunk &mcB, MemoryChunk &mcC ) {
+inline void MemoryChunk::partition( MemoryChunk &mcA, MemoryChunk const &mcB, MemoryChunk &mcC ) {
    //assume A < B and A totally overlaps B
    std::size_t remainingLen = ( mcA._addr + mcA._len ) - ( mcB._addr + mcB._len );
    mcC._addr = mcB._addr + mcB._len;
@@ -93,27 +94,27 @@ inline void MemoryChunk::partitionBeginAgtB( MemoryChunk &mcA, MemoryChunk &mcB 
    mcA._len -= mcB._len;
 }
 
-inline void MemoryChunk::partitionBeginAltB( MemoryChunk &mcA, MemoryChunk &mcB ) {
+inline void MemoryChunk::partitionBeginAltB( MemoryChunk const &mcA, MemoryChunk &mcB ) {
    //assume A.addr = B.addr, A.len < B.len,  A.addr is NOT modified 
    std::size_t bLen = mcB._len - mcA._len;
    mcB._addr = mcA._addr + mcA._len;
    mcB._len = bLen;
 }
 
-inline void MemoryChunk::partitionEnd( MemoryChunk &mcA, MemoryChunk &mcB ) {
+inline void MemoryChunk::partitionEnd( MemoryChunk &mcA, MemoryChunk const &mcB ) {
    //assume A.addr+A.len = B.addr+B.len, A.len > B.len,  B.addr is NOT modified 
    mcA._len -= mcB._len;
 }
 
-inline void MemoryChunk::expandIncluding( const MemoryChunk &mcB ) {
+inline void MemoryChunk::expandIncluding( MemoryChunk const &mcB ) {
    _len = ( mcB._addr + mcB._len ) - _addr;
 }
 
-inline void MemoryChunk::expandExcluding( const MemoryChunk &mcB ) {
+inline void MemoryChunk::expandExcluding( MemoryChunk const &mcB ) {
    _len = ( mcB._addr - _addr );
 }
 
-inline void MemoryChunk::cutAfter( const MemoryChunk &mc ) {
+inline void MemoryChunk::cutAfter( MemoryChunk const &mc ) {
    _len = ( _addr + _len ) - ( mc._addr + mc._len );
    _addr = mc._addr + mc._len;
 }
@@ -778,7 +779,7 @@ void MemoryMap< _Type >::getChunk2( uint64_t addr, std::size_t len, ConstMemChun
 {
    MemoryChunk key( addr, len );
 
-         //fprintf(stderr, "%s key requested addr %d, len %d\n", __FUNCTION__, key.getAddress(), key.getLength() );
+   //fprintf(stderr, "%s key requested addr %d, len %d\n", __FUNCTION__, key.getAddress(), key.getLength() );
    const_iterator it = this->lower_bound( key );
    if ( it == this->end() || this->key_comp()( key, it->first ) || it->first.getLength() != len )
    {
@@ -795,13 +796,13 @@ void MemoryMap< _Type >::getChunk2( uint64_t addr, std::size_t len, ConstMemChun
       //}
       if ( resultEntries.size() == 0 )
          fprintf(stderr, "result entry EMPTY!\n" );
-         
+
    }
    else
    {
       /* EXACT ADDR FOUND */
       resultEntries.push_back( ConstMemChunkPair( NEW MemoryChunk( key ), &( it->second ) ) );
-         //fprintf(stderr, "result entry addr %d, len %d\n", key.getAddress(), key.getLength() );
+      //fprintf(stderr, "result entry addr %d, len %d\n", key.getAddress(), key.getLength() );
    }
 }
 
@@ -824,7 +825,7 @@ template < typename _Type >
 void MemoryMap< _Type >::merge( const MemoryMap< _Type > &mm )
 {
    typename BaseMap::const_iterator inputIt = mm.begin();
-   
+
    while ( inputIt != mm.end() )
    {
       MemChunkList result;
@@ -850,8 +851,7 @@ void MemoryMap< _Type >::merge2( const MemoryMap< _Type > &mm )
       public:
       LocalFunctions( MemoryMap<_Type> &thisMap ) : _thisMap( thisMap ) { }
 
-      bool tryToMergeWithPreviousEntry( iterator &thisIt ) {
-         bool mergedAndIteratorModified = false;
+      void tryToMergeWithPreviousEntry( iterator &thisIt ) {
          if ( thisIt != _thisMap.begin() ) {
             iterator prevIt = thisIt;
             prevIt--;
@@ -860,31 +860,29 @@ void MemoryMap< _Type >::merge2( const MemoryMap< _Type > &mm )
                   MemoryChunk &prevNoConst = const_cast< MemoryChunk & >( prevIt->first );
                   prevNoConst.expandIncluding( thisIt->first );
                   _thisMap.erase( thisIt );
-                  mergedAndIteratorModified = true;
                   thisIt = _thisMap.find( prevNoConst );
                }
             }
          }
-         return mergedAndIteratorModified;
       }
 
-      void expand( MemoryChunk &inputKey, _Type *inputData, iterator &thisIt )
+      void expand( MemoryChunk &inputKey, _Type * const &inputData, iterator &thisIt )
       {
-         class LocalFunctions {
+         class ExpandLocalFunctions {
 
             MemoryMap< _Type > &_thisMap;
             MemoryChunk        &_inputKey;
-            _Type              *_inputData;
+            _Type *      const &_inputData;
             iterator           &_thisIt;
 
             bool _thisAndInputDataAreEqual;
             bool _nextAndInputDataAreEqual;
 
             public:
-            LocalFunctions( MemoryMap<_Type> &thisMap, MemoryChunk &inputKey, _Type *inputData, iterator &thisIt ) :
-                  _thisMap( thisMap ), _inputKey( inputKey ), _inputData( inputData ), _thisIt( thisIt ) {
-               _thisAndInputDataAreEqual = _thisIt->second->equal( *_inputData );
-            }
+            ExpandLocalFunctions( MemoryMap<_Type> &thisMap, MemoryChunk &inputKey, _Type * const &inputData, iterator &thisIt ) :
+               _thisMap( thisMap ), _inputKey( inputKey ), _inputData( inputData ), _thisIt( thisIt ) {
+                  _thisAndInputDataAreEqual = _thisIt->second->equal( *_inputData );
+               }
 
             void expandNoOverlap() {
                if ( _thisAndInputDataAreEqual ) {
@@ -1117,7 +1115,6 @@ void MemoryMap< _Type >::merge2( const MemoryMap< _Type > &mm )
                   if ( _nextAndInputDataAreEqual ) {
                      _thisIt = _thisMap.insert( _thisIt, typename BaseMap::value_type( _inputKey, nextIt->second ) );
                      _thisIt++;
-                     delete _thisIt->second;
                      _thisMap.erase( _thisIt );
                      _thisIt = _thisMap.find( _inputKey );
                   } else {
@@ -1130,7 +1127,7 @@ void MemoryMap< _Type >::merge2( const MemoryMap< _Type > &mm )
             }
          };
 
-         LocalFunctions localexp ( _thisMap, inputKey, inputData, thisIt );
+         ExpandLocalFunctions localexp ( _thisMap, inputKey, inputData, thisIt );
 
          iterator nextIt = thisIt;
          nextIt++;
@@ -1323,15 +1320,15 @@ void MemoryMap< _Type >::merge2( const MemoryMap< _Type > &mm )
          _Type *inputData = inputIt->second;
          _Type *thisData = thisIt->second;
          bool thisAndInputDataAreEqual = thisData->equal( *inputData );
-                  MemoryChunk::partitionBeginAltB( thisKey, inputKey );
-                  if ( thisAndInputDataAreEqual ) { //do nothing
-                  } else {
-                     thisIt->second->merge( *inputData );
-                     tryToMergeWithPreviousEntry( thisIt );
-                  }
-                  inputKey.cutAfter( thisKey );
-                  expand( inputKey, inputData, thisIt );
-                  inputIt++;
+         MemoryChunk::partitionBeginAltB( thisKey, inputKey );
+         if ( thisAndInputDataAreEqual ) { //do nothing
+         } else {
+            thisIt->second->merge( *inputData );
+            tryToMergeWithPreviousEntry( thisIt );
+         }
+         inputKey.cutAfter( thisKey );
+         expand( inputKey, inputData, thisIt );
+         inputIt++;
       }
 
       void mergeSubchunkBeginOverlap( iterator &thisIt, const_iterator &inputIt ) {

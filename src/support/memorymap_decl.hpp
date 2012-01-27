@@ -4,8 +4,6 @@
 #include <map>
 #include <list>
 #include <stdint.h>
-#include <stdio.h>
-//#include "atomic_decl.hpp"
 
 namespace nanos {
 
@@ -26,37 +24,35 @@ class MemoryChunk {
          SUBCHUNK_END_OVERLAP
        } OverlapType;
       
-      static const char* strOverlap[];
+      static char const * strOverlap[];
 
       MemoryChunk( uint64_t addr, std::size_t len ) : _addr( addr ), _len( len ) { }
-      MemoryChunk( const MemoryChunk &mc ) : _addr( mc._addr ), _len( mc._len ) { }
+      MemoryChunk( MemoryChunk const &mc ) : _addr( mc._addr ), _len( mc._len ) { }
       MemoryChunk( ) : _addr( 0 ), _len( 0 ) { }
 
-      MemoryChunk& operator=( const MemoryChunk &mc );
-      bool operator<( const MemoryChunk &chunk ) const;
+      MemoryChunk& operator=( MemoryChunk const &mc );
+      bool operator<( MemoryChunk const &chunk ) const;
 
       uint64_t getAddress() const;
       std::size_t getLength() const;
-      OverlapType checkOverlap( const MemoryChunk &target ) const;
-      bool equal( const MemoryChunk &target ) const;
-      bool contains( const MemoryChunk &target ) const;
-      void expandIncluding( const MemoryChunk &mcB );
-      void expandExcluding( const MemoryChunk &mcB );
-      void cutAfter( const MemoryChunk &mc );
+      OverlapType checkOverlap( MemoryChunk const &target ) const;
+      bool equal( MemoryChunk const &target ) const;
+      bool contains( MemoryChunk const &target ) const;
+      void expandIncluding( MemoryChunk const &mcB );
+      void expandExcluding( MemoryChunk const &mcB );
+      void cutAfter( MemoryChunk const &mc );
 
       static void intersect( MemoryChunk &mcA, MemoryChunk &mcB, MemoryChunk &mcC );
-      static void partition( MemoryChunk &mcA, MemoryChunk &mcB, MemoryChunk &mcC );
+      static void partition( MemoryChunk &mcA, MemoryChunk const &mcB, MemoryChunk &mcC );
       static void partitionBeginAgtB( MemoryChunk &mcA, MemoryChunk &mcB );
-      static void partitionBeginAltB( MemoryChunk &mcA, MemoryChunk &mcB );
-      static void partitionEnd( MemoryChunk &mcA, MemoryChunk &mcB );
+      static void partitionBeginAltB( MemoryChunk const &mcA, MemoryChunk &mcB );
+      static void partitionEnd( MemoryChunk &mcA, MemoryChunk const &mcB );
 };
 
 template <typename _Type>
 class MemoryMap : public std::map< MemoryChunk, _Type * > { 
    private:
       typedef std::map< MemoryChunk, _Type * > BaseMap;
-
-      //Lock _memMapLock;
 
       MemoryMap( const MemoryMap &mm ) { }
       const MemoryMap & operator=( const MemoryMap &mm ) { }
