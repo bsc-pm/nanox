@@ -28,7 +28,7 @@
 #include "threadteam_decl.hpp"
 #include "slicer_fwd.hpp"
 #include "nanos-int.h"
-#include "dependency_decl.hpp"
+#include "dataaccess_decl.hpp"
 #include "instrumentation_decl.hpp"
 #include "network_decl.hpp"
 #include "directory_decl.hpp"
@@ -168,8 +168,8 @@ namespace nanos
          void finish ();
 
          void submit ( WD &work );
-         void submitWithDependencies (WD& work, size_t numDeps, Dependency* deps);
-         void waitOn ( size_t numDeps, Dependency* deps);
+         void submitWithDependencies (WD& work, size_t numDataAccesses, DataAccess const *dataAccesses);
+         void waitOn ( size_t numDataAccesses, DataAccess const *dataAccesses );
          void inlineWork ( WD &work );
 
          void createWD (WD **uwd, size_t num_devices, nanos_device_t *devices,

@@ -19,12 +19,19 @@
 
 #ifndef _NANOS_COMMUTATIONDEPOBJ
 #define _NANOS_COMMUTATIONDEPOBJ
+
 #include "commutationdepobj_decl.hpp"
+
 
 using namespace nanos;
 
 inline void CommutationDO::dependenciesSatisfied ( )
 {
+   DependenciesDomain *domain = getDependenciesDomain( );
+   if ( domain ) {
+      domain->removeCommDO ( this, _region );
+   }
+   
    finished();
 }
 

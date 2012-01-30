@@ -39,6 +39,8 @@ support_sources = \
 	$(top_srcdir)/src/support/memorymap_decl.hpp \
 	$(top_srcdir)/src/support/memorymap.hpp \
 	$(top_srcdir)/src/support/memorymap.cpp \
+	$(top_srcdir)/src/support/containeradapter.hpp \
+	$(top_srcdir)/src/support/containertraits.hpp \
 	$(END) 
 
 debug_sources = \

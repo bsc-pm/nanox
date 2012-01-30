@@ -17,69 +17,74 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_TRACKABLE_OBJECT_DECL_H
-#define _NANOS_TRACKABLE_OBJECT_DECL_H
-#include <stdlib.h>
+#ifndef _NANOS_REGION_STATUS_DECL_H
+#define _NANOS_REGION_STATUS_DECL_H
+
+
+#include <ostream>
 #include <list>
+
 #include "dependableobject_decl.hpp"
 #include "commutationdepobj_decl.hpp"
 #include "atomic_decl.hpp"
 
+
 namespace nanos
 {
 
-  /*! \class TrackableObject
-   *  \brief Object associated to an address with which different DependableObject operate
+  /*! \class RegionStatus
+   *  \brief Object associated to an address with which different \a DependableObject operate
    */
-   class TrackableObject
+   class RegionStatus
    {
       public:
          typedef std::list< DependableObject *> DependableObjectList; /**< Type list of DependableObject */
       private:
-         void                  * _address; /**< Pointer to the dependency address */
-         DependableObject      *_lastWriter; /**< Points to the last DependableObject registered as writer of the TrackableObject */
+         DependableObject      *_lastWriter; /**< Points to the last DependableObject registered as writer of the RegionStatus */
          DependableObjectList   _versionReaders; /**< List of readers of the last version of the object */
          Lock                   _readersLock; /**< Lock to provide exclusive access to the readers list */
          Lock                   _writerLock; /**< Lock internally the object for secure access to _lastWriter */
          CommutationDO         *_commDO; /**< Will be successor of all commutation tasks using this object untill a new reader/writer appears */
+         bool                   _hold; /**< Cannot be erased since it is in use */
+         
       public:
 
-        /*! \brief TrackableObject default constructor
+        /*! \brief RegionStatus default constructor
          *
-         *  Creates a TrackableObject with the given address associated.
+         *  Creates a RegionStatus with the given address associated.
          */
-         TrackableObject ( void * address = NULL )
-            : _address(address), _lastWriter ( NULL ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL) {}
+         RegionStatus ( void * address = NULL )
+            : _lastWriter ( NULL ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL), _hold(false) {}
 
-        /*! \brief TrackableObject copy constructor
+        /*! \brief RegionStatus copy constructor
          *
-         *  \param obj another TrackableObject
+         *  \param obj another RegionStatus
          */
-         TrackableObject ( const TrackableObject &obj ) 
-            :  _address ( obj._address ), _lastWriter ( obj._lastWriter ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL) {}
+         RegionStatus ( const RegionStatus &obj ) 
+            : _lastWriter ( obj._lastWriter ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL), _hold(false) {}
 
-        /*! \brief TrackableObject destructor
+        /*! \brief RegionStatus destructor
          */
-         ~TrackableObject () {}
+         ~RegionStatus () {}
 
-        /*! \brief TrackableObject assignment operator, can be self-assigned.
+        /*! \brief RegionStatus assignment operator, can be self-assigned.
          *
-         *  \param obj another TrackableObject
+         *  \param obj another RegionStatus
          */
-         const TrackableObject & operator= ( const TrackableObject &obj );
+         const RegionStatus & operator= ( const RegionStatus &obj );
 
-        /*! \brief Obtain the address associated to the TrackableObject
+        /*! \brief Obtain the address associated to the RegionStatus
          */
          void * getAddress ( );
 
-        /*! \brief Returns true if the TrackableObject has a DependableObject as LastWriter
+        /*! \brief Returns true if the RegionStatus has a DependableObject as LastWriter
          */
          bool hasLastWriter ( );
 
         /*! \brief Get the last writer
          *  \sa DependableObject
          */
-         DependableObject* getLastWriter ( );
+         DependableObject* getLastWriter ( ) const;
 
         /*! \brief Set the last writer
          *  \sa DependableObject
@@ -95,6 +100,11 @@ namespace nanos
         /*! \brief Get the list of readers
          *  \sa DependableObjectList
          */
+         DependableObjectList const & getReaders ( ) const;
+
+        /*! \brief Get the list of readers
+         *  \sa DependableObjectList
+         */
          DependableObjectList & getReaders ( );
 
         /*! \brief Add a new reader
@@ -102,7 +112,7 @@ namespace nanos
          */
          void setReader ( DependableObject &reader );
 
-        /*! \brief Returns true if do is reader of the TrackableObject
+        /*! \brief Returns true if do is reader of the RegionStatus
          */
          bool hasReader ( DependableObject &depObj );
 
@@ -124,14 +134,40 @@ namespace nanos
 
         /*! \brief Returns the commutationDO if it exists
          */
-         CommutationDO* getCommDO();
+         CommutationDO* getCommDO() const;
 
         /*! \brief Set the commutationDO
          *  \param commDO to set in this object
          */
          void setCommDO( CommutationDO *commDO );
+         
+        /*! \brief Return whether the region is held and thus cannot be removed
+         */
+         bool isOnHold ( ) const;
+         
+        /*! \brief Holds the region so that it cannot be removed (by the same thread)
+         */
+         void hold ( );
+         
+        /*! \brief Unholds the region so that it can be removed (by the same thread)
+         */
+         void unhold ( );
+         
+        /*! \brief Returns if the region has no information
+         */
+         bool isEmpty ( );
    };
 
+
+   //! \brief RegionStatus stream formatter
+   //! \param o the output stream
+   //! \param regionStatus the region status
+   //! \returns the output stream
+   inline std::ostream & operator<<( std::ostream &o, nanos::RegionStatus const &regionStatus);
+
+
 };
+
+
 
 #endif

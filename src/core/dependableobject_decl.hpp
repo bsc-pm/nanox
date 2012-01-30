@@ -24,8 +24,10 @@
 #include <set>
 #include <vector>
 #include "atomic_decl.hpp"
-#include "trackableobject_fwd.hpp"
-#include "dependency_decl.hpp"
+#include "regionstatus_fwd.hpp"
+#include "dataaccess_decl.hpp"
+#include "dependenciesdomain_fwd.hpp"
+#include "region_fwd.hpp"
 #include "workdescriptor_fwd.hpp"
 
 namespace nanos
@@ -49,15 +51,16 @@ namespace nanos
    {
       public:
          typedef std::set<DependableObject *> DependableObjectVector; /**< Type vector of successors  */
-         typedef std::vector<TrackableObject *> TrackableObjectVector; /**< Type vector of output objects */
+         typedef std::vector<Region> RegionContainer; /**< Container of Regions accessed */
          
       private:
          unsigned int             _id;              /**< DependableObject identifier */
          Atomic<unsigned int>     _numPredecessors; /**< Number of predecessors locking this object */
          unsigned int             _references;      /** References counter */
          DependableObjectVector   _successors;      /**< List of successiors */
-         TrackableObjectVector    _outputObjects;   /**< List of output objects */
-         TrackableObjectVector    _readObjects;     /**< List of read objects */
+         DependenciesDomain      *_domain;          /**< DependenciesDomain where this is located */
+         RegionContainer          _writtenRegions;  /**< List of written regions */
+         RegionContainer          _readRegions;     /**< List of read regions */
          Lock                     _objectLock;      /**< Lock to do exclusive use of the DependableObject */
          volatile bool            _submitted;
          WorkDescriptor           *_wd;             /**< Pointer to the work descriptor represented by this DependableObject */
@@ -66,20 +69,17 @@ namespace nanos
         /*! \brief DependableObject default constructor
          */
          DependableObject ( ) 
-            :  _id ( 0 ), _numPredecessors ( 0 ), _references(1), _successors(), _outputObjects(),
-               _readObjects(), _objectLock(), _submitted(false), _wd(NULL) {}
-        /*! \brief DependableObject wd constructor
-         *  \param wd WorkDescriptor to be associated
-         */
+            :  _id ( 0 ), _numPredecessors ( 0 ), _references(1), _successors(), _domain( NULL ),
+               _writtenRegions(), _readRegions(), _objectLock(), _submitted(false), _wd( NULL )  {}
          DependableObject ( WorkDescriptor *wd ) 
-            :  _id ( 0 ), _numPredecessors ( 0 ), _references(1), _successors(), _outputObjects(),
-               _readObjects(), _objectLock(), _submitted(false), _wd( wd ) {}
+            :  _id ( 0 ), _numPredecessors ( 0 ), _references(1), _successors(), _domain( NULL ),
+               _writtenRegions(), _readRegions(), _objectLock(), _submitted(false), _wd( wd )  {}
         /*! \brief DependableObject copy constructor
          *  \param depObj another DependableObject
          */
          DependableObject ( const DependableObject &depObj )
             : _id ( depObj._id ), _numPredecessors ( depObj._numPredecessors ), _references(depObj._references),
-              _successors ( depObj._successors ), _outputObjects( ), _readObjects(), _objectLock(), _submitted(false), _wd( depObj._wd ) {}
+              _successors ( depObj._successors ), _domain ( depObj._domain ), _readRegions(), _objectLock(), _submitted(false), _wd( depObj._wd ) {}
 
         /*! \brief DependableObject copy assignment operator, can be self-assigned.
          *  \param depObj another DependableObject
@@ -95,7 +95,7 @@ namespace nanos
 
          virtual void dependenciesSatisfied ( ) { }
 
-         virtual void wait ( std::list<Dependency *> deps ) { }
+         virtual void wait ( std::list<Region> const &regions ) { }
 
          virtual bool waits ( );
 
@@ -144,26 +144,32 @@ namespace nanos
          *  returns true if the successor didn't already exist in the list (a new edge has been added)
          */
          bool addSuccessor ( DependableObject &depObj );
-
-        /*! \brief Add an output object to the list.
-         *  \sa TrackableObject
+         
+        /*! \brief Get the DependenciesDomain where this belongs
+         *  \returns the DependenciesDomain where this belongs
          */
-         void addOutputObject ( TrackableObject *outObj );
+         DependenciesDomain * getDependenciesDomain ( ) const;
 
-        /*! \brief Get the list of output objects.
-         *  \sa TrackableObject
+        /*! \brief Set the DependenciesDomain where this belongs
+         *  \param dependenciesDomain the DependenciesDomain where this belongs
          */
-         TrackableObjectVector & getOutputObjects ( );
+         void setDependenciesDomain ( DependenciesDomain *dependenciesDomain );
+
+        /*! \brief Add a written region to the list.
+         */
+         void addWriteRegion ( Region const &region );
+
+        /*! \brief Get the list of written objects.
+         */
+         RegionContainer const & getWrittenRegions ( ) const;
          
         /*! \brief Add a read object to the list.
-         *  \sa TrackableObject
          */
-         void addReadObject ( TrackableObject *readObj );
+         void addReadRegion ( Region const &region );
          
         /*! \brief Get the list of read objects.
-         *  \sa TrackableObject
          */
-         TrackableObjectVector & getReadObjects ( );
+         RegionContainer const & getReadRegions ( ) const;
 
         /*! \brief Increases the object's references counter
          */

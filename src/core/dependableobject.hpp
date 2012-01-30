@@ -25,8 +25,8 @@
 #include <vector>
 #include "atomic.hpp"
 #include "dependableobject_decl.hpp"
-#include "trackableobject_fwd.hpp"
-#include "dependency.hpp"
+#include "regionstatus_fwd.hpp"
+#include "dataaccess.hpp"
 #include "workdescriptor_decl.hpp"
 
 using namespace nanos;
@@ -38,7 +38,7 @@ inline const DependableObject & DependableObject::operator= ( const DependableOb
    _numPredecessors = depObj._numPredecessors;
    _references = depObj._references;
    _successors = depObj._successors;
-   _outputObjects = depObj._outputObjects;
+   _writtenRegions = depObj._writtenRegions;
    _submitted = depObj._submitted;
    _wd = depObj._wd;
    return *this;
@@ -100,24 +100,34 @@ inline bool DependableObject::addSuccessor ( DependableObject &depObj )
    return _successors.insert ( &depObj ).second;
 }
 
-inline void DependableObject::addOutputObject ( TrackableObject *outObj )
+inline DependenciesDomain * DependableObject::getDependenciesDomain ( ) const
 {
-   _outputObjects.push_back ( outObj );
+   return _domain;
 }
 
-inline DependableObject::TrackableObjectVector & DependableObject::getOutputObjects ( )
+inline void DependableObject::setDependenciesDomain ( DependenciesDomain *dependenciesDomain )
 {
-   return _outputObjects;
+   _domain = dependenciesDomain;
 }
 
-inline void DependableObject::addReadObject ( TrackableObject *readObj )
+inline void DependableObject::addWriteRegion ( Region const &region )
 {
-   _readObjects.push_back( readObj );
+   _writtenRegions.push_back ( region );
 }
 
-inline DependableObject::TrackableObjectVector & DependableObject::getReadObjects ( )
+inline DependableObject::RegionContainer const & DependableObject::getWrittenRegions ( ) const
 {
-   return _readObjects;
+   return _writtenRegions;
+}
+
+inline void DependableObject::addReadRegion ( Region const &region )
+{
+   _readRegions.push_back( region );
+}
+
+inline DependableObject::RegionContainer const & DependableObject::getReadRegions ( ) const
+{
+   return _readRegions;
 }
 
 inline void DependableObject::increaseReferences()

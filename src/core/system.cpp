@@ -1196,19 +1196,19 @@ void System::submit ( WD &work )
 
 /*! \brief Submit WorkDescriptor to its parent's  dependencies domain
  */
-void System::submitWithDependencies (WD& work, size_t numDeps, Dependency* deps)
+void System::submitWithDependencies ( WD &work, size_t numDataAccesses, DataAccess const *dataAccesses )
 {
    setupWD( work, myThread->getCurrentWD() );
    WD *current = myThread->getCurrentWD();
-   current->submitWithDependencies( work, numDeps , deps);
+   current->submitWithDependencies( work, numDataAccesses, dataAccesses );
 }
 
 /*! \brief Wait on the current WorkDescriptor's domain for some dependenices to be satisfied
  */
-void System::waitOn( size_t numDeps, Dependency* deps )
+void System::waitOn( size_t numDataAccesses, DataAccess const *dataAccesses )
 {
    WD* current = myThread->getCurrentWD();
-   current->waitOn( numDeps, deps );
+   current->waitOn( numDataAccesses, dataAccesses );
 }
 
 

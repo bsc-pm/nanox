@@ -234,8 +234,8 @@ namespace nanos {
 
             /* 13 */ registerEventKey("create-wd-id","Create WD Id:");
             /* 14 */ registerEventKey("create-wd-ptr","Create WD pointer:");
-            /* 15 */ registerEventKey("wd-num-deps","Create WD num. deps."); 
-            /* 16 */ registerEventKey("wd-deps-ptr","Create WD dependence pointer"); 
+            /* 15 */ registerEventKey("wd-num-dataaccs","Create WD num. data accesses"); 
+            /* 16 */ registerEventKey("wd-dataaccs-ptr","Create WD data accesses pointer"); 
 
             /* 17 */ registerEventKey("lock-addr","Lock address"); 
 

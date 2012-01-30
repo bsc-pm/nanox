@@ -109,29 +109,29 @@ nanos_err_t nanos_destroy_sync_cond ( nanos_sync_cond_t *sync_cond )
    return NANOS_OK;
 }
 
-nanos_err_t nanos_wait_on ( size_t num_deps, nanos_dependence_t *deps )
+nanos_err_t nanos_wait_on ( size_t num_data_accesses, nanos_data_access_t* data_accesses )
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","wait_on",NANOS_SYNCHRONIZATION ); )
 
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
 
-   NANOS_INSTRUMENT ( static nanos_event_key_t wd_num_deps = ID->getEventKey("wd-num-deps"); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t wd_deps_ptr = ID->getEventKey("wd-deps-ptr"); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t wd_num_data_accesses = ID->getEventKey("wd-num-dataaccs"); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t wd_data_accesses_ptr = ID->getEventKey("wd-dataaccs-ptr"); )
                                                                                                                                                          
    NANOS_INSTRUMENT ( nanos_event_key_t Keys[2]; )
    NANOS_INSTRUMENT ( nanos_event_value_t Values[2]; )
 
-   NANOS_INSTRUMENT ( Keys[0] = wd_num_deps; )
-   NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) num_deps; )
+   NANOS_INSTRUMENT ( Keys[0] = wd_num_data_accesses; )
+   NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) num_data_accesses; )
 
-   NANOS_INSTRUMENT ( Keys[1] = wd_deps_ptr; );
-   NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) deps; )
+   NANOS_INSTRUMENT ( Keys[1] = wd_data_accesses_ptr; );
+   NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) data_accesses; )
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(2, Keys, Values); )
 
    try {
-      if ( deps != NULL ) {
-         sys.waitOn( num_deps, deps );
+      if ( data_accesses != NULL ) {
+         sys.waitOn( num_data_accesses, data_accesses );
          return NANOS_OK;
       }
 

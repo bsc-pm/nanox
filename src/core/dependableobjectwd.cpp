@@ -73,7 +73,7 @@ void DOWait::init()
    _depsSatisfied = false;
 }
 
-void DOWait::wait ( std::list<Dependency *> deps )
+void DOWait::wait ( std::list<Region> const &regions )
 {
    _syncCond.wait();
 
@@ -82,8 +82,8 @@ void DOWait::wait ( std::list<Dependency *> deps )
    Directory *d = getWD()->getDirectory(false);
    if ( d != NULL ) {
       std::list<uint64_t> flushDeps;
-      for (std::list<Dependency *>::iterator it = deps.begin(); it != deps.end(); it++ ) {
-         flushDeps.push_back( (uint64_t) (*it)->getDepAddress() );
+      for (std::list<Region>::const_iterator it = regions.begin(); it != regions.end(); it++ ) {
+         flushDeps.push_back( (uint64_t) it->getFirstValue() );
       }
       d->synchronizeHost( flushDeps );
    }

@@ -54,9 +54,6 @@ common_sources=\
 	$(top_srcdir)/src/core/instrumentation.hpp \
 	$(top_srcdir)/src/core/throttle_fwd.hpp \
 	$(top_srcdir)/src/core/throttle_decl.hpp \
-	$(top_srcdir)/src/core/dependency_fwd.hpp \
-	$(top_srcdir)/src/core/dependency_decl.hpp \
-	$(top_srcdir)/src/core/dependency.hpp \
 	$(top_srcdir)/src/core/copydata_fwd.hpp \
 	$(top_srcdir)/src/core/copydata_decl.hpp \
 	$(top_srcdir)/src/core/copydata.hpp \
@@ -70,9 +67,6 @@ common_sources=\
 	$(top_srcdir)/src/core/dependableobjectwd.cpp \
 	$(top_srcdir)/src/core/commutationdepobj_decl.hpp \
 	$(top_srcdir)/src/core/commutationdepobj.hpp \
-	$(top_srcdir)/src/core/trackableobject_fwd.hpp \
-	$(top_srcdir)/src/core/trackableobject_decl.hpp \
-	$(top_srcdir)/src/core/trackableobject.hpp \
 	$(top_srcdir)/src/core/dependenciesdomain_fwd.hpp \
 	$(top_srcdir)/src/core/dependenciesdomain_decl.hpp \
 	$(top_srcdir)/src/core/dependenciesdomain.hpp \
@@ -93,6 +87,29 @@ common_sources=\
 	$(top_srcdir)/src/core/newdirectory.cpp  \
 	$(top_srcdir)/src/core/newdirectory.hpp  \
 	$(top_srcdir)/src/core/newdirectory_decl.hpp  \
+	$(top_srcdir)/src/core/bitcounter.hpp \
+	$(top_srcdir)/src/core/dataaccess_fwd.hpp \
+	$(top_srcdir)/src/core/dataaccess_decl.hpp \
+	$(top_srcdir)/src/core/dataaccess.hpp \
+	$(top_srcdir)/src/core/region_fwd.hpp \
+	$(top_srcdir)/src/core/region_decl.hpp \
+	$(top_srcdir)/src/core/region.hpp \
+	$(top_srcdir)/src/core/region.cpp \
+	$(top_srcdir)/src/core/regionbuilder_decl.hpp \
+	$(top_srcdir)/src/core/regionbuilder.hpp \
+	$(top_srcdir)/src/core/regionbuilder.cpp \
+	$(top_srcdir)/src/core/regioncollection_fwd.hpp \
+	$(top_srcdir)/src/core/regioncollection_decl.hpp \
+	$(top_srcdir)/src/core/regionpart_fwd.hpp \
+	$(top_srcdir)/src/core/regionpart_decl.hpp \
+	$(top_srcdir)/src/core/regionstatus_fwd.hpp \
+	$(top_srcdir)/src/core/regionstatus_decl.hpp \
+	$(top_srcdir)/src/core/regionstatus.hpp \
+	$(top_srcdir)/src/core/regiontree_fwd.hpp \
+	$(top_srcdir)/src/core/regiontree_decl.hpp \
+	$(top_srcdir)/src/core/regiontree.hpp \
+	$(top_srcdir)/src/core/regiontreenode_decl.hpp \
+	$(top_srcdir)/src/core/regiontreenode.hpp \
 	$(END)
 
 instr_sources = \
