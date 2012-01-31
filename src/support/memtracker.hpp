@@ -67,28 +67,29 @@ namespace nanos {
 
       inline void MemTracker::deallocate ( void * p, const char *file, int line )
       {
-	LockBlock guard(_lock);
-	
-	AddrMap::iterator it = _blocks.find( p );
+         LockBlock guard(_lock);
 
-	if ( it != _blocks.end() ) {
-	    _numBlocks--;
-	    _totalMem -= it->second._size;
+         AddrMap::iterator it = _blocks.find( p );
 
-	    //free( p );
+         if ( it != _blocks.end() ) {
+            size_t size = it->second._size;
+
+            _numBlocks--;
+            _totalMem -= size;
+
             nanos::getAllocator().deallocate( p );
 
-	    _blocks.erase( it );
-	    _stats[it->second._size]._current--;
-	} else {
-	    guard.release();
-	    
-	    if ( file != NULL ) {
-	      message0("Trying to free invalid pointer " << p << " at " << file << ":" << line);
-	    } else {
-	      message0("Trying to free invalid pointer " << p);
-	    }    
-	}
+            _blocks.erase( it );
+            _stats[size]._current--;
+         } else {
+            guard.release();
+
+            if ( file != NULL ) {
+               message0("Trying to free invalid pointer " << p << " at " << file << ":" << line);
+            } else {
+               message0("Trying to free invalid pointer " << p);
+            }    
+         }
       }
 
       inline void MemTracker::showStats ()
