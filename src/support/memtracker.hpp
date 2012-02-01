@@ -97,8 +97,6 @@ namespace nanos {
          }    
          throw std::bad_alloc();
       }
-
-      return p;
    }
 
    inline void MemTracker::showStats ()
