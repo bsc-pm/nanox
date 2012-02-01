@@ -35,7 +35,8 @@
 #include "schedule.hpp"
 #include "dependenciesdomain.hpp"
 #include "allocator_decl.hpp"
-#include "newdirectory_decl.hpp"
+//#include "newdirectory_decl.hpp"
+#include "regiondirectory_decl.hpp"
 
 using namespace nanos;
 

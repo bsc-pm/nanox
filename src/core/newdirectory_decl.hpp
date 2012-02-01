@@ -31,113 +31,113 @@
 
 namespace nanos
 {
-   class NewDirectoryEntryData {
-      private:
-         int _writeLocation;
-         unsigned int _version;
-         std::set<int> _location;
-      public:
-         NewDirectoryEntryData(): _writeLocation(0), _version(1), _location() { }
-         NewDirectoryEntryData( const NewDirectoryEntryData &de ): _writeLocation( de._writeLocation ),
-            _version( de._version ), _location( de._location ) { }
-         ~NewDirectoryEntryData() { }
-         const NewDirectoryEntryData & operator= ( const NewDirectoryEntryData &de ) {
-            _writeLocation = de._writeLocation;
-            _version = de._version;
-            _location.clear();
-            _location.insert( de._location.begin(), de._location.end() );
-            return *this;
-         }
-         bool hasWriteLocation() const { return ( _writeLocation != -1 ); }
-         int getWriteLocation() const { return _writeLocation; }
-         void setWriteLocation( int id ) { _writeLocation = id; }
-         void addAccess( int id ) { _location.insert( id ); }
-         bool isLocatedIn( int id ) const { return ( _location.count( id ) > 0 ); }
-         void increaseVersion() { _version += 1; }
-         void setVersion( unsigned int ver ) { _version = ver; }
-         unsigned int getVersion() const { return _version; }
-         void merge( const NewDirectoryEntryData &de ) {
-            if ( hasWriteLocation() && de.hasWriteLocation() ) {
-               if ( getWriteLocation() != de.getWriteLocation() && _version >= de._version ) std::cerr << "write loc mismatch WARNING !!! two write locations!, missing dependencies?" << std::endl;
-            } else if ( de.hasWriteLocation() ) {
-               setWriteLocation( de.getWriteLocation() );
-            } else setWriteLocation( -1 );
+   //class NewDirectoryEntryData {
+   //   private:
+   //      int _writeLocation;
+   //      unsigned int _version;
+   //      std::set<int> _location;
+   //   public:
+   //      NewDirectoryEntryData(): _writeLocation(0), _version(1), _location() { }
+   //      NewDirectoryEntryData( const NewDirectoryEntryData &de ): _writeLocation( de._writeLocation ),
+   //         _version( de._version ), _location( de._location ) { }
+   //      ~NewDirectoryEntryData() { }
+   //      const NewDirectoryEntryData & operator= ( const NewDirectoryEntryData &de ) {
+   //         _writeLocation = de._writeLocation;
+   //         _version = de._version;
+   //         _location.clear();
+   //         _location.insert( de._location.begin(), de._location.end() );
+   //         return *this;
+   //      }
+   //      bool hasWriteLocation() const { return ( _writeLocation != -1 ); }
+   //      int getWriteLocation() const { return _writeLocation; }
+   //      void setWriteLocation( int id ) { _writeLocation = id; }
+   //      void addAccess( int id ) { _location.insert( id ); }
+   //      bool isLocatedIn( int id ) const { return ( _location.count( id ) > 0 ); }
+   //      void increaseVersion() { _version += 1; }
+   //      void setVersion( unsigned int ver ) { _version = ver; }
+   //      unsigned int getVersion() const { return _version; }
+   //      void merge( const NewDirectoryEntryData &de ) {
+   //         if ( hasWriteLocation() && de.hasWriteLocation() ) {
+   //            if ( getWriteLocation() != de.getWriteLocation() && _version >= de._version ) std::cerr << "write loc mismatch WARNING !!! two write locations!, missing dependencies?" << std::endl;
+   //         } else if ( de.hasWriteLocation() ) {
+   //            setWriteLocation( de.getWriteLocation() );
+   //         } else setWriteLocation( -1 );
 
-            if ( _version == de._version ) {
-               _location.insert( de._location.begin(), de._location.end() );
-            }
-            else if ( _version < de._version ){
-               _location.clear();
-               _location.insert( de._location.begin(), de._location.end() );
-               _version = de._version;
-            } else {
-               std::cerr << "version mismatch! WARNING !!! two write locations!, missing dependencies? current " << _version << " inc " << de._version << std::endl;
-            }
-         }
-         void print() {
-            std::cerr << "WL: " << _writeLocation << " V: " << _version << " Locs: ";
-            for ( std::set<int>::iterator it = _location.begin(); it != _location.end(); it++ ) {
-               std::cerr << *it << " ";
-            }
-            std::cerr << std::endl;
-         }
-         bool equal( const NewDirectoryEntryData &d ) const {
-            bool soFarOk = ( _version == d._version && _writeLocation == d._writeLocation );
-            for ( std::set<int>::iterator it = _location.begin(); it != _location.end() && soFarOk; it++ ) {
-               soFarOk = ( soFarOk && d._location.count( *it ) == 1 );
-            }
-            for ( std::set<int>::iterator it = d._location.begin(); it != d._location.end() && soFarOk; it++ ) {
-               soFarOk = ( soFarOk && _location.count( *it ) == 1 );
-            }
-            return soFarOk;
-         }
-         bool contains( const NewDirectoryEntryData &d ) const {
-            bool soFarOk = ( _version == d._version && _writeLocation == d._writeLocation );
-            for ( std::set<int>::iterator it = d._location.begin(); it != d._location.end() && soFarOk; it++ ) {
-               soFarOk = ( soFarOk && _location.count( *it ) == 1 );
-            }
-            return soFarOk;
-         }
-   };
+   //         if ( _version == de._version ) {
+   //            _location.insert( de._location.begin(), de._location.end() );
+   //         }
+   //         else if ( _version < de._version ){
+   //            _location.clear();
+   //            _location.insert( de._location.begin(), de._location.end() );
+   //            _version = de._version;
+   //         } else {
+   //            std::cerr << "version mismatch! WARNING !!! two write locations!, missing dependencies? current " << _version << " inc " << de._version << std::endl;
+   //         }
+   //      }
+   //      void print() {
+   //         std::cerr << "WL: " << _writeLocation << " V: " << _version << " Locs: ";
+   //         for ( std::set<int>::iterator it = _location.begin(); it != _location.end(); it++ ) {
+   //            std::cerr << *it << " ";
+   //         }
+   //         std::cerr << std::endl;
+   //      }
+   //      bool equal( const NewDirectoryEntryData &d ) const {
+   //         bool soFarOk = ( _version == d._version && _writeLocation == d._writeLocation );
+   //         for ( std::set<int>::iterator it = _location.begin(); it != _location.end() && soFarOk; it++ ) {
+   //            soFarOk = ( soFarOk && d._location.count( *it ) == 1 );
+   //         }
+   //         for ( std::set<int>::iterator it = d._location.begin(); it != d._location.end() && soFarOk; it++ ) {
+   //            soFarOk = ( soFarOk && _location.count( *it ) == 1 );
+   //         }
+   //         return soFarOk;
+   //      }
+   //      bool contains( const NewDirectoryEntryData &d ) const {
+   //         bool soFarOk = ( _version == d._version && _writeLocation == d._writeLocation );
+   //         for ( std::set<int>::iterator it = d._location.begin(); it != d._location.end() && soFarOk; it++ ) {
+   //            soFarOk = ( soFarOk && _location.count( *it ) == 1 );
+   //         }
+   //         return soFarOk;
+   //      }
+   //};
 
   /*! \class NewDirectory
    *  \brief Stores copy accesses controls their versions and if they are dirty in any cache
    */
-   class NewDirectory
+   class New1dDirectory
    {
       private:
          typedef MemoryMap<NewDirectoryEntryData> NewDirectoryMap; /**< Directorie's HashMap*/
          NewDirectoryMap _directory; /**< The map will store the entries indexed by they tag */
          NewDirectoryMap _inputDirectory; /**< The map will store the entries indexed by they tag */
-         NewDirectory *_parent;
+         New1dDirectory *_parent;
          Lock _mergeLock;
          Lock _outputMergeLock;
 
-         static NewDirectory *_root;
+         static New1dDirectory *_root;
 
       private:
 
          /*! \brief NewDirectory copy constructor (private) 
           */
-         NewDirectory( const NewDirectory &dir );
+         New1dDirectory( const New1dDirectory &dir );
 
          /*! \brief NewDirectory copy assignment operator (private) 
           */
-         const NewDirectory & operator= ( const NewDirectory &dir );
+         const New1dDirectory & operator= ( const New1dDirectory &dir );
 
       public:
 
          /*! \brief NewDirectory default constructor
           */
-         NewDirectory();
+         New1dDirectory();
 
          /*! \brief NewDirectory destructor
           */
-         ~NewDirectory() {};
+         ~New1dDirectory() {};
 
         /*! \brief Set the parent NewDirectory to 'parent'
          */
-         void setParent( NewDirectory *parent );
+         void setParent( New1dDirectory *parent );
 
         /*! \brief Register an access to a copy by the host
          *  \param tag Identifier key of the access (address)
@@ -147,8 +147,8 @@ namespace nanos
          */
          void registerAccess( uint64_t tag, std::size_t size, bool input, bool output, unsigned int memorySpaceId );
 
-         void merge( const NewDirectory &input );
-         void mergeOutput( const NewDirectory &input );
+         void merge( const New1dDirectory &input );
+         void mergeOutput( const New1dDirectory &input );
          void setRoot();
          bool isRoot() const;
          void consolidate();

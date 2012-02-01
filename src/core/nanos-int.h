@@ -72,6 +72,22 @@ typedef struct {
    nanos_region_dimension_internal_t const *dimensions;
 } nanos_data_access_internal_t;
 
+/* This structure is initialized in dependency.hpp. Any change in
+ * its contents has to be reflected in Dependency constructor  
+ */
+typedef struct {
+   void **address;
+   ptrdiff_t offset;
+   struct {
+     bool  input: 1;
+     bool  output: 1;
+     bool  can_rename:1;
+     bool  commutative: 1;
+   } flags;
+   size_t  size;
+} nanos_dependence_internal_t;
+
+
 typedef enum {
    NANOS_PRIVATE,
    NANOS_SHARED,
@@ -88,6 +104,7 @@ typedef struct {
       bool output: 1;
    } flags;
    size_t size;
+   nanos_data_access_internal_t data_access;
 } nanos_copy_data_internal_t;
 
 
@@ -97,6 +114,7 @@ typedef nanos_region_dimension_internal_t nanos_region_dimension_t;
 
 #ifndef _NANOS_INTERNAL
 
+typedef nanos_dependence_internal_t nanos_dependence_t;
 typedef nanos_data_access_internal_t nanos_data_access_t;
 typedef nanos_copy_data_internal_t nanos_copy_data_t;
 

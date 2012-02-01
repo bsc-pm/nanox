@@ -38,7 +38,8 @@
 #include "processingelement_fwd.hpp"
 #include "wddeque_fwd.hpp"
 #include "directory_decl.hpp"
-#include "newdirectory_fwd.hpp"
+//#include "newdirectory_fwd.hpp"
+#include "regiondirectory_fwd.hpp"
 
 namespace nanos
 {
@@ -477,6 +478,7 @@ namespace nanos
          std::list<GraphEntry *> *getMyGraphRepList(  );
          void wgdone();
          void listed();
+         void printCopies();
 
    };
 

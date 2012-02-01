@@ -223,7 +223,7 @@ RegionTree<T>::RegionTree(): m_root(0) {
 
 
 template<typename T>
-void RegionTree<T>::find(iterator_list_t &output, traversal_queue_t &pendingNodes)
+void RegionTree<T>::find(iterator_list_t &output, traversal_queue_t &pendingNodes) const
 {
    while (!pendingNodes.empty()) {
       TraversalNode<T> traversalNode = pendingNodes.back();
@@ -871,7 +871,7 @@ bool RegionTree<T>::find(Region const &string, typename RegionTree<T>::Node *nod
 
 
 template<typename T>
-void RegionTree<T>::find(Region const &region, iterator_list_t &output)
+void RegionTree<T>::find(Region const &region, iterator_list_t &output) const
 {
    traversal_queue_t pendingNodes;
    

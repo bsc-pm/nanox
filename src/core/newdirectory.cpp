@@ -46,16 +46,16 @@
 
 using namespace nanos;
 
-NewDirectory::NewDirectory() : _directory(), _parent(NULL), _mergeLock(), _outputMergeLock() {}
+New1dDirectory::New1dDirectory() : _directory(), _parent(NULL), _mergeLock(), _outputMergeLock() {}
 
-NewDirectory *NewDirectory::_root = NULL;
+New1dDirectory *New1dDirectory::_root = NULL;
 
-void NewDirectory::setParent( NewDirectory *parent )
+void New1dDirectory::setParent( New1dDirectory *parent )
 {
    _parent =  parent;
 }
 
-void NewDirectory::registerAccess( uint64_t tag, std::size_t len, bool input, bool output, unsigned int memorySpaceId/*, DirectoryOps &ops*/ )
+void New1dDirectory::registerAccess( uint64_t tag, std::size_t len, bool input, bool output, unsigned int memorySpaceId/*, DirectoryOps &ops*/ )
 {
    MemoryMap< NewDirectoryEntryData >::MemChunkList resultListInput;
    MemoryMap< NewDirectoryEntryData >::MemChunkList resultList;
@@ -148,7 +148,7 @@ void NewDirectory::registerAccess( uint64_t tag, std::size_t len, bool input, bo
     message("At the end this data is going to be in " << memorySpaceId );
 }
 
-void NewDirectory::merge( const NewDirectory &inputDir )
+void New1dDirectory::merge( const New1dDirectory &inputDir )
 {
    message("merge " << &inputDir << " to input directory " << (void *)&_inputDirectory<< " read from " << (void *)&inputDir._directory );
    MemoryMap<NewDirectoryEntryData>::const_iterator it;
@@ -158,7 +158,7 @@ void NewDirectory::merge( const NewDirectory &inputDir )
    _mergeLock.release();
    message("now dir has " << _inputDirectory.size());
 }
-void NewDirectory::mergeOutput( const NewDirectory &inputDir )
+void New1dDirectory::mergeOutput( const New1dDirectory &inputDir )
 {
    message("merge " << &inputDir << " to output directory " << (void *)&_directory << " read from " << (void *)&inputDir._directory );
    _outputMergeLock.acquire();
@@ -172,15 +172,15 @@ message("RESULT DIRECTORY");
    message("now dir has " << _directory.size());
 }
 
-void NewDirectory::setRoot() {
+void New1dDirectory::setRoot() {
    _root = this;
 }
 
-bool NewDirectory::isRoot() const {
+bool New1dDirectory::isRoot() const {
    return ( _root == this );
 }
 
-void NewDirectory::consolidate() {
+void New1dDirectory::consolidate() {
    message( "consolidating directory..." );
  
    message( "_inputDir size is " << _inputDirectory.size() << " _dir size is " << _directory.size());
@@ -190,14 +190,14 @@ void NewDirectory::consolidate() {
    message( "_inputDir ("<<(void*)&_inputDirectory<<") size is " << _inputDirectory.size() << " _dir size is " << _directory.size());
 }
 
-void NewDirectory::print() const {
+void New1dDirectory::print() const {
    fprintf(stderr, "printing inputDirectory:\n");
    _inputDirectory.print();
    fprintf(stderr, "printing directory:\n");
    _directory.print();
 }
 
-bool NewDirectory::checkConsistency( uint64_t tag, std::size_t size, unsigned int memorySpaceId ) {
+bool New1dDirectory::checkConsistency( uint64_t tag, std::size_t size, unsigned int memorySpaceId ) {
    bool ok = true;
    MemoryMap< NewDirectoryEntryData >::ConstMemChunkList subchunkResults;
    _inputDirectory.getChunk2( tag, size, subchunkResults );

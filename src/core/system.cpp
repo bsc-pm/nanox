@@ -704,7 +704,7 @@ void System::finish ()
  *
  */
 void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align,
-                        void **data, WG *uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies, nanos_translate_args_t translate_args )
+                        void **data, WG *uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies, nanos_translate_args_t translate_args, size_t num_dimensions, nanos_region_dimension_t **dimensions )
 {
    ensure(num_devices > 0,"WorkDescriptor has no devices");
 
@@ -735,6 +735,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    if ( num_copies != 0 ) {
       size_CopyData = sizeof(CopyData);
       size_Copies   = size_CopyData * num_copies;
+         size_Copies += num_dimensions * sizeof(nanos_region_dimension_internal_t); //jbueno regions
       offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, __alignof__(nanos_copy_data_t) );
    } else {
       size_Copies = 0;
@@ -769,7 +770,10 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    ensure ((num_copies==0 && copies==NULL) || (num_copies!=0 && copies!=NULL), "Number of copies and copy data conflict" );
 
    // allocating copy-ins/copy-outs
-   if ( copies != NULL && *copies == NULL ) *copies = ( CopyData * ) (chunk + offset_Copies);
+   if ( copies != NULL && *copies == NULL ) {
+      *copies = ( CopyData * ) (chunk + offset_Copies);
+      *dimensions = ( nanos_region_dimension_internal_t * ) (chunk + offset_Copies + ( size_CopyData * num_copies ) );
+   }
 
    WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, data_align, data != NULL ? *data : NULL,
                              num_copies, (copies != NULL)? *copies : NULL, translate_args );
@@ -1200,6 +1204,7 @@ void System::submitWithDependencies ( WD &work, size_t numDataAccesses, DataAcce
 {
    setupWD( work, myThread->getCurrentWD() );
    WD *current = myThread->getCurrentWD();
+   //work.printCopies();
    current->submitWithDependencies( work, numDataAccesses, dataAccesses );
 }
 

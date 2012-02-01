@@ -90,6 +90,8 @@ namespace nanos
          bool isPrivate() const;
 
          nanos_sharing_t getSharing() const;
+
+         nanos_data_access_internal_t getDataAccess() const;
    };
 }
 

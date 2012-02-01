@@ -40,6 +40,7 @@ inline CopyData::CopyData ( const CopyData &cd )
    flags.input = cd.flags.input;
    flags.output = cd.flags.output;
    size = cd.size;
+   data_access = cd.data_access;
 }
 
 inline const CopyData & CopyData::operator= ( const CopyData &cd )
@@ -49,6 +50,7 @@ inline const CopyData & CopyData::operator= ( const CopyData &cd )
    flags.input = cd.flags.input;
    flags.output = cd.flags.output;
    size = cd.size;
+   data_access = cd.data_access;
    return *this;
 }
 
@@ -100,6 +102,11 @@ inline bool CopyData::isPrivate() const
 inline nanos_sharing_t CopyData::getSharing() const
 {
    return sharing;
+}
+
+inline nanos_data_access_internal_t CopyData::getDataAccess() const
+{
+   return data_access;
 }
 
 #endif

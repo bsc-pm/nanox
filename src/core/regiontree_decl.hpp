@@ -84,7 +84,7 @@ protected:
    //! \brief Generate a list of matching nodes according to the list of traversing fronts
    //! \param[out] output the list of matching nodes. Entries are appendend to the origfinal contents
    //! \param[in,out] pendingNodes the list of traversal fronts. Emptied during traversal.
-   void find(iterator_list_t &output, traversal_queue_t &pendingNodes);
+   void find(iterator_list_t &output, traversal_queue_t &pendingNodes) const;
    
    
    //! \brief Generate a list of matching nodes according to the list of traversing fronts limited to a maximum number of entries
@@ -118,7 +118,7 @@ public:
    //! \brief Find all regions that intersect with a given one
    //! \param region the region
    //! \param[out] output an accessor list to the nodes that intersect
-   void find(Region const &region, iterator_list_t &output);
+   void find(Region const &region, iterator_list_t &output) const;
    
    //! \brief Find regions that intersect with a given one up to a given maximum of elements
    //! \param region the region
