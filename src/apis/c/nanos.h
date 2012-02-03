@@ -141,6 +141,10 @@ NANOS_API_DECL(nanos_err_t, nanos_get_addr, ( nanos_copy_id_t copy_id, void **ad
 
 NANOS_API_DECL(nanos_err_t, nanos_copy_value, ( void *dst, nanos_copy_id_t copy_id, nanos_wd_t cwd ));
 
+// Pinned memory
+NANOS_API_DECL( void *, nanos_malloc_pinned_cuda, ( size_t size ) );
+NANOS_API_DECL( void, nanos_free_pinned_cuda, ( void * address ) );
+
 // system interface
 NANOS_API_DECL(nanos_err_t, nanos_get_num_running_tasks, ( int *num ));
 

@@ -17,86 +17,39 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "nanos.h"
-#include "system.hpp"
-#include "instrumentationmodule_decl.hpp"
+#include <iostream>
+#include <cstring>
+#include "pinnedallocator.hpp"
+#include "gpudevice_decl.hpp"
 
 using namespace nanos;
 
-NANOS_API_DEF(void *, nanos_malloc_pinned_cuda, ( size_t size ))
+
+void * CUDAPinnedMemoryManager::allocate( size_t size )
 {
-   return sys.getPinnedAllocatorCUDA().allocate( size );
+   return GPUDevice::allocatePinnedMemory( size );
 }
 
-NANOS_API_DEF( void, nanos_free_pinned_cuda, ( void * address ) )
+void CUDAPinnedMemoryManager::free( void * address )
 {
-   return sys.getPinnedAllocatorCUDA().free( address );
+   return GPUDevice::freePinnedMemory( address );
 }
 
 
-NANOS_API_DEF(nanos_err_t, nanos_get_num_running_tasks, ( int *num ))
+bool PinnedAllocator::isPinned( void * address )
 {
-   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_running_tasks",RUNTIME) );
+   return ( _pinnedChunks.count( address ) == 1 );
+}
 
-   try {
-      *num = sys.getRunningTasks();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+void PinnedAllocator::printPinnedMemoryMap()
+{
+   std::cout << "PINNED MEMORY CHUNKS" << std::endl;
+   for (PinnedMemoryMap::iterator it = _pinnedChunks.begin(); it != _pinnedChunks.end(); it++ ) {
+      std::cout << "|... ";
+      std::cout << it->first << " @ " << it->second;
+      std::cout << " ...";
    }
-
-   return NANOS_OK;
+   std::cout << "|" << std::endl;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_stop_scheduler, ())
-{
-   try {
-      sys.stopScheduler();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
 
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_start_scheduler, ())
-{
-   try {
-      sys.startScheduler();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_scheduler_enabled, ( bool *res ))
-{
-   try {
-      *res = sys.isSchedulerStopped();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_wait_until_threads_paused, ())
-{
-   try {
-      sys.waitUntilThreadsPaused();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_wait_until_threads_unpaused, ())
-{
-   try {
-      sys.waitUntilThreadsUnpaused();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-
-   return NANOS_OK;
-}

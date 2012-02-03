@@ -183,6 +183,8 @@ inline System::CachePolicyType System::getCachePolicy() { return _cachePolicy; }
 
 inline CacheMap& System::getCacheMap() { return _cacheMap; }
 
+inline PinnedAllocator& System::getPinnedAllocatorCUDA() { return _pinnedMemoryCUDA; }
+
 inline bool System::throttleTask()
 {
    return _throttlePolicy->throttle();

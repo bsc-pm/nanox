@@ -35,6 +35,7 @@
 #include "cache_map_decl.hpp"
 #include "plugin_decl.hpp"
 #include "barrier_decl.hpp"
+#include "pinnedallocator_decl.hpp"
 
 
 namespace nanos
@@ -118,12 +119,15 @@ namespace nanos
          // Programming model interface
          PMInterface *        _pmInterface;
 
-         // Enable or disable the use of caches
+         //! Enable or disable the use of caches
          bool                 _useCaches;
-         // General cache policy (if not specifically redefined for a certain architecture)
+         //! General cache policy (if not specifically redefined for a certain architecture)
          CachePolicyType      _cachePolicy;
-         // CacheMap register
+         //! CacheMap register
          CacheMap             _cacheMap;
+
+         //! Keep record of the data that's directly allocated on pinned memory
+         PinnedAllocator      _pinnedMemoryCUDA;
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -304,6 +308,8 @@ namespace nanos
          bool isCacheEnabled();
          CachePolicyType getCachePolicy();
          CacheMap& getCacheMap();
+
+         PinnedAllocator& getPinnedAllocatorCUDA();
 
          void threadReady ();
 

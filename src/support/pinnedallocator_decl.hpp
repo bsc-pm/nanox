@@ -17,86 +17,67 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "nanos.h"
-#include "system.hpp"
-#include "instrumentationmodule_decl.hpp"
+#ifndef _NANOS_PINNEDALLOCATOR_DECL
+#define _NANOS_PINNEDALLOCATOR_DECL
 
-using namespace nanos;
+#include <stdint.h>
+#include <map>
 
-NANOS_API_DEF(void *, nanos_malloc_pinned_cuda, ( size_t size ))
-{
-   return sys.getPinnedAllocatorCUDA().allocate( size );
+#include "atomic_decl.hpp"
+
+namespace nanos {
+
+
+   /*! \brief Specialized class to allocate pinned memory depending on how this memory
+    *         will be used afterwards
+    */
+   class PinnedMemoryManager
+   {
+      public:
+         PinnedMemoryManager();
+         ~PinnedMemoryManager();
+
+         virtual void * allocate( size_t size ) = 0;
+         virtual void free( void * address ) = 0;
+
+   };
+
+   /*! \brief Class to allocate and free pinned memory using CUDA runtime
+    *
+    */
+   class CUDAPinnedMemoryManager : public PinnedMemoryManager
+   {
+      public:
+         CUDAPinnedMemoryManager();
+         ~CUDAPinnedMemoryManager();
+
+         void * allocate( size_t size );
+         void free( void * address );
+   };
+
+
+   /*! \brief Memory allocator to manage pinned memory allocations
+    */
+   class PinnedAllocator
+   {
+      private:
+         typedef std::map < void *, size_t > PinnedMemoryMap;
+
+         PinnedMemoryMap            _pinnedChunks;
+         PinnedMemoryManager     *  _manager;
+
+         Lock                       _lock;
+
+      public:
+         PinnedAllocator( PinnedMemoryManager * manager );
+
+         void * allocate( size_t len );
+
+         void free( void * address );
+
+         bool isPinned( void * address );
+
+         void printPinnedMemoryMap();
+   };
 }
-
-NANOS_API_DEF( void, nanos_free_pinned_cuda, ( void * address ) )
-{
-   return sys.getPinnedAllocatorCUDA().free( address );
-}
-
-
-NANOS_API_DEF(nanos_err_t, nanos_get_num_running_tasks, ( int *num ))
-{
-   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_running_tasks",RUNTIME) );
-
-   try {
-      *num = sys.getRunningTasks();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_stop_scheduler, ())
-{
-   try {
-      sys.stopScheduler();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_start_scheduler, ())
-{
-   try {
-      sys.startScheduler();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_scheduler_enabled, ( bool *res ))
-{
-   try {
-      *res = sys.isSchedulerStopped();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_wait_until_threads_paused, ())
-{
-   try {
-      sys.waitUntilThreadsPaused();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_wait_until_threads_unpaused, ())
-{
-   try {
-      sys.waitUntilThreadsUnpaused();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-
-   return NANOS_OK;
-}
+#endif /* _NANOS_PINNEDALLOCATOR */

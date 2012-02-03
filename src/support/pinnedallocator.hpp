@@ -17,86 +17,43 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "nanos.h"
-#include "system.hpp"
-#include "instrumentationmodule_decl.hpp"
+#ifndef _NANOS_PINNEDALLOCATOR
+#define _NANOS_PINNEDALLOCATOR
+
+#include <stdint.h>
+#include <map>
+#include "pinnedallocator_decl.hpp"
+#include "atomic.hpp"
 
 using namespace nanos;
 
-NANOS_API_DEF(void *, nanos_malloc_pinned_cuda, ( size_t size ))
+PinnedMemoryManager::PinnedMemoryManager() {}
+PinnedMemoryManager::~PinnedMemoryManager() {}
+
+
+CUDAPinnedMemoryManager::CUDAPinnedMemoryManager() {}
+CUDAPinnedMemoryManager::~CUDAPinnedMemoryManager() {}
+
+
+PinnedAllocator::PinnedAllocator( PinnedMemoryManager * manager) : _pinnedChunks(), _manager( manager ), _lock() {}
+
+void * PinnedAllocator::allocate( size_t size )
 {
-   return sys.getPinnedAllocatorCUDA().allocate( size );
+   void * addr = _manager->allocate( size );
+
+   _lock.acquire();
+   _pinnedChunks[ addr ] = size;
+   _lock.release();
+
+   return addr;
 }
 
-NANOS_API_DEF( void, nanos_free_pinned_cuda, ( void * address ) )
+void PinnedAllocator::free( void * address )
 {
-   return sys.getPinnedAllocatorCUDA().free( address );
+   _lock.acquire();
+   _pinnedChunks.erase( address );
+   _lock.release();
+   _manager->free( address );
 }
 
-
-NANOS_API_DEF(nanos_err_t, nanos_get_num_running_tasks, ( int *num ))
-{
-   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_running_tasks",RUNTIME) );
-
-   try {
-      *num = sys.getRunningTasks();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_stop_scheduler, ())
-{
-   try {
-      sys.stopScheduler();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_start_scheduler, ())
-{
-   try {
-      sys.startScheduler();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_scheduler_enabled, ( bool *res ))
-{
-   try {
-      *res = sys.isSchedulerStopped();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_wait_until_threads_paused, ())
-{
-   try {
-      sys.waitUntilThreadsPaused();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_wait_until_threads_unpaused, ())
-{
-   try {
-      sys.waitUntilThreadsUnpaused();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-
-   return NANOS_OK;
-}
+#endif /* _NANOS_PINNEDALLOCATOR */

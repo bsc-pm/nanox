@@ -54,7 +54,7 @@ System::System () :
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _pausedThreads( 0 ),
       _pausedThreadsCond(), _unpausedThreadsCond(),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _pmInterface( NULL ),
-      _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap()
+      _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap(), _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
 {
    verbose0 ( "NANOS++ initializing... start" );
    // OS::init must be called here and not in System::start() as it can be too late
