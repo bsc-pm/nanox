@@ -916,25 +916,17 @@ BaseThread * System::getWorker ( unsigned int n )
 void System::releaseWorker ( BaseThread * thread )
 {
    ThreadTeam *team = thread->getTeam();
-   TeamData * parentData = thread->getTeamData()->getParentTeamData();
+   unsigned thread_id = thread->getTeamId();
 
    //TODO: destroy if too many?
-
    debug("Releasing thread " << thread << " from team " << team );
+
    thread->leaveTeam();   
-   delete thread->getTeamData();
-   team->removeThread(thread);
-
-   if ( parentData != NULL )
-   {
-      ThreadTeam *parent = team->getParent();
-      myThread->enterTeam(parent,parentData);
-   }
-
+   team->removeThread(thread_id);
 }
 
 ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
-                                   bool reuseCurrent )
+                                   bool reuseCurrent, bool enterTeam )
 {
    int thId;
    TeamData *data;
@@ -971,10 +963,13 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
         sthdata = sched->createThreadData(NULL);
       
       data->setId(thId);
+      data->setTeam(team);
       data->setScheduleData(sthdata);
       data->setParentTeamData(current->getTeamData());
       
-      current->enterTeam( team,  data );
+      if ( enterTeam ) current->enterTeam( data );
+      else current->setNextTeamData( data );
+
 
       debug( "added thread " << current << " with id " << toString<int>(thId) << " to " << team );
    }
@@ -997,9 +992,12 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
         sthdata = sched->createThreadData(NULL);
 
       data->setId(thId);
+      data->setTeam(team);
       data->setScheduleData(sthdata);
       
-      thread->enterTeam( team, data );
+      if ( enterTeam ) thread->enterTeam( data );
+      else thread->setNextTeamData( data );
+
       debug( "added thread " << thread << " with id " << toString<int>(thId) << " to " << thread->getTeam() );
    }
 

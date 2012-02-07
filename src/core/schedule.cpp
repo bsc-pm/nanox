@@ -49,8 +49,17 @@ void Scheduler::submit ( WD &wd )
    wd.submitted();
 
    /* handle tied tasks */
-   if ( wd.isTied() && wd.isTiedTo() != mythread ) {
-      wd.isTiedTo()->getTeam()->getSchedulePolicy().queue( wd.isTiedTo(), wd );
+   BaseThread *wd_tiedto = wd.isTiedTo();
+   if ( wd.isTied() && wd_tiedto != mythread ) {
+      if ( wd_tiedto->getTeam() == NULL ) {
+        if ( wd_tiedto->reserveNextWD() ) {
+           wd_tiedto->setReservedNextWD(&wd);
+        } else {
+           fatal("Work Descriptor can not reach its own team");
+        }
+      } else {
+         wd_tiedto->getTeam()->getSchedulePolicy().queue( wd_tiedto, wd );
+      }
       return;
    }
 
@@ -130,37 +139,35 @@ inline void Scheduler::idleLoop ()
 
       if ( !thread->isRunning() ) break;
 
-      if ( thread->getTeam() != NULL ) {
-         WD * next = myThread->getNextWD();
+      WD * next = myThread->getNextWD();
 
-         if ( next ) {
-            myThread->resetNextWD();
-         } else {
-           if ( sys.getSchedulerStats()._readyTasks > 0 ) 
-              next = behaviour::getWD(thread,current);
-         } 
+      if ( next ) {
+         myThread->resetNextWD();
+      } else {
+        if ( (thread->getTeam() != NULL) && (sys.getSchedulerStats()._readyTasks > 0) ) 
+           next = behaviour::getWD(thread,current);
+      } 
 
-         if ( next ) {
-            sys.getSchedulerStats()._idleThreads--;
+      if ( next ) {
+         sys.getSchedulerStats()._idleThreads--;
 
-            total_spins+= (nspins - spins);
-            NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
-            NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) total_spins; )
-            NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) total_yields; )
-            NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) time_yields; )
-            NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(3, Keys, Values); )
+         total_spins+= (nspins - spins);
+         NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
+         NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) total_spins; )
+         NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) total_yields; )
+         NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) time_yields; )
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(3, Keys, Values); )
 
-            NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) )
-            behaviour::switchWD(thread, current, next);
-            thread = getMyThreadSafe();
-            NANOS_INSTRUMENT( inst2.close() );
-            sys.getSchedulerStats()._idleThreads++;
-            total_spins = 0;
-            total_yields = 0;
-            time_yields = 0;
-            spins = nspins;
-            continue;
-         }
+         NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) )
+         behaviour::switchWD(thread, current, next);
+         thread = getMyThreadSafe();
+         NANOS_INSTRUMENT( inst2.close() );
+         sys.getSchedulerStats()._idleThreads++;
+         total_spins = 0;
+         total_yields = 0;
+         time_yields = 0;
+         spins = nspins;
+         continue;
       }
 
       if ( spins == 0 ) {

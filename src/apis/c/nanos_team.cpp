@@ -34,7 +34,10 @@ nanos_err_t nanos_create_team( nanos_team_t *team, nanos_sched_t sp, unsigned in
       if ( *team ) warning( "pre-allocated team not supported yet" );
       if ( sp ) warning ( "selecting scheduling policy not supported yet");
 
-      ThreadTeam *new_team = sys.createTeam( *nthreads,constraints,reuse );
+     /* Last parameter is equal to false because related threads are not entering new team.
+      * They must enter explicetely by calling thread->enterTeam()
+      */
+      ThreadTeam *new_team = sys.createTeam( *nthreads,constraints,reuse,false );
 
       *team = new_team;
 
