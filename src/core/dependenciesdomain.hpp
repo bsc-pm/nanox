@@ -27,7 +27,7 @@
 #include "atomic.hpp"
 #include "dependableobject.hpp"
 #include "trackableobject.hpp"
-#include "dependency.hpp"
+#include "dataaccess_decl.hpp"
 #include "compatibility.hpp"
 
 
@@ -40,12 +40,12 @@ inline DependenciesDomain::~DependenciesDomain ( )
    }
 }
 
-inline void DependenciesDomain::submitDependableObject ( DependableObject &depObj, std::vector<Dependency> &deps, SchedulePolicySuccessorFunctor* callback )
+inline void DependenciesDomain::submitDependableObject ( DependableObject &depObj, std::vector<DataAccess> &deps, SchedulePolicySuccessorFunctor* callback )
 {
    submitDependableObjectInternal ( depObj, deps.begin(), deps.end(), callback );
 }
 
-inline void DependenciesDomain::submitDependableObject ( DependableObject &depObj, size_t numDeps, Dependency* deps, SchedulePolicySuccessorFunctor* callback )
+inline void DependenciesDomain::submitDependableObject ( DependableObject &depObj, size_t numDeps, DataAccess* deps, SchedulePolicySuccessorFunctor* callback )
 {
    submitDependableObjectInternal ( depObj, deps, deps+numDeps, callback );
 }

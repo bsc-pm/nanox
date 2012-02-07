@@ -55,8 +55,8 @@ nanos_smp_args_t test_device_arg_2 = { second };
 int main ( int argc, char **argv )
 {
    int dep;
-   int * dep_addr = &dep;
-   nanos_dependence_t deps = {(void **)&dep_addr,0, {1,1,0,0}, 0};
+   nanos_region_dimension_t dimensions[1] = {{sizeof(int), 0, sizeof(int)}};
+   nanos_data_access_t data_accesses[1] = {{&dep, {1,1,0,0}, 1, dimensions}};
    nanos_wd_props_t props = {
      .mandatory_creation = true,
      .tied = false,
@@ -66,13 +66,13 @@ int main ( int argc, char **argv )
    nanos_wd_t wd1=0;
    nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1) };
    NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, 0, 1, NULL, nanos_current_wd(), &props, 0, NULL ) );
-   NANOS_SAFE( nanos_submit( wd1,1,&deps,0 ) );
+   NANOS_SAFE( nanos_submit( wd1, 1, data_accesses, 0 ) );
 
 
    nanos_wd_t wd2=0;
    nanos_device_t test_devices_2[1] = { NANOS_SMP_DESC( test_device_arg_2) };
    NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_2, 0, 1, NULL, nanos_current_wd(), &props, 0, NULL ) );
-   NANOS_SAFE( nanos_submit( wd2,1,&deps,0 ) );
+   NANOS_SAFE( nanos_submit( wd2, 1, data_accesses,0 ) );
 
 
    NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );

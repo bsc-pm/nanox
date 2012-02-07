@@ -144,7 +144,7 @@ NANOS_API_DEF(nanos_err_t, nanos_create_sliced_wd, ( nanos_wd_t *uwd, size_t num
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_submit, ( nanos_wd_t uwd, size_t num_deps, nanos_dependence_t *deps, nanos_team_t team ))
+NANOS_API_DEF(nanos_err_t, nanos_submit, ( nanos_wd_t uwd, size_t num_data_accesses, nanos_data_access_t *data_accesses, nanos_team_t team ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","submit",NANOS_SCHEDULING) );
 
@@ -174,17 +174,17 @@ NANOS_API_DEF(nanos_err_t, nanos_submit, ( nanos_wd_t uwd, size_t num_deps, nano
       NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) wd; )
 
       NANOS_INSTRUMENT ( Keys[2] = wd_num_deps; )
-      NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) num_deps; )
+      NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) num_data_accesses; )
 
       NANOS_INSTRUMENT ( Keys[3] = wd_deps_ptr; );
-      NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) deps; )
+      NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) data_accesses; )
 
       NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(4, Keys, Values); )
 
       NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEventNkvs ( NANOS_WD_DOMAIN, (nanos_event_id_t) wd->getId(), 0, NULL, NULL );)
 
-      if ( deps != NULL ) {
-         sys.submitWithDependencies( *wd, num_deps, deps );
+      if ( data_accesses != NULL ) {
+         sys.submitWithDependencies( *wd, num_data_accesses, data_accesses );
          return NANOS_OK;
       }
 
@@ -199,7 +199,7 @@ NANOS_API_DEF(nanos_err_t, nanos_submit, ( nanos_wd_t uwd, size_t num_deps, nano
 
 // data must be not null
 NANOS_API_DEF(nanos_err_t, nanos_create_wd_and_run, ( size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align, void * data,
-                                      size_t num_deps, nanos_dependence_t *deps, nanos_wd_props_t *props,
+                                      size_t num_data_accesses, nanos_data_access_t* data_accesses, nanos_wd_props_t *props,
                                       size_t num_copies, nanos_copy_data_t *copies, nanos_translate_args_t translate_args ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","create_wd_and_run", NANOS_CREATION) );
@@ -248,17 +248,17 @@ NANOS_API_DEF(nanos_err_t, nanos_create_wd_and_run, ( size_t num_devices, nanos_
       NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) &wd; )
 
       NANOS_INSTRUMENT ( Keys[2] = wd_num_deps; )
-      NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) num_deps; )
+      NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) num_data_accesses; )
 
       NANOS_INSTRUMENT ( Keys[3] = wd_deps_ptr; );
-      NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) deps; )
+      NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) data_accesses; )
 
       NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(4, Keys, Values); )
 
       NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEventNkvs ( NANOS_WD_DOMAIN, (nanos_event_id_t) wd.getId(), 0, NULL, NULL ); )
 
-      if ( deps != NULL ) {
-         sys.waitOn( num_deps, deps );
+      if ( data_accesses != NULL ) {
+         sys.waitOn( num_data_accesses, data_accesses );
       }
 
       NANOS_INSTRUMENT( InstrumentState inst1(NANOS_RUNTIME) );

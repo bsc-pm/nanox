@@ -111,7 +111,7 @@ inline CopyData * WorkDescriptor::getCopies() const { return _copies; }
 
 inline TR1::shared_ptr<DOSubmit> & WorkDescriptor::getDOSubmit() { return _doSubmit; }
 
-inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t numDeps, Dependency* deps )
+inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t numDeps, DataAccess* deps )
 {
    wd._doSubmit.reset( NEW DOSubmit() );
    wd._doSubmit->setWD(&wd);
@@ -119,7 +119,7 @@ inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t n
    _depsDomain->submitDependableObject( *(wd._doSubmit), numDeps, deps, &cb );
 }
 
-inline void WorkDescriptor::waitOn( size_t numDeps, Dependency* deps )
+inline void WorkDescriptor::waitOn( size_t numDeps, DataAccess* deps )
 {
    _doWait->setWD(this);
    _depsDomain->submitDependableObject( *_doWait, numDeps, deps );

@@ -28,7 +28,7 @@
 #include "dependableobject_decl.hpp"
 #include "trackableobject_decl.hpp"
 //#include "regionstatus_decl.hpp"
-#include "dependency_decl.hpp"
+#include "dataaccess_decl.hpp"
 #include "compatibility.hpp"
 #include "schedule_fwd.hpp"
 
@@ -175,20 +175,20 @@ namespace nanos
 
         /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
          *  \param depObj DependableObject to be added to the domain.
-         *  \param deps List of dependencies to be associated to the Dependable Object.
+         *  \param dataAccesses List of data accesses that determine the dependencies to be associated to the Dependable Object.
          *  \param callback A function to call when a WD has a successor [Optional].
-         *  \sa Dependency DependableObject TrackableObject
+         *  \sa DataAccess DependableObject TrackableObject
          */
-         void submitDependableObject ( DependableObject &depObj, std::vector<Dependency> &deps, SchedulePolicySuccessorFunctor* callback = NULL );
+         void submitDependableObject ( DependableObject &depObj, std::vector<DataAccess> &dataAccesses, SchedulePolicySuccessorFunctor* callback = NULL );
 
         /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
          *  \param depObj DependableObject to be added to the domain.
-         *  \param deps List of dependencies to be associated to the Dependable Object.
-         *  \param numDeps Number of dependenices in the list.
+         *  \param dataAccesses List of data accesses that determine the dependencies to be associated to the Dependable Object.
+         *  \param numDataAccesses List of data accesses that determine the dependencies to be associated to the Dependable Object.
          *  \param callback A function to call when a WD has a successor [Optional].
-         *  \sa Dependency DependableObject TrackableObject
+         *  \sa DataAccess DependableObject TrackableObject
          */
-         void submitDependableObject ( DependableObject &depObj, size_t numDeps, Dependency* deps, SchedulePolicySuccessorFunctor* callback = NULL );
+         void submitDependableObject ( DependableObject &depObj, size_t numDataAccesses, DataAccess* dataAccesses, SchedulePolicySuccessorFunctor* callback = NULL );
 
          /*! \brief Removes the DependableObject from the role of last writer of a region.
          *  \param depObj DependableObject to be stripped of the last writer role

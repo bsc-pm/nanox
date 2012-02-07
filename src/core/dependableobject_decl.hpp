@@ -24,7 +24,7 @@
 #include <set>
 #include <vector>
 #include "atomic_decl.hpp"
-#include "dependency_decl.hpp"
+#include "dataaccess_decl.hpp"
 #include "dependenciesdomain_fwd.hpp"
 
 namespace nanos
@@ -90,7 +90,17 @@ namespace nanos
 
          virtual void dependenciesSatisfied ( ) { }
 
-         virtual void wait ( std::list<Dependency *> deps ) { }
+         /*! \brief Waits until the dependencies with the given addresses
+          * are satisfied.
+          * \param flushDeps List of memory addresses.
+          * \note Previously we were passing a list of Dependency pointers,
+          * and used getDepAddress to create the flushDeps list inside this 
+          * function. As the regions code passes regions and does the same,
+          * the list will have to be created before calling this function.
+          * The regions code will call Region::getFirstValue() and the
+          * non region code will use the address + the offset.
+          */
+         virtual void wait ( std::list<uint64_t>const & flushDeps  ) { }
 
          virtual bool waits ( );
 

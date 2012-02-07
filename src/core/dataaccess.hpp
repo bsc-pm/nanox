@@ -17,100 +17,91 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_DEPENDENCY
-#define _NANOS_DEPENDENCY
+#ifndef _NANOS_DATA_ACCESS
+#define _NANOS_DATA_ACCESS
 
-#include "dependency_decl.hpp"
+#include "dataaccess_decl.hpp"
 
 using namespace nanos;
 
-inline Dependency::Dependency ( void ** addr, ptrdiff_t elementOffset, bool input, bool output,
-             bool canRenameFlag, bool commutative, size_t storageSize )
+inline DataAccess::DataAccess ( void * addr, bool input, bool output,
+             bool canRenameFlag, bool commutative, short dimensionCount,
+             nanos_region_dimension_internal_t const *dims )
 {
    address = addr;
-   offset = elementOffset;
    flags.input = input;
    flags.output = output;
    flags.can_rename = canRenameFlag;
    flags.commutative = commutative;
-   size = storageSize;
+   dimension_count = dimensionCount;
+   dimensions = dims;
 }
 
-inline Dependency::Dependency ( const Dependency &dep )
+inline DataAccess::DataAccess ( const DataAccess &dataAccess )
 {
-   address = dep.address;
-   offset = dep.offset;
-   flags.input = dep.flags.input;
-   flags.output = dep.flags.output;
-   flags.can_rename = dep.flags.can_rename;
-   flags.commutative = dep.flags.commutative;
-   size = dep.size;
+   address = dataAccess.address;
+   flags.input = dataAccess.flags.input;
+   flags.output = dataAccess.flags.output;
+   flags.can_rename = dataAccess.flags.can_rename;
+   flags.commutative = dataAccess.flags.commutative;
+   dimension_count = dataAccess.dimension_count;
+   dimensions = dataAccess.dimensions;
 }
 
-inline const Dependency & Dependency::operator= ( const Dependency &dep )
+inline const DataAccess & DataAccess::operator= ( const DataAccess &dataAccess )
 {
-   if ( this == &dep ) return *this; 
-   address = dep.address;
-   offset = dep.offset;
-   flags.input = dep.flags.input;
-   flags.output = dep.flags.output;
-   flags.can_rename = dep.flags.can_rename;
-   flags.commutative = dep.flags.commutative;
-   size = dep.size;
+   if ( this == &dataAccess ) return *this; 
+   address = dataAccess.address;
+   flags.input = dataAccess.flags.input;
+   flags.output = dataAccess.flags.output;
+   flags.can_rename = dataAccess.flags.can_rename;
+   flags.commutative = dataAccess.flags.commutative;
+   dimension_count = dataAccess.dimension_count;
+   dimensions = dataAccess.dimensions;
    return *this;
 }
 
-inline void ** Dependency::getAddress() const
+inline void * DataAccess::getAddress() const
 {
    return address;
 }
 
-inline ptrdiff_t Dependency::getOffset() const
-{
-   return offset;
-}
-
-inline void * Dependency::getDepAddress() const
-{
-   return (void *) ( (char *) (*address) + offset );
-}
-
-inline bool Dependency::isInput() const
+inline bool DataAccess::isInput() const
 {
    return flags.input;
 }
 
-inline void Dependency::setInput( bool b )
+inline void DataAccess::setInput( bool b )
 {
  flags.input = b;
 }
 
-inline bool Dependency::isOutput() const
+inline bool DataAccess::isOutput() const
 {
    return flags.output;
 }
 
-inline void Dependency::setOutput( bool b )
+inline void DataAccess::setOutput( bool b )
 {
    flags.output = b;
 }
 
-inline bool Dependency::canRename() const
+inline bool DataAccess::canRename() const
 {
    return flags.can_rename;
 }
 
-inline void Dependency::setCanRename( bool b )
+inline void DataAccess::setCanRename( bool b )
 {
    flags.can_rename = b;
 }
 
-inline bool Dependency::isCommutative() const
+inline bool DataAccess::isCommutative() const
 {
    return flags.commutative;
 }
 
-inline void Dependency::setCommutative( bool b )
+inline void DataAccess::setCommutative( bool b )
 {
    flags.commutative = b;
 }

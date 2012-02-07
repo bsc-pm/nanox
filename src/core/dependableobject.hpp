@@ -25,7 +25,7 @@
 #include <vector>
 #include "atomic.hpp"
 #include "dependableobject_decl.hpp"
-#include "dependency.hpp"
+#include "dataaccess.hpp"
 
 using namespace nanos;
 

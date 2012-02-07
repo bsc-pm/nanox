@@ -410,13 +410,13 @@ namespace nanos
           *  \param numDeps Number of dependencies.
           *  \param deps Array with dependencies associated to the submitted wd.
           */
-         void submitWithDependencies( WorkDescriptor &wd, size_t numDeps, Dependency* deps );
+         void submitWithDependencies( WorkDescriptor &wd, size_t numDeps, DataAccess* deps );
 
          /*! \brief Waits untill all (input) dependencies passed are satisfied for the _doWait object.
           *  \param numDeps Number of de dependencies.
           *  \param deps dependencies to wait on, should be input dependencies.
           */
-         void waitOn( size_t numDeps, Dependency* deps );
+         void waitOn( size_t numDeps, DataAccess* deps );
 
          /*! If this WorkDescriptor has an immediate succesor (i.e., anothur WD that only depends on him)
              remove it from the dependence graph and return it. */
