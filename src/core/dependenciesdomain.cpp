@@ -301,7 +301,6 @@ inline void DependenciesDomain::submitDependableObjectDataAccess ( DependableObj
       }
    }
    
-   // TODO (gmiranda): enable this!
    SyncRecursiveLockBlock lock1( _instanceLock );
    //typedef std::set<RegionMap::iterator> subregion_set_t;
    // TODO (gmiranda): replace this by a call to findAndPopulate
@@ -438,7 +437,6 @@ template void DependenciesDomain::submitDependableObjectInternal ( DependableObj
 
 void DependenciesDomain::deleteLastWriter ( DependableObject &depObj, Target const &target )
 {
-   // TODO (gmiranda): enable this!
    SyncRecursiveLockBlock lock1( _instanceLock );
    DepsMap::iterator it = _addressDependencyMap.find( target );
    
@@ -452,7 +450,6 @@ void DependenciesDomain::deleteLastWriter ( DependableObject &depObj, Target con
 
 void DependenciesDomain::deleteReader ( DependableObject &depObj, Target const &target )
 {
-   // TODO (gmiranda): enable this!
    SyncRecursiveLockBlock lock1( _instanceLock );
    DepsMap::iterator it = _addressDependencyMap.find( target );
    
@@ -468,7 +465,6 @@ void DependenciesDomain::deleteReader ( DependableObject &depObj, Target const &
 
 void DependenciesDomain::removeCommDO ( CommutationDO *commDO, Target const &target )
 {
-   // TODO (gmiranda): enable this!
    SyncRecursiveLockBlock lock1( _instanceLock );
    DepsMap::iterator it = _addressDependencyMap.find( target );
    
