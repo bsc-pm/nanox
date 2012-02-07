@@ -101,21 +101,32 @@ namespace nanos
    // team related methods
    inline void BaseThread::reserve() { _hasTeam = 1; }
  
-   inline void BaseThread::enterTeam( ThreadTeam *newTeam, TeamData *data ) 
-   {
-      _teamData = data;
-      memoryFence();
-      _team = newTeam;
+   inline void BaseThread::enterTeam( TeamData *data )
+   { 
+      if ( data != NULL ) _teamData = data;
+      else _teamData = _nextTeamData;
       _hasTeam=1;
    }
  
    inline bool BaseThread::hasTeam() const { return _hasTeam; }
  
-   inline void BaseThread::leaveTeam() { _hasTeam = 0; _team = 0; }
+   inline void BaseThread::leaveTeam()
+   {
+      if ( _teamData ) 
+      {
+         TeamData *td = _teamData;
+         _teamData = _teamData->getParentTeamData();
+         _hasTeam = _teamData != NULL;
+         delete td;
+      }
+   }
  
-   inline ThreadTeam * BaseThread::getTeam() const { return _team; }
+   inline ThreadTeam * BaseThread::getTeam() const { return _teamData ? _teamData->getTeam() : NULL; }
  
    inline TeamData * BaseThread::getTeamData() const { return _teamData; }
+
+   inline void BaseThread::setNextTeamData( TeamData * td) { _nextTeamData = td; }
+
  
    //! Returns the id of the thread inside its current team 
    inline int BaseThread::getTeamId() const { return _teamData->getId(); }

@@ -114,7 +114,7 @@ namespace nanos
          unsigned addThread ( BaseThread *thread, bool creator = false );
          /*! \brief removes a thread from the team pool
           */
-         void removeThread ( BaseThread *thread );
+         void removeThread ( unsigned id );
 
          void barrier();
 

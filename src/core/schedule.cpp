@@ -57,8 +57,17 @@ void Scheduler::submit ( WD &wd )
    wd.submitted();
 
    /* handle tied tasks */
-   if ( wd.isTied() && wd.isTiedTo() != mythread ) {
-      wd.isTiedTo()->getTeam()->getSchedulePolicy().queue( wd.isTiedTo(), wd );
+   BaseThread *wd_tiedto = wd.isTiedTo();
+   if ( wd.isTied() && wd_tiedto != mythread ) {
+      if ( wd_tiedto->getTeam() == NULL ) {
+        if ( wd_tiedto->reserveNextWD() ) {
+           wd_tiedto->setReservedNextWD(&wd);
+        } else {
+           fatal("Work Descriptor can not reach its own team");
+        }
+      } else {
+         wd_tiedto->getTeam()->getSchedulePolicy().queue( wd_tiedto, wd );
+      }
       return;
    }
 

@@ -15,6 +15,8 @@ nanos_err_t nanos_omp_set_implicit ( nanos_wd_t uwd )
 
     data->setImplicit(true);
 
+    myThread->enterTeam();
+
     return NANOS_OK;
 }
 

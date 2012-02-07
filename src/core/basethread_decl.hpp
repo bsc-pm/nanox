@@ -42,9 +42,9 @@ namespace nanos
       
       private:
          unsigned       _id;
+         ThreadTeam   * _team;
          unsigned       _singleCount;
          SchedData    * _schedData;
-         // PM Data?
          TeamData     * _parentData;
 
       private:
@@ -57,15 +57,17 @@ namespace nanos
       public:
         /*! \brief TeamData default constructor
          */
-         TeamData () : _id( 0 ), _singleCount( 0 ), _schedData( NULL ), _parentData( NULL ) {}
+         TeamData () : _id( 0 ), _team(NULL), _singleCount( 0 ), _schedData( NULL ), _parentData( NULL ) {}
         /*! \brief TeamData destructor
          */
          ~TeamData ();
 
          unsigned getId() const { return _id; }
+         ThreadTeam *getTeam() const { return _team; }
          unsigned getSingleCount() const { return _singleCount; }
 
          void setId ( int id ) { _id = id; }
+         void setTeam ( ThreadTeam *team ) { _team = team; }
          unsigned nextSingleGuard() {
             ++_singleCount;
             return _singleCount;
@@ -103,10 +105,8 @@ namespace nanos
 
          // Team info
          bool                    _hasTeam;
-         ThreadTeam *            _team;
          TeamData *              _teamData;
-//         int                     _teamId; //! Id of the thread inside its current team
-//          int                     _localSingleCount;
+         TeamData *              _nextTeamData;
 
          Allocator               _allocator;
 
@@ -146,8 +146,7 @@ namespace nanos
          BaseThread ( WD &wd, ProcessingElement *creator=0 ) :
             _id( _idSeed++ ), _name("Thread"), _description(""), _pe( creator ), _threadWD( wd ),
             _started( false ), _mustStop( false ), _paused( false ), _currentWD( NULL),
-            _nextWD( NULL), _hasTeam( false ),_team(NULL),
-            _teamData(NULL), _allocator() { }
+            _nextWD( NULL), _hasTeam( false ), _teamData(NULL), _allocator() { }
 
         /*! \brief BaseThread destructor
          */
@@ -193,13 +192,17 @@ namespace nanos
 
          // team related methods
          void reserve();
-         void enterTeam( ThreadTeam *newTeam, TeamData *data ); 
+         void enterTeam( TeamData *data = NULL ); 
          bool hasTeam() const;
          void leaveTeam();
 
          ThreadTeam * getTeam() const;
 
          TeamData * getTeamData() const;
+
+         TeamData * getNextTeamData() const;
+
+         void setNextTeamData( TeamData *td);
 
          //! Returns the id of the thread inside its current team 
          int getTeamId() const;

@@ -88,9 +88,8 @@ inline unsigned ThreadTeam::addThread ( BaseThread *thread, bool creator )
    return id;
 }
 
-inline void ThreadTeam::removeThread ( BaseThread *thread )
+inline void ThreadTeam::removeThread ( unsigned id )
 {
-   unsigned id = thread->getTeamData()->getId();
    _threads[id] = 0;
    _size--;
 }
