@@ -21,6 +21,7 @@
 #define _NANOS_DATA_ACCESS_DECL
 
 #include "nanos-int.h"
+#include <iosfwd>
 // 
 namespace nanos
 {
@@ -97,6 +98,39 @@ namespace nanos
          void setCommutative( bool b );
          
    };
+   
+   
+   namespace dependencies_domain_internal {
+      class AccessType: public nanos_access_type_internal_t {
+      public:
+         AccessType()
+            {
+               input = 0;
+               output = 0;
+               can_rename = 0;
+               commutative = 0;
+            }
+         
+         AccessType(nanos_access_type_internal_t const &accessType)
+            {
+               input = accessType.input;
+               output = accessType.output;
+               can_rename = accessType.can_rename;
+               commutative = accessType.commutative;
+            }
+         
+         AccessType const &operator|=(nanos_access_type_internal_t const &accessType)
+            {
+               input |= accessType.input;
+               output |= accessType.output;
+               can_rename &= accessType.can_rename;
+               commutative &= accessType.commutative;
+               
+               return *this;
+            }
+         friend std::ostream &operator<<( std::ostream &o, AccessType const &accessType);
+      };
+   } // namespace dependencies_domain_internal
 }
 
 #endif

@@ -35,12 +35,6 @@
 
 namespace nanos
 {
-
-   namespace dependencies_domain_internal {
-      class AccessType;
-   }
-
-
    using namespace dependencies_domain_internal;
 
   /*! \class DependenciesDomain

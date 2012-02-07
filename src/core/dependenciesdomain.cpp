@@ -23,7 +23,6 @@
 #include "debug.hpp"
 #include "system.hpp"
 #include "instrumentation.hpp"
-#include <iostream>
 #include "dataaccess.hpp"
 
 using namespace nanos;
@@ -31,60 +30,6 @@ using namespace nanos;
 Atomic<int> DependenciesDomain::_atomicSeed( 0 );
 Atomic<int> DependenciesDomain::_tasksInGraph( 0 );
 Lock DependenciesDomain::_lock;
-
-namespace nanos{
-   namespace dependencies_domain_internal {
-      class AccessType: public nanos_access_type_internal_t {
-      public:
-         AccessType()
-            {
-               input = 0;
-               output = 0;
-               can_rename = 0;
-               commutative = 0;
-            }
-         
-         AccessType(nanos_access_type_internal_t const &accessType)
-            {
-               input = accessType.input;
-               output = accessType.output;
-               can_rename = accessType.can_rename;
-               commutative = accessType.commutative;
-            }
-         
-         AccessType const &operator|=(nanos_access_type_internal_t const &accessType)
-            {
-               input |= accessType.input;
-               output |= accessType.output;
-               can_rename &= accessType.can_rename;
-               commutative &= accessType.commutative;
-               
-               return *this;
-            }
-         friend std::ostream &operator<<( std::ostream &o, nanos::AccessType const &accessType);
-      };
-   
-   
-      inline std::ostream & operator<<( std::ostream &o, nanos::AccessType const &accessType)
-      {
-         if ( accessType.input && accessType.output ) {
-            if ( accessType.commutative ) {
-               o << "RED";
-            } else {
-               o << "INOUT";
-            }
-         } else if ( accessType.input && !accessType.commutative ) {
-            o << "IN";
-         } else if ( accessType.output && !accessType.commutative ) {
-            o << "OUT";
-         } else {
-            o << "ERR";
-         }
-         return o;
-      }
-   } // namespace dependencies_domain_internal
-} //namespace nanos
-
 
 using namespace dependencies_domain_internal;
 

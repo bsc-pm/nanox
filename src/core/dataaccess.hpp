@@ -21,6 +21,7 @@
 #define _NANOS_DATA_ACCESS
 
 #include "dataaccess_decl.hpp"
+#include <iostream>
 
 using namespace nanos;
 
@@ -104,6 +105,26 @@ inline bool DataAccess::isCommutative() const
 inline void DataAccess::setCommutative( bool b )
 {
    flags.commutative = b;
+}
+
+using namespace nanos::dependencies_domain_internal;
+
+inline std::ostream & operator<<( std::ostream &o, AccessType const &accessType)
+{
+   if ( accessType.input && accessType.output ) {
+      if ( accessType.commutative ) {
+         o << "RED";
+      } else {
+         o << "INOUT";
+      }
+   } else if ( accessType.input && !accessType.commutative ) {
+      o << "IN";
+   } else if ( accessType.output && !accessType.commutative ) {
+      o << "OUT";
+   } else {
+      o << "ERR";
+   }
+   return o;
 }
 
 #endif
