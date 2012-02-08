@@ -46,6 +46,7 @@ inline const CopyData & CopyData::operator= ( const CopyData &cd )
 {
    if ( this == &cd ) return *this; 
    address = cd.address;
+   sharing = cd.sharing;
    flags.input = cd.flags.input;
    flags.output = cd.flags.output;
    size = cd.size;
