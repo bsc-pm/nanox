@@ -28,7 +28,7 @@ NANOS_API_DEF(void, nanos_handle_error, ( nanos_err_t err ))
       default:
 
       case NANOS_UNKNOWN_ERR:
-         fprintf( stderr,"Unkown NANOS error decteded\n" );
+         fprintf( stderr,"Unkown NANOS error detected\n" );
          break;
 
       case NANOS_UNIMPLEMENTED:
