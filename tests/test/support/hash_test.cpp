@@ -64,7 +64,7 @@ void barrier_code ( void * )
 
 int main (int argc, char **argv)
 {
-   unsigned int i, size;
+   unsigned int i;
 
 
    if ( _map.find(0) != NULL ) {
@@ -125,7 +125,6 @@ int main (int argc, char **argv)
    cout << "start threaded tests" << endl;
    //all threads perform a barrier , before the barrier they will freely access the list
    ThreadTeam &team = *getMyThreadSafe()->getTeam();
-   size = team.size();
    for ( i = 1; i < team.size(); i++ ) {
           WD * wd = new WD(new SMPDD(barrier_code));
           wd->tieTo(team[i]);
