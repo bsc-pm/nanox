@@ -214,12 +214,10 @@ inline void WDDeque::decreaseTasksInQueues( int tasks )
 inline bool WDLFQueue::empty ( void ) const
 {
    volatile WDNode *head;
-   volatile WDNode *tail;
    volatile WDNode *next;
 
    while (1) {
       head = _head;
-      tail = _tail;
       next = NANOS_ABA_PTR(head)->next();
       if ( head == _head ) {
          if ( NANOS_ABA_PTR(_head) == NANOS_ABA_PTR(_tail) ) {

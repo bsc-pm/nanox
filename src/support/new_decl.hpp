@@ -23,6 +23,8 @@
 
 #ifdef NANOS_DEBUG_ENABLED // ----- debug -----
 
+#include <cstdlib>
+
    #define NEW new(__FILE__, __LINE__)
 
    void* operator new ( size_t size, const char *file, int line );
