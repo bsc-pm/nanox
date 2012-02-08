@@ -27,8 +27,6 @@
 
 using namespace nanos;
 
-Atomic<int> WorkGroup::_atomicSeed( 1 );
-
 void WorkGroup::addWork ( WorkGroup &work )
 {
    _components++;

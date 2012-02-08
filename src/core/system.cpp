@@ -44,6 +44,8 @@ using namespace nanos;
 
 System nanos::sys;
 
+Atomic<int> WorkGroup::_atomicSeed( 1 );
+
 // default system values go here
 System::System () :
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
