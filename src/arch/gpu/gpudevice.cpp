@@ -233,7 +233,6 @@ void GPUDevice::copyOutAsyncToHost ( void * dst, void * src, size_t size )
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 }
 
-// TODO: Consider implementing the asynchronous version, too
 bool GPUDevice::copyDevToDev( void * addrDst, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc )
 {
 #ifndef NANOS_GPU_USE_CUDA32
@@ -256,6 +255,6 @@ bool GPUDevice::copyDevToDev( void * addrDst, void * addrSrc, std::size_t size, 
          + ") to device #" + toString<int>( gpuDst->getDeviceId() ) + " ("
          + toString<void *>( addrDst ) + ") with cudaMemcpy*(): " + cudaGetErrorString( err ) );
 #endif
-   return true;
+   return false;
 }
 
