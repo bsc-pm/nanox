@@ -279,7 +279,7 @@ void GPUMemoryTransferInAsyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt 
    }
 
    GPUDevice::copyInAsyncToDevice( mt._deviceAddress, pinned, mt._size );
-   myPE->synchronize( mt._hostAddress );
+   //myPE->synchronize( mt._hostAddress );
 }
 
 void GPUMemoryTransferInAsyncList::executeMemoryTransfers ()
