@@ -182,12 +182,14 @@ void GPUThread::inlineWorkDependent ( WD &wd )
 
 void GPUThread::yield()
 {
+   cudaFree(0);
    ( ( GPUProcessor * ) runningOn() )->getInTransferList()->executeMemoryTransfers();
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->executeMemoryTransfers();
 }
 
 void GPUThread::idle()
 {
+   cudaFree(0);
    ( ( GPUProcessor * ) runningOn() )->getInTransferList()->executeMemoryTransfers();
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->removeMemoryTransfer();
 }
