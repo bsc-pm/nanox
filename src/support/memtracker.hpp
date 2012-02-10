@@ -95,6 +95,7 @@ namespace nanos {
          } else {
             message0("Trying to free invalid pointer " << p);
          }    
+         throw std::bad_alloc();
       }
    }
 

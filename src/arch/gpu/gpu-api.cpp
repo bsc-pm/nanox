@@ -45,6 +45,7 @@ void * nanos_gpu_factory( void *prealloc, void *args )
    }
 }
 
+
 cudaStream_t nanos_get_kernel_execution_stream()
 {
    return ( ( nanos::ext::GPUProcessor *) getMyThreadSafe()->runningOn() )->getGPUProcessorInfo()->getKernelExecStream();
