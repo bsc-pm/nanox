@@ -318,6 +318,10 @@ void System::start ()
    spu->startWorker();
 #endif
 
+   /* Master thread is ready and waiting for the rest of the gang */
+   if ( getSynchronizedStart() )
+     threadReady();
+
    switch ( getInitialMode() )
    {
       case POOL:
@@ -338,10 +342,6 @@ void System::start ()
    // All initialization is ready, call postInit hooks
    const OS::InitList & externalInits = OS::getPostInitializationFunctions();
    std::for_each(externalInits.begin(),externalInits.end(), ExecInit());
-
-   /* Master thread is ready and waiting for the rest of the gang */
-   if ( getSynchronizedStart() )   
-     threadReady();
 
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_RUNNING) );
