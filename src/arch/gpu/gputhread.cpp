@@ -112,6 +112,11 @@ void GPUThread::inlineWorkDependent ( WD &wd )
       // Erase the wait input list and synchronize it with cache
       myGPU.getInTransferList()->clearMemoryTransfers();
       myGPU.freeInputPinnedMemory();
+
+      NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+      NANOS_INSTRUMENT ( static nanos_event_key_t copy_in_key  = ID->getEventKey("async-copy-in"); )
+      NANOS_INSTRUMENT ( nanos_event_value_t Value = 0; )
+      NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(0, &copy_in_key, &Value); )
    }
 
    // Check if someone is waiting for our data
