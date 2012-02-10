@@ -233,7 +233,7 @@ void GPUDevice::copyOutAsyncToHost ( void * dst, void * src, size_t size )
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 }
 
-bool GPUDevice::copyDevToDev( void * addrDst, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc )
+bool GPUDevice::copyDevToDev( void * addrDst, CopyDescriptor &dstCd, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc )
 {
 #ifndef NANOS_GPU_USE_CUDA32
 //   fatal_cond( peDst->getDeviceType().getName() != peSrc->getDeviceType().getName(),
@@ -254,7 +254,16 @@ bool GPUDevice::copyDevToDev( void * addrDst, void * addrSrc, std::size_t size, 
          + " bytes of data from device #" + toString<int>( gpuSrc->getDeviceId() ) + " (" + toString<void *>( addrSrc )
          + ") to device #" + toString<int>( gpuDst->getDeviceId() ) + " ("
          + toString<void *>( addrDst ) + ") with cudaMemcpy*(): " + cudaGetErrorString( err ) );
-#endif
+
+   // If input's stream is NULL, return true, as the transfer won't be overlapped
+   if ( gpuDst->getGPUProcessorInfo()->getInTransferStream() == 0 ) return true;
+
+   // Otherwise, keep track of the transfer and return false
+   gpuDst->getInTransferList()->addMemoryTransfer( dstCd );
+
    return false;
+
+#endif
+   return true;
 }
 

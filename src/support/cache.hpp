@@ -125,12 +125,13 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                   owner->invalidate( dir, tag, de );
                }
                if ( input ) {
-                  if ( _cache.copyData( _cache.getEntry( tag )->getAddress(), owner->getEntry( tag )->getAddress(), size, *owner ) ) {
+                  CopyDescriptor cd = CopyDescriptor( tag );
+                  if ( _cache.copyData( _cache.getEntry( tag )->getAddress(), cd, owner->getEntry( tag )->getAddress(), size, *owner ) ) {
                      ce->setCopying(false);
                   }
                }
             } else if ( input ) {
-               CopyDescriptor cd = CopyDescriptor(tag);
+               CopyDescriptor cd = CopyDescriptor( tag );
                if ( _cache.copyDataToCache( cd, size ) ) {
                   ce->setCopying(false);
                }
@@ -341,7 +342,8 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                         owner->invalidate( dir, tag, de );
                      }
 
-                     if ( _cache.copyData( _cache.getEntry( tag )->getAddress(), owner->getEntry( tag )->getAddress(), size, *owner ) ) {
+                     CopyDescriptor cd = CopyDescriptor( tag );
+                     if ( _cache.copyData( _cache.getEntry( tag )->getAddress(), cd, owner->getEntry( tag )->getAddress(), size, *owner ) ) {
                         ce->setCopying( false );
                      }
 
@@ -599,13 +601,13 @@ inline void * DeviceCache<_T>::getAddress( uint64_t tag )
 }
 
 template <class _T>
-inline bool DeviceCache<_T>::copyData( void * dstAddr, void * srcAddr, size_t size, Cache & owner )
+inline bool DeviceCache<_T>::copyData( void * dstAddr, CopyDescriptor &dstCd, void * srcAddr, size_t size, Cache & owner )
 {
    bool result;
    DeviceCache< _T> *srcCache = dynamic_cast<DeviceCache< _T> *>( &owner );
    NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-local-copy") );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_LOCAL, key, size ) );
-   result = _T::copyDevToDev( dstAddr, srcAddr, size, _pe, srcCache->getPE() );
+   result = _T::copyDevToDev( dstAddr, dstCd, srcAddr, size, _pe, srcCache->getPE() );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
    return result;
 }
