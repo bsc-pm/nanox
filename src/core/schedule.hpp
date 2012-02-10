@@ -53,9 +53,20 @@ inline int SchedulerConf::getNumSleeps () const
 {
    return _numSleeps;
 }
+
 inline int SchedulerConf::getTimeSleep () const
 {
    return _timeSleep;
+}
+
+inline void SchedulerConf::setSchedulerEnabled ( bool value )
+{
+   _schedulerEnabled = value;
+}
+
+inline bool SchedulerConf::getSchedulerEnabled () const
+{
+   return _schedulerEnabled;
 }
 inline const std::string & SchedulePolicy::getName () const
 {
@@ -91,6 +102,11 @@ inline WD * SchedulePolicy::atWakeUp      ( BaseThread *thread, WD &wd )
 inline WD * SchedulePolicy::atPrefetch    ( BaseThread *thread, WD &current )
 {
    return atIdle( thread );
+}
+
+inline void SchedulePolicySuccessorFunctor::operator() ( DependableObject *predecessor, DependableObject *successor )
+{
+   _obj.successorFound( predecessor, successor );
 }
 
 #endif

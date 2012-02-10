@@ -75,9 +75,10 @@ System::System () :
       _preMainBarrier ( 1 ), _preMainBarrierLast ( 0 ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ),
-      _initializedThreads ( 0 ), _targetThreads ( 0 ), _usingCluster( false ),_usingNode2Node( true ), _conduit( "udp" ),
+      _initializedThreads ( 0 ), _targetThreads ( 0 ), _pausedThreads( 0 ), _pausedThreadsCond(), _unpausedThreadsCond(),
+      _usingCluster( false ),_usingNode2Node( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL ),
-      _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap(), _masterGpuThd( NULL )
+      _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap(), _masterGpuThd( NULL ), _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
 {
    verbose0 ( "NANOS++ initializing... start" );
    // OS::init must be called here and not in System::start() as it can be too late
@@ -428,7 +429,6 @@ void System::start ()
    spu->startWorker();
 #endif
 
-
 #ifdef CLUSTER_DEV
    if ( usingCluster() && _net.getNumNodes() > 1)
    {
@@ -483,6 +483,10 @@ void System::start ()
        }
    }
 
+   /* Master thread is ready and waiting for the rest of the gang */
+   if ( getSynchronizedStart() )
+     threadReady();
+
    switch ( getInitialMode() )
    {
       case POOL:
@@ -495,6 +499,10 @@ void System::start ()
          fatal("Unknown inital mode!");
          break;
    }
+   
+   // Paused threads: set the condition checker 
+   _pausedThreadsCond.setConditionChecker( EqualConditionChecker<unsigned int >( &_pausedThreads.override(), getThsPerPE() * numPes ) );
+   _unpausedThreadsCond.setConditionChecker( EqualConditionChecker<unsigned int >( &_pausedThreads.override(), 0 ) );
 
    // All initialization is ready, call postInit hooks
    const OS::InitList & externalInits = OS::getPostInitializationFunctions();
@@ -505,9 +513,11 @@ void System::start ()
       _net.nodeBarrier();
    }
 
+#if 0
    /* Master thread is ready and waiting for the rest of the gang */
    if ( getSynchronizedStart() )   
      threadReady();
+#endif
 
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_RUNNING) );
@@ -784,6 +794,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
       if ( props->tie_to ) wd->tieTo( *( BaseThread * )props->tie_to );
+      wd->setPriority( props->priority );
    }
 }
 
@@ -799,9 +810,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
  *  \param [in] outline_data_size is the size of the related data
  *  \param [in,out] outline_data is the related data (allocated if needed)
  *  \param [in] uwg work group to relate with
- *  \param [in] slicer is the related slicer which contains all the methods to manage
- *              this WD
- *  \param [in] slicer_data_size is the size of the related slicer data
+ *  \param [in] slicer is the related slicer which contains all the methods to manage this WD
  *  \param [in,out] data used as the slicer data (allocated if needed)
  *  \param [in] props new WD properties
  *
@@ -830,15 +839,12 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
  *  +---------------+
  *  |    copyM      |
  *  +---------------+
- *  |  SlicerData   |
- *  +---------------+
  *  |   PM Data     |
  *  +---------------+
  *
  */
 void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
-                        int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, size_t slicer_data_size,
-                        int slicer_data_align, SlicerData *&slicer_data, nanos_wd_props_t *props, size_t num_copies,
+                        int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props, size_t num_copies,
                         nanos_copy_data_t **copies )
 {
    ensure(num_devices > 0,"WorkDescriptor has no devices");
@@ -848,7 +854,7 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
 
    size_t size_CopyData;
    size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_DDs, offset_DDs;
-   size_t size_Copies, offset_Copies, offset_PMD, offset_SData;
+   size_t size_Copies, offset_Copies, offset_PMD;
    size_t total_size;
 
    // WD doesn't need to compute offset, it will always be the chunk allocated address
@@ -885,14 +891,7 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
       offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, 1);
    }
 
-   // Computing Slicer Data info
-   if ( slicer_data_size != 0) {
-      offset_SData  = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD, size_PMD, slicer_data_align );
-   } else {
-      offset_SData  = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD, size_PMD, 1);
-   }
-
-   total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_SData, slicer_data_size, 1);
+   total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD, size_PMD, 1);
 
    chunk = NEW char[total_size];
 
@@ -913,12 +912,8 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    // allocating copy-ins/copy-outs
    if ( copies != NULL && *copies == NULL ) *copies = ( CopyData * ) (chunk + offset_Copies);
 
-   // allocating Slicer Data
-   if ( slicer_data == NULL ) slicer_data = (SlicerData *) (chunk + offset_SData);
-
-   SlicedWD * wd =  new (*uwd) SlicedWD( *slicer, slicer_data_size, slicer_data_align, *slicer_data, num_devices, dev_ptrs, 
-                       outline_data_size, outline_data_align, outline_data != NULL ? *outline_data : NULL, num_copies,
-                       (copies == NULL) ? NULL : *copies );
+   SlicedWD * wd =  new (*uwd) SlicedWD( *slicer, num_devices, dev_ptrs, outline_data_size, outline_data_align,
+                                         outline_data != NULL ? *outline_data : NULL, num_copies, (copies == NULL) ? NULL : *copies );
 
    // initializing internal data
    if ( size_PMD > 0) wd->setInternalData( chunk + offset_PMD );
@@ -933,6 +928,7 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
       if ( props->tie_to ) wd->tieTo( *( BaseThread * )props->tie_to );
+      wd->setPriority( props->priority );
    }
 }
 
@@ -1044,12 +1040,11 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
    unsigned int i, num_Devices, num_Copies;
    DeviceData **dev_data;
    void *data = NULL;
-   void *slicer_data = NULL;
    char *chunk = 0, *dd_location, *chunk_iter;
 
    size_t size_CopyData;
    size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_DDs, offset_DDs;
-   size_t size_Copies, offset_Copies, size_PMD, offset_PMD, size_SData, offset_SData;
+   size_t size_Copies, offset_Copies, size_PMD, offset_PMD;
    size_t total_size;
 
    // WD doesn't need to compute offset, it will always be the chunk allocated address
@@ -1088,15 +1083,7 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
       offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, 1);
    }
 
-   // Computing Slicer Data info
-   size_SData = wd->getSlicerDataSize();
-   if ( size_SData != 0) {
-      offset_SData  = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD, size_PMD, wd->getSlicerDataAlignment());
-   } else {
-      offset_SData  = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD, size_PMD, 1);
-   }
-
-   total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_SData, size_SData, 1);
+   total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD, size_PMD, 1);
 
    chunk = NEW char[total_size];
 
@@ -1125,15 +1112,8 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
       chunk_iter += size_CopyData;
    }
 
-   // copy SlicerData
-   if ( size_SData != 0 ) {
-      slicer_data = chunk + offset_SData;
-      memcpy ( slicer_data, wd->getSlicerData(), size_SData );
-   }
-
    // creating new SlicedWD 
-   new (*uwd) SlicedWD( *(wd->getSlicer()), wd->getSlicerDataSize(), wd->getSlicerDataAlignment(),
-                        *((SlicerData *)slicer_data), *((WD *)wd), dev_ptrs, wdCopies, data );
+   new (*uwd) SlicedWD( *(wd->getSlicer()), *((WD *)wd), dev_ptrs, wdCopies, data );
 
    // initializing internal data
    if ( size_PMD != 0) {
@@ -1186,6 +1166,8 @@ void System::setupWD ( WD &work, WD *parent )
 
 void System::submit ( WD &work )
 {
+   SchedulePolicy* policy = getDefaultSchedulePolicy();
+   policy->onSystemSubmit( work, SchedulePolicy::SYS_SUBMIT );
    if (_net.getNodeNum() > 0 ) setupWD( work, getSlaveParentWD() );
    else setupWD( work, myThread->getCurrentWD() );
    work.submit();
@@ -1195,6 +1177,8 @@ void System::submit ( WD &work )
  */
 void System::submitWithDependencies (WD& work, size_t numDeps, Dependency* deps)
 {
+   SchedulePolicy* policy = getDefaultSchedulePolicy();
+   policy->onSystemSubmit( work, SchedulePolicy::SYS_SUBMIT_WITH_DEPENDENCIES );
    setupWD( work, myThread->getCurrentWD() );
    WD *current = myThread->getCurrentWD();
    current->submitWithDependencies( work, numDeps , deps);
@@ -1211,6 +1195,8 @@ void System::waitOn( size_t numDeps, Dependency* deps )
 
 void System::inlineWork ( WD &work )
 {
+   SchedulePolicy* policy = getDefaultSchedulePolicy();
+   policy->onSystemSubmit( work, SchedulePolicy::SYS_INLINE_WORK );
    setupWD( work, myThread->getCurrentWD() );
    // TODO: choose actual (active) device...
    if ( Scheduler::checkBasicConstraints( work, *myThread ) ) {
@@ -1366,4 +1352,16 @@ std::list<GraphEntry *> *System::getGraphRepList()
    _graphRepLists.push_back( newList );
    _graphRepListsLock.release();
    return newList;
+}
+
+void System::waitUntilThreadsPaused ()
+{
+   // Wait until all threads are paused
+   _pausedThreadsCond.wait();
+}
+
+void System::waitUntilThreadsUnpaused ()
+{
+   // Wait until all threads are paused
+   _unpausedThreadsCond.wait();
 }

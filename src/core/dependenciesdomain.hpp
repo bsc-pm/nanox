@@ -40,14 +40,14 @@ inline DependenciesDomain::~DependenciesDomain ( )
    }
 }
 
-inline void DependenciesDomain::submitDependableObject ( DependableObject &depObj, std::vector<Dependency> &deps )
+inline void DependenciesDomain::submitDependableObject ( DependableObject &depObj, std::vector<Dependency> &deps, SchedulePolicySuccessorFunctor* callback )
 {
-   submitDependableObjectInternal ( depObj, deps.begin(), deps.end() );
+   submitDependableObjectInternal ( depObj, deps.begin(), deps.end(), callback );
 }
 
-inline void DependenciesDomain::submitDependableObject ( DependableObject &depObj, size_t numDeps, Dependency* deps)
+inline void DependenciesDomain::submitDependableObject ( DependableObject &depObj, size_t numDeps, Dependency* deps, SchedulePolicySuccessorFunctor* callback )
 {
-   submitDependableObjectInternal ( depObj, deps, deps+numDeps );
+   submitDependableObjectInternal ( depObj, deps, deps+numDeps, callback );
 }
 
 inline void DependenciesDomain::lock ( )

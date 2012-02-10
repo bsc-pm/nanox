@@ -296,7 +296,7 @@ namespace nanos {
 
          /*! \brief Copy data from one device address to another device address
           */
-          //virtual bool copyData( void * dstAddr, void * srcAddr, std::size_t size, Cache & owner ) = 0;
+          //virtual bool copyData( void * dstAddr, CopyDescriptor& dstCd, void * srcAddr, size_t size, Cache & owner ) = 0;
 
         /*! \brief Copy data from the host to a device address
          *  \param cd Copy descriptor with the information about the addresses to be copied
@@ -631,7 +631,7 @@ virtual bool copyToCacheFromCache( void *srcAddr, std::size_t size, Cache &dest,
 
          /*! \brief Copy data from one device address to another device address
           */
-         //bool copyData( void * dstAddr, void * srcAddr, std::size_t size, Cache & owner );
+         //bool copyData( void * dstAddr, CopyDescriptor& dstCd, void * srcAddr, size_t size, Cache & owner );
 
         /* \brief Copy data from the address represented by the tag to the entry in the device.
          * \param cd: identifier of the entry

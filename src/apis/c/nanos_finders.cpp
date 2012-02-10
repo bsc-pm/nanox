@@ -29,7 +29,7 @@ using namespace nanos;
  *
  *  \sa Slicers
  */
-nanos_slicer_t nanos_find_slicer ( const char * label )
+NANOS_API_DEF(nanos_slicer_t, nanos_find_slicer, ( const char * label ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","find_slicer",NANOS_RUNTIME) );
 

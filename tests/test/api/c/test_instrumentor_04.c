@@ -98,7 +98,8 @@ void main__task_1 ( void *args )
       nanos_wd_props_t props = {
          .mandatory_creation = true,
          .tied = false,
-         .tie_to = false
+         .tie_to = false,
+         .priority = 0,
       };
 
       NANOS_SAFE( nanos_create_wd ( &wd, 1, main__task_2_device , sizeof( main__task_2_data_t ), __alignof__( main__task_2_data_t),
@@ -133,7 +134,8 @@ int main ( int argc, char **argv )
    nanos_wd_props_t props = {
       .mandatory_creation = true,
       .tied = false,
-      .tie_to = false
+      .tie_to = false,
+      .priority = 0,
    };
 
    NANOS_SAFE( nanos_create_wd ( &wd, 1, main__task_1_device , sizeof( main__task_1_data_t ), __alignof__(main__task_1_data_t),

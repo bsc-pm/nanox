@@ -70,7 +70,8 @@ int main ( int argc, char **argv )
    nanos_wd_props_t props = {
       .mandatory_creation = true,
       .tied = false,
-      .tie_to = false
+      .tie_to = false,
+         .priority = 0,
    };
 
    nanos_wd_t wd[10] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };

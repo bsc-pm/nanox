@@ -36,7 +36,8 @@
 #include "cache_map_decl.hpp"
 #include "plugin_decl.hpp"
 #include "barrier_decl.hpp"
-#include "accelerator_decl.hpp"
+//#include "accelerator_decl.hpp"
+#include "pinnedallocator_decl.hpp"
 
 
 namespace nanos
@@ -114,6 +115,13 @@ namespace nanos
          Atomic<unsigned int> _initializedThreads;
          /*! This counts how many threads we're waiting to be initialized */
          unsigned int         _targetThreads;
+         /*! \brief How many threads have been already paused (since the
+          scheduler's halt). */
+         Atomic<unsigned int> _pausedThreads;
+         //! Condition to wait until all threads are paused
+         SingleSyncCond<EqualConditionChecker<unsigned int> >  _pausedThreadsCond;
+         //! Condition to wait until all threads are un paused
+         SingleSyncCond<EqualConditionChecker<unsigned int> >  _unpausedThreadsCond;
 
          Slicers              _slicers; /**< set of global slicers */
 
@@ -129,21 +137,21 @@ namespace nanos
          /*! It manages all registered and active plugins */
          PluginManager        _pluginManager;
 
-         // Memory access directory
-         Directory            _directory;
-
          // Programming model interface
          PMInterface *        _pmInterface;
 
-         // Enable or disable the use of caches
+         //! Enable or disable the use of caches
          bool                 _useCaches;
-         // General cache policy (if not specifically redefined for a certain architecture)
+         //! General cache policy (if not specifically redefined for a certain architecture)
          CachePolicyType      _cachePolicy;
-         // CacheMap register
+         //! CacheMap register
          CacheMap             _cacheMap;
          
          WD *slaveParentWD;
          BaseThread *_masterGpuThd;
+
+         //! Keep record of the data that's directly allocated on pinned memory
+         PinnedAllocator      _pinnedMemoryCUDA;
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -175,8 +183,7 @@ namespace nanos
                         nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies, nanos_translate_args_t translate_args );
 
          void createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
-                        int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, size_t slicer_data_size,
-                        int slicer_data_align, SlicerData *&slicer_data, nanos_wd_props_t *props, size_t num_copies,
+                        int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props, size_t num_copies,
                         nanos_copy_data_t **copies );
 
          void duplicateWD ( WD **uwd, WD *wd );
@@ -285,6 +292,41 @@ namespace nanos
 
          SchedulerStats & getSchedulerStats ();
          SchedulerConf  & getSchedulerConf();
+         
+         /*! \brief Disables the execution of pending WDs in the scheduler's
+          queue.
+         */
+         void stopScheduler ();
+         /*! \brief Resumes the execution of pending WDs in the scheduler's
+          queue.
+         */
+         void startScheduler ();
+         
+         //! \brief Checks if the scheduler is stopped or not.
+         bool isSchedulerStopped () const;
+         
+         /*! \brief Waits until all threads are paused. This is useful if you
+          * want that no task is executed after the scheduler is disabled.
+          * \note The scheduler must be stopped first.
+          * \sa stopScheduler(), waitUntilThreadsUnpaused
+          */
+         void waitUntilThreadsPaused();
+         
+         /*! \brief Waits until all threads are unpaused. Use this
+          * when you require that no task is running in a certain section.
+          * In that case, you'll probably disable the scheduler, wait for
+          * threads to be paused, do something, and then start over. Before
+          * starting over, you need to call this function, because if you don't
+          * there is the potential risk of threads been unpaused causing a race
+          * condition.
+          * \note The scheduler must be started first.
+          * \sa stopScheduler(), waitUntilThreadsUnpaused
+          */
+         void waitUntilThreadsUnpaused();
+         
+         void pausedThread();
+         
+         void unpausedThread();
 
          Network * getNetwork( void );
          bool usingCluster( void ) const;
@@ -298,6 +340,8 @@ namespace nanos
          bool isCacheEnabled();
          CachePolicyType getCachePolicy();
          CacheMap& getCacheMap();
+
+         PinnedAllocator& getPinnedAllocatorCUDA();
 
          void threadReady ();
          void preMainBarrier();

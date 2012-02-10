@@ -47,6 +47,7 @@ void WorkGroup::exitWork ( WorkGroup &work )
 {
    _syncCond.reference();
    int componentsLeft = --_components;
+   // It seems that _syncCond.check() generates a race condition here
    if (componentsLeft == 0) { 
       _syncCount++;
       _ge = _geNext;

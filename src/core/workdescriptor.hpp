@@ -53,8 +53,8 @@ inline void WorkDescriptor::setDataAlignment ( int data_align ) { _data_align = 
 inline WorkDescriptor * WorkDescriptor::getParent() { return _parent; }
 inline void WorkDescriptor::setParent ( WorkDescriptor * p ) { _parent = p; }
 
-inline WDDeque * WorkDescriptor::getMyQueue() { return _myQueue; }
-inline void WorkDescriptor::setMyQueue ( WDDeque * myQ ) { _myQueue = myQ; }
+inline WDPool * WorkDescriptor::getMyQueue() { return _myQueue; }
+inline void WorkDescriptor::setMyQueue ( WDPool * myQ ) { _myQueue = myQ; }
 
 inline bool WorkDescriptor::isEnqueued() { return ( _myQueue != NULL ); }
 
@@ -119,7 +119,8 @@ inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t n
 {
    wd._doSubmit.reset( NEW DOSubmit() );
    wd._doSubmit->setWD(&wd);
-   _depsDomain->submitDependableObject( *(wd._doSubmit), numDeps, deps );
+   SchedulePolicySuccessorFunctor cb( *sys.getDefaultSchedulePolicy() );
+   _depsDomain->submitDependableObject( *(wd._doSubmit), numDeps, deps, &cb );
 }
 
 inline void WorkDescriptor::waitOn( size_t numDeps, Dependency* deps )
@@ -196,6 +197,8 @@ inline bool WorkDescriptor::isSubmitted() const { return _submitted; }
 inline void WorkDescriptor::submitted()  { _submitted = true; }
 
 inline bool WorkDescriptor::canBeBlocked() { PE *pe = myThread->runningOn(); return pe->dataCanBlockUs( *this ); /*return false; */ }
+inline void WorkDescriptor::setPriority( unsigned int priority ) { _priority = priority; }
+inline unsigned int WorkDescriptor::getPriority() const { return _priority; }
 
 #endif
 

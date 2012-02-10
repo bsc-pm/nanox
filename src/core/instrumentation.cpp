@@ -394,7 +394,7 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
 
    /* Allocating Events */
    unsigned int numOldEvents = oldPtP + oldStates + oldSubStates + oldBursts;
-   unsigned int numNewEvents =  newPtP + newStates + newSubStates + newBursts + newDeferred ;
+   unsigned int numNewEvents =  newPtP + newStates + newSubStates + newBursts + newDeferred;
    unsigned int numEvents = numOldEvents + numNewEvents;
    bool csEvent = _instrumentationContext.isContextSwitchEnabled() && ( ((newWD!=NULL)&&(oldWD==NULL)) || ((newWD==NULL)&&(oldWD!=NULL)) );
 
@@ -424,7 +424,7 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       if ( !_instrumentationContext.isStateEventEnabled( old_icd ) ) {
          if ( _instrumentationContext.showStackedStates () ) {
             for ( it_s = _instrumentationContext.beginSubState(old_icd); it_s != _instrumentationContext.endSubState(old_icd); it_s++ ) {
-		ASSIGN_EVENT( e[i++] , State , ( NANOS_SUBSTATE_END, *it_s ) );
+               ASSIGN_EVENT( e[i++] , State , ( NANOS_SUBSTATE_END, *it_s ) );
             }
          }
          ASSIGN_EVENT( e[i++] , State , ( NANOS_SUBSTATE_START, NANOS_NOT_RUNNING ) );

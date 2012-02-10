@@ -40,6 +40,12 @@ void GPUThread::enableWDClosingEvents ()
    _wdClosingEvents = true;
 }
 
+void * GPUThread::getCUBLASHandle()
+{
+   ensure( _cublasHandle, "Trying to use CUBLAS handle without initializing CUBLAS library (please, use NX_GPUCUBLASINIT=yes)" );
+   return _cublasHandle;
+}
+
 
 }
 }
