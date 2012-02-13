@@ -21,6 +21,7 @@
 #define _NANOS_DATA_ACCESS_DECL
 
 #include "nanos-int.h"
+#include <cstddef>
 #include <iosfwd>
 // 
 namespace nanos
@@ -40,10 +41,12 @@ namespace nanos
           *  \param canRename Whether the access can rename or not
           *  \param dimensionCount Number of dimensions
           *  \param dimensions Array of dimension descriptors from least significant to most significant
+          *  \param offset Offset of the first element
           */
          DataAccess ( void * addr, bool input, bool output,
                       bool canRename, bool commutative, short dimensionCount,
-                      nanos_region_dimension_internal_t const *dimensions );
+                      nanos_region_dimension_internal_t const *dimensions,
+                      ptrdiff_t offset );
 
          /*! \brief DataAccess copy constructor
           *
@@ -64,6 +67,15 @@ namespace nanos
         /*! \brief Obtain the base address of the access
          */
          void * getAddress() const;
+         
+        /*! \brief Obtain the dependency's address address
+	 */
+	 ptrdiff_t getOffset() const;
+         
+        /*! \brief Compute the address of the first element
+         * (address + offset)
+         */
+         void * getDepAddress() const;
          
         /*! \brief returns true if it is an input access
          */

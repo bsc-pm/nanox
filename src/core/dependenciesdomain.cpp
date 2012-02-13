@@ -322,19 +322,11 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject& depO
    std::list<DataAccess *> filteredDeps;
    for ( iterator it = begin; it != end; it++ ) {
       DataAccess& newDep = (*it);
-      // Ensure it's a simple dimension region simple enough to be understood
-      // by this dependencies manager
-      if ( ( newDep.dimension_count != 1 ) ||
-         ( newDep.dimensions[0].accessed_length != newDep.dimensions[0].size ) )
-      {
-         fatal( "Dependency must have only one dimension and same size as accessed_length" );
-      }
       bool found = false;
+      // For every dependency processed earlier
       for ( std::list<DataAccess *>::iterator current = filteredDeps.begin(); current != filteredDeps.end(); current++ ) {
          DataAccess* currentDep = *current;
-         // Convert to char* to avoid pointer arithmetic error message
-         if ( ((char *)newDep.getAddress() + newDep.dimensions[0].lower_bound ) ==
-            ( (char *)currentDep->getAddress() + currentDep->dimensions[0].lower_bound ) )
+         if ( newDep.getDepAddress()  == currentDep->getDepAddress() )
          {
             // Both dependencies use the same address, put them in common
             currentDep->setInput( newDep.isInput() || currentDep->isInput() );
@@ -354,16 +346,13 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject& depO
    for ( std::list<DataAccess *>::iterator it = filteredDeps.begin(); it != filteredDeps.end(); it++ ) {
       DataAccess &dep = *(*it);
       
-      // TODO (gmiranda): getAddress returns void**. Understand why.
-      //Target* target = dep.getAddress();
-      //Target target = dep.getDepAddress();
-      Target target = (char *)dep.getAddress() + dep.dimensions[0].lower_bound;
+      Target target = dep.getDepAddress();
       AccessType const &accessType = dep.flags;
       
       submitDependableObjectDataAccess( depObj, target, accessType, callback );
       flushDeps.push_back( (uint64_t) target );
    }
-      
+   
    // To keep the count consistent we have to increase the number of tasks in the graph before releasing the fake dependency
    increaseTasksInGraph();
 

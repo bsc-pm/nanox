@@ -27,7 +27,8 @@ using namespace nanos;
 
 inline DataAccess::DataAccess ( void * addr, bool input, bool output,
              bool canRenameFlag, bool commutative, short dimensionCount,
-             nanos_region_dimension_internal_t const *dims )
+             nanos_region_dimension_internal_t const *dims,
+             ptrdiff_t someOffset )
 {
    address = addr;
    flags.input = input;
@@ -36,6 +37,7 @@ inline DataAccess::DataAccess ( void * addr, bool input, bool output,
    flags.commutative = commutative;
    dimension_count = dimensionCount;
    dimensions = dims;
+   offset = someOffset;
 }
 
 inline DataAccess::DataAccess ( const DataAccess &dataAccess )
@@ -47,6 +49,7 @@ inline DataAccess::DataAccess ( const DataAccess &dataAccess )
    flags.commutative = dataAccess.flags.commutative;
    dimension_count = dataAccess.dimension_count;
    dimensions = dataAccess.dimensions;
+   offset = dataAccess.offset;
 }
 
 inline const DataAccess & DataAccess::operator= ( const DataAccess &dataAccess )
@@ -59,6 +62,7 @@ inline const DataAccess & DataAccess::operator= ( const DataAccess &dataAccess )
    flags.commutative = dataAccess.flags.commutative;
    dimension_count = dataAccess.dimension_count;
    dimensions = dataAccess.dimensions;
+   offset = dataAccess.offset;
    return *this;
 }
 
@@ -67,6 +71,15 @@ inline void * DataAccess::getAddress() const
    return address;
 }
 
+inline void * DataAccess::getDepAddress() const
+{
+   return (void*)((uintptr_t)address + offset );
+}
+
+inline ptrdiff_t DataAccess::getOffset() const
+{
+   return offset;
+}
 inline bool DataAccess::isInput() const
 {
    return flags.input;

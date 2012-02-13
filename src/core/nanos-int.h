@@ -67,6 +67,9 @@ typedef struct {
    short dimension_count;
    
    nanos_region_dimension_internal_t const *dimensions;
+   
+   /* Offset of the first element */
+   ptrdiff_t offset;
 } nanos_data_access_internal_t;
 
 typedef enum {

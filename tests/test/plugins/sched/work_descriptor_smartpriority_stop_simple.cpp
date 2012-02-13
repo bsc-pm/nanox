@@ -124,19 +124,19 @@ int main ( int argc, char **argv )
    
    int depA;
    nanos_region_dimension_t dimA[1] = {{ sizeof( int ), 0, sizeof( int ) }};
-   nanos_data_access_t depsA[] = {{(void *)&depA, {0,1,0,0}, 1, dimA} };
+   nanos_data_access_t depsA[] = {{(void *)&depA, {0,1,0,0}, 1, dimA, 0} };
    
    int depB;
    nanos_region_dimension_t dimB[1] = {{ sizeof( int ), 0, sizeof( int ) }};
-   nanos_data_access_t depsB[] = {{(void *)&depB, {0,1,0,0}, 1, dimB} };
+   nanos_data_access_t depsB[] = {{(void *)&depB, {0,1,0,0}, 1, dimB, 0} };
    
    int depC;
    nanos_region_dimension_t dimC[1] = {{ sizeof( int ), 0, sizeof( int ) }};
-   nanos_data_access_t depsC[] = {{(void *)&depA, {1,0,0,0}, 1, dimA},
-      {(void *)&depC, {0,1,0,0}, 1, dimC} };
+   nanos_data_access_t depsC[] = {{(void *)&depA, {1,0,0,0}, 1, dimA, 0},
+      {(void *)&depC, {0,1,0,0}, 1, dimC, 0} };
    
-   nanos_data_access_t depsD[] = {{(void *)&depB, {1,0,0,0}, 1, dimB},
-      {(void *)&depC, {1,0,0,0}, 1, dimC} };
+   nanos_data_access_t depsD[] = {{(void *)&depB, {1,0,0,0}, 1, dimB, 0},
+      {(void *)&depC, {1,0,0,0}, 1, dimC, 0} };
 
    // initialize vector
    for ( i = 0; i < VECTOR_SIZE; i++ ) A[i] = 0;
