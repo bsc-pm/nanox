@@ -336,7 +336,7 @@ void System::start ()
    }
    
    // Paused threads: set the condition checker 
-   _pausedThreadsCond.setConditionChecker( EqualConditionChecker<unsigned int >( &_pausedThreads.override(), getThsPerPE() * numPes ) );
+   _pausedThreadsCond.setConditionChecker( EqualConditionChecker<unsigned int >( &_pausedThreads.override(), _workers.size() ) );
    _unpausedThreadsCond.setConditionChecker( EqualConditionChecker<unsigned int >( &_pausedThreads.override(), 0 ) );
 
    // All initialization is ready, call postInit hooks
