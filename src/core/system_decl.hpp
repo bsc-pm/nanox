@@ -35,7 +35,10 @@
 #include "cache_map_decl.hpp"
 #include "plugin_decl.hpp"
 #include "barrier_decl.hpp"
+
+#ifdef GPU_DEV
 #include "pinnedallocator_decl.hpp"
+#endif
 
 
 namespace nanos
@@ -126,8 +129,10 @@ namespace nanos
          //! CacheMap register
          CacheMap             _cacheMap;
 
+#ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
          PinnedAllocator      _pinnedMemoryCUDA;
+#endif
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -309,7 +314,9 @@ namespace nanos
          CachePolicyType getCachePolicy();
          CacheMap& getCacheMap();
 
+#ifdef GPU_DEV
          PinnedAllocator& getPinnedAllocatorCUDA();
+#endif
 
          void threadReady ();
 
