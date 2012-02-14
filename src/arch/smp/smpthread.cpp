@@ -50,18 +50,14 @@ void SMPThread::start ()
 
    // user-defined stack size
    if ( _stackSize > 0 ) {
-     // TODO: check alignment?
      if ( _stackSize < PTHREAD_STACK_MIN ) {
        warning("specified thread stack too small, adjusting it to minimum size");
        _stackSize = PTHREAD_STACK_MIN;
      }
 
-     char *stack = NEW char[_stackSize];
-
-     if ( stack == NULL || pthread_attr_setstack( &attr, stack, _stackSize ) )
-       warning("couldn't create pthread stack");
+     if (pthread_attr_setstacksize( &attr, _stackSize ) )
+       warning("couldn't set pthread stack size stack");
    }
-
 
    if ( pthread_create( &_pth, &attr, smp_bootthread, this ) )
       fatal( "couldn't create thread" );
@@ -86,7 +82,7 @@ void SMPThread::join ()
 void SMPThread::bind( void )
 {
    cpu_set_t cpu_set;
-   int cpu_id = getCpuId();
+   int cpu_id = ( getCpuId() * sys.getBindingStride() ) + sys.getBindingStart();
 
    ensure( ( ( cpu_id >= 0 ) && ( cpu_id < CPU_SETSIZE ) ), "invalid value for cpu id" );
    CPU_ZERO( &cpu_set );

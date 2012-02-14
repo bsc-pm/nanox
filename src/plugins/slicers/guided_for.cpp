@@ -107,8 +107,6 @@ void SlicerGuidedFor::submit ( SlicedWD &work )
    ThreadTeam *team = mythread->getTeam();
    int i, num_threads = team->size();
 
-   SlicerDataFor * sdf = (SlicerDataFor *) work.getSlicerData();
-   
    /* Determine which threads are compatible with the work descriptor:
     *   - number of valid threads
     *   - first valid thread (i.e. master thread)
@@ -124,19 +122,21 @@ void SlicerGuidedFor::submit ( SlicedWD &work )
     *     - thread_map = | -1 |  0 |  1 | -1 |  2 |  3 |
     *                    +----+----+----+----+----+----+
     */
-   int valid_threads = 0;
+   int valid_threads = 0, first_valid_thread = 0;
    int *thread_map = (int *) alloca ( sizeof(int) * num_threads );
    for ( i = 0; i < num_threads; i++) {
      if (  work.canRunIn( *((*team)[i].runningOn()) ) ) {
+       if ( valid_threads == 0 ) first_valid_thread = i;
        thread_map[i] = valid_threads++;
      }
      else thread_map[i] = -1;
    }
 
-   int _lower = sdf->getLower();
-   int _upper = sdf->getUpper();
-   int _step  = sdf->getStep();
-   int _chunk = std::max( 1, sdf->getChunk());
+   nanos_loop_info_t *nlip = ( nanos_loop_info_t * ) work.getData();
+   int _lower = nlip->lower;
+   int _upper = nlip->upper;
+   int _step  = nlip->step;
+   int _chunk = std::max(1, nlip->chunk);
 
    int _nchunks = 0, _niters = (((_upper - _lower) / _step ) + 1 );
    while ( _niters > 0 ) {
@@ -167,7 +167,7 @@ void SlicerGuidedFor::submit ( SlicedWD &work )
    nanos_loop_info_t *nli = (nanos_loop_info_t *) work.getData();
    nli->args = gsd;
 
-   int j = 0; /* initializing thread id */
+   int j = first_valid_thread; /* initializing thread id */
    for ( i = 1; i < valid_threads; i++ )
    {
       WorkDescriptor *wd = NULL;
@@ -182,7 +182,7 @@ void SlicerGuidedFor::submit ( SlicedWD &work )
    }
     
    work.tieTo(*mythread);
-   if ( (*team)[j].setNextWD(&work) == false ) Scheduler::submit ( work );
+   if ( (*team)[first_valid_thread].setNextWD(&work) == false ) Scheduler::submit ( work );
 }
 
 class SlicerGuidedForPlugin : public Plugin {

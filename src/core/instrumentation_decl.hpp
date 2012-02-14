@@ -36,6 +36,8 @@
 #include "allocator_decl.hpp"
 #include "basethread_decl.hpp"
 
+#define NANOX_INSTRUMENTATION_PARTNER_MYSELF 0xFFFFFFFF
+
 namespace nanos {
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
@@ -257,20 +259,22 @@ namespace nanos {
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_FREE_EVENT", "cudaFree()" );                                         /* 2 */
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MALLOC_HOST_EVENT", "cudaMallocHost()" );                            /* 3 */
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_FREE_HOST_EVENT", "cudaFreeHost()" );                                /* 4 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_TO_HOST_EVENT", "cudaMemcpyDeviceToHost()" );                /* 5 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_TO_DEVICE_EVENT", "cudaMemcpyHostToDevice()" );              /* 6 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_HOST_EVENT", "cudaMemcpyAsyncDeviceToHost()" );     /* 7 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_DEVICE_EVENT", "cudaMemcpyAsyncHostToDevice()" );   /* 8 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_INPUT_STREAM_SYNC_EVENT", "cudaInputStreamSynchronize()" );          /* 9 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_OUTPUT_STREAM_SYNC_EVENT", "cudaOutputStreamSynchronize()" );        /* 10 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_KERNEL_STREAM_SYNC_EVENT", "cudaKernelStreamSynchronize()" );        /* 11 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_DEVICE_SYNC_EVENT", "cudaDeviceSynchronize()" );                     /* 12 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_SET_DEVICE_EVENT", "cudaSetDevice()" );                              /* 13 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GET_DEVICE_PROPS_EVENT", "cudaGetDeviceProperties()" );              /* 14 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_SET_DEVICE_FLAGS_EVENT", "cudaSetDeviceFlags()" );                   /* 15 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT", "cudaGetLastError()" );                       /* 16 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GENERIC_EVENT", "CUDA generic event" );                              /* 17 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_MEMCOPY_EVENT", "memcpy()" );                                             /* 18 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_EVENT", "cudaMemcpyDeviceToDevice()" );                      /* 5 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_TO_HOST_EVENT", "cudaMemcpyDeviceToHost()" );                /* 6 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_TO_DEVICE_EVENT", "cudaMemcpyHostToDevice()" );              /* 7 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_ASYNC_EVENT", "cudaMemcpyPeerAsync()" );                     /* 8 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_HOST_EVENT", "cudaMemcpyAsyncDeviceToHost()" );     /* 9 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_DEVICE_EVENT", "cudaMemcpyAsyncHostToDevice()" );   /* 10 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_INPUT_STREAM_SYNC_EVENT", "cudaInputStreamSynchronize()" );          /* 11 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_OUTPUT_STREAM_SYNC_EVENT", "cudaOutputStreamSynchronize()" );        /* 12 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_KERNEL_STREAM_SYNC_EVENT", "cudaKernelStreamSynchronize()" );        /* 13 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_DEVICE_SYNC_EVENT", "cudaDeviceSynchronize()" );                     /* 14 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_SET_DEVICE_EVENT", "cudaSetDevice()" );                              /* 15 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GET_DEVICE_PROPS_EVENT", "cudaGetDeviceProperties()" );              /* 16 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_SET_DEVICE_FLAGS_EVENT", "cudaSetDeviceFlags()" );                   /* 17 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT", "cudaGetLastError()" );                       /* 18 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GENERIC_EVENT", "CUDA generic event" );                              /* 19 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_MEMCOPY_EVENT", "memcpy()" );                                             /* 20 */
             /* 28 */ registerEventKey("xfer-size","Transfer size");
 
             /* 29 */ registerEventKey("cache-wait","Cache waiting for something");
@@ -289,6 +293,13 @@ namespace nanos {
             registerEventValue("cache-wait","waitInput()","waitInput()");
 
             /* 30 */ registerEventKey("chunk-size","Chunk size");
+
+            /* 31 */ registerEventKey("num-sleeps","Number of Sleep operations");
+            /* 32 */ registerEventKey("time-sleeps","Time on Sleep (in nsecs)");
+
+            /* 33 */ registerEventKey("num-scheds","Number of scheduler operations"); 
+            /* 34 */ registerEventKey("time-scheds","Time on scheduler operations (in nsecs)");
+
             /* ** */ registerEventKey("debug","Debug Key"); /* Keep this key as the last one */
          }
 
@@ -385,7 +396,7 @@ namespace nanos {
                 *  \see State Burst Point PtP
                 */
                Event () : _type((nanos_event_type_t) 0), _state((nanos_event_state_value_t) 0), _nkvs(0),
-                          _kvList(NULL), _ptpDomain((nanos_event_domain_t) 0), _ptpId(0), _partner(0) {}
+                          _kvList(NULL), _ptpDomain((nanos_event_domain_t) 0), _ptpId(0), _partner( NANOX_INSTRUMENTATION_PARTNER_MYSELF ) {}
                /*! \brief Event constructor
                 *
                 *  Generic constructor used by all other specific constructors
@@ -393,7 +404,7 @@ namespace nanos {
                 *  \see State Burst Point PtP
                 */
                Event ( nanos_event_type_t type, nanos_event_state_value_t state, unsigned int nkvs, KVList kvlist,
-                       nanos_event_domain_t ptp_domain, nanos_event_id_t ptp_id, unsigned int partner = 0 ) :
+                       nanos_event_domain_t ptp_domain, nanos_event_id_t ptp_id, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF ) :
                      _type (type), _state (state), _nkvs(nkvs), _kvList (kvlist), 
                      _ptpDomain (ptp_domain), _ptpId (ptp_id), _partner(partner)
                { }
@@ -539,7 +550,7 @@ namespace nanos {
             public:
                /*! \brief PtP event constructor
                 */
-               PtP ( bool start, nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,  KVList kvlist, unsigned int partner = 0 )
+               PtP ( bool start, nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,  KVList kvlist, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF )
                    : Event ( start ? NANOS_PTP_START : NANOS_PTP_END , NANOS_ERROR, nkvs, kvlist, domain, id, partner ) { }
          };
 #ifndef NANOS_INSTRUMENTATION_ENABLED
@@ -590,6 +601,19 @@ namespace nanos {
           */
          virtual void finalize( void ) = 0;
 
+         /*! \brief Pure virtual functions executed to enable again instrumentation
+          *
+          *  Each of (specific) instrumentation modules have to implement this function in order
+          *  to be consistent with the instrumentation model
+          */
+         virtual void enable( void ) = 0;
+         /*! \brief Pure virtual functions executed to disable instrumentation
+          *
+          *  Each of (specific) instrumentation modules have to implement this function in order
+          *  to be consistent with the instrumentation model
+          */
+         virtual void disable( void ) = 0;
+
          /*! \brief Pure virtual function executed on each thread initialization
           *
           */
@@ -600,6 +624,10 @@ namespace nanos {
           */
          virtual void threadFinish ( BaseThread &thread ) = 0;
 
+         virtual void addResumeTask( WorkDescriptor &w ) = 0 ;
+
+         virtual void addSuspendTask( WorkDescriptor &w, bool last = false ) = 0 ;
+         
          /*! \brief Pure virtual functions executed each time runtime wants to add an event
           *
           *  Each of (specific) instrumentation modules have to implement this function in order
@@ -646,13 +674,13 @@ namespace nanos {
           *  \param[in,out] e is an event reference, preallocated by the caller
           *  \param[in] state is the state value for the event
           */
-         void createStateEvent ( Event *e, nanos_event_state_value_t state );
+         void createStateEvent ( Event *e, nanos_event_state_value_t state, InstrumentationContextData *icd = NULL );
 
          /*! \brief Used by higher levels to create a STATE event (value will be previous state in instrumentation context info) 
           *
           *  \param[in,out] e is an event reference, preallocated by the caller
           */
-         void returnPreviousStateEvent ( Event *e );
+         void returnPreviousStateEvent ( Event *e, InstrumentationContextData *icd = NULL );
 
          /*! \brief Used by higher levels to create a POINT (punctual) event
           *
@@ -680,7 +708,7 @@ namespace nanos {
           *  \param[in] partner is the origin node of the event
           */
          void createPtPStart ( Event *e, nanos_event_domain_t domain, nanos_event_id_t id,
-                               unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values, unsigned int partner = 0 );
+                               unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF );
 
          /*! \brief Used by higher levels to create a PTP_END event
           *
@@ -696,7 +724,7 @@ namespace nanos {
           *  \param[in] partner is the destination node of the event
           */
          void createPtPEnd ( Event *e, nanos_event_domain_t domain, nanos_event_id_t id,
-                             unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values, unsigned int partner = 0 );
+                             unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF );
 
          /*! \brief Used by higher levels to create a deferred POINT event into a given WorkDescriptor (wd)
           */
@@ -706,12 +734,12 @@ namespace nanos {
          /*! \brief Used by higher levels to create a deferred PTP_START event into a given WorkDescriptor (wd)
           */
          void createDeferredPtPStart ( WorkDescriptor &wd, nanos_event_domain_t domain, nanos_event_id_t id,
-                                       unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values, unsigned int partner = 0 );
+                                       unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF );
 
          /*! \brief Used by higher levels to create a deferred PTP_END event into a given WorkDescriptor (wd)
           */
          void createDeferredPtPEnd ( WorkDescriptor &wd, nanos_event_domain_t domain, nanos_event_id_t id,
-                                     unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values, unsigned int partner = 0 );
+                                     unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF );
 
          void raisePointEvent ( nanos_event_key_t key, nanos_event_value_t val );
          void raisePointEventNkvs ( unsigned int nkvs, nanos_event_key_t *key, nanos_event_value_t *val );
@@ -722,12 +750,12 @@ namespace nanos {
          void raiseOpenBurstEvent ( nanos_event_key_t key, nanos_event_value_t val );
          void raiseCloseBurstEvent ( nanos_event_key_t key );
 
-         void raiseOpenPtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val, unsigned int partner = 0 );
+         void raiseOpenPtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF );
          void raiseOpenPtPEventNkvs ( nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,
-                                      nanos_event_key_t *key, nanos_event_value_t *val, unsigned int partner = 0 );
-         void raiseClosePtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val, unsigned int partner = 0 ); 
+                                      nanos_event_key_t *key, nanos_event_value_t *val, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF );
+         void raiseClosePtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF ); 
          void raiseClosePtPEventNkvs ( nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,
-                                       nanos_event_key_t *key, nanos_event_value_t *val, unsigned int partner = 0 ); 
+                                       nanos_event_key_t *key, nanos_event_value_t *val, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF ); 
 
          void raiseOpenStateAndBurst ( nanos_event_state_value_t state, nanos_event_key_t key, nanos_event_value_t val );
          void raiseCloseStateAndBurst ( nanos_event_key_t key );

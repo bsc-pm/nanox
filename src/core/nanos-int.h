@@ -74,46 +74,21 @@ typedef nanos::CopyData nanos_copy_data_t;
 
 #endif
 
-/* This structure is initialized in slicer.hpp. Any change in
- * its contents has to be reflected in SlicerDataFor constructor  
- */
-typedef struct {
-   int _lower;  /**< Loop lower bound */
-   int _upper;  /**< Loop upper bound */
-   int _step;   /**< Loop step */
-   int _chunk;  /**< Slice chunk */
-   int _sign;   /**< Loop sign 1 ascendant, -1 descendant */
-} nanos_slicer_data_for_internal_t;
-
-#ifndef _NANOS_INTERNAL
-
-typedef nanos_slicer_data_for_internal_t           nanos_slicer_data_for_t;
-
-#else
-
-namespace nanos {
-   class SlicerDataFor;
-}
-typedef nanos::SlicerDataFor          nanos_slicer_data_for_t;
-
-#endif
-
-#if 0
-typedef struct {
-   int _nWD;    /**< Number of WorkDescriptors */
-} nanos_slicer_data_compound_wd_internal_t;
-#endif
-
 // C++ types hidden as void *
 typedef void * nanos_thread_t;
 typedef void * nanos_wd_t;                                                                                                                               
-
-// SlicerDataCompoundWD: related structures
+// SlicerCompoundWD data structure
 typedef struct {
    int nsect;
    nanos_wd_t lwd[];
 } nanos_compound_wd_data_t;
 
+// SlicerRepeatN data structure
+typedef struct {
+   int n;
+} nanos_repeat_n_info_t;
+
+// SlicerFor data structure
 typedef struct {
    int lower;
    int upper;
@@ -121,9 +96,11 @@ typedef struct {
    bool last;
    int chunk;
    int stride;
+   int thid;
    void *args;
 } nanos_loop_info_t;
 
+// WD properties
 typedef struct {
    bool mandatory_creation:1;
    bool tied:1;
@@ -149,11 +126,11 @@ typedef enum { NANOS_STATE_START, NANOS_STATE_END, NANOS_SUBSTATE_START, NANOS_S
                NANOS_BURST_START, NANOS_BURST_END, NANOS_PTP_START, NANOS_PTP_END, NANOS_POINT, EVENT_TYPES
 } nanos_event_type_t; /**< Event types  */
 
-typedef enum { NANOS_NOT_CREATED, NANOS_NOT_TRACED, NANOS_STARTUP, NANOS_SHUTDOWN, NANOS_ERROR, NANOS_IDLE,
+typedef enum { NANOS_NOT_CREATED, NANOS_NOT_RUNNING, NANOS_STARTUP, NANOS_SHUTDOWN, NANOS_ERROR, NANOS_IDLE,
                NANOS_RUNTIME, NANOS_RUNNING, NANOS_SYNCHRONIZATION, NANOS_SCHEDULING, NANOS_CREATION,
                NANOS_MEM_TRANSFER_IN, NANOS_MEM_TRANSFER_OUT, NANOS_MEM_TRANSFER_LOCAL,
                NANOS_MEM_TRANSFER_DEVICE_IN, NANOS_MEM_TRANSFER_DEVICE_OUT, NANOS_MEM_TRANSFER_DEVICE_LOCAL,
-               NANOS_CACHE, NANOS_YIELD, NANOS_EVENT_STATE_TYPES
+               NANOS_CACHE, NANOS_YIELD, NANOS_ACQUIRING_LOCK, NANOS_CONTEXT_SWITCH, NANOS_DEBUG, NANOS_EVENT_STATE_TYPES
 } nanos_event_state_value_t; /**< State enum values */
 
 typedef enum { NANOS_WD_DOMAIN, NANOS_WD_DEPENDENCY, NANOS_WAIT, NANOS_WD_REMOTE, NANOS_XFER_PUT, NANOS_XFER_GET } nanos_event_domain_t; /**< Specifies a domain */

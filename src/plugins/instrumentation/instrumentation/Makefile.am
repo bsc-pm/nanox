@@ -29,8 +29,11 @@ instrumentation_LTLIBRARIES = \
 if INSTRUMENTATION_EXTRAE
 extrae_mpitrace_cxxflags=$(mpitrace_cxxflags)
 extrae_mpitrace_ldflags=$(mpitrace_ldflags)
-
 instrumentation_LTLIBRARIES+=libnanox-instrumentation-extrae.la
+
+extrae_wd_mpitrace_cxxflags=$(mpitrace_cxxflags) -DNANOX_EXTRAE_WD_INSTRUMENTATION
+extrae_wd_mpitrace_ldflags=$(mpitrace_ldflags)
+instrumentation_LTLIBRARIES+=libnanox-instrumentation-extrae-wd.la
 endif
 
 nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags)
@@ -47,6 +50,10 @@ if INSTRUMENTATION_EXTRAE
 libnanox_instrumentation_extrae_la_CXXFLAGS = $(nanos_instr_cxxflags) $(extrae_mpitrace_cxxflags)
 libnanox_instrumentation_extrae_la_LDFLAGS = $(ld_plugin_flags) $(extrae_mpitrace_ldflags)
 libnanox_instrumentation_extrae_la_SOURCES = $(extrae_sources)
+
+libnanox_instrumentation_extrae_wd_la_CXXFLAGS = $(nanos_instr_cxxflags) $(extrae_wd_mpitrace_cxxflags)
+libnanox_instrumentation_extrae_wd_la_LDFLAGS = $(ld_plugin_flags) $(extrae_wd_mpitrace_ldflags)
+libnanox_instrumentation_extrae_wd_la_SOURCES = $(extrae_sources)
 endif
 endif
 

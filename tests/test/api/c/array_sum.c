@@ -1319,6 +1319,7 @@ int main(int argc, char * argv[])
                 0
             };
             props.tied = 1;
+            props.priority = 0;
             nanos_err_t err;
             err = nanos_create_wd(&wd, 1, _ol_main_0_devices, sizeof(_nx_data_env_0_t), __alignof__( _nx_data_env_0_t ), (void **) &ol_args, nanos_current_wd(), &props, 0, (nanos_copy_data_t **) 0);
             if (err != NANOS_OK)

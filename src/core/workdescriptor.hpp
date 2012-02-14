@@ -44,7 +44,7 @@ inline const Device * DeviceData::getDevice () const { return _architecture; }
 inline bool DeviceData::isCompatible ( const Device &arch ) { return _architecture == &arch; }
 
 /* WorkDescriptor inlined functions */
-inline bool WorkDescriptor::started ( void ) const { return _state != INIT; }
+inline bool WorkDescriptor::started ( void ) const { return (( _state != INIT ) && (_state != START)); }
 
 inline size_t WorkDescriptor::getDataSize () const { return _data_size; }
 inline void WorkDescriptor::setDataSize ( size_t data_size ) { _data_size = data_size; }
@@ -55,8 +55,8 @@ inline void WorkDescriptor::setDataAlignment ( int data_align ) { _data_align = 
 inline WorkDescriptor * WorkDescriptor::getParent() { return _parent; }
 inline void WorkDescriptor::setParent ( WorkDescriptor * p ) { _parent = p; }
 
-inline WDDeque * WorkDescriptor::getMyQueue() { return _myQueue; }
-inline void WorkDescriptor::setMyQueue ( WDDeque * myQ ) { _myQueue = myQ; }
+inline WDPool * WorkDescriptor::getMyQueue() { return _myQueue; }
+inline void WorkDescriptor::setMyQueue ( WDPool * myQ ) { _myQueue = myQ; }
 
 inline bool WorkDescriptor::isEnqueued() { return ( _myQueue != NULL ); }
 
@@ -71,6 +71,8 @@ inline BaseThread* WorkDescriptor::isTiedTo() const { return _tiedTo; }
 inline void WorkDescriptor::setData ( void *wdata ) { _data = wdata; }
 
 inline void * WorkDescriptor::getData () const { return _data; }
+
+inline void WorkDescriptor::setStart () { _state = WorkDescriptor::START; }
 
 inline bool WorkDescriptor::isIdle () const { return _state == WorkDescriptor::IDLE; }
 inline void WorkDescriptor::setIdle () { _state = WorkDescriptor::IDLE; }
@@ -127,7 +129,8 @@ inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t n
 {
    wd._doSubmit.reset( NEW DOSubmit() );
    wd._doSubmit->setWD(&wd);
-   _depsDomain->submitDependableObject( *(wd._doSubmit), numDeps, deps );
+   SchedulePolicySuccessorFunctor cb( *sys.getDefaultSchedulePolicy() );
+   _depsDomain->submitDependableObject( *(wd._doSubmit), numDeps, deps, &cb );
 }
 
 inline void WorkDescriptor::waitOn( size_t numDeps, Dependency* deps )
@@ -202,6 +205,9 @@ inline Directory* WorkDescriptor::getDirectory(bool create)
 
 inline bool WorkDescriptor::isSubmitted() const { return _submitted; }
 inline void WorkDescriptor::submitted()  { _submitted = true; }
+
+inline void WorkDescriptor::setPriority( unsigned int priority ) { _priority = priority; }
+inline unsigned int WorkDescriptor::getPriority() const { return _priority; }
 
 #endif
 

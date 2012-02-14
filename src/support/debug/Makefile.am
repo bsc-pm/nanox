@@ -26,6 +26,10 @@ noinst_LTLIBRARIES=libsupport.la
 nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) 
 
 libsupport_la_CXXFLAGS=$(nanos_debug_cxxflags)
+if GPU_SUPPORT
+libsupport_la_SOURCES=$(support_sources) $(debug_sources) $(gpu_support_sources)
+else
 libsupport_la_SOURCES=$(support_sources) $(debug_sources)
+endif
 endif
 

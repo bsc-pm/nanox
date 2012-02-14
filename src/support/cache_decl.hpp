@@ -292,7 +292,7 @@ namespace nanos {
 
          /*! \brief Copy data from one device address to another device address
           */
-          virtual bool copyData( void * dstAddr, void * srcAddr, size_t size, Cache & owner ) = 0;
+          virtual bool copyData( void * dstAddr, CopyDescriptor& dstCd, void * srcAddr, size_t size, Cache & owner ) = 0;
 
         /*! \brief Copy data from the host to a device address
          *  \param cd Copy descriptor with the information about the addresses to be copied
@@ -372,7 +372,7 @@ namespace nanos {
          */
          virtual ~CachePolicy() { }
 
-        /*! \brief Regisers or updates the entry identified by the 'tag' key in the cache with the given properties
+        /*! \brief Registers or updates the entry identified by the 'tag' key in the cache with the given properties
          *  \param dir Current directory to look for the entry
          *  \param tag Identifier key of the entry
          *  \param size Size of the entry
@@ -395,6 +395,56 @@ namespace nanos {
 
         /*! \brief Unregister an acces tot the Cache for an address that will only exist for one user
          */
+         virtual void unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size );
+   };
+
+   /*! \class NoCache
+    *  \brief Cache policy that disables the cache
+    */
+   class NoCache : public CachePolicy
+   {
+      private:
+         /*! \brief Copy Constructor
+          */
+         NoCache( const NoCache &policy );
+
+         /*! \brief Assign Operator
+          */
+         const NoCache & operator= ( const NoCache &policy );
+
+      public:
+         /*! \brief Policy Constructor
+          *  \param cache Cache that is using the policy
+          */
+         NoCache( Cache& cache ) : CachePolicy( cache ) { }
+
+         /*! \brief Destructor
+          */
+         virtual ~NoCache() { }
+
+         /*! \brief Registers or updates the entry identified by the 'tag' key in the cache with the given properties
+          *  \param dir Current directory to look for the entry
+          *  \param tag Identifier key of the entry
+          *  \param size Size of the entry
+          *  \param input Whether the access will read the data (it has to be updated to the latest version known to the directory)
+          *  \param output Whether the acces writes the data (the Cache entry must be marked as dirty)
+          */
+         virtual void registerCacheAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
+
+         /*! \brief Notify the cache that one usage of an entry has finished
+          *  \param dir Current directory
+          *  \param tag Identifier key of the entry
+          *  \param size Size of the entry
+          *  \param output If the entry has been written it must be copied back to the host at some point.
+          */
+         virtual void unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output );
+
+         /*! \brief Register an acces tot the Cache for an address that will only exist for one user
+          */
+         virtual void registerPrivateAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
+
+         /*! \brief Unregister an acces tot the Cache for an address that will only exist for one user
+          */
          virtual void unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size );
    };
 
@@ -568,7 +618,7 @@ namespace nanos {
 
          /*! \brief Copy data from one device address to another device address
           */
-         bool copyData( void * dstAddr, void * srcAddr, size_t size, Cache & owner );
+         bool copyData( void * dstAddr, CopyDescriptor& dstCd, void * srcAddr, size_t size, Cache & owner );
 
         /* \brief Copy data from the address represented by the tag to the entry in the device.
          * \param cd: identifier of the entry

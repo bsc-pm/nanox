@@ -27,8 +27,6 @@
 
 using namespace nanos;
 
-Atomic<int> WorkGroup::_atomicSeed( 1 );
-
 void WorkGroup::addWork ( WorkGroup &work )
 {
    _components++;
@@ -47,6 +45,7 @@ void WorkGroup::exitWork ( WorkGroup &work )
 {
    _syncCond.reference();
    int componentsLeft = --_components;
+   // It seems that _syncCond.check() generates a race condition here
    if (componentsLeft == 0)
       _syncCond.signal();
    _syncCond.unreference();

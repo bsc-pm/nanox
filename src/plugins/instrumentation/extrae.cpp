@@ -16,9 +16,33 @@
 #include <libgen.h>
 #include "os.hpp"
 
+/* NANOX_EXTRAE_DEFINE_CALLBACKS will allow to define which are our external services
+ * to specify the execution environment ( thread id, total threads, etc ). They are
+ * defined on Extrae 2.2.1 and above */
+#define NANOX_EXTRAE_DEFINE_CALLBACKS
+
+#ifndef EXTRAE_VERSION
+#warning Extrae library version is not supported (use >= 2.2.0):
+#else
+#  define NANOX_EXTRAE_SUPPORTED_VERSION
+#  if EXTRAE_VERSION_MAJOR(EXTRAE_VERSION) == 2 /* version 2.x.x */
+#      define extrae_size_t unsigned int
+#    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 2 /* version 2.2.x */
+#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 0 /* version 2.2.0 */
+#      define EXTRAE_COMM_PARTNER_MYSELF ((extrae_comm_partner_t) 0x00000000)
+#      undef  NANOX_EXTRAE_DEFINE_CALLBACKS
+#      endif
+#    endif
+#  endif
+#endif
+
+#ifdef NANOX_EXTRAE_SUPPORTED_VERSION
 extern "C" {
    unsigned int nanos_ompitrace_get_max_threads ( void );
    unsigned int nanos_ompitrace_get_thread_num ( void );
+   unsigned int nanos_extrae_node_id();
+   unsigned int nanos_extrae_num_nodes();
+   void         nanos_ompitrace_instrumentation_barrier();
 }
 
 namespace nanos {
@@ -34,14 +58,19 @@ class InstrumentationExtrae: public Instrumentation
 #ifndef NANOS_INSTRUMENTATION_ENABLED
    public:
       // constructor
-      InstrumentationExtrae( ): Instrumentation( ) {}
+      InstrumentationExtrae( ) : Instrumentation() {}
+
       // destructor
       ~InstrumentationExtrae() {}
 
       // low-level instrumentation interface (mandatory functions)
       void initialize( void ) {}
       void finalize( void ) {}
+      void disable( void ) {}
+      void enable( void ) {}
       void addEventList ( unsigned int count, Event *events ) {}
+      void addResumeTask( WorkDescriptor &w ) {}
+      void addSuspendTask( WorkDescriptor &w ) {}
       void threadStart( BaseThread &thread ) {}
       void threadFinish ( BaseThread &thread ) {}
 #else
@@ -59,9 +88,15 @@ class InstrumentationExtrae: public Instrumentation
       static std::string                             _postProcessScriptPath;
       static bool                                    _keepMpits; /*<< Keeps mpits temporary files (default = no)*/
       static bool                                    _skipMerge; /*<< Skip merge phase and keeps mpits temporary files (default = no)*/
+      static bool                                    _skipInit; /*<< Skip extrae initialization process (default = no)*/
+      static bool                                    _skipFini; /*<< Skip extrae finalization process (default = no)*/
    public:
       // constructor
+#ifdef NANOX_EXTRAE_WD_INSTRUMENTATION
+      InstrumentationExtrae ( ) : Instrumentation( *NEW InstrumentationContextDisabled() ) {}
+#else
       InstrumentationExtrae ( ) : Instrumentation( *NEW InstrumentationContextStackedStatesAndBursts() ) {}
+#endif
       // destructor
       ~InstrumentationExtrae ( ) { }
 
@@ -142,7 +177,7 @@ class InstrumentationExtrae: public Instrumentation
             p_file << "9    " << _eventState  << "    Thread state: " << std::endl;
             p_file << "VALUES" << std::endl;
             p_file << NANOS_NOT_CREATED      << "     NOT CREATED" << std::endl;
-            p_file << NANOS_NOT_TRACED       << "     NOT TRACED" << std::endl;
+            p_file << NANOS_NOT_RUNNING      << "     NOT RUNNING" << std::endl;
             p_file << NANOS_STARTUP          << "     STARTUP" << std::endl;
             p_file << NANOS_SHUTDOWN         << "     SHUTDOWN" << std::endl;
             p_file << NANOS_ERROR            << "     ERROR" << std::endl;
@@ -160,6 +195,7 @@ class InstrumentationExtrae: public Instrumentation
             p_file << NANOS_MEM_TRANSFER_DEVICE_LOCAL << "     LOCAL DATA TRANSFER IN DEVICE" << std::endl;
             p_file << NANOS_CACHE            << "     CACHE ALLOC/FREE" << std::endl;
             p_file << NANOS_YIELD            << "     YIELD" << std::endl;
+            p_file << NANOS_ACQUIRING_LOCK   << "     ACQUIRING LOCK" << std::endl;
             p_file << std::endl;
 
             /* Event: PtPStart main event */
@@ -176,8 +212,8 @@ class InstrumentationExtrae: public Instrumentation
             p_file << "EVENT_TYPE" << std::endl;
             p_file << "9    " << _eventSubState  << "    Thread sub-state: " << std::endl;
             p_file << "VALUES" << std::endl;
-            p_file << NANOS_NOT_CREATED      << "     NOT_CREATED" << std::endl;
-            p_file << NANOS_NOT_TRACED       << "     NOT TRACED" << std::endl;
+            p_file << NANOS_NOT_CREATED      << "     NOT CREATED" << std::endl;
+            p_file << NANOS_NOT_RUNNING      << "     NOT RUNNING" << std::endl;
             p_file << NANOS_STARTUP          << "     STARTUP" << std::endl;
             p_file << NANOS_SHUTDOWN         << "     SHUTDOWN" << std::endl;
             p_file << NANOS_ERROR            << "     ERROR" << std::endl;
@@ -192,6 +228,7 @@ class InstrumentationExtrae: public Instrumentation
             p_file << NANOS_MEM_TRANSFER_LOCAL << "     LOCAL DATA TRANSFER IN DEVICE" << std::endl;
             p_file << NANOS_CACHE            << "     CACHE ALLOC/FREE" << std::endl;
             p_file << NANOS_YIELD            << "     YIELD" << std::endl;
+            p_file << NANOS_ACQUIRING_LOCK   << "     ACQUIRING LOCK" << std::endl;
             p_file << std::endl;
 
             /* Getting Instrumentation Dictionary */
@@ -233,24 +270,63 @@ class InstrumentationExtrae: public Instrumentation
 
       void modifyParaverRowFile()
       {
-         unsigned int num_threads = sys.getNumWorkers();
-         // Writing paraver config 
-         std::fstream p_file;
-         p_file.open ( _traceFileName_ROW.c_str(), std::ios::out | std::ios::app);
-         if (p_file.is_open())
-         {
-            /* Adding thread info */
-            p_file << std::endl;
-            p_file << "LEVEL THREAD SIZE " << num_threads << std::endl;
-            for ( unsigned int i = 0; i < num_threads; i++ ) {
-               p_file << sys.getWorker(i)->getDescription() << std::endl;
-            }
-            p_file << std::endl;
+         // rename ROW file to a temporary file
+         std::string line;
+         std::string _traceFileName_ROW_tmp = _traceFileName_ROW + "__tmp";
+         rename ( _traceFileName_ROW.c_str(), _traceFileName_ROW_tmp.c_str() );
 
-            /* Closing configuration file */
-            p_file.close();
+         // Input file: temporary file
+         std::ifstream i_file;
+         i_file.open ( _traceFileName_ROW_tmp.c_str(), std::ios::in );
+
+         // Output file: paraver config 
+         std::ofstream o_file;
+         o_file.open ( _traceFileName_ROW.c_str(), std::ios::out | std::ios::app);
+
+         if ( o_file.is_open() && i_file.is_open() ) {
+            bool cont = true;
+            bool print = true;
+            while ( cont ) {
+               cont = getline ( i_file, line );
+               if ( print == true ) {
+                  // printing was alredy enabled, so disable if...
+                  print = print && line.find("LEVEL THREAD"); // ... found LEVEL THREAD section
+#ifdef NANOX_EXTRAE_WD_INSTRUMENTATION
+                  print = print && line.find("LEVEL CPU"); // ... found LEVEL CPU section
+#endif
+               } else {
+                  // printing was already disabled so enabled if...
+#ifndef NANOX_EXTRAE_WD_INSTRUMENTATION
+                  print = !line.find("LEVEL CPU"); // ... found LEVEL CPU section
+#endif
+                  print = !line.find("LEVEL NODE"); // ... found LEVEL NODE section
+               }
+
+               if ( print ) o_file << line << std::endl;
+            }
+
+            // Adding thread info
+            unsigned int num_threads = sys.getNumWorkers();
+#ifndef NANOX_EXTRAE_WD_INSTRUMENTATION
+            o_file << "LEVEL THREAD SIZE " << num_threads << std::endl;
+#else
+            o_file << "LEVEL CPU SIZE " << num_threads << std::endl;
+#endif
+            for ( unsigned int i = 0; i < num_threads; i++ ) {
+               o_file << sys.getWorker(i)->getDescription() << std::endl;
+            }
+            o_file << std::endl;
+
+            o_file.close();
+            i_file.close();
+
+            remove ( _traceFileName_ROW_tmp.c_str() );
+         } else {
+            if (o_file.is_open()) o_file.close();
+            if (i_file.is_open()) i_file.close();
+            message0("Unable to open paraver config file");  
+            rename ( _traceFileName_ROW_tmp.c_str(), _traceFileName_ROW.c_str() );
          }
-         else message0("Unable to open paraver config file");  
       }
 
       void removeTemporaryFiles()
@@ -440,13 +516,24 @@ class InstrumentationExtrae: public Instrumentation
          sprintf(env_trace_final_dir, "EXTRAE_FINAL_DIR=%s", _traceFinalDirectory.c_str());
          putenv (env_trace_final_dir);
 
+#ifdef NANOX_EXTRAE_DEFINE_CALLBACKS
+        // Common thread information
+        Extrae_set_threadid_function ( nanos_ompitrace_get_thread_num );
+        Extrae_set_numthreads_function ( nanos_ompitrace_get_max_threads );
+
+        // Cluster specific information
+        Extrae_set_taskid_function ( nanos_extrae_node_id );
+        Extrae_set_numtasks_function ( nanos_extrae_num_nodes );
+        Extrae_set_barrier_tasks_function ( nanos_ompitrace_instrumentation_barrier );
+#endif
+
          /* OMPItrace initialization */
-         OMPItrace_init();
+         if ( !_skipInit ) OMPItrace_init();
       }
 
       void finalize ( void )
       {
-         OMPItrace_fini();
+         if ( !_skipFini ) OMPItrace_fini();
          getTraceFileName();
          if ( !_skipMerge ) {
             mergeParaverTraceFiles();
@@ -457,14 +544,17 @@ class InstrumentationExtrae: public Instrumentation
          removeTemporaryFiles();
       }
 
+      void disable( void ) { Extrae_shutdown(); }
+      void enable( void ) { Extrae_restart(); }
+
       void addEventList ( unsigned int count, Event *events) 
       {
-         struct extrae_CombinedEvents ce;
+         extrae_combined_events_t ce;
          InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
 
          ce.HardwareCounters = 1;
          ce.Callers = 0;
-         ce.UserFunction = 0;
+         ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
          ce.nEvents = 0;
          ce.nCommunications = 0;
 
@@ -491,9 +581,9 @@ class InstrumentationExtrae: public Instrumentation
             }
          }
 
-         ce.Types = (unsigned int *) alloca (ce.nEvents * sizeof (unsigned int));
-         ce.Values = (unsigned int *) alloca (ce.nEvents * sizeof (unsigned int));
-         ce.Communications = (struct extrae_UserCommunication *) alloca (ce.nCommunications * sizeof (struct extrae_UserCommunication));
+         ce.Types = (extrae_type_t *) alloca (ce.nEvents * sizeof (extrae_type_t));
+         ce.Values = (extrae_value_t *) alloca (ce.nEvents * sizeof (extrae_value_t));
+         ce.Communications = (extrae_user_communication_t *) alloca (ce.nCommunications * sizeof ( extrae_user_communication_t));
 
          int j = 0; int k = 0;
          Event::ConstKVList kvs = NULL;
@@ -548,8 +638,13 @@ class InstrumentationExtrae: public Instrumentation
                      default: 
                         break; // FIXME here goes a fatal
                   }
-                     
-                  ce.Communications[k].partner = e.getPartner();
+
+                  if ( e.getPartner() == NANOX_INSTRUMENTATION_PARTNER_MYSELF ) {
+                     ce.Communications[k].partner = EXTRAE_COMM_PARTNER_MYSELF;
+                  } else {
+                     ce.Communications[k].partner = (extrae_comm_partner_t) e.getPartner();
+                  }
+
                   k++;
                   // continue...
                case NANOS_POINT:
@@ -574,9 +669,9 @@ class InstrumentationExtrae: public Instrumentation
          // if showing stacked burst is false remove duplicates
          if ( !_instrumentationContext.showStackedBursts() ) {
             int rmValues = 0;
-            for ( int i = 0; i < ce.nEvents; i++ )
+            for ( extrae_size_t i = 0; i < ce.nEvents; i++ )
             {
-               for ( int jj = i+1; jj < ce.nEvents; jj++ )
+               for ( extrae_size_t jj = i+1; jj < ce.nEvents; jj++ )
                {
                   if ( ce.Types[i] == ce.Types[jj] )
                   {
@@ -586,7 +681,7 @@ class InstrumentationExtrae: public Instrumentation
                }
             }
             ce.nEvents -= rmValues;
-            for ( int jj = 0, i = 0; i < ce.nEvents; i++ )
+            for ( extrae_size_t jj = 0, i = 0; i < ce.nEvents; i++ )
             {
                while ( ce.Types[jj] == 0 ) jj++;
                ce.Types[i] = ce.Types[jj];
@@ -596,6 +691,20 @@ class InstrumentationExtrae: public Instrumentation
 
          Extrae_emit_CombinedEvents ( &ce );
       }
+      void addResumeTask( WorkDescriptor &w )
+      {
+#ifdef NANOX_EXTRAE_WD_INSTRUMENTATION
+          Extrae_resume_virtual_thread ( w.getId() );
+#endif
+      }
+
+      void addSuspendTask( WorkDescriptor &w, bool last )
+      {
+#ifdef NANOX_EXTRAE_WD_INSTRUMENTATION
+         Extrae_suspend_virtual_thread ();
+#endif
+      }
+
       void threadStart( BaseThread &thread ) {}
       void threadFinish ( BaseThread &thread ) {}
 #endif
@@ -606,6 +715,8 @@ std::string InstrumentationExtrae::_traceBaseName = std::string("");
 std::string InstrumentationExtrae::_postProcessScriptPath = std::string("");
 bool InstrumentationExtrae::_keepMpits = false;
 bool InstrumentationExtrae::_skipMerge = false;
+bool InstrumentationExtrae::_skipInit = false;
+bool InstrumentationExtrae::_skipFini = false;
 #endif
 
 namespace ext {
@@ -633,9 +744,17 @@ class InstrumentationParaverPlugin : public Plugin {
          cfg.registerEnvOption ( "extrae-post-process", "NX_EXTRAE_POST_PROCESSOR_PATH" );
          
 
-         cfg.registerConfigOption ( "keep-mpits", NEW Config::FlagOption( InstrumentationExtrae::_keepMpits ),
+         cfg.registerConfigOption ( "extrae-keep-mpits", NEW Config::FlagOption( InstrumentationExtrae::_keepMpits ),
                                        "Keeps mpits temporary files generated by extrae library" );
-         cfg.registerArgOption ( "keep-mpits", "keep-mpits" );
+         cfg.registerArgOption ( "extrae-keep-mpits", "extrae-keep-mpits" );
+
+         cfg.registerConfigOption ( "extrae-skip-init", NEW Config::FlagOption( InstrumentationExtrae::_skipInit ),
+                                       "Skips extrae initialization process" );
+         cfg.registerArgOption ( "extrae-skip-init", "extrae-skip-init" );
+
+         cfg.registerConfigOption ( "extrae-skip-fini", NEW Config::FlagOption( InstrumentationExtrae::_skipFini ),
+                                       "Skips extrae finalization process" );
+         cfg.registerArgOption ( "extrae-skip-fini", "extrae-skip-fini" );
 
          cfg.registerConfigOption ( "extrae-skip-merge", NEW Config::FlagOption( InstrumentationExtrae::_skipMerge ),
                                        "Skips merge phase in trace generation (also keeps mpits temporary files)" );
@@ -654,3 +773,5 @@ class InstrumentationParaverPlugin : public Plugin {
 } // namespace nanos
 
 DECLARE_PLUGIN("instrumentation-paraver",nanos::ext::InstrumentationParaverPlugin);
+
+#endif

@@ -31,6 +31,7 @@
 extern void cublasInit();
 #else
 #include <cublas.h>
+#include <cublas_v2.h>
 #endif
 
 
@@ -46,7 +47,9 @@ class GPUCublasPlugin : public Plugin
 
       void init()
       {
+#ifdef NANOS_GPU_USE_CUDA32
          cublasInit();
+#endif
          cudaFree( NULL );
       }
 };

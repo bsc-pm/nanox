@@ -42,6 +42,14 @@ inline void System::setDeviceStackSize ( int stackSize ) { _deviceStackSize = st
 
 inline int System::getDeviceStackSize () const {return _deviceStackSize; }
 
+inline void System::setBindingStart ( int value ) { _bindingStart = value; }
+
+inline int System::getBindingStart () const { return _bindingStart; }
+
+inline void System::setBindingStride ( int value ) { _bindingStride = value;  }
+
+inline int System::getBindingStride () const { return _bindingStride; }
+
 inline void System::setBinding ( bool set ) { _bindThreads = set; }
 
 inline bool System::getBinding () const { return _bindThreads; }
@@ -116,6 +124,48 @@ inline SchedulePolicy * System::getDefaultSchedulePolicy ( ) const  { return _de
 inline SchedulerStats & System::getSchedulerStats () { return _schedStats; }
 inline SchedulerConf  & System::getSchedulerConf ()  { return _schedConf; }
 
+inline void System::stopScheduler ()
+{
+   myThread->pause();
+   _schedConf.setSchedulerEnabled( false );
+}
+
+inline void System::startScheduler ()
+{
+   myThread->unpause();
+   _schedConf.setSchedulerEnabled( true );
+}
+
+inline bool System::isSchedulerStopped () const
+{
+   return _schedConf.getSchedulerEnabled();
+}
+
+inline void System::pausedThread ()
+{
+   _pausedThreadsCond.reference();
+   _unpausedThreadsCond.reference();
+   ++_pausedThreads;
+   if ( _pausedThreadsCond.check() ) {
+      _pausedThreadsCond.signal();
+   }
+   _pausedThreadsCond.unreference();
+   _unpausedThreadsCond.unreference();
+}
+
+inline void System::unpausedThread ()
+{
+   _pausedThreadsCond.reference();
+   _unpausedThreadsCond.reference();
+   // TODO (#582): Do we need a reference and unreference block here?
+   --_pausedThreads;
+   if ( _unpausedThreadsCond.check() ) {
+      _unpausedThreadsCond.signal();
+   }
+   _unpausedThreadsCond.unreference();
+   _pausedThreadsCond.unreference();
+}
+
 inline const std::string & System::getDefaultArch() const { return _defArch; }
 inline void System::setDefaultArch( const std::string &arch ) { _defArch = arch; }
 
@@ -127,9 +177,15 @@ inline void System::setPMInterface(PMInterface *pm)
 
 inline PMInterface &  System::getPMInterface(void) const { return *_pmInterface; }
 
+inline bool System::isCacheEnabled() { return _useCaches; }
+
 inline System::CachePolicyType System::getCachePolicy() { return _cachePolicy; }
 
 inline CacheMap& System::getCacheMap() { return _cacheMap; }
+
+#ifdef GPU_DEV
+inline PinnedAllocator& System::getPinnedAllocatorCUDA() { return _pinnedMemoryCUDA; }
+#endif
 
 inline bool System::throttleTask()
 {

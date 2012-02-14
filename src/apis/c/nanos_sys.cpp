@@ -23,12 +23,67 @@
 
 using namespace nanos;
 
-nanos_err_t nanos_get_num_running_tasks ( int *num )
+
+NANOS_API_DEF(nanos_err_t, nanos_get_num_running_tasks, ( int *num ))
 {
    //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_running_tasks",RUNTIME) );
 
    try {
       *num = sys.getRunningTasks();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_stop_scheduler, ())
+{
+   try {
+      sys.stopScheduler();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_start_scheduler, ())
+{
+   try {
+      sys.startScheduler();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_scheduler_enabled, ( bool *res ))
+{
+   try {
+      *res = sys.isSchedulerStopped();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_wait_until_threads_paused, ())
+{
+   try {
+      sys.waitUntilThreadsPaused();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_wait_until_threads_unpaused, ())
+{
+   try {
+      sys.waitUntilThreadsUnpaused();
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }

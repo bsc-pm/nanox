@@ -127,6 +127,46 @@ namespace nanos {
          }
    };
 
+   class InstrumentBurst {
+      private:
+         Instrumentation     &_inst;   /**< Instrumentation object*/
+         nanos_event_key_t    _key;    /**< Key used in burst event */
+         bool                 _closed; /**< Closed flag */
+      private:
+         /*! \brief InstrumentBurst default constructor (private)
+          */
+         InstrumentBurst ();
+         /*! \brief InstrumentBurst copy constructor (private)
+          */
+         InstrumentBurst ( InstrumentBurst &ib );
+         /*! \brief InstrumentBurst copy assignment operator (private)
+          */
+         InstrumentBurst& operator= ( InstrumentBurst &ib );
+      public:
+         /*! \brief InstrumentBurst constructor
+          */
+         InstrumentBurst ( const char* keydesc, const char *valdesc )
+            : _inst(*sys.getInstrumentation()), _key( _inst.getInstrumentationDictionary()->getEventKey(keydesc)),
+              _closed(false)
+         {
+            nanos_event_value_t val = _inst.getInstrumentationDictionary()->getEventValue(keydesc,valdesc);
+            _inst.raiseOpenBurstEvent(_key, val);
+         }
+         /*! \brief InstrumentBurst constructor
+          */
+         InstrumentBurst ( const char* keydesc, nanos_event_value_t val )
+            : _inst(*sys.getInstrumentation()), _key( _inst.getInstrumentationDictionary()->getEventKey(keydesc)),
+              _closed(false)
+         {
+            _inst.raiseOpenBurstEvent(_key, val);
+         }
+         /*! \brief InstrumentBurst destructor
+          */
+         ~InstrumentBurst ( ) { if (!_closed) close(); }
+         /*! \brief Closes Burst event
+          */
+         void close() { _closed=true; _inst.raiseCloseBurstEvent(_key);  }
+   };
 #endif
 }
 #endif

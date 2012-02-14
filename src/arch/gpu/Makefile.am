@@ -25,3 +25,6 @@ include $(top_srcdir)/src/common.am
 EXTRA_DIST= \
 	$(END)
 
+pkginclude_HEADERS=\
+	nanos-gpu.h \
+	$(END)

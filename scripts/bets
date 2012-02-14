@@ -333,6 +333,7 @@ run_gen_test ()
    local all_exec_versions=
    local exec_versions=
    local compile_versions=
+   local test_schedule=
    clean_test_vars
    clean_${type}_compile_vars
    clean_exec_vars
@@ -355,6 +356,10 @@ run_gen_test ()
    all_exec_versions=$exec_versions
    compile_versions=
    exec_versions=
+   
+   if [ "$test_schedule" ]; then
+      export NX_TEST_SCHEDULE="$test_schedule"
+   fi
 
    if [ "$test_generator" ]; then
       debug "Using version generator $test_generator"
@@ -444,6 +449,10 @@ run_gen_test ()
         fi
 
      done
+   fi
+   
+   if [ "$test_schedule" ]; then
+      unset NX_TEST_SCHEDULE
    fi
    
    for v in $all_compile_versions; do

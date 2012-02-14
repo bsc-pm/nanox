@@ -25,10 +25,12 @@ performance_LTLIBRARIES = \
 	libnanox-sched-default.la \
 	libnanox-sched-bf.la \
 	libnanox-sched-dbf.la \
-	libnanox-sched-cilk.la \
-	libnanox-sched-wf.la \
-	libnanox-sched-affinity.la \
+ 	libnanox-sched-cilk.la \
+ 	libnanox-sched-wf.la \
+ 	libnanox-sched-affinity.la \
 	libnanox-sched-versioning.la \
+ 	libnanox-sched-priority.la \
+ 	libnanox-sched-smartpriority.la \
 	$(END)
 
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags)
@@ -60,5 +62,13 @@ libnanox_sched_affinity_la_SOURCES = $(affinity_sources)
 libnanox_sched_versioning_la_CXXFLAGS = $(nanos_perfo_cxxflags)
 libnanox_sched_versioning_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_sched_versioning_la_SOURCES = $(versioning_sources)
+ 
+libnanox_sched_priority_la_CXXFLAGS = $(nanos_perfo_cxxflags)
+libnanox_sched_priority_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_sched_priority_la_SOURCES = $(priority_sources)
+ 
+libnanox_sched_smartpriority_la_CXXFLAGS = $(nanos_perfo_cxxflags)
+libnanox_sched_smartpriority_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_sched_smartpriority_la_SOURCES = $(smartpriority_sources)
 endif
 

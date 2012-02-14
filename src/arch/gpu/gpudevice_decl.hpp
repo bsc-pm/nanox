@@ -168,7 +168,7 @@ namespace nanos
          /* \brief Copy from addrSrc in peSrc device to addrDst in peDst device
           *        Returns true if the operation is synchronous
           */
-         static bool copyDevToDev( void * addrDst, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc );
+         static bool copyDevToDev( void * addrDst, CopyDescriptor& dstCd, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc );
    };
 }
 

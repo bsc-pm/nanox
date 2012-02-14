@@ -48,7 +48,7 @@ TrackableObject* DependenciesDomain::lookupDependency ( const Dependency& dep )
 }
 
 template<typename iterator>
-void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, iterator begin, iterator end )
+void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, iterator begin, iterator end, SchedulePolicySuccessorFunctor* callback )
 {
 
 
@@ -168,6 +168,10 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
                if ( dependencyObject->getLastWriter() == lastWriter ) {
                   if ( lastWriter->addSuccessor( depObj ) ) {
                      depObj.increasePredecessors();
+                     if ( callback != NULL ) {
+                        debug( "Calling callback" );
+                        ( *callback )( lastWriter, &depObj );
+                     }
                   }
 #if 0
                   if ( ( !(dep.isOutput()) || dep.isInput() ) ) {
@@ -217,6 +221,10 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
                      SyncLockBlock lock5(predecessorReader->getLock());
                      if ( predecessorReader->addSuccessor( depObj ) ) {
                         depObj.increasePredecessors();
+                        if ( callback != NULL ) {
+                           debug( "Calling callback" );
+                           ( *callback )( predecessorReader, &depObj );
+                        }
                      }
                   }
                   // WaR dependency
@@ -249,8 +257,8 @@ void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depO
       depObj.wait( filteredDeps );
 }
 
-template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, Dependency* begin, Dependency* end );
-template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, std::vector<Dependency>::iterator begin, std::vector<Dependency>::iterator end );
+template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, Dependency* begin, Dependency* end, SchedulePolicySuccessorFunctor* callback );
+template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, std::vector<Dependency>::iterator begin, std::vector<Dependency>::iterator end, SchedulePolicySuccessorFunctor* callback );
 
 void DependenciesDomain::increaseTasksInGraph()
 {

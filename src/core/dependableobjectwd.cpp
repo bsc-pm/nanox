@@ -91,6 +91,7 @@ void DOWait::dependenciesSatisfied ( )
 {
    DependenciesDomain::decreaseTasksInGraph();
    _depsSatisfied = true;
+   // It seems that _syncCond.check() generates a race condition here
    _syncCond.signal();
 }
 
