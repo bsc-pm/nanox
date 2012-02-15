@@ -69,8 +69,10 @@ namespace nanos
  
    inline WD * BaseThread::getNextWD () const
    { 
-      if ( _nextWD == (WD *) 1 ) return NULL;
-      return _nextWD;
+      /* First copy value to avoid race conditions */
+      WD * retWD = _nextWD;
+      if ( retWD == (WD *) 1 ) return NULL;
+      return retWD;
    }
  
    // team related methods
