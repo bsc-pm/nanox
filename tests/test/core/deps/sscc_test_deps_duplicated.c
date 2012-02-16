@@ -1012,12 +1012,14 @@ int main()
                 {
                     ol_args->__tmp_0_0 = __tmp_0;
                     ol_args->__tmp_1_0 = __tmp_1;
-                    nanos_region_dimension_t dimensions0[2] = {
+                    nanos_region_dimension_t dimensions0[1] = {
                         {
                             ((char *) ((__tmp_0)) - (char *) ol_args->__tmp_0_0),
                             0,
                             ((char *) ((__tmp_0)) - (char *) ol_args->__tmp_0_0)
                         },
+                    };
+                    nanos_region_dimension_t dimensions1[1] = {
                         {
                             ((char *) ((__tmp_1)) - (char *) ol_args->__tmp_1_0),
                             0,
@@ -1034,7 +1036,8 @@ int main()
                                 0
                             },
                             1,
-                            &dimensions0[0]
+                            &dimensions0[0],
+                            0
                         },
                         {
                             (void *) ol_args->__tmp_1_0,
@@ -1045,7 +1048,8 @@ int main()
                                 0
                             },
                             1,
-                            &dimensions0[1]
+                            &dimensions1[0],
+                            0
                         }
                     };
                     err = nanos_submit(wd, 2, (nanos_data_access_t *) _data_accesses, (nanos_team_t) 0);
