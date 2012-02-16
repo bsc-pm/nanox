@@ -746,6 +746,7 @@ typedef struct
         nanos_access_type_internal_t flags;
         short dimension_count;
         nanos_region_dimension_internal_t const *dimensions;
+        ptrdiff_t offset;
 } nanos_data_access_internal_t;
 typedef enum 
 {
@@ -1014,16 +1015,16 @@ int main()
                     ol_args->__tmp_1_0 = __tmp_1;
                     nanos_region_dimension_t dimensions0[1] = {
                         {
-                            ((char *) ((__tmp_0)) - (char *) ol_args->__tmp_0_0),
+                            ((char *) ((__tmp_0)) - (char *) ol_args->__tmp_0_0)*sizeof(int),
                             0,
-                            ((char *) ((__tmp_0)) - (char *) ol_args->__tmp_0_0)
+                            ((char *) ((__tmp_0)) - (char *) ol_args->__tmp_0_0)*sizeof(int)
                         },
                     };
                     nanos_region_dimension_t dimensions1[1] = {
                         {
-                            ((char *) ((__tmp_1)) - (char *) ol_args->__tmp_1_0),
+                            ((char *) ((__tmp_1)) - (char *) ol_args->__tmp_1_0)*sizeof(int),
                             0,
-                            ((char *) ((__tmp_1)) - (char *) ol_args->__tmp_1_0)
+                            ((char *) ((__tmp_1)) - (char *) ol_args->__tmp_1_0)*sizeof(int)
                         },
                     };
                     nanos_data_access_t _data_accesses[2] = {
@@ -1036,7 +1037,7 @@ int main()
                                 0
                             },
                             1,
-                            &dimensions0[0],
+                            dimensions0,
                             0
                         },
                         {
@@ -1048,7 +1049,7 @@ int main()
                                 0
                             },
                             1,
-                            &dimensions1[0],
+                            dimensions1,
                             0
                         }
                     };
@@ -1061,16 +1062,18 @@ int main()
                     _nx_data_env_0_t imm_args;
                     imm_args.__tmp_0_0 = __tmp_0;
                     imm_args.__tmp_1_0 = __tmp_1;
-                    nanos_region_dimension_t dimensions0[2] = {
+                    nanos_region_dimension_t dimensions0[1] = {
                         {
-                            ((char *) ((__tmp_0)) - (char *) imm_args.__tmp_0_0),
+                            ((char *) ((__tmp_0)) - (char *) imm_args.__tmp_0_0)*sizeof(int),
                             0,
-                            ((char *) ((__tmp_0)) - (char *) imm_args.__tmp_0_0)
+                            ((char *) ((__tmp_0)) - (char *) imm_args.__tmp_0_0)*sizeof(int)
                         },
+                    };
+                    nanos_region_dimension_t dimensions1[1] = {
                         {
-                            ((char *) ((__tmp_1)) - (char *) imm_args.__tmp_1_0),
+                            ((char *) ((__tmp_1)) - (char *) imm_args.__tmp_1_0)*sizeof(int),
                             0,
-                            ((char *) ((__tmp_1)) - (char *) imm_args.__tmp_1_0)
+                            ((char *) ((__tmp_1)) - (char *) imm_args.__tmp_1_0)*sizeof(int)
                         },
                     };
                     nanos_data_access_t _data_accesses[2] = {
@@ -1083,7 +1086,8 @@ int main()
                                 0
                             },
                             1,
-                            &dimensions0[0]
+                            dimensions0,
+                            0
                         },
                         {
                             (void *) &imm_args.__tmp_1_0,
@@ -1094,7 +1098,8 @@ int main()
                                 0
                             },
                             1,
-                            &dimensions0[1]
+                            dimensions1,
+                            0
                         }
                     };
                     err = nanos_create_wd_and_run(1, _ol_main_0_devices, sizeof(_nx_data_env_0_t), __alignof__(_nx_data_env_0_t),  &imm_args, 2, (nanos_data_access_t *) _data_accesses, &props, 0, (nanos_copy_data_t *) 0);
