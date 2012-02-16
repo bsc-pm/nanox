@@ -132,7 +132,7 @@ namespace nanos
          *  \param dep Dependency to be checked.
          *  \sa Dependency TrackableObject
          */
-         MappedType* lookupDependency ( const Target &target );
+         inline MappedType* lookupDependency ( const Target &target );
         /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
          *  \param depObj DependableObject to be added to the domain.
          *  \param begin Iterator to the start of the list of dependencies to be associated to the Dependable Object.
@@ -188,19 +188,19 @@ namespace nanos
          *  \param depObj DependableObject to be stripped of the last writer role
          *  \param target Address/region that must be affected
          */
-         void deleteLastWriter ( DependableObject &depObj, Target const &target );
+         inline void deleteLastWriter ( DependableObject &depObj, Target const &target );
          
         /*! \brief Removes the DependableObject from the reader list of a region.
          *  \param depObj DependableObject to be removed as a reader
          *  \param target Address/region that must be affected
          */
-         void deleteReader ( DependableObject &depObj, Target const &target );
+         inline void deleteReader ( DependableObject &depObj, Target const &target );
 
         /*! \brief Removes a CommutableDO from a region.
          *  \param commDO CommutationDO to be removed
          *  \param target Address/region that must be affected
          */
-         void removeCommDO ( CommutationDO *commDO, Target const &target );
+         inline void removeCommDO ( CommutationDO *commDO, Target const &target );
 
          static void increaseTasksInGraph();
 
