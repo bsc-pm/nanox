@@ -181,7 +181,7 @@ bool single_inout_chain()
    int * dep_addr = &my_value;
    my_args *args1=0;
    nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-   nanos_data_access_t data_accesses1[1] = {{&my_value, {0,1,0,0}, 1, dimensions1}};
+   nanos_data_access_t data_accesses1[1] = {{&my_value, {0,1,0,0}, 1, dimensions1, 0}};
    nanos_wd_props_t props = {
      .mandatory_creation = true,
      .tied = false,
@@ -197,7 +197,7 @@ bool single_inout_chain()
    for ( i = 0; i < 100; i++ ) {
       my_args *args2=0;
       nanos_region_dimension_t dimensions2[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses2[1] = {{&my_value, {1,1,0,0}, 1, dimensions2}};
+      nanos_data_access_t data_accesses2[1] = {{&my_value, {1,1,0,0}, 1, dimensions2, 0}};
       nanos_wd_t wd2 = 0;
       nanos_device_t test_devices_2[1] = { NANOS_SMP_DESC( test_device_arg_2 ) };
       NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_2, sizeof(my_args), __alignof__(my_args), (void**)&args2, nanos_current_wd(), &props, 0, NULL) );
@@ -220,7 +220,7 @@ bool multiple_inout_chains()
       int * dep_addr = &my_value[i];
       my_args *args1=0;
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value[i]), 0, sizeof(my_value[i])}};
-      nanos_data_access_t data_accesses1[1] = {{&my_value[i], {0,1,0,0}, 1, dimensions1}};
+      nanos_data_access_t data_accesses1[1] = {{&my_value[i], {0,1,0,0}, 1, dimensions1, 0}};
       nanos_wd_props_t props = {
         .mandatory_creation = true,
         .tied = false,
@@ -236,7 +236,7 @@ bool multiple_inout_chains()
       for ( j = 0; j < size; j++ ) {
          my_args *args2=0;
          nanos_region_dimension_t dimensions2[1] = {{sizeof(my_value[i]), 0, sizeof(my_value[i])}};
-         nanos_data_access_t data_accesses2[1] = {{&my_value[i], {1,1,0,0}, 1, dimensions2}};
+         nanos_data_access_t data_accesses2[1] = {{&my_value[i], {1,1,0,0}, 1, dimensions2, 0}};
          nanos_wd_t wd2 = 0;
          nanos_device_t test_devices_2[1] = { NANOS_SMP_DESC( test_device_arg_2 ) };
          NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_2, sizeof(my_args), __alignof__(my_args), (void**)&args2, nanos_current_wd(), &props, 0, NULL) );
@@ -269,8 +269,9 @@ bool multiple_predecessors()
       int * dep_addr1 = &my_value[j];
       my_args *args1=0;
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value[j]), 0, sizeof(my_value[j])}};
-      nanos_data_access_t data_accesses1[1] = {{&my_value[j], {0,1,0,0}, 1, dimensions1}};
+      nanos_data_access_t data_accesses1[1] = {{&my_value[j], {0,1,0,0}, 1, dimensions1, 0}};
       nanos_wd_t wd1 = 0;
+      fprintf(stderr, "Dep #%d, address %p\n", j, &my_value[j] );
 
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1 ) };
       NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), __alignof(my_args), (void**)&args1, nanos_current_wd(), &props, 0, NULL) );
@@ -286,7 +287,7 @@ bool multiple_predecessors()
       dep_addr2[j] = &my_value[j];
       nanos_region_dimension_t dim = {sizeof(my_value[j]), 0, sizeof(my_value[j])};
       dimensions2[j][0] = dim;
-      nanos_data_access_t da = {&my_value[j], {1,1,0,0}, 1, dimensions2[j]};
+      nanos_data_access_t da = {&my_value[j], {1,1,0,0}, 1, dimensions2[j],0};
       data_accesses2[j] = da;
    }
 
@@ -321,7 +322,7 @@ bool multiple_antidependencies()
       int * reslt_addr =&my_reslt[j];
       my_args *args1=0;
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses1[1] = {{&my_value, {1,0,0,0}, 1, dimensions1}};
+      nanos_data_access_t data_accesses1[1] = {{&my_value, {1,0,0,0}, 1, dimensions1, 0}};
 
       nanos_wd_t wd1 = 0;
       nanos_device_t test_devices_4[1] = { NANOS_SMP_DESC( test_device_arg_4 ) };
@@ -333,7 +334,7 @@ bool multiple_antidependencies()
 
    int *dep_addr2 = &my_value;
    nanos_region_dimension_t dimensions2[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-   nanos_data_access_t data_accesses2[1] = {{&my_value, {1,1,0,0}, 1, dimensions2}};
+   nanos_data_access_t data_accesses2[1] = {{&my_value, {1,1,0,0}, 1, dimensions2, 0}};
    my_args *args2=0;
 
    nanos_wd_t wd2=0;
@@ -365,7 +366,7 @@ bool out_dep_chain()
    for ( i = 0; i < 100; i++ ) {
       my_args *args2=0;
       nanos_region_dimension_t dimensions2[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses2[1] = {{&my_value, {0,1,0,0}, 1, dimensions2}};
+      nanos_data_access_t data_accesses2[1] = {{&my_value, {0,1,0,0}, 1, dimensions2, 0}};
       nanos_wd_t wd2 = 0;
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1 ) };
       NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_1, sizeof(my_args), __alignof__(my_args),(void**)&args2, nanos_current_wd(), &props, 0, NULL) );
@@ -376,7 +377,7 @@ bool out_dep_chain()
    int input=500;
    int * input_addr = &input;
    nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-   nanos_data_access_t data_accesses1[1] = {{&my_value, {0,1,0,0}, 1, dimensions1}};
+   nanos_data_access_t data_accesses1[1] = {{&my_value, {0,1,0,0}, 1, dimensions1, 0}};
    my_args *args1=0;
    nanos_wd_t wd1=0;
    nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_4) };
@@ -407,7 +408,7 @@ bool wait_on_test()
       int * dep_addr1 = &my_value[j];
       my_args *args1=0;
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value[j]), 0, sizeof(my_value[j])}};
-      nanos_data_access_t data_accesses1[1] = {{&my_value[j], {0,1,0,0}, 1, dimensions1}};
+      nanos_data_access_t data_accesses1[1] = {{&my_value[j], {0,1,0,0}, 1, dimensions1, 0}};
       nanos_wd_t wd1 = 0;
 
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1 ) };
@@ -421,7 +422,7 @@ bool wait_on_test()
    for ( j = 0; j < size; j++ ) {
       nanos_region_dimension_t dim = {sizeof(my_value[j]), 0, sizeof(my_value[j])};
       dimensions2[j][0] = dim;
-      nanos_data_access_t da = {&my_value[j], {1,0,0,0}, 1, dimensions2[j]};
+      nanos_data_access_t da = {&my_value[j], {1,0,0,0}, 1, dimensions2[j], 0};
       data_accesses2[j] = da;
    }
    
@@ -451,7 +452,7 @@ bool create_and_run_test()
       int * dep_addr1 = &my_value[j];
       my_args *args1=0;
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value[j]), 0, sizeof(my_value[j])}};
-      nanos_data_access_t data_accesses1[1] = {{&my_value[j], {0,1,0,0}, 1, dimensions1}};
+      nanos_data_access_t data_accesses1[1] = {{&my_value[j], {0,1,0,0}, 1, dimensions1, 0}};
       nanos_wd_t wd1 = 0;
 
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1 ) };
@@ -465,7 +466,7 @@ bool create_and_run_test()
    for ( j = 0; j < 100; j++ ) {
       nanos_region_dimension_t dim = {sizeof(my_value[j]), 0, sizeof(my_value[j])};
       dimensions2[j][0] = dim;
-      nanos_data_access_t da = {&my_value[j], {1,0,0,0}, 1, dimensions2[j]};
+      nanos_data_access_t da = {&my_value[j], {1,0,0,0}, 1, dimensions2[j], 0};
       data_accesses2[j] = da;
    }
 
@@ -505,7 +506,7 @@ bool commutative_task_1()
 
    my_args2 *args1=0;
    nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-   nanos_data_access_t data_accesses1[1] = {{my_value, {0,1,0,0}, 1, dimensions1}};
+   nanos_data_access_t data_accesses1[1] = {{my_value, {0,1,0,0}, 1, dimensions1, 0}};
    nanos_wd_t wd1 = 0;
 
    nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_6 ) };
@@ -517,7 +518,7 @@ bool commutative_task_1()
    for ( j = 0; j < size; j++ ) {
       my_args2 *args1=0;
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses1[1] = {{my_value, {1,1,0,1}, 1, dimensions1}};
+      nanos_data_access_t data_accesses1[1] = {{my_value, {1,1,0,1}, 1, dimensions1, 0}};
       nanos_wd_t wd1 = 0;
 
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_5 ) };
@@ -560,7 +561,7 @@ bool commutative_task_2()
 
    my_args2 *args1=0;
    nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-   nanos_data_access_t data_accesses1[1] = {{my_value, {0,1,0,0}, 1, dimensions1}};
+   nanos_data_access_t data_accesses1[1] = {{my_value, {0,1,0,0}, 1, dimensions1, 0}};
    nanos_wd_t wd1 = 0;
 
    nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_6 ) };
@@ -572,7 +573,7 @@ bool commutative_task_2()
    for ( j = 0; j < size; j++ ) {
       my_args2 *args1=0;
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses1[1] = {{my_value, {1,1,0,1}, 1, dimensions1}};
+      nanos_data_access_t data_accesses1[1] = {{my_value, {1,1,0,1}, 1, dimensions1, 0}};
       nanos_wd_t wd1 = 0;
 
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_5 ) };
@@ -585,7 +586,7 @@ bool commutative_task_2()
    for ( j = 0; j < size; j++ ) {
       my_args3 *args1=0;
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses1[1] = {{my_value, {1,0,0,0}, 1, dimensions1}};
+      nanos_data_access_t data_accesses1[1] = {{my_value, {1,0,0,0}, 1, dimensions1, 0}};
       nanos_wd_t wd1 = 0;
 
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_7 ) };
@@ -631,7 +632,7 @@ bool commutative_task_3()
 
    my_args2 *args1=0;
    nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-   nanos_data_access_t data_accesses1[1] = {{&my_value, {0,1,0,0}, 1, dimensions1}};
+   nanos_data_access_t data_accesses1[1] = {{&my_value, {0,1,0,0}, 1, dimensions1, 0}};
    nanos_wd_t wd1 = 0;
 
    nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_6 ) };
@@ -643,7 +644,7 @@ bool commutative_task_3()
    for ( j = 0; j < size; j++ ) {
       my_args2 *args1=0;
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses1[1] = {{&my_value, {1,0,0,0}, 1, dimensions1}};
+      nanos_data_access_t data_accesses1[1] = {{&my_value, {1,0,0,0}, 1, dimensions1, 0}};
       nanos_wd_t wd1 = 0;
 
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_8 ) };
@@ -656,7 +657,7 @@ bool commutative_task_3()
    for ( j = 0; j < size; j++ ) {
       my_args2 *args1=0;
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses1[1] = {{&my_value, {1,1,0,1}, 1, dimensions1}};
+      nanos_data_access_t data_accesses1[1] = {{&my_value, {1,1,0,1}, 1, dimensions1, 0}};
       nanos_wd_t wd1 = 0;
 
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_5 ) };
@@ -669,7 +670,7 @@ bool commutative_task_3()
    for ( j = 0; j < size; j++ ) {
       my_args3 *args1=0;
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses1[1] = {{&my_value, {1,0,0,0}, 1, dimensions1}};
+      nanos_data_access_t data_accesses1[1] = {{&my_value, {1,0,0,0}, 1, dimensions1, 0}};
       nanos_wd_t wd1 = 0;
 
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_7 ) };
@@ -696,7 +697,7 @@ bool dependency_offset()
    int * dep_addr = &my_value;
    my_args *args1=0;
    nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-   nanos_data_access_t data_accesses1[1] = {{&my_value, {0,1,0,0}, 1, dimensions1}};
+   nanos_data_access_t data_accesses1[1] = {{&my_value, {0,1,0,0}, 1, dimensions1, 0}};
    nanos_wd_props_t props = {
      .mandatory_creation = true,
      .tied = false,
@@ -714,7 +715,7 @@ bool dependency_offset()
       // It is easier to check that using offsets that lead to the same dependency they are not broken than the oposite
       int * local_dep_addr = &my_value + i; // NOTE: if renaming is implemented this is not safe
       nanos_region_dimension_t dimensions2[1] = {{sizeof(my_value), -1L*i*sizeof(int), sizeof(my_value)}};
-      nanos_data_access_t data_accesses2[1] = {{local_dep_addr, {1,1,0,0}, 1, dimensions2}};
+      nanos_data_access_t data_accesses2[1] = {{local_dep_addr, {1,1,0,0}, 1, dimensions2, 0}};
       nanos_wd_t wd2 = 0;
       nanos_device_t test_devices_2[1] = { NANOS_SMP_DESC( test_device_arg_2 ) };
       NANOS_SAFE( nanos_create_wd ( &wd2, 1,test_devices_2, sizeof(my_args), __alignof__(my_args), (void**)&args2, nanos_current_wd(), &props, 0, NULL) );
