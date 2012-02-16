@@ -66,6 +66,9 @@ typedef struct {
    /* Number of dimensions */
    short dimension_count;
    
+   /* The first dimension will be the contiguous one, and its size and
+    * offset must be expressed in bytes, not elements.
+    */
    nanos_region_dimension_internal_t const *dimensions;
    
    /* Offset of the first element */
