@@ -40,6 +40,8 @@ DependenciesDomain::MappedType* DependenciesDomain::lookupDependency ( const Tar
    
    DepsMap::iterator it = _addressDependencyMap.find( target ); 
    if ( it == _addressDependencyMap.end() ) {
+      // Lock this so we avoid problems when concurrently calling deleteLastWriter
+      SyncRecursiveLockBlock lock1( _instanceLock );
       status = NEW MappedType( target );
       _addressDependencyMap.insert( std::make_pair( target, status ) );
    } else {
@@ -246,7 +248,8 @@ inline void DependenciesDomain::submitDependableObjectDataAccess ( DependableObj
       }
    }
    
-   SyncRecursiveLockBlock lock1( _instanceLock );
+   // gmiranda: this lock is only required in lookupDependency
+   //SyncRecursiveLockBlock lock1( _instanceLock );
    //typedef std::set<RegionMap::iterator> subregion_set_t;
    // TODO (gmiranda): replace this by a call to findAndPopulate
 #if 0
