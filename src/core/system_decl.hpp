@@ -58,6 +58,9 @@ namespace nanos
          typedef std::vector<BaseThread *> ThreadList;
          typedef std::map<std::string, Slicer *> Slicers;
          
+         // globla seeds
+         Atomic<int> _atomicWDSeed;
+
          // configuration variables
          int                  _numPEs;
          int                  _deviceStackSize;
@@ -142,6 +145,8 @@ namespace nanos
 
          void start ();
          void finish ();
+
+         int getWorkDescriptorId( void );
 
          void submit ( WD &work );
          void submitWithDependencies (WD& work, size_t numDeps, Dependency* deps);
