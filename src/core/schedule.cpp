@@ -565,16 +565,17 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    /* If WorkDescriptor has been submitted update statistics */
    updateExitStats (*wd);
 
+   /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters */
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, true) );
+
    wd->done();
    wd->clear();
 
    debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
           " to " << oldwd << ":" << oldwd->getId() );
 
-   /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters */
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(NULL, wd, true) );
    thread->setCurrentWD( *oldwd );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldwd, NULL, false) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(NULL, oldwd, false) );
 
    // While we tie the inlined tasks this is not needed
    // as we will always return to the current thread
