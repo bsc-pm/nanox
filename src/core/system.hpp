@@ -82,6 +82,8 @@ inline bool System::getUntieMaster () const { return _untieMaster; }
 inline void System::setSynchronizedStart ( bool value ) { _synchronizedStart = value; }
 inline bool System::getSynchronizedStart ( void ) const { return _synchronizedStart; }
 
+inline int System::getWorkDescriptorId( void ) { return _atomicWDSeed++; }
+
 inline int System::getReadyNum() const { return _schedStats._readyTasks.value(); }
 
 inline int System::getRunningTasks() const

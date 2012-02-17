@@ -44,10 +44,10 @@ using namespace nanos;
 
 System nanos::sys;
 
-Atomic<int> WorkGroup::_atomicSeed( 1 );
 
 // default system values go here
 System::System () :
+      _atomicWDSeed( 1 ),
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ), _thsPerPE( 1 ),
       _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ), _throttlePolicy ( NULL ),
