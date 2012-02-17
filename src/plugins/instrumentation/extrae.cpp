@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <libgen.h>
 #include "os.hpp"
+#include "errno.h"
 
 /* NANOX_EXTRAE_DEFINE_CALLBACKS will allow to define which are our external services
  * to specify the execution environment ( thread id, total threads, etc ). They are
@@ -134,8 +135,27 @@ class InstrumentationExtrae: public Instrumentation
             exit(result);
          }
          else {
-            waitpid( pid, &status, options);
-            if ( status != 0 ) message0("Error while merging trace (mpi2prv returns: " << status << ")");
+            if ( pid < 0 ) {
+                int errsv = errno;
+                message0("Error: Cannot execute mpi2prv due following error:");
+                switch ( errsv ){
+                   case EAGAIN:
+                      message0("fork() cannot allocate sufficient memory to copy the parent's page tables and allocate a task structure for the child.");
+                      break;
+                   case ENOMEM:
+                      message0("fork() failed to allocate the necessary kernel structures because memory is tight.");
+                      break;
+                   default:
+                      message0("fork() unknow error.");
+                      break;
+                }
+                message0("Keeping .mpits files. You can try to execute mpi2prv manually:");
+                message0(str << " -f " << _listOfTraceFileNames.c_str() << " -o " << _traceFileName_PRV.c_str() << " -e " << _binFileName.c_str() );
+                _keepMpits = true;
+            } else {
+               waitpid( pid, &status, options);
+               if ( status != 0 ) message0("Error while merging trace (mpi2prv returns: " << status << ")");
+            }
          }
       }
 
