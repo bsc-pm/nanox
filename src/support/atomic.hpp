@@ -199,7 +199,8 @@ inline void Lock::acquire ( void )
 {
    if ( (_state == NANOS_LOCK_FREE) &&  !__sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) return;
 
-   NANOS_INSTRUMENT( InstrumentState inst(NANOS_ACQUIRING_LOCK) )
+   // Disabling lock instrumentation; do not remove follow code which can be reenabled for testing purposes
+   // NANOS_INSTRUMENT( InstrumentState inst(NANOS_ACQUIRING_LOCK) )
 
 spin:
 
@@ -207,7 +208,7 @@ spin:
 
    if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) goto spin;
 
-   NANOS_INSTRUMENT( inst.close() )
+   // NANOS_INSTRUMENT( inst.close() )
 }
 
 inline void Lock::acquire_noinst ( void )
