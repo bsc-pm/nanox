@@ -29,19 +29,17 @@ using namespace nanos;
 using namespace nanos::ext;
 
 Atomic<int> GPUProcessor::_deviceSeed = 0;
-size_t GPUProcessor::_memoryAlignment = 256;
 
 
 GPUProcessor::GPUProcessor( int id, int gpuId ) : CachedAccelerator<GPUDevice>( id, &GPU ),
-      _gpuDevice( _deviceSeed++ ), _gpuProcessorTransfers(), _allocator(), _inputPinnedMemoryBuffer()
+      _gpuDevice( _deviceSeed++ ), _gpuProcessorStats(), _gpuProcessorTransfers(), _allocator(),
+      _inputPinnedMemoryBuffer()
 {
    _gpuProcessorInfo = NEW GPUProcessorInfo( gpuId );
 }
 
 GPUProcessor::~GPUProcessor()
 {
-   printStats();
-
    delete _gpuProcessorInfo;
 }
 
@@ -87,6 +85,9 @@ void GPUProcessor::init ()
    GPUConfig::setOverlappingInputs( inputStream );
    GPUConfig::setOverlappingOutputs( outputStream );
 
+   // Get GPU memory alignment to allow the use of textures
+   _memoryAlignment = gpuProperties.textureAlignment;
+
    // We allocate the whole GPU memory
    // WARNING: GPUDevice::allocateWholeMemory() must be called first, as it may
    // modify maxMemoryAvailable, in the case of not being able to allocate as
@@ -120,9 +121,24 @@ void GPUProcessor::init ()
    }
 }
 
+void GPUProcessor::cleanUp()
+{
+   cudaError_t err = cudaGetLastError();
+   if ( err != cudaSuccess ) {
+      warning("WARNING: CUDA reported errors during application's execution: " << cudaGetErrorString(err));
+   }
+   _gpuProcessorInfo->destroyTransferStreams();
+   // When cache is disabled, calling this function hangs the execution
+   // Otherwise, it can take ages to finish, so we avoid calling it by now
+   //if ( sys.isCacheEnabled() ) freeWholeMemory();
+   printStats();
+}
+
 void GPUProcessor::freeWholeMemory()
 {
-   GPUDevice::freeWholeMemory( ( void * ) _allocator.getBaseAddress() );
+   void * baseAddress = ( void * ) _allocator.getBaseAddress();
+   GPUDevice::freeWholeMemory( baseAddress );
+   _allocator.free( baseAddress );
 }
 
 size_t GPUProcessor::getMaxMemoryAvailable ( int id )

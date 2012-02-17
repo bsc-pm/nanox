@@ -548,7 +548,6 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
 
    thread->setCurrentWD( *wd );
 
-   /* Instrumenting context switch: wd enters cpu (last = n/a) */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
 
    thread->inlineWorkDependent(*wd);
@@ -567,19 +566,15 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    updateExitStats (*wd);
 
    wd->done();
-
-   /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) */
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, true) );
-
+   wd->clear();
 
    debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
           " to " << oldwd << ":" << oldwd->getId() );
 
-
+   /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters */
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(NULL, wd, true) );
    thread->setCurrentWD( *oldwd );
-
-   /* Instrumenting context switch: oldwd is comming back cpu (last = n/a) */
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, oldwd, false) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldwd, NULL, false) );
 
    // While we tie the inlined tasks this is not needed
    // as we will always return to the current thread

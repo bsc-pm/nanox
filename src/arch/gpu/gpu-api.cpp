@@ -17,8 +17,8 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "nanos-gpu.h"
 #include "nanos.h"
+#include "nanos-gpu.h"
 #include "basethread.hpp"
 #include "gpudd.hpp"
 #include "gpuprocessor.hpp"
@@ -28,7 +28,7 @@ using namespace nanos;
 
 const size_t nanos_gpu_dd_size = sizeof(ext::GPUDD);
 
-void * nanos_gpu_factory( void *prealloc, void *args )
+NANOS_API_DEF(void *, nanos_gpu_factory, ( void *prealloc, void *args ))
 {
    nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
    if ( prealloc != NULL )
@@ -42,7 +42,23 @@ void * nanos_gpu_factory( void *prealloc, void *args )
 }
 
 
-cudaStream_t nanos_get_kernel_execution_stream()
+NANOS_API_DEF( cudaStream_t, nanos_get_kernel_execution_stream, ( void ) )
 {
    return ( ( nanos::ext::GPUProcessor *) getMyThreadSafe()->runningOn() )->getGPUProcessorInfo()->getKernelExecStream();
 }
+
+NANOS_API_DEF( cublasHandle_t, nanos_get_cublas_handle, ( void ) )
+{
+   return ( cublasHandle_t ) ( ( nanos::ext::GPUThread *)getMyThreadSafe() )->getCUBLASHandle();
+}
+
+NANOS_API_DEF(void *, nanos_malloc_pinned_cuda, ( size_t size ))
+{
+   return sys.getPinnedAllocatorCUDA().allocate( size );
+}
+
+NANOS_API_DEF( void, nanos_free_pinned_cuda, ( void * address ) )
+{
+   return sys.getPinnedAllocatorCUDA().free( address );
+}
+

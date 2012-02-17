@@ -259,20 +259,22 @@ namespace nanos {
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_FREE_EVENT", "cudaFree()" );                                         /* 2 */
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MALLOC_HOST_EVENT", "cudaMallocHost()" );                            /* 3 */
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_FREE_HOST_EVENT", "cudaFreeHost()" );                                /* 4 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_TO_HOST_EVENT", "cudaMemcpyDeviceToHost()" );                /* 5 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_TO_DEVICE_EVENT", "cudaMemcpyHostToDevice()" );              /* 6 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_HOST_EVENT", "cudaMemcpyAsyncDeviceToHost()" );     /* 7 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_DEVICE_EVENT", "cudaMemcpyAsyncHostToDevice()" );   /* 8 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_INPUT_STREAM_SYNC_EVENT", "cudaInputStreamSynchronize()" );          /* 9 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_OUTPUT_STREAM_SYNC_EVENT", "cudaOutputStreamSynchronize()" );        /* 10 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_KERNEL_STREAM_SYNC_EVENT", "cudaKernelStreamSynchronize()" );        /* 11 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_THREAD_SYNC_EVENT", "cudaThreadSynchronize()" );                     /* 12 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_SET_DEVICE_EVENT", "cudaSetDevice()" );                              /* 13 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GET_DEVICE_PROPS_EVENT", "cudaGetDeviceProperties()" );              /* 14 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_SET_DEVICE_FLAGS_EVENT", "cudaSetDeviceFlags()" );                   /* 15 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT", "cudaGetLastError()" );                       /* 16 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GENERIC_EVENT", "CUDA generic event" );                              /* 17 */
-            registerEventValue("in-cuda-runtime", "NANOS_GPU_MEMCOPY_EVENT", "memcpy()" );                                             /* 18 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_EVENT", "cudaMemcpyDeviceToDevice()" );                      /* 5 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_TO_HOST_EVENT", "cudaMemcpyDeviceToHost()" );                /* 6 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_TO_DEVICE_EVENT", "cudaMemcpyHostToDevice()" );              /* 7 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_ASYNC_EVENT", "cudaMemcpyPeerAsync()" );                     /* 8 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_HOST_EVENT", "cudaMemcpyAsyncDeviceToHost()" );     /* 9 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_DEVICE_EVENT", "cudaMemcpyAsyncHostToDevice()" );   /* 10 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_INPUT_STREAM_SYNC_EVENT", "cudaInputStreamSynchronize()" );          /* 11 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_OUTPUT_STREAM_SYNC_EVENT", "cudaOutputStreamSynchronize()" );        /* 12 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_KERNEL_STREAM_SYNC_EVENT", "cudaKernelStreamSynchronize()" );        /* 13 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_DEVICE_SYNC_EVENT", "cudaDeviceSynchronize()" );                     /* 14 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_SET_DEVICE_EVENT", "cudaSetDevice()" );                              /* 15 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GET_DEVICE_PROPS_EVENT", "cudaGetDeviceProperties()" );              /* 16 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_SET_DEVICE_FLAGS_EVENT", "cudaSetDeviceFlags()" );                   /* 17 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT", "cudaGetLastError()" );                       /* 18 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GENERIC_EVENT", "CUDA generic event" );                              /* 19 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_MEMCOPY_EVENT", "memcpy()" );                                             /* 20 */
             /* 28 */ registerEventKey("xfer-size","Transfer size");
 
             /* 29 */ registerEventKey("cache-wait","Cache waiting for something");

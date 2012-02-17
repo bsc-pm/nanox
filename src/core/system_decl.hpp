@@ -36,6 +36,10 @@
 #include "plugin_decl.hpp"
 #include "barrier_decl.hpp"
 
+#ifdef GPU_DEV
+#include "pinnedallocator_decl.hpp"
+#endif
+
 
 namespace nanos
 {
@@ -49,7 +53,7 @@ namespace nanos
          // constants
          typedef enum { DEDICATED, SHARED } ExecutionMode;
          typedef enum { POOL, ONE_THREAD } InitialMode;
-         typedef enum { WRITE_THROUGH, WRITE_BACK, DEFAULT } CachePolicyType;
+         typedef enum { NONE, WRITE_THROUGH, WRITE_BACK, DEFAULT } CachePolicyType;
          typedef Config::MapVar<CachePolicyType> CachePolicyConfig;
 
       private:
@@ -121,10 +125,17 @@ namespace nanos
          // Programming model interface
          PMInterface *        _pmInterface;
 
-         // General cache policy (if not specifically redefined for a certain architecture)
+         //! Enable or disable the use of caches
+         bool                 _useCaches;
+         //! General cache policy (if not specifically redefined for a certain architecture)
          CachePolicyType      _cachePolicy;
-         // CacheMap register
+         //! CacheMap register
          CacheMap             _cacheMap;
+
+#ifdef GPU_DEV
+         //! Keep record of the data that's directly allocated on pinned memory
+         PinnedAllocator      _pinnedMemoryCUDA;
+#endif
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -304,8 +315,13 @@ namespace nanos
 
          void setPMInterface (PMInterface *_pm);
          PMInterface & getPMInterface ( void ) const;
+         bool isCacheEnabled();
          CachePolicyType getCachePolicy();
          CacheMap& getCacheMap();
+
+#ifdef GPU_DEV
+         PinnedAllocator& getPinnedAllocatorCUDA();
+#endif
 
          void threadReady ();
 

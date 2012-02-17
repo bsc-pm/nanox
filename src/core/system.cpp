@@ -55,7 +55,11 @@ System::System () :
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _pausedThreads( 0 ),
       _pausedThreadsCond(), _unpausedThreadsCond(),
-      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _pmInterface( NULL ), _cachePolicy( System::DEFAULT ), _cacheMap()
+      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _pmInterface( NULL ),
+      _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap()
+#ifdef GPU_DEV
+      , _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
+#endif
 {
    verbose0 ( "NANOS++ initializing... start" );
    // OS::init must be called here and not in System::start() as it can be too late
@@ -221,9 +225,13 @@ void System::config ()
    cfg.registerArgOption ( "architecture", "architecture" );
    cfg.registerEnvOption ( "architecture", "NX_ARCHITECTURE" );
 
+   cfg.registerConfigOption ( "no-caches", NEW Config::FlagOption( _useCaches, false ), "Disables the use of caches" );
+   cfg.registerArgOption ( "no-caches", "disable-caches" );
+
    CachePolicyConfig *cachePolicyCfg = NEW CachePolicyConfig ( _cachePolicy );
    cachePolicyCfg->addOption("wt", System::WRITE_THROUGH );
    cachePolicyCfg->addOption("wb", System::WRITE_BACK );
+   cachePolicyCfg->addOption( "nocache", System::NONE );
 
    cfg.registerConfigOption ( "cache-policy", cachePolicyCfg, "Defines the general cache policy to use: write-through / write-back. Can be overwritten for specific architectures" );
    cfg.registerArgOption ( "cache-policy", "cache-policy" );
@@ -246,6 +254,8 @@ PE * System::createPE ( std::string pe_type, int pid )
 
 void System::start ()
 {
+   if ( !_useCaches ) _cachePolicy = System::NONE;
+
    loadModules();
 
    // Instrumentation startup
@@ -263,6 +273,7 @@ void System::start ()
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 
    WD &mainWD = *myThread->getCurrentWD();
+   (void) mainWD.getDirectory(true);
    
    if ( _pmInterface->getInternalDataSize() > 0 )
      mainWD.setInternalData( NEW char[_pmInterface->getInternalDataSize()] );
@@ -310,6 +321,10 @@ void System::start ()
    spu->startWorker();
 #endif
 
+   /* Master thread is ready and waiting for the rest of the gang */
+   if ( getSynchronizedStart() )
+     threadReady();
+
    switch ( getInitialMode() )
    {
       case POOL:
@@ -324,16 +339,12 @@ void System::start ()
    }
    
    // Paused threads: set the condition checker 
-   _pausedThreadsCond.setConditionChecker( EqualConditionChecker<unsigned int >( &_pausedThreads.override(), getThsPerPE() * numPes ) );
+   _pausedThreadsCond.setConditionChecker( EqualConditionChecker<unsigned int >( &_pausedThreads.override(), _workers.size() ) );
    _unpausedThreadsCond.setConditionChecker( EqualConditionChecker<unsigned int >( &_pausedThreads.override(), 0 ) );
 
    // All initialization is ready, call postInit hooks
    const OS::InitList & externalInits = OS::getPostInitializationFunctions();
    std::for_each(externalInits.begin(),externalInits.end(), ExecInit());
-
-   /* Master thread is ready and waiting for the rest of the gang */
-   if ( getSynchronizedStart() )   
-     threadReady();
 
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_RUNNING) );

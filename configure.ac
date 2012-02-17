@@ -69,10 +69,10 @@ case $host in
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=ia64
     ;;
-  armv7l-*-linux*)
+  armv71-*-linux*)
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
-    SMP_ARCH=armv7l
+    SMP_ARCH=armv71
     ;;
   powerpc-*-linux* | powerpc64-*-linux*)
     OS=unix-os

@@ -23,6 +23,8 @@
 #include <cuda_runtime.h>
 #include <vector_types.h>
 
+#include "nanos.h"
+
 #ifdef NANOS_GPU_USE_CUDA32
 #include <cublas_api.h>
 #else
@@ -34,14 +36,33 @@
 extern "C" {
 #endif
 
-   // gpu factory
-void * nanos_gpu_factory( void *prealloc ,void *args);
+void * nanos_gpu_factory( void *prealloc , void *args );
 extern const size_t nanos_gpu_dd_size;
 #define NANOS_GPU_DESC( args ) { nanos_gpu_factory, nanos_gpu_dd_size, &( args ) }
 
 cudaStream_t nanos_get_kernel_execution_stream();
 
 cublasHandle_t nanos_get_cublas_handle();
+
+void * nanos_malloc_pinned_cuda ( size_t size );
+void nanos_free_pinned_cuda ( void * address );
+
+
+// Commented out by now, as it does not compile
+#if 0
+   // gpu factory
+NANOS_API_DECL(void *, nanos_gpu_factory,( void *prealloc ,void *args));
+extern const size_t nanos_gpu_dd_size;
+#define NANOS_GPU_DESC( args ) { nanos_gpu_factory, nanos_gpu_dd_size, &( args ) }
+
+NANOS_API_DECL(cudaStream_t, nanos_get_kernel_execution_stream,());
+
+NANOS_API_DECL(cublasHandle_t, nanos_get_cublas_handle,());
+
+// Pinned memory
+NANOS_API_DECL( void *, nanos_malloc_pinned_cuda, ( size_t size ) );
+NANOS_API_DECL( void, nanos_free_pinned_cuda, ( void * address ) );
+#endif
 
 #ifdef __cplusplus
 }

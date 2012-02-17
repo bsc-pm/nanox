@@ -17,44 +17,39 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "plugin.hpp"
-#include "system_decl.hpp"
-
 #include <iostream>
+#include <cstring>
+#include "pinnedallocator.hpp"
+#include "gpudevice_decl.hpp"
 
-#include <cuda_runtime.h>
-
-#ifdef NANOS_GPU_USE_CUDA32
-// Cannot include cublas.h, as the redeclaration of two CUBLAS functions makes the
-// compiler crash because we are treating warnings as errors
-//#include <cublas.h>
-extern void cublasInit();
-#else
-#include <cublas.h>
-#include <cublas_v2.h>
-#endif
+using namespace nanos;
 
 
-namespace nanos {
-namespace ext {
-
-class GPUCublasPlugin : public Plugin
+void * CUDAPinnedMemoryManager::allocate( size_t size )
 {
-   public:
-      GPUCublasPlugin() : Plugin( "CUBLAS Warmup Plugin", 1 ) {}
-
-      void config( Config& cfg ) {}
-
-      void init()
-      {
-#ifdef NANOS_GPU_USE_CUDA32
-         cublasInit();
-#endif
-         cudaFree( NULL );
-      }
-};
-
-}
+   return GPUDevice::allocatePinnedMemory( size );
 }
 
-DECLARE_PLUGIN("arch-gpucublas",nanos::ext::GPUCublasPlugin);
+void CUDAPinnedMemoryManager::free( void * address )
+{
+   return GPUDevice::freePinnedMemory( address );
+}
+
+
+bool PinnedAllocator::isPinned( void * address )
+{
+   return ( _pinnedChunks.count( address ) == 1 );
+}
+
+void PinnedAllocator::printPinnedMemoryMap()
+{
+   std::cout << "PINNED MEMORY CHUNKS" << std::endl;
+   for (PinnedMemoryMap::iterator it = _pinnedChunks.begin(); it != _pinnedChunks.end(); it++ ) {
+      std::cout << "|... ";
+      std::cout << it->first << " @ " << it->second;
+      std::cout << " ...";
+   }
+   std::cout << "|" << std::endl;
+}
+
+

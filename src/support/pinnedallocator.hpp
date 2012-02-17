@@ -17,44 +17,43 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "plugin.hpp"
-#include "system_decl.hpp"
+#ifndef _NANOS_PINNEDALLOCATOR
+#define _NANOS_PINNEDALLOCATOR
 
-#include <iostream>
+#include <stdint.h>
+#include <map>
+#include "pinnedallocator_decl.hpp"
+#include "atomic.hpp"
 
-#include <cuda_runtime.h>
+using namespace nanos;
 
-#ifdef NANOS_GPU_USE_CUDA32
-// Cannot include cublas.h, as the redeclaration of two CUBLAS functions makes the
-// compiler crash because we are treating warnings as errors
-//#include <cublas.h>
-extern void cublasInit();
-#else
-#include <cublas.h>
-#include <cublas_v2.h>
-#endif
+PinnedMemoryManager::PinnedMemoryManager() {}
+PinnedMemoryManager::~PinnedMemoryManager() {}
 
 
-namespace nanos {
-namespace ext {
+CUDAPinnedMemoryManager::CUDAPinnedMemoryManager() {}
+CUDAPinnedMemoryManager::~CUDAPinnedMemoryManager() {}
 
-class GPUCublasPlugin : public Plugin
+
+PinnedAllocator::PinnedAllocator( PinnedMemoryManager * manager) : _pinnedChunks(), _manager( manager ), _lock() {}
+
+void * PinnedAllocator::allocate( size_t size )
 {
-   public:
-      GPUCublasPlugin() : Plugin( "CUBLAS Warmup Plugin", 1 ) {}
+   void * addr = _manager->allocate( size );
 
-      void config( Config& cfg ) {}
+   _lock.acquire();
+   _pinnedChunks[ addr ] = size;
+   _lock.release();
 
-      void init()
-      {
-#ifdef NANOS_GPU_USE_CUDA32
-         cublasInit();
-#endif
-         cudaFree( NULL );
-      }
-};
-
-}
+   return addr;
 }
 
-DECLARE_PLUGIN("arch-gpucublas",nanos::ext::GPUCublasPlugin);
+void PinnedAllocator::free( void * address )
+{
+   _lock.acquire();
+   _pinnedChunks.erase( address );
+   _lock.release();
+   _manager->free( address );
+}
+
+#endif /* _NANOS_PINNEDALLOCATOR */

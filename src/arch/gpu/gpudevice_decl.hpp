@@ -164,6 +164,11 @@ namespace nanos
           *        to dst in the host, where src is an intermediate buffer
           */
          static void copyOutAsyncToHost( void * src, void * dst, size_t size );
+
+         /* \brief Copy from addrSrc in peSrc device to addrDst in peDst device
+          *        Returns true if the operation is synchronous
+          */
+         static bool copyDevToDev( void * addrDst, CopyDescriptor& dstCd, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc );
    };
 }
 

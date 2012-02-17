@@ -44,8 +44,16 @@ namespace ext
          class GPUProcessorStats
          {
             public:
-               unsigned int   _bytesIn;
-               unsigned int   _bytesOut;
+               Atomic<unsigned int>    _bytesIn;
+               Atomic<unsigned int>    _bytesOut;
+               Atomic<unsigned int>    _bytesDevice;
+
+               GPUProcessorStats()
+               {
+                  _bytesIn = 0;
+                  _bytesOut = 0;
+                  _bytesDevice = 0;
+               }
          };
 
          class GPUProcessorTransfers
@@ -73,7 +81,7 @@ namespace ext
          // Configuration variables
          static Atomic<int>      _deviceSeed; //! Number of GPU devices assigned to threads
          int                     _gpuDevice; //! Assigned GPU device Id
-         static size_t           _memoryAlignment;
+         size_t                  _memoryAlignment;
          GPUProcessorInfo *      _gpuProcessorInfo; //! Information related to the GPU device that represents
          GPUProcessorStats       _gpuProcessorStats; //! Statistics of data copied in and out to / from cache
          GPUProcessorTransfers   _gpuProcessorTransfers; //! Keep the list of pending memory transfers
@@ -96,6 +104,7 @@ namespace ext
          virtual ~GPUProcessor();
 
          void init();
+         void cleanUp();
          void freeWholeMemory();
 
          WD & getWorkerWD () const;
@@ -104,6 +113,11 @@ namespace ext
 
          //! Capability query functions
          bool supportsUserLevelThreads () const { return false; }
+
+         int getDeviceId ()
+         {
+            return _gpuDevice;
+         }
 
          // Allocator interface
          void * allocate ( size_t size )
@@ -152,6 +166,11 @@ namespace ext
             _gpuProcessorStats._bytesOut += ( unsigned int ) size;
          }
 
+         void transferDevice ( size_t size )
+         {
+            _gpuProcessorStats._bytesDevice += ( unsigned int ) size;
+         }
+
          GPUMemoryTransferList * getInTransferList ()
          {
             return _gpuProcessorTransfers._pendingCopiesIn;
@@ -165,8 +184,9 @@ namespace ext
          void printStats ()
          {
             message("GPU " << _gpuDevice << " TRANSFER STATISTICS");
-            message("Total input transfers: " << _gpuProcessorStats._bytesIn << " bytes");
-            message("Total output transfers: " << _gpuProcessorStats._bytesOut << " bytes");
+            message("Total input transfers: " << _gpuProcessorStats._bytesIn.value() << " bytes");
+            message("Total output transfers: " << _gpuProcessorStats._bytesOut.value() << " bytes");
+            message("Total device transfers: " << _gpuProcessorStats._bytesDevice.value() << " bytes");
          }
    };
 

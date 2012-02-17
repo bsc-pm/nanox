@@ -17,44 +17,67 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "plugin.hpp"
-#include "system_decl.hpp"
+#ifndef _NANOS_PINNEDALLOCATOR_DECL
+#define _NANOS_PINNEDALLOCATOR_DECL
 
-#include <iostream>
+#include <stdint.h>
+#include <map>
 
-#include <cuda_runtime.h>
-
-#ifdef NANOS_GPU_USE_CUDA32
-// Cannot include cublas.h, as the redeclaration of two CUBLAS functions makes the
-// compiler crash because we are treating warnings as errors
-//#include <cublas.h>
-extern void cublasInit();
-#else
-#include <cublas.h>
-#include <cublas_v2.h>
-#endif
-
+#include "atomic_decl.hpp"
 
 namespace nanos {
-namespace ext {
 
-class GPUCublasPlugin : public Plugin
-{
-   public:
-      GPUCublasPlugin() : Plugin( "CUBLAS Warmup Plugin", 1 ) {}
 
-      void config( Config& cfg ) {}
+   /*! \brief Specialized class to allocate pinned memory depending on how this memory
+    *         will be used afterwards
+    */
+   class PinnedMemoryManager
+   {
+      public:
+         PinnedMemoryManager();
+         ~PinnedMemoryManager();
 
-      void init()
-      {
-#ifdef NANOS_GPU_USE_CUDA32
-         cublasInit();
-#endif
-         cudaFree( NULL );
-      }
-};
+         virtual void * allocate( size_t size ) = 0;
+         virtual void free( void * address ) = 0;
 
+   };
+
+   /*! \brief Class to allocate and free pinned memory using CUDA runtime
+    *
+    */
+   class CUDAPinnedMemoryManager : public PinnedMemoryManager
+   {
+      public:
+         CUDAPinnedMemoryManager();
+         ~CUDAPinnedMemoryManager();
+
+         void * allocate( size_t size );
+         void free( void * address );
+   };
+
+
+   /*! \brief Memory allocator to manage pinned memory allocations
+    */
+   class PinnedAllocator
+   {
+      private:
+         typedef std::map < void *, size_t > PinnedMemoryMap;
+
+         PinnedMemoryMap            _pinnedChunks;
+         PinnedMemoryManager     *  _manager;
+
+         Lock                       _lock;
+
+      public:
+         PinnedAllocator( PinnedMemoryManager * manager );
+
+         void * allocate( size_t len );
+
+         void free( void * address );
+
+         bool isPinned( void * address );
+
+         void printPinnedMemoryMap();
+   };
 }
-}
-
-DECLARE_PLUGIN("arch-gpucublas",nanos::ext::GPUCublasPlugin);
+#endif /* _NANOS_PINNEDALLOCATOR */
