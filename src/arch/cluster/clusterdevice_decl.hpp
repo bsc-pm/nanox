@@ -53,7 +53,7 @@ namespace nanos
          static void free( void *address, ProcessingElement *pe );
          static void * realloc( void *address, size_t newSize, size_t oldSize, ProcessingElement *pe );
 
-         static bool copyDevToDev( void * addrDst, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc );
+         static bool copyDevToDev( void * addrDst, CopyDescriptor &dstCd, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc );
          static bool copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, ProcessingElement *pe );
          static bool copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size, ProcessingElement *pe );
 

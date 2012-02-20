@@ -25,6 +25,7 @@
 #include "hashmap_decl.hpp"
 #include "atomic_decl.hpp"
 #include "cache_map_decl.hpp"
+#include "debug.hpp"
 
 namespace nanos
 {

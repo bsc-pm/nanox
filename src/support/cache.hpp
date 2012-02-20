@@ -1227,14 +1227,25 @@ inline void * DeviceCache<_T>::getAddress( uint64_t tag )
    return result;
 }
 
+//template <class _T>
+//inline bool DeviceCache<_T>::copyData( void * dstAddr, CopyDescriptor &dstCd, void * srcAddr, size_t size, Cache & owner )
+//{
+//   bool result;
+//   DeviceCache< _T> *srcCache = dynamic_cast<DeviceCache< _T> *>( &owner );
+//   NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-local-copy") );
+//   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_LOCAL, key, size ) );
+//   result = _T::copyDevToDev( dstAddr, dstCd, srcAddr, size, _pe, srcCache->getPE() );
+//   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
+//   return result;
+//}
 template <class _T>
-inline bool DeviceCache<_T>::copyData( void * dstAddr, CopyDescriptor &dstCd, void * srcAddr, size_t size, Cache & owner )
+inline bool DeviceCache<_T>::copyToCacheFromCache( void *addrSrc, CopyDescriptor &dstCd, std::size_t size, Cache &src, void *addrDest )
 {
    bool result;
-   DeviceCache< _T> *srcCache = dynamic_cast<DeviceCache< _T> *>( &owner );
-   NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-local-copy") );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_LOCAL, key, size ) );
-   result = _T::copyDevToDev( dstAddr, dstCd, srcAddr, size, _pe, srcCache->getPE() );
+   DeviceCache< _T > *srcCache = dynamic_cast<DeviceCache< _T > *>(&src);
+   NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_IN, key, (nanos_event_value_t) size) );
+   result = _T::copyDevToDev( addrDest, dstCd, addrSrc, size, _pe, srcCache->getPE() );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
    return result;
 }
@@ -1540,7 +1551,7 @@ inline void DeviceCache<_T>::nNoinvalidateAndTransfer( Directory &dir, uint64_t 
       } else {
          CopyDescriptor cd = CopyDescriptor(tag, de->getVersion());
          //message("moving from node 2 node tag " << (void *)tag);
-         if ( dest.copyToCacheFromCache( ce->getAddress(), size, *this, addrDest ) ) {
+         if ( dest.copyToCacheFromCache( ce->getAddress(), cd, size, *this, addrDest ) ) {
             ce->setFlushing(false);
             ce->setCopying(false);
          }
@@ -1559,7 +1570,7 @@ inline void DeviceCache<_T>::invalidateAndTransfer( Directory &dir, uint64_t tag
                ce->setFlushing(false);
          } else {
             CopyDescriptor cd = CopyDescriptor(tag, de->getVersion());
-            if ( dest.copyToCacheFromCache( ce->getAddress(), size, *this, addrDest ) ) {
+            if ( dest.copyToCacheFromCache( ce->getAddress(), cd, size, *this, addrDest ) ) {
                ce->setFlushing(false);
                ce->setCopying(false);
                de->setOwner(NULL);

@@ -302,7 +302,7 @@ namespace nanos {
          *  \param cd Copy descriptor with the information about the addresses to be copied
          *  \param size Size of the data to be copied
          */
-virtual bool copyToCacheFromCache( void *srcAddr, std::size_t size, Cache &dest, void* addrDest ) = 0;
+virtual bool copyToCacheFromCache( void *srcAddr, CopyDescriptor &destCd, std::size_t size, Cache &dest, void* addrDest ) = 0;
          virtual bool copyDataToCache( CopyDescriptor& cd, std::size_t size ) = 0;
 
         /*! \brief Copy data back to the host
@@ -637,7 +637,7 @@ virtual bool copyToCacheFromCache( void *srcAddr, std::size_t size, Cache &dest,
          * \param cd: identifier of the entry
          * \param size: number of bytes to copy
          */
-bool copyToCacheFromCache( void *addrSrc, std::size_t size, Cache &dest, void *addrDest );
+bool copyToCacheFromCache( void *addrSrc, CopyDescriptor &destCd, std::size_t size, Cache &dest, void *addrDest );
          bool copyDataToCache( CopyDescriptor &cd, std::size_t size );
 
         /* \brief Copy back from the entry to the address represented by the tag.

@@ -77,7 +77,7 @@ System::System () :
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _pausedThreads( 0 ), _pausedThreadsCond(), _unpausedThreadsCond(),
       _usingCluster( false ),_usingNode2Node( true ), _conduit( "udp" ),
-      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL ),
+      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _pmInterface( NULL ),
       _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap(), _masterGpuThd( NULL ), _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
 {
    verbose0 ( "NANOS++ initializing... start" );
@@ -346,6 +346,7 @@ void System::start ()
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 
    WD &mainWD = *myThread->getCurrentWD();
+
    
    if ( _pmInterface->getInternalDataSize() > 0 )
      mainWD.setInternalData( NEW char[_pmInterface->getInternalDataSize()] );
@@ -455,7 +456,7 @@ void System::start ()
             _workers.push_back( *threadIterator );
          }
 
-         _net.setMasterDirectory( &_directory );
+         _net.setMasterDirectory( mainWD.getDirectory(true) );
       }
       else
       {
@@ -468,7 +469,9 @@ void System::start ()
          _net.setMasterDirectory( smpRepThd->getThreadWD().getDirectory(true) );
          setSlaveParentWD( &smpRepThd->getThreadWD() );
       }
-   }
+   } //else {
+//	   mainWD.getDirectory(true);
+//	}
 #endif
 
    if ( !_defDeviceName.empty() ) 

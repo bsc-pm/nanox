@@ -36,7 +36,7 @@
 #include "cache_map_decl.hpp"
 #include "plugin_decl.hpp"
 #include "barrier_decl.hpp"
-//#include "accelerator_decl.hpp"
+#include "accelerator_decl.hpp"
 #include "pinnedallocator_decl.hpp"
 
 

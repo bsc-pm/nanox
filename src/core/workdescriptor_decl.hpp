@@ -236,7 +236,7 @@ namespace nanos
                           _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ), _myQueue ( NULL ), _depth ( wd._depth ),
                           _numDevices ( wd._numDevices ), _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
                           _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
-                          _doSubmit(), _doWait(), _depsDomain(), _directory(), _instrumentationContextData(), _submitted( false ), _translateArgs( wd._translateArgs ),_myGraphRepList(wd._myGraphRepList) , _listed(wd._listed) _priority( wd._priority ) { }
+                          _doSubmit(), _doWait(), _depsDomain(), _directory(), _instrumentationContextData(), _submitted( false ), _translateArgs( wd._translateArgs ),_myGraphRepList(wd._myGraphRepList) , _listed(wd._listed), _priority( wd._priority ) { }
                           //_doSubmit(), _doWait(), _depsDomain(), _directory(), _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted( false ), _translateArgs( wd._translateArgs ) { }
 
          /*! \brief WorkDescriptor destructor
