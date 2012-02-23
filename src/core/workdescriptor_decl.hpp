@@ -168,7 +168,7 @@ namespace nanos
          TR1::shared_ptr<DOSubmit>     _doSubmit;     /**< DependableObject representing this WD in its parent's depsendencies domain */
          LazyInit<DOWait>              _doWait;       /**< DependableObject used by this task to wait on dependencies */
 
-         LazyInit<DependenciesDomain>  _depsDomain;   /**< Dependences domain. Each WD has one where DependableObjects can be submitted */
+         DependenciesDomain           *_depsDomain;   /**< Dependences domain. Each WD has one where DependableObjects can be submitted */
          LazyInit<Directory>           _directory;    /**< Directory to mantain cache coherence */
 
          InstrumentationContextData    _instrumentationContextData; /**< Instrumentation Context Data (empty if no instr. enabled) */
@@ -197,7 +197,7 @@ namespace nanos
                           _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : NULL ),
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain(), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ),
+                          _depsDomain( new DependenciesDomain() ), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ),
                           _priority( 0 ) { }
 
          /*! \brief WorkDescriptor constructor - 2
@@ -209,7 +209,7 @@ namespace nanos
                           _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( 1 ), _devices ( &_activeDevice ), _activeDevice ( device ),
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain(), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ),
+                          _depsDomain( new DependenciesDomain() ), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ),
                           _priority( 0 ) { }
 
          /*! \brief WorkDescriptor copy constructor (using a given WorkDescriptor)
@@ -228,7 +228,7 @@ namespace nanos
                           _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ), _myQueue ( NULL ), _depth ( wd._depth ),
                           _numDevices ( wd._numDevices ), _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
                           _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
-                          _doSubmit(), _doWait(), _depsDomain(), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( wd._translateArgs ),
+                          _doSubmit(), _doWait(), _depsDomain( new DependenciesDomain() ), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( wd._translateArgs ),
                           _priority( wd._priority ) { }
 
          /*! \brief WorkDescriptor destructor
@@ -241,6 +241,8 @@ namespace nanos
             for ( unsigned i = 0; i < _numDevices; i++ ) {
                _devices[i]->~DeviceData();
             }
+
+	    delete _depsDomain;
          }
 
          /*! \brief Has this WorkDescriptor ever run?
