@@ -25,6 +25,55 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+
+#ifdef __cplusplus
+extern "C"
+#endif
+typedef struct {
+   /* NOTE: The first dimension is represented in terms of bytes. */
+
+   /* Size of the dimension in terms of the size of the previous dimension. */
+   size_t size;
+
+   /* Lower bound in terms of the size of the previous dimension. */
+   size_t lower_bound;
+   
+   /* Accessed length in terms of the size of the previous dimension. */
+   size_t accessed_length;
+} nanos_region_dimension_internal_t;
+
+
+#ifdef __cplusplus
+extern "C"
+#endif
+typedef struct {
+   bool  input: 1;
+   bool  output: 1;
+   bool  can_rename:1;
+   bool  commutative: 1;
+} nanos_access_type_internal_t;
+
+
+/* This structure is initialized in dependency.hpp. Any change in
+ * its contents has to be reflected in DataAccess constructor
+ */
+#ifdef __cplusplus
+extern "C"
+#endif
+typedef struct {
+   /* Base address of the accessed range */
+   void *address;
+
+   nanos_access_type_internal_t flags;
+
+   /* Number of dimensions */
+   short dimension_count;
+
+   nanos_region_dimension_internal_t const *dimensions;
+
+   ptrdiff_t offset;
+} nanos_data_access_internal_t;
+
 /* This structure is initialized in dependency.hpp. Any change in
  * its contents has to be reflected in Dependency constructor  
  */
@@ -49,17 +98,20 @@ typedef enum {
  * its contents has to be reflected in CopyData constructor
  */
 typedef struct {
-   uint64_t address;
+   void *address;
    nanos_sharing_t sharing;
    struct {
       bool input: 1;
       bool output: 1;
    } flags;
-   size_t size;
+   short dimension_count;
+   nanos_region_dimension_internal_t const *dimensions;
+   ptrdiff_t offset;
 } nanos_copy_data_internal_t;
 
 #ifndef _NANOS_INTERNAL
 
+typedef nanos_dependence_internal_t nanos_data_access_t;
 typedef nanos_dependence_internal_t nanos_dependence_t;
 typedef nanos_copy_data_internal_t nanos_copy_data_t;
 
@@ -71,6 +123,7 @@ namespace nanos {
 }
 typedef nanos::Dependency nanos_dependence_t;
 typedef nanos::CopyData nanos_copy_data_t;
+typedef nanos_dependence_internal_t nanos_data_access_t;
 
 #endif
 
