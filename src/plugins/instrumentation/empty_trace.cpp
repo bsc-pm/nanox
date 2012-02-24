@@ -16,6 +16,8 @@ class InstrumentationEmptyTrace: public Instrumentation
       // low-level instrumentation interface (mandatory functions)
       void initialize( void ) {}
       void finalize( void ) {}
+      void disable( void ) {}
+      void enable( void ) {}
       void addResumeTask( WorkDescriptor &w ) {}
       void addSuspendTask( WorkDescriptor &w, bool last ) {}
       void addEventList ( unsigned int count, Event *events ) {}
@@ -31,6 +33,8 @@ class InstrumentationEmptyTrace: public Instrumentation
       // low-level instrumentation interface (mandatory functions)
       void initialize( void ) {}
       void finalize( void ) {}
+      void disable( void ) {}
+      void enable( void ) {}
       void addResumeTask( WorkDescriptor &w ) {}
       void addSuspendTask( WorkDescriptor &w, bool last ) {}
       void addEventList ( unsigned int count, Event *events ) {}

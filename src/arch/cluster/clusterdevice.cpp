@@ -46,6 +46,8 @@ void ClusterDevice::free( void *address, ProcessingElement *pe )
 
    node->getAllocator().free( address );
 
+   message("WARNING: calling ClusterDevice::free");
+
    //sys.getNetwork()->memFree( node->getClusterNodeNum(), address );
 }
 
@@ -60,7 +62,7 @@ void * ClusterDevice::realloc( void *address, size_t newSize, size_t oldSize, Pr
    return retAddr;
 }
 
-bool ClusterDevice::copyDevToDev( void * addrDst, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc )
+bool ClusterDevice::copyDevToDev( void * addrDst, CopyDescriptor &dstCd, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc )
 {
    sys.getNetwork()->sendRequestPut( ((ClusterNode *) peSrc)->getClusterNodeNum(), (uint64_t )addrSrc, ((ClusterNode *) peDst)->getClusterNodeNum(), (uint64_t)addrDst, size );
    return true;

@@ -29,6 +29,7 @@
 #include "dataaccess_decl.hpp"
 #include "regiontree_decl.hpp"
 #include "compatibility.hpp"
+#include "schedule_fwd.hpp"
 
 
 namespace nanos
@@ -129,9 +130,22 @@ namespace nanos
          *  \param end Iterator to the end of the mentioned list.
          *  \sa DataAccess DependableObject TrackableObject
          */
+//<<<<<<< HEAD
          template<typename const_iterator>
          void submitDependableObjectInternal ( DependableObject &depObj, const_iterator begin, const_iterator end );
          
+//=======
+         /* \param callback A function to call when a WD has a successor [Optional].
+         *  \sa Dependency DependableObject TrackableObject
+         */
+//         template<typename iterator>
+//         void submitDependableObjectInternal ( DependableObject &depObj, iterator begin, iterator end, SchedulePolicySuccessorFunctor* callback );
+//
+//>>>>>>> cluster
+      private:
+        /*! \brief DependenciesDomain copy assignment operator (private)
+         */
+         const DependenciesDomain & operator= ( const DependenciesDomain &depDomain );
       public:
 
         /*! \brief DependenciesDomain default constructor
@@ -152,6 +166,7 @@ namespace nanos
 
         /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
          *  \param depObj DependableObject to be added to the domain.
+//<<<<<<< HEAD
          *  \param dataAccesses List of data accesses that determine the dependencies to be associated to the Dependable Object.
          *  \sa DataAccess DependableObject TrackableObject
          */
@@ -164,6 +179,22 @@ namespace nanos
          *  \sa DataAccess DependableObject TrackableObject
          */
          void submitDependableObject ( DependableObject &depObj, size_t numDataAccesses, DataAccess const *dataAccesses );
+//=======
+//         *  \param deps List of dependencies to be associated to the Dependable Object.
+//         *  \param callback A function to call when a WD has a successor [Optional].
+//         *  \sa Dependency DependableObject TrackableObject
+//         */
+//         void submitDependableObject ( DependableObject &depObj, std::vector<Dependency> &deps, SchedulePolicySuccessorFunctor* callback = NULL );
+//
+//        /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
+//         *  \param depObj DependableObject to be added to the domain.
+//         *  \param deps List of dependencies to be associated to the Dependable Object.
+//         *  \param numDeps Number of dependenices in the list.
+//         *  \param callback A function to call when a WD has a successor [Optional].
+//         *  \sa Dependency DependableObject TrackableObject
+//         */
+//         void submitDependableObject ( DependableObject &depObj, size_t numDeps, Dependency* deps, SchedulePolicySuccessorFunctor* callback = NULL );
+//>>>>>>> cluster
 
         /*! \brief Removes the DependableObject from the role of last writer of a region.
          *  \param depObj DependableObject to be stripped of the last writer role

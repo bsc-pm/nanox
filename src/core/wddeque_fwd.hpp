@@ -22,7 +22,10 @@
 namespace nanos
 {
    class SchedulePredicate;
+   class WDPool;
    class WDDeque;
+   class WDLFQueue;
+   class WDPriorityQueue;
 };
 
 #endif

@@ -48,6 +48,7 @@ inline DependenciesDomain::~DependenciesDomain ( )
 {
 }
 
+//<<<<<<< HEAD
 inline int DependenciesDomain::getId()
 {
    return _id;
@@ -72,6 +73,17 @@ inline Lock& DependenciesDomain::getLock()
 {
    return _lock;
 }
+//=======
+//inline void DependenciesDomain::submitDependableObject ( DependableObject &depObj, std::vector<Dependency> &deps, SchedulePolicySuccessorFunctor* callback )
+//{
+//   submitDependableObjectInternal ( depObj, deps.begin(), deps.end(), callback );
+//}
+//
+//inline void DependenciesDomain::submitDependableObject ( DependableObject &depObj, size_t numDeps, Dependency* deps, SchedulePolicySuccessorFunctor* callback )
+//{
+//   submitDependableObjectInternal ( depObj, deps, deps+numDeps, callback );
+//}
+//>>>>>>> cluster
 
 inline void DependenciesDomain::lock ( )
 {

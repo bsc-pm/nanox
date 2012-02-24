@@ -60,18 +60,18 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
    //NANOS_INSTRUMENT ( nanos_event_value_t val = wd.getId() );
    //NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_RUNNING, key, val ) );
 
-   uintptr_t offset = (uintptr_t) &wd.getDimensions(); 
+   // merge uintptr_t offset = (uintptr_t) &wd.getDimensions(); 
 
    for (i = 0; i < wd.getNumCopies(); i += 1) {
       newCopies[i].setAddress( ( uint64_t ) pe->getAddress( wd, newCopies[i].getAddress(), newCopies[i].getSharing() ) );
 
-      uintptr_t value = (((uintptr_t ) &newCopies[i].getDataAccess()->getDimensions() ) - offset );
-      newCopies[i].getDataAccess()->setDimensions( (nanos_region_dimension_internal_t const *) value );
+      // merhe uintptr_t value = (((uintptr_t ) &newCopies[i].getDataAccess()->getDimensions() ) - offset );
+      // merhe newCopies[i].getDataAccess()->setDimensions( (nanos_region_dimension_internal_t const *) value );
    }
 
    size_t totalBufferSize = wd.getDataSize() + 
       sizeof(int) + wd.getNumCopies() * sizeof( CopyData ) + 
-      sizeof(int) + wd.getNumDimensions() * sizeof( nanos_region_dimension_t ) + 
+      // merge sizeof(int) + wd.getNumDimensions() * sizeof( nanos_region_dimension_t ) + 
       sizeof(int) + wd.getNumCopies() * sizeof( uint64_t );
 
    char *buff = new char[ totalBufferSize ];
@@ -86,9 +86,9 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
       memcpy( &buff[ wd.getDataSize() + sizeof(int) + sizeof( CopyData ) * i ], &newCopies[i], sizeof( CopyData ) );
    }
 
-   *((int *) &buff[ wd.getDataSize() + sizeof(int) + sizeof( CopyData ) * wd.getNumCopies() ] ) = (int) wd.getNumDimensions();
+   // merge *((int *) &buff[ wd.getDataSize() + sizeof(int) + sizeof( CopyData ) * wd.getNumCopies() ] ) = (int) wd.getNumDimensions();
    //for (i = 0; i < wd.getNumDimensions(); i += 1) {
-      memcpy( &buff[ wd.getDataSize() + sizeof(int) + sizeof( CopyData ) * wd.getNumCopies() + sizeof( int ) ], &wd.getDimensions(), sizeof( nanos_region_dimension_t ) * wd.getNumDimensions() );
+   // merge    memcpy( &buff[ wd.getDataSize() + sizeof(int) + sizeof( CopyData ) * wd.getNumCopies() + sizeof( int ) ], &wd.getDimensions(), sizeof( nanos_region_dimension_t ) * wd.getNumDimensions() );
    //}
    
 

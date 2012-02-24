@@ -90,6 +90,7 @@ int fib ( int n, int d )
            .mandatory_creation = true,
            .tied = false,
            .tie_to = false,
+           .priority = 0,
          };
 
          NANOS_SAFE( nanos_create_wd ( &wd, 1, fib_devices_1 , sizeof( fib_args ), __alignof__( fib_args),
@@ -111,6 +112,7 @@ int fib ( int n, int d )
            .mandatory_creation = true,
            .tied = false,
            .tie_to = false,
+           .priority = 0,
          };
 
          NANOS_SAFE( nanos_create_wd ( &wd, 1, fib_devices_2 , sizeof( fib_args ), __alignof__( fib_args),

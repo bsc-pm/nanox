@@ -152,6 +152,7 @@ bool single_dependency()
      .mandatory_creation = true,
      .tied = false,
      .tie_to = false,
+     .priority = 0,
    };
    nanos_wd_t wd1=0;
    nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1) };
@@ -185,6 +186,7 @@ bool single_inout_chain()
      .mandatory_creation = true,
      .tied = false,
      .tie_to = false,
+     .priority = 0,
    };
    nanos_wd_t wd1=0;
    nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1) };
@@ -223,6 +225,7 @@ bool multiple_inout_chains()
         .mandatory_creation = true,
         .tied = false,
         .tie_to = false,
+        .priority = 0,
       };
       nanos_wd_t wd1=0;
       nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1) };
@@ -259,6 +262,7 @@ bool multiple_predecessors()
      .mandatory_creation = true,
      .tied = false,
      .tie_to = false,
+     .priority = 0,
    };
 
    for ( j = 0; j < size; j++ ) {
@@ -309,6 +313,7 @@ bool multiple_antidependencies()
      .mandatory_creation = true,
      .tied = false,
      .tie_to = false,
+     .priority = 0,
    };
 
    for ( j = 0; j < 100; j++ ) {
@@ -354,6 +359,7 @@ bool out_dep_chain()
      .mandatory_creation = true,
      .tied = false,
      .tie_to = false,
+     .priority = 0,
    };
 
    for ( i = 0; i < 100; i++ ) {
@@ -393,6 +399,7 @@ bool wait_on_test()
      .mandatory_creation = true,
      .tied = false,
      .tie_to = false,
+     .priority = 0,
    };
 
    for ( j = 0; j < size; j++ ) {
@@ -435,6 +442,7 @@ bool create_and_run_test()
      .mandatory_creation = true,
      .tied = false,
      .tie_to = false,
+     .priority = 0,
    };
 
    for ( j = 0; j < 100; j++ ) {
@@ -490,6 +498,7 @@ bool commutative_task_1()
      .mandatory_creation = true,
      .tied = false,
      .tie_to = false,
+     .priority = 0,
    };
 
    my_args2 *args1=0;
@@ -543,6 +552,7 @@ bool commutative_task_2()
      .mandatory_creation = true,
      .tied = false,
      .tie_to = false,
+     .priority = 0,
    };
 
    my_args2 *args1=0;
@@ -612,6 +622,7 @@ bool commutative_task_3()
      .mandatory_creation = true,
      .tied = false,
      .tie_to = false,
+     .priority = 0,
    };
 
    my_args2 *args1=0;
@@ -685,6 +696,7 @@ bool dependency_offset()
      .mandatory_creation = true,
      .tied = false,
      .tie_to = false,
+     .priority = 0,
    };
    nanos_wd_t wd1=0;
    nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1) };

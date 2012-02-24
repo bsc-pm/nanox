@@ -116,7 +116,7 @@ namespace nanos
          {
          }
 
-         static bool copyDevToDev( void * addrDst, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc )
+         static bool copyDevToDev( void * addrDst, CopyDescriptor& cdDst, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc )
          {
             return true;
          }

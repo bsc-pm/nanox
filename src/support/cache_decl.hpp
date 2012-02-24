@@ -296,13 +296,13 @@ namespace nanos {
 
          /*! \brief Copy data from one device address to another device address
           */
-          //virtual bool copyData( void * dstAddr, void * srcAddr, std::size_t size, Cache & owner ) = 0;
+          //virtual bool copyData( void * dstAddr, CopyDescriptor& dstCd, void * srcAddr, size_t size, Cache & owner ) = 0;
 
         /*! \brief Copy data from the host to a device address
          *  \param cd Copy descriptor with the information about the addresses to be copied
          *  \param size Size of the data to be copied
          */
-virtual bool copyToCacheFromCache( void *srcAddr, std::size_t size, Cache &dest, void* addrDest ) = 0;
+virtual bool copyToCacheFromCache( void *srcAddr, CopyDescriptor &destCd, std::size_t size, Cache &dest, void* addrDest ) = 0;
          virtual bool copyDataToCache( CopyDescriptor& cd, std::size_t size ) = 0;
 
         /*! \brief Copy data back to the host
@@ -631,13 +631,13 @@ virtual bool copyToCacheFromCache( void *srcAddr, std::size_t size, Cache &dest,
 
          /*! \brief Copy data from one device address to another device address
           */
-         //bool copyData( void * dstAddr, void * srcAddr, std::size_t size, Cache & owner );
+         //bool copyData( void * dstAddr, CopyDescriptor& dstCd, void * srcAddr, size_t size, Cache & owner );
 
         /* \brief Copy data from the address represented by the tag to the entry in the device.
          * \param cd: identifier of the entry
          * \param size: number of bytes to copy
          */
-bool copyToCacheFromCache( void *addrSrc, std::size_t size, Cache &dest, void *addrDest );
+bool copyToCacheFromCache( void *addrSrc, CopyDescriptor &destCd, std::size_t size, Cache &dest, void *addrDest );
          bool copyDataToCache( CopyDescriptor &cd, std::size_t size );
 
         /* \brief Copy back from the entry to the address represented by the tag.

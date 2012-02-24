@@ -1,6 +1,7 @@
 #ifndef _NANOS_MERGEABLE_MEMORYMAP_H
-#ifndef _NANOS_MERGEABLE_MEMORYMAP_H
+#define _NANOS_MERGEABLE_MEMORYMAP_H
 
+#include "memorymap.hpp"
 #include "mergeablememorymap_decl.hpp"
 
 namespace nanos {
@@ -9,7 +10,7 @@ namespace nanos {
 template < typename _Type >
 void MergeableMemoryMap< _Type >::merge( const MemoryMap< _Type > &mm )
 {
-   typename BaseMap::const_iterator inputIt = mm.begin();
+   const_iterator inputIt = mm.begin();
 
    while ( inputIt != mm.end() )
    {

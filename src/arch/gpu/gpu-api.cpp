@@ -28,6 +28,10 @@ using namespace nanos;
 
 const size_t nanos_gpu_dd_size = sizeof(ext::GPUDD);
 
+// Commented out by now, as it does not compile
+#if 0
+NANOS_API_DEF(void *, nanos_gpu_factory, ( void *prealloc, void *args ))
+#endif
 void * nanos_gpu_factory( void *prealloc, void *args )
 {
    nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
@@ -46,3 +50,9 @@ cudaStream_t nanos_get_kernel_execution_stream()
 {
    return ( ( nanos::ext::GPUProcessor *) getMyThreadSafe()->runningOn() )->getGPUProcessorInfo()->getKernelExecStream();
 }
+
+cublasHandle_t nanos_get_cublas_handle()
+{
+   return ( cublasHandle_t ) ( ( nanos::ext::GPUThread *)getMyThreadSafe() )->getCUBLASHandle();
+}
+

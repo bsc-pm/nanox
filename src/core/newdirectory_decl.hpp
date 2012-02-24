@@ -26,7 +26,7 @@
 #include <set>
 #include <iostream>
 #include "compatibility.hpp"
-#include "memorymap_decl.hpp"
+#include "mergeablememorymap_decl.hpp"
 #include "atomic_decl.hpp"
 
 namespace nanos
@@ -106,7 +106,7 @@ namespace nanos
    class New1dDirectory
    {
       private:
-         typedef MemoryMap<NewDirectoryEntryData> NewDirectoryMap; /**< Directorie's HashMap*/
+         typedef MergeableMemoryMap<NewDirectoryEntryData> NewDirectoryMap; /**< Directorie's HashMap*/
          NewDirectoryMap _directory; /**< The map will store the entries indexed by they tag */
          NewDirectoryMap _inputDirectory; /**< The map will store the entries indexed by they tag */
          New1dDirectory *_parent;

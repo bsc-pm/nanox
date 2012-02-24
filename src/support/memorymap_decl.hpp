@@ -70,13 +70,12 @@ class MemoryChunk {
 template <typename _Type>
 class MemoryMap : public std::map< MemoryChunk, _Type * > { 
    private:
-      typedef std::map< MemoryChunk, _Type * > BaseMap;
-
       MemoryMap( const MemoryMap &mm ) { }
       const MemoryMap & operator=( const MemoryMap &mm ) { }
    
    public:
       //typedef enum { MEM_CHUNK_FOUND, MEM_CHUNK_NOT_FOUND, MEM_CHUNK_NOT_FOUND_BUT_ALLOCATED } QueryResult;
+      typedef std::map< MemoryChunk, _Type * > BaseMap;
       typedef std::pair< const MemoryChunk *, _Type ** > MemChunkPair;
       typedef std::list< MemChunkPair > MemChunkList;
       typedef std::pair< const MemoryChunk *, _Type * const * > ConstMemChunkPair;
@@ -100,5 +99,7 @@ class MemoryMap : public std::map< MemoryChunk, _Type * > {
       void getChunk2( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
       void print() const;
 };
+
+}
 
 #endif /* _NANOS_MEMORYMAP_DECL_H */

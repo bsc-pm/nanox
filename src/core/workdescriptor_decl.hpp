@@ -159,7 +159,7 @@ namespace nanos
 
          WorkDescriptor               *_parent;       /**< Parent WD (task hierarchy). Cilk sched.: first steal parent, next other tasks */
 
-         WDDeque                      *_myQueue;      /**< Reference to a queue. Allows dequeuing from third party (e.g. Cilk schedulers */
+         WDPool                      *_myQueue;      /**< Reference to a queue. Allows dequeuing from third party (e.g. Cilk schedulers */
 
          unsigned                      _depth;        /**< Level (depth) of the task */
 
@@ -186,6 +186,8 @@ namespace nanos
          Atomic< std::list<GraphEntry *> * > _myGraphRepList;
          bool _listed;
 
+         unsigned int                  _priority;      /**< Task priority */
+
       private: /* private methods */
          /*! \brief WorkDescriptor copy assignment operator (private)
           */
@@ -204,7 +206,7 @@ namespace nanos
                           _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : NULL ),
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain(), _directory(), _newDirectory( NULL ), _instrumentationContextData(), _submitted(false), _translateArgs( translate_args ),_myGraphRepList(NULL), _listed(false) { getGE()->setNoWait(); }
+                          _depsDomain(), _directory(), _newDirectory( NULL ), _instrumentationContextData(), _submitted(false), _translateArgs( translate_args ),_myGraphRepList(NULL), _listed(false), _priority( 0 ) { getGE()->setNoWait(); }
                           //_depsDomain(), _directory(), _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted(false), _translateArgs( translate_args ) { }
 
          /*! \brief WorkDescriptor constructor - 2
@@ -216,7 +218,7 @@ namespace nanos
                           _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( 1 ), _devices ( &_activeDevice ), _activeDevice ( device ),
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain(), _directory(), _newDirectory( NULL ), _instrumentationContextData(), _submitted( false ), _translateArgs( translate_args ),_myGraphRepList(NULL), _listed(false) { getGE()->setNoWait(); }
+                          _depsDomain(), _directory(), _newDirectory( NULL ), _instrumentationContextData(), _submitted( false ), _translateArgs( translate_args ),_myGraphRepList(NULL), _listed(false), _priority( 0 ) { getGE()->setNoWait(); }
                           //_depsDomain(), _directory(),  _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted( false ), _translateArgs( translate_args ) { }
 
          /*! \brief WorkDescriptor copy constructor (using a given WorkDescriptor)
@@ -235,7 +237,7 @@ namespace nanos
                           _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ), _myQueue ( NULL ), _depth ( wd._depth ),
                           _numDevices ( wd._numDevices ), _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
                           _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
-                          _doSubmit(), _doWait(), _depsDomain(), _directory(), _newDirectory( wd._newDirectory ), _instrumentationContextData(), _submitted( false ), _translateArgs( wd._translateArgs ),_myGraphRepList(wd._myGraphRepList) , _listed(wd._listed) { }
+                          _doSubmit(), _doWait(), _depsDomain(), _directory(), _newDirectory( wd._newDirectory ), _instrumentationContextData(), _submitted( false ), _translateArgs( wd._translateArgs ),_myGraphRepList(wd._myGraphRepList) , _listed(wd._listed), _priority( wd._priority ) { }
                           //_doSubmit(), _doWait(), _depsDomain(), _directory(), _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted( false ), _translateArgs( wd._translateArgs ) { }
 
          /*! \brief WorkDescriptor destructor
@@ -305,9 +307,9 @@ namespace nanos
 
          void setParent ( WorkDescriptor * p );
 
-         WDDeque * getMyQueue();
+         WDPool * getMyQueue();
 
-         void setMyQueue ( WDDeque * myQ );
+         void setMyQueue ( WDPool * myQ );
 
          bool isEnqueued();
 
@@ -480,6 +482,8 @@ namespace nanos
          void listed();
          void printCopies();
 
+         void setPriority( unsigned int priority );
+         unsigned getPriority() const;
    };
 
    typedef class WorkDescriptor WD;

@@ -41,7 +41,7 @@
 #endif
 
 #include "newdirectory_decl.hpp"
-#include "memorymap.hpp"
+#include "mergeablememorymap.hpp"
 #include "atomic.hpp"
 
 using namespace nanos;

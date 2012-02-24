@@ -218,6 +218,13 @@ spin:
    NANOS_INSTRUMENT( inst.close() )
 }
 
+inline void Lock::acquire_noinst ( void )
+{
+spin:
+   while ( _state == NANOS_LOCK_BUSY ) {}
+   if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) goto spin;
+}
+
 inline bool Lock::tryAcquire ( void )
 {
    if ( _state == NANOS_LOCK_FREE ) {
@@ -260,6 +267,26 @@ inline void LockBlock::acquire()
 inline void LockBlock::release()
 {
    _lock--;
+}
+
+inline LockBlock_noinst::LockBlock_noinst ( Lock & lock ) : _lock(lock)
+{
+   acquire();
+}
+
+inline LockBlock_noinst::~LockBlock_noinst ( )
+{
+   release();
+}
+
+inline void LockBlock_noinst::acquire()
+{
+   _lock.acquire_noinst();
+}
+
+inline void LockBlock_noinst::release()
+{
+   _lock.release();
 }
 
 inline SyncLockBlock::SyncLockBlock ( Lock & lock ) : LockBlock(lock)

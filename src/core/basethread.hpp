@@ -43,6 +43,28 @@ namespace nanos
    inline void BaseThread::unlock () { _mlock--; }
  
    inline void BaseThread::stop() { _mustStop = true; }
+   
+   inline void BaseThread::pause ()
+   {
+      // If the thread was already paused, do nothing
+      if ( _paused ){
+         return;
+      }
+      // Otherwise, notify this change
+      _paused = true;
+      sys.pausedThread();
+   }
+   
+   inline void BaseThread::unpause ()
+   {
+      // If the thread was already unpaused, do nothing
+      if ( !_paused ){
+         return;
+      }
+      // Otherwise, notify this change
+      _paused = false;
+      sys.unpausedThread();
+   }
  
    // set/get methods
    inline void BaseThread::setCurrentWD ( WD &current ) { _currentWD = &current; }
@@ -70,7 +92,10 @@ namespace nanos
    }
  
    inline WD * BaseThread::getNextWD () const
-   { 
+   {
+      if ( !sys.getSchedulerConf().getSchedulerEnabled() )
+         return NULL;
+      
       if ( _nextWD == (WD *) 1 ) return NULL;
       return _nextWD;
    }
@@ -102,6 +127,8 @@ namespace nanos
    inline bool BaseThread::isStarted () const { return _started; }
  
    inline bool BaseThread::isRunning () const { return _started && !_mustStop; }
+   
+   inline bool BaseThread::isPaused () const { return _paused; }
  
    inline ProcessingElement * BaseThread::runningOn() const { return _pe; }
  

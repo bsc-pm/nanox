@@ -1,9 +1,9 @@
 #ifndef MEMORYMAP_H
 #define MEMORYMAP_H
 
-#include "memorymap_decl.hpp"
 #include <iostream>
 #include <stdio.h>
+#include "memorymap_decl.hpp"
 
 namespace nanos {
 

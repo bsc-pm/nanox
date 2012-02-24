@@ -25,6 +25,13 @@ namespace nanos {
    template <typename _Type>
       class MergeableMemoryMap : public MemoryMap< _Type > { 
          public:
+            typedef typename MemoryMap< _Type >::const_iterator const_iterator;
+            typedef typename MemoryMap< _Type >::iterator iterator;
+            typedef typename MemoryMap< _Type>::MemChunkPair MemChunkPair;
+            typedef typename MemoryMap< _Type>::MemChunkList MemChunkList;
+            typedef typename MemoryMap< _Type>::ConstMemChunkPair ConstMemChunkPair;
+            typedef typename MemoryMap< _Type>::ConstMemChunkList ConstMemChunkList;
+            typedef typename MemoryMap< _Type>::BaseMap BaseMap;
             void merge( const MemoryMap< _Type > &mm );
             void merge2( const MemoryMap< _Type > &mm );
       };

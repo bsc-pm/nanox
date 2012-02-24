@@ -37,6 +37,31 @@ Atomic<int> DependenciesDomain::_atomicSeed( 0 );
 Atomic<int> DependenciesDomain::_tasksInGraph( 0 );
 Lock DependenciesDomain::_lock;
 
+//<<<<<<< HEAD
+//=======
+//TrackableObject* DependenciesDomain::lookupDependency ( const Dependency& dep )
+//{
+//   TrackableObject *trackableObject = NULL;
+//   void * address = dep.getDepAddress();
+//   
+//   DepsMap::iterator it = _addressDependencyMap.find( address ); 
+//   if ( it == _addressDependencyMap.end() ) {
+//      trackableObject = NEW TrackableObject( address );
+//      _addressDependencyMap.insert( std::make_pair( address, trackableObject) );
+//   } else {
+//      trackableObject = it->second;
+//   }
+//   
+//   return trackableObject;
+//}
+//
+//template<typename iterator>
+//void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, iterator begin, iterator end, SchedulePolicySuccessorFunctor* callback )
+//{
+//
+//
+//   depObj.setId ( _lastDepObjId++ );
+//>>>>>>> cluster
 
 namespace dependencies_domain_internal {
    class AccessType: public nanos_access_type_internal_t {
@@ -141,6 +166,7 @@ inline void DependenciesDomain::finalizeReduction( RegionStatus &regionStatus, R
 }
 
 
+//<<<<<<< HEAD
 inline void DependenciesDomain::dependOnLastWriter( DependableObject &depObj, RegionStatus const &regionStatus )
 {
    DependableObject *lastWriter = regionStatus.getLastWriter();
@@ -149,6 +175,32 @@ inline void DependenciesDomain::dependOnLastWriter( DependableObject &depObj, Re
       if ( regionStatus.getLastWriter() == lastWriter ) {
          if ( lastWriter->addSuccessor( depObj ) ) {
             depObj.increasePredecessors();
+//=======
+//         if ( lastWriter != NULL ) {
+//            {
+//               SyncLockBlock lck( lastWriter->getLock() );
+//               if ( dependencyObject->getLastWriter() == lastWriter ) {
+//                  if ( lastWriter->addSuccessor( depObj ) ) {
+//                     depObj.increasePredecessors();
+//                     if ( callback != NULL ) {
+//                        debug( "Calling callback" );
+//                        ( *callback )( lastWriter, &depObj );
+//                     }
+//                  }
+//#if 0
+//                  if ( ( !(dep.isOutput()) || dep.isInput() ) ) {
+//                     // RaW dependency
+//                     debug (" DO_ID_" << lastWriter->getId() << " [style=filled label=" << lastWriter->getDescription() << " color=" << "red" << "];");
+//                     debug (" DO_ID_" << lastWriter->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=green];");
+//                  } else {
+//                     // WaW dependency
+//                     debug (" DO_ID_" << lastWriter->getId() << " [style=filled label=" << lastWriter->getDescription() << " color=" << "red" << "];");
+//                     debug (" DO_ID_" << lastWriter->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=blue];");
+//                  }
+//#endif
+//               }
+//            }
+//>>>>>>> cluster
          }
       }
    }
@@ -223,9 +275,30 @@ inline void DependenciesDomain::submitDependableObjectCommutativeDataAccess ( De
          for ( RegionStatus::DependableObjectList::iterator i = readersList.begin(); i != readersList.end(); i++) {
             DependableObject * predecessorReader = *i;
             {
+//<<<<<<< HEAD
                SyncLockBlock lock2( predecessorReader->getLock() );
                if ( predecessorReader->addSuccessor( *initialCommDO ) ) {
                   initialCommDO->increasePredecessors();
+//=======
+//               SyncLockBlock lock4( dependencyObject->getReadersLock() );
+//               for ( TrackableObject::DependableObjectList::iterator i = readersList.begin(); i != readersList.end(); i++) {
+//                  DependableObject * predecessorReader = *i;
+//                  {
+//                     SyncLockBlock lock5(predecessorReader->getLock());
+//                     if ( predecessorReader->addSuccessor( depObj ) ) {
+//                        depObj.increasePredecessors();
+//                        if ( callback != NULL ) {
+//                           debug( "Calling callback" );
+//                           ( *callback )( predecessorReader, &depObj );
+//                        }
+//                     }
+//                  }
+//                  // WaR dependency
+//#if 0
+//                  debug (" DO_ID_" << predecessorReader->getId() << " [style=filled label=" << predecessorReader->getDescription() << " color=" << "red" << "];");
+//                  debug (" DO_ID_" << predecessorReader->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=red];");
+//#endif
+//>>>>>>> cluster
                }
             }
          }
@@ -482,6 +555,7 @@ void DependenciesDomain::deleteReader ( DependableObject &depObj, Region const &
    }
 }
 
+//<<<<<<< HEAD
 
 void DependenciesDomain::removeCommDO ( CommutationDO *commDO, Region const &region )
 {
@@ -510,6 +584,10 @@ void DependenciesDomain::removeCommDO ( CommutationDO *commDO, Region const &reg
 
 template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, DataAccess const *begin, DataAccess const *end );
 template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, std::vector<DataAccess>::const_iterator begin, std::vector<DataAccess>::const_iterator end );
+//=======
+//template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, Dependency* begin, Dependency* end, SchedulePolicySuccessorFunctor* callback );
+//template void DependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, std::vector<Dependency>::iterator begin, std::vector<Dependency>::iterator end, SchedulePolicySuccessorFunctor* callback );
+//>>>>>>> cluster
 
 void DependenciesDomain::increaseTasksInGraph()
 {
