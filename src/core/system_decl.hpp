@@ -85,6 +85,8 @@ namespace nanos
          std::string          _defThrottlePolicy;
          std::string          _defBarr;
          std::string          _defInstr;
+         /*! Name of the dependencies manager plugin */
+         std::string          _defDepsManager;
 
          std::string          _defArch;
 
@@ -113,7 +115,7 @@ namespace nanos
          SchedulePolicy      *_defSchedulePolicy;
          
          /*! Dependencies domain manager */
-         DependenciesManager *_defDependenciesManager;
+         DependenciesManager *_dependenciesManager;
 
          /*! It manages all registered and active plugins */
          PluginManager        _pluginManager;
@@ -300,14 +302,18 @@ namespace nanos
          
          void unpausedThread();
          
-         /*! \brief Specifies the dependencies manager to be used.
-          * \param manager DependenciesManager.
+         /*! \brief Returns the name of the default dependencies manager.
           */
-         void setDefaultDependenciesManager ( DependenciesManager *manager );
+         const std::string & getDefaultDependenciesManager() const;
+         
+         /*! \brief Specifies the dependencies manager to be used.
+          *  \param manager DependenciesManager.
+          */
+         void setDependenciesManager ( DependenciesManager *manager );
          
          /*! \brief Returns the dependencies manager in use.
           */
-         DependenciesManager * getDefaultDependenciesManager ( ) const;
+         DependenciesManager * getDependenciesManager ( ) const;
 
          void setPMInterface (PMInterface *_pm);
          PMInterface & getPMInterface ( void ) const;

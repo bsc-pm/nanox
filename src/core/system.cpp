@@ -50,10 +50,11 @@ System::System () :
       _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ), _thsPerPE( 1 ),
       _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
-      _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ),
+      _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "default" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _pausedThreads( 0 ),
       _pausedThreadsCond(), _unpausedThreadsCond(),
-      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _pmInterface( NULL ), _cachePolicy( System::DEFAULT ), _cacheMap()
+      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _dependenciesManager( NULL ),
+      _pmInterface( NULL ), _cachePolicy( System::DEFAULT ), _cacheMap()
 {
    verbose0 ( "NANOS++ initializing... start" );
    // OS::init must be called here and not in System::start() as it can be too late
@@ -128,6 +129,14 @@ void System::loadModules ()
       fatal0( "Could not load " + getDefaultInstrumentation() + " instrumentation" );
 
    ensure( _defBarrFactory,"No default system barrier factory" );
+   
+   // load default dependencies plugin
+   verbose0( "loading " << getDefaultDependenciesManager() << " dependencies manager support" );
+
+   if ( !loadPlugin( "deps-"+getDefaultDependenciesManager() ) )
+      fatal0 ( "Couldn't load main dependencies manager" );
+
+   ensure( _dependenciesManager,"No default dependencies manager" );
 
 }
 
@@ -226,6 +235,10 @@ void System::config ()
    cfg.registerConfigOption ( "cache-policy", cachePolicyCfg, "Defines the general cache policy to use: write-through / write-back. Can be overwritten for specific architectures" );
    cfg.registerArgOption ( "cache-policy", "cache-policy" );
    cfg.registerEnvOption ( "cache-policy", "NX_CACHE_POLICY" );
+
+   cfg.registerConfigOption ( "deps", NEW Config::StringVar ( _defDepsManager ), "Defines the dependencies plugin" );
+   cfg.registerArgOption ( "deps", "deps" );
+   cfg.registerEnvOption ( "deps", "NX_DEPS" );
 
    _schedConf.config( cfg );
    _pmInterface->config( cfg );

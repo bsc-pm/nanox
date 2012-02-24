@@ -35,21 +35,20 @@ using namespace nanos;
 
 inline DependenciesDomain::~DependenciesDomain ( )
 {
-   for ( DepsMap::iterator it = _addressDependencyMap.begin(); it != _addressDependencyMap.end(); it++ ) {
-      delete it->second;
-   }
 }
-
-inline void DependenciesDomain::submitDependableObject ( DependableObject &depObj, std::vector<DataAccess> &deps, SchedulePolicySuccessorFunctor* callback )
+/*
+inline void BaseDependenciesDomain::submitDependableObject ( DependableObject &depObj, std::vector<DataAccess> &deps, SchedulePolicySuccessorFunctor* callback )
 {
+   // TODO (gmiranda): implement
    submitDependableObjectInternal ( depObj, deps.begin(), deps.end(), callback );
 }
 
-inline void DependenciesDomain::submitDependableObject ( DependableObject &depObj, size_t numDeps, DataAccess* deps, SchedulePolicySuccessorFunctor* callback )
+inline void BaseDependenciesDomain::submitDependableObject ( DependableObject &depObj, size_t numDeps, DataAccess* deps, SchedulePolicySuccessorFunctor* callback )
 {
+   // TODO (gmiranda): implement
    submitDependableObjectInternal ( depObj, deps, deps+numDeps, callback );
 }
-
+*/
 inline RecursiveLock& DependenciesDomain::getInstanceLock()
 {
    return _instanceLock;
@@ -77,25 +76,7 @@ inline const std::string & DependenciesManager::getName () const
    return _name;
 }
 
-inline DependenciesDomain::MappedType* DependenciesDomain::lookupDependency ( const Target& target )
-{
-   MappedType* status = NULL;
-   //Target address = dep.getDepAddress();
-   
-   DepsMap::iterator it = _addressDependencyMap.find( target ); 
-   if ( it == _addressDependencyMap.end() ) {
-      // Lock this so we avoid problems when concurrently calling deleteLastWriter
-      SyncRecursiveLockBlock lock1( _instanceLock );
-      status = NEW MappedType( target );
-      _addressDependencyMap.insert( std::make_pair( target, status ) );
-   } else {
-      status = it->second;
-   }
-   
-   return status;
-}
-
-inline void DependenciesDomain::finalizeReduction( MappedType &status,  const Target& target )
+inline void BaseDependenciesDomain::finalizeReduction( MappedType &status, const Target& target )
 {
    CommutationDO *commDO = status.getCommDO();
    if ( commDO != NULL ) {
@@ -118,7 +99,7 @@ inline void DependenciesDomain::finalizeReduction( MappedType &status,  const Ta
    }
 }
 
-inline void DependenciesDomain::dependOnLastWriter( DependableObject &depObj, MappedType const & status, SchedulePolicySuccessorFunctor* callback )
+inline void BaseDependenciesDomain::dependOnLastWriter( DependableObject &depObj, MappedType const & status, SchedulePolicySuccessorFunctor* callback )
 {
    DependableObject *lastWriter = status.getLastWriter();
    if ( lastWriter != NULL ) {
@@ -135,7 +116,7 @@ inline void DependenciesDomain::dependOnLastWriter( DependableObject &depObj, Ma
    }
 }
 
-inline void DependenciesDomain::dependOnReadersAndSetAsWriter( DependableObject &depObj, MappedType &status, Target const &target, SchedulePolicySuccessorFunctor* callback )
+inline void BaseDependenciesDomain::dependOnReadersAndSetAsWriter( DependableObject &depObj, MappedType &status, Target const &target, SchedulePolicySuccessorFunctor* callback )
 {
    MappedType::DependableObjectList &readersList = status.getReaders();
    SyncLockBlock lock4( status.getReadersLock() );
@@ -164,13 +145,13 @@ inline void DependenciesDomain::dependOnReadersAndSetAsWriter( DependableObject 
    }
 }
 
-inline void DependenciesDomain::addAsReader( DependableObject &depObj, MappedType &status )
+inline void BaseDependenciesDomain::addAsReader( DependableObject &depObj, MappedType &status )
 {
    SyncLockBlock lock3( status.getReadersLock() );
    status.setReader( depObj );
 }
 
-inline void DependenciesDomain::submitDependableObjectCommutativeDataAccess ( DependableObject &depObj, Target const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback )
+inline void BaseDependenciesDomain::submitDependableObjectCommutativeDataAccess ( DependableObject &depObj, Target const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback )
 {
    CommutationDO *initialCommDO = NULL;
    CommutationDO *commDO = status.getCommDO();
@@ -233,7 +214,7 @@ inline void DependenciesDomain::submitDependableObjectCommutativeDataAccess ( De
    dependOnReadersAndSetAsWriter( depObj, status, target, callback );
 }
 
-inline void DependenciesDomain::submitDependableObjectInoutDataAccess ( DependableObject &depObj, Target const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback )
+inline void BaseDependenciesDomain::submitDependableObjectInoutDataAccess ( DependableObject &depObj, Target const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback )
 {
    finalizeReduction( status, target );
    
@@ -241,7 +222,7 @@ inline void DependenciesDomain::submitDependableObjectInoutDataAccess ( Dependab
    dependOnReadersAndSetAsWriter( depObj, status, target, callback );
 }
 
-inline void DependenciesDomain::submitDependableObjectInputDataAccess ( DependableObject &depObj, Target const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback )
+inline void BaseDependenciesDomain::submitDependableObjectInputDataAccess ( DependableObject &depObj, Target const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback )
 {
    finalizeReduction( status, target );
    dependOnLastWriter( depObj, status, callback );
@@ -251,7 +232,7 @@ inline void DependenciesDomain::submitDependableObjectInputDataAccess ( Dependab
    }
 }
 
-inline void DependenciesDomain::submitDependableObjectOutputDataAccess ( DependableObject &depObj, Target const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback )
+inline void BaseDependenciesDomain::submitDependableObjectOutputDataAccess ( DependableObject &depObj, Target const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback )
 {
    finalizeReduction( status, target );
    
@@ -263,47 +244,6 @@ inline void DependenciesDomain::submitDependableObjectOutputDataAccess ( Dependa
    dependOnReadersAndSetAsWriter( depObj, status, target, callback );
 }
 
-inline void DependenciesDomain::deleteLastWriter ( DependableObject &depObj, Target const &target )
-{
-   SyncRecursiveLockBlock lock1( _instanceLock );
-   DepsMap::iterator it = _addressDependencyMap.find( target );
-   
-   if ( it != _addressDependencyMap.end() ) {
-      MappedType &status = *it->second;
-      
-      status.deleteLastWriter(depObj);
-   }
-}
-
-
-inline void DependenciesDomain::deleteReader ( DependableObject &depObj, Target const &target )
-{
-   SyncRecursiveLockBlock lock1( _instanceLock );
-   DepsMap::iterator it = _addressDependencyMap.find( target );
-   
-   if ( it != _addressDependencyMap.end() ) {
-      MappedType &status = *it->second;
-      
-      {
-         SyncLockBlock lock2( status.getReadersLock() );
-         status.deleteReader(depObj);
-      }
-   }
-}
-
-inline void DependenciesDomain::removeCommDO ( CommutationDO *commDO, Target const &target )
-{
-   SyncRecursiveLockBlock lock1( _instanceLock );
-   DepsMap::iterator it = _addressDependencyMap.find( target );
-   
-   if ( it != _addressDependencyMap.end() ) {
-      MappedType &status = *it->second;
-      
-      if ( status.getCommDO ( ) == commDO ) {
-         status.setCommDO ( 0 );
-      }
-   }
-}
 
 #endif
 

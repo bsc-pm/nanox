@@ -38,6 +38,8 @@
 #include "wddeque_fwd.hpp"
 #include "directory_decl.hpp"
 
+#include "dependenciesdomain_fwd.hpp"
+
 namespace nanos
 {
 
@@ -191,26 +193,12 @@ namespace nanos
          /*! \brief WorkDescriptor constructor - 1
           */
          WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0, int data_align = 1, void *wdata=0,
-                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL )
-                        : WorkGroup(), _data_size ( data_size ), _data_align( data_align ),  _data ( wdata ),
-                          _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
-                          _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
-                          _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : NULL ),
-                          _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain( new DependenciesDomain() ), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ),
-                          _priority( 0 ) { }
+                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL );
 
          /*! \brief WorkDescriptor constructor - 2
           */
          WorkDescriptor ( DeviceData *device, size_t data_size = 0, int data_align = 1, void *wdata=0,
-                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL )
-                        : WorkGroup(), _data_size ( data_size ), _data_align ( data_align ), _data ( wdata ),
-                          _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
-                          _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
-                          _numDevices ( 1 ), _devices ( &_activeDevice ), _activeDevice ( device ),
-                          _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain( new DependenciesDomain() ), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ),
-                          _priority( 0 ) { }
+                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL );
 
          /*! \brief WorkDescriptor copy constructor (using a given WorkDescriptor)
           *
@@ -222,14 +210,7 @@ namespace nanos
           *
           *  \see WorkDescriptor System::duplicateWD System::duplicateSlicedWD
           */
-         WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL )
-                        : WorkGroup( wd ), _data_size( wd._data_size ), _data_align( wd._data_align ), _data ( data ),
-                          _wdData ( NULL ), _tie ( wd._tie ), _tiedTo ( wd._tiedTo ),
-                          _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ), _myQueue ( NULL ), _depth ( wd._depth ),
-                          _numDevices ( wd._numDevices ), _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
-                          _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
-                          _doSubmit(), _doWait(), _depsDomain( new DependenciesDomain() ), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( wd._translateArgs ),
-                          _priority( wd._priority ) { }
+         WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL );
 
          /*! \brief WorkDescriptor destructor
           *

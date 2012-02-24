@@ -166,14 +166,19 @@ inline void System::unpausedThread ()
    _pausedThreadsCond.unreference();
 }
 
-inline void System::setDefaultDependenciesManager ( DependenciesManager *manager )
+inline const std::string & System::getDefaultDependenciesManager() const
 {
-   _defDependenciesManager = manager;
+   return _defDepsManager;
 }
 
-inline DependenciesManager * System::getDefaultDependenciesManager ( ) const
+inline void System::setDependenciesManager ( DependenciesManager *manager )
 {
-   return _defDependenciesManager;
+   _dependenciesManager = manager;
+}
+
+inline DependenciesManager * System::getDependenciesManager ( ) const
+{
+   return _dependenciesManager;
 }
 
 inline const std::string & System::getDefaultArch() const { return _defArch; }
