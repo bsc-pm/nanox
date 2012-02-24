@@ -47,11 +47,12 @@ void WorkDescriptor::init ()
       for ( unsigned int i = 0; i < getNumCopies(); i++ ) {
          CopyData & cd = copies[i];
          if ( !cd.isPrivate() ) {
-            //message("WD "<< getId() << " init DA["<< i << "]: addr is " << (void *) cd.getDataAccess().address );
-            DataAccess d( cd.getDataAccess().address, cd.getDataAccess().flags.input ,cd.getDataAccess().flags.output, cd.getDataAccess().flags.can_rename,
-               cd.getDataAccess().flags.commutative, cd.getDataAccess().dimension_count, cd.getDataAccess().dimensions);
-              Region reg = NewRegionDirectory::build_region( d );
-              getNewDirectory()->registerAccess( reg, cd.isInput(), cd.isOutput(), pe->getMemorySpaceId() );
+            //message("[n:" << sys.getNetwork()->getNodeNum() << "] WD "<< getId() << " init DA["<< i << "]: addr is " << (void *) cd.getDataAccess()->address );
+            //DataAccess d( cd.getDataAccess()->address, cd.getDataAccess()->flags.input ,cd.getDataAccess()->flags.output, cd.getDataAccess()->flags.can_rename,
+            //   cd.getDataAccess()->flags.commutative, cd.getDataAccess()->dimension_count, cd.getDataAccess()->dimensions);
+            //  Region reg = NewRegionDirectory::build_region( d );
+            //  message("region is " << reg);
+            //  getNewDirectory()->registerAccess( reg, cd.isInput(), cd.isOutput(), pe->getMemorySpaceId() );
          }
       }
       
@@ -224,7 +225,7 @@ void WorkDescriptor::printCopies()
       for ( unsigned int i = 0; i < getNumCopies(); i++ ) {
          CopyData & cd = copies[i];
          if ( !cd.isPrivate() ) {
-            message("WD: " << getId() << " DA["<< i << "]: addr is " << (void *) cd.getDataAccess().address );
+            //message("WD: " << getId() << " DA["<< i << "]: addr is " << (void *) cd.getDataAccess()->address );
             //DataAccess d( cd.getDataAccess().address, cd.getDataAccess().flags.input ,cd.getDataAccess().flags.output, cd.getDataAccess().flags.can_rename,
             //   cd.getDataAccess().flags.commutative, cd.getDataAccess().dimension_count, cd.getDataAccess().dimensions);
             //  Region reg = NewRegionDirectory::build_region( d );

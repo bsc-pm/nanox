@@ -133,8 +133,7 @@ void NewRegionDirectory::registerAccess( Region reg, bool input, bool output, un
       }
    }
 
-   //insertRegionIntoTree( _directory, reg, memorySpaceId, true, *((NewDirectoryEntryData * ) NULL) );
-   insertRegionIntoTree( _directory, reg, 1, true, *((NewDirectoryEntryData * ) NULL) );
+   insertRegionIntoTree( _directory, reg, memorySpaceId, true, *((NewDirectoryEntryData * ) NULL) );
 }
 
 void NewRegionDirectory::_internal_merge( RegionTree<NewDirectoryEntryData> const &inputDir, RegionTree<NewDirectoryEntryData> &targetDir )

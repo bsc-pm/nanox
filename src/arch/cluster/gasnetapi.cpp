@@ -452,6 +452,11 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
    unsigned int numCopies = *((int *) &work_data[ dataSize ]);
    CopyData *newCopies = NULL;
    CopyData **newCopiesPtr = ( numCopies > 0 ) ? &newCopies : NULL ;
+
+   int num_dimensions = *((int *) &work_data[ dataSize + sizeof( int ) + numCopies * sizeof( CopyData ) ]);
+   nanos_region_dimension_internal_t *dimensions = NULL;
+   nanos_region_dimension_internal_t **dimensions_ptr = ( num_dimensions > 0 ) ? &dimensions : NULL ;
+
    nanos_device_t newDeviceSMP = { local_nanos_smp_factory, sizeof(SMPDD), (void *) &smp_args } ;
 #ifdef GPU_DEV
    nanos_device_t newDeviceGPU = { local_nanos_gpu_factory, sizeof(GPUDD), (void *) &smp_args } ;
@@ -487,15 +492,23 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
    }
 
    //if (gasnet_mynode() == 3) { message("n:3 amWork id " << wdId << " seq is " << seq << " recvd seq counter is " << _recvSeqN.value() ); }
-   sys.createWD( &localWD, (std::size_t) 1, devPtr, (std::size_t) dataSize, (int) ( sizeof(void *) ), (void **) &data, (WG *)rwg, (nanos_wd_props_t *) NULL, (std::size_t) numCopies, newCopiesPtr, xlate, 0, NULL );
+   sys.createWD( &localWD, (std::size_t) 1, devPtr, (std::size_t) dataSize, (int) ( sizeof(void *) ), (void **) &data, (WG *)rwg, (nanos_wd_props_t *) NULL, (std::size_t) numCopies, newCopiesPtr, xlate, num_dimensions, dimensions_ptr );
 
    std::memcpy(data, work_data, dataSize);
 
-   unsigned int numDeps = *( ( int * ) &work_data[ dataSize + sizeof( int ) + numCopies * sizeof( CopyData ) ] );
-   uint64_t *depTags = ( ( uint64_t * ) &work_data[ dataSize + sizeof( int ) + numCopies * sizeof( CopyData ) +sizeof( int ) ] );
+   unsigned int numDeps = *( ( int * ) &work_data[ dataSize + sizeof( int ) + numCopies * sizeof( CopyData ) + sizeof( int ) + num_dimensions * sizeof( nanos_region_dimension_t ) ] );
+   uint64_t *depTags = ( ( uint64_t * ) &work_data[ dataSize + sizeof( int ) + numCopies * sizeof( CopyData ) + sizeof( int ) + num_dimensions * sizeof( nanos_region_dimension_t ) + sizeof( int ) ] );
 
    for (i = 0; i < numCopies; i += 1)
+   {
       new ( &newCopies[i] ) CopyData( *( ( CopyData *) &work_data[ dataSize + sizeof( int ) + i * sizeof( CopyData ) ] ) );
+      newCopies[i].getDataAccess()->setDimensions( (nanos_region_dimension_internal_t const *) ( ( (uintptr_t) &newCopies[i].getDataAccess()->getDimensions() ) + ( (uintptr_t) *dimensions_ptr ) )  );
+   }
+
+   memcpy( *dimensions_ptr, &work_data[ dataSize + sizeof( int ) + numCopies * sizeof( CopyData ) + sizeof(int) ], num_dimensions * sizeof(nanos_region_dimension_t) );
+
+   //for (i = 0; i < numCopies; i += 1)
+   //   new ( &newCopies[i] ) CopyData( *( ( CopyData *) &work_data[ dataSize + sizeof( int ) + i * sizeof( CopyData ) ] ) );
 
    localWD->setId( wdId );
    localWD->setRemoteAddr( rmwd );
@@ -610,7 +623,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
       _deferredWorkReqsLock.release();
    }
 
-   delete work_data;
+   delete[] work_data;
    work_data = NULL;
    work_data_len = 0;
 }
@@ -1190,6 +1203,7 @@ void GASNetAPI::initialize ( Network *net )
          {
             pinnedSegmentAddr[ idx ] = seginfoTable[ idx ].addr;
             pinnedSegmentLen[ idx ] = seginfoTable[ idx ].size;
+            message0("Alloc of " << ClusterInfo::getNodeMem() << " bytes");
 	    segmentAddr[ idx ] = _net->malloc( idx, ClusterInfo::getNodeMem() );
 	    segmentLen[ idx ] = ClusterInfo::getNodeMem(); 
             verbose0( "\tnode "<< idx << ": @=" << seginfoTable[ idx ].addr << ", len=" << (void *) seginfoTable[ idx ].size );
@@ -1270,8 +1284,10 @@ void GASNetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsi
 
    int numCopies = *((int *) &arg[ dataSize ]);
    CopyData *copiesForThisWork = (CopyData *) &arg[ dataSize + sizeof(int)];
-   int *depCount = ((int *) &arg[ dataSize + sizeof(int) + sizeof(CopyData) * numCopies ]);
-   uint64_t *depAddrs = ((uint64_t *) &arg[ dataSize + sizeof(int) + sizeof(CopyData) * numCopies + sizeof(int) ]);
+   int numDims = *((int *) &arg[ dataSize + sizeof(int) + sizeof(CopyData) * numCopies ]);
+   //nanos_region_dimension_t * dims = (nanos_region_dimension_t *) &arg[ dataSize + sizeof(int) + sizeof(CopyData) * numCopies + sizeof( int ) ];
+   int *depCount = ((int *) &arg[ dataSize + sizeof(int) + sizeof(CopyData) * numCopies + sizeof( int ) + sizeof( nanos_region_dimension_t ) * numDims ]);
+   uint64_t *depAddrs = ((uint64_t *) &arg[ dataSize + sizeof(int) + sizeof(CopyData) * numCopies + sizeof(int) + sizeof( nanos_region_dimension_t ) * numDims + sizeof( int )]);
 
    *depCount = 0;
 

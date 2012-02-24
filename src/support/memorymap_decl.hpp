@@ -1,5 +1,23 @@
-#ifndef MEMORYMAP_DECL_H
-#define MEMORYMAP_DECL_H
+/*************************************************************************************/
+/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+#ifndef _NANOS_MEMORYMAP_DECL_H
+#define _NANOS_MEMORYMAP_DECL_H
 
 #include <map>
 #include <list>
@@ -58,7 +76,7 @@ class MemoryMap : public std::map< MemoryChunk, _Type * > {
       const MemoryMap & operator=( const MemoryMap &mm ) { }
    
    public:
-      typedef enum { MEM_CHUNK_FOUND, MEM_CHUNK_NOT_FOUND, MEM_CHUNK_NOT_FOUND_BUT_ALLOCATED } QueryResult;
+      //typedef enum { MEM_CHUNK_FOUND, MEM_CHUNK_NOT_FOUND, MEM_CHUNK_NOT_FOUND_BUT_ALLOCATED } QueryResult;
       typedef std::pair< const MemoryChunk *, _Type ** > MemChunkPair;
       typedef std::list< MemChunkPair > MemChunkList;
       typedef std::pair< const MemoryChunk *, _Type * const * > ConstMemChunkPair;
@@ -80,10 +98,7 @@ class MemoryMap : public std::map< MemoryChunk, _Type * > {
    public:
       void getOrAddChunk( uint64_t addr, std::size_t len, MemChunkList &resultEntries );
       void getChunk2( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
-      void merge( const MemoryMap< _Type > &mm );
-      void merge2( const MemoryMap< _Type > &mm );
       void print() const;
 };
 
-}
-#endif /* MEMORYMAP_DECL_H */
+#endif /* _NANOS_MEMORYMAP_DECL_H */
