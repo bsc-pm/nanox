@@ -17,7 +17,7 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "dependenciesdomain.hpp"
+#include "dependenciesdomain_decl.hpp"
 #include "plugin.hpp"
 #include "system.hpp"
 #include "config.hpp"
@@ -158,7 +158,7 @@ namespace nanos {
                }
             }
             
-            void deleteLastWriter ( DependableObject &depObj, Target const &target )
+            inline void deleteLastWriter ( DependableObject &depObj, Target const &target )
             {
                SyncRecursiveLockBlock lock1( getInstanceLock() );
                DepsMap::iterator it = _addressDependencyMap.find( target );
@@ -171,7 +171,7 @@ namespace nanos {
             }
             
             
-            void deleteReader ( DependableObject &depObj, Target const &target )
+            inline void deleteReader ( DependableObject &depObj, Target const &target )
             {
                SyncRecursiveLockBlock lock1( getInstanceLock() );
                DepsMap::iterator it = _addressDependencyMap.find( target );
@@ -186,7 +186,7 @@ namespace nanos {
                }
             }
             
-            void removeCommDO ( CommutationDO *commDO, Target const &target )
+            inline void removeCommDO ( CommutationDO *commDO, Target const &target )
             {
                SyncRecursiveLockBlock lock1( getInstanceLock() );
                DepsMap::iterator it = _addressDependencyMap.find( target );
