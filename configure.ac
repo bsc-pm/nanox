@@ -507,6 +507,11 @@ AC_CONFIG_FILES([Makefile
 		 src/plugins/instrumentation/debug/Makefile
 		 src/plugins/instrumentation/instrumentation/Makefile
 		 src/plugins/instrumentation/instrumentation-debug/Makefile
+		 src/plugins/worksharing/Makefile
+		 src/plugins/worksharing/performance/Makefile
+		 src/plugins/worksharing/debug/Makefile
+		 src/plugins/worksharing/instrumentation/Makefile
+		 src/plugins/worksharing/instrumentation-debug/Makefile
 		 src/apis/Makefile
 		 src/apis/c/Makefile
 		 src/apis/c/performance/Makefile
