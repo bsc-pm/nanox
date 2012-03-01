@@ -59,11 +59,11 @@ nanos_ws_t nanos_find_worksharing ( const char * label )
 
    nanos_ws_t ws;
    try {
-      ws = sys.getWorkSharing ( std::string(label) );
+      std::string plugin = std::string(label);
+      ws = sys.getWorkSharing ( plugin );
       if ( ws == NULL ) {
-         std::string plugin = "worksharing-" + std::string(label);
-         if ( !PluginManager::load( plugin )) fatal0( "Could not load " + std::string(label) + "worksharing" );
-         ws = sys.getWorkSharing ( std::string(label) );
+         if ( !sys.loadPlugin( "worksharing-" + plugin )) fatal0( "Could not load " + plugin + "worksharing" );
+         ws = sys.getWorkSharing ( plugin );
       }
 
    } catch ( ... ) {
