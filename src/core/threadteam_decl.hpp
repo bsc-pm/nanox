@@ -54,6 +54,7 @@ namespace nanos
       private:
          BaseThread **                _threads;
          Atomic<size_t>               _size;
+         Atomic<size_t>               _starSize;
          int                          _idleThreads;
          int                          _numTasks;
          Barrier &                    _barrier;
@@ -63,7 +64,8 @@ namespace nanos
          ThreadTeamData &             _threadTeamData;
          ThreadTeam *                 _parent;           /**< Parent ThreadTeam */
          int                          _level;            /**< Nesting level of the team */
-         int                          _creatorId;               /**< Team Id of the thread that created the team */
+         int                          _creatorId;        /**< Team Id of the thread that created the team */
+         nanos_ws_desc_t             *_wsDescriptor;     /**< Worksharing queue (pointer managed due specific atomic op's over these pointers) */
       private:
 
          /*! \brief ThreadTeam default constructor (disabled)
@@ -109,9 +111,10 @@ namespace nanos
          BaseThread & operator[]  ( int i );
 
          /*! \brief adds a thread to the team pool, returns the thread id in the team
+          *  \param star: If true thread will adopt an starring role within the team
           *  \param creator: If true the thread ID is set as the creatorID for this team
           */
-         unsigned addThread ( BaseThread *thread, bool creator = false );
+         unsigned addThread ( BaseThread *thread, bool star = false, bool creator = false );
          /*! \brief removes a thread from the team pool
           */
          void removeThread ( unsigned id );
@@ -138,6 +141,30 @@ namespace nanos
         /*! \brief returns the team's creator Id, -1 if not set
          */
          int getCreatorId() const;
+
+        /*! \brief returns WorkSharing 
+         */
+         nanos_ws_desc_t  *getWorkSharingDescriptor( void );
+
+        /*! \brief returns WorkSharing Address
+         */
+         nanos_ws_desc_t **getWorkSharingDescriptorAddr( void );
+
+        /*! \brief Return number of starring thread
+         */
+         unsigned getNumStarringThreads( void ) const;
+
+        /*! \brief Return number of starring thread and fill a vector of pointers to threads
+         */
+         unsigned getStarringThreads( BaseThread *list_of_threads[] ) const;
+
+        /*! \brief Return number of supporting thread
+         */
+         unsigned getNumSupportingThreads( void ) const;
+
+        /*! \brief Return number of supporting thread and fill a vector of pointers to threads
+         */
+         unsigned getSupportingThreads( BaseThread *list_of_threads[] ) const;
    };
 
 }
