@@ -17,5 +17,7 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = sched throttle barr slicers instrumentation worksharing
+SUBDIRS = performance debug instrumentation instrumentation-debug
+
+include $(top_srcdir)/src/common.am
 
