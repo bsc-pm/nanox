@@ -327,6 +327,8 @@ void System::start ()
    if ( getSynchronizedStart() )   
      threadReady();
 
+   myThread->setStar();
+
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_RUNNING) );
 }
@@ -375,6 +377,10 @@ void System::finish ()
 
    for ( Slicers::const_iterator it = _slicers.begin(); it !=   _slicers.end(); it++ ) {
       delete (Slicer *)  it->second;
+   }
+
+   for ( WorkSharings::const_iterator it = _worksharings.begin(); it !=   _worksharings.end(); it++ ) {
+      delete (WorkSharing *)  it->second;
    }
 
    // join
@@ -927,8 +933,8 @@ void System::releaseWorker ( BaseThread * thread )
    team->removeThread(thread_id);
 }
 
-ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
-                                   bool reuseCurrent, bool enterTeam )
+ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints,
+                                   bool reuseCurrent, bool enterTeam, bool starred_threads )
 {
    int thId;
    TeamData *data;
@@ -956,9 +962,10 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
       
       nthreads --;      
 
-      thId = team->addThread( current, true );
+      thId = team->addThread( current, starred_threads, true );
 
       data = NEW TeamData();
+      data->setStar(starred_threads);
 
       ScheduleThreadData* sthdata = 0;
       if ( sched->getThreadDataSize() > 0 )
@@ -985,9 +992,10 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
       }
 
       nthreads--;
-      thId = team->addThread( thread );
+      thId = team->addThread( thread, starred_threads );
 
       data = NEW TeamData();
+      data->setStar(starred_threads);
 
       ScheduleThreadData *sthdata = 0;
       if ( sched->getThreadDataSize() > 0 )

@@ -112,11 +112,20 @@ inline Slicer * System::getSlicer( const std::string &label ) const
    return (*it).second;
 }
 
+inline WorkSharing * System::getWorkSharing( const std::string &label ) const 
+{ 
+   WorkSharings::const_iterator it = _worksharings.find(label);
+   if ( it == _worksharings.end() ) return NULL;
+   return (*it).second;
+}
+
 inline Instrumentation * System::getInstrumentation ( void ) const { return _instrumentation; }
 
 inline void System::setInstrumentation ( Instrumentation *instr ) { _instrumentation = instr; }
 
 inline void System::registerSlicer ( const std::string &label, Slicer *slicer) { _slicers[label] = slicer; }
+
+inline void System::registerWorkSharing ( const std::string &label, WorkSharing *ws) { _worksharings[label] = ws; }
 
 inline void System::setDefaultSchedulePolicy ( SchedulePolicy *policy ) { _defSchedulePolicy = policy; }
 inline SchedulePolicy * System::getDefaultSchedulePolicy ( ) const  { return _defSchedulePolicy; }

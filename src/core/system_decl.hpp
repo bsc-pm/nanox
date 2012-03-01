@@ -27,6 +27,7 @@
 #include "schedule_decl.hpp"
 #include "threadteam_decl.hpp"
 #include "slicer_decl.hpp"
+#include "worksharing_decl.hpp"
 #include "nanos-int.h"
 #include "dependency_decl.hpp"
 #include "instrumentation_decl.hpp"
@@ -55,6 +56,7 @@ namespace nanos
          typedef std::vector<PE *>         PEList;
          typedef std::vector<BaseThread *> ThreadList;
          typedef std::map<std::string, Slicer *> Slicers;
+         typedef std::map<std::string, WorkSharing *> WorkSharings;
          
          // configuration variables
          int                  _numPEs;
@@ -99,6 +101,8 @@ namespace nanos
          unsigned int         _targetThreads;
 
          Slicers              _slicers; /**< set of global slicers */
+
+         WorkSharings         _worksharings; /**< set of global worksharings */
 
          Instrumentation     *_instrumentation; /**< Instrumentation object used in current execution */
          SchedulePolicy      *_defSchedulePolicy;
@@ -212,7 +216,7 @@ namespace nanos
 
          // team related methods
          BaseThread * getUnassignedWorker ( void );
-         ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuseCurrent=true, bool enterTeam=true );
+         ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuseCurrent=true, bool enterTeam=true, bool starred_threads=false );
 
          BaseThread * getWorker( unsigned int n );
 
@@ -240,11 +244,15 @@ namespace nanos
 
          Slicer * getSlicer( const std::string &label ) const;
 
+         WorkSharing * getWorkSharing( const std::string &label ) const;
+
          Instrumentation * getInstrumentation ( void ) const;
 
          void setInstrumentation ( Instrumentation *instr );
 
          void registerSlicer ( const std::string &label, Slicer *slicer);
+
+         void registerWorkSharing ( const std::string &label, WorkSharing *ws);
 
          void setDefaultSchedulePolicy ( SchedulePolicy *policy );
          
