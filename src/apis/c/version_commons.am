@@ -3,6 +3,7 @@ nanos_c_sources = \
 	$(top_srcdir)/src/apis/c/nanos_pe.cpp\
 	$(top_srcdir)/src/apis/c/nanos_finders.cpp\
 	$(top_srcdir)/src/apis/c/nanos_wd.cpp\
+	$(top_srcdir)/src/apis/c/nanos_worksharing.cpp\
 	$(top_srcdir)/src/apis/c/nanos_sync.cpp\
 	$(top_srcdir)/src/apis/c/nanos_team.cpp\
 	$(top_srcdir)/src/apis/c/nanos_err.cpp\
