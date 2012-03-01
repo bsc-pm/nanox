@@ -25,9 +25,13 @@
 
 using namespace nanos;
 
-inline ThreadTeam::ThreadTeam ( int maxThreads, SchedulePolicy &policy, ScheduleTeamData *data, Barrier &barrierImpl, ThreadTeamData & ttd, ThreadTeam * parent )
-   : _size(0), _idleThreads( 0 ), _numTasks( 0 ), _barrier(barrierImpl), _singleGuardCount( 0 ),
-     _schedulePolicy( policy ), _scheduleData( data ), _threadTeamData( ttd ), _parent( parent ), _level( parent == NULL ? 0 : parent->getLevel() + 1 ), _creatorId(-1)
+inline ThreadTeam::ThreadTeam ( int maxThreads, SchedulePolicy &policy, ScheduleTeamData *data,
+                                Barrier &barrierImpl, ThreadTeamData & ttd, ThreadTeam * parent )
+                              : _size(0), _starSize(0), _idleThreads( 0 ), _numTasks( 0 ), _barrier(barrierImpl),
+                                _singleGuardCount( 0 ), _schedulePolicy( policy ),
+                                _scheduleData( data ), _threadTeamData( ttd ), _parent( parent ),
+                                _level( parent == NULL ? 0 : parent->getLevel() + 1 ), _creatorId(-1),
+                                _wsDescriptor(NULL)
 {
       _threads = NEW BaseThread *[maxThreads];
 }
@@ -78,10 +82,11 @@ inline BaseThread & ThreadTeam::operator[]  ( int i )
    return getThread(i);
 }
 
-inline unsigned ThreadTeam::addThread ( BaseThread *thread, bool creator )
+inline unsigned ThreadTeam::addThread ( BaseThread *thread, bool star, bool creator )
 {
    unsigned id = _size++;
    _threads[id] =  thread;
+   if ( star ) _starSize++;
    if ( creator ) {
       _creatorId = (int) id;
    }
@@ -93,6 +98,10 @@ inline void ThreadTeam::removeThread ( unsigned id )
    _threads[id] = 0;
    _size--;
 }
+
+inline nanos_ws_desc_t  *ThreadTeam::getWorkSharingDescriptor( void ) { return _wsDescriptor; }
+
+inline nanos_ws_desc_t **ThreadTeam::getWorkSharingDescriptorAddr( void ) { return &_wsDescriptor; }
 
 inline void ThreadTeam::barrier()
 {
@@ -127,6 +136,38 @@ inline int ThreadTeam::getLevel() const
 inline int ThreadTeam::getCreatorId() const
 {
    return _creatorId;
+}
+
+inline unsigned ThreadTeam::getNumStarringThreads( void ) const
+{
+   return _starSize.value();
+}
+
+inline unsigned ThreadTeam::getStarringThreads( BaseThread **list_of_threads ) const
+{
+   unsigned i,nThreadsQuery = 0;
+   for ( i = 0; i < _size.value(); i++ ) {
+      if ( _threads[i]->isStarring( this ) ) {
+         list_of_threads[nThreadsQuery++] = _threads[i];
+      }
+   }
+   return nThreadsQuery;
+}
+
+inline unsigned ThreadTeam::getNumSupportingThreads( void ) const
+{
+   return _size.value() - _starSize.value();
+}
+
+inline unsigned ThreadTeam::getSupportingThreads( BaseThread **list_of_threads ) const
+{
+   unsigned i,nThreadsQuery = 0;
+   for ( i = 0; i < _size.value(); i++ ) {
+      if ( !_threads[i]->isStarring( this ) ) {
+         list_of_threads[nThreadsQuery++] = _threads[i];
+      }
+   }
+   return nThreadsQuery;
 }
 
 #endif
