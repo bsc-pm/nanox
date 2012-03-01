@@ -27,6 +27,7 @@ instrdebug_LTLIBRARIES = \
 	libnanox-slicer-guided_for.la \
 	libnanox-slicer-repeat_n.la \
 	libnanox-slicer-compound_wd.la \
+	libnanox-slicer-replicate.la \
 	$(END)
 
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags)
@@ -50,5 +51,10 @@ libnanox_slicer_repeat_n_la_SOURCES = $(repeat_n_sources)
 libnanox_slicer_compound_wd_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
 libnanox_slicer_compound_wd_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_slicer_compound_wd_la_SOURCES = $(compound_wd_sources)
+
+libnanox_slicer_replicate_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
+libnanox_slicer_replicate_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_slicer_replicate_la_SOURCES = $(replicate_sources)
+
 endif
 

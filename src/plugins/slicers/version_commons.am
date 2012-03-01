@@ -18,3 +18,7 @@ repeat_n_sources = \
 compound_wd_sources = \
 	$(top_srcdir)/src/plugins/slicers/compound_wd.cpp \
 	$(END)
+
+replicate_sources = \
+	$(top_srcdir)/src/plugins/slicers/replicate.cpp \
+	$(END)
