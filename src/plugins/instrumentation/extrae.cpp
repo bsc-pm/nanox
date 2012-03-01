@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <libgen.h>
 #include "os.hpp"
+#include "errno.h"
 
 /* NANOX_EXTRAE_DEFINE_CALLBACKS will allow to define which are our external services
  * to specify the execution environment ( thread id, total threads, etc ). They are
@@ -138,8 +139,27 @@ class InstrumentationExtrae: public Instrumentation
             exit(result);
          }
          else {
-            waitpid( pid, &status, options);
-            if ( status != 0 ) message0("Error while merging trace (mpi2prv returns: " << status << ")");
+            if ( pid < 0 ) {
+                int errsv = errno;
+                message0("Error: Cannot execute mpi2prv due following error:");
+                switch ( errsv ){
+                   case EAGAIN:
+                      message0("fork() cannot allocate sufficient memory to copy the parent's page tables and allocate a task structure for the child.");
+                      break;
+                   case ENOMEM:
+                      message0("fork() failed to allocate the necessary kernel structures because memory is tight.");
+                      break;
+                   default:
+                      message0("fork() unknow error.");
+                      break;
+                }
+                message0("Keeping .mpits files. You can try to execute mpi2prv manually:");
+                message0(str << " -f " << _listOfTraceFileNames.c_str() << " -o " << _traceFileName_PRV.c_str() << " -e " << _binFileName.c_str() );
+                _keepMpits = true;
+            } else {
+               waitpid( pid, &status, options);
+               if ( status != 0 ) message0("Error while merging trace (mpi2prv returns: " << status << ")");
+            }
          }
       }
 
@@ -200,6 +220,8 @@ class InstrumentationExtrae: public Instrumentation
             p_file << NANOS_CACHE            << "     CACHE ALLOC/FREE" << std::endl;
             p_file << NANOS_YIELD            << "     YIELD" << std::endl;
             p_file << NANOS_ACQUIRING_LOCK   << "     ACQUIRING LOCK" << std::endl;
+            p_file << NANOS_CONTEXT_SWITCH   << "     CONTEXT SWITCH" << std::endl;
+            p_file << 27                     << "     EXTRAE I/O" << std::endl;
             p_file << std::endl;
 
             /* Event: PtPStart main event */
@@ -230,9 +252,14 @@ class InstrumentationExtrae: public Instrumentation
             p_file << NANOS_MEM_TRANSFER_IN  << "     DATA TRANSFER TO DEVICE" << std::endl;
             p_file << NANOS_MEM_TRANSFER_OUT << "     DATA TRANSFER TO HOST" << std::endl;
             p_file << NANOS_MEM_TRANSFER_LOCAL << "     LOCAL DATA TRANSFER IN DEVICE" << std::endl;
+            p_file << NANOS_MEM_TRANSFER_DEVICE_IN  << "     DATA TRANSFER TO DEVICE" << std::endl;
+            p_file << NANOS_MEM_TRANSFER_DEVICE_OUT << "     DATA TRANSFER TO HOST" << std::endl;
+            p_file << NANOS_MEM_TRANSFER_DEVICE_LOCAL << "     LOCAL DATA TRANSFER IN DEVICE" << std::endl;
             p_file << NANOS_CACHE            << "     CACHE ALLOC/FREE" << std::endl;
             p_file << NANOS_YIELD            << "     YIELD" << std::endl;
             p_file << NANOS_ACQUIRING_LOCK   << "     ACQUIRING LOCK" << std::endl;
+            p_file << NANOS_CONTEXT_SWITCH   << "     CONTEXT SWITCH" << std::endl;
+            p_file << 27                     << "     EXTRAE I/O" << std::endl;
             p_file << std::endl;
 
             /* Getting Instrumentation Dictionary */

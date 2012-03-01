@@ -82,6 +82,8 @@ inline bool System::getUntieMaster () const { return _untieMaster; }
 inline void System::setSynchronizedStart ( bool value ) { _synchronizedStart = value; }
 inline bool System::getSynchronizedStart ( void ) const { return _synchronizedStart; }
 
+inline int System::getWorkDescriptorId( void ) { return _atomicWDSeed++; }
+
 inline int System::getReadyNum() const { return _schedStats._readyTasks.value(); }
 
 inline int System::getRunningTasks() const
@@ -189,7 +191,9 @@ inline System::CachePolicyType System::getCachePolicy() { return _cachePolicy; }
 
 inline CacheMap& System::getCacheMap() { return _cacheMap; }
 
+#ifdef GPU_DEV
 inline PinnedAllocator& System::getPinnedAllocatorCUDA() { return _pinnedMemoryCUDA; }
+#endif
 
 inline bool System::throttleTask()
 {

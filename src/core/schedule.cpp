@@ -804,6 +804,9 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    /* If WorkDescriptor has been submitted update statistics */
    updateExitStats (*wd);
 
+   /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters */
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, true) );
+
    wd->done();
    wd->clear();
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, true) );
@@ -812,15 +815,20 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
           " to " << oldwd << ":" << oldwd->getId() );
 
 //<<<<<<< HEAD
-//   thread->setCurrentWD( *oldwd );
-//   /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters */
-//   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(NULL, oldwd, false) );
-//=======
+////<<<<<<< HEAD
+////   thread->setCurrentWD( *oldwd );
+////   /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters */
+////   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(NULL, oldwd, false) );
+////=======
    /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(NULL, wd, true) );
    thread->setCurrentWD( *oldwd );
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldwd, NULL, false) );
-//>>>>>>> gpu
+////>>>>>>> gpu
+//=======
+//   thread->setCurrentWD( *oldwd );
+//   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(NULL, oldwd, false) );
+//>>>>>>> new_copy_data
 
    // While we tie the inlined tasks this is not needed
    // as we will always return to the current thread

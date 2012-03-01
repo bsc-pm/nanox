@@ -27,7 +27,6 @@
 
 namespace nanos
 {
-
   /* \class WorkGroup
    *
    */

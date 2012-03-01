@@ -29,8 +29,9 @@
 
 using namespace nanos;
 
-inline WorkGroup::WorkGroup() : _id( sys.getWgId() ), _syncCount(0), _ge(NEW GraphEntry(_id) ), _geNext( NEW GraphEntry(_id) ),
-            _components( 0 ), _syncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL)
+inline WorkGroup::WorkGroup()
+       : _id( sys.getWorkDescriptorId() ), _syncCount(0), _ge(NEW GraphEntry(_id) ), _geNext( NEW GraphEntry(_id) ),
+         _components( 0 ), _syncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL)
 {
    _ge->setIsWait();
    _ge->setCount(0);
@@ -38,9 +39,9 @@ inline WorkGroup::WorkGroup() : _id( sys.getWgId() ), _syncCount(0), _ge(NEW Gra
    _geNext->setCount(1);
 }
 
-inline WorkGroup::WorkGroup( const WorkGroup &wg ) : _id( sys.getWgId() ),
+inline WorkGroup::WorkGroup( const WorkGroup &wg ) : _id( /* nanos::System::_atomicWDSeed++*/ 1 ),
             _syncCount(0), _ge(NEW GraphEntry(_id) ), _geNext( NULL ), _components( 0 ),
-            _syncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ), _parent(NULL) 
+            _syncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ), _parent(NULL)  
 {
    if ( wg._parent != NULL ) { 
       wg._parent->addWork(*this);

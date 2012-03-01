@@ -37,7 +37,10 @@
 #include "plugin_decl.hpp"
 #include "barrier_decl.hpp"
 #include "accelerator_decl.hpp"
+
+#ifdef GPU_DEV
 #include "pinnedallocator_decl.hpp"
+#endif
 
 
 namespace nanos
@@ -66,6 +69,9 @@ namespace nanos
          typedef std::vector<BaseThread *> ThreadList;
          typedef std::map<std::string, Slicer *> Slicers;
          
+         // globla seeds
+         Atomic<int> _atomicWDSeed;
+
          // configuration variables
          int                  _numPEs;
          int                  _deviceStackSize;
@@ -150,8 +156,10 @@ namespace nanos
          WD *slaveParentWD;
          BaseThread *_masterGpuThd;
 
+#ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
          PinnedAllocator      _pinnedMemoryCUDA;
+#endif
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -175,6 +183,8 @@ namespace nanos
          void start ();
          void finish ();
 
+         int getWorkDescriptorId( void );
+
          void submit ( WD &work );
          void submitWithDependencies (WD& work, size_t numDataAccesses, DataAccess const *dataAccesses);
          void waitOn ( size_t numDataAccesses, DataAccess const *dataAccesses );
@@ -182,11 +192,13 @@ namespace nanos
 
          void createWD (WD **uwd, size_t num_devices, nanos_device_t *devices,
                         size_t data_size, int data_align, void ** data, WG *uwg,
-                        nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies, nanos_translate_args_t translate_args, size_t num_dimensions, nanos_region_dimension_internal_t **dimensions );
+                        nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies,
+                        size_t num_dimensions, nanos_region_dimension_internal_t **dimensions,
+                        nanos_translate_args_t translate_args );
 
          void createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
-                        int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props, size_t num_copies,
-                        nanos_copy_data_t **copies );
+                        int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props,
+                        size_t num_copies, nanos_copy_data_t **copies, size_t num_dimensions, nanos_region_dimension_internal_t **dimensions );
 
          void duplicateWD ( WD **uwd, WD *wd );
          void duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd );
@@ -343,7 +355,9 @@ namespace nanos
          CachePolicyType getCachePolicy();
          CacheMap& getCacheMap();
 
+#ifdef GPU_DEV
          PinnedAllocator& getPinnedAllocatorCUDA();
+#endif
 
          void threadReady ();
          void preMainBarrier();

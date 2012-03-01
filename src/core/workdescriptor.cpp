@@ -151,7 +151,8 @@ void WorkDescriptor::prepareCopies()
 {
    for (unsigned int i = 0; i < _numCopies; i++ ) {
       if ( _copies[i].isPrivate() )
-         _copies[i].setAddress( ( (uint64_t)_copies[i].getAddress() - (unsigned long)_data ) );
+         //jbueno new API _copies[i].setAddress( ( (uint64_t)_copies[i].getAddress() - (unsigned long)_data ) );
+         _copies[i].setBaseAddress( (void *) ( (uint64_t )_copies[i].getBaseAddress() - (unsigned long)_data ) );
    }
 }
 

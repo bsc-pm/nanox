@@ -23,16 +23,6 @@
 
 using namespace nanos;
 
-NANOS_API_DEF(void *, nanos_malloc_pinned_cuda, ( size_t size ))
-{
-   return sys.getPinnedAllocatorCUDA().allocate( size );
-}
-
-NANOS_API_DEF( void, nanos_free_pinned_cuda, ( void * address ) )
-{
-   return sys.getPinnedAllocatorCUDA().free( address );
-}
-
 
 NANOS_API_DEF(nanos_err_t, nanos_get_num_running_tasks, ( int *num ))
 {

@@ -26,6 +26,10 @@ noinst_LTLIBRARIES=libsupport.la
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags) 
 
 libsupport_la_CXXFLAGS=$(nanos_perfo_cxxflags)
+if GPU_SUPPORT
+libsupport_la_SOURCES=$(support_sources) $(gpu_support_sources)
+else
 libsupport_la_SOURCES=$(support_sources)
+endif
 endif
 
