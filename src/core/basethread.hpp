@@ -146,7 +146,6 @@ namespace nanos
    { 
       if ( !sys.getSchedulerConf().getSchedulerEnabled() )
          return NULL;
-
       /* First copy value to avoid race conditions */
       WD * retWD = _nextWD;
       if ( retWD == (WD *) 1 ) return NULL;

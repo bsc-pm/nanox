@@ -163,7 +163,7 @@ namespace nanos
          BaseThread ( WD &wd, ProcessingElement *creator=0 ) :
             _id( _idSeed++ ), _name("Thread"), _description(""), _pe( creator ), _threadWD( wd ),
             _started( false ), _mustStop( false ), _paused( false ), _currentWD( NULL),
-            _nextWD( NULL), _hasTeam( false ), _teamData(NULL), _allocator() { }
+            _nextWD( NULL), _hasTeam( false ), _teamData(NULL), _nextTeamData(NULL), _allocator() { } 
 
         /*! \brief BaseThread destructor
          */

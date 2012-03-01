@@ -76,8 +76,10 @@ namespace nanos {
       AddrMap::iterator it = _blocks.find( p );
 
       if ( it != _blocks.end() ) {
+         size_t size = it->second._size;
+
          _numBlocks--;
-         _totalMem -= it->second._size;
+         _totalMem -= size;
 
 #ifdef NANOS_DISABLE_ALLOCATOR
          free( p );
@@ -86,7 +88,7 @@ namespace nanos {
 #endif
 
          _blocks.erase( it );
-         _stats[it->second._size]._current--;
+         _stats[size]._current--;
       } else {
          guard.release();
 

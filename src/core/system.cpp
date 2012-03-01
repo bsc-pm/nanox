@@ -44,6 +44,8 @@ using namespace nanos;
 
 System nanos::sys;
 
+Atomic<int> WorkGroup::_atomicSeed( 1 );
+
 // default system values go here
 System::System () :
       _atomicWDSeed( 1 ),

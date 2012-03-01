@@ -127,6 +127,15 @@ nanos_err_t nanos_team_get_supporting_threads ( int *n, nanos_thread_t *list_of_
 nanos_err_t nanos_worksharing_create( nanos_ws_desc_t **wsd, nanos_ws_t ws, nanos_ws_info_t *info, bool *b );
 nanos_err_t nanos_worksharing_next_item( nanos_ws_desc_t *wsd, nanos_ws_item_t *wsi );
 
+nanos_err_t nanos_team_get_num_starring_threads ( int *n );
+nanos_err_t nanos_team_get_starring_threads ( int *n, nanos_thread_t *list_of_threads );
+nanos_err_t nanos_team_get_num_supporting_threads ( int *n );
+nanos_err_t nanos_team_get_supporting_threads ( int *n, nanos_thread_t *list_of_threads);
+
+// worksharing
+nanos_err_t nanos_worksharing_create( nanos_ws_desc_t **wsd, nanos_ws_t ws, nanos_ws_info_t *info, bool *b );
+nanos_err_t nanos_worksharing_next_item( nanos_ws_desc_t *wsd, nanos_ws_item_t *wsi );
+
 // sync
 
 NANOS_API_DECL(nanos_err_t, nanos_wg_wait_completion, ( nanos_wg_t wg, bool avoid_flush ));
