@@ -57,6 +57,7 @@ void BaseThread::associate ()
 
 bool BaseThread::singleGuard ()
 {
+   if ( getTeam() == NULL ) return true;
    return getTeam()->singleGuard( getTeamData()->nextSingleGuard() );
 }
 
