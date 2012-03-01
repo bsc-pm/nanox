@@ -37,6 +37,59 @@ namespace nanos
       delete _schedData;
    }
    
+   inline bool TeamData::isStarring ( void ) const { return _star; }
+
+   inline void TeamData::setStar ( bool v ) { _star = v; }
+
+   inline nanos_ws_desc_t *TeamData::getTeamWorkSharingDescriptor( bool *b )
+   {
+      nanos_ws_desc_t *next = NULL, *myNext = NULL;
+
+      *b = false;
+
+      if ( _wsDescriptor ) {
+         // Having a previous _wsDescriptor
+         if ( _wsDescriptor->next ) {
+            next = _wsDescriptor->next;
+         } else {
+            myNext = NEW nanos_ws_desc_t();
+            myNext->ws = NULL;
+            if ( compareAndSwap( &(_wsDescriptor->next), (nanos_ws_desc_t *) NULL, myNext) ) {
+               next = myNext;
+               *b = true;
+            } else {
+               next = _wsDescriptor->next;
+               delete myNext;
+            }
+         }
+      } else if ( _team ) {
+         // With no previous _wsDescriptor but having a team
+         nanos_ws_desc_t **teamNext = _team->getWorkSharingDescriptorAddr();
+         if ( *teamNext ) {
+            next = *teamNext;
+         } else {
+            myNext = NEW nanos_ws_desc_t();
+            myNext->ws = NULL;
+            if ( compareAndSwap( teamNext, (nanos_ws_desc_t *) NULL, myNext) )
+            {
+               next = myNext;
+               *b = true;
+            } else {
+               next = *teamNext;
+               delete myNext;
+            }
+         }
+      } else {
+         // With no previous _wsDescriptor neither team
+         // next = NEW nanos_ws_desc_t();
+         fatal("Asking for team WorkSharing with no associated team.");
+      }
+
+      _wsDescriptor = next;
+
+      return next;
+   }
+
    // atomic access
    inline void BaseThread::lock () { _mlock++; }
  
@@ -104,6 +157,13 @@ namespace nanos
 
    inline void BaseThread::setNextTeamData( TeamData * td) { _nextTeamData = td; }
 
+   inline nanos_ws_desc_t *BaseThread::getLocalWorkSharingDescriptor( void ) { return &_wsDescriptor; }
+
+   inline nanos_ws_desc_t *BaseThread::getTeamWorkSharingDescriptor( bool *b )
+   {
+      if ( _teamData) return _teamData->getTeamWorkSharingDescriptor ( b );
+      else return NULL;
+   }
  
    //! Returns the id of the thread inside its current team 
    inline int BaseThread::getTeamId() const { return _teamData->getId(); }
@@ -118,6 +178,18 @@ namespace nanos
  
    inline int BaseThread::getCpuId() { return runningOn()->getId(); }
  
+   inline bool BaseThread::isStarring ( const ThreadTeam *t ) const
+   {
+      if ( _teamData && t == _teamData->getTeam() ) return _teamData->isStarring();
+      else if ( _nextTeamData && t == _nextTeamData->getTeam() ) return _nextTeamData->isStarring();
+      return false;
+   }
+
+   inline void BaseThread::setStar ( bool v )
+   {
+      if ( _teamData ) _teamData->setStar ( v );
+   }
+
    inline Allocator & BaseThread::getAllocator() { return _allocator; }
    /*! \brief Rename the basethread
    */
