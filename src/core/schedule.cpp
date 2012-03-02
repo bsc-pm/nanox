@@ -182,36 +182,35 @@ inline void Scheduler::idleLoop ()
 
       if ( !thread->isRunning() ) break;
 
-      if ( thread->getTeam() != NULL ) {
-         WD * next = myThread->getNextWD();
-         // This should be ideally performed in getNextWD, but it's const...
-         if ( !sys.getSchedulerConf().getSchedulerEnabled() ) {
-            // The thread is paused, mark it as so
-            myThread->pause();
+      WD * next = myThread->getNextWD();
+      // This should be ideally performed in getNextWD, but it's const...
+      if ( !sys.getSchedulerConf().getSchedulerEnabled() ) {
+         // The thread is paused, mark it as so
+         myThread->pause();
+      }
+      else {
+         // The thread is not paused, mark it as so
+         myThread->unpause();
+      }
+
+      if ( next ) {
+         myThread->resetNextWD();
+      } else if ( thread->getTeam() != NULL ) {
+         memoryFence();
+         if ( sys.getSchedulerStats()._readyTasks > 0 ) {
+            total_scheds++;
+            unsigned long begin_sched = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+            next = behaviour::getWD(thread,current);
+            unsigned long end_sched = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+            time_scheds += ( end_sched - begin_sched );
          }
-         else {
-            // The thread is not paused, mark it as so
-            myThread->unpause();
-         }
+      } 
 
-         if ( next ) {
-            myThread->resetNextWD();
-         } else {
-           memoryFence();
-           if ( sys.getSchedulerStats()._readyTasks > 0 ) {
-              total_scheds++;
-              unsigned long begin_sched = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
-              next = behaviour::getWD(thread,current);
-              unsigned long end_sched = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
-              time_scheds += ( end_sched - begin_sched );
-           }
-         } 
+      if ( next ) {
+         sys.getSchedulerStats()._idleThreads--;
 
-         if ( next ) {
-            sys.getSchedulerStats()._idleThreads--;
-
-            total_spins+= (nspins - spins);
-            NANOS_INSTRUMENT ( nanos_event_value_t Values[7]; )
+         total_spins+= (nspins - spins);
+         NANOS_INSTRUMENT ( nanos_event_value_t Values[7]; )
 
             NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) total_yields; )
             NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) time_yields; )
@@ -234,43 +233,42 @@ inline void Scheduler::idleLoop ()
 
             NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) )
             behaviour::switchWD(thread, current, next);
-            thread = getMyThreadSafe();
-            NANOS_INSTRUMENT( inst2.close() );
-            sys.getSchedulerStats()._idleThreads++;
+         thread = getMyThreadSafe();
+         NANOS_INSTRUMENT( inst2.close() );
+         sys.getSchedulerStats()._idleThreads++;
 
-            total_spins = 0;
-            total_sleeps = 0;
-            total_yields = 0;
-            total_scheds = 0;
+         total_spins = 0;
+         total_sleeps = 0;
+         total_yields = 0;
+         total_scheds = 0;
 
-            time_yields = 0;
-            time_sleeps = 0;
-            time_scheds = 0;
+         time_yields = 0;
+         time_sleeps = 0;
+         time_scheds = 0;
 
-            spins = nspins;
-            continue;
-         }
+         spins = nspins;
+         continue;
       }
 
       if ( spins == 0 ) {
-        total_spins+= nspins;
-        sleeps--;
-        if ( sleeps < 0 ) {
-           if ( sys.useYield() ) {
-              total_yields++;
-              unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
-              thread->yield();
-              unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
-              time_yields += ( end_yield - begin_yield );
-           }
-           sleeps = nsleeps;
-        } else {
-           total_sleeps++;
-           struct timespec req ={0,tsleep};
-           nanosleep ( &req, NULL );
-           time_sleeps += time_sleeps + tsleep;
-        }
-        spins = nspins;
+         total_spins+= nspins;
+         sleeps--;
+         if ( sleeps < 0 ) {
+            if ( sys.useYield() ) {
+               total_yields++;
+               unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+               thread->yield();
+               unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  );
+               time_yields += ( end_yield - begin_yield );
+            }
+            sleeps = nsleeps;
+         } else {
+            total_sleeps++;
+            struct timespec req ={0,tsleep};
+            nanosleep ( &req, NULL );
+            time_sleeps += time_sleeps + tsleep;
+         }
+         spins = nspins;
       }
       else {
          thread->idle();
