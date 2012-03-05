@@ -70,26 +70,17 @@ namespace nanos {
             virtual size_t getTeamDataSize () const { return sizeof(TeamData); }
             virtual size_t getThreadDataSize () const { return sizeof(ThreadData); }
 
-            virtual ScheduleTeamData * createTeamData ( ScheduleTeamData *preAlloc )
+            virtual ScheduleTeamData * createTeamData ()
             {
-               TeamData *data;
-
                /* Queue 0 will be the global one */
                unsigned int numQueues = sys.getCacheMap().getSize() + 1;
-               if ( preAlloc ) data = new (preAlloc) TeamData( numQueues );
-               else data = NEW TeamData( numQueues );
-
-               return data;
+               
+               return NEW TeamData( numQueues );
             }
 
-            virtual ScheduleThreadData * createThreadData ( ScheduleThreadData *preAlloc )
+            virtual ScheduleThreadData * createThreadData ()
             {
-               ThreadData *data;
-
-               if ( preAlloc ) data = new (preAlloc) ThreadData();
-               else data = NEW ThreadData();
-
-               return data;
+               return NEW ThreadData();
             }
 
             /*!

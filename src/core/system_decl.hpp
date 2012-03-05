@@ -147,6 +147,7 @@ namespace nanos
 
          void config ();
          void loadModules();
+         void unloadModules();
          
          PE * createPE ( std::string pe_type, int pid );
 
