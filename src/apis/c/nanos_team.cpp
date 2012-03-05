@@ -100,7 +100,7 @@ NANOS_API_DEF(nanos_err_t, nanos_team_barrier, ( void ))
    return NANOS_OK;
 }
 
-nanos_err_t nanos_team_get_num_starring_threads ( int *n )
+NANOS_API_DEF(nanos_err_t, nanos_team_get_num_starring_threads, ( int *n ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_starring_threads",NANOS_RUNTIME) );
 
@@ -113,7 +113,7 @@ nanos_err_t nanos_team_get_num_starring_threads ( int *n )
    return NANOS_OK;
 }
 
-nanos_err_t nanos_team_get_starring_threads ( int *n, nanos_thread_t *list_of_threads )
+NANOS_API_DEF(nanos_err_t, nanos_team_get_starring_threads, ( int *n, nanos_thread_t *list_of_threads ) )
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_starring_threads",NANOS_RUNTIME) );
 
@@ -126,7 +126,7 @@ nanos_err_t nanos_team_get_starring_threads ( int *n, nanos_thread_t *list_of_th
    return NANOS_OK;
 }
 
-nanos_err_t nanos_team_get_num_supporting_threads ( int *n )
+NANOS_API_DEF(nanos_err_t, nanos_team_get_num_supporting_threads, ( int *n ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_supporting_threads",NANOS_RUNTIME) );
 
@@ -139,7 +139,7 @@ nanos_err_t nanos_team_get_num_supporting_threads ( int *n )
    return NANOS_OK;
 }
 
-nanos_err_t nanos_team_get_supporting_threads ( int *n, nanos_thread_t *list_of_threads)
+NANOS_API_DEF(nanos_err_t, nanos_team_get_supporting_threads, ( int *n, nanos_thread_t *list_of_threads))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_supporting_threads",NANOS_RUNTIME) );
 

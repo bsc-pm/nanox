@@ -53,7 +53,7 @@ NANOS_API_DEF(nanos_slicer_t, nanos_find_slicer, ( const char * label ))
  *
  *  \sa WorkSharing
  */
-nanos_ws_t nanos_find_worksharing ( const char * label )
+NANOS_API_DEF(nanos_ws_t, nanos_find_worksharing, ( const char * label ))
 {
    //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","",NANOS_RUNTIME) ); //FIXME: to register new event
 

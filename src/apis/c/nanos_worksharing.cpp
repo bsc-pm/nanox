@@ -23,7 +23,7 @@
 
 using namespace nanos;
 
-nanos_err_t nanos_worksharing_create( nanos_ws_desc_t **wsd, nanos_ws_t ws, nanos_ws_info_t *info,  bool *b )
+NANOS_API_DEF(nanos_err_t, nanos_worksharing_create, ( nanos_ws_desc_t **wsd, nanos_ws_t ws, nanos_ws_info_t *info,  bool *b ) )
 {
    //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","",NANOS_RUNTIME) ); //FIXME: To register new event
 
@@ -35,7 +35,7 @@ nanos_err_t nanos_worksharing_create( nanos_ws_desc_t **wsd, nanos_ws_t ws, nano
    return NANOS_OK;
 }
 
-nanos_err_t nanos_worksharing_next_item( nanos_ws_desc_t *wsd, nanos_ws_item_t *wsi )
+NANOS_API_DEF(nanos_err_t, nanos_worksharing_next_item, ( nanos_ws_desc_t *wsd, nanos_ws_item_t *wsi ))
 {
    //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","",NANOS_RUNTIME) ); //FIXME: To register new event
 

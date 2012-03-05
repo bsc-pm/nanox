@@ -78,7 +78,7 @@ NANOS_API_DECL(int, nanos_get_wd_id, (nanos_wd_t wd));
 
 // Finder functions
 NANOS_API_DECL(nanos_slicer_t, nanos_find_slicer, ( const char * slicer ));
-nanos_ws_t nanos_find_worksharing ( const char * label );
+NANOS_API_DECL(nanos_ws_t, nanos_find_worksharing, ( const char * label ) );
 
 NANOS_API_DECL(nanos_err_t, nanos_create_wd, ( nanos_wd_t *wd, size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align,
                               void ** data, nanos_wg_t wg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies ));
@@ -118,14 +118,14 @@ NANOS_API_DECL(nanos_err_t, nanos_team_barrier, ( void ));
 
 NANOS_API_DECL(nanos_err_t, nanos_single_guard, ( bool *));
 
-nanos_err_t nanos_team_get_num_starring_threads ( int *n );
-nanos_err_t nanos_team_get_starring_threads ( int *n, nanos_thread_t *list_of_threads );
-nanos_err_t nanos_team_get_num_supporting_threads ( int *n );
-nanos_err_t nanos_team_get_supporting_threads ( int *n, nanos_thread_t *list_of_threads);
+NANOS_API_DECL(nanos_err_t, nanos_team_get_num_starring_threads, ( int *n ) );
+NANOS_API_DECL(nanos_err_t, nanos_team_get_starring_threads, ( int *n, nanos_thread_t *list_of_threads ) );
+NANOS_API_DECL(nanos_err_t, nanos_team_get_num_supporting_threads, ( int *n ) );
+NANOS_API_DECL(nanos_err_t, nanos_team_get_supporting_threads, ( int *n, nanos_thread_t *list_of_threads) );
 
 // worksharing
-nanos_err_t nanos_worksharing_create( nanos_ws_desc_t **wsd, nanos_ws_t ws, nanos_ws_info_t *info, bool *b );
-nanos_err_t nanos_worksharing_next_item( nanos_ws_desc_t *wsd, nanos_ws_item_t *wsi );
+NANOS_API_DECL(nanos_err_t, nanos_worksharing_create ,( nanos_ws_desc_t **wsd, nanos_ws_t ws, nanos_ws_info_t *info, bool *b ) );
+NANOS_API_DECL(nanos_err_t, nanos_worksharing_next_item, ( nanos_ws_desc_t *wsd, nanos_ws_item_t *wsi ) );
 
 // sync
 
