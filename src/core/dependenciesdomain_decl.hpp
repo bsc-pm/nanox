@@ -29,8 +29,9 @@
 #include "trackableobject_decl.hpp"
 //#include "regionstatus_decl.hpp"
 #include "dataaccess_decl.hpp"
-#include "compatibility.hpp"
+//#include "compatibility.hpp"
 #include "schedule_fwd.hpp"
+#include "address_decl.hpp"
 
 
 namespace nanos
@@ -57,7 +58,7 @@ namespace nanos
          const DependenciesDomain & operator= ( const DependenciesDomain &depDomain );
       public:
          //! In the regions version, this would be Region.
-         typedef void* Target;
+         typedef Address Target;
 
         /*! \brief DependenciesDomain default constructor
          */

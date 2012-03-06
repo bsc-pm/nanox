@@ -26,6 +26,7 @@
 #include "atomic.hpp"
 #include "dependableobject_decl.hpp"
 #include "dataaccess.hpp"
+#include "address.hpp"
 
 using namespace nanos;
 

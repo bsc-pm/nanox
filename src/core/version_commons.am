@@ -87,6 +87,9 @@ common_sources=\
 	$(top_srcdir)/src/core/cache_map.hpp \
 	$(top_srcdir)/src/core/pminterface_decl.hpp  \
 	$(top_srcdir)/src/core/basethread_decl.hpp \
+	$(top_srcdir)/src/core/address_fwd.hpp \
+	$(top_srcdir)/src/core/address_decl.hpp \
+	$(top_srcdir)/src/core/address.hpp \
 	$(END)
 
 instr_sources = \

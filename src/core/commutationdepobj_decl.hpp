@@ -20,6 +20,7 @@
 #ifndef _NANOS_COMMUTATONDEPOBJ_DECL
 #define _NANOS_COMMUTATONDEPOBJ_DECL
 #include "dependableobject_decl.hpp"
+#include "address_decl.hpp"
 
 namespace nanos
 {

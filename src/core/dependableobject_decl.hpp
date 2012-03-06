@@ -26,6 +26,7 @@
 #include "atomic_decl.hpp"
 #include "dataaccess_decl.hpp"
 #include "dependenciesdomain_fwd.hpp"
+#include "address_fwd.hpp"
 
 namespace nanos
 {
@@ -48,7 +49,7 @@ namespace nanos
    {
       public:
          //! TODO (gmiranda): Move TargetType and other defs to a central header file
-         typedef void* TargetType;
+         typedef Address TargetType;
          typedef std::set<DependableObject *> DependableObjectVector; /**< Type vector of successors  */
          typedef std::vector<TargetType> TargetVector; /**< Type vector of output objects */
          

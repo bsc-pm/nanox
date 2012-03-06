@@ -28,7 +28,8 @@
 #include "dependableobject.hpp"
 #include "trackableobject.hpp"
 #include "dataaccess_decl.hpp"
-#include "compatibility.hpp"
+//#include "compatibility.hpp"
+#include "address.hpp"
 
 
 using namespace nanos;

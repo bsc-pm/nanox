@@ -21,6 +21,8 @@
 #include "plugin.hpp"
 #include "system.hpp"
 #include "config.hpp"
+#include "address.hpp"
+#include "compatibility.hpp"
 
 namespace nanos {
    namespace ext {
@@ -28,7 +30,7 @@ namespace nanos {
       class NanosDependenciesDomain : public BaseDependenciesDomain
       {
          private:
-            typedef TR1::unordered_map<Target, MappedType*> DepsMap; /**< Maps addresses to Trackable objects */
+            typedef TR1::unordered_map<Target::TargetType, MappedType*> DepsMap; /**< Maps addresses to Trackable objects */
             
          private:
             DepsMap _addressDependencyMap; /**< Used to track dependencies between DependableObject */
@@ -41,12 +43,12 @@ namespace nanos {
             {
                MappedType* status = NULL;
                
-               DepsMap::iterator it = _addressDependencyMap.find( target ); 
+               DepsMap::iterator it = _addressDependencyMap.find( target() ); 
                if ( it == _addressDependencyMap.end() ) {
                   // Lock this so we avoid problems when concurrently calling deleteLastWriter
                   SyncRecursiveLockBlock lock1( getInstanceLock() );
-                  status = NEW MappedType( target );
-                  _addressDependencyMap.insert( std::make_pair( target, status ) );
+                  status = NEW MappedType( NULL );
+                  _addressDependencyMap.insert( std::make_pair( target(), status ) );
                } else {
                   status = it->second;
                }
@@ -104,7 +106,7 @@ namespace nanos {
                   AccessType const &accessType = dep.flags;
                   
                   submitDependableObjectDataAccess( depObj, target, accessType, callback );
-                  flushDeps.push_back( (uint64_t) target );
+                  flushDeps.push_back( (uint64_t) target() );
                }
                
                // To keep the count consistent we have to increase the number of tasks in the graph before releasing the fake dependency
@@ -161,7 +163,7 @@ namespace nanos {
             inline void deleteLastWriter ( DependableObject &depObj, Target const &target )
             {
                SyncRecursiveLockBlock lock1( getInstanceLock() );
-               DepsMap::iterator it = _addressDependencyMap.find( target );
+               DepsMap::iterator it = _addressDependencyMap.find( target() );
                
                if ( it != _addressDependencyMap.end() ) {
                   MappedType &status = *it->second;
@@ -174,7 +176,7 @@ namespace nanos {
             inline void deleteReader ( DependableObject &depObj, Target const &target )
             {
                SyncRecursiveLockBlock lock1( getInstanceLock() );
-               DepsMap::iterator it = _addressDependencyMap.find( target );
+               DepsMap::iterator it = _addressDependencyMap.find( target() );
                
                if ( it != _addressDependencyMap.end() ) {
                   MappedType &status = *it->second;
@@ -189,7 +191,7 @@ namespace nanos {
             inline void removeCommDO ( CommutationDO *commDO, Target const &target )
             {
                SyncRecursiveLockBlock lock1( getInstanceLock() );
-               DepsMap::iterator it = _addressDependencyMap.find( target );
+               DepsMap::iterator it = _addressDependencyMap.find( target() );
                
                if ( it != _addressDependencyMap.end() ) {
                   MappedType &status = *it->second;
