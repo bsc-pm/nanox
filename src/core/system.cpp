@@ -136,6 +136,15 @@ void System::loadModules ()
 
 }
 
+void System::unloadModules ()
+{   
+   delete _throttlePolicy;
+   
+   delete _defSchedulePolicy;
+   
+   // TODO (#613): delete GPU plugin?
+}
+
 // Config Functor
 struct ExecInit
 {
@@ -333,7 +342,7 @@ void System::start ()
          createTeam(1);
          break;
       default:
-         fatal("Unknown inital mode!");
+         fatal("Unknown initial mode!");
          break;
    }
    
@@ -393,13 +402,16 @@ void System::finish ()
    ensure( _schedStats._readyTasks == 0, "Ready task counter has an invalid value!");
 
    _pmInterface->finish();
+   delete _pmInterface;
 
    /* System mem free */
 
    /* deleting master WD */
+   if ( getMyThreadSafe()->getCurrentWD()->getInternalData() )
+      delete[] (char *) getMyThreadSafe()->getCurrentWD()->getInternalData();
    delete[] (char *) getMyThreadSafe()->getCurrentWD();
-
-   delete _pmInterface;
+   /* delete all of it */
+   getMyThreadSafe()->getCurrentWD()->~WorkDescriptor();
 
    for ( Slicers::const_iterator it = _slicers.begin(); it !=   _slicers.end(); it++ ) {
       delete (Slicer *)  it->second;
@@ -408,11 +420,26 @@ void System::finish ()
    for ( WorkSharings::const_iterator it = _worksharings.begin(); it !=   _worksharings.end(); it++ ) {
       delete (WorkSharing *)  it->second;
    }
+   
+   /* deleting thread team */
+   ThreadTeam* team = getMyThreadSafe()->getTeam();   
+   /* team->size() will change during the for loop */
+   unsigned teamSize = team->size();
+   /* For every thread in the team */
+   for ( unsigned t = 0; t < teamSize; t++ ) {
+      BaseThread* pThread = &team->getThread( t );
+      team->removeThread( t );
+      pThread->leaveTeam();
+   }
+   delete team;
 
    // join
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {
       delete _pes[p];
    }
+   
+   /* unload modules */
+   unloadModules();
 
    if ( allocator != NULL ) free (allocator);
 
@@ -988,7 +1015,7 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints,
 
    ScheduleTeamData *stdata = 0;
    if ( sched->getTeamDataSize() > 0 )
-      stdata = sched->createTeamData(NULL);
+      stdata = sched->createTeamData();
 
    // create team
    ThreadTeam * team = NEW ThreadTeam( nthreads, *sched, stdata, *_defBarrFactory(), *(_pmInterface->getThreadTeamData()),
@@ -1009,7 +1036,7 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints,
 
       ScheduleThreadData* sthdata = 0;
       if ( sched->getThreadDataSize() > 0 )
-        sthdata = sched->createThreadData(NULL);
+        sthdata = sched->createThreadData();
       
       data->setId(thId);
       data->setTeam(team);
@@ -1039,7 +1066,7 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints,
 
       ScheduleThreadData *sthdata = 0;
       if ( sched->getThreadDataSize() > 0 )
-        sthdata = sched->createThreadData(NULL);
+        sthdata = sched->createThreadData();
 
       data->setId(thId);
       data->setTeam(team);
