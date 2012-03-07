@@ -27,6 +27,7 @@
 #ifdef _MERCURIUM
 // define API version
 #pragma nanos interface family(master) version(5010)
+#pragma nanos interface family(worksharing) version(1000)
 #endif
 
 // data types
