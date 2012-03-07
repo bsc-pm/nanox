@@ -47,7 +47,7 @@ namespace nanos {
                if ( it == _addressDependencyMap.end() ) {
                   // Lock this so we avoid problems when concurrently calling deleteLastWriter
                   SyncRecursiveLockBlock lock1( getInstanceLock() );
-                  status = NEW MappedType( NULL );
+                  status = NEW MappedType();
                   _addressDependencyMap.insert( std::make_pair( target(), status ) );
                } else {
                   status = it->second;
