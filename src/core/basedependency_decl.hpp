@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2012 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -17,22 +17,36 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_COMMUTATIONDEPOBJ
-#define _NANOS_COMMUTATIONDEPOBJ
-#include "commutationdepobj_decl.hpp"
+#ifndef _NANOS_BASE_DEPENDENCY_DECL_H
+#define _NANOS_BASE_DEPENDENCY_DECL_H
 
-using namespace nanos;
-
-inline void CommutationDO::dependenciesSatisfied ( )
+namespace nanos
 {
-   DependenciesDomain *domain = getDependenciesDomain( );
-   if ( domain ) {
-      domain->removeCommDO ( this, *_target );
-   }
-   
-   finished();
-}
+
+  /*! \class Base dependency class.
+   *  \brief Abstract class to represent a memory address dependency or a region.
+   */
+   class BaseDependency
+   {
+      public:
+        /*! \brief Base dependency default constructor.
+         */
+         BaseDependency () {}
+
+        /*! \brief Base dependency copy constructor
+         *  \param obj another base dependency
+         */
+         BaseDependency ( const BaseDependency &obj ) {}
+
+        /*! \brief Base dependency destructor
+         */
+         virtual ~BaseDependency () {}
+         
+        /*! \brief Clones the dependency object.
+         */
+         virtual BaseDependency* clone() const = 0;
+   };
+
+};
 
 #endif
-
-

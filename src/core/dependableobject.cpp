@@ -37,7 +37,7 @@ void DependableObject::finished ( )
          SyncRecursiveLockBlock lock1( domain->getInstanceLock() ); // This is needed here to avoid a dead-lock
          SyncLockBlock lock2( depObj.getLock() );
          for ( unsigned int i = 0; i < outs.size(); i++ ) {
-            TargetType const &target = outs[i];
+            BaseDependency const &target = *outs[i];
             
             domain->deleteLastWriter ( depObj, target );
          }
@@ -47,7 +47,7 @@ void DependableObject::finished ( )
       if ( domain != 0 ) {
          DependableObject::TargetVector const &reads = depObj.getReadTargets();
          for ( DependableObject::TargetVector::const_iterator it = reads.begin(); it != reads.end(); it++ ) {
-            TargetType const & target = *it;
+            BaseDependency const & target = *(*it);
             
             domain->deleteReader ( depObj, target );
          }

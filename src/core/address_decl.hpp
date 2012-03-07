@@ -20,13 +20,15 @@
 #ifndef _NANOS_ADDRESS_DECL_H
 #define _NANOS_ADDRESS_DECL_H
 
+#include "basedependency_decl.hpp"
+
 namespace nanos
 {
 
   /*! \class Address
    *  \brief Represents a memory address
    */
-   class Address
+   class Address : public BaseDependency
    {
       public:
          typedef void*           TargetType;
@@ -44,20 +46,24 @@ namespace nanos
          *  \param obj another Address
          */
          Address ( const Address &obj ) 
-            :  _address ( obj._address ) {}
+            :  BaseDependency(), _address ( obj._address ) {}
 
         /*! \brief Address destructor
          */
          ~Address () {}
 
         /*! \brief Address assignment operator, can be self-assigned.
-         *  \param obj another TrackableObject
+         *  \param obj another Address
          */
          const Address & operator= ( const Address &obj );
          
         /*! \brief Returns the address.
          */
          const TargetType& operator() () const;
+         
+        /*! \brief Clones the address.
+         */
+         BaseDependency* clone() const;
          
         /*! \brief Comparison operator.
          */

@@ -26,7 +26,7 @@
 #include "atomic_decl.hpp"
 #include "dataaccess_decl.hpp"
 #include "dependenciesdomain_fwd.hpp"
-#include "address_fwd.hpp"
+#include "basedependency_fwd.hpp"
 
 namespace nanos
 {
@@ -48,10 +48,8 @@ namespace nanos
    class DependableObject
    {
       public:
-         //! TODO (gmiranda): Move TargetType and other defs to a central header file
-         typedef Address TargetType;
          typedef std::set<DependableObject *> DependableObjectVector; /**< Type vector of successors  */
-         typedef std::vector<TargetType> TargetVector; /**< Type vector of output objects */
+         typedef std::vector<BaseDependency*> TargetVector; /**< Type vector of output objects */
          
       private:
          unsigned int             _id;              /**< DependableObject identifier */
@@ -84,7 +82,7 @@ namespace nanos
 
         /*! \brief DependableObject virtual destructor
          */
-         virtual ~DependableObject ( ) { }
+         virtual ~DependableObject ( );
 
         // FIXME DOC NEEDED FOR THIS FUNCTIONS
          virtual void init ( ) { }
@@ -164,7 +162,7 @@ namespace nanos
         /*! \brief Add an output object to the list.
          *  \sa TrackableObject
          */
-         void addWriteTarget ( TargetType const &outObj );
+         void addWriteTarget ( BaseDependency const &outObj );
 
         /*! \brief Get the list of output objects.
          *  \sa TrackableObject
@@ -174,7 +172,7 @@ namespace nanos
         /*! \brief Add a read object to the list.
          *  \sa TrackableObject
          */
-         void addReadTarget ( TargetType const &readObj );
+         void addReadTarget ( BaseDependency const &readObj );
          
         /*! \brief Get the list of read objects.
          *  \sa TrackableObject

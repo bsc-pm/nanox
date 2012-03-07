@@ -20,7 +20,7 @@
 #ifndef _NANOS_COMMUTATONDEPOBJ_DECL
 #define _NANOS_COMMUTATONDEPOBJ_DECL
 #include "dependableobject_decl.hpp"
-#include "address_decl.hpp"
+#include "basedependency_decl.hpp"
 
 namespace nanos
 {
@@ -31,16 +31,16 @@ namespace nanos
    {
       private:
          //! Base address that determines the reduction
-         TargetType  _target;
+         BaseDependency*  _target;
       public:
         /*! \brief Default constructor
          */
-         CommutationDO ( TargetType const& target) : DependableObject(), _target( target ) { }
+         CommutationDO ( BaseDependency const& target) : DependableObject(), _target( target.clone() ) { }
 
         /*! \brief Copy constructor
          *  \param cdo another CommutationDO
          */
-         CommutationDO( const CommutationDO &cdo ) : DependableObject(), _target( cdo._target ) { }
+         CommutationDO( const CommutationDO &cdo ) : DependableObject(), _target( cdo._target->clone() ) { }
 
         /*! \brief Assignment operator
          *  \param cdo another CommutationDO
@@ -49,13 +49,16 @@ namespace nanos
          {
             if ( this == &cdo ) return *this;
             DependableObject::operator= ( cdo );
-            _target = cdo._target;
+            _target = cdo._target->clone();
             return *this;
          }
 
         /*! \brief virtual destructor
          */
-         virtual ~CommutationDO() {}
+         virtual ~CommutationDO()
+         {
+            delete _target;
+         }
 
          /*! \brief All predecessors finished, will just execute finished and trigger its successors
           */

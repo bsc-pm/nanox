@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2012 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,23 +16,12 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+#ifndef _NANOS_BASE_DEPENDENCY_FWD_H
+#define _NANOS_BASE_DEPENDENCY_FWD_H
 
-#ifndef _NANOS_COMMUTATIONDEPOBJ
-#define _NANOS_COMMUTATIONDEPOBJ
-#include "commutationdepobj_decl.hpp"
-
-using namespace nanos;
-
-inline void CommutationDO::dependenciesSatisfied ( )
+namespace nanos
 {
-   DependenciesDomain *domain = getDependenciesDomain( );
-   if ( domain ) {
-      domain->removeCommDO ( this, *_target );
-   }
-   
-   finished();
-}
+   class BaseDependency;
+};
 
 #endif
-
-

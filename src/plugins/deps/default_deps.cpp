@@ -30,7 +30,7 @@ namespace nanos {
       class NanosDependenciesDomain : public BaseDependenciesDomain
       {
          private:
-            typedef TR1::unordered_map<Target::TargetType, MappedType*> DepsMap; /**< Maps addresses to Trackable objects */
+            typedef TR1::unordered_map<Address::TargetType, MappedType*> DepsMap; /**< Maps addresses to Trackable objects */
             
          private:
             DepsMap _addressDependencyMap; /**< Used to track dependencies between DependableObject */
@@ -39,7 +39,7 @@ namespace nanos {
              *  \param dep Dependency to be checked.
              *  \sa Dependency TrackableObject
              */
-            MappedType* lookupDependency ( const Target& target )
+            MappedType* lookupDependency ( const Address& target )
             {
                MappedType* status = NULL;
                
@@ -102,7 +102,7 @@ namespace nanos {
                for ( std::list<DataAccess *>::iterator it = filteredDeps.begin(); it != filteredDeps.end(); it++ ) {
                   DataAccess &dep = *(*it);
                   
-                  Target target = dep.getDepAddress();
+                  Address target = dep.getDepAddress();
                   AccessType const &accessType = dep.flags;
                   
                   submitDependableObjectDataAccess( depObj, target, accessType, callback );
@@ -124,7 +124,7 @@ namespace nanos {
              *  \param accessType kind of region access
              *  \param callback Function to call if an immediate predecessor is found.
              */
-            void submitDependableObjectDataAccess( DependableObject &depObj, Target const &target, AccessType const &accessType, SchedulePolicySuccessorFunctor* callback )
+            void submitDependableObjectDataAccess( DependableObject &depObj, Address const &target, AccessType const &accessType, SchedulePolicySuccessorFunctor* callback )
             {
                if ( accessType.commutative ) {
                   if ( !( accessType.input && accessType.output ) || depObj.waits() ) {
@@ -160,10 +160,11 @@ namespace nanos {
                }
             }
             
-            inline void deleteLastWriter ( DependableObject &depObj, Target const &target )
+            inline void deleteLastWriter ( DependableObject &depObj, BaseDependency const &target )
             {
+               const Address& address( dynamic_cast<const Address&>( target ) );
                SyncRecursiveLockBlock lock1( getInstanceLock() );
-               DepsMap::iterator it = _addressDependencyMap.find( target() );
+               DepsMap::iterator it = _addressDependencyMap.find( address() );
                
                if ( it != _addressDependencyMap.end() ) {
                   MappedType &status = *it->second;
@@ -173,10 +174,11 @@ namespace nanos {
             }
             
             
-            inline void deleteReader ( DependableObject &depObj, Target const &target )
+            inline void deleteReader ( DependableObject &depObj, BaseDependency const &target )
             {
+               const Address& address( dynamic_cast<const Address&>( target ) );
                SyncRecursiveLockBlock lock1( getInstanceLock() );
-               DepsMap::iterator it = _addressDependencyMap.find( target() );
+               DepsMap::iterator it = _addressDependencyMap.find( address() );
                
                if ( it != _addressDependencyMap.end() ) {
                   MappedType &status = *it->second;
@@ -188,10 +190,11 @@ namespace nanos {
                }
             }
             
-            inline void removeCommDO ( CommutationDO *commDO, Target const &target )
+            inline void removeCommDO ( CommutationDO *commDO, BaseDependency const &target )
             {
+               const Address& address( dynamic_cast<const Address&>( target ) );
                SyncRecursiveLockBlock lock1( getInstanceLock() );
-               DepsMap::iterator it = _addressDependencyMap.find( target() );
+               DepsMap::iterator it = _addressDependencyMap.find( address() );
                
                if ( it != _addressDependencyMap.end() ) {
                   MappedType &status = *it->second;

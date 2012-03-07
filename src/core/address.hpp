@@ -50,4 +50,9 @@ inline Address::TargetType Address::getAddress ( ) const
    return _address;
 }
 
+inline BaseDependency* Address::clone() const
+{
+   return NEW Address( _address );
+}
+
 #endif

@@ -26,9 +26,16 @@
 #include "atomic.hpp"
 #include "dependableobject_decl.hpp"
 #include "dataaccess.hpp"
-#include "address.hpp"
+#include "basedependency_decl.hpp"
+#include "functors.hpp"
 
 using namespace nanos;
+
+inline DependableObject::~DependableObject ( )
+{
+   std::for_each(_outputObjects.begin(),_outputObjects.end(),deleter<BaseDependency>);
+   std::for_each(_readObjects.begin(),_readObjects.end(),deleter<BaseDependency>);
+}
 
 inline const DependableObject & DependableObject::operator= ( const DependableObject &depObj )
 {
@@ -107,9 +114,9 @@ inline void DependableObject::setDependenciesDomain ( DependenciesDomain *depend
    _domain = dependenciesDomain;
 }
 
-inline void DependableObject::addWriteTarget ( TargetType const &outObj )
+inline void DependableObject::addWriteTarget ( BaseDependency const &outObj )
 {
-   _outputObjects.push_back ( outObj );
+   _outputObjects.push_back ( outObj.clone() );
 }
 
 inline DependableObject::TargetVector const & DependableObject::getWrittenTargets ( )
@@ -117,9 +124,9 @@ inline DependableObject::TargetVector const & DependableObject::getWrittenTarget
    return _outputObjects;
 }
 
-inline void DependableObject::addReadTarget ( TargetType const &readObj )
+inline void DependableObject::addReadTarget ( BaseDependency const &readObj )
 {
-   _readObjects.push_back( readObj );
+   _readObjects.push_back( readObj.clone() );
 }
 
 inline DependableObject::TargetVector const & DependableObject::getReadTargets ( )

@@ -90,6 +90,8 @@ common_sources=\
 	$(top_srcdir)/src/core/address_fwd.hpp \
 	$(top_srcdir)/src/core/address_decl.hpp \
 	$(top_srcdir)/src/core/address.hpp \
+	$(top_srcdir)/src/core/basedependency_fwd.hpp \
+	$(top_srcdir)/src/core/basedependency_decl.hpp \
 	$(END)
 
 instr_sources = \

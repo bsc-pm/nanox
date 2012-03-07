@@ -29,9 +29,8 @@
 #include "trackableobject_decl.hpp"
 //#include "regionstatus_decl.hpp"
 #include "dataaccess_decl.hpp"
-//#include "compatibility.hpp"
 #include "schedule_fwd.hpp"
-#include "address_decl.hpp"
+#include "basedependency_decl.hpp"
 
 
 namespace nanos
@@ -57,9 +56,6 @@ namespace nanos
          */
          const DependenciesDomain & operator= ( const DependenciesDomain &depDomain );
       public:
-         //! In the regions version, this would be Region.
-         typedef Address Target;
-
         /*! \brief DependenciesDomain default constructor
          */
          DependenciesDomain ( ) :  _id( _atomicSeed++ ) {}
@@ -86,19 +82,19 @@ namespace nanos
           *  \param depObj DependableObject to be stripped of the last writer role
           *  \param target Address/region that must be affected
           */
-         virtual void deleteLastWriter ( DependableObject &depObj, Target const &target ) = 0;
+         virtual void deleteLastWriter ( DependableObject &depObj, BaseDependency const &target ) = 0;
          
          /*! \brief Removes the DependableObject from the reader list of a region.
           *  \param depObj DependableObject to be removed as a reader
           *  \param target Address/region that must be affected
           */
-         virtual void deleteReader ( DependableObject &depObj, Target const &target ) = 0;
+         virtual void deleteReader ( DependableObject &depObj, BaseDependency const &target ) = 0;
          
          /*! \brief Removes a CommutableDO from a region.
           *  \param commDO CommutationDO to be removed
           *  \param target Address/region that must be affected
           */
-         virtual void removeCommDO ( CommutationDO *commDO, Target const &target ) = 0;
+         virtual void removeCommDO ( CommutationDO *commDO, BaseDependency const &target ) = 0;
 
         /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
          *  \param depObj DependableObject to be added to the domain.
@@ -192,7 +188,7 @@ namespace nanos
           *  \param[in,out] trackableObject status of the target.
           *  \param target accessed memory address
           */
-         inline void finalizeReduction( MappedType &trackableObject, const Target& target );
+         inline void finalizeReduction( MappedType &trackableObject, const BaseDependency& target );
          
          /*! \brief Makes a DependableObject depend on the last writer of a region.
           *  \param depObj target DependableObject
@@ -206,7 +202,7 @@ namespace nanos
           *  \param status status of the address
           *  \param callback Function to call if an immediate predecessor is found.
           */
-         inline void dependOnReadersAndSetAsWriter( DependableObject &depObj, MappedType &status, Target const &target, SchedulePolicySuccessorFunctor* callback );
+         inline void dependOnReadersAndSetAsWriter( DependableObject &depObj, MappedType &status, BaseDependency const &target, SchedulePolicySuccessorFunctor* callback );
          
          /*! \brief Makes a DependableObject a reader of a region/address.
           *  \param depObj target DependableObject
@@ -222,7 +218,7 @@ namespace nanos
           *  \param[in,out] status status of the base address
           *  \param callback Function to call if an immediate predecessor is found.
           */
-         inline void submitDependableObjectCommutativeDataAccess( DependableObject &depObj, Target const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback );
+         inline void submitDependableObjectCommutativeDataAccess( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback );
          
          /*! \brief Adds an inout access of a DependableObject to the domains dependency system.
           *  \param depObj target DependableObject
@@ -231,7 +227,7 @@ namespace nanos
           *  \param[in,out] status status of the base address
           *  \param callback Function to call if an immediate predecessor is found.
           */
-         inline void submitDependableObjectInoutDataAccess( DependableObject &depObj, Target const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback );
+         inline void submitDependableObjectInoutDataAccess( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback );
          
          /*! \brief Adds an output access of a DependableObject to the domains dependency system.
           *  \param depObj target DependableObject
@@ -240,7 +236,7 @@ namespace nanos
           *  \param[in,out] status status of the base address
           *  \param callback Function to call if an immediate predecessor is found.
           */
-         inline void submitDependableObjectOutputDataAccess( DependableObject &depObj, Target const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback );
+         inline void submitDependableObjectOutputDataAccess( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback );
          
          /*! \brief Adds an input region access of a DependableObject to the domains dependency system. 
           *  \param depObj target DependableObject 
@@ -249,15 +245,8 @@ namespace nanos
           *  \param[in,out] status status of the base address 
           *  \param callback Function to call if an immediate predecessor is found. 
           */ 
-         inline void submitDependableObjectInputDataAccess( DependableObject &depObj, Target const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback );
+         inline void submitDependableObjectInputDataAccess( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, MappedType &status, SchedulePolicySuccessorFunctor* callback );
          
-         /*! \brief Adds an access of a DependableObject to the domains dependency system.
-         *  \param depObj target DependableObject
-         *  \param target accessed memory address/region
-         *  \param accessType kind of access
-         *  \param callback Function to call if an immediate predecessor is found.
-         */
-         virtual void submitDependableObjectDataAccess( DependableObject &depObj, Target const &target, AccessType const &accessType, SchedulePolicySuccessorFunctor* callback ) = 0;
       public:
          BaseDependenciesDomain ( ) :  DependenciesDomain(), _lastDepObjId ( 0 ) {}
          
