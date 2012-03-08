@@ -42,6 +42,7 @@ namespace nanos
          Lock                   _readersLock; /**< Lock to provide exclusive access to the readers list */
          Lock                   _writerLock; /**< Lock internally the object for secure access to _lastWriter */
          CommutationDO         *_commDO; /**< Will be successor of all commutation tasks using this object untill a new reader/writer appears */
+         bool                   _hold; /**< Cannot be erased since it is in use */
       public:
 
         /*! \brief TrackableObject default constructor
@@ -135,7 +136,29 @@ namespace nanos
          *  \param commDO to set in this object
          */
          void setCommDO( CommutationDO *commDO );
+         
+        /*! \brief Return whether the region is held and thus cannot be removed
+         */
+         bool isOnHold ( ) const;
+         
+        /*! \brief Holds the region so that it cannot be removed (by the same thread)
+         */
+         void hold ( );
+         
+        /*! \brief Unholds the region so that it can be removed (by the same thread)
+         */
+         void unhold ( );
+         
+        /*! \brief Returns if the region has no information
+         */
+         bool isEmpty ( );
    };
+
+   //! \brief RegionStatus stream formatter
+   //! \param o the output stream
+   //! \param regionStatus the region status
+   //! \returns the output stream
+   inline std::ostream & operator<<( std::ostream &o, nanos::TrackableObject const &status);
 
 };
 

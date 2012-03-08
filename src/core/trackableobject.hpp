@@ -121,4 +121,76 @@ inline void TrackableObject::setCommDO( CommutationDO *commDO )
    _commDO = commDO;
 }
 
+
+inline bool TrackableObject::isEmpty ()
+{
+   return ( _lastWriter == 0 ) && _versionReaders.empty() && ( _commDO == 0 );
+}
+
+inline bool TrackableObject::isOnHold () const
+{
+   return _hold;
+}
+
+inline void TrackableObject::hold ()
+{
+   _hold = true;
+}
+
+inline void TrackableObject::unhold ()
+{
+   _hold = false;
+}
+
+inline std::ostream & nanos::operator<<( std::ostream &o, nanos::TrackableObject const &status)
+{
+   //status._writerLock.lock();
+   //status._readersLock.lock();
+   o << "{"
+      << "LastWriter: ";
+   DependableObject *writer = status.getLastWriter();
+   if ( writer ) {
+      DependenciesDomain *domain = writer->getDependenciesDomain();
+      if ( domain ) {
+         o << " " << domain->getId() << "_" << writer->getId();
+      } else {
+         o << writer->getDescription();
+      }
+   } else {
+      o << "-";
+   }
+   o << "|Readers:";
+   
+   TrackableObject::DependableObjectList const &readers = status.getReaders();
+   for (TrackableObject::DependableObjectList::const_iterator it = readers.begin(); it != readers.end(); it++) {
+      DependableObject *reader = *it;
+      
+      DependenciesDomain *domain = reader->getDependenciesDomain();
+      if ( domain ) {
+         o << " " << domain->getId() << "_" << reader->getId();
+      } else {
+         o << " " << reader->getDescription();
+      }
+   }
+   
+   o << "|CommutationDO: ";
+   DependableObject *commutationDO = status.getCommDO();
+   if ( commutationDO ) {
+      DependenciesDomain *domain = commutationDO->getDependenciesDomain();
+      if ( domain ) {
+         o << " " << domain->getId() << "_" << commutationDO->getId();
+      } else {
+         o << commutationDO->getDescription();
+      }
+   } else {
+      o << "-";
+   }
+   o << "}";
+   
+   //status._readersLock.unlock();
+   //status._writerLock.unlock();
+   
+   return o;
+}
+
 #endif

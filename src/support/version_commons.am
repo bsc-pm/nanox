@@ -36,6 +36,8 @@ support_sources = \
 	$(top_srcdir)/src/support/copydescriptor.hpp \
 	$(top_srcdir)/src/support/copydescriptor_decl.hpp \
 	$(top_srcdir)/src/support/malign.hpp \
+	$(top_srcdir)/src/support/containeradapter.hpp \
+	$(top_srcdir)/src/support/containertraits.hpp \
 	$(END) 
 
 debug_sources = \

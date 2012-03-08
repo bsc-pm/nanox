@@ -2,3 +2,7 @@
 default_sources = \
 	$(top_srcdir)/src/plugins/deps/default_deps.cpp \
 	$(END)
+
+regions_sources = \
+	$(top_srcdir)/src/plugins/deps/regions_deps.cpp \
+	$(END)
