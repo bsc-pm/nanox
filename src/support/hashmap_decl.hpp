@@ -234,6 +234,11 @@ class HashMap
                return *this;
             }
 
+            /*! \breif Returns a reference to the key in the Map pointed by the iterator
+             */
+             _KeyType const& getKey()
+                { return _currentItem->getKey(); }
+
            /*! \brief Returns a reference to the element in the Map pointed by the iterator
             */
             _T const& operator*() const
