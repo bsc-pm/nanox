@@ -26,7 +26,7 @@
 
 #ifdef _MERCURIUM
 // define API version
-#pragma nanos interface family(master) version(5011)
+#pragma nanos interface family(master) version(5012)
 #pragma nanos interface family(worksharing) version(1000)
 #endif
 
@@ -40,6 +40,15 @@ typedef void * nanos_slicer_t;
 typedef void * nanos_dd_t;
 typedef void * nanos_sync_cond_t;
 typedef unsigned int nanos_copy_id_t;
+
+typedef struct {
+   nanos_wd_props_t props;
+   size_t data_alignment;
+   size_t num_copies;
+   size_t num_devices;
+   nanos_device_t devices[];
+} nanos_const_wd_definition_t;
+
 
 typedef struct {
    int nthreads;
@@ -81,8 +90,8 @@ NANOS_API_DECL(int, nanos_get_wd_id, (nanos_wd_t wd));
 NANOS_API_DECL(nanos_slicer_t, nanos_find_slicer, ( const char * slicer ));
 NANOS_API_DECL(nanos_ws_t, nanos_find_worksharing, ( const char * label ) );
 
-NANOS_API_DECL(nanos_err_t, nanos_create_wd, ( nanos_wd_t *wd, size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align,
-                              void ** data, nanos_wg_t wg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies ));
+NANOS_API_DECL(nanos_err_t, nanos_create_wd_compact, ( nanos_wd_t *wd, nanos_const_wd_definition_t *const_data, size_t data_size, void ** data,
+                              nanos_wg_t wg, nanos_copy_data_t **copies ));
 
 NANOS_API_DECL(nanos_err_t, nanos_set_translate_function, ( nanos_wd_t wd, nanos_translate_args_t translate_args ));
 
@@ -93,9 +102,8 @@ NANOS_API_DECL(nanos_err_t, nanos_create_sliced_wd, ( nanos_wd_t *uwd, size_t nu
 
 NANOS_API_DECL(nanos_err_t, nanos_submit, ( nanos_wd_t wd, size_t num_deps, nanos_dependence_t *deps, nanos_team_t team ));
 
-NANOS_API_DECL(nanos_err_t, nanos_create_wd_and_run, ( size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align, void * data,
-                                      size_t num_deps, nanos_dependence_t *deps, nanos_wd_props_t *props,
-                                      size_t num_copies, nanos_copy_data_t *copies, nanos_translate_args_t translate_args ));
+NANOS_API_DECL(nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_definition_t *const_data, size_t data_size, void * data, size_t num_deps,
+                                      nanos_dependence_t *deps, nanos_copy_data_t *copies, nanos_translate_args_t translate_args ));
 
 NANOS_API_DECL(nanos_err_t, nanos_create_for, ( void ));
 

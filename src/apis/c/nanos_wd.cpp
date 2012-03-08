@@ -66,18 +66,18 @@ NANOS_API_DEF(int, nanos_get_wd_id, ( nanos_wd_t wd ))
  *
  *  \sa nanos::WorkDescriptor
  */
-NANOS_API_DEF(nanos_err_t, nanos_create_wd, (  nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align,
-                               void ** data, nanos_wg_t uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies ))
+NANOS_API_DEF( nanos_err_t, nanos_create_wd_compact, ( nanos_wd_t *uwd, nanos_const_wd_definition_t *const_data, size_t data_size, void ** data,
+                              nanos_wg_t uwg, nanos_copy_data_t **copies ) )
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",NANOS_CREATION) );
 
    try 
    {
-      if ( ( props == NULL  || ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTask() ) {
+      if ( ( &const_data->props == NULL  || ( &const_data->props != NULL  && !const_data->props.mandatory_creation ) ) && !sys.throttleTask() ) {
          *uwd = 0;
          return NANOS_OK;
       }
-      sys.createWD ( (WD **) uwd, num_devices, devices, data_size, data_align, (void **) data, (WG *) uwg, props, num_copies, copies, NULL );
+      sys.createWD ( (WD **) uwd, const_data->num_devices, const_data->devices, data_size, const_data->data_alignment, (void **) data, (WG *) uwg, &const_data->props, const_data->num_copies, copies, NULL );
 
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
@@ -181,31 +181,30 @@ NANOS_API_DEF(nanos_err_t, nanos_submit, ( nanos_wd_t uwd, size_t num_deps, nano
 
 
 // data must be not null
-NANOS_API_DEF(nanos_err_t, nanos_create_wd_and_run, ( size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align, void * data,
-                                      size_t num_deps, nanos_dependence_t *deps, nanos_wd_props_t *props,
-                                      size_t num_copies, nanos_copy_data_t *copies, nanos_translate_args_t translate_args ))
+NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_definition_t *const_data, size_t data_size, void * data, size_t num_deps,
+                                      nanos_dependence_t *deps, nanos_copy_data_t *copies, nanos_translate_args_t translate_args ) )
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","create_wd_and_run", NANOS_CREATION) );
 
    try {
-      if ( num_devices > 1 ) warning( "Multiple devices not yet supported. Using first one" );
+      if ( const_data->num_devices > 1 ) warning( "Multiple devices not yet supported. Using first one" );
 
       // TODO: choose device
       // pre-allocate device
-      char chunk[devices[0].dd_size];
+      char chunk[const_data->devices[0].dd_size];
       
-      WD wd( ( DD* ) devices[0].factory( chunk, devices[0].arg ), data_size, data_align, data, num_copies, copies );
+      WD wd( ( DD* ) const_data->devices[0].factory( chunk, const_data->devices[0].arg ), data_size, const_data->data_alignment, data, const_data->num_copies, copies );
       wd.setTranslateArgs( translate_args );
 
       // set properties
-      if ( props != NULL ) {
-         if ( props->tied ) wd.tied();
-         if ( props->tie_to ) {
-            if ( props->tie_to != myThread) fatal ("Tiedness violation");
-            wd.tieTo( *( BaseThread * ) props->tie_to );
+      if ( &const_data->props != NULL ) {
+         if ( const_data->props.tied ) wd.tied();
+         if ( const_data->props.tie_to ) {
+            if ( const_data->props.tie_to != myThread ) fatal ( "Tiedness violation" );
+            wd.tieTo( *( BaseThread * ) const_data->props.tie_to );
          }
          // Set priority
-         wd.setPriority( props->priority );
+         wd.setPriority( const_data->props.priority );
       }
 
       int pmDataSize = sys.getPMInterface().getInternalDataSize();

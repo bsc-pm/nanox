@@ -142,7 +142,7 @@ namespace nanos
          typedef enum { INIT, START, READY, IDLE, BLOCKED } State;
 
          size_t                        _data_size;    /**< WD data size */
-         int                           _data_align;   /**< WD data alignment */
+         size_t                        _data_align;   /**< WD data alignment */
          void                         *_data;         /**< WD data */
          void                         *_wdData;       /**< Internal WD data. this allows higher layer to associate data to the WD */
          bool                          _tie;          /**< FIXME: (#170) documentation needed */
@@ -190,7 +190,7 @@ namespace nanos
 
          /*! \brief WorkDescriptor constructor - 1
           */
-         WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0, int data_align = 1, void *wdata=0,
+         WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0, size_t data_align = 1, void *wdata=0,
                           size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL )
                         : WorkGroup(), _data_size ( data_size ), _data_align( data_align ),  _data ( wdata ),
                           _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
@@ -202,7 +202,7 @@ namespace nanos
 
          /*! \brief WorkDescriptor constructor - 2
           */
-         WorkDescriptor ( DeviceData *device, size_t data_size = 0, int data_align = 1, void *wdata=0,
+         WorkDescriptor ( DeviceData *device, size_t data_size = 0, size_t data_align = 1, void *wdata=0,
                           size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL )
                         : WorkGroup(), _data_size ( data_size ), _data_align ( data_align ), _data ( wdata ),
                           _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
@@ -284,7 +284,7 @@ namespace nanos
           *  \return data alignment
           *  \see getData setData setDatasize
           */
-         int getDataAlignment () const;
+         size_t getDataAlignment () const;
 
          /*! \brief Set data alignment
           *
@@ -292,7 +292,7 @@ namespace nanos
           *
           *  \see getData setData setDataSize
           */
-         void setDataAlignment ( int data_align) ;
+         void setDataAlignment ( size_t data_align) ;
 
          WorkDescriptor * getParent();
 
