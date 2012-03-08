@@ -228,6 +228,8 @@ namespace nanos
 
          int getNumWorkers() const;
 
+         int getNumWorkers( DeviceData *arch );
+
          void setUntieMaster ( bool value );
 
          bool getUntieMaster () const;

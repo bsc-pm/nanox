@@ -975,6 +975,16 @@ void System::releaseWorker ( BaseThread * thread )
 
 }
 
+int System::getNumWorkers( DeviceData *arch )
+{
+   int n = 0;
+
+   for ( ThreadList::iterator it = _workers.begin(); it != _workers.end(); it++ ) {
+      if ( arch->isCompatible( ( *it )->runningOn()->getDeviceType() ) ) n++;
+   }
+   return n;
+}
+
 ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
                                    bool reuseCurrent )
 {
