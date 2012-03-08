@@ -184,9 +184,9 @@ namespace ext
          void printStats ()
          {
             message("GPU " << _gpuDevice << " TRANSFER STATISTICS");
-            message("Total input transfers: " << _gpuProcessorStats._bytesIn.value() << " bytes");
-            message("Total output transfers: " << _gpuProcessorStats._bytesOut.value() << " bytes");
-            message("Total device transfers: " << _gpuProcessorStats._bytesDevice.value() << " bytes");
+            message("    Total input transfers: " << _gpuProcessorStats._bytesIn.value() << " bytes");
+            message("    Total output transfers: " << _gpuProcessorStats._bytesOut.value() << " bytes");
+            message("    Total device transfers: " << _gpuProcessorStats._bytesDevice.value() << " bytes");
          }
    };
 
