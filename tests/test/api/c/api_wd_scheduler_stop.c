@@ -52,6 +52,27 @@ nanos_smp_args_t main__section_1_device_args = { main__section_1 };
 
 /* ******************************* SECTIONS ***************************** */
 
+/* ************** CONSTANT PARAMETERS IN WD CREATION ******************** */
+nanos_const_wd_definition_t const_data1 = 
+{
+   {
+      .mandatory_creation = true,
+      .tied = false,
+      .tie_to = false,
+      .priority = 0
+   },
+   0,//__alignof__(section_data_1),
+   0,
+   1,
+   {
+      {
+         nanos_smp_factory,
+         0,//nanos_smp_dd_size,
+         &main__section_1_device_args
+      }
+   }
+};
+
 int main ( int argc, char **argv )
 {
    int i;
@@ -75,10 +96,11 @@ int main ( int argc, char **argv )
       nanos_wd_t wd[4] = { NULL, NULL, NULL, NULL };
    
       /* Creating section 1 wd */
-      nanos_device_t main__section_1_device[1] = { NANOS_SMP_DESC( main__section_1_device_args ) };
       main__section_1_data_t *section_data_1 = NULL;
-      NANOS_SAFE( nanos_create_wd ( &wd[0], 1, main__section_1_device, sizeof(section_data_1), __alignof__(section_data_1), (void **) &section_data_1,
-                                nanos_current_wd(), &props , 0, NULL ) );
+      const_data1.data_alignment = __alignof__(section_data_1);
+      const_data1.devices[0].dd_size = nanos_smp_dd_size;
+      NANOS_SAFE( nanos_create_wd_compact ( &wd[0], &const_data1, sizeof(section_data_1), (void **) &section_data_1,
+                                nanos_current_wd(), NULL ) );
    
       NANOS_SAFE( nanos_submit( wd[0],0,0,0 ) );
       
