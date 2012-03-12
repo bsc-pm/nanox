@@ -24,7 +24,7 @@
 #include "compatibility.hpp"
 #include "regiontree.hpp"
 #include "regionbuilder.hpp"
-#include "regionstatus.hpp"
+#include "trackableobject.hpp"
 
 namespace nanos {
    namespace ext {
