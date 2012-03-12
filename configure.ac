@@ -1,5 +1,5 @@
 
-AC_INIT([nanox], [0.6a], [alex.duran@bsc.es])
+AC_INIT([nanox], [0.7a], [alex.duran@bsc.es])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
 
 # Environment
@@ -69,10 +69,10 @@ case $host in
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=ia64
     ;;
-  armv7l-*-linux*)
+  armv71-*-linux*)
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
-    SMP_ARCH=armv7l
+    SMP_ARCH=armv71
     ;;
   powerpc-*-linux* | powerpc64-*-linux*)
     OS=unix-os
@@ -192,6 +192,15 @@ if test x$gpu_enabled = xyes ; then
             AC_SUBST([CUDA_INC])
             AC_SUBST([CUDA_LIB])
 
+            cuda_version_h="$CUDA_INC/cuda.h"
+            if test -e $cuda_version_h ;
+            then
+               cuda_version_string=`sed -ne '/^\s*#\s*define\s\+CUDA_VERSION .*$/p' $cuda_version_h`
+               cuda_version=`echo $cuda_version_string | sed -e 's/#define CUDA_VERSION \([0-9]*\).*$/\1/'`
+            else
+               cuda_version=0
+            fi
+
             gpu_valid=yes
         fi
     else
@@ -201,14 +210,33 @@ if test x$gpu_enabled = xyes ; then
 fi
 
 if test x$gpu_valid = xyes; then
-	CFLAGS="$CFLAGS -DGPU_DEV"
-	CXXFLAGS="$CXXFLAGS -DGPU_DEV"
+	CFLAGS="$CFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version"
+	CXXFLAGS="$CXXFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version"
 	ARCHITECTURES="$ARCHITECTURES gpu"
 fi
 
 AM_CONDITIONAL([GPU_SUPPORT],[test $gpu_valid = yes])
 
 AC_SUBST([gpu_valid])
+
+# Allocator support
+allocator_disabled=no
+AC_MSG_CHECKING([if Nanos++ Allocator has been disabled])
+AC_ARG_ENABLE([allocator],
+  AS_HELP_STRING([--disable-allocator], [Disables Allocator module]),
+  [
+    allocator_disabled="yes"
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    allocator_disabled="no"
+    AC_MSG_RESULT([no])
+  ]
+)
+if test x$allocator_disabled = xyes; then
+	CFLAGS="$CFLAGS -DNANOS_DISABLE_ALLOCATOR"
+	CXXFLAGS="$CXXFLAGS -DNANOS_DISABLE_ALLOCATOR"
+fi
 
 AC_MSG_CHECKING([for architecture])
 
@@ -371,19 +399,47 @@ MPITRACE_BIN=""
 AC_ARG_WITH([mpitrace],
            AS_HELP_STRING([--with-mpitrace=dir], [Directory of Extrae installation (deprecated)]),
            [
-                MPITRACE_HOME="$withval"
-                MPITRACE_INC="$withval/include"
-                MPITRACE_LIB="$withval/lib"
-                MPITRACE_BIN="$withval/bin"
+                extrae_version_h=$withval/include/extrae_version.h
+                if test -e $extrae_version_h ;
+                then
+                   extrae_version_string=`sed -ne '/^\s*#\s*define\s\+EXTRAE_VERSION .*$/p' $extrae_version_h`
+                   extrae_version=`echo $extrae_version_string | sed -e 's/#define EXTRAE_VERSION EXTRAE_VERSION_NUMBER(\([0-9]*\),\([0-9]*\),\([0-9]*\).*$/\1\2\3/'`
+                   if test "$extrae_version" -ge 220;
+                   then
+                      MPITRACE_HOME="$withval"
+                      MPITRACE_INC="$withval/include"
+                      MPITRACE_LIB="$withval/lib"
+                      MPITRACE_BIN="$withval/bin"
+                      AC_MSG_RESULT([checking if Extrae library is compatible... yes])
+                   else
+                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                   fi
+                else
+                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                fi
            ]
 )
 AC_ARG_WITH([extrae],
            AS_HELP_STRING([--with-extrae=dir], [Directory of Extrae installation]),
            [
-                MPITRACE_HOME="$withval"
-                MPITRACE_INC="$withval/include"
-                MPITRACE_LIB="$withval/lib"
-                MPITRACE_BIN="$withval/bin"
+                extrae_version_h=$withval/include/extrae_version.h
+                if test -e $extrae_version_h ;
+                then
+                   extrae_version_string=`sed -ne '/^\s*#\s*define\s\+EXTRAE_VERSION .*$/p' $extrae_version_h`
+                   extrae_version=`echo $extrae_version_string | sed -e 's/#define EXTRAE_VERSION EXTRAE_VERSION_NUMBER(\([0-9]*\),\([0-9]*\),\([0-9]*\).*$/\1\2\3/'`
+                   if test "$extrae_version" -ge 220;
+                   then
+                      MPITRACE_HOME="$withval"
+                      MPITRACE_INC="$withval/include"
+                      MPITRACE_LIB="$withval/lib"
+                      MPITRACE_BIN="$withval/bin"
+                      AC_MSG_RESULT([checking if Extrae library is compatible... yes])
+                   else
+                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                   fi
+                else
+                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                fi
            ]
 )
 
@@ -395,7 +451,7 @@ AC_SUBST([MPITRACE_BIN])
 
 AM_CONDITIONAL([INSTRUMENTATION_EXTRAE], test x"$MPITRACE_HOME" != x)
 
-# Chechk for Chapel support
+# Check for Chapel support
 AC_ARG_WITH([chapel],
             AS_HELP_STRING([--with-chapel=dir], [Directory of Chapel installation]),
 	    [

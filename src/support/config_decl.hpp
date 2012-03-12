@@ -450,9 +450,9 @@ namespace nanos
 
         /* \brief High-Level Instances of configuration options
          */
-         class ConfigOption
+         class BaseConfigOption
          {
-            private:
+            protected:
                /**< Name that identifies the option. */
                std::string _optionName;
 
@@ -469,7 +469,7 @@ namespace nanos
 
                /**< Section in which the ConfigOption is*/
                std::string _section;
-
+            
             public:
               /* \brief Constructor
                * \param name: Name that identifies the option.
@@ -477,7 +477,7 @@ namespace nanos
                * \param helpMessage: Help message to be printed for this option.
                * \param section: section in which the ConfigOption is listed.
                */
-               ConfigOption( const std::string &name, Option &option, const std::string &helpMessage, const std::string &section ) :
+               BaseConfigOption( const std::string &name, Option &option, const std::string &helpMessage, const std::string &section ) :
                   _optionName( name ), _envOption( "" ), _argOption( "" ), _option( option ), _message( helpMessage ), _section( section ) {}
 
               /* \brief Constructor
@@ -488,16 +488,16 @@ namespace nanos
                * \param helpMessage: Help message to be printed for this option.
                * \param section: section in which the ConfigOption is listed.
                */
-               ConfigOption( const std::string &name, const std::string& env, const std::string &arg, Option &option, const std::string &helpMessage, const std::string &section ) :
+               BaseConfigOption( const std::string &name, const std::string& env, const std::string &arg, Option &option, const std::string &helpMessage, const std::string &section ) :
                   _optionName( name ), _envOption( arg ), _argOption( env ), _option( option ), _message( helpMessage ), _section( section ) {}
 
-               ConfigOption( const ConfigOption &co ) :
+               BaseConfigOption( const BaseConfigOption &co ) :
                   _optionName( co._optionName ), _envOption( co._envOption ), _argOption( co._argOption ),
                   _option( co._option ), _message( co._message ), _section( co._section ) {}
 
-               const ConfigOption & operator= ( const ConfigOption &co );
+               const BaseConfigOption & operator= ( const BaseConfigOption &co );
 
-               ~ConfigOption () { /* delete &_option; */ /*FIXME: mercurium tests complain this delete */ }
+               virtual ~BaseConfigOption () {}
 
               /* \brief Returns the formatted help message for the ConfigOption's argument.
                */
@@ -533,7 +533,47 @@ namespace nanos
 
               /* \brief cloner function
                */
-               ConfigOption * clone ();
+               virtual BaseConfigOption * clone () = 0;
+         };
+         
+         /*! \brief Class option used for most configurations.
+          *  It does release the option member.
+          */
+         class ConfigOption : public BaseConfigOption
+         {
+            public:
+               ConfigOption( const std::string &name, Option &option, const std::string &helpMessage, const std::string &section ) :
+                  BaseConfigOption( name, option, helpMessage, section ) {}
+               
+               ConfigOption( const std::string &name, const std::string& env, const std::string &arg, Option &option, const std::string &helpMessage, const std::string &section ) :
+                  BaseConfigOption( name, env, arg, option, helpMessage, section ) {}
+               
+               ConfigOption( const ConfigOption &co ) : BaseConfigOption( co ) {}
+               ~ConfigOption () { delete &_option;  /*FIXME: mercurium tests complain this delete */ }
+               
+               /* \brief cloner function
+               */
+               BaseConfigOption * clone ();
+         };
+         
+         /*! \brief Class used for aliases. As the base class, it does not
+          *  delete the option object (because it will be freed when deleting
+          *  the ConfigNormalOption object).
+          */
+         class ConfigAliasOption : public BaseConfigOption
+         {
+            public:
+               ConfigAliasOption( const std::string &name, Option &option, const std::string &helpMessage, const std::string &section ) :
+                  BaseConfigOption( name, option, helpMessage, section ) {}
+               
+               ConfigAliasOption( const std::string &name, const std::string& env, const std::string &arg, Option &option, const std::string &helpMessage, const std::string &section ) :
+                  BaseConfigOption( name, env, arg, option, helpMessage, section ) {}
+                  
+               ~ConfigAliasOption () {}
+               
+               /* \brief cloner function
+                */
+               BaseConfigOption * clone ();
          };
 
         /* \brief Nanos help class, constructs the help text for the library
@@ -579,7 +619,7 @@ namespace nanos
          };
 
          /**< Stores ConfigOptions by name */
-         typedef TR1::unordered_map<std::string, ConfigOption *> ConfigOptionMap;
+         typedef TR1::unordered_map<std::string, BaseConfigOption *> ConfigOptionMap;
 
       private:
 

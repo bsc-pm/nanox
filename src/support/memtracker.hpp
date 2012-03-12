@@ -22,106 +22,106 @@
 #ifdef NANOS_DEBUG_ENABLED
 
 #include "memtracker_decl.hpp"
+#include "new_decl.hpp"
 #include "allocator.hpp"
 #include "config.hpp"
 
 namespace nanos {
 
-      inline MemTracker::MemTracker() : _blocks(),_stats(), _totalMem( 0 ), _numBlocks( 0 ),_maxMem( 0 ), _lock(), _showStats( false )
-      {
-         Config config;
-         config.registerConfigOption ( "mem-stats", NEW Config::FlagOption( _showStats ), "Show memory leak stats" );
-         config.registerArgOption ( "mem-stats", "mem-stats" );
-         config.registerEnvOption ( "mem-stats", "NX_DEBUG_MEM_STATS" );
-         config.init();
+   inline MemTracker::MemTracker() : _blocks(),_stats(), _totalMem( 0 ), _numBlocks( 0 ),_maxMem( 0 ), _lock(), _showStats( false )
+   {
+      Config config;
+      config.registerConfigOption ( "mem-stats", NEW Config::FlagOption( _showStats ), "Show memory leak stats" );
+      config.registerArgOption ( "mem-stats", "mem-stats" );
+      config.registerEnvOption ( "mem-stats", "NX_DEBUG_MEM_STATS" );
+      config.init();
+   }
+
+   inline void * MemTracker::allocate ( size_t size, const char *file, int line )
+   {
+      int thread_id;
+
+      BaseThread *thread = getMyThreadSafe();
+
+      if ( thread != NULL ) thread_id = thread->getId();
+      else thread_id = -1;
+
+      LockBlock_noinst guard(_lock);
+
+#ifdef NANOS_DISABLE_ALLOCATOR
+      void *p = malloc ( size );
+#else
+      void *p = nanos::getAllocator().allocate( size );
+#endif
+
+      if ( p ) {
+         _blocks[p] = BlockInfo(size,file,line, thread_id);
+         _numBlocks++;
+         _totalMem += size;
+         _stats[size]._current++;
+         _stats[size]._total++;
+         _stats[size]._max = std::max( _stats[size]._max, _stats[size]._current );
+         _maxMem = std::max( _maxMem, _totalMem );
+      } else {
+         throw std::bad_alloc();
       }
 
-      inline void * MemTracker::allocate ( size_t size, const char *file, int line )
-      {
-         int thread_id;
+      return p;
+   }
 
-         BaseThread *thread = getMyThreadSafe();
+   inline void MemTracker::deallocate ( void * p, const char *file, int line )
+   {
+      LockBlock_noinst guard(_lock);
 
-         if ( thread != NULL ) thread_id = thread->getId();
-         else thread_id = -1;
+      AddrMap::iterator it = _blocks.find( p );
 
-         LockBlock guard(_lock);
+      if ( it != _blocks.end() ) {
+         size_t size = it->second._size;
 
-         void *p = nanos::getAllocator().allocate( size );
+         _numBlocks--;
+         _totalMem -= size;
 
+#ifdef NANOS_DISABLE_ALLOCATOR
+         free( p );
+#else
+         nanos::getAllocator().deallocate( p );
+#endif
 
-         if ( p ) {
-	    _blocks[p] = BlockInfo(size,file,line, thread_id);
-	    _numBlocks++;
-	    _totalMem += size;
-	    _stats[size]._current++;
-	    _stats[size]._total++;
-	    _stats[size]._max = std::max( _stats[size]._max, _stats[size]._current );
-	    _maxMem = std::max( _maxMem, _totalMem );
+         _blocks.erase( it );
+         _stats[size]._current--;
+      } else {
+         guard.release();
+
+         if ( file != NULL ) {
+            message0("Trying to free invalid pointer " << p << " at " << file << ":" << line);
          } else {
-	    throw std::bad_alloc();
-         }
-	
-         return p;
+            message0("Trying to free invalid pointer " << p);
+         }    
+         throw std::bad_alloc();
       }
+   }
 
-      inline void MemTracker::deallocate ( void * p, const char *file, int line )
+   inline void MemTracker::showStats ()
+   {
+      if ( !_showStats ) return;
+
+      message0("======================= General Memory stats ============");
+      message0("# blocks              " << _numBlocks);
+      message0("total unfreed memory  " << _totalMem << " bytes");
+      message0("max allocated memory  " << _maxMem << " bytes");
+      message0("=========================================================");
+      message0("======================= Unfreed blocks ==================");
+      for ( AddrMap::iterator it = _blocks.begin(); it != _blocks.end(); it++ )
       {
-         LockBlock guard(_lock);
-
-         AddrMap::iterator it = _blocks.find( p );
-
-         if ( it != _blocks.end() ) {
-            size_t size = it->second._size;
-
-            _numBlocks--;
-            _totalMem -= size;
-
-            nanos::getAllocator().deallocate( p );
-
-            _blocks.erase( it );
-            _stats[size]._current--;
+         BlockInfo &info = it->second;
+         if ( info._file != NULL ) {
+            message0(info._size << " bytes allocated in " << info._file << ":" << info._line << " @ thread " << info._thread );
          } else {
-            guard.release();
-
-            if ( file != NULL ) {
-               message0("Trying to free invalid pointer " << p << " at " << file << ":" << line);
-            } else {
-               message0("Trying to free invalid pointer " << p);
-            }    
+            message0(info._size << " bytes allocated in an unknown location @ thread " << info._thread );
          }
       }
-
-      inline void MemTracker::showStats ()
-      {
-        if ( !_showStats )
-           return;
-	message0("======================= General Memory stats ============");
-	message0("# blocks              " << _numBlocks);
-	message0("total unfreed memory  " << _totalMem << " bytes");
-	message0("max allocated memory  " << _maxMem << " bytes");
-        message0("=========================================================");
-	message0("======================= Unfreed blocks ==================");
-	for ( AddrMap::iterator it = _blocks.begin(); it != _blocks.end(); it++ )
-	{
-	    BlockInfo &info = it->second;
-	    if ( info._file != NULL ) {
-	      message0(info._size << " bytes allocated in " << info._file << ":" << info._line << " @ thread " << info._thread );
-	    } else {
-	      message0(info._size << " bytes allocated in an unknown location @ thread " << info._thread );
-	    }
-	}
-        message0("=========================================================");
-#if 0        
-	message0("======================= Block Sizes Stats ===============");
-	message0("Size   Unfreed   Max   Total");
-	for ( SizeMap::iterator it = _stats.begin(); it != _stats.end(); it ++ ) {
-	    DistrInfo &info = it->second;
-	    message0(it->first << " " << info._current << " " << info._max << " " << info._total );    
-	}
-	message0("=========================================================");
-#endif        
-      }
+      message0("=========================================================");
+   }
 
 } // namespace nanos
 

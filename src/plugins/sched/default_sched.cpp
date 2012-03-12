@@ -48,17 +48,12 @@ namespace nanos {
            virtual size_t getTeamDataSize () const { return sizeof(TeamData); }
            virtual size_t getThreadDataSize () const { return 0; }
 
-           virtual ScheduleTeamData * createTeamData ( ScheduleTeamData *preAlloc )
+           virtual ScheduleTeamData * createTeamData ()
            {
-              TeamData *data;
-
-              if ( preAlloc ) data = new (preAlloc) TeamData();
-              else data = NEW TeamData();
-
-              return data;
+              return NEW TeamData();
            }
 
-           virtual ScheduleThreadData * createThreadData ( ScheduleThreadData *preAlloc )
+           virtual ScheduleThreadData * createThreadData ()
            {
               return 0;
            }
@@ -99,7 +94,9 @@ namespace nanos {
       {
 
          public:
-            NanosSchedPlugin() : Plugin( "Nanos++ default scheduling policy Plugin",1 ) {}
+            NanosSchedPlugin() : Plugin( "Nanos++ default scheduling policy Plugin",1 )
+            {
+            }
 
             virtual void config ( Config &cfg )
             {
@@ -113,5 +110,4 @@ namespace nanos {
    }
 }
 
-nanos::ext::NanosSchedPlugin NanosXPlugin;
-
+DECLARE_PLUGIN("sched-default",nanos::ext::NanosSchedPlugin);

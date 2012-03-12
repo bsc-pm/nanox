@@ -28,6 +28,7 @@
 #include "trackableobject_decl.hpp"
 #include "dependency_decl.hpp"
 #include "compatibility.hpp"
+#include "schedule_fwd.hpp"
 
 
 namespace nanos
@@ -57,10 +58,11 @@ namespace nanos
          *  \param depObj DependableObject to be added to the domain.
          *  \param begin Iterator to the start of the list of dependencies to be associated to the Dependable Object.
          *  \param end Iterator to the end of the mentioned list.
+         *  \param callback A function to call when a WD has a successor [Optional].
          *  \sa Dependency DependableObject TrackableObject
          */
          template<typename iterator>
-         void submitDependableObjectInternal ( DependableObject &depObj, iterator begin, iterator end );
+         void submitDependableObjectInternal ( DependableObject &depObj, iterator begin, iterator end, SchedulePolicySuccessorFunctor* callback );
 
       private:
         /*! \brief DependenciesDomain copy assignment operator (private)
@@ -89,17 +91,19 @@ namespace nanos
         /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
          *  \param depObj DependableObject to be added to the domain.
          *  \param deps List of dependencies to be associated to the Dependable Object.
+         *  \param callback A function to call when a WD has a successor [Optional].
          *  \sa Dependency DependableObject TrackableObject
          */
-         void submitDependableObject ( DependableObject &depObj, std::vector<Dependency> &deps );
+         void submitDependableObject ( DependableObject &depObj, std::vector<Dependency> &deps, SchedulePolicySuccessorFunctor* callback = NULL );
 
         /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
          *  \param depObj DependableObject to be added to the domain.
          *  \param deps List of dependencies to be associated to the Dependable Object.
          *  \param numDeps Number of dependenices in the list.
+         *  \param callback A function to call when a WD has a successor [Optional].
          *  \sa Dependency DependableObject TrackableObject
          */
-         void submitDependableObject ( DependableObject &depObj, size_t numDeps, Dependency* deps);
+         void submitDependableObject ( DependableObject &depObj, size_t numDeps, Dependency* deps, SchedulePolicySuccessorFunctor* callback = NULL );
 
          static void increaseTasksInGraph();
 

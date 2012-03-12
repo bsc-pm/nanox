@@ -66,6 +66,46 @@ void fib_2( void *ptr )
 nanos_smp_args_t fib_device_arg_1 = { fib_1 };
 nanos_smp_args_t fib_device_arg_2 = { fib_2 };
 
+/* ************** CONSTANT PARAMETERS IN WD CREATION ******************** */
+nanos_const_wd_definition_t const_data1 = 
+{
+   {
+      .mandatory_creation = true,
+      .tied = false,
+      .tie_to = false,
+      .priority = 0
+   },
+   __alignof__(fib_args),
+   0,
+   1,
+   {
+      {
+         nanos_smp_factory,
+         0,//nanos_smp_dd_size,
+         &fib_device_arg_1
+      }
+   }
+};
+nanos_const_wd_definition_t const_data2 = 
+{
+   {
+      .mandatory_creation = true,
+      .tied = false,
+      .tie_to = false,
+      .priority = 0
+   },
+   __alignof__(fib_args),
+   0,
+   1,
+   {
+      {
+         nanos_smp_factory,
+         0,//nanos_smp_dd_size,
+         &fib_device_arg_2
+      }
+   }
+};
+
 int fib ( int n, int d )
 {
    nanos_event_key_t ek;
@@ -85,15 +125,10 @@ int fib ( int n, int d )
       {
          nanos_wd_t wd=0;
          fib_args *args=0;
-         nanos_device_t fib_devices_1[1] = { NANOS_SMP_DESC( fib_device_arg_1 ) };
-         nanos_wd_props_t props = {
-           .mandatory_creation = true,
-           .tied = false,
-           .tie_to = false,
-         };
+         const_data1.devices[0].dd_size = nanos_smp_dd_size;
 
-         NANOS_SAFE( nanos_create_wd ( &wd, 1, fib_devices_1 , sizeof( fib_args ), __alignof__( fib_args),
-                                       ( void ** )&args, nanos_current_wd(), &props, 0, NULL ) );
+         NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1 , sizeof( fib_args ),
+                                       ( void ** )&args, nanos_current_wd(), NULL ) );
          args->n = n;
          args->d = d;
          args->x = &x;
@@ -106,15 +141,10 @@ int fib ( int n, int d )
       {
          nanos_wd_t wd=0;
          fib_args *args=0;
-         nanos_device_t fib_devices_2[1] = { NANOS_SMP_DESC( fib_device_arg_2 ) };
-         nanos_wd_props_t props = {
-           .mandatory_creation = true,
-           .tied = false,
-           .tie_to = false,
-         };
+         const_data2.devices[0].dd_size = nanos_smp_dd_size;
 
-         NANOS_SAFE( nanos_create_wd ( &wd, 1, fib_devices_2 , sizeof( fib_args ), __alignof__( fib_args),
-                                       ( void ** )&args, nanos_current_wd(), &props, 0, NULL ) );
+         NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1, sizeof( fib_args ),
+                                       ( void ** )&args, nanos_current_wd(), NULL ) );
          args->n = n;
          args->d = d;
          args->x = &y;

@@ -228,26 +228,6 @@ namespace nanos {
          }
    };
 
-
-   enum NANOS_CACHE_POLICY {
-      NANOS_CACHE_NO_POLICY,
-      NANOS_CACHE_WT_POLICY,
-      NANOS_CACHE_WB_POLICY
-   };
-
-   inline NANOS_CACHE_POLICY toCachePolicy ( std::string policy )
-   {
-      if ( !policy.compare( "wt" ) ) {
-         return NANOS_CACHE_WT_POLICY;
-      }
-
-      if ( !policy.compare( "cb" ) ) {
-         return NANOS_CACHE_WB_POLICY;
-      }
-
-      return NANOS_CACHE_NO_POLICY;
-   }
-
   /*! \class Cache
    *  \brief Generic interface of a Cache
    */
@@ -310,6 +290,10 @@ namespace nanos {
          */
          virtual void deleteReference( uint64_t tag ) = 0;
 
+         /*! \brief Copy data from one device address to another device address
+          */
+          virtual bool copyData( void * dstAddr, CopyDescriptor& dstCd, void * srcAddr, size_t size, Cache & owner ) = 0;
+
         /*! \brief Copy data from the host to a device address
          *  \param cd Copy descriptor with the information about the addresses to be copied
          *  \param size Size of the data to be copied
@@ -335,14 +319,17 @@ namespace nanos {
          *  \param size Size of the entry in the cache
          *  \param de DirectoryEntry to be updated
          */
-         virtual void invalidate( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de ) = 0;
+         virtual void invalidateAndFlush( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de ) = 0;
 
         /*! \brief Force an entry to be copied back to the Host
          *  \param dir Directory to update when copy finishes
          *  \param tag Identifier key of the entry to invalidate
          *  \param de DirectoryEntry to be updated
          */
+         virtual void invalidateAndFlush( Directory &dir, uint64_t tag, DirectoryEntry *de ) = 0;
+
          virtual void invalidate( Directory &dir, uint64_t tag, DirectoryEntry *de ) = 0;
+
 
         /*! \brief Request the Device to priorize an asynchronous transfer
          *  \param tag Identifier to locate the transfer to be priorized
@@ -385,7 +372,7 @@ namespace nanos {
          */
          virtual ~CachePolicy() { }
 
-        /*! \brief Regisers or updates the entry identified by the 'tag' key in the cache with the given properties
+        /*! \brief Registers or updates the entry identified by the 'tag' key in the cache with the given properties
          *  \param dir Current directory to look for the entry
          *  \param tag Identifier key of the entry
          *  \param size Size of the entry
@@ -408,6 +395,56 @@ namespace nanos {
 
         /*! \brief Unregister an acces tot the Cache for an address that will only exist for one user
          */
+         virtual void unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size );
+   };
+
+   /*! \class NoCache
+    *  \brief Cache policy that disables the cache
+    */
+   class NoCache : public CachePolicy
+   {
+      private:
+         /*! \brief Copy Constructor
+          */
+         NoCache( const NoCache &policy );
+
+         /*! \brief Assign Operator
+          */
+         const NoCache & operator= ( const NoCache &policy );
+
+      public:
+         /*! \brief Policy Constructor
+          *  \param cache Cache that is using the policy
+          */
+         NoCache( Cache& cache ) : CachePolicy( cache ) { }
+
+         /*! \brief Destructor
+          */
+         virtual ~NoCache() { }
+
+         /*! \brief Registers or updates the entry identified by the 'tag' key in the cache with the given properties
+          *  \param dir Current directory to look for the entry
+          *  \param tag Identifier key of the entry
+          *  \param size Size of the entry
+          *  \param input Whether the access will read the data (it has to be updated to the latest version known to the directory)
+          *  \param output Whether the acces writes the data (the Cache entry must be marked as dirty)
+          */
+         virtual void registerCacheAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
+
+         /*! \brief Notify the cache that one usage of an entry has finished
+          *  \param dir Current directory
+          *  \param tag Identifier key of the entry
+          *  \param size Size of the entry
+          *  \param output If the entry has been written it must be copied back to the host at some point.
+          */
+         virtual void unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output );
+
+         /*! \brief Register an acces tot the Cache for an address that will only exist for one user
+          */
+         virtual void registerPrivateAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
+
+         /*! \brief Unregister an acces tot the Cache for an address that will only exist for one user
+          */
          virtual void unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size );
    };
 
@@ -495,19 +532,19 @@ namespace nanos {
       *   - check for errors 
       */
       private:
-         ProcessingElement *_pe; /**< PE used to manage asynchronous copies */
+         ProcessingElement * _pe; /**< PE used to manage asynchronous copies */
 
          typedef HashMap<uint64_t, CacheEntry> CacheHash; /**< Maps keys with CacheEntries  */
          CacheHash _cache; /**< HashMap where the cache entries are stored */
 
-         CachePolicy *_policy; /**< Cache Policy used by this cache */
+         CachePolicy * _policy; /**< Cache Policy used by this cache */
 
          size_t _size; /**< Size of the cache in bytes */
          size_t _usedSize; /**< Cache space usage counter */
 
         /*! \brief Copy Constructor
          */
-         DeviceCache( const DeviceCache &cache, NANOS_CACHE_POLICY policy );
+         DeviceCache( const DeviceCache &cache, CachePolicy &policy );
 
         /*! \brief Assign operator
          */
@@ -516,7 +553,7 @@ namespace nanos {
         /*! \brief Internal data structure for copy synchronization
          */
          struct SyncData {
-            DeviceCache* _this;
+            DeviceCache * _this;
          };
 
         /*! \brief Internal synchronization function
@@ -528,21 +565,8 @@ namespace nanos {
       public:
         /* \brief Default constructor
          */
-         DeviceCache( size_t size, NANOS_CACHE_POLICY policy, ProcessingElement *pe = NULL ) :
-            _pe( pe ), _cache(), _size( size ), _usedSize( 0 )
-         {
-            switch ( policy ) {
-               case NANOS_CACHE_WT_POLICY:
-                  _policy = NEW WriteThroughPolicy( *this );
-                  break;
-               case NANOS_CACHE_WB_POLICY:
-                  _policy = NEW WriteBackPolicy( *this );
-                  break;
-               default:
-                  fatal0( "Unknown cache policy" );
-                  break;
-            }
-         }
+         DeviceCache( size_t size, CachePolicy * policy, ProcessingElement *pe = NULL ) :
+            _pe( pe ), _cache(), _policy( policy ), _size( size ), _usedSize( 0 ) {}
 
         /*! \brief Destructor
          */
@@ -551,9 +575,17 @@ namespace nanos {
             delete _policy;
          }
 
+         /*! \brief Sets a pointer to the policy used by this cache
+          */
+         void setPolicy( CachePolicy * policy );
+
         /*! \brief Returns the size of the cache
          */
          size_t getSize();
+
+         /*! \brief Returns a pointer to the PE of the cache
+          */
+         ProcessingElement * getPE();
 
         /*! \brief Allocate a block of memory in the device
          *  \param dir Directory to look for entries if the it needs to free space in the device.
@@ -583,6 +615,10 @@ namespace nanos {
          * \param tag: Identifier of the entry to look for
          */
          void * getAddress( uint64_t tag );
+
+         /*! \brief Copy data from one device address to another device address
+          */
+         bool copyData( void * dstAddr, CopyDescriptor& dstCd, void * srcAddr, size_t size, Cache & owner );
 
         /* \brief Copy data from the address represented by the tag to the entry in the device.
          * \param cd: identifier of the entry
@@ -691,13 +727,15 @@ namespace nanos {
          *  \param size Size of the entry in the cache
          *  \param de DirectoryEntry to be updated
          */
-         void invalidate( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de );
+         void invalidateAndFlush( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de );
 
         /*! \brief Force an entry to be copied back to the Host
          *  \param dir Directory to update when copy finishes
          *  \param tag Identifier key of the entry to invalidate
          *  \param de DirectoryEntry to be updated
          */
+         void invalidateAndFlush( Directory &dir, uint64_t tag, DirectoryEntry *de );
+
          void invalidate( Directory &dir, uint64_t tag, DirectoryEntry *de );
 
         /*! \brief get a reference to the size variable to allow using it as a ConfigOption

@@ -82,7 +82,7 @@ void main__loop_1 ( void *args );
 #define EXECUTE(get_slicer,slicer_data,lower2,upper2,k_offset,step2,chunk2)\
    for ( i = 0; i < NUM_ITERS; i++ ) {\
       _loop_data.offset = -k_offset; \
-      PluginManager::load( std::string("slicer-")+std::string(get_slicer) ); \
+      sys.loadPlugin( "slicer-" + std::string(get_slicer) ); \
       Slicer *slicer = sys.getSlicer ( get_slicer ); \
       WD * wd = new SlicedWD( *slicer, new SMPDD( main__loop_1 ), sizeof( _loop_data ), __alignof__(nanos_loop_info_t),( void * ) &_loop_data );\
       _loop_data.loop_info.lower = lower2 + k_offset; \

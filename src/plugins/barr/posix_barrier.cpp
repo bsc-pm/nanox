@@ -93,5 +93,4 @@ namespace nanos {
    }
 }
 
-nanos::ext::PosixBarrierPlugin NanosXPlugin;
-
+DECLARE_PLUGIN("barr-posix",nanos::ext::PosixBarrierPlugin);

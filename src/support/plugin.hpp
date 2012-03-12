@@ -27,7 +27,7 @@
 
 using namespace nanos;
 
-inline const std::string & Plugin::getName() const
+inline const char * Plugin::getName() const
 {
    return _name;
 }
@@ -42,14 +42,25 @@ inline bool PluginManager::isPlugin ( const std::string &name )
    return isPlugin( name.c_str() );
 }
 
-inline bool PluginManager::load ( const std::string &plugin_name, const bool init )
+inline bool PluginManager::load ( const std::string &plugin_name, const bool initPlugin )
 {
-   return load( plugin_name.c_str(), init );
+   return load( plugin_name.c_str(), initPlugin );
 }
 
-inline Plugin* PluginManager::loadAndGetPlugin ( const std::string &plugin_name, const bool init )
+inline Plugin* PluginManager::loadAndGetPlugin ( const std::string &plugin_name, const bool initPlugin )
 {
-   return loadAndGetPlugin( plugin_name.c_str(), init );
+   return loadAndGetPlugin( plugin_name.c_str(), initPlugin );
 }
+
+#ifdef PIC 
+#define DECLARE_PLUGIN(name,type) \
+       type NanosXPlugin;
+#else
+#define INITX {_registerPlugin, NULL} 
+#define DECLARE_PLUGIN(name,type) \
+       static void _registerPlugin (void *arg); \
+       static void _registerPlugin (void *arg) { sys.registerPlugin(name, *NEW type()); } \
+       LINKER_SECTION(nanos_init, nanos_init_desc_t, INITX);
+#endif
 
 #endif

@@ -95,7 +95,8 @@ nanos_smp_args_t main__loop_1_device_args = { main__loop_1 };
       nanos_wd_props_t props = {\
          .mandatory_creation = true,\
          .tied = false,\
-         .tie_to = false\
+         .tie_to = false,\
+         .priority = 0\
       };\
       nanos_slicer_t slicer = nanos_find_slicer(slicer_type);\
 \

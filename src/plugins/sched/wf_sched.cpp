@@ -58,19 +58,14 @@ namespace nanos {
            virtual size_t getTeamDataSize () const { return 0; }
            virtual size_t getThreadDataSize () const { return sizeof(ThreadData); }
 
-           virtual ScheduleTeamData * createTeamData ( ScheduleTeamData *preAlloc )
+           virtual ScheduleTeamData * createTeamData ()
            {
               return 0;
            }
 
-           virtual ScheduleThreadData * createThreadData ( ScheduleThreadData *preAlloc )
+           virtual ScheduleThreadData * createThreadData ()
            {
-              ThreadData *data;
-
-              if ( preAlloc ) data = new (preAlloc) ThreadData();
-              else data = NEW ThreadData();
-
-              return data;
+              return NEW ThreadData();
            }
 
             /*! \brief Extracts a WD from the queue either from the beginning or the end of the queue
@@ -223,6 +218,4 @@ namespace nanos {
    }
 }
 
-nanos::ext::WFSchedPlugin NanosXPlugin;
-
-
+DECLARE_PLUGIN("sched-wf",nanos::ext::WFSchedPlugin);

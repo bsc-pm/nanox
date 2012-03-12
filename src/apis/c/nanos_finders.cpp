@@ -29,17 +29,18 @@ using namespace nanos;
  *
  *  \sa Slicers
  */
-nanos_slicer_t nanos_find_slicer ( const char * label )
+NANOS_API_DEF(nanos_slicer_t, nanos_find_slicer, ( const char * label ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","find_slicer",NANOS_RUNTIME) );
 
    nanos_slicer_t slicer;
+   
    try {
-      slicer = sys.getSlicer ( std::string(label) );
+      std::string plugin = std::string(label);
+      slicer = sys.getSlicer ( plugin );
       if ( slicer == NULL ) {
-         std::string plugin = "slicer-" + std::string(label);
-         if ( !PluginManager::load( plugin )) fatal0( "Could not load " + std::string(label) + "slicer" );
-         slicer = sys.getSlicer ( std::string(label) );
+         if ( !sys.loadPlugin( "slicer-" + plugin )) fatal0( "Could not load " + plugin + "slicer" );
+         slicer = sys.getSlicer ( plugin );
       }
 
    } catch ( ... ) {
@@ -52,17 +53,17 @@ nanos_slicer_t nanos_find_slicer ( const char * label )
  *
  *  \sa WorkSharing
  */
-nanos_ws_t nanos_find_worksharing ( const char * label )
+NANOS_API_DEF(nanos_ws_t, nanos_find_worksharing, ( const char * label ))
 {
    //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","",NANOS_RUNTIME) ); //FIXME: to register new event
 
    nanos_ws_t ws;
    try {
-      ws = sys.getWorkSharing ( std::string(label) );
+      std::string plugin = std::string(label);
+      ws = sys.getWorkSharing ( plugin );
       if ( ws == NULL ) {
-         std::string plugin = "worksharing-" + std::string(label);
-         if ( !PluginManager::load( plugin )) fatal0( "Could not load " + std::string(label) + "worksharing" );
-         ws = sys.getWorkSharing ( std::string(label) );
+         if ( !sys.loadPlugin( "worksharing-" + plugin )) fatal0( "Could not load " + plugin + "worksharing" );
+         ws = sys.getWorkSharing ( plugin );
       }
 
    } catch ( ... ) {

@@ -142,7 +142,7 @@ namespace nanos
          typedef enum { INIT, START, READY, IDLE, BLOCKED } State;
 
          size_t                        _data_size;    /**< WD data size */
-         int                           _data_align;   /**< WD data alignment */
+         size_t                        _data_align;   /**< WD data alignment */
          void                         *_data;         /**< WD data */
          void                         *_wdData;       /**< Internal WD data. this allows higher layer to associate data to the WD */
          bool                          _tie;          /**< FIXME: (#170) documentation needed */
@@ -154,7 +154,7 @@ namespace nanos
 
          WorkDescriptor               *_parent;       /**< Parent WD (task hierarchy). Cilk sched.: first steal parent, next other tasks */
 
-         WDDeque                      *_myQueue;      /**< Reference to a queue. Allows dequeuing from third party (e.g. Cilk schedulers */
+         WDPool                      *_myQueue;      /**< Reference to a queue. Allows dequeuing from third party (e.g. Cilk schedulers */
 
          unsigned                      _depth;        /**< Level (depth) of the task */
 
@@ -177,6 +177,8 @@ namespace nanos
 
          nanos_translate_args_t        _translateArgs; /**< Translates the addresses in _data to the ones obtained by get_address(). */
 
+         unsigned int                  _priority;      /**< Task priority */
+
       private: /* private methods */
          /*! \brief WorkDescriptor copy assignment operator (private)
           */
@@ -188,25 +190,27 @@ namespace nanos
 
          /*! \brief WorkDescriptor constructor - 1
           */
-         WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0, int data_align = 1, void *wdata=0,
+         WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0, size_t data_align = 1, void *wdata=0,
                           size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL )
                         : WorkGroup(), _data_size ( data_size ), _data_align( data_align ),  _data ( wdata ),
                           _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
                           _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : NULL ),
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain(), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ) { }
+                          _depsDomain(), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ),
+                          _priority( 0 ) { }
 
          /*! \brief WorkDescriptor constructor - 2
           */
-         WorkDescriptor ( DeviceData *device, size_t data_size = 0, int data_align = 1, void *wdata=0,
+         WorkDescriptor ( DeviceData *device, size_t data_size = 0, size_t data_align = 1, void *wdata=0,
                           size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL )
                         : WorkGroup(), _data_size ( data_size ), _data_align ( data_align ), _data ( wdata ),
                           _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
                           _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( 1 ), _devices ( &_activeDevice ), _activeDevice ( device ),
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain(), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ) { }
+                          _depsDomain(), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ),
+                          _priority( 0 ) { }
 
          /*! \brief WorkDescriptor copy constructor (using a given WorkDescriptor)
           *
@@ -224,7 +228,8 @@ namespace nanos
                           _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ), _myQueue ( NULL ), _depth ( wd._depth ),
                           _numDevices ( wd._numDevices ), _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
                           _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
-                          _doSubmit(), _doWait(), _depsDomain(), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( wd._translateArgs ) { }
+                          _doSubmit(), _doWait(), _depsDomain(), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( wd._translateArgs ),
+                          _priority( wd._priority ) { }
 
          /*! \brief WorkDescriptor destructor
           *
@@ -233,8 +238,9 @@ namespace nanos
           */
          virtual ~WorkDescriptor()
          {
-            for ( unsigned i = 0; i < _numDevices; i++ )
+            for ( unsigned i = 0; i < _numDevices; i++ ) {
                _devices[i]->~DeviceData();
+            }
          }
 
          /*! \brief Has this WorkDescriptor ever run?
@@ -278,7 +284,7 @@ namespace nanos
           *  \return data alignment
           *  \see getData setData setDatasize
           */
-         int getDataAlignment () const;
+         size_t getDataAlignment () const;
 
          /*! \brief Set data alignment
           *
@@ -286,15 +292,15 @@ namespace nanos
           *
           *  \see getData setData setDataSize
           */
-         void setDataAlignment ( int data_align) ;
+         void setDataAlignment ( size_t data_align) ;
 
          WorkDescriptor * getParent();
 
          void setParent ( WorkDescriptor * p );
 
-         WDDeque * getMyQueue();
+         WDPool * getMyQueue();
 
-         void setMyQueue ( WDDeque * myQ );
+         void setMyQueue ( WDPool * myQ );
 
          bool isEnqueued();
 
@@ -442,10 +448,13 @@ namespace nanos
          Directory* getDirectory(bool create=false);
 
          virtual void waitCompletion( bool avoidFlush = false );
-         virtual void waitCompletionAndSignalers();
+         virtual void waitCompletionAndSignalers( bool avoidFlush = false);
 
          bool isSubmitted( void ) const;
          void submitted( void );
+
+         void setPriority( unsigned int priority );
+         unsigned getPriority() const;
    };
 
    typedef class WorkDescriptor WD;

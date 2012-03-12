@@ -82,6 +82,8 @@ inline bool System::getUntieMaster () const { return _untieMaster; }
 inline void System::setSynchronizedStart ( bool value ) { _synchronizedStart = value; }
 inline bool System::getSynchronizedStart ( void ) const { return _synchronizedStart; }
 
+inline int System::getWorkDescriptorId( void ) { return _atomicWDSeed++; }
+
 inline int System::getReadyNum() const { return _schedStats._readyTasks.value(); }
 
 inline int System::getRunningTasks() const
@@ -133,6 +135,48 @@ inline SchedulePolicy * System::getDefaultSchedulePolicy ( ) const  { return _de
 inline SchedulerStats & System::getSchedulerStats () { return _schedStats; }
 inline SchedulerConf  & System::getSchedulerConf ()  { return _schedConf; }
 
+inline void System::stopScheduler ()
+{
+   myThread->pause();
+   _schedConf.setSchedulerEnabled( false );
+}
+
+inline void System::startScheduler ()
+{
+   myThread->unpause();
+   _schedConf.setSchedulerEnabled( true );
+}
+
+inline bool System::isSchedulerStopped () const
+{
+   return _schedConf.getSchedulerEnabled();
+}
+
+inline void System::pausedThread ()
+{
+   _pausedThreadsCond.reference();
+   _unpausedThreadsCond.reference();
+   ++_pausedThreads;
+   if ( _pausedThreadsCond.check() ) {
+      _pausedThreadsCond.signal();
+   }
+   _pausedThreadsCond.unreference();
+   _unpausedThreadsCond.unreference();
+}
+
+inline void System::unpausedThread ()
+{
+   _pausedThreadsCond.reference();
+   _unpausedThreadsCond.reference();
+   // TODO (#582): Do we need a reference and unreference block here?
+   --_pausedThreads;
+   if ( _unpausedThreadsCond.check() ) {
+      _unpausedThreadsCond.signal();
+   }
+   _unpausedThreadsCond.unreference();
+   _pausedThreadsCond.unreference();
+}
+
 inline const std::string & System::getDefaultArch() const { return _defArch; }
 inline void System::setDefaultArch( const std::string &arch ) { _defArch = arch; }
 
@@ -144,9 +188,15 @@ inline void System::setPMInterface(PMInterface *pm)
 
 inline PMInterface &  System::getPMInterface(void) const { return *_pmInterface; }
 
-inline std::string System::getCachePolicy() { return _cachePolicy; }
+inline bool System::isCacheEnabled() { return _useCaches; }
+
+inline System::CachePolicyType System::getCachePolicy() { return _cachePolicy; }
 
 inline CacheMap& System::getCacheMap() { return _cacheMap; }
+
+#ifdef GPU_DEV
+inline PinnedAllocator& System::getPinnedAllocatorCUDA() { return _pinnedMemoryCUDA; }
+#endif
 
 inline bool System::throttleTask()
 {
@@ -162,6 +212,31 @@ inline void System::threadReady()
 
       TODO: we can consider thread yielding */
    while (_initializedThreads.value() < _targetThreads) {}
+}
+
+inline void System::registerPlugin ( const char *name, Plugin &plugin )
+{
+   _pluginManager.registerPlugin(name, plugin);
+}
+
+inline bool System::loadPlugin ( const char * name )
+{
+   return _pluginManager.load(name);
+}
+
+inline bool System::loadPlugin ( const std::string & name )
+{
+   return _pluginManager.load(name);
+}
+
+inline Plugin * System::loadAndGetPlugin ( const char *name )
+{
+   return _pluginManager.loadAndGetPlugin(name, false);
+}
+
+inline Plugin * System::loadAndGetPlugin ( const std::string & name )
+{
+   return _pluginManager.loadAndGetPlugin(name, false);
 }
 
 #endif

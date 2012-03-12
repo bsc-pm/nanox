@@ -58,19 +58,14 @@ namespace nanos {
             virtual size_t getTeamDataSize () const { return 0; }
             virtual size_t getThreadDataSize () const { return sizeof(ThreadData); }
 
-            virtual ScheduleTeamData * createTeamData ( ScheduleTeamData *preAlloc )
+            virtual ScheduleTeamData * createTeamData ()
             {
                return 0;
             }
 
-            virtual ScheduleThreadData * createThreadData ( ScheduleThreadData *preAlloc )
+            virtual ScheduleThreadData * createThreadData ()
             {
-               ThreadData *data;
-
-               if ( preAlloc ) data = new (preAlloc) ThreadData();
-               else data = NEW ThreadData();
-
-               return data;
+               return NEW ThreadData();
             }
 
             /*!
@@ -181,4 +176,4 @@ namespace nanos {
    }
 }
 
-nanos::ext::CilkSchedPlugin NanosXPlugin;
+DECLARE_PLUGIN("sched-cilk",nanos::ext::CilkSchedPlugin);

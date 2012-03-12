@@ -78,4 +78,4 @@ namespace nanos {
    }
 }
 
-nanos::ext::DummyThrottlePlugin NanosXPlugin;
+DECLARE_PLUGIN("throttle-dummy",nanos::ext::DummyThrottlePlugin);

@@ -77,13 +77,16 @@ namespace nanos
 
       private:
         unsigned int  _numSpins;
+        int  _numSleeps;
+        int  _timeSleep;
+        bool _schedulerEnabled;
       private:
         /*! \brief SchedulerConf default constructor (private)
          */
-        SchedulerConf() : _numSpins(100) {}
+        SchedulerConf() : _numSpins(100), _numSleeps(20), _timeSleep(100), _schedulerEnabled(true) {}
         /*! \brief SchedulerConf copy constructor (private)
          */
-        SchedulerConf ( SchedulerConf &sc ) : _numSpins( sc._numSpins ) {}
+        SchedulerConf ( SchedulerConf &sc ) : _numSpins( sc._numSpins ), _numSleeps(sc._numSleeps), _timeSleep(sc._timeSleep), _schedulerEnabled( true )  {}
         /*! \brief SchedulerConf copy assignment operator (private)
          */
         SchedulerConf & operator= ( SchedulerConf &sc );
@@ -95,12 +98,18 @@ namespace nanos
 
          unsigned int getNumSpins () const;
          void setNumSpins ( const unsigned int num );
+         int getNumSleeps () const;
+         int getTimeSleep () const;
+         void setSchedulerEnabled ( bool value ) ;
+         bool getSchedulerEnabled () const;
          void config ( Config &cfg );
    };
    
    class SchedulerStats
    {
          friend class WDDeque;
+         friend class WDLFQueue;
+         friend class WDPriorityQueue;
          friend class Scheduler;
          friend class System;
 
@@ -166,6 +175,10 @@ namespace nanos
 
    class SchedulePolicy
    {
+      public:
+         typedef enum {
+            SYS_SUBMIT, SYS_SUBMIT_WITH_DEPENDENCIES, SYS_INLINE_WORK
+         } SystemSubmitFlag;
       private:
          std::string    _name;
       private:
@@ -193,8 +206,8 @@ namespace nanos
 
          virtual size_t getTeamDataSize() const = 0;
          virtual size_t getThreadDataSize() const = 0;
-         virtual ScheduleTeamData * createTeamData ( ScheduleTeamData *preAlloc ) = 0;
-         virtual ScheduleThreadData * createThreadData ( ScheduleThreadData *preAlloc ) = 0;
+         virtual ScheduleTeamData * createTeamData () = 0;
+         virtual ScheduleThreadData * createThreadData () = 0;
          
          virtual WD * atSubmit      ( BaseThread *thread, WD &wd ) = 0;
          virtual WD * atIdle        ( BaseThread *thread ) = 0;
@@ -206,6 +219,30 @@ namespace nanos
          virtual WD * atPrefetch    ( BaseThread *thread, WD &current );
 
          virtual void queue ( BaseThread *thread, WD &wd )  = 0;
+         
+         /*! \brief Hook function called when a WD is submitted.
+          \param wd [in] The WD to be submitted.
+          \param from [in] A flag indicating where the method is called from.
+          \sa SystemSubmitFlag.
+          */
+         virtual void onSystemSubmit( const WD &wd, SystemSubmitFlag from ) {}
+         
+         /*! \brief This method will be called when a pair of preceeding and
+          succeeding work descriptors is found.
+          \param predecessor Preceeding Dependable Object pointer.
+          \param successor ...
+          */
+         virtual void successorFound( DependableObject *predecessor, DependableObject *successor ) {}
+   };
+   /*! \brief Functor that will be used when a WD's predecessor is found.
+    */
+   struct SchedulePolicySuccessorFunctor
+   {
+      SchedulePolicy& _obj;
+      
+      SchedulePolicySuccessorFunctor( SchedulePolicy& obj ) : _obj( obj ) {}
+      
+      void operator() ( DependableObject *predecessor, DependableObject *successor );
    };
    
 };

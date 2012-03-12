@@ -25,8 +25,8 @@
 
 using namespace nanos;
 
-nanos_err_t nanos_create_team( nanos_team_t *team, nanos_sched_t sp, unsigned int *nthreads,
-                               nanos_constraint_t * constraints, bool reuse, nanos_thread_t *info )
+NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_t sp, unsigned int *nthreads,
+                               nanos_constraint_t * constraints, bool reuse, nanos_thread_t *info ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","create_team",NANOS_RUNTIME) );
 
@@ -53,13 +53,13 @@ nanos_err_t nanos_create_team( nanos_team_t *team, nanos_sched_t sp, unsigned in
    return NANOS_OK;
 }
 
-nanos_err_t nanos_create_team_mapped ( nanos_team_t *team, nanos_sched_t sg, unsigned int *nthreads,
-                                       unsigned int *mapping )
+NANOS_API_DEF(nanos_err_t, nanos_create_team_mapped, ( nanos_team_t *team, nanos_sched_t sg, unsigned int *nthreads,
+                                       unsigned int *mapping ))
 {
    return NANOS_UNIMPLEMENTED;
 }
 
-nanos_err_t nanos_leave_team ()
+NANOS_API_DEF(nanos_err_t, nanos_leave_team, (void))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","leave_team",NANOS_RUNTIME) );
 
@@ -71,7 +71,7 @@ nanos_err_t nanos_leave_team ()
    return NANOS_OK;
 }
 
-nanos_err_t nanos_end_team ( nanos_team_t team )
+NANOS_API_DEF(nanos_err_t, nanos_end_team, ( nanos_team_t team ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","end_team",NANOS_RUNTIME) );
 
@@ -87,7 +87,7 @@ nanos_err_t nanos_end_team ( nanos_team_t team )
    Implements the team barrier by invoking the barrier function of the team.
    The actual barrier algorithm is loaded at the run-time startup.
 */
-nanos_err_t nanos_team_barrier ( )
+NANOS_API_DEF(nanos_err_t, nanos_team_barrier, ( void ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","team_barrier",NANOS_SYNCHRONIZATION) );
 
@@ -100,7 +100,7 @@ nanos_err_t nanos_team_barrier ( )
    return NANOS_OK;
 }
 
-nanos_err_t nanos_team_get_num_starring_threads ( int *n )
+NANOS_API_DEF(nanos_err_t, nanos_team_get_num_starring_threads, ( int *n ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_starring_threads",NANOS_RUNTIME) );
 
@@ -113,7 +113,7 @@ nanos_err_t nanos_team_get_num_starring_threads ( int *n )
    return NANOS_OK;
 }
 
-nanos_err_t nanos_team_get_starring_threads ( int *n, nanos_thread_t *list_of_threads )
+NANOS_API_DEF(nanos_err_t, nanos_team_get_starring_threads, ( int *n, nanos_thread_t *list_of_threads ) )
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_starring_threads",NANOS_RUNTIME) );
 
@@ -126,7 +126,7 @@ nanos_err_t nanos_team_get_starring_threads ( int *n, nanos_thread_t *list_of_th
    return NANOS_OK;
 }
 
-nanos_err_t nanos_team_get_num_supporting_threads ( int *n )
+NANOS_API_DEF(nanos_err_t, nanos_team_get_num_supporting_threads, ( int *n ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_supporting_threads",NANOS_RUNTIME) );
 
@@ -139,7 +139,7 @@ nanos_err_t nanos_team_get_num_supporting_threads ( int *n )
    return NANOS_OK;
 }
 
-nanos_err_t nanos_team_get_supporting_threads ( int *n, nanos_thread_t *list_of_threads)
+NANOS_API_DEF(nanos_err_t, nanos_team_get_supporting_threads, ( int *n, nanos_thread_t *list_of_threads))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_supporting_threads",NANOS_RUNTIME) );
 

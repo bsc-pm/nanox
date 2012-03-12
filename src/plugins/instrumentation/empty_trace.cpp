@@ -16,6 +16,10 @@ class InstrumentationEmptyTrace: public Instrumentation
       // low-level instrumentation interface (mandatory functions)
       void initialize( void ) {}
       void finalize( void ) {}
+      void disable( void ) {}
+      void enable( void ) {}
+      void addResumeTask( WorkDescriptor &w ) {}
+      void addSuspendTask( WorkDescriptor &w, bool last ) {}
       void addEventList ( unsigned int count, Event *events ) {}
       void threadStart( BaseThread &thread ) {}
       void threadFinish ( BaseThread &thread ) {}
@@ -29,6 +33,10 @@ class InstrumentationEmptyTrace: public Instrumentation
       // low-level instrumentation interface (mandatory functions)
       void initialize( void ) {}
       void finalize( void ) {}
+      void disable( void ) {}
+      void enable( void ) {}
+      void addResumeTask( WorkDescriptor &w ) {}
+      void addSuspendTask( WorkDescriptor &w, bool last ) {}
       void addEventList ( unsigned int count, Event *events ) {}
       void threadStart( BaseThread &thread ) {}
       void threadFinish ( BaseThread &thread ) {}
@@ -54,4 +62,4 @@ class InstrumentationEmptyTracePlugin : public Plugin {
 
 } // namespace nanos
 
-nanos::ext::InstrumentationEmptyTracePlugin NanosXPlugin;
+DECLARE_PLUGIN("instrumentation-empty_trace",nanos::ext::InstrumentationEmptyTracePlugin);

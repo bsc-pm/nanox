@@ -21,8 +21,8 @@
 #define _NANOS_PLUGIN_DECL
 
 #include <string>
-#include <vector>
 #include "config_decl.hpp"
+#include "compatibility.hpp"
 
 namespace nanos
 {
@@ -31,7 +31,7 @@ namespace nanos
    {
 
       private:
-         std::string    _name;
+         const char *  	_name;
          int            _version;
          void  *        _handler;
 
@@ -39,9 +39,7 @@ namespace nanos
          const Plugin operator= ( const Plugin & );
          
       public:
-         Plugin( std::string &name, int version ) : _name( name ),_version( version ) {}
-
-         Plugin( const char *name, int version ) : _name( name ),_version( version ) {}
+         Plugin( const char *name, int version ) : _name( name ), _version( version ) {}
 
          virtual ~Plugin() {}
 
@@ -50,28 +48,38 @@ namespace nanos
 
          virtual void fini() {}
 
-         const std::string & getName() const;
+         const char * getName() const;
 
          int getVersion() const;
    };
 
    class PluginManager
    {
+      public:
+         typedef TR1::unordered_map<std::string, Plugin *> PluginMap;
+
       private:
-         typedef std::vector<Plugin *>    PluginList;
-         static PluginList                _activePlugins;
+         PluginMap   _availablePlugins;
+         PluginMap   _activePlugins;
+
+         explicit PluginManager ( PluginManager & );
+         const PluginManager operator= ( const PluginManager & );
 
       public:
+         PluginManager() {}
+         ~PluginManager() {}
 
-         static void init();
+         void init();
 
-         static bool isPlugin ( const char *name );
-         static bool isPlugin ( const std::string &name );
+         bool isPlugin ( const char *name );
+         bool isPlugin ( const std::string &name );
 
-         static bool load ( const char *plugin_name, const bool init=true );
-         static bool load ( const std::string &plugin_name, const bool init=true );
-         static Plugin* loadAndGetPlugin ( const char *plugin_name, const bool init=true );
-         static Plugin* loadAndGetPlugin ( const std::string &plugin_name, const bool init=true );
+         void registerPlugin ( const char *name, Plugin &plugin );
+
+         bool load ( const char *plugin_name, const bool init=true );
+         bool load ( const std::string &plugin_name, const bool init=true );
+         Plugin* loadAndGetPlugin ( const char *plugin_name, const bool init=true );
+         Plugin* loadAndGetPlugin ( const std::string &plugin_name, const bool init=true );
 
    };
 

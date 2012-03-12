@@ -17,6 +17,10 @@ class InstrumentationPrintTrace: public Instrumentation
       // low-level instrumentation interface (mandatory functions)
       void initialize( void ) {}
       void finalize( void ) {}
+      void disable( void ) {}
+      void enable( void ) {}
+      void addResumeTask( WorkDescriptor &w ) {}
+      void addSuspendTask( WorkDescriptor &w, bool last ) {}
       void addEventList ( unsigned int count, Event *events ) {}
       void threadStart( BaseThread &thread ) {}
       void threadFinish ( BaseThread &thread ) {}
@@ -30,6 +34,10 @@ class InstrumentationPrintTrace: public Instrumentation
       // low-level instrumentation interface (mandatory functions)
       void initialize( void ) {}
       void finalize( void ) {}
+      void disable( void ) {}
+      void enable( void ) {}
+      void addResumeTask( WorkDescriptor &w ) {}
+      void addSuspendTask( WorkDescriptor &w, bool last ) {}
       void addEventList ( unsigned int count, Event *events ) {}
       void threadStart( BaseThread &thread ) {}
       void threadFinish ( BaseThread &thread ) {}
@@ -56,5 +64,4 @@ class InstrumentationPrintTracePlugin : public Plugin {
 
 } // namespace nanos
 
-nanos::ext::InstrumentationPrintTracePlugin NanosXPlugin;
-
+DECLARE_PLUGIN("intrumentation-print_trace",nanos::ext::InstrumentationPrintTracePlugin);

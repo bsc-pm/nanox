@@ -88,4 +88,4 @@ namespace nanos {
    }
 }
 
-nanos::ext::TaskDepthThrottlePlugin NanosXPlugin;
+DECLARE_PLUGIN("throttle-taskdepth",nanos::ext::TaskDepthThrottlePlugin);

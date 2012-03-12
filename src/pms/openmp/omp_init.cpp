@@ -71,6 +71,11 @@ namespace nanos
                sys.setUntieMaster(false);
             }
          }
+         
+         virtual void finish()
+         {
+            delete globalState;
+         }
 
           virtual int getInternalDataSize() const { return sizeof(OmpData); }
           virtual int getInternalDataAlignment() const { return __alignof__(OmpData); }

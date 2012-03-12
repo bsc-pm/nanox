@@ -45,6 +45,7 @@ void WorkGroup::exitWork ( WorkGroup &work )
 {
    _syncCond.reference();
    int componentsLeft = --_components;
+   // It seems that _syncCond.check() generates a race condition here
    if (componentsLeft == 0)
       _syncCond.signal();
    _syncCond.unreference();
@@ -55,7 +56,7 @@ void WorkGroup::waitCompletion ( bool avoidFlush )
      _syncCond.wait();
 }
 
-void WorkGroup::waitCompletionAndSignalers ()
+void WorkGroup::waitCompletionAndSignalers ( bool avoidFlush )
 {
      _syncCond.waitConditionAndSignalers();
 }

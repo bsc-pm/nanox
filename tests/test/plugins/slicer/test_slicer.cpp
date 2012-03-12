@@ -90,7 +90,7 @@ int main ( int argc, char **argv )
    data->c = str;
 
    // loading RepeatN Slicer Plugin
-   PluginManager::load( "slicer-repeat_n" );
+   sys.loadPlugin( "slicer-repeat_n" );
    Slicer *slicer = sys.getSlicer ( "repeat_n" );
  
    // Work descriptor creation

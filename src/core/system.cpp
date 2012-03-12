@@ -44,17 +44,21 @@ using namespace nanos;
 
 System nanos::sys;
 
-Atomic<int> WorkGroup::_atomicSeed( 1 );
-
 // default system values go here
 System::System () :
+      _atomicWDSeed( 1 ),
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ), _thsPerPE( 1 ),
       _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ), _throttlePolicy ( NULL ),
-      _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
+      _schedStats(), _schedConf(), _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ),
-      _initializedThreads ( 0 ), _targetThreads ( 0 ),
-      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _directory(), _pmInterface( NULL ), _cachePolicy(), _cacheMap()
+      _initializedThreads ( 0 ), _targetThreads ( 0 ), _pausedThreads( 0 ),
+      _pausedThreadsCond(), _unpausedThreadsCond(),
+      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _pmInterface( NULL ),
+      _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap()
+#ifdef GPU_DEV
+      , _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
+#endif
 {
    verbose0 ( "NANOS++ initializing... start" );
    // OS::init must be called here and not in System::start() as it can be too late
@@ -73,7 +77,7 @@ struct LoadModule
    {
       if ( module ) {
         verbose0( "loading " << module << " module" );
-        PluginManager::load(module);
+        sys.loadPlugin(module);
       }
    }
 };
@@ -82,7 +86,7 @@ void System::loadModules ()
 {
    verbose0 ( "Configuring module manager" );
 
-   PluginManager::init();
+   _pluginManager.init();
 
    verbose0 ( "Loading modules" );
 
@@ -93,7 +97,7 @@ void System::loadModules ()
    if ( _hostFactory == NULL ) {
      verbose0( "loading Host support" );
 
-     if ( !PluginManager::load ( "pe-"+getDefaultArch() ) )
+     if ( !loadPlugin( "pe-"+getDefaultArch() ) )
        fatal0 ( "Couldn't load host support" );
    }
    ensure( _hostFactory,"No default host factory" );
@@ -101,36 +105,44 @@ void System::loadModules ()
 #ifdef GPU_DEV
    verbose0( "loading GPU support" );
 
-   if ( !PluginManager::load ( "pe-gpu" ) )
+   if ( !loadPlugin( "pe-gpu" ) )
       fatal0 ( "Couldn't load GPU support" );
 #endif
 
    // load default schedule plugin
    verbose0( "loading " << getDefaultSchedule() << " scheduling policy support" );
 
-   if ( !PluginManager::load ( "sched-"+getDefaultSchedule() ) )
+   if ( !loadPlugin( "sched-"+getDefaultSchedule() ) )
       fatal0 ( "Couldn't load main scheduling policy" );
 
    ensure( _defSchedulePolicy,"No default system scheduling factory" );
 
    verbose0( "loading " << getDefaultThrottlePolicy() << " throttle policy" );
 
-   if ( !PluginManager::load( "throttle-"+getDefaultThrottlePolicy() ) )
+   if ( !loadPlugin( "throttle-"+getDefaultThrottlePolicy() ) )
       fatal0( "Could not load main cutoff policy" );
 
    ensure( _throttlePolicy, "No default throttle policy" );
 
    verbose0( "loading " << getDefaultBarrier() << " barrier algorithm" );
 
-   if ( !PluginManager::load( "barrier-"+getDefaultBarrier() ) )
+   if ( !loadPlugin( "barrier-"+getDefaultBarrier() ) )
       fatal0( "Could not load main barrier algorithm" );
 
-   if ( !PluginManager::load( "instrumentation-"+getDefaultInstrumentation() ) )
+   if ( !loadPlugin( "instrumentation-"+getDefaultInstrumentation() ) )
       fatal0( "Could not load " + getDefaultInstrumentation() + " instrumentation" );
-
 
    ensure( _defBarrFactory,"No default system barrier factory" );
 
+}
+
+void System::unloadModules ()
+{   
+   delete _throttlePolicy;
+   
+   delete _defSchedulePolicy;
+   
+   // TODO (#613): delete GPU plugin?
 }
 
 // Config Functor
@@ -221,7 +233,15 @@ void System::config ()
    cfg.registerArgOption ( "architecture", "architecture" );
    cfg.registerEnvOption ( "architecture", "NX_ARCHITECTURE" );
 
-   cfg.registerConfigOption ( "cache-policy", NEW Config::StringVar ( _cachePolicy ), "Defines the general cache policy to use (copy-back by default). Can be overwritten for specific architectures" );
+   cfg.registerConfigOption ( "no-caches", NEW Config::FlagOption( _useCaches, false ), "Disables the use of caches" );
+   cfg.registerArgOption ( "no-caches", "disable-caches" );
+
+   CachePolicyConfig *cachePolicyCfg = NEW CachePolicyConfig ( _cachePolicy );
+   cachePolicyCfg->addOption("wt", System::WRITE_THROUGH );
+   cachePolicyCfg->addOption("wb", System::WRITE_BACK );
+   cachePolicyCfg->addOption( "nocache", System::NONE );
+
+   cfg.registerConfigOption ( "cache-policy", cachePolicyCfg, "Defines the general cache policy to use: write-through / write-back. Can be overwritten for specific architectures" );
    cfg.registerArgOption ( "cache-policy", "cache-policy" );
    cfg.registerEnvOption ( "cache-policy", "NX_CACHE_POLICY" );
 
@@ -242,6 +262,8 @@ PE * System::createPE ( std::string pe_type, int pid )
 
 void System::start ()
 {
+   if ( !_useCaches ) _cachePolicy = System::NONE;
+
    loadModules();
 
    // Instrumentation startup
@@ -259,6 +281,7 @@ void System::start ()
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 
    WD &mainWD = *myThread->getCurrentWD();
+   (void) mainWD.getDirectory(true);
    
    if ( _pmInterface->getInternalDataSize() > 0 )
      mainWD.setInternalData( NEW char[_pmInterface->getInternalDataSize()] );
@@ -306,6 +329,10 @@ void System::start ()
    spu->startWorker();
 #endif
 
+   /* Master thread is ready and waiting for the rest of the gang */
+   if ( getSynchronizedStart() )
+     threadReady();
+
    switch ( getInitialMode() )
    {
       case POOL:
@@ -315,9 +342,13 @@ void System::start ()
          createTeam(1);
          break;
       default:
-         fatal("Unknown inital mode!");
+         fatal("Unknown initial mode!");
          break;
    }
+   
+   // Paused threads: set the condition checker 
+   _pausedThreadsCond.setConditionChecker( EqualConditionChecker<unsigned int >( &_pausedThreads.override(), _workers.size() ) );
+   _unpausedThreadsCond.setConditionChecker( EqualConditionChecker<unsigned int >( &_pausedThreads.override(), 0 ) );
 
    // All initialization is ready, call postInit hooks
    const OS::InitList & externalInits = OS::getPostInitializationFunctions();
@@ -346,7 +377,7 @@ void System::finish ()
 
    verbose ( "NANOS++ shutting down.... init" );
    verbose ( "Wait for main workgroup to complete" );
-   myThread->getCurrentWD()->waitCompletionAndSignalers();
+   myThread->getCurrentWD()->waitCompletionAndSignalers( true );
 
    // we need to switch to the main thread here to finish
    // the execution correctly
@@ -371,9 +402,16 @@ void System::finish ()
    ensure( _schedStats._readyTasks == 0, "Ready task counter has an invalid value!");
 
    _pmInterface->finish();
+   delete _pmInterface;
 
    /* System mem free */
-   delete _pmInterface;
+
+   /* deleting master WD */
+   if ( getMyThreadSafe()->getCurrentWD()->getInternalData() )
+      delete[] (char *) getMyThreadSafe()->getCurrentWD()->getInternalData();
+   delete[] (char *) getMyThreadSafe()->getCurrentWD();
+   /* delete all of it */
+   getMyThreadSafe()->getCurrentWD()->~WorkDescriptor();
 
    for ( Slicers::const_iterator it = _slicers.begin(); it !=   _slicers.end(); it++ ) {
       delete (Slicer *)  it->second;
@@ -382,11 +420,26 @@ void System::finish ()
    for ( WorkSharings::const_iterator it = _worksharings.begin(); it !=   _worksharings.end(); it++ ) {
       delete (WorkSharing *)  it->second;
    }
+   
+   /* deleting thread team */
+   ThreadTeam* team = getMyThreadSafe()->getTeam();   
+   /* team->size() will change during the for loop */
+   unsigned teamSize = team->size();
+   /* For every thread in the team */
+   for ( unsigned t = 0; t < teamSize; t++ ) {
+      BaseThread* pThread = &team->getThread( t );
+      team->removeThread( t );
+      pThread->leaveTeam();
+   }
+   delete team;
 
    // join
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {
       delete _pes[p];
    }
+   
+   /* unload modules */
+   unloadModules();
 
    if ( allocator != NULL ) free (allocator);
 
@@ -438,7 +491,7 @@ void System::finish ()
  *  +---------------+
  *
  */
-void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align,
+void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t data_size, size_t data_align,
                         void **data, WG *uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies, nanos_translate_args_t translate_args )
 {
    ensure(num_devices > 0,"WorkDescriptor has no devices");
@@ -521,6 +574,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
       if ( props->tie_to ) wd->tieTo( *( BaseThread * )props->tie_to );
+      wd->setPriority( props->priority );
    }
 }
 
@@ -654,6 +708,7 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
       if ( props->tie_to ) wd->tieTo( *( BaseThread * )props->tie_to );
+      wd->setPriority( props->priority );
    }
 }
 
@@ -746,7 +801,10 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    new (*uwd) WD( *wd, dev_ptrs, wdCopies , data);
 
    // initializing internal data
-   if ( size_PMD != 0) (*uwd)->setInternalData( chunk + offset_PMD );
+   if ( size_PMD != 0) {
+      (*uwd)->setInternalData( chunk + offset_PMD );
+      memcpy ( chunk + offset_PMD, wd->getInternalData(), size_PMD );
+   }
 }
 
 /*! \brief Duplicates a given SlicedWD
@@ -838,7 +896,10 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
    new (*uwd) SlicedWD( *(wd->getSlicer()), *((WD *)wd), dev_ptrs, wdCopies, data );
 
    // initializing internal data
-   if ( size_PMD != 0) (*uwd)->setInternalData( chunk + offset_PMD );
+   if ( size_PMD != 0) {
+      (*uwd)->setInternalData( chunk + offset_PMD );
+      memcpy ( chunk + offset_PMD, wd->getInternalData(), size_PMD );
+   }
 }
 
 void System::setupWD ( WD &work, WD *parent )
@@ -855,6 +916,8 @@ void System::setupWD ( WD &work, WD *parent )
 
 void System::submit ( WD &work )
 {
+   SchedulePolicy* policy = getDefaultSchedulePolicy();
+   policy->onSystemSubmit( work, SchedulePolicy::SYS_SUBMIT );
    setupWD( work, myThread->getCurrentWD() );
    work.submit();
 }
@@ -863,6 +926,8 @@ void System::submit ( WD &work )
  */
 void System::submitWithDependencies (WD& work, size_t numDeps, Dependency* deps)
 {
+   SchedulePolicy* policy = getDefaultSchedulePolicy();
+   policy->onSystemSubmit( work, SchedulePolicy::SYS_SUBMIT_WITH_DEPENDENCIES );
    setupWD( work, myThread->getCurrentWD() );
    WD *current = myThread->getCurrentWD();
    current->submitWithDependencies( work, numDeps , deps);
@@ -879,6 +944,8 @@ void System::waitOn( size_t numDeps, Dependency* deps )
 
 void System::inlineWork ( WD &work )
 {
+   SchedulePolicy* policy = getDefaultSchedulePolicy();
+   policy->onSystemSubmit( work, SchedulePolicy::SYS_INLINE_WORK );
    setupWD( work, myThread->getCurrentWD() );
    // TODO: choose actual (active) device...
    if ( Scheduler::checkBasicConstraints( work, *myThread ) ) {
@@ -948,7 +1015,7 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints,
 
    ScheduleTeamData *stdata = 0;
    if ( sched->getTeamDataSize() > 0 )
-      stdata = sched->createTeamData(NULL);
+      stdata = sched->createTeamData();
 
    // create team
    ThreadTeam * team = NEW ThreadTeam( nthreads, *sched, stdata, *_defBarrFactory(), *(_pmInterface->getThreadTeamData()),
@@ -969,7 +1036,7 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints,
 
       ScheduleThreadData* sthdata = 0;
       if ( sched->getThreadDataSize() > 0 )
-        sthdata = sched->createThreadData(NULL);
+        sthdata = sched->createThreadData();
       
       data->setId(thId);
       data->setTeam(team);
@@ -999,7 +1066,7 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints,
 
       ScheduleThreadData *sthdata = 0;
       if ( sched->getThreadDataSize() > 0 )
-        sthdata = sched->createThreadData(NULL);
+        sthdata = sched->createThreadData();
 
       data->setId(thId);
       data->setTeam(team);
@@ -1025,4 +1092,16 @@ void System::endTeam ( ThreadTeam *team )
    fatal_cond( team->size() > 0, "Trying to end a team with running threads");
    
    delete team;
+}
+
+void System::waitUntilThreadsPaused ()
+{
+   // Wait until all threads are paused
+   _pausedThreadsCond.wait();
+}
+
+void System::waitUntilThreadsUnpaused ()
+{
+   // Wait until all threads are paused
+   _unpausedThreadsCond.wait();
 }

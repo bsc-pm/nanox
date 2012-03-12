@@ -70,26 +70,17 @@ namespace nanos {
             virtual size_t getTeamDataSize () const { return sizeof(TeamData); }
             virtual size_t getThreadDataSize () const { return sizeof(ThreadData); }
 
-            virtual ScheduleTeamData * createTeamData ( ScheduleTeamData *preAlloc )
+            virtual ScheduleTeamData * createTeamData ()
             {
-               TeamData *data;
-
                /* Queue 0 will be the global one */
                unsigned int numQueues = sys.getCacheMap().getSize() + 1;
-               if ( preAlloc ) data = new (preAlloc) TeamData( numQueues );
-               else data = NEW TeamData( numQueues );
-
-               return data;
+               
+               return NEW TeamData( numQueues );
             }
 
-            virtual ScheduleThreadData * createThreadData ( ScheduleThreadData *preAlloc )
+            virtual ScheduleThreadData * createThreadData ()
             {
-               ThreadData *data;
-
-               if ( preAlloc ) data = new (preAlloc) ThreadData();
-               else data = NEW ThreadData();
-
-               return data;
+               return NEW ThreadData();
             }
 
             /*!
@@ -209,15 +200,13 @@ namespace nanos {
          }
          if ( wd == NULL ) {
             for ( unsigned int i = data._cacheId; i < sys.getCacheMap().getSize(); i++ ) {
-//               if ( tdata._readyQueues[i+1].size() > 1 ) {
-               if ( tdata._readyQueues[i+1].size() > 0 ) {
+               if ( !tdata._readyQueues[i+1].empty() ) {
                   wd = tdata._readyQueues[i+1].pop_front( thread );
                   return wd;
                } 
             }
             for ( unsigned int i = 0; i < data._cacheId; i++ ) {
-//               if ( tdata._readyQueues[i+1].size() > 1 ) {
-               if ( tdata._readyQueues[i+1].size() > 0 ) {
+               if ( !tdata._readyQueues[i+1].empty() ) {
                   wd = tdata._readyQueues[i+1].pop_front( thread );
                   return wd;
                } 
@@ -253,14 +242,12 @@ namespace nanos {
          if ( wd == NULL ) {
             for ( unsigned int i = data._cacheId; i < sys.getCacheMap().getSize(); i++ ) {
                if ( tdata._readyQueues[i+1].size() > 1 ) {
-//               if ( tdata._readyQueues[i+1].size() > 0 ) {
                   wd = tdata._readyQueues[i+1].pop_front( thread );
                   return wd;
                } 
             }
             for ( unsigned int i = 0; i < data._cacheId; i++ ) {
-               if ( tdata._readyQueues[i+1].size() > 1 ) {
-//               if ( tdata._readyQueues[i+1].size() > 0 ) {
+               if ( tdata._readyQueues[i+1].size() > 1 ) { 
                   wd = tdata._readyQueues[i+1].pop_front( thread );
                   return wd;
                } 
@@ -284,4 +271,4 @@ namespace nanos {
    }
 }
 
-nanos::ext::CacheSchedPlugin NanosXPlugin;
+DECLARE_PLUGIN("sched-affinity",nanos::ext::CacheSchedPlugin);

@@ -118,9 +118,8 @@ double get_wtime( void )
 
    struct timeval ts;
    double t;
-   int err;
 
-   err = gettimeofday( &ts, NULL );
+   gettimeofday( &ts, NULL );
    t = ( double ) ( ts.tv_sec )  + ( double ) ts.tv_usec * 1.0e-6;
 
    return t;

@@ -19,6 +19,7 @@
 
 #include "plugin.hpp"
 #include "gpuconfig.hpp"
+#include "system_decl.hpp"
 
 namespace nanos {
 namespace ext {
@@ -42,5 +43,4 @@ class GPUPlugin : public Plugin
 }
 }
 
-nanos::ext::GPUPlugin NanosXPlugin;
-
+DECLARE_PLUGIN("arch-gpu",nanos::ext::GPUPlugin);

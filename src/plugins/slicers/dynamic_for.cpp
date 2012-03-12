@@ -36,6 +36,17 @@ struct DynamicData {
 
 static void dynamicLoop ( void *arg )
 {
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t loop_lower = ID->getEventKey("loop-lower"); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t loop_upper = ID->getEventKey("loop-upper"); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t loop_step  = ID->getEventKey("loop-step"); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t chunk_size = ID->getEventKey("chunk-size"); )
+   NANOS_INSTRUMENT ( nanos_event_key_t Keys[4]; )
+   NANOS_INSTRUMENT ( Keys[0] = loop_lower; )
+   NANOS_INSTRUMENT ( Keys[1] = loop_upper; )
+   NANOS_INSTRUMENT ( Keys[2] = loop_step; )
+   NANOS_INSTRUMENT ( Keys[3] = chunk_size; )
+   
    nanos_loop_info_t * nli = (nanos_loop_info_t *) arg;
    DynamicData * dsd = (DynamicData *) nli->args;
 
@@ -49,13 +60,22 @@ static void dynamicLoop ( void *arg )
 
    int mychunk = dsd->_current++;
    nli->step = _step; /* step will be constant among chunks */
-  
+   
    for ( ; mychunk < dsd->_nchunks; mychunk = dsd->_current++ )
    {
       nli->lower = _lower + mychunk * _chunk * _step;
       nli->upper = nli->lower + _chunk * _step - _sign;
       if ( ( nli->upper * _sign ) > ( _upper * _sign ) ) nli->upper = _upper;
       nli->last = mychunk == dsd->_nchunks-1;
+
+      NANOS_INSTRUMENT ( nanos_event_value_t Values[4]; )
+      NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) nli->lower; )
+      NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) nli->upper; )
+      NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) nli->step; )
+      NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) (nli->upper - nli->lower) / nli->step; )
+  
+      NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs (4, Keys, Values); )
+
       dsd->_realWork(arg);
    }
 
@@ -89,10 +109,11 @@ void SlicerDynamicFor::submit ( SlicedWD &work )
     *     - thread_map = | -1 |  0 |  1 | -1 |  2 |  3 |
     *                    +----+----+----+----+----+----+
     */
-   int valid_threads = 0;
+   int valid_threads = 0, first_valid_thread = 0;
    int *thread_map = (int *) alloca ( sizeof(int) * num_threads );
    for ( i = 0; i < num_threads; i++) {
      if (  work.canRunIn( *((*team)[i].runningOn()) ) ) {
+       if ( valid_threads == 0 ) first_valid_thread = i;
        thread_map[i] = valid_threads++;
      }
      else thread_map[i] = -1;
@@ -130,7 +151,7 @@ void SlicerDynamicFor::submit ( SlicedWD &work )
    nanos_loop_info_t *nli = (nanos_loop_info_t *) work.getData();
    nli->args = dsd;
 
-   int j = 0; /* initializing thread id */
+   int j = first_valid_thread; /* initializing thread id */
    for ( i = 1; i < valid_threads; i++ )
    {
       WorkDescriptor *wd = NULL;
@@ -145,7 +166,7 @@ void SlicerDynamicFor::submit ( SlicedWD &work )
    }
     
    work.tieTo(*mythread);
-   if ( (*team)[j].setNextWD(&work) == false ) Scheduler::submit ( work );
+   if ( (*team)[first_valid_thread].setNextWD(&work) == false ) Scheduler::submit ( work );
 }
 
 
@@ -165,4 +186,4 @@ class SlicerDynamicForPlugin : public Plugin {
 } // namespace ext
 } // namespace nanos
 
-nanos::ext::SlicerDynamicForPlugin NanosXPlugin;
+DECLARE_PLUGIN("slicer-dynamic_for",nanos::ext::SlicerDynamicForPlugin);

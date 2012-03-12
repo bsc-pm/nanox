@@ -27,19 +27,29 @@ using namespace nanos;
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 
+
+/* InstrumentationContext is default implementation: isContextSwitchEnabled */
+bool InstrumentationContext::isContextSwitchEnabled ( void ) const { return true; }
+bool InstrumentationContextDisabled::isContextSwitchEnabled ( void ) const { return false; }
+
+
+/* InstrumentationContext is default implementation: showStackedBursts */
 bool InstrumentationContext::showStackedBursts ( void ) { return false; }
-bool InstrumentationContext::showStackedStates ( void ) { return false; }
-
 bool InstrumentationContextStackedStates::showStackedBursts ( void ) { return false; }
-bool InstrumentationContextStackedStates::showStackedStates ( void ) { return true; }
-
 bool InstrumentationContextStackedBursts::showStackedBursts ( void ) { return true; }
-bool InstrumentationContextStackedBursts::showStackedStates ( void ) { return false; }
-
 bool InstrumentationContextStackedStatesAndBursts::showStackedBursts ( void ) { return true; }
+bool InstrumentationContextDisabled::showStackedBursts ( void ) { return false; }
+
+
+/* InstrumentationContext is default implementation: showStackeStates */
+bool InstrumentationContext::showStackedStates ( void ) { return false; }
+bool InstrumentationContextStackedStates::showStackedStates ( void ) { return true; }
+bool InstrumentationContextStackedBursts::showStackedStates ( void ) { return false; }
 bool InstrumentationContextStackedStatesAndBursts::showStackedStates ( void ) { return true; }
+bool InstrumentationContextDisabled::showStackedStates ( void ) { return false; }
 
 
+/* InstrumentationContext is default implementation: insertBurst */
 void InstrumentationContext::insertBurst ( InstrumentationContextData *icd, const Event &e )
 {
    bool found = false;
@@ -60,7 +70,20 @@ void InstrumentationContext::insertBurst ( InstrumentationContextData *icd, cons
    icd->_burstList.push_front ( e );
 
 }
+void InstrumentationContextStackedBursts::insertBurst ( InstrumentationContextData *icd, const Event &e )
+{
+   /* insert the event into the list */
+   icd->_burstList.push_front ( e );
+}
+void InstrumentationContextStackedStatesAndBursts::insertBurst ( InstrumentationContextData *icd, const Event &e )
+{
+   /* insert the event into the list */
+   icd->_burstList.push_front ( e );
+}
+void InstrumentationContextDisabled::insertBurst ( InstrumentationContextData *icd, const Event &e ) { }
 
+
+/* InstrumentationContext is default implementation: removeBurst */
 void InstrumentationContext::removeBurst ( InstrumentationContextData *icd, InstrumentationContextData::BurstIterator it )
 {
    bool found = false;
@@ -79,29 +102,145 @@ void InstrumentationContext::removeBurst ( InstrumentationContextData *icd, Inst
       }
    }
 }
-
-void InstrumentationContextStackedBursts::insertBurst ( InstrumentationContextData *icd, const Event &e )
-{
-   /* insert the event into the list */
-   icd->_burstList.push_front ( e );
-}
-
 void InstrumentationContextStackedBursts::removeBurst ( InstrumentationContextData *icd, InstrumentationContextData::BurstIterator it )
 {
    /* remove event from the list */
    icd->_burstList.erase ( it );
 }
-
-void InstrumentationContextStackedStatesAndBursts::insertBurst ( InstrumentationContextData *icd, const Event &e )
-{
-   /* insert the event into the list */
-   icd->_burstList.push_front ( e );
-}
-
 void InstrumentationContextStackedStatesAndBursts::removeBurst ( InstrumentationContextData *icd, InstrumentationContextData::BurstIterator it )
 {
    /* remove event from the list */
    icd->_burstList.erase ( it );
+}
+void InstrumentationContextDisabled::removeBurst ( InstrumentationContextData *icd, InstrumentationContextData::BurstIterator it ) {}
+
+
+/* InstrumentationContext is default implementation: pushState */
+void InstrumentationContext::pushState ( InstrumentationContextData *icd, nanos_event_state_value_t state )
+{
+   if ( icd->_stateEventEnabled ) icd->_stateStack.push_back( state );
+   else icd->_subStateStack.push_back ( state );
+}
+void InstrumentationContextDisabled::pushState ( InstrumentationContextData *icd, nanos_event_state_value_t state ) {}
+
+
+void InstrumentationContext::popState ( InstrumentationContextData *icd )
+{
+   if ( (icd->_stateEventEnabled ) && !(icd->_stateStack.empty()) ) icd->_stateStack.pop_back();
+   else if ( !(icd->_subStateStack.empty()) ) icd->_subStateStack.pop_back();
+}
+void InstrumentationContextDisabled::popState ( InstrumentationContextData *icd ) {}
+
+
+nanos_event_state_value_t InstrumentationContext::topState ( InstrumentationContextData *icd )
+{
+   if ( (icd->_stateEventEnabled) && !(icd->_stateStack.empty()) ) return icd->_stateStack.back();
+   else if ( !(icd->_subStateStack.empty()) ) return icd->_subStateStack.back();
+   else return NANOS_ERROR;
+}
+nanos_event_state_value_t InstrumentationContextDisabled::topState ( InstrumentationContextData *icd ) { return NANOS_ERROR; }
+
+nanos_event_state_value_t InstrumentationContext::getState ( InstrumentationContextData *icd )
+{
+   if ( !(icd->_stateStack.empty()) ) return icd->_stateStack.back();
+   else return NANOS_ERROR;
+}
+nanos_event_state_value_t InstrumentationContextDisabled::getState ( InstrumentationContextData *icd ) { return NANOS_ERROR; }
+
+
+nanos_event_state_value_t InstrumentationContext::getSubState ( InstrumentationContextData *icd )
+{
+   if ( !(icd->_subStateStack.empty()) ) return icd->_subStateStack.back();
+   else return NANOS_ERROR;
+}
+nanos_event_state_value_t InstrumentationContextDisabled::getSubState ( InstrumentationContextData *icd ) { return NANOS_ERROR; }
+
+
+size_t InstrumentationContext::getStateStackSize ( InstrumentationContextData *icd ) { return (size_t) icd->_stateStack.size(); }
+size_t InstrumentationContextDisabled::getStateStackSize ( InstrumentationContextData *icd ) { return (size_t) 0; }
+
+size_t InstrumentationContext::getSubStateStackSize ( InstrumentationContextData *icd ) { return (size_t) icd->_subStateStack.size(); }
+size_t InstrumentationContextDisabled::getSubStateStackSize ( InstrumentationContextData *icd ) { return (size_t) 0; }
+
+size_t InstrumentationContext::getNumBursts( InstrumentationContextData *icd ) const { return icd->_burstList.size(); }
+size_t InstrumentationContextDisabled::getNumBursts( InstrumentationContextData *icd ) const { return (size_t) 0; }
+
+size_t InstrumentationContext::getNumStates( InstrumentationContextData *icd ) const { return (size_t) 1; }
+size_t InstrumentationContextStackedStates::getNumStates( InstrumentationContextData *icd ) const { return icd->_stateStack.size(); }
+size_t InstrumentationContextStackedStatesAndBursts::getNumStates( InstrumentationContextData *icd ) const { return icd->_stateStack.size(); }
+size_t InstrumentationContextDisabled::getNumStates( InstrumentationContextData *icd ) const { return (size_t) 0; }
+
+
+
+size_t InstrumentationContext::getNumSubStates( InstrumentationContextData *icd ) const 
+{
+   if ( !icd->_stateEventEnabled ) return (size_t) 1;
+   else return (size_t) 0;
+}
+size_t InstrumentationContextStackedStates::getNumSubStates( InstrumentationContextData *icd ) const {
+   if ( !icd->_stateEventEnabled ) return icd->_subStateStack.size();
+   else return (size_t) 0;
+}
+size_t InstrumentationContextStackedStatesAndBursts::getNumSubStates( InstrumentationContextData *icd ) const
+{
+   if ( !icd->_stateEventEnabled ) return icd->_subStateStack.size();
+   else return (size_t) 0;
+}
+size_t InstrumentationContextDisabled::getNumSubStates( InstrumentationContextData *icd ) const 
+{
+   return (size_t) 0;
+}
+
+
+
+InstrumentationContextData::ConstStateIterator InstrumentationContext::beginState( InstrumentationContextData *icd ) const
+{
+   if ( !(icd->_stateStack.empty()) ) return --(icd->_stateStack.end());
+   else return icd->_stateStack.end();
+}
+InstrumentationContextData::ConstStateIterator InstrumentationContextStackedStates::beginState( InstrumentationContextData *icd ) const
+{
+   return icd->_stateStack.begin();
+}
+InstrumentationContextData::ConstStateIterator InstrumentationContextStackedStatesAndBursts::beginState( InstrumentationContextData *icd ) const
+{
+   return icd->_stateStack.begin();
+}
+InstrumentationContextData::ConstStateIterator InstrumentationContextDisabled::beginState( InstrumentationContextData *icd ) const
+{
+   return icd->_stateStack.end();
+}
+InstrumentationContextData::ConstStateIterator InstrumentationContext::endState( InstrumentationContextData *icd ) const
+{
+   return icd->_stateStack.end();
+}
+
+InstrumentationContextData::ConstStateIterator InstrumentationContext::beginSubState( InstrumentationContextData *icd ) const
+{
+   if ( icd->_stateEventEnabled ) return icd->_subStateStack.end();
+   if ( !(icd->_subStateStack.empty()) ) return --(icd->_subStateStack.end());
+   else return icd->_subStateStack.end();
+}
+
+
+
+InstrumentationContextData::ConstStateIterator InstrumentationContextStackedStates::beginSubState( InstrumentationContextData *icd ) const
+{
+   if ( icd->_stateEventEnabled ) return icd->_subStateStack.end();
+   return icd->_subStateStack.begin();
+}
+InstrumentationContextData::ConstStateIterator InstrumentationContextStackedStatesAndBursts::beginSubState( InstrumentationContextData *icd ) const
+{
+   if ( icd->_stateEventEnabled ) return icd->_subStateStack.end();
+   return icd->_subStateStack.begin();
+}
+InstrumentationContextData::ConstStateIterator InstrumentationContextDisabled::beginSubState( InstrumentationContextData *icd ) const
+{
+   return icd->_subStateStack.end();
+}
+InstrumentationContextData::ConstStateIterator InstrumentationContext::endSubState( InstrumentationContextData *icd ) const
+{
+   return icd->_subStateStack.end();
 }
 
 #endif
