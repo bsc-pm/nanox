@@ -149,7 +149,7 @@ nanos_const_wd_definition_t const_data1 =
       .tie_to = false,
       .priority = 0
    },
-   0,//__alignof__(section_data_1),
+   __alignof__(my_args),
    0,
    1,
    {
@@ -169,7 +169,7 @@ nanos_const_wd_definition_t const_data2 =
       .tie_to = false,
       .priority = 0
    },
-   0,//__alignof__(section_data_1),
+   __alignof__(my_args),
    0,
    1,
    {
@@ -189,7 +189,7 @@ nanos_const_wd_definition_t const_data3 =
       .tie_to = false,
       .priority = 0
    },
-   0,//__alignof__(section_data_1),
+   __alignof__(my_args),
    0,
    1,
    {
@@ -209,7 +209,7 @@ nanos_const_wd_definition_t const_data4 =
       .tie_to = false,
       .priority = 0
    },
-   0,//__alignof__(section_data_1),
+   __alignof__(my_args),
    0,
    1,
    {
@@ -229,7 +229,7 @@ nanos_const_wd_definition_t const_data5 =
       .tie_to = false,
       .priority = 0
    },
-   0,//__alignof__(section_data_1),
+   __alignof__(my_args2),
    0,
    1,
    {
@@ -249,7 +249,7 @@ nanos_const_wd_definition_t const_data6 =
       .tie_to = false,
       .priority = 0
    },
-   0,//__alignof__(section_data_1),
+   __alignof__(my_args2),
    0,
    1,
    {
@@ -269,7 +269,7 @@ nanos_const_wd_definition_t const_data7 =
       .tie_to = false,
       .priority = 0
    },
-   0,//__alignof__(section_data_1),
+   __alignof__(my_args3),
    0,
    1,
    {
@@ -289,7 +289,7 @@ nanos_const_wd_definition_t const_data8 =
       .tie_to = false,
       .priority = 0
    },
-   0,//__alignof__(section_data_1),
+   __alignof__(my_args2),
    0,
    1,
    {
@@ -309,7 +309,6 @@ bool single_dependency()
    nanos_dependence_t deps1 = {(void **)&dep_addr,0, {0,1,0,0}, 0};
    nanos_wd_t wd1=0;
    const_data1.devices[0].dd_size = nanos_smp_dd_size;
-   const_data1.data_alignment = __alignof__(my_args);
    NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1, sizeof( my_args ), ( void ** )&args1, nanos_current_wd(), NULL ) );
    args1->p_i = dep_addr;
    NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
@@ -318,7 +317,6 @@ bool single_dependency()
    nanos_dependence_t deps2 = {(void **)&dep_addr,0, {1,1,0,0}, 0};
    nanos_wd_t wd2 = 0;
    const_data2.devices[0].dd_size = nanos_smp_dd_size;
-   const_data2.data_alignment = __alignof__(my_args);
    NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data2, sizeof( my_args ), ( void ** )&args2, nanos_current_wd(), NULL ) );
    args2->p_i = dep_addr;
    NANOS_SAFE( nanos_submit( wd2,1,&deps2,0 ) );
@@ -337,7 +335,6 @@ bool single_inout_chain()
    nanos_dependence_t deps1 = {(void **)&dep_addr,0, {0,1,0,0}, 0};
    nanos_wd_t wd1=0;
    const_data1.devices[0].dd_size = nanos_smp_dd_size;
-   const_data1.data_alignment = __alignof__(args1);
    NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1, sizeof( args1 ), ( void ** )&args1, nanos_current_wd(), NULL ) );
    args1->p_i = dep_addr;
    NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
@@ -348,7 +345,6 @@ bool single_inout_chain()
       nanos_wd_t wd2 = 0;
       
       const_data2.devices[0].dd_size = nanos_smp_dd_size;
-      const_data2.data_alignment = __alignof__(my_args);
       NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data2, sizeof( my_args ), ( void ** )&args2, nanos_current_wd(), NULL ) );
       args2->p_i = dep_addr;
       NANOS_SAFE( nanos_submit( wd2,1,&deps2,0 ) );
@@ -371,7 +367,6 @@ bool multiple_inout_chains()
       nanos_dependence_t deps1 = {(void **)&dep_addr,0, {0,1,0,0}, 0};
       nanos_wd_t wd1=0;
       const_data1.devices[0].dd_size = nanos_smp_dd_size;
-      const_data1.data_alignment = __alignof__(my_args);
       NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1, sizeof( my_args ), ( void ** )&args1, nanos_current_wd(), NULL ) );
       args1->p_i = dep_addr;
       NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
@@ -382,7 +377,6 @@ bool multiple_inout_chains()
          nanos_wd_t wd2 = 0;
          
          const_data2.devices[0].dd_size = nanos_smp_dd_size;
-         const_data2.data_alignment = __alignof__(my_args);
          NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data2, sizeof( my_args ), ( void ** )&args2, nanos_current_wd(), NULL ) );
          args2->p_i = dep_addr;
          NANOS_SAFE( nanos_submit( wd2,1,&deps2,0 ) );
@@ -410,7 +404,6 @@ bool multiple_predecessors()
       nanos_wd_t wd1 = 0;
 
       const_data1.devices[0].dd_size = nanos_smp_dd_size;
-      const_data1.data_alignment = __alignof__(my_args);
       NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1, sizeof( my_args ), ( void ** )&args1, nanos_current_wd(), NULL ) );
       args1->p_i = dep_addr1;
       NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
@@ -426,7 +419,6 @@ bool multiple_predecessors()
 
    nanos_wd_t wd2=0;
    const_data3.devices[0].dd_size = nanos_smp_dd_size;
-   const_data3.data_alignment = __alignof__(my_args);
    NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data3, sizeof( my_args )*size, ( void ** )&args2, nanos_current_wd(), NULL ) );
    for ( j = 0; j < size; j++)
       args2[j].p_i = dep_addr2[j];
@@ -453,7 +445,6 @@ bool multiple_antidependencies()
 
       nanos_wd_t wd1 = 0;
       const_data4.devices[0].dd_size = nanos_smp_dd_size;
-      const_data4.data_alignment = __alignof__(my_args);
       NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data4, sizeof( my_args )*2, ( void ** )&args1, nanos_current_wd(), NULL ) );
       args1[0].p_i = dep_addr1;
       args1[1].p_i = reslt_addr;
@@ -466,7 +457,6 @@ bool multiple_antidependencies()
 
    nanos_wd_t wd2=0;
    const_data2.devices[0].dd_size = nanos_smp_dd_size;
-   const_data2.data_alignment = __alignof__(my_args);
    NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data2, sizeof( my_args ), ( void ** )&args2, nanos_current_wd(), NULL ) );
    args2->p_i = dep_addr2;
    NANOS_SAFE( nanos_submit( wd2,1,&deps2,0 ) );
@@ -490,7 +480,6 @@ bool out_dep_chain()
       nanos_dependence_t deps2 = {(void **)&dep_addr,0, {0,1,0,0}, 0};
       nanos_wd_t wd2 = 0;
       const_data1.devices[0].dd_size = nanos_smp_dd_size;
-      const_data1.data_alignment = __alignof__(my_args);
       NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data1, sizeof( my_args ), ( void ** )&args2, nanos_current_wd(), NULL ) );
       args2->p_i = dep_addr;
       NANOS_SAFE( nanos_submit( wd2,1,&deps2,0 ) );
@@ -502,7 +491,6 @@ bool out_dep_chain()
    my_args *args1=0;
    nanos_wd_t wd1=0;
    const_data4.devices[0].dd_size = nanos_smp_dd_size;
-   const_data4.data_alignment = __alignof__(my_args);
    NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data4, sizeof( my_args )*2, ( void ** )&args1, nanos_current_wd(), NULL ) );
    args1[0].p_i = input_addr;
    args1[1].p_i = dep_addr;
@@ -527,7 +515,6 @@ bool wait_on_test()
       nanos_wd_t wd1 = 0;
 
       const_data1.devices[0].dd_size = nanos_smp_dd_size;
-      const_data1.data_alignment = __alignof__(my_args);
       NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1, sizeof( my_args ), ( void ** )&args1, nanos_current_wd(), NULL ) );
       args1->p_i = dep_addr1;
       NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
@@ -562,7 +549,6 @@ bool create_and_run_test()
       nanos_wd_t wd1 = 0;
 
       const_data1.devices[0].dd_size = nanos_smp_dd_size;
-      const_data1.data_alignment = __alignof__(my_args);
       NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1, sizeof( my_args ), ( void ** )&args1, nanos_current_wd(), NULL ) );
       args1->p_i = dep_addr1;
       NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
@@ -580,9 +566,7 @@ bool create_and_run_test()
    nanos_device_t test_devices_2[1] = { NANOS_SMP_DESC( test_device_arg_1 ) };
 
    const_data1.devices[0].dd_size = nanos_smp_dd_size;
-   const_data1.data_alignment = __alignof__(my_args);
    NANOS_SAFE( nanos_create_wd_and_run_compact ( &const_data1, sizeof( my_args ), ( void ** )&arg, 100, &deps2[0], NULL, NULL ) );
-   //NANOS_SAFE( nanos_create_wd_and_run( 1, test_devices_2, sizeof(my_args), __alignof__(my_args),  (void *)&arg, 100, &deps2[0], &props , 0, NULL, NULL ) );
 
    for ( j = 0; j < 100; j++ ) {
     if ( my_value[j] != 0 ) return false;
@@ -609,7 +593,6 @@ bool commutative_task_1()
    nanos_wd_t wd1 = 0;
 
    const_data6.devices[0].dd_size = nanos_smp_dd_size;
-   const_data6.data_alignment = __alignof__(my_args2);
    NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data6, sizeof( my_args2 ), ( void ** )&args1, nanos_current_wd(), NULL ) );
    args1->p_i = my_value;
    args1->index = size;
@@ -621,7 +604,6 @@ bool commutative_task_1()
       nanos_wd_t wd1 = 0;
 
       const_data5.devices[0].dd_size = nanos_smp_dd_size;
-      const_data5.data_alignment = __alignof__(my_args2);
       NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data5, sizeof( my_args2 ), ( void ** )&args1, nanos_current_wd(), NULL ) );
       args1->p_i = my_value;
       args1->index = j;
@@ -656,7 +638,6 @@ bool commutative_task_2()
    nanos_wd_t wd1 = 0;
 
    const_data6.devices[0].dd_size = nanos_smp_dd_size;
-   const_data6.data_alignment = __alignof__(my_args2);
    NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data6, sizeof( my_args2 ), ( void ** )&args1, nanos_current_wd(), NULL ) );
    args1->p_i = my_value;
    args1->index = size;
@@ -668,7 +649,6 @@ bool commutative_task_2()
       nanos_wd_t wd1 = 0;
 
       const_data5.devices[0].dd_size = nanos_smp_dd_size;
-      const_data5.data_alignment = __alignof__(my_args2);
       NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data5, sizeof( my_args2 ), ( void ** )&args1, nanos_current_wd(), NULL ) );
       args1->p_i = my_value;
       args1->index = j;
@@ -681,7 +661,6 @@ bool commutative_task_2()
       nanos_wd_t wd1 = 0;
 
       const_data7.devices[0].dd_size = nanos_smp_dd_size;
-      const_data7.data_alignment = __alignof__(my_args3);
       NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data7, sizeof( my_args3 ), ( void ** )&args1, nanos_current_wd(), NULL ) );
       args1->p_i = my_value;
       args1->p_result = &my_results[j];
@@ -719,7 +698,6 @@ bool commutative_task_3()
    nanos_wd_t wd1 = 0;
 
    const_data6.devices[0].dd_size = nanos_smp_dd_size;
-   const_data6.data_alignment = __alignof__(my_args2);
    NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data6, sizeof( my_args2 ), ( void ** )&args1, nanos_current_wd(), NULL ) );
    args1->p_i = my_value;
    args1->index = size;
@@ -731,7 +709,6 @@ bool commutative_task_3()
       nanos_wd_t wd1 = 0;
 
       const_data8.devices[0].dd_size = nanos_smp_dd_size;
-      const_data8.data_alignment = __alignof__(my_args2);
       NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data8, sizeof( my_args2 ), ( void ** )&args1, nanos_current_wd(), NULL ) );
       args1->p_i = my_value;
       args1->index = j;
@@ -744,7 +721,6 @@ bool commutative_task_3()
       nanos_wd_t wd1 = 0;
 
       const_data5.devices[0].dd_size = nanos_smp_dd_size;
-      const_data5.data_alignment = __alignof__(my_args2);
       NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data5, sizeof( my_args2 ), ( void ** )&args1, nanos_current_wd(), NULL ) );
       args1->p_i = my_value;
       args1->index = j;
@@ -757,7 +733,6 @@ bool commutative_task_3()
       nanos_wd_t wd1 = 0;
 
       const_data7.devices[0].dd_size = nanos_smp_dd_size;
-      const_data7.data_alignment = __alignof__(my_args3);
       NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data7, sizeof( my_args3 ), ( void ** )&args1, nanos_current_wd(), NULL ) );
       args1->p_i = my_value;
       args1->p_result = &my_results[j];
@@ -782,7 +757,6 @@ bool dependency_offset()
    nanos_dependence_t deps1 = {(void **)&dep_addr,0, {0,1,0,0}, 0};
    nanos_wd_t wd1=0;
    const_data1.devices[0].dd_size = nanos_smp_dd_size;
-   const_data1.data_alignment = __alignof__(my_args);
    NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1, sizeof( my_args ), ( void ** )&args1, nanos_current_wd(), NULL ) );
    args1->p_i = dep_addr;
    NANOS_SAFE( nanos_submit( wd1,1,&deps1,0 ) );
@@ -794,7 +768,6 @@ bool dependency_offset()
       nanos_dependence_t deps2 = {(void **)&local_dep_addr,-1*i*sizeof(int), {1,1,0,0}, 0};
       nanos_wd_t wd2 = 0;
       const_data2.devices[0].dd_size = nanos_smp_dd_size;
-      const_data2.data_alignment = __alignof__(my_args);
       NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data2, sizeof( my_args ), ( void ** )&args2, nanos_current_wd(), NULL ) );
       args2->p_i = dep_addr;
       NANOS_SAFE( nanos_submit( wd2,1,&deps2,0 ) );
