@@ -75,7 +75,7 @@ nanos_const_wd_definition_t const_data1 =
       .tie_to = false,
       .priority = 0
    },
-   0,//__alignof__(fib_args),
+   __alignof__(fib_args),
    0,
    1,
    {
@@ -95,7 +95,7 @@ nanos_const_wd_definition_t const_data2 =
       .tie_to = false,
       .priority = 0
    },
-   0,//__alignof__(fib_args),
+   __alignof__(fib_args),
    0,
    1,
    {
@@ -119,10 +119,9 @@ int fib ( int n, int d )
       {
          nanos_wd_t wd=0;
          fib_args *args=0;
-         const_data1.data_alignment = __alignof__(args);
          const_data1.devices[0].dd_size = nanos_smp_dd_size;
 
-         NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1, sizeof( args ), ( void ** )&args,
+         NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1, sizeof( fib_args ), ( void ** )&args,
                                               nanos_current_wd(), NULL ) );
          args->n = n;
          args->d = d;
@@ -136,10 +135,9 @@ int fib ( int n, int d )
       {
          nanos_wd_t wd=0;
          fib_args *args=0;
-         const_data2.data_alignment = __alignof__(args);
          const_data2.devices[0].dd_size = nanos_smp_dd_size;
 
-         NANOS_SAFE( nanos_create_wd_compact ( &wd,  &const_data2, sizeof( args ), ( void ** )&args,
+         NANOS_SAFE( nanos_create_wd_compact ( &wd,  &const_data2, sizeof( fib_args ), ( void ** )&args,
                                               nanos_current_wd(), NULL ) );
          args->n = n;
          args->d = d;
