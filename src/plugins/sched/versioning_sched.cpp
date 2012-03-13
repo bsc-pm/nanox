@@ -88,12 +88,7 @@ namespace ext
 
          virtual ScheduleTeamData * createTeamData ( ScheduleTeamData *preAlloc )
          {
-            TeamData *data;
-
-            if ( preAlloc ) data = new ( preAlloc ) TeamData();
-            else data = NEW TeamData();
-
-            return data;
+            return NEW TeamData();
          }
 
          virtual ScheduleThreadData * createThreadData ( ScheduleThreadData *preAlloc )
