@@ -148,7 +148,7 @@ nanos_const_wd_definition_t const_data1 =
       .tied = false,
       .priority = 0
    },
-   0,//__alignof__(section_data_1),
+   __alignof__(my_args),
    0,
    1,
    {
@@ -167,7 +167,7 @@ nanos_const_wd_definition_t const_data2 =
       .tied = false,
       .priority = 0
    },
-   0,//__alignof__(section_data_1),
+   __alignof__(my_args),
    0,
    1,
    {
@@ -186,7 +186,7 @@ nanos_const_wd_definition_t const_data3 =
       .tied = false,
       .priority = 0
    },
-   0,//__alignof__(section_data_1),
+   __alignof__(my_args),
    0,
    1,
    {
@@ -205,7 +205,7 @@ nanos_const_wd_definition_t const_data4 =
       .tied = false,
       .priority = 0
    },
-   0,//__alignof__(section_data_1),
+   __alignof__(my_args),
    0,
    1,
    {
@@ -224,7 +224,7 @@ nanos_const_wd_definition_t const_data5 =
       .tied = false,
       .priority = 0
    },
-   0,//__alignof__(section_data_1),
+   __alignof__(my_args2),
    0,
    1,
    {
@@ -243,7 +243,7 @@ nanos_const_wd_definition_t const_data6 =
       .tied = false,
       .priority = 0
    },
-   0,//__alignof__(section_data_1),
+   __alignof__(my_args2),
    0,
    1,
    {
@@ -262,7 +262,7 @@ nanos_const_wd_definition_t const_data7 =
       .tied = false,
       .priority = 0
    },
-   0,//__alignof__(section_data_1),
+   __alignof__(my_args3),
    0,
    1,
    {
@@ -281,7 +281,7 @@ nanos_const_wd_definition_t const_data8 =
       .tied = false,
       .priority = 0
    },
-   0,//__alignof__(section_data_1),
+   __alignof__(my_args2),
    0,
    1,
    {
@@ -579,8 +579,6 @@ bool create_and_run_test()
    const_data1.devices[0].dd_size = nanos_smp_dd_size;
    const_data1.data_alignment = __alignof__(my_args);
    NANOS_SAFE( nanos_create_wd_and_run_compact ( &const_data1, &dyn_props, sizeof( my_args ), ( void * )&arg, 100, &deps2[0], NULL, NULL ) );
-
-   //NANOS_SAFE( nanos_create_wd_and_run( 1, test_devices_2, &dyn_props, sizeof(my_args), __alignof__(my_args),  (void *)&arg, 100, &deps2[0], &props , 0, NULL, NULL ) );
 
    for ( j = 0; j < 100; j++ ) {
     if ( my_value[j] != 0 ) return false;
