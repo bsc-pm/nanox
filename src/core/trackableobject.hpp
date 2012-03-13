@@ -30,14 +30,8 @@ using namespace nanos;
 
 inline const TrackableObject & TrackableObject::operator= ( const TrackableObject &obj )
 {
-   _address = obj._address;
    _lastWriter = obj._lastWriter;
    return *this;
-}
-
-inline void * TrackableObject::getAddress ( )
-{
-   return _address;
 }
 
 inline bool TrackableObject::hasLastWriter ( )

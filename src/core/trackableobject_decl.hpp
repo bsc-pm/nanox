@@ -36,7 +36,6 @@ namespace nanos
       public:
          typedef std::list< DependableObject *> DependableObjectList; /**< Type list of DependableObject */
       private:
-         void                  * _address; /**< Pointer to the dependency address */
          DependableObject      *_lastWriter; /**< Points to the last DependableObject registered as writer of the TrackableObject */
          DependableObjectList   _versionReaders; /**< List of readers of the last version of the object */
          Lock                   _readersLock; /**< Lock to provide exclusive access to the readers list */
@@ -49,15 +48,15 @@ namespace nanos
          *
          *  Creates a TrackableObject with the given address associated.
          */
-         TrackableObject ( void * address = NULL )
-            : _address(address), _lastWriter ( NULL ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL) {}
+         TrackableObject ()
+            : _lastWriter ( NULL ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL) {}
 
         /*! \brief TrackableObject copy constructor
          *
          *  \param obj another TrackableObject
          */
          TrackableObject ( const TrackableObject &obj ) 
-            :  _address ( obj._address ), _lastWriter ( obj._lastWriter ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL) {}
+            :   _lastWriter ( obj._lastWriter ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL) {}
 
         /*! \brief TrackableObject destructor
          */
@@ -68,10 +67,6 @@ namespace nanos
          *  \param obj another TrackableObject
          */
          const TrackableObject & operator= ( const TrackableObject &obj );
-
-        /*! \brief Obtain the address associated to the TrackableObject
-         */
-         void * getAddress ( );
 
         /*! \brief Returns true if the TrackableObject has a DependableObject as LastWriter
          */
