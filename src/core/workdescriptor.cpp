@@ -49,7 +49,7 @@ void WorkDescriptor::init ()
 
 void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
 {
-   ensure ( _state == START , "Trying to start a wd twice or trying to start an unitialized wd");
+   ensure ( _state == START , "Trying to start a wd twice or trying to start an uninitialized wd");
 
    _activeDevice->lazyInit(*this,isUserLevelThread,previous);
    
