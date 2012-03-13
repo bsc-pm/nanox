@@ -36,25 +36,61 @@ namespace ext
 #define MIN_RECORDS     3
 #define MAX_DIFFERENCE  4
 
-   struct WDExecRecords {
+/*
+ * Some terminology and data structures schemas to understand the code
+ *  - WDs that implement the same functionality will have the same wdType
+ *  - versionId is used to differentiate between WDs with the same wdType
+ *
+ *   WDBestRecord (hash)
+ *  +-----------------------------------------------------+
+ *  |  WDBestRecordKey                  WDBestRecordData  |
+ *  | +------------------------+       +----------------+ |
+ *  | | < WDType, paramsSize > | ----> | versionId      | |
+ *  | +------------------------+       | PE             | |
+ *  |                                  | elapsedTime    | |
+ *  |                                  +----------------+ |
+ *  +-----------------------------------------------------+
+ *
+ *   WDExecInfo (hash)
+ *  +----------------------------------------------------------+
+ *  |  WDExecInfoKey                    WDExecInfoData []      |
+ *  | +------------------------+       +---------------------+ |
+ *  | | < WDType, paramsSize > | ----> |  WDExecRecord       | |
+ *  | +------------------------+       | +-----------------+ | |
+ *  |                                  | | versionId       | | |
+ *  |                                  | | PE              | | |
+ *  |                                  | | elapsedTime     | | |
+ *  |                                  | | lastElapsedTime | | |
+ *  |                                  | | #records        | | |
+ *  |                                  | | #assigned       | | |
+ *  |                                  | +-----------------+ | |
+ *  |                                  +---------------------+ |
+ *  +----------------------------------------------------------+
+ */
+
+   struct WDBestRecordData {
+      unsigned int            _versionId;
       ProcessingElement *     _pe;
-      const Device *          _device;
+      double                  _elapsedTime;
+   };
+
+   typedef std::pair< unsigned long, size_t > WDBestRecordKey;
+   typedef HashMap< WDBestRecordKey, WDBestRecordData > WDBestRecord;
+
+   struct WDExecRecord {
+      unsigned int            _versionId;
+      ProcessingElement *     _pe;
       double                  _elapsedTime;
       double                  _lastElapsedTime;
       int                     _numRecords;
       int                     _numAssigned;
    };
 
-   // WDBestRecordKey { wdType, paramsSize }
-   // WDBestRecordData { PE, elapsedTime }
-   typedef std::pair< unsigned long, size_t > WDBestRecordKey;
-   typedef std::pair< ProcessingElement *, double> WDBestRecordData;
-   typedef HashMap< WDBestRecordKey, WDBestRecordData > WDBestRecord;
-   // WDExecInfoKey { wdType, paramsSize }
-   // WDExecInfoData { PE, elapsedTime, elapsedTime^2, numRecords }
    typedef std::pair< unsigned long, size_t > WDExecInfoKey;
-   typedef std::vector<WDExecRecords> WDExecInfoData;
+   typedef std::vector<WDExecRecord> WDExecInfoData;
    typedef HashMap< WDExecInfoKey, WDExecInfoData > WDExecInfo;
+
+
 
    class Versioning : public SchedulePolicy
    {
@@ -71,7 +107,24 @@ namespace ext
                WDDeque           _readyQueue;
 
                TeamData () : ScheduleTeamData(), _wdExecBest(), _wdExecStats(), _readyQueue() {}
-               ~TeamData () {}
+               ~TeamData ()
+               {
+                  message( "VERSIONING SCHEDULER RECORDS" );
+                  message( "BEST RECORDS" );
+                  for ( WDBestRecord::iterator it = _wdExecBest.begin(); it != _wdExecBest.end(); it++ ) {
+
+                     message( "    Best version found for groupId " << it.getKey().first << ", paramSize " << it.getKey().second << ":");
+                     message( "    versionId: " << it->_versionId << ", PE: " << it->_pe->getDeviceType().getName() << ", time: " << it->_elapsedTime );
+                  }
+
+                  message( "GENERAL STATISTICS" );
+                  for ( WDExecInfo::iterator it = _wdExecStats.begin(); it != _wdExecStats.end(); it++ ) {
+                     message( "    Statistics for groupId " << it.getKey().first << ", paramSize " << it.getKey().second << ":");
+                     for ( WDExecInfoData::iterator it2 = it->begin(); it2 != it->end(); it2++ ) {
+                        message( "    PE: " << it2->_pe->getDeviceType().getName() << ", elapsed time: " << it2->_elapsedTime << ", #records: " << it2->_numRecords );
+                     }
+                  }
+               }
 
          };
 
@@ -79,7 +132,12 @@ namespace ext
          static bool       _useStack;
 
          Versioning() : SchedulePolicy( "Versioning" ) {}
-         virtual ~Versioning () {}
+         virtual ~Versioning ()
+         {
+            if ( myThread->getTeam()->getScheduleData() != NULL ) {
+               myThread->getTeam()->getScheduleData()->~ScheduleTeamData();
+            }
+         }
 
       private:
 
@@ -108,149 +166,196 @@ namespace ext
             return 0;
          }
 
-         WD * setDevice ( BaseThread *thread, WD *wd, const Device * device )
+         WD * setDevice ( BaseThread *thread, WD *wd, unsigned int deviceIdx )
          {
-            wd->activateDevice( *device );
-            if ( device == &( thread->runningOn()->getDeviceType() ) ) {
+
+            wd->activateDevice( deviceIdx );
+            if ( wd->getDevices()[deviceIdx]->isCompatible( thread->runningOn()->getDeviceType() ) ) {
+               debug( "[versioning] Setting device #" + toString<unsigned int>( deviceIdx )
+                     + " for WD " + toString<int>( wd->getId() ) + " (compatible with my PE)" );
                return wd;
             } else {
                queue( thread, *wd );
+               debug( "[versioning] Setting device #" + toString<unsigned int>( deviceIdx )
+                     + " for WD " + toString<int>( wd->getId() ) + " (not compatible with my PE)" );
                return NULL;
             }
          }
 
-         WD * setDevice ( BaseThread *thread, WD *wd, const DeviceData * dd )
+         inline WD * selectWD ( BaseThread *thread, WD *next )
          {
-            return setDevice( thread, wd, dd->getDevice() );
-         }
-
-         WD * selectWD ( BaseThread *thread, WD *next )
-         {
-            TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
-            return selectWD( tdata, thread, next );
+            return selectWD( ( TeamData & ) *thread->getTeam()->getScheduleData(), thread, next );
          }
 
          WD * selectWD ( TeamData & tdata, BaseThread *thread, WD *next )
          {
             // Choose the device where the task will be executed
-            // Check we have recorded good (and reliable) enough results for each PE
+            // Check we have recorded good (and reliable) enough results for each versionId
             unsigned long wdId =  next->getVersionGroupId();
             size_t paramsSize = next->getParamsSize();
             WDExecInfoKey key = std::make_pair( wdId, paramsSize );
             WDExecInfoData &data = tdata._wdExecStats[key];
             ProcessingElement *pe = thread->runningOn();
+            unsigned int numVersions = next->getNumDevices();
+            DeviceData **devices = next->getDevices();
 
             // First record for the given { wdId, paramsSize }
-            if ( data.size() == 0 ) {
+            if ( data.empty() ) {
 
                debug( "[versioning] First record for wd key (" + toString<unsigned long>( key.first )
                      + ", " + toString<size_t>( key.second ) + ") with "
-                     + toString<int>( next->getNumDevices() ) + " versions" );
+                     + toString<int>( numVersions ) + " versions" );
 
                tdata._statsLock.acquire();
                // Reserve as much memory as we need for all the implementations
-               data.reserve( next->getNumDevices() );
-               data = *NEW WDExecInfoData( next->getNumDevices() );
+               data.reserve( numVersions );
+               data = *NEW WDExecInfoData( numVersions );
 
                unsigned int i;
-               for ( i = 0; i < data.size(); i++ ) {
+               for ( i = 0; i < numVersions; i++ ) {
+                  data[i]._pe = NULL;
                   data[i]._elapsedTime = 0.0;
                   data[i]._lastElapsedTime = 0.0;
                   data[i]._numRecords = -1;
                   data[i]._numAssigned = 0;
-                  data[i]._pe = NULL;
-                  data[i]._device = NULL;
                }
                tdata._statsLock.release();
 
                if ( next->canRunIn( *pe ) ) {
-                  // If the thread can run the task, activate its device
-
-                  for ( i = 0; i < next->getNumDevices(); i++ ) {
-                     if ( next->getDevices()[i]->isCompatible( pe->getDeviceType() ) ) break;
+                  // If the thread can run the task, activate its device and return the WD
+                  for ( i = 0; i < numVersions; i++ ) {
+                     if ( devices[i]->isCompatible( pe->getDeviceType() ) ) {
+                        return setDevice( thread, next, i );
+                     }
                   }
-               } else {
+               } //else {
                   // Else, activate the first device
-                  i = 0;
-               }
+                  //i = 0;
+               //}
 
-               return setDevice( thread, next, next->getDevices()[i] );
+               // Otherwise, return NULL
+               return NULL;
+               //return setDevice( thread, next, next->getDevices()[i] );
             }
 
-            double bestTime = std::numeric_limits<double>::max();
+            // Reaching this point means we have already recorded some data for this wdType
+            double timeLimit = std::numeric_limits<double>::max();
             if ( tdata._wdExecBest.find( key ) )
-               bestTime = tdata._wdExecBest.find( key )->second * MAX_DIFFERENCE;
+               timeLimit = tdata._wdExecBest.find( key )->_elapsedTime * MAX_DIFFERENCE;
 
             tdata._statsLock.acquire();
             unsigned int i;
 
             // First, check if the thread can run and, in fact, has to run the task
             if ( next->canRunIn( *pe ) ) {
-               for ( i = 0; i < data.size(); i++ ) {
-                  WDExecRecords & records = data[i];
+               unsigned int bestCandidateIdx = numVersions;
 
-                  if ( records._device == NULL ) records._device = &pe->getDeviceType();
-                  if ( records._device->getName() == pe->getDeviceType().getName() ) {
-                     if ( records._lastElapsedTime < bestTime ) {
+               for ( i = 0; i < numVersions; i++ ) {
+                  WDExecRecord & record = data[i];
+
+                  // Find a version that this PE can run
+//                  if ( record._versionId->isCompatible( pe->getDeviceType() ) ) {
+                     if ( record._lastElapsedTime < timeLimit ) {
                         // It is worth trying this device, so go on
-                        if ( records._numAssigned < MIN_RECORDS ) {
-                           // Not enough records to have reliable values
+                        if ( record._numAssigned < MIN_RECORDS ) {
+                           // Not enough records to have reliable values, so go on with this versionId
 
                            debug("[versioning] Less than 3 records for my device ("
-                                 + toString<int>( records._numRecords ) + ") for key ("
+                                 + toString<int>( record._numAssigned ) + ") for key ("
                                  + toString<unsigned long>( key.first ) + ", "
-                                 + toString<size_t>( key.second ) + ") device "
-                                 + records._device->getName() );
+                                 + toString<size_t>( key.second ) + ") vId "
+                                 + toString<unsigned int>( i ) + " device "
+                                 + next->getDevices()[i]->getDevice()->getName() );
 
-                           records._numAssigned++;
+                           // If this PE can run the task, run it
+                           if ( next->getDevices()[i]->isCompatible( pe->getDeviceType() ) ) {
+                              record._numAssigned++;
+                              memoryFence();
+                              tdata._statsLock.release();
+                              return setDevice( thread, next, i );
+                           }
 
-                           tdata._statsLock.release();
-                           return setDevice( thread, next, records._device );
+                           bestCandidateIdx = ( bestCandidateIdx == numVersions ) ? i : bestCandidateIdx;
+                           //tdata._statsLock.release();
+                           //return setDevice( thread, next, record._versionId );
                         }
 
-                        double sqDev = records._elapsedTime - records._lastElapsedTime;
+                        double sqDev = record._elapsedTime - record._lastElapsedTime;
                         sqDev *= sqDev;
                         if ( sqrt( sqDev ) > MAX_DEVIATION ) {
-                           // Values differ too much from each other, compute again
+                           // Time values differ too much from each other, try to run the task again
 
                            debug("[versioning] Too much difference in records for my device ("
                                  + toString<double>( sqrt( sqDev ) ) + " > "
                                  + toString<double>( MAX_DEVIATION ) + ") for key ("
                                  + toString<unsigned long>( key.first ) + ", "
-                                 + toString<size_t>( key.second ) + ") device "
-                                 + records._device->getName() );
+                                 + toString<size_t>( key.second ) + ") vId "
+                                 + toString<unsigned int>( i ) + " device "
+                                 + next->getDevices()[i]->getDevice()->getName() );
 
-                           records._numAssigned++;
+                           // If this PE can run the task, run it
+                           if ( next->getDevices()[i]->isCompatible( pe->getDeviceType() ) ) {
+                              record._numAssigned++;
+                              memoryFence();
+                              tdata._statsLock.release();
+                              return setDevice( thread, next, i );
+                           }
 
-                           tdata._statsLock.release();
-                           return setDevice( thread, next, records._device );
+                           bestCandidateIdx = ( bestCandidateIdx == numVersions ) ? i : bestCandidateIdx;
+                           //tdata._statsLock.release();
+                           //return setDevice( thread, next, record._versionId );
                         }
+
                      }
-                  }
+//                  }
+               }
+               if ( bestCandidateIdx != numVersions ) {
+
+                  double sqDev = data[bestCandidateIdx]._elapsedTime - data[bestCandidateIdx]._lastElapsedTime;
+                  sqDev *= sqDev;
+
+                  debug("[versioning] Discarding my PE, but assigning to another device ("
+                        + toString<double>( sqrt( sqDev ) ) + " > "
+                        + toString<double>( MAX_DEVIATION ) + ") for key ("
+                        + toString<unsigned long>( key.first ) + ", "
+                        + toString<size_t>( key.second ) + ") vId "
+                        + toString<unsigned int>( bestCandidateIdx ) + " device "
+                        + next->getDevices()[data[bestCandidateIdx]._versionId]->getDevice()->getName() );
+
+                  data[bestCandidateIdx]._numAssigned++;
+                  memoryFence();
+                  tdata._statsLock.release();
+                  return setDevice( thread, next, bestCandidateIdx );
                }
             }
 
-            for ( i = 0; i < data.size(); i++ ) {
-               WDExecRecords & records = data[i];
-               if ( records._lastElapsedTime < bestTime ) {
+            // Reaching this point means either one of these 2 situations:
+            // - This PE cannot run the task
+            // - Each versionId compatible with this PE has been run enough times
+            //   and results are reliable
+#if 0
+            for ( i = 0; i < numVersions; i++ ) {
+               WDExecRecord & record = data[i];
+               if ( record._lastElapsedTime < timeLimit ) {
                   // It is worth trying this device, so go on
 
-                  if ( records._numAssigned < MIN_RECORDS ) {
+                  if ( record._numAssigned < MIN_RECORDS ) {
                      // Not enough records to have reliable values
 
                      debug("[versioning] Less than 3 records ("
-                           + toString<int>( records._numRecords ) + ") for key ("
+                           + toString<int>( record._numRecords ) + ") for key ("
                            + toString<unsigned long>( key.first ) + ", "
-                           + toString<size_t>( key.second ) + ") device "
-                           + records._device->getName() );
+                           + toString<size_t>( key.second ) + ") vId "
+                           + toString<void *>( record._versionId ) + " device "
+                           + record._versionId->getDevice()->getName() );
 
-                     records._numAssigned++;
+                     record._numAssigned++;
 
                      tdata._statsLock.release();
-                     return setDevice( thread, next, records._device );
+                     return setDevice( thread, next, record._versionId );
                   }
 
-                  double sqDev = records._elapsedTime - records._lastElapsedTime;
+                  double sqDev = record._elapsedTime - record._lastElapsedTime;
                   sqDev *= sqDev;
                   if ( sqrt( sqDev ) > MAX_DEVIATION ) {
                      // Values differ too much from each other, compute again
@@ -259,73 +364,90 @@ namespace ext
                            + toString<double>( sqrt( sqDev ) ) + " > "
                            + toString<double>( MAX_DEVIATION ) + ") for key ("
                            + toString<unsigned long>( key.first ) + ", "
-                           + toString<size_t>( key.second ) + ") device "
-                           + records._device->getName() );
+                           + toString<size_t>( key.second ) + ") vId "
+                           + toString<void *>( record._versionId ) + " device "
+                           + record._versionId->getDevice()->getName() );
 
-                     records._numAssigned++;
+                     record._numAssigned++;
 
                      tdata._statsLock.release();
-                     return setDevice( thread, next, records._device );
+                     return setDevice( thread, next, record._versionId );
                   }
                }
             }
+#endif
 
-            tdata._bestLock.acquire();
             // Reaching this point means that we have enough records to decide
-            ProcessingElement * bestPE = tdata._wdExecBest.find( key )->first;
-            const Device * device = &( bestPE->getDeviceType() );
+            // It may happen that not all versionIds have been run
+            // Choose the best versionId we have found by now
+            tdata._bestLock.acquire();
+            WDBestRecordData * bestData = tdata._wdExecBest.find( key );
 
-            if ( bestPE->getDeviceType().getName() == pe->getDeviceType().getName() ) {
-               // My PE has the best record
-               for ( i = 0; i < data.size(); i++ ) {
-                  if ( data[i]._device->getName() == bestPE->getDeviceType().getName() ) {
-                     data[i]._numAssigned++;
-                 }
-               }
+            if ( next->getDevices()[bestData->_versionId]->isCompatible( pe->getDeviceType() ) ) {
+               data[bestData->_versionId]._numAssigned++;
 
                debug("[versioning] Autochoosing for key ("
                      + toString<unsigned long>( key.first ) + ", " + toString<size_t>( key.second )
-                     + ") my device " + bestPE->getDeviceType().getName() );
+                     + ") my device " + bestData->_pe->getDeviceType().getName()
+                     + " for vId " + toString<unsigned int>( bestData->_versionId ) );
 
+               memoryFence();
                tdata._bestLock.release();
                tdata._statsLock.release();
-               return setDevice( thread, next, device );
+               return setDevice( thread, next, bestData->_versionId );
             }
 
+            // My PE is not the best PE to run this task, but still may be able to help with the execution
             // Estimate the remaining amount of time to execute the assigned tasks
-            double remTime = 0.0;
+            //double remTime = 0.0;
             double remBest = 0.0;
-            int index = 0;
-            int myIndex = 0;
+            unsigned int idxBest = numVersions;
+            unsigned int myIndex = numVersions;
 
-            for ( i = 0; i < data.size(); i++ ) {
-               WDExecRecords & records = data[i];
-               if ( records._device->getName() == bestPE->getDeviceType().getName() ) {
-                  index = i;
-                  remBest = ( records._numAssigned - records._numRecords ) * records._elapsedTime;
-               }  else if ( records._device->getName() == pe->getDeviceType().getName() ) {
-                  myIndex = i;
-               } else {
-                  remTime += ( records._numAssigned - records._numRecords ) * records._elapsedTime;
-               }
+            for ( i = 0; i < numVersions; i++ ) {
+               WDExecRecord & record = data[i];
+               if ( bestData->_versionId == i ) {
+               //if ( record._versionId->isCompatible( bestData->_pe->getDeviceType() ) ) {
+                  // Keep the index of the best versionId
+                  idxBest = i;
+                  remBest = ( record._numAssigned - record._numRecords ) * record._elapsedTime;
+               } else if ( next->getDevices()[i]->isCompatible( pe->getDeviceType() ) ) {
+                  // PE can run this versionId, but make sure this is the best versionId this PE can run
+                  if ( myIndex == numVersions ) {
+                     myIndex = i;
+                  } else {
+                     // Another versionId compatible with this PE has been found previously
+                     // Check which versionId is better
+                     myIndex = data[myIndex]._elapsedTime > record._elapsedTime ? i : myIndex ;
+                  }
+               } //else {
+                  //remTime += ( record._numAssigned - record._numRecords ) * record._elapsedTime;
+               //}
             }
 
-            if ( remBest * 0.9 > data[myIndex]._elapsedTime ) {
+            // For simplicity, assume that all PEs that can run the best version will run it in parallel
+            // and estimate the total time this will take
+            timeLimit = remBest / sys.getNumWorkers( next->getDevices()[bestData->_versionId] );
+            timeLimit = timeLimit * 0.9;
+            if ( timeLimit > data[myIndex]._elapsedTime ) {
                // This PE has enough time to execute one instance of its own version
-               index = myIndex;
-               device = &( pe->getDeviceType() );
+               idxBest = myIndex;
             }
 
-            data[index]._numAssigned++;
+            data[idxBest]._numAssigned++;
 
             debug("[versioning] Autochoosing for key ("
                   + toString<unsigned long>( key.first ) + ", " + toString<size_t>( key.second )
-                  + ") best device is " + bestPE->getDeviceType().getName()
-                  + " chosen device is " + device->getName() );
+                  + ") best device is " + bestData->_pe->getDeviceType().getName()
+                  + " chosen device is " + next->getDevices()[idxBest]->getDevice()->getName()
+                  + " vId " + toString<unsigned int>( idxBest ) + ": time limit is "
+                  + toString<double>( timeLimit ) + " and my elapsed time is "
+                  + toString<double>( data[idxBest]._elapsedTime ) );
 
+            memoryFence();
             tdata._bestLock.release();
             tdata._statsLock.release();
-            return setDevice( thread, next, device );
+            return setDevice( thread, next, idxBest );
 
          }
 
@@ -376,6 +498,7 @@ namespace ext
                size_t paramsSize = currentWD.getParamsSize();
                ProcessingElement * pe = thread->runningOn();
                double executionTime = currentWD.getExecutionTime();
+               unsigned int devIdx = currentWD.getActiveDeviceIdx();
 
                WDExecInfoKey key = std::make_pair( wdId, paramsSize );
 
@@ -386,23 +509,13 @@ namespace ext
                // Record statistic values
                // Update stats
                // TODO: Choose the appropriate device
-               bool found = false;
-               unsigned int i;
-               for ( i = 0; i < data.size(); i++ ) {
-                  if ( data[i]._device == NULL ) break;
-                  if ( data[i]._device->getName() == pe->getDeviceType().getName() ) {
-                     if ( data[i]._numRecords >= 0 ) found = true;
-                     break;
-                  }
-               }
 
-               if ( !found ) {
+               if ( data[devIdx]._numRecords == -1 ) {
                   // Here 'i' points to the first free position to record the values for the given PE
                   // As it is the first time for the given PE, we omit the results because
                   // they can be potentially worse than future executions
-                  WDExecRecords & records = data[i];
+                  WDExecRecord & records = data[devIdx];
                   records._pe = pe;
-                  records._device = &pe->getDeviceType();
                   records._elapsedTime = 0.0; // Should be 'executionTime'
                   records._numRecords++; // Should be '1' but in fact it is -1+1 = 0
                   records._lastElapsedTime = executionTime;
@@ -410,7 +523,7 @@ namespace ext
                   debug("[versioning] First recording for key (" + toString<unsigned long>( key.first )
                         + ", " + toString<size_t>( key.second )
                         + ") {pe=" + toString<void *>( records._pe )
-                        + ", dev=" + records._device->getName()
+                        + ", dev=" + currentWD.getDevices()[devIdx]->getDevice()->getName()
                         + ", #=" + toString<int>( records._numRecords )
                         + ", T=" + toString<double>( records._elapsedTime )
                         + ", T2=" + toString<double>( records._lastElapsedTime )
@@ -418,7 +531,7 @@ namespace ext
 
                } else {
                   // Here 'i' points to the position associated to the given PE
-                  WDExecRecords & records  = data[i];
+                  WDExecRecord & records  = data[devIdx];
                   double time = records._elapsedTime * records._numRecords;
                   records._numRecords++;
                   records._elapsedTime = ( time + executionTime ) / records._numRecords;
@@ -427,7 +540,7 @@ namespace ext
                   debug("[versioning] Recording for key (" + toString<unsigned long>( key.first )
                         + ", " + toString<size_t>( key.second )
                         + ") {pe=" + toString<void *>( records._pe )
-                        + ", dev=" + records._device->getName()
+                        + ", dev=" + currentWD.getDevices()[devIdx]->getDevice()->getName()
                         + ", #=" + toString<int>( records._numRecords )
                         + ", T=" + toString<double>( records._elapsedTime )
                         + ", T2=" + toString<double>( records._lastElapsedTime )
@@ -440,14 +553,15 @@ namespace ext
 
                // Check if it is the best time
                WDBestRecordData &bestData = tdata._wdExecBest[key];
-               bool isBestTime = ( bestData.second > executionTime ) || ( bestData.first == NULL );
+               bool isBestTime = ( bestData._elapsedTime > executionTime ) || ( bestData._pe == NULL );
                if ( isBestTime ) {
                   // New best value recorded
-                  bestData.first = pe;
-                  bestData.second = executionTime;
+                  bestData._versionId = devIdx;
+                  bestData._pe = pe;
+                  bestData._elapsedTime = executionTime;
 
-                  debug("[versioning] New best time: {pe=" + toString<void *>( bestData.first )
-                        + ", T=" + toString<double>( bestData.second ) + "}" );
+                  debug("[versioning] New best time: {pe=" + toString<void *>( bestData._pe )
+                        + ", T=" + toString<double>( bestData._elapsedTime ) + "}" );
 
                }
 
@@ -479,6 +593,14 @@ namespace ext
 
       public:
          VersioningSchedPlugin() : Plugin( "Versioning scheduling Plugin", 1 ) {}
+
+         ~VersioningSchedPlugin()
+         {
+            if ( sys.getDefaultSchedulePolicy() != NULL ) {
+               delete sys.getDefaultSchedulePolicy();
+               sys.setDefaultSchedulePolicy( NULL );
+            }
+         }
 
          virtual void config ( Config &cfg )
          {
