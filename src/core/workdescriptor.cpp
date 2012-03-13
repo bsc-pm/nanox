@@ -51,6 +51,8 @@ void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
 {
    ensure ( _state == START , "Trying to start a wd twice or trying to start an uninitialized wd");
 
+   ensure ( _activeDevice != NULL, "WD's _activeDevice is not set. If you are using 'implements' feature, please use versioning scheduler." );
+
    _activeDevice->lazyInit(*this,isUserLevelThread,previous);
    
    ProcessingElement *pe = myThread->runningOn();
