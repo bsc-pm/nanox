@@ -167,6 +167,7 @@ namespace nanos
          unsigned                      _numDevices;   /**< Number of suported devices for this workdescriptor */
          DeviceData                  **_devices;      /**< Supported devices for this workdescriptor */
          DeviceData                   *_activeDevice; /**< Active device (if any) */
+         unsigned int                  _activeDeviceIdx; /**< In _devices, index where we can find the current active DeviceData (if any) */
 
          size_t                        _numCopies;    /**< Copy-in / Copy-out data */
          CopyData                     *_copies;       /**< Copy-in / Copy-out data */
@@ -208,8 +209,8 @@ namespace nanos
                           _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
                           _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : NULL ),
-                          _numCopies( numCopies ), _copies( copies ), _copiesSize( 0 ), _paramsSize( 0 ),
-                          _versionGroupId( 0 ), _executionTime( 0 ), _doSubmit(), _doWait(), _depsDomain(),
+                          _activeDeviceIdx( ndevices == 1 ? 0 : ndevices ), _numCopies( numCopies ), _copies( copies ),
+                          _copiesSize( 0 ), _paramsSize( 0 ), _versionGroupId( 0 ), _executionTime( 0 ), _doSubmit(), _doWait(), _depsDomain(),
                           _directory(), _instrumentationContextData(), _submitted(false), _translateArgs( translate_args ),
                           _priority( 0 ) { }
 
@@ -221,7 +222,7 @@ namespace nanos
                           _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
                           _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( 1 ), _devices ( &_activeDevice ), _activeDevice ( device ),
-                          _numCopies( numCopies ), _copies( copies ), _copiesSize( 0 ), _paramsSize( 0 ),
+                          _activeDeviceIdx( 0 ), _numCopies( numCopies ), _copies( copies ), _copiesSize( 0 ), _paramsSize( 0 ),
                           _versionGroupId( 0 ), _executionTime( 0 ), _doSubmit(), _doWait(), _depsDomain(),
                           _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ),
                           _priority( 0 ) { }
@@ -241,7 +242,8 @@ namespace nanos
                           _wdData ( NULL ), _tie ( wd._tie ), _tiedTo ( wd._tiedTo ),
                           _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ), _myQueue ( NULL ), _depth ( wd._depth ),
                           _numDevices ( wd._numDevices ), _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
-                          _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ), _copiesSize( wd._copiesSize ), _paramsSize( wd._paramsSize ),
+                          _activeDeviceIdx( wd._numDevices == 1 ? 0 : wd._numDevices ), _numCopies( wd._numCopies ),
+                          _copies( wd._numCopies == 0 ? NULL : copies ), _copiesSize( wd._copiesSize ), _paramsSize( wd._paramsSize ),
                           _versionGroupId( wd._versionGroupId ), _executionTime( wd._executionTime ), _doSubmit(), _doWait(), _depsDomain(),
                           _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( wd._translateArgs ),
                           _priority( wd._priority ) { }
@@ -365,6 +367,9 @@ namespace nanos
          DeviceData & getActiveDevice () const;
 
          bool hasActiveDevice() const;
+
+         void setActiveDeviceIdx( unsigned int idx );
+         unsigned int getActiveDeviceIdx();
 
          void setInternalData ( void *data );
 

@@ -73,12 +73,14 @@ void WorkDescriptor::prepareDevice ()
 
    if ( _numDevices == 1 ) {
       _activeDevice = _devices[0];
+      _activeDeviceIdx = 0;
       return;
    }
 
    // Choose between the supported devices
    message("No active device --> selecting one");
    _activeDevice = _devices[_numDevices-1];
+   _activeDeviceIdx = _numDevices-1;
 }
 
 DeviceData * WorkDescriptor::findDeviceData ( const Device &device ) const

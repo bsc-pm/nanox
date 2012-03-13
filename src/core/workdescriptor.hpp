@@ -95,6 +95,9 @@ inline DeviceData & WorkDescriptor::getActiveDevice () const { return *_activeDe
 
 inline bool WorkDescriptor::hasActiveDevice() const { return _activeDevice != NULL; }
 
+inline void WorkDescriptor::setActiveDeviceIdx( unsigned int idx ) { _activeDeviceIdx = idx; }
+inline unsigned int WorkDescriptor::getActiveDeviceIdx() { return _activeDeviceIdx; }
+
 inline void WorkDescriptor::setInternalData ( void *data ) { _wdData = data; }
 
 inline void * WorkDescriptor::getInternalData () const { return _wdData; }
