@@ -23,12 +23,13 @@
 
 #include <list>
 
+#include "containeradapter_decl.hpp"
 #include "regioncollection_fwd.hpp"
-#include "region.hpp"
 #include "regionpart_decl.hpp"
 
 
-namespace nanos {
+namespace nanos
+{
    
    //! \brief Region stream formatter
    //! \param o the output stream
@@ -71,194 +72,84 @@ namespace nanos {
       
       //! \brief Add a RegionPart
       //! \param part the RegionPart
-      void addPart(RegionPart const &part)
-         { ContainerAdapter<container_t>::insert(m_parts, part); }
+      void addPart(RegionPart const &part);
       
       //! \brief Add a Region
       //! \param region the Region
-      void addPart(Region const &region)
-         { ContainerAdapter<container_t>::insert(m_parts, RegionPart(region, 0)); }
+      void addPart(Region const &region);
       
       //! \brief Number of elements
       //! \return the number of elements
-      size_t getSize() const
-         { return m_parts.getSize(); }
+      size_t getSize() const;
       
       //! \brief Check if it is empty
       //! \returns true if it is empty
-      bool empty() const
-         { return m_parts.empty(); }
+      bool empty() const;
       
       //! \brief Calculate result of removing the intersection with a Region
       //! \param substracted the Region whose intersections must be removed
       //! \param maxPartitioningLevels the maximum fragmentation level allowed. By default infinite. If specified, some intersecting subparts may remain
       //! \returns the result of the removal
-      RegionCollection minus(Region const &substracted, int maxPartitioningLevels = -1) const
-         {
-            RegionCollection result;
-            for (typename container_t::const_iterator it = m_parts.begin(); it != m_parts.end(); it++) {
-               RegionPart const &part = *it;
-               part.partition(substracted, result.m_parts, maxPartitioningLevels, 0, false, true);
-            }
-            // result.defragment();
-            return result;
-         }
+      RegionCollection minus(Region const &substracted, int maxPartitioningLevels = -1) const;
       
       //! \brief Calculate the result of removing the intersection with a RegionCollection
       //! \param substracted the RegionCollection whose intersections must be removed
       //! \param maxPartitioningLevels the maximum fragmentation level allowed. By default infinite. If specified, some intersecting subparts may remain
       //! \returns the result of the removal
-      RegionCollection minus(RegionCollection const &substracted, int maxPartitioningLevels = -1) const
-         {
-            RegionCollection result(*this);
-            for (typename container_t::const_iterator it = substracted.m_parts.begin(); it != substracted.m_parts.end(); it++) {
-               RegionPart const &part = *it;
-               result = result.minus(part, maxPartitioningLevels);
-            }
-            return result;
-         }
+      RegionCollection minus(RegionCollection const &substracted, int maxPartitioningLevels = -1) const;
       
       //! \brief Remove the intersection with a Region
       //! \param substracted the Region whose intersections must be removed
       //! \param maxPartitioningLevels the maximum fragmentation level allowed. By default infinite. If specified, some intersecting subparts may remain
       //! \returns itself
-      RegionCollection &substract(Region const &substracted, int maxPartitioningLevels = -1)
-         {
-            (*this) = minus(substracted, maxPartitioningLevels);
-            return *this;
-         }
+      RegionCollection &substract(Region const &substracted, int maxPartitioningLevels = -1);
       
       //! \brief Remove the intersection with a RegionCollection
       //! \param substracted the RegionCollection whose intersections must be removed
       //! \param maxPartitioningLevels the maximum fragmentation level allowed. By default infinite. If specified, some intersecting subparts may remain
       //! \returns itself
-      RegionCollection &substract(RegionCollection const &substracted, int maxPartitioningLevels = -1)
-         {
-            (*this) = minus(substracted, maxPartitioningLevels);
-            return *this;
-         }
+      RegionCollection &substract(RegionCollection const &substracted, int maxPartitioningLevels = -1);
       
       //! \brief Extends each RegionPart to cover the extra elements of each RegionPart in the other RegionPartCollection without allowing aliasing
       //! \param other the RegionCollection RegionParts will be used to extend its RegionParts
       //! \returns itself
-      RegionCollection &operator|=(RegionCollection const &other)
-         {
-            RegionCollection ours(*this);
-            m_parts.clear();
-            
-            for (const_iterator it = ours.begin(); it != ours.end(); it++) {
-               RegionPart const &ourPart = *it;
-               for (const_iterator it2 = other.begin(); it2 != other.end(); it2++) {
-                  RegionPart newPart = *it2;
-                  newPart |= ourPart;
-                  addPart(newPart);
-               }
-            }
-            defragment();
-            
-            return *this;
-         }
+      RegionCollection &operator|=(RegionCollection const &other);
       
       //! \brief Const reference to the contents
       //! \returns a const reference to the contents
-      container_t const &getRegionCollection() const
-         { return m_parts; }
+      container_t const &getRegionCollection() const;
       
       //! \brief Begining of constant iteration
       //! \returns a const_iterator pointing to the first element
-      const_iterator begin() const
-         { return m_parts.begin(); }
+      const_iterator begin() const;
       
       //! \brief Begining of iteration
       //! \returns an iterator pointing to the first element
-      iterator begin()
-         { return m_parts.begin(); }
+      iterator begin();
       
       //! \brief End of constant iteration
       //! \returns a const_iterator pointing to the end of the container
-      const_iterator end() const
-         { return m_parts.end(); }
+      const_iterator end() const;
       
       //! \brief End of iteration
       //! \returns an iterator pointing to the end of the container
-      iterator end()
-         { return m_parts.end(); }
+      iterator end();
       
       //! \brief Modificable reference to the contents
       //! \returns a modificable reference to the contents
-      container_t &getRegionCollectionReference()
-         { return m_parts; }
+      container_t &getRegionCollectionReference();
       
       //! \brief Unmodificable reference to the contents
       //! \returns a unmodificable reference to the contents
-      container_t const &getRegionCollectionReference() const
-         { return m_parts; }
+      container_t const &getRegionCollectionReference() const;
       
       //! \brief Join parts that can be represented with one RegionPart without adding aliasing
-      void defragment()
-         {
-            container_t regions(m_parts);
-            container_t regions2;
-            
-            bool effective;
-            do {
-               effective = false;
-               typename container_t::iterator it = regions.begin();
-               while (it != regions.end()) {
-                  if (!it->isEmpty()) {
-                     bool found = false;
-                     typename container_t::iterator it2 = it;
-                     it2++;
-                     while (it2 != regions.end()) {
-                        if (!it2->isEmpty()) {
-                           RegionPart combinedRegion;
-                           if (it->combine(*it2, /* out */ combinedRegion)) {
-                              found = true;
-                              effective = true;
-                              it->clear();
-                              it2->clear();
-                              regions2.push_back(combinedRegion);
-                              break;
-                           }
-                        }
-                        it2++;
-                     }
-                     
-                     if (!found) {
-                        regions2.push_back(*it);
-                     }
-                  }
-                  it++;
-               }
-               
-               if (effective) {
-                  regions.clear();
-                  regions.splice(regions.begin(), regions2);
-                  // regions2.clear();
-               }
-            } while (effective);
-            
-            m_parts.clear();
-            m_parts.splice(m_parts.begin(), regions2);
-            
-            regions.clear();
-            // regions2.clear();
-         }
+      void defragment();
       
    };
    
    template <class container_t>
-   std::ostream& operator<< (std::ostream& o, RegionCollection<container_t> const &regionCollection)
-   {
-      container_t const &contents = regionCollection.getRegionCollectionReference();
-      for (typename container_t::const_iterator it = contents.begin(); it != contents.end(); it++) {
-         RegionPart const &part = *it;
-         
-         o << "\t" << part << std::endl;
-      }
-      
-      return o;
-   }
+   std::ostream& operator<< (std::ostream& o, RegionCollection<container_t> const &regionCollection);
    
 } // namespace nanos
 

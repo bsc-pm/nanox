@@ -21,12 +21,11 @@
 #ifndef _NANOS_REGION_PART_DECL
 #define _NANOS_REGION_PART_DECL
 
-
-#include "containeradapter.hpp"
 #include "region_decl.hpp"
 
 
-namespace nanos {
+namespace nanos
+{
    
    /*! \class RegionPart
    *  \brief A low-level representation of a region with partitioning information
@@ -51,29 +50,18 @@ namespace nanos {
       
       //! \brief Partitioning level
       //! \returns the region partitioning level
-      int const &getPartitionLevel() const
-         { return m_partLevel; }
+      int const &getPartitionLevel() const;
       
       //! \brief Return the result of skiping high order bits
       //! \param bit number of high order bits to skip
       //! \returns result of skipping the bits
-      RegionPart operator+(int bits) const
-         { return RegionPart(*(Region *)this + bits, m_partLevel); }
+      RegionPart operator+(int bits) const;
       
       //! \brief Generate a region that extends this region to cover the extra elements of another without allowing aliasing
       //! \param other the other region
       //! \param[out] result the extended region
       //! \returns true if the combination is possible without aliasing
-      bool combine(RegionPart const &other, /* Outputs: */ RegionPart &result) const
-         {
-            bool successful = Region::combine(other, /* Output */ result);
-            if (successful && m_partLevel > 0) {
-               result.m_partLevel = m_partLevel-1;
-            } else {
-               result.m_partLevel = 0;
-            }
-            return successful;
-         }
+      bool combine(RegionPart const &other, /* Outputs: */ RegionPart &result) const;
       
       //! \brief Fill a list with the disjoint subregions determined by its intersection with another region
       //! \tparam CONTAINER_T type of the output list
@@ -84,131 +72,7 @@ namespace nanos {
       //! \param outputMatching determines if subregions that intersect must be added to the output. By default true
       //! \param outputNonMatching determines if subregions out of the intersection must be added to the output. By default true
       template <typename CONTAINER_T>
-      void partition(Region const &other, /* Output: */ CONTAINER_T &output, int maxPartitioningLevels = -1, int currentPartitionDepth = 0, bool outputMatching=true, bool outputNonMatching=true) const
-         {
-            if (maxPartitioningLevels != -1 && currentPartitionDepth + m_partLevel == maxPartitioningLevels) {
-               RegionPart copy(*this);
-               copy.m_partLevel += currentPartitionDepth;
-               if (outputMatching && outputNonMatching) {
-                  ContainerAdapter<CONTAINER_T>::insert(output, copy);
-               } else if (outputMatching) {
-                  // !outputNonMatching
-                  if (matches(other)) {
-                     ContainerAdapter<CONTAINER_T>::insert(output, copy);
-                  }
-               } else if (outputNonMatching) {
-                  // !outputMatching
-                  if (!matches(other)) {
-                     ContainerAdapter<CONTAINER_T>::insert(output, copy);
-                  } else {
-                     bool thisSubsumes = false;
-                     bool otherSubsumes = false;
-                     bool match = false;
-                     compare(other, /* Outputs: */ match, thisSubsumes, otherSubsumes);
-                     if (match && thisSubsumes) {
-                        // Part of this does not match other
-                        ContainerAdapter<CONTAINER_T>::insert(output, copy);
-                     }
-                  }
-               }
-               return;
-            }
-            
-            bitfield_t const ONE = 1;
-            bool subsumed = false;
-            
-            int shortestLengthIndex = (m_nextBit > other.m_nextBit ? m_nextBit : other.m_nextBit);
-            signed char firstMismatch = (sizeof(bitfield_t) * 8) - 1;
-            bitfield_t cleanerMask = 0;
-            cleanerMask--;
-            while (firstMismatch > shortestLengthIndex) {
-               if (m_mask & (ONE << firstMismatch)) {
-                  if (other.m_mask & (ONE << firstMismatch)) {
-                     if ( (m_value & (ONE << firstMismatch)) != (other.m_value & (ONE << firstMismatch)) ) {
-                        // The current bit is different. So there is nothing to partition
-                        subsumed = false;
-                        break;
-                     }
-                  } else {
-                     // other subsumes (nothing to partition)
-                  }
-               } else {
-                  // This has an X
-                  if (other.m_mask & (ONE << firstMismatch)) {
-                     // This subsumes
-                     subsumed = true;
-                     break;
-                  }
-               }
-               
-               firstMismatch--;
-               cleanerMask = cleanerMask >> 1;
-            }
-            
-            if (subsumed) {
-               int skipBits = ((sizeof(bitfield_t) * 8) - 1) + 1 - firstMismatch;
-               
-               CONTAINER_T subparts;
-               (*this + skipBits).partition(other + skipBits, subparts, maxPartitioningLevels, currentPartitionDepth+1);
-               
-               bit_value_t subsumedBit = other[skipBits - 1];
-               bit_value_t complementaryBit = (subsumedBit == BIT_0 ? BIT_1 : BIT_0);
-               
-               if (outputNonMatching) {
-                  // Output the non matching part. Since it does not match, it does not require partitioning.
-                  Region nonMatchingPart;
-                  nonMatchingPart.m_firstBit = m_firstBit;
-                  nonMatchingPart.m_nextBit = firstMismatch;
-                  nonMatchingPart.m_mask = m_mask & ~cleanerMask;
-                  nonMatchingPart.m_value = m_value & ~cleanerMask;
-                  nonMatchingPart.addBit(complementaryBit);
-                  nonMatchingPart += *this + skipBits;
-                  ContainerAdapter<CONTAINER_T>::insert(output,  RegionPart(nonMatchingPart, currentPartitionDepth + m_partLevel + 1) );
-               }
-               
-               for (typename CONTAINER_T::iterator it = subparts.begin(); it != subparts.end(); it++) {
-                  RegionPart subpart = *it;
-                  RegionPart matchingSubpart;
-                  matchingSubpart.m_firstBit = m_firstBit;
-                  matchingSubpart.m_nextBit = firstMismatch;
-                  matchingSubpart.m_mask = m_mask & ~cleanerMask;
-                  matchingSubpart.m_value = m_value & ~cleanerMask;
-                  matchingSubpart.addBit(subsumedBit);
-                  matchingSubpart += subpart;
-                  matchingSubpart.m_partLevel = subpart.m_partLevel;
-                  
-                  if (outputMatching && outputNonMatching) {
-                     ContainerAdapter<CONTAINER_T>::insert(output, matchingSubpart);
-                  } else if (outputMatching) {
-                     // !outputNonMatching
-                     if (matchingSubpart.matches(other)) {
-                        ContainerAdapter<CONTAINER_T>::insert(output, matchingSubpart);
-                     }
-                  } else if (outputNonMatching) {
-                     // !outputMatching
-                     if (!matchingSubpart.matches(other)) {
-                        ContainerAdapter<CONTAINER_T>::insert(output, matchingSubpart);
-                     } else {
-                        bool matchingSubpartSubsumes = false;
-                        bool otherSubsumes = false;
-                        bool match = false;
-                        matchingSubpart.compare(other, match, matchingSubpartSubsumes, otherSubsumes);
-                        if (match && matchingSubpartSubsumes) {
-                           // Part of matchingSubpart does not match other
-                           ContainerAdapter<CONTAINER_T>::insert(output, matchingSubpart);
-                        }
-                     }
-                  }
-               }
-            } else {
-               // Total match or mismatch
-               bool matches_ = matches(other);
-               if ( (outputMatching && matches_) || (outputNonMatching && !matches_) ) {
-                  ContainerAdapter<CONTAINER_T>::insert(output,  RegionPart(*this, m_partLevel + currentPartitionDepth) );
-               }
-            }
-         }
-      
+      void partition(Region const &other, /* Output: */ CONTAINER_T &output, int maxPartitioningLevels = -1, int currentPartitionDepth = 0, bool outputMatching=true, bool outputNonMatching=true) const;      
    };
    
 } // namespace nanos

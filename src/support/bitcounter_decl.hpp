@@ -18,42 +18,27 @@
 /*************************************************************************************/
 
 
-#ifndef _NANOS_BIT_COUNTER
-#define _NANOS_BIT_COUNTER
+#ifndef _NANOS_BIT_COUNTER_DECL
+#define _NANOS_BIT_COUNTER_DECL
+
+namespace nanos
+{
+   template<typename T, int BITS = sizeof(T)*8>
+   class BitCounter
+   {
+      public:
+         static bool __attribute__((always_inline)) hasMoreThanOneOne(T value);
+   };
 
 
-namespace nanos {
-
-
-template<typename T, int BITS = sizeof(T)*8>
-class BitCounter {
-   public:
-      static bool __attribute__((always_inline)) hasMoreThanOneOne(T value)
-         {
-            T lowMask = 0;
-            lowMask--;
-            lowMask = lowMask >> (BITS >> 1);
-            T highPart = value >> (BITS >> 1);
-            T lowPart = value & lowMask;
-            return (lowPart & highPart) | BitCounter<T, (BITS >> 1)>::hasMoreThanOneOne(lowPart ^ highPart);
-         }
-
-};
-
-
-template<typename T>
-class BitCounter<T, 2> {
-   public:
-      static bool __attribute__((always_inline)) hasMoreThanOneOne(T value)
-         {
-            T highPart = value >> 1;
-            T lowPart = value & 1;
-            return lowPart & highPart;
-         }
-
-};
-
+   template<typename T>
+   class BitCounter<T, 2>
+   {
+      public:
+         static bool __attribute__((always_inline)) hasMoreThanOneOne(T value);
+   
+   };
 
 } // namespace nanos
 
-#endif // _NANOS_BIT_COUNTER
+#endif // _NANOS_BIT_COUNTER_DECL

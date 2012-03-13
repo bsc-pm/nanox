@@ -25,8 +25,8 @@
 #include <stddef.h>
 
 #include "region.hpp"
-#include "regioncollection_decl.hpp"
-#include "regionpart_decl.hpp"
+#include "regioncollection.hpp"
+#include "regionpart.hpp"
 #include "regiontreenode.hpp"
 #include "regiontree_decl.hpp"
 

@@ -18,45 +18,30 @@
 /*************************************************************************************/
 
 
-#ifndef _NANOS_CONTAINER_ADAPTER
-#define _NANOS_CONTAINER_ADAPTER
+#ifndef _NANOS_BIT_COUNTER
+#define _NANOS_BIT_COUNTER
 
-#include "containeradapter_decl.hpp"
-#include "containertraits.hpp"
-
+#include "bitcounter_decl.hpp"
 
 using namespace nanos;
 
-
-template <class CONTAINER_T,bool IS_ASSOCIATIVE >
-inline void ContainerAdapter<CONTAINER_T, IS_ASSOCIATIVE>::insert(CONTAINER_T &container, typename CONTAINER_T::value_type const &value)
+template<typename T, int BITS>
+bool __attribute__((always_inline)) BitCounter<T,BITS>::hasMoreThanOneOne(T value)
 {
-   container.insert(value);
+   T lowMask = 0;
+   lowMask--;
+   lowMask = lowMask >> (BITS >> 1);
+   T highPart = value >> (BITS >> 1);
+   T lowPart = value & lowMask;
+   return (lowPart & highPart) | BitCounter<T, (BITS >> 1)>::hasMoreThanOneOne(lowPart ^ highPart);
 }
 
-template <class CONTAINER_T,bool IS_ASSOCIATIVE >
-inline typename CONTAINER_T::value_type ContainerAdapter<CONTAINER_T, IS_ASSOCIATIVE>::pop(CONTAINER_T &container)
+template<typename T>
+bool __attribute__((always_inline)) BitCounter<T, 2>::hasMoreThanOneOne(T value)
 {
-   typename CONTAINER_T::iterator it = container.begin();
-   typename CONTAINER_T::value_type value = *it;
-   container.erase(it);
-   return value;
+   T highPart = value >> 1;
+   T lowPart = value & 1;
+   return lowPart & highPart;
 }
 
-
-template <class CONTAINER_T>
-inline void ContainerAdapter<CONTAINER_T, false>::insert(CONTAINER_T &container, typename CONTAINER_T::value_type const &value)
-{
-   container.push_back(value);
-}
-
-template <class CONTAINER_T>
-inline typename CONTAINER_T::value_type ContainerAdapter<CONTAINER_T, false>::ContainerAdapter::pop(CONTAINER_T &container)
-{
-   typename CONTAINER_T::value_type value = container.back();
-   container.pop_back();
-   return value;
-}
-
-
-#endif // _NANOS_CONTAINER_ADAPTER
+#endif // _NANOS_BIT_COUNTER

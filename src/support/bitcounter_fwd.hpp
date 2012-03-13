@@ -18,45 +18,13 @@
 /*************************************************************************************/
 
 
-#ifndef _NANOS_CONTAINER_ADAPTER
-#define _NANOS_CONTAINER_ADAPTER
-
-#include "containeradapter_decl.hpp"
-#include "containertraits.hpp"
+#ifndef _NANOS_BIT_COUNTER_FWD
+#define _NANOS_BIT_COUNTER_FWD
 
 
-using namespace nanos;
-
-
-template <class CONTAINER_T,bool IS_ASSOCIATIVE >
-inline void ContainerAdapter<CONTAINER_T, IS_ASSOCIATIVE>::insert(CONTAINER_T &container, typename CONTAINER_T::value_type const &value)
+namespace nanos
 {
-   container.insert(value);
-}
+   template<typename T, int BITS> class BitCounter;
+} // namespace nanos
 
-template <class CONTAINER_T,bool IS_ASSOCIATIVE >
-inline typename CONTAINER_T::value_type ContainerAdapter<CONTAINER_T, IS_ASSOCIATIVE>::pop(CONTAINER_T &container)
-{
-   typename CONTAINER_T::iterator it = container.begin();
-   typename CONTAINER_T::value_type value = *it;
-   container.erase(it);
-   return value;
-}
-
-
-template <class CONTAINER_T>
-inline void ContainerAdapter<CONTAINER_T, false>::insert(CONTAINER_T &container, typename CONTAINER_T::value_type const &value)
-{
-   container.push_back(value);
-}
-
-template <class CONTAINER_T>
-inline typename CONTAINER_T::value_type ContainerAdapter<CONTAINER_T, false>::ContainerAdapter::pop(CONTAINER_T &container)
-{
-   typename CONTAINER_T::value_type value = container.back();
-   container.pop_back();
-   return value;
-}
-
-
-#endif // _NANOS_CONTAINER_ADAPTER
+#endif // _NANOS_BIT_COUNTER_FWD

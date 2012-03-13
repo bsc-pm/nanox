@@ -18,45 +18,34 @@
 /*************************************************************************************/
 
 
-#ifndef _NANOS_CONTAINER_ADAPTER
-#define _NANOS_CONTAINER_ADAPTER
+#ifndef _NANOS_CONTAINER_ADAPTER_DECL
+#define _NANOS_CONTAINER_ADAPTER_DECL
 
-#include "containeradapter_decl.hpp"
 #include "containertraits.hpp"
 
 
-using namespace nanos;
-
-
-template <class CONTAINER_T,bool IS_ASSOCIATIVE >
-inline void ContainerAdapter<CONTAINER_T, IS_ASSOCIATIVE>::insert(CONTAINER_T &container, typename CONTAINER_T::value_type const &value)
+namespace nanos
 {
-   container.insert(value);
-}
 
-template <class CONTAINER_T,bool IS_ASSOCIATIVE >
-inline typename CONTAINER_T::value_type ContainerAdapter<CONTAINER_T, IS_ASSOCIATIVE>::pop(CONTAINER_T &container)
-{
-   typename CONTAINER_T::iterator it = container.begin();
-   typename CONTAINER_T::value_type value = *it;
-   container.erase(it);
-   return value;
-}
-
-
-template <class CONTAINER_T>
-inline void ContainerAdapter<CONTAINER_T, false>::insert(CONTAINER_T &container, typename CONTAINER_T::value_type const &value)
-{
-   container.push_back(value);
-}
-
-template <class CONTAINER_T>
-inline typename CONTAINER_T::value_type ContainerAdapter<CONTAINER_T, false>::ContainerAdapter::pop(CONTAINER_T &container)
-{
-   typename CONTAINER_T::value_type value = container.back();
-   container.pop_back();
-   return value;
+   template <class CONTAINER_T,bool IS_ASSOCIATIVE = container_traits<CONTAINER_T>::is_associative>
+   class ContainerAdapter
+   {
+      public:
+         static void insert(CONTAINER_T &container, typename CONTAINER_T::value_type const &value);
+         
+         static typename CONTAINER_T::value_type pop(CONTAINER_T &container);
+   };
+   
+   
+   template <class CONTAINER_T>
+   class ContainerAdapter<CONTAINER_T, false>
+   {
+      public:
+         static void insert(CONTAINER_T &container, typename CONTAINER_T::value_type const &value);
+         
+         static typename CONTAINER_T::value_type pop(CONTAINER_T &container);
+   };
 }
 
 
-#endif // _NANOS_CONTAINER_ADAPTER
+#endif // _NANOS_CONTAINER_ADAPTER_DECL
