@@ -219,6 +219,7 @@ namespace nanos {
             registerEventValue("api","omp_barrier","nanos_omp_barrier()");
             registerEventValue("api","get_starring_threads","nanos_get_implicit_threads()");
             registerEventValue("api","get_supporting_threads","nanos_get_nonimplicit_threads()");
+            registerEventValue("api","omp_find_worksharing","nanos_omp_find_worksharing()");
 
             /* 02 */ registerEventKey("wd-id","Work Descriptor id:");
 
