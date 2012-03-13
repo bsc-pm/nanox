@@ -48,7 +48,6 @@ nanos_const_wd_definition_t const_data1 =
    {
       .mandatory_creation = true,
       .tied = false,
-      .tie_to = false,
       .priority = 0
    },
    __alignof__( main__task_1_data_t),
@@ -63,6 +62,8 @@ nanos_const_wd_definition_t const_data1 =
    }
 };
 
+nanos_wd_dyn_props_t dyn_props = {0};
+
 int main ( int argc, char **argv )
 {
 
@@ -70,7 +71,7 @@ int main ( int argc, char **argv )
       main__task_1_data_t *task_data = NULL;
       const_data1.devices[0].dd_size = nanos_smp_dd_size;
 
-      NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1, sizeof( main__task_1_data_t ),
+      NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1, &dyn_props, sizeof( main__task_1_data_t ),
                                     (void **) &task_data, nanos_current_wd(), NULL ));
 
       task_data->value = 100;

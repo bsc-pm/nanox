@@ -52,7 +52,6 @@ nanos_const_wd_definition_t const_data1 =
    {
       .mandatory_creation = true,
       .tied = true,
-      .tie_to = NULL,
       .priority = 0
    },
    __alignof__(my_args),
@@ -114,9 +113,10 @@ void submit_task( nanos_smp_args_t task, int intarg, int* text )
    nanos_copy_data_t *cd = 0;
 
    nanos_wd_t wd1=0;
+   nanos_wd_dyn_props_t dyn_props = {0};
    const_data1.devices[0].dd_size = nanos_smp_dd_size;
    const_data1.devices[0].arg = &task;
-   NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1, sizeof(my_args), (void**)&args, nanos_current_wd(), &cd) );
+   NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1, &dyn_props, sizeof(my_args), (void**)&args, nanos_current_wd(), &cd) );
 
    args->a = intarg;
    args->b = text;

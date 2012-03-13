@@ -791,9 +791,11 @@ typedef struct
         _Bool reserved3 : 1;
         _Bool reserved4 : 1;
         _Bool reserved5 : 1;
-        nanos_thread_t tie_to;
         unsigned int priority;
 } nanos_wd_props_t;
+typedef struct {
+   nanos_thread_t tie_to;
+} nanos_wd_dyn_props_t;
 typedef struct 
 {
         void *(*factory)(void *prealloc, void *arg);
@@ -916,10 +918,10 @@ typedef struct
 nanos_wd_t nanos_current_wd(void);
 int nanos_get_wd_id(nanos_wd_t wd);
 nanos_slicer_t nanos_find_slicer(const char *slicer);
-nanos_err_t nanos_create_wd_compact(nanos_wd_t *wd, nanos_const_wd_definition_t *const_data, size_t data_size, void ** data, nanos_wg_t wg, nanos_copy_data_t **copies);
+nanos_err_t nanos_create_wd_compact(nanos_wd_t *wd, nanos_const_wd_definition_t *const_data, nanos_wd_dyn_props_t *, size_t data_size, void ** data, nanos_wg_t wg, nanos_copy_data_t **copies);
 nanos_err_t nanos_create_sliced_wd(nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size, int align, void **outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, size_t slicer_data_size, int slicer_align, void **slicer_data, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies);
 nanos_err_t nanos_submit(nanos_wd_t wd, size_t num_deps, nanos_dependence_t *deps, nanos_team_t team);
-nanos_err_t nanos_create_wd_and_run_compact(nanos_const_wd_definition_t *const_data, size_t data_size, void * data, size_t num_deps, nanos_dependence_t *deps, nanos_copy_data_t *copies, nanos_translate_args_t translate_args);
+nanos_err_t nanos_create_wd_and_run_compact(nanos_const_wd_definition_t *const_data, nanos_wd_dyn_props_t *, size_t data_size, void * data, size_t num_deps, nanos_dependence_t *deps, nanos_copy_data_t *copies, nanos_translate_args_t translate_args);
 nanos_err_t nanos_create_for(void);
 nanos_err_t nanos_set_internal_wd_data(nanos_wd_t wd, void *data);
 nanos_err_t nanos_get_internal_wd_data(nanos_wd_t wd, void **data);
@@ -985,7 +987,6 @@ nanos_const_wd_definition_t const_data =
    {
       .mandatory_creation = 1,
       .tied = 1,
-      .tie_to = 0,
       .priority = 0
    },
    0,//__alignof__(section_data_1),
@@ -1019,12 +1020,13 @@ int main()
                 }};*/
                 _nx_data_env_0_t *ol_args = (_nx_data_env_0_t *) 0;
                 nanos_wd_t wd = (nanos_wd_t) 0;
+                nanos_wd_dyn_props_t dyn_props = {0};
                 __builtin_memset(&const_data.props, 0, sizeof (const_data.props));
                 const_data.data_alignment =  __alignof__(_nx_data_env_0_t);
                 const_data.devices[0].arg = &_ol_main_0_smp_args;
                 const_data.devices[0].dd_size = nanos_smp_dd_size;
                 nanos_err_t err;
-                err = nanos_create_wd_compact(&wd, &const_data, sizeof(_nx_data_env_0_t), (void **) &ol_args, nanos_current_wd(), (nanos_copy_data_t **) 0);
+                err = nanos_create_wd_compact(&wd, &const_data, &dyn_props, sizeof(_nx_data_env_0_t), (void **) &ol_args, nanos_current_wd(), (nanos_copy_data_t **) 0);
                 //err = nanos_create_wd(&wd, 1, _ol_main_0_devices, sizeof(_nx_data_env_0_t), __alignof__(_nx_data_env_0_t), (void **) &ol_args, nanos_current_wd(), &props, 0, (nanos_copy_data_t **) 0);
                 if (err != NANOS_OK)
                     nanos_handle_error(err);
@@ -1089,7 +1091,7 @@ int main()
                             sizeof(int)
                         }
                     };
-                    err = nanos_create_wd_and_run_compact(&const_data, sizeof(_nx_data_env_0_t), &imm_args, 2, (nanos_dependence_t *) _dependences, 0, (nanos_copy_data_t *) 0);
+                    err = nanos_create_wd_and_run_compact(&const_data, &dyn_props, sizeof(_nx_data_env_0_t), &imm_args, 2, (nanos_dependence_t *) _dependences, 0, (nanos_copy_data_t *) 0);
                     //err = nanos_create_wd_and_run(1, _ol_main_0_devices, sizeof(_nx_data_env_0_t), __alignof__(_nx_data_env_0_t),  &imm_args, &props, 0, (nanos_copy_data_t *) 0);
                     if (err != NANOS_OK)
                         nanos_handle_error(err);

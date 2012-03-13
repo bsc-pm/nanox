@@ -25,6 +25,7 @@
 #include "omp_wd_data.hpp"
 #include "omp_threadteam_data.hpp"
 #include "nanos_omp.h"
+#include "plugin.hpp"
 
 using namespace nanos;
 //using namespace nanos::OpenMP;
@@ -89,8 +90,6 @@ namespace nanos
                ws_plugins[i] = sys.getWorkSharing ( ws_names[i] );
             }
          }
-
-
       }
 
        void OpenMPInterface::finish()

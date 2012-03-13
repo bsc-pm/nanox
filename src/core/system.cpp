@@ -492,7 +492,8 @@ void System::finish ()
  *
  */
 void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t data_size, size_t data_align,
-                        void **data, WG *uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies, nanos_translate_args_t translate_args )
+                        void **data, WG *uwg, nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props, size_t num_copies,
+                        nanos_copy_data_t **copies, nanos_translate_args_t translate_args )
 {
    ensure(num_devices > 0,"WorkDescriptor has no devices");
 
@@ -573,9 +574,9 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    // set properties
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
-      if ( props->tie_to ) wd->tieTo( *( BaseThread * )props->tie_to );
       wd->setPriority( props->priority );
    }
+   if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
 }
 
 /*! \brief Creates a new Sliced WD
@@ -624,8 +625,8 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
  *
  */
 void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
-                        int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props, size_t num_copies,
-                        nanos_copy_data_t **copies )
+                        int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props, 
+                        nanos_wd_dyn_props_t *dyn_props, size_t num_copies, nanos_copy_data_t **copies )
 {
    ensure(num_devices > 0,"WorkDescriptor has no devices");
 
@@ -707,9 +708,9 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    // set properties
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
-      if ( props->tie_to ) wd->tieTo( *( BaseThread * )props->tie_to );
       wd->setPriority( props->priority );
    }
+   if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
 }
 
 /*! \brief Duplicates a given WD

@@ -557,7 +557,6 @@ nanos_const_wd_definition_t const_data1 =
       .mandatory_creation = false,
 #endif
       .tied = false,
-      .tie_to = false,
       .priority = 0
    },
    __alignof__(cilkmerge_par_1_args),
@@ -632,11 +631,14 @@ void cilkmerge_par(ELM *low1, ELM *high1, ELM *low2, ELM *high2, ELM *lowdest)
       {
 
          nanos_wd_t wd[2] = {NULL,NULL};
+
+         nanos_wd_dyn_props_t dyn_props = {0};
+
          cilkmerge_par_1_args *args_w1 = NULL;
          cilkmerge_par_1_args *args_w2 = NULL;
          const_data1.devices[0].dd_size = nanos_smp_dd_size;
-      
-         NANOS_SAFE( nanos_create_wd_compact ( &wd[0], &const_data1, sizeof( cilkmerge_par_1_args ),
+
+         NANOS_SAFE( nanos_create_wd_compact ( &wd[0], &const_data1, &dyn_props, sizeof( cilkmerge_par_1_args ),
                                        ( void ** )&args_w1, nanos_current_wd(), NULL ) );
 
 #ifndef FORCE_MANDATORY_CREATION
@@ -663,12 +665,12 @@ void cilkmerge_par(ELM *low1, ELM *high1, ELM *low2, ELM *high2, ELM *lowdest)
             imm_args.high2 = split2;
             imm_args.lowdest = lowdest;
 
-            NANOS_SAFE( nanos_create_wd_and_run_compact( &const_data1, sizeof( cilkmerge_par_1_args ),
+            NANOS_SAFE( nanos_create_wd_and_run_compact( &const_data1, &dyn_props, sizeof( cilkmerge_par_1_args ),
                                        &imm_args, 0, (nanos_dependence_t *) 0, NULL, NULL ) );
          }
 #endif
 
-         NANOS_SAFE( nanos_create_wd_compact ( &wd[1], &const_data1, sizeof( cilkmerge_par_1_args ),
+         NANOS_SAFE( nanos_create_wd_compact ( &wd[1], &const_data1, &dyn_props, sizeof( cilkmerge_par_1_args ),
                                        ( void ** )&args_w2, nanos_current_wd(), NULL ) );
 
 #ifndef FORCE_MANDATORY_CREATION
@@ -695,7 +697,7 @@ void cilkmerge_par(ELM *low1, ELM *high1, ELM *low2, ELM *high2, ELM *lowdest)
             imm_args.high2 = high2;
             imm_args.lowdest = lowdest + lowsize + 2;
 
-            NANOS_SAFE( nanos_create_wd_and_run_compact ( &const_data1, sizeof( cilkmerge_par_1_args ),
+            NANOS_SAFE( nanos_create_wd_and_run_compact ( &const_data1, &dyn_props, sizeof( cilkmerge_par_1_args ),
                                        &imm_args, 0, (nanos_dependence_t *) 0, NULL, NULL ) );
          }
 #endif
@@ -712,7 +714,7 @@ void cilkmerge_par(ELM *low1, ELM *high1, ELM *low2, ELM *high2, ELM *lowdest)
          /* slicer data pointer */
          NANOS_SAFE( nanos_create_sliced_wd ( &cwd, 1, main__sections_device,
                                        sizeof(nanos_compound_wd_data_t) + (2) * sizeof(nanos_wd_t), __alignof__(nanos_compound_wd_data_t),
-                                       (void **) &list_of_wds, nanos_current_wd(), slicer, &const_data1.props , 0, NULL ) );
+                                       (void **) &list_of_wds, nanos_current_wd(), slicer, &const_data1.props , &dyn_props, 0, NULL ) );
 
          /* Initializing data */
          list_of_wds->nsect = 2;
@@ -765,7 +767,6 @@ nanos_const_wd_definition_t const_data2 =
       .mandatory_creation = false,
 #endif
       .tied = false,
-      .tie_to = false,
       .priority = 0
    },
    __alignof__(cilksort_par_1_args),
@@ -814,13 +815,16 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
 #else
       {
          nanos_wd_t wd[4] = {NULL,NULL,NULL,NULL};
+
+         nanos_wd_dyn_props_t dyn_props = {0};
+
          cilksort_par_1_args *args_w0 = NULL;
          cilksort_par_1_args *args_w1 = NULL;
          cilksort_par_1_args *args_w2 = NULL;
          cilksort_par_1_args *args_w3 = NULL;
          const_data2.devices[0].dd_size = nanos_smp_dd_size;
 
-         NANOS_SAFE( nanos_create_wd_compact ( &wd[0], &const_data2, sizeof( cilksort_par_1_args ),
+         NANOS_SAFE( nanos_create_wd_compact ( &wd[0], &const_data2, &dyn_props, sizeof( cilksort_par_1_args ),
                                        ( void ** )&args_w0, nanos_current_wd(), NULL ) );
 
 #ifndef FORCE_MANDATORY_CREATION
@@ -843,12 +847,12 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
             imm_args.tmp = tmpA;
             imm_args.size = quarter;
 
-            NANOS_SAFE( nanos_create_wd_and_run_compact ( &const_data2, sizeof( cilksort_par_1_args ),
+            NANOS_SAFE( nanos_create_wd_and_run_compact ( &const_data2, &dyn_props, sizeof( cilksort_par_1_args ),
                                        &imm_args, 0, (nanos_dependence_t *) 0, NULL, NULL ) );
          }
 #endif
 
-         NANOS_SAFE( nanos_create_wd_compact ( &wd[1], &const_data2, sizeof( cilksort_par_1_args ),
+         NANOS_SAFE( nanos_create_wd_compact ( &wd[1], &const_data2, &dyn_props, sizeof( cilksort_par_1_args ),
                                        ( void ** )&args_w1, nanos_current_wd(), NULL ) );
 
 #ifndef FORCE_MANDATORY_CREATION
@@ -871,12 +875,12 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
             imm_args.tmp = tmpB;
             imm_args.size = quarter;
 
-            NANOS_SAFE( nanos_create_wd_and_run_compact ( &const_data2, sizeof( cilksort_par_1_args ),
+            NANOS_SAFE( nanos_create_wd_and_run_compact ( &const_data2, &dyn_props, sizeof( cilksort_par_1_args ),
                                        &imm_args, 0, (nanos_dependence_t *) 0, NULL, NULL ) );
          }
 #endif
 
-         NANOS_SAFE( nanos_create_wd_compact ( &wd[2], &const_data2, sizeof( cilksort_par_1_args ),
+         NANOS_SAFE( nanos_create_wd_compact ( &wd[2], &const_data2, &dyn_props, sizeof( cilksort_par_1_args ),
                                        ( void ** )&args_w2, nanos_current_wd(), NULL ) );
 
 #ifndef FORCE_MANDATORY_CREATION
@@ -899,12 +903,12 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
             imm_args.tmp = tmpC;
             imm_args.size = quarter;
 
-            NANOS_SAFE( nanos_create_wd_and_run_compact ( &const_data2, sizeof( cilksort_par_1_args ),
+            NANOS_SAFE( nanos_create_wd_and_run_compact ( &const_data2, &dyn_props, sizeof( cilksort_par_1_args ),
                                        &imm_args, 0, (nanos_dependence_t *) 0, NULL, NULL ) );
          }
 #endif
 
-         NANOS_SAFE( nanos_create_wd_compact ( &wd[3], &const_data2, sizeof( cilksort_par_1_args ),
+         NANOS_SAFE( nanos_create_wd_compact ( &wd[3], &const_data2, &dyn_props, sizeof( cilksort_par_1_args ),
                                        ( void ** )&args_w3, nanos_current_wd(), NULL ) );
 
 #ifndef FORCE_MANDATORY_CREATION
@@ -927,7 +931,7 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
             imm_args.tmp = tmpD;
             imm_args.size = size - 3 * quarter;
 
-            NANOS_SAFE( nanos_create_wd_and_run_compact ( &const_data2, sizeof( cilksort_par_1_args ),
+            NANOS_SAFE( nanos_create_wd_and_run_compact ( &const_data2, &dyn_props, sizeof( cilksort_par_1_args ),
                                        &imm_args, 0, (nanos_dependence_t *) 0, NULL, NULL ) );
          }
 #endif
@@ -948,7 +952,7 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
          NANOS_SAFE( nanos_create_sliced_wd ( &cwd, 1, main__sections_device,
                                        sizeof(nanos_compound_wd_data_t) + (4) * sizeof(nanos_wd_t), __alignof__( nanos_compound_wd_data_t),
                                        (void **) &list_of_wds,
-                                       nanos_current_wd(), slicer, &const_data2.props , 0, NULL ) );
+                                       nanos_current_wd(), slicer, &const_data2.props , &dyn_props, 0, NULL ) );
 
          /* Initializing data */
          list_of_wds->nsect = 4;
@@ -973,10 +977,12 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
 
          nanos_wd_t wd[2] = {NULL,NULL};
 
+         nanos_wd_dyn_props_t dyn_props = {0};
+
          cilkmerge_par_1_args *args_w0 = NULL;
          cilkmerge_par_1_args *args_w1 = NULL;
  
-         NANOS_SAFE( nanos_create_wd_compact ( &wd[0], &const_data1, sizeof( cilkmerge_par_1_args ),
+         NANOS_SAFE( nanos_create_wd_compact ( &wd[0], &const_data1, &dyn_props, sizeof( cilkmerge_par_1_args ),
                                        ( void ** )&args_w0, nanos_current_wd(), NULL ) );
 
 #ifndef FORCE_MANDATORY_CREATION
@@ -1003,12 +1009,12 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
             imm_args.high2 = B + quarter - 1;
             imm_args.lowdest = tmpA;
 
-            NANOS_SAFE( nanos_create_wd_and_run_compact ( &const_data1, sizeof( cilkmerge_par_1_args ),
+            NANOS_SAFE( nanos_create_wd_and_run_compact ( &const_data1, &dyn_props, sizeof( cilkmerge_par_1_args ),
                                        &imm_args, 0, (nanos_dependence_t *) 0, NULL, NULL ) );
          }
 #endif
 
-         NANOS_SAFE( nanos_create_wd_compact ( &wd[1], &const_data1, sizeof( cilkmerge_par_1_args ),
+         NANOS_SAFE( nanos_create_wd_compact ( &wd[1], &const_data1, &dyn_props, sizeof( cilkmerge_par_1_args ),
                                        ( void ** )&args_w1, nanos_current_wd(), NULL ) );
 
 #ifndef FORCE_MANDATORY_CREATION
@@ -1035,7 +1041,7 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
             imm_args.high2 = low + size - 1;
             imm_args.lowdest = tmpC;
 
-            NANOS_SAFE( nanos_create_wd_and_run_compact ( &const_data1, sizeof( cilkmerge_par_1_args ),
+            NANOS_SAFE( nanos_create_wd_and_run_compact ( &const_data1, &dyn_props, sizeof( cilkmerge_par_1_args ),
                                        &imm_args, 0, (nanos_dependence_t *) 0, NULL, NULL ) );
          }
 #endif
@@ -1053,7 +1059,7 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
          NANOS_SAFE( nanos_create_sliced_wd ( &cwd, 1, main__sections_device,
                                        sizeof(nanos_compound_wd_data_t) + (2) * sizeof(nanos_wd_t), __alignof__(nanos_compound_wd_data_t),
                                        (void **) &list_of_wds,
-                                       nanos_current_wd(), slicer, &const_data1.props , 0, NULL ) );
+                                       nanos_current_wd(), slicer, &const_data1.props , &dyn_props, 0, NULL ) );
 
          /* Initializing data */
          list_of_wds->nsect = 2;

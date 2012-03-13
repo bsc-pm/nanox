@@ -101,7 +101,6 @@ nanos_const_wd_definition_t const_data1 =
    {
       .mandatory_creation = true,
       .tied = false,
-      .tie_to = false,
       .priority = 0
    },
    __alignof__(my_args),
@@ -120,7 +119,6 @@ nanos_const_wd_definition_t const_data2 =
    {
       .mandatory_creation = true,
       .tied = false,
-      .tie_to = false,
       .priority = 0
    },
    __alignof__(my_args),
@@ -147,8 +145,9 @@ int main ( int argc, char **argv )
    nanos_copy_data_t *cd = 0;
 
    nanos_wd_t wd1=0;
+   nanos_wd_dyn_props_t dyn_props = {0};
    const_data1.devices[0].dd_size = nanos_smp_dd_size;
-   NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1, sizeof(my_args), (void**)&args, nanos_current_wd(), &cd) );
+   NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1, &dyn_props, sizeof(my_args), (void**)&args, nanos_current_wd(), &cd) );
 
    args->a = 1;
    args->b = dummy1;
@@ -169,7 +168,7 @@ int main ( int argc, char **argv )
    cd = 0;
    wd1=0;
    const_data2.devices[0].dd_size = nanos_smp_dd_size;
-   NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data2, sizeof(my_args), (void**)&args, nanos_current_wd(), &cd) );
+   NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data2, &dyn_props, sizeof(my_args), (void**)&args, nanos_current_wd(), &cd) );
 
    args->a = 1;
    args->b = dummy1;

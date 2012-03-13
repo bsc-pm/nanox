@@ -76,7 +76,6 @@ nanos_const_wd_definition_t const_data1 =
    {
       .mandatory_creation = true,
       .tied = false,
-      .tie_to = false,
       .priority = 0
    },
    0,//__alignof__(section_data_1),
@@ -95,7 +94,6 @@ nanos_const_wd_definition_t const_data2 =
    {
       .mandatory_creation = true,
       .tied = false,
-      .tie_to = false,
       .priority = 0
    },
    0,//__alignof__(section_data_2),
@@ -118,6 +116,7 @@ int main ( int argc, char **argv )
    // Stop scheduler, no task should be run until told so
    nanos_stop_scheduler();
    nanos_wait_until_threads_paused();
+   nanos_wd_dyn_props_t dyn_props = {0};
 
    for ( i = 0; i < NUM_ITERS; ++i ) {
       nanos_wd_t wd = NULL;
@@ -125,8 +124,7 @@ int main ( int argc, char **argv )
       task_arguments_t *section_data_1 = NULL;
       const_data1.data_alignment = __alignof__(section_data_1);
       const_data1.devices[0].dd_size = nanos_smp_dd_size;
-      
-      NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1, sizeof(section_data_1), (void **) &section_data_1,
+      NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1, &dyn_props, sizeof(section_data_1), (void **) &section_data_1,
                                 nanos_current_wd(), NULL ) );
       section_data_1->M = &A;
       
@@ -140,7 +138,7 @@ int main ( int argc, char **argv )
       const_data2.devices[0].dd_size = nanos_smp_dd_size;
       const_data2.props.priority = 100;
       nanos_wd_t wd = NULL;
-      NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data2, sizeof(section_data_2), (void **) &section_data_2,
+      NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data2, &dyn_props, sizeof(section_data_2), (void **) &section_data_2,
                                 nanos_current_wd(), NULL ) );
       
       section_data_2->M = &A;

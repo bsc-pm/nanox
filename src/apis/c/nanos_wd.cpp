@@ -66,8 +66,8 @@ NANOS_API_DEF(int, nanos_get_wd_id, ( nanos_wd_t wd ))
  *
  *  \sa nanos::WorkDescriptor
  */
-NANOS_API_DEF( nanos_err_t, nanos_create_wd_compact, ( nanos_wd_t *uwd, nanos_const_wd_definition_t *const_data, size_t data_size, void ** data,
-                              nanos_wg_t uwg, nanos_copy_data_t **copies ) )
+NANOS_API_DEF( nanos_err_t, nanos_create_wd_compact, ( nanos_wd_t *uwd, nanos_const_wd_definition_t *const_data, nanos_wd_dyn_props_t *dyn_props,
+                                                       size_t data_size, void ** data, nanos_wg_t uwg, nanos_copy_data_t **copies ) )
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",NANOS_CREATION) );
 
@@ -77,7 +77,7 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_compact, ( nanos_wd_t *uwd, nanos_co
          *uwd = 0;
          return NANOS_OK;
       }
-      sys.createWD ( (WD **) uwd, const_data->num_devices, const_data->devices, data_size, const_data->data_alignment, (void **) data, (WG *) uwg, &const_data->props, const_data->num_copies, copies, NULL );
+      sys.createWD ( (WD **) uwd, const_data->num_devices, const_data->devices, data_size, const_data->data_alignment, (void **) data, (WG *) uwg, &const_data->props, dyn_props, const_data->num_copies, copies, NULL );
 
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
@@ -104,9 +104,10 @@ NANOS_API_DEF(nanos_err_t, nanos_set_translate_function, ( nanos_wd_t wd, nanos_
  *
  *  \sa nanos::WorkDescriptor
  */
-NANOS_API_DEF(nanos_err_t, nanos_create_sliced_wd, ( nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size, int outline_data_align,
-                               void ** outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, nanos_wd_props_t *props,
-                               size_t num_copies, nanos_copy_data_t **copies ))
+NANOS_API_DEF(nanos_err_t, nanos_create_sliced_wd, ( nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
+                                                     int outline_data_align, void ** outline_data, nanos_wg_t uwg, nanos_slicer_t slicer,
+                                                     nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props, size_t num_copies,
+                                                     nanos_copy_data_t **copies ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",NANOS_CREATION) );
 
@@ -118,7 +119,7 @@ NANOS_API_DEF(nanos_err_t, nanos_create_sliced_wd, ( nanos_wd_t *uwd, size_t num
       }
 
       sys.createSlicedWD ( (WD **) uwd, num_devices, devices, outline_data_size, outline_data_align, outline_data, (WG *) uwg,
-                           (Slicer *) slicer, props, num_copies, copies );
+                           (Slicer *) slicer, props, dyn_props, num_copies, copies );
 
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
@@ -181,8 +182,9 @@ NANOS_API_DEF(nanos_err_t, nanos_submit, ( nanos_wd_t uwd, size_t num_deps, nano
 
 
 // data must be not null
-NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_definition_t *const_data, size_t data_size, void * data, size_t num_deps,
-                                      nanos_dependence_t *deps, nanos_copy_data_t *copies, nanos_translate_args_t translate_args ) )
+NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_definition_t *const_data, nanos_wd_dyn_props_t *dyn_props, 
+                                                               size_t data_size, void * data, size_t num_deps, nanos_dependence_t *deps,
+                                                               nanos_copy_data_t *copies, nanos_translate_args_t translate_args ) )
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","create_wd_and_run", NANOS_CREATION) );
 
@@ -199,9 +201,12 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
       // set properties
       if ( &const_data->props != NULL ) {
          if ( const_data->props.tied ) wd.tied();
-         if ( const_data->props.tie_to ) {
-            if ( const_data->props.tie_to != myThread ) fatal ( "Tiedness violation" );
-            wd.tieTo( *( BaseThread * ) const_data->props.tie_to );
+         if ( dyn_props && dyn_props->tie_to ) {
+            if (dyn_props->tie_to == myThread) {
+               wd.tieTo( *( BaseThread * ) dyn_props->tie_to );
+            } else {
+               fatal ( "Tiedness violation" );
+            }
          }
          // Set priority
          wd.setPriority( const_data->props.priority );
