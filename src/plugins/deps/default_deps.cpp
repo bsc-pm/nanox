@@ -30,7 +30,7 @@ namespace nanos {
       class NanosDependenciesDomain : public BaseDependenciesDomain
       {
          private:
-            typedef TR1::unordered_map<Address::TargetType, MappedType*> DepsMap; /**< Maps addresses to Trackable objects */
+            typedef TR1::unordered_map<Address::TargetType, TrackableObject*> DepsMap; /**< Maps addresses to Trackable objects */
             
          private:
             DepsMap _addressDependencyMap; /**< Used to track dependencies between DependableObject */
@@ -39,15 +39,15 @@ namespace nanos {
              *  \param dep Dependency to be checked.
              *  \sa Dependency TrackableObject
              */
-            MappedType* lookupDependency ( const Address& target )
+            TrackableObject* lookupDependency ( const Address& target )
             {
-               MappedType* status = NULL;
+               TrackableObject* status = NULL;
                
                DepsMap::iterator it = _addressDependencyMap.find( target() ); 
                if ( it == _addressDependencyMap.end() ) {
                   // Lock this so we avoid problems when concurrently calling deleteLastWriter
                   SyncRecursiveLockBlock lock1( getInstanceLock() );
-                  status = NEW MappedType();
+                  status = NEW TrackableObject();
                   _addressDependencyMap.insert( std::make_pair( target(), status ) );
                } else {
                   status = it->second;
@@ -132,10 +132,7 @@ namespace nanos {
                   }
                }
                
-               // gmiranda: this lock is only required in lookupDependency
-               //SyncRecursiveLockBlock lock1( _instanceLock );
-
-               MappedType &status = *lookupDependency( target );
+               TrackableObject &status = *lookupDependency( target );
                //! TODO (gmiranda): enable this if required
                //status.hold(); // This is necessary since we may trigger a removal in finalizeReduction
                
@@ -167,7 +164,7 @@ namespace nanos {
                DepsMap::iterator it = _addressDependencyMap.find( address() );
                
                if ( it != _addressDependencyMap.end() ) {
-                  MappedType &status = *it->second;
+                  TrackableObject &status = *it->second;
                   
                   status.deleteLastWriter(depObj);
                }
@@ -181,7 +178,7 @@ namespace nanos {
                DepsMap::iterator it = _addressDependencyMap.find( address() );
                
                if ( it != _addressDependencyMap.end() ) {
-                  MappedType &status = *it->second;
+                  TrackableObject &status = *it->second;
                   
                   {
                      SyncLockBlock lock2( status.getReadersLock() );
@@ -197,7 +194,7 @@ namespace nanos {
                DepsMap::iterator it = _addressDependencyMap.find( address() );
                
                if ( it != _addressDependencyMap.end() ) {
-                  MappedType &status = *it->second;
+                  TrackableObject &status = *it->second;
                   
                   if ( status.getCommDO ( ) == commDO ) {
                      status.setCommDO ( 0 );

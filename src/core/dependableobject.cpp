@@ -33,7 +33,6 @@ void DependableObject::finished ( )
       TargetVector const &outs = depObj.getWrittenTargets();
       DependenciesDomain *domain = depObj.getDependenciesDomain();
       if ( domain != 0 && outs.size() > 0 ) {
-         // TODO gmiranda: enable this!
          SyncRecursiveLockBlock lock1( domain->getInstanceLock() ); // This is needed here to avoid a dead-lock
          SyncLockBlock lock2( depObj.getLock() );
          for ( unsigned int i = 0; i < outs.size(); i++ ) {

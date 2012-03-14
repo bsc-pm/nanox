@@ -32,7 +32,7 @@ namespace nanos {
       class RegionDependenciesDomain : public BaseDependenciesDomain
       {
          private:
-            typedef RegionTree<MappedType> RegionMap; /**< Maps regions to \a RegionStatus objects */
+            typedef RegionTree<TrackableObject> RegionMap; /**< Maps regions to \a RegionStatus objects */
             
          private:
             RegionMap            _regionMap;            /**< Used to track dependencies between DependableObject */
@@ -157,7 +157,7 @@ namespace nanos {
                   it++
                ) {
                   RegionMap::iterator &accessor = *it;
-                  MappedType &status = *accessor;
+                  TrackableObject &status = *accessor;
                   status.hold(); // This is necessary since we may trigger a removal in finalizeReduction
                }
                
@@ -169,7 +169,7 @@ namespace nanos {
                   RegionMap::iterator &accessor = *it;
                   
                   Region const &subregion = accessor.getRegion();
-                  MappedType &status = *accessor;
+                  TrackableObject &status = *accessor;
                   
                   if ( accessType.commutative ) {
                      submitDependableObjectCommutativeDataAccess( depObj, subregion, accessType, status, callback );
@@ -213,7 +213,7 @@ namespace nanos {
                   it++
                ) {
                   RegionMap::iterator &accessor = *it;
-                  MappedType &status = *accessor;
+                  TrackableObject &status = *accessor;
                   
                   status.deleteLastWriter(depObj);
                   
@@ -238,7 +238,7 @@ namespace nanos {
                   it++
                ) {
                   RegionMap::iterator &accessor = *it;
-                  MappedType &status = *accessor;
+                  TrackableObject &status = *accessor;
                   
                   {
                      SyncLockBlock lock2( status.getReadersLock() );
@@ -265,7 +265,7 @@ namespace nanos {
                   it++
                ) {
                   RegionMap::iterator &accessor = *it;
-                  MappedType &status = *accessor;
+                  TrackableObject &status = *accessor;
                   
                   if ( status.getCommDO ( ) == commDO ) {
                      status.setCommDO ( 0 );
