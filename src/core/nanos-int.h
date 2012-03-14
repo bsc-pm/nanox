@@ -146,7 +146,7 @@ typedef struct {
 } nanos_wd_dyn_props_t;
 
 typedef struct {
-  void * (*factory) (void *prealloc, void *arg);
+  void * (*factory) (void *arg);
   size_t dd_size;
   void * arg;
 } nanos_device_t;

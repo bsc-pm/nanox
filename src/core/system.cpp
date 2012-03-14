@@ -498,10 +498,10 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    ensure(num_devices > 0,"WorkDescriptor has no devices");
 
    unsigned int i;
-   char *chunk = 0, *dd_location;
+   char *chunk = 0;
 
    size_t size_CopyData;
-   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_DDs, offset_DDs, size_Copies, offset_Copies, offset_PMD;
+   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_Copies, offset_Copies, offset_PMD;
    size_t total_size;
 
    // WD doesn't need to compute offset, it will always be the chunk allocated address
@@ -515,18 +515,14 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    size_DPtrs    = sizeof(DD *) * num_devices;
    offset_DPtrs  = NANOS_ALIGNED_MEMORY_OFFSET(offset_Data, size_Data, __alignof__( DD*) );
 
-   size_DDs = 0;
-   for ( i = 0; i < num_devices; i++ ) size_DDs += devices[i].dd_size;
-   offset_DDs    = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(DeviceData) );
-
    // Computing Copies info
    if ( num_copies != 0 ) {
       size_CopyData = sizeof(CopyData);
       size_Copies   = size_CopyData * num_copies;
-      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, __alignof__(nanos_copy_data_t) );
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(nanos_copy_data_t) );
    } else {
       size_Copies = 0;
-      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, 1);
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, 1);
    }
 
    // Computing Internal Data info and total size
@@ -548,11 +544,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
 
    // allocating Device Data
    DD **dev_ptrs = ( DD ** ) (chunk + offset_DPtrs);
-   dd_location = chunk + offset_DDs;
-   for ( i = 0 ; i < num_devices ; i ++ ) {
-      dev_ptrs[i] = ( DD* ) devices[i].factory( dd_location , devices[i].arg );
-      dd_location += devices[i].dd_size;
-   }
+   for ( i = 0 ; i < num_devices ; i ++ ) dev_ptrs[i] = ( DD* ) devices[i].factory( devices[i].arg );
 
    ensure ((num_copies==0 && copies==NULL) || (num_copies!=0 && copies!=NULL), "Number of copies and copy data conflict" );
 
@@ -631,10 +623,10 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    ensure(num_devices > 0,"WorkDescriptor has no devices");
 
    unsigned int i;
-   char *chunk = 0, *dd_location;
+   char *chunk = 0;
 
    size_t size_CopyData;
-   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_DDs, offset_DDs;
+   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs;
    size_t size_Copies, offset_Copies, offset_PMD;
    size_t total_size;
 
@@ -649,18 +641,14 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    size_DPtrs    = sizeof(DD *) * num_devices;
    offset_DPtrs  = NANOS_ALIGNED_MEMORY_OFFSET(offset_Data, size_Data, __alignof__( DD*) );
 
-   size_DDs = 0;
-   for ( i = 0; i < num_devices; i++ ) size_DDs += devices[i].dd_size;
-   offset_DDs    = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(DeviceData) );
-
    // Computing Copies info
    if ( num_copies != 0 ) {
       size_CopyData = sizeof(CopyData);
       size_Copies   = size_CopyData * num_copies;
-      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, __alignof__(nanos_copy_data_t) );
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(nanos_copy_data_t) );
    } else {
       size_Copies = 0;
-      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, 1);
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, 1);
    }
 
    // Computing Internal Data info and total size
@@ -680,13 +668,9 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    if ( *uwd == NULL ) *uwd = (SlicedWD *) chunk;
    if ( outline_data != NULL && *outline_data == NULL ) *outline_data = (chunk + offset_Data);
 
-   // allocating Device Data
+   // allocating and initializing Device Data pointers
    DD **dev_ptrs = ( DD ** ) (chunk + offset_DPtrs);
-   dd_location = chunk + offset_DDs;
-   for ( i = 0 ; i < num_devices ; i ++ ) {
-      dev_ptrs[i] = ( DD* ) devices[i].factory( dd_location , devices[i].arg );
-      dd_location += devices[i].dd_size;
-   }
+   for ( i = 0 ; i < num_devices ; i ++ ) dev_ptrs[i] = ( DD* ) devices[i].factory( devices[i].arg );
 
    ensure ((num_copies==0 && copies==NULL) || (num_copies!=0 && copies!=NULL), "Number of copies and copy data conflict" );
 
@@ -726,10 +710,10 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    unsigned int i, num_Devices, num_Copies;
    DeviceData **dev_data;
    void *data = NULL;
-   char *chunk = 0, *dd_location, *chunk_iter;
+   char *chunk = 0, *chunk_iter;
 
    size_t size_CopyData;
-   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_DDs, offset_DDs, size_Copies, offset_Copies, offset_PMD;
+   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_Copies, offset_Copies, offset_PMD;
    size_t total_size;
 
    // WD doesn't need to compute offset, it will always be the chunk allocated address
@@ -745,19 +729,15 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    size_DPtrs    = sizeof(DD *) * num_Devices;
    offset_DPtrs  = NANOS_ALIGNED_MEMORY_OFFSET(offset_Data, size_Data, __alignof__( DD*) );
 
-   size_DDs = 0;
-   for ( i = 0; i < num_Devices; i++ ) size_DDs += dev_data[i]->size();
-   offset_DDs    = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(DeviceData) );
-
    // Computing Copies info
    num_Copies = wd->getNumCopies();
    if ( num_Copies != 0 ) {
       size_CopyData = sizeof(CopyData);
       size_Copies   = size_CopyData * num_Copies;
-      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, __alignof__(nanos_copy_data_t) );
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(nanos_copy_data_t) );
    } else {
       size_Copies = 0;
-      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, 1);
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, 1);
    }
 
    // Computing Internal Data info and total size
@@ -782,11 +762,8 @@ void System::duplicateWD ( WD **uwd, WD *wd)
 
    // allocating Device Data
    DD **dev_ptrs = ( DD ** ) (chunk + offset_DPtrs);
-   dd_location = chunk + offset_DDs;
    for ( i = 0 ; i < num_Devices; i ++ ) {
-      dev_data[i]->copyTo(dd_location);
-      dev_ptrs[i] = ( DD* ) dd_location;
-      dd_location += dev_data[i]->size();
+      dev_ptrs[i] = dev_data[i]->clone();
    }
 
    // allocate copy-in/copy-outs
@@ -821,10 +798,10 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
    unsigned int i, num_Devices, num_Copies;
    DeviceData **dev_data;
    void *data = NULL;
-   char *chunk = 0, *dd_location, *chunk_iter;
+   char *chunk = 0, *chunk_iter;
 
    size_t size_CopyData;
-   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_DDs, offset_DDs;
+   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs;
    size_t size_Copies, offset_Copies, size_PMD, offset_PMD;
    size_t total_size;
 
@@ -841,19 +818,15 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
    size_DPtrs    = sizeof(DD *) * num_Devices;
    offset_DPtrs  = NANOS_ALIGNED_MEMORY_OFFSET(offset_Data, size_Data, __alignof__( DD*) );
 
-   size_DDs = 0;
-   for ( i = 0; i < num_Devices; i++ ) size_DDs += dev_data[i]->size();
-   offset_DDs    = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(DeviceData) );
-
    // Computing Copies info
    num_Copies = wd->getNumCopies();
    if ( num_Copies != 0 ) {
       size_CopyData = sizeof(CopyData);
       size_Copies   = size_CopyData * num_Copies;
-      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, __alignof__(nanos_copy_data_t) );
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(nanos_copy_data_t) );
    } else {
       size_Copies = 0;
-      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, 1);
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, 1);
    }
 
    // Computing Internal Data info and total size
@@ -877,11 +850,8 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
 
    // allocating Device Data
    DD **dev_ptrs = ( DD ** ) (chunk + offset_DPtrs);
-   dd_location = chunk + offset_DDs;
    for ( i = 0 ; i < num_Devices; i ++ ) {
-      dev_data[i]->copyTo(dd_location);
-      dev_ptrs[i] = ( DD* ) dd_location;
-      dd_location += dev_data[i]->size();
+      dev_ptrs[i] = dev_data[i]->clone();
    }
 
    // allocate copy-in/copy-outs

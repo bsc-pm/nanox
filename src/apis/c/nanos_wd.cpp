@@ -33,18 +33,10 @@ using namespace nanos;
 // TODO: move to dependent part
 const size_t nanos_smp_dd_size = sizeof(ext::SMPDD);
 
-NANOS_API_DEF(void *, nanos_smp_factory, ( void *prealloc, void *args ))
+NANOS_API_DEF(void *, nanos_smp_factory, ( void *args ))
 {
    nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
-
-   if ( prealloc != NULL )
-   {
-      return ( void * )new (prealloc) ext::SMPDD( smp->outline );
-   }
-   else 
-   {
-      return ( void * )new ext::SMPDD( smp->outline );
-   }
+   return ( void * )new ext::SMPDD( smp->outline );
 }
 
 NANOS_API_DEF(nanos_wd_t, nanos_current_wd, (void))
@@ -192,10 +184,8 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
       if ( const_data->num_devices > 1 ) warning( "Multiple devices not yet supported. Using first one" );
 
       // TODO: choose device
-      // pre-allocate device
-      char chunk[const_data->devices[0].dd_size];
       
-      WD wd( ( DD* ) const_data->devices[0].factory( chunk, const_data->devices[0].arg ), data_size, const_data->data_alignment, data, const_data->num_copies, copies );
+      WD wd( ( DD* ) const_data->devices[0].factory( const_data->devices[0].arg ), data_size, const_data->data_alignment, data, const_data->num_copies, copies );
       wd.setTranslateArgs( translate_args );
 
       // set properties

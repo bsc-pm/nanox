@@ -128,6 +128,8 @@ namespace nanos
           */
          virtual DeviceData *copyTo ( void *addr ) = 0;
 
+         virtual DeviceData *clone () const = 0;
+
     };
 
    /*! \brief This class identifies a single unit of work
@@ -238,9 +240,7 @@ namespace nanos
           */
          virtual ~WorkDescriptor()
          {
-            for ( unsigned i = 0; i < _numDevices; i++ ) {
-               _devices[i]->~DeviceData();
-            }
+            for ( unsigned i = 0; i < _numDevices; i++ ) delete _devices[i];
          }
 
          /*! \brief Has this WorkDescriptor ever run?
