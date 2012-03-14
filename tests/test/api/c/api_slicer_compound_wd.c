@@ -111,7 +111,6 @@ nanos_const_wd_definition_t const_data1 =
    {
       {
          nanos_smp_factory,
-         0,//nanos_smp_dd_size,
          &main__section_1_device_args
       }
    }
@@ -129,7 +128,6 @@ nanos_const_wd_definition_t const_data2 =
    {
       {
          nanos_smp_factory,
-         0,//nanos_smp_dd_size,
          &main__section_2_device_args
       }
    }
@@ -147,7 +145,6 @@ nanos_const_wd_definition_t const_data3 =
    {
       {
          nanos_smp_factory,
-         0,//nanos_smp_dd_size,
          &main__section_3_device_args
       }
    }
@@ -165,7 +162,6 @@ nanos_const_wd_definition_t const_data4 =
    {
       {
          nanos_smp_factory,
-         0,//nanos_smp_dd_size,
          &main__section_4_device_args
       }
    }
@@ -207,7 +203,6 @@ int main ( int argc, char **argv )
       /* Creating section 1 wd */
       main__section_1_data_t *section_data_1 = NULL;
       const_data1.data_alignment = __alignof__(section_data_1);
-      const_data1.devices[0].dd_size = nanos_smp_dd_size;
       nanos_wd_dyn_props_t dyn_props = {0};
       NANOS_SAFE( nanos_create_wd_compact ( &wd[0], &const_data1, &dyn_props, sizeof(section_data_1), (void **) &section_data_1,
                                     nanos_current_wd(), NULL ) );
@@ -217,7 +212,6 @@ int main ( int argc, char **argv )
       /* Creating section 2 wd */
       main__section_2_data_t *section_data_2 = NULL;
       const_data2.data_alignment = __alignof__(section_data_2);
-      const_data2.devices[0].dd_size = nanos_smp_dd_size;
       NANOS_SAFE( nanos_create_wd_compact ( &wd[1], &const_data2, &dyn_props, sizeof(section_data_2), (void **) &section_data_2,
                                     nanos_current_wd(), NULL ) );
       /* Initializing section 2 data */
@@ -226,7 +220,6 @@ int main ( int argc, char **argv )
       /* Creating section 3 wd */
       main__section_3_data_t *section_data_3 = NULL;
       const_data3.data_alignment = __alignof__(section_data_3);
-      const_data3.devices[0].dd_size = nanos_smp_dd_size;
       NANOS_SAFE( nanos_create_wd_compact ( &wd[2], &const_data3, &dyn_props, sizeof(section_data_3), (void **) &section_data_3,
                                     nanos_current_wd(), NULL ) );
       /* Initializing section 3 data */
@@ -235,7 +228,6 @@ int main ( int argc, char **argv )
       /* Creating section 4 wd */
       main__section_4_data_t *section_data_4 = NULL;
       const_data4.data_alignment = __alignof__(section_data_4);
-      const_data4.devices[0].dd_size = nanos_smp_dd_size;
       NANOS_SAFE( nanos_create_wd_compact ( &wd[3], &const_data4, &dyn_props, sizeof(section_data_4), (void **) &section_data_4,
                                     nanos_current_wd(), NULL ) );
 

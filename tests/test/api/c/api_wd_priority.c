@@ -84,7 +84,6 @@ nanos_const_wd_definition_t const_data1 =
    {
       {
          nanos_smp_factory,
-         0,//nanos_smp_dd_size,
          &task_1_device_args
       }
    }
@@ -102,7 +101,6 @@ nanos_const_wd_definition_t const_data2 =
    {
       {
          nanos_smp_factory,
-         0,//nanos_smp_dd_size,
          &task_2_device_args
       }
    }
@@ -123,7 +121,6 @@ int main ( int argc, char **argv )
       
       task_arguments_t *section_data_1 = NULL;
       const_data1.data_alignment = __alignof__(section_data_1);
-      const_data1.devices[0].dd_size = nanos_smp_dd_size;
       NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1, &dyn_props, sizeof(section_data_1), (void **) &section_data_1,
                                 nanos_current_wd(), NULL ) );
       section_data_1->M = &A;
@@ -135,7 +132,6 @@ int main ( int argc, char **argv )
    {
       task_arguments_t *section_data_2 = NULL;
       const_data2.data_alignment = __alignof__(section_data_2);
-      const_data2.devices[0].dd_size = nanos_smp_dd_size;
       const_data2.props.priority = 100;
       nanos_wd_t wd = NULL;
       NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data2, &dyn_props, sizeof(section_data_2), (void **) &section_data_2,

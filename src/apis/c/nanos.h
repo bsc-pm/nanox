@@ -26,7 +26,7 @@
 
 #ifdef _MERCURIUM
 // define API version
-#pragma nanos interface family(master) version(5013)
+#pragma nanos interface family(master) version(5012)
 #pragma nanos interface family(worksharing) version(1000)
 #endif
 
@@ -176,8 +176,7 @@ NANOS_API_DECL(void, nanos_handle_error, ( nanos_err_t err ));
 // factories
    // smp
 NANOS_API_DECL(void *, nanos_smp_factory,( void *args));
-extern const size_t nanos_smp_dd_size;
-#define NANOS_SMP_DESC( args ) { nanos_smp_factory, nanos_smp_dd_size, &( args ) }
+#define NANOS_SMP_DESC( args ) { nanos_smp_factory, &( args ) }
 
 // instrumentation interface
 NANOS_API_DECL(nanos_err_t, nanos_instrument_register_key, ( nanos_event_key_t *event_key, const char *key, const char *description, bool abort_when_registered ));

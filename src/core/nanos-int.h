@@ -147,7 +147,7 @@ typedef struct {
 
 typedef struct {
   void * (*factory) (void *arg);
-  size_t dd_size;
+  //size_t dd_size;
   void * arg;
 } nanos_device_t;
 

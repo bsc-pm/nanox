@@ -37,8 +37,7 @@ extern "C" {
 #endif
 
 void * nanos_gpu_factory( void *prealloc , void *args );
-extern const size_t nanos_gpu_dd_size;
-#define NANOS_GPU_DESC( args ) { nanos_gpu_factory, nanos_gpu_dd_size, &( args ) }
+#define NANOS_GPU_DESC( args ) { nanos_gpu_factory, &( args ) }
 
 cudaStream_t nanos_get_kernel_execution_stream();
 
@@ -52,8 +51,7 @@ void nanos_free_pinned_cuda ( void * address );
 #if 0
    // gpu factory
 NANOS_API_DECL(void *, nanos_gpu_factory,( void *prealloc ,void *args));
-extern const size_t nanos_gpu_dd_size;
-#define NANOS_GPU_DESC( args ) { nanos_gpu_factory, nanos_gpu_dd_size, &( args ) }
+#define NANOS_GPU_DESC( args ) { nanos_gpu_factory, &( args ) }
 
 NANOS_API_DECL(cudaStream_t, nanos_get_kernel_execution_stream,());
 

@@ -30,9 +30,6 @@
 
 using namespace nanos;
 
-// TODO: move to dependent part
-const size_t nanos_smp_dd_size = sizeof(ext::SMPDD);
-
 NANOS_API_DEF(void *, nanos_smp_factory, ( void *args ))
 {
    nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;

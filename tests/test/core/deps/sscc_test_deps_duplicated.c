@@ -799,7 +799,6 @@ typedef struct {
 typedef struct 
 {
         void *(*factory)(void *prealloc, void *arg);
-        size_t dd_size;
         void *arg;
 } nanos_device_t;
 typedef enum 
@@ -950,9 +949,7 @@ nanos_err_t nanos_copy_value(void *dst, nanos_copy_id_t copy_id);
 nanos_err_t nanos_get_num_running_tasks(int *num);
 void nanos_handle_error(nanos_err_t err);
 void *nanos_smp_factory(void *prealloc, void *args);
-extern const size_t nanos_smp_dd_size;
 void *nanos_gpu_factory(void *prealloc, void *args);
-extern const size_t nanos_gpu_dd_size;
 nanos_err_t nanos_instrument_register_key(nanos_event_key_t *event_key, const char *key, const char *description, _Bool abort_when_registered);
 nanos_err_t nanos_instrument_register_value(nanos_event_value_t *event_value, const char *key, const char *value, const char *description, _Bool abort_when_registered);
 nanos_err_t nanos_instrument_get_key(const char *key, nanos_event_key_t *event_key);
@@ -995,7 +992,6 @@ nanos_const_wd_definition_t const_data =
    {
       {
          nanos_smp_factory,
-         0,//nanos_smp_dd_size,
          0
       }
    }
@@ -1015,7 +1011,6 @@ int main()
                 nanos_smp_args_t _ol_main_0_smp_args = {(void (*)(void *)) _smp__ol_main_0};
                 /*nanos_device_t _ol_main_0_devices[] = {{
                     nanos_smp_factory,
-                    nanos_smp_dd_size,
                     &_ol_main_0_smp_args
                 }};*/
                 _nx_data_env_0_t *ol_args = (_nx_data_env_0_t *) 0;
@@ -1024,7 +1019,6 @@ int main()
                 __builtin_memset(&const_data.props, 0, sizeof (const_data.props));
                 const_data.data_alignment =  __alignof__(_nx_data_env_0_t);
                 const_data.devices[0].arg = &_ol_main_0_smp_args;
-                const_data.devices[0].dd_size = nanos_smp_dd_size;
                 nanos_err_t err;
                 err = nanos_create_wd_compact(&wd, &const_data, &dyn_props, sizeof(_nx_data_env_0_t), (void **) &ol_args, nanos_current_wd(), (nanos_copy_data_t **) 0);
                 //err = nanos_create_wd(&wd, 1, _ol_main_0_devices, sizeof(_nx_data_env_0_t), __alignof__(_nx_data_env_0_t), (void **) &ol_args, nanos_current_wd(), &props, 0, (nanos_copy_data_t **) 0);

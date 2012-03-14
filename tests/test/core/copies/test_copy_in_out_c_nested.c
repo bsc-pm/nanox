@@ -60,7 +60,6 @@ nanos_const_wd_definition_t const_data1 =
    {
       {
          nanos_smp_factory,
-         0,//nanos_smp_dd_size,
          0
       }
    }
@@ -114,7 +113,6 @@ void submit_task( nanos_smp_args_t task, int intarg, int* text )
 
    nanos_wd_t wd1=0;
    nanos_wd_dyn_props_t dyn_props = {0};
-   const_data1.devices[0].dd_size = nanos_smp_dd_size;
    const_data1.devices[0].arg = &task;
    NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1, &dyn_props, sizeof(my_args), (void**)&args, nanos_current_wd(), &cd) );
 

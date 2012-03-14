@@ -565,7 +565,6 @@ nanos_const_wd_definition_t const_data1 =
    {
       {
          nanos_smp_factory,
-         0,//nanos_smp_dd_size,
          &cilkmerge_par_1_device_arg
       }
    }
@@ -636,7 +635,6 @@ void cilkmerge_par(ELM *low1, ELM *high1, ELM *low2, ELM *high2, ELM *lowdest)
 
          cilkmerge_par_1_args *args_w1 = NULL;
          cilkmerge_par_1_args *args_w2 = NULL;
-         const_data1.devices[0].dd_size = nanos_smp_dd_size;
 
          NANOS_SAFE( nanos_create_wd_compact ( &wd[0], &const_data1, &dyn_props, sizeof( cilkmerge_par_1_args ),
                                        ( void ** )&args_w1, nanos_current_wd(), NULL ) );
@@ -775,7 +773,6 @@ nanos_const_wd_definition_t const_data2 =
    {
       {
          nanos_smp_factory,
-         0,//nanos_smp_dd_size,
          &cilksort_par_1_device_arg
       }
    }
@@ -822,7 +819,6 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
          cilksort_par_1_args *args_w1 = NULL;
          cilksort_par_1_args *args_w2 = NULL;
          cilksort_par_1_args *args_w3 = NULL;
-         const_data2.devices[0].dd_size = nanos_smp_dd_size;
 
          NANOS_SAFE( nanos_create_wd_compact ( &wd[0], &const_data2, &dyn_props, sizeof( cilksort_par_1_args ),
                                        ( void ** )&args_w0, nanos_current_wd(), NULL ) );

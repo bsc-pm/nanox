@@ -90,7 +90,6 @@ nanos_const_wd_definition_t const_data2 =
    {
       {
          nanos_smp_factory,
-         0,//nanos_smp_dd_size,
          &main__task_2_device_args
       }
    }
@@ -116,7 +115,6 @@ void main__task_1 ( void *args )
    for (i = 0; i < 10; i++ ) {
       nanos_wd_t wd = NULL;
       main__task_2_data_t *task_data = NULL;
-      const_data2.devices[0].dd_size = nanos_smp_dd_size;
 
       NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data2, &dyn_props, sizeof( main__task_2_data_t ),
                                     (void **) &task_data, nanos_current_wd(), NULL ));
@@ -155,7 +153,6 @@ nanos_const_wd_definition_t const_data1 =
    {
       {
          nanos_smp_factory,
-         0,//nanos_smp_dd_size,
          &main__task_1_device_args
       }
    }
@@ -166,7 +163,6 @@ int main ( int argc, char **argv )
 
    nanos_wd_t wd = NULL;
    main__task_1_data_t *task_data = NULL;
-   const_data1.devices[0].dd_size = nanos_smp_dd_size;
 
    NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1, &dyn_props, sizeof( main__task_1_data_t ),
                                     (void **) &task_data, nanos_current_wd(), NULL ));

@@ -78,7 +78,6 @@ nanos_const_wd_definition_t const_data1 =
    {
       {
          nanos_smp_factory,
-         0,//nanos_smp_dd_size,
          &fib_device_arg_1
       }
    }
@@ -97,7 +96,6 @@ nanos_const_wd_definition_t const_data2 =
    {
       {
          nanos_smp_factory,
-         0,//nanos_smp_dd_size,
          &fib_device_arg_2
       }
    }
@@ -114,7 +112,6 @@ int fib ( int n, int d )
    {
       nanos_wd_t wd=0;
       fib_args *args=0;
-      const_data1.devices[0].dd_size = nanos_smp_dd_size;
 
       nanos_wd_dyn_props_t dyn_props = {0};
 
@@ -135,7 +132,6 @@ int fib ( int n, int d )
    {
       nanos_wd_t wd=0;
       fib_args *args=0;
-      const_data2.devices[0].dd_size = nanos_smp_dd_size;
 
       nanos_wd_dyn_props_t dyn_props = {0};
 
