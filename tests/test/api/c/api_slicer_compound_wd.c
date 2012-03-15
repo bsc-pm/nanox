@@ -98,6 +98,14 @@ nanos_smp_args_t main__section_4_device_args = { main__section_4 };
 void main__sections ( void *p_args ) { fprintf(stderr,"es\n"); }
 
 /* ************** CONSTANT PARAMETERS IN WD CREATION ******************** */
+
+
+struct nanos_const_wd_definition_1
+{
+     nanos_const_wd_definition_t base;
+     nanos_device_t devices[1];
+};
+
 nanos_const_wd_definition_t const_data1 = 
 {
    {

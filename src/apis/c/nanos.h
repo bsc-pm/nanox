@@ -41,12 +41,11 @@ typedef void * nanos_dd_t;
 typedef void * nanos_sync_cond_t;
 typedef unsigned int nanos_copy_id_t;
 
-typedef struct {
+typedef struct nanos_const_wd_definition_tag {
    nanos_wd_props_t props;
    size_t data_alignment;
    size_t num_copies;
    size_t num_devices;
-   nanos_device_t devices[];
 } nanos_const_wd_definition_t;
 
 typedef struct {
