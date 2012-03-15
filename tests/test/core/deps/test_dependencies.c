@@ -53,16 +53,23 @@ nanos_smp_args_t test_device_arg_1 = { first };
 nanos_smp_args_t test_device_arg_2 = { second };
 
 /* ************** CONSTANT PARAMETERS IN WD CREATION ******************** */
-nanos_const_wd_definition_t const_data1 = 
+
+struct nanos_const_wd_definition_1
 {
-   {
+     nanos_const_wd_definition_t base;
+     nanos_device_t devices[1];
+};
+
+struct nanos_const_wd_definition_1 const_data1 = 
+{
+   {{
       .mandatory_creation = true,
       .tied = false,
       .priority = 0
    },
    0,//__alignof__(section_data_1),
    0,
-   1,
+   1},
    {
       {
          nanos_smp_factory,
@@ -71,16 +78,16 @@ nanos_const_wd_definition_t const_data1 =
    }
 };
 
-nanos_const_wd_definition_t const_data2 = 
+struct nanos_const_wd_definition_1 const_data2 = 
 {
-   {
+   {{
       .mandatory_creation = true,
       .tied = false,
       .priority = 0
    },
    0,//__alignof__(section_data_1),
    0,
-   1,
+   1},
    {
       {
          nanos_smp_factory,
@@ -97,14 +104,14 @@ int main ( int argc, char **argv )
    
    nanos_wd_t wd1=0;
    nanos_wd_dyn_props_t dyn_props = {0};
-   const_data1.data_alignment = 1;
-   NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1, &dyn_props, 0, NULL, nanos_current_wd(), NULL ) );
+   const_data1.base.data_alignment = 1;
+   NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1.base, &dyn_props, 0, NULL, nanos_current_wd(), NULL ) );
    NANOS_SAFE( nanos_submit( wd1,1,&deps,0 ) );
 
 
    nanos_wd_t wd2=0;
-   const_data2.data_alignment = 1;
-   NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data2, &dyn_props, 0, NULL, nanos_current_wd(), NULL ) );
+   const_data2.base.data_alignment = 1;
+   NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data2.base, &dyn_props, 0, NULL, nanos_current_wd(), NULL ) );
    NANOS_SAFE( nanos_submit( wd2,1,&deps,0 ) );
 
 

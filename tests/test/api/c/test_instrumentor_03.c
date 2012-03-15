@@ -67,16 +67,23 @@ nanos_smp_args_t fib_device_arg_1 = { fib_1 };
 nanos_smp_args_t fib_device_arg_2 = { fib_2 };
 
 /* ************** CONSTANT PARAMETERS IN WD CREATION ******************** */
-nanos_const_wd_definition_t const_data1 = 
+
+struct nanos_const_wd_definition_1
 {
-   {
+     nanos_const_wd_definition_t base;
+     nanos_device_t devices[1];
+};
+
+struct nanos_const_wd_definition_1 const_data1 = 
+{
+   {{
       .mandatory_creation = true,
       .tied = false,
       .priority = 0
    },
    __alignof__(fib_args),
    0,
-   1,
+   1},
    {
       {
          nanos_smp_factory,
@@ -84,16 +91,16 @@ nanos_const_wd_definition_t const_data1 =
       }
    }
 };
-nanos_const_wd_definition_t const_data2 = 
+struct nanos_const_wd_definition_1 const_data2 = 
 {
-   {
+   {{
       .mandatory_creation = true,
       .tied = false,
       .priority = 0
    },
    __alignof__(fib_args),
    0,
-   1,
+   1},
    {
       {
          nanos_smp_factory,
@@ -124,7 +131,7 @@ int fib ( int n, int d )
          nanos_wd_t wd=0;
          fib_args *args=0;
 
-         NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1, &dyn_props, sizeof( fib_args ),
+         NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1.base, &dyn_props, sizeof( fib_args ),
                                        ( void ** )&args, nanos_current_wd(), NULL ) );
          args->n = n;
          args->d = d;
@@ -139,7 +146,7 @@ int fib ( int n, int d )
          nanos_wd_t wd=0;
          fib_args *args=0;
 
-         NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1, &dyn_props, sizeof( fib_args ),
+         NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1.base, &dyn_props, sizeof( fib_args ),
                                        ( void ** )&args, nanos_current_wd(), NULL ) );
          args->n = n;
          args->d = d;
