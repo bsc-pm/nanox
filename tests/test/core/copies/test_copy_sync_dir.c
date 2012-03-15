@@ -96,6 +96,13 @@ nanos_smp_args_t test_device_arg_1 = { first };
 nanos_smp_args_t test_device_arg_2 = { second };
 
 /* ************** CONSTANT PARAMETERS IN WD CREATION ******************** */
+
+struct nanos_const_wd_definition_1
+{
+     nanos_const_wd_definition_t base;
+     nanos_device_t devices[1];
+};
+
 struct nanos_const_wd_definition_1 const_data1 = 
 {
    {{
