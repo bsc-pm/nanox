@@ -334,6 +334,8 @@ run_gen_test ()
    local exec_versions=
    local compile_versions=
    local test_schedule=
+   local test_deps_plugins=
+   local generator_args=
    clean_test_vars
    clean_${type}_compile_vars
    clean_exec_vars
@@ -360,11 +362,14 @@ run_gen_test ()
    if [ "$test_schedule" ]; then
       export NX_TEST_SCHEDULE="$test_schedule"
    fi
+   if [ "$test_deps_plugins" ]; then
+      generator_args="-d $test_deps_plugins"
+   fi
 
    if [ "$test_generator" ]; then
       debug "Using version generator $test_generator"
       export TEST_SOURCE=$source
-      $basedir/$test_generator > $tmpfile
+      $basedir/$test_generator $generator_args > $tmpfile
       unset TEST_SOURCE
       source $tmpfile >> $logfile
       if [ "$compile_versions" -a ! "$test_ignore" ]; then
