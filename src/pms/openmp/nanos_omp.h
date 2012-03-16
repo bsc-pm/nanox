@@ -44,6 +44,7 @@ nanos_err_t nanos_omp_set_implicit ( nanos_wd_t uwd );
 int nanos_omp_get_max_threads ( void );
 
 nanos_ws_t nanos_omp_find_worksharing( omp_sched_t kind );
+nanos_err_t nanos_omp_get_schedule ( omp_sched_t *kind, int *modifier );
 
 #ifdef __cplusplus
 }
