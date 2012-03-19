@@ -27,6 +27,8 @@ class WorkSharingStaticFor : public WorkSharing {
 
          (*wsd)->ws = this;
 
+         debug("Loop create -> lower: " << loop_info->lower_bound << " upper: " << loop_info->upper_bound << " step: " << loop_info->loop_step << " chunk size: " << loop_info->chunk_size );
+
          return myThread->getTeam()->singleGuard( myThread->getTeamData()->nextSingleGuard() );
       }
 
@@ -87,6 +89,7 @@ class WorkSharingStaticFor : public WorkSharing {
          }
 
          loop_item->execute = (loop_item->lower * sign) < (loop_item->upper * sign);
+         debug("Loop next item -> lower: " << loop_item->lower << " upper: " << loop_item->upper );
       }
 
    

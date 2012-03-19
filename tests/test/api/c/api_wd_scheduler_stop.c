@@ -53,21 +53,26 @@ nanos_smp_args_t main__section_1_device_args = { main__section_1 };
 /* ******************************* SECTIONS ***************************** */
 
 /* ************** CONSTANT PARAMETERS IN WD CREATION ******************** */
-nanos_const_wd_definition_t const_data1 = 
+
+struct nanos_const_wd_definition_1
 {
-   {
+     nanos_const_wd_definition_t base;
+     nanos_device_t devices[1];
+};
+
+struct nanos_const_wd_definition_1 const_data1 = 
+{
+   {{
       .mandatory_creation = true,
       .tied = false,
-      .tie_to = false,
       .priority = 0
    },
    0,//__alignof__(section_data_1),
    0,
-   1,
+   1},
    {
       {
          nanos_smp_factory,
-         0,//nanos_smp_dd_size,
          &main__section_1_device_args
       }
    }
@@ -82,24 +87,23 @@ int main ( int argc, char **argv )
    nanos_wd_props_t props = {
       .mandatory_creation = true,
       .tied = false,
-      .tie_to = false,
       .priority = 0
    };
    
    omp_init_lock( &mylock );
 
    // Repeat the test NUM_RUNS times
+   nanos_wd_dyn_props_t dyn_props = {0};
    int testNumber;
    for ( testNumber = 0; testNumber < NUM_RUNS; ++testNumber ) {
       NANOS_SAFE( nanos_stop_scheduler() );
       A = 0;
       nanos_wd_t wd[4] = { NULL, NULL, NULL, NULL };
-   
+
       /* Creating section 1 wd */
       main__section_1_data_t *section_data_1 = NULL;
-      const_data1.data_alignment = __alignof__(section_data_1);
-      const_data1.devices[0].dd_size = nanos_smp_dd_size;
-      NANOS_SAFE( nanos_create_wd_compact ( &wd[0], &const_data1, sizeof(section_data_1), (void **) &section_data_1,
+      const_data1.base.data_alignment = __alignof__(section_data_1);
+      NANOS_SAFE( nanos_create_wd_compact ( &wd[0], &const_data1.base, &dyn_props, sizeof(section_data_1), (void **) &section_data_1,
                                 nanos_current_wd(), NULL ) );
    
       NANOS_SAFE( nanos_submit( wd[0],0,0,0 ) );

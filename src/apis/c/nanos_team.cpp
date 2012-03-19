@@ -34,11 +34,11 @@ NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_
       if ( *team ) warning( "pre-allocated team not supported yet" );
       if ( sp ) warning ( "selecting scheduling policy not supported yet");
 
-     /* fourth parameter is equal to false because related threads are not entering new team.
-      * They must enter explicetely by calling thread->enterTeam()
-      * fifth parameter is equal to true because threads will be all stars
+     /* - fourth and fifth parameters are equal to false because related threads are not entering new team.
+      *      They must explicetely enter by calling thread->enterTeam()
+      * - sixth and seventh parameter are equal to 'true' because threads will be all starring team
       */
-      ThreadTeam *new_team = sys.createTeam( *nthreads,constraints,reuse,false,true );
+      ThreadTeam *new_team = sys.createTeam( *nthreads, constraints, reuse, false, false, true, true );
 
       *team = new_team;
 

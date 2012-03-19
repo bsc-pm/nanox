@@ -67,45 +67,50 @@ nanos_smp_args_t fib_device_arg_1 = { fib_1 };
 nanos_smp_args_t fib_device_arg_2 = { fib_2 };
 
 /* ************** CONSTANT PARAMETERS IN WD CREATION ******************** */
-nanos_const_wd_definition_t const_data1 = 
+
+struct nanos_const_wd_definition_1
 {
-   {
+     nanos_const_wd_definition_t base;
+     nanos_device_t devices[1];
+};
+
+struct nanos_const_wd_definition_1 const_data1 = 
+{
+   {{
       .mandatory_creation = true,
       .tied = false,
-      .tie_to = false,
       .priority = 0
    },
    __alignof__(fib_args),
    0,
-   1,
+   1},
    {
       {
          nanos_smp_factory,
-         0,//nanos_smp_dd_size,
          &fib_device_arg_1
       }
    }
 };
 
-nanos_const_wd_definition_t const_data2 = 
+struct nanos_const_wd_definition_1 const_data2 = 
 {
-   {
+   {{
       .mandatory_creation = true,
       .tied = false,
-      .tie_to = false,
       .priority = 0
    },
    __alignof__(fib_args),
    0,
-   1,
+   1},
    {
       {
          nanos_smp_factory,
-         0,//nanos_smp_dd_size,
          &fib_device_arg_2
       }
    }
 };
+
+nanos_wd_dyn_props_t dyn_props = {0};
 
 int fib ( int n, int d )
 {
@@ -119,9 +124,8 @@ int fib ( int n, int d )
       {
          nanos_wd_t wd=0;
          fib_args *args=0;
-         const_data1.devices[0].dd_size = nanos_smp_dd_size;
 
-         NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1, sizeof( fib_args ), ( void ** )&args,
+         NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1.base, &dyn_props, sizeof( fib_args ), ( void ** )&args,
                                               nanos_current_wd(), NULL ) );
          args->n = n;
          args->d = d;
@@ -135,9 +139,8 @@ int fib ( int n, int d )
       {
          nanos_wd_t wd=0;
          fib_args *args=0;
-         const_data2.devices[0].dd_size = nanos_smp_dd_size;
 
-         NANOS_SAFE( nanos_create_wd_compact ( &wd,  &const_data2, sizeof( fib_args ), ( void ** )&args,
+         NANOS_SAFE( nanos_create_wd_compact ( &wd,  &const_data2.base, &dyn_props, sizeof( fib_args ), ( void ** )&args,
                                               nanos_current_wd(), NULL ) );
          args->n = n;
          args->d = d;

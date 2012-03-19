@@ -138,13 +138,16 @@ typedef struct {
    bool reserved3:1;
    bool reserved4:1;
    bool reserved5:1;
-   nanos_thread_t tie_to;
    unsigned int priority;
 } nanos_wd_props_t;
 
 typedef struct {
-  void * (*factory) (void *prealloc, void *arg);
-  size_t dd_size;
+   nanos_thread_t tie_to;
+} nanos_wd_dyn_props_t;
+
+typedef struct {
+  void * (*factory) (void *arg);
+  //size_t dd_size;
   void * arg;
 } nanos_device_t;
 
