@@ -71,4 +71,5 @@ nanos_err_t nanos_omp_get_schedule ( omp_sched_t *kind, int *modifier )
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
+   return NANOS_OK;
 }
