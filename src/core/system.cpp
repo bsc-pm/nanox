@@ -358,8 +358,6 @@ void System::start ()
    if ( getSynchronizedStart() )   
      threadReady();
 
-   myThread->setStar();
-
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_RUNNING) );
 }
@@ -971,8 +969,8 @@ void System::releaseWorker ( BaseThread * thread )
    team->removeThread(thread_id);
 }
 
-ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints,
-                                   bool reuseCurrent, bool enterTeam, bool starred_threads )
+ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints, bool reuseCurrent,
+                                  bool enterCurrent, bool enterOthers, bool starringCurrent, bool starringOthers )
 {
    int thId;
    TeamData *data;
@@ -1000,10 +998,10 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints,
       
       nthreads --;      
 
-      thId = team->addThread( current, starred_threads, true );
+      thId = team->addThread( current, starringCurrent, true );
 
       data = NEW TeamData();
-      data->setStar(starred_threads);
+      data->setStar(starringCurrent);
 
       ScheduleThreadData* sthdata = 0;
       if ( sched->getThreadDataSize() > 0 )
@@ -1014,7 +1012,7 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints,
       data->setScheduleData(sthdata);
       data->setParentTeamData(current->getTeamData());
       
-      if ( enterTeam ) current->enterTeam( data );
+      if ( enterCurrent ) current->enterTeam( data );
       else current->setNextTeamData( data );
 
 
@@ -1030,10 +1028,10 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints,
       }
 
       nthreads--;
-      thId = team->addThread( thread, starred_threads );
+      thId = team->addThread( thread, starringOthers );
 
       data = NEW TeamData();
-      data->setStar(starred_threads);
+      data->setStar(starringOthers);
 
       ScheduleThreadData *sthdata = 0;
       if ( sched->getThreadDataSize() > 0 )
@@ -1043,7 +1041,7 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints,
       data->setTeam(team);
       data->setScheduleData(sthdata);
       
-      if ( enterTeam ) thread->enterTeam( data );
+      if ( enterOthers ) thread->enterTeam( data );
       else thread->setNextTeamData( data );
 
       debug( "added thread " << thread << " with id " << toString<int>(thId) << " to " << thread->getTeam() );
