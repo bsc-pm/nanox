@@ -7,3 +7,4 @@ plugins/instrumentation
 plugins/barr
 plugins/deps
 arch/smp
+arch/gpu

@@ -27,14 +27,12 @@
 
 namespace nanos
 {
-
   /* \class WorkGroup
    *
    */
    class WorkGroup
    {
       private:
-         static Atomic<int> _atomicSeed;
          typedef std::vector<WorkGroup *> WGList; // FIXME: vector is not a safe-class here
 
       private:
@@ -58,9 +56,7 @@ namespace nanos
 
          /*! \brief WorkGroup default constructor
           */
-         WorkGroup()
-            : _id( _atomicSeed++ ), _components( 0 ), 
-            _syncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL) {  }
+         WorkGroup();
 
          /*! \brief WorkGroup copy constructor
           */

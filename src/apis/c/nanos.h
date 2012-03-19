@@ -23,12 +23,11 @@
 #include <unistd.h>
 #include "nanos-int.h"
 
-#ifdef GPU_DEV
-#include "gpuprocessor.hpp"
-#endif
 
 #ifdef _MERCURIUM
 // define API version
+//#pragma nanos interface family(master) version(5012)
+#pragma nanos interface family(worksharing) version(1000)
 #pragma nanos interface family(master) version(6010)
 #pragma nanos interface family(deps_api) version(1000)
 #endif
@@ -43,6 +42,13 @@ typedef void * nanos_slicer_t;
 typedef void * nanos_dd_t;
 typedef void * nanos_sync_cond_t;
 typedef unsigned int nanos_copy_id_t;
+
+typedef struct nanos_const_wd_definition_tag {
+   nanos_wd_props_t props;
+   size_t data_alignment;
+   size_t num_copies;
+   size_t num_devices;
+} nanos_const_wd_definition_t;
 
 typedef struct {
    int nthreads;
@@ -80,23 +86,25 @@ extern "C" {
 NANOS_API_DECL(nanos_wd_t, nanos_current_wd, (void));
 NANOS_API_DECL(int, nanos_get_wd_id, (nanos_wd_t wd));
 
+// Finder functions
 NANOS_API_DECL(nanos_slicer_t, nanos_find_slicer, ( const char * slicer ));
+NANOS_API_DECL(nanos_ws_t, nanos_find_worksharing, ( const char * label ) );
 
-NANOS_API_DECL(nanos_err_t, nanos_create_wd, ( nanos_wd_t *wd, size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align,
-                              void ** data, nanos_wg_t wg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies ));
+NANOS_API_DECL(nanos_err_t, nanos_create_wd_compact, ( nanos_wd_t *wd, nanos_const_wd_definition_t *const_data, nanos_wd_dyn_props_t *dyn_props,
+                                                       size_t data_size, void ** data, nanos_wg_t wg, nanos_copy_data_t **copies ));
 
 NANOS_API_DECL(nanos_err_t, nanos_set_translate_function, ( nanos_wd_t wd, nanos_translate_args_t translate_args ));
 
 NANOS_API_DECL(nanos_err_t, nanos_create_sliced_wd, ( nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices,
                                      size_t outline_data_size, int outline_data_align,
                                      void **outline_data, nanos_wg_t uwg, nanos_slicer_t slicer,
-                                     nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies ));
+                                     nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props, size_t num_copies, nanos_copy_data_t **copies ));
 
 NANOS_API_DECL(nanos_err_t, nanos_submit, ( nanos_wd_t wd, size_t num_data_accesses, nanos_data_access_t *data_accesses, nanos_team_t team ));
 
-NANOS_API_DECL(nanos_err_t, nanos_create_wd_and_run, ( size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align, void * data,
-                                      size_t num_data_accesses, nanos_data_access_t *data_accesses, nanos_wd_props_t *props,
-                                      size_t num_copies, nanos_copy_data_t *copies, nanos_translate_args_t translate_args ));
+NANOS_API_DECL(nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_definition_t *const_data, nanos_wd_dyn_props_t *dyn_props,
+                                                               size_t data_size, void * data, size_t num_data_accesses, nanos_data_access_t *data_accesses,
+                                                               nanos_copy_data_t *copies, nanos_translate_args_t translate_args ));
 
 NANOS_API_DECL(nanos_err_t, nanos_create_for, ( void ));
 
@@ -119,6 +127,15 @@ NANOS_API_DECL(nanos_err_t, nanos_end_team, ( nanos_team_t team ));
 NANOS_API_DECL(nanos_err_t, nanos_team_barrier, ( void ));
 
 NANOS_API_DECL(nanos_err_t, nanos_single_guard, ( bool *));
+
+NANOS_API_DECL(nanos_err_t, nanos_team_get_num_starring_threads, ( int *n ) );
+NANOS_API_DECL(nanos_err_t, nanos_team_get_starring_threads, ( int *n, nanos_thread_t *list_of_threads ) );
+NANOS_API_DECL(nanos_err_t, nanos_team_get_num_supporting_threads, ( int *n ) );
+NANOS_API_DECL(nanos_err_t, nanos_team_get_supporting_threads, ( int *n, nanos_thread_t *list_of_threads) );
+
+// worksharing
+NANOS_API_DECL(nanos_err_t, nanos_worksharing_create ,( nanos_ws_desc_t **wsd, nanos_ws_t ws, nanos_ws_info_t *info, bool *b ) );
+NANOS_API_DECL(nanos_err_t, nanos_worksharing_next_item, ( nanos_ws_desc_t *wsd, nanos_ws_item_t *wsi ) );
 
 // sync
 
@@ -159,22 +176,8 @@ NANOS_API_DECL(void, nanos_handle_error, ( nanos_err_t err ));
 
 // factories
    // smp
-NANOS_API_DECL(void *, nanos_smp_factory,( void *prealloc ,void *args));
-extern const size_t nanos_smp_dd_size;
-#define NANOS_SMP_DESC( args ) { nanos_smp_factory, nanos_smp_dd_size, &( args ) }
-
-   // gpu
-NANOS_API_DECL(void *, nanos_gpu_factory,( void *prealloc ,void *args));
-extern const size_t nanos_gpu_dd_size;
-#define NANOS_GPU_DESC( args ) { nanos_gpu_factory, nanos_gpu_dd_size, &( args ) }
-
-#ifdef GPU_DEV
-NANOS_API_DECL(cudaStream_t, nanos_get_kernel_execution_stream,());
-#else
-#ifdef __CUDACC__
-NANOS_API_DECL(cudaStream_t, nanos_get_kernel_execution_stream,());
-#endif
-#endif
+NANOS_API_DECL(void *, nanos_smp_factory,( void *args));
+#define NANOS_SMP_DESC( args ) { nanos_smp_factory, &( args ) }
 
 // instrumentation interface
 NANOS_API_DECL(nanos_err_t, nanos_instrument_register_key, ( nanos_event_key_t *event_key, const char *key, const char *description, bool abort_when_registered ));

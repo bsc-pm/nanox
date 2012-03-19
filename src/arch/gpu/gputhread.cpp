@@ -24,6 +24,13 @@
 #include "system.hpp"
 
 #include <cuda_runtime.h>
+#ifdef NANOS_GPU_USE_CUDA32
+extern void cublasShutdown();
+extern void cublasSetKernelStream( cudaStream_t );
+#else
+#include <cublas.h>
+#include <cublas_v2.h>
+#endif
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -38,23 +45,6 @@ void GPUThread::initializeDependent ()
    if ( err != cudaSuccess )
       warning( "Couldn't set the GPU device for the thread: " << cudaGetErrorString( err ) );
 
-   // Configure some GPU device flags
-   if ( GPUConfig::getTransferMode() == NANOS_GPU_TRANSFER_PINNED_CUDA
-         || GPUConfig::getTransferMode() == NANOS_GPU_TRANSFER_WC ) {
-      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_SET_DEVICE_FLAGS_EVENT );
-      err = cudaSetDeviceFlags( cudaDeviceMapHost | cudaDeviceBlockingSync );
-      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-      if ( err != cudaSuccess )
-         warning( "Couldn't set the GPU device flags: " << cudaGetErrorString( err ) );
-   }
-   else {
-      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_SET_DEVICE_FLAGS_EVENT );
-      err = cudaSetDeviceFlags( cudaDeviceScheduleSpin );
-      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-      if ( err != cudaSuccess )
-         warning( "Couldn't set the GPU device flags:" << cudaGetErrorString( err ) );
-   }
-
    // Initialize GPUProcessor
    ( ( GPUProcessor * ) myThread->runningOn() )->init();
 
@@ -64,6 +54,24 @@ void GPUThread::initializeDependent ()
       cudaFree(0);
       NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
    }
+
+#ifndef NANOS_GPU_USE_CUDA32
+   // Initialize CUBLAS handle in case of potentially using CUBLAS
+   if ( GPUConfig::isCUBLASInitDefined() ) {
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_GENERIC_EVENT );
+      cublasStatus_t cublasErr = cublasCreate( ( cublasHandle_t * ) &_cublasHandle );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+      if ( cublasErr != CUBLAS_STATUS_SUCCESS ) {
+         if ( cublasErr == CUBLAS_STATUS_NOT_INITIALIZED ) {
+            warning( "Couldn't set the context handle for CUBLAS library: the CUDA Runtime initialization failed" );
+         } else if ( cublasErr == CUBLAS_STATUS_ALLOC_FAILED ) {
+            warning( "Couldn't set the context handle for CUBLAS library: the resources could not be allocated" );
+         } else {
+            warning( "Couldn't set the context handle for CUBLAS library: unknown error" );
+         }
+      }
+   }
+#endif
 
    // Reset CUDA errors that may have occurred inside the runtime initialization
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT );
@@ -79,7 +87,16 @@ void GPUThread::runDependent ()
    setCurrentWD( work );
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
    dd.getWorkFct()( work.getData() );
-   ( ( GPUProcessor * ) myThread->runningOn() )->getGPUProcessorInfo()->destroyTransferStreams();
+
+   if ( GPUConfig::isCUBLASInitDefined() ) {
+#ifdef NANOS_GPU_USE_CUDA32
+      cublasShutdown();
+#else
+      cublasDestroy( ( cublasHandle_t ) _cublasHandle );
+#endif
+   }
+
+   ( ( GPUProcessor * ) myThread->runningOn() )->cleanUp();
 }
 
 void GPUThread::inlineWorkDependent ( WD &wd )
@@ -115,8 +132,12 @@ void GPUThread::inlineWorkDependent ( WD &wd )
 
    if ( !GPUConfig::isOverlappingOutputsDefined() && !GPUConfig::isOverlappingInputsDefined() ) {
       // Wait for the GPU kernel to finish
-      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_THREAD_SYNC_EVENT );
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_DEVICE_SYNC_EVENT );
+#ifdef NANOS_GPU_USE_CUDA32
       cudaThreadSynchronize();
+#else
+      cudaDeviceSynchronize();
+#endif
       NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
       // Normally this instrumentation code is inserted by the compiler in the task outline.
@@ -161,12 +182,14 @@ void GPUThread::inlineWorkDependent ( WD &wd )
 
 void GPUThread::yield()
 {
+   cudaFree(0);
    ( ( GPUProcessor * ) runningOn() )->getInTransferList()->executeMemoryTransfers();
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->executeMemoryTransfers();
 }
 
 void GPUThread::idle()
 {
+   cudaFree(0);
    ( ( GPUProcessor * ) runningOn() )->getInTransferList()->executeMemoryTransfers();
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->removeMemoryTransfer();
 }

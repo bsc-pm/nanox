@@ -20,6 +20,7 @@
 #ifndef _NANOS_DIRECTORY_H
 #define _NANOS_DIRECTORY_H
 
+#include "system.hpp"
 #include "directory_decl.hpp"
 #include "hashmap.hpp"
 #include "cache_decl.hpp"
@@ -173,7 +174,7 @@ inline void Directory::registerAccess( uint64_t tag, size_t size, bool input, bo
       if ( input ) {
          Cache *c = de->getOwner();
          if ( c != NULL ) {
-            c->invalidate( *this, tag, size, de );
+            c->invalidateAndFlush( *this, tag, size, de );
          }
       } 
       if ( output ) {
@@ -218,8 +219,19 @@ inline void Directory::unRegisterAccess( uint64_t tag, bool output, Directory* c
 inline void Directory::waitInput( uint64_t tag, bool output )
 {
    DirectoryEntry *de = _directory.find( tag );
+
    if ( de != NULL ) { // The entry may have never been registered
-      while ( de->getOwner() != NULL ) {}
+      BaseThread *thread = getMyThreadSafe();
+      const int nspins = sys.getSchedulerConf().getNumSpins();
+      int spins = nspins; 
+
+      while ( de->getOwner() != NULL ) {
+         if ( spins == 0 ) {
+            if ( sys.useYield() ) thread->yield();
+            spins = nspins; 
+         }
+         else spins--;
+      }
    }
 }
 
@@ -234,8 +246,8 @@ inline void Directory::synchronizeHost()
          // Invalidate all non-dirty copies
          de.setVersion( de.getVersion()+1 );
       } else {
-         // Froce copy back
-         c->invalidate( *this, de.getTag(), &de );
+         // Force copy back
+         c->invalidateAndFlush( *this, de.getTag(), &de );
          flushings.push_back( &de );
       }
       it++;
@@ -244,8 +256,18 @@ inline void Directory::synchronizeHost()
       DirectoryEntry *de = *deIt;
       Cache *c = de->getOwner();
       if ( c != NULL ) {
+         BaseThread *thread = getMyThreadSafe();
+         const int nspins = sys.getSchedulerConf().getNumSpins();
+         int spins = nspins; 
+
          c->syncTransfer( de->getTag() );
-         while (  de->getOwner() != NULL ) {}
+         while ( de->getOwner() != NULL ) {
+            if ( spins == 0 ) {
+               if ( sys.useYield() ) thread->yield();
+               spins = nspins; 
+            }
+            else spins--;
+         }
       }
       de->setVersion( de->getVersion()+1 );
    }
@@ -272,8 +294,18 @@ inline void Directory::synchronizeHost( std::list<uint64_t> syncTags )
       DirectoryEntry *de = *deIt;
       Cache *c = de->getOwner();
       if ( c != NULL ) {
+         BaseThread *thread = getMyThreadSafe();
+         const int nspins = sys.getSchedulerConf().getNumSpins();
+         int spins = nspins; 
+
          c->syncTransfer( de->getTag() );
-         while (  de->getOwner() != NULL ) {}
+         while ( de->getOwner() != NULL ) {
+            if ( spins == 0 ) {
+               if ( sys.useYield() ) thread->yield();
+               spins = nspins; 
+            }
+            else spins--;
+         }
       }
       de->setVersion( de->getVersion()+1 );
    }

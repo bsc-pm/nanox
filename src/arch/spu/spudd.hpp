@@ -37,6 +37,7 @@ namespace ext {
         SPUDD ( const SPUDD &dd ) : DD( dd ) {}
 
         SPUDD * copyTo ( void *toAddr );
+        virtual SPUDD *clone () const { NEW SPUDD(*this); }
    };
 
 }

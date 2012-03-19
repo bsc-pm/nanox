@@ -52,3 +52,10 @@ debug_sources = \
 	$(top_srcdir)/src/support/memtracker.cpp
         $(END)
 
+gpu_support_sources = \
+	$(top_srcdir)/src/support/pinnedallocator_decl.hpp \
+	$(top_srcdir)/src/support/pinnedallocator.hpp \
+	$(top_srcdir)/src/support/pinnedallocator.cpp \
+        $(END)
+	
+

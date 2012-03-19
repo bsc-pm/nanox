@@ -29,6 +29,8 @@ using namespace nanos;
 
 void WorkDescriptor::init ()
 {
+   if ( _state != INIT ) return;
+
    ProcessingElement *pe = myThread->runningOn();
 
    /* Initializing instrumentation context */
@@ -40,10 +42,13 @@ void WorkDescriptor::init ()
          _translateArgs( _data, this );
       }
    }
+   setStart();
 }
 
 void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
 {
+   ensure ( _state == START , "Trying to start a wd twice or trying to start an unitialized wd");
+
    _activeDevice->lazyInit(*this,isUserLevelThread,previous);
    
    ProcessingElement *pe = myThread->runningOn();

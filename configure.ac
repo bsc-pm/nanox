@@ -1,5 +1,5 @@
 
-AC_INIT([nanox], [0.6a], [alex.duran@bsc.es])
+AC_INIT([nanox], [0.7a], [alex.duran@bsc.es])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
 
 # Environment
@@ -69,10 +69,10 @@ case $host in
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=ia64
     ;;
-  armv7l-*-linux*)
+  armv71-*-linux*)
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
-    SMP_ARCH=armv7l
+    SMP_ARCH=armv71
     ;;
   powerpc-*-linux* | powerpc64-*-linux*)
     OS=unix-os
@@ -192,6 +192,15 @@ if test x$gpu_enabled = xyes ; then
             AC_SUBST([CUDA_INC])
             AC_SUBST([CUDA_LIB])
 
+            cuda_version_h="$CUDA_INC/cuda.h"
+            if test -e $cuda_version_h ;
+            then
+               cuda_version_string=`sed -ne '/^\s*#\s*define\s\+CUDA_VERSION .*$/p' $cuda_version_h`
+               cuda_version=`echo $cuda_version_string | sed -e 's/#define CUDA_VERSION \([0-9]*\).*$/\1/'`
+            else
+               cuda_version=0
+            fi
+
             gpu_valid=yes
         fi
     else
@@ -201,8 +210,8 @@ if test x$gpu_enabled = xyes ; then
 fi
 
 if test x$gpu_valid = xyes; then
-	CFLAGS="$CFLAGS -DGPU_DEV"
-	CXXFLAGS="$CXXFLAGS -DGPU_DEV"
+	CFLAGS="$CFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version"
+	CXXFLAGS="$CXXFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version"
 	ARCHITECTURES="$ARCHITECTURES gpu"
 fi
 
@@ -498,6 +507,11 @@ AC_CONFIG_FILES([Makefile
 		 src/plugins/instrumentation/debug/Makefile
 		 src/plugins/instrumentation/instrumentation/Makefile
 		 src/plugins/instrumentation/instrumentation-debug/Makefile
+		 src/plugins/worksharing/Makefile
+		 src/plugins/worksharing/performance/Makefile
+		 src/plugins/worksharing/debug/Makefile
+		 src/plugins/worksharing/instrumentation/Makefile
+		 src/plugins/worksharing/instrumentation-debug/Makefile
 		 src/plugins/deps/Makefile
 		 src/plugins/deps/performance/Makefile
 		 src/plugins/deps/debug/Makefile

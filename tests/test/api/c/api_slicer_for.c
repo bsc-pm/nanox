@@ -85,6 +85,7 @@ void main__loop_1 ( void *args )
 
 // compiler: smp device for main__loop_1 function
 nanos_smp_args_t main__loop_1_device_args = { main__loop_1 };
+nanos_wd_dyn_props_t dyn_props = {0};
 
 #define EXECUTE(slicer_type,lower2,upper2,k_offset,step2,chunk2)\
    for ( i = 0; i < NUM_ITERS; i++ ) { \
@@ -95,13 +96,12 @@ nanos_smp_args_t main__loop_1_device_args = { main__loop_1 };
       nanos_wd_props_t props = {\
          .mandatory_creation = true,\
          .tied = false,\
-         .tie_to = false,\
          .priority = 0\
       };\
       nanos_slicer_t slicer = nanos_find_slicer(slicer_type);\
 \
       NANOS_SAFE( nanos_create_sliced_wd ( &wd, 1, main__loop_1_device , sizeof( main__loop_1_data_t ), __alignof__(main__loop_1_data_t),\
-                                    (void **) &loop_data, nanos_current_wd(), slicer, &props , 0, NULL ));\
+                                    (void **) &loop_data, nanos_current_wd(), slicer, &props, &dyn_props, 0, NULL ));\
 \
       loop_data->offset = -k_offset;\
       loop_data->loop_info.upper = upper2+k_offset;\

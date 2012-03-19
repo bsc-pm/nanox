@@ -152,15 +152,15 @@ void Config::registerConfigOption ( const std::string &optionName, Option *optio
 
 void Config::registerAlias ( const std::string &optionName, const std::string &alias, const std::string &helpMessage )
 {
-   ConfigOption *option = _configOptions[optionName];
-   ConfigOption *aliasOption = NEW ConfigOption( alias, option->getOption(), helpMessage, _currentSection );
+   BaseConfigOption *option = _configOptions[optionName];
+   ConfigAliasOption *aliasOption = NEW ConfigAliasOption( alias, option->getOption(), helpMessage, _currentSection );
    _configOptions[alias] = aliasOption;
 }
 
 void Config::parseEnvironment ()
 {
    for ( ConfigOptionMap::iterator it = _configOptions.begin(); it != _configOptions.end(); it++ ) {
-      ConfigOption &confOpt = * ( it->second );
+      BaseConfigOption &confOpt = * ( it->second );
       if ( confOpt.getEnvVar() != "" ) {
          Option &opt = confOpt.getOption();
          opt.setName( confOpt.getEnvVar() );
@@ -285,7 +285,7 @@ void Config::setOptionsSection( const std::string &sectionName, const std::strin
 
 void Config::clear ()
 {
-   std::for_each( _configOptions.begin(),_configOptions.end(),pair_deleter2<ConfigOption> );
+   std::for_each( _configOptions.begin(),_configOptions.end(),pair_deleter2<BaseConfigOption> );
    _configOptions.clear();
    _argOptionsMap.clear();
 }
@@ -333,7 +333,7 @@ Config::~Config ()
    clear();
 }
 
-unsigned int Config::ConfigOption::getHelpLength()
+unsigned int Config::BaseConfigOption::getHelpLength()
 {
    std::string farg="";
    std::string fenv="";
@@ -356,7 +356,7 @@ unsigned int Config::ConfigOption::getHelpLength()
    else return farg.size();
 }
 
-Config::HelpTriplet Config::ConfigOption::getHelp()
+Config::HelpTriplet Config::BaseConfigOption::getHelp()
 {
    std::string fenv="";
    std::string farg="";

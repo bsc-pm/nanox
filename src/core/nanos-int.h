@@ -138,6 +138,34 @@ typedef struct {
    void *args;
 } nanos_loop_info_t;
 
+// C++ types hidden as void *
+typedef void * nanos_ws_t;      // type for a worksharing plugin
+typedef void * nanos_ws_info_t; // type for user provided information describing a worksharing (used in create service)
+typedef void * nanos_ws_data_t; // abstract type to specify all data needed for a worksharing construct (used internally to communicate all threads)
+typedef void * nanos_ws_item_t; // abstract type to specify a portion for a worksharing construct (used in next item service)
+
+typedef struct {
+   int           lower_bound;  // loop lower bound
+   int           upper_bound;  // loop upper bound
+   int           loop_step;    // loop step
+   int           chunk_size;   // loop chunk size
+} nanos_ws_info_loop_t; /* nanos_ws_info_t, specific loop data */
+
+typedef struct {
+   int   lower;      // loop item lower bound
+   int   upper;      // loop item upper bound
+   bool  execute:1;  // is a valid loop item?
+   bool  last:1;     // is the last loop item?
+} nanos_ws_item_loop_t; /* nanos_ws_item_t, specific loop data */
+
+typedef struct nanos_ws_desc {
+   volatile nanos_ws_t   ws;         // Worksharing plugin (specified at worksharing create service), API -> Worksharing plugin
+   nanos_ws_data_t       data;       // Worksharing plugin data (specified at worksharing create service), API -> Worksharing plugin
+   struct nanos_ws_desc *next;       // Sequence management: this is 'next' global enqueued worksharing descriptor, internal use
+   nanos_thread_t       *threads;    // Slicer plugin information: supporting thread map (lives at slicer creator's stack), API -> Slicer plugin
+   int                   nths;       // Slicer plugin information: number of supporting threads, API ->  Slicer plugin
+} nanos_ws_desc_t;
+
 // WD properties
 typedef struct {
    bool mandatory_creation:1;
@@ -148,13 +176,16 @@ typedef struct {
    bool reserved3:1;
    bool reserved4:1;
    bool reserved5:1;
-   nanos_thread_t tie_to;
    unsigned int priority;
 } nanos_wd_props_t;
 
 typedef struct {
-  void * (*factory) (void *prealloc, void *arg);
-  size_t dd_size;
+   nanos_thread_t tie_to;
+} nanos_wd_dyn_props_t;
+
+typedef struct {
+  void * (*factory) (void *arg);
+  //size_t dd_size;
   void * arg;
 } nanos_device_t;
 

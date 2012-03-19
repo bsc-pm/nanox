@@ -93,6 +93,8 @@ void * GPUDevice::allocatePinnedMemory( size_t size )
    cudaError_t err = cudaMallocHost( &address, size );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
+   ensure( address != NULL, "cudaMallocHost() returned a NULL pointer" );
+
    fatal_cond( err != cudaSuccess, "Trying to allocate " +  toString<size_t>( size ) +
          + " bytes of host memory with cudaMallocHost(): " +  cudaGetErrorString( err ) );
 
@@ -230,3 +232,38 @@ void GPUDevice::copyOutAsyncToHost ( void * dst, void * src, size_t size )
    SMPDevice::copyLocal( dst, src, size, NULL );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 }
+
+bool GPUDevice::copyDevToDev( void * addrDst, CopyDescriptor &dstCd, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc )
+{
+#ifndef NANOS_GPU_USE_CUDA32
+//   fatal_cond( peDst->getDeviceType().getName() != peSrc->getDeviceType().getName(),
+//         "Do not know how to copy between different devices: from " +  peSrc->getDeviceType().getName()
+//         + " to " + peDst->getDeviceType().getName() );
+
+   nanos::ext::GPUProcessor * gpuDst = ( nanos::ext::GPUProcessor * ) peDst;
+   nanos::ext::GPUProcessor * gpuSrc = ( nanos::ext::GPUProcessor * ) peSrc;
+
+   gpuSrc->transferDevice( size );
+
+   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MEMCOPY_ASYNC_EVENT );
+   cudaError_t err = cudaMemcpyPeerAsync( addrDst, gpuDst->getDeviceId(), addrSrc, gpuSrc->getDeviceId(), size,
+         gpuDst->getGPUProcessorInfo()->getInTransferStream() );
+   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
+   fatal_cond( err != cudaSuccess, "Trying to copy " + toString<size_t>( size )
+         + " bytes of data from device #" + toString<int>( gpuSrc->getDeviceId() ) + " (" + toString<void *>( addrSrc )
+         + ") to device #" + toString<int>( gpuDst->getDeviceId() ) + " ("
+         + toString<void *>( addrDst ) + ") with cudaMemcpy*(): " + cudaGetErrorString( err ) );
+
+   // If input's stream is NULL, return true, as the transfer won't be overlapped
+   if ( gpuDst->getGPUProcessorInfo()->getInTransferStream() == 0 ) return true;
+
+   // Otherwise, keep track of the transfer and return false
+   gpuDst->getInTransferList()->addMemoryTransfer( dstCd );
+
+   return false;
+
+#endif
+   return true;
+}
+

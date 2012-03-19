@@ -27,6 +27,7 @@
 #include "schedule_decl.hpp"
 #include "threadteam_decl.hpp"
 #include "slicer_decl.hpp"
+#include "worksharing_decl.hpp"
 #include "nanos-int.h"
 #include "dataaccess_fwd.hpp"
 #include "instrumentation_decl.hpp"
@@ -35,6 +36,10 @@
 #include "cache_map_decl.hpp"
 #include "plugin_decl.hpp"
 #include "barrier_decl.hpp"
+
+#ifdef GPU_DEV
+#include "pinnedallocator_decl.hpp"
+#endif
 
 
 namespace nanos
@@ -49,7 +54,7 @@ namespace nanos
          // constants
          typedef enum { DEDICATED, SHARED } ExecutionMode;
          typedef enum { POOL, ONE_THREAD } InitialMode;
-         typedef enum { WRITE_THROUGH, WRITE_BACK, DEFAULT } CachePolicyType;
+         typedef enum { NONE, WRITE_THROUGH, WRITE_BACK, DEFAULT } CachePolicyType;
          typedef Config::MapVar<CachePolicyType> CachePolicyConfig;
 
       private:
@@ -57,7 +62,11 @@ namespace nanos
          typedef std::vector<PE *>         PEList;
          typedef std::vector<BaseThread *> ThreadList;
          typedef std::map<std::string, Slicer *> Slicers;
+         typedef std::map<std::string, WorkSharing *> WorkSharings;
          
+         // globla seeds
+         Atomic<int> _atomicWDSeed;
+
          // configuration variables
          int                  _numPEs;
          int                  _deviceStackSize;
@@ -111,6 +120,8 @@ namespace nanos
 
          Slicers              _slicers; /**< set of global slicers */
 
+         WorkSharings         _worksharings; /**< set of global worksharings */
+
          Instrumentation     *_instrumentation; /**< Instrumentation object used in current execution */
          SchedulePolicy      *_defSchedulePolicy;
          
@@ -123,10 +134,17 @@ namespace nanos
          // Programming model interface
          PMInterface *        _pmInterface;
 
-         // General cache policy (if not specifically redefined for a certain architecture)
+         //! Enable or disable the use of caches
+         bool                 _useCaches;
+         //! General cache policy (if not specifically redefined for a certain architecture)
          CachePolicyType      _cachePolicy;
-         // CacheMap register
+         //! CacheMap register
          CacheMap             _cacheMap;
+
+#ifdef GPU_DEV
+         //! Keep record of the data that's directly allocated on pinned memory
+         PinnedAllocator      _pinnedMemoryCUDA;
+#endif
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -134,6 +152,7 @@ namespace nanos
 
          void config ();
          void loadModules();
+         void unloadModules();
          
          PE * createPE ( std::string pe_type, int pid );
 
@@ -148,18 +167,21 @@ namespace nanos
          void start ();
          void finish ();
 
+         int getWorkDescriptorId( void );
+
          void submit ( WD &work );
          void submitWithDependencies (WD& work, size_t numDataAccesses, DataAccess* dataAccesses);
          void waitOn ( size_t numDataAccesses, DataAccess* dataAccesses);
          void inlineWork ( WD &work );
 
          void createWD (WD **uwd, size_t num_devices, nanos_device_t *devices,
-                        size_t data_size, int data_align, void ** data, WG *uwg,
-                        nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies, nanos_translate_args_t translate_args );
+                        size_t data_size, size_t data_align, void ** data, WG *uwg,
+                        nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props, size_t num_copies,
+                        nanos_copy_data_t **copies, nanos_translate_args_t translate_args );
 
          void createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
-                        int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props, size_t num_copies,
-                        nanos_copy_data_t **copies );
+                        int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props,
+                        size_t num_copies, nanos_copy_data_t **copies );
 
          void duplicateWD ( WD **uwd, WD *wd );
          void duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd );
@@ -226,7 +248,8 @@ namespace nanos
 
          // team related methods
          BaseThread * getUnassignedWorker ( void );
-         ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuseCurrent=true );
+         ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuseCurrent=true,
+                                   bool enterCurrent=true, bool enterOthers=true, bool starringCurrent = true, bool starringOthers=false );
 
          BaseThread * getWorker( unsigned int n );
 
@@ -254,11 +277,15 @@ namespace nanos
 
          Slicer * getSlicer( const std::string &label ) const;
 
+         WorkSharing * getWorkSharing( const std::string &label ) const;
+
          Instrumentation * getInstrumentation ( void ) const;
 
          void setInstrumentation ( Instrumentation *instr );
 
          void registerSlicer ( const std::string &label, Slicer *slicer);
+
+         void registerWorkSharing ( const std::string &label, WorkSharing *ws);
 
          void setDefaultSchedulePolicy ( SchedulePolicy *policy );
          
@@ -317,8 +344,13 @@ namespace nanos
 
          void setPMInterface (PMInterface *_pm);
          PMInterface & getPMInterface ( void ) const;
+         bool isCacheEnabled();
          CachePolicyType getCachePolicy();
          CacheMap& getCacheMap();
+
+#ifdef GPU_DEV
+         PinnedAllocator& getPinnedAllocatorCUDA();
+#endif
 
          void threadReady ();
 

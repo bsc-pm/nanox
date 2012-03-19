@@ -263,32 +263,32 @@ inline const Config::HelpTriplet& Config::HelpTriplet::operator=( const HelpTrip
    return *this;
 }
 
-inline const std::string& Config::ConfigOption::getEnvVar()
+inline const std::string& Config::BaseConfigOption::getEnvVar()
 {
    return _envOption;
 }
 
-inline const std::string& Config::ConfigOption::getArg()
+inline const std::string& Config::BaseConfigOption::getArg()
 {
    return _argOption;
 }
 
-inline void Config::ConfigOption::setEnvVar( const std::string envOption )
+inline void Config::BaseConfigOption::setEnvVar( const std::string envOption )
 {
    _envOption = envOption;
 }
 
-inline void Config::ConfigOption::setArg( const std::string argOption )
+inline void Config::BaseConfigOption::setArg( const std::string argOption )
 {
    _argOption = argOption;
 }
 
-inline Config::Option& Config::ConfigOption::getOption()
+inline Config::Option& Config::BaseConfigOption::getOption()
 {
    return _option;
 }
 
-inline const std::string Config::ConfigOption::getSection ()
+inline const std::string Config::BaseConfigOption::getSection ()
 {
    return _section;
 }
@@ -296,7 +296,7 @@ inline const std::string Config::ConfigOption::getSection ()
 inline InvalidOptionException::InvalidOptionException( const Config::Option &option, const std::string &value ) :
                runtime_error( std::string( "Ignoring invalid value '" )+value +"' for "+option.getName() ) {}
 
-inline const Config::ConfigOption& Config::ConfigOption::operator= ( const ConfigOption &co )
+inline const Config::BaseConfigOption& Config::BaseConfigOption::operator= ( const BaseConfigOption &co )
 {
    if ( this == &co )
       return *this;
@@ -309,9 +309,14 @@ inline const Config::ConfigOption& Config::ConfigOption::operator= ( const Confi
    return *this;
 }
 
-inline Config::ConfigOption* Config::ConfigOption::clone()
+inline Config::BaseConfigOption* Config::ConfigOption::clone()
 {
    return new ConfigOption( _optionName, _envOption, _argOption, *(_option.clone()), _message, _section); 
+}
+
+inline Config::BaseConfigOption* Config::ConfigAliasOption::clone()
+{
+   return new ConfigAliasOption( _optionName, _envOption, _argOption, *(_option.clone()), _message, _section); 
 }
 
 #endif

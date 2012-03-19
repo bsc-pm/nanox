@@ -42,6 +42,7 @@ common_sources=\
 	$(top_srcdir)/src/core/workdescriptor_decl.hpp \
 	$(top_srcdir)/src/core/workdescriptor.hpp \
 	$(top_srcdir)/src/core/workdescriptor.cpp \
+	$(top_srcdir)/src/core/worksharing_decl.hpp \
 	$(top_srcdir)/src/core/slicer_fwd.hpp \
 	$(top_srcdir)/src/core/slicer_decl.hpp \
 	$(top_srcdir)/src/core/slicer.hpp \
