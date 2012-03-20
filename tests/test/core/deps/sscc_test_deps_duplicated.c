@@ -20,6 +20,7 @@
 /*
 <testinfo>
 test_generator=gens/api-generator
+test_deps_plugins=default,regions
 </testinfo>
 */
 
@@ -1127,7 +1128,7 @@ int main()
                             0
                         }
                     };
-                    err = nanos_create_wd_and_run_compact(&const_data, &dyn_props, sizeof(_nx_data_env_0_t), &imm_args, 2, (nanos_data_access_t *) _data_accesses, 0, (nanos_copy_data_t *) 0);
+                    err = nanos_create_wd_and_run_compact(&const_data, &dyn_props, sizeof(_nx_data_env_0_t), &imm_args, 2, (nanos_data_access_t *) _data_accesses, (nanos_copy_data_t *) 0, 0 );
                     //err = nanos_create_wd_and_run(1, _ol_main_0_devices, sizeof(_nx_data_env_0_t), __alignof__(_nx_data_env_0_t),  &imm_args, &props, 0, (nanos_copy_data_t *) 0);
                     if (err != NANOS_OK)
                         nanos_handle_error(err);
