@@ -156,6 +156,8 @@ namespace nanos
          WD *slaveParentWD;
          BaseThread *_masterGpuThd;
 
+         std::vector< RegionCache *> _regCaches;
+
 #ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
          PinnedAllocator      _pinnedMemoryCUDA;
@@ -375,6 +377,7 @@ namespace nanos
          unsigned int getMemorySpaceId();
          unsigned int getRootMemorySpaceId();
          unsigned int getNumMemorySpaces();
+         std::vector< RegionCache *> &getCaches() { return _regCaches; }
 
       private:
          std::list< std::list<GraphEntry *> * > _graphRepLists;

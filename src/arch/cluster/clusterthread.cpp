@@ -48,49 +48,51 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
    wd.start(WorkDescriptor::IsNotAUserLevelThread);
    wd.getGE()->setNode( ( ( ClusterNode * ) pe )->getClusterNodeNum() );
 
-   //std::cerr << "run remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << " data size is " << wd.getDataSize() << std::endl;
+   unsigned int totalDimensions = 0;
+   for (i = 0; i < wd.getNumCopies(); i += 1) {
+      totalDimensions += wd.getCopies()[i].getNumDimensions();
+   }
 
-   CopyData newCopies[ wd.getNumCopies() ]; 
+   size_t totalBufferSize = wd.getDataSize() + 
+      sizeof(int) + wd.getNumCopies() * sizeof( CopyData ) + 
+      sizeof(int) + totalDimensions * sizeof( nanos_region_dimension_t ) + 
+      sizeof(int) + wd.getNumCopies() * sizeof( uint64_t );
 
+   char *buff = new char[ totalBufferSize ];
+
+   std::cerr << "run remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << " data size is " << wd.getDataSize() << std::endl;
+
+   // Copy WD data to tmp buffer
+   if ( wd.getDataSize() > 0 )
+   {
+      memcpy( &buff[ 0 ], wd.getData(), wd.getDataSize() );
+   }
+
+   // Set the number of copies
+   *((int *) &buff[ wd.getDataSize() ] ) = wd.getNumCopies();
+
+   // Set the number of dimensions
+   *((int *) &buff[ wd.getDataSize() + sizeof( int ) + wd.getNumCopies() * sizeof( CopyData ) ] ) = totalDimensions;
+
+   // Copy CopyData and dimension entries
+   CopyData *newCopies = ( CopyData * ) ( buff + wd.getDataSize() + sizeof( int ) );
+   nanos_region_dimension_internal_t *dimensions = ( nanos_region_dimension_internal_t * ) ( buff + wd.getDataSize() + sizeof( int ) + wd.getNumCopies() * sizeof( CopyData ) + sizeof( int ) );
+   
+   uintptr_t dimensionIndex = 0;
    for (i = 0; i < wd.getNumCopies(); i += 1) {
       new ( &newCopies[i] ) CopyData( wd.getCopies()[i] );
+      memcpy( &dimensions[ dimensionIndex ], wd.getCopies()[i].getDimensions(), sizeof( nanos_region_dimension_internal_t ) * wd.getCopies()[i].getNumDimensions());
+      newCopies[i].setDimensions( ( nanos_region_dimension_internal_t const *  ) dimensionIndex ); // This is the index because it makes no sense to send an address over the network
+      //newCopies[i].setBaseAddress( pe->getAddress( wd, wd.getCopies()[i].getAddress(), newCopies[i].getSharing() ) );
+      newCopies[i].setBaseAddress( (void *) ( wd._ccontrol.getAddress( i ) - wd.getCopies()[i].getOffset() ) );
+      //message( "New get address: " << (void *) wd._ccontrol.getAddress( i) );
+      dimensionIndex += wd.getCopies()[i].getNumDimensions();
    }
 
    //NANOS_INSTRUMENT ( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("user-code") );
    //NANOS_INSTRUMENT ( nanos_event_value_t val = wd.getId() );
    //NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_RUNNING, key, val ) );
 
-   // merge uintptr_t offset = (uintptr_t) &wd.getDimensions(); 
-
-   for (i = 0; i < wd.getNumCopies(); i += 1) {
-      newCopies[i].setAddress( ( uint64_t ) pe->getAddress( wd, newCopies[i].getAddress(), newCopies[i].getSharing() ) );
-
-      // merhe uintptr_t value = (((uintptr_t ) &newCopies[i].getDataAccess()->getDimensions() ) - offset );
-      // merhe newCopies[i].getDataAccess()->setDimensions( (nanos_region_dimension_internal_t const *) value );
-   }
-
-   size_t totalBufferSize = wd.getDataSize() + 
-      sizeof(int) + wd.getNumCopies() * sizeof( CopyData ) + 
-      // merge sizeof(int) + wd.getNumDimensions() * sizeof( nanos_region_dimension_t ) + 
-      sizeof(int) + wd.getNumCopies() * sizeof( uint64_t );
-
-   char *buff = new char[ totalBufferSize ];
-
-   if ( wd.getDataSize() > 0 )
-   {
-      memcpy( &buff[ 0 ], wd.getData(), wd.getDataSize() );
-   }
-
-   *((int *) &buff[ wd.getDataSize() ] ) = wd.getNumCopies();
-   for (i = 0; i < wd.getNumCopies(); i += 1) {
-      memcpy( &buff[ wd.getDataSize() + sizeof(int) + sizeof( CopyData ) * i ], &newCopies[i], sizeof( CopyData ) );
-   }
-
-   // merge *((int *) &buff[ wd.getDataSize() + sizeof(int) + sizeof( CopyData ) * wd.getNumCopies() ] ) = (int) wd.getNumDimensions();
-   //for (i = 0; i < wd.getNumDimensions(); i += 1) {
-   // merge    memcpy( &buff[ wd.getDataSize() + sizeof(int) + sizeof( CopyData ) * wd.getNumCopies() + sizeof( int ) ], &wd.getDimensions(), sizeof( nanos_region_dimension_t ) * wd.getNumDimensions() );
-   //}
-   
 
 #ifdef GPU_DEV
    int arch = -1;

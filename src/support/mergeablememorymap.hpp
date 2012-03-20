@@ -65,8 +65,8 @@ void MergeableMemoryMap< _Type >::merge2( const MemoryMap< _Type > &mm )
             bool _nextAndInputDataAreEqual;
 
             public:
-            ExpandLocalFunctions( MemoryMap<_Type> &thisMap, MemoryChunk &inputKey, _Type * const &inputData, iterator &thisIt ) :
-               _thisMap( thisMap ), _inputKey( inputKey ), _inputData( inputData ), _thisIt( thisIt ) {
+            ExpandLocalFunctions( MemoryMap<_Type> &thisMap, MemoryChunk &localInputKey, _Type * const &localInputData, iterator &localThisIt ) :
+               _thisMap( thisMap ), _inputKey( localInputKey ), _inputData( localInputData ), _thisIt( localThisIt ) {
                   _thisAndInputDataAreEqual = _thisIt->second->equal( *_inputData );
                }
 

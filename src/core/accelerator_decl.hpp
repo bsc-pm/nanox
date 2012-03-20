@@ -63,6 +63,7 @@ namespace nanos
 
          virtual void waitInputs( WorkDescriptor& wd );
 
+         virtual void copyDataInDependent( WorkDescriptor &wd ) = 0;
          virtual void waitInputDependent( uint64_t tag ) = 0;
 
          virtual bool checkBlockingCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output ) = 0;
@@ -74,10 +75,13 @@ namespace nanos
          virtual void synchronize( CopyDescriptor &cd ) = 0;
 
          virtual void* getAddress( WorkDescriptor& wd, uint64_t tag, nanos_sharing_t sharing );
+         virtual void* newGetAddress( CopyData const &cd );
          virtual void copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );
 
          virtual void* getAddressDependent( uint64_t tag ) = 0;
+         virtual void* newGetAddressDependent( CopyData const &cd ) = 0;
          virtual void copyToDependent( void *dst, uint64_t tag, size_t size ) = 0;
+         virtual void waitInputsDependent( WorkDescriptor &wd ) = 0;
    };
 
 };

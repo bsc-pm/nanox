@@ -35,7 +35,7 @@ inline unsigned int CacheMap::getSize() const
 
 inline CacheAccessMap::CacheAccessMap( unsigned int size ) : _size(size)
 {
-   ensure( size > 0, "Can not create a CacheAccessMap with size=0.")
+   //ensure( size > 0, "Can not create a CacheAccessMap with size=0.")
    if ( size > 0 ) /* this if statement should be removed, we should assume size is never <= 0 */
    {
       _cacheAccessesById = NEW Atomic<unsigned int>[size];
@@ -57,7 +57,7 @@ inline CacheAccessMap::CacheAccessMap( const CacheAccessMap &map ) : _size( map.
 {
    if ( this == &map )
       return;
-   ensure( _size > 0, "Can not create a CacheAccessMap with size=0.")
+   //ensure( _size > 0, "Can not create a CacheAccessMap with size=0.")
    if ( _size > 0 )
    {
       _cacheAccessesById = NEW Atomic<unsigned int>[map._size];
@@ -74,7 +74,7 @@ inline const CacheAccessMap& CacheAccessMap::operator= ( const CacheAccessMap &m
    if ( this == &map )
       return *this;
    _size = map._size;
-   ensure( _size > 0, "Can not create a CacheAccessMap with size=0.")
+   //ensure( _size > 0, "Can not create a CacheAccessMap with size=0.")
    if ( _size > 0 )
    {
       _cacheAccessesById = NEW Atomic<unsigned int>[_size];

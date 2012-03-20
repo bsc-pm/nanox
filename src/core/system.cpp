@@ -61,7 +61,7 @@ void System::printBt() {
 
    // Print the stack trace
    for( int ii = 0; ii < count; ii++ )
-      printf( "%s\n", funcNames[ii] );
+      fprintf(stderr, "%s\n", funcNames[ii] );
 
    // Free the string pointers
    free( funcNames );
@@ -79,7 +79,7 @@ System::System () :
       _initializedThreads ( 0 ), _targetThreads ( 0 ),_pausedThreads( 0 ), _pausedThreadsCond(), _unpausedThreadsCond(),
       _usingCluster( false ), _usingNode2Node( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _pmInterface( NULL ),
-      _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap(), _masterGpuThd( NULL )
+      _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap(), _masterGpuThd( NULL ),_regCaches(16)
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
 #endif
@@ -1184,6 +1184,13 @@ void System::setupWD ( WD &work, WD *parent )
 {
    work.setParent ( parent );
    work.setDepth( parent->getDepth() +1 );
+
+   /**************************************************/
+   /*********** selective node executuion ************/
+   /**************************************************/
+   //if (sys.getNetwork()->getNodeNum() == 0) work.tieTo(*_workers[ 1 + ( work.getId() % ( sys.getNetwork()->getNumNodes() - 1 ) ) ]);
+   /**************************************************/
+   /**************************************************/
 
 #if 0
 #ifdef CLUSTER_DEV

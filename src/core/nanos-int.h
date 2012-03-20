@@ -117,8 +117,8 @@ typedef nanos_region_dimension_internal_t nanos_region_dimension_t;
 
 #ifndef _NANOS_INTERNAL
 
-typedef nanos_dependence_internal_t nanos_data_access_t;
-typedef nanos_dependence_internal_t nanos_dependence_t;
+//typedef nanos_dependence_internal_t nanos_data_access_t;
+//typedef nanos_dependence_internal_t nanos_dependence_t;
 typedef nanos_data_access_internal_t nanos_data_access_t;
 typedef nanos_copy_data_internal_t nanos_copy_data_t;
 
@@ -130,7 +130,8 @@ namespace nanos {
 }
 typedef nanos::DataAccess nanos_data_access_t;
 typedef nanos::CopyData nanos_copy_data_t;
-typedef nanos_dependence_internal_t nanos_data_access_t;
+//typedef nanos_dependence_internal_t nanos_dependence_t;
+//typedef nanos_dependence_internal_t nanos_data_access_t;
 
 #endif
 
@@ -173,6 +174,10 @@ typedef struct {
    nanos_thread_t tie_to;
    unsigned int priority;
 } nanos_wd_props_t;
+
+typedef struct {
+   nanos_thread_t tie_to;
+} nanos_wd_dyn_props_t;
 
 typedef struct {
   void * (*factory) (void *prealloc, void *arg);

@@ -24,6 +24,7 @@
 #include "cache_decl.hpp"
 #include "system_decl.hpp"
 #include "copydescriptor_decl.hpp"
+#include "regioncache_decl.hpp"
 
 namespace nanos
 {
@@ -45,6 +46,7 @@ namespace nanos
          */
          const CachedAccelerator& operator= ( const CachedAccelerator &a );
       public:
+        RegionCache             _newCache;
         /*! \brief CachedAccelerator constructor - from 'newId' and 'arch'
          */
          CachedAccelerator ( int newId, const Device *arch, System::CachePolicyType policy, const Device *subArch = NULL, std::size_t cacheSize = 0 ) :
@@ -85,8 +87,11 @@ namespace nanos
          void waitInputDependent( uint64_t tag );
          
          void* getAddressDependent( uint64_t tag );
+         void* newGetAddressDependent( CopyData const &cd );
          
          void copyToDependent( void *dst, uint64_t tag, size_t size );
+         void copyDataInDependent( WorkDescriptor &wd );
+         void waitInputsDependent( WorkDescriptor &wd );
    };
 
 };

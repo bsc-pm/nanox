@@ -121,8 +121,14 @@ void* SMPProcessor::getAddressDependent( uint64_t tag )
 #ifdef CLUSTER_DEV
    void * res;
    res = (void *) tag;
+   fprintf(stderr, "WHAT DO NOW?!\n");
    return res;
 #else
  return _cache.getAddress( tag );
 #endif
+}
+void* SMPProcessor::newGetAddressDependent( CopyData const &cd )
+{
+ (void) cd;
+ return (void*) 0xdeadebef;
 }

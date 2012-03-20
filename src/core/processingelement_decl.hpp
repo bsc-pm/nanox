@@ -113,6 +113,7 @@ namespace nanos
          virtual void waitInputs( WorkDescriptor& wd );
 
          virtual void* getAddress( WorkDescriptor& wd, uint64_t tag, nanos_sharing_t sharing );
+         virtual void* newGetAddress( CopyData const &cd );
          virtual void copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );
          virtual bool isGPU() const = 0;
    };

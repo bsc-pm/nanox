@@ -39,23 +39,32 @@ void * SimpleAllocator::allocate( size_t size )
    SegmentMap::iterator mapIter = _freeChunks.begin();
    void * retAddr = (void *) 0;
 
-   while( mapIter != _freeChunks.end() && mapIter->second < size )
+   //while( mapIter != _freeChunks.end() && mapIter->second < size )
+   while( mapIter != _freeChunks.end() && mapIter->second < ( ((mapIter->first | (size-1)) + 1 + size ) - mapIter->first ) )
    {
+      //std::cerr << "this chunk addr " << (void *) mapIter->first << " computed size is " <<  (void *) (mapIter->first | ((size-1))) << " " << ( ((mapIter->first | ((size-1))) + 1 + size ) - mapIter->first ) << std::endl;
       mapIter++;
    }
    if ( mapIter != _freeChunks.end() ) {
 
-      uint64_t targetAddr = mapIter->first;
+      //uint64_t targetAddr = mapIter->first;
+      uint64_t chunkAddr = mapIter->first;
       size_t chunkSize = mapIter->second;
+      //std::size_t realSize = ( ((mapIter->first | (size-1)) + 1 + size ) - mapIter->first ); //aligned
+      uint64_t targetAddr = (mapIter->first | (size-1))+1 ;
 
       _freeChunks.erase( mapIter );
 
       //add the chunk with the new size (previous size - requested size)
-      if (chunkSize > size)
-         _freeChunks[ targetAddr + size ] = chunkSize - size ;
+      //if (chunkSize > size)
+         //_freeChunks[ targetAddr + size ] = chunkSize - size ;
+      if (chunkSize > size) {
+         _freeChunks[ mapIter->first ] = ( targetAddr - chunkAddr );
+         if ((chunkAddr + chunkSize) - (targetAddr + size) > 0) _freeChunks[ targetAddr + size ] = (chunkAddr + chunkSize) - (targetAddr + size) ;
+      }
       _allocatedChunks[ targetAddr ] = size;
 
-      retAddr = ( void * ) targetAddr;
+      retAddr = ( void * ) targetAddr ;
    }
    else {
       // Could not get a chunk of 'size' bytes

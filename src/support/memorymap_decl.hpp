@@ -69,11 +69,9 @@ class MemoryChunk {
 
 template <typename _Type>
 class MemoryMap : public std::map< MemoryChunk, _Type * > { 
-   private:
-      MemoryMap( const MemoryMap &mm ) { }
-      const MemoryMap & operator=( const MemoryMap &mm ) { }
-   
    public:
+      MemoryMap( const MemoryMap &mm ) : std::map< MemoryChunk, _Type *> () { }
+      const MemoryMap & operator=( const MemoryMap &mm ) { }
       //typedef enum { MEM_CHUNK_FOUND, MEM_CHUNK_NOT_FOUND, MEM_CHUNK_NOT_FOUND_BUT_ALLOCATED } QueryResult;
       typedef std::map< MemoryChunk, _Type * > BaseMap;
       typedef std::pair< const MemoryChunk *, _Type ** > MemChunkPair;
@@ -93,10 +91,12 @@ class MemoryMap : public std::map< MemoryChunk, _Type * > {
    private:
       void insertWithOverlap( const MemoryChunk &key, iterator &hint, MemChunkList &ptrList );
       void getWithOverlap( const MemoryChunk &key, const_iterator &hint, ConstMemChunkList &ptrList ) const;
+      void getWithOverlapNoExactKey( const MemoryChunk &key, const_iterator &hint, ConstMemChunkList &ptrList ) const;
 
    public:
       void getOrAddChunk( uint64_t addr, std::size_t len, MemChunkList &resultEntries );
       void getChunk2( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
+      void getChunk3( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
       void print() const;
 };
 

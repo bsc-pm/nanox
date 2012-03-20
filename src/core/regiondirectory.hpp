@@ -21,5 +21,71 @@
 #define _NANOS_NEWDIRECTORY_H
 
 #include "regiondirectory_decl.hpp"
+#include "regionbuilder.hpp"
 
+template <class RegionDesc>
+Region NewRegionDirectory::build_region( RegionDesc const &dataAccess ) {
+   // Find out the displacement due to the lower bounds and correct it in the address
+   size_t base = 1UL;
+   size_t displacement = 0L;
+   for (short dimension = 0; dimension < dataAccess.dimension_count; dimension++) {
+      nanos_region_dimension_internal_t const &dimensionData = dataAccess.dimensions[dimension];
+      displacement = displacement + dimensionData.lower_bound * base;
+      base = base * dimensionData.size;
+   }
+   size_t address = (size_t)dataAccess.address + displacement;
+
+   // Build the Region
+
+   // First dimension is base 1
+   size_t additionalContribution = 0UL; // Contribution of the previous dimensions (necessary due to alignment issues)
+   //std::cerr << "build region 0 len is " << dataAccess.dimensions[0].accessed_length << std::endl;
+   Region region = RegionBuilder::build(address, 1UL, dataAccess.dimensions[0].accessed_length, additionalContribution);
+
+   // Add the bits corresponding to the rest of the dimensions (base the previous one)
+   base = 1 * dataAccess.dimensions[0].size;
+   for (short dimension = 1; dimension < dataAccess.dimension_count; dimension++) {
+      nanos_region_dimension_internal_t const &dimensionData = dataAccess.dimensions[dimension];
+
+      //std::cerr << "build region " << dimension << " len is " << dimensionData.accessed_length << std::endl;
+      region |= RegionBuilder::build(address, base, dimensionData.accessed_length, additionalContribution);
+      base = base * dimensionData.size;
+   }
+   //std::cerr << "end build region n" << std::endl;
+
+   return region;
+}
+
+template <class RegionDesc>
+Region NewRegionDirectory::build_region_with_given_base_address( RegionDesc const &dataAccess, uint64_t newBaseAddress ) {
+   // Find out the displacement due to the lower bounds and correct it in the address
+   size_t base = 1UL;
+   size_t displacement = 0L;
+   for (short dimension = 0; dimension < dataAccess.dimension_count; dimension++) {
+      nanos_region_dimension_internal_t const &dimensionData = dataAccess.dimensions[dimension];
+      displacement = displacement + dimensionData.lower_bound * base;
+      base = base * dimensionData.size;
+   }
+   size_t address = (size_t)newBaseAddress + displacement;
+
+   // Build the Region
+
+   // First dimension is base 1
+   size_t additionalContribution = 0UL; // Contribution of the previous dimensions (necessary due to alignment issues)
+   //std::cerr << "build region 0 len is " << dataAccess.dimensions[0].accessed_length << std::endl;
+   Region region = RegionBuilder::build(address, 1UL, dataAccess.dimensions[0].accessed_length, additionalContribution);
+
+   // Add the bits corresponding to the rest of the dimensions (base the previous one)
+   base = 1 * dataAccess.dimensions[0].size;
+   for (short dimension = 1; dimension < dataAccess.dimension_count; dimension++) {
+      nanos_region_dimension_internal_t const &dimensionData = dataAccess.dimensions[dimension];
+
+      //std::cerr << "build region " << dimension << " len is " << dimensionData.accessed_length << std::endl;
+      region |= RegionBuilder::build(address, base, dimensionData.accessed_length, additionalContribution);
+      base = base * dimensionData.size;
+   }
+   //std::cerr << "end build region n" << std::endl;
+
+   return region;
+}
 #endif

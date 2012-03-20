@@ -70,18 +70,34 @@ bool ClusterDevice::copyDevToDev( void * addrDst, CopyDescriptor &dstCd, void * 
 
 bool ClusterDevice::copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, ProcessingElement *pe )
 {
-   ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
-   sys.getNetwork()->put( node->getClusterNodeNum(), ( uint64_t ) localDst, ( void * ) remoteSrc.getTag(), size );
+   //ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
+   //sys.getNetwork()->put( node->getClusterNodeNum(), ( uint64_t ) localDst, ( void * ) remoteSrc.getTag(), size );
    return true;
 }
 
 bool ClusterDevice::copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size, ProcessingElement *pe )
 {
-   ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
-   sys.getNetwork()->get( ( void * ) remoteDst.getTag(), node->getClusterNodeNum(), ( uint64_t ) localSrc, size );
+   //ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
+   //sys.getNetwork()->get( ( void * ) remoteDst.getTag(), node->getClusterNodeNum(), ( uint64_t ) localSrc, size );
    return true;
 }
 
 void ClusterDevice::syncTransfer ( uint64_t address, ProcessingElement *pe )
 {
+}
+
+void ClusterDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops ) {
+   ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
+   sys.getNetwork()->put( node->getClusterNodeNum(),  devAddr, ( void * ) hostAddr, len );
+   ops->completeOp();
+}
+void ClusterDevice::_copyOut( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops ) {
+   ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
+   sys.getNetwork()->get( ( void * ) hostAddr, node->getClusterNodeNum(), devAddr, len );
+   ops->completeOp();
+}
+void ClusterDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, ProcessingElement *peDest, ProcessingElement *peOrig, DeviceOps *ops ) {
+   //ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
+   sys.getNetwork()->sendRequestPut( ((ClusterNode *) peOrig)->getClusterNodeNum(), devOrigAddr, ((ClusterNode *) peDest)->getClusterNodeNum(), devDestAddr, len );
+   ops->completeOp();
 }

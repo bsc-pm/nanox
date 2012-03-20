@@ -36,25 +36,25 @@ void WorkDescriptor::init ()
    /* Initializing instrumentation context */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdCreate( this ) );
   
-   message("init wd " << getId() );
+   //message("init wd " << getId() );
    if ( getNewDirectory() == NULL )
       initNewDirectory();
    getNewDirectory()->setParent( ( getParent() != NULL ) ? getParent()->getNewDirectory() : NULL );   
 
    if ( getNumCopies() > 0 ) {
       
-      CopyData *copies = getCopies();
-      for ( unsigned int i = 0; i < getNumCopies(); i++ ) {
-         CopyData & cd = copies[i];
-         if ( !cd.isPrivate() ) {
-            //message("[n:" << sys.getNetwork()->getNodeNum() << "] WD "<< getId() << " init DA["<< i << "]: addr is " << (void *) cd.getDataAccess()->address );
-            //DataAccess d( cd.getDataAccess()->address, cd.getDataAccess()->flags.input ,cd.getDataAccess()->flags.output, cd.getDataAccess()->flags.can_rename,
-            //   cd.getDataAccess()->flags.commutative, cd.getDataAccess()->dimension_count, cd.getDataAccess()->dimensions);
-            //  Region reg = NewRegionDirectory::build_region( d );
-            //  message("region is " << reg);
-            //  getNewDirectory()->registerAccess( reg, cd.isInput(), cd.isOutput(), pe->getMemorySpaceId() );
-         }
-      }
+      //CopyData *copies = getCopies();
+      //for ( unsigned int i = 0; i < getNumCopies(); i++ ) {
+      //   CopyData & cd = copies[i];
+      //   if ( !cd.isPrivate() ) {
+      //      //message("[n:" << sys.getNetwork()->getNodeNum() << "] WD "<< getId() << " init DA["<< i << "]: addr is " << (void *) cd.getDataAccess()->address );
+      //      //DataAccess d( cd.getDataAccess()->address, cd.getDataAccess()->flags.input ,cd.getDataAccess()->flags.output, cd.getDataAccess()->flags.can_rename,
+      //      //   cd.getDataAccess()->flags.commutative, cd.getDataAccess()->dimension_count, cd.getDataAccess()->dimensions);
+      //      //  Region reg = NewRegionDirectory::build_region( d );
+      //      //  message("region is " << reg);
+      //      //  getNewDirectory()->registerAccess( reg, cd.isInput(), cd.isOutput(), pe->getMemorySpaceId() );
+      //   }
+      //}
       
       pe->copyDataIn( *this );
 
@@ -75,6 +75,12 @@ void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
 
    if ( getNumCopies() > 0 )
       pe->waitInputs( *this );
+
+   if ( getNumCopies() > 0 ) {
+      if ( _ccontrol.dataIsReady() ) {
+         //message("Data is Ready!");
+      }
+   }
 
    if ( _tie ) tieTo(*myThread);
 
@@ -138,6 +144,11 @@ void WorkDescriptor::done ()
    if ( getNumCopies() > 0 )
      pe->copyDataOut( *this );
 
+   if ( getNumCopies() > 0 && _ccontrol.isCreated() )
+      _ccontrol.copyDataOut();
+      
+   
+
    sys.getPMInterface().wdFinished( *this );
 
    this->getParent()->workFinished( *this );
@@ -178,9 +189,10 @@ void WorkDescriptor::predecessorFinished( WorkDescriptor *predecessorWd )
    _myGraphRepList.value()->push_back( getGE() );
    if (predecessorWd != NULL) predecessorWd->listed();
 
-   message("wd " << getId() << " getting directory from previous wd");
+   //message("wd " << getId() << " getting directory from previous wd");
       if ( getNewDirectory() == NULL )
          initNewDirectory();
+   //std::cerr << "wd " << (unsigned int)  getId() << " getting directory from " << (unsigned int)predecessorWd->getId() << std::endl;
    _newDirectory->merge( *predecessorWd->getNewDirectory() );
 }
 
@@ -232,4 +244,15 @@ void WorkDescriptor::printCopies()
             //  Region reg = NewRegionDirectory::build_region( d );
          }
       }
+
+}
+void WorkDescriptor::workFinished(WorkDescriptor &wd)
+{
+   if ( _newDirectory == NULL ) initNewDirectory();
+   //std::cerr << "wd " << (unsigned int) wd.getId() << " merging directory into parent " << (unsigned int) this->getId() << " num successors " << (int) ( wd._doSubmit != NULL ? wd._doSubmit->getSuccessors().size() : -1 ) << std::endl;
+   _newDirectory->mergeOutput( *(wd.getNewDirectory()) );
+
+   if ( wd._doSubmit != NULL )
+      wd._doSubmit->finished();
+   //if (sys.getNetwork()->getNodeNum()==0){ message("a child, " << wd.getId() << " has finished, im " << getId() ); }
 }

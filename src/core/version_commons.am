@@ -113,6 +113,8 @@ common_sources=\
 	$(top_srcdir)/src/core/regiondirectory.cpp  \
 	$(top_srcdir)/src/core/regiondirectory.hpp  \
 	$(top_srcdir)/src/core/regiondirectory_decl.hpp  \
+	$(top_srcdir)/src/core/regioncache_decl.hpp  \
+	$(top_srcdir)/src/core/regioncache.cpp  \
 	$(END)
 
 instr_sources = \

@@ -42,7 +42,7 @@ extern "C" {
    unsigned int nanos_ompitrace_get_max_threads ( void );
    unsigned int nanos_ompitrace_get_thread_num ( void );
 //<<<<<<< HEAD
-//   void nanos_extrae_instrumentation_barrier( void );
+   void nanos_extrae_instrumentation_barrier( void );
 //=======
    unsigned int nanos_extrae_node_id();
    unsigned int nanos_extrae_num_nodes();

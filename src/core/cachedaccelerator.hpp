@@ -103,6 +103,14 @@ inline void* CachedAccelerator<CacheDevice>::getAddressDependent( uint64_t tag )
 }
 
 template <class CacheDevice>
+inline void* CachedAccelerator<CacheDevice>::newGetAddressDependent( CopyData const &cd )
+{
+   uint64_t addr = 0xdeabeef; //d_newCache.getAddress( cd );
+   std::cerr << "new cache says: " << (void *) addr;
+   return (void *) addr;
+}
+
+template <class CacheDevice>
 inline void CachedAccelerator<CacheDevice>::copyToDependent( void *dst, uint64_t tag, size_t size )
 {
    _cache->copyTo( dst, tag, size );
@@ -112,5 +120,15 @@ template <class CacheDevice>
 inline bool CachedAccelerator<CacheDevice>::checkBlockingCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
 {
    return _cache->checkBlockingCacheAccess( dir, tag, size, input, output ) ;
+}
+template <class CacheDevice>
+inline void CachedAccelerator<CacheDevice>::copyDataInDependent( WorkDescriptor &wd )
+{
+   wd._ccontrol.create( &_newCache, wd.getNewDirectory(), wd.getNumCopies(), wd.getCopies() );
+}
+template <class CacheDevice>
+inline void CachedAccelerator<CacheDevice>::waitInputsDependent( WorkDescriptor &wd )
+{
+   while ( !wd._ccontrol.dataIsReady() ) {} 
 }
 #endif

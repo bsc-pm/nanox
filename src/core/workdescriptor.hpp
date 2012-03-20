@@ -162,14 +162,14 @@ inline WorkDescriptor * WorkDescriptor::getImmediateSuccessor ( BaseThread &thre
    }
 }
 
-inline void WorkDescriptor::workFinished(WorkDescriptor &wd)
-{
-   if ( wd._doSubmit != NULL )
-      wd._doSubmit->finished();
-   if (sys.getNetwork()->getNodeNum()==0){ message("a child, " << wd.getId() << " has finished, im " << getId() ); }
-   if ( _newDirectory == NULL ) initNewDirectory();
-   _newDirectory->mergeOutput( *(wd.getNewDirectory()) );
-}
+//inline void WorkDescriptor::workFinished(WorkDescriptor &wd)
+//{
+//   if ( _newDirectory == NULL ) initNewDirectory();
+//   _newDirectory->mergeOutput( *(wd.getNewDirectory()) );
+//   if ( wd._doSubmit != NULL )
+//      wd._doSubmit->finished();
+//   //if (sys.getNetwork()->getNodeNum()==0){ message("a child, " << wd.getId() << " has finished, im " << getId() ); }
+//}
 
 inline DependenciesDomain & WorkDescriptor::getDependenciesDomain()
 {
@@ -182,10 +182,10 @@ inline InstrumentationContextData * WorkDescriptor::getInstrumentationContextDat
 inline void WorkDescriptor::waitCompletion( bool avoidFlush )
 {
    this->WorkGroup::waitCompletion();
-   getNewDirectory()->consolidate();
-   if (sys.getNetwork()->getNodeNum()==0){ message("WorkDescriptor::waitCompletion, " << getId() ); }
-   if ( _directory.isInitialized() && !avoidFlush )
-      _directory->synchronizeHost();
+   getNewDirectory()->consolidate( !avoidFlush );
+   //if (sys.getNetwork()->getNodeNum()==0){ message("WorkDescriptor::waitCompletion, " << getId() ); }
+   //if ( _directory.isInitialized() && !avoidFlush )
+   //   _directory->synchronizeHost();
 }
 
 inline void WorkDescriptor::waitCompletionAndSignalers( bool avoidFlush )

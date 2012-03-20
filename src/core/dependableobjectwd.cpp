@@ -77,16 +77,16 @@ void DOWait::wait ( std::list<Region> const &regions )
 {
    _syncCond.wait();
 
-   getWD()->getNewDirectory()->consolidate();
+   getWD()->getNewDirectory()->consolidate( true ); //FIXME flush only selected regions
 
-   Directory *d = getWD()->getDirectory(false);
-   if ( d != NULL ) {
-      std::list<uint64_t> flushDeps;
-      for (std::list<Region>::const_iterator it = regions.begin(); it != regions.end(); it++ ) {
-         flushDeps.push_back( (uint64_t) it->getFirstValue() );
-      }
-      d->synchronizeHost( flushDeps );
-   }
+   //Directory *d = getWD()->getDirectory(false);
+   //if ( d != NULL ) {
+   //   std::list<uint64_t> flushDeps;
+   //   for (std::list<Region>::const_iterator it = regions.begin(); it != regions.end(); it++ ) {
+   //      flushDeps.push_back( (uint64_t) it->getFirstValue() );
+   //   }
+   //   d->synchronizeHost( flushDeps );
+   //}
 }
 
 void DOWait::dependenciesSatisfied ( )

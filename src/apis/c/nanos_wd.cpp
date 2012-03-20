@@ -183,7 +183,7 @@ NANOS_API_DEF(nanos_err_t, nanos_submit, ( nanos_wd_t uwd, size_t num_data_acces
 
 // data must be not null
 NANOS_API_DEF(nanos_err_t, nanos_create_wd_and_run, ( size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align, void * data,
-                                      size_t num_deps, nanos_dependence_t *deps, nanos_wd_props_t *props,
+                                      size_t num_data_accesses, nanos_data_access_t *data_accesses, nanos_wd_props_t *props,
                                       size_t num_copies, nanos_copy_data_t *copies, size_t num_dimensions, nanos_region_dimension_internal_t *dimensions,
                                       nanos_translate_args_t translate_args ))
 {

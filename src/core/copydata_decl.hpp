@@ -80,6 +80,7 @@ namespace nanos
         /*! \brief  returns the CopyData's size
          */
          size_t getSize() const;
+         size_t getMaxSize() const;
 
         /*! \brief Returns true if the data to copy is shared
          */
@@ -96,6 +97,7 @@ namespace nanos
          void setDimensions(nanos_region_dimension_internal_t const *);
          
          uint64_t getAddress() const ;
+         uint64_t getOffset() const ;
    };
 }
 

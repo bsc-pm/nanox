@@ -26,7 +26,7 @@
 
 
 std::ostream& nanos::operator<< (std::ostream &o, Region const & region) {
-   o << (int)region.m_firstBit << ":\\ ";
+   o << (int)region.m_firstBit << ":\\ mask " << (void*)region.m_mask << " \\ value " << (void *)region.m_value << " \\ ";
    unsigned int currentBit = region.m_firstBit;
    for (int bitIndex = 0; bitIndex < region.getLength(); bitIndex++) {
       switch (region[bitIndex]) {

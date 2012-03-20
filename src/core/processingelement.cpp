@@ -26,6 +26,7 @@
 #include "system.hpp"
 #include "instrumentation.hpp"
 #include "directory.hpp"
+#include "regiondirectory.hpp"
 
 using namespace nanos;
 
@@ -36,20 +37,37 @@ bool ProcessingElement::dataCanBlockUs( WorkDescriptor& wd )
 
 void ProcessingElement::copyDataIn( WorkDescriptor &work )
 {
-   Directory *dir = work.getParent()->getDirectory(true);
-   if ( dir != NULL ) {
-      CopyData *copies = work.getCopies();
-      for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
-         CopyData & cd = copies[i];
-         if ( !cd.isPrivate() ) {
-              dir->registerAccess( cd.getAddress(), cd.getSize(), cd.isInput(), cd.isOutput() );
+   //Directory *dir = work.getParent()->getDirectory(true);
+   //if ( dir != NULL ) {
+   //   CopyData *copies = work.getCopies();
+   //   for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
+   //      CopyData & cd = copies[i];
+   //      if ( !cd.isPrivate() ) {
+   //           dir->registerAccess( cd.getAddress(), cd.getSize(), cd.isInput(), cd.isOutput() );
+   //      }
+   //   }
+   //}
+   NewDirectory *dir = work.getNewDirectory();
+   CopyData *copies = work.getCopies();
+   for ( unsigned int index = 0; index < work.getNumCopies(); index++ ) {
+      NewDirectory::LocationInfoList locations;
+      Region reg = NewDirectory::build_region( copies[ index ] );
+      dir->registerAccess( reg, copies[ index ].isInput(), copies[ index ].isOutput(), 0, ((uint64_t)copies[ index ].getBaseAddress()) + copies[ index ].getOffset(), locations );
+      if ( !copies[ index ].isInput() ) continue;
+      for ( NewDirectory::LocationInfoList::iterator it = locations.begin(); it != locations.end(); it++ ) {
+         if (!it->second->isLocatedIn( 0 ) ) { 
+            int loc = it->second->getFirstLocation();
+            std::cerr << "Houston, we have a problem, data is not in Host and we need it back. HostAddr: " << (void *) (((it->first)).getFirstValue()) << *(it->second) << std::endl;
+            sys.getCaches()[ loc ]->syncRegion( it->first, it->second->getAddressOfLocation( loc ) );
          }
+         //else { if ( sys.getNetwork()->getNodeNum() == 0) std::cerr << "["<<sys.getNetwork()->getNodeNum()<<"] wd " << work.getId() << "All ok, location is " << *(it->second) << std::endl; }
       }
    }
 }
 
 void ProcessingElement::copyDataOut( WorkDescriptor &work )
 {
+#if 0
    Directory *dir = work.getParent()->getDirectory(false);
    if ( dir != NULL ) {
       CopyData *copies = work.getCopies();
@@ -81,20 +99,21 @@ void ProcessingElement::copyDataOut( WorkDescriptor &work )
       //}
       //}
    }
+#endif
 }
 
 void ProcessingElement::waitInputs( WorkDescriptor &work )
 {
-   Directory *dir = work.getParent()->getDirectory(false);
-   if ( dir != NULL ) {
-      CopyData *copies = work.getCopies();
-      for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
-         CopyData & cd = copies[i];
-         if ( !cd.isPrivate() && cd.isInput() ) {
-              dir->waitInput( cd.getAddress(), cd.isOutput() );
-         }
-      }
-   }
+   //Directory *dir = work.getParent()->getDirectory(false);
+   //if ( dir != NULL ) {
+   //   CopyData *copies = work.getCopies();
+   //   for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
+   //      CopyData & cd = copies[i];
+   //      if ( !cd.isPrivate() && cd.isInput() ) {
+   //           dir->waitInput( cd.getAddress(), cd.isOutput() );
+   //      }
+   //   }
+   //}
 }
 
 BaseThread& ProcessingElement::startWorker ( ext::SMPMultiThread *parent )
@@ -177,6 +196,12 @@ void* ProcessingElement::getAddress( WorkDescriptor &wd, uint64_t tag, nanos_sha
 {
    void *actualTag = (void *) ( sharing == NANOS_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : (void *)tag );
    return actualTag;
+}
+
+void* ProcessingElement::newGetAddress( CopyData const &cd )
+{
+   message("Returning base address of cd (PE::newGetAddress)");
+   return cd.getBaseAddress();
 }
 
 void ProcessingElement::copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size )

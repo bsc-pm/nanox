@@ -170,6 +170,16 @@ namespace nanos
           *        Returns true if the operation is synchronous
           */
          static bool copyDevToDev( void * addrDst, CopyDescriptor& dstCd, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc );
+
+
+         virtual void *memAllocate( std::size_t size, ProcessingElement *pe) {
+            void *mem = allocate( size, pe );
+            message0("Using memAllocate from GPUDevice ret is " <<  mem);
+            return mem;
+         }
+         virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops ); 
+         virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops ); 
+         virtual void _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, ProcessingElement *peDest, ProcessingElement *peOri, DeviceOps *ops  );
    };
 }
 

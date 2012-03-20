@@ -327,7 +327,7 @@ void GASNetAPI::testForDependencies(WD* localWD, std::vector<uint64_t> *deps)
          if ( recvDepsIt == _recvdDeps.end() ) 
          {
             thisWdDeps->count += 1;
-            //if (gasnet_mynode() == 3)fprintf(stderr, "ADD TO DEPS node %d: wd id %d dep (by deps) with tag %p\n", gasnet_mynode(), localWD->getId(), (void *)newCopies[i].getAddress() );
+            // /*/if (gasnet_mynode() == 3)*/fprintf(stderr, "ADD TO DEPS node %d: wd id %d dep (by deps) with tag %p\n", gasnet_mynode(), localWD->getId(), (void *)newCopies[i].getAddress() );
             _depsMap.insert( std::pair<uint64_t, wdDeps*> ( (*deps)[i], thisWdDeps ) ); 
          }
          else
@@ -360,7 +360,7 @@ void GASNetAPI::testForDependencies(WD* localWD, std::vector<uint64_t> *deps)
          if ( wdindc++ == 0 ) { sys.submit( *localWD ); /* std::cerr<<"n:" <<gasnet_mynode()<< " submitted wd " << localWD->getId() <<std::endl; */}
          else { buffWD = localWD; /* std::cerr<<"n:" <<gasnet_mynode()<< " saved wd " << buffWD->getId() <<std::endl; */}
 #else
-         //message( "n:" << gasnet_mynode() << " " << _recvSeqN.value() << " submit wd " << localWD->getId() );
+         message( "n:" << gasnet_mynode() << " " << _recvSeqN.value() << " submit wd " << localWD->getId() );
          //if (gasnet_mynode() == 3)print_copies( localWD, numDeps );
          sys.submit( *localWD );
 #endif
@@ -581,23 +581,23 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
    }
 
    //if (gasnet_mynode() == 3) { message("n:3 amWork id " << wdId << " seq is " << seq << " recvd seq counter is " << _recvSeqN.value() ); }
-   sys.createWD( &localWD, (std::size_t) 1, devPtr, (std::size_t) dataSize, (int) ( sizeof(void *) ), (void **) &data, (WG *)rwg, (nanos_wd_props_t *) NULL, (std::size_t) numCopies, newCopiesPtr, xlate, num_dimensions, dimensions_ptr );
+   sys.createWD( &localWD, (std::size_t) 1, devPtr, (std::size_t) dataSize, (int) ( sizeof(void *) ), (void **) &data, (WG *)rwg, (nanos_wd_props_t *) NULL, (std::size_t) numCopies, newCopiesPtr, num_dimensions, dimensions_ptr, xlate );
 
    std::memcpy(data, work_data, dataSize);
 
    unsigned int numDeps = *( ( int * ) &work_data[ dataSize + sizeof( int ) + numCopies * sizeof( CopyData ) + sizeof( int ) + num_dimensions * sizeof( nanos_region_dimension_t ) ] );
    uint64_t *depTags = ( ( uint64_t * ) &work_data[ dataSize + sizeof( int ) + numCopies * sizeof( CopyData ) + sizeof( int ) + num_dimensions * sizeof( nanos_region_dimension_t ) + sizeof( int ) ] );
 
+   // Set copies and dimensions, getDimensions() returns an index here, instead of a pointer,
+   // the index is the position inside the dimension array that must be set as the base address for the dimensions
+   CopyData *recvCopies = ( ( CopyData *) &work_data[ dataSize + sizeof( int ) ] );
+   nanos_region_dimension_t *recvDimensions = ( ( nanos_region_dimension_t * ) &work_data[ dataSize + sizeof( int ) + numCopies * sizeof( CopyData ) + sizeof(int) ] );
+   memcpy( *dimensions_ptr, recvDimensions, num_dimensions * sizeof(nanos_region_dimension_t) );
    for (i = 0; i < numCopies; i += 1)
    {
-      new ( &newCopies[i] ) CopyData( *( ( CopyData *) &work_data[ dataSize + sizeof( int ) + i * sizeof( CopyData ) ] ) );
-      //merge newCopies[i].getDataAccess()->setDimensions( (nanos_region_dimension_internal_t const *) ( ( (uintptr_t) &newCopies[i].getDataAccess()->getDimensions() ) + ( (uintptr_t) *dimensions_ptr ) )  );
+      new ( &newCopies[i] ) CopyData( recvCopies[i] );
+      newCopies[i].setDimensions( (*dimensions_ptr) + ( ( uintptr_t ) recvCopies[i].getDimensions() ) );
    }
-
-   memcpy( *dimensions_ptr, &work_data[ dataSize + sizeof( int ) + numCopies * sizeof( CopyData ) + sizeof(int) ], num_dimensions * sizeof(nanos_region_dimension_t) );
-
-   //for (i = 0; i < numCopies; i += 1)
-   //   new ( &newCopies[i] ) CopyData( *( ( CopyData *) &work_data[ dataSize + sizeof( int ) + i * sizeof( CopyData ) ] ) );
 
    localWD->setId( wdId );
    localWD->setRemoteAddr( rmwd );
@@ -619,37 +619,6 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
 
 
    processWork(depsv, localWD, putSeq, seq);
-   //TBR
-   //if (  )
-   //{
-   //   message("n:" << gasnet_mynode() << " delaying(cont) wd " << delayedWD->getId() << " expected seq " << delayedExpectedPutSeqN << " now is " << _recvPutSeqN.value() );
-   //   addDelayedWork(depsv, localWD, putSeq, seq ); 
-   //}
-   //else if ( putSeq > _recvPutSeqN.value() )
-   //{
-   //   fprintf(stderr, "MESSAGE ORDER COMPROMISED!!! \n");
-
-   //   message("n:" << gasnet_mynode() << " delaying wd " << delayedWD->getId() << " expected seq " << delayedExpectedPutSeqN << " now is " << _recvPutSeqN.value() );
-   //   addDelayedWork(depsv, localWD, putSeq, seq ); 
-   //   //delayedWD = localWD;
-   //   //delayedExpectedPutSeqN = (int) putSeq; //FIXME race condition if the expected handler runs in parallel
-   //   //delayedDepsV = depsv;
-   //   //delayedSeq = seq;
-   //} else {
-   //   _recvPutSeqN = 0;
-
-   //   if ( _recvSeqN.value() == seq )
-   //   {
-   //      testForDependencies( localWD, depsv );
-   //      _recvSeqN++;
-   //      checkDeferredWorkReqs();
-
-   //   } else { //not expected seq number, enqueue
-   //      _deferredWorkReqsLock.acquire();
-   //      _deferredWorkReqs.push_back( std::pair< unsigned int, std::pair < WD*, std::vector<uint64_t> *> >( seq, std::pair< WD*, std::vector<uint64_t> * > ( localWD, depsv ) ) );
-   //      _deferredWorkReqsLock.release();
-   //   }
-   //}
 
    delete[] work_data;
    work_data = NULL;
@@ -946,21 +915,25 @@ void GASNetAPI::amGet( gasnet_token_t token,
       } //else { message("addr " << tagAddr << " not found at waiting list");}
       _waitingPutRequestsLock.release();
 
-      DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) tagAddr );
-      if (ent != NULL) 
-      {
-         if (ent->getOwner() != NULL )
-            if ( !ent->isInvalidated() )
-            {
-               std::list<uint64_t> tagsToInvalidate;
-               tagsToInvalidate.push_back( ( uint64_t ) tagAddr );
-               _masterDir->synchronizeHost( tagsToInvalidate );
-            }
-      }
+      //DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) tagAddr );
+      //if (ent != NULL) 
+      //{
+      //   if (ent->getOwner() != NULL )
+      //      if ( !ent->isInvalidated() )
+      //      {
+      //         std::list<uint64_t> tagsToInvalidate;
+      //         tagsToInvalidate.push_back( ( uint64_t ) tagAddr );
+      //         _masterDir->synchronizeHost( tagsToInvalidate );
+      //      }
+      //}
    }
    {
 
       //fprintf(stderr, "n:%d thd %d am_xfer_get: srcAddr=%p, tagAddr=%p, destAddr=%p len=%ld res=%f, max=%ld\n", gasnet_mynode(), myThread->getId(), origAddr, tagAddr, destAddr, realLen,  *((float*)origAddr), gasnet_AMMaxLongReply() );
+
+      //{ double *data = (double *) origAddr;
+      //   for (int di = 0; di < (realLen / sizeof(double )); di++ ) fprintf(stderr, "%d: %f \n", di, data[di]);
+      //}
       if ( ( unsigned int ) realLen <= gasnet_AMMaxLongReply() )
       {
          NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
@@ -1340,13 +1313,13 @@ void GASNetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsi
 
    for (int i = 0; i < numCopies; i++)
    {
-      uint64_t tag = copiesForThisWork[i].getAddress();
+      uint64_t tag = ( (uint64_t) copiesForThisWork[i].getBaseAddress() ) + copiesForThisWork[i].getOffset(); //FIXME: this wont work for messages that are inner parts of a region!
       _sentDataLock.acquire();
       std::set<uint64_t >::iterator addrIt = _sentData[ dest ]->find( tag );
       if( addrIt != _sentData[ dest ]->end() )
       {
          //found an element, I had previously sent a PUT REQUEST to reach this node, set up a dependence.
-     //if (dest == 3)fprintf(stderr, "added %p to deps for wd %d\n", (void *)tag, wdId);
+     fprintf(stderr, "added %p to deps for wd %d\n", (void *)tag, wdId);
          depAddrs[ *depCount ] = tag;
          *depCount += 1;
          _sentData[ dest ]->erase( addrIt );
@@ -1698,7 +1671,7 @@ void GASNetAPI::sendMyHostName( unsigned int dest )
 void GASNetAPI::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len )
 {
    _sentDataLock.acquire();
-   //if ( dataDest == 3 )   fprintf(stderr, "added %p to sent data for node %d\n", (void *)dstAddr, dataDest);
+   fprintf(stderr, "added %p to sent data for node %d\n", (void *)dstAddr, dataDest);
    _sentData[ dataDest ]->insert( dstAddr );
    _sentDataLock.release();
    _totalBytes += len;
@@ -1708,7 +1681,7 @@ void GASNetAPI::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned i
    _pinnedAllocatorsLocks[ dataDest ]->release();
 
    //_putSeqN[ dataDest ]++;
-     //if ( gasnet_mynode() == 0 ) {message("################################## req put to "<< dataDest << " put seq up to "<< _putSeqN[ dataDest ].value() ) ; }
+     if ( gasnet_mynode() == 0 ) {message("################################## req put to "<< dataDest << " put seq up to "<< _putSeqN[ dataDest ].value() << " Origaddr is " << ( (void *) origAddr ) << " destAddr is " << ((void *) dstAddr) ) ; }
 
    ///*if ( dataDest == 3 )*/fprintf(stderr, "master requesting to node %d to send addr %p to node %d addr %p\n", dest, (void *)origAddr, dataDest, (void *)dstAddr);
    if ( gasnet_AMRequestShort9( dest, 214,

@@ -278,3 +278,11 @@ bool GPUDevice::copyDevToDev( void * addrDst, CopyDescriptor &dstCd, void * addr
    return true;
 }
 
+void GPUDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops ) {
+}
+
+void GPUDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops ) {
+}
+
+void GPUDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, ProcessingElement *peDest, ProcessingElement *peOri, DeviceOps *ops  ) {
+}

@@ -21,6 +21,7 @@
 #define _NANOS_COPYDATA
 
 #include "copydata_decl.hpp"
+#include "system_decl.hpp"
 
 using namespace nanos;
 
@@ -92,10 +93,19 @@ inline void CopyData::setOutput( bool b )
 inline std::size_t CopyData::getSize() const
 {
    std::size_t size = 0;
-   ensure( dimension_count >= 1, "Wrong dimension_count ");
+   //ensure( dimension_count >= 1, "Wrong dimension_count ");
    size = dimensions[0].accessed_length;
    for ( int i = 1; i < dimension_count; i += 1 )
       size *= dimensions[i].accessed_length;
+   return size;
+}
+inline std::size_t CopyData::getMaxSize() const
+{
+   std::size_t size = 0;
+   //ensure( dimension_count >= 1, "Wrong dimension_count ");
+   size = dimensions[0].size;
+   for ( int i = 1; i < dimension_count; i += 1 )
+      size *= dimensions[i].size;
    return size;
 }
 
@@ -131,7 +141,14 @@ inline void CopyData::setDimensions(nanos_region_dimension_internal_t const *dim
 
 inline uint64_t CopyData::getAddress() const
 {
-   message0("This is wrong." );
+   //message0("This is wrong. addr returned is " << (void *) address);
+   //System::printBt();
    return (uint64_t) address; 
+}
+inline uint64_t CopyData::getOffset() const
+{
+   //message0("This is wrong. addr returned is " << (void *) address);
+   //System::printBt();
+   return (uint64_t) offset; 
 }
 #endif

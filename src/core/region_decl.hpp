@@ -721,6 +721,69 @@ namespace nanos
             
             return ~ZERO; // Actually this is an overflow since the real value is the same + 1
          }
+/*
+      size_t getContiguousChunkLength( int &pos ) const
+         {
+            bitfield_t const ZERO = 0;
+            bitfield_t const ONE = 1;
+            size_t bitSelector = ONE;
+            pos = 1;
+            
+            while (bitSelector != ZERO) {
+               if (bitSelector & m_mask) {
+                  return bitSelector;
+               }
+               pos++;
+               bitSelector = bitSelector << 1;
+            }
+            
+            return ~ZERO; // Actually this is an overflow since the real value is the same + 1
+         }
+*/
+
+      size_t getNumNonContiguousChunks( size_t &firstContiguousBits ) const
+         {
+            bitfield_t const ZERO = 0;
+            bitfield_t const ONE = 1;
+            size_t bitSelector = ONE;
+            size_t bitSelectorNonContiguous = ONE;
+            firstContiguousBits = 0;
+            
+            while (bitSelector != ZERO && !( bitSelector & m_mask )) {
+               firstContiguousBits++;
+               bitSelector = bitSelector << 1;
+            }
+
+            if ( bitSelector != ZERO ) {
+               do {
+                  if ( ! ( bitSelector & m_mask ) )
+                     bitSelectorNonContiguous = bitSelectorNonContiguous << 1;
+                  bitSelector = bitSelector << 1;
+               } while (bitSelector != ZERO);
+            } else {
+               bitSelectorNonContiguous = ZERO;
+            }
+            
+            return bitSelectorNonContiguous;
+         }
+
+      bitfield_t getNonContiguousChunk( size_t num, size_t numFirstContiguousBits ) const
+         {
+            bitfield_t const ZERO = 0;
+            size_t bitSelector = ( 1 << numFirstContiguousBits );
+            size_t valueBitSelector = 1;
+            bitfield_t value = m_value /* (redundant) & m_mask */;
+
+            do {
+               if ( ! ( bitSelector & m_mask ) ) {
+                  value = ( num & valueBitSelector ) ? ( value | bitSelector ) : value ;
+                  valueBitSelector = valueBitSelector << 1;
+               }
+               bitSelector = bitSelector << 1;
+            } while (bitSelector != ZERO);
+            return value;
+         }
+   
       
       friend class RegionPart;
       friend std::ostream& operator<< (std::ostream& o, Region const &region);

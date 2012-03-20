@@ -32,10 +32,26 @@
 namespace nanos
 {
    class NewDirectoryEntryData {
+
       private:
+         class LocationEntry {
+            private:
+               int _memorySpaceId;
+               uint64_t _address;
+            public:
+               LocationEntry(): _memorySpaceId( 0 ), _address( 0xdeadbeef ) {}
+               LocationEntry( int id, uint64_t address ): _memorySpaceId( id ), _address( address ) {}
+               LocationEntry( LocationEntry const &le ): _memorySpaceId( le._memorySpaceId ), _address( le._address ) {}
+               LocationEntry &operator=( LocationEntry const &le ) { _memorySpaceId = le._memorySpaceId; _address = le._address; return *this; }
+               bool operator<( LocationEntry const &le ) const { return _memorySpaceId < le._memorySpaceId; }
+               int getMemorySpaceId() const { return _memorySpaceId; }
+               uint64_t getAddress() const { return _address; }
+               void setMemorySpaceId( int id ) { _memorySpaceId = id; }
+               void setAddress( uint64_t addr ) { _address = addr; }
+         };
          int _writeLocation;
          unsigned int _version;
-         std::set<int> _location;
+         std::set< LocationEntry > _location;
       public:
          NewDirectoryEntryData(): _writeLocation(0), _version(1), _location() { }
          NewDirectoryEntryData( const NewDirectoryEntryData &de ): _writeLocation( de._writeLocation ),
@@ -51,8 +67,9 @@ namespace nanos
          bool hasWriteLocation() const { return ( _writeLocation != -1 ); }
          int getWriteLocation() const { return _writeLocation; }
          void setWriteLocation( int id ) { _writeLocation = id; }
-         void addAccess( int id ) { _location.insert( id ); }
-         bool isLocatedIn( int id ) const { return ( _location.count( id ) > 0 ); }
+         void addAccess( int id, uint64_t address ) { _location.insert( LocationEntry( id, address ) ); }
+         bool isLocatedIn( int id ) const { return ( _location.count( LocationEntry( id, -1UL ) ) > 0 ); }
+         uint64_t getAddressOfLocation( int id ) const { std::set< LocationEntry >::iterator it = _location.find( LocationEntry( id, -1UL ) ); return it->getAddress(); }
          void increaseVersion() { _version += 1; }
          void setVersion( unsigned int ver ) { _version = ver; }
          unsigned int getVersion() const { return _version; }
@@ -70,34 +87,35 @@ namespace nanos
                _location.clear();
                _location.insert( de._location.begin(), de._location.end() );
                _version = de._version;
-            } else {
+            } /*else {
                std::cerr << "version mismatch! WARNING !!! two write locations!, missing dependencies? current " << _version << " inc " << de._version << std::endl;
-            }
+            }*/
          }
          void print() {
             std::cerr << "WL: " << _writeLocation << " V: " << _version << " Locs: ";
-            for ( std::set<int>::iterator it = _location.begin(); it != _location.end(); it++ ) {
-               std::cerr << *it << " ";
+            for ( std::set< LocationEntry >::iterator it = _location.begin(); it != _location.end(); it++ ) {
+               std::cerr << it->getMemorySpaceId() << ":" << it->getAddress() << " ";
             }
             std::cerr << std::endl;
          }
          bool equal( const NewDirectoryEntryData &d ) const {
             bool soFarOk = ( _version == d._version && _writeLocation == d._writeLocation );
-            for ( std::set<int>::iterator it = _location.begin(); it != _location.end() && soFarOk; it++ ) {
+            for ( std::set< LocationEntry >::iterator it = _location.begin(); it != _location.end() && soFarOk; it++ ) {
                soFarOk = ( soFarOk && d._location.count( *it ) == 1 );
             }
-            for ( std::set<int>::iterator it = d._location.begin(); it != d._location.end() && soFarOk; it++ ) {
+            for ( std::set< LocationEntry >::iterator it = d._location.begin(); it != d._location.end() && soFarOk; it++ ) {
                soFarOk = ( soFarOk && _location.count( *it ) == 1 );
             }
             return soFarOk;
          }
          bool contains( const NewDirectoryEntryData &d ) const {
             bool soFarOk = ( _version == d._version && _writeLocation == d._writeLocation );
-            for ( std::set<int>::iterator it = d._location.begin(); it != d._location.end() && soFarOk; it++ ) {
+            for ( std::set< LocationEntry >::iterator it = d._location.begin(); it != d._location.end() && soFarOk; it++ ) {
                soFarOk = ( soFarOk && _location.count( *it ) == 1 );
             }
             return soFarOk;
          }
+         int getFirstLocation() const { return (_location.begin())->getMemorySpaceId(); }
          friend std::ostream & operator<< (std::ostream &o, NewDirectoryEntryData const &entry);
    };
 
@@ -124,9 +142,11 @@ namespace nanos
 
          /*! \brief NewDirectory copy assignment operator (private) 
           */
-         const NewDirectory & operator= ( const NewDirectory &dir );
+         const NewRegionDirectory & operator= ( const NewRegionDirectory &dir );
 
       public:
+         typedef std::pair< Region, NewDirectoryEntryData const *> LocationInfo;
+         typedef std::list<LocationInfo> LocationInfoList; 
 
          /*! \brief NewDirectory default constructor
           */
@@ -146,23 +166,27 @@ namespace nanos
          *  \param input Whether the access is a read
          *  \param output Whether the access is a write
          */
-         void registerAccess( Region reg, bool input, bool output, unsigned int memorySpaceId );
+         void registerAccess( Region reg, bool input, bool output, unsigned int memorySpaceId, uint64_t devAddr, LocationInfoList &loc );
+         void addAccess(Region reg, bool input, bool output, unsigned int memorySpaceId, unsigned int version, uint64_t devAddr );
 
          void merge( const NewRegionDirectory &input );
          void mergeOutput( const NewRegionDirectory &input );
          void setRoot();
          bool isRoot() const;
-         void consolidate();
+         void consolidate( bool flushData );
          void print() const;
          bool checkConsistency( uint64_t tag, std::size_t size, unsigned int memorySpaceId );
 
-         static void insertRegionIntoTree( RegionTree<NewDirectoryEntryData> &dir, Region const &r, unsigned int memorySpaceId, bool setLoc, NewDirectoryEntryData const &ent );
-         static Region build_region( DataAccess const &d );
+         static void insertRegionIntoTree( RegionTree<NewDirectoryEntryData> &dir, Region const &r, unsigned int memorySpaceId, uint64_t devAddr, bool setLoc, NewDirectoryEntryData const &ent, unsigned int version);
+         template <class RegionDesc> static Region build_region( RegionDesc const &cd );
+         template <class RegionDesc> static Region build_region_with_given_base_address( RegionDesc const &dataAccess, uint64_t newBaseAddress );
 
       private:
          static void _internal_merge( RegionTree<NewDirectoryEntryData> const &inputDir, RegionTree<NewDirectoryEntryData> &targetDir );
    };
 
-};
+
+}
+
 
 #endif
