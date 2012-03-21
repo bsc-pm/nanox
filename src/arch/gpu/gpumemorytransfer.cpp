@@ -88,7 +88,8 @@ void GPUMemoryTransferOutList::requestTransfer( void * address )
 void GPUMemoryTransferOutSyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt )
 {
    GPUDevice::copyOutSyncToHost( ( void * ) mt._hostAddress.getTag(), mt._deviceAddress, mt._size );
-   ( ( GPUProcessor * ) myThread->runningOn() )->synchronize( mt._hostAddress );
+   //( ( GPUProcessor * ) myThread->runningOn() )->synchronize( mt._hostAddress );
+   mt._hostAddress._ops->completeOp();
 }
 
 void GPUMemoryTransferOutSyncList::clearRequestedMemoryTransfers ()
@@ -138,7 +139,8 @@ void GPUMemoryTransferOutAsyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt
       GPUDevice::copyOutAsyncToHost( ( void * ) mt._hostAddress.getTag(), pinned, mt._size );
    }
 
-   ( ( GPUProcessor * ) myThread->runningOn() )->synchronize( mt._hostAddress );
+   //( ( GPUProcessor * ) myThread->runningOn() )->synchronize( mt._hostAddress );
+   mt._hostAddress._ops->completeOp();
 }
 
 void GPUMemoryTransferOutAsyncList::removeMemoryTransfer ( CopyDescriptor &hostAddress )
@@ -237,7 +239,8 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ( std::list<GPUMemory
          }
 
          // Synchronize first copy
-         myPE->synchronize( mt1._hostAddress );
+         //myPE->synchronize( mt1._hostAddress );
+   mt1._hostAddress._ops->completeOp();
 
          // Update second copy to be first copy at next iteration
          mt1 = mt2;
@@ -253,7 +256,8 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ( std::list<GPUMemory
       }
 
       // Synchronize copy
-      myPE->synchronize( mt1._hostAddress );
+      //myPE->synchronize( mt1._hostAddress );
+   mt1._hostAddress._ops->completeOp();
 
       myPE->freeOutputPinnedMemory();
    }
@@ -262,7 +266,11 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ( std::list<GPUMemory
 
 void GPUMemoryTransferInAsyncList::clearMemoryTransfers()
 {
-   ( ( GPUProcessor * ) myThread->runningOn() )->synchronize( _pendingTransfersAsync );
+   //( ( GPUProcessor * ) myThread->runningOn() )->synchronize( _pendingTransfersAsync );
+   for ( std::list<CopyDescriptor>::iterator it = _pendingTransfersAsync.begin();
+         it != _pendingTransfersAsync.end(); it++ ) {
+      (*it)._ops->completeOp();
+   }
 
    _pendingTransfersAsync.clear();
 }

@@ -35,6 +35,7 @@ GPUProcessor::GPUProcessor( int id, int gpuId ) : CachedAccelerator<GPUDevice>( 
       _gpuDevice( _deviceSeed++ ), _gpuProcessorStats(), _gpuProcessorTransfers(),
       _initialized( false ), _allocator(), _inputPinnedMemoryBuffer()
 {
+   //_newCache.setDevice( &GPU ); _newCache.setPE( this ); sys.getCaches()[this->getMemorySpaceId()] = &_newCache; 
    _gpuProcessorInfo = NEW GPUProcessorInfo( gpuId );
 }
 
@@ -95,6 +96,9 @@ void GPUProcessor::init ()
    void * baseAddress = GPUDevice::allocateWholeMemory( maxMemoryAvailable );
    _allocator.init( ( uint64_t ) baseAddress, maxMemoryAvailable );
    configureCache( maxMemoryAvailable, GPUConfig::getCachePolicy() );
+
+    _newCache.setDevice( &GPU ); _newCache.setPE( this ); sys.getCaches()[this->getMemorySpaceId()] = &_newCache; 
+
    _gpuProcessorInfo->setMaxMemoryAvailable( maxMemoryAvailable );
 
    // If some kind of overlapping is defined, allocate some pinned memory

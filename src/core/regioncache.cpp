@@ -223,7 +223,7 @@ void RegionCache::syncRegion( Region const &origReg, uint64_t devAddr ) {
       //std::cerr << "a copy out " << (void *) thisMapOpsIt->first.getAddress() << " from " << (void *)*(thisMapOpsIt->second) << " size " << thisMapOpsIt->first.getLength() << std::endl;
       this->copyOut(thisMapOpsIt->first.getAddress(), *(thisMapOpsIt->second), thisMapOpsIt->first.getLength(), ops );
    }
-
+   
    while( !ops->allCompleted() ) {}
    delete ops;
 }
@@ -245,9 +245,11 @@ unsigned int RegionCache::getMemorySpaceId() {
 
 void RegionCache::copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops ) {
    _device->_copyIn( devAddr, hostAddr, len, _pe, ops );
+   std::cerr <<"RegionCache::copyIn "<< (void *) devAddr << " <=h " << (void *) hostAddr << " len " << len << " ops complete? "  << ( ops->allCompleted() ? "yes" : "no" )<<std::endl;
 }
 void RegionCache::copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, DeviceOps *ops ) {
-   _device->_copyOut( devAddr, hostAddr, len, _pe, ops );
+   _device->_copyOut( hostAddr, devAddr, len, _pe, ops );
+   std::cerr <<"RegionCache::copyOut "<< (void *) devAddr << " =>h " << (void *) hostAddr << " len " << len << " ops complete? "  << ( ops->allCompleted() ? "yes" : "no" )<<std::endl;
 }
 void RegionCache::syncAndCopyIn( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops ) {
    uint64_t offset;
@@ -274,8 +276,8 @@ bool RegionCache::canCopyFrom( RegionCache const &from ) const { return _device 
 
 
 DeviceOps::DeviceOps() : _pendingDeviceOps ( 0 ) { }
-void DeviceOps::completeOp() { _pendingDeviceOps--; }
-void DeviceOps::addOp() { _pendingDeviceOps++; }
+void DeviceOps::completeOp() { _pendingDeviceOps--; /*std::cerr << "op--! " << (void *) this <<std::endl; sys.printBt();*/ }
+void DeviceOps::addOp() { _pendingDeviceOps++; /*std::cerr << "op++! " << (void *) this <<std::endl;*/ }
 bool DeviceOps::allCompleted() { return _pendingDeviceOps.value() == 0; }
 
 CacheControler::CacheControler() : _numCopies ( 0 ), _cacheCopies ( NULL ), _targetCache ( NULL ) {}

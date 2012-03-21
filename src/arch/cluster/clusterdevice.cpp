@@ -91,7 +91,7 @@ void ClusterDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t le
    sys.getNetwork()->put( node->getClusterNodeNum(),  devAddr, ( void * ) hostAddr, len );
    ops->completeOp();
 }
-void ClusterDevice::_copyOut( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops ) {
+void ClusterDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops ) {
    ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
    sys.getNetwork()->get( ( void * ) hostAddr, node->getClusterNodeNum(), devAddr, len );
    ops->completeOp();

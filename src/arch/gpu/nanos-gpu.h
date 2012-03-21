@@ -36,7 +36,7 @@
 extern "C" {
 #endif
 
-void * nanos_gpu_factory( void *prealloc , void *args );
+void * nanos_gpu_factory( void *args );
 #define NANOS_GPU_DESC( args ) { nanos_gpu_factory, &( args ) }
 
 cudaStream_t nanos_get_kernel_execution_stream();
