@@ -20,7 +20,7 @@
 /*
 <testinfo>
 test_generator=gens/api-generator
-test_deps_plugins=default,regions
+test_deps_plugins=plain,regions
 </testinfo>
 */
 

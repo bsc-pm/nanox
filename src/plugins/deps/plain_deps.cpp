@@ -27,7 +27,7 @@
 namespace nanos {
    namespace ext {
 
-      class NanosDependenciesDomain : public BaseDependenciesDomain
+      class PlainDependenciesDomain : public BaseDependenciesDomain
       {
          private:
             typedef TR1::unordered_map<Address::TargetType, TrackableObject*> DepsMap; /**< Maps addresses to Trackable objects */
@@ -203,12 +203,12 @@ namespace nanos {
             }
 
          public:
-            NanosDependenciesDomain() : BaseDependenciesDomain(), _addressDependencyMap() {}
-            NanosDependenciesDomain ( const NanosDependenciesDomain &depDomain )
+            PlainDependenciesDomain() : BaseDependenciesDomain(), _addressDependencyMap() {}
+            PlainDependenciesDomain ( const PlainDependenciesDomain &depDomain )
                : BaseDependenciesDomain( depDomain ),
                _addressDependencyMap ( depDomain._addressDependencyMap ) {}
             
-            ~NanosDependenciesDomain()
+            ~PlainDependenciesDomain()
             {
                for ( DepsMap::iterator it = _addressDependencyMap.begin(); it != _addressDependencyMap.end(); it++ ) {
                   delete it->second;
@@ -238,22 +238,22 @@ namespace nanos {
          
       };
       
-      template void NanosDependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, DataAccess* begin, DataAccess* end, SchedulePolicySuccessorFunctor* callback );
-      template void NanosDependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, std::vector<DataAccess>::iterator begin, std::vector<DataAccess>::iterator end, SchedulePolicySuccessorFunctor* callback );
+      template void PlainDependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, DataAccess* begin, DataAccess* end, SchedulePolicySuccessorFunctor* callback );
+      template void PlainDependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, std::vector<DataAccess>::iterator begin, std::vector<DataAccess>::iterator end, SchedulePolicySuccessorFunctor* callback );
       
       /*! \brief Default plugin implementation.
        */
-      class NanosDependenciesManager : public DependenciesManager
+      class PlainDependenciesManager : public DependenciesManager
       {
          public:
-            NanosDependenciesManager() : DependenciesManager("Nanos default dependencies domain") {}
-            virtual ~NanosDependenciesManager () {}
+            PlainDependenciesManager() : DependenciesManager("Nanos plain dependencies domain") {}
+            virtual ~PlainDependenciesManager () {}
             
             /*! \brief Creates a default dependencies domain.
              */
             DependenciesDomain* createDependenciesDomain () const
             {
-               return NEW NanosDependenciesDomain();
+               return NEW PlainDependenciesDomain();
             }
       };
   
@@ -261,7 +261,7 @@ namespace nanos {
       {
             
          public:
-            NanosDepsPlugin() : Plugin( "Nanos++ default dependencies management plugin",1 )
+            NanosDepsPlugin() : Plugin( "Nanos++ plain dependencies management plugin",1 )
             {
             }
 
@@ -271,11 +271,11 @@ namespace nanos {
 
             virtual void init()
             {
-               sys.setDependenciesManager(NEW NanosDependenciesManager());
+               sys.setDependenciesManager(NEW PlainDependenciesManager());
             }
       };
 
    }
 }
 
-DECLARE_PLUGIN("deps-default",nanos::ext::NanosDepsPlugin);
+DECLARE_PLUGIN("deps-plain",nanos::ext::NanosDepsPlugin);
