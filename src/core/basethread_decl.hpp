@@ -41,11 +41,13 @@ namespace nanos
       typedef ScheduleThreadData SchedData;
       
       private:
-         unsigned       _id;
-         unsigned       _singleCount;
-         SchedData    * _schedData;
-         // PM Data?
-         TeamData     * _parentData;
+         unsigned          _id;
+         ThreadTeam       *_team;
+         unsigned          _singleCount;
+         SchedData        *_schedData;
+         TeamData         *_parentData;
+         nanos_ws_desc_t  *_wsDescriptor; /*< pointer to last worksharing descriptor */
+         bool              _star;         /*< is current thread a star (or role) within the team */
 
       private:
         /*! \brief TeamData copy constructor (private)
@@ -57,22 +59,37 @@ namespace nanos
       public:
         /*! \brief TeamData default constructor
          */
-         TeamData () : _id( 0 ), _singleCount( 0 ), _schedData( NULL ), _parentData( NULL ) {}
+         TeamData () : _id( 0 ), _team(NULL), _singleCount( 0 ), _schedData( NULL ), _parentData( NULL ), _wsDescriptor( NULL ), _star( false ) {}
         /*! \brief TeamData destructor
          */
          ~TeamData ();
 
          unsigned getId() const { return _id; }
+         ThreadTeam *getTeam() const { return _team; }
          unsigned getSingleCount() const { return _singleCount; }
 
          void setId ( int id ) { _id = id; }
+         void setTeam ( ThreadTeam *team ) { _team = team; }
          unsigned nextSingleGuard() {
             ++_singleCount;
             return _singleCount;
          }
+        
+        /*! \brief Returns if related thread is starring within current team
+         */
+         bool isStarring ( void ) const ;
+
+        /*! \brief Set related thread as star thread (or not)
+         */
+         void setStar ( bool v = true ) ;
+
 
          void setScheduleData ( SchedData *data ) { _schedData = data; }
          SchedData * getScheduleData () const { return _schedData; }
+
+        /*! \brief Returns next global worksharing descriptor for _team 
+         */
+         nanos_ws_desc_t *getTeamWorkSharingDescriptor( bool *b );
 
          void setParentTeamData ( TeamData *data ) { _parentData = data; }
          TeamData * getParentTeamData () const { return _parentData; }
@@ -108,10 +125,10 @@ namespace nanos
 
          // Team info
          bool                    _hasTeam;
-         ThreadTeam *            _team;
          TeamData *              _teamData;
-//         int                     _teamId; //! Id of the thread inside its current team
-//          int                     _localSingleCount;
+         TeamData *              _nextTeamData; /**< Next team data, thread is already registered in a new team but has not enter yet */
+
+         nanos_ws_desc_t         _wsDescriptor; /**< Local worksharing descriptor */
 
          Allocator               _allocator;
 
@@ -152,8 +169,7 @@ namespace nanos
          BaseThread ( WD &wd, ProcessingElement *creator=0, ext::SMPMultiThread *parent=NULL ) :
                _id( _idSeed++ ), _name("Thread"), _description(""), _parent( parent ), _pe( creator ), _threadWD( wd ),
                _started( false ), _mustStop( false ), _paused( false ), _currentWD( NULL),
-               _nextWD( NULL), _hasTeam( false ),_team(NULL),
-               _teamData(NULL), _allocator() {}
+               _nextWD( NULL), _hasTeam( false ), _teamData(NULL), _nextTeamData(NULL), _allocator() {}
 
         /*! \brief BaseThread destructor
          */
@@ -202,13 +218,25 @@ namespace nanos
 
          // team related methods
          void reserve();
-         void enterTeam( ThreadTeam *newTeam, TeamData *data ); 
+         void enterTeam( TeamData *data = NULL ); 
          bool hasTeam() const;
          void leaveTeam();
 
          ThreadTeam * getTeam() const;
 
          TeamData * getTeamData() const;
+
+         TeamData * getNextTeamData() const;
+
+         void setNextTeamData( TeamData *td);
+
+        /*! \brief Returns the address of the local worksharing descriptor
+         */
+         nanos_ws_desc_t *getLocalWorkSharingDescriptor( void );
+
+        /*! \brief Returns the address of a global worksharing descriptor (provided for team, through team data)
+         */
+         nanos_ws_desc_t *getTeamWorkSharingDescriptor( bool *b );
 
          //! Returns the id of the thread inside its current team 
          int getTeamId() const;
@@ -229,6 +257,14 @@ namespace nanos
          int getCpuId();
 
          bool singleGuard();
+
+        /*! \brief Returns if related thread is starring within team 't'
+         */
+         bool isStarring ( const ThreadTeam * t ) const ;
+
+        /*! \brief Set related thread as star thread (or not)
+         */
+         void setStar ( bool v = true ) ;
 
          /*! \brief Get allocator for current thread 
           */

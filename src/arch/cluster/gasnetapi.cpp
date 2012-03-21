@@ -47,33 +47,26 @@ typedef struct {
 
 #ifdef GPU_DEV
 //FIXME: GPU Support
-void * local_nanos_gpu_factory( void *prealloc, void *args );
-void * local_nanos_gpu_factory( void *prealloc, void *args )
+void * local_nanos_gpu_factory( void *args );
+void * local_nanos_gpu_factory( void *args )
 {
    nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
-   if ( prealloc != NULL )
-   {
-      return ( void * )new (prealloc) ext::GPUDD( smp->outline );
-   }
-   else
-   {
-      return ( void * ) new ext::GPUDD( smp->outline );
-   }
+   return ( void * )new ext::GPUDD( smp->outline );
+   //if ( prealloc != NULL )
+   //{
+   //   return ( void * )new (prealloc) ext::GPUDD( smp->outline );
+   //}
+   //else
+   //{
+   //   return ( void * ) new ext::GPUDD( smp->outline );
+   //}
 }
 #endif
-void * local_nanos_smp_factory( void *prealloc, void *args );
-void * local_nanos_smp_factory( void *prealloc, void *args )
+void * local_nanos_smp_factory( void *args );
+void * local_nanos_smp_factory( void *args )
 {
    nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
-
-   if ( prealloc != NULL )
-   {
-      return ( void * )new (prealloc) ext::SMPDD( smp->outline );
-   }
-   else 
-   {
-      return ( void * )new ext::SMPDD( smp->outline );
-   }
+   return ( void * )new ext::SMPDD( smp->outline );
 }
 
 #ifndef __SIZEOF_POINTER__
@@ -546,9 +539,9 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
    nanos_region_dimension_internal_t *dimensions = NULL;
    nanos_region_dimension_internal_t **dimensions_ptr = ( num_dimensions > 0 ) ? &dimensions : NULL ;
 
-   nanos_device_t newDeviceSMP = { local_nanos_smp_factory, sizeof(SMPDD), (void *) &smp_args } ;
+   nanos_device_t newDeviceSMP = { local_nanos_smp_factory, (void *) &smp_args } ;
 #ifdef GPU_DEV
-   nanos_device_t newDeviceGPU = { local_nanos_gpu_factory, sizeof(GPUDD), (void *) &smp_args } ;
+   nanos_device_t newDeviceGPU = { local_nanos_gpu_factory, (void *) &smp_args } ;
 #endif
    nanos_device_t *devPtr = NULL;
 
@@ -581,7 +574,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
    }
 
    //if (gasnet_mynode() == 3) { message("n:3 amWork id " << wdId << " seq is " << seq << " recvd seq counter is " << _recvSeqN.value() ); }
-   sys.createWD( &localWD, (std::size_t) 1, devPtr, (std::size_t) dataSize, (int) ( sizeof(void *) ), (void **) &data, (WG *)rwg, (nanos_wd_props_t *) NULL, (std::size_t) numCopies, newCopiesPtr, num_dimensions, dimensions_ptr, xlate );
+   sys.createWD( &localWD, (std::size_t) 1, devPtr, (std::size_t) dataSize, (int) ( sizeof(void *) ), (void **) &data, (WG *)rwg, (nanos_wd_props_t *) NULL, (nanos_wd_dyn_props_t *) NULL, (std::size_t) numCopies, newCopiesPtr, num_dimensions, dimensions_ptr, xlate );
 
    std::memcpy(data, work_data, dataSize);
 

@@ -34,7 +34,11 @@ NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_
       if ( *team ) warning( "pre-allocated team not supported yet" );
       if ( sp ) warning ( "selecting scheduling policy not supported yet");
 
-      ThreadTeam *new_team = sys.createTeam( *nthreads,constraints,reuse );
+     /* - fourth and fifth parameters are equal to false because related threads are not entering new team.
+      *      They must explicetely enter by calling thread->enterTeam()
+      * - sixth and seventh parameter are equal to 'true' because threads will be all starring team
+      */
+      ThreadTeam *new_team = sys.createTeam( *nthreads, constraints, reuse, false, false, true, true );
 
       *team = new_team;
 
@@ -96,4 +100,54 @@ NANOS_API_DEF(nanos_err_t, nanos_team_barrier, ( void ))
    return NANOS_OK;
 }
 
+NANOS_API_DEF(nanos_err_t, nanos_team_get_num_starring_threads, ( int *n ))
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_starring_threads",NANOS_RUNTIME) );
 
+   try {
+      *n = myThread->getTeam()->getNumStarringThreads();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_team_get_starring_threads, ( int *n, nanos_thread_t *list_of_threads ) )
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_starring_threads",NANOS_RUNTIME) );
+
+   try {
+      *n = myThread->getTeam()->getStarringThreads( (BaseThread **) list_of_threads );
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_team_get_num_supporting_threads, ( int *n ))
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_supporting_threads",NANOS_RUNTIME) );
+
+   try {
+      *n = myThread->getTeam()->getNumSupportingThreads();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_team_get_supporting_threads, ( int *n, nanos_thread_t *list_of_threads))
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_supporting_threads",NANOS_RUNTIME) );
+
+   try {
+      *n = myThread->getTeam()->getSupportingThreads( (BaseThread **) list_of_threads );
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}

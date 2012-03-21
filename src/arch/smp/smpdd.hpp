@@ -83,6 +83,8 @@ namespace ext
          virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous);
          virtual size_t size ( void ) { return sizeof(SMPDD); }
          virtual SMPDD *copyTo ( void *toAddr );
+
+         virtual SMPDD *clone () const { return NEW SMPDD ( *this); }
       };
 
    inline const SMPDD & SMPDD::operator= ( const SMPDD &dd )

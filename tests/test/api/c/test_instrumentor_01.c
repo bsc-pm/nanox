@@ -42,21 +42,42 @@ void main__task_1 ( void *args )
 // compiler: smp device for main__loop_1 function
 nanos_smp_args_t main__task_1_device_args = { main__task_1 };
 
+/* ************** CONSTANT PARAMETERS IN WD CREATION ******************** */
+
+struct nanos_const_wd_definition_1
+{
+     nanos_const_wd_definition_t base;
+     nanos_device_t devices[1];
+};
+
+struct nanos_const_wd_definition_1 const_data1 = 
+{
+   {{
+      .mandatory_creation = true,
+      .tied = false,
+      .priority = 0
+   },
+   __alignof__( main__task_1_data_t),
+   0,
+   1},
+   {
+      {
+         nanos_smp_factory,
+         &main__task_1_device_args
+      }
+   }
+};
+
+nanos_wd_dyn_props_t dyn_props = {0};
+
 int main ( int argc, char **argv )
 {
 
       nanos_wd_t wd = NULL;
-      nanos_device_t main__task_1_device[1] = { NANOS_SMP_DESC( main__task_1_device_args ) };
       main__task_1_data_t *task_data = NULL;
-      nanos_wd_props_t props = {
-         .mandatory_creation = true,
-         .tied = false,
-         .tie_to = false,
-         .priority = 0,
-      };
 
-      NANOS_SAFE( nanos_create_wd ( &wd, 1, main__task_1_device , sizeof( main__task_1_data_t ), __alignof__(main__task_1_data_t),
-                                    (void **) &task_data, nanos_current_wd(), &props , 0, NULL ));
+      NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1.base, &dyn_props, sizeof( main__task_1_data_t ),
+                                    (void **) &task_data, nanos_current_wd(), NULL ));
 
       task_data->value = 100;
 
