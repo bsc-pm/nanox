@@ -935,7 +935,7 @@ nanos_err_t nanos_get_addr(nanos_copy_id_t copy_id, void * * addr);
 nanos_err_t nanos_copy_value(void * dst, nanos_copy_id_t copy_id);
 nanos_err_t nanos_get_num_running_tasks(int * num);
 void nanos_handle_error(nanos_err_t err);
-void * nanos_smp_factory(void * prealloc, void * args);
+void * nanos_smp_factory(void * args);
 void * nanos_gpu_factory(void * prealloc, void * args);
 nanos_err_t nanos_instrument_register_key(nanos_event_key_t * event_key, const char * key, const char * description, _Bool abort_when_registered);
 nanos_err_t nanos_instrument_register_value(nanos_event_value_t * event_value, const char * key, const char * value, const char * description, _Bool abort_when_registered);
