@@ -102,9 +102,9 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
          CacheEntry c = CacheEntry( NULL, size, tag, 0, output, input );
          ce = &(_cache.insert( tag, c, inserted ));
          if ( inserted ) { // allocate it
-            Cache *owner = de->getOwner();
             ce->setAddress( _cache.allocate( dir, size ) );
             ce->setAllocSize( size );
+            Cache *owner = de->getOwner();
 #ifdef NANOS_GPU_USE_CUDA32
             if ( owner != NULL && !(!input && output) ) {
                owner->invalidateAndFlush( dir, tag, size, de );
