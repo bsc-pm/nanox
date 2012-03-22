@@ -505,6 +505,7 @@ WD * Scheduler::prefetch( BaseThread *thread, WD &wd )
    return NULL;
 }
 
+#ifdef CLUSTER_DEV
 WD * Scheduler::getClusterWD( BaseThread *thread, int inGPU )
 {
 	WD * wd = NULL;
@@ -532,8 +533,9 @@ WD * Scheduler::getClusterWD( BaseThread *thread, int inGPU )
 	}
 	return wd;
 }
+#endif
 
-
+#ifdef CLUSTER_DEV
 void Scheduler::workerClusterLoop ()
 {
 	BaseThread *parent = myThread;
@@ -648,6 +650,7 @@ void Scheduler::workerClusterLoop ()
 		myThread = myThread->getNextThread();
 	}
 }
+#endif
 
 
 struct WorkerBehaviour
