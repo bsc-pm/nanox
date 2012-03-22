@@ -25,6 +25,7 @@
 #include "gpuconfig.hpp"
 #include "gpudevice_decl.hpp"
 #include "gpumemorytransfer.hpp"
+#include "gpuutils.hpp"
 #include "malign.hpp"
 #include "simpleallocator_decl.hpp"
 #include "copydescriptor_decl.hpp"
@@ -184,9 +185,9 @@ namespace ext
          void printStats ()
          {
             message("GPU " << _gpuDevice << " TRANSFER STATISTICS");
-            message("    Total input transfers: " << _gpuProcessorStats._bytesIn.value() << " bytes");
-            message("    Total output transfers: " << _gpuProcessorStats._bytesOut.value() << " bytes");
-            message("    Total device transfers: " << _gpuProcessorStats._bytesDevice.value() << " bytes");
+            message("    Total input transfers: " << bytesToHumanReadable( _gpuProcessorStats._bytesIn.value() ) );
+            message("    Total output transfers: " << bytesToHumanReadable( _gpuProcessorStats._bytesOut.value() ) );
+            message("    Total device transfers: " << bytesToHumanReadable( _gpuProcessorStats._bytesDevice.value() ) );
          }
    };
 
