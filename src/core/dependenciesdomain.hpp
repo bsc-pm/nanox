@@ -167,6 +167,12 @@ inline void BaseDependenciesDomain::submitDependableObjectCommutativeDataAccess 
       initialCommDO->setDependenciesDomain( this );
       initialCommDO->increasePredecessors();
       // add dependencies to all previous reads using a CommutationDO
+      /*
+       * gmiranda: this is like calling
+       * dependOnReadersAndSetAsWriter( *initialCommDO, status, target, callback );
+       * but without checking !depObj.waits().
+       */
+      
       TrackableObject::DependableObjectList &readersList = status.getReaders();
       {
          SyncLockBlock lock1( status.getReadersLock() );
@@ -198,8 +204,6 @@ inline void BaseDependenciesDomain::submitDependableObjectCommutativeDataAccess 
    if ( initialCommDO != NULL ) {
       initialCommDO->decreasePredecessors();
    }
-
-   dependOnReadersAndSetAsWriter( depObj, status, target, callback );
 }
 
 inline void BaseDependenciesDomain::submitDependableObjectInoutDataAccess ( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, TrackableObject &status, SchedulePolicySuccessorFunctor* callback )
