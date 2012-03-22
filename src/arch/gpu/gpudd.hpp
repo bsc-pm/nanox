@@ -60,6 +60,7 @@ namespace ext
          virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous) { }
          virtual size_t size ( void ) { return sizeof(GPUDD); }
          virtual GPUDD *copyTo ( void *toAddr );
+         virtual GPUDD *clone () const { return NEW GPUDD ( *this); }
    };
 
    inline const GPUDD & GPUDD::operator= ( const GPUDD &dd )

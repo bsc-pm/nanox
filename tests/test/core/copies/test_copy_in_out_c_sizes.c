@@ -85,40 +85,43 @@ nanos_smp_args_t test_device_arg_1 = { first };
 nanos_smp_args_t test_device_arg_2 = { second };
 
 /* ************** CONSTANT PARAMETERS IN WD CREATION ******************** */
-nanos_const_wd_definition_t const_data1 = 
+
+struct nanos_const_wd_definition_1
 {
-   {
+     nanos_const_wd_definition_t base;
+     nanos_device_t devices[1];
+};
+
+struct nanos_const_wd_definition_1 const_data1 = 
+{
+   {{
       .mandatory_creation = true,
       .tied = false,
-      .tie_to = false,
       .priority = 0
    },
    __alignof__(my_args),
    2,
-   1,
+   1},
    {
       {
          nanos_smp_factory,
-         0,//nanos_smp_dd_size,
          &test_device_arg_1
       }
    }
 };
-nanos_const_wd_definition_t const_data2 = 
+struct nanos_const_wd_definition_1 const_data2 = 
 {
-   {
+   {{
       .mandatory_creation = true,
       .tied = false,
-      .tie_to = false,
       .priority = 0
    },
    __alignof__(my_args),
    2,
-   1,
+   1},
    {
       {
          nanos_smp_factory,
-         0,//nanos_smp_dd_size,
          &test_device_arg_2
       }
    }
@@ -134,8 +137,8 @@ int main ( int argc, char **argv )
    nanos_copy_data_t *cd = 0;
 
    nanos_wd_t wd1=0;
-   const_data1.devices[0].dd_size = nanos_smp_dd_size;
-   NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1, sizeof(my_args), (void**)&args, nanos_current_wd(), &cd) );
+   nanos_wd_dyn_props_t dyn_props = {0};
+   NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1.base, &dyn_props, sizeof(my_args), (void**)&args, nanos_current_wd(), &cd) );
 
    args->a = 1;
    args->b = dummy1;
@@ -153,8 +156,7 @@ int main ( int argc, char **argv )
       args = 0;
       cd = 0;
       wd1=0;
-      const_data2.devices[0].dd_size = nanos_smp_dd_size;
-      NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data2, sizeof(my_args), (void**)&args, nanos_current_wd(), &cd) );
+      NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data2.base, &dyn_props, sizeof(my_args), (void**)&args, nanos_current_wd(), &cd) );
       args->a = 1;
       args->b = dummy1;
       cd[0] = (nanos_copy_data_t) {(uint64_t)&(args->a), NANOS_PRIVATE, {true, false}, sizeof(args->a)};
@@ -165,7 +167,7 @@ int main ( int argc, char **argv )
       args = 0;
       cd = 0;
       wd1=0;
-      NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data2, sizeof(my_args), (void**)&args, nanos_current_wd(), &cd) );
+      NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data2.base, &dyn_props, sizeof(my_args), (void**)&args, nanos_current_wd(), &cd) );
       args->a = 1;
       args->b = dummy1;
       cd[0] = (nanos_copy_data_t) {(uint64_t)&(args->a), NANOS_PRIVATE, {true, false}, sizeof(args->a)};

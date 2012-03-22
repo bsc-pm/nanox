@@ -21,11 +21,14 @@
 #include "system.hpp"
 #include <cstdlib>
 #include "config.hpp"
+#include "omp_init.hpp"
 #include "omp_wd_data.hpp"
 #include "omp_threadteam_data.hpp"
 #include "nanos_omp.h"
+#include "plugin.hpp"
 
 using namespace nanos;
+//using namespace nanos::OpenMP;
 
 namespace nanos
 {
@@ -33,87 +36,103 @@ namespace nanos
       int * ssCompatibility __attribute__( ( weak ) );
       OmpState *globalState;
 
-      class OpenMPInterface : public PMInterface
+      nanos_ws_t OpenMPInterface::findWorksharing( omp_sched_t kind ) { return ws_plugins[kind]; }
+
+       void OpenMPInterface::config ( Config & cfg )
       {
-         virtual void config ( Config & cfg )
-         {
-            cfg.setOptionsSection("OpenMP specific","OpenMP related options");
+         cfg.setOptionsSection("OpenMP specific","OpenMP related options");
 
-            // OMP_NUM_THREADS
-            cfg.registerAlias("num_pes","omp-threads","Configures the number of OpenMP Threads to use");
-            cfg.registerEnvOption("omp-threads","OMP_NUM_THREADS");
+         // OMP_NUM_THREADS
+         cfg.registerAlias("num_pes","omp-threads","Configures the number of OpenMP Threads to use");
+         cfg.registerEnvOption("omp-threads","OMP_NUM_THREADS");
 
-            // OMP_SCHEDULE
-            // OMP_DYNAMIC
-            // OMP_NESTED
-            // OMP_STACKSIZE
-            // OMP_WAIT_POLICY
-            // OMP_MAX_ACTIVE_LEVELS
-            // OMP_THREAD_LIMIT
+         // OMP_SCHEDULE
+         // OMP_DYNAMIC
+         // OMP_NESTED
+         // OMP_STACKSIZE
+         // OMP_WAIT_POLICY
+         // OMP_MAX_ACTIVE_LEVELS
+         // OMP_THREAD_LIMIT
+
+         // Initializing names for OpenMP worksharing policies
+         ws_names[omp_sched_static] = std::string("static_for");
+         ws_names[omp_sched_dynamic] = std::string("dynamic_for");
+         ws_names[omp_sched_guided] = std::string("guided_for");
+         ws_names[omp_sched_auto] = std::string("static_for");
+      }
+
+      void OpenMPInterface::start ()
+      {
+         // Must be allocated through new to avoid problems with the order of
+         // initialization of global objects
+         globalState = NEW OmpState();
+
+         TaskICVs & icvs = globalState->getICVs();
+         icvs.setSchedule(LoopSchedule(omp_sched_static));
+         icvs.setNumThreads(sys.getNumPEs());
+
+         if ( ssCompatibility != NULL ) {
+            // Enable Ss compatibility mode
+            sys.setInitialMode( System::POOL );
+            sys.setUntieMaster(true);
+         } else {
+            sys.setInitialMode( System::ONE_THREAD );
+            sys.setUntieMaster(false);
          }
 
-         virtual void start ()
-         {
-            // Must be allocated through new to avoid problems with the order of
-            // initialization of global objects
-            globalState = NEW OmpState();
+         int i;
 
-            TaskICVs & icvs = globalState->getICVs();
-            icvs.setSchedule(LoopSchedule(omp_sched_static));
-            icvs.setNumThreads(sys.getNumPEs());
-
-            if ( ssCompatibility != NULL ) {
-               // Enable Ss compatibility mode
-               sys.setInitialMode( System::POOL );
-               sys.setUntieMaster(true);
-            } else {
-               sys.setInitialMode( System::ONE_THREAD );
-               sys.setUntieMaster(false);
+         // Loading plugins for OpenMP worksharing policies
+         for (i = omp_sched_static; i <= omp_sched_auto; i++) {
+            ws_plugins[i] = sys.getWorkSharing ( ws_names[i] );
+            if ( ws_plugins[i] == NULL ){
+               if ( !sys.loadPlugin( "worksharing-" + ws_names[i]) ) fatal0( "Could not load " + ws_names[i] + "worksharing" );
+               ws_plugins[i] = sys.getWorkSharing ( ws_names[i] );
             }
          }
-         
-         virtual void finish()
-         {
-            delete globalState;
+      }
+
+       void OpenMPInterface::finish()
+      {
+         delete globalState;
+      }
+
+       int OpenMPInterface::getInternalDataSize() const { return sizeof(OmpData); }
+       int OpenMPInterface::getInternalDataAlignment() const { return __alignof__(OmpData); }
+       void OpenMPInterface::setupWD( WD &wd )
+      {
+         OmpData *data = (OmpData *) wd.getInternalData();
+         ensure(data,"OpenMP data is missing!");
+         WD *parent = wd.getParent();
+
+         if ( parent != NULL ) {
+            OmpData *parentData = (OmpData *) parent->getInternalData();
+            ensure(data,"parent OpenMP data is missing!");
+
+            *data = *parentData;
+         } else {
+            data->icvs() = globalState->getICVs();
+            data->setFinal(false);
          }
+         data->setImplicit(false);
+      }
 
-          virtual int getInternalDataSize() const { return sizeof(OmpData); }
-          virtual int getInternalDataAlignment() const { return __alignof__(OmpData); }
-          virtual void setupWD( WD &wd )
-          {
-             OmpData *data = (OmpData *) wd.getInternalData();
-             ensure(data,"OpenMP data is missing!");
-             WD *parent = wd.getParent();
+       void OpenMPInterface::wdStarted( WD &wd ) {};
+       void OpenMPInterface::wdFinished( WD &wd ) 
+      {
+         OmpData *data = (OmpData *) wd.getInternalData();
+         ensure(data,"OpenMP data is missing!");
 
-             if ( parent != NULL ) {
-               OmpData *parentData = (OmpData *) parent->getInternalData();
-               ensure(data,"parent OpenMP data is missing!");
-
-               *data = *parentData;
-             } else {
-               data->icvs() = globalState->getICVs();
-               data->setFinal(false);
-             }
-             data->setImplicit(false);
-          }
-
-          virtual void wdStarted( WD &wd ) {};
-          virtual void wdFinished( WD &wd ) 
-          {
-             OmpData *data = (OmpData *) wd.getInternalData();
-             ensure(data,"OpenMP data is missing!");
-
-             if ( data->isImplicit() ) {
-               sys.releaseWorker(myThread);
-	     }
-          };
-
-          virtual ThreadTeamData * getThreadTeamData()
-          {
-             return (ThreadTeamData *) NEW OmpThreadTeamData();
-          }
+         if ( data->isImplicit() ) {
+            sys.releaseWorker(myThread);
+         }
       };
-   }
+
+       ThreadTeamData * OpenMPInterface::getThreadTeamData()
+      {
+         return (ThreadTeamData *) NEW OmpThreadTeamData();
+      }
+   };
 }
 
 /*
