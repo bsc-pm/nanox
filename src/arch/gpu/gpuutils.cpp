@@ -19,8 +19,8 @@
 
 #include "gpuutils.hpp"
 #include "system.hpp"
+#include "xstring.hpp"
 
-#include <iostream>
 #include <iomanip>
 #include <string.h>
 
@@ -71,17 +71,17 @@ void displayProperties( cudaDeviceProp* pDeviceProp, int device )
    std::cout << std::endl << "Device " << device << ": " << pDeviceProp->name << " ";
    std::cout << std::endl << std::setw(50) << std::left << "  Major revision number:" << pDeviceProp->major;
    std::cout << std::endl << std::setw(50) << "  Minor revision number:" << pDeviceProp->minor;
-   std::cout << std::endl << std::setw(50) << "  Total amount of global memory:" << pDeviceProp->totalGlobalMem/1024 << " KB";
+   std::cout << std::endl << std::setw(50) << "  Total amount of global memory:" << bytesToHumanReadable( pDeviceProp->totalGlobalMem );
    std::cout << std::endl << std::setw(50) << "  Number of multiprocessors:" << pDeviceProp->multiProcessorCount;
-   std::cout << std::endl << std::setw(50) << "  Total amount of constant memory:" << pDeviceProp->totalConstMem << " bytes";
-   std::cout << std::endl << std::setw(50) << "  Total amount of shared memory per block:" << pDeviceProp->sharedMemPerBlock/1024 << " KB";
+   std::cout << std::endl << std::setw(50) << "  Total amount of constant memory:" << bytesToHumanReadable( pDeviceProp->totalConstMem );
+   std::cout << std::endl << std::setw(50) << "  Total amount of shared memory per block:" << bytesToHumanReadable( pDeviceProp->sharedMemPerBlock );
    std::cout << std::endl << std::setw(50) << "  Total number of registers available per block:" << pDeviceProp->regsPerBlock;
    std::cout << std::endl << std::setw(50) << "  Warp size:" << pDeviceProp->warpSize << " threads";
    std::cout << std::endl << std::setw(50) << "  Maximum number of threads per block:" << pDeviceProp->maxThreadsPerBlock;
    std::cout << std::endl << std::setw(50) << "  Maximum sizes of each dimension of a block:" << pDeviceProp->maxThreadsDim[0] << " x " << pDeviceProp->maxThreadsDim[1] << " x " << pDeviceProp->maxThreadsDim[2];
    std::cout << std::endl << std::setw(50) << "  Maximum sizes of each dimension of a grid:" << pDeviceProp->maxGridSize[0] << " x " << pDeviceProp->maxGridSize[1] << " x " << pDeviceProp->maxGridSize[2];
-   std::cout << std::endl << std::setw(50) << "  Maximum memory pitch:" << pDeviceProp->memPitch << " bytes";
-   std::cout << std::endl << std::setw(50) << "  Texture Alignment:" << pDeviceProp->textureAlignment << " bytes";
+   std::cout << std::endl << std::setw(50) << "  Maximum memory pitch:" << bytesToHumanReadable( pDeviceProp->memPitch );
+   std::cout << std::endl << std::setw(50) << "  Texture Alignment:" << bytesToHumanReadable( pDeviceProp->textureAlignment );
    std::cout << std::endl << std::setw(50) << "  Clock rate:" << pDeviceProp->clockRate << " KHz";
    std::cout << std::endl << std::setw(50) << "  Concurrent copy and execution:" << ( pDeviceProp->deviceOverlap ? "Yes" : "No" );
    std::cout << std::endl << std::setw(50) << "  Can map host memory:" << ( pDeviceProp->canMapHostMemory ? "Yes" : "No" );
@@ -101,6 +101,47 @@ void displayProperties( cudaDeviceProp* pDeviceProp, int device )
       std::cout << "Default";
    } else {
       std::cout << "Not specified";
+   }
+}
+
+std::string bytesToHumanReadable ( size_t bytes )
+{
+   double b = bytes;
+   int times = 0;
+   while ( b / 1024 >= 1.0 ) {
+      b /= 1024;
+      times++;
+   }
+
+   switch ( times ) {
+      case 8: // Yottabyte
+         return std::string( toString<double>( b ) + " YB" );
+         break;
+      case 7: // Zettabyte
+         return std::string( toString<double>( b ) + " ZB" );
+         break;
+      case 6: // Exabyte
+         return std::string( toString<double>( b ) + " EB" );
+         break;
+      case 5: // petabyte
+         return std::string( toString<double>( b ) + " PB" );
+        break;
+      case 4: // terabyte
+         return std::string( toString<double>( b ) + " TB" );
+         break;
+      case 3: // gigabyte
+         return std::string( toString<double>( b ) + " GB" );
+         break;
+      case 2: // megabyte
+         return std::string( toString<double>( b ) + " MB" );
+         break;
+      case 1: // kilobyte
+         return std::string( toString<double>( b ) + " KB" );
+         break;
+      case 0: // byte
+      default:
+         return std::string( toString<double>( b ) + " B" );
+         break;
    }
 }
 
