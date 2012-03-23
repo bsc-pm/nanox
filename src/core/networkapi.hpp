@@ -23,6 +23,7 @@
 #include <stdint.h>
 #include <vector>
 #include "directory_decl.hpp"
+#include "regiondirectory_decl.hpp"
 
 namespace nanos {
 
@@ -48,6 +49,7 @@ namespace nanos {
          virtual std::size_t getTotalBytes() = 0;
         
          virtual void setMasterDirectory(Directory *d) = 0;
+         virtual void setNewMasterDirectory(NewRegionDirectory *d) = 0;
          //virtual void setGpuCache(Cache *_cache) = 0;
    };
 }

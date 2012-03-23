@@ -77,7 +77,7 @@ namespace ext
          virtual bool supportsUserLevelThreads () const { return false; }
 #endif
          virtual bool isGPU () const { return false; }
-         virtual void* getAddressDependent( uint64_t tag );
+         //virtual void* getAddressDependent( uint64_t tag );
          //virtual void* waitInputsDependent( WorkDescriptor &work );
          virtual void* newGetAddressDependent( CopyData const &cd );
    };

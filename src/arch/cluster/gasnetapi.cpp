@@ -31,6 +31,7 @@
 #include "clusterinfo_decl.hpp"
 #include "instrumentation.hpp"
 #include "atomic_decl.hpp"
+#include "regiondirectory.hpp"
 #include <list>
 #include <cstddef>
 
@@ -91,6 +92,7 @@ Network * GASNetAPI::_net;
 RemoteWorkGroup * GASNetAPI::_rwgGPU;
 RemoteWorkGroup * GASNetAPI::_rwgSMP;
 Directory * GASNetAPI::_masterDir;
+NewRegionDirectory * GASNetAPI::_newMasterDir;
 #ifndef GASNET_SEGMENT_EVERYTHING
 SimpleAllocator * GASNetAPI::_thisNodeSegment;
 #endif
@@ -758,6 +760,8 @@ void GASNetAPI::amPut( gasnet_token_t token,
       gasnet_handlerarg_t realAddrHi,
       gasnet_handlerarg_t realTagLo,
       gasnet_handlerarg_t realTagHi,
+      gasnet_handlerarg_t totalLenLo,
+      gasnet_handlerarg_t totalLenHi,
       gasnet_handlerarg_t firstMsg,
       gasnet_handlerarg_t lastMsg ) 
 {
@@ -768,6 +772,7 @@ void GASNetAPI::amPut( gasnet_token_t token,
    }
    void *realAddr = ( int * ) MERGE_ARG( realAddrHi, realAddrLo );
    void *realTag = ( int * ) MERGE_ARG( realTagHi, realTagLo );
+   std::size_t totalLen = ( std::size_t ) MERGE_ARG( totalLenHi, totalLenLo );
 
    rxBytes += len;
 
@@ -795,15 +800,16 @@ void GASNetAPI::amPut( gasnet_token_t token,
    if ( firstMsg )
    {
    //fprintf(stderr, "[%d] BEGIN amPut to node %d, from %d, local (maybe tmp) addr %p, realTag %p, realAddr (local) %p  data is %f\n", myThread->getId(),  gasnet_mynode(), src_node, buf, realTag, realAddr, *((float *)buf));
-      DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) realTag );
-      if (ent != NULL) 
-      { 
-         if (ent->getOwner() != NULL) {
-            ent->getOwner()->discard( *_masterDir, (uint64_t) realTag, ent);
-         } else {
-            ent->increaseVersion();
-         }
-      }
+      //DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) realTag );
+      //if (ent != NULL) 
+      //{ 
+      //   if (ent->getOwner() != NULL) {
+      //      ent->getOwner()->discard( *_masterDir, (uint64_t) realTag, ent);
+      //   } else {
+      //      ent->increaseVersion();
+      //   }
+      //}
+      invalidateDataFromDevice( (uint64_t) realTag, totalLen );
    }
    if ( realAddr != NULL )
    {
@@ -879,6 +885,8 @@ void GASNetAPI::amGet( gasnet_token_t token,
       gasnet_handlerarg_t tagAddrHi,
       gasnet_handlerarg_t lenLo,
       gasnet_handlerarg_t lenHi,
+      gasnet_handlerarg_t totalLenLo,
+      gasnet_handlerarg_t totalLenHi,
       gasnet_handlerarg_t waitObjLo,
       gasnet_handlerarg_t waitObjHi )
 {
@@ -888,6 +896,7 @@ void GASNetAPI::amGet( gasnet_token_t token,
    void *tagAddr = ( void * ) MERGE_ARG( tagAddrHi, tagAddrLo );
    NANOS_INSTRUMENT ( int *waitObj = ( int * ) MERGE_ARG( waitObjHi, waitObjLo ); )
    std::size_t realLen = ( std::size_t ) MERGE_ARG( lenHi, lenLo );
+   std::size_t totalLen = ( std::size_t ) MERGE_ARG( totalLenHi, totalLenLo );
 
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
@@ -908,6 +917,7 @@ void GASNetAPI::amGet( gasnet_token_t token,
       } //else { message("addr " << tagAddr << " not found at waiting list");}
       _waitingPutRequestsLock.release();
 
+      getDataFromDevice( (uint64_t) tagAddr, totalLen );
       //DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) tagAddr );
       //if (ent != NULL) 
       //{
@@ -1450,17 +1460,18 @@ void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *local
    else
 #endif
    {
-      DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) localAddr );
-      if (ent != NULL) 
-      {
-         if (ent->getOwner() != NULL )
-         {
-   //fprintf(stderr, "sync addr %p: %f, dest %d, %p\n", localAddr , *((float *)localAddr ), remoteNode, remoteTmpBuffer);
-            std::list<uint64_t> tagsToInvalidate;
-            tagsToInvalidate.push_back( ( uint64_t ) localAddr );
-            _masterDir->synchronizeHost( tagsToInvalidate );
-         }
-      }
+      getDataFromDevice( (uint64_t) localAddr, size ); 
+      //DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) localAddr );
+      //if (ent != NULL) 
+      //{
+      //   if (ent->getOwner() != NULL )
+      //   {
+      //fprintf(stderr, "sync addr %p: %f, dest %d, %p\n", localAddr , *((float *)localAddr ), remoteNode, remoteTmpBuffer);
+      //      std::list<uint64_t> tagsToInvalidate;
+      //      tagsToInvalidate.push_back( ( uint64_t ) localAddr );
+      //      _masterDir->synchronizeHost( tagsToInvalidate );
+      //   }
+      //}
    //fprintf(stderr, " put addr %p: %f, dest %d, tmp addr %p, dev addr %p\n", localAddr , *((float *)localAddr ), remoteNode, remoteTmpBuffer, (void *)remoteAddr);
       while ( sent < size )
       {
@@ -1475,7 +1486,7 @@ void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *local
 
          if ( remoteTmpBuffer != NULL )
          { 
-            if ( gasnet_AMRequestLong6( remoteNode, 210,
+            if ( gasnet_AMRequestLong8( remoteNode, 210,
                      &( ( char *) localAddr )[ sent ],
                      thisReqSize,
                      ( char *) ( ( (char *) remoteTmpBuffer ) + sent ),
@@ -1483,6 +1494,8 @@ void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *local
                      ARG_HI( ( ( uintptr_t ) ( ( uintptr_t ) remoteAddr ) + sent )),
                      ARG_LO( ( ( uintptr_t ) remoteAddr ) ),
                      ARG_HI( ( ( uintptr_t ) remoteAddr ) ),
+                     ARG_LO( size ),
+                     ARG_HI( size ),
                      ( sent == 0 ),
                      ( ( sent + thisReqSize ) == size )
                      ) != GASNET_OK)
@@ -1492,7 +1505,7 @@ void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *local
          }
          else
          {
-            if ( gasnet_AMRequestLong6( remoteNode, 210,
+            if ( gasnet_AMRequestLong8( remoteNode, 210,
                      &( ( char *) localAddr )[ sent ],
                      thisReqSize,
                      ( char *) ( remoteAddr + sent ),
@@ -1500,6 +1513,8 @@ void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *local
                      ARG_HI( NULL ),
                      ARG_LO( NULL ),
                      ARG_HI( NULL ),
+                     ARG_LO( size ),
+                     ARG_HI( size ),
                      ( sent == 0 ),
                      ( ( sent + thisReqSize ) == size )
                      ) != GASNET_OK)
@@ -1559,7 +1574,7 @@ void GASNetAPI::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteA
       NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent ( NANOS_XFER_GET, id, sizeKey, xferSize, remoteNode ); )
 
       //fprintf(stderr, "n:%d send get req to node %d(src=%p, dst=%p localtag=%p, size=%ld)\n", gasnet_mynode(), remoteNode, (void *) remoteAddr, (void *) ( ( uintptr_t ) ( ( uintptr_t ) addr ) + sent ), localAddr, thisReqSize  );
-      if ( gasnet_AMRequestShort10( remoteNode, 211,
+      if ( gasnet_AMRequestShort12( remoteNode, 211,
                ARG_LO( ( ( uintptr_t ) ( ( uintptr_t ) addr ) + sent )  ),
                ARG_HI( ( ( uintptr_t ) ( ( uintptr_t ) addr ) + sent )  ),
                ARG_LO( remoteAddr + sent ),
@@ -1568,6 +1583,8 @@ void GASNetAPI::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteA
                ARG_HI( remoteAddr ),
                ARG_LO( thisReqSize ),
                ARG_HI( thisReqSize ),
+               ARG_LO( size ),
+               ARG_HI( size ),
                ARG_LO( (uintptr_t) (( ( sent + thisReqSize ) == size ) ? &requestComplete : NULL )),
                ARG_HI( (uintptr_t) (( ( sent + thisReqSize ) == size ) ? &requestComplete : NULL )) ) != GASNET_OK)
       {
@@ -1585,19 +1602,20 @@ void GASNetAPI::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteA
    //fprintf(stderr, "my req obj is %p\n", reqPtr);
 
 //message("pre inval addr " << (void *) localAddr  );
-   DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) localAddr );
-   if (ent != NULL) 
-   {
-      if (ent->getOwner() != NULL )
-      {
-         if ( !ent->isInvalidated() )
-         {
-            std::list<uint64_t> tagsToInvalidate;
-            tagsToInvalidate.push_back( ( uint64_t ) localAddr );
-            _masterDir->synchronizeHostSoft( tagsToInvalidate );
-         }
-      }
-   }
+      invalidateDataFromDevice( (uint64_t) localAddr, size );
+   //DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) localAddr );
+   //if (ent != NULL) 
+   //{
+   //   if (ent->getOwner() != NULL )
+   //   {
+   //      if ( !ent->isInvalidated() )
+   //      {
+   //         std::list<uint64_t> tagsToInvalidate;
+   //         tagsToInvalidate.push_back( ( uint64_t ) localAddr );
+   //         _masterDir->synchronizeHostSoft( tagsToInvalidate );
+   //      }
+   //   }
+   //}
 
 #ifndef GASNET_SEGMENT_EVERYTHING
    // copy the data to the correct addr;
@@ -1695,6 +1713,12 @@ void GASNetAPI::setMasterDirectory(Directory *dir)
    _masterDir = dir;
 }
 
+void GASNetAPI::setNewMasterDirectory(NewRegionDirectory *dir)
+{
+   std::cerr << "New Master Dir is "<< dir << std::endl;
+   _newMasterDir = dir;
+}
+
 void GASNetAPI::sendWaitForRequestPut( unsigned int dest, uint64_t addr )
 {
    if ( gasnet_AMRequestShort2( dest, 218,
@@ -1727,4 +1751,32 @@ std::size_t GASNetAPI::getTxBytes()
 std::size_t GASNetAPI::getTotalBytes()
 {
    return _totalBytes;
+}
+
+void GASNetAPI::getDataFromDevice( uint64_t addr, std::size_t len ) {
+   NewDirectory::LocationInfoList locations;
+   nanos_region_dimension_internal_t aDimension = { len, 0, len };
+   CopyData cd( addr, NANOS_SHARED, true, true, 1, &aDimension, 0);
+   Region reg = NewRegionDirectory::build_region( cd );
+   _newMasterDir->lock();
+   _newMasterDir->registerAccess( reg, true, true /* will increase version number */, 0, addr /*this is currently unused */, locations );
+   _newMasterDir->unlock();
+   for ( NewDirectory::LocationInfoList::iterator it = locations.begin(); it != locations.end(); it++ ) {
+      if (!it->second.isLocatedIn( 0 ) ) { 
+         unsigned int loc = it->second.getFirstLocation();
+         //std::cerr << "Houston, we have a problem, data is not in Host and we need it back. HostAddr: " << (void *) (((it->first)).getFirstValue()) << it->second << std::endl;
+         sys.getCaches()[ loc ]->syncRegion( it->first, it->second.getAddressOfLocation( loc ) );
+      }
+      //else { if ( sys.getNetwork()->getNodeNum() == 0) std::cerr << "["<<sys.getNetwork()->getNodeNum()<<"] wd " << work.getId() << "All ok, location is " << *(it->second) << std::endl; }
+   }
+}
+
+void GASNetAPI::invalidateDataFromDevice( uint64_t addr, std::size_t len ) {
+   NewDirectory::LocationInfoList locations;
+   nanos_region_dimension_internal_t aDimension = { len, 0, len };
+   CopyData cd( addr, NANOS_SHARED, true, true, 1, &aDimension, 0);
+   Region reg = NewRegionDirectory::build_region( cd );
+   _newMasterDir->lock();
+   _newMasterDir->registerAccess( reg, true, true /* will increase version number */, 0, addr /*this is currently unused */, locations );
+   _newMasterDir->unlock();
 }

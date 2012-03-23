@@ -81,6 +81,7 @@ void NewRegionDirectory::insertRegionIntoTree( RegionTree<NewDirectoryEntryData>
 void NewRegionDirectory::registerAccess( Region reg, bool input, bool output, unsigned int memorySpaceId, uint64_t devAddr, LocationInfoList &loc )
 {
    bool skipParent = false;
+   unsigned int version = 0;
 
    //std::cerr << " register Loc " << memorySpaceId << " " << reg << std::endl;
    //if(sys.getNetwork()->getNodeNum() == 0) { std::cerr << "this dir is " << &_inputDirectory << " parent is "  << ( ( _parent!= NULL) ? &(_parent->_inputDirectory) : NULL ) << std::endl;   }
@@ -155,20 +156,28 @@ void NewRegionDirectory::registerAccess( Region reg, bool input, bool output, un
             message("ERROR: invalid program! data spec not available. Non combined parts.");
          }
            // if(myThread->getId() == 0 )std::cerr << "++++++++++++++++++++++++++ END SYATY COMBINE ++++++++++++++)" << std::endl;
+
+           //outs contains the set of regions which contain the desired region
+         it = outs.begin();
+         for ( it = outs.begin() ; it != outs.end(); it++ ) {
+            RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
+            NewDirectoryEntryData &nded = *accessor;
+            //std::cerr << "Register dir, ret loc " << nded;
+            version = std::max( version, nded.getVersion() );
+            loc.push_back( std::make_pair( accessor.getRegion().intersect( reg ) , nded ) );
+         }
       }
-   _parent->_mergeLock.release();
-   }
-
-
-   //outs contains the set of regions which contain the desired region
-   RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator it = outs.begin();
-   unsigned int version = 0;
-   for ( it = outs.begin() ; it != outs.end(); it++ ) {
-      RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
-      NewDirectoryEntryData &nded = *accessor;
-      //std::cerr << "Register dir, ret loc " << nded;
-      version = std::max( version, nded.getVersion() );
-      loc.push_back( std::make_pair( accessor.getRegion().intersect( reg ) , &nded ) );
+      _parent->_mergeLock.release();
+   } else {
+      //outs contains the set of regions which contain the desired region
+      RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator it = outs.begin();
+      for ( it = outs.begin() ; it != outs.end(); it++ ) {
+         RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
+         NewDirectoryEntryData &nded = *accessor;
+         //std::cerr << "Register dir, ret loc " << nded;
+         version = std::max( version, nded.getVersion() );
+         loc.push_back( std::make_pair( accessor.getRegion().intersect( reg ) , nded ) );
+      }
    }
 
    //std::cerr << "Reg " << reg << " registered for access with version " << (output ? ( version + 1 ) : version ) << " in location " << memorySpaceId << std::endl;
@@ -311,6 +320,9 @@ bool NewRegionDirectory::checkConsistency( uint64_t tag, std::size_t size, unsig
    //}
    return ok;
 }
+
+void NewRegionDirectory::lock() { _mergeLock.acquire(); }
+void NewRegionDirectory::unlock() { _mergeLock.release(); }
 
 std::ostream & nanos::operator<< (std::ostream &o, nanos::NewDirectoryEntryData const &ent)
 {

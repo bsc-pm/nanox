@@ -505,6 +505,7 @@ WD * Scheduler::prefetch( BaseThread *thread, WD &wd )
    return NULL;
 }
 
+#ifdef CLUSTER_DEV
 WD * Scheduler::getClusterWD( BaseThread *thread, int inGPU )
 {
 	WD * wd = NULL;
@@ -532,8 +533,9 @@ WD * Scheduler::getClusterWD( BaseThread *thread, int inGPU )
 	}
 	return wd;
 }
+#endif
 
-
+#ifdef CLUSTER_DEV
 void Scheduler::workerClusterLoop ()
 {
 	BaseThread *parent = myThread;
@@ -609,7 +611,7 @@ void Scheduler::workerClusterLoop ()
 				WD * wd = myClusterThread->fetchBlockingWDGPU();
 				if ( wd )
 				{ 
-					if ( !wd->canBeBlocked() ) 
+					if ( /*!wd->canBeBlocked()*/ true ) 
 					{
 						myClusterThread->addRunningWDGPU( wd );
 							//message("adding a GPU task for node " << thisNode->getClusterNodeNum() << " task is " << wd->getId() << " RELEASE TASK " );
@@ -625,8 +627,8 @@ void Scheduler::workerClusterLoop ()
 					WD* newwd = getClusterWD( myThread, 1 );
 					if ( newwd )
 					{
-						//if ( true /*!wd->canBeBlocked() */) 
-						if ( !newwd->canBeBlocked() ) 
+						if ( true /*!wd->canBeBlocked() */) 
+						//if ( !newwd->canBeBlocked() ) 
 						{
 							//message("adding a GPU task for node " << thisNode->getClusterNodeNum() << " task is " << newwd->getId());
 							myClusterThread->addRunningWDGPU( newwd );
@@ -648,6 +650,7 @@ void Scheduler::workerClusterLoop ()
 		myThread = myThread->getNextThread();
 	}
 }
+#endif
 
 
 struct WorkerBehaviour

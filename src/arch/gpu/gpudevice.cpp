@@ -155,7 +155,7 @@ void GPUDevice::copyInSyncToDevice ( void * dst, void * src, size_t size )
 
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MEMCOPY_TO_DEVICE_EVENT );
    cudaError_t err = cudaMemcpy( dst, src, size, cudaMemcpyHostToDevice );
-   std::cerr <<"cudaMemCpy " << dst << " " << src << " "<<size <<std::endl;
+   //std::cerr <<"cudaMemCpy " << dst << " " << src << " "<<size <<std::endl;
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
    fatal_cond( err != cudaSuccess, "Trying to copy " + toString<size_t>( size )
@@ -203,7 +203,7 @@ void GPUDevice::copyOutSyncToHost ( void * dst, void * src, size_t size )
    ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->transferOutput( size );
 
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MEMCOPY_TO_HOST_EVENT );
-   std::cerr <<"cudaMemCpy " << dst << " " << src << " "<<size <<std::endl;
+   //std::cerr <<"cudaMemCpy " << dst << " " << src << " "<<size <<std::endl;
    cudaError_t err = cudaMemcpy( dst, src, size, cudaMemcpyDeviceToHost );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 

@@ -203,6 +203,7 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ( std::list<GPUMemory
             ( void * ) mt1._hostAddress.getTag() :
             myPE->allocateOutputPinnedMemory( mt1._size );
 
+ std::cerr <<"EXEC00T " << ( void * ) mt1._hostAddress.getTag() << std::endl;
       GPUDevice::copyOutAsyncToBuffer( pinned1, mt1._deviceAddress, mt1._size );
 
       while ( pendingTransfersAsync.size() > 1) {
@@ -231,6 +232,7 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ( std::list<GPUMemory
                ( void * ) mt2._hostAddress.getTag() :
                myPE->allocateOutputPinnedMemory( mt2._size );
 
+ std::cerr <<"EXEC00T " << ( void * ) mt2._hostAddress.getTag() << std::endl;
          GPUDevice::copyOutAsyncToBuffer( pinned2, mt2._deviceAddress, mt2._size );
 
          // First copy: if user memory isn't pinned, copy data to the original address

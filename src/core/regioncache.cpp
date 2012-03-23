@@ -26,6 +26,13 @@
 #include "processingelement.hpp"
 #include "regiondirectory.hpp"
 #include "regiontree.hpp"
+#include "system.hpp"
+#ifdef GPU_DEV
+#include "gpudd.hpp"
+#endif
+#ifdef CLUSTER_DEV
+//#include "clusterdevice_decl.hpp"
+#endif
 
 using namespace nanos; 
 
@@ -224,7 +231,7 @@ void RegionCache::syncRegion( Region const &origReg, uint64_t devAddr ) {
       this->copyOut(thisMapOpsIt->first.getAddress(), *(thisMapOpsIt->second), thisMapOpsIt->first.getLength(), ops );
    }
    
-   while( !ops->allCompleted() ) {}
+   while( !ops->allCompleted() ) { myThread->idle(); }
    delete ops;
 }
 
@@ -237,6 +244,7 @@ void RegionCache::setDevice( Device *d ) {
 
 void RegionCache::setPE( ProcessingElement *pe ) {
    _pe = pe;
+if(sys.getNetwork()->getNodeNum() == 0) std::cerr << "IM CACHE "<< _pe->getMemorySpaceId() << ( _device == &ext::GPU  ? " GPU " : " Cluster" ) << std::endl;
 }
 
 unsigned int RegionCache::getMemorySpaceId() {
@@ -245,11 +253,11 @@ unsigned int RegionCache::getMemorySpaceId() {
 
 void RegionCache::copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops ) {
    _device->_copyIn( devAddr, hostAddr, len, _pe, ops );
-   std::cerr <<"RegionCache::copyIn "<< (void *) devAddr << " <=h " << (void *) hostAddr << " len " << len << " ops complete? "  << ( ops->allCompleted() ? "yes" : "no" )<<std::endl;
+   //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<sys.getNetwork()->getNodeNum() << " RegionCache<"<< _pe->getMemorySpaceId() <<"::copyIn "<< (void *) devAddr << " <=h " << (void *) hostAddr << " len " << len << " ops complete? "  << ( ops->allCompleted() ? "yes" : "no" )<<std::endl;
 }
 void RegionCache::copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, DeviceOps *ops ) {
    _device->_copyOut( hostAddr, devAddr, len, _pe, ops );
-   std::cerr <<"RegionCache::copyOut "<< (void *) devAddr << " =>h " << (void *) hostAddr << " len " << len << " ops complete? "  << ( ops->allCompleted() ? "yes" : "no" )<<std::endl;
+   //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<sys.getNetwork()->getNodeNum() << " RegionCache<"<< _pe->getMemorySpaceId() <<">::copyOut "<< (void *) devAddr << " =>h " << (void *) hostAddr << " len " << len << " ops complete? "  << ( ops->allCompleted() ? "yes" : "no" )<<std::endl;
 }
 void RegionCache::syncAndCopyIn( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops ) {
    uint64_t offset;
@@ -257,8 +265,10 @@ void RegionCache::syncAndCopyIn( unsigned int syncFrom, uint64_t devAddr, uint64
    AllocatedChunk *origChunk = sys.getCaches()[ syncFrom ]->getAddress( hostAddr, len, offset );
    uint64_t origDevAddr = origChunk->address + offset;
    cout->addOp();
+   //if(sys.getNetwork()->getNodeNum() == 0) std::cerr <<sys.getNetwork()->getNodeNum() <<" Started a Copy out from " << syncFrom << std::endl;
    sys.getCaches()[ syncFrom ]->copyOut( hostAddr, origDevAddr, len, cout );
-   while ( !cout->allCompleted() ){}
+   while ( !cout->allCompleted() ){ myThread->idle(); }
+   //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<sys.getNetwork()->getNodeNum() <<" CopyOut from " << syncFrom << " completed" << std::endl;
    delete cout;
    this->copyIn( devAddr, hostAddr, len, ops );
 }
@@ -266,7 +276,7 @@ void RegionCache::copyDevToDev( unsigned int copyFrom, uint64_t devAddr, uint64_
    uint64_t offset;
    AllocatedChunk *origChunk = sys.getCaches()[ copyFrom ]->getAddress( hostAddr, len, offset );
    uint64_t origDevAddr = origChunk->address + offset;
-   std::cerr << "Copy Dev To Dev dest "<< _pe->getMemorySpaceId() << ": " << (void *) devAddr << " origAddr " << copyFrom <<": " << (void *) origDevAddr <<  std::endl;
+   //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<sys.getNetwork()->getNodeNum() << " Copy Dev To Dev dest "<< _pe->getMemorySpaceId() << ": " << (void *) devAddr << " origAddr " << copyFrom <<": " << (void *) origDevAddr <<  std::endl;
    _device->_copyDevToDev( devAddr, origDevAddr, len, _pe, sys.getCaches()[ copyFrom ]->_pe, ops );
 }
 void RegionCache::lock() { _lock.acquire(); }
@@ -361,13 +371,13 @@ void CacheControler::create( RegionCache *targetCache, NewDirectory *dir, std::s
 
          NewRegionDirectory::LocationInfoList::iterator it;
          for ( it = ccopy._locations.begin(); it != ccopy._locations.end(); it++ ) {
-            ccopy._version = std::max( ccopy._version, it->second->getVersion() );
+            ccopy._version = std::max( ccopy._version, it->second.getVersion() );
             //if ( it->second->isLocatedIn( _targetCache->getMemorySpaceId() )) std::cerr << "To run in loc " << _targetCache->getMemorySpaceId() << " Region: " << (it->first) << " nded:  "<< *(it->second) <<  std::endl;
-            if ( it->second->isLocatedIn( _targetCache->getMemorySpaceId() )) continue; // FIXME: version info, (I think its not needed because directory stores only the last version, if an old version is stored, it wont be reported but _targetCache.getAddress will return the already allocated storage)
+            if ( it->second.isLocatedIn( _targetCache->getMemorySpaceId() )) continue; // FIXME: version info, (I think its not needed because directory stores only the last version, if an old version is stored, it wont be reported but _targetCache.getAddress will return the already allocated storage)
             //std::cerr << " I have to copy region " << it->first <<  " into " << _targetCache->getMemorySpaceId() << " version is " << it->second->getVersion() << std::endl;
             //std::cerr << " Dest dev region is    " << ccopy._devRegion << " dev addr is " << (void *) (ccopy._cacheEntry->address + ccopy._offset) << std::endl;
             {
-               MemoryMap< std::pair< uint64_t, DeviceOps *> > &thisCopysOps = opsBySource[ it->second->getFirstLocation() ];
+               MemoryMap< std::pair< uint64_t, DeviceOps *> > &thisCopysOps = opsBySource[ it->second.getFirstLocation() ];
                
                Region &origReg = it->first;
                //uint64_t fragmentOffset = origReg.getFirstValue() - (uint64_t)ccopy._copy->getBaseAddress();
@@ -409,8 +419,8 @@ void CacheControler::create( RegionCache *targetCache, NewDirectory *dir, std::s
             } else if ( _targetCache->canCopyFrom( *sys.getCaches()[ location ] ) ) {
                _targetCache->copyDevToDev( location, thisMapOpsIt->second->first, thisMapOpsIt->first.getAddress(), thisMapOpsIt->first.getLength(), thisMapOpsIt->second->second );
             } else {
-               //FIXME: actualitzar directory 0!
-               std::cerr <<" copy Sync to loc 0 ............................. " << std::endl;
+               //FIXME: actualitzar directory 0! (not really needed, but it could be useful)
+               //if(sys.getNetwork()->getNodeNum() == 0)std::cerr << sys.getNetwork()->getNodeNum() <<" sync and copyIn target loc "<< location << std::endl;
                _targetCache->syncAndCopyIn( location, thisMapOpsIt->second->first, thisMapOpsIt->first.getAddress(), thisMapOpsIt->first.getLength(), thisMapOpsIt->second->second );
             }
          }

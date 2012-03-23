@@ -473,7 +473,9 @@ void System::start ()
             _workers.push_back( *threadIterator );
          }
 
-         _net.setMasterDirectory( mainWD.getDirectory(true) );
+         //_net.setMasterDirectory( mainWD.getDirectory(true) );
+         //mainWD.initNewDirectory();
+         _net.setNewMasterDirectory( mainWD.getNewDirectory() );
       }
       else
       {
@@ -483,7 +485,8 @@ void System::start ()
             smpRepThd->getThreadWD().setInternalData(NEW char[_pmInterface->getInternalDataSize()]);
          _pmInterface->setupWD( smpRepThd->getThreadWD() );
          _workers.push_back( smpRepThd ); 
-         _net.setMasterDirectory( smpRepThd->getThreadWD().getDirectory(true) );
+         //_net.setMasterDirectory( smpRepThd->getThreadWD().getDirectory(true) );
+         _net.setNewMasterDirectory( mainWD.getNewDirectory() );
          setSlaveParentWD( &mainWD );
       }
    } //else {

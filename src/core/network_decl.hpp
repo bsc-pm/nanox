@@ -75,6 +75,7 @@ namespace nanos {
          const char * getMasterHostname( void ) const;
          void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, size_t len );
          void setMasterDirectory(Directory *dir);
+         void setNewMasterDirectory(NewRegionDirectory *dir);
          std::size_t getTotalBytes();
 
          static Lock _nodeLock;

@@ -87,7 +87,11 @@ WorkDescriptor & SMPProcessor::getWorkerWD () const
 
 WorkDescriptor & SMPProcessor::getMultiWorkerWD () const
 {
+#ifdef CLUSTER_DEV
    SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct )Scheduler::workerClusterLoop );
+#else
+   SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct )NULL); //this is an error if we are not runnig with cluster
+#endif
    WD *wd = NEW WD( dd );
    return *wd;
 }
@@ -116,17 +120,17 @@ BaseThread &SMPProcessor::createMultiThread ( WorkDescriptor &helper, unsigned i
    return th;
 }
 
-void* SMPProcessor::getAddressDependent( uint64_t tag )
-{
-#ifdef CLUSTER_DEV
-   void * res;
-   res = (void *) tag;
-   fprintf(stderr, "WHAT DO NOW?!\n");
-   return res;
-#else
- return _cache.getAddress( tag );
-#endif
-}
+//void* SMPProcessor::getAddressDependent( uint64_t tag )
+//{
+//#ifdef CLUSTER_DEV
+//   void * res;
+//   res = (void *) tag;
+//   fprintf(stderr, "WHAT DO NOW?!\n");
+//   return res;
+//#else
+// return _cache.getAddress( tag );
+//#endif
+//}
 void* SMPProcessor::newGetAddressDependent( CopyData const &cd )
 {
  (void) cd;

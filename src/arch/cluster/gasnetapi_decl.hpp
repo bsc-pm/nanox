@@ -25,6 +25,7 @@
 #include "networkapi.hpp"
 #include "simpleallocator.hpp"
 #include "directory.hpp"
+#include "regiondirectory_decl.hpp"
 #include "clusterinfo_decl.hpp"
 //#include "remoteworkgroup_decl.hpp"
 #include <map>
@@ -44,6 +45,7 @@ namespace ext {
          static RemoteWorkGroup *_rwgGPU;
          static RemoteWorkGroup *_rwgSMP;
          static Directory *_masterDir;
+         static NewRegionDirectory *_newMasterDir;
 #ifndef GASNET_SEGMENT_EVERYTHING
          static SimpleAllocator *_thisNodeSegment;
 #endif
@@ -124,12 +126,15 @@ namespace ext {
          void sendMyHostName( unsigned int dest );
          void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, size_t len );
          void setMasterDirectory(Directory *dir);
+         void setNewMasterDirectory(NewRegionDirectory *dir);
          std::size_t getTotalBytes();
          static void testForDependencies( WD *localWD, std::vector<uint64_t> *deps );
          static std::size_t getRxBytes();
          static std::size_t getTxBytes();
 
       private:
+         static void getDataFromDevice( uint64_t addr, std::size_t len );
+         static void invalidateDataFromDevice( uint64_t addr, std::size_t len );
          void _put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size, void *remoteTmpBuffer );
          static void enqueuePutReq( unsigned int dest, void *origAddr, void *destAddr, std::size_t len, void *tmpBuffer );
          void checkForPutReqs();
@@ -176,6 +181,8 @@ namespace ext {
                gasnet_handlerarg_t origAddrHi,
                gasnet_handlerarg_t tagAddrLo,
                gasnet_handlerarg_t tagAddrHi,
+               gasnet_handlerarg_t totalLenLo,
+               gasnet_handlerarg_t totalLenHi,
                gasnet_handlerarg_t first,
                gasnet_handlerarg_t last);
          static void amGet( gasnet_token_t token,
@@ -187,6 +194,8 @@ namespace ext {
                gasnet_handlerarg_t tagAddrHi,
                gasnet_handlerarg_t lenLo,
                gasnet_handlerarg_t lenHi,
+               gasnet_handlerarg_t totalLenLo,
+               gasnet_handlerarg_t totalLenHi,
                gasnet_handlerarg_t waitObjLo,
                gasnet_handlerarg_t waitObjHi );
          static void amGetReply( gasnet_token_t token,

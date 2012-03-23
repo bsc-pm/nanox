@@ -145,7 +145,8 @@ namespace nanos
          const NewRegionDirectory & operator= ( const NewRegionDirectory &dir );
 
       public:
-         typedef std::pair< Region, NewDirectoryEntryData const *> LocationInfo;
+         //typedef std::pair< Region, NewDirectoryEntryData const *> LocationInfo;
+         typedef std::pair< Region, NewDirectoryEntryData > LocationInfo;
          typedef std::list<LocationInfo> LocationInfoList; 
 
          /*! \brief NewDirectory default constructor
@@ -176,6 +177,8 @@ namespace nanos
          void consolidate( bool flushData );
          void print() const;
          bool checkConsistency( uint64_t tag, std::size_t size, unsigned int memorySpaceId );
+         void lock();
+         void unlock();
 
          static void insertRegionIntoTree( RegionTree<NewDirectoryEntryData> &dir, Region const &r, unsigned int memorySpaceId, uint64_t devAddr, bool setLoc, NewDirectoryEntryData const &ent, unsigned int version);
          template <class RegionDesc> static Region build_region( RegionDesc const &cd );
