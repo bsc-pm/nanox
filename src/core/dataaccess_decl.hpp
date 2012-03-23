@@ -119,8 +119,16 @@ namespace nanos
             {
                input = 0;
                output = 0;
-               can_rename = 0;
-               commutative = 0;
+               // can_rename: see below remark.
+               can_rename = true;
+               /*
+                * #605 (gmiranda): this has to be initialised to true, otherwise
+                * operator|= will always set it to false.
+                * When we have 2 accesses to the same region, if one of them is
+                * concurrent and the other is not, we want it to be non
+                * concurrent.
+                */
+               commutative = true;
             }
          
          AccessType(nanos_access_type_internal_t const &accessType)
