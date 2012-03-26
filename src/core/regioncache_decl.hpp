@@ -85,10 +85,10 @@ namespace nanos {
          void setDevice( Device *d );
          void setPE( ProcessingElement *pe );
          unsigned int getMemorySpaceId();
-         void copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops );
+         void copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId );
          void copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, DeviceOps *ops );
-         void syncAndCopyIn( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops );
-         void copyDevToDev( unsigned int copyFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops );
+         void syncAndCopyIn( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId );
+         void copyDevToDev( unsigned int copyFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId );
          void lock();
          void unlock();
          bool tryLock();
@@ -110,6 +110,7 @@ namespace nanos {
 
    class CacheControler {
       private:
+         unsigned int _wdId;
          unsigned int _numCopies;
          CacheCopy *_cacheCopies;
          RegionCache *_targetCache;  
@@ -117,7 +118,7 @@ namespace nanos {
       public:
          CacheControler();
          bool isCreated() const;
-         void create( RegionCache *targetCache, NewRegionDirectory *dir, std::size_t numCopies, CopyData *copies );
+         void create( RegionCache *targetCache, NewRegionDirectory *dir, std::size_t numCopies, CopyData *copies, unsigned int wdId );
          bool dataIsReady() const;
          uint64_t getAddress( unsigned int copyIndex ) const;
          void copyDataOut();

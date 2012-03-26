@@ -123,27 +123,28 @@ void NewRegionDirectory::registerAccess( Region reg, bool input, bool output, un
          //std::cerr << "!!!!!!!!!!!!!!!!!!!!!  this dir is " << &(_parent->_inputDirectory) << " " << (_parent->_inputDirectory) << std::endl;
       } else {
          //check if the region that we are registering is fully contained in the directory, if not, there is a programming error
-         //{
-         //   RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator it = outs.begin();
-         //   if(myThread->getId() == 0 )std::cerr << "::::::::::::::: QUEry results "<< &(_parent->_inputDirectory) << std::endl;
-         //   for ( ; it != outs.end(); it++ ) {
-         //   RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
-         //   if(myThread->getId() == 0 )std::cerr << " ::out reg " << accessor.getRegion() << " <> " << *accessor << std::endl;
-         //   
-         //   }
-         //   if(myThread->getId() == 0 )std::cerr << "::::::::::::::: QUEry results END "<< &(_parent->_inputDirectory) << std::endl;
-         //}
+#if 0
+         {
+            RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator it = outs.begin();
+            if(myThread->getId() == 0 )std::cerr << "::::::::::::::: QUEry results "<< &(_parent->_inputDirectory) << std::endl;
+            for ( ; it != outs.end(); it++ ) {
+            RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
+            if(myThread->getId() == 0 )std::cerr << " ::out reg " << accessor.getRegion() << " <> " << *accessor << std::endl;
+            
+            }
+            if(myThread->getId() == 0 )std::cerr << "::::::::::::::: QUEry results END "<< &(_parent->_inputDirectory) << std::endl;
+         }
          RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator it = outs.begin();
          RegionTree<NewDirectoryEntryData>::iterator &firstAccessor = *it;
          Region tmpReg = firstAccessor.getRegion().intersect( reg );
          bool combiningIsGoingOk = true;
 
-            //if(myThread->getId() == 0 )std::cerr << "++++++++++++++++++++++++++ SYATY COMBINE ++++++++++++++) "<< &(_parent->_inputDirectory) << std::endl;
-            //if(myThread->getId() == 0 )std::cerr << "+++++++++++++++++++++++++ "<< reg << std::endl;
+            if(myThread->getId() == 0 )std::cerr << "++++++++++++++++++++++++++ SYATY COMBINE ++++++++++++++) "<< &(_parent->_inputDirectory) << std::endl;
+            if(myThread->getId() == 0 )std::cerr << "+++++++++++++++++++++++++ "<< reg << std::endl;
          for ( ; ( it != outs.end() ) && ( combiningIsGoingOk ); it++) {
             RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
-            //if(myThread->getId() == 0 )std::cerr << " Region to combine is " << accessor.getRegion() << std::endl;
-            //if(myThread->getId() == 0 )std::cerr << " TMP reg " << tmpReg << std::endl;
+            if(myThread->getId() == 0 )std::cerr << " Region to combine is " << accessor.getRegion() << std::endl;
+            if(myThread->getId() == 0 )std::cerr << " TMP reg " << tmpReg << std::endl;
             combiningIsGoingOk = tmpReg.combine( accessor.getRegion().intersect( reg ), tmpReg );
             //if(myThread->getId() == 0 )std::cerr << " Result " << combiningIsGoingOk << std::endl;
          }
@@ -156,9 +157,10 @@ void NewRegionDirectory::registerAccess( Region reg, bool input, bool output, un
             message("ERROR: invalid program! data spec not available. Non combined parts.");
          }
            // if(myThread->getId() == 0 )std::cerr << "++++++++++++++++++++++++++ END SYATY COMBINE ++++++++++++++)" << std::endl;
+#endif
 
            //outs contains the set of regions which contain the desired region
-         it = outs.begin();
+         RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator it = outs.begin();
          for ( it = outs.begin() ; it != outs.end(); it++ ) {
             RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
             NewDirectoryEntryData &nded = *accessor;
@@ -217,7 +219,9 @@ void NewRegionDirectory::merge( const NewRegionDirectory &inputDir )
 
    //std::cerr << "merge Output Dir into my input (succsessor to me)"<< std::endl;
    //if(sys.getNetwork()->getNodeNum() == 0)std::cerr << "merge " <<  &inputDir._directory << " into " << &_inputDirectory << std::endl;
+   _mergeLock.acquire();
    _internal_merge( inputDir._directory , _inputDirectory );
+   _mergeLock.release();
    //message("merge " << &inputDir << " to input directory " << (void *)&_inputDirectory<< " read from " << (void *)&inputDir._directory );
 }
 

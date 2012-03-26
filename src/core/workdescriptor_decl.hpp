@@ -81,9 +81,9 @@ namespace nanos
          const char * getName ( void ) const { return _name; }
 
          virtual void *memAllocate( std::size_t size, ProcessingElement *pe ) { return (void *) 0xdeadbeef; }
-         virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops ) { std::cerr << "wrong copyIn" <<std::endl; }
+         virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId ) { std::cerr << "wrong copyIn" <<std::endl; }
          virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops ) { std::cerr << "wrong copyOut" <<std::endl; }
-         virtual void _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, ProcessingElement *peDest, ProcessingElement *peOrig, DeviceOps *ops ) { std::cerr << "wrong copyOut" <<std::endl; }
+         virtual void _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, ProcessingElement *peDest, ProcessingElement *peOrig, DeviceOps *ops, unsigned int wdId ) { std::cerr << "wrong copyOut" <<std::endl; }
    };
 
   /*! \brief This class holds the specific data for a given device

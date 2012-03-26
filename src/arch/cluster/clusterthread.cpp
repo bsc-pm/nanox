@@ -60,7 +60,6 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
 
    char *buff = new char[ totalBufferSize ];
 
-   std::cerr << "run remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << " data size is " << wd.getDataSize() << std::endl;
 
    // Copy WD data to tmp buffer
    if ( wd.getDataSize() > 0 )
@@ -89,6 +88,7 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
       dimensionIndex += wd.getCopies()[i].getNumDimensions();
    }
 
+   //std::cerr << "run remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << " data size is " << wd.getDataSize() << " copies " << wd.getNumCopies() << " dimensions " << dimensionIndex << std::endl;
    //NANOS_INSTRUMENT ( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("user-code") );
    //NANOS_INSTRUMENT ( nanos_event_value_t val = wd.getId() );
    //NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_RUNNING, key, val ) );

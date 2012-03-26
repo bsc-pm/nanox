@@ -81,6 +81,7 @@ namespace ext {
 
          //static void addDelayedWork(std::vector<uint64_t> *delayedDepsv, WD *delayedWD, int delayedExpectedPutSeqN, unsigned int delayedSeq);
          static void processWork(std::vector<uint64_t> *delayedDepsv, WD *delayedWD, unsigned int delayedExpectedPutSeqN, unsigned int delayedSeq);
+         static void processWork2(std::size_t expectedData, WD *delayedWD, unsigned int delayedSeq);
          static void releaseDelayedWork();
 
          // GASNet does not allow to send a message during the execution of an active message handler,
@@ -92,6 +93,7 @@ namespace ext {
             void *destAddr;
             std::size_t len;
             void *tmpBuffer;
+            unsigned int wdId;
          };
          static std::list<struct putReqDesc * > _putReqs;
          static Lock _putReqsLock;
@@ -103,10 +105,40 @@ namespace ext {
          static Lock _freeBufferReqsLock;
          static std::list< std::pair<void *, unsigned int> > _workDoneReqs;
          static Lock _workDoneReqsLock;
-         static std::list< std::pair< unsigned int, std::pair<WD *, std::vector<uint64_t> *> > > _deferredWorkReqs;
+         //static std::list< std::pair< unsigned int, std::pair<WD *, std::vector<uint64_t> *> > > _deferredWorkReqs;
+         static std::list< std::pair< unsigned int, std::pair<WD *, std::size_t> > > _deferredWorkReqs;
          static Lock _deferredWorkReqsLock;
          static Atomic<unsigned int> _recvSeqN;
          static Atomic<unsigned int> _recvPutSeqN;
+
+         class ReceivedWDData {
+            private:
+               struct recvDataInfo {
+                  recvDataInfo() : _wd( NULL ), _count( 0 ), _expected( 0 ) { }
+                  WorkDescriptor *_wd;
+                  std::size_t _count;
+                  std::size_t _expected;
+               };
+               std::map< unsigned int, struct recvDataInfo > _recvWdData;
+               Lock _lock;
+            public:
+            //ReceivedWDData();
+            //~ReceivedWDData();
+            void addData( unsigned int wdId, std::size_t size );
+            void addWD( unsigned int wdId, WorkDescriptor *wd, std::size_t expectedData );
+         };
+         class SentWDData {
+            private:
+               std::map< unsigned int, std::size_t > _sentWdData;
+               Lock _lock;
+            public:
+            //SentWDData();
+            //~SentWDData();
+            void addSentData( unsigned int wdId, std::size_t sentData );
+            std::size_t getSentData( unsigned int wdId );
+         };
+         static ReceivedWDData _recvWdData;
+         static SentWDData _sentWdData;
          
       public:
          void initialize ( Network *net );
@@ -116,7 +148,7 @@ namespace ext {
          void sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, size_t argSize, char * arg, void ( *xlate ) ( void *, void * ), int arch, void *wd );
          void sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr, int peId);
          static void _sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr, int peId);
-         void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size );
+         void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size, unsigned int wdId );
          void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, size_t size );
          void malloc ( unsigned int remoteNode, size_t size, void *waitObjAddr );
          void memFree ( unsigned int remoteNode, void *addr );
@@ -124,7 +156,7 @@ namespace ext {
          void nodeBarrier( void );
          
          void sendMyHostName( unsigned int dest );
-         void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, size_t len );
+         void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, size_t len, unsigned int wdId );
          void setMasterDirectory(Directory *dir);
          void setNewMasterDirectory(NewRegionDirectory *dir);
          std::size_t getTotalBytes();
@@ -135,8 +167,8 @@ namespace ext {
       private:
          static void getDataFromDevice( uint64_t addr, std::size_t len );
          static void invalidateDataFromDevice( uint64_t addr, std::size_t len );
-         void _put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size, void *remoteTmpBuffer );
-         static void enqueuePutReq( unsigned int dest, void *origAddr, void *destAddr, std::size_t len, void *tmpBuffer );
+         void _put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size, void *remoteTmpBuffer, unsigned int wdId );
+         static void enqueuePutReq( unsigned int dest, void *origAddr, void *destAddr, std::size_t len, void *tmpBuffer, unsigned int wdId );
          void checkForPutReqs();
          static void sendWaitForRequestPut( unsigned int dest, uint64_t addr );
          static void print_copies( WD *wd, int deps );
@@ -157,6 +189,8 @@ namespace ext {
                              gasnet_handlerarg_t xlateHi,
                              gasnet_handlerarg_t rmwdLo,
                              gasnet_handlerarg_t rmwdHi,
+                             gasnet_handlerarg_t expectedDataLo,
+                             gasnet_handlerarg_t expectedDataHi,
                              unsigned int dataSize, unsigned int wdId, unsigned int numPe, int arch, unsigned int seq, unsigned int seqPut );
          static void amWorkData(gasnet_token_t token, void *buff, std::size_t len,
                gasnet_handlerarg_t msgNum,
@@ -183,6 +217,7 @@ namespace ext {
                gasnet_handlerarg_t tagAddrHi,
                gasnet_handlerarg_t totalLenLo,
                gasnet_handlerarg_t totalLenHi,
+               gasnet_handlerarg_t wdId,
                gasnet_handlerarg_t first,
                gasnet_handlerarg_t last);
          static void amGet( gasnet_token_t token,
@@ -219,6 +254,7 @@ namespace ext {
                gasnet_handlerarg_t tmpBufferHi,
                gasnet_handlerarg_t lenLo,
                gasnet_handlerarg_t lenHi,
+               gasnet_handlerarg_t wdId,
                gasnet_handlerarg_t dst );
          static void amWaitRequestPut( gasnet_token_t token, 
                gasnet_handlerarg_t addrLo,

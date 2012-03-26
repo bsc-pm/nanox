@@ -657,54 +657,54 @@ void System::finish ()
       }
       sys.getNetwork()->nodeBarrier();
    }
-   if (sys.getNetwork()->getNodeNum() == 0 && _verboseMode )
-   {
-      unsigned int palette[8] = {0x003380, 0x0044aa, 0x0055d4, 0x0066ff, 0x2a7fff, 0x5599ff, 0x00112b, 0x002255}; 
-      message("I have " << _graphRepLists.size() << " lists" );
-      std::vector<std::list<GraphEntry *> > nodeLists(sys.getNetwork()->getNumNodes());
-      std::set<GraphEntry *> nodeSet;
-      for ( std::list< std::list<GraphEntry *> *>::iterator it = _graphRepLists.begin(); it != _graphRepLists.end(); it++ )
-      {
-         std::list<GraphEntry *>::iterator internalIt = (*it)->begin();
-         while(  internalIt != (*it)->end() ) 
-         {
-             std::set<GraphEntry *>::iterator nodeIt = nodeSet.find( *internalIt );
-             if ( nodeIt == nodeSet.end() )
-             {
-                GraphEntry &ge = *(*internalIt);
-                nodeSet.insert( *internalIt );
-                nodeLists[ge.getNode()].push_back( *internalIt ); 
-            }
-            internalIt++;
-         }
-      }
-      for ( unsigned int i = 0; i < sys.getNetwork()->getNumNodes(); i++ )
-      {
-         fprintf(stderr, "subgraph clusternode%d { label=\"Node %d\"; style=filled; color=\"#%06x\"; ", i, i, palette[(i%8)]);
-         for ( std::list<GraphEntry *>::iterator it = nodeLists[i].begin(); it != nodeLists[i].end(); it++ )
-         {
-             GraphEntry &ge = *(*it);
-             if ( ge.isWait() )
-                std::cerr << "Wait" << ge.getCount() << " [shape=box]; ";
-             else
-                fprintf(stderr, "%d; ", ge.getId());
-                //fprintf(stderr, "%d [color=\"#%08x\",style=filled]; ", ge.getId(), palette[(ge.getNode()%8)*2]);
-         }
-         std::cerr << "}" << std::endl;
-      }
-      for ( std::list< std::list<GraphEntry *> *>::iterator it = _graphRepLists.begin(); it != _graphRepLists.end(); it++ )
-      {
-         std::list<GraphEntry *>::iterator internalIt = (*it)->begin();
-         while(  internalIt != (*it)->end() ) 
-         {
-            GraphEntry &ge = *(*internalIt);
-            std::cerr << ge;
-            internalIt++;
-            if (internalIt != (*it)->end() ) std::cerr <<" -> ";
-         }
-         std::cerr << ";" << std::endl;
-      } 
-   }
+   //if (sys.getNetwork()->getNodeNum() == 0 && _verboseMode )
+   //{
+   //   unsigned int palette[8] = {0x003380, 0x0044aa, 0x0055d4, 0x0066ff, 0x2a7fff, 0x5599ff, 0x00112b, 0x002255}; 
+   //   message("I have " << _graphRepLists.size() << " lists" );
+   //   std::vector<std::list<GraphEntry *> > nodeLists(sys.getNetwork()->getNumNodes());
+   //   std::set<GraphEntry *> nodeSet;
+   //   for ( std::list< std::list<GraphEntry *> *>::iterator it = _graphRepLists.begin(); it != _graphRepLists.end(); it++ )
+   //   {
+   //      std::list<GraphEntry *>::iterator internalIt = (*it)->begin();
+   //      while(  internalIt != (*it)->end() ) 
+   //      {
+   //          std::set<GraphEntry *>::iterator nodeIt = nodeSet.find( *internalIt );
+   //          if ( nodeIt == nodeSet.end() )
+   //          {
+   //             GraphEntry &ge = *(*internalIt);
+   //             nodeSet.insert( *internalIt );
+   //             nodeLists[ge.getNode()].push_back( *internalIt ); 
+   //         }
+   //         internalIt++;
+   //      }
+   //   }
+   //   for ( unsigned int i = 0; i < sys.getNetwork()->getNumNodes(); i++ )
+   //   {
+   //      fprintf(stderr, "subgraph clusternode%d { label=\"Node %d\"; style=filled; color=\"#%06x\"; ", i, i, palette[(i%8)]);
+   //      for ( std::list<GraphEntry *>::iterator it = nodeLists[i].begin(); it != nodeLists[i].end(); it++ )
+   //      {
+   //          GraphEntry &ge = *(*it);
+   //          if ( ge.isWait() )
+   //             std::cerr << "Wait" << ge.getCount() << " [shape=box]; ";
+   //          else
+   //             fprintf(stderr, "%d; ", ge.getId());
+   //             //fprintf(stderr, "%d [color=\"#%08x\",style=filled]; ", ge.getId(), palette[(ge.getNode()%8)*2]);
+   //      }
+   //      std::cerr << "}" << std::endl;
+   //   }
+   //   for ( std::list< std::list<GraphEntry *> *>::iterator it = _graphRepLists.begin(); it != _graphRepLists.end(); it++ )
+   //   {
+   //      std::list<GraphEntry *>::iterator internalIt = (*it)->begin();
+   //      while(  internalIt != (*it)->end() ) 
+   //      {
+   //         GraphEntry &ge = *(*internalIt);
+   //         std::cerr << ge;
+   //         internalIt++;
+   //         if (internalIt != (*it)->end() ) std::cerr <<" -> ";
+   //      }
+   //      std::cerr << ";" << std::endl;
+   //   } 
+   //}
    sys.getNetwork()->nodeBarrier();
 
    _net.finalize();
@@ -824,6 +824,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    DD **dev_ptrs = ( DD ** ) (chunk + offset_DPtrs);
    for ( i = 0 ; i < num_devices ; i ++ ) dev_ptrs[i] = ( DD* ) devices[i].factory( devices[i].arg );
 
+   //std::cerr << "num_copies=" << num_copies <<" copies=" <<copies << " num_dimensions=" <<num_dimensions << " dimensions=" << dimensions<< std::endl;
    ensure ((num_copies==0 && copies==NULL && num_dimensions==0 && dimensions==NULL) || (num_copies!=0 && copies!=NULL && num_dimensions!=0 && dimensions!=NULL ), "Number of copies and copy data conflict" );
    
 

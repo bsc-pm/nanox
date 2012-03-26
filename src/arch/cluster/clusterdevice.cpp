@@ -64,7 +64,8 @@ void * ClusterDevice::realloc( void *address, size_t newSize, size_t oldSize, Pr
 
 bool ClusterDevice::copyDevToDev( void * addrDst, CopyDescriptor &dstCd, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc )
 {
-   sys.getNetwork()->sendRequestPut( ((ClusterNode *) peSrc)->getClusterNodeNum(), (uint64_t )addrSrc, ((ClusterNode *) peDst)->getClusterNodeNum(), (uint64_t)addrDst, size );
+   std::cerr<<"ERROR; OLD CACHE" << std::endl;
+   //sys.getNetwork()->sendRequestPut( ((ClusterNode *) peSrc)->getClusterNodeNum(), (uint64_t )addrSrc, ((ClusterNode *) peDst)->getClusterNodeNum(), (uint64_t)addrDst, size );
    return true;
 }
 
@@ -86,9 +87,9 @@ void ClusterDevice::syncTransfer ( uint64_t address, ProcessingElement *pe )
 {
 }
 
-void ClusterDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops ) {
+void ClusterDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId ) {
    ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
-   sys.getNetwork()->put( node->getClusterNodeNum(),  devAddr, ( void * ) hostAddr, len );
+   sys.getNetwork()->put( node->getClusterNodeNum(),  devAddr, ( void * ) hostAddr, len, wdId );
    ops->completeOp();
 }
 void ClusterDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops ) {
@@ -96,8 +97,8 @@ void ClusterDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t l
    sys.getNetwork()->get( ( void * ) hostAddr, node->getClusterNodeNum(), devAddr, len );
    ops->completeOp();
 }
-void ClusterDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, ProcessingElement *peDest, ProcessingElement *peOrig, DeviceOps *ops ) {
+void ClusterDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, ProcessingElement *peDest, ProcessingElement *peOrig, DeviceOps *ops, unsigned int wdId ) {
    //ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
-   sys.getNetwork()->sendRequestPut( ((ClusterNode *) peOrig)->getClusterNodeNum(), devOrigAddr, ((ClusterNode *) peDest)->getClusterNodeNum(), devDestAddr, len );
+   sys.getNetwork()->sendRequestPut( ((ClusterNode *) peOrig)->getClusterNodeNum(), devOrigAddr, ((ClusterNode *) peDest)->getClusterNodeNum(), devDestAddr, len, wdId );
    ops->completeOp();
 }

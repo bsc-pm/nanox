@@ -521,6 +521,7 @@ WD * Scheduler::getClusterWD( BaseThread *thread, int inGPU )
 #endif
          { // found a non compatible wd in "nextWD", ignore it
             wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread );
+            //if(wd!=NULL)std::cerr << "got a wd with depth " <<wd->getDepth() << std::endl;
          }
          else {
             thread->resetNextWD();
@@ -529,6 +530,7 @@ WD * Scheduler::getClusterWD( BaseThread *thread, int inGPU )
 		else
 		{
 			wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread );
+            //if(wd!=NULL)std::cerr << "got a wd with depth " <<wd->getDepth() << std::endl;
 		}
 	}
 	return wd;

@@ -174,20 +174,20 @@ void WorkDescriptor::notifyOutlinedCompletion()
 }
 void WorkDescriptor::predecessorFinished( WorkDescriptor *predecessorWd )
 {
-   if ( predecessorWd != NULL )
-   {
-      setMyGraphRepList( predecessorWd->getMyGraphRepList() );
-   }
+   //if ( predecessorWd != NULL )
+   //{
+   //   setMyGraphRepList( predecessorWd->getMyGraphRepList() );
+   //}
 
-   if ( _myGraphRepList == NULL ) {
-      _myGraphRepList = sys.getGraphRepList();
-      if ( predecessorWd != NULL ) {
-         _myGraphRepList.value()->push_back( predecessorWd->getGE() );
-         predecessorWd->listed();
-      }
-   }
-   _myGraphRepList.value()->push_back( getGE() );
-   if (predecessorWd != NULL) predecessorWd->listed();
+   //if ( _myGraphRepList == NULL ) {
+   //   _myGraphRepList = sys.getGraphRepList();
+   //   if ( predecessorWd != NULL ) {
+   //      _myGraphRepList.value()->push_back( predecessorWd->getGE() );
+   //      predecessorWd->listed();
+   //   }
+   //}
+   //_myGraphRepList.value()->push_back( getGE() );
+   //if (predecessorWd != NULL) predecessorWd->listed();
 
    //message("wd " << getId() << " getting directory from previous wd");
       if ( getNewDirectory() == NULL )
@@ -218,13 +218,13 @@ std::list<GraphEntry *> *WorkDescriptor::getMyGraphRepList(  )
 
 void WorkDescriptor::wgdone()
 {
-   if (!_listed)
-   {
-      if ( _myGraphRepList == NULL ) {
-         _myGraphRepList = sys.getGraphRepList();
-      }
-      _myGraphRepList.value()->push_back( this->getParent()->getGENext() );
-   }
+   //if (!_listed)
+   //{
+   //   if ( _myGraphRepList == NULL ) {
+   //      _myGraphRepList = sys.getGraphRepList();
+   //   }
+   //   _myGraphRepList.value()->push_back( this->getParent()->getGENext() );
+   //}
 }
 
 void WorkDescriptor::listed()

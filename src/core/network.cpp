@@ -142,11 +142,11 @@ void Network::notifyWorkDone ( unsigned int nodeNum, void *remoteWdAddr, int peI
    ( (WD *) remoteWdAddr )->notifyOutlinedCompletion();
 }
 
-void Network::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size )
+void Network::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, size_t size, unsigned int wdId )
 {
    if ( _api != NULL )
    {
-      _api->put( remoteNode, remoteAddr, localAddr, size );
+      _api->put( remoteNode, remoteAddr, localAddr, size, wdId );
    }
 }
 
@@ -224,11 +224,11 @@ const char * Network::getMasterHostname() const
 }
 
 
-void Network::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, size_t len )
+void Network::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, size_t len, unsigned int wdId )
 {
    if ( _api != NULL )
    {
-      _api->sendRequestPut(dest, origAddr, dataDest, dstAddr, len);
+      _api->sendRequestPut( dest, origAddr, dataDest, dstAddr, len, wdId );
    }
 }
 

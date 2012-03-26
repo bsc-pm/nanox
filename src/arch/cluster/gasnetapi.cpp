@@ -123,7 +123,10 @@ Atomic<unsigned int> GASNetAPI::_recvSeqN (0);
 Atomic<unsigned int> *GASNetAPI::_putSeqN;
 Atomic<unsigned int> GASNetAPI::_recvPutSeqN (0);
 Lock GASNetAPI::_deferredWorkReqsLock;
-std::list< std::pair< unsigned int, std::pair<WD *, std::vector<uint64_t> *> > > GASNetAPI::_deferredWorkReqs;
+//std::list< std::pair< unsigned int, std::pair<WD *, std::vector<uint64_t> *> > > GASNetAPI::_deferredWorkReqs;
+std::list< std::pair< unsigned int, std::pair<WD *, std::size_t > > > GASNetAPI::_deferredWorkReqs;
+GASNetAPI::ReceivedWDData GASNetAPI::_recvWdData;
+GASNetAPI::SentWDData GASNetAPI::_sentWdData;
 
 std::list<struct GASNetAPI::DelayedWork * > GASNetAPI::_delayedWork;
 Lock GASNetAPI::_delayedWorkLock;
@@ -140,12 +143,15 @@ static void inspect_environ(void)
 }
 #endif
 
-void GASNetAPI::processWork(std::vector<uint64_t> *delayedDepsV, WD *delayedWD, unsigned int delayedExpectedPutSeqN, unsigned int delayedSeq) {
+#if 0
+//void GASNetAPI::processWork(std::vector<uint64_t> *delayedDepsV, WD *delayedWD, unsigned int delayedExpectedPutSeqN, unsigned int delayedSeq) {
+void GASNetAPI::processWork(std::size_t expectedData, WD *delayedWD, unsigned int delayedExpectedPutSeqN, unsigned int delayedSeq) {
    _delayedWorkLock.acquire();
    if ( !_delayedWork.empty() ) {
       //message("n:" << gasnet_mynode() << " delaying(queue has elems) wd " << delayedWD->getId() << " expected seq " << delayedExpectedPutSeqN << " now is " << _recvPutSeqN.value() );
       struct DelayedWork *dw = NEW DelayedWork();
-      dw->delayedDepsV = delayedDepsV;
+      //dw->delayedDepsV = delayedDepsV;
+      dw->delayedExpectedData = expectedData;
       dw->delayedWD = delayedWD;
       dw->delayedExpectedPutSeqN = delayedExpectedPutSeqN;
       dw->delayedSeq = delayedSeq;
@@ -154,7 +160,8 @@ void GASNetAPI::processWork(std::vector<uint64_t> *delayedDepsV, WD *delayedWD, 
    } else if ( ( delayedExpectedPutSeqN ) > _recvPutSeqN.value() ) {
       struct DelayedWork *dw = NEW DelayedWork();
       //message("n:" << gasnet_mynode() << " delaying(seq num) wd " << delayedWD->getId() << " expected seq " << delayedExpectedPutSeqN << " now is " << _recvPutSeqN.value() );
-      dw->delayedDepsV = delayedDepsV;
+      //dw->delayedDepsV = delayedDepsV;
+      dw->delayedExpectedData = expectedData;
       dw->delayedWD = delayedWD;
       dw->delayedExpectedPutSeqN = delayedExpectedPutSeqN;
       dw->delayedSeq = delayedSeq;
@@ -166,15 +173,33 @@ void GASNetAPI::processWork(std::vector<uint64_t> *delayedDepsV, WD *delayedWD, 
 
       if ( _recvSeqN.value() == delayedSeq )
       {
-         testForDependencies( delayedWD, delayedDepsV );
+         //testForDependencies( delayedWD, delayedDepsV );
+         _recvWdData.addWD( delayedWD->getId(), delayedWD, expectedData );
          _recvSeqN++;
          checkDeferredWorkReqs();
 
       } else { //not expected seq number, enqueue
          _deferredWorkReqsLock.acquire();
-         _deferredWorkReqs.push_back( std::pair< unsigned int, std::pair < WD*, std::vector<uint64_t> *> >( delayedSeq, std::pair< WD*, std::vector<uint64_t> * > ( delayedWD, delayedDepsV ) ) );
+         //_deferredWorkReqs.push_back( std::pair< unsigned int, std::pair < WD*, std::vector<uint64_t> *> >( delayedSeq, std::pair< WD*, std::vector<uint64_t> * > ( delayedWD, delayedDepsV ) ) );
+         _deferredWorkReqs.push_back( std::pair< unsigned int, std::pair < WD*, std::size_t > >( delayedSeq, std::pair< WD*, std::size_t > ( delayedWD, expectedData ) ) );
          _deferredWorkReqsLock.release();
       }
+   }
+}
+#endif
+void GASNetAPI::processWork2(std::size_t expectedData, WD *delayedWD, unsigned int delayedSeq) {
+   if ( _recvSeqN.value() == delayedSeq )
+   {
+      //testForDependencies( delayedWD, delayedDepsV );
+      _recvWdData.addWD( delayedWD->getId(), delayedWD, expectedData );
+      _recvSeqN++;
+      checkDeferredWorkReqs();
+
+   } else { //not expected seq number, enqueue
+      _deferredWorkReqsLock.acquire();
+      //_deferredWorkReqs.push_back( std::pair< unsigned int, std::pair < WD*, std::vector<uint64_t> *> >( delayedSeq, std::pair< WD*, std::vector<uint64_t> * > ( delayedWD, delayedDepsV ) ) );
+      _deferredWorkReqs.push_back( std::pair< unsigned int, std::pair < WD*, std::size_t > >( delayedSeq, std::pair< WD*, std::size_t > ( delayedWD, expectedData ) ) );
+      _deferredWorkReqsLock.release();
    }
 }
 
@@ -189,6 +214,7 @@ void GASNetAPI::processWork(std::vector<uint64_t> *delayedDepsV, WD *delayedWD, 
 //   _delayedWorkLock.release();
 //}
 
+#if 0
 void GASNetAPI::releaseDelayedWork( ) {
    struct DelayedWork *dw = NULL;
    bool exitLoop = false;
@@ -205,12 +231,14 @@ void GASNetAPI::releaseDelayedWork( ) {
             _delayedWork.pop_front();
             if ( _recvSeqN.value() == dw->delayedSeq )
             {
-               testForDependencies( dw->delayedWD, dw->delayedDepsV );
+               //testForDependencies( dw->delayedWD, dw->delayedDepsV );
+               _recvWdData.addWD( dw->delayedWD->getId(), dw->delayedWD, dw->expectedData );
                _recvSeqN++;
                checkDeferredWorkReqs();
             } else { //not expected seq number, enqueue
                _deferredWorkReqsLock.acquire();
-               _deferredWorkReqs.push_back( std::pair< unsigned int, std::pair < WD*, std::vector<uint64_t> *> >( dw->delayedSeq, std::pair< WD*, std::vector<uint64_t> * > ( dw->delayedWD, dw->delayedDepsV ) ) );
+               //_deferredWorkReqs.push_back( std::pair< unsigned int, std::pair < WD*, std::vector<uint64_t> *> >( dw->delayedSeq, std::pair< WD*, std::vector<uint64_t> * > ( dw->delayedWD, dw->delayedDepsV ) ) );
+               _deferredWorkReqs.push_back( std::pair< unsigned int, std::pair < WD*, std::size_t > >( dw->delayedSeq, std::pair< WD*, std::size_t  > ( dw->delayedWD, dw->delayedExpectedData ) ) );
                _deferredWorkReqsLock.release();
             }
             delete dw;
@@ -223,6 +251,7 @@ void GASNetAPI::releaseDelayedWork( ) {
    } while ( !exitLoop );
    _delayedWorkLock.release();
 }
+#endif
 
 void GASNetAPI::print_copies( WD *wd, int deps )
 {
@@ -235,7 +264,7 @@ void GASNetAPI::print_copies( WD *wd, int deps )
 #endif
 }
 
-void GASNetAPI::enqueuePutReq( unsigned int dest, void *origAddr, void *destAddr, std::size_t len, void *tmpBuffer )
+void GASNetAPI::enqueuePutReq( unsigned int dest, void *origAddr, void *destAddr, std::size_t len, void *tmpBuffer, unsigned int wdId )
 {
    struct putReqDesc *prd = NEW struct putReqDesc();
    prd->dest = dest;
@@ -243,6 +272,7 @@ void GASNetAPI::enqueuePutReq( unsigned int dest, void *origAddr, void *destAddr
    prd->destAddr = destAddr;
    prd->len = len;
    prd->tmpBuffer = tmpBuffer;
+   prd->wdId = wdId;
 
    _putReqsLock.acquire();
    _putReqs.push_back( prd );
@@ -265,7 +295,7 @@ void GASNetAPI::checkForPutReqs()
    {
       NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_IN, key, (nanos_event_value_t) prd->len) );
-      _put( prd->dest, (uint64_t) prd->destAddr, prd->origAddr, prd->len, prd->tmpBuffer );
+      _put( prd->dest, (uint64_t) prd->destAddr, prd->origAddr, prd->len, prd->tmpBuffer, prd->wdId );
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
       delete prd;
    }
@@ -355,7 +385,7 @@ void GASNetAPI::testForDependencies(WD* localWD, std::vector<uint64_t> *deps)
          if ( wdindc++ == 0 ) { sys.submit( *localWD ); /* std::cerr<<"n:" <<gasnet_mynode()<< " submitted wd " << localWD->getId() <<std::endl; */}
          else { buffWD = localWD; /* std::cerr<<"n:" <<gasnet_mynode()<< " saved wd " << buffWD->getId() <<std::endl; */}
 #else
-         message( "n:" << gasnet_mynode() << " " << _recvSeqN.value() << " submit wd " << localWD->getId() );
+         //message( "n:" << gasnet_mynode() << " " << _recvSeqN.value() << " submit wd " << localWD->getId() );
          //if (gasnet_mynode() == 3)print_copies( localWD, numDeps );
          sys.submit( *localWD );
 #endif
@@ -439,7 +469,8 @@ void GASNetAPI::checkWorkDoneReqs()
 }
 void GASNetAPI::checkDeferredWorkReqs()
 {
-   std::pair<unsigned int, std::pair< WD*, std::vector<uint64_t> *> > dwd ( 0, std::pair< WD*, std::vector<uint64_t> *> ( NULL, NULL )  );
+   //std::pair<unsigned int, std::pair< WD*, std::vector<uint64_t> *> > dwd ( 0, std::pair< WD*, std::vector<uint64_t> *> ( NULL, NULL )  );
+   std::pair<unsigned int, std::pair< WD*, std::size_t > > dwd ( 0, std::pair< WD*, std::size_t > ( NULL, 0 )  );
    if ( _deferredWorkReqsLock.tryAcquire() )
    {
       //message("process free reqs");
@@ -453,7 +484,9 @@ void GASNetAPI::checkDeferredWorkReqs()
          if (dwd.first == _recvSeqN.value() ) 
          {
             _deferredWorkReqsLock.release();
-            testForDependencies( dwd.second.first, dwd.second.second );
+            //testForDependencies( dwd.second.first, dwd.second.second );
+            
+            _recvWdData.addWD( dwd.second.first->getId(), dwd.second.first, dwd.second.second );
             _recvSeqN++;
             checkDeferredWorkReqs();
          }
@@ -496,11 +529,14 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
       gasnet_handlerarg_t xlateHi,
       gasnet_handlerarg_t rmwdLo,
       gasnet_handlerarg_t rmwdHi,
+      gasnet_handlerarg_t expectedDataLo,
+      gasnet_handlerarg_t expectedDataHi,
       unsigned int dataSize, unsigned int wdId, unsigned int numPe, int arch, unsigned int seq, unsigned int putSeq )
 {
    void (*work)( void *) = (void (*)(void *)) MERGE_ARG( workHi, workLo );
    void (*xlate)( void *, void *) = (void (*)(void *, void *)) MERGE_ARG( xlateHi, xlateLo );
    void *rmwd = (void *) MERGE_ARG( rmwdHi, rmwdLo );
+   std::size_t expectedData = (std::size_t) MERGE_ARG( expectedDataHi, expectedDataLo );
    gasnet_node_t src_node;
    unsigned int i;
    WorkGroup *rwg;
@@ -580,8 +616,8 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
 
    std::memcpy(data, work_data, dataSize);
 
-   unsigned int numDeps = *( ( int * ) &work_data[ dataSize + sizeof( int ) + numCopies * sizeof( CopyData ) + sizeof( int ) + num_dimensions * sizeof( nanos_region_dimension_t ) ] );
-   uint64_t *depTags = ( ( uint64_t * ) &work_data[ dataSize + sizeof( int ) + numCopies * sizeof( CopyData ) + sizeof( int ) + num_dimensions * sizeof( nanos_region_dimension_t ) + sizeof( int ) ] );
+   //unsigned int numDeps = *( ( int * ) &work_data[ dataSize + sizeof( int ) + numCopies * sizeof( CopyData ) + sizeof( int ) + num_dimensions * sizeof( nanos_region_dimension_t ) ] );
+   //uint64_t *depTags = ( ( uint64_t * ) &work_data[ dataSize + sizeof( int ) + numCopies * sizeof( CopyData ) + sizeof( int ) + num_dimensions * sizeof( nanos_region_dimension_t ) + sizeof( int ) ] );
 
    // Set copies and dimensions, getDimensions() returns an index here, instead of a pointer,
    // the index is the position inside the dimension array that must be set as the base address for the dimensions
@@ -604,16 +640,17 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
 
    //message("n:" << gasnet_mynode() << " amWork, id is "<< wdId << " deps " << numDeps << " seq " << seq << " curr seq " << _recvSeqN.value() );
 
-   std::vector<uint64_t> *depsv = NULL;
-   if ( numDeps > 0)
-   {
-      depsv = NEW std::vector<uint64_t>( numDeps );
-      for (i = 0; i < numDeps; i++)
-         (*depsv)[i] = depTags[i];
-   }
+   //std::vector<uint64_t> *depsv = NULL;
+   //if ( numDeps > 0)
+   //{
+   //   depsv = NEW std::vector<uint64_t>( numDeps );
+   //   for (i = 0; i < numDeps; i++)
+   //      (*depsv)[i] = depTags[i];
+   //}
 
 
-   processWork(depsv, localWD, putSeq, seq);
+   //processWork(depsv, localWD, putSeq, seq);
+   processWork2(expectedData, localWD, seq);
 
    delete[] work_data;
    work_data = NULL;
@@ -762,6 +799,7 @@ void GASNetAPI::amPut( gasnet_token_t token,
       gasnet_handlerarg_t realTagHi,
       gasnet_handlerarg_t totalLenLo,
       gasnet_handlerarg_t totalLenHi,
+      gasnet_handlerarg_t wdId,
       gasnet_handlerarg_t firstMsg,
       gasnet_handlerarg_t lastMsg ) 
 {
@@ -823,12 +861,13 @@ void GASNetAPI::amPut( gasnet_token_t token,
       uintptr_t localAddr =  ( ( uintptr_t ) buf ) - ( ( uintptr_t ) realAddr - ( uintptr_t ) realTag );
       //if ( firstMsg ) { if ((char *) localAddr != buf) fprintf(stderr, "SOMETHING WRONG HERE, realAddr is %p, realTag is %p, but localAddr is %p\n", realAddr, realTag, (void *) localAddr ); }
       enqueueFreeBufferNotify( ( void * ) localAddr );
-      if ( src_node > 0 )
-      {
-         releaseWDsFromDataDep( realTag );
-      }
+      _recvWdData.addData( wdId, totalLen );
+      //if ( src_node > 0 )
+      //{
+      //   releaseWDsFromDataDep( realTag );
+      //}
       //if (src_node != 0 )fprintf(stderr, "END amPut to node %d, from %d, local addr %p, realTag %p, data is %f\n", gasnet_mynode(), src_node, buf, realTag, *((float *)buf));
-      if (src_node == 0) releaseDelayedWork();
+      //if (src_node == 0) releaseDelayedWork();
       //if ( (int) ++_recvPutSeqN == delayedExpectedPutSeqN ) 
       //{
       //   _recvPutSeqN = 0;
@@ -1038,6 +1077,7 @@ void GASNetAPI::amRequestPut( gasnet_token_t token,
       gasnet_handlerarg_t tmpBufferHi,
       gasnet_handlerarg_t lenLo,
       gasnet_handlerarg_t lenHi,
+      gasnet_handlerarg_t wdId,
       gasnet_handlerarg_t dst )
 {
    gasnet_node_t src_node;
@@ -1059,7 +1099,7 @@ void GASNetAPI::amRequestPut( gasnet_token_t token,
    }
    _waitingPutRequestsLock.release();
 
-   enqueuePutReq( dst, origAddr, destAddr, len, tmpBuffer );
+   enqueuePutReq( dst, origAddr, destAddr, len, tmpBuffer, wdId );
 }
 
 void GASNetAPI::amWaitRequestPut( gasnet_token_t token, 
@@ -1322,7 +1362,7 @@ void GASNetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsi
       if( addrIt != _sentData[ dest ]->end() )
       {
          //found an element, I had previously sent a PUT REQUEST to reach this node, set up a dependence.
-     fprintf(stderr, "added %p to deps for wd %d\n", (void *)tag, wdId);
+     //fprintf(stderr, "added %p to deps for wd %d\n", (void *)tag, wdId);
          depAddrs[ *depCount ] = tag;
          *depCount += 1;
          _sentData[ dest ]->erase( addrIt );
@@ -1342,20 +1382,23 @@ void GASNetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsi
       msgCount++;
       sent += gasnet_AMMaxMedium();
    }
+   std::size_t expectedData = _sentWdData.getSentData( wdId );
 
    //  message("################################## send work msg to " << dest << " wd "<<  wdId << " seq used is "  <<(_seqN[dest].value()) << " put seq is "<< _putSeqN[ dest ].value() );
-     //message("To node " << dest << " wd id " << wdId << " seq " << (_seqN[dest].value() + 1) );
+     //message("To node " << dest << " wd id " << wdId << " seq " << (_seqN[dest].value() + 1) << " expectedData=" << expectedData);
    NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
    NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( wdId ) ; )
    NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_AM_WORK, id, 0, 0, dest ); )
 
-      if (gasnet_AMRequestMedium12( dest, 205, &arg[ sent ], argSize - sent,
+      if (gasnet_AMRequestMedium14( dest, 205, &arg[ sent ], argSize - sent,
                ARG_LO( work ),
                ARG_HI( work ),
                ARG_LO( xlate ),
                ARG_HI( xlate ),
                ARG_LO( remoteWdAddr ),
                ARG_HI( remoteWdAddr ),
+               ARG_LO( expectedData ),
+               ARG_HI( expectedData ),
                dataSize, wdId, numPe, arch, _seqN[dest]++, _putSeqN[ dest ].value() ) != GASNET_OK)
       {
          fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
@@ -1388,7 +1431,7 @@ void GASNetAPI::_sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr, int pe
    }
 }
 
-void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, void *remoteTmpBuffer )
+void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, void *remoteTmpBuffer, unsigned int wdId )
 {
    std::size_t sent = 0, thisReqSize;
    txBytes += size;
@@ -1486,7 +1529,7 @@ void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *local
 
          if ( remoteTmpBuffer != NULL )
          { 
-            if ( gasnet_AMRequestLong8( remoteNode, 210,
+            if ( gasnet_AMRequestLong9( remoteNode, 210,
                      &( ( char *) localAddr )[ sent ],
                      thisReqSize,
                      ( char *) ( ( (char *) remoteTmpBuffer ) + sent ),
@@ -1496,6 +1539,7 @@ void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *local
                      ARG_HI( ( ( uintptr_t ) remoteAddr ) ),
                      ARG_LO( size ),
                      ARG_HI( size ),
+                     wdId,
                      ( sent == 0 ),
                      ( ( sent + thisReqSize ) == size )
                      ) != GASNET_OK)
@@ -1505,7 +1549,7 @@ void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *local
          }
          else
          {
-            if ( gasnet_AMRequestLong8( remoteNode, 210,
+            if ( gasnet_AMRequestLong9( remoteNode, 210,
                      &( ( char *) localAddr )[ sent ],
                      thisReqSize,
                      ( char *) ( remoteAddr + sent ),
@@ -1515,6 +1559,7 @@ void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *local
                      ARG_HI( NULL ),
                      ARG_LO( size ),
                      ARG_HI( size ),
+                     wdId,
                      ( sent == 0 ),
                      ( ( sent + thisReqSize ) == size )
                      ) != GASNET_OK)
@@ -1527,15 +1572,16 @@ void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *local
    }
 }
 
-void GASNetAPI::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size )
+void GASNetAPI::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId )
 {
    if ( gasnet_mynode() != 0 ) fatal0("Error, cant use ::put from node != than 0"); 
    _pinnedAllocatorsLocks[ remoteNode ]->acquire();
    void *tmp = _pinnedAllocators[ remoteNode ]->allocate( size );
    _pinnedAllocatorsLocks[ remoteNode ]->release();
    _putSeqN[ remoteNode ]++;
+   _sentWdData.addSentData( wdId, size );
      //if ( gasnet_mynode() == 0 ) {message("################################## put to "<< remoteNode << " put seq up to "<< _putSeqN[ remoteNode ].value() ) ; }
-   _put( remoteNode, remoteAddr, localAddr, size, tmp );
+   _put( remoteNode, remoteAddr, localAddr, size, tmp, wdId );
 
 }
 
@@ -1679,28 +1725,30 @@ void GASNetAPI::sendMyHostName( unsigned int dest )
    }
 }
 
-void GASNetAPI::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len )
+void GASNetAPI::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId )
 {
    _sentDataLock.acquire();
-   fprintf(stderr, "added %p to sent data for node %d\n", (void *)dstAddr, dataDest);
+   //fprintf(stderr, "added %p to sent data for node %d\n", (void *)dstAddr, dataDest);
    _sentData[ dataDest ]->insert( dstAddr );
    _sentDataLock.release();
    _totalBytes += len;
+   _sentWdData.addSentData( wdId, len );
    sendWaitForRequestPut( dataDest, dstAddr );
    _pinnedAllocatorsLocks[ dataDest ]->acquire();
    void *tmpBuffer = _pinnedAllocators[ dataDest ]->allocate( len );
    _pinnedAllocatorsLocks[ dataDest ]->release();
 
    //_putSeqN[ dataDest ]++;
-     if ( gasnet_mynode() == 0 ) {message("################################## req put to "<< dataDest << " put seq up to "<< _putSeqN[ dataDest ].value() << " Origaddr is " << ( (void *) origAddr ) << " destAddr is " << ((void *) dstAddr) ) ; }
+     //if ( gasnet_mynode() == 0 ) {message("################################## req put to "<< dataDest << " put seq up to "<< _putSeqN[ dataDest ].value() << " Origaddr is " << ( (void *) origAddr ) << " destAddr is " << ((void *) dstAddr) ) ; }
 
    ///*if ( dataDest == 3 )*/fprintf(stderr, "master requesting to node %d to send addr %p to node %d addr %p\n", dest, (void *)origAddr, dataDest, (void *)dstAddr);
-   if ( gasnet_AMRequestShort9( dest, 214,
+   if ( gasnet_AMRequestShort10( dest, 214,
             ARG_LO( dstAddr ), ARG_HI( dstAddr ),
             ARG_LO( ( ( uintptr_t ) origAddr ) ), ARG_HI( ( ( uintptr_t ) origAddr ) ),
             ARG_LO( ( ( uintptr_t ) tmpBuffer ) ), ARG_HI( ( ( uintptr_t ) tmpBuffer ) ),
 	    ARG_LO( len ),
 	    ARG_HI( len ),
+	    wdId,
             dataDest ) != GASNET_OK )
 
    {
@@ -1779,4 +1827,46 @@ void GASNetAPI::invalidateDataFromDevice( uint64_t addr, std::size_t len ) {
    _newMasterDir->lock();
    _newMasterDir->registerAccess( reg, true, true /* will increase version number */, 0, addr /*this is currently unused */, locations );
    _newMasterDir->unlock();
+}
+
+//GASNetAPI::ReceivedWDData::ReceivedWDData() {}
+//GASNetAPI::ReceivedWDData::~ReceivedWDData() {}
+void GASNetAPI::ReceivedWDData::addData( unsigned int wdId, std::size_t size ) {
+   _lock.acquire();
+   struct recvDataInfo &info = _recvWdData[ wdId ];
+   info._count += size;
+   if ( info._wd != NULL && info._expected == info._count ) {
+      //release wd
+      sys.submit( *info._wd );
+      if ( _recvWdData.erase( wdId ) != 1) std::cerr <<"Error removing from map: "<<__FUNCTION__<< " @ " << __FILE__<<":"<<__LINE__<< std::endl;
+   }
+   _lock.release();
+}
+void GASNetAPI::ReceivedWDData::addWD( unsigned int wdId, WorkDescriptor *wd, std::size_t expectedData ) {
+   _lock.acquire();
+   struct recvDataInfo &info = _recvWdData[ wdId ];
+   info._wd = wd;
+   info._expected = expectedData;
+   //std::cerr << " addWD with expected data: " << expectedData << " current count: " << info._count  << std::endl;
+   if ( info._expected == info._count ) {
+      //release wd
+      sys.submit( *info._wd );
+      if ( _recvWdData.erase( wdId ) != 1) std::cerr <<"Error removing from map: "<<__FUNCTION__<< " @ " << __FILE__<<":"<<__LINE__<< std::endl;
+   }
+   _lock.release();
+}
+
+void GASNetAPI::SentWDData::addSentData( unsigned int wdId, std::size_t sentData ) {
+   _lock.acquire();
+   std::size_t &wdSentData = _sentWdData[ wdId ]; //assumes that if no data was yet sent, the elem is initialized to 0
+   wdSentData += sentData;;
+   _lock.release();
+}
+
+std::size_t GASNetAPI::SentWDData::getSentData( unsigned int wdId ) {
+   _lock.acquire();
+   std::size_t wdSentData = _sentWdData[ wdId ];
+   if ( _sentWdData.erase( wdId ) != 1) std::cerr <<"Error removing from map: "<<__FUNCTION__<< " @ " << __FILE__<<":"<<__LINE__<< std::endl;
+   _lock.release();
+   return wdSentData;
 }
