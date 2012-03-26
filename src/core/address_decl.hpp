@@ -70,10 +70,6 @@ namespace nanos
          bool operator== ( const Address &obj ) const;
          
          bool operator< ( const Address &obj ) const;
-
-        /*! \brief Obtain the address associated to the Address
-         */
-         TargetType getAddress ( ) const;
    };
 
 };
