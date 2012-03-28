@@ -26,7 +26,7 @@
 
 #ifdef _MERCURIUM
 // define API version
-#pragma nanos interface family(master) version(5012)
+#pragma nanos interface family(master) version(5013)
 #pragma nanos interface family(worksharing) version(1000)
 #endif
 
@@ -168,6 +168,10 @@ NANOS_API_DECL(nanos_err_t, nanos_stop_scheduler, ());
 NANOS_API_DECL(nanos_err_t, nanos_scheduler_enabled, ( bool *res ));
 NANOS_API_DECL(nanos_err_t, nanos_wait_until_threads_paused, () );
 NANOS_API_DECL(nanos_err_t, nanos_wait_until_threads_unpaused, () );
+
+// Memory management
+NANOS_API_DECL(nanos_err_t, nanos_malloc, ( void **p, size_t size, const char *file, int line ));
+NANOS_API_DECL(nanos_err_t, nanos_free, ( void *p ));
 
 // error handling
 NANOS_API_DECL(void, nanos_handle_error, ( nanos_err_t err ));
