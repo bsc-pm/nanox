@@ -64,6 +64,49 @@ void fib_2( void *ptr )
 nanos_smp_args_t fib_device_arg_1 = { fib_1 };
 nanos_smp_args_t fib_device_arg_2 = { fib_2 };
 
+/* ************** CONSTANT PARAMETERS IN WD CREATION ******************** */
+
+struct nanos_const_wd_definition_1
+{
+     nanos_const_wd_definition_t base;
+     nanos_device_t devices[1];
+};
+
+struct nanos_const_wd_definition_1 const_data1 = 
+{
+   {{
+      .mandatory_creation = false,
+      .tied = false,
+      .priority = 0
+   },
+   __alignof__(fib_args),
+   0,
+   1},
+   {
+      {
+         nanos_smp_factory,
+         &fib_device_arg_1
+      }
+   }
+};
+
+struct nanos_const_wd_definition_1 const_data2 = 
+{
+   {{
+      .mandatory_creation = false,
+      .tied = false,
+      .priority = 0
+   },
+   __alignof__(fib_args),
+   0,
+   1},
+   {
+      {
+         nanos_smp_factory,
+         &fib_device_arg_2
+      }
+   }
+};
 
 int fib ( int n, int d )
 {
@@ -76,10 +119,11 @@ int fib ( int n, int d )
    {
       nanos_wd_t wd=0;
       fib_args *args=0;
-      nanos_device_t fib_devices_1[1] = { NANOS_SMP_DESC( fib_device_arg_1 ) };
 
-      nanos_create_wd ( &wd, 1, fib_devices_1 , sizeof( fib_args ), __alignof__( fib_args ),
-                        ( void ** )&args, nanos_current_wd(), 0, 0, NULL );
+      nanos_wd_dyn_props_t dyn_props = {0};
+
+      nanos_create_wd_compact ( &wd, &const_data1.base, &dyn_props, sizeof( fib_args ),
+                               ( void ** )&args, nanos_current_wd(), NULL );
 
       if ( wd != 0 ) {
          args->n = n;
@@ -95,9 +139,11 @@ int fib ( int n, int d )
    {
       nanos_wd_t wd=0;
       fib_args *args=0;
-      nanos_device_t fib_devices_2[1] = { NANOS_SMP_DESC( fib_device_arg_2 ) };
-      
-      nanos_create_wd ( &wd, 1, fib_devices_2 , sizeof( fib_args ), __alignof__(fib_args), ( void ** )&args, nanos_current_wd(), 0, 0, NULL );
+
+      nanos_wd_dyn_props_t dyn_props = {0};
+
+      nanos_create_wd_compact ( &wd, &const_data2.base, &dyn_props, sizeof( fib_args ),
+                               ( void ** )&args, nanos_current_wd(), NULL );
 
       if ( wd != 0 ) {
          args->n = n;

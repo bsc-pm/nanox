@@ -206,8 +206,8 @@ namespace nanos
 
          virtual size_t getTeamDataSize() const = 0;
          virtual size_t getThreadDataSize() const = 0;
-         virtual ScheduleTeamData * createTeamData ( ScheduleTeamData *preAlloc ) = 0;
-         virtual ScheduleThreadData * createThreadData ( ScheduleThreadData *preAlloc ) = 0;
+         virtual ScheduleTeamData * createTeamData () = 0;
+         virtual ScheduleThreadData * createThreadData () = 0;
          
          virtual WD * atSubmit      ( BaseThread *thread, WD &wd ) = 0;
          virtual WD * atIdle        ( BaseThread *thread ) = 0;

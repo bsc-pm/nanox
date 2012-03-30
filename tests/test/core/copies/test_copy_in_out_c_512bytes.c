@@ -39,6 +39,32 @@ void first( void *ptr )
 
 nanos_smp_args_t test_device_arg_1 = { first };
 
+/* ************** CONSTANT PARAMETERS IN WD CREATION ******************** */
+
+struct nanos_const_wd_definition_1
+{
+     nanos_const_wd_definition_t base;
+     nanos_device_t devices[1];
+};
+
+struct nanos_const_wd_definition_1 const_data1 = 
+{
+   {{
+      .mandatory_creation = true,
+      .tied = false,
+      .priority = 0
+   },
+   __alignof__(my_args),
+   2,
+   1},
+   {
+      {
+         nanos_smp_factory,
+         &test_device_arg_1
+      }
+   }
+};
+
 int main ( int argc, char **argv )
 {
    char text[10] = "123456789";
@@ -47,19 +73,13 @@ int main ( int argc, char **argv )
    char* dummy1 = text;
    int i;
    
-   nanos_wd_props_t props = {
-     .mandatory_creation = true,
-     .tied = false,
-     .tie_to = false,
-   };
-
    for (i=0; i < 8; i++) {
       my_args* args = 0;
       nanos_copy_data_t *cd = 0;
    
       nanos_wd_t wd1=0;
-      nanos_device_t test_devices_1[1] = { NANOS_SMP_DESC( test_device_arg_1) };
-      NANOS_SAFE( nanos_create_wd ( &wd1, 1,test_devices_1, sizeof(my_args), __alignof__(my_args), (void**)&args, nanos_current_wd(), &props, 2, &cd) );
+      nanos_wd_dyn_props_t dyn_props = {0};
+      NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1.base, &dyn_props, sizeof(my_args), (void**)&args, nanos_current_wd(), &cd) );
    
       args->a = 1;
       args->b = &array[i*128];

@@ -25,20 +25,10 @@
 
 using namespace nanos;
 
-
-const size_t nanos_gpu_dd_size = sizeof(ext::GPUDD);
-
-NANOS_API_DEF(void *, nanos_gpu_factory, ( void *prealloc, void *args ))
+NANOS_API_DEF(void *, nanos_gpu_factory, ( void *args ))
 {
    nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
-   if ( prealloc != NULL )
-   {
-      return ( void * )new (prealloc) ext::GPUDD( smp->outline );
-   }
-   else
-   {
-      return ( void * ) new ext::GPUDD( smp->outline );
-   }
+   return ( void * ) new ext::GPUDD( smp->outline );
 }
 
 

@@ -43,7 +43,6 @@ int main ( int argc, char **argv )
    nanos_wd_props_t props = {
      .mandatory_creation = true,
      .tied = false,
-     .tie_to = false,
      .priority = 0,
    };
 
@@ -52,6 +51,7 @@ int main ( int argc, char **argv )
    int team_size = omp_get_team_size(level);
    int active_level = omp_get_active_level();
    int in_final = omp_in_final();
+
 
    printf ( " OpenMP API calls simple test:\n" );
    printf ( "\tomp_get_level() = %d\n", level );

@@ -92,7 +92,8 @@ int main ( int argc, char **argv )
    for ( i = 0; i < VECTOR_SIZE; i++ ) A[i] = 0;
 
    // Stop scheduler
-   sys.getSchedulerConf().setSchedulerEnabled( false );
+   sys.stopScheduler();
+   sys.waitUntilThreadsPaused();
    WG *wg = getMyThreadSafe()->getCurrentWD();
    // increment vector
    for ( i = 0; i < NUM_ITERS; i++ ) {
@@ -127,7 +128,8 @@ int main ( int argc, char **argv )
       sys.submit( *wd );
 
       // Re-enable the scheduler
-      sys.getSchedulerConf().setSchedulerEnabled( true );
+      sys.startScheduler();
+      sys.waitUntilThreadsUnpaused();
 #else
       for ( int j = 0; j < VECTOR_SIZE; j++ ) A[j] = 0;
 #endif

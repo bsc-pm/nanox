@@ -1,8 +1,16 @@
 #include "nanos.h"
+#include "omp_init.hpp"
 #include "nanos_omp.h"
 #include "omp_wd_data.hpp"
 #include "basethread.hpp"
 #include "instrumentationmodule_decl.hpp"
+
+namespace nanos
+{
+   namespace OpenMP {
+      extern nanos_ws_t  ws_plugins[NANOS_OMP_WS_TSIZE];
+   };
+};
 
 using namespace nanos;
 using namespace nanos::OpenMP;
@@ -14,6 +22,8 @@ nanos_err_t nanos_omp_set_implicit ( nanos_wd_t uwd )
     OmpData *data = (OmpData *) wd->getInternalData();
 
     data->setImplicit(true);
+
+    myThread->enterTeam();
 
     return NANOS_OK;
 }
@@ -47,3 +57,19 @@ nanos_err_t nanos_omp_barrier ( void )
    return NANOS_OK;
 }
 
+nanos_ws_t nanos_omp_find_worksharing( omp_sched_t kind )
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","omp_find_worksharing",NANOS_SYNCHRONIZATION) );
+   return ((OpenMPInterface&)sys.getPMInterface()).findWorksharing(kind);
+}
+
+nanos_err_t nanos_omp_get_schedule ( omp_sched_t *kind, int *modifier )
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","omp_get_schedule",NANOS_RUNTIME) );
+   try {
+      omp_get_schedule ( kind, modifier);
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+   return NANOS_OK;
+}

@@ -144,12 +144,12 @@ namespace ext
          virtual size_t getTeamDataSize () const { return sizeof( TeamData ); }
          virtual size_t getThreadDataSize () const { return 0; }
 
-         virtual ScheduleTeamData * createTeamData ( ScheduleTeamData *preAlloc )
+         virtual ScheduleTeamData * createTeamData ()
          {
             return NEW TeamData();
          }
 
-         virtual ScheduleThreadData * createThreadData ( ScheduleThreadData *preAlloc )
+         virtual ScheduleThreadData * createThreadData ()
          {
             return 0;
          }

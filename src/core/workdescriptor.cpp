@@ -108,6 +108,17 @@ DeviceData & WorkDescriptor::activateDevice ( const Device &device )
    return *dd;
 }
 
+DeviceData & WorkDescriptor::activateDevice ( unsigned int deviceIdx )
+{
+   ensure( _numDevices > deviceIdx, "The requested device does not exist" );
+
+   _activeDevice = _devices[deviceIdx];
+   _activeDeviceIdx = deviceIdx;
+
+   return *_activeDevice;
+}
+
+
 bool WorkDescriptor::canRunIn( const Device &device ) const
 {
    if ( _activeDevice ) return _activeDevice->isCompatible( device );

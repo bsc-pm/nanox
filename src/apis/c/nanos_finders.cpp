@@ -49,3 +49,26 @@ NANOS_API_DEF(nanos_slicer_t, nanos_find_slicer, ( const char * label ))
    return slicer;
 }
 
+/*! \brief Find a worksharing giving a label id
+ *
+ *  \sa WorkSharing
+ */
+NANOS_API_DEF(nanos_ws_t, nanos_find_worksharing, ( const char * label ))
+{
+   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","",NANOS_RUNTIME) ); //FIXME: to register new event
+
+   nanos_ws_t ws;
+   try {
+      std::string plugin = std::string(label);
+      ws = sys.getWorkSharing ( plugin );
+      if ( ws == NULL ) {
+         if ( !sys.loadPlugin( "worksharing-" + plugin )) fatal0( "Could not load " + plugin + "worksharing" );
+         ws = sys.getWorkSharing ( plugin );
+      }
+
+   } catch ( ... ) {
+      return ( nanos_ws_t ) NULL;
+   }
+   return ws;
+}
+

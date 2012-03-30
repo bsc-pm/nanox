@@ -70,36 +70,66 @@ nanos_smp_args_t task_2_device_args = { task_2 };
 
 /* ******************************* SECTIONS ***************************** */
 
+/* ************** CONSTANT PARAMETERS IN WD CREATION ******************** */
+
+struct nanos_const_wd_definition_1
+{
+     nanos_const_wd_definition_t base;
+     nanos_device_t devices[1];
+};
+
+struct nanos_const_wd_definition_1 const_data1 = 
+{
+   {{
+      .mandatory_creation = true,
+      .tied = false,
+      .priority = 0
+   },
+   0,//__alignof__(section_data_1),
+   0,
+   1},
+   {
+      {
+         nanos_smp_factory,
+         &task_1_device_args
+      }
+   }
+};
+struct nanos_const_wd_definition_1 const_data2 = 
+{
+   {{
+      .mandatory_creation = true,
+      .tied = false,
+      .priority = 0
+   },
+   0,//__alignof__(section_data_2),
+   0,
+   1},
+   {
+      {
+         nanos_smp_factory,
+         &task_2_device_args
+      }
+   }
+};
 int main ( int argc, char **argv )
 {
    int A = 0;
    bool check = true;
    int i;
 
-   /* COMMON INFO */
-   nanos_wd_props_t props = {
-      .mandatory_creation = true,
-      .tied = false,
-      .tie_to = false,
-      .priority = 0
-   };
-   
-
    // Stop scheduler, no task should be run until told so
    nanos_stop_scheduler();
    nanos_wait_until_threads_paused();
-
-
-   nanos_device_t task_1_device[1] = { NANOS_SMP_DESC( task_1_device_args ) };
-   nanos_device_t task_2_device[1] = { NANOS_SMP_DESC( task_2_device_args ) };
+   nanos_wd_dyn_props_t dyn_props = {0};
 
    for ( i = 0; i < NUM_ITERS; ++i ) {
       nanos_wd_t wd = NULL;
       
       task_arguments_t *section_data_1 = NULL;
-      
-      NANOS_SAFE( nanos_create_wd ( &wd, 1, task_1_device, sizeof(section_data_1), __alignof__(section_data_1), (void **) &section_data_1,
-                                nanos_current_wd(), &props , 0, NULL ) );
+      const_data1.base.data_alignment = __alignof__(section_data_1);
+      NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1.base, &dyn_props, sizeof(section_data_1), (void **) &section_data_1,
+                                nanos_current_wd(), NULL ) );
       section_data_1->M = &A;
       
       NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
@@ -108,10 +138,11 @@ int main ( int argc, char **argv )
    // Second task
    {
       task_arguments_t *section_data_2 = NULL;
-      props.priority = 100;
+      const_data2.base.data_alignment = __alignof__(section_data_2);
+      const_data2.base.props.priority = 100;
       nanos_wd_t wd = NULL;
-      NANOS_SAFE( nanos_create_wd ( &wd, 1, task_2_device, sizeof(section_data_2), __alignof__(section_data_2), (void **) &section_data_2,
-                                nanos_current_wd(), &props , 0, NULL ) );
+      NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data2.base, &dyn_props, sizeof(section_data_2), (void **) &section_data_2,
+                                nanos_current_wd(), NULL ) );
       
       section_data_2->M = &A;
    

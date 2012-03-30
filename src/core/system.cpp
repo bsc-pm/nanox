@@ -137,6 +137,15 @@ void System::loadModules ()
 
 }
 
+void System::unloadModules ()
+{   
+   delete _throttlePolicy;
+   
+   delete _defSchedulePolicy;
+   
+   // TODO (#613): delete GPU plugin?
+}
+
 // Config Functor
 struct ExecInit
 {
@@ -334,7 +343,7 @@ void System::start ()
          createTeam(1);
          break;
       default:
-         fatal("Unknown inital mode!");
+         fatal("Unknown initial mode!");
          break;
    }
    
@@ -388,22 +397,44 @@ void System::finish ()
    ensure( _schedStats._readyTasks == 0, "Ready task counter has an invalid value!");
 
    _pmInterface->finish();
+   delete _pmInterface;
 
    /* System mem free */
 
    /* deleting master WD */
+   if ( getMyThreadSafe()->getCurrentWD()->getInternalData() )
+      delete[] (char *) getMyThreadSafe()->getCurrentWD()->getInternalData();
    delete[] (char *) getMyThreadSafe()->getCurrentWD();
-
-   delete _pmInterface;
+   /* delete all of it */
+   getMyThreadSafe()->getCurrentWD()->~WorkDescriptor();
 
    for ( Slicers::const_iterator it = _slicers.begin(); it !=   _slicers.end(); it++ ) {
       delete (Slicer *)  it->second;
    }
 
+   for ( WorkSharings::const_iterator it = _worksharings.begin(); it !=   _worksharings.end(); it++ ) {
+      delete (WorkSharing *)  it->second;
+   }
+   
+   /* deleting thread team */
+   ThreadTeam* team = getMyThreadSafe()->getTeam();   
+   /* team->size() will change during the for loop */
+   unsigned teamSize = team->size();
+   /* For every thread in the team */
+   for ( unsigned t = 0; t < teamSize; t++ ) {
+      BaseThread* pThread = &team->getThread( t );
+      team->removeThread( t );
+      pThread->leaveTeam();
+   }
+   delete team;
+
    // join
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {
       delete _pes[p];
    }
+   
+   /* unload modules */
+   unloadModules();
 
    if ( allocator != NULL ) free (allocator);
 
@@ -455,16 +486,17 @@ void System::finish ()
  *  +---------------+
  *
  */
-void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t data_size, int data_align,
-                        void **data, WG *uwg, nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies, nanos_translate_args_t translate_args )
+void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t data_size, size_t data_align,
+                        void **data, WG *uwg, nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props, size_t num_copies,
+                        nanos_copy_data_t **copies, nanos_translate_args_t translate_args )
 {
    ensure(num_devices > 0,"WorkDescriptor has no devices");
 
    unsigned int i;
-   char *chunk = 0, *dd_location;
+   char *chunk = 0;
 
    size_t size_CopyData;
-   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_DDs, offset_DDs, size_Copies, offset_Copies, offset_PMD;
+   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_Copies, offset_Copies, offset_PMD;
    size_t total_size;
 
    // WD doesn't need to compute offset, it will always be the chunk allocated address
@@ -478,18 +510,14 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    size_DPtrs    = sizeof(DD *) * num_devices;
    offset_DPtrs  = NANOS_ALIGNED_MEMORY_OFFSET(offset_Data, size_Data, __alignof__( DD*) );
 
-   size_DDs = 0;
-   for ( i = 0; i < num_devices; i++ ) size_DDs += devices[i].dd_size;
-   offset_DDs    = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(DeviceData) );
-
    // Computing Copies info
    if ( num_copies != 0 ) {
       size_CopyData = sizeof(CopyData);
       size_Copies   = size_CopyData * num_copies;
-      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, __alignof__(nanos_copy_data_t) );
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(nanos_copy_data_t) );
    } else {
       size_Copies = 0;
-      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, 1);
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, 1);
    }
 
    // Computing Internal Data info and total size
@@ -511,11 +539,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
 
    // allocating Device Data
    DD **dev_ptrs = ( DD ** ) (chunk + offset_DPtrs);
-   dd_location = chunk + offset_DDs;
-   for ( i = 0 ; i < num_devices ; i ++ ) {
-      dev_ptrs[i] = ( DD* ) devices[i].factory( dd_location , devices[i].arg );
-      dd_location += devices[i].dd_size;
-   }
+   for ( i = 0 ; i < num_devices ; i ++ ) dev_ptrs[i] = ( DD* ) devices[i].factory( devices[i].arg );
 
    ensure ((num_copies==0 && copies==NULL) || (num_copies!=0 && copies!=NULL), "Number of copies and copy data conflict" );
 
@@ -540,9 +564,9 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    // set properties
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
-      if ( props->tie_to ) wd->tieTo( *( BaseThread * )props->tie_to );
       wd->setPriority( props->priority );
    }
+   if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
 }
 
 /*! \brief Creates a new Sliced WD
@@ -591,16 +615,16 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
  *
  */
 void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
-                        int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props, size_t num_copies,
-                        nanos_copy_data_t **copies )
+                        int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props, 
+                        nanos_wd_dyn_props_t *dyn_props, size_t num_copies, nanos_copy_data_t **copies )
 {
    ensure(num_devices > 0,"WorkDescriptor has no devices");
 
    unsigned int i;
-   char *chunk = 0, *dd_location;
+   char *chunk = 0;
 
    size_t size_CopyData;
-   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_DDs, offset_DDs;
+   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs;
    size_t size_Copies, offset_Copies, offset_PMD;
    size_t total_size;
 
@@ -615,18 +639,14 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    size_DPtrs    = sizeof(DD *) * num_devices;
    offset_DPtrs  = NANOS_ALIGNED_MEMORY_OFFSET(offset_Data, size_Data, __alignof__( DD*) );
 
-   size_DDs = 0;
-   for ( i = 0; i < num_devices; i++ ) size_DDs += devices[i].dd_size;
-   offset_DDs    = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(DeviceData) );
-
    // Computing Copies info
    if ( num_copies != 0 ) {
       size_CopyData = sizeof(CopyData);
       size_Copies   = size_CopyData * num_copies;
-      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, __alignof__(nanos_copy_data_t) );
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(nanos_copy_data_t) );
    } else {
       size_Copies = 0;
-      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, 1);
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, 1);
    }
 
    // Computing Internal Data info and total size
@@ -646,13 +666,9 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    if ( *uwd == NULL ) *uwd = (SlicedWD *) chunk;
    if ( outline_data != NULL && *outline_data == NULL ) *outline_data = (chunk + offset_Data);
 
-   // allocating Device Data
+   // allocating and initializing Device Data pointers
    DD **dev_ptrs = ( DD ** ) (chunk + offset_DPtrs);
-   dd_location = chunk + offset_DDs;
-   for ( i = 0 ; i < num_devices ; i ++ ) {
-      dev_ptrs[i] = ( DD* ) devices[i].factory( dd_location , devices[i].arg );
-      dd_location += devices[i].dd_size;
-   }
+   for ( i = 0 ; i < num_devices ; i ++ ) dev_ptrs[i] = ( DD* ) devices[i].factory( devices[i].arg );
 
    ensure ((num_copies==0 && copies==NULL) || (num_copies!=0 && copies!=NULL), "Number of copies and copy data conflict" );
 
@@ -674,9 +690,9 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    // set properties
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
-      if ( props->tie_to ) wd->tieTo( *( BaseThread * )props->tie_to );
       wd->setPriority( props->priority );
    }
+   if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
 }
 
 /*! \brief Duplicates a given WD
@@ -692,10 +708,10 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    unsigned int i, num_Devices, num_Copies;
    DeviceData **dev_data;
    void *data = NULL;
-   char *chunk = 0, *dd_location, *chunk_iter;
+   char *chunk = 0, *chunk_iter;
 
    size_t size_CopyData;
-   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_DDs, offset_DDs, size_Copies, offset_Copies, offset_PMD;
+   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_Copies, offset_Copies, offset_PMD;
    size_t total_size;
 
    // WD doesn't need to compute offset, it will always be the chunk allocated address
@@ -711,19 +727,15 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    size_DPtrs    = sizeof(DD *) * num_Devices;
    offset_DPtrs  = NANOS_ALIGNED_MEMORY_OFFSET(offset_Data, size_Data, __alignof__( DD*) );
 
-   size_DDs = 0;
-   for ( i = 0; i < num_Devices; i++ ) size_DDs += dev_data[i]->size();
-   offset_DDs    = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(DeviceData) );
-
    // Computing Copies info
    num_Copies = wd->getNumCopies();
    if ( num_Copies != 0 ) {
       size_CopyData = sizeof(CopyData);
       size_Copies   = size_CopyData * num_Copies;
-      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, __alignof__(nanos_copy_data_t) );
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(nanos_copy_data_t) );
    } else {
       size_Copies = 0;
-      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, 1);
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, 1);
    }
 
    // Computing Internal Data info and total size
@@ -748,11 +760,8 @@ void System::duplicateWD ( WD **uwd, WD *wd)
 
    // allocating Device Data
    DD **dev_ptrs = ( DD ** ) (chunk + offset_DPtrs);
-   dd_location = chunk + offset_DDs;
    for ( i = 0 ; i < num_Devices; i ++ ) {
-      dev_data[i]->copyTo(dd_location);
-      dev_ptrs[i] = ( DD* ) dd_location;
-      dd_location += dev_data[i]->size();
+      dev_ptrs[i] = dev_data[i]->clone();
    }
 
    // allocate copy-in/copy-outs
@@ -787,10 +796,10 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
    unsigned int i, num_Devices, num_Copies;
    DeviceData **dev_data;
    void *data = NULL;
-   char *chunk = 0, *dd_location, *chunk_iter;
+   char *chunk = 0, *chunk_iter;
 
    size_t size_CopyData;
-   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_DDs, offset_DDs;
+   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs;
    size_t size_Copies, offset_Copies, size_PMD, offset_PMD;
    size_t total_size;
 
@@ -807,19 +816,15 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
    size_DPtrs    = sizeof(DD *) * num_Devices;
    offset_DPtrs  = NANOS_ALIGNED_MEMORY_OFFSET(offset_Data, size_Data, __alignof__( DD*) );
 
-   size_DDs = 0;
-   for ( i = 0; i < num_Devices; i++ ) size_DDs += dev_data[i]->size();
-   offset_DDs    = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(DeviceData) );
-
    // Computing Copies info
    num_Copies = wd->getNumCopies();
    if ( num_Copies != 0 ) {
       size_CopyData = sizeof(CopyData);
       size_Copies   = size_CopyData * num_Copies;
-      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, __alignof__(nanos_copy_data_t) );
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(nanos_copy_data_t) );
    } else {
       size_Copies = 0;
-      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DDs, size_DDs, 1);
+      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, 1);
    }
 
    // Computing Internal Data info and total size
@@ -843,11 +848,8 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
 
    // allocating Device Data
    DD **dev_ptrs = ( DD ** ) (chunk + offset_DPtrs);
-   dd_location = chunk + offset_DDs;
    for ( i = 0 ; i < num_Devices; i ++ ) {
-      dev_data[i]->copyTo(dd_location);
-      dev_ptrs[i] = ( DD* ) dd_location;
-      dd_location += dev_data[i]->size();
+      dev_ptrs[i] = dev_data[i]->clone();
    }
 
    // allocate copy-in/copy-outs
@@ -958,21 +960,13 @@ BaseThread * System::getWorker ( unsigned int n )
 void System::releaseWorker ( BaseThread * thread )
 {
    ThreadTeam *team = thread->getTeam();
-   TeamData * parentData = thread->getTeamData()->getParentTeamData();
+   unsigned thread_id = thread->getTeamId();
 
    //TODO: destroy if too many?
-
    debug("Releasing thread " << thread << " from team " << team );
+
    thread->leaveTeam();   
-   delete thread->getTeamData();
-   team->removeThread(thread);
-
-   if ( parentData != NULL )
-   {
-      ThreadTeam *parent = team->getParent();
-      myThread->enterTeam(parent,parentData);
-   }
-
+   team->removeThread(thread_id);
 }
 
 int System::getNumWorkers( DeviceData *arch )
@@ -985,8 +979,8 @@ int System::getNumWorkers( DeviceData *arch )
    return n;
 }
 
-ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
-                                   bool reuseCurrent )
+ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints, bool reuseCurrent,
+                                  bool enterCurrent, bool enterOthers, bool starringCurrent, bool starringOthers )
 {
    int thId;
    TeamData *data;
@@ -1000,7 +994,7 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
 
    ScheduleTeamData *stdata = 0;
    if ( sched->getTeamDataSize() > 0 )
-      stdata = sched->createTeamData(NULL);
+      stdata = sched->createTeamData();
 
    // create team
    ThreadTeam * team = NEW ThreadTeam( nthreads, *sched, stdata, *_defBarrFactory(), *(_pmInterface->getThreadTeamData()),
@@ -1014,19 +1008,23 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
       
       nthreads --;      
 
-      thId = team->addThread( current, true );
+      thId = team->addThread( current, starringCurrent, true );
 
       data = NEW TeamData();
+      data->setStar(starringCurrent);
 
       ScheduleThreadData* sthdata = 0;
       if ( sched->getThreadDataSize() > 0 )
-        sthdata = sched->createThreadData(NULL);
+        sthdata = sched->createThreadData();
       
       data->setId(thId);
+      data->setTeam(team);
       data->setScheduleData(sthdata);
       data->setParentTeamData(current->getTeamData());
       
-      current->enterTeam( team,  data );
+      if ( enterCurrent ) current->enterTeam( data );
+      else current->setNextTeamData( data );
+
 
       debug( "added thread " << current << " with id " << toString<int>(thId) << " to " << team );
    }
@@ -1040,18 +1038,22 @@ ThreadTeam * System:: createTeam ( unsigned nthreads, void *constraints,
       }
 
       nthreads--;
-      thId = team->addThread( thread );
+      thId = team->addThread( thread, starringOthers );
 
       data = NEW TeamData();
+      data->setStar(starringOthers);
 
       ScheduleThreadData *sthdata = 0;
       if ( sched->getThreadDataSize() > 0 )
-        sthdata = sched->createThreadData(NULL);
+        sthdata = sched->createThreadData();
 
       data->setId(thId);
+      data->setTeam(team);
       data->setScheduleData(sthdata);
       
-      thread->enterTeam( team, data );
+      if ( enterOthers ) thread->enterTeam( data );
+      else thread->setNextTeamData( data );
+
       debug( "added thread " << thread << " with id " << toString<int>(thId) << " to " << thread->getTeam() );
    }
 

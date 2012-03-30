@@ -27,6 +27,7 @@
 #include "schedule_decl.hpp"
 #include "threadteam_decl.hpp"
 #include "slicer_decl.hpp"
+#include "worksharing_decl.hpp"
 #include "nanos-int.h"
 #include "dependency_decl.hpp"
 #include "instrumentation_decl.hpp"
@@ -61,6 +62,7 @@ namespace nanos
          typedef std::vector<PE *>         PEList;
          typedef std::vector<BaseThread *> ThreadList;
          typedef std::map<std::string, Slicer *> Slicers;
+         typedef std::map<std::string, WorkSharing *> WorkSharings;
          
          // globla seeds
          Atomic<int> _atomicWDSeed;
@@ -116,6 +118,8 @@ namespace nanos
 
          Slicers              _slicers; /**< set of global slicers */
 
+         WorkSharings         _worksharings; /**< set of global worksharings */
+
          Instrumentation     *_instrumentation; /**< Instrumentation object used in current execution */
          SchedulePolicy      *_defSchedulePolicy;
 
@@ -143,6 +147,7 @@ namespace nanos
 
          void config ();
          void loadModules();
+         void unloadModules();
          
          PE * createPE ( std::string pe_type, int pid );
 
@@ -165,12 +170,13 @@ namespace nanos
          void inlineWork ( WD &work );
 
          void createWD (WD **uwd, size_t num_devices, nanos_device_t *devices,
-                        size_t data_size, int data_align, void ** data, WG *uwg,
-                        nanos_wd_props_t *props, size_t num_copies, nanos_copy_data_t **copies, nanos_translate_args_t translate_args );
+                        size_t data_size, size_t data_align, void ** data, WG *uwg,
+                        nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props, size_t num_copies,
+                        nanos_copy_data_t **copies, nanos_translate_args_t translate_args );
 
          void createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
-                        int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props, size_t num_copies,
-                        nanos_copy_data_t **copies );
+                        int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props,
+                        size_t num_copies, nanos_copy_data_t **copies );
 
          void duplicateWD ( WD **uwd, WD *wd );
          void duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd );
@@ -239,7 +245,8 @@ namespace nanos
 
          // team related methods
          BaseThread * getUnassignedWorker ( void );
-         ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuseCurrent=true );
+         ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuseCurrent=true,
+                                   bool enterCurrent=true, bool enterOthers=true, bool starringCurrent = true, bool starringOthers=false );
 
          BaseThread * getWorker( unsigned int n );
 
@@ -267,11 +274,15 @@ namespace nanos
 
          Slicer * getSlicer( const std::string &label ) const;
 
+         WorkSharing * getWorkSharing( const std::string &label ) const;
+
          Instrumentation * getInstrumentation ( void ) const;
 
          void setInstrumentation ( Instrumentation *instr );
 
          void registerSlicer ( const std::string &label, Slicer *slicer);
+
+         void registerWorkSharing ( const std::string &label, WorkSharing *ws);
 
          void setDefaultSchedulePolicy ( SchedulePolicy *policy );
          

@@ -800,7 +800,6 @@ typedef struct
 typedef struct 
 {
         void * (* factory)(void * prealloc, void * arg);
-        size_t dd_size;
         void * arg;
 } nanos_device_t;
 typedef enum 
@@ -880,6 +879,13 @@ typedef void * nanos_lock_t;
 typedef void * nanos_dd_t;
 typedef void * nanos_sync_cond_t;
 typedef unsigned int nanos_copy_id_t;
+typedef struct {
+   nanos_wd_props_t props;
+   size_t data_alignment;
+   size_t num_copies;
+   size_t num_devices;
+   nanos_device_t devices[];
+} nanos_const_wd_definition_t;
 typedef struct 
 {
         int nthreads;
@@ -898,10 +904,10 @@ typedef struct
 nanos_wd_t nanos_current_wd(void);
 int nanos_get_wd_id(nanos_wd_t wd);
 nanos_slicer_t nanos_find_slicer(const char * slicer);
-nanos_err_t nanos_create_wd(nanos_wd_t * wd, size_t num_devices, nanos_device_t * devices, size_t data_size, int align,  void * * data, nanos_wg_t wg, nanos_wd_props_t * props, size_t num_copies, nanos_copy_data_t * * copies);
+nanos_err_t nanos_create_wd_compact(nanos_wd_t * wd, nanos_const_wd_definition_t *const_def, size_t data_size, void * * data, nanos_wg_t wg, nanos_copy_data_t * * copies);
 nanos_err_t nanos_create_sliced_wd(nanos_wd_t * uwd, size_t num_devices, nanos_device_t * devices, size_t outline_data_size, int align, void * * outline_data, nanos_wg_t uwg, nanos_slicer_t slicer, size_t slicer_data_size, int slicer_align, void * * slicer_data, nanos_wd_props_t * props, size_t num_copies, nanos_copy_data_t * * copies);
 nanos_err_t nanos_submit(nanos_wd_t wd, size_t num_deps, nanos_dependence_t * deps, nanos_team_t team);
-nanos_err_t nanos_create_wd_and_run(size_t num_devices, nanos_device_t * devices, size_t data_size, int align, void * data, size_t num_deps, nanos_dependence_t * deps, nanos_wd_props_t * props, size_t num_copies, nanos_copy_data_t * copies);
+nanos_err_t nanos_create_wd_and_run_compact(nanos_const_wd_definition_t *const_def, size_t data_size, void * data, size_t num_deps, nanos_dependence_t * deps, nanos_copy_data_t * copies);
 nanos_err_t nanos_create_for(void);
 nanos_err_t nanos_set_internal_wd_data(nanos_wd_t wd, void * data);
 nanos_err_t nanos_get_internal_wd_data(nanos_wd_t wd, void * * data);
@@ -929,10 +935,8 @@ nanos_err_t nanos_get_addr(nanos_copy_id_t copy_id, void * * addr);
 nanos_err_t nanos_copy_value(void * dst, nanos_copy_id_t copy_id);
 nanos_err_t nanos_get_num_running_tasks(int * num);
 void nanos_handle_error(nanos_err_t err);
-void * nanos_smp_factory(void * prealloc, void * args);
-extern const size_t nanos_smp_dd_size;
+void * nanos_smp_factory(void * args);
 void * nanos_gpu_factory(void * prealloc, void * args);
-extern const size_t nanos_gpu_dd_size;
 nanos_err_t nanos_instrument_register_key(nanos_event_key_t * event_key, const char * key, const char * description, _Bool abort_when_registered);
 nanos_err_t nanos_instrument_register_value(nanos_event_value_t * event_value, const char * key, const char * value, const char * description, _Bool abort_when_registered);
 nanos_err_t nanos_instrument_get_key(const char * key, nanos_event_key_t * event_key);
@@ -1262,6 +1266,23 @@ void _smp__ol_main_0(_nx_data_env_0_t * _args)
 {
     array_sum((_args->l_array_of_arrays_0)[(_args->l_i_0)], &((_args->l_partial_sums_0)[(_args->l_i_0)]), (_args->l_i_0));
 }
+nanos_const_wd_definition_t const_data1 = 
+{
+   {
+      .tied = 1,
+      .priority = 0
+   },
+   0,//__alignof__(_nx_data_env_0_t),
+   0,
+   1,
+   {
+      {
+         nanos_smp_factory,
+         0,//&_ol_main_0_smp_args
+      }
+   }
+};
+
 int main(int argc, char * argv[])
 {
     int * * l_array_of_arrays;
@@ -1302,26 +1323,15 @@ int main(int argc, char * argv[])
         l_i++)
     {
         {
-            /* SMP device descriptor */
             nanos_smp_args_t _ol_main_0_smp_args = {
                 (void (*)(void *)) _smp__ol_main_0
             };
-            nanos_device_t _ol_main_0_devices[] = {
-                {
-                    nanos_smp_factory,
-                    nanos_smp_dd_size,
-                    &_ol_main_0_smp_args
-                }
-            };
             _nx_data_env_0_t * ol_args = (_nx_data_env_0_t *) 0;
             nanos_wd_t wd = (nanos_wd_t) 0;
-            nanos_wd_props_t props = {
-                0
-            };
-            props.tied = 1;
-            props.priority = 0;
+            const_data1.data_alignment = __alignof__(_nx_data_env_0_t);
+            const_data1.devices[0].arg = &_ol_main_0_smp_args;
             nanos_err_t err;
-            err = nanos_create_wd(&wd, 1, _ol_main_0_devices, sizeof(_nx_data_env_0_t), __alignof__( _nx_data_env_0_t ), (void **) &ol_args, nanos_current_wd(), &props, 0, (nanos_copy_data_t **) 0);
+            err = nanos_create_wd_compact(&wd, &const_data1, sizeof(_nx_data_env_0_t), (void **) &ol_args, nanos_current_wd(), (nanos_copy_data_t **) 0);
             if (err != NANOS_OK)
                 nanos_handle_error(err);
             if (wd != (nanos_wd_t) 0)
@@ -1339,8 +1349,8 @@ int main(int argc, char * argv[])
                 imm_args.l_array_of_arrays_0 = l_array_of_arrays;
                 imm_args.l_partial_sums_0 = l_partial_sums;
                 imm_args.l_i_0 = l_i;
-                err = nanos_create_wd_and_run(1, _ol_main_0_devices, sizeof(_nx_data_env_0_t), __alignof__(_nx_data_env_0_t),
-                       &imm_args, 0, (nanos_dependence_t *) 0, &props, 0, (nanos_copy_data_t *) 0);
+                err = nanos_create_wd_and_run_compact(&const_data1, sizeof(_nx_data_env_0_t),
+                       &imm_args, 0, (nanos_dependence_t *) 0, (nanos_copy_data_t *) 0);
                 if (err != NANOS_OK)
                     nanos_handle_error(err);
             }
