@@ -31,7 +31,7 @@ inline ThreadTeam::ThreadTeam ( int maxThreads, SchedulePolicy &policy, Schedule
                                 _singleGuardCount( 0 ), _schedulePolicy( policy ),
                                 _scheduleData( data ), _threadTeamData( ttd ), _parent( parent ),
                                 _level( parent == NULL ? 0 : parent->getLevel() + 1 ), _creatorId(-1),
-                                _wsDescriptor(NULL)
+                                _wsDescriptor(NULL), _redList()
 {
       _threads = NEW BaseThread *[maxThreads];
 }
@@ -168,6 +168,37 @@ inline unsigned ThreadTeam::getSupportingThreads( BaseThread **list_of_threads )
       }
    }
    return nThreadsQuery;
+}
+
+inline void ThreadTeam::createReduction( nanos_reduction_t *red ) { _redList.push_front( red ); }
+
+inline void ThreadTeam::cleanUpReductionList( void ) 
+{
+   nanos_reduction_t *red;
+   while ( !_redList.empty() ) {
+      red = _redList.back();
+      red->cleanup( red );
+      _redList.pop_back();
+   }
+}
+
+inline void ThreadTeam::computeReductions ( void )
+{
+   nanos_reduction_t *red;
+   ReductionList::iterator it;
+   for ( it = _redList.begin(); it != _redList.end(); it++) {
+      red = *it;
+      red->vop( this->size(), red->original, red->privates );
+   }
+}
+
+inline void *ThreadTeam::getReductionPrivateData ( void* s )
+{
+   ReductionList::iterator it;
+   for ( it = _redList.begin(); it != _redList.end(); it++) {
+      if ((*it)->original == s) return (*it)->privates;
+   }
+   return NULL;
 }
 
 #endif

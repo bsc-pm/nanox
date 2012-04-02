@@ -45,6 +45,14 @@ typedef enum {
    NANOS_SHARED,
 } nanos_sharing_t;
 
+typedef struct {
+   void *original;
+   void *privates;
+   void (*bop)( void *, void *);
+   void (*vop)( int n, void *, void *);
+   void (*cleanup)(void *);
+} nanos_reduction_t;
+
 /* This structure is initialized in copydata.hpp. Any change in
  * its contents has to be reflected in CopyData constructor
  */
