@@ -193,6 +193,10 @@ class Allocator
      static void deallocate ( void *object, const char *file = NULL, int line = 0 ) ;
 };
 
+
+inline Allocator & getAllocator ( void );
+
+
 } // namespace: nanos
 
 #endif

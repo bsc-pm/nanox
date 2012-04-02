@@ -83,6 +83,8 @@ class MemTracker
 
 extern MemTracker *mem;
 
+inline MemTracker & getMemTracker ();
+
 inline MemTracker & getMemTracker ()
 {
    if (!mem) {

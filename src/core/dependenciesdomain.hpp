@@ -31,7 +31,7 @@
 //#include "compatibility.hpp"
 
 
-using namespace nanos;
+namespace nanos {
 
 inline DependenciesDomain::~DependenciesDomain ( )
 {
@@ -236,6 +236,7 @@ inline void BaseDependenciesDomain::submitDependableObjectOutputDataAccess ( Dep
    dependOnReadersAndSetAsWriter( depObj, status, target, callback );
 }
 
+}
 
 #endif
 
