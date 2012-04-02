@@ -49,14 +49,14 @@ namespace nanos
          *  Creates a TrackableObject with the given address associated.
          */
          TrackableObject ()
-            : _lastWriter ( NULL ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL) {}
+            : _lastWriter ( NULL ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL), _hold(false) {}
 
         /*! \brief TrackableObject copy constructor
          *
          *  \param obj another TrackableObject
          */
          TrackableObject ( const TrackableObject &obj ) 
-            :   _lastWriter ( obj._lastWriter ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL) {}
+            :   _lastWriter ( obj._lastWriter ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL), _hold(false) {}
 
         /*! \brief TrackableObject destructor
          */
