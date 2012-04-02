@@ -419,9 +419,9 @@ void System::finish ()
    /* deleting master WD */
    if ( getMyThreadSafe()->getCurrentWD()->getInternalData() )
       delete[] (char *) getMyThreadSafe()->getCurrentWD()->getInternalData();
-   delete[] (char *) getMyThreadSafe()->getCurrentWD();
    /* delete all of it */
    getMyThreadSafe()->getCurrentWD()->~WorkDescriptor();
+   delete (char *) getMyThreadSafe()->getCurrentWD();
 
    for ( Slicers::const_iterator it = _slicers.begin(); it !=   _slicers.end(); it++ ) {
       delete (Slicer *)  it->second;
