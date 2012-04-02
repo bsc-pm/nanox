@@ -20,7 +20,7 @@
 /*
 <testinfo>
 test_generator=gens/mixed-generator
-test_deps_plugins=regions
+test_deps_plugins=regions,plain
 </testinfo>
 */
 
@@ -55,15 +55,20 @@ void main_loop( void *args )
       // give a chance to execute other tasks
       Scheduler::yield();
       
+      // If it's not zero, error if we're using regions
       if ( array[i] != 0 )
       {
-         printf( "Error!\n" );
          check = false;
       }
       
       // give a chance to execute other tasks
       Scheduler::yield();
    }
+   
+   // So... was everything ok? If we're using regions, that's good
+   // Otherwise, it's an error)
+   if( sys.getDefaultDependenciesManager() == "plain" )
+      check = !check;
 
 }
 typedef struct {
@@ -116,8 +121,10 @@ int main ( int argc, char **argv )
    // barrier (kind of)
    wg->waitCompletion();
    
-   if( !check )
+   if( !check ){
+      printf( "Error!\n" );
       return 1;
+   }
    
    return 0;
    
