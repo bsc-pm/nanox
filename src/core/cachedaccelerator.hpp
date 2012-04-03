@@ -129,6 +129,8 @@ inline void CachedAccelerator<CacheDevice>::copyDataInDependent( WorkDescriptor 
 template <class CacheDevice>
 inline void CachedAccelerator<CacheDevice>::waitInputsDependent( WorkDescriptor &wd )
 {
-   while ( !wd._ccontrol.dataIsReady() ) {} 
+   //std::cerr << "waiting for inputs... wd " << wd.getId() << std::endl;
+   while ( !wd._ccontrol.dataIsReady() ) { myThread->idle(); } 
+   //std::cerr << "waiting for inputs done wd " << wd.getId() << std::endl;
 }
 #endif

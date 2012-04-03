@@ -79,7 +79,7 @@ System::System () :
       _initializedThreads ( 0 ), _targetThreads ( 0 ),_pausedThreads( 0 ), _pausedThreadsCond(), _unpausedThreadsCond(),
       _usingCluster( false ), _usingNode2Node( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _pmInterface( NULL ),
-      _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap(), _masterGpuThd( NULL ),_regCaches(16)
+      _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap(), _masterGpuThd( NULL ),_regCaches(1024)
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
 #endif
@@ -1192,10 +1192,13 @@ void System::setupWD ( WD &work, WD *parent )
    /**************************************************/
    /*********** selective node executuion ************/
    /**************************************************/
-   //if (sys.getNetwork()->getNodeNum() == 0) work.tieTo(*_workers[ 1 + ( work.getId() % ( sys.getNetwork()->getNumNodes() - 1 ) ) ]);
+   //if (sys.getNetwork()->getNodeNum() == 0) work.tieTo(*_workers[ 1 + nanos::ext::GPUConfig::getGPUCount() + ( work.getId() % ( sys.getNetwork()->getNumNodes() - 1 ) ) ]);
    /**************************************************/
    /**************************************************/
 
+   //  ext::SMPDD * workDD = dynamic_cast<ext::SMPDD *>( &work.getActiveDevice());
+   //if (sys.getNetwork()->getNodeNum() == 0)
+   //         std::cerr << "wd " << work.getId() << " depth is: " << work.getDepth() << " @func: " << (void *) workDD->getWorkFct() << std::endl;
 #if 0
 #ifdef CLUSTER_DEV
    if (sys.getNetwork()->getNodeNum() == 0)
@@ -1208,15 +1211,15 @@ void System::setupWD ( WD &work, WD *parent )
          //   //std::cerr << "tie wd " << work.getId() << " to my thread, @func: " << (void *) workDD->getWorkFct() << std::endl;
          //   work.tieTo( *myThread );
          //   break;
-         case 1:
-            if (work.canRunIn( ext::GPU) )
-            {
-               work.tieTo( *_masterGpuThd );
-            }
-            break;
+         //case 1:
+            //if (work.canRunIn( ext::GPU) )
+            //{
+            //   work.tieTo( *_masterGpuThd );
+            //}
+         //   break;
          default:
             break;
-            //std::cerr << "wd " << work.getId() << " depth is: " << work.getDepth() << " @func: " << (void *) workDD->getWorkFct() << std::endl;
+            std::cerr << "wd " << work.getId() << " depth is: " << work.getDepth() << " @func: " << (void *) workDD->getWorkFct() << std::endl;
       }
    }
 #endif

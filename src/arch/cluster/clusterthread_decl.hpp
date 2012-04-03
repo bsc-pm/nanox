@@ -108,6 +108,7 @@ namespace ext
       WD *fetchBlockingWDGPU();
 
       virtual void notifyOutlinedCompletionDependent( WD &completedWD ); 
+      virtual bool isCluster() { return true; }
    };
 
 

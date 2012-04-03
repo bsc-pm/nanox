@@ -77,6 +77,7 @@ namespace nanos {
          void setMasterDirectory(Directory *dir);
          void setNewMasterDirectory(NewRegionDirectory *dir);
          std::size_t getTotalBytes();
+         void mallocSlaves ( void **addresses, size_t size );
 
          static Lock _nodeLock;
          static Atomic<uint64_t> _nodeRCAaddr;

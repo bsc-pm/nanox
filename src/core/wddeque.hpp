@@ -63,7 +63,13 @@ inline void WDDeque::push_back ( WorkDescriptor *wd )
 
 struct NoConstraints
 {
+#ifdef CLUSTER_DEV
+   //static inline bool check ( WD &wd, BaseThread &thread ) { return ( !thread.isCluster() || wd.getDepth() == 1 ) ; }
+   //static inline bool check ( WD &wd, BaseThread &thread ) { return (sys.getNetwork()->getNodeNum() > 0) || ( !thread.isCluster() && !( wd.getDepth() == 1  && !(thread.getId() == 0) )) || ( thread.isCluster() && wd.getDepth() == 1) ; }
    static inline bool check ( WD &wd, BaseThread &thread ) { return true; }
+#else
+   static inline bool check ( WD &wd, BaseThread &thread ) { return true; }
+#endif
 };
 
 inline WorkDescriptor * WDDeque::pop_front ( BaseThread *thread )

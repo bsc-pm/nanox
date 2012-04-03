@@ -168,6 +168,7 @@ namespace nanos
          *  \param output Whether the access is a write
          */
          void registerAccess( Region reg, bool input, bool output, unsigned int memorySpaceId, uint64_t devAddr, LocationInfoList &loc );
+         void masterRegisterAccess( Region reg, bool input, bool output, unsigned int memorySpaceId, uint64_t devAddr, LocationInfoList &loc );
          void addAccess(Region reg, bool input, bool output, unsigned int memorySpaceId, unsigned int version, uint64_t devAddr );
 
          void merge( const NewRegionDirectory &input );

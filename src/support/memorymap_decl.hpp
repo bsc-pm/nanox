@@ -90,11 +90,13 @@ class MemoryMap : public std::map< MemoryChunk, _Type * > {
 
    private:
       void insertWithOverlap( const MemoryChunk &key, iterator &hint, MemChunkList &ptrList );
+      void insertWithOverlapButNotGenerateIntersects( const MemoryChunk &key, iterator &hint, MemChunkList &ptrList );
       void getWithOverlap( const MemoryChunk &key, const_iterator &hint, ConstMemChunkList &ptrList ) const;
       void getWithOverlapNoExactKey( const MemoryChunk &key, const_iterator &hint, ConstMemChunkList &ptrList ) const;
 
    public:
       void getOrAddChunk( uint64_t addr, std::size_t len, MemChunkList &resultEntries );
+      void getOrAddChunk2( uint64_t addr, std::size_t len, MemChunkList &resultEntries );
       void getChunk2( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
       void getChunk3( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
       void print() const;

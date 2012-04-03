@@ -303,6 +303,7 @@ void GASNetAPI::checkForPutReqs()
 
 void GASNetAPI::releaseWDsFromDataDep( void *addr )
 {
+#if 0
    _depsLock.acquire();
    //if (gasnet_mynode() == 3)fprintf(stderr, "free dep for addr %p\n", addr );
    std::multimap<uint64_t, wdDeps *>::iterator depIt;
@@ -333,10 +334,12 @@ void GASNetAPI::releaseWDsFromDataDep( void *addr )
       _recvdDeps.insert( (uint64_t) addr ); 
    }
    _depsLock.release();
+#endif
 }
 
 void GASNetAPI::testForDependencies(WD* localWD, std::vector<uint64_t> *deps)
 {
+#if 0
    unsigned int i, j, numCopies = localWD->getNumCopies(), numDeps;
    CopyData *newCopies = localWD->getCopies();
    numDeps = (deps == NULL ? 0 : deps->size() );
@@ -423,6 +426,7 @@ void GASNetAPI::testForDependencies(WD* localWD, std::vector<uint64_t> *deps)
 #endif
       }
    }
+#endif
 }
 
 void GASNetAPI::enqueueFreeBufferNotify( void *tmpBuffer )
@@ -706,7 +710,9 @@ void GASNetAPI::amMalloc( gasnet_token_t token, gasnet_handlerarg_t sizeLo, gasn
    
    ptr = (volatile int *)addr;
   
-   for (unsigned int i = 0; i < ( size / sizeof(int) ); i+= 1024 ) { ptr[i] = ptr[i]; }
+   fprintf(stderr, "On amMalloc, touching data %ld\n", size );
+   //for (unsigned int i = 0; i < ( size / sizeof(int) ); i+= 1024 ) { ptr[i] = ptr[i]; }
+   fprintf(stderr, "On amMalloc, touching data complete\n");
 	//#endif
    //std::cerr<<"Malloc size " << size << " returns "<<addr<<std::endl;
    if ( addr == NULL )
@@ -1205,16 +1211,16 @@ void GASNetAPI::initialize ( Network *net )
       {
          fprintf(stderr, "os: Error getting the hostname.\n");
       }
-	//message0("Node " << _net->getNodeNum() << " running " << myHostname );
+      //message0("Node " << _net->getNodeNum() << " running " << myHostname );
 
       if ( _net->getNodeNum() == 0)
       {
-	      sys.getNetwork()->setMasterHostname( (char *) myHostname );
+         sys.getNetwork()->setMasterHostname( (char *) myHostname );
 
-	      for ( i = 1; i < _net->getNumNodes() ; i++ )
-	      {
-		      sendMyHostName( i );
-	      }
+         for ( i = 1; i < _net->getNumNodes() ; i++ )
+         {
+            sendMyHostName( i );
+         }
       }
    }
 
@@ -1261,13 +1267,17 @@ void GASNetAPI::initialize ( Network *net )
          _seqN = NEW Atomic<unsigned int>[nodes];
          _putSeqN = NEW Atomic<unsigned int>[nodes];
          verbose0( "GasNet segment information:" );
+         
+         _net->mallocSlaves( &segmentAddr[ 1 ], ClusterInfo::getNodeMem() );
+         segmentAddr[ 0 ] = NULL;
+
          for ( idx = 0; idx < nodes; idx += 1)
          {
             pinnedSegmentAddr[ idx ] = seginfoTable[ idx ].addr;
             pinnedSegmentLen[ idx ] = seginfoTable[ idx ].size;
-            message0("Alloc of " << ClusterInfo::getNodeMem() << " bytes");
-	    segmentAddr[ idx ] = _net->malloc( idx, ClusterInfo::getNodeMem() );
-	    segmentLen[ idx ] = ClusterInfo::getNodeMem(); 
+            //message0("Alloc of " << ClusterInfo::getNodeMem() << " bytes");
+            //segmentAddr[ idx ] = _net->malloc( idx, ClusterInfo::getNodeMem() );
+            segmentLen[ idx ] = ( idx == 0 ) ? 0 : ClusterInfo::getNodeMem(); 
             verbose0( "\tnode "<< idx << ": @=" << seginfoTable[ idx ].addr << ", len=" << (void *) seginfoTable[ idx ].size );
             _pinnedAllocators[idx] = NEW SimpleAllocator( ( uintptr_t ) pinnedSegmentAddr[ idx ], pinnedSegmentLen[ idx ] );
             _pinnedAllocatorsLocks[idx] =  NEW Lock( );
@@ -1807,7 +1817,7 @@ void GASNetAPI::getDataFromDevice( uint64_t addr, std::size_t len ) {
    CopyData cd( addr, NANOS_SHARED, true, true, 1, &aDimension, 0);
    Region reg = NewRegionDirectory::build_region( cd );
    _newMasterDir->lock();
-   _newMasterDir->registerAccess( reg, true, true /* will increase version number */, 0, addr /*this is currently unused */, locations );
+   _newMasterDir->masterRegisterAccess( reg, true, true /* will increase version number */, 0, addr /*this is currently unused */, locations ); //FIXME: I think it would be better to have a input only register
    _newMasterDir->unlock();
    for ( NewDirectory::LocationInfoList::iterator it = locations.begin(); it != locations.end(); it++ ) {
       if (!it->second.isLocatedIn( 0 ) ) { 
@@ -1815,7 +1825,7 @@ void GASNetAPI::getDataFromDevice( uint64_t addr, std::size_t len ) {
          //std::cerr << "Houston, we have a problem, data is not in Host and we need it back. HostAddr: " << (void *) (((it->first)).getFirstValue()) << it->second << std::endl;
          sys.getCaches()[ loc ]->syncRegion( it->first, it->second.getAddressOfLocation( loc ) );
       }
-      //else { if ( sys.getNetwork()->getNodeNum() == 0) std::cerr << "["<<sys.getNetwork()->getNodeNum()<<"] wd " << work.getId() << "All ok, location is " << *(it->second) << std::endl; }
+     //else { /*if ( sys.getNetwork()->getNodeNum() == 0)*/ std::cerr << "["<<sys.getNetwork()->getNodeNum()<<"]  All ok, checked directory " << _newMasterDir  <<" location is " << it->second << std::endl; }
    }
 }
 
