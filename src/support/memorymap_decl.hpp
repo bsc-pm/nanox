@@ -90,6 +90,7 @@ class MemoryMap : public std::map< MemoryChunk, _Type * > {
 
    private:
       void insertWithOverlap( const MemoryChunk &key, iterator &hint, MemChunkList &ptrList );
+      void insertWithOverlapButNotGenerateIntersects( const MemoryChunk &key, iterator &hint, MemChunkList &ptrList );
       void getWithOverlap( const MemoryChunk &key, const_iterator &hint, ConstMemChunkList &ptrList ) const;
       void getWithOverlapNoExactKey( const MemoryChunk &key, const_iterator &hint, ConstMemChunkList &ptrList ) const;
       void insertWithOverlapButNotGenerateIntersects( const MemoryChunk &key, iterator &hint, MemChunkList &ptrList );
