@@ -76,11 +76,11 @@ void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
    if ( getNumCopies() > 0 )
       pe->waitInputs( *this );
 
-   if ( getNumCopies() > 0 ) {
-      if ( _ccontrol.dataIsReady() ) {
-         //message("Data is Ready!");
-      }
-   }
+   //if ( getNumCopies() > 0 ) {
+   //   if ( _ccontrol.dataIsReady() ) {
+   //      //message("Data is Ready!");
+   //   }
+   //}
 
    if ( _tie ) tieTo(*myThread);
 
@@ -249,8 +249,11 @@ void WorkDescriptor::printCopies()
 void WorkDescriptor::workFinished(WorkDescriptor &wd)
 {
    if ( _newDirectory == NULL ) initNewDirectory();
-   //std::cerr << "wd " << (unsigned int) wd.getId() << " merging directory into parent " << (unsigned int) this->getId() << " num successors " << (int) ( wd._doSubmit != NULL ? wd._doSubmit->getSuccessors().size() : -1 ) << std::endl;
+   //if (sys.getNetwork()->getNodeNum() > 0 ) std::cerr << "wd " << (unsigned int) wd.getId() <<":" <<(void *) wd.getNewDirectory() << " merging directory into parent " << (unsigned int) this->getId() <<":"<<(void *) _newDirectory << " num successors " << (int) ( wd._doSubmit != NULL ? wd._doSubmit->getSuccessors().size() : -1 ) << std::endl;
    _newDirectory->mergeOutput( *(wd.getNewDirectory()) );
+   //if (sys.getNetwork()->getNodeNum() > 0) {
+   //   _newDirectory->consolidate( false );
+   //}
 
    if ( wd._doSubmit != NULL )
       wd._doSubmit->finished();

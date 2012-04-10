@@ -92,13 +92,42 @@ class MemoryMap : public std::map< MemoryChunk, _Type * > {
       void insertWithOverlap( const MemoryChunk &key, iterator &hint, MemChunkList &ptrList );
       void getWithOverlap( const MemoryChunk &key, const_iterator &hint, ConstMemChunkList &ptrList ) const;
       void getWithOverlapNoExactKey( const MemoryChunk &key, const_iterator &hint, ConstMemChunkList &ptrList ) const;
+      void insertWithOverlapButNotGenerateIntersects( const MemoryChunk &key, iterator &hint, MemChunkList &ptrList );
 
    public:
       void getOrAddChunk( uint64_t addr, std::size_t len, MemChunkList &resultEntries );
+      void getOrAddChunk2( uint64_t addr, std::size_t len, MemChunkList &resultEntries );
       void getChunk2( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
       void getChunk3( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
       void print() const;
 };
+
+#if 1
+template <> 
+class MemoryMap<uint64_t> : public std::map< MemoryChunk, uint64_t > {
+   public:
+      MemoryMap( const MemoryMap &mm ) : std::map< MemoryChunk, uint64_t> () { }
+      const MemoryMap & operator=( const MemoryMap &mm );// { return *this; }
+      //typedef enum { MEM_CHUNK_FOUND, MEM_CHUNK_NOT_FOUND, MEM_CHUNK_NOT_FOUND_BUT_ALLOCATED } QueryResult;
+      typedef std::map< MemoryChunk, uint64_t > BaseMap;
+      //typedef std::pair< const MemoryChunk *, uint64_t > MemChunkPair;
+      //typedef std::list< MemChunkPair > MemChunkList;
+      typedef BaseMap::iterator iterator;
+      typedef BaseMap::const_iterator const_iterator;
+
+      MemoryMap() { }
+      ~MemoryMap() { }
+
+   private:
+      void insertWithOverlapButNotGenerateIntersects( const MemoryChunk &key, iterator &hint, uint64_t data );
+   public:
+      //void getOrAddChunk( uint64_t addr, std::size_t len, MemChunkList &resultEntries );
+      void addChunk( uint64_t addr, std::size_t len, uint64_t value );
+      //void getChunk2( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
+      //void getChunk3( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
+      //void print() const;
+};
+#endif
 
 }
 

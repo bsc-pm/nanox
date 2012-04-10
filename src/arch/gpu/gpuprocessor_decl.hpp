@@ -207,6 +207,7 @@ namespace ext
          {
             while ( !_initialized ) { }
          }
+         virtual bool supportsDirectTransfersWith(ProcessingElement const &pe) const;
    };
 
 }

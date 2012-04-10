@@ -92,6 +92,7 @@ namespace nanos
          void copyToDependent( void *dst, uint64_t tag, size_t size );
          void copyDataInDependent( WorkDescriptor &wd );
          void waitInputsDependent( WorkDescriptor &wd );
+         virtual Device const *getCacheDeviceType() const;
    };
 
 };

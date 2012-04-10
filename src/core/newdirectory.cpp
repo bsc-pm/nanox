@@ -141,8 +141,8 @@ void New1dDirectory::registerAccess( uint64_t tag, std::size_t len, bool input, 
    ensure( *newEnt == NULL, "It can not happen that a directory entry already existed ");
    
     *newEnt = NEW NewDirectoryEntryData( ); //fixme version
-    (*newEnt)->setVersion( version );
-    (*newEnt)->addAccess( memorySpaceId, 0xdeadead );
+    //(*newEnt)->setVersion( version );
+    (*newEnt)->addAccess( memorySpaceId, 0xdeadead, version );
     if ( output ) { (*newEnt)->setWriteLocation( memorySpaceId ); (*newEnt)->increaseVersion();}
     else if ( input ) (*newEnt)->setWriteLocation( -1 );
     message("At the end this data is going to be in " << memorySpaceId );

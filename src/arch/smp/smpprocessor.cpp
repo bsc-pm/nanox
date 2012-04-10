@@ -136,3 +136,6 @@ void* SMPProcessor::newGetAddressDependent( CopyData const &cd )
  (void) cd;
  return (void*) 0xdeadebef;
 }
+bool SMPProcessor::supportsDirectTransfersWith(ProcessingElement const &pe ) const {
+   return false;
+}

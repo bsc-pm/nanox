@@ -73,6 +73,7 @@ namespace nanos
 
          const Device * getDeviceType () const;
          const Device * getSubDeviceType () const;
+         virtual const Device * getCacheDeviceType () const;
 
          BaseThread & startThread ( WorkDescriptor &wd, ext::SMPMultiThread *parent=NULL );
          BaseThread & startMultiThread ( WorkDescriptor &wd, unsigned int numPEs, ProcessingElement **repPEs );
@@ -116,6 +117,7 @@ namespace nanos
          virtual void* newGetAddress( CopyData const &cd );
          virtual void copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );
          virtual bool isGPU() const = 0;
+         virtual bool supportsDirectTransfersWith( ProcessingElement const &pe ) const = 0;
    };
 
    typedef class ProcessingElement PE;

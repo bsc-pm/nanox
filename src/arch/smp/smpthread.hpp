@@ -84,6 +84,7 @@ namespace ext
          {
             return this;
          }
+         virtual bool isCluster() { return false; }
 
          //virtual int checkStateDependent( int numPe ) {
          //   fatal( "SMPThread does not support checkStateDependent()" );

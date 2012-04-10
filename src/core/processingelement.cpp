@@ -56,13 +56,23 @@ void ProcessingElement::copyDataIn( WorkDescriptor &work )
       dir->registerAccess( reg, copies[ index ].isInput(), copies[ index ].isOutput(), 0, ((uint64_t)copies[ index ].getBaseAddress()) + copies[ index ].getOffset(), locations );
       dir->unlock();
       if ( !copies[ index ].isInput() ) continue;
-      for ( NewDirectory::LocationInfoList::iterator it = locations.begin(); it != locations.end(); it++ ) {
-         if (!it->second.isLocatedIn( 0 ) ) { 
-            int loc = it->second.getFirstLocation();
-            //std::cerr << "Houston, we have a problem, data is not in Host and we need it back. HostAddr: " << (void *) (((it->first)).getFirstValue()) << it->second << std::endl;
-            sys.getCaches()[ loc ]->syncRegion( it->first, it->second.getAddressOfLocation( loc ) );
+
+      {
+         std::map<unsigned int, std::list<Region> > locationMap;
+
+         for ( NewDirectory::LocationInfoList::iterator it = locations.begin(); it != locations.end(); it++ ) {
+            if (!it->second.isLocatedIn( 0 ) ) { 
+               int loc = it->second.getFirstLocation();
+               locationMap[ loc ].push_back( it->first );
+               //std::cerr << "Houston, we have a problem, data is not in Host and we need it back. HostAddr: " << (void *) (((it->first)).getFirstValue()) << it->second << std::endl;
+            }
+            //else { if ( sys.getNetwork()->getNodeNum() == 0) std::cerr << "["<<sys.getNetwork()->getNodeNum()<<"] wd " << work.getId() << "All ok, location is " << *(it->second) << std::endl; }
          }
-         //else { if ( sys.getNetwork()->getNodeNum() == 0) std::cerr << "["<<sys.getNetwork()->getNodeNum()<<"] wd " << work.getId() << "All ok, location is " << *(it->second) << std::endl; }
+
+         std::map<unsigned int, std::list<Region> >::iterator locIt;
+         for( locIt = locationMap.begin(); locIt != locationMap.end(); locIt++ ) {
+            sys.getCaches()[ locIt->first ]->syncRegion( locIt->second );
+         }
       }
    }
 }
@@ -211,4 +221,8 @@ void ProcessingElement::copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nan
    void *actualTag = (void *) ( sharing == NANOS_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : (void *)tag );
    // FIXME: should this be done by using the local copeir of the device?
    memcpy( dst, actualTag, size );
+}
+
+Device const *ProcessingElement::getCacheDeviceType() const {
+   return NULL;
 }

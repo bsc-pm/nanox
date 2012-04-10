@@ -70,33 +70,46 @@ void NewRegionDirectory::insertRegionIntoTree( RegionTree<NewDirectoryEntryData>
       NewDirectoryEntryData &nded = *accessor;
       if ( setLoc ) {
          //std::cerr << "added loc "<< memorySpaceId << " version " << version << std::endl;
-         nded.addAccess( memorySpaceId, devAddr );
-         nded.setVersion( version );
+         nded.addAccess( memorySpaceId, devAddr, version );
+         //nded.setVersion( version );
       } else {
          nded.merge( ent );
       }
    }
 }
 
-void NewRegionDirectory::registerAccess( Region reg, bool input, bool output, unsigned int memorySpaceId, uint64_t devAddr, LocationInfoList &loc )
+void NewRegionDirectory::masterRegisterAccess( Region reg, bool input, bool output, unsigned int memorySpaceId, uint64_t devAddr, LocationInfoList &loc )
 {
-   bool skipParent = false;
    unsigned int version = 0;
 
-   //std::cerr << " register Loc " << memorySpaceId << " " << reg << std::endl;
-   //if(sys.getNetwork()->getNodeNum() == 0) { std::cerr << "this dir is " << &_inputDirectory << " parent is "  << ( ( _parent!= NULL) ? &(_parent->_inputDirectory) : NULL ) << std::endl;   }
+ //if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 ) std::cerr << " register Loc " << memorySpaceId << " " << reg << std::endl;
+ //if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 ) { std::cerr << "this dir is " << &_inputDirectory << " parent is "  << ( ( _parent!= NULL) ? &(_parent->_directory) : NULL ) << std::endl;   }
 
    RegionTree<NewDirectoryEntryData>::iterator_list_t outs;
    RegionTree<NewDirectoryEntryData>::iterator_list_t outsParent;
-   _inputDirectory.find( reg, outs );
+   //_mergeLock.acquire();
+   _directory.find( reg, outs );
    if ( outs.empty () ) {
       //message("partial ERROR: invalid program! data spec not available.");
+      //if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 )std::cerr << "+++++++++++++++++++++++++ "<< reg << " NO OUTS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "<<std::endl;
    } else {
       //check if the region that we are registering is fully contained in the directory, if not, there is a programming error
       RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator it = outs.begin();
       RegionTree<NewDirectoryEntryData>::iterator &firstAccessor = *it;
       Region tmpReg = firstAccessor.getRegion();
       bool combiningIsGoingOk = true;
+         //{
+         //   if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 )std::cerr << "++++++++++++++++++++++++++ SYATY COMBINE ++++++++++++++) "<< &(_parent->_directory) << std::endl;
+         //   if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 )std::cerr << "+++++++++++++++++++++++++ "<< reg << std::endl;
+         //   RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator qrit = outs.begin();
+         //   if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 )std::cerr << "::::::::::::::: QUEry results "<< &(_parent->_directory) << std::endl;
+         //   for ( ; qrit != outs.end(); qrit++ ) {
+         //   RegionTree<NewDirectoryEntryData>::iterator &accessor = *qrit;
+         //   if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 )std::cerr << " ::out reg " << accessor.getRegion() << " <> " << *accessor << std::endl;
+         //   
+         //   }
+         //   if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 )std::cerr << "::::::::::::::: QUEry results END "<< &(_parent->_directory) << std::endl;
+         //}
 
       for ( ; ( it != outs.end() ) && ( combiningIsGoingOk ); it++) {
          RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
@@ -105,7 +118,68 @@ void NewRegionDirectory::registerAccess( Region reg, bool input, bool output, un
       if ( combiningIsGoingOk ) {
          if ( tmpReg != reg && !tmpReg.contains( reg ) ) {
             //message("partial ERROR: invalid program! data spec not available. Queried region unexpected.");
-         } else { /* message("GOT IT: on mine");*/ skipParent = true;}
+         } else { /* message("GOT IT: on mine");*/  /*if(myThread->getId() == 0 )std::cerr << "THIS MAY BE A PROBLEM RIGHT NOW" << std::endl;*/}
+      } else {
+         //message("partial ERROR: invalid program! data spec not available. Non combined parts.");
+      }
+   }
+
+   //outs contains the set of regions which contain the desired region
+   RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator it = outs.begin();
+   for ( it = outs.begin() ; it != outs.end(); it++ ) {
+	   RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
+	   NewDirectoryEntryData &nded = *accessor;
+	   //std::cerr << "Register dir, ret loc " << nded;
+	   version = std::max( version, nded.getVersion() );
+	   loc.push_back( std::make_pair( accessor.getRegion().intersect( reg ) , nded ) );
+   }
+//if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 )  std::cerr << "Reg " << reg << " registered for access with version " << (output ? ( version + 1 ) : version ) << " in location " << memorySpaceId << std::endl;
+//if (sys.getNetwork()->getNodeNum() == 1) std::cerr << "Reg " << reg << " registered for access with version " << (output ? ( version + 1 ) : version ) << " in location " << memorySpaceId << std::endl;
+   insertRegionIntoTree( _directory, reg, memorySpaceId, devAddr, true, *((NewDirectoryEntryData * ) NULL), output ? ( version + 1 ) : version );
+   //_mergeLock.release();
+}
+
+void NewRegionDirectory::registerAccess( Region reg, bool input, bool output, unsigned int memorySpaceId, uint64_t devAddr, LocationInfoList &loc )
+{
+   bool skipParent = false;
+   unsigned int version = 0;
+
+ //if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 ) std::cerr << " register Loc " << memorySpaceId << " " << reg << std::endl;
+ //if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 ) { std::cerr << "this dir is " << &_inputDirectory << " parent is "  << ( ( _parent!= NULL) ? &(_parent->_directory) : NULL ) << std::endl;   }
+
+   RegionTree<NewDirectoryEntryData>::iterator_list_t outs;
+   RegionTree<NewDirectoryEntryData>::iterator_list_t outsParent;
+   _inputDirectory.find( reg, outs );
+   if ( outs.empty () ) {
+      //message("partial ERROR: invalid program! data spec not available.");
+      //if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 )std::cerr << "+++++++++++++++++++++++++ "<< reg << " NO OUTS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "<<std::endl;
+   } else {
+      //check if the region that we are registering is fully contained in the directory, if not, there is a programming error
+      RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator it = outs.begin();
+      RegionTree<NewDirectoryEntryData>::iterator &firstAccessor = *it;
+      Region tmpReg = firstAccessor.getRegion();
+      bool combiningIsGoingOk = true;
+         //{
+         //   if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 )std::cerr << "++++++++++++++++++++++++++ SYATY COMBINE ++++++++++++++) "<< &(_parent->_directory) << std::endl;
+         //   if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 )std::cerr << "+++++++++++++++++++++++++ "<< reg << std::endl;
+         //   RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator qrit = outs.begin();
+         //   if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 )std::cerr << "::::::::::::::: QUEry results "<< &(_parent->_directory) << std::endl;
+         //   for ( ; qrit != outs.end(); qrit++ ) {
+         //   RegionTree<NewDirectoryEntryData>::iterator &accessor = *qrit;
+         //   if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 )std::cerr << " ::out reg " << accessor.getRegion() << " <> " << *accessor << std::endl;
+         //   
+         //   }
+         //   if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 )std::cerr << "::::::::::::::: QUEry results END "<< &(_parent->_directory) << std::endl;
+         //}
+
+      for ( ; ( it != outs.end() ) && ( combiningIsGoingOk ); it++) {
+         RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
+         combiningIsGoingOk = tmpReg.combine( accessor.getRegion(), tmpReg );
+      }
+      if ( combiningIsGoingOk ) {
+         if ( tmpReg != reg && !tmpReg.contains( reg ) ) {
+            //message("partial ERROR: invalid program! data spec not available. Queried region unexpected.");
+         } else { /* message("GOT IT: on mine");*/ skipParent = true; /*if(myThread->getId() == 0 )std::cerr << "THIS MAY BE A PROBLEM RIGHT NOW" << std::endl;*/}
       } else {
          //message("partial ERROR: invalid program! data spec not available. Non combined parts.");
       }
@@ -113,33 +187,34 @@ void NewRegionDirectory::registerAccess( Region reg, bool input, bool output, un
 
    if ( !skipParent ) {
    _parent->_mergeLock.acquire();
-      _parent->_inputDirectory.find( reg, outsParent );
+      _parent->_directory.find( reg, outsParent );
       RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator mergeIt;
       for ( mergeIt = outsParent.begin(); mergeIt != outsParent.end(); mergeIt++ )
          outs.push_back( *mergeIt ); //merge results from parent.
 
       if ( outs.empty () ) {
-         message("ERROR: invalid program! data spec not available.");
-         //std::cerr << "!!!!!!!!!!!!!!!!!!!!!  this dir is " << &(_parent->_inputDirectory) << " " << (_parent->_inputDirectory) << std::endl;
+         message("ERROR: invalid program! data spec not available at node " << sys.getNetwork()->getNodeNum());
+         //if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 )sys.printBt();
+         //std::cerr << "!!!!!!!!!!!!!!!!!!!!!  this dir is " << &(_parent->_directory) << " " << (_parent->_directory) << std::endl;
       } else {
          //check if the region that we are registering is fully contained in the directory, if not, there is a programming error
 #if 0
          {
             RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator it = outs.begin();
-            if(myThread->getId() == 0 )std::cerr << "::::::::::::::: QUEry results "<< &(_parent->_inputDirectory) << std::endl;
+            if(myThread->getId() == 0 )std::cerr << "::::::::::::::: QUEry results "<< &(_parent->_directory) << std::endl;
             for ( ; it != outs.end(); it++ ) {
             RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
             if(myThread->getId() == 0 )std::cerr << " ::out reg " << accessor.getRegion() << " <> " << *accessor << std::endl;
             
             }
-            if(myThread->getId() == 0 )std::cerr << "::::::::::::::: QUEry results END "<< &(_parent->_inputDirectory) << std::endl;
+            if(myThread->getId() == 0 )std::cerr << "::::::::::::::: QUEry results END "<< &(_parent->_directory) << std::endl;
          }
          RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator it = outs.begin();
          RegionTree<NewDirectoryEntryData>::iterator &firstAccessor = *it;
          Region tmpReg = firstAccessor.getRegion().intersect( reg );
          bool combiningIsGoingOk = true;
 
-            if(myThread->getId() == 0 )std::cerr << "++++++++++++++++++++++++++ SYATY COMBINE ++++++++++++++) "<< &(_parent->_inputDirectory) << std::endl;
+            if(myThread->getId() == 0 )std::cerr << "++++++++++++++++++++++++++ SYATY COMBINE ++++++++++++++) "<< &(_parent->_directory) << std::endl;
             if(myThread->getId() == 0 )std::cerr << "+++++++++++++++++++++++++ "<< reg << std::endl;
          for ( ; ( it != outs.end() ) && ( combiningIsGoingOk ); it++) {
             RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
@@ -182,7 +257,8 @@ void NewRegionDirectory::registerAccess( Region reg, bool input, bool output, un
       }
    }
 
-   //std::cerr << "Reg " << reg << " registered for access with version " << (output ? ( version + 1 ) : version ) << " in location " << memorySpaceId << std::endl;
+//if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 )  std::cerr << "Reg " << reg << " registered for access with version " << (output ? ( version + 1 ) : version ) << " in location " << memorySpaceId << std::endl;
+//if (sys.getNetwork()->getNodeNum() == 1) std::cerr << "Reg " << reg << " registered for access with version " << (output ? ( version + 1 ) : version ) << " in location " << memorySpaceId << std::endl;
    insertRegionIntoTree( _directory, reg, memorySpaceId, devAddr, true, *((NewDirectoryEntryData * ) NULL), output ? ( version + 1 ) : version );
 }
 
@@ -198,7 +274,7 @@ void NewRegionDirectory::_internal_merge( RegionTree<NewDirectoryEntryData> cons
    Region r = build_region( DataAccess((void *) 0, true, true, false, false, 1, wholeMemDim ) );
    RegionTree<NewDirectoryEntryData>::iterator_list_t outs;
 
-   //std::cerr << "_internal_merge !!! " << std::endl;
+  //if(sys.getNetwork()->getNodeNum() > 0 ) std::cerr << "_internal_merge !!! " << std::endl;
    inputDir.find( r, outs );
    for ( RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator it = outs.begin();
          it != outs.end();
@@ -208,7 +284,7 @@ void NewRegionDirectory::_internal_merge( RegionTree<NewDirectoryEntryData> cons
       RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
       NewDirectoryEntryData &nded = *accessor;
 
-      //std::cerr << "::::::merge, insert region "<<  accessor.getRegion() << std::endl;
+      //if(sys.getNetwork()->getNodeNum() > 0 )std::cerr << "::::::merge, insert region "<<  accessor.getRegion() << " locinfo: " << nded << std::endl;
       insertRegionIntoTree( targetDir, accessor.getRegion(), /* not used */ 0, /* not used */ 0xbeefbeef, false, nded, 0 );
    }
   // std::cerr << "_internal_merge end !!! " << std::endl;
@@ -219,9 +295,9 @@ void NewRegionDirectory::merge( const NewRegionDirectory &inputDir )
 
    //std::cerr << "merge Output Dir into my input (succsessor to me)"<< std::endl;
    //if(sys.getNetwork()->getNodeNum() == 0)std::cerr << "merge " <<  &inputDir._directory << " into " << &_inputDirectory << std::endl;
-   _mergeLock.acquire();
+   //_mergeLock.acquire();
    _internal_merge( inputDir._directory , _inputDirectory );
-   _mergeLock.release();
+   //_mergeLock.release();
    //message("merge " << &inputDir << " to input directory " << (void *)&_inputDirectory<< " read from " << (void *)&inputDir._directory );
 }
 
@@ -234,7 +310,8 @@ void NewRegionDirectory::mergeOutput( const NewRegionDirectory &inputDir )
    //std::cerr << "merge Output Dir into my output (child finished) "<< std::endl;
    //if(sys.getNetwork()->getNodeNum() == 0)std::cerr << "mergeOut " <<  &inputDir._directory << " into " << &_inputDirectory << std::endl;
    //if(sys.getNetwork()->getNodeNum() == 0) std::cerr <<_inputDirectory << std::endl;
-   _internal_merge( inputDir._directory , _inputDirectory );
+   //_internal_merge( inputDir._directory , _inputDirectory );
+   _internal_merge( inputDir._directory , _directory );
    //if(sys.getNetwork()->getNodeNum() == 0)std::cerr << "mergeOut " <<  &inputDir._directory << " into " << &_inputDirectory << std::endl;
    //if(sys.getNetwork()->getNodeNum() == 0)std::cerr << "after merge " <<  &inputDir._directory << " into " << &_inputDirectory << std::endl;
    //if(sys.getNetwork()->getNodeNum() == 0) std::cerr  << _inputDirectory << std::endl;
@@ -250,7 +327,7 @@ void NewRegionDirectory::setRoot() {
    insertRegionIntoTree( _inputDirectory, r, 0, 0, true, *((NewDirectoryEntryData * ) NULL), 1 );
    //std::cerr << "Initialized whole Mem region, input " << (void *) &_inputDirectory << std::endl;
    //std::cerr << "==== Pre init =================  " << std::endl << _directory << "================================================" << std::endl;
-   //insertRegionIntoTree( _directory, r, 0, true, *((NewDirectoryEntryData * ) NULL) );
+   insertRegionIntoTree( _directory, r, 0, 0, true, *((NewDirectoryEntryData * ) NULL), 1 );
    //std::cerr << "Initialized whole Mem region, directory " << (void *) &_directory << std::endl;
    //std::cerr << "==== Post init =================  " << std::endl << _directory << "================================================" << std::endl;
 }
@@ -267,19 +344,24 @@ void NewRegionDirectory::consolidate( bool flushData ) {
    //message( "consolidating directory... " << (void *) &_directory  );
 
    // commented because now we commit to input dir when a WD finishes (to not loss info to not really made dependencies)
+
+   //nanos_region_dimension_internal_t wholeMemDim[1] = { { -1ULL, 0, -1ULL } };
+   //Region r = build_region( DataAccess((void *) 0, true, true, false, false, 1, wholeMemDim ) );
+   //RegionTree<NewDirectoryEntryData>::iterator_list_t outs;
+   //_inputDirectory.find( r, outs );
+   //_inputDirectory.removeMany( outs );
+   //   std::cerr <<"Consolidate dir... "<< std::endl;
    //_internal_merge( _directory, _inputDirectory );
-
-   nanos_region_dimension_internal_t wholeMemDim[1] = { { -1ULL, 0, -1ULL } };
-   Region r = build_region( DataAccess((void *) 0, true, true, false, false, 1, wholeMemDim ) );
-   RegionTree<NewDirectoryEntryData>::iterator_list_t outs;
-   _directory.find( r, outs );
-   _directory.removeMany( outs );
-
-   outs.clear();
+   //outs.clear();
    
    if ( flushData )
    {
-      _inputDirectory.find( r, outs );
+   nanos_region_dimension_internal_t wholeMemDim[1] = { { -1ULL, 0, -1ULL } };
+   Region r = build_region( DataAccess((void *) 0, true, true, false, false, 1, wholeMemDim ) );
+   RegionTree<NewDirectoryEntryData>::iterator_list_t outs;
+      //_inputDirectory.find( r, outs );
+      std::cerr <<"Consolidate dir... "<< std::endl;
+      _directory.find( r, outs );
       for (RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator it = outs.begin(); it != outs.end(); it++) {
          RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
          NewDirectoryEntryData &nded = *accessor;
@@ -287,11 +369,11 @@ void NewRegionDirectory::consolidate( bool flushData ) {
          if ( !nded.isLocatedIn( 0 ) ) {
             int loc = nded.getFirstLocation();
             //std::cerr << " I have to sync " << reg << " from " << loc << std::endl;
-            sys.getCaches()[ loc ]->syncRegion( reg, nded.getAddressOfLocation( loc ) );
-            nded.addAccess( 0, reg.getFirstValue() );
-         } else {
-          //  std::cerr << " I DO NOT have to sync " << reg << std::endl;
-         }
+            sys.getCaches()[ loc ]->syncRegion( reg /*, nded.getAddressOfLocation( loc )*/ );
+            nded.addAccess( 0, reg.getFirstValue(), nded.getVersion() );
+         } /*else {
+            std::cerr << " I DO NOT have to sync " << reg << std::endl;
+         }*/
       }
    }
    

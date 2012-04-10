@@ -68,7 +68,7 @@ void * SimpleAllocator::allocate( size_t size )
    }
    else {
       // Could not get a chunk of 'size' bytes
-      std::cout << "WARNING: Allocator is full" << std::endl;
+      //std::cout << "WARNING: Allocator is full" << std::endl;
       return NULL;
    }
 

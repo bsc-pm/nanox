@@ -47,4 +47,9 @@ BaseThread &ClusterNode::createThread ( WorkDescriptor &helper, SMPMultiThread *
    return th;
 }
 
-unsigned int ClusterNode::getClusterNodeNum() { return _clusterNode; }
+unsigned int ClusterNode::getClusterNodeNum() const {
+   return _clusterNode;
+}
+bool ClusterNode::supportsDirectTransfersWith( ProcessingElement const &pe ) const {
+   return ( &Cluster == pe.getCacheDeviceType() && sys.useNode2Node() );
+}

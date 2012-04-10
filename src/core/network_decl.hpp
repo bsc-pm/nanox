@@ -35,6 +35,7 @@ namespace nanos {
 
          //std::string _masterHostname;
          char * _masterHostname;
+         bool _checkForDataInOtherAddressSpaces;
 
       public:
          static const unsigned int MASTER_NODE_NUM = 0;
@@ -77,10 +78,14 @@ namespace nanos {
          void setMasterDirectory(Directory *dir);
          void setNewMasterDirectory(NewRegionDirectory *dir);
          std::size_t getTotalBytes();
+         void mallocSlaves ( void **addresses, size_t size );
 
          static Lock _nodeLock;
          static Atomic<uint64_t> _nodeRCAaddr;
          static Atomic<uint64_t> _nodeRCAaddrOther;
+
+	 void enableCheckingForDataInOtherAddressSpaces();
+	 bool doIHaveToCheckForDataInOtherAddressSpaces() const;
    };
 }
 

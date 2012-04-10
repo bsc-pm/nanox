@@ -178,6 +178,32 @@ void * Network::malloc ( unsigned int remoteNode, size_t size )
    return request.resultAddr;
 }
 
+void Network::mallocSlaves ( void **addresses, size_t size )
+{
+   unsigned int index;
+   mallocWaitObj request[ _numNodes - 1 ];
+   if ( _api != NULL )
+   {
+
+      std::cerr << "malloc on slaves..." << std::endl;
+      for ( index = 0; index < ( _numNodes - 1 ); index += 1) {
+         request[ index ].complete = 0;
+         request[ index ].resultAddr = NULL;
+         _api->malloc( index+1, size, ( void * ) &( request[ index ] ) );
+      }
+      std::cerr << "malloc on slaves... wait responses" << std::endl;
+
+      for ( index = 0; index < ( _numNodes - 1 ); index += 1) {
+         while ( ( (volatile int) request[ index ].complete ) == 0 )
+         {
+            poll( /*myThread->getId()*/0 );
+         }
+	 addresses[ index ] = request[ index ].resultAddr;
+      }
+      std::cerr << "malloc on slaves... complete" << std::endl;
+   }
+}
+
 void Network::memFree ( unsigned int remoteNode, void *addr )
 {
    if ( _api != NULL )
@@ -196,6 +222,7 @@ void Network::memRealloc ( unsigned int remoteNode, void *oldAddr, size_t oldSiz
 
 void Network::notifyMalloc( unsigned int remoteNode, void * addr, mallocWaitObj *request )
 {
+   std::cerr << "recv malloc response from "<< remoteNode << std::endl;
    request->resultAddr = addr;
    request->complete = 1;
 }
@@ -256,4 +283,14 @@ std::size_t Network::getTotalBytes()
       result = _api->getTotalBytes();
    }
    return result;
+}
+
+void Network::enableCheckingForDataInOtherAddressSpaces()
+{
+   _checkForDataInOtherAddressSpaces = true;
+}
+
+bool Network::doIHaveToCheckForDataInOtherAddressSpaces() const
+{
+   return _checkForDataInOtherAddressSpaces;
 }

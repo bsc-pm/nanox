@@ -67,7 +67,13 @@ namespace nanos
          bool hasWriteLocation() const { return ( _writeLocation != -1 ); }
          int getWriteLocation() const { return _writeLocation; }
          void setWriteLocation( int id ) { _writeLocation = id; }
-         void addAccess( int id, uint64_t address ) { _location.insert( LocationEntry( id, address ) ); }
+         void addAccess( int id, uint64_t address, unsigned int version ) {
+            if ( version > _version ) {
+               _location.clear();
+            }
+            _version = version;
+            _location.insert( LocationEntry( id, address ) );
+         }
          bool isLocatedIn( int id ) const { return ( _location.count( LocationEntry( id, -1UL ) ) > 0 ); }
          uint64_t getAddressOfLocation( int id ) const { std::set< LocationEntry >::iterator it = _location.find( LocationEntry( id, -1UL ) ); return it->getAddress(); }
          void increaseVersion() { _version += 1; }
@@ -168,6 +174,7 @@ namespace nanos
          *  \param output Whether the access is a write
          */
          void registerAccess( Region reg, bool input, bool output, unsigned int memorySpaceId, uint64_t devAddr, LocationInfoList &loc );
+         void masterRegisterAccess( Region reg, bool input, bool output, unsigned int memorySpaceId, uint64_t devAddr, LocationInfoList &loc );
          void addAccess(Region reg, bool input, bool output, unsigned int memorySpaceId, unsigned int version, uint64_t devAddr );
 
          void merge( const NewRegionDirectory &input );

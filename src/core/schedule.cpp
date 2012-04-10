@@ -508,12 +508,10 @@ WD * Scheduler::prefetch( BaseThread *thread, WD &wd )
 #ifdef CLUSTER_DEV
 WD * Scheduler::getClusterWD( BaseThread *thread, int inGPU )
 {
-	WD * wd = NULL;
-	if ( thread->getTeam() != NULL )
-	{
-		wd = thread->getNextWD();
-		if ( wd )
-		{
+   WD * wd = NULL;
+   if ( thread->getTeam() != NULL ) {
+      wd = thread->getNextWD();
+      if ( wd ) {
 #ifdef GPU_DEV
          if ( ( inGPU == 1 && !wd->canRunIn( ext::GPU ) ) || ( inGPU == 0 && !wd->canRunIn( ext::SMP ) ) )
 #else
@@ -521,19 +519,16 @@ WD * Scheduler::getClusterWD( BaseThread *thread, int inGPU )
 #endif
          { // found a non compatible wd in "nextWD", ignore it
             wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread );
-            //if(wd!=NULL)std::cerr << "got a wd with depth " <<wd->getDepth() << std::endl;
-         }
-         else {
+            //if(wd!=NULL)std::cerr << "GN got a wd with depth " <<wd->getDepth() << std::endl;
+         } else {
             thread->resetNextWD();
          }
-		}
-		else
-		{
-			wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread );
-            //if(wd!=NULL)std::cerr << "got a wd with depth " <<wd->getDepth() << std::endl;
-		}
-	}
-	return wd;
+      } else {
+         wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread );
+         //if(wd!=NULL)std::cerr << "got a wd with depth " <<wd->getDepth() << std::endl;
+      }
+   }
+   return wd;
 }
 #endif
 

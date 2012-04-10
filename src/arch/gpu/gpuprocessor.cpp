@@ -257,3 +257,6 @@ void GPUProcessor::GPUProcessorInfo::destroyTransferStreams ()
       }
    }
 }
+bool GPUProcessor::supportsDirectTransfersWith(ProcessingElement const &pe) const {
+   return ( &GPU == pe.getCacheDeviceType() );
+}

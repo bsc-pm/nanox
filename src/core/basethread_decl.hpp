@@ -286,6 +286,7 @@ namespace nanos
          virtual void notifyOutlinedCompletionDependent( WD &completedWD ) {
             fatal0( "::notifyOutlinedCompletionDependent() not available for this thread type." );
          }
+         virtual bool isCluster() = 0;
    };
 
    extern __thread BaseThread *myThread;
