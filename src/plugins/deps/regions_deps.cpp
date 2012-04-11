@@ -17,7 +17,7 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "basedependenciesdomain.hpp"
+#include "baseregionsdependenciesdomain.hpp"
 #include "plugin.hpp"
 #include "system.hpp"
 #include "config.hpp"
@@ -29,7 +29,7 @@
 namespace nanos {
    namespace ext {
 
-      class PerfectRegionDependenciesDomain : public BaseDependenciesDomain
+      class RegionDependenciesDomain : public BaseRegionsDependenciesDomain
       {
          private:
             typedef RegionTree<TrackableObject> RegionMap; /**< Maps regions to \a RegionStatus objects */
@@ -146,9 +146,11 @@ namespace nanos {
                //typedef std::set<RegionMap::iterator> subregion_set_t;
                typedef RegionMap::iterator_list_t subregion_set_t;
                subregion_set_t subregions;
-               RegionMap::iterator wholeRegion = _regionMap.findAndPopulate( target, /* out */subregions );
+               RegionMap::iterator wholeRegion = _regionMap.findExactAndMatching( target, /* out */subregions );
                if ( !wholeRegion.isEmpty() ) {
                   subregions.push_back(wholeRegion);
+               } else {
+                  wholeRegion = _regionMap.addOverlapping( target );
                }
                
                for (
@@ -161,31 +163,31 @@ namespace nanos {
                   status.hold(); // This is necessary since we may trigger a removal in finalizeReduction
                }
                
+               if ( accessType.commutative ) {
+                  submitDependableObjectCommutativeDataAccess( depObj, target, accessType, subregions, *wholeRegion, callback );
+               } else if ( accessType.input && accessType.output ) {
+                  submitDependableObjectInoutDataAccess( depObj, target, accessType, subregions, *wholeRegion, callback );
+               } else if ( accessType.input ) {
+                  submitDependableObjectInputDataAccess( depObj, target, accessType, subregions, *wholeRegion, callback );
+               } else if ( accessType.output ) {
+                  submitDependableObjectOutputDataAccess( depObj, target, accessType, subregions, *wholeRegion, callback );
+               } else {
+                  fatal( "Invalid data access" );
+               }
+                  
                for (
                   subregion_set_t::iterator it = subregions.begin();
                   it != subregions.end();
                   it++
                ) {
                   RegionMap::iterator &accessor = *it;
-                  
-                  Region const &subregion = accessor.getRegion();
                   TrackableObject &status = *accessor;
-                  
-                  if ( accessType.commutative ) {
-                     submitDependableObjectCommutativeDataAccess( depObj, subregion, accessType, status, callback );
-                  } else if ( accessType.input && accessType.output ) {
-                     submitDependableObjectInoutDataAccess( depObj, subregion, accessType, status, callback );
-                  } else if ( accessType.input ) {
-                     submitDependableObjectInputDataAccess( depObj, subregion, accessType, status, callback );
-                  } else if ( accessType.output ) {
-                     submitDependableObjectOutputDataAccess( depObj, subregion, accessType, status, callback );
-                  } else {
-                     fatal( "Invalid dara access" );
-                  }
-                  
                   status.unhold();
                   // Just in case
                   if ( status.isEmpty() ) {
+                     accessor.erase();
+                  } else if ( accessType.output && (accessor.getRegion() != target) && target.contains(accessor.getRegion()) ) {
+                     // Remove old subsumed subregions
                      accessor.erase();
                   }
                }
@@ -278,18 +280,18 @@ namespace nanos {
             }
 
          public:
-            PerfectRegionDependenciesDomain() : BaseDependenciesDomain(), _regionMap( ) {}
-            PerfectRegionDependenciesDomain ( const PerfectRegionDependenciesDomain &depDomain )
-               : BaseDependenciesDomain( depDomain ),
+            RegionDependenciesDomain() : BaseRegionsDependenciesDomain(), _regionMap( ) {}
+            RegionDependenciesDomain ( const RegionDependenciesDomain &depDomain )
+               : BaseRegionsDependenciesDomain( depDomain ),
                _regionMap ( depDomain._regionMap ) {}
             
-            ~PerfectRegionDependenciesDomain()
+            ~RegionDependenciesDomain()
             {
             }
             
             /*!
              *  \note This function cannot be implemented in
-             *  BaseDependenciesDomain since it calls a template function,
+             *  BaseRegionsDependenciesDomain since it calls a template function,
              *  and they cannot be virtual.
              */
             inline void submitDependableObject ( DependableObject &depObj, std::vector<DataAccess> &deps, SchedulePolicySuccessorFunctor* callback )
@@ -299,7 +301,7 @@ namespace nanos {
             
             /*!
              *  \note This function cannot be implemented in
-             *  BaseDependenciesDomain since it calls a template function,
+             *  BaseRegionsDependenciesDomain since it calls a template function,
              *  and they cannot be virtual.
              */
             inline void submitDependableObject ( DependableObject &depObj, size_t numDeps, DataAccess* deps, SchedulePolicySuccessorFunctor* callback )
@@ -310,8 +312,8 @@ namespace nanos {
          
       };
       
-      template void PerfectRegionDependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, const DataAccess* begin, const DataAccess* end, SchedulePolicySuccessorFunctor* callback );
-      template void PerfectRegionDependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, std::vector<DataAccess>::const_iterator begin, std::vector<DataAccess>::const_iterator end, SchedulePolicySuccessorFunctor* callback );
+      template void RegionDependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, const DataAccess* begin, const DataAccess* end, SchedulePolicySuccessorFunctor* callback );
+      template void RegionDependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, std::vector<DataAccess>::const_iterator begin, std::vector<DataAccess>::const_iterator end, SchedulePolicySuccessorFunctor* callback );
       
       /*! \brief Default plugin implementation.
        */
@@ -325,7 +327,7 @@ namespace nanos {
              */
             DependenciesDomain* createDependenciesDomain () const
             {
-               return NEW PerfectRegionDependenciesDomain();
+               return NEW RegionDependenciesDomain();
             }
       };
   
@@ -333,7 +335,7 @@ namespace nanos {
       {
             
          public:
-            RegionDepsPlugin() : Plugin( "Nanos++ partitioning region dependency management plugin",1 )
+            RegionDepsPlugin() : Plugin( "Nanos++ overlapping regions dependency management plugin",1 )
             {
             }
 
@@ -350,4 +352,4 @@ namespace nanos {
    }
 }
 
-DECLARE_PLUGIN("perfect-regions",nanos::ext::RegionDepsPlugin);
+DECLARE_PLUGIN("regions-default",nanos::ext::RegionDepsPlugin);

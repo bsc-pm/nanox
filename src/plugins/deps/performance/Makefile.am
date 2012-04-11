@@ -24,6 +24,7 @@ if PERFORMANCE_VERSION
 performance_LTLIBRARIES = \
 	libnanox-deps-plain.la \
         libnanox-deps-perfect-regions.la\
+        libnanox-deps-regions.la\
 	$(END)
 
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags)
@@ -35,5 +36,9 @@ libnanox_deps_plain_la_SOURCES = $(plain_sources)
 libnanox_deps_perfect_regions_la_CXXFLAGS = $(nanos_perfo_cxxflags)
 libnanox_deps_perfect_regions_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_deps_perfect_regions_la_SOURCES = $(perfect_regions_sources)
+
+libnanox_deps_regions_la_CXXFLAGS = $(nanos_perfo_cxxflags)
+libnanox_deps_regions_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_deps_regions_la_SOURCES = $(regions_sources)
 endif
 

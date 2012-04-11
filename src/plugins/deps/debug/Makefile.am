@@ -24,6 +24,7 @@ if DEBUG_VERSION
 debug_LTLIBRARIES = \
         libnanox-deps-plain.la\
         libnanox-deps-perfect-regions.la\
+        libnanox-deps-regions.la\
 	$(END)
 
 nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags)
@@ -35,5 +36,9 @@ libnanox_deps_plain_la_SOURCES = $(plain_sources)
 libnanox_deps_perfect_regions_la_CXXFLAGS = $(nanos_debug_cxxflags)
 libnanox_deps_perfect_regions_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_deps_perfect_regions_la_SOURCES = $(perfect_regions_sources)
+
+libnanox_deps_regions_la_CXXFLAGS = $(nanos_debug_cxxflags)
+libnanox_deps_regions_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_deps_regions_la_SOURCES = $(regions_sources)
 endif
 
