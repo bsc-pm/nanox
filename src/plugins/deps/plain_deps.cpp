@@ -17,7 +17,7 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "dependenciesdomain_decl.hpp"
+#include "basedependenciesdomain.hpp"
 #include "plugin.hpp"
 #include "system.hpp"
 #include "config.hpp"
