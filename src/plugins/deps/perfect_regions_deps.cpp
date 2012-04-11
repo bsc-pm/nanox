@@ -29,7 +29,7 @@
 namespace nanos {
    namespace ext {
 
-      class RegionDependenciesDomain : public BaseDependenciesDomain
+      class PerfectRegionDependenciesDomain : public BaseDependenciesDomain
       {
          private:
             typedef RegionTree<TrackableObject> RegionMap; /**< Maps regions to \a RegionStatus objects */
@@ -278,12 +278,12 @@ namespace nanos {
             }
 
          public:
-            RegionDependenciesDomain() : BaseDependenciesDomain(), _regionMap( ) {}
-            RegionDependenciesDomain ( const RegionDependenciesDomain &depDomain )
+            PerfectRegionDependenciesDomain() : BaseDependenciesDomain(), _regionMap( ) {}
+            PerfectRegionDependenciesDomain ( const PerfectRegionDependenciesDomain &depDomain )
                : BaseDependenciesDomain( depDomain ),
                _regionMap ( depDomain._regionMap ) {}
             
-            ~RegionDependenciesDomain()
+            ~PerfectRegionDependenciesDomain()
             {
             }
             
@@ -310,8 +310,8 @@ namespace nanos {
          
       };
       
-      template void RegionDependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, const DataAccess* begin, const DataAccess* end, SchedulePolicySuccessorFunctor* callback );
-      template void RegionDependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, std::vector<DataAccess>::const_iterator begin, std::vector<DataAccess>::const_iterator end, SchedulePolicySuccessorFunctor* callback );
+      template void PerfectRegionDependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, const DataAccess* begin, const DataAccess* end, SchedulePolicySuccessorFunctor* callback );
+      template void PerfectRegionDependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, std::vector<DataAccess>::const_iterator begin, std::vector<DataAccess>::const_iterator end, SchedulePolicySuccessorFunctor* callback );
       
       /*! \brief Default plugin implementation.
        */
@@ -325,7 +325,7 @@ namespace nanos {
              */
             DependenciesDomain* createDependenciesDomain () const
             {
-               return NEW RegionDependenciesDomain();
+               return NEW PerfectRegionDependenciesDomain();
             }
       };
   
@@ -333,7 +333,7 @@ namespace nanos {
       {
             
          public:
-            RegionDepsPlugin() : Plugin( "Nanos++ regions dependencies management plugin",1 )
+            RegionDepsPlugin() : Plugin( "Nanos++ partitioning region dependency management plugin",1 )
             {
             }
 
@@ -350,4 +350,4 @@ namespace nanos {
    }
 }
 
-DECLARE_PLUGIN("regions-default",nanos::ext::RegionDepsPlugin);
+DECLARE_PLUGIN("perfect-regions-default",nanos::ext::RegionDepsPlugin);
