@@ -231,10 +231,8 @@ inline void Scheduler::idleLoop ()
 
             NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(event_num, &Keys[event_start], &Values[event_start]); )
 
-            NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME) )
             behaviour::switchWD(thread, current, next);
          thread = getMyThreadSafe();
-         NANOS_INSTRUMENT( inst2.close() );
          sys.getSchedulerStats()._idleThreads++;
 
          total_spins = 0;
@@ -377,10 +375,8 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
                NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(7, Keys, Values); )
 
-               NANOS_INSTRUMENT( InstrumentState inst2(NANOS_RUNTIME); );
                switchTo ( next );
                thread = getMyThreadSafe();
-               NANOS_INSTRUMENT( inst2.close() );
 
                total_spins = 0;
 
