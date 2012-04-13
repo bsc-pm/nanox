@@ -356,6 +356,10 @@ inline bool WDLFQueue::removeWD( BaseThread *thread, WorkDescriptor *toRem, Work
          bool removeWDWithConstraints( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
 #endif
 
+inline WDPriorityQueue::WDPriorityQueue( bool optimise, bool fifo ) : _dq(), _lock(), _optimise( optimise ), _fifo( fifo )
+{
+}
+
 inline bool WDPriorityQueue::empty ( void ) const
 {
    return _dq.empty();
@@ -367,8 +371,23 @@ inline size_t WDPriorityQueue::size() const
 
 inline void WDPriorityQueue::insertOrdered( WorkDescriptor *wd )
 {
+   // #637: Insert at the back if possible
+   if ( ( _optimise ) &&  ( !_dq.empty() ) && ( _dq.back()->getPriority() >= wd->getPriority() ) ) {
+      debug( "Priority: optimised insertion" );
+      _dq.insert( --_dq.end(), wd );
+      return;
+   }
    // Find where to insert the wd
-   BaseContainer::iterator it = std::upper_bound( _dq.begin(), _dq.end(), wd, WDPriorityComparison() );
+   BaseContainer::iterator it;
+   
+   if ( _fifo ) {
+      it = std::upper_bound( _dq.begin(), _dq.end(), wd, WDPriorityComparison() );
+   }
+   else {
+      debug( "Priority: FIFO insertion" ); 
+      it = std::lower_bound( _dq.begin(), _dq.end(), wd, WDPriorityComparison() );
+   }
+   
    _dq.insert( it, wd );
 }
 
