@@ -68,7 +68,7 @@ bool GPUDevice::isMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t si
    // Copy from host memory to device memory
    // Check for synchronous or asynchronous mode
    if ( myPE->getGPUProcessorInfo()->getInTransferStream() != 0 ) {
-      void * pinned = ( sys.getPinnedAllocatorCUDA().isPinned( ( void * ) remoteSrc.getTag() ) ) ?
+      void * pinned = ( sys.getPinnedAllocatorCUDA().isPinned( ( void * ) remoteSrc.getTag(), size ) ) ?
             ( void * ) remoteSrc.getTag() :
             myPE->allocateInputPinnedMemory( size );
 
