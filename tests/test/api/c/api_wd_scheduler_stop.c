@@ -64,9 +64,7 @@ struct nanos_const_wd_definition_1 const_data1 =
 {
    {{
       .mandatory_creation = true,
-      .tied = false,
-      .priority = 0
-   },
+      .tied = false},
    0,//__alignof__(section_data_1),
    0,
    1},
@@ -86,9 +84,7 @@ int main ( int argc, char **argv )
    /* COMMON INFO */
    nanos_wd_props_t props = {
       .mandatory_creation = true,
-      .tied = false,
-      .priority = 0
-   };
+      .tied = false};
    
    omp_init_lock( &mylock );
 

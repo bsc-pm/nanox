@@ -69,7 +69,7 @@ typedef struct {
 
 nanos_const_wd_definition_local_t const_data1 = 
 {
-   { .tied = 1, .priority = 0 },
+   { .tied = 1},
    0, 0, 1,
    { { nanos_smp_factory, 0 } }
 };

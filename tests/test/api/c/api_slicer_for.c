@@ -95,8 +95,7 @@ nanos_wd_dyn_props_t dyn_props = {0};
       main__loop_1_data_t *loop_data = NULL;\
       nanos_wd_props_t props = {\
          .mandatory_creation = true,\
-         .tied = false,\
-         .priority = 0\
+         .tied = false\
       };\
       nanos_slicer_t slicer = nanos_find_slicer(slicer_type);\
 \

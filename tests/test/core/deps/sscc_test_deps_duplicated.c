@@ -49,9 +49,7 @@ struct nanos_const_wd_definition_1 const_data_1 =
 {
    {{
       .mandatory_creation = 1,
-      .tied = 1,
-      .priority = 0
-   },
+      .tied = 1},
    0,//__alignof__(section_data_1),
    0,
    1},
