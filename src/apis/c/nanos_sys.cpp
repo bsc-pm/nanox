@@ -90,3 +90,37 @@ NANOS_API_DEF(nanos_err_t, nanos_wait_until_threads_unpaused, ())
 
    return NANOS_OK;
 }
+
+NANOS_API_DEF(nanos_err_t, nanos_delay_start, ())
+{
+   try {
+      sys.setDelayedStart(true);
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_start, ())
+{
+   try {
+      sys.start();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_finish, ()) 
+{
+   try {
+      sys.finish();
+   } catch ( ... ) { 
+      return NANOS_UNKNOWN_ERR;
+   }   
+
+   return NANOS_OK;
+}
+

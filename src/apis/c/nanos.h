@@ -170,6 +170,9 @@ NANOS_API_DECL(nanos_err_t, nanos_stop_scheduler, ());
 NANOS_API_DECL(nanos_err_t, nanos_scheduler_enabled, ( bool *res ));
 NANOS_API_DECL(nanos_err_t, nanos_wait_until_threads_paused, () );
 NANOS_API_DECL(nanos_err_t, nanos_wait_until_threads_unpaused, () );
+NANOS_API_DECL(nanos_err_t, nanos_delay_start, ());
+NANOS_API_DECL(nanos_err_t, nanos_start, ());
+NANOS_API_DECL(nanos_err_t, nanos_finish, ());
 
 // error handling
 NANOS_API_DECL(void, nanos_handle_error, ( nanos_err_t err ));
