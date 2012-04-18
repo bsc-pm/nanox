@@ -180,7 +180,7 @@ inline void Scheduler::idleLoop ()
       BaseThread *thread = getMyThreadSafe();
       spins--;
 
-      if ( !thread->isRunning() ) break;
+      if ( !thread->isRunning() && !behaviour::exiting() ) break;
 
       WD * next = myThread->getNextWD();
       // This should be ideally performed in getNextWD, but it's const...
@@ -535,6 +535,7 @@ struct WorkerBehaviour
         delete[] (char *)next;
       }
    }
+   static bool exiting() { return false; }
 };
 
 void Scheduler::workerLoop ()
@@ -696,6 +697,7 @@ struct ExitBehaviour
    {
       Scheduler::exitTo(next);
    }
+   static bool exiting() { return true; }
 };
 
 void Scheduler::exitTo ( WD *to )
