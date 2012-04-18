@@ -27,6 +27,25 @@ using namespace nanos;
 bool ThreadTeam::singleGuard( int local )
 {
    if ( local <= _singleGuardCount ) return false;
-
+   
    return compareAndSwap( &_singleGuardCount, local-1, local );
 }
+
+bool ThreadTeam::enterSingleBarrierGuard( int local )
+{
+   if ( local <= _singleGuardCount ) return false;
+   
+   return compareAndSwap( &_singleGuardCount, local-2, local-1 );
+
+}
+
+void ThreadTeam::releaseSingleBarrierGuard( void )
+{
+   _singleGuardCount++;
+}
+
+void ThreadTeam::waitSingleBarrierGuard( int local )
+{
+   while ( local > _singleGuardCount ) { memoryFence(); }
+}
+

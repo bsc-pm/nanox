@@ -17,24 +17,36 @@
 #include "os.hpp"
 #include "errno.h"
 
-/* NANOX_EXTRAE_DEFINE_CALLBACKS will allow to define which are our external services
- * to specify the execution environment ( thread id, total threads, etc ). They are
- * defined on Extrae 2.2.1 and above */
+/* NANOX_EXTRAE_DEFINE_CALLBACKS allow to define which are our external services
+ * to specify the execution environment ( thread id, total threads, etc ). They
+ * are defined on Extrae 2.2.1 and above */
 #define NANOX_EXTRAE_DEFINE_CALLBACKS
+
+/* NANOX_EXTRAE_WD_INSTRUMENTATION allow to instrument using wd as the main
+ * component for the instrumentation. If present is not needed to save context
+ * information at each context switch. Extrae WD instrumentation is supporter
+ * on Extrae 2.2.2 and above */
+#define NANOX_EXTRAE_WD_INSTRUMENTATION
 
 #ifndef EXTRAE_VERSION
 #warning Extrae library version is not supported (use >= 2.2.0):
 #else
 #  define NANOX_EXTRAE_SUPPORTED_VERSION
-#  if EXTRAE_VERSION_MAJOR(EXTRAE_VERSION) == 2 /* version 2.x.x */
+#  if EXTRAE_VERSION_MAJOR(EXTRAE_VERSION) == 2 /************* version 2.x.x */
 #      define extrae_size_t unsigned int
-#    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 2 /* version 2.2.x */
-#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 0 /* version 2.2.0 */
+#    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 2 /*********** version 2.2.x */
+#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 0 /****** version 2.2.0 */
 #      define EXTRAE_COMM_PARTNER_MYSELF ((extrae_comm_partner_t) 0x00000000)
 #      undef  NANOX_EXTRAE_DEFINE_CALLBACKS
-#      endif
-#    endif
-#  endif
+#      undef  NANOX_EXTRAE_WD_INSTRUMENTATION
+#      endif /*----------------------------------------------- version 2.2.0 */
+#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 1 /****** version 2.2.1 */
+#      undef  NANOX_EXTRAE_WD_INSTRUMENTATION
+#      endif /*----------------------------------------------- version 2.2.1 */
+#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 2 /****** version 2.2.2 */
+#      endif /*----------------------------------------------- version 2.2.2 */
+#    endif /*------------------------------------------------- version 2.2.x */
+#  endif /*--------------------------------------------------- version 2.x.x */
 #endif
 
 #ifdef NANOX_EXTRAE_SUPPORTED_VERSION
@@ -556,6 +568,12 @@ class InstrumentationExtrae: public Instrumentation
 
          /* OMPItrace initialization */
          if ( !_skipInit ) OMPItrace_init();
+
+#ifdef NANOX_EXTRAE_WD_INSTRUMENTATION
+        Extrae_register_stacked_type( (extrae_type_t) _eventState );
+        Extrae_register_stacked_type( (extrae_type_t) 9200002 ); /* FIXME: use code */
+        fprintf(stderr,"register types \n");
+#endif
       }
 
       void finalize ( void )
