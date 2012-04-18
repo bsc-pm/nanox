@@ -40,7 +40,7 @@ const unsigned arraySize = 128;
 
 bool check = true;
 
-int array[arraySize];
+int *array;
 
 void main_loop( void *args );
 
@@ -86,6 +86,8 @@ void try_to_fail( void *args )
 int main ( int argc, char **argv )
 {
    unsigned i;
+   
+   posix_memalign( (void**) &array, sizeof( int [arraySize] ), sizeof(int [arraySize] ) );
    
    // Stop scheduler
    sys.stopScheduler();

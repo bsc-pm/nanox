@@ -50,7 +50,7 @@ void first(void *ptr)
    int *i = ((my_args *) ptr)->p_i;
    *i = 0;
 #ifdef VERBOSE
-   printf("first task: %x set to %d\n",(unsigned int)i,*i);
+   printf("first task: %p set to %d\n",i,*i);
    fflush(stdout);
 #endif
 }
@@ -60,7 +60,7 @@ void second(void *ptr)
    int *i = ((my_args *) ptr)->p_i;
    (*i)++;
 #ifdef VERBOSE
-   printf("successor: %x set to %d\n",(unsigned int)i,*i);
+   printf("successor: %p set to %d\n",i,*i);
    fflush(stdout);
 #endif
 }
@@ -358,7 +358,7 @@ bool multiple_inout_chains()
 {
    int i, j;
    int size = 10;
-   int my_value[size];
+   int __attribute__( ( aligned( 16 ) ) ) my_value[size];
 
    for ( i = 0; i < size; i++ ) {
       int * dep_addr = &my_value[i];
@@ -396,7 +396,7 @@ bool multiple_predecessors()
 {
    int j;
    int size=100;
-   int my_value[size];
+   int __attribute__( ( aligned( 128 ) ) ) my_value[size];
 
    for ( j = 0; j < size; j++ ) {
       int * dep_addr1 = &my_value[j];
@@ -442,7 +442,7 @@ bool multiple_antidependencies()
 {
    int j;
    int my_value=1500;
-   int my_reslt[100];
+   int __attribute__( ( aligned( 128 ) ) ) my_reslt[100];
 
    for ( j = 0; j < 100; j++ ) {
       int * dep_addr1 = &my_value;
@@ -516,7 +516,7 @@ bool wait_on_test()
 {
    int j;
    int size=10;
-   int my_value[size];
+   int __attribute__( ( aligned( 16 ) ) ) my_value[size];
 
    for ( j = 0; j < size; j++ ) {
       my_value[j] = 500;
@@ -551,9 +551,8 @@ bool wait_on_test()
 
 bool create_and_run_test()
 {
-   if( true) return true;
    int j;
-   int my_value[100];
+   int __attribute__( ( aligned( 128 ) ) ) my_value[100];
    int other_value=0;
 
    nanos_wd_dyn_props_t dyn_props = {0};
@@ -599,10 +598,9 @@ bool create_and_run_test()
 // checks the result
 bool commutative_task_1()
 {
-   if( true) return true;
    int i, j;
    int size = 100;
-   int my_value[size];
+   int __attribute__( ( aligned( 128 ) ) ) my_value[size];
    int *value_ref = (int *)&my_value;
 
    for ( i = 0; i < size; i++ ) {
@@ -645,10 +643,9 @@ bool commutative_task_1()
 // of the commutative ones. This checks that the commutation task behaves correctly
 bool commutative_task_2()
 {
-   if( true) return true;
    int i, j;
    int size = 100;
-   int my_value[size];
+   int __attribute__( ( aligned( 128 ) ) ) my_value[size];
    int *value_ref = (int *)&my_value;
    int my_results[size];
 
@@ -709,12 +706,12 @@ bool commutative_task_2()
 // of the commutative ones. This checks that the commutation task behaves correctly
 bool commutative_task_3()
 {
-   if( true) return true;
    int i, j;
    int size = 100;
-   int my_value[size];
+   int __attribute__( ( aligned( 128 ) ) ) my_value[size];
    int *value_ref = (int *)&my_value;
-   int my_results[size];
+   int __attribute__( ( aligned( 128 ) ) ) my_results[size];
+   
 
    for ( i = 0; i < size; i++ ) {
       my_value[i] = 0;
@@ -782,9 +779,8 @@ bool commutative_task_3()
 
 bool dependency_offset()
 {
-   if( true) return true;
    int i;
-   int my_value;
+   int __attribute__( ( aligned( 128 ) ) ) my_value;
    int * dep_addr = &my_value;
    my_args *args1=0;
    nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
@@ -799,8 +795,8 @@ bool dependency_offset()
       my_args *args2=0;
       // It is easier to check that using offsets that lead to the same dependency they are not broken than the oposite
       int * local_dep_addr = &my_value + i; // NOTE: if renaming is implemented this is not safe
-      nanos_region_dimension_t dimensions2[1] = {{sizeof(my_value), -1L*i*sizeof(int), sizeof(my_value)}};
-      nanos_data_access_t data_accesses2[1] = {{local_dep_addr, {1,1,0,0}, 1, dimensions2, 0}};
+      nanos_region_dimension_t dimensions2[1] = {{sizeof(my_value), sizeof(my_value), sizeof(my_value)}};
+      nanos_data_access_t data_accesses2[1] = {{local_dep_addr, {1,1,0,0}, 1, dimensions2, -1L*i*sizeof(my_value)}};
       nanos_wd_t wd2 = 0;
       const_data2.base.data_alignment = __alignof__(my_args);
       NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data2.base, &dyn_props, sizeof( my_args ), ( void ** )&args2, nanos_current_wd(), NULL ) );
@@ -809,6 +805,7 @@ bool dependency_offset()
    }
 
    NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
+   fprintf( stderr, "Value: %d\n", my_value );
    
    return (my_value == 100);
 }
