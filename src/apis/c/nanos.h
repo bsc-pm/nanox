@@ -26,7 +26,7 @@
 
 #ifdef _MERCURIUM
 // define API version
-#pragma nanos interface family(master) version(5013)
+#pragma nanos interface family(master) version(5014)
 #pragma nanos interface family(worksharing) version(1000)
 #endif
 
@@ -42,7 +42,6 @@ typedef void * nanos_sync_cond_t;
 typedef unsigned int nanos_copy_id_t;
 
 typedef struct nanos_const_wd_definition_tag {
-   nanos_wd_props_t props;
    size_t data_alignment;
    size_t num_copies;
    size_t num_devices;

@@ -150,6 +150,7 @@ typedef struct {
 } nanos_wd_props_t;
 
 typedef struct {
+   nanos_wd_props_t props;
    nanos_thread_t tie_to;
 } nanos_wd_dyn_props_t;
 
