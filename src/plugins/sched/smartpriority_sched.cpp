@@ -157,8 +157,8 @@ namespace nanos {
          virtual void config ( Config &cfg )
          {
             cfg.setOptionsSection( "SmartPriority module", "SmartPriority scheduling module" );
-            cfg.registerConfigOption ( "smartpriority-optimise", NEW Config::FlagOption( SmartPriority::_optimise ), "Insert WDs right in the back of the queue if they have the same or lower priority than the element in the back.");
-            cfg.registerArgOption( "smartpriority-optimise", "smartpriority-optimise" );
+            //cfg.registerConfigOption ( "smartpriority-optimise", NEW Config::FlagOption( SmartPriority::_optimise ), "Insert WDs right in the back of the queue if they have the same or lower priority than the element in the back.");
+            //cfg.registerArgOption( "smartpriority-optimise", "smartpriority-optimise" );
             
             cfg.registerConfigOption ( "smartpriority-fifo", NEW Config::FlagOption( SmartPriority::_fifo ), "When enabled (default behaviour), WDs with the same priority are inserted after the current ones.");
             cfg.registerArgOption( "smartpriority-fifo", "smartpriority-fifo" );

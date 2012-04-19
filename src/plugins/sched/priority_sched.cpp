@@ -97,8 +97,8 @@ namespace nanos {
          virtual void config ( Config &cfg )
          {
             cfg.setOptionsSection( "Priority module", "Priority scheduling module" );
-            cfg.registerConfigOption ( "priority-optimise", NEW Config::FlagOption( Priority::_optimise ), "Insert WDs right in the back of the queue if they have the same or lower priority than the element in the back.");
-            cfg.registerArgOption( "priority-optimise", "priority-optimise" );
+            //cfg.registerConfigOption ( "priority-optimise", NEW Config::FlagOption( Priority::_optimise ), "Insert WDs right in the back of the queue if they have the same or lower priority than the element in the back.");
+            //cfg.registerArgOption( "priority-optimise", "priority-optimise" );
             
             cfg.registerConfigOption ( "priority-fifo", NEW Config::FlagOption( Priority::_fifo ), "When enabled (default behaviour), WDs with the same priority are inserted after the current ones.");
             cfg.registerArgOption( "priority-fifo", "priority-fifo" );
