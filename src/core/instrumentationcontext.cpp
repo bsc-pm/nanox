@@ -165,7 +165,7 @@ size_t InstrumentationContextDisabled::getSubStateStackSize ( InstrumentationCon
 size_t InstrumentationContext::getNumBursts( InstrumentationContextData *icd ) const { return icd->_burstList.size(); }
 size_t InstrumentationContextDisabled::getNumBursts( InstrumentationContextData *icd ) const { return (size_t) 0; }
 
-size_t InstrumentationContext::getNumStates( InstrumentationContextData *icd ) const { return (size_t) 1; }
+size_t InstrumentationContext::getNumStates( InstrumentationContextData *icd ) const { return icd->_stateStack.size() < 1 ? 0 : 1; }
 size_t InstrumentationContextStackedStates::getNumStates( InstrumentationContextData *icd ) const { return icd->_stateStack.size(); }
 size_t InstrumentationContextStackedStatesAndBursts::getNumStates( InstrumentationContextData *icd ) const { return icd->_stateStack.size(); }
 size_t InstrumentationContextDisabled::getNumStates( InstrumentationContextData *icd ) const { return (size_t) 0; }
@@ -174,7 +174,7 @@ size_t InstrumentationContextDisabled::getNumStates( InstrumentationContextData 
 
 size_t InstrumentationContext::getNumSubStates( InstrumentationContextData *icd ) const 
 {
-   if ( !icd->_stateEventEnabled ) return (size_t) 1;
+   if ( !icd->_stateEventEnabled ) return (size_t) icd->_subStateStack.size() < 1 ? 0 : 1;
    else return (size_t) 0;
 }
 size_t InstrumentationContextStackedStates::getNumSubStates( InstrumentationContextData *icd ) const {
