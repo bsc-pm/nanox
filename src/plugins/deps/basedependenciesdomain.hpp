@@ -92,7 +92,10 @@ inline void BaseDependenciesDomain::dependOnReaders( DependableObject &depObj, T
 
 inline void BaseDependenciesDomain::setAsWriter( DependableObject &depObj, TrackableObject &status, BaseDependency const &target )
 {
-   status.flushReaders();
+   {
+      SyncLockBlock lock3( status.getReadersLock() );
+      status.flushReaders();
+   }
    if ( !depObj.waits() ) {
       // set depObj as writer of dependencyObject
       depObj.addWriteTarget( target );
@@ -149,7 +152,10 @@ inline CommutationDO * BaseDependenciesDomain::setUpInitialCommutationDependable
       
       // add dependencies to all previous reads using a CommutationDO
       dependOnReaders( *initialCommDO, status, target, NULL );
-      status.flushReaders();
+      {
+         SyncLockBlock lock3( status.getReadersLock() );
+         status.flushReaders();
+      }
       initialCommDO->addWriteTarget( target );
       
       // Replace the lastWriter with the initial CommutationDO

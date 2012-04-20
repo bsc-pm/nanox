@@ -71,7 +71,10 @@ inline CommutationDO * BaseRegionsDependenciesDomain::setUpInitialCommutationDep
          // NOTE: We should probably check if the source subregion is completely within the target region and in that case eliminate it
       }
       
-      targetStatus.flushReaders();
+      {
+         SyncLockBlock lock3( targetStatus.getReadersLock() );
+         targetStatus.flushReaders();
+      }
       initialCommDO->addWriteTarget( target );
       
       // Replace the lastWriter with the initial CommutationDO
