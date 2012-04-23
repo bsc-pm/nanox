@@ -93,26 +93,6 @@ common_sources=\
 	$(top_srcdir)/src/core/address.hpp \
 	$(top_srcdir)/src/core/basedependency_fwd.hpp \
 	$(top_srcdir)/src/core/basedependency_decl.hpp \
-	$(top_srcdir)/src/core/region_fwd.hpp \
-	$(top_srcdir)/src/core/region_decl.hpp \
-	$(top_srcdir)/src/core/region.hpp \
-	$(top_srcdir)/src/core/region.cpp \
-	$(top_srcdir)/src/core/regionbuilder_fwd.hpp \
-	$(top_srcdir)/src/core/regionbuilder_decl.hpp \
-	$(top_srcdir)/src/core/regionbuilder.hpp \
-	$(top_srcdir)/src/core/regionbuilder.cpp \
-	$(top_srcdir)/src/core/regioncollection_fwd.hpp \
-	$(top_srcdir)/src/core/regioncollection_decl.hpp \
-	$(top_srcdir)/src/core/regioncollection.hpp \
-	$(top_srcdir)/src/core/regionpart_fwd.hpp \
-	$(top_srcdir)/src/core/regionpart_decl.hpp \
-	$(top_srcdir)/src/core/regionpart.hpp \
-	$(top_srcdir)/src/core/regiontree_fwd.hpp \
-	$(top_srcdir)/src/core/regiontree_decl.hpp \
-	$(top_srcdir)/src/core/regiontree.hpp \
-	$(top_srcdir)/src/core/regiontreenode_fwd.hpp \
-	$(top_srcdir)/src/core/regiontreenode_decl.hpp \
-	$(top_srcdir)/src/core/regiontreenode.hpp \
 	$(END)
 
 instr_sources = \
