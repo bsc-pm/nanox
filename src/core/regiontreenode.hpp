@@ -195,7 +195,7 @@ typename RegionTree<T>::Node * RegionTree<T>::Node::split(Region otherRegionSegm
       otherRegionSegment.advance(newParentRegion.getLength());
       int newIndex = otherRegionSegment.getFirstBit();
       otherRegionSegment.advance();
-      newParent->m_children[newIndex] = new RegionTree<T>::Node();
+      newParent->m_children[newIndex] = new typename RegionTree<T>::Node();
       newParent->m_children[newIndex]->init(otherRegionSegment, newParent, T());
 #if REGION_TREE_BOUNDING
       newParent->m_children[newIndex]->m_fullRegion = newFullRegion;
