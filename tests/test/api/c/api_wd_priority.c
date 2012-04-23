@@ -82,9 +82,7 @@ struct nanos_const_wd_definition_1 const_data1 =
 {
    {{
       .mandatory_creation = true,
-      .tied = false,
-      .priority = 0
-   },
+      .tied = false},
    0,//__alignof__(section_data_1),
    0,
    1},
@@ -99,9 +97,7 @@ struct nanos_const_wd_definition_1 const_data2 =
 {
    {{
       .mandatory_creation = true,
-      .tied = false,
-      .priority = 0
-   },
+      .tied = false},
    0,//__alignof__(section_data_2),
    0,
    1},
@@ -121,7 +117,7 @@ int main ( int argc, char **argv )
    // Stop scheduler, no task should be run until told so
    nanos_stop_scheduler();
    nanos_wait_until_threads_paused();
-   nanos_wd_dyn_props_t dyn_props = {0};
+   nanos_wd_dyn_props_t dyn_props = {0,0};
 
    for ( i = 0; i < NUM_ITERS; ++i ) {
       nanos_wd_t wd = NULL;
@@ -139,7 +135,7 @@ int main ( int argc, char **argv )
    {
       task_arguments_t *section_data_2 = NULL;
       const_data2.base.data_alignment = __alignof__(section_data_2);
-      const_data2.base.props.priority = 100;
+      dyn_props.priority = 100;
       nanos_wd_t wd = NULL;
       NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data2.base, &dyn_props, sizeof(section_data_2), (void **) &section_data_2,
                                 nanos_current_wd(), NULL ) );

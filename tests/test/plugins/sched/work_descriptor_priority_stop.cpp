@@ -117,6 +117,7 @@ int main ( int argc, char **argv )
       for ( int j = 0; j < VECTOR_SIZE; j++ ) A[j] += 100;
 #endif
    }
+   for ( i = 0; i < sys.getNumWorkers(); ++i )
    {
 #if USE_NANOS
       // Second task: set to 0
@@ -127,13 +128,14 @@ int main ( int argc, char **argv )
       // Work submission
       sys.submit( *wd );
 
-      // Re-enable the scheduler
-      sys.startScheduler();
-      sys.waitUntilThreadsUnpaused();
 #else
       for ( int j = 0; j < VECTOR_SIZE; j++ ) A[j] = 0;
 #endif
    }
+   // Re-enable the scheduler
+   sys.startScheduler();
+   sys.waitUntilThreadsUnpaused();
+
    
    // barrier (kind of)
    wg->waitCompletion();

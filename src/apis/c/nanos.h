@@ -26,7 +26,7 @@
 
 #ifdef _MERCURIUM
 // define API version
-#pragma nanos interface family(master) version(5013)
+#pragma nanos interface family(master) version(5015)
 #pragma nanos interface family(worksharing) version(1000)
 #endif
 
@@ -126,10 +126,16 @@ NANOS_API_DECL(nanos_err_t, nanos_team_barrier, ( void ));
 
 NANOS_API_DECL(nanos_err_t, nanos_single_guard, ( bool *));
 
+NANOS_API_DECL(nanos_err_t, nanos_enter_sync_init, ( bool *b ));
+NANOS_API_DECL(nanos_err_t, nanos_wait_sync_init, ( void ));
+NANOS_API_DECL(nanos_err_t, nanos_release_sync_init, ( void ));
+
 NANOS_API_DECL(nanos_err_t, nanos_team_get_num_starring_threads, ( int *n ) );
 NANOS_API_DECL(nanos_err_t, nanos_team_get_starring_threads, ( int *n, nanos_thread_t *list_of_threads ) );
 NANOS_API_DECL(nanos_err_t, nanos_team_get_num_supporting_threads, ( int *n ) );
 NANOS_API_DECL(nanos_err_t, nanos_team_get_supporting_threads, ( int *n, nanos_thread_t *list_of_threads) );
+NANOS_API_DECL(nanos_err_t, nanos_register_reduction, ( nanos_reduction_t *red) );
+NANOS_API_DECL(nanos_err_t, nanos_reduction_get_private_data, ( void **copy, void *sink ) );
 
 // worksharing
 NANOS_API_DECL(nanos_err_t, nanos_worksharing_create ,( nanos_ws_desc_t **wsd, nanos_ws_t ws, nanos_ws_info_t *info, bool *b ) );
@@ -168,6 +174,9 @@ NANOS_API_DECL(nanos_err_t, nanos_stop_scheduler, ());
 NANOS_API_DECL(nanos_err_t, nanos_scheduler_enabled, ( bool *res ));
 NANOS_API_DECL(nanos_err_t, nanos_wait_until_threads_paused, () );
 NANOS_API_DECL(nanos_err_t, nanos_wait_until_threads_unpaused, () );
+NANOS_API_DECL(nanos_err_t, nanos_delay_start, ());
+NANOS_API_DECL(nanos_err_t, nanos_start, ());
+NANOS_API_DECL(nanos_err_t, nanos_finish, ());
 
 // Memory management
 NANOS_API_DECL(nanos_err_t, nanos_malloc, ( void **p, size_t size, const char *file, int line ));
@@ -220,6 +229,8 @@ do {\
 } while (0)
 
 #undef NANOS_API_DECL
+
+void nanos_reduction_int_vop ( int, void *, void * );
 
 #ifdef __cplusplus
 }
