@@ -41,7 +41,9 @@ using namespace nanos::ext;
 #define VECTOR_SIZE   100
 
 int A[VECTOR_SIZE];
-Lock l;
+// The high priority task should only act once on A
+int done = 0;
+Lock l, doneLock;;
 typedef struct {
    nanos_loop_info_t loop_info;
 } main__loop_1_data_t;
@@ -75,6 +77,11 @@ void main__loop_2 ( void *args )
 {
    int i;
    main__loop_1_data_t *hargs = (main__loop_1_data_t * ) args;
+   LockBlock lock( doneLock );
+   if ( done != 0 ) {
+      return;
+   }
+   done = 1;
 
    for ( i = hargs->loop_info.lower; i < hargs->loop_info.upper; i += hargs->loop_info.step) {
       A[i]=0;

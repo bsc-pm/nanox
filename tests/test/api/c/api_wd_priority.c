@@ -19,7 +19,7 @@
 
 /*
 <testinfo>
-test_generator=gens/api-generator
+test_generator=gens/api-omp-generator
 test_schedule=priority
 </testinfo>
 */
@@ -37,10 +37,14 @@ test_schedule=priority
 
 #include <stdio.h>
 #include <nanos.h>
+#include "omp.h"
 #include <alloca.h>
 
 #define NUM_ITERS   100
 
+// This is to ensure the high priority task is not executed twice or more
+int done = 0;
+omp_lock_t mylock = 0;
 
 /* ******************************* SECTION 1 ***************************** */
 // compiler: outlined function arguments
@@ -60,8 +64,11 @@ void task_2 ( void *p_args )
 {
    int i;
    task_arguments_t *args = (task_arguments_t *) p_args;
-
-   *args->M=0;
+   omp_set_lock( &mylock );
+   if( done == 0 )
+      *args->M=0;
+   done = 1;
+   omp_unset_lock( &mylock );
 
 }
 
@@ -130,8 +137,8 @@ int main ( int argc, char **argv )
       
       NANOS_SAFE( nanos_submit( wd,0,0,0 ) );
    }
-   
    // Second task
+   for ( i = 0; i < omp_get_num_threads(); ++i )
    {
       task_arguments_t *section_data_2 = NULL;
       const_data2.base.data_alignment = __alignof__(section_data_2);
