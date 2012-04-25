@@ -20,6 +20,8 @@
 #include "threadteam.hpp"
 #include "atomic.hpp"
 #include "debug.hpp"
+#include "allocator.hpp"
+#include "memtracker.hpp"
 
 using namespace nanos;
 
@@ -47,5 +49,20 @@ void ThreadTeam::releaseSingleBarrierGuard( void )
 void ThreadTeam::waitSingleBarrierGuard( int local )
 {
    while ( local > _singleGuardCount ) { memoryFence(); }
+}
+
+void ThreadTeam::cleanUpReductionList( void ) 
+{
+   nanos_reduction_t *red;
+   while ( !_redList.empty() ) {
+      red = _redList.back();
+      red->cleanup( red );
+#ifdef NANOS_DEBUG_ENABLED
+      nanos::getMemTracker().deallocate( (void *) red );
+#else
+      nanos::getAllocator().deallocate ( (void *) red );
+#endif
+      _redList.pop_back();
+   }
 }
 
