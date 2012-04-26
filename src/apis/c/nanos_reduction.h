@@ -67,13 +67,13 @@ extern "C"
    NANOS_REDUCTION_DECL(Op,long) \
    NANOS_REDUCTION_DECL(Op,ulong) \
    NANOS_REDUCTION_DECL(Op,longlong) \
-   NANOS_REDUCTION_DECL(Op,ulonglong)
+   NANOS_REDUCTION_DECL(Op,ulonglong) \
+   NANOS_REDUCTION_DECL(Op,_Bool) 
 
 #define NANOS_REDUCTION_REAL_TYPES_DECL(Op) \
    NANOS_REDUCTION_DECL(Op,float) \
    NANOS_REDUCTION_DECL(Op,double) \
-   NANOS_REDUCTION_DECL(Op,longdouble) \
-   NANOS_REDUCTION_DECL(Op,_Bool) 
+   NANOS_REDUCTION_DECL(Op,longdouble)
 
 #define NANOS_REDUCTION_INT_TYPES_DEF(Op,Op2) \
    NANOS_REDUCTION_DEF(Op,Op2,char,char) \
@@ -143,6 +143,7 @@ NANOS_REDUCTION_CLEANUP_DECL(long, long)
 NANOS_REDUCTION_CLEANUP_DECL(ulong, unsigned long)
 NANOS_REDUCTION_CLEANUP_DECL(longlong, long long)
 NANOS_REDUCTION_CLEANUP_DECL(ulonglong, unsigned long long )
+NANOS_REDUCTION_CLEANUP_DECL(_Bool, _Bool)
 NANOS_REDUCTION_CLEANUP_DECL(float, float)
 NANOS_REDUCTION_CLEANUP_DECL(double, double)
 NANOS_REDUCTION_CLEANUP_DECL(longdouble, long double)
