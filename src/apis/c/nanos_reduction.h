@@ -16,6 +16,15 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+#include "nanos-int.h"
+
+#ifndef _NANOS_REDUCTION_H_
+#define _NANOS_REDUCTION_H_
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 #define NANOS_REDUCTION_OP_ADD(a,b) (a + b)
 #define NANOS_REDUCTION_OP_SUB(a,b) (a - b)
@@ -85,9 +94,6 @@
    NANOS_REDUCTION_DEF(Op,Op2,longdouble,long double)
 
 // REDUCTION BUILTIN DECLARATION
-#ifndef _NANOS_REDUCTION_H_
-#define _NANOS_REDUCTION_H_
-
 NANOS_REDUCTION_INT_TYPES_DECL(add)
 NANOS_REDUCTION_REAL_TYPES_DECL(add)
 
@@ -114,6 +120,36 @@ NANOS_REDUCTION_REAL_TYPES_DECL(max)
 
 NANOS_REDUCTION_INT_TYPES_DECL(min)
 NANOS_REDUCTION_REAL_TYPES_DECL(min)
+
+
+#define NANOS_REDUCTION_CLEANUP_DECL(Op, Type) \
+   void nanos_reduction_default_cleanup_##Op ( void *r);
+
+#define NANOS_REDUCTION_CLEANUP_DEF(Op, Type) \
+   void nanos_reduction_default_cleanup_##Op ( void *r ) \
+   { \
+      nanos_reduction_t *red = (nanos_reduction_t *) r; \
+      delete[] (Type *) red->privates; \
+   }
+
+NANOS_REDUCTION_CLEANUP_DECL(char, char)
+NANOS_REDUCTION_CLEANUP_DECL(uchar, unsigned char)
+NANOS_REDUCTION_CLEANUP_DECL(schar, signed char)
+NANOS_REDUCTION_CLEANUP_DECL(short, short)
+NANOS_REDUCTION_CLEANUP_DECL(ushort, unsigned short)
+NANOS_REDUCTION_CLEANUP_DECL(int, int)
+NANOS_REDUCTION_CLEANUP_DECL(uint, unsigned int)
+NANOS_REDUCTION_CLEANUP_DECL(long, long)
+NANOS_REDUCTION_CLEANUP_DECL(ulong, unsigned long)
+NANOS_REDUCTION_CLEANUP_DECL(longlong, long long)
+NANOS_REDUCTION_CLEANUP_DECL(ulonglong, unsigned long long )
+NANOS_REDUCTION_CLEANUP_DECL(float, float)
+NANOS_REDUCTION_CLEANUP_DECL(double, double)
+NANOS_REDUCTION_CLEANUP_DECL(longdouble, long double)
+   
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 
