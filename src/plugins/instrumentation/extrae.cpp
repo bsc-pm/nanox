@@ -572,7 +572,6 @@ class InstrumentationExtrae: public Instrumentation
 #ifdef NANOX_EXTRAE_WD_INSTRUMENTATION
         Extrae_register_stacked_type( (extrae_type_t) _eventState );
         Extrae_register_stacked_type( (extrae_type_t) 9200002 ); /* FIXME: use code */
-        fprintf(stderr,"register types \n");
 #endif
       }
 
