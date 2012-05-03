@@ -336,8 +336,6 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
          sleeps--;
          condition->lock();
          if ( !( condition->check() ) ) {
-            condition->addWaiter( current );
-
             WD * next = myThread->getNextWD();
 
             if ( next) {
@@ -614,6 +612,7 @@ void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
    GenericSyncCond *syncCond = oldWD->getSyncCond();
    if ( syncCond != NULL ) {
       oldWD->setBlocked();
+      syncCond->addWaiter( oldWD );
       syncCond->unlock();
    } else {
       myThread->getTeam()->getSchedulePolicy().queue( myThread, *oldWD );
