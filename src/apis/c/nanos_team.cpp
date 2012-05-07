@@ -165,7 +165,7 @@ NANOS_API_DEF(nanos_err_t, nanos_register_reduction, ( nanos_reduction_t *red) )
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_reduction_get_private_data, ( void **copy, void *sink ) )
+NANOS_API_DEF(nanos_err_t, nanos_reduction_get_private_data, ( void **copy, void *original ) )
 {
    //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_supporting_threads",NANOS_RUNTIME) );
 
