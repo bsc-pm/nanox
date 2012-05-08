@@ -152,7 +152,7 @@ compile_c ()
    fi
 
    pushd $tmpdir
-   logcmd $cc $cflags $ldflags -o $exec $srcdir/$source 
+   logcmd $cc $cflags -o $exec $srcdir/$source $ldflags 
    local ret=$?
    popd
 
@@ -193,7 +193,7 @@ compile_cpp ()
    fi
 
    pushd $tmpdir
-   logcmd $cxx $cxxflags $ldflags -o $exec $srcdir/$source 
+   logcmd $cxx $cxxflags -o $exec $srcdir/$source $ldflags 
    local ret=$?
    popd
 
