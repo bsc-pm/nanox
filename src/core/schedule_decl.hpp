@@ -158,6 +158,10 @@ namespace nanos
          /*! \brief ScheduleTeamData destructor
           */
          virtual ~ScheduleTeamData() {}
+
+         /*! \brief Print the statistics of the ScheduleTeamData, if any
+          */
+         virtual void printStats() {}
    };
 
    class ScheduleThreadData {
