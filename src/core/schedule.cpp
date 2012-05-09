@@ -751,3 +751,6 @@ void Scheduler::exit ( void )
    fatal("A thread should never return from Scheduler::exit");
 }
 
+int SchedulerStats::getCreatedTasks() { return _createdTasks.value(); }
+int SchedulerStats::getReadyTasks() { return _readyTasks.value(); }
+int SchedulerStats::getTotalTasks() { return _totalTasks.value(); }

@@ -137,6 +137,10 @@ namespace nanos
          /*! \brief SchedulerStats destructor
           */
          ~SchedulerStats () {}
+
+         int getCreatedTasks();
+         int getReadyTasks();
+         int getTotalTasks();
    };
 
    class ScheduleTeamData {
