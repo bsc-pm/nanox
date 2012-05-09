@@ -25,8 +25,18 @@ EXTRA_DIST=\
            Makefile.am \
            preamble.txt \
            extrae_post_process.sh \
+           nanox.spec \
            $(END)
 
 bin_SCRIPTS=\
 	extrae_post_process.sh\
 	$(END)
+
+rpm:
+	@echo "Generating RPM structure"
+	mkdir -p SOURCES BUILD RPMS SPECS SRPMS
+	cp $(top_build_prefix)*.tar.gz SOURCES
+	rpmbuild -v -bb --clean $(srcdir)/nanox.spec --define '_topdir $(CURDIR)' --define 'version $(VERSION)' --without extrae
+
+clean-local:
+	-rm -rf BUILDROOT SOURCES BUILD RPMS SPECS SRPMS
