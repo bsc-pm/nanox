@@ -363,7 +363,6 @@ namespace nanos
          unsigned getDepth();
 
          /* device related methods */
-         DeviceData * findDeviceData ( const Device &device ) const;
          bool canRunIn ( const Device &device ) const;
          bool canRunIn ( const ProcessingElement &pe ) const;
          DeviceData & activateDevice ( const Device &device );

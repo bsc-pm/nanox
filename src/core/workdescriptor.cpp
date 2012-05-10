@@ -26,6 +26,7 @@
 #include "system.hpp"
 #include "os.hpp"
 
+
 using namespace nanos;
 
 void WorkDescriptor::init ()
@@ -84,29 +85,23 @@ void WorkDescriptor::prepareDevice ()
    _activeDeviceIdx = _numDevices-1;
 }
 
-DeviceData * WorkDescriptor::findDeviceData ( const Device &device ) const
-{
-   for ( unsigned i = 0; i < _numDevices; i++ ) {
-      if ( _devices[i]->isCompatible( device ) ) {
-         return _devices[i];
-      }
-   }
-
-   return 0;
-}
-
 DeviceData & WorkDescriptor::activateDevice ( const Device &device )
 {
    if ( _activeDevice ) {
       ensure( _activeDevice->isCompatible( device ),"Bogus double device activation" );
       return *_activeDevice;
    }
+   unsigned i = _numDevices;
+   for ( i = 0; i < _numDevices; i++ ) {
+      if ( _devices[i]->isCompatible( device ) ) {
+         _activeDevice = _devices[i];
+         _activeDeviceIdx = i;
+         break;
+      }
+   }
 
-   DD * dd = findDeviceData( device );
-
-   ensure( dd,"Did not find requested device in activation" );
-   _activeDevice = dd;
-   return *dd;
+   ensure( i < _numDevices, "Did not find requested device in activation" );
+   return *_activeDevice;
 }
 
 DeviceData & WorkDescriptor::activateDevice ( unsigned int deviceIdx )
@@ -119,12 +114,18 @@ DeviceData & WorkDescriptor::activateDevice ( unsigned int deviceIdx )
    return *_activeDevice;
 }
 
-
 bool WorkDescriptor::canRunIn( const Device &device ) const
 {
    if ( _activeDevice ) return _activeDevice->isCompatible( device );
 
-   return findDeviceData( device ) != NULL;
+   unsigned int i;
+   for ( i = 0; i < _numDevices; i++ ) {
+      if ( _devices[i]->isCompatible( device ) ) {
+         return true;
+      }
+   }
+
+   return false;
 }
 
 bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
