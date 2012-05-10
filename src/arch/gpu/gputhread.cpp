@@ -71,11 +71,12 @@ void GPUThread::initializeDependent ()
          }
       } else {
          // It seems like it is useless, but still do it in case it works some time...
-         cublasErr = cublasSetStream( * ( ( cublasHandle_t * ) _cublasHandle ),
-               ( ( ( GPUProcessor * ) myThread->runningOn() )->getGPUProcessorInfo()->getKernelExecStream() ) );
-         if ( cublasErr != CUBLAS_STATUS_SUCCESS ) {
-            warning( "Error setting the CUDA stream for the CUBLAS library" );
-         }
+         // This call is causing a segmentation fault inside CUBLAS library...
+         //cublasErr = cublasSetStream( * ( ( cublasHandle_t * ) _cublasHandle ),
+         //      ( ( ( GPUProcessor * ) myThread->runningOn() )->getGPUProcessorInfo()->getKernelExecStream() ) );
+         //if ( cublasErr != CUBLAS_STATUS_SUCCESS ) {
+         //   warning( "Error setting the CUDA stream for the CUBLAS library" );
+         //}
       }
    }
 #endif
