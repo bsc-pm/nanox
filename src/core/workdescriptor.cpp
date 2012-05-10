@@ -37,7 +37,8 @@ void WorkDescriptor::init ()
    /* Initializing instrumentation context */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdCreate( this ) );
 
-   _numDevices == 1 ? _executionTime = 0.0 : _executionTime = OS::getMonotonicTime();
+   _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() );
+
    if ( getNumCopies() > 0 ) {
       pe->copyDataIn( *this );
       if ( _translateArgs != NULL ) {
@@ -144,7 +145,7 @@ void WorkDescriptor::finish ()
    if ( getNumCopies() > 0 )
      pe->copyDataOut( *this );
 
-   _numDevices == 1 ? _executionTime = 0.0 : _executionTime = OS::getMonotonicTime() - _executionTime;
+   _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() - _executionTime );
 }
 
 void WorkDescriptor::done ()
