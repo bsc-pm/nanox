@@ -32,6 +32,8 @@ namespace ext
 {
 
 //#define MAX_STDDEV   0.1
+//#define CHECK_STDDEV
+//#define CHOOSE_ALWAYS_BEST
 #define MAX_DEVIATION   0.01
 #define MIN_RECORDS     3
 #define MAX_DIFFERENCE  4
@@ -68,6 +70,7 @@ namespace ext
  *  +----------------------------------------------------------+
  */
 
+
    struct WDBestRecordData {
       unsigned int            _versionId;
       ProcessingElement *     _pe;
@@ -86,10 +89,149 @@ namespace ext
       int                     _numAssigned;
    };
 
-   typedef std::pair< unsigned long, size_t > WDExecInfoKey;
+   typedef WDBestRecordKey WDExecInfoKey;
    typedef std::vector<WDExecRecord> WDExecInfoData;
    typedef HashMap< WDExecInfoKey, WDExecInfoData > WDExecInfo;
 
+
+   typedef enum {
+      NANOS_SCHED_VER_NULL_EVENT,                        /* 0 */
+      NANOS_SCHED_VER_SETDEVICE_CANRUN,
+      NANOS_SCHED_VER_SETDEVICE_CANNOTRUN,
+      NANOS_SCHED_VER_SELECTWD_FIRSTCANRUN,
+      NANOS_SCHED_VER_SELECTWD_FIRSTCANNOTRUN,
+      NANOS_SCHED_VER_SELECTWD_BELOWMINRECCANRUN,        /* 5 */
+      NANOS_SCHED_VER_SELECTWD_UNDEFINED,
+      NANOS_SCHED_VER_SELECTWD_GETFIRST,
+      NANOS_SCHED_VER_ATIDLE_GETFIRST,
+      NANOS_SCHED_VER_ATIDLE_NOFIRST,
+      NANOS_SCHED_VER_ATPREFETCH_GETFIRST,               /* 10 */
+      NANOS_SCHED_VER_ATPREFETCH_GETIMMSUCC,
+      NANOS_SCHED_VER_ATPREFETCH_NOFIRST,
+      NANOS_SCHED_VER_ATBEFEX_GETFIRST,
+      NANOS_SCHED_VER_ATBEFEX_NOFIRST,
+      NANOS_SCHED_VER_SETEARLIESTEW_FOUND,               /* 15 */
+      NANOS_SCHED_VER_SETEARLIESTEW_NOTFOUND,
+      NANOS_SCHED_VER_FINDEARLIESTEW_BETTERTIME,
+      NANOS_SCHED_VER_FINDEARLIESTEW_IDLEWORKER
+   } sched_versioning_event_value;
+
+   // Macro's to instrument the code and make it cleaner
+#define NANOS_SCHED_VER_RAISE_EVENT(x)   NANOS_INSTRUMENT( \
+      sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "sched-versioning" ), (x) ); )
+
+#define NANOS_SCHED_VER_CLOSE_EVENT       NANOS_INSTRUMENT( \
+      sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "sched-versioning" ) ); )
+
+#define NANOS_SCHED_VER_POINT_EVENT(x) NANOS_INSTRUMENT( \
+		sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "sched-versioning" ), (x) ); \
+		sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "sched-versioning" ) ); )
+
+
+
+
+   class WDTimingDeque : public WDPool
+   {
+      private:
+         WDDeque           _queue;
+
+      private:
+         /*! \brief WDTimingDeque copy constructor
+          */
+         WDTimingDeque ( const WDTimingDeque &wdtq );
+
+         /*! \brief WDTimingDeque copy assignment operator
+          */
+         const WDTimingDeque & operator= ( const WDTimingDeque &wdtq );
+
+      public:
+         /*! \brief WDTimingDeque default constructor
+          */
+         WDTimingDeque() : _queue() {}
+
+         /*! \brief WDDeque destructor
+          */
+         ~WDTimingDeque() {}
+
+         bool empty ( void ) const
+         {
+            return _queue.empty();
+         }
+
+         size_t size() const
+         {
+            return _queue.size();
+         }
+
+         void push_front ( WorkDescriptor *wd ) {}
+         WorkDescriptor * pop_front ( BaseThread *thread ) { return NULL; }
+         WorkDescriptor * pop_back ( BaseThread *thread ) { return NULL; }
+         bool removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next ) { return false; }
+
+         void push_back( WD * task )
+         {
+            _queue.push_back( task );
+         }
+
+         WD * frontTask ( BaseThread * thread )
+         {
+            return _queue.pop_front( thread );
+         }
+   };
+
+   class WorkerExecPlan {
+      public:
+         double               _estimatedBusyTime;
+         WDTimingDeque        _assignedTasksList;
+         static Lock          _lock;
+
+      private:
+         /*! \brief WorkerExecPlan copy constructor
+          */
+         WorkerExecPlan ( const WorkerExecPlan &wep );
+
+         /*! \brief WDTimingDeque copy assignment operator
+          */
+         const WorkerExecPlan & operator= ( const WorkerExecPlan &wep );
+
+      public:
+
+         WorkerExecPlan() : _estimatedBusyTime( 0 ), _assignedTasksList() {}
+
+         ~WorkerExecPlan() {}
+
+         void addTask ( double time, WD * task )
+         {
+            task->setEstimatedExecutionTime( time );
+
+            _lock.acquire();
+            _assignedTasksList.push_back( task );
+            _estimatedBusyTime += time;
+            _lock.release();
+         }
+
+         void finishTask ( WD * task )
+         {
+            _lock.acquire();
+            _estimatedBusyTime = _assignedTasksList.empty() ? 0.0 : _estimatedBusyTime - task->getEstimatedExecutionTime();
+            _estimatedBusyTime = _estimatedBusyTime < 0.0 ? 0.0 : _estimatedBusyTime;
+           _lock.release();
+         }
+
+         WD * getFirstTask ( BaseThread * thread )
+         {
+            WD * wd = NULL;
+
+            _lock.acquire();
+            wd = _assignedTasksList.frontTask( thread );
+            _lock.release();
+
+            return wd;
+         }
+   };
+
+   Lock WorkerExecPlan::_lock;
+   typedef std::vector<WorkerExecPlan *> ResourceMap;
 
 
    class Versioning : public SchedulePolicy
@@ -98,55 +240,94 @@ namespace ext
          struct TeamData : public ScheduleTeamData
          {
             public:
-               WDBestRecord      _wdExecBest;
-               WDExecInfo        _wdExecStats;
+               WDBestRecord               _wdExecBest;
+               WDExecInfo                 _wdExecStats;
+               std::set<WDExecInfoKey>    _wdExecStatsKeys;
+               ResourceMap                _executionMap;
 
-               static Lock       _bestLock;
-               static Lock       _statsLock;
+               static Lock                _bestLock;
+               static Lock                _statsLock;
 
-               WDDeque           _readyQueue;
+               WDDeque *                  _readyQueue;
 
-               TeamData () : ScheduleTeamData(), _wdExecBest(), _wdExecStats(), _readyQueue() {}
-               ~TeamData ()
+               TeamData ( unsigned int size ) : ScheduleTeamData(), _wdExecBest(), _wdExecStats(), _wdExecStatsKeys(), _executionMap( size )
                {
-                  message( "VERSIONING SCHEDULER RECORDS" );
-                  message( "BEST RECORDS" );
-                  for ( WDBestRecord::iterator it = _wdExecBest.begin(); it != _wdExecBest.end(); it++ ) {
-
-                     message( "    Best version found for groupId " << it.getKey().first << ", paramSize " << it.getKey().second << ":");
-                     message( "    versionId: " << it->_versionId << ", PE: " << it->_pe->getDeviceType().getName() << ", time: " << it->_elapsedTime );
+                  unsigned int i;
+                  for ( i = 0; i < size; i++ ) {
+                     _executionMap[i] = NEW WorkerExecPlan();
                   }
 
-                  message( "GENERAL STATISTICS" );
-                  for ( WDExecInfo::iterator it = _wdExecStats.begin(); it != _wdExecStats.end(); it++ ) {
-                     message( "    Statistics for groupId " << it.getKey().first << ", paramSize " << it.getKey().second << ":");
-                     for ( WDExecInfoData::iterator it2 = it->begin(); it2 != it->end(); it2++ ) {
-                        message( "    PE: " << it2->_pe->getDeviceType().getName() << ", elapsed time: " << it2->_elapsedTime << ", #records: " << it2->_numRecords );
-                     }
-                  }
+                  _readyQueue = new WDDeque();
                }
 
+               ~TeamData()
+               {
+                  unsigned int i;
+                  for ( i = 0; i < _executionMap.size(); i++ ) {
+                     delete _executionMap[i];
+                  }
+
+                  delete _readyQueue;
+               }
+
+               void printStats()
+               {
+                  // Do not print stats if no data were recorded
+                  if ( _wdExecStatsKeys.size() ) {
+                     message( "VERSIONING SCHEDULER RECORDS" );
+                     message( "BEST RECORDS" );
+
+                     for ( std::set<WDExecInfoKey>::iterator it = _wdExecStatsKeys.begin(); it != _wdExecStatsKeys.end(); it++ ) {
+                        WDBestRecordKey key = *it;
+                        WDBestRecordData &data = _wdExecBest[key];
+
+                        message( "    Best version found for groupId " << key.first << ", paramSize " << key.second << ":");
+                        message( "    versionId: " << data._versionId << ", PE: " << data._pe->getDeviceType().getName() << ", time: " << data._elapsedTime );
+                     }
+
+                     message( "GENERAL STATISTICS" );
+
+                     for ( std::set<WDExecInfoKey>::iterator it = _wdExecStatsKeys.begin(); it != _wdExecStatsKeys.end(); it++ ) {
+                        WDExecInfoKey key = *it;
+                        WDExecInfoData &data = _wdExecStats[key];
+
+                        message( "    Statistics for groupId " << key.first << ", paramSize " << key.second << ":");
+                        for ( unsigned int i = 0; i < data.size(); i++ ) {
+                           WDExecRecord &record = data[i];
+                           if ( record._pe == NULL ) {
+                              if ( record._numAssigned != MIN_RECORDS ) {
+                                 message( "    PE: " << "Device is NULL" << ", elapsed time: " << record._elapsedTime << " us, #records: " << record._numAssigned );
+                              } else {
+                                 message( "    PE: " << "Device not present" << ", elapsed time: " << record._elapsedTime << " us, #records: " << record._numAssigned );
+                              }
+                           } else {
+                              message( "    PE: " << record._pe->getDeviceType().getName() << ", elapsed time: " << record._elapsedTime << " us, #records: " << record._numAssigned );
+                           }
+                        }
+                     }
+
+                  }
+               }
          };
 
       public:
          static bool       _useStack;
 
          Versioning() : SchedulePolicy( "Versioning" ) {}
-         virtual ~Versioning ()
-         {
-            if ( myThread->getTeam()->getScheduleData() != NULL ) {
-               myThread->getTeam()->getScheduleData()->~ScheduleTeamData();
-            }
-         }
+         virtual ~Versioning () {}
 
       private:
-
          virtual size_t getTeamDataSize () const { return sizeof( TeamData ); }
          virtual size_t getThreadDataSize () const { return 0; }
 
          virtual ScheduleTeamData * createTeamData ()
          {
-            return NEW TeamData();
+            TeamData *data;
+
+            unsigned int num = sys.getNumWorkers();
+            data = NEW TeamData( num );
+
+            return data;
          }
 
          virtual ScheduleThreadData * createThreadData ()
@@ -157,7 +338,7 @@ namespace ext
          virtual void queue ( BaseThread *thread, WD &wd )
          {
             TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
-            tdata._readyQueue.push_back( &wd );
+            tdata._readyQueue->push_back( &wd );
          }
 
          virtual WD *atSubmit ( BaseThread *thread, WD &newWD )
@@ -166,26 +347,253 @@ namespace ext
             return 0;
          }
 
-         WD * setDevice ( BaseThread *thread, WD *wd, unsigned int deviceIdx )
-         {
 
+         WD * setDevice ( BaseThread *thread, WD *wd, unsigned int deviceIdx, bool getTask = true, double time = 1 )
+         {
             wd->activateDevice( deviceIdx );
+
             if ( wd->getDevices()[deviceIdx]->isCompatible( thread->runningOn()->getDeviceType() ) ) {
-               debug( "[versioning] Setting device #" + toString<unsigned int>( deviceIdx )
+
+               NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_SETDEVICE_CANRUN );
+
+              debug( "[versioning] Setting device #" + toString<unsigned int>( deviceIdx )
                      + " for WD " + toString<int>( wd->getId() ) + " (compatible with my PE)" );
-               return wd;
+
+               TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
+               WD * next = NULL;
+               tdata._executionMap[thread->getId()]->addTask( time, wd );
+
+               if ( getTask ) {
+                  next = tdata._executionMap[thread->getId()]->getFirstTask( thread );
+
+#ifdef CHOOSE_ALWAYS_BEST
+                  unsigned int version = findBestVersion( thread, next );
+                  if ( next->getActiveDeviceIdx() != version ) next->activateDevice( version );
+#endif
+               }
+
+               debug( "Getting front task of my queue: " + toString<int>( wd ? wd->getId() : -1 ) + " from setDevice()" );
+
+               NANOS_SCHED_VER_CLOSE_EVENT;
+
+               return next;
+
             } else {
+
+               NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_SETDEVICE_CANNOTRUN );
+
                queue( thread, *wd );
+
                debug( "[versioning] Setting device #" + toString<unsigned int>( deviceIdx )
                      + " for WD " + toString<int>( wd->getId() ) + " (not compatible with my PE)" );
-               return NULL;
+
+               TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
+               WD * next = NULL;
+               next = tdata._executionMap[thread->getId()]->getFirstTask( thread );
+
+#ifdef CHOOSE_ALWAYS_BEST
+               if ( next != NULL ) {
+                  unsigned int version = findBestVersion( thread, next );
+                  if ( next->getActiveDeviceIdx() != version ) next->activateDevice( version );
+               }
+#endif
+
+               NANOS_SCHED_VER_CLOSE_EVENT;
+
+               return next;
             }
          }
+
+         // TODO: Check this function to return the appropriate values
+         // it should return the information that atBeforeExit needs to schedule a bunch of tasks at a time, too
+         // Don't add tasks here, this function should only be used for checking:
+         // setEarliestExecutionWorker() should be used for planning next tasks
+         int findEarliestExecutionWorker ( TeamData & tdata, WD *next, double &bestTime, double &time, unsigned int &devIdx  )
+         {
+            unsigned int w;
+            int earliest = -1;
+            double earliestTime = std::numeric_limits<double>::max();
+            BaseThread * thread;
+
+            unsigned long wdId =  next->getVersionGroupId();
+            size_t paramsSize = next->getParamsSize();
+            WDExecInfoKey key = std::make_pair( wdId, paramsSize );
+
+            for ( w = 0; w < tdata._executionMap.size(); w++ ) {
+               thread = sys.getWorker( w );
+               // Check the thread can run the task
+               if ( next->canRunIn( *thread->runningOn() ) ) {
+                  // Check if it would be the earliest time to run the task
+                  unsigned int i;
+
+
+                  tdata._statsLock.acquire();
+                  WDExecInfoData &data = tdata._wdExecStats[key];
+
+                  tdata._executionMap[w]->_lock.acquire();
+                  time = tdata._executionMap[w]->_estimatedBusyTime;
+
+                  for ( i = 0; i < data.size(); i++ ) {
+                     if ( data[i]._pe && &thread->runningOn()->getDeviceType() == &data[i]._pe->getDeviceType() ) {
+                        if ( ( time + data[i]._elapsedTime ) < earliestTime ) {
+
+                           NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_FINDEARLIESTEW_BETTERTIME );
+
+                           earliestTime = time + data[i]._elapsedTime;
+                           bestTime = data[i]._elapsedTime;
+                           devIdx = i;
+                           earliest = w;
+
+                           NANOS_SCHED_VER_CLOSE_EVENT;
+
+                        } else if ( tdata._executionMap[w]->_estimatedBusyTime == 0 && sys.getSchedulerStats().getTotalTasks() > 100 ) {
+                           // compute a more accurate threshold?
+
+                           NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_FINDEARLIESTEW_IDLEWORKER );
+
+                           tdata._executionMap[w]->_lock.release();
+                           tdata._statsLock.release();
+
+                           earliest = w;
+                           devIdx = findBestVersion ( thread, next );
+                           bestTime = data[devIdx]._elapsedTime;
+                           earliestTime = time + bestTime;
+
+                           NANOS_SCHED_VER_CLOSE_EVENT;
+
+                           return earliest;
+                        }
+                     }
+                  }
+
+                  tdata._executionMap[w]->_lock.release();
+                  tdata._statsLock.release();
+               }
+            }
+
+            //ensure( earliest != -1, "Could not find a suitable thread to run the task." );
+
+            return earliest;
+         }
+
+
+         int setEarliestExecutionWorker ( TeamData & tdata, WD *next )
+         {
+            double bestTime = 0, totalTime = 0;
+            unsigned int devIdx = next->getNumDevices();
+            int earliest = findEarliestExecutionWorker ( tdata, next, bestTime, totalTime, devIdx );
+            if ( earliest != -1 ) {
+
+               NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_SETEARLIESTEW_FOUND );
+
+               unsigned long wdId =  next->getVersionGroupId();
+               size_t paramsSize = next->getParamsSize();
+               WDExecInfoKey key = std::make_pair( wdId, paramsSize );
+
+               tdata._statsLock.acquire();
+               WDExecInfoData &data = tdata._wdExecStats[key];
+               data[devIdx]._numAssigned++;
+               tdata._statsLock.release();
+
+               next->activateDevice( devIdx );
+               tdata._executionMap[earliest]->addTask( bestTime, next );
+
+               NANOS_SCHED_VER_CLOSE_EVENT;
+
+            } else {
+               // Could not find a good worker to run the task: queue it again to the ready queue
+
+               NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_SETEARLIESTEW_NOTFOUND );
+
+               queue( myThread, *next );
+
+               NANOS_SCHED_VER_CLOSE_EVENT;
+
+            }
+
+            return earliest;
+         }
+
+
+         // Given a WD and a device (from PE), choose the best versionId to run this task
+         // We assume that wd has at least 1 implementation that the given device can run
+         unsigned int findBestVersion ( BaseThread * thread, WD * wd )
+         {
+            TeamData & tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
+            unsigned long wdId =  wd->getVersionGroupId();
+            size_t paramsSize = wd->getParamsSize();
+            WDExecInfoKey key = std::make_pair( wdId, paramsSize );
+            WDExecInfoData &data = tdata._wdExecStats[key];
+            ProcessingElement *pe = thread->runningOn();
+            unsigned int numVersions = wd->getNumDevices();
+            DeviceData **devices = wd->getDevices();
+            int bestIdx = -1;
+            double bestTime = std::numeric_limits<double>::max();
+
+            unsigned int i;
+
+            tdata._statsLock.acquire();
+
+            // It is not likely for 'data' to be empty, but it can happen, so we have to
+            // make sure that it is initialized correctly
+            if ( data.empty() ) {
+               data.reserve( numVersions );
+               data = *NEW WDExecInfoData( numVersions );
+
+               for ( i = 0; i < numVersions; i++ ) {
+                  // Check there is at least one thread for each compatible device type
+                  if ( sys.getNumWorkers( wd->getDevices()[i] ) == 0 ) {
+                     // If not, 'disable' the implementation by making the scheduler never choose it
+                     data[i]._pe = NULL;
+                     data[i]._elapsedTime = std::numeric_limits<double>::max();
+                     data[i]._lastElapsedTime = std::numeric_limits<double>::max();
+                     data[i]._numRecords = MIN_RECORDS;
+                     data[i]._numAssigned = MIN_RECORDS;
+
+                  } else {
+                     data[i]._pe = NULL;
+                     data[i]._elapsedTime = 0.0;
+                     data[i]._lastElapsedTime = 0.0;
+                     data[i]._numRecords = -1;
+                     data[i]._numAssigned = 0;
+                  }
+               }
+
+               tdata._wdExecStatsKeys.insert( key );
+            }
+
+            for ( i = 0; i < numVersions; i++ ) {
+               if ( devices[i]->isCompatible( pe->getDeviceType() ) && data[i]._numRecords > 0 && bestTime > data[i]._elapsedTime ) {
+                  bestIdx = i;
+                  bestTime = data[i]._elapsedTime;
+               }
+            }
+
+            if ( bestIdx == -1 ) {
+               for ( i = 0; i < numVersions; i++ ) {
+                  if ( devices[i]->isCompatible( pe->getDeviceType() ) && data[i]._numRecords < MIN_RECORDS ) {
+                     bestIdx = i;
+                     break;
+                  }
+               }
+
+            }
+
+            data[bestIdx]._numAssigned++;
+
+            tdata._statsLock.release();
+
+            ensure( bestIdx > -1, "Couldn't find the best version for this device" );
+
+            return ( unsigned int ) bestIdx;
+         }
+
 
          inline WD * selectWD ( BaseThread *thread, WD *next )
          {
             return selectWD( ( TeamData & ) *thread->getTeam()->getScheduleData(), thread, next );
          }
+
 
          WD * selectWD ( TeamData & tdata, BaseThread *thread, WD *next )
          {
@@ -211,44 +619,68 @@ namespace ext
                data.reserve( numVersions );
                data = *NEW WDExecInfoData( numVersions );
 
+               bool compatible = false;
                unsigned int i;
                for ( i = 0; i < numVersions; i++ ) {
-                  data[i]._pe = NULL;
-                  data[i]._elapsedTime = 0.0;
-                  data[i]._lastElapsedTime = 0.0;
-                  data[i]._numRecords = -1;
-                  data[i]._numAssigned = 0;
+                  // Check there is at least one thread for each compatible device type
+                  if ( sys.getNumWorkers( next->getDevices()[i] ) == 0 ) {
+                     // If not, 'disable' the implementation by making the scheduler never choose it
+                     data[i]._pe = NULL;
+                     data[i]._elapsedTime = std::numeric_limits<double>::max();
+                     data[i]._lastElapsedTime = std::numeric_limits<double>::max();
+                     data[i]._numRecords = MIN_RECORDS;
+                     data[i]._numAssigned = MIN_RECORDS;
+
+                  } else {
+                     data[i]._pe = NULL;
+                     data[i]._elapsedTime = 0.0;
+                     data[i]._lastElapsedTime = 0.0;
+                     data[i]._numRecords = -1;
+                     data[i]._numAssigned = 0;
+                     compatible = true;
+                  }
                }
-               tdata._statsLock.release();
+
+               tdata._wdExecStatsKeys.insert( key );
+
+               fatal_cond( !compatible, "Error: there is no suitable device in the system to run the submitted task.");
 
                if ( next->canRunIn( *pe ) ) {
                   // If the thread can run the task, activate its device and return the WD
                   for ( i = 0; i < numVersions; i++ ) {
                      if ( devices[i]->isCompatible( pe->getDeviceType() ) ) {
+                        data[i]._numAssigned++;
+                        tdata._statsLock.release();
+
+                        NANOS_SCHED_VER_POINT_EVENT( NANOS_SCHED_VER_SELECTWD_FIRSTCANRUN );
+
                         return setDevice( thread, next, i );
                      }
                   }
-               } //else {
-                  // Else, activate the first device
-                  //i = 0;
-               //}
+               }
+
+               tdata._statsLock.release();
+
+               NANOS_SCHED_VER_POINT_EVENT( NANOS_SCHED_VER_SELECTWD_FIRSTCANNOTRUN );
 
                // Otherwise, return NULL
                return NULL;
-               //return setDevice( thread, next, next->getDevices()[i] );
             }
 
             // Reaching this point means we have already recorded some data for this wdType
-            double timeLimit = std::numeric_limits<double>::max();
-            if ( tdata._wdExecBest.find( key ) )
-               timeLimit = tdata._wdExecBest.find( key )->_elapsedTime * MAX_DIFFERENCE;
 
-            tdata._statsLock.acquire();
+#if 1
+            double timeLimit = std::numeric_limits<double>::max();
+            //if ( tdata._wdExecBest.find( key ) )
+            //   timeLimit = tdata._wdExecBest.find( key )->_elapsedTime * MAX_DIFFERENCE;
+
             unsigned int i;
 
             // First, check if the thread can run and, in fact, has to run the task
             if ( next->canRunIn( *pe ) ) {
                unsigned int bestCandidateIdx = numVersions;
+
+               tdata._statsLock.acquire();
 
                for ( i = 0; i < numVersions; i++ ) {
                   WDExecRecord & record = data[i];
@@ -269,9 +701,16 @@ namespace ext
 
                            // If this PE can run the task, run it
                            if ( next->getDevices()[i]->isCompatible( pe->getDeviceType() ) ) {
+
+                              NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_SELECTWD_BELOWMINRECCANRUN );
+
+
                               record._numAssigned++;
                               memoryFence();
                               tdata._statsLock.release();
+
+                              NANOS_SCHED_VER_CLOSE_EVENT;
+
                               return setDevice( thread, next, i );
                            }
 
@@ -280,6 +719,7 @@ namespace ext
                            //return setDevice( thread, next, record._versionId );
                         }
 
+#ifdef CHECK_STDDEV
                         double sqDev = record._elapsedTime - record._lastElapsedTime;
                         sqDev *= sqDev;
                         if ( sqrt( sqDev ) > MAX_DEVIATION ) {
@@ -305,11 +745,15 @@ namespace ext
                            //tdata._statsLock.release();
                            //return setDevice( thread, next, record._versionId );
                         }
+#endif
 
                      }
 //                  }
                }
+
                if ( bestCandidateIdx != numVersions ) {
+
+                  NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_SELECTWD_UNDEFINED );
 
                   double sqDev = data[bestCandidateIdx]._elapsedTime - data[bestCandidateIdx]._lastElapsedTime;
                   sqDev *= sqDev;
@@ -325,9 +769,15 @@ namespace ext
                   data[bestCandidateIdx]._numAssigned++;
                   memoryFence();
                   tdata._statsLock.release();
+
+                  NANOS_SCHED_VER_CLOSE_EVENT;
+
                   return setDevice( thread, next, bestCandidateIdx );
                }
+
+               tdata._statsLock.release();
             }
+#endif
 
             // Reaching this point means either one of these 2 situations:
             // - This PE cannot run the task
@@ -380,6 +830,29 @@ namespace ext
             // Reaching this point means that we have enough records to decide
             // It may happen that not all versionIds have been run
             // Choose the best versionId we have found by now
+            setEarliestExecutionWorker( tdata, next );
+
+            WD * wd = NULL;
+
+            NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_SELECTWD_GETFIRST );
+
+            wd = tdata._executionMap[thread->getId()]->getFirstTask( thread );
+
+            NANOS_SCHED_VER_CLOSE_EVENT;
+
+#ifdef CHOOSE_ALWAYS_BEST
+            if ( wd != NULL ) {
+               unsigned int version = findBestVersion( thread, wd );
+               if ( wd->getActiveDeviceIdx() != version ) wd->activateDevice( version );
+            }
+#endif
+
+            //debug( "Getting front task of my queue: " + toString<int>( wd ? wd->getId() : -77 ) + " from selectNextWD()" );
+
+            /*if ( wd != NULL )*/ return wd;
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
             tdata._bestLock.acquire();
             WDBestRecordData * bestData = tdata._wdExecBest.find( key );
 
@@ -393,14 +866,14 @@ namespace ext
 
                memoryFence();
                tdata._bestLock.release();
-               tdata._statsLock.release();
+               //tdata._statsLock.release();
                return setDevice( thread, next, bestData->_versionId );
             }
 
             // My PE is not the best PE to run this task, but still may be able to help with the execution
             // Estimate the remaining amount of time to execute the assigned tasks
             //double remTime = 0.0;
-            double remBest = 0.0;
+            double remBest = 0;
             unsigned int idxBest = numVersions;
             unsigned int myIndex = numVersions;
 
@@ -446,7 +919,7 @@ namespace ext
 
             memoryFence();
             tdata._bestLock.release();
-            tdata._statsLock.release();
+            //tdata._statsLock.release();
             return setDevice( thread, next, idxBest );
 
          }
@@ -457,36 +930,99 @@ namespace ext
 
             WD * next = NULL;
 
-            if ( _useStack ) {
-               next = tdata._readyQueue.pop_back( thread );
-            } else {
-               next = tdata._readyQueue.pop_front( thread );
-            }
+            next = ( _useStack ? tdata._readyQueue->pop_back( thread ) : tdata._readyQueue->pop_front( thread ) );
 
             if ( next ) {
                return ( !( next->hasActiveDevice() ) ) ? selectWD( tdata, thread, next ) : next ;
+            } else {
+               next = tdata._executionMap[thread->getId()]->getFirstTask( thread );
+
+               if ( next ) {
+
+                  NANOS_SCHED_VER_POINT_EVENT( NANOS_SCHED_VER_ATIDLE_GETFIRST );
+
+#ifdef CHOOSE_ALWAYS_BEST
+                  unsigned int version = findBestVersion( thread, next );
+                  if ( next->getActiveDeviceIdx() != version ) next->activateDevice( version );
+#endif
+
+                  return next;
+               }
             }
+
+            NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_ATIDLE_NOFIRST );
 
             struct timespec req, rem;
             req.tv_sec = 0;
             req.tv_nsec = 100;
             nanosleep( &req, &rem );
+
+            NANOS_SCHED_VER_CLOSE_EVENT;
 
             return NULL;
          }
 
          WD * atPrefetch ( BaseThread *thread, WD &current )
          {
-            WD * found = current.getImmediateSuccessor( *thread );
+            WD * found = NULL;
+
+            TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
+            found = tdata._executionMap[thread->getId()]->getFirstTask( thread );
 
             if ( found ) {
-               return ( !( found->hasActiveDevice() ) ) ? selectWD( thread, found ) : found ;
+
+               NANOS_SCHED_VER_POINT_EVENT( NANOS_SCHED_VER_ATPREFETCH_GETFIRST );
+
+#ifdef CHOOSE_ALWAYS_BEST
+               unsigned int version = findBestVersion( thread, found );
+               if ( found->getActiveDeviceIdx() != version ) found->activateDevice( version );
+#endif
+
+               return found;
             }
+
+            // WARNING: We're breaking a dependency here by getting the immediate successor and we've got to
+            // guarantee that the immediate successor won't be run before the current task has finished. Then,
+            // the safest way is to force this thread to run the immediate successor
+
+            found = current.getImmediateSuccessor( *thread );
+
+            if ( found ) {
+
+               NANOS_SCHED_VER_POINT_EVENT( NANOS_SCHED_VER_ATPREFETCH_GETIMMSUCC );
+
+               if ( thread == found->isTiedTo() ) return found;
+
+               if ( !( found->hasActiveDevice() ) ) {
+                  //return selectWD( thread, found );
+                  unsigned int deviceIdx = findBestVersion( thread, found );
+
+                  unsigned long wdId =  found->getVersionGroupId();
+                  size_t paramsSize = found->getParamsSize();
+                  WDExecInfoKey key = std::make_pair( wdId, paramsSize );
+
+#if 0 // Already done at findBestVersion()
+                  tdata._statsLock.acquire();
+                  WDExecInfoData &data = tdata._wdExecStats[key];
+                  data[deviceIdx]._numAssigned++;
+                  tdata._statsLock.release();
+#endif
+
+                  return setDevice( thread, found, deviceIdx );
+               }
+
+               return found;
+            }
+
+            NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_ATPREFETCH_NOFIRST );
 
             struct timespec req, rem;
             req.tv_sec = 0;
             req.tv_nsec = 100;
             nanosleep( &req, &rem );
+
+
+            NANOS_SCHED_VER_CLOSE_EVENT;
 
             return NULL;
          }
@@ -503,6 +1039,9 @@ namespace ext
                WDExecInfoKey key = std::make_pair( wdId, paramsSize );
 
                TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
+
+               tdata._executionMap[thread->getId()]->finishTask( &currentWD );
+
                tdata._statsLock.acquire();
                WDExecInfoData & data = tdata._wdExecStats[key];
 
@@ -511,9 +1050,9 @@ namespace ext
                // TODO: Choose the appropriate device
 
                if ( data[devIdx]._numRecords == -1 ) {
-                  // Here 'i' points to the first free position to record the values for the given PE
                   // As it is the first time for the given PE, we omit the results because
                   // they can be potentially worse than future executions
+                  //std::cout << "============== First record for #" << devIdx << "=====================" << std::endl;
                   WDExecRecord & records = data[devIdx];
                   records._pe = pe;
                   records._elapsedTime = 0.0; // Should be 'executionTime'
@@ -530,7 +1069,6 @@ namespace ext
                         + "}; exec time = " + toString<double>( executionTime ) );
 
                } else {
-                  // Here 'i' points to the position associated to the given PE
                   WDExecRecord & records  = data[devIdx];
                   double time = records._elapsedTime * records._numRecords;
                   records._numRecords++;
@@ -547,6 +1085,8 @@ namespace ext
                         + "}; exec time = " + toString<double>( executionTime ) );
 
                }
+
+               memoryFence();
 
                tdata._statsLock.release();
                tdata._bestLock.acquire();
@@ -568,17 +1108,182 @@ namespace ext
                tdata._bestLock.release();
             }
 
+            TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
 
+#if 0
+            std::list<WD *> myList;
+            ProcessingElement * pe = thread->runningOn();
+            //const Device & device = pe->getDeviceType();
+
+            WD * succ = currentWD.getImmediateSuccessor( *thread );
+            while ( succ != NULL ) {
+               unsigned long wdId = succ->getVersionGroupId();
+               size_t paramsSize = succ->getParamsSize();
+               //double executionTime;
+               WDExecInfoKey key = std::make_pair( wdId, paramsSize );
+
+               tdata._bestLock.acquire();
+               tdata._statsLock.acquire();
+
+               WDBestRecordData &bestData = tdata._wdExecBest[key];
+               WDExecInfoData & data = tdata._wdExecStats[key];
+
+               // TODO: There can be a race condition getting bestData information
+               if ( bestData._pe == NULL ) {
+                  //tdata._bestLock.release();
+                  //tdata._statsLock.release();
+                  //return ( !( succ->hasActiveDevice() ) ) ? selectWD( thread, succ ) : succ;
+                  // Ignore it by now
+
+               } else if ( pe->getDeviceType().getName() == bestData._pe->getDeviceType().getName() ) {
+                  setDevice ( thread, succ, bestData._versionId, false, data[bestData._versionId]._elapsedTime );
+
+                  std::cout << "[" << thread->getId() << "]" << "got "<< succ->getId() << " for " << currentWD.getId() << std::endl;
+                  succ->tieTo( *thread );
+                  myList.push_back( succ );
+                  succ = currentWD.getImmediateSuccessor( *thread );
+               } else {
+                  double bestTime, time;
+                  unsigned int devIdx;
+
+                  // release statsLock because findEarliestExecutionWorker() will try to get the lock
+                  tdata._statsLock.release();
+                  int earliest = findEarliestExecutionWorker( tdata, succ, bestTime, time, devIdx );
+                  tdata._statsLock.acquire();
+
+                  if ( thread->getId() == earliest ) {
+                     setDevice ( thread, succ, bestData._versionId, false, data[bestData._versionId]._elapsedTime );
+
+                     std::cout << "[" << thread->getId() << "]" << "got "<< succ->getId() << " for " << currentWD.getId() << std::endl;
+                     succ->tieTo( *thread );
+                     myList.push_back( succ );
+                     succ = currentWD.getImmediateSuccessor( *thread );
+                  }
+               }
+               tdata._statsLock.release();
+               tdata._bestLock.release();
+            }
+
+   #if 0
+            std::cout << "[" << thread->getId() << "]" << "SUCCESSOR LIST:";
+            for ( std::list<WD *>::iterator it = myList.begin(); it != myList.end(); it++ ) {
+               std::cout << " " << (*it)->getId();
+            }
+            std::cout << "---" << std::endl;
+   #endif
+
+            for ( std::list<WD *>::iterator it = myList.begin(); it != myList.end(); it++ ) {
+               succ = (*it)->getImmediateSuccessor( *thread );
+               while ( succ != NULL ) {
+                  //myList.push_back( succ );
+                  std::cout << "[" << thread->getId() << "]" << "got "<< succ->getId() << " for " << (*it)->getId() << std::endl;
+                  //succ->tieTo( *thread );
+                  //succ = (*rit)->getImmediateSuccessor( *thread );
+
+
+                  unsigned long wdId = succ->getVersionGroupId();
+                  size_t paramsSize = succ->getParamsSize();
+                  //double executionTime;
+                  WDExecInfoKey key = std::make_pair( wdId, paramsSize );
+
+                  tdata._bestLock.acquire();
+                  tdata._statsLock.acquire();
+
+                  WDBestRecordData &bestData = tdata._wdExecBest[key];
+                  WDExecInfoData & data = tdata._wdExecStats[key];
+
+                  // TODO: There can be a race condition getting bestData information
+                  if ( bestData._pe == NULL ) {
+                     // Ignore it
+
+                  } else if ( pe->getDeviceType().getName() == bestData._pe->getDeviceType().getName() ) {
+                     setDevice ( thread, succ, bestData._versionId, false, data[bestData._versionId]._elapsedTime );
+
+                     std::cout << "[" << thread->getId() << "]" << "got "<< succ->getId() << " for " << currentWD.getId() << std::endl;
+                     succ->tieTo( *thread );
+                     myList.push_back( succ );
+                     succ = currentWD.getImmediateSuccessor( *thread );
+                  } else {
+                     double bestTime, time;
+                     unsigned int devIdx;
+
+                     // release statsLock because findEarliestExecutionWorker() will try to get the lock
+                     tdata._statsLock.release();
+                     int earliest = findEarliestExecutionWorker( tdata, succ, bestTime, time, devIdx );
+                     tdata._statsLock.acquire();
+
+                     if ( thread->getId() == earliest ) {
+                        setDevice ( thread, succ, bestData._versionId, false, data[bestData._versionId]._elapsedTime );
+
+                        std::cout << "[" << thread->getId() << "]" << "got "<< succ->getId() << " for " << currentWD.getId() << std::endl;
+                        succ->tieTo( *thread );
+                        myList.push_back( succ );
+                        succ = currentWD.getImmediateSuccessor( *thread );
+                     }
+                  }
+                  tdata._statsLock.release();
+                 tdata._bestLock.release();
+
+               }
+            }
+
+   #if 0
+            std::cout << "[" << thread->getId() << "]" << "NEW SUCCESSOR LIST:";
+            for ( std::list<WD *>::iterator it = myList.begin(); it != myList.end(); it++ ) {
+               std::cout << " " << (*it)->getId();
+            }
+            std::cout << "---" << std::endl;
+   #endif
+#endif
+
+
+
+#if 0
             WD * found = currentWD.getImmediateSuccessor( *thread );
 
-            if ( found ) {
+            if ( found ) //{
                return ( !( found->hasActiveDevice() ) ) ? selectWD( thread, found ) : found ;
+            //} else {
+               //TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
+               tdata._mapLock.acquire();
+               found = tdata._executionMap[thread->getId()].getFirstTask();
+               tdata._mapLock.release();
+               ////debug( "Getting front task of my queue: " + toString<int>( found ? found->getId() : -77 ) + " from atBeforeExit()" );
+
+               if ( found ) return found;
+            //}
+               printExecutionMap();
+
+               //TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+
+               found = _useStack ? tdata._readyQueue->pop_back( thread ) :  tdata._readyQueue->pop_front( thread );
+
+               if ( found ) return ( !( found->hasActiveDevice() ) ) ? selectWD( thread, found ) : found ;
+
+#endif
+
+            WD * found = tdata._executionMap[thread->getId()]->getFirstTask( thread );
+
+            if ( found ) {
+
+               NANOS_SCHED_VER_POINT_EVENT( NANOS_SCHED_VER_ATBEFEX_GETFIRST );
+
+#ifdef CHOOSE_ALWAYS_BEST
+               unsigned int version = findBestVersion( thread, found );
+               if ( found->getActiveDeviceIdx() != version ) found->activateDevice( version );
+#endif
+
+               return found;
             }
+
+            NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_ATBEFEX_NOFIRST );
 
             struct timespec req, rem;
             req.tv_sec = 0;
             req.tv_nsec = 100;
             nanosleep( &req, &rem );
+
+            NANOS_SCHED_VER_CLOSE_EVENT;
 
             return NULL;
          }
@@ -594,13 +1299,7 @@ namespace ext
       public:
          VersioningSchedPlugin() : Plugin( "Versioning scheduling Plugin", 1 ) {}
 
-         ~VersioningSchedPlugin()
-         {
-            if ( sys.getDefaultSchedulePolicy() != NULL ) {
-               delete sys.getDefaultSchedulePolicy();
-               sys.setDefaultSchedulePolicy( NULL );
-            }
-         }
+         ~VersioningSchedPlugin() {}
 
          virtual void config ( Config &cfg )
          {
