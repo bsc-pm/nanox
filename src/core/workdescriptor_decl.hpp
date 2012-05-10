@@ -179,6 +179,7 @@ namespace nanos
          unsigned long                 _versionGroupId;     /**< The way to link different implementations of a task into the same group */
 
          double                        _executionTime;    /**< WD starting wall-clock time */
+         double                        _estimatedExecTime;  /**< WD estimated execution time */
 
          TR1::shared_ptr<DOSubmit>     _doSubmit;     /**< DependableObject representing this WD in its parent's depsendencies domain */
          LazyInit<DOWait>              _doWait;       /**< DependableObject used by this task to wait on dependencies */
@@ -212,7 +213,8 @@ namespace nanos
                           _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : NULL ),
                           _activeDeviceIdx( ndevices == 1 ? 0 : ndevices ), _numCopies( numCopies ), _copies( copies ),
-                          _copiesSize( 0 ), _paramsSize( 0 ), _versionGroupId( 0 ), _executionTime( 0 ), _doSubmit(), _doWait(), _depsDomain(),
+                          _copiesSize( 0 ), _paramsSize( 0 ), _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ),
+                          _doSubmit(), _doWait(), _depsDomain(),
                           _directory(), _instrumentationContextData(), _submitted(false), _translateArgs( translate_args ),
                           _priority( 0 ) { }
 
@@ -225,7 +227,7 @@ namespace nanos
                           _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( 1 ), _devices ( &_activeDevice ), _activeDevice ( device ),
                           _activeDeviceIdx( 0 ), _numCopies( numCopies ), _copies( copies ), _copiesSize( 0 ), _paramsSize( 0 ),
-                          _versionGroupId( 0 ), _executionTime( 0 ), _doSubmit(), _doWait(), _depsDomain(),
+                          _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ), _doSubmit(), _doWait(), _depsDomain(),
                           _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ),
                           _priority( 0 ) { }
 
@@ -246,7 +248,8 @@ namespace nanos
                           _numDevices ( wd._numDevices ), _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
                           _activeDeviceIdx( wd._numDevices == 1 ? 0 : wd._numDevices ), _numCopies( wd._numCopies ),
                           _copies( wd._numCopies == 0 ? NULL : copies ), _copiesSize( wd._copiesSize ), _paramsSize( wd._paramsSize ),
-                          _versionGroupId( wd._versionGroupId ), _executionTime( wd._executionTime ), _doSubmit(), _doWait(), _depsDomain(),
+                          _versionGroupId( wd._versionGroupId ), _executionTime( wd._executionTime ),
+                          _estimatedExecTime( wd._estimatedExecTime ), _doSubmit(), _doWait(), _depsDomain(),
                           _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( wd._translateArgs ),
                           _priority( wd._priority ) { }
 
@@ -452,6 +455,14 @@ namespace nanos
          /*! \brief returns the total execution time of the WD
           */
          double getExecutionTime() const;
+
+         /*! \brief returns the estimated execution time of the WD
+          */
+         double getEstimatedExecutionTime() const;
+
+         /*! \brief sets the estimated execution time of the WD
+          */
+         void setEstimatedExecutionTime( double time );
 
          /*! \brief Returns a pointer to the DOSubmit of the WD
           */

@@ -126,6 +126,10 @@ inline void WorkDescriptor::setVersionGroupId( unsigned long id ) { _versionGrou
 
 inline double WorkDescriptor::getExecutionTime() const { return _executionTime; }
 
+inline double WorkDescriptor::getEstimatedExecutionTime() const { return _estimatedExecTime; }
+
+inline void WorkDescriptor::setEstimatedExecutionTime( double time ) { _estimatedExecTime = time; }
+
 inline TR1::shared_ptr<DOSubmit> & WorkDescriptor::getDOSubmit() { return _doSubmit; }
 
 inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t numDeps, Dependency* deps )
