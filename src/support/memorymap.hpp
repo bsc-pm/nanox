@@ -1391,6 +1391,7 @@ void MemoryMap< _Type >::getWithOverlapNoExactKey( const MemoryChunk &key, const
    }
 }
 
+#if 0
 template < typename _Type >
 void MemoryMap< _Type >::insertWithOverlapButNotGenerateIntersects( const MemoryChunk &key, typename BaseMap::iterator &hint, MemChunkList &ptrList )
 {
@@ -1718,6 +1719,7 @@ void MemoryMap< _Type >::insertWithOverlapButNotGenerateIntersects( const Memory
       ptrList.push_back( MemChunkPair ( &(hint->first), &(hint->second) ) );
    }
 }
+#endif
 
 template < typename _Type >
 void MemoryMap< _Type >::getOrAddChunk2( uint64_t addr, std::size_t len, MemChunkList &resultEntries )

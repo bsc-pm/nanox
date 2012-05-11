@@ -28,6 +28,8 @@ nanox_SOURCES=\
 	nanox.cpp \
 	$(END)
 
+nanox_LDFLAGS=-Wl,-rpath,$(CUDA_LIB)
+
 nanox_LDADD=\
 	-ldl \
 	../core/@USED_VERSION@/libnanox.la \

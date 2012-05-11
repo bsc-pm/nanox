@@ -696,7 +696,8 @@ void GASNetAPI::amMalloc( gasnet_token_t token, gasnet_handlerarg_t sizeLo, gasn
       gasnet_handlerarg_t waitObjAddrLo, gasnet_handlerarg_t waitObjAddrHi )
 {
    gasnet_node_t src_node;
-   void *addr = NULL; volatile int *ptr;
+   void *addr = NULL; 
+   // volatile int *ptr;
    std::size_t size = ( std::size_t ) MERGE_ARG( sizeHi, sizeLo );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
@@ -707,7 +708,7 @@ void GASNetAPI::amMalloc( gasnet_token_t token, gasnet_handlerarg_t sizeLo, gasn
 //	#else
    addr = std::malloc( ( std::size_t ) size );
    
-   ptr = (volatile int *)addr;
+   // ptr = (volatile int *)addr;
   
    fprintf(stderr, "On amMalloc, touching data %ld\n", size );
    //for (unsigned int i = 0; i < ( size / sizeof(int) ); i+= 1024 ) { ptr[i] = ptr[i]; }

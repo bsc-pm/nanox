@@ -57,7 +57,7 @@ DeviceOps *CachedRegionStatus::getDeviceOps() { return _waitObject.get();  }
 bool CachedRegionStatus::isReady( ) { return _waitObject.isNotSet(); }
 
 
-      AllocatedChunk::AllocatedChunk() : _lock(), address( NULL ) { }
+      AllocatedChunk::AllocatedChunk() : _lock(), address( 0 ) { }
       AllocatedChunk::AllocatedChunk( AllocatedChunk const &chunk ) : _lock(), address( chunk.address ) {}
       AllocatedChunk &AllocatedChunk::operator=( AllocatedChunk const &chunk ) { address = chunk.address; return *this; } 
 void AllocatedChunk::lock() { _lock.acquire(); }
