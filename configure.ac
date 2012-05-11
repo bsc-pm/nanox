@@ -9,6 +9,12 @@ AC_CANONICAL_TARGET
 
 # Automake initialization
 AM_INIT_AUTOMAKE([-Wall -Werror dist-bzip2])
+supported_silent_rules=1
+m4_ifdef([AM_SILENT_RULES], 
+        [AM_SILENT_RULES([yes])],
+        [supported_silent_rules=0])
+
+AM_CONDITIONAL([SUPPORTED_SILENT_RULES], test x$supported_silent_rules = x1)
 AC_CONFIG_MACRO_DIR([m4])
 
 # Set compiler default flags
