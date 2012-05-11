@@ -232,6 +232,14 @@ namespace nanos
          BaseContainer     _dq;
          Lock              _lock;
          size_t            _nelems;
+         /*! \brief When this is enabled, elements with the same priority
+          * as the one in the back will be inserted at the back.
+          * \note When this is enabled, it will override the LIFO behaviour
+          * in the above case.
+          */
+         bool              _optimise;
+         //! \brief Insert WDs with the same after the current ones?
+         bool              _fifo;
 
       private:
          /*! \brief WDPriorityQueue copy constructor (private)
@@ -247,7 +255,7 @@ namespace nanos
       public:
          /*! \brief WDPriorityQueue default constructor
           */
-         WDPriorityQueue() : _dq(), _lock() {}
+         WDPriorityQueue( bool optimise = true, bool fifo = true);
          /*! \brief WDPriorityQueue destructor
           */
          ~WDPriorityQueue() {}

@@ -66,7 +66,7 @@ int main ( int argc, char **argv )
    
       WG *wg = getMyThreadSafe()->getCurrentWD();   
       // Stop scheduler
-      sys.getSchedulerConf().setSchedulerEnabled( false );
+      sys.stopScheduler();
       // increment variable
       for ( i = 0; i < NUM_ITERS; i++ ) {
          // Work descriptor creation
@@ -80,7 +80,7 @@ int main ( int argc, char **argv )
          sys.submit( *wd );
       }
       // Re-enable the scheduler
-      sys.getSchedulerConf().setSchedulerEnabled( true );
+      sys.startScheduler();
       // barrier (kind of)
       wg->waitCompletion();
       

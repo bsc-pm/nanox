@@ -151,3 +151,29 @@ NANOS_API_DEF(nanos_err_t, nanos_team_get_supporting_threads, ( int *n, nanos_th
 
    return NANOS_OK;
 }
+
+NANOS_API_DEF(nanos_err_t, nanos_register_reduction, ( nanos_reduction_t *red) )
+{
+   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_supporting_threads",NANOS_RUNTIME) );
+
+   try {
+       myThread->getTeam()->createReduction ( red );
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_reduction_get_private_data, ( void **copy, void *sink ) )
+{
+   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_supporting_threads",NANOS_RUNTIME) );
+
+   try {
+       *copy = (void *) myThread->getTeam()->getReductionPrivateData ( sink );
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}

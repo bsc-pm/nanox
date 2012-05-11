@@ -1,4 +1,3 @@
-
 /*************************************************************************************/
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
@@ -17,34 +16,35 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+#include "nanos_reduction.h"
 
-#include "nanos.h"
-#include "worksharing_decl.hpp"
+NANOS_REDUCTION_INT_TYPES_DEF(add,NANOS_REDUCTION_OP_ADD)
+NANOS_REDUCTION_REAL_TYPES_DEF(add,NANOS_REDUCTION_OP_ADD)
 
-using namespace nanos;
+NANOS_REDUCTION_INT_TYPES_DEF(sub,NANOS_REDUCTION_OP_SUB)
+NANOS_REDUCTION_REAL_TYPES_DEF(sub,NANOS_REDUCTION_OP_SUB)
 
-NANOS_API_DEF(nanos_err_t, nanos_worksharing_create, ( nanos_ws_desc_t **wsd, nanos_ws_t ws, nanos_ws_info_t *info,  bool *b ) )
-{
-   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","",NANOS_RUNTIME) ); //FIXME: To register new event
+NANOS_REDUCTION_INT_TYPES_DEF(prod,NANOS_REDUCTION_OP_PROD)
+NANOS_REDUCTION_REAL_TYPES_DEF(prod,NANOS_REDUCTION_OP_PROD)
 
-   try {
-      if ( b ) *b = ((WorkSharing *) ws)->create( wsd, info );
-      else ((WorkSharing *) ws)->create( wsd, info );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-   return NANOS_OK;
-}
+NANOS_REDUCTION_INT_TYPES_DEF(and,NANOS_REDUCTION_OP_AND)
 
-NANOS_API_DEF(nanos_err_t, nanos_worksharing_next_item, ( nanos_ws_desc_t *wsd, nanos_ws_item_t *wsi ))
-{
-   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","",NANOS_RUNTIME) ); //FIXME: To register new event
+NANOS_REDUCTION_INT_TYPES_DEF(or,NANOS_REDUCTION_OP_OR)
 
-   try {
-      ((WorkSharing *) wsd->ws)->nextItem( wsd, wsi );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-   return NANOS_OK;
+NANOS_REDUCTION_INT_TYPES_DEF(xor,NANOS_REDUCTION_OP_XOR)
 
-}
+NANOS_REDUCTION_INT_TYPES_DEF(land,NANOS_REDUCTION_OP_LAND)
+NANOS_REDUCTION_REAL_TYPES_DEF(land,NANOS_REDUCTION_OP_LAND)
+
+NANOS_REDUCTION_INT_TYPES_DEF(lor,NANOS_REDUCTION_OP_LOR)
+NANOS_REDUCTION_REAL_TYPES_DEF(lor,NANOS_REDUCTION_OP_LOR)
+
+NANOS_REDUCTION_INT_TYPES_DEF(max,NANOS_REDUCTION_OP_MAX)
+NANOS_REDUCTION_REAL_TYPES_DEF(max,NANOS_REDUCTION_OP_MAX)
+
+NANOS_REDUCTION_INT_TYPES_DEF(min,NANOS_REDUCTION_OP_MIN)
+NANOS_REDUCTION_REAL_TYPES_DEF(min,NANOS_REDUCTION_OP_MIN)
+
+
+
+

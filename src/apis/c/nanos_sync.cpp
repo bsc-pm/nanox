@@ -255,3 +255,42 @@ NANOS_API_DEF(nanos_err_t, nanos_single_guard, ( bool *b ))
    return NANOS_OK;
 }
 
+NANOS_API_DEF(nanos_err_t, nanos_enter_sync_init, ( bool *b ))
+{
+   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","single_guard",NANOS_SYNCHRONIZATION) );
+
+   try {
+      *b = myThread->enterSingleBarrierGuard();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_wait_sync_init, ( void ))
+{
+   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","single_guard",NANOS_SYNCHRONIZATION) );
+
+   try {
+      myThread->waitSingleBarrierGuard();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_release_sync_init, ( void ))
+{
+   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","single_guard",NANOS_SYNCHRONIZATION) );
+
+   try {
+      myThread->releaseSingleBarrierGuard();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+

@@ -563,9 +563,7 @@ struct nanos_const_wd_definition_1 const_data1 =
 #else
       .mandatory_creation = false,
 #endif
-      .tied = false,
-      .priority = 0
-   },
+      .tied = false},
    __alignof__(cilkmerge_par_1_args),
    0,
    1},
@@ -771,9 +769,7 @@ struct nanos_const_wd_definition_1 const_data2 =
 #else
       .mandatory_creation = false,
 #endif
-      .tied = false,
-      .priority = 0
-   },
+      .tied = false},
    __alignof__(cilksort_par_1_args),
    0,
    1},
