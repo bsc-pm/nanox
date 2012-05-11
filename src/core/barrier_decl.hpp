@@ -52,6 +52,9 @@ namespace nanos
          *  When it returns it guarantees that all participants have reached the barrier
          */
          virtual void barrier (int participant) = 0;
+        /*! \brief Compute team associated reductions
+         */
+         virtual void computeVectorReductions ( void );
    };
 
    typedef Barrier * ( *barrFactory ) ();

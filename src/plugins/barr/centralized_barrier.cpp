@@ -102,8 +102,8 @@ namespace nanos {
             _flag=true;
             // FIXME: reduction here and remove 2nd phase?
             _syncCondTrue.signal();
-            myThread->getTeam()->computeReductions();
-            myThread->getTeam()->cleanUpReductionList();
+            computeVectorReductions();
+
          } else {
             _syncCondTrue.wait();
          }

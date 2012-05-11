@@ -186,7 +186,7 @@ namespace nanos
 
         /*! \brief Compute reduction
          */
-         void computeReductions ( void );
+         void computeVectorReductions ( void );
    };
 
 }

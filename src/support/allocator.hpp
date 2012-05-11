@@ -158,6 +158,13 @@ inline void Allocator::deallocate ( void *object, const char *file, int line )
      arena->deallocate(ptr);
 }
 
+inline size_t Allocator::getObjectSize ( void *object )
+{
+   ObjectHeader * ptr = (ObjectHeader *) ( ((char *)object) - _headerSize );
+   Arena *arena = ptr->_arena;
+   return arena->getObjectSize() - _headerSize ;
+}
+
 } // namespace nanos
 
 #endif

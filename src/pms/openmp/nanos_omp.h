@@ -21,6 +21,7 @@
 #define _NANOS_OMP_H_
 
 #include "nanos.h"
+#include "nanos_reduction.h"
 #include "omp.h"
 
 #ifdef __cplusplus

@@ -69,6 +69,7 @@ class MemTracker
 
       Lock        _lock;
       bool        _showStats;
+      bool        _setZeroDeallocate;
 
   public:
 

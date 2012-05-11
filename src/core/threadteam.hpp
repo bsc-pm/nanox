@@ -22,6 +22,7 @@
 #include "threadteam_decl.hpp"
 #include "atomic.hpp"
 #include "debug.hpp"
+#include "system.hpp"
 
 using namespace nanos;
 
@@ -172,23 +173,19 @@ inline unsigned ThreadTeam::getSupportingThreads( BaseThread **list_of_threads )
 
 inline void ThreadTeam::createReduction( nanos_reduction_t *red ) { _redList.push_front( red ); }
 
-inline void ThreadTeam::cleanUpReductionList( void ) 
-{
-   nanos_reduction_t *red;
-   while ( !_redList.empty() ) {
-      red = _redList.back();
-      red->cleanup( red );
-      _redList.pop_back();
-   }
-}
-
-inline void ThreadTeam::computeReductions ( void )
+inline void ThreadTeam::computeVectorReductions ( void )
 {
    nanos_reduction_t *red;
    ReductionList::iterator it;
    for ( it = _redList.begin(); it != _redList.end(); it++) {
       red = *it;
-      red->vop( this->size(), red->original, red->privates );
+      if ( red->vop ) {
+         red->vop( this->size(), red->original, red->privates );
+      } else {
+         unsigned i;
+         for ( i = 0; i < this->size(); i++ ) {
+         }
+      }
    }
 }
 

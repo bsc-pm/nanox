@@ -27,6 +27,8 @@
 #include "debug.hpp"
 #include "workdescriptor_fwd.hpp"
 
+#define NANOX_MULTIPLE_SYNC_COND_SIZE 100
+
 namespace nanos
 {
   /*! \brief Represents an object that checks a given condition.
@@ -338,7 +340,7 @@ namespace nanos
           * \param cc ConditionChecker needed for
           * \param 
           */
-         MultipleSyncCond (_T cc, size_t size) : SynchronizedCondition<_T> ( cc ), _waiters()
+         MultipleSyncCond (_T cc, size_t size = NANOX_MULTIPLE_SYNC_COND_SIZE ) : SynchronizedCondition<_T> ( cc ), _waiters()
          {
             _waiters.reserve(size);
          }
@@ -360,7 +362,7 @@ namespace nanos
          }
          /*! \brief MultipleSyncCond constructor - 1
           */
-         MultipleSyncCond ( size_t size) : SynchronizedCondition<_T> (), _waiters()
+         MultipleSyncCond ( size_t size = NANOX_MULTIPLE_SYNC_COND_SIZE ) : SynchronizedCondition<_T> (), _waiters()
          {
             _waiters.reserve(size);
          }
