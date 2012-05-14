@@ -136,10 +136,14 @@ namespace nanos {
              */
             void submitDependableObjectDataAccess( DependableObject &depObj, Region const &target, AccessType const &accessType, SchedulePolicySuccessorFunctor* callback )
             {
-               if ( accessType.commutative ) {
+               if ( accessType.concurrent || accessType.commutative ) {
                   if ( !( accessType.input && accessType.output ) || depObj.waits() ) {
-                     fatal( "Commutation task must be inout" );
+                     fatal( "Commutation/concurrent task must be inout" );
                   }
+               }
+               
+               if ( accessType.concurrent && accessType.commutative ) {
+                  fatal( "Task cannot be concurrent AND commutative" );
                }
                
                SyncRecursiveLockBlock lock1( getInstanceLock() );
@@ -163,7 +167,7 @@ namespace nanos {
                   status.hold(); // This is necessary since we may trigger a removal in finalizeReduction
                }
                
-               if ( accessType.commutative ) {
+               if ( accessType.concurrent || accessType.commutative ) {
                   submitDependableObjectCommutativeDataAccess( depObj, target, accessType, subregions, *wholeRegion, callback );
                } else if ( accessType.input && accessType.output ) {
                   submitDependableObjectInoutDataAccess( depObj, target, accessType, subregions, *wholeRegion, callback );
@@ -192,10 +196,10 @@ namespace nanos {
                   }
                }
                
-               if ( !depObj.waits() && !accessType.commutative ) {
+               if ( !depObj.waits() && !accessType.concurrent && !accessType.commutative ) {
                   if ( accessType.output ) {
                      depObj.addWriteTarget( target );
-                  } else if (accessType.input /* && !accessType.output && !accessType.commutative */ ) {
+                  } else if (accessType.input /* && !accessType.output && !accessType.concurrent */ ) {
                      depObj.addReadTarget( target );
                   }
                }

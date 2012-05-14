@@ -48,6 +48,7 @@ typedef struct {
    bool  input: 1;
    bool  output: 1;
    bool  can_rename:1;
+   bool  concurrent: 1;
    bool  commutative: 1;
 } nanos_access_type_internal_t;
 

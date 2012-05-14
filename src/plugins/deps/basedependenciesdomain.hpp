@@ -115,38 +115,44 @@ inline void BaseDependenciesDomain::addAsReader( DependableObject &depObj, Track
    status.setReader( depObj );
 }
 
-inline CommutationDO * BaseDependenciesDomain::setUpTargetCommutationDependableObject ( BaseDependency const &target, TrackableObject &status )
+inline CommutationDO * BaseDependenciesDomain::createCommutationDO( BaseDependency const &target, AccessType const &accessType, TrackableObject &status )
+{
+   CommutationDO *commDO = new CommutationDO( target, accessType.commutative );
+   commDO->setDependenciesDomain( this );
+   commDO->increasePredecessors();
+   status.setCommDO( commDO );
+   commDO->addWriteTarget( target );
+   return commDO;
+}
+
+inline CommutationDO * BaseDependenciesDomain::setUpTargetCommutationDependableObject ( BaseDependency const &target, AccessType const &accessType, TrackableObject &status )
 {
    CommutationDO *commDO = status.getCommDO();
    
    /* FIXME: this must be atomic */
 
    if ( commDO == NULL ) {
-      commDO = new CommutationDO( target );
-      commDO->setDependenciesDomain( this );
-      commDO->increasePredecessors();
-      status.setCommDO( commDO );
-      commDO->addWriteTarget( target );
-   } else {
-      if ( commDO->increasePredecessors() == 0 ) {
-         commDO = new CommutationDO( target );
-         commDO->setDependenciesDomain( this );
-         commDO->increasePredecessors();
-         status.setCommDO( commDO );
-         commDO->addWriteTarget( target );
-      }
+      commDO = createCommutationDO( target, accessType, status );
+   }
+   else if ( commDO->isCommutative() != accessType.commutative ) {
+      // Make sure that old CommutationDO is of same type, or finalize it and create a new
+      finalizeReduction( status, target );
+      commDO = createCommutationDO( target, accessType, status );
+   }
+   else if ( commDO->increasePredecessors() == 0 ) {
+      commDO = createCommutationDO( target, accessType, status );
    }
    
    return commDO;
 }
 
 
-inline CommutationDO * BaseDependenciesDomain::setUpInitialCommutationDependableObject ( BaseDependency const &target, TrackableObject &status )
+inline CommutationDO * BaseDependenciesDomain::setUpInitialCommutationDependableObject ( BaseDependency const &target, AccessType const &accessType, TrackableObject &status )
 {
    CommutationDO *initialCommDO = NULL;
    
    if ( status.hasReaders() ) {
-      initialCommDO = new CommutationDO( target );
+      initialCommDO = new CommutationDO( target, accessType.commutative );
       initialCommDO->setDependenciesDomain( this );
       initialCommDO->increasePredecessors();
       
@@ -169,8 +175,8 @@ inline CommutationDO * BaseDependenciesDomain::setUpInitialCommutationDependable
 inline void BaseDependenciesDomain::submitDependableObjectCommutativeDataAccess ( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, TrackableObject &status, SchedulePolicySuccessorFunctor* callback )
 {
    // NOTE: Do not change the order
-   CommutationDO *initialCommDO = setUpInitialCommutationDependableObject( target, status );
-   CommutationDO *commDO = setUpTargetCommutationDependableObject( target, status );
+   CommutationDO *initialCommDO = setUpInitialCommutationDependableObject( target, accessType, status );
+   CommutationDO *commDO = setUpTargetCommutationDependableObject( target, accessType, status );
    
    // Add the Commutation object as successor of the current DO (depObj)
    depObj.addSuccessor( *commDO );

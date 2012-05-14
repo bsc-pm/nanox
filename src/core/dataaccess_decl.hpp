@@ -39,13 +39,15 @@ namespace nanos
           *  \param input Whether the access is input or not 
           *  \param output Whether the access is output or not
           *  \param canRename Whether the access can rename or not
+          *  \param concurrent If the accesses can run concurrently
+          *  \param commutative If accesses may occur in any order, but not concurrently
           *  \param dimensionCount Number of dimensions
           *  \param dimensions Array of dimension descriptors from least significant to most significant
           *  \param offset Offset of the first element
           */
          DataAccess ( void * addr, bool input, bool output,
-                      bool canRename, bool commutative, short dimensionCount,
-                      nanos_region_dimension_internal_t const *dimensions,
+                      bool canRename, bool concurrent, bool commutative,
+                      short dimensionCount, nanos_region_dimension_internal_t const *dimensions,
                       ptrdiff_t offset );
 
          /*! \brief DataAccess copy constructor
@@ -101,8 +103,16 @@ namespace nanos
          */
          void setCanRename( bool b );
 
-        /*! \brief returns true if there is commutativity over this access
+        /*! \brief returns true if this access can occur concurrent with other concurrent accesses
          */
+         bool isConcurrent() const;
+
+        /*! \brief sets the access to be concurrent
+         */
+         void setConcurrent( bool b );
+
+        /*! \brief returns true if this access can be reordered with other commutative accesses
+          */
          bool isCommutative() const;
 
         /*! \brief sets the access to be commutative
@@ -128,6 +138,7 @@ namespace nanos
                 * concurrent and the other is not, we want it to be non
                 * concurrent.
                 */
+               concurrent = true; 
                commutative = true;
             }
          
@@ -136,6 +147,7 @@ namespace nanos
                input = accessType.input;
                output = accessType.output;
                can_rename = accessType.can_rename;
+               concurrent = accessType.concurrent;
                commutative = accessType.commutative;
             }
          
@@ -144,6 +156,7 @@ namespace nanos
                input |= accessType.input;
                output |= accessType.output;
                can_rename &= accessType.can_rename;
+               concurrent &= accessType.concurrent;
                commutative &= accessType.commutative;
                
                return *this;

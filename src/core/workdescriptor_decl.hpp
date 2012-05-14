@@ -141,6 +141,9 @@ namespace nanos
       public:
 	 typedef enum { IsNotAUserLevelThread=false, IsAUserLevelThread=true } ULTFlag;
 
+         typedef std::vector<WorkDescriptor **> WorkDescriptorPtrList;
+         typedef TR1::unordered_map<void *, TR1::shared_ptr<WorkDescriptor *> > CommutativeOwnerMap;
+
       private:
 
          typedef enum { INIT, START, READY, IDLE, BLOCKED } State;
@@ -182,6 +185,9 @@ namespace nanos
          nanos_translate_args_t        _translateArgs; /**< Translates the addresses in _data to the ones obtained by get_address(). */
 
          unsigned int                  _priority;      /**< Task priority */
+
+         CommutativeOwnerMap           _commutativeOwnerMap; /**< Map from commutative target address to owner pointer */
+         WorkDescriptorPtrList         _commutativeOwners;   /**< Array of commutative target owners */
 
       private: /* private methods */
          /*! \brief WorkDescriptor copy assignment operator (private)
@@ -438,6 +444,19 @@ namespace nanos
 
          void setPriority( unsigned int priority );
          unsigned getPriority() const;
+
+         /*! \brief Store addresses of commutative targets in hash and in child WorkDescriptor.
+          *  Called when a task is submitted.
+          */
+         void initCommutativeAccesses( WorkDescriptor &wd, size_t numDeps, DataAccess* deps );
+         /*! \brief Try to take ownership of all commutative targets for exclusive access.
+          *  Called when a task is invoked.
+          */
+         bool tryAcquireCommutativeAccesses();
+         /*! \brief Release ownership of commutative targets.
+          *  Called when a task is finished.
+          */
+         void releaseCommutativeAccesses(); 
    };
 
    typedef class WorkDescriptor WD;

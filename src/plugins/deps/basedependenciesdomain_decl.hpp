@@ -33,6 +33,14 @@ namespace nanos
    {
       protected:
          unsigned int _lastDepObjId;         /**< Id to be given to the next submitted DependableObject */
+      private:
+         /*! \brief Creates a CommutationDO and attaches it to the trackable object.
+          *  \param target accessed base address/region
+          *  \param accessType kind of access
+          *  \param[in,out] status status of the base address
+          */
+         CommutationDO *createCommutationDO(BaseDependency const &target, AccessType const &accessType, TrackableObject &status);
+
       protected:         
          /*! \brief Finalizes a reduction if active.
           *  \param[in,out] trackableObject status of the address/region
@@ -78,16 +86,17 @@ namespace nanos
        
          /*! \brief Sets up a target Commutation Dependable Object for a Commutation access with a fake additional dependency.
           *  \param target accessed base address/region
+          *  \param accessType kind of access
           *  \param[in,out] status status of the address/region
           */
-         inline CommutationDO *setUpTargetCommutationDependableObject( BaseDependency const &target, TrackableObject &status );
+         inline CommutationDO *setUpTargetCommutationDependableObject( BaseDependency const &target, AccessType const &accessType, TrackableObject &status );
          
          /*! \brief Adds a commutative access of a DependableObject to the domains dependency system.
           *  \param target accessed base address/region
-          *  \param[in,out] sourceStatus status of the source address/region (used to find input dependencies)
-          *  \param[in,out] targetStatus status of the target address/region (used to represent the new access)
+          *  \param accessType kind of access
+          *  \param[in,out] status status of the address/region
           */
-         inline CommutationDO *setUpInitialCommutationDependableObject( BaseDependency const &target, TrackableObject &status );
+         inline CommutationDO *setUpInitialCommutationDependableObject( BaseDependency const &target, AccessType const &accessType, TrackableObject &status );
          
          /*! \brief Adds a commutative access of a DependableObject to the domains dependency system.
           *  \param depObj target DependableObject

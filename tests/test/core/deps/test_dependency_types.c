@@ -23,7 +23,6 @@ test_generator=gens/api-generator
 test_deps_plugins=plain,regions,perfect-regions
 </testinfo>
 */
-
 #include <stdio.h>
 #include <sys/time.h>
 #include <stdlib.h>
@@ -302,7 +301,7 @@ bool single_dependency()
    int * dep_addr = &my_value;
    my_args *args1=0;
    nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-   nanos_data_access_t data_accesses1[1] = {{&my_value, {0,1,0,0}, 1, dimensions1}};
+   nanos_data_access_t data_accesses1[1] = {{&my_value, {0,1,0,0,0}, 1, dimensions1}};
    nanos_wd_t wd1=0;
    const_data1.base.data_alignment = __alignof__(my_args);
    NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1.base, &dyn_props, sizeof( my_args ), ( void ** )&args1, nanos_current_wd(), NULL ) );
@@ -311,7 +310,7 @@ bool single_dependency()
 
    my_args *args2=0;
    nanos_region_dimension_t dimensions2[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-   nanos_data_access_t data_accesses2[1] = {{&my_value, {1,1,0,0}, 1, dimensions2}};
+   nanos_data_access_t data_accesses2[1] = {{&my_value, {1,1,0,0,0}, 1, dimensions2}};
    nanos_wd_t wd2 = 0;
    const_data2.base.data_alignment = __alignof__(my_args);
    NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data2.base, &dyn_props, sizeof( my_args ), ( void ** )&args2, nanos_current_wd(), NULL ) );
@@ -330,7 +329,7 @@ bool single_inout_chain()
    int * dep_addr = &my_value;
    my_args *args1=0;
    nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-   nanos_data_access_t data_accesses1[1] = {{&my_value, {0,1,0,0}, 1, dimensions1, 0}};
+   nanos_data_access_t data_accesses1[1] = {{&my_value, {0,1,0,0,0}, 1, dimensions1, 0}};
    nanos_wd_t wd1=0;
    const_data1.base.data_alignment = __alignof__(args1);
    NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1.base, &dyn_props, sizeof( args1 ), ( void ** )&args1, nanos_current_wd(), NULL ) );
@@ -340,7 +339,7 @@ bool single_inout_chain()
    for ( i = 0; i < 100; i++ ) {
       my_args *args2=0;
       nanos_region_dimension_t dimensions2[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses2[1] = {{&my_value, {1,1,0,0}, 1, dimensions2, 0}};
+      nanos_data_access_t data_accesses2[1] = {{&my_value, {1,1,0,0,0}, 1, dimensions2, 0}};
       nanos_wd_t wd2 = 0;
       
       const_data2.base.data_alignment = __alignof__(my_args);
@@ -364,7 +363,7 @@ bool multiple_inout_chains()
       int * dep_addr = &my_value[i];
       my_args *args1=0;
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value[i]), 0, sizeof(my_value[i])}};
-      nanos_data_access_t data_accesses1[1] = {{&my_value[i], {0,1,0,0}, 1, dimensions1, 0}};
+      nanos_data_access_t data_accesses1[1] = {{&my_value[i], {0,1,0,0,0}, 1, dimensions1, 0}};
       nanos_wd_t wd1=0;
       const_data1.base.data_alignment = __alignof__(my_args);
       NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1.base, &dyn_props, sizeof( my_args ), ( void ** )&args1, nanos_current_wd(), NULL ) );
@@ -374,7 +373,7 @@ bool multiple_inout_chains()
       for ( j = 0; j < size; j++ ) {
          my_args *args2=0;
          nanos_region_dimension_t dimensions2[1] = {{sizeof(my_value[i]), 0, sizeof(my_value[i])}};
-         nanos_data_access_t data_accesses2[1] = {{&my_value[i], {1,1,0,0}, 1, dimensions2, 0}};
+         nanos_data_access_t data_accesses2[1] = {{&my_value[i], {1,1,0,0,0}, 1, dimensions2, 0}};
          nanos_wd_t wd2 = 0;
          
          const_data2.base.data_alignment = __alignof__(my_args);
@@ -402,7 +401,7 @@ bool multiple_predecessors()
       int * dep_addr1 = &my_value[j];
       my_args *args1=0;
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value[j]), 0, sizeof(my_value[j])}};
-      nanos_data_access_t data_accesses1[1] = {{&my_value[j], {0,1,0,0}, 1, dimensions1, 0}};
+      nanos_data_access_t data_accesses1[1] = {{&my_value[j], {0,1,0,0,0}, 1, dimensions1, 0}};
       nanos_wd_t wd1 = 0;
       fprintf(stderr, "Dep #%d, address %p\n", j, &my_value[j] );
 
@@ -420,7 +419,7 @@ bool multiple_predecessors()
       dep_addr2[j] = &my_value[j];
       nanos_region_dimension_t dim = {sizeof(my_value[j]), 0, sizeof(my_value[j])};
       dimensions2[j][0] = dim;
-      nanos_data_access_t da = {&my_value[j], {1,1,0,0}, 1, dimensions2[j],0};
+      nanos_data_access_t da = {&my_value[j], {1,1,0,0,0}, 1, dimensions2[j],0};
       data_accesses2[j] = da;
    }
 
@@ -449,7 +448,7 @@ bool multiple_antidependencies()
       int * reslt_addr =&my_reslt[j];
       my_args *args1=0;
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses1[1] = {{&my_value, {1,0,0,0}, 1, dimensions1, 0}};
+      nanos_data_access_t data_accesses1[1] = {{&my_value, {1,0,0,0,0}, 1, dimensions1, 0}};
 
       nanos_wd_t wd1 = 0;
       const_data4.base.data_alignment = __alignof__(my_args);
@@ -461,7 +460,7 @@ bool multiple_antidependencies()
 
    int *dep_addr2 = &my_value;
    nanos_region_dimension_t dimensions2[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-   nanos_data_access_t data_accesses2[1] = {{&my_value, {1,1,0,0}, 1, dimensions2, 0}};
+   nanos_data_access_t data_accesses2[1] = {{&my_value, {1,1,0,0,0}, 1, dimensions2, 0}};
    my_args *args2=0;
 
    nanos_wd_t wd2=0;
@@ -487,7 +486,7 @@ bool out_dep_chain()
    for ( i = 0; i < 100; i++ ) {
       my_args *args2=0;
       nanos_region_dimension_t dimensions2[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses2[1] = {{&my_value, {0,1,0,0}, 1, dimensions2, 0}};
+      nanos_data_access_t data_accesses2[1] = {{&my_value, {0,1,0,0,0}, 1, dimensions2, 0}};
       nanos_wd_t wd2 = 0;
       const_data1.base.data_alignment = __alignof__(my_args);
       NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data1.base, &dyn_props, sizeof( my_args ), ( void ** )&args2, nanos_current_wd(), NULL ) );
@@ -498,7 +497,7 @@ bool out_dep_chain()
    int input=500;
    int * input_addr = &input;
    nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-   nanos_data_access_t data_accesses1[1] = {{&my_value, {0,1,0,0}, 1, dimensions1, 0}};
+   nanos_data_access_t data_accesses1[1] = {{&my_value, {0,1,0,0,0}, 1, dimensions1, 0}};
    my_args *args1=0;
    nanos_wd_t wd1=0;
    const_data4.base.data_alignment = __alignof__(my_args);
@@ -523,7 +522,7 @@ bool wait_on_test()
       int * dep_addr1 = &my_value[j];
       my_args *args1=0;
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value[j]), 0, sizeof(my_value[j])}};
-      nanos_data_access_t data_accesses1[1] = {{&my_value[j], {0,1,0,0}, 1, dimensions1, 0}};
+      nanos_data_access_t data_accesses1[1] = {{&my_value[j], {0,1,0,0,0}, 1, dimensions1, 0}};
       nanos_wd_t wd1 = 0;
 
       const_data1.base.data_alignment = __alignof__(my_args);
@@ -537,7 +536,7 @@ bool wait_on_test()
    for ( j = 0; j < size; j++ ) {
       nanos_region_dimension_t dim = {sizeof(my_value[j]), 0, sizeof(my_value[j])};
       dimensions2[j][0] = dim;
-      nanos_data_access_t da = {&my_value[j], {1,0,0,0}, 1, dimensions2[j], 0};
+      nanos_data_access_t da = {&my_value[j], {1,0,0,0,0}, 1, dimensions2[j], 0};
       data_accesses2[j] = da;
    }
    
@@ -562,7 +561,7 @@ bool create_and_run_test()
       int * dep_addr1 = &my_value[j];
       my_args *args1=0;
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value[j]), 0, sizeof(my_value[j])}};
-      nanos_data_access_t data_accesses1[1] = {{&my_value[j], {0,1,0,0}, 1, dimensions1, 0}};
+      nanos_data_access_t data_accesses1[1] = {{&my_value[j], {0,1,0,0,0}, 1, dimensions1, 0}};
       nanos_wd_t wd1 = 0;
 
       const_data1.base.data_alignment = __alignof__(my_args);
@@ -576,7 +575,7 @@ bool create_and_run_test()
    for ( j = 0; j < 100; j++ ) {
       nanos_region_dimension_t dim = {sizeof(my_value[j]), 0, sizeof(my_value[j])};
       dimensions2[j][0] = dim;
-      nanos_data_access_t da = {&my_value[j], {1,0,0,0}, 1, dimensions2[j], 0};
+      nanos_data_access_t da = {&my_value[j], {1,0,0,0,0}, 1, dimensions2[j], 0};
       data_accesses2[j] = da;
    }
 
@@ -593,10 +592,10 @@ bool create_and_run_test()
    return true;
 }
 
-// Test commutative tasks, this test creates a task with an inout dependency on an array an then
-// a bunch of commutative (reduction) tasks that update it. Finally it waits for them all to finish and
+// Test concurrent tasks, this test creates a task with an inout dependency on an array an then
+// a bunch of concurrent (reduction) tasks that update it. Finally it waits for them all to finish and
 // checks the result
-bool commutative_task_1()
+bool concurrent_task_1()
 {
    int i, j;
    int size = 100;
@@ -609,7 +608,7 @@ bool commutative_task_1()
 
    my_args2 *args1=0;
    nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-   nanos_data_access_t data_accesses1[1] = {{my_value, {0,1,0,0}, 1, dimensions1, 0}};
+   nanos_data_access_t data_accesses1[1] = {{my_value, {0,1,0,0,0}, 1, dimensions1, 0}};
    nanos_wd_t wd1 = 0;
 
    const_data6.base.data_alignment = __alignof__(my_args2);
@@ -621,7 +620,7 @@ bool commutative_task_1()
    for ( j = 0; j < size; j++ ) {
       my_args2 *args1=0;
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses1[1] = {{my_value, {1,1,0,1}, 1, dimensions1, 0}};
+      nanos_data_access_t data_accesses1[1] = {{my_value, {1,1,0,1,0}, 1, dimensions1, 0}};
       nanos_wd_t wd1 = 0;
 
       const_data5.base.data_alignment = __alignof__(my_args2);
@@ -638,10 +637,10 @@ bool commutative_task_1()
    return true;
 }
 
-// Test commutative tasks, this test creates a task with an inout dependency on an array an then
-// a bunch of commutative (reduction) tasks that update it. Then, another set of tasks are successors
-// of the commutative ones. This checks that the commutation task behaves correctly
-bool commutative_task_2()
+// Test concurrent tasks, this test creates a task with an inout dependency on an array an then
+// a bunch of concurrent (reduction) tasks that update it. Then, another set of tasks are successors
+// of the concurrent ones. This checks that the concurrent task behaves correctly
+bool concurrent_task_2()
 {
    int i, j;
    int size = 100;
@@ -656,7 +655,7 @@ bool commutative_task_2()
 
    my_args2 *args1=0;
    nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-   nanos_data_access_t data_accesses1[1] = {{my_value, {0,1,0,0}, 1, dimensions1, 0}};
+   nanos_data_access_t data_accesses1[1] = {{my_value, {0,1,0,0,0}, 1, dimensions1, 0}};
    nanos_wd_t wd1 = 0;
 
    const_data6.base.data_alignment = __alignof__(my_args2);
@@ -668,7 +667,7 @@ bool commutative_task_2()
    for ( j = 0; j < size; j++ ) {
       my_args2 *args1=0;
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses1[1] = {{my_value, {1,1,0,1}, 1, dimensions1, 0}};
+      nanos_data_access_t data_accesses1[1] = {{my_value, {1,1,0,1,0}, 1, dimensions1, 0}};
       nanos_wd_t wd1 = 0;
 
       const_data5.base.data_alignment = __alignof__(my_args2);
@@ -681,7 +680,7 @@ bool commutative_task_2()
    for ( j = 0; j < size; j++ ) {
       my_args3 *args1=0;
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses1[1] = {{my_value, {1,0,0,0}, 1, dimensions1, 0}};
+      nanos_data_access_t data_accesses1[1] = {{my_value, {1,0,0,0,0}, 1, dimensions1, 0}};
       nanos_wd_t wd1 = 0;
 
       const_data7.base.data_alignment = __alignof__(my_args3);
@@ -700,11 +699,11 @@ bool commutative_task_2()
    return true;
 }
 
-// Test commutative tasks, this test creates a task with an inout dependency on an array an then
-// a bunch of tasks that read the dependency, then, again, a bunch of commutative (reduction) tasks 
+// Test concurrent tasks, this test creates a task with an inout dependency on an array an then
+// a bunch of tasks that read the dependency, then, again, a bunch of concurrent (reduction) tasks 
 // that update it. Then, another set of tasks are successors
-// of the commutative ones. This checks that the commutation task behaves correctly
-bool commutative_task_3()
+// of the concurrent ones. This checks that the concurrent task behaves correctly
+bool concurrent_task_3()
 {
    int i, j;
    int size = 100;
@@ -720,7 +719,7 @@ bool commutative_task_3()
 
    my_args2 *args1=0;
    nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-   nanos_data_access_t data_accesses1[1] = {{&my_value, {0,1,0,0}, 1, dimensions1, 0}};
+   nanos_data_access_t data_accesses1[1] = {{&my_value, {0,1,0,0,0}, 1, dimensions1, 0}};
    nanos_wd_t wd1 = 0;
 
    const_data6.base.data_alignment = __alignof__(my_args2);
@@ -732,7 +731,7 @@ bool commutative_task_3()
    for ( j = 0; j < size; j++ ) {
       my_args2 *args1=0;
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses1[1] = {{&my_value, {1,0,0,0}, 1, dimensions1, 0}};
+      nanos_data_access_t data_accesses1[1] = {{&my_value, {1,0,0,0,0}, 1, dimensions1, 0}};
       nanos_wd_t wd1 = 0;
 
       const_data8.base.data_alignment = __alignof__(my_args2);
@@ -745,7 +744,7 @@ bool commutative_task_3()
    for ( j = 0; j < size; j++ ) {
       my_args2 *args1=0;
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses1[1] = {{&my_value, {1,1,0,1}, 1, dimensions1, 0}};
+      nanos_data_access_t data_accesses1[1] = {{&my_value, {1,1,0,1,0}, 1, dimensions1, 0}};
       nanos_wd_t wd1 = 0;
 
       const_data5.base.data_alignment = __alignof__(my_args2);
@@ -758,7 +757,7 @@ bool commutative_task_3()
    for ( j = 0; j < size; j++ ) {
       my_args3 *args1=0;
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses1[1] = {{&my_value, {1,0,0,0}, 1, dimensions1, 0}};
+      nanos_data_access_t data_accesses1[1] = {{&my_value, {1,0,0,0,0}, 1, dimensions1, 0}};
       nanos_wd_t wd1 = 0;
 
       const_data7.base.data_alignment = __alignof__(my_args3);
@@ -777,6 +776,55 @@ bool commutative_task_3()
    return true;
 }
 
+// This test creates a task that increases the the elements of an array by once,
+// and then 100 tasks that do the same but with the commutative property set.
+// Concurrent should fail while commutative should work.
+bool commutative_task_1()
+{
+   int i, j;
+   int size = 100;
+   int __attribute__( ( aligned( 128 ) ) ) my_value[size];
+   int *value_ref = (int *)&my_value;
+
+   for ( i = 0; i < size; i++ ) {
+      my_value[i] = 0;
+   }
+   // This will help triggering issues :)
+   nanos_stop_scheduler();
+   
+   my_args2 *args1=0;
+   nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
+   nanos_data_access_t data_accesses1[1] = {{my_value, {0,1,0,0,0}, 1, dimensions1, 0}};
+   nanos_wd_t wd1 = 0;
+
+   const_data6.base.data_alignment = __alignof__(my_args2);
+   NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data6.base, &dyn_props, sizeof( my_args2 ), ( void ** )&args1, nanos_current_wd(), NULL ) );
+   args1->p_i = my_value;
+   args1->index = size;
+   NANOS_SAFE( nanos_submit( wd1,1,data_accesses1,0 ) );
+
+   for ( j = 0; j < size; j++ ) {
+      my_args2 *args1=0;
+      nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
+      nanos_data_access_t data_accesses1[1] = {{my_value, {1,1,0,0,1}, 1, dimensions1, 0}};
+      nanos_wd_t wd1 = 0;
+
+      const_data6.base.data_alignment = __alignof__(my_args2);
+      NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data6.base, &dyn_props, sizeof( my_args2 ), ( void ** )&args1, nanos_current_wd(), NULL ) );
+      args1->p_i = my_value;
+      args1->index = size;
+      NANOS_SAFE( nanos_submit( wd1,1,data_accesses1,0 ) );
+   }
+   
+   nanos_start_scheduler();
+   
+   NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
+   for ( j = 0; j < size; j++ ) {
+      if ( my_value[j] != size+1 ) return false;
+   }
+   return true;
+}
+
 bool dependency_offset()
 {
    int i;
@@ -784,7 +832,7 @@ bool dependency_offset()
    int * dep_addr = &my_value;
    my_args *args1=0;
    nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-   nanos_data_access_t data_accesses1[1] = {{&my_value, {0,1,0,0}, 1, dimensions1, 0}};
+   nanos_data_access_t data_accesses1[1] = {{&my_value, {0,1,0,0,0}, 1, dimensions1, 0}};
    nanos_wd_t wd1=0;
    const_data1.base.data_alignment = __alignof__(my_args);
    NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1.base, &dyn_props, sizeof( my_args ), ( void ** )&args1, nanos_current_wd(), NULL ) );
@@ -796,7 +844,7 @@ bool dependency_offset()
       // It is easier to check that using offsets that lead to the same dependency they are not broken than the oposite
       int * local_dep_addr = &my_value + i; // NOTE: if renaming is implemented this is not safe
       nanos_region_dimension_t dimensions2[1] = {{sizeof(my_value), sizeof(my_value), sizeof(my_value)}};
-      nanos_data_access_t data_accesses2[1] = {{local_dep_addr, {1,1,0,0}, 1, dimensions2, -1L*i*sizeof(my_value)}};
+      nanos_data_access_t data_accesses2[1] = {{local_dep_addr, {1,1,0,0,0}, 1, dimensions2, -1L*i*sizeof(my_value)}};
       nanos_wd_t wd2 = 0;
       const_data2.base.data_alignment = __alignof__(my_args);
       NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data2.base, &dyn_props, sizeof( my_args ), ( void ** )&args2, nanos_current_wd(), NULL ) );
@@ -899,31 +947,42 @@ int main ( int argc, char **argv )
       return 1;
    }
 
-   printf("commutative tasks test...\n");
+   printf("concurrent tasks test...\n");
+   fflush(stdout);
+   if ( concurrent_task_1() ) {
+      printf("PASS\n");
+      fflush(stdout);
+   } else {
+      printf("FAIL\n");
+      fflush(stdout);
+      return 1;
+   }
+
+   printf("concurrent tasks 2 test...\n");
+   fflush(stdout);
+   if ( concurrent_task_2() ) {
+      printf("PASS\n");
+      fflush(stdout);
+   } else {
+      printf("FAIL\n");
+      fflush(stdout);
+      return 1;
+   }
+
+   printf("concurrent tasks 3 test...\n");
+   fflush(stdout);
+   if ( concurrent_task_3() ) {
+      printf("PASS\n");
+      fflush(stdout);
+   } else {
+      printf("FAIL\n");
+      fflush(stdout);
+      return 1;
+   }
+
+   printf("commutative tasks 1 test...\n");
    fflush(stdout);
    if ( commutative_task_1() ) {
-      printf("PASS\n");
-      fflush(stdout);
-   } else {
-      printf("FAIL\n");
-      fflush(stdout);
-      return 1;
-   }
-
-   printf("commutative tasks 2 test...\n");
-   fflush(stdout);
-   if ( commutative_task_2() ) {
-      printf("PASS\n");
-      fflush(stdout);
-   } else {
-      printf("FAIL\n");
-      fflush(stdout);
-      return 1;
-   }
-
-   printf("commutative tasks 3 test...\n");
-   fflush(stdout);
-   if ( commutative_task_3() ) {
       printf("PASS\n");
       fflush(stdout);
    } else {

@@ -33,6 +33,11 @@ inline void CommutationDO::dependenciesSatisfied ( )
    finished();
 }
 
+inline bool CommutationDO::isCommutative() const 
+{ 
+   return _commutative; 
+} 
+
 #endif
 
 

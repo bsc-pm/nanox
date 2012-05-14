@@ -51,11 +51,11 @@ inline void BaseRegionsDependenciesDomain::dependOnReaders( DependableObject &de
 }
 
 template <typename SOURCE_STATUS_T>
-inline CommutationDO * BaseRegionsDependenciesDomain::setUpInitialCommutationDependableObject ( BaseDependency const &target, SOURCE_STATUS_T &sourceStatus, TrackableObject &targetStatus )
+inline CommutationDO * BaseRegionsDependenciesDomain::setUpInitialCommutationDependableObject ( BaseDependency const &target, AccessType const &accessType, SOURCE_STATUS_T &sourceStatus, TrackableObject &targetStatus )
 {
    if ( targetStatus.getCommDO() == NULL ) {
       // The commutation update has not been set up yet
-      CommutationDO *initialCommDO = new CommutationDO( target );
+      CommutationDO *initialCommDO = new CommutationDO( target, accessType.commutative );
       initialCommDO->setDependenciesDomain( this );
       initialCommDO->increasePredecessors();
       
@@ -91,8 +91,8 @@ template <typename SOURCE_STATUS_T>
 inline void BaseRegionsDependenciesDomain::submitDependableObjectCommutativeDataAccess ( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, SOURCE_STATUS_T &sourceStatus, TrackableObject &targetStatus, SchedulePolicySuccessorFunctor* callback )
 {
    // NOTE: Do not change the order
-   CommutationDO *initialCommDO = setUpInitialCommutationDependableObject( target, sourceStatus, targetStatus );
-   CommutationDO *commDO = setUpTargetCommutationDependableObject( target, targetStatus );
+   CommutationDO *initialCommDO = setUpInitialCommutationDependableObject( target, accessType, sourceStatus, targetStatus );
+   CommutationDO *commDO = setUpTargetCommutationDependableObject( target, accessType, targetStatus );
    
    // Add the Commutation object as successor of the current DO (depObj)
    depObj.addSuccessor( *commDO );

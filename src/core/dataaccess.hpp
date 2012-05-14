@@ -26,14 +26,15 @@
 using namespace nanos;
 
 inline DataAccess::DataAccess ( void * addr, bool input, bool output,
-             bool canRenameFlag, bool commutative, short dimensionCount,
-             nanos_region_dimension_internal_t const *dims,
+             bool canRenameFlag, bool concurrent,bool commutative,
+             short dimensionCount, nanos_region_dimension_internal_t const *dims,
              ptrdiff_t someOffset )
 {
    address = addr;
    flags.input = input;
    flags.output = output;
    flags.can_rename = canRenameFlag;
+   flags.concurrent = concurrent; 
    flags.commutative = commutative;
    dimension_count = dimensionCount;
    dimensions = dims;
@@ -46,6 +47,7 @@ inline DataAccess::DataAccess ( const DataAccess &dataAccess )
    flags.input = dataAccess.flags.input;
    flags.output = dataAccess.flags.output;
    flags.can_rename = dataAccess.flags.can_rename;
+   flags.concurrent = dataAccess.flags.concurrent; 
    flags.commutative = dataAccess.flags.commutative;
    dimension_count = dataAccess.dimension_count;
    dimensions = dataAccess.dimensions;
@@ -59,6 +61,7 @@ inline const DataAccess & DataAccess::operator= ( const DataAccess &dataAccess )
    flags.input = dataAccess.flags.input;
    flags.output = dataAccess.flags.output;
    flags.can_rename = dataAccess.flags.can_rename;
+   flags.concurrent = dataAccess.flags.concurrent; 
    flags.commutative = dataAccess.flags.commutative;
    dimension_count = dataAccess.dimension_count;
    dimensions = dataAccess.dimensions;
@@ -110,6 +113,16 @@ inline void DataAccess::setCanRename( bool b )
    flags.can_rename = b;
 }
 
+inline bool DataAccess::isConcurrent() const
+{ 
+   return flags.concurrent;
+}
+ 
+inline void DataAccess::setConcurrent( bool b )
+{ 
+   flags.concurrent = b;
+}
+
 inline bool DataAccess::isCommutative() const
 {
    return flags.commutative;
@@ -126,8 +139,10 @@ namespace nanos {
       inline std::ostream & operator<<( std::ostream &o, AccessType const &accessType)
       {
          if ( accessType.input && accessType.output ) {
-            if ( accessType.commutative ) {
-               o << "RED";
+            if ( accessType.concurrent ) {
+               o << "CON";
+            } else if ( accessType.commutative ) {
+               o << "COM";
             } else {
                o << "INOUT";
             }

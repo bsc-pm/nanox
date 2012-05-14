@@ -32,15 +32,19 @@ namespace nanos
       private:
          //! Base address that determines the reduction
          BaseDependency*  _target;
+         //! Flag to separate between concurrent and commutative accesses. 
+         bool             _commutative; 
       public:
         /*! \brief Default constructor
          */
-         CommutationDO ( BaseDependency const& target) : DependableObject(), _target( target.clone() ) { }
+         CommutationDO ( BaseDependency const& target, bool isCommutativeFlag )
+            : DependableObject(), _target( target.clone() ), _commutative( isCommutativeFlag ) { }
 
         /*! \brief Copy constructor
          *  \param cdo another CommutationDO
          */
-         CommutationDO( const CommutationDO &cdo ) : DependableObject(), _target( cdo._target->clone() ) { }
+         CommutationDO( const CommutationDO &cdo )
+            : DependableObject(), _target( cdo._target->clone() ), _commutative( cdo._commutative ) { }
 
         /*! \brief Assignment operator
          *  \param cdo another CommutationDO
@@ -50,6 +54,7 @@ namespace nanos
             if ( this == &cdo ) return *this;
             DependableObject::operator= ( cdo );
             _target = cdo._target->clone();
+            _commutative = cdo._commutative; 
             return *this;
          }
 
@@ -63,6 +68,10 @@ namespace nanos
          /*! \brief All predecessors finished, will just execute finished and trigger its successors
           */
          virtual void dependenciesSatisfied ( );
+ 
+         /*! \brief Returns true if this is for commutative accesses rather than concurrent ones. 
+          */ 
+         bool isCommutative() const; 
    };
 };
 

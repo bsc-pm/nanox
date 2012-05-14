@@ -126,17 +126,21 @@ namespace nanos {
              */
             void submitDependableObjectDataAccess( DependableObject &depObj, Address const &target, AccessType const &accessType, SchedulePolicySuccessorFunctor* callback )
             {
-               if ( accessType.commutative ) {
+               if ( accessType.concurrent || accessType.commutative ) {
                   if ( !( accessType.input && accessType.output ) || depObj.waits() ) {
-                     fatal( "Commutation task must be inout" );
+                     fatal( "Commutation/concurrent task must be inout" );
                   }
+               }
+               
+               if ( accessType.concurrent && accessType.commutative ) {
+                  fatal( "Task cannot be concurrent AND commutative" );
                }
                
                TrackableObject &status = *lookupDependency( target );
                //! TODO (gmiranda): enable this if required
                //status.hold(); // This is necessary since we may trigger a removal in finalizeReduction
                
-               if ( accessType.commutative ) {
+               if ( accessType.concurrent || accessType.commutative ) {
                   submitDependableObjectCommutativeDataAccess( depObj, target, accessType, status, callback );
                } else if ( accessType.input && accessType.output ) {
                   submitDependableObjectInoutDataAccess( depObj, target, accessType, status, callback );
@@ -145,13 +149,13 @@ namespace nanos {
                } else if ( accessType.output ) {
                   submitDependableObjectOutputDataAccess( depObj, target, accessType, status, callback );
                } else {
-                  fatal( "Invalid dara access" );
+                  fatal( "Invalid data access" );
                }
                
-               if ( !depObj.waits() && !accessType.commutative ) {
+               if ( !depObj.waits() && !accessType.concurrent && !accessType.commutative ) {
                   if ( accessType.output ) {
                      depObj.addWriteTarget( target );
-                  } else if (accessType.input /* && !accessType.output && !accessType.commutative */ ) {
+                  } else if (accessType.input /* && !accessType.output && !accessType.concurrent */ ) {
                      depObj.addReadTarget( target );
                   }
                }

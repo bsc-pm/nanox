@@ -101,7 +101,7 @@ int main ( int argc, char **argv )
 {
    int dep;
    nanos_region_dimension_t dimensions[1] = {{sizeof(int), 0, sizeof(int)}};
-   nanos_data_access_t data_accesses[1] = {{&dep, {1,1,0,0}, 1, dimensions}};
+   nanos_data_access_t data_accesses[1] = {{&dep, {1,1,0,0,0}, 1, dimensions}};
    nanos_wd_t wd1=0;
    nanos_wd_dyn_props_t dyn_props = {0};
    const_data1.base.data_alignment = 1;

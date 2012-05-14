@@ -148,6 +148,9 @@ inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t n
    wd._doSubmit.reset( NEW DOSubmit() );
    wd._doSubmit->setWD(&wd);
    SchedulePolicySuccessorFunctor cb( *sys.getDefaultSchedulePolicy() );
+   
+   initCommutativeAccesses( wd, numDeps, deps );
+   
    _depsDomain->submitDependableObject( *(wd._doSubmit), numDeps, deps, &cb );
 }
 
@@ -226,6 +229,13 @@ inline void WorkDescriptor::submitted()  { _submitted = true; }
 
 inline void WorkDescriptor::setPriority( unsigned int priority ) { _priority = priority; }
 inline unsigned int WorkDescriptor::getPriority() const { return _priority; }
+
+inline void WorkDescriptor::releaseCommutativeAccesses()
+{
+   const size_t n = _commutativeOwners.size();
+   for ( size_t i = 0; i < n; i++ )
+      *_commutativeOwners[i] = NULL;
+} 
 
 #endif
 

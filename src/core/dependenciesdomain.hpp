@@ -28,7 +28,7 @@
 #include "dependableobject.hpp"
 #include "trackableobject.hpp"
 #include "dataaccess_decl.hpp"
-//#include "compatibility.hpp"
+#include "commutationdepobj.hpp"
 
 
 namespace nanos {

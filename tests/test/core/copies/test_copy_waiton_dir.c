@@ -156,7 +156,7 @@ int main ( int argc, char **argv )
    args->a = 1;
    args->b = dummy1;
    nanos_region_dimension_t dimensions[1] = {{strlen(args->b)+1, 0, strlen(args->b)+1}};
-   nanos_data_access_t data_accesses[1] = {{args->b, {1,1,0,0}, 1, dimensions}};
+   nanos_data_access_t data_accesses[1] = {{args->b, {1,1,0,0,0}, 1, dimensions}};
 
    cd[0] = (nanos_copy_data_t) {(uint64_t)&(args->a), NANOS_PRIVATE, {true, false}, sizeof(args->a)};
    cd[1] = (nanos_copy_data_t) {(uint64_t)args->b, NANOS_SHARED, {true, true}, sizeof(char)*10}; 
@@ -164,7 +164,7 @@ int main ( int argc, char **argv )
    NANOS_SAFE( nanos_submit( wd1,1,data_accesses,0 ) );
 
    nanos_region_dimension_t dimensions1[1] = {{strlen(dummy1)+1, 0, strlen(dummy1)+1}};
-   nanos_data_access_t data_accesses1[1] = {{dummy1, {1,1,0,0}, 1, dimensions1}};
+   nanos_data_access_t data_accesses1[1] = {{dummy1, {1,1,0,0,0}, 1, dimensions1}};
    NANOS_SAFE( nanos_wait_on( 1, data_accesses1 ) );
 
    for ( i = 0; i < 9; i++ )
@@ -178,7 +178,7 @@ int main ( int argc, char **argv )
    args->a = 1;
    args->b = dummy1;
    nanos_region_dimension_t dimensions2[1] = {{strlen(args->b)+1, 0, strlen(args->b)+1}};
-   nanos_data_access_t data_accesses2[1] = {{args->b, {1,1,0,0}, 1, dimensions2}};
+   nanos_data_access_t data_accesses2[1] = {{args->b, {1,1,0,0,0}, 1, dimensions2}};
 
    cd[0] = (nanos_copy_data_t) {(uint64_t)&(args->a), NANOS_PRIVATE, {true, false}, sizeof(args->a)};
    cd[1] = (nanos_copy_data_t) {(uint64_t)args->b, NANOS_SHARED, {true, true}, sizeof(char)*10}; 

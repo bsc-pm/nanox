@@ -61,10 +61,12 @@ namespace nanos
          
          /*! \brief Adds a commutative access of a DependableObject to the domains dependency system.
           *  \param target accessed base address/region
-          *  \param[in,out] status status of the address/region
+          *  \param accessType kind of access
+          *  \param[in,out] sourceStatus status of the source address/region (used to find input dependencies)
+          *  \param[in,out] targetStatus status of the target address/region (used to represent the new access)
           */
          template <typename SOURCE_STATUS_T>
-         inline CommutationDO *setUpInitialCommutationDependableObject( BaseDependency const &target, SOURCE_STATUS_T &sourceStatus, TrackableObject &targetStatus );
+         inline CommutationDO *setUpInitialCommutationDependableObject( BaseDependency const &target, AccessType const &accessType, SOURCE_STATUS_T &sourceStatus, TrackableObject &targetStatus );
          
          /*! \brief Adds a commutative access of a DependableObject to the domains dependency system.
           *  \tparam SOURCE_STATUS_T type of the sourceStatus. Can be a container of TrackableObject* or a TrackableObject&
