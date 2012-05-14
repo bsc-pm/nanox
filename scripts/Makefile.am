@@ -17,6 +17,8 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
+SUBDIRS = .
+
 EXTRA_DIST=\
            astyle-nanox.sh \
            bets \
@@ -38,5 +40,23 @@ rpm:
 	cp $(top_build_prefix)*.tar.gz SOURCES
 	rpmbuild -v -bb --clean $(srcdir)/nanox.spec --define '_topdir $(CURDIR)' --define 'version $(VERSION)' --without extrae
 
-clean-local:
+clean-rpm:
 	-rm -rf BUILDROOT SOURCES BUILD RPMS SPECS SRPMS
+
+
+deb:
+	cp $(top_build_prefix)*.tar.gz nanox_0.7a.orig.tar.gz
+	tar -xf nanox_0.7a.orig.tar.gz
+	mv nanox-0.7a upstream_dir
+	cp -rf $(srcdir)/debian upstream_dir/
+	cp -rf upstream_dir/COPYING upstream_dir/debian/copyright
+	-rm -f upstream_dir/debian/changelog
+	dch --create -c upstream_dir/debian/changelog --empty --package nanox -v 0.7a "0.7a"
+	cd upstream_dir; DEB_BUILD_OPTIONS="nocheck" debuild -us -uc
+	-rm -rf upstream_dir
+
+clean-deb:
+	-rm -f nanox_0.7a.orig.tar.gz nanox_0.7a.debian.tar.gz nanox_0.7a.dsc nanox_0.7a*.build nanox_0.7a*.changes *.deb
+	-rm -rf upstream_dir
+
+clean-local: clean-rpm clean-deb
