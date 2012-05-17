@@ -70,8 +70,15 @@ namespace nanos
 
          void setId ( int id ) { _id = id; }
          void setTeam ( ThreadTeam *team ) { _team = team; }
+         unsigned nextSingleBarrierGuard() {
+            ++(++_singleCount);
+            return _singleCount;
+         }
          unsigned nextSingleGuard() {
             ++_singleCount;
+            return _singleCount;
+         }
+         unsigned currentSingleGuard() {
             return _singleCount;
          }
         
@@ -248,6 +255,9 @@ namespace nanos
          int getCpuId();
 
          bool singleGuard();
+         bool enterSingleBarrierGuard ();
+         void releaseSingleBarrierGuard ();
+         void waitSingleBarrierGuard ();
 
         /*! \brief Returns if related thread is starring within team 't'
          */

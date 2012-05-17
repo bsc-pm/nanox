@@ -1,4 +1,3 @@
-
 /*************************************************************************************/
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
@@ -18,33 +17,40 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "nanos.h"
-#include "worksharing_decl.hpp"
+/*
+<testinfo>
+test_generator=gens/api-generator
+</testinfo>
+*/
+#include <stdio.h>
+#include <nanos.h>
 
-using namespace nanos;
+#define NUM_ITERS      20
+#define VECTOR_SIZE    1000
+// -  a non-divisor of VECTOR_SIZE (e.g. 13 using a VECTOR_SIZE 1000)
+#define NUM_A          1
+#define NUM_B          5
+#define NUM_C          13
 
-NANOS_API_DEF(nanos_err_t, nanos_worksharing_create, ( nanos_ws_desc_t **wsd, nanos_ws_t ws, nanos_ws_info_t *info,  bool *b ) )
+#define STEP_ERROR     17
+
+#include <stdlib.h>
+
+
+int main (int argc, char *argv[])
 {
-   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","",NANOS_RUNTIME) ); //FIXME: To register new event
+   bool check = true;
+   int i,it, *m = NULL;
 
-   try {
-      if ( b ) *b = ((WorkSharing *) ws)->create( wsd, info );
-      else ((WorkSharing *) ws)->create( wsd, info );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   for ( it = 0; it < NUM_ITERS; it++ ) 
+   {
+      nanos_malloc ( (void *) &m, sizeof(int)*VECTOR_SIZE, NULL, 0 );
+      for (i = 0; i < VECTOR_SIZE; i++) m[i] = 0;
+      for (i = 0; i < VECTOR_SIZE; i++) m[i]++;
+      for (i = 0; i < VECTOR_SIZE; i++) if ( m[i] != 1 ) { check = false; break; }
+      nanos_free (m);
+
    }
-   return NANOS_OK;
-}
 
-NANOS_API_DEF(nanos_err_t, nanos_worksharing_next_item, ( nanos_ws_desc_t *wsd, nanos_ws_item_t *wsi ))
-{
-   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","",NANOS_RUNTIME) ); //FIXME: To register new event
-
-   try {
-      ((WorkSharing *) wsd->ws)->nextItem( wsd, wsi );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-   return NANOS_OK;
-
+   if (check) { return 0; } else { return -1; }
 }

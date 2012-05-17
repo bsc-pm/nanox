@@ -5,6 +5,7 @@ plugins/slicers
 plugins/sched
 plugins/instrumentation
 plugins/barr
+plugins/worksharing
 plugins/deps
 arch/smp
 arch/gpu

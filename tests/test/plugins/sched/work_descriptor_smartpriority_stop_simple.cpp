@@ -142,7 +142,8 @@ int main ( int argc, char **argv )
    for ( i = 0; i < VECTOR_SIZE; i++ ) A[i] = 0;
 
    // Stop scheduler
-   sys.getSchedulerConf().setSchedulerEnabled( false );
+   sys.stopScheduler();
+   sys.waitUntilThreadsPaused();
    WG *wg = getMyThreadSafe()->getCurrentWD();
    WD * wd;
    // loop info initialization
@@ -206,7 +207,8 @@ int main ( int argc, char **argv )
    }
 
    // Re-enable the scheduler
-   sys.getSchedulerConf().setSchedulerEnabled( true );
+   sys.startScheduler();
+   sys.waitUntilThreadsUnpaused();
 
    
    // barrier (kind of)

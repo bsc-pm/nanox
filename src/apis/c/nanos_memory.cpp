@@ -1,4 +1,3 @@
-
 /*************************************************************************************/
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
@@ -17,34 +16,44 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
 #include "nanos.h"
-#include "worksharing_decl.hpp"
+#include "allocator.hpp"
+#include "memtracker.hpp"
+#include "instrumentation_decl.hpp"
 
-using namespace nanos;
-
-NANOS_API_DEF(nanos_err_t, nanos_worksharing_create, ( nanos_ws_desc_t **wsd, nanos_ws_t ws, nanos_ws_info_t *info,  bool *b ) )
+NANOS_API_DEF(nanos_err_t, nanos_malloc, ( void **p, size_t size, const char *file, int line ))
 {
-   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","",NANOS_RUNTIME) ); //FIXME: To register new event
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","malloc",NANOS_RUNTIME ) );
 
-   try {
-      if ( b ) *b = ((WorkSharing *) ws)->create( wsd, info );
-      else ((WorkSharing *) ws)->create( wsd, info );
+   try 
+   {
+#ifdef NANOS_DEBUG_ENABLED
+      if ( line != 0 ) *p = nanos::getMemTracker().allocate( size, file, line );
+      else *p = nanos::getMemTracker().allocate( size );
+#else
+      *p = nanos::getAllocator().allocate ( size );
+#endif
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
+
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_worksharing_next_item, ( nanos_ws_desc_t *wsd, nanos_ws_item_t *wsi ))
+NANOS_API_DEF(nanos_err_t, nanos_free, ( void *p ))
 {
-   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","",NANOS_RUNTIME) ); //FIXME: To register new event
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","free",NANOS_RUNTIME ) );
 
-   try {
-      ((WorkSharing *) wsd->ws)->nextItem( wsd, wsi );
+   try 
+   {
+#ifdef NANOS_DEBUG_ENABLED
+      nanos::getMemTracker().deallocate( p );
+#else
+      nanos::getAllocator().deallocate ( p );
+#endif
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
-   return NANOS_OK;
 
+   return NANOS_OK;
 }
