@@ -51,8 +51,7 @@ struct nanos_const_wd_definition_1 const_data_1 =
 {
    {{
       .mandatory_creation = 1,
-      .tied = 1,
-      .priority = 0
+      .tied = 1
    },
    0,//__alignof__(section_data_1),
    0,
@@ -83,7 +82,7 @@ int main()
                 }};*/
                 _nx_data_env_0_t *ol_args = (_nx_data_env_0_t *) 0;
                 nanos_wd_t wd = (nanos_wd_t) 0;
-                nanos_wd_dyn_props_t dyn_props = {0};
+                nanos_wd_dyn_props_t dyn_props = { .tie_to = 0, .priority = 0 };
                 __builtin_memset(&const_data_1.base.props, 0, sizeof (const_data_1.base.props));
                 const_data_1.base.data_alignment =  __alignof__(_nx_data_env_0_t);
                 const_data_1.devices[0].arg = &_ol_main_0_smp_args;
