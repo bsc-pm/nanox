@@ -63,7 +63,7 @@ namespace nanos {
              * scheduler, which is to propagate the priority of a WD to its
              * immediate predecessors. It is meant to be invoked from
              * DependenciesDomain::submitWithDependenciesInternal.
-             * \param [in/out] predecessor The preceeding DependableObject.
+             * \param [in/out] predecessor The preceding DependableObject.
              * \param [in] successor DependableObject whose WD priority has to be
              * propagated.
              */
