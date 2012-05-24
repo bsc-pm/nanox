@@ -31,3 +31,6 @@ smartpriority_sources = \
         $(top_srcdir)/src/plugins/sched/smartpriority_sched.cpp \
         $(END)
 
+affinity_smartpriority_sources = \
+        $(top_srcdir)/src/plugins/sched/affinity-smartpriority_sched.cpp \
+        $(END)
