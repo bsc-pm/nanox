@@ -37,9 +37,9 @@ void WorkDescriptor::init ()
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdCreate( this ) );
   
    //message("init wd " << getId() );
-   if ( getNewDirectory() == NULL )
-      initNewDirectory();
-   getNewDirectory()->setParent( ( getParent() != NULL ) ? getParent()->getNewDirectory() : NULL );   
+   //if ( getNewDirectory() == NULL )
+   //   initNewDirectory();
+   //getNewDirectory()->setParent( ( getParent() != NULL ) ? getParent()->getNewDirectory() : NULL );   
 
    if ( getNumCopies() > 0 ) {
       
@@ -57,6 +57,7 @@ void WorkDescriptor::init ()
       //}
       
       pe->copyDataIn( *this );
+      if ( _notifyCopy != NULL ) _notifyCopy( *this, *myThread );
 
       if ( _translateArgs != NULL ) {
          _translateArgs( _data, this );
@@ -134,16 +135,19 @@ bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
 
 void WorkDescriptor::submit( void )
 {
+   if ( getNewDirectory() == NULL )
+      initNewDirectory();
+   getNewDirectory()->setParent( ( getParent() != NULL ) ? getParent()->getNewDirectory() : NULL );   
    _ccontrol.preInit( getNewDirectory(), getNumCopies(), getCopies(), getId() );
    Scheduler::submit( *this );
 } 
 
 void WorkDescriptor::done ()
 {
-   ProcessingElement *pe = myThread->runningOn();
+   //ProcessingElement *pe = myThread->runningOn();
    waitCompletionAndSignalers( true );
-   if ( getNumCopies() > 0 )
-     pe->copyDataOut( *this );
+   //if ( getNumCopies() > 0 )
+   //  pe->copyDataOut( *this );
 
    if ( getNumCopies() > 0 && _ccontrol.isCreated() )
       _ccontrol.copyDataOut();
@@ -251,7 +255,9 @@ void WorkDescriptor::workFinished(WorkDescriptor &wd)
 {
    if ( _newDirectory == NULL ) initNewDirectory();
    //if (sys.getNetwork()->getNodeNum() > 0 ) std::cerr << "wd " << (unsigned int) wd.getId() <<":" <<(void *) wd.getNewDirectory() << " merging directory into parent " << (unsigned int) this->getId() <<":"<<(void *) _newDirectory << " num successors " << (int) ( wd._doSubmit != NULL ? wd._doSubmit->getSuccessors().size() : -1 ) << std::endl;
+               NANOS_INSTRUMENT( InstrumentState inst3(NANOS_POST_OUTLINE_WORK3); );
    _newDirectory->mergeOutput( *(wd.getNewDirectory()) );
+               NANOS_INSTRUMENT( inst3.close(); );
    //if (sys.getNetwork()->getNodeNum() > 0) {
    //   _newDirectory->consolidate( false );
    //}
@@ -259,4 +265,33 @@ void WorkDescriptor::workFinished(WorkDescriptor &wd)
    if ( wd._doSubmit != NULL )
       wd._doSubmit->finished();
    //if (sys.getNetwork()->getNodeNum()==0){ message("a child, " << wd.getId() << " has finished, im " << getId() ); }
+}
+void WorkDescriptor::setNotifyCopyFunc( void (*func)(WD &, BaseThread &) ) {
+   _notifyCopy = func;
+}
+
+unsigned int WorkDescriptor::getNumReaders() {
+   unsigned int result = 0;
+   //CopyData *copies = getCopies();
+   //for ( unsigned int i = 0; i < getNumCopies(); i++ ) {
+   //   CopyData & cd = copies[i];
+   //   if ( !cd.isPrivate() && cd.isOutput() ) {
+   //      result += (getParent()->_depsDomain)->getNumReaders( _ccontrol._cacheCopies[i]._region );
+   //   }
+   //}
+   //std::cerr << "getNumReaders: succ from dosubmit "<< _doSubmit->getSuccessors().size() << std::endl;
+   result = _doSubmit->getSuccessors().size();
+   return result;
+}
+
+unsigned int WorkDescriptor::getNumAllReaders() {
+   //unsigned int result = 0;
+   //CopyData *copies = getCopies();
+   //for ( unsigned int i = 0; i < getNumCopies(); i++ ) {
+   //   CopyData & cd = copies[i];
+   //   if ( !cd.isPrivate() && cd.isOutput() ) {
+   //   }
+   //}
+   //return result;
+         return (getParent()->_depsDomain)->getNumAllReaders(  );
 }

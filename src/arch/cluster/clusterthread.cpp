@@ -204,7 +204,7 @@ void ClusterThread::clearCompletedWDsGPU2( ) {
    {
       WD *completedWD = _completedWDsGPU[pos];
       Scheduler::postOutlineWork( completedWD, false, this );
-      delete[] (char *) completedWD;
+      //delete[] (char *) completedWD;
       _completedWDsGPU[pos] =(WD *) 0xdeadbeef;
       pos = (pos+1) % MAX_PRESEND;
       lowval += 1;

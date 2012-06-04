@@ -124,6 +124,7 @@ inline bool CachedAccelerator<CacheDevice>::checkBlockingCacheAccessDependent( D
 template <class CacheDevice>
 inline void CachedAccelerator<CacheDevice>::copyDataInDependent( WorkDescriptor &wd )
 {
+   //wd._ccontrol.preInit( wd.getNewDirectory(), wd.getNumCopies(), wd.getCopies(), wd.getId() );
    wd._ccontrol.copyDataIn( &_newCache );
 }
 template <class CacheDevice>

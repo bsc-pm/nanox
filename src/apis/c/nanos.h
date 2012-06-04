@@ -28,6 +28,7 @@
 // define API version
 #pragma nanos interface family(master) version(5014)
 #pragma nanos interface family(worksharing) version(1000)
+#pragma nanos interface family(deps_api) version(1001)
 #pragma nanos interface family(copies_api) version(1000)
 #pragma nanos interface family(deps_api) version(1000)
 #endif
@@ -211,6 +212,7 @@ NANOS_API_DECL(nanos_err_t, nanos_instrument_enable,( void ));
 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_disable,( void ));
 NANOS_API_DECL(nanos_err_t, nanos_get_node_num, ( unsigned int *num ));
+NANOS_API_DECL(int, nanos_get_num_nodes, ( ));
 
 // utility macros
 

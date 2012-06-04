@@ -181,8 +181,28 @@ class InstrumentationExtrae: public Instrumentation
          if ( pid == (pid_t) 0 ) {
             int result = execlp ( "sh", "sh", str, _traceFileName_PRV.c_str(), (char *) NULL); 
             exit(result);
+         } else {
+            if ( pid < 0 ) {
+                int errsv = errno;
+                message0("Error: Cannot execute mpi2prv due following error:");
+                switch ( errsv ){
+                   case EAGAIN:
+                      message0("fork() cannot allocate sufficient memory to copy the parent's page tables and allocate a task structure for the child.");
+                      break;
+                   case ENOMEM:
+                      message0("fork() failed to allocate the necessary kernel structures because memory is tight.");
+                      break;
+                   default:
+                      message0("fork() unknow error.");
+                      break;
+                }
+                message0("Keeping .mpits files. You can try to execute mpi2prv manually:");
+                message0(str << " -f " << _listOfTraceFileNames.c_str() << " -o " << _traceFileName_PRV.c_str() << " -e " << _binFileName.c_str() );
+                _keepMpits = true;
+            } else {
+               waitpid( pid, &status, options);
+            }
          }
-         else waitpid( pid, &status, options);
 
          if ( status != 0 ) {
             message0("Error in trace post-process. Trace generated but might be incorrect");
@@ -221,7 +241,16 @@ class InstrumentationExtrae: public Instrumentation
             p_file << NANOS_YIELD            << "     YIELD" << std::endl;
             p_file << NANOS_ACQUIRING_LOCK   << "     ACQUIRING LOCK" << std::endl;
             p_file << NANOS_CONTEXT_SWITCH   << "     CONTEXT SWITCH" << std::endl;
-            p_file << 27                     << "     EXTRAE I/O" << std::endl;
+            p_file << NANOS_DEBUG   << "     DEBUG" << std::endl;
+            p_file << NANOS_PRE_OUTLINE_WORK   << "     NANOS_PRE_OUTLINE_WORK" << std::endl;
+            p_file << NANOS_POST_OUTLINE_WORK   << "     NANOS_POST_OUTLINE_WORK" << std::endl;
+            p_file << NANOS_POST_OUTLINE_WORK2   << "     NANOS_POST_OUTLINE_WORK2" << std::endl;
+            p_file << NANOS_POST_OUTLINE_WORK3   << "     WD finished and merge output dir" << std::endl;
+            p_file << NANOS_POST_OUTLINE_WORK4   << "     NANOS_POST_OUTLINE_WORK4" << std::endl;
+            p_file << NANOS_POST_OUTLINE_WORK5   << "     NANOS_POST_OUTLINE_WORK5" << std::endl;
+            p_file << NANOS_CC_CDIN   << "     NANOS_CC_CDIN" << std::endl;
+            p_file << NANOS_CC_CDOUT   << "     NANOS_CC_CDOUT" << std::endl;
+            p_file << 100                     << "     EXTRAE I/O" << std::endl;
             p_file << std::endl;
 
             /* Event: PtPStart main event */
@@ -382,9 +411,9 @@ class InstrumentationExtrae: public Instrumentation
                      for (i = 0; i < strlen(str); i++) { if ( str[i] == ' ' ) {str[i] = 0x0; break;} }
 
                      // jbueno: cluster workaround until we get the new extrae
-                     std::cerr << "Removing file " << str << std::endl;
-                     str[ strlen(str) - 12 ] = '0' + ( (char) ( sys.getNetwork()->getNodeNum() % 10 ) );
-                     str[ strlen(str) - 13 ] = '0' + ( (char) ( sys.getNetwork()->getNodeNum() / 10 ) );
+                     //std::cerr << "Removing file " << str << std::endl;
+                     //str[ strlen(str) - 12 ] = '0' + ( (char) ( sys.getNetwork()->getNodeNum() % 10 ) );
+                     //str[ strlen(str) - 13 ] = '0' + ( (char) ( sys.getNetwork()->getNodeNum() / 10 ) );
 
                      if ( remove(str) != 0 ) message0("nanox: Unable to delete temporary/partial trace file" << str);
                      /* Try to remove sample file: if present */
@@ -434,8 +463,25 @@ class InstrumentationExtrae: public Instrumentation
                std::cerr << "Error calling /usr/bin/scp " << orig << " " << dest.c_str() << std::endl;
                exit(-1);
             }
+         } else {
+            if ( pid < 0 ) {
+                int errsv = errno;
+                message0("Error: Cannot execute mpi2prv due following error:");
+                switch ( errsv ){
+                   case EAGAIN:
+                      message0("fork() cannot allocate sufficient memory to copy the parent's page tables and allocate a task structure for the child.");
+                      break;
+                   case ENOMEM:
+                      message0("fork() failed to allocate the necessary kernel structures because memory is tight.");
+                      break;
+                   default:
+                      message0("fork() unknow error.");
+                      break;
+                }
+            } else {
+               waitpid( pid, &status, options);
+            }
          }
-         else waitpid( pid, &status, options);
       }
 
       void copyFilesToMaster()
@@ -461,8 +507,8 @@ class InstrumentationExtrae: public Instrumentation
                      {
                         for (unsigned int i = 0; i < strlen(str); i++) if ( str[i] == ' ' ) str[i] = 0x0;
                         // jbueno: cluster workaround until we get the new extrae
-                        str[ strlen(str) - 12 ] = '0' + ( (char) ( sys.getNetwork()->getNodeNum() % 10 ) );
-                        str[ strlen(str) - 13 ] = '0' + ( (char) ( sys.getNetwork()->getNodeNum() / 10 ) );
+                        //str[ strlen(str) - 12 ] = '0' + ( (char) ( sys.getNetwork()->getNodeNum() % 10 ) );
+                        //str[ strlen(str) - 13 ] = '0' + ( (char) ( sys.getNetwork()->getNodeNum() / 10 ) );
                         secureCopy(str, dst + ":" + _traceFinalDirectory.substr(0,found+1));
                      }
                   }
@@ -628,13 +674,60 @@ class InstrumentationExtrae: public Instrumentation
         Extrae_set_numtasks_function ( nanos_extrae_num_nodes );
         Extrae_set_barrier_tasks_function ( nanos_ompitrace_instrumentation_barrier );
 #endif
-
+         std::cerr << "nanos_extrae_node_id is " << nanos_extrae_node_id() << std::endl;
          /* OMPItrace initialization */
          if ( !_skipInit ) OMPItrace_init();
+      }
+      void doLs(std::string dest)
+      {
+         pid_t pid;
+         int status, options = 0;
+
+         std::cerr << "list directory " << dest << std::endl;
+
+         pid = vfork();
+         if ( pid == (pid_t) 0 ) {
+            dup2(2, 1);
+            int execret = execl ( "/bin/ls", "ls", dest.c_str(), (char *) NULL); 
+            if ( execret == -1 )
+            {
+               std::cerr << "Error calling /bin/ls " << dest.c_str() << std::endl;
+               exit(-1);
+            }
+         } else {
+            if ( pid < 0 ) {
+                int errsv = errno;
+                message0("Error: Cannot execute mpi2prv due following error:");
+                switch ( errsv ){
+                   case EAGAIN:
+                      message0("fork() cannot allocate sufficient memory to copy the parent's page tables and allocate a task structure for the child.");
+                      break;
+                   case ENOMEM:
+                      message0("fork() failed to allocate the necessary kernel structures because memory is tight.");
+                      break;
+                   default:
+                      message0("fork() unknow error.");
+                      break;
+                }
+            } else {
+               waitpid( pid, &status, options);
+            }
+         }
       }
 
       void finalize ( void )
       {
+         if ( sys.getNetwork()->getNodeNum() != 0 ) {
+            std::cerr << "_listOfTraceFileNames " << _listOfTraceFileNames << std::endl;
+            std::cerr << "_traceDirectory " << _traceDirectory << std::endl;
+            doLs(_traceDirectory + "/set-0" );
+            std::cerr << "_traceFinalDirectory " << _traceFinalDirectory << std::endl;
+            std::cerr << "_traceParaverDirectory " << _traceParaverDirectory << std::endl;
+            std::cerr << "_traceFileName_PRV " << _traceFileName_PRV << std::endl;
+            std::cerr << "_traceFileName_PCF " << _traceFileName_PCF << std::endl;
+            std::cerr << "_traceFileName_ROW " << _traceFileName_ROW << std::endl;
+            std::cerr << "_binFileName " << _binFileName << std::endl;
+         }
          if ( !_skipFini ) OMPItrace_fini();
          getTraceFileName();
          modifyParaverConfigFile();

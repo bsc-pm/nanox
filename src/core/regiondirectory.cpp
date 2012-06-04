@@ -42,6 +42,7 @@
 
 #include "regiondirectory.hpp"
 #include "atomic.hpp"
+#include "os.hpp"
 
 using namespace nanos;
 
@@ -78,7 +79,7 @@ void NewRegionDirectory::insertRegionIntoTree( RegionTree<NewDirectoryEntryData>
    }
 }
 
-void NewRegionDirectory::masterGetLocation( Region reg, LocationInfoList &loc, unsigned int &version )
+void NewRegionDirectory::masterGetLocation( Region const &reg, LocationInfoList &loc, unsigned int &version )
 {
    version = 0;
 
@@ -139,7 +140,7 @@ void NewRegionDirectory::masterGetLocation( Region reg, LocationInfoList &loc, u
    //_mergeLock.release();
 }
 
-void NewRegionDirectory::getLocation( Region reg, LocationInfoList &loc, unsigned int &version )
+void NewRegionDirectory::getLocation( Region const &reg, LocationInfoList &loc, unsigned int &version )
 {
    bool skipParent = false;
    version = 0;
@@ -186,6 +187,7 @@ void NewRegionDirectory::getLocation( Region reg, LocationInfoList &loc, unsigne
    }
 
    if ( !skipParent ) {
+ ensure(_parent != NULL, "directory with unset parent.");
    _parent->_mergeLock.acquire();
       _parent->_directory.find( reg, outsParent );
       RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator mergeIt;
@@ -263,20 +265,28 @@ void NewRegionDirectory::getLocation( Region reg, LocationInfoList &loc, unsigne
 }
 
 
-void NewRegionDirectory::addAccess(Region reg, unsigned int memorySpaceId, unsigned int version )
+void NewRegionDirectory::addAccess(Region const &reg, unsigned int memorySpaceId, unsigned int version )
 {
    insertRegionIntoTree( _directory, reg, memorySpaceId, true, *((NewDirectoryEntryData * ) NULL), version );
 }
 
-void NewRegionDirectory::_internal_merge( RegionTree<NewDirectoryEntryData> const &inputDir, RegionTree<NewDirectoryEntryData> &targetDir )
+void NewRegionDirectory::_internal_merge( RegionTree<NewDirectoryEntryData> const &inputDir, RegionTree<NewDirectoryEntryData> &targetDir, bool print )
 {
+   //double time1, time2, time3, time4;
    //merge a predecessor wd (inputDir._directory) directory into mine (this._inputDirectory)
+
+   //time1 = OS::getMonotonicTime();
+
    nanos_region_dimension_internal_t wholeMemDim[1] = { { -1ULL, 0, -1ULL } };
    Region r = build_region( DataAccess((void *) 0, true, true, false, false, 1, wholeMemDim ) );
    RegionTree<NewDirectoryEntryData>::iterator_list_t outs;
 
+   //time2 = OS::getMonotonicTime();
+
   //if(sys.getNetwork()->getNodeNum() > 0 ) std::cerr << "_internal_merge !!! " << std::endl;
    inputDir.find( r, outs );
+   //time3 = OS::getMonotonicTime();
+   int n = 0;
    for ( RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator it = outs.begin();
          it != outs.end();
          it++
@@ -284,10 +294,19 @@ void NewRegionDirectory::_internal_merge( RegionTree<NewDirectoryEntryData> cons
       RegionTree<NewDirectoryEntryData>::iterator_list_t insertOuts;
       RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
       NewDirectoryEntryData &nded = *accessor;
+      n++;
 
       //if(sys.getNetwork()->getNodeNum() > 0 )std::cerr << "::::::merge, insert region "<<  accessor.getRegion() << " locinfo: " << nded << std::endl;
       insertRegionIntoTree( targetDir, accessor.getRegion(), /* not used */ 0, false, nded, 0 );
    }
+   //time4 = OS::getMonotonicTime();
+   //if ( sys.getNetwork()->getNodeNum() == 0 && print ) {
+   //fprintf(stderr, "---------------------\n");
+   //fprintf(stderr, "Init time: %f\n", time2-time1);
+   //fprintf(stderr, "Find time: %f\n", time3-time2);
+   //fprintf(stderr, "Merge time: %f - %d items\n", time4-time3, n);
+   //fprintf(stderr, "---------------------\n");
+   //}
   // std::cerr << "_internal_merge end !!! " << std::endl;
 }
 void NewRegionDirectory::merge( const NewRegionDirectory &inputDir )
@@ -312,7 +331,7 @@ void NewRegionDirectory::mergeOutput( const NewRegionDirectory &inputDir )
    //if(sys.getNetwork()->getNodeNum() == 0)std::cerr << "mergeOut " <<  &inputDir._directory << " into " << &_inputDirectory << std::endl;
    //if(sys.getNetwork()->getNodeNum() == 0) std::cerr <<_inputDirectory << std::endl;
    //_internal_merge( inputDir._directory , _inputDirectory );
-   _internal_merge( inputDir._directory , _directory );
+   _internal_merge( inputDir._directory , _directory, true );
    //if(sys.getNetwork()->getNodeNum() == 0)std::cerr << "mergeOut " <<  &inputDir._directory << " into " << &_inputDirectory << std::endl;
    //if(sys.getNetwork()->getNodeNum() == 0)std::cerr << "after merge " <<  &inputDir._directory << " into " << &_inputDirectory << std::endl;
    //if(sys.getNetwork()->getNodeNum() == 0) std::cerr  << _inputDirectory << std::endl;

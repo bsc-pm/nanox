@@ -303,6 +303,9 @@ namespace nanos {
 
             /* 33 */ registerEventKey("num-scheds","Number of scheduler operations"); 
             /* 34 */ registerEventKey("time-scheds","Time on scheduler operations (in nsecs)");
+            /* 35 */ registerEventKey("copy-data-in","WD id that is copying data in");
+            /* 36 */ registerEventKey("cache-copy-data-in","WD id that is copying data in");
+            /* 37 */ registerEventKey("cache-copy-data-out","WD id that is copying data in");
 
             /* ** */ registerEventKey("debug","Debug Key"); /* Keep this key as the last one */
          }

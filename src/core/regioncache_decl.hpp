@@ -185,6 +185,7 @@ namespace nanos {
          bool tryLock();
          bool canCopyFrom( RegionCache const &from ) const;
          Device const *getDevice() const;
+         unsigned int getNodeNumber() const;
    };
 
    class CacheCopy {
@@ -203,7 +204,8 @@ namespace nanos {
 
 
    class CacheControler {
-      private:
+      // affinity private:
+      public:
          unsigned int _wdId;
          unsigned int _numCopies;
          CacheCopy *_cacheCopies;

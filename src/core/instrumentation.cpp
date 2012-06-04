@@ -444,6 +444,7 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
    if ( new_icd != NULL) {
       /* Creating PtP event */
       ASSIGN_EVENT( e[i++] , PtP , (false, NANOS_WD_DOMAIN, (nanos_event_id_t) newWD->getId(), 0, NULL) );
+     
 
       if ( csEvent ) {
          ASSIGN_EVENT( e[i++] , State , ( NANOS_STATE_END, NANOS_CONTEXT_SWITCH ) );

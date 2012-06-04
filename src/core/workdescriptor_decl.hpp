@@ -192,6 +192,7 @@ namespace nanos
          nanos_translate_args_t        _translateArgs; /**< Translates the addresses in _data to the ones obtained by get_address(). */
          Atomic< std::list<GraphEntry *> * > _myGraphRepList;
          bool _listed;
+         void (*_notifyCopy)( WD &wd, BaseThread &thread);
 
          unsigned int                  _priority;      /**< Task priority */
       public:
@@ -215,7 +216,7 @@ namespace nanos
                           _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : NULL ),
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain(), _directory(), _newDirectory( NULL ), _instrumentationContextData(), _submitted(false), _translateArgs( translate_args ),_myGraphRepList(NULL), _listed(false), _priority( 0 ) { getGE()->setNoWait(); }
+                          _depsDomain(), _directory(), _newDirectory( NULL ), _instrumentationContextData(), _submitted(false), _translateArgs( translate_args ),_myGraphRepList(NULL), _listed(false), _notifyCopy( NULL ), _priority( 0 ) { getGE()->setNoWait(); }
                           //_depsDomain(), _directory(), _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted(false), _translateArgs( translate_args ) { }
 
          /*! \brief WorkDescriptor constructor - 2
@@ -227,7 +228,7 @@ namespace nanos
                           _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( 1 ), _devices ( &_activeDevice ), _activeDevice ( device ),
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain(), _directory(), _newDirectory( NULL ), _instrumentationContextData(), _submitted( false ), _translateArgs( translate_args ),_myGraphRepList(NULL), _listed(false), _priority( 0 ) { getGE()->setNoWait(); }
+                          _depsDomain(), _directory(), _newDirectory( NULL ), _instrumentationContextData(), _submitted( false ), _translateArgs( translate_args ),_myGraphRepList(NULL), _listed(false), _notifyCopy( NULL ), _priority( 0 ) { getGE()->setNoWait(); }
                           //_depsDomain(), _directory(),  _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted( false ), _translateArgs( translate_args ) { }
 
          /*! \brief WorkDescriptor copy constructor (using a given WorkDescriptor)
@@ -246,7 +247,7 @@ namespace nanos
                           _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ), _myQueue ( NULL ), _depth ( wd._depth ),
                           _numDevices ( wd._numDevices ), _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
                           _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
-                          _doSubmit(), _doWait(), _depsDomain(), _directory(), _newDirectory( wd._newDirectory ), _instrumentationContextData(), _submitted( false ), _translateArgs( wd._translateArgs ),_myGraphRepList(wd._myGraphRepList) , _listed(wd._listed), _priority( wd._priority ) { }
+                          _doSubmit(), _doWait(), _depsDomain(), _directory(), _newDirectory( wd._newDirectory ), _instrumentationContextData(), _submitted( false ), _translateArgs( wd._translateArgs ),_myGraphRepList(wd._myGraphRepList) , _listed(wd._listed), _notifyCopy( NULL ), _priority( wd._priority ) { }
                           //_doSubmit(), _doWait(), _depsDomain(), _directory(), _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted( false ), _translateArgs( wd._translateArgs ) { }
 
          /*! \brief WorkDescriptor destructor
@@ -491,6 +492,10 @@ namespace nanos
 
          void setPriority( unsigned int priority );
          unsigned getPriority() const;
+         void setNotifyCopyFunc( void (*func)(WD &, BaseThread &) );
+
+         unsigned int getNumReaders();
+         unsigned int getNumAllReaders();
    };
 
    typedef class WorkDescriptor WD;

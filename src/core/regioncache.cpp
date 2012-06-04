@@ -43,7 +43,7 @@ DeviceOpsPtr::~DeviceOpsPtr() {
    }
 }
 
-CachedRegionStatus::CachedRegionStatus() : _status( READY ), _version( 1 ) {}
+CachedRegionStatus::CachedRegionStatus() : _status( READY ), _version( 0 ) {}
 CachedRegionStatus::CachedRegionStatus( CachedRegionStatus const &rs ) : _status( rs._status ), _version( rs._version ), _waitObject ( rs._waitObject ) {}
 CachedRegionStatus &CachedRegionStatus::operator=( CachedRegionStatus const &rs ) { _status = rs._status; _version = rs._version; _waitObject = rs._waitObject;  return *this; }
 CachedRegionStatus::CachedRegionStatus( CachedRegionStatus &rs ) : _status( rs._status ), _version( rs._version ), _waitObject ( rs._waitObject ) {}
@@ -398,14 +398,22 @@ unsigned int RegionCache::getMemorySpaceId() {
 
 void RegionCache::copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId ) {
    ops->addOp();
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-data-in"); )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) len ); )
    //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<sys.getNetwork()->getNodeNum() << " RegionCache<"<< _pe->getMemorySpaceId() <<"::copyIn "<< (void *) devAddr << " <=h " << (void *) hostAddr << " len " << len << " ops complete? "  << ( ops->allCompleted() ? "yes" : "no" )<<std::endl;
   // std::cerr <<sys.getNetwork()->getNodeNum() << " RegionCache<"<< _pe->getMemorySpaceId() <<"::copyIn "<< (void *) devAddr << " <=h " << (void *) hostAddr << " len " << len << " ops complete? "  << ( ops->allCompleted() ? "yes" : "no" )<<std::endl;
    _device->_copyIn( devAddr, hostAddr, len, _pe, ops, wdId );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( key ); )
 }
 void RegionCache::copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, DeviceOps *ops ) {
    ops->addOp();
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-data-out"); )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) len ); )
    _device->_copyOut( hostAddr, devAddr, len, _pe, ops );
    //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<sys.getNetwork()->getNodeNum() << " RegionCache<"<< _pe->getMemorySpaceId() <<">::copyOut "<< (void *) devAddr << " =>h " << (void *) hostAddr << " len " << len << " ops complete? "  << ( ops->allCompleted() ? "yes" : "no" )<<std::endl;
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( key ); )
 }
 void RegionCache::syncAndCopyIn( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId ) {
    uint64_t offset;
@@ -506,8 +514,8 @@ void CacheControler::preInit( NewDirectory *dir, std::size_t numCopies, CopyData
    unsigned int index;
    _directory = dir;
    _wdId = wdId;
-   if ( numCopies > 0 ) {
-      _numCopies = numCopies;
+   _numCopies = numCopies;
+   if ( _numCopies > 0 ) {
       _cacheCopies = NEW CacheCopy[ _numCopies ];
       for ( index = 0; index < _numCopies; index += 1 ) {
          CacheCopy &ccopy = _cacheCopies[ index ];
@@ -525,8 +533,7 @@ void CacheControler::copyDataInNoCache() {
       CacheCopy &ccopy = _cacheCopies[ index ];
       _directory->addAccess( ccopy._region, 0, ccopy._copy->isOutput() ? ccopy._version + 1 : ccopy._version );
 
-      if ( ccopy._copy->isInput() ) continue;
-
+      if ( ccopy._copy->isInput() )
       {
          std::map<unsigned int, std::list<Region> > locationMap;
 
@@ -550,6 +557,7 @@ void CacheControler::copyDataInNoCache() {
 void CacheControler::copyDataIn(RegionCache *targetCache) {
    unsigned int index;
    _targetCache = targetCache;
+               NANOS_INSTRUMENT( InstrumentState inst2(NANOS_CC_CDIN); );
    if ( _numCopies > 0 ) {
       /* Get device address, allocate if needed */
       for ( index = 0; index < _numCopies; index += 1 ) {
@@ -675,6 +683,11 @@ void CacheControler::copyDataIn(RegionCache *targetCache) {
       }
    }
 
+               NANOS_INSTRUMENT( inst2.close(); );
+}
+
+unsigned int RegionCache::getNodeNumber() const {
+   return _pe->getMyNodeNumber();
 }
 
 bool CacheControler::dataIsReady() const {
@@ -719,6 +732,7 @@ uint64_t CacheControler::getAddress( unsigned int copyId ) const {
 
 void CacheControler::copyDataOut() {
    unsigned int index;
+               NANOS_INSTRUMENT( InstrumentState inst2(NANOS_CC_CDOUT); );
    for ( index = 0; index < _numCopies; index += 1 ) {
       CacheCopy &ccopy = _cacheCopies[ index ];
 
@@ -731,4 +745,6 @@ void CacheControler::copyDataOut() {
          //Region origReg = NewRegionDirectory::build_region( *ccopy._copy );
       //   _targetCache->syncRegion( reg, (ccopy._cacheEntry->address + ccopy._offset) + ccopy._copy->getOffset() );
    }
+       
+               NANOS_INSTRUMENT( inst2.close(); );
 }

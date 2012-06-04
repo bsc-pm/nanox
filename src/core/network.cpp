@@ -123,9 +123,9 @@ void Network::sendWorkDoneMsg( unsigned int nodeNum, void *remoteWdAddr, int peI
    //  ensure ( _api != NULL, "No network api loaded." );
    if ( _api != NULL )
    {
-      NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
-      NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) remoteWdAddr)  ) ; )
-      NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL, 0 ); )
+      //NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+      //NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) remoteWdAddr)  ) ; )
+      //NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL, 0 ); )
       if ( _nodeNum != MASTER_NODE_NUM )
       {
          _api->sendWorkDoneMsg( nodeNum, remoteWdAddr, peId );
@@ -135,9 +135,9 @@ void Network::sendWorkDoneMsg( unsigned int nodeNum, void *remoteWdAddr, int peI
 
 void Network::notifyWorkDone ( unsigned int nodeNum, void *remoteWdAddr, int peId)
 {
-   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
-   NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) remoteWdAddr) ) ; )
-   NANOS_INSTRUMENT ( instr->raiseClosePtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL, nodeNum ); )
+   //NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+   //NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) remoteWdAddr) ) ; )
+   //NANOS_INSTRUMENT ( instr->raiseClosePtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL, nodeNum ); )
 
    ( (WD *) remoteWdAddr )->notifyOutlinedCompletion();
 }

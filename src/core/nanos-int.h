@@ -50,6 +50,7 @@ typedef struct {
    bool  input: 1;
    bool  output: 1;
    bool  can_rename:1;
+   bool  concurrent: 1;
    bool  commutative: 1;
 } nanos_access_type_internal_t;
 
@@ -204,7 +205,7 @@ typedef struct {
 
 typedef struct {
    nanos_thread_t tie_to;
-   int priority;
+   unsigned int priority;
 } nanos_wd_dyn_props_t;
 
 typedef struct {
@@ -224,7 +225,7 @@ typedef enum { NANOS_NOT_CREATED, NANOS_NOT_RUNNING, NANOS_STARTUP, NANOS_SHUTDO
                NANOS_MEM_TRANSFER_IN, NANOS_MEM_TRANSFER_OUT, NANOS_MEM_TRANSFER_LOCAL,
                NANOS_MEM_TRANSFER_DEVICE_IN, NANOS_MEM_TRANSFER_DEVICE_OUT, NANOS_MEM_TRANSFER_DEVICE_LOCAL,
                NANOS_CACHE, NANOS_YIELD, NANOS_ACQUIRING_LOCK, NANOS_CONTEXT_SWITCH, NANOS_DEBUG, 
-               NANOS_PRE_OUTLINE_WORK, NANOS_POST_OUTLINE_WORK, NANOS_EVENT_STATE_TYPES
+ /*22*/              NANOS_PRE_OUTLINE_WORK, NANOS_POST_OUTLINE_WORK, NANOS_POST_OUTLINE_WORK2, NANOS_POST_OUTLINE_WORK3, NANOS_POST_OUTLINE_WORK4, NANOS_POST_OUTLINE_WORK5, NANOS_CC_CDIN, NANOS_CC_CDOUT, NANOS_EVENT_STATE_TYPES
 } nanos_event_state_value_t; /**< State enum values */
 
 typedef enum { NANOS_WD_DOMAIN, NANOS_WD_DEPENDENCY, NANOS_WAIT, NANOS_WD_REMOTE, NANOS_XFER_PUT, NANOS_XFER_GET,

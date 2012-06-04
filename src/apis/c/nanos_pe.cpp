@@ -66,3 +66,8 @@ NANOS_API_DEF(nanos_err_t, nanos_get_node_num, ( unsigned int * node ))
    *node = sys.getNetwork()->getNodeNum();
    return NANOS_OK;
 }
+
+NANOS_API_DEF(int, nanos_get_num_nodes, ())
+{
+   return sys.getNetwork()->getNumNodes();
+}

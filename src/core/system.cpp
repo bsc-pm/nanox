@@ -368,7 +368,7 @@ void System::start ()
    _pmInterface->setupWD( mainWD );
    mainWD.initNewDirectory();
    mainWD.getNewDirectory()->setRoot();
-   message0("mainWD is id " << mainWD.getId() << " and dir addr is " << (void *) mainWD.getNewDirectory() );
+   //message0("mainWD is id " << mainWD.getId() << " and dir addr is " << (void *) mainWD.getNewDirectory() );
 
    /* Renaming currend thread as Master */
    myThread->rename("Master");
@@ -377,7 +377,8 @@ void System::start ()
 
    _targetThreads = getThsPerPE() * numPes;
 #ifdef GPU_DEV
-   _targetThreads += nanos::ext::GPUConfig::getGPUCount();
+  // _targetThreads += nanos::ext::GPUConfig::getGPUCount();
+   _targetThreads +=  ( ( usingCluster() && sys.getNetwork()->getNodeNum() == 0 && sys.getNetwork()->getNumNodes() > 1 ) ? 0 : nanos::ext::GPUConfig::getGPUCount() );
    _localAccelerators.reserve( nanos::ext::GPUConfig::getGPUCount() );
 #endif
 
@@ -430,7 +431,8 @@ void System::start ()
 
 #ifdef GPU_DEV
    int gpuC;
-   for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount(); gpuC++ ) {
+   for ( gpuC = 0; gpuC < ( ( usingCluster() && sys.getNetwork()->getNodeNum() == 0 && sys.getNetwork()->getNumNodes() > 1 ) ? 0 : nanos::ext::GPUConfig::getGPUCount() ); gpuC++ ) {
+   //for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount() ; gpuC++ ) {
       PE *gpu = NEW nanos::ext::GPUProcessor( p++, gpuC );
       _pes.push_back( gpu );
       _localAccelerators.push_back( dynamic_cast<nanos::ext::GPUProcessor *>( gpu ) );
@@ -512,6 +514,11 @@ void System::start ()
    if ( getSynchronizedStart() )
      threadReady();
 
+   if ( usingCluster() )
+   {
+      _net.nodeBarrier();
+   }
+
    switch ( getInitialMode() )
    {
       case POOL:
@@ -532,11 +539,6 @@ void System::start ()
    // All initialization is ready, call postInit hooks
    const OS::InitList & externalInits = OS::getPostInitializationFunctions();
    std::for_each(externalInits.begin(),externalInits.end(), ExecInit());
-
-   if ( usingCluster() )
-   {
-      _net.nodeBarrier();
-   }
 
 #if 0
    /* Master thread is ready and waiting for the rest of the gang */
@@ -605,7 +607,6 @@ void System::finish ()
    }
 
    verbose ( "Joining threads... phase 2" );
-
 
    // shutdown instrumentation
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );

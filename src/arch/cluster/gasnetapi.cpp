@@ -550,8 +550,8 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
    }
    {
       NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
-         NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( wdId ) ; )
-         NANOS_INSTRUMENT ( instr->raiseClosePtPEvent( NANOS_AM_WORK, id, 0, 0, src_node ); )
+      NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( wdId ) ; )
+      NANOS_INSTRUMENT ( instr->raiseClosePtPEvent( NANOS_AM_WORK, id, 0, 0, src_node ); )
    }
    char *work_data = NULL;
    std::size_t work_data_len = 0;
@@ -636,9 +636,9 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
    localWD->setId( wdId );
    localWD->setRemoteAddr( rmwd );
    {
-           NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
-           NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wdId)  )  ; )
-           NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *localWD, NANOS_WD_REMOTE, id, 0, NULL, NULL, 0 ); )
+      NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+      NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wdId)  )  ; )
+      NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *localWD, NANOS_WD_REMOTE, id, 0, NULL, NULL, 0 ); )
    }
 
    //message("n:" << gasnet_mynode() << " amWork, id is "<< wdId << " deps " << numDeps << " seq " << seq << " curr seq " << _recvSeqN.value() );
@@ -696,8 +696,7 @@ void GASNetAPI::amMalloc( gasnet_token_t token, gasnet_handlerarg_t sizeLo, gasn
       gasnet_handlerarg_t waitObjAddrLo, gasnet_handlerarg_t waitObjAddrHi )
 {
    gasnet_node_t src_node;
-   void *addr = NULL; 
-   // volatile int *ptr;
+   void *addr = NULL; //volatile int *ptr;
    std::size_t size = ( std::size_t ) MERGE_ARG( sizeHi, sizeLo );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
@@ -1069,12 +1068,12 @@ void GASNetAPI::amPutF( gasnet_token_t token,
          break;
    }
 
-   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
-   NANOS_INSTRUMENT ( nanos_event_value_t xferSize = len; )
-   NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( destAddr ) ; )
-   NANOS_INSTRUMENT ( instr->raiseClosePtPEvent( NANOS_XFER_PUT, id, sizeKey, xferSize, src_node ); )
+   //NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+   //NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
+   //NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
+   //NANOS_INSTRUMENT ( nanos_event_value_t xferSize = len; )
+   //NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( destAddr ) ; )
+   //NANOS_INSTRUMENT ( instr->raiseClosePtPEvent( NANOS_XFER_PUT, id, sizeKey, xferSize, src_node ); )
 }
 
 void GASNetAPI::amRequestPut( gasnet_token_t token,
@@ -1539,12 +1538,12 @@ void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *local
          NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
          NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
          NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
-         NANOS_INSTRUMENT ( nanos_event_value_t xferSize = thisReqSize; )
-         NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( remoteAddr + sent ) ; )
-         NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_XFER_PUT, id, sizeKey, xferSize, remoteNode ); )
 
          if ( remoteTmpBuffer != NULL )
          { 
+         NANOS_INSTRUMENT ( nanos_event_value_t xferSize = thisReqSize; )
+         NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( ((uint64_t)remoteTmpBuffer) + sent ) ; )
+         NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_XFER_PUT, id, sizeKey, xferSize, remoteNode ); )
             if ( gasnet_AMRequestLong9( remoteNode, 210,
                      &( ( char *) localAddr )[ sent ],
                      thisReqSize,
@@ -1565,6 +1564,9 @@ void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *local
          }
          else
          {
+         NANOS_INSTRUMENT ( nanos_event_value_t xferSize = thisReqSize; )
+         NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( remoteAddr + sent ) ; )
+         NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_XFER_PUT, id, sizeKey, xferSize, remoteNode ); )
             if ( gasnet_AMRequestLong9( remoteNode, 210,
                      &( ( char *) localAddr )[ sent ],
                      thisReqSize,

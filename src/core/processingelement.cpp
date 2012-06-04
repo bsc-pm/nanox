@@ -55,10 +55,10 @@ void ProcessingElement::copyDataIn( WorkDescriptor &work )
       unsigned int currentVersion = 0;
       NewDirectory::LocationInfoList locations;
       Region reg = NewDirectory::build_region( copies[ index ] );
-      dir->lock();
+      //dir->lock();
       dir->getLocation( reg, locations, currentVersion );
       dir->addAccess( reg, 0, copies[ index ].isOutput() ? currentVersion + 1 : currentVersion );
-      dir->unlock();
+      //dir->unlock();
       if ( !copies[ index ].isInput() ) continue;
 
       {

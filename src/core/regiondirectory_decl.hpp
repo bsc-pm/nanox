@@ -173,9 +173,9 @@ namespace nanos
          *  \param input Whether the access is a read
          *  \param output Whether the access is a write
          */
-         void getLocation( Region reg, LocationInfoList &loc, unsigned int &version );
-         void masterGetLocation( Region reg, LocationInfoList &loc, unsigned int &version );
-         void addAccess(Region reg, unsigned int memorySpaceId, unsigned int version );
+         void getLocation( Region const &reg, LocationInfoList &loc, unsigned int &version );
+         void masterGetLocation( Region const &reg, LocationInfoList &loc, unsigned int &version );
+         void addAccess(Region const &reg, unsigned int memorySpaceId, unsigned int version );
 
          void merge( const NewRegionDirectory &input );
          void mergeOutput( const NewRegionDirectory &input );
@@ -192,7 +192,7 @@ namespace nanos
          template <class RegionDesc> static Region build_region_with_given_base_address( RegionDesc const &dataAccess, uint64_t newBaseAddress );
 
       private:
-         static void _internal_merge( RegionTree<NewDirectoryEntryData> const &inputDir, RegionTree<NewDirectoryEntryData> &targetDir );
+         static void _internal_merge( RegionTree<NewDirectoryEntryData> const &inputDir, RegionTree<NewDirectoryEntryData> &targetDir, bool print = false );
    };
 
 
