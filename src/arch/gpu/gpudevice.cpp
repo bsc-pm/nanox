@@ -19,6 +19,7 @@
 
 
 #include "gpudevice.hpp"
+#include "gpuutils.hpp"
 #include "basethread.hpp"
 #include "debug.hpp"
 #include <sys/resource.h>
@@ -64,8 +65,8 @@ void * GPUDevice::allocateWholeMemory( size_t &size )
 
    size = ( size_t ) ( size * percentage );
 
-   fatal_cond( err != cudaSuccess, "Trying to allocate " +  toString<size_t>( size ) +
-         + " bytes of device memory with cudaMalloc(): " +  cudaGetErrorString( err ) );
+   fatal_cond( err != cudaSuccess, "Trying to allocate " +  ext::bytesToHumanReadable( size ) +
+         + " of device memory with cudaMalloc(): " +  cudaGetErrorString( err ) );
 
    // Reset CUDA errors that may have occurred during this memory allocation
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT );
@@ -95,8 +96,8 @@ void * GPUDevice::allocatePinnedMemory( size_t size )
 
    ensure( address != NULL, "cudaMallocHost() returned a NULL pointer" );
 
-   fatal_cond( err != cudaSuccess, "Trying to allocate " +  toString<size_t>( size ) +
-         + " bytes of host memory with cudaMallocHost(): " +  cudaGetErrorString( err ) );
+   fatal_cond( err != cudaSuccess, "Trying to allocate " +  ext::bytesToHumanReadable( size ) +
+         + " of host memory with cudaMallocHost(): " +  cudaGetErrorString( err ) );
 
    return address;
 }
@@ -144,8 +145,8 @@ void GPUDevice::copyLocal( void *dst, void *src, size_t size, ProcessingElement 
        NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
    }
 
-   fatal_cond( err != cudaSuccess, "Trying to copy " + toString<size_t>( size )
-         + " bytes of data from device (" + toString<void *>( src ) + ") to device ("
+   fatal_cond( err != cudaSuccess, "Trying to copy " + ext::bytesToHumanReadable( size )
+         + " of data from device (" + toString<void *>( src ) + ") to device ("
          + toString<void *>( dst ) + ") with cudaMemcpy*(): " + cudaGetErrorString( err ) );
 }
 
@@ -158,8 +159,8 @@ void GPUDevice::copyInSyncToDevice ( void * dst, void * src, size_t size )
    //std::cerr <<"cudaMemCpy " << dst << " " << src << " "<<size <<std::endl;
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
-   fatal_cond( err != cudaSuccess, "Trying to copy " + toString<size_t>( size )
-         + " bytes of data from host (" + toString<void *>( src ) + ") to device ("
+   fatal_cond( err != cudaSuccess, "Trying to copy " + ext::bytesToHumanReadable( size )
+         + " of data from host (" + toString<void *>( src ) + ") to device ("
          + toString<void *>( dst ) + ") with cudaMemcpy*(): " + cudaGetErrorString( err ) );
 }
 
@@ -186,8 +187,8 @@ void GPUDevice::copyInAsyncToDevice( void * dst, void * src, size_t size )
          );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
-   fatal_cond( err != cudaSuccess, "Trying to copy " + toString<size_t>( size )
-         + " bytes of data from host (" + toString<void *>( src ) + ") to device ("
+   fatal_cond( err != cudaSuccess, "Trying to copy " + ext::bytesToHumanReadable( size )
+         + " of data from host (" + toString<void *>( src ) + ") to device ("
          + toString<void *>( dst ) + ") with cudaMemcpy*(): " + cudaGetErrorString( err ) );
 }
 
@@ -207,8 +208,8 @@ void GPUDevice::copyOutSyncToHost ( void * dst, void * src, size_t size )
    cudaError_t err = cudaMemcpy( dst, src, size, cudaMemcpyDeviceToHost );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
-   fatal_cond( err != cudaSuccess, "Trying to copy " + toString<size_t>( size )
-         + " bytes of data from device (" + toString<void *>( src ) + ") to host ("
+   fatal_cond( err != cudaSuccess, "Trying to copy " + ext::bytesToHumanReadable( size )
+         + " of data from device (" + toString<void *>( src ) + ") to host ("
          + toString<void *>( dst ) + ") with cudaMemcpy*(): " + cudaGetErrorString( err ) );
 }
 
@@ -227,8 +228,8 @@ void GPUDevice::copyOutAsyncToBuffer ( void * dst, void * src, size_t size )
          );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
-   fatal_cond( err != cudaSuccess, "Trying to copy " + toString<size_t>( size )
-         + " bytes of data from device (" + toString<void *>( src ) + ") to host ("
+   fatal_cond( err != cudaSuccess, "Trying to copy " + ext::bytesToHumanReadable( size )
+         + " of data from device (" + toString<void *>( src ) + ") to host ("
          + toString<void *>( dst ) + ") with cudaMemcpy*(): " + cudaGetErrorString( err ) );
 }
 
@@ -263,8 +264,8 @@ bool GPUDevice::copyDevToDev( void * addrDst, CopyDescriptor &dstCd, void * addr
          gpuDst->getGPUProcessorInfo()->getInTransferStream() );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
-   fatal_cond( err != cudaSuccess, "Trying to copy " + toString<size_t>( size )
-         + " bytes of data from device #" + toString<int>( gpuSrc->getDeviceId() ) + " (" + toString<void *>( addrSrc )
+   fatal_cond( err != cudaSuccess, "Trying to copy " + ext::bytesToHumanReadable( size )
+         + " of data from device #" + toString<int>( gpuSrc->getDeviceId() ) + " (" + toString<void *>( addrSrc )
          + ") to device #" + toString<int>( gpuDst->getDeviceId() ) + " ("
          + toString<void *>( addrDst ) + ") with cudaMemcpy*(): " + cudaGetErrorString( err ) );
 

@@ -451,6 +451,7 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
          numNewEvents++;
          numEvents++;
       }
+
       /* Creating State event's */
       InstrumentationContextData::ConstStateIterator it_s;
       for ( it_s = _instrumentationContext.beginState( new_icd ); it_s != _instrumentationContext.endState( new_icd ); it_s++) {
@@ -485,11 +486,11 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
 
    /* Spawning 'numEvents' events: specific instrumentation call */
    if ( _instrumentationContext.isContextSwitchEnabled() ) {
-      addEventList ( numEvents, &e[0] );
+      if ( numEvents != 0 ) addEventList ( numEvents, &e[0] );
    } else {
       if ( oldWD != NULL) {
          createStateEvent( &e[numEvents], NANOS_NOT_RUNNING, old_icd );
-         addEventList ( numOldEvents, &e[0] );
+         if ( numOldEvents != 0 ) addEventList ( numOldEvents, &e[0] );
          addEventList ( 1, &e[numEvents] );
          returnPreviousStateEvent( &e[numEvents], old_icd );
          _instrumentationContext.insertDeferredEvent( old_icd, e[numEvents]  );
@@ -497,7 +498,7 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       }
       if ( newWD != NULL) {
          addResumeTask( *newWD );
-         addEventList (numNewEvents, &e[numOldEvents]);
+         if ( numNewEvents != 0 ) addEventList (numNewEvents, &e[numOldEvents]);
       }
    }
 

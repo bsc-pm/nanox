@@ -62,9 +62,9 @@ void GPUProcessor::init ()
          userDefinedMem = ( size_t ) ( maxMemoryAvailable * ( userDefinedMem / 100.0 ) );
       }
       if ( userDefinedMem > maxMemoryAvailable ) {
-         warning( "Could not set memory size to " << userDefinedMem << " for GPU #" << _gpuDevice
-               << " because maximum memory available is " << maxMemoryAvailable << " bytes. Using "
-               << maxMemoryAvailable << " bytes" );
+         warning( "Could not set memory size to " << bytesToHumanReadable( userDefinedMem ) << " for GPU #" << _gpuDevice
+               << " because maximum memory available is " << bytesToHumanReadable( maxMemoryAvailable ) << ". Using "
+               << bytesToHumanReadable( maxMemoryAvailable ) );
       }
       else {
          maxMemoryAvailable = userDefinedMem;

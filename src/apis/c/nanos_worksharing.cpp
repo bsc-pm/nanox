@@ -28,7 +28,8 @@ NANOS_API_DEF(nanos_err_t, nanos_worksharing_create, ( nanos_ws_desc_t **wsd, na
    //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","",NANOS_RUNTIME) ); //FIXME: To register new event
 
    try {
-      *b = ((WorkSharing *) ws)->create( wsd, info );
+      if ( b ) *b = ((WorkSharing *) ws)->create( wsd, info );
+      else ((WorkSharing *) ws)->create( wsd, info );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }

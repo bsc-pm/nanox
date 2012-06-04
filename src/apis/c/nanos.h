@@ -26,7 +26,7 @@
 
 #ifdef _MERCURIUM
 // define API version
-#pragma nanos interface family(master) version(5014)
+#pragma nanos interface family(master) version(5015)
 #pragma nanos interface family(worksharing) version(1000)
 #pragma nanos interface family(deps_api) version(1001)
 #pragma nanos interface family(copies_api) version(1000)
@@ -131,10 +131,16 @@ NANOS_API_DECL(nanos_err_t, nanos_team_barrier, ( void ));
 
 NANOS_API_DECL(nanos_err_t, nanos_single_guard, ( bool *));
 
+NANOS_API_DECL(nanos_err_t, nanos_enter_sync_init, ( bool *b ));
+NANOS_API_DECL(nanos_err_t, nanos_wait_sync_init, ( void ));
+NANOS_API_DECL(nanos_err_t, nanos_release_sync_init, ( void ));
+
 NANOS_API_DECL(nanos_err_t, nanos_team_get_num_starring_threads, ( int *n ) );
 NANOS_API_DECL(nanos_err_t, nanos_team_get_starring_threads, ( int *n, nanos_thread_t *list_of_threads ) );
 NANOS_API_DECL(nanos_err_t, nanos_team_get_num_supporting_threads, ( int *n ) );
 NANOS_API_DECL(nanos_err_t, nanos_team_get_supporting_threads, ( int *n, nanos_thread_t *list_of_threads) );
+NANOS_API_DECL(nanos_err_t, nanos_register_reduction, ( nanos_reduction_t *red) );
+NANOS_API_DECL(nanos_err_t, nanos_reduction_get_private_data, ( void **copy, void *original ) );
 
 // worksharing
 NANOS_API_DECL(nanos_err_t, nanos_worksharing_create ,( nanos_ws_desc_t **wsd, nanos_ws_t ws, nanos_ws_info_t *info, bool *b ) );
@@ -146,9 +152,9 @@ NANOS_API_DECL(nanos_err_t, nanos_wg_wait_completion, ( nanos_wg_t wg, bool avoi
 
 NANOS_API_DECL(nanos_err_t, nanos_create_int_sync_cond, ( nanos_sync_cond_t *sync_cond, volatile int *p, int condition ));
 NANOS_API_DECL(nanos_err_t, nanos_create_bool_sync_cond, ( nanos_sync_cond_t *sync_cond, volatile bool *p, bool condition ));
-NANOS_API_DECL(nanos_err_t, nanos_sync_cond_wait, ( nanos_sync_cond_t *sync_cond ));
-NANOS_API_DECL(nanos_err_t, nanos_sync_cond_signal, ( nanos_sync_cond_t *sync_cond ));
-NANOS_API_DECL(nanos_err_t, nanos_destroy_sync_cond, ( nanos_sync_cond_t *sync_cond ));
+NANOS_API_DECL(nanos_err_t, nanos_sync_cond_wait, ( nanos_sync_cond_t sync_cond ));
+NANOS_API_DECL(nanos_err_t, nanos_sync_cond_signal, ( nanos_sync_cond_t sync_cond ));
+NANOS_API_DECL(nanos_err_t, nanos_destroy_sync_cond, ( nanos_sync_cond_t sync_cond ));
 
 NANOS_API_DECL(nanos_err_t, nanos_wait_on, ( size_t num_data_accesses, nanos_data_access_t* data_accesses ));
 
@@ -173,6 +179,13 @@ NANOS_API_DECL(nanos_err_t, nanos_stop_scheduler, ());
 NANOS_API_DECL(nanos_err_t, nanos_scheduler_enabled, ( bool *res ));
 NANOS_API_DECL(nanos_err_t, nanos_wait_until_threads_paused, () );
 NANOS_API_DECL(nanos_err_t, nanos_wait_until_threads_unpaused, () );
+NANOS_API_DECL(nanos_err_t, nanos_delay_start, ());
+NANOS_API_DECL(nanos_err_t, nanos_start, ());
+NANOS_API_DECL(nanos_err_t, nanos_finish, ());
+
+// Memory management
+NANOS_API_DECL(nanos_err_t, nanos_malloc, ( void **p, size_t size, const char *file, int line ));
+NANOS_API_DECL(nanos_err_t, nanos_free, ( void *p ));
 
 // error handling
 NANOS_API_DECL(void, nanos_handle_error, ( nanos_err_t err ));
@@ -224,6 +237,8 @@ do {\
 
 extern int _nanox_main( int argc, char *argv[] );
 #undef NANOS_API_DECL
+
+void nanos_reduction_int_vop ( int, void *, void * );
 
 #ifdef __cplusplus
 }

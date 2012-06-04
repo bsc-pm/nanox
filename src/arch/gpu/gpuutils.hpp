@@ -17,11 +17,21 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+#ifndef _NANOS_GPU_UTILS
+#define _NANOS_GPU_UTILS
+
+
+#include <iostream>
+
+
 namespace nanos {
 namespace ext
 {
 
 void displayAllGPUsProperties( void );
+std::string bytesToHumanReadable ( size_t bytes );
 
 } // namespace ext
 } // namespace nanos
+
+#endif

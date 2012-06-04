@@ -18,6 +18,7 @@
 /*************************************************************************************/
 
 #include "gpuconfig.hpp"
+#include "gpuutils.hpp"
 #include "plugin.hpp"
 // We need to include system.hpp (to use verbose0(msg)), as debug.hpp does not include it
 #include "system.hpp"
@@ -235,7 +236,11 @@ void GPUConfig::printConfiguration()
    verbose0( "  Overlapping outputs: " << ( _overlapOutputs ? "Enabled" : "Disabled" ) );
    verbose0( "  Transfer mode: " << ( _transferMode == NANOS_GPU_TRANSFER_NORMAL ? "Sync" : "Async" ) );
    if ( _maxGPUMemory != 0 ) {
-      verbose0( "  Limited memory: Enabled: " << _maxGPUMemory << " bytes" );
+      if ( _maxGPUMemory > 100 ) {
+         verbose0( "  Limited memory: Enabled: " << bytesToHumanReadable( _maxGPUMemory ) );
+      } else {
+         verbose0( "  Limited memory: Enabled: " << _maxGPUMemory << "% of the total device memory" );
+      }
    }
    else {
       verbose0( "  Limited memory: Disabled" );

@@ -96,9 +96,7 @@ struct nanos_const_wd_definition_1 const_data1 =
 {
    {{
       .mandatory_creation = true,
-      .tied = false,
-      .priority = 0
-   },
+      .tied = false},
    __alignof__(my_args),
    2,
    1},
@@ -113,9 +111,7 @@ struct nanos_const_wd_definition_1 const_data2 =
 {
    {{
       .mandatory_creation = true,
-      .tied = false,
-      .priority = 0
-   },
+      .tied = false},
    __alignof__(my_args),
    2,
    1},

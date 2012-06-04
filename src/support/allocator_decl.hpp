@@ -192,6 +192,9 @@ class Allocator
     /*! \brief Deallocates 'object' (object has a header which identifies related Arena
      */
      static void deallocate ( void *object, const char *file = NULL, int line = 0 ) ;
+    /*! \brief Get 'object' size for a given pointer
+     */
+     static size_t getObjectSize ( void *object ) ;
 };
 
 } // namespace: nanos

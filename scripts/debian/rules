@@ -1,0 +1,19 @@
+#!/usr/bin/make -f
+export DEB_BUILD_MAINT_OPTIONS=hardening=-all
+
+# Ubuntu's dpkg-buildpackage sets LDFLAGS=-Wl,-Bsymbolic-functions
+# That breaks the call to nanos_init
+comma := ,
+LDFLAGS := $(filter-out -Wl$(comma)-Bsymbolic-functions,$(LDFLAGS))
+
+# Parallel makes
+ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+NUMJOBS = -j$(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+endif
+
+%:
+	dh $@
+
+# Compat version != 8 sets libdir and libexecdir to something like /usr/lib/x86_64-linux-gnu
+override_dh_auto_configure:
+	dh_auto_configure -- --libdir=$$\{prefix\}/lib/ --libexecdir=$$\{prefix\}/lib/ --enable-ompss --with-nanox=/usr

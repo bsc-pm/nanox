@@ -174,6 +174,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, std:
          // Create a new CacheEntry
          CacheEntry c = CacheEntry( NULL, size, tag, 0, output, input );
          ce = &(_cache.insert( tag, c, inserted ));
+// jbueno 2012/06/04 <<<<<<< HEAD
          if (inserted) { // allocate it
             
             Cache *owner = de->getOwner();
@@ -183,6 +184,16 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, std:
                if ( owner != NULL && !(!input && output) ) {
                   owner->invalidate( dir, tag, size, de );
                   owner->syncTransfer(tag);
+// jbueno 2012/06/04 =======
+// jbueno 2012/06/04          if ( inserted ) { // allocate it
+// jbueno 2012/06/04             ce->setAddress( _cache.allocate( dir, size ) );
+// jbueno 2012/06/04             ce->setAllocSize( size );
+// jbueno 2012/06/04             Cache *owner = de->getOwner();
+// jbueno 2012/06/04 #ifdef NANOS_GPU_USE_CUDA32
+// jbueno 2012/06/04             if ( owner != NULL && !(!input && output) ) {
+// jbueno 2012/06/04                owner->invalidateAndFlush( dir, tag, size, de );
+// jbueno 2012/06/04                owner->syncTransfer(tag);
+// jbueno 2012/06/04 >>>>>>> master
                NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_112 ); )
                {
                   NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );

@@ -88,7 +88,7 @@ class WorkSharingStaticFor : public WorkSharing {
             loop_data->lowerBound = loop_data->lowerBound + (loop_data->chunkSize * loop_data->loopStep) * num_threads;
          }
 
-         loop_item->execute = (loop_item->lower * sign) < (loop_item->upper * sign);
+         loop_item->execute = (loop_item->lower * sign) <= (loop_item->upper * sign);
          debug("Loop next item -> lower: " << loop_item->lower << " upper: " << loop_item->upper );
       }
 

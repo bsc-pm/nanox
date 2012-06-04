@@ -36,9 +36,28 @@ void CUDAPinnedMemoryManager::free( void * address )
 }
 
 
-bool PinnedAllocator::isPinned( void * address )
+bool PinnedAllocator::isPinned( void * address, size_t size )
 {
-   return ( _pinnedChunks.count( address ) == 1 );
+   PinnedMemoryMap::iterator it = _pinnedChunks.lower_bound( address );
+
+   // Perfect match, check size
+   if ( it->first == address ) {
+      if ( it->second >= size ) return true;
+
+      // Size is bigger than pinned area
+      return false;
+   }
+
+   // address is lower than any other pinned address
+   if ( it == _pinnedChunks.begin() ) return false;
+
+   // It is an intermediate region, check it fits into a pinned area
+   it--;
+
+   if ( ( it->first < address ) && ( ( ( size_t ) it->first + it->second ) >= ( ( size_t ) address + size ) ) )
+      return true;
+
+   return false;
 }
 
 void PinnedAllocator::printPinnedMemoryMap()

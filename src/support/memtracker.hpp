@@ -28,12 +28,15 @@
 
 namespace nanos {
 
-   inline MemTracker::MemTracker() : _blocks(),_stats(), _totalMem( 0 ), _numBlocks( 0 ),_maxMem( 0 ), _lock(), _showStats( false )
+   inline MemTracker::MemTracker() : _blocks(),_stats(), _totalMem( 0 ), _numBlocks( 0 ),_maxMem( 0 ), _lock(), _showStats( false ), _setZeroDeallocate(false)
    {
       Config config;
       config.registerConfigOption ( "mem-stats", NEW Config::FlagOption( _showStats ), "Show memory leak stats" );
       config.registerArgOption ( "mem-stats", "mem-stats" );
       config.registerEnvOption ( "mem-stats", "NX_DEBUG_MEM_STATS" );
+      config.registerConfigOption ( "mem-set-zero-deallocate", NEW Config::FlagOption( _setZeroDeallocate ), "Set zero's to deallocated memory (fail-fast)" );
+      config.registerArgOption ( "mem-set-zero-deallocate", "mem-set-zero-deallocate" );
+      config.registerEnvOption ( "mem-set-zero-deallocate", "NX_DEBUG_MEM_SET_ZERO_DEALLOCATE" );
       config.init();
    }
 
@@ -84,6 +87,10 @@ namespace nanos {
 #ifdef NANOS_DISABLE_ALLOCATOR
          free( p );
 #else
+         if ( _setZeroDeallocate ) {
+            size_t s = nanos::getAllocator().getObjectSize ( p );
+            memset ( p, 0, s);
+         }
          nanos::getAllocator().deallocate( p );
 #endif
 

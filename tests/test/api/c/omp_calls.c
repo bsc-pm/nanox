@@ -42,8 +42,7 @@ int main ( int argc, char **argv )
    int i;
    nanos_wd_props_t props = {
      .mandatory_creation = true,
-     .tied = false,
-     .priority = 0,
+     .tied = false
    };
 
    int level = omp_get_level();
