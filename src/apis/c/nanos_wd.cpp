@@ -205,9 +205,9 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
             } else {
                fatal ( "Tiedness violation" );
             }
+            // Set priority
+            wd.setPriority( dyn_props->priority );
          }
-         // Set priority
-         wd.setPriority( const_data->props.priority );
       }
 
       int pmDataSize = sys.getPMInterface().getInternalDataSize();

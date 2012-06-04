@@ -100,7 +100,10 @@ namespace nanos {
          releasing all other threads waiting in the next block */
          if ( val == _numParticipants ) {
             _flag=true;
+            // FIXME: reduction here and remove 2nd phase?
             _syncCondTrue.signal();
+            computeVectorReductions();
+
          } else {
             _syncCondTrue.wait();
          }

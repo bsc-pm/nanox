@@ -71,11 +71,11 @@ namespace nanos {
       public:
          PinnedAllocator( PinnedMemoryManager * manager );
 
-         void * allocate( size_t len );
+         void * allocate( size_t size );
 
          void free( void * address );
 
-         bool isPinned( void * address );
+         bool isPinned( void * address, size_t size );
 
          void printPinnedMemoryMap();
    };

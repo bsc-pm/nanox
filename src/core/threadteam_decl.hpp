@@ -21,6 +21,7 @@
 #define _NANOS_THREAD_TEAM_DECL_H
 
 #include <vector>
+#include <list>
 #include "basethread_decl.hpp"
 #include "schedule_decl.hpp"
 #include "barrier_decl.hpp"
@@ -51,6 +52,7 @@ namespace nanos
 
    class ThreadTeam
    {
+         typedef std::list<nanos_reduction_t*> ReductionList;  /**< List of Reduction op's (Bursts) */
       private:
          BaseThread **                _threads;
          Atomic<size_t>               _size;
@@ -66,6 +68,7 @@ namespace nanos
          int                          _level;            /**< Nesting level of the team */
          int                          _creatorId;        /**< Team Id of the thread that created the team */
          nanos_ws_desc_t             *_wsDescriptor;     /**< Worksharing queue (pointer managed due specific atomic op's over these pointers) */
+         ReductionList                _redList;          /**< Reduction List */
       private:
 
          /*! \brief ThreadTeam default constructor (disabled)
@@ -122,6 +125,9 @@ namespace nanos
          void barrier();
 
          bool singleGuard( int local );
+         bool enterSingleBarrierGuard( int local );
+         void releaseSingleBarrierGuard( void );
+         void waitSingleBarrierGuard( int local );
 
          ScheduleTeamData * getScheduleData() const;
          SchedulePolicy & getSchedulePolicy() const;
@@ -165,6 +171,22 @@ namespace nanos
         /*! \brief Return number of supporting thread and fill a vector of pointers to threads
          */
          unsigned getSupportingThreads( BaseThread *list_of_threads[] ) const;
+
+        /*! \brief Register a new reduction to execute at next barrier 
+         */
+         void createReduction( nanos_reduction_t *red );
+
+        /*! \brief Returns private data for a given source data
+         */
+         void *getReductionPrivateData ( void* s );
+
+        /*! \brief Clean readuction list 
+         */
+         void cleanUpReductionList ( void );
+
+        /*! \brief Compute reduction
+         */
+         void computeVectorReductions ( void );
    };
 
 }

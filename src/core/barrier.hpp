@@ -21,7 +21,14 @@
 #define __NANOS_BARRIER_H
 
 #include "barrier_decl.hpp"
+#include "system.hpp"
 
 using namespace nanos;
+
+inline void Barrier::computeVectorReductions( void )
+{
+   myThread->getTeam()->computeVectorReductions();
+   myThread->getTeam()->cleanUpReductionList();
+}
 
 #endif

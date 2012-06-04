@@ -61,6 +61,22 @@ bool BaseThread::singleGuard ()
    return getTeam()->singleGuard( getTeamData()->nextSingleGuard() );
 }
 
+bool BaseThread::enterSingleBarrierGuard ()
+{
+   if ( getTeam() == NULL ) return true;
+   return getTeam()->enterSingleBarrierGuard( getTeamData()->nextSingleBarrierGuard() );
+}
+
+void BaseThread::releaseSingleBarrierGuard ()
+{
+   getTeam()->releaseSingleBarrierGuard();
+}
+
+void BaseThread::waitSingleBarrierGuard ()
+{
+   getTeam()->waitSingleBarrierGuard( getTeamData()->currentSingleGuard() );
+}
+
 /*
  * G++ optimizes TLS accesses by obtaining only once the address of the TLS variable
  * In this function this optimization does not work because the task can move from one thread to another

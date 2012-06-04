@@ -22,6 +22,7 @@
 #include "threadteam_decl.hpp"
 #include "atomic.hpp"
 #include "debug.hpp"
+#include "system.hpp"
 
 using namespace nanos;
 
@@ -31,7 +32,7 @@ inline ThreadTeam::ThreadTeam ( int maxThreads, SchedulePolicy &policy, Schedule
                                 _singleGuardCount( 0 ), _schedulePolicy( policy ),
                                 _scheduleData( data ), _threadTeamData( ttd ), _parent( parent ),
                                 _level( parent == NULL ? 0 : parent->getLevel() + 1 ), _creatorId(-1),
-                                _wsDescriptor(NULL)
+                                _wsDescriptor(NULL), _redList()
 {
       _threads = NEW BaseThread *[maxThreads];
 }
@@ -168,6 +169,33 @@ inline unsigned ThreadTeam::getSupportingThreads( BaseThread **list_of_threads )
       }
    }
    return nThreadsQuery;
+}
+
+inline void ThreadTeam::createReduction( nanos_reduction_t *red ) { _redList.push_front( red ); }
+
+inline void ThreadTeam::computeVectorReductions ( void )
+{
+   nanos_reduction_t *red;
+   ReductionList::iterator it;
+   for ( it = _redList.begin(); it != _redList.end(); it++) {
+      red = *it;
+      if ( red->vop ) {
+         red->vop( this->size(), red->original, red->privates );
+      } else {
+         unsigned i;
+         for ( i = 0; i < this->size(); i++ ) {
+         }
+      }
+   }
+}
+
+inline void *ThreadTeam::getReductionPrivateData ( void* s )
+{
+   ReductionList::iterator it;
+   for ( it = _redList.begin(); it != _redList.end(); it++) {
+      if ((*it)->original == s) return (*it)->privates;
+   }
+   return NULL;
 }
 
 #endif

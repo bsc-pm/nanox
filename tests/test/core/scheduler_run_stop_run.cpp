@@ -68,7 +68,7 @@ int main ( int argc, char **argv )
       // If we're done processing half of the dataset
       if ( i == NUM_ITERS/2 ) {
          // Stop scheduler
-         sys.getSchedulerConf().setSchedulerEnabled( false );
+         sys.stopScheduler();
       }
       
       // Work descriptor creation
@@ -83,7 +83,7 @@ int main ( int argc, char **argv )
       
       if ( i == ( NUM_ITERS/2 + 5 ) ){
          // Keep going
-         sys.getSchedulerConf().setSchedulerEnabled( true );
+         sys.startScheduler();
       }
    }
    // barrier (kind of)

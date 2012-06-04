@@ -622,9 +622,9 @@ void System::finish ()
    /* deleting master WD */
    if ( getMyThreadSafe()->getCurrentWD()->getInternalData() )
       delete[] (char *) getMyThreadSafe()->getCurrentWD()->getInternalData();
-   delete[] (char *) getMyThreadSafe()->getCurrentWD();
    /* delete all of it */
    getMyThreadSafe()->getCurrentWD()->~WorkDescriptor();
+   delete (char *) getMyThreadSafe()->getCurrentWD();
 
    for ( Slicers::const_iterator it = _slicers.begin(); it !=   _slicers.end(); it++ ) {
       delete (Slicer *)  it->second;
@@ -852,7 +852,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    // set properties
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
-      wd->setPriority( props->priority );
+      wd->setPriority( dyn_props->priority );
    }
    if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
 }
@@ -992,7 +992,7 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    // set properties
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
-      wd->setPriority( props->priority );
+      wd->setPriority( dyn_props->priority );
    }
    if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
 }

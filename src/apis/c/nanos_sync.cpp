@@ -46,7 +46,7 @@ NANOS_API_DEF(nanos_err_t, nanos_create_int_sync_cond, ( nanos_sync_cond_t *sync
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_sync_cond",NANOS_RUNTIME ) );
 
    try {
-      *sync_cond = ( nanos_sync_cond_t * ) new SingleSyncCond<EqualConditionChecker<int> >( EqualConditionChecker<int>( p, condition ) );
+      *sync_cond = ( nanos_sync_cond_t ) new MultipleSyncCond<EqualConditionChecker<int> >( EqualConditionChecker<int>( p, condition ) );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -59,7 +59,7 @@ NANOS_API_DEF(nanos_err_t, nanos_create_bool_sync_cond, ( nanos_sync_cond_t *syn
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_sync_cond",NANOS_RUNTIME) );
 
    try {
-      *sync_cond = ( nanos_sync_cond_t * ) new SingleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>( p, condition ) );
+      *sync_cond = ( nanos_sync_cond_t ) new MultipleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>( p, condition ) );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -67,12 +67,12 @@ NANOS_API_DEF(nanos_err_t, nanos_create_bool_sync_cond, ( nanos_sync_cond_t *syn
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_sync_cond_wait, ( nanos_sync_cond_t *sync_cond ))
+NANOS_API_DEF(nanos_err_t, nanos_sync_cond_wait, ( nanos_sync_cond_t sync_cond ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","sync_cond_wait",NANOS_SYNCHRONIZATION) );
 
    try {
-      GenericSyncCond * syncCond = (GenericSyncCond *) *sync_cond;
+      GenericSyncCond * syncCond = (GenericSyncCond *) sync_cond;
       syncCond->wait();
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
@@ -81,12 +81,12 @@ NANOS_API_DEF(nanos_err_t, nanos_sync_cond_wait, ( nanos_sync_cond_t *sync_cond 
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_sync_cond_signal, ( nanos_sync_cond_t *sync_cond ))
+NANOS_API_DEF(nanos_err_t, nanos_sync_cond_signal, ( nanos_sync_cond_t sync_cond ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","sync_cond_signal",NANOS_SYNCHRONIZATION) );
 
    try {
-      GenericSyncCond * syncCond = (GenericSyncCond *) *sync_cond;
+      GenericSyncCond * syncCond = (GenericSyncCond *) sync_cond;
       syncCond->signal();
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
@@ -95,12 +95,12 @@ NANOS_API_DEF(nanos_err_t, nanos_sync_cond_signal, ( nanos_sync_cond_t *sync_con
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_destroy_sync_cond, ( nanos_sync_cond_t *sync_cond ))
+NANOS_API_DEF(nanos_err_t, nanos_destroy_sync_cond, ( nanos_sync_cond_t sync_cond ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","destroy_sync_cond",NANOS_RUNTIME) );
 
    try {
-      GenericSyncCond * syncCond = (GenericSyncCond *) *sync_cond;
+      GenericSyncCond * syncCond = (GenericSyncCond *) sync_cond;
       delete syncCond;
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
@@ -248,6 +248,45 @@ NANOS_API_DEF(nanos_err_t, nanos_single_guard, ( bool *b ))
 
    try {
       *b = myThread->singleGuard();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_enter_sync_init, ( bool *b ))
+{
+   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","single_guard",NANOS_SYNCHRONIZATION) );
+
+   try {
+      *b = myThread->enterSingleBarrierGuard();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_wait_sync_init, ( void ))
+{
+   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","single_guard",NANOS_SYNCHRONIZATION) );
+
+   try {
+      myThread->waitSingleBarrierGuard();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_release_sync_init, ( void ))
+{
+   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","single_guard",NANOS_SYNCHRONIZATION) );
+
+   try {
+      myThread->releaseSingleBarrierGuard();
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }

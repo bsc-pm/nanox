@@ -41,7 +41,9 @@ using namespace nanos::ext;
 #define VECTOR_SIZE   100
 
 int A[VECTOR_SIZE];
-Lock l;
+// The high priority task should only act once on A
+int done = 0;
+Lock l, doneLock;;
 typedef struct {
    nanos_loop_info_t loop_info;
 } main__loop_1_data_t;
@@ -75,6 +77,11 @@ void main__loop_2 ( void *args )
 {
    int i;
    main__loop_1_data_t *hargs = (main__loop_1_data_t * ) args;
+   LockBlock lock( doneLock );
+   if ( done != 0 ) {
+      return;
+   }
+   done = 1;
 
    for ( i = hargs->loop_info.lower; i < hargs->loop_info.upper; i += hargs->loop_info.step) {
       A[i]=0;
@@ -92,7 +99,8 @@ int main ( int argc, char **argv )
    for ( i = 0; i < VECTOR_SIZE; i++ ) A[i] = 0;
 
    // Stop scheduler
-   sys.getSchedulerConf().setSchedulerEnabled( false );
+   sys.stopScheduler();
+   sys.waitUntilThreadsPaused();
    WG *wg = getMyThreadSafe()->getCurrentWD();
    // increment vector
    for ( i = 0; i < NUM_ITERS; i++ ) {
@@ -116,6 +124,7 @@ int main ( int argc, char **argv )
       for ( int j = 0; j < VECTOR_SIZE; j++ ) A[j] += 100;
 #endif
    }
+   for ( i = 0; i < sys.getNumWorkers(); ++i )
    {
 #if USE_NANOS
       // Second task: set to 0
@@ -126,12 +135,14 @@ int main ( int argc, char **argv )
       // Work submission
       sys.submit( *wd );
 
-      // Re-enable the scheduler
-      sys.getSchedulerConf().setSchedulerEnabled( true );
 #else
       for ( int j = 0; j < VECTOR_SIZE; j++ ) A[j] = 0;
 #endif
    }
+   // Re-enable the scheduler
+   sys.startScheduler();
+   sys.waitUntilThreadsUnpaused();
+
    
    // barrier (kind of)
    wg->waitCompletion();

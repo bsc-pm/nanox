@@ -110,9 +110,7 @@ struct nanos_const_wd_definition_1 const_data1 =
 {
    {{
       .mandatory_creation = true,
-      .tied = false,
-      .priority = 0
-   },
+      .tied = false},
    0,//__alignof__(section_data_1),
    0,
    1},
@@ -128,9 +126,7 @@ struct nanos_const_wd_definition_1 const_data2 =
 {
    {{
       .mandatory_creation = true,
-      .tied = false,
-      .priority = 0
-   },
+      .tied = false},
    0,//__alignof__(section_data_2),
    0,
    1},
@@ -145,9 +141,7 @@ struct nanos_const_wd_definition_1 const_data3 =
 {
    {{
       .mandatory_creation = true,
-      .tied = false,
-      .priority = 0
-   },
+      .tied = false},
    0,//__alignof__(section_data_3),
    0,
    1},
@@ -162,9 +156,7 @@ struct nanos_const_wd_definition_1 const_data4 =
 {
    {{
       .mandatory_creation = true,
-      .tied = false,
-      .priority = 0
-   },
+      .tied = false},
    0,//__alignof__(section_data_4),
    0,
    1},

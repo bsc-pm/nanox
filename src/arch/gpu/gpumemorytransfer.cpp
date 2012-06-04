@@ -128,7 +128,7 @@ void GPUMemoryTransferOutAsyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt
 
    // Even there is only one copy, we must do it asynchronously, as we may be doing something else
    // No need to copy data to the intermediate pinned buffer if it's already pinned
-   void * pinned = ( sys.getPinnedAllocatorCUDA().isPinned( ( void * ) mt._hostAddress.getTag() ) ) ?
+   void * pinned = ( sys.getPinnedAllocatorCUDA().isPinned( ( void * ) mt._hostAddress.getTag(), mt._size ) ) ?
          ( void * ) mt._hostAddress.getTag() :
          ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->allocateOutputPinnedMemory( mt._size );
 
@@ -197,7 +197,7 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ( std::list<GPUMemory
       it1 = pendingTransfersAsync.erase( it1 );
       _lock.release();
 
-      bool isPinned1 = sys.getPinnedAllocatorCUDA().isPinned( ( void * ) mt1._hostAddress.getTag() );
+      bool isPinned1 = sys.getPinnedAllocatorCUDA().isPinned( ( void * ) mt1._hostAddress.getTag(), mt1._size );
 
       void * pinned1 = ( isPinned1 ) ?
             ( void * ) mt1._hostAddress.getTag() :
@@ -226,7 +226,7 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ( std::list<GPUMemory
          it2 = pendingTransfersAsync.erase( it2 );
          _lock.release();
 
-         bool isPinned2 = sys.getPinnedAllocatorCUDA().isPinned( ( void * ) mt2._hostAddress.getTag() );
+         bool isPinned2 = sys.getPinnedAllocatorCUDA().isPinned( ( void * ) mt2._hostAddress.getTag(), mt2._size );
 
          void * pinned2 = ( isPinned2 ) ?
                ( void * ) mt2._hostAddress.getTag() :
@@ -280,7 +280,7 @@ void GPUMemoryTransferInAsyncList::clearMemoryTransfers()
 void GPUMemoryTransferInAsyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt )
 {
    // No need to copy data to the intermediate pinned buffer if it's already pinned
-   void * pinned = ( sys.getPinnedAllocatorCUDA().isPinned( ( void * ) mt._hostAddress.getTag() ) ) ?
+   void * pinned = ( sys.getPinnedAllocatorCUDA().isPinned( ( void * ) mt._hostAddress.getTag(), mt._size ) ) ?
          ( void * ) mt._hostAddress.getTag() :
          ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->allocateInputPinnedMemory( mt._size );
 
