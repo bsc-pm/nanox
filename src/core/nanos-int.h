@@ -204,6 +204,7 @@ typedef struct {
 
 typedef struct {
    nanos_thread_t tie_to;
+   int priority;
 } nanos_wd_dyn_props_t;
 
 typedef struct {

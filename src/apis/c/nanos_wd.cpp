@@ -63,7 +63,7 @@ NANOS_API_DEF(int, nanos_get_wd_id, ( nanos_wd_t wd ))
  */
 NANOS_API_DEF( nanos_err_t, nanos_create_wd_compact, ( nanos_wd_t *uwd, nanos_const_wd_definition_t *const_data_ext, nanos_wd_dyn_props_t *dyn_props,
                                                        size_t data_size, void ** data, nanos_wg_t uwg, nanos_copy_data_t **copies,
-                                                       size_t num_dimensions, nanos_region_dimension_internal_t **dimensions ) )
+                                                       nanos_region_dimension_internal_t **dimensions ) )
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",NANOS_CREATION) );
 
@@ -75,7 +75,7 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_compact, ( nanos_wd_t *uwd, nanos_co
          *uwd = 0;
          return NANOS_OK;
       }
-      sys.createWD ( (WD **) uwd, const_data->num_devices, const_data->devices, data_size, const_data->data_alignment, (void **) data, (WG *) uwg, &const_data->props, dyn_props, const_data->num_copies, copies, num_dimensions, dimensions, NULL );
+      sys.createWD ( (WD **) uwd, const_data->num_devices, const_data->devices, data_size, const_data->data_alignment, (void **) data, (WG *) uwg, &const_data->props, dyn_props, const_data->num_copies, copies, const_data->num_dimensions, dimensions, NULL );
 
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
@@ -182,7 +182,7 @@ NANOS_API_DEF(nanos_err_t, nanos_submit, ( nanos_wd_t uwd, size_t num_data_acces
 // data must be not null
 NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_definition_t *const_data_ext, nanos_wd_dyn_props_t *dyn_props, 
                                                                size_t data_size, void * data, size_t num_data_accesses, nanos_data_access_t *data_accesses,
-                                                               nanos_copy_data_t *copies, size_t num_dimensions, nanos_region_dimension_internal_t *dimensions, nanos_translate_args_t translate_args ) )
+                                                               nanos_copy_data_t *copies, nanos_region_dimension_internal_t *dimensions, nanos_translate_args_t translate_args ) )
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","create_wd_and_run", NANOS_CREATION) );
 

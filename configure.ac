@@ -9,6 +9,12 @@ AC_CANONICAL_TARGET
 
 # Automake initialization
 AM_INIT_AUTOMAKE([-Wall -Werror dist-bzip2])
+supported_silent_rules=1
+m4_ifdef([AM_SILENT_RULES], 
+        [AM_SILENT_RULES([yes])],
+        [supported_silent_rules=0])
+
+AM_CONDITIONAL([SUPPORTED_SILENT_RULES], test x$supported_silent_rules = x1)
 AC_CONFIG_MACRO_DIR([m4])
 
 # Set compiler default flags
@@ -258,14 +264,14 @@ AS_HELP_STRING([--with-cuda=dir], [Directory of CUDA installation]),
 if test x$gpu_enabled = xyes ; then
     if test -d "$CUDADIR" ;
     then
-        AC_PATH_PROG([NVCC], [nvcc], [], [$PATH$PATHSEPARATOR$CUDADIR/bin])
+        AC_PATH_PROG([NVCC], [nvcc], [], [$PATH$PATH_SEPARATOR$CUDADIR/bin])
         if test x$NVCC = x ; then
             AC_MSG_WARN([nvcc not found. Disabling GPU support])
             gpu_valid=no
         else
             CUDA_INC="$CUDADIR/include"
             CUDA_LIB="$CUDADIR/lib"
-            if ls "$CUDADIR/lib64" &> /dev/null ; then
+            if test -d "$CUDADIR/lib64"; then
                 CUDA_LIB="$CUDADIR/lib64"
             fi
 
