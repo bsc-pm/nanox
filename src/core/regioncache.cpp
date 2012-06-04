@@ -57,7 +57,7 @@ DeviceOps *CachedRegionStatus::getDeviceOps() { return _waitObject.get();  }
 bool CachedRegionStatus::isReady( ) { return _waitObject.isNotSet(); }
 
 
-      AllocatedChunk::AllocatedChunk() : _lock(), address( NULL ) { }
+      AllocatedChunk::AllocatedChunk() : _lock(), address( 0 ) { }
       AllocatedChunk::AllocatedChunk( AllocatedChunk const &chunk ) : _lock(), address( chunk.address ) {}
       AllocatedChunk &AllocatedChunk::operator=( AllocatedChunk const &chunk ) { address = chunk.address; return *this; } 
 void AllocatedChunk::lock() { _lock.acquire(); }
@@ -502,35 +502,63 @@ bool CacheControler::isCreated() const {
    return _targetCache != NULL;
 }
 
-void CacheControler::create( RegionCache *targetCache, NewDirectory *dir, std::size_t numCopies, CopyData *copies, unsigned int wdId ) {
+void CacheControler::preInit( NewDirectory *dir, std::size_t numCopies, CopyData *copies, unsigned int wdId ) {
    unsigned int index;
-
    _directory = dir;
    _wdId = wdId;
-   //std::cerr << " Creating cache controler!" << std::endl;
    if ( numCopies > 0 ) {
       _numCopies = numCopies;
-      _targetCache = targetCache;
       _cacheCopies = NEW CacheCopy[ _numCopies ];
       for ( index = 0; index < _numCopies; index += 1 ) {
          CacheCopy &ccopy = _cacheCopies[ index ];
-         //std::cerr << "Copy base addr " <<  (void *) copies[index].getBaseAddress() << std::endl;
-         //std::cerr << "Copy base addr " <<  (void *) copies[index].getAddress() << std::endl;
-         uint64_t devAddr;
          ccopy._copy = &copies[ index ];
+         ccopy._region = NewRegionDirectory::build_region( copies[ index ] );
+         ccopy._version = 0;
+         _directory->getLocation( ccopy._region, ccopy._locations, ccopy._version);
+      }
+   }
+}
 
+void CacheControler::copyDataInNoCache() {
+   unsigned int index;
+   for ( index = 0; index < _numCopies; index += 1 ) {
+      CacheCopy &ccopy = _cacheCopies[ index ];
+      _directory->addAccess( ccopy._region, 0, ccopy._copy->isOutput() ? ccopy._version + 1 : ccopy._version );
+
+      if ( ccopy._copy->isInput() ) continue;
+
+      {
+         std::map<unsigned int, std::list<Region> > locationMap;
+
+         for ( NewDirectory::LocationInfoList::iterator it = ccopy._locations.begin(); it != ccopy._locations.end(); it++ ) {
+            if (!it->second.isLocatedIn( 0 ) ) { 
+               int loc = it->second.getFirstLocation();
+               locationMap[ loc ].push_back( it->first );
+               //std::cerr << "Houston, we have a problem, data is not in Host and we need it back. HostAddr: " << (void *) (((it->first)).getFirstValue()) << it->second << std::endl;
+            }
+            //else { if ( sys.getNetwork()->getNodeNum() == 0) std::cerr << "["<<sys.getNetwork()->getNodeNum()<<"] wd " << work.getId() << "All ok, location is " << *(it->second) << std::endl; }
+         }
+
+         std::map<unsigned int, std::list<Region> >::iterator locIt;
+         for( locIt = locationMap.begin(); locIt != locationMap.end(); locIt++ ) {
+            sys.getCaches()[ locIt->first ]->syncRegion( locIt->second );
+         }
+      }
+   }
+}
+
+void CacheControler::copyDataIn(RegionCache *targetCache) {
+   unsigned int index;
+   _targetCache = targetCache;
+   if ( _numCopies > 0 ) {
+      /* Get device address, allocate if needed */
+      for ( index = 0; index < _numCopies; index += 1 ) {
+         CacheCopy &ccopy = _cacheCopies[ index ];
          ccopy._cacheEntry = _targetCache->getAddress( *ccopy._copy, ccopy._offset );
          ccopy._devRegion = NewRegionDirectory::build_region_with_given_base_address( *ccopy._copy, ccopy._offset );
-
-         devAddr = ccopy._cacheEntry->address + ccopy._offset + ccopy._copy->getOffset();
-
-         ccopy._region = NewRegionDirectory::build_region( copies[ index ] );
-         //std::cerr << "copy " << index << " Region " << reg << std::endl;
-         _directory->registerAccess( ccopy._region, copies[ index ].isInput(), copies[ index ].isOutput(), _targetCache->getMemorySpaceId(), devAddr , ccopy._locations );
          ccopy._cacheEntry->unlock();
-         //std::cerr << "Got locs: " << ccopy._locations.size() << " This copy is in " << *(ccopy._locations.front().second) << std::endl;
+	 _directory->addAccess( ccopy._region, _targetCache->getMemorySpaceId(), ccopy._copy->isOutput() ? ccopy._version + 1 : ccopy._version );
       }
-
       /* COPY IN GENERATION */
       std::map<unsigned int, MemoryMap< std::pair< uint64_t, DeviceOps *> > > opsBySource;
       for ( index = 0; index < _numCopies; index += 1 ) {

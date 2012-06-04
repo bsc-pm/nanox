@@ -173,9 +173,9 @@ namespace nanos
          *  \param input Whether the access is a read
          *  \param output Whether the access is a write
          */
-         void registerAccess( Region reg, bool input, bool output, unsigned int memorySpaceId, uint64_t devAddr, LocationInfoList &loc );
-         void masterRegisterAccess( Region reg, bool input, bool output, unsigned int memorySpaceId, uint64_t devAddr, LocationInfoList &loc );
-         void addAccess(Region reg, bool input, bool output, unsigned int memorySpaceId, unsigned int version, uint64_t devAddr );
+         void getLocation( Region reg, LocationInfoList &loc, unsigned int &version );
+         void masterGetLocation( Region reg, LocationInfoList &loc, unsigned int &version );
+         void addAccess(Region reg, unsigned int memorySpaceId, unsigned int version );
 
          void merge( const NewRegionDirectory &input );
          void mergeOutput( const NewRegionDirectory &input );
@@ -187,7 +187,7 @@ namespace nanos
          void lock();
          void unlock();
 
-         static void insertRegionIntoTree( RegionTree<NewDirectoryEntryData> &dir, Region const &r, unsigned int memorySpaceId, uint64_t devAddr, bool setLoc, NewDirectoryEntryData const &ent, unsigned int version);
+         static void insertRegionIntoTree( RegionTree<NewDirectoryEntryData> &dir, Region const &r, unsigned int memorySpaceId, bool setLoc, NewDirectoryEntryData const &ent, unsigned int version);
          template <class RegionDesc> static Region build_region( RegionDesc const &cd );
          template <class RegionDesc> static Region build_region_with_given_base_address( RegionDesc const &dataAccess, uint64_t newBaseAddress );
 

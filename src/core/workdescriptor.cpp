@@ -134,6 +134,7 @@ bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
 
 void WorkDescriptor::submit( void )
 {
+   _ccontrol.preInit( getNewDirectory(), getNumCopies(), getCopies(), getId() );
    Scheduler::submit( *this );
 } 
 

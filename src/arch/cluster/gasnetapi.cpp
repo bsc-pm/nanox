@@ -696,7 +696,7 @@ void GASNetAPI::amMalloc( gasnet_token_t token, gasnet_handlerarg_t sizeLo, gasn
       gasnet_handlerarg_t waitObjAddrLo, gasnet_handlerarg_t waitObjAddrHi )
 {
    gasnet_node_t src_node;
-   void *addr = NULL; volatile int *ptr;
+   void *addr = NULL; //volatile int *ptr;
    std::size_t size = ( std::size_t ) MERGE_ARG( sizeHi, sizeLo );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
@@ -707,7 +707,7 @@ void GASNetAPI::amMalloc( gasnet_token_t token, gasnet_handlerarg_t sizeLo, gasn
 //	#else
    addr = std::malloc( ( std::size_t ) size );
    
-   ptr = (volatile int *)addr;
+   //ptr = (volatile int *)addr;
   
    fprintf(stderr, "On amMalloc, touching data %ld\n", size );
    //for (unsigned int i = 0; i < ( size / sizeof(int) ); i+= 1024 ) { ptr[i] = ptr[i]; }
@@ -1825,11 +1825,13 @@ std::size_t GASNetAPI::getTotalBytes()
 
 void GASNetAPI::getDataFromDevice( uint64_t addr, std::size_t len ) {
    NewDirectory::LocationInfoList locations;
+   unsigned int currentVersion;
    nanos_region_dimension_internal_t aDimension = { len, 0, len };
    CopyData cd( addr, NANOS_SHARED, true, true, 1, &aDimension, 0);
    Region reg = NewRegionDirectory::build_region( cd );
    _newMasterDir->lock();
-   _newMasterDir->masterRegisterAccess( reg, true, false /* will increase version number */, 0, addr /*this is currently unused */, locations ); //FIXME: I think it would be better to have a input only register
+   _newMasterDir->masterGetLocation( reg, locations, currentVersion ); 
+   _newMasterDir->addAccess( reg, 0, currentVersion ); 
    _newMasterDir->unlock();
    for ( NewDirectory::LocationInfoList::iterator it = locations.begin(); it != locations.end(); it++ ) {
       if (!it->second.isLocatedIn( 0 ) ) { 
@@ -1844,11 +1846,14 @@ void GASNetAPI::getDataFromDevice( uint64_t addr, std::size_t len ) {
 
 void GASNetAPI::invalidateDataFromDevice( uint64_t addr, std::size_t len ) {
    NewDirectory::LocationInfoList locations;
+   unsigned int currentVersion;
    nanos_region_dimension_internal_t aDimension = { len, 0, len };
    CopyData cd( addr, NANOS_SHARED, true, true, 1, &aDimension, 0);
    Region reg = NewRegionDirectory::build_region( cd );
    _newMasterDir->lock();
-   _newMasterDir->masterRegisterAccess( reg, true, true /* will increase version number */, 0, addr /*this is currently unused */, locations );
+   //_newMasterDir->masterRegisterAccess( reg, true, true /* will increase version number */, 0, addr /*this is currently unused */, locations );
+   _newMasterDir->masterGetLocation( reg, locations, currentVersion ); 
+   _newMasterDir->addAccess( reg, 0, currentVersion + 1 ); 
    _newMasterDir->unlock();
 }
 

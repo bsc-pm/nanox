@@ -32,18 +32,26 @@ namespace nanos {
 
             struct TeamData : public ScheduleTeamData
             {
+               WDDeque            _globalReadyQueue;
                WDDeque*           _readyQueues;
                WDDeque*           _bufferQueues;
                std::size_t*       _createdData;
                Atomic<bool>       _holdTasks;
+               unsigned int       _numNodes;
  
                TeamData ( unsigned int size ) : ScheduleTeamData()
                {
-                  _readyQueues = NEW WDDeque[size];
-                  _bufferQueues = NEW WDDeque[size];
-                  _createdData = NEW std::size_t[size];
-	          for (unsigned int i = 0; i < size; i += 1) _createdData[i] = 0;
-                  _holdTasks = false;
+                  unsigned int nodes = sys.getNetwork()->getNumNodes();
+                  unsigned int numqueues = nodes; //(nodes > 0) ? nodes + 1 : nodes;
+                  _numNodes = ( sys.getNetwork()->getNodeNum() == 0 ) ? nodes : 1;
+
+                  if ( _numNodes > 1 ) {
+		     _readyQueues = NEW WDDeque[numqueues];
+		     _bufferQueues = NEW WDDeque[numqueues];
+		     _createdData = NEW std::size_t[numqueues];
+		     for (unsigned int i = 0; i < numqueues; i += 1 ) _createdData[i] = 0;
+		     _holdTasks = false;
+                  }
                }
 
                ~TeamData ()
@@ -86,7 +94,7 @@ namespace nanos {
             virtual ScheduleTeamData * createTeamData ()
             {
                /* Queue 0 will be the global one */
-               unsigned int numQueues = sys.getCacheMap().getSize() + 1;
+               unsigned int numQueues = 0; // will be computed later
                
                return NEW TeamData( numQueues );
             }
@@ -104,10 +112,11 @@ namespace nanos {
             */
             virtual void queue ( BaseThread *thread, WD &wd )
             {
+#if 0
                ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
                if ( !data._init ) {
                   //data._cacheId = thread->runningOn()->getMemorySpaceId();
-                  data._cacheId = thread->runningOn()->getMyNodeNumber() + 1;
+                  data._cacheId = thread->runningOn()->getMyNodeNumber();
                   data._init = true;
                }
                TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
@@ -115,7 +124,7 @@ namespace nanos {
             //message("in queue node " << sys.getNetwork()->getNodeNum()<< " wd os " << wd.getId());
                if ( wd.isTied() ) {
                   //unsigned int index = wd.isTiedTo()->runningOn()->getMemorySpaceId();
-                  unsigned int index = wd.isTiedTo()->runningOn()->getMyNodeNumber() + 1;
+                  unsigned int index = wd.isTiedTo()->runningOn()->getMyNodeNumber();
                   tdata._readyQueues[index].push_front ( &wd );
                   return;
                }
@@ -129,45 +138,44 @@ namespace nanos {
                         rw_copies += (  copies[idx].isInput() &&  copies[idx].isOutput() );
                         ro_copies += (  copies[idx].isInput() && !copies[idx].isOutput() );
                         wo_copies += ( !copies[idx].isInput() &&  copies[idx].isOutput() );
-                        createdDataSize += ( !copies[idx].isInput() &&  copies[idx].isOutput() ) * copies[idx].getSize();
+                        createdDataSize += ( !copies[idx].isInput() && copies[idx].isOutput() ) * copies[idx].getSize();
                      }
                   }
 
                   if ( wo_copies == wd.getNumCopies() ) /* init task */
                   {
-                     unsigned int numCaches = sys.getCacheMap().getSize();
-                     message("numcaches is " << numCaches);
-                     if (numCaches > 0) {
-                     //int winner = numCaches - 1;
-                     int winner = numCaches ;
-                     for ( int i = winner - 1; i >= 0; i -= 1 )
-                     {
-                        winner = ( tdata._createdData[ winner ] < tdata._createdData[ i ] ) ? winner : i ;
-                     }
-                     tdata._createdData[ winner ] += createdDataSize;
-                     tdata._bufferQueues[winner + 1].push_back( &wd );
-                     message("init: queue " << (winner+1) << " for wd " << wd.getId() );
+                     //unsigned int numCaches = sys.getCacheMap().getSize();
+                     //message("numcaches is " << numCaches);
+                     if ( _numNodes > 1 ) {
+                        //int winner = numCaches - 1;
+                        int winner = _numNodes - 1;
+                        for ( int i = winner - 1; i >= 0; i -= 1 )
+                        {
+                           winner = ( tdata._createdData[ winner ] < tdata._createdData[ i ] ) ? winner : i ;
+                        }
+                        tdata._createdData[ winner ] += createdDataSize;
+                        tdata._bufferQueues[ winner ].push_back( &wd );
+                        //message("init: queue " << (winner) << " for wd " << wd.getId() );
                      } else {
-                        tdata._readyQueues[0].push_back( &wd );
+                        tdata._globalReadyQueue.push_back( &wd );
                      }
                      //tdata._readyQueues[winner + 1].push_back( &wd );
                      tdata._holdTasks = true;
                   }
                   else
                   {
-                     unsigned int numCaches = sys.getCacheMap().getSize();
-                     unsigned int ranks[numCaches+1];
+                     unsigned int ranks[ _numNodes + 1];
                      if ( tdata._holdTasks.value() )
                      {
                         if ( tdata._holdTasks.cswap( true, false ) )
                         {
-                           for ( unsigned int idx = 1; idx <= numCaches+1; idx += 1) 
+                           for ( unsigned int idx = 0; idx <= _numNodes; idx += 1) 
                            {
-                              tdata._readyQueues[ idx ].transferElemsFrom( tdata._bufferQueues[ idx] );
+                              tdata._readyQueues[ idx ].transferElemsFrom( tdata._bufferQueues[ idx ] );
                            }
                         }
                      }
-                     for (unsigned int i = 0; i < numCaches+1; i++ ) {
+                     for (unsigned int i = 0; i < _numNodes; i++ ) {
                         ranks[i] = 0;
                      }
                      for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
@@ -189,7 +197,7 @@ namespace nanos {
                      }
                      unsigned int winner = 1;
                      unsigned int maxRank = 0;
-                     for ( unsigned int i = 0; i < numCaches+1; i++ ) {
+                     for ( unsigned int i = 0; i < _numNodes+1; i++ ) {
                         if ( ranks[i] > maxRank ) {
                            winner = i+1;
                            maxRank = ranks[i];
@@ -201,6 +209,7 @@ namespace nanos {
                } else {
                   tdata._readyQueues[0].push_front ( &wd );
                }
+#endif
             }
 
             /*!

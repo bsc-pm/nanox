@@ -47,13 +47,17 @@ void ProcessingElement::copyDataIn( WorkDescriptor &work )
    //      }
    //   }
    //}
+   work._ccontrol.copyDataInNoCache();
+#if 0
    NewDirectory *dir = work.getNewDirectory();
    CopyData *copies = work.getCopies();
    for ( unsigned int index = 0; index < work.getNumCopies(); index++ ) {
+      unsigned int currentVersion = 0;
       NewDirectory::LocationInfoList locations;
       Region reg = NewDirectory::build_region( copies[ index ] );
       dir->lock();
-      dir->registerAccess( reg, copies[ index ].isInput(), copies[ index ].isOutput(), 0, ((uint64_t)copies[ index ].getBaseAddress()) + copies[ index ].getOffset(), locations );
+      dir->getLocation( reg, locations, currentVersion );
+      dir->addAccess( reg, 0, copies[ index ].isOutput() ? currentVersion + 1 : currentVersion );
       dir->unlock();
       if ( !copies[ index ].isInput() ) continue;
 
@@ -75,6 +79,7 @@ void ProcessingElement::copyDataIn( WorkDescriptor &work )
          }
       }
    }
+#endif
 }
 
 void ProcessingElement::copyDataOut( WorkDescriptor &work )

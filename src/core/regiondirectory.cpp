@@ -54,7 +54,7 @@ void NewRegionDirectory::setParent( NewRegionDirectory *parent )
    _parent =  parent;
 }
 
-void NewRegionDirectory::insertRegionIntoTree( RegionTree<NewDirectoryEntryData> &dir, Region const &reg, unsigned int memorySpaceId, uint64_t devAddr, bool setLoc, NewDirectoryEntryData const &ent, unsigned int version )
+void NewRegionDirectory::insertRegionIntoTree( RegionTree<NewDirectoryEntryData> &dir, Region const &reg, unsigned int memorySpaceId, bool setLoc, NewDirectoryEntryData const &ent, unsigned int version )
 {
    //if(sys.getNetwork()->getNodeNum() == 0)std::cerr << "insert into " << &dir << std::endl;
    RegionTree<NewDirectoryEntryData>::iterator_list_t insertOuts;
@@ -70,7 +70,7 @@ void NewRegionDirectory::insertRegionIntoTree( RegionTree<NewDirectoryEntryData>
       NewDirectoryEntryData &nded = *accessor;
       if ( setLoc ) {
          //std::cerr << "added loc "<< memorySpaceId << " version " << version << std::endl;
-         nded.addAccess( memorySpaceId, devAddr, version );
+         nded.addAccess( memorySpaceId, 0, version );
          //nded.setVersion( version );
       } else {
          nded.merge( ent );
@@ -78,9 +78,9 @@ void NewRegionDirectory::insertRegionIntoTree( RegionTree<NewDirectoryEntryData>
    }
 }
 
-void NewRegionDirectory::masterRegisterAccess( Region reg, bool input, bool output, unsigned int memorySpaceId, uint64_t devAddr, LocationInfoList &loc )
+void NewRegionDirectory::masterGetLocation( Region reg, LocationInfoList &loc, unsigned int &version )
 {
-   unsigned int version = 0;
+   version = 0;
 
  //if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 ) std::cerr << " register Loc " << memorySpaceId << " " << reg << std::endl;
  //if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 ) { std::cerr << "this dir is " << &_inputDirectory << " parent is "  << ( ( _parent!= NULL) ? &(_parent->_directory) : NULL ) << std::endl;   }
@@ -135,14 +135,14 @@ void NewRegionDirectory::masterRegisterAccess( Region reg, bool input, bool outp
    }
 //if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 )  std::cerr << "Reg " << reg << " registered for access with version " << (output ? ( version + 1 ) : version ) << " in location " << memorySpaceId << std::endl;
 //if (sys.getNetwork()->getNodeNum() == 1) std::cerr << "Reg " << reg << " registered for access with version " << (output ? ( version + 1 ) : version ) << " in location " << memorySpaceId << std::endl;
-   insertRegionIntoTree( _directory, reg, memorySpaceId, devAddr, true, *((NewDirectoryEntryData * ) NULL), output ? ( version + 1 ) : version );
+   //insertRegionIntoTree( _directory, reg, memorySpaceId, devAddr, true, *((NewDirectoryEntryData * ) NULL), output ? ( version + 1 ) : version );
    //_mergeLock.release();
 }
 
-void NewRegionDirectory::registerAccess( Region reg, bool input, bool output, unsigned int memorySpaceId, uint64_t devAddr, LocationInfoList &loc )
+void NewRegionDirectory::getLocation( Region reg, LocationInfoList &loc, unsigned int &version )
 {
    bool skipParent = false;
-   unsigned int version = 0;
+   version = 0;
 
  //if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 ) std::cerr << " register Loc " << memorySpaceId << " " << reg << std::endl;
  //if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 ) { std::cerr << "this dir is " << &_inputDirectory << " parent is "  << ( ( _parent!= NULL) ? &(_parent->_directory) : NULL ) << std::endl;   }
@@ -259,12 +259,13 @@ void NewRegionDirectory::registerAccess( Region reg, bool input, bool output, un
 
 //if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 )  std::cerr << "Reg " << reg << " registered for access with version " << (output ? ( version + 1 ) : version ) << " in location " << memorySpaceId << std::endl;
 //if (sys.getNetwork()->getNodeNum() == 1) std::cerr << "Reg " << reg << " registered for access with version " << (output ? ( version + 1 ) : version ) << " in location " << memorySpaceId << std::endl;
-   insertRegionIntoTree( _directory, reg, memorySpaceId, devAddr, true, *((NewDirectoryEntryData * ) NULL), output ? ( version + 1 ) : version );
+   //insertRegionIntoTree( _directory, reg, memorySpaceId, devAddr, true, *((NewDirectoryEntryData * ) NULL), output ? ( version + 1 ) : version );
 }
 
-void NewRegionDirectory::addAccess(Region reg, bool input, bool output, unsigned int memorySpaceId, unsigned int version, uint64_t devAddr )
+
+void NewRegionDirectory::addAccess(Region reg, unsigned int memorySpaceId, unsigned int version )
 {
-   insertRegionIntoTree( _directory, reg, memorySpaceId, devAddr, true, *((NewDirectoryEntryData * ) NULL), version );
+   insertRegionIntoTree( _directory, reg, memorySpaceId, true, *((NewDirectoryEntryData * ) NULL), version );
 }
 
 void NewRegionDirectory::_internal_merge( RegionTree<NewDirectoryEntryData> const &inputDir, RegionTree<NewDirectoryEntryData> &targetDir )
@@ -285,7 +286,7 @@ void NewRegionDirectory::_internal_merge( RegionTree<NewDirectoryEntryData> cons
       NewDirectoryEntryData &nded = *accessor;
 
       //if(sys.getNetwork()->getNodeNum() > 0 )std::cerr << "::::::merge, insert region "<<  accessor.getRegion() << " locinfo: " << nded << std::endl;
-      insertRegionIntoTree( targetDir, accessor.getRegion(), /* not used */ 0, /* not used */ 0xbeefbeef, false, nded, 0 );
+      insertRegionIntoTree( targetDir, accessor.getRegion(), /* not used */ 0, false, nded, 0 );
    }
   // std::cerr << "_internal_merge end !!! " << std::endl;
 }
@@ -324,10 +325,10 @@ void NewRegionDirectory::setRoot() {
    nanos_region_dimension_internal_t wholeMemDim[1] = { { -1ULL, 0, -1ULL } };
    Region r = build_region( DataAccess((void *) 0, true, true, false, false, 1, wholeMemDim ) );
    //Region r2 = build_region( DataAccess((void *) 0, true, true, false, false, 1, wholeMemDim ) );
-   insertRegionIntoTree( _inputDirectory, r, 0, 0, true, *((NewDirectoryEntryData * ) NULL), 1 );
+   insertRegionIntoTree( _inputDirectory, r, 0, true, *((NewDirectoryEntryData * ) NULL), 1 );
    //std::cerr << "Initialized whole Mem region, input " << (void *) &_inputDirectory << std::endl;
    //std::cerr << "==== Pre init =================  " << std::endl << _directory << "================================================" << std::endl;
-   insertRegionIntoTree( _directory, r, 0, 0, true, *((NewDirectoryEntryData * ) NULL), 1 );
+   insertRegionIntoTree( _directory, r, 0, true, *((NewDirectoryEntryData * ) NULL), 1 );
    //std::cerr << "Initialized whole Mem region, directory " << (void *) &_directory << std::endl;
    //std::cerr << "==== Post init =================  " << std::endl << _directory << "================================================" << std::endl;
 }

@@ -214,7 +214,9 @@ namespace nanos {
       public:
          CacheControler();
          bool isCreated() const;
-         void create( RegionCache *targetCache, NewRegionDirectory *dir, std::size_t numCopies, CopyData *copies, unsigned int wdId );
+         void preInit( NewRegionDirectory *dir, std::size_t numCopies, CopyData *copies, unsigned int wdId );
+         void copyDataIn( RegionCache *targetCache );
+         void copyDataInNoCache();
          bool dataIsReady() const;
          uint64_t getAddress( unsigned int copyIndex ) const;
          void copyDataOut();
