@@ -80,6 +80,8 @@ extern "C" {
     Type Name Params
 #endif
 
+NANOS_API_DECL(char *, nanos_get_mode, ( void ));
+
 // Functions related to WD
 NANOS_API_DECL(nanos_wd_t, nanos_current_wd, (void));
 NANOS_API_DECL(int, nanos_get_wd_id, (nanos_wd_t wd));

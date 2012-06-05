@@ -21,6 +21,25 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#ifdef NANOS_DEBUG_ENABLED
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   char nanos_mode[] = "instrumentation-debug";
+#else
+   char nanos_mode[] = "debug";
+#endif
+#else
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   char nanos_mode[] = "instrumentation";
+#else
+#endif
+   char nanos_mode[] = "performance";
+#endif
+
+NANOS_API_DEF(char *, nanos_get_mode, ( void ))
+{
+   return nanos_mode;
+}
+
 NANOS_API_DEF(void, nanos_handle_error, ( nanos_err_t err ))
 {
    switch ( err ) {
