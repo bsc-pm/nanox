@@ -21,17 +21,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#ifdef NANOS_DEBUG_ENABLED
-#ifdef NANOS_INSTRUMENTATION_ENABLED
+#if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_INSTRUMENTATION_ENABLED)
    char nanos_mode[] = "instrumentation-debug";
-#else
+#elif defined(NANOS_DEBUG_ENABLED) && !defined(NANOS_INSTRUMENTATION_ENABLED)
    char nanos_mode[] = "debug";
-#endif
-#else
-#ifdef NANOS_INSTRUMENTATION_ENABLED
+#elif !defined(NANOS_DEBUG_ENABLED) && defined(NANOS_INSTRUMENTATION_ENABLED)
    char nanos_mode[] = "instrumentation";
-#else
-#endif
+#elif !defined(NANOS_DEBUG_ENABLED) && !defined(NANOS_INSTRUMENTATION_ENABLED)
    char nanos_mode[] = "performance";
 #endif
 
