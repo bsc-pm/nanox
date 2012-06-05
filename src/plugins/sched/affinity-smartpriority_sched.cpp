@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2012 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -26,17 +26,17 @@
 namespace nanos {
    namespace ext {
 
-      class CacheSchedPolicy : public SchedulePolicy
+      class CacheSmartPriority : public SchedulePolicy
       {
          private:
 
             struct TeamData : public ScheduleTeamData
             {
-               WDDeque*           _readyQueues;
+               WDPriorityQueue*  _readyQueues;
  
                TeamData ( unsigned int size ) : ScheduleTeamData()
                {
-                  _readyQueues = NEW WDDeque[size];
+                  _readyQueues = NEW WDPriorityQueue[size];
                }
 
                ~TeamData () { delete[] _readyQueues; }
@@ -56,16 +56,16 @@ namespace nanos {
                }
             };
 
-            /* disable copy and assigment */
-            explicit CacheSchedPolicy ( const CacheSchedPolicy & );
-            const CacheSchedPolicy & operator= ( const CacheSchedPolicy & );
+            /* disable copy and assignment */
+            explicit CacheSmartPriority ( const CacheSmartPriority & );
+            const CacheSmartPriority & operator= ( const CacheSmartPriority & );
 
          public:
             // constructor
-            CacheSchedPolicy() : SchedulePolicy ( "Cache" ) {}
+            CacheSmartPriority() : SchedulePolicy ( "CacheSmartPriority" ) {}
 
             // destructor
-            virtual ~CacheSchedPolicy() {}
+            virtual ~CacheSmartPriority() {}
 
             virtual size_t getTeamDataSize () const { return sizeof(TeamData); }
             virtual size_t getThreadDataSize () const { return sizeof(ThreadData); }
@@ -100,7 +100,7 @@ namespace nanos {
 
                 if ( wd.isTied() ) {
                     unsigned int index = wd.isTiedTo()->runningOn()->getMemorySpaceId();
-                    tdata._readyQueues[index].push_front ( &wd );
+                    tdata._readyQueues[index].push ( &wd );
                     return;
                 }
                 if ( wd.getNumCopies() > 0 ){
@@ -134,9 +134,9 @@ namespace nanos {
                          maxRank = ranks[i];
                       }
                    }
-                   tdata._readyQueues[winner].push_front( &wd );
+                   tdata._readyQueues[winner].push( &wd );
                 } else {
-                   tdata._readyQueues[0].push_front ( &wd );
+                   tdata._readyQueues[0].push ( &wd );
                 }
             }
 
@@ -173,10 +173,65 @@ namespace nanos {
             {
                return current.getImmediateSuccessor(*thread);
             }
+            
+            /*!
+             * \brief This method performs the main task of the smart priority
+             * scheduler, which is to propagate the priority of a WD to its
+             * immediate predecessors. It is meant to be invoked from
+             * DependenciesDomain::submitWithDependenciesInternal.
+             * \param [in/out] predecessor The preceding DependableObject.
+             * \param [in] successor DependableObject whose WD priority has to be
+             * propagated.
+             */
+            void successorFound( DependableObject *predecessor, DependableObject *successor )
+            {
+               if ( predecessor == NULL ) {
+                  debug( "AffinitySmartPriority::successorFound predecessor is NULL" );
+                  return;
+               }
+               if ( successor == NULL ) {
+                  debug( "AffinitySmartPriority::successorFound successor is NULL" );
+                  return;
+               }
+               
+               WD *pred = ( WD* ) predecessor->getRelatedObject();
+               if ( pred == NULL ) {
+                  debug( "AffinitySmartPriority::successorFound predecessor->getRelatedObject() is NULL" )
+                  return;
+               }
+               
+               WD *succ = ( WD* ) successor->getRelatedObject();
+               if ( succ == NULL ) {
+                  fatal( "AffinitySmartPriority::successorFound  successor->getRelatedObject() is NULL" );
+               }
+               
+               debug ( "Propagating priority from "
+                  << (void*)succ << ":" << succ->getId() << " to "
+                  << (void*)pred << ":"<< pred->getId()
+                  << ", old priority: " << pred->getPriority()
+                  << ", new priority: " << std::max( pred->getPriority(),
+                  succ->getPriority() )
+               );
+               
+               // Propagate priority
+               if ( pred->getPriority() < succ->getPriority() ) {
+                  pred->setPriority( succ->getPriority() );
+                  
+                  // Reorder
+                  TeamData &tdata = ( TeamData & ) *nanos::myThread->getTeam()->getScheduleData();
+                  // Do it for all the queues since I don't know which ones have the predecessor
+                  // TODO (#652): Find a way to avoid the situation described above.
+                  unsigned int numQueues = sys.getCacheMap().getSize() + 1;
+                  for ( unsigned int i = 0; i < numQueues; i++ )
+                  {
+                     tdata._readyQueues[i].reorderWD( pred );
+                  }
+               }
+            }
 
       };
 
-      WD *CacheSchedPolicy::atBlock ( BaseThread *thread, WD *current )
+      WD *CacheSmartPriority::atBlock ( BaseThread *thread, WD *current )
       {
          WorkDescriptor * wd = NULL;
 
@@ -190,24 +245,24 @@ namespace nanos {
          /*
           *  First try to schedule the thread with a task from its queue
           */
-         if ( ( wd = tdata._readyQueues[data._cacheId].pop_front ( thread ) ) != NULL ) {
+         if ( ( wd = tdata._readyQueues[data._cacheId].pop ( thread ) ) != NULL ) {
             return wd;
          } else {
             /*
              * Then try to get it from the global queue
              */
-             wd = tdata._readyQueues[0].pop_front ( thread );
+             wd = tdata._readyQueues[0].pop ( thread );
          }
          if ( wd == NULL ) {
             for ( unsigned int i = data._cacheId; i < sys.getCacheMap().getSize(); i++ ) {
                if ( !tdata._readyQueues[i+1].empty() ) {
-                  wd = tdata._readyQueues[i+1].pop_front( thread );
+                  wd = tdata._readyQueues[i+1].pop( thread );
                   return wd;
                } 
             }
             for ( unsigned int i = 0; i < data._cacheId; i++ ) {
                if ( !tdata._readyQueues[i+1].empty() ) {
-                  wd = tdata._readyQueues[i+1].pop_front( thread );
+                  wd = tdata._readyQueues[i+1].pop( thread );
                   return wd;
                } 
             }
@@ -217,7 +272,7 @@ namespace nanos {
 
       /*! 
        */
-      WD * CacheSchedPolicy::atIdle ( BaseThread *thread )
+      WD * CacheSmartPriority::atIdle ( BaseThread *thread )
       {
          WorkDescriptor * wd = NULL;
 
@@ -231,24 +286,24 @@ namespace nanos {
          /*
           *  First try to schedule the thread with a task from its queue
           */
-         if ( ( wd = tdata._readyQueues[data._cacheId].pop_front ( thread ) ) != NULL ) {
+         if ( ( wd = tdata._readyQueues[data._cacheId].pop ( thread ) ) != NULL ) {
             return wd;
          } else {
             /*
              * Then try to get it from the global queue
              */
-             wd = tdata._readyQueues[0].pop_front ( thread );
+             wd = tdata._readyQueues[0].pop ( thread );
          }
          if ( wd == NULL ) {
             for ( unsigned int i = data._cacheId; i < sys.getCacheMap().getSize(); i++ ) {
                if ( tdata._readyQueues[i+1].size() > 1 ) {
-                  wd = tdata._readyQueues[i+1].pop_front( thread );
+                  wd = tdata._readyQueues[i+1].pop( thread );
                   return wd;
                } 
             }
             for ( unsigned int i = 0; i < data._cacheId; i++ ) {
                if ( tdata._readyQueues[i+1].size() > 1 ) { 
-                  wd = tdata._readyQueues[i+1].pop_front( thread );
+                  wd = tdata._readyQueues[i+1].pop( thread );
                   return wd;
                } 
             }
@@ -256,19 +311,19 @@ namespace nanos {
          return wd;
       }
 
-      class CacheSchedPlugin : public Plugin
+      class CacheSmartPrioritySchedPlugin : public Plugin
       {
          public:
-            CacheSchedPlugin() : Plugin( "Cache-guided scheduling Plugin",1 ) {}
+            CacheSmartPrioritySchedPlugin() : Plugin( "Cache-guided with smart priority propagation scheduling Plugin",1 ) {}
 
             virtual void config( Config& cfg ) {}
 
             virtual void init() {
-               sys.setDefaultSchedulePolicy(NEW CacheSchedPolicy());
+               sys.setDefaultSchedulePolicy(NEW CacheSmartPriority());
             }
       };
 
    }
 }
 
-DECLARE_PLUGIN("sched-affinity",nanos::ext::CacheSchedPlugin);
+DECLARE_PLUGIN("sched-affinity-smartpriority",nanos::ext::CacheSmartPrioritySchedPlugin);
