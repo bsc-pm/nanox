@@ -687,11 +687,8 @@ struct WorkerBehaviour
         delete[] (char *)next;
       }
    }
-<<<<<<< HEAD
    static bool checkThreadRunning( WD *current) { return true; }
-=======
    static bool exiting() { return false; }
->>>>>>> master
 };
 
 void Scheduler::workerLoop ()
