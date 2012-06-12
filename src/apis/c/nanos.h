@@ -22,6 +22,7 @@
 
 #include <unistd.h>
 #include "nanos-int.h"
+#include "nanos_c_api_macros.h"
 
 
 #ifdef _MERCURIUM
@@ -68,16 +69,6 @@ typedef struct {
 #define _Bool bool
 
 extern "C" {
-#endif
-
-#define NANOS_API_DECL(Type, Name, Params) \
-    extern Type Name##_ Params; \
-    extern Type Name Params
-
-#ifdef _NANOS_INTERNAL
-#define NANOS_API_DEF(Type, Name, Params) \
-    __attribute__((alias(#Name))) Type Name##_ Params; \
-    Type Name Params
 #endif
 
 NANOS_API_DECL(char *, nanos_get_mode, ( void ));
@@ -229,8 +220,6 @@ do {\
    nanos_err_t err = call;\
    if ( err != NANOS_OK ) nanos_handle_error( err );\
 } while (0)
-
-#undef NANOS_API_DECL
 
 void nanos_reduction_int_vop ( int, void *, void * );
 

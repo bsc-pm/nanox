@@ -12,5 +12,6 @@ nanos_c_sources = \
 	$(top_srcdir)/src/apis/c/nanos_memory.cpp\
 	$(top_srcdir)/src/apis/c/nanos_reduction.h\
 	$(top_srcdir)/src/apis/c/nanos_reduction.cpp\
+	$(top_srcdir)/src/apis/c/nanos_c_api_macros.hpp\
 	$(END) 
 
