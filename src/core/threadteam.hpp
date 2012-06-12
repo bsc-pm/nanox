@@ -201,4 +201,14 @@ inline void *ThreadTeam::getReductionPrivateData ( void* s )
    return NULL;
 }
 
+inline nanos_reduction_t *ThreadTeam::getReduction ( void* s )
+{
+   ReductionList::iterator it;
+   for ( it = _redList.begin(); it != _redList.end(); it++) {
+      if ((*it)->original == s) return *it;
+   }
+
+   return NULL;
+}
+
 #endif

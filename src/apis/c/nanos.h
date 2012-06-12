@@ -130,6 +130,8 @@ NANOS_API_DECL(nanos_err_t, nanos_team_get_supporting_threads, ( int *n, nanos_t
 NANOS_API_DECL(nanos_err_t, nanos_register_reduction, ( nanos_reduction_t *red) );
 NANOS_API_DECL(nanos_err_t, nanos_reduction_get_private_data, ( void **copy, void *original ) );
 
+NANOS_API_DECL(nanos_err_t, nanos_reduction_get, ( nanos_reduction_t **dest, void *original ) );
+
 // worksharing
 NANOS_API_DECL(nanos_err_t, nanos_worksharing_create ,( nanos_ws_desc_t **wsd, nanos_ws_t ws, nanos_ws_info_t *info, bool *b ) );
 NANOS_API_DECL(nanos_err_t, nanos_worksharing_next_item, ( nanos_ws_desc_t *wsd, nanos_ws_item_t *wsi ) );

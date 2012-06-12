@@ -177,3 +177,15 @@ NANOS_API_DEF(nanos_err_t, nanos_reduction_get_private_data, ( void **copy, void
 
    return NANOS_OK;
 }
+
+NANOS_API_DEF(nanos_err_t, nanos_reduction_get, (nanos_reduction_t** dest, void *original) )
+{
+
+   try {
+       *dest = myThread->getTeam()->getReduction ( original );
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
