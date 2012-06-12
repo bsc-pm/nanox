@@ -17,6 +17,7 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 #include "nanos-int.h"
+#include "nanos_c_api_macros.h"
 
 #ifndef _NANOS_REDUCTION_H_
 #define _NANOS_REDUCTION_H_
@@ -147,7 +148,9 @@ NANOS_REDUCTION_CLEANUP_DECL(_Bool, _Bool)
 NANOS_REDUCTION_CLEANUP_DECL(float, float)
 NANOS_REDUCTION_CLEANUP_DECL(double, double)
 NANOS_REDUCTION_CLEANUP_DECL(longdouble, long double)
-   
+
+NANOS_API_DECL(void, nanos_reduction_default_cleanup_fortran, (void*));
+
 #ifdef __cplusplus
 }
 #endif
