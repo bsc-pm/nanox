@@ -48,6 +48,7 @@ typedef enum {
 typedef struct {
    void *original;
    void *privates;
+   size_t element_size;
    void *descriptor; // This is only used in Fortran, it holds a Fortran array descriptor
    void (*bop)( void *, void *);
    void (*vop)( int n, void *, void *);
