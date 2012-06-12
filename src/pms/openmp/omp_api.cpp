@@ -35,6 +35,9 @@ extern "C"
       return myThread->getTeam()->size();
    }
 
+   int nanos_omp_get_num_threads ( void ) __attribute__ ((alias ("omp_get_num_threads")));
+   int nanos_omp_get_num_threads_ ( void ) __attribute__ ((alias ("omp_get_num_threads")));
+
    NANOS_API_DEF(int, omp_get_max_threads, ( void ))
    {
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
@@ -55,6 +58,9 @@ extern "C"
       //TODO: check master always gets a 0
       return myThread->getTeamData()->getId();
    }
+
+   int nanos_omp_get_thread_num ( void ) __attribute__ ((alias ("omp_get_thread_num")));
+   int nanos_omp_get_thread_num_ ( void ) __attribute__ ((alias ("omp_get_thread_num")));
 
    NANOS_API_DEF(int, omp_get_num_procs, ( void ))
    {
