@@ -39,23 +39,31 @@ extern "C"
 #define NANOS_REDUCTION_OP_MIN(a,b) ((a < b)? a : b)
 
 #define NANOS_REDUCTION_DECL(Op,Type)\
-   void nanos_reduction_bop_##Op## _##Type ( void *arg1, void *arg2); \
-   void nanos_reduction_vop_##Op## _##Type ( int i, void *arg1, void *arg2); \
+   void nanos_reduction_bop_##Op##_##Type ( void *arg1, void *arg2); \
+   void nanos_reduction_bop_##Op##_##Type##_ ( void *arg1, void *arg2); \
+   void nanos_reduction_vop_##Op##_##Type ( int i, void *arg1, void *arg2); \
+   void nanos_reduction_vop_##Op##_##Type##_ ( int i, void *arg1, void *arg2); \
+
+#define NANOS_STRINGIZE(X) #X
 
 #define NANOS_REDUCTION_DEF(Op,Op2,Type,Type2) \
-   void nanos_reduction_bop_##Op## _##Type ( void *arg1, void *arg2) \
+   void nanos_reduction_bop_##Op##_##Type ( void *arg1, void *arg2) \
    { \
       Type2 *s = (Type2 *) arg1; \
       Type2 *v = (Type2 *) arg2; \
       *s = Op2(*s,*v); \
    } \
-   void nanos_reduction_vop_##Op## _##Type ( int n, void *arg1, void *arg2) \
+   __attribute__((alias(NANOS_STRINGIZE(nanos_reduction_bop_##Op## _##Type)))) \
+   void nanos_reduction_bop_##Op##_##Type##_ ( void *arg1, void *arg2); \
+   void nanos_reduction_vop_##Op##_##Type ( int n, void *arg1, void *arg2) \
    { \
       int i; \
       Type2 *s = (Type2 *) arg1; \
       Type2 *v = (Type2 *) arg2; \
       for (i = 0; i < n; i++) *s = Op2(*s,v[i]); \
-   }
+   } \
+   __attribute__((alias(NANOS_STRINGIZE(nanos_reduction_bop_##Op## _##Type)))) \
+   void nanos_reduction_vop_##Op##_##Type##_ ( int n, void *arg1, void *arg2); \
 
 #define NANOS_REDUCTION_INT_TYPES_DECL(Op) \
    NANOS_REDUCTION_DECL(Op,char) \
