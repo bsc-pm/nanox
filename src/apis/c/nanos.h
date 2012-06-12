@@ -213,6 +213,9 @@ NANOS_API_DECL(nanos_err_t, nanos_instrument_enable,( void ));
 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_disable,( void ));
 
+NANOS_API_DECL(nanos_err_t, nanos_memcpy, (void *dest, const void *src, size_t n));
+
+
 // utility macros
 
 #define NANOS_SAFE( call ) \
