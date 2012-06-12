@@ -23,6 +23,10 @@ AM_PROG_CC_C_O
 AC_PROG_CXX
 AM_PROG_AS
 
+# Fortran
+AC_PROG_FC([gfortran])
+AC_PROG_FC_C_O
+
 # Check for libraries
 
 # Check for header files
