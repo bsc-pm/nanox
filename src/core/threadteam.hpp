@@ -183,7 +183,10 @@ inline void ThreadTeam::computeVectorReductions ( void )
          red->vop( this->size(), red->original, red->privates );
       } else {
          unsigned i;
+         char *privates = reinterpret_cast<char*>(red->privates);
          for ( i = 0; i < this->size(); i++ ) {
+             char* current = privates + i * red->element_size;
+             red->bop(red->original, current);
          }
       }
    }
