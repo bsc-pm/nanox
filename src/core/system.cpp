@@ -372,6 +372,11 @@ void System::start ()
 
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_RUNNING) );
+   
+   // List unrecognised arguments
+   std::string unrecog = Config::getOrphanOptions();
+   if ( !unrecog.empty() )
+      warning( "Unrecognised arguments: " << unrecog );
 }
 
 System::~System ()
