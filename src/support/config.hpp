@@ -20,6 +20,7 @@
 #ifndef _NANOS_CONFIG
 #define _NANOS_CONFIG
 
+#include <debug.hpp>
 #include <stdexcept>
 #include <vector>
 #include "config_decl.hpp"
@@ -39,6 +40,32 @@ template<typename T>
 inline bool Config::isPositive<T>::operator() ( const T &value ) const
 {
    return value > 0;
+}
+
+inline std::string Config::getOrphanOptions()
+{  
+   ensure0( _orphanOptionsMap != NULL, "Config::_orphanOptionsMap was not initialised" );
+   
+   std::string str;
+   bool first = true;
+   
+   for ( ConfigOrphansMap::const_iterator it = _orphanOptionsMap->begin();
+      it != _orphanOptionsMap->end(); ++it )
+   {
+      // If the argument has not been parsed
+      if ( it->second == false ) {
+         // Append separator if it's not the first element
+         if ( !first )
+            str += ", ";
+         else
+            first = false;
+         
+         str += it->first;
+         
+      }
+   }
+   
+   return str;
 }
 
 inline const Config::Option & Config::Option::operator= ( const Config::Option &opt )
