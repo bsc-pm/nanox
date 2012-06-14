@@ -83,6 +83,8 @@ namespace nanos
          bool                 _delayedStart;
          bool                 _useYield;
          bool                 _synchronizedStart;
+         int                  _numSockets;
+         int                  _coresPerSocket;
 
          //cutoff policy and related variables
          ThrottlePolicy      *_throttlePolicy;
@@ -151,6 +153,7 @@ namespace nanos
          const System & operator= ( const System &sys );
 
          void config ();
+         void checkConfig ();
          void loadModules();
          void unloadModules();
          
@@ -238,6 +241,10 @@ namespace nanos
          int getRunningTasks() const;
 
          int getNumWorkers() const;
+
+         int getNumSockets() const;
+
+         int getCoresPerSocket() const;
 
          void setUntieMaster ( bool value );
 

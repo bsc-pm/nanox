@@ -83,6 +83,16 @@ void SMPThread::bind( void )
 {
    cpu_set_t cpu_set;
    int cpu_id = ( getCpuId() * sys.getBindingStride() ) + sys.getBindingStart();
+   
+   // Set the number of socket
+   int socket = cpu_id / sys.getCoresPerSocket();
+   
+   if ( socket >= sys.getNumSockets() ) {
+      warning( "cpu id " << cpu_id << " is in socket #" << socket <<
+              ", while there are only " << sys.getNumSockets() << " sockets." );
+   }
+   
+   setSocket( socket );
 
    ensure( ( ( cpu_id >= 0 ) && ( cpu_id < CPU_SETSIZE ) ), "invalid value for cpu id" );
    CPU_ZERO( &cpu_set );

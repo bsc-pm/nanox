@@ -93,6 +93,10 @@ inline int System::getRunningTasks() const
 
 inline int System::getNumWorkers() const { return _workers.size(); }
 
+inline int System::getNumSockets() const { return _numSockets; }
+
+inline int System::getCoresPerSocket() const { return _coresPerSocket; }
+
 inline void System::setThrottlePolicy( ThrottlePolicy * policy ) { _throttlePolicy = policy; }
 
 inline const std::string & System::getDefaultSchedule() const { return _defSchedule; }

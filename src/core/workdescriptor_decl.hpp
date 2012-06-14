@@ -189,6 +189,8 @@ namespace nanos
          CommutativeOwnerMap           _commutativeOwnerMap; /**< Map from commutative target address to owner pointer */
          WorkDescriptorPtrList         _commutativeOwners;   /**< Array of commutative target owners */
 
+         unsigned int                  _wakeUpQueue;  /**< Queue to wake up to */
+
       private: /* private methods */
          /*! \brief WorkDescriptor copy assignment operator (private)
           */
@@ -345,6 +347,19 @@ namespace nanos
          void * getInternalData () const;
 
          void setTranslateArgs( nanos_translate_args_t translateArgs );
+         
+         /*! \brief Returns the queue this WD should wake up in.
+          *  This will be used by the socket-aware schedule policy.
+          *
+          *  \see setWakeUpQueue
+          */
+         unsigned int getWakeUpQueue() const;
+         
+         /*! \brief Sets the queue this WD should wake up in.
+          *
+          *  \see getWakeUpQueue
+          */
+         void setWakeUpQueue( unsigned int queue );
 
          /*! \brief Get the number of devices
           *

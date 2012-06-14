@@ -31,6 +31,7 @@
 #include "allocator.hpp"
 #include <string.h>
 #include <set>
+#include <cmath>
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -49,7 +50,8 @@ System::System () :
       _atomicWDSeed( 1 ),
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ), _thsPerPE( 1 ),
-      _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ), _throttlePolicy ( NULL ),
+      _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
+      _numSockets( 1 ), _coresPerSocket( 1 ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "regions" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _pausedThreads( 0 ),
@@ -256,12 +258,31 @@ void System::config ()
    cfg.registerConfigOption ( "deps", NEW Config::StringVar ( _defDepsManager ), "Defines the dependencies plugin" );
    cfg.registerArgOption ( "deps", "deps" );
    cfg.registerEnvOption ( "deps", "NX_DEPS" );
+   
+   cfg.registerConfigOption ( "cores-per-socket", NEW Config::PositiveVar( _coresPerSocket ), "Number of cores per socket." );
+   cfg.registerArgOption( "cores-per-socket", "cores-per-socket" );
+   
+   cfg.registerConfigOption ( "num-sockets", NEW Config::PositiveVar( _numSockets ), "Number of sockets available." );
+   cfg.registerArgOption( "num-sockets", "num-sockets" );
+   
 
    _schedConf.config( cfg );
    _pmInterface->config( cfg );
 
    verbose0 ( "Reading Configuration" );
    cfg.init();
+   
+   checkConfig();
+}
+
+void System::checkConfig ()
+{
+   if ( sys.getNumSockets() != std::ceil( _numPEs / static_cast<float>(_coresPerSocket) ) )
+   {
+      unsigned validSockets = std::ceil( _numPEs / static_cast<float>(_coresPerSocket) );
+      warning0( "Adjusting num-sockets from " << _numSockets << " to " << validSockets );
+      _numSockets = validSockets;
+   }
 }
 
 PE * System::createPE ( std::string pe_type, int pid )
