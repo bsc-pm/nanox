@@ -73,9 +73,11 @@ namespace nanos
 
          if ( ssCompatibility != NULL ) {
             // Enable Ss compatibility mode
+            _description = std::string("OmpSs");
             sys.setInitialMode( System::POOL );
             sys.setUntieMaster(true);
          } else {
+            _description = std::string("OpenMP");
             sys.setInitialMode( System::ONE_THREAD );
             sys.setUntieMaster(false);
          }
