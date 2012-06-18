@@ -223,6 +223,21 @@ AM_CONDITIONAL([GPU_SUPPORT],[test $gpu_valid = yes])
 
 AC_SUBST([gpu_valid])
 
+# mcc support
+AC_ARG_WITH([mcc],
+AS_HELP_STRING([--with-mcc=dir], [Directory of mcc compiler]),
+	[
+      mcc_valid=yes
+		MCC="${withval}/bin/mcc"
+	],
+	[
+      mcc_valid=no
+		MCC=""
+	])
+
+AC_SUBST([mcc_valid])
+AC_SUBST([MCC])
+
 # Allocator support
 allocator_disabled=no
 AC_MSG_CHECKING([if Nanos++ Allocator has been disabled])
