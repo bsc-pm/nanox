@@ -620,6 +620,9 @@ namespace nanos
 
          /**< Stores ConfigOptions by name */
          typedef TR1::unordered_map<std::string, BaseConfigOption *> ConfigOptionMap;
+         
+         /**< Arguments that have been processed */
+         typedef TR1::unordered_map<std::string, bool> ConfigOrphansMap;
 
       private:
 
@@ -633,6 +636,9 @@ namespace nanos
 
          /**< Gathers help messages of all Configs used in the runtime */
          static NanosHelp *_nanosHelp;
+
+         /**< Map of parameters that haven't been reclaimed */
+         static ConfigOrphansMap *_orphanOptionsMap;
 
       protected:
 
@@ -693,6 +699,16 @@ namespace nanos
         /* Returns the formatted help text for the nanox runtime library
          */
          static const std::string getNanosHelp();
+         
+        /* \brief Returns a vector of arguments that were not processed.
+         */
+         static std::vector<std::string> getOrphanOptionsList();
+         
+        /* \brief Returns a comma separated list of unprocessed arguments.
+           \note The static options map will be deleted. This method is meant
+           to be called just *once*.
+         */
+         static std::string getOrphanOptions();
    };
 
    /** exceptions */

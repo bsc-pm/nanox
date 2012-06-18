@@ -1,5 +1,5 @@
 
-AC_INIT([nanox], [0.7a], [alex.duran@bsc.es])
+AC_INIT([nanox], [0.7a], [pmtools@bsc.es])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
 
 # Environment
@@ -22,6 +22,10 @@ AC_PROG_CPP
 AM_PROG_CC_C_O
 AC_PROG_CXX
 AM_PROG_AS
+
+# Fortran
+AC_PROG_FC([gfortran])
+AC_PROG_FC_C_O
 
 # Check for libraries
 

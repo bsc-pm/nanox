@@ -177,12 +177,12 @@ inline Atomic<T> & Atomic<T>::operator= ( const Atomic<T> &val )
 
 inline Lock::state_t Lock::operator* () const
 {
-   return _state;
+   return state_;
 }
 
 inline Lock::state_t Lock::getState () const
 {
-   return _state;
+   return state_;
 }
 
 inline void Lock::operator++ ( int val )
@@ -197,16 +197,16 @@ inline void Lock::operator-- ( int val )
 
 inline void Lock::acquire ( void )
 {
-   if ( (_state == NANOS_LOCK_FREE) &&  !__sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) return;
+   if ( (state_ == NANOS_LOCK_FREE) &&  !__sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) return;
 
    // Disabling lock instrumentation; do not remove follow code which can be reenabled for testing purposes
    // NANOS_INSTRUMENT( InstrumentState inst(NANOS_ACQUIRING_LOCK) )
 
 spin:
 
-   while ( _state == NANOS_LOCK_BUSY ) {}
+   while ( state_ == NANOS_LOCK_BUSY ) {}
 
-   if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) goto spin;
+   if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) goto spin;
 
    // NANOS_INSTRUMENT( inst.close() )
 }
@@ -214,21 +214,21 @@ spin:
 inline void Lock::acquire_noinst ( void )
 {
 spin:
-   while ( _state == NANOS_LOCK_BUSY ) {}
-   if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) goto spin;
+   while ( state_ == NANOS_LOCK_BUSY ) {}
+   if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) goto spin;
 }
 
 inline bool Lock::tryAcquire ( void )
 {
-   if ( _state == NANOS_LOCK_FREE ) {
-      if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) return false;
+   if ( state_ == NANOS_LOCK_FREE ) {
+      if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) return false;
       else return true;
    } else return false;
 }
 
 inline void Lock::release ( void )
 {
-   __sync_lock_release( &_state );
+   __sync_lock_release( &state_ );
 }
 
 inline void nanos::memoryFence ()

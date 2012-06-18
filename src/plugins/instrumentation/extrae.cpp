@@ -101,6 +101,8 @@ class InstrumentationExtrae: public Instrumentation
       static std::string                             _postProcessScriptPath;
       static bool                                    _keepMpits; /*<< Keeps mpits temporary files (default = no)*/
       static bool                                    _skipMerge; /*<< Skip merge phase and keeps mpits temporary files (default = no)*/
+      static bool                                    _skipInit; /*<< Skip extrae initialization process (default = no)*/
+      static bool                                    _skipFini; /*<< Skip extrae finalization process (default = no)*/
    public:
       // constructor
 #ifdef NANOX_EXTRAE_WD_INSTRUMENTATION
@@ -565,7 +567,8 @@ class InstrumentationExtrae: public Instrumentation
 #endif
 
          /* OMPItrace initialization */
-         OMPItrace_init();
+         // OMPItrace_init();
+         if ( !_skipInit ) OMPItrace_init();
 
 #ifdef NANOX_EXTRAE_WD_INSTRUMENTATION
         Extrae_register_stacked_type( (extrae_type_t) _eventState );
@@ -575,7 +578,8 @@ class InstrumentationExtrae: public Instrumentation
 
       void finalize ( void )
       {
-         OMPItrace_fini();
+         if ( !_skipFini ) OMPItrace_fini();
+         // OMPItrace_fini();
          getTraceFileName();
          if ( !_skipMerge ) {
             mergeParaverTraceFiles();
@@ -757,6 +761,8 @@ std::string InstrumentationExtrae::_traceBaseName = std::string("");
 std::string InstrumentationExtrae::_postProcessScriptPath = std::string("");
 bool InstrumentationExtrae::_keepMpits = false;
 bool InstrumentationExtrae::_skipMerge = false;
+bool InstrumentationExtrae::_skipInit = false;
+bool InstrumentationExtrae::_skipFini = false;
 #endif
 
 namespace ext {
@@ -791,6 +797,15 @@ class InstrumentationParaverPlugin : public Plugin {
          cfg.registerConfigOption ( "extrae-skip-merge", NEW Config::FlagOption( InstrumentationExtrae::_skipMerge ),
                                        "Skips merge phase in trace generation (also keeps mpits temporary files)" );
          cfg.registerArgOption ( "extrae-skip-merge", "extrae-skip-merge" );
+
+         cfg.registerConfigOption ( "extrae-skip-init", NEW Config::FlagOption( InstrumentationExtrae::_skipInit ),
+                                       "Skips extrae initialization process" );
+         cfg.registerArgOption ( "extrae-skip-init", "extrae-skip-init" );
+
+         cfg.registerConfigOption ( "extrae-skip-fini", NEW Config::FlagOption( InstrumentationExtrae::_skipFini ),
+                                       "Skips extrae finalization process" );
+         cfg.registerArgOption ( "extrae-skip-fini", "extrae-skip-fini" );
+
 #endif
       }
 

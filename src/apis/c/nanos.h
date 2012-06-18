@@ -22,6 +22,7 @@
 
 #include <unistd.h>
 #include "nanos-int.h"
+#include "nanos_c_api_macros.h"
 
 
 #ifdef _MERCURIUM
@@ -70,15 +71,7 @@ typedef struct {
 extern "C" {
 #endif
 
-#define NANOS_API_DECL(Type, Name, Params) \
-    extern Type Name##_ Params; \
-    extern Type Name Params
-
-#ifdef _NANOS_INTERNAL
-#define NANOS_API_DEF(Type, Name, Params) \
-    __attribute__((alias(#Name))) Type Name##_ Params; \
-    Type Name Params
-#endif
+NANOS_API_DECL(char *, nanos_get_mode, ( void ));
 
 // Functions related to WD
 NANOS_API_DECL(nanos_wd_t, nanos_current_wd, (void));
@@ -130,12 +123,16 @@ NANOS_API_DECL(nanos_err_t, nanos_enter_sync_init, ( bool *b ));
 NANOS_API_DECL(nanos_err_t, nanos_wait_sync_init, ( void ));
 NANOS_API_DECL(nanos_err_t, nanos_release_sync_init, ( void ));
 
+NANOS_API_DECL(nanos_err_t, nanos_memory_fence, (void));
+
 NANOS_API_DECL(nanos_err_t, nanos_team_get_num_starring_threads, ( int *n ) );
 NANOS_API_DECL(nanos_err_t, nanos_team_get_starring_threads, ( int *n, nanos_thread_t *list_of_threads ) );
 NANOS_API_DECL(nanos_err_t, nanos_team_get_num_supporting_threads, ( int *n ) );
 NANOS_API_DECL(nanos_err_t, nanos_team_get_supporting_threads, ( int *n, nanos_thread_t *list_of_threads) );
 NANOS_API_DECL(nanos_err_t, nanos_register_reduction, ( nanos_reduction_t *red) );
-NANOS_API_DECL(nanos_err_t, nanos_reduction_get_private_data, ( void **copy, void *sink ) );
+NANOS_API_DECL(nanos_err_t, nanos_reduction_get_private_data, ( void **copy, void *original ) );
+
+NANOS_API_DECL(nanos_err_t, nanos_reduction_get, ( nanos_reduction_t **dest, void *original ) );
 
 // worksharing
 NANOS_API_DECL(nanos_err_t, nanos_worksharing_create ,( nanos_ws_desc_t **wsd, nanos_ws_t ws, nanos_ws_info_t *info, bool *b ) );
@@ -220,6 +217,9 @@ NANOS_API_DECL(nanos_err_t, nanos_instrument_enable,( void ));
 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_disable,( void ));
 
+NANOS_API_DECL(nanos_err_t, nanos_memcpy, (void *dest, const void *src, size_t n));
+
+
 // utility macros
 
 #define NANOS_SAFE( call ) \
@@ -227,8 +227,6 @@ do {\
    nanos_err_t err = call;\
    if ( err != NANOS_OK ) nanos_handle_error( err );\
 } while (0)
-
-#undef NANOS_API_DECL
 
 void nanos_reduction_int_vop ( int, void *, void * );
 

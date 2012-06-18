@@ -48,6 +48,8 @@ typedef enum {
 typedef struct {
    void *original;
    void *privates;
+   size_t element_size;
+   void *descriptor; // This is only used in Fortran, it holds a Fortran array descriptor
    void (*bop)( void *, void *);
    void (*vop)( int n, void *, void *);
    void (*cleanup)(void *);
@@ -214,9 +216,9 @@ typedef struct {
 /* Lock C interface */
 typedef enum { NANOS_LOCK_FREE = 0, NANOS_LOCK_BUSY = 1 } nanos_lock_state_t;
 typedef struct nanos_lock_t {
-   volatile nanos_lock_state_t _state;
+   volatile nanos_lock_state_t state_;
 #ifdef __cplusplus
-   nanos_lock_t ( nanos_lock_state_t init=NANOS_LOCK_FREE ) : _state(init) {}
+   nanos_lock_t ( nanos_lock_state_t init=NANOS_LOCK_FREE ) : state_(init) {}
 #endif
 } nanos_lock_t;
 

@@ -25,3 +25,6 @@ ACLOCAL_AMFLAGS=-I m4
 rpm: dist-gzip
 	$(MAKE) -C scripts rpm
 
+deb: dist-gzip
+	$(MAKE) -C scripts deb
+
