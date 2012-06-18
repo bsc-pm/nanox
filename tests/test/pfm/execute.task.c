@@ -47,7 +47,7 @@ void test_task_execution_overhead ( stats_t *s )
          task(TEST_TUSECS);
       }
 #pragma omp taskwait
-      times[i] = (((GET_TIME - times[i])*nthreads) - times_seq[i]) / TEST_NTASKS;
+      times[i] = (((GET_TIME - times[i]) - times_seq[i]) * nthreads) / TEST_NTASKS;
    }
    stats( s, times, TEST_NSAMPLES);
 }

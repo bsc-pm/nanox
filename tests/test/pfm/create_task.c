@@ -23,13 +23,7 @@
 test_generator=gens/mcc-openmp-generator
 </testinfo>
 */
-/*
-void nanos_omp_set_interface(void *);
-__attribute__((weak, section("nanos_init"))) nanos_init_desc_t __section__nanos_init = {
-    nanos_omp_set_interface,
-    (void *) 0
-};
-*/
+
 // TEST: Task Creation Overhead ********************************************************************
 typedef struct _nx_data_env_1_t_tag { } _nx_data_env_1_t;
 static void _smp__ol_test_task_creation_overhead_1(_nx_data_env_1_t *const __restrict__ _args) { task(TEST_TUSECS); }

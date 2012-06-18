@@ -55,9 +55,9 @@ typedef struct stats_t {
 } stats_t;
 
 #define GET_TIME get_usecs()
-#define TEST_NSAMPLES  100 // Number of samples for each test
+#define TEST_NSAMPLES   50 // Number of samples for each test
 #define TEST_NTASKS     50 // Number of tasks (when multiple tasks created)
-#define TEST_TUSECS    100 // Task granularity (usecs) in warming up phase
+#define TEST_TUSECS     50 // Task granularity (usecs) in warming up phase
 
 void stats ( stats_t *s, double *values, unsigned size ) 
 {
@@ -105,13 +105,18 @@ void stats ( stats_t *s, double *values, unsigned size )
 
 void print_stats ( const char *name, const char *desc, stats_t *s )
 {
-   fprintf(stderr, "*:Nanos++:%s:%s:%d:%s:%s:%3.3f:%3.3f:%3.3f:%3.3f:%0.3f:%d:%s:%s\n",
+   bool binding;
+   nanos_get_default_binding( &binding );
+
+
+   fprintf(stderr, "*:Nanos++:%s:%s:%d:%s:%s:%3.3f:%3.3f:%3.3f:%3.3f:%0.3f:%d:%s:%s:%s\n",
                    nanos_get_mode(),
                    nanos_get_pm(),
                    get_epoch(),
                    name, desc,
                    s->mean, s->sd, s->min, s->max, s->outliers,
                    omp_get_max_threads(),
+                   binding ? "binding" : "no-biding",
                    nanos_get_default_architecture(),
                    nanos_get_default_scheduler()
           );
