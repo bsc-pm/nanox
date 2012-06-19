@@ -20,9 +20,6 @@
 #ifndef _NANOS_LAZY_INIT_DECL
 #define _NANOS_LAZY_INIT_DECL
 
-#define likely(x)       __builtin_expect((x),1)
-#define unlikely(x)     __builtin_expect((x),0)
-
 template <class T>
 class LazyInit {
    private:
