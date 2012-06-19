@@ -137,6 +137,10 @@ namespace nanos
          /*! \brief SchedulerStats destructor
           */
          ~SchedulerStats () {}
+
+         int getCreatedTasks();
+         int getReadyTasks();
+         int getTotalTasks();
    };
 
    class ScheduleTeamData {
@@ -154,6 +158,10 @@ namespace nanos
          /*! \brief ScheduleTeamData destructor
           */
          virtual ~ScheduleTeamData() {}
+
+         /*! \brief Print the statistics of the ScheduleTeamData, if any
+          */
+         virtual void printStats() {}
    };
 
    class ScheduleThreadData {
