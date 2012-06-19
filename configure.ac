@@ -451,6 +451,38 @@ AC_SUBST([MPITRACE_BIN])
 
 AM_CONDITIONAL([INSTRUMENTATION_EXTRAE], test x"$MPITRACE_HOME" != x)
 
+# Check hwloc availability
+AC_ARG_WITH([hwloc],
+           AS_HELP_STRING([--with-hwloc=dir], [Directory of Hardware Locality (hwloc) installation]),
+           [
+                hwloc_h=$withval/include/hwloc.h
+                if test -e $hwloc_h ;
+                then
+                   hwloc_version_string=`sed -ne '/^\s*#\s*define\s\+HWLOC_API_VERSION .*$/p' $hwloc_h`
+                   hwloc_version=`echo $hwloc_version_string | sed -e 's/#define HWLOC_API_VERSION 0x[0]\+\([0-9]\+\).*$/\1/'`
+                   if test "$hwloc_version" -ge 10200;
+                   then
+                      HWLOC_HOME="$withval"
+                      HWLOC_INC="$withval/include"
+                      HWLOC_LIB="$withval/lib"
+                      HWLOC_BIN="$withval/bin"
+                      AC_MSG_RESULT([checking if Hardware Locality library is compatible... yes])
+                   else
+                      AC_MSG_ERROR([checking if Hardware Locality library is compatible... no (hwloc > 1.2.0 needed)])
+                   fi
+                else
+                   AC_MSG_ERROR([checking if Hardware Locality library is compatible... no (hwloc > 1.2.0 needed)])
+                fi
+           ]
+)
+
+AC_SUBST([HWLOC_HOME])
+AC_SUBST([HWLOC_INC])
+AC_SUBST([HWLOC_LIB])
+AC_SUBST([HWLOC_BIN])
+
+AM_CONDITIONAL([HWLOC], test x"$HWLOC_HOME" != x)
+
 # Check for Chapel support
 AC_ARG_WITH([chapel],
             AS_HELP_STRING([--with-chapel=dir], [Directory of Chapel installation]),

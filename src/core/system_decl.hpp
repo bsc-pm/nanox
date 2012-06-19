@@ -244,7 +244,11 @@ namespace nanos
 
          int getNumSockets() const;
 
+         void setNumSockets ( int numSockets );
+
          int getCoresPerSocket() const;
+
+         void setCoresPerSocket ( int coresPerSocket );
 
          void setUntieMaster ( bool value );
 

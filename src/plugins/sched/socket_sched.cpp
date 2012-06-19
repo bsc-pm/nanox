@@ -22,6 +22,10 @@
 #include "plugin.hpp"
 #include "system.hpp"
 #include "memtracker.hpp"
+#include <cmath>
+#ifdef HWLOC
+#include <hwloc.h>
+#endif
 
 namespace nanos {
    namespace ext {
@@ -68,6 +72,16 @@ namespace nanos {
             // constructor
             SocketSchedPolicy() : SchedulePolicy ( "Socket" )
             {
+               int numSockets = sys.getNumSockets();
+               int coresPerSocket = sys.getCoresPerSocket();
+
+               // Check config
+               if ( numSockets != std::ceil( sys.getNumPEs() / static_cast<float>( coresPerSocket) ) )
+               {
+                  unsigned validSockets = std::ceil( sys.getNumPEs() / static_cast<float>(coresPerSocket) );
+                  warning0( "Adjusting num-sockets from " << numSockets << " to " << validSockets );
+                  sys.setNumSockets( validSockets );
+               }
             }
 
             // destructor
@@ -106,7 +120,7 @@ namespace nanos {
                
                switch( wd.getDepth() ) {
                   case 0:
-                     fprintf( stderr, "Wake up Depth 0, inserting WD %d in queue number 0\n", wd.getId() );
+                     //fprintf( stderr, "Wake up Depth 0, inserting WD %d in queue number 0\n", wd.getId() );
                      // Implicit WDs, insert them in the general queue.
                      tdata._readyQueues[0].push_back ( &wd );
                      break;
@@ -115,7 +129,7 @@ namespace nanos {
                   default:
                      index = wd.getWakeUpQueue();
                      
-                     fprintf( stderr, "Wake up Depth >0, inserting WD %d in queue number %d\n", wd.getId(), index );
+                     //fprintf( stderr, "Wake up Depth >0, inserting WD %d in queue number %d\n", wd.getId(), index );
                      
                      // Insert at the front (these will have higher priority)
                      tdata._readyQueues[index].push_back ( &wd );
@@ -145,7 +159,7 @@ namespace nanos {
                
                switch( wd.getDepth() ) {
                   case 0:
-                     fprintf( stderr, "Depth 0, inserting WD %d in queue number 0\n", wd.getId() );
+                     //fprintf( stderr, "Depth 0, inserting WD %d in queue number 0\n", wd.getId() );
                      // Implicit WDs, insert them in the general queue.
                      tdata._readyQueues[0].push_back ( &wd );
                      break;
@@ -153,7 +167,7 @@ namespace nanos {
                      index = (tdata._next++ ) % sys.getNumSockets() + 1;
                      wd.setWakeUpQueue( index );
                      
-                     fprintf( stderr, "Depth 1, inserting WD %d in queue number %d\n", wd.getId(), index );
+                     //fprintf( stderr, "Depth 1, inserting WD %d in queue number %d\n", wd.getId(), index );
                      
                      // Insert at the front (these will have higher priority)
                      tdata._readyQueues[index].push_front ( &wd );
@@ -167,7 +181,7 @@ namespace nanos {
                      index = wd.getParent()->getWakeUpQueue();
                      wd.setWakeUpQueue( index );
                      
-                     fprintf( stderr, "Depth %d>1, inserting WD %d in queue number %d\n", wd.getDepth(), wd.getId(), index );
+                     //fprintf( stderr, "Depth %d>1, inserting WD %d in queue number %d\n", wd.getDepth(), wd.getId(), index );
                      // Insert at the back
                      tdata._readyQueues[index].push_back ( &wd );
                      break;
@@ -222,14 +236,65 @@ namespace nanos {
 
       class SocketSchedPlugin : public Plugin
       {
+         private:
+            int _numSockets;
+            int _coresPerSocket;
+            
+            void loadDefaultValues()
+            {
+               // Read number of sockets and cores from hwloc
+#ifdef HWLOC
+               hwloc_topology_t topology;
+               
+               /* Allocate and initialize topology object. */
+               hwloc_topology_init( &topology );
+               
+               /* Perform the topology detection. */
+               hwloc_topology_load( topology );
+               int depth = hwloc_get_type_depth( topology, HWLOC_OBJ_SOCKET );
+               
+               if ( depth != HWLOC_TYPE_DEPTH_UNKNOWN ) {
+                  _numSockets = hwloc_get_nbobjs_by_depth(topology, depth);
+               }
+               
+               depth = hwloc_get_type_depth( topology, HWLOC_OBJ_CORE );
+               if ( depth != HWLOC_TYPE_DEPTH_UNKNOWN ) {
+                  _coresPerSocket = hwloc_get_nbobjs_by_depth( topology, depth ) / _numSockets;
+               }
+               
+               /* Destroy topology object. */
+               hwloc_topology_destroy(topology);
+#else
+               // Number of sockets can be read with
+               // cat /proc/cpuinfo | grep "physical id" | sort | uniq | wc -l
+               // Cores per socket:
+               // cat /proc/cpuinfo | grep 'core id' | sort | uniq | wc -l
+               fprintf(stderr, "No hwloc support\n" );
+               _numSockets = sys.getNumSockets();
+               _coresPerSocket = sys.getCoresPerSocket();
+#endif
+            }
          public:
             SocketSchedPlugin() : Plugin( "Socket-aware scheduling Plugin",1 ) {}
 
             virtual void config( Config& cfg ) {
+               // Read hwloc's info before reading user parameters
+               loadDefaultValues();
+               
                cfg.setOptionsSection( "Sockets module", "Socket-aware scheduling module" );
+   
+               cfg.registerConfigOption( "cores-per-socket", NEW Config::PositiveVar( _coresPerSocket ), "Number of cores per socket." );
+               cfg.registerArgOption( "cores-per-socket", "cores-per-socket" );
+               
+               cfg.registerConfigOption( "num-sockets", NEW Config::PositiveVar( _numSockets ), "Number of sockets available." );
+               cfg.registerArgOption( "num-sockets", "num-sockets" );
             }
 
             virtual void init() {
+               fprintf(stderr, "Setting numSockets to %d and coresPerSocket to %d\n", _numSockets, _coresPerSocket );
+               sys.setNumSockets( _numSockets );
+               sys.setCoresPerSocket( _coresPerSocket );
+               
                sys.setDefaultSchedulePolicy(NEW SocketSchedPolicy());
             }
       };

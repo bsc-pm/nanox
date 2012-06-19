@@ -31,7 +31,6 @@
 #include "allocator.hpp"
 #include <string.h>
 #include <set>
-#include <cmath>
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -258,31 +257,12 @@ void System::config ()
    cfg.registerConfigOption ( "deps", NEW Config::StringVar ( _defDepsManager ), "Defines the dependencies plugin" );
    cfg.registerArgOption ( "deps", "deps" );
    cfg.registerEnvOption ( "deps", "NX_DEPS" );
-   
-   cfg.registerConfigOption ( "cores-per-socket", NEW Config::PositiveVar( _coresPerSocket ), "Number of cores per socket." );
-   cfg.registerArgOption( "cores-per-socket", "cores-per-socket" );
-   
-   cfg.registerConfigOption ( "num-sockets", NEW Config::PositiveVar( _numSockets ), "Number of sockets available." );
-   cfg.registerArgOption( "num-sockets", "num-sockets" );
-   
 
    _schedConf.config( cfg );
    _pmInterface->config( cfg );
 
    verbose0 ( "Reading Configuration" );
    cfg.init();
-   
-   checkConfig();
-}
-
-void System::checkConfig ()
-{
-   if ( sys.getNumSockets() != std::ceil( _numPEs / static_cast<float>(_coresPerSocket) ) )
-   {
-      unsigned validSockets = std::ceil( _numPEs / static_cast<float>(_coresPerSocket) );
-      warning0( "Adjusting num-sockets from " << _numSockets << " to " << validSockets );
-      _numSockets = validSockets;
-   }
 }
 
 PE * System::createPE ( std::string pe_type, int pid )
