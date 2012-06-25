@@ -238,8 +238,6 @@ namespace nanos
           * in the above case.
           */
          bool              _optimise;
-         //! \brief Insert WDs with the same after the current ones?
-         bool              _fifo;
 
       private:
          /*! \brief WDPriorityQueue copy constructor (private)
@@ -250,12 +248,13 @@ namespace nanos
          const WDPriorityQueue & operator= ( const WDPriorityQueue & );
          
          /*! \brief Inserts a WD in the expected order.
+          *  \param fifo Insert WDs with the same after the current ones?
           */
-         void insertOrdered ( WorkDescriptor *wd );
+         void insertOrdered ( WorkDescriptor *wd, bool fifo = true );
       public:
          /*! \brief WDPriorityQueue default constructor
           */
-         WDPriorityQueue( bool optimise = true, bool fifo = true);
+         WDPriorityQueue( bool optimise = true );
          /*! \brief WDPriorityQueue destructor
           */
          ~WDPriorityQueue() {}
@@ -263,7 +262,6 @@ namespace nanos
          bool empty ( void ) const;
          size_t size() const;
 
-         void push ( WorkDescriptor *wd );
          void push_back( WorkDescriptor *wd );
          void push_front( WorkDescriptor *wd );
 
@@ -272,7 +270,6 @@ namespace nanos
          template <typename Constraints>
          bool removeWDWithConstraints( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
 
-         WorkDescriptor * pop ( BaseThread *thread );
          WorkDescriptor * pop_back ( BaseThread *thread );
          WorkDescriptor * pop_front ( BaseThread *thread );
 

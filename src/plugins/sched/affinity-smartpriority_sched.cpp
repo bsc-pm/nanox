@@ -100,7 +100,7 @@ namespace nanos {
 
                 if ( wd.isTied() ) {
                     unsigned int index = wd.isTiedTo()->runningOn()->getMemorySpaceId();
-                    tdata._readyQueues[index].push ( &wd );
+                    tdata._readyQueues[index].push_back ( &wd );
                     return;
                 }
                 if ( wd.getNumCopies() > 0 ){
@@ -134,9 +134,9 @@ namespace nanos {
                          maxRank = ranks[i];
                       }
                    }
-                   tdata._readyQueues[winner].push( &wd );
+                   tdata._readyQueues[winner].push_back( &wd );
                 } else {
-                   tdata._readyQueues[0].push ( &wd );
+                   tdata._readyQueues[0].push_back ( &wd );
                 }
             }
 
@@ -245,24 +245,24 @@ namespace nanos {
          /*
           *  First try to schedule the thread with a task from its queue
           */
-         if ( ( wd = tdata._readyQueues[data._cacheId].pop ( thread ) ) != NULL ) {
+         if ( ( wd = tdata._readyQueues[data._cacheId].pop_front ( thread ) ) != NULL ) {
             return wd;
          } else {
             /*
              * Then try to get it from the global queue
              */
-             wd = tdata._readyQueues[0].pop ( thread );
+             wd = tdata._readyQueues[0].pop_front ( thread );
          }
          if ( wd == NULL ) {
             for ( unsigned int i = data._cacheId; i < sys.getCacheMap().getSize(); i++ ) {
                if ( !tdata._readyQueues[i+1].empty() ) {
-                  wd = tdata._readyQueues[i+1].pop( thread );
+                  wd = tdata._readyQueues[i+1].pop_front( thread );
                   return wd;
                } 
             }
             for ( unsigned int i = 0; i < data._cacheId; i++ ) {
                if ( !tdata._readyQueues[i+1].empty() ) {
-                  wd = tdata._readyQueues[i+1].pop( thread );
+                  wd = tdata._readyQueues[i+1].pop_front( thread );
                   return wd;
                } 
             }
@@ -286,24 +286,24 @@ namespace nanos {
          /*
           *  First try to schedule the thread with a task from its queue
           */
-         if ( ( wd = tdata._readyQueues[data._cacheId].pop ( thread ) ) != NULL ) {
+         if ( ( wd = tdata._readyQueues[data._cacheId].pop_front ( thread ) ) != NULL ) {
             return wd;
          } else {
             /*
              * Then try to get it from the global queue
              */
-             wd = tdata._readyQueues[0].pop ( thread );
+             wd = tdata._readyQueues[0].pop_front ( thread );
          }
          if ( wd == NULL ) {
             for ( unsigned int i = data._cacheId; i < sys.getCacheMap().getSize(); i++ ) {
                if ( tdata._readyQueues[i+1].size() > 1 ) {
-                  wd = tdata._readyQueues[i+1].pop( thread );
+                  wd = tdata._readyQueues[i+1].pop_front( thread );
                   return wd;
                } 
             }
             for ( unsigned int i = 0; i < data._cacheId; i++ ) {
                if ( tdata._readyQueues[i+1].size() > 1 ) { 
-                  wd = tdata._readyQueues[i+1].pop( thread );
+                  wd = tdata._readyQueues[i+1].pop_front( thread );
                   return wd;
                } 
             }

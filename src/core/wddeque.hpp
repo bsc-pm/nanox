@@ -356,7 +356,7 @@ inline bool WDLFQueue::removeWD( BaseThread *thread, WorkDescriptor *toRem, Work
          bool removeWDWithConstraints( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
 #endif
 
-inline WDPriorityQueue::WDPriorityQueue( bool optimise, bool fifo ) : _dq(), _lock(), _optimise( optimise ), _fifo( fifo )
+inline WDPriorityQueue::WDPriorityQueue( bool optimise ) : _dq(), _lock(), _optimise( optimise )
 {
 }
 
@@ -369,12 +369,12 @@ inline size_t WDPriorityQueue::size() const
    return _nelems;
 }
 
-inline void WDPriorityQueue::insertOrdered( WorkDescriptor *wd )
+inline void WDPriorityQueue::insertOrdered( WorkDescriptor *wd, bool fifo )
 {
    // Find where to insert the wd
    BaseContainer::iterator it;
    
-   if ( _fifo ) {
+   if ( fifo ) {
       // #637: Insert at the back if possible
       if ( ( _optimise ) && ( ( _dq.empty() ) || ( _dq.back()->getPriority() >= wd->getPriority() ) ) )
          it = _dq.end();
@@ -393,12 +393,16 @@ inline void WDPriorityQueue::insertOrdered( WorkDescriptor *wd )
    _dq.insert( it, wd );
 }
 
-inline void WDPriorityQueue::push ( WorkDescriptor *wd )
+/*!
+ * \brief FIFO-like insertion
+ * \see WDPriorityQueue::push_front
+ */
+inline void WDPriorityQueue::push_back ( WorkDescriptor *wd )
 {
    wd->setMyQueue( this );
    {
       LockBlock lock( _lock );
-      insertOrdered( wd );
+      insertOrdered( wd, true );
       int tasks = ++( sys.getSchedulerStats()._readyTasks );
       increaseTasksInQueues(tasks);
       memoryFence();
@@ -406,32 +410,24 @@ inline void WDPriorityQueue::push ( WorkDescriptor *wd )
 }
 
 /*!
- * \brief This method is not supported.
- * \see WDPriorityQueue::push
- */
-inline void WDPriorityQueue::push_back ( WorkDescriptor *wd )
-{
-   fatal( "Method not implemented" );
-}
-
-/*!
- * \brief This method is not supported.
- * \see WDPriorityQueue::push
+ * \brief LIFO-like insertion.
+ * \see WDPriorityQueue::push_back
  */
 inline void WDPriorityQueue::push_front ( WorkDescriptor *wd )
 {
-   fatal( "Method not implemented" );
-}
-
-
-inline WorkDescriptor * WDPriorityQueue::pop ( BaseThread *thread )
-{
-   return popWithConstraints<NoConstraints>(thread);
+   wd->setMyQueue( this );
+   {
+      LockBlock lock( _lock );
+      insertOrdered( wd, false );
+      int tasks = ++( sys.getSchedulerStats()._readyTasks );
+      increaseTasksInQueues(tasks);
+      memoryFence();
+   }
 }
 
 /*!
- * \see WDPriority::pop()
- * TODO (gmiranda): Discuss if pop_back and _front are useful.
+ * \see WDPriority::pop_front()
+ * TODO (gmiranda): Discuss if pop_back has a meaning.
  */
 inline WorkDescriptor * WDPriorityQueue::pop_back ( BaseThread *thread )
 {
@@ -439,11 +435,12 @@ inline WorkDescriptor * WDPriorityQueue::pop_back ( BaseThread *thread )
 }
 
 /*!
- * \see WDPriority::pop()
+ * \brief Retrieves a WD. If it's a lifo or fifo retrieval will depend on
+ * how it was inserted.
  */
 inline WorkDescriptor * WDPriorityQueue::pop_front ( BaseThread *thread )
 {
-   fatal( "Method not implemented" );
+   return popWithConstraints<NoConstraints>(thread);
 }
 
 inline bool WDPriorityQueue::removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next )
