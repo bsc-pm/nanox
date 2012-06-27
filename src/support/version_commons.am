@@ -41,6 +41,8 @@ support_sources = \
 	$(top_srcdir)/src/support/memorymap.cpp \
 	$(top_srcdir)/src/support/containeradapter.hpp \
 	$(top_srcdir)/src/support/containertraits.hpp \
+	$(top_srcdir)/src/support/packer_decl.hpp \
+	$(top_srcdir)/src/support/packer.cpp \
 	$(END) 
 
 debug_sources = \

@@ -96,6 +96,7 @@ NewRegionDirectory * GASNetAPI::_newMasterDir;
 #ifndef GASNET_SEGMENT_EVERYTHING
 SimpleAllocator * GASNetAPI::_thisNodeSegment;
 #endif
+SimpleAllocator * GASNetAPI::_packSegment;
 
 Lock GASNetAPI::_depsLock;
 Lock GASNetAPI::_sentDataLock;
@@ -104,7 +105,12 @@ std::multimap<uint64_t, GASNetAPI::wdDeps *> GASNetAPI::_depsMap; //needed data
 std::set<uint64_t> GASNetAPI::_recvdDeps; //already got the data
 
 std::list<struct GASNetAPI::putReqDesc * > GASNetAPI::_putReqs;
+std::list<struct GASNetAPI::putReqDesc * > GASNetAPI::_delayedPutReqs;
 Lock GASNetAPI::_putReqsLock;
+Lock GASNetAPI::_delayedPutReqsLock;
+std::list<struct GASNetAPI::delayedGetDesc * > GASNetAPI::_delayedGets;
+Lock GASNetAPI::_delayedGetsLock;
+
 std::set<void *> GASNetAPI::_receivedUnmatchedPutRequests;
 std::set<void *> GASNetAPI::_waitingPutRequests;
 Lock GASNetAPI::_waitingPutRequestsLock;
@@ -264,13 +270,31 @@ void GASNetAPI::print_copies( WD *wd, int deps )
 #endif
 }
 
-void GASNetAPI::enqueuePutReq( unsigned int dest, void *origAddr, void *destAddr, std::size_t len, void *tmpBuffer, unsigned int wdId )
+void GASNetAPI::delayAmGet( unsigned int dest, void *origTag, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *waitObj ) {
+   struct delayedGetDesc *dgd = NEW struct delayedGetDesc();
+   dgd->dest = dest;
+   dgd->origTag = origTag;
+   dgd->origAddr = origAddr;
+   dgd->destAddr = destAddr;
+   dgd->len = len;
+   dgd->count = count;
+   dgd->ld = ld;
+   dgd->waitObj = waitObj;
+
+   _delayedGetsLock.acquire();
+   _delayedGets.push_back( dgd );
+   _delayedGetsLock.release();
+}
+
+void GASNetAPI::enqueuePutReq( unsigned int dest, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *tmpBuffer, unsigned int wdId )
 {
    struct putReqDesc *prd = NEW struct putReqDesc();
    prd->dest = dest;
    prd->origAddr = origAddr;
    prd->destAddr = destAddr;
    prd->len = len;
+   prd->count = count;
+   prd->ld = ld;
    prd->tmpBuffer = tmpBuffer;
    prd->wdId = wdId;
 
@@ -279,24 +303,59 @@ void GASNetAPI::enqueuePutReq( unsigned int dest, void *origAddr, void *destAddr
    _putReqsLock.release();
 }
 
+void GASNetAPI::enqueueDelayedPutReq( unsigned int dest, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *tmpBuffer, unsigned int wdId )
+{
+   struct putReqDesc *prd = NEW struct putReqDesc();
+   prd->dest = dest;
+   prd->origAddr = origAddr;
+   prd->destAddr = destAddr;
+   prd->len = len;
+   prd->count = count;
+   prd->ld = ld;
+   prd->tmpBuffer = tmpBuffer;
+   prd->wdId = wdId;
+
+   _delayedPutReqsLock.acquire();
+   _delayedPutReqs.push_back( prd );
+   _delayedPutReqsLock.release();
+}
+
 void GASNetAPI::checkForPutReqs()
 {
    struct putReqDesc *prd = NULL;
-   if ( _putReqsLock.tryAcquire() )
-   {
-      if ( !_putReqs.empty() )
-      {
+   if ( _putReqsLock.tryAcquire() ) {
+      if ( !_putReqs.empty() ) {
          prd = _putReqs.front();
          _putReqs.pop_front();
       }
       _putReqsLock.release();
    }
-   if ( prd != NULL )
-   {
-      NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
-      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_IN, key, (nanos_event_value_t) prd->len) );
-      _put( prd->dest, (uint64_t) prd->destAddr, prd->origAddr, prd->len, prd->tmpBuffer, prd->wdId );
-      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
+   if ( prd != NULL ) {
+      if ( prd->ld == 0 ) {
+         NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_IN, key, (nanos_event_value_t) prd->len) );
+         _put( prd->dest, (uint64_t) prd->destAddr, prd->origAddr, prd->len, prd->tmpBuffer, prd->wdId );
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
+      } else {
+         char *localPack, *origAddrPtr = (char *) prd->origAddr;
+
+         NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_PACK); );
+         _packSegment->lock();
+         localPack = ( char * ) _packSegment->allocate( prd->len * prd->count );
+         if ( localPack == NULL ) { fprintf(stderr, "ERROR!!! could not get an addr to pack strided data\n" ); }
+         _packSegment->unlock();
+         NANOS_INSTRUMENT( inst2.close(); );
+
+         for ( unsigned int i = 0; i < prd->count; i += 1 ) {
+            memcpy( &localPack[ i * prd->len ], &origAddrPtr[ i * prd->ld ], prd->len );
+         }
+
+         _putStrided1D( prd->dest, (uint64_t) prd->destAddr, prd->origAddr, localPack, prd->len, prd->count, prd->ld, prd->tmpBuffer, prd->wdId );
+
+         _packSegment->lock();
+         _packSegment->free( localPack );
+         _packSegment->unlock();
+      }
       delete prd;
    }
 }
@@ -709,9 +768,9 @@ void GASNetAPI::amMalloc( gasnet_token_t token, gasnet_handlerarg_t sizeLo, gasn
    
    //ptr = (volatile int *)addr;
   
-   fprintf(stderr, "On amMalloc, touching data %ld\n", size );
+   //fprintf(stderr, "On amMalloc, touching data %ld\n", size );
    //for (unsigned int i = 0; i < ( size / sizeof(int) ); i+= 1024 ) { ptr[i] = ptr[i]; }
-   fprintf(stderr, "On amMalloc, touching data complete\n");
+   //fprintf(stderr, "On amMalloc, touching data complete\n");
 	//#endif
    //std::cerr<<"Malloc size " << size << " returns "<<addr<<std::endl;
    if ( addr == NULL )
@@ -819,19 +878,6 @@ void GASNetAPI::amPut( gasnet_token_t token,
 
    rxBytes += len;
 
-   _waitingPutRequestsLock.acquire();
-   std::set<void *>::iterator it;
-   if ( ( it = _waitingPutRequests.find( realTag ) ) != _waitingPutRequests.end() ) //we have to wait 
-   {
-      //delayEnque( src_node, origAddr, destAddr, tagAddr, waitObj, realLen );
-      //message("addr " << buf << " found! erasing from waiting list");
-      _waitingPutRequests.erase( it );
-   }
-   else
-   {
-      _receivedUnmatchedPutRequests.insert( realTag );
-   }
-   _waitingPutRequestsLock.release();
    
    NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
@@ -842,7 +888,7 @@ void GASNetAPI::amPut( gasnet_token_t token,
 
    if ( firstMsg )
    {
-   //fprintf(stderr, "[%d] BEGIN amPut to node %d, from %d, local (maybe tmp) addr %p, realTag %p, realAddr (local) %p  data is %f\n", myThread->getId(),  gasnet_mynode(), src_node, buf, realTag, realAddr, *((float *)buf));
+   fprintf(stderr, "[%d] BEGIN amPut to node %d, from %d, local (maybe tmp) addr %p, realTag %p, realAddr (local) %p  data is %f\n", myThread->getId(),  gasnet_mynode(), src_node, buf, realTag, realAddr, *((float *)buf));
       //DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) realTag );
       //if (ent != NULL) 
       //{ 
@@ -895,6 +941,101 @@ void GASNetAPI::amPut( gasnet_token_t token,
       //      _deferredWorkReqsLock.release();
       //   }
       //}
+      if ( src_node != 0 ) { /* check for delayed putReqs or gets */
+         _waitingPutRequestsLock.acquire();
+         std::set<void *>::iterator it;
+         if ( ( it = _waitingPutRequests.find( realTag ) ) != _waitingPutRequests.end() )
+         {
+            _waitingPutRequests.erase( it ); // check queue for pending requests FIXME 
+         }
+         else
+         {
+            _receivedUnmatchedPutRequests.insert( realTag );
+         }
+         _waitingPutRequestsLock.release();
+      }
+   }
+}
+
+void GASNetAPI::amPutStrided1D( gasnet_token_t token,
+      void *buf,
+      std::size_t len,
+      gasnet_handlerarg_t realTagLo,
+      gasnet_handlerarg_t realTagHi,
+      gasnet_handlerarg_t sizeLo,
+      gasnet_handlerarg_t sizeHi,
+      gasnet_handlerarg_t count,
+      gasnet_handlerarg_t ld,
+      gasnet_handlerarg_t wdId,
+      gasnet_handlerarg_t firstMsg,
+      gasnet_handlerarg_t lastMsg ) 
+{
+   gasnet_node_t src_node;
+   if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
+   {
+      fprintf( stderr, "gasnet: Error obtaining node information.\n" );
+   }
+   void *realTag = ( int * ) MERGE_ARG( realTagHi, realTagLo );
+   std::size_t size = ( std::size_t ) MERGE_ARG( sizeHi, sizeLo );
+   std::size_t totalLen = size * count;
+
+   rxBytes += len;
+
+   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
+   NANOS_INSTRUMENT ( nanos_event_value_t xferSize = len; )
+   NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( buf ) ; )
+   NANOS_INSTRUMENT ( instr->raiseClosePtPEvent( NANOS_XFER_PUT, id, sizeKey, xferSize, src_node ); )
+
+   if ( firstMsg )
+   {
+      if ( sys.getNetwork()->doIHaveToCheckForDataInOtherAddressSpaces() ) {
+         std::cerr <<"Unsupported for now"<<std::endl;
+         //invalidateDataFromDevice( (uint64_t) realTag, totalLen );
+      }
+   }
+   if ( lastMsg )
+   {
+//      std::cerr <<"memcpy strided data to addr "<< (void *) realTag << " size is " << size << " ld is " << ld << std::endl;
+      char* realAddrPtr = (char *) realTag;
+      char* localAddrPtr = ( (char *) ( ( ( uintptr_t ) buf ) + ( ( uintptr_t ) len ) - ( uintptr_t ) totalLen ) );
+      NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_UNPACK); );
+      for ( int i = 0; i < count; i += 1 ) {
+//         std::cerr << "tmp addr " << (void *) &localAddrPtr[ i * size ] << " host addr " << (void *) &realAddrPtr[ i * ld ] << std::endl;
+         ::memcpy( &realAddrPtr[ i * ld ], &localAddrPtr[ i * size ], size );
+      }
+      NANOS_INSTRUMENT( inst2.close(); );
+      //send notify to node 
+      // compute the original local address
+      uintptr_t localAddr = ( ( uintptr_t ) buf ) + ( ( uintptr_t ) len ) - ( uintptr_t ) totalLen;
+//      std::cerr << "computed orig tmp buff addr is " << (void *) localAddr << std::endl;
+      enqueueFreeBufferNotify( ( void * ) localAddr );
+      _recvWdData.addData( wdId, totalLen );
+
+      if ( src_node != 0 ) { //only check if it is a put from a request put
+      _waitingPutRequestsLock.acquire();
+      std::set<void *>::iterator it;
+      if ( ( it = _waitingPutRequests.find( realTag ) ) != _waitingPutRequests.end() ) {
+         void *destAddr = *it;
+         //message("addr " << (void *) realTag << " found! erasing from waiting list, should check for pending requests.. im node " << gasnet_mynode() );
+         _waitingPutRequests.erase( it );
+         _delayedPutReqsLock.acquire();
+         if ( !_delayedPutReqs.empty() ) {
+            for ( std::list<struct GASNetAPI::putReqDesc *>::iterator putReqsIt = _delayedPutReqs.begin(); putReqsIt != _delayedPutReqs.end(); putReqsIt++ ) {
+               if ( (*putReqsIt)->origAddr == destAddr ) {
+         fprintf(stderr, "not empty!... %p and found!\n", destAddr);
+               }
+            }
+         }
+         _delayedPutReqsLock.release();
+      } else {
+         //message("addr " << (void *) realTag << " NOT found! unmatched requests.. im node " << gasnet_mynode() << " for wd " << wdId);
+         _receivedUnmatchedPutRequests.insert( realTag );
+      }
+      _waitingPutRequestsLock.release();
+      }
+   
    }
 }
 
@@ -912,7 +1053,7 @@ void GASNetAPI::amGetReply( gasnet_token_t token,
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
    }
 
-   //fprintf(stderr, "get reply from %d: data is %f\n", src_node , *((float *)buf));
+   //fprintf(stderr, "get reply from %d: data is %d waitObj %p\n", src_node , *((int *)buf), waitObj);
    NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
@@ -975,15 +1116,20 @@ void GASNetAPI::amGet( gasnet_token_t token,
    }
    {
 
-      //fprintf(stderr, "n:%d thd %d am_xfer_get: srcAddr=%p, tagAddr=%p, destAddr=%p len=%ld res=%f, max=%ld\n", gasnet_mynode(), myThread->getId(), origAddr, tagAddr, destAddr, realLen,  *((float*)origAddr), gasnet_AMMaxLongReply() );
+   //  fprintf(stderr, "n:%d thd %d am_xfer_get: srcAddr=%p, tagAddr=%p, destAddr=%p len=%ld res=%d, max=%ld\n", gasnet_mynode(), myThread->getId(), origAddr, tagAddr, destAddr, realLen,  *((int*)origAddr), gasnet_AMMaxLongReply() );
+   //{
+   //int *a = (int *) origAddr;
+   //for (unsigned int i = 0; i < (realLen / sizeof(int)); i += 1, a += 1) std::cerr << *a << " ";
+   //std::cerr << std::endl;
+   //}
 
-      { double *data = (double *) origAddr;
-         for (unsigned int di = 0; di < (realLen / sizeof(double )); di++ ) {
-            data[di] += 1;
-            data[di] -= 1;
-            //fprintf(stderr, "%d: %f \n", di, data[di]);
-         }
-      }
+      //{ double *data = (double *) origAddr;
+      //   for (unsigned int di = 0; di < (realLen / sizeof(double )); di++ ) {
+      //      data[di] += 1;
+      //      data[di] -= 1;
+      //      //fprintf(stderr, "%d: %f \n", di, data[di]);
+      //   }
+      //}
       if ( ( unsigned int ) realLen <= gasnet_AMMaxLongReply() )
       {
          NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
@@ -1102,12 +1248,52 @@ void GASNetAPI::amRequestPut( gasnet_token_t token,
    _waitingPutRequestsLock.acquire();
    if ( _waitingPutRequests.find( origAddr ) != _waitingPutRequests.end() ) //we have to wait 
    {
+      _waitingPutRequestsLock.release();
       //delayEnque( src_node, origAddr, destAddr, tagAddr, waitObj, realLen );
       message("WARNING: this amRequestPut SHOULD BE DELAYED!!!");
-   }
-   _waitingPutRequestsLock.release();
+      enqueueDelayedPutReq( dst, origAddr, destAddr, len, 1, 0, tmpBuffer, wdId );
+   } else {
+      _waitingPutRequestsLock.release();
 
-   enqueuePutReq( dst, origAddr, destAddr, len, tmpBuffer, wdId );
+      enqueuePutReq( dst, origAddr, destAddr, len, 1, 0, tmpBuffer, wdId );
+   }
+}
+
+void GASNetAPI::amRequestPutStrided1D( gasnet_token_t token,
+      gasnet_handlerarg_t destAddrLo,
+      gasnet_handlerarg_t destAddrHi,
+      gasnet_handlerarg_t origAddrLo,
+      gasnet_handlerarg_t origAddrHi,
+      gasnet_handlerarg_t tmpBufferLo,
+      gasnet_handlerarg_t tmpBufferHi,
+      gasnet_handlerarg_t lenLo,
+      gasnet_handlerarg_t lenHi,
+      gasnet_handlerarg_t count,
+      gasnet_handlerarg_t ld,
+      gasnet_handlerarg_t wdId,
+      gasnet_handlerarg_t dst )
+{
+   gasnet_node_t src_node;
+   void *origAddr = ( void * ) MERGE_ARG( origAddrHi, origAddrLo );
+   void *destAddr = ( void * ) MERGE_ARG( destAddrHi, destAddrLo );
+   void *tmpBuffer = ( void * ) MERGE_ARG( tmpBufferHi, tmpBufferLo );
+   std::size_t len = ( std::size_t ) MERGE_ARG( lenHi, lenLo );
+
+   if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
+   {
+      fprintf( stderr, "gasnet: Error obtaining node information.\n" );
+   }
+
+   _waitingPutRequestsLock.acquire();
+   if ( _waitingPutRequests.find( origAddr ) != _waitingPutRequests.end() ) //we have to wait 
+   {
+      _waitingPutRequestsLock.release();
+      message("WARNING: this amRequestPutStrided1D SHOULD BE DELAYED!!! addr " <<  (void *) origAddr  << " im node " << gasnet_mynode() );
+      enqueueDelayedPutReq( dst, origAddr, destAddr, len, count, ld, tmpBuffer, wdId );
+   } else {
+      _waitingPutRequestsLock.release();
+      enqueuePutReq( dst, origAddr, destAddr, len, count, ld, tmpBuffer, wdId );
+   }
 }
 
 void GASNetAPI::amWaitRequestPut( gasnet_token_t token, 
@@ -1118,7 +1304,7 @@ void GASNetAPI::amWaitRequestPut( gasnet_token_t token,
    std::set< void * >::iterator it;
 
    _waitingPutRequestsLock.acquire();
-	//message("processing sendWaitForRequestPut( this is node " << gasnet_mynode() << ", addr "<< (void *) addr <<").");
+	//message("processing sendWaitForRequestPut( this is node " << gasnet_mynode() << ", addr "<< (void *) addr <<" ).");
    if ( _receivedUnmatchedPutRequests.empty() || ( it = _receivedUnmatchedPutRequests.find( addr ) ) == _receivedUnmatchedPutRequests.end() )
    {
       // no unmatched Put Request, so add it into the waiting set
@@ -1129,6 +1315,7 @@ void GASNetAPI::amWaitRequestPut( gasnet_token_t token,
    {
       // unmatched Put Request found, it looks like we already received it so just remove it 
       _receivedUnmatchedPutRequests.erase( it );
+      //message(" delete from unmatched " << addr );
    }
    _waitingPutRequestsLock.release();
 	//message("processing done");
@@ -1144,10 +1331,114 @@ void GASNetAPI::amFreeTmpBuffer( gasnet_token_t token,
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
    }
+   //std::cerr << __FUNCTION__ << " addr " << addr << " from "<< src_node << " allocator "<< (void *) _pinnedAllocators[ src_node ] << std::endl;
    _pinnedAllocatorsLocks[ src_node ]->acquire();
    _pinnedAllocators[ src_node ]->free( addr );
    _pinnedAllocatorsLocks[ src_node ]->release();
 }
+
+void GASNetAPI::amGetStrided1D( gasnet_token_t token,
+      gasnet_handlerarg_t destAddrLo,
+      gasnet_handlerarg_t destAddrHi,
+      gasnet_handlerarg_t origAddrLo,
+      gasnet_handlerarg_t origAddrHi,
+      gasnet_handlerarg_t origTagLo,
+      gasnet_handlerarg_t origTagHi,
+      gasnet_handlerarg_t lenLo,
+      gasnet_handlerarg_t lenHi,
+      gasnet_handlerarg_t count,
+      gasnet_handlerarg_t ld,
+      gasnet_handlerarg_t waitObjLo,
+      gasnet_handlerarg_t waitObjHi )
+{
+   gasnet_node_t src_node;
+   void *origAddr = ( void * ) MERGE_ARG( origAddrHi, origAddrLo );
+   void *origTag = ( void * ) MERGE_ARG( origTagHi, origTagLo );
+   void *destAddr = ( void * ) MERGE_ARG( destAddrHi, destAddrLo );
+   //NANOS_INSTRUMENT ( int *waitObj = ( int * ) MERGE_ARG( waitObjHi, waitObjLo ); )
+   void *waitObj = ( void * ) MERGE_ARG( waitObjHi, waitObjLo );
+   std::size_t len = ( std::size_t ) MERGE_ARG( lenHi, lenLo );
+   std::size_t totalLen = ( std::size_t ) len * count; 
+   char *packAddr;
+
+   if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
+   {
+      fprintf( stderr, "gasnet: Error obtaining node information.\n" );
+   }
+
+   txBytes += totalLen;
+
+   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
+   NANOS_INSTRUMENT ( nanos_event_value_t xferSize = 0; )
+   NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) waitObj; )
+   NANOS_INSTRUMENT ( instr->raiseClosePtPEvent ( NANOS_XFER_GET, id, sizeKey, xferSize, src_node ); )
+
+
+   //fprintf(stderr, "n:%d thd %d am_xfer_get: srcAddr=%p, srcHi=%p, srcLo=%p, dstAddr=%p, dstHi=%p, dstLo=%p res=%f, waitObj=%p\n", gasnet_mynode(), myThread->getId(), origAddr, (void *)origAddrHi, (void *)origAddrLo, destAddr, (void*)destAddrHi, (void*)destAddrLo, *((float*)origAddr), /*waitObj*/(void *)NULL );
+   _waitingPutRequestsLock.acquire();
+   if ( _waitingPutRequests.find( origTag ) != _waitingPutRequests.end() ) //we have to wait 
+   {
+      _waitingPutRequestsLock.release();
+      message("WARNING: origTag "<< origTag << " this amGetStrided SHOULD BE DELAYED!!!");
+      delayAmGet( src_node, origTag, origAddr, destAddr, len, count, ld, waitObj );
+   } else {
+      _waitingPutRequestsLock.release();
+
+      //if ( sys.getNetwork()->doIHaveToCheckForDataInOtherAddressSpaces() ) {
+      //   getDataFromDevice( (uint64_t) tagAddr, totalLen );
+      //}
+      NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_PACK); );
+      char *origAddrPtr = ( char * ) origAddr;
+      //getpack addr 
+      _packSegment->lock();
+      packAddr = ( char * ) _packSegment->allocate( totalLen );
+      _packSegment->unlock();
+      //pack it
+      //fprintf(stderr, "packing addr %p to buff %p, len %ld\n", origAddrPtr, packAddr, totalLen);
+      for ( unsigned int i = 0; i < ( unsigned int ) count; i += 1 ) {
+         memcpy( &packAddr[ i * len ], &origAddrPtr[ i * ld ], len );
+      }
+      NANOS_INSTRUMENT( inst2.close(); );
+
+      NANOS_INSTRUMENT ( xferSize = totalLen; )
+      NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_XFER_GET, id, sizeKey, xferSize, src_node ); )
+
+      if ( gasnet_AMReplyLong2( token, 212, /* TODO this is pack addr */ packAddr, totalLen, destAddr, waitObjLo, waitObjHi ) != GASNET_OK )
+      {
+         fprintf( stderr, "gasnet: Error sending reply msg.\n" );
+      }
+      _packSegment->lock();
+      _packSegment->free( packAddr );
+      _packSegment->unlock();
+   }
+}
+
+//void GASNetAPI::amGetStrided1DReply( gasnet_token_t token,
+//      void *buf,
+//      std::size_t len,
+//      gasnet_handlerarg_t waitObjLo,
+//      gasnet_handlerarg_t waitObjHi)
+//{
+//   gasnet_node_t src_node;
+//   int *waitObj = ( int * ) MERGE_ARG( waitObjHi, waitObjLo );
+//
+//   if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
+//   {
+//      fprintf( stderr, "gasnet: Error obtaining node information.\n" );
+//   }
+//
+//   //fprintf(stderr, "get reply from %d: data is %f\n", src_node , *((float *)buf));
+//   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+//   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
+//   NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
+//   NANOS_INSTRUMENT ( nanos_event_value_t xferSize = len; )
+//   NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) waitObj; )
+//   NANOS_INSTRUMENT ( instr->raiseClosePtPEvent ( NANOS_XFER_GET, id, sizeKey, xferSize, src_node ); )
+//
+//   *waitObj = 1;
+//}
 
 void GASNetAPI::initialize ( Network *net )
 {
@@ -1175,7 +1466,10 @@ void GASNetAPI::initialize ( Network *net )
       { 216, (void (*)()) amFree },
       { 217, (void (*)()) amRealloc },
       { 218, (void (*)()) amWaitRequestPut },
-      { 219, (void (*)()) amFreeTmpBuffer }
+      { 219, (void (*)()) amFreeTmpBuffer },
+      { 220, (void (*)()) amPutStrided1D },
+      { 221, (void (*)()) amGetStrided1D },
+      { 222, (void (*)()) amRequestPutStrided1D }
    };
 
    gasnet_init( &my_argc, &my_argv );
@@ -1205,7 +1499,7 @@ void GASNetAPI::initialize ( Network *net )
    //}
 
    nodeBarrier();
-
+  
    {
       unsigned int i;
       char myHostname[256];
@@ -1229,67 +1523,47 @@ void GASNetAPI::initialize ( Network *net )
    nodeBarrier();
 
 #ifndef GASNET_SEGMENT_EVERYTHING
+    unsigned int idx;
+    unsigned int nodes = gasnet_nodes();
+    void *segmentAddr[ nodes ];
+    std::size_t segmentLen[ nodes ];
+    void *pinnedSegmentAddr[ nodes ];
+    std::size_t pinnedSegmentLen[ nodes ];
+    
+    gasnet_seginfo_t seginfoTable[ nodes ];
+    gasnet_getSegmentInfo( seginfoTable, nodes );
+    message0( "GasNet segment information:" );
+    for ( idx = 0; idx < nodes; idx += 1)
+    {
+       pinnedSegmentAddr[ idx ] = seginfoTable[ idx ].addr;
+       pinnedSegmentLen[ idx ] = seginfoTable[ idx ].size;
+       message0( "\t"<< idx << "addr="<< pinnedSegmentAddr[idx]<<" len="<< pinnedSegmentLen[ idx ]  );
+    }
+    ClusterInfo::addPinnedSegments( nodes, pinnedSegmentAddr, pinnedSegmentLen );
+
+    uintptr_t offset = pinnedSegmentLen[ gasnet_mynode() ] / 2;
+    _packSegment = NEW SimpleAllocator( ( ( uintptr_t ) pinnedSegmentAddr[ gasnet_mynode() ] ) + offset , pinnedSegmentLen[ gasnet_mynode() ] / 2 );
+
    if ( _net->getNodeNum() == 0)
    {
-      if (0) /* low mem mode */
+      _pinnedAllocators.reserve( nodes );
+      _pinnedAllocatorsLocks.reserve( nodes );
+      _seqN = NEW Atomic<unsigned int>[nodes];
+      _putSeqN = NEW Atomic<unsigned int>[nodes];
+      
+      _net->mallocSlaves( &segmentAddr[ 1 ], ClusterInfo::getNodeMem() );
+      segmentAddr[ 0 ] = NULL;
+
+      for ( idx = 0; idx < nodes; idx += 1)
       {
-         unsigned int idx;
-         fprintf(stderr, "GASNet was NOT configured with GASNET_SEGMENT_EVERYTHING\n");
-
-         gasnet_seginfo_t seginfoTable[ gasnet_nodes() ];
-         gasnet_getSegmentInfo( seginfoTable, gasnet_nodes() );
-
-         void *segmentAddr[ gasnet_nodes() ];
-         std::size_t segmentLen[ gasnet_nodes() ];
-
-         verbose0( "GasNet segment information:" );
-         for ( idx = 0; idx < gasnet_nodes(); idx += 1)
-         {
-            segmentAddr[ idx ] = seginfoTable[ idx ].addr;
-            segmentLen[ idx ] = seginfoTable[ idx ].size;
-            verbose0( "\tnode "<< idx << ": @=" << seginfoTable[ idx ].addr << ", len=" << (void *) seginfoTable[ idx ].size );
-         }
-         ClusterInfo::addSegments( gasnet_nodes(), segmentAddr, segmentLen );
-         _thisNodeSegment = NEW SimpleAllocator( ( uintptr_t ) ClusterInfo::getSegmentAddr( 0 ), ClusterInfo::getSegmentLen( 0 ) );
+         segmentLen[ idx ] = ( idx == 0 ) ? 0 : ClusterInfo::getNodeMem(); 
+         _pinnedAllocators[idx] = NEW SimpleAllocator( ( uintptr_t ) pinnedSegmentAddr[ idx ], pinnedSegmentLen[ idx ] / 2 );
+         _pinnedAllocatorsLocks[idx] =  NEW Lock( );
+         new (&_seqN[idx]) Atomic<unsigned int >( 0 );
+         new (&_putSeqN[idx]) Atomic<unsigned int >( 0 );
       }
-      else
-      {
-         unsigned int idx;
-         unsigned int nodes = gasnet_nodes();
-         void *segmentAddr[ nodes ];
-         std::size_t segmentLen[ nodes ];
-         void *pinnedSegmentAddr[ nodes ];
-         std::size_t pinnedSegmentLen[ nodes ];
-         
-         gasnet_seginfo_t seginfoTable[ nodes ];
-         gasnet_getSegmentInfo( seginfoTable, nodes );
-         _pinnedAllocators.reserve( nodes );
-         _pinnedAllocatorsLocks.reserve( nodes );
-         
-         _seqN = NEW Atomic<unsigned int>[nodes];
-         _putSeqN = NEW Atomic<unsigned int>[nodes];
-         verbose0( "GasNet segment information:" );
-         
-         _net->mallocSlaves( &segmentAddr[ 1 ], ClusterInfo::getNodeMem() );
-         segmentAddr[ 0 ] = NULL;
-
-         for ( idx = 0; idx < nodes; idx += 1)
-         {
-            pinnedSegmentAddr[ idx ] = seginfoTable[ idx ].addr;
-            pinnedSegmentLen[ idx ] = seginfoTable[ idx ].size;
-            //message0("Alloc of " << ClusterInfo::getNodeMem() << " bytes");
-            //segmentAddr[ idx ] = _net->malloc( idx, ClusterInfo::getNodeMem() );
-            segmentLen[ idx ] = ( idx == 0 ) ? 0 : ClusterInfo::getNodeMem(); 
-            verbose0( "\tnode "<< idx << ": @=" << seginfoTable[ idx ].addr << ", len=" << (void *) seginfoTable[ idx ].size );
-            _pinnedAllocators[idx] = NEW SimpleAllocator( ( uintptr_t ) pinnedSegmentAddr[ idx ], pinnedSegmentLen[ idx ] );
-            _pinnedAllocatorsLocks[idx] =  NEW Lock( );
-            new (&_seqN[idx]) Atomic<unsigned int >( 0 );
-            new (&_putSeqN[idx]) Atomic<unsigned int >( 0 );
-         }
-         _thisNodeSegment = _pinnedAllocators[0];
-         ClusterInfo::addSegments( nodes, segmentAddr, segmentLen );
-         ClusterInfo::addPinnedSegments( nodes, pinnedSegmentAddr, pinnedSegmentLen );
-      }
+      _thisNodeSegment = _pinnedAllocators[0];
+      ClusterInfo::addSegments( nodes, segmentAddr, segmentLen );
    }
 #else
    if ( _net->getNodeNum() == 0)
@@ -1397,7 +1671,7 @@ void GASNetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsi
    std::size_t expectedData = _sentWdData.getSentData( wdId );
 
    //  message("################################## send work msg to " << dest << " wd "<<  wdId << " seq used is "  <<(_seqN[dest].value()) << " put seq is "<< _putSeqN[ dest ].value() );
-     //message("To node " << dest << " wd id " << wdId << " seq " << (_seqN[dest].value() + 1) << " expectedData=" << expectedData);
+   //message("To node " << dest << " wd id " << wdId << " seq " << (_seqN[dest].value() + 1) << " expectedData=" << expectedData);
    NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
    NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( wdId ) ; )
    NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_AM_WORK, id, 0, 0, dest ); )
@@ -1562,32 +1836,116 @@ void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *local
                fprintf(stderr, "gasnet: Error sending a message to node %d.\n", remoteNode);
             }
          }
-         else
-         {
-         NANOS_INSTRUMENT ( nanos_event_value_t xferSize = thisReqSize; )
-         NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( remoteAddr + sent ) ; )
-         NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_XFER_PUT, id, sizeKey, xferSize, remoteNode ); )
-            if ( gasnet_AMRequestLong9( remoteNode, 210,
-                     &( ( char *) localAddr )[ sent ],
+         else { fprintf(stderr, "error sending a PUT to node %d, did not get a tmpBuffer\n", remoteNode ); }
+         //{
+         //NANOS_INSTRUMENT ( nanos_event_value_t xferSize = thisReqSize; )
+         //NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( remoteAddr + sent ) ; )
+         //NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_XFER_PUT, id, sizeKey, xferSize, remoteNode ); )
+         //   if ( gasnet_AMRequestLong9( remoteNode, 210,
+         //            &( ( char *) localAddr )[ sent ],
+         //            thisReqSize,
+         //            ( char *) ( remoteAddr + sent ),
+         //            ARG_LO( NULL ),
+         //            ARG_HI( NULL ),
+         //            ARG_LO( NULL ),
+         //            ARG_HI( NULL ),
+         //            ARG_LO( size ),
+         //            ARG_HI( size ),
+         //            wdId,
+         //            ( sent == 0 ),
+         //            ( ( sent + thisReqSize ) == size )
+         //            ) != GASNET_OK)
+         //   {
+         //      fprintf(stderr, "gasnet: Error sending a message to node %d.\n", remoteNode);
+         //   }
+         //}
+         sent += thisReqSize;
+      }
+   }
+}
+
+void GASNetAPI::_putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, void *remoteTmpBuffer, unsigned int wdId )
+{
+   std::size_t sent = 0, thisReqSize;
+   std::size_t realSize = size * count;
+   txBytes += realSize;
+   _totalBytes += realSize;
+    //std::cerr << "remoteTmpBuff is " << remoteTmpBuffer << std::endl;
+   {
+      if ( sys.getNetwork()->doIHaveToCheckForDataInOtherAddressSpaces() && gasnet_mynode() > 0) {
+         //fprintf(stderr, "im node %d and im getDataFromDevice @ %s\n", gasnet_mynode(), __FUNCTION__);
+         std::cerr << "ERROR, not supported yet" << std::endl;
+         getDataFromDevice( (uint64_t) localAddr, size );
+      }
+   //fprintf(stderr, " put addr %p: %f, dest %d, tmp addr %p, dev addr %p\n", localAddr , *((float *)localAddr ), remoteNode, remoteTmpBuffer, (void *)remoteAddr);
+      while ( sent < realSize )
+      {
+         thisReqSize = ( ( realSize - sent ) <= gasnet_AMMaxLongRequest() ) ? realSize - sent : gasnet_AMMaxLongRequest();
+
+         NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+         NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
+         NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
+
+         if ( remoteTmpBuffer != NULL )
+         { 
+            NANOS_INSTRUMENT ( nanos_event_value_t xferSize = thisReqSize; )
+            NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( ((uint64_t)remoteTmpBuffer) + sent ) ; )
+            NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_XFER_PUT, id, sizeKey, xferSize, remoteNode ); )
+            if ( gasnet_AMRequestLong9( remoteNode, 220,
+                     &( ( char *) localPack )[ sent ],
                      thisReqSize,
-                     ( char *) ( remoteAddr + sent ),
-                     ARG_LO( NULL ),
-                     ARG_HI( NULL ),
-                     ARG_LO( NULL ),
-                     ARG_HI( NULL ),
+                     ( char *) ( ( (char *) remoteTmpBuffer ) + sent ),
+                     ARG_LO( ( ( uintptr_t ) remoteAddr ) ),
+                     ARG_HI( ( ( uintptr_t ) remoteAddr ) ),
                      ARG_LO( size ),
                      ARG_HI( size ),
+                     count,
+                     ld,
                      wdId,
                      ( sent == 0 ),
-                     ( ( sent + thisReqSize ) == size )
+                     ( ( sent + thisReqSize ) == realSize )
                      ) != GASNET_OK)
             {
                fprintf(stderr, "gasnet: Error sending a message to node %d.\n", remoteNode);
             }
          }
+         else { std::cerr <<"Unsupported." << std::endl; }
+         //{
+         //NANOS_INSTRUMENT ( nanos_event_value_t xferSize = thisReqSize; )
+         //NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( remoteAddr + sent ) ; )
+         //NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_XFER_PUT, id, sizeKey, xferSize, remoteNode ); )
+         //   if ( gasnet_AMRequestLong11( remoteNode, 220,
+         //            &( ( char *) localAddr )[ sent ],
+         //            thisReqSize,
+         //            ( char *) ( remoteAddr + sent ),
+         //            ARG_LO( NULL ),
+         //            ARG_HI( NULL ),
+         //            ARG_LO( NULL ),
+         //            ARG_HI( NULL ),
+         //            ARG_LO( realSize ),
+         //            ARG_HI( realSize ),
+         //            wdId,
+         //            ( sent == 0 ),
+         //            ( ( sent + thisReqSize ) == realSize )
+         //            ) != GASNET_OK)
+         //   {
+         //      fprintf(stderr, "gasnet: Error sending a message to node %d.\n", remoteNode);
+         //   }
+         //}
          sent += thisReqSize;
       }
    }
+}
+
+void GASNetAPI::putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId ) {
+   if ( gasnet_mynode() != 0 ) fatal0("Error, cant use ::put from node != than 0"); 
+   _pinnedAllocatorsLocks[ remoteNode ]->acquire();
+   void *tmp = _pinnedAllocators[ remoteNode ]->allocate( size * count );
+   _pinnedAllocatorsLocks[ remoteNode ]->release();
+   _putSeqN[ remoteNode ]++;
+   _sentWdData.addSentData( wdId, size * count );
+     //if ( gasnet_mynode() == 0 ) {message("################################## put to "<< remoteNode << " put seq up to "<< _putSeqN[ remoteNode ].value() ) ; }
+   _putStrided1D( remoteNode, remoteAddr, localAddr, localPack, size, count, ld, tmp, wdId );
 }
 
 void GASNetAPI::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId )
@@ -1599,8 +1957,8 @@ void GASNetAPI::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localA
    _putSeqN[ remoteNode ]++;
    _sentWdData.addSentData( wdId, size );
      //if ( gasnet_mynode() == 0 ) {message("################################## put to "<< remoteNode << " put seq up to "<< _putSeqN[ remoteNode ].value() ) ; }
+   std::cerr <<"_put to " << remoteNode << " size is " << size << " buff " << tmp << " allocator " << (void *) _pinnedAllocators[ remoteNode ] << std::endl;
    _put( remoteNode, remoteAddr, localAddr, size, tmp, wdId );
-
 }
 
 //Lock getLock;
@@ -1661,12 +2019,12 @@ void GASNetAPI::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteA
    }
    //message("after gasnet req get ( dest=" << remoteNode <<", remote="<<(void *) remoteAddr<<", locla=" << localAddr << ", size="<< size <<", localtmp="<<addr<<", maxreq="<<gasnet_AMMaxLongRequest() << ", waitObj=" << reqPtr );
 
-   //fprintf(stderr, "my req obj is %p\n", reqPtr);
+   //fprintf(stderr, "my req obj is %p\n", &requestComplete);
    while ( requestComplete == 0 )
       poll();
    rxBytes += size;
    _totalBytes += size;
-   //fprintf(stderr, "my req obj is %p\n", reqPtr);
+   //fprintf(stderr, "my req obj is %p DONE\n", &requestComplete);
 
 //message("pre inval addr " << (void *) localAddr  );
       if ( sys.getNetwork()->doIHaveToCheckForDataInOtherAddressSpaces() && gasnet_mynode() > 0)
@@ -1690,12 +2048,60 @@ void GASNetAPI::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteA
 
 #ifndef GASNET_SEGMENT_EVERYTHING
    // copy the data to the correct addr;
+   //std::cerr << "GET: copy data from buffer to real addr: " << (void *) localAddr << " localbuff " << addr << " size used is " << size << std::endl;
+   //{
+   //int *a = (int *) addr;
+   //for (unsigned int i = 0; i < (size / sizeof(int)); i += 1, a += 1) std::cerr << *a << " ";
+   //std::cerr << std::endl;
+   //}
    ::memcpy( localAddr, addr, size );
    getLockGlobal.acquire();
    _thisNodeSegment->free( addr );
    getLockGlobal.release();
    //fprintf(stderr, "get data is %f, addr %p\n", *((float *)localAddr), localAddr );
 #endif
+}
+
+std::size_t GASNetAPI::getMaxGetStridedLen() const {
+   return ( std::size_t ) gasnet_AMMaxLongReply();
+}
+
+void GASNetAPI::getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64_t remoteTag, uint64_t remoteAddr, std::size_t size, std::size_t count, std::size_t ld, volatile int *requestComplete )
+{
+   std::size_t thisReqSize = size * count;
+   void *addr = packedAddr;
+
+   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
+   NANOS_INSTRUMENT ( nanos_event_value_t xferSize = 0; )
+   NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) remoteAddr ; )
+   NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent ( NANOS_XFER_GET, id, sizeKey, xferSize, remoteNode ); )
+
+   //fprintf(stderr, "n:%d send get req to node %d(src=%p, dst=%p localtag=%p, size=%ld)\n", gasnet_mynode(), remoteNode, (void *) remoteAddr, (void *) ( ( uintptr_t ) ( ( uintptr_t ) addr ) + sent ), localAddr, thisReqSize  );
+   if ( gasnet_AMRequestShort12( remoteNode, 221,
+            ARG_LO( ( ( uintptr_t ) addr ) ),
+            ARG_HI( ( ( uintptr_t ) addr ) ),
+            ARG_LO( remoteAddr ),
+            ARG_HI( remoteAddr ),
+            ARG_LO( remoteTag ),
+            ARG_HI( remoteTag ),
+            ARG_LO( size ),
+            ARG_HI( size ),
+            count, ld,
+            ARG_LO( (uintptr_t) ( requestComplete ) ),
+            ARG_HI( (uintptr_t) ( requestComplete ) ) ) != GASNET_OK)
+   {
+      fprintf(stderr, "gasnet: Error sending a message to node %d.\n", remoteNode);
+   }
+
+   rxBytes += thisReqSize;
+   _totalBytes += thisReqSize;
+
+   //if ( sys.getNetwork()->doIHaveToCheckForDataInOtherAddressSpaces() && gasnet_mynode() > 0)
+   //{
+   //   invalidateDataFromDevice( (uint64_t) localAddr, size );
+   //}
 }
 
 void GASNetAPI::malloc ( unsigned int remoteNode, std::size_t size, void * waitObjAddr )
@@ -1781,6 +2187,39 @@ void GASNetAPI::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned i
    }
 }
 
+void GASNetAPI::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId )
+{
+   _sentDataLock.acquire();
+   //fprintf(stderr, "added %p to sent data for node %d\n", (void *)dstAddr, dataDest);
+   //_sentData[ dataDest ]->insert( dstAddr );
+   _sentDataLock.release();
+   _totalBytes += ( len * count );
+   _sentWdData.addSentData( wdId, len * count );
+   sendWaitForRequestPut( dataDest, dstAddr );
+   _pinnedAllocatorsLocks[ dataDest ]->acquire();
+   void *tmpBuffer = _pinnedAllocators[ dataDest ]->allocate( len * count );
+   _pinnedAllocatorsLocks[ dataDest ]->release();
+
+   //_putSeqN[ dataDest ]++;
+     //if ( gasnet_mynode() == 0 ) {message("################################## req put to "<< dataDest << " put seq up to "<< _putSeqN[ dataDest ].value() << " Origaddr is " << ( (void *) origAddr ) << " destAddr is " << ((void *) dstAddr) ) ; }
+
+   ///*if ( dataDest == 3 )*/fprintf(stderr, "master requesting to node %d to send addr %p to node %d addr %p\n", dest, (void *)origAddr, dataDest, (void *)dstAddr);
+   if ( gasnet_AMRequestShort12( dest, 222,
+            ARG_LO( dstAddr ), ARG_HI( dstAddr ),
+            ARG_LO( ( ( uintptr_t ) origAddr ) ), ARG_HI( ( ( uintptr_t ) origAddr ) ),
+            ARG_LO( ( ( uintptr_t ) tmpBuffer ) ), ARG_HI( ( ( uintptr_t ) tmpBuffer ) ),
+	    ARG_LO( len ),
+	    ARG_HI( len ),
+            ( gasnet_handlerarg_t ) count,
+            ( gasnet_handlerarg_t ) ld,
+	    wdId,
+            dataDest ) != GASNET_OK )
+
+   {
+      fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
+   }
+}
+
 void GASNetAPI::setMasterDirectory(Directory *dir)
 {
    _masterDir = dir;
@@ -1788,7 +2227,7 @@ void GASNetAPI::setMasterDirectory(Directory *dir)
 
 void GASNetAPI::setNewMasterDirectory(NewRegionDirectory *dir)
 {
-   std::cerr << "New Master Dir is "<< dir << std::endl;
+   //std::cerr << "New Master Dir is "<< dir << std::endl;
    _newMasterDir = dir;
 }
 
@@ -1804,6 +2243,7 @@ void GASNetAPI::sendWaitForRequestPut( unsigned int dest, uint64_t addr )
 
 void GASNetAPI::sendFreeTmpBuffer( void *addr )
 {
+   //std::cerr<<"send free tmp buffer addr " << addr << std::endl;
    if ( gasnet_AMRequestShort2( 0, 219,
             ARG_LO( addr ), ARG_HI( addr ) ) != GASNET_OK )
    {
@@ -1908,4 +2348,8 @@ std::size_t GASNetAPI::SentWDData::getSentData( unsigned int wdId ) {
    if ( _sentWdData.erase( wdId ) != 1) std::cerr <<"Error removing from map: "<<__FUNCTION__<< " @ " << __FILE__<<":"<<__LINE__<< std::endl;
    _lock.release();
    return wdSentData;
+}
+
+SimpleAllocator *GASNetAPI::getPackSegment() const {
+   return _packSegment;
 }

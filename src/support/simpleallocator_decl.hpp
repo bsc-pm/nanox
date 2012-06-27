@@ -22,6 +22,7 @@
 
 #include <stdint.h>
 #include <map>
+#include "atomic_decl.hpp"
 
 namespace nanos {
 
@@ -36,6 +37,7 @@ namespace nanos {
          SegmentMap _freeChunks;
 
          uint64_t _baseAddress;
+         Lock     _lock;
 
       public:
          SimpleAllocator( uint64_t baseAddress, size_t len );
@@ -53,6 +55,9 @@ namespace nanos {
          size_t free( void *address );
 
          void printMap();
+
+         void lock();
+         void unlock();
    };
 
    class BufferManager

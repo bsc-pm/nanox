@@ -76,19 +76,22 @@ void AllocatedChunk::addReadRegion( Region reg, unsigned int version, std::set< 
       RegionTree<CachedRegionStatus>::iterator &accessor = *it;
       CachedRegionStatus &cachedReg = *accessor;
       //outList.push_back( std::make_pair( accessor.getRegion(), cachedReg ) );
-      if ( version == cachedReg.getVersion() )  {
+      if ( version <= cachedReg.getVersion() )  {
          if ( cachedReg.isReady() ) {
             /* already in cache */
-            //std::cerr <<"cached region! v: "<< version <<" "<< accessor.getRegion()<<std::endl;
+           // std::cerr <<"cached region! v: "<< version <<" "<< accessor.getRegion()<<std::endl;
+            //std::cerr <<"cached region! v: "<< version <<" "<< (void *) accessor.getRegion().getFirstValue() <<std::endl;
          } else {
             /* in cache but comming! */
             //incomingRegions.push_back( accessor.getRegion() );
             currentOps.insert( cachedReg.getDeviceOps() );
             //std::cerr <<"Already comming region! v: "<< version <<" "<< accessor.getRegion()<<std::endl;
+            //std::cerr <<"already comming region! v: "<< version <<" "<< (void *) accessor.getRegion().getFirstValue() <<std::endl;
          }
       } else {
          /* not present! */
          notPresentRegions.push_back( accessor.getRegion() );
+         //std::cerr <<"Not present region! v: "<< version <<" "<< (void *) accessor.getRegion().getFirstValue() << " is write? " << ( alsoWriteRegion ? "yes" : "no" ) << " i have version " << cachedReg.getVersion()  << std::endl;
          //cachedReg.setCopying();
          cachedReg.setCopying( ops );
          cachedReg.setVersion(version);
@@ -197,7 +200,7 @@ AllocatedChunk *RegionCache::getAddress( CopyData const &cd, uint64_t &offset ) 
          //message0("Address not found in cache, DeviceAlloc!! max size is " << cd.getMaxSize());
          *(results.front().second) = NEW AllocatedChunk();
          (*results.front().second)->address = (uint64_t) _device->memAllocate( cd.getMaxSize(), _pe );
-         std::cerr <<"Allocated object " << (void *) results.front().first->getAddress() << " size " <<cd.getMaxSize() << std::endl;
+         //std::cerr <<"Allocated object " << (void *) results.front().first->getAddress() << " size " <<cd.getMaxSize() << std::endl;
 
          allocChunkPtr = *(results.front().second);
 
@@ -250,9 +253,11 @@ void RegionCache::putRegion( CopyData const &cd, Region const &r ) {
 }
 
 void RegionCache::syncRegion( std::list<Region> const &regions ) {
+   DeviceOps *ops = NEW DeviceOps();
+   std::list<Region>::const_iterator it;
+#if 0
    std::map< uintptr_t, MemoryMap< uint64_t > * > opMap;
    std::map< uintptr_t, MemoryMap< uint64_t > * >::iterator opMapIt;
-   DeviceOps *ops = NEW DeviceOps();
    std::list<Region>::const_iterator it;
    for ( it = regions.begin(); it != regions.end(); it++ ) {
       _generateRegionOps( *it, opMap );
@@ -260,9 +265,20 @@ void RegionCache::syncRegion( std::list<Region> const &regions ) {
    for ( opMapIt = opMap.begin(); opMapIt != opMap.end(); opMapIt++ ) {
       MemoryMap< uint64_t >::iterator thisMapOpsIt;
       for ( thisMapOpsIt = (opMapIt->second)->begin(); thisMapOpsIt != (opMapIt->second)->end(); thisMapOpsIt++ ) {
-         this->copyOut(thisMapOpsIt->first.getAddress(), thisMapOpsIt->second, thisMapOpsIt->first.getLength(), ops );
+         this->_copyOut(thisMapOpsIt->first.getAddress(), thisMapOpsIt->second, thisMapOpsIt->first.getLength(), ops );
       }
    }
+#endif
+   uint64_t offset = 0;
+   for ( it = regions.begin(); it != regions.end(); it++ ) {
+      Region const &reg = (*it);
+      AllocatedChunk *origChunk = getAddress( ( uint64_t ) reg.getFirstValue(), ( std::size_t ) reg.getBreadth(), offset );
+      uint64_t origDevAddr = origChunk->address + offset;
+      origChunk->unlock();
+      
+      copyOut( reg, origDevAddr, ops, 0 );
+   }
+
    while( !ops->allCompleted() ) { myThread->idle(); }
    delete ops;
 }
@@ -309,7 +325,7 @@ void RegionCache::_generateRegionOps( Region const &reg, std::map< uintptr_t, Me
          }
       }
 #else
-      ops->addChunk( address, contiguousSize, devAddr );
+      ops->addChunk( address, contiguousSize, devAddr + ( address - reg.getFirstValue() ) );
 #endif
    }
 }
@@ -396,7 +412,7 @@ unsigned int RegionCache::getMemorySpaceId() {
    return _pe->getMemorySpaceId();
 }
 
-void RegionCache::copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId ) {
+void RegionCache::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId ) {
    ops->addOp();
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-data-in"); )
@@ -406,7 +422,19 @@ void RegionCache::copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, 
    _device->_copyIn( devAddr, hostAddr, len, _pe, ops, wdId );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( key ); )
 }
-void RegionCache::copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, DeviceOps *ops ) {
+
+void RegionCache::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, unsigned int wdId ) {
+   ops->addOp();
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-data-in"); )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) len ); )
+   //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<sys.getNetwork()->getNodeNum() << " RegionCache<"<< _pe->getMemorySpaceId() <<"::copyIn "<< (void *) devAddr << " <=h " << (void *) hostAddr << " len " << len << " ops complete? "  << ( ops->allCompleted() ? "yes" : "no" )<<std::endl;
+  // std::cerr <<sys.getNetwork()->getNodeNum() << " RegionCache<"<< _pe->getMemorySpaceId() <<"::copyIn "<< (void *) devAddr << " <=h " << (void *) hostAddr << " len " << len << " ops complete? "  << ( ops->allCompleted() ? "yes" : "no" )<<std::endl;
+   _device->_copyInStrided1D( devAddr, hostAddr, len, numChunks, ld, _pe, ops, wdId );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( key ); )
+}
+
+void RegionCache::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, DeviceOps *ops ) {
    ops->addOp();
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-data-out"); )
@@ -415,21 +443,49 @@ void RegionCache::copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len,
    //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<sys.getNetwork()->getNodeNum() << " RegionCache<"<< _pe->getMemorySpaceId() <<">::copyOut "<< (void *) devAddr << " =>h " << (void *) hostAddr << " len " << len << " ops complete? "  << ( ops->allCompleted() ? "yes" : "no" )<<std::endl;
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( key ); )
 }
-void RegionCache::syncAndCopyIn( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId ) {
+
+void RegionCache::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld,  DeviceOps *ops ) {
+   ops->addOp();
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-data-out"); )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) len ); )
+   _device->_copyOutStrided1D( hostAddr, devAddr, len, numChunks, ld, _pe, ops );
+   //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<sys.getNetwork()->getNodeNum() << " RegionCache<"<< _pe->getMemorySpaceId() <<">::copyOut "<< (void *) devAddr << " =>h " << (void *) hostAddr << " len " << len << " ops complete? "  << ( ops->allCompleted() ? "yes" : "no" )<<std::endl;
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( key ); )
+}
+
+void RegionCache::_syncAndCopyIn( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId ) {
    uint64_t offset;
    DeviceOps *cout = NEW DeviceOps();
    AllocatedChunk *origChunk = sys.getCaches()[ syncFrom ]->getAddress( hostAddr, len, offset );
    uint64_t origDevAddr = origChunk->address + offset;
    origChunk->unlock();
    //if(sys.getNetwork()->getNodeNum() == 0) std::cerr <<sys.getNetwork()->getNodeNum() <<" Started a Copy out from " << syncFrom << std::endl;
-   sys.getCaches()[ syncFrom ]->copyOut( hostAddr, origDevAddr, len, cout );
+   sys.getCaches()[ syncFrom ]->_copyOut( hostAddr, origDevAddr, len, cout );
    while ( !cout->allCompleted() ){ myThread->idle(); }
    //std::cerr <<sys.getNetwork()->getNodeNum() << " RegionCache<"<< _pe->getMemorySpaceId() <<"::syncAndcopyIn "<< (void *) origDevAddr << " dev=>host " << (void *) hostAddr << " host=>dev " << (void*)devAddr << " len " << len <<" data recvd "<< *((double *)hostAddr)<<std::endl;
    //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<sys.getNetwork()->getNodeNum() <<" CopyOut from " << syncFrom << " completed" << std::endl;
    delete cout;
-   this->copyIn( devAddr, hostAddr, len, ops, wdId );
+   this->_copyIn( devAddr, hostAddr, len, ops, wdId );
 }
-void RegionCache::copyDevToDev( unsigned int copyFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId ) {
+
+void RegionCache::_syncAndCopyInStrided1D( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, unsigned int wdId ) {
+   uint64_t offset;
+   DeviceOps *cout = NEW DeviceOps();
+   AllocatedChunk *origChunk = sys.getCaches()[ syncFrom ]->getAddress( hostAddr, len, offset );
+   uint64_t origDevAddr = origChunk->address + offset;
+   origChunk->unlock();
+   //if(sys.getNetwork()->getNodeNum() == 0) std::cerr <<sys.getNetwork()->getNodeNum() <<" Started a Copy out from " << syncFrom << std::endl;
+   //sys.getCaches()[ syncFrom ]->copyOut( hostAddr, origDevAddr, len, cout );
+   sys.getCaches()[ syncFrom ]->_copyOutStrided1D( hostAddr, origDevAddr, len, numChunks, ld, cout );
+   while ( !cout->allCompleted() ){ myThread->idle(); }
+   //std::cerr <<sys.getNetwork()->getNodeNum() << " RegionCache<"<< _pe->getMemorySpaceId() <<"::syncAndcopyIn "<< (void *) origDevAddr << " dev=>host " << (void *) hostAddr << " host=>dev " << (void*)devAddr << " len " << len <<" data recvd "<< *((double *)hostAddr)<<std::endl;
+   //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<sys.getNetwork()->getNodeNum() <<" CopyOut from " << syncFrom << " completed" << std::endl;
+   delete cout;
+   this->_copyInStrided1D( devAddr, hostAddr, len, numChunks, ld, ops, wdId );
+}
+
+void RegionCache::_copyDevToDev( unsigned int copyFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId ) {
    uint64_t offset;
    AllocatedChunk *origChunk = sys.getCaches()[ copyFrom ]->getAddress( hostAddr, len, offset );
    uint64_t origDevAddr = origChunk->address + offset;
@@ -438,6 +494,76 @@ void RegionCache::copyDevToDev( unsigned int copyFrom, uint64_t devAddr, uint64_
    ops->addOp();
    _device->_copyDevToDev( devAddr, origDevAddr, len, _pe, sys.getCaches()[ copyFrom ]->_pe, ops, wdId );
 }
+
+void RegionCache::_copyDevToDevStrided1D( unsigned int copyFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, unsigned int wdId ) {
+   uint64_t offset;
+   AllocatedChunk *origChunk = sys.getCaches()[ copyFrom ]->getAddress( hostAddr, len, offset );
+   uint64_t origDevAddr = origChunk->address + offset;
+   origChunk->unlock();
+   //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<sys.getNetwork()->getNodeNum() << " Copy Dev To Dev dest "<< _pe->getMemorySpaceId() << ": " << (void *) devAddr << " origAddr " << copyFrom <<": " << (void *) origDevAddr <<  std::endl;
+   ops->addOp();
+   _device->_copyDevToDevStrided1D( devAddr, origDevAddr, len, numChunks, ld, _pe, sys.getCaches()[ copyFrom ]->_pe, ops, wdId );
+}
+
+void RegionCache::CopyIn::doNoStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, DeviceOps *ops, unsigned int wdId ) {
+   //std::cerr <<"copy in NO stride (via " << dataLocation << ") devaddr " << (void *) devAddr << " hostAddr "<<  (void *) hostAddr << " len "<< size << std::endl;
+   if  ( dataLocation == 0 ) {
+      getParent()._copyIn( devAddr, hostAddr, size, ops, wdId );
+   } else if ( getParent().canCopyFrom( *sys.getCaches()[ dataLocation ] ) ) { 
+      getParent()._copyDevToDev( dataLocation, devAddr, hostAddr, size, ops, wdId );
+   } else {
+      getParent()._syncAndCopyIn( dataLocation, devAddr, hostAddr, size, ops, wdId );
+   }
+}
+
+void RegionCache::CopyIn::doStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, std::size_t count, std::size_t ld, DeviceOps *ops, unsigned int wdId ) {
+   //std::cerr <<"copy in with stride"<< std::endl;
+   if  ( dataLocation == 0 ) {
+      getParent()._copyInStrided1D( devAddr, hostAddr, size, count, ld, ops, wdId );
+   } else if ( getParent().canCopyFrom( *sys.getCaches()[ dataLocation ] ) ) { 
+      getParent()._copyDevToDevStrided1D( dataLocation, devAddr, hostAddr, size, count, ld, ops, wdId );
+   } else {
+      getParent()._syncAndCopyInStrided1D( dataLocation, devAddr, hostAddr, size, count, ld, ops, wdId );
+   }
+}
+
+void RegionCache::CopyOut::doNoStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, DeviceOps *ops, unsigned int wdId ) {
+   //std::cerr <<"copy out NO stride"<< std::endl;
+   getParent()._copyOut( hostAddr, devAddr, size, ops );
+}
+void RegionCache::CopyOut::doStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, std::size_t count, std::size_t ld, DeviceOps *ops, unsigned int wdId ) {
+   //std::cerr <<"copy out with stride"<< std::endl;
+   getParent()._copyOutStrided1D( hostAddr, devAddr, size, count, ld, ops );
+}
+
+void RegionCache::doOp( Op *opObj, Region const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, unsigned int wdId ) {
+   std::size_t skipBits = 0;
+   std::size_t contiguousSize = hostMem.getContiguousChunkLength();
+   std::size_t numChunks = hostMem.getNumNonContiguousChunks( skipBits );
+
+   if ( numChunks > 1 ) {
+      uint64_t ld = hostMem.getNonContiguousChunk( 1, skipBits ) - hostMem.getNonContiguousChunk( 0, skipBits );
+      uint64_t hostAddr = hostMem.getNonContiguousChunk( 0, skipBits );
+
+      opObj->doStrided( location, devBaseAddr, hostAddr, contiguousSize, numChunks, ld, ops, wdId );
+   } else {
+      for (unsigned int chunkIndex = 0; chunkIndex < numChunks; chunkIndex +=1 ) {
+         uint64_t hostAddr = hostMem.getNonContiguousChunk( chunkIndex, skipBits );
+         uint64_t devAddr = devBaseAddr + ( hostAddr - hostMem.getFirstValue() ); /* contiguous chunk offset */
+
+         opObj->doNoStrided( location, devAddr, hostAddr, contiguousSize, ops, wdId );
+      }
+   }
+}
+
+void RegionCache::copyIn( Region const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, unsigned int wdId ) {
+   doOp( &_copyInObj, hostMem, devBaseAddr, location, ops, wdId );
+}
+
+void RegionCache::copyOut( Region const &hostMem, uint64_t devBaseAddr, DeviceOps *ops, unsigned int wdId ) {
+   doOp( &_copyOutObj, hostMem, devBaseAddr, /* unused */ 0, ops, wdId );
+}
+
 void RegionCache::lock() {
    _lock.acquire();
 }
@@ -453,7 +579,6 @@ bool RegionCache::canCopyFrom( RegionCache const &from ) const {
 Device const *RegionCache::getDevice() const {
    return _device;
 }
-
 
 unsigned int DeviceOps::getNumOps() { return _pendingDeviceOps.value(); }
 DeviceOps::DeviceOps() : _pendingDeviceOps ( 0 ) { }
@@ -522,7 +647,7 @@ void CacheControler::preInit( NewDirectory *dir, std::size_t numCopies, CopyData
          ccopy._copy = &copies[ index ];
          ccopy._region = NewRegionDirectory::build_region( copies[ index ] );
          ccopy._version = 0;
-         _directory->getLocation( ccopy._region, ccopy._locations, ccopy._version);
+         _directory->getLocation( ccopy._region, ccopy._locations, ccopy._version );
       }
    }
 }
@@ -547,33 +672,41 @@ void CacheControler::copyDataInNoCache() {
          }
 
          std::map<unsigned int, std::list<Region> >::iterator locIt;
+         //std::cerr <<" in " << __FUNCTION__ << " num elems is " << locationMap.size() << std::endl;
          for( locIt = locationMap.begin(); locIt != locationMap.end(); locIt++ ) {
             sys.getCaches()[ locIt->first ]->syncRegion( locIt->second );
          }
       }
    }
+         //std::cerr <<" in " << __FUNCTION__ << " done" << std::endl;
 }
+
+
+
 
 void CacheControler::copyDataIn(RegionCache *targetCache) {
    unsigned int index;
    _targetCache = targetCache;
-               NANOS_INSTRUMENT( InstrumentState inst2(NANOS_CC_CDIN); );
+   NANOS_INSTRUMENT( InstrumentState inst2(NANOS_CC_CDIN); );
    if ( _numCopies > 0 ) {
       /* Get device address, allocate if needed */
       for ( index = 0; index < _numCopies; index += 1 ) {
          CacheCopy &ccopy = _cacheCopies[ index ];
          ccopy._cacheEntry = _targetCache->getAddress( *ccopy._copy, ccopy._offset );
          ccopy._devRegion = NewRegionDirectory::build_region_with_given_base_address( *ccopy._copy, ccopy._offset );
+         ccopy._devBaseAddr = ccopy._cacheEntry->address + ccopy._offset;
          ccopy._cacheEntry->unlock();
 	 _directory->addAccess( ccopy._region, _targetCache->getMemorySpaceId(), ccopy._copy->isOutput() ? ccopy._version + 1 : ccopy._version );
       }
       /* COPY IN GENERATION */
-      std::map<unsigned int, MemoryMap< std::pair< uint64_t, DeviceOps *> > > opsBySource;
+      //std::map<unsigned int, MemoryMap< std::pair< uint64_t, DeviceOps *> > > opsBySource;
+      std::map<unsigned int, std::list< std::pair< Region, int > > > opsBySourceRegions;
       for ( index = 0; index < _numCopies; index += 1 ) {
 	 NewRegionDirectory::LocationInfoList::iterator it;
          CacheCopy &ccopy = _cacheCopies[ index ];
          //ccopy._version = 1;
          ccopy._cacheEntry->lock();
+         unsigned int ncopies=0;
          if ( ccopy._copy->isInput() )
          {
          //ccopy._cacheEntry->addRegion( ccopy._devRegion, ccopy._copy->isInput(),  ccopy._cacheDataStatus );
@@ -595,18 +728,26 @@ void CacheControler::copyDataIn(RegionCache *targetCache) {
                //std::list< std::pair < Region, tr1::shared_ptr< DeviceOps > > >::iterator notPresentRegionsIt;
                std::list< Region >::iterator notPresentRegionsIt;
                //std::set< DeviceOps * > currentOps;
+               //std::cerr << "+++++++++++++++++ add region wd " << _wdId << " +++++++++++++++++++++++++" << std::endl;
                ccopy._cacheEntry->addReadRegion( it->first, it->second.getVersion(), ccopy._otherPendingOps, notPresentRegions, &ccopy._operations, ccopy._copy->isOutput() );
+               //std::cerr << "+++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
 
                //std::cerr << " Dest dev region is    " << ccopy._devRegion << " dev addr is " << (void *) (ccopy._cacheEntry->address + ccopy._offset) << std::endl;
                //ss << wdId << " res NotPresentRegsSize is " << notPresentRegions.size() ; 
                for( notPresentRegionsIt = notPresentRegions.begin(); notPresentRegionsIt != notPresentRegions.end(); notPresentRegionsIt++ ) {
                //if ( !ccopy._cacheEntry->alreadyContains( ccopy._devRegion ) )
                {
-                  MemoryMap< std::pair< uint64_t, DeviceOps *> > &thisCopysOps = opsBySource[ it->second.getFirstLocation() ];
+                  //MemoryMap< std::pair< uint64_t, DeviceOps *> > &thisCopysOps = opsBySource[ it->second.getFirstLocation() ];
+                  std::list< std::pair< Region, int > > &thisCopyOpsRegions = opsBySourceRegions[ it->second.getFirstLocation() ];
+                  ncopies++;
 
                   //Region &origReg = it->first;
                   Region &origReg = *notPresentRegionsIt;
                   //uint64_t fragmentOffset = origReg.getFirstValue() - (uint64_t)ccopy._copy->getBaseAddress();
+                  
+
+                  thisCopyOpsRegions.push_back( std::make_pair( origReg, index ) );
+#if 0
 
                   std::size_t skipBits = 0;
                   std::size_t numChunks = origReg.getNumNonContiguousChunks( skipBits );
@@ -627,6 +768,7 @@ void CacheControler::copyDataIn(RegionCache *targetCache) {
                         + (origReg.getFirstValue() - ( ((uint64_t)ccopy._copy->getBaseAddress() + ccopy._copy->getOffset()  )) ) /* displacement due to fragmented region */
                         + ccopy._copy->getOffset() + ( address - origReg.getFirstValue() ); /* contiguous chunk offset */
                      //std::cerr << "["<< index<<"] Entry addr " << (void *) ccopy._cacheEntry->address << " got offset " << ccopy._offset << " copy offset " << ccopy._copy->getOffset() << " addr - first value is "  << ( address - origReg.getFirstValue() ) << " total: " << (void *) devAddr <<" orig reg offset may be " << (origReg.getFirstValue() - ((uint64_t)ccopy._copy->getBaseAddress() + ccopy._copy->getOffset()  ) ) << (void *) devAddr << std::endl;
+                     std::cerr << "Unpacked Copy "<< ncopies <<": host addr is " << (void *) address << " dev addr is " << (void *) devAddr << std::endl;
 
                      thisCopysOps.getOrAddChunk2( address, contiguousSize, results );
                      //std::cerr << "Copy IN addr=" << (void *) address << " size=" << contiguousSize <<  std::endl;
@@ -646,6 +788,7 @@ void CacheControler::copyDataIn(RegionCache *targetCache) {
                         }
                      }
                   }
+#endif
                }
                }
             }
@@ -662,28 +805,103 @@ void CacheControler::copyDataIn(RegionCache *targetCache) {
          ccopy._cacheEntry->unlock();
       }
 
+      //std::cerr << ":::::::: Copies for WD " << _wdId << " to loc " << _targetCache->getMemorySpaceId() << ":::::::::::" << std::endl;
+      std::map< unsigned int, std::list< std::pair< Region, int > > >::iterator mapOpsStrIt;
+      for ( mapOpsStrIt = opsBySourceRegions.begin(); mapOpsStrIt != opsBySourceRegions.end(); mapOpsStrIt++ ) {
+         std::list< std::pair< Region, int > > &ops = mapOpsStrIt->second;
+	 unsigned int location = mapOpsStrIt->first;
+         //std::cerr << "> from location "<< location << ": "<< std::endl;
+         for ( std::list< std::pair< Region, int > >::iterator listIt = ops.begin(); listIt != ops.end(); listIt++ ) {
+            CacheCopy &ccopy = _cacheCopies[ listIt->second ];
+            uint64_t fragmentOffset = listIt->first.getFirstValue() - ( ( uint64_t ) ccopy._copy->getBaseAddress() + ccopy._copy->getOffset() ); /* displacement due to fragmented region */
+            //std::cerr << "host addr " << (void *) (listIt->first).getFirstValue() << " dev addr " << (void *) (ccopy._devBaseAddr + ccopy._copy->getOffset() + fragmentOffset ) << std::endl;
+            _targetCache->copyIn( listIt->first, ccopy._devBaseAddr + ccopy._copy->getOffset() + fragmentOffset, location, &ccopy._operations, _wdId );
+         }
+         //std::cerr << "" << std::endl;
+      }
+      //std::cerr << "::::::::::::::::::::::::::::::::::::::::::" << std::endl;
+
+
+      // serial copies
+#if 0
       std::map<unsigned int, MemoryMap< std::pair< uint64_t, DeviceOps *> > >::iterator mapOpsIt;
       for ( mapOpsIt = opsBySource.begin(); mapOpsIt != opsBySource.end(); mapOpsIt++ ) {
-         //std::cerr << "ops from " << mapOpsIt->first << " to " << _targetCache->getMemorySpaceId() << std::endl;
+         MemoryMap< std::pair< uint64_t, DeviceOps *> > &ops = mapOpsIt->second;
          unsigned int location = mapOpsIt->first;
+         //std::cerr << "ops from " << location << " to " << _targetCache->getMemorySpaceId() << std::endl;
+         //if ( ops.canPack() ) { std::cerr << " Hey, I can do better!!\n"; }
          MemoryMap< std::pair< uint64_t, DeviceOps *> >::iterator thisMapOpsIt;
-         for ( thisMapOpsIt = mapOpsIt->second.begin(); thisMapOpsIt != mapOpsIt->second.end(); thisMapOpsIt++ ) {
-            //double *sample = (double *) thisMapOpsIt->first.getAddress();
-            //std::cerr << "a copy "<< (void *) thisMapOpsIt->first.getAddress() << " ( " << *sample << " ) " << " to " << (void *)thisMapOpsIt->second->first << " size " << thisMapOpsIt->first.getLength() << std::endl;
-            if ( location == 0 ) {
-               _targetCache->copyIn(thisMapOpsIt->second->first, thisMapOpsIt->first.getAddress(), thisMapOpsIt->first.getLength(), thisMapOpsIt->second->second, _wdId );
-            } else if ( _targetCache->canCopyFrom( *sys.getCaches()[ location ] ) ) {
+         if ( location == 0 ) {
+            for ( thisMapOpsIt = ops.begin(); thisMapOpsIt != ops.end(); thisMapOpsIt++ ) {
+               _targetCache->copyInStrided1D(thisMapOpsIt->second->first, thisMapOpsIt->first.getAddress(), thisMapOpsIt->first.getLength(), 1, thisMapOpsIt->first.getLength(), thisMapOpsIt->second->second, _wdId );
+               //_targetCache->copyIn(thisMapOpsIt->second->first, thisMapOpsIt->first.getAddress(), thisMapOpsIt->first.getLength(), thisMapOpsIt->second->second, _wdId );
+            }
+         }
+ else if ( _targetCache->canCopyFrom( *sys.getCaches()[ location ] ) ) {
+            for ( thisMapOpsIt = ops.begin(); thisMapOpsIt != ops.end(); thisMapOpsIt++ ) {
                _targetCache->copyDevToDev( location, thisMapOpsIt->second->first, thisMapOpsIt->first.getAddress(), thisMapOpsIt->first.getLength(), thisMapOpsIt->second->second, _wdId );
-            } else {
-               //FIXME: actualitzar directory 0! (not really needed, but it could be useful)
-               //if(sys.getNetwork()->getNodeNum() == 0)std::cerr << sys.getNetwork()->getNodeNum() <<" sync and copyIn target loc "<< location << std::endl;
-               _targetCache->syncAndCopyIn( location, thisMapOpsIt->second->first, thisMapOpsIt->first.getAddress(), thisMapOpsIt->first.getLength(), thisMapOpsIt->second->second, _wdId );
+            }
+         } else { //copy via memory space 0
+            for ( thisMapOpsIt = ops.begin(); thisMapOpsIt != ops.end(); thisMapOpsIt++ ) {
+               _targetCache->syncAndCopyInStrided1D( location, thisMapOpsIt->second->first, thisMapOpsIt->first.getAddress(), thisMapOpsIt->first.getLength(), 1, thisMapOpsIt->first.getLength(), thisMapOpsIt->second->second, _wdId );
+               //_targetCache->syncAndCopyIn( location, thisMapOpsIt->second->first, thisMapOpsIt->first.getAddress(), thisMapOpsIt->first.getLength(), thisMapOpsIt->second->second, _wdId );
             }
          }
       }
-   }
+#endif
 
-               NANOS_INSTRUMENT( inst2.close(); );
+      // packed copies
+#if 0
+      unsigned int npcopies=0;
+      std::map< unsigned int, std::list< std::pair< Region, int > > >::iterator mapOpsStrIt;
+      for ( mapOpsStrIt = opsBySourceRegions.begin(); mapOpsStrIt != opsBySourceRegions.end(); mapOpsStrIt++ ) {
+         std::list< std::pair< Region, int > > &ops = mapOpsStrIt->second;
+	 unsigned int location = mapOpsStrIt->first;
+
+            for ( std::list< std::pair< Region, int > >::iterator listIt = ops.begin(); listIt != ops.end(); listIt++ ) {
+               npcopies++;
+               Region &origReg = listIt->first;
+               CacheCopy &ccopy = _cacheCopies[ listIt->second ];
+               
+               std::size_t skipBits = 0;
+               std::size_t numChunks = origReg.getNumNonContiguousChunks( skipBits );
+               std::size_t contiguousSize = origReg.getContiguousChunkLength();
+
+               uint64_t address = origReg.getNonContiguousChunk( 0, skipBits );
+               uint64_t ld = origReg.getNonContiguousChunk( 1, skipBits ) - origReg.getNonContiguousChunk( 0, skipBits );
+               uint64_t devAddr = (ccopy._cacheEntry->address + ccopy._offset) /* entry addr and offset inside the chunk */
+                  + (origReg.getFirstValue() - ( ((uint64_t)ccopy._copy->getBaseAddress() + ccopy._copy->getOffset()  )) ) /* displacement due to fragmented region */
+                  + ccopy._copy->getOffset(); /* contiguous chunk offset */
+                  std::cerr << "Packed Copy "<< npcopies << ": host addr is " << (void *) address << " dev addr is " << (void *) devAddr << std::endl;
+
+               (void) numChunks;
+               (void) contiguousSize;
+               (void) ld;
+               (void) location;
+
+               if ( numChunks > 1 ) {
+                  std::cerr << " stridded copy / contiguousSize " << contiguousSize << " leading dimension is " << ld << " devAddr is "<< (void *) devAddr << std::endl;
+                  if ( location == 0 ) {
+                     _targetCache->copyInStrided1D(devAddr, address, contiguousSize, numChunks, ld, &ccopy._operations, _wdId );
+                  } else if ( _targetCache->canCopyFrom( *sys.getCaches()[ location ] ) ) {
+                     _targetCache->copyDevToDevStrided1D( location, devAddr, address, contiguousSize, numChunks, ld, &ccopy._operations, _wdId );
+                  } else {
+                    _targetCache->syncAndCopyInStrided1D( location, devAddr, address, contiguousSize, numChunks, ld, &ccopy._operations, _wdId );
+                  }
+               } else {
+                  if ( location == 0 ) {
+                     _targetCache->copyIn(devAddr, address, contiguousSize, &ccopy._operations, _wdId );
+                  } else if ( _targetCache->canCopyFrom( *sys.getCaches()[ location ] ) ) {
+                     _targetCache->copyDevToDev( location, devAddr, address, contiguousSize, &ccopy._operations, _wdId );
+                  } else {
+                     _targetCache->syncAndCopyIn( location, devAddr, address, contiguousSize, &ccopy._operations, _wdId );
+                  }
+               }
+            }
+      }
+#endif
+   }
+   NANOS_INSTRUMENT( inst2.close(); );
 }
 
 unsigned int RegionCache::getNodeNumber() const {

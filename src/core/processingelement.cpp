@@ -37,49 +37,7 @@ bool ProcessingElement::dataCanBlockUs( WorkDescriptor& wd )
 
 void ProcessingElement::copyDataIn( WorkDescriptor &work )
 {
-   //Directory *dir = work.getParent()->getDirectory(true);
-   //if ( dir != NULL ) {
-   //   CopyData *copies = work.getCopies();
-   //   for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
-   //      CopyData & cd = copies[i];
-   //      if ( !cd.isPrivate() ) {
-   //           dir->registerAccess( cd.getAddress(), cd.getSize(), cd.isInput(), cd.isOutput() );
-   //      }
-   //   }
-   //}
    work._ccontrol.copyDataInNoCache();
-#if 0
-   NewDirectory *dir = work.getNewDirectory();
-   CopyData *copies = work.getCopies();
-   for ( unsigned int index = 0; index < work.getNumCopies(); index++ ) {
-      unsigned int currentVersion = 0;
-      NewDirectory::LocationInfoList locations;
-      Region reg = NewDirectory::build_region( copies[ index ] );
-      //dir->lock();
-      dir->getLocation( reg, locations, currentVersion );
-      dir->addAccess( reg, 0, copies[ index ].isOutput() ? currentVersion + 1 : currentVersion );
-      //dir->unlock();
-      if ( !copies[ index ].isInput() ) continue;
-
-      {
-         std::map<unsigned int, std::list<Region> > locationMap;
-
-         for ( NewDirectory::LocationInfoList::iterator it = locations.begin(); it != locations.end(); it++ ) {
-            if (!it->second.isLocatedIn( 0 ) ) { 
-               int loc = it->second.getFirstLocation();
-               locationMap[ loc ].push_back( it->first );
-               //std::cerr << "Houston, we have a problem, data is not in Host and we need it back. HostAddr: " << (void *) (((it->first)).getFirstValue()) << it->second << std::endl;
-            }
-            //else { if ( sys.getNetwork()->getNodeNum() == 0) std::cerr << "["<<sys.getNetwork()->getNodeNum()<<"] wd " << work.getId() << "All ok, location is " << *(it->second) << std::endl; }
-         }
-
-         std::map<unsigned int, std::list<Region> >::iterator locIt;
-         for( locIt = locationMap.begin(); locIt != locationMap.end(); locIt++ ) {
-            sys.getCaches()[ locIt->first ]->syncRegion( locIt->second );
-         }
-      }
-   }
-#endif
 }
 
 void ProcessingElement::copyDataOut( WorkDescriptor &work )

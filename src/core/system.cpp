@@ -337,7 +337,7 @@ void System::start ()
 #ifdef CLUSTER_DEV
    if ( usingCluster() )
    {
-         nanos::ext::ClusterInfo::setUpCache();
+      nanos::ext::ClusterInfo::setUpCache();
       if ( _net.getNodeNum() == nanos::Network::MASTER_NODE_NUM )
       {
          _pes.reserve ( numPes + ( _net.getNumNodes() - 1 ) );
@@ -467,11 +467,12 @@ void System::start ()
          }
          _preMainBarrier++;
          ext::SMPMultiThread *smpRepThd = dynamic_cast<ext::SMPMultiThread *>( &smpRep->startMultiWorker( _net.getNumNodes() - 1, _peArray ) );
-         for ( ext::SMPMultiThread::iterator threadIterator = smpRepThd->getThreadList().begin();
-               threadIterator != smpRepThd->getThreadList().end(); 
-               threadIterator++ )
+         //for ( ext::SMPMultiThread::iterator threadIterator = smpRepThd->getThreadList().begin();
+         //      threadIterator != smpRepThd->getThreadList().end(); 
+         //      threadIterator++ )
+         for ( unsigned int thdIndex = 0; thdIndex < smpRepThd->getNumThreads(); thdIndex += 1 )
          {
-            _workers.push_back( *threadIterator );
+            _workers.push_back( smpRepThd->getThreadVector()[ thdIndex ]  );
          }
 
          //_net.setMasterDirectory( mainWD.getDirectory(true) );
@@ -594,11 +595,11 @@ void System::finish ()
 
    verbose ( "Joining threads... phase 1" );
    message0("Network traffic: " << sys.getNetwork()->getTotalBytes() << " bytes");
-   for (unsigned int i=0; i < sys.getNetwork()->getNumNodes(); i += 1 )
-   {
-      if ( i == sys.getNetwork()->getNodeNum() )
-      {
-      message("Shutting down node " << i);
+   // BUG for (unsigned int i=0; i < sys.getNetwork()->getNumNodes(); i += 1 )
+   // BUG {
+   // BUG    if ( i == sys.getNetwork()->getNodeNum() )
+   // BUG    {
+   // BUG    message("Shutting down node " << i);
 
    // signal stop PEs
    if ( _net.getNodeNum() == 0 ) message("Created " << createdWds << " WDs.");
@@ -657,9 +658,9 @@ void System::finish ()
    if ( allocator != NULL ) free (allocator);
 
    verbose ( "NANOS++ shutting down.... end" );
-      }
-      sys.getNetwork()->nodeBarrier();
-   }
+  // BUG    }
+  // BUG    sys.getNetwork()->nodeBarrier();
+  // BUG }
    //if (sys.getNetwork()->getNodeNum() == 0 && _verboseMode )
    //{
    //   unsigned int palette[8] = {0x003380, 0x0044aa, 0x0055d4, 0x0066ff, 0x2a7fff, 0x5599ff, 0x00112b, 0x002255}; 

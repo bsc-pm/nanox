@@ -22,6 +22,7 @@
 
 #include "workdescriptor_decl.hpp"
 #include "copydescriptor_decl.hpp"
+#include "packer_decl.hpp"
 
 namespace nanos
 {
@@ -35,6 +36,7 @@ namespace nanos
 
    class ClusterDevice : public Device
    {
+         Packer _packer;
       public:
          /*! \brief ClusterDevice constructor
           */
@@ -66,13 +68,15 @@ namespace nanos
   
          virtual void *memAllocate( std::size_t size, ProcessingElement *pe) {
             void *mem = allocate( size, pe );
-            message0("Using memAllocate from ClusterDevice ret is " <<  mem);
             return mem;
          }
 
          virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId ); 
          virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops ); 
          virtual void _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, ProcessingElement *peDest, ProcessingElement *peOri, DeviceOps *ops, unsigned int wdId );
+         virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId ); 
+         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement *pe, DeviceOps *ops ); 
+         virtual void _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement *peDest, ProcessingElement *peOri, DeviceOps *ops, unsigned int wdId );
    };
 
    extern ClusterDevice Cluster;

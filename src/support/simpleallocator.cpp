@@ -20,6 +20,8 @@
 #include <iostream>
 #include <cstring>
 #include "simpleallocator.hpp"
+#include "atomic.hpp"
+#include "system.hpp"
 
 using namespace nanos;
 
@@ -53,7 +55,7 @@ void * SimpleAllocator::allocate( size_t size )
       //std::size_t realSize = ( ((mapIter->first | (size-1)) + 1 + size ) - mapIter->first ); //aligned
       uint64_t targetAddr = (mapIter->first | (size-1))+1 ;
 
-      _freeChunks.erase( mapIter );
+      //_freeChunks.erase( mapIter );
 
       //add the chunk with the new size (previous size - requested size)
       //if (chunkSize > size)
@@ -68,7 +70,8 @@ void * SimpleAllocator::allocate( size_t size )
    }
    else {
       // Could not get a chunk of 'size' bytes
-      //std::cout << "WARNING: Allocator is full" << std::endl;
+      std::cerr << sys.getNetwork()->getNodeNum() << ": WARNING: Allocator is full" << std::endl;
+      printMap();
       return NULL;
    }
 
@@ -145,23 +148,33 @@ size_t SimpleAllocator::free( void *address )
 
 void SimpleAllocator::printMap()
 {
-   std::cout << "ALLOCATED CHUNKS" << std::endl;
+   std::size_t totalAlloc = 0, totalFree = 0;
+   std::cerr << (void *) this <<" ALLOCATED CHUNKS" << std::endl;
    for (SegmentMap::iterator it = _allocatedChunks.begin(); it != _allocatedChunks.end(); it++ ) {
-      std::cout << "|... ";
-      std::cout << it->first << " @ " << it->second;
-      std::cout << " ...";
+      std::cerr << "|... ";
+      std::cerr << (void *) it->first << " @ " << (int)it->second;
+      std::cerr << " ...";
+      totalAlloc += it->second;
    }
-   std::cout << "|" << std::endl;
+   std::cerr << "| total allocated bytes " << (int) totalAlloc << std::endl;
 
-   std::cout << "FREE CHUNKS" << std::endl;
+   std::cerr << (void *) this <<" FREE CHUNKS" << std::endl;
    for (SegmentMap::iterator it = _freeChunks.begin(); it != _freeChunks.end(); it++ ) {
-      std::cout << "|... ";
-      std::cout << it->first << " @ " << it->second;
-      std::cout << " ...";
+      std::cerr << "|... ";
+      std::cerr << (void *) it->first << " @ " << (int) it->second;
+      std::cerr << " ...";
+      totalFree += it->second;
    }
-   std::cout << "|" << std::endl;
+   std::cerr << "| total free bytes "<< (int) totalFree << std::endl;
 }
 
+void SimpleAllocator::lock() {
+   _lock.acquire();
+}
+
+void SimpleAllocator::unlock() {
+   _lock.release();
+}
 
 BufferManager::BufferManager( void * address, size_t size )
 {

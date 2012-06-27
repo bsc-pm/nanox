@@ -384,6 +384,12 @@ void NewRegionDirectory::consolidate( bool flushData ) {
       _directory.find( r, outs );
       for (RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator it = outs.begin(); it != outs.end(); it++) {
          RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
+         Region const &reg = accessor.getRegion();
+         std::cerr << (void *) reg.getFirstValue() << " ";
+      }
+      std::cerr << std::endl;
+      for (RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator it = outs.begin(); it != outs.end(); it++) {
+         RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
          NewDirectoryEntryData &nded = *accessor;
          Region const &reg = accessor.getRegion();
          if ( !nded.isLocatedIn( 0 ) ) {
@@ -399,7 +405,7 @@ void NewRegionDirectory::consolidate( bool flushData ) {
    
    //std::cerr << _directory << std::endl;
    //std::cerr << _inputDirectory << std::endl;
-   //message( "consolidating directory... " << (void *) &_directory  );
+   message( "consolidating directory... done " << (void *) &_directory  );
 }
 
 void NewRegionDirectory::print() const {

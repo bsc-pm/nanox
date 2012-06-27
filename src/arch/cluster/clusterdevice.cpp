@@ -102,3 +102,60 @@ void ClusterDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, s
    sys.getNetwork()->sendRequestPut( ((ClusterNode *) peOrig)->getClusterNodeNum(), devOrigAddr, ((ClusterNode *) peDest)->getClusterNodeNum(), devDestAddr, len, wdId );
    ops->completeOp();
 }
+void ClusterDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId ) {
+   char * hostAddrPtr = (char *) hostAddr;
+   //
+   NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_PACK); );
+   char * packedAddr = (char *) _packer.give_pack( hostAddr, len, count );
+   //std::cerr << __FUNCTION__ << " host addr is "<< (void *) hostAddr << " len is " << len << " count "<< count << " got packed data "<< ((void *) packedAddr) << " devAddr " << (void *) devAddr  << std::endl;
+   if ( packedAddr != NULL) { 
+      for ( unsigned int i = 0; i < count; i += 1 ) {
+         //std::cerr << "::memcpy ( &packedAddr[ " << i << " * " << len << " ]="<< (void *) &packedAddr[ i * len ] << ", &hostAddrPtr[ " << i << " * " << ld << "]=" << (void *) &hostAddrPtr[ i * ld ] << ", " << len << " );" << std::endl;
+         //std::cerr << "packed is " << (int ) packedAddr[ i * len ] << std::endl;
+         //std::cerr << "hostaddr is " << (int ) hostAddrPtr[ i * ld ] << std::endl;
+         ::memcpy( &packedAddr[ i * len ], &hostAddrPtr[ i * ld ], len );
+      }
+   } else { std::cerr << "copyInStrided ERROR!!! could not get a packet to gather data." << std::endl; }
+   NANOS_INSTRUMENT( inst2.close(); );
+   ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
+   //sys.getNetwork()->put( node->getClusterNodeNum(),  devAddr, ( void * ) hostAddr, len, wdId );
+   sys.getNetwork()->putStrided1D( node->getClusterNodeNum(),  devAddr, ( void * ) hostAddr, packedAddr, len, count, ld, wdId );
+   _packer.free_pack( hostAddr, len, count );
+   ops->completeOp();
+}
+void ClusterDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement *pe, DeviceOps *ops ) {
+   char * hostAddrPtr = (char *) hostAddr;
+   ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
+   //std::cerr << __FUNCTION__ << std::endl;
+
+   std::size_t maxCount = ( ( len * count ) <= sys.getNetwork()->getMaxGetStridedLen() ) ?
+      count : ( sys.getNetwork()->getMaxGetStridedLen() / len );
+   //std::size_t maxRequestedSize = maxCount * len;
+
+   char * packedAddr = (char *) _packer.give_pack( hostAddr, len, count );
+   //std::cerr  <<"get strided: host addr "<< (void *) hostAddr << " devAddr " << (void *) devAddr<< " get's " << maxCount<< std::endl;
+
+   for ( unsigned int i = 0; i < count; i += maxCount ) {
+      //char * packedAddr = (char *) _packer.give_pack( hostAddr, len, count );
+      if ( packedAddr != NULL) { 
+         volatile int req = 0;
+         volatile int *reqPtr = &req;
+
+         sys.getNetwork()->getStrided1D( packedAddr, node->getClusterNodeNum(), devAddr, devAddr + ( i * ld ), len, maxCount, ld, &req );
+         while ( *reqPtr == 0 );// sys.getNetwork()->poll( 0 );
+         
+         for ( unsigned int j = 0; j < count; j += 1 ) {
+            ::memcpy( &hostAddrPtr[ ( j + i ) * ld ], &packedAddr[ j * len ], len );
+         }
+      } else { std::cerr << "copyOutStrdided ERROR!!! could not get a packet to gather data." << std::endl; }
+   }
+
+   _packer.free_pack( hostAddr, len, count );
+   ops->completeOp();
+}
+void ClusterDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement *peDest, ProcessingElement *peOrig, DeviceOps *ops, unsigned int wdId ) {
+   //std::cerr << __FUNCTION__ << std::endl;
+   //ClusterNode *node = dynamic_cast< ClusterNode * >( peOrig );
+   sys.getNetwork()->sendRequestPutStrided1D( ((ClusterNode *) peOrig)->getClusterNodeNum(), devOrigAddr, ((ClusterNode *) peDest)->getClusterNodeNum(), devDestAddr, len, count, ld, wdId );
+   ops->completeOp();
+}

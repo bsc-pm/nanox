@@ -174,7 +174,6 @@ namespace nanos
 
          virtual void *memAllocate( std::size_t size, ProcessingElement *pe) {
             void *mem = allocate( size, pe );
-            message0("Using memAllocate from GPUDevice ret is " <<  mem);
             return mem;
          }
          virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId ); 

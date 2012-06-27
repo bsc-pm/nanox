@@ -96,43 +96,41 @@ namespace ext
       friend class SMPProcessor;
 
       private:
-         std::list< BaseThread * > _threadList;
+         std::vector< BaseThread * > _threads;
+         unsigned int _current;
+         unsigned int _totalThreads;
 
          // disable copy constructor and assignment operator
          SMPMultiThread( const SMPThread &th );
          const SMPMultiThread & operator= ( const SMPMultiThread &th );
 
       public:
-         typedef std::list< BaseThread * >::iterator iterator;
          // constructor
-         SMPMultiThread( WD &w, PE *pe, unsigned int representingPEsCount, PE **representingPEs ) : SMPThread ( w, pe ) {
+         SMPMultiThread( WD &w, PE *pe, unsigned int representingPEsCount, PE **representingPEs ) : SMPThread ( w, pe ), _current( 0 ), _totalThreads( representingPEsCount ) {
             setCurrentWD( w );
+            _threads.reserve( representingPEsCount );
             for ( unsigned int i = 0; i < representingPEsCount; i++ )
             {
-               _threadList.push_back( &( representingPEs[ i ]->startWorker( this ) ) );
+               _threads[ i ] = &( representingPEs[ i ]->startWorker( this ) );
             }
          }
 
          // destructor
          virtual ~SMPMultiThread() { }
 
-         std::list< BaseThread * >& getThreadList() { return _threadList; }
+         std::vector< BaseThread * >& getThreadVector() { return _threads; }
 
          virtual BaseThread * getNextThread()
          {
-            if ( _threadList.size() == 0 )
+            if ( _totalThreads == 0 )
                return this;
-
-            BaseThread *nextThread = _threadList.front();
-            _threadList.pop_front();
-            _threadList.push_back( nextThread );
-            //std::cerr << "returning thread " << nextThread->getId() << std::endl;
-            return nextThread;
+            _current = ( _current == ( _totalThreads - 1 ) ) ? 0 : _current + 1;
+            return _threads[ _current ];
          }
 
          unsigned int getNumThreads() const
          {
-            return _threadList.size();
+            return _totalThreads;
          }
    };
 }

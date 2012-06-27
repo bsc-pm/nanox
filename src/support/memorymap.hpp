@@ -1507,6 +1507,78 @@ void MemoryMap< _Type >::print() const
    std::cerr << "end of memory chunks" << std::endl;
 }
 
+template < typename _Type >
+bool MemoryMap< _Type >::canPack() const
+{
+   std::list< std::pair< MemoryChunk *, std::size_t > > accesses;
+   bool result = true;
+   if ( this->empty() ) {
+      std::cerr <<"cant pack, empty" << std::endl;
+      result = false;
+   } else if ( this->size() == 1 ) {
+      std::cerr <<"cant pack, size = 1" << std::endl;
+      result = false;
+   } else {
+
+   //{
+   //for (const_iterator itp = this->begin(); itp != this->end(); itp++ ) { std::cerr << "addr=" << (void*)itp->first.getAddress() << " len="<<itp->first.getLength() << " "; }
+   //std::cerr << "EOL"<< std::endl;
+   //}
+
+   //{
+   //   const_iterator it = this->begin();;
+
+   //   MemoryChunk *mc = &(it->first);
+   //   std::size_t iterSize, currSize, count = 1;
+   //   uint64_t iterAddr, currAddr;
+   //      currSize = it->first.getLength();
+   //      currAddr = it->first.getAddress();
+   //      it++;
+   //      iterSize = it->first.getLength();
+   //      iterAddr = it->first.getAddress();
+   //   do {
+   //      
+   //      if ( iterSize != currSize &&  ) { accesses.push_back( std::make_pair( mc, count ) ); currSize = iterSize; currAddr = iterAddr; } 
+   //      else { count += 1; }
+   //   } while( it != this->end() );
+   //}
+
+#if 0
+   const_iterator it = this->begin();
+   uint64_t firstAddr = it->first.getAddress();
+   std::size_t firstSize = it->first.getLength();
+
+   it++;
+   
+   uint64_t diffAddr = it->first.getAddress() - firstAddr;
+   std::size_t diffSize = it->first.getLength() - firstSize;
+
+   std::cerr << "First diff addr is "<< diffAddr << std::endl;
+   if ( diffSize != 0 ) result = false;
+
+   uint64_t iterAddr = it->first.getAddress();
+   std::size_t iterSize = it->first.getLength();
+   it++;
+
+   for (; it != this->end() && result == true ; it++ ) {
+      result = result && ( diffSize == ( it->first.getLength() - iterSize ) );
+      result = result && ( diffAddr == ( it->first.getAddress() - iterAddr ) );
+      if ( result ) {
+      iterAddr = it->first.getAddress();
+      iterSize = it->first.getLength();
+      } else {std::cerr <<"cant pack, diff size " << diffSize << " and iter diff " << ( it->first.getLength() - iterSize )  <<" diff Addr " <<diffAddr << " and iterdiff "<< ( it->first.getAddress() - iterAddr )   << std::endl;
+      }
+   }
+
+   if ( result ) std::cerr << " Seems I can pack, diffAddr is " << diffAddr << " and diffSize is " << diffSize << std::endl;
+   else { it--; std::cerr <<"cant pack, diff size " << diffSize << " and iter diff " << ( it->first.getLength() - iterSize )  <<" diff Addr " <<diffAddr << " and iterdiff "<< ( it->first.getAddress() - iterAddr )   << std::endl; }
+   r
+#endif
+
+   }
+   return result;
+}
+
 }
 
 #endif /* _NANOS_MEMORYMAP_H */

@@ -97,7 +97,9 @@ void GPUProcessor::init ()
    _allocator.init( ( uint64_t ) baseAddress, maxMemoryAvailable );
    configureCache( maxMemoryAvailable, GPUConfig::getCachePolicy() );
 
-    _newCache.setDevice( &GPU ); _newCache.setPE( this ); sys.getCaches()[this->getMemorySpaceId()] = &_newCache; 
+    _newCache.setDevice( &GPU );
+    _newCache.setPE( this );
+    sys.getCaches()[this->getMemorySpaceId()] = &_newCache; 
 
    _gpuProcessorInfo->setMaxMemoryAvailable( maxMemoryAvailable );
 

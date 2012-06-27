@@ -1,0 +1,85 @@
+
+#include "packer_decl.hpp"
+#include "system.hpp"
+
+#include <iostream>
+
+using namespace nanos;
+
+
+bool Packer::PackInfo::operator<( Packer::PackInfo const &pack ) const {
+   return _addr < pack._addr;
+}
+
+bool Packer::PackInfo::overlaps( uint64_t addr ) const {
+   return addr < ( _addr + _len * _count );
+}
+
+bool Packer::PackInfo::sizeMatch( std::size_t len, std::size_t count ) const {
+   return len == _len && count == _count ;
+}
+
+void * Packer::give_pack( uint64_t addr, std::size_t len, std::size_t count ) {
+   void *result = NULL;
+   PackInfo key( addr, len, count );
+
+   _lock.acquire();
+   //std::map< PackInfo, void *>::iterator it = _packs.lower_bound( key );
+   mapIterator it = _packs.lower_bound( key );
+   if ( it == _packs.end() || _packs.key_comp()( key, it->first ) || !it->first.sizeMatch( len, count ) ) {
+      if ( it == _packs.end() ) { /* not found */
+         if ( it != _packs.begin() ) {
+            mapIterator previous = it;
+            //std::map< PackInfo, void *>::iterator previous = it;
+            previous--;
+            if ( previous->first.overlaps( addr ) ) {
+               std::cerr << "overlap with previous" << std::endl;
+            } else {
+               if ( _allocator == NULL ) _allocator = sys.getNetwork()->getPackerAllocator();
+               //_allocator->lock();
+               result = _allocator->allocate( len * count );
+               //_allocator->unlock();
+               _packs.insert( it, std::make_pair( key, result ) );
+            }
+         } else { 
+            //std::cerr << "begin chunk" << std::endl;
+            if ( _allocator == NULL ) _allocator = sys.getNetwork()->getPackerAllocator();
+            //_allocator->lock();
+            result = _allocator->allocate( len * count );
+            //_allocator->unlock();
+            _packs.insert( it, std::make_pair( key, result ) );
+         }
+      } else if ( _packs.key_comp()( key, it->first )  ) { /* not equal: key < it */
+         //std::cerr << "not equal addr equal addr" << std::endl;
+         if ( _allocator == NULL ) _allocator = sys.getNetwork()->getPackerAllocator();
+         //_allocator->lock();
+         result = _allocator->allocate( len * count );
+         //_allocator->unlock();
+         _packs.insert( it, std::make_pair( key, result ) );
+      } else { /* eq addr, no size match*/
+         std::cerr << "equal addr, different size" << std::endl;
+      }
+   } else { /* exact match */
+      std::cerr << "exact match chunk" << std::endl;
+      result = it->second;
+   }
+   _lock.release();
+   //std::cerr <<"pack returrns "<<  result << std::endl;
+   return result;
+}
+
+void Packer::free_pack( uint64_t addr, std::size_t len, std::size_t count ) {
+   PackInfo key( addr, len, count );
+   _lock.acquire();
+   mapIterator it = _packs.find( key );
+   //std::cerr <<"pack frees "<<  it->second << std::endl;
+   //_allocator->lock();
+   _allocator->free( it->second );
+   //_allocator->unlock();
+   _packs.erase( it );
+   _lock.release();
+}
+
+void Packer::setAllocator( SimpleAllocator *alloc ) {
+   _allocator = alloc;
+}

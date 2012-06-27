@@ -260,6 +260,8 @@ class InstrumentationExtrae: public Instrumentation
             p_file << NANOS_POST_OUTLINE_WORK5   << "     NANOS_POST_OUTLINE_WORK5" << std::endl;
             p_file << NANOS_CC_CDIN   << "     NANOS_CC_CDIN" << std::endl;
             p_file << NANOS_CC_CDOUT   << "     NANOS_CC_CDOUT" << std::endl;
+            p_file << NANOS_STRIDED_COPY_PACK   << "     Packing strided data" << std::endl;
+            p_file << NANOS_STRIDED_COPY_UNPACK   << "     Unpacking strided data" << std::endl;
             p_file << 100                     << "     EXTRAE I/O" << std::endl;
             p_file << std::endl;
 
