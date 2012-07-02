@@ -574,8 +574,9 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    thread = getMyThreadSafe();
 
    if (schedule) {
-        if ( thread->reserveNextWD() ) {
-           thread->setReservedNextWD(thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*wd));
+      ThreadTeam *thread_team = thread->getTeam();
+        if ( thread_team && thread->reserveNextWD() ) {
+           thread->setReservedNextWD(thread_team->getSchedulePolicy().atBeforeExit(thread,*wd));
         }
    }
 
@@ -738,7 +739,10 @@ void Scheduler::exit ( void )
       // The thread is not paused, mark it as so
       thread->unpause();
    
-      next = thread->getTeam()->getSchedulePolicy().atBeforeExit(thread,*oldwd);
+      ThreadTeam *thread_team = thread->getTeam();
+
+      if ( thread_team )
+         next = thread_team->getSchedulePolicy().atBeforeExit(thread,*oldwd);
    }
    else {
       // Pause this thread
