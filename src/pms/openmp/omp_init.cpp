@@ -125,9 +125,6 @@ namespace nanos
          OmpData *data = (OmpData *) wd.getInternalData();
          ensure(data,"OpenMP data is missing!");
 
-         if ( data->isImplicit() ) {
-            sys.releaseWorker(myThread);
-         }
       };
 
        ThreadTeamData * OpenMPInterface::getThreadTeamData()

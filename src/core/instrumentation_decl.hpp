@@ -211,6 +211,7 @@ namespace nanos {
             registerEventValue("api","get_internal_wd_data","nanos_get_internal_wd_data()");
             registerEventValue("api","yield","nanos_yield()");
             registerEventValue("api","create_team","nanos_create_team()");
+            registerEventValue("api","enter_team","nanos_enter_team()");
             registerEventValue("api","leave_team","nanos_leave_team()");
             registerEventValue("api","end_team","nanos_end_team()");
             registerEventValue("api","get_num_runnin_tasks","nanos_get_num_runnin_tasks()");

@@ -59,6 +59,17 @@ NANOS_API_DEF(nanos_err_t, nanos_create_team_mapped, ( nanos_team_t *team, nanos
    return NANOS_UNIMPLEMENTED;
 }
 
+NANOS_API_DEF(nanos_err_t, nanos_enter_team, (void))
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","enter_team",NANOS_RUNTIME) );
+   try {
+      myThread->enterTeam( NULL );
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+   return NANOS_OK;
+
+}
 NANOS_API_DEF(nanos_err_t, nanos_leave_team, (void))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","leave_team",NANOS_RUNTIME) );

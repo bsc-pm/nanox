@@ -31,7 +31,7 @@ extern "C" {
 
 #ifdef _MERCURIUM
 // define OpenMP API version
-#pragma nanos interface family(openmp) version(5)
+#pragma nanos interface family(openmp) version(6)
 #endif
 
 #define NANOS_OMP_WS_TSIZE 5
