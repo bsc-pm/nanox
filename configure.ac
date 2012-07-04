@@ -1,5 +1,5 @@
 
-AC_INIT([nanox], [0.7a], [alex.duran@bsc.es])
+AC_INIT([nanox], [0.7a], [pmtools@bsc.es])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
 
 # Environment
@@ -22,6 +22,10 @@ AC_PROG_CPP
 AM_PROG_CC_C_O
 AC_PROG_CXX
 AM_PROG_AS
+
+# Fortran
+AC_PROG_FC([gfortran])
+AC_PROG_FC_C_O
 
 # Check for libraries
 
@@ -218,6 +222,21 @@ fi
 AM_CONDITIONAL([GPU_SUPPORT],[test $gpu_valid = yes])
 
 AC_SUBST([gpu_valid])
+
+# mcc support
+AC_ARG_WITH([mcc],
+AS_HELP_STRING([--with-mcc=dir], [Directory of mcc compiler]),
+	[
+      mcc_valid=yes
+		MCC="${withval}/bin/mcc"
+	],
+	[
+      mcc_valid=no
+		MCC=""
+	])
+
+AC_SUBST([mcc_valid])
+AC_SUBST([MCC])
 
 # Allocator support
 allocator_disabled=no

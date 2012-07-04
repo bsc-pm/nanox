@@ -23,6 +23,25 @@
 
 using namespace nanos;
 
+NANOS_API_DEF(const char *, nanos_get_default_architecture, ())
+{
+   return (sys.getDefaultArch()).c_str();
+}
+
+NANOS_API_DEF(const char *, nanos_get_pm, ())
+{
+   return (sys.getPMInterface()).getDescription().c_str();
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_get_default_binding, ( bool *res ))
+{
+   try {
+      *res = sys.getBinding();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+   return NANOS_OK;
+}
 
 NANOS_API_DEF(nanos_err_t, nanos_get_num_running_tasks, ( int *num ))
 {
@@ -35,6 +54,11 @@ NANOS_API_DEF(nanos_err_t, nanos_get_num_running_tasks, ( int *num ))
    }
 
    return NANOS_OK;
+}
+
+NANOS_API_DEF(const char *, nanos_get_default_scheduler, ())
+{
+   return (sys.getDefaultSchedule()).c_str();
 }
 
 NANOS_API_DEF(nanos_err_t, nanos_stop_scheduler, ())

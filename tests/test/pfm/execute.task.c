@@ -16,40 +16,50 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
 #include "nanos.h"
-#include <stdlib.h>
-#include <stdio.h>
+#include "common.h"
 
-#if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_INSTRUMENTATION_ENABLED)
-   char nanos_mode[] = "instrumentation-debug";
-#elif defined(NANOS_DEBUG_ENABLED) && !defined(NANOS_INSTRUMENTATION_ENABLED)
-   char nanos_mode[] = "debug";
-#elif !defined(NANOS_DEBUG_ENABLED) && defined(NANOS_INSTRUMENTATION_ENABLED)
-   char nanos_mode[] = "instrumentation";
-#elif !defined(NANOS_DEBUG_ENABLED) && !defined(NANOS_INSTRUMENTATION_ENABLED)
-   char nanos_mode[] = "performance";
-#endif
+/*
+<testinfo>
+test_generator=gens/mcc-openmp-generator
+</testinfo>
+*/
 
-NANOS_API_DEF(char *, nanos_get_mode, ( void ))
+// TEST: Task Execution Overhead *******************************************************************
+void test_task_execution_overhead ( stats_t *s )
 {
-   return nanos_mode;
-}
+   int i,j, nthreads = omp_get_max_threads();
+   double times_seq[TEST_NSAMPLES];
+   double times[TEST_NSAMPLES];
 
-NANOS_API_DEF(void, nanos_handle_error, ( nanos_err_t err ))
-{
-   switch ( err ) {
-
-      default:
-
-      case NANOS_UNKNOWN_ERR:
-         fprintf( stderr,"Unknown NANOS error detected\n" );
-         break;
-
-      case NANOS_UNIMPLEMENTED:
-         fprintf( stderr,"Requested NANOS service not implemented\n" );
-         break;
+   for ( i = 0; i < TEST_NSAMPLES; i++ ) {
+      times_seq[i] = GET_TIME;
+      for ( j = 0; j < TEST_NTASKS; j++ ) {
+         task(TEST_TUSECS);
+      }
+      times_seq[i] = GET_TIME - times_seq[i];
    }
 
-   abort();
+   for ( i = 0; i < TEST_NSAMPLES; i++ ) {
+      times[i] = GET_TIME;
+      for ( j = 0; j < TEST_NTASKS; j++ ) {
+#pragma omp task
+         task(TEST_TUSECS);
+      }
+#pragma omp taskwait
+      times[i] = (((GET_TIME - times[i]) - times_seq[i]) * nthreads) / TEST_NTASKS;
+   }
+   stats( s, times, TEST_NSAMPLES);
+}
+
+int main ( int argc, char *argv[] )
+{
+   stats_t s;
+
+   test_task_execution_overhead( &s );
+   print_stats ( "Execute task overhead","warm-up", &s );
+   test_task_execution_overhead( &s );
+   print_stats ( "Execute task overhead","test", &s );
+
+   return 0;
 }

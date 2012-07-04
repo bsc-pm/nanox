@@ -34,7 +34,7 @@ instrdebug_LTLIBRARIES = \
  	libnanox-sched-socket.la \
 	$(END)
 
-nanos_instrdebug_cxxflags=$(common_includes) $(common_instr_cxxflags)
+nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags)
 
 libnanox_sched_default_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
 libnanox_sched_default_la_LDFLAGS = $(ld_plugin_flags)

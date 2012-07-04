@@ -16,40 +16,36 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
 #include "nanos.h"
-#include <stdlib.h>
-#include <stdio.h>
+#include "common.h"
 
-#if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_INSTRUMENTATION_ENABLED)
-   char nanos_mode[] = "instrumentation-debug";
-#elif defined(NANOS_DEBUG_ENABLED) && !defined(NANOS_INSTRUMENTATION_ENABLED)
-   char nanos_mode[] = "debug";
-#elif !defined(NANOS_DEBUG_ENABLED) && defined(NANOS_INSTRUMENTATION_ENABLED)
-   char nanos_mode[] = "instrumentation";
-#elif !defined(NANOS_DEBUG_ENABLED) && !defined(NANOS_INSTRUMENTATION_ENABLED)
-   char nanos_mode[] = "performance";
-#endif
+/*
+<testinfo>
+test_generator=gens/mcc-openmp-generator
+</testinfo>
+*/
 
-NANOS_API_DEF(char *, nanos_get_mode, ( void ))
+// TEST: Task Wait Overhead ***********************************************************************
+void test_taskwait_execution_overhead ( stats_t *s )
 {
-   return nanos_mode;
+   int i;
+   double times[TEST_NSAMPLES];
+   for ( i = 0; i < TEST_NSAMPLES; i++ ) {
+      times[i] = GET_TIME;
+#pragma omp taskwait
+      times[i] = (GET_TIME - times[i]);
+   }
+   stats( s, times, TEST_NSAMPLES);
 }
 
-NANOS_API_DEF(void, nanos_handle_error, ( nanos_err_t err ))
+int main ( int argc, char *argv[] )
 {
-   switch ( err ) {
+   stats_t s;
 
-      default:
+   test_taskwait_execution_overhead( &s );
+   print_stats ( "Execute taskwait overhead","warm-up", &s );
+   test_taskwait_execution_overhead( &s );
+   print_stats ( "Execute taskwait overhead","test", &s );
 
-      case NANOS_UNKNOWN_ERR:
-         fprintf( stderr,"Unknown NANOS error detected\n" );
-         break;
-
-      case NANOS_UNIMPLEMENTED:
-         fprintf( stderr,"Requested NANOS service not implemented\n" );
-         break;
-   }
-
-   abort();
+   return 0;
 }

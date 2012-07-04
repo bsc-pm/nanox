@@ -115,7 +115,7 @@ class List {
            /*! \brief Returns whether this node has external references or not
             */
             bool hasRefs() const
-               { return _refs > 0; }
+               { return this->_refs > 0; }
 
            /*! \brief Returns the external reference counter
             */

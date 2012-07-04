@@ -438,7 +438,10 @@ void System::finish ()
    }
    
    /* deleting thread team */
-   ThreadTeam* team = getMyThreadSafe()->getTeam();   
+   ThreadTeam* team = getMyThreadSafe()->getTeam();
+
+   if ( team->getScheduleData() != NULL ) team->getScheduleData()->printStats();
+
    /* team->size() will change during the for loop */
    unsigned teamSize = team->size();
    /* For every thread in the team */

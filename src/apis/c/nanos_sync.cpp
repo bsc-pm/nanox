@@ -294,3 +294,8 @@ NANOS_API_DEF(nanos_err_t, nanos_release_sync_init, ( void ))
    return NANOS_OK;
 }
 
+NANOS_API_DEF(nanos_err_t, nanos_memory_fence, (void))
+{
+    nanos::memoryFence();
+    return NANOS_OK;
+}

@@ -183,7 +183,10 @@ inline void ThreadTeam::computeVectorReductions ( void )
          red->vop( this->size(), red->original, red->privates );
       } else {
          unsigned i;
+         char *privates = reinterpret_cast<char*>(red->privates);
          for ( i = 0; i < this->size(); i++ ) {
+             char* current = privates + i * red->element_size;
+             red->bop(red->original, current);
          }
       }
    }
@@ -195,6 +198,16 @@ inline void *ThreadTeam::getReductionPrivateData ( void* s )
    for ( it = _redList.begin(); it != _redList.end(); it++) {
       if ((*it)->original == s) return (*it)->privates;
    }
+   return NULL;
+}
+
+inline nanos_reduction_t *ThreadTeam::getReduction ( void* s )
+{
+   ReductionList::iterator it;
+   for ( it = _redList.begin(); it != _redList.end(); it++) {
+      if ((*it)->original == s) return *it;
+   }
+
    return NULL;
 }
 

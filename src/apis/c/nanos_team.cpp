@@ -59,6 +59,17 @@ NANOS_API_DEF(nanos_err_t, nanos_create_team_mapped, ( nanos_team_t *team, nanos
    return NANOS_UNIMPLEMENTED;
 }
 
+NANOS_API_DEF(nanos_err_t, nanos_enter_team, (void))
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","enter_team",NANOS_RUNTIME) );
+   try {
+      myThread->enterTeam( NULL );
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+   return NANOS_OK;
+
+}
 NANOS_API_DEF(nanos_err_t, nanos_leave_team, (void))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","leave_team",NANOS_RUNTIME) );
@@ -171,6 +182,18 @@ NANOS_API_DEF(nanos_err_t, nanos_reduction_get_private_data, ( void **copy, void
 
    try {
        *copy = (void *) myThread->getTeam()->getReductionPrivateData ( original );
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_reduction_get, (nanos_reduction_t** dest, void *original) )
+{
+
+   try {
+       *dest = myThread->getTeam()->getReduction ( original );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }

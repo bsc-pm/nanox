@@ -26,5 +26,6 @@ include $(top_srcdir)/src/common.am
 pkginclude_HEADERS=\
 	nanos.h \
    nanos_reduction.h \
+   nanos_c_api_macros.h \
 	$(END)
 
