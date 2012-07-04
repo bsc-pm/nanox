@@ -82,7 +82,8 @@ void SMPThread::join ()
 void SMPThread::bind( void )
 {
    cpu_set_t cpu_set;
-   int cpu_id = ( getCpuId() * sys.getBindingStride() ) + sys.getBindingStart();
+   int cpu_idx = ( getCpuId() * sys.getBindingStride() ) + sys.getBindingStart();
+   int cpu_id = ( (cpu_idx + ( cpu_idx/CPU_SETSIZE ) ) % CPU_SETSIZE);
 
    ensure( ( ( cpu_id >= 0 ) && ( cpu_id < CPU_SETSIZE ) ), "invalid value for cpu id" );
    CPU_ZERO( &cpu_set );
