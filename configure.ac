@@ -10,6 +10,7 @@ AC_CANONICAL_TARGET
 # Automake initialization
 AM_INIT_AUTOMAKE([-Wall -Werror dist-bzip2])
 AC_CONFIG_MACRO_DIR([m4])
+AM_SILENT_RULES
 
 # Set compiler default flags
 : ${CFLAGS=""}
