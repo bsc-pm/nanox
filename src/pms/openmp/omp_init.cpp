@@ -119,13 +119,8 @@ namespace nanos
          data->setImplicit(false);
       }
 
-       void OpenMPInterface::wdStarted( WD &wd ) {};
-       void OpenMPInterface::wdFinished( WD &wd ) 
-      {
-         OmpData *data = (OmpData *) wd.getInternalData();
-         ensure(data,"OpenMP data is missing!");
-
-      };
+      void OpenMPInterface::wdStarted( WD &wd ) {}
+      void OpenMPInterface::wdFinished( WD &wd ) { }
 
        ThreadTeamData * OpenMPInterface::getThreadTeamData()
       {
