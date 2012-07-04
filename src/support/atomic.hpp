@@ -295,12 +295,12 @@ inline SyncLockBlock::~SyncLockBlock ( )
 
 inline RecursiveLock::state_t RecursiveLock::operator* () const
 {
-   return _state;
+   return state_;
 }
 
 inline RecursiveLock::state_t RecursiveLock::getState () const
 {
-   return _state;
+   return state_;
 }
 
 inline void RecursiveLock::operator++ ( int )
@@ -322,9 +322,9 @@ inline void RecursiveLock::acquire ( )
    }
    
 spin:
-   while ( _state == NANOS_LOCK_BUSY ) {}
+   while ( state_ == NANOS_LOCK_BUSY ) {}
 
-   if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) goto spin;
+   if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) goto spin;
    
    _holderThread = getMyThreadSafe();
    _recursionCount++;
@@ -337,8 +337,8 @@ inline bool RecursiveLock::tryAcquire ( )
       return true;
    }
    
-   if ( _state == NANOS_LOCK_FREE ) {
-      if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) return false;
+   if ( state_ == NANOS_LOCK_FREE ) {
+      if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) return false;
       else
       {
          _holderThread = getMyThreadSafe();
@@ -354,7 +354,7 @@ inline void RecursiveLock::release ( )
    if ( _recursionCount == 0UL )
    {
       _holderThread = 0UL;
-      __sync_lock_release( &_state );
+      __sync_lock_release( &state_ );
    }
 }
 
