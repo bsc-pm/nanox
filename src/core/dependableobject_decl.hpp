@@ -24,8 +24,9 @@
 #include <set>
 #include <vector>
 #include "atomic_decl.hpp"
-#include "trackableobject_fwd.hpp"
-#include "dependency_decl.hpp"
+#include "dataaccess_decl.hpp"
+#include "dependenciesdomain_fwd.hpp"
+#include "basedependency_fwd.hpp"
 
 namespace nanos
 {
@@ -48,15 +49,16 @@ namespace nanos
    {
       public:
          typedef std::set<DependableObject *> DependableObjectVector; /**< Type vector of successors  */
-         typedef std::vector<TrackableObject *> TrackableObjectVector; /**< Type vector of output objects */
+         typedef std::vector<BaseDependency*> TargetVector; /**< Type vector of output objects */
          
       private:
          unsigned int             _id;              /**< DependableObject identifier */
          Atomic<unsigned int>     _numPredecessors; /**< Number of predecessors locking this object */
          unsigned int             _references;      /** References counter */
          DependableObjectVector   _successors;      /**< List of successiors */
-         TrackableObjectVector    _outputObjects;   /**< List of output objects */
-         TrackableObjectVector    _readObjects;     /**< List of read objects */
+         DependenciesDomain      *_domain;          /**< DependenciesDomain where this is located */
+         TargetVector             _outputObjects;   /**< List of output objects */
+         TargetVector             _readObjects;     /**< List of read objects */
          Lock                     _objectLock;      /**< Lock to do exclusive use of the DependableObject */
          volatile bool            _submitted;
 
@@ -64,14 +66,14 @@ namespace nanos
         /*! \brief DependableObject default constructor
          */
          DependableObject ( ) 
-            :  _id ( 0 ), _numPredecessors ( 0 ), _references(1), _successors(), _outputObjects(),
+            :  _id ( 0 ), _numPredecessors ( 0 ), _references(1), _successors(), _domain( NULL ), _outputObjects(),
                _readObjects(), _objectLock(), _submitted(false) {}
         /*! \brief DependableObject copy constructor
          *  \param depObj another DependableObject
          */
          DependableObject ( const DependableObject &depObj )
             : _id ( depObj._id ), _numPredecessors ( depObj._numPredecessors ), _references(depObj._references),
-              _successors ( depObj._successors ), _outputObjects( ), _readObjects(), _objectLock(), _submitted(false) {}
+              _successors ( depObj._successors ), _domain ( depObj._domain ), _outputObjects( ), _readObjects(), _objectLock(), _submitted(false) {}
 
         /*! \brief DependableObject copy assignment operator, can be self-assigned.
          *  \param depObj another DependableObject
@@ -80,14 +82,24 @@ namespace nanos
 
         /*! \brief DependableObject virtual destructor
          */
-         virtual ~DependableObject ( ) { }
+         virtual ~DependableObject ( );
 
         // FIXME DOC NEEDED FOR THIS FUNCTIONS
          virtual void init ( ) { }
 
          virtual void dependenciesSatisfied ( ) { }
 
-         virtual void wait ( std::list<Dependency *> deps ) { }
+         /*! \brief Waits until the dependencies with the given addresses
+          * are satisfied.
+          * \param flushDeps List of memory addresses.
+          * \note Previously we were passing a list of Dependency pointers,
+          * and used getDepAddress to create the flushDeps list inside this 
+          * function. As the regions code passes regions and does the same,
+          * the list will have to be created before calling this function.
+          * The regions code will call Region::getFirstValue() and the
+          * non region code will use the address + the offset.
+          */
+         virtual void wait ( std::list<uint64_t>const & flushDeps  ) { }
 
          virtual bool waits ( );
 
@@ -136,26 +148,36 @@ namespace nanos
          *  returns true if the successor didn't already exist in the list (a new edge has been added)
          */
          bool addSuccessor ( DependableObject &depObj );
+         
+        /*! \brief Get the DependenciesDomain where this belongs
+         *  \returns the DependenciesDomain where this belongs
+         */
+         DependenciesDomain * getDependenciesDomain ( ) const;
+
+        /*! \brief Set the DependenciesDomain where this belongs
+         *  \param dependenciesDomain the DependenciesDomain where this belongs
+         */
+         void setDependenciesDomain ( DependenciesDomain *dependenciesDomain );
 
         /*! \brief Add an output object to the list.
          *  \sa TrackableObject
          */
-         void addOutputObject ( TrackableObject *outObj );
+         void addWriteTarget ( BaseDependency const &outObj );
 
         /*! \brief Get the list of output objects.
          *  \sa TrackableObject
          */
-         TrackableObjectVector & getOutputObjects ( );
+         TargetVector const & getWrittenTargets ( );
          
         /*! \brief Add a read object to the list.
          *  \sa TrackableObject
          */
-         void addReadObject ( TrackableObject *readObj );
+         void addReadTarget ( BaseDependency const &readObj );
          
         /*! \brief Get the list of read objects.
          *  \sa TrackableObject
          */
-         TrackableObjectVector & getReadObjects ( );
+         TargetVector const & getReadTargets ( );
 
         /*! \brief Increases the object's references counter
          */

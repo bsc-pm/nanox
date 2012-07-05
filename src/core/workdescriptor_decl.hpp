@@ -38,6 +38,8 @@
 #include "wddeque_fwd.hpp"
 #include "directory_decl.hpp"
 
+#include "dependenciesdomain_fwd.hpp"
+
 namespace nanos
 {
 
@@ -139,6 +141,9 @@ namespace nanos
       public:
 	 typedef enum { IsNotAUserLevelThread=false, IsAUserLevelThread=true } ULTFlag;
 
+         typedef std::vector<WorkDescriptor **> WorkDescriptorPtrList;
+         typedef TR1::unordered_map<void *, TR1::shared_ptr<WorkDescriptor *> > CommutativeOwnerMap;
+
       private:
 
          typedef enum { INIT, START, READY, IDLE, BLOCKED } State;
@@ -170,7 +175,7 @@ namespace nanos
          TR1::shared_ptr<DOSubmit>     _doSubmit;     /**< DependableObject representing this WD in its parent's depsendencies domain */
          LazyInit<DOWait>              _doWait;       /**< DependableObject used by this task to wait on dependencies */
 
-         LazyInit<DependenciesDomain>  _depsDomain;   /**< Dependences domain. Each WD has one where DependableObjects can be submitted */
+         DependenciesDomain           *_depsDomain;   /**< Dependences domain. Each WD has one where DependableObjects can be submitted */
          LazyInit<Directory>           _directory;    /**< Directory to mantain cache coherence */
 
          InstrumentationContextData    _instrumentationContextData; /**< Instrumentation Context Data (empty if no instr. enabled) */
@@ -180,6 +185,11 @@ namespace nanos
          nanos_translate_args_t        _translateArgs; /**< Translates the addresses in _data to the ones obtained by get_address(). */
 
          unsigned int                  _priority;      /**< Task priority */
+
+         CommutativeOwnerMap           _commutativeOwnerMap; /**< Map from commutative target address to owner pointer */
+         WorkDescriptorPtrList         _commutativeOwners;   /**< Array of commutative target owners */
+
+         unsigned int                  _wakeUpQueue;  /**< Queue to wake up to */
 
       private: /* private methods */
          /*! \brief WorkDescriptor copy assignment operator (private)
@@ -193,26 +203,12 @@ namespace nanos
          /*! \brief WorkDescriptor constructor - 1
           */
          WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0, size_t data_align = 1, void *wdata=0,
-                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL )
-                        : WorkGroup(), _data_size ( data_size ), _data_align( data_align ),  _data ( wdata ),
-                          _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
-                          _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
-                          _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : NULL ),
-                          _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain(), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ),
-                          _priority( 0 ) { }
+                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL );
 
          /*! \brief WorkDescriptor constructor - 2
           */
          WorkDescriptor ( DeviceData *device, size_t data_size = 0, size_t data_align = 1, void *wdata=0,
-                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL )
-                        : WorkGroup(), _data_size ( data_size ), _data_align ( data_align ), _data ( wdata ),
-                          _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
-                          _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
-                          _numDevices ( 1 ), _devices ( &_activeDevice ), _activeDevice ( device ),
-                          _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain(), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ),
-                          _priority( 0 ) { }
+                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL );
 
          /*! \brief WorkDescriptor copy constructor (using a given WorkDescriptor)
           *
@@ -224,14 +220,7 @@ namespace nanos
           *
           *  \see WorkDescriptor System::duplicateWD System::duplicateSlicedWD
           */
-         WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL )
-                        : WorkGroup( wd ), _data_size( wd._data_size ), _data_align( wd._data_align ), _data ( data ),
-                          _wdData ( NULL ), _tie ( wd._tie ), _tiedTo ( wd._tiedTo ),
-                          _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ), _myQueue ( NULL ), _depth ( wd._depth ),
-                          _numDevices ( wd._numDevices ), _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
-                          _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
-                          _doSubmit(), _doWait(), _depsDomain(), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( wd._translateArgs ),
-                          _priority( wd._priority ) { }
+         WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL );
 
          /*! \brief WorkDescriptor destructor
           *
@@ -241,6 +230,8 @@ namespace nanos
          virtual ~WorkDescriptor()
          {
             for ( unsigned i = 0; i < _numDevices; i++ ) delete _devices[i];
+
+	    delete _depsDomain;
          }
 
          /*! \brief Has this WorkDescriptor ever run?
@@ -356,6 +347,19 @@ namespace nanos
          void * getInternalData () const;
 
          void setTranslateArgs( nanos_translate_args_t translateArgs );
+         
+         /*! \brief Returns the queue this WD should wake up in.
+          *  This will be used by the socket-aware schedule policy.
+          *
+          *  \see setWakeUpQueue
+          */
+         unsigned int getWakeUpQueue() const;
+         
+         /*! \brief Sets the queue this WD should wake up in.
+          *
+          *  \see getWakeUpQueue
+          */
+         void setWakeUpQueue( unsigned int queue );
 
          /*! \brief Get the number of devices
           *
@@ -412,13 +416,13 @@ namespace nanos
           *  \param numDeps Number of dependencies.
           *  \param deps Array with dependencies associated to the submitted wd.
           */
-         void submitWithDependencies( WorkDescriptor &wd, size_t numDeps, Dependency* deps );
+         void submitWithDependencies( WorkDescriptor &wd, size_t numDeps, DataAccess* deps );
 
          /*! \brief Waits untill all (input) dependencies passed are satisfied for the _doWait object.
           *  \param numDeps Number of de dependencies.
           *  \param deps dependencies to wait on, should be input dependencies.
           */
-         void waitOn( size_t numDeps, Dependency* deps );
+         void waitOn( size_t numDeps, DataAccess* deps );
 
          /*! If this WorkDescriptor has an immediate succesor (i.e., anothur WD that only depends on him)
              remove it from the dependence graph and return it. */
@@ -455,6 +459,19 @@ namespace nanos
 
          void setPriority( unsigned int priority );
          unsigned getPriority() const;
+
+         /*! \brief Store addresses of commutative targets in hash and in child WorkDescriptor.
+          *  Called when a task is submitted.
+          */
+         void initCommutativeAccesses( WorkDescriptor &wd, size_t numDeps, DataAccess* deps );
+         /*! \brief Try to take ownership of all commutative targets for exclusive access.
+          *  Called when a task is invoked.
+          */
+         bool tryAcquireCommutativeAccesses();
+         /*! \brief Release ownership of commutative targets.
+          *  Called when a task is finished.
+          */
+         void releaseCommutativeAccesses(); 
    };
 
    typedef class WorkDescriptor WD;

@@ -29,6 +29,7 @@
 // define API version
 #pragma nanos interface family(master) version(5015)
 #pragma nanos interface family(worksharing) version(1000)
+#pragma nanos interface family(deps_api) version(1001)
 #endif
 
 // data types
@@ -91,10 +92,10 @@ NANOS_API_DECL(nanos_err_t, nanos_create_sliced_wd, ( nanos_wd_t *uwd, size_t nu
                                      void **outline_data, nanos_wg_t uwg, nanos_slicer_t slicer,
                                      nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props, size_t num_copies, nanos_copy_data_t **copies ));
 
-NANOS_API_DECL(nanos_err_t, nanos_submit, ( nanos_wd_t wd, size_t num_deps, nanos_dependence_t *deps, nanos_team_t team ));
+NANOS_API_DECL(nanos_err_t, nanos_submit, ( nanos_wd_t wd, size_t num_data_accesses, nanos_data_access_t *data_accesses, nanos_team_t team ));
 
 NANOS_API_DECL(nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_definition_t *const_data, nanos_wd_dyn_props_t *dyn_props,
-                                                               size_t data_size, void * data, size_t num_deps, nanos_dependence_t *deps,
+                                                               size_t data_size, void * data, size_t num_data_accesses, nanos_data_access_t *data_accesses,
                                                                nanos_copy_data_t *copies, nanos_translate_args_t translate_args ));
 
 NANOS_API_DECL(nanos_err_t, nanos_create_for, ( void ));
@@ -149,7 +150,7 @@ NANOS_API_DECL(nanos_err_t, nanos_sync_cond_wait, ( nanos_sync_cond_t sync_cond 
 NANOS_API_DECL(nanos_err_t, nanos_sync_cond_signal, ( nanos_sync_cond_t sync_cond ));
 NANOS_API_DECL(nanos_err_t, nanos_destroy_sync_cond, ( nanos_sync_cond_t sync_cond ));
 
-NANOS_API_DECL(nanos_err_t, nanos_wait_on, ( size_t num_deps, nanos_dependence_t *deps ));
+NANOS_API_DECL(nanos_err_t, nanos_wait_on, ( size_t num_data_accesses, nanos_data_access_t *data_accesses ));
 
 #define NANOS_INIT_LOCK_FREE { NANOS_LOCK_FREE }
 #define NANOS_INIT_LOCK_BUSY { NANOS_LOCK_BUSY }

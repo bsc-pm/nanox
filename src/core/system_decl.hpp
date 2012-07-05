@@ -29,7 +29,7 @@
 #include "slicer_decl.hpp"
 #include "worksharing_decl.hpp"
 #include "nanos-int.h"
-#include "dependency_decl.hpp"
+#include "dataaccess_fwd.hpp"
 #include "instrumentation_decl.hpp"
 #include "directory_decl.hpp"
 #include "pminterface_decl.hpp"
@@ -83,6 +83,8 @@ namespace nanos
          bool                 _delayedStart;
          bool                 _useYield;
          bool                 _synchronizedStart;
+         int                  _numSockets;
+         int                  _coresPerSocket;
 
          //cutoff policy and related variables
          ThrottlePolicy      *_throttlePolicy;
@@ -94,6 +96,8 @@ namespace nanos
          std::string          _defThrottlePolicy;
          std::string          _defBarr;
          std::string          _defInstr;
+         /*! Name of the dependencies manager plugin */
+         std::string          _defDepsManager;
 
          std::string          _defArch;
 
@@ -122,6 +126,9 @@ namespace nanos
 
          Instrumentation     *_instrumentation; /**< Instrumentation object used in current execution */
          SchedulePolicy      *_defSchedulePolicy;
+         
+         /*! Dependencies domain manager */
+         DependenciesManager *_dependenciesManager;
 
          /*! It manages all registered and active plugins */
          PluginManager        _pluginManager;
@@ -146,6 +153,7 @@ namespace nanos
          const System & operator= ( const System &sys );
 
          void config ();
+         void checkConfig ();
          void loadModules();
          void unloadModules();
          
@@ -165,8 +173,8 @@ namespace nanos
          int getWorkDescriptorId( void );
 
          void submit ( WD &work );
-         void submitWithDependencies (WD& work, size_t numDeps, Dependency* deps);
-         void waitOn ( size_t numDeps, Dependency* deps);
+         void submitWithDependencies (WD& work, size_t numDataAccesses, DataAccess* dataAccesses);
+         void waitOn ( size_t numDataAccesses, DataAccess* dataAccesses);
          void inlineWork ( WD &work );
 
          void createWD (WD **uwd, size_t num_devices, nanos_device_t *devices,
@@ -233,6 +241,14 @@ namespace nanos
          int getRunningTasks() const;
 
          int getNumWorkers() const;
+
+         int getNumSockets() const;
+
+         void setNumSockets ( int numSockets );
+
+         int getCoresPerSocket() const;
+
+         void setCoresPerSocket ( int coresPerSocket );
 
          void setUntieMaster ( bool value );
 
@@ -323,6 +339,19 @@ namespace nanos
          void pausedThread();
          
          void unpausedThread();
+         
+         /*! \brief Returns the name of the default dependencies manager.
+          */
+         const std::string & getDefaultDependenciesManager() const;
+         
+         /*! \brief Specifies the dependencies manager to be used.
+          *  \param manager DependenciesManager.
+          */
+         void setDependenciesManager ( DependenciesManager *manager );
+         
+         /*! \brief Returns the dependencies manager in use.
+          */
+         DependenciesManager * getDependenciesManager ( ) const;
 
          void setPMInterface (PMInterface *_pm);
          PMInterface & getPMInterface ( void ) const;

@@ -25,10 +25,17 @@
 #include <vector>
 #include "atomic.hpp"
 #include "dependableobject_decl.hpp"
-#include "trackableobject_fwd.hpp"
-#include "dependency.hpp"
+#include "dataaccess.hpp"
+#include "basedependency_decl.hpp"
+#include "functors.hpp"
 
 using namespace nanos;
+
+inline DependableObject::~DependableObject ( )
+{
+   std::for_each(_outputObjects.begin(),_outputObjects.end(),deleter<BaseDependency>);
+   std::for_each(_readObjects.begin(),_readObjects.end(),deleter<BaseDependency>);
+}
 
 inline const DependableObject & DependableObject::operator= ( const DependableObject &depObj )
 {
@@ -37,6 +44,7 @@ inline const DependableObject & DependableObject::operator= ( const DependableOb
    _numPredecessors = depObj._numPredecessors;
    _references = depObj._references;
    _successors = depObj._successors;
+   _domain = depObj._domain;
    _outputObjects = depObj._outputObjects;
    _submitted = depObj._submitted;
    return *this;
@@ -96,22 +104,32 @@ inline bool DependableObject::addSuccessor ( DependableObject &depObj )
    return _successors.insert ( &depObj ).second;
 }
 
-inline void DependableObject::addOutputObject ( TrackableObject *outObj )
+inline DependenciesDomain * DependableObject::getDependenciesDomain ( ) const
 {
-   _outputObjects.push_back ( outObj );
+   return _domain;
 }
 
-inline DependableObject::TrackableObjectVector & DependableObject::getOutputObjects ( )
+inline void DependableObject::setDependenciesDomain ( DependenciesDomain *dependenciesDomain )
+{
+   _domain = dependenciesDomain;
+}
+
+inline void DependableObject::addWriteTarget ( BaseDependency const &outObj )
+{
+   _outputObjects.push_back ( outObj.clone() );
+}
+
+inline DependableObject::TargetVector const & DependableObject::getWrittenTargets ( )
 {
    return _outputObjects;
 }
 
-inline void DependableObject::addReadObject ( TrackableObject *readObj )
+inline void DependableObject::addReadTarget ( BaseDependency const &readObj )
 {
-   _readObjects.push_back( readObj );
+   _readObjects.push_back( readObj.clone() );
 }
 
-inline DependableObject::TrackableObjectVector & DependableObject::getReadObjects ( )
+inline DependableObject::TargetVector const & DependableObject::getReadTargets ( )
 {
    return _readObjects;
 }

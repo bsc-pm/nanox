@@ -112,6 +112,8 @@ void WorkDescriptor::done ()
    if ( getNumCopies() > 0 )
      pe->copyDataOut( *this );
 
+   releaseCommutativeAccesses(); 
+
    sys.getPMInterface().wdFinished( *this );
 
    this->getParent()->workFinished( *this );
@@ -125,4 +127,64 @@ void WorkDescriptor::prepareCopies()
          _copies[i].setAddress( ( (uint64_t)_copies[i].getAddress() - (unsigned long)_data ) );
    }
 }
+
+void WorkDescriptor::initCommutativeAccesses( WorkDescriptor &wd, size_t numDeps, DataAccess* deps )
+{
+   size_t numCommutative = 0;
+
+   for ( size_t i = 0; i < numDeps; i++ )
+      if ( deps[i].isCommutative() )
+         ++numCommutative;
+
+   if ( numCommutative == 0 )
+      return;
+
+   wd._commutativeOwners.reserve(numCommutative);
+
+   for ( size_t i = 0; i < numDeps; i++ ) {
+      if ( !deps[i].isCommutative() )
+         continue;
+
+      // Lookup owner in map in parent WD
+      CommutativeOwnerMap::iterator iter = _commutativeOwnerMap.find( deps[i].getDepAddress() );
+
+      if ( iter != _commutativeOwnerMap.end() ) {
+         // Already in map => insert into owner list in child WD
+         wd._commutativeOwners.push_back( iter->second.get() );
+      }
+      else {
+         // Not in map => allocate new owner pointer container and insert
+         std::pair<CommutativeOwnerMap::iterator, bool> ret =
+               _commutativeOwnerMap.insert( std::make_pair( deps[i].getDepAddress(),
+                                                            TR1::shared_ptr<WorkDescriptor *>( NEW WorkDescriptor *(NULL) ) ) );
+
+         // Insert into owner list in child WD
+         wd._commutativeOwners.push_back( ret.first->second.get() );
+      }
+   }
+}
+
+bool WorkDescriptor::tryAcquireCommutativeAccesses()
+{
+   const size_t n = _commutativeOwners.size();
+   for ( size_t i = 0; i < n; i++ ) {
+
+      WorkDescriptor *owner = *_commutativeOwners[i];
+
+      if ( owner == this )
+         continue;
+
+      if ( owner == NULL &&
+           nanos::compareAndSwap( (void **) _commutativeOwners[i], (void *) NULL, (void *) this ) )
+         continue;
+
+      // Failed to obtain exclusive access to all accesses, release the obtained ones
+
+      for ( ; i > 0; i-- )
+         *_commutativeOwners[i-1] = NULL;
+
+      return false;
+   }
+   return true;
+} 
 

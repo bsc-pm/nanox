@@ -27,27 +27,24 @@
 #include "atomic.hpp"
 #include "dependableobject.hpp"
 #include "trackableobject.hpp"
-#include "dependency.hpp"
-#include "compatibility.hpp"
+#include "dataaccess_decl.hpp"
+#include "commutationdepobj.hpp"
 
 
-using namespace nanos;
+namespace nanos {
 
 inline DependenciesDomain::~DependenciesDomain ( )
 {
-   for ( DepsMap::iterator it = _addressDependencyMap.begin(); it != _addressDependencyMap.end(); it++ ) {
-      delete it->second;
-   }
 }
 
-inline void DependenciesDomain::submitDependableObject ( DependableObject &depObj, std::vector<Dependency> &deps, SchedulePolicySuccessorFunctor* callback )
+inline RecursiveLock& DependenciesDomain::getInstanceLock()
 {
-   submitDependableObjectInternal ( depObj, deps.begin(), deps.end(), callback );
+   return _instanceLock;
 }
 
-inline void DependenciesDomain::submitDependableObject ( DependableObject &depObj, size_t numDeps, Dependency* deps, SchedulePolicySuccessorFunctor* callback )
+inline Lock& DependenciesDomain::getLock()
 {
-   submitDependableObjectInternal ( depObj, deps, deps+numDeps, callback );
+   return _lock;
 }
 
 inline void DependenciesDomain::lock ( )
@@ -60,6 +57,13 @@ inline void DependenciesDomain::unlock ( )
 {
    memoryFence();
    _lock.release();
+}
+
+inline const std::string & DependenciesManager::getName () const
+{
+   return _name;
+}
+
 }
 
 #endif

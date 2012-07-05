@@ -41,7 +41,7 @@ namespace nanos {
             {
                WDPriorityQueue           _readyQueue;
                
-               TeamData () : ScheduleTeamData (), _readyQueue( SmartPriority::_optimise, SmartPriority::_fifo ) {}
+               TeamData () : ScheduleTeamData (), _readyQueue( SmartPriority::_optimise ) {}
                ~TeamData () {}
             };
          public:
@@ -127,8 +127,11 @@ namespace nanos {
             
             virtual void queue ( BaseThread *thread, WD &wd )
             {
-               TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
-               tdata._readyQueue.push( &wd );
+               TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+               if ( _fifo )
+                  tdata._readyQueue.push_back( &wd );
+               else
+                  tdata._readyQueue.push_front( &wd );
             }
             
             virtual WD *atSubmit ( BaseThread *thread, WD &newWD )
@@ -141,7 +144,7 @@ namespace nanos {
             {
                TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
               
-               return tdata._readyQueue.pop( thread );
+               return tdata._readyQueue.pop_front( thread );
             }
       };
       

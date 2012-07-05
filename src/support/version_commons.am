@@ -36,6 +36,33 @@ support_sources = \
 	$(top_srcdir)/src/support/copydescriptor.hpp \
 	$(top_srcdir)/src/support/copydescriptor_decl.hpp \
 	$(top_srcdir)/src/support/malign.hpp \
+	$(top_srcdir)/src/support/containeradapter_fwd.hpp \
+	$(top_srcdir)/src/support/containeradapter_decl.hpp \
+	$(top_srcdir)/src/support/containeradapter.hpp \
+	$(top_srcdir)/src/support/containertraits.hpp \
+	$(top_srcdir)/src/support/bitcounter_fwd.hpp \
+	$(top_srcdir)/src/support/bitcounter_decl.hpp \
+	$(top_srcdir)/src/support/bitcounter.hpp \
+	$(top_srcdir)/src/support/region_fwd.hpp \
+	$(top_srcdir)/src/support/region_decl.hpp \
+	$(top_srcdir)/src/support/region.hpp \
+	$(top_srcdir)/src/support/region.cpp \
+	$(top_srcdir)/src/support/regionbuilder_fwd.hpp \
+	$(top_srcdir)/src/support/regionbuilder_decl.hpp \
+	$(top_srcdir)/src/support/regionbuilder.hpp \
+	$(top_srcdir)/src/support/regionbuilder.cpp \
+	$(top_srcdir)/src/support/regioncollection_fwd.hpp \
+	$(top_srcdir)/src/support/regioncollection_decl.hpp \
+	$(top_srcdir)/src/support/regioncollection.hpp \
+	$(top_srcdir)/src/support/regionpart_fwd.hpp \
+	$(top_srcdir)/src/support/regionpart_decl.hpp \
+	$(top_srcdir)/src/support/regionpart.hpp \
+	$(top_srcdir)/src/support/regiontree_fwd.hpp \
+	$(top_srcdir)/src/support/regiontree_decl.hpp \
+	$(top_srcdir)/src/support/regiontree.hpp \
+	$(top_srcdir)/src/support/regiontreenode_fwd.hpp \
+	$(top_srcdir)/src/support/regiontreenode_decl.hpp \
+	$(top_srcdir)/src/support/regiontreenode.hpp \
 	$(END) 
 
 debug_sources = \

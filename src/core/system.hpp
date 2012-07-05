@@ -27,7 +27,7 @@
 #include "threadteam.hpp"
 #include "slicer.hpp"
 #include "nanos-int.h"
-#include "dependency.hpp"
+#include "dataaccess.hpp"
 #include "instrumentation_decl.hpp"
 #include "cache_map.hpp"
 
@@ -92,6 +92,12 @@ inline int System::getRunningTasks() const
 }
 
 inline int System::getNumWorkers() const { return _workers.size(); }
+
+inline int System::getNumSockets() const { return _numSockets; }
+inline void System::setNumSockets ( int numSockets ) { _numSockets = numSockets; }
+
+inline int System::getCoresPerSocket() const { return _coresPerSocket; }
+inline void System::setCoresPerSocket ( int coresPerSocket ) { _coresPerSocket = coresPerSocket; }
 
 inline void System::setThrottlePolicy( ThrottlePolicy * policy ) { _throttlePolicy = policy; }
 
@@ -175,6 +181,21 @@ inline void System::unpausedThread ()
    }
    _unpausedThreadsCond.unreference();
    _pausedThreadsCond.unreference();
+}
+
+inline const std::string & System::getDefaultDependenciesManager() const
+{
+   return _defDepsManager;
+}
+
+inline void System::setDependenciesManager ( DependenciesManager *manager )
+{
+   _dependenciesManager = manager;
+}
+
+inline DependenciesManager * System::getDependenciesManager ( ) const
+{
+   return _dependenciesManager;
 }
 
 inline const std::string & System::getDefaultArch() const { return _defArch; }

@@ -196,6 +196,10 @@ class Allocator
      static size_t getObjectSize ( void *object ) ;
 };
 
+
+inline Allocator & getAllocator ( void );
+
+
 } // namespace: nanos
 
 #endif

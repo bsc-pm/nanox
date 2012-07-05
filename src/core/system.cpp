@@ -49,13 +49,14 @@ System::System () :
       _atomicWDSeed( 1 ),
       _numPEs( 1 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ), _thsPerPE( 1 ),
-      _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ), _throttlePolicy ( NULL ),
+      _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
+      _numSockets( 1 ), _coresPerSocket( 1 ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
-      _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ),
+      _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _pausedThreads( 0 ),
       _pausedThreadsCond(), _unpausedThreadsCond(),
-      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _pmInterface( NULL ),
-      _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap()
+      _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _dependenciesManager( NULL ),
+      _pmInterface( NULL ), _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap()
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
 #endif
@@ -133,6 +134,14 @@ void System::loadModules ()
       fatal0( "Could not load " + getDefaultInstrumentation() + " instrumentation" );
 
    ensure( _defBarrFactory,"No default system barrier factory" );
+   
+   // load default dependencies plugin
+   verbose0( "loading " << getDefaultDependenciesManager() << " dependencies manager support" );
+
+   if ( !loadPlugin( "deps-"+getDefaultDependenciesManager() ) )
+      fatal0 ( "Couldn't load main dependencies manager" );
+
+   ensure( _dependenciesManager,"No default dependencies manager" );
 
 }
 
@@ -244,6 +253,10 @@ void System::config ()
    cfg.registerConfigOption ( "cache-policy", cachePolicyCfg, "Defines the general cache policy to use: write-through / write-back. Can be overwritten for specific architectures" );
    cfg.registerArgOption ( "cache-policy", "cache-policy" );
    cfg.registerEnvOption ( "cache-policy", "NX_CACHE_POLICY" );
+
+   cfg.registerConfigOption ( "deps", NEW Config::StringVar ( _defDepsManager ), "Defines the dependencies plugin" );
+   cfg.registerArgOption ( "deps", "deps" );
+   cfg.registerEnvOption ( "deps", "NX_DEPS" );
 
    _schedConf.config( cfg );
    _pmInterface->config( cfg );
@@ -901,21 +914,21 @@ void System::submit ( WD &work )
 
 /*! \brief Submit WorkDescriptor to its parent's  dependencies domain
  */
-void System::submitWithDependencies (WD& work, size_t numDeps, Dependency* deps)
+void System::submitWithDependencies (WD& work, size_t numDataAccesses, DataAccess* dataAccesses)
 {
    SchedulePolicy* policy = getDefaultSchedulePolicy();
    policy->onSystemSubmit( work, SchedulePolicy::SYS_SUBMIT_WITH_DEPENDENCIES );
    setupWD( work, myThread->getCurrentWD() );
    WD *current = myThread->getCurrentWD();
-   current->submitWithDependencies( work, numDeps , deps);
+   current->submitWithDependencies( work, numDataAccesses , dataAccesses);
 }
 
 /*! \brief Wait on the current WorkDescriptor's domain for some dependenices to be satisfied
  */
-void System::waitOn( size_t numDeps, Dependency* deps )
+void System::waitOn( size_t numDataAccesses, DataAccess* dataAccesses )
 {
    WD* current = myThread->getCurrentWD();
-   current->waitOn( numDeps, deps );
+   current->waitOn( numDataAccesses, dataAccesses );
 }
 
 

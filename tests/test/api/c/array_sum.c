@@ -132,7 +132,7 @@ int main(int argc, char * argv[])
                 ol_args->l_array_of_arrays_0 = l_array_of_arrays;
                 ol_args->l_partial_sums_0 = l_partial_sums;
                 ol_args->l_i_0 = l_i;
-                err = nanos_submit(wd, 0, (nanos_dependence_t *) 0, (nanos_team_t) 0);
+                err = nanos_submit(wd, 0, (nanos_data_access_t *) 0, (nanos_team_t) 0);
                 if (err != NANOS_OK)
                     nanos_handle_error(err);
             }
@@ -143,7 +143,7 @@ int main(int argc, char * argv[])
                 imm_args.l_partial_sums_0 = l_partial_sums;
                 imm_args.l_i_0 = l_i;
                 err = nanos_create_wd_and_run_compact((nanos_const_wd_definition_t *) &const_data1, &dyn_data1,  sizeof(_nx_data_env_0_t),
-                       &imm_args, 0, (nanos_dependence_t *) 0, (nanos_copy_data_t *) 0, 0);
+                       &imm_args, 0, (nanos_data_access_t *) 0, (nanos_copy_data_t *) 0, 0);
                 if (err != NANOS_OK)
                     nanos_handle_error(err);
             }

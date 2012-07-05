@@ -123,18 +123,20 @@ int main ( int argc, char **argv )
    task_data_t task_data;
    
    int depA;
-   int *dep_addrA = &depA;
-   nanos_dependence_t depsA = {(void **)&dep_addrA,0, {0,1,0,0}, 0};
-   int /*depA,*/ depB/*, depD*/;
-   int /** dep_addrA = &depA, */* dep_addrB = &depB/*, *dep_addrD = &depD*/;
-  
-   nanos_dependence_t depsB = {(void **)&dep_addrB,0, {0,1,0,0}, 0};
+   nanos_region_dimension_t dimA[1] = {{ sizeof( int ), 0, sizeof( int ) }};
+   nanos_data_access_t depsA[] = {{(void *)&depA, {0,1,0,0,0}, 1, dimA, 0} };
+   
+   int depB;
+   nanos_region_dimension_t dimB[1] = {{ sizeof( int ), 0, sizeof( int ) }};
+   nanos_data_access_t depsB[] = {{(void *)&depB, {0,1,0,0,0}, 1, dimB, 0} };
+   
    int depC;
-   int *dep_addrC = &depC;
-   nanos_dependence_t depsC[] = { {(void **)&dep_addrA,0, {1,0,0,0}, 0},
-      {(void **)&dep_addrC,0, {0,1,0,0}, 0} };
-   nanos_dependence_t depsD[] = { {(void **)&dep_addrB,0, {1,0,0,0}, 0},
-      {(void **)&dep_addrC,0, {1,0,0,0}, 0} };
+   nanos_region_dimension_t dimC[1] = {{ sizeof( int ), 0, sizeof( int ) }};
+   nanos_data_access_t depsC[] = {{(void *)&depA, {1,0,0,0,0}, 1, dimA, 0},
+      {(void *)&depC, {0,1,0,0,0}, 1, dimC, 0} };
+   
+   nanos_data_access_t depsD[] = {{(void *)&depB, {1,0,0,0,0}, 1, dimB, 0},
+      {(void *)&depC, {1,0,0,0,0}, 1, dimC, 0} };
 
    // initialize vector
    for ( i = 0; i < VECTOR_SIZE; i++ ) A[i] = 0;
@@ -148,6 +150,7 @@ int main ( int argc, char **argv )
    task_data.loop_info.lower = 0;
    task_data.loop_info.upper = VECTOR_SIZE;
    task_data.loop_info.step = + 1;
+   WD* wdLastA = NULL;
    // increment vector
    for ( i = 0; i < NUM_ITERS; i++ ) {
 
@@ -159,10 +162,12 @@ int main ( int argc, char **argv )
       wg->addWork( *wd );
 
       // Work submission
-      sys.submitWithDependencies( *wd, 1, (nanos::Dependency*)&depsA );
+      sys.submitWithDependencies( *wd, 1, (nanos::DataAccess*)&depsA );
       //sys.submit( *wd );
 
    }
+   wdLastA = wd;
+   
    // Second task: set to 0
    wd = new WD( new SMPDD( task_b ), sizeof( task_data ), __alignof__(nanos_loop_info_t), ( void * ) &task_data );
    // Use a higher priority
@@ -170,7 +175,7 @@ int main ( int argc, char **argv )
    wg->addWork( *wd );
    // Work submission
    debug( "Submitting B" );
-   sys.submitWithDependencies( *wd, 1, (nanos::Dependency*)&depsB );
+   sys.submitWithDependencies( *wd, 1, (nanos::DataAccess*)&depsB );
    // Keep a pointer to this WD
    WD* wdB = wd;
    
@@ -180,7 +185,7 @@ int main ( int argc, char **argv )
    wg->addWork( *wd );
    // Work submission
    debug( "Submitting C" );
-   sys.submitWithDependencies( *wd, 2, (nanos::Dependency*)&depsC );
+   sys.submitWithDependencies( *wd, 2, (nanos::DataAccess*)&depsC );
    WD* wdC = wd;
    
    // Fourth task: divide by 2
@@ -189,12 +194,16 @@ int main ( int argc, char **argv )
    wg->addWork( *wd );
    // Work submission
    debug( "Submitting D" );
-   sys.submitWithDependencies( *wd, 2, (nanos::Dependency*)&depsD );
+   sys.submitWithDependencies( *wd, 2, (nanos::DataAccess*)&depsD );
    
    // D's priority should've been propagated to B and C
    if ( ( wdB->getPriority() != 250 ) || ( wdC->getPriority() != 250 ) ) {
       check = false;
       fprintf(stderr, "Priority of task D not propagated to task B and task C (%d)\n", wdB->getPriority() );
+   }
+   if ( wdLastA->getPriority() != 0 ) {
+      check = false;
+      fprintf(stderr, "Priority of task A was altered by someone (is %d)\n", wdLastA->getPriority() );
    }
 
    // Re-enable the scheduler
