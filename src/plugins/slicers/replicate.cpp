@@ -37,6 +37,7 @@ void SlicerReplicate::submit ( SlicedWD &work )
    while ( n > 0 ) {
       WorkDescriptor *slice = NULL;
       sys.duplicateWD( &slice, &work );
+      sys.setupWD(*slice, &work);
       slice->tieTo( *threads[n] );
       ((WorkSharing *)(wsd_current->ws))->duplicateWS( wsd_current, ( nanos_ws_desc_t ** ) slice->getData() );
       if ( threads[n]->setNextWD( slice ) == false ) Scheduler::submit ( *slice );

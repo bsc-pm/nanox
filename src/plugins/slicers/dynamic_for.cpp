@@ -130,7 +130,6 @@ void SlicerDynamicFor::submit ( SlicedWD &work )
    if ( _niters % _chunk != 0 ) _nchunks++;
 
    // DynamicData:
-   // DynamicData *dsd = (DynamicData *)mythread->_arena.allocate(sizeof(DynamicData)); // TODO
    DynamicData *dsd = NEW DynamicData;
 
    dsd->_nrefs = valid_threads;
@@ -161,6 +160,7 @@ void SlicerDynamicFor::submit ( SlicedWD &work )
       // Duplicating slice into wd
       sys.duplicateWD( &wd, &work );
 
+      sys.setupWD(*wd, work.getParent() );
       wd->tieTo((*team)[j]);
       if ( (*team)[j].setNextWD(wd) == false ) Scheduler::submit ( *wd );
    }
