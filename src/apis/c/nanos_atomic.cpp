@@ -111,7 +111,7 @@ NANOS_API_DEF(void, nanos_atomic_##op##_##type_name, (volatile type * x, type y)
 #define NANOS_PERFORM_ATOMIC_OP_INT_sub(_, x, y)        __sync_sub_and_fetch(x, y)
 #define NANOS_PERFORM_ATOMIC_OP_INT_mul(type, x, y)     NANOS_CAS_ATOMIC(type, x, y, mul)
 #define NANOS_PERFORM_ATOMIC_OP_INT_div(type, x, y)     NANOS_CAS_ATOMIC(type, x, y, div)
-#define NANOS_PERFORM_ATOMIC_OP_INT_pow(type, x, y)   NANOS_CAS_ATOMIC(type, x, y, pow)
+#define NANOS_PERFORM_ATOMIC_OP_INT_pow(type, x, y)     NANOS_CAS_ATOMIC(type, x, y, pow)
 #define NANOS_PERFORM_ATOMIC_OP_INT_mod(type, x, y)     NANOS_CAS_ATOMIC(type, x, y, mod)
 #define NANOS_PERFORM_ATOMIC_OP_INT_shl(type, x, y)     NANOS_CAS_ATOMIC(type, x, y, shl)
 #define NANOS_PERFORM_ATOMIC_OP_INT_shr(type, x, y)     NANOS_CAS_ATOMIC(type, x, y, shr)
@@ -121,7 +121,7 @@ NANOS_API_DEF(void, nanos_atomic_##op##_##type_name, (volatile type * x, type y)
 #define NANOS_PERFORM_ATOMIC_OP_INT_bor(type, x, y)     __sync_or_and_fetch(x, y)
 #define NANOS_PERFORM_ATOMIC_OP_INT_bxor(type, x, y)    __sync_xor_and_fetch(x, y)
 
-#define NANOS_PERFORM_ATOMIC_OP_INT_assig(type, x, y) NANOS_CAS_ATOMIC(type, x, y, assig)
+#define NANOS_PERFORM_ATOMIC_OP_INT_assig(type, x, y)   NANOS_CAS_ATOMIC(type, x, y, assig)
 
 #define NANOS_PERFORM_ATOMIC_OP_FLOAT(type_name, type, op, x, y)   NANOS_PERFORM_ATOMIC_OP_FLOAT_##type_name(type, op, x, y)
 #define NANOS_PERFORM_ATOMIC_OP_FLOAT(type_name, type, op, x, y)   NANOS_PERFORM_ATOMIC_OP_FLOAT_##type_name(type, op, x, y)
@@ -129,8 +129,8 @@ NANOS_API_DEF(void, nanos_atomic_##op##_##type_name, (volatile type * x, type y)
 #define NANOS_PERFORM_ATOMIC_OP_FLOAT(type_name, type, op, x, y)   NANOS_PERFORM_ATOMIC_OP_FLOAT_##type_name(type, op, x, y)
 #define NANOS_PERFORM_ATOMIC_OP_FLOAT(type_name, type, op, x, y)   NANOS_PERFORM_ATOMIC_OP_FLOAT_##type_name(type, op, x, y)
 
-#define NANOS_PERFORM_ATOMIC_OP_FLOAT_float(type, op, x, y)   NANOS_CAS_ATOMIC(type, x, y, op)
-#define NANOS_PERFORM_ATOMIC_OP_FLOAT_double(type, op, x, y)   NANOS_CAS_ATOMIC(type, x, y, op)
+#define NANOS_PERFORM_ATOMIC_OP_FLOAT_float(type, op, x, y)      NANOS_CAS_ATOMIC(type, x, y, op)
+#define NANOS_PERFORM_ATOMIC_OP_FLOAT_double(type, op, x, y)     NANOS_CAS_ATOMIC(type, x, y, op)
 #ifdef HAVE_INT128_T
  #define NANOS_PERFORM_ATOMIC_OP_FLOAT_ldouble(type, op, x, y)   NANOS_CAS_ATOMIC(type, x, y, op)
 #else
@@ -207,4 +207,6 @@ nanos::Lock update_lock;
     NANOS_ATOMIC_FLOAT_OP(op) \
     NANOS_ATOMIC_COMPLEX_OP(op)
 
+#ifndef __MIC__
 ATOMIC_OPS
+#endif

@@ -390,11 +390,6 @@ class List {
                   _node->decreaseRefs();
             }
 
-           /*! \brief Cast to const_iterator
-            */
-            operator const_iterator () const
-               { return const_iterator( _node, _list ); }
-
            /*! \brief Skips invalid elements in the list
             */
             void skip()

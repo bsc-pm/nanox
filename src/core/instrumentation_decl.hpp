@@ -508,6 +508,7 @@ namespace nanos {
                */
               State ( nanos_event_type_t type = NANOS_STATE_START, nanos_event_state_value_t state = NANOS_ERROR ) 
                     : Event (type, state, 0, NULL, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
+              //friend class Instrumentation;
          };
          class Burst : public Event {
              private:
@@ -559,6 +560,7 @@ namespace nanos {
                 */
                PtP ( bool start, nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,  KVList kvlist, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF )
                    : Event ( start ? NANOS_PTP_START : NANOS_PTP_END , NANOS_ERROR, nkvs, kvlist, domain, id, partner ) { }
+               //friend class Instrumentation;
          };
 #ifndef NANOS_INSTRUMENTATION_ENABLED
       public:
