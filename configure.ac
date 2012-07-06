@@ -675,7 +675,6 @@ AC_CONFIG_FILES([Makefile
 		 tests/gens/Makefile
 		 doc/Makefile
                  doc/doxy-nanox
-		 doc/paraver_configs/Makefile
                  ])
 
 AC_OUTPUT
