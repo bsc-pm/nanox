@@ -17,6 +17,10 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+#ifdef HAVE_CONFIG_H
+   #include "config.h"
+#endif
+
 #include "nanos_c_api_macros.h"
 #include "nanos_atomic.h"
 
@@ -26,6 +30,82 @@
 #include <math.h>
 #include <signal.h>
 #include <complex.h>
+
+namespace {
+nanos::Lock update_lock;
+}
+
+extern "C"
+{
+#ifndef HAVE_SYNC_BOOL_COMPARE_AND_SWAP_8
+    bool __sync_bool_compare_and_swap_8 (volatile void* v_ptr, long long unsigned oldval, long long unsigned newval)
+    {
+        LockBlock l(update_lock);
+		volatile long long unsigned* ptr = reinterpret_cast<volatile long long unsigned*>(v_ptr);
+        if (*ptr == oldval)
+        {
+            *ptr = newval;
+            return true;
+        }
+        return false;
+    }
+#endif
+
+#ifndef HAVE_SYNC_ADD_AND_FETCH_8
+    unsigned long long __sync_add_and_fetch_8 (volatile void *v_ptr, unsigned long long value)
+    {
+        LockBlock l(update_lock);
+		volatile long long unsigned* ptr = reinterpret_cast<volatile long long unsigned*>(v_ptr);
+        *ptr += value;
+
+		return *ptr;
+    }
+#endif
+
+#ifndef HAVE_SYNC_SUB_AND_FETCH_8
+    unsigned long long __sync_sub_and_fetch_8 (volatile void *v_ptr, unsigned long long value)
+    {
+        LockBlock l(update_lock);
+		volatile long long unsigned* ptr = reinterpret_cast<volatile long long unsigned*>(v_ptr);
+        *ptr -= value;
+
+		return *ptr;
+    }
+#endif
+
+#ifndef HAVE_SYNC_AND_AND_FETCH_8
+    unsigned long long __sync_and_and_fetch_8 (volatile void *v_ptr, unsigned long long value)
+    {
+        LockBlock l(update_lock);
+		volatile long long unsigned* ptr = reinterpret_cast<volatile long long unsigned*>(v_ptr);
+        *ptr &= value;
+
+		return *ptr;
+    }
+#endif
+
+#ifndef HAVE_SYNC_OR_AND_FETCH_8
+    unsigned long long __sync_or_and_fetch_8 (volatile void *v_ptr, unsigned long long value)
+    {
+        LockBlock l(update_lock);
+		volatile long long unsigned* ptr = reinterpret_cast<volatile long long unsigned*>(v_ptr);
+        *ptr |= value;
+
+		return *ptr;
+    }
+#endif
+
+#ifndef HAVE_SYNC_XOR_AND_FETCH_8
+    unsigned long long __sync_xor_and_fetch_8 (volatile void *v_ptr, unsigned long long value)
+    {
+        LockBlock l(update_lock);
+		volatile long long unsigned* ptr = reinterpret_cast<volatile long long unsigned*>(v_ptr);
+        *ptr ^= value;
+
+		return *ptr;
+    }
+#endif
+}
 
 template <int N>
 struct suitable_integer_type { };
@@ -169,10 +249,6 @@ NANOS_API_DEF(void, nanos_atomic_##op##_##type_name, (volatile type * x, type y)
         new_.val = NANOS_CAS_BIN_OP_##op(old.val, y); \
         __sync_synchronize(); \
     } while (!__sync_bool_compare_and_swap((atomic_int_t*)x, old.v, new_.v)); \
-}
-
-namespace {
-nanos::Lock update_lock;
 }
 
 #define NANOS_LOCK_UPDATE(type, x, y, op) \

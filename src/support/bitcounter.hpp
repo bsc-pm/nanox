@@ -26,7 +26,7 @@
 using namespace nanos;
 
 template<typename T, int BITS>
-bool __attribute__((always_inline)) BitCounter<T,BITS>::hasMoreThanOneOne(T value)
+bool inline BitCounter<T,BITS>::hasMoreThanOneOne(T value)
 {
    T lowMask = 0;
    lowMask--;
@@ -37,7 +37,7 @@ bool __attribute__((always_inline)) BitCounter<T,BITS>::hasMoreThanOneOne(T valu
 }
 
 template<typename T>
-bool __attribute__((always_inline)) BitCounter<T, 2>::hasMoreThanOneOne(T value)
+bool inline BitCounter<T, 2>::hasMoreThanOneOne(T value)
 {
    T highPart = value >> 1;
    T lowPart = value & 1;

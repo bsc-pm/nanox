@@ -23,6 +23,7 @@
 #include "system.hpp"
 #include <iostream>
 #include <sched.h>
+#include <unistd.h>
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
 

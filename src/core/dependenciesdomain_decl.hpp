@@ -67,7 +67,7 @@ namespace nanos
 
         /*! \brief DependenciesDomain destructor
          */
-         ~DependenciesDomain ( );
+         virtual ~DependenciesDomain ( );
 
         /*! \brief get object's id
          */
