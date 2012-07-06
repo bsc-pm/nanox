@@ -177,6 +177,7 @@ void SlicerGuidedFor::submit ( SlicedWD &work )
       // Duplicating slice into wd
       sys.duplicateWD( &wd, &work );
 
+      sys.setupWD(*wd, work.getParent() );
       wd->tieTo((*team)[j]);
       if ( (*team)[j].setNextWD(wd) == false ) Scheduler::submit ( *wd );
    }

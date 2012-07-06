@@ -53,6 +53,7 @@ static void staticLoop ( void *arg )
       nli_1->step  = nli->step;
       nli_1->args  = nli->args;
 
+      sys.setupWD(*slice, work->getParent());
       // Submit: slice (WorkDescriptor i, running on Thread j)
       slice->tieTo( (*team)[nli_1->thid] );
       if ( (*team)[nli_1->thid].setNextWD(slice) == false ) Scheduler::submit ( *slice );
@@ -73,6 +74,7 @@ static void staticLoop ( void *arg )
       nli_2->step = nli->step;
       nli_2->args  = nli->args;
 
+      sys.setupWD(*slice, work->getParent());
       // Submit: slice (WorkDescriptor i, running on Thread j)
       slice->tieTo( (*team)[nli_2->thid] );
       if ( (*team)[nli_2->thid].setNextWD(slice) == false ) Scheduler::submit ( *slice );
@@ -226,6 +228,8 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          nli->step = _step;
          nli->chunk = _offset;
          nli->stride = _offset * num_threads; 
+
+         sys.setupWD(*slice, work.getParent());
          // Submit: slice (WorkDescriptor i, running on Thread i)
          slice->tieTo( (*team)[i] );
          if ( (*team)[i].setNextWD(slice) == false ) Scheduler::submit ( *slice );
@@ -333,8 +337,8 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) nli->step; )
          NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) _chunk; )
          NANOS_INSTRUMENT( sys.getInstrumentation()->createDeferredPointEvent (*slice, 4, Keys, Values); )
+         sys.setupWD ( *slice, work.getParent() );
          slice->tieTo( (*team)[j] );
-         sys.setupWD ( *slice, work.getParent() ); //FIXME: Probably will cause a conflict on merge
          if ( (*team)[j].setNextWD(slice) == false ) Scheduler::submit ( *slice );
       }
    } else {
@@ -373,6 +377,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          nli->step = _step;
          nli->chunk = _offset;
          nli->stride = _offset * valid_threads; 
+         sys.setupWD ( *slice, work.getParent() );
          // Submit: slice (WorkDescriptor i, running on Thread j)
          slice->tieTo( (*team)[j] );
          if ( (*team)[j].setNextWD(slice) == false ) Scheduler::submit ( *slice );
