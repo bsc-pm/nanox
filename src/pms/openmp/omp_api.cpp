@@ -24,6 +24,7 @@
 #include "omp_wd_data.hpp"
 #include "omp_threadteam_data.hpp"
 #include "nanos_c_api_macros.h"
+#include "nanos_omp.h"
 
 using namespace nanos;
 using namespace nanos::OpenMP;

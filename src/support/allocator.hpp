@@ -47,26 +47,6 @@ inline size_t Allocator::Arena::getObjectSize () const
    return _objectSize;
 }
 
-inline void * Allocator::Arena::allocate ( void )
-{
-   unsigned int obj;
-
-   if ( !_free ) return NULL;
-
-   for ( obj = 0 ; obj < numObjects ; obj++ ) {
-      if ( _bitmap[obj]._bit ) break;
-   }
-
-   if (obj == numObjects) {
-      _free = false;
-      return NULL; 
-   }
-
-   _bitmap[obj]._bit = false;
-
-   return (void *) &_arena[obj*_objectSize];
-}
-
 inline void Allocator::Arena::deallocate ( void *object )
 {
    unsigned long offset = ((char *) object - _arena);

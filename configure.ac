@@ -23,17 +23,80 @@ AM_CONDITIONAL([SUPPORTED_SILENT_RULES], test x$supported_silent_rules = x1)
 # Set compiler default flags
 : ${CFLAGS=""}
 : ${CXXFLAGS=""}
+: ${FCFLAGS=""}
+
+# Allocator support
+AC_MSG_CHECKING([if Nanos++ Allocator has been disabled])
+AC_ARG_ENABLE([allocator],
+  AS_HELP_STRING([--disable-allocator], [Disables Allocator module]),
+  [
+    allocator_disabled=yes
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    allocator_disabled=no
+    AC_MSG_RESULT([no])
+  ]
+)
+
+if test x$allocator_disabled = xyes; then
+	CFLAGS="$CFLAGS -DNANOS_DISABLE_ALLOCATOR"
+	CXXFLAGS="$CXXFLAGS -DNANOS_DISABLE_ALLOCATOR"
+fi
+
+AC_MSG_CHECKING([for Linux Intel C compiler mode])
+AC_ARG_ENABLE([icc],
+  AC_HELP_STRING([--enable-icc],[Enable support fot Intel compiler (off by default)]),
+  [
+    use_icc=yes
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    use_icc=no
+    AC_MSG_RESULT([no])
+  ]
+)
+
+AC_MSG_CHECKING([for Linux Intel MIC C compiler mode])
+AC_ARG_ENABLE([mic],
+  AC_HELP_STRING([--enable-mic],[Enable support fot Intel MIC compiler (off by default)]),
+  [
+    use_icc=yes
+    host_alias=$host
+    cross_compiling=maybe
+    CFLAGS="$CFLAGS -mmic"
+    CXXFLAGS="$CXXFLAGS -mmic"
+    FCFLAGS="$FCFLAGS -mmic"
+    LDFLAGS="$LDFLAGS -lsvml -limf -lintlc"
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    AC_MSG_RESULT([no])
+  ]
+)
+
+if test x$use_icc = xno; then
+	FC="gfortran"
+	CFLAGS="$CFLAGS -Wredundant-decls"
+	CXXFLAGS="$CXXFLAGS -Wredundant-decls"
+else
+	CC="icc"
+	CXX="icpc"
+    	FC="ifort"
+	CFLAGS="$CFLAGS -wd873 -wd1419 -lifcore"
+	CXXFLAGS="$CXXFLAGS -wd873 -wd1419 -lifcore"
+fi
 
 # Check for programs
 AC_PROG_LIBTOOL
-AC_PROG_CC
+AC_PROG_CC([$CC])
 AC_PROG_CPP
 AM_PROG_CC_C_O
-AC_PROG_CXX
+AC_PROG_CXX([$CXX])
 AM_PROG_AS
 
 # Fortran
-AC_PROG_FC([gfortran])
+AC_PROG_FC([$FC])
 AC_PROG_FC_C_O
 
 # Check for libraries
@@ -246,25 +309,6 @@ AS_HELP_STRING([--with-mcc=dir], [Directory of mcc compiler]),
 
 AC_SUBST([mcc_valid])
 AC_SUBST([MCC])
-
-# Allocator support
-allocator_disabled=no
-AC_MSG_CHECKING([if Nanos++ Allocator has been disabled])
-AC_ARG_ENABLE([allocator],
-  AS_HELP_STRING([--disable-allocator], [Disables Allocator module]),
-  [
-    allocator_disabled="yes"
-    AC_MSG_RESULT([yes])
-  ],
-  [
-    allocator_disabled="no"
-    AC_MSG_RESULT([no])
-  ]
-)
-if test x$allocator_disabled = xyes; then
-	CFLAGS="$CFLAGS -DNANOS_DISABLE_ALLOCATOR"
-	CXXFLAGS="$CXXFLAGS -DNANOS_DISABLE_ALLOCATOR"
-fi
 
 AC_MSG_CHECKING([for architecture])
 

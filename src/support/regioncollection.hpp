@@ -204,7 +204,7 @@ inline void RegionCollection<container_t>::defragment()
 }
    
 template <class container_t>
-std::ostream& operator<< (std::ostream& o, RegionCollection<container_t> const &regionCollection)
+std::ostream& nanos::operator<< (std::ostream& o, RegionCollection<container_t> const &regionCollection)
 {
    container_t const &contents = regionCollection.getRegionCollectionReference();
    for (typename container_t::const_iterator it = contents.begin(); it != contents.end(); it++) {

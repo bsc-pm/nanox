@@ -234,7 +234,11 @@ inline void Lock::release ( void )
 
 inline void nanos::memoryFence ()
 {
+#ifndef __MIC__
     __sync_synchronize();
+#else
+    __asm__ __volatile__("" ::: "memory");
+#endif
 }
 
 template<typename T>

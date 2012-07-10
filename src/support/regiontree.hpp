@@ -109,6 +109,9 @@ struct RegionAndPosition {
 } // namespace region_tree_private
 
 
+template<typename T>
+inline std::ostream & operator<< (std::ostream &o, RegionTree<T> const &regionTree);
+   
 using namespace region_tree_private;
 
 
@@ -1229,7 +1232,6 @@ void RegionTree<T>::defragment(/* Inout */ iterator_list_t &candidates)
    }
 }
 
-
 } // namespace nanos
 
 
@@ -1240,7 +1242,7 @@ void RegionTree<T>::defragment(/* Inout */ iterator_list_t &candidates)
 //! \param it the iterator to be formatted
 //! \returns the output stream
 template<typename T>
-inline std::ostream & nanos::operator<< (std::ostream &o, typename RegionTree<T>::iterator const &it)
+inline std::ostream & operator<< (std::ostream &o, typename RegionTree<T>::iterator const &it)
 {
    return o << it.m_node->getFullRegion();
 }
