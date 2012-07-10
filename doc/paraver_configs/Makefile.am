@@ -1,5 +1,5 @@
 #####################################################################################
-#      Copyright 2009 Barcelona Supercomputing Center                               #
+#      Copyright 2012 Barcelona Supercomputing Center                               #
 #                                                                                   #
 #      This file is part of the NANOS++ library.                                    #
 #                                                                                   #
@@ -17,15 +17,48 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = paraver_configs
+paraverconfigsdir = ${docdir}/paraver_configs
+# ls -1 | sed  -e 's/^\(.*\)$/\t\0\\/g'
+dist_paraverconfigs_DATA = 2dh_total_bandwidth.cfg\
+	2dh_who_runs_what.cfg\
+	2dp_runtime_calls.cfg\
+	2dp_status.cfg\
+	2dp_transfer_direction.cfg\
+	3dh_duration_runtime_calls.cfg\
+	3dh_duration_state.cfg\
+	api_bursts.cfg\
+	api_time_distribution.cfg\
+	bytes_in.cfg\
+	bytes_out.cfg\
+	cache_bw.cfg\
+	cache_bw_function.cfg\
+	cache_wait.cfg\
+	gpu_arch_state.cfg\
+	in_creation.cfg\
+	instructions_completed_values.cfg\
+	ipc_instructions_completed_ratio.cfg\
+	l1d_cache_misses_ratio.cfg\
+	l1d_cache_misses_values.cfg\
+	l1d_misses_in_running.cfg\
+	l2d_cache_misses_ratio.cfg\
+	l2d_cache_misses_values.cfg\
+	Makefile.am\
+	Makefile.in\
+	ready_tasks.cfg\
+	sampled_functions.cfg\
+	sampled_line_functions.cfg\
+	send_bw.cfg\
+	stalled_cycles.cfg\
+	stalled_cycles_ratio.cfg\
+	submit_enumeration.cfg\
+	task_number.cfg\
+	tasks_in_graph.cfg\
+	thread_state.cfg\
+	thread_substate.cfg\
+	total_cycles.cfg\
+	total_instructions_in_running.cfg\
+	transfer_direction.cfg\
+	user_functions.cfg\
+	wd_id.cfg
 
-doxygen : doxy-nanox
-	@echo "-- Running doxygen"
-	doxygen doxy-nanox
-
-doxygen-pdf : doxygen
-	cd latex && make all
-
-clean-local:
-	-rm -fr html latex
 
