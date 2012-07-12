@@ -21,6 +21,7 @@
 #define _NANOS_ATOMIC
 
 #include "atomic_decl.hpp"
+#include "basethread_decl.hpp"
 #include "compatibility.hpp"
 #include "nanos-int.h"
 #include <algorithm> // for min/max
@@ -177,12 +178,12 @@ inline Atomic<T> & Atomic<T>::operator= ( const Atomic<T> &val )
 
 inline Lock::state_t Lock::operator* () const
 {
-   return _state;
+   return state_;
 }
 
 inline Lock::state_t Lock::getState () const
 {
-   return _state;
+   return state_;
 }
 
 inline void Lock::operator++ ( int val )
@@ -197,16 +198,16 @@ inline void Lock::operator-- ( int val )
 
 inline void Lock::acquire ( void )
 {
-   if ( (_state == NANOS_LOCK_FREE) &&  !__sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) return;
+   if ( (state_ == NANOS_LOCK_FREE) &&  !__sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) return;
 
    // Disabling lock instrumentation; do not remove follow code which can be reenabled for testing purposes
    // NANOS_INSTRUMENT( InstrumentState inst(NANOS_ACQUIRING_LOCK) )
 
 spin:
 
-   while ( _state == NANOS_LOCK_BUSY ) {}
+   while ( state_ == NANOS_LOCK_BUSY ) {}
 
-   if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) goto spin;
+   if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) goto spin;
 
    // NANOS_INSTRUMENT( inst.close() )
 }
@@ -214,26 +215,30 @@ spin:
 inline void Lock::acquire_noinst ( void )
 {
 spin:
-   while ( _state == NANOS_LOCK_BUSY ) {}
-   if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) goto spin;
+   while ( state_ == NANOS_LOCK_BUSY ) {}
+   if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) goto spin;
 }
 
 inline bool Lock::tryAcquire ( void )
 {
-   if ( _state == NANOS_LOCK_FREE ) {
-      if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) return false;
+   if ( state_ == NANOS_LOCK_FREE ) {
+      if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) return false;
       else return true;
    } else return false;
 }
 
 inline void Lock::release ( void )
 {
-   __sync_lock_release( &_state );
+   __sync_lock_release( &state_ );
 }
 
 inline void nanos::memoryFence ()
 {
+#ifndef __MIC__
     __sync_synchronize();
+#else
+    __asm__ __volatile__("" ::: "memory");
+#endif
 }
 
 template<typename T>
@@ -288,6 +293,101 @@ inline SyncLockBlock::SyncLockBlock ( Lock & lock ) : LockBlock(lock)
 }
 
 inline SyncLockBlock::~SyncLockBlock ( )
+{
+   memoryFence();
+}
+
+inline RecursiveLock::state_t RecursiveLock::operator* () const
+{
+   return state_;
+}
+
+inline RecursiveLock::state_t RecursiveLock::getState () const
+{
+   return state_;
+}
+
+inline void RecursiveLock::operator++ ( int )
+{
+   acquire( );
+}
+
+inline void RecursiveLock::operator-- ( int )
+{
+   release( );
+}
+
+inline void RecursiveLock::acquire ( )
+{
+   if ( _holderThread == getMyThreadSafe() )
+   {
+      _recursionCount++;
+      return;
+   }
+   
+spin:
+   while ( state_ == NANOS_LOCK_BUSY ) {}
+
+   if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) goto spin;
+   
+   _holderThread = getMyThreadSafe();
+   _recursionCount++;
+}
+
+inline bool RecursiveLock::tryAcquire ( )
+{
+   if ( _holderThread == getMyThreadSafe() ) {
+      _recursionCount++;
+      return true;
+   }
+   
+   if ( state_ == NANOS_LOCK_FREE ) {
+      if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) return false;
+      else
+      {
+         _holderThread = getMyThreadSafe();
+         _recursionCount++;
+         return true;
+      }
+   } else return false;
+}
+
+inline void RecursiveLock::release ( )
+{
+   _recursionCount--;
+   if ( _recursionCount == 0UL )
+   {
+      _holderThread = 0UL;
+      __sync_lock_release( &state_ );
+   }
+}
+
+inline RecursiveLockBlock::RecursiveLockBlock ( RecursiveLock & lock ) : _lock(lock)
+{
+   acquire();
+}
+
+inline RecursiveLockBlock::~RecursiveLockBlock ( )
+{
+   release();
+}
+
+inline void RecursiveLockBlock::acquire()
+{
+   _lock++;
+}
+
+inline void RecursiveLockBlock::release()
+{
+   _lock--;
+}
+
+inline SyncRecursiveLockBlock::SyncRecursiveLockBlock ( RecursiveLock & lock ) : RecursiveLockBlock(lock)
+{
+   memoryFence();
+}
+
+inline SyncRecursiveLockBlock::~SyncRecursiveLockBlock ( )
 {
    memoryFence();
 }

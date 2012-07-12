@@ -98,7 +98,7 @@ namespace nanos {
                 }
                 TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
 
-		if ( wd.isTied() ) {
+                if ( wd.isTied() ) {
                     unsigned int index = wd.isTiedTo()->runningOn()->getMemorySpaceId();
                     tdata._readyQueues[index].push_front ( &wd );
                     return;

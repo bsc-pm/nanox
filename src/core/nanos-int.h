@@ -25,20 +25,56 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-/* This structure is initialized in dependency.hpp. Any change in
- * its contents has to be reflected in Dependency constructor  
- */
+#ifdef __cplusplus
+extern "C"
+#endif
 typedef struct {
-   void **address;
+   /* NOTE: The first dimension is represented in terms of bytes. */
+
+   /* Size of the dimension in terms of the size of the previous dimension. */
+   size_t size;
+
+   /* Lower bound in terms of the size of the previous dimension. */
+   size_t lower_bound;
+
+   /* Accessed length in terms of the size of the previous dimension. */
+   size_t accessed_length;
+} nanos_region_dimension_internal_t;
+
+#ifdef __cplusplus
+extern "C"
+#endif
+typedef struct {
+   bool  input: 1;
+   bool  output: 1;
+   bool  can_rename:1;
+   bool  concurrent: 1;
+   bool  commutative: 1;
+} nanos_access_type_internal_t;
+
+/* This structure is initialized in dataaccess.hpp. Any change in
+ * its contents has to be reflected in DataAccess constructor
+ */
+#ifdef __cplusplus
+extern "C"
+#endif
+typedef struct {
+   /* Base address of the accessed range */
+   void *address;
+   
+   nanos_access_type_internal_t flags;
+   
+   /* Number of dimensions */
+   short dimension_count;
+   
+   /* The first dimension will be the contiguous one, and its size and
+    * offset must be expressed in bytes, not elements.
+    */
+   nanos_region_dimension_internal_t const *dimensions;
+   
+   /* Offset of the first element */
    ptrdiff_t offset;
-   struct {
-     bool  input: 1;
-     bool  output: 1;
-     bool  can_rename:1;
-     bool  commutative: 1;
-   } flags;
-   size_t  size;
-} nanos_dependence_internal_t;
+} nanos_data_access_internal_t;
 
 typedef enum {
    NANOS_PRIVATE,
@@ -48,6 +84,8 @@ typedef enum {
 typedef struct {
    void *original;
    void *privates;
+   size_t element_size;
+   void *descriptor; // This is only used in Fortran, it holds a Fortran array descriptor
    void (*bop)( void *, void *);
    void (*vop)( int n, void *, void *);
    void (*cleanup)(void *);
@@ -66,18 +104,21 @@ typedef struct {
    size_t size;
 } nanos_copy_data_internal_t;
 
+typedef nanos_access_type_internal_t nanos_access_type_t;
+typedef nanos_region_dimension_internal_t nanos_region_dimension_t;
+
 #ifndef _NANOS_INTERNAL
 
-typedef nanos_dependence_internal_t nanos_dependence_t;
+typedef nanos_data_access_internal_t nanos_data_access_t;
 typedef nanos_copy_data_internal_t nanos_copy_data_t;
 
 #else
 
 namespace nanos {
-   class Dependency;
+   class DataAccess;
    class CopyData;
 }
-typedef nanos::Dependency nanos_dependence_t;
+typedef nanos::DataAccess nanos_data_access_t;
 typedef nanos::CopyData nanos_copy_data_t;
 
 #endif
@@ -214,9 +255,9 @@ typedef struct {
 /* Lock C interface */
 typedef enum { NANOS_LOCK_FREE = 0, NANOS_LOCK_BUSY = 1 } nanos_lock_state_t;
 typedef struct nanos_lock_t {
-   volatile nanos_lock_state_t _state;
+   volatile nanos_lock_state_t state_;
 #ifdef __cplusplus
-   nanos_lock_t ( nanos_lock_state_t init=NANOS_LOCK_FREE ) : _state(init) {}
+   nanos_lock_t ( nanos_lock_state_t init=NANOS_LOCK_FREE ) : state_(init) {}
 #endif
 } nanos_lock_t;
 

@@ -21,6 +21,8 @@
 #include "memtracker.hpp"
 #include "instrumentation_decl.hpp"
 
+#include <cstring>
+
 NANOS_API_DEF(nanos_err_t, nanos_malloc, ( void **p, size_t size, const char *file, int line ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","malloc",NANOS_RUNTIME ) );
@@ -56,4 +58,11 @@ NANOS_API_DEF(nanos_err_t, nanos_free, ( void *p ))
    }
 
    return NANOS_OK;
+}
+
+
+NANOS_API_DEF(nanos_err_t, nanos_memcpy, (void *dest, const void *src, size_t n))
+{
+    std::memcpy(dest, src, n);
+    return NANOS_OK;
 }

@@ -73,9 +73,11 @@ namespace nanos
 
          if ( ssCompatibility != NULL ) {
             // Enable Ss compatibility mode
+            _description = std::string("OmpSs");
             sys.setInitialMode( System::POOL );
             sys.setUntieMaster(true);
          } else {
+            _description = std::string("OpenMP");
             sys.setInitialMode( System::ONE_THREAD );
             sys.setUntieMaster(false);
          }
@@ -117,16 +119,8 @@ namespace nanos
          data->setImplicit(false);
       }
 
-       void OpenMPInterface::wdStarted( WD &wd ) {};
-       void OpenMPInterface::wdFinished( WD &wd ) 
-      {
-         OmpData *data = (OmpData *) wd.getInternalData();
-         ensure(data,"OpenMP data is missing!");
-
-         if ( data->isImplicit() ) {
-            sys.releaseWorker(myThread);
-         }
-      };
+      void OpenMPInterface::wdStarted( WD &wd ) {}
+      void OpenMPInterface::wdFinished( WD &wd ) { }
 
        ThreadTeamData * OpenMPInterface::getThreadTeamData()
       {

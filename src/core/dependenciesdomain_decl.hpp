@@ -23,91 +23,110 @@
 #include <map>
 #include <list>
 #include <vector>
+#include <string>
 #include "atomic_decl.hpp"
 #include "dependableobject_decl.hpp"
 #include "trackableobject_decl.hpp"
-#include "dependency_decl.hpp"
-#include "compatibility.hpp"
+//#include "regionstatus_decl.hpp"
+#include "dataaccess_decl.hpp"
 #include "schedule_fwd.hpp"
+#include "basedependency_decl.hpp"
 
 
 namespace nanos
 {
+   using namespace dependencies_domain_internal;
 
   /*! \class DependenciesDomain
+   *  Interface class of plugins used for dependencies domain.
    *  \brief Each domain is an independent context in which dependencies between DependableObject are managed
    */
    class DependenciesDomain
    {
       private:
-         typedef TR1::unordered_map<void *, TrackableObject*> DepsMap; /**< Maps addresses to Trackable objects */
 
          static Atomic<int>   _atomicSeed;           /**< ID seed for the domains */
          int                  _id;                   /**< Domain's id */
-         unsigned int         _lastDepObjId;         /**< Id to be given to the next submitted DependableObject */
-         DepsMap              _addressDependencyMap; /**< Used to track dependencies between DependableObject */
+         RecursiveLock        _instanceLock;         /**< Needed to access _addressDependencyMap */
          static Atomic<int>   _tasksInGraph;         /**< Current number of tasks in the graph */
          static Lock          _lock;
-
-        /*! \brief Looks for the dependency's address in the domain and returns the trackableObject associated.
-         *  \param dep Dependency to be checked.
-         *  \sa Dependency TrackableObject
-         */
-         TrackableObject* lookupDependency ( const Dependency &dep );
-        /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
-         *  \param depObj DependableObject to be added to the domain.
-         *  \param begin Iterator to the start of the list of dependencies to be associated to the Dependable Object.
-         *  \param end Iterator to the end of the mentioned list.
-         *  \param callback A function to call when a WD has a successor [Optional].
-         *  \sa Dependency DependableObject TrackableObject
-         */
-         template<typename iterator>
-         void submitDependableObjectInternal ( DependableObject &depObj, iterator begin, iterator end, SchedulePolicySuccessorFunctor* callback );
 
       private:
         /*! \brief DependenciesDomain copy assignment operator (private)
          */
          const DependenciesDomain & operator= ( const DependenciesDomain &depDomain );
       public:
-
         /*! \brief DependenciesDomain default constructor
          */
-         DependenciesDomain ( ) :  _id( _atomicSeed++ ), _lastDepObjId ( 0 ), _addressDependencyMap( ) {}
+         DependenciesDomain ( ) :  _id( _atomicSeed++ ) {}
 
         /*! \brief DependenciesDomain copy constructor
          */
          DependenciesDomain ( const DependenciesDomain &depDomain )
-            : _id( _atomicSeed++ ), _lastDepObjId ( depDomain._lastDepObjId ),
-              _addressDependencyMap ( depDomain._addressDependencyMap ) {}
+            : _id( _atomicSeed++ ) {}
 
         /*! \brief DependenciesDomain destructor
          */
-         ~DependenciesDomain ( );
+         virtual ~DependenciesDomain ( );
 
         /*! \brief get object's id
          */
          int getId ();
+         
+         
+         /*! \name Main methods to be implemented.
+          *  \{
+          */
+         
+         /*! \brief Removes the DependableObject from the role of last writer of a region.
+          *  \param depObj DependableObject to be stripped of the last writer role
+          *  \param target Address/region that must be affected
+          */
+         virtual void deleteLastWriter ( DependableObject &depObj, BaseDependency const &target ) = 0;
+         
+         /*! \brief Removes the DependableObject from the reader list of a region.
+          *  \param depObj DependableObject to be removed as a reader
+          *  \param target Address/region that must be affected
+          */
+         virtual void deleteReader ( DependableObject &depObj, BaseDependency const &target ) = 0;
+         
+         /*! \brief Removes a CommutableDO from a region.
+          *  \param commDO CommutationDO to be removed
+          *  \param target Address/region that must be affected
+          */
+         virtual void removeCommDO ( CommutationDO *commDO, BaseDependency const &target ) = 0;
 
         /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
          *  \param depObj DependableObject to be added to the domain.
-         *  \param deps List of dependencies to be associated to the Dependable Object.
+         *  \param dataAccesses List of data accesses that determine the dependencies to be associated to the Dependable Object.
          *  \param callback A function to call when a WD has a successor [Optional].
-         *  \sa Dependency DependableObject TrackableObject
+         *  \sa DataAccess DependableObject TrackableObject
          */
-         void submitDependableObject ( DependableObject &depObj, std::vector<Dependency> &deps, SchedulePolicySuccessorFunctor* callback = NULL );
+         virtual void submitDependableObject ( DependableObject &depObj, std::vector<DataAccess> &dataAccesses, SchedulePolicySuccessorFunctor* callback = NULL ) = 0;
 
         /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
          *  \param depObj DependableObject to be added to the domain.
-         *  \param deps List of dependencies to be associated to the Dependable Object.
-         *  \param numDeps Number of dependenices in the list.
+         *  \param dataAccesses List of data accesses that determine the dependencies to be associated to the Dependable Object.
+         *  \param numDataAccesses List of data accesses that determine the dependencies to be associated to the Dependable Object.
          *  \param callback A function to call when a WD has a successor [Optional].
-         *  \sa Dependency DependableObject TrackableObject
+         *  \sa DataAccess DependableObject TrackableObject
          */
-         void submitDependableObject ( DependableObject &depObj, size_t numDeps, Dependency* deps, SchedulePolicySuccessorFunctor* callback = NULL );
+         virtual void submitDependableObject ( DependableObject &depObj, size_t numDataAccesses, DataAccess* dataAccesses, SchedulePolicySuccessorFunctor* callback = NULL ) = 0;
+         
+         /*! \}
+          */
 
          static void increaseTasksInGraph();
 
          static void decreaseTasksInGraph();
+
+        /*! \brief Returns a reference to the instance lock
+         */
+         RecursiveLock& getInstanceLock();
+         
+        /*! \brief returns a reference to the static lock
+         */
+         Lock& getLock();
 
         /*! \brief Get exclusive access to the object
          */
@@ -117,7 +136,45 @@ namespace nanos
          */
          static void unlock ( );
    };
+   
+   /*! \class DependenciesManager.
+    *  \brief This class is to be implemented by the plugin in order to provide
+    *  a method to create DependenciesDomains.
+    */
+   class DependenciesManager
+   {
+      private:
+         std::string _name;
+      private:
+         /*! \brief DependenciesManager default constructor (private)
+          */
+         DependenciesManager ();
+         /*! \brief DependenciesManager copy constructor (private)
+          */
+         DependenciesManager ( DependenciesManager &sp );
+         /*! \brief DependenciesManager copy assignment operator (private)
+          */
+         DependenciesManager& operator= ( DependenciesManager &sp );
+         
+      public:
+         /*! \brief DependenciesManager constructor - with std::string &name
+          */
+         DependenciesManager ( const std::string &name ) : _name(name) {}
+         /*! \brief DependenciesManager constructor - with char *name
+          */
+         DependenciesManager ( const char *name ) : _name(name) {}
+         /*! \brief DependenciesManager destructor
+          */
+         virtual ~DependenciesManager () {};
 
+         const std::string & getName () const;
+         
+         /*! \brief Creates a  dependencies domain. To be implemented by the
+          *  plugin class.
+          */
+         virtual DependenciesDomain* createDependenciesDomain () const = 0;
+   };
+   
 };
 
 #endif

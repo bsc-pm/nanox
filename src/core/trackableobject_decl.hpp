@@ -36,27 +36,27 @@ namespace nanos
       public:
          typedef std::list< DependableObject *> DependableObjectList; /**< Type list of DependableObject */
       private:
-         void                  * _address; /**< Pointer to the dependency address */
          DependableObject      *_lastWriter; /**< Points to the last DependableObject registered as writer of the TrackableObject */
          DependableObjectList   _versionReaders; /**< List of readers of the last version of the object */
          Lock                   _readersLock; /**< Lock to provide exclusive access to the readers list */
          Lock                   _writerLock; /**< Lock internally the object for secure access to _lastWriter */
          CommutationDO         *_commDO; /**< Will be successor of all commutation tasks using this object untill a new reader/writer appears */
+         bool                   _hold; /**< Cannot be erased since it is in use */
       public:
 
         /*! \brief TrackableObject default constructor
          *
          *  Creates a TrackableObject with the given address associated.
          */
-         TrackableObject ( void * address = NULL )
-            : _address(address), _lastWriter ( NULL ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL) {}
+         TrackableObject ()
+            : _lastWriter ( NULL ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL), _hold(false) {}
 
         /*! \brief TrackableObject copy constructor
          *
          *  \param obj another TrackableObject
          */
          TrackableObject ( const TrackableObject &obj ) 
-            :  _address ( obj._address ), _lastWriter ( obj._lastWriter ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL) {}
+            :   _lastWriter ( obj._lastWriter ), _versionReaders(), _readersLock(), _writerLock(), _commDO(NULL), _hold(false) {}
 
         /*! \brief TrackableObject destructor
          */
@@ -68,10 +68,6 @@ namespace nanos
          */
          const TrackableObject & operator= ( const TrackableObject &obj );
 
-        /*! \brief Obtain the address associated to the TrackableObject
-         */
-         void * getAddress ( );
-
         /*! \brief Returns true if the TrackableObject has a DependableObject as LastWriter
          */
          bool hasLastWriter ( );
@@ -79,7 +75,7 @@ namespace nanos
         /*! \brief Get the last writer
          *  \sa DependableObject
          */
-         DependableObject* getLastWriter ( );
+         DependableObject* getLastWriter ( ) const;
 
         /*! \brief Set the last writer
          *  \sa DependableObject
@@ -91,6 +87,11 @@ namespace nanos
          *  \sa DependableObject
          */
          void deleteLastWriter ( DependableObject &depObj );
+
+        /*! \brief Get the list of readers
+         *  \sa DependableObjectList
+         */
+         DependableObjectList const & getReaders ( ) const;
 
         /*! \brief Get the list of readers
          *  \sa DependableObjectList
@@ -124,13 +125,35 @@ namespace nanos
 
         /*! \brief Returns the commutationDO if it exists
          */
-         CommutationDO* getCommDO();
+         CommutationDO* getCommDO() const;
 
         /*! \brief Set the commutationDO
          *  \param commDO to set in this object
          */
          void setCommDO( CommutationDO *commDO );
+         
+        /*! \brief Return whether the region is held and thus cannot be removed
+         */
+         bool isOnHold ( ) const;
+         
+        /*! \brief Holds the region so that it cannot be removed (by the same thread)
+         */
+         void hold ( );
+         
+        /*! \brief Unholds the region so that it can be removed (by the same thread)
+         */
+         void unhold ( );
+         
+        /*! \brief Returns if the region has no information
+         */
+         bool isEmpty ( );
    };
+
+   //! \brief RegionStatus stream formatter
+   //! \param o the output stream
+   //! \param regionStatus the region status
+   //! \returns the output stream
+   inline std::ostream & operator<<( std::ostream &o, nanos::TrackableObject const &status);
 
 };
 

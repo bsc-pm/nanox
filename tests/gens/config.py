@@ -4,7 +4,9 @@ import os
 def cross(*args):
 	ans = [[]]
 	for arg in args:
-		ans = [x+[y] for x in ans for y in arg]
+      # Make sure this argument is not empty
+		if arg:
+		   ans = [x+[y] for x in ans for y in arg]
 	return ans
 
 def cpus(max_cpus):
@@ -30,7 +32,8 @@ import sys
 header ='Nanox config generator 0.1\n\n'+\
 	'Envorionment variables that affect this script:\n'+\
 	'   NX_TEST_MODE=\'small\'|\'medium\'|\'large\'   -  \'small\' by default\n'+\
-	'   NX_TEST_MAX_CPUS=#CPUS                  -  2 by default\n'
+	'   NX_TEST_MAX_CPUS=#CPUS                  -  2 by default\n'+\
+	'   NX_TEST_SCHEDULE=[scheduler]\n'
 if '-h' in sys.argv or '--help' in sys.argv:
 	print header
 
@@ -42,6 +45,8 @@ parser.add_option("-m", choices=['small','medium','large'], dest="mode",
                   help="Determines the number of execution versions for each test combining different runtime options.")
 parser.add_option("-c","--cpus", metavar="n", type='int', dest="cpus",
                   help="Each configuration will be tested for 1 to n CPUS")
+parser.add_option("-d", "--deps", metavar="\"a1,b1,..\"", dest="deps_plugins",
+                  help="Comma separated lists of dependencies plugins combined in the configurations generated")
 
 (options, args) = parser.parse_args()
 
@@ -58,7 +63,12 @@ if options.mode:
 	test_mode=options.mode
 if options.cpus:
 	max_cpus=options.cpus
-
+depslist = []
+if options.deps_plugins:
+	deps_plugins=options.deps_plugins
+	deps_plugins=deps_plugins.split(',')
+	for d in deps_plugins:
+		depslist=depslist+["--deps="+d]
 
 
 max_cpus=int(max_cpus)
@@ -75,17 +85,18 @@ if test_schedule is not None:
    scheduling_full=['--schedule='+test_schedule]
 
 
+
 throttle=['--throttle=dummy','--throttle=idlethreads','--throttle=numtasks','--throttle=readytasks','--throttle=taskdepth']
 #barriers=['--barrier=centralized','--barrier=tree','--barrier=dissemination']
 barriers=['--barrier=centralized','--barrier=tree']
 others=[cpus(max_cpus),['--disable-binding','--no-disable-binding'],['--architecture=smp','--architecture=smp-numa']]
 
 if test_mode == 'small':
-	configs=cross(*others+[scheduling_small]+addlist)
+	configs=cross(*others+[scheduling_small]+addlist+[depslist])
 elif test_mode == 'medium':
-	configs=cross(*others+[scheduling_small]+[throttle]+[barriers]+addlist)
+	configs=cross(*others+[scheduling_small]+[throttle]+[barriers]+addlist+[depslist])
 elif test_mode == 'large':
-	configs=cross(*others+[scheduling_full]+[throttle]+[barriers]+addlist)
+	configs=cross(*others+[scheduling_full]+[throttle]+[barriers]+addlist+[depslist])
 
 config_lines=[]
 versions=''

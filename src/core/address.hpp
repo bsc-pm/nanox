@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2012 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,12 +16,38 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-#ifndef _NANOS_DEPENDENCY_FWD_H
-#define _NANOS_DEPENDENCY_FWD_H
 
-namespace nanos
+#ifndef _NANOS_ADDRESS_H
+#define _NANOS_ADDRESS_H
+
+#include "address_decl.hpp"
+
+using namespace nanos;
+
+inline const Address & Address::operator= ( const Address &obj )
 {
-   class Dependency;
-};
+   _address = obj._address;
+   return *this;
+}
+
+inline const Address::TargetType& Address::operator() () const
+{
+   return _address;
+}
+
+inline bool Address::operator== ( const Address &obj ) const
+{
+   return _address == obj._address;
+}
+
+inline bool Address::operator< ( const Address &obj ) const
+{
+   return _address < obj._address;
+}
+
+inline BaseDependency* Address::clone() const
+{
+   return NEW Address( _address );
+}
 
 #endif

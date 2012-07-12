@@ -180,7 +180,11 @@ namespace nanos
          */
          void *getReductionPrivateData ( void* s );
 
-        /*! \brief Clean readuction list 
+        /*! \brief Returns private data for a given source data
+         */
+         nanos_reduction_t *getReduction ( void* s );
+
+        /*! \brief Clean readuction list
          */
          void cleanUpReductionList ( void );
 

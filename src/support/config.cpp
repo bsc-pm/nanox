@@ -37,6 +37,8 @@ using namespace nanos;
 
 Config::NanosHelp *Config::_nanosHelp = NULL;
 
+Config::ConfigOrphansMap *Config::_orphanOptionsMap = NULL;
+
 void Config::NanosHelp::addHelpString ( const std::string &section, const HelpTriplet& ht )
 {
    _helpSections[section].push_back( ht );
@@ -113,6 +115,21 @@ const std::string Config::NanosHelp::getHelp()
 const std::string Config::getNanosHelp()
 {
    return _nanosHelp->getHelp();
+}
+
+std::vector<std::string> Config::getOrphanOptionsList()
+{
+   ensure0( _orphanOptionsMap != NULL, "Config::_orphanOptionsMap was not initialised" );
+   
+   std::vector<std::string> arguments;
+   for ( ConfigOrphansMap::const_iterator it = _orphanOptionsMap->begin();
+      it != _orphanOptionsMap->end(); ++it )
+   {
+      // If the argument has not been parsed
+      if ( it->second == false )
+         arguments.push_back( it->first );
+   }
+   return arguments;
 }
 
 void Config::setDefaults()
@@ -227,6 +244,9 @@ void Config::parseArguments ()
       ConfigOptionMap::iterator obj = _argOptionsMap.find( std::string( arg ) );
 
       if ( obj != _argOptionsMap.end() ) {
+         // Valid argument, mark so
+         (*Config::_orphanOptionsMap)[ std::string( arg ) ] = true;
+         
          Option &opt = ( *obj ).second->getOption();
 
          if ( needValue && opt.getType() != Option::FLAG ) {
@@ -251,12 +271,24 @@ void Config::parseArguments ()
             std::cerr << "WARNING:" << exception.what() << std::endl;
          }
       }
+      else
+      {
+         // If the argument was not recognised, check if it's in the orphan map
+         if( _orphanOptionsMap->count( std::string( arg ) ) == 0 )
+         {
+            // If it's not there, add it
+            (*_orphanOptionsMap)[ std::string( arg ) ] = false;
+         }
+      }
       arg = strtok( NULL, " " );
    }
 }
 
 void Config::init ()
 {
+   if( _orphanOptionsMap == NULL )
+      _orphanOptionsMap = NEW ConfigOrphansMap();
+   
    setDefaults();
    parseFiles();
    parseEnvironment();

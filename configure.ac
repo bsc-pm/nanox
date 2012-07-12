@@ -1,5 +1,5 @@
 
-AC_INIT([nanox], [0.7a], [alex.duran@bsc.es])
+AC_INIT([nanox], [0.7a], [pmtools@bsc.es])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
 
 # Environment
@@ -11,17 +11,93 @@ AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE([-Wall -Werror dist-bzip2])
 AC_CONFIG_MACRO_DIR([m4])
 
+dnl Enable silent rules if available
+supported_silent_rules=1
+m4_ifdef([AM_SILENT_RULES],
+         [AM_SILENT_RULES([yes])],
+         [supported_silent_rules=0])
+
+AM_CONDITIONAL([SUPPORTED_SILENT_RULES], test x$supported_silent_rules = x1)
+ 
+
 # Set compiler default flags
 : ${CFLAGS=""}
 : ${CXXFLAGS=""}
+: ${FCFLAGS=""}
+
+# Allocator support
+AC_MSG_CHECKING([if Nanos++ Allocator has been disabled])
+AC_ARG_ENABLE([allocator],
+  AS_HELP_STRING([--disable-allocator], [Disables Allocator module]),
+  [
+    allocator_disabled=yes
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    allocator_disabled=no
+    AC_MSG_RESULT([no])
+  ]
+)
+
+if test x$allocator_disabled = xyes; then
+	CFLAGS="$CFLAGS -DNANOS_DISABLE_ALLOCATOR"
+	CXXFLAGS="$CXXFLAGS -DNANOS_DISABLE_ALLOCATOR"
+fi
+
+AC_MSG_CHECKING([for Linux Intel C compiler mode])
+AC_ARG_ENABLE([icc],
+  AC_HELP_STRING([--enable-icc],[Enable support fot Intel compiler (off by default)]),
+  [
+    use_icc=yes
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    use_icc=no
+    AC_MSG_RESULT([no])
+  ]
+)
+
+AC_MSG_CHECKING([for Linux Intel MIC C compiler mode])
+AC_ARG_ENABLE([mic],
+  AC_HELP_STRING([--enable-mic],[Enable support fot Intel MIC compiler (off by default)]),
+  [
+    use_icc=yes
+    host_alias=$host
+    cross_compiling=maybe
+    CFLAGS="$CFLAGS -mmic"
+    CXXFLAGS="$CXXFLAGS -mmic"
+    FCFLAGS="$FCFLAGS -mmic"
+    LDFLAGS="$LDFLAGS -lsvml -limf -lintlc"
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    AC_MSG_RESULT([no])
+  ]
+)
+
+if test x$use_icc = xno; then
+	FC="gfortran"
+	CFLAGS="$CFLAGS -Wredundant-decls"
+	CXXFLAGS="$CXXFLAGS -Wredundant-decls"
+else
+	CC="icc"
+	CXX="icpc"
+    	FC="ifort"
+	CFLAGS="$CFLAGS -wd873 -wd1419 -lifcore"
+	CXXFLAGS="$CXXFLAGS -wd873 -wd1419 -lifcore"
+fi
 
 # Check for programs
 AC_PROG_LIBTOOL
-AC_PROG_CC
+AC_PROG_CC([$CC])
 AC_PROG_CPP
 AM_PROG_CC_C_O
-AC_PROG_CXX
+AC_PROG_CXX([$CXX])
 AM_PROG_AS
+
+# Fortran
+AC_PROG_FC([$FC])
+AC_PROG_FC_C_O
 
 # Check for libraries
 
@@ -219,24 +295,20 @@ AM_CONDITIONAL([GPU_SUPPORT],[test $gpu_valid = yes])
 
 AC_SUBST([gpu_valid])
 
-# Allocator support
-allocator_disabled=no
-AC_MSG_CHECKING([if Nanos++ Allocator has been disabled])
-AC_ARG_ENABLE([allocator],
-  AS_HELP_STRING([--disable-allocator], [Disables Allocator module]),
-  [
-    allocator_disabled="yes"
-    AC_MSG_RESULT([yes])
-  ],
-  [
-    allocator_disabled="no"
-    AC_MSG_RESULT([no])
-  ]
-)
-if test x$allocator_disabled = xyes; then
-	CFLAGS="$CFLAGS -DNANOS_DISABLE_ALLOCATOR"
-	CXXFLAGS="$CXXFLAGS -DNANOS_DISABLE_ALLOCATOR"
-fi
+# mcc support
+AC_ARG_WITH([mcc],
+AS_HELP_STRING([--with-mcc=dir], [Directory of mcc compiler]),
+	[
+      mcc_valid=yes
+		MCC="${withval}/bin/mcc"
+	],
+	[
+      mcc_valid=no
+		MCC=""
+	])
+
+AC_SUBST([mcc_valid])
+AC_SUBST([MCC])
 
 AC_MSG_CHECKING([for architecture])
 
@@ -451,6 +523,38 @@ AC_SUBST([MPITRACE_BIN])
 
 AM_CONDITIONAL([INSTRUMENTATION_EXTRAE], test x"$MPITRACE_HOME" != x)
 
+# Check hwloc availability
+AC_ARG_WITH([hwloc],
+           AS_HELP_STRING([--with-hwloc=dir], [Directory of Hardware Locality (hwloc) installation]),
+           [
+                hwloc_h=$withval/include/hwloc.h
+                if test -e $hwloc_h ;
+                then
+                   hwloc_version_string=`sed -ne '/^\s*#\s*define\s\+HWLOC_API_VERSION .*$/p' $hwloc_h`
+                   hwloc_version=`echo $hwloc_version_string | sed -e 's/#define HWLOC_API_VERSION 0x[0]\+\([0-9]\+\).*$/\1/'`
+                   if test "$hwloc_version" -ge 10200;
+                   then
+                      HWLOC_HOME="$withval"
+                      HWLOC_INC="$withval/include"
+                      HWLOC_LIB="$withval/lib"
+                      HWLOC_BIN="$withval/bin"
+                      AC_MSG_RESULT([checking if Hardware Locality library is compatible... yes])
+                   else
+                      AC_MSG_ERROR([checking if Hardware Locality library is compatible... no (hwloc > 1.2.0 needed)])
+                   fi
+                else
+                   AC_MSG_ERROR([checking if Hardware Locality library is compatible... no (hwloc > 1.2.0 needed)])
+                fi
+           ]
+)
+
+AC_SUBST([HWLOC_HOME])
+AC_SUBST([HWLOC_INC])
+AC_SUBST([HWLOC_LIB])
+AC_SUBST([HWLOC_BIN])
+
+AM_CONDITIONAL([HWLOC], test x"$HWLOC_HOME" != x)
+
 # Check for Chapel support
 AC_ARG_WITH([chapel],
             AS_HELP_STRING([--with-chapel=dir], [Directory of Chapel installation]),
@@ -512,6 +616,11 @@ AC_CONFIG_FILES([Makefile
 		 src/plugins/worksharing/debug/Makefile
 		 src/plugins/worksharing/instrumentation/Makefile
 		 src/plugins/worksharing/instrumentation-debug/Makefile
+		 src/plugins/deps/Makefile
+		 src/plugins/deps/performance/Makefile
+		 src/plugins/deps/debug/Makefile
+		 src/plugins/deps/instrumentation/Makefile
+		 src/plugins/deps/instrumentation-debug/Makefile
 		 src/apis/Makefile
 		 src/apis/c/Makefile
 		 src/apis/c/performance/Makefile
@@ -566,6 +675,7 @@ AC_CONFIG_FILES([Makefile
 		 tests/gens/Makefile
 		 doc/Makefile
                  doc/doxy-nanox
+		 doc/paraver_configs/Makefile
                  ])
 
 AC_OUTPUT

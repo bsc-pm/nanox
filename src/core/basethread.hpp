@@ -204,6 +204,10 @@ namespace nanos
  
    inline int BaseThread::getCpuId() { return runningOn()->getId(); }
  
+   inline int BaseThread::getSocket() const{ return _socket; }
+   
+   inline void BaseThread::setSocket( int socket ){ _socket = socket; }
+ 
    inline bool BaseThread::isStarring ( const ThreadTeam *t ) const
    {
       if ( _teamData && t == _teamData->getTeam() ) return _teamData->isStarring();

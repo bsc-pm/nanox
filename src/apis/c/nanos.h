@@ -22,12 +22,14 @@
 
 #include <unistd.h>
 #include "nanos-int.h"
+#include "nanos_c_api_macros.h"
 
 
 #ifdef _MERCURIUM
 // define API version
 #pragma nanos interface family(master) version(5015)
 #pragma nanos interface family(worksharing) version(1000)
+#pragma nanos interface family(deps_api) version(1001)
 #endif
 
 // data types
@@ -70,15 +72,7 @@ typedef struct {
 extern "C" {
 #endif
 
-#define NANOS_API_DECL(Type, Name, Params) \
-    extern Type Name##_ Params; \
-    extern Type Name Params
-
-#ifdef _NANOS_INTERNAL
-#define NANOS_API_DEF(Type, Name, Params) \
-    __attribute__((alias(#Name))) Type Name##_ Params; \
-    Type Name Params
-#endif
+NANOS_API_DECL(char *, nanos_get_mode, ( void ));
 
 // Functions related to WD
 NANOS_API_DECL(nanos_wd_t, nanos_current_wd, (void));
@@ -98,10 +92,10 @@ NANOS_API_DECL(nanos_err_t, nanos_create_sliced_wd, ( nanos_wd_t *uwd, size_t nu
                                      void **outline_data, nanos_wg_t uwg, nanos_slicer_t slicer,
                                      nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props, size_t num_copies, nanos_copy_data_t **copies ));
 
-NANOS_API_DECL(nanos_err_t, nanos_submit, ( nanos_wd_t wd, size_t num_deps, nanos_dependence_t *deps, nanos_team_t team ));
+NANOS_API_DECL(nanos_err_t, nanos_submit, ( nanos_wd_t wd, size_t num_data_accesses, nanos_data_access_t *data_accesses, nanos_team_t team ));
 
 NANOS_API_DECL(nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_definition_t *const_data, nanos_wd_dyn_props_t *dyn_props,
-                                                               size_t data_size, void * data, size_t num_deps, nanos_dependence_t *deps,
+                                                               size_t data_size, void * data, size_t num_data_accesses, nanos_data_access_t *data_accesses,
                                                                nanos_copy_data_t *copies, nanos_translate_args_t translate_args ));
 
 NANOS_API_DECL(nanos_err_t, nanos_create_for, ( void ));
@@ -119,7 +113,8 @@ NANOS_API_DECL(nanos_err_t, nanos_create_team,(nanos_team_t *team, nanos_sched_t
 
 NANOS_API_DECL(nanos_err_t, nanos_create_team_mapped, (nanos_team_t *team, nanos_sched_t sg, unsigned int *nthreads, unsigned int *mapping));
 
-NANOS_API_DECL(nanos_err_t, nanos_leave_team, ( ));
+NANOS_API_DECL(nanos_err_t, nanos_enter_team, ( void ));
+NANOS_API_DECL(nanos_err_t, nanos_leave_team, ( void ));
 NANOS_API_DECL(nanos_err_t, nanos_end_team, ( nanos_team_t team ));
 
 NANOS_API_DECL(nanos_err_t, nanos_team_barrier, ( void ));
@@ -130,12 +125,16 @@ NANOS_API_DECL(nanos_err_t, nanos_enter_sync_init, ( bool *b ));
 NANOS_API_DECL(nanos_err_t, nanos_wait_sync_init, ( void ));
 NANOS_API_DECL(nanos_err_t, nanos_release_sync_init, ( void ));
 
+NANOS_API_DECL(nanos_err_t, nanos_memory_fence, (void));
+
 NANOS_API_DECL(nanos_err_t, nanos_team_get_num_starring_threads, ( int *n ) );
 NANOS_API_DECL(nanos_err_t, nanos_team_get_starring_threads, ( int *n, nanos_thread_t *list_of_threads ) );
 NANOS_API_DECL(nanos_err_t, nanos_team_get_num_supporting_threads, ( int *n ) );
 NANOS_API_DECL(nanos_err_t, nanos_team_get_supporting_threads, ( int *n, nanos_thread_t *list_of_threads) );
 NANOS_API_DECL(nanos_err_t, nanos_register_reduction, ( nanos_reduction_t *red) );
-NANOS_API_DECL(nanos_err_t, nanos_reduction_get_private_data, ( void **copy, void *sink ) );
+NANOS_API_DECL(nanos_err_t, nanos_reduction_get_private_data, ( void **copy, void *original ) );
+
+NANOS_API_DECL(nanos_err_t, nanos_reduction_get, ( nanos_reduction_t **dest, void *original ) );
 
 // worksharing
 NANOS_API_DECL(nanos_err_t, nanos_worksharing_create ,( nanos_ws_desc_t **wsd, nanos_ws_t ws, nanos_ws_info_t *info, bool *b ) );
@@ -151,7 +150,7 @@ NANOS_API_DECL(nanos_err_t, nanos_sync_cond_wait, ( nanos_sync_cond_t sync_cond 
 NANOS_API_DECL(nanos_err_t, nanos_sync_cond_signal, ( nanos_sync_cond_t sync_cond ));
 NANOS_API_DECL(nanos_err_t, nanos_destroy_sync_cond, ( nanos_sync_cond_t sync_cond ));
 
-NANOS_API_DECL(nanos_err_t, nanos_wait_on, ( size_t num_deps, nanos_dependence_t *deps ));
+NANOS_API_DECL(nanos_err_t, nanos_wait_on, ( size_t num_data_accesses, nanos_data_access_t *data_accesses ));
 
 #define NANOS_INIT_LOCK_FREE { NANOS_LOCK_FREE }
 #define NANOS_INIT_LOCK_BUSY { NANOS_LOCK_BUSY }
@@ -167,8 +166,12 @@ NANOS_API_DECL(nanos_err_t, nanos_get_addr, ( nanos_copy_id_t copy_id, void **ad
 NANOS_API_DECL(nanos_err_t, nanos_copy_value, ( void *dst, nanos_copy_id_t copy_id, nanos_wd_t cwd ));
 
 // system interface
+NANOS_API_DECL(const char *, nanos_get_default_architecture, ());
+NANOS_API_DECL(const char *, nanos_get_pm, ());
+NANOS_API_DECL(nanos_err_t, nanos_get_default_binding, ( bool *res ));
 NANOS_API_DECL(nanos_err_t, nanos_get_num_running_tasks, ( int *num ));
 
+NANOS_API_DECL(const char *, nanos_get_default_scheduler, ());
 NANOS_API_DECL(nanos_err_t, nanos_start_scheduler, ());
 NANOS_API_DECL(nanos_err_t, nanos_stop_scheduler, ());
 NANOS_API_DECL(nanos_err_t, nanos_scheduler_enabled, ( bool *res ));
@@ -220,6 +223,9 @@ NANOS_API_DECL(nanos_err_t, nanos_instrument_enable,( void ));
 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_disable,( void ));
 
+NANOS_API_DECL(nanos_err_t, nanos_memcpy, (void *dest, const void *src, size_t n));
+
+
 // utility macros
 
 #define NANOS_SAFE( call ) \
@@ -227,8 +233,6 @@ do {\
    nanos_err_t err = call;\
    if ( err != NANOS_OK ) nanos_handle_error( err );\
 } while (0)
-
-#undef NANOS_API_DECL
 
 void nanos_reduction_int_vop ( int, void *, void * );
 

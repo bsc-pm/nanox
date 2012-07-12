@@ -62,6 +62,7 @@ inline const CacheAccessMap& CacheAccessMap::operator= ( const CacheAccessMap &m
    for ( unsigned int i = 0; i < _size; i++ ) {
       _cacheAccessesById[i] = map._cacheAccessesById[i];
    }
+   return *this;
 }
 
 inline Atomic<unsigned int>& CacheAccessMap::operator[] ( unsigned int cacheId )

@@ -31,6 +31,8 @@ instrdebug_LTLIBRARIES = \
  	libnanox-sched-versioning.la \
  	libnanox-sched-priority.la \
  	libnanox-sched-smartpriority.la \
+ 	libnanox-sched-affinity-smartpriority.la \
+ 	libnanox-sched-socket.la \
 	$(END)
 
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags)
@@ -70,5 +72,18 @@ libnanox_sched_priority_la_SOURCES = $(priority_sources)
 libnanox_sched_smartpriority_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
 libnanox_sched_smartpriority_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_sched_smartpriority_la_SOURCES = $(smartpriority_sources)
+ 
+libnanox_sched_affinity_smartpriority_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
+libnanox_sched_affinity_smartpriority_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_sched_affinity_smartpriority_la_SOURCES = $(affinity_smartpriority_sources)
+ 
+if HWLOC
+libnanox_sched_socket_la_CXXFLAGS = $(nanos_instrdebug_cxxflags) -DHWLOC -I@HWLOC_INC@
+libnanox_sched_socket_la_LDFLAGS = $(ld_plugin_flags) -L@HWLOC_LIB@ -lhwloc
+else
+libnanox_sched_socket_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
+libnanox_sched_socket_la_LDFLAGS = $(ld_plugin_flags)
+endif
+libnanox_sched_socket_la_SOURCES = $(socket_sources)
 endif
 

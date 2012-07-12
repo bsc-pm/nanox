@@ -23,6 +23,7 @@
 #include "system.hpp"
 #include <iostream>
 #include <sched.h>
+#include <unistd.h>
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
 
@@ -82,9 +83,25 @@ void SMPThread::join ()
 void SMPThread::bind( void )
 {
    cpu_set_t cpu_set;
-   int cpu_id = ( getCpuId() * sys.getBindingStride() ) + sys.getBindingStart();
+   long ncpus = sysconf( _SC_NPROCESSORS_ONLN );
+   int cpu_idx = ( getCpuId() * sys.getBindingStride() ) + sys.getBindingStart();
+   int cpu_id = ( (cpu_idx + ( cpu_idx/ncpus) ) % ncpus);
+   
+   // If using the socket scheduler...
+   if ( sys.getDefaultSchedule() == "socket" )
+   {
+      // Set the number of socket
+      int socket = cpu_id / sys.getCoresPerSocket();
+      
+      if ( socket >= sys.getNumSockets() ) {
+         warning( "cpu id " << cpu_id << " is in socket #" << socket <<
+                 ", while there are only " << sys.getNumSockets() << " sockets." );
+      }
+      
+      setSocket( socket );
+   }
 
-   ensure( ( ( cpu_id >= 0 ) && ( cpu_id < CPU_SETSIZE ) ), "invalid value for cpu id" );
+   ensure( ( ( cpu_id >= 0 ) && ( cpu_id < ncpus ) ), "invalid value for cpu id" );
    CPU_ZERO( &cpu_set );
    CPU_SET( cpu_id, &cpu_set );
    verbose( "Binding thread " << getId() << " to cpu " << cpu_id );

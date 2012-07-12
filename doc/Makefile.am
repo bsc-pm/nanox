@@ -17,6 +17,8 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
+SUBDIRS = paraver_configs
+
 doxygen : doxy-nanox
 	@echo "-- Running doxygen"
 	doxygen doxy-nanox

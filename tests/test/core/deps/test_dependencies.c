@@ -20,6 +20,7 @@
 /*
 <testinfo>
 test_generator=gens/api-generator
+test_deps_plugins=plain,regions,perfect-regions
 </testinfo>
 */
 
@@ -95,20 +96,19 @@ struct nanos_const_wd_definition_1 const_data2 =
 int main ( int argc, char **argv )
 {
    int dep;
-   int * dep_addr = &dep;
-   nanos_dependence_t deps = {(void **)&dep_addr,0, {1,1,0,0}, 0};
-   
+   nanos_region_dimension_t dimensions[1] = {{sizeof(int), 0, sizeof(int)}};
+   nanos_data_access_t data_accesses[1] = {{&dep, {1,1,0,0,0}, 1, dimensions}};
    nanos_wd_t wd1=0;
    nanos_wd_dyn_props_t dyn_props = {0};
    const_data1.base.data_alignment = 1;
    NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1.base, &dyn_props, 0, NULL, nanos_current_wd(), NULL ) );
-   NANOS_SAFE( nanos_submit( wd1,1,&deps,0 ) );
+   NANOS_SAFE( nanos_submit( wd1, 1, data_accesses, 0 ) );
 
 
    nanos_wd_t wd2=0;
    const_data2.base.data_alignment = 1;
    NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data2.base, &dyn_props, 0, NULL, nanos_current_wd(), NULL ) );
-   NANOS_SAFE( nanos_submit( wd2,1,&deps,0 ) );
+   NANOS_SAFE( nanos_submit( wd2, 1, data_accesses,0 ) );
 
 
    NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );

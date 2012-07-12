@@ -36,7 +36,7 @@ using namespace nanos;
 
 inline bool Scheduler::checkBasicConstraints ( WD &wd, BaseThread &thread )
 {
-   return wd.canRunIn(*thread.runningOn()) && ( !wd.isTied() || wd.isTiedTo() == &thread );
+   return wd.canRunIn(*thread.runningOn()) && ( !wd.isTied() || wd.isTiedTo() == &thread ) && wd.tryAcquireCommutativeAccesses();
 }
 
 inline unsigned int SchedulerConf::getNumSpins () const
