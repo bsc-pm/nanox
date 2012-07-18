@@ -128,13 +128,6 @@ void GPUThread::inlineWorkDependent ( WD &wd )
    // We wait for wd inputs, but as we have just waited for them, we could skip this step
    wd.start( WD::IsNotAUserLevelThread );
 
-   if ( GPUConfig::isOverlappingOutputsDefined() ) {
-      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_OUTPUT_STREAM_SYNC_EVENT );
-      cudaStreamSynchronize( myGPU.getGPUProcessorInfo()->getOutTransferStream() );
-      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-      myGPU.freeOutputPinnedMemory();
-   }
-
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
    ( dd.getWorkFct() )( wd.getData() );
 
@@ -172,6 +165,13 @@ void GPUThread::inlineWorkDependent ( WD &wd )
          setReservedNextWD( next );  
          if ( next != NULL ) next->init();
       }
+   }
+
+   if ( GPUConfig::isOverlappingOutputsDefined() ) {
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_OUTPUT_STREAM_SYNC_EVENT );
+      cudaStreamSynchronize( myGPU.getGPUProcessorInfo()->getOutTransferStream() );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+      myGPU.freeOutputPinnedMemory();
    }
 
    if ( GPUConfig::isOverlappingOutputsDefined() || GPUConfig::isOverlappingInputsDefined() ) {
