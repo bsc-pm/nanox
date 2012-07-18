@@ -1024,7 +1024,7 @@ namespace ext
 
             NANOS_SCHED_VER_CLOSE_EVENT;
 
-            return NULL;
+            return atIdle( thread );
          }
 
          WD * atBeforeExit ( BaseThread *thread, WD &currentWD )
