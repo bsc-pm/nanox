@@ -480,7 +480,11 @@ AC_ARG_WITH([mpitrace],
                    then
                       MPITRACE_HOME="$withval"
                       MPITRACE_INC="$withval/include"
-                      MPITRACE_LIB="$withval/lib"
+                      MPITRACE_LIB="$withval/lib" ;
+                      if test -d "$MPITRACE_HOME/lib64"
+                      then
+                         MPITRACE_LIB="$MPITRACE_HOME/lib64"
+                      fi
                       MPITRACE_BIN="$withval/bin"
                       AC_MSG_RESULT([checking if Extrae library is compatible... yes])
                    else
@@ -504,6 +508,10 @@ AC_ARG_WITH([extrae],
                       MPITRACE_HOME="$withval"
                       MPITRACE_INC="$withval/include"
                       MPITRACE_LIB="$withval/lib"
+                      if test -d "$MPITRACE_HOME/lib64";
+                      then
+                         MPITRACE_LIB="$MPITRACE_HOME/lib64"
+                      fi
                       MPITRACE_BIN="$withval/bin"
                       AC_MSG_RESULT([checking if Extrae library is compatible... yes])
                    else
