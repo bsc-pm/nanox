@@ -99,10 +99,8 @@ void GPUMemoryTransferOutSyncList::clearRequestedMemoryTransfers ()
          it++ )
    {
       if ( it->_requested ) {
-         //_lock.acquire();
          GPUMemoryTransfer mt ( *it );
          it = _pendingTransfersAsync.erase( it );
-         //_lock.release();
          removeMemoryTransfer( mt );
       }
    }
@@ -166,10 +164,8 @@ void GPUMemoryTransferOutAsyncList::executeRequestedMemoryTransfers ()
          it++ )
    {
       if ( it->_requested ) {
-         //_lock.acquire();
          itemsToRemove.push_back(*it);
          it = _pendingTransfersAsync.erase( it );
-         //_lock.release();
       }
    }
    _lock.release();

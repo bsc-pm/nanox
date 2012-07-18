@@ -56,12 +56,12 @@ void test_task_creation_overhead ( stats_t *s )
 
 
          if (wd != (nanos_wd_t) 0) {
-            err = nanos_submit(wd, 0, (nanos_dependence_t *) 0, (nanos_team_t) 0);
+            err = nanos_submit(wd, 0, (nanos_data_access_t *) 0, (nanos_team_t) 0);
             if (err != NANOS_OK) nanos_handle_error(err);
          } else {
             _nx_data_env_1_t imm_args;
             dyn_props.priority = 0;
-            err = nanos_create_wd_and_run_compact(&_const_def.base, &dyn_props, sizeof(_nx_data_env_1_t), &imm_args, 0, (nanos_dependence_t *) 0, (nanos_copy_data_t *) 0, (void *) 0);
+            err = nanos_create_wd_and_run_compact(&_const_def.base, &dyn_props, sizeof(_nx_data_env_1_t), &imm_args, 0, (nanos_data_access_t *) 0, (nanos_copy_data_t *) 0, (void *) 0);
             if (err != NANOS_OK) nanos_handle_error(err);
          }
       }
