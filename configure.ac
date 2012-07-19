@@ -254,14 +254,15 @@ AS_HELP_STRING([--with-cuda=dir], [Directory of CUDA installation]),
 if test x$gpu_enabled = xyes ; then
     if test -d "$CUDADIR" ;
     then
-        AC_PATH_PROG([NVCC], [nvcc], [], [$PATH$PATHSEPARATOR$CUDADIR/bin])
+        AC_PATH_PROG([NVCC], [nvcc], [], [$PATH$PATH_SEPARATOR$CUDADIR/bin])
         if test x$NVCC = x ; then
             AC_MSG_WARN([nvcc not found. Disabling GPU support])
             gpu_valid=no
         else
             CUDA_INC="$CUDADIR/include"
             CUDA_LIB="$CUDADIR/lib"
-            if ls "$CUDADIR/lib64" &> /dev/null ; then
+            if test -d "$CUDADIR/lib64" ;
+	    then
                 CUDA_LIB="$CUDADIR/lib64"
             fi
 
@@ -480,7 +481,11 @@ AC_ARG_WITH([mpitrace],
                    then
                       MPITRACE_HOME="$withval"
                       MPITRACE_INC="$withval/include"
-                      MPITRACE_LIB="$withval/lib"
+                      MPITRACE_LIB="$withval/lib" ;
+                      if test -d "$MPITRACE_HOME/lib64"
+                      then
+                         MPITRACE_LIB="$MPITRACE_HOME/lib64"
+                      fi
                       MPITRACE_BIN="$withval/bin"
                       AC_MSG_RESULT([checking if Extrae library is compatible... yes])
                    else
@@ -504,6 +509,10 @@ AC_ARG_WITH([extrae],
                       MPITRACE_HOME="$withval"
                       MPITRACE_INC="$withval/include"
                       MPITRACE_LIB="$withval/lib"
+                      if test -d "$MPITRACE_HOME/lib64";
+                      then
+                         MPITRACE_LIB="$MPITRACE_HOME/lib64"
+                      fi
                       MPITRACE_BIN="$withval/bin"
                       AC_MSG_RESULT([checking if Extrae library is compatible... yes])
                    else
