@@ -455,8 +455,7 @@ namespace ext
                            tdata._statsLock.release();
 
                            earliest = w;
-                           devIdx = findBestVersion ( thread, next );
-                           bestTime = data[devIdx]._elapsedTime;
+                           devIdx = findBestVersion ( thread, next, bestTime );
                            earliestTime = time + bestTime;
 
                            NANOS_SCHED_VER_CLOSE_EVENT;
@@ -517,7 +516,7 @@ namespace ext
 
          // Given a WD and a device (from PE), choose the best versionId to run this task
          // We assume that wd has at least 1 implementation that the given device can run
-         unsigned int findBestVersion ( BaseThread * thread, WD * wd )
+         unsigned int findBestVersion ( BaseThread * thread, WD * wd, double &bestTime )
          {
             TeamData & tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
             unsigned long wdId =  wd->getVersionGroupId();
@@ -528,7 +527,8 @@ namespace ext
             unsigned int numVersions = wd->getNumDevices();
             DeviceData **devices = wd->getDevices();
             int bestIdx = -1;
-            double bestTime = std::numeric_limits<double>::max();
+
+            bestTime = std::numeric_limits<double>::max();
 
             unsigned int i;
 
@@ -573,6 +573,7 @@ namespace ext
                for ( i = 0; i < numVersions; i++ ) {
                   if ( devices[i]->isCompatible( pe->getDeviceType() ) && data[i]._numRecords < MIN_RECORDS ) {
                      bestIdx = i;
+                     bestTime = 1;
                      break;
                   }
                }
@@ -995,11 +996,8 @@ namespace ext
 
                if ( !( found->hasActiveDevice() ) ) {
                   //return selectWD( thread, found );
-                  unsigned int deviceIdx = findBestVersion( thread, found );
-
-                  unsigned long wdId =  found->getVersionGroupId();
-                  size_t paramsSize = found->getParamsSize();
-                  WDExecInfoKey key = std::make_pair( wdId, paramsSize );
+                  double time = 1;
+                  unsigned int deviceIdx = findBestVersion( thread, found, time );
 
 #if 0 // Already done at findBestVersion()
                   tdata._statsLock.acquire();
@@ -1008,7 +1006,27 @@ namespace ext
                   tdata._statsLock.release();
 #endif
 
-                  return setDevice( thread, found, deviceIdx );
+                  //return setDevice( thread, found, deviceIdx );
+
+                  WD * next = setDevice( thread, found, deviceIdx, true, time );
+                  WD * last = found;
+
+                  // WARNING: Prefetching for slower devices may impact on application's performance!
+                  // It is not checked here, but, by now, only GPU is calling scheduler's prefetching mechanism
+                  int i, numPrefetch = 8;
+                  for ( i = 0; i < numPrefetch; i++ && last != NULL ) {
+                     WD * pref = last->getImmediateSuccessor( *thread );
+
+                     if ( pref != NULL && !( pref->hasActiveDevice() ) ) {
+                        time = 1;
+                        deviceIdx = findBestVersion( thread, pref, time );
+                        setDevice( thread, pref, deviceIdx, false, time );
+                     }
+                     last = pref;
+                     if ( last == NULL ) break;
+                  }
+
+                  return next;
                }
 
                return found;
