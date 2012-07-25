@@ -1287,6 +1287,72 @@ namespace ext
 
             return NULL;
          }
+
+
+         // This function should only be called for debugging purposes
+         void printExecutionPlan ()
+         {
+#ifdef NANOS_DEBUG_ENABLED
+            std::string s;
+
+            // Execution plan vector (each position represents a worker thread task queue)
+            ResourceMap * map = &( ( TeamData * ) myThread->getTeam()->getScheduleData() )->_executionMap;
+            unsigned int i, size = map->size();
+
+            BaseThread * worker;
+            WorkerExecPlan * wq;
+            WDTimingDeque * wdlist;
+
+            unsigned int j, qsize;
+
+            s =   "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n";
+            s +=  "+                                 EXECUTION PLAN                                 +\n";
+            s +=  "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++";
+
+
+
+            for ( i = 0; i < size; i++ ) {
+               // Current worker thread
+               worker = sys.getWorker( i );
+               // Current worker thread's execution plan
+               wq = ( *map )[i];
+
+               wq->_lock.acquire();
+
+               // Current worker thread's task queue (inside its execution plan)
+               wdlist = &wq->_assignedTasksList;
+               qsize = wq->_assignedTasksList.size();
+
+               s +=  "\n+ ";
+               s +=  toString<unsigned int>( i );
+               s +=  " + ";
+
+               // Since we cannot access the queue objects directly, we will pop front and
+               // push back each and every object
+               for ( j = 0; j < qsize; j++ ) {
+                  WD * current = wdlist->frontTask( worker );
+                  s += toString<int>( current->getId() );
+                  wdlist->push_back( current );
+
+                  if ( j + 1 < qsize ) {
+                     s += " | ";
+                  } else {
+                     s += " +";
+                  }
+               }
+               wq->_lock.release();
+
+               if ( i + 1 < size ) {
+                  s +=  "\n+--------------------------------------------------------------------------------+";
+               }
+
+            }
+
+            s +=  "\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n";
+
+            std::cout << s << std::endl;
+#endif
+         }
    };
 
    bool Versioning::_useStack = false;
