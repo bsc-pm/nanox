@@ -362,6 +362,23 @@ namespace nanos
                virtual MapVar * clone ();
          };
 
+         class PluginVar : public MapVar<std::string>
+         {
+            public:
+               //constructors
+               PluginVar( std::string &ref, const char* validList[], size_t validListCount ) :
+                     MapVar( ref )
+               {
+                  for ( size_t i = 0; i < validListCount; ++i )
+                     addOption( validList[i] );
+               }
+
+               // copy constructor
+               PluginVar( const PluginVar &opt ) : MapVar( opt ) {}
+               
+               PluginVar & addOption ( const std::string & value );
+         };
+
          class ActionFlag : public Option
          {
             public:
@@ -663,6 +680,7 @@ namespace nanos
         /* \brief initializes the config object
          */
          void init();
+         
 
         /* \brief Sets the current section in which new ConfigOptions will be listed
          * \param sectionName name of the section to be set as current
