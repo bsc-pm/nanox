@@ -583,6 +583,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
 
    WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, data_align, data != NULL ? *data : NULL,
                              num_copies, (copies != NULL)? *copies : NULL, translate_args );
+   wd->_socket = _currentSocket;
 
    // All the implementations for a given task will have the same ID
    wd->setVersionGroupId( ( unsigned long ) devices );
@@ -599,7 +600,12 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    // set properties
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
-      wd->setPriority( dyn_props->priority );
+      unsigned priority = dyn_props->priority;
+      WD* parent = wd->getParent();
+      if ( parent != NULL )
+         // Add the specified priority to its parent's
+         priority += parent->getPriority();
+      wd->setPriority( priority );
    }
    if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
 }

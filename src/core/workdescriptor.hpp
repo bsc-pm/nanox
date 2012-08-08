@@ -49,7 +49,7 @@ inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t 
                                  _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ),
                                  _doSubmit(), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ), 
                                  _directory(), _instrumentationContextData(), _submitted( false ), _translateArgs( translate_args ),
-                                 _priority( 0 ), _wakeUpQueue( 0 ), _implicit(false) { }
+                                 _priority( 0 ), _wakeUpQueue( UINT_MAX ), _implicit(false) { }
 
 inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, size_t data_align, void *wdata,
                                  size_t numCopies, CopyData *copies, nanos_translate_args_t translate_args )

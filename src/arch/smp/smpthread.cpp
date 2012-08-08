@@ -26,6 +26,9 @@
 #include <unistd.h>
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
+#ifdef GPU_DEV
+#include "gpuprocessor_decl.hpp"
+#endif
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -90,6 +93,31 @@ void SMPThread::bind( void )
    // If using the socket scheduler...
    if ( sys.getDefaultSchedule() == "socket" )
    {
+      #ifdef GPU_DEV
+         int gpuCount = nanos::ext::GPUConfig::getGPUCount();
+         if ( gpuCount > 0 )
+         {
+            if ( sys.getBindingStride() == 1 && sys.getBindingStart() == 0 )
+            {
+               fprintf( stderr, "ID %d, cpu_id/coresPerSocket = %d\n", cpu_id,(cpu_id +1)/ sys.getCoresPerSocket()  );
+               GPUThread* gpuThread = dynamic_cast<GPUThread*>( this );
+               if ( gpuThread == NULL )
+                  fprintf( stderr, "CPU thread %d has now affinity to %d\n", cpu_id, cpu_id + (( cpu_id +1 ) / sys.getCoresPerSocket() ) );
+               else{
+                  // Try to guess the gpu number
+                  // TODO (gmiranda): assume the device id matches the gpu thread number
+                  int gpuIndex = gpuThread->getGPUDevice();
+                  fprintf( stderr, "GPU thread %d goes to %d\n", cpu_id, sys.getCoresPerSocket()*(1 + gpuIndex ) - 1);
+               }
+            }
+            else 
+            {
+               warning( "Cannot split GPU threads over the available sockets "
+                  << "when using non-default binding stride and/or offset." );
+            }
+         }
+      #endif
+      
       // Set the number of socket
       int socket = cpu_id / sys.getCoresPerSocket();
       

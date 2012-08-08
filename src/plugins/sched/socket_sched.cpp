@@ -35,19 +35,36 @@ namespace nanos {
          public:
          
          private:
+            /*! \brief Steal work from other sockets? */
+            bool _steal;
+            /*! \brief Use immediate successor when prefecting. */
+            bool _useSuccessor;
+            /*! \brief Use smart priority (propagate priority) */
+            bool _smartPriority;
+            /*! \brief Number of loops to spin before attempting stealing */
+            unsigned _spins;
 
             struct TeamData : public ScheduleTeamData
             {
-               WDDeque*           _readyQueues;
+               WDPriorityQueue*           _readyQueues;
                //! Next queue to insert to (round robin scheduling)
                Atomic<unsigned>           _next;
+               //! If there is an active "master" thread, for every socket
+               Atomic<bool>*               _activeMasters;
+               //! Next queue to steal from (round robin)
+               Atomic<unsigned>           _stealNext;
  
-               TeamData ( unsigned int size ) : ScheduleTeamData(), _next( 0 )
+               TeamData ( unsigned int sockets ) : ScheduleTeamData(), _next( 0 ),
+                  _stealNext( 0 )
                {
-                  _readyQueues = NEW WDDeque[size];
+                  _readyQueues = NEW WDPriorityQueue[ sockets*2 + 1 ];
+                  _activeMasters = NEW Atomic<bool>[ sockets ];
                }
 
-               ~TeamData () { delete[] _readyQueues; }
+               ~TeamData () {
+                  delete[] _readyQueues;
+                  delete[] _activeMasters;
+               }
             };
 
             /** \brief Socket Scheduler data associated to each thread
@@ -70,10 +87,16 @@ namespace nanos {
 
          public:
             // constructor
-            SocketSchedPolicy() : SchedulePolicy ( "Socket" )
+            SocketSchedPolicy ( bool steal, bool useSuccessor, bool smartPriority,
+               unsigned spins )
+               : SchedulePolicy ( "Socket" ), _steal( steal ),
+               _useSuccessor( useSuccessor ), _smartPriority( smartPriority ),
+               _spins ( spins )
             {
                int numSockets = sys.getNumSockets();
                int coresPerSocket = sys.getCoresPerSocket();
+               
+               fprintf( stderr, "Steal: %d, successor: %d, smart: %d, spins: %d\n", steal, useSuccessor, smartPriority, spins );
 
                // Check config
                if ( numSockets != std::ceil( sys.getNumPEs() / static_cast<float>( coresPerSocket) ) )
@@ -92,9 +115,8 @@ namespace nanos {
 
             virtual ScheduleTeamData * createTeamData ()
             {
-               // Create as many queues as sockets we have plus one for the
-               // global queue.
-               return NEW TeamData( sys.getNumSockets() + 1 );
+               // Create 2 queues per socket plus one for the global queue.
+               return NEW TeamData( sys.getNumSockets() );
             }
 
             virtual ScheduleThreadData * createThreadData ()
@@ -102,6 +124,11 @@ namespace nanos {
                return NEW ThreadData();
             }
 
+            virtual void queue ( BaseThread *thread, WD &wd )
+            {
+               socketQueue( thread, wd, false );
+            }
+            
             /*!
              *  \brief Queues a work descriptor in a readyQueue.
              *  It will reuse the queue the wd was previously in.
@@ -112,11 +139,15 @@ namespace nanos {
              *  \see distribute
              *  \sa ThreadData, WD and BaseThread
              */
-            virtual void queue ( BaseThread *thread, WD &wd )
+            void socketQueue ( BaseThread *thread, WD &wd, bool wakeUp )
             {
-               TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+               unsigned index = wd.getWakeUpQueue();
+               // FIXME: use another variable to check this condition
+               // If the WD has not been distributed yet, distribute it
+               if ( index == UINT_MAX )
+                  return distribute( thread, wd );
                
-               unsigned index;
+               TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
                
                switch( wd.getDepth() ) {
                   case 0:
@@ -127,15 +158,15 @@ namespace nanos {
                   // Keep other tasks in the same socket as they were
                   // Note: we might want to insert the ones with depth 1 in the front
                   case 1:
-                     index = wd.getWakeUpQueue();
+                     //fprintf( stderr, "Wake up Depth 1, inserting WD %d in queue number %d\n", wd.getId(), index );
                      
-                     // Insert at the front (these will have higher priority)
-                     tdata._readyQueues[index].push_front ( &wd );
+                     if ( wakeUp )
+                        tdata._readyQueues[index].push_front ( &wd );
+                     else
+                        tdata._readyQueues[index].push_back ( &wd );
                      break;
                   default:
-                     index = wd.getWakeUpQueue();
-                     
-                     //fprintf( stderr, "Wake up Depth >0, inserting WD %d in queue number %d\n", wd.getId(), index );
+                     //fprintf( stderr, "Wake up Depth >1, inserting WD %d in queue number %d\n", wd.getId(), index );
                      
                      // Insert at the back
                      tdata._readyQueues[index].push_back ( &wd );
@@ -158,8 +189,8 @@ namespace nanos {
             virtual void distribute ( BaseThread *thread, WD &wd )
             {
                TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
-               if( wd.getWakeUpQueue() != 0 )
-                  fprintf( stderr, "Queue: warning: wd already has a queue (%d)\n", wd.getWakeUpQueue());
+               if( wd.getWakeUpQueue() != UINT_MAX )
+                  warning0( "WD already has a queue (" << wd.getWakeUpQueue() << ")" );
                
                unsigned index;
                
@@ -170,13 +201,15 @@ namespace nanos {
                      tdata._readyQueues[0].push_back ( &wd );
                      break;
                   case 1:
-                     index = (tdata._next++ ) % sys.getNumSockets() + 1;
+                     //index = (tdata._next++ ) % sys.getNumSockets() + 1;
+                     // 2 queues per socket, the first one is for level 1 tasks
+                     index = (wd._socket % sys.getNumSockets())*2 + 1;
                      wd.setWakeUpQueue( index );
                      
-                     //fprintf( stderr, "Depth 1, inserting WD %d in queue number %d\n", wd.getId(), index );
+                     //fprintf( stderr, "Depth 1, inserting WD %d in queue number %d (curr socket %d)\n", wd.getId(), index, wd._socket );
                      
                      // Insert at the front (these will have higher priority)
-                     tdata._readyQueues[index].push_front ( &wd );
+                     tdata._readyQueues[index].push_back ( &wd );
                      
                      // Round robin
                      //tdata._next = ( socket+1 ) % sys.getNumSockets();
@@ -185,6 +218,11 @@ namespace nanos {
                   default:
                      // Insert this in its parent's socket
                      index = wd.getParent()->getWakeUpQueue();
+                     // If index is not even
+                     if ( index % 2 != 0 )
+                        // Means its parent is level 1, small tasks go in even queues
+                        ++index;
+                     
                      wd.setWakeUpQueue( index );
                      
                      //fprintf( stderr, "Depth %d>1, inserting WD %d in queue number %d\n", wd.getDepth(), wd.getId(), index );
@@ -218,10 +256,72 @@ namespace nanos {
                
                TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
                
-               wd = tdata._readyQueues[socket+1].pop_front( thread );
+               /*
+                * Which queue should we look at?
+                * If the higher depth tasks queue has < N (N=X*cores_per_socket)
+                * tasks, and there's no other thread in this socket doing
+                * depth 1 tasks, query the depth 1 queue.
+                * TODO: compute N.
+                * TODO: just one thread at a time can run depth 1 tasks.
+                */
+               int deepTasksN = tdata._readyQueues[socket*2+2].size();
+               bool emptyBigTasks = tdata._readyQueues[socket*2+1].empty();
+               //fprintf( stderr, "[sockets] %d tasks at the small's queue\n", deepTasksN );
+               
+               //unsigned thId = thread->getId();
+               
+               unsigned queueNumber;
+               // TODO Improve atomic condition
+               if ( deepTasksN < 1*sys.getCoresPerSocket() && !emptyBigTasks
+                   /*&& ( tdata._activeMasters[socket].value() == 0 || tdata._activeMasters[socket].value() == thId )*/ )
+               {
+                  //tdata._activeMasters[socket] = thId + 1;
+                  queueNumber = socket*2+1;
+               }
+               else
+                  queueNumber = socket*2+2;
+               
+               unsigned spins = _spins;
+               // Make sure the queue is really empty... lotsa times!
+               do {
+                  // We only spin when steal is enabled
+                  wd = tdata._readyQueues[queueNumber].pop_front( thread );
+                  --spins;
+               } while( _steal && wd == NULL && spins != 0 );
                
                if ( wd != NULL )
                   return wd;
+               
+               // If we want/need to steal
+               if ( _steal )
+               {
+                  if ( false /* steal from the biggest */ )
+                  {
+                     // Find the queue with the most small tasks
+                     WDPriorityQueue *largest = &tdata._readyQueues[2];
+                     int largestSocket = 0;
+                     for ( int i = 1; i < sys.getNumSockets(); ++i )
+                     {
+                        WDPriorityQueue *current = &tdata._readyQueues[ (i+1)*2];
+                        if ( largest->size() < current->size() ){
+                           largest = current;
+                           largestSocket = i;
+                        }
+                     }
+                     //fprintf( stderr, "Stealing from socket #%d that has %lu tasks\n", largestSocket, largest->size() );
+                     wd = largest->pop_front( thread );
+                  }
+                  // Round robbin steal
+                  else {
+                     // 2 queues per socket + 1 master queue + 1 (offset of the inner tasks)
+                     unsigned index = ( (tdata._next++ ) % sys.getNumSockets() )*2 + 2;
+                     //fprintf( stderr, "Stealing from index: %d\n", index );
+                     wd = tdata._readyQueues[index].pop_front( thread );
+                  }
+                  
+                  if ( wd != NULL )
+                     return wd;
+               }
                
                // If this queue is empty, try the global queue
                return tdata._readyQueues[0].pop_front( thread );
@@ -229,15 +329,96 @@ namespace nanos {
             
             virtual WD * atWakeUp( BaseThread *thread, WD &wd )
             {
-               queue( thread, wd );
+               socketQueue( thread, wd, true );
                
                return NULL;
             }
+            
+            WD * atPrefetch ( BaseThread *thread, WD &current )
+            {
+               // If the use of getImmediateSuccessor is not enabled
+               if ( !_useSuccessor )
+                  // Revert to the base behaviour
+                  return SchedulePolicy::atPrefetch( thread, current );
+               
+               WD * found = current.getImmediateSuccessor(*thread);
+            
+               return found != NULL ? found : atIdle(thread);
+            }
+         
+            //WD * atBeforeExit ( BaseThread *thread, WD &current )
+            //{
+            //   // If the use of getImmediateSuccessor is not enabled
+            //   if ( !_useSuccessor )
+            //      // Revert to the base behaviour
+            //      return SchedulePolicy::atBeforeExit( thread, current );
+            //   
+            //   return current.getImmediateSuccessor(*thread);
+            //}
+
             
             /*virtual WD * atBlock( BaseThread *thread, WD *current )
             {
                return atWakeUp( thread, *current );
             }*/
+            
+            /*!
+             * \brief This method performs the main task of the smart priority
+             * scheduler, which is to propagate the priority of a WD to its
+             * immediate predecessors. It is meant to be invoked from
+             * DependenciesDomain::submitWithDependenciesInternal.
+             * \param [in/out] predecessor The preceding DependableObject.
+             * \param [in] successor DependableObject whose WD priority has to be
+             * propagated.
+             */
+            void successorFound( DependableObject *predecessor, DependableObject *successor )
+            {
+               if ( !_smartPriority )
+                  return;
+               
+               debug( "SmartPriority::successorFound" );
+               if ( predecessor == NULL ) {
+                  debug( "SmartPriority::successorFound predecessor is NULL" );
+                  return;
+               }
+               if ( successor == NULL ) {
+                  debug( "SmartPriority::successorFound successor is NULL" );
+                  return;
+               }
+               
+               WD *pred = ( WD* ) predecessor->getRelatedObject();
+               if ( pred == NULL ) {
+                  debug( "SmartPriority::successorFound predecessor->getRelatedObject() is NULL" )
+                  return;
+               }
+               
+               WD *succ = ( WD* ) successor->getRelatedObject();
+               if ( succ == NULL ) {
+                  fatal( "SmartPriority::successorFound  successor->getRelatedObject() is NULL" );
+               }
+               
+               //debug( "Predecessor[" << pred->getId() << "]" << pred << ", Successor[" << succ->getId() << "]" );
+               
+               debug ( "Propagating priority from "
+                  << (void*)succ << ":" << succ->getId() << " to "
+                  << (void*)pred << ":"<< pred->getId()
+                  << ", old priority: " << pred->getPriority()
+                  << ", new priority: " << std::max( pred->getPriority(),
+                  succ->getPriority() )
+               );
+               
+               // Propagate priority
+               if ( pred->getPriority() < succ->getPriority() ) {
+                  pred->setPriority( succ->getPriority() );
+                  
+                  // Reorder
+                  TeamData &tdata = ( TeamData & ) *nanos::myThread->getTeam()->getScheduleData();
+                  unsigned index = pred->getWakeUpQueue();
+                  // What happens if pred is not in any queue? Fatal.
+                  if ( index < static_cast<unsigned>( sys.getNumSockets() ) )
+                     tdata._readyQueues[ index ].reorderWD( pred );
+               }
+            }
       };
 
       class SocketSchedPlugin : public Plugin
@@ -245,6 +426,12 @@ namespace nanos {
          private:
             int _numSockets;
             int _coresPerSocket;
+            
+            bool _steal;
+            bool _immediate;
+            bool _smart;
+            
+            unsigned _spins;
             
             void loadDefaultValues()
             {
@@ -275,12 +462,14 @@ namespace nanos {
                // cat /proc/cpuinfo | grep "physical id" | sort | uniq | wc -l
                // Cores per socket:
                // cat /proc/cpuinfo | grep 'core id' | sort | uniq | wc -l
+               debug0( "No hwloc support" );
                _numSockets = sys.getNumSockets();
                _coresPerSocket = sys.getCoresPerSocket();
 #endif
             }
          public:
-            SocketSchedPlugin() : Plugin( "Socket-aware scheduling Plugin",1 ) {}
+            SocketSchedPlugin() : Plugin( "Socket-aware scheduling Plugin",1 ),
+               _steal( true ), _immediate( false ), _smart( false ), _spins( 200 ) {}
 
             virtual void config( Config& cfg ) {
                // Read hwloc's info before reading user parameters
@@ -293,6 +482,18 @@ namespace nanos {
                
                cfg.registerConfigOption( "num-sockets", NEW Config::PositiveVar( _numSockets ), "Number of sockets available." );
                cfg.registerArgOption( "num-sockets", "num-sockets" );
+               
+               cfg.registerConfigOption( "socket-steal", NEW Config::FlagOption( _steal ), "Enable work stealing from other sockets' inner tasks queues (default)." );
+               cfg.registerArgOption( "socket-steal", "socket-steal" );
+               
+               cfg.registerConfigOption( "socket-immediate", NEW Config::FlagOption( _immediate ), "Use the immediate successor when prefecting (disabled by default)." );
+               cfg.registerArgOption( "socket-immediate", "socket-immediate" );
+               
+               cfg.registerConfigOption( "socket-smartpriority", NEW Config::FlagOption( _smart ), "Propagates priority to the immediate predecessors (disabled by default)." );
+               cfg.registerArgOption( "socket-smartpriority", "socket-smartpriority" );
+               
+               cfg.registerConfigOption( "socket-steal-spin", NEW Config::UintVar( _spins ), "Number of spins before stealing (200 by default)." );
+               cfg.registerArgOption( "socket-steal-spin", "socket-steal-spin" );
             }
 
             virtual void init() {
@@ -300,7 +501,7 @@ namespace nanos {
                sys.setNumSockets( _numSockets );
                sys.setCoresPerSocket( _coresPerSocket );
                
-               sys.setDefaultSchedulePolicy(NEW SocketSchedPolicy());
+               sys.setDefaultSchedulePolicy( NEW SocketSchedPolicy( _steal, _immediate, _smart, _spins ) );
             }
       };
 

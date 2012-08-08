@@ -56,6 +56,7 @@ namespace nanos
          typedef enum { POOL, ONE_THREAD } InitialMode;
          typedef enum { NONE, WRITE_THROUGH, WRITE_BACK, DEFAULT } CachePolicyType;
          typedef Config::MapVar<CachePolicyType> CachePolicyConfig;
+         int                  _currentSocket;
 
       private:
          // types

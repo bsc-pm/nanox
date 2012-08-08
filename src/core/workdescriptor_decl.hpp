@@ -149,6 +149,7 @@ namespace nanos
 
          typedef std::vector<WorkDescriptor **> WorkDescriptorPtrList;
          typedef TR1::unordered_map<void *, TR1::shared_ptr<WorkDescriptor *> > CommutativeOwnerMap;
+         int _socket;
 
       private:
 
