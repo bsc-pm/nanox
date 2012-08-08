@@ -48,6 +48,7 @@ namespace nanos {
             {
                WDPriorityQueue*           _readyQueues;
                //! Next queue to insert to (round robin scheduling)
+               // TODO(gmiranda): remove this since we don't use it
                Atomic<unsigned>           _next;
                //! If there is an active "master" thread, for every socket
                Atomic<bool>*               _activeMasters;
@@ -314,7 +315,7 @@ namespace nanos {
                   // Round robbin steal
                   else {
                      // 2 queues per socket + 1 master queue + 1 (offset of the inner tasks)
-                     unsigned index = ( (tdata._next++ ) % sys.getNumSockets() )*2 + 2;
+                     unsigned index = ( (tdata._stealNext++ ) % sys.getNumSockets() )*2 + 2;
                      //fprintf( stderr, "Stealing from index: %d\n", index );
                      wd = tdata._readyQueues[index].pop_front( thread );
                   }
