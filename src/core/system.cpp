@@ -220,11 +220,11 @@ void System::config ()
    cfg.registerArgOption ( "exec_mode", "mode" );
 #endif
 
-   cfg.registerConfigOption ( "schedule", NEW Config::StringVar ( _defSchedule ), "Defines the scheduling policy" );
+   registerPluginOption( "schedule", "sched", _defSchedule, "Defines the scheduling policy", cfg );
    cfg.registerArgOption ( "schedule", "schedule" );
    cfg.registerEnvOption ( "schedule", "NX_SCHEDULE" );
 
-   cfg.registerConfigOption ( "throttle", NEW Config::StringVar ( _defThrottlePolicy ), "Defines the throttle policy" );
+   registerPluginOption( "throttle", "throttle", _defThrottlePolicy, "Defines the throttle policy", cfg );
    cfg.registerArgOption ( "throttle", "throttle" );
    cfg.registerEnvOption ( "throttle", "NX_THROTTLE" );
 
@@ -232,7 +232,7 @@ void System::config ()
    cfg.registerArgOption ( "barrier", "barrier" );
    cfg.registerEnvOption ( "barrier", "NX_BARRIER" );
 
-   cfg.registerConfigOption ( "instrumentation", NEW Config::StringVar ( _defInstr ), "Defines instrumentation format" );
+   registerPluginOption( "instrumentation", "instrumentation", _defInstr, "Defines instrumentation format", cfg );
    cfg.registerArgOption ( "instrumentation", "instrumentation" );
    cfg.registerEnvOption ( "instrumentation", "NX_INSTRUMENTATION" );
 
@@ -254,10 +254,11 @@ void System::config ()
    cfg.registerConfigOption ( "cache-policy", cachePolicyCfg, "Defines the general cache policy to use: write-through / write-back. Can be overwritten for specific architectures" );
    cfg.registerArgOption ( "cache-policy", "cache-policy" );
    cfg.registerEnvOption ( "cache-policy", "NX_CACHE_POLICY" );
-
-   cfg.registerConfigOption ( "deps", NEW Config::StringVar ( _defDepsManager ), "Defines the dependencies plugin" );
+   
+   registerPluginOption( "deps", "deps", _defDepsManager, "Defines the dependencies plugin", cfg );
    cfg.registerArgOption ( "deps", "deps" );
    cfg.registerEnvOption ( "deps", "NX_DEPS" );
+   
 
    _schedConf.config( cfg );
    _pmInterface->config( cfg );

@@ -260,5 +260,34 @@ inline Plugin * System::loadAndGetPlugin ( const std::string & name )
    return _pluginManager.loadAndGetPlugin(name, false);
 }
 
+inline void System::setValidPlugin ( const std::string &module,  const std::string &plugin )
+{
+   _validPlugins.insert( make_pair( module, plugin ) );
+}
+
+inline void System::registerPluginOption ( const std::string &option, const std::string &module,
+                                          std::string &var, const std::string &helpMessage,
+                                          Config& cfg )
+{
+   if ( !_validPlugins.empty() ) {
+      // Get the list of valid plugins
+      Config::PluginVar* pluginVar = NEW Config::PluginVar( _defDepsManager, NULL, 0 );
+      ModulesPlugins::const_iterator it;
+      // Find deps
+      std::pair<ModulesPlugins::const_iterator, ModulesPlugins::const_iterator> ret
+         = _validPlugins.equal_range( module );
+      
+      // For each deps plugin, add it as an option
+      for ( it = ret.first; it != ret.second; ++it ){
+         pluginVar->addOption( it->second );
+      }
+      
+      cfg.registerConfigOption ( option, pluginVar, helpMessage );
+   }
+   else {
+      cfg.registerConfigOption ( option, NEW Config::StringVar( var ), helpMessage );
+   }
+}
+
 #endif
 
