@@ -126,12 +126,18 @@ namespace nanos {
                      break;
                   // Keep other tasks in the same socket as they were
                   // Note: we might want to insert the ones with depth 1 in the front
+                  case 1:
+                     index = wd.getWakeUpQueue();
+                     
+                     // Insert at the front (these will have higher priority)
+                     tdata._readyQueues[index].push_front ( &wd );
+                     break;
                   default:
                      index = wd.getWakeUpQueue();
                      
                      //fprintf( stderr, "Wake up Depth >0, inserting WD %d in queue number %d\n", wd.getId(), index );
                      
-                     // Insert at the front (these will have higher priority)
+                     // Insert at the back
                      tdata._readyQueues[index].push_back ( &wd );
                      break;
                }

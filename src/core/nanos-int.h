@@ -70,7 +70,14 @@ typedef struct {
    /* The first dimension will be the contiguous one, and its size and
     * offset must be expressed in bytes, not elements.
     */
+#if defined(_MERCURIUM) && defined(_MF03)
+   // Fortran makes a strong separation between pointers and arrays and they
+   // cannot be mixed in any way. To the eyes of Mercurium the original
+   // declaration would be a pointer to a scalar, not a pointer to an array
+   void* dimensions;
+#else
    nanos_region_dimension_internal_t const *dimensions;
+#endif
    
    /* Offset of the first element */
    ptrdiff_t offset;
