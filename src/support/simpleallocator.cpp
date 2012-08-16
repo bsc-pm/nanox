@@ -41,8 +41,14 @@ void * SimpleAllocator::allocate( size_t size )
    SegmentMap::iterator mapIter = _freeChunks.begin();
    void * retAddr = (void *) 0;
 
+   size_t alignedLen;
+   unsigned int count = 0;
+   while ( (size >> count) != 1 ) count++;
+   alignedLen = (1UL<<(count));
+   //fprintf(stderr, "alignedLen %lX, size %lX\n", alignedLen, size);
+
    //while( mapIter != _freeChunks.end() && mapIter->second < size )
-   while( mapIter != _freeChunks.end() && mapIter->second < ( ((mapIter->first | (size-1)) + 1 + size ) - mapIter->first ) )
+   while( mapIter != _freeChunks.end() && mapIter->second < ( ( mapIter->first & ~(alignedLen-1) ) + ( ( ( mapIter->first & (alignedLen-1) ) == 0 ) ? 0 : alignedLen ) + size ) - mapIter->first )
    {
       //std::cerr << "this chunk addr " << (void *) mapIter->first << " computed size is " <<  (void *) (mapIter->first | ((size-1))) << " " << ( ((mapIter->first | ((size-1))) + 1 + size ) - mapIter->first ) << std::endl;
       mapIter++;
@@ -53,7 +59,8 @@ void * SimpleAllocator::allocate( size_t size )
       uint64_t chunkAddr = mapIter->first;
       size_t chunkSize = mapIter->second;
       //std::size_t realSize = ( ((mapIter->first | (size-1)) + 1 + size ) - mapIter->first ); //aligned
-      uint64_t targetAddr = (mapIter->first | (size-1))+1 ;
+      uint64_t targetAddr = ( mapIter->first & ~(alignedLen-1) ) + ( ( ( mapIter->first & (alignedLen-1) ) == 0 ) ? 0 : alignedLen ) ;
+      //fprintf(stderr, "addr (chunk) is %lX, aligned (target) is %lX\n", mapIter->first, targetAddr );
 
       //_freeChunks.erase( mapIter );
 
@@ -61,9 +68,16 @@ void * SimpleAllocator::allocate( size_t size )
       //if (chunkSize > size)
          //_freeChunks[ targetAddr + size ] = chunkSize - size ;
       if (chunkSize > size) {
-         _freeChunks[ mapIter->first ] = ( targetAddr - chunkAddr );
-         if ((chunkAddr + chunkSize) - (targetAddr + size) > 0) _freeChunks[ targetAddr + size ] = (chunkAddr + chunkSize) - (targetAddr + size) ;
-      }
+         if (targetAddr == chunkAddr ) {
+            _freeChunks.erase( chunkAddr ); 
+         } else { 
+            _freeChunks[ mapIter->first ] = ( targetAddr - chunkAddr );
+         }
+         if ((chunkAddr + chunkSize) - (targetAddr + size) > 0)
+            _freeChunks[ targetAddr + size ] = (chunkAddr + chunkSize) - (targetAddr + size) ;
+      } else if ( chunkSize == size ) {
+         _freeChunks.erase( chunkAddr );
+      } else { fprintf(stderr, "Error, this does not make sense!\n"); }
       _allocatedChunks[ targetAddr ] = size;
 
       retAddr = ( void * ) targetAddr ;
@@ -152,20 +166,20 @@ void SimpleAllocator::printMap()
    std::cerr << (void *) this <<" ALLOCATED CHUNKS" << std::endl;
    for (SegmentMap::iterator it = _allocatedChunks.begin(); it != _allocatedChunks.end(); it++ ) {
       std::cerr << "|... ";
-      std::cerr << (void *) it->first << " @ " << (int)it->second;
+      std::cerr << (void *) it->first << " @ " << (std::size_t)it->second;
       std::cerr << " ...";
       totalAlloc += it->second;
    }
-   std::cerr << "| total allocated bytes " << (int) totalAlloc << std::endl;
+   std::cerr << "| total allocated bytes " << (std::size_t) totalAlloc << std::endl;
 
    std::cerr << (void *) this <<" FREE CHUNKS" << std::endl;
    for (SegmentMap::iterator it = _freeChunks.begin(); it != _freeChunks.end(); it++ ) {
       std::cerr << "|... ";
-      std::cerr << (void *) it->first << " @ " << (int) it->second;
+      std::cerr << (void *) it->first << " @ " << (std::size_t) it->second;
       std::cerr << " ...";
       totalFree += it->second;
    }
-   std::cerr << "| total free bytes "<< (int) totalFree << std::endl;
+   std::cerr << "| total free bytes "<< (std::size_t) totalFree << std::endl;
 }
 
 void SimpleAllocator::lock() {

@@ -172,22 +172,22 @@ namespace nanos {
             public:
             Op( RegionCache &parent ) : _parent ( parent ) { }
             RegionCache &getParent() const { return _parent; }
-            virtual void doNoStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, DeviceOps *ops, unsigned int wdId ) = 0;
-            virtual void doStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, std::size_t count, std::size_t ld, DeviceOps *ops, unsigned int wdId ) = 0;
+            virtual void doNoStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, DeviceOps *ops, unsigned int wdId, WD *wd ) = 0;
+            virtual void doStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, std::size_t count, std::size_t ld, DeviceOps *ops, unsigned int wdId, WD *wd ) = 0;
          };
          class CopyIn : public Op {
             public:
             CopyIn( RegionCache &parent ) : Op( parent ) {}
-            void doNoStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, DeviceOps *ops, unsigned int wdId ) ;
-            void doStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, std::size_t count, std::size_t ld, DeviceOps *ops, unsigned int wdId ) ;
+            void doNoStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, DeviceOps *ops, unsigned int wdId, WD *wd ) ;
+            void doStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, std::size_t count, std::size_t ld, DeviceOps *ops, unsigned int wdId, WD *wd ) ;
          } _copyInObj;
          class CopyOut : public Op {
             public:
             CopyOut( RegionCache &parent ) : Op( parent ) {}
-            void doNoStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, DeviceOps *ops, unsigned int wdId ) ;
-            void doStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, std::size_t count, std::size_t ld, DeviceOps *ops, unsigned int wdId ) ;
+            void doNoStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, DeviceOps *ops, unsigned int wdId, WD *wd ) ;
+            void doStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, std::size_t count, std::size_t ld, DeviceOps *ops, unsigned int wdId, WD *wd ) ;
          } _copyOutObj;
-         void doOp( Op *opObj, Region const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, unsigned int wdId ); 
+         void doOp( Op *opObj, Region const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, unsigned int wdId, WD *wd ); 
 
       public:
          RegionCache() : _copyInObj( *this ), _copyOutObj( *this ) { }
@@ -196,28 +196,30 @@ namespace nanos {
          void putRegion( CopyData const &d, Region const &r );
          void syncRegion( Region const &r ) ;
          void syncRegion( std::list<Region> const &regions ) ;
+         void syncRegion( std::list<Region> const &regions, DeviceOps *ops, WD *wd ) ;
          void discardRegion( CopyData const &d, Region const &r );
          void setDevice( Device *d );
          void setPE( ProcessingElement *pe );
          unsigned int getMemorySpaceId();
          /* device stubs */
-         void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId );
-         void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, DeviceOps *ops );
-         void _syncAndCopyIn( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId );
-         void _copyDevToDev( unsigned int copyFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId );
-         void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, unsigned int wdId );
-         void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops );
-         void _syncAndCopyInStrided1D( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, unsigned int wdId );
-         void _copyDevToDevStrided1D( unsigned int copyFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, unsigned int wdId );
+         void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId, WD *wd );
+         void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, DeviceOps *ops, unsigned int wdId, WD *wd );
+         void _syncAndCopyIn( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId, WD *wd );
+         void _copyDevToDev( unsigned int copyFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId, WD *wd );
+         void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, unsigned int wdId, WD *wd );
+         void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, unsigned int wdId, WD *wd );
+         void _syncAndCopyInStrided1D( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, unsigned int wdId, WD *wd );
+         void _copyDevToDevStrided1D( unsigned int copyFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, unsigned int wdId, WD *wd );
          /* *********** */
-         void copyIn( Region const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, unsigned int wdId ); 
-         void copyOut( Region const &hostMem, uint64_t devBaseAddr, DeviceOps *ops, unsigned int wdId ); 
+         void copyIn( Region const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, unsigned int wdId, WD *wd ); 
+         void copyOut( Region const &hostMem, uint64_t devBaseAddr, DeviceOps *ops, unsigned int wdId, WD *wd ); 
          void lock();
          void unlock();
          bool tryLock();
          bool canCopyFrom( RegionCache const &from ) const;
          Device const *getDevice() const;
          unsigned int getNodeNumber() const;
+         ProcessingElement *getPE() { return _pe; }
    };
 
    class CacheCopy {
@@ -240,6 +242,7 @@ namespace nanos {
       // affinity private:
       public:
          unsigned int _wdId;
+         WD *_wd;
          unsigned int _numCopies;
          CacheCopy *_cacheCopies;
          RegionCache *_targetCache;  
@@ -249,7 +252,7 @@ namespace nanos {
       public:
          CacheControler();
          bool isCreated() const;
-         void preInit( NewRegionDirectory *dir, std::size_t numCopies, CopyData *copies, unsigned int wdId );
+         void preInit( NewRegionDirectory *dir, std::size_t numCopies, CopyData *copies, unsigned int wdId, WD *wd );
          void copyDataIn( RegionCache *targetCache );
          void copyDataInNoCache();
          bool dataIsReady() const;

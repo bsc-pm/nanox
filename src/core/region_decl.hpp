@@ -105,6 +105,8 @@ namespace nanos
       //! \brief Set the index of the first bit
       void setFirstBit(int firstBit)
          { m_firstBit = firstBit; }
+
+      bitfield_t getMask() const { return m_mask; }
       
       //! \brief Append a bit
       void addBit(bool mask, bool value)

@@ -97,6 +97,7 @@ namespace ext {
             std::size_t ld;
             void *tmpBuffer;
             unsigned int wdId;
+            WD* wd;
          };
          static std::list<struct putReqDesc * > _putReqs;
          static std::list<struct putReqDesc * > _delayedPutReqs;
@@ -120,7 +121,7 @@ namespace ext {
          static std::size_t txBytes;
          static std::size_t _totalBytes;
          
-         static std::list< void * > _freeBufferReqs;
+         static std::list< std::pair< void *, WD * > > _freeBufferReqs;
          static Lock _freeBufferReqsLock;
          static std::list< std::pair<void *, unsigned int> > _workDoneReqs;
          static Lock _workDoneReqsLock;
@@ -167,8 +168,8 @@ namespace ext {
          void sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, std::size_t argSize, char * arg, void ( *xlate ) ( void *, void * ), int arch, void *wd );
          void sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr, int peId);
          static void _sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr, int peId);
-         void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId );
-         void putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId );
+         void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD * wd );
+         void putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD * wd );
          void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size );
          void getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64_t remoteTag, uint64_t remoteAddr, std::size_t size, std::size_t count, std::size_t ld, volatile int *requestComplete );
          void malloc ( unsigned int remoteNode, std::size_t size, void *waitObjAddr );
@@ -177,8 +178,8 @@ namespace ext {
          void nodeBarrier( void );
          
          void sendMyHostName( unsigned int dest );
-         void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId );
-         void sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId );
+         void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD * );
+         void sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD *wd );
          void setMasterDirectory(Directory *dir);
          void setNewMasterDirectory(NewRegionDirectory *dir);
          std::size_t getMaxGetStridedLen() const;
@@ -191,21 +192,21 @@ namespace ext {
       private:
          static void getDataFromDevice( uint64_t addr, std::size_t len );
          static void invalidateDataFromDevice( uint64_t addr, std::size_t len );
-         void _put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, void *remoteTmpBuffer, unsigned int wdId );
-         void _putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, void *remoteTmpBuffer, unsigned int wdId );
-         static void enqueuePutReq( unsigned int dest, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *tmpBuffer, unsigned int wdId );
-         static void enqueueDelayedPutReq( unsigned int dest, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *tmpBuffer, unsigned int wdId );
+         void _put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, void *remoteTmpBuffer, unsigned int wdId, WD *wd );
+         void _putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, void *remoteTmpBuffer, unsigned int wdId, WD *wd );
+         static void enqueuePutReq( unsigned int dest, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *tmpBuffer, unsigned int wdId, WD *wd );
+         static void enqueueDelayedPutReq( unsigned int dest, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *tmpBuffer, unsigned int wdId, WD *wd );
          static void enqueueDelayedGet( unsigned int dest, void *origTag, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *waitObj );
          static void delayAmGet( unsigned int dest, void *origTag, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *waitObj ) ;
          void checkForPutReqs();
          static void sendWaitForRequestPut( unsigned int dest, uint64_t addr );
          static void print_copies( WD *wd, int deps );
          static void releaseWDsFromDataDep( void *addr );
-         static void enqueueFreeBufferNotify( void *bufferAddr );
+         static void enqueueFreeBufferNotify( void *bufferAddr, WD *wd );
          static void checkForFreeBufferReqs();
          static void checkWorkDoneReqs();
          static void checkDeferredWorkReqs();
-         static void sendFreeTmpBuffer( void *addr );
+         static void sendFreeTmpBuffer( void *addr, WD *wd );
 
          // Active Message handlers
          static void amFinalize( gasnet_token_t token );
@@ -246,6 +247,8 @@ namespace ext {
                gasnet_handlerarg_t totalLenLo,
                gasnet_handlerarg_t totalLenHi,
                gasnet_handlerarg_t wdId,
+               gasnet_handlerarg_t wdLo,
+               gasnet_handlerarg_t wdHi,
                gasnet_handlerarg_t first,
                gasnet_handlerarg_t last);
          static void amGet( gasnet_token_t token,
@@ -283,6 +286,8 @@ namespace ext {
                gasnet_handlerarg_t lenLo,
                gasnet_handlerarg_t lenHi,
                gasnet_handlerarg_t wdId,
+               gasnet_handlerarg_t wdLo,
+               gasnet_handlerarg_t wdHi,
                gasnet_handlerarg_t dst );
          static void amRequestPutStrided1D( gasnet_token_t token,
                gasnet_handlerarg_t destAddrLo,
@@ -296,13 +301,17 @@ namespace ext {
                gasnet_handlerarg_t count,
                gasnet_handlerarg_t ld,
                gasnet_handlerarg_t wdId,
+               gasnet_handlerarg_t wdLo,
+               gasnet_handlerarg_t wdHi,
                gasnet_handlerarg_t dst );
          static void amWaitRequestPut( gasnet_token_t token, 
                gasnet_handlerarg_t addrLo,
                gasnet_handlerarg_t addrHi );
          static void amFreeTmpBuffer( gasnet_token_t token, 
                gasnet_handlerarg_t addrLo,
-               gasnet_handlerarg_t addrHi );
+               gasnet_handlerarg_t addrHi,
+               gasnet_handlerarg_t wdLo,
+               gasnet_handlerarg_t wdHi );
          static void amPutStrided1D( gasnet_token_t token,
                void *buf,
                std::size_t len,
@@ -313,6 +322,8 @@ namespace ext {
                gasnet_handlerarg_t count,
                gasnet_handlerarg_t ld,
                gasnet_handlerarg_t wdId,
+               gasnet_handlerarg_t wdLo,
+               gasnet_handlerarg_t wdHi,
                gasnet_handlerarg_t firstMsg,
                gasnet_handlerarg_t lastMsg );
          static void amGetStrided1D( gasnet_token_t token,
@@ -328,6 +339,11 @@ namespace ext {
                gasnet_handlerarg_t ld,
                gasnet_handlerarg_t waitObjLo,
                gasnet_handlerarg_t waitObjHi );
+         static void amGetReplyStrided1D( gasnet_token_t token,
+               void *buf,
+               std::size_t len,
+               gasnet_handlerarg_t waitObjLo,
+               gasnet_handlerarg_t waitObjHi);
    };
 }
 }

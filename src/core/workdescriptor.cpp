@@ -56,14 +56,62 @@ void WorkDescriptor::init ()
       //   }
       //}
       
+      _notifyThread = myThread;
       pe->copyDataIn( *this );
-      if ( _notifyCopy != NULL ) _notifyCopy( *this, *myThread );
+      //this->notifyCopy();
 
       if ( _translateArgs != NULL ) {
          _translateArgs( _data, this );
       }
    }
    setStart();
+}
+
+void WorkDescriptor::initWithPE ( ProcessingElement *pe )
+{
+   if ( _state != INIT ) return;
+
+   /* Initializing instrumentation context */
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdCreate( this ) );
+  
+   //message("init wd " << getId() );
+   //if ( getNewDirectory() == NULL )
+   //   initNewDirectory();
+   //getNewDirectory()->setParent( ( getParent() != NULL ) ? getParent()->getNewDirectory() : NULL );   
+
+   if ( getNumCopies() > 0 ) {
+      
+      //CopyData *copies = getCopies();
+      //for ( unsigned int i = 0; i < getNumCopies(); i++ ) {
+      //   CopyData & cd = copies[i];
+      //   if ( !cd.isPrivate() ) {
+      //      //message("[n:" << sys.getNetwork()->getNodeNum() << "] WD "<< getId() << " init DA["<< i << "]: addr is " << (void *) cd.getDataAccess()->address );
+      //      //DataAccess d( cd.getDataAccess()->address, cd.getDataAccess()->flags.input ,cd.getDataAccess()->flags.output, cd.getDataAccess()->flags.can_rename,
+      //      //   cd.getDataAccess()->flags.commutative, cd.getDataAccess()->dimension_count, cd.getDataAccess()->dimensions);
+      //      //  Region reg = NewRegionDirectory::build_region( d );
+      //      //  message("region is " << reg);
+      //      //  getNewDirectory()->registerAccess( reg, cd.isInput(), cd.isOutput(), pe->getMemorySpaceId() );
+      //   }
+      //}
+      
+      _notifyThread = pe->getFirstThread();
+      pe->copyDataIn( *this );
+      //this->notifyCopy();
+
+      if ( _translateArgs != NULL ) {
+         _translateArgs( _data, this );
+      }
+   }
+   setStart();
+}
+
+
+void WorkDescriptor::notifyCopy()
+{
+   if ( _notifyCopy != NULL ) {
+      //std::cerr << " WD " << getId() << " GONNA CALL THIS SHIT IF POSSIBLE: " << (void *)_notifyCopy << " ARG IS THD "<< _notifyThread->getId() << std::endl;
+      _notifyCopy( *this, *_notifyThread );
+   }
 }
 
 void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
@@ -74,8 +122,9 @@ void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
    
    ProcessingElement *pe = myThread->runningOn();
 
-   if ( getNumCopies() > 0 )
+   if ( getNumCopies() > 0 ) {
       pe->waitInputs( *this );
+   }
 
    //if ( getNumCopies() > 0 ) {
    //   if ( _ccontrol.dataIsReady() ) {
@@ -138,7 +187,7 @@ void WorkDescriptor::submit( void )
    if ( getNewDirectory() == NULL )
       initNewDirectory();
    getNewDirectory()->setParent( ( getParent() != NULL ) ? getParent()->getNewDirectory() : NULL );   
-   _ccontrol.preInit( getNewDirectory(), getNumCopies(), getCopies(), getId() );
+   _ccontrol.preInit( getNewDirectory(), getNumCopies(), getCopies(), getId(), this );
    Scheduler::submit( *this );
 } 
 

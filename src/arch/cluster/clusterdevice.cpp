@@ -35,7 +35,9 @@ void * ClusterDevice::allocate( size_t size, ProcessingElement *pe )
    ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
    void *retAddr = NULL;
 
+   //std::cerr << node->getNodeNum() << " Alloc of " << size << " ( " << (void *) size << " ) " << std::endl;
    retAddr = node->getAllocator().allocate( size );
+   //std::cerr << node->getNodeNum() << " res is " << (void *) retAddr << std::endl;
    //retAddr = sys.getNetwork()->malloc( node->getClusterNodeNum(), size );
    return retAddr;
 }
@@ -87,26 +89,29 @@ void ClusterDevice::syncTransfer ( uint64_t address, ProcessingElement *pe )
 {
 }
 
-void ClusterDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId ) {
+void ClusterDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId, WD *wd ) {
    ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
-   sys.getNetwork()->put( node->getClusterNodeNum(),  devAddr, ( void * ) hostAddr, len, wdId );
+   //std::cerr << __FUNCTION__ << std::endl;
+   sys.getNetwork()->put( node->getClusterNodeNum(),  devAddr, ( void * ) hostAddr, len, wdId, wd );
    ops->completeOp();
 }
-void ClusterDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops ) {
+void ClusterDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId, WD *wd ) {
    ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
    sys.getNetwork()->get( ( void * ) hostAddr, node->getClusterNodeNum(), devAddr, len );
    ops->completeOp();
 }
-void ClusterDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, ProcessingElement *peDest, ProcessingElement *peOrig, DeviceOps *ops, unsigned int wdId ) {
+void ClusterDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, ProcessingElement *peDest, ProcessingElement *peOrig, DeviceOps *ops, unsigned int wdId, WD *wd ) {
    //ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
-   sys.getNetwork()->sendRequestPut( ((ClusterNode *) peOrig)->getClusterNodeNum(), devOrigAddr, ((ClusterNode *) peDest)->getClusterNodeNum(), devDestAddr, len, wdId );
+   sys.getNetwork()->sendRequestPut( ((ClusterNode *) peOrig)->getClusterNodeNum(), devOrigAddr, ((ClusterNode *) peDest)->getClusterNodeNum(), devDestAddr, len, wdId, wd );
    ops->completeOp();
 }
-void ClusterDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId ) {
+void ClusterDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId, WD *wd ) {
    char * hostAddrPtr = (char *) hostAddr;
    //
    NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_PACK); );
+   //std::cerr << "getting addr-..."<< std::endl;
    char * packedAddr = (char *) _packer.give_pack( hostAddr, len, count );
+   //std::cerr << "getting addr- done" <<std::endl;
    //std::cerr << __FUNCTION__ << " host addr is "<< (void *) hostAddr << " len is " << len << " count "<< count << " got packed data "<< ((void *) packedAddr) << " devAddr " << (void *) devAddr  << std::endl;
    if ( packedAddr != NULL) { 
       for ( unsigned int i = 0; i < count; i += 1 ) {
@@ -119,43 +124,68 @@ void ClusterDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::
    NANOS_INSTRUMENT( inst2.close(); );
    ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
    //sys.getNetwork()->put( node->getClusterNodeNum(),  devAddr, ( void * ) hostAddr, len, wdId );
-   sys.getNetwork()->putStrided1D( node->getClusterNodeNum(),  devAddr, ( void * ) hostAddr, packedAddr, len, count, ld, wdId );
+   //std::cerr <<"put Strided 1D" <<std::endl;
+   sys.getNetwork()->putStrided1D( node->getClusterNodeNum(),  devAddr, ( void * ) hostAddr, packedAddr, len, count, ld, wdId, wd );
    _packer.free_pack( hostAddr, len, count );
    ops->completeOp();
 }
-void ClusterDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement *pe, DeviceOps *ops ) {
+void ClusterDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId, WD *wd ) {
    char * hostAddrPtr = (char *) hostAddr;
    ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
-   //std::cerr << __FUNCTION__ << std::endl;
+   //std::cerr << __FUNCTION__ << " for WD " << wdId << " hostAddr " << (void *)hostAddr << std::endl;
 
    std::size_t maxCount = ( ( len * count ) <= sys.getNetwork()->getMaxGetStridedLen() ) ?
       count : ( sys.getNetwork()->getMaxGetStridedLen() / len );
    //std::size_t maxRequestedSize = maxCount * len;
 
-   char * packedAddr = (char *) _packer.give_pack( hostAddr, len, count );
+   //char * packedAddr = (char *) _packer.give_pack( hostAddr, len, count );
    //std::cerr  <<"get strided: host addr "<< (void *) hostAddr << " devAddr " << (void *) devAddr<< " get's " << maxCount<< std::endl;
 
+   // FIXME: check if maxCount can copy more data on the last iteration
+   if ( maxCount != count ) std::cerr <<"WARNING: maxCount("<< maxCount << ") != count(" << count <<")"<<std::endl;
    for ( unsigned int i = 0; i < count; i += maxCount ) {
-      //char * packedAddr = (char *) _packer.give_pack( hostAddr, len, count );
+      char * packedAddr = (char *) _packer.give_pack( hostAddr, len, maxCount );
       if ( packedAddr != NULL) { 
-         volatile int req = 0;
-         volatile int *reqPtr = &req;
-
-         sys.getNetwork()->getStrided1D( packedAddr, node->getClusterNodeNum(), devAddr, devAddr + ( i * ld ), len, maxCount, ld, &req );
-         while ( *reqPtr == 0 );// sys.getNetwork()->poll( 0 );
-         
-         for ( unsigned int j = 0; j < count; j += 1 ) {
-            ::memcpy( &hostAddrPtr[ ( j + i ) * ld ], &packedAddr[ j * len ], len );
-         }
+         GetRequestStrided *newreq = NEW GetRequestStrided( &hostAddrPtr[ i * ld ] , len, maxCount, ld, packedAddr, ops, &_packer );
+   //std::cerr << "add request to thd " << myThread->getId() << std::endl; 
+   myThread->_pendingRequests.insert( newreq );
+         //volatile int req = 0;
+         //volatile int *reqPtr = &req;
+         ops->addOp();
+         //std::cerr << "send request "<< ops;
+         sys.getNetwork()->getStrided1D( packedAddr, node->getClusterNodeNum(), devAddr, devAddr + ( i * ld ), len, maxCount, ld, (volatile int *) newreq );
+         //sys.getNetwork()->getStrided1D( packedAddr, node->getClusterNodeNum(), devAddr, devAddr + ( i * ld ), len, maxCount, ld, reqPtr );
+         //while ( *reqPtr == 0 );// sys.getNetwork()->poll( 0 );
+         //newreq->clear();
+         //
+         //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_UNPACK); );
+         //for ( unsigned int j = 0; j < count; j += 1 ) {
+         //   ::memcpy( &hostAddrPtr[ ( j + i ) * ld ], &packedAddr[ j * len ], len );
+         //}
+         //NANOS_INSTRUMENT( inst2.close(); );
       } else { std::cerr << "copyOutStrdided ERROR!!! could not get a packet to gather data." << std::endl; }
    }
 
-   _packer.free_pack( hostAddr, len, count );
-   ops->completeOp();
+   //_packer.free_pack( hostAddr, len, count );
+   //ops->completeOp();
 }
-void ClusterDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement *peDest, ProcessingElement *peOrig, DeviceOps *ops, unsigned int wdId ) {
+void ClusterDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement *peDest, ProcessingElement *peOrig, DeviceOps *ops, unsigned int wdId, WD *wd ) {
    //std::cerr << __FUNCTION__ << std::endl;
    //ClusterNode *node = dynamic_cast< ClusterNode * >( peOrig );
-   sys.getNetwork()->sendRequestPutStrided1D( ((ClusterNode *) peOrig)->getClusterNodeNum(), devOrigAddr, ((ClusterNode *) peDest)->getClusterNodeNum(), devDestAddr, len, count, ld, wdId );
+   sys.getNetwork()->sendRequestPutStrided1D( ((ClusterNode *) peOrig)->getClusterNodeNum(), devOrigAddr, ((ClusterNode *) peDest)->getClusterNodeNum(), devDestAddr, len, count, ld, wdId, wd );
    ops->completeOp();
+}
+
+
+
+void ClusterDevice::GetRequestStrided::clear() {
+   //std::cerr <<"clear request "<< (void*) _ops << std::endl;
+   NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_UNPACK); );
+   for ( unsigned int j = 0; j < _count; j += 1 ) {
+      ::memcpy( &_hostAddr[ j  * _ld ], &_recvAddr[ j * _size ], _size );
+   }
+   NANOS_INSTRUMENT( inst2.close(); );
+   _packer->free_pack( (uint64_t) _hostAddr, _size, _count );
+   _ops->completeOp();
+   //std::cerr <<"clear request "<< (void*) _ops << std::endl;
 }

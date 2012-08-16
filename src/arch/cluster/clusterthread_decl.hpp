@@ -25,7 +25,7 @@
 //#include "clusternode.hpp"
 #include <queue>
 
-#define MAX_PRESEND 64
+#define MAX_PRESEND 1024
 
 namespace nanos {
 namespace ext

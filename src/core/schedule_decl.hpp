@@ -48,6 +48,7 @@ namespace nanos
 
       public:
          static void preOutlineWork ( WD *work );
+         static void preOutlineWorkWithThread ( BaseThread *thread, WD *work );
          static void postOutlineWork ( WD *work, bool schedule, BaseThread *owner );
          static void inlineWork ( WD *work, bool schedule = false );
 
@@ -221,6 +222,7 @@ namespace nanos
          virtual WD * atYield       ( BaseThread *thread, WD *current);
          virtual WD * atWakeUp      ( BaseThread *thread, WD &wd );
          virtual WD * atPrefetch    ( BaseThread *thread, WD &current );
+         virtual void atSupport     ( BaseThread *thread );
 
          virtual void queue ( BaseThread *thread, WD &wd )  = 0;
          

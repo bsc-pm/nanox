@@ -79,6 +79,7 @@ void ProcessingElement::copyDataOut( WorkDescriptor &work )
 
 void ProcessingElement::waitInputs( WorkDescriptor &work )
 {
+   BaseThread * thread = getMyThreadSafe();
    //Directory *dir = work.getParent()->getDirectory(false);
    //if ( dir != NULL ) {
    //   CopyData *copies = work.getCopies();
@@ -89,6 +90,10 @@ void ProcessingElement::waitInputs( WorkDescriptor &work )
    //      }
    //   }
    //}
+    while ( !work._ccontrol.dataIsReady() ) { 
+       thread->idle();
+         thread->getTeam()->getSchedulePolicy().atSupport( thread ); 
+    }
 }
 
 BaseThread& ProcessingElement::startWorker ( ext::SMPMultiThread *parent )

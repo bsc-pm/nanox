@@ -279,6 +279,7 @@ inline void Scheduler::idleLoop ()
       }
       else {
          thread->idle();
+         if ( sys.getNetwork()->getNodeNum() > 0 ) { sys.getNetwork()->poll(0); }
       }
    }
    sys.getSchedulerStats()._idleThreads--;
@@ -556,7 +557,7 @@ void Scheduler::workerClusterLoop ()
 
       if ( parent != myThread ) // if parent == myThread, then there are no "soft" threads and just do nothing but polling.
       {
-         ext::ClusterThread *myClusterThread = dynamic_cast< ext::ClusterThread * >( myThread );
+         ext::ClusterThread * volatile myClusterThread = dynamic_cast< ext::ClusterThread * >( myThread );
          ext::ClusterNode *thisNode = dynamic_cast< ext::ClusterNode * >( myThread->runningOn() );
          thisNode->disableDevice( 1 ); 
          if ( ( (int) myClusterThread->numRunningWDsSMP() ) < ext::ClusterInfo::getSmpPresend() )
@@ -577,14 +578,18 @@ void Scheduler::workerClusterLoop ()
             ////		std::cerr << "Data can block me AGAIN SMP (node " << thisNode->getClusterNodeNum() << ") task is " << wd->getId() <<std::endl;
             //}
             //else
+//std::cerr << "cleared stuff at thd "<<myClusterThread->getId()  << std::endl;
             {
                WD * wd = getClusterWD( myThread, 0 );
                if ( wd )
                {
                   if ( /*!wd->canBeBlocked()*/ true ) 
                   {
+//std::cerr << "got a new wd "<<myClusterThread->getId()  << std::endl;
                      myClusterThread->addRunningWDSMP( wd );
+//std::cerr << "add running wd  "<<myClusterThread->getId()  << std::endl;
                      Scheduler::preOutlineWork(wd);
+//std::cerr << "preoutline work done  "<<myClusterThread->getId()  << std::endl;
                      myThread->outlineWorkDependent(*wd);
                   }
                   else
@@ -595,7 +600,7 @@ void Scheduler::workerClusterLoop ()
                   }
                }
             }
-         }
+         } else { std::cerr << "Max presend reached "<<myClusterThread->getId()  << std::endl; }
          //if ( myClusterThread->areThereCompletedWDsSMP() )
          //{
          //   WD *completedWD = myClusterThread->fetchCompletedWDSMP();
@@ -655,6 +660,7 @@ void Scheduler::workerClusterLoop ()
 #endif
       }
       sys.getNetwork()->poll(parent->getId());
+//if ( sys.getNetwork()->getNodeNum() == 0 ) std::cerr << "thread change! " << std::endl;
       myThread = myThread->getNextThread();
    }
 }
@@ -694,6 +700,40 @@ struct WorkerBehaviour
 void Scheduler::workerLoop ()
 {
    idleLoop<WorkerBehaviour>();
+}
+
+void Scheduler::preOutlineWorkWithThread ( BaseThread * thread, WD *wd )
+{
+   NANOS_INSTRUMENT( InstrumentState inst2(NANOS_PRE_OUTLINE_WORK); );
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t copy_data_in_key = ID->getEventKey("copy-data-in"); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( copy_data_in_key, (nanos_event_value_t) wd->getId() ); )
+   //std::cerr << "starting WD " << wd->getId() << " at thd " << thread->getId() << " thd addr " << thread << std::endl; 
+   // run it in the current frame
+   //WD *oldwd = thread->getCurrentWD();
+
+   //GenericSyncCond *syncCond = oldwd->getSyncCond();
+   //if ( syncCond != NULL ) {
+   //   syncCond->unlock();
+   //}
+
+   //std::cerr << "thd " << myThread->getId() <<  " switching(outlined) to task " << wd << ":" << wd->getId() << std::endl;
+   debug( "switching(pre outline) from task " << &(thread->getThreadWD()) << ":" << thread->getThreadWD().getId() << " to " << wd << ":" << wd->getId() );
+
+   //NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldwd, NULL, false) );
+
+   // OLD: This ensures that when we return from the inlining is still the same thread
+   // OLD: and we don't violate rules about tied WD
+
+   // we tie to when outlining, because we will notify the tied thread when the execution completes
+   wd->tieTo( *thread );
+   thread->setCurrentWD( *wd );
+   if (!wd->started())
+      wd->init();
+
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key ); )
+   //NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
+   NANOS_INSTRUMENT( inst2.close(); );
 }
 
 void Scheduler::preOutlineWork ( WD *wd )
@@ -758,6 +798,7 @@ void Scheduler::postOutlineWork ( WD *wd, bool schedule, BaseThread *owner )
 
    thread->setCurrentWD( thread->getThreadWD() );
 
+   //std::cerr << "completed WD " << wd->getId() << " at thd " << owner->getId() << " thd addr " << owner << std::endl; 
    //NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, oldwd, false) );
 
    // While we tie the inlined tasks this is not needed

@@ -77,7 +77,7 @@ System::System () :
       _schedStats(), _schedConf(), _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ),_pausedThreads( 0 ), _pausedThreadsCond(), _unpausedThreadsCond(),
-      _usingCluster( false ), _usingNode2Node( true ), _conduit( "udp" ),
+      _usingCluster( false ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _pmInterface( NULL ),
       _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap(), _masterGpuThd( NULL ),_regCaches(1024)
 #ifdef GPU_DEV
@@ -295,6 +295,8 @@ void System::config ()
 
    cfg.registerConfigOption ( "no-node2node", NEW Config::FlagOption ( _usingNode2Node, false ), "Disables the usage of Slave-to-Slave transfers" );
    cfg.registerArgOption ( "no-node2node", "disable-node2node" );
+   cfg.registerConfigOption ( "no-pack", NEW Config::FlagOption ( _usingPacking, false ), "Disables the usage of packing and unpacking of strided transfers" );
+   cfg.registerArgOption ( "no-pack", "disable-packed-copies" );
 
    /* Cluster: select wich module to load mpi or udp */
    cfg.registerConfigOption ( "conduit", NEW Config::StringVar ( _conduit ), "Selects which GasNet conduit will be used" );
@@ -391,7 +393,7 @@ void System::start ()
 #ifdef CLUSTER_DEV
    if ( usingCluster() )
    {
-      int effectivePes = ( _net.getNodeNum() == 0 && numPes == 4 ) ? numPes - 1 : numPes;
+      int effectivePes = numPes;
       for ( p = 1; p < effectivePes; p++ ) {
          pe = createPE ( "smp", p );
          _pes.push_back ( pe );
@@ -453,10 +455,20 @@ void System::start ()
    if ( usingCluster() && _net.getNumNodes() > 1)
    {
       PE * smpRep = createPE ( "smp", p );
+      //PE * smpRep1 = createPE ( "smp", p );
       _pes.push_back( smpRep );
+      //_pes.push_back( smpRep1 );
       if ( _net.getNodeNum() == 0 )
       {
          unsigned int nodeC;
+
+         //  EXTRA THD _preMainBarrier++;
+         //  EXTRA THD ext::SMPMultiThread *smpRepThd1 = dynamic_cast<ext::SMPMultiThread *>( &smpRep1->startMultiWorker( 0, NULL ) );
+         //  EXTRA THD if ( _pmInterface->getInternalDataSize() > 0 )
+         //  EXTRA THD    smpRepThd1->getThreadWD().setInternalData(NEW char[_pmInterface->getInternalDataSize()]);
+         //  EXTRA THD _pmInterface->setupWD( smpRepThd1->getThreadWD() );
+         //  EXTRA THD _workers.push_back( smpRepThd1 ); 
+         //  EXTRA THD //_net.setMasterDirectory( smpRepThd->getThreadWD().getDirectory(true) );
 
          PE *_peArray[ _net.getNumNodes() - 1];
          for ( nodeC = 1; nodeC < _net.getNumNodes(); nodeC++ ) {
@@ -478,6 +490,7 @@ void System::start ()
          //_net.setMasterDirectory( mainWD.getDirectory(true) );
          //mainWD.initNewDirectory();
          _net.setNewMasterDirectory( mainWD.getNewDirectory() );
+
       }
       else
       {
@@ -488,6 +501,13 @@ void System::start ()
          _pmInterface->setupWD( smpRepThd->getThreadWD() );
          _workers.push_back( smpRepThd ); 
          //_net.setMasterDirectory( smpRepThd->getThreadWD().getDirectory(true) );
+         //  EXTRA THD _preMainBarrier++;
+         //  EXTRA THD ext::SMPMultiThread *smpRepThd1 = dynamic_cast<ext::SMPMultiThread *>( &smpRep1->startMultiWorker( 0, NULL ) );
+         //  EXTRA THD if ( _pmInterface->getInternalDataSize() > 0 )
+         //  EXTRA THD    smpRepThd1->getThreadWD().setInternalData(NEW char[_pmInterface->getInternalDataSize()]);
+         //  EXTRA THD _pmInterface->setupWD( smpRepThd1->getThreadWD() );
+         //  EXTRA THD _workers.push_back( smpRepThd1 ); 
+         //  EXTRA THD //_net.setMasterDirectory( smpRepThd1->getThreadWD().getDirectory(true) );
          _net.setNewMasterDirectory( mainWD.getNewDirectory() );
          setSlaveParentWD( &mainWD );
          if ( nanos::ext::GPUConfig::getGPUCount() > 0 ) {
@@ -645,7 +665,7 @@ void System::finish ()
       team->removeThread( t );
       pThread->leaveTeam();
    }
-   delete team;
+   // FIXME sigsegv delete team;
 
    // join
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {

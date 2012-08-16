@@ -43,9 +43,24 @@
 #include "regiondirectory.hpp"
 #include "atomic.hpp"
 #include "os.hpp"
+#include "workdescriptor_decl.hpp"
 
 using namespace nanos;
 
+         void NewDirectoryEntryData::addAccess( int id, uint64_t address, unsigned int version ) {
+            if ( version > _version ) {
+               _location.clear();
+               setWriteLocation( id );
+            } else {
+               // XXX notify an addition
+               //std::cerr << " ++++++++++++++++++++++ MMMH " << _listeners.size() << std::endl;
+               for ( std::set< WD * >::iterator it = _listeners.begin(); it != _listeners.end(); it++ ) {
+                  std::cerr << "I have to notify wd " << (*it)->getId() << " that i have accessed this "<< std::endl;
+               }
+            }
+            _version = version;
+            _location.insert( LocationEntry( id, address ) );
+         }
 NewRegionDirectory::NewRegionDirectory() : _directory(), _parent(NULL), _mergeLock(), _outputMergeLock() {}
 
 NewRegionDirectory *NewRegionDirectory::_root = NULL;
@@ -70,10 +85,11 @@ void NewRegionDirectory::insertRegionIntoTree( RegionTree<NewDirectoryEntryData>
       RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
       NewDirectoryEntryData &nded = *accessor;
       if ( setLoc ) {
-         //std::cerr << "added loc "<< memorySpaceId << " version " << version << std::endl;
+         //if(sys.getNetwork()->getNodeNum() == 0 && reg.getMask() == 0xfffffffffe000000 ) std::cerr << "added loc "<< memorySpaceId << " version " << version << " to dir " << &dir << std::endl;
          nded.addAccess( memorySpaceId, 0, version );
          //nded.setVersion( version );
       } else {
+         //if(sys.getNetwork()->getNodeNum() == 0 && reg.getMask() == 0xfffffffffe000000 )if ( nded.getVersion() == version ) { std::cerr << " have to merge from entry locs, addr " << (void *) reg.getFirstValue() << " to dir "<< &dir << std::endl; }
          nded.merge( ent );
       }
    }
@@ -140,18 +156,27 @@ void NewRegionDirectory::masterGetLocation( Region const &reg, LocationInfoList 
    //_mergeLock.release();
 }
 
-void NewRegionDirectory::getLocation( Region const &reg, LocationInfoList &loc, unsigned int &version )
+void NewRegionDirectory::getLocation( Region const &reg, LocationInfoList &loc, unsigned int &version, WD *wd )
 {
    bool skipParent = false;
    version = 0;
 
+   //bool track = false;
+   //{
+   //  unsigned int i;
+   //  for ( i = 0; i < wd->getNumCopies() && !track; i++ ) {
+   //    track = ( !wd->getCopies()[i].isOutput() && wd->getCopies()[i].isInput() && reg.getFirstValue() == (uint64_t) wd->getCopies()[i].getBaseAddress() );
+   //  }
+   //}
  //if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 ) std::cerr << " register Loc " << memorySpaceId << " " << reg << std::endl;
  //if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 ) { std::cerr << "this dir is " << &_inputDirectory << " parent is "  << ( ( _parent!= NULL) ? &(_parent->_directory) : NULL ) << std::endl;   }
 
    RegionTree<NewDirectoryEntryData>::iterator_list_t outs;
    RegionTree<NewDirectoryEntryData>::iterator_list_t outsParent;
+      //if ( track) std::cerr <<" track: check input "<< wd->getId() << std::endl;
    _inputDirectory.find( reg, outs );
    if ( outs.empty () ) {
+      //std::cerr <<"empty input dir " << wd->getId() << std::endl;
       //message("partial ERROR: invalid program! data spec not available.");
       //if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 )std::cerr << "+++++++++++++++++++++++++ "<< reg << " NO OUTS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "<<std::endl;
    } else {
@@ -188,12 +213,16 @@ void NewRegionDirectory::getLocation( Region const &reg, LocationInfoList &loc, 
 
    if ( !skipParent ) {
  ensure(_parent != NULL, "directory with unset parent.");
-   _parent->_mergeLock.acquire();
+      outs.clear();
+      _parent->_mergeLock.acquire();
+      //if ( track) std::cerr <<" track: check parent " << wd->getId() << std::endl;
       _parent->_directory.find( reg, outsParent );
       RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator mergeIt;
+      //std::cerr << "Entries from parent: " << outsParent.size() << std::endl;
       for ( mergeIt = outsParent.begin(); mergeIt != outsParent.end(); mergeIt++ )
          outs.push_back( *mergeIt ); //merge results from parent.
 
+      //std::cerr << "Entries in outs: " << outs.size() << std::endl;
       if ( outs.empty () ) {
          message("ERROR: invalid program! data spec not available at node " << sys.getNetwork()->getNodeNum());
          //if (sys.getNetwork()->getNodeNum() == 0)if(myThread->getId() == 0 )sys.printBt();
@@ -242,8 +271,12 @@ void NewRegionDirectory::getLocation( Region const &reg, LocationInfoList &loc, 
             RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
             NewDirectoryEntryData &nded = *accessor;
             //std::cerr << "Register dir, ret loc " << nded;
+      //if ( track) std::cerr <<" track: found parent " << wd->getId()<< std::endl;
             version = std::max( version, nded.getVersion() );
+            //std::cerr << "[parent used] WD " << wd->getId() <<" add region FV " << (void *)  accessor.getRegion().getFirstValue() << nded << std::endl;
             loc.push_back( std::make_pair( accessor.getRegion().intersect( reg ) , nded ) );
+            //nded.addListener( wd );
+   insertRegionIntoTree( _directory, accessor.getRegion(), /* not used */ 0, false, nded, /* not really used */ version );
          }
       }
       _parent->_mergeLock.release();
@@ -253,9 +286,12 @@ void NewRegionDirectory::getLocation( Region const &reg, LocationInfoList &loc, 
       for ( it = outs.begin() ; it != outs.end(); it++ ) {
          RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
          NewDirectoryEntryData &nded = *accessor;
+      //if ( track) std::cerr <<" track: found input mine "<< wd->getId() << std::endl;
          //std::cerr << "Register dir, ret loc " << nded;
          version = std::max( version, nded.getVersion() );
+            //std::cerr << "[parent not used] WD " << wd->getId() <<" add region FV " << (void *) accessor.getRegion().getFirstValue() << std::endl;
          loc.push_back( std::make_pair( accessor.getRegion().intersect( reg ) , nded ) );
+         //nded.addListener( wd );
       }
    }
 
@@ -296,9 +332,10 @@ void NewRegionDirectory::_internal_merge( RegionTree<NewDirectoryEntryData> cons
       NewDirectoryEntryData &nded = *accessor;
       n++;
 
-      //if(sys.getNetwork()->getNodeNum() > 0 )std::cerr << "::::::merge, insert region "<<  accessor.getRegion() << " locinfo: " << nded << std::endl;
+      //if(sys.getNetwork()->getNodeNum() == 0  && accessor.getRegion().getMask() == 0xfffffffffe000000 )std::cerr << "::::::merge into " << &targetDir <<", insert region "<<  accessor.getRegion() << " locinfo: " << nded << std::endl;
       insertRegionIntoTree( targetDir, accessor.getRegion(), /* not used */ 0, false, nded, 0 );
    }
+      //if(sys.getNetwork()->getNodeNum() > 0 )std::cerr << "::::::merge, num of regions inserted: "<< n << std::endl;
    //time4 = OS::getMonotonicTime();
    //if ( sys.getNetwork()->getNodeNum() == 0 && print ) {
    //fprintf(stderr, "---------------------\n");
@@ -314,11 +351,12 @@ void NewRegionDirectory::merge( const NewRegionDirectory &inputDir )
    //merge a predecessor wd (inputDir._directory) directory into mine (this._inputDirectory)
 
    //std::cerr << "merge Output Dir into my input (succsessor to me)"<< std::endl;
-   //if(sys.getNetwork()->getNodeNum() == 0)std::cerr << "merge " <<  &inputDir._directory << " into " << &_inputDirectory << std::endl;
-   //_mergeLock.acquire();
+   _mergeLock.acquire();
+   //if(sys.getNetwork()->getNodeNum() == 0)std::cerr << "merge " << &inputDir<< " into " << this << " inD "<< (void *) &_inputDirectory << std::endl;
    _internal_merge( inputDir._directory , _inputDirectory );
-   //_mergeLock.release();
-   //message("merge " << &inputDir << " to input directory " << (void *)&_inputDirectory<< " read from " << (void *)&inputDir._directory );
+   //if(sys.getNetwork()->getNodeNum() == 0)std::cerr << "merge Output Dir into my input (succsessor to me) COMPLETE "<< std::endl;
+   _mergeLock.release();
+   //message("DOME merge " << &inputDir << " to input directory " << (void *)&_inputDirectory<< " read from " << (void *)&inputDir._directory );
 }
 
 void NewRegionDirectory::mergeOutput( const NewRegionDirectory &inputDir )
@@ -380,14 +418,14 @@ void NewRegionDirectory::consolidate( bool flushData ) {
    Region r = build_region( DataAccess((void *) 0, true, true, false, false, 1, wholeMemDim ) );
    RegionTree<NewDirectoryEntryData>::iterator_list_t outs;
       //_inputDirectory.find( r, outs );
-      std::cerr <<"Consolidate dir... "<< std::endl;
+      //std::cerr <<"Consolidate dir... "<< std::endl;
       _directory.find( r, outs );
-      for (RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator it = outs.begin(); it != outs.end(); it++) {
-         RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
-         Region const &reg = accessor.getRegion();
-         std::cerr << (void *) reg.getFirstValue() << " ";
-      }
-      std::cerr << std::endl;
+      //for (RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator it = outs.begin(); it != outs.end(); it++) {
+      //   RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
+      //   Region const &reg = accessor.getRegion();
+      //   //std::cerr << (void *) reg.getFirstValue() << " ";
+      //}
+      //std::cerr << std::endl;
       for (RegionTree<NewDirectoryEntryData>::iterator_list_t::iterator it = outs.begin(); it != outs.end(); it++) {
          RegionTree<NewDirectoryEntryData>::iterator &accessor = *it;
          NewDirectoryEntryData &nded = *accessor;
@@ -405,7 +443,7 @@ void NewRegionDirectory::consolidate( bool flushData ) {
    
    //std::cerr << _directory << std::endl;
    //std::cerr << _inputDirectory << std::endl;
-   message( "consolidating directory... done " << (void *) &_directory  );
+   //message( "consolidating directory... done " << (void *) &_directory  );
 }
 
 void NewRegionDirectory::print() const {

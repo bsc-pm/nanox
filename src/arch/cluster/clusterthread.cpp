@@ -42,7 +42,7 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
 {
    unsigned int i;
    SMPDD &dd = ( SMPDD & )wd.getActiveDevice();
-   ProcessingElement *pe = myThread->runningOn();
+   ProcessingElement *pe = this->runningOn();
    if (dd.getWorkFct() == NULL ) return;
 
    wd.start(WorkDescriptor::IsNotAUserLevelThread);
@@ -181,10 +181,10 @@ void ClusterThread::clearCompletedWDsSMP2( ) {
 }
 void ClusterThread::completeWDSMP_2( void *remoteWdAddr ) {
    unsigned int realpos = _completedSMPHead++;
-   _numRunningSMP--;
    unsigned int pos = realpos %MAX_PRESEND;
    _completedWDsSMP[pos] = (WD *) remoteWdAddr;
    while( !_completedSMPHead2.cswap( realpos, realpos+1) ) {}
+   _numRunningSMP--;
 }
 
 void ClusterThread::addRunningWDGPU( WorkDescriptor *wd ) { 

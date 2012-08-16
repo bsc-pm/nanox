@@ -76,8 +76,8 @@ inline int DependableObject::increasePredecessors ( )
 
 inline int DependableObject::decreasePredecessors ( DependableObject *predecessor )
 {
-   int  numPred = --_numPredecessors; 
    if ( predecessor != NULL ) getWD()->predecessorFinished( predecessor->getWD() );
+   int  numPred = --_numPredecessors; 
    if ( numPred == 0 ) {
       if ( predecessor == NULL )getWD()->initMyGraphRepListNoPred();
       dependenciesSatisfied( );

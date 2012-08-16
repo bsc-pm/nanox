@@ -38,6 +38,22 @@ namespace nanos
    {
          Packer _packer;
       public:
+         struct GetRequestStrided {
+            volatile int _complete;
+            char* _hostAddr;
+            std::size_t _size;
+            std::size_t _count;
+            std::size_t _ld;
+            char* _recvAddr;
+            DeviceOps *_ops;
+            Packer *_packer;
+
+            GetRequestStrided( char* hostAddr, std::size_t size, std::size_t count, std::size_t ld, char *recvAddr, DeviceOps *ops, Packer *packer ) :
+               _complete(0), _hostAddr( hostAddr ), _size( size ), _count( count ), _ld( ld ), _recvAddr( recvAddr ), _ops( ops ), _packer( packer ) { }
+
+            void clear();
+         };
+
          /*! \brief ClusterDevice constructor
           */
          ClusterDevice ( const char *n ) : Device ( n ) {}
@@ -71,12 +87,12 @@ namespace nanos
             return mem;
          }
 
-         virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId ); 
-         virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops ); 
-         virtual void _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, ProcessingElement *peDest, ProcessingElement *peOri, DeviceOps *ops, unsigned int wdId );
-         virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId ); 
-         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement *pe, DeviceOps *ops ); 
-         virtual void _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement *peDest, ProcessingElement *peOri, DeviceOps *ops, unsigned int wdId );
+         virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId, WD *wd ); 
+         virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId, WD *wd ); 
+         virtual void _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, ProcessingElement *peDest, ProcessingElement *peOri, DeviceOps *ops, unsigned int wdId, WD *wd );
+         virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId, WD *wd ); 
+         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId, WD *wd ); 
+         virtual void _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement *peDest, ProcessingElement *peOri, DeviceOps *ops, unsigned int wdId, WD * );
    };
 
    extern ClusterDevice Cluster;

@@ -25,6 +25,7 @@
 #include <sched.h>
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
+#include "clusterdevice_decl.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -95,6 +96,28 @@ void SMPThread::yield()
 {
    if (sched_yield() != 0)
       warning("sched_yield call returned an error");
+}
+
+void SMPThread::idle()
+{
+   sys.getNetwork()->poll(0);
+
+   if ( !_pendingRequests.empty() ) {
+      std::set<void *>::iterator it = _pendingRequests.begin();
+      while ( it != _pendingRequests.end() ) {
+         volatile int *complete = (volatile int *) (*it);
+         if (*complete == 1) {
+            std::set<void *>::iterator toBeDeletedIt = it;
+            it++;
+            _pendingRequests.erase(toBeDeletedIt);
+            ext::ClusterDevice::GetRequestStrided *req = (ext::ClusterDevice::GetRequestStrided *) complete;
+            req->clear();
+            delete req;
+         } else {
+            it++;
+         }
+      }
+   }
 }
 
 // This is executed in between switching stacks

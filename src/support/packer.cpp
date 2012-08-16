@@ -32,15 +32,15 @@ void * Packer::give_pack( uint64_t addr, std::size_t len, std::size_t count ) {
             mapIterator previous = it;
             //std::map< PackInfo, void *>::iterator previous = it;
             previous--;
-            if ( previous->first.overlaps( addr ) ) {
-               std::cerr << "overlap with previous" << std::endl;
-            } else {
+            //if ( previous->first.overlaps( addr ) ) {
+            //   std::cerr << "overlap with previous" << std::endl;
+            //} else {
                if ( _allocator == NULL ) _allocator = sys.getNetwork()->getPackerAllocator();
                //_allocator->lock();
                result = _allocator->allocate( len * count );
                //_allocator->unlock();
                _packs.insert( it, std::make_pair( key, result ) );
-            }
+            //}
          } else { 
             //std::cerr << "begin chunk" << std::endl;
             if ( _allocator == NULL ) _allocator = sys.getNetwork()->getPackerAllocator();
@@ -57,10 +57,10 @@ void * Packer::give_pack( uint64_t addr, std::size_t len, std::size_t count ) {
          //_allocator->unlock();
          _packs.insert( it, std::make_pair( key, result ) );
       } else { /* eq addr, no size match*/
-         std::cerr << "equal addr, different size" << std::endl;
+         if (sys.getNetwork()->getNodeNum() == 0) std::cerr << "equal addr, different size" << std::endl;
       }
    } else { /* exact match */
-      std::cerr << "exact match chunk" << std::endl;
+      if (sys.getNetwork()->getNodeNum() == 0) std::cerr << "exact match chunk " << (void *) addr << " pack addr "<< it->second  << std::endl;
       result = it->second;
    }
    _lock.release();
@@ -72,7 +72,7 @@ void Packer::free_pack( uint64_t addr, std::size_t len, std::size_t count ) {
    PackInfo key( addr, len, count );
    _lock.acquire();
    mapIterator it = _packs.find( key );
-   //std::cerr <<"pack frees "<<  it->second << std::endl;
+   //if (sys.getNetwork()->getNodeNum() == 0) std::cerr <<"pack frees h: " << (void *) addr << " pack addr " <<  it->second << std::endl;
    //_allocator->lock();
    _allocator->free( it->second );
    //_allocator->unlock();

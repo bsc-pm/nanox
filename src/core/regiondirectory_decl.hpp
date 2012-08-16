@@ -28,6 +28,7 @@
 #include "compatibility.hpp"
 #include "regiontree_decl.hpp"
 #include "atomic_decl.hpp"
+#include "workdescriptor_fwd.hpp"
 
 namespace nanos
 {
@@ -52,28 +53,24 @@ namespace nanos
          int _writeLocation;
          unsigned int _version;
          std::set< LocationEntry > _location;
+         std::set< WD * > _listeners;
       public:
-         NewDirectoryEntryData(): _writeLocation(0), _version(1), _location() { }
+         NewDirectoryEntryData(): _writeLocation(0), _version(1), _location(), _listeners() { }
          NewDirectoryEntryData( const NewDirectoryEntryData &de ): _writeLocation( de._writeLocation ),
-            _version( de._version ), _location( de._location ) { }
+            _version( de._version ), _location( de._location ), _listeners( de._listeners ) { }
          ~NewDirectoryEntryData() { }
          const NewDirectoryEntryData & operator= ( const NewDirectoryEntryData &de ) {
             _writeLocation = de._writeLocation;
             _version = de._version;
             _location.clear();
             _location.insert( de._location.begin(), de._location.end() );
+            _listeners.insert( de._listeners.begin(), de._listeners.end() );
             return *this;
          }
          bool hasWriteLocation() const { return ( _writeLocation != -1 ); }
          int getWriteLocation() const { return _writeLocation; }
          void setWriteLocation( int id ) { _writeLocation = id; }
-         void addAccess( int id, uint64_t address, unsigned int version ) {
-            if ( version > _version ) {
-               _location.clear();
-            }
-            _version = version;
-            _location.insert( LocationEntry( id, address ) );
-         }
+         void addAccess( int id, uint64_t address, unsigned int version ); 
          bool isLocatedIn( int id ) const { return ( _location.count( LocationEntry( id, -1UL ) ) > 0 ); }
          uint64_t getAddressOfLocation( int id ) const { std::set< LocationEntry >::iterator it = _location.find( LocationEntry( id, -1UL ) ); return it->getAddress(); }
          void increaseVersion() { _version += 1; }
@@ -81,17 +78,21 @@ namespace nanos
          unsigned int getVersion() const { return _version; }
          void merge( const NewDirectoryEntryData &de ) {
             if ( hasWriteLocation() && de.hasWriteLocation() ) {
-               if ( getWriteLocation() != de.getWriteLocation() && _version >= de._version ) std::cerr << "write loc mismatch WARNING !!! two write locations!, missing dependencies?" << std::endl;
-            } else if ( de.hasWriteLocation() ) {
+               if ( getWriteLocation() != de.getWriteLocation() && _version == de._version ) std::cerr << "write loc mismatch WARNING !!! two write locations!, missing dependencies?" << std::endl;
+            } /*else if ( de.hasWriteLocation() ) {
                setWriteLocation( de.getWriteLocation() );
-            } else setWriteLocation( -1 );
+            } else setWriteLocation( -1 );*/
 
             if ( _version == de._version ) {
                _location.insert( de._location.begin(), de._location.end() );
+               _listeners.insert( de._listeners.begin(), de._listeners.end() );
             }
             else if ( _version < de._version ){
+               setWriteLocation( de.getWriteLocation() );
                _location.clear();
                _location.insert( de._location.begin(), de._location.end() );
+	       _listeners.clear(); // XXX check
+               _listeners.insert( de._listeners.begin(), de._listeners.end() );
                _version = de._version;
             } /*else {
                std::cerr << "version mismatch! WARNING !!! two write locations!, missing dependencies? current " << _version << " inc " << de._version << std::endl;
@@ -122,6 +123,8 @@ namespace nanos
             return soFarOk;
          }
          int getFirstLocation() const { return (_location.begin())->getMemorySpaceId(); }
+         int getNumLocations() const { return _location.size(); }
+         void addListener( WD *wd ) { /* std::cerr <<"___________________ADDED LISTENER" << std::endl; */ _listeners.insert( wd ); }
          friend std::ostream & operator<< (std::ostream &o, NewDirectoryEntryData const &entry);
    };
 
@@ -173,7 +176,7 @@ namespace nanos
          *  \param input Whether the access is a read
          *  \param output Whether the access is a write
          */
-         void getLocation( Region const &reg, LocationInfoList &loc, unsigned int &version );
+         void getLocation( Region const &reg, LocationInfoList &loc, unsigned int &version, WD *wd );
          void masterGetLocation( Region const &reg, LocationInfoList &loc, unsigned int &version );
          void addAccess(Region const &reg, unsigned int memorySpaceId, unsigned int version );
 

@@ -252,6 +252,41 @@ void RegionCache::putRegion( CopyData const &cd, Region const &r ) {
    //uintptr_t baseAddress = d.getAddress();
 }
 
+void RegionCache::syncRegion( std::list<Region> const &regions, DeviceOps *ops, WD* wd ) {
+   std::list<Region>::const_iterator it;
+#if 0
+   std::map< uintptr_t, MemoryMap< uint64_t > * > opMap;
+   std::map< uintptr_t, MemoryMap< uint64_t > * >::iterator opMapIt;
+   std::list<Region>::const_iterator it;
+   for ( it = regions.begin(); it != regions.end(); it++ ) {
+      _generateRegionOps( *it, opMap );
+   }
+   for ( opMapIt = opMap.begin(); opMapIt != opMap.end(); opMapIt++ ) {
+      MemoryMap< uint64_t >::iterator thisMapOpsIt;
+      for ( thisMapOpsIt = (opMapIt->second)->begin(); thisMapOpsIt != (opMapIt->second)->end(); thisMapOpsIt++ ) {
+         this->_copyOut(thisMapOpsIt->first.getAddress(), thisMapOpsIt->second, thisMapOpsIt->first.getLength(), ops );
+      }
+   }
+#endif
+   uint64_t offset = 0;
+   //   std::cerr << "WD : " << wd->getId() <<" Num regions to copy out " << regions.size() ;
+   //for ( it = regions.begin(); it != regions.end(); it++ ) {
+   //   Region const &reg = (*it);
+   //   std::cerr << " " << (void *) reg.getFirstValue();
+   //}
+   //std::cerr << std::endl;
+
+   for ( it = regions.begin(); it != regions.end(); it++ ) {
+      Region const &reg = (*it);
+      AllocatedChunk *origChunk = getAddress( ( uint64_t ) reg.getFirstValue(), ( std::size_t ) reg.getBreadth(), offset );
+      uint64_t origDevAddr = origChunk->address + offset;
+      origChunk->unlock();
+      copyOut( reg, origDevAddr, ops, wd->getId(), wd );
+   }
+
+   //while( !ops->allCompleted() ) { myThread->idle(); }
+}
+
 void RegionCache::syncRegion( std::list<Region> const &regions ) {
    DeviceOps *ops = NEW DeviceOps();
    std::list<Region>::const_iterator it;
@@ -276,7 +311,7 @@ void RegionCache::syncRegion( std::list<Region> const &regions ) {
       uint64_t origDevAddr = origChunk->address + offset;
       origChunk->unlock();
       
-      copyOut( reg, origDevAddr, ops, 0 );
+      copyOut( reg, origDevAddr, ops, 0, NULL );
    }
 
    while( !ops->allCompleted() ) { myThread->idle(); }
@@ -412,64 +447,72 @@ unsigned int RegionCache::getMemorySpaceId() {
    return _pe->getMemorySpaceId();
 }
 
-void RegionCache::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId ) {
+void RegionCache::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId, WD * wd ) {
    ops->addOp();
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-data-in"); )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) len ); )
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_IN); );
+   //NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   //NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-data-in"); )
+   //NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) len ); )
    //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<sys.getNetwork()->getNodeNum() << " RegionCache<"<< _pe->getMemorySpaceId() <<"::copyIn "<< (void *) devAddr << " <=h " << (void *) hostAddr << " len " << len << " ops complete? "  << ( ops->allCompleted() ? "yes" : "no" )<<std::endl;
   // std::cerr <<sys.getNetwork()->getNodeNum() << " RegionCache<"<< _pe->getMemorySpaceId() <<"::copyIn "<< (void *) devAddr << " <=h " << (void *) hostAddr << " len " << len << " ops complete? "  << ( ops->allCompleted() ? "yes" : "no" )<<std::endl;
-   _device->_copyIn( devAddr, hostAddr, len, _pe, ops, wdId );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( key ); )
+   _device->_copyIn( devAddr, hostAddr, len, _pe, ops, wdId, wd );
+   //NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( key ); )
+   NANOS_INSTRUMENT( inst.close(); );
 }
 
-void RegionCache::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, unsigned int wdId ) {
+void RegionCache::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, unsigned int wdId, WD * wd ) {
    ops->addOp();
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-data-in"); )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) len ); )
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_IN); );
+   //NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   //NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-data-in"); )
+   //NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) len ); )
    //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<sys.getNetwork()->getNodeNum() << " RegionCache<"<< _pe->getMemorySpaceId() <<"::copyIn "<< (void *) devAddr << " <=h " << (void *) hostAddr << " len " << len << " ops complete? "  << ( ops->allCompleted() ? "yes" : "no" )<<std::endl;
   // std::cerr <<sys.getNetwork()->getNodeNum() << " RegionCache<"<< _pe->getMemorySpaceId() <<"::copyIn "<< (void *) devAddr << " <=h " << (void *) hostAddr << " len " << len << " ops complete? "  << ( ops->allCompleted() ? "yes" : "no" )<<std::endl;
-   _device->_copyInStrided1D( devAddr, hostAddr, len, numChunks, ld, _pe, ops, wdId );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( key ); )
+   _device->_copyInStrided1D( devAddr, hostAddr, len, numChunks, ld, _pe, ops, wdId, wd );
+   //NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( key ); )
+   NANOS_INSTRUMENT( inst.close(); );
 }
 
-void RegionCache::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, DeviceOps *ops ) {
+void RegionCache::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, DeviceOps *ops, unsigned int wdId, WD *wd ) {
    ops->addOp();
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-data-out"); )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) len ); )
-   _device->_copyOut( hostAddr, devAddr, len, _pe, ops );
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_OUT); );
+   //NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   //NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-data-out"); )
+   //NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) len ); )
+   _device->_copyOut( hostAddr, devAddr, len, _pe, ops, wdId, wd );
    //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<sys.getNetwork()->getNodeNum() << " RegionCache<"<< _pe->getMemorySpaceId() <<">::copyOut "<< (void *) devAddr << " =>h " << (void *) hostAddr << " len " << len << " ops complete? "  << ( ops->allCompleted() ? "yes" : "no" )<<std::endl;
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( key ); )
+   //NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( key ); )
+   NANOS_INSTRUMENT( inst.close(); );
 }
 
-void RegionCache::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld,  DeviceOps *ops ) {
-   ops->addOp();
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-data-out"); )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) len ); )
-   _device->_copyOutStrided1D( hostAddr, devAddr, len, numChunks, ld, _pe, ops );
+void RegionCache::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld,  DeviceOps *ops, unsigned int wdId, WD *wd ) {
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_OUT); );
+   //ops->addOp();
+   //NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   //NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-data-out"); )
+   //NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) len ); )
+   _device->_copyOutStrided1D( hostAddr, devAddr, len, numChunks, ld, _pe, ops, wdId, wd );
    //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<sys.getNetwork()->getNodeNum() << " RegionCache<"<< _pe->getMemorySpaceId() <<">::copyOut "<< (void *) devAddr << " =>h " << (void *) hostAddr << " len " << len << " ops complete? "  << ( ops->allCompleted() ? "yes" : "no" )<<std::endl;
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( key ); )
+   //NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( key ); )
+   NANOS_INSTRUMENT( inst.close(); );
 }
 
-void RegionCache::_syncAndCopyIn( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId ) {
+void RegionCache::_syncAndCopyIn( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId, WD * wd ) {
    uint64_t offset;
    DeviceOps *cout = NEW DeviceOps();
    AllocatedChunk *origChunk = sys.getCaches()[ syncFrom ]->getAddress( hostAddr, len, offset );
    uint64_t origDevAddr = origChunk->address + offset;
    origChunk->unlock();
    //if(sys.getNetwork()->getNodeNum() == 0) std::cerr <<sys.getNetwork()->getNodeNum() <<" Started a Copy out from " << syncFrom << std::endl;
-   sys.getCaches()[ syncFrom ]->_copyOut( hostAddr, origDevAddr, len, cout );
+   sys.getCaches()[ syncFrom ]->_copyOut( hostAddr, origDevAddr, len, cout, wdId, wd );
    while ( !cout->allCompleted() ){ myThread->idle(); }
    //std::cerr <<sys.getNetwork()->getNodeNum() << " RegionCache<"<< _pe->getMemorySpaceId() <<"::syncAndcopyIn "<< (void *) origDevAddr << " dev=>host " << (void *) hostAddr << " host=>dev " << (void*)devAddr << " len " << len <<" data recvd "<< *((double *)hostAddr)<<std::endl;
    //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<sys.getNetwork()->getNodeNum() <<" CopyOut from " << syncFrom << " completed" << std::endl;
    delete cout;
-   this->_copyIn( devAddr, hostAddr, len, ops, wdId );
+   this->_copyIn( devAddr, hostAddr, len, ops, wdId, wd );
 }
 
-void RegionCache::_syncAndCopyInStrided1D( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, unsigned int wdId ) {
+void RegionCache::_syncAndCopyInStrided1D( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, unsigned int wdId, WD *wd ) {
    uint64_t offset;
    DeviceOps *cout = NEW DeviceOps();
    AllocatedChunk *origChunk = sys.getCaches()[ syncFrom ]->getAddress( hostAddr, len, offset );
@@ -477,91 +520,95 @@ void RegionCache::_syncAndCopyInStrided1D( unsigned int syncFrom, uint64_t devAd
    origChunk->unlock();
    //if(sys.getNetwork()->getNodeNum() == 0) std::cerr <<sys.getNetwork()->getNodeNum() <<" Started a Copy out from " << syncFrom << std::endl;
    //sys.getCaches()[ syncFrom ]->copyOut( hostAddr, origDevAddr, len, cout );
-   sys.getCaches()[ syncFrom ]->_copyOutStrided1D( hostAddr, origDevAddr, len, numChunks, ld, cout );
+   sys.getCaches()[ syncFrom ]->_copyOutStrided1D( hostAddr, origDevAddr, len, numChunks, ld, cout, wdId, wd );
    while ( !cout->allCompleted() ){ myThread->idle(); }
    //std::cerr <<sys.getNetwork()->getNodeNum() << " RegionCache<"<< _pe->getMemorySpaceId() <<"::syncAndcopyIn "<< (void *) origDevAddr << " dev=>host " << (void *) hostAddr << " host=>dev " << (void*)devAddr << " len " << len <<" data recvd "<< *((double *)hostAddr)<<std::endl;
    //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<sys.getNetwork()->getNodeNum() <<" CopyOut from " << syncFrom << " completed" << std::endl;
    delete cout;
-   this->_copyInStrided1D( devAddr, hostAddr, len, numChunks, ld, ops, wdId );
+   this->_copyInStrided1D( devAddr, hostAddr, len, numChunks, ld, ops, wdId, wd );
 }
 
-void RegionCache::_copyDevToDev( unsigned int copyFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId ) {
+void RegionCache::_copyDevToDev( unsigned int copyFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, unsigned int wdId, WD * wd ) {
    uint64_t offset;
    AllocatedChunk *origChunk = sys.getCaches()[ copyFrom ]->getAddress( hostAddr, len, offset );
    uint64_t origDevAddr = origChunk->address + offset;
    origChunk->unlock();
-   //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<sys.getNetwork()->getNodeNum() << " Copy Dev To Dev dest "<< _pe->getMemorySpaceId() << ": " << (void *) devAddr << " origAddr " << copyFrom <<": " << (void *) origDevAddr <<  std::endl;
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_DEV_TO_DEV); );
+   //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<sys.getNetwork()->getNodeNum() << " wd " << wdId << " Copy Dev To Dev dest "<< _pe->getMemorySpaceId() << ": " << (void *) devAddr << " origAddr " << copyFrom <<": " << (void *) origDevAddr <<  std::endl;
    ops->addOp();
-   _device->_copyDevToDev( devAddr, origDevAddr, len, _pe, sys.getCaches()[ copyFrom ]->_pe, ops, wdId );
+   _device->_copyDevToDev( devAddr, origDevAddr, len, _pe, sys.getCaches()[ copyFrom ]->_pe, ops, wdId, wd );
+   NANOS_INSTRUMENT( inst.close(); );
 }
 
-void RegionCache::_copyDevToDevStrided1D( unsigned int copyFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, unsigned int wdId ) {
+void RegionCache::_copyDevToDevStrided1D( unsigned int copyFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, unsigned int wdId, WD *wd ) {
    uint64_t offset;
    AllocatedChunk *origChunk = sys.getCaches()[ copyFrom ]->getAddress( hostAddr, len, offset );
    uint64_t origDevAddr = origChunk->address + offset;
    origChunk->unlock();
-   //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<sys.getNetwork()->getNodeNum() << " Copy Dev To Dev dest "<< _pe->getMemorySpaceId() << ": " << (void *) devAddr << " origAddr " << copyFrom <<": " << (void *) origDevAddr <<  std::endl;
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_DEV_TO_DEV); );
+   //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<sys.getNetwork()->getNodeNum() << " wd " << wdId << " Copy Dev To Dev dest "<< _pe->getMemorySpaceId() << ": " << (void *) devAddr << " origAddr " << copyFrom <<": " << (void *) origDevAddr <<  std::endl;
    ops->addOp();
-   _device->_copyDevToDevStrided1D( devAddr, origDevAddr, len, numChunks, ld, _pe, sys.getCaches()[ copyFrom ]->_pe, ops, wdId );
+   _device->_copyDevToDevStrided1D( devAddr, origDevAddr, len, numChunks, ld, _pe, sys.getCaches()[ copyFrom ]->_pe, ops, wdId, wd );
+   NANOS_INSTRUMENT( inst.close(); );
 }
 
-void RegionCache::CopyIn::doNoStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, DeviceOps *ops, unsigned int wdId ) {
+void RegionCache::CopyIn::doNoStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, DeviceOps *ops, unsigned int wdId, WD *wd ) {
    //std::cerr <<"copy in NO stride (via " << dataLocation << ") devaddr " << (void *) devAddr << " hostAddr "<<  (void *) hostAddr << " len "<< size << std::endl;
    if  ( dataLocation == 0 ) {
-      getParent()._copyIn( devAddr, hostAddr, size, ops, wdId );
+      getParent()._copyIn( devAddr, hostAddr, size, ops, wdId, wd );
    } else if ( getParent().canCopyFrom( *sys.getCaches()[ dataLocation ] ) ) { 
-      getParent()._copyDevToDev( dataLocation, devAddr, hostAddr, size, ops, wdId );
+      getParent()._copyDevToDev( dataLocation, devAddr, hostAddr, size, ops, wdId, wd );
    } else {
-      getParent()._syncAndCopyIn( dataLocation, devAddr, hostAddr, size, ops, wdId );
+      getParent()._syncAndCopyIn( dataLocation, devAddr, hostAddr, size, ops, wdId, wd );
    }
 }
 
-void RegionCache::CopyIn::doStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, std::size_t count, std::size_t ld, DeviceOps *ops, unsigned int wdId ) {
+void RegionCache::CopyIn::doStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, std::size_t count, std::size_t ld, DeviceOps *ops, unsigned int wdId, WD *wd ) {
    //std::cerr <<"copy in with stride"<< std::endl;
    if  ( dataLocation == 0 ) {
-      getParent()._copyInStrided1D( devAddr, hostAddr, size, count, ld, ops, wdId );
+      getParent()._copyInStrided1D( devAddr, hostAddr, size, count, ld, ops, wdId, wd );
    } else if ( getParent().canCopyFrom( *sys.getCaches()[ dataLocation ] ) ) { 
-      getParent()._copyDevToDevStrided1D( dataLocation, devAddr, hostAddr, size, count, ld, ops, wdId );
+      getParent()._copyDevToDevStrided1D( dataLocation, devAddr, hostAddr, size, count, ld, ops, wdId, wd );
    } else {
-      getParent()._syncAndCopyInStrided1D( dataLocation, devAddr, hostAddr, size, count, ld, ops, wdId );
+      getParent()._syncAndCopyInStrided1D( dataLocation, devAddr, hostAddr, size, count, ld, ops, wdId, wd );
    }
 }
 
-void RegionCache::CopyOut::doNoStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, DeviceOps *ops, unsigned int wdId ) {
+void RegionCache::CopyOut::doNoStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, DeviceOps *ops, unsigned int wdId, WD *wd ) {
    //std::cerr <<"copy out NO stride"<< std::endl;
-   getParent()._copyOut( hostAddr, devAddr, size, ops );
+   getParent()._copyOut( hostAddr, devAddr, size, ops, wdId, wd );
 }
-void RegionCache::CopyOut::doStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, std::size_t count, std::size_t ld, DeviceOps *ops, unsigned int wdId ) {
+void RegionCache::CopyOut::doStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, std::size_t count, std::size_t ld, DeviceOps *ops, unsigned int wdId, WD *wd ) {
    //std::cerr <<"copy out with stride"<< std::endl;
-   getParent()._copyOutStrided1D( hostAddr, devAddr, size, count, ld, ops );
+   getParent()._copyOutStrided1D( hostAddr, devAddr, size, count, ld, ops, wdId, wd );
 }
 
-void RegionCache::doOp( Op *opObj, Region const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, unsigned int wdId ) {
+void RegionCache::doOp( Op *opObj, Region const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, unsigned int wdId, WD *wd ) {
    std::size_t skipBits = 0;
    std::size_t contiguousSize = hostMem.getContiguousChunkLength();
    std::size_t numChunks = hostMem.getNumNonContiguousChunks( skipBits );
 
-   if ( numChunks > 1 ) {
+   if ( numChunks > 1 && sys.usePacking() ) {
       uint64_t ld = hostMem.getNonContiguousChunk( 1, skipBits ) - hostMem.getNonContiguousChunk( 0, skipBits );
       uint64_t hostAddr = hostMem.getNonContiguousChunk( 0, skipBits );
 
-      opObj->doStrided( location, devBaseAddr, hostAddr, contiguousSize, numChunks, ld, ops, wdId );
+      opObj->doStrided( location, devBaseAddr, hostAddr, contiguousSize, numChunks, ld, ops, wdId, wd );
    } else {
       for (unsigned int chunkIndex = 0; chunkIndex < numChunks; chunkIndex +=1 ) {
          uint64_t hostAddr = hostMem.getNonContiguousChunk( chunkIndex, skipBits );
          uint64_t devAddr = devBaseAddr + ( hostAddr - hostMem.getFirstValue() ); /* contiguous chunk offset */
 
-         opObj->doNoStrided( location, devAddr, hostAddr, contiguousSize, ops, wdId );
+         opObj->doNoStrided( location, devAddr, hostAddr, contiguousSize, ops, wdId, wd );
       }
    }
 }
 
-void RegionCache::copyIn( Region const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, unsigned int wdId ) {
-   doOp( &_copyInObj, hostMem, devBaseAddr, location, ops, wdId );
+void RegionCache::copyIn( Region const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, unsigned int wdId, WD *wd ) {
+   doOp( &_copyInObj, hostMem, devBaseAddr, location, ops, wdId, wd );
 }
 
-void RegionCache::copyOut( Region const &hostMem, uint64_t devBaseAddr, DeviceOps *ops, unsigned int wdId ) {
-   doOp( &_copyOutObj, hostMem, devBaseAddr, /* unused */ 0, ops, wdId );
+void RegionCache::copyOut( Region const &hostMem, uint64_t devBaseAddr, DeviceOps *ops, unsigned int wdId, WD *wd ) {
+   doOp( &_copyOutObj, hostMem, devBaseAddr, /* locations unused, copyOut is always to 0 */ 0, ops, wdId, wd );
 }
 
 void RegionCache::lock() {
@@ -635,11 +682,13 @@ bool CacheControler::isCreated() const {
    return _targetCache != NULL;
 }
 
-void CacheControler::preInit( NewDirectory *dir, std::size_t numCopies, CopyData *copies, unsigned int wdId ) {
+void CacheControler::preInit( NewDirectory *dir, std::size_t numCopies, CopyData *copies, unsigned int wdId, WD *wd ) {
    unsigned int index;
    _directory = dir;
    _wdId = wdId;
+   _wd = wd;
    _numCopies = numCopies;
+   //std::cerr << "wd " << wdId << " has # " << _numCopies << " copies " << std::endl;
    if ( _numCopies > 0 ) {
       _cacheCopies = NEW CacheCopy[ _numCopies ];
       for ( index = 0; index < _numCopies; index += 1 ) {
@@ -647,7 +696,15 @@ void CacheControler::preInit( NewDirectory *dir, std::size_t numCopies, CopyData
          ccopy._copy = &copies[ index ];
          ccopy._region = NewRegionDirectory::build_region( copies[ index ] );
          ccopy._version = 0;
-         _directory->getLocation( ccopy._region, ccopy._locations, ccopy._version );
+         _directory->getLocation( ccopy._region, ccopy._locations, ccopy._version, wd );
+         //unsigned int ic = 0;
+         //if ( copies[ index ].isInput() && !copies[ index ].isOutput() ) {
+         //   std::cerr << "RO copy, version is " << ccopy._version << " wd is depth " << wd->getDepth() << " id " << wd->getId() << " dir is " << _directory << std::endl;
+         //   for ( NewDirectory::LocationInfoList::iterator it = ccopy._locations.begin(); it != ccopy._locations.end(); it++ ) {
+         //      std::cerr << "Loc entry " << ic << " is in 0? " << ( it->second.isLocatedIn( 0 ) ? "yes" : "no" ) << std::endl;
+         //      ic++;
+         //   }
+         //}
       }
    }
 }
@@ -671,10 +728,12 @@ void CacheControler::copyDataInNoCache() {
             //else { if ( sys.getNetwork()->getNodeNum() == 0) std::cerr << "["<<sys.getNetwork()->getNodeNum()<<"] wd " << work.getId() << "All ok, location is " << *(it->second) << std::endl; }
          }
 
-         std::map<unsigned int, std::list<Region> >::iterator locIt;
-         //std::cerr <<" in " << __FUNCTION__ << " num elems is " << locationMap.size() << std::endl;
-         for( locIt = locationMap.begin(); locIt != locationMap.end(); locIt++ ) {
-            sys.getCaches()[ locIt->first ]->syncRegion( locIt->second );
+         if ( !locationMap.empty() ) {
+            //std::cerr <<" in " << __FUNCTION__ << " num elems is " << locationMap.size() << std::endl;
+            std::map<unsigned int, std::list<Region> >::iterator locIt;
+            for( locIt = locationMap.begin(); locIt != locationMap.end(); locIt++ ) {
+               sys.getCaches()[ locIt->first ]->syncRegion( locIt->second, &ccopy._operations, _wd );
+            }
          }
       }
    }
@@ -690,16 +749,22 @@ void CacheControler::copyDataIn(RegionCache *targetCache) {
    NANOS_INSTRUMENT( InstrumentState inst2(NANOS_CC_CDIN); );
    if ( _numCopies > 0 ) {
       /* Get device address, allocate if needed */
+   NANOS_INSTRUMENT( InstrumentState inst3(NANOS_CC_CDIN_GET_ADDR); );
       for ( index = 0; index < _numCopies; index += 1 ) {
          CacheCopy &ccopy = _cacheCopies[ index ];
          ccopy._cacheEntry = _targetCache->getAddress( *ccopy._copy, ccopy._offset );
          ccopy._devRegion = NewRegionDirectory::build_region_with_given_base_address( *ccopy._copy, ccopy._offset );
          ccopy._devBaseAddr = ccopy._cacheEntry->address + ccopy._offset;
          ccopy._cacheEntry->unlock();
+         
+         // register version into this task directory
 	 _directory->addAccess( ccopy._region, _targetCache->getMemorySpaceId(), ccopy._copy->isOutput() ? ccopy._version + 1 : ccopy._version );
+         //std::cerr << "added access for index "<< index << std::endl;
       }
+   NANOS_INSTRUMENT( inst3.close(); );
       /* COPY IN GENERATION */
       //std::map<unsigned int, MemoryMap< std::pair< uint64_t, DeviceOps *> > > opsBySource;
+   NANOS_INSTRUMENT( InstrumentState inst4(NANOS_CC_CDIN_OP_GEN); );
       std::map<unsigned int, std::list< std::pair< Region, int > > > opsBySourceRegions;
       for ( index = 0; index < _numCopies; index += 1 ) {
 	 NewRegionDirectory::LocationInfoList::iterator it;
@@ -803,8 +868,11 @@ void CacheControler::copyDataIn(RegionCache *targetCache) {
              ccopy._cacheEntry->addWriteRegion( ccopy._region, currentVersion + 1 );
          }
          ccopy._cacheEntry->unlock();
+         //std::cerr << "generated copies index "<< index << std::endl;
       }
+   NANOS_INSTRUMENT( inst4.close(); );
 
+   NANOS_INSTRUMENT( InstrumentState inst5(NANOS_CC_CDIN_DO_OP); );
       //std::cerr << ":::::::: Copies for WD " << _wdId << " to loc " << _targetCache->getMemorySpaceId() << ":::::::::::" << std::endl;
       std::map< unsigned int, std::list< std::pair< Region, int > > >::iterator mapOpsStrIt;
       for ( mapOpsStrIt = opsBySourceRegions.begin(); mapOpsStrIt != opsBySourceRegions.end(); mapOpsStrIt++ ) {
@@ -815,10 +883,12 @@ void CacheControler::copyDataIn(RegionCache *targetCache) {
             CacheCopy &ccopy = _cacheCopies[ listIt->second ];
             uint64_t fragmentOffset = listIt->first.getFirstValue() - ( ( uint64_t ) ccopy._copy->getBaseAddress() + ccopy._copy->getOffset() ); /* displacement due to fragmented region */
             //std::cerr << "host addr " << (void *) (listIt->first).getFirstValue() << " dev addr " << (void *) (ccopy._devBaseAddr + ccopy._copy->getOffset() + fragmentOffset ) << std::endl;
-            _targetCache->copyIn( listIt->first, ccopy._devBaseAddr + ccopy._copy->getOffset() + fragmentOffset, location, &ccopy._operations, _wdId );
+            _targetCache->copyIn( listIt->first, ccopy._devBaseAddr + ccopy._copy->getOffset() + fragmentOffset, location, &ccopy._operations, _wdId, _wd );
+            //std::cerr << "copy in done  " << std::endl;
          }
          //std::cerr << "" << std::endl;
       }
+   NANOS_INSTRUMENT( inst5.close(); );
       //std::cerr << "::::::::::::::::::::::::::::::::::::::::::" << std::endl;
 
 
@@ -911,7 +981,8 @@ unsigned int RegionCache::getNodeNumber() const {
 bool CacheControler::dataIsReady() const {
    bool allReady = true;
    unsigned int index;
-   if ( _targetCache == NULL ) return true;
+   //if ( _targetCache == NULL ) return true;
+   //
    //for ( index = 0; ( index < _numCopies ) && allReady; index += 1 ) { 
    //   std::cerr << _wdId << " copy " << index << " remain ops " << _cacheCopies[ index ]._operations.getNumOps() << " : " << _cacheCopies[ index ]._operations.allCompleted()<< " addr is "<< &_cacheCopies[index]._operations << std::endl;
    //}

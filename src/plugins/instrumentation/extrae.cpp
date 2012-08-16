@@ -262,6 +262,17 @@ class InstrumentationExtrae: public Instrumentation
             p_file << NANOS_CC_CDOUT   << "     NANOS_CC_CDOUT" << std::endl;
             p_file << NANOS_STRIDED_COPY_PACK   << "     Packing strided data" << std::endl;
             p_file << NANOS_STRIDED_COPY_UNPACK   << "     Unpacking strided data" << std::endl;
+            p_file << NANOS_CC_CDIN_GET_ADDR   << "     Get device address" << std::endl;
+            p_file << NANOS_CC_CDIN_OP_GEN   << "     Generate operations" << std::endl;
+            p_file << NANOS_CC_CDIN_DO_OP   << "     Do actual operations" << std::endl;
+            p_file << NANOS_CC_COPY_IN   << "     Copy In op" << std::endl;
+            p_file << NANOS_CC_COPY_OUT   << "     Copy Out op" << std::endl;
+            p_file << NANOS_CC_COPY_DEV_TO_DEV   << "     Copy Dev to Dev op" << std::endl;
+            p_file << NANOS_SEND_WAIT_FOR_REQ_PUT   << "     send wait for request put" << std::endl;
+            p_file << NANOS_GET_PINNED_ADDR   << "     get pinned address" << std::endl;
+            p_file << NANOS_SEND_PUT_REQ   << "     send put request" << std::endl;
+            p_file << NANOS_amWaitRequestPut   << "    NANOS_amWaitRequestPut" << std::endl;
+            p_file << NANOS_amRequestPutStrided1D   << "     NANOS_amRequestPutStrided1D" << std::endl;
             p_file << 100                     << "     EXTRAE I/O" << std::endl;
             p_file << std::endl;
 
@@ -317,15 +328,27 @@ class InstrumentationExtrae: public Instrumentation
                p_file << "9    " << _eventBase+kD->getId() << " " << kD->getDescription() << std::endl;
                p_file << "VALUES" << std::endl;
 
+               if ( kD->getId() == 38 ) {
+                  p_file << 0 << "      No constraint" << std::endl;
+                  p_file << 1 << "      There are no copies" << std::endl;
+                  p_file << 2 << "      There are copies from master" << std::endl;
+                  p_file << 3 << "      There are copies not from master" << std::endl;
+                  p_file << 4 << "      There are copies" << std::endl;
+                  p_file << 5 << "      Init only: Copy from master (Remote WD)" << std::endl;
+                  p_file << 6 << "      Init only: Copy/Not from master (Remote WD)" << std::endl;
+                  p_file << 7 << "      Init only: Copy/Not from master (WD to be executed at master)" << std::endl;
+                  p_file << 8 << "      WD already initialized" << std::endl;
+               }
+
                // First: Ordering list of values and descriptions 
-               std::map<int,std::string> lov;
+               std::map<unsigned long long,std::string> lov;
                for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
                   InstrumentationValueDescriptor *vD = itV->second;
                   lov.insert( make_pair( vD->getId(), vD->getDescription() ));
                }
 
                // Second:: Generating already ordered list of values
-               std::map<int,std::string>::iterator itLoV;
+               std::map<unsigned long long,std::string>::iterator itLoV;
                for ( itLoV = lov.begin(); itLoV != lov.end(); itLoV++ ) {
                   p_file << itLoV->first << "  " << itLoV->second << std::endl;
                }

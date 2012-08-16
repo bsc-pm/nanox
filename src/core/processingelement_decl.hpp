@@ -118,6 +118,7 @@ namespace nanos
          virtual void copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );
          virtual bool isGPU() const = 0;
          virtual bool supportsDirectTransfersWith( ProcessingElement const &pe ) const = 0;
+         BaseThread *getFirstThread() { return _threads[0]; }
    };
 
    typedef class ProcessingElement PE;

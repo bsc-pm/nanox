@@ -27,6 +27,7 @@
 #include "schedule_fwd.hpp"
 #include "threadteam_fwd.hpp"
 #include "allocator_decl.hpp"
+#include <set>
 
 namespace nanos
 {
@@ -171,6 +172,7 @@ namespace nanos
          */
          const BaseThread & operator= ( const BaseThread & );
       public:
+         std::set<void *> _pendingRequests;
         /*! \brief BaseThread constructor
          */
          BaseThread ( WD &wd, ProcessingElement *creator=0, ext::SMPMultiThread *parent=NULL ) :

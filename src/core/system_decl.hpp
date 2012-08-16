@@ -38,6 +38,7 @@
 #include "plugin_decl.hpp"
 #include "barrier_decl.hpp"
 #include "accelerator_decl.hpp"
+#include "location.hpp"
 
 #ifdef GPU_DEV
 #include "pinnedallocator_decl.hpp"
@@ -137,6 +138,7 @@ namespace nanos
          Network              _net;
          bool                 _usingCluster;
          bool                 _usingNode2Node;
+         bool                 _usingPacking;
          std::string          _conduit;
 
          WorkSharings         _worksharings; /**< set of global worksharings */
@@ -161,6 +163,7 @@ namespace nanos
          BaseThread *_masterGpuThd;
 
          std::vector< RegionCache *> _regCaches;
+         LocationDirectory _locations;
 
 #ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
@@ -357,6 +360,7 @@ namespace nanos
          Network * getNetwork( void );
          bool usingCluster( void ) const;
          bool useNode2Node( void ) const;
+         bool usePacking( void ) const;
          const std::string & getNetworkConduit() const;
 
          void stopFirstThread( void );
