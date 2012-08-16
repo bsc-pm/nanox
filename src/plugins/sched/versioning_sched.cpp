@@ -1013,7 +1013,7 @@ namespace ext
 
                   // WARNING: Prefetching for slower devices may impact on application's performance!
                   // It is not checked here, but, by now, only GPU is calling scheduler's prefetching mechanism
-                  int i, numPrefetch = 8;
+                  int i, numPrefetch = 16;
                   for ( i = 0; i < numPrefetch; i++ && last != NULL ) {
                      WD * pref = last->getImmediateSuccessor( *thread );
 
