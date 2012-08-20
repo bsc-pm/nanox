@@ -173,7 +173,6 @@ namespace nanos
 
          unsigned                      _numDevices;   /**< Number of suported devices for this workdescriptor */
          DeviceData                  **_devices;      /**< Supported devices for this workdescriptor */
-         DeviceData                   *_activeDevice; /**< Active device (if any) */
          unsigned int                  _activeDeviceIdx; /**< In _devices, index where we can find the current active DeviceData (if any) */
 
          size_t                        _numCopies;    /**< Copy-in / Copy-out data */

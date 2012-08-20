@@ -53,9 +53,9 @@ void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
 {
    ensure ( _state == START , "Trying to start a wd twice or trying to start an uninitialized wd");
 
-   ensure ( _activeDevice != NULL, "WD's _activeDevice is not set. If you are using 'implements' feature, please use versioning scheduler." );
+   ensure ( _activeDeviceIdx != _numDevices, "This WD has no active device. If you are using 'implements' feature, please use versioning scheduler." );
 
-   _activeDevice->lazyInit(*this,isUserLevelThread,previous);
+   _devices[_activeDeviceIdx]->lazyInit(*this,isUserLevelThread,previous);
    
    ProcessingElement *pe = myThread->runningOn();
 
@@ -71,52 +71,48 @@ void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
 void WorkDescriptor::prepareDevice ()
 {
    // Do nothing if there is already an active device
-   if ( _activeDevice ) return;
+   if ( _activeDeviceIdx != _numDevices ) return;
 
    if ( _numDevices == 1 ) {
-      _activeDevice = _devices[0];
       _activeDeviceIdx = 0;
       return;
    }
 
    // Choose between the supported devices
    message("No active device --> selecting one");
-   _activeDevice = _devices[_numDevices-1];
-   _activeDeviceIdx = _numDevices-1;
+   _activeDeviceIdx = _numDevices - 1;
 }
 
 DeviceData & WorkDescriptor::activateDevice ( const Device &device )
 {
-   if ( _activeDevice ) {
-      ensure( _activeDevice->isCompatible( device ),"Bogus double device activation" );
-      return *_activeDevice;
+   if ( _activeDeviceIdx != _numDevices ) {
+      ensure( _devices[_activeDeviceIdx]->isCompatible( device ),"Bogus double device activation" );
+      return *_devices[_activeDeviceIdx];
    }
    unsigned i = _numDevices;
    for ( i = 0; i < _numDevices; i++ ) {
       if ( _devices[i]->isCompatible( device ) ) {
-         _activeDevice = _devices[i];
          _activeDeviceIdx = i;
          break;
       }
    }
 
    ensure( i < _numDevices, "Did not find requested device in activation" );
-   return *_activeDevice;
+   return *_devices[_activeDeviceIdx];
 }
 
 DeviceData & WorkDescriptor::activateDevice ( unsigned int deviceIdx )
 {
-   ensure( _numDevices > deviceIdx, "The requested device does not exist" );
+   ensure( _numDevices > deviceIdx, "The requested device number does not exist" );
 
-   _activeDevice = _devices[deviceIdx];
    _activeDeviceIdx = deviceIdx;
 
-   return *_activeDevice;
+   return *_devices[_activeDeviceIdx];
 }
 
 bool WorkDescriptor::canRunIn( const Device &device ) const
 {
-   if ( _activeDevice ) return _activeDevice->isCompatible( device );
+   if ( _activeDeviceIdx != _numDevices ) return _devices[_activeDeviceIdx]->isCompatible( device );
 
    unsigned int i;
    for ( i = 0; i < _numDevices; i++ ) {
