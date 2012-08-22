@@ -157,13 +157,11 @@ void WorkDescriptor::done ()
 void WorkDescriptor::prepareCopies()
 {
    for (unsigned int i = 0; i < _numCopies; i++ ) {
-      _copiesSize += _copies[i].getSize();
+      _paramsSize += _copies[i].getSize();
 
       if ( _copies[i].isPrivate() )
          _copies[i].setAddress( ( (uint64_t)_copies[i].getAddress() - (unsigned long)_data ) );
    }
-
-   _paramsSize = _copiesSize;
 }
 
 void WorkDescriptor::initCommutativeAccesses( WorkDescriptor &wd, size_t numDeps, DataAccess* deps )

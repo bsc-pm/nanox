@@ -177,7 +177,6 @@ namespace nanos
 
          size_t                        _numCopies;    /**< Copy-in / Copy-out data */
          CopyData                     *_copies;       /**< Copy-in / Copy-out data */
-         size_t                        _copiesSize;   /**< Total size of copy-in / copy-out data */
          size_t                        _paramsSize;   /**< Total size of WD's parameters */
 
          unsigned long                 _versionGroupId;     /**< The way to link different implementations of a task into the same group */
