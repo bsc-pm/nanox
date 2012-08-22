@@ -21,6 +21,8 @@
 #ifndef _OMP_H_DEF
 #define _OMP_H_DEF
 
+#include "nanos_omp.h"
+
 /* OpenMP API interface */
 
 /*
@@ -29,15 +31,11 @@
 typedef void * omp_lock_t;
 typedef void * omp_nest_lock_t;
 
+typedef nanos_omp_sched_t omp_sched_t;
+
 /*
 * define the schedule kinds
 */
-typedef enum omp_sched_t {
-   omp_sched_static = 1,
-   omp_sched_dynamic = 2,
-   omp_sched_guided = 3,
-   omp_sched_auto = 4
-} omp_sched_t;
 
 /*
 * exported OpenMP functions

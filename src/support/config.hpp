@@ -268,6 +268,12 @@ inline void Config::MapVar<T>::setValue ( const T &value ) { _var = value; }
 template <typename T>
 inline Config::MapVar<T> * Config::MapVar<T>::clone () { return new MapVar( *this ); }
 
+inline Config::PluginVar & Config::PluginVar::addOption ( const std::string & value )
+{
+   MapVar<std::string>::addOption( value, value );
+   return *this;
+}
+
 inline void Config::ActionFlag::parse ( const char *value )
 {
    if ( strcasecmp(value, "yes" ) == 0) {
