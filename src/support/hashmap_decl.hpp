@@ -71,11 +71,7 @@ class PairHash
       *  \param size size of the map
       */
       virtual size_t operator()( std::pair<_t1, _t2> key, size_t sz )
-      {
-         Hash<_t1> first;
-         Hash<_t2> second;
-         return ( ( size_t ) key.first % sz ) ^ ( ( size_t ) key.second % sz );
-      }
+      { return ( ( size_t ) key.first % sz ) ^ ( ( size_t ) key.second % sz ); }
 };
 
 
