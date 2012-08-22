@@ -78,7 +78,8 @@ namespace ext
    };
 
    typedef std::pair< unsigned long, size_t > WDBestRecordKey;
-   typedef HashMap< WDBestRecordKey, WDBestRecordData > WDBestRecord;
+   typedef PairHash< unsigned long, size_t > WDBestRecordHashKey;
+   typedef HashMap< WDBestRecordKey, WDBestRecordData, false, 257, WDBestRecordHashKey > WDBestRecord;
 
    struct WDExecRecord {
       unsigned int            _versionId;
@@ -90,8 +91,9 @@ namespace ext
    };
 
    typedef WDBestRecordKey WDExecInfoKey;
+   typedef WDBestRecordHashKey WDExecInfoHashKey;
    typedef std::vector<WDExecRecord> WDExecInfoData;
-   typedef HashMap< WDExecInfoKey, WDExecInfoData > WDExecInfo;
+   typedef HashMap< WDExecInfoKey, WDExecInfoData, false, 257, WDExecInfoHashKey > WDExecInfo;
 
 
    typedef enum {
