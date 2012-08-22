@@ -47,13 +47,14 @@ namespace nanos
          static void idleLoop (void);
 
       public:
-         static void inlineWork ( WD *work, bool schedule = false );
+         static bool inlineWork ( WD *work, bool schedule = false );
 
          static void submit ( WD &wd );
          static void submitAndWait ( WD &wd );
          static void switchTo ( WD *to );
          static void exitTo ( WD *next );
          static void switchToThread ( BaseThread * thread );
+         static void finishWork( WD *oldwd, WD * wd );
 
          static void workerLoop ( void );
          static void yield ( void );

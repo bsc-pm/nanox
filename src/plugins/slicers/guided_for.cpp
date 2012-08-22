@@ -87,7 +87,7 @@ static void guidedLoop ( void *arg )
       NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) nli->step; )
       NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) (nli->upper - nli->lower) / nli->step; )
   
-      NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs (4, Keys, Values); )
+      NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents (4, Keys, Values); )
 
       gsd->_realWork(arg);
    }

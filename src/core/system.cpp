@@ -58,9 +58,11 @@ System::System () :
       _pausedThreadsCond(), _unpausedThreadsCond(),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _dependenciesManager( NULL ),
       _pmInterface( NULL ), _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap()
+
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
 #endif
+      , _enableEvents(), _disableEvents(), _instrumentDefault("default")
 {
    verbose0 ( "NANOS++ initializing... start" );
    // OS::init must be called here and not in System::start() as it can be too late
@@ -260,6 +262,15 @@ void System::config ()
    cfg.registerEnvOption ( "deps", "NX_DEPS" );
    
 
+   cfg.registerConfigOption ( "instrument-default", NEW Config::StringVar ( _instrumentDefault ), "Set instrumentation event list default (none, all)" );
+   cfg.registerArgOption ( "instrument-default", "instrument-default" );
+
+   cfg.registerConfigOption ( "instrument-enable", NEW Config::StringVarList ( _enableEvents ), "Add events to instrumentation event list" );
+   cfg.registerArgOption ( "instrument-enable", "instrument-enable" );
+
+   cfg.registerConfigOption ( "instrument-disable", NEW Config::StringVarList ( _disableEvents ), "Remove events to instrumentation event list" );
+   cfg.registerArgOption ( "instrument-disable", "instrument-disable" );
+
    _schedConf.config( cfg );
    _pmInterface->config( cfg );
 
@@ -282,6 +293,7 @@ void System::start ()
    loadModules();
 
    // Instrumentation startup
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->initialize() );
    verbose0 ( "Starting runtime" );
 
