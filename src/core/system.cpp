@@ -367,10 +367,6 @@ void System::start ()
    const OS::InitList & externalInits = OS::getPostInitializationFunctions();
    std::for_each(externalInits.begin(),externalInits.end(), ExecInit());
 
-   /* Master thread is ready and waiting for the rest of the gang */
-   if ( getSynchronizedStart() )   
-     threadReady();
-
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_RUNNING) );
    
