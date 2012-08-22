@@ -121,7 +121,7 @@ void SMPThread::switchHelperDependent ( WD *oldWD, WD *newWD, void *oldState  )
    dd.setState( (intptr_t *) oldState );
 }
 
-void SMPThread::inlineWorkDependent ( WD &wd )
+bool SMPThread::inlineWorkDependent ( WD &wd )
 {
    // Now the WD will be inminently run
    wd.start(WD::IsNotAUserLevelThread);
@@ -133,6 +133,7 @@ void SMPThread::inlineWorkDependent ( WD &wd )
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_RUNNING, key, val ) );
    ( dd.getWorkFct() )( wd.getData() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateAndBurst ( key ) );
+   return true;
 }
 
 void SMPThread::switchTo ( WD *wd, SchedulerHelper *helper )

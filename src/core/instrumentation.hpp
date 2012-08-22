@@ -37,17 +37,22 @@ inline const std::string InstrumentationValueDescriptor::getDescription ( void )
    return _description;
 }
 
-
 /** INSTRUMENTOR KEY DESCRIPTOR **/
 
 inline nanos_event_key_t InstrumentationKeyDescriptor::getId ( void )
 {
-   return _id;
+   if ( _enabled ) return _id;
+   else return (nanos_event_key_t) 0;
 }
 
 inline const std::string InstrumentationKeyDescriptor::getDescription ( void )
 {
    return _description;
+}
+
+inline bool InstrumentationKeyDescriptor::isEnabled ( void )
+{
+   return _enabled;
 }
 
 inline nanos_event_value_t InstrumentationKeyDescriptor::registerValue ( const std::string &value, const std::string &description,
@@ -137,6 +142,8 @@ inline nanos_event_value_t InstrumentationKeyDescriptor::getValue ( const char *
    else return it->second->getId();
 }
 
+inline void InstrumentationKeyDescriptor::setEnabled ( bool v ) { _enabled = v; }
+
 inline InstrumentationKeyDescriptor::ConstValueMapIterator InstrumentationKeyDescriptor::beginValueMap ( void )
 {
    return _valueMap.begin();
@@ -162,12 +169,12 @@ inline const std::string InstrumentationKeyDescriptor::getValueDescription ( nan
 }
 /** INSTRUMENTOR DICTIONARY **/
 
-inline nanos_event_key_t InstrumentationDictionary::registerEventKey ( const std::string &key, const std::string &description, bool abort_when_registered  )
+inline nanos_event_key_t InstrumentationDictionary::registerEventKey ( const std::string &key, const std::string &description, bool abort_when_registered, bool enabled  )
 {
-   return registerEventKey( key.c_str(), description.c_str(), abort_when_registered );
+   return registerEventKey( key.c_str(), description.c_str(), abort_when_registered, enabled );
 }
 
-inline nanos_event_key_t InstrumentationDictionary::registerEventKey ( const char *key, const char *description, bool abort_when_registered  )
+inline nanos_event_key_t InstrumentationDictionary::registerEventKey ( const char *key, const char *description, bool abort_when_registered, bool enabled  )
 {
    InstrumentationKeyDescriptor *keyDescriptor = NULL;
 
@@ -178,7 +185,7 @@ inline nanos_event_key_t InstrumentationDictionary::registerEventKey ( const cha
          LockBlock lock( _lock );
          it = _keyMap.find( key );
          if ( it == _keyMap.end() ) {
-            keyDescriptor = NEW InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, description );
+            keyDescriptor = NEW InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, description, enabled );
             _keyMap.insert( std::make_pair( key, keyDescriptor ) );
          }
          else {
@@ -193,6 +200,33 @@ inline nanos_event_key_t InstrumentationDictionary::registerEventKey ( const cha
    }
 
    return keyDescriptor->getId();
+}
+
+inline void InstrumentationDictionary::switchAllEvents ( bool on_off )
+{
+   KeyMapIterator it = _keyMap.begin();
+
+   fprintf(stderr,"Nanos++: %s %s event\n",on_off?"Enabling":"Disabling", "all events" );
+   LockBlock lock( _lock );
+   while ( it != _keyMap.end() ) {
+      it->second->setEnabled( on_off );
+      it++;
+   }
+}
+
+inline void InstrumentationDictionary::switchEventPrefix ( const char *prefix, bool on_off )
+{
+   KeyMapIterator it = _keyMap.begin();
+
+   LockBlock lock( _lock );
+   while ( it != _keyMap.end() ) {
+      if ( it->first.compare(0,strlen(prefix), prefix ) == 0 ) {
+         fprintf(stderr,"Nanos++: %s %s event\n",on_off?"Enabling":"Disabling", it->first.c_str() ); // FIXME
+         it->second->setEnabled( on_off );
+      }
+      it++;
+   }
+
 }
 
 inline nanos_event_key_t InstrumentationDictionary::getEventKey ( const std::string &key )
@@ -224,7 +258,7 @@ inline nanos_event_value_t InstrumentationDictionary::registerEventValue ( const
          LockBlock lock( _lock );
          it = _keyMap.find( key );
          if ( it == _keyMap.end() ) {
-            keyDescriptor = NEW InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, "" );
+            keyDescriptor = NEW InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, "", true );
             _keyMap.insert( std::make_pair( key, keyDescriptor ) );
          }
          else {
@@ -257,7 +291,7 @@ inline void InstrumentationDictionary::registerEventValue ( const char *key, con
          LockBlock lock( _lock );
          it = _keyMap.find( key );
          if ( it == _keyMap.end() ) {
-            keyDescriptor = new InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, "" );
+            keyDescriptor = new InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, "", true );
             _keyMap.insert( std::make_pair( key, keyDescriptor ) );
          }
          else {
@@ -293,7 +327,6 @@ inline InstrumentationDictionary::ConstKeyMapIterator InstrumentationDictionary:
    return _keyMap.end();
 }
 
-
 inline const std::string InstrumentationDictionary::getKeyDescription ( nanos_event_key_t key )
 {
    bool found = false;
@@ -328,17 +361,51 @@ inline InstrumentationDictionary * Instrumentation::getInstrumentationDictionary
 
 inline nanos_event_type_t Instrumentation::Event::getType () const { return _type; }
 
-inline nanos_event_state_value_t Instrumentation::Event::getState () { return _state; }
+inline nanos_event_state_value_t Instrumentation::Event::getState () { return (nanos_event_state_value_t)  _value; }
 
-inline unsigned int Instrumentation::Event::getNumKVs () const { return _nkvs; }
+inline nanos_event_key_t Instrumentation::Event::getKey () const { return _key; }
 
-inline Instrumentation::Event::ConstKVList Instrumentation::Event::getKVs () const { return _kvList; }
+inline nanos_event_value_t Instrumentation::Event::getValue () const { return _value; }
 
 inline unsigned int Instrumentation::Event::getDomain ( void ) const { return _ptpDomain; }
 
 inline long long Instrumentation::Event::getId( void ) const { return _ptpId; }
 
 inline unsigned int Instrumentation::Event::getPartner( void ) const { return _partner; }
+
+inline void Instrumentation::filterEvents( std::string event_default, std::list<std::string> &enable_events, std::list<std::string> &disable_events )
+{
+
+   if ( event_default.compare(0,strlen("default"), "default" ) == 0 ) {
+      // This is default setup
+   } else if ( event_default.compare( 0,strlen("all"), "all") == 0) {
+      _instrumentationDictionary.switchAllEvents( true );
+      _emitStateEvents = true;
+      _emitPtPEvents = true;
+   } else if ( event_default.compare( 0,strlen("none"), "none") == 0 ) {
+      _instrumentationDictionary.switchAllEvents( false );
+      _emitStateEvents = false;
+      _emitPtPEvents = false;
+   } else {
+      // Warning
+   }
+
+   std::list<std::string>::iterator it = enable_events.begin();
+   while ( it != enable_events.end() ) {
+      if ( (*it).compare(0,strlen("state"), "state") == 0 ) _emitStateEvents = true;
+      if ( (*it).compare(0,strlen("ptp"), "ptp") == 0 ) _emitPtPEvents = true;
+      _instrumentationDictionary.switchEventPrefix( (*it).c_str(), true );
+      it++;
+   }
+
+   it = disable_events.begin();
+   while ( it != disable_events.end() ) {
+      if ( (*it).compare(0,strlen("state"), "state") == 0 ) _emitStateEvents = false;
+      if ( (*it).compare(0,strlen("ptp"), "ptp") == 0 ) _emitPtPEvents = false;
+      _instrumentationDictionary.switchEventPrefix( (*it).c_str(), false );
+      it++;
+   }
+}
 
 inline void Instrumentation::Event::reverseType ( )
 {
