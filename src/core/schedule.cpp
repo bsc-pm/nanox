@@ -528,9 +528,10 @@ struct WorkerBehaviour
         Scheduler::switchTo(next);
       }
       else {
-        Scheduler::inlineWork ( next, true );
-        next->~WorkDescriptor();
-        delete[] (char *)next;
+        if ( Scheduler::inlineWork ( next, true ) ) {
+          next->~WorkDescriptor();
+          delete[] (char *)next;
+        }
       }
    }
    static bool exiting() { return false; }
@@ -541,7 +542,22 @@ void Scheduler::workerLoop ()
    idleLoop<WorkerBehaviour>();
 }
 
-void Scheduler::inlineWork ( WD *wd, bool schedule )
+void Scheduler::finishWork( WD *oldwd, WD * wd )
+{
+   /* If WorkDescriptor has been submitted update statistics */
+   updateExitStats (*wd);
+
+   /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters */
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
+
+   wd->done();
+   wd->clear();
+
+   debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
+          " to " << oldwd << ":" << oldwd->getId() );
+}
+
+bool Scheduler::inlineWork ( WD *wd, bool schedule )
 {
    BaseThread *thread = getMyThreadSafe();
 
@@ -567,7 +583,7 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    /* Instrumenting context switch: wd enters cpu (last = n/a) */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( oldwd, wd, false) );
 
-   thread->inlineWorkDependent(*wd);
+   const bool done = thread->inlineWorkDependent(*wd);
 
    // reload thread after running WD due wd may be not tied to thread if
    // both work descriptor were not tied to any thread
@@ -580,17 +596,8 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
         }
    }
 
-   /* If WorkDescriptor has been submitted update statistics */
-   updateExitStats (*wd);
-
-   /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters */
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
-
-   wd->done();
-   wd->clear();
-
-   debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
-          " to " << oldwd << ":" << oldwd->getId() );
+   if (done)
+      finishWork(oldwd, wd);
 
    thread->setCurrentWD( *oldwd );
 
@@ -603,7 +610,8 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
 
    ensure(oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(),
            "Violating tied rules " + toString<BaseThread*>(thread) + "!=" + toString<BaseThread*>(oldwd->isTiedTo()));
-
+   
+  return done;
 }
 
 void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
@@ -638,9 +646,10 @@ void Scheduler::switchTo ( WD *to )
       myThread->switchTo( to, switchHelper );
 
    } else {
-      inlineWork(to);
-      to->~WorkDescriptor();
-      delete[] (char *)to;
+      if (inlineWork(to)) {
+         to->~WorkDescriptor();
+         delete[] (char *)to;
+      }
    }
 }
 

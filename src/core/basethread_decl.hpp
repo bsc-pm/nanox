@@ -141,7 +141,7 @@ namespace nanos
          // These must be called through the Scheduler interface
          virtual void switchHelperDependent( WD* oldWD, WD* newWD, void *arg ) = 0;
          virtual void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) = 0;
-         virtual void inlineWorkDependent (WD &work) = 0;
+         virtual bool inlineWorkDependent (WD &work) = 0;
          virtual void switchTo( WD *work, SchedulerHelper *helper ) = 0;
          virtual void exitTo( WD *work, SchedulerHelper *helper ) = 0;
 
