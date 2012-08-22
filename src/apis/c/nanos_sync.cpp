@@ -127,7 +127,7 @@ NANOS_API_DEF(nanos_err_t, nanos_wait_on, ( size_t num_data_accesses, nanos_data
    NANOS_INSTRUMENT ( Keys[1] = wd_deps_ptr; );
    NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) data_accesses; )
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(2, Keys, Values); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(2, Keys, Values); )
 
    try {
       if ( data_accesses != NULL ) {
@@ -150,7 +150,7 @@ NANOS_API_DEF(nanos_err_t, nanos_init_lock, ( nanos_lock_t **lock ))
 
    NANOS_INSTRUMENT ( static nanos_event_key_t Keys = ID->getEventKey("lock-addr"); )
    NANOS_INSTRUMENT ( nanos_event_value_t Values = (nanos_event_value_t) *lock; )
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(1, &Keys, &Values); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &Keys, &Values); )
 
    try {
       *lock = new Lock();
@@ -169,7 +169,7 @@ NANOS_API_DEF(nanos_err_t, nanos_set_lock, ( nanos_lock_t *lock ))
 
    NANOS_INSTRUMENT ( static nanos_event_key_t Keys = ID->getEventKey("lock-addr"); )
    NANOS_INSTRUMENT ( nanos_event_value_t Values = (nanos_event_value_t) lock; )
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(1, &Keys, &Values); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &Keys, &Values); )
 
    try {
       Lock &l = *( Lock * ) lock;
@@ -189,7 +189,7 @@ NANOS_API_DEF(nanos_err_t, nanos_unset_lock, ( nanos_lock_t *lock ))
 
    NANOS_INSTRUMENT ( static nanos_event_key_t Keys = ID->getEventKey("lock-addr"); )
    NANOS_INSTRUMENT ( nanos_event_value_t Values = (nanos_event_value_t) lock; )
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(1, &Keys, &Values); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &Keys, &Values); )
 
    try {
       Lock &l = *( Lock * ) lock;
@@ -209,7 +209,7 @@ NANOS_API_DEF(nanos_err_t, nanos_try_lock, ( nanos_lock_t *lock, bool *result ))
 
    NANOS_INSTRUMENT ( static nanos_event_key_t Keys = ID->getEventKey("lock-addr"); )
    NANOS_INSTRUMENT ( nanos_event_value_t Values = (nanos_event_value_t) lock; )
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(1, &Keys, &Values); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &Keys, &Values); )
 
    try {
       Lock &l = *( Lock * ) lock;
@@ -230,7 +230,7 @@ NANOS_API_DEF(nanos_err_t, nanos_destroy_lock, ( nanos_lock_t *lock ))
 
    NANOS_INSTRUMENT ( static nanos_event_key_t Keys = ID->getEventKey("lock-addr"); )
    NANOS_INSTRUMENT ( nanos_event_value_t Values = (nanos_event_value_t) lock; )
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(1, &Keys, &Values); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &Keys, &Values); )
 
    try {
       delete ( Lock * )lock;

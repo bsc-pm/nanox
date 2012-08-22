@@ -54,12 +54,12 @@ void InstrumentationContext::insertBurst ( InstrumentationContextData *icd, cons
 {
    bool found = false;
    InstrumentationContextData::EventList::iterator it;
-   nanos_event_key_t key = e.getKVs()[0].first;
+   nanos_event_key_t key = e.getKey();
 
    /* if found an event with the same key in the main list, send it to the backup list */
    for ( it = icd->_burstList.begin() ; !found && (it != icd->_burstList.end()) ; it++ ) {
-      Event::ConstKVList kvlist = (*it).getKVs();
-      if ( kvlist[0].first == key  )
+      nanos_event_key_t ckey = (*it).getKey();
+      if ( ckey == key  )
       {
          icd->_burstBackup.splice ( icd->_burstBackup.begin(), icd->_burstList, it );
          found = true;
@@ -87,15 +87,15 @@ void InstrumentationContextDisabled::insertBurst ( InstrumentationContextData *i
 void InstrumentationContext::removeBurst ( InstrumentationContextData *icd, InstrumentationContextData::BurstIterator it )
 {
    bool found = false;
-   nanos_event_key_t key = (*it).getKVs()[0].first;
+   nanos_event_key_t key = (*it).getKey();
 
    /* remove event from the list */
    icd->_burstList.erase ( it );
 
    /* if found an event with the same key in the backup list, recover it to the main list */
    for ( it = icd->_burstBackup.begin() ; !found && (it != icd->_burstBackup.end()) ; it++ ) {
-      Event::ConstKVList kvlist = (*it).getKVs();
-      if ( kvlist[0].first == key  )
+      nanos_event_key_t ckey = (*it).getKey();
+      if ( ckey == key  )
       {
          icd->_burstList.splice ( icd->_burstList.begin(), icd->_burstBackup, it );
          found = true;

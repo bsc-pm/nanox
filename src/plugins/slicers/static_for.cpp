@@ -138,7 +138,7 @@ static void interleavedLoop ( void *arg )
          NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) nli->upper; )
          NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) nli->step; )
          NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) nli->chunk; )
-         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(4, Keys, Values); )
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(4, Keys, Values); )
          ((SMPDD::work_fct)(nli->args))(arg);
       }
    } else {
@@ -157,7 +157,7 @@ static void interleavedLoop ( void *arg )
          NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) nli->upper; )
          NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) nli->step; )
          NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) nli->chunk; )
-         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(4, Keys, Values); )
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(4, Keys, Values); )
          ((SMPDD::work_fct)(nli->args))(arg);
       }
    }

@@ -147,6 +147,9 @@ namespace nanos
          //! Keep record of the data that's directly allocated on pinned memory
          PinnedAllocator      _pinnedMemoryCUDA;
 #endif
+         std::list<std::string>    _enableEvents;  //FIXME: only in instrumentation
+         std::list<std::string>    _disableEvents; //FIXME: only in instrumentation
+         std::string               _instrumentDefault; //FIXME: only in instrumentation
 
          // disable copy constructor & assignment operation
          System( const System &sys );

@@ -196,14 +196,14 @@ inline bool WDDeque::removeWDWithConstraints( BaseThread *thread, WorkDescriptor
 inline void WDDeque::increaseTasksInQueues( int tasks )
 {
    NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("num-ready");)
-   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) tasks );)
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, (nanos_event_value_t *) &tasks );)
    _nelems++;
 }
 
 inline void WDDeque::decreaseTasksInQueues( int tasks )
 {
    NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("num-ready");)
-   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) tasks );)
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, (nanos_event_value_t *) &tasks );)
    _nelems--;
 }
 
@@ -542,14 +542,14 @@ inline bool WDPriorityQueue::reorderWD( WorkDescriptor *wd )
 inline void WDPriorityQueue::increaseTasksInQueues( int tasks )
 {
    NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("num-ready");)
-   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) tasks );)
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, (nanos_event_value_t *) &tasks );)
    _nelems++;
 }
 
 inline void WDPriorityQueue::decreaseTasksInQueues( int tasks )
 {
    NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("num-ready");)
-   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) tasks );)
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, (nanos_event_value_t *) &tasks );)
    _nelems--;
 }
 

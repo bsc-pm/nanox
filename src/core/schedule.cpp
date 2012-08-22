@@ -228,7 +228,7 @@ inline void Scheduler::idleLoop ()
          NANOS_INSTRUMENT ( if (total_yields == 0 && total_sleeps == 0) { event_start = 4; event_num = 3; } )
          NANOS_INSTRUMENT ( if (total_scheds == 0 ) { event_num -= 2; } )
 
-         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(event_num, &Keys[event_start], &Values[event_start]); )
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(event_num, &Keys[event_start], &Values[event_start]); )
 
          behaviour::switchWD(thread, current, next);
 
@@ -382,7 +382,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                NANOS_INSTRUMENT ( if (total_yields == 0 && total_sleeps == 0) { event_start = 4; event_num = 3; } )
                NANOS_INSTRUMENT ( if (total_scheds == 0 ) { event_num -= 2; } )
 
-               NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(event_num, &Keys[event_start], &Values[event_start]); )
+               NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(event_num, &Keys[event_start], &Values[event_start]); )
 
                switchTo ( next );
                thread = getMyThreadSafe();
@@ -449,7 +449,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    NANOS_INSTRUMENT ( if (total_yields == 0 && total_sleeps == 0) { event_start = 4; event_num = 3; } )
    NANOS_INSTRUMENT ( if (total_scheds == 0 ) { event_num -= 2; } )
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(event_num, &Keys[event_start], &Values[event_start]); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(event_num, &Keys[event_start], &Values[event_start]); )
 
 }
 

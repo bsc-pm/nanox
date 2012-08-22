@@ -22,6 +22,7 @@
 
 #include <stdexcept>
 #include <vector>
+#include <list>
 #include "compatibility.hpp"
 #include <memory>
 #include <sstream>
@@ -29,6 +30,17 @@
 
 namespace nanos
 {
+
+#if 0
+   class StringList {
+      private:
+         std::list<std::string> _stringList;
+      public:
+         StringList() : _stringList() {}
+         ~StringList() {}
+         StringList & operator= ( const std::string s) { _stringList.push_back(s); return *this; }
+   };
+#endif
 
    class Config
    {
@@ -182,7 +194,39 @@ namespace nanos
                virtual VarOption * clone ();
          };
 
-         // shortcuts for VarOptions and ActionOptions
+         // ListOption: Option modifies a list of variables
+         template<typename T, class helpFormat, typename checkT= CheckValue<T> >
+         class ListOption : public ActionOption<T,helpFormat,checkT>
+         {
+
+            private:
+               std::list<T> &_var;
+               // assignment operator
+               const ListOption & operator= ( const ListOption &opt );
+
+            public:
+               //constructors
+               ListOption( const std::string &name, std::list<T> &ref ) :
+                     ActionOption<T,helpFormat,checkT>( name ),_var( ref ) {}
+
+               ListOption( const char *name, std::list<T> &ref ) :
+                     ActionOption<T,helpFormat,checkT>( name ),_var( ref ) {}
+
+               ListOption( std::list<T> &ref ) :
+                     ActionOption<T,helpFormat,checkT>(), _var( ref ) {}
+
+               // copy constructor
+               ListOption( const ListOption &opt ) :
+                     ActionOption<T,helpFormat,checkT>( opt ),_var( opt._var ) {}
+
+               //destructor
+               virtual ~ListOption() {}
+
+               virtual void setValue ( const T &value );
+
+               virtual ListOption * clone ();
+         };
+         // shortcuts for ListOptions and ActionOptions
 
 
          class HelpFormat
@@ -231,7 +275,10 @@ namespace nanos
 
          typedef class VarOption<std::string, StringHelpFormat>                 StringVar;
 
+         typedef class ListOption<std::string, StringHelpFormat>                StringVarList;
+
          typedef class VarOption<int,PositiveHelpFormat,isPositive<int> >       PositiveVar;
+
          typedef class VarOption<unsigned int,PositiveHelpFormat,isPositive<unsigned int> >
                                                                                 UintVar;
          
