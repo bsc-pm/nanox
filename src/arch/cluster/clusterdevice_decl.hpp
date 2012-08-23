@@ -38,21 +38,34 @@ namespace nanos
    {
          Packer _packer;
       public:
-         struct GetRequestStrided {
+
+         struct GetRequest {
             volatile int _complete;
             char* _hostAddr;
             std::size_t _size;
-            std::size_t _count;
-            std::size_t _ld;
             char* _recvAddr;
             DeviceOps *_ops;
             Packer *_packer;
 
-            GetRequestStrided( char* hostAddr, std::size_t size, std::size_t count, std::size_t ld, char *recvAddr, DeviceOps *ops, Packer *packer ) :
-               _complete(0), _hostAddr( hostAddr ), _size( size ), _count( count ), _ld( ld ), _recvAddr( recvAddr ), _ops( ops ), _packer( packer ) { }
+            GetRequest( char* hostAddr, std::size_t size, char *recvAddr, DeviceOps *ops ) :
+               _complete(0), _hostAddr( hostAddr ), _size( size ), _recvAddr( recvAddr ), _ops( ops ) { }
 
-            void clear();
+            void complete();
+            bool isCompleted() const;
+            virtual void clear();
          };
+
+         struct GetRequestStrided : public GetRequest {
+            std::size_t _count;
+            std::size_t _ld;
+            Packer *_packer;
+
+            GetRequestStrided( char* hostAddr, std::size_t size, std::size_t count, std::size_t ld, char *recvAddr, DeviceOps *ops, Packer *packer ) :
+               GetRequest( hostAddr, size, recvAddr, ops ), _count( count ), _ld( ld ), _packer( packer ) { }
+
+            virtual void clear();
+         };
+
 
          /*! \brief ClusterDevice constructor
           */

@@ -175,7 +175,11 @@ with_mpi_conduit="no"
 with_udp_conduit="no"
 with_smp_conduit="no"
 with_ibv_conduit="no"
-if test x$cluster_enabled = xyes; then
+with_mpi_conduit_dbg="no"
+with_udp_conduit_dbg="no"
+with_smp_conduit_dbg="no"
+with_ibv_conduit_dbg="no"
+if test x$cluster_enabled = xyes ; then
 
     m4_include(lx_find_mpi.m4)
 
@@ -192,7 +196,17 @@ if test x$cluster_enabled = xyes; then
     	GASNET_DIR=/opt/gasnet
           ])
 
+    AC_ARG_WITH([gasnet-dbg],
+          AS_HELP_STRING([--with-gasnet-dbg=dir], [Directory of GASNet installation with debug options enabled]),
+          [
+    	GASNET_DBG_DIR="${withval}"
+          ],
+          [
+    	GASNET_DBG_DIR=$GASNET_DIR
+          ])
+
     AC_SUBST([GASNET_DIR])
+    AC_SUBST([GASNET_DBG_DIR])
     AC_SUBST([MPI_CLDFLAGS])
     CONDUITS=`ls -d $GASNET_DIR/include/*-conduit | sed -e "s#$GASNET_DIR/include/##" | cut -d - -f 1`
     for this_conduit in $CONDUITS ; do
@@ -218,11 +232,41 @@ if test x$cluster_enabled = xyes; then
             with_ibv_conduit="yes"
         fi
     done
+    if test x$GASNET_DIR != x$GASNET_DBG_DIR ; then
+       CONDUITS_DBG=`ls -d $GASNET_DBG_DIR/include/*-conduit | sed -e "s#$GASNET_DBG_DIR/include/##" | cut -d - -f 1`
+       for this_conduit in $CONDUITS_DBG ; do
+           if test x$this_conduit = xmpi ; then
+               with_mpi_conduit_dbg="yes"
+               #AC_LANG_PUSH([C++])
+               export MP_CXX=gcc
+               LX_FIND_MPI()
+               #AC_LANG_POP([C++])
+               #echo have_C_mpi is $have_C_mpi : MPICC is $MPICC / MPI_CFLAGS is $MPI_CFLAGS / MPI_CLDFLAGS is $MPI_CLDFLAGS
+               #echo have_CXX_mpi is $have_CXX_mpi : MPICXX is $MPICXX / MPI_CXXFLAGS is $MPI_CXXFLAGS / MPI_CXXLDFLAGS is $MPI_CXXLDFLAGS
+           fi
+
+           if test x$this_conduit = xudp ; then
+               with_udp_conduit_dbg="yes"
+           fi
+
+           if test x$this_conduit = xsmp ; then
+               with_smp_conduit_dbg="yes"
+           fi
+
+           if test x$this_conduit = xibv ; then
+               with_ibv_conduit_dbg="yes"
+           fi
+       done
+    fi
 fi
 AM_CONDITIONAL([CONDUIT_MPI], [test x$with_mpi_conduit = xyes])
 AM_CONDITIONAL([CONDUIT_UDP], [test x$with_udp_conduit = xyes])
 AM_CONDITIONAL([CONDUIT_SMP], [test x$with_smp_conduit = xyes])
 AM_CONDITIONAL([CONDUIT_IBV], [test x$with_ibv_conduit = xyes])
+AM_CONDITIONAL([CONDUIT_DBG_MPI], [test x$with_mpi_conduit_dbg = xyes])
+AM_CONDITIONAL([CONDUIT_DBG_UDP], [test x$with_udp_conduit_dbg = xyes])
+AM_CONDITIONAL([CONDUIT_DBG_SMP], [test x$with_smp_conduit_dbg = xyes])
+AM_CONDITIONAL([CONDUIT_DBG_IBV], [test x$with_ibv_conduit_dbg = xyes])
 
 # Check if it has nVidia GPUs / CUDA is installed
 gpu_valid=no
@@ -668,9 +712,12 @@ echo ""
 echo "Host arch:" $SMP_ARCH
 echo "Configured architectures:" $ARCHITECTURES
 if test x$cluster_enabled = xyes ; then
-echo "With cluster/gasnet conduits:" $CONDUITS
-if test x$have_C_mpi = xyes ; then
-echo "MPI_CLDFLAGS: " $MPI_CLDFLAGS
-fi
+   echo "With cluster/gasnet conduits:" $CONDUITS
+   if test x$have_C_mpi = xyes ; then
+      echo "MPI_CLDFLAGS: " $MPI_CLDFLAGS
+   fi
+   if test x$GASNET_DIR != x$GASNET_DBG_DIR ; then
+      echo "GASNet was configured also with a debug installation, with these conduits: " $CONDUITS_DBG
+   fi
 fi
 echo ""

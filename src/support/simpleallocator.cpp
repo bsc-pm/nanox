@@ -36,7 +36,7 @@ void SimpleAllocator::init( uint64_t baseAddress, size_t len )
    _freeChunks[ baseAddress ] = len;
 }
 
-void * SimpleAllocator::allocate( size_t size )
+void * SimpleAllocator::allocate( size_t size, bool print )
 {
    SegmentMap::iterator mapIter = _freeChunks.begin();
    void * retAddr = (void *) 0;
@@ -47,8 +47,12 @@ void * SimpleAllocator::allocate( size_t size )
    alignedLen = (1UL<<(count));
    //fprintf(stderr, "alignedLen %lX, size %lX\n", alignedLen, size);
 
-   //while( mapIter != _freeChunks.end() && mapIter->second < size )
-   while( mapIter != _freeChunks.end() && mapIter->second < ( ( mapIter->first & ~(alignedLen-1) ) + ( ( ( mapIter->first & (alignedLen-1) ) == 0 ) ? 0 : alignedLen ) + size ) - mapIter->first )
+   while( mapIter != _freeChunks.end() && 
+      mapIter->second < 
+      ( ( mapIter->first & ~(alignedLen-1) ) +
+        ( ( ( mapIter->first & (alignedLen-1) ) == 0 ) ? 0 : alignedLen ) +
+        size ) -
+       mapIter->first )
    {
       //std::cerr << "this chunk addr " << (void *) mapIter->first << " computed size is " <<  (void *) (mapIter->first | ((size-1))) << " " << ( ((mapIter->first | ((size-1))) + 1 + size ) - mapIter->first ) << std::endl;
       mapIter++;
@@ -84,8 +88,8 @@ void * SimpleAllocator::allocate( size_t size )
    }
    else {
       // Could not get a chunk of 'size' bytes
-      std::cerr << sys.getNetwork()->getNodeNum() << ": WARNING: Allocator is full" << std::endl;
-      printMap();
+      //std::cerr << sys.getNetwork()->getNodeNum() << ": WARNING: Allocator is full" << std::endl;
+      //printMap();
       return NULL;
    }
 

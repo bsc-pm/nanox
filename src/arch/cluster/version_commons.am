@@ -37,29 +37,11 @@ pe_cluster_sources = \
 		$(END)
 
 
-#cluster_common_cflags= -Wall -include "memtracker.hpp"
-#cluster_global_perfo_cxxflags= $(cluster_common_cflags) -DLIBDIR=\"$(libdir)\" -O3
-#cluster_common_perfo_cxxflags= $(cluster_global_perfo_cxxflags) -D_NANOS_INTERNAL
-
-#cluster_global_debug_cxxflags= $(cluster_common_cflags) -DLIBDIR=\"$(libdir)\" -O0 -g2 -fno-inline -DNANOS_DEBUG_ENABLED
-#cluster_common_debug_cxxflags= $(cluster_global_debug_cxxflags) -D_NANOS_INTERNAL
-
-#cluster_global_instr_cxxflags= $(cluster_common_cflags) -DLIBDIR=\"$(libdir)\" -O3 -DNANOS_INSTRUMENTATION_ENABLED
-#cluster_common_instr_cxxflags= $(cluster_global_instr_cxxflags) -D_NANOS_INTERNAL
-
-#cluster_global_instrdebug_cxxflags= $(cluster_common_cflags) -DLIBDIR=\"$(libdir)\" -O0 -g2 -fno-inline -DNANOS_DEBUG_ENABLED -DNANOS_INSTRUMENTATION_ENABLED 
-#cluster_common_instrdebug_cxxflags= $(cluster_global_instrdebug_cxxflags) -D_NANOS_INTERNAL
-
 pe_cluster_common_includes = -DGASNET_PAR -isystem @GASNET_DIR@/include
 pe_cluster_common_ldflags = -L@GASNET_DIR@/lib
 
 pe_cluster_mpi_includes = $(pe_cluster_common_includes) -I@GASNET_DIR@/include/mpi-conduit
-#if ARCH_IS_64_BITS
-#pe_cluster_mpi_ldflags = $(pe_cluster_common_ldflags) -lgasnet-mpi-par -lammpi -L/opt/osshpc/mpich-mx/64/lib/shared -L/opt/osshpc/mx/lib64 -lmpich -lmyriexpress -L/opt/ibmcmp/vacpp/10.1/lib64 -lxl
 pe_cluster_mpi_ldflags = $(pe_cluster_common_ldflags) -lgasnet-mpi-par -lammpi @MPI_CLDFLAGS@
-#else
-#pe_cluster_mpi_ldflags = $(pe_cluster_common_ldflags) -lgasnet-mpi-par -lammpi -L/opt/osshpc/mpich-mx/32/lib/shared -L/opt/osshpc/mx/lib32 -lmpich -lmyriexpress -L/opt/ibmcmp/vacpp/10.1/lib -lxl
-#endif
 
 pe_cluster_udp_includes = $(pe_cluster_common_includes) -I@GASNET_DIR@/include/udp-conduit
 pe_cluster_udp_ldflags = $(pe_cluster_common_ldflags) -lgasnet-udp-par -lamudp
@@ -69,3 +51,18 @@ pe_cluster_smp_ldflags = $(pe_cluster_common_ldflags) -lgasnet-smp-par
 
 pe_cluster_ibv_includes = $(pe_cluster_common_includes) -I@GASNET_DIR@/include/ibv-conduit -DGASNET_CONDUIT_IBV
 pe_cluster_ibv_ldflags = $(pe_cluster_common_ldflags) -lgasnet-ibv-par -libverbs @MPI_CLDFLAGS@
+
+pe_cluster_dbg_common_includes = -DGASNET_PAR -isystem @GASNET_DBG_DIR@/include
+pe_cluster_dbg_common_ldflags = -L@GASNET_DBG_DIR@/lib
+
+pe_cluster_dbg_mpi_includes = $(pe_cluster_dbg_common_includes) -I@GASNET_DBG_DIR@/include/mpi-conduit
+pe_cluster_dbg_mpi_ldflags = $(pe_cluster_dbg_common_ldflags) -lgasnet-mpi-par -lammpi @MPI_CLDFLAGS@
+
+pe_cluster_dbg_udp_includes = $(pe_cluster_dbg_common_includes) -I@GASNET_DBG_DIR@/include/udp-conduit
+pe_cluster_dbg_udp_ldflags = $(pe_cluster_dbg_common_ldflags) -lgasnet-udp-par -lamudp
+
+pe_cluster_dbg_smp_includes = $(pe_cluster_dbg_common_includes) -I@GASNET_DBG_DIR@/include/smp-conduit
+pe_cluster_dbg_smp_ldflags = $(pe_cluster_dbg_common_ldflags) -lgasnet-smp-par
+
+pe_cluster_dbg_ibv_includes = $(pe_cluster_dbg_common_includes) -I@GASNET_DBG_DIR@/include/ibv-conduit -DGASNET_CONDUIT_IBV
+pe_cluster_dbg_ibv_ldflags = $(pe_cluster_dbg_common_ldflags) -lgasnet-ibv-par -libverbs @MPI_CLDFLAGS@

@@ -413,6 +413,7 @@ namespace nanos {
          public:
             static bool _noSteal;
             static bool _noMaster;
+            static bool _noSupport;
             // constructor
             CacheSchedPolicy() : SchedulePolicy ( "Cache" ) {}
 
@@ -1075,11 +1076,14 @@ namespace nanos {
       }
 
       void CacheSchedPolicy::atSupport ( BaseThread *thread ) {
-         pickWDtoInitialize( thread );
+         if ( !_noSupport ) {
+            pickWDtoInitialize( thread );
+         }
       }
 
       bool CacheSchedPolicy::_noSteal = false;
       bool CacheSchedPolicy::_noMaster = false;
+      bool CacheSchedPolicy::_noSupport = false;
 
       class CacheSchedPlugin : public Plugin
       {
@@ -1094,6 +1098,9 @@ namespace nanos {
 
                cfg.registerConfigOption ( "affinity-no-master", NEW Config::FlagOption( CacheSchedPolicy::_noMaster ), "Do not execute tasks on master node");
                cfg.registerArgOption( "affinity-no-master", "affinity-no-master" );
+
+               cfg.registerConfigOption ( "affinity-no-support", NEW Config::FlagOption( CacheSchedPolicy::_noSupport ), "Do not execute tasks on master node");
+               cfg.registerArgOption( "affinity-no-support", "affinity-no-support" );
             }
 
             virtual void init() {

@@ -105,14 +105,13 @@ void SMPThread::idle()
    if ( !_pendingRequests.empty() ) {
       std::set<void *>::iterator it = _pendingRequests.begin();
       while ( it != _pendingRequests.end() ) {
-         volatile int *complete = (volatile int *) (*it);
-         if (*complete == 1) {
-            std::set<void *>::iterator toBeDeletedIt = it;
-            it++;
-            _pendingRequests.erase(toBeDeletedIt);
-            ext::ClusterDevice::GetRequestStrided *req = (ext::ClusterDevice::GetRequestStrided *) complete;
-            req->clear();
-            delete req;
+         ext::ClusterDevice::GetRequest *req = (ext::ClusterDevice::GetRequest *) (*it);
+         if ( req->isCompleted() ) {
+           std::set<void *>::iterator toBeDeletedIt = it;
+           it++;
+           _pendingRequests.erase(toBeDeletedIt);
+           req->clear();
+           delete req;
          } else {
             it++;
          }

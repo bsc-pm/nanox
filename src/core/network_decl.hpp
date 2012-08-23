@@ -66,7 +66,7 @@ namespace nanos {
          void sendWorkDoneMsg( unsigned int nodeNum, void *remoteWdaddr, int peId );
          void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD *wd );
          void putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD *wd );
-         void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size );
+         void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size, volatile int *req );
          void getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64_t remoteTag, uint64_t remoteAddr, std::size_t size, std::size_t count, std::size_t ld, volatile int *req );
          void *malloc ( unsigned int remoteNode, std::size_t size );
          void memFree ( unsigned int remoteNode, void *addr );
@@ -92,6 +92,9 @@ namespace nanos {
 
          SimpleAllocator *getPackerAllocator() const;
          std::size_t getMaxGetStridedLen() const;
+
+         void *allocateReceiveMemory( std::size_t len );
+         void freeReceiveMemory( void * addr );
    };
 }
 

@@ -560,9 +560,9 @@ void Scheduler::workerClusterLoop ()
          ext::ClusterThread * volatile myClusterThread = dynamic_cast< ext::ClusterThread * >( myThread );
          ext::ClusterNode *thisNode = dynamic_cast< ext::ClusterNode * >( myThread->runningOn() );
          thisNode->disableDevice( 1 ); 
+         myClusterThread->clearCompletedWDsSMP2();
          if ( ( (int) myClusterThread->numRunningWDsSMP() ) < ext::ClusterInfo::getSmpPresend() )
          {
-            myClusterThread->clearCompletedWDsSMP2();
             //WD * wd = myClusterThread->getBlockingWDSMP();
             //WD * wd = myClusterThread->fetchBlockingWDSMP();
             //if ( wd )
@@ -579,6 +579,7 @@ void Scheduler::workerClusterLoop ()
             //}
             //else
 //std::cerr << "cleared stuff at thd "<<myClusterThread->getId()  << std::endl;
+      //if (sys.getNetwork()->getNodeNum() == 0  ) std::cerr <<"sss get a wd... " << myThread->getId() << std::endl;
             {
                WD * wd = getClusterWD( myThread, 0 );
                if ( wd )
@@ -591,6 +592,7 @@ void Scheduler::workerClusterLoop ()
                      Scheduler::preOutlineWork(wd);
 //std::cerr << "preoutline work done  "<<myClusterThread->getId()  << std::endl;
                      myThread->outlineWorkDependent(*wd);
+//      if (sys.getNetwork()->getNodeNum() == 0  ) std::cerr <<"sss get a wd... done" << myThread->getId() << std::endl;
                   }
                   else
                   {
@@ -659,7 +661,9 @@ void Scheduler::workerClusterLoop ()
          thisNode->enableDevice( 0 ); 
 #endif
       }
+      //if (sys.getNetwork()->getNodeNum() == 0  ) std::cerr <<"ppp poll " << myThread->getId() << std::endl;
       sys.getNetwork()->poll(parent->getId());
+      //if ( sys.getNetwork()->getNodeNum() == 0 ) std::cerr <<"ppp poll complete " << myThread->getId() << std::endl;
 //if ( sys.getNetwork()->getNodeNum() == 0 ) std::cerr << "thread change! " << std::endl;
       myThread = myThread->getNextThread();
    }

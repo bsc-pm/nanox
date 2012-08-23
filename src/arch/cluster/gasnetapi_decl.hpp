@@ -170,7 +170,7 @@ namespace ext {
          static void _sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr, int peId);
          void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD * wd );
          void putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD * wd );
-         void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size );
+         void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size, volatile int *requestComplete );
          void getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64_t remoteTag, uint64_t remoteAddr, std::size_t size, std::size_t count, std::size_t ld, volatile int *requestComplete );
          void malloc ( unsigned int remoteNode, std::size_t size, void *waitObjAddr );
          void memFree ( unsigned int remoteNode, void *addr );
@@ -188,6 +188,8 @@ namespace ext {
          static std::size_t getRxBytes();
          static std::size_t getTxBytes();
          SimpleAllocator *getPackSegment() const;
+         void *allocateReceiveMemory( std::size_t len );
+         void freeReceiveMemory( void * addr );
 
       private:
          static void getDataFromDevice( uint64_t addr, std::size_t len );

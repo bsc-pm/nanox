@@ -97,8 +97,14 @@ void ClusterDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t le
 }
 void ClusterDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId, WD *wd ) {
    ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
-   sys.getNetwork()->get( ( void * ) hostAddr, node->getClusterNodeNum(), devAddr, len );
-   ops->completeOp();
+
+   char *recvAddr = (char *) sys.getNetwork()->allocateReceiveMemory( len );
+
+   GetRequest *newreq = NEW GetRequest( (char *) hostAddr, len, recvAddr, ops );
+   myThread->_pendingRequests.insert( newreq );
+
+   ops->addOp();
+   sys.getNetwork()->get( ( void * ) recvAddr, node->getClusterNodeNum(), devAddr, len, (volatile int *) newreq );
 }
 void ClusterDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, ProcessingElement *peDest, ProcessingElement *peOrig, DeviceOps *ops, unsigned int wdId, WD *wd ) {
    //ClusterNode *node = dynamic_cast< ClusterNode * >( pe );
@@ -176,7 +182,19 @@ void ClusterDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOr
    ops->completeOp();
 }
 
-
+void ClusterDevice::GetRequest::complete() {
+   _complete = 1;
+}
+bool ClusterDevice::GetRequest::isCompleted() const {
+   return _complete == 1;
+}
+void ClusterDevice::GetRequest::clear() {
+   //std::cerr <<"clear request "<< (void*) _ops << std::endl;
+   ::memcpy( _hostAddr, _recvAddr, _size );
+   sys.getNetwork()->freeReceiveMemory( _recvAddr );
+   _ops->completeOp();
+   //std::cerr <<"clear GetRequest "<< (void *) _recvAddr << std::endl;
+}
 
 void ClusterDevice::GetRequestStrided::clear() {
    //std::cerr <<"clear request "<< (void*) _ops << std::endl;
@@ -188,4 +206,5 @@ void ClusterDevice::GetRequestStrided::clear() {
    _packer->free_pack( (uint64_t) _hostAddr, _size, _count );
    _ops->completeOp();
    //std::cerr <<"clear request "<< (void*) _ops << std::endl;
+   //std::cerr <<"clear GetRequestStrided "<< (void *) _recvAddr << std::endl;
 }

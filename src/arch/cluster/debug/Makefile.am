@@ -33,29 +33,29 @@ debug_LTLIBRARIES =
 
 if CONDUIT_MPI
 debug_LTLIBRARIES += libnanox-pe-cluster-mpi.la
-libnanox_pe_cluster_mpi_la_CXXFLAGS=$(nanos_debug_cxxflags) $(pe_cluster_mpi_includes)
-libnanox_pe_cluster_mpi_la_LDFLAGS=$(ld_plugin_flags) $(pe_cluster_mpi_ldflags)
+libnanox_pe_cluster_mpi_la_CXXFLAGS=$(nanos_debug_cxxflags) $(pe_cluster_dbg_mpi_includes)
+libnanox_pe_cluster_mpi_la_LDFLAGS=$(ld_plugin_flags) $(pe_cluster_dbg_mpi_ldflags)
 libnanox_pe_cluster_mpi_la_SOURCES=$(pe_cluster_sources)
 endif
 
 if CONDUIT_UDP
 debug_LTLIBRARIES += libnanox-pe-cluster-udp.la
-libnanox_pe_cluster_udp_la_CXXFLAGS=$(nanos_debug_cxxflags) $(pe_cluster_udp_includes)
-libnanox_pe_cluster_udp_la_LDFLAGS=$(ld_plugin_flags) $(pe_cluster_udp_ldflags)
+libnanox_pe_cluster_udp_la_CXXFLAGS=$(nanos_debug_cxxflags) $(pe_cluster_dbg_udp_includes)
+libnanox_pe_cluster_udp_la_LDFLAGS=$(ld_plugin_flags) $(pe_cluster_dbg_udp_ldflags)
 libnanox_pe_cluster_udp_la_SOURCES=$(pe_cluster_sources)
 endif
 
 if CONDUIT_SMP
 debug_LTLIBRARIES += libnanox-pe-cluster-smp.la
-libnanox_pe_cluster_smp_la_CXXFLAGS=$(nanos_debug_cxxflags) $(pe_cluster_smp_includes)
-libnanox_pe_cluster_smp_la_LDFLAGS=$(ld_plugin_flags) $(pe_cluster_smp_ldflags)
+libnanox_pe_cluster_smp_la_CXXFLAGS=$(nanos_debug_cxxflags) $(pe_cluster_dbg_smp_includes)
+libnanox_pe_cluster_smp_la_LDFLAGS=$(ld_plugin_flags) $(pe_cluster_dbg_smp_ldflags)
 libnanox_pe_cluster_smp_la_SOURCES=$(pe_cluster_sources)
 endif
 
 if CONDUIT_IBV
 debug_LTLIBRARIES += libnanox-pe-cluster-ibv.la
-libnanox_pe_cluster_ibv_la_CXXFLAGS=$(nanos_debug_cxxflags) $(pe_cluster_ibv_includes)
-libnanox_pe_cluster_ibv_la_LDFLAGS=$(ld_plugin_flags) $(pe_cluster_ibv_ldflags)
+libnanox_pe_cluster_ibv_la_CXXFLAGS=$(nanos_debug_cxxflags) $(pe_cluster_dbg_ibv_includes)
+libnanox_pe_cluster_ibv_la_LDFLAGS=$(ld_plugin_flags) $(pe_cluster_dbg_ibv_ldflags)
 libnanox_pe_cluster_ibv_la_SOURCES=$(pe_cluster_sources)
 endif
 

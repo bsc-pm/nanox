@@ -36,34 +36,37 @@ void * Packer::give_pack( uint64_t addr, std::size_t len, std::size_t count ) {
             //   std::cerr << "overlap with previous" << std::endl;
             //} else {
                if ( _allocator == NULL ) _allocator = sys.getNetwork()->getPackerAllocator();
-               //_allocator->lock();
+               _allocator->lock();
                result = _allocator->allocate( len * count );
-               //_allocator->unlock();
-               _packs.insert( it, std::make_pair( key, result ) );
+               _allocator->unlock();
+               _packs.insert( it, std::make_pair( key, PackMemory( result ) ) );
             //}
          } else { 
             //std::cerr << "begin chunk" << std::endl;
             if ( _allocator == NULL ) _allocator = sys.getNetwork()->getPackerAllocator();
-            //_allocator->lock();
+            _allocator->lock();
             result = _allocator->allocate( len * count );
-            //_allocator->unlock();
-            _packs.insert( it, std::make_pair( key, result ) );
+            _allocator->unlock();
+            _packs.insert( it, std::make_pair( key, PackMemory( result ) ) );
          }
       } else if ( _packs.key_comp()( key, it->first )  ) { /* not equal: key < it */
          //std::cerr << "not equal addr equal addr" << std::endl;
          if ( _allocator == NULL ) _allocator = sys.getNetwork()->getPackerAllocator();
-         //_allocator->lock();
+         _allocator->lock();
          result = _allocator->allocate( len * count );
-         //_allocator->unlock();
+         _allocator->unlock();
          _packs.insert( it, std::make_pair( key, result ) );
       } else { /* eq addr, no size match*/
          if (sys.getNetwork()->getNodeNum() == 0) std::cerr << "equal addr, different size" << std::endl;
       }
    } else { /* exact match */
-      if (sys.getNetwork()->getNodeNum() == 0) std::cerr << "exact match chunk " << (void *) addr << " pack addr "<< it->second  << std::endl;
-      result = it->second;
+      if (sys.getNetwork()->getNodeNum() == 0) std::cerr << "exact match chunk " << (void *) addr << " pack addr "<< it->second.getMemory()  << std::endl;
+      result = it->second.getMemoryAndIncreaseReferences();
    }
    _lock.release();
+   if ( result == NULL ) {
+      std::cerr << "Error: could not get a memory area to pack data." << std::endl;
+   }
    //std::cerr <<"pack returrns "<<  result << std::endl;
    return result;
 }
@@ -71,12 +74,14 @@ void * Packer::give_pack( uint64_t addr, std::size_t len, std::size_t count ) {
 void Packer::free_pack( uint64_t addr, std::size_t len, std::size_t count ) {
    PackInfo key( addr, len, count );
    _lock.acquire();
+   _allocator->lock();
    mapIterator it = _packs.find( key );
    //if (sys.getNetwork()->getNodeNum() == 0) std::cerr <<"pack frees h: " << (void *) addr << " pack addr " <<  it->second << std::endl;
-   //_allocator->lock();
-   _allocator->free( it->second );
-   //_allocator->unlock();
-   _packs.erase( it );
+   if ( it->second.decreaseReferences() == 0 ) {
+      _allocator->free( it->second.getMemory() );
+      _packs.erase( it );
+   }
+   _allocator->unlock();
    _lock.release();
 }
 

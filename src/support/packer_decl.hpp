@@ -24,11 +24,24 @@ class Packer {
          bool sizeMatch( std::size_t len, std::size_t count ) const;
    };
 
-   std::map< PackInfo, void * > _packs;
+   class PackMemory {
+      void * _memory;
+      Atomic<unsigned int> _refCounter;
+
+      public:
+         PackMemory() : _memory( NULL ), _refCounter( 0 ) { }
+         PackMemory( void *mem ) : _memory( mem ), _refCounter( 1 ) { }
+         PackMemory( PackMemory const &pm ) : _memory( pm._memory ), _refCounter( pm._refCounter.value() ) { }
+         void *getMemoryAndIncreaseReferences() { _refCounter++; return _memory; }
+         unsigned int decreaseReferences() { unsigned int value = --_refCounter; return value; }
+         void *getMemory() const { return _memory; }
+   };
+
+   std::map< PackInfo, PackMemory > _packs;
    SimpleAllocator *_allocator;
    Lock _lock;
 
-   typedef std::map< PackInfo, void * >::iterator mapIterator;
+   typedef std::map< PackInfo, PackMemory >::iterator mapIterator;
 
    private:
       Packer( Packer const &p );

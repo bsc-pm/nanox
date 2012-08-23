@@ -48,7 +48,7 @@ namespace nanos {
 
          void init( uint64_t baseAddress, size_t len );
 
-         void * allocate( size_t len );
+         void * allocate( size_t len, bool print =false );
 
          uint64_t getBaseAddress ();
 

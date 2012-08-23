@@ -474,7 +474,6 @@ void RegionCache::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::si
 }
 
 void RegionCache::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, DeviceOps *ops, unsigned int wdId, WD *wd ) {
-   ops->addOp();
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_OUT); );
    //NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    //NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-data-out"); )

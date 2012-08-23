@@ -77,9 +77,10 @@ namespace nanos
          void setVersion( unsigned int ver ) { _version = ver; }
          unsigned int getVersion() const { return _version; }
          void merge( const NewDirectoryEntryData &de ) {
-            if ( hasWriteLocation() && de.hasWriteLocation() ) {
-               if ( getWriteLocation() != de.getWriteLocation() && _version == de._version ) std::cerr << "write loc mismatch WARNING !!! two write locations!, missing dependencies?" << std::endl;
-            } /*else if ( de.hasWriteLocation() ) {
+            //if ( hasWriteLocation() && de.hasWriteLocation() ) {
+            //   if ( getWriteLocation() != de.getWriteLocation() && _version == de._version ) std::cerr << "write loc mismatch WARNING !!! two write locations!, missing dependencies?" << std::endl;
+            //} 
+            /*else if ( de.hasWriteLocation() ) {
                setWriteLocation( de.getWriteLocation() );
             } else setWriteLocation( -1 );*/
 

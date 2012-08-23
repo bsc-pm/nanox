@@ -158,11 +158,11 @@ void Network::putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void 
    }
 }
 
-void Network::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size )
+void Network::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size, volatile int *req )
 {
    if ( _api != NULL )
    {
-      _api->get( localAddr, remoteNode, remoteAddr, size );
+      _api->get( localAddr, remoteNode, remoteAddr, size, req );
    }
 }
 
@@ -336,4 +336,18 @@ std::size_t Network::getMaxGetStridedLen() const {
       result = _api->getMaxGetStridedLen();
    }
    return result;
+}
+
+void *Network::allocateReceiveMemory( std::size_t len ) {
+   void *addr = NULL;
+   if ( _api != NULL ) {
+      addr = _api->allocateReceiveMemory( len );
+   }
+   return addr;
+}
+
+void Network::freeReceiveMemory( void * addr ) {
+   if ( _api != NULL ) {
+      _api->freeReceiveMemory( addr );
+   }
 }

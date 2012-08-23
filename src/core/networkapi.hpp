@@ -42,7 +42,7 @@ namespace nanos {
          virtual void sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr, int peId ) = 0;
          virtual void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD *wd ) = 0;
          virtual void putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD *wd ) = 0;
-         virtual void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size ) = 0;
+         virtual void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size, volatile int *req ) = 0;
          virtual void getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64_t remoteTag, uint64_t remoteAddr, std::size_t size, std::size_t count, std::size_t ld, volatile int *req ) = 0;
          virtual void malloc ( unsigned int remoteNode, std::size_t size, void * waitObjAddr) = 0;
          virtual void memFree ( unsigned int remoteNode, void *addr ) = 0;
@@ -58,6 +58,8 @@ namespace nanos {
          //virtual void setGpuCache(Cache *_cache) = 0;
          virtual SimpleAllocator *getPackSegment() const = 0;
          virtual std::size_t getMaxGetStridedLen() const = 0;
+         virtual void *allocateReceiveMemory( std::size_t len ) = 0;
+         virtual void freeReceiveMemory( void * addr ) = 0;
    };
 }
 
