@@ -107,7 +107,7 @@ void GPUThread::runDependent ()
    ( ( GPUProcessor * ) myThread->runningOn() )->cleanUp();
 }
 
-void GPUThread::inlineWorkDependent ( WD &wd )
+bool GPUThread::inlineWorkDependent ( WD &wd )
 {
    GPUDD &dd = ( GPUDD & )wd.getActiveDevice();
    GPUProcessor &myGPU = * ( GPUProcessor * ) myThread->runningOn();
@@ -186,6 +186,8 @@ void GPUThread::inlineWorkDependent ( WD &wd )
       // when we know the kernel has really finished
       NANOS_INSTRUMENT ( raiseWDClosingEvents() );
    }
+
+   return true;
 }
 
 void GPUThread::yield()

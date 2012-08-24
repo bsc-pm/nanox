@@ -38,7 +38,7 @@ void barrier_code ( void * )
          _map[i] = i;
       }
       if ( _map.find(8) == NULL ) {
-         std::cout << "ERRPOR: added element not found" << std::endl;
+         std::cout << "ERROR: added element not found" << std::endl;
          abort();
       }
    }
@@ -55,7 +55,7 @@ void barrier_code ( void * )
    } else {
       while ( _map.find(8) != NULL )
          its++;
-      std::cout <<  getMyThreadSafe()->getCurrentWD() << " readed element " << std::setbase(10) << (int)its << " times until it got erased." << std::endl;
+      std::cout <<  getMyThreadSafe()->getCurrentWD() << " read element " << std::setbase(10) << (int)its << " times until it got erased." << std::endl;
       std::cout.flush();
    }
    nanos_team_barrier();

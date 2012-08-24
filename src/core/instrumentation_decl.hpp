@@ -316,6 +316,26 @@ namespace nanos {
             /* 33 */ registerEventKey("num-scheds","Number of scheduler operations", true); 
             /* 34 */ registerEventKey("time-scheds","Time on scheduler operations (in nsecs)", true);
 
+            /* 35 */ registerEventKey("sched-versioning","Versioning scheduler decisions", true);
+            registerEventValue("sched-versioning", "NANOS_SCHED_VER_SETDEVICE_CANRUN", "Set WD device + thread can run" );
+            registerEventValue("sched-versioning", "NANOS_SCHED_VER_SETDEVICE_CANNOTRUN", "Set WD device + thread cannot run" );
+            registerEventValue("sched-versioning", "NANOS_SCHED_VER_SELECTWD_FIRSTCANRUN", "Select WD first record + thread can run" );
+            registerEventValue("sched-versioning", "NANOS_SCHED_VER_SELECTWD_FIRSTCANNOTRUN", "Select WD first record + thread cannot run" );
+            registerEventValue("sched-versioning", "NANOS_SCHED_VER_SELECTWD_BELOWMINRECCANRUN", "Select WD not enough records + thread can run" );
+            registerEventValue("sched-versioning", "NANOS_SCHED_VER_SELECTWD_UNDEFINED", "Select WD undefined" );
+            registerEventValue("sched-versioning", "NANOS_SCHED_VER_SELECTWD_GETFIRST", "Select WD get first queue task" );
+            registerEventValue("sched-versioning", "NANOS_SCHED_VER_ATIDLE_GETFIRST", "At idle get first queue task" );
+            registerEventValue("sched-versioning", "NANOS_SCHED_VER_ATIDLE_NOFIRST", "At idle no first queue task found" );
+            registerEventValue("sched-versioning", "NANOS_SCHED_VER_ATPREFETCH_GETFIRST", "At prefetch get first queue task" );
+            registerEventValue("sched-versioning", "NANOS_SCHED_VER_ATPREFETCH_GETIMMSUCC", "At prefetch get immediate successor" );
+            registerEventValue("sched-versioning", "NANOS_SCHED_VER_ATPREFETCH_NOFIRST", "At prefetch no first queue task found" );
+            registerEventValue("sched-versioning", "NANOS_SCHED_VER_ATBEFEX_GETFIRST", "At before exit get first queue task" );
+            registerEventValue("sched-versioning", "NANOS_SCHED_VER_ATBEFEX_NOFIRST", "At before exit no first queue task found" );
+            registerEventValue("sched-versioning", "NANOS_SCHED_VER_SETEARLIESTEW_FOUND", "Set earliest execution worker found" );
+            registerEventValue("sched-versioning", "NANOS_SCHED_VER_SETEARLIESTEW_NOTFOUND", "Set earliest execution worker not found" );
+            registerEventValue("sched-versioning", "NANOS_SCHED_VER_FINDEARLIESTEW_BETTERTIME", "Found earliest execution worker timing reason" );
+            registerEventValue("sched-versioning", "NANOS_SCHED_VER_FINDEARLIESTEW_IDLEWORKER", "Found earliest execution worker idle reason" );
+
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }
 

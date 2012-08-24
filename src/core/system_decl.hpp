@@ -249,6 +249,8 @@ namespace nanos
 
          int getNumWorkers() const;
 
+         int getNumWorkers( DeviceData *arch );
+
          int getNumSockets() const;
 
          void setNumSockets ( int numSockets );

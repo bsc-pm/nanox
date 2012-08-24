@@ -582,6 +582,9 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, data_align, data != NULL ? *data : NULL,
                              num_copies, (copies != NULL)? *copies : NULL, translate_args );
 
+   // All the implementations for a given task will have the same ID
+   wd->setVersionGroupId( ( unsigned long ) devices );
+
    // initializing internal data
    if ( size_PMD > 0) wd->setInternalData( chunk + offset_PMD );
 
@@ -997,6 +1000,16 @@ void System::releaseWorker ( BaseThread * thread )
 
    thread->leaveTeam();   
    team->removeThread(thread_id);
+}
+
+int System::getNumWorkers( DeviceData *arch )
+{
+   int n = 0;
+
+   for ( ThreadList::iterator it = _workers.begin(); it != _workers.end(); it++ ) {
+      if ( arch->isCompatible( ( *it )->runningOn()->getDeviceType() ) ) n++;
+   }
+   return n;
 }
 
 ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints, bool reuseCurrent,

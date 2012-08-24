@@ -24,6 +24,8 @@
 #include "debug.hpp"
 #include "schedule.hpp"
 #include "system.hpp"
+#include "os.hpp"
+
 
 using namespace nanos;
 
@@ -35,6 +37,8 @@ void WorkDescriptor::init ()
 
    /* Initializing instrumentation context */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdCreate( this ) );
+
+   _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() );
 
    if ( getNumCopies() > 0 ) {
       pe->copyDataIn( *this );
@@ -49,7 +53,9 @@ void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
 {
    ensure ( _state == START , "Trying to start a wd twice or trying to start an uninitialized wd");
 
-   _activeDevice->lazyInit(*this,isUserLevelThread,previous);
+   ensure ( _activeDeviceIdx != _numDevices, "This WD has no active device. If you are using 'implements' feature, please use versioning scheduler." );
+
+   _devices[_activeDeviceIdx]->lazyInit(*this,isUserLevelThread,previous);
    
    ProcessingElement *pe = myThread->runningOn();
 
@@ -62,36 +68,60 @@ void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
    setReady();
 }
 
-DeviceData * WorkDescriptor::findDeviceData ( const Device &device ) const
+void WorkDescriptor::prepareDevice ()
 {
-   for ( unsigned i = 0; i < _numDevices; i++ ) {
-      if ( _devices[i]->isCompatible( device ) ) {
-         return _devices[i];
-      }
+   // Do nothing if there is already an active device
+   if ( _activeDeviceIdx != _numDevices ) return;
+
+   if ( _numDevices == 1 ) {
+      _activeDeviceIdx = 0;
+      return;
    }
 
-   return 0;
+   // Choose between the supported devices
+   message("No active device --> selecting one");
+   _activeDeviceIdx = _numDevices - 1;
 }
 
 DeviceData & WorkDescriptor::activateDevice ( const Device &device )
 {
-   if ( _activeDevice ) {
-      ensure( _activeDevice->isCompatible( device ),"Bogus double device activation" );
-      return *_activeDevice;
+   if ( _activeDeviceIdx != _numDevices ) {
+      ensure( _devices[_activeDeviceIdx]->isCompatible( device ),"Bogus double device activation" );
+      return *_devices[_activeDeviceIdx];
+   }
+   unsigned i = _numDevices;
+   for ( i = 0; i < _numDevices; i++ ) {
+      if ( _devices[i]->isCompatible( device ) ) {
+         _activeDeviceIdx = i;
+         break;
+      }
    }
 
-   DD * dd = findDeviceData( device );
+   ensure( i < _numDevices, "Did not find requested device in activation" );
+   return *_devices[_activeDeviceIdx];
+}
 
-   ensure( dd,"Did not find requested device in activation" );
-   _activeDevice = dd;
-   return *dd;
+DeviceData & WorkDescriptor::activateDevice ( unsigned int deviceIdx )
+{
+   ensure( _numDevices > deviceIdx, "The requested device number does not exist" );
+
+   _activeDeviceIdx = deviceIdx;
+
+   return *_devices[_activeDeviceIdx];
 }
 
 bool WorkDescriptor::canRunIn( const Device &device ) const
 {
-   if ( _activeDevice ) return _activeDevice->isCompatible( device );
+   if ( _activeDeviceIdx != _numDevices ) return _devices[_activeDeviceIdx]->isCompatible( device );
 
-   return findDeviceData( device ) != NULL;
+   unsigned int i;
+   for ( i = 0; i < _numDevices; i++ ) {
+      if ( _devices[i]->isCompatible( device ) ) {
+         return true;
+      }
+   }
+
+   return false;
 }
 
 bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
@@ -105,17 +135,21 @@ void WorkDescriptor::submit( void )
    Scheduler::submit(*this);
 } 
 
-void WorkDescriptor::done ()
+void WorkDescriptor::finish ()
 {
    ProcessingElement *pe = myThread->runningOn();
    waitCompletionAndSignalers();
    if ( getNumCopies() > 0 )
      pe->copyDataOut( *this );
 
+   _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() - _executionTime );
+}
+
+void WorkDescriptor::done ()
+{
    releaseCommutativeAccesses(); 
 
    sys.getPMInterface().wdFinished( *this );
-
    this->getParent()->workFinished( *this );
    WorkGroup::done();
 }
@@ -123,6 +157,8 @@ void WorkDescriptor::done ()
 void WorkDescriptor::prepareCopies()
 {
    for (unsigned int i = 0; i < _numCopies; i++ ) {
+      _paramsSize += _copies[i].getSize();
+
       if ( _copies[i].isPrivate() )
          _copies[i].setAddress( ( (uint64_t)_copies[i].getAddress() - (unsigned long)_data ) );
    }

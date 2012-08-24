@@ -589,6 +589,8 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
    // both work descriptor were not tied to any thread
    thread = getMyThreadSafe();
 
+   wd->finish();
+
    if (schedule) {
       ThreadTeam *thread_team = thread->getTeam();
         if ( thread_team && thread->reserveNextWD() ) {
@@ -740,6 +742,8 @@ void Scheduler::exit ( void )
 
    /* get next WorkDescriptor (if any) */
    WD *next =  thread->getNextWD();
+
+   oldwd->finish();
 
   /* if getNextWD() has returned a WD, we need to resetNextWD(). If no WD has
    * been returned call scheduler policy */
