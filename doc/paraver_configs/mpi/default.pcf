@@ -1,0 +1,309 @@
+STATES
+0    Idle
+1    Running
+2    Not created
+3    Waiting a message
+4    Bloking Send
+5    Thd. Synchr.
+6    Test/Probe
+7    Sched. and Fork/Join
+8    Wait/WaitAll
+9    Blocked
+10    Inmediate Send
+11    Inmediate Receive
+12    I/O
+13    Group Communication
+14    Tracing Disabled
+15    Others
+16    Send Receive
+
+
+STATES_COLOR
+0    {117,195,255}
+1    {0,0,255}
+2    {255,255,255}
+3    {255,0,0}
+4    {255,0,174}
+5    {179,0,0}
+6    {0,255,0}
+7    {255,255,0}
+8    {235,0,0}
+9    {0,162,0}
+10    {255,0,255}
+11    {100,100,177}
+12    {172,174,41}
+13    {255,144,26}
+14    {2,255,177}
+15    {192,224,0}
+16    {255,0,255}
+
+
+DEFAULT_OPTIONS
+
+LEVEL               THREAD
+UNITS               NANOSEC
+LOOK_BACK           100
+SPEED               1
+FLAG_ICONS          ENABLED
+NUM_OF_STATE_COLORS 400
+
+
+DEFAULT_SEMANTIC
+
+THREAD_FUNC          State As Is
+
+
+EVENT_TYPE
+6    40000001    Application
+6    40000003    Flushing Traces
+6    40000004    I/O Read
+6    40000005    I/O Write
+VALUES
+1      Begin
+0      End
+
+
+EVENT_TYPE
+6    40000012    Tracing
+VALUES
+0      Disabled
+1      Enabled
+
+
+EVENT_TYPE
+6    40000011    I/O Size
+
+
+EVENT_TYPE
+1    51000001    Send Size in MPI Global OP
+1    51000002    Recv Size in MPI Global OP
+1    51000003    Root in MPI Global OP
+1    51000004    Communicator in MPI Global OP
+
+
+EVENT_TYPE
+9   50000001    MPI Point-to-point
+VALUES
+33   MPI_Bsend
+112   MPI_Bsend_init
+40   MPI_Cancel
+116   MPI_Recv_init
+117   MPI_Send_init
+36   MPI_Ibsend
+62   MPI_Iprobe
+4   MPI_Irecv
+38   MPI_Irsend
+3   MPI_Isend
+37   MPI_Issend
+61   MPI_Probe
+2   MPI_Recv
+35   MPI_Rsend
+121   MPI_Rsend_init
+1   MPI_Send
+41   MPI_Sendrecv
+42   MPI_Sendrecv_replace
+34   MPI_Ssend
+122   MPI_Ssend_init
+5   MPI_Wait
+6   MPI_Waitall
+59   MPI_Waitany
+60   MPI_Waitsome
+0   End
+
+
+EVENT_TYPE
+9   50000002    MPI Collective Comm
+VALUES
+17   MPI_Allgather
+18   MPI_Allgatherv
+10   MPI_Allreduce
+11   MPI_Alltoall
+12   MPI_Alltoallv
+8   MPI_Barrier
+7   MPI_Bcast
+13   MPI_Gather
+14   MPI_Gatherv
+80   MPI_Reduce_scatter
+9   MPI_Reduce
+30   MPI_Scan
+15   MPI_Scatter
+16   MPI_Scatterv
+0   End
+
+
+EVENT_TYPE
+9   50000003    MPI Other
+VALUES
+78   MPI_Op_create
+79   MPI_Op_free
+81   MPI_Attr_delete
+82   MPI_Attr_get
+83   MPI_Attr_put
+21   MPI_Comm_create
+22   MPI_Comm_dup
+25   MPI_Comm_free
+24   MPI_Comm_group
+19   MPI_Comm_rank
+26   MPI_Comm_remote_group
+27   MPI_Comm_remote_size
+20   MPI_Comm_size
+23   MPI_Comm_split
+28   MPI_Comm_test_inter
+29   MPI_Comm_compare
+84   MPI_Group_difference
+85   MPI_Group_excl
+86   MPI_Group_free
+87   MPI_Group_incl
+88   MPI_Group_intersection
+89   MPI_Group_rank
+90   MPI_Group_range_excl
+91   MPI_Group_range_incl
+92   MPI_Group_size
+93   MPI_Group_translate_ranks
+94   MPI_Group_union
+95   MPI_Group_compare
+96   MPI_Intercomm_create
+97   MPI_Intercomm_merge
+98   MPI_Keyval_free
+99   MPI_Keyval_create
+100   MPI_Abort
+101   MPI_Error_class
+102   MPI_Errhandler_create
+103   MPI_Errhandler_free
+104   MPI_Errhandler_get
+105   MPI_Error_string
+106   MPI_Errhandler_set
+32   MPI_Finalize
+107   MPI_Get_processor_name
+31   MPI_Init
+108   MPI_Initialized
+109   MPI_Wtick
+110   MPI_Wtime
+111   MPI_Address
+113   MPI_Buffer_attach
+114   MPI_Buffer_detach
+115   MPI_Request_free
+118   MPI_Get_count
+119   MPI_Get_elements
+76   MPI_Pack
+120   MPI_Pack_size
+123   MPI_Start
+124   MPI_Startall
+39   MPI_Test
+125   MPI_Testall
+126   MPI_Testany
+127   MPI_Test_cancelled
+128   MPI_Testsome
+129   MPI_Type_commit
+130   MPI_Type_contiguous
+131   MPI_Type_extent
+132   MPI_Type_free
+133   MPI_Type_hindexed
+134   MPI_Type_hvector
+135   MPI_Type_indexed
+136   MPI_Type_lb
+137   MPI_Type_size
+138   MPI_Type_struct
+139   MPI_Type_ub
+140   MPI_Type_vector
+77   MPI_Unpack
+45   MPI_Cart_coords
+43   MPI_Cart_create
+46   MPI_Cart_get
+47   MPI_Cart_map
+48   MPI_Cart_rank
+44   MPI_Cart_shift
+49   MPI_Cart_sub
+50   MPI_Cartdim_get
+51   MPI_Dims_create
+52   MPI_Graph_get
+53   MPI_Graph_map
+55   MPI_Graph_neighbors
+54   MPI_Graph_create
+56   MPI_Graphdims_get
+57   MPI_Graph_neighbors_count
+58   MPI_Topo_test
+0   End
+
+
+EVENT_TYPE
+9   50000004    MPI One-sided
+VALUES
+63   MPI_Win_create
+64   MPI_Win_free
+65   MPI_Put
+66   MPI_Get
+67   MPI_Accumulate
+68   MPI_Win_fence
+69   MPI_Win_complete
+70   MPI_Win_start
+71   MPI_Win_post
+72   MPI_Win_wait
+73   MPI_Win_test
+74   MPI_Win_lock
+75   MPI_Win_unlock
+0   End
+
+
+EVENT_TYPE
+9   60000019    User functions
+VALUES
+0   End
+
+
+EVENT_TYPE
+9   60000020    User calls
+VALUES
+0   End
+
+
+EVENT_TYPE
+9   60000021    User Block
+VALUES
+0   End
+
+
+GRADIENT_COLOR
+0    {0,255,2}
+1    {0,244,13}
+2    {0,232,25}
+3    {0,220,37}
+4    {0,209,48}
+5    {0,197,60}
+6    {0,185,72}
+7    {0,173,84}
+8    {0,162,95}
+9    {0,150,107}
+10    {0,138,119}
+11    {0,127,130}
+12    {0,115,142}
+13    {0,103,154}
+14    {0,91,166}
+
+
+GRADIENT_NAMES
+0    Gradient 0
+1    Grad. 1/MPI Events
+2    Grad. 2/OMP Events
+3    Grad. 3/OMP locks
+4    Grad. 4/User func
+5    Grad. 5/User Events
+6    Grad. 6/General Events
+7    Grad. 7/Hardware Counters
+8    Gradient 8
+9    Gradient 9
+10    Gradient 10
+11    Gradient 11
+12    Gradient 12
+13    Gradient 13
+14    Gradient 14
+
+
+EVENT_TYPE
+6    53000000    Iprobe misses
+
+
+EVENT_TYPE
+6    50000080    Test misses
+
+
