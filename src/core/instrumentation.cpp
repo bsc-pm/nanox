@@ -372,7 +372,7 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
    /* Creating leaving wd events */
    if ( old_icd!= NULL ) {
       /* Creating a starting PtP event (if needed) */
-      if (!last && _emitPtPEvents ) ASSIGN_EVENT( e[i++] , PtP , (true,  NANOS_WD_DOMAIN, (nanos_event_id_t) oldWD->getId(), 0, NULL) );
+      if (!last && _emitPtPEvents ) ASSIGN_EVENT( e[i++] , PtP , (true,  NANOS_WD_DOMAIN, (nanos_event_id_t) oldWD->getId(), 0, 0) );
 
       /* Creating State event's */
       InstrumentationContextData::ConstStateIterator it_s;
