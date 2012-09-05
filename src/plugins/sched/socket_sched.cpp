@@ -330,7 +330,19 @@ namespace nanos {
             
             virtual WD * atWakeUp( BaseThread *thread, WD &wd )
             {
-               socketQueue( thread, wd, true );
+               // If the WD was waiting for something
+               if ( wd.started() ) {
+                  // Returning the wd here makes the application to hang
+                  // Use prefetching instead.
+                  if ( thread != NULL && thread->reserveNextWD() ) {
+                     thread->setReservedNextWD( &wd );
+                     return NULL;
+                  }
+                  
+               }
+               
+               // otherwise, as usual
+               socketQueue( thread, wd, false );
                
                return NULL;
             }
