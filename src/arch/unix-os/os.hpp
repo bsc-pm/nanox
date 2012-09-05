@@ -23,6 +23,7 @@
 #include <string>
 #include <vector>
 #include <stdlib.h>
+#include <unistd.h>
 #include <dlfcn.h>
 #include <time.h>
 #include "nanos-int.h"
