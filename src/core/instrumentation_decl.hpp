@@ -336,6 +336,8 @@ namespace nanos {
             registerEventValue("sched-versioning", "NANOS_SCHED_VER_FINDEARLIESTEW_BETTERTIME", "Found earliest execution worker timing reason" );
             registerEventValue("sched-versioning", "NANOS_SCHED_VER_FINDEARLIESTEW_IDLEWORKER", "Found earliest execution worker idle reason" );
 
+            /* 36 */ registerEventKey("dependence","Dependence analysis", true); /* System have found a new dependence */
+
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }
 

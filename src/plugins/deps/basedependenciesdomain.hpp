@@ -58,6 +58,15 @@ inline void BaseDependenciesDomain::dependOnLastWriter( DependableObject &depObj
       SyncLockBlock lck( lastWriter->getLock() );
       if ( status.getLastWriter() == lastWriter ) {
          if ( lastWriter->addSuccessor( depObj ) ) {
+
+            // new instrument event: dependence predecessorReader -> depObj
+            NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+            NANOS_INSTRUMENT ( static nanos_event_key_t dependence_key  = ID->getEventKey("dependence"); )
+            NANOS_INSTRUMENT ( WorkDescriptor *wd_sender = (WorkDescriptor *) lastWriter->getRelatedObject(); )
+            NANOS_INSTRUMENT ( WorkDescriptor *wd_receiver = (WorkDescriptor *) depObj.getRelatedObject(); )
+            NANOS_INSTRUMENT ( nanos_event_value_t dependence_value = ( ((nanos_event_value_t) wd_sender->getId()) << 32 ) + wd_receiver->getId(); )
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &dependence_key, &dependence_value); )
+
             depObj.increasePredecessors();
             if ( callback != NULL ) {
                debug( "Calling callback" );
@@ -76,6 +85,15 @@ inline void BaseDependenciesDomain::dependOnReaders( DependableObject &depObj, T
       DependableObject * predecessorReader = *i;
       SyncLockBlock lock5(predecessorReader->getLock());
       if ( predecessorReader->addSuccessor( depObj ) ) {
+
+         // new instrument event: dependence predecessorReader -> depObj
+         NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+         NANOS_INSTRUMENT ( static nanos_event_key_t dependence_key  = ID->getEventKey("dependence"); )
+         NANOS_INSTRUMENT ( WorkDescriptor *wd_sender = (WorkDescriptor *) predecessorReader->getRelatedObject(); )
+         NANOS_INSTRUMENT ( WorkDescriptor *wd_receiver = (WorkDescriptor *) depObj.getRelatedObject(); )
+         NANOS_INSTRUMENT ( nanos_event_value_t dependence_value = ( ((nanos_event_value_t) wd_sender->getId()) << 32 ) + wd_receiver->getId(); )
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &dependence_key, &dependence_value); )
+
          depObj.increasePredecessors();
          if ( callback != NULL ) {
             debug( "Calling callback" );
