@@ -32,7 +32,6 @@ void barrier_code ( void * );
 /*! works only with bf scheduler */
 void barrier_code ( void * )
 {
-#if 0
    int i, its=0;
    // PARALLEL tests
    if ( mainWD == getMyThreadSafe()->getCurrentWD()) {
@@ -64,7 +63,6 @@ void barrier_code ( void * )
    }
    nanos_team_barrier();
 
-#endif
 }
 
 int main (int argc, char **argv)
