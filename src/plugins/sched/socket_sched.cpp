@@ -332,13 +332,21 @@ namespace nanos {
             {
                // If the WD was waiting for something
                if ( wd.started() ) {
+                  BaseThread * prefetchThread = NULL;
+                  // Check constraints since they won't be checked in Schedule::wakeUp
+                  if ( Scheduler::checkBasicConstraints ( wd, *thread ) ) {
+                     prefetchThread = thread;
+                  }
+                  else
+                     prefetchThread = wd.isTiedTo();
+                  
                   // Returning the wd here makes the application to hang
                   // Use prefetching instead.
-                  if ( thread != NULL && thread->reserveNextWD() ) {
-                     thread->setReservedNextWD( &wd );
+                  if ( prefetchThread != NULL && prefetchThread->reserveNextWD() ) {
+                     prefetchThread->setReservedNextWD( &wd );
+                     
                      return NULL;
                   }
-                  
                }
                
                // otherwise, as usual
