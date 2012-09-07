@@ -90,14 +90,17 @@ void Accelerator::copyDataOut( WorkDescriptor& work )
       } else {
          this->unregisterCacheAccessDependent( *(work.getParent()->getDirectory(true)), tag, cd.getSize(), cd.isOutput() );
 /*
-         // FIXME: This part is commented out because it is reduntant with the next step. Just keep it in case the change has to be reverted
+         // FIXME: This part is commented out because it is redundant with the next step. Just keep it in case the change has to be reverted
          if ( cd.isOutput() && (work.getDirectory(false) != NULL) ) {
             work.getParent()->getDirectory(false)->updateCurrentDirectory( tag, *(work.getDirectory(true)) );
          }
 */
+         // We need to create the directory in parent's parent if it does not exist. Otherwise, applications with
+         // at least 3-level nesting tasks with the inner-most level being from a device with separate memory space
+         // will fail because parent's parent directory is NULL
          if ( work.getParent()->getParent() != work.getParent() && work.getParent()->getParent()!= NULL ) {
-            Directory * dir = work.getParent()->getParent()->getDirectory(false);
-            dir->updateCurrentDirectory( tag, *(work.getParent()->getDirectory(false)) );
+            Directory * dir = work.getParent()->getParent()->getDirectory( true );
+            dir->updateCurrentDirectory( tag, *(work.getParent()->getDirectory( true ) ) );
          }
       }
    }

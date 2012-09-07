@@ -65,8 +65,17 @@ void * GPUDevice::allocateWholeMemory( size_t &size )
 
    size = ( size_t ) ( size * percentage );
 
-   fatal_cond( err != cudaSuccess, "Trying to allocate " +  ext::bytesToHumanReadable( size ) +
-         + " of device memory with cudaMalloc(): " +  cudaGetErrorString( err ) );
+   if ( err != cudaSuccess ) {
+      size_t free, total;
+      cudaMemGetInfo( &free, &total );
+
+      fatal_cond( size > free, "Trying to allocate " + ext::bytesToHumanReadable( size )
+            + " of device memory with cudaMalloc() when available memory is only "
+            + ext::bytesToHumanReadable( free ) );
+
+      fatal_cond( err != cudaSuccess, "Trying to allocate " +  ext::bytesToHumanReadable( size )
+            + " of device memory with cudaMalloc(): " +  cudaGetErrorString( err ) );
+   }
 
    // Reset CUDA errors that may have occurred during this memory allocation
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT );
