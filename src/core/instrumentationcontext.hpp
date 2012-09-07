@@ -82,7 +82,6 @@ inline InstrumentationContextData::EventIterator InstrumentationContext::endDefe
 
 inline void InstrumentationContext::disableStateEvents ( InstrumentationContextData *icd ) { icd->_stateEventEnabled = false; }
 inline void InstrumentationContext::enableStateEvents ( InstrumentationContextData *icd ) { icd->_stateEventEnabled = true; }
-inline bool InstrumentationContext::isStateEventEnabled ( InstrumentationContextData *icd ) { return icd->_stateEventEnabled; }
 
 #endif
 

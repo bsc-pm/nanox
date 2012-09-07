@@ -236,33 +236,6 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_ptp_end, ( nanos_event_domain_t doma
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_instrument_disable_state_events, ( nanos_event_state_value_t state ))
-{
-#ifdef NANOS_INSTRUMENTATION_ENABLED
-   try
-   {
-      sys.getInstrumentation()->disableStateEvents( state );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-#endif
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_instrument_enable_state_events, ( void ))
-{
-#ifdef NANOS_INSTRUMENTATION_ENABLED
-   try
-   {
-      sys.getInstrumentation()->enableStateEvents();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-#endif
-   return NANOS_OK;
-}
-
-
 NANOS_API_DEF(nanos_err_t, nanos_instrument_close_user_fun_event, ( void ))
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED

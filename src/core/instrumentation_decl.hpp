@@ -420,22 +420,10 @@ namespace nanos {
    {
       public:
          class Event {
-            public:
-#if 0
-               typedef std::pair<nanos_event_key_t,nanos_event_value_t>   KV;
-               typedef KV *KVList;
-               typedef const KV *ConstKVList;
-#endif
             private:
                nanos_event_type_t          _type;         /**< Event type */
-#if 0
-               nanos_event_state_value_t   _state;        /**< Event state */
-               unsigned int                _nkvs;         /**< Number of kvs elements */
-               KVList                      _kvList;       /**< List of elements kv (key.value) */
-#endif
-               nanos_event_key_t           _key;
-               nanos_event_value_t         _value;
-
+               nanos_event_key_t           _key;          /**< Event key */
+               nanos_event_value_t         _value;        /**< Event value */
                nanos_event_domain_t        _ptpDomain;    /**< A specific domain in which ptpId is unique */
                nanos_event_id_t            _ptpId;        /**< PtP event id */
                unsigned int                _partner;      /**< PtP communication partner (destination or origin), only applies to Cluster (is always 0 in smp) */
@@ -801,21 +789,10 @@ namespace nanos {
          void raiseCloseBurstEvent ( nanos_event_key_t key );
 
          void raiseOpenPtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF );
-#if 0
-         void raiseOpenPtPEventNkvs ( nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,
-                                      nanos_event_key_t *key, nanos_event_value_t *val, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF );
-#endif
          void raiseClosePtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF ); 
-#if 0
-         void raiseClosePtPEventNkvs ( nanos_event_domain_t domain, nanos_event_id_t id, unsigned int nkvs,
-                                       nanos_event_key_t *key, nanos_event_value_t *val, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF ); 
-#endif
 
          void raiseOpenStateAndBurst ( nanos_event_state_value_t state, nanos_event_key_t key, nanos_event_value_t val );
          void raiseCloseStateAndBurst ( nanos_event_key_t key );
-
-         void disableStateEvents ( nanos_event_state_value_t state );
-         void enableStateEvents ( void ); 
 #endif
    };
 }

@@ -28,7 +28,6 @@ namespace nanos {
 
    class InstrumentStateAndBurst;
    class InstrumentState;
-   class InstrumentSubState;
    class InstrumentBurst;
 #endif
 };
