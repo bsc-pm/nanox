@@ -90,6 +90,7 @@ LINKER_SECTION(nanos_init, nanos_init_desc_t , INIT_NULL)
 
 int main (int argc, char* argv[])
 {
+   bool listVersion = false;
    bool listHelp = false;
    bool listPlugins = false;
    std::string arg;
@@ -101,15 +102,22 @@ int main (int argc, char* argv[])
          listHelp = true;
       } else if ( arg.compare( "--list-modules" ) == 0 ) {
          listPlugins = true;
+      } else if ( arg.compare( "--version" ) == 0 ) {
+         listVersion = true;
       } else {
-         std::cout << "usage: " << argv[0] << " [--help] [--list-modules]" << std::endl;
+         std::cout << "usage: " << argv[0] << " [--version] [--help] [--list-modules]" << std::endl;
          exit(0);
       }
    } 
 
-   if ( !listPlugins && !listHelp ) {
-      std::cout << "usage: " << argv[0] << " [--help] [--list-modules]" << std::endl;
+   if ( !listPlugins && !listHelp && !listVersion) {
+      std::cout << "usage: " << argv[0] << " [--version] [--help] [--list-modules]" << std::endl;
       exit(0);
+   }
+
+   if ( listVersion ) {
+      std::cout << PACKAGE << " " << VERSION << " (" << NANOX_BUILD_VERSION << ")" <<  std::endl;
+      std::cout << "Configured with: " << NANOX_CONFIGURE_ARGS << std::endl;
    }
 
    if ( listPlugins ){

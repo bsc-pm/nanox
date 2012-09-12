@@ -2,6 +2,8 @@
 AC_INIT([nanox], [0.7a], [pmtools@bsc.es])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
 
+configure_orig_arguments="$@"
+
 # Environment
 AC_CANONICAL_BUILD
 AC_CANONICAL_SYSTEM
@@ -19,6 +21,37 @@ m4_ifdef([AM_SILENT_RULES],
 
 AM_CONDITIONAL([SUPPORTED_SILENT_RULES], test x$supported_silent_rules = x1)
  
+dnl Versioning things
+dnl Make sure build_version is double-quoted!
+build_version="\"unknown revision\""
+if test -d $srcdir/.git;
+then
+   AC_PATH_PROG([GIT], [git], [])
+   AC_MSG_CHECKING([revision of git repository])
+   run_git=""
+   if test x"$GIT" != x;
+   then
+      echo "$GIT" "$srcdir" >& AS_MESSAGE_LOG_FD
+      run_gitversion=`"$GIT" --git-dir=$srcdir/.git show "--pretty=format:%h %ci" HEAD | head -n 1`
+      build_version="\"git $run_gitversion developer version\""
+   fi
+
+   if test x"$GIT" = x -o x"$run_gitversion" = x;
+   then
+       build_version="\"unknown git commit\""
+   fi
+   AC_MSG_RESULT([$build_version])
+elif test -e $srcdir/DIST_REVISION;
+then
+     AC_MSG_CHECKING([revision of distributed release])
+     run_gitversion=`cat $srcdir/DIST_REVISION`
+     build_version="\"$run_gitversion\""
+     AC_MSG_RESULT([$build_version])
+fi
+AC_DEFINE_UNQUOTED([NANOX_BUILD_VERSION], [$build_version], [Build version])
+
+nanox_config_args='"'$(echo "$0 $configure_orig_arguments")'"'
+AC_DEFINE_UNQUOTED([NANOX_CONFIGURE_ARGS], [$nanox_config_args], [Configure line])
 
 # Set compiler default flags
 : ${CFLAGS=""}
