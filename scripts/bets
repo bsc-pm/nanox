@@ -110,11 +110,17 @@ passfail ()
      fi
      let pass=pass+1
    else
-     filtered_message "${RED}failed${NORMAL}!"
-     [ -n "$machine_output" ] && echo "${full_test_name}:failed"
-     log "failed!"
-     let fail=fail+1
-   fi
+     if [ ! "$test_ignore_fail" ]; then
+       filtered_message "${RED}failed${NORMAL}!"
+       [ -n "$machine_output" ] && echo "${full_test_name}:failed"
+       log "failed!"
+       let fail=fail+1
+     else
+       filtered_message "${YELLOW}failed (ignored)${NORMAL}!"
+       [ -n "$machine_output" ] && echo "${full_test_name}:failed (ignored)"
+       log "failed (ignored)"
+     fi
+   fi 
    return $ret
 }
 
@@ -448,6 +454,7 @@ run_gen_test ()
              eval test_faulty=\${test_exec_faulty_${v}_${e}}
              eval test_faulty=\${test_faulty:-\$test_exec_faulty_${e}}
              test_faulty=${test_faulty:-$test_exec_faulty}
+             eval test_ignore_fail=\${test_ignore_fail}
              passfail "$name-$v-$e" execute $e $name $v
              log "***End execute test $name-$v-$e"
           done

@@ -109,8 +109,6 @@ void main__task_1 ( void *args )
    nanos_instrument_register_value ( &event_value, "user-funct-name", "task-1", "Function: main__task_1", false );
    nanos_instrument_enter_burst( event_key, event_value );
 
-   nanos_instrument_disable_state_events( NANOS_RUNTIME );
-
    int i;
    main__task_1_data_t *hargs = (main__task_1_data_t * ) args;
 
@@ -135,8 +133,6 @@ void main__task_1 ( void *args )
    usleep ( hargs->value );
 
    NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
-
-   nanos_instrument_enable_state_events();
 
    nanos_instrument_leave_burst( event_key );
 }

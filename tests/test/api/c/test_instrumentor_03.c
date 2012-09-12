@@ -192,15 +192,11 @@ void fib0 ( int n )
 
 int main ( int argc, char **argv )
 {
-   nanos_instrument_disable_state_events( NANOS_RUNTIME );
-
    int n=25;
 
    if ( argc > 1 ) n = atoi( argv[1] );
 
    fib0( n );
-
-   nanos_instrument_enable_state_events();
 
    return 0;
 }

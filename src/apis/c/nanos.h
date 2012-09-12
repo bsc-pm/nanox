@@ -212,9 +212,6 @@ NANOS_API_DECL(nanos_err_t, nanos_instrument_point_event, ( unsigned int nkvs, n
 NANOS_API_DECL(nanos_err_t, nanos_instrument_ptp_start, ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t value ));
 NANOS_API_DECL(nanos_err_t, nanos_instrument_ptp_end, ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t value ));
 
-NANOS_API_DECL(nanos_err_t, nanos_instrument_disable_state_events, ( nanos_event_state_value_t state ));
-NANOS_API_DECL(nanos_err_t, nanos_instrument_enable_state_events, ( void ));
-
 NANOS_API_DECL(nanos_err_t, nanos_instrument_close_user_fun_event,());
 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_enable,( void ));
