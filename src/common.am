@@ -10,7 +10,7 @@ common_includes= \
 	-I$(top_srcdir)/src/arch/gpu \
 	$(END)
 
-common_cflags= -Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter  -include"new_decl.hpp" -pthread $(CFLAGS)
+common_cflags= -Wall -Wextra -Wshadow -Wmissing-declarations -Wno-unused-parameter  -include"new_decl.hpp" -pthread $(CFLAGS)
 bin_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -D_NANOS_INTERNAL -O2 -g2 -DNANOS_DEBUG_ENABLED
 
 global_perfo_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -O3

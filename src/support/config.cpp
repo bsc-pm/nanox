@@ -216,6 +216,11 @@ void Config::parseArguments ()
       bool hasNegation=false;
 
       if ( arg[0] != '-' ) {
+         // gmiranda: everything that doesn't start with -  or -- is an error.
+         if( _orphanOptionsMap->count( std::string( arg ) ) == 0 )
+         {
+            (*_orphanOptionsMap)[ std::string( arg ) ] = false;
+         }
          arg = strtok( NULL, " " );
          continue;
       }
@@ -253,6 +258,7 @@ void Config::parseArguments ()
             value = strtok( NULL, " " );
             if ( value == NULL)
                throw InvalidOptionException( opt,"" );
+            (*Config::_orphanOptionsMap)[ std::string( value ) ] = true;
          }
          char yes[] = "yes";
          char no[] = "no";

@@ -150,6 +150,22 @@ inline Config::VarOption<T,helpFormat,checkT> * Config::VarOption<T,helpFormat,c
    return new VarOption( *this );
 }
 
+
+// FIXME: new list
+template<typename T, class helpFormat, typename checkT>
+inline void Config::ListOption<T,helpFormat,checkT>::setValue ( const T &value )
+{
+   _var.push_back( value );
+}
+
+template<typename T, class helpFormat, typename checkT>
+inline Config::ListOption<T,helpFormat,checkT> * Config::ListOption<T,helpFormat,checkT>::clone ()
+{
+   return new ListOption( *this );
+}
+
+// FIXME: end new list
+
 inline std::string Config::HelpFormat::operator()()
 {
    return "value";
@@ -251,6 +267,12 @@ inline void Config::MapVar<T>::setValue ( const T &value ) { _var = value; }
 
 template <typename T>
 inline Config::MapVar<T> * Config::MapVar<T>::clone () { return new MapVar( *this ); }
+
+inline Config::PluginVar & Config::PluginVar::addOption ( const std::string & value )
+{
+   MapVar<std::string>::addOption( value, value );
+   return *this;
+}
 
 inline void Config::ActionFlag::parse ( const char *value )
 {

@@ -62,7 +62,7 @@ namespace ext
          virtual void initializeDependent( void ) {}
          virtual void runDependent ( void );
 
-         virtual void inlineWorkDependent( WD &work );
+         virtual bool inlineWorkDependent( WD &work );
          virtual void switchTo( WD *work, SchedulerHelper *helper );
          virtual void exitTo( WD *work, SchedulerHelper *helper );
 

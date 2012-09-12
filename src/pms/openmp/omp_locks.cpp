@@ -21,12 +21,13 @@
 #include "omp.h"
 #include "nanos.h"
 #include "atomic.hpp"
+#include "nanos_c_api_macros.h"
 
 extern "C"
 {
    using namespace nanos;
 
-   void omp_init_lock( omp_lock_t *arg )
+   NANOS_API_DEF(void, omp_init_lock, ( omp_lock_t *arg ))
    {
       // NOTE: This assumes Lock is the same size than Void * so nothing has to be allocated
       Lock *lock = (Lock *) arg;
@@ -34,23 +35,23 @@ extern "C"
       new (lock) Lock;
    }
 
-   void omp_destroy_lock( omp_lock_t *arg )
+   NANOS_API_DEF(void, omp_destroy_lock, ( omp_lock_t *arg ))
    {
    }
 
-   void omp_set_lock( omp_lock_t *arg )
+   NANOS_API_DEF(void, omp_set_lock, ( omp_lock_t *arg ))
    {
       Lock &lock = *(Lock *) arg;
       lock++;
    }
 
-   void omp_unset_lock( omp_lock_t *arg )
+   NANOS_API_DEF(void, omp_unset_lock,( omp_lock_t *arg ))
    {
       Lock &lock = *(Lock *) arg;
       lock--;
    }
 
-   int omp_test_lock( omp_lock_t *arg )
+   NANOS_API_DEF(int, omp_test_lock ,( omp_lock_t *arg ))
    {
       Lock &lock = *(Lock *) arg;
       return lock.tryAcquire();
@@ -62,19 +63,22 @@ extern "C"
       short count;
    };
 
-   void omp_init_nest_lock( omp_nest_lock_t *arg ) {
+   NANOS_API_DEF(void, omp_init_nest_lock, ( omp_nest_lock_t *arg ) )
+   {
       struct __omp_nest_lock *nlock = NEW struct __omp_nest_lock();
       nlock->owner = NULL;
       nlock->count = 0;
       *arg = nlock;
    }
 
-   void omp_destroy_nest_lock( omp_nest_lock_t *arg ) {
+   NANOS_API_DEF(void, omp_destroy_nest_lock, ( omp_nest_lock_t *arg ) )
+   {
       struct __omp_nest_lock *nlock=( struct __omp_nest_lock * )*arg;
       delete nlock;
    }
 
-   void omp_set_nest_lock( omp_nest_lock_t *arg ) {
+   NANOS_API_DEF(void, omp_set_nest_lock, ( omp_nest_lock_t *arg ) )
+   {
 
       struct __omp_nest_lock *nlock=( struct __omp_nest_lock * )*arg;
 
@@ -89,7 +93,8 @@ extern "C"
       }
    }
 
-   void omp_unset_nest_lock( omp_nest_lock_t *arg ) {
+   NANOS_API_DEF(void, omp_unset_nest_lock, ( omp_nest_lock_t *arg ) )
+   {
 
       struct __omp_nest_lock *nlock=( struct __omp_nest_lock * )*arg;
 
@@ -100,7 +105,8 @@ extern "C"
       }
    }
 
-   int omp_test_nest_lock( omp_nest_lock_t *arg ) {
+   NANOS_API_DEF(int, omp_test_nest_lock, ( omp_nest_lock_t *arg ) )
+   {
       struct __omp_nest_lock *nlock=( struct __omp_nest_lock * )*arg;
      
       if ( nlock->owner == nanos_current_wd() ) {

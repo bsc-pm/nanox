@@ -603,7 +603,7 @@ class InstrumentationExtrae: public Instrumentation
          ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
          ce.nEvents = 0;
          ce.nCommunications = 0;
-
+  
          for (unsigned int i = 0; i < count; i++)
          {
             Event &e = events[i];
@@ -617,11 +617,11 @@ class InstrumentationExtrae: public Instrumentation
                case NANOS_PTP_START:
                case NANOS_PTP_END:
                   ce.nCommunications++;
-                  // continue...
+                  break;
                case NANOS_POINT:
                case NANOS_BURST_START:
                case NANOS_BURST_END:
-                  ce.nEvents += e.getNumKVs();
+                  ce.nEvents++;
                   break;
                default: break;
             }
@@ -632,7 +632,7 @@ class InstrumentationExtrae: public Instrumentation
          ce.Communications = (extrae_user_communication_t *) alloca (ce.nCommunications * sizeof ( extrae_user_communication_t));
 
          int j = 0; int k = 0;
-         Event::ConstKVList kvs = NULL;
+         nanos_event_key_t ckey = 0;
          nanos_event_key_t sizeKey = iD->getEventKey("xfer-size");
 
          for (unsigned int i = 0; i < count; i++)
@@ -663,27 +663,10 @@ class InstrumentationExtrae: public Instrumentation
                   else ce.Communications[k].type = EXTRAE_USER_RECV;
                   ce.Communications[k].tag = e.getDomain();
                   ce.Communications[k].id = e.getId();
-                  switch ( e.getDomain() )
-                  {
-                     case NANOS_WD_DOMAIN:
-                     case NANOS_WD_DEPENDENCY:
-                     case NANOS_WD_REMOTE:
-                        ce.Communications[k].size = e.getId(); // FIXME: just in some cases size is equal to id
-                        break;
-                     case NANOS_XFER_PUT:
-                     case NANOS_XFER_GET:
-                        {
-                           kvs = e.getKVs();
-                           for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
-                              if ( kvs->first == sizeKey ) {
-                                 ce.Communications[k].size = kvs->second;
-                              }
-                           }
-                        }
-                        break;
-                     default: 
-                        break; // FIXME here goes a fatal
-                  }
+
+                  ckey = e.getKey();
+                  if ( ckey == sizeKey ) ce.Communications[k].size = e.getValue();
+                  else ce.Communications[k].size = e.getId();
 
                   if ( e.getPartner() == NANOX_INSTRUMENTATION_PARTNER_MYSELF ) {
                      ce.Communications[k].partner = EXTRAE_COMM_PARTNER_MYSELF;
@@ -692,19 +675,19 @@ class InstrumentationExtrae: public Instrumentation
                   }
 
                   k++;
-                  // continue...
+                  break;
                case NANOS_POINT:
                case NANOS_BURST_START:
-                  kvs = e.getKVs();
-                  for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
-                     ce.Types[j] = _eventBase + kvs->first;
-                     ce.Values[j++] = kvs->second;
+                  ckey = e.getKey();
+                  if (  ckey != 0 ) { 
+                     ce.Types[j] = _eventBase + ckey;
+                     ce.Values[j++] = e.getValue();
                   }
                   break;
                case NANOS_BURST_END:
-                  kvs = e.getKVs();
-                  for ( unsigned int kv = 0 ; kv < e.getNumKVs() ; kv++,kvs++ ) {
-                     ce.Types[j] = _eventBase +  kvs->first;
+                  ckey = e.getKey();
+                  if (  ckey != 0 ) { 
+                     ce.Types[j] = _eventBase + ckey;
                      ce.Values[j++] = 0; // end
                   }
                   break;

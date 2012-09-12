@@ -73,14 +73,12 @@ namespace nanos {
            WD * atIdle ( BaseThread *thread )
            {
               TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
-              
               return tdata._readyQueue.pop_back( thread );
            }
 
            WD * atPrefetch ( BaseThread *thread, WD &current )
            {
               WD * found = current.getImmediateSuccessor(*thread);
-        
               return found != NULL ? found : atIdle(thread);
            }
         

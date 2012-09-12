@@ -20,6 +20,6 @@
 paravergeneraldir = ${docdir}/paraver/general/
 
 dist_paravergeneral_DATA = \
-	general/task_id.cfg
+	general/views/state_as_is.cfg
 
 

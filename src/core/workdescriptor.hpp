@@ -44,9 +44,11 @@ inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t 
                                : WorkGroup(), _data_size ( data_size ), _data_align( data_align ),  _data ( wdata ),
                                  _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
                                  _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
-                                 _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : NULL ),
-                                 _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                                 _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ),
+                                 _numDevices ( ndevices ), _devices ( devs ), _activeDeviceIdx( ndevices == 1 ? 0 : ndevices ),
+                                 _numCopies( numCopies ), _copies( copies ), _paramsSize( 0 ),
+                                 _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ),
+                                 _doSubmit(), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ), 
+                                 _directory(), _instrumentationContextData(), _submitted( false ), _translateArgs( translate_args ),
                                  _priority( 0 ), _wakeUpQueue( 0 ) { }
 
 inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, size_t data_align, void *wdata,
@@ -54,21 +56,28 @@ inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, si
                                : WorkGroup(), _data_size ( data_size ), _data_align ( data_align ), _data ( wdata ),
                                  _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
                                  _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
-                                 _numDevices ( 1 ), _devices ( &_activeDevice ), _activeDevice ( device ),
-                                 _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                                 _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( translate_args ),
+                                 _numDevices ( 1 ), _devices ( NEW DeviceData *( device ) ), _activeDeviceIdx( 0 ),
+                                 _numCopies( numCopies ), _copies( copies ), _paramsSize( 0 ),
+                                 _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ), 
+                                 _doSubmit(), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
+                                 _directory(), _instrumentationContextData(), _submitted( false ), _translateArgs( translate_args ),
                                  _priority( 0 ), _wakeUpQueue( 0 ) { }
 
 inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data )
                                : WorkGroup( wd ), _data_size( wd._data_size ), _data_align( wd._data_align ), _data ( data ),
                                  _wdData ( NULL ), _tie ( wd._tie ), _tiedTo ( wd._tiedTo ),
                                  _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ), _myQueue ( NULL ), _depth ( wd._depth ),
-                                 _numDevices ( wd._numDevices ), _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
-                                 _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
-                                 _doSubmit(), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ), _directory(), _instrumentationContextData(),_submitted(false), _translateArgs( wd._translateArgs ),
+                                 _numDevices ( wd._numDevices ), _devices ( devs ), _activeDeviceIdx( wd._numDevices == 1 ? 0 : wd._numDevices ),
+                                 _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ), _paramsSize( wd._paramsSize ),
+                                 _versionGroupId( wd._versionGroupId ), _executionTime( wd._executionTime ),
+                                 _estimatedExecTime( wd._estimatedExecTime ), _doSubmit(), _doWait(),
+                                 _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
+                                 _directory(), _instrumentationContextData(), _submitted( false ), _translateArgs( wd._translateArgs ),
                                  _priority( wd._priority ), _wakeUpQueue( wd._wakeUpQueue ) { }
 
 /* DeviceData inlined functions */
+inline const Device * DeviceData::getDevice () const { return _architecture; }
+
 inline bool DeviceData::isCompatible ( const Device &arch ) { return _architecture == &arch; }
 
 /* WorkDescriptor inlined functions */
@@ -119,9 +128,12 @@ inline void WorkDescriptor::setDepth ( int l ) { _depth = l; }
 
 inline unsigned WorkDescriptor::getDepth() { return _depth; }
 
-inline DeviceData & WorkDescriptor::getActiveDevice () const { return *_activeDevice; }
+inline DeviceData & WorkDescriptor::getActiveDevice () const { return *_devices[_activeDeviceIdx]; }
 
-inline bool WorkDescriptor::hasActiveDevice() const { return _activeDevice != NULL; }
+inline bool WorkDescriptor::hasActiveDevice() const { return _activeDeviceIdx != _numDevices; }
+
+inline void WorkDescriptor::setActiveDeviceIdx( unsigned int idx ) { _activeDeviceIdx = idx; }
+inline unsigned int WorkDescriptor::getActiveDeviceIdx() { return _activeDeviceIdx; }
 
 inline void WorkDescriptor::setInternalData ( void *data ) { _wdData = data; }
 
@@ -150,6 +162,18 @@ inline void WorkDescriptor::clear () { _parent = NULL; }
 inline size_t WorkDescriptor::getNumCopies() const { return _numCopies; }
 
 inline CopyData * WorkDescriptor::getCopies() const { return _copies; }
+
+inline size_t WorkDescriptor::getParamsSize() const { return _paramsSize; }
+
+inline unsigned long WorkDescriptor::getVersionGroupId( void ) { return _versionGroupId; }
+
+inline void WorkDescriptor::setVersionGroupId( unsigned long id ) { _versionGroupId = id; }
+
+inline double WorkDescriptor::getExecutionTime() const { return _executionTime; }
+
+inline double WorkDescriptor::getEstimatedExecutionTime() const { return _estimatedExecTime; }
+
+inline void WorkDescriptor::setEstimatedExecutionTime( double time ) { _estimatedExecTime = time; }
 
 inline TR1::shared_ptr<DOSubmit> & WorkDescriptor::getDOSubmit() { return _doSubmit; }
 

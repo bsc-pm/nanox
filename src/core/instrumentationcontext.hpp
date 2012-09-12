@@ -35,8 +35,8 @@ inline bool InstrumentationContext::findBurstByKey ( InstrumentationContextData 
    InstrumentationContextData::BurstIterator it;
 
    for ( it = icd->_burstList.begin() ; !found && (it != icd->_burstList.end()) ; it++ ) {
-      Instrumentation::Event::ConstKVList kvlist = (*it).getKVs();
-      if ( kvlist[0].first == key  ) { ret = it; found = true;}
+      nanos_event_key_t ckey = (*it).getKey();
+      if ( ckey == key  ) { ret = it; found = true;}
   }
 
    return found;

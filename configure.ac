@@ -8,7 +8,7 @@ AC_CANONICAL_SYSTEM
 AC_CANONICAL_TARGET
 
 # Automake initialization
-AM_INIT_AUTOMAKE([-Wall -Werror dist-bzip2])
+AM_INIT_AUTOMAKE([-Wall dist-bzip2])
 AC_CONFIG_MACRO_DIR([m4])
 
 dnl Enable silent rules if available
@@ -531,6 +531,29 @@ AC_SUBST([MPITRACE_BIN])
 
 
 AM_CONDITIONAL([INSTRUMENTATION_EXTRAE], test x"$MPITRACE_HOME" != x)
+
+# Check Ayudame support
+
+AYUDAME_HOME=""
+AYUDAME_INC=""
+AYUDAME_LIB=""
+AYUDAME_BIN=""
+
+AC_ARG_WITH([ayudame],
+           AS_HELP_STRING([--with-ayudame=dir], [Directory of Ayudame installation]),
+           [
+                AYUDAME_HOME="$withval"
+                AYUDAME_INC="$withval/include"
+                AYUDAME_LIB="$withval/lib"
+                AYUDAME_BIN="$withval/bin"
+           ]
+)
+AC_SUBST([AYUDAME_HOME])
+AC_SUBST([AYUDAME_INC])
+AC_SUBST([AYUDAME_LIB])
+AC_SUBST([AYUDAME_BIN])
+
+AM_CONDITIONAL([INSTRUMENTATION_AYUDAME], test x"$AYUDAME_HOME" != x)
 
 # Check hwloc availability
 AC_ARG_WITH([hwloc],

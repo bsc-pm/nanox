@@ -57,9 +57,11 @@ System::System () :
       _pausedThreadsCond(), _unpausedThreadsCond(),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _dependenciesManager( NULL ),
       _pmInterface( NULL ), _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap()
+
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
 #endif
+      , _enableEvents(), _disableEvents(), _instrumentDefault("default")
 {
    verbose0 ( "NANOS++ initializing... start" );
    // OS::init must be called here and not in System::start() as it can be too late
@@ -219,11 +221,11 @@ void System::config ()
    cfg.registerArgOption ( "exec_mode", "mode" );
 #endif
 
-   cfg.registerConfigOption ( "schedule", NEW Config::StringVar ( _defSchedule ), "Defines the scheduling policy" );
+   registerPluginOption( "schedule", "sched", _defSchedule, "Defines the scheduling policy", cfg );
    cfg.registerArgOption ( "schedule", "schedule" );
    cfg.registerEnvOption ( "schedule", "NX_SCHEDULE" );
 
-   cfg.registerConfigOption ( "throttle", NEW Config::StringVar ( _defThrottlePolicy ), "Defines the throttle policy" );
+   registerPluginOption( "throttle", "throttle", _defThrottlePolicy, "Defines the throttle policy", cfg );
    cfg.registerArgOption ( "throttle", "throttle" );
    cfg.registerEnvOption ( "throttle", "NX_THROTTLE" );
 
@@ -231,7 +233,7 @@ void System::config ()
    cfg.registerArgOption ( "barrier", "barrier" );
    cfg.registerEnvOption ( "barrier", "NX_BARRIER" );
 
-   cfg.registerConfigOption ( "instrumentation", NEW Config::StringVar ( _defInstr ), "Defines instrumentation format" );
+   registerPluginOption( "instrumentation", "instrumentation", _defInstr, "Defines instrumentation format", cfg );
    cfg.registerArgOption ( "instrumentation", "instrumentation" );
    cfg.registerEnvOption ( "instrumentation", "NX_INSTRUMENTATION" );
 
@@ -253,10 +255,20 @@ void System::config ()
    cfg.registerConfigOption ( "cache-policy", cachePolicyCfg, "Defines the general cache policy to use: write-through / write-back. Can be overwritten for specific architectures" );
    cfg.registerArgOption ( "cache-policy", "cache-policy" );
    cfg.registerEnvOption ( "cache-policy", "NX_CACHE_POLICY" );
-
-   cfg.registerConfigOption ( "deps", NEW Config::StringVar ( _defDepsManager ), "Defines the dependencies plugin" );
+   
+   registerPluginOption( "deps", "deps", _defDepsManager, "Defines the dependencies plugin", cfg );
    cfg.registerArgOption ( "deps", "deps" );
    cfg.registerEnvOption ( "deps", "NX_DEPS" );
+   
+
+   cfg.registerConfigOption ( "instrument-default", NEW Config::StringVar ( _instrumentDefault ), "Set instrumentation event list default (none, all)" );
+   cfg.registerArgOption ( "instrument-default", "instrument-default" );
+
+   cfg.registerConfigOption ( "instrument-enable", NEW Config::StringVarList ( _enableEvents ), "Add events to instrumentation event list" );
+   cfg.registerArgOption ( "instrument-enable", "instrument-enable" );
+
+   cfg.registerConfigOption ( "instrument-disable", NEW Config::StringVarList ( _disableEvents ), "Remove events to instrumentation event list" );
+   cfg.registerArgOption ( "instrument-disable", "instrument-disable" );
 
    _schedConf.config( cfg );
    _pmInterface->config( cfg );
@@ -280,6 +292,7 @@ void System::start ()
    loadModules();
 
    // Instrumentation startup
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->initialize() );
    verbose0 ( "Starting runtime" );
 
@@ -366,10 +379,6 @@ void System::start ()
    // All initialization is ready, call postInit hooks
    const OS::InitList & externalInits = OS::getPostInitializationFunctions();
    std::for_each(externalInits.begin(),externalInits.end(), ExecInit());
-
-   /* Master thread is ready and waiting for the rest of the gang */
-   if ( getSynchronizedStart() )   
-     threadReady();
 
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_RUNNING) );
@@ -572,6 +581,9 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
 
    WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, data_align, data != NULL ? *data : NULL,
                              num_copies, (copies != NULL)? *copies : NULL, translate_args );
+
+   // All the implementations for a given task will have the same ID
+   wd->setVersionGroupId( ( unsigned long ) devices );
 
    // initializing internal data
    if ( size_PMD > 0) wd->setInternalData( chunk + offset_PMD );
@@ -988,6 +1000,16 @@ void System::releaseWorker ( BaseThread * thread )
 
    thread->leaveTeam();   
    team->removeThread(thread_id);
+}
+
+int System::getNumWorkers( DeviceData *arch )
+{
+   int n = 0;
+
+   for ( ThreadList::iterator it = _workers.begin(); it != _workers.end(); it++ ) {
+      if ( arch->isCompatible( ( *it )->runningOn()->getDeviceType() ) ) n++;
+   }
+   return n;
 }
 
 ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints, bool reuseCurrent,

@@ -111,6 +111,12 @@ namespace nanos
             return *this;
          }
 
+         /*! \brief Returns the device associated to this DeviceData
+          *
+          *  \return the Device pointer.
+          */
+         const Device * getDevice () const;
+
          /*! \brief Indicates if DeviceData is compatible with a given Device
           *
           *  \param[in] arch is the Device which we have to compare to.
@@ -167,10 +173,16 @@ namespace nanos
 
          unsigned                      _numDevices;   /**< Number of suported devices for this workdescriptor */
          DeviceData                  **_devices;      /**< Supported devices for this workdescriptor */
-         DeviceData                   *_activeDevice; /**< Active device (if any) */
+         unsigned int                  _activeDeviceIdx; /**< In _devices, index where we can find the current active DeviceData (if any) */
 
          size_t                        _numCopies;    /**< Copy-in / Copy-out data */
          CopyData                     *_copies;       /**< Copy-in / Copy-out data */
+         size_t                        _paramsSize;   /**< Total size of WD's parameters */
+
+         unsigned long                 _versionGroupId;     /**< The way to link different implementations of a task into the same group */
+
+         double                        _executionTime;    /**< WD starting wall-clock time */
+         double                        _estimatedExecTime;  /**< WD estimated execution time */
 
          TR1::shared_ptr<DOSubmit>     _doSubmit;     /**< DependableObject representing this WD in its parent's depsendencies domain */
          LazyInit<DOWait>              _doWait;       /**< DependableObject used by this task to wait on dependencies */
@@ -334,13 +346,16 @@ namespace nanos
          unsigned getDepth();
 
          /* device related methods */
-         DeviceData * findDeviceData ( const Device &device ) const;
          bool canRunIn ( const Device &device ) const;
          bool canRunIn ( const ProcessingElement &pe ) const;
          DeviceData & activateDevice ( const Device &device );
+         DeviceData & activateDevice ( unsigned int deviceIdx );
          DeviceData & getActiveDevice () const;
 
          bool hasActiveDevice() const;
+
+         void setActiveDeviceIdx( unsigned int idx );
+         unsigned int getActiveDeviceIdx();
 
          void setInternalData ( void *data );
 
@@ -379,6 +394,14 @@ namespace nanos
           */
          DeviceData ** getDevices ( void );
 
+         /*! \brief Prepare device
+          *
+          *  This function chooses a device from the WD's device list that will run the current WD
+          *
+          *  \see getDevices
+          */
+         void prepareDevice ( void );
+
          /*! \brief WD dequeue 
           *
           *  This function give us the next WD slice to execute. As a default
@@ -394,6 +417,8 @@ namespace nanos
          // headers
          virtual void submit ( void );
 
+         virtual void finish ();
+
          virtual void done ();
 
          void clear ();
@@ -405,6 +430,34 @@ namespace nanos
          /*! \brief returns the CopyData vector that describes the copy-ins/copy-outs of the WD
           */
          CopyData * getCopies() const;
+
+         /*! \brief returns the total size of copy-ins/copy-outs of the WD
+          */
+         size_t getCopiesSize() const;
+
+         /*! \brief returns the total size of the WD's parameters
+          */
+         size_t getParamsSize() const;
+
+         /*! \brief returns the WD's implementation group ID
+          */
+         unsigned long getVersionGroupId( void );
+
+         /*! \brief sets the WD's implementation group ID
+          */
+         void setVersionGroupId( unsigned long id );
+
+         /*! \brief returns the total execution time of the WD
+          */
+         double getExecutionTime() const;
+
+         /*! \brief returns the estimated execution time of the WD
+          */
+         double getEstimatedExecutionTime() const;
+
+         /*! \brief sets the estimated execution time of the WD
+          */
+         void setEstimatedExecutionTime( double time );
 
          /*! \brief Returns a pointer to the DOSubmit of the WD
           */

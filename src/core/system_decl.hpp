@@ -63,6 +63,7 @@ namespace nanos
          typedef std::vector<BaseThread *> ThreadList;
          typedef std::map<std::string, Slicer *> Slicers;
          typedef std::map<std::string, WorkSharing *> WorkSharings;
+         typedef std::multimap<std::string, std::string> ModulesPlugins;
          
          // globla seeds
          Atomic<int> _atomicWDSeed;
@@ -104,6 +105,10 @@ namespace nanos
          /*! factories for scheduling, pes and barriers objects */
          peFactory            _hostFactory;
          barrFactory          _defBarrFactory;
+         
+         /*! Valid plugin map (module)->(list of plugins) */
+         ModulesPlugins       _validPlugins;
+         
 
          PEList               _pes;
          ThreadList           _workers;
@@ -147,13 +152,15 @@ namespace nanos
          //! Keep record of the data that's directly allocated on pinned memory
          PinnedAllocator      _pinnedMemoryCUDA;
 #endif
+         std::list<std::string>    _enableEvents;  //FIXME: only in instrumentation
+         std::list<std::string>    _disableEvents; //FIXME: only in instrumentation
+         std::string               _instrumentDefault; //FIXME: only in instrumentation
 
          // disable copy constructor & assignment operation
          System( const System &sys );
          const System & operator= ( const System &sys );
 
          void config ();
-         void checkConfig ();
          void loadModules();
          void unloadModules();
          
@@ -241,6 +248,8 @@ namespace nanos
          int getRunningTasks() const;
 
          int getNumWorkers() const;
+
+         int getNumWorkers( DeviceData *arch );
 
          int getNumSockets() const;
 
@@ -370,6 +379,18 @@ namespace nanos
          bool loadPlugin ( const std::string &name );
          Plugin * loadAndGetPlugin ( const char *name );
          Plugin * loadAndGetPlugin ( const std::string &name );
+         
+         void setValidPlugin ( const std::string &module,  const std::string &plugin );
+         
+         /*! \brief Registers a plugin option. Depending on whether nanox --help
+          * is running or not, it will use a list of valid plugins or not.
+          *  \param option Name of the option in NX_ARGS.
+          *  \param module Module name (i.e. sched for schedule policies).
+          *  \param var Variable that will store the read value (i.e. _defSchedule).
+          *  \param helpMessage Help message to be printed in nanox --help
+          *  \param cfg Config object.
+          */
+         void registerPluginOption ( const std::string &option, const std::string &module, std::string &var, const std::string &helpMessage, Config &cfg );
    };
 
    extern System sys;

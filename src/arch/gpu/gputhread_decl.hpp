@@ -60,7 +60,7 @@ namespace ext
          void initializeDependent( void );
          void runDependent ( void );
 
-         void inlineWorkDependent( WD &work );
+         bool inlineWorkDependent( WD &work );
 
          void yield();
 
