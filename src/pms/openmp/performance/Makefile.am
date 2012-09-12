@@ -27,12 +27,14 @@ nanos_perfo_cxxflags=$(common_includes) $(local_includes) $(common_perfo_cxxflag
 
 libnanox_omp_la_CXXFLAGS=$(nanos_perfo_cxxflags)
 libnanox_omp_la_LDFLAGS=$(version_flags)
-libnanox_omp_la_LIBADD=$(top_builddir)/src/core/performance/libnanox.la
+libnanox_omp_la_LIBADD=$(top_builddir)/src/core/performance/libnanox.la $(top_builddir)/src/apis/c/performance/libnanox-c.la 
 libnanox_omp_la_SOURCES=$(omp_sources)
-libnanox_omp_la_DEPENDENCIES=$(top_builddir)/src/core/performance/libnanox.la
+libnanox_omp_la_DEPENDENCIES=$(top_builddir)/src/core/performance/libnanox.la $(top_builddir)/src/apis/c/performance/libnanox-c.la 
 
 libnanox_omp_stubs_la_CXXFLAGS=$(nanos_perfo_cxxflags)
 libnanox_omp_stubs_la_LDFLAGS=$(version_flags)
+libnanox_omp_stubs_la_LIBADD=$(top_builddir)/src/apis/c/performance/libnanox-c.la 
 libnanox_omp_stubs_la_SOURCES=$(omp_stub_sources)
+libnanox_omp_stubs_la_DEPENDENCIES= $(top_builddir)/src/apis/c/performance/libnanox-c.la
 endif
 

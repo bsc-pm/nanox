@@ -55,7 +55,14 @@ void utilInit ( void * )
       while ( n-- ) {
          std::string name( namelist[n]->d_name );
 
-         if ( name.compare( 0,9,"libnanox-" ) != 0 ) continue;
+         if (   ( name.compare( 0,15,"libnanox-sched-" ) != 0 ) 
+              &&( name.compare( 0,17,"libnanox-barrier-"  ) != 0 )
+              &&( name.compare( 0,14,"libnanox-deps-"  ) != 0 )
+              &&( name.compare( 0,16,"libnanox-slicer-"  ) != 0 )
+              &&( name.compare( 0,17,"libnanox-throtle-"  ) != 0 )
+              &&( name.compare( 0,21,"libnanox-worksharing-"  ) != 0 )
+              &&( name.compare( 0,25,"libnanox-instrumentation-"  ) != 0 )
+            ) continue;
 
          if ( name.compare( name.size()-3,3,".so" ) == 0 ) {
             name.erase( name.size()-3 );
