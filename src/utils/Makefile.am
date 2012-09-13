@@ -31,5 +31,6 @@ nanox_SOURCES=\
 nanox_LDADD=\
 	-ldl \
 	../core/@USED_VERSION@/libnanox.la \
+	@CUDA_RPATH@
 	$(END)
 
