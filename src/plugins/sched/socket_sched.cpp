@@ -23,6 +23,8 @@
 #include "system.hpp"
 #include "memtracker.hpp"
 #include <cmath>
+#include <fstream>
+#include <sstream>
 #ifdef HWLOC
 #include <hwloc.h>
 #endif
@@ -43,6 +45,23 @@ namespace nanos {
             bool _smartPriority;
             /*! \brief Number of loops to spin before attempting stealing */
             unsigned _spins;
+            
+            /*! \brief For a given socket, a list of near sockets. */
+            typedef std::vector<unsigned> NearSocketsList;
+            
+            /*! \brief Info related to socket distance and stealing */
+            struct SocketDistanceInfo {
+               NearSocketsList list;
+               
+               //! Next queue to steal from (round robin)
+               Atomic<unsigned> stealNext;
+            };
+            
+            /*! \brief For each socket, an array of close sockets. */
+            typedef std::vector<SocketDistanceInfo> NearSocketsMatrix;
+            
+            /*! \brief Keep a vector with all the close sockets for every socket */
+            NearSocketsMatrix _nearSockets;
 
             struct TeamData : public ScheduleTeamData
             {
@@ -52,11 +71,8 @@ namespace nanos {
                Atomic<unsigned>           _next;
                //! If there is an active "master" thread, for every socket
                Atomic<bool>*               _activeMasters;
-               //! Next queue to steal from (round robin)
-               Atomic<unsigned>           _stealNext;
  
-               TeamData ( unsigned int sockets ) : ScheduleTeamData(), _next( 0 ),
-                  _stealNext( 0 )
+               TeamData ( unsigned int sockets ) : ScheduleTeamData(), _next( 0 )
                {
                   _readyQueues = NEW WDPriorityQueue[ sockets*2 + 1 ];
                   _activeMasters = NEW Atomic<bool>[ sockets ];
@@ -81,10 +97,72 @@ namespace nanos {
                virtual ~ThreadData () {
                }
             };
+         
+            /** \brief Comparison functor used in distance computations.
+             */
+            struct DistanceCmp{
+               unsigned* _distances;
+               
+               DistanceCmp( unsigned* distances )
+                  : _distances( distances ){}
+               
+               bool operator()( unsigned socket1, unsigned socket2 )
+               {
+                  return _distances[socket1] < _distances[socket2];
+               }
+            };
 
             /* disable copy and assigment */
             explicit SocketSchedPolicy ( const SocketSchedPolicy & );
             const SocketSchedPolicy & operator= ( const SocketSchedPolicy & );
+         
+         private:
+            /** \brief Creates lists of close sockets.
+             */
+            void computeDistanceInfo() {
+               // Fill the distance info matrix
+               _nearSockets.resize( sys.getNumSockets() );
+               
+               // For every numa node
+               for ( unsigned from = 0; from < _nearSockets.size(); ++from )
+               {
+                  _nearSockets[ from ].stealNext = 0;
+                  NearSocketsList& row = _nearSockets[ from ].list;
+                  row.reserve( sys.getNumSockets() - 1 );
+                  
+                  unsigned distances[ _nearSockets.size() ];
+                  std::stringstream path;
+                  path << "/sys/devices/system/node/node";
+                  path << from << "/distance";
+                  std::ifstream fDistances( path.str().c_str() );
+                  
+                  
+                  std::copy (std::istream_iterator<unsigned>( fDistances ),
+                     std::istream_iterator<unsigned>(),
+                     distances
+                  );
+                  
+                  fDistances.close();
+                  
+                  for ( unsigned to = 0; to < (unsigned) sys.getNumSockets(); ++to )
+                  {
+                     //fprintf( stderr, "Distance from %d to %d: %d\n", from, to, distances[to] );
+                     if ( to == from )
+                        continue;
+                     row.push_back( to );
+                  }
+                  if ( !row.empty() ) {
+                     // Sort by distance
+                     std::sort( row.begin(), row.end(), DistanceCmp( distances ) );
+                     // Keep only close nodes
+                     NearSocketsList::iterator it = std::upper_bound(
+                        row.begin(), row.end(), row.front(),
+                        DistanceCmp( distances )
+                     );
+                     row.erase( it, row.end() );
+                  }
+               }
+            }
 
          public:
             // constructor
@@ -97,7 +175,7 @@ namespace nanos {
                int numSockets = sys.getNumSockets();
                int coresPerSocket = sys.getCoresPerSocket();
                
-               fprintf( stderr, "Steal: %d, successor: %d, smart: %d, spins: %d\n", steal, useSuccessor, smartPriority, spins );
+               //fprintf( stderr, "Steal: %d, successor: %d, smart: %d, spins: %d\n", steal, useSuccessor, smartPriority, spins );
 
                // Check config
                if ( numSockets != std::ceil( sys.getNumPEs() / static_cast<float>( coresPerSocket) ) )
@@ -106,6 +184,8 @@ namespace nanos {
                   warning0( "Adjusting num-sockets from " << numSockets << " to " << validSockets );
                   sys.setNumSockets( validSockets );
                }
+               
+               computeDistanceInfo();
             }
 
             // destructor
@@ -314,8 +394,12 @@ namespace nanos {
                   }
                   // Round robbin steal
                   else {
+                     unsigned closeIndex = _nearSockets[socket].stealNext.value();
+                     _nearSockets[socket].stealNext = ++_nearSockets[socket].stealNext % ( sys.getNumSockets() - 1 );
+                     unsigned close = _nearSockets[socket].list[ closeIndex ];
+                     
                      // 2 queues per socket + 1 master queue + 1 (offset of the inner tasks)
-                     unsigned index = ( (tdata._stealNext++ ) % sys.getNumSockets() )*2 + 2;
+                     unsigned index = close * 2 + 2;
                      //fprintf( stderr, "Stealing from index: %d\n", index );
                      wd = tdata._readyQueues[index].pop_front( thread );
                   }
@@ -465,7 +549,7 @@ namespace nanos {
                
                /* Perform the topology detection. */
                hwloc_topology_load( topology );
-               int depth = hwloc_get_type_depth( topology, HWLOC_OBJ_SOCKET );
+               int depth = hwloc_get_type_depth( topology, HWLOC_OBJ_NODE );
                
                if ( depth != HWLOC_TYPE_DEPTH_UNKNOWN ) {
                   _numSockets = hwloc_get_nbobjs_by_depth(topology, depth);
@@ -518,7 +602,7 @@ namespace nanos {
             }
 
             virtual void init() {
-               fprintf(stderr, "Setting numSockets to %d and coresPerSocket to %d\n", _numSockets, _coresPerSocket );
+               //fprintf(stderr, "Setting numSockets to %d and coresPerSocket to %d\n", _numSockets, _coresPerSocket );
                sys.setNumSockets( _numSockets );
                sys.setCoresPerSocket( _coresPerSocket );
                
