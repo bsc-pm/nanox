@@ -59,7 +59,9 @@ endif
 if INSTRUMENTATION_AYUDAME
 libnanox_instrumentation_ayudame_la_CXXFLAGS = $(nanos_instr_cxxflags) $(ayudame_cxxflags)
 libnanox_instrumentation_ayudame_la_LDFLAGS = $(ld_plugin_flags) $(ayudame_ldflags)
+libnanox_instrumentation_ayudame_la_LIBADD=$(top_builddir)/src/apis/c/instrumentation/libnanox-c.la
 libnanox_instrumentation_ayudame_la_SOURCES = $(ayudame_sources)
+libnanox_instrumentation_ayudame_la_DEPENDENCIES=$(top_builddir)/src/apis/c/instrumentation/libnanox-c.la
 endif
 
 if INSTRUMENTATION_NEXTSIM
