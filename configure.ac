@@ -35,16 +35,15 @@ then
       run_gitversion=`"$GIT" --git-dir=$srcdir/.git show "--pretty=format:%h %ci" HEAD | head -n 1`
       build_version="\"git $run_gitversion developer version\""
    fi
-
    if test x"$GIT" = x -o x"$run_gitversion" = x;
    then
        build_version="\"unknown git commit\""
    fi
    AC_MSG_RESULT([$build_version])
-elif test -e $srcdir/DIST_REVISION;
+elif test -e $srcdir/VERSION;
 then
      AC_MSG_CHECKING([revision of distributed release])
-     run_gitversion=`cat $srcdir/DIST_REVISION`
+     run_gitversion=`cat $srcdir/VERSION`
      build_version="\"$run_gitversion\""
      AC_MSG_RESULT([$build_version])
 fi
