@@ -251,6 +251,7 @@ esac
 gpu_valid=no
 gpu_enabled=yes
 CUDA=""
+CUDA_RPATH=""
 
 AC_MSG_CHECKING([if the use of GPU devices was disabled])
 AC_ARG_ENABLE([gpu-arch],
@@ -298,9 +299,11 @@ if test x$gpu_enabled = xyes ; then
 	    then
                 CUDA_LIB="$CUDADIR/lib64"
             fi
+            CUDA_RPATH="-Xlinker -rpath -Xlinker $CUDA_LIB"
 
             AC_SUBST([CUDA_INC])
             AC_SUBST([CUDA_LIB])
+            AC_SUBST([CUDA_RPATH])
 
             cuda_version_h="$CUDA_INC/cuda.h"
             if test -e $cuda_version_h ;
