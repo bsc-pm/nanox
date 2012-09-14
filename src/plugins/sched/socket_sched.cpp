@@ -275,7 +275,6 @@ namespace nanos {
                // cat /proc/cpuinfo | grep "physical id" | sort | uniq | wc -l
                // Cores per socket:
                // cat /proc/cpuinfo | grep 'core id' | sort | uniq | wc -l
-               fprintf(stderr, "No hwloc support\n" );
                _numSockets = sys.getNumSockets();
                _coresPerSocket = sys.getCoresPerSocket();
 #endif
