@@ -36,6 +36,10 @@ if INSTRUMENTATION_AYUDAME
 instrumentation_LTLIBRARIES+=libnanox-instrumentation-ayudame.la
 endif
 
+if INSTRUMENTATION_NEXTSIM
+instrumentation_LTLIBRARIES+=libnanox-instrumentation-nextsim.la
+endif
+
 nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags)
 
 libnanox_instrumentation_empty_trace_la_CXXFLAGS = $(nanos_instr_cxxflags)
@@ -56,6 +60,12 @@ if INSTRUMENTATION_AYUDAME
 libnanox_instrumentation_ayudame_la_CXXFLAGS = $(nanos_instr_cxxflags) $(ayudame_cxxflags)
 libnanox_instrumentation_ayudame_la_LDFLAGS = $(ld_plugin_flags) $(ayudame_ldflags)
 libnanox_instrumentation_ayudame_la_SOURCES = $(ayudame_sources)
+endif
+
+if INSTRUMENTATION_NEXTSIM
+libnanox_instrumentation_nextsim_la_CXXFLAGS = $(nanos_instr_cxxflags) $(nextsim_cxxflags)
+libnanox_instrumentation_nextsim_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_instrumentation_nextsim_la_SOURCES = $(nextsim_sources)
 endif
 
 endif

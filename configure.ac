@@ -565,8 +565,17 @@ AC_SUBST([MPITRACE_BIN])
 
 AM_CONDITIONAL([INSTRUMENTATION_EXTRAE], test x"$MPITRACE_HOME" != x)
 
-# Check Ayudame support
+# Check NextSim support
+AC_ARG_WITH([nextsim],
+           AS_HELP_STRING([--with-nextsim=dir], [Directory of NextSim installation]),
+           [
+              NEXTSIM_HOME="$withval"
+           ]
+)
+AC_SUBST([NEXTSIM_HOME])
+AM_CONDITIONAL([INSTRUMENTATION_NEXTSIM], test x"$NEXTSIM_HOME" != x)
 
+# Check Ayudame support
 AYUDAME_HOME=""
 AYUDAME_INC=""
 AYUDAME_LIB=""
