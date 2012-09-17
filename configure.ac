@@ -33,7 +33,8 @@ then
    then
       echo "$GIT" "$srcdir" >& AS_MESSAGE_LOG_FD
       run_gitversion=`"$GIT" --git-dir=$srcdir/.git show "--pretty=format:%h %ci" HEAD | head -n 1`
-      build_version="\"git $run_gitversion developer version\""
+      run_gitbranch=`"$GIT" --git-dir=$srcdir/.git branch | grep ^* | sed s/*\ //g`
+      build_version="\"git $run_gitbranch $run_gitversion developer version\""
    fi
    if test x"$GIT" = x -o x"$run_gitversion" = x;
    then
