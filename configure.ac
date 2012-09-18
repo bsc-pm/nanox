@@ -33,18 +33,18 @@ then
    then
       echo "$GIT" "$srcdir" >& AS_MESSAGE_LOG_FD
       run_gitversion=`"$GIT" --git-dir=$srcdir/.git show "--pretty=format:%h %ci" HEAD | head -n 1`
-      build_version="\"git $run_gitversion developer version\""
+      run_gitbranch=`"$GIT" --git-dir=$srcdir/.git branch | grep ^* | sed s/*\ //g`
+      build_version="\"git $run_gitbranch $run_gitversion developer version\""
    fi
-
    if test x"$GIT" = x -o x"$run_gitversion" = x;
    then
        build_version="\"unknown git commit\""
    fi
    AC_MSG_RESULT([$build_version])
-elif test -e $srcdir/DIST_REVISION;
+elif test -e $srcdir/VERSION;
 then
      AC_MSG_CHECKING([revision of distributed release])
-     run_gitversion=`cat $srcdir/DIST_REVISION`
+     run_gitversion=`cat $srcdir/VERSION`
      build_version="\"$run_gitversion\""
      AC_MSG_RESULT([$build_version])
 fi
@@ -568,8 +568,17 @@ AC_SUBST([MPITRACE_BIN])
 
 AM_CONDITIONAL([INSTRUMENTATION_EXTRAE], test x"$MPITRACE_HOME" != x)
 
-# Check Ayudame support
+# Check NextSim support
+AC_ARG_WITH([nextsim],
+           AS_HELP_STRING([--with-nextsim=dir], [Directory of NextSim installation]),
+           [
+              NEXTSIM_HOME="$withval"
+           ]
+)
+AC_SUBST([NEXTSIM_HOME])
+AM_CONDITIONAL([INSTRUMENTATION_NEXTSIM], test x"$NEXTSIM_HOME" != x)
 
+# Check Ayudame support
 AYUDAME_HOME=""
 AYUDAME_INC=""
 AYUDAME_LIB=""
