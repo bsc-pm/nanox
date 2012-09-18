@@ -39,12 +39,18 @@ namespace nanos {
          private:
             /*! \brief Steal work from other sockets? */
             bool _steal;
+            /*! \brief Steal top level tasks (true) or children (false) */
+            bool _stealParents;
+            /*! \brief Steal low priority tasks (true) or high (false) */
+            bool _stealLowPriority;
             /*! \brief Use immediate successor when prefecting. */
             bool _useSuccessor;
             /*! \brief Use smart priority (propagate priority) */
             bool _smartPriority;
             /*! \brief Number of loops to spin before attempting stealing */
             unsigned _spins;
+            /*! \brief If enabled, steal from random queues, otherwise round robin */
+            bool _randomSteal;
             
             /*! \brief For a given socket, a list of near sockets. */
             typedef std::vector<unsigned> NearSocketsList;
@@ -53,8 +59,17 @@ namespace nanos {
             struct SocketDistanceInfo {
                NearSocketsList list;
                
-               //! Next queue to steal from (round robin)
+               //! Next index of the list to steal from (round robin)
                Atomic<unsigned> stealNext;
+               
+               /*! \brief Returns the socket to steal from */
+               unsigned getStealNext()
+               {
+                  unsigned closeIndex = ( ++stealNext ) % ( sys.getNumSockets() - 1 );
+                  //unsigned close = _nearSockets[socket].list[ closeIndex ];
+                  //fprintf( stderr, "Close: %d\n", close );
+                  return list[ closeIndex ];
+               }
             };
             
             /*! \brief For each socket, an array of close sockets. */
@@ -166,11 +181,13 @@ namespace nanos {
 
          public:
             // constructor
-            SocketSchedPolicy ( bool steal, bool useSuccessor, bool smartPriority,
-               unsigned spins )
+            SocketSchedPolicy ( bool steal, bool stealParents, bool stealLowPriority,
+               bool useSuccessor, bool smartPriority,
+               unsigned spins, bool randomSteal )
                : SchedulePolicy ( "Socket" ), _steal( steal ),
+               _stealParents( stealParents ), _stealLowPriority( stealLowPriority ),
                _useSuccessor( useSuccessor ), _smartPriority( smartPriority ),
-               _spins ( spins )
+               _spins ( spins ), _randomSteal( randomSteal )
             {
                int numSockets = sys.getNumSockets();
                int coresPerSocket = sys.getCoresPerSocket();
@@ -376,6 +393,16 @@ namespace nanos {
                // If we want/need to steal
                if ( _steal )
                {
+                  // Queue to steal from (+1 = top level, +2 = child tasks)
+                  unsigned offset;
+                  if (_stealParents )
+                     offset = 1;
+                  else
+                     offset = 2;
+                     
+                  // Index of the queue where we stole the WD
+                  unsigned index;
+                  
                   if ( false /* steal from the biggest */ )
                   {
                      // Find the queue with the most small tasks
@@ -387,25 +414,38 @@ namespace nanos {
                         if ( largest->size() < current->size() ){
                            largest = current;
                            largestSocket = i;
+                           index = (i+1)*2;
                         }
                      }
                      //fprintf( stderr, "Stealing from socket #%d that has %lu tasks\n", largestSocket, largest->size() );
-                     wd = largest->pop_front( thread );
+                     /*if( _stealLowPriority )
+                        wd = largest->pop_back( thread );
+                     else
+                        wd = largest->pop_front( thread );*/
+                  }
+                  else if ( _randomSteal )
+                  {
+                     unsigned random = std::rand() % sys.getNumSockets();
+                     index = random * 2 + offset;
                   }
                   // Round robbin steal
                   else {
-                     unsigned closeIndex = _nearSockets[socket].stealNext.value();
-                     _nearSockets[socket].stealNext = ++_nearSockets[socket].stealNext % ( sys.getNumSockets() - 1 );
-                     unsigned close = _nearSockets[socket].list[ closeIndex ];
+                     unsigned close = _nearSockets[socket].getStealNext();
                      
                      // 2 queues per socket + 1 master queue + 1 (offset of the inner tasks)
-                     unsigned index = close * 2 + 2;
-                     //fprintf( stderr, "Stealing from index: %d\n", index );
-                     wd = tdata._readyQueues[index].pop_front( thread );
+                     index = close * 2 + offset;
                   }
                   
-                  if ( wd != NULL )
+                  if( _stealLowPriority )
+                     wd = tdata._readyQueues[index].pop_back( thread );
+                  else
+                     wd = tdata._readyQueues[index].pop_front( thread );
+                  
+                  if ( wd != NULL ){
+                     // Change queue
+                     wd->setWakeUpQueue( index );
                      return wd;
+                  }
                }
                
                // If this queue is empty, try the global queue
@@ -533,10 +573,14 @@ namespace nanos {
             int _coresPerSocket;
             
             bool _steal;
+            bool _stealParents;
+            bool _stealLowPriority;
             bool _immediate;
             bool _smart;
             
             unsigned _spins;
+            
+            bool _random;
             
             void loadDefaultValues()
             {
@@ -574,7 +618,9 @@ namespace nanos {
             }
          public:
             SocketSchedPlugin() : Plugin( "Socket-aware scheduling Plugin",1 ),
-               _steal( true ), _immediate( false ), _smart( false ), _spins( 200 ) {}
+               _steal( true ), _stealParents( false ), _stealLowPriority( false),
+               _immediate( false ), _smart( false ),
+               _spins( 200 ), _random( false ) {}
 
             virtual void config( Config& cfg ) {
                // Read hwloc's info before reading user parameters
@@ -591,6 +637,12 @@ namespace nanos {
                cfg.registerConfigOption( "socket-steal", NEW Config::FlagOption( _steal ), "Enable work stealing from other sockets' inner tasks queues (default)." );
                cfg.registerArgOption( "socket-steal", "socket-steal" );
                
+               cfg.registerConfigOption( "socket-steal-parents", NEW Config::FlagOption( _stealParents ), "Steal top level tasks, instead of child tasks (disabled by default)." );
+               cfg.registerArgOption( "socket-steal-parents", "socket-steal-parents" );
+               
+               cfg.registerConfigOption( "socket-steal-low-priority", NEW Config::FlagOption( _stealLowPriority ), "Steal low priority tasks, instead of higher priority tasks (disabled by default)." );
+               cfg.registerArgOption( "socket-steal-low-priority", "socket-steal-low-priority" );
+               
                cfg.registerConfigOption( "socket-immediate", NEW Config::FlagOption( _immediate ), "Use the immediate successor when prefecting (disabled by default)." );
                cfg.registerArgOption( "socket-immediate", "socket-immediate" );
                
@@ -599,6 +651,10 @@ namespace nanos {
                
                cfg.registerConfigOption( "socket-steal-spin", NEW Config::UintVar( _spins ), "Number of spins before stealing (200 by default)." );
                cfg.registerArgOption( "socket-steal-spin", "socket-steal-spin" );
+               
+               
+               cfg.registerConfigOption( "socket-random-steal", NEW Config::FlagOption( _random ), "Steal from random sockets instead of round robin (disabled by default)." );
+               cfg.registerArgOption( "socket-random-steal", "socket-random-steal" );
             }
 
             virtual void init() {
@@ -606,7 +662,7 @@ namespace nanos {
                sys.setNumSockets( _numSockets );
                sys.setCoresPerSocket( _coresPerSocket );
                
-               sys.setDefaultSchedulePolicy( NEW SocketSchedPolicy( _steal, _immediate, _smart, _spins ) );
+               sys.setDefaultSchedulePolicy( NEW SocketSchedPolicy( _steal, _stealParents, _stealLowPriority, _immediate, _smart, _spins, _random ) );
             }
       };
 
