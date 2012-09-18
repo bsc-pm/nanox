@@ -259,7 +259,7 @@ namespace ext
                      _executionMap[i] = NEW WorkerExecPlan();
                   }
 
-                  _readyQueue = new WDDeque();
+                  _readyQueue = NEW WDDeque();
                }
 
                ~TeamData()
@@ -1017,15 +1017,24 @@ namespace ext
                   // It is not checked here, but, by now, only GPU is calling scheduler's prefetching mechanism
                   int i, numPrefetch = 16;
                   for ( i = 0; i < numPrefetch; i++ && last != NULL ) {
+                     // getImmediateSuccessor() will only return tasks that either have no active device
+                     // or its active device is compatible with this thread
                      WD * pref = last->getImmediateSuccessor( *thread );
 
-                     if ( pref != NULL && !( pref->hasActiveDevice() ) ) {
+                     if ( pref != NULL ) {
                         time = 1;
-                        deviceIdx = findBestVersion( thread, pref, time );
+                        // Since we can get tasks with just one implementation, we have to check if
+                        // the task has already an active device or not
+                        if ( !pref->hasActiveDevice() ) {
+                           deviceIdx = findBestVersion( thread, pref, time );
+                        } else {
+                           deviceIdx = pref->getActiveDeviceIdx();
+                        }
                         setDevice( thread, pref, deviceIdx, false, time );
+                        last = pref;
+                     } else {
+                        break;
                      }
-                     last = pref;
-                     if ( last == NULL ) break;
                   }
 
                   return next;
