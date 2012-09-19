@@ -4,6 +4,8 @@ AC_CONFIG_SRCDIR([src/core/system.cpp])
 
 configure_orig_arguments="$@"
 
+# New comment
+
 # Environment
 AC_CANONICAL_BUILD
 AC_CANONICAL_SYSTEM
