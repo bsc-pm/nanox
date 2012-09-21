@@ -212,7 +212,7 @@ namespace nanos
          bool removeWDWithConstraints( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
 #endif
    };
-
+   
    /*! \brief Class used to compare WDs by priority.
     *  \see WDPriorityQueue::push
     */
@@ -223,7 +223,18 @@ namespace nanos
          return wd1->getPriority() > wd2->getPriority();
       }
    };
+   
+   /*! \brief Class used to compare WDs by priority reversely.
+    */
+   struct WDPriorityComparisonReverse
+   {
+      bool operator() ( const WD* wd1, const WD* wd2 ) const
+      {
+         return wd1->getPriority() <= wd2->getPriority();
+      }
+   };
 
+   template<typename T = unsigned>
    class WDPriorityQueue : public WDPool
    {
       private:
@@ -238,6 +249,12 @@ namespace nanos
           * in the above case.
           */
          bool              _optimise;
+         
+         /*! \brief Revert insertion */
+         bool              _reverse;
+      
+      public:
+         typedef T         type;
 
       private:
          /*! \brief WDPriorityQueue copy constructor (private)
@@ -251,10 +268,16 @@ namespace nanos
           *  \param fifo Insert WDs with the same after the current ones?
           */
          void insertOrdered ( WorkDescriptor *wd, bool fifo = true );
+         
+         /*! \brief Performs upper bound reversely or not depending on the settings */
+        BaseContainer::iterator upper_bound( const WD *wd );
+        
+        /*! \brief Performs lower bound reversely or not depending on the settings */
+        BaseContainer::iterator lower_bound( const WD *wd );
       public:
          /*! \brief WDPriorityQueue default constructor
           */
-         WDPriorityQueue( bool optimise = true );
+         WDPriorityQueue( bool optimise = true, bool reverse = false );
          /*! \brief WDPriorityQueue destructor
           */
          ~WDPriorityQueue() {}

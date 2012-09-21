@@ -31,7 +31,7 @@ namespace nanos {
          private:
             struct TeamData : public ScheduleTeamData
             {
-               WDPriorityQueue           _readyQueue;
+               WDPriorityQueue<>           _readyQueue;
                
                TeamData () : ScheduleTeamData(), _readyQueue( Priority::_optimise ) {}
                ~TeamData () {}

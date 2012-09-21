@@ -356,20 +356,27 @@ inline bool WDLFQueue::removeWD( BaseThread *thread, WorkDescriptor *toRem, Work
          bool removeWDWithConstraints( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
 #endif
 
-inline WDPriorityQueue::WDPriorityQueue( bool optimise ) : _dq(), _lock(), _optimise( optimise )
+template <typename T>
+inline WDPriorityQueue<T>::WDPriorityQueue( bool optimise, bool reverse )
+   : _dq(), _lock(), _optimise( optimise ), _reverse( reverse )
 {
 }
 
-inline bool WDPriorityQueue::empty ( void ) const
+
+template<typename T>
+inline bool WDPriorityQueue<T>::empty ( void ) const
 {
    return _dq.empty();
 }
-inline size_t WDPriorityQueue::size() const
+
+template<typename T>
+inline size_t WDPriorityQueue<T>::size() const
 {
    return _nelems;
 }
 
-inline void WDPriorityQueue::insertOrdered( WorkDescriptor *wd, bool fifo )
+template<typename T>
+inline void WDPriorityQueue<T>::insertOrdered( WorkDescriptor *wd, bool fifo )
 {
    // Find where to insert the wd
    BaseContainer::iterator it;
@@ -379,25 +386,44 @@ inline void WDPriorityQueue::insertOrdered( WorkDescriptor *wd, bool fifo )
       if ( ( _optimise ) && ( ( _dq.empty() ) || ( _dq.back()->getPriority() >= wd->getPriority() ) ) )
          it = _dq.end();
       else
-         it = std::upper_bound( _dq.begin(), _dq.end(), wd, WDPriorityComparison() );
+         it = upper_bound ( wd );
    }
    else {
       // #637: Insert at the front if possible
       if ( ( _optimise ) && ( ( _dq.empty() ) || ( _dq.front()->getPriority() < wd->getPriority() ) ) )
          it = _dq.begin();
       else {
-         it = std::lower_bound( _dq.begin(), _dq.end(), wd, WDPriorityComparison() );
+         it = lower_bound( wd );
       }
    }
    
    _dq.insert( it, wd );
 }
 
+template<typename T>
+inline WDPriorityQueue<T>::BaseContainer::iterator
+WDPriorityQueue<T>::upper_bound( const WD *wd )
+{
+   if ( _reverse )
+      return std::upper_bound( _dq.begin(), _dq.end(), wd, WDPriorityComparisonReverse() );
+   return std::upper_bound( _dq.begin(), _dq.end(), wd, WDPriorityComparison() );
+}
+
+template<typename T>
+inline WDPriorityQueue<T>::BaseContainer::iterator
+WDPriorityQueue<T>::lower_bound( const WD *wd )
+{
+   if ( _reverse )
+      return std::lower_bound( _dq.begin(), _dq.end(), wd, WDPriorityComparisonReverse() );
+   return std::lower_bound( _dq.begin(), _dq.end(), wd, WDPriorityComparison() );
+}
+
 /*!
  * \brief FIFO-like insertion
  * \see WDPriorityQueue::push_front
  */
-inline void WDPriorityQueue::push_back ( WorkDescriptor *wd )
+template<typename T>
+inline void WDPriorityQueue<T>::push_back ( WorkDescriptor *wd )
 {
    wd->setMyQueue( this );
    {
@@ -413,7 +439,8 @@ inline void WDPriorityQueue::push_back ( WorkDescriptor *wd )
  * \brief LIFO-like insertion.
  * \see WDPriorityQueue::push_back
  */
-inline void WDPriorityQueue::push_front ( WorkDescriptor *wd )
+template<typename T>
+inline void WDPriorityQueue<T>::push_front ( WorkDescriptor *wd )
 {
    wd->setMyQueue( this );
    {
@@ -429,7 +456,8 @@ inline void WDPriorityQueue::push_front ( WorkDescriptor *wd )
  * \see WDPriority::pop_front()
  * TODO (gmiranda): Discuss if pop_back has a meaning.
  */
-inline WorkDescriptor * WDPriorityQueue::pop_back ( BaseThread *thread )
+template<typename T>
+inline WorkDescriptor * WDPriorityQueue<T>::pop_back ( BaseThread *thread )
 {
    fatal( "Method not implemented" );
 }
@@ -438,19 +466,22 @@ inline WorkDescriptor * WDPriorityQueue::pop_back ( BaseThread *thread )
  * \brief Retrieves a WD. If it's a lifo or fifo retrieval will depend on
  * how it was inserted.
  */
-inline WorkDescriptor * WDPriorityQueue::pop_front ( BaseThread *thread )
+template<typename T>
+inline WorkDescriptor * WDPriorityQueue<T>::pop_front ( BaseThread *thread )
 {
    return popWithConstraints<NoConstraints>(thread);
 }
 
-inline bool WDPriorityQueue::removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next )
+template<typename T>
+inline bool WDPriorityQueue<T>::removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next )
 {
    return removeWDWithConstraints<NoConstraints>(thread,toRem,next);
 }
 
 // Only ensures tie semantics
+template <typename T>
 template <typename Constraints>
-inline WorkDescriptor * WDPriorityQueue::popWithConstraints ( BaseThread *thread )
+inline WorkDescriptor * WDPriorityQueue<T>::popWithConstraints ( BaseThread *thread )
 {
    WorkDescriptor *found = NULL;
 
@@ -486,8 +517,9 @@ inline WorkDescriptor * WDPriorityQueue::popWithConstraints ( BaseThread *thread
 }
 
 
+template <typename T>
 template <typename Constraints>
-inline bool WDPriorityQueue::removeWDWithConstraints( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next )
+inline bool WDPriorityQueue<T>::removeWDWithConstraints( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next )
 {
    if ( _dq.empty() ) return false;
 
@@ -519,7 +551,8 @@ inline bool WDPriorityQueue::removeWDWithConstraints( BaseThread *thread, WorkDe
    return false;
 }
 
-inline bool WDPriorityQueue::reorderWD( WorkDescriptor *wd )
+template<typename T>
+inline bool WDPriorityQueue<T>::reorderWD( WorkDescriptor *wd )
 {
    LockBlock l( _lock );
    
@@ -539,14 +572,16 @@ inline bool WDPriorityQueue::reorderWD( WorkDescriptor *wd )
    return true;
 }
 
-inline void WDPriorityQueue::increaseTasksInQueues( int tasks )
+template<typename T>
+inline void WDPriorityQueue<T>::increaseTasksInQueues( int tasks )
 {
    NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("num-ready");)
    NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, (nanos_event_value_t *) &tasks );)
    _nelems++;
 }
 
-inline void WDPriorityQueue::decreaseTasksInQueues( int tasks )
+template<typename T>
+inline void WDPriorityQueue<T>::decreaseTasksInQueues( int tasks )
 {
    NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("num-ready");)
    NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, (nanos_event_value_t *) &tasks );)
