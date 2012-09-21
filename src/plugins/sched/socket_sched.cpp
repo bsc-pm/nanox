@@ -80,16 +80,16 @@ namespace nanos {
 
             struct TeamData : public ScheduleTeamData
             {
-               WDPriorityQueue*           _readyQueues;
+               WDPriorityQueue<>*         _readyQueues;
                //! Next queue to insert to (round robin scheduling)
                // TODO(gmiranda): remove this since we don't use it
                Atomic<unsigned>           _next;
                //! If there is an active "master" thread, for every socket
-               Atomic<bool>*               _activeMasters;
+               Atomic<bool>*              _activeMasters;
  
                TeamData ( unsigned int sockets ) : ScheduleTeamData(), _next( 0 )
                {
-                  _readyQueues = NEW WDPriorityQueue[ sockets*2 + 1 ];
+                  _readyQueues = NEW WDPriorityQueue<>[ sockets*2 + 1 ];
                   _activeMasters = NEW Atomic<bool>[ sockets ];
                }
 
@@ -406,11 +406,11 @@ namespace nanos {
                   if ( false /* steal from the biggest */ )
                   {
                      // Find the queue with the most small tasks
-                     WDPriorityQueue *largest = &tdata._readyQueues[2];
+                     WDPriorityQueue<> *largest = &tdata._readyQueues[2];
                      int largestSocket = 0;
                      for ( int i = 1; i < sys.getNumSockets(); ++i )
                      {
-                        WDPriorityQueue *current = &tdata._readyQueues[ (i+1)*2];
+                        WDPriorityQueue<> *current = &tdata._readyQueues[ (i+1)*2];
                         if ( largest->size() < current->size() ){
                            largest = current;
                            largestSocket = i;
