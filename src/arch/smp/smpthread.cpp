@@ -101,13 +101,16 @@ void SMPThread::bind( void )
             {
                fprintf( stderr, "ID %d, cpu_id/coresPerSocket = %d\n", cpu_id,(cpu_id +1)/ sys.getCoresPerSocket()  );
                GPUThread* gpuThread = dynamic_cast<GPUThread*>( this );
-               if ( gpuThread == NULL )
+               if ( gpuThread == NULL ){
                   fprintf( stderr, "CPU thread %d has now affinity to %d\n", cpu_id, cpu_id + (( cpu_id +1 ) / sys.getCoresPerSocket() ) );
+                  cpu_id = cpu_id + (( cpu_id +1 ) / sys.getCoresPerSocket() );
+               }
                else{
                   // Try to guess the gpu number
                   // TODO (gmiranda): assume the device id matches the gpu thread number
                   int gpuIndex = gpuThread->getGPUDevice();
                   fprintf( stderr, "GPU thread %d goes to %d\n", cpu_id, sys.getCoresPerSocket()*(1 + gpuIndex ) - 1);
+                  cpu_id = sys.getCoresPerSocket()*(1 + gpuIndex ) - 1;
                }
             }
             else 

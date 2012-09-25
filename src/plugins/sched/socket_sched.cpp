@@ -189,18 +189,19 @@ namespace nanos {
                _useSuccessor( useSuccessor ), _smartPriority( smartPriority ),
                _spins ( spins ), _randomSteal( randomSteal )
             {
-               int numSockets = sys.getNumSockets();
-               int coresPerSocket = sys.getCoresPerSocket();
+               //int numSockets = sys.getNumSockets();
+               //int coresPerSocket = sys.getCoresPerSocket();
                
                //fprintf( stderr, "Steal: %d, successor: %d, smart: %d, spins: %d\n", steal, useSuccessor, smartPriority, spins );
 
                // Check config
-               if ( numSockets != std::ceil( sys.getNumPEs() / static_cast<float>( coresPerSocket) ) )
-               {
-                  unsigned validSockets = std::ceil( sys.getNumPEs() / static_cast<float>(coresPerSocket) );
-                  warning0( "Adjusting num-sockets from " << numSockets << " to " << validSockets );
-                  sys.setNumSockets( validSockets );
-               }
+               // gmiranda: disabled temporary since NumPES < numWorkers when using GPUS
+               //if ( numSockets != std::ceil( sys.getNumPEs() / static_cast<float>( coresPerSocket) ) )
+               //{
+               //   unsigned validSockets = std::ceil( sys.getNumPEs() / static_cast<float>(coresPerSocket) );
+               //   warning0( "Adjusting num-sockets from " << numSockets << " to " << validSockets );
+               //   sys.setNumSockets( validSockets );
+               //}
                
                computeDistanceInfo();
             }
