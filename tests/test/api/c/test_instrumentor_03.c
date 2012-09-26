@@ -109,12 +109,13 @@ nanos_wd_dyn_props_t dyn_props = {0};
 
 int fib ( int n, int d )
 {
-   nanos_event_key_t ek;
-   nanos_event_value_t ev;
-   nanos_instrument_get_key ( "user-funct-name", &ek );
-   nanos_instrument_register_value ( &ev, "user-funct-name", "fib", "fib user's function", true );
+   nanos_event_t event;
 
-   nanos_instrument_enter_burst ( ek, ev );
+   nanos_instrument_get_key ("user-funct-name", &(event.key));
+   nanos_instrument_register_value ( &(event.value), "user-funct-name", "fib", "fib user's function", false );
+   
+   event.type = NANOS_BURST_START;
+   nanos_instrument_events(1, &event);
 
    int x, y;
 
@@ -158,7 +159,8 @@ int fib ( int n, int d )
       y = fib_seq( n-2 );
    }
 
-   nanos_instrument_leave_burst ( ek );
+   event.type = NANOS_BURST_END;
+   nanos_instrument_events(1, &event);
 
    return x + y;
 }

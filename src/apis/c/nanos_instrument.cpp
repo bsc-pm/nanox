@@ -103,16 +103,16 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_events, ( unsigned int num_events, n
       for (unsigned int i = 0; i < num_events; i++ ) {
          switch ( events[i].type ) {
             case NANOS_STATE_START:
-               sys.getInstrumentation()->createStateEvent(&e[i],events[i].info.state.value);
+               sys.getInstrumentation()->createStateEvent( &e[i],(nanos_event_state_value_t ) events[i].value);
                break;
             case NANOS_STATE_END:
                sys.getInstrumentation()->returnPreviousStateEvent(&e[i]);
                break;
             case NANOS_BURST_START:
-               sys.getInstrumentation()->createBurstEvent(&e[i],events[i].info.burst.key,events[i].info.burst.value);
+               sys.getInstrumentation()->createBurstEvent(&e[i],events[i].key,events[i].value);
                break;
             case NANOS_BURST_END:
-               sys.getInstrumentation()->closeBurstEvent(&e[i],events[i].info.burst.key);
+               sys.getInstrumentation()->closeBurstEvent(&e[i],events[i].key);
                break;
             case NANOS_POINT:
 #if 0
@@ -138,97 +138,6 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_events, ( unsigned int num_events, n
       }
 
       sys.getInstrumentation()->addEventList( num_events,e);
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-#endif
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_instrument_enter_state, ( nanos_event_state_value_t state ))
-{
-#ifdef NANOS_INSTRUMENTATION_ENABLED
-   try
-   {
-      sys.getInstrumentation()->raiseOpenStateEvent( state );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-#endif
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_instrument_leave_state, ( void ))
-{
-#ifdef NANOS_INSTRUMENTATION_ENABLED
-   try
-   {
-      sys.getInstrumentation()->raiseCloseStateEvent( );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-#endif
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_instrument_enter_burst, ( nanos_event_key_t key, nanos_event_value_t value ))
-{
-#ifdef NANOS_INSTRUMENTATION_ENABLED
-   try
-   {
-      sys.getInstrumentation()->raiseOpenBurstEvent ( key, value );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-#endif
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_instrument_leave_burst, ( nanos_event_key_t key ))
-{
-#ifdef NANOS_INSTRUMENTATION_ENABLED
-   try
-   {
-      sys.getInstrumentation()->raiseCloseBurstEvent ( key );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-#endif
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_instrument_point_event, ( unsigned int nkvs, nanos_event_key_t *keys, nanos_event_value_t *values ))
-{
-#ifdef NANOS_INSTRUMENTATION_ENABLED
-   try
-   {
-      sys.getInstrumentation()->raisePointEvents( nkvs, keys, values );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-#endif
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_instrument_ptp_start, ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t value ))
-{
-#ifdef NANOS_INSTRUMENTATION_ENABLED
-   try
-   {
-      sys.getInstrumentation()->raiseOpenPtPEvent( domain, id, key, value );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-#endif
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_instrument_ptp_end, ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t value ))
-{
-#ifdef NANOS_INSTRUMENTATION_ENABLED
-   try
-   {
-      sys.getInstrumentation()->raiseClosePtPEvent( domain, id, key, value );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }

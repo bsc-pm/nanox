@@ -38,11 +38,13 @@ typedef struct {
 void main__task_1 ( void *args )
 {
    /* User Function: main__task_1: enter burst */
-   nanos_event_key_t ek;
-   nanos_event_value_t ev;
-   nanos_instrument_register_key ( &ek, "user-funct-name", "User Functions", true );
-   nanos_instrument_register_value ( &ev, "user-funct-name", "main__task_1", "main__task_1 user's function", true );
-   nanos_instrument_enter_burst( ek, ev );
+   nanos_event_t event;
+
+   nanos_instrument_get_key ("user-funct-name", &(event.key));
+   nanos_instrument_register_value ( &(event.value), "user-funct-name", "main__task_1", "main__task_1 user's function", false );
+   
+   event.type = NANOS_BURST_START;
+   nanos_instrument_events(1, &event);
 
    main__task_1_data_t *hargs = (main__task_1_data_t * ) args;
 
@@ -55,7 +57,8 @@ void main__task_1 ( void *args )
    usleep ( hargs->value );
 
    /* User Function: main__task_1: leave burst */
-   nanos_instrument_leave_burst( ek );
+   event.type = NANOS_BURST_END;
+   nanos_instrument_events(1, &event);
 }
 // --
 // compiler: smp device for main__loop_1 function

@@ -213,6 +213,9 @@ typedef enum { NANOS_STATE_START, NANOS_STATE_END, NANOS_SUBSTATE_START, NANOS_S
                NANOS_BURST_START, NANOS_BURST_END, NANOS_PTP_START, NANOS_PTP_END, NANOS_POINT, EVENT_TYPES
 } nanos_event_type_t; /**< Event types  */
 
+typedef unsigned int         nanos_event_key_t; /**< Key (on key-value pair) */
+typedef unsigned long long   nanos_event_value_t; /**< Value (on key-value pair) */
+
 typedef enum { NANOS_NOT_CREATED, NANOS_NOT_RUNNING, NANOS_STARTUP, NANOS_SHUTDOWN, NANOS_ERROR, NANOS_IDLE,
                NANOS_RUNTIME, NANOS_RUNNING, NANOS_SYNCHRONIZATION, NANOS_SCHEDULING, NANOS_CREATION,
                NANOS_MEM_TRANSFER_IN, NANOS_MEM_TRANSFER_OUT, NANOS_MEM_TRANSFER_LOCAL,
@@ -220,43 +223,17 @@ typedef enum { NANOS_NOT_CREATED, NANOS_NOT_RUNNING, NANOS_STARTUP, NANOS_SHUTDO
                NANOS_CACHE, NANOS_YIELD, NANOS_ACQUIRING_LOCK, NANOS_CONTEXT_SWITCH, NANOS_DEBUG, NANOS_EVENT_STATE_TYPES
 } nanos_event_state_value_t; /**< State enum values */
 
-typedef enum { NANOS_WD_DOMAIN, NANOS_WD_DEPENDENCY, NANOS_WAIT, NANOS_WD_REMOTE, NANOS_XFER_PUT, NANOS_XFER_GET } nanos_event_domain_t; /**< Specifies a domain */
-typedef long long  nanos_event_id_t;                   /**< Used as unique id within a given domain */
+typedef enum { NANOS_WD_DOMAIN, NANOS_WD_DEPENDENCY, NANOS_WAIT, NANOS_WD_REMOTE, NANOS_XFER_PUT, NANOS_XFER_GET
+} nanos_event_domain_t; /**< Specifies a domain */
 
-typedef unsigned int         nanos_event_key_t;   /**< Key (on key-value pair) */
-typedef unsigned long long   nanos_event_value_t; /**< Value (on key-value pair) */
+typedef long long  nanos_event_id_t; /**< Used as unique id within a given domain */
   
 typedef struct {
+   nanos_event_type_t   type;
    nanos_event_key_t    key;
    nanos_event_value_t  value;
-} nanos_event_burst_t;
-
-typedef struct {
-   nanos_event_state_value_t value;
-} nanos_event_state_t;
-
-typedef struct {
-   unsigned int        nkvs;
-   nanos_event_key_t   *keys;
-   nanos_event_value_t *values;
-} nanos_event_point_t;
-
-typedef struct {
    nanos_event_domain_t domain; 
    nanos_event_id_t     id;
-   unsigned int         nkvs;
-   nanos_event_key_t    *keys;
-   nanos_event_value_t  *values;
-} nanos_event_ptp_t;
-
-typedef struct {
-   nanos_event_type_t       type;
-   union {
-      nanos_event_burst_t   burst;
-      nanos_event_state_t   state;
-      nanos_event_point_t   point;
-      nanos_event_ptp_t     ptp;
-   } info;
 } nanos_event_t;
 
 /* Lock C interface */
