@@ -357,8 +357,9 @@ inline bool WDLFQueue::removeWD( BaseThread *thread, WorkDescriptor *toRem, Work
 #endif
 
 template <typename T>
-inline WDPriorityQueue<T>::WDPriorityQueue( bool optimise, bool reverse )
-   : _dq(), _lock(), _optimise( optimise ), _reverse( reverse )
+inline WDPriorityQueue<T>::WDPriorityQueue( bool optimise, bool reverse, PriorityValueFun getter )
+   : _dq(), _lock(), _optimise( optimise ), _reverse( reverse ),
+     _getter( getter )
 {
 }
 
@@ -405,8 +406,8 @@ inline WDPriorityQueue<T>::BaseContainer::iterator
 WDPriorityQueue<T>::upper_bound( const WD *wd )
 {
    if ( _reverse )
-      return std::upper_bound( _dq.begin(), _dq.end(), wd, WDPriorityComparisonReverse() );
-   return std::upper_bound( _dq.begin(), _dq.end(), wd, WDPriorityComparison() );
+      return std::upper_bound( _dq.begin(), _dq.end(), wd, WDPriorityComparisonReverse<T>( _getter ) );
+   return std::upper_bound( _dq.begin(), _dq.end(), wd, WDPriorityComparison<T>( _getter ) );
 }
 
 template<typename T>
@@ -414,8 +415,8 @@ inline WDPriorityQueue<T>::BaseContainer::iterator
 WDPriorityQueue<T>::lower_bound( const WD *wd )
 {
    if ( _reverse )
-      return std::lower_bound( _dq.begin(), _dq.end(), wd, WDPriorityComparisonReverse() );
-   return std::lower_bound( _dq.begin(), _dq.end(), wd, WDPriorityComparison() );
+      return std::lower_bound( _dq.begin(), _dq.end(), wd, WDPriorityComparisonReverse<T>( _getter ) );
+   return std::lower_bound( _dq.begin(), _dq.end(), wd, WDPriorityComparison<T>( _getter ) );
 }
 
 /*!
@@ -493,7 +494,7 @@ inline WorkDescriptor * WDPriorityQueue<T>::popWithConstraints ( BaseThread *thr
       memoryFence();
 
       if ( !_dq.empty() ) {
-         WDPriorityQueue::BaseContainer::iterator it;
+         BaseContainer::iterator it;
          for ( it = _dq.begin(); it != _dq.end() ; ++it ) {
             WD &wd = *(WD *)*it;
             if ( Scheduler::checkBasicConstraints( wd, *thread) && Constraints::check(wd,*thread)) {
@@ -526,7 +527,7 @@ inline bool WDPriorityQueue<T>::removeWDWithConstraints( BaseThread *thread, Wor
    if ( !Scheduler::checkBasicConstraints( *toRem, *thread) || !Constraints::check(*toRem, *thread) ) return false;
 
    *next = NULL;
-   WDPriorityQueue::BaseContainer::iterator it;
+   BaseContainer::iterator it;
 
    {
       LockBlock lock( _lock );
