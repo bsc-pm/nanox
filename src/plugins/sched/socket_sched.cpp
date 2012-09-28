@@ -194,6 +194,11 @@ namespace nanos {
                
                //fprintf( stderr, "Steal: %d, successor: %d, smart: %d, spins: %d\n", steal, useSuccessor, smartPriority, spins );
 
+               if ( steal && sys.getNumSockets() == 1 )
+               {
+                  fatal0( "Steal can not be enabled with just one socket" );
+               }
+               
                // Check config
                // gmiranda: disabled temporary since NumPES < numWorkers when using GPUS
                //if ( numSockets != std::ceil( sys.getNumPEs() / static_cast<float>( coresPerSocket) ) )
