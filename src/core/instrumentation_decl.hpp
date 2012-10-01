@@ -88,6 +88,7 @@ namespace nanos {
       private:
          nanos_event_key_t    _id;          /**< InstrumentationKeyDescriptor id */
          bool                 _enabled;     /**< Is the event enabled */
+         bool                 _stacked;     /**< Is the event enabled */
          std::string          _description; /**< InstrumenotrKeyDescriptor description */
          Atomic<unsigned int> _totalValues; /**< Total number of values */
          Lock                 _lock;        /**< _valueMap exclusive lock */
@@ -105,12 +106,12 @@ namespace nanos {
       public:
          /*! \brief InstrumentationKeyDescriptor constructor
           */
-         InstrumentationKeyDescriptor ( nanos_event_key_t id, const std::string &description, bool enabled ) : _id( id ), _enabled(enabled), _description ( description ),
+         InstrumentationKeyDescriptor ( nanos_event_key_t id, const std::string &description, bool enabled, bool stacked ) : _id( id ), _enabled(enabled),_stacked(stacked), _description ( description ),
                                      _totalValues(1), _lock(), _valueMap() {}
 
          /*! \brief InstrumentationKeyDescriptor constructor
           */
-         InstrumentationKeyDescriptor ( nanos_event_key_t id, const char *description, bool enabled ) : _id( id ), _enabled(enabled),  _description ( description ),
+         InstrumentationKeyDescriptor ( nanos_event_key_t id, const char *description, bool enabled, bool stacked ) : _id( id ), _enabled(enabled), _stacked(stacked),  _description ( description ),
                                      _totalValues(1), _lock(), _valueMap() {}
 
          /*! \brief InstrumentationKeyDescriptor destructor
@@ -128,6 +129,10 @@ namespace nanos {
          /*! \brief Set if the event is enabled (or not)
           */
          void setEnabled ( bool value );
+
+         /*! \brief return if the event is stacked
+          */
+         bool isStacked ( void );
 
          /*! \brief Gets key descriptor textual description
           */
@@ -196,7 +201,7 @@ namespace nanos {
             /* Instrumentation events: In order initialization */
             /* ******************************************** */
 
-            /* 01 */ registerEventKey("api","Nanos Runtime API", true, true ); 
+            /* 01 */ registerEventKey("api","Nanos Runtime API", true, true, true ); 
             registerEventValue("api","find_slicer","nanos_find_slicer()");
             registerEventValue("api","wg_wait_completion","nanos_wg_wait_completion()");
             registerEventValue("api","*_create_sync_cond","nanos_create_xxx_cond()");
@@ -234,7 +239,7 @@ namespace nanos {
             registerEventValue("api","malloc","nanos_malloc()");
             registerEventValue("api","free","nanos_free()");
 
-            /* 02 */ registerEventKey("wd-id","Work Descriptor id:", true);
+            /* 02 */ registerEventKey("wd-id","Work Descriptor id:", true, true, true);
 
             /* 03 */ registerEventKey("cache-copy-in","Transfer data into device cache", true);
             /* 04 */ registerEventKey("cache-copy-out","Transfer data to main memory", true);
@@ -352,11 +357,11 @@ namespace nanos {
 
          /*! \brief Inserts (or gets) a key into (from) the keyMap
           */
-         nanos_event_key_t registerEventKey ( const std::string &key, const std::string &description="", bool abort_when_registered=true, bool enabled=true );
+         nanos_event_key_t registerEventKey ( const std::string &key, const std::string &description="", bool abort_when_registered=true, bool enabled=true, bool stacked=false );
 
          /*! \brief Inserts (or gets) a key into (from) the keyMap
           */
-         nanos_event_key_t registerEventKey ( const char *key, const char *description="", bool abort_when_registered=true, bool enabled=true );
+         nanos_event_key_t registerEventKey ( const char *key, const char *description="", bool abort_when_registered=true, bool enabled=true, bool stacked=false );
 
          /*! \brief Gets a key into (from) the keyMap
           */

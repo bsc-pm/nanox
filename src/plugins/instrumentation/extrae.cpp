@@ -575,7 +575,17 @@ class InstrumentationExtrae: public Instrumentation
 
 #ifdef NANOX_EXTRAE_WD_INSTRUMENTATION
         Extrae_register_stacked_type( (extrae_type_t) _eventState );
-        Extrae_register_stacked_type( (extrae_type_t) 9200002 ); /* FIXME: use code */
+        InstrumentationDictionary::ConstKeyMapIterator itK;
+        InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
+
+        /* Generating key/value events */
+        for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
+           InstrumentationKeyDescriptor *kD = itK->second;
+           if (kD->isStacked()) {
+              fprintf(stderr,"stacked %d\n",_eventBase+kD->getId());
+              Extrae_register_stacked_type( (extrae_type_t) _eventBase+kD->getId() );
+           }
+        }
 #endif
 
 #ifdef NANOX_USER_FUNCTION_ADDRESS
