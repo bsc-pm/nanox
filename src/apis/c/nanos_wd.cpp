@@ -317,3 +317,8 @@ NANOS_API_DEF(nanos_err_t, nanos_slicer_get_specific_data, ( nanos_slicer_t slic
    return NANOS_OK;                                                                                                                                      
 }   
 
+NANOS_API_DEF(unsigned int, nanos_get_wd_priority, ( nanos_wd_t wd ))
+{
+   WD *lwd = ( WD * )wd;
+   return lwd->getPriority();
+}
