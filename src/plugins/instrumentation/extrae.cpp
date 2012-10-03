@@ -17,9 +17,6 @@
 #include "os.hpp"
 #include "errno.h"
 
-//FIXME (#702) Using user function address, will be default
-//#define NANOX_USER_FUNCTION_ADDRESS
-
 /* NANOX_EXTRAE_DEFINE_CALLBACKS allow to define which are our external services
  * to specify the execution environment ( thread id, total threads, etc ). They
  * are defined on Extrae 2.2.1 and above */
@@ -588,9 +585,6 @@ class InstrumentationExtrae: public Instrumentation
         }
 #endif
 
-#ifdef NANOX_USER_FUNCTION_ADDRESS
-        Extrae_register_codelocation_type( 9200037 ,"User Function Name","User Function Location"); /* FIXME (#702) use code */
-#endif
       }
 
       void finalize ( void )
