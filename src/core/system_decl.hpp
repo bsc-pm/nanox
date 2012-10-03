@@ -161,6 +161,7 @@ namespace nanos
          
          WD *slaveParentWD;
          BaseThread *_masterGpuThd;
+         BaseThread *_auxThd;
 
          std::vector< RegionCache *> _regCaches;
          LocationDirectory _locations;
@@ -392,6 +393,8 @@ namespace nanos
          unsigned int getRootMemorySpaceId();
          unsigned int getNumMemorySpaces();
          std::vector< RegionCache *> &getCaches() { return _regCaches; }
+         void setAuxThd( BaseThread * t ) { _auxThd = t; }
+         BaseThread * getAuxThd( void ) const { return _auxThd; }
 
       private:
          std::list< std::list<GraphEntry *> * > _graphRepLists;

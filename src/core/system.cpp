@@ -79,7 +79,7 @@ System::System () :
       _initializedThreads ( 0 ), _targetThreads ( 0 ),_pausedThreads( 0 ), _pausedThreadsCond(), _unpausedThreadsCond(),
       _usingCluster( false ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _pmInterface( NULL ),
-      _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap(), _masterGpuThd( NULL ),_regCaches(1024)
+      _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap(), _masterGpuThd( NULL ), _auxThd( NULL ),_regCaches(1024)
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
 #endif
@@ -500,6 +500,7 @@ void System::start ()
             smpRepThd->getThreadWD().setInternalData(NEW char[_pmInterface->getInternalDataSize()]);
          _pmInterface->setupWD( smpRepThd->getThreadWD() );
          _workers.push_back( smpRepThd ); 
+         setAuxThd( smpRepThd );
          //_net.setMasterDirectory( smpRepThd->getThreadWD().getDirectory(true) );
          //  EXTRA THD _preMainBarrier++;
          //  EXTRA THD ext::SMPMultiThread *smpRepThd1 = dynamic_cast<ext::SMPMultiThread *>( &smpRep1->startMultiWorker( 0, NULL ) );

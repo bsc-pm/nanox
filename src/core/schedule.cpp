@@ -56,6 +56,11 @@ void Scheduler::submit ( WD &wd )
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
    BaseThread *mythread = getMyThreadSafe();
 
+   if ( mythread == NULL ) {
+      //submitting from a gasnet progress thread, "emulate" another thread
+      mythread = sys.getAuxThd();
+   }
+
    sys.getSchedulerStats()._createdTasks++;
    sys.getSchedulerStats()._totalTasks++;
 
@@ -96,9 +101,9 @@ void Scheduler::submit ( WD &wd )
       return;
    }
    // The thread is not paused, mark it as so
-   myThread->unpause();
+   mythread->unpause();
    // And go on
-   WD *next = getMyThreadSafe()->getTeam()->getSchedulePolicy().atSubmit( myThread, wd );
+   WD *next = mythread->getTeam()->getSchedulePolicy().atSubmit( mythread, wd );
 
    /* If SchedulePolicy have returned a 'next' value, we have to context switch to
       that WorkDescriptor */
