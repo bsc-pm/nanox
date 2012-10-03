@@ -49,6 +49,7 @@ namespace nanos
 
             GetRequest( char* hostAddr, std::size_t size, char *recvAddr, DeviceOps *ops ) :
                _complete(0), _hostAddr( hostAddr ), _size( size ), _recvAddr( recvAddr ), _ops( ops ) { }
+            virtual ~GetRequest() {}
 
             void complete();
             bool isCompleted() const;
@@ -62,6 +63,7 @@ namespace nanos
 
             GetRequestStrided( char* hostAddr, std::size_t size, std::size_t count, std::size_t ld, char *recvAddr, DeviceOps *ops, Packer *packer ) :
                GetRequest( hostAddr, size, recvAddr, ops ), _count( count ), _ld( ld ), _packer( packer ) { }
+            virtual ~GetRequestStrided() {}
 
             virtual void clear();
          };

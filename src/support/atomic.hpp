@@ -141,7 +141,7 @@ inline bool Atomic<T>::operator< (const Atomic<T> &val )
 }
 
 template<typename T>
-inline bool Atomic<T>::operator> ( const Atomic<T> &val )
+inline bool Atomic<T>::operator> ( const Atomic<T> &val ) const
 {
    return value() > val.value();
 }

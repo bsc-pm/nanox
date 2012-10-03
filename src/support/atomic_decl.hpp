@@ -89,7 +89,7 @@ namespace nanos
          bool operator!= ( const Atomic<T> &val );
 
          bool operator< (const Atomic<T> &val );
-         bool operator> ( const Atomic<T> &val );
+         bool operator> ( const Atomic<T> &val ) const;
          bool operator<= ( const Atomic<T> &val );
          bool operator>= ( const Atomic<T> &val );
 

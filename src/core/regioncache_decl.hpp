@@ -28,8 +28,6 @@
 #include "processingelement_fwd.hpp"
 #include "regiondirectory_decl.hpp"
 
-#include <tr1/memory>
-
 namespace nanos {
 
    class DeviceOpsPtr;
@@ -57,7 +55,6 @@ namespace nanos {
          DeviceOps *_value;
       public:
          DeviceOpsPtr() : _value( NULL ) {}
-         //DeviceOpsPtr( const DeviceOps &ops ) : value( &ops ) { ops.addRef( this ); }
          DeviceOpsPtr( DeviceOpsPtr const &p ) {
             DeviceOps *tmpValue = p._value;
             _value = NULL;
@@ -144,19 +141,15 @@ namespace nanos {
 
       uint64_t address;
       RegionTree<CachedRegionStatus> _regions;
-      //void addReadRegion( Region reg, unsigned int version, std::set< DeviceOps * > &currentOps, std::list< std::pair< Region, tr1::shared_ptr< DeviceOps * > > > &notPresentRegions, DeviceOps *ops );
       void addReadRegion( Region reg, unsigned int version, std::set< DeviceOps * > &currentOps, std::list< Region > &notPresentRegions, DeviceOps *ops, bool alsoWriteReg );
       void addWriteRegion( Region reg, unsigned int version );
       bool isReady( Region reg );
       void lock();
       void unlock();
-      //void setCopying( Region reg );
-      //bool alreadyContains( Region reg);
    };
    
    class RegionCache {
       
-      //CacheAllocator             _allocator;
       MemoryMap<AllocatedChunk> _chunks;
       Lock                       _lock;
       typedef MemoryMap<AllocatedChunk>::MemChunkList ChunkList;

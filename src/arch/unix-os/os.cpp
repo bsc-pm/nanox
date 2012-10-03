@@ -21,6 +21,8 @@
 #include "compatibility.hpp"
 #include <stdlib.h>
 
+extern char **environ;
+
 using namespace nanos;
 
 

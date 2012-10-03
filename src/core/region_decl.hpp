@@ -481,7 +481,7 @@ namespace nanos
       //! \brief Value of a certain bit
       //! \param index the bit index from most significant (0) to least significant
       //! \returns the value of bit index
-      bit_value_t operator[](off_t index) const
+      bit_value_t operator[](size_t index) const
          {
             bitfield_t const ONE = 1;
             
@@ -498,7 +498,7 @@ namespace nanos
       
       //! \brief Change a certain bit to 0
       //! \param index the bit index from most significant (0) to least significant
-      void changeBitTo0(off_t index)
+      void changeBitTo0(size_t index)
          {
             bitfield_t const ONE = 1;
             bitfield_t cleanerMask = ONE << (sizeof(bitfield_t)*8 - 1 - index);
@@ -508,7 +508,7 @@ namespace nanos
       
       //! \brief Change a certain bit to 1
       //! \param index the bit index from most significant (0) to least significant
-      void changeBitTo1(off_t index)
+      void changeBitTo1(size_t index)
          {
             bitfield_t const ONE = 1;
             bitfield_t cleanerMask = ONE << (sizeof(bitfield_t)*8 - 1 - index);
@@ -518,7 +518,7 @@ namespace nanos
       
       //! \brief Change a certain bit to X
       //! \param index the bit index from most significant (0) to least significant
-      void changeBitToX(off_t index)
+      void changeBitToX(size_t index)
          {
             bitfield_t const ONE = 1;
             bitfield_t cleanerMask = ONE << (sizeof(bitfield_t)*8 - 1 - index);
