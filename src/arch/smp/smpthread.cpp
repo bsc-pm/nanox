@@ -95,22 +95,32 @@ void SMPThread::bind( void )
    {
       #ifdef GPU_DEV
          int gpuCount = nanos::ext::GPUConfig::getGPUCount();
+         int gpusPerSocket = gpuCount / sys.getNumSockets();
+         
+         // Sanity check
+         if ( gpuCount % sys.getNumSockets() != 0 ){
+            warning( gpuCount << " GPUs, " << sys.getNumSockets() << " NUMA nodes." );
+            fatal( "The number of GPUs is not multiple of the number of NUMA nodes." );
+         }
+            
          if ( gpuCount > 0 )
          {
             if ( sys.getBindingStride() == 1 && sys.getBindingStart() == 0 )
             {
                fprintf( stderr, "ID %d, cpu_id/coresPerSocket = %d\n", cpu_id,(cpu_id +1)/ sys.getCoresPerSocket()  );
                GPUThread* gpuThread = dynamic_cast<GPUThread*>( this );
-               if ( gpuThread == NULL ){
+               if ( gpuThread == NULL ) {
                   fprintf( stderr, "CPU thread %d has now affinity to %d\n", cpu_id, cpu_id + (( cpu_id +1 ) / sys.getCoresPerSocket() ) );
                   cpu_id = cpu_id + (( cpu_id +1 ) / sys.getCoresPerSocket() );
                }
-               else{
+               else {
                   // Try to guess the gpu number
-                  // TODO (gmiranda): assume the device id matches the gpu thread number
+                  // TODO (gmiranda): I assume the device id matches the gpu thread number
                   int gpuIndex = gpuThread->getGPUDevice();
-                  fprintf( stderr, "GPU thread %d goes to %d\n", cpu_id, sys.getCoresPerSocket()*(1 + gpuIndex ) - 1);
-                  cpu_id = sys.getCoresPerSocket()*(1 + gpuIndex ) - 1;
+                  fprintf( stderr, "GPU thread %d goes to %d\n", cpu_id, sys.getCoresPerSocket()*( 1 + gpuIndex / gpusPerSocket)- ( 1 + ( gpuCount - gpuIndex - 1 ) % gpusPerSocket ));
+                  //cpu_id = sys.getCoresPerSocket()*(1 + gpuIndex ) - 1;
+                  cpu_id = sys.getNumSockets()*( 1 + gpuIndex / gpusPerSocket)
+                     - ( 1 + ( gpuCount - gpuIndex - 1 ) % gpusPerSocket );
                }
             }
             else 
