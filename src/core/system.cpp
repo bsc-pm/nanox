@@ -908,6 +908,14 @@ void System::setupWD ( WD &work, WD *parent )
 {
    work.setParent ( parent );
    work.setDepth( parent->getDepth() +1 );
+   
+   // Inherit priority
+   if ( parent != NULL ){
+      unsigned priority = work.getPriority();
+      // Add the specified priority to its parent's
+      priority += parent->getPriority();
+      work.setPriority( priority );
+   }
 
    // Prepare private copy structures to use relative addresses
    work.prepareCopies();
