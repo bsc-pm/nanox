@@ -304,7 +304,7 @@ void Instrumentation::raiseCloseStateAndBurst ( nanos_event_key_t key )
 
 void Instrumentation::wdCreate( WorkDescriptor* newWD )
 {
-   Event e1,e2; /* Event */
+   Event e1,e2,e3; /* Event */
 
    /* Gets key for wd-id bursts and wd->id as value*/
    InstrumentationContextData *icd = newWD->getInstrumentationContextData();
@@ -317,6 +317,10 @@ void Instrumentation::wdCreate( WorkDescriptor* newWD )
       createBurstEvent( &e2, key, wd_id, icd );
    }
    
+   static nanos_event_key_t priorityKey = getInstrumentationDictionary()->getEventKey("wd-priority");
+   nanos_event_value_t wd_priority = newWD->getPriority() + 1;
+   createBurstEvent( &e3, priorityKey, wd_priority, icd );
+   
    /* Create event: STATE */
    if ( _emitStateEvents == true ) createStateEvent( &e1, NANOS_RUNTIME, icd );
 
@@ -324,6 +328,7 @@ void Instrumentation::wdCreate( WorkDescriptor* newWD )
    if ( !_instrumentationContext.isContextSwitchEnabled() ) {
       if ( _emitStateEvents == true ) _instrumentationContext.insertDeferredEvent( icd, e1 );
       if ( key != 0 ) _instrumentationContext.insertDeferredEvent( icd, e2 );
+      if ( priorityKey != 0 )_instrumentationContext.insertDeferredEvent( icd, e3 );
    }
 }
 

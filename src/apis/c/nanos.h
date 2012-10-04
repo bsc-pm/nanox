@@ -27,7 +27,7 @@
 
 #ifdef _MERCURIUM
 // define API version
-#pragma nanos interface family(master) version(5016)
+#pragma nanos interface family(master) version(5018)
 #pragma nanos interface family(worksharing) version(1000)
 #pragma nanos interface family(deps_api) version(1001)
 #endif
@@ -77,6 +77,7 @@ NANOS_API_DECL(char *, nanos_get_mode, ( void ));
 // Functions related to WD
 NANOS_API_DECL(nanos_wd_t, nanos_current_wd, (void));
 NANOS_API_DECL(int, nanos_get_wd_id, (nanos_wd_t wd));
+NANOS_API_DECL(unsigned int, nanos_get_wd_priority, (nanos_wd_t wd));
 
 // Finder functions
 NANOS_API_DECL(nanos_slicer_t, nanos_find_slicer, ( const char * slicer ));

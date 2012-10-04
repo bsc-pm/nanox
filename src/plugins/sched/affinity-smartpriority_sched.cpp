@@ -32,11 +32,11 @@ namespace nanos {
 
             struct TeamData : public ScheduleTeamData
             {
-               WDPriorityQueue*  _readyQueues;
+               WDPriorityQueue<>*  _readyQueues;
  
                TeamData ( unsigned int size ) : ScheduleTeamData()
                {
-                  _readyQueues = NEW WDPriorityQueue[size];
+                  _readyQueues = NEW WDPriorityQueue<>[size];
                }
 
                ~TeamData () { delete[] _readyQueues; }
