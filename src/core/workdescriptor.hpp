@@ -49,7 +49,7 @@ inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t 
                                  _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ),
                                  _doSubmit(), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ), 
                                  _directory(), _instrumentationContextData(), _submitted( false ), _translateArgs( translate_args ),
-                                 _priority( 0 ), _wakeUpQueue( 0 ) { }
+                                 _priority( 0 ), _wakeUpQueue( 0 ), _implicit(false) { }
 
 inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, size_t data_align, void *wdata,
                                  size_t numCopies, CopyData *copies, nanos_translate_args_t translate_args )
@@ -61,7 +61,7 @@ inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, si
                                  _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ), 
                                  _doSubmit(), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
                                  _directory(), _instrumentationContextData(), _submitted( false ), _translateArgs( translate_args ),
-                                 _priority( 0 ), _wakeUpQueue( 0 ) { }
+                                 _priority( 0 ), _wakeUpQueue( 0 ), _implicit(false) { }
 
 inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data )
                                : WorkGroup( wd ), _data_size( wd._data_size ), _data_align( wd._data_align ), _data ( data ),
@@ -73,7 +73,7 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
                                  _estimatedExecTime( wd._estimatedExecTime ), _doSubmit(), _doWait(),
                                  _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
                                  _directory(), _instrumentationContextData(), _submitted( false ), _translateArgs( wd._translateArgs ),
-                                 _priority( wd._priority ), _wakeUpQueue( wd._wakeUpQueue ) { }
+                                 _priority( wd._priority ), _wakeUpQueue( wd._wakeUpQueue ), _implicit( wd._implicit ) { }
 
 /* DeviceData inlined functions */
 inline const Device * DeviceData::getDevice () const { return _architecture; }
@@ -270,6 +270,9 @@ inline void WorkDescriptor::releaseCommutativeAccesses()
    for ( size_t i = 0; i < n; i++ )
       *_commutativeOwners[i] = NULL;
 } 
+
+inline void WorkDescriptor::setImplicit( bool b ) { _implicit = b; }
+inline bool WorkDescriptor::isImplicit( void ) { return _implicit; } 
 
 #endif
 

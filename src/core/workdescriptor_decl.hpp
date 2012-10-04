@@ -202,6 +202,7 @@ namespace nanos
          WorkDescriptorPtrList         _commutativeOwners;   /**< Array of commutative target owners */
 
          unsigned int                  _wakeUpQueue;  /**< Queue to wake up to */
+         bool                          _implicit;     /**< is a implicit task (in a team) */
 
       private: /* private methods */
          /*! \brief WorkDescriptor copy assignment operator (private)
@@ -525,6 +526,9 @@ namespace nanos
           *  Called when a task is finished.
           */
          void releaseCommutativeAccesses(); 
+
+         void setImplicit( bool b = true );
+         bool isImplicit( void );
    };
 
    typedef class WorkDescriptor WD;

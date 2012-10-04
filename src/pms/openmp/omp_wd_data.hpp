@@ -54,7 +54,6 @@ namespace nanos {
       class OmpData {
          private:
             TaskICVs         _icvs;
-            bool             _implicit;
             bool             _final; /**< This is a final WD */
 
             explicit OmpData ( const OmpData & );
@@ -64,7 +63,7 @@ namespace nanos {
             *  NOTE: This constructor is never called because the object is allocated by the system
             *  and initialized in omp_init by setting its fields individually or copying from another object.
             */
-            OmpData() : _icvs(), _implicit(false), _final(false) { }
+            OmpData() : _icvs(), _final(false) { }
 
             ~OmpData() {}
 
@@ -78,9 +77,6 @@ namespace nanos {
               }
               return *this;
             }
-
-            void setImplicit( bool implicit ) { _implicit = implicit; }
-	    bool isImplicit ( void ) const { return _implicit; }
 
            /*! \brief Set the Data to be final
             */

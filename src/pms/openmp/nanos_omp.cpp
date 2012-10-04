@@ -18,19 +18,14 @@ using namespace nanos::OpenMP;
 NANOS_API_DEF(nanos_err_t, nanos_omp_set_implicit, ( nanos_wd_t uwd ))
 {
     WD *wd = (WD *) uwd;
-
-    OmpData *data = (OmpData *) wd->getInternalData();
-
-    data->setImplicit(true);
+    wd->setImplicit(true);
 
     return NANOS_OK;
 }
 
 NANOS_API_DEF(nanos_err_t, nanos_omp_single, ( bool *b ))
 {
-    OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-    
-    if ( data->isImplicit() ) return nanos_single_guard(b);
+    if ( myThread->getCurrentWD()->isImplicit() ) return nanos_single_guard(b);
 
     *b=true;
     return NANOS_OK;
@@ -42,10 +37,9 @@ NANOS_API_DEF(nanos_err_t, nanos_omp_barrier, ( void ))
 
    try {
       WD &wd = *myThread->getCurrentWD();
-      OmpData *data = (OmpData *) wd.getInternalData();
     
       wd.waitCompletion();
-      if ( data->isImplicit() ) {
+      if ( wd.isImplicit() ) {
          myThread->getTeam()->barrier();
       }
    } catch ( ... ) {
