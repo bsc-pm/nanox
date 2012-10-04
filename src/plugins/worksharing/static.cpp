@@ -29,7 +29,7 @@ class WorkSharingStaticFor : public WorkSharing {
 
          debug("Loop create -> lower: " << loop_info->lower_bound << " upper: " << loop_info->upper_bound << " step: " << loop_info->loop_step << " chunk size: " << loop_info->chunk_size );
 
-         return myThread->getTeam()->singleGuard( myThread->getTeamData()->nextSingleGuard() );
+         return myThread->singleGuard();
       }
 
      /*! \brief Duplicate related data
