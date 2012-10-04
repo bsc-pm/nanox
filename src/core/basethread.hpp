@@ -41,11 +41,19 @@ namespace nanos
 
    inline void TeamData::setStar ( bool v ) { _star = v; }
 
-   inline nanos_ws_desc_t *TeamData::getTeamWorkSharingDescriptor( bool *b )
+   inline nanos_ws_desc_t *TeamData::getTeamWorkSharingDescriptor( BaseThread *thread, bool *b )
    {
       nanos_ws_desc_t *next = NULL, *myNext = NULL;
 
       *b = false;
+
+      // If current WorkDescriptor in not implicit, 
+      if ( thread->getCurrentWD()->isImplicit() == false ) {
+         if ( _team == NULL ) fatal("Asking for team WorkSharing with no associated team.");
+         next = NEW nanos_ws_desc_t();
+         *b = true;
+         return next;
+      }
 
       if ( _wsDescriptor ) {
          // Having a previous _wsDescriptor
@@ -185,7 +193,7 @@ namespace nanos
 
    inline nanos_ws_desc_t *BaseThread::getTeamWorkSharingDescriptor( bool *b )
    {
-      if ( _teamData) return _teamData->getTeamWorkSharingDescriptor ( b );
+      if ( _teamData) return _teamData->getTeamWorkSharingDescriptor ( this,  b );
       else return NULL;
    }
  
