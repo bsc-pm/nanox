@@ -342,6 +342,8 @@ namespace nanos {
             // now we need to use two consecutive values (original values are 11 and 21).
             /* 37 */ registerEventKey("user-funct-name-2","User Function Name", true); // FIXME: temporary value
             /* 38 */ registerEventKey("user-funct-location-2","User Function Location", true); // FIXME: temporary value
+            
+            /* 39 */ registerEventKey("wd-priority","Priority of a work descriptor");
 
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }
