@@ -48,6 +48,8 @@ namespace ext
          void prefetchNextTask( WD * next );
          void executeRequestedTransfers( GPUProcessor & myGPU );
          void executeOutputTransfers( GPUProcessor & myGPU );
+         
+         int adjustBind( int cpu_id );
 
       public:
          // constructor

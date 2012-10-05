@@ -46,6 +46,39 @@ void * GPUThread::getCUBLASHandle()
    return _cublasHandle;
 }
 
+inline int GPUThread::adjustBind( int cpu_id )
+{
+   int gpuCount = nanos::ext::GPUConfig::getGPUCount();
+   int gpusPerSocket = gpuCount / sys.getNumSockets();
+   
+   // Sanity check
+   if ( gpuCount % sys.getNumSockets() != 0 ){
+      warning( gpuCount << " GPUs, " << sys.getNumSockets() << " NUMA nodes." );
+      fatal( "The number of GPUs is not multiple of the number of NUMA nodes." );
+   }
+      
+   if ( gpuCount > 0 )
+   {
+      if ( sys.getBindingStride() == 1 && sys.getBindingStart() == 0 )
+      {
+         // Try to guess the gpu number
+         // TODO (gmiranda): I assume the device id matches the gpu thread number
+         int gpuIndex = _gpuDevice;
+         fprintf( stderr, "GPU thread %d goes to %d\n", cpu_id, sys.getCoresPerSocket()*( 1 + gpuIndex / gpusPerSocket)- ( 1 + ( gpuCount - gpuIndex - 1 ) % gpusPerSocket ));
+         //cpu_id = sys.getCoresPerSocket()*(1 + gpuIndex ) - 1;
+         cpu_id = sys.getNumSockets()*( 1 + gpuIndex / gpusPerSocket)
+            - ( 1 + ( gpuCount - gpuIndex - 1 ) % gpusPerSocket );
+      }
+      else 
+      {
+         warning( "Cannot split GPU threads over the available sockets "
+            << "when using non-default binding stride and/or offset." );
+      }
+   }
+   
+   return cpu_id;
+}
+
 
 }
 }
