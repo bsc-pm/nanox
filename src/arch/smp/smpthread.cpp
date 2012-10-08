@@ -113,6 +113,13 @@ void SMPThread::bind( void )
    sched_setaffinity( ( pid_t ) 0, sizeof( cpu_set ), &cpu_set );
 }
 
+// TODO: move to hpp
+int SMPThread::adjustBind( int cpu_id )
+{
+   fprintf( stderr, "CPU thread %d has now affinity to %d\n", cpu_id, cpu_id + (( cpu_id +1 ) / sys.getCoresPerSocket() ) ); 
+   return cpu_id + (( cpu_id +1 ) / sys.getCoresPerSocket() ); 
+}
+
 void SMPThread::yield()
 {
    if (sched_yield() != 0)

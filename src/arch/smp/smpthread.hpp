@@ -46,7 +46,7 @@ namespace ext
         
          /*! \brief Given a CPU id bind, proposes a new one.
           */
-         virtual int adjustBind( int cpu_id ) { return cpu_id; }
+         virtual int adjustBind( int cpu_id );
 
       public:
          // constructor
