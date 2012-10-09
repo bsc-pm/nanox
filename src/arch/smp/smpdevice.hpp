@@ -25,7 +25,7 @@
 #include <stdlib.h>
 #include "workdescriptor_decl.hpp"
 #include "processingelement_fwd.hpp"
-#include "copydescriptor_decl.hpp"
+#include "copydescriptor.hpp"
 
 namespace nanos
 {

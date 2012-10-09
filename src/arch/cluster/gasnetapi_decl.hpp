@@ -24,7 +24,6 @@
 #include "network_decl.hpp"
 #include "networkapi.hpp"
 #include "simpleallocator.hpp"
-#include "directory.hpp"
 #include "regiondirectory_decl.hpp"
 #include "clusterinfo_decl.hpp"
 //#include "remoteworkgroup_decl.hpp"
@@ -44,7 +43,6 @@ namespace ext {
 
          static RemoteWorkGroup *_rwgGPU;
          static RemoteWorkGroup *_rwgSMP;
-         static Directory *_masterDir;
          static NewRegionDirectory *_newMasterDir;
 #ifndef GASNET_SEGMENT_EVERYTHING
          static SimpleAllocator *_thisNodeSegment;
@@ -180,7 +178,6 @@ namespace ext {
          void sendMyHostName( unsigned int dest );
          void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD * );
          void sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD *wd );
-         void setMasterDirectory(Directory *dir);
          void setNewMasterDirectory(NewRegionDirectory *dir);
          std::size_t getMaxGetStridedLen() const;
          std::size_t getTotalBytes();

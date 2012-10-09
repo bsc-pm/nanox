@@ -31,7 +31,6 @@
 #include "atomic.hpp"
 #include "lazy.hpp"
 #include "instrumentationcontext.hpp"
-#include "directory.hpp"
 #include "schedule.hpp"
 #include "dependenciesdomain.hpp"
 #include "allocator_decl.hpp"
@@ -194,19 +193,19 @@ inline void WorkDescriptor::waitCompletionAndSignalers( bool avoidFlush )
    this->WorkGroup::waitCompletionAndSignalers();
    //getNewDirectory()->consolidate();
    //if (sys.getNetwork()->getNodeNum()==0){ message("WorkDescriptor::waitCompletionAndSignalers, " << getId() ); }
-   if ( _directory.isInitialized() && !avoidFlush )
-      _directory->synchronizeHost();
+   //if ( _directory.isInitialized() && !avoidFlush )
+   //   _directory->synchronizeHost();
 }
 
-inline Directory* WorkDescriptor::getDirectory(bool create)
-{
-   if ( !_directory.isInitialized() && create == false ) {
-      return NULL;
-   }
-   _directory->setParent( (getParent() != NULL) ? getParent()->getDirectory(false) : NULL );
-   return &(*_directory);
-}
-inline NewDirectory* WorkDescriptor::getNewDirectory()
+//inline Directory* WorkDescriptor::getDirectory(bool create)
+//{
+//   if ( !_directory.isInitialized() && create == false ) {
+//      return NULL;
+//   }
+//   _directory->setParent( (getParent() != NULL) ? getParent()->getDirectory(false) : NULL );
+//   return &(*_directory);
+//}
+inline NewDirectory* WorkDescriptor::getNewDirectory() const
 {
    return _newDirectory;
 }
@@ -218,7 +217,7 @@ inline void WorkDescriptor::initNewDirectory()
 inline bool WorkDescriptor::isSubmitted() const { return _submitted; }
 inline void WorkDescriptor::submitted()  { _submitted = true; }
 
-inline bool WorkDescriptor::canBeBlocked() { PE *pe = myThread->runningOn(); return pe->dataCanBlockUs( *this ); /*return false; */ }
+//inline bool WorkDescriptor::canBeBlocked() { PE *pe = myThread->runningOn(); return pe->dataCanBlockUs( *this ); /*return false; */ }
 inline void WorkDescriptor::setPriority( unsigned int priority ) { _priority = priority; }
 inline unsigned int WorkDescriptor::getPriority() const { return _priority; }
 

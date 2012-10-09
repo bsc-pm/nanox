@@ -95,7 +95,6 @@ Network * GASNetAPI::_net;
 
 RemoteWorkGroup * GASNetAPI::_rwgGPU;
 RemoteWorkGroup * GASNetAPI::_rwgSMP;
-Directory * GASNetAPI::_masterDir;
 NewRegionDirectory * GASNetAPI::_newMasterDir;
 #ifndef GASNET_SEGMENT_EVERYTHING
 SimpleAllocator * GASNetAPI::_thisNodeSegment;
@@ -862,15 +861,15 @@ void GASNetAPI::amRealloc( gasnet_token_t token, gasnet_handlerarg_t oldAddrLo, 
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
    }
 
-   DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) newAddr );
-   if (ent != NULL) 
-   { 
-      if (ent->getOwner() != NULL) 
-      {
-         ent->getOwner()->discard( *_masterDir, (uint64_t) newAddr, ent);
-         std::cerr << "REALLOC WARNING, newAddr had an entry n:" << gasnet_mynode() << " discarding tag " << (void *) newAddr << std::endl;
-      }
-   }
+   // old: DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) newAddr );
+   // old: if (ent != NULL) 
+   // old: { 
+   // old:    if (ent->getOwner() != NULL) 
+   // old:    {
+   // old:       ent->getOwner()->discard( *_masterDir, (uint64_t) newAddr, ent);
+   // old:       std::cerr << "REALLOC WARNING, newAddr had an entry n:" << gasnet_mynode() << " discarding tag " << (void *) newAddr << std::endl;
+   // old:    }
+   // old: }
    std::memcpy( newAddr, oldAddr, oldSize );
    VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
 }
@@ -930,15 +929,6 @@ void GASNetAPI::amPut( gasnet_token_t token,
    if ( firstMsg )
    {
       //fprintf(stderr, "[%d] BEGIN amPut to node %d, from %d, local (maybe tmp) addr %p, realTag %p, realAddr (local) %p  data is %f\n", myThread->getId(),  gasnet_mynode(), src_node, buf, realTag, realAddr, *((float *)buf));
-      //DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) realTag );
-      //if (ent != NULL) 
-      //{ 
-      //   if (ent->getOwner() != NULL) {
-      //      ent->getOwner()->discard( *_masterDir, (uint64_t) realTag, ent);
-      //   } else {
-      //      ent->increaseVersion();
-      //   }
-      //}
       if ( sys.getNetwork()->doIHaveToCheckForDataInOtherAddressSpaces() ) {
          invalidateDataFromDevice( (uint64_t) realTag, totalLen );
          //fprintf(stderr, "im node %d and im invalidateDataFromDevice @ %s, addr %p, %f\n", gasnet_mynode(), __FUNCTION__, realTag, *((double *)buf));
@@ -2402,11 +2392,6 @@ void GASNetAPI::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, u
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
    }
    NANOS_INSTRUMENT( inst2.close(); );
-}
-
-void GASNetAPI::setMasterDirectory(Directory *dir)
-{
-   _masterDir = dir;
 }
 
 void GASNetAPI::setNewMasterDirectory(NewRegionDirectory *dir)

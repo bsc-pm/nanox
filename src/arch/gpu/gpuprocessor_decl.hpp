@@ -37,7 +37,7 @@ namespace nanos {
 namespace ext
 {
 
-   class GPUProcessor : public CachedAccelerator<GPUDevice>
+   class GPUProcessor : public CachedAccelerator
    {
       public:
          class GPUProcessorInfo;

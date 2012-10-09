@@ -104,21 +104,23 @@ namespace nanos
          unsigned int getMemorySpaceId() const { return _memorySpaceId; }
          virtual unsigned int getMyNodeNumber() const { return 0; }
 
-         virtual void waitInputDependent( uint64_t tag ) {}
+         //virtual void waitInputDependent( uint64_t tag ) {}
 
          /* Memory space suport */
-         virtual void copyDataIn( WorkDescriptor& wd );
+         virtual void copyDataIn( WorkDescriptor& wd ) const;
          virtual void copyDataOut( WorkDescriptor& wd );
-         virtual bool dataCanBlockUs( WorkDescriptor& wd );
+         //virtual bool dataCanBlockUs( WorkDescriptor& wd );
 
          virtual void waitInputs( WorkDescriptor& wd );
 
-         virtual void* getAddress( WorkDescriptor& wd, uint64_t tag, nanos_sharing_t sharing );
-         virtual void* newGetAddress( CopyData const &cd );
-         virtual void copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );
+         //virtual void* getAddress( WorkDescriptor& wd, uint64_t tag, nanos_sharing_t sharing );
+         //virtual void* newGetAddress( CopyData const &cd );
+         //virtual void copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );
          virtual bool isGPU() const = 0;
          virtual bool supportsDirectTransfersWith( ProcessingElement const &pe ) const = 0;
-         BaseThread *getFirstThread() { return _threads[0]; }
+         //BaseThread *getFirstThread() { return _threads[0]; }
+         BaseThread *getFirstThread() const { return _threads[0]; }
+         //BaseThread const *getFirstThread() const { return _threads[0]; }
    };
 
    typedef class ProcessingElement PE;

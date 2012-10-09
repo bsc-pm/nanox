@@ -131,11 +131,11 @@ BaseThread &SMPProcessor::createMultiThread ( WorkDescriptor &helper, unsigned i
 // return _cache.getAddress( tag );
 //#endif
 //}
-void* SMPProcessor::newGetAddressDependent( CopyData const &cd )
-{
- (void) cd;
- return (void*) 0xdeadebef;
-}
+//void* SMPProcessor::newGetAddressDependent( CopyData const &cd )
+//{
+// (void) cd;
+// return (void*) 0xdeadebef;
+//}
 bool SMPProcessor::supportsDirectTransfersWith(ProcessingElement const &pe ) const {
    return false;
 }

@@ -78,7 +78,6 @@ namespace nanos {
          const char * getMasterHostname( void ) const;
          void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD *wd );
          void sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD *wd );
-         void setMasterDirectory(Directory *dir);
          void setNewMasterDirectory(NewRegionDirectory *dir);
          std::size_t getTotalBytes();
          void mallocSlaves ( void **addresses, std::size_t size );

@@ -284,14 +284,6 @@ void Network::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, uns
    }
 }
 
-void Network::setMasterDirectory(Directory *dir)
-{
-   if ( _api != NULL) 
-   {
-      _api->setMasterDirectory( dir );
-   }
-}
-
 void Network::setNewMasterDirectory(NewRegionDirectory *dir)
 {
    if ( _api != NULL) 

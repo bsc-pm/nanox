@@ -32,7 +32,6 @@
 #include "dataaccess_decl.hpp"
 #include "instrumentation_decl.hpp"
 #include "network_decl.hpp"
-#include "directory_decl.hpp"
 #include "pminterface_decl.hpp"
 #include "cache_map_decl.hpp"
 #include "plugin_decl.hpp"

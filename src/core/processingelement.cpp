@@ -25,19 +25,18 @@
 #include "copydata.hpp"
 #include "system.hpp"
 #include "instrumentation.hpp"
-#include "directory.hpp"
 #include "regiondirectory.hpp"
 
 using namespace nanos;
 
-bool ProcessingElement::dataCanBlockUs( WorkDescriptor& wd )
-{
-   return false;
-}
+//bool ProcessingElement::dataCanBlockUs( WorkDescriptor& wd )
+//{
+//   return false;
+//}
 
-void ProcessingElement::copyDataIn( WorkDescriptor &work )
+void ProcessingElement::copyDataIn( WorkDescriptor &work ) const
 {
-   work._ccontrol.copyDataInNoCache();
+   work._ccontrol.copyDataIn( NULL );
 }
 
 void ProcessingElement::copyDataOut( WorkDescriptor &work )
@@ -172,24 +171,24 @@ void ProcessingElement::stopAll ()
    }
 }
 
-void* ProcessingElement::getAddress( WorkDescriptor &wd, uint64_t tag, nanos_sharing_t sharing )
-{
-   void *actualTag = (void *) ( sharing == NANOS_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : (void *)tag );
-   return actualTag;
-}
+//void* ProcessingElement::getAddress( WorkDescriptor &wd, uint64_t tag, nanos_sharing_t sharing )
+//{
+//   void *actualTag = (void *) ( sharing == NANOS_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : (void *)tag );
+//   return actualTag;
+//}
 
-void* ProcessingElement::newGetAddress( CopyData const &cd )
-{
-   message("Returning base address of cd (PE::newGetAddress)");
-   return cd.getBaseAddress();
-}
+//void* ProcessingElement::newGetAddress( CopyData const &cd )
+//{
+//   message("Returning base address of cd (PE::newGetAddress)");
+//   return cd.getBaseAddress();
+//}
 
-void ProcessingElement::copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size )
-{
-   void *actualTag = (void *) ( sharing == NANOS_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : (void *)tag );
-   // FIXME: should this be done by using the local copeir of the device?
-   memcpy( dst, actualTag, size );
-}
+//void ProcessingElement::copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size )
+//{
+//   void *actualTag = (void *) ( sharing == NANOS_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : (void *)tag );
+//   // FIXME: should this be done by using the local copeir of the device?
+//   memcpy( dst, actualTag, size );
+//}
 
 Device const *ProcessingElement::getCacheDeviceType() const {
    return NULL;

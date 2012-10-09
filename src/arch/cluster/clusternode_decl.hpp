@@ -34,7 +34,7 @@
 namespace nanos {
    namespace ext {
 
-      class ClusterNode : public CachedAccelerator< ClusterDevice >
+      class ClusterNode : public CachedAccelerator
       {
 
          private:
@@ -52,12 +52,12 @@ namespace nanos {
          public:
             // constructors
 #ifdef GPU_DEV
-            ClusterNode( int id ) : CachedAccelerator< ClusterDevice >( id, &SMP, ClusterInfo::getCachePolicy(), &GPU, ClusterInfo::getSegmentLen( id ) ),
+            ClusterNode( int id ) : CachedAccelerator( id, &SMP, &GPU, &Cluster, ClusterInfo::getSegmentLen( id ) ),
 #else
-            ClusterNode( int id ) : CachedAccelerator< ClusterDevice >( id, &SMP, ClusterInfo::getCachePolicy(), NULL, ClusterInfo::getSegmentLen( id ) ),
+            ClusterNode( int id ) : CachedAccelerator( id, &SMP, NULL, &Cluster, ClusterInfo::getSegmentLen( id ) ),
 #endif
             _clusterNode ( id ), _memSegment( ( uintptr_t ) ClusterInfo::getSegmentAddr( id ),
-                  ClusterInfo::getSegmentLen( id ) ), _executedWorkDesciptors ( 0 ) { _newCache.setDevice( &Cluster ); _newCache.setPE( this ); sys.getCaches()[this->getMemorySpaceId()] = &_newCache; }
+                  ClusterInfo::getSegmentLen( id ) ), _executedWorkDesciptors ( 0 ) { sys.getCaches()[this->getMemorySpaceId()] = getCache(); }
 
             virtual ~ClusterNode() {}
 

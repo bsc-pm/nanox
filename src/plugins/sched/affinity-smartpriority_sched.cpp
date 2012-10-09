@@ -103,41 +103,41 @@ namespace nanos {
                     tdata._readyQueues[index].push ( &wd );
                     return;
                 }
-                if ( wd.getNumCopies() > 0 ){
-                   unsigned int numCaches = sys.getCacheMap().getSize();
-                   unsigned int ranks[numCaches];
-                   for (unsigned int i = 0; i < numCaches; i++ ) {
-                      ranks[i] = 0;
-                   }
-                   CopyData * copies = wd.getCopies();
-                   for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
-                      if ( !copies[i].isPrivate() ) {
-                         WorkDescriptor* parent = wd.getParent();
-                         if ( parent != NULL ) {
-                            Directory *dir = parent->getDirectory();
-                            if ( dir != NULL ) {
-                               DirectoryEntry *de = dir->findEntry(copies[i].getAddress());
-                               if ( de != NULL ) {
-                                  for ( unsigned int j = 0; j < numCaches; j++ ) {
-                                     ranks[j]+=((unsigned int)(de->getAccess( j+1 ) > 0))*copies[i].getSize();
-                                  }
-                               }
-                            }
-                         }
-                      }
-                   }
-                   unsigned int winner = 0;
-                   unsigned int maxRank = 0;
-                   for ( unsigned int i = 0; i < numCaches; i++ ) {
-                      if ( ranks[i] > maxRank ) {
-                         winner = i+1;
-                         maxRank = ranks[i];
-                      }
-                   }
-                   tdata._readyQueues[winner].push( &wd );
-                } else {
+                //if ( wd.getNumCopies() > 0 ){
+                //   unsigned int numCaches = sys.getCacheMap().getSize();
+                //   unsigned int ranks[numCaches];
+                //   for (unsigned int i = 0; i < numCaches; i++ ) {
+                //      ranks[i] = 0;
+                //   }
+                //   CopyData * copies = wd.getCopies();
+                //   for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
+                //      if ( !copies[i].isPrivate() ) {
+                //         WorkDescriptor* parent = wd.getParent();
+                //         if ( parent != NULL ) {
+                //            Directory *dir = parent->getDirectory();
+                //            if ( dir != NULL ) {
+                //               DirectoryEntry *de = dir->findEntry(copies[i].getAddress());
+                //               if ( de != NULL ) {
+                //                  for ( unsigned int j = 0; j < numCaches; j++ ) {
+                //                     ranks[j]+=((unsigned int)(de->getAccess( j+1 ) > 0))*copies[i].getSize();
+                //                  }
+                //               }
+                //            }
+                //         }
+                //      }
+                //   }
+                //   unsigned int winner = 0;
+                //   unsigned int maxRank = 0;
+                //   for ( unsigned int i = 0; i < numCaches; i++ ) {
+                //      if ( ranks[i] > maxRank ) {
+                //         winner = i+1;
+                //         maxRank = ranks[i];
+                //      }
+                //   }
+                //   tdata._readyQueues[winner].push( &wd );
+                //} else {
                    tdata._readyQueues[0].push ( &wd );
-                }
+                //}
             }
 
             /*!

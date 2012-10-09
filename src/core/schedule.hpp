@@ -34,7 +34,7 @@
 
 using namespace nanos;
 
-inline bool Scheduler::checkBasicConstraints ( WD &wd, BaseThread &thread )
+inline bool Scheduler::checkBasicConstraints ( WD &wd, BaseThread const &thread )
 {
    return wd.canRunIn(*thread.runningOn()) && ( !wd.isTied() || wd.isTiedTo() == &thread );
 }

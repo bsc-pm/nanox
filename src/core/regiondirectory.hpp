@@ -23,6 +23,112 @@
 #include "regiondirectory_decl.hpp"
 #include "regionbuilder.hpp"
 
+
+inline NewDirectoryEntryData::NewDirectoryEntryData(): _writeLocation(0), _version(1), _location() {
+}
+
+inline NewDirectoryEntryData::NewDirectoryEntryData( const NewDirectoryEntryData &de ): _writeLocation( de._writeLocation ),
+   _version( de._version ), _location( de._location ) {
+}
+
+inline NewDirectoryEntryData::~NewDirectoryEntryData() {
+}
+
+inline const NewDirectoryEntryData & NewDirectoryEntryData::operator= ( const NewDirectoryEntryData &de ) {
+   _writeLocation = de._writeLocation;
+   _version = de._version;
+   _location.clear();
+   _location.insert( de._location.begin(), de._location.end() );
+   return *this;
+}
+
+inline bool NewDirectoryEntryData::hasWriteLocation() const {
+   return ( _writeLocation != -1 );
+}
+
+inline int NewDirectoryEntryData::getWriteLocation() const {
+   return _writeLocation;
+}
+
+inline void NewDirectoryEntryData::setWriteLocation( int id ) {
+   _writeLocation = id;
+}
+
+inline void NewDirectoryEntryData::addAccess( int id, uint64_t address, unsigned int version ) {
+   if ( version > _version ) {
+      _location.clear();
+      setWriteLocation( id );
+   } else {
+      // XXX notify an addition
+      std::cerr << "FIXME: check this case " << std::endl;
+   }
+   _version = version;
+   _location.insert( id );
+}
+
+inline bool NewDirectoryEntryData::isLocatedIn( int id ) const {
+   return ( _location.count( id ) > 0 );
+}
+
+inline unsigned int NewDirectoryEntryData::getVersion() const {
+   return _version;
+}
+
+inline void NewDirectoryEntryData::merge( const NewDirectoryEntryData &de ) {
+   //if ( hasWriteLocation() && de.hasWriteLocation() ) {
+   //   if ( getWriteLocation() != de.getWriteLocation() && _version == de._version ) std::cerr << "write loc mismatch WARNING !!! two write locations!, missing dependencies?" << std::endl;
+   //} 
+   /*else if ( de.hasWriteLocation() ) {
+      setWriteLocation( de.getWriteLocation() );
+   } else setWriteLocation( -1 );*/
+
+   if ( _version == de._version ) {
+      _location.insert( de._location.begin(), de._location.end() );
+   }
+   else if ( _version < de._version ){
+      setWriteLocation( de.getWriteLocation() );
+      _location.clear();
+      _location.insert( de._location.begin(), de._location.end() );
+      _version = de._version;
+   } /*else {
+      std::cerr << "version mismatch! WARNING !!! two write locations!, missing dependencies? current " << _version << " inc " << de._version << std::endl;
+   }*/
+}
+inline void NewDirectoryEntryData::print() const {
+   std::cerr << "WL: " << _writeLocation << " V: " << _version << " Locs: ";
+   for ( std::set< int >::iterator it = _location.begin(); it != _location.end(); it++ ) {
+      std::cerr << *it << " ";
+   }
+   std::cerr << std::endl;
+}
+
+inline bool NewDirectoryEntryData::equal( const NewDirectoryEntryData &d ) const {
+   bool soFarOk = ( _version == d._version && _writeLocation == d._writeLocation );
+   for ( std::set< int >::iterator it = _location.begin(); it != _location.end() && soFarOk; it++ ) {
+      soFarOk = ( soFarOk && d._location.count( *it ) == 1 );
+   }
+   for ( std::set< int >::iterator it = d._location.begin(); it != d._location.end() && soFarOk; it++ ) {
+      soFarOk = ( soFarOk && _location.count( *it ) == 1 );
+   }
+   return soFarOk;
+}
+
+inline bool NewDirectoryEntryData::contains( const NewDirectoryEntryData &d ) const {
+   bool soFarOk = ( _version == d._version && _writeLocation == d._writeLocation );
+   for ( std::set< int >::iterator it = d._location.begin(); it != d._location.end() && soFarOk; it++ ) {
+      soFarOk = ( soFarOk && _location.count( *it ) == 1 );
+   }
+   return soFarOk;
+}
+
+inline int NewDirectoryEntryData::getFirstLocation() const {
+   return *(_location.begin());
+}
+
+inline int NewDirectoryEntryData::getNumLocations() const {
+   return _location.size();
+}
+
 template <class RegionDesc>
 Region NewRegionDirectory::build_region( RegionDesc const &dataAccess ) {
    // Find out the displacement due to the lower bounds and correct it in the address

@@ -75,9 +75,6 @@ common_sources=\
 	$(top_srcdir)/src/core/synchronizedcondition_fwd.hpp \
 	$(top_srcdir)/src/core/synchronizedcondition_decl.hpp \
 	$(top_srcdir)/src/core/synchronizedcondition.hpp \
-	$(top_srcdir)/src/core/directory_decl.hpp \
-	$(top_srcdir)/src/core/directory.hpp \
-	$(top_srcdir)/src/core/directory.cpp \
 	$(top_srcdir)/src/core/cache_map_decl.hpp \
 	$(top_srcdir)/src/core/cache_map.hpp \
 	$(top_srcdir)/src/core/pminterface_decl.hpp  \
@@ -85,9 +82,6 @@ common_sources=\
 	$(top_srcdir)/src/core/networkapi.hpp  \
 	$(top_srcdir)/src/core/network_decl.hpp  \
 	$(top_srcdir)/src/core/network.cpp  \
-	$(top_srcdir)/src/core/newdirectory.cpp  \
-	$(top_srcdir)/src/core/newdirectory.hpp  \
-	$(top_srcdir)/src/core/newdirectory_decl.hpp  \
 	$(top_srcdir)/src/core/bitcounter.hpp \
 	$(top_srcdir)/src/core/dataaccess_fwd.hpp \
 	$(top_srcdir)/src/core/dataaccess_decl.hpp \
@@ -115,9 +109,13 @@ common_sources=\
 	$(top_srcdir)/src/core/regiondirectory.hpp  \
 	$(top_srcdir)/src/core/regiondirectory_decl.hpp  \
 	$(top_srcdir)/src/core/regioncache_decl.hpp  \
+	$(top_srcdir)/src/core/regioncache.hpp  \
 	$(top_srcdir)/src/core/regioncache.cpp  \
 	$(top_srcdir)/src/core/location_decl.hpp  \
 	$(top_srcdir)/src/core/location.hpp  \
+	$(top_srcdir)/src/core/deviceops_decl.hpp  \
+	$(top_srcdir)/src/core/deviceops.hpp  \
+	$(top_srcdir)/src/core/deviceops.cpp  \
 	$(END)
 
 instr_sources = \

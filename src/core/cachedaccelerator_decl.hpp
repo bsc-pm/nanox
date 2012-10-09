@@ -21,7 +21,6 @@
 #define _NANOS_CACHED_ACCELERATOR_DECL
 
 #include "accelerator_decl.hpp"
-#include "cache_decl.hpp"
 #include "system_decl.hpp"
 #include "copydescriptor_decl.hpp"
 #include "regioncache_decl.hpp"
@@ -29,12 +28,12 @@
 namespace nanos
 {
 
-   template <class CacheDevice>
    class CachedAccelerator : public Accelerator
    {
       private:
-        DeviceCache<CacheDevice> * _cache;
-        CachePolicy         * _cachePolicy;
+        //DeviceCache<CacheDevice> * _cache;
+        //CachePolicy         * _cachePolicy;
+        RegionCache             _newCache;
 
         /*! \brief CachedAccelerator default constructor (private)
          */
@@ -46,53 +45,52 @@ namespace nanos
          */
          const CachedAccelerator& operator= ( const CachedAccelerator &a );
       public:
-        RegionCache             _newCache;
         /*! \brief CachedAccelerator constructor - from 'newId' and 'arch'
          */
-         CachedAccelerator ( int newId, const Device *arch, System::CachePolicyType policy, const Device *subArch = NULL, std::size_t cacheSize = 0 ) :
-            Accelerator( newId, arch, subArch ), _cache( NEW DeviceCache<CacheDevice>( cacheSize, NULL, this ) )
-         {
-            configureCache( cacheSize, policy );
-         }
+         CachedAccelerator ( int newId, const Device *arch, const Device *subArch = NULL, const Device *cacheArch = NULL, std::size_t cacheSize = 0 ) :
+            Accelerator( newId, arch, subArch ), _newCache( *this, *cacheArch ) 
+         { }
 
          /*! \brief CachedAccelerator constructor - from 'newId' and 'arch'
           *
           *  Function 'configureCache()' needs to be called at some point in order to initialize it.
           */
-          CachedAccelerator ( int newId, const CacheDevice *arch, const Device *subArch = NULL ) :
-             Accelerator( newId, arch, subArch ), _cache( NULL ) {}
+          //CachedAccelerator ( int newId, const CacheDevice *arch, const Device *subArch = NULL ) :
+          //   Accelerator( newId, arch, subArch ), _CACHE( null ) {}
 
         /*! \brief CachedAccelerator destructor
          */
-         virtual ~CachedAccelerator() { delete _cache; }
+         virtual ~CachedAccelerator() { /*delete _cache; */ }
 
-         unsigned int getMemorySpaceId() const { return _cache->getId(); }
+         //unsigned int getMemorySpaceId() const { return _cache->getId(); }
 
-         void configureCache( std::size_t cacheSize, System::CachePolicyType cachePolicy );
+         //void configureCache( std::size_t cacheSize, System::CachePolicyType cachePolicy );
 
-         bool checkBlockingCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
+         //bool checkBlockingCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
 
-         void registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
+         //void registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
 
-         void unregisterCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool output );
+         //void unregisterCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool output );
+         //
+         //void registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
+         //
+         //void unregisterPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size );
+         //
+         //void synchronize( CopyDescriptor &cd );
+         //
+         //void synchronize( std::list<CopyDescriptor> &cds );
          
-         void registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
+         //void waitInputDependent( uint64_t tag );
          
-         void unregisterPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size );
-         
-         void synchronize( CopyDescriptor &cd );
-         
-         void synchronize( std::list<CopyDescriptor> &cds );
-         
-         void waitInputDependent( uint64_t tag );
-         
-         void* getAddressDependent( uint64_t tag );
-         void* newGetAddressDependent( CopyData const &cd );
+         //void* getAddressDependent( uint64_t tag );
+         //void* newGetAddressDependent( CopyData const &cd );
          
          void copyToDependent( void *dst, uint64_t tag, size_t size );
          void copyDataInDependent( WorkDescriptor &wd );
          void waitInputsDependent( WorkDescriptor &wd );
          virtual Device const *getCacheDeviceType() const;
+
+         RegionCache *getCache();
    };
 
 };

@@ -67,7 +67,7 @@ void WorkDescriptor::init ()
    setStart();
 }
 
-void WorkDescriptor::initWithPE ( ProcessingElement *pe )
+void WorkDescriptor::initWithPE ( ProcessingElement const &pe )
 {
    if ( _state != INIT ) return;
 
@@ -94,8 +94,8 @@ void WorkDescriptor::initWithPE ( ProcessingElement *pe )
       //   }
       //}
       
-      _notifyThread = pe->getFirstThread();
-      pe->copyDataIn( *this );
+      _notifyThread = pe.getFirstThread();
+      pe.copyDataIn( *this );
       //this->notifyCopy();
 
       if ( _translateArgs != NULL ) {
@@ -187,7 +187,7 @@ void WorkDescriptor::submit( void )
    if ( getNewDirectory() == NULL )
       initNewDirectory();
    getNewDirectory()->setParent( ( getParent() != NULL ) ? getParent()->getNewDirectory() : NULL );   
-   _ccontrol.preInit( getNewDirectory(), getNumCopies(), getCopies(), getId(), this );
+   _ccontrol.preInit();
    Scheduler::submit( *this );
 } 
 
@@ -315,7 +315,7 @@ void WorkDescriptor::workFinished(WorkDescriptor &wd)
       wd._doSubmit->finished();
    //if (sys.getNetwork()->getNodeNum()==0){ message("a child, " << wd.getId() << " has finished, im " << getId() ); }
 }
-void WorkDescriptor::setNotifyCopyFunc( void (*func)(WD &, BaseThread &) ) {
+void WorkDescriptor::setNotifyCopyFunc( void (*func)(WD &, BaseThread const&) ) {
    _notifyCopy = func;
 }
 

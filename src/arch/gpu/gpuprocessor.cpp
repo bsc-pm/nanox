@@ -31,7 +31,7 @@ using namespace nanos::ext;
 Atomic<int> GPUProcessor::_deviceSeed = 0;
 
 
-GPUProcessor::GPUProcessor( int id, int gpuId ) : CachedAccelerator<GPUDevice>( id, &GPU ),
+GPUProcessor::GPUProcessor( int id, int gpuId ) : CachedAccelerator( id, &GPU , NULL, &GPU, 0 ),
       _gpuDevice( _deviceSeed++ ), _gpuProcessorStats(), _gpuProcessorTransfers(),
       _initialized( false ), _allocator(), _inputPinnedMemoryBuffer()
 {
@@ -95,11 +95,9 @@ void GPUProcessor::init ()
    // much bytes as we have asked
    void * baseAddress = GPUDevice::allocateWholeMemory( maxMemoryAvailable );
    _allocator.init( ( uint64_t ) baseAddress, maxMemoryAvailable );
-   configureCache( maxMemoryAvailable, GPUConfig::getCachePolicy() );
+   //configureCache( maxMemoryAvailable, GPUConfig::getCachePolicy() );
 
-    _newCache.setDevice( &GPU );
-    _newCache.setPE( this );
-    sys.getCaches()[this->getMemorySpaceId()] = &_newCache; 
+    sys.getCaches()[this->getMemorySpaceId()] = getCache(); 
 
    _gpuProcessorInfo->setMaxMemoryAvailable( maxMemoryAvailable );
 

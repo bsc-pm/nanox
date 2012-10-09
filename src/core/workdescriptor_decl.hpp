@@ -37,7 +37,6 @@
 #include "basethread_fwd.hpp"
 #include "processingelement_fwd.hpp"
 #include "wddeque_fwd.hpp"
-#include "directory_decl.hpp"
 //#include "newdirectory_fwd.hpp"
 #include "regiondirectory_fwd.hpp"
 #include "regioncache_decl.hpp"
@@ -82,13 +81,13 @@ namespace nanos
           */
          const char * getName ( void ) const { return _name; }
 
-         virtual void *memAllocate( std::size_t size, ProcessingElement *pe ) { return (void *) 0xdeadbeef; }
-         virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId, WorkDescriptor *wd ) { std::cerr << "wrong copyIn" <<std::endl; }
-         virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId, WorkDescriptor *wd ) { std::cerr << "wrong copyOut" <<std::endl; }
-         virtual void _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, ProcessingElement *peDest, ProcessingElement *peOrig, DeviceOps *ops, unsigned int wdId, WorkDescriptor *wd ) { std::cerr << "wrong copyOut" <<std::endl; }
-         virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId, WorkDescriptor *wd ) { std::cerr << "wrong copyIn" <<std::endl; }
-         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId, WorkDescriptor *wd ) { std::cerr << "wrong copyOut" <<std::endl; }
-         virtual void _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, ProcessingElement *peDest, ProcessingElement *peOrig, DeviceOps *ops, unsigned int wdId, WorkDescriptor *wd ) { std::cerr << "wrong copyOut" <<std::endl; }
+         virtual void *memAllocate( std::size_t size, ProcessingElement const &pe ) const { return (void *) 0xdeadbeef; }
+         virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement const &pe, DeviceOps *ops, WorkDescriptor const &wd ) const { std::cerr << "wrong copyIn" <<std::endl; }
+         virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, ProcessingElement const &pe, DeviceOps *ops, WorkDescriptor const &wd ) const { std::cerr << "wrong copyOut" <<std::endl; }
+         virtual void _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, ProcessingElement const &peDest, ProcessingElement const &peOrig, DeviceOps *ops, WorkDescriptor const &wd ) const { std::cerr << "wrong copyOut" <<std::endl; }
+         virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, ProcessingElement const &pe, DeviceOps *ops, WorkDescriptor const &wd ) const { std::cerr << "wrong copyIn" <<std::endl; }
+         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, ProcessingElement const &pe, DeviceOps *ops, WorkDescriptor const &wd ) const { std::cerr << "wrong copyOut" <<std::endl; }
+         virtual void _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, ProcessingElement const &peDest, ProcessingElement const &peOrig, DeviceOps *ops, WorkDescriptor const &wd ) const { std::cerr << "wrong copyOut" <<std::endl; }
    };
 
   /*! \brief This class holds the specific data for a given device
@@ -186,7 +185,7 @@ namespace nanos
          LazyInit<DOWait>              _doWait;       /**< DependableObject used by this task to wait on dependencies */
 
          LazyInit<DependenciesDomain>  _depsDomain;   /**< Dependences domain. Each WD has one where DependableObjects can be submitted */
-         LazyInit<Directory>           _directory;    /**< Directory to mantain cache coherence */
+         //LazyInit<Directory>           _directory;    /**< Directory to mantain cache coherence */
          NewDirectory        *_newDirectory;    /**< Directory to mantain cache coherence */
 
          InstrumentationContextData    _instrumentationContextData; /**< Instrumentation Context Data (empty if no instr. enabled) */
@@ -197,12 +196,12 @@ namespace nanos
          nanos_translate_args_t        _translateArgs; /**< Translates the addresses in _data to the ones obtained by get_address(). */
          Atomic< std::list<GraphEntry *> * > _myGraphRepList;
          bool _listed;
-         void (*_notifyCopy)( WD &wd, BaseThread &thread);
-         BaseThread *_notifyThread;
+         void (*_notifyCopy)( WD &wd, BaseThread const &thread);
+         BaseThread const*_notifyThread;
 
          unsigned int                  _priority;      /**< Task priority */
       public:
-         CacheControler                _ccontrol;
+         CacheController                _ccontrol;
 
       private: /* private methods */
          /*! \brief WorkDescriptor copy assignment operator (private)
@@ -222,7 +221,9 @@ namespace nanos
                           _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : NULL ),
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain(), _directory(), _newDirectory( NULL ), _instrumentationContextData(), _submitted(false), _translateArgs( translate_args ),_myGraphRepList(NULL), _listed(false), _notifyCopy( NULL ), _notifyThread( NULL ), _priority( 0 ) { getGE()->setNoWait(); }
+                          _depsDomain(), _newDirectory( NULL ), _instrumentationContextData(), _submitted(false),
+                          _translateArgs( translate_args ),_myGraphRepList(NULL), _listed(false), _notifyCopy( NULL ),
+                          _notifyThread( NULL ), _priority( 0 ), _ccontrol( *this ) { getGE()->setNoWait(); }
                           //_depsDomain(), _directory(), _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted(false), _translateArgs( translate_args ) { }
 
          /*! \brief WorkDescriptor constructor - 2
@@ -234,7 +235,9 @@ namespace nanos
                           _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                           _numDevices ( 1 ), _devices ( &_activeDevice ), _activeDevice ( device ),
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain(), _directory(), _newDirectory( NULL ), _instrumentationContextData(), _submitted( false ), _translateArgs( translate_args ),_myGraphRepList(NULL), _listed(false), _notifyCopy( NULL ), _notifyThread( NULL ), _priority( 0 ) { getGE()->setNoWait(); }
+                          _depsDomain(), _newDirectory( NULL ), _instrumentationContextData(), _submitted( false ),
+                          _translateArgs( translate_args ),_myGraphRepList(NULL), _listed(false), _notifyCopy( NULL ),
+                          _notifyThread( NULL ), _priority( 0 ), _ccontrol( *this ) { getGE()->setNoWait(); }
                           //_depsDomain(), _directory(),  _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted( false ), _translateArgs( translate_args ) { }
 
          /*! \brief WorkDescriptor copy constructor (using a given WorkDescriptor)
@@ -253,7 +256,9 @@ namespace nanos
                           _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ), _myQueue ( NULL ), _depth ( wd._depth ),
                           _numDevices ( wd._numDevices ), _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
                           _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
-                          _doSubmit(), _doWait(), _depsDomain(), _directory(), _newDirectory( wd._newDirectory ), _instrumentationContextData(), _submitted( false ), _translateArgs( wd._translateArgs ),_myGraphRepList(wd._myGraphRepList) , _listed(wd._listed), _notifyCopy( NULL ), _notifyThread ( NULL ), _priority( wd._priority ) { }
+                          _doSubmit(), _doWait(), _depsDomain(), _newDirectory( wd._newDirectory ), _instrumentationContextData(), _submitted( false ),
+                          _translateArgs( wd._translateArgs ),_myGraphRepList(wd._myGraphRepList) , _listed(wd._listed), _notifyCopy( NULL ),
+                          _notifyThread ( NULL ), _priority( wd._priority ), _ccontrol( *this ) { }
                           //_doSubmit(), _doWait(), _depsDomain(), _directory(), _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted( false ), _translateArgs( wd._translateArgs ) { }
 
          /*! \brief WorkDescriptor destructor
@@ -276,7 +281,7 @@ namespace nanos
           *  This function is useful to perform lazy initialization in the workdescriptor
           */
          void init ();
-         void initWithPE ( ProcessingElement *pe );
+         void initWithPE ( ProcessingElement const &pe );
 
          /*! \brief Last operations just before WD execution
           *
@@ -476,8 +481,8 @@ namespace nanos
           *  if create is true and directory is not initialized returns NULL,
           *  otherwise it is created (if necessary) and a pointer to it is returned.
           */
-         Directory* getDirectory(bool create=false);
-         NewDirectory* getNewDirectory();
+         //Directory* getDirectory(bool create=false);
+         NewDirectory* getNewDirectory() const;
          void initNewDirectory();
 
          virtual void waitCompletion( bool avoidFlush = false );
@@ -500,7 +505,7 @@ namespace nanos
 
          void setPriority( unsigned int priority );
          unsigned getPriority() const;
-         void setNotifyCopyFunc( void (*func)(WD &, BaseThread &) );
+         void setNotifyCopyFunc( void (*func)(WD &, BaseThread const &) );
 
          unsigned int getNumReaders();
          unsigned int getNumAllReaders();

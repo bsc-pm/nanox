@@ -66,9 +66,9 @@ struct NoConstraints
 #ifdef CLUSTER_DEV
    //static inline bool check ( WD &wd, BaseThread &thread ) { return ( !thread.isCluster() || wd.getDepth() == 1 ) ; }
    //static inline bool check ( WD &wd, BaseThread &thread ) { return (sys.getNetwork()->getNodeNum() > 0) || ( !thread.isCluster() && !( wd.getDepth() == 1  && !(thread.getId() == 0) )) || ( thread.isCluster() && wd.getDepth() == 1) ; }
-   static inline bool check ( WD &wd, BaseThread &thread ) { return true; }
+   static inline bool check ( WD &wd, BaseThread const &thread ) { return true; }
 #else
-   static inline bool check ( WD &wd, BaseThread &thread ) { return true; }
+   static inline bool check ( WD &wd, BaseThread const &thread ) { return true; }
 #endif
 };
 
@@ -88,7 +88,7 @@ inline bool WDDeque::removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDe
 }
 
 template <typename Constraints>
-inline WorkDescriptor * WDDeque::popFrontWithConstraints ( BaseThread *thread )
+inline WorkDescriptor * WDDeque::popFrontWithConstraints ( BaseThread const *thread )
 {
    WorkDescriptor *found = NULL;
 
@@ -128,7 +128,7 @@ inline WorkDescriptor * WDDeque::popFrontWithConstraints ( BaseThread *thread )
 
 // Only ensures tie semantics
 template <typename Constraints>
-inline WorkDescriptor * WDDeque::popBackWithConstraints ( BaseThread *thread )
+inline WorkDescriptor * WDDeque::popBackWithConstraints ( BaseThread const *thread )
 {
    WorkDescriptor *found = NULL;
 

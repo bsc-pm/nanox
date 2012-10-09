@@ -22,37 +22,38 @@
 
 #include "cachedaccelerator_decl.hpp"
 #include "accelerator_decl.hpp"
-#include "cache.hpp"
+#include "regioncache.hpp"
 #include "system.hpp"
 
 using namespace nanos;
 
 
-template <class CacheDevice>
-void CachedAccelerator<CacheDevice>::configureCache( std::size_t cacheSize, System::CachePolicyType cachePolicy )
-{
-   if ( _cache == NULL )
-      _cache = NEW DeviceCache<CacheDevice>( cacheSize, NULL, this );
+//template <class CacheDevice>
+//void CachedAccelerator<CacheDevice>::configureCache( std::size_t cacheSize, System::CachePolicyType cachePolicy )
+//{
+//   if ( _cache == NULL )
+//      _cache = NEW DeviceCache<CacheDevice>( cacheSize, NULL, this );
+//
+//   switch ( cachePolicy ) {
+//      case System::NONE:
+//         _cachePolicy = NEW NoCache( *_cache );
+//         break;
+//      case System::WRITE_THROUGH:
+//         _cachePolicy = NEW WriteThroughPolicy( *_cache );
+//         break;
+//      case System::WRITE_BACK:
+//         _cachePolicy = NEW WriteBackPolicy( *_cache );
+//         break;
+//      default:
+//         // We should not get here with the System::DEFAULT value
+//         fatal0( "Unknown cache policy" );
+//         break;
+//   }
+//
+//   _cache->setPolicy( _cachePolicy );
+//}
 
-   switch ( cachePolicy ) {
-      case System::NONE:
-         _cachePolicy = NEW NoCache( *_cache );
-         break;
-      case System::WRITE_THROUGH:
-         _cachePolicy = NEW WriteThroughPolicy( *_cache );
-         break;
-      case System::WRITE_BACK:
-         _cachePolicy = NEW WriteBackPolicy( *_cache );
-         break;
-      default:
-         // We should not get here with the System::DEFAULT value
-         fatal0( "Unknown cache policy" );
-         break;
-   }
-
-   _cache->setPolicy( _cachePolicy );
-}
-
+#if 0
 template <class CacheDevice>
 inline void CachedAccelerator<CacheDevice>::registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
 {
@@ -121,23 +122,25 @@ inline bool CachedAccelerator<CacheDevice>::checkBlockingCacheAccessDependent( D
 {
    return _cache->checkBlockingCacheAccess( dir, tag, size, input, output ) ;
 }
-template <class CacheDevice>
-inline void CachedAccelerator<CacheDevice>::copyDataInDependent( WorkDescriptor &wd )
+#endif
+inline void CachedAccelerator::copyDataInDependent( WorkDescriptor &wd )
 {
    //wd._ccontrol.preInit( wd.getNewDirectory(), wd.getNumCopies(), wd.getCopies(), wd.getId() );
    wd._ccontrol.copyDataIn( &_newCache );
 }
-template <class CacheDevice>
-inline void CachedAccelerator<CacheDevice>::waitInputsDependent( WorkDescriptor &wd )
+inline void CachedAccelerator::waitInputsDependent( WorkDescriptor &wd )
 {
    //std::cerr << "waiting for inputs... wd " << wd.getId() << std::endl;
    while ( !wd._ccontrol.dataIsReady() ) { myThread->idle(); } 
    //std::cerr << "waiting for inputs done wd " << wd.getId() << std::endl;
 }
 
-template <class CacheDevice>
-inline Device const *CachedAccelerator<CacheDevice>::getCacheDeviceType( ) const {
-   return _newCache.getDevice();
+inline Device const *CachedAccelerator::getCacheDeviceType( ) const {
+   return &_newCache.getDevice();
+}
+
+inline RegionCache *CachedAccelerator::getCache() {
+   return &_newCache;
 }
 
 #endif

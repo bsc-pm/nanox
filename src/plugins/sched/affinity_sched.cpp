@@ -23,6 +23,7 @@
 #include "system.hpp"
 #include "memtracker.hpp"
 #include "clusterthread_decl.hpp"
+#include "regioncache.hpp"
 
 namespace nanos {
    namespace ext {
@@ -91,7 +92,7 @@ namespace nanos {
 
             struct AlreadyInit
             {
-               static inline bool check( WD &wd, BaseThread &thread )
+               static inline bool check( WD &wd, BaseThread const &thread )
                {
                   if ( wd.initialized() ) return true;
                   else return false;
@@ -100,7 +101,7 @@ namespace nanos {
 
             struct AlreadyDataInit
             {
-               static inline bool check( WD &wd, BaseThread &thread )
+               static inline bool check( WD &wd, BaseThread const &thread )
                {
                   if ( wd.initialized() && wd._ccontrol.dataIsReady() ) return true;
                   else return false;
@@ -109,15 +110,15 @@ namespace nanos {
 
             struct NoCopy
             {
-               static inline bool check( WD &wd, BaseThread &thread )
+               static inline bool check( WD &wd, BaseThread const &thread )
                {
                   //TeamData &tdata = (TeamData &) *thread.getTeam()->getScheduleData();
                   //ThreadData &data = ( ThreadData & ) *thread.getTeamData()->getScheduleData();
                   CopyData * copies = wd.getCopies();
                   for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
                      if ( !copies[i].isPrivate() && copies[i].isInput() ) {
-                        NewDirectory::LocationInfoList &locs = wd._ccontrol._cacheCopies[ i ]._locations;
-                        for ( NewDirectory::LocationInfoList::iterator it = locs.begin(); it != locs.end(); it++ ) {
+                        NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();
+                        for ( NewDirectory::LocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
                            if ( !it->second.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) ) {
                               //std::cerr <<"data is not here " << thread.runningOn()->getMemorySpaceId() << " addr " << (void *) it->first.getFirstValue() << " " << it->second << std::endl;
                               return false;
@@ -130,15 +131,15 @@ namespace nanos {
             };
             struct SiCopy
             {
-               static inline bool check( WD &wd, BaseThread &thread )
+               static inline bool check( WD &wd, BaseThread const &thread )
                {
                   //TeamData &tdata = (TeamData &) *thread.getTeam()->getScheduleData();
                   //ThreadData &data = ( ThreadData & ) *thread.getTeamData()->getScheduleData();
                   CopyData * copies = wd.getCopies();
                   for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
                      if ( !copies[i].isPrivate() && copies[i].isInput() ) {
-                        NewDirectory::LocationInfoList &locs = wd._ccontrol._cacheCopies[ i ]._locations;
-                        for ( NewDirectory::LocationInfoList::iterator it = locs.begin(); it != locs.end(); it++ ) {
+                        NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();
+                        for ( NewDirectory::LocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
                            if ( !it->second.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) ) {
                               return true;
                            }
@@ -150,15 +151,15 @@ namespace nanos {
             };
             struct SiCopySiMaster
             {
-               static inline bool check( WD &wd, BaseThread &thread )
+               static inline bool check( WD &wd, BaseThread const &thread )
                {
                   //TeamData &tdata = (TeamData &) *thread.getTeam()->getScheduleData();
                   //ThreadData &data = ( ThreadData & ) *thread.getTeamData()->getScheduleData();
                   CopyData * copies = wd.getCopies();
                   for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
                      if ( !copies[i].isPrivate() && copies[i].isInput() ) {
-                        NewDirectory::LocationInfoList &locs = wd._ccontrol._cacheCopies[ i ]._locations;
-                        for ( NewDirectory::LocationInfoList::iterator it = locs.begin(); it != locs.end(); it++ ) {
+                        NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();
+                        for ( NewDirectory::LocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
                            if ( !it->second.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) && it->second.isLocatedIn(0)  ) {
                               return true;
                            }
@@ -170,7 +171,7 @@ namespace nanos {
             };
             struct SiCopySiMasterInit
             {
-               static inline bool check( WD &wd, BaseThread &thread )
+               static inline bool check( WD &wd, BaseThread const &thread )
                {
                   //TeamData &tdata = (TeamData &) *thread.getTeam()->getScheduleData();
                   //ThreadData &data = ( ThreadData & ) *thread.getTeamData()->getScheduleData();
@@ -178,8 +179,8 @@ namespace nanos {
                   CopyData * copies = wd.getCopies();
                   for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
                      if ( !copies[i].isPrivate() && copies[i].isInput() ) {
-                        NewDirectory::LocationInfoList &locs = wd._ccontrol._cacheCopies[ i ]._locations;
-                        for ( NewDirectory::LocationInfoList::iterator it = locs.begin(); it != locs.end(); it++ ) {
+                        NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();
+                        for ( NewDirectory::LocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
                            if ( !it->second.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) && it->second.isLocatedIn(0)  ) {
                               return true;
                            }
@@ -191,7 +192,7 @@ namespace nanos {
             };
             struct SiCopyNoMasterInit
             {
-               static inline bool check( WD &wd, BaseThread &thread )
+               static inline bool check( WD &wd, BaseThread const &thread )
                {
                   //TeamData &tdata = (TeamData &) *thread.getTeam()->getScheduleData();
                   //ThreadData &data = ( ThreadData & ) *thread.getTeamData()->getScheduleData();
@@ -199,8 +200,8 @@ namespace nanos {
                   CopyData * copies = wd.getCopies();
                   for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
                      if ( !copies[i].isPrivate() && copies[i].isInput() ) {
-                        NewDirectory::LocationInfoList &locs = wd._ccontrol._cacheCopies[ i ]._locations;
-                        for ( NewDirectory::LocationInfoList::iterator it = locs.begin(); it != locs.end(); it++ ) {
+                        NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();
+                        for ( NewDirectory::LocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
                            if ( !it->second.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) && !it->second.isLocatedIn(0)  ) {
                               return true;
                            }
@@ -212,15 +213,15 @@ namespace nanos {
             };
             struct SiCopyNoMaster
             {
-               static inline bool check( WD &wd, BaseThread &thread )
+               static inline bool check( WD &wd, BaseThread const &thread )
                {
                   //TeamData &tdata = (TeamData &) *thread.getTeam()->getScheduleData();
                   //ThreadData &data = ( ThreadData & ) *thread.getTeamData()->getScheduleData();
                   CopyData * copies = wd.getCopies();
                   for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
                      if ( !copies[i].isPrivate() && copies[i].isInput() ) {
-                        NewDirectory::LocationInfoList &locs = wd._ccontrol._cacheCopies[ i ]._locations;
-                        for ( NewDirectory::LocationInfoList::iterator it = locs.begin(); it != locs.end(); it++ ) {
+                        NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();
+                        for ( NewDirectory::LocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
                            if ( !it->second.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) && !it->second.isLocatedIn(0)  ) {
                               return true;
                            }
@@ -255,7 +256,7 @@ namespace nanos {
                   //       std::cerr <<"cleared copy by wd " << wd.getId() << " id is " << data._cacheId  <<std::endl;
                }
 
-               static inline bool check( WD &wd, BaseThread &thread )
+               static inline bool check( WD &wd, BaseThread const &thread )
                {
                   TeamData &tdata = (TeamData &) *thread.getTeam()->getScheduleData();
                   //ThreadData &data = ( ThreadData & ) *thread.getTeamData()->getScheduleData();
@@ -277,8 +278,8 @@ namespace nanos {
                   if (sys.getNetwork()->getNodeNum() == 0)std::cerr <<"check wd " << wd.getId() << std::endl;
                   for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
                      if ( !copies[i].isPrivate() && copies[i].isInput() ) {
-                        NewDirectory::LocationInfoList &locs = wd._ccontrol._cacheCopies[ i ]._locations;
-                        for ( NewDirectory::LocationInfoList::iterator it = locs.begin(); it != locs.end(); it++ ) {
+                        NewDirectory::LocationInfoList const &locs = wd._ccontrol._cacheCopies[ i ].getLocations();
+                        for ( NewDirectory::LocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
                            allLocs+= 1;
                            if ( !it->second.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) ) {
                               int loc = it->second.getFirstLocation();
@@ -312,8 +313,8 @@ namespace nanos {
                      }
                      //for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
                      //   if ( !copies[i].isPrivate() && copies[i].isInput() ) {
-                     //      NewDirectory::LocationInfoList &locs = wd._ccontrol._cacheCopies[ i ]._locations;
-                     //      for ( NewDirectory::LocationInfoList::iterator it = locs.begin(); it != locs.end(); it++ ) {
+                     //      NewDirectory::LocationInfoList const &locs = wd._ccontrol._cacheCopies[ i ].getLocations();
+                     //      for ( NewDirectory::LocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
                      //         if ( !it->second.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) ) {
                      //            int loc = it->second.getFirstLocation();
                      //            tmpFeedingVector[ data._cacheId * 2 ] += 1;
@@ -525,8 +526,8 @@ namespace nanos {
                      }
                      for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
                         if ( !copies[i].isPrivate() && copies[i].isOutput() && copies[i].isInput()) {
-                           NewDirectory::LocationInfoList &locs = wd._ccontrol._cacheCopies[ i ]._locations;
-                           for ( NewDirectory::LocationInfoList::iterator it = locs.begin(); it != locs.end(); it++ ) {
+                           NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();
+                           for ( NewDirectory::LocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
                               int loc = ( it->second.hasWriteLocation() ) ? it->second.getWriteLocation() : it->second.getFirstLocation();
                               //if( it->second.getNumLocations() > 1 ) std::cerr <<" WARRRRRRRRRRRRNINC lets see write loc "<< it->second.getWriteLocation() <<std::endl;
                               //if( sys.getNetwork()->getNodeNum() == 0) std::cerr /*<< it->first*/ << " copy "<< i << " is in " << ( loc != 0 ? sys.getCaches()[ loc ]->getNodeNumber() : 0 ) << " size " << it->first.getBreadth() / ( 16 * 512 * 512 ) << " " << std::endl;
@@ -661,10 +662,11 @@ namespace nanos {
                //std::cerr <<"I can help with node " << selectedNode << " orig "<< selectedNodeCopy << " im node " << sys.getNetwork()->getNodeNum()<< std::endl;
 
                tdata._lastNodeScheduled = selectedNode;
-               BaseThread *actualThread = sys.getCaches()[ selectedNode ]->getPE()->getFirstThread();
+               BaseThread const *actualThread = sys.getCaches()[ selectedNode ]->getPE().getFirstThread();
+               BaseThread *actualThreadNC = sys.getCaches()[ selectedNode ]->getPE().getFirstThread();
                if ( sys.getCaches()[ selectedNode ]->getNodeNumber() != selectedNode ) std::cerr <<"ERROR !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" <<std::endl;
                
-               ext::ClusterThread *actualClusterThread = dynamic_cast< ext::ClusterThread * >( actualThread );
+               ext::ClusterThread *actualClusterThread = dynamic_cast< ext::ClusterThread * >( actualThreadNC );
 
                if ( data._fetch < 1 ) {
                if ( ( wd = tdata._readyQueues[selectedNode].popFrontWithConstraints<SiCopySiMasterInit> ( actualThread ) ) != NULL ) {

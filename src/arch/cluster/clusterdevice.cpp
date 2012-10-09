@@ -23,6 +23,7 @@
 #include "debug.hpp"
 #include "system.hpp"
 #include "clusternode_decl.hpp"
+#include "deviceops.hpp"
 #include <iostream>
 
 using namespace nanos;

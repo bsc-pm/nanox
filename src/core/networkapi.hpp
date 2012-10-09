@@ -22,7 +22,6 @@
 
 #include <stdint.h>
 #include <vector>
-#include "directory_decl.hpp"
 #include "regiondirectory_decl.hpp"
 #include "simpleallocator_decl.hpp"
 #include "workdescriptor_fwd.hpp"
@@ -53,7 +52,6 @@ namespace nanos {
          virtual void sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD *wd ) = 0;
          virtual std::size_t getTotalBytes() = 0;
         
-         virtual void setMasterDirectory(Directory *d) = 0;
          virtual void setNewMasterDirectory(NewRegionDirectory *d) = 0;
          //virtual void setGpuCache(Cache *_cache) = 0;
          virtual SimpleAllocator *getPackSegment() const = 0;

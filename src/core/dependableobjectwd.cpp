@@ -26,7 +26,6 @@
 #include "system.hpp"
 #include "instrumentation.hpp"
 #include "system.hpp"
-#include "directory.hpp"
 
 using namespace nanos;
 
