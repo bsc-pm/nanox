@@ -24,6 +24,7 @@
 #include "memtracker.hpp"
 #include "clusterthread_decl.hpp"
 #include "regioncache.hpp"
+#include "regiondirectory.hpp"
 
 namespace nanos {
    namespace ext {
