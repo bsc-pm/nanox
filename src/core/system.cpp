@@ -362,9 +362,11 @@ void System::start ()
    switch ( getInitialMode() )
    {
       case POOL:
+         verbose0("Pool model enabled (OmpSs)");
          createTeam( _workers.size() );
          break;
       case ONE_THREAD:
+         verbose0("One-thread model enabled (OpenMP)");
          createTeam(1);
          break;
       default:
