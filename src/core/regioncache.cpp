@@ -192,6 +192,7 @@ AllocatedChunk *RegionCache::getAddress( CopyData const &cd, uint64_t &offset ) 
          offset = ((uint64_t) cd.getBaseAddress() - (uint64_t) (results.front().first)->getAddress());
       }
    }
+   if ( allocChunkPtr == NULL ) std::cerr << "WARNING: null RegionCache::getAddress()" << std::endl; 
    allocChunkPtr->lock();
    return allocChunkPtr;
 }
@@ -213,6 +214,7 @@ AllocatedChunk *RegionCache::getAddress( uint64_t hostAddr, std::size_t len, uin
          offset = hostAddr - (uint64_t) (results.front().first)->getAddress();
       }
    }
+   if ( allocChunkPtr == NULL ) std::cerr << "WARNING: null RegionCache::getAddress()" << std::endl; 
    allocChunkPtr->lock();
    return allocChunkPtr;
 }
@@ -222,6 +224,7 @@ void RegionCache::syncRegion( std::list< std::pair< Region, CacheCopy * > > cons
    uint64_t offset = 0;
    DeviceOps localOps;
 
+   
    for ( it = regions.begin(); it != regions.end(); it++ ) {
       Region const &reg = it->first;
       AllocatedChunk *origChunk = getAddress( ( uint64_t ) reg.getFirstValue(), ( std::size_t ) reg.getBreadth(), offset );
@@ -261,6 +264,10 @@ void RegionCache::_generateRegionOps( Region const &reg, std::map< uintptr_t, Me
       uint64_t address = reg.getNonContiguousChunk( chunkIndex, skipBits );
       ops->addChunk( address, contiguousSize, devAddr + ( address - reg.getFirstValue() ) );
    }
+}
+
+RegionCache::RegionCache( ProcessingElement &pe, Device &cacheArch ) : _device( cacheArch ), _pe( pe ),
+   _copyInObj( *this ), _copyOutObj( *this ) {
 }
 
 unsigned int RegionCache::getMemorySpaceId() {
@@ -404,10 +411,13 @@ bool RegionCache::tryLock() {
    return _lock.tryAcquire();
 }
 
-CacheCopy::CacheCopy() : _copy( *( (CopyData *) NULL ) ) {
+CacheCopy::CacheCopy() : _copy( *( (CopyData *) NULL ) ), _cacheEntry( NULL ), _cacheDataStatus(), _devRegion(), _devBaseAddr( 0 ),
+   _region( ), _offset( 0 ), _version( 0 ), _locations(), _operations(), _otherPendingOps() {
 }
 
-CacheCopy::CacheCopy( WD const &wd , unsigned int copyIndex ) : _copy( wd.getCopies()[ copyIndex ] ), _region( NewRegionDirectory::build_region( _copy ) ), _version( 0 ) {
+CacheCopy::CacheCopy( WD const &wd , unsigned int copyIndex ) : _copy( wd.getCopies()[ copyIndex ] ), _cacheEntry( NULL ),
+   _cacheDataStatus(), _devRegion(), _devBaseAddr( 0 ), _region( NewRegionDirectory::build_region( _copy ) ), _offset( 0 ),
+   _version( 0 ), _locations(), _operations(), _otherPendingOps() {
    wd.getNewDirectory()->getLocation( _region, _locations, _version, wd );
 }
 
@@ -509,10 +519,10 @@ void CacheController::copyDataIn(RegionCache *targetCache) {
       NANOS_INSTRUMENT( InstrumentState inst3(NANOS_CC_CDIN_GET_ADDR); );
       for ( index = 0; index < _numCopies; index += 1 ) {
          CacheCopy &ccopy = _cacheCopies[ index ];
-         if ( !_targetCache ) ccopy.setUpDeviceAddress( _targetCache );
+         if ( _targetCache ) ccopy.setUpDeviceAddress( _targetCache );
          
          // register version into this task directory
-	      _wd.getNewDirectory()->addAccess( ccopy.getRegion(), ( !_targetCache ) ? 0 : _targetCache->getMemorySpaceId(),
+	 _wd.getNewDirectory()->addAccess( ccopy.getRegion(), ( !_targetCache ) ? 0 : _targetCache->getMemorySpaceId(),
             ccopy.getCopyData().isOutput() ? ccopy.getVersion() + 1 : ccopy.getVersion() );
       }
       NANOS_INSTRUMENT( inst3.close(); );
@@ -565,7 +575,8 @@ uint64_t CacheController::getAddress( unsigned int copyId ) const {
 
 
 CacheController::~CacheController() {
-   delete[] _cacheCopies;
+   if ( _numCopies > 0 ) 
+      delete[] _cacheCopies;
 }
 
 void CacheController::copyDataOut() {

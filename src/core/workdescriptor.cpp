@@ -67,7 +67,7 @@ void WorkDescriptor::init ()
    setStart();
 }
 
-void WorkDescriptor::initWithPE ( ProcessingElement const &pe )
+void WorkDescriptor::initWithPE ( ProcessingElement &pe )
 {
    if ( _state != INIT ) return;
 

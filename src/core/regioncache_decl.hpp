@@ -77,8 +77,8 @@ namespace nanos {
       Lock                       _lock;
       typedef MemoryMap<AllocatedChunk>::MemChunkList ChunkList;
       typedef MemoryMap<AllocatedChunk>::ConstMemChunkList ConstChunkList;
-      Device const &_device;
-      ProcessingElement const &_pe;
+      Device &_device;
+      ProcessingElement &_pe;
 
       private:
          class Op {
@@ -108,7 +108,7 @@ namespace nanos {
          void _generateRegionOps( Region const &reg, std::map< uintptr_t, MemoryMap< uint64_t > * > &opMap );
 
       public:
-         RegionCache( ProcessingElement const &pe, Device const &cacheArch ) : _device( cacheArch ), _pe( pe ), _copyInObj( *this ), _copyOutObj( *this ) { }
+         RegionCache( ProcessingElement &pe, Device &cacheArch );
          AllocatedChunk *getAddress( CopyData const &d, uint64_t &offset );
          AllocatedChunk *getAddress( uint64_t hostAddr, std::size_t len, uint64_t &offset );
          void syncRegion( Region const &r ) ;
@@ -132,7 +132,7 @@ namespace nanos {
          bool canCopyFrom( RegionCache const &from ) const;
          Device const &getDevice() const;
          unsigned int getNodeNumber() const;
-         ProcessingElement const &getPE() const;
+         ProcessingElement &getPE() const;
    };
 
    class CacheCopy {

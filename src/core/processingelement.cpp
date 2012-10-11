@@ -29,70 +29,22 @@
 
 using namespace nanos;
 
-//bool ProcessingElement::dataCanBlockUs( WorkDescriptor& wd )
-//{
-//   return false;
-//}
-
-void ProcessingElement::copyDataIn( WorkDescriptor &work ) const
+void ProcessingElement::copyDataIn( WorkDescriptor &work )
 {
    work._ccontrol.copyDataIn( NULL );
 }
 
 void ProcessingElement::copyDataOut( WorkDescriptor &work )
 {
-#if 0
-   Directory *dir = work.getParent()->getDirectory(false);
-   if ( dir != NULL ) {
-      CopyData *copies = work.getCopies();
-      for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
-         CopyData & cd = copies[i];
-         if ( !cd.isPrivate() ) {
-            dir->unRegisterAccess( cd.getAddress(), cd.isOutput(), work.getDirectory(false) );
-            if ( cd.isOutput() ) {
-               Directory *sons = work.getDirectory(false);
-               if ( sons!=NULL ) {
-                  dir->updateCurrentDirectory( cd.getAddress(), *sons );
-               }
-            }
-         }
-      }
-      //if ( sys.getNetwork()->getNodeNum() > 0 ) { 
-      //unsigned int wo_copies = 0;
-      //for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
-      // wo_copies += ( copies[i].isOutput() && !copies[i].isInput() );
-      //}
-      //if ( wo_copies == work.getNumCopies() )
-      //{
-
-      //for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
-      //   CopyData & cd = copies[i];
-      //        dir->fwAccess( cd.getAddress(), cd.getSize(), cd.isInput(), cd.isOutput() );
-      //}
-      //  
-      //}
-      //}
-   }
-#endif
 }
 
 void ProcessingElement::waitInputs( WorkDescriptor &work )
 {
    BaseThread * thread = getMyThreadSafe();
-   //Directory *dir = work.getParent()->getDirectory(false);
-   //if ( dir != NULL ) {
-   //   CopyData *copies = work.getCopies();
-   //   for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
-   //      CopyData & cd = copies[i];
-   //      if ( !cd.isPrivate() && cd.isInput() ) {
-   //           dir->waitInput( cd.getAddress(), cd.isOutput() );
-   //      }
-   //   }
-   //}
-    while ( !work._ccontrol.dataIsReady() ) { 
-       thread->idle();
-         thread->getTeam()->getSchedulePolicy().atSupport( thread ); 
-    }
+   while ( !work._ccontrol.dataIsReady() ) { 
+      thread->idle();
+      thread->getTeam()->getSchedulePolicy().atSupport( thread ); 
+   }
 }
 
 BaseThread& ProcessingElement::startWorker ( ext::SMPMultiThread *parent )
@@ -170,25 +122,6 @@ void ProcessingElement::stopAll ()
          thread->leaveTeam();
    }
 }
-
-//void* ProcessingElement::getAddress( WorkDescriptor &wd, uint64_t tag, nanos_sharing_t sharing )
-//{
-//   void *actualTag = (void *) ( sharing == NANOS_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : (void *)tag );
-//   return actualTag;
-//}
-
-//void* ProcessingElement::newGetAddress( CopyData const &cd )
-//{
-//   message("Returning base address of cd (PE::newGetAddress)");
-//   return cd.getBaseAddress();
-//}
-
-//void ProcessingElement::copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size )
-//{
-//   void *actualTag = (void *) ( sharing == NANOS_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : (void *)tag );
-//   // FIXME: should this be done by using the local copeir of the device?
-//   memcpy( dst, actualTag, size );
-//}
 
 Device const *ProcessingElement::getCacheDeviceType() const {
    return NULL;

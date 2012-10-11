@@ -95,7 +95,7 @@ namespace ext {
             std::size_t ld;
             void *tmpBuffer;
             unsigned int wdId;
-            WD* wd;
+            WD const *wd;
          };
          static std::list<struct putReqDesc * > _putReqs;
          static std::list<struct putReqDesc * > _delayedPutReqs;
@@ -119,7 +119,7 @@ namespace ext {
          static std::size_t txBytes;
          static std::size_t _totalBytes;
          
-         static std::list< std::pair< void *, WD * > > _freeBufferReqs;
+         static std::list< std::pair< void *, WD const * > > _freeBufferReqs;
          static Lock _freeBufferReqsLock;
          static std::list< std::pair<void *, unsigned int> > _workDoneReqs;
          static Lock _workDoneReqsLock;
@@ -166,8 +166,8 @@ namespace ext {
          void sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, std::size_t argSize, char * arg, void ( *xlate ) ( void *, void * ), int arch, void *wd );
          void sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr, int peId);
          static void _sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr, int peId);
-         void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD * wd );
-         void putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD * wd );
+         void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD const &wd );
+         void putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd );
          void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size, volatile int *requestComplete );
          void getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64_t remoteTag, uint64_t remoteAddr, std::size_t size, std::size_t count, std::size_t ld, volatile int *requestComplete );
          void malloc ( unsigned int remoteNode, std::size_t size, void *waitObjAddr );
@@ -176,12 +176,12 @@ namespace ext {
          void nodeBarrier( void );
          
          void sendMyHostName( unsigned int dest );
-         void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD * );
-         void sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD *wd );
+         void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const &wd);
+         void sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd );
          void setNewMasterDirectory(NewRegionDirectory *dir);
          std::size_t getMaxGetStridedLen() const;
          std::size_t getTotalBytes();
-         static void testForDependencies( WD *localWD, std::vector<uint64_t> *deps );
+         static void testForDependencies( WD const *localWD, std::vector<uint64_t> *deps );
          static std::size_t getRxBytes();
          static std::size_t getTxBytes();
          SimpleAllocator *getPackSegment() const;
@@ -191,21 +191,21 @@ namespace ext {
       private:
          static void getDataFromDevice( uint64_t addr, std::size_t len );
          static void invalidateDataFromDevice( uint64_t addr, std::size_t len );
-         void _put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, void *remoteTmpBuffer, unsigned int wdId, WD *wd );
-         void _putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, void *remoteTmpBuffer, unsigned int wdId, WD *wd );
-         static void enqueuePutReq( unsigned int dest, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *tmpBuffer, unsigned int wdId, WD *wd );
-         static void enqueueDelayedPutReq( unsigned int dest, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *tmpBuffer, unsigned int wdId, WD *wd );
+         void _put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, void *remoteTmpBuffer, unsigned int wdId, WD const &wd );
+         void _putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, void *remoteTmpBuffer, unsigned int wdId, WD const &wd );
+         static void enqueuePutReq( unsigned int dest, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *tmpBuffer, unsigned int wdId, WD const *wd );
+         static void enqueueDelayedPutReq( unsigned int dest, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *tmpBuffer, unsigned int wdId, WD const *wd );
          static void enqueueDelayedGet( unsigned int dest, void *origTag, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *waitObj );
          static void delayAmGet( unsigned int dest, void *origTag, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *waitObj ) ;
          void checkForPutReqs();
          static void sendWaitForRequestPut( unsigned int dest, uint64_t addr );
-         static void print_copies( WD *wd, int deps );
+         static void print_copies( WD const *wd, int deps );
          static void releaseWDsFromDataDep( void *addr );
-         static void enqueueFreeBufferNotify( void *bufferAddr, WD *wd );
+         static void enqueueFreeBufferNotify( void *bufferAddr, WD const *wd );
          static void checkForFreeBufferReqs();
          static void checkWorkDoneReqs();
          static void checkDeferredWorkReqs();
-         static void sendFreeTmpBuffer( void *addr, WD *wd );
+         static void sendFreeTmpBuffer( void *addr, WD const *wd );
 
          // Active Message handlers
          static void amFinalize( gasnet_token_t token );

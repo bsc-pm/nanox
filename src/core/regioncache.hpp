@@ -7,7 +7,7 @@ inline uint64_t AllocatedChunk::getAddress() const {
    return _address;
 }
 
-inline ProcessingElement const &RegionCache::getPE() const {
+inline ProcessingElement &RegionCache::getPE() const {
    return _pe;
 }
 
@@ -36,7 +36,13 @@ inline CopyData const &CacheCopy::getCopyData() const {
 }
 
 inline uint64_t CacheCopy::getDeviceAddress() const {
-   return _cacheEntry->getAddress() + _offset + _copy.getOffset();
+   uint64_t addr = 0;
+   if ( _cacheEntry ) {
+      addr = _cacheEntry->getAddress() + _offset + _copy.getOffset();
+   } else {
+      addr = ( (uint64_t) _copy.getBaseAddress() ) + _copy.getOffset();
+   }
+   return addr;
 }
 
 inline uint64_t CacheCopy::getDevBaseAddress() const {

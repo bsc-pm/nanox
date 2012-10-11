@@ -57,7 +57,7 @@ namespace nanos {
             ClusterNode( int id ) : CachedAccelerator( id, &SMP, NULL, &Cluster, ClusterInfo::getSegmentLen( id ) ),
 #endif
             _clusterNode ( id ), _memSegment( ( uintptr_t ) ClusterInfo::getSegmentAddr( id ),
-                  ClusterInfo::getSegmentLen( id ) ), _executedWorkDesciptors ( 0 ) { sys.getCaches()[this->getMemorySpaceId()] = getCache(); }
+                  ClusterInfo::getSegmentLen( id ) ), _executedWorkDesciptors ( 0 ) { }
 
             virtual ~ClusterNode() {}
 

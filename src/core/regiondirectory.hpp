@@ -57,12 +57,14 @@ inline void NewDirectoryEntryData::setWriteLocation( int id ) {
 inline void NewDirectoryEntryData::addAccess( int id, uint64_t address, unsigned int version ) {
    if ( version > _version ) {
       _location.clear();
-      setWriteLocation( id );
+      _writeLocation = id;
+      _version = version;
+   } else if ( version == _version ) {
+      // entry is going to be replicated, so it must be that multiple copies are used as inputs only
+      _writeLocation = -1;
    } else {
-      // XXX notify an addition
-      std::cerr << "FIXME: check this case " << std::endl;
+     std::cerr << "FIXME: wrong case" << std::endl;
    }
-   _version = version;
    _location.insert( id );
 }
 
