@@ -16,6 +16,7 @@
 #include <libgen.h>
 #include "os.hpp"
 #include "errno.h"
+#include <unistd.h>
 
 /* NANOX_EXTRAE_DEFINE_CALLBACKS allow to define which are our external services
  * to specify the execution environment ( thread id, total threads, etc ). They
