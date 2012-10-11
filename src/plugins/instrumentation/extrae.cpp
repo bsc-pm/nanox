@@ -196,7 +196,8 @@ class InstrumentationExtrae: public Instrumentation
             message0("Error in trace post-process. Trace generated but might be incorrect");
          }
       }
-
+// FIXME: To remove in final version
+#if 0
       void modifyParaverConfigFile()
       {
          // Writing paraver config 
@@ -269,7 +270,6 @@ class InstrumentationExtrae: public Instrumentation
             p_file << NANOS_CONTEXT_SWITCH   << "     CONTEXT SWITCH" << std::endl;
             p_file << 27                     << "     EXTRAE I/O" << std::endl;
             p_file << std::endl;
-
             /* Getting Instrumentation Dictionary */
             InstrumentationDictionary::ConstKeyMapIterator itK;
             InstrumentationKeyDescriptor::ConstValueMapIterator itV;
@@ -306,6 +306,7 @@ class InstrumentationExtrae: public Instrumentation
          }
          else message0("Unable to open paraver config file");
       }
+#endif
 
       void modifyParaverRowFile()
       {
@@ -566,6 +567,8 @@ class InstrumentationExtrae: public Instrumentation
         Extrae_set_barrier_tasks_function ( nanos_ompitrace_instrumentation_barrier );
 #endif
 
+        Extrae_register_codelocation_type( 9200021, 9200011 , (char *) "User Function Location",(char *) "User Function Name");
+
          /* OMPItrace initialization */
          // OMPItrace_init();
          if ( !_skipInit ) OMPItrace_init();
@@ -589,6 +592,62 @@ class InstrumentationExtrae: public Instrumentation
 
       void finalize ( void )
       {
+         /* Getting Instrumentation Dictionary */
+         InstrumentationDictionary::ConstKeyMapIterator itK;
+         InstrumentationKeyDescriptor::ConstValueMapIterator itV;
+         InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
+	      nanos_event_key_t usr_functName = iD->getEventKey("user-funct-name");
+	      nanos_event_key_t usr_functLocation = iD->getEventKey("user-funct-location");
+
+         for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
+            InstrumentationKeyDescriptor *kD = itK->second;
+            extrae_type_t type = _eventBase+kD->getId(); 
+            char *type_desc = ( char *) alloca(sizeof(char) * (kD->getDescription().size() + 1) );
+            strncpy ( type_desc, kD->getDescription().c_str(), kD->getDescription().size()+1 );
+            unsigned nval = kD->getSize();
+            if ( kD->getId() == usr_functLocation ) {
+               // FIXME: Just checking, to remove in final version
+               fprintf(stderr,"%d:%s with %d values\n", type, type_desc, nval);
+               
+               for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
+                  // Parsing event description
+                  std::string description = iD->getValueDescription( kD->getId(), (itV->second)->getId() );
+                  int pos1 = description.find_first_of("@");
+                  int pos2 = description.find_first_of("@",pos1+1);
+                  int length = description.size();
+                  int  line = atoi ( (description.substr(pos2+1, length)).c_str());
+                  Extrae_register_function_address ( 
+                     (void *) (itV->second)->getId(),
+                     (char *) description.substr(0,pos1).c_str(),
+                     (char *) description.substr(pos1+1,(pos2-pos1-1)).c_str(),
+                     (unsigned) line
+                  );
+                  fprintf(stderr,"   Extrae_register_function_address(%d,%s,%s,%d)\n", (int )(itV->second)->getId(), description.substr(0,pos1).c_str(),
+                     description.substr(pos1+1,(pos2-pos1-1)).c_str(), line);
+               }
+            } else if (kD->getId() == usr_functName ) {
+               // DO Nothing
+            } else {
+               extrae_value_t *values = (extrae_value_t *) alloca(sizeof(extrae_value_t) * nval);
+               char **val_desc = (char **) alloca(sizeof(char *) * nval);
+               unsigned val_id = 0;
+               for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
+                  InstrumentationValueDescriptor *vD = itV->second;
+                  values[val_id] = vD->getId();
+                  val_desc[val_id] = (char *) alloca(sizeof(char) * (vD->getDescription().size() + 1) );
+                  strncpy(val_desc[val_id], vD->getDescription().c_str(), vD->getDescription().size()+1 );
+                  val_id++;
+               }
+               Extrae_define_event_type( type, type_desc, val_id, values, val_desc);
+               // FIXME: just checking, remove in final version
+               fprintf(stderr,"%d:%s with %d values\n", type, type_desc, nval);
+               for (val_id = 0; val_id < nval; val_id++ ) {
+                  fprintf(stderr,"   %d:%s\n", (int )values[val_id], val_desc[val_id]);
+               }
+
+            }
+         }
+
          if ( !_skipFini ) OMPItrace_fini();
          // OMPItrace_fini();
          getTraceFileName();
@@ -596,7 +655,8 @@ class InstrumentationExtrae: public Instrumentation
             mergeParaverTraceFiles();
             postProcessTraceFile();
          }
-         modifyParaverConfigFile();
+         // FIXME: to remove in final version
+         //modifyParaverConfigFile();
          modifyParaverRowFile();
          removeTemporaryFiles();
       }
@@ -644,6 +704,7 @@ class InstrumentationExtrae: public Instrumentation
 
          int j = 0; int k = 0;
          nanos_event_key_t ckey = 0;
+         extrae_value_t cvalue = 0;
          nanos_event_key_t sizeKey = iD->getEventKey("xfer-size");
 
          for (unsigned int i = 0; i < count; i++)
@@ -690,6 +751,7 @@ class InstrumentationExtrae: public Instrumentation
                case NANOS_POINT:
                case NANOS_BURST_START:
                   ckey = e.getKey();
+                  cvalue = e.getValue();
                   if (  ckey != 0 ) { 
                      ce.Types[j] = _eventBase + ckey;
                      ce.Values[j++] = e.getValue();
