@@ -26,7 +26,7 @@ performance_LTLIBRARIES=libnanox-c.la
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags)
 
 libnanox_c_la_CXXFLAGS=$(nanos_perfo_cxxflags)
-libnanox_c_la_LDFLAGS=$(version_flags)
+libnanox_c_la_LDFLAGS=$(version_flags) $(ignore_muldefs)
 libnanox_c_la_LIBADD=$(top_builddir)/src/core/performance/libnanox.la
 libnanox_c_la_SOURCES=$(nanos_c_sources)
 libnanox_c_la_DEPENDENCIES=$(top_builddir)/src/core/performance/libnanox.la

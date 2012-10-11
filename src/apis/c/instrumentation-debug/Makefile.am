@@ -30,7 +30,7 @@ nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags)
 endif
 
 libnanox_c_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
-libnanox_c_la_LDFLAGS=$(version_flags)
+libnanox_c_la_LDFLAGS=$(version_flags) $(ignore_muldefs)
 libnanox_c_la_LIBADD=$(top_builddir)/src/core/instrumentation-debug/libnanox.la
 libnanox_c_la_SOURCES=$(nanos_c_sources)
 libnanox_c_la_DEPENDENCIES=$(top_builddir)/src/core/instrumentation-debug/libnanox.la

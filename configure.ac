@@ -92,6 +92,19 @@ AC_ARG_ENABLE([icc],
   ]
 )
 
+AC_MSG_CHECKING([for Linux IBM C compiler mode])
+AC_ARG_ENABLE([xlc],
+  AC_HELP_STRING([--enable-xlc],[Enable support fot IBM compiler (off by default)]),
+  [
+    use_xlc=yes
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    use_xlc=no
+    AC_MSG_RESULT([no])
+  ]
+)
+
 AC_MSG_CHECKING([for Linux Intel MIC C compiler mode])
 AC_ARG_ENABLE([mic],
   AC_HELP_STRING([--enable-mic],[Enable support fot Intel MIC compiler (off by default)]),
@@ -110,16 +123,22 @@ AC_ARG_ENABLE([mic],
   ]
 )
 
-if test x$use_icc = xno; then
-	FC="gfortran"
-	CFLAGS="$CFLAGS -Wredundant-decls"
-	CXXFLAGS="$CXXFLAGS -Wredundant-decls"
-else
+if test x$use_icc = xyes; then
+    if test x$use_xlc = xyes; then
+        AC_MSG_ERROR([Both Intel and IBM compilers support is enabled. Please, choose only one of them.])
+    else
 	CC="icc"
 	CXX="icpc"
     	FC="ifort"
-	CFLAGS="$CFLAGS -wd873 -wd1419 -lifcore"
-	CXXFLAGS="$CXXFLAGS -wd873 -wd1419 -lifcore"
+    fi
+else
+    if test x$use_xlc = xyes; then
+        CC="xlc"
+        CXX="xlc++"
+        FC="xlf"
+    else
+        FC="gfortran"
+    fi
 fi
 
 # Check for programs
@@ -133,6 +152,31 @@ AM_PROG_AS
 # Fortran
 AC_PROG_FC([$FC])
 AC_PROG_FC_C_O
+
+# Flags & Compiler dependent stuff
+if test x$ac_cv_cxx_compiler_gnu = xyes; then
+    use_gnu=yes
+fi
+if test x$ac_cv_prog_cc_xlc_c_o = xyes; then
+    use_xlc=yes
+fi
+if test x$ac_cv_prog_cc_xlc_r_c_o = xyes; then
+    use_xlc=yes
+fi
+
+if test x$use_gnu = xyes; then
+    CFLAGS="$CFLAGS -Wredundant-decls"
+    CXXFLAGS="$CXXFLAGS -Wredundant-decls"
+fi
+
+if test x$use_icc = xyes; then
+    CFLAGS="$CFLAGS -wd873 -wd1419 -lifcore"
+    CXXFLAGS="$CXXFLAGS -wd873 -wd1419 -lifcore"
+fi
+
+AM_CONDITIONAL([GNU_C], [test x$use_gnu = xyes])
+AM_CONDITIONAL([IBM_C], [test x$use_xlc = xyes])
+AM_CONDITIONAL([INTEL_C], [test x$use_icc = xyes])
 
 # Check for libraries
 

@@ -559,7 +559,7 @@ inline bool WDPriorityQueue<T>::reorderWD( WorkDescriptor *wd )
    
    // Find the WD
    BaseContainer::iterator it =
-      find( _dq.begin(), _dq.end(), wd );
+      std::find( _dq.begin(), _dq.end(), wd );
 
    // If the WD was not found, return false
    if( it == _dq.end() ){

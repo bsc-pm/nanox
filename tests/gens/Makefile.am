@@ -1,4 +1,4 @@
-include $(abs_top_srcdir)/src/common.am
+include $(top_srcdir)/src/common.am
 
 EXTRA_DIST = api-generator.in core-generator.in gpu-generator.in mixed-generator.in nanox-creation-generator.in api-omp-generator.in mcc-openmp-generator.in config.py
 
