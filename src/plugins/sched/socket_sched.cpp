@@ -413,13 +413,13 @@ namespace nanos {
                   {
                      // Find the queue with the most small tasks
                      WDPriorityQueue<> *largest = &tdata._readyQueues[2];
-                     int largestSocket = 0;
+                     //int largestSocket = 0;
                      for ( int i = 1; i < sys.getNumSockets(); ++i )
                      {
                         WDPriorityQueue<> *current = &tdata._readyQueues[ (i+1)*2];
                         if ( largest->size() < current->size() ){
                            largest = current;
-                           largestSocket = i;
+                           //largestSocket = i;
                            index = (i+1)*2;
                         }
                      }
