@@ -567,11 +567,12 @@ class InstrumentationExtrae: public Instrumentation
         Extrae_set_barrier_tasks_function ( nanos_ompitrace_instrumentation_barrier );
 #endif
 
-        Extrae_register_codelocation_type( 9200021, 9200011 , (char *) "User Function Location",(char *) "User Function Name");
 
          /* OMPItrace initialization */
          // OMPItrace_init();
          if ( !_skipInit ) OMPItrace_init();
+
+        Extrae_register_codelocation_type( 9200021, 9200011 , (char *) "User Function Location",(char *) "User Function Name");
 
 #ifdef NANOX_EXTRAE_WD_INSTRUMENTATION
         Extrae_register_stacked_type( (extrae_type_t) _eventState );
