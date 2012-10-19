@@ -3,6 +3,7 @@ common_libadd=\
 
 common_sources=\
 	$(top_srcdir)/src/core/nanos-int.h \
+	$(top_srcdir)/src/core/nanos_error.h \
 	$(top_srcdir)/src/core/barrier_fwd.hpp \
 	$(top_srcdir)/src/core/barrier_decl.hpp \
 	$(top_srcdir)/src/core/barrier.hpp \

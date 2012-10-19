@@ -22,6 +22,7 @@
 
 #include <unistd.h>
 #include "nanos-int.h"
+#include "nanos_error.h"
 #include "nanos_c_api_macros.h"
 
 
@@ -54,11 +55,6 @@ typedef struct {
    int nthreads;
    void *arch;
 } nanos_constraint_t;
-
-typedef enum { NANOS_OK=0,
-               NANOS_UNKNOWN_ERR,          // generic error
-               NANOS_UNIMPLEMENTED,        // service not implemented
-} nanos_err_t;
 
 // TODO: move smp to some dependent part
 typedef struct {
