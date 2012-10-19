@@ -34,8 +34,8 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_register_key, ( nanos_event_key_t *e
    try
    {
       *event_key = sys.getInstrumentation()->getInstrumentationDictionary()->registerEventKey(key, description, abort_when_registered);
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( nanos_err_t err) {
+      return err;
    }
 #endif
    return NANOS_OK;
@@ -47,8 +47,8 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_register_value, ( nanos_event_value_
    try
    {
       *event_value = sys.getInstrumentation()->getInstrumentationDictionary()->registerEventValue(key, value,  description, abort_when_registered);
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( nanos_err_t err) {
+      return err;
    }
 #endif
    return NANOS_OK;
@@ -60,8 +60,8 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_register_value_with_val, ( nanos_eve
    try
    {
       sys.getInstrumentation()->getInstrumentationDictionary()->registerEventValue(key, value, val, description, abort_when_registered);
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( nanos_err_t err) {
+      return err;
    }
 #endif
    return NANOS_OK;
@@ -73,8 +73,8 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_get_key, (const char *key, nanos_eve
    try
    {
       *event_key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey(key);
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( nanos_err_t err) {
+      return err;
    }
 #endif
    return NANOS_OK;
@@ -86,8 +86,8 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_get_value, (const char *key, const c
    try
    {
       *event_value = sys.getInstrumentation()->getInstrumentationDictionary()->getEventValue(key, value);
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( nanos_err_t err) {
+      return err;
    }
 #endif
    return NANOS_OK;
@@ -118,28 +118,28 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_events, ( unsigned int num_events, n
 #if 0
                sys.getInstrumentation()->createPointEvent(&e[i],events[i].info.point.nkvs,events[i].info.point.keys,events[i].info.point.values );
 #endif
-               return e;
+               return NANOS_UNKNOWN_ERR;
                break;
             case NANOS_PTP_START:
 #if 0
                sys.getInstrumentation()->createPtPStart(&e[i],events[i].info.ptp.domain,events[i].info.ptp.id,*events[i].info.ptp.keys[0],*events[i].info.ptp.values,events[i].info.ptp.values);
 #endif
-               return e;
+               return NANOS_UNKNOWN_ERR;
                break;
             case NANOS_PTP_END:
 #if 0
                sys.getInstrumentation()->createPtPEnd(&e[i],events[i].info.ptp.domain,events[i].info.ptp.id,events[i].info.ptp.nkvs,events[i].info.ptp.keys,events[i].info.ptp.values);
 #endif
-               return e;
+               return NANOS_UNKNOWN_ERR;
                break;
             default:
-               return e;
+               return NANOS_UNKNOWN_ERR;
          }
       }
 
       sys.getInstrumentation()->addEventList( num_events,e);
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( nanos_err_t err) {
+      return err;
    }
 #endif
    return NANOS_OK;
@@ -152,8 +152,8 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_close_user_fun_event, ( void ))
    try
    {
       ( ( ext::GPUThread *) myThread )->enableWDClosingEvents();
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( nanos_err_t err) {
+      return err;
    }
 #endif
 #endif
@@ -166,8 +166,8 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_enable,())
    try
    {
       sys.getInstrumentation()->enable();
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( nanos_err_t err) {
+      return err;
    }
 #endif
    return NANOS_OK;
@@ -179,8 +179,8 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_disable,())
    try
    {
       sys.getInstrumentation()->disable();
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( nanos_err_t err) {
+      return err;
    }
 #endif
    return NANOS_OK;
