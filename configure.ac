@@ -234,10 +234,10 @@ case $host in
     ARCHITECTURES="$ARCHITECTURES smp"
 
     case $CC in
-      *-m32*)
+      *-m32* | *-q32*)
          SMP_ARCH=ppc32
          ;;
-      *-m64*)
+      *-m64* | *-q64*)
          SMP_ARCH=ppc64
          ;;
       *)
