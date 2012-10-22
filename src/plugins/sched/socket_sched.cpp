@@ -570,6 +570,18 @@ namespace nanos {
                      tdata._readyQueues[ index ].reorderWD( pred );
                }
             }
+            
+            /*! \brief Enables or disables stealing */
+            virtual void setStealing( bool value )
+            {
+               _steal = value;
+            }
+            
+            /*! \brief Returns the status of stealing */
+            virtual bool getStealing()
+            {
+               return _steal;
+            }
       };
 
       class SocketSchedPlugin : public Plugin

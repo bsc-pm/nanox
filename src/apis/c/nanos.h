@@ -168,12 +168,6 @@ NANOS_API_DECL(const char *, nanos_get_pm, ());
 NANOS_API_DECL(nanos_err_t, nanos_get_default_binding, ( bool *res ));
 NANOS_API_DECL(nanos_err_t, nanos_get_num_running_tasks, ( int *num ));
 
-NANOS_API_DECL(const char *, nanos_get_default_scheduler, ());
-NANOS_API_DECL(nanos_err_t, nanos_start_scheduler, ());
-NANOS_API_DECL(nanos_err_t, nanos_stop_scheduler, ());
-NANOS_API_DECL(nanos_err_t, nanos_scheduler_enabled, ( bool *res ));
-NANOS_API_DECL(nanos_err_t, nanos_wait_until_threads_paused, () );
-NANOS_API_DECL(nanos_err_t, nanos_wait_until_threads_unpaused, () );
 NANOS_API_DECL(nanos_err_t, nanos_delay_start, ());
 NANOS_API_DECL(nanos_err_t, nanos_start, ());
 NANOS_API_DECL(nanos_err_t, nanos_finish, ());
@@ -210,6 +204,16 @@ NANOS_API_DECL(nanos_err_t, nanos_instrument_enable,( void ));
 NANOS_API_DECL(nanos_err_t, nanos_instrument_disable,( void ));
 
 NANOS_API_DECL(nanos_err_t, nanos_memcpy, (void *dest, const void *src, size_t n));
+
+// scheduling interface
+NANOS_API_DECL(const char *, nanos_get_default_scheduler, ());
+NANOS_API_DECL(nanos_err_t, nanos_start_scheduler, ());
+NANOS_API_DECL(nanos_err_t, nanos_stop_scheduler, ());
+NANOS_API_DECL(nanos_err_t, nanos_scheduler_enabled, ( bool *res ));
+NANOS_API_DECL(nanos_err_t, nanos_wait_until_threads_paused, () );
+NANOS_API_DECL(nanos_err_t, nanos_wait_until_threads_unpaused, () );
+NANOS_API_DECL(nanos_err_t, nanos_scheduler_get_stealing, ( bool *res ));
+NANOS_API_DECL(nanos_err_t, nanos_scheduler_set_stealing, ( bool value ));
 
 
 // utility macros

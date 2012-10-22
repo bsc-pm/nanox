@@ -243,6 +243,15 @@ namespace nanos
           \param successor ...
           */
          virtual void successorFound( DependableObject *predecessor, DependableObject *successor ) {}
+
+         /*! \brief Enables or disables stealing */
+         virtual void setStealing( bool value ) {}
+         
+         /*! \brief Returns the status of stealing */
+         virtual bool getStealing()
+         {
+            return false;
+         }
    };
    /*! \brief Functor that will be used when a WD's predecessor is found.
     */
