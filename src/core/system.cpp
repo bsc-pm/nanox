@@ -614,6 +614,8 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    }
 
    chunk = NEW char[total_size];
+   if (props->clear_chunk)
+       memset(chunk, 0, sizeof(char) * total_size);
 
    // allocating WD and DATA
    if ( *uwd == NULL ) *uwd = (WD *) chunk;
