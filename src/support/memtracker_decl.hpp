@@ -92,6 +92,7 @@ inline MemTracker & getMemTracker ()
 {
    if (!mem) {
       mem = (MemTracker *) malloc(sizeof(MemTracker));
+      if ( mem == NULL ) throw(NANOS_ENOMEM);
       new (mem) MemTracker();
    }
    return *mem;
