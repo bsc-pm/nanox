@@ -572,7 +572,7 @@ class InstrumentationExtrae: public Instrumentation
          // OMPItrace_init();
          if ( !_skipInit ) OMPItrace_init();
 
-        Extrae_register_codelocation_type( 9200021, 9200011 , (char *) "User Function Location",(char *) "User Function Name");
+        Extrae_register_codelocation_type( 9200011, 9200021, "User Function Name", "User Function Location" );
 
 #ifdef NANOX_EXTRAE_WD_INSTRUMENTATION
         Extrae_register_stacked_type( (extrae_type_t) _eventState );
@@ -755,7 +755,7 @@ class InstrumentationExtrae: public Instrumentation
                   cvalue = e.getValue();
                   if (  ckey != 0 ) { 
                      ce.Types[j] = _eventBase + ckey;
-                     ce.Values[j++] = e.getValue();
+                     ce.Values[j++] = cvalue;
                   }
                   break;
                case NANOS_BURST_END:
