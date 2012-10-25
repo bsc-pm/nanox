@@ -38,6 +38,10 @@ inline void System::setNumPEs ( int npes ) { _numPEs = npes; }
 
 inline int System::getNumPEs () const { return _numPEs; }
 
+inline cpu_set_t * System::getCpuSet () { return &_cpu_set; }
+	 
+inline int System::getCpuId ( int idx ) { return _cpu_id[idx]; };
+
 inline void System::setDeviceStackSize ( int stackSize ) { _deviceStackSize = stackSize; }
 
 inline int System::getDeviceStackSize () const {return _deviceStackSize; }

@@ -87,6 +87,10 @@ namespace nanos
          int                  _numSockets;
          int                  _coresPerSocket;
 
+	 // Nanos++ scheduling domain
+   	 cpu_set_t            _cpu_set;
+   	 int                  _cpu_id[8*sizeof(cpu_set_t)];
+
          //cutoff policy and related variables
          ThrottlePolicy      *_throttlePolicy;
          SchedulerStats       _schedStats;
@@ -205,6 +209,10 @@ namespace nanos
          void setNumPEs ( int npes );
 
          int getNumPEs () const;
+
+	 cpu_set_t * getCpuSet ();
+
+	 int getCpuId ( int idx);
 
          void setDeviceStackSize ( int stackSize );
 

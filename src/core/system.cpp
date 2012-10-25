@@ -64,6 +64,24 @@ System::System () :
       , _enableEvents(), _disableEvents(), _instrumentDefault("default")
 {
    verbose0 ( "NANOS++ initializing... start" );
+
+
+   if (sched_getaffinity(( pid_t ) 0, sizeof( cpu_set_t ), getCpuSet() ) != 0)
+	warning(" sched_getaffinity has FAILED!!!");
+
+   const int ncpus = CPU_COUNT(getCpuSet());
+   int i = 0;
+   int idx = 0;
+   std::cerr << "CPUSET count: " << ncpus << " idx: ";
+   while(idx < ncpus) {
+     if(CPU_ISSET(i, getCpuSet())){
+       _cpu_id[idx++] = i;
+       std::cerr << i << " ";
+     }
+     i++;
+   }
+   std::cerr << std::endl;
+
    // OS::init must be called here and not in System::start() as it can be too late
    // to locate the program arguments at that point
    OS::init();
