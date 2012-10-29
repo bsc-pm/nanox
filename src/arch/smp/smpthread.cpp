@@ -82,8 +82,7 @@ void SMPThread::join ()
 
 void SMPThread::bind( void )
 {
-   
-   int ncpus = CPU_COUNT( sys.getCpuSet() );
+   int ncpus = sys.getNumPEs();
    int cpu_idx = ( getCpuId() * sys.getBindingStride() ) + sys.getBindingStart();
    int cpu_id = sys.getCpuId(( (cpu_idx + ( cpu_idx/ncpus) ) % ncpus));
    
@@ -105,7 +104,7 @@ void SMPThread::bind( void )
    cpu_set_t cpu_set;
    CPU_ZERO( &cpu_set );
    CPU_SET( cpu_id, &cpu_set );
-   warning( "Binding thread " << getId() << " to cpu " << cpu_id );
+   verbose( " Binding thread " << getId() << " to cpu " << cpu_id );
    sched_setaffinity( ( pid_t ) 0, sizeof( cpu_set ), &cpu_set );
 }
 

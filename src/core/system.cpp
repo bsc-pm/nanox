@@ -47,7 +47,7 @@ System nanos::sys;
 // default system values go here
 System::System () :
       _atomicWDSeed( 1 ),
-      _numPEs( 1 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
+      _numPEs( INT_MAX ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ), _thsPerPE( 1 ),
       _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
       _numSockets( 1 ), _coresPerSocket( 1 ), _throttlePolicy ( NULL ),
@@ -65,22 +65,30 @@ System::System () :
 {
    verbose0 ( "NANOS++ initializing... start" );
 
+   int nanox_pid = getpid();
 
-   if (sched_getaffinity(( pid_t ) 0, sizeof( cpu_set_t ), getCpuSet() ) != 0)
+   if (sched_getaffinity( nanox_pid, sizeof( cpu_set_t ), getCpuSet() ) != 0)
 	warning(" sched_getaffinity has FAILED!!!");
 
    const int ncpus = CPU_COUNT(getCpuSet());
    int i = 0;
    int idx = 0;
-   std::cerr << "CPUSET count: " << ncpus << " idx: ";
+   std::ostringstream oss_cpu_mask, oss_cpu_idx;
+   oss_cpu_mask << "mask: ";
+   oss_cpu_idx << "[";
    while(idx < ncpus) {
+     oss_cpu_mask << CPU_ISSET(i, getCpuSet());
      if(CPU_ISSET(i, getCpuSet())){
        _cpu_id[idx++] = i;
-       std::cerr << i << " ";
+       oss_cpu_idx << i << (idx < ncpus ? ", " : "]");
      }
      i++;
    }
-   std::cerr << std::endl;
+   
+   verbose0("PID[" << nanox_pid << "]. CPU affinity " << oss_cpu_mask.str() << " => " << oss_cpu_idx.str()); 
+   
+   if(getNumPEs() == INT_MAX)
+     setNumPEs(ncpus);
 
    // OS::init must be called here and not in System::start() as it can be too late
    // to locate the program arguments at that point
