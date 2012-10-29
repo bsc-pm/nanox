@@ -67,6 +67,7 @@ namespace nanos
          static WD * prefetch ( BaseThread *thread, WD &wd );
 
          static void updateExitStats ( WD &wd );
+         static void updateCreateStats ( WD &wd );
 
          /*! \brief checks if a WD is elegible to run in a given thread */
          static bool checkBasicConstraints ( WD &wd, BaseThread &thread );
