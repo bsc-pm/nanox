@@ -648,6 +648,34 @@ class InstrumentationExtrae: public Instrumentation
 
             }
          }
+         /* HARDCODED values */
+         {
+            unsigned nval = NANOS_EVENT_STATE_TYPES;
+            extrae_value_t *values = (extrae_value_t *) alloca( sizeof(extrae_value_t) * nval );
+            char **val_desc = (char **) alloca( sizeof(char *) * nval );
+            unsigned int i = 0;
+            static std::string nanos_event_state_value_str[] = {"NOT CREATED", "NOT RUNNING", 
+               "STARTUP", "SHUTDOWN", "ERROR", "IDLE",
+               "RUNTIME", "RUNNING", "SYNCHRONIZATION", "SCHEDULING", "CREATION",
+               "DATA TRANSFER TO DEVICE", "DATA TRANSFER TO HOST", "LOCAL DATA TRANSFER IN DEVICE",
+               "DATA TRANSFER TO DEVICE", "DATA TRANSFER TO HOST", "LOCAL DATA TRANSFER IN DEVICE",
+               "CACHE ALLOC/FREE", "YIELD", "ACQUIRING LOCK", "CONTEXT SWITCH", "DEBUG"};
+
+            for ( i = 0; i < (nval - 1); i++ ) { // Do not show the DEBUG state
+               values[i] = i;
+               val_desc[i] = (char *) nanos_event_state_value_str[i].c_str();
+            }
+            values[i] = 27;
+            val_desc[i++] = (char *) "EXTRAE I/O";
+
+            Extrae_define_event_type( _eventState, (char *) "Thread state: ", nval, values, val_desc );
+
+            Extrae_define_event_type( _eventPtPStart, (char *) "Point-to-point origin", 0, NULL, NULL );
+
+            Extrae_define_event_type( _eventPtPEnd, (char *) "Point-to-point destination", 0, NULL, NULL );
+
+            Extrae_define_event_type( _eventSubState, (char *) "Thread sub-state", nval, values, val_desc );
+         }
 
          if ( !_skipFini ) OMPItrace_fini();
          // OMPItrace_fini();
