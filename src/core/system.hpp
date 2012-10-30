@@ -45,11 +45,26 @@ inline int System::getCpuId ( int idx ) {
 
 inline int System::getCpuCount () const { return _cpu_count; };
 
+inline int System::checkCpuMask(cpu_set_t *mask){
+
+   warning("_cpu_count:" << _cpu_count);
+   int idx = 0;
+   int i = 0;
+   while( i < _cpu_count){
+     ensure( idx < CPU_SETSIZE, "_cpu_count != CPU_COUNT(&_cpu_set)" ); 
+     if(CPU_ISSET(idx, &_cpu_set)){
+       i++;
+     } else {
+       if(CPU_ISSET(idx, mask))
+         return 0;
+     }
+     idx++;
+   }
+   return 1;
+}
 
 inline void System::setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask){
-   cpu_set_t tmp;
-   CPU_OR(&tmp, &_cpu_set, mask);
-   ensure( CPU_EQUAL(&tmp, &_cpu_set) , "invalid CPU mask set" );
+   ensure( checkCpuMask(mask), "invalid CPU mask set" );
    sched_setaffinity( pid, cpusetsize, mask);
 }
 
