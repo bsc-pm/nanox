@@ -38,9 +38,20 @@ inline void System::setNumPEs ( int npes ) { _numPEs = npes; }
 
 inline int System::getNumPEs () const { return _numPEs; }
 
-inline cpu_set_t * System::getCpuSet () { return &_cpu_set; }
-	 
-inline int System::getCpuId ( int idx ) { return _cpu_id[idx]; };
+inline int System::getCpuId ( int idx ) { 
+   ensure( ( ( idx >= 0 ) && ( idx < _cpu_count ) ), "invalid value for cpu idx" );
+   return _cpu_id[idx]; 
+};
+
+inline int System::getCpuCount () const { return _cpu_count; };
+
+
+inline void System::setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask){
+   cpu_set_t tmp;
+   CPU_OR(&tmp, &_cpu_set, mask);
+   ensure( CPU_EQUAL(&tmp, &_cpu_set) , "invalid CPU mask set" );
+   sched_setaffinity( pid, cpusetsize, mask);
+}
 
 inline void System::setDeviceStackSize ( int stackSize ) { _deviceStackSize = stackSize; }
 
