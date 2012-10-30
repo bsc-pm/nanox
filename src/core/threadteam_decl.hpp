@@ -52,10 +52,12 @@ namespace nanos
 
    class ThreadTeam
    {
-         typedef std::list<nanos_reduction_t*> ReductionList;  /**< List of Reduction op's (Bursts) */
       private:
-         BaseThread **                _threads;
-         Atomic<size_t>               _size;
+         typedef std::list<nanos_reduction_t*>     ReductionList;  /**< List of Reduction op's (Bursts) */
+         typedef std::map<unsigned, BaseThread *>  ThreadTeamList;
+
+         ThreadTeamList               _threads;
+         unsigned                     _idCounter;
          Atomic<size_t>               _starSize;
          int                          _idleThreads;
          int                          _numTasks;
@@ -121,6 +123,10 @@ namespace nanos
          /*! \brief removes a thread from the team pool
           */
          void removeThread ( unsigned id );
+
+         /*! \brief removes and returns the last thread from the team pool
+          */
+         BaseThread * popThread();
 
          void barrier();
 

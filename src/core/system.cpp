@@ -476,12 +476,9 @@ void System::finish ()
 
    if ( team->getScheduleData() != NULL ) team->getScheduleData()->printStats();
 
-   /* team->size() will change during the for loop */
-   unsigned teamSize = team->size();
    /* For every thread in the team */
-   for ( unsigned t = 0; t < teamSize; t++ ) {
-      BaseThread* pThread = &team->getThread( t );
-      team->removeThread( t );
+   while ( team->size() > 0 ) {
+      BaseThread* pThread = team->popThread();
       pThread->leaveTeam();
    }
    delete team;
