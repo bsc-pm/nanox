@@ -354,7 +354,7 @@ void System::start ()
       gpusPerNode = 1;
    }
    else
-      gpusPerNode = getNumSockets() / nanos::ext::GPUConfig::getGPUCount();
+      gpusPerNode = nanos::ext::GPUConfig::getGPUCount() / getNumSockets();
 #endif
    for ( int node = 0; node < getNumSockets(); ++node )
    {
