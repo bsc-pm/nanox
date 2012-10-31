@@ -47,7 +47,6 @@ inline int System::getCpuCount () const { return _cpu_count; };
 
 inline int System::checkCpuMask(cpu_set_t *mask){
 
-   warning("_cpu_count:" << _cpu_count);
    int idx = 0;
    int i = 0;
    while( i < _cpu_count){
