@@ -38,6 +38,36 @@ inline void System::setNumPEs ( int npes ) { _numPEs = npes; }
 
 inline int System::getNumPEs () const { return _numPEs; }
 
+inline int System::getCpuId ( int idx ) { 
+   ensure( ( ( idx >= 0 ) && ( idx < _cpu_count ) ), "invalid value for cpu idx" );
+   return _cpu_id[idx]; 
+};
+
+inline int System::getCpuCount () const { return _cpu_count; };
+
+inline int System::checkCpuMask(cpu_set_t *mask){
+
+   warning("_cpu_count:" << _cpu_count);
+   int idx = 0;
+   int i = 0;
+   while( i < _cpu_count){
+     ensure( idx < CPU_SETSIZE, "_cpu_count != CPU_COUNT(&_cpu_set)" ); 
+     if(CPU_ISSET(idx, &_cpu_set)){
+       i++;
+     } else {
+       if(CPU_ISSET(idx, mask))
+         return 0;
+     }
+     idx++;
+   }
+   return 1;
+}
+
+inline void System::setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask){
+   ensure( checkCpuMask(mask), "invalid CPU mask set" );
+   sched_setaffinity( pid, cpusetsize, mask);
+}
+
 inline void System::setDeviceStackSize ( int stackSize ) { _deviceStackSize = stackSize; }
 
 inline int System::getDeviceStackSize () const {return _deviceStackSize; }

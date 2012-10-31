@@ -82,10 +82,9 @@ void SMPThread::join ()
 
 void SMPThread::bind( void )
 {
-   cpu_set_t cpu_set;
-   long ncpus = sysconf( _SC_NPROCESSORS_ONLN );
+   int ncpus = sys.getCpuCount();
    int cpu_idx = ( getCpuId() * sys.getBindingStride() ) + sys.getBindingStart();
-   int cpu_id = ( (cpu_idx + ( cpu_idx/ncpus) ) % ncpus);
+   int cpu_id = sys.getCpuId( ((cpu_idx+(cpu_idx/ncpus)) % ncpus));
    
    // If using the socket scheduler...
    if ( sys.getDefaultSchedule() == "socket" )
@@ -101,11 +100,11 @@ void SMPThread::bind( void )
       setSocket( socket );
    }
 
-   ensure( ( ( cpu_id >= 0 ) && ( cpu_id < ncpus ) ), "invalid value for cpu id" );
+   cpu_set_t cpu_set;
    CPU_ZERO( &cpu_set );
    CPU_SET( cpu_id, &cpu_set );
-   verbose( "Binding thread " << getId() << " to cpu " << cpu_id );
-   sched_setaffinity( ( pid_t ) 0, sizeof( cpu_set ), &cpu_set );
+   verbose( " Binding thread " << getId() << " to cpu " << cpu_id );
+   sys.setCpuAffinity( ( pid_t ) 0, sizeof( cpu_set ), &cpu_set );
 }
 
 void SMPThread::yield()
