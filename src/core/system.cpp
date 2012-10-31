@@ -31,6 +31,7 @@
 #include "allocator.hpp"
 #include <string.h>
 #include <set>
+#include <cmath>
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -323,6 +324,94 @@ void System::start ()
 #ifdef GPU_DEV
    _targetThreads += nanos::ext::GPUConfig::getGPUCount();
 #endif
+
+   // Check NUMA config
+   if ( _numSockets != std::ceil( _targetThreads / static_cast<float>( _coresPerSocket ) ) )
+   {
+      unsigned validCoresPS = std::ceil( _targetThreads / static_cast<float>( _numSockets ) );
+      warning0( "Adjusting cores-per-socket from " << _coresPerSocket << " to " << validCoresPS );
+      _coresPerSocket = validCoresPS;
+   }
+   
+   // TODO: use binding start
+   // Initial core to bind the cpu to.
+   int cpu_id = 0;
+   // NUMA node GPU stride (a GPU every X nodes)
+   int gpuStride = 1;
+   int gpusPerNode = 0;
+   
+   _bindings.reserve( _targetThreads );
+   // Temporary binding lists
+   Bindings smpBindings, gpuBindings;
+   smpBindings.reserve( getThsPerPE() * getNumPEs() );
+   
+#ifdef GPU_DEV
+   gpuBindings.reserve( nanos::ext::GPUConfig::getGPUCount() );
+   
+   // If there are less GPUs than NUMA nodes
+   if( nanos::ext::GPUConfig::getGPUCount() < getNumSockets() ) {
+      gpuStride = getNumSockets() / nanos::ext::GPUConfig::getGPUCount();
+      gpusPerNode = 1;
+   }
+   else
+      gpusPerNode = getNumSockets() / nanos::ext::GPUConfig::getGPUCount();
+#endif
+   for ( int node = 0; node < getNumSockets(); ++node )
+   {
+      // SMPThreads to create in this node
+      int numSMPNode = getCoresPerSocket();
+      
+      // If this node will have GPUs, substract the GPU threads
+      if ( node % gpuStride == 0 )
+      {
+         numSMPNode -= gpusPerNode;
+      }
+      
+      for( int smpThread = 0; smpThread < numSMPNode; ++smpThread )
+      {
+         smpBindings.push_back( cpu_id );
+         ++cpu_id;
+      }
+      
+      if ( node % gpuStride == 0 )
+      {
+         for( int gpuThread = 0; gpuThread < gpusPerNode; ++gpuThread )
+         {
+            gpuBindings.push_back( cpu_id );
+            ++cpu_id;
+         }
+      }
+   }
+   
+   /*
+    * gmiranda:
+    * Concatenate binding lists in the same order as their architectures are
+    * created.
+    * This is really important.
+    */
+   std::copy( smpBindings.begin(), smpBindings.end(), std::back_inserter( _bindings ) );
+   std::copy( gpuBindings.begin(), gpuBindings.end(), std::back_inserter( _bindings ) );
+   
+   fprintf( stderr, "Bindings: ( " );
+   for( unsigned int i = 0; i < _bindings.size(); ++i )
+   {
+      fprintf(stderr, "%d, ", _bindings[i] );
+   }
+   fprintf( stderr, ")\n" );
+   
+   fprintf( stderr, "smpBindings: ( " );
+   for( unsigned int i = 0; i < smpBindings.size(); ++i )
+   {
+      fprintf(stderr, "%d, ", smpBindings[i] );
+   }
+   fprintf( stderr, ")\n" );
+   
+   fprintf( stderr, "gpuBindings: ( " );
+   for( unsigned int i = 0; i < gpuBindings.size(); ++i )
+   {
+      fprintf(stderr, "%d, ", gpuBindings[i] );
+   }
+   fprintf( stderr, ")\n" );
 
    //start as much threads per pe as requested by the user
    for ( int ths = 1; ths < getThsPerPE(); ths++ ) {

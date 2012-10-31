@@ -38,6 +38,8 @@ inline void System::setNumPEs ( int npes ) { _numPEs = npes; }
 
 inline int System::getNumPEs () const { return _numPEs; }
 
+inline unsigned System::getMaxThreads () const { return _targetThreads; }
+
 inline void System::setDeviceStackSize ( int stackSize ) { _deviceStackSize = stackSize; }
 
 inline int System::getDeviceStackSize () const {return _deviceStackSize; }
@@ -98,6 +100,11 @@ inline void System::setNumSockets ( int numSockets ) { _numSockets = numSockets;
 
 inline int System::getCoresPerSocket() const { return _coresPerSocket; }
 inline void System::setCoresPerSocket ( int coresPerSocket ) { _coresPerSocket = coresPerSocket; }
+
+inline int System::getBindingId ( int id ) const
+{
+   return _bindings[ id ];
+}
 
 inline void System::setThrottlePolicy( ThrottlePolicy * policy ) { _throttlePolicy = policy; }
 

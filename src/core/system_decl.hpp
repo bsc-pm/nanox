@@ -66,6 +66,9 @@ namespace nanos
          typedef std::map<std::string, WorkSharing *> WorkSharings;
          typedef std::multimap<std::string, std::string> ModulesPlugins;
          
+         //! CPU id binding list
+         typedef std::vector<int> Bindings;
+         
          // globla seeds
          Atomic<int> _atomicWDSeed;
 
@@ -148,6 +151,9 @@ namespace nanos
          CachePolicyType      _cachePolicy;
          //! CacheMap register
          CacheMap             _cacheMap;
+         
+         //! CPU id binding list
+         Bindings             _bindings;
 
 #ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
@@ -206,6 +212,9 @@ namespace nanos
          void setNumPEs ( int npes );
 
          int getNumPEs () const;
+         
+         //! \brief Returns the maximum number of threads (SMP + GPU + ...).
+         unsigned getMaxThreads () const;
 
          void setDeviceStackSize ( int stackSize );
 
@@ -259,6 +268,13 @@ namespace nanos
          int getCoresPerSocket() const;
 
          void setCoresPerSocket ( int coresPerSocket );
+         
+         /**
+          * \brief Returns a CPU Id that the given architecture should use
+          * to bind a new thread to.
+          * \param id Thread ID.
+          */
+         int getBindingId ( int id ) const;
 
          void setUntieMaster ( bool value );
 

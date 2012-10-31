@@ -26,9 +26,7 @@
 #include <unistd.h>
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
-#ifdef GPU_DEV
-#include "gpuprocessor_decl.hpp"
-#endif
+
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -116,8 +114,9 @@ void SMPThread::bind( void )
 // TODO: move to hpp
 int SMPThread::adjustBind( int cpu_id )
 {
-   fprintf( stderr, "CPU thread %d has now affinity to %d\n", cpu_id, cpu_id + (( cpu_id +1 ) / sys.getCoresPerSocket() ) ); 
-   return cpu_id + (( cpu_id +1 ) / sys.getCoresPerSocket() ); 
+   int new_id = sys.getBindingId( getId() );
+   fprintf( stderr, "CPU thread %d goes to %d\n", cpu_id, new_id );
+   return new_id;
 }
 
 void SMPThread::yield()
