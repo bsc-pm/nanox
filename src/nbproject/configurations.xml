@@ -1,0 +1,1247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="84">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <df name="src" root=".">
+      <df name="apis">
+        <df name="c">
+          <df name="debug">
+          </df>
+          <df name="instrumentation">
+          </df>
+          <df name="instrumentation-debug">
+          </df>
+          <df name="performance">
+          </df>
+          <in>nanos.h</in>
+          <in>nanos_atomic.cpp</in>
+          <in>nanos_atomic.h</in>
+          <in>nanos_c_api_macros.h</in>
+          <in>nanos_err.cpp</in>
+          <in>nanos_finders.cpp</in>
+          <in>nanos_instrument.cpp</in>
+          <in>nanos_memory.cpp</in>
+          <in>nanos_pe.cpp</in>
+          <in>nanos_reduction.cpp</in>
+          <in>nanos_reduction.h</in>
+          <in>nanos_reduction_fortran.f90</in>
+          <in>nanos_sync.cpp</in>
+          <in>nanos_sys.cpp</in>
+          <in>nanos_team.cpp</in>
+          <in>nanos_wd.cpp</in>
+          <in>nanos_worksharing.cpp</in>
+        </df>
+      </df>
+      <df name="arch">
+        <df name="fpga">
+          <df name="debug">
+          </df>
+          <df name="instrumentation">
+          </df>
+          <df name="instrumentation-debug">
+          </df>
+          <df name="performance">
+          </df>
+        </df>
+        <df name="gpu">
+          <df name="debug">
+          </df>
+          <df name="instrumentation">
+          </df>
+          <df name="instrumentation-debug">
+          </df>
+          <df name="performance">
+          </df>
+          <in>gpu-api.cpp</in>
+          <in>gpucompatibility.hpp</in>
+          <in>gpuconfig.cpp</in>
+          <in>gpuconfig.hpp</in>
+          <in>gpucublasplugin.cpp</in>
+          <in>gpudd.cpp</in>
+          <in>gpudd.hpp</in>
+          <in>gpudevice.cpp</in>
+          <in>gpudevice.hpp</in>
+          <in>gpudevice_decl.hpp</in>
+          <in>gpumemorytransfer.cpp</in>
+          <in>gpumemorytransfer.hpp</in>
+          <in>gpuplugin.cpp</in>
+          <in>gpuprocessor.cpp</in>
+          <in>gpuprocessor.hpp</in>
+          <in>gpuprocessor_decl.hpp</in>
+          <in>gpuprocessor_fwd.hpp</in>
+          <in>gputhread.cpp</in>
+          <in>gputhread.hpp</in>
+          <in>gputhread_decl.hpp</in>
+          <in>gpuutils.cpp</in>
+          <in>gpuutils.hpp</in>
+          <in>nanos-gpu.h</in>
+        </df>
+        <df name="mpi">
+          <df name="armv71">
+            <in>stack.cpp</in>
+            <in>stack.s</in>
+          </df>
+          <df name="debug">
+          </df>
+          <df name="ia64">
+            <in>stack.cpp</in>
+            <in>stack.s</in>
+          </df>
+          <df name="instrumentation">
+          </df>
+          <df name="instrumentation-debug">
+          </df>
+          <df name="performance">
+          </df>
+          <df name="ppc32">
+            <in>stack.cpp</in>
+            <in>stack.s</in>
+          </df>
+          <df name="ppc64">
+            <in>stack.cpp</in>
+            <in>stack.s</in>
+          </df>
+          <df name="tile64">
+            <in>stack.cpp</in>
+            <in>stack.s</in>
+          </df>
+          <df name="x86">
+            <in>stack.cpp</in>
+            <in>stack.s</in>
+          </df>
+          <df name="x86-64">
+            <in>stack.cpp</in>
+            <in>stack.s</in>
+          </df>
+          <in>mpi-api.cpp</in>
+          <in>mpi_ult.hpp</in>
+          <in>mpidd.cpp</in>
+          <in>mpidd.hpp</in>
+          <in>mpidevice.hpp</in>
+          <in>mpiplugin.cpp</in>
+          <in>mpiprocessor.cpp</in>
+          <in>mpiprocessor.hpp</in>
+          <in>mpithread.cpp</in>
+          <in>mpithread.hpp</in>
+          <in>nanos-mpi.h</in>
+        </df>
+        <df name="smp">
+          <df name="armv71">
+            <in>stack.cpp</in>
+            <in>stack.s</in>
+          </df>
+          <df name="debug">
+          </df>
+          <df name="ia64">
+            <in>stack.cpp</in>
+            <in>stack.s</in>
+          </df>
+          <df name="instrumentation">
+          </df>
+          <df name="instrumentation-debug">
+          </df>
+          <df name="performance">
+          </df>
+          <df name="ppc32">
+            <in>stack.cpp</in>
+            <in>stack.s</in>
+          </df>
+          <df name="ppc64">
+            <in>stack.cpp</in>
+            <in>stack.s</in>
+          </df>
+          <df name="tile64">
+            <in>stack.cpp</in>
+            <in>stack.s</in>
+          </df>
+          <df name="x86">
+            <in>stack.cpp</in>
+            <in>stack.s</in>
+          </df>
+          <df name="x86-64">
+            <in>stack.cpp</in>
+            <in>stack.s</in>
+          </df>
+          <in>smp_ult.hpp</in>
+          <in>smpdd.cpp</in>
+          <in>smpdd.hpp</in>
+          <in>smpdevice.hpp</in>
+          <in>smpplugin.cpp</in>
+          <in>smpprocessor.cpp</in>
+          <in>smpprocessor.hpp</in>
+          <in>smpthread.cpp</in>
+          <in>smpthread.hpp</in>
+        </df>
+        <df name="spu">
+          <df name="debug">
+          </df>
+          <df name="instrumentation">
+          </df>
+          <df name="instrumentation-debug">
+          </df>
+          <df name="performance">
+          </df>
+          <in>spudd.cpp</in>
+          <in>spudd.hpp</in>
+          <in>spuprocessor.cpp</in>
+          <in>spuprocessor.hpp</in>
+          <in>sputhread.cpp</in>
+          <in>sputhread.hpp</in>
+        </df>
+        <df name="unix-os">
+          <df name="debug">
+          </df>
+          <df name="instrumentation">
+          </df>
+          <df name="instrumentation-debug">
+          </df>
+          <df name="performance">
+          </df>
+          <in>os.cpp</in>
+          <in>os.hpp</in>
+        </df>
+      </df>
+      <df name="core">
+        <df name="debug">
+        </df>
+        <df name="instrumentation">
+        </df>
+        <df name="instrumentation-debug">
+        </df>
+        <df name="performance">
+        </df>
+        <in>accelerator.cpp</in>
+        <in>accelerator_decl.hpp</in>
+        <in>accelerator_fwd.hpp</in>
+        <in>address.hpp</in>
+        <in>address_decl.hpp</in>
+        <in>address_fwd.hpp</in>
+        <in>barrier.hpp</in>
+        <in>barrier_decl.hpp</in>
+        <in>barrier_fwd.hpp</in>
+        <in>basedependency_decl.hpp</in>
+        <in>basedependency_fwd.hpp</in>
+        <in>basethread.cpp</in>
+        <in>basethread.hpp</in>
+        <in>basethread_decl.hpp</in>
+        <in>basethread_fwd.hpp</in>
+        <in>cache_map.hpp</in>
+        <in>cache_map_decl.hpp</in>
+        <in>cachedaccelerator.hpp</in>
+        <in>cachedaccelerator_decl.hpp</in>
+        <in>commutationdepobj.hpp</in>
+        <in>commutationdepobj_decl.hpp</in>
+        <in>copydata.hpp</in>
+        <in>copydata_decl.hpp</in>
+        <in>copydata_fwd.hpp</in>
+        <in>dataaccess.hpp</in>
+        <in>dataaccess_decl.hpp</in>
+        <in>dataaccess_fwd.hpp</in>
+        <in>dependableobject.cpp</in>
+        <in>dependableobject.hpp</in>
+        <in>dependableobject_decl.hpp</in>
+        <in>dependableobject_fwd.hpp</in>
+        <in>dependableobjectwd.cpp</in>
+        <in>dependableobjectwd.hpp</in>
+        <in>dependableobjectwd_decl.hpp</in>
+        <in>dependableobjectwd_fwd.hpp</in>
+        <in>dependenciesdomain.cpp</in>
+        <in>dependenciesdomain.hpp</in>
+        <in>dependenciesdomain_decl.hpp</in>
+        <in>dependenciesdomain_fwd.hpp</in>
+        <in>directory.cpp</in>
+        <in>directory.hpp</in>
+        <in>directory_decl.hpp</in>
+        <in>instrumentation.cpp</in>
+        <in>instrumentation.hpp</in>
+        <in>instrumentation_decl.hpp</in>
+        <in>instrumentation_fwd.hpp</in>
+        <in>instrumentationcontext.cpp</in>
+        <in>instrumentationcontext.hpp</in>
+        <in>instrumentationcontext_decl.hpp</in>
+        <in>instrumentationcontext_fwd.hpp</in>
+        <in>instrumentationmodule_decl.hpp</in>
+        <in>nanos-int.h</in>
+        <in>nanos_error.h</in>
+        <in>pminterface_decl.hpp</in>
+        <in>processingelement.cpp</in>
+        <in>processingelement.hpp</in>
+        <in>processingelement_decl.hpp</in>
+        <in>processingelement_fwd.hpp</in>
+        <in>schedule.cpp</in>
+        <in>schedule.hpp</in>
+        <in>schedule_decl.hpp</in>
+        <in>schedule_fwd.hpp</in>
+        <in>slicer.hpp</in>
+        <in>slicer_decl.hpp</in>
+        <in>slicer_fwd.hpp</in>
+        <in>synchronizedcondition.hpp</in>
+        <in>synchronizedcondition_decl.hpp</in>
+        <in>synchronizedcondition_fwd.hpp</in>
+        <in>system.cpp</in>
+        <in>system.hpp</in>
+        <in>system_decl.hpp</in>
+        <in>system_fwd.hpp</in>
+        <in>threadteam.cpp</in>
+        <in>threadteam.hpp</in>
+        <in>threadteam_decl.hpp</in>
+        <in>threadteam_fwd.hpp</in>
+        <in>throttle_decl.hpp</in>
+        <in>throttle_fwd.hpp</in>
+        <in>trackableobject.hpp</in>
+        <in>trackableobject_decl.hpp</in>
+        <in>trackableobject_fwd.hpp</in>
+        <in>wddeque.hpp</in>
+        <in>wddeque_decl.hpp</in>
+        <in>wddeque_fwd.hpp</in>
+        <in>workdescriptor.cpp</in>
+        <in>workdescriptor.hpp</in>
+        <in>workdescriptor_decl.hpp</in>
+        <in>workdescriptor_fwd.hpp</in>
+        <in>workgroup.cpp</in>
+        <in>workgroup.hpp</in>
+        <in>workgroup_decl.hpp</in>
+        <in>workgroup_fwd.hpp</in>
+        <in>worksharing_decl.hpp</in>
+      </df>
+      <df name="plugins">
+        <df name="barr">
+          <df name="debug">
+          </df>
+          <df name="instrumentation">
+          </df>
+          <df name="instrumentation-debug">
+          </df>
+          <df name="performance">
+          </df>
+          <in>centralized_barrier.cpp</in>
+          <in>dissem_barrier.cpp</in>
+          <in>posix_barrier.cpp</in>
+          <in>tree_barrier.cpp</in>
+        </df>
+        <df name="deps">
+          <df name="debug">
+          </df>
+          <df name="instrumentation">
+          </df>
+          <df name="instrumentation-debug">
+          </df>
+          <df name="performance">
+          </df>
+          <in>basedependenciesdomain.hpp</in>
+          <in>basedependenciesdomain_decl.hpp</in>
+          <in>baseregionsdependenciesdomain.hpp</in>
+          <in>baseregionsdependenciesdomain_decl.hpp</in>
+          <in>perfect_regions_deps.cpp</in>
+          <in>plain_deps.cpp</in>
+          <in>regions_deps.cpp</in>
+        </df>
+        <df name="instrumentation">
+          <df name="debug">
+          </df>
+          <df name="instrumentation">
+          </df>
+          <df name="instrumentation-debug">
+          </df>
+          <df name="performance">
+          </df>
+          <in>ayudame.cpp</in>
+          <in>empty_trace.cpp</in>
+          <in>extrae.cpp</in>
+          <in>nextsim.cpp</in>
+          <in>ompi_services.cpp</in>
+          <in>print_trace.cpp</in>
+        </df>
+        <df name="sched">
+          <df name="debug">
+          </df>
+          <df name="instrumentation">
+          </df>
+          <df name="instrumentation-debug">
+          </df>
+          <df name="performance">
+          </df>
+          <in>affinity-smartpriority_sched.cpp</in>
+          <in>affinity_sched.cpp</in>
+          <in>bf_sched.cpp</in>
+          <in>cilk_sched.cpp</in>
+          <in>dbf_sched.cpp</in>
+          <in>default_sched.cpp</in>
+          <in>priority_sched.cpp</in>
+          <in>smartpriority_sched.cpp</in>
+          <in>socket_sched.cpp</in>
+          <in>versioning_sched.cpp</in>
+          <in>wf_sched.cpp</in>
+        </df>
+        <df name="slicers">
+          <df name="debug">
+          </df>
+          <df name="instrumentation">
+          </df>
+          <df name="instrumentation-debug">
+          </df>
+          <df name="performance">
+          </df>
+          <in>compound_wd.cpp</in>
+          <in>dynamic_for.cpp</in>
+          <in>guided_for.cpp</in>
+          <in>repeat_n.cpp</in>
+          <in>replicate.cpp</in>
+          <in>static_for.cpp</in>
+        </df>
+        <df name="throttle">
+          <df name="debug">
+          </df>
+          <df name="instrumentation">
+          </df>
+          <df name="instrumentation-debug">
+          </df>
+          <df name="performance">
+          </df>
+          <in>dummy_throttle.cpp</in>
+          <in>idlethreads_throttle.cpp</in>
+          <in>numtasks_throttle.cpp</in>
+          <in>readytasks_throttle.cpp</in>
+          <in>taskdepth_throttle.cpp</in>
+        </df>
+        <df name="worksharing">
+          <df name="debug">
+          </df>
+          <df name="instrumentation">
+          </df>
+          <df name="instrumentation-debug">
+          </df>
+          <df name="performance">
+          </df>
+          <in>dynamic.cpp</in>
+          <in>guided.cpp</in>
+          <in>loop.hpp</in>
+          <in>static.cpp</in>
+        </df>
+      </df>
+      <df name="pms">
+        <df name="chapel">
+          <df name="debug">
+          </df>
+          <df name="instrumentation">
+          </df>
+          <df name="instrumentation-debug">
+          </df>
+          <df name="performance">
+          </df>
+          <in>chpl_init.c</in>
+          <in>chpl_main.cpp</in>
+          <in>chpl_nanos.h</in>
+          <in>chpl_sync.cpp</in>
+        </df>
+        <df name="openmp">
+          <df name="debug">
+          </df>
+          <df name="instrumentation">
+          </df>
+          <df name="instrumentation-debug">
+          </df>
+          <df name="performance">
+          </df>
+          <in>nanos_omp.cpp</in>
+          <in>nanos_omp.h</in>
+          <in>omp.h</in>
+          <in>omp_api.cpp</in>
+          <in>omp_init.cpp</in>
+          <in>omp_init.hpp</in>
+          <in>omp_locks.cpp</in>
+          <in>omp_stubs.cpp</in>
+          <in>omp_threadteam_data.hpp</in>
+          <in>omp_time.cpp</in>
+          <in>omp_wd_data.hpp</in>
+        </df>
+        <df name="ss">
+          <df name="debug">
+          </df>
+          <df name="instrumentation">
+          </df>
+          <df name="instrumentation-debug">
+          </df>
+          <df name="performance">
+          </df>
+          <in>ss_init.cpp</in>
+        </df>
+      </df>
+      <df name="support">
+        <df name="debug">
+        </df>
+        <df name="instrumentation">
+        </df>
+        <df name="instrumentation-debug">
+        </df>
+        <df name="performance">
+        </df>
+        <in>allocator.cpp</in>
+        <in>allocator.hpp</in>
+        <in>allocator_decl.hpp</in>
+        <in>allocator_fwd.hpp</in>
+        <in>atomic.hpp</in>
+        <in>atomic_decl.hpp</in>
+        <in>bitcounter.hpp</in>
+        <in>bitcounter_decl.hpp</in>
+        <in>bitcounter_fwd.hpp</in>
+        <in>cache.hpp</in>
+        <in>cache_decl.hpp</in>
+        <in>cache_fwd.hpp</in>
+        <in>compatibility.hpp</in>
+        <in>config.cpp</in>
+        <in>config.hpp</in>
+        <in>config_decl.hpp</in>
+        <in>config_fwd.hpp</in>
+        <in>containeradapter.hpp</in>
+        <in>containeradapter_decl.hpp</in>
+        <in>containeradapter_fwd.hpp</in>
+        <in>containertraits.hpp</in>
+        <in>copydescriptor.hpp</in>
+        <in>copydescriptor_decl.hpp</in>
+        <in>debug.hpp</in>
+        <in>functors.hpp</in>
+        <in>functors_decl.hpp</in>
+        <in>hashmap.hpp</in>
+        <in>hashmap_decl.hpp</in>
+        <in>lazy.hpp</in>
+        <in>lazy_decl.hpp</in>
+        <in>list.hpp</in>
+        <in>list_decl.hpp</in>
+        <in>malign.hpp</in>
+        <in>memtracker.cpp</in>
+        <in>memtracker.hpp</in>
+        <in>memtracker_decl.hpp</in>
+        <in>memtracker_fwd.hpp</in>
+        <in>new.cpp</in>
+        <in>new_decl.hpp</in>
+        <in>pinnedallocator.cpp</in>
+        <in>pinnedallocator.hpp</in>
+        <in>pinnedallocator_decl.hpp</in>
+        <in>plugin.cpp</in>
+        <in>plugin.hpp</in>
+        <in>plugin_decl.hpp</in>
+        <in>queue.hpp</in>
+        <in>queue_decl.hpp</in>
+        <in>region.cpp</in>
+        <in>region.hpp</in>
+        <in>region_decl.hpp</in>
+        <in>region_fwd.hpp</in>
+        <in>regionbuilder.cpp</in>
+        <in>regionbuilder.hpp</in>
+        <in>regionbuilder_decl.hpp</in>
+        <in>regionbuilder_fwd.hpp</in>
+        <in>regioncollection.hpp</in>
+        <in>regioncollection_decl.hpp</in>
+        <in>regioncollection_fwd.hpp</in>
+        <in>regionpart.hpp</in>
+        <in>regionpart_decl.hpp</in>
+        <in>regionpart_fwd.hpp</in>
+        <in>regiontree.hpp</in>
+        <in>regiontree_decl.hpp</in>
+        <in>regiontree_fwd.hpp</in>
+        <in>regiontreenode.hpp</in>
+        <in>regiontreenode_decl.hpp</in>
+        <in>regiontreenode_fwd.hpp</in>
+        <in>simpleallocator.cpp</in>
+        <in>simpleallocator.hpp</in>
+        <in>simpleallocator_decl.hpp</in>
+        <in>xstring.hpp</in>
+      </df>
+      <df name="utils">
+        <in>nanox.cpp</in>
+      </df>
+    </df>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+      <itemPath>Makefile.am</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <sourceFolderFilter>^(nbproject)$</sourceFolderFilter>
+  <sourceRootList>
+    <Elem>.</Elem>
+  </sourceRootList>
+  <projectmakefile>Makefile.am</projectmakefile>
+  <confs>
+    <conf name="Default" type="0">
+      <toolsSet>
+        <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
+        <compilerSet>default</compilerSet>
+      </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
+      <makefileType>
+        <makeTool>
+          <buildCommandWorkingDir>.</buildCommandWorkingDir>
+          <buildCommand>${MAKE} -f Makefile.am</buildCommand>
+          <cleanCommand>${MAKE} -f Makefile.am clean</cleanCommand>
+          <executablePath></executablePath>
+          <cTool>
+            <incDir>
+              <pElem>pms/chapel</pElem>
+            </incDir>
+          </cTool>
+        </makeTool>
+      </makefileType>
+      <item path="apis/c/nanos_atomic.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="apis/c/nanos_err.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="apis/c/nanos_finders.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="apis/c/nanos_instrument.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="apis/c/nanos_memory.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="apis/c/nanos_pe.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="apis/c/nanos_reduction.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="apis/c/nanos_sync.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="apis/c/nanos_sys.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="apis/c/nanos_team.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="apis/c/nanos_wd.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="apis/c/nanos_worksharing.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="arch/gpu/gpu-api.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="arch/gpu/gpuconfig.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="arch/gpu/gpucublasplugin.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="arch/gpu/gpudd.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="arch/gpu/gpudevice.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="arch/gpu/gpumemorytransfer.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="arch/gpu/gpuplugin.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="arch/gpu/gpuprocessor.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="arch/gpu/gputhread.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="arch/gpu/gpuutils.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="arch/smp/armv71/stack.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="arch/smp/ia64/stack.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="arch/smp/ppc32/stack.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="arch/smp/ppc64/stack.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="arch/smp/smpdd.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+          <incDir>
+            <pElem>arch/smp</pElem>
+          </incDir>
+        </ccTool>
+      </item>
+      <item path="arch/smp/smpplugin.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+          <incDir>
+            <pElem>arch/smp</pElem>
+          </incDir>
+        </ccTool>
+      </item>
+      <item path="arch/smp/smpprocessor.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+          <incDir>
+            <pElem>arch/smp</pElem>
+          </incDir>
+        </ccTool>
+      </item>
+      <item path="arch/smp/smpthread.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+          <incDir>
+            <pElem>arch/smp</pElem>
+          </incDir>
+        </ccTool>
+      </item>
+      <item path="arch/smp/tile64/stack.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="arch/smp/x86-64/stack.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="arch/smp/x86/stack.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="arch/spu/spudd.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="arch/spu/spuprocessor.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="arch/spu/sputhread.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="arch/unix-os/os.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="core/accelerator.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="core/basethread.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="core/dependableobject.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="core/dependableobjectwd.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="core/dependenciesdomain.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="core/directory.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="core/instrumentation.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="core/instrumentationcontext.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="core/processingelement.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="core/schedule.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="core/system.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="core/threadteam.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="core/workdescriptor.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="core/workgroup.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <folder path="src/apis">
+        <ccTool>
+          <incDir>
+            <pElem>apis/c</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/arch/gpu">
+        <ccTool>
+          <incDir>
+            <pElem>arch/gpu</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/arch/smp/armv71">
+        <ccTool>
+          <incDir>
+            <pElem>arch/smp/armv71</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/arch/smp/ia64">
+        <ccTool>
+          <incDir>
+            <pElem>arch/smp/ia64</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/arch/smp/ppc32">
+        <ccTool>
+          <incDir>
+            <pElem>arch/smp/ppc32</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/arch/smp/ppc64">
+        <ccTool>
+          <incDir>
+            <pElem>arch/smp/ppc64</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/arch/smp/tile64">
+        <ccTool>
+          <incDir>
+            <pElem>arch/smp/tile64</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/arch/smp/x86">
+        <ccTool>
+          <incDir>
+            <pElem>arch/smp/x86</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/arch/smp/x86-64">
+        <ccTool>
+          <incDir>
+            <pElem>arch/smp/x86-64</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/arch/spu">
+        <ccTool>
+          <incDir>
+            <pElem>arch/spu</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/arch/unix-os">
+        <ccTool>
+          <incDir>
+            <pElem>arch/unix-os</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/core">
+        <ccTool>
+          <incDir>
+            <pElem>core</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/plugins/barr">
+        <ccTool>
+          <incDir>
+            <pElem>plugins/barr</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/plugins/deps">
+        <ccTool>
+          <incDir>
+            <pElem>plugins/deps</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/plugins/instrumentation">
+        <ccTool>
+          <incDir>
+            <pElem>plugins/instrumentation</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/plugins/sched">
+        <ccTool>
+          <incDir>
+            <pElem>plugins/sched</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/plugins/slicers">
+        <ccTool>
+          <incDir>
+            <pElem>plugins/slicers</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/plugins/throttle">
+        <ccTool>
+          <incDir>
+            <pElem>plugins/throttle</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/plugins/worksharing">
+        <ccTool>
+          <incDir>
+            <pElem>plugins/worksharing</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/pms/chapel">
+        <ccTool>
+          <incDir>
+            <pElem>pms/chapel</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/pms/openmp">
+        <ccTool>
+          <incDir>
+            <pElem>pms/openmp</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/pms/ss">
+        <ccTool>
+          <incDir>
+            <pElem>pms/ss</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/support">
+        <ccTool>
+          <incDir>
+            <pElem>support</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="src/utils">
+        <ccTool>
+          <incDir>
+            <pElem>utils</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <item path="plugins/barr/centralized_barrier.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/barr/dissem_barrier.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/barr/posix_barrier.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/barr/tree_barrier.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/deps/perfect_regions_deps.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/deps/plain_deps.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/deps/regions_deps.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/instrumentation/ayudame.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/instrumentation/empty_trace.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/instrumentation/extrae.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/instrumentation/nextsim.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/instrumentation/ompi_services.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/instrumentation/print_trace.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/sched/affinity-smartpriority_sched.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/sched/affinity_sched.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/sched/bf_sched.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/sched/cilk_sched.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/sched/dbf_sched.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/sched/default_sched.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/sched/priority_sched.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/sched/smartpriority_sched.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/sched/socket_sched.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/sched/versioning_sched.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/sched/wf_sched.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/slicers/compound_wd.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/slicers/dynamic_for.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/slicers/guided_for.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/slicers/repeat_n.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/slicers/replicate.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/slicers/static_for.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/throttle/dummy_throttle.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/throttle/idlethreads_throttle.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/throttle/numtasks_throttle.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/throttle/readytasks_throttle.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/throttle/taskdepth_throttle.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/worksharing/dynamic.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/worksharing/guided.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="plugins/worksharing/static.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="pms/chapel/chpl_init.c" ex="false" tool="0" flavor2="2">
+        <cTool>
+        </cTool>
+      </item>
+      <item path="pms/chapel/chpl_main.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="pms/chapel/chpl_sync.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="pms/openmp/nanos_omp.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="pms/openmp/omp_api.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="pms/openmp/omp_init.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="pms/openmp/omp_locks.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="pms/openmp/omp_stubs.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="pms/openmp/omp_time.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="pms/ss/ss_init.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="support/allocator.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="support/config.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="support/memtracker.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="support/new.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="support/pinnedallocator.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="support/plugin.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="support/region.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="support/regionbuilder.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="support/simpleallocator.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="utils/nanox.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+    </conf>
+  </confs>
+</configurationDescriptor>

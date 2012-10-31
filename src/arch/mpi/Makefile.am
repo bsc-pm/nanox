@@ -17,6 +17,29 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = @ARCHITECTURES@ @OS@
+SUBDIRS = performance debug instrumentation instrumentation-debug
 
-DIST_SUBDIRS = unix-os smp spu gpu fpga mpi
+include $(top_srcdir)/src/common.am
+
+EXTRA_DIST= \
+	x86/stack.cpp \
+	x86/stack.s \
+	x86-64/stack.cpp \
+	x86-64/stack.s \
+	ia64/stack.cpp \
+	ia64/stack.s \
+	ppc32/stack.cpp \
+	ppc32/stack.s \
+	ppc64/stack.cpp \
+	ppc64/stack.s \
+	armv71/stack.cpp \
+	armv71/stack.s \
+	tile64/stack.cpp \
+	tile64/stack.s \
+   mpi_ult.hpp \
+	$(END)
+	
+pkginclude_HEADERS=\
+	nanos-mpi.h \
+	$(END)
+

@@ -40,6 +40,10 @@
 #include "gpuprocessor_decl.hpp"
 #endif
 
+#ifdef MPI_DEV
+#include "mpiprocessor.hpp"
+#endif
+
 using namespace nanos;
 
 System nanos::sys;
@@ -353,6 +357,12 @@ void System::start ()
 #ifdef SPU_DEV
    PE *spu = NEW nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);
    spu->startWorker();
+#endif
+   
+#ifdef MPI_DEV
+    PE *mpi = NEW nanos::ext::MPIProcessor(101);
+    _pes.push_back ( mpi );
+    _workers.push_back( &mpi->startWorker() );
 #endif
 
    /* Master thread is ready and waiting for the rest of the gang */
