@@ -251,7 +251,7 @@ namespace nanos
 
          void associate();
 
-         int getId();
+         int getId() const;
 
          int getCpuId();
          
