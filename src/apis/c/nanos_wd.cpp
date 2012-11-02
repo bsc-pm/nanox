@@ -70,7 +70,7 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_compact, ( nanos_wd_t *uwd, nanos_co
 
    try 
    {
-      if ( ( &const_data->props == NULL  || ( &const_data->props != NULL  && !const_data->props.mandatory_creation ) ) && !sys.throttleTask() ) {
+      if ( ( &const_data->props == NULL  || ( &const_data->props != NULL  && !const_data->props.mandatory_creation ) ) && !sys.throttleTaskIn() ) {
          *uwd = 0;
          return NANOS_OK;
       }
@@ -110,7 +110,7 @@ NANOS_API_DEF(nanos_err_t, nanos_create_sliced_wd, ( nanos_wd_t *uwd, size_t num
 
    try 
    {
-      if ( ( props == NULL  || ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTask() ) {
+      if ( ( props == NULL  || ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTaskIn() ) {
          *uwd = 0;
          return NANOS_OK;
       }

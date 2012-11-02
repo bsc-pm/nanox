@@ -144,6 +144,7 @@ namespace nanos
          int getCreatedTasks();
          int getReadyTasks();
          int getTotalTasks();
+         volatile int * getTotalTasksAddr( void ) { return &_totalTasks.override(); }
    };
 
    class ScheduleTeamData {

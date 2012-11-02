@@ -223,10 +223,8 @@ inline CacheMap& System::getCacheMap() { return _cacheMap; }
 inline PinnedAllocator& System::getPinnedAllocatorCUDA() { return _pinnedMemoryCUDA; }
 #endif
 
-inline bool System::throttleTask()
-{
-   return _throttlePolicy->throttle();
-}
+inline bool System::throttleTaskIn ( void ) const { return _throttlePolicy->throttleIn(); }
+inline void System::throttleTaskOut ( void ) const { _throttlePolicy->throttleOut(); }
 
 inline void System::threadReady()
 {

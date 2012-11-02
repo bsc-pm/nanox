@@ -130,6 +130,7 @@ void Scheduler::updateCreateStats ( WD &wd )
 
 void Scheduler::updateExitStats ( WD &wd )
 {
+   sys.throttleTaskOut();
    if ( wd.isConfigured() ) sys.getSchedulerStats()._totalTasks--;
 }
 
