@@ -32,6 +32,7 @@ namespace nanos {
          private:
             int _limit;
             int _lower;
+            bool _switch;
             MultipleSyncCond<LessOrEqualConditionChecker<int> > _syncCond;
 
             NumTasksThrottle ( const NumTasksThrottle & );
@@ -41,8 +42,18 @@ namespace nanos {
             //must be public: used in the plugin
             static const int _defaultLimit;
 
-            NumTasksThrottle( int actualLimit = _defaultLimit, int lowerLimit = (_defaultLimit/2) ) : _limit( actualLimit ), _lower( lowerLimit ),
-                                                                  _syncCond( LessOrEqualConditionChecker<int>(sys.getSchedulerStats().getTotalTasksAddr(), _lower )) {}
+            NumTasksThrottle( int actualLimit = _defaultLimit, int lowerLimit = (_defaultLimit/2), bool sw = false) : _limit( actualLimit ), _lower( lowerLimit ), _switch(sw),
+                                                                  _syncCond( LessOrEqualConditionChecker<int>(sys.getSchedulerStats().getTotalTasksAddr(), _lower ))
+            {
+#if 0
+               // Debug Information
+               fprintf(stderr,"Number of task throttling policy\n");
+               fprintf(stderr,"minimun = %d\n", _lower);
+               fprintf(stderr,"limit = %d\n", _limit);
+               fprintf(stderr,"switching = %s\n", _switch?"true":"false" );
+#endif
+
+            }
 
             /* FIXME: disabling changing these values during execution */
             /* void setLimit( int mc ) { _limit = mc; } */
@@ -57,10 +68,15 @@ namespace nanos {
 
       bool NumTasksThrottle::throttleIn ( void )
       {
-         if ( sys.getTaskNum() > (_limit * sys.getNumWorkers()) ) {
-            _syncCond.wait();
+         if ( sys.getTaskNum() > ( _limit * sys.getNumWorkers()) )  {
+            if ( _switch ) {
+               _syncCond.wait();
+               return true;
+            } else {
+               return false;
+            }
          }
-         return true;
+         else return true;
       }
       void NumTasksThrottle::throttleOut ( void )
       {
@@ -70,9 +86,9 @@ namespace nanos {
       }
 
       //factory
-      static NumTasksThrottle * createNumTasksThrottle( int actualLimit, int lowerLimit )
+      static NumTasksThrottle * createNumTasksThrottle( int actualLimit, int lowerLimit, bool sw )
       {
-         return NEW NumTasksThrottle( actualLimit, lowerLimit );
+         return NEW NumTasksThrottle( actualLimit, lowerLimit, sw );
       }
 
 
@@ -81,9 +97,11 @@ namespace nanos {
          private:
             int _actualLimit;
             int _lowerLimit;
+            bool _switch;
 
          public:
-            NumTasksThrottlePlugin() : Plugin( "Number of Tasks Throttle Plugin",1 ), _actualLimit( NumTasksThrottle::_defaultLimit ) {}
+            NumTasksThrottlePlugin() : Plugin( "Number of Tasks Throttle Plugin",1 ), _actualLimit( NumTasksThrottle::_defaultLimit ),
+                                       _lowerLimit ( NumTasksThrottle::_defaultLimit/2), _switch(false) {}
 
             virtual void config( Config &cfg )
             {
@@ -96,10 +114,14 @@ namespace nanos {
                cfg.registerConfigOption ( "throttle-min", NEW Config::PositiveVar( _lowerLimit ),
                   "Defines the minumun number of tasks per thread to re-active task creation" );
                cfg.registerArgOption ( "throttle-min", "throttle-min" );
+
+               cfg.registerConfigOption ( "throttle-switch", NEW Config::FlagOption( _switch ),
+                  "Defines the behaviour for throttling policy" );
+               cfg.registerArgOption ( "throttle-switch", "throttle-switch" );
             }
 
             virtual void init() {
-               sys.setThrottlePolicy( createNumTasksThrottle( _actualLimit, _lowerLimit )); 
+               sys.setThrottlePolicy( createNumTasksThrottle( _actualLimit, _lowerLimit, _switch )); 
             }
       };
 
