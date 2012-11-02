@@ -50,7 +50,7 @@ System::System () :
       _numPEs( INT_MAX ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ), _thsPerPE( 1 ),
       _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
-      _numSockets( 1 ), _coresPerSocket( 1 ), _throttlePolicy ( NULL ),
+      _numSockets( 1 ), _coresPerSocket( 1 ), _cpu_count( 0 ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _pausedThreads( 0 ),
@@ -67,33 +67,30 @@ System::System () :
 
    int nanox_pid = getpid();
 
-   if (sched_getaffinity( nanox_pid, sizeof( cpu_set_t ), getCpuSet() ) != 0)
+   if (sched_getaffinity( nanox_pid, sizeof( cpu_set_t ), &_cpu_set ) != 0)
 	warning(" sched_getaffinity has FAILED!!!");
 
-   const int ncpus = CPU_COUNT(getCpuSet());
-   int i = 0;
-   int idx = 0;
-   std::ostringstream oss_cpu_mask, oss_cpu_idx;
-   oss_cpu_mask << "mask: ";
+   std::ostringstream oss_cpu_idx;
    oss_cpu_idx << "[";
-   while(idx < ncpus) {
-     oss_cpu_mask << CPU_ISSET(i, getCpuSet());
-     if(CPU_ISSET(i, getCpuSet())){
-       _cpu_id[idx++] = i;
-       oss_cpu_idx << i << (idx < ncpus ? ", " : "]");
+   int i;
+   for(i=0, _cpu_count=0; i<CPU_SETSIZE; i++){
+     if(CPU_ISSET(i, &_cpu_set)){
+       _cpu_id[_cpu_count++] = i;
+       oss_cpu_idx << i << ", ";
      }
-     i++;
    }
+   oss_cpu_idx << "]";
    
-   verbose0("PID[" << nanox_pid << "]. CPU affinity " << oss_cpu_mask.str() << " => " << oss_cpu_idx.str()); 
    
    if(getNumPEs() == INT_MAX)
-     setNumPEs(ncpus);
+     setNumPEs(_cpu_count);
 
    // OS::init must be called here and not in System::start() as it can be too late
    // to locate the program arguments at that point
    OS::init();
    config();
+   verbose0("PID[" << nanox_pid << "]. CPU affinity " << oss_cpu_idx.str()); 
+
    if ( !_delayedStart ) {
       start();
    }
