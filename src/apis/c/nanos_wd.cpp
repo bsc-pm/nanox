@@ -71,14 +71,14 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_compact, ( nanos_wd_t *uwd, nanos_co
 
    try 
    {
-      if ( ( &const_data->props == NULL  || ( &const_data->props != NULL  && !const_data->props.mandatory_creation ) ) && !sys.throttleTask() ) {
+      if ( ( &const_data->props == NULL  || ( &const_data->props != NULL  && !const_data->props.mandatory_creation ) ) && !sys.throttleTaskIn() ) {
          *uwd = 0;
          return NANOS_OK;
       }
       sys.createWD ( (WD **) uwd, const_data->num_devices, const_data->devices, data_size, const_data->data_alignment, (void **) data, (WG *) uwg, &const_data->props, dyn_props, const_data->num_copies, copies, NULL );
 
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -91,8 +91,8 @@ NANOS_API_DEF(nanos_err_t, nanos_set_translate_function, ( nanos_wd_t wd, nanos_
    {
       WD *lwd = ( WD * ) wd;
       lwd->setTranslateArgs( translate_args );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -111,7 +111,7 @@ NANOS_API_DEF(nanos_err_t, nanos_create_sliced_wd, ( nanos_wd_t *uwd, size_t num
 
    try 
    {
-      if ( ( props == NULL  || ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTask() ) {
+      if ( ( props == NULL  || ( props != NULL  && !props->mandatory_creation ) ) && !sys.throttleTaskIn() ) {
          *uwd = 0;
          return NANOS_OK;
       }
@@ -119,8 +119,8 @@ NANOS_API_DEF(nanos_err_t, nanos_create_sliced_wd, ( nanos_wd_t *uwd, size_t num
       sys.createSlicedWD ( (WD **) uwd, num_devices, devices, outline_data_size, outline_data_align, outline_data, (WG *) uwg,
                            (Slicer *) slicer, props, dyn_props, num_copies, copies );
 
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -171,8 +171,8 @@ NANOS_API_DEF(nanos_err_t, nanos_submit, ( nanos_wd_t uwd, size_t num_data_acces
       }
 
       sys.submit( *wd );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -250,8 +250,8 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
       sys.inlineWork( wd );
       NANOS_INSTRUMENT( inst1.close() );
 
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -265,8 +265,8 @@ NANOS_API_DEF(nanos_err_t, nanos_set_internal_wd_data, ( nanos_wd_t wd, void *da
       WD *lwd = ( WD * ) wd;
 
       lwd->setInternalData( data );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -283,8 +283,8 @@ NANOS_API_DEF(nanos_err_t, nanos_get_internal_wd_data, ( nanos_wd_t wd, void **d
       ldata = lwd->getInternalData();
 
       *data = ldata;
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -297,8 +297,8 @@ NANOS_API_DEF(nanos_err_t, nanos_yield, ( void ))
    try {
       Scheduler::yield();
 
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -311,8 +311,8 @@ NANOS_API_DEF(nanos_err_t, nanos_slicer_get_specific_data, ( nanos_slicer_t slic
 
    try {
       *data = ((Slicer *)slicer)->getSpecificData();
-   } catch ( ... ) {                                                                                                                                     
-      return NANOS_UNKNOWN_ERR;                                                                                                                          
+   } catch ( nanos_err_t e) { 
+      return e;                                                                                                                          
    }                                                                                                                                                     
                                                                                                                                                          
    return NANOS_OK;                                                                                                                                      

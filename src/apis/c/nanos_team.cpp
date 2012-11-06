@@ -46,8 +46,8 @@ NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_
 
       for ( unsigned i = 0; i < new_team->size(); i++ )
          info[i] = ( nanos_thread_t ) &( *new_team )[i];
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -64,8 +64,8 @@ NANOS_API_DEF(nanos_err_t, nanos_enter_team, (void))
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","enter_team",NANOS_RUNTIME) );
    try {
       myThread->enterTeam( NULL );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
    return NANOS_OK;
 
@@ -76,8 +76,8 @@ NANOS_API_DEF(nanos_err_t, nanos_leave_team, (void))
 
    try {
       sys.releaseWorker(myThread);
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
    return NANOS_OK;
 }
@@ -88,8 +88,8 @@ NANOS_API_DEF(nanos_err_t, nanos_end_team, ( nanos_team_t team ))
 
    try {
       sys.endTeam((ThreadTeam *)team);
-   } catch ( ... ) {
-         return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+         return e;
    }
    return NANOS_OK;
 }
@@ -104,8 +104,8 @@ NANOS_API_DEF(nanos_err_t, nanos_team_barrier, ( void ))
 
    try {
       myThread->getTeam()->barrier();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -117,8 +117,8 @@ NANOS_API_DEF(nanos_err_t, nanos_team_get_num_starring_threads, ( int *n ))
 
    try {
       *n = myThread->getTeam()->getNumStarringThreads();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -130,8 +130,8 @@ NANOS_API_DEF(nanos_err_t, nanos_team_get_starring_threads, ( int *n, nanos_thre
 
    try {
       *n = myThread->getTeam()->getStarringThreads( (BaseThread **) list_of_threads );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -143,8 +143,8 @@ NANOS_API_DEF(nanos_err_t, nanos_team_get_num_supporting_threads, ( int *n ))
 
    try {
       *n = myThread->getTeam()->getNumSupportingThreads();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -156,8 +156,8 @@ NANOS_API_DEF(nanos_err_t, nanos_team_get_supporting_threads, ( int *n, nanos_th
 
    try {
       *n = myThread->getTeam()->getSupportingThreads( (BaseThread **) list_of_threads );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -169,8 +169,8 @@ NANOS_API_DEF(nanos_err_t, nanos_register_reduction, ( nanos_reduction_t *red) )
 
    try {
        myThread->getTeam()->createReduction ( red );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -182,8 +182,8 @@ NANOS_API_DEF(nanos_err_t, nanos_reduction_get_private_data, ( void **copy, void
 
    try {
        *copy = (void *) myThread->getTeam()->getReductionPrivateData ( original );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -194,8 +194,8 @@ NANOS_API_DEF(nanos_err_t, nanos_reduction_get, (nanos_reduction_t** dest, void 
 
    try {
        *dest = myThread->getTeam()->getReduction ( original );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;

@@ -43,11 +43,14 @@ NANOS_API_DEF(void, nanos_handle_error, ( nanos_err_t err ))
       default:
 
       case NANOS_UNKNOWN_ERR:
-         fprintf( stderr,"Unknown NANOS error detected\n" );
+         fprintf( stderr,"Nanox: Unknown NANOS error detected\n" );
          break;
 
       case NANOS_UNIMPLEMENTED:
-         fprintf( stderr,"Requested NANOS service not implemented\n" );
+         fprintf( stderr,"Nanox: Requested NANOS service not implemented\n" );
+         break;
+      case NANOS_ENOMEM:
+         fprintf( stderr,"Nanox: Cannot allocate enough memory to run the program\n" );
          break;
    }
 

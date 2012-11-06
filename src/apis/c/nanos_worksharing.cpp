@@ -30,8 +30,8 @@ NANOS_API_DEF(nanos_err_t, nanos_worksharing_create, ( nanos_ws_desc_t **wsd, na
    try {
       if ( b ) *b = ((WorkSharing *) ws)->create( wsd, info );
       else ((WorkSharing *) ws)->create( wsd, info );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
    return NANOS_OK;
 }
@@ -42,8 +42,8 @@ NANOS_API_DEF(nanos_err_t, nanos_worksharing_next_item, ( nanos_ws_desc_t *wsd, 
 
    try {
       ((WorkSharing *) wsd->ws)->nextItem( wsd, wsi );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
    return NANOS_OK;
 

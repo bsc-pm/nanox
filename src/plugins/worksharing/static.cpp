@@ -77,6 +77,7 @@ class WorkSharingStaticFor : public WorkSharing {
                              + ( (adjust > thid) ? thid * loop_data->loopStep : adjust * loop_data->loopStep );
             loop_item->upper = loop_item->lower + schunk + ((adjust > thid ) ? loop_data->loopStep : 0);
             loop_data->lowerBound = loop_data->upperBound + loop_data->loopStep;
+            if ( loop_item->upper == loop_data->upperBound ) loop_item->last = true;
          } else {
             // interleaved distribution
             loop_item->lower = loop_data->lowerBound + (loop_data->chunkSize * loop_data->loopStep ) * thid;

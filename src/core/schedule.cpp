@@ -49,9 +49,6 @@ void Scheduler::submit ( WD &wd )
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
    BaseThread *mythread = myThread;
 
-   sys.getSchedulerStats()._createdTasks++;
-   sys.getSchedulerStats()._totalTasks++;
-
    debug ( "submitting task " << wd.getId() );
 
    wd.submitted();
@@ -123,10 +120,18 @@ void Scheduler::submitAndWait ( WD &wd )
    myWG.waitCompletionAndSignalers();
 }
 
+void Scheduler::updateCreateStats ( WD &wd )
+{
+   sys.getSchedulerStats()._createdTasks++;
+   sys.getSchedulerStats()._totalTasks++;
+   wd.setConfigured(); 
+
+}
+
 void Scheduler::updateExitStats ( WD &wd )
 {
-   if ( wd.isSubmitted() ) 
-     sys.getSchedulerStats()._totalTasks--;
+   sys.throttleTaskOut();
+   if ( wd.isConfigured() ) sys.getSchedulerStats()._totalTasks--;
 }
 
 template<class behaviour>
@@ -460,31 +465,28 @@ void Scheduler::wakeUp ( WD *wd )
    if ( wd->isBlocked() ) {
       /* Setting ready wd */
       wd->setReady();
-      if ( checkBasicConstraints ( *wd, *myThread ) ) {
-         WD *next = NULL;
-         if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
-            // The thread is not paused, mark it as so
-            myThread->unpause();
-            
-            next = getMyThreadSafe()->getTeam()->getSchedulePolicy().atWakeUp( myThread, *wd );
+      WD *next = NULL;
+      if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
+         // The thread is not paused, mark it as so
+         myThread->unpause();
+         
+         /* atWakeUp must check basic constraints */
+         next = getMyThreadSafe()->getTeam()->getSchedulePolicy().atWakeUp( myThread, *wd );
+      }
+      else {
+         // Pause this thread
+         myThread->pause();
+      }
+      /* If SchedulePolicy have returned a 'next' value, we have to context switch to
+         that WorkDescriptor */
+      if ( next ) {
+         WD *slice;
+         /* We must ensure this 'next' has no sliced components. If it have them we have to
+          * queue the remaining parts of 'next' */
+         if ( !next->dequeue(&slice) ) {
+            myThread->getTeam()->getSchedulePolicy().queue( myThread, *next );
          }
-         else {
-            // Pause this thread
-            myThread->pause();
-         }
-         /* If SchedulePolicy have returned a 'next' value, we have to context switch to
-            that WorkDescriptor */
-         if ( next ) {
-            WD *slice;
-            /* We must ensure this 'next' has no sliced components. If it have them we have to
-             * queue the remaining parts of 'next' */
-            if ( !next->dequeue(&slice) ) {
-               myThread->getTeam()->getSchedulePolicy().queue( myThread, *next );
-            }
-            switchTo ( slice );
-         }
-      } else {
-         myThread->getTeam()->getSchedulePolicy().queue( myThread, *wd );
+         switchTo ( slice );
       }
    }
 }

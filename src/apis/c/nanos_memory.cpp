@@ -35,8 +35,8 @@ NANOS_API_DEF(nanos_err_t, nanos_malloc, ( void **p, size_t size, const char *fi
 #else
       *p = nanos::getAllocator().allocate ( size );
 #endif
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -53,8 +53,8 @@ NANOS_API_DEF(nanos_err_t, nanos_free, ( void *p ))
 #else
       nanos::getAllocator().deallocate ( p );
 #endif
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;

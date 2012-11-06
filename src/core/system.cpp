@@ -47,10 +47,10 @@ System nanos::sys;
 // default system values go here
 System::System () :
       _atomicWDSeed( 1 ),
-      _numPEs( 1 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
+      _numPEs( INT_MAX ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ), _thsPerPE( 1 ),
       _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
-      _numSockets( 1 ), _coresPerSocket( 1 ), _throttlePolicy ( NULL ),
+      _numSockets( 1 ), _coresPerSocket( 1 ), _cpu_count( 0 ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _pausedThreads( 0 ),
@@ -64,10 +64,33 @@ System::System () :
       , _enableEvents(), _disableEvents(), _instrumentDefault("default")
 {
    verbose0 ( "NANOS++ initializing... start" );
+
+   int nanox_pid = getpid();
+
+   if (sched_getaffinity( nanox_pid, sizeof( cpu_set_t ), &_cpu_set ) != 0)
+	warning(" sched_getaffinity has FAILED!!!");
+
+   std::ostringstream oss_cpu_idx;
+   oss_cpu_idx << "[";
+   int i;
+   for(i=0, _cpu_count=0; i<CPU_SETSIZE; i++){
+     if(CPU_ISSET(i, &_cpu_set)){
+       _cpu_id[_cpu_count++] = i;
+       oss_cpu_idx << i << ", ";
+     }
+   }
+   oss_cpu_idx << "]";
+   
+   
+   if(getNumPEs() == INT_MAX)
+     setNumPEs(_cpu_count);
+
    // OS::init must be called here and not in System::start() as it can be too late
    // to locate the program arguments at that point
    OS::init();
    config();
+   verbose0("PID[" << nanox_pid << "]. CPU affinity " << oss_cpu_idx.str()); 
+
    if ( !_delayedStart ) {
       start();
    }
@@ -924,6 +947,7 @@ void System::setupWD ( WD &work, WD *parent )
 
    // Invoke pmInterface
    _pmInterface->setupWD(work);
+   Scheduler::updateCreateStats(work);
 }
 
 void System::submit ( WD &work )

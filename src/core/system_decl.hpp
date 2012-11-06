@@ -87,6 +87,11 @@ namespace nanos
          int                  _numSockets;
          int                  _coresPerSocket;
 
+	 // Nanos++ scheduling domain
+   	 cpu_set_t            _cpu_set;
+   	 int                  _cpu_id[CPU_SETSIZE];
+   	 int                  _cpu_count;
+
          //cutoff policy and related variables
          ThrottlePolicy      *_throttlePolicy;
          SchedulerStats       _schedStats;
@@ -206,6 +211,14 @@ namespace nanos
 
          int getNumPEs () const;
 
+	 int getCpuId ( int idx);
+	 
+         int getCpuCount ( ) const;
+
+         void setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask);
+
+         int checkCpuMask(cpu_set_t *mask);
+
          void setDeviceStackSize ( int stackSize );
 
          int getDeviceStackSize () const;
@@ -278,7 +291,8 @@ namespace nanos
 
          void setThrottlePolicy( ThrottlePolicy * policy );
 
-         bool throttleTask();
+         bool throttleTaskIn( void ) const;
+         void throttleTaskOut( void ) const;
 
          const std::string & getDefaultSchedule() const;
 

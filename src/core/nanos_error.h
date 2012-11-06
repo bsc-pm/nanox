@@ -16,32 +16,11 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
-#ifndef __NANOS_THROTTLE_POLICY_DECL_H
-#define __NANOS_THROTTLE_POLICY_DECL_H
-
-namespace nanos
-{
-   class ThrottlePolicy
-   {
-      private:
-         /*! \brief ThrottlePolicy copy constructor (private)
-          */
-         ThrottlePolicy( const ThrottlePolicy & );
-         /*! \brief ThrottlePolicy copy assignment opeator (private)
-          */
-         const ThrottlePolicy & operator=( const ThrottlePolicy & );
-      public:
-         /*! \brief ThrottlePolicy default constructor
-          */
-         ThrottlePolicy() {};
-         /*! \brief ThrottlePolicy destructor
-          */
-         virtual ~ThrottlePolicy() {}
-
-         virtual bool throttleIn( void )  { return true; }
-         virtual void throttleOut( void ) { /* empty function */ }
-   };
-}
-
+#ifndef _NANOS_ERROR_H
+#define _NANOS_ERROR_H
+typedef enum { NANOS_OK = 0,
+               NANOS_UNKNOWN_ERR,          // generic error
+               NANOS_UNIMPLEMENTED,        // service not implemented
+               NANOS_ENOMEM,               // not enough memory
+} nanos_err_t;
 #endif

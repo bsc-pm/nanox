@@ -43,7 +43,7 @@ NANOS_API_DEF(nanos_slicer_t, nanos_find_slicer, ( const char * label ))
          slicer = sys.getSlicer ( plugin );
       }
 
-   } catch ( ... ) {
+   } catch ( nanos_err_t e) {
       return ( nanos_slicer_t ) NULL;
    }
    return slicer;
@@ -66,7 +66,7 @@ NANOS_API_DEF(nanos_ws_t, nanos_find_worksharing, ( const char * label ))
          ws = sys.getWorkSharing ( plugin );
       }
 
-   } catch ( ... ) {
+   } catch ( nanos_err_t e) {
       return ( nanos_ws_t ) NULL;
    }
    return ws;
