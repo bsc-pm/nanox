@@ -957,6 +957,7 @@ void System::setupWD ( WD &work, WD *parent )
 
    // Invoke pmInterface
    _pmInterface->setupWD(work);
+   Scheduler::updateCreateStats(work);
 }
 
 void System::submit ( WD &work )

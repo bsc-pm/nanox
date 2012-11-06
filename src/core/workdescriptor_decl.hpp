@@ -193,6 +193,7 @@ namespace nanos
          InstrumentationContextData    _instrumentationContextData; /**< Instrumentation Context Data (empty if no instr. enabled) */
 
          bool                          _submitted;  /**< Has this WD been submitted to the Scheduler? */
+         bool                          _configured;  /**< Has this WD been configured to the Scheduler? */
 
          nanos_translate_args_t        _translateArgs; /**< Translates the addresses in _data to the ones obtained by get_address(). */
 
@@ -510,6 +511,9 @@ namespace nanos
 
          bool isSubmitted( void ) const;
          void submitted( void );
+
+         bool isConfigured ( void ) const;
+         void setConfigured ( bool value=true );
 
          void setPriority( unsigned int priority );
          unsigned getPriority() const;

@@ -291,7 +291,8 @@ namespace nanos
 
          void setThrottlePolicy( ThrottlePolicy * policy );
 
-         bool throttleTask();
+         bool throttleTaskIn( void ) const;
+         void throttleTaskOut( void ) const;
 
          const std::string & getDefaultSchedule() const;
 

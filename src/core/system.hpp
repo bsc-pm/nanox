@@ -47,7 +47,6 @@ inline int System::getCpuCount () const { return _cpu_count; };
 
 inline int System::checkCpuMask(cpu_set_t *mask){
 
-   warning("_cpu_count:" << _cpu_count);
    int idx = 0;
    int i = 0;
    while( i < _cpu_count){
@@ -249,10 +248,8 @@ inline CacheMap& System::getCacheMap() { return _cacheMap; }
 inline PinnedAllocator& System::getPinnedAllocatorCUDA() { return _pinnedMemoryCUDA; }
 #endif
 
-inline bool System::throttleTask()
-{
-   return _throttlePolicy->throttle();
-}
+inline bool System::throttleTaskIn ( void ) const { return _throttlePolicy->throttleIn(); }
+inline void System::throttleTaskOut ( void ) const { _throttlePolicy->throttleOut(); }
 
 inline void System::threadReady()
 {
