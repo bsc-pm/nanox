@@ -36,6 +36,9 @@ performance_LTLIBRARIES = \
 	$(END)
 
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags)
+if IBM_C
+nanos_perfo_cxxflags += -qnoinline
+endif
 
 libnanox_sched_default_la_CXXFLAGS = $(nanos_perfo_cxxflags)
 libnanox_sched_default_la_LDFLAGS = $(ld_plugin_flags)
