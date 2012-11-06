@@ -168,6 +168,10 @@ namespace nanos
          void config ();
          void loadModules();
          void unloadModules();
+         void createWorker( unsigned id );
+         void acquireWorker( ThreadTeam * team, BaseThread * thread, bool enter=true, bool star=false, bool creator=false );
+         void increaseActiveWorkers( unsigned nthreads );
+         void decreaseActiveWorkers( unsigned nthreads );
          
          PE * createPE ( std::string pe_type, int pid );
 
@@ -288,6 +292,8 @@ namespace nanos
 
          void endTeam ( ThreadTeam *team );
          void releaseWorker ( BaseThread * thread );
+
+         void updateActiveWorkers ( unsigned nthreads );
 
          void setThrottlePolicy( ThrottlePolicy * policy );
 

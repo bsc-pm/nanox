@@ -352,16 +352,8 @@ void System::start ()
       _workers.push_back( &pe->startWorker( ));
    }
 
-   int p;
-   for ( p = 1; p < numPes ; p++ ) {
-      pe = createPE ( "smp", p );
-      _pes.push_back ( pe );
-
-      //starting as much threads per pe as requested by the user
-
-      for ( int ths = 0; ths < getThsPerPE(); ths++ ) {
-         _workers.push_back( &pe->startWorker() );
-      }
+   for ( int p = 1; p < numPes ; p++ ) {
+      createWorker( p );
    }
 
 #ifdef GPU_DEV
@@ -988,6 +980,17 @@ void System::inlineWork ( WD &work )
    }
 }
 
+void System::createWorker( unsigned id )
+{
+   PE *pe = createPE ( "smp", id );
+   _pes.push_back ( pe );
+
+   //starting as much threads per pe as requested by the user
+   for ( int ths = 0; ths < getThsPerPE(); ths++ ) {
+      _workers.push_back( &pe->startWorker() );
+   }
+}
+
 BaseThread * System:: getUnassignedWorker ( void )
 {
    BaseThread *thread;
@@ -1021,6 +1024,30 @@ BaseThread * System::getWorker ( unsigned int n )
    else return NULL;
 }
 
+void System::acquireWorker ( ThreadTeam * team, BaseThread * thread, bool enter, bool star, bool creator )
+{
+   int thId = team->addThread( thread, star, creator );
+   TeamData *data = NEW TeamData();
+
+   data->setStar(star);
+
+   SchedulePolicy &sched = team->getSchedulePolicy();
+   ScheduleThreadData *sthdata = 0;
+   if ( sched.getThreadDataSize() > 0 )
+      sthdata = sched.createThreadData();
+
+   data->setId(thId);
+   data->setTeam(team);
+   data->setScheduleData(sthdata);
+   if ( creator )
+      data->setParentTeamData(thread->getTeamData());
+
+   if ( enter ) thread->enterTeam( data );
+   else thread->setNextTeamData( data );
+
+   debug( "added thread " << thread << " with id " << toString<int>(thId) << " to " << team );
+}
+
 void System::releaseWorker ( BaseThread * thread )
 {
    ThreadTeam *team = thread->getTeam();
@@ -1046,9 +1073,6 @@ int System::getNumWorkers( DeviceData *arch )
 ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints, bool reuseCurrent,
                                   bool enterCurrent, bool enterOthers, bool starringCurrent, bool starringOthers )
 {
-   int thId;
-   TeamData *data;
-
    if ( nthreads == 0 ) {
       nthreads = getNumPEs()*getThsPerPE();
    }
@@ -1068,57 +1092,21 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints, bool reu
 
    // find threads
    if ( reuseCurrent ) {
-      BaseThread *current = myThread;
-      
-      nthreads --;      
-
-      thId = team->addThread( current, starringCurrent, true );
-
-      data = NEW TeamData();
-      data->setStar(starringCurrent);
-
-      ScheduleThreadData* sthdata = 0;
-      if ( sched->getThreadDataSize() > 0 )
-        sthdata = sched->createThreadData();
-      
-      data->setId(thId);
-      data->setTeam(team);
-      data->setScheduleData(sthdata);
-      data->setParentTeamData(current->getTeamData());
-      
-      if ( enterCurrent ) current->enterTeam( data );
-      else current->setNextTeamData( data );
-
-
-      debug( "added thread " << current << " with id " << toString<int>(thId) << " to " << team );
+      acquireWorker( team, myThread, enterCurrent, starringCurrent, /* creator */ true );
+      nthreads--;
    }
 
    while ( nthreads > 0 ) {
       BaseThread *thread = getUnassignedWorker();
 
       if ( !thread ) {
-         // alex: TODO: create one?
-         break;
+         createWorker( _pes.size() );
+         _numPEs++;
+         continue;
       }
 
+      acquireWorker( team, thread, enterOthers, starringOthers, /* creator */ false );
       nthreads--;
-      thId = team->addThread( thread, starringOthers );
-
-      data = NEW TeamData();
-      data->setStar(starringOthers);
-
-      ScheduleThreadData *sthdata = 0;
-      if ( sched->getThreadDataSize() > 0 )
-        sthdata = sched->createThreadData();
-
-      data->setId(thId);
-      data->setTeam(team);
-      data->setScheduleData(sthdata);
-      
-      if ( enterOthers ) thread->enterTeam( data );
-      else thread->setNextTeamData( data );
-
-      debug( "added thread " << thread << " with id " << toString<int>(thId) << " to " << thread->getTeam() );
    }
 
    team->init();
@@ -1135,6 +1123,52 @@ void System::endTeam ( ThreadTeam *team )
    fatal_cond( team->size() > 0, "Trying to end a team with running threads");
    
    delete team;
+}
+
+void System::increaseActiveWorkers ( unsigned nthreads )
+{
+   ThreadTeam *team = myThread->getTeam();
+
+   while ( nthreads > 0 ) {
+      BaseThread *thread = getUnassignedWorker();
+
+      if ( !thread ) {
+         createWorker( _pes.size() );
+         _numPEs++;
+         continue;
+      }
+
+      acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
+      nthreads--;
+   }
+}
+
+void System::decreaseActiveWorkers ( unsigned nthreads )
+{
+   while ( nthreads > 0 ) {
+
+      ThreadTeam *team = myThread->getTeam();
+      BaseThread *thread = team->popThread();
+      fatal_cond( thread == NULL, "Trying to release a non-existent thread" );
+
+      debug("Releasing thread " << thread << " from team " << team );
+      thread->leaveTeam();
+      nthreads--;
+      _numPEs--;
+   }
+}
+
+void System::updateActiveWorkers ( unsigned nthreads )
+{
+   int new_threads = nthreads - getNumPEs();
+
+   if ( new_threads > 0 ) {
+      increaseActiveWorkers( new_threads );
+   } else if ( new_threads < 0 ) {
+      decreaseActiveWorkers ( std::abs(new_threads) );
+   } else {
+      /* new_threads == 0 */
+   }
 }
 
 void System::waitUntilThreadsPaused ()

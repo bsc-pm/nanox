@@ -53,6 +53,8 @@ namespace nanos
 
             virtual ThreadTeamData * getThreadTeamData();
 
+            virtual void updateNumThreads();
+
          public:
             nanos_ws_t findWorksharing( omp_sched_t kind ) ;
       };

@@ -125,6 +125,26 @@ namespace nanos
       {
          return (ThreadTeamData *) NEW OmpThreadTeamData();
       }
+
+      // update the system threads after the API omp_set_num_threads
+      void OpenMPInterface::updateNumThreads()
+      {
+         if ( ssCompatibility != NULL ) {
+            // OmpSs
+            OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+            unsigned omp_threads = data->icvs().getNumThreads();
+
+            sys.updateActiveWorkers( omp_threads );
+
+            unsigned sys_threads = sys.getNumPEs() * sys.getThsPerPE();
+            ensure( sys_threads == omp_threads, "Update Number of Threads failed " +
+                  toString<unsigned>(sys_threads) + " != " + toString<unsigned>(omp_threads) );
+
+         } else {
+            // OpenMP
+            // The Number of Threads will be auto-updated at the next parallel
+         }
+      }
    };
 }
 

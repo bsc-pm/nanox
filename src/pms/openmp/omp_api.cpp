@@ -51,7 +51,8 @@ extern "C"
    NANOS_API_DEF(void, omp_set_num_threads, ( int nthreads ))
    {
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-      data->icvs().setNumThreads(nthreads);
+      data->icvs().setNumThreads( nthreads );
+      sys.getPMInterface().updateNumThreads();
    }
 
    NANOS_API_DEF(int, omp_get_thread_num, ( void ))
