@@ -60,7 +60,7 @@ inline void ThreadTeam::resized ()
    _barrier.resize(size());
 }
 
-inline BaseThread & ThreadTeam::getThread ( int i ) const
+inline const BaseThread & ThreadTeam::getThread ( int i ) const
 {
    return *_threads.find(i)->second;
 }
@@ -82,8 +82,12 @@ inline BaseThread & ThreadTeam::operator[]  ( int i )
 
 inline unsigned ThreadTeam::addThread ( BaseThread *thread, bool star, bool creator )
 {
-   unsigned id = _idCounter++;
-   _threads[id] = thread;
+   unsigned id;
+   {
+      LockBlock Lock( _lock );
+      id = _idCounter++;
+      _threads[id] = thread;
+   }
    if ( star ) _starSize++;
    if ( creator ) {
       _creatorId = (int) id;
@@ -93,17 +97,20 @@ inline unsigned ThreadTeam::addThread ( BaseThread *thread, bool star, bool crea
 
 inline void ThreadTeam::removeThread ( unsigned id )
 {
-   _threads.erase(id);
+   LockBlock Lock( _lock );
+   _threads.erase( id );
 }
 
 inline BaseThread * ThreadTeam::popThread ( )
 {
-   // Retrieve the iterator to the last element
-   ThreadTeamList::iterator last = _threads.end();
-   --last;
-
-   BaseThread * thread = last->second;
-   _threads.erase(last);
+   BaseThread * thread;
+   {
+      LockBlock Lock( _lock );
+      ThreadTeamList::iterator last = _threads.end();
+      --last;
+      thread = last->second;
+      _threads.erase( last );
+   }
    return thread;
 }
 

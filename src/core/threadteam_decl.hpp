@@ -71,6 +71,7 @@ namespace nanos
          int                          _creatorId;        /**< Team Id of the thread that created the team */
          nanos_ws_desc_t             *_wsDescriptor;     /**< Worksharing queue (pointer managed due specific atomic op's over these pointers) */
          ReductionList                _redList;          /**< Reduction List */
+         Lock                         _lock;
       private:
 
          /*! \brief ThreadTeam default constructor (disabled)
@@ -109,7 +110,7 @@ namespace nanos
           */
          void resized ();
 
-         BaseThread & getThread ( int i ) const;
+         const BaseThread & getThread ( int i ) const;
          BaseThread & getThread ( int i );
 
          const BaseThread & operator[]  ( int i ) const;
