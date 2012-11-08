@@ -154,8 +154,6 @@ bool GPUThread::inlineWorkDependent ( WD &wd )
       myGPU.getOutTransferList()->executeMemoryTransfers();
    }
    else {
-      // Open a new substate instrumentation phase before copying out the results
-      NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
       myGPU.getOutTransferList()->executeMemoryTransfers();
    }
 
