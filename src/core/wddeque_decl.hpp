@@ -23,8 +23,8 @@
 #include <list>
 #include "atomic_decl.hpp"
 #include "debug.hpp"
-#include "workdescriptor_decl.hpp"
-#include "basethread_decl.hpp"
+#include "workdescriptor_fwd.hpp"
+#include "basethread_fwd.hpp"
 
 #define NANOS_ABA_MASK (15)
 #define NANOS_ABA_PTR(x) ((volatile WDNode *)(((uintptr_t)(x))& ~(uintptr_t)NANOS_ABA_MASK))
@@ -218,10 +218,7 @@ namespace nanos
     */
    struct WDPriorityComparison
    {
-      bool operator() ( const WD* wd1, const WD* wd2 ) const
-      {
-         return wd1->getPriority() > wd2->getPriority();
-      }
+      bool operator() ( const WD* wd1, const WD* wd2 ) const;
    };
 
    class WDPriorityQueue : public WDPool
@@ -280,7 +277,7 @@ namespace nanos
           * It is needed when the priority of a WD is changed.
           * \note This just removes and pushes the WD into the list.
           * \return If the WD was found or not.
-          * \note This method sets the lock uppon entry (using LockBlock).
+          * \note This method sets the lock upon entry (using LockBlock).
           */
          bool reorderWD( WorkDescriptor *wd );
 

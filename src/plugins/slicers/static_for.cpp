@@ -56,7 +56,7 @@ static void staticLoop ( void *arg )
       sys.setupWD(*slice, work->getParent());
       // Submit: slice (WorkDescriptor i, running on Thread j)
       slice->tieTo( (*team)[nli_1->thid] );
-      if ( (*team)[nli_1->thid].setNextWD(slice) == false ) Scheduler::submit ( *slice );
+      (*team)[nli_1->thid].addNextWD(slice);
    }
 
    if ( (nli->thid * 2 + 2) < num_threads ) {
@@ -77,7 +77,7 @@ static void staticLoop ( void *arg )
       sys.setupWD(*slice, work->getParent());
       // Submit: slice (WorkDescriptor i, running on Thread j)
       slice->tieTo( (*team)[nli_2->thid] );
-      if ( (*team)[nli_2->thid].setNextWD(slice) == false ) Scheduler::submit ( *slice );
+      (*team)[nli_2->thid].addNextWD(slice);
    }
 
    int _niters = (((nli->upper - nli->lower) / nli->step ) + 1 );
@@ -232,13 +232,13 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          sys.setupWD(*slice, work.getParent());
          // Submit: slice (WorkDescriptor i, running on Thread i)
          slice->tieTo( (*team)[i] );
-         if ( (*team)[i].setNextWD(slice) == false ) Scheduler::submit ( *slice );
+         (*team)[i].addNextWD(slice)
       }
    }
    // Submit: work
    work.convertToRegularWD();
    work.tieTo( (*team)[0] );
-   if ( (*team)[0].setNextWD( (WorkDescriptor *) &work) == false ) Scheduler::submit ( work );
+   (*team)[0].addNextWD( (WorkDescriptor *) &work)
 }
 #else
 {
@@ -339,7 +339,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          NANOS_INSTRUMENT( sys.getInstrumentation()->createDeferredPointEvent (*slice, 4, Keys, Values); )
          sys.setupWD ( *slice, work.getParent() );
          slice->tieTo( (*team)[j] );
-         if ( (*team)[j].setNextWD(slice) == false ) Scheduler::submit ( *slice );
+         (*team)[j].addNextWD(slice);
       }
    } else {
       // Computing offset between threads
@@ -380,7 +380,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          sys.setupWD ( *slice, work.getParent() );
          // Submit: slice (WorkDescriptor i, running on Thread j)
          slice->tieTo( (*team)[j] );
-         if ( (*team)[j].setNextWD(slice) == false ) Scheduler::submit ( *slice );
+         (*team)[j].addNextWD(slice);
       }
    }
    // Submit: work (WorkDescriptor 0, running on thread 'first')
@@ -392,7 +392,10 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          delete[] (char *) &work;
       }
    }
-   else if ( (*team)[first_valid_thread].setNextWD( (WorkDescriptor *) &work) == false ) Scheduler::submit ( work );
+   else
+   {
+      (*team)[first_valid_thread].addNextWD( (WorkDescriptor *) &work);
+   }
 }
 #endif
 

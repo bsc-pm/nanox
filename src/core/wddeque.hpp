@@ -356,6 +356,11 @@ inline bool WDLFQueue::removeWD( BaseThread *thread, WorkDescriptor *toRem, Work
          bool removeWDWithConstraints( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
 #endif
 
+bool WDPriorityComparison::operator() ( const WD* wd1, const WD* wd2 ) const
+{
+   return wd1->getPriority() > wd2->getPriority();
+}
+
 inline WDPriorityQueue::WDPriorityQueue( bool optimise ) : _dq(), _lock(), _optimise( optimise )
 {
 }
