@@ -388,6 +388,11 @@ void System::start ()
          fatal("Unknown initial mode!");
          break;
    }
+
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
+   NANOS_INSTRUMENT ( nanos_event_value_t team_size =  (nanos_event_value_t) myThread->getTeam()->size(); )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &team_size); )
    
    // Paused threads: set the condition checker 
    _pausedThreadsCond.setConditionChecker( EqualConditionChecker<unsigned int >( &_pausedThreads.override(), _workers.size() ) );
@@ -1160,8 +1165,11 @@ void System::decreaseActiveWorkers ( unsigned nthreads )
 
 void System::updateActiveWorkers ( unsigned nthreads )
 {
-   int new_threads = nthreads - getNumPEs();
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, (nanos_event_value_t *) &nthreads); )
 
+   int new_threads = nthreads - getNumPEs();
    if ( new_threads > 0 ) {
       increaseActiveWorkers( new_threads );
    } else if ( new_threads < 0 ) {

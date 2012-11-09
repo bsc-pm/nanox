@@ -349,6 +349,7 @@ namespace nanos {
             /* 38 */ registerEventKey("user-funct-location-2","User Function Location", true); // FIXME: temporary value
             
             /* 39 */ registerEventKey("wd-priority","Priority of a work descriptor");
+            /* 40 */ registerEventKey("set-num-threads","Change Number of Threads");
 
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }
