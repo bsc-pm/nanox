@@ -110,6 +110,7 @@ inline BaseThread * ThreadTeam::popThread ( )
       --last;
       thread = last->second;
       _threads.erase( last );
+      _idCounter--;
    }
    return thread;
 }

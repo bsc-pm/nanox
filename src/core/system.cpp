@@ -1139,19 +1139,23 @@ void System::increaseActiveWorkers ( unsigned nthreads )
 
       if ( !thread ) {
          createWorker( _pes.size() );
-         _numPEs++;
          continue;
       }
 
       acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
       nthreads--;
+      _numPEs++;
    }
 }
 
 void System::decreaseActiveWorkers ( unsigned nthreads )
 {
+   // If the current thread is going to leave the team, leave the work to the master
+   if ( (unsigned)myThread->getTeamId() >= nthreads ) {
+      //getMyThreadSafe()->getCurrentWD()->tieTo(*_workers[0]);
+      Scheduler::switchToThread(_workers[0]);
+   }
    while ( nthreads > 0 ) {
-
       ThreadTeam *team = myThread->getTeam();
       BaseThread *thread = team->popThread();
       fatal_cond( thread == NULL, "Trying to release a non-existent thread" );
