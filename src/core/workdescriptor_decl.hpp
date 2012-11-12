@@ -320,6 +320,8 @@ namespace nanos
          bool isTied() const;
 
          BaseThread * isTiedTo() const;
+         
+         bool shouldBeTied() const;
 
          void setData ( void *wdata );
 
