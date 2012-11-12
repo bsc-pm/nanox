@@ -550,6 +550,7 @@
       <df name="utils">
         <in>nanox.cpp</in>
       </df>
+      <in>helloworld.c</in>
     </df>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -582,6 +583,12 @@
               <pElem>pms/chapel</pElem>
             </incDir>
           </cTool>
+          <ccTool>
+            <preprocessorList>
+              <Elem>GPU_DEV</Elem>
+              <Elem>MPI_DEV</Elem>
+            </preprocessorList>
+          </ccTool>
         </makeTool>
       </makefileType>
       <item path="apis/c/nanos_atomic.cpp" ex="false" tool="1" flavor2="4">

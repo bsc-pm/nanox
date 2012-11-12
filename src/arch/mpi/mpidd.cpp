@@ -23,6 +23,7 @@
 #include "system.hpp"
 #include "mpi_ult.hpp"
 #include "instrumentation.hpp"
+#include "mpidd.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;

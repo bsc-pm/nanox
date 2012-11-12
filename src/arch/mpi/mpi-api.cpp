@@ -19,6 +19,7 @@
 
 #include "nanos.h"
 #include "nanos-mpi.h"
+#include "system.hpp"
 #include "basethread.hpp"
 #include "mpidd.hpp"
 #include "mpiprocessor.hpp"
@@ -31,3 +32,24 @@ NANOS_API_DEF(void *, nanos_mpi_factory, ( void *args ))
    return ( void * ) new ext::MPIDD( mpi->outline );
 }
 
+
+NANOS_API_DEF(nanos_err_t, DEEP_Booster_alloc, ( MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm )) 
+{
+   try {
+      sys.DEEP_Booster_alloc(comm, number_of_spawns, intercomm);
+   } catch ( ... ) { 
+      return NANOS_UNKNOWN_ERR;
+   }   
+
+   return NANOS_OK;
+}
+NANOS_API_DEF(nanos_err_t, setMpiFilename, ( char * new_name )) 
+{
+   try {
+      sys.setMpiFilename(new_name);
+   } catch ( ... ) { 
+      return NANOS_UNKNOWN_ERR;
+   }   
+
+   return NANOS_OK;
+}

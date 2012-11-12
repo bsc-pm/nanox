@@ -30,7 +30,7 @@ namespace ext
 {
 
    extern MPIDevice MPI;
-
+   
    class MPIDD : public DD
    {
 

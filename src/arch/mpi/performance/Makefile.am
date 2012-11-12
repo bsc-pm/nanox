@@ -33,7 +33,7 @@ endif
 
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags) $(mpi_ult_flags)
 
-libmpi_la_CXXFLAGS=$(nanos_perfo_cxxflags)
+libmpi_la_CXXFLAGS=$(nanos_perfo_cxxflags) $(mpi_api_flags)
 libmpi_la_SOURCES=$(mpi_sources) $(mpi_ult_sources) $(mpi_api_sources)
 
 libnanox_mpi_api_la_CXXFLAGS=$(nanos_perfo_cxxflags) $(mpi_api_flags)

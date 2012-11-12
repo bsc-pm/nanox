@@ -21,13 +21,14 @@
 #define _NANOS_MPI_H_
 
 
-#include "nanos.h"
+#include "nanos.h" 
+#include "mpi.h"
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+    
     typedef struct {
         void (*outline) (void *);
     } nanos_mpi_args_t;
@@ -36,12 +37,14 @@ extern "C" {
     NANOS_API_DECL(void *, nanos_mpi_factory, (void *args));
 #define NANOS_MPI_DESC( args ) { nanos_mpi_factory, &( args ) } 
 
+NANOS_API_DECL(nanos_err_t, DEEP_Booster_alloc, ( MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm ));
+NANOS_API_DECL(nanos_err_t, setMpiFilename, ( char* new_name ));
 
 #ifdef __cplusplus
 }
 #endif
-//Protected code only needed by mercurium compilation phases
 
+//Protected code only needed by mercurium compilation phases, workaround for use-define-after-preprocess "bug"
 #ifdef _MERCURIUM_MPI_
 
 #include "mpi.h"
@@ -62,11 +65,11 @@ enum OmpSsMPIType {
     __mpitype_ompss_float = MPI_DOUBLE,
     __mpitype_ompss_double = MPI_DOUBLE,
     __mpitype_ompss_long_double = MPI_LONG_DOUBLE,
-//Intel mpi boolean
+    //Intel mpi boolean
 #ifdef MPI_C_BOOL
     __mpitype_ompss_bool = MPI_C_BOOL,
 #endif
-//MPI Standard boolean
+    //MPI Standard boolean
 #ifdef MPI_BOOL
     __mpitype_ompss_bool = MPI_BOOL,
 #endif

@@ -138,6 +138,13 @@ void System::loadModules ()
    if ( !loadPlugin( "pe-gpu" ) )
       fatal0 ( "Couldn't load GPU support" );
 #endif
+   
+#ifdef MPI_DEV
+   verbose0( "loading MPI support" );
+
+   if ( !loadPlugin( "pe-mpi" ) )
+      fatal0 ( "Couldn't load MPI support" );
+#endif
 
    // load default schedule plugin
    verbose0( "loading " << getDefaultSchedule() << " scheduling policy support" );
@@ -296,6 +303,22 @@ void System::config ()
 
    cfg.registerConfigOption ( "instrument-disable", NEW Config::StringVarList ( _disableEvents ), "Remove events to instrumentation event list" );
    cfg.registerArgOption ( "instrument-disable", "instrument-disable" );
+   
+
+   #ifdef MPI_DEV
+   cfg.registerConfigOption ( "mpi-exec", NEW Config::StringVar ( _mpiFileArgs ), "Defines secondary mpi file spawned in DEEP_Booster_Alloc" );
+   cfg.registerArgOption ( "mpi-exec", "mpi-exec" );
+   cfg.registerEnvOption ( "mpi-exec", "NX_MPIEXEC" );
+   
+   cfg.registerConfigOption ( "mpimachinefile", NEW Config::StringVar ( _mpiMachinefile ), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\nThe format of the file is one host per line with blank lines and lines beginning with # ignored\nMultiple processes per host can be specified by specifying the host name as follows: hostA:n" );
+   cfg.registerArgOption ( "mpimachinefile", "mpimachinefile" );
+   cfg.registerEnvOption ( "mpimachinefile", "NX_MPIMACHINEFILE" );
+   
+   cfg.registerConfigOption ( "mpihosts", NEW Config::StringVar ( _mpiHosts ), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\nExample: hostA hostB:2 hostC" );
+   cfg.registerArgOption ( "mpihosts", "mpihosts" );
+   cfg.registerEnvOption ( "mpihosts", "NX_MPIHOSTS" );
+   #endif
+   
 
    _schedConf.config( cfg );
    _pmInterface->config( cfg );
@@ -380,12 +403,6 @@ void System::start ()
 #ifdef SPU_DEV
    PE *spu = NEW nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);
    spu->startWorker();
-#endif
-   
-#ifdef MPI_DEV
-    PE *mpi = NEW nanos::ext::MPIProcessor(101);
-    _pes.push_back ( mpi );
-    _workers.push_back( &mpi->startWorker() );
 #endif
 
    /* Master thread is ready and waiting for the rest of the gang */
@@ -1161,3 +1178,55 @@ void System::waitUntilThreadsUnpaused ()
    // Wait until all threads are paused
    _unpausedThreadsCond.wait();
 }
+
+#ifdef MPI_DEV
+    void System::setMpiFilename(char* new_name) {
+        std::string tmp=std::string(new_name);
+        _mpiFilename=tmp;
+    }
+
+    std::string System::getMpiFilename() {
+        return _mpiFilename;
+    }
+    
+    void System::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm) {
+        std::cerr << "Iniciando alloc\n";
+        if (!nanos::ext::MPIThread::_mpiThreadLaunched){
+            MPI_Comm parentcomm;           /* intercommunicator */ 
+            MPI_Comm_get_parent( &parentcomm );
+
+            //If this process was not spawned, we don't need the daemon-thread
+            if (parentcomm!=NULL){
+                 PE *mpi = NEW nanos::ext::MPIProcessor(101,NULL,NULL);
+                 _pes.push_back ( mpi );
+                 _workers.push_back( &mpi->startWorker() );
+            } else  {
+                nanos::ext::MPIThread::_mpiThreadLaunched=true;
+            }
+        }
+               std::cerr << "1st thread lanzado alloc\n";
+
+        MPI_Info info;
+        MPI_Info_create(&info);
+        //MPI_Info_set(info,"env","LD_LIBRARY_PATH=/mic/fsainz/runtime/nanox-mic/lib/performance:/opt/intel/composer_xe_2013.0.079/compiler/lib/mic/");
+        //If we are on MIC, use the mic-hosts
+        if (!_mpiHosts.empty()){
+                MPI_Info_set(info, "host", const_cast<char*> (_mpiHosts.c_str()));
+        }
+        if (!_mpiMachinefile.empty()){
+                MPI_Info_set(info, "machinefile", const_cast<char*> (_mpiMachinefile.c_str()));
+        }
+        char *argvv[] = {TAG_MAIN_OMPSS, NULL};
+        MPI_Comm_spawn(const_cast<char*> (getMpiFilename().c_str()), argvv, number_of_spawns,
+                info, 0, comm, intercomm,
+                MPI_ERRCODES_IGNORE);
+        
+        for ( int rank=0; rank<number_of_spawns; rank++){
+            PE *mpi = NEW nanos::ext::MPIProcessor(_workers.size(),*intercomm, rank);
+            _pes.push_back ( mpi );
+            _workers.push_back( &mpi->startWorker() );
+        }        std::cerr << "fin alloc\n";
+
+    }
+#endif
+

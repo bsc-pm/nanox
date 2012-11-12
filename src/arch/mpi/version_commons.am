@@ -16,11 +16,14 @@ mpi_api_sources = \
 	$(END)
 
 mpi_sources = \
-	$(top_srcdir)/src/arch/mpi/mpidevice.hpp \
-	$(top_srcdir)/src/arch/mpi/mpidd.hpp \
-	$(top_srcdir)/src/arch/mpi/mpidd.cpp \
+	$(top_srcdir)/src/arch/mpi/mpiprocessor_fwd.hpp \
 	$(top_srcdir)/src/arch/mpi/mpiprocessor.hpp \
 	$(top_srcdir)/src/arch/mpi/mpiprocessor.cpp \
+	$(top_srcdir)/src/arch/mpi/mpidevice_decl.hpp \
+	$(top_srcdir)/src/arch/mpi/mpidevice.hpp \
+	$(top_srcdir)/src/arch/mpi/mpidevice.cpp \
+	$(top_srcdir)/src/arch/mpi/mpidd.hpp \
+	$(top_srcdir)/src/arch/mpi/mpidd.cpp \
 	$(top_srcdir)/src/arch/mpi/mpithread.hpp \
 	$(top_srcdir)/src/arch/mpi/mpithread.cpp \
 	$(END)

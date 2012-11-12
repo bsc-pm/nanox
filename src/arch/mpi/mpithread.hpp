@@ -39,14 +39,18 @@ namespace ext
          pthread_t   _pth;
          size_t      _stackSize;
          bool        _useUserThreads;
+//         MPI_Comm _communicator;
+//         int _rank;
 
          // disable copy constructor and assignment operator
          MPIThread( const MPIThread &th );
          const MPIThread & operator= ( const MPIThread &th );
 
       public:
+         static bool _mpiThreadLaunched;
          // constructor
          MPIThread( WD &w, PE *pe ) : BaseThread( w,pe ),_stackSize(0), _useUserThreads(true) {}
+//         MPIThread( WD &w, PE *pe , MPI_Comm communicator, int rank) : BaseThread( w,pe ),_stackSize(0), _useUserThreads(true);
 
          // named parameter idiom
          MPIThread & stackSize( size_t size ) { _stackSize = size; return *this; }
@@ -55,8 +59,9 @@ namespace ext
          // destructor
          virtual ~MPIThread() { }
 
-         void setUseUserThreads( bool value=true ) { _useUserThreads = value; }
-
+         void setUseUserThreads( bool value=true ) { _useUserThreads = value; }         
+         void workerMpiLoop();
+         
          virtual void start();
          virtual void join();
          virtual void initializeDependent( void ) {}

@@ -17,30 +17,14 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "plugin.hpp"
-#include "mpiprocessor.hpp"
-#include "mpidd.hpp"
-#include "system.hpp"
+#ifndef _NANOS_MPI_PROCESSOR_FWD
+#define _NANOS_MPI_PROCESSOR_FWD
 
 namespace nanos {
-namespace ext {
-
-
-class MPIPlugin : public Plugin
+namespace ext
 {
-
-   public:
-      MPIPlugin() : Plugin( "MPI PE Plugin",1 ) {}
-
-      virtual void config ( Config& cfg )
-      {
-         cfg.setOptionsSection( "MPI Arch", "MPI specific options" );
-         MPIProcessor::prepareConfig( cfg );
-         MPIDD::prepareConfig( cfg );
-      }
-
-};
+   class MPIProcessor;
 }
 }
 
-DECLARE_PLUGIN("arch-mpi",nanos::ext::MPIPlugin);
+#endif

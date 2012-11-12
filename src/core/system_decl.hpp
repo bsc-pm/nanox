@@ -20,6 +20,13 @@
 #ifndef _NANOS_SYSTEM_DECL_H
 #define _NANOS_SYSTEM_DECL_H
 
+
+#ifdef MPI_DEV
+#include "mpi.h"
+//Should keep value than on nanox-mpi.hpp on mercurium
+#define TAG_MAIN_OMPSS "__ompss_mpi_daemon" 
+#endif
+
 #include "processingelement_decl.hpp"
 #include "throttle_decl.hpp"
 #include <vector>
@@ -40,7 +47,6 @@
 #ifdef GPU_DEV
 #include "pinnedallocator_decl.hpp"
 #endif
-
 
 namespace nanos
 {
@@ -152,6 +158,13 @@ namespace nanos
          CachePolicyType      _cachePolicy;
          //! CacheMap register
          CacheMap             _cacheMap;
+#ifdef MPI_DEV
+         //! Save OmpSS-mpi filename
+         std::string _mpiFilename;
+         std::string _mpiFileArgs;
+         std::string _mpiHosts;
+         std::string _mpiMachinefile;
+#endif
 
 #ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
@@ -405,6 +418,17 @@ namespace nanos
           *  \param cfg Config object.
           */
          void registerPluginOption ( const std::string &option, const std::string &module, std::string &var, const std::string &helpMessage, Config &cfg );
+         
+                  
+         #ifdef MPI_DEV
+
+                 void setMpiFilename(char* new_name);
+                 
+                 std::string getMpiFilename();
+
+                 void DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm);
+         #endif
+         
    };
 
    extern System sys;

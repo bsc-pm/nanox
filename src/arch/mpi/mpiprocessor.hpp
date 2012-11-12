@@ -20,28 +20,18 @@
 #ifndef _NANOS_MPI_PROCESSOR
 #define _NANOS_MPI_PROCESSOR
 
+#include "mpi.h"
 #include "config.hpp"
+#include "mpidevice_decl.hpp"
 #include "mpithread.hpp"
-#include "mpidevice.hpp"
-#ifdef MPI_NUMA
 #include "cachedaccelerator.hpp"
 #include "copydescriptor_decl.hpp"
-#else
 #include "processingelement.hpp"
-#endif
-
-//TODO: Make mpi independent from pthreads? move it to OS?
 
 namespace nanos {
 namespace ext
 {
-
-#ifdef MPI_NUMA
-
-   class MPIProcessor : public nanos::CachedAccelerator<MPIDevice>
-#else
-   class MPIProcessor : public PE
-#endif
+   class MPIProcessor : public CachedAccelerator<MPIDevice>
    {
 
 
@@ -49,22 +39,21 @@ namespace ext
          // config variables
          static bool _useUserThreads;
          static size_t _threadsStackSize;
-         static size_t _cacheDefaultSize;
          static System::CachePolicyType _cachePolicy;
-
+         
          // disable copy constructor and assignment operator
          MPIProcessor( const MPIProcessor &pe );
          const MPIProcessor & operator= ( const MPIProcessor &pe );
 
 
-      public:
-         // constructors
-#ifdef MPI_NUMA
-         MPIProcessor( int id ) :
-            CachedAccelerator<MPIDevice>( id, &MPI ) {}
-#else
-         MPIProcessor( int id ) : PE( id, &MPI ) {}
-#endif
+      public:         
+         //MPI Node data
+         static size_t _cacheDefaultSize;
+         MPI_Comm _communicator;
+         int _rank;
+         
+         //MPIProcessor( int id ) : PE( id, &MPI ) {}
+         MPIProcessor( int id , MPI_Comm communicator, int rank ) ;
 
          virtual ~MPIProcessor() {}
 
