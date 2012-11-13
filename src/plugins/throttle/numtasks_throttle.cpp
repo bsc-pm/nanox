@@ -68,7 +68,7 @@ namespace nanos {
 
       bool NumTasksThrottle::throttleIn ( void )
       {
-         if ( sys.getTaskNum() > ( _limit * sys.getNumWorkers()) )  {
+         if ( (sys.getTaskNum() > ( _limit * sys.getNumWorkers())) && ( sys.getReadyNum() > (sys.getNumWorkers()*2)  ))  {
             if ( _switch ) {
                _syncCond.wait();
                return true;
@@ -80,7 +80,7 @@ namespace nanos {
       }
       void NumTasksThrottle::throttleOut ( void )
       {
-         if ( sys.getTaskNum() < (_lower * sys.getNumWorkers()) ) {
+         if ( (sys.getTaskNum() < (_lower * sys.getNumWorkers()) ) && ( sys.getReadyNum() < (sys.getNumWorkers()*2)  )) {
             _syncCond.signal();
          }
       }
