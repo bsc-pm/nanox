@@ -469,7 +469,6 @@ class InstrumentationExtrae: public Instrumentation
         for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
            InstrumentationKeyDescriptor *kD = itK->second;
            if (kD->isStacked()) {
-              fprintf(stderr,"stacked %d\n",_eventBase+kD->getId());
               Extrae_register_stacked_type( (extrae_type_t) _eventBase+kD->getId() );
            }
         }
@@ -493,9 +492,6 @@ class InstrumentationExtrae: public Instrumentation
             strncpy ( type_desc, kD->getDescription().c_str(), kD->getDescription().size()+1 );
             unsigned nval = kD->getSize();
             if ( kD->getId() == usr_functLocation ) {
-               // FIXME: Just checking, to remove in final version
-               fprintf(stderr,"%d:%s with %d values\n", type, type_desc, nval);
-               
                for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
                   // Parsing event description
                   std::string description = iD->getValueDescription( kD->getId(), (itV->second)->getId() );
@@ -509,8 +505,6 @@ class InstrumentationExtrae: public Instrumentation
                      (char *) description.substr(pos1+1,(pos2-pos1-1)).c_str(),
                      (unsigned) line
                   );
-                  fprintf(stderr,"   Extrae_register_function_address(%d,%s,%s,%d)\n", (int )(itV->second)->getId(), description.substr(0,pos1).c_str(),
-                     description.substr(pos1+1,(pos2-pos1-1)).c_str(), line);
                }
             } else if (kD->getId() == usr_functName ) {
                // DO Nothing
@@ -526,11 +520,6 @@ class InstrumentationExtrae: public Instrumentation
                   val_id++;
                }
                Extrae_define_event_type( type, type_desc, val_id, values, val_desc);
-               // FIXME: just checking, remove in final version
-               fprintf(stderr,"%d:%s with %d values\n", type, type_desc, nval);
-               for (val_id = 0; val_id < nval; val_id++ ) {
-                  fprintf(stderr,"   %d:%s\n", (int )values[val_id], val_desc[val_id]);
-               }
 
             }
          }
