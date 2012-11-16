@@ -38,7 +38,13 @@ inline void System::setNumPEs ( int npes ) { _numPEs = npes; }
 
 inline int System::getNumPEs () const { return _numPEs; }
 
-inline int System::getCpuId ( int idx ) { 
+inline unsigned System::getMaxThreads () const { return _targetThreads; } 
+
+inline void System::setNumThreads ( int nthreads ) { _numThreads = nthreads; }
+
+inline int System::getNumThreads () const { return _numThreads; }
+
+inline int System::getCpuId ( int idx ) const { 
    ensure( ( ( idx >= 0 ) && ( idx < _cpu_count ) ), "invalid value for cpu idx" );
    return _cpu_id[idx]; 
 };
@@ -98,8 +104,6 @@ inline void System::setDelayedStart ( bool set) { _delayedStart = set; }
 inline bool System::getDelayedStart () const { return _delayedStart; }
 
 inline bool System::useYield() const { return _useYield; }
-
-inline int System::getThsPerPE() const { return _thsPerPE; }
 
 inline int System::getTaskNum() const { return _schedStats._totalTasks.value(); }
 
