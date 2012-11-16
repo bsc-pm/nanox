@@ -194,117 +194,6 @@ class InstrumentationExtrae: public Instrumentation
             message0("Error in trace post-process. Trace generated but might be incorrect");
          }
       }
-// FIXME: To remove in final version
-#if 0
-      void modifyParaverConfigFile()
-      {
-         // Writing paraver config 
-         std::fstream p_file;
-         p_file.open ( _traceFileName_PCF.c_str(), std::ios::out | std::ios::app);
-         if (p_file.is_open())
-         {
-            /* Event: State */
-            p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    " << _eventState  << "    Thread state: " << std::endl;
-            p_file << "VALUES" << std::endl;
-            p_file << NANOS_NOT_CREATED      << "     NOT CREATED" << std::endl;
-            p_file << NANOS_NOT_RUNNING      << "     NOT RUNNING" << std::endl;
-            p_file << NANOS_STARTUP          << "     STARTUP" << std::endl;
-            p_file << NANOS_SHUTDOWN         << "     SHUTDOWN" << std::endl;
-            p_file << NANOS_ERROR            << "     ERROR" << std::endl;
-            p_file << NANOS_IDLE             << "     IDLE" << std::endl;
-            p_file << NANOS_RUNTIME          << "     RUNTIME" << std::endl;
-            p_file << NANOS_RUNNING          << "     RUNNING" << std::endl;
-            p_file << NANOS_SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
-            p_file << NANOS_SCHEDULING       << "     SCHEDULING" << std::endl;
-            p_file << NANOS_CREATION         << "     CREATION" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_IN  << "     DATA TRANSFER TO DEVICE" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_OUT << "     DATA TRANSFER TO HOST" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_LOCAL << "     LOCAL DATA TRANSFER IN DEVICE" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_DEVICE_IN << "     DATA TRANSFER TO DEVICE" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_DEVICE_OUT << "     DATA TRANSFER TO HOST" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_DEVICE_LOCAL << "     LOCAL DATA TRANSFER IN DEVICE" << std::endl;
-            p_file << NANOS_CACHE            << "     CACHE ALLOC/FREE" << std::endl;
-            p_file << NANOS_YIELD            << "     YIELD" << std::endl;
-            p_file << NANOS_ACQUIRING_LOCK   << "     ACQUIRING LOCK" << std::endl;
-            p_file << NANOS_CONTEXT_SWITCH   << "     CONTEXT SWITCH" << std::endl;
-            p_file << 27                     << "     EXTRAE I/O" << std::endl;
-            p_file << std::endl;
-
-            /* Event: PtPStart main event */
-            p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    " << _eventPtPStart  << "    Point-to-point origin: " << std::endl;
-            p_file << std::endl;
-
-            /* Event: PtPEnd main event */
-            p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    " << _eventPtPEnd    << "    Point-to-point destination: " << std::endl;
-            p_file << std::endl;
-
-            /* Event: Sub-state (key == state)  */
-            p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    " << _eventSubState  << "    Thread sub-state: " << std::endl;
-            p_file << "VALUES" << std::endl;
-            p_file << NANOS_NOT_CREATED      << "     NOT CREATED" << std::endl;
-            p_file << NANOS_NOT_RUNNING      << "     NOT RUNNING" << std::endl;
-            p_file << NANOS_STARTUP          << "     STARTUP" << std::endl;
-            p_file << NANOS_SHUTDOWN         << "     SHUTDOWN" << std::endl;
-            p_file << NANOS_ERROR            << "     ERROR" << std::endl;
-            p_file << NANOS_IDLE             << "     IDLE" << std::endl;
-            p_file << NANOS_RUNTIME          << "     RUNTIME" << std::endl;
-            p_file << NANOS_RUNNING          << "     RUNNING" << std::endl;
-            p_file << NANOS_SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
-            p_file << NANOS_SCHEDULING       << "     SCHEDULING" << std::endl;
-            p_file << NANOS_CREATION         << "     CREATION" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_IN  << "     DATA TRANSFER TO DEVICE" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_OUT << "     DATA TRANSFER TO HOST" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_LOCAL << "     LOCAL DATA TRANSFER IN DEVICE" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_DEVICE_IN  << "     DATA TRANSFER TO DEVICE" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_DEVICE_OUT << "     DATA TRANSFER TO HOST" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_DEVICE_LOCAL << "     LOCAL DATA TRANSFER IN DEVICE" << std::endl;
-            p_file << NANOS_CACHE            << "     CACHE ALLOC/FREE" << std::endl;
-            p_file << NANOS_YIELD            << "     YIELD" << std::endl;
-            p_file << NANOS_ACQUIRING_LOCK   << "     ACQUIRING LOCK" << std::endl;
-            p_file << NANOS_CONTEXT_SWITCH   << "     CONTEXT SWITCH" << std::endl;
-            p_file << 27                     << "     EXTRAE I/O" << std::endl;
-            p_file << std::endl;
-            /* Getting Instrumentation Dictionary */
-            InstrumentationDictionary::ConstKeyMapIterator itK;
-            InstrumentationKeyDescriptor::ConstValueMapIterator itV;
-
-            InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
-
-            /* Generating key/value events */
-            for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
-               InstrumentationKeyDescriptor *kD = itK->second;
- 
-               p_file << "EVENT_TYPE" << std::endl;
-               p_file << "9    " << _eventBase+kD->getId() << " " << kD->getDescription() << std::endl;
-               p_file << "VALUES" << std::endl;
-
-               // First: Ordering list of values and descriptions 
-               std::map<int,std::string> lov;
-               for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
-                  InstrumentationValueDescriptor *vD = itV->second;
-                  lov.insert( make_pair( vD->getId(), vD->getDescription() ));
-               }
-
-               // Second:: Generating already ordered list of values
-               std::map<int,std::string>::iterator itLoV;
-               for ( itLoV = lov.begin(); itLoV != lov.end(); itLoV++ ) {
-                  p_file << itLoV->first << "  " << itLoV->second << std::endl;
-               }
-
-               p_file << std::endl;
-            }
-            p_file << std::endl;
-
-            /* Closing configuration file */
-            p_file.close();
-         }
-         else message0("Unable to open paraver config file");
-      }
-#endif
 
       void modifyParaverRowFile()
       {
@@ -680,8 +569,6 @@ class InstrumentationExtrae: public Instrumentation
             mergeParaverTraceFiles();
             postProcessTraceFile();
          }
-         // FIXME: to remove in final version
-         //modifyParaverConfigFile();
          modifyParaverRowFile();
          removeTemporaryFiles();
       }
