@@ -19,3 +19,7 @@ readytasks_sources = \
 	$(top_srcdir)/src/plugins/throttle/readytasks_throttle.cpp \
 	$(END)
 
+numtasks_e_sources = \
+	$(top_srcdir)/src/plugins/throttle/numtasks-e_throttle.cpp \
+	$(END)
+
