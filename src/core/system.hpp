@@ -129,6 +129,13 @@ inline void System::setNumSockets ( int numSockets ) { _numSockets = numSockets;
 inline int System::getCoresPerSocket() const { return _coresPerSocket; }
 inline void System::setCoresPerSocket ( int coresPerSocket ) { _coresPerSocket = coresPerSocket; }
 
+inline int System::getBindingId ( int pe ) const
+{
+   int tmpId = ( pe * getBindingStride() + getBindingStart() );
+   return getCpuId( ( tmpId + tmpId/_cpu_count ) % _cpu_count );
+}
+
+
 inline void System::setThrottlePolicy( ThrottlePolicy * policy ) { _throttlePolicy = policy; }
 
 inline const std::string & System::getDefaultSchedule() const { return _defSchedule; }
