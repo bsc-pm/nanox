@@ -103,6 +103,12 @@ NANOS_API_DECL(nanos_err_t, nanos_yield, ( void ));
 
 NANOS_API_DECL(nanos_err_t, nanos_slicer_get_specific_data, ( nanos_slicer_t slicer, void ** data ));
 
+NANOS_API_DECL(nanos_err_t, nanos_get_num_ready_tasks, ( unsigned int *ready_tasks ));
+NANOS_API_DECL(nanos_err_t, nanos_get_num_total_tasks, ( unsigned int *total_tasks ));
+NANOS_API_DECL(nanos_err_t, nanos_get_num_nonready_tasks, ( unsigned int *nonready_tasks ));
+NANOS_API_DECL(nanos_err_t, nanos_get_num_running_tasks, ( unsigned int *running_tasks ));
+NANOS_API_DECL(nanos_err_t, nanos_get_num_blocked_tasks, ( unsigned int *blocked_tasks ));
+
 // Team related functions
 
 NANOS_API_DECL(nanos_err_t, nanos_create_team,(nanos_team_t *team, nanos_sched_t sg, unsigned int *nthreads,
@@ -166,7 +172,6 @@ NANOS_API_DECL(nanos_err_t, nanos_copy_value, ( void *dst, nanos_copy_id_t copy_
 NANOS_API_DECL(const char *, nanos_get_default_architecture, ());
 NANOS_API_DECL(const char *, nanos_get_pm, ());
 NANOS_API_DECL(nanos_err_t, nanos_get_default_binding, ( bool *res ));
-NANOS_API_DECL(nanos_err_t, nanos_get_num_running_tasks, ( int *num ));
 
 NANOS_API_DECL(const char *, nanos_get_default_scheduler, ());
 NANOS_API_DECL(nanos_err_t, nanos_start_scheduler, ());

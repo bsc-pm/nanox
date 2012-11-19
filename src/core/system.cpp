@@ -47,8 +47,8 @@ System nanos::sys;
 // default system values go here
 System::System () :
       _atomicWDSeed( 1 ),
-      _numPEs( INT_MAX ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
-      _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ), _thsPerPE( 1 ),
+      _numPEs( INT_MAX ), _numThreads( 0 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
+      _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
       _numSockets( 1 ), _coresPerSocket( 1 ), _cpu_count( 0 ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
@@ -81,15 +81,24 @@ System::System () :
    }
    oss_cpu_idx << "]";
    
-   
-   if(getNumPEs() == INT_MAX)
-     setNumPEs(_cpu_count);
-
    // OS::init must be called here and not in System::start() as it can be too late
    // to locate the program arguments at that point
    OS::init();
    config();
-   verbose0("PID[" << nanox_pid << "]. CPU affinity " << oss_cpu_idx.str()); 
+   verbose0("PID[" << nanox_pid << "]. CPU affinity " << oss_cpu_idx.str());
+   
+   // Ensure everything is properly configured
+   if( getNumPEs() == INT_MAX && _numThreads == 0 )
+      // If no parameter specified, use all available CPUs
+      setNumPEs( _cpu_count );
+   
+   if ( _numThreads == 0 )
+      // No threads specified? Use as many as PEs
+      _numThreads = _numPEs;
+   else if ( getNumPEs() == INT_MAX ){
+      // No number of PEs given? Use 1 thread per PE
+      setNumPEs(  _numThreads );
+   }
 
    if ( !_delayedStart ) {
       start();
@@ -215,6 +224,10 @@ void System::config ()
    cfg.registerArgOption ( "num_pes", "pes" );
    cfg.registerEnvOption ( "num_pes", "NX_PES" );
 
+   cfg.registerConfigOption ( "num_threads", NEW Config::PositiveVar( _numThreads ), "Defines the number of threads" );
+   cfg.registerArgOption ( "num_threads", "threads" );
+   cfg.registerEnvOption ( "num_threads", "NX_THREADS" );
+
    cfg.registerConfigOption ( "stack-size", NEW Config::PositiveVar( _deviceStackSize ), "Defines the default stack size for all devices" );
    cfg.registerArgOption ( "stack-size", "stack-size" );
    cfg.registerEnvOption ( "stack-size", "NX_STACK_SIZE" );
@@ -325,9 +338,10 @@ void System::start ()
 
    _pes.reserve ( numPes );
 
-   PE *pe = createPE ( _defArch, 0 );
+   PE *pe = createPE ( _defArch, getCpuId( getBindingStart() ) );
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
+   ++_targetThreads;
 
    WD &mainWD = *myThread->getCurrentWD();
    (void) mainWD.getDirectory(true);
@@ -345,26 +359,31 @@ void System::start ()
 
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_STARTUP) );
 
-   _targetThreads = getThsPerPE() * numPes;
-#ifdef GPU_DEV
-   _targetThreads += nanos::ext::GPUConfig::getGPUCount();
-#endif
-
-   //start as much threads per pe as requested by the user
-   for ( int ths = 1; ths < getThsPerPE(); ths++ ) {
-      _workers.push_back( &pe->startWorker( ));
+   // Create PEs
+   int p;
+   for ( p = 1; p < numPes ; p++ ) {
+      int cpuId = ( p * getBindingStride() + getBindingStart() );
+      cpuId = getCpuId( ( cpuId + cpuId/_cpu_count ) % _cpu_count );
+      pe = createPE ( "smp", cpuId );
+      _pes.push_back ( pe );
    }
-
-   for ( int p = 1; p < numPes ; p++ ) {
-      createWorker( p );
+   
+   // Create threads
+   for ( int ths = 1; ths < _numThreads; ths++ ) {
+      pe = _pes[ ths % numPes ];
+      _workers.push_back( &pe->startWorker() );
+      ++_targetThreads;
    }
 
 #ifdef GPU_DEV
    int gpuC;
    for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount(); gpuC++ ) {
-      PE *gpu = NEW nanos::ext::GPUProcessor( p++, gpuC );
+      int cpuId = ( p++ * getBindingStride() + getBindingStart() );
+      cpuId = getCpuId( ( cpuId + cpuId/_cpu_count ) % _cpu_count );
+      PE *gpu = NEW nanos::ext::GPUProcessor( cpuId, gpuC );
       _pes.push_back( gpu );
       _workers.push_back( &gpu->startWorker() );
+      ++_targetThreads;
    }
 #endif
 
@@ -431,7 +450,7 @@ void System::finish ()
 
    // we need to switch to the main thread here to finish
    // the execution correctly
-   getMyThreadSafe()->getCurrentWD()->tieTo(*_workers[0]);
+   getMyThreadSafe()->getCurrentWD()->tied().tieTo(*_workers[0]);
    Scheduler::switchToThread(_workers[0]);
    
    ensure(getMyThreadSafe()->getId() == 0, "Main thread not finishing the application!");
@@ -1090,7 +1109,7 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints, bool reu
                                   bool enterCurrent, bool enterOthers, bool starringCurrent, bool starringOthers )
 {
    if ( nthreads == 0 ) {
-      nthreads = getNumPEs()*getThsPerPE();
+      nthreads = getNumThreads();
    }
    
    SchedulePolicy *sched = 0;

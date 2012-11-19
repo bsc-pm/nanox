@@ -82,9 +82,7 @@ void SMPThread::join ()
 
 void SMPThread::bind( void )
 {
-   int ncpus = sys.getCpuCount();
-   int cpu_idx = ( getCpuId() * sys.getBindingStride() ) + sys.getBindingStart();
-   int cpu_id = sys.getCpuId( ((cpu_idx+(cpu_idx/ncpus)) % ncpus));
+   int cpu_id = getCpuId();
    
    // If using the socket scheduler...
    if ( sys.getDefaultSchedule() == "socket" )

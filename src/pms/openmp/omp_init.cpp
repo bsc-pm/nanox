@@ -43,7 +43,7 @@ namespace nanos
          cfg.setOptionsSection("OpenMP specific","OpenMP related options");
 
          // OMP_NUM_THREADS
-         cfg.registerAlias("num_pes","omp-threads","Configures the number of OpenMP Threads to use");
+         cfg.registerAlias("num_threads","omp-threads","Configures the number of OpenMP Threads to use");
          cfg.registerEnvOption("omp-threads","OMP_NUM_THREADS");
 
          // OMP_SCHEDULE
@@ -69,7 +69,7 @@ namespace nanos
 
          TaskICVs & icvs = globalState->getICVs();
          icvs.setSchedule(LoopSchedule(omp_sched_static));
-         icvs.setNumThreads(sys.getNumPEs());
+         icvs.setNumThreads(sys.getNumThreads());
 
          _description = std::string("OpenMP");
          sys.setInitialMode( System::ONE_THREAD );

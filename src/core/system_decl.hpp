@@ -70,6 +70,7 @@ namespace nanos
 
          // configuration variables
          int                  _numPEs;
+         int                  _numThreads;
          int                  _deviceStackSize;
          int                  _bindingStart;
          int                  _bindingStride;
@@ -79,7 +80,6 @@ namespace nanos
          bool                 _verboseMode;
          ExecutionMode        _executionMode;
          InitialMode          _initialMode;
-         int                  _thsPerPE;
          bool                 _untieMaster;
          bool                 _delayedStart;
          bool                 _useYield;
@@ -214,8 +214,15 @@ namespace nanos
          void setNumPEs ( int npes );
 
          int getNumPEs () const;
+         
+         //! \brief Returns the maximum number of threads (SMP + GPU + ...). 
+         unsigned getMaxThreads () const; 
+         
+         void setNumThreads ( int nthreads );
+         
+         int getNumThreads () const;
 
-	 int getCpuId ( int idx);
+         int getCpuId ( int idx ) const;
 	 
          int getCpuCount ( ) const;
 
@@ -253,8 +260,6 @@ namespace nanos
          bool getDelayedStart () const;
 
          bool useYield() const;
-
-         int getThsPerPE() const;
 
          int getTaskNum() const;
 

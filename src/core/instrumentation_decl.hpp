@@ -238,6 +238,11 @@ namespace nanos {
             registerEventValue("api","omp_get_schedule","nanos_omp_get_schedule()");
             registerEventValue("api","malloc","nanos_malloc()");
             registerEventValue("api","free","nanos_free()");
+            registerEventValue("api","get_num_ready_tasks","nanos_get_num_ready_tasks()");
+            registerEventValue("api","get_num_total_tasks","nanos_get_num_total_tasks()");
+            registerEventValue("api","get_num_nonready_tasks","nanos_get_num_nonready_tasks()");
+            registerEventValue("api","get_num_blocked_tasks","nanos_get_num_blocked_tasks()");
+            registerEventValue("api","get_num_running_tasks","nanos_get_num_running_tasks()");
 
             /* 02 */ registerEventKey("wd-id","Work Descriptor id:", true, true, true);
 
