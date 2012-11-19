@@ -280,6 +280,13 @@ namespace nanos
          int getCoresPerSocket() const;
 
          void setCoresPerSocket ( int coresPerSocket );
+         
+         /**
+          * \brief Returns a CPU Id that the given architecture should use
+          * to tie a new processing element to.
+          * \param pe Processing Element number.
+          */
+         int getBindingId ( int pe ) const;
 
          void setUntieMaster ( bool value );
 

@@ -364,7 +364,7 @@ NANOS_API_DEF(nanos_err_t, nanos_get_num_nonready_tasks, ( unsigned int *nonread
 
 NANOS_API_DEF(nanos_err_t, nanos_get_num_running_tasks, ( unsigned int *running_tasks ))
 {
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_running_tasks",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_running_tasks",NANOS_RUNTIME) );
 
    try {
       *running_tasks = sys.getRunningTasks();

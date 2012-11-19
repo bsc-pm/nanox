@@ -362,9 +362,7 @@ void System::start ()
    // Create PEs
    int p;
    for ( p = 1; p < numPes ; p++ ) {
-      int cpuId = ( p * getBindingStride() + getBindingStart() );
-      cpuId = getCpuId( ( cpuId + cpuId/_cpu_count ) % _cpu_count );
-      pe = createPE ( "smp", cpuId );
+      pe = createPE ( "smp", getBindingId( p ) );
       _pes.push_back ( pe );
    }
    
@@ -378,12 +376,11 @@ void System::start ()
 #ifdef GPU_DEV
    int gpuC;
    for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount(); gpuC++ ) {
-      int cpuId = ( p++ * getBindingStride() + getBindingStart() );
-      cpuId = getCpuId( ( cpuId + cpuId/_cpu_count ) % _cpu_count );
-      PE *gpu = NEW nanos::ext::GPUProcessor( cpuId, gpuC );
+      PE *gpu = NEW nanos::ext::GPUProcessor( getBindingId( p ), gpuC );
       _pes.push_back( gpu );
       _workers.push_back( &gpu->startWorker() );
       ++_targetThreads;
+      ++p;
    }
 #endif
 
