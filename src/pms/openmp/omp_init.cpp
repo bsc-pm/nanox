@@ -171,7 +171,7 @@ namespace nanos
 
          sys.updateActiveWorkers( omp_threads );
 
-         unsigned sys_threads = sys.getNumPEs() * sys.getThsPerPE();
+         unsigned sys_threads = sys.getNumThreads();
          ensure( sys_threads == omp_threads, "Update Number of Threads failed " +
                toString<unsigned>(sys_threads) + " != " + toString<unsigned>(omp_threads) );
       }

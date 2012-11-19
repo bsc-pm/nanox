@@ -168,7 +168,7 @@ namespace nanos
          void config ();
          void loadModules();
          void unloadModules();
-         void createWorker( unsigned id );
+         void createWorker( unsigned p );
          void acquireWorker( ThreadTeam * team, BaseThread * thread, bool enter=true, bool star=false, bool creator=false );
          void increaseActiveWorkers( unsigned nthreads );
          void decreaseActiveWorkers( unsigned nthreads );

@@ -1012,15 +1012,12 @@ void System::inlineWork ( WD &work )
    }
 }
 
-void System::createWorker( unsigned id )
+void System::createWorker( unsigned p )
 {
-   PE *pe = createPE ( "smp", id );
+   PE *pe = createPE ( "smp", getBindingId( p ) );
    _pes.push_back ( pe );
-
-   //starting as much threads per pe as requested by the user
-   for ( int ths = 0; ths < getThsPerPE(); ths++ ) {
-      _workers.push_back( &pe->startWorker() );
-   }
+   _workers.push_back( &pe->startWorker() );
+   ++_targetThreads;
 }
 
 BaseThread * System:: getUnassignedWorker ( void )
@@ -1134,6 +1131,7 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints, bool reu
       if ( !thread ) {
          createWorker( _pes.size() );
          _numPEs++;
+         _numThreads++;
          continue;
       }
 
@@ -1172,6 +1170,7 @@ void System::increaseActiveWorkers ( unsigned nthreads )
       acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
       nthreads--;
       _numPEs++;
+      _numThreads++;
    }
 }
 
@@ -1191,6 +1190,7 @@ void System::decreaseActiveWorkers ( unsigned nthreads )
       thread->leaveTeam();
       nthreads--;
       _numPEs--;
+      _numThreads--;
    }
 }
 
@@ -1200,7 +1200,7 @@ void System::updateActiveWorkers ( unsigned nthreads )
    NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, (nanos_event_value_t *) &nthreads); )
 
-   int new_threads = nthreads - getNumPEs();
+   int new_threads = nthreads - getNumThreads();
    if ( new_threads > 0 ) {
       increaseActiveWorkers( new_threads );
    } else if ( new_threads < 0 ) {
