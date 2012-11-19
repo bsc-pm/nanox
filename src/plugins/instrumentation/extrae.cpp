@@ -17,35 +17,23 @@
 #include "os.hpp"
 #include "errno.h"
 
-/* NANOX_EXTRAE_DEFINE_CALLBACKS allow to define which are our external services
- * to specify the execution environment ( thread id, total threads, etc ). They
- * are defined on Extrae 2.2.1 and above */
-#define NANOX_EXTRAE_DEFINE_CALLBACKS
-
-/* NANOX_EXTRAE_WD_INSTRUMENTATION allow to instrument using wd as the main
- * component for the instrumentation. If present is not needed to save context
- * information at each context switch. Extrae WD instrumentation is supporter
- * on Extrae 2.2.2 and above */
-#define NANOX_EXTRAE_WD_INSTRUMENTATION
-
 #ifndef EXTRAE_VERSION
-#warning Extrae library version is not supported (use >= 2.2.0):
+#warning Extrae library version is not supported (use >= 2.3):
 #else
 #  define NANOX_EXTRAE_SUPPORTED_VERSION
 #  if EXTRAE_VERSION_MAJOR(EXTRAE_VERSION) == 2 /************* version 2.x.x */
 #      define extrae_size_t unsigned int
-#    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 2 /*********** version 2.2.x */
-#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 0 /****** version 2.2.0 */
-#      define EXTRAE_COMM_PARTNER_MYSELF ((extrae_comm_partner_t) 0x00000000)
-#      undef  NANOX_EXTRAE_DEFINE_CALLBACKS
-#      undef  NANOX_EXTRAE_WD_INSTRUMENTATION
-#      endif /*----------------------------------------------- version 2.2.0 */
-#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 1 /****** version 2.2.1 */
-#      undef  NANOX_EXTRAE_WD_INSTRUMENTATION
-#      endif /*----------------------------------------------- version 2.2.1 */
-#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 2 /****** version 2.2.2 */
-#      endif /*----------------------------------------------- version 2.2.2 */
+
+#    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 2 /*********** version 2.2.x */ 
+#      warning Extrae library version is not supported (use >= 2.3):
+#      undef NANOX_EXTRAE_SUPPORTED_VERSION
 #    endif /*------------------------------------------------- version 2.2.x */
+
+#    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 3 /*********** version 2.3.x */
+#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 0 /****** version 2.3.0 */
+#      endif /*----------------------------------------------- version 2.3.0 */
+#    endif /*------------------------------------------------- version 2.3.x */
+
 #  endif /*--------------------------------------------------- version 2.x.x */
 #endif
 
@@ -101,15 +89,9 @@ class InstrumentationExtrae: public Instrumentation
       static std::string                             _postProcessScriptPath;
       static bool                                    _keepMpits; /*<< Keeps mpits temporary files (default = no)*/
       static bool                                    _skipMerge; /*<< Skip merge phase and keeps mpits temporary files (default = no)*/
-      static bool                                    _skipInit; /*<< Skip extrae initialization process (default = no)*/
-      static bool                                    _skipFini; /*<< Skip extrae finalization process (default = no)*/
    public:
       // constructor
-#ifdef NANOX_EXTRAE_WD_INSTRUMENTATION
       InstrumentationExtrae ( ) : Instrumentation( *NEW InstrumentationContextDisabled() ) {}
-#else
-      InstrumentationExtrae ( ) : Instrumentation( *NEW InstrumentationContextStackedStatesAndBursts() ) {}
-#endif
       // destructor
       ~InstrumentationExtrae ( ) { }
 
@@ -197,116 +179,6 @@ class InstrumentationExtrae: public Instrumentation
          }
       }
 
-      void modifyParaverConfigFile()
-      {
-         // Writing paraver config 
-         std::fstream p_file;
-         p_file.open ( _traceFileName_PCF.c_str(), std::ios::out | std::ios::app);
-         if (p_file.is_open())
-         {
-            /* Event: State */
-            p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    " << _eventState  << "    Thread state: " << std::endl;
-            p_file << "VALUES" << std::endl;
-            p_file << NANOS_NOT_CREATED      << "     NOT CREATED" << std::endl;
-            p_file << NANOS_NOT_RUNNING      << "     NOT RUNNING" << std::endl;
-            p_file << NANOS_STARTUP          << "     STARTUP" << std::endl;
-            p_file << NANOS_SHUTDOWN         << "     SHUTDOWN" << std::endl;
-            p_file << NANOS_ERROR            << "     ERROR" << std::endl;
-            p_file << NANOS_IDLE             << "     IDLE" << std::endl;
-            p_file << NANOS_RUNTIME          << "     RUNTIME" << std::endl;
-            p_file << NANOS_RUNNING          << "     RUNNING" << std::endl;
-            p_file << NANOS_SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
-            p_file << NANOS_SCHEDULING       << "     SCHEDULING" << std::endl;
-            p_file << NANOS_CREATION         << "     CREATION" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_IN  << "     DATA TRANSFER TO DEVICE" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_OUT << "     DATA TRANSFER TO HOST" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_LOCAL << "     LOCAL DATA TRANSFER IN DEVICE" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_DEVICE_IN << "     DATA TRANSFER TO DEVICE" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_DEVICE_OUT << "     DATA TRANSFER TO HOST" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_DEVICE_LOCAL << "     LOCAL DATA TRANSFER IN DEVICE" << std::endl;
-            p_file << NANOS_CACHE            << "     CACHE ALLOC/FREE" << std::endl;
-            p_file << NANOS_YIELD            << "     YIELD" << std::endl;
-            p_file << NANOS_ACQUIRING_LOCK   << "     ACQUIRING LOCK" << std::endl;
-            p_file << NANOS_CONTEXT_SWITCH   << "     CONTEXT SWITCH" << std::endl;
-            p_file << 27                     << "     EXTRAE I/O" << std::endl;
-            p_file << std::endl;
-
-            /* Event: PtPStart main event */
-            p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    " << _eventPtPStart  << "    Point-to-point origin: " << std::endl;
-            p_file << std::endl;
-
-            /* Event: PtPEnd main event */
-            p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    " << _eventPtPEnd    << "    Point-to-point destination: " << std::endl;
-            p_file << std::endl;
-
-            /* Event: Sub-state (key == state)  */
-            p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    " << _eventSubState  << "    Thread sub-state: " << std::endl;
-            p_file << "VALUES" << std::endl;
-            p_file << NANOS_NOT_CREATED      << "     NOT CREATED" << std::endl;
-            p_file << NANOS_NOT_RUNNING      << "     NOT RUNNING" << std::endl;
-            p_file << NANOS_STARTUP          << "     STARTUP" << std::endl;
-            p_file << NANOS_SHUTDOWN         << "     SHUTDOWN" << std::endl;
-            p_file << NANOS_ERROR            << "     ERROR" << std::endl;
-            p_file << NANOS_IDLE             << "     IDLE" << std::endl;
-            p_file << NANOS_RUNTIME          << "     RUNTIME" << std::endl;
-            p_file << NANOS_RUNNING          << "     RUNNING" << std::endl;
-            p_file << NANOS_SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
-            p_file << NANOS_SCHEDULING       << "     SCHEDULING" << std::endl;
-            p_file << NANOS_CREATION         << "     CREATION" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_IN  << "     DATA TRANSFER TO DEVICE" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_OUT << "     DATA TRANSFER TO HOST" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_LOCAL << "     LOCAL DATA TRANSFER IN DEVICE" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_DEVICE_IN  << "     DATA TRANSFER TO DEVICE" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_DEVICE_OUT << "     DATA TRANSFER TO HOST" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_DEVICE_LOCAL << "     LOCAL DATA TRANSFER IN DEVICE" << std::endl;
-            p_file << NANOS_CACHE            << "     CACHE ALLOC/FREE" << std::endl;
-            p_file << NANOS_YIELD            << "     YIELD" << std::endl;
-            p_file << NANOS_ACQUIRING_LOCK   << "     ACQUIRING LOCK" << std::endl;
-            p_file << NANOS_CONTEXT_SWITCH   << "     CONTEXT SWITCH" << std::endl;
-            p_file << 27                     << "     EXTRAE I/O" << std::endl;
-            p_file << std::endl;
-
-            /* Getting Instrumentation Dictionary */
-            InstrumentationDictionary::ConstKeyMapIterator itK;
-            InstrumentationKeyDescriptor::ConstValueMapIterator itV;
-
-            InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
-
-            /* Generating key/value events */
-            for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
-               InstrumentationKeyDescriptor *kD = itK->second;
- 
-               p_file << "EVENT_TYPE" << std::endl;
-               p_file << "9    " << _eventBase+kD->getId() << " " << kD->getDescription() << std::endl;
-               p_file << "VALUES" << std::endl;
-
-               // First: Ordering list of values and descriptions 
-               std::map<int,std::string> lov;
-               for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
-                  InstrumentationValueDescriptor *vD = itV->second;
-                  lov.insert( make_pair( vD->getId(), vD->getDescription() ));
-               }
-
-               // Second:: Generating already ordered list of values
-               std::map<int,std::string>::iterator itLoV;
-               for ( itLoV = lov.begin(); itLoV != lov.end(); itLoV++ ) {
-                  p_file << itLoV->first << "  " << itLoV->second << std::endl;
-               }
-
-               p_file << std::endl;
-            }
-            p_file << std::endl;
-
-            /* Closing configuration file */
-            p_file.close();
-         }
-         else message0("Unable to open paraver config file");
-      }
-
       void modifyParaverRowFile()
       {
          // rename ROW file to a temporary file
@@ -330,14 +202,9 @@ class InstrumentationExtrae: public Instrumentation
                if ( print == true ) {
                   // printing was alredy enabled, so disable if...
                   print = print && line.find("LEVEL THREAD"); // ... found LEVEL THREAD section
-#ifdef NANOX_EXTRAE_WD_INSTRUMENTATION
                   print = print && line.find("LEVEL CPU"); // ... found LEVEL CPU section
-#endif
                } else {
                   // printing was already disabled so enabled if...
-#ifndef NANOX_EXTRAE_WD_INSTRUMENTATION
-                  print = !line.find("LEVEL CPU"); // ... found LEVEL CPU section
-#endif
                   print = !line.find("LEVEL NODE"); // ... found LEVEL NODE section
                }
 
@@ -346,11 +213,7 @@ class InstrumentationExtrae: public Instrumentation
 
             // Adding thread info
             unsigned int num_threads = sys.getNumWorkers();
-#ifndef NANOX_EXTRAE_WD_INSTRUMENTATION
-            o_file << "LEVEL THREAD SIZE " << num_threads << std::endl;
-#else
             o_file << "LEVEL CPU SIZE " << num_threads << std::endl;
-#endif
             for ( unsigned int i = 0; i < num_threads; i++ ) {
                o_file << sys.getWorker(i)->getDescription() << std::endl;
             }
@@ -555,7 +418,6 @@ class InstrumentationExtrae: public Instrumentation
          sprintf(env_trace_final_dir, "EXTRAE_FINAL_DIR=%s", _traceFinalDirectory.c_str());
          putenv (env_trace_final_dir);
 
-#ifdef NANOX_EXTRAE_DEFINE_CALLBACKS
         // Common thread information
         Extrae_set_threadid_function ( nanos_ompitrace_get_thread_num );
         Extrae_set_numthreads_function ( nanos_ompitrace_get_max_threads );
@@ -564,13 +426,12 @@ class InstrumentationExtrae: public Instrumentation
         Extrae_set_taskid_function ( nanos_extrae_node_id );
         Extrae_set_numtasks_function ( nanos_extrae_num_nodes );
         Extrae_set_barrier_tasks_function ( nanos_ompitrace_instrumentation_barrier );
-#endif
 
-         /* OMPItrace initialization */
-         // OMPItrace_init();
-         if ( !_skipInit ) OMPItrace_init();
+        /* OMPItrace initialization */
+        OMPItrace_init();
 
-#ifdef NANOX_EXTRAE_WD_INSTRUMENTATION
+        Extrae_register_codelocation_type( 9200011, 9200021, "User Function Name", "User Function Location" );
+
         Extrae_register_stacked_type( (extrae_type_t) _eventState );
         InstrumentationDictionary::ConstKeyMapIterator itK;
         InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
@@ -579,24 +440,93 @@ class InstrumentationExtrae: public Instrumentation
         for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
            InstrumentationKeyDescriptor *kD = itK->second;
            if (kD->isStacked()) {
-              fprintf(stderr,"stacked %d\n",_eventBase+kD->getId());
               Extrae_register_stacked_type( (extrae_type_t) _eventBase+kD->getId() );
            }
         }
-#endif
-
       }
 
       void finalize ( void )
       {
-         if ( !_skipFini ) OMPItrace_fini();
-         // OMPItrace_fini();
+         /* Getting Instrumentation Dictionary */
+         InstrumentationDictionary::ConstKeyMapIterator itK;
+         InstrumentationKeyDescriptor::ConstValueMapIterator itV;
+         InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
+	      nanos_event_key_t usr_functName = iD->getEventKey("user-funct-name");
+	      nanos_event_key_t usr_functLocation = iD->getEventKey("user-funct-location");
+
+         for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
+            InstrumentationKeyDescriptor *kD = itK->second;
+            extrae_type_t type = _eventBase+kD->getId(); 
+            char *type_desc = ( char *) alloca(sizeof(char) * (kD->getDescription().size() + 1) );
+            strncpy ( type_desc, kD->getDescription().c_str(), kD->getDescription().size()+1 );
+            unsigned nval = kD->getSize();
+            if ( kD->getId() == usr_functLocation ) {
+               for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
+                  // Parsing event description
+                  std::string description = iD->getValueDescription( kD->getId(), (itV->second)->getId() );
+                  int pos1 = description.find_first_of("@");
+                  int pos2 = description.find_first_of("@",pos1+1);
+                  int length = description.size();
+                  int  line = atoi ( (description.substr(pos2+1, length)).c_str());
+                  Extrae_register_function_address ( 
+                     (void *) (itV->second)->getId(),
+                     (char *) description.substr(0,pos1).c_str(),
+                     (char *) description.substr(pos1+1,(pos2-pos1-1)).c_str(),
+                     (unsigned) line
+                  );
+               }
+            } else if (kD->getId() == usr_functName ) {
+               // DO Nothing
+            } else {
+               extrae_value_t *values = (extrae_value_t *) alloca(sizeof(extrae_value_t) * nval);
+               char **val_desc = (char **) alloca(sizeof(char *) * nval);
+               unsigned val_id = 0;
+               for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
+                  InstrumentationValueDescriptor *vD = itV->second;
+                  values[val_id] = vD->getId();
+                  val_desc[val_id] = (char *) alloca(sizeof(char) * (vD->getDescription().size() + 1) );
+                  strncpy(val_desc[val_id], vD->getDescription().c_str(), vD->getDescription().size()+1 );
+                  val_id++;
+               }
+               Extrae_define_event_type( type, type_desc, val_id, values, val_desc);
+
+            }
+         }
+         /* HARDCODED values */
+         {
+            unsigned nval = NANOS_EVENT_STATE_TYPES;
+            extrae_value_t *values = (extrae_value_t *) alloca( sizeof(extrae_value_t) * nval );
+            char **val_desc = (char **) alloca( sizeof(char *) * nval );
+            unsigned int i = 0;
+            static std::string nanos_event_state_value_str[] = {"NOT CREATED", "NOT RUNNING", 
+               "STARTUP", "SHUTDOWN", "ERROR", "IDLE",
+               "RUNTIME", "RUNNING", "SYNCHRONIZATION", "SCHEDULING", "CREATION",
+               "DATA TRANSFER TO DEVICE", "DATA TRANSFER TO HOST", "LOCAL DATA TRANSFER IN DEVICE",
+               "DATA TRANSFER TO DEVICE", "DATA TRANSFER TO HOST", "LOCAL DATA TRANSFER IN DEVICE",
+               "CACHE ALLOC/FREE", "YIELD", "ACQUIRING LOCK", "CONTEXT SWITCH", "DEBUG"};
+
+            for ( i = 0; i < (nval - 1); i++ ) { // Do not show the DEBUG state
+               values[i] = i;
+               val_desc[i] = (char *) nanos_event_state_value_str[i].c_str();
+            }
+            values[i] = 27;
+            val_desc[i++] = (char *) "EXTRAE I/O";
+
+            Extrae_define_event_type( _eventState, (char *) "Thread state: ", nval, values, val_desc );
+
+            Extrae_define_event_type( _eventPtPStart, (char *) "Point-to-point origin", 0, NULL, NULL );
+
+            Extrae_define_event_type( _eventPtPEnd, (char *) "Point-to-point destination", 0, NULL, NULL );
+
+            Extrae_define_event_type( _eventSubState, (char *) "Thread sub-state", nval, values, val_desc );
+         }
+
+         OMPItrace_fini();
          getTraceFileName();
          if ( !_skipMerge ) {
             mergeParaverTraceFiles();
             postProcessTraceFile();
          }
-         modifyParaverConfigFile();
          modifyParaverRowFile();
          removeTemporaryFiles();
       }
@@ -644,6 +574,7 @@ class InstrumentationExtrae: public Instrumentation
 
          int j = 0; int k = 0;
          nanos_event_key_t ckey = 0;
+         extrae_value_t cvalue = 0;
          nanos_event_key_t sizeKey = iD->getEventKey("xfer-size");
 
          for (unsigned int i = 0; i < count; i++)
@@ -690,9 +621,10 @@ class InstrumentationExtrae: public Instrumentation
                case NANOS_POINT:
                case NANOS_BURST_START:
                   ckey = e.getKey();
+                  cvalue = e.getValue();
                   if (  ckey != 0 ) { 
                      ce.Types[j] = _eventBase + ckey;
-                     ce.Values[j++] = e.getValue();
+                     ce.Values[j++] = cvalue;
                   }
                   break;
                case NANOS_BURST_END:
@@ -733,16 +665,12 @@ class InstrumentationExtrae: public Instrumentation
       }
       void addResumeTask( WorkDescriptor &w )
       {
-#ifdef NANOX_EXTRAE_WD_INSTRUMENTATION
           Extrae_resume_virtual_thread ( w.getId() );
-#endif
       }
 
       void addSuspendTask( WorkDescriptor &w, bool last )
       {
-#ifdef NANOX_EXTRAE_WD_INSTRUMENTATION
          Extrae_suspend_virtual_thread ();
-#endif
       }
 
       void threadStart( BaseThread &thread ) {}
@@ -755,8 +683,6 @@ std::string InstrumentationExtrae::_traceBaseName = std::string("");
 std::string InstrumentationExtrae::_postProcessScriptPath = std::string("");
 bool InstrumentationExtrae::_keepMpits = false;
 bool InstrumentationExtrae::_skipMerge = false;
-bool InstrumentationExtrae::_skipInit = false;
-bool InstrumentationExtrae::_skipFini = false;
 #endif
 
 namespace ext {
@@ -791,14 +717,6 @@ class InstrumentationParaverPlugin : public Plugin {
          cfg.registerConfigOption ( "extrae-skip-merge", NEW Config::FlagOption( InstrumentationExtrae::_skipMerge ),
                                        "Skips merge phase in trace generation (also keeps mpits temporary files)" );
          cfg.registerArgOption ( "extrae-skip-merge", "extrae-skip-merge" );
-
-         cfg.registerConfigOption ( "extrae-skip-init", NEW Config::FlagOption( InstrumentationExtrae::_skipInit ),
-                                       "Skips extrae initialization process" );
-         cfg.registerArgOption ( "extrae-skip-init", "extrae-skip-init" );
-
-         cfg.registerConfigOption ( "extrae-skip-fini", NEW Config::FlagOption( InstrumentationExtrae::_skipFini ),
-                                       "Skips extrae finalization process" );
-         cfg.registerArgOption ( "extrae-skip-fini", "extrae-skip-fini" );
 
 #endif
       }

@@ -174,6 +174,10 @@ namespace nanos {
          /*! \brief Returns a Value description for a given value
           */
          const std::string getValueDescription ( nanos_event_value_t val );
+
+         /*! \brief Returns the number of registered values 
+          */
+         size_t getSize( void ) const;
    };
 
    class InstrumentationDictionary {

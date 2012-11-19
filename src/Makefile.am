@@ -17,7 +17,7 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = arch support plugins core apis pms utils
+SUBDIRS = arch support core apis pms utils plugins
 
 EXTRA_DIST =
 
