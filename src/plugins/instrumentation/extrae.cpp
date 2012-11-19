@@ -17,35 +17,23 @@
 #include "os.hpp"
 #include "errno.h"
 
-/* NANOX_EXTRAE_DEFINE_CALLBACKS allow to define which are our external services
- * to specify the execution environment ( thread id, total threads, etc ). They
- * are defined on Extrae 2.2.1 and above */
-#define NANOX_EXTRAE_DEFINE_CALLBACKS
-
-/* NANOX_EXTRAE_WD_INSTRUMENTATION allow to instrument using wd as the main
- * component for the instrumentation. If present is not needed to save context
- * information at each context switch. Extrae WD instrumentation is supporter
- * on Extrae 2.2.2 and above */
-#define NANOX_EXTRAE_WD_INSTRUMENTATION
-
 #ifndef EXTRAE_VERSION
-#warning Extrae library version is not supported (use >= 2.2.0):
+#warning Extrae library version is not supported (use >= 2.3):
 #else
 #  define NANOX_EXTRAE_SUPPORTED_VERSION
 #  if EXTRAE_VERSION_MAJOR(EXTRAE_VERSION) == 2 /************* version 2.x.x */
 #      define extrae_size_t unsigned int
-#    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 2 /*********** version 2.2.x */
-#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 0 /****** version 2.2.0 */
-#      define EXTRAE_COMM_PARTNER_MYSELF ((extrae_comm_partner_t) 0x00000000)
-#      undef  NANOX_EXTRAE_DEFINE_CALLBACKS
-#      undef  NANOX_EXTRAE_WD_INSTRUMENTATION
-#      endif /*----------------------------------------------- version 2.2.0 */
-#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 1 /****** version 2.2.1 */
-#      undef  NANOX_EXTRAE_WD_INSTRUMENTATION
-#      endif /*----------------------------------------------- version 2.2.1 */
-#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 2 /****** version 2.2.2 */
-#      endif /*----------------------------------------------- version 2.2.2 */
+
+#    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 2 /*********** version 2.2.x */ 
+#      warning Extrae library version is not supported (use >= 2.3):
+#      undef NANOX_EXTRAE_SUPPORTED_VERSION
 #    endif /*------------------------------------------------- version 2.2.x */
+
+#    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 3 /*********** version 2.3.x */
+#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 0 /****** version 2.3.0 */
+#      endif /*----------------------------------------------- version 2.3.0 */
+#    endif /*------------------------------------------------- version 2.3.x */
+
 #  endif /*--------------------------------------------------- version 2.x.x */
 #endif
 
@@ -103,11 +91,7 @@ class InstrumentationExtrae: public Instrumentation
       static bool                                    _skipMerge; /*<< Skip merge phase and keeps mpits temporary files (default = no)*/
    public:
       // constructor
-#ifdef NANOX_EXTRAE_WD_INSTRUMENTATION
       InstrumentationExtrae ( ) : Instrumentation( *NEW InstrumentationContextDisabled() ) {}
-#else
-      InstrumentationExtrae ( ) : Instrumentation( *NEW InstrumentationContextStackedStatesAndBursts() ) {}
-#endif
       // destructor
       ~InstrumentationExtrae ( ) { }
 
@@ -218,14 +202,9 @@ class InstrumentationExtrae: public Instrumentation
                if ( print == true ) {
                   // printing was alredy enabled, so disable if...
                   print = print && line.find("LEVEL THREAD"); // ... found LEVEL THREAD section
-#ifdef NANOX_EXTRAE_WD_INSTRUMENTATION
                   print = print && line.find("LEVEL CPU"); // ... found LEVEL CPU section
-#endif
                } else {
                   // printing was already disabled so enabled if...
-#ifndef NANOX_EXTRAE_WD_INSTRUMENTATION
-                  print = !line.find("LEVEL CPU"); // ... found LEVEL CPU section
-#endif
                   print = !line.find("LEVEL NODE"); // ... found LEVEL NODE section
                }
 
@@ -234,11 +213,7 @@ class InstrumentationExtrae: public Instrumentation
 
             // Adding thread info
             unsigned int num_threads = sys.getNumWorkers();
-#ifndef NANOX_EXTRAE_WD_INSTRUMENTATION
-            o_file << "LEVEL THREAD SIZE " << num_threads << std::endl;
-#else
             o_file << "LEVEL CPU SIZE " << num_threads << std::endl;
-#endif
             for ( unsigned int i = 0; i < num_threads; i++ ) {
                o_file << sys.getWorker(i)->getDescription() << std::endl;
             }
@@ -443,7 +418,6 @@ class InstrumentationExtrae: public Instrumentation
          sprintf(env_trace_final_dir, "EXTRAE_FINAL_DIR=%s", _traceFinalDirectory.c_str());
          putenv (env_trace_final_dir);
 
-#ifdef NANOX_EXTRAE_DEFINE_CALLBACKS
         // Common thread information
         Extrae_set_threadid_function ( nanos_ompitrace_get_thread_num );
         Extrae_set_numthreads_function ( nanos_ompitrace_get_max_threads );
@@ -452,15 +426,12 @@ class InstrumentationExtrae: public Instrumentation
         Extrae_set_taskid_function ( nanos_extrae_node_id );
         Extrae_set_numtasks_function ( nanos_extrae_num_nodes );
         Extrae_set_barrier_tasks_function ( nanos_ompitrace_instrumentation_barrier );
-#endif
 
-
-         /* OMPItrace initialization */
-         OMPItrace_init();
+        /* OMPItrace initialization */
+        OMPItrace_init();
 
         Extrae_register_codelocation_type( 9200011, 9200021, "User Function Name", "User Function Location" );
 
-#ifdef NANOX_EXTRAE_WD_INSTRUMENTATION
         Extrae_register_stacked_type( (extrae_type_t) _eventState );
         InstrumentationDictionary::ConstKeyMapIterator itK;
         InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
@@ -472,8 +443,6 @@ class InstrumentationExtrae: public Instrumentation
               Extrae_register_stacked_type( (extrae_type_t) _eventBase+kD->getId() );
            }
         }
-#endif
-
       }
 
       void finalize ( void )
@@ -696,16 +665,12 @@ class InstrumentationExtrae: public Instrumentation
       }
       void addResumeTask( WorkDescriptor &w )
       {
-#ifdef NANOX_EXTRAE_WD_INSTRUMENTATION
           Extrae_resume_virtual_thread ( w.getId() );
-#endif
       }
 
       void addSuspendTask( WorkDescriptor &w, bool last )
       {
-#ifdef NANOX_EXTRAE_WD_INSTRUMENTATION
          Extrae_suspend_virtual_thread ();
-#endif
       }
 
       void threadStart( BaseThread &thread ) {}
