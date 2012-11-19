@@ -43,19 +43,6 @@ NANOS_API_DEF(nanos_err_t, nanos_get_default_binding, ( bool *res ))
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_get_num_running_tasks, ( int *num ))
-{
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_running_tasks",RUNTIME) );
-
-   try {
-      *num = sys.getRunningTasks();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-
-   return NANOS_OK;
-}
-
 NANOS_API_DEF(const char *, nanos_get_default_scheduler, ())
 {
    return (sys.getDefaultSchedule()).c_str();
