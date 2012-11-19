@@ -346,3 +346,33 @@ NANOS_API_DEF(nanos_err_t, nanos_get_num_total_tasks, ( unsigned int *total_task
    return NANOS_OK;
 
 }
+
+NANOS_API_DEF(nanos_err_t, nanos_get_num_nonready_tasks, ( unsigned int *nonready_tasks ))
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_nonready_tasks",NANOS_RUNTIME) );
+   try {
+      unsigned int ready = (unsigned int) sys.getReadyNum();
+      unsigned int total = (unsigned int) sys.getTaskNum();
+      *nonready_tasks = (total > ready)? total - ready : 0;
+   } catch ( nanos_err_t e) {
+      return e;                                                                                                                          
+   }
+   return NANOS_OK;
+
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_get_num_blocked_tasks, ( unsigned int *blocked_tasks ))
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_blocked_tasks",NANOS_RUNTIME) );
+   try {
+      unsigned int ready = (unsigned int) sys.getReadyNum();
+      unsigned int total = (unsigned int) sys.getTaskNum();
+      unsigned int nonready = (total > ready)? total - ready : 0;
+      unsigned int running = (unsigned int) sys.getRunningTasks();
+      *blocked_tasks = ( nonready > running )? nonready - running : 0;
+   } catch ( nanos_err_t e) {
+      return e;
+   }
+   return NANOS_OK;
+
+}

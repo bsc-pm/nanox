@@ -45,7 +45,7 @@ NANOS_API_DEF(nanos_err_t, nanos_get_default_binding, ( bool *res ))
 
 NANOS_API_DEF(nanos_err_t, nanos_get_num_running_tasks, ( int *num ))
 {
-   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_running_tasks",RUNTIME) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_running_tasks",RUNTIME) );
 
    try {
       *num = sys.getRunningTasks();

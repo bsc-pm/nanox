@@ -105,6 +105,8 @@ NANOS_API_DECL(nanos_err_t, nanos_slicer_get_specific_data, ( nanos_slicer_t sli
 
 NANOS_API_DECL(nanos_err_t, nanos_get_num_ready_tasks, ( unsigned int *ready_tasks ));
 NANOS_API_DECL(nanos_err_t, nanos_get_num_total_tasks, ( unsigned int *total_tasks ));
+NANOS_API_DECL(nanos_err_t, nanos_get_num_nonready_tasks, ( unsigned int *nonready_tasks ));
+NANOS_API_DECL(nanos_err_t, nanos_get_num_blocked_tasks, ( unsigned int *blocked_tasks ));
 
 // Team related functions
 
