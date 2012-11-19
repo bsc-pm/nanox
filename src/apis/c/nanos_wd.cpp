@@ -322,3 +322,27 @@ NANOS_API_DEF(unsigned int, nanos_get_wd_priority, ( nanos_wd_t wd ))
    WD *lwd = ( WD * )wd;
    return lwd->getPriority();
 }
+
+NANOS_API_DEF(nanos_err_t, nanos_get_num_ready_tasks, ( unsigned int *ready_tasks ))
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_ready_tasks",NANOS_RUNTIME) );
+   try {
+      *ready_tasks = (unsigned int) sys.getReadyNum();
+   } catch ( nanos_err_t e) {
+      return e;                                                                                                                          
+   }
+   return NANOS_OK;
+
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_get_num_total_tasks, ( unsigned int *total_tasks ))
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_total_tasks",NANOS_RUNTIME) );
+   try {
+      *total_tasks = (unsigned int) sys.getTaskNum();
+   } catch ( nanos_err_t e) {
+      return e;                                                                                                                          
+   }
+   return NANOS_OK;
+
+}

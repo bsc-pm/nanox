@@ -107,7 +107,11 @@ inline bool System::useYield() const { return _useYield; }
 
 inline int System::getTaskNum() const { return _schedStats._totalTasks.value(); }
 
+inline int System::getReadyNum() const { return _schedStats._readyTasks.value(); }
+
 inline int System::getIdleNum() const { return _schedStats._idleThreads.value(); }
+
+inline int System::getRunningTasks() const { return _workers.size() - _schedStats._idleThreads.value(); }
 
 inline void System::setUntieMaster ( bool value ) { _untieMaster = value; }
 inline bool System::getUntieMaster () const { return _untieMaster; }
@@ -116,13 +120,6 @@ inline void System::setSynchronizedStart ( bool value ) { _synchronizedStart = v
 inline bool System::getSynchronizedStart ( void ) const { return _synchronizedStart; }
 
 inline int System::getWorkDescriptorId( void ) { return _atomicWDSeed++; }
-
-inline int System::getReadyNum() const { return _schedStats._readyTasks.value(); }
-
-inline int System::getRunningTasks() const
-{
-   return _workers.size() - _schedStats._idleThreads.value();
-}
 
 inline int System::getNumWorkers() const { return _workers.size(); }
 
