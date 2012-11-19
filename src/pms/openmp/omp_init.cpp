@@ -38,7 +38,7 @@ namespace nanos
 
       nanos_ws_t OpenMPInterface::findWorksharing( omp_sched_t kind ) { return ws_plugins[kind]; }
 
-       void OpenMPInterface::config ( Config & cfg )
+      void OpenMPInterface::config ( Config & cfg )
       {
          cfg.setOptionsSection("OpenMP specific","OpenMP related options");
 
@@ -71,21 +71,12 @@ namespace nanos
          icvs.setSchedule(LoopSchedule(omp_sched_static));
          icvs.setNumThreads(sys.getNumPEs());
 
-         if ( ssCompatibility != NULL ) {
-            // Enable Ss compatibility mode
-            _description = std::string("OmpSs");
-            sys.setInitialMode( System::POOL );
-            sys.setUntieMaster(true);
-         } else {
-            _description = std::string("OpenMP");
-            sys.setInitialMode( System::ONE_THREAD );
-            sys.setUntieMaster(false);
-         }
-
-         int i;
+         _description = std::string("OpenMP");
+         sys.setInitialMode( System::ONE_THREAD );
+         sys.setUntieMaster(false);
 
          // Loading plugins for OpenMP worksharing policies
-         for (i = omp_sched_static; i <= omp_sched_auto; i++) {
+         for (int i = omp_sched_static; i <= omp_sched_auto; i++) {
             ws_plugins[i] = sys.getWorkSharing ( ws_names[i] );
             if ( ws_plugins[i] == NULL ){
                if ( !sys.loadPlugin( "worksharing-" + ws_names[i]) ) fatal0( "Could not load " + ws_names[i] + "worksharing" );
@@ -99,21 +90,27 @@ namespace nanos
          delete globalState;
       }
 
-      int OpenMPInterface::getInternalDataSize() const { return sizeof(OmpData); }
-      int OpenMPInterface::getInternalDataAlignment() const { return __alignof__(OmpData); }
+      int OpenMPInterface::getInternalDataSize() const { return sizeof(OpenMPData); }
+      int OpenMPInterface::getInternalDataAlignment() const { return __alignof__(OpenMPData); }
+
+      void OpenMPInterface::initInternalData( void * data )
+      {
+         new (data) OpenMPData();
+      }
+
       void OpenMPInterface::setupWD( WD &wd )
       {
-         OmpData *data = (OmpData *) wd.getInternalData();
+         OpenMPData *data = (OpenMPData *) wd.getInternalData();
          ensure(data,"OpenMP data is missing!");
          WD *parent = wd.getParent();
 
          if ( parent != NULL ) {
-            OmpData *parentData = (OmpData *) parent->getInternalData();
+            OpenMPData *parentData = (OpenMPData *) parent->getInternalData();
             ensure(data,"parent OpenMP data is missing!");
 
             *data = *parentData;
          } else {
-            data->icvs() = globalState->getICVs();
+            data->setICVs( &globalState->getICVs() );
             data->setFinal(false);
          }
       }
@@ -121,29 +118,62 @@ namespace nanos
       void OpenMPInterface::wdStarted( WD &wd ) {}
       void OpenMPInterface::wdFinished( WD &wd ) { }
 
-       ThreadTeamData * OpenMPInterface::getThreadTeamData()
+      ThreadTeamData * OpenMPInterface::getThreadTeamData()
       {
          return (ThreadTeamData *) NEW OmpThreadTeamData();
       }
 
-      // update the system threads after the API omp_set_num_threads
-      void OpenMPInterface::updateNumThreads()
+      void OpenMPInterface::updateNumThreads () { }
+
+
+      /* OmpSs Interface */
+      void OmpSsInterface::start ()
       {
-         if ( ssCompatibility != NULL ) {
-            // OmpSs
-            OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-            unsigned omp_threads = data->icvs().getNumThreads();
+         // Base class start()
+         OpenMPInterface::start();
 
-            sys.updateActiveWorkers( omp_threads );
+         // Overwrite custom values
+         _description = std::string("OmpSs");
+         sys.setInitialMode( System::POOL );
+         sys.setUntieMaster(true);
+      }
 
-            unsigned sys_threads = sys.getNumPEs() * sys.getThsPerPE();
-            ensure( sys_threads == omp_threads, "Update Number of Threads failed " +
-                  toString<unsigned>(sys_threads) + " != " + toString<unsigned>(omp_threads) );
+      int OmpSsInterface::getInternalDataSize() const { return sizeof(OmpSsData); }
+      int OmpSsInterface::getInternalDataAlignment() const { return __alignof__(OmpSsData); }
 
+      void OmpSsInterface::initInternalData( void * data )
+      {
+         new (data) OmpSsData();
+      }
+
+      void OmpSsInterface::setupWD( WD &wd )
+      {
+         OmpSsData *data = (OmpSsData *) wd.getInternalData();
+         ensure(data,"OmpSs data is missing!");
+         WD *parent = wd.getParent();
+
+         if ( parent != NULL ) {
+            OmpSsData *parentData = (OmpSsData *) parent->getInternalData();
+            ensure(data,"parent OmpSs data is missing!");
+
+            *data = *parentData;
          } else {
-            // OpenMP
-            // The Number of Threads will be auto-updated at the next parallel
+            data->setICVs( &globalState->getICVs() );
          }
+         data->setFinal(false);
+      }
+
+      // update the system threads after the API omp_set_num_threads
+      void OmpSsInterface::updateNumThreads ()
+      {
+         OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
+         unsigned omp_threads = data->icvs()->getNumThreads();
+
+         sys.updateActiveWorkers( omp_threads );
+
+         unsigned sys_threads = sys.getNumPEs() * sys.getThsPerPE();
+         ensure( sys_threads == omp_threads, "Update Number of Threads failed " +
+               toString<unsigned>(sys_threads) + " != " + toString<unsigned>(omp_threads) );
       }
    };
 }
@@ -152,8 +182,12 @@ namespace nanos
    This function must have C linkage to avoid that C applications need to link against the C++ library
 */   
 extern "C" {
-  void nanos_omp_set_interface( void * )
-  {
-     sys.setPMInterface(NEW nanos::OpenMP::OpenMPInterface());
-  }
+   void nanos_omp_set_interface( void * )
+   {
+      if ( nanos::OpenMP::ssCompatibility != NULL ) {
+         sys.setPMInterface(NEW nanos::OpenMP::OmpSsInterface());
+      } else {
+         sys.setPMInterface(NEW nanos::OpenMP::OpenMPInterface());
+      }
+   }
 }

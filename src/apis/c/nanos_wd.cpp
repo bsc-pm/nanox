@@ -212,6 +212,7 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
       int pmDataSize = sys.getPMInterface().getInternalDataSize();
       char pmData[pmDataSize];
       if ( pmDataSize > 0 ) {
+        sys.getPMInterface().initInternalData( pmData );
         wd.setInternalData(pmData);
       }
 

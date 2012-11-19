@@ -34,18 +34,20 @@ namespace nanos
 
       class OpenMPInterface : public PMInterface
       {
-         private:
+         protected:
             std::string ws_names[NANOS_OMP_WS_TSIZE];
             nanos_ws_t  ws_plugins[NANOS_OMP_WS_TSIZE];
+            virtual void start () ;
 
+         private:
             virtual void config ( Config & cfg ) ;
 
-            virtual void start () ;
 
             virtual void finish() ;
 
             virtual int getInternalDataSize() const ;
             virtual int getInternalDataAlignment() const ;
+            virtual void initInternalData( void *data ) ;
             virtual void setupWD( WD &wd ) ;
 
             virtual void wdStarted( WD &wd ) ;
@@ -57,6 +59,17 @@ namespace nanos
 
          public:
             nanos_ws_t findWorksharing( omp_sched_t kind ) ;
+      };
+
+      class OmpSsInterface : public OpenMPInterface
+      {
+         private:
+            virtual void start () ;
+            virtual int getInternalDataSize() const ;
+            virtual int getInternalDataAlignment() const ;
+            virtual void initInternalData( void *data ) ;
+            virtual void setupWD( WD &wd ) ;
+            virtual void updateNumThreads();
       };
    }
 }

@@ -46,6 +46,7 @@ class PMInterface
 
       virtual int getInternalDataSize() const { return 0; }
       virtual int getInternalDataAlignment() const { return 1; }
+      virtual void initInternalData( void *data ) {}
 
       virtual void config (nanos::Config &cfg) {}
       virtual void start () { _description = std::string("none"); }

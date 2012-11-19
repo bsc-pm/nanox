@@ -332,9 +332,12 @@ void System::start ()
    WD &mainWD = *myThread->getCurrentWD();
    (void) mainWD.getDirectory(true);
    
-   if ( _pmInterface->getInternalDataSize() > 0 )
-     mainWD.setInternalData( NEW char[_pmInterface->getInternalDataSize()] );
-      
+   if ( _pmInterface->getInternalDataSize() > 0 ) {
+      char *data = NEW char[_pmInterface->getInternalDataSize()];
+      _pmInterface->initInternalData( data );
+      mainWD.setInternalData( data );
+   }
+
    _pmInterface->setupWD( mainWD );
 
    /* Renaming currend thread as Master */
@@ -605,7 +608,10 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    wd->setVersionGroupId( ( unsigned long ) devices );
 
    // initializing internal data
-   if ( size_PMD > 0) wd->setInternalData( chunk + offset_PMD );
+   if ( size_PMD > 0) {
+      _pmInterface->initInternalData( chunk + offset_PMD );
+      wd->setInternalData( chunk + offset_PMD );
+   }
 
    // add to workgroup
    if ( uwg != NULL ) {
@@ -731,7 +737,10 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
                                          outline_data != NULL ? *outline_data : NULL, num_copies, (copies == NULL) ? NULL : *copies );
 
    // initializing internal data
-   if ( size_PMD > 0) wd->setInternalData( chunk + offset_PMD );
+   if ( size_PMD > 0) {
+      _pmInterface->initInternalData( chunk + offset_PMD );
+      wd->setInternalData( chunk + offset_PMD );
+   }
 
    // add to workgroup
    if ( uwg != NULL ) {
@@ -830,6 +839,7 @@ void System::duplicateWD ( WD **uwd, WD *wd)
 
    // initializing internal data
    if ( size_PMD != 0) {
+      _pmInterface->initInternalData( chunk + offset_PMD );
       (*uwd)->setInternalData( chunk + offset_PMD );
       memcpy ( chunk + offset_PMD, wd->getInternalData(), size_PMD );
    }
@@ -918,6 +928,7 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
 
    // initializing internal data
    if ( size_PMD != 0) {
+      _pmInterface->initInternalData( chunk + offset_PMD );
       (*uwd)->setInternalData( chunk + offset_PMD );
       memcpy ( chunk + offset_PMD, wd->getInternalData(), size_PMD );
    }
