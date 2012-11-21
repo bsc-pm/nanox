@@ -46,7 +46,7 @@ System nanos::sys;
 
 // default system values go here
 System::System () :
-      _atomicWDSeed( 1 ),
+      _atomicWDSeed( 1 ), _threadIdSeed( 0 ),
       _numPEs( INT_MAX ), _numThreads( 0 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
@@ -1074,7 +1074,7 @@ void System::acquireWorker ( ThreadTeam * team, BaseThread * thread, bool enter,
    if ( enter ) thread->enterTeam( data );
    else thread->setNextTeamData( data );
 
-   debug( "added thread " << thread << " with id " << toString<int>(thId) << " to " << team );
+   debug( "added thread " << thread << " with id " << toString<int>(thId) << " to " << team << " ID: " << thread->getId() );
 }
 
 void System::releaseWorker ( BaseThread * thread )

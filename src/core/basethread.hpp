@@ -98,6 +98,11 @@ namespace nanos
       return next;
    }
 
+   inline BaseThread::BaseThread ( WD &wd, ProcessingElement *creator ) :
+      _id( sys.nextThreadId() ), _name("Thread"), _description(""), _pe( creator ), _threadWD( wd ),
+      _socket( 0 ), _started( false ), _mustStop( false ), _paused( false ), _currentWD( NULL),
+      _nextWD( NULL), _hasTeam( false ), _teamData(NULL), _nextTeamData(NULL), _allocator() { }
+
    // atomic access
    inline void BaseThread::lock () { _mlock++; }
  

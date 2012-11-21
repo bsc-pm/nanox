@@ -65,8 +65,9 @@ namespace nanos
          typedef std::map<std::string, WorkSharing *> WorkSharings;
          typedef std::multimap<std::string, std::string> ModulesPlugins;
          
-         // globla seeds
+         // global seeds
          Atomic<int> _atomicWDSeed;
+         Atomic<int> _threadIdSeed;
 
          // configuration variables
          int                  _numPEs;
@@ -294,6 +295,8 @@ namespace nanos
 
          void setSynchronizedStart ( bool value );
          bool getSynchronizedStart ( void ) const;
+
+         int nextThreadId ();
 
          // team related methods
          BaseThread * getUnassignedWorker ( void );

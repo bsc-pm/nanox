@@ -107,7 +107,6 @@ namespace nanos
       friend class Scheduler;
 
       private:
-         static Atomic<int>      _idSeed;
          Lock                    _mlock;
 
          // Thread info
@@ -168,10 +167,7 @@ namespace nanos
       public:
         /*! \brief BaseThread constructor
          */
-         BaseThread ( WD &wd, ProcessingElement *creator=0 ) :
-            _id( _idSeed++ ), _name("Thread"), _description(""), _pe( creator ), _threadWD( wd ), _socket( 0 ) ,
-            _started( false ), _mustStop( false ), _paused( false ), _currentWD( NULL),
-            _nextWD( NULL), _hasTeam( false ), _teamData(NULL), _nextTeamData(NULL), _allocator() { } 
+         BaseThread ( WD &wd, ProcessingElement *creator=0 );
 
         /*! \brief BaseThread destructor
          */

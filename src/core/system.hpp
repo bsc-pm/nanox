@@ -324,5 +324,7 @@ inline void System::registerPluginOption ( const std::string &option, const std:
    }
 }
 
+inline int System::nextThreadId () { return _threadIdSeed++; }
+
 #endif
 
