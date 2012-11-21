@@ -330,6 +330,33 @@ if test x$gpu_valid = xyes; then
 	ARCHITECTURES="$ARCHITECTURES gpu"
 fi
 
+#mpi support
+AC_ARG_ENABLE([mpi],
+  AC_HELP_STRING([--enable-mpi],[Enable support for MPI (off by default)]),
+  [   
+  if test x$use_icc = xyes; then  
+	CC="mpiicc"
+	CXX="mpiicpc"
+    #FC="mpiifort"
+  else
+	CC="mpicc"
+	CXX="mpicxx"
+	CFLAGS="$CFLAGS -lmpi"
+	CXXFLAGS="$CXXFLAGS -lmpi_cxx" 
+	#fixme?
+    #FC="mpif90"
+  fi
+    ARCHITECTURES="$ARCHITECTURES mpi"
+	mpi_ARCH=x86-64
+	CFLAGS="$CFLAGS -DMPI_DEV -DMPICH_IGNORE_CXX_SEEK -mt_mpi"
+	CXXFLAGS="$CXXFLAGS -DMPI_DEV -DMPICH_IGNORE_CXX_SEEK -mt_mpi" 
+	AC_SUBST([mpi_ARCH])
+  ],
+  [
+    AC_MSG_RESULT([no])
+  ]
+)
+
 AM_CONDITIONAL([GPU_SUPPORT],[test $gpu_valid = yes])
 
 AC_SUBST([gpu_valid])
@@ -748,6 +775,11 @@ AC_CONFIG_FILES([Makefile
 		 src/arch/gpu/debug/Makefile
 		 src/arch/gpu/instrumentation/Makefile
 		 src/arch/gpu/instrumentation-debug/Makefile
+		 src/arch/mpi/Makefile
+		 src/arch/mpi/performance/Makefile
+		 src/arch/mpi/debug/Makefile
+		 src/arch/mpi/instrumentation/Makefile
+		 src/arch/mpi/instrumentation-debug/Makefile
 		 src/utils/Makefile
 		 scripts/Makefile
 		 tests/Makefile
