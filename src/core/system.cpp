@@ -1074,7 +1074,7 @@ void System::acquireWorker ( ThreadTeam * team, BaseThread * thread, bool enter,
    if ( enter ) thread->enterTeam( data );
    else thread->setNextTeamData( data );
 
-   debug( "added thread " << thread << " with id " << toString<int>(thId) << " to " << team << " ID: " << thread->getId() );
+   debug( "added thread " << thread << " with id " << toString<int>(thId) << " to " << team );
 }
 
 void System::releaseWorker ( BaseThread * thread )
