@@ -24,6 +24,7 @@ if INSTRUMENTATION_DEBUG_VERSION
 instrdebug_LTLIBRARIES = \
 	libnanox-throttle-dummy.la \
 	libnanox-throttle-numtasks.la \
+	libnanox-throttle-numtasks-e.la \
 	libnanox-throttle-idlethreads.la \
 	libnanox-throttle-taskdepth.la \
 	libnanox-throttle-readytasks.la \
@@ -50,5 +51,9 @@ libnanox_throttle_taskdepth_la_SOURCES = $(taskdepth_sources)
 libnanox_throttle_readytasks_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
 libnanox_throttle_readytasks_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_throttle_readytasks_la_SOURCES = $(readytasks_sources)
+
+libnanox_throttle_numtasks_e_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
+libnanox_throttle_numtasks_e_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_throttle_numtasks_e_la_SOURCES = $(numtasks_e_sources)
 endif
 
