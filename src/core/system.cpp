@@ -327,9 +327,6 @@ void System::start ()
 
    loadModules();
 
-   // Instrumentation startup
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->initialize() );
    verbose0 ( "Starting runtime" );
 
    _pmInterface->start();
@@ -389,6 +386,10 @@ void System::start ()
    /* Master thread is ready and waiting for the rest of the gang */
    if ( getSynchronizedStart() )
      threadReady();
+
+   // Instrumentation startup
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->initialize() );
 
    switch ( getInitialMode() )
    {
