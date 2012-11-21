@@ -21,56 +21,100 @@
 #define _NANOS_MPI_PROCESSOR
 
 #include "mpi.h"
+#include "atomic_decl.hpp"
 #include "config.hpp"
-#include "mpidevice_decl.hpp"
+#include "mpidevice.hpp"
 #include "mpithread.hpp"
 #include "cachedaccelerator.hpp"
 #include "copydescriptor_decl.hpp"
 #include "processingelement.hpp"
 
 namespace nanos {
-namespace ext
-{
-   class MPIProcessor : public CachedAccelerator<MPIDevice>
-   {
+    namespace ext {
+
+        class MPIProcessor : public CachedAccelerator<MPIDevice> {
+        private:
+            // config variables
+            static bool _useUserThreads;
+            static size_t _threadsStackSize;
+            static size_t _bufferDefaultSize;
+            static char* _bufferPtr;
+
+            // disable copy constructor and assignment operator
+            MPIProcessor(const MPIProcessor &pe);
+            const MPIProcessor & operator=(const MPIProcessor &pe);
 
 
-      private:
-         // config variables
-         static bool _useUserThreads;
-         static size_t _threadsStackSize;
-         static System::CachePolicyType _cachePolicy;
-         
-         // disable copy constructor and assignment operator
-         MPIProcessor( const MPIProcessor &pe );
-         const MPIProcessor & operator= ( const MPIProcessor &pe );
+        public:
+            //MPI Node data
+            static size_t _cacheDefaultSize;
+            static System::CachePolicyType _cachePolicy;
+            //! Save OmpSS-mpi filename
+            static std::string _mpiFilename;
+            static std::string _mpiFileArgs;
+            static std::string _mpiHosts;
+            static std::string _mpiMachinefile;
+            MPI_Comm _communicator;
+            int _rank;
+            
+            //MPIProcessor( int id ) : PE( id, &MPI ) {}
+            MPIProcessor(int id, MPI_Comm communicator, int rank);
 
+            virtual ~MPIProcessor() {
+            }
 
-      public:         
-         //MPI Node data
-         static size_t _cacheDefaultSize;
-         MPI_Comm _communicator;
-         int _rank;
-         
-         //MPIProcessor( int id ) : PE( id, &MPI ) {}
-         MPIProcessor( int id , MPI_Comm communicator, int rank ) ;
+            virtual WD & getWorkerWD() const;
+            virtual WD & getMasterWD() const;
+            virtual BaseThread & createThread(WorkDescriptor &wd);
 
-         virtual ~MPIProcessor() {}
+            static void prepareConfig(Config &config);
 
-         virtual WD & getWorkerWD () const;
-         virtual WD & getMasterWD () const;
-         virtual BaseThread & createThread ( WorkDescriptor &wd );
+            static void setMpiFilename(char* new_name);
 
-         static void prepareConfig ( Config &config );
-         // capability query functions
-#ifdef MPI_SUPPORTS_ULT
-         virtual bool supportsUserLevelThreads () const { return _useUserThreads; }
-#else
-         virtual bool supportsUserLevelThreads () const { return false; }
-#endif
-   };
+            static std::string getMpiFilename();
 
-}
+            static void DEEP_Booster_free(MPI_Comm *intercomm, int rank);
+
+            // capability query functions
+
+            virtual bool supportsUserLevelThreads() const {
+                return false;
+            }
+
+            /**
+             * Nanos MPI override
+             **/            
+            static void nanos_MPI_Init(int* argc, char ***argv);
+            
+            static int nanos_MPI_Send_taskinit(void *buf, int count, MPI_Datatype datatype, int dest,
+                    MPI_Comm comm);
+
+            static int nanos_MPI_Recv_taskinit(void *buf, int count, MPI_Datatype datatype, int source,
+                    MPI_Comm comm, MPI_Status *status); 
+
+            static int nanos_MPI_Send_taskend(void *buf, int count, MPI_Datatype datatype, int dest,
+                    MPI_Comm comm);
+
+            static int nanos_MPI_Recv_taskend(void *buf, int count, MPI_Datatype datatype, int source,
+                    MPI_Comm comm, MPI_Status *status);
+
+            static int nanos_MPI_Send_datastruct(void *buf, int count, MPI_Datatype datatype, int dest,
+                    MPI_Comm comm);
+
+            static int nanos_MPI_Recv_datastruct(void *buf, int count, MPI_Datatype datatype, int source,
+                    MPI_Comm comm, MPI_Status *status);
+
+            static int nanos_MPI_Send(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+                    MPI_Comm comm);
+            
+            static int nanos_MPI_Ssend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+                    MPI_Comm comm);
+
+            static int nanos_MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
+                    MPI_Comm comm, MPI_Status *status);
+        };
+
+    }
 }
 
 #endif

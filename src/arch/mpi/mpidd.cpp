@@ -21,78 +21,31 @@
 #include "schedule.hpp"
 #include "debug.hpp"
 #include "system.hpp"
-#include "mpi_ult.hpp"
 #include "instrumentation.hpp"
 #include "mpidd.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
 
-MPIDevice nanos::ext::MPI( "MPI" );
+MPIDevice nanos::ext::MPI("MPI");
 
-size_t MPIDD::_stackSize = 32*1024;
-
-     
-/*!
-  \brief Registers the Device's configuration options
-  \param reference to a configuration object.
-  \sa Config System
-*/
-void MPIDD::prepareConfig( Config &config )
-{
-   /*!
-      Get the stack size from system configuration
-    */
-   size_t size = sys.getDeviceStackSize(); 
-   if ( size > 0 )
-      _stackSize = size;
-
-   /*!
-      Get the stack size for this device
-   */
-   config.registerConfigOption ( "mpi-stack-size", NEW Config::SizeVar( _stackSize ), "Defines MPI workdescriptor stack size" );
-   config.registerArgOption ( "mpi-stack-size", "mpi-stack-size" );
-   config.registerEnvOption ( "mpi-stack-size", "NX_MPI_STACK_SIZE" );
+MPIDD * MPIDD::copyTo(void *toAddr) {
+    MPIDD *dd = new (toAddr) MPIDD(*this);
+    return dd;
 }
 
-void MPIDD::initStack ( void *data )
-{
-#ifdef NANOS_INSTRUMENTATION_ENABLED
-   _state = ::initContextMpi( _stack, _stackSize, ( void * )&workWrapper,data,( void * )Scheduler::exit, 0 );
-#else
-   _state = ::initContextMpi( _stack, _stackSize, ( void * )getWorkFct(),data,( void * )Scheduler::exit, 0 );
-#endif
-}
-
-void MPIDD::workWrapper( void *data )
-{
-   MPIDD &dd = ( MPIDD & ) myThread->getCurrentWD()->getActiveDevice();
-
-   NANOS_INSTRUMENT ( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("user-code") );
-   NANOS_INSTRUMENT ( nanos_event_value_t val = myThread->getCurrentWD()->getId() );
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_RUNNING, key, val ) );
-   dd.getWorkFct()( data );
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateAndBurst ( key ) );
-}
-
-void MPIDD::lazyInit (WD &wd, bool isUserLevelThread, WD *previous)
-{
-   if (isUserLevelThread) {
-     if ( previous == NULL )
-       _stack = NEW intptr_t[_stackSize];
-     else {
-        MPIDD &oldDD = (MPIDD &) previous->getActiveDevice();
-
-        std::swap(_stack,oldDD._stack);
-     }
-  
-     initStack(wd.getData());
-   }
-}
-
-MPIDD * MPIDD::copyTo ( void *toAddr )
-{
-   MPIDD *dd = new (toAddr) MPIDD(*this);
-   return dd;
+bool MPIDD::isCompatible(const Device &arch, const ProcessingElement *pe ) {
+    bool resul = _architecture == &arch;
+    if (resul && pe!=NULL && _assignedRank!=-1){
+        int res;
+        nanos::ext::MPIProcessor * myPE = (nanos::ext::MPIProcessor *) pe;
+        if (myPE->_communicator!=NULL){
+            MPI_Comm_compare(myPE->_communicator,_assignedComm,&res);
+            resul =  resul && myPE->_rank==_assignedRank && res==MPI_IDENT;
+        } else {
+            resul=false;
+        }
+    }
+    return resul;
 }
 

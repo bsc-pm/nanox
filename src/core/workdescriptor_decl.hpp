@@ -84,7 +84,7 @@ namespace nanos
    */
    class DeviceData
    {
-      private:
+      protected:
          /**Use pointers for this as is this fastest way to compare architecture compatibility */
          const Device *_architecture; /**< Related Device (architecture). */
 
@@ -120,9 +120,11 @@ namespace nanos
          /*! \brief Indicates if DeviceData is compatible with a given Device
           *
           *  \param[in] arch is the Device which we have to compare to.
+          *  \param[pe] Processing element we have to check if DD is compatible, this can be implemented by child-DDs
+          *             so they can bind their DD to a processing element, otherwise ignored
           *  \return a boolean indicating if both elements (DeviceData and Device) are compatible.
           */
-         bool isCompatible ( const Device &arch );
+         virtual bool isCompatible ( const Device &arch, const ProcessingElement *pe=NULL) ;
 
          /*! \brief FIXME: (#170) documentation needed
           */
@@ -350,7 +352,7 @@ namespace nanos
          unsigned getDepth();
 
          /* device related methods */
-         bool canRunIn ( const Device &device ) const;
+         bool canRunIn ( const Device &device , const ProcessingElement * pe = NULL) const;
          bool canRunIn ( const ProcessingElement &pe ) const;
          DeviceData & activateDevice ( const Device &device );
          DeviceData & activateDevice ( unsigned int deviceIdx );

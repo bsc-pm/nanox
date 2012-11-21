@@ -2,14 +2,6 @@ common_libadd=\
         -lpthread \
         $(END)
 
-ult_sources= \
-   $(top_srcdir)/src/arch/mpi/@mpi_ARCH@/stack.cpp \
-   $(top_srcdir)/src/arch/mpi/@mpi_ARCH@/stack.s \
-   $(END)
-ult_flags=-Dmpi_SUPPORTS_ULT
-
-mpi_numa_flags=-Dmpi_NUMA
-
 mpi_api_sources = \
 	$(top_srcdir)/src/arch/mpi/nanos-mpi.h \
 	$(top_srcdir)/src/arch/mpi/mpi-api.cpp \

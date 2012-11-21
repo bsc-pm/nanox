@@ -24,7 +24,6 @@ if PERFORMANCE_VERSION
 noinst_LTLIBRARIES = libmpi.la
 performance_LTLIBRARIES = libnanox-mpi-api.la
 performance_LTLIBRARIES += libnanox-pe-mpi.la
-performance_LTLIBRARIES += libnanox-pe-mpi-numa.la
 
 if SMP_SUPPORTS_ULT
 mpi_ult_sources=$(ult_sources)
@@ -40,14 +39,9 @@ libnanox_mpi_api_la_CXXFLAGS=$(nanos_perfo_cxxflags) $(mpi_api_flags)
 libnanox_mpi_api_la_LDFLAGS=$(version_flags)
 libnanox_mpi_api_la_SOURCES=$(mpi_api_sources)
 
-libnanox_pe_mpi_la_CXXFLAGS=$(nanos_perfo_cxxflags)
+libnanox_pe_mpi_la_CXXFLAGS=$(nanos_perfo_cxxflags) $(mpi_api_flags)
 libnanox_pe_mpi_la_LDFLAGS=$(ld_plugin_flags)
 libnanox_pe_mpi_la_LIBADD=$(common_libadd)
 libnanox_pe_mpi_la_SOURCES=$(pe_mpi_sources)
-
-libnanox_pe_mpi_numa_la_CXXFLAGS=$(nanos_perfo_cxxflags) $(mpi_numa_flags)
-libnanox_pe_mpi_numa_la_LDFLAGS=$(ld_plugin_flags)
-libnanox_pe_mpi_numa_la_LIBADD=$(common_libadd)
-libnanox_pe_mpi_numa_la_SOURCES=$(pe_mpi_sources)
 endif
 

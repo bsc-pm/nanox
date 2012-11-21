@@ -159,11 +159,9 @@ namespace nanos
          //! CacheMap register
          CacheMap             _cacheMap;
 #ifdef MPI_DEV
-         //! Save OmpSS-mpi filename
-         std::string _mpiFilename;
-         std::string _mpiFileArgs;
-         std::string _mpiHosts;
-         std::string _mpiMachinefile;
+         //TODO: REMOVE THIS WORKAROUND
+        std::vector<ProcessingElement *> peMPI;
+         
 #endif
 
 #ifdef GPU_DEV
@@ -421,10 +419,6 @@ namespace nanos
          
                   
          #ifdef MPI_DEV
-
-                 void setMpiFilename(char* new_name);
-                 
-                 std::string getMpiFilename();
 
                  void DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm);
          #endif

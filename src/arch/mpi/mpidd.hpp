@@ -20,6 +20,7 @@
 #ifndef _NANOS_MPI_WD
 #define _NANOS_MPI_WD
 
+#include "mpi.h"
 #include <stdint.h>
 #include "mpidevice.hpp"
 #include "workdescriptor.hpp"
@@ -39,46 +40,41 @@ namespace ext
 
       private:
          work_fct       _work;
-         intptr_t *     _stack;
-         intptr_t *     _state;
-         static size_t     _stackSize;
+         int _assignedRank;
+         MPI_Comm _assignedComm;
 
       public:
+       
          // constructors
-         MPIDD( work_fct w ) : DD( &MPI ),_work( w ),_stack( 0 ),_state( 0 ) {}
+          MPIDD( work_fct w ) : DD( &MPI ),_work( w ),_assignedRank( -1 ) {}
 
-         MPIDD() : DD( &MPI ),_work( 0 ),_stack( 0 ),_state( 0 ) {}
+         MPIDD( work_fct w , MPI_Comm assignedComm, int assignedRank) : DD( &MPI ),_work( w ), _assignedComm(assignedComm) , _assignedRank(assignedRank) {
+             if (_assignedRank<0) fatal0("Tried to setup an mpi device with negative rank");
+         }
+
+         MPIDD() : DD( &MPI ),_work( 0 ), _assignedRank( -1 ) {}
 
          // copy constructors
-         MPIDD( const MPIDD &dd ) : DD( dd ), _work( dd._work ), _stack( 0 ), _state( 0 ) {}
+         MPIDD( const MPIDD &dd ) : DD( dd ), _work( dd._work ) , _assignedRank(dd._assignedRank), _assignedComm(dd._assignedComm) {}
 
          // assignment operator
          const MPIDD & operator= ( const MPIDD &wd );
          // destructor
 
-         virtual ~MPIDD() { if ( _stack ) delete[] _stack; }
+         virtual ~MPIDD() { }
 
          work_fct getWorkFct() const { return _work; }
+         MPI_Comm getAssignedComm() const { return _assignedComm; }
+         int getAssignedRank() const { return _assignedRank; }
+         
+         
 
-         bool hasStack() { return _state != NULL; }
 
-         void initStack( void *data );
-
-        /* \brief Wrapper called by the instrumented library to
-         * be able to instrument the exact moment in which the runtime
-         * is left and the user's code starts being executed.
-         */
-         static void workWrapper( void *data );
-
-         intptr_t *getState() const { return _state; }
-
-         void setState ( intptr_t * newState ) { _state = newState; }
-
-         static void prepareConfig( Config &config );
-
-         virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous);
+         virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous){}
          virtual size_t size ( void ) { return sizeof(MPIDD); }
+         virtual bool isCompatible ( const Device &arch, const ProcessingElement *pe=NULL);
          virtual MPIDD *copyTo ( void *toAddr );
+         
 
          virtual MPIDD *clone () const { return NEW MPIDD ( *this); }
       };
@@ -91,8 +87,6 @@ namespace ext
       DD::operator= ( dd );
 
       _work = dd._work;
-      _stack = 0;
-      _state = 0;
 
       return *this;
    }

@@ -22,7 +22,7 @@
 
 #include "mpidd.hpp"
 #include "basethread.hpp"
-#include <pthread.h>
+#include "smpthread.hpp"
 
 //TODO: Make mpi independent from pthreads? move it to OS?
 
@@ -30,15 +30,15 @@ namespace nanos {
 namespace ext
 {
 
-   class MPIThread : public BaseThread
+   class MPIThread : public SMPThread
    {
 
          friend class MPIProcessor;
 
       private:
          pthread_t   _pth;
-         size_t      _stackSize;
-         bool        _useUserThreads;
+         //size_t      _stackSize;
+         //bool        _useUserThreads;         
 //         MPI_Comm _communicator;
 //         int _rank;
 
@@ -47,44 +47,28 @@ namespace ext
          const MPIThread & operator= ( const MPIThread &th );
 
       public:
-         static bool _mpiThreadLaunched;
          // constructor
-         MPIThread( WD &w, PE *pe ) : BaseThread( w,pe ),_stackSize(0), _useUserThreads(true) {}
+         MPIThread( WD &w, PE *pe ) : SMPThread( w,pe ) {}
 //         MPIThread( WD &w, PE *pe , MPI_Comm communicator, int rank) : BaseThread( w,pe ),_stackSize(0), _useUserThreads(true);
 
          // named parameter idiom
-         MPIThread & stackSize( size_t size ) { _stackSize = size; return *this; }
-         MPIThread & useUserThreads ( bool use ) { _useUserThreads = use; return *this; }
+         //MPIThread & stackSize( size_t size ) { _stackSize = size; return *this; }
+         //MPIThread & useUserThreads ( bool use ) { _useUserThreads = use; return *this; }
 
          // destructor
          virtual ~MPIThread() { }
 
-         void setUseUserThreads( bool value=true ) { _useUserThreads = value; }         
-         void workerMpiLoop();
+         //void setUseUserThreads( bool value=true ) { _useUserThreads = value; }         
          
-         virtual void start();
-         virtual void join();
-         virtual void initializeDependent( void ) {}
          virtual void runDependent ( void );
+         void initializeDependent( void );
 
          virtual bool inlineWorkDependent( WD &work );
-         virtual void switchTo( WD *work, SchedulerHelper *helper );
-         virtual void exitTo( WD *work, SchedulerHelper *helper );
 
-         virtual void switchHelperDependent( WD* oldWD, WD* newWD, void *arg );
-         virtual void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) {};
-
-         virtual void bind( void );
-
-         /** \brief MPI specific yield implementation
-         */
-         virtual void yield();
    };
 
 
 }
 }
-
-void * mpi_bootthread ( void *arg );
 
 #endif

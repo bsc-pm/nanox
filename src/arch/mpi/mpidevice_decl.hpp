@@ -31,15 +31,18 @@ typedef struct {
        uint64_t hostAddr;
        uint64_t devAddr;
        size_t size;
+       size_t old_size;
        //unsigned char* data;
 } cacheOrder;
 
 enum {
-    TAG_CACHE_ORDER = 200, TAG_CACHE_DATA, TAG_CACHE_ANSWER
+    TAG_CACHE_ORDER = 200, TAG_CACHE_DATA_IN =201,TAG_CACHE_DATA_OUT =205, 
+    TAG_CACHE_ANSWER =202, TAG_INI_TASK=99,TAG_END_TASK=100, TAG_ENV_STRUCT=101,TAG_CACHE_ANSWER_REALLOC,
+    TAG_CACHE_ANSWER_ALLOC, TAG_CACHE_ANSWER_CIN,TAG_CACHE_ANSWER_COUT,TAG_CACHE_ANSWER_FREE,TAG_CACHE_ANSWER_CL
 };
 
 enum {
-    OPID_COPYIN = 1, OPID_COPYOUT, OPID_FREE, OPID_ALLOCATE, OPID_COPYLOCAL
+    OPID_FINISH=-1, OPID_COPYIN = 1, OPID_COPYOUT=2, OPID_FREE = 3, OPID_ALLOCATE =4 , OPID_COPYLOCAL = 5, OPID_REALLOC = 6
 };
 
 
@@ -84,7 +87,7 @@ namespace nanos
 
       public:
           
-         static MPI_Datatype cacheStruct;
+         static MPI_Datatype cacheStruct;    
          /*! \brief MPIDevice constructor
           */
          MPIDevice ( const char *n );
@@ -146,6 +149,13 @@ namespace nanos
          /* \brief Reallocate and copy from address
           */
          static void * realloc( void * address, size_t size, size_t ceSize, ProcessingElement *pe );
+         
+         /**
+          * Initialice cache struct datatype MPI so we can use it
+          */
+         static void initMPICacheStruct();
+         
+         static void mpiCacheWorker();
 
          /* \brief copy from src in the host to dst in the device synchronously
           */

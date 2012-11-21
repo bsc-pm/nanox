@@ -17,8 +17,6 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_MPI_DEVICE
-#define _NANOS_MPI_DEVICE
-
+#ifndef _MPI_DEVICE
 #include "mpidevice_decl.hpp"
 #endif

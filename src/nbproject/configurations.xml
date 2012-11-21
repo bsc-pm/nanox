@@ -76,15 +76,7 @@
           <in>nanos-gpu.h</in>
         </df>
         <df name="mpi">
-          <df name="armv71">
-            <in>stack.cpp</in>
-            <in>stack.s</in>
-          </df>
           <df name="debug">
-          </df>
-          <df name="ia64">
-            <in>stack.cpp</in>
-            <in>stack.s</in>
           </df>
           <df name="instrumentation">
           </df>
@@ -92,34 +84,16 @@
           </df>
           <df name="performance">
           </df>
-          <df name="ppc32">
-            <in>stack.cpp</in>
-            <in>stack.s</in>
-          </df>
-          <df name="ppc64">
-            <in>stack.cpp</in>
-            <in>stack.s</in>
-          </df>
-          <df name="tile64">
-            <in>stack.cpp</in>
-            <in>stack.s</in>
-          </df>
-          <df name="x86">
-            <in>stack.cpp</in>
-            <in>stack.s</in>
-          </df>
-          <df name="x86-64">
-            <in>stack.cpp</in>
-            <in>stack.s</in>
-          </df>
           <in>mpi-api.cpp</in>
-          <in>mpi_ult.hpp</in>
           <in>mpidd.cpp</in>
           <in>mpidd.hpp</in>
+          <in>mpidevice.cpp</in>
           <in>mpidevice.hpp</in>
+          <in>mpidevice_decl.hpp</in>
           <in>mpiplugin.cpp</in>
           <in>mpiprocessor.cpp</in>
           <in>mpiprocessor.hpp</in>
+          <in>mpiprocessor_fwd.hpp</in>
           <in>mpithread.cpp</in>
           <in>mpithread.hpp</in>
           <in>nanos-mpi.h</in>
@@ -550,7 +524,6 @@
       <df name="utils">
         <in>nanox.cpp</in>
       </df>
-      <in>helloworld.c</in>
     </df>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

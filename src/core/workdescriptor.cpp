@@ -110,15 +110,15 @@ DeviceData & WorkDescriptor::activateDevice ( unsigned int deviceIdx )
    return *_devices[_activeDeviceIdx];
 }
 
-bool WorkDescriptor::canRunIn( const Device &device ) const
+bool WorkDescriptor::canRunIn( const Device &device , const ProcessingElement * pe) const
 {
-   if ( _activeDeviceIdx != _numDevices ) return _devices[_activeDeviceIdx]->isCompatible( device );
+   if ( _activeDeviceIdx != _numDevices ) return _devices[_activeDeviceIdx]->isCompatible( device , pe);
 
    unsigned int i;
    for ( i = 0; i < _numDevices; i++ ) {
-      if ( _devices[i]->isCompatible( device ) ) {
-         return true;
-      }
+       if (_devices[i]->isCompatible( device , pe)){
+            return true;           
+       }
    }
 
    return false;
@@ -127,7 +127,7 @@ bool WorkDescriptor::canRunIn( const Device &device ) const
 bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
 {
    if ( started() && !pe.supportsUserLevelThreads() ) return false;
-   return canRunIn( pe.getDeviceType() );
+   return canRunIn( pe.getDeviceType() , &pe );
 }
 
 void WorkDescriptor::submit( void )

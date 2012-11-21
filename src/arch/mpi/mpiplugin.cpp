@@ -36,9 +36,10 @@ class MPIPlugin : public Plugin
       {
          cfg.setOptionsSection( "MPI Arch", "MPI specific options" );
          MPIProcessor::prepareConfig( cfg );
-         MPIDD::prepareConfig( cfg );
       }
-
+      
+      virtual void init() {
+      }
 };
 }
 }
