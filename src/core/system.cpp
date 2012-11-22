@@ -346,11 +346,16 @@ void System::start ()
    smpBindings.reserve( getThsPerPE() * getNumPEs() );
    
 #ifdef GPU_DEV
-   gpuBindings.reserve( nanos::ext::GPUConfig::getGPUCount() );
    
+   gpuBindings.reserve( nanos::ext::GPUConfig::getGPUCount() );
+   // If there are no gpus...
+   if ( nanos::ext::GPUConfig::getGPUCount() == 0 ) {
+      gpuStride = 1;
+      gpusPerNode = 0;
+   }
    // If there are less GPUs than NUMA nodes
-   if( nanos::ext::GPUConfig::getGPUCount() < getNumSockets() ) {
-      gpuStride = getNumSockets() / nanos::ext::GPUConfig::getGPUCount();
+   else if ( nanos::ext::GPUConfig::getGPUCount() < getNumSockets() ) {
+      gpuStride = getNumSockets() / std::max( nanos::ext::GPUConfig::getGPUCount(), 1 );
       gpusPerNode = 1;
    }
    else
