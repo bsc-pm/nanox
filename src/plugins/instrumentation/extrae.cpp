@@ -148,7 +148,12 @@ class InstrumentationExtrae: public Instrumentation
                 _keepMpits = true;
             } else {
                waitpid( pid, &status, options);
-               if ( status != 0 ) message0("Error while merging trace (mpi2prv returns: " << status << ")");
+               if ( status != 0 ) {
+                  message0("Error while merging trace (mpi2prv returns: " << status << ")");
+                  message0("Keeping .mpits files. You can try to execute mpi2prv manually:");
+                  message0(str << " -f " << _listOfTraceFileNames.c_str() << " -o " << _traceFileName_PRV.c_str() << " -e " << _binFileName.c_str() );
+                _keepMpits = true;
+               }
             }
          }
       }
