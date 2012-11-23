@@ -21,6 +21,7 @@
 <testinfo>
 test_generator=gens/mixed-generator
 test_schedule=smartpriority
+test_ignore_fail=yes
 </testinfo>
 */
 
