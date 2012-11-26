@@ -575,9 +575,11 @@ AC_ARG_WITH([nextsim],
            AS_HELP_STRING([--with-nextsim=dir], [Directory of NextSim installation]),
            [
               NEXTSIM_HOME="$withval"
+              NEXTSIM_INC="$withval/include"
            ]
 )
 AC_SUBST([NEXTSIM_HOME])
+AC_SUBST([NEXTSIM_INC])
 AM_CONDITIONAL([INSTRUMENTATION_NEXTSIM], test x"$NEXTSIM_HOME" != x)
 
 # Check Ayudame support

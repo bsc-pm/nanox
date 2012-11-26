@@ -5,7 +5,7 @@ mpitrace_ldflags=-L@MPITRACE_LIB@ -lnanostrace
 ayudame_cxxflags=-I@AYUDAME_INC@ -DPREFIX='"$(prefix)"'
 ayudame_ldflags=-L@AYUDAME_LIB@ -layudame
 
-nextsim_cxxflags=-I@NEXTSIM_HOME@ -DPREFIX='"$(prefix)"'
+nextsim_cxxflags=-I@NEXTSIM_INC@ -DPREFIX='"$(prefix)"'
 
 empty_sources = \
 	$(top_srcdir)/src/plugins/instrumentation/empty_trace.cpp \
