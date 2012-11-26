@@ -46,13 +46,13 @@ namespace ext
       public:
        
          // constructors
-          MPIDD( work_fct w ) : DD( &MPI ),_work( w ),_assignedRank( -1 ) {}
+          MPIDD( work_fct w ) : DD( &MPI ),_work( w ),_assignedRank( CACHETHREADRANK ), _assignedComm(MPI_COMM_WORLD) {}
 
          MPIDD( work_fct w , MPI_Comm assignedComm, int assignedRank) : DD( &MPI ),_work( w ), _assignedComm(assignedComm) , _assignedRank(assignedRank) {
-             if (_assignedRank<0) fatal0("Tried to setup an mpi device with negative rank");
+             if (_assignedRank==CACHETHREADRANK) fatal0("Error, rank value (-1) reserved for nanox");
          }
 
-         MPIDD() : DD( &MPI ),_work( 0 ), _assignedRank( -1 ) {}
+         MPIDD() : DD( &MPI ),_work( 0 ), _assignedRank( CACHETHREADRANK ) {}
 
          // copy constructors
          MPIDD( const MPIDD &dd ) : DD( dd ), _work( dd._work ) , _assignedRank(dd._assignedRank), _assignedComm(dd._assignedComm) {}
@@ -72,7 +72,7 @@ namespace ext
 
          virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous){}
          virtual size_t size ( void ) { return sizeof(MPIDD); }
-         virtual bool isCompatible ( const Device &arch, const ProcessingElement *pe=NULL);
+         virtual bool isCompatibleWithPE ( const ProcessingElement *pe=NULL );
          virtual MPIDD *copyTo ( void *toAddr );
          
 

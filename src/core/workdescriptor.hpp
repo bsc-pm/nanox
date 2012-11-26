@@ -77,7 +77,8 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
 
 /* DeviceData inlined functions */
 inline const Device * DeviceData::getDevice () const { return _architecture; }
-inline bool DeviceData::isCompatible ( const Device &arch , const ProcessingElement* pe) { return _architecture == &arch; }
+inline bool DeviceData::isCompatible ( const Device &arch , const ProcessingElement* pe) { return _architecture == &arch && isCompatibleWithPE(pe); }
+inline bool DeviceData::isCompatibleWithPE ( const ProcessingElement* pe) { return true; }
 
 /* WorkDescriptor inlined functions */
 inline bool WorkDescriptor::started ( void ) const { return (( _state != INIT ) && (_state != START)); }

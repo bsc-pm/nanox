@@ -120,11 +120,16 @@ namespace nanos
          /*! \brief Indicates if DeviceData is compatible with a given Device
           *
           *  \param[in] arch is the Device which we have to compare to.
-          *  \param[pe] Processing element we have to check if DD is compatible, this can be implemented by child-DDs
-          *             so they can bind their DD to a processing element, otherwise ignored
           *  \return a boolean indicating if both elements (DeviceData and Device) are compatible.
           */
-         virtual bool isCompatible ( const Device &arch, const ProcessingElement *pe=NULL) ;
+         bool isCompatible ( const Device &arch, const ProcessingElement *pe=NULL) ;
+         
+         /*! \brief Indicates if DeviceData is compatible with a given ProcessingElement
+          *
+          *  \param[pe] pe is the ProcessingElement which we have to compare to.
+          *  \return a boolean indicating if both elements (DeviceData and Device) are compatible.
+          */
+         virtual bool isCompatibleWithPE ( const ProcessingElement *pe ) ;
 
          /*! \brief FIXME: (#170) documentation needed
           */

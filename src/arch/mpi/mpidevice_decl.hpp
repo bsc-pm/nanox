@@ -35,6 +35,7 @@ typedef struct {
        //unsigned char* data;
 } cacheOrder;
 
+//MPI Communication tags, we use that many so messages don't collide for different operations
 enum {
     TAG_CACHE_ORDER = 200, TAG_CACHE_DATA_IN =201,TAG_CACHE_DATA_OUT =205, 
     TAG_CACHE_ANSWER =202, TAG_INI_TASK=99,TAG_END_TASK=100, TAG_ENV_STRUCT=101,TAG_CACHE_ANSWER_REALLOC,
@@ -44,6 +45,13 @@ enum {
 enum {
     OPID_FINISH=-1, OPID_COPYIN = 1, OPID_COPYOUT=2, OPID_FREE = 3, OPID_ALLOCATE =4 , OPID_COPYLOCAL = 5, OPID_REALLOC = 6
 };
+//Assigned rank value for the Daemon Thread, so it doesn't get used by any DD
+#define CACHETHREADRANK -1
+//When source or destination comes with this value, it means that the user
+//didn't specify any concrete device, runtime launchs in whatever it wants
+//so we have to override it's value with the PE value
+#define UNKOWN_RANKSRCDST -2
+
 
 
 namespace nanos
@@ -56,6 +64,7 @@ namespace nanos
    {
       private:
          static unsigned int _rlimit;
+         static Directory *_masterDir;
 
          static void getMemoryLockLimit();
 
@@ -156,6 +165,9 @@ namespace nanos
          static void initMPICacheStruct();
          
          static void mpiCacheWorker();
+         
+         static void setMasterDirectory(Directory *dir) {_masterDir=dir;};
+
 
          /* \brief copy from src in the host to dst in the device synchronously
           */

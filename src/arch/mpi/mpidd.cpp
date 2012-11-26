@@ -34,18 +34,15 @@ MPIDD * MPIDD::copyTo(void *toAddr) {
     return dd;
 }
 
-bool MPIDD::isCompatible(const Device &arch, const ProcessingElement *pe ) {
-    bool resul = _architecture == &arch;
-    if (resul && pe!=NULL && _assignedRank!=-1){
-        int res;
-        nanos::ext::MPIProcessor * myPE = (nanos::ext::MPIProcessor *) pe;
-        if (myPE->_communicator!=NULL){
-            MPI_Comm_compare(myPE->_communicator,_assignedComm,&res);
-            resul =  resul && myPE->_rank==_assignedRank && res==MPI_IDENT;
-        } else {
-            resul=false;
-        }
-    }
+bool MPIDD::isCompatibleWithPE(const ProcessingElement *pe ) {    
+    int res=MPI_UNEQUAL;
+    nanos::ext::MPIProcessor * myPE = (nanos::ext::MPIProcessor *) pe;
+    if (_assignedComm!=NULL) MPI_Comm_compare(myPE->_communicator,_assignedComm,&res);
+    //If no assigned comm nor rank, it can run on any PE, if only has a unkown rank, match with comm
+    //if has both rank and comm, only execute on his PE
+    bool resul =(_assignedComm == NULL && _assignedRank == UNKOWN_RANKSRCDST) 
+            || (_assignedRank == UNKOWN_RANKSRCDST && res == MPI_IDENT)
+            || (myPE->_rank == _assignedRank && res == MPI_IDENT);
     return resul;
 }
 

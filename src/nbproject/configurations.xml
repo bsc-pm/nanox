@@ -373,6 +373,7 @@
           </df>
           <in>dummy_throttle.cpp</in>
           <in>idlethreads_throttle.cpp</in>
+          <in>numtasks-e_throttle.cpp</in>
           <in>numtasks_throttle.cpp</in>
           <in>readytasks_throttle.cpp</in>
           <in>taskdepth_throttle.cpp</in>

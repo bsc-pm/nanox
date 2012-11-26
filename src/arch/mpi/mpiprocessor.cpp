@@ -123,8 +123,8 @@ void MPIProcessor::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
         MPI_Comm_remote_size(*intercomm, &size);
         for (int i = 0; i < size; i++) {
             //Closing cache daemon and user-level daemon
-            nanos_MPI_Send(&order, 1, nanos::MPIDevice::cacheStruct, i, TAG_CACHE_ORDER, *intercomm);
             nanos_MPI_Send(&id, 1, MPI_INT, i, TAG_INI_TASK, *intercomm);
+            nanos_MPI_Send(&order, 1, nanos::MPIDevice::cacheStruct, i, TAG_CACHE_ORDER, *intercomm);
         }
     } else {
         nanos_MPI_Send(&order, 1, nanos::MPIDevice::cacheStruct, rank, TAG_CACHE_ORDER, *intercomm);
@@ -154,7 +154,8 @@ void MPIProcessor::nanos_MPI_Init(int *argc, char ***argv) {
 
     //If this process was not spawned, we don't need the daemon-thread
     if (parentcomm != NULL && parentcomm != MPI_COMM_NULL) {
-        PE *mpi = NEW nanos::ext::MPIProcessor(999, NULL, NULL);
+        //Initialice MPI PE with a communicator and special rank for the cache thread
+        PE *mpi = NEW nanos::ext::MPIProcessor(999, MPI_COMM_WORLD, CACHETHREADRANK);
         MPIDD * dd = NEW MPIDD((MPIDD::work_fct) nanos::MPIDevice::mpiCacheWorker);
         WD *wd = NEW WD(dd);
         &mpi->startThread(*wd);
@@ -193,18 +194,33 @@ int MPIProcessor::nanos_MPI_Recv_datastruct(void *buf, int count, MPI_Datatype d
 
 int MPIProcessor::nanos_MPI_Send(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
         MPI_Comm comm) {
+    if (dest==UNKOWN_RANKSRCDST){
+        nanos::ext::MPIProcessor * myPE = ( nanos::ext::MPIProcessor * ) myThread->runningOn();
+        dest=myPE->_rank;
+        comm=myPE->_communicator;
+    }
     int err = MPI_Send(buf, count, datatype, dest, tag, comm);
     return err;
 }
 
 int MPIProcessor::nanos_MPI_Ssend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
         MPI_Comm comm) {
+    if (dest==UNKOWN_RANKSRCDST){
+        nanos::ext::MPIProcessor * myPE = ( nanos::ext::MPIProcessor * ) myThread->runningOn();
+        dest=myPE->_rank;
+        comm=myPE->_communicator;
+    }
     int err = MPI_Ssend(buf, count, datatype, dest, tag, comm);
     return err;
 }
 
 int MPIProcessor::nanos_MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
         MPI_Comm comm, MPI_Status *status) {
+    if (source==UNKOWN_RANKSRCDST){
+        nanos::ext::MPIProcessor * myPE = ( nanos::ext::MPIProcessor * ) myThread->runningOn();
+        source=myPE->_rank;
+        comm=myPE->_communicator;
+    }
     int err = MPI_Recv(buf, count, datatype, source, tag, comm, status);
     return err;
 }

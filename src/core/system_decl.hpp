@@ -158,11 +158,6 @@ namespace nanos
          CachePolicyType      _cachePolicy;
          //! CacheMap register
          CacheMap             _cacheMap;
-#ifdef MPI_DEV
-         //TODO: REMOVE THIS WORKAROUND
-        std::vector<ProcessingElement *> peMPI;
-         
-#endif
 
 #ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
@@ -431,8 +426,7 @@ namespace nanos
          
                   
          #ifdef MPI_DEV
-
-                 void DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm);
+         void DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm);
          #endif
          
    };

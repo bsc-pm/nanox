@@ -390,14 +390,8 @@ void System::start ()
    }
 #endif
    
-//TODO: REMOVE THIS, ONLY FOR DEBUG (maybe?)
 #ifdef MPI_DEV   
-   for (int nmics=0; nmics<20;nmics++){
-        ProcessingElement* pee=NEW nanos::ext::MPIProcessor(_workers.size(),NULL, NULL);
-        peMPI.push_back(pee);
-        _pes.push_back ( pee );
-        _workers.push_back( &pee->startWorker() );
-   }
+   //nanos::MPIDevice::setMasterDirectory(mainWD.getDirectory(true));
 #endif
 
 #ifdef SPU_DEV
@@ -1185,7 +1179,7 @@ void System::waitUntilThreadsUnpaused ()
 
 #ifdef MPI_DEV    
 
-void System::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm) {          
+void System::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm) {   
     MPI_Info info;
     MPI_Info_create(&info);
     //MPI_Info_set(info,"env","LD_LIBRARY_PATH=/mic/fsainz/runtime/nanox-mic/lib/performance:/opt/intel/composer_xe_2013.0.079/compiler/lib/mic/");
@@ -1201,17 +1195,15 @@ void System::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *i
     MPI_Comm_spawn(const_cast<char*> (nanos::ext::MPIProcessor::getMpiFilename().c_str()), argvv, number_of_spawns,
             info, 0, comm, intercomm,
             MPI_ERRCODES_IGNORE);
-
+    
     for ( int rank=0; rank<number_of_spawns; rank++){
-        nanos::ext::MPIProcessor* mpi=(( nanos::ext::MPIProcessor * )peMPI.back()) ;
-        //PE *mpi = NEW nanos::ext::MPIProcessor(_workers.size(),*intercomm, rank);
-        mpi->_communicator=*intercomm;
-        mpi->_rank=rank;
-        _pes.push_back (mpi) ;
-        _workers.push_back( &mpi->startWorker() );
-        peMPI.pop_back();
+        nanos::ext::MPIProcessor* pee=NEW nanos::ext::MPIProcessor(_pes.size(),NULL, NULL);
+        _pes.push_back ( pee );
+        _workers.push_back( &pee->startWorker() );
+        pee->_communicator=*intercomm;
+        pee->_rank=rank;
     }
-
+    createTeam( _workers.size() );
 }
 #endif
 

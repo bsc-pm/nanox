@@ -35,6 +35,7 @@ using namespace nanos;
 
 
 MPI_Datatype MPIDevice::cacheStruct;
+Directory* MPIDevice::_masterDir;
 
 MPIDevice::MPIDevice(const char *n) : Device(n) {
 }
@@ -195,8 +196,7 @@ void MPIDevice::mpiCacheWorker() {
             //and check performance with probe+remake struct datatype+single-message vs dual message
             switch (order.opId) {
                 case OPID_FINISH:         
-                    //MPI_Finalize();
-                    pthread_exit ( 0 );
+                    MPI_Finalize();
                     return;
                 case OPID_COPYIN:
                 {
@@ -218,7 +218,17 @@ void MPIDevice::mpiCacheWorker() {
                 }
                 case OPID_COPYOUT:
                     printf("Hago un copyOut de device %p\n",(void *) order.devAddr);
-                    //MPI_Comm_get_parent(&parentcomm);
+//                    DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
+//                    if (ent != NULL) 
+//                    {
+//                       if (ent->getOwner() != NULL )
+//                          if ( !ent->isInvalidated() )
+//                          {
+//                             std::list<uint64_t> tagsToInvalidate;
+//                             tagsToInvalidate.push_back( ( uint64_t ) order.devAddr );
+//                             _masterDir->synchronizeHost( tagsToInvalidate );
+//                          }
+//                    }
                     nanos::ext::MPIProcessor::nanos_MPI_Send((void *) order.devAddr, order.size, MPI_BYTE, 0, TAG_CACHE_DATA_OUT, parentcomm);
                     //nanos::ext::MPIProcessor::nanos_MPI_Send(&ans, 1, MPI_SHORT, 0, TAG_CACHE_ANSWER_COUT, parentcomm);
                     std::cerr << "Fin copyOut en device\n";
@@ -250,7 +260,16 @@ void MPIDevice::mpiCacheWorker() {
                     char* ptr = new char[order.size];
                     printf("Realloc %d, %d\n", order.size,order.old_size);
                     printf("Copio de %p a %p, tam %d\n",(void*)  order.devAddr, ptr, order.old_size);
-                    printf("Copio valor %f\n",((void*)  order.devAddr));
+                    printf("Copio valor %f\n",((void*)  order.devAddr));                    
+                    //TODO: CHECK THIS, it's probably wrong
+//                    DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) ptr );
+//                    if (ent != NULL) 
+//                    { 
+//                       if (ent->getOwner() != NULL) 
+//                       {
+//                          ent->getOwner()->deleteEntry((uint64_t) ptr, order.size);
+//                       }
+//                    }
                     memcpy(ptr, (void*)  order.devAddr, order.old_size);
                     order.devAddr = (uint64_t) ptr;
                     //MPI_Comm_get_parent(&parentcomm);
