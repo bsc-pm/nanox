@@ -339,6 +339,15 @@ void System::start ()
 
    loadModules();
 
+   _targetThreads = _numThreads;
+#ifdef GPU_DEV
+   _targetThreads += nanos::ext::GPUConfig::getGPUCount();
+#endif
+
+   // Instrumentation startup
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->initialize() );
+
    verbose0 ( "Starting runtime" );
 
    _pmInterface->start();
@@ -350,7 +359,6 @@ void System::start ()
    PE *pe = createPE ( _defArch, getCpuId( getBindingStart() ) );
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
-   ++_targetThreads;
 
    WD &mainWD = *myThread->getCurrentWD();
    (void) mainWD.getDirectory(true);
@@ -376,7 +384,6 @@ void System::start ()
    for ( int ths = 1; ths < _numThreads; ths++ ) {
       pe = _pes[ ths % numPes ];
       _workers.push_back( &pe->startWorker() );
-      ++_targetThreads;
    }
 
 #ifdef GPU_DEV
@@ -385,7 +392,6 @@ void System::start ()
       PE *gpu = NEW nanos::ext::GPUProcessor( getBindingId( p ), gpuC );
       _pes.push_back( gpu );
       _workers.push_back( &gpu->startWorker() );
-      ++_targetThreads;
       ++p;
    }
 #endif
@@ -402,10 +408,6 @@ void System::start ()
    /* Master thread is ready and waiting for the rest of the gang */
    if ( getSynchronizedStart() )
      threadReady();
-
-   // Instrumentation startup
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->initialize() );
 
    switch ( getInitialMode() )
    {
