@@ -438,7 +438,7 @@ void System::finish ()
 
    verbose ( "NANOS++ shutting down.... init" );
    verbose ( "Wait for main workgroup to complete" );
-   myThread->getCurrentWD()->waitCompletionAndSignalers( true );
+   myThread->getCurrentWD()->waitCompletion( true );
 
    // we need to switch to the main thread here to finish
    // the execution correctly

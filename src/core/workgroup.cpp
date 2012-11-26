@@ -53,11 +53,6 @@ void WorkGroup::exitWork ( WorkGroup &work )
 
 void WorkGroup::waitCompletion ( bool avoidFlush )
 {
-     _syncCond.wait();
-}
-
-void WorkGroup::waitCompletionAndSignalers ( bool avoidFlush )
-{
      _syncCond.waitConditionAndSignalers();
 }
 
