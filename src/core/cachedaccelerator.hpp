@@ -28,8 +28,8 @@
 using namespace nanos;
 
 inline CachedAccelerator::CachedAccelerator( int newId, const Device *arch,
-   const Device *subArch, Device *cacheArch, std::size_t cacheSize ) :
-   Accelerator( newId, arch, subArch ), _newCache( *this, *cacheArch ) {
+   const Device *subArch, Device *cacheArch, std::size_t cacheSize, enum RegionCache::CacheOptions flags ) :
+   Accelerator( newId, arch, subArch ), _newCache( *this, *cacheArch, flags ) {
    sys.getCaches()[this->getMemorySpaceId()] = &_newCache;
 }
 

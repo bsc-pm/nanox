@@ -151,4 +151,16 @@ inline uint64_t CopyData::getOffset() const
    //System::printBt();
    return (uint64_t) offset; 
 }
+
+inline std::size_t CopyData::getFitSize() const
+{
+   return getFitSizeRecursive( dimension_count - 1 );
+}
+
+inline uint64_t CopyData::getFitAddress() const
+{
+   return ( (uint64_t) getBaseAddress() ) + getFitOffsetRecursive( dimension_count - 1 );
+}
+
+
 #endif

@@ -274,6 +274,78 @@ inline std::ostream &printRecursive (std::ostream &o, typename RegionTree<T>::No
    return o;
 }
 
+template<typename T>
+inline std::ostream &printRecursiveSimpleParent (std::ostream &o, typename RegionTree<T>::Node const &regionTreeNode, typename RegionTree<T>::Node const &child, Region &r) {
+   if (regionTreeNode.m_parent != NULL) {
+      printRecursiveSimpleParent<T> ( o, *( (typename RegionTree<T>::Node const *) regionTreeNode.m_parent ), regionTreeNode, r );
+      //regionTreeNode.m_regionSegment.printSimple( o );
+      r += regionTreeNode.m_regionSegment;
+      if ( &child == regionTreeNode.m_children[Region::BIT_0] ) {
+         r.addBit( Region::BIT_0 );
+         //o << "_0_";
+      } else if ( &child == regionTreeNode.m_children[Region::BIT_1] ) {
+         r.addBit( Region::BIT_1 );
+         //o << "_1_";
+      } else if ( &child == regionTreeNode.m_children[Region::X] ) {
+         r.addBit( Region::X );
+         //o << "_X_";
+      }
+   } else {
+      r += regionTreeNode.m_regionSegment;
+      if ( &child == regionTreeNode.m_children[Region::BIT_0] ) {
+         r.addBit( Region::BIT_0 );
+         //o << "_0_";
+      } else if ( &child == regionTreeNode.m_children[Region::BIT_1] ) {
+         r.addBit( Region::BIT_1 );
+         //o << "_1_";
+      } else if ( &child == regionTreeNode.m_children[Region::X] ) {
+         r.addBit( Region::X );
+         //o << "_X_";
+      }
+      //regionTreeNode.m_regionSegment.printSimple( o );
+   }
+   return o;
+}
+
+template<typename T>
+inline std::ostream &printRecursiveSimple (std::ostream &o, typename RegionTree<T>::Node const &regionTreeNode) {
+
+   //if (regionTreeNode.m_parent != NULL) {
+   //   if (regionTreeNode.m_parent->m_children[Region::BIT_0] != NULL && &regionTreeNode.m_parent->m_children[Region::BIT_0]->m_data == &regionTreeNode.m_data) {
+   //      o << "node" <<  &regionTreeNode.m_data << ":title" << " -> node" << &regionTreeNode.m_parent->m_data << ":child0" << "[style=dotted]" << std::endl;
+   //   } else if (regionTreeNode.m_parent->m_children[Region::BIT_1] != NULL && &regionTreeNode.m_parent->m_children[Region::BIT_1]->m_data == &regionTreeNode.m_data) {
+   //      o << "node" << &regionTreeNode.m_data << ":title" << " -> node" << &regionTreeNode.m_parent->m_data << ":child1" << "[style=dotted]" << std::endl;
+   //   } else if (regionTreeNode.m_parent->m_children[Region::X] != NULL && &regionTreeNode.m_parent->m_children[Region::X]->m_data == &regionTreeNode.m_data) {
+   //      o << "node" << &regionTreeNode.m_data << ":title" << " -> node" << &regionTreeNode.m_parent->m_data << ":childX" << "[style=dotted]" << std::endl;
+   //   } else {
+   //      o << "LINK_ERROR" << std::endl;
+   //   }
+   //}
+
+   if ( regionTreeNode.m_children[Region::BIT_0] == NULL &&
+        regionTreeNode.m_children[Region::BIT_1] == NULL &&
+        regionTreeNode.m_children[Region::X] == NULL ) {
+      //printRecursiveSimpleParent( o, *regionTreeNode.m_parent );
+      Region r;
+      printRecursiveSimpleParent<T> ( o, regionTreeNode , regionTreeNode, r);
+      //o << std::endl;
+       r.printSimple(o);;
+      o << " " << regionTreeNode.m_data << std::endl;
+   }
+
+
+   if (regionTreeNode.m_children[Region::BIT_0] != NULL) {
+      printRecursiveSimple <T>(o, *regionTreeNode.m_children[Region::BIT_0]);
+   }
+   if (regionTreeNode.m_children[Region::BIT_1] != NULL) {
+      printRecursiveSimple <T>(o, *regionTreeNode.m_children[Region::BIT_1]);
+   }
+   if (regionTreeNode.m_children[Region::X] != NULL) {
+      printRecursiveSimple <T>(o, *regionTreeNode.m_children[Region::X]);
+   }
+   return o;
+}
+
 
 } // namespace nanos
 

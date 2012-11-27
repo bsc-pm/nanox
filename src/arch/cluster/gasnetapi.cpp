@@ -2540,7 +2540,7 @@ void *GASNetAPI::allocateReceiveMemory( std::size_t len ) {
    void *addr = NULL;
    do {
       getLockGlobal.acquire();
-      addr = _thisNodeSegment->allocate( len, true );
+      addr = _thisNodeSegment->allocate( len );
       getLockGlobal.release();
       if ( addr == NULL ) poll();
    } while (addr == NULL);

@@ -26,44 +26,40 @@
 #include "atomic_decl.hpp"
 #include "workdescriptor_fwd.hpp"
 #include "processingelement_fwd.hpp"
-#include "regiondirectory_decl.hpp"
 #include "deviceops_decl.hpp"
+#include "regiondirectory_decl.hpp"
 
 namespace nanos {
 
-   class CachedRegionStatus {
-      private:
-         unsigned int _version;
-         DeviceOpsPtr _waitObject;
-      public:
-         CachedRegionStatus();
-         CachedRegionStatus( CachedRegionStatus const &rs );
-         CachedRegionStatus &operator=( CachedRegionStatus const &rs );
-         CachedRegionStatus( CachedRegionStatus &rs );
-         CachedRegionStatus &operator=( CachedRegionStatus &rs );
-         unsigned int getVersion();
-         void setVersion( unsigned int version );
-         void setCopying( DeviceOps *ops );
-         DeviceOps * getDeviceOps();
-         bool isReady();
-   };
-
    class AllocatedChunk {
       private:
-         Lock _lock;
-         uint64_t _address;
-         RegionTree< CachedRegionStatus > _regions;
+         Lock                              _lock;
+         uint64_t                          _address;
+         uint64_t                          _hostAddress;
+         std::size_t                       _size;
+         bool                              _dirty;
+         std::size_t                       _roBytes;
+         std::size_t                       _rwBytes;
+         
+         RegionTree< CachedRegionStatus > *_regions;
 
       public:
-         AllocatedChunk( );
-         AllocatedChunk( uint64_t addr );
+         //AllocatedChunk( );
+         AllocatedChunk( uint64_t addr, uint64_t hostAddr, std::size_t size );
          AllocatedChunk( AllocatedChunk const &chunk );
          AllocatedChunk &operator=( AllocatedChunk const &chunk );
+         ~AllocatedChunk();
 
          uint64_t getAddress() const;
+         uint64_t getHostAddress() const;
+         std::size_t getSize() const;
+         bool isDirty() const;
+         void setHostAddress( uint64_t addr );
 
          void addReadRegion( Region const &reg, unsigned int version, std::set< DeviceOps * > &currentOps, std::list< Region > &notPresentRegions, DeviceOps *ops, bool alsoWriteReg );
          void addWriteRegion( Region const &reg, unsigned int version );
+         void clearRegions();
+         RegionTree< CachedRegionStatus > *getRegions();
          bool isReady( Region reg );
          void lock();
          void unlock();
@@ -72,15 +68,21 @@ namespace nanos {
    class CacheCopy;
    
    class RegionCache {
-      
-      MemoryMap<AllocatedChunk> _chunks;
-      Lock                       _lock;
-      typedef MemoryMap<AllocatedChunk>::MemChunkList ChunkList;
-      typedef MemoryMap<AllocatedChunk>::ConstMemChunkList ConstChunkList;
-      Device &_device;
-      ProcessingElement &_pe;
-
+      public:
+         enum CacheOptions {
+            ALLOC_FIT,
+            ALLOC_WIDE
+         };
       private:
+         MemoryMap<AllocatedChunk>  _chunks;
+         Lock                       _lock;
+         Device                    &_device;
+         ProcessingElement         &_pe;
+         CacheOptions               _flags;
+
+         typedef MemoryMap<AllocatedChunk>::MemChunkList ChunkList;
+         typedef MemoryMap<AllocatedChunk>::ConstMemChunkList ConstChunkList;
+
          class Op {
                RegionCache &_parent;
             public:
@@ -105,12 +107,12 @@ namespace nanos {
          } _copyOutObj;
 
          void doOp( Op *opObj, Region const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, WD const &wd ); 
-         void _generateRegionOps( Region const &reg, std::map< uintptr_t, MemoryMap< uint64_t > * > &opMap );
+         //void _generateRegionOps( Region const &reg, std::map< uintptr_t, MemoryMap< uint64_t > * > &opMap );
 
       public:
-         RegionCache( ProcessingElement &pe, Device &cacheArch );
-         AllocatedChunk *getAddress( CopyData const &d, uint64_t &offset );
-         AllocatedChunk *getAddress( uint64_t hostAddr, std::size_t len, uint64_t &offset );
+         RegionCache( ProcessingElement &pe, Device &cacheArch, enum CacheOptions flags );
+         AllocatedChunk *getAddress( CopyData const &d, RegionTree< CachedRegionStatus > *&regsToInvalidate );
+         AllocatedChunk *getAddress( uint64_t hostAddr, std::size_t len );
          void syncRegion( Region const &r ) ;
          void syncRegion( std::list< std::pair< Region, CacheCopy * > > const &regions, WD const &wd ) ;
          unsigned int getMemorySpaceId();
@@ -141,8 +143,6 @@ namespace nanos {
          CopyData const &_copy;
          AllocatedChunk *_cacheEntry;
          std::list< std::pair<Region, CachedRegionStatus const &> > _cacheDataStatus;
-         Region _devRegion;
-         uint64_t _devBaseAddr;
          Region _region;
          uint64_t _offset;
          unsigned int _version;
@@ -155,12 +155,11 @@ namespace nanos {
          CacheCopy( WD const &wd, unsigned int index );
          
          bool isReady();
-         void setUpDeviceAddress( RegionCache *targetCache );
+         void setUpDeviceAddress( RegionCache *targetCache, NewRegionDirectory *dir );
          void generateCopyInOps( RegionCache *targetCache, std::map<unsigned int, std::list< std::pair< Region, CacheCopy * > > > &opsBySourceRegions ) ;
 
          NewRegionDirectory::LocationInfoList const &getLocations() const;
          uint64_t getDeviceAddress() const;
-         uint64_t getDevBaseAddress() const;
          DeviceOps *getOperations();
          Region const &getRegion() const;
          unsigned int getVersion() const;

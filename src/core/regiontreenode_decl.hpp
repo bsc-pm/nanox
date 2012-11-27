@@ -155,6 +155,8 @@ std::ostream &operator<< (std::ostream &o, typename RegionTree<T>::Node const &r
 //! \returns the output stream
 template<typename T>
 std::ostream &printRecursive (std::ostream &o, typename RegionTree<T>::Node const &regionTreeNode);
+template<typename T>
+std::ostream &printRecursiveSimpleParent (std::ostream &o, typename RegionTree<T>::Node const &regionTreeNode);
 
 
 } // namespace nanos

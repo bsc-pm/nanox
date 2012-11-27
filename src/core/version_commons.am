@@ -58,6 +58,7 @@ common_sources=\
 	$(top_srcdir)/src/core/copydata_fwd.hpp \
 	$(top_srcdir)/src/core/copydata_decl.hpp \
 	$(top_srcdir)/src/core/copydata.hpp \
+	$(top_srcdir)/src/core/copydata.cpp \
 	$(top_srcdir)/src/core/dependableobject_fwd.hpp \
 	$(top_srcdir)/src/core/dependableobject_decl.hpp \
 	$(top_srcdir)/src/core/dependableobject.hpp \

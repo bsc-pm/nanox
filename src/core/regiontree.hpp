@@ -1256,16 +1256,15 @@ inline std::ostream & nanos::operator<< (std::ostream &o, typename RegionTree<T>
 template<typename T>
 inline std::ostream & nanos::operator<< (std::ostream &o, RegionTree<T> const &regionTree)
 {
-   o << "digraph {" << std::endl;
-   o << "node[shape=record];" << std::endl;
+   o << "+++ RegionTree:" << std::endl;
    if (regionTree.m_root != NULL) {
       typename RegionTree<T>::Node const &root = *regionTree.m_root;
       // We would like to do this, but it fails in g++ and xlC
       // o << root;
       // So we do this instead
-      printRecursive <T>(o, root);
+      printRecursiveSimple <T>(o, root);
    }
-   return o << "}" << std::endl;;
+   return o << "+++ End of RegionTree +++" << std::endl;;
 }
 
 

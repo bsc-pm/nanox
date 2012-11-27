@@ -786,6 +786,7 @@ namespace nanos
             return value;
          }
    
+      void printSimple( std::ostream& o ) const;
       
       friend class RegionPart;
       friend std::ostream& operator<< (std::ostream& o, Region const &region);

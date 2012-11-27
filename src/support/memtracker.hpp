@@ -103,6 +103,7 @@ namespace nanos {
             message0("Trying to free invalid pointer " << p << " at " << file << ":" << line);
          } else {
             message0("Trying to free invalid pointer " << p);
+            sys.printBt();
          }    
          throw std::bad_alloc();
       }

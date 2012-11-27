@@ -7,6 +7,22 @@ inline uint64_t AllocatedChunk::getAddress() const {
    return _address;
 }
 
+inline uint64_t AllocatedChunk::getHostAddress() const {
+   return _hostAddress;
+}
+
+inline void AllocatedChunk::setHostAddress( uint64_t addr ) {
+   _hostAddress = addr;
+}
+
+inline std::size_t AllocatedChunk::getSize() const {
+   return _size;
+}
+
+inline bool AllocatedChunk::isDirty() const {
+   return _dirty;
+}
+
 inline ProcessingElement &RegionCache::getPE() const {
    return _pe;
 }
@@ -38,15 +54,11 @@ inline CopyData const &CacheCopy::getCopyData() const {
 inline uint64_t CacheCopy::getDeviceAddress() const {
    uint64_t addr = 0;
    if ( _cacheEntry ) {
-      addr = _cacheEntry->getAddress() + _offset + _copy.getOffset();
+      addr = ( _cacheEntry->getAddress() - ( _cacheEntry->getHostAddress() - (uint64_t) _copy.getBaseAddress() ) ) + _copy.getOffset();
    } else {
-      addr = ( (uint64_t) _copy.getBaseAddress() ) + _copy.getOffset();
+      addr = ( (uint64_t) _copy.getBaseAddress() + _copy.getOffset() );
    }
    return addr;
-}
-
-inline uint64_t CacheCopy::getDevBaseAddress() const {
-   return _devBaseAddr;
 }
 
 inline DeviceOps *CacheCopy::getOperations() {

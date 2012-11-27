@@ -20,6 +20,7 @@
 #ifndef _NANOS_COPYDATA_DECL
 #define _NANOS_COPYDATA_DECL
 
+#include <iostream>
 #include "nanos-int.h"
 
 namespace nanos
@@ -79,8 +80,10 @@ namespace nanos
          
         /*! \brief  returns the CopyData's size
          */
-         size_t getSize() const;
-         size_t getMaxSize() const;
+         std::size_t getSize() const;
+         std::size_t getMaxSize() const;
+         std::size_t getFitSize() const;
+         uint64_t getFitAddress() const;
 
         /*! \brief Returns true if the data to copy is shared
          */
@@ -98,7 +101,16 @@ namespace nanos
          
          uint64_t getAddress() const ;
          uint64_t getOffset() const ;
+
+      friend std::ostream& operator<< (std::ostream& o, CopyData const &cd);
+
+      private:
+         size_t getFitSizeRecursive( int i ) const;
+         size_t getWideSizeRecursive( int i ) const;
+         uint64_t getFitOffsetRecursive( int i ) const;
+
    };
+  std::ostream& operator<< (std::ostream& o, CopyData const &cd);
 }
 
 #endif

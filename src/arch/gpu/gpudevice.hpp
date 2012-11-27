@@ -96,7 +96,7 @@ bool GPUDevice::copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size,
 
 bool GPUDevice::isNotMycopyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size, ProcessingElement *pe )
 {
-   //std::cerr << __FUNCTION__ <<std::endl;
+   //std::cerr << __FUNCTION__ << " from: "<< (void *)remoteDst.getTag() << " to: "<< localSrc <<std::endl;
    ( ( nanos::ext::GPUProcessor * ) pe )->getOutTransferList()->addMemoryTransfer( remoteDst, localSrc, size );
    // Mark the copy as requested, because the thread invoking this function needs the data
    syncTransfer( remoteDst.getTag(), pe );

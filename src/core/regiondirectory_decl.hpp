@@ -29,6 +29,7 @@
 #include "regiontree_decl.hpp"
 #include "atomic_decl.hpp"
 #include "workdescriptor_fwd.hpp"
+#include "cachedregionstatus_decl.hpp"
 
 namespace nanos
 {
@@ -118,6 +119,7 @@ namespace nanos
          void print() const;
          void lock();
          void unlock();
+         void invalidate( RegionTree<CachedRegionStatus> *regions );
 
          static void insertRegionIntoTree( RegionTree<NewDirectoryEntryData> &dir, Region const &r, unsigned int memorySpaceId, bool setLoc, NewDirectoryEntryData const &ent, unsigned int version);
          template <class RegionDesc> static Region build_region( RegionDesc const &cd );

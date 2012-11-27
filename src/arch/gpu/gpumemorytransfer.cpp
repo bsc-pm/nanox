@@ -203,7 +203,7 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ( std::list<GPUMemory
             ( void * ) mt1._hostAddress.getTag() :
             myPE->allocateOutputPinnedMemory( mt1._size );
 
- std::cerr <<"EXEC00T " << ( void * ) mt1._hostAddress.getTag() << std::endl;
+ std::cerr <<"EXEC00T no loop " << ( void * ) mt1._hostAddress.getTag() << std::endl;
       GPUDevice::copyOutAsyncToBuffer( pinned1, mt1._deviceAddress, mt1._size );
 
       while ( pendingTransfersAsync.size() > 1) {
@@ -259,6 +259,7 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ( std::list<GPUMemory
 
       // Synchronize copy
       //myPE->synchronize( mt1._hostAddress );
+   std::cerr << " complete op " << std::endl;
    mt1._hostAddress._ops->completeOp();
 
       myPE->freeOutputPinnedMemory();

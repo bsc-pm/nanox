@@ -49,3 +49,29 @@ std::ostream& nanos::operator<< (std::ostream &o, Region const & region) {
    return o;
 }
 
+void nanos::Region::printSimple( std::ostream& o ) const {
+   unsigned int currentBit = m_firstBit;
+
+   //for ( unsigned int i = 0; i < currentBit; i++){ 
+   //  if (i % 4 == 0 ) o << " ";
+   //  o << "0";
+   //}
+   for (int bitIndex = 0; bitIndex < getLength(); bitIndex++) {
+      switch ((*this)[bitIndex]) {
+      case Region::BIT_0:
+         o << "0";
+         break;
+      case Region::BIT_1:
+         o << "1";
+         break;
+      case Region::X:
+         o << "X";
+         break;
+      }
+      currentBit++;
+      if (currentBit % 4 == 0 && currentBit != sizeof(size_t)*8) {
+         o << " ";
+      }
+   }
+   o << " " << (void *) getFirstValue() << " " << (void *) ( getFirstValue() + getBreadth() );
+}

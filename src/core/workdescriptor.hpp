@@ -89,7 +89,7 @@ inline void WorkDescriptor::setSyncCond( GenericSyncCond * syncCond ) { _syncCon
 
 inline void WorkDescriptor::setDepth ( int l ) { _depth = l; }
 
-inline unsigned WorkDescriptor::getDepth() { return _depth; }
+inline unsigned WorkDescriptor::getDepth() const { return _depth; }
 
 inline DeviceData & WorkDescriptor::getActiveDevice () const { return *_activeDevice; }
 
@@ -158,7 +158,15 @@ inline WorkDescriptor * WorkDescriptor::getImmediateSuccessor ( BaseThread &thre
    else {
         DOIsSchedulable predicate(thread);
         DependableObject * found = _doSubmit->releaseImmediateSuccessor(predicate);
-        return found ? (WD *) found->getRelatedObject() : NULL;
+        if ( found ) {
+           WD *successor = (WD *) found->getRelatedObject();
+           successor->predecessorFinished( this );
+   successor->getNewDirectory()->setParent( ( successor->getParent() != NULL ) ? successor->getParent()->getNewDirectory() : NULL );   
+   successor->_ccontrol.preInit();
+           return successor;
+        } else {
+           return NULL;
+        }
    }
 }
 

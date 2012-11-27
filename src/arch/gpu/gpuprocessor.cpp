@@ -31,7 +31,7 @@ using namespace nanos::ext;
 Atomic<int> GPUProcessor::_deviceSeed = 0;
 
 
-GPUProcessor::GPUProcessor( int id, int gpuId ) : CachedAccelerator( id, &GPU , NULL, &GPU, 0 ),
+GPUProcessor::GPUProcessor( int id, int gpuId ) : CachedAccelerator( id, &GPU , NULL, &GPU, 0, RegionCache::ALLOC_FIT ),
       _gpuDevice( _deviceSeed++ ), _gpuProcessorStats(), _gpuProcessorTransfers(),
       _initialized( false ), _allocator(), _inputPinnedMemoryBuffer()
 {
@@ -93,6 +93,9 @@ void GPUProcessor::init ()
    // modify maxMemoryAvailable, in the case of not being able to allocate as
    // much bytes as we have asked
    void * baseAddress = GPUDevice::allocateWholeMemory( maxMemoryAvailable );
+
+   std::cerr << "GPU memory: baseAddr=" << baseAddress << " size=" << maxMemoryAvailable << std::endl;
+
    _allocator.init( ( uint64_t ) baseAddress, maxMemoryAvailable );
    //configureCache( maxMemoryAvailable, GPUConfig::getCachePolicy() );
 

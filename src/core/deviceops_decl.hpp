@@ -3,10 +3,10 @@
 
 #include <set>
 #include "atomic_decl.hpp"
+#include "deviceops_fwd.hpp"
 
 namespace nanos {
 
-   class DeviceOpsPtr;
    class DeviceOps {
       private:
          Atomic<unsigned int> _pendingDeviceOps;

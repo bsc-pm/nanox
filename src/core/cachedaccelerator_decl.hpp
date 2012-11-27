@@ -46,7 +46,7 @@ namespace nanos
         /*! \brief CachedAccelerator constructor - from 'newId' and 'arch'
          */
          CachedAccelerator( int newId, const Device *arch, const Device *subArch = NULL,
-            Device *cacheArch = NULL, std::size_t cacheSize = 0 );
+            Device *cacheArch = NULL, std::size_t cacheSize = 0, enum RegionCache::CacheOptions flags = RegionCache::ALLOC_WIDE );
 
         /*! \brief CachedAccelerator destructor
          */

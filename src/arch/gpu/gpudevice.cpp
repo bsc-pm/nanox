@@ -22,6 +22,7 @@
 #include "gpuutils.hpp"
 #include "basethread.hpp"
 #include "debug.hpp"
+#include "deviceops.hpp"
 #include <sys/resource.h>
 
 #include <cuda_runtime.h>
@@ -281,20 +282,41 @@ bool GPUDevice::copyDevToDev( void * addrDst, CopyDescriptor &dstCd, void * addr
    return true;
 }
 
-void GPUDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops, unsigned int wdId ) {
+void *GPUDevice::memAllocate( std::size_t size, ProcessingElement &pe) const {
+   void *mem = allocate( size, &pe );
+   //std::cerr << "GPU memAllocate( " << size << " )  returns: " << mem << std::endl;
+   return mem;
+}
+
+void GPUDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement &pe, DeviceOps *ops, WD const &wd ) const {
    CopyDescriptor cd( hostAddr ); cd._ops = ops;
-   bool done = copyIn( (void *) devAddr, cd, len, pe );
+   ops->addOp();
+   bool done = copyIn( (void *) devAddr, cd, len, &pe );
    if ( done ) ops->completeOp();
 }
 
-void GPUDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, ProcessingElement *pe, DeviceOps *ops ) {
+void GPUDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, ProcessingElement &pe, DeviceOps *ops, WD const &wd ) const {
    CopyDescriptor cd( hostAddr ); cd._ops = ops;
-   bool done = copyOut( cd, (void *) devAddr, len, pe );
+   ops->addOp();
+   bool done = copyOut( cd, (void *) devAddr, len, &pe );
    if ( done ) ops->completeOp();
 }
 
-void GPUDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, ProcessingElement *peDest, ProcessingElement *peOri, DeviceOps *ops, unsigned int wdId ) {
+void GPUDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, ProcessingElement &peDest, ProcessingElement &peOrig, DeviceOps *ops, WD const &wd ) const {
    CopyDescriptor cd( 0xdeaddead ); cd._ops = ops;
-   bool done = copyDevToDev( (void *) devDestAddr, cd, (void *) devOrigAddr, len, peDest, peOri );
+   ops->addOp();
+   bool done = copyDevToDev( (void *) devDestAddr, cd, (void *) devOrigAddr, len, &peDest, &peOrig );
    if ( done ) ops->completeOp();
+}
+
+void GPUDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement const &pe, DeviceOps *ops, WD const &wd ) {
+   std::cerr << __FUNCTION__ << ": unimplemented" << std::endl;
+}
+
+void GPUDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement const &pe, DeviceOps *ops, WD const &wd ) {
+   std::cerr << __FUNCTION__ << ": unimplemented" << std::endl;
+}
+
+void GPUDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement const &peDest, ProcessingElement const &peOri, DeviceOps *ops, WD const &wd ) const {
+   std::cerr << __FUNCTION__ << ": unimplemented" << std::endl;
 }

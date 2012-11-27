@@ -25,27 +25,60 @@
 
 using namespace nanos;
 
-SimpleAllocator::SimpleAllocator( uint64_t baseAddress, size_t len ) : _baseAddress( baseAddress )
+SimpleAllocator::SimpleAllocator( uint64_t baseAddress, std::size_t len ) : _baseAddress( baseAddress ), _remaining ( len )
 {
    _freeChunks[ baseAddress ] = len;
 }
 
-void SimpleAllocator::init( uint64_t baseAddress, size_t len )
+void SimpleAllocator::init( uint64_t baseAddress, std::size_t len )
 {
    _baseAddress = baseAddress;
    _freeChunks[ baseAddress ] = len;
+   _remaining = len;
 }
 
-void * SimpleAllocator::allocate( size_t size, bool print )
+void * SimpleAllocator::allocate( std::size_t size )
 {
    SegmentMap::iterator mapIter = _freeChunks.begin();
    void * retAddr = (void *) 0;
 
-   size_t alignedLen;
+   while( mapIter != _freeChunks.end() && mapIter->second < size )
+   {
+      mapIter++;
+   }
+   if ( mapIter != _freeChunks.end() ) {
+
+      uint64_t targetAddr = mapIter->first;
+      std::size_t chunkSize = mapIter->second;
+
+      _freeChunks.erase( mapIter );
+
+      //add the chunk with the new size (previous size - requested size)
+      if (chunkSize > size)
+         _freeChunks[ targetAddr + size ] = chunkSize - size ;
+      _allocatedChunks[ targetAddr ] = size;
+
+      retAddr = ( void * ) targetAddr;
+      _remaining -= size;
+   }
+   else {
+      // Could not get a chunk of 'size' bytes
+      std::cerr << __FUNCTION__ << " WARNING: Allocator is full, requested " << size << " bytes, remaining " << _remaining << " bytes." << std::endl;
+      return NULL;
+   }
+
+   return retAddr;
+}
+
+void * SimpleAllocator::allocateSizeAligned( std::size_t size )
+{
+   SegmentMap::iterator mapIter = _freeChunks.begin();
+   void * retAddr = (void *) 0;
+
+   std::size_t alignedLen;
    unsigned int count = 0;
    while ( (size >> count) != 1 ) count++;
    alignedLen = (1UL<<(count));
-   //fprintf(stderr, "alignedLen %lX, size %lX\n", alignedLen, size);
 
    while( mapIter != _freeChunks.end() && 
       mapIter->second < 
@@ -54,23 +87,14 @@ void * SimpleAllocator::allocate( size_t size, bool print )
         size ) -
        mapIter->first )
    {
-      //std::cerr << "this chunk addr " << (void *) mapIter->first << " computed size is " <<  (void *) (mapIter->first | ((size-1))) << " " << ( ((mapIter->first | ((size-1))) + 1 + size ) - mapIter->first ) << std::endl;
       mapIter++;
    }
    if ( mapIter != _freeChunks.end() ) {
-
-      //uint64_t targetAddr = mapIter->first;
       uint64_t chunkAddr = mapIter->first;
-      size_t chunkSize = mapIter->second;
-      //std::size_t realSize = ( ((mapIter->first | (size-1)) + 1 + size ) - mapIter->first ); //aligned
+      std::size_t chunkSize = mapIter->second;
       uint64_t targetAddr = ( mapIter->first & ~(alignedLen-1) ) + ( ( ( mapIter->first & (alignedLen-1) ) == 0 ) ? 0 : alignedLen ) ;
-      //fprintf(stderr, "addr (chunk) is %lX, aligned (target) is %lX\n", mapIter->first, targetAddr );
-
-      //_freeChunks.erase( mapIter );
 
       //add the chunk with the new size (previous size - requested size)
-      //if (chunkSize > size)
-         //_freeChunks[ targetAddr + size ] = chunkSize - size ;
       if (chunkSize > size) {
          if (targetAddr == chunkAddr ) {
             _freeChunks.erase( chunkAddr ); 
@@ -85,21 +109,21 @@ void * SimpleAllocator::allocate( size_t size, bool print )
       _allocatedChunks[ targetAddr ] = size;
 
       retAddr = ( void * ) targetAddr ;
+      _remaining -= size;
    }
    else {
       // Could not get a chunk of 'size' bytes
-      //std::cerr << sys.getNetwork()->getNodeNum() << ": WARNING: Allocator is full" << std::endl;
-      //printMap();
+      std::cerr << sys.getNetwork()->getNodeNum() << ": WARNING: Allocator is full" << std::endl;
       return NULL;
    }
 
    return retAddr;
 }
 
-size_t SimpleAllocator::free( void *address )
+std::size_t SimpleAllocator::free( void *address )
 {
    SegmentMap::iterator mapIter = _allocatedChunks.find( ( uint64_t ) address );
-   size_t size = mapIter->second;
+   std::size_t size = mapIter->second;
    std::pair< SegmentMap::iterator, bool > ret;
 
    _allocatedChunks.erase( mapIter );
@@ -118,7 +142,7 @@ size_t SimpleAllocator::free( void *address )
       }
       //address is not the highest key, check if it can be merged with the previous and next chunks
       else if ( _freeChunks.key_comp()( ( uint64_t ) address, mapIter->first ) ) {
-         size_t totalSize = size;
+         std::size_t totalSize = size;
          bool firstMerge = false;
 
          //check next chunk
@@ -160,6 +184,7 @@ size_t SimpleAllocator::free( void *address )
    else {
       _freeChunks[ ( uint64_t ) address ] = size;
    }
+  _remaining += size;
 
    return size;
 }
@@ -194,19 +219,19 @@ void SimpleAllocator::unlock() {
    _lock.release();
 }
 
-BufferManager::BufferManager( void * address, size_t size )
+BufferManager::BufferManager( void * address, std::size_t size )
 {
    init(address,size);
 }
 
-void BufferManager::init ( void * address, size_t size )
+void BufferManager::init ( void * address, std::size_t size )
 {
    _baseAddress = address;
    _index = 0;
    _size = size;
 }
 
-void * BufferManager::allocate ( size_t size )
+void * BufferManager::allocate ( std::size_t size )
 {
    void * address = ( void * ) ( ( uint64_t ) _baseAddress + _index );
    _index = _index + size;

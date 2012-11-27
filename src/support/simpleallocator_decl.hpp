@@ -31,28 +31,32 @@ namespace nanos {
    class SimpleAllocator
    {
       private:
-         typedef std::map < uint64_t, size_t > SegmentMap;
+         typedef std::map < uint64_t, std::size_t > SegmentMap;
 
          SegmentMap _allocatedChunks;
          SegmentMap _freeChunks;
 
          uint64_t _baseAddress;
          Lock     _lock;
+         std::size_t _remaining;
+
+         
 
       public:
-         SimpleAllocator( uint64_t baseAddress, size_t len );
+         SimpleAllocator( uint64_t baseAddress, std::size_t len );
 
          // WARNING: Calling this constructor requires calling init() at some time
          // before any allocate() or free() methods are called
-         SimpleAllocator() : _baseAddress( 0 ) { }
+         SimpleAllocator() : _baseAddress( 0 ), _remaining( 0 )  { }
 
-         void init( uint64_t baseAddress, size_t len );
+         void init( uint64_t baseAddress, std::size_t len );
 
-         void * allocate( size_t len, bool print =false );
+         void * allocate( std::size_t len );
+         void * allocateSizeAligned( std::size_t len );
 
          uint64_t getBaseAddress ();
 
-         size_t free( void *address );
+         std::size_t free( void *address );
 
          void printMap();
 
@@ -63,21 +67,21 @@ namespace nanos {
    class BufferManager
    {
       private:
-         void *   _baseAddress;
-         size_t   _index;
-         size_t   _size;
+         void *      _baseAddress;
+         std::size_t _index;
+         std::size_t _size;
 
       public:
-         BufferManager( void * address, size_t size );
+         BufferManager( void * address, std::size_t size );
          BufferManager() : _baseAddress(0),_index(0),_size(0) {} 
 
          ~BufferManager() {}
 
-         void init ( void * address, size_t size );
+         void init ( void * address, std::size_t size );
 
          void * getBaseAddress ();
 
-         void * allocate ( size_t size );
+         void * allocate ( std::size_t size );
 
          void reset ();
    };

@@ -836,6 +836,7 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
    debug( "switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
           " to " << wd << ":" << wd->getId() << " at node " << sys.getNetwork()->getNodeNum() );
 
+   //std::cerr << " ççç RUN TASK " << wd->getId() << " Depth " << wd->getDepth() << " ççç " << std::endl;
    // Initializing wd if necessary
    // It will be started later in inlineWorkDependent call
    if ( !wd->started() ) wd->init();
@@ -898,6 +899,7 @@ void Scheduler::inlineWork ( WD *wd, bool schedule )
       switchToThread(oldwd->isTiedTo());
    #endif
 
+   //std::cerr << " ççç END TASK " << wd->getId() << " Depth " << wd->getDepth() << " ççç " << std::endl;
    ensure(oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(),
            "Violating tied rules " + toString<BaseThread*>(thread) + "!=" + toString<BaseThread*>(oldwd->isTiedTo()));
 

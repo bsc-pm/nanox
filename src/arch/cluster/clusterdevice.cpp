@@ -40,13 +40,14 @@ void * ClusterDevice::memAllocate( size_t size, ProcessingElement &pe ) const
    return retAddr;
 }
 
-void ClusterDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement const &pe, DeviceOps *ops, WD const &wd ) const {
+void ClusterDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement &pe, DeviceOps *ops, WD const &wd ) const {
    ClusterNode const &node = dynamic_cast< ClusterNode const & >( pe );
+   ops->addOp();
    sys.getNetwork()->put( node.getClusterNodeNum(),  devAddr, ( void * ) hostAddr, len, wd.getId(), wd );
    ops->completeOp();
 }
 
-void ClusterDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, ProcessingElement const &pe, DeviceOps *ops, WD const &wd ) const {
+void ClusterDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, ProcessingElement &pe, DeviceOps *ops, WD const &wd ) const {
    ClusterNode const &node = dynamic_cast< ClusterNode const & >( pe );
 
    char *recvAddr = (char *) sys.getNetwork()->allocateReceiveMemory( len );
@@ -58,13 +59,15 @@ void ClusterDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t l
    sys.getNetwork()->get( ( void * ) recvAddr, node.getClusterNodeNum(), devAddr, len, (volatile int *) newreq );
 }
 
-void ClusterDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, ProcessingElement const &peDest, ProcessingElement const &peOrig, DeviceOps *ops, WD const &wd ) const {
+void ClusterDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, ProcessingElement &peDest, ProcessingElement &peOrig, DeviceOps *ops, WD const &wd ) const {
+   ops->addOp();
    sys.getNetwork()->sendRequestPut( ((ClusterNode const &) peOrig).getClusterNodeNum(), devOrigAddr, ((ClusterNode const &) peDest).getClusterNodeNum(), devDestAddr, len, wd.getId(), wd );
    ops->completeOp();
 }
 
 void ClusterDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement const &pe, DeviceOps *ops, WD const &wd ) {
    char * hostAddrPtr = (char *) hostAddr;
+   ops->addOp();
    NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_PACK); );
    char * packedAddr = (char *) _packer.give_pack( hostAddr, len, count );
    if ( packedAddr != NULL) { 
