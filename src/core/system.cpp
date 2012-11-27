@@ -677,7 +677,12 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
 
    WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, data_align, data != NULL ? *data : NULL,
                              num_copies, (copies != NULL)? *copies : NULL, translate_args );
+   
+   // Set WD's socket
    wd->_socket = _currentSocket;
+   
+   if ( _currentSocket >= sys.getNumSockets() )
+      throw NANOS_INVALID_PARAM;
 
    // All the implementations for a given task will have the same ID
    wd->setVersionGroupId( ( unsigned long ) devices );
@@ -808,6 +813,12 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
 
    SlicedWD * wd =  new (*uwd) SlicedWD( *slicer, num_devices, dev_ptrs, outline_data_size, outline_data_align,
                                          outline_data != NULL ? *outline_data : NULL, num_copies, (copies == NULL) ? NULL : *copies );
+   
+   // Set WD's socket
+   wd->_socket = _currentSocket;
+   
+   if ( _currentSocket >= sys.getNumSockets() )
+      throw NANOS_INVALID_PARAM;
 
    // initializing internal data
    if ( size_PMD > 0) wd->setInternalData( chunk + offset_PMD );
