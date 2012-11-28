@@ -209,16 +209,18 @@ namespace nanos {
                for ( int i = 0; i < sys.getNumWorkers(); ++i )
                {
                   BaseThread *worker = sys.getWorker( i );
-                  //if ( dynamic_cast<GPUDevice*>( worker->runningOn()->getDeviceType() ) == 0 )
 #ifdef GPU_DEV
+                  //if ( dynamic_cast<GPUDevice*>( worker->runningOn()->getDeviceType() ) == 0 )
                   if ( nanos::ext::GPU == worker->runningOn()->getDeviceType() )
                   {
                      int node = worker->getSocket();
                      _gpuNodes.insert( node );
                      fprintf( stderr, "Found GPU Worker in node %d\n", node );
                   }
-               }
 #endif
+                  // Avoid unused variable warning.
+                  worker = NULL;
+               }
                // Initialise the structure that will cycle through gpu nodes
                // when giving away GPU tasks
                _gpuNodesToGive.stealNext = 0;
@@ -237,7 +239,7 @@ namespace nanos {
             {
 #ifdef GPU_DEV
                // If it's a GPU wd and the node has GPUs, it can run
-               if ( wd.canRunIn( nanos::ext::GPU ) ){
+               if ( wd.canRunIn( nanos::ext::GPU ) ) {
                   //fprintf( stderr, "GPU WD, can it run in node %d? %d\n", node, (int)_gpuNodes.count( node ) );
                   return _gpuNodes.count( node ) != 0;
                }
