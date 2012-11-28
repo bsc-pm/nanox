@@ -62,7 +62,7 @@ NANOS_API_DEF(int, nanos_get_wd_id, ( nanos_wd_t wd ))
  *  \sa nanos::WorkDescriptor
  */
 NANOS_API_DEF( nanos_err_t, nanos_create_wd_compact, ( nanos_wd_t *uwd, nanos_const_wd_definition_t *const_data_ext, nanos_wd_dyn_props_t *dyn_props,
-                                                       size_t data_size, void ** data, nanos_wg_t uwg, nanos_copy_data_t **copies ) )
+                                                       size_t data_size, void ** data, nanos_wg_t uwg, nanos_copy_data_t **copies, nanos_region_dimension_internal_t **dimensions ) )
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",NANOS_CREATION) );
 
@@ -74,7 +74,7 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_compact, ( nanos_wd_t *uwd, nanos_co
          *uwd = 0;
          return NANOS_OK;
       }
-      sys.createWD ( (WD **) uwd, const_data->num_devices, const_data->devices, data_size, const_data->data_alignment, (void **) data, (WG *) uwg, &const_data->props, dyn_props, const_data->num_copies, copies, NULL );
+      sys.createWD ( (WD **) uwd, const_data->num_devices, const_data->devices, data_size, const_data->data_alignment, (void **) data, (WG *) uwg, &const_data->props, dyn_props, const_data->num_copies, copies, const_data->num_dimensions, dimensions, NULL );
 
    } catch ( nanos_err_t e) {
       return e;
@@ -104,7 +104,7 @@ NANOS_API_DEF(nanos_err_t, nanos_set_translate_function, ( nanos_wd_t wd, nanos_
 NANOS_API_DEF(nanos_err_t, nanos_create_sliced_wd, ( nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
                                                      int outline_data_align, void ** outline_data, nanos_wg_t uwg, nanos_slicer_t slicer,
                                                      nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props, size_t num_copies,
-                                                     nanos_copy_data_t **copies ))
+                                                     nanos_copy_data_t **copies, size_t num_dimensions, nanos_region_dimension_internal_t **dimensions ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_wd",NANOS_CREATION) );
 
@@ -116,7 +116,7 @@ NANOS_API_DEF(nanos_err_t, nanos_create_sliced_wd, ( nanos_wd_t *uwd, size_t num
       }
 
       sys.createSlicedWD ( (WD **) uwd, num_devices, devices, outline_data_size, outline_data_align, outline_data, (WG *) uwg,
-                           (Slicer *) slicer, props, dyn_props, num_copies, copies );
+                           (Slicer *) slicer, props, num_copies, copies, num_dimensions, dimensions );
 
    } catch ( nanos_err_t e) {
       return e;
@@ -181,7 +181,7 @@ NANOS_API_DEF(nanos_err_t, nanos_submit, ( nanos_wd_t uwd, size_t num_data_acces
 // data must be not null
 NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_definition_t *const_data_ext, nanos_wd_dyn_props_t *dyn_props, 
                                                                size_t data_size, void * data, size_t num_data_accesses, nanos_data_access_t *data_accesses,
-                                                               nanos_copy_data_t *copies, nanos_translate_args_t translate_args ) )
+                                                               nanos_copy_data_t *copies, nanos_region_dimension_internal_t *dimensions, nanos_translate_args_t translate_args ) )
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","create_wd_and_run", NANOS_CREATION) );
 

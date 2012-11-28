@@ -28,9 +28,10 @@
 
 #ifdef _MERCURIUM
 // define API version
-#pragma nanos interface family(master) version(5020)
+#pragma nanos interface family(master) version(5015)
 #pragma nanos interface family(worksharing) version(1000)
 #pragma nanos interface family(deps_api) version(1001)
+#pragma nanos interface family(copies_api) version(1000)
 #endif
 
 // data types
@@ -80,20 +81,20 @@ NANOS_API_DECL(nanos_slicer_t, nanos_find_slicer, ( const char * slicer ));
 NANOS_API_DECL(nanos_ws_t, nanos_find_worksharing, ( const char * label ) );
 
 NANOS_API_DECL(nanos_err_t, nanos_create_wd_compact, ( nanos_wd_t *wd, nanos_const_wd_definition_t *const_data, nanos_wd_dyn_props_t *dyn_props,
-                                                       size_t data_size, void ** data, nanos_wg_t wg, nanos_copy_data_t **copies ));
+                                                       size_t data_size, void ** data, nanos_wg_t wg, nanos_copy_data_t **copies, nanos_region_dimension_internal_t **dimensions ));
 
 NANOS_API_DECL(nanos_err_t, nanos_set_translate_function, ( nanos_wd_t wd, nanos_translate_args_t translate_args ));
 
 NANOS_API_DECL(nanos_err_t, nanos_create_sliced_wd, ( nanos_wd_t *uwd, size_t num_devices, nanos_device_t *devices,
                                      size_t outline_data_size, int outline_data_align,
                                      void **outline_data, nanos_wg_t uwg, nanos_slicer_t slicer,
-                                     nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props, size_t num_copies, nanos_copy_data_t **copies ));
+                                     nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props, size_t num_copies, nanos_copy_data_t **copies, size_t num_dimensions, nanos_region_dimension_internal_t **dimensions ));
 
 NANOS_API_DECL(nanos_err_t, nanos_submit, ( nanos_wd_t wd, size_t num_data_accesses, nanos_data_access_t *data_accesses, nanos_team_t team ));
 
 NANOS_API_DECL(nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_definition_t *const_data, nanos_wd_dyn_props_t *dyn_props,
                                                                size_t data_size, void * data, size_t num_data_accesses, nanos_data_access_t *data_accesses,
-                                                               nanos_copy_data_t *copies, nanos_translate_args_t translate_args ));
+                                                               nanos_copy_data_t *copies, nanos_region_dimension_internal_t **dimensions, nanos_translate_args_t translate_args ));
 
 NANOS_API_DECL(nanos_err_t, nanos_create_for, ( void ));
 
