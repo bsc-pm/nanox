@@ -28,6 +28,9 @@
 #ifdef HWLOC
 #include <hwloc.h>
 #endif
+#ifdef GPU_DEV
+#include "gpudd.hpp"
+#endif
 
 namespace nanos {
    namespace ext {
@@ -59,13 +62,17 @@ namespace nanos {
             struct SocketDistanceInfo {
                NearSocketsList list;
                
+               // TODO: Change stealNext by just next...
                //! Next index of the list to steal from (round robin)
                Atomic<unsigned> stealNext;
                
                /*! \brief Returns the socket to steal from */
                unsigned getStealNext()
                {
-                  unsigned closeIndex = ( ++stealNext ) % ( sys.getNumSockets() - 1 );
+                  // FIXME: Is this mod ok?
+                  //fprintf( stderr, "sys.getNumSockets: %d - 1 == list.size() %u?\n", sys.getNumSockets(), (unsigned)list.size() );
+                  //fatal_cond( (unsigned)( sys.getNumSockets() - 1 ) != list.size(), "Wrong size of the node list" );
+                  unsigned closeIndex = ( ++stealNext ) % list.size();
                   //unsigned close = _nearSockets[socket].list[ closeIndex ];
                   //fprintf( stderr, "Close: %d\n", close );
                   return list[ closeIndex ];
@@ -77,6 +84,14 @@ namespace nanos {
             
             /*! \brief Keep a vector with all the close sockets for every socket */
             NearSocketsMatrix _nearSockets;
+            
+            /*! \brief A set of all the nodes with GPUs */
+            std::set<int> _gpuNodes;
+            
+            /*! \brief List of gpu nodes that will be used to give away work
+             * descriptors in round robin.
+             */
+            SocketDistanceInfo _gpuNodesToGive;
 
             struct TeamData : public ScheduleTeamData
             {
@@ -89,7 +104,11 @@ namespace nanos {
  
                TeamData ( unsigned int sockets ) : ScheduleTeamData(), _next( 0 )
                {
+                  //fprintf( stderr, "Reserving %d queues\n", sockets*2 + 1 );
                   _readyQueues = NEW WDPriorityQueue<>[ sockets*2 + 1 ];
+                  // Print how many things are in here.
+                  //for( unsigned i = 0; i < ( sockets*2 + 1 ); ++i )
+                     //fprintf( stderr, "%u tasks in the queue %i\n", (unsigned) _readyQueues[i].size(), i );
                   _activeMasters = NEW Atomic<bool>[ sockets ];
                }
 
@@ -151,11 +170,12 @@ namespace nanos {
                   path << from << "/distance";
                   std::ifstream fDistances( path.str().c_str() );
                   
-                  
-                  std::copy (std::istream_iterator<unsigned>( fDistances ),
-                     std::istream_iterator<unsigned>(),
-                     distances
-                  );
+                  if ( fDistances.good() ) {
+                     std::copy (std::istream_iterator<unsigned>( fDistances ),
+                        std::istream_iterator<unsigned>(),
+                        distances
+                     );
+                  }
                   
                   fDistances.close();
                   
@@ -177,6 +197,99 @@ namespace nanos {
                      row.erase( it, row.end() );
                   }
                }
+            }
+            
+            /*!
+             *  \brief Finds all the nodes with GPUs. Constructs a set of nodes
+             *  that do have GPUs, so it can be queried later on.
+             */
+            void findGPUNodes()
+            {
+               // Look for GPUs in all the nodes
+               for ( int i = 0; i < sys.getNumWorkers(); ++i )
+               {
+                  BaseThread *worker = sys.getWorker( i );
+                  //if ( dynamic_cast<GPUDevice*>( worker->runningOn()->getDeviceType() ) == 0 )
+#ifdef GPU_DEV
+                  if ( nanos::ext::GPU == worker->runningOn()->getDeviceType() )
+                  {
+                     int node = worker->getSocket();
+                     _gpuNodes.insert( node );
+                     fprintf( stderr, "Found GPU Worker in node %d\n", node );
+                  }
+               }
+#endif
+               // Initialise the structure that will cycle through gpu nodes
+               // when giving away GPU tasks
+               _gpuNodesToGive.stealNext = 0;
+               // Copy the set elements to a list (since it is easier to cycle
+               // through)
+               std::copy( _gpuNodes.begin(), _gpuNodes.end(),
+                  std::back_inserter( _gpuNodesToGive.list ) );
+            }
+            
+            /*!
+             *  \brief Checks if a wd can be run in a node.
+             *  If a GPU task is being scheduled in a node with no GPU threads,
+             *  it will return false.
+             */
+            inline bool canRunInNode( WD& wd, int node )
+            {
+#ifdef GPU_DEV
+               // If it's a GPU wd and the node has GPUs, it can run
+               if ( wd.canRunIn( nanos::ext::GPU ) ){
+                  //fprintf( stderr, "GPU WD, can it run in node %d? %d\n", node, (int)_gpuNodes.count( node ) );
+                  return _gpuNodes.count( node ) != 0;
+               }
+#endif
+               // FIXME: Otherwise assume it's SMP and can always run in this node.
+               // This might not be always true.
+               return true;
+            }
+            
+            inline int findBetterNode( WD& wd, int node )
+            {
+               //return node;
+            //#if 0
+               /* We do not use round robbin here, we just send it to the
+                * closest node */
+               //int newNode = _nearSockets[ node ].list.front();
+               int newNode = _gpuNodesToGive.getStealNext();
+               fatal_cond( _gpuNodes.count( newNode ) == 0, "Cannot find a node with GPUs to move the task to." );
+               
+               
+               fprintf( stderr, "WD %d cannot run in node %d, moved to %d\n", wd.getId(), node, newNode );
+               return newNode;
+            //#endif
+            }
+            
+            /*!
+             *  \brief Converts from a node number to a queue index.
+             *  \param node Node number (from 0..N-1 nodes).
+             *  \param topLevel If the queue for top level task is desired.
+             *  Otherwise, the queue for child task will be returned.
+             *  \return Queue index (from 0..N*2+1).
+             */
+            inline unsigned nodeToQueue( unsigned node, bool topLevel ) const
+            {
+               if ( topLevel ) {
+                  return node * 2 + 1;
+               }
+               // Child task queue
+               return node * 2 + 2;
+            }
+            
+            /*!
+             *  \brief Converts from a queue number to a node number.
+             *  Note that there are 2 queues per node, and that the first queue
+             *  can run in all nodes.
+             *  \param index Queue index. Must be greater than 0.
+             *  \return The node that the queue corresponds to.
+             */
+            inline unsigned queueToNode( unsigned index ) const
+            {
+               fatal_cond( index == 0, "Cannot convert to node number the queue index 0" );
+               return ( index - 1 ) / 2;
             }
 
          public:
@@ -208,7 +321,6 @@ namespace nanos {
                //   sys.setNumSockets( validSockets );
                //}
                
-               computeDistanceInfo();
             }
 
             // destructor
@@ -219,6 +331,11 @@ namespace nanos {
 
             virtual ScheduleTeamData * createTeamData ()
             {
+               // Now we can find GPU nodes since the workers will have been created
+               findGPUNodes();
+               
+               computeDistanceInfo();
+               
                // Create 2 queues per socket plus one for the global queue.
                return NEW TeamData( sys.getNumSockets() );
             }
@@ -297,6 +414,7 @@ namespace nanos {
                   warning0( "WD already has a queue (" << wd.getWakeUpQueue() << ")" );
                
                unsigned index;
+               int node;
                
                switch( wd.getDepth() ) {
                   case 0:
@@ -305,9 +423,16 @@ namespace nanos {
                      tdata._readyQueues[0].push_back ( &wd );
                      break;
                   case 1:
+                     node = wd._socket;
+                     // If the node cannot execute this WD
+                     if ( !canRunInNode( wd, node ) )
+                        node = findBetterNode( wd, node );
+                     
                      //index = (tdata._next++ ) % sys.getNumSockets() + 1;
                      // 2 queues per socket, the first one is for level 1 tasks
-                     index = (wd._socket % sys.getNumSockets())*2 + 1;
+                     fatal_cond( node >= sys.getNumSockets(), "Invalid node selected" );
+                     //index = (node % sys.getNumSockets())*2 + 1;
+                     index = nodeToQueue( node, true );
                      wd.setWakeUpQueue( index );
                      
                      //fprintf( stderr, "Depth 1, inserting WD %d in queue number %d (curr socket %d)\n", wd.getId(), index, wd._socket );
@@ -322,11 +447,23 @@ namespace nanos {
                   default:
                      // Insert this in its parent's socket
                      index = wd.getParent()->getWakeUpQueue();
-                     // If index is not even
-                     if ( index % 2 != 0 )
-                        // Means its parent is level 1, small tasks go in even queues
-                        ++index;
                      
+                     node = queueToNode( index );
+                     // If this wd cannot run in this node
+                     if ( !canRunInNode( wd, node ) ) {
+                        node = findBetterNode( wd, node );
+                        fatal_cond( node >= sys.getNumSockets(), "Invalid node selected" );
+                        // If index is not even
+                        // Means its parent is level 1, small tasks go in even queues
+                        index = nodeToQueue( node, index % 2 != 0);
+                     }
+                     else
+                     {
+                        // If index is not even
+                        // Means its parent is level 1, small tasks go in even queues
+                        if ( index % 2 != 0 )
+                           ++index;
+                     }
                      wd.setWakeUpQueue( index );
                      
                      //fprintf( stderr, "Depth %d>1, inserting WD %d in queue number %d\n", wd.getDepth(), wd.getId(), index );
@@ -368,22 +505,18 @@ namespace nanos {
                 * TODO: compute N.
                 * TODO: just one thread at a time can run depth 1 tasks.
                 */
-               int deepTasksN = tdata._readyQueues[socket*2+2].size();
-               bool emptyBigTasks = tdata._readyQueues[socket*2+1].empty();
+               int deepTasksN = tdata._readyQueues[ nodeToQueue( socket, false ) ].size();
+               bool emptyBigTasks = tdata._readyQueues[ nodeToQueue( socket, true )].empty();
                //fprintf( stderr, "[sockets] %d tasks at the small's queue\n", deepTasksN );
+               //fprintf( stderr, "[sockets] %u tasks at the big's queue\n", (unsigned)tdata._readyQueues[ nodeToQueue( socket, true )].size() );
                
                //unsigned thId = thread->getId();
                
-               unsigned queueNumber;
+               
                // TODO Improve atomic condition
-               if ( deepTasksN < 1*sys.getCoresPerSocket() && !emptyBigTasks
-                   /*&& ( tdata._activeMasters[socket].value() == 0 || tdata._activeMasters[socket].value() == thId )*/ )
-               {
-                  //tdata._activeMasters[socket] = thId + 1;
-                  queueNumber = socket*2+1;
-               }
-               else
-                  queueNumber = socket*2+2;
+               bool stealFromBig = deepTasksN < 1*sys.getCoresPerSocket() && !emptyBigTasks;
+                   /*&& ( tdata._activeMasters[socket].value() == 0 || tdata._activeMasters[socket].value() == thId )*/
+               unsigned queueNumber = nodeToQueue( socket, stealFromBig );
                
                unsigned spins = _spins;
                // Make sure the queue is really empty... lotsa times!
@@ -399,13 +532,6 @@ namespace nanos {
                // If we want/need to steal
                if ( _steal )
                {
-                  // Queue to steal from (+1 = top level, +2 = child tasks)
-                  unsigned offset;
-                  if (_stealParents )
-                     offset = 1;
-                  else
-                     offset = 2;
-                     
                   // Index of the queue where we stole the WD
                   unsigned index;
                   
@@ -432,14 +558,15 @@ namespace nanos {
                   else if ( _randomSteal )
                   {
                      unsigned random = std::rand() % sys.getNumSockets();
-                     index = random * 2 + offset;
+                     //index = random * 2 + offset;
+                     index = nodeToQueue( random, _stealParents );
                   }
                   // Round robbin steal
                   else {
                      unsigned close = _nearSockets[socket].getStealNext();
                      
                      // 2 queues per socket + 1 master queue + 1 (offset of the inner tasks)
-                     index = close * 2 + offset;
+                     index = nodeToQueue( close, _stealParents );
                   }
                   
                   if( _stealLowPriority )
