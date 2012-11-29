@@ -25,6 +25,10 @@
 #include "instrumentationmodule_decl.hpp"
 #include "os.hpp"
 
+extern "C" {
+   void DLB_UpdateResources() __attribute__(( weak ));
+}
+
 using namespace nanos;
 
 void SchedulerConf::config (Config &cfg)
@@ -734,6 +738,8 @@ void Scheduler::exitTo ( WD *to )
 
 void Scheduler::exit ( void )
 {
+   if ( DLB_UpdateResources ) DLB_UpdateResources();
+
    // At this point the WD work is done, so we mark it as such and look for other work to do
    // Deallocation doesn't happen here because:
    // a) We are still running in the WD stack

@@ -27,6 +27,10 @@
 #include "nanos_omp.h"
 #include "plugin.hpp"
 
+extern "C" {
+   void DLB_UpdateResources() __attribute__ ((weak));
+}
+
 using namespace nanos;
 //using namespace nanos::OpenMP;
 
@@ -136,6 +140,8 @@ namespace nanos
          _description = std::string("OmpSs");
          sys.setInitialMode( System::POOL );
          sys.setUntieMaster(true);
+
+         if ( DLB_UpdateResources ) sys.setUntieMaster(false);
       }
 
       int OmpSsInterface::getInternalDataSize() const { return sizeof(OmpSsData); }
