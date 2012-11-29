@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2012 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -19,34 +19,18 @@
 
 #include "nanos.h"
 #include "system.hpp"
-#include "instrumentationmodule_decl.hpp"
 
 using namespace nanos;
 
-NANOS_API_DEF(const char *, nanos_get_default_architecture, ())
+NANOS_API_DEF(const char *, nanos_get_default_scheduler, ())
 {
-   return (sys.getDefaultArch()).c_str();
+   return (sys.getDefaultSchedule()).c_str();
 }
 
-NANOS_API_DEF(const char *, nanos_get_pm, ())
-{
-   return (sys.getPMInterface()).getDescription().c_str();
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_get_default_binding, ( bool *res ))
+NANOS_API_DEF(nanos_err_t, nanos_stop_scheduler, ())
 {
    try {
-      *res = sys.getBinding();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_delay_start, ())
-{
-   try {
-      sys.setDelayedStart(true);
+      sys.stopScheduler();
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -54,10 +38,10 @@ NANOS_API_DEF(nanos_err_t, nanos_delay_start, ())
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_start, ())
+NANOS_API_DEF(nanos_err_t, nanos_start_scheduler, ())
 {
    try {
-      sys.start();
+      sys.startScheduler();
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -65,14 +49,56 @@ NANOS_API_DEF(nanos_err_t, nanos_start, ())
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_finish, ()) 
+NANOS_API_DEF(nanos_err_t, nanos_scheduler_enabled, ( bool *res ))
 {
    try {
-      sys.finish();
-   } catch ( ... ) { 
+      *res = sys.isSchedulerStopped();
+   } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
-   }   
+   }
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_wait_until_threads_paused, ())
+{
+   try {
+      sys.waitUntilThreadsPaused();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
 
    return NANOS_OK;
 }
+
+NANOS_API_DEF(nanos_err_t, nanos_wait_until_threads_unpaused, ())
+{
+   try {
+      sys.waitUntilThreadsUnpaused();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_scheduler_get_stealing, ( bool *res ))
+{
+   try {
+      *res = sys.getDefaultSchedulePolicy()->getStealing();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_scheduler_set_stealing, ( bool value ))
+{
+   try {
+      sys.getDefaultSchedulePolicy()->setStealing( value );
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+   return NANOS_OK;
+}
+
 
