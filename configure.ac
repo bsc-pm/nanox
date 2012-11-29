@@ -111,13 +111,15 @@ AC_ARG_ENABLE([mic],
 )
 
 if test x$use_icc = xno; then
-	FC="gfortran"
 	CFLAGS="$CFLAGS -Wredundant-decls"
 	CXXFLAGS="$CXXFLAGS -Wredundant-decls"
+	: ${CC="gcc"}
+	: ${CXX="g++"}
+	: ${FC="gfortran"}
 else
-	CC="icc"
-	CXX="icpc"
-    	FC="ifort"
+	: ${CC="icc"}
+	: ${CXX="icpc"}
+	: ${FC="ifort"}
 	CFLAGS="$CFLAGS -wd873 -wd1419 -lifcore"
 	CXXFLAGS="$CXXFLAGS -wd873 -wd1419 -lifcore"
 fi
@@ -515,7 +517,7 @@ AC_ARG_WITH([mpitrace],
                 then
                    extrae_version_string=`sed -ne '/^\s*#\s*define\s\+EXTRAE_VERSION .*$/p' $extrae_version_h`
                    extrae_version=`echo $extrae_version_string | sed -e 's/#define EXTRAE_VERSION EXTRAE_VERSION_NUMBER(\([0-9]*\),\([0-9]*\),\([0-9]*\).*$/\1\2\3/'`
-                   if test "$extrae_version" -ge 220;
+                   if test "$extrae_version" -ge 230;
                    then
                       MPITRACE_HOME="$withval"
                       MPITRACE_INC="$withval/include"
@@ -527,10 +529,10 @@ AC_ARG_WITH([mpitrace],
                       MPITRACE_BIN="$withval/bin"
                       AC_MSG_RESULT([checking if Extrae library is compatible... yes])
                    else
-                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
                    fi
                 else
-                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
                 fi
            ]
 )
@@ -542,7 +544,7 @@ AC_ARG_WITH([extrae],
                 then
                    extrae_version_string=`sed -ne '/^\s*#\s*define\s\+EXTRAE_VERSION .*$/p' $extrae_version_h`
                    extrae_version=`echo $extrae_version_string | sed -e 's/#define EXTRAE_VERSION EXTRAE_VERSION_NUMBER(\([0-9]*\),\([0-9]*\),\([0-9]*\).*$/\1\2\3/'`
-                   if test "$extrae_version" -ge 220;
+                   if test "$extrae_version" -ge 230;
                    then
                       MPITRACE_HOME="$withval"
                       MPITRACE_INC="$withval/include"
@@ -554,10 +556,10 @@ AC_ARG_WITH([extrae],
                       MPITRACE_BIN="$withval/bin"
                       AC_MSG_RESULT([checking if Extrae library is compatible... yes])
                    else
-                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
                    fi
                 else
-                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
                 fi
            ]
 )
@@ -575,9 +577,11 @@ AC_ARG_WITH([nextsim],
            AS_HELP_STRING([--with-nextsim=dir], [Directory of NextSim installation]),
            [
               NEXTSIM_HOME="$withval"
+              NEXTSIM_INC="$withval/include"
            ]
 )
 AC_SUBST([NEXTSIM_HOME])
+AC_SUBST([NEXTSIM_INC])
 AM_CONDITIONAL([INSTRUMENTATION_NEXTSIM], test x"$NEXTSIM_HOME" != x)
 
 # Check Ayudame support

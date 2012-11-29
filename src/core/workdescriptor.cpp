@@ -138,7 +138,7 @@ void WorkDescriptor::submit( void )
 void WorkDescriptor::finish ()
 {
    ProcessingElement *pe = myThread->runningOn();
-   waitCompletionAndSignalers();
+   waitCompletion();
    if ( getNumCopies() > 0 )
      pe->copyDataOut( *this );
 

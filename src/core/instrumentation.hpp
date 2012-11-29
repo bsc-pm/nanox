@@ -172,6 +172,10 @@ inline const std::string InstrumentationKeyDescriptor::getValueDescription ( nan
    if (found == true) return it->second->getDescription();
    else return "";
 }
+inline size_t InstrumentationKeyDescriptor::getSize( void ) const
+{
+   return _valueMap.size();
+}
 /** INSTRUMENTOR DICTIONARY **/
 
 inline nanos_event_key_t InstrumentationDictionary::registerEventKey ( const std::string &key, const std::string &description, bool abort_when_registered, bool enabled, bool stacked  )
