@@ -36,7 +36,7 @@ void SlicerReplicate::submit ( SlicedWD &work )
 
    BaseThread *last_thread = thread;
    i--;
-   while ( i > 0 ) {
+   while ( i >= 0 ) {
       thread = &(myThread->getTeam()->getThread(i));
       if ( thread != myThread ) {
          WorkDescriptor *slice = NULL;

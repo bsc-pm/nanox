@@ -244,13 +244,6 @@ inline void WorkDescriptor::waitCompletion( bool avoidFlush )
       _directory->synchronizeHost();
 }
 
-inline void WorkDescriptor::waitCompletionAndSignalers( bool avoidFlush )
-{
-   this->WorkGroup::waitCompletionAndSignalers();
-   if ( _directory.isInitialized() && !avoidFlush )
-      _directory->synchronizeHost();
-}
-
 inline Directory* WorkDescriptor::getDirectory(bool create)
 {
    if ( !_directory.isInitialized() && create == false ) {
