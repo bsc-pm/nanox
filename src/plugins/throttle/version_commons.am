@@ -1,4 +1,8 @@
 
+default_sources = \
+	$(top_srcdir)/src/plugins/throttle/default_throttle.cpp \
+	$(END)
+
 dummy_sources = \
 	$(top_srcdir)/src/plugins/throttle/dummy_throttle.cpp \
 	$(END)
