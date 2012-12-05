@@ -752,7 +752,7 @@ namespace nanos {
           *  \param[in] key is a vector of nkvs keys 
           *  \param[in] value is a vector of nkvs  values
           */
-         void createPointEvent ( Event *e, nanos_event_key_t keys, nanos_event_value_t values );
+         void createPointEvent ( Event *e, nanos_event_key_t key, nanos_event_value_t value );
 
          /*! \brief Used by higher levels to create a PTP_START event
           *
