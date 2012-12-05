@@ -425,7 +425,7 @@ namespace nanos {
                      tdata._readyQueues[0].push_back ( &wd );
                      break;
                   case 1:
-                     node = wd._socket;
+                     node = wd.getSocket();
                      // If the node cannot execute this WD
                      if ( !canRunInNode( wd, node ) )
                         node = findBetterNode( wd, node );

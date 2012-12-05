@@ -149,7 +149,6 @@ namespace nanos
 
          typedef std::vector<WorkDescriptor **> WorkDescriptorPtrList;
          typedef TR1::unordered_map<void *, TR1::shared_ptr<WorkDescriptor *> > CommutativeOwnerMap;
-         int _socket;
 
       private:
 
@@ -202,6 +201,7 @@ namespace nanos
          CommutativeOwnerMap           _commutativeOwnerMap; /**< Map from commutative target address to owner pointer */
          WorkDescriptorPtrList         _commutativeOwners;   /**< Array of commutative target owners */
 
+         int                           _socket;       /**< The socket this WD was assigned to */
          unsigned int                  _wakeUpQueue;  /**< Queue to wake up to */
          bool                          _implicit;     /**< is a implicit task (in a team) */
 
@@ -364,6 +364,18 @@ namespace nanos
          void * getInternalData () const;
 
          void setTranslateArgs( nanos_translate_args_t translateArgs );
+
+         /*! \brief Returns the socket that this WD was assigned to.
+          * 
+          * \see setSocket
+          */
+         int getSocket() const;
+
+         /*! \brief Changes the socket this WD is assigned to.
+          *
+          * \see getSocket
+          */
+         void setSocket( int socket );
          
          /*! \brief Returns the queue this WD should wake up in.
           *  This will be used by the socket-aware schedule policy.

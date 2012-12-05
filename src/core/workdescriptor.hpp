@@ -141,6 +141,16 @@ inline void * WorkDescriptor::getInternalData () const { return _wdData; }
 
 inline void WorkDescriptor::setTranslateArgs( nanos_translate_args_t translateArgs ) { _translateArgs = translateArgs; }
 
+inline int WorkDescriptor::getSocket() const
+{
+   return _socket;
+}
+
+inline void WorkDescriptor::setSocket( int socket )
+{
+   _socket = socket;
+}
+
 inline unsigned int WorkDescriptor::getWakeUpQueue() const
 {
    return _wakeUpQueue;

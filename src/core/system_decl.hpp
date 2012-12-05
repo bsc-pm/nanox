@@ -56,7 +56,6 @@ namespace nanos
          typedef enum { POOL, ONE_THREAD } InitialMode;
          typedef enum { NONE, WRITE_THROUGH, WRITE_BACK, DEFAULT } CachePolicyType;
          typedef Config::MapVar<CachePolicyType> CachePolicyConfig;
-         int                  _currentSocket;
 
       private:
          // types
@@ -90,6 +89,8 @@ namespace nanos
          bool                 _synchronizedStart;
          int                  _numSockets;
          int                  _coresPerSocket;
+         //! The socket that will be assigned to the next WD
+         int                  _currentSocket;
 
          //cutoff policy and related variables
          ThrottlePolicy      *_throttlePolicy;
@@ -265,9 +266,15 @@ namespace nanos
 
          void setNumSockets ( int numSockets );
 
+         int getCurrentSocket() const;
+
+         void setCurrentSocket( int currentSocket );
+
          int getCoresPerSocket() const;
 
          void setCoresPerSocket ( int coresPerSocket );
+
+
          
          /**
           * \brief Returns a CPU Id that the given architecture should use

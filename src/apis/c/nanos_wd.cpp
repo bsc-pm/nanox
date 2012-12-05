@@ -196,9 +196,9 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
       wd.setTranslateArgs( translate_args );
       
       // Set WD's socket
-      wd._socket = sys._currentSocket;
+      wd.setSocket( sys.getCurrentSocket() );
       
-      if ( wd._socket >= sys.getNumSockets() )
+      if ( wd.getSocket() >= sys.getNumSockets() )
          throw NANOS_INVALID_PARAM;
 
       // set properties
