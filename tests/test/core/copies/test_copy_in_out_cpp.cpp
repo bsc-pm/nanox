@@ -29,6 +29,7 @@ test_generator=gens/core-generator
 #include "system.hpp"
 #include "copydata.hpp"
 #include <string.h>
+#include <unistd.h>
 
 using namespace std;
 
@@ -119,8 +120,14 @@ int main ( int argc, char **argv )
 
    data->b = a;
 
-   CopyData cd[2] = { CopyData( (uint64_t)&data->a, NANOS_SHARED, true, false, sizeof(data->a) ),
-                      CopyData( (uint64_t)&data->b, NANOS_PRIVATE, true, true, sizeof(data->b) ) };
+
+   nanos_region_dimension_internal_t dims[2];
+
+   dims[0] = (nanos_region_dimension_internal_t) {sizeof(data->a), 0, sizeof(data->a)};
+   dims[1] = (nanos_region_dimension_internal_t) {sizeof(data->b), 0, sizeof(data->b)};
+
+   CopyData cd[2] = { CopyData( (uint64_t)&data->a, NANOS_SHARED, true, false, 1, &dims[0], 0 ),
+                      CopyData( (uint64_t)&data->b, NANOS_PRIVATE, true, true, 1, &dims[1], 0 ) };
 
    WD * wd = new WD( new SMPDD( hello_world ), sizeof( hello_world_args ), __alignof__( hello_world_args ), data, 2, cd );
 

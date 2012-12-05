@@ -75,7 +75,7 @@ int main ( int argc, char **argv )
       main__task_1_data_t *task_data = NULL;
 
       NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1.base, &dyn_props, sizeof( main__task_1_data_t ),
-                                    (void **) &task_data, nanos_current_wd(), NULL ));
+                                    (void **) &task_data, nanos_current_wd(), NULL, NULL ));
 
       task_data->value = 100;
 

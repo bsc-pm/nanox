@@ -76,7 +76,7 @@ int test_single_lock()
    for ( i=0; i < 10; i++ ) {
       nanos_wd_t wd1=0;
 
-      NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1, &dyn_props, 0, NULL, nanos_current_wd(), NULL ) );
+      NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1, &dyn_props, 0, NULL, nanos_current_wd(), NULL, NULL ) );
 
       NANOS_SAFE( nanos_submit( wd1,1,0,0 ) );
    }
@@ -166,12 +166,12 @@ int test_nest_lock()
 
    for ( i = 0; i < 100; i++ ) {
       nanos_wd_t wd1=0;
-      NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data2.base, &dyn_props,  0, NULL, nanos_current_wd(), NULL ) );
+      NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data2.base, &dyn_props,  0, NULL, nanos_current_wd(), NULL, NULL ) );
 
       NANOS_SAFE( nanos_submit( wd1,1,0,0 ) );
 
       wd1=0;
-      NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data3.base, &dyn_props, 0, NULL, nanos_current_wd(), NULL ) );
+      NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data3.base, &dyn_props, 0, NULL, nanos_current_wd(), NULL, NULL ) );
 
       NANOS_SAFE( nanos_submit( wd1,1,0,0 ) );
    }
