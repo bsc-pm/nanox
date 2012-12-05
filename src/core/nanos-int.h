@@ -128,7 +128,6 @@ namespace nanos {
 }
 typedef nanos::DataAccess nanos_data_access_t;
 typedef nanos::CopyData nanos_copy_data_t;
-typedef nanos_dependence_internal_t nanos_data_access_t;
 
 #endif
 

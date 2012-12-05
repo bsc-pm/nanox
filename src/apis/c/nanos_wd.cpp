@@ -116,7 +116,7 @@ NANOS_API_DEF(nanos_err_t, nanos_create_sliced_wd, ( nanos_wd_t *uwd, size_t num
       }
 
       sys.createSlicedWD ( (WD **) uwd, num_devices, devices, outline_data_size, outline_data_align, outline_data, (WG *) uwg,
-                           (Slicer *) slicer, props, num_copies, copies, num_dimensions, dimensions );
+                           (Slicer *) slicer, props, dyn_props, num_copies, copies, num_dimensions, dimensions );
 
    } catch ( nanos_err_t e) {
       return e;
