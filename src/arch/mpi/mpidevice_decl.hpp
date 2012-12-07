@@ -31,7 +31,7 @@ typedef struct {
        uint64_t hostAddr;
        uint64_t devAddr;
        size_t size;
-       size_t old_size;
+       //size_t old_size;
        //unsigned char* data;
 } cacheOrder;
 

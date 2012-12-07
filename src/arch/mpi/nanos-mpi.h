@@ -98,7 +98,7 @@ MPI_Datatype ompss_get_mpi_type(char* type) {
     } else if (strcmp(type, "__mpitype_ompss_wchar_t") == 0) {
         result = MPI_WCHAR;
     } else if (strcmp(type, "__mpitype_ompss_signed_short") == 0) {
-        result = MPI_INT;
+        result = MPI_SHORT;
     } else if (strcmp(type, "__mpitype_ompss_signed_int") == 0) {
         result = MPI_INT;
     } else if (strcmp(type, "__mpitype_ompss_signed_long") == 0) {
@@ -112,7 +112,7 @@ MPI_Datatype ompss_get_mpi_type(char* type) {
     } else if (strcmp(type, "__mpitype_ompss_unsigned_int") == 0) {
         result = MPI_UNSIGNED;
     } else if (strcmp(type, "__mpitype_ompss_float") == 0) {
-        result = MPI_DOUBLE;
+        result = MPI_FLOAT;
     } else if (strcmp(type, "__mpitype_ompss_double") == 0) {
         result = MPI_DOUBLE;
     } else if (strcmp(type, "__mpitype_ompss_long_double") == 0) {

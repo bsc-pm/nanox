@@ -93,7 +93,7 @@ void * MPIDevice::realloc(void *address, size_t size, size_t old_size, Processin
     order.devAddr  = (uint64_t) address;
     order.hostAddr = 0;
     order.size = size;
-    order.old_size = old_size;
+    //order.old_size = old_size;
     MPI_Status status;
     nanos::ext::MPIProcessor::nanos_MPI_Send(&order, 1, cacheStruct, myPE->_rank, TAG_CACHE_ORDER, myPE->_communicator);
     nanos::ext::MPIProcessor::nanos_MPI_Recv(&order, 1, cacheStruct, myPE->_rank, TAG_CACHE_ANSWER_REALLOC, myPE->_communicator, &status);
@@ -169,10 +169,10 @@ bool MPIDevice::copyDevToDev(void * addrDst, CopyDescriptor& cdDst, void * addrS
 void MPIDevice::initMPICacheStruct() {
     //Initialize cacheStruct in case it's not initialized
     if (cacheStruct == NULL) {
-        MPI_Datatype typelist[5] = {MPI_SHORT, MPI_UNSIGNED_LONG_LONG, MPI_UNSIGNED_LONG_LONG, MPI_UNSIGNED_LONG_LONG, MPI_UNSIGNED_LONG_LONG};
-        int blocklen[5] = {1, 1, 1, 1,1};
-        MPI_Aint disp[5] = {offsetof(cacheOrder, opId), offsetof(cacheOrder, hostAddr), offsetof(cacheOrder, devAddr), offsetof(cacheOrder, size),offsetof(cacheOrder, old_size)};
-        MPI_Type_create_struct(5, blocklen, disp, typelist, &cacheStruct);
+        MPI_Datatype typelist[4] = {MPI_SHORT, MPI_UNSIGNED_LONG_LONG, MPI_UNSIGNED_LONG_LONG, MPI_UNSIGNED_LONG_LONG};
+        int blocklen[4] = {1, 1, 1, 1};
+        MPI_Aint disp[4] = {offsetof(cacheOrder, opId), offsetof(cacheOrder, hostAddr), offsetof(cacheOrder, devAddr), offsetof(cacheOrder, size)};
+        MPI_Type_create_struct(4, blocklen, disp, typelist, &cacheStruct);
         MPI_Type_commit(&cacheStruct);
     }
 }
@@ -258,8 +258,8 @@ void MPIDevice::mpiCacheWorker() {
                     std::cerr << "Hago un reallocate en device\n";
                     delete[] (char *) order.devAddr;
                     char* ptr = new char[order.size];
-                    printf("Realloc %d, %d\n", order.size,order.old_size);
-                    printf("Copio de %p a %p, tam %d\n",(void*)  order.devAddr, ptr, order.old_size);
+                    //printf("Realloc %d, %d\n", order.size,order.old_size);
+                    //printf("Copio de %p a %p, tam %d\n",(void*)  order.devAddr, ptr, order.old_size);
                     printf("Copio valor %f\n",((void*)  order.devAddr));                    
                     //TODO: CHECK THIS, it's probably wrong
 //                    DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) ptr );
@@ -270,7 +270,7 @@ void MPIDevice::mpiCacheWorker() {
 //                          ent->getOwner()->deleteEntry((uint64_t) ptr, order.size);
 //                       }
 //                    }
-                    memcpy(ptr, (void*)  order.devAddr, order.old_size);
+                    //memcpy(ptr, (void*)  order.devAddr, order.old_size);
                     order.devAddr = (uint64_t) ptr;
                     //MPI_Comm_get_parent(&parentcomm);
                     nanos::ext::MPIProcessor::nanos_MPI_Send(&order, 1, cacheStruct, 0, TAG_CACHE_ANSWER_REALLOC, parentcomm);
