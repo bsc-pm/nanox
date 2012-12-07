@@ -17,11 +17,14 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+#include "mpi.h"
 #include "nanos-mpi.h"
 #include "nanos.h"
 #include "mpiprocessor.hpp"
 #include "system.hpp"
 #include "mpidd.hpp"
+#include <string.h>
+
 
 using namespace nanos;
 
@@ -97,4 +100,42 @@ NANOS_API_DEF(int, nanos_MPI_Send_datastruct, (void *buf, int count, MPI_Datatyp
 }
 NANOS_API_DEF(int, nanos_MPI_Recv_datastruct, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm, MPI_Status *status)){
         return nanos::ext::MPIProcessor::nanos_MPI_Recv_datastruct(buf,count,datatype,dest,comm,status);
+}
+
+NANOS_API_DEF(MPI_Datatype, ompss_get_mpi_type, (char* type)) {
+    MPI_Datatype result;
+    if (strcmp(type, "__mpitype_ompss_char") == 0) {
+        result = MPI_CHAR;
+    } else if (strcmp(type, "__mpitype_ompss_wchar_t") == 0) {
+        result = MPI_WCHAR;
+    } else if (strcmp(type, "__mpitype_ompss_signed_short") == 0) {
+        result = MPI_SHORT;
+    } else if (strcmp(type, "__mpitype_ompss_signed_int") == 0) {
+        result = MPI_INT;
+    } else if (strcmp(type, "__mpitype_ompss_signed_long") == 0) {
+        result = MPI_LONG;
+    } else if (strcmp(type, "__mpitype_ompss_signed_char") == 0) {
+        result = MPI_SIGNED_CHAR;
+    } else if (strcmp(type, "__mpitype_ompss_unsigned_char") == 0) {
+        result = MPI_UNSIGNED_CHAR;
+    } else if (strcmp(type, "__mpitype_ompss_unsigned_short") == 0) {
+        result = MPI_UNSIGNED_SHORT;
+    } else if (strcmp(type, "__mpitype_ompss_unsigned_int") == 0) {
+        result = MPI_UNSIGNED;
+    } else if (strcmp(type, "__mpitype_ompss_float") == 0) {
+        result = MPI_FLOAT;
+    } else if (strcmp(type, "__mpitype_ompss_double") == 0) {
+        result = MPI_DOUBLE;
+    } else if (strcmp(type, "__mpitype_ompss_long_double") == 0) {
+        result = MPI_LONG_DOUBLE;
+    } else if (strcmp(type, "__mpitype_ompss_bool") == 0) {
+        //result=MPI_BOOL;
+    } else if (strcmp(type, "__mpitype_ompss_byte") == 0) {
+        result = MPI_BYTE;
+    } else if (strcmp(type, "__mpitype_ompss_unsigned_long") == 0) {
+        result = MPI_UNSIGNED_LONG;
+    } else if (strcmp(type, "__mpitype_ompss_unsigned_long_long") == 0) {
+        result = MPI_UNSIGNED_LONG_LONG;
+    }
+    return result;
 }

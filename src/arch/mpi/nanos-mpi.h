@@ -51,7 +51,9 @@ extern "C" {
     NANOS_API_DECL(int, nanos_MPI_Send_taskend, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm));
     NANOS_API_DECL(int, nanos_MPI_Recv_taskend, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm, MPI_Status *status));
     NANOS_API_DECL(int, nanos_MPI_Send_datastruct, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm));
-    NANOS_API_DECL(int, nanos_MPI_Recv_datastruct, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm, MPI_Status *status));
+    NANOS_API_DECL(int, nanos_MPI_Recv_datastruct, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm, MPI_Status *status));    
+    NANOS_API_DECL(MPI_Datatype, ompss_get_mpi_type, (char* type));
+    
 
 
 #ifdef __cplusplus
@@ -59,7 +61,7 @@ extern "C" {
 #endif
 
 ////Protected code only needed by mercurium compilation phases, workaround for use-define-after-preprocess "bug"
-#ifdef _MERCURIUM_MPI_
+//#ifdef _MERCURIUM_MPI_
 //
 ////Mercurium converts some types to their longer type.
 ////For example, shorts are ints, floats are double...
@@ -89,46 +91,7 @@ extern "C" {
 //#endif
 //    __mpitype_ompss_byte = MPI_BYTE
 //};
-#include <string.h>
-
-MPI_Datatype ompss_get_mpi_type(char* type) {
-    MPI_Datatype result;
-    if (strcmp(type, "__mpitype_ompss_char") == 0) {
-        result = MPI_CHAR;
-    } else if (strcmp(type, "__mpitype_ompss_wchar_t") == 0) {
-        result = MPI_WCHAR;
-    } else if (strcmp(type, "__mpitype_ompss_signed_short") == 0) {
-        result = MPI_SHORT;
-    } else if (strcmp(type, "__mpitype_ompss_signed_int") == 0) {
-        result = MPI_INT;
-    } else if (strcmp(type, "__mpitype_ompss_signed_long") == 0) {
-        result = MPI_LONG;
-    } else if (strcmp(type, "__mpitype_ompss_signed_char") == 0) {
-        result = MPI_SIGNED_CHAR;
-    } else if (strcmp(type, "__mpitype_ompss_unsigned_char") == 0) {
-        result = MPI_UNSIGNED_CHAR;
-    } else if (strcmp(type, "__mpitype_ompss_unsigned_short") == 0) {
-        result = MPI_UNSIGNED_SHORT;
-    } else if (strcmp(type, "__mpitype_ompss_unsigned_int") == 0) {
-        result = MPI_UNSIGNED;
-    } else if (strcmp(type, "__mpitype_ompss_float") == 0) {
-        result = MPI_FLOAT;
-    } else if (strcmp(type, "__mpitype_ompss_double") == 0) {
-        result = MPI_DOUBLE;
-    } else if (strcmp(type, "__mpitype_ompss_long_double") == 0) {
-        result = MPI_LONG_DOUBLE;
-    } else if (strcmp(type, "__mpitype_ompss_bool") == 0) {
-        //result=MPI_BOOL;
-    } else if (strcmp(type, "__mpitype_ompss_byte") == 0) {
-        result = MPI_BYTE;
-    } else if (strcmp(type, "__mpitype_ompss_unsigned_long") == 0) {
-        result = MPI_UNSIGNED_LONG;
-    } else if (strcmp(type, "__mpitype_ompss_unsigned_long_long") == 0) {
-        result = MPI_UNSIGNED_LONG_LONG;
-    }
-    return result;
-}
-#endif
+//#endif
 
 
 #endif

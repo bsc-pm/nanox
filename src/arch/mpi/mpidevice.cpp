@@ -184,7 +184,7 @@ void MPIDevice::mpiCacheWorker() {
     //If this process was not spawned, we don't need this daemon-thread
     if (parentcomm != NULL && parentcomm != MPI_COMM_NULL) {
         MPI_Status status;
-        short ans=1;
+        //short ans=1;
         cacheOrder order;                    
         for (;;) {
             //if (!t->isRunning()) break; //{ std::cerr << "FINISHING MPI THD!" << std::endl; break; }
