@@ -131,6 +131,6 @@ inline void CopyData::setDimensions(nanos_region_dimension_internal_t const *dim
 
 inline uint64_t CopyData::getAddress() const
 {
-   return (uint64_t) address; 
+   return ( (uint64_t) address ) + offset; 
 }
 #endif
