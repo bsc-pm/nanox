@@ -189,14 +189,15 @@ namespace ext
             ensure( _pendingTransfersAsync.empty(),
                   "Attempting to delete the input pending transfers list with already "
                   + toString<size_t>( _pendingTransfersAsync.size() ) + " pending transfers to perform" );
+
+            ensure( _requestedTransfers.empty(),
+                              "Attempting to delete the requested input transfers list with already "
+                              + toString<size_t>( _requestedTransfers.size() ) + " pending transfers to perform" );
          }
 
          /*! \brief Add a new memory transfer to the list of pending transfers (asynchronous)
           */
-         void addMemoryTransfer ( CopyDescriptor &address )
-         {
-            _pendingTransfersAsync.push_back( address );
-         }
+         void addMemoryTransfer ( CopyDescriptor &address );
 
          /*! \brief Add a new memory transfer to the list of requested transfers (asynchronous)
           */

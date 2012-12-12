@@ -21,6 +21,7 @@
 #define _NANOS_COPYDATA_DECL
 
 #include "nanos-int.h"
+#include "copydescriptor_decl.hpp"
 
 namespace nanos
 {
@@ -90,6 +91,14 @@ namespace nanos
          bool isPrivate() const;
 
          nanos_sharing_t getSharing() const;
+
+         /*! \brief  returns the CopyData's CopyDescriptor
+          */
+         CopyDescriptor getCopyDescriptor() const;
+
+         /*! \brief sets the CopyData's CopyDescriptor as cpDesc
+          */
+         void setCopyDescriptor( CopyDescriptor cpDesc );
    };
 }
 

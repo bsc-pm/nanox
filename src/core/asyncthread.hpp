@@ -17,65 +17,28 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_COPY_DESCRIPTOR_DECL
-#define _NANOS_COPY_DESCRIPTOR_DECL
+#ifndef _ASYNC_THREAD_ELEMENT
+#define _ASYNC_THREAD_ELEMENT
 
-#include "compatibility.hpp"
+#include "asyncthread_decl.hpp"
 
-namespace nanos {
+//#include "workdescriptor_fwd.hpp"
+//#include "atomic.hpp"
+//#include "processingelement.hpp"
+//#include "debug.hpp"
+//#include "schedule_fwd.hpp"
+//#include "threadteam_fwd.hpp"
+//#include "atomic.hpp"
+//#include "system.hpp"
 
-   /*! \breif Class representing a copy used to synchronize the device with the cache */
-   class CopyDescriptor : public nanos_copy_descriptor_internal_t
-   {
-#if 0
-      private:
-         uint64_t _tag;
-         unsigned int _dirVersion;
-#endif
-      public:
-        /*! \brief Default constructor
-         */
-         CopyDescriptor( uint64_t t, unsigned int dv = 0, bool copy = false, bool flush = false )
-         {
-            tag = t;
-            dirVersion = dv;
-            copying = copy;
-            flushing = flush;
-         }
+namespace nanos
+{
 
-        /*! \brief Copy constructor
-         *  \param Another CopyDescriptor
-         */
-         CopyDescriptor( const CopyDescriptor &cd )
-         {
-            tag = cd.tag;
-            dirVersion = cd.dirVersion;
-            copying = cd.copying;
-            flushing = cd.flushing;
-         }
-
-        /* \brief Destructor
-         */
-         ~CopyDescriptor() {}
-
-        /* \brief Assign operator
-         */
-         CopyDescriptor& operator=( const CopyDescriptor &cd )
-         {
-            if ( this == &cd ) return *this;
-            this->tag = cd.tag;
-            this->dirVersion = cd.dirVersion;
-            this->copying = cd.copying;
-            this->flushing = cd.flushing;
-            return *this;
-         }
-
-         uint64_t getTag() const;
-         unsigned int getDirectoryVersion() const;
-         bool isCopying () const;
-         bool isFlushing () const;
-   };
+inline bool AsyncThread::canGetWork()
+{
+   return BaseThread::canGetWork() && _runningWDsCounter < getMaxPrefetch();
 }
 
-#endif
+}
 
+#endif //_ASYNC_THREAD_ELEMENT

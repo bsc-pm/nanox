@@ -19,6 +19,7 @@
 
 
 #include "gpumemorytransfer.hpp"
+#include "gpuevent_decl.hpp"
 #include "gpuprocessor.hpp"
 #include "instrumentationmodule_decl.hpp"
 
@@ -123,20 +124,37 @@ void GPUMemoryTransferOutSyncList::executeMemoryTransfers ()
 void GPUMemoryTransferOutAsyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt )
 {
 
+   GPUThread * thread = ( GPUThread * ) myThread;
+
    // Even there is only one copy, we must do it asynchronously, as we may be doing something else
    // No need to copy data to the intermediate pinned buffer if it's already pinned
    void * pinned = ( sys.getPinnedAllocatorCUDA().isPinned( ( void * ) mt._hostAddress.getTag(), mt._size ) ) ?
          ( void * ) mt._hostAddress.getTag() :
-         ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->allocateOutputPinnedMemory( mt._size );
+         ( ( nanos::ext::GPUProcessor * ) thread->runningOn() )->allocateOutputPinnedMemory( mt._size );
+
+   GenericEvent * evt = thread->createPostRunEvent( NULL );
 
    GPUDevice::copyOutAsyncToBuffer( pinned, mt._deviceAddress, mt._size );
-   GPUDevice::copyOutAsyncWait();
+
+   evt->setPending();
+
+   //GPUDevice::copyOutAsyncWait();
 
    if ( pinned != ( void * ) mt._hostAddress.getTag() ) {
-      GPUDevice::copyOutAsyncToHost( ( void * ) mt._hostAddress.getTag(), pinned, mt._size );
+      Action * action = new_action( ( ActionFunPtr3<void *, void *, size_t>::FunPtr3 ) &GPUDevice::copyOutAsyncToHost,
+            ( void * ) mt._hostAddress.getTag(), pinned, mt._size );
+      evt->addNextAction( action );
+
+      //GPUDevice::copyOutAsyncToHost( ( void * ) mt._hostAddress.getTag(), pinned, mt._size );
    }
 
-   ( ( GPUProcessor * ) myThread->runningOn() )->synchronize( mt._hostAddress );
+   Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize,
+         ( AsyncThread * ) thread, mt._hostAddress );
+   evt->addNextAction( action );
+
+   thread->addEvent( evt );
+
+   //( ( GPUProcessor * ) myThread->runningOn() )->synchronize( mt._hostAddress );
 }
 
 void GPUMemoryTransferOutAsyncList::removeMemoryTransfer ( CopyDescriptor &hostAddress )
@@ -174,7 +192,20 @@ void GPUMemoryTransferOutAsyncList::executeRequestedMemoryTransfers ()
 
 void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ( std::list<GPUMemoryTransfer> &pendingTransfersAsync )
 {
-   if ( !pendingTransfersAsync.empty() ) {
+
+   while ( !_pendingTransfersAsync.empty() ) {
+      _lock.acquire();
+      GPUMemoryTransfer mt ( *_pendingTransfersAsync.begin() );
+      _pendingTransfersAsync.erase( _pendingTransfersAsync.begin() );
+      _lock.release();
+
+      removeMemoryTransfer( mt );
+   }
+
+   return;
+
+   if ( false ) {
+   //if ( !pendingTransfersAsync.empty() ) {
 
       nanos::ext::GPUProcessor * myPE = ( nanos::ext::GPUProcessor * ) myThread->runningOn();
 
@@ -255,26 +286,55 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ( std::list<GPUMemory
    }
 }
 
+void GPUMemoryTransferInAsyncList::addMemoryTransfer ( CopyDescriptor &address )
+{
+   //_pendingTransfersAsync.push_back( address );
+
+   GPUThread * thread = ( GPUThread * ) myThread;
+
+   GenericEvent * evt = thread->createPreRunEvent( NULL );
+   evt->setPending();
+
+   Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize,
+         ( AsyncThread * ) thread, address );
+   evt->addNextAction( action );
+
+   thread->addEvent( evt );
+
+
+}
 
 void GPUMemoryTransferInAsyncList::clearMemoryTransfers()
 {
-   ( ( GPUProcessor * ) myThread->runningOn() )->synchronize( _pendingTransfersAsync );
+   //( ( GPUProcessor * ) myThread->runningOn() )->synchronize( _pendingTransfersAsync );
 
-   _pendingTransfersAsync.clear();
+   //_pendingTransfersAsync.clear();
 }
 
 void GPUMemoryTransferInAsyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt )
 {
+   GPUThread * thread = ( GPUThread * ) myThread;
+
    // No need to copy data to the intermediate pinned buffer if it's already pinned
    void * pinned = ( sys.getPinnedAllocatorCUDA().isPinned( ( void * ) mt._hostAddress.getTag(), mt._size ) ) ?
          ( void * ) mt._hostAddress.getTag() :
-         ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->allocateInputPinnedMemory( mt._size );
+         ( ( nanos::ext::GPUProcessor * ) thread->runningOn() )->allocateInputPinnedMemory( mt._size );
 
    if ( pinned != ( void * ) mt._hostAddress.getTag() ) {
       GPUDevice::copyInAsyncToBuffer( pinned, ( void * ) mt._hostAddress.getTag(), mt._size );
    }
 
+  GenericEvent * evt = thread->createPreRunEvent( NULL );
+
    GPUDevice::copyInAsyncToDevice( mt._deviceAddress, pinned, mt._size );
+
+   evt->setPending();
+
+   Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize,
+         ( AsyncThread * ) thread, mt._hostAddress );
+   evt->addNextAction( action );
+
+   thread->addEvent( evt );
 }
 
 void GPUMemoryTransferInAsyncList::executeMemoryTransfers ()

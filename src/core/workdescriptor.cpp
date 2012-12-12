@@ -33,7 +33,7 @@ void WorkDescriptor::init ()
 {
    if ( _state != INIT ) return;
 
-   ProcessingElement *pe = myThread->runningOn();
+   //ProcessingElement *pe = myThread->runningOn();
 
    /* Initializing instrumentation context */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdCreate( this ) );
@@ -41,7 +41,7 @@ void WorkDescriptor::init ()
    _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() );
 
    if ( getNumCopies() > 0 ) {
-      pe->copyDataIn( *this );
+      myThread->copyDataIn( *this );
       if ( _translateArgs != NULL ) {
          _translateArgs( _data, this );
       }
@@ -57,10 +57,11 @@ void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
 
    _devices[_activeDeviceIdx]->lazyInit(*this,isUserLevelThread,previous);
    
-   ProcessingElement *pe = myThread->runningOn();
+   //ProcessingElement *pe = myThread->runningOn();
 
-   if ( getNumCopies() > 0 )
-      pe->waitInputs( *this );
+   if ( getNumCopies() > 0 ) {
+      myThread->waitInputs( *this );
+   }
 
    if ( _tie ) tieTo(*myThread);
 
@@ -70,6 +71,7 @@ void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
 
 void WorkDescriptor::prepareDevice ()
 {
+   // TODO: This function is never called, so we should remove it
    // Do nothing if there is already an active device
    if ( _activeDeviceIdx != _numDevices ) return;
 
@@ -137,10 +139,10 @@ void WorkDescriptor::submit( void )
 
 void WorkDescriptor::finish ()
 {
-   ProcessingElement *pe = myThread->runningOn();
+   //ProcessingElement *pe = myThread->runningOn();
    waitCompletionAndSignalers();
    if ( getNumCopies() > 0 )
-     pe->copyDataOut( *this );
+      myThread->copyDataOut( *this );
 
    _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() - _executionTime );
 }

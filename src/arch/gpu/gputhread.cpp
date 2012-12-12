@@ -36,6 +36,45 @@ using namespace nanos;
 using namespace nanos::ext;
 
 
+void * nanos::ext::gpu_bootthread ( void *arg )
+{
+   GPUThread *self = static_cast<GPUThread *>( arg );
+
+   self->run();
+
+   pthread_exit ( 0 );
+}
+
+void GPUThread::start()
+{
+   pthread_attr_t attr;
+   pthread_attr_init( &attr );
+
+   if ( pthread_create( &_pth, &attr, gpu_bootthread, this ) )
+      fatal( "couldn't create thread" );
+}
+void GPUThread::join()
+{
+   pthread_join( _pth, NULL );
+   joined();
+}
+
+void GPUThread::switchTo( WD *work, SchedulerHelper *helper )
+{
+   fatal("A GPUThread cannot call switchTo function.");
+}
+void GPUThread::exitTo( WD *work, SchedulerHelper *helper )
+{
+   fatal("A GPUThread cannot call exitTo function.");
+}
+
+void GPUThread::switchHelperDependent( WD* oldWD, WD* newWD, void *arg )
+{
+   fatal("A GPUThread cannot call switchHelperDependent function.");
+}
+
+
+
 void GPUThread::initializeDependent ()
 {
    // Bind the thread to a GPU device
@@ -97,6 +136,9 @@ void GPUThread::runDependent ()
    WD &work = getThreadWD();
    setCurrentWD( work );
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
+
+   AsyncThread::runDependent();
+
    dd.getWorkFct()( work.getData() );
 
    if ( GPUConfig::isCUBLASInitDefined() ) {
@@ -110,11 +152,13 @@ void GPUThread::runDependent ()
    ( ( GPUProcessor * ) myThread->runningOn() )->cleanUp();
 }
 
-bool GPUThread::inlineWorkDependent ( WD &wd )
+//bool GPUThread::inlineWorkDependent ( WD &wd )
+bool GPUThread::runWDDependent( WD &wd )
 {
    GPUDD &dd = ( GPUDD & )wd.getActiveDevice();
-   GPUProcessor &myGPU = * ( GPUProcessor * ) myThread->runningOn();
+   //GPUProcessor &myGPU = * ( GPUProcessor * ) myThread->runningOn();
 
+#if 0
    if ( GPUConfig::isOverlappingInputsDefined() ) {
       // Wait for the input transfer stream to finish
       NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_INPUT_STREAM_SYNC_EVENT );
@@ -130,10 +174,12 @@ bool GPUThread::inlineWorkDependent ( WD &wd )
 
    // We wait for wd inputs, but as we have just waited for them, we could skip this step
    wd.start( WD::IsNotAUserLevelThread );
+#endif
 
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
    ( dd.getWorkFct() )( wd.getData() );
 
+#if 0
    if ( !GPUConfig::isOverlappingOutputsDefined() && !GPUConfig::isOverlappingInputsDefined() ) {
       // Wait for the GPU kernel to finish
       NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_DEVICE_SYNC_EVENT );
@@ -161,7 +207,7 @@ bool GPUThread::inlineWorkDependent ( WD &wd )
       WD * last = &wd;
       while ( canPrefetch() ) {
          // Get next task in order to prefetch data to device memory
-         WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, *last );
+         WD *next = Scheduler::prefetch( ( nanos::BaseThread * )  this, *last );
          if ( next != NULL ) {
             next->init();
             addNextWD( next );
@@ -191,8 +237,10 @@ bool GPUThread::inlineWorkDependent ( WD &wd )
       // when we know the kernel has really finished
       NANOS_INSTRUMENT ( raiseWDClosingEvents() );
    }
+#endif
 
-   return true;
+   //return true;
+   return false;
 }
 
 void GPUThread::yield()
@@ -200,6 +248,8 @@ void GPUThread::yield()
    cudaFree(0);
    ( ( GPUProcessor * ) runningOn() )->getInTransferList()->executeMemoryTransfers();
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->executeMemoryTransfers();
+
+   AsyncThread::yield();
 }
 
 void GPUThread::idle()
@@ -207,6 +257,8 @@ void GPUThread::idle()
    cudaFree(0);
    ( ( GPUProcessor * ) runningOn() )->getInTransferList()->executeMemoryTransfers();
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->removeMemoryTransfer();
+
+   AsyncThread::idle();
 }
 
 

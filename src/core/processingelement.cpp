@@ -131,6 +131,37 @@ void ProcessingElement::stopAll ()
    }
 }
 
+void ProcessingElement::synchronize( CopyDescriptor &cd )
+{
+   fatal( "synchronize() function called from ProcessingElement which has no cache" );
+}
+
+void ProcessingElement::synchronize( std::list<CopyDescriptor> &cds )
+{
+   fatal( "synchronize() function called from ProcessingElement which has no cache" );
+}
+
+void ProcessingElement::registerCacheAccessDependent( Directory &dir, CopyData &cpdata, uint64_t tag )
+{
+   fatal( "registerCacheAccessDependent() function called from ProcessingElement which has no cache" );
+}
+
+void ProcessingElement::unregisterCacheAccessDependent( Directory &dir, CopyData &cpdata, uint64_t tag, bool output )
+{
+   fatal( "unregisterCacheAccessDependent() function called from ProcessingElement which has no cache" );
+}
+
+void ProcessingElement::registerPrivateAccessDependent( Directory &dir, CopyData &cpdata, uint64_t tag )
+{
+   fatal( "registerPrivateAccessDependent() function called from ProcessingElement which has no cache" );
+}
+
+void ProcessingElement::unregisterPrivateAccessDependent( Directory &dir, CopyData &cpdata, uint64_t tag )
+{
+   fatal( "unregisterPrivateAccessDependent() function called from ProcessingElement which has no cache" );
+}
+
+
 void* ProcessingElement::getAddress( WorkDescriptor &wd, uint64_t tag, nanos_sharing_t sharing )
 {
    void *actualTag = (void *) ( sharing == NANOS_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : (void *)tag );

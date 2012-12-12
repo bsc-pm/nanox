@@ -53,27 +53,27 @@ void CachedAccelerator<Device>::configureCache( int cacheSize, System::CachePoli
 }
 
 template <class Device>
-inline void CachedAccelerator<Device>::registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
+inline void CachedAccelerator<Device>::registerCacheAccessDependent( Directory& dir, CopyData &cpdata, uint64_t tag )
 {
-   _cache->registerCacheAccess( dir, tag, size, input, output );
+   _cache->registerCacheAccess( dir, cpdata, tag );
 }
 
 template <class Device>
-inline void CachedAccelerator<Device>::unregisterCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool output )
+inline void CachedAccelerator<Device>::unregisterCacheAccessDependent( Directory& dir, CopyData &cpdata, uint64_t tag, bool output )
 {
-   _cache->unregisterCacheAccess( dir, tag, size, output );
+   _cache->unregisterCacheAccess( dir, cpdata, tag, output );
 }
 
 template <class Device>
-inline void CachedAccelerator<Device>::registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
+inline void CachedAccelerator<Device>::registerPrivateAccessDependent( Directory& dir, CopyData &cpdata, uint64_t tag )
 {
-   _cache->registerPrivateAccess( dir, tag, size, input, output );
+   _cache->registerPrivateAccess( dir, cpdata, tag );
 }
 
 template <class Device>
-inline void CachedAccelerator<Device>::unregisterPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size )
+inline void CachedAccelerator<Device>::unregisterPrivateAccessDependent( Directory& dir, CopyData &cpdata, uint64_t tag )
 {
-   _cache->unregisterPrivateAccess( dir, tag, size );
+   _cache->unregisterPrivateAccess( dir, cpdata, tag );
 }
 
 template <class Device>

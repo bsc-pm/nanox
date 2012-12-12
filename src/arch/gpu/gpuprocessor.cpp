@@ -148,7 +148,7 @@ size_t GPUProcessor::getMaxMemoryAvailable ( int id )
 
 WorkDescriptor & GPUProcessor::getWorkerWD () const
 {
-   SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct )Scheduler::workerLoop );
+   SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct )Scheduler::asyncWorkerLoop );
    WD *wd = NEW WD( dd );
    return *wd;
 }
@@ -164,7 +164,7 @@ BaseThread &GPUProcessor::createThread ( WorkDescriptor &helper )
    ensure( helper.canRunIn( SMP ), "Incompatible worker thread" );
    GPUThread &th = *NEW GPUThread( helper, this, _gpuDevice );
 
-   return th;
+   return ( BaseThread& )  th;
 }
 
 

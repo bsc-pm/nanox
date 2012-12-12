@@ -12,10 +12,14 @@ common_sources=\
 	$(top_srcdir)/src/core/threadteam_decl.hpp \
 	$(top_srcdir)/src/core/threadteam.hpp \
 	$(top_srcdir)/src/core/threadteam.cpp \
-	$(top_srcdir)/src/core/basethread_fwd.hpp\
-	$(top_srcdir)/src/core/basethread_decl.hpp\
-	$(top_srcdir)/src/core/basethread.hpp\
-	$(top_srcdir)/src/core/basethread.cpp\
+	$(top_srcdir)/src/core/basethread_fwd.hpp \
+	$(top_srcdir)/src/core/basethread_decl.hpp \
+	$(top_srcdir)/src/core/basethread.hpp \
+	$(top_srcdir)/src/core/basethread.cpp \
+	$(top_srcdir)/src/core/asyncthread.cpp \
+	$(top_srcdir)/src/core/asyncthread_decl.hpp \
+	$(top_srcdir)/src/core/asyncthread_fwd.hpp \
+	$(top_srcdir)/src/core/asyncthread.hpp \
 	$(top_srcdir)/src/core/processingelement_fwd.hpp \
 	$(top_srcdir)/src/core/processingelement_decl.hpp \
 	$(top_srcdir)/src/core/processingelement.hpp \

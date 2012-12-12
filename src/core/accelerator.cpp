@@ -49,9 +49,9 @@ void Accelerator::copyDataIn( WorkDescriptor &work )
       }
 
       if ( cd.isPrivate() ) {
-         this->registerPrivateAccessDependent( *(work.getParent()->getDirectory(true)), tag, cd.getSize(), cd.isInput(), cd.isOutput() );
+         this->registerPrivateAccessDependent( *(work.getParent()->getDirectory(true)), cd, tag );
       } else {
-         this->registerCacheAccessDependent( *(work.getParent()->getDirectory(true)), tag, cd.getSize(), cd.isInput(), cd.isOutput() );
+         this->registerCacheAccessDependent( *(work.getParent()->getDirectory(true)), cd, tag );
       }
    }
 #if LOCK_TRANSFER
@@ -86,9 +86,9 @@ void Accelerator::copyDataOut( WorkDescriptor& work )
 		NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &key, &value ) );
       }
       if ( cd.isPrivate() ) {
-         this->unregisterPrivateAccessDependent( *(work.getParent()->getDirectory(true)), tag, cd.getSize() );
+         this->unregisterPrivateAccessDependent( *(work.getParent()->getDirectory(true)), cd, tag );
       } else {
-         this->unregisterCacheAccessDependent( *(work.getParent()->getDirectory(true)), tag, cd.getSize(), cd.isOutput() );
+         this->unregisterCacheAccessDependent( *(work.getParent()->getDirectory(true)), cd, tag, cd.isOutput() );
 /*
          // FIXME: This part is commented out because it is redundant with the next step. Just keep it in case the change has to be reverted
          if ( cd.isOutput() && (work.getDirectory(false) != NULL) ) {

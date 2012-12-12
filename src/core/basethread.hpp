@@ -179,6 +179,12 @@ namespace nanos
    inline bool BaseThread::isRunning () const { return _started && !_mustStop; }
    
    inline bool BaseThread::isPaused () const { return _paused; }
+
+   inline bool BaseThread::canGetWork () { return _canGetWork; }
+
+   inline void BaseThread::enableGettingWork () { _canGetWork = true; }
+
+   inline void BaseThread::disableGettingWork () { _canGetWork = false; }
  
    inline ProcessingElement * BaseThread::runningOn() const { return _pe; }
  
@@ -238,6 +244,25 @@ namespace nanos
      return _description;
    }
 
+   inline void BaseThread::synchronize( CopyDescriptor &cd )
+   {
+      _pe->synchronize( cd );
+   }
+
+   inline void BaseThread::copyDataIn( WorkDescriptor &work )
+   {
+      _pe->copyDataIn( work );
+   }
+
+   inline void BaseThread::waitInputs( WD &work )
+   {
+      _pe->waitInputs( work );
+   }
+
+   inline void BaseThread::copyDataOut( WD &work )
+   {
+      _pe->copyDataOut( work );
+   }
 }
 
 #endif

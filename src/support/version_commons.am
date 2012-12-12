@@ -35,6 +35,7 @@ support_sources = \
 	$(top_srcdir)/src/support/hashmap_decl.hpp \
 	$(top_srcdir)/src/support/copydescriptor.hpp \
 	$(top_srcdir)/src/support/copydescriptor_decl.hpp \
+	$(top_srcdir)/src/support/copydescriptor_fwd.hpp \
 	$(top_srcdir)/src/support/malign.hpp \
 	$(top_srcdir)/src/support/containeradapter_fwd.hpp \
 	$(top_srcdir)/src/support/containeradapter_decl.hpp \
@@ -63,6 +64,8 @@ support_sources = \
 	$(top_srcdir)/src/support/regiontreenode_fwd.hpp \
 	$(top_srcdir)/src/support/regiontreenode_decl.hpp \
 	$(top_srcdir)/src/support/regiontreenode.hpp \
+	$(top_srcdir)/src/support/genericevent_decl.hpp \
+	$(top_srcdir)/src/support/genericevent.cpp \
 	$(END) 
 
 debug_sources = \

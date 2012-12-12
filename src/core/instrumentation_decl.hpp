@@ -291,6 +291,12 @@ namespace nanos {
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT", "cudaGetLastError()" );                       /* 18 */
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GENERIC_EVENT", "CUDA generic event" );                              /* 19 */
             registerEventValue("in-cuda-runtime", "NANOS_GPU_MEMCOPY_EVENT", "memcpy()" );                                             /* 20 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_EVENT_CREATE_EVENT", "cudaEventCreate()" );                          /* 21 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_EVENT_DESTROY_EVENT", "cudaEventDestroy()" );                        /* 22 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_EVENT_RECORD_EVENT", "cudaEventRecord()" );                          /* 23 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_EVENT_QUERY_EVENT", "cudaEventQuery()" );                            /* 24 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_EVENT_SYNC_EVENT", "cudaEventSynchronize()" );                       /* 25 */
+
             /* 28 */ registerEventKey("xfer-size","Transfer size", true);
 
             /* 29 */ registerEventKey("cache-wait","Cache waiting for something", true);

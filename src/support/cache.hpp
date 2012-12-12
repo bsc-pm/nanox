@@ -57,14 +57,20 @@ inline unsigned int Cache::getId() const
   return _id;
 }
 
-inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
+inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, uint64_t tag )
 {
+   size_t size = cpdata.getSize();
+   bool input = cpdata.isInput();
+   bool output = cpdata.isOutput();
    bool didCopyIn = false;
    CacheEntry *ce;
    ce = _cache.getEntry( tag );
    unsigned int version=0;
    if ( ce != NULL ) version = ce->getVersion()+1;
    DirectoryEntry *de = dir.getEntry( tag, version );
+
+   cpdata.cpDesc.tag = tag;
+   cpdata.cpDesc.dirVersion = version;
 
    if ( de == NULL ) { // Memory access not registered in the directory
       bool inserted;
@@ -84,10 +90,12 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
          ce->setAddress( _cache.allocate( dir, size ) );
          ce->setAllocSize( size );
          if (input) {
-            CopyDescriptor cd = CopyDescriptor(tag);
+            CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
+            ce->setCopying( cd.copying );
             if ( _cache.copyDataToCache( cd, size ) ) {
                ce->setCopying(false);
             }
+            cpdata.setCopyDescriptor( cd );
          }
       } else {        // wait for address
          NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_94 ); )
@@ -122,16 +130,20 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                   owner->invalidate( dir, tag, de );
                }
                if ( input ) {
-                  CopyDescriptor cd = CopyDescriptor( tag );
+                  CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
+                  ce->setCopying( cd.copying );
                   if ( _cache.copyData( _cache.getEntry( tag )->getAddress(), cd, owner->getEntry( tag )->getAddress(), size, *owner ) ) {
                      ce->setCopying(false);
                   }
+                  cpdata.setCopyDescriptor( cd );
                }
             } else if ( input ) {
-               CopyDescriptor cd = CopyDescriptor( tag );
+               CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
+               ce->setCopying( cd.copying );
                if ( _cache.copyDataToCache( cd, size ) ) {
                   ce->setCopying(false);
                }
+               cpdata.setCopyDescriptor( cd );
             }
 #endif
 
@@ -144,6 +156,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                if ( _cache.copyDataToCache( cd, size ) ) {
                   ce->setCopying(false);
                }
+               cpdata.setCopyDescriptor( cd );
             }
 #endif
 
@@ -202,10 +215,12 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                         }
 
                         // Copy in
-                        CopyDescriptor cd = CopyDescriptor(tag);
+                        CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
+                        ce->setCopying( cd.copying );
                         if ( _cache.copyDataToCache( cd, size ) ) {
                            ce->setCopying(false);
                         }
+                        cpdata.setCopyDescriptor( cd );
                      }
                   }
                   ce->setResizing(false);
@@ -248,10 +263,12 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
                      if ( ce->trySetToCopying() ) {
                         // Copy in
-                        CopyDescriptor cd = CopyDescriptor(tag);
+                        CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
+                        ce->setCopying( cd.copying );
                         if ( _cache.copyDataToCache( cd, size ) ) {
                            ce->setCopying(false);
                         }
+                        cpdata.setCopyDescriptor( cd );
                      }
                   } else { 
                      if ( ce->trySetToCopying() ) {
@@ -268,10 +285,12 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                         }
 
                         // Copy in
-                        CopyDescriptor cd = CopyDescriptor(tag);
+                        CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
+                        ce->setCopying( cd.copying );
                         if ( _cache.copyDataToCache( cd, size ) ) {
                            ce->setCopying(false);
                         }
+                        cpdata.setCopyDescriptor( cd );
                      }
                   }
                }
@@ -307,6 +326,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                   if ( _cache.copyDataToCache( cd, size ) ) {
                      ce->setCopying(false);
                   }
+                  cpdata.setCopyDescriptor( cd );
 #else
 
                   if ( owner != NULL ) {
@@ -318,16 +338,20 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
                         owner->invalidate( dir, tag, de );
                      }
 
-                     CopyDescriptor cd = CopyDescriptor( tag );
+                     CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
+                     ce->setCopying( cd.copying );
                      if ( _cache.copyData( _cache.getEntry( tag )->getAddress(), cd, owner->getEntry( tag )->getAddress(), size, *owner ) ) {
                         ce->setCopying( false );
                      }
+                     cpdata.setCopyDescriptor( cd );
 
                   } else {
-                     CopyDescriptor cd = CopyDescriptor( tag );
+                     CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
+                     ce->setCopying( cd.copying );
                      if ( _cache.copyDataToCache( cd, size ) ) {
                         ce->setCopying( false );
                      }
+                     cpdata.setCopyDescriptor( cd );
                   }
 #endif
                }
@@ -350,8 +374,11 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
    de->addAccess( _cache.getId() );
 }
 
-inline void CachePolicy::registerPrivateAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
+inline void CachePolicy::registerPrivateAccess( Directory& dir, CopyData &cpdata, uint64_t tag )
 {
+   size_t size = cpdata.getSize();
+   bool input = cpdata.isInput();
+   bool output = cpdata.isOutput();
    bool inserted;
    CacheEntry c =  CacheEntry( NULL, size, tag, 0, output, input );
    CacheEntry& ce = _cache.insert( tag, c, inserted );
@@ -359,29 +386,41 @@ inline void CachePolicy::registerPrivateAccess( Directory& dir, uint64_t tag, si
    ce.setAddress( _cache.allocate( dir, size ) );
    ce.setAllocSize( size );
    if ( input ) {
-      CopyDescriptor cd = CopyDescriptor(tag);
+      CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
+      ce.setCopying( cd.copying );
       if ( _cache.copyDataToCache( cd, size ) ) {
          ce.setCopying(false);
       }
+      cpdata.setCopyDescriptor( cd );
    }
 }
 
-inline void CachePolicy::unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size )
+inline void CachePolicy::unregisterPrivateAccess( Directory &dir, CopyData &cpdata, uint64_t tag )
 {
+   size_t size = cpdata.getSize();
    CacheEntry *ce = _cache.getEntry( tag );
    _cache.deleteReference(tag);
    _cache.deleteReference(tag);
    ensure ( ce != NULL, "Private access cannot miss in the cache.");
    // FIXME: to use this output it needs to be synchronized now or somewhere in case it is asynchronous
    if ( ce->isDirty() ) {
-      CopyDescriptor cd = CopyDescriptor(tag);
-      _cache.copyBackFromCache( cd, size );
+      CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ false, /* flushing */ true );
+      ce->setFlushing( cd.flushing );
+      if ( _cache.copyBackFromCache( cd, size ) ) {
+         _cache.deleteEntry( tag, size );
+      } else {
+         ce->setFlushing( true );
+         ce->setDirty( false );
+      }
+      cpdata.setCopyDescriptor( cd );
    }
-   _cache.deleteEntry( tag, size );
 }
 
-inline void NoCache::registerCacheAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
+inline void NoCache::registerCacheAccess( Directory& dir, CopyData &cpdata, uint64_t tag )
 {
+   size_t size = cpdata.getSize();
+   bool input = cpdata.isInput();
+   bool output = cpdata.isOutput();
    bool inserted;
    CacheEntry c =  CacheEntry( NULL, size, tag, 0, output, input );
    CacheEntry& ce = _cache.insert( tag, c, inserted );
@@ -392,33 +431,36 @@ inline void NoCache::registerCacheAccess( Directory& dir, uint64_t tag, size_t s
    if ( input ) {
       CopyDescriptor cd = CopyDescriptor( tag );
       _cache.copyDataToCache( cd, size );
+      cpdata.setCopyDescriptor( cd );
       ce.setCopying( false );
    }
 }
 
-inline void NoCache::unregisterCacheAccess( Directory& dir, uint64_t tag, size_t size, bool output )
+inline void NoCache::unregisterCacheAccess( Directory& dir, CopyData &cpdata, uint64_t tag, bool output )
 {
+   size_t size = cpdata.getSize();
    if ( output ) {
       CopyDescriptor cd = CopyDescriptor( tag );
       _cache.copyBackFromCache( cd, size );
+      cpdata.setCopyDescriptor( cd );
    }
 
    _cache.deleteEntry( tag, size );
 }
 
-inline void NoCache::registerPrivateAccess( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
+inline void NoCache::registerPrivateAccess( Directory& dir, CopyData &cpdata, uint64_t tag )
 {
-   registerCacheAccess( dir, tag, size, input, output );
+   registerCacheAccess( dir, cpdata, tag );
 }
 
-inline void NoCache::unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size )
+inline void NoCache::unregisterPrivateAccess( Directory &dir, CopyData &cpdata, uint64_t tag )
 {
    CacheEntry *ce = _cache.getEntry( tag );
    ensure ( ce != NULL, "Private access cannot miss in the cache.");
-   unregisterCacheAccess( dir, tag, size, ce->isDirty() );
+   unregisterCacheAccess( dir, cpdata, tag, ce->isDirty() );
 }
 
-inline void WriteThroughPolicy::unregisterCacheAccess( Directory& dir, uint64_t tag, size_t size, bool output )
+inline void WriteThroughPolicy::unregisterCacheAccess( Directory& dir, CopyData &cpdata, uint64_t tag, bool output )
 {
    CacheEntry *ce = _cache.getEntry( tag );
    // There's two reference deleting calls because getEntry places one reference
@@ -427,14 +469,16 @@ inline void WriteThroughPolicy::unregisterCacheAccess( Directory& dir, uint64_t 
    DirectoryEntry *de = dir.getEntry( tag );
    if ( output ) {
          ensure( de != NULL, "Directory has been corrupted" );
-      CopyDescriptor cd = CopyDescriptor(tag, de->getVersion());
-      if ( _cache.copyBackFromCache( cd, size ) ) {
+      CopyDescriptor cd = CopyDescriptor( tag, de->getVersion(), /* copying */ false, /* flushing */ true );
+      ce->setFlushing( cd.flushing );
+      if ( _cache.copyBackFromCache( cd, cpdata.getSize() ) ) {
          ce->setDirty( false );
          de->setOwner( NULL );
       } else {
          ce->setFlushing( true );
          ce->setDirty( false );
       }
+      cpdata.setCopyDescriptor( cd );
    }
    if ( de != NULL ) {
       de->removeAccess( _cache.getId() );
@@ -443,7 +487,7 @@ inline void WriteThroughPolicy::unregisterCacheAccess( Directory& dir, uint64_t 
    }
 }
 
-inline void WriteBackPolicy::unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output )
+inline void WriteBackPolicy::unregisterCacheAccess( Directory &dir, CopyData &cpdata, uint64_t tag, bool output )
 {
    // There's two reference deleting calls because getEntry places one reference
    _cache.deleteReference( tag );
@@ -504,7 +548,8 @@ inline void DeviceCache<_T>::freeSpaceToFit( Directory &dir, size_t size )
                   // someone flushed it between setting to invalidated and setting to flushing, do nothing
                   ce.setFlushing(false);
             } else {
-               CopyDescriptor cd = CopyDescriptor(ce.getTag(), de->getVersion());
+               CopyDescriptor cd = CopyDescriptor( ce.getTag(), de->getVersion(), /* copying */ false, /* flushing */ true);
+               ce.setFlushing( cd.flushing );
                if ( copyBackFromCache( cd, ce.getSize() ) ) {
                   ce.setFlushing(false);
                   de->setOwner(NULL);
@@ -521,10 +566,14 @@ inline void DeviceCache<_T>::freeSpaceToFit( Directory &dir, size_t size )
       */
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_FREE_SPACE_TO_FIT ); )
       {
+         if ( ce.isFlushing() ) ce.setFlushing( 1 );
+
          while ( ce.isFlushing() ) {
             _T::syncTransfer( (uint64_t)it->second, _pe );
+            myThread->disableGettingWork();
             myThread->idle();
          }
+         myThread->enableGettingWork();
       }
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
 
@@ -655,27 +704,27 @@ inline void DeviceCache<_T>::deleteReference( uint64_t tag )
 }
 
 template <class _T>
-inline void DeviceCache<_T>::registerCacheAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
+inline void DeviceCache<_T>::registerCacheAccess( Directory &dir, CopyData &cpdata, uint64_t tag )
 {
-   _policy->registerCacheAccess( dir, tag, size, input, output );
+   _policy->registerCacheAccess( dir, cpdata, tag );
 }
 
 template <class _T>
-inline void DeviceCache<_T>::unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output )
+inline void DeviceCache<_T>::unregisterCacheAccess( Directory &dir, CopyData &cpdata, uint64_t tag, bool output )
 {
-   _policy->unregisterCacheAccess( dir, tag, size, output );
+   _policy->unregisterCacheAccess( dir, cpdata, tag, output );
 }
 
 template <class _T>
-inline void DeviceCache<_T>::registerPrivateAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output )
+inline void DeviceCache<_T>::registerPrivateAccess( Directory &dir, CopyData &cpdata, uint64_t tag )
 {
-   _policy->registerPrivateAccess( dir, tag, size, input, output );
+   _policy->registerPrivateAccess( dir, cpdata, tag );
 }
 
 template <class _T>
-inline void DeviceCache<_T>::unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size )
+inline void DeviceCache<_T>::unregisterPrivateAccess( Directory &dir, CopyData &cpdata, uint64_t tag )
 {
-   _policy->unregisterPrivateAccess( dir, tag, size );
+   _policy->unregisterPrivateAccess( dir, cpdata, tag );
 }
 
 template <class _T>
@@ -689,24 +738,31 @@ inline void DeviceCache<_T>::synchronizeTransfer( uint64_t tag )
 template <class _T>
 inline void DeviceCache<_T>::synchronizeInternal( SyncData &sd, CopyDescriptor &cd )
 {
+   if ( !cd.isCopying() && !cd.isFlushing() ) return;
+
    CacheEntry *ce = sd._this->_cache.find( cd.getTag() );
    ensure( ce != NULL, "Cache has been corrupted" );
-   if ( ce->isFlushing() ) {
+
+   //ensure( ( ce->isFlushing() && cd.isFlushing() ) || ( ce->isCopying() && cd.isCopying() ), "User program is incorrect"  );
+
+   if ( ce->isFlushing() && cd.isFlushing() ) {
       ce->setFlushing(false);
       Directory* dir = ce->getFlushTo();
       ensure( dir != NULL, "CopyBack sync lost its directory");
       ce->setFlushTo(NULL);
       DirectoryEntry *de = dir->getEntry( cd.getTag() );
-      ensure ( !ce->isCopying(), "User program is incorrect" );
+      //ensure ( !ce->isCopying(), "User program is incorrect" );
       ensure( de != NULL, "Directory has been corrupted" );
 
       // Make sure we are synchronizing the newest version
       if ( de->getOwner() == sd._this && ce->getVersion() == cd.getDirectoryVersion()) {
           de->clearOwnerCS( sd._this ); 
       }
-   } else {
-      ensure ( !ce->isFlushing(), "User program is incorrect" );
-      ensure( ce->isCopying(), "Cache has been corrupted" );
+   }
+
+   if ( ce->isCopying() && cd.isCopying() ) {
+      //ensure ( !ce->isFlushing(), "User program is incorrect" );
+      //ensure( ce->isCopying(), "Cache has been corrupted" );
       ce->setCopying(false);
    }
 }
@@ -774,7 +830,8 @@ inline void DeviceCache<_T>::invalidateAndFlush( Directory &dir, uint64_t tag, D
                // someone flushed it between setting to invalidated and setting to flushing, do nothing
                ce->setFlushing(false);
          } else {
-            CopyDescriptor cd = CopyDescriptor(tag, de->getVersion());
+            CopyDescriptor cd = CopyDescriptor( tag, de->getVersion(), /* copying */ false, /* flushing */ true );
+            ce->setFlushing( cd.flushing );
             if ( copyBackFromCache( cd, ce->getSize() ) ) {
                ce->setFlushing(false);
                de->setOwner(NULL);
@@ -794,7 +851,8 @@ inline void DeviceCache<_T>::invalidateAndFlush( Directory &dir, uint64_t tag, s
                // someone flushed it between setting to invalidated and setting to flushing, do nothing
                ce->setFlushing(false);
          } else {
-            CopyDescriptor cd = CopyDescriptor(tag, de->getVersion());
+            CopyDescriptor cd = CopyDescriptor( tag, de->getVersion(), /* copying */ false, /* flushing */ true );
+            ce->setFlushing( cd.flushing );
             if ( copyBackFromCache( cd, size ) ) {
                ce->setFlushing(false);
                de->setOwner(NULL);

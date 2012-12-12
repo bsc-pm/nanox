@@ -98,6 +98,16 @@ typedef struct {
    void (*cleanup)(void *);
 } nanos_reduction_t;
 
+/* This structure is inherited from CopyDescriptor in copydescriptor_decl.hpp.
+ * Any change in its contents has to be reflected in CopyDescriptor class
+ */
+typedef struct {
+   uint64_t tag;
+   unsigned int dirVersion;
+   bool copying;
+   bool flushing;
+} nanos_copy_descriptor_internal_t;
+
 /* This structure is initialized in copydata.hpp. Any change in
  * its contents has to be reflected in CopyData constructor
  */
@@ -109,6 +119,7 @@ typedef struct {
       bool output: 1;
    } flags;
    size_t size;
+   nanos_copy_descriptor_internal_t cpDesc;
 } nanos_copy_data_internal_t;
 
 typedef nanos_access_type_internal_t nanos_access_type_t;
@@ -117,15 +128,18 @@ typedef nanos_region_dimension_internal_t nanos_region_dimension_t;
 #ifndef _NANOS_INTERNAL
 
 typedef nanos_data_access_internal_t nanos_data_access_t;
+typedef nanos_copy_descriptor_internal_t nanos_copy_descriptor_t;
 typedef nanos_copy_data_internal_t nanos_copy_data_t;
 
 #else
 
 namespace nanos {
    class DataAccess;
+   class CopyDescriptor;
    class CopyData;
 }
 typedef nanos::DataAccess nanos_data_access_t;
+typedef nanos::CopyDescriptor nanos_copy_descriptor_t;
 typedef nanos::CopyData nanos_copy_data_t;
 
 #endif

@@ -131,7 +131,12 @@ namespace ext
       NANOS_GPU_CUDA_SET_DEVICE_FLAGS_EVENT,                /* 17 */
       NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT,                  /* 18 */
       NANOS_GPU_CUDA_GENERIC_EVENT,                         /* 19 */
-      NANOS_GPU_MEMCOPY_EVENT                               /* 20 */
+      NANOS_GPU_MEMCOPY_EVENT,                              /* 20 */
+      NANOS_GPU_CUDA_EVENT_CREATE_EVENT,                    /* 21 */
+      NANOS_GPU_CUDA_EVENT_DESTROY_EVENT,                   /* 22 */
+      NANOS_GPU_CUDA_EVENT_RECORD_EVENT,                    /* 23 */
+      NANOS_GPU_CUDA_EVENT_QUERY_EVENT,                     /* 24 */
+      NANOS_GPU_CUDA_EVENT_SYNC_EVENT,                      /* 25 */
    } in_cuda_runtime_event_value;
 }
 }

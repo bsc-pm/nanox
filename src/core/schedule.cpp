@@ -529,9 +529,50 @@ struct WorkerBehaviour
    static bool exiting() { return false; }
 };
 
+struct AsyncWorkerBehaviour
+{
+   static WD * getWD ( BaseThread *thread, WD *current )
+   {
+      if ( !thread->canGetWork() ) return NULL;
+
+      if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
+         // The thread is not paused, mark it as so
+         thread->unpause();
+
+         return thread->getTeam()->getSchedulePolicy().atIdle( thread );
+      }
+      // Pause this thread
+      thread->pause();
+      return NULL;
+   }
+
+   static void switchWD ( BaseThread *thread, WD *current, WD *next )
+   {
+      if ( next->started() ) {
+         // Should not be started in general
+         Scheduler::switchTo( next );
+      }
+      else {
+         // Since this is the async behavior, set schedule to false:
+         // do not prefetch at this point, as the thread will be always prefetching
+         if ( Scheduler::inlineWorkAsync ( next, /* schedule */ false ) ) {
+            next->~WorkDescriptor();
+            delete[] ( char * ) next;
+         }
+      }
+   }
+
+   static bool exiting() { return false; }
+};
+
 void Scheduler::workerLoop ()
 {
    idleLoop<WorkerBehaviour>();
+}
+
+void Scheduler::asyncWorkerLoop ()
+{
+   idleLoop<AsyncWorkerBehaviour>();
 }
 
 void Scheduler::finishWork( WD *oldwd, WD * wd )
@@ -546,7 +587,7 @@ void Scheduler::finishWork( WD *oldwd, WD * wd )
    wd->clear();
 
    debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
-          " to " << oldwd << ":" << oldwd->getId() );
+          " to " << oldwd << ":" << ( oldwd ? oldwd->getId() : 0 ) );
 }
 
 bool Scheduler::inlineWork ( WD *wd, bool schedule )
@@ -605,6 +646,53 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
    ensure(oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(),
            "Violating tied rules " + toString<BaseThread*>(thread) + "!=" + toString<BaseThread*>(oldwd->isTiedTo()));
    
+  return done;
+}
+
+bool Scheduler::inlineWorkAsync ( WD *wd, bool schedule )
+{
+   BaseThread *thread = getMyThreadSafe();
+
+   // run it in the current frame
+   WD *oldwd = thread->getCurrentWD();
+
+   GenericSyncCond *syncCond = oldwd->getSyncCond();
+   if ( syncCond != NULL ) syncCond->unlock();
+
+   //debug( "switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
+   //       " to " << wd << ":" << wd->getId() );
+
+   // This ensures that when we return from the inlining is still the same thread
+   // and we don't violate rules about tied WD
+   if ( oldwd->isTiedTo() != NULL && ( wd->isTiedTo() == NULL ) ) wd->tieTo( *oldwd->isTiedTo() );
+
+   //thread->setCurrentWD( *wd );
+
+   /* Instrumenting context switch: wd enters cpu (last = n/a) */
+   //NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( oldwd, wd, false) );
+
+   // Will return false in general
+   const bool done = thread->inlineWorkDependent( *wd );
+
+   // reload thread after running WD because wd may be not tied to thread if
+   // both work descriptors were not tied to any thread
+   thread = getMyThreadSafe();
+
+   if ( schedule ) {
+      ThreadTeam *thread_team = thread->getTeam();
+      if ( thread_team ) {
+         thread->addNextWD( thread_team->getSchedulePolicy().atBeforeExit( thread, *wd ) );
+      }
+   }
+
+   if ( done )
+      finishWork( oldwd, wd );
+
+   //thread->setCurrentWD( *oldwd );
+
+   ensure( oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(),
+           "Violating tied rules " + toString<BaseThread*>( thread ) + "!=" + toString<BaseThread*>( oldwd->isTiedTo() ) );
+
   return done;
 }
 

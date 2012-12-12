@@ -23,6 +23,7 @@
 #include "gputhread_decl.hpp"
 #include "compatibility.hpp"
 #include "gpudd.hpp"
+#include "gpuevent_decl.hpp"
 #include "gpuprocessor.hpp"
 
 
@@ -46,6 +47,23 @@ void * GPUThread::getCUBLASHandle()
    return _cublasHandle;
 }
 
+GenericEvent * GPUThread::createPreRunEvent( WD * wd )
+{
+   GPUProcessor * pe = ( GPUProcessor * ) this->AsyncThread::runningOn();
+   return NEW GPUEvent( wd, pe->getGPUProcessorInfo()->getInTransferStream() );
+}
+
+GenericEvent * GPUThread::createRunEvent( WD * wd )
+{
+   GPUProcessor * pe = ( GPUProcessor * ) this->AsyncThread::runningOn();
+   return NEW GPUEvent( wd, pe->getGPUProcessorInfo()->getKernelExecStream() );
+}
+
+GenericEvent * GPUThread::createPostRunEvent( WD * wd )
+{
+   GPUProcessor * pe = ( GPUProcessor * ) this->AsyncThread::runningOn();
+   return NEW GPUEvent( wd, pe->getGPUProcessorInfo()->getOutTransferStream() );
+}
 
 }
 }

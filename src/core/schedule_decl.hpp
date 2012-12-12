@@ -48,6 +48,7 @@ namespace nanos
 
       public:
          static bool inlineWork ( WD *work, bool schedule = false );
+         static bool inlineWorkAsync ( WD *wd, bool schedule = false );
 
          static void submit ( WD &wd );
          static void submitAndWait ( WD &wd );
@@ -57,6 +58,7 @@ namespace nanos
          static void finishWork( WD *oldwd, WD * wd );
 
          static void workerLoop ( void );
+         static void asyncWorkerLoop ( void );
          static void yield ( void );
 
          static void exit ( void );

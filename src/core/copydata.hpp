@@ -31,6 +31,10 @@ inline CopyData::CopyData ( uint64_t addr, nanos_sharing_t nxSharing, bool input
    flags.input = input;
    flags.output = output;
    size = storageSize;
+   cpDesc.tag = addr;
+   cpDesc.dirVersion = 0;
+   cpDesc.copying = false;
+   cpDesc.flushing = false;
 }
 
 inline CopyData::CopyData ( const CopyData &cd )
@@ -40,16 +44,18 @@ inline CopyData::CopyData ( const CopyData &cd )
    flags.input = cd.flags.input;
    flags.output = cd.flags.output;
    size = cd.size;
+   cpDesc = cd.cpDesc;
 }
 
 inline const CopyData & CopyData::operator= ( const CopyData &cd )
 {
-   if ( this == &cd ) return *this; 
+   if ( this == &cd ) return *this;
    address = cd.address;
    sharing = cd.sharing;
    flags.input = cd.flags.input;
    flags.output = cd.flags.output;
    size = cd.size;
+   cpDesc = cd.cpDesc;
    return *this;
 }
 
@@ -101,6 +107,23 @@ inline bool CopyData::isPrivate() const
 inline nanos_sharing_t CopyData::getSharing() const
 {
    return sharing;
+}
+
+inline CopyDescriptor CopyData::getCopyDescriptor() const
+{
+   return CopyDescriptor( ( CopyDescriptor & ) cpDesc );
+}
+
+inline void CopyData::setCopyDescriptor( CopyDescriptor cpd )
+{
+   cpDesc = cpd;
+
+#if 0
+   cpDesc.tag = cpd.tag;
+   cpDesc.dirVersion = cpd.dirVersion;
+   cpDesc.copying = cpd.copying;
+   cpDesc.flushing = cpd.flushing;
+#endif
 }
 
 #endif

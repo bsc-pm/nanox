@@ -42,8 +42,8 @@ namespace nanos {
          size_t _allocSize; /**< Size of the block allocated in the device */
 
          volatile bool _dirty; /**< Dirty flag */
-         Atomic<bool> _copying; /**< Copying status of the entry */
-         Atomic<bool> _flushing; /**< Flushing status of the entry */
+         Atomic<int> _copying; /**< Copying status of the entry */
+         Atomic<int> _flushing; /**< Flushing status of the entry */
          Directory* _flushTo; /**< If the entry is being flushed, points to the directoryEntry that will be updated. */
          Atomic<unsigned int> _transfers; /**< Counts the number of in-flight transfers for dev-to-dev copies. */
          Atomic<bool> _resizing; /**< Tells whether the entry is being resized. */
@@ -52,15 +52,15 @@ namespace nanos {
 
         /*! \brief Default constructor
          */
-         CacheEntry(): Entry(), _addr( NULL ), _size( 0 ), _allocSize( 0 ), _dirty( false ), _copying( false ),
-         _flushing( false ), _flushTo( NULL ), _transfers( 0 ), _resizing( false ) {}
+         CacheEntry(): Entry(), _addr( NULL ), _size( 0 ), _allocSize( 0 ), _dirty( false ), _copying( 0 ),
+         _flushing( 0 ), _flushTo( NULL ), _transfers( 0 ), _resizing( false ) {}
 
         /*! \brief Constructor
          *  \param addr: address of the cache entry
          */
          CacheEntry( void *addr, size_t size, uint64_t tag, unsigned int version, bool dirty, bool copying ) :
             Entry( tag, version ), _addr( addr ), _size( size ), _allocSize( 0 ), _dirty( dirty ),
-            _copying( copying ), _flushing( false ), _flushTo( NULL ), _transfers( 0 ), _resizing( false ) {}
+            _copying( copying ? 1 : 0 ), _flushing( 0 ), _flushTo( NULL ), _transfers( 0 ), _resizing( false ) {}
 
         /*! \brief Copy constructor
          *  \param Another CacheEntry
@@ -137,32 +137,38 @@ namespace nanos {
         /*! \brief Tells whether the entry is copying
          */
          bool isCopying() const
-         { return _copying.value(); }
+         { return _copying.value() != 0; }
 
         /*! \brief Set the entry to 'copying'
          *  \param copying
          */
          void setCopying( bool copying )
-         { _copying = copying; }
+         { copying ? _copying++ : _copying--; }
 
-        /*! \brief set copying status to ture if it wansn't atomically.
+        /*! \brief set copying status to true if it wansn't atomically.
          */
          bool trySetToCopying()
          {
-            Atomic<bool> expected = false;
-            Atomic<bool> value = true;
-            return _copying.cswap( expected, value );
+            //fatal( "trySetToCopying called!" );
+            //Atomic<bool> expected = false;
+            //Atomic<bool> value = true;
+            //return _copying.cswap( expected, value );
+            setCopying( true );
+            return true;
          }
 
         /*! \brief Tells whether the entry is being flushed
          */
          bool isFlushing()
-         { return _flushing.value(); }
+         { return _flushing.value() != 0; }
 
         /*! \brief Set the entry to 'flushing'
          *  \param flushing
          */
          void setFlushing( bool flushing )
+         { flushing ? _flushing++ : _flushing--; }
+
+         void setFlushing( int flushing )
          { _flushing = flushing; }
 
         /*! \brief Returns the directory that will be updated when the entry flush finishes
@@ -180,9 +186,12 @@ namespace nanos {
          */
          bool trySetToFlushing()
          {
-            Atomic<bool> expected = false;
-            Atomic<bool> value = true;
-            return _flushing.cswap( expected, value );
+            //fatal( "trySetToCopying called!" );
+            //Atomic<bool> expected = false;
+            //Atomic<bool> value = true;
+            //return _flushing.cswap( expected, value );
+            setFlushing( true );
+            return true;
          }
 
         /*! \brief Tells whether the entry has in-flight transfers
@@ -374,28 +383,26 @@ namespace nanos {
 
         /*! \brief Registers or updates the entry identified by the 'tag' key in the cache with the given properties
          *  \param dir Current directory to look for the entry
+         *  \param cpdata Information related to the copy
          *  \param tag Identifier key of the entry
-         *  \param size Size of the entry
-         *  \param input Whether the access will read the data (it has to be updated to the latest version known to the directory)
-         *  \param output Whether the acces writes the data (the Cache entry must be marked as dirty)
          */
-         virtual void registerCacheAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
+         virtual void registerCacheAccess( Directory &dir, CopyData &cpdata, uint64_t tag );
 
         /*! \brief Notify the cache that one usage of an entry has finished
          *  \param dir Current directory
+         *  \param cpdata Information related to the copy
          *  \param tag Identifier key of the entry
-         *  \param size Size of the entry
          *  \param output If the entry has been written it must be copied back to the host at some point.
          */
-         virtual void unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output ) = 0;
+         virtual void unregisterCacheAccess( Directory &dir, CopyData &cpdata, uint64_t tag, bool output ) = 0;
 
-        /*! \brief Register an acces tot the Cache for an address that will only exist for one user
+        /*! \brief Register an access to the Cache for an address that will only exist for one user
          */
-         virtual void registerPrivateAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
+         virtual void registerPrivateAccess( Directory &dir, CopyData &cpdata, uint64_t tag );
 
-        /*! \brief Unregister an acces tot the Cache for an address that will only exist for one user
+        /*! \brief Unregister an access to the Cache for an address that will only exist for one user
          */
-         virtual void unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size );
+         virtual void unregisterPrivateAccess( Directory &dir, CopyData &cpdata, uint64_t tag );
    };
 
    /*! \class NoCache
@@ -424,28 +431,26 @@ namespace nanos {
 
          /*! \brief Registers or updates the entry identified by the 'tag' key in the cache with the given properties
           *  \param dir Current directory to look for the entry
+          *  \param cpdata Information related to the copy
           *  \param tag Identifier key of the entry
-          *  \param size Size of the entry
-          *  \param input Whether the access will read the data (it has to be updated to the latest version known to the directory)
-          *  \param output Whether the acces writes the data (the Cache entry must be marked as dirty)
           */
-         virtual void registerCacheAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
+          virtual void registerCacheAccess( Directory &dir, CopyData &cpdata, uint64_t tag );
 
          /*! \brief Notify the cache that one usage of an entry has finished
           *  \param dir Current directory
+          *  \param cpdata Information related to the copy
           *  \param tag Identifier key of the entry
-          *  \param size Size of the entry
           *  \param output If the entry has been written it must be copied back to the host at some point.
           */
-         virtual void unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output );
+          virtual void unregisterCacheAccess( Directory &dir, CopyData &cpdata, uint64_t tag, bool output );
 
-         /*! \brief Register an acces tot the Cache for an address that will only exist for one user
+         /*! \brief Register an access to the Cache for an address that will only exist for one user
           */
-         virtual void registerPrivateAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
+          virtual void registerPrivateAccess( Directory &dir, CopyData &cpdata, uint64_t tag );
 
-         /*! \brief Unregister an acces tot the Cache for an address that will only exist for one user
+         /*! \brief Unregister an access to the Cache for an address that will only exist for one user
           */
-         virtual void unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size );
+          virtual void unregisterPrivateAccess( Directory &dir, CopyData &cpdata, uint64_t tag );
    };
 
    // FIXME: A plugin maybe?? (see #405)
@@ -475,13 +480,13 @@ namespace nanos {
          */
          virtual ~WriteThroughPolicy() { }
 
-        /*! \brief Notify the cache that one usage of an entry has finished
-         *  \param dir Current directory
-         *  \param tag Identifier key of the entry
-         *  \param size Size of the entry
-         *  \param output If the entry has been written it must be copied back to the host at some point.
-         */
-         virtual void unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output );
+         /*! \brief Notify the cache that one usage of an entry has finished
+          *  \param dir Current directory
+          *  \param cpdata Information related to the copy
+          *  \param tag Identifier key of the entry
+          *  \param output If the entry has been written it must be copied back to the host at some point.
+          */
+          virtual void unregisterCacheAccess( Directory &dir, CopyData &cpdata, uint64_t tag, bool output );
    };
 
   /*! \class WriteBackPolicy
@@ -510,13 +515,13 @@ namespace nanos {
          */
          virtual ~WriteBackPolicy() { }
 
-        /*! \brief Notify the cache that one usage of an entry has finished
-         *  \param dir Current directory
-         *  \param tag Identifier key of the entry
-         *  \param size Size of the entry
-         *  \param output If the entry has been written it must be copied back to the host at some point.
-         */
-         virtual void unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output );
+         /*! \brief Notify the cache that one usage of an entry has finished
+          *  \param dir Current directory
+          *  \param cpdata Information related to the copy
+          *  \param tag Identifier key of the entry
+          *  \param output If the entry has been written it must be copied back to the host at some point.
+          */
+          virtual void unregisterCacheAccess( Directory &dir, CopyData &cpdata, uint64_t tag, bool output );
    };
 
   /*! \brief A Cache is a class that provides basic services for registering and
@@ -667,30 +672,28 @@ namespace nanos {
          */
          void deleteReference( uint64_t tag );
 
-        /*! \brief Regisers or updates the entry identified by the 'tag' key in the cache with the given properties
-         *  \param dir Current directory to look for the entry
-         *  \param tag Identifier key of the entry
-         *  \param size Size of the entry
-         *  \param input Whether the access will read the data (it has to be updated to the latest version known to the directory)
-         *  \param output Whether the acces writes the data (the Cache entry must be marked as dirty)
-         */
-         void registerCacheAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
+         /*! \brief Registers or updates the entry identified by the 'tag' key in the cache with the given properties
+          *  \param dir Current directory to look for the entry
+          *  \param cpdata Information related to the copy
+          *  \param tag Identifier key of the entry
+          */
+          virtual void registerCacheAccess( Directory &dir, CopyData &cpdata, uint64_t tag );
 
-        /*! \brief Notify the cache that one usage of an entry has finished
-         *  \param dir Current directory
-         *  \param tag Identifier key of the entry
-         *  \param size Size of the entry
-         *  \param output If the entry has been written it must be copied back to the host at some point.
-         */
-         void unregisterCacheAccess( Directory &dir, uint64_t tag, size_t size, bool output );
+         /*! \brief Notify the cache that one usage of an entry has finished
+          *  \param dir Current directory
+          *  \param cpdata Information related to the copy
+          *  \param tag Identifier key of the entry
+          *  \param output If the entry has been written it must be copied back to the host at some point.
+          */
+          virtual void unregisterCacheAccess( Directory &dir, CopyData &cpdata, uint64_t tag, bool output );
 
-        /*! \brief Register an acces tot the Cache for an address that will only exist for one user
-         */
-         void registerPrivateAccess( Directory &dir, uint64_t tag, size_t size, bool input, bool output );
+         /*! \brief Register an access to the Cache for an address that will only exist for one user
+          */
+          virtual void registerPrivateAccess( Directory &dir, CopyData &cpdata, uint64_t tag );
 
-        /*! \brief Unregister an acces tot the Cache for an address that will only exist for one user
-         */
-         void unregisterPrivateAccess( Directory &dir, uint64_t tag, size_t size );
+         /*! \brief Unregister an access to the Cache for an address that will only exist for one user
+          */
+          virtual void unregisterPrivateAccess( Directory &dir, CopyData &cpdata, uint64_t tag );
 
         /*! \brief Use to synchronize a transfer when the copy is finished
          *  \param tag Identifier key of the entry to be synchronized

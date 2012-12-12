@@ -17,65 +17,23 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_COPY_DESCRIPTOR_DECL
-#define _NANOS_COPY_DESCRIPTOR_DECL
+#ifndef _NANOS_MEMORY_TRANSFER_FWD
+#define _NANOS_MEMORY_TRANSFER_FWD
 
-#include "compatibility.hpp"
 
 namespace nanos {
+namespace ext
+{
+   class GPUMemoryTransfer;
 
-   /*! \breif Class representing a copy used to synchronize the device with the cache */
-   class CopyDescriptor : public nanos_copy_descriptor_internal_t
-   {
-#if 0
-      private:
-         uint64_t _tag;
-         unsigned int _dirVersion;
-#endif
-      public:
-        /*! \brief Default constructor
-         */
-         CopyDescriptor( uint64_t t, unsigned int dv = 0, bool copy = false, bool flush = false )
-         {
-            tag = t;
-            dirVersion = dv;
-            copying = copy;
-            flushing = flush;
-         }
+   class GPUEventSync;
 
-        /*! \brief Copy constructor
-         *  \param Another CopyDescriptor
-         */
-         CopyDescriptor( const CopyDescriptor &cd )
-         {
-            tag = cd.tag;
-            dirVersion = cd.dirVersion;
-            copying = cd.copying;
-            flushing = cd.flushing;
-         }
+   class GPUMemoryTransferList;
+   class GPUMemoryTransferOutList;
+   class GPUMemoryTransferOutSyncList;
+   class GPUMemoryTransferOutAsyncList;
 
-        /* \brief Destructor
-         */
-         ~CopyDescriptor() {}
-
-        /* \brief Assign operator
-         */
-         CopyDescriptor& operator=( const CopyDescriptor &cd )
-         {
-            if ( this == &cd ) return *this;
-            this->tag = cd.tag;
-            this->dirVersion = cd.dirVersion;
-            this->copying = cd.copying;
-            this->flushing = cd.flushing;
-            return *this;
-         }
-
-         uint64_t getTag() const;
-         unsigned int getDirectoryVersion() const;
-         bool isCopying () const;
-         bool isFlushing () const;
-   };
+}
 }
 
 #endif
-

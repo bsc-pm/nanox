@@ -22,17 +22,22 @@
 
 //#include "compatibility.hpp"
 //#include "gpudd.hpp"
+#include "genericevent_decl.hpp"
+#include "asyncthread_decl.hpp"
 #include "gpuprocessor_fwd.hpp"
 #include "smpthread.hpp"
+
+#include <pthread.h>
 
 
 namespace nanos {
 namespace ext
 {
 
-   class GPUThread : public SMPThread
+   class GPUThread : public nanos::AsyncThread
    {
       private:
+         pthread_t                     _pth;
          int                           _gpuDevice; // Assigned GPU device Id
          bool                          _wdClosingEvents; //! controls whether an instrumentation event should be generated at WD completion
          void *                        _cublasHandle; //! Context pointer for CUBLAS library
@@ -51,7 +56,7 @@ namespace ext
 
       public:
          // constructor
-         GPUThread( WD &w, PE *pe, int device ) : SMPThread( w, pe ), _gpuDevice( device ),
+         GPUThread( WD &w, PE *pe, int device ) : AsyncThread( w, pe ), _gpuDevice( device ),
          _wdClosingEvents( false ), _cublasHandle( NULL ) {}
 
          // destructor
@@ -60,7 +65,8 @@ namespace ext
          void initializeDependent( void );
          void runDependent ( void );
 
-         bool inlineWorkDependent( WD &work );
+         bool runWDDependent( WD &work );
+         //bool inlineWorkDependent( WD &work );
 
          void yield();
 
@@ -71,8 +77,24 @@ namespace ext
          void enableWDClosingEvents ();
 
          void * getCUBLASHandle();
+
+         GenericEvent * createPreRunEvent( WD * wd );
+         GenericEvent * createRunEvent( WD * wd );
+         GenericEvent * createPostRunEvent( WD * wd );
+
+
+         void start();
+         void join();
+
+         void switchTo( WD *work, SchedulerHelper *helper );
+         void exitTo( WD *work, SchedulerHelper *helper );
+
+         void switchHelperDependent( WD* oldWD, WD* newWD, void *arg );
+         void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) {}
+
    };
 
+   void * gpu_bootthread ( void *arg );
 
 }
 }

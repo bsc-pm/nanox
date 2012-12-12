@@ -28,6 +28,7 @@
 #include "threadteam_fwd.hpp"
 #include "allocator_decl.hpp"
 #include "wddeque_decl.hpp"
+#include "copydescriptor_decl.hpp"
 
 namespace nanos
 {
@@ -128,6 +129,7 @@ namespace nanos
          bool                    _started;
          volatile bool           _mustStop;
          volatile bool           _paused;
+         volatile bool           _canGetWork;   /**< Set whether the thread can get more WDs to run or not */
          WD *                    _currentWD;
 
          // Team info
@@ -175,7 +177,7 @@ namespace nanos
          BaseThread ( WD &wd, ProcessingElement *creator=0 ) :
             _id( _idSeed++ ), _name("Thread"), _description(""), _pe( creator ), _threadWD( wd ), _socket( 0 ) ,
             _maxPrefetch( 1 ), _nextWDs(), _nextWDsCounter( 0 ), _started( false ), _mustStop( false ), _paused( false ),
-            _currentWD( NULL  ), _hasTeam( false ), _teamData( NULL ), _nextTeamData( NULL ), _allocator() { }
+            _canGetWork( true ), _currentWD( NULL ), _hasTeam( false ), _teamData( NULL ), _nextTeamData( NULL ), _allocator() { }
 
         /*! \brief BaseThread destructor
          */
@@ -216,8 +218,8 @@ namespace nanos
          void setMaxPrefetch ( int max );
          bool canPrefetch () const;
          void addNextWD ( WD *next );
-         WD * getNextWD ();
-         bool hasNextWD ();
+         virtual WD * getNextWD ();
+         virtual bool hasNextWD ();
 
          // team related methods
          void reserve();
@@ -250,6 +252,12 @@ namespace nanos
          
          //! \brief Is the thread paused as the result of stopping the scheduler?
          bool isPaused () const;
+
+         virtual bool canGetWork ();
+
+         void enableGettingWork ();
+
+         void disableGettingWork ();
 
          ProcessingElement * runningOn() const;
 
@@ -293,6 +301,25 @@ namespace nanos
          /*! \brief Get BaseThread description
           */
          const std::string &getDescription ( void );
+
+
+         // Methods related to WD's copies
+
+         /*! /brief Call thread's PE to synchronize data
+          */
+         virtual void synchronize( CopyDescriptor &cd );
+
+         /*! /brief Call thread's PE to copy input data
+          */
+         virtual void copyDataIn( WD &work );
+
+         /*! /brief Call thread's PE to wait for input data to be copied
+          */
+         virtual void waitInputs( WD &work );
+
+         /*! /brief Call thread's PE to copy output data
+          */
+         virtual void copyDataOut( WD &work );
    };
 
    extern __thread BaseThread *myThread;

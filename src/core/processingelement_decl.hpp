@@ -25,6 +25,8 @@
 #include "functors_decl.hpp"
 #include "basethread_fwd.hpp"
 #include "schedule_fwd.hpp"
+#include "copydescriptor_fwd.hpp"
+
 
 namespace nanos
 {
@@ -75,13 +77,24 @@ namespace nanos
          virtual bool hasSeparatedMemorySpace() const { return false; }
          virtual unsigned int getMemorySpaceId() const { return 0; }
 
-         virtual void waitInputDependent( uint64_t tag ) {}
+         //virtual void waitInputDependent( uint64_t tag ) {}
 
          /* Memory space suport */
          virtual void copyDataIn( WorkDescriptor& wd );
          virtual void copyDataOut( WorkDescriptor& wd );
 
          virtual void waitInputs( WorkDescriptor& wd );
+
+         virtual void waitInputDependent( uint64_t tag ) {}
+
+         virtual void synchronize( CopyDescriptor &cd );
+
+         virtual void synchronize( std::list<CopyDescriptor> &cds );
+
+         virtual void registerCacheAccessDependent( Directory &dir, CopyData &cpdata, uint64_t tag );
+         virtual void unregisterCacheAccessDependent( Directory &dir, CopyData &cpdata, uint64_t tag, bool output );
+         virtual void registerPrivateAccessDependent( Directory &dir, CopyData &cpdata, uint64_t tag );
+         virtual void unregisterPrivateAccessDependent( Directory &dir, CopyData &cpdata, uint64_t tag );
 
          virtual void* getAddress( WorkDescriptor& wd, uint64_t tag, nanos_sharing_t sharing );
          virtual void copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );

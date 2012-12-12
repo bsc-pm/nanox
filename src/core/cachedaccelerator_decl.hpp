@@ -67,13 +67,13 @@ namespace nanos
 
          void configureCache( int cacheSize, System::CachePolicyType cachePolicy );
 
-         void registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
+         void registerCacheAccessDependent( Directory& dir, CopyData &cpdata, uint64_t tag );
 
-         void unregisterCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool output );
+         void unregisterCacheAccessDependent( Directory& dir, CopyData &cpdata, uint64_t tag, bool output );
          
-         void registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
+         void registerPrivateAccessDependent( Directory& dir, CopyData &cpdata, uint64_t tag );
          
-         void unregisterPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size );
+         void unregisterPrivateAccessDependent( Directory& dir, CopyData &cpdata, uint64_t tag );
          
          void synchronize( CopyDescriptor &cd );
          
