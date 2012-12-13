@@ -36,7 +36,7 @@ namespace nanos
          *  \param input Whether the CopyData is input or not 
          *  \param output Whether the CopyData is output or not
          */
-         CopyData ( uint64_t addr = NULL, nanos_sharing_t nxSharing = NANOS_SHARED, bool input = false,
+         CopyData ( uint64_t addr = 0, nanos_sharing_t nxSharing = NANOS_SHARED, bool input = false,
                     bool output = false, std::size_t numDimensions = 0, nanos_region_dimension_internal_t const *dims = NULL, ptrdiff_t off = 0 );
 
         /*! \brief CopyData copy constructor
