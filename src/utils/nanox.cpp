@@ -59,7 +59,7 @@ void utilInit ( void * )
               &&( name.compare( 0,17,"libnanox-barrier-"  ) != 0 )
               &&( name.compare( 0,14,"libnanox-deps-"  ) != 0 )
               &&( name.compare( 0,16,"libnanox-slicer-"  ) != 0 )
-              &&( name.compare( 0,17,"libnanox-throtle-"  ) != 0 )
+              &&( name.compare( 0,18,"libnanox-throttle-"  ) != 0 )
               &&( name.compare( 0,21,"libnanox-worksharing-"  ) != 0 )
               &&( name.compare( 0,25,"libnanox-instrumentation-"  ) != 0 )
             ) continue;
