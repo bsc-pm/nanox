@@ -31,9 +31,9 @@ size_t MPIProcessor::_cacheDefaultSize = 10485800;
 size_t MPIProcessor::_bufferDefaultSize = 0;
 char* MPIProcessor::_bufferPtr = 0;
 std::string MPIProcessor::_mpiFilename;
-std::string MPIProcessor::_mpiFileArgs;
+std::string MPIProcessor::_mpiExecFile;
 std::string MPIProcessor::_mpiHosts;
-std::string MPIProcessor::_mpiMachinefile;
+std::string MPIProcessor::_mpiHostsFile;
 
 MPIProcessor::MPIProcessor(int id, MPI_Comm communicator, int rank) : CachedAccelerator<MPIDevice>(id, &MPI) {
     _communicator = communicator;
@@ -42,13 +42,13 @@ MPIProcessor::MPIProcessor(int id, MPI_Comm communicator, int rank) : CachedAcce
 
 void MPIProcessor::prepareConfig(Config &config) {
 
-    config.registerConfigOption("mpi-exec", NEW Config::StringVar(_mpiFileArgs), "Defines secondary mpi file spawned in DEEP_Booster_Alloc");
+    config.registerConfigOption("mpi-exec", NEW Config::StringVar(_mpiExecFile), "Defines secondary mpi file spawned in DEEP_Booster_Alloc");
     config.registerArgOption("mpi-exec", "mpi-exec");
     config.registerEnvOption("mpi-exec", "NX_MPIEXEC");
 
-    config.registerConfigOption("mpimachinefile", NEW Config::StringVar(_mpiMachinefile), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\nThe format of the file is one host per line with blank lines and lines beginning with # ignored\nMultiple processes per host can be specified by specifying the host name as follows: hostA:n");
-    config.registerArgOption("mpimachinefile", "mpimachinefile");
-    config.registerEnvOption("mpimachinefile", "NX_MPIMACHINEFILE");
+    config.registerConfigOption("mpihostsfile", NEW Config::StringVar(_mpiHostsFile), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\nThe format of the file is: One host per line with blank lines and lines beginning with # ignored\nMultiple processes per host can be specified by specifying the host name as follows: hostA:n");
+    config.registerArgOption("mpihostsfile", "mpihostsfile");
+    config.registerEnvOption("mpihostsfile", "NX_MPIHOSTSFILE");
 
     config.registerConfigOption("mpihosts", NEW Config::StringVar(_mpiHosts), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\nExample: hostA hostB:2 hostC");
     config.registerArgOption("mpihosts", "mpihosts");
@@ -92,43 +92,43 @@ BaseThread &MPIProcessor::createThread(WorkDescriptor &helper) {
     return th;
 }
 
-void MPIProcessor::setMpiFilename(char* new_name) {
+void MPIProcessor::setMpiExename(char* new_name) {
     std::string tmp = std::string(new_name);
     _mpiFilename = tmp;
 }
 
-std::string MPIProcessor::getMpiFilename() {
+std::string MPIProcessor::getMpiExename() {
     return _mpiFilename;
 }
 
 void MPIProcessor::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
-    if (_bufferDefaultSize != 0 && _bufferPtr != 0) {
-        int size;
-        void *ptr;
-        MPI_Buffer_detach(&ptr, &size);
-        if (ptr != _bufferPtr) {
-            warning("Another MPI Buffer was attached instead of the one defined with"
-                    " nanox mpi buffer size, not releasing it");
-            MPI_Buffer_attach(ptr, size);
-        } else {
-            MPI_Buffer_detach(&ptr, &size);
-        }
-        delete[] _bufferPtr;
-    }
+//    if (_bufferDefaultSize != 0 && _bufferPtr != 0) {
+//        int size;
+//        void *ptr;
+//        MPI_Buffer_detach(&ptr, &size);
+//        if (ptr != _bufferPtr) {
+//            warning("Another MPI Buffer was attached instead of the one defined with"
+//                    " nanox mpi buffer size, not releasing it");
+//            MPI_Buffer_attach(ptr, size);
+//        } else {
+//            MPI_Buffer_detach(&ptr, &size);
+//        }
+//        delete[] _bufferPtr;
+//    }
     cacheOrder order;
     order.opId = -1;
-    int id = -1;
+    int id = -1; 
     if (rank == -1) {
         int size;
         MPI_Comm_remote_size(*intercomm, &size);
         for (int i = 0; i < size; i++) {
             //Closing cache daemon and user-level daemon
-            nanos_MPI_Send(&id, 1, MPI_INT, i, TAG_INI_TASK, *intercomm);
             nanos_MPI_Send(&order, 1, nanos::MPIDevice::cacheStruct, i, TAG_CACHE_ORDER, *intercomm);
+            nanos_MPI_Send(&id, 1, MPI_INT, i, TAG_INI_TASK, *intercomm);
         }
     } else {
-        nanos_MPI_Send(&id, 1, MPI_INT, rank, TAG_INI_TASK, *intercomm);
         nanos_MPI_Send(&order, 1, nanos::MPIDevice::cacheStruct, rank, TAG_CACHE_ORDER, *intercomm);
+        nanos_MPI_Send(&id, 1, MPI_INT, rank, TAG_INI_TASK, *intercomm);
     }
 }
 
@@ -140,25 +140,26 @@ void MPIProcessor::nanos_MPI_Init(int *argc, char ***argv) {
     //TODO: Try with multiple MPI thread
     MPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE, &provided);
     MPI_Query_thread(&claimed);
-    if (claimed < MPI_THREAD_SERIALIZED) {
-        fatal0("MPI_Query_Thread returned multithread support less than MPI_THREAD_SERIALIZED, check your MPI "
-                "implementation and try to configure it so it can support higher multithread levels");
+    printf("THREAD SUPPORT%d,%s,\n",claimed,nanos::ext::MPIProcessor::_mpiFilename.c_str());
+    if (claimed < MPI_THREAD_MULTIPLE) {
+        fatal0("MPI_Query_Thread returned multithread support less than MPI_THREAD_MULTIPLE, check your MPI "
+                "implementation and try to configure it so it can support this multithread level");
     }
     if (_bufferDefaultSize != 0 && _bufferPtr != 0) {
         _bufferPtr = new char[_bufferDefaultSize];
         MPI_Buffer_attach(_bufferPtr, _bufferDefaultSize);
     }
     nanos::MPIDevice::initMPICacheStruct();
-    MPI_Comm parentcomm; /* intercommunicator */
-    MPI_Comm_get_parent(&parentcomm);
 
-    //If this process was not spawned, we don't need the daemon-thread
-    if (parentcomm != NULL && parentcomm != MPI_COMM_NULL) {
+    //If this process was spawned, start the daemon-thread
+    if ((*argc) > 1 && !strcmp((*argv)[(*argc) - 1], TAG_MAIN_OMPSS)){
+         //In this case we are child, when nanox spawns us, it fills both args
+        setMpiExename((*argv)[(*argc)-2]);
         //Initialice MPI PE with a communicator and special rank for the cache thread
         PE *mpi = NEW nanos::ext::MPIProcessor(999, MPI_COMM_WORLD, CACHETHREADRANK);
         MPIDD * dd = NEW MPIDD((MPIDD::work_fct) nanos::MPIDevice::mpiCacheWorker);
         WD *wd = NEW WD(dd);
-        &mpi->startThread(*wd);
+        mpi->startThread(*wd);
     }
 }
 
@@ -199,7 +200,9 @@ int MPIProcessor::nanos_MPI_Send(void *buf, int count, MPI_Datatype datatype, in
         dest=myPE->_rank;
         comm=myPE->_communicator;
     }
+    //printf("Envio con tag %d, a %d\n",tag,dest);
     int err = MPI_Send(buf, count, datatype, dest, tag, comm);
+    //printf("Fin Envio con tag %d, a %d\n",tag,dest);
     return err;
 }
 
@@ -210,7 +213,9 @@ int MPIProcessor::nanos_MPI_Ssend(void *buf, int count, MPI_Datatype datatype, i
         dest=myPE->_rank;
         comm=myPE->_communicator;
     }
+    //printf("Enviobloq con tag %d, a %d\n",tag,dest);
     int err = MPI_Ssend(buf, count, datatype, dest, tag, comm);
+    //printf("Fin Enviobloq con tag %d, a %d\n",tag,dest);
     return err;
 }
 
@@ -221,6 +226,8 @@ int MPIProcessor::nanos_MPI_Recv(void *buf, int count, MPI_Datatype datatype, in
         source=myPE->_rank;
         comm=myPE->_communicator;
     }
+    //printf("recv con tag %d, desde %d\n",tag,source);
     int err = MPI_Recv(buf, count, datatype, source, tag, comm, status);
+    //printf("Fin recv con tag %d, desde %d\n",tag,source);
     return err;
 }

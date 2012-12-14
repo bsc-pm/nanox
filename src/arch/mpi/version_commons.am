@@ -1,7 +1,3 @@
-common_libadd=\
-        -lpthread \
-        $(END)
-
 mpi_api_sources = \
 	$(top_srcdir)/src/arch/mpi/nanos-mpi.h \
 	$(top_srcdir)/src/arch/mpi/mpi-api.cpp \

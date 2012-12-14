@@ -426,7 +426,7 @@ namespace nanos
          
                   
          #ifdef MPI_DEV
-         void DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm);
+         void DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm);  
          #endif
          
    };

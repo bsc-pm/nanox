@@ -75,8 +75,8 @@ void MPIDevice::free(void *address, ProcessingElement *pe) {
     order.opId = OPID_FREE;
     order.devAddr = (uint64_t) address;
     order.size = 0;
-    short ans;
-    MPI_Status status;    
+    //short ans;
+    //MPI_Status status;    
     nanos::ext::MPIProcessor::nanos_MPI_Send(&order, 1, cacheStruct, myPE->_rank, TAG_CACHE_ORDER, myPE->_communicator);
     //nanos::ext::MPIProcessor::nanos_MPI_Recv(&ans, 1, MPI_SHORT, myPE->_rank, TAG_CACHE_ANSWER_FREE, myPE->_communicator, &status);
 
@@ -190,13 +190,13 @@ void MPIDevice::mpiCacheWorker() {
             //if (!t->isRunning()) break; //{ std::cerr << "FINISHING MPI THD!" << std::endl; break; }
             //if (sys.getNetwork()->getNodeNum() == 0  ) std::cerr <<"ppp poll " << myThread->getId() << std::endl;
             //MPI_Comm_get_parent(&parentcomm);
+            printf("Espero orden\n");
             nanos::ext::MPIProcessor::nanos_MPI_Recv(&order, 1, cacheStruct, 0, TAG_CACHE_ORDER, parentcomm, &status);
 
             //TODO: make this operation single-message
             //and check performance with probe+remake struct datatype+single-message vs dual message
             switch (order.opId) {
-                case OPID_FINISH:         
-                    MPI_Finalize();
+                case OPID_FINISH:
                     return;
                 case OPID_COPYIN:
                 {
@@ -207,6 +207,16 @@ void MPIDevice::mpiCacheWorker() {
                     //MPI_Get_count(&status, MPI_BYTE, &incoming_msg_size);
                     //MPI_Comm_get_parent(&parentcomm);
                     nanos::ext::MPIProcessor::nanos_MPI_Recv((void*) order.devAddr, order.size, MPI_BYTE, 0, TAG_CACHE_DATA_IN, parentcomm, &status);
+                    DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
+                    if (ent != NULL) 
+                    { 
+                       if (ent->getOwner() != NULL) {
+                          ent->getOwner()->invalidate( *_masterDir, (uint64_t) order.devAddr, ent);
+                       } else {
+                          ent->increaseVersion();
+                       }
+                    }
+                    
                     float* arr= (float*) order.devAddr;
                     printf("Copio valor %f\n",arr[2047]);
 
@@ -217,31 +227,40 @@ void MPIDevice::mpiCacheWorker() {
                     break;
                 }
                 case OPID_COPYOUT:
+                {
                     printf("Hago un copyOut de device %p\n",(void *) order.devAddr);
-//                    DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
-//                    if (ent != NULL) 
-//                    {
-//                       if (ent->getOwner() != NULL )
-//                          if ( !ent->isInvalidated() )
-//                          {
-//                             std::list<uint64_t> tagsToInvalidate;
-//                             tagsToInvalidate.push_back( ( uint64_t ) order.devAddr );
-//                             _masterDir->synchronizeHost( tagsToInvalidate );
-//                          }
-//                    }
+                    DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
+                    if (ent != NULL) 
+                    {
+                       if (ent->getOwner() != NULL )
+                          if ( !ent->isInvalidated() )
+                          {
+                             std::list<uint64_t> tagsToInvalidate;
+                             tagsToInvalidate.push_back( ( uint64_t ) order.devAddr );
+                             _masterDir->synchronizeHost( tagsToInvalidate );
+                          }
+                    }
                     nanos::ext::MPIProcessor::nanos_MPI_Send((void *) order.devAddr, order.size, MPI_BYTE, 0, TAG_CACHE_DATA_OUT, parentcomm);
                     //nanos::ext::MPIProcessor::nanos_MPI_Send(&ans, 1, MPI_SHORT, 0, TAG_CACHE_ANSWER_COUT, parentcomm);
                     std::cerr << "Fin copyOut en device\n";
                     break;
+                }
                 case OPID_FREE:
+                {
                     std::cerr << "Hago un free en device\n";
                     //nanoxRegisterMPIFree((void*)order.devAddr, order.size);
                     delete[] (char *) order.devAddr;
-                    printf("Dir free%p\n",(char*) order.devAddr);
+                    printf("Dir free%p\n",(char*) order.devAddr);    
+//                    DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
+//                    if (ent != NULL) 
+//                    {
+//                        ent->setInvalidated(true);
+//                    }
                     //nanos::ext::MPIProcessor::nanos_MPI_Send(&ans, 1, MPI_SHORT, 0, TAG_CACHE_ANSWER_FREE, parentcomm);
 
                     std::cerr << "Fin free en device\n";
                     break;
+                }
                 case OPID_ALLOCATE:           
                 {
                     std::cerr << "Hago un allocate en device\n";
@@ -262,14 +281,14 @@ void MPIDevice::mpiCacheWorker() {
                     //printf("Copio de %p a %p, tam %d\n",(void*)  order.devAddr, ptr, order.old_size);
                     printf("Copio valor %f\n",((void*)  order.devAddr));                    
                     //TODO: CHECK THIS, it's probably wrong
-//                    DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) ptr );
-//                    if (ent != NULL) 
-//                    { 
-//                       if (ent->getOwner() != NULL) 
-//                       {
-//                          ent->getOwner()->deleteEntry((uint64_t) ptr, order.size);
-//                       }
-//                    }
+                    DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) ptr );
+                    if (ent != NULL) 
+                    { 
+                       if (ent->getOwner() != NULL) 
+                       {
+                          ent->getOwner()->deleteEntry((uint64_t) ptr, order.size);
+                       }
+                    }
                     //memcpy(ptr, (void*)  order.devAddr, order.old_size);
                     order.devAddr = (uint64_t) ptr;
                     //MPI_Comm_get_parent(&parentcomm);
@@ -278,11 +297,13 @@ void MPIDevice::mpiCacheWorker() {
                     break;
                 }
                 case OPID_COPYLOCAL:
+                {
                     std::cerr << "Hago un copylocal en device\n";
                     memcpy((void*) order.devAddr, (void*) order.hostAddr, order.size);
                     //nanos::ext::MPIProcessor::nanos_MPI_Send(&ans, 1, MPI_SHORT, 0, TAG_CACHE_ANSWER, parentcomm);
                     std::cerr << "Fin un copylocal en device\n";
                     break;
+                }
                 default:
                     fatal("Received unknown operation id on MPI cache daemon thread");
             }

@@ -53,6 +53,26 @@ NANOS_API_DEF(nanos_err_t, DEEP_Booster_free_single, (MPI_Comm *intercomm, int r
     return NANOS_OK;
 }
 
+//NANOS_API_DEF(nanos_err_t, DEEP_Booster_alloc_hostfile, (MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm, char* hosts)) {
+//    try {
+//        sys.DEEP_Booster_alloc(comm, number_of_spawns, intercomm, hosts);
+//    } catch (...) {
+//        return NANOS_UNKNOWN_ERR;
+//    }
+//
+//    return NANOS_OK;
+//}
+
+//NANOS_API_DEF(nanos_err_t, DEEP_Booster_alloc_hostlist, (MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm, char* hosts, char* exec_name)) {
+//    try {
+//        sys.DEEP_Booster_alloc(comm, number_of_spawns, intercomm, hosts, exec_name);
+//    } catch (...) {
+//        return NANOS_UNKNOWN_ERR;
+//    }
+//
+//    return NANOS_OK;
+//}
+//
 NANOS_API_DEF(nanos_err_t, DEEP_Booster_alloc, (MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm)) {
     try {
         sys.DEEP_Booster_alloc(comm, number_of_spawns, intercomm);
@@ -63,15 +83,15 @@ NANOS_API_DEF(nanos_err_t, DEEP_Booster_alloc, (MPI_Comm comm, int number_of_spa
     return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, setMpiFilename, (char * new_name)) {
+NANOS_API_DEF(nanos_err_t, setMpiExename, (char * new_name)) {
     try {
-        nanos::ext::MPIProcessor::setMpiFilename(new_name);
+        nanos::ext::MPIProcessor::setMpiExename(new_name);
     } catch (...) {
         return NANOS_UNKNOWN_ERR;
     }
-
     return NANOS_OK;
 }
+
 
 NANOS_API_DEF(nanos_err_t, nanos_MPI_Init, (int* argc, char ***argv)) {
     try {
@@ -103,7 +123,7 @@ NANOS_API_DEF(int, nanos_MPI_Recv_datastruct, (void *buf, int count, MPI_Datatyp
 }
 
 NANOS_API_DEF(MPI_Datatype, ompss_get_mpi_type, (char* type)) {
-    MPI_Datatype result;
+    MPI_Datatype result = MPI_DATATYPE_NULL;
     if (strcmp(type, "__mpitype_ompss_char") == 0) {
         result = MPI_CHAR;
     } else if (strcmp(type, "__mpitype_ompss_wchar_t") == 0) {

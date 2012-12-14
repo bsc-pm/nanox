@@ -50,10 +50,10 @@ namespace nanos {
             static size_t _cacheDefaultSize;
             static System::CachePolicyType _cachePolicy;
             //! Save OmpSS-mpi filename
+            static std::string _mpiExecFile;
             static std::string _mpiFilename;
-            static std::string _mpiFileArgs;
             static std::string _mpiHosts;
-            static std::string _mpiMachinefile;
+            static std::string _mpiHostsFile;
             MPI_Comm _communicator;
             int _rank;
             
@@ -69,9 +69,9 @@ namespace nanos {
 
             static void prepareConfig(Config &config);
 
-            static void setMpiFilename(char* new_name);
+            static void setMpiExename(char* new_name);
 
-            static std::string getMpiFilename();
+            static std::string getMpiExename();
 
             static void DEEP_Booster_free(MPI_Comm *intercomm, int rank);
 
@@ -84,6 +84,7 @@ namespace nanos {
             /**
              * Nanos MPI override
              **/            
+            
             static void nanos_MPI_Init(int* argc, char ***argv);
             
             static int nanos_MPI_Send_taskinit(void *buf, int count, MPI_Datatype datatype, int dest,

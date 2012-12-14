@@ -42,6 +42,8 @@
 
 #ifdef MPI_DEV
 #include "mpiprocessor.hpp"
+#include <stdio.h>
+#include <stdlib.h>
 #endif
 
 using namespace nanos;
@@ -397,7 +399,7 @@ void System::start ()
 #endif
    
 #ifdef MPI_DEV   
-   //nanos::MPIDevice::setMasterDirectory(mainWD.getDirectory(true));
+   nanos::MPIDevice::setMasterDirectory(mainWD.getDirectory(true));
 #endif
 
 #ifdef SPU_DEV
@@ -1179,25 +1181,47 @@ void System::waitUntilThreadsUnpaused ()
    _unpausedThreadsCond.wait();
 }
 
-#ifdef MPI_DEV    
-
+#ifdef MPI_DEV   
 void System::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm) {   
+    std::string sshQuery;
+    sshQuery="`ssh mic0 \"uname -p\"`";
+    
     MPI_Info info;
     MPI_Info_create(&info);
-    //MPI_Info_set(info,"env","LD_LIBRARY_PATH=/mic/fsainz/runtime/nanox-mic/lib/performance:/opt/intel/composer_xe_2013.0.079/compiler/lib/mic/");
-    //If we are on MIC, use the mic-hosts
     if (!nanos::ext::MPIProcessor::_mpiHosts.empty()){
-        std::cout << "Lanzando en " << nanos::ext::MPIProcessor::_mpiHosts << "\n";
             MPI_Info_set(info, const_cast<char*> ("host"), const_cast<char*> (nanos::ext::MPIProcessor::_mpiHosts.c_str()));
     }
-    if (!nanos::ext::MPIProcessor::_mpiMachinefile.empty()){
-            MPI_Info_set(info, const_cast<char*> ("machinefile"), const_cast<char*> (nanos::ext::MPIProcessor::_mpiMachinefile.c_str()));
+    //Read and process lines
+    if (!nanos::ext::MPIProcessor::_mpiHostsFile.empty()){
+            MPI_Info_set(info, const_cast<char*> ("machinefile"), const_cast<char*> (nanos::ext::MPIProcessor::_mpiHostsFile.c_str()));
     }
-    char *argvv[] = {const_cast<char*> (TAG_MAIN_OMPSS), NULL};
-    MPI_Comm_spawn(const_cast<char*> (nanos::ext::MPIProcessor::getMpiFilename().c_str()), argvv, number_of_spawns,
-            info, 0, comm, intercomm,
-            MPI_ERRCODES_IGNORE);
     
+    // Spawn the file
+    if (!nanos::ext::MPIProcessor::_mpiExecFile.empty()){  
+        char *argvv[] = {const_cast<char*> (nanos::ext::MPIProcessor::_mpiExecFile.c_str()),const_cast<char*> (TAG_MAIN_OMPSS), NULL};      
+        MPI_Comm_spawn(const_cast<char*> (nanos::ext::MPIProcessor::_mpiExecFile.c_str()), argvv, number_of_spawns,
+                info, 0, comm, intercomm,
+                MPI_ERRCODES_IGNORE);
+    } else {
+        char result[ PATH_MAX ];
+        ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );  
+        std::string result_str(result);
+        //If we have _mpiFilename, we are a child, so we use master's executable name
+        if (!nanos::ext::MPIProcessor::_mpiFilename.empty()){
+            result_str=nanos::ext::MPIProcessor::_mpiFilename;
+            count=nanos::ext::MPIProcessor::_mpiFilename.size();
+        }
+        //Set identifier so we can tell it's a daemon from the application main code
+        //Set original exec name so the child can launch more processes based on this name
+        char *argvv[] = {const_cast<char*> (result_str.substr(0,count).c_str()),const_cast<char*> (TAG_MAIN_OMPSS), NULL};      
+        //printf("hola %s\n",exe_name.str().c_str());                
+        fatal_cond0(count==0,"Couldn't identify executable filename, please specify it manually using NX_MPIEXEC environment variable");              
+        MPI_Comm_spawn(const_cast<char*> (result_str.substr(0,count).c_str()), argvv, number_of_spawns,
+                info, 0, comm, intercomm,
+                MPI_ERRCODES_IGNORE);    
+    }
+    
+    //Now they are spawned, but we need to stablish communication (we spawn them via script so comm spawn wont work correctly)    
     for ( int rank=0; rank<number_of_spawns; rank++){
         nanos::ext::MPIProcessor* pee=NEW nanos::ext::MPIProcessor(_pes.size(),NULL, NULL);
         _pes.push_back ( pee );

@@ -40,13 +40,13 @@ namespace ext
 
       private:
          work_fct       _work;
-         int _assignedRank;
          MPI_Comm _assignedComm;
+         int _assignedRank;
 
       public:
        
          // constructors
-          MPIDD( work_fct w ) : DD( &MPI ),_work( w ),_assignedRank( CACHETHREADRANK ), _assignedComm(MPI_COMM_WORLD) {}
+          MPIDD( work_fct w ) : DD( &MPI ),_work( w ), _assignedComm(MPI_COMM_WORLD),_assignedRank( CACHETHREADRANK ) {}
 
          MPIDD( work_fct w , MPI_Comm assignedComm, int assignedRank) : DD( &MPI ),_work( w ), _assignedComm(assignedComm) , _assignedRank(assignedRank) {
              if (_assignedRank==CACHETHREADRANK) fatal0("Error, rank value (-1) reserved for nanox");
@@ -55,7 +55,7 @@ namespace ext
          MPIDD() : DD( &MPI ),_work( 0 ), _assignedRank( CACHETHREADRANK ) {}
 
          // copy constructors
-         MPIDD( const MPIDD &dd ) : DD( dd ), _work( dd._work ) , _assignedRank(dd._assignedRank), _assignedComm(dd._assignedComm) {}
+         MPIDD( const MPIDD &dd ) : DD( dd ), _work( dd._work ), _assignedComm(dd._assignedComm) , _assignedRank(dd._assignedRank) {}
 
          // assignment operator
          const MPIDD & operator= ( const MPIDD &wd );
