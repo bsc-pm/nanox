@@ -1228,6 +1228,8 @@ void System::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *i
         _workers.push_back( &pee->startWorker() );
         pee->_communicator=*intercomm;
         pee->_rank=rank;
+        nanos::ext::MPIProcessor::nanos_MPI_Send(nanos::ext::MPIProcessor::_mpiFileHashname, nanos::ext::MPIProcessor::_mpiFileArrSize, MPI_UNSIGNED, rank, TAG_FP_NAME_SYNC, *intercomm);
+        nanos::ext::MPIProcessor::nanos_MPI_Send(nanos::ext::MPIProcessor::_mpiFileSize, nanos::ext::MPIProcessor::_mpiFileArrSize, MPI_UNSIGNED, rank, TAG_FP_SIZE_SYNC, *intercomm);
     }
     createTeam( _workers.size() );
 }

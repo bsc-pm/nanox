@@ -23,8 +23,6 @@
 
 #ifdef MPI_DEV
 #include "mpi.h"
-//Should keep value than on nanox-mpi.hpp on mercurium
-#define TAG_MAIN_OMPSS "__ompss_mpi_daemon" 
 #endif
 
 #include "processingelement_decl.hpp"

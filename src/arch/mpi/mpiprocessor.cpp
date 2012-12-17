@@ -34,6 +34,9 @@ std::string MPIProcessor::_mpiFilename;
 std::string MPIProcessor::_mpiExecFile;
 std::string MPIProcessor::_mpiHosts;
 std::string MPIProcessor::_mpiHostsFile;
+unsigned int* MPIProcessor::_mpiFileHashname;
+unsigned int* MPIProcessor::_mpiFileSize;
+int MPIProcessor::_mpiFileArrSize;
 
 MPIProcessor::MPIProcessor(int id, MPI_Comm communicator, int rank) : CachedAccelerator<MPIDevice>(id, &MPI) {
     _communicator = communicator;

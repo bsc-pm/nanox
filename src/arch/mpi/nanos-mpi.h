@@ -48,6 +48,10 @@ extern "C" {
     NANOS_API_DECL(nanos_err_t, DEEP_Booster_free_size, (MPI_Comm *intercomm, int size));
     NANOS_API_DECL(nanos_err_t, setMpiExename, (char* new_name));
     NANOS_API_DECL(nanos_err_t, nanos_MPI_Init, (int* argc, char*** argv));
+    NANOS_API_DECL(nanos_err_t, nanos_set_MPI_control_pointers, (short* file_mask, int mask, unsigned int* file_namehash, unsigned int* file_size));
+    //Syncs pointers so device file has exactly the same order than host file
+    NANOS_API_DECL(nanos_err_t, nanos_sync_dev_pointers, (short* file_mask, int mask, unsigned int* file_namehash, unsigned int* file_size,
+            unsigned int* task_per_file,void (*ompss_mpi_func_pointers_dev[])(),void (*ompss_mpi_func_pointers_dev_tmp[])()));
     NANOS_API_DECL(int, nanos_MPI_Send_taskinit, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm));
     NANOS_API_DECL(int, nanos_MPI_Recv_taskinit, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm, MPI_Status *status));
     NANOS_API_DECL(int, nanos_MPI_Send_taskend, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm));

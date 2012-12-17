@@ -29,6 +29,9 @@
 #include "copydescriptor_decl.hpp"
 #include "processingelement.hpp"
 
+//This var must keep same value than in mercurium MPI Device
+#define TAG_MAIN_OMPSS "__ompss_mpi_daemon" 
+
 namespace nanos {
     namespace ext {
 
@@ -54,6 +57,9 @@ namespace nanos {
             static std::string _mpiFilename;
             static std::string _mpiHosts;
             static std::string _mpiHostsFile;
+            static int _mpiFileArrSize;
+            static unsigned int* _mpiFileHashname;
+            static unsigned int* _mpiFileSize;
             MPI_Comm _communicator;
             int _rank;
             
