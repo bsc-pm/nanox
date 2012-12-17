@@ -111,13 +111,15 @@ AC_ARG_ENABLE([mic],
 )
 
 if test x$use_icc = xno; then
-	FC="gfortran"
 	CFLAGS="$CFLAGS -Wredundant-decls"
 	CXXFLAGS="$CXXFLAGS -Wredundant-decls"
+	: ${CC="gcc"}
+	: ${CXX="g++"}
+	: ${FC="gfortran"}
 else
-	CC="icc"
-	CXX="icpc"
-    	FC="ifort"
+	: ${CC="icc"}
+	: ${CXX="icpc"}
+	: ${FC="ifort"}
 	CFLAGS="$CFLAGS -wd873 -wd1419 -lifcore"
 	CXXFLAGS="$CXXFLAGS -wd873 -wd1419 -lifcore"
 fi
@@ -602,9 +604,11 @@ AC_ARG_WITH([nextsim],
            AS_HELP_STRING([--with-nextsim=dir], [Directory of NextSim installation]),
            [
               NEXTSIM_HOME="$withval"
+              NEXTSIM_INC="$withval/include"
            ]
 )
 AC_SUBST([NEXTSIM_HOME])
+AC_SUBST([NEXTSIM_INC])
 AM_CONDITIONAL([INSTRUMENTATION_NEXTSIM], test x"$NEXTSIM_HOME" != x)
 
 # Check Ayudame support
@@ -786,7 +790,6 @@ AC_CONFIG_FILES([Makefile
 		 tests/gens/Makefile
 		 doc/Makefile
                  doc/doxy-nanox
-		 doc/paraver_configs/Makefile
                  ])
 
 AC_OUTPUT

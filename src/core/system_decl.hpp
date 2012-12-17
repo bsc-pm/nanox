@@ -195,12 +195,13 @@ namespace nanos
 
          void createWD (WD **uwd, size_t num_devices, nanos_device_t *devices,
                         size_t data_size, size_t data_align, void ** data, WG *uwg,
-                        nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props, size_t num_copies,
-                        nanos_copy_data_t **copies, nanos_translate_args_t translate_args );
+                        nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props, size_t num_copies, nanos_copy_data_t **copies,
+                        size_t num_dimensions, nanos_region_dimension_internal_t **dimensions,
+                        nanos_translate_args_t translate_args );
 
          void createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
                         int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props,
-                        size_t num_copies, nanos_copy_data_t **copies );
+                        size_t num_copies, nanos_copy_data_t **copies, size_t num_dimensions, nanos_region_dimension_internal_t **dimensions );
 
          void duplicateWD ( WD **uwd, WD *wd );
          void duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd );

@@ -28,7 +28,9 @@ nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) $(gpu
 else
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags)
 endif
+nanos_instrdebug_fcflags=$(common_includes) $(common_instrdebug_fcflags)
 
+libnanox_c_la_FCFLAGS=$(nanos_instrdebug_fcflags)
 libnanox_c_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
 libnanox_c_la_LDFLAGS=$(version_flags)
 libnanox_c_la_LIBADD=$(top_builddir)/src/core/instrumentation-debug/libnanox.la

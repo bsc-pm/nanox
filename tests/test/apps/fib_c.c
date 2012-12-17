@@ -122,7 +122,7 @@ int fib ( int n, int d )
          fib_args *args=0;
 
          NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1.base, &dyn_props, sizeof( fib_args ), ( void ** )&args,
-                                              nanos_current_wd(), NULL ) );
+                                              nanos_current_wd(), NULL, NULL ) );
          args->n = n;
          args->d = d;
          args->x = &x;
@@ -137,7 +137,7 @@ int fib ( int n, int d )
          fib_args *args=0;
 
          NANOS_SAFE( nanos_create_wd_compact ( &wd,  &const_data2.base, &dyn_props, sizeof( fib_args ), ( void ** )&args,
-                                              nanos_current_wd(), NULL ) );
+                                              nanos_current_wd(), NULL, NULL ) );
          args->n = n;
          args->d = d;
          args->x = &y;

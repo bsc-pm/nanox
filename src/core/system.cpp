@@ -57,7 +57,7 @@ System::System () :
       _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
       _numSockets( 1 ), _coresPerSocket( 1 ), _cpu_count( 0 ), _throttlePolicy ( NULL ),
-      _schedStats(), _schedConf(), _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
+      _schedStats(), _schedConf(), _defSchedule( "default" ), _defThrottlePolicy( "default" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _pausedThreads( 0 ),
       _pausedThreadsCond(), _unpausedThreadsCond(),
@@ -456,7 +456,7 @@ void System::finish ()
 
    verbose ( "NANOS++ shutting down.... init" );
    verbose ( "Wait for main workgroup to complete" );
-   myThread->getCurrentWD()->waitCompletionAndSignalers( true );
+   myThread->getCurrentWD()->waitCompletion( true );
 
    // we need to switch to the main thread here to finish
    // the execution correctly
@@ -543,6 +543,8 @@ void System::finish ()
  *  \param [in] props new WD properties
  *  \param [in] num_copies is the number of copy objects of the WD
  *  \param [in] copies is vector of copy objects of the WD
+ *  \param [in] num_dimensions is the number of dimension objects associated to the copies
+ *  \param [in] dimensions is vector of dimension objects
  *
  *  When it does a full allocation the layout is the following:
  *
@@ -569,13 +571,19 @@ void System::finish ()
  *  +---------------+
  *  |    copyM      |
  *  +---------------+
+ *  |     dim0      |
+ *  +---------------+
+ *  |     ....      |
+ *  +---------------+
+ *  |     dimM      |
+ *  +---------------+
  *  |   PM Data     |
  *  +---------------+
  *
  */
 void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t data_size, size_t data_align,
                         void **data, WG *uwg, nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props, size_t num_copies,
-                        nanos_copy_data_t **copies, nanos_translate_args_t translate_args )
+                        nanos_copy_data_t **copies, size_t num_dimensions, nanos_region_dimension_internal_t **dimensions, nanos_translate_args_t translate_args )
 {
    ensure(num_devices > 0,"WorkDescriptor has no devices");
 
@@ -583,7 +591,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    char *chunk = 0;
 
    size_t size_CopyData;
-   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_Copies, offset_Copies, offset_PMD;
+   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_Copies, offset_Copies, size_Dimensions, offset_Dimensions, offset_PMD;
    size_t total_size;
 
    // WD doesn't need to compute offset, it will always be the chunk allocated address
@@ -602,20 +610,25 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
       size_CopyData = sizeof(CopyData);
       size_Copies   = size_CopyData * num_copies;
       offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(nanos_copy_data_t) );
+      // There must be at least 1 dimension entry
+      size_Dimensions = num_dimensions * sizeof(nanos_region_dimension_internal_t);
+      offset_Dimensions = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, __alignof__(nanos_region_dimension_internal_t) );
    } else {
       size_Copies = 0;
-      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, 1);
+      // No dimensions
+      size_Dimensions = 0;
+      offset_Copies = offset_Dimensions = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, 1);
    }
 
    // Computing Internal Data info and total size
    static size_t size_PMD   = _pmInterface->getInternalDataSize();
    if ( size_PMD != 0 ) {
       static size_t align_PMD = _pmInterface->getInternalDataAlignment();
-      offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, align_PMD);
+      offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_Dimensions, size_Dimensions, align_PMD);
       total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD,size_PMD,1);
    } else {
       offset_PMD = 0; // needed for a gcc warning
-      total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, 1);
+      total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_Dimensions, size_Dimensions, 1);
    }
 
    chunk = NEW char[total_size];
@@ -628,10 +641,14 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    DD **dev_ptrs = ( DD ** ) (chunk + offset_DPtrs);
    for ( i = 0 ; i < num_devices ; i ++ ) dev_ptrs[i] = ( DD* ) devices[i].factory( devices[i].arg );
 
-   ensure ((num_copies==0 && copies==NULL) || (num_copies!=0 && copies!=NULL), "Number of copies and copy data conflict" );
+   ensure ((num_copies==0 && copies==NULL && num_dimensions==0 && dimensions==NULL) || (num_copies!=0 && copies!=NULL && num_dimensions!=0 && dimensions!=NULL ), "Number of copies and copy data conflict" );
+   
 
    // allocating copy-ins/copy-outs
-   if ( copies != NULL && *copies == NULL ) *copies = ( CopyData * ) (chunk + offset_Copies);
+   if ( copies != NULL && *copies == NULL ) {
+      *copies = ( CopyData * ) (chunk + offset_Copies);
+      *dimensions = ( nanos_region_dimension_internal_t * ) ( chunk + offset_Dimensions );
+   }
 
    WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, data_align, data != NULL ? *data : NULL,
                              num_copies, (copies != NULL)? *copies : NULL, translate_args );
@@ -697,13 +714,19 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
  *  +---------------+
  *  |    copyM      |
  *  +---------------+
+ *  |     dim0      |
+ *  +---------------+
+ *  |     ....      |
+ *  +---------------+
+ *  |     dimM      |
+ *  +---------------+
  *  |   PM Data     |
  *  +---------------+
  *
  */
 void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
-                        int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props, 
-                        nanos_wd_dyn_props_t *dyn_props, size_t num_copies, nanos_copy_data_t **copies )
+                        int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props,
+                        nanos_wd_dyn_props_t *dyn_props, size_t num_copies, nanos_copy_data_t **copies, size_t num_dimensions, nanos_region_dimension_internal_t **dimensions )
 {
    ensure(num_devices > 0,"WorkDescriptor has no devices");
 
@@ -712,7 +735,7 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
 
    size_t size_CopyData;
    size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs;
-   size_t size_Copies, offset_Copies, offset_PMD;
+   size_t size_Copies, offset_Copies, size_Dimensions, offset_Dimensions, offset_PMD;
    size_t total_size;
 
    // WD doesn't need to compute offset, it will always be the chunk allocated address
@@ -731,18 +754,23 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
       size_CopyData = sizeof(CopyData);
       size_Copies   = size_CopyData * num_copies;
       offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(nanos_copy_data_t) );
+      // There must be at least 1 dimension entry
+      size_Dimensions = num_dimensions * sizeof(nanos_region_dimension_internal_t);
+      offset_Dimensions = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, __alignof__(nanos_region_dimension_internal_t) );
    } else {
       size_Copies = 0;
-      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, 1);
+      // No dimensions
+      size_Dimensions = 0;
+      offset_Copies = offset_Dimensions = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, 1);
    }
 
    // Computing Internal Data info and total size
    static size_t size_PMD   = _pmInterface->getInternalDataSize();
    if ( size_PMD != 0 ) {
       static size_t align_PMD = _pmInterface->getInternalDataAlignment();
-      offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, align_PMD);
+      offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_Dimensions, size_Dimensions, align_PMD);
    } else {
-      offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, 1);
+      offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_Dimensions, size_Dimensions, 1);
    }
 
    total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD, size_PMD, 1);
@@ -757,10 +785,13 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    DD **dev_ptrs = ( DD ** ) (chunk + offset_DPtrs);
    for ( i = 0 ; i < num_devices ; i ++ ) dev_ptrs[i] = ( DD* ) devices[i].factory( devices[i].arg );
 
-   ensure ((num_copies==0 && copies==NULL) || (num_copies!=0 && copies!=NULL), "Number of copies and copy data conflict" );
+   ensure ((num_copies==0 && copies==NULL && num_dimensions==0 && dimensions==NULL) || (num_copies!=0 && copies!=NULL && num_dimensions!=0 && dimensions!=NULL ), "Number of copies and copy data conflict" );
 
    // allocating copy-ins/copy-outs
-   if ( copies != NULL && *copies == NULL ) *copies = ( CopyData * ) (chunk + offset_Copies);
+   if ( copies != NULL && *copies == NULL ) {
+      *copies = ( CopyData * ) (chunk + offset_Copies);
+      *dimensions = ( nanos_region_dimension_internal_t * ) ( chunk + offset_Dimensions );
+   }
 
    SlicedWD * wd =  new (*uwd) SlicedWD( *slicer, num_devices, dev_ptrs, outline_data_size, outline_data_align,
                                          outline_data != NULL ? *outline_data : NULL, num_copies, (copies == NULL) ? NULL : *copies );
@@ -792,13 +823,13 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
  */
 void System::duplicateWD ( WD **uwd, WD *wd)
 {
-   unsigned int i, num_Devices, num_Copies;
+   unsigned int i, num_Devices, num_Copies, num_Dimensions;
    DeviceData **dev_data;
    void *data = NULL;
    char *chunk = 0, *chunk_iter;
 
    size_t size_CopyData;
-   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_Copies, offset_Copies, offset_PMD;
+   size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_Copies, offset_Copies, size_Dimensions, offset_Dimensions, offset_PMD;
    size_t total_size;
 
    // WD doesn't need to compute offset, it will always be the chunk allocated address
@@ -816,24 +847,33 @@ void System::duplicateWD ( WD **uwd, WD *wd)
 
    // Computing Copies info
    num_Copies = wd->getNumCopies();
+   num_Dimensions = 0;
+   for ( i = 0; i < num_Copies; i += 1 ) {
+      num_Dimensions += wd->getCopies()[i].getNumDimensions();
+   }
    if ( num_Copies != 0 ) {
       size_CopyData = sizeof(CopyData);
       size_Copies   = size_CopyData * num_Copies;
       offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, __alignof__(nanos_copy_data_t) );
+      // There must be at least 1 dimension entry
+      size_Dimensions = num_Dimensions * sizeof(nanos_region_dimension_internal_t);
+      offset_Dimensions = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, __alignof__(nanos_region_dimension_internal_t) );
    } else {
       size_Copies = 0;
-      offset_Copies = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, 1);
+      // No dimensions
+      size_Dimensions = 0;
+      offset_Copies = offset_Dimensions = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, 1);
    }
 
    // Computing Internal Data info and total size
    static size_t size_PMD   = _pmInterface->getInternalDataSize();
    if ( size_PMD != 0 ) {
       static size_t align_PMD = _pmInterface->getInternalDataAlignment();
-      offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, align_PMD);
+      offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_Dimensions, size_Dimensions, align_PMD);
       total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD,size_PMD,1);
    } else {
       offset_PMD = 0; // needed for a gcc warning
-      total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_Copies, size_Copies, 1);
+      total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_Dimensions, size_Dimensions, 1);
    }
 
    chunk = NEW char[total_size];
@@ -854,14 +894,19 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    // allocate copy-in/copy-outs
    CopyData *wdCopies = ( CopyData * ) (chunk + offset_Copies);
    chunk_iter = chunk + offset_Copies;
+   nanos_region_dimension_internal_t *dimensions = ( nanos_region_dimension_internal_t * ) ( chunk + offset_Dimensions );
    for ( i = 0; i < num_Copies; i++ ) {
       CopyData *wdCopiesCurr = ( CopyData * ) chunk_iter;
       *wdCopiesCurr = wd->getCopies()[i];
+      memcpy( dimensions, wd->getCopies()[i].getDimensions(), sizeof( nanos_region_dimension_internal_t ) * wd->getCopies()[i].getNumDimensions() );
+      wdCopiesCurr->setDimensions( dimensions );
+      dimensions += wd->getCopies()[i].getNumDimensions();
       chunk_iter += size_CopyData;
    }
 
    // creating new WD 
-   new (*uwd) WD( *wd, dev_ptrs, wdCopies , data);
+   //FIXME jbueno
+   new (*uwd) WD( *wd, dev_ptrs, wdCopies, data );
 
    // initializing internal data
    if ( size_PMD != 0) {

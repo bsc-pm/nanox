@@ -117,7 +117,7 @@ void Scheduler::submitAndWait ( WD &wd )
    submit( wd );
 
    // Wait for WD to be finished
-   myWG.waitCompletionAndSignalers();
+   myWG.waitCompletion();
 }
 
 void Scheduler::updateCreateStats ( WD &wd )
