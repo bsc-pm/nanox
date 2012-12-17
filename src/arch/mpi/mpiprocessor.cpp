@@ -143,7 +143,6 @@ void MPIProcessor::nanos_MPI_Init(int *argc, char ***argv) {
     //TODO: Try with multiple MPI thread
     MPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE, &provided);
     MPI_Query_thread(&claimed);
-    printf("THREAD SUPPORT%d,%s,\n",claimed,nanos::ext::MPIProcessor::_mpiFilename.c_str());
     if (claimed < MPI_THREAD_MULTIPLE) {
         fatal0("MPI_Query_Thread returned multithread support less than MPI_THREAD_MULTIPLE, check your MPI "
                 "implementation and try to configure it so it can support this multithread level");

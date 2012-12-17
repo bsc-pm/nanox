@@ -135,7 +135,7 @@ NANOS_API_DEF(nanos_err_t, nanos_set_MPI_control_pointers, (short* file_mask, in
 }
 
 NANOS_API_DEF(nanos_err_t, nanos_sync_dev_pointers, (short* file_mask, int mask, unsigned int* file_namehash, unsigned int* file_size,
-            unsigned int* task_per_file,void (*ompss_mpi_func_pointers_dev[])(),void (*ompss_mpi_func_pointers_dev_tmp[])())){
+            unsigned int* task_per_file,void (*ompss_mpi_func_pointers_dev[])())){
     try {        
         MPI_Comm parentcomm; /* intercommunicator */
         MPI_Comm_get_parent(&parentcomm);
@@ -144,9 +144,12 @@ NANOS_API_DEF(nanos_err_t, nanos_sync_dev_pointers, (short* file_mask, int mask,
             MPI_Status status;
             int arr_size;
             for (arr_size=1;file_mask[arr_size-1]==mask;arr_size++);
+            unsigned int total_size=0;
+            for (int k=0;k<arr_size;k++) total_size+=task_per_file[k];
             size_t filled_arr_size=0;
             unsigned int* host_file_size=(unsigned int*) malloc(sizeof(unsigned int)*arr_size);
             unsigned int* host_file_namehash=(unsigned int*) malloc(sizeof(unsigned int)*arr_size);
+            void (**ompss_mpi_func_pointers_dev_out)()=(void (**)()) malloc(sizeof(void (*)())*total_size);
             //Receive host information
             nanos::ext::MPIProcessor::nanos_MPI_Recv(host_file_namehash, arr_size, MPI_UNSIGNED, 0, TAG_FP_NAME_SYNC, parentcomm, &status);
             nanos::ext::MPIProcessor::nanos_MPI_Recv(host_file_size, arr_size, MPI_UNSIGNED, 0, TAG_FP_SIZE_SYNC, parentcomm, &status);
@@ -161,14 +164,16 @@ NANOS_API_DEF(nanos_err_t, nanos_sync_dev_pointers, (short* file_mask, int mask,
                 //Search the host file in dev file and copy every pointer in the same order
                 for (e=0;!found && e<arr_size;e++){
                     if(file_namehash[e] == host_file_namehash[i] && file_size[e] == host_file_size[i]){
-                        found=true;
+                        found=true; 
                         //Copy from _dev_tmp array to _dev array in the same order than the host
-                        memcpy(ompss_mpi_func_pointers_dev+filled_arr_size,ompss_mpi_func_pointers_dev_tmp+func_pointers_arr,task_per_file[e]*sizeof(void (*)()));
+                        memcpy(ompss_mpi_func_pointers_dev_out+filled_arr_size,ompss_mpi_func_pointers_dev+func_pointers_arr,task_per_file[e]*sizeof(void (*)()));
                         filled_arr_size+=task_per_file[e];  
                     }
                     func_pointers_arr+=task_per_file[e];
                 }
             }
+            memcpy(ompss_mpi_func_pointers_dev,ompss_mpi_func_pointers_dev_out,total_size*sizeof(void (*)()));
+            free(ompss_mpi_func_pointers_dev_out);
             free(host_file_size);
             free(host_file_namehash);
         }
