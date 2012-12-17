@@ -121,10 +121,10 @@ NANOS_API_DEF(int, nanos_MPI_Recv_datastruct, (void *buf, int count, MPI_Datatyp
         return nanos::ext::MPIProcessor::nanos_MPI_Recv_datastruct(buf,count,datatype,dest,comm,status);
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_set_MPI_control_pointers, (short* file_mask, int mask, unsigned int* file_namehash, unsigned int* file_size)){    
+NANOS_API_DEF(nanos_err_t, nanos_set_MPI_control_pointers, (int* file_mask, int mask, unsigned int* file_namehash, unsigned int* file_size)){    
     try {
         int i;
-        for (i=1;file_mask[i-1]==mask;i++);
+        for (i=0;file_mask[i]==mask;i++);
         nanos::ext::MPIProcessor::_mpiFileHashname=file_namehash;
         nanos::ext::MPIProcessor::_mpiFileArrSize=i;
         nanos::ext::MPIProcessor::_mpiFileSize=file_size;
@@ -134,8 +134,8 @@ NANOS_API_DEF(nanos_err_t, nanos_set_MPI_control_pointers, (short* file_mask, in
     return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_sync_dev_pointers, (short* file_mask, int mask, unsigned int* file_namehash, unsigned int* file_size,
-            unsigned int* task_per_file,void (*ompss_mpi_func_pointers_dev[])(),void (*ompss_mpi_func_pointers_dev_tmp[])())){
+NANOS_API_DEF(nanos_err_t, nanos_sync_dev_pointers, (int* file_mask, int mask, unsigned int* file_namehash, unsigned int* file_size,
+            unsigned int* task_per_file,void (*ompss_mpi_func_pointers_dev[])())){
     try {        
         MPI_Comm parentcomm; /* intercommunicator */
         MPI_Comm_get_parent(&parentcomm);
@@ -143,14 +143,16 @@ NANOS_API_DEF(nanos_err_t, nanos_sync_dev_pointers, (short* file_mask, int mask,
         if (parentcomm != NULL && parentcomm != MPI_COMM_NULL) {
             MPI_Status status;
             int arr_size;
-            for (arr_size=1;file_mask[arr_size-1]==mask;arr_size++);
+            for (arr_size=0;file_mask[arr_size]==mask;arr_size++);
+            unsigned int total_size=0;
+            for (int k=0;k<arr_size;k++) total_size+=task_per_file[k];
             size_t filled_arr_size=0;
             unsigned int* host_file_size=(unsigned int*) malloc(sizeof(unsigned int)*arr_size);
             unsigned int* host_file_namehash=(unsigned int*) malloc(sizeof(unsigned int)*arr_size);
+            void (**ompss_mpi_func_pointers_dev_out)()=(void (**)()) malloc(sizeof(void (*)())*total_size);
             //Receive host information
             nanos::ext::MPIProcessor::nanos_MPI_Recv(host_file_namehash, arr_size, MPI_UNSIGNED, 0, TAG_FP_NAME_SYNC, parentcomm, &status);
             nanos::ext::MPIProcessor::nanos_MPI_Recv(host_file_size, arr_size, MPI_UNSIGNED, 0, TAG_FP_SIZE_SYNC, parentcomm, &status);
-
             int i,e,func_pointers_arr;
             bool found;
             int local_counter;
@@ -161,14 +163,16 @@ NANOS_API_DEF(nanos_err_t, nanos_sync_dev_pointers, (short* file_mask, int mask,
                 //Search the host file in dev file and copy every pointer in the same order
                 for (e=0;!found && e<arr_size;e++){
                     if(file_namehash[e] == host_file_namehash[i] && file_size[e] == host_file_size[i]){
-                        found=true;
+                        found=true; 
                         //Copy from _dev_tmp array to _dev array in the same order than the host
-                        memcpy(ompss_mpi_func_pointers_dev+filled_arr_size,ompss_mpi_func_pointers_dev_tmp+func_pointers_arr,task_per_file[e]*sizeof(void (*)()));
+                        memcpy(ompss_mpi_func_pointers_dev_out+filled_arr_size,ompss_mpi_func_pointers_dev+func_pointers_arr,task_per_file[e]*sizeof(void (*)()));
                         filled_arr_size+=task_per_file[e];  
                     }
                     func_pointers_arr+=task_per_file[e];
                 }
             }
+            memcpy(ompss_mpi_func_pointers_dev,ompss_mpi_func_pointers_dev_out,total_size*sizeof(void (*)()));
+            free(ompss_mpi_func_pointers_dev_out);
             free(host_file_size);
             free(host_file_namehash);
         }
