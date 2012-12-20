@@ -249,8 +249,8 @@ void System::config ()
    cfg.registerConfigOption ( "verbose", NEW Config::FlagOption( _verboseMode ), "Activates verbose mode" );
    cfg.registerArgOption ( "verbose", "verbose" );
 
+   /*! \bug implement execution modes (#146) */
 #if 0
-   FIXME: implement execution modes (#146)
    cfg::MapVar<ExecutionMode> map( _executionMode );
    map.addOption( "dedicated", DEDICATED).addOption( "shared", SHARED );
    cfg.registerConfigOption ( "exec_mode", &map, "Execution mode" );
