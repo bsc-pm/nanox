@@ -16,6 +16,9 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+/*! \file nanos_reduction.cpp
+ *  \brief 
+ */
 #include "nanos_reduction.h"
 
 NANOS_REDUCTION_INT_TYPES_DEF(add,NANOS_REDUCTION_OP_ADD)

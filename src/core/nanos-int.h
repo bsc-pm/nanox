@@ -25,6 +25,11 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+/*! \defgroup capi C/C++ API */
+/*! \addtogroup capi
+ *  \{
+ */
+
 #ifdef __cplusplus
 extern "C"
 #endif
@@ -255,5 +260,9 @@ typedef struct {
    nanos_init_func_t  *func;
    void               *data;
 } nanos_init_desc_t;
+
+/*!
+ * \}
+ */ 
 
 #endif

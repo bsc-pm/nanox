@@ -16,12 +16,19 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
+/*! \file nanos_finders.cpp
+ *  \brief 
+ */
 #include "nanos.h"
 #include "debug.hpp"
 #include "system.hpp"
 #include "plugin.hpp"
 #include "instrumentationmodule_decl.hpp"
+
+/*! \defgroup capi_finders C/C++ API: Finders services. */
+/*! \addtogroup capi_finders
+ *  \{
+ */
 
 using namespace nanos;
 
@@ -72,3 +79,6 @@ NANOS_API_DEF(nanos_ws_t, nanos_find_worksharing, ( const char * label ))
    return ws;
 }
 
+/*!
+ * \}
+ */ 

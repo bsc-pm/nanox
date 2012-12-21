@@ -16,7 +16,9 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
+/*! \file nanos_team.cpp
+ *  \brief 
+ */
 #include "nanos.h"
 #include "system.hpp"
 #include "basethread.hpp"
@@ -24,6 +26,11 @@
 #include "instrumentationmodule_decl.hpp"
 
 using namespace nanos;
+
+/*! \defgroup capi_team C/C++ API: Thread team services. */
+/*! \addtogroup capi_team
+ *  \{
+ */
 
 NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_t sp, unsigned int *nthreads,
                                nanos_constraint_t * constraints, bool reuse, nanos_thread_t *info ))
@@ -200,3 +207,6 @@ NANOS_API_DEF(nanos_err_t, nanos_reduction_get, (nanos_reduction_t** dest, void 
 
    return NANOS_OK;
 }
+/*!
+ * \}
+ */ 

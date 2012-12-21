@@ -16,7 +16,9 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
+/*! \file nanos_wd.cpp
+ *  \brief 
+ */
 #include "nanos.h"
 #include "basethread.hpp"
 #include "debug.hpp"
@@ -28,6 +30,11 @@
 #include "instrumentation.hpp"
 #include "instrumentationmodule_decl.hpp"
 
+/*! \defgroup capi_wd C/C++ API: WorkDescriptor services. */
+/*! \addtogroup capi_wd
+ *  \{
+ */
+
 using namespace nanos;
 
 // Internal definition for const
@@ -36,12 +43,10 @@ struct nanos_const_wd_definition_internal_t : nanos_const_wd_definition_tag
    nanos_device_t devices[];
 };
 
-NANOS_API_DEF(void *, nanos_smp_factory, ( void *args ))
-{
-   nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
-   return ( void * )new ext::SMPDD( smp->outline );
-}
 
+/*! \brief Returns the WD of the current task.
+ *
+ */
 NANOS_API_DEF(nanos_wd_t, nanos_current_wd, (void))
 {
    nanos_wd_t cwd = myThread->getCurrentWD();
@@ -49,6 +54,21 @@ NANOS_API_DEF(nanos_wd_t, nanos_current_wd, (void))
    return cwd;
 }
 
+/*! \brief Create a SMP DeviceData
+ *  
+ *  \param args Architecture (SMP) specific info
+ *  \sa nanos_smp_args_t
+ */
+NANOS_API_DEF(void *, nanos_smp_factory, ( void *args ))
+{
+   nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
+   return ( void * )new ext::SMPDD( smp->outline );
+}
+
+/*! \brief Returns the id of the specified WD.
+ *
+ *  \param wd is the WorkDescriptor
+ */
 NANOS_API_DEF(int, nanos_get_wd_id, ( nanos_wd_t wd ))
 {
    WD *lwd = ( WD * )wd;
@@ -59,6 +79,14 @@ NANOS_API_DEF(int, nanos_get_wd_id, ( nanos_wd_t wd ))
 
 /*! \brief Creates a new WorkDescriptor
  *
+ *  \param uwd is WorkDescriptor to be initialized, if *uwd == 0 is allocated
+ *  \param const_data_ext bundle of constant information (shared among all work descriptor instances)
+ *  \param dyn_props bundle of dynamic properties (specific for a given work descriptor instance)
+ *  \param data_size size of data environment
+ *  \param data if *data == 0, a environment of data_size will be allocated, otherwise ignored
+ *  \param uwg  if (wg != 0) the WD is added to that WG
+ *  \param copies  if num_copies > 0, list of nanos_copy_data_t elements that describe copy-in/out operations for the WD
+ *  \param dimensions dimensions
  *  \sa nanos::WorkDescriptor
  */
 NANOS_API_DEF( nanos_err_t, nanos_create_wd_compact, ( nanos_wd_t *uwd, nanos_const_wd_definition_t *const_data_ext, nanos_wd_dyn_props_t *dyn_props,
@@ -83,6 +111,10 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_compact, ( nanos_wd_t *uwd, nanos_co
    return NANOS_OK;
 }
 
+/*! \brief Set arguments ready for translation
+ *
+ *  \sa nanos::WorkDescriptor
+ */
 NANOS_API_DEF(nanos_err_t, nanos_set_translate_function, ( nanos_wd_t wd, nanos_translate_args_t translate_args ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_set_translate_function",NANOS_CREATION) );
@@ -125,6 +157,10 @@ NANOS_API_DEF(nanos_err_t, nanos_create_sliced_wd, ( nanos_wd_t *uwd, size_t num
    return NANOS_OK;
 }
 
+/*! \brief Submit a WorkDescriptor
+ *
+ *  \sa nanos::WorkDescriptor
+ */
 NANOS_API_DEF(nanos_err_t, nanos_submit, ( nanos_wd_t uwd, size_t num_data_accesses, nanos_data_access_t *data_accesses, nanos_team_t team ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","submit",NANOS_SCHEDULING) );
@@ -178,7 +214,19 @@ NANOS_API_DEF(nanos_err_t, nanos_submit, ( nanos_wd_t uwd, size_t num_data_acces
 }
 
 
-// data must be not null
+/*! \brief Creates a new WorkDescriptor and execute it inmediately
+ *
+ *  \param const_data_ext
+ *  \param dyn_props
+ *  \param data_size
+ *  \param data (must not be null)
+ *  \param num_data_accesses
+ *  \param data_accesses
+ *  \param copies
+ *  \param dimensions
+ *  \param translate_args
+ *  \sa nanos::WorkDescriptor
+ */
 NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_definition_t *const_data_ext, nanos_wd_dyn_props_t *dyn_props, 
                                                                size_t data_size, void * data, size_t num_data_accesses, nanos_data_access_t *data_accesses,
                                                                nanos_copy_data_t *copies, nanos_region_dimension_internal_t *dimensions, nanos_translate_args_t translate_args ) )
@@ -256,6 +304,9 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
    return NANOS_OK;
 }
 
+/*! \brief Set internal WorkDescriptor's data
+ *
+ */
 NANOS_API_DEF(nanos_err_t, nanos_set_internal_wd_data, ( nanos_wd_t wd, void *data ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","set_internal_wd_data",NANOS_RUNTIME) );
@@ -271,6 +322,9 @@ NANOS_API_DEF(nanos_err_t, nanos_set_internal_wd_data, ( nanos_wd_t wd, void *da
    return NANOS_OK;
 }
 
+/*! \brief Get internal WorkDescriptor's data
+ *
+ */
 NANOS_API_DEF(nanos_err_t, nanos_get_internal_wd_data, ( nanos_wd_t wd, void **data ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_internal_wd_data",NANOS_RUNTIME) );
@@ -289,6 +343,9 @@ NANOS_API_DEF(nanos_err_t, nanos_get_internal_wd_data, ( nanos_wd_t wd, void **d
    return NANOS_OK;
 }
 
+/*! \brief Yields current thread (if other WorkDescriptor is ready to be executed)
+ *
+ */
 NANOS_API_DEF(nanos_err_t, nanos_yield, ( void ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","yield",NANOS_SCHEDULING) );
@@ -303,7 +360,9 @@ NANOS_API_DEF(nanos_err_t, nanos_yield, ( void ))
    return NANOS_OK;
 }
 
-
+/*! \brief Get Slicer specific data
+ *
+ */
 NANOS_API_DEF(nanos_err_t, nanos_slicer_get_specific_data, ( nanos_slicer_t slicer, void ** data ))
 {                                                                                                                                                        
    //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_specific_data",NANOS_RUNTIME) );
@@ -317,12 +376,18 @@ NANOS_API_DEF(nanos_err_t, nanos_slicer_get_specific_data, ( nanos_slicer_t slic
    return NANOS_OK;                                                                                                                                      
 }   
 
+/*! \brief Get WorkDescriptor's priority
+ *
+ */
 NANOS_API_DEF(unsigned int, nanos_get_wd_priority, ( nanos_wd_t wd ))
 {
    WD *lwd = ( WD * )wd;
    return lwd->getPriority();
 }
 
+/*! \brief Get number of ready tasks
+ *
+ */
 NANOS_API_DEF(nanos_err_t, nanos_get_num_ready_tasks, ( unsigned int *ready_tasks ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_ready_tasks",NANOS_RUNTIME) );
@@ -335,6 +400,9 @@ NANOS_API_DEF(nanos_err_t, nanos_get_num_ready_tasks, ( unsigned int *ready_task
 
 }
 
+/*! \brief Get number of total tasks (ready, blocked and running)
+ *
+ */
 NANOS_API_DEF(nanos_err_t, nanos_get_num_total_tasks, ( unsigned int *total_tasks ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_total_tasks",NANOS_RUNTIME) );
@@ -347,6 +415,9 @@ NANOS_API_DEF(nanos_err_t, nanos_get_num_total_tasks, ( unsigned int *total_task
 
 }
 
+/*! \brief Get number of non ready tasks (blocked and running)
+ *
+ */
 NANOS_API_DEF(nanos_err_t, nanos_get_num_nonready_tasks, ( unsigned int *nonready_tasks ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_nonready_tasks",NANOS_RUNTIME) );
@@ -361,6 +432,10 @@ NANOS_API_DEF(nanos_err_t, nanos_get_num_nonready_tasks, ( unsigned int *nonread
 
 }
 
+/*! \brief Get number of running tasks
+ *
+ *  \param running_tasks
+ */
 NANOS_API_DEF(nanos_err_t, nanos_get_num_running_tasks, ( unsigned int *running_tasks ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_running_tasks",NANOS_RUNTIME) );
@@ -374,6 +449,9 @@ NANOS_API_DEF(nanos_err_t, nanos_get_num_running_tasks, ( unsigned int *running_
    return NANOS_OK;
 }
 
+/*! \brief Get number of blocked tasks
+ *
+ */
 NANOS_API_DEF(nanos_err_t, nanos_get_num_blocked_tasks, ( unsigned int *blocked_tasks ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_blocked_tasks",NANOS_RUNTIME) );
@@ -389,3 +467,8 @@ NANOS_API_DEF(nanos_err_t, nanos_get_num_blocked_tasks, ( unsigned int *blocked_
    return NANOS_OK;
 
 }
+
+/*!
+ * \}
+ */ 
+
