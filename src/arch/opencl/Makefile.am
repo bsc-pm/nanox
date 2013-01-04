@@ -17,6 +17,13 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = @ARCHITECTURES@ @OS@
+SUBDIRS = performance debug instrumentation instrumentation-debug
 
-DIST_SUBDIRS = unix-os smp spu gpu fpga opencl
+include $(top_srcdir)/src/common.am
+
+pkginclude_HEADERS=\
+	nanos-opencl.h \
+	$(END)
+	
+EXTRA_DIST = \
+	$(END)

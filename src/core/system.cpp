@@ -40,6 +40,10 @@
 #include "gpuprocessor_decl.hpp"
 #endif
 
+#ifdef OCL_DEV
+#include "oclprocessor.hpp"
+#endif
+
 using namespace nanos;
 
 System nanos::sys;
@@ -143,7 +147,14 @@ void System::loadModules ()
    if ( !loadPlugin( "pe-gpu" ) )
       fatal0 ( "Couldn't load GPU support" );
 #endif
+   
+#ifdef OCL_DEV
+   verbose0( "loading OCL support" );
 
+   if ( !loadPlugin( "pe-opencl" ) )
+     fatal0 ( "Couldn't load OpenCL support" );
+#endif
+   
    // load default schedule plugin
    verbose0( "loading " << getDefaultSchedule() << " scheduling policy support" );
 
@@ -331,7 +342,10 @@ void System::start ()
 #ifdef GPU_DEV
    _targetThreads += nanos::ext::GPUConfig::getGPUCount();
 #endif
-
+   
+#ifdef OCL_DEV
+   _targetThreads += nanos::ext::OCLConfig::getOCLDevicesCount();
+#endif
    // Instrumentation startup
    NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->initialize() );
@@ -382,6 +396,20 @@ void System::start ()
       _workers.push_back( &gpu->startWorker() );
       ++p;
    }
+#endif
+   
+#ifdef OCL_DEV
+    for ( int i = 0,
+              e = nanos::ext::OCLConfig::getOCLDevicesCount();
+              i != e;
+              ++i) {
+       Accelerator *oclAccelerator = NEW nanos::ext::OCLProcessor( p++ );
+
+       _pes.push_back( oclAccelerator );
+
+       BaseThread *oclThd = &oclAccelerator->startWorker();
+       _workers.push_back( oclThd );
+    }
 #endif
 
 #ifdef SPU_DEV

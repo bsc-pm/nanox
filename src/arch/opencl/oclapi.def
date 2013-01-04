@@ -1,0 +1,94 @@
+
+/* Platform API */
+OCL_API(clGetPlatformIDs)
+OCL_API(clGetPlatformInfo)
+
+/* Device APIs */
+OCL_API(clGetDeviceIDs)
+OCL_API(clGetDeviceInfo)
+
+/* Context APIs */
+OCL_API(clCreateContext)
+OCL_API(clCreateContextFromType)
+OCL_API(clRetainContext)
+OCL_API(clReleaseContext)
+OCL_API(clGetContextInfo)
+
+/* Command Queue APIs */
+OCL_API(clCreateCommandQueue)
+OCL_API(clRetainCommandQueue)
+OCL_API(clReleaseCommandQueue)
+OCL_API(clGetCommandQueueInfo)
+//COL_API(clSetCommandQueueProperty)
+
+/* Memory Object APIs */
+OCL_API(clCreateBuffer)
+//OCL_API(clCreateSubBuffer)
+OCL_API(clCreateImage2D)
+OCL_API(clCreateImage3D)
+OCL_API(clRetainMemObject)
+OCL_API(clReleaseMemObject)
+OCL_API(clGetSupportedImageFormats)
+OCL_API(clGetMemObjectInfo)
+OCL_API(clGetImageInfo)
+//OCL_API(clSetMemObjectDestructorCallback)
+
+/* Sampler APIs */
+OCL_API(clCreateSampler)
+OCL_API(clRetainSampler)
+OCL_API(clReleaseSampler)
+OCL_API(clGetSamplerInfo)
+
+/* Program Object APIs */
+OCL_API(clCreateProgramWithSource)
+OCL_API(clCreateProgramWithBinary)
+OCL_API(clRetainProgram)
+OCL_API(clReleaseProgram)
+OCL_API(clBuildProgram)
+OCL_API(clUnloadCompiler)
+OCL_API(clGetProgramInfo)
+OCL_API(clGetProgramBuildInfo)
+
+/* Kernel Object APIs */
+OCL_API(clCreateKernel)
+OCL_API(clCreateKernelsInProgram)
+OCL_API(clRetainKernel)
+OCL_API(clReleaseKernel)
+OCL_API(clSetKernelArg)
+OCL_API(clGetKernelInfo)
+OCL_API(clGetKernelWorkGroupInfo)
+
+/* Event Object APIs */
+OCL_API(clWaitForEvents)
+OCL_API(clGetEventInfo)
+OCL_API(clRetainEvent)
+OCL_API(clReleaseEvent)
+
+/* Profiling APIs */
+OCL_API(clGetEventProfilingInfo)
+
+/* Flush and Finish APIs */
+OCL_API(clFlush)
+OCL_API(clFinish)
+
+/* Enqueue Commands APIs */
+OCL_API(clEnqueueReadBuffer)
+OCL_API(clEnqueueWriteBuffer)
+OCL_API(clEnqueueCopyBuffer)
+OCL_API(clEnqueueReadImage)
+OCL_API(clEnqueueWriteImage)
+OCL_API(clEnqueueCopyImage)
+OCL_API(clEnqueueCopyImageToBuffer)
+OCL_API(clEnqueueCopyBufferToImage)
+OCL_API(clEnqueueMapBuffer)
+OCL_API(clEnqueueMapImage)
+OCL_API(clEnqueueUnmapMemObject)
+OCL_API(clEnqueueNDRangeKernel)
+OCL_API(clEnqueueTask)
+OCL_API(clEnqueueNativeKernel)
+OCL_API(clEnqueueMarker)
+OCL_API(clEnqueueWaitForEvents)
+OCL_API(clEnqueueBarrier)
+
+/* Extensions API */
+OCL_API(clGetExtensionFunctionAddress)

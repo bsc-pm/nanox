@@ -17,6 +17,21 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = @ARCHITECTURES@ @OS@
+include $(top_srcdir)/src/arch/opencl/version_commons.am
+include $(top_srcdir)/src/common.am
 
-DIST_SUBDIRS = unix-os smp spu gpu fpga opencl
+if INSTRUMENTATION_DEBUG_VERSION
+noinst_LTLIBRARIES = libocl.la
+instrdebug_LTLIBRARIES = libnanox-pe-ocl.la
+
+nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) \
+                          $(ocl_includes)
+
+libocl_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
+libocl_la_LDFLAGS=$(ocl_ldflags)
+libocl_la_SOURCES=$(ocl_sources)
+
+libnanox_pe_ocl_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
+libnanox_pe_ocl_la_LDFLAGS=$(ld_plugin_flags) $(ocl_ldflags)
+libnanox_pe_ocl_la_SOURCES=$(pe_ocl_sources)
+endif

@@ -1,0 +1,31 @@
+opencl_api_sources = \
+	$(top_srcdir)/src/arch/opencl/nanos-opencl.h \
+	$(top_srcdir)/src/arch/opencl/opencl-api.cpp \
+	$(END)
+opencl_sources = \
+	$(top_srcdir)/src/arch/opencl/oclwrapper.hpp \
+	$(top_srcdir)/src/arch/opencl/oclwrapper.cpp \
+        $(top_srcdir)/src/arch/opencl/oclconfig.hpp \
+        $(top_srcdir)/src/arch/opencl/oclconfig.cpp \
+        $(top_srcdir)/src/arch/opencl/ocldd.hpp \
+        $(top_srcdir)/src/arch/opencl/ocldd.cpp \
+        $(top_srcdir)/src/arch/opencl/ocldevice_decl.hpp \
+        $(top_srcdir)/src/arch/opencl/ocldevice.hpp \
+        $(top_srcdir)/src/arch/opencl/oclprocessor_decl.hpp \
+        $(top_srcdir)/src/arch/opencl/oclprocessor.hpp \
+        $(top_srcdir)/src/arch/opencl/oclprocessor.cpp \
+        $(top_srcdir)/src/arch/opencl/oclcache.hpp \
+        $(top_srcdir)/src/arch/opencl/oclcache.cpp \
+        $(top_srcdir)/src/arch/opencl/oclthread_decl.hpp \
+        $(top_srcdir)/src/arch/opencl/oclthread.hpp \
+        $(top_srcdir)/src/arch/opencl/oclthread.cpp \
+        $(top_srcdir)/src/arch/opencl/oclutils.hpp \
+        $(END)
+
+pe_opencl_sources = \
+	$(top_srcdir)/src/arch/opencl/oclplugin.cpp \
+	$(END)
+
+opencl_api_flags = -I$(top_srcdir)/src/apis/c
+opencl_ldflags =
+opencl_includes =

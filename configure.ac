@@ -336,6 +336,57 @@ AM_CONDITIONAL([GPU_SUPPORT],[test $gpu_valid = yes])
 
 AC_SUBST([gpu_valid])
 
+# Check if an OpenCL implementation is installed.
+AC_MSG_CHECKING([if the use of OpenCL devices was disabled])
+AC_ARG_ENABLE([opencl-arch],
+  AS_HELP_STRING([--disable-opencl-arch], [Disables the use of OpenCL devices]),
+  [
+    if test x"$enableval" = x"yes" -o x"$enableval" = x"";
+    then if test -d "$APP_ROOT";
+         then
+             opencl_enabled="yes"
+             AC_MSG_RESULT([no])
+         else
+             opencl_enabled="no"
+             AC_MSG_RESULT([yes])
+         fi
+    else if test x"$enableval" = x"no";
+         then
+             opencl_enabled="no"
+             AC_MSG_RESULT([yes])
+         else
+             AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
+         fi
+    fi
+  ],
+  [
+    opencl_enabled="yes"
+    AC_MSG_RESULT([no])
+  ]
+)
+
+if test x"$opencl_enabled" = x"yes" ; then
+    LIBS=""
+    LDFLAGS=""
+
+    AC_CHECK_LIB([OpenCL],
+                 [clGetPlatformIDs],
+                 [true],
+                 [AC_MSG_ERROR([OpenCL library not found])])
+
+    opencl_valid="yes"
+else
+    opencl_valid="no"
+fi
+
+if test x"$opencl_valid" = x"yes"; then
+    CFLAGS="$CFLAGS -I $APP_ROOT/include -I/gpfs/apps/NVIDIA/NVIDIA_SDK/OpenCL/common/inc/ -DOCL_DEV"
+    CXXFLAGS="$CXXFLAGS -I $APP_ROOT/include -I/gpfs/apps/NVIDIA/NVIDIA_SDK/OpenCL/common/inc/ -DOCL_DEV"
+    ARCHITECTURES="$ARCHITECTURES opencl"
+fi
+
+AM_CONDITIONAL([OCL_SUPPORT],[test $ocl_valid = yes])
+
 # mcc support
 AC_ARG_WITH([mcc],
 AS_HELP_STRING([--with-mcc=dir], [Directory of mcc compiler]),
@@ -752,6 +803,11 @@ AC_CONFIG_FILES([Makefile
 		 src/arch/gpu/debug/Makefile
 		 src/arch/gpu/instrumentation/Makefile
 		 src/arch/gpu/instrumentation-debug/Makefile
+		 src/arch/opencl/Makefile
+		 src/arch/opencl/performance/Makefile
+		 src/arch/opencl/debug/Makefile
+		 src/arch/opencl/instrumentation/Makefile
+		 src/arch/opencl/instrumentation-debug/Makefile
 		 src/utils/Makefile
 		 scripts/Makefile
 		 tests/Makefile

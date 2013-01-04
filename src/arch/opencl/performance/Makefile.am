@@ -17,6 +17,24 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = @ARCHITECTURES@ @OS@
+include $(top_srcdir)/src/arch/opencl/version_commons.am
+include $(top_srcdir)/src/common.am
 
-DIST_SUBDIRS = unix-os smp spu gpu fpga opencl
+if PERFORMANCE_VERSION
+noinst_LTLIBRARIES = libopencl.la
+performance_LTLIBRARIES = libnanox-opencl-api.la libnanox-pe-opencl.la
+
+nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags) $(opencl_includes)
+
+libopencl_la_CXXFLAGS=$(nanos_perfo_cxxflags)
+libopencl_la_LDFLAGS=$(opencl_ldflags)
+libopencl_la_SOURCES=$(opencl_sources)
+
+libnanox_opencl_api_la_CXXFLAGS=$(nanos_perfo_cxxflags) $(opencl_api_flags)
+libnanox_opencl_api_la_LDFLAGS=$(version_flags)
+libnanox_opencl_api_la_SOURCES=$(opencl_api_sources)
+
+libnanox_pe_opencl_la_CXXFLAGS=$(nanos_perfo_cxxflags)
+libnanox_pe_opencl_la_LDFLAGS=$(ld_plugin_flags) $(opencl_ldflags)
+libnanox_pe_opencl_la_SOURCES=$(pe_opencl_sources)
+endif
