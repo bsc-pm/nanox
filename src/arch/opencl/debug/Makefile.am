@@ -17,6 +17,7 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
+#TODO: Fix instrumentation and debug makefiles so they are named opencl instead of ocl and they can use headers in this folder
 include $(top_srcdir)/src/arch/opencl/version_commons.am
 include $(top_srcdir)/src/common.am
 
