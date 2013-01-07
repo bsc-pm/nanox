@@ -21,7 +21,7 @@
 #define _NANOS_COPYDATA
 
 #include "copydata_decl.hpp"
-#include "system_decl.hpp"
+//#include "system_decl.hpp"
 
 using namespace nanos;
 

@@ -198,8 +198,7 @@ void WorkDescriptor::done ()
    //if ( getNumCopies() > 0 )
    //  pe->copyDataOut( *this );
 
-   if ( getNumCopies() > 0 && _ccontrol.isCreated() )
-      _ccontrol.copyDataOut();
+   _ccontrol.copyDataOut();
       
    
 

@@ -77,7 +77,7 @@ System::System () :
       _schedStats(), _schedConf(), _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ),_pausedThreads( 0 ), _pausedThreadsCond(), _unpausedThreadsCond(),
-      _usingCluster( false ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
+      _usingCluster( false ),_usingNewCache( false ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _pmInterface( NULL ),
       _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap(), _masterGpuThd( NULL ), _auxThd( NULL ),_regCaches(1024)
 #ifdef GPU_DEV
@@ -306,6 +306,9 @@ void System::config ()
    cfg.registerConfigOption ( "device-priority", NEW Config::StringVar ( _defDeviceName ), "Defines the default device to use");
    cfg.registerArgOption ( "device-priority", "--use-device");
    cfg.registerEnvOption ( "device-priority", "NX_USE_DEVICE");
+
+   cfg.registerConfigOption ( "enable-newcache", NEW Config::FlagOption ( _usingNewCache, true ), "Enables the usage of Nanos++ Cluster" );
+   cfg.registerArgOption ( "enable-newcache", "newcache" );
 
    _schedConf.config( cfg );
    _pmInterface->config( cfg );
@@ -615,6 +618,11 @@ void System::finish ()
    ensure(getMyThreadSafe()->getId() == 0, "Main thread not finishing the application!");
 
    verbose ( "Joining threads... phase 1" );
+
+
+   if ( _net.getNodeNum() == 0 )  getMasterRegionDirectory().print();
+
+
    message0("Network traffic: " << sys.getNetwork()->getTotalBytes() << " bytes");
    // BUG for (unsigned int i=0; i < sys.getNetwork()->getNumNodes(); i += 1 )
    // BUG {

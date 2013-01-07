@@ -190,10 +190,11 @@ inline InstrumentationContextData * WorkDescriptor::getInstrumentationContextDat
 inline void WorkDescriptor::waitCompletion( bool avoidFlush )
 {
    this->WorkGroup::waitCompletion();
-   getNewDirectory()->consolidate( !avoidFlush );
    //if (sys.getNetwork()->getNodeNum()==0){ message("WorkDescriptor::waitCompletion, " << getId() ); }
    //if ( _directory.isInitialized() && !avoidFlush )
    //   _directory->synchronizeHost();
+   if ( !sys.usingNewCache() ) getNewDirectory()->consolidate( !avoidFlush );
+   else sys.getMasterRegionDirectory().synchronize( !avoidFlush );
 }
 
 inline void WorkDescriptor::waitCompletionAndSignalers( bool avoidFlush )

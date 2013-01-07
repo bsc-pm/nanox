@@ -1,13 +1,13 @@
-#ifndef CACHEDREGIONSTATUS_HPP
-#define CACHEDREGIONSTATUS_HPP
+#ifndef CACHEDREGIONSTATUS_DECL_HPP
+#define CACHEDREGIONSTATUS_DECL_HPP
 
+#include "version_decl.hpp"
 #include "deviceops_decl.hpp"
 
 namespace nanos {
 
-   class CachedRegionStatus {
+   class CachedRegionStatus : public Version {
       private:
-         unsigned int _version;
          DeviceOpsPtr _waitObject;
       public:
          CachedRegionStatus();
@@ -15,12 +15,10 @@ namespace nanos {
          CachedRegionStatus &operator=( CachedRegionStatus const &rs );
          CachedRegionStatus( CachedRegionStatus &rs );
          CachedRegionStatus &operator=( CachedRegionStatus &rs );
-         unsigned int getVersion();
-         void setVersion( unsigned int version );
          void setCopying( DeviceOps *ops );
          DeviceOps * getDeviceOps();
          bool isReady();
    };
 }
 
-#endif /* CACHEDREGIONSTATUS_HPP */
+#endif /* CACHEDREGIONSTATUS_DECL_HPP */

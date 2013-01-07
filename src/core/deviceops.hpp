@@ -29,8 +29,6 @@ inline DeviceOpsPtr::DeviceOpsPtr( DeviceOpsPtr &p ) {
 inline DeviceOpsPtr::~DeviceOpsPtr() {
    if ( _value != NULL)  {
       _value->delRef( this );
-      //sys.printBt();
-      //std::cerr << __FUNCTION__ << " maybe I should delete my ref."<< std::endl;
    }
 }
 
@@ -54,14 +52,6 @@ inline DeviceOpsPtr & DeviceOpsPtr::operator=( DeviceOpsPtr &p ) {
    return *this;
 }
 
-inline DeviceOps & DeviceOpsPtr::operator*() const {
-   return *_value;
-}
-
-inline DeviceOps * DeviceOpsPtr::operator->() const {
-   return _value;
-}
-
 inline void DeviceOpsPtr::set( DeviceOps *ops ) {
    _value = ops;
    _value->addFirstRef( this );
@@ -79,22 +69,30 @@ inline bool DeviceOpsPtr::isNotSet() const {
    return _value == NULL;
 }
 
-inline DeviceOps::DeviceOps() : _pendingDeviceOps ( 0 ) {
+inline DeviceOps::DeviceOps() : _pendingDeviceOps ( 0 ), _lock(), _refs() {
 }
 
 inline DeviceOps::~DeviceOps() {
 }
 
-inline unsigned int DeviceOps::getNumOps() const {
-   return _pendingDeviceOps.value();
+inline unsigned int DeviceOps::getNumOps() {
+   _lock.acquire();
+   unsigned int val = _pendingDeviceOps.value();
+   _lock.release();
+   return val;
 }
 
 inline void DeviceOps::addOp() {
+   _lock.acquire();
    _pendingDeviceOps++;
+   _lock.release();
 }
 
-inline bool DeviceOps::allCompleted() const {
-   return ( _pendingDeviceOps.value() == 0);
+inline bool DeviceOps::allCompleted() {
+   _lock.acquire();
+   bool b = ( _pendingDeviceOps.value() == 0);
+   _lock.release();
+   return b;
 }
 
 inline void DeviceOps::delRef( DeviceOpsPtr *opsPtr ) {

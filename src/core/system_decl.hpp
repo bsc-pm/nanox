@@ -39,6 +39,8 @@
 #include "accelerator_decl.hpp"
 #include "location.hpp"
 
+#include "newregiondirectory_decl.hpp"
+
 #ifdef GPU_DEV
 #include "pinnedallocator_decl.hpp"
 #endif
@@ -136,6 +138,7 @@ namespace nanos
          /*! Cluster: system Network object */
          Network              _net;
          bool                 _usingCluster;
+         bool                 _usingNewCache;
          bool                 _usingNode2Node;
          bool                 _usingPacking;
          std::string          _conduit;
@@ -157,6 +160,7 @@ namespace nanos
          CachePolicyType      _cachePolicy;
          //! CacheMap register
          CacheMap             _cacheMap;
+         NewNewRegionDirectory _masterRegionDirectory;
          
          WD *slaveParentWD;
          BaseThread *_masterGpuThd;
@@ -359,6 +363,7 @@ namespace nanos
 
          Network * getNetwork( void );
          bool usingCluster( void ) const;
+         bool usingNewCache( void ) const;
          bool useNode2Node( void ) const;
          bool usePacking( void ) const;
          const std::string & getNetworkConduit() const;
@@ -401,6 +406,7 @@ namespace nanos
       public:
          std::list<GraphEntry *> *getGraphRepList();
          
+         NewNewRegionDirectory &getMasterRegionDirectory() { return _masterRegionDirectory; }
    };
 
    extern System sys;

@@ -182,6 +182,7 @@ inline void System::setDefaultArch( const std::string &arch ) { _defArch = arch;
 
 inline Network * System::getNetwork( void ) { return &_net; }
 inline bool System::usingCluster( void ) const { return _usingCluster; }
+inline bool System::usingNewCache( void ) const { return _usingNewCache; }
 inline bool System::useNode2Node( void ) const { return _usingNode2Node; }
 inline bool System::usePacking( void ) const { return _usingPacking; }
 inline const std::string & System::getNetworkConduit( void ) const { return _conduit; }

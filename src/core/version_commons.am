@@ -109,6 +109,11 @@ common_sources=\
 	$(top_srcdir)/src/core/regiondirectory.cpp  \
 	$(top_srcdir)/src/core/regiondirectory.hpp  \
 	$(top_srcdir)/src/core/regiondirectory_decl.hpp  \
+	$(top_srcdir)/src/core/regiondict_decl.hpp  \
+	$(top_srcdir)/src/core/regiondict.cpp  \
+	$(top_srcdir)/src/core/newregiondirectory.cpp  \
+	$(top_srcdir)/src/core/newregiondirectory.hpp  \
+	$(top_srcdir)/src/core/newregiondirectory_decl.hpp  \
 	$(top_srcdir)/src/core/regioncache_decl.hpp  \
 	$(top_srcdir)/src/core/regioncache.hpp  \
 	$(top_srcdir)/src/core/regioncache.cpp  \
@@ -117,6 +122,10 @@ common_sources=\
 	$(top_srcdir)/src/core/deviceops_decl.hpp  \
 	$(top_srcdir)/src/core/deviceops.hpp  \
 	$(top_srcdir)/src/core/deviceops.cpp  \
+	$(top_srcdir)/src/core/version.hpp  \
+	$(top_srcdir)/src/core/version_decl.hpp  \
+	$(top_srcdir)/src/core/cachedregionstatus.hpp  \
+	$(top_srcdir)/src/core/cachedregionstatus_decl.hpp  \
 	$(END)
 
 instr_sources = \

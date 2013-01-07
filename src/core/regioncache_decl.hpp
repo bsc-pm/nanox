@@ -28,6 +28,7 @@
 #include "processingelement_fwd.hpp"
 #include "deviceops_decl.hpp"
 #include "regiondirectory_decl.hpp"
+#include "newregiondirectory_decl.hpp"
 
 namespace nanos {
 
@@ -43,9 +44,11 @@ namespace nanos {
          
          RegionTree< CachedRegionStatus > *_regions;
 
+         RegionDictionary *_newRegions;
+
       public:
          //AllocatedChunk( );
-         AllocatedChunk( uint64_t addr, uint64_t hostAddr, std::size_t size );
+         AllocatedChunk( uint64_t addr, uint64_t hostAddr, std::size_t size, CopyData const &cd );
          AllocatedChunk( AllocatedChunk const &chunk );
          AllocatedChunk &operator=( AllocatedChunk const &chunk );
          ~AllocatedChunk();
@@ -61,8 +64,11 @@ namespace nanos {
          void clearRegions();
          RegionTree< CachedRegionStatus > *getRegions();
          bool isReady( Region reg );
+
          void lock();
          void unlock();
+         void NEWaddReadRegion( reg_t reg, unsigned int version, std::set< DeviceOps * > &currentOps, std::list< reg_t > &notPresentRegions, DeviceOps *ops, bool alsoWriteReg );
+         void NEWaddWriteRegion( reg_t reg, unsigned int version );
    };
 
    class CacheCopy;
@@ -107,6 +113,7 @@ namespace nanos {
          } _copyOutObj;
 
          void doOp( Op *opObj, Region const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, WD const &wd ); 
+         void doOp( Op *opObj, global_reg_t const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, WD const &wd ); 
          //void _generateRegionOps( Region const &reg, std::map< uintptr_t, MemoryMap< uint64_t > * > &opMap );
 
       public:
@@ -115,6 +122,8 @@ namespace nanos {
          AllocatedChunk *getAddress( uint64_t hostAddr, std::size_t len );
          void syncRegion( Region const &r ) ;
          void syncRegion( std::list< std::pair< Region, CacheCopy * > > const &regions, WD const &wd ) ;
+         void syncRegion( global_reg_t const &r ) ;
+         void syncRegion( std::list< std::pair< global_reg_t, CacheCopy * > > const &regions, WD const &wd ) ;
          unsigned int getMemorySpaceId();
          /* device stubs */
          void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, WD const &wd );
@@ -128,6 +137,8 @@ namespace nanos {
          /* *********** */
          void copyIn( Region const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, WD const &wd ); 
          void copyOut( Region const &hostMem, uint64_t devBaseAddr, DeviceOps *ops, WD const &wd ); 
+         void copyIn( global_reg_t const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, WD const &wd ); 
+         void copyOut( global_reg_t const &hostMem, uint64_t devBaseAddr, DeviceOps *ops, WD const &wd ); 
          void lock();
          void unlock();
          bool tryLock();
@@ -146,9 +157,12 @@ namespace nanos {
          Region _region;
          uint64_t _offset;
          unsigned int _version;
+         unsigned int _newVersion;
          NewRegionDirectory::LocationInfoList _locations;
+         NewNewRegionDirectory::NewLocationInfoList _newLocations;
          DeviceOps _operations;
          std::set< DeviceOps * > _otherPendingOps;
+         global_reg_t _reg;
 
       public:
          CacheCopy();
@@ -157,13 +171,17 @@ namespace nanos {
          bool isReady();
          void setUpDeviceAddress( RegionCache *targetCache, NewRegionDirectory *dir );
          void generateCopyInOps( RegionCache *targetCache, std::map<unsigned int, std::list< std::pair< Region, CacheCopy * > > > &opsBySourceRegions ) ;
+         void NEWgenerateCopyInOps( RegionCache *targetCache, std::map<unsigned int, std::list< std::pair< global_reg_t, CacheCopy * > > > &opsBySourceRegions ) ;
 
          NewRegionDirectory::LocationInfoList const &getLocations() const;
          uint64_t getDeviceAddress() const;
          DeviceOps *getOperations();
          Region const &getRegion() const;
          unsigned int getVersion() const;
+         unsigned int getNewVersion() const;
          CopyData const & getCopyData() const;
+         reg_t getRegId() const;
+         NewNewRegionDirectory::RegionDirectoryKey getRegionDirectoryKey() const;
    };
 
 

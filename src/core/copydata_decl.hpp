@@ -110,7 +110,7 @@ namespace nanos
          uint64_t getFitOffsetRecursive( int i ) const;
 
    };
-  std::ostream& operator<< (std::ostream& o, CopyData const &cd);
+   std::ostream& operator<< (std::ostream& o, CopyData const &cd);
 }
 
 #endif

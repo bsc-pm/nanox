@@ -47,8 +47,20 @@ inline unsigned int CacheCopy::getVersion() const {
    return _version;
 }
 
+inline unsigned int CacheCopy::getNewVersion() const {
+   return _newVersion;
+}
+
 inline CopyData const &CacheCopy::getCopyData() const {
    return _copy;
+}
+
+inline reg_t CacheCopy::getRegId() const {
+   return _reg.id;
+}
+
+inline NewNewRegionDirectory::RegionDirectoryKey CacheCopy::getRegionDirectoryKey() const {
+   return _reg.key;
 }
 
 inline uint64_t CacheCopy::getDeviceAddress() const {

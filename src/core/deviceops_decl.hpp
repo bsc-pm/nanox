@@ -17,8 +17,8 @@ namespace nanos {
          ~DeviceOps();
          void completeOp();
          void addOp();
-         unsigned int getNumOps() const;
-         bool allCompleted() const;
+         unsigned int getNumOps() ;
+         bool allCompleted() ;
          bool addRef( DeviceOpsPtr *opsPtr, DeviceOpsPtr &p );
          void delRef( DeviceOpsPtr *opsPtr );
          void addFirstRef( DeviceOpsPtr *opsPtr );
@@ -34,8 +34,8 @@ namespace nanos {
          ~DeviceOpsPtr();
          DeviceOpsPtr & operator=( DeviceOpsPtr const &p );
          DeviceOpsPtr & operator=( DeviceOpsPtr &p );
-         DeviceOps & operator*() const;
-         DeviceOps * operator->() const;
+         //DeviceOps & operator*() const;
+         //DeviceOps * operator->() const;
          void set( DeviceOps *ops );
          DeviceOps *get() const;
          void clear();

@@ -30,55 +30,14 @@
 #ifdef GPU_DEV
 #include "gpudd.hpp"
 #endif
+#include "newregiondirectory.hpp"
 #include "regioncache.hpp"
-
-using namespace nanos; 
-
-CachedRegionStatus::CachedRegionStatus() : _version( 0 ) {
-}
-
-CachedRegionStatus::CachedRegionStatus( CachedRegionStatus const &rs ) : _version( rs._version ), _waitObject ( rs._waitObject ) {
-}
-
-CachedRegionStatus &CachedRegionStatus::operator=( CachedRegionStatus const &rs ) {
-   _version = rs._version;
-   _waitObject = rs._waitObject;
-   return *this;
-}
-
-CachedRegionStatus::CachedRegionStatus( CachedRegionStatus &rs ) : _version( rs._version ), _waitObject ( rs._waitObject ) {
-}
-
-CachedRegionStatus &CachedRegionStatus::operator=( CachedRegionStatus &rs ) {
-   _version = rs._version;
-   _waitObject = rs._waitObject;
-   return *this;
-}
-
-unsigned int CachedRegionStatus::getVersion() {
-   return _version;
-}
-
-void CachedRegionStatus::setVersion( unsigned int version ) {
-   _version = version;
-}
-
-void CachedRegionStatus::setCopying( DeviceOps *ops ) {
-   _waitObject.set( ops );
-}
-
-DeviceOps *CachedRegionStatus::getDeviceOps() {
-   return _waitObject.get();
-}
-
-bool CachedRegionStatus::isReady( ) {
-   return _waitObject.isNotSet();
-}
+#include "cachedregionstatus.hpp"
 
 //AllocatedChunk::AllocatedChunk() : _lock(), _address( 0 ) {
 //}
 
-AllocatedChunk::AllocatedChunk( uint64_t addr, uint64_t hostAddress, std::size_t size ) :
+AllocatedChunk::AllocatedChunk( uint64_t addr, uint64_t hostAddress, std::size_t size, CopyData const &cd ) :
    _lock(),
    _address( addr ),
    _hostAddress( hostAddress ),
@@ -86,9 +45,16 @@ AllocatedChunk::AllocatedChunk( uint64_t addr, uint64_t hostAddress, std::size_t
    _dirty( false ),
    _roBytes( 0 ),
    _rwBytes( 0 ) {
-   _regions = NEW RegionTree< CachedRegionStatus >();
+   if ( sys.usingNewCache() ) {
+      _newRegions = NEW RegionDictionary( sys.getMasterRegionDirectory().getDictionary( cd ),
+                                          *( NEW RegionMap( sys.getMasterRegionDirectory().getDictionary( cd ).getContainer() ) ) );
+      //std::cerr << "Allocated chunk: with dict " << (void *)&_newRegions << std::endl;
+   } else {
+      _regions = NEW RegionTree< CachedRegionStatus >();
+   }
 }
 
+/*
 AllocatedChunk::AllocatedChunk( AllocatedChunk const &chunk ) :
    _lock(),
    _address( chunk._address ),
@@ -97,7 +63,9 @@ AllocatedChunk::AllocatedChunk( AllocatedChunk const &chunk ) :
    _dirty( chunk._dirty ),
    _roBytes( chunk._roBytes ),
    _rwBytes( chunk._rwBytes ),
-   _regions( chunk._regions )
+   _regions( chunk._regions ),
+   _newRegions(),
+   _intersections( *(sys.getMasterRegionDirectory().getRegionDirectoryKey( (uint64_t)addr ) ) ) 
    {
       std::cerr << "FIXME: is this acceptable?"<< std::endl;
 }
@@ -112,7 +80,7 @@ _address = chunk._address;
    _regions = chunk._regions;
    std::cerr << "FIXME: AllocatedChunk &AllocatedChunk::operator=( AllocatedChunk const &chunk ); " <<__FILE__<< ":"<<__LINE__<<std::endl;
    return *this;
-}
+}*/
 
 AllocatedChunk::~AllocatedChunk() {
    delete _regions;
@@ -171,6 +139,91 @@ void AllocatedChunk::addReadRegion( Region const &reg, unsigned int version, std
    _dirty = _dirty || alsoWriteRegion;
 }
 
+void AllocatedChunk::NEWaddReadRegion( reg_t reg, unsigned int version, std::set< DeviceOps * > &currentOps, std::list< reg_t > &notPresentRegions, DeviceOps *ops, bool alsoWriteRegion ) {
+
+   unsigned int currentVersion = 0;
+   std::list< std::pair< reg_t, reg_t > > components;
+   _newRegions->addRegion( reg, components, currentVersion );
+
+   std::cerr << "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[ " << __FUNCTION__ << " ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]"<< std::endl;
+   
+   if ( components.size() == 1 ) {
+      ensure( components.begin()->first == reg, "Error, wrong region");
+      CachedRegionStatus *entry = ( CachedRegionStatus * ) _newRegions->getRegionData( components.begin()->first );
+      if ( !entry || version > entry->getVersion() ) {
+         std::cerr << "No entry for region " << components.begin()->first << " must copy from region " << components.begin()->second << std::endl;
+         entry = NEW CachedRegionStatus();
+         _newRegions->setRegionData( reg, entry );
+         entry->setCopying( ops );
+         notPresentRegions.push_back( reg );
+      } else if ( version == entry->getVersion() ) {
+         if ( entry->isReady() ) {
+            /* already in cache */
+         std::cerr << "!!!!!!!!!!!! REGION READY " << components.begin()->first << std::endl;
+         } else {
+            /* in cache but comming */
+         std::cerr << "???????????? ON ITS WAY " << components.begin()->first << std::endl;
+            currentOps.insert( entry->getDeviceOps() );
+         }
+      } else {
+         std::cerr << "ERROR: version in cache > than version requested." << std::endl;
+      }
+      entry->setVersion( version + ( alsoWriteRegion ? 1 : 0) );
+   } else if ( components.size() > 1 ) {
+      std::cerr << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~ chunks! REGION "  << std::endl;
+      for (std::list< std::pair< reg_t, reg_t > >::iterator it = components.begin(); it != components.end(); it++) {
+         CachedRegionStatus *entry = ( CachedRegionStatus * ) _newRegions->getRegionData( it->first );
+         if ( !entry ) {
+            std::cerr << "No entry for region " << it->first << " must copy from region " << it->second << std::endl;
+            entry = NEW CachedRegionStatus();
+            _newRegions->setRegionData( reg, entry );
+            //entry->
+         }
+         else std::cerr << "GOT entry for region " << it->first << std::endl;
+      } 
+   } else {
+      std::cerr << " ERROR " << std::endl;
+   }
+      
+   std::cerr << "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[X]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]"<< std::endl;
+
+//
+//   RegionTree<CachedRegionStatus>::iterator_list_t insertOuts;
+//   RegionTree<CachedRegionStatus>::iterator ret;
+//   ret = _regions->findAndPopulate( reg, insertOuts );
+//   if ( !ret.isEmpty() ) insertOuts.push_back( ret );
+//
+//   for ( RegionTree<CachedRegionStatus>::iterator_list_t::iterator it = insertOuts.begin();
+//         it != insertOuts.end();
+//         it++
+//       ) {
+//      std::size_t bytes = 0;
+//      RegionTree<CachedRegionStatus>::iterator &accessor = *it;
+//      CachedRegionStatus &cachedReg = *accessor;
+//      if ( version <= cachedReg.getVersion() )  {
+//         if ( cachedReg.isReady() ) {
+//            /* already in cache */
+//         } else {
+//            /* in cache but comming! */
+//            currentOps.insert( cachedReg.getDeviceOps() );
+//         }
+//      } else {
+//         /* not present! */
+//         bytes += ( cachedReg.getVersion() == 0 ) ? accessor.getRegion().getBreadth() : 0;
+//         notPresentRegions.push_back( accessor.getRegion() );
+//         cachedReg.setCopying( ops );
+//         cachedReg.setVersion(version);
+//      }
+//      if ( alsoWriteRegion ) {
+//         cachedReg.setVersion( version + 1 );
+//         _rwBytes += bytes;
+//      } else {
+//         _roBytes += bytes;
+//      }
+//   }
+   _dirty = _dirty || alsoWriteRegion;
+}
+
 void AllocatedChunk::addWriteRegion( Region const &reg, unsigned int version ) {
    RegionTree<CachedRegionStatus>::iterator_list_t insertOuts;
    RegionTree<CachedRegionStatus>::iterator ret;
@@ -187,6 +240,53 @@ void AllocatedChunk::addWriteRegion( Region const &reg, unsigned int version ) {
       _rwBytes += ( cachedReg.getVersion() == 0 ) ? accessor.getRegion().getBreadth() : 0;
    } 
    _dirty = true;
+}
+
+void AllocatedChunk::NEWaddWriteRegion( reg_t reg, unsigned int version ) {
+
+   //std::map< reg_t, CachedRegionStatus >::iterator it = _newRegions.lower_bound( reg );
+   //if ( it == _newRegions.end() || _newRegions.key_comp()(reg, it->first) ) {
+   //   it = _newRegions.insert( it, std::map< reg_t, CachedRegionStatus >::value_type( reg, CachedRegionStatus() ) );
+   //}
+   //it->second.setVersion( version );
+
+   unsigned int currentVersion = 0;
+   std::list< std::pair< reg_t, reg_t > > components;
+   _newRegions->addRegion( reg, components, currentVersion );
+
+   //std::cerr << __FUNCTION__ << " " << reg << std::endl;
+
+   CachedRegionStatus *entry = ( CachedRegionStatus * ) _newRegions->getRegionData( reg );
+   if ( !entry ) {
+      entry = NEW CachedRegionStatus();
+      _newRegions->setRegionData( reg, entry );
+   }
+   entry->setVersion( version );
+
+   _dirty = true;
+   
+   //std::list< reg_t > subParts;
+   //std::list< reg_t > superParts;
+   //_intersections.getIntersectingRegions( reg, subParts, superParts );
+
+   // WIP
+/*
+   RegionTree<CachedRegionStatus>::iterator_list_t insertOuts;
+   RegionTree<CachedRegionStatus>::iterator ret;
+   ret = _regions->findAndPopulate( reg, insertOuts );
+   if ( !ret.isEmpty() ) insertOuts.push_back( ret );
+
+   for ( RegionTree<CachedRegionStatus>::iterator_list_t::iterator it = insertOuts.begin();
+         it != insertOuts.end();
+         it++
+       ) {
+      RegionTree<CachedRegionStatus>::iterator &accessor = *it;
+      CachedRegionStatus &cachedReg = *accessor;
+      cachedReg.setVersion( version );
+      _rwBytes += ( cachedReg.getVersion() == 0 ) ? accessor.getRegion().getBreadth() : 0;
+   } 
+   _dirty = true;
+*/
 }
 
 bool AllocatedChunk::isReady( Region reg ) {
@@ -283,7 +383,7 @@ AllocatedChunk *RegionCache::getAddress( CopyData const &cd, RegionTree< CachedR
                std::cerr << "IVE _not_ FOUND A CHUNK TO FREE" << std::endl;
             }
          } else {
-            *(results.front().second) = NEW AllocatedChunk( (uint64_t) deviceMem, results.front().first->getAddress(), results.front().first->getLength() );
+            *(results.front().second) = NEW AllocatedChunk( (uint64_t) deviceMem, results.front().first->getAddress(), results.front().first->getLength(), cd );
             allocChunkPtr = *(results.front().second);
          }
       } else {
@@ -346,6 +446,26 @@ void RegionCache::syncRegion( Region const &reg ) {
    syncRegion( singleItemList, *(( WD * ) NULL) );
 }
 
+void RegionCache::syncRegion( std::list< std::pair< global_reg_t, CacheCopy * > > const &regions, WD const &wd ) {
+   std::list< std::pair< global_reg_t, CacheCopy *> >::const_iterator it;
+   DeviceOps localOps;
+   
+   for ( it = regions.begin(); it != regions.end(); it++ ) {
+      global_reg_t id = it->first;
+      CacheCopy *ccopy = it->second;
+      AllocatedChunk *origChunk = getAddress( id.getFirstAddress(), id.getBreadth() );
+      uint64_t origDevAddr = origChunk->getAddress() + ( id.getFirstAddress() - origChunk->getHostAddress() );
+      origChunk->unlock();
+      copyOut( id, origDevAddr, ( ccopy != NULL ) ? ccopy->getOperations() : &localOps, wd );
+   }
+
+   while( !localOps.allCompleted() ) { myThread->idle(); }
+}
+void RegionCache::syncRegion( global_reg_t const &id ) {
+   std::list< std::pair< global_reg_t, CacheCopy * > > singleItemList;
+   singleItemList.push_back( std::make_pair( id, ( CacheCopy * ) NULL ) );
+   syncRegion( singleItemList, *(( WD * ) NULL) );
+}
 #if 0
 void RegionCache::_generateRegionOps( Region const &reg, std::map< uintptr_t, MemoryMap< uint64_t > * > &opMap )
 {
@@ -490,6 +610,7 @@ void RegionCache::doOp( Op *opObj, Region const &hostMem, uint64_t devBaseAddr, 
          uint64_t hostAddr = hostMem.getNonContiguousChunk( chunkIndex, skipBits );
          uint64_t devAddr = devBaseAddr + ( hostAddr - hostMem.getFirstValue() ); /* contiguous chunk offset */
 
+         std::cerr <<"[OLD]opObj->doNoStrided( "<<location<<", "<<(void*)(devAddr)<<", "<<(void*)(hostAddr)<<", "<<contiguousSize<<", _ops, _wd )"<<std::endl;
          opObj->doNoStrided( location, devAddr, hostAddr, contiguousSize, ops, wd );
       }
    }
@@ -500,6 +621,97 @@ void RegionCache::copyIn( Region const &hostMem, uint64_t devBaseAddr, unsigned 
 }
 
 void RegionCache::copyOut( Region const &hostMem, uint64_t devBaseAddr, DeviceOps *ops, WD const &wd ) {
+   doOp( &_copyOutObj, hostMem, devBaseAddr, /* locations unused, copyOut is always to 0 */ 0, ops, wd );
+}
+
+void RegionCache::doOp( Op *opObj, global_reg_t const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, WD const &wd ) {
+
+   class LocalFunction {
+      Op *_opObj;
+      nanos_region_dimension_internal_t *_region;
+      unsigned int _numDimensions;
+      unsigned int _targetDimension;
+      unsigned int _numChunks;
+      std::size_t _contiguousChunkSize;
+      unsigned int _location;
+      DeviceOps *_ops;
+      WD const &_wd;
+      uint64_t _devBaseAddr;
+      uint64_t _hostBaseAddr;
+      public:
+         LocalFunction( Op *opObj, nanos_region_dimension_internal_t *r, unsigned int n, unsigned int t, unsigned int nc, std::size_t ccs, unsigned int loc, DeviceOps *ops, WD const &wd, uint64_t devAddr, uint64_t hostAddr )
+               : _opObj( opObj ), _region( r ), _numDimensions( n ), _targetDimension( t ), _numChunks( nc ), _contiguousChunkSize( ccs ), _location( loc ), _ops( ops ), _wd( wd ), _devBaseAddr( devAddr ), _hostBaseAddr( hostAddr) {
+         }
+         void issueOpsRecursive( unsigned int idx, std::size_t offset, std::size_t leadingDim ) {
+            if ( idx == _numDimensions ) {
+               //issue copy
+               if ( _numChunks > 1 && sys.usePacking() ) {
+                  std::cerr << "opObj->doStrided( "<<_location<<", "<<(void*)(_devBaseAddr+offset)<<", "<<(void*)(_hostBaseAddr+offset)<<", "<<_contiguousChunkSize<<", "<<_numChunks<<", "<<leadingDim<<", _ops, _wd )" << std::endl;
+                  _opObj->doStrided( _location, _devBaseAddr+offset, _hostBaseAddr+offset, _contiguousChunkSize, _numChunks, leadingDim, _ops, _wd );
+               } else {
+                  for (unsigned int chunkIndex = 0; chunkIndex < _numChunks; chunkIndex +=1 ) {
+                     std::cerr <<"opObj->doNoStrided( "<<_location<<", "<<(void*)(_devBaseAddr+offset)<<", "<<(void*)(_hostBaseAddr+offset)<<", "<<_contiguousChunkSize<<", _ops, _wd )"<<std::endl;
+                     _opObj->doNoStrided( _location, _devBaseAddr+offset, _hostBaseAddr+offset, _contiguousChunkSize, _ops, _wd );
+                  }
+               }
+            } else {
+               for ( unsigned int i = 0; i < _region[ idx ].accessed_length; i += 1 ) {
+                  //std::cerr <<"_recursive call" << std::endl;
+                  issueOpsRecursive( idx + 1, offset + leadingDim * ( i + _region[ idx ].lower_bound ), leadingDim * _region[ idx ].size ); 
+               }
+            }
+         }
+   };
+   nanos_region_dimension_internal_t region[ hostMem.getNumDimensions() ];
+   hostMem.fillDimensionData( region );
+
+   unsigned int dimIdx = 0;
+   unsigned int numChunks = 0;
+   std::size_t contiguousChunkSize = 1;
+   std::size_t leadingDimension = 1;
+
+   do {
+     contiguousChunkSize *= region[ dimIdx ].accessed_length;
+     leadingDimension *= region[ dimIdx ].size;
+     dimIdx += 1;
+   } while ( region[ dimIdx - 1 ].accessed_length == region[ dimIdx - 1 ].size && dimIdx < hostMem.getNumDimensions() );
+
+   if ( region[ dimIdx - 1 ].accessed_length == region[ dimIdx - 1 ].size ) {
+      // out because of dimIdx = NumDims
+      numChunks = 1;
+      //std::cerr << " OUT BECAUSE OF DIMS " << std::endl;
+   } else {
+      //std::cerr << " OUT BECAUSE OF FRAGMENTS " << std::endl;
+      numChunks = region[ dimIdx ].accessed_length;
+   }
+
+   //now we have 'numCuunks' chunks of 'contiguousChunkSize'
+
+   //std::cerr << " NUM CHUNKS: " << numChunks << " of SIZE " << contiguousChunkSize << " dimIdx " << dimIdx << " leadingDim "<< leadingDimension << std::endl;
+
+   LocalFunction local( opObj, region, hostMem.getNumDimensions(), dimIdx, numChunks, contiguousChunkSize, location, ops, wd, devBaseAddr, hostMem.getFirstAddress() );
+   local.issueOpsRecursive( dimIdx+1, 0, leadingDimension );
+   
+   //if ( numChunks > 1 && sys.usePacking() ) {
+   //   uint64_t ld = hostMem.getNonContiguousChunk( 1, skipBits ) - hostMem.getNonContiguousChunk( 0, skipBits );
+   //   uint64_t hostAddr = hostMem.getNonContiguousChunk( 0, skipBits );
+  
+   //   opObj->doStrided( location, devBaseAddr, hostAddr, contiguousSize, numChunks, ld, ops, wd );
+   //} else {
+   //   for (unsigned int chunkIndex = 0; chunkIndex < numChunks; chunkIndex +=1 ) {
+   //      uint64_t hostAddr = hostMem.getNonContiguousChunk( chunkIndex, skipBits );
+   //      uint64_t devAddr = devBaseAddr + ( hostAddr - hostMem.getFirstValue() ); /* contiguous chunk offset */
+  
+   //      opObj->doNoStrided( location, devAddr, hostAddr, contiguousSize, ops, wd );
+   //   }
+   //}
+}
+
+void RegionCache::copyIn( global_reg_t const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, WD const &wd ) {
+   doOp( &_copyInObj, hostMem, devBaseAddr, location, ops, wd );
+}
+
+void RegionCache::copyOut( global_reg_t const &hostMem, uint64_t devBaseAddr, DeviceOps *ops, WD const &wd ) {
    doOp( &_copyOutObj, hostMem, devBaseAddr, /* locations unused, copyOut is always to 0 */ 0, ops, wd );
 }
 
@@ -514,13 +726,24 @@ bool RegionCache::tryLock() {
 }
 
 CacheCopy::CacheCopy() : _copy( *( (CopyData *) NULL ) ), _cacheEntry( NULL ), _cacheDataStatus(),
-   _region( ), _offset( 0 ), _version( 0 ), _locations(), _operations(), _otherPendingOps() {
+   _region( ), _offset( 0 ), _version( 0 ), _locations(), _operations(), _otherPendingOps(), _reg( (global_reg_t) { 0, NULL } ) {
 }
 
 CacheCopy::CacheCopy( WD const &wd , unsigned int copyIndex ) : _copy( wd.getCopies()[ copyIndex ] ), _cacheEntry( NULL ),
    _cacheDataStatus(), _region( NewRegionDirectory::build_region( _copy ) ), _offset( 0 ),
-   _version( 0 ), _locations(), _operations(), _otherPendingOps() {
-   wd.getNewDirectory()->getLocation( _region, _locations, _version, wd );
+   _version( 0 ), _newVersion(0), _locations(), _operations(), _otherPendingOps() {
+
+   if ( !sys.usingNewCache() ) {
+      wd.getNewDirectory()->getLocation( _region, _locations, _version, wd );
+   } else {
+      _reg.key = sys.getMasterRegionDirectory().getRegionDirectoryKeyRegisterIfNeeded( wd.getCopies()[ copyIndex ] );
+      _reg.id = NewNewRegionDirectory::getLocation( _reg.key, wd.getCopies()[ copyIndex ], _newLocations, _newVersion, wd );
+   }
+   
+   //std::cerr << "Region is " << _regId << " # Components: " << _newLocations.size() << " " << std::endl;
+   //for ( NewNewRegionDirectory::NewLocationInfoList::iterator it = _newLocations.begin(); it != _newLocations.end(); it++ ) {
+   //   std::cerr << "\tReg " << *it << std::endl;
+   //}
 }
 
 bool CacheCopy::isReady() {
@@ -599,6 +822,50 @@ inline void CacheCopy::generateCopyInOps( RegionCache *targetCache, std::map<uns
    if ( targetCache ) _cacheEntry->unlock();
 }
 
+inline void CacheCopy::NEWgenerateCopyInOps( RegionCache *targetCache, std::map<unsigned int, std::list< std::pair< global_reg_t, CacheCopy * > > > &opsBySourceRegions ) {
+#if 1
+	NewNewRegionDirectory::NewLocationInfoList::const_iterator it;
+   if ( targetCache ) _cacheEntry->lock();
+   if ( _copy.isInput() )
+   {
+      for ( it = _newLocations.begin(); it != _newLocations.end(); it++ ) {
+
+        //std::cerr <<"check location copy first: "<< it->first << " second: " << it->second << std::endl; 
+         if ( NewNewRegionDirectory::isLocatedIn( _reg.key, it->second, ( !targetCache ) ? 0 : targetCache->getMemorySpaceId(), _newVersion ) ) continue;
+       //  if ( it->second.isLocatedIn( ( !targetCache ) ? 0 : targetCache->getMemorySpaceId() ) ) continue;
+         /* FIXME: version info, (I think its not needed because directory stores
+          * only the last version, if an old version is stored, it wont be reported
+          * but _targetCache.getAddress will return the already allocated storage)
+          */
+         if ( !targetCache ) {
+            /* No Cache scenario
+             * we can not check if there are already comming ops for this region/sub-regions!! FIXME
+             */
+            opsBySourceRegions[ NewNewRegionDirectory::getFirstLocation( _reg.key, it->second ) ].push_back( std::make_pair( global_reg_t( it->first, _reg.key ) , this ) );
+         } else { 
+            std::list< reg_t > components;
+            _cacheEntry->NEWaddReadRegion( it->first, NewNewRegionDirectory::getVersion( _reg.key, it->second ), _otherPendingOps, components, &_operations, _copy.isOutput() );
+            std::list< reg_t >::iterator cit;
+            for ( cit = components.begin(); cit != components.end(); cit++ ) {
+               std::list< std::pair< global_reg_t, CacheCopy * > > &thisCopyOpsRegions = opsBySourceRegions[ NewNewRegionDirectory::getFirstLocation( _reg.key, it->second ) ];
+               thisCopyOpsRegions.push_back( std::make_pair( global_reg_t( *cit, _reg.key ), this ) );
+               global_reg_t r( *cit, _reg.key );
+            }
+         }
+      }
+   } else { //else if ( !_copy.isInput() && _copy.isOutput() && targetCache ) {
+      ensure( ( !_copy.isInput() && _copy.isOutput() ) , "Wrong copy directions.");
+      unsigned int currentVersion = 1;
+      for ( it = _newLocations.begin(); it != _newLocations.end(); it++ ) {
+         currentVersion = std::max( currentVersion, NewNewRegionDirectory::getVersion( _reg.key, it->second ) );
+      }
+      /* write only region */
+      if ( targetCache ) _cacheEntry->NEWaddWriteRegion( _reg.id, currentVersion + 1 );
+   }
+   if ( targetCache ) _cacheEntry->unlock();
+#endif
+}
+
 CacheController::CacheController( WD const &wd ) : _wd ( wd ), _numCopies ( wd.getNumCopies() ), _targetCache ( NULL ) {
    if ( _numCopies > 0 ) 
       _cacheCopies = NEW CacheCopy[ _numCopies ];
@@ -633,22 +900,39 @@ void CacheController::copyDataIn(RegionCache *targetCache) {
          }
          
          // register version into this task directory
+    if ( !sys.usingNewCache() )
 	 _wd.getNewDirectory()->addAccess( ccopy.getRegion(), ( !_targetCache ) ? 0 : _targetCache->getMemorySpaceId(),
             ccopy.getCopyData().isOutput() ? ccopy.getVersion() + 1 : ccopy.getVersion() );
+
+
       }
       NANOS_INSTRUMENT( inst3.close(); );
 
       /* COPY IN GENERATION */
       NANOS_INSTRUMENT( InstrumentState inst4(NANOS_CC_CDIN_OP_GEN); );
       std::map<unsigned int, std::list< std::pair< Region, CacheCopy * > > > opsBySourceRegions;
+      std::map<unsigned int, std::list< std::pair< global_reg_t, CacheCopy * > > > NEWopsBySourceRegions;
+         //std::cerr << _wd.getId()  << " "<< myThread->getId() <<" ---------------------------- GEN COPIES --------------------------" << std::endl;
       for ( index = 0; index < _numCopies; index += 1 ) {
-         _cacheCopies[ index ].generateCopyInOps( _targetCache, opsBySourceRegions );
+         //std::cerr << _wd.getId()  << " "<< myThread->getId() <<"------ " << index << std::endl;
+         if (!sys.usingNewCache()) _cacheCopies[ index ].generateCopyInOps( _targetCache, opsBySourceRegions );
+         else _cacheCopies[ index ].NEWgenerateCopyInOps( _targetCache, NEWopsBySourceRegions );
       }
+         //std::cerr << _wd.getId()  << " "<< myThread->getId() <<"------------------------------------------------------" << std::endl;
       NANOS_INSTRUMENT( inst4.close(); );
       /* END OF COPY IN GENERATION */
 
-      /* ISSUE ACTUAL OPERATIONS */
+ if ( sys.usingNewCache() ) {
+      for ( index = 0; index < _numCopies; index += 1 ) {
+         CacheCopy &ccopy = _cacheCopies[ index ];
+         NewNewRegionDirectory::addAccess( ccopy.getRegionDirectoryKey(), ccopy.getRegId(), ( !_targetCache ) ? 0 : _targetCache->getMemorySpaceId(), ccopy.getNewVersion() );
+      }
+  }
+
       NANOS_INSTRUMENT( InstrumentState inst5(NANOS_CC_CDIN_DO_OP); );
+ if ( !sys.usingNewCache() ) {
+      /* ISSUE ACTUAL OPERATIONS */
+      std::cerr <<"########## OLD copy in gen ######### "<<std::endl;
       std::map< unsigned int, std::list< std::pair< Region, CacheCopy * > > >::iterator mapOpsStrIt;
       if ( targetCache ) {
          for ( mapOpsStrIt = opsBySourceRegions.begin(); mapOpsStrIt != opsBySourceRegions.end(); mapOpsStrIt++ ) {
@@ -658,6 +942,7 @@ void CacheController::copyDataIn(RegionCache *targetCache) {
                uint64_t fragmentOffset = listIt->first.getFirstValue() - ( ( uint64_t ) ccopy.getCopyData().getBaseAddress() + ccopy.getCopyData().getOffset() ); /* displacement due to fragmented region */
                uint64_t targetDevAddr = ccopy.getDeviceAddress() + fragmentOffset /* + ccopy.getCopyData().getOffset() */;
       if ( _wd.getDepth() == 1 ) std::cerr << "############################### CopyIn gen op: " << listIt->first.getLength() << " " << listIt->first.getBreadth() <<  " " << listIt->first << std::endl;
+               //std::cerr << " OLD copy In, host: " << (void *) listIt->first.getFirstValue() << " dev " << (void *) targetDevAddr << " fragmentOff " << fragmentOffset << std::endl;
                targetCache->copyIn( listIt->first, targetDevAddr, mapOpsStrIt->first, ccopy.getOperations(), _wd );
             }
          }
@@ -666,6 +951,31 @@ void CacheController::copyDataIn(RegionCache *targetCache) {
             sys.getCaches()[ mapOpsStrIt->first ]->syncRegion( mapOpsStrIt->second, _wd );
          }
       }
+  } else {
+      /* NEW REGIONS */
+      std::cerr <<"########## NEW copy in gen ######### "<<std::endl;
+      std::map< unsigned int, std::list< std::pair< global_reg_t, CacheCopy * > > >::iterator NEWmapOpsStrIt;
+      if ( targetCache ) {
+         for ( NEWmapOpsStrIt = NEWopsBySourceRegions.begin(); NEWmapOpsStrIt != NEWopsBySourceRegions.end(); NEWmapOpsStrIt++ ) {
+            std::list< std::pair< global_reg_t, CacheCopy * > > &ops = NEWmapOpsStrIt->second;
+            for ( std::list< std::pair< global_reg_t, CacheCopy * > >::iterator listIt = ops.begin(); listIt != ops.end(); listIt++ ) {
+               CacheCopy &ccopy = *listIt->second;
+               uint64_t fragmentOffset = listIt->first.getFirstAddress() - ( ( uint64_t ) ccopy.getCopyData().getBaseAddress() + ccopy.getCopyData().getOffset() ); /* displacement due to fragmented region */
+               uint64_t targetDevAddr = ccopy.getDeviceAddress() + fragmentOffset /* + ccopy.getCopyData().getOffset() */;
+               //std::cerr << " NEW copy In, host: " << (void *) listIt->first.getFirstAddress() << " dev " << (void *) targetDevAddr << " fragmentOff " << fragmentOffset << std::endl;
+               targetCache->copyIn( listIt->first, targetDevAddr, NEWmapOpsStrIt->first, ccopy.getOperations(), _wd );
+            }
+         }
+      } else {
+         for ( NEWmapOpsStrIt = NEWopsBySourceRegions.begin(); NEWmapOpsStrIt != NEWopsBySourceRegions.end(); NEWmapOpsStrIt++ ) {
+      //std::cerr << "Copy from cache " <<  NEWmapOpsStrIt->first << std::endl;
+            sys.getCaches()[ NEWmapOpsStrIt->first ]->syncRegion( NEWmapOpsStrIt->second, _wd );
+         }
+      }
+      std::cerr <<"########## ########### ######### "<<std::endl;
+   }
+      
+
       NANOS_INSTRUMENT( inst5.close(); );
       /* END OF ISSUE OPERATIONS */
    }
@@ -704,7 +1014,9 @@ void CacheController::copyDataOut() {
    for ( index = 0; index < _numCopies; index += 1 ) {
       CacheCopy &ccopy = _cacheCopies[ index ];
 
+
       if ( !ccopy.getCopyData().isOutput() ) continue;
+      if ( sys.usingNewCache() ) NewNewRegionDirectory::addAccess( ccopy.getRegionDirectoryKey(), ccopy.getRegId(), ( !_targetCache ) ? 0 : _targetCache->getMemorySpaceId(), ccopy.getNewVersion() + 1 );
    
       // TODO: WriteThrough code
 
