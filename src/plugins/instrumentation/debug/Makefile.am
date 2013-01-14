@@ -24,6 +24,7 @@ if DEBUG_VERSION
 debug_LTLIBRARIES = \
 	libnanox-instrumentation-empty_trace.la \
 	libnanox-instrumentation-print_trace.la \
+	libnanox-instrumentation-graph.la \
 	$(END)
 
 if INSTRUMENTATION_EXTRAE
@@ -46,6 +47,10 @@ libnanox_instrumentation_empty_trace_la_SOURCES = $(empty_sources)
 libnanox_instrumentation_print_trace_la_CXXFLAGS = $(nanos_debug_cxxflags)
 libnanox_instrumentation_print_trace_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_instrumentation_print_trace_la_SOURCES = $(print_sources)
+
+libnanox_instrumentation_graph_la_CXXFLAGS = $(nanos_debug_cxxflags)
+libnanox_instrumentation_graph_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_instrumentation_graph_la_SOURCES = $(graph_sources)
 
 if INSTRUMENTATION_EXTRAE
 libnanox_instrumentation_extrae_la_CXXFLAGS = $(nanos_debug_cxxflags) $(extrae_mpitrace_cxxflags)
