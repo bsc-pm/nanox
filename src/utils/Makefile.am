@@ -28,7 +28,10 @@ nanox_SOURCES=\
 	nanox.cpp \
 	$(END)
 
-nanox_LDFLAGS=-Wl,-rpath,$(CUDA_LIB)
+nanox_LDFLAGS=
+if GPU_SUPPORT
+nanox_LDFLAGS+=-Wl,-rpath,"$(CUDA_LIB)"
+endif
 
 nanox_LDADD=\
 	-ldl \
