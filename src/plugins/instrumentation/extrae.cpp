@@ -14,6 +14,8 @@
 #include <alloca.h>
 #include <stdlib.h>
 #include <libgen.h>
+#include <unistd.h>
+
 #include "os.hpp"
 #include "errno.h"
 
