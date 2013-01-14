@@ -38,6 +38,7 @@ namespace nanos
          void setWriteLocation( int id ) ;
          void addAccess( int id, unsigned int version ); 
          bool isLocatedIn( int id, unsigned int version ) const ;
+         bool isLocatedIn( int id ) const ;
          void merge( const NewNewDirectoryEntryData &de ) ;
          void print() const ;
          bool equal( const NewNewDirectoryEntryData &d ) const ;
@@ -93,12 +94,15 @@ namespace nanos
          void print() const;
          void lock();
          void unlock();
-         RegionDictionary const &getDictionary( CopyData const &cd ) const;
+         RegionDictionary &getDictionary( CopyData const &cd ) const;
 
          static NewNewDirectoryEntryData *getDirectoryEntry( RegionDictionary &dict, reg_t id );
 
          static reg_t getLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
          static bool isLocatedIn( RegionDirectoryKey dict, reg_t id, unsigned int loc, unsigned int version );
+         static bool isLocatedIn( RegionDirectoryKey dict, reg_t id, unsigned int loc );
+         static bool hasWriteLocation( RegionDirectoryKey dict, reg_t id );
+         static unsigned int getWriteLocation( RegionDirectoryKey dict, reg_t id );
          static unsigned int getVersion( RegionDirectoryKey dict, reg_t id );
          static void addAccess( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version );
          static unsigned int getFirstLocation( RegionDirectoryKey dict, reg_t id );

@@ -122,24 +122,24 @@ void ClusterInfo::setUpCache()
    } else {
       _cachePolicy = System::NONE;
    }
-   switch ( _cachePolicy )
-   {
-      case System::NONE:
-         message0("Cluster Cache policy: None.");
-         break;
-      case System::WRITE_THROUGH:
-         message0("Cluster Cache policy: Write Through.");
-         break;
-      case System::WRITE_BACK:
-         message0("Cluster Cache policy: Write Back.");
-         break;
-      case System::DEFAULT:
-         message0("Cluster Cache policy: Default (This should not happen).");
-         break;
-      default:
-         message0("Cluster Cache policy: Unknown (This should not happen).");
-         break;
-   }
+   //switch ( _cachePolicy )
+   //{
+   //   case System::NONE:
+   //      message0("Cluster Cache policy: None.");
+   //      break;
+   //   case System::WRITE_THROUGH:
+   //      message0("Cluster Cache policy: Write Through.");
+   //      break;
+   //   case System::WRITE_BACK:
+   //      message0("Cluster Cache policy: Write Back.");
+   //      break;
+   //   case System::DEFAULT:
+   //      message0("Cluster Cache policy: Default (This should not happen).");
+   //      break;
+   //   default:
+   //      message0("Cluster Cache policy: Unknown (This should not happen).");
+   //      break;
+   //}
 }
 
 std::size_t ClusterInfo::getNodeMem()

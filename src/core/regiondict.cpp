@@ -4,6 +4,7 @@
 #include "atomic.hpp"
 #include "version.hpp"
 #include "system_decl.hpp"
+#include "basethread.hpp"
 
 using namespace nanos;
 
@@ -41,6 +42,30 @@ reg_t RegionNode::addNode( nanos_region_dimension_internal_t const *dimensions, 
       retId = it->second.getId();
    } else {
       retId = it->second.addNode( dimensions, numDimensions, deep + 1, dict );
+   }
+   return retId;
+}
+
+reg_t RegionNode::checkNode( nanos_region_dimension_internal_t const *dimensions, unsigned int numDimensions, unsigned int deep ) {
+   bool lastNode = ( deep == ( 2 * numDimensions - 1 ) );
+   std::size_t value = ( ( deep & 1 ) == 0 ) ? dimensions[ (deep >> 1) ].lower_bound : dimensions[ (deep >> 1) ].accessed_length;
+   //std::cerr << "this node value is "<< _value << " gonna add value " << value << " this deep " << deep<< std::endl;
+   if ( !_sons ) {
+      return 0;
+   }
+
+   std::map<std::size_t, RegionNode>::iterator it = _sons->lower_bound( value );
+   bool haveToInsert = ( it == _sons->end() || _sons->key_comp()(value, it->first) );
+   reg_t retId = 0;
+
+   if ( haveToInsert ) {
+      return 0;
+   }
+
+   if ( lastNode ) {
+      retId = it->second.getId();
+   } else {
+      retId = it->second.checkNode( dimensions, numDimensions, deep + 1 );
    }
    return retId;
 }
@@ -105,11 +130,15 @@ reg_t RegionTreeRoot::addRegion( nanos_region_dimension_internal_t const region[
    return _root.addNode( region, getNumDimensions(), 0, dict );
 }
 
+reg_t RegionTreeRoot::checkIfRegionExists( nanos_region_dimension_internal_t const region[] ) {
+   return _root.checkNode( region, getNumDimensions(), 0 );
+}
+
 reg_t RegionTreeRoot::getMaxRegionId() const {
    return _idSeed.value();
 }
 
-RegionDictionary::RegionDictionary( CopyData const &cd, RegionAssociativeContainer &container ) : _tree( *( NEW RegionTreeRoot( cd ) ) ), _intersects( *this ), _regionContainer( container ), _baseAddress( (uint64_t) cd.getBaseAddress() ) {
+RegionDictionary::RegionDictionary( CopyData const &cd, RegionAssociativeContainer &container, bool rogue ) : _tree( *( NEW RegionTreeRoot( cd ) ) ), _intersects( *this ), _regionContainer( container ), _baseAddress( (uint64_t) cd.getBaseAddress() ), _rogue( rogue ), _lock(), _rogueLock( NULL ) {
    //std::cerr << "CREATING MASTER DICT: tree: " << (void *) &_tree << std::endl;
    nanos_region_dimension_internal_t dims[ cd.getNumDimensions() ];
    for ( unsigned int idx = 0; idx < cd.getNumDimensions(); idx++ ) {
@@ -117,31 +146,42 @@ RegionDictionary::RegionDictionary( CopyData const &cd, RegionAssociativeContain
       dims[ idx ].accessed_length = cd.getDimensions()[ idx ].size;
       dims[ idx ].lower_bound = 0;
    }
-   _tree.addRegion( dims, *this );
+   reg_t id = _tree.addRegion( dims, *this );
+   std::list< std::pair< reg_t, reg_t > > missingParts;
+   unsigned int version;
+   ensure( id == 1, "Whole region did not get id 1");
+   _intersects.addRegionAndComputeIntersects( id, missingParts, version, _rogue, true );
 }
 
-RegionDictionary::RegionDictionary( RegionDictionary const &dict, RegionAssociativeContainer &container ) : _tree( dict._tree ), _intersects( *this ), _regionContainer( container ), _baseAddress( dict._baseAddress )  {
-   std::cerr << "CREATING CACHE DICT: tree: " << (void *) &_tree << " orig tree: " << (void *) &dict._tree << std::endl;
+RegionDictionary::RegionDictionary( RegionDictionary &dict, RegionAssociativeContainer &container, bool rogue ) : _tree( dict._tree ), _intersects( *this ), _regionContainer( container ), _baseAddress( dict._baseAddress ), _rogue( rogue ), _lock(), _rogueLock( &dict._lock ) {
+   //std::cerr << "CREATING CACHE DICT: tree: " << (void *) &_tree << " orig tree: " << (void *) &dict._tree << std::endl;
+}
+
+void RegionDictionary::lock() {
+   _lock.acquire();
+}
+
+void RegionDictionary::unlock() {
+   _lock.release();
 }
 
 unsigned int RegionDictionary::getNumDimensions() const {
    return _tree.getNumDimensions();
 }
 
-void RegionIntersectionDictionary::addRegionAndComputeIntersects( reg_t id, std::list< std::pair< reg_t, reg_t > > &finalParts, unsigned int &version ) {
+void RegionIntersectionDictionary::addRegionAndComputeIntersects( reg_t id, std::list< std::pair< reg_t, reg_t > > &finalParts, unsigned int &version, bool rogue, bool justCreatedRegion ) {
    class LocalFunction {
       RegionDictionary &_currentDict;
       public:
       LocalFunction( RegionDictionary &dict ) : _currentDict( dict ) { } 
 
-      reg_t addIntersect( reg_t regionIdA, reg_t regionIdB ) {
-         nanos_region_dimension_internal_t resultingRegion[ _currentDict.getNumDimensions() ];
+      void _computeIntersect( reg_t regionIdA, reg_t regionIdB, nanos_region_dimension_internal_t *outReg ) {
          RegionNode const *regA = _currentDict.getLeafRegionNode( regionIdA );
          RegionNode const *regB = _currentDict.getLeafRegionNode( regionIdB );
       
-         //std::cerr << "Computing intersect between reg " << regionIdA << " and "<< regionIdB << "... ";
-         //printRegion(regionIdA ); std::cerr << std::endl;
-         //printRegion(regionIdB ); std::cerr << std::endl;
+         //std::cerr << "Computing intersect between reg " << regionIdA << " and "<< regionIdB << "... "<<std::endl;
+         //_dict.printRegion(regionIdA ); std::cerr << std::endl;
+         //_dict.printRegion(regionIdB ); std::cerr << std::endl;
       
          for ( int dimensionCount = _currentDict.getNumDimensions() - 1; dimensionCount >= 0; dimensionCount -= 1 ) {
             std::size_t accessedLengthA = regA->getValue();
@@ -180,25 +220,47 @@ void RegionIntersectionDictionary::addRegionAndComputeIntersects( reg_t id, std:
                 } 
             }
       
-            resultingRegion[ dimensionCount ].accessed_length = accessedLengthC;
-            resultingRegion[ dimensionCount ].lower_bound = lowerBoundC;
+            outReg[ dimensionCount ].accessed_length = accessedLengthC;
+            outReg[ dimensionCount ].lower_bound = lowerBoundC;
       
             regA = regA->getParent();
             regB = regB->getParent();
          }
-      
-         //reg_t id = _currentDict._root.addNode( resultingRegion, _currentDict.getNumDimensions(), 0, _currentDict );
-         reg_t id = _currentDict.addRegionByComponents( resultingRegion );
-         //std::cerr << " result is"<< id << std::endl;
-         return id;
       }
+
+      reg_t addIntersect( reg_t regionIdA, reg_t regionIdB ) {
+         nanos_region_dimension_internal_t resultingRegion[ _currentDict.getNumDimensions() ];
+         _computeIntersect( regionIdA, regionIdB, resultingRegion );
+         reg_t regId = _currentDict.addRegionByComponents( resultingRegion );
+         return regId;
+      }
+
+      reg_t computeIntersect( reg_t regionIdA, reg_t regionIdB ) {
+         nanos_region_dimension_internal_t resultingRegion[ _currentDict.getNumDimensions() ];
+         _computeIntersect( regionIdA, regionIdB, resultingRegion );
+         reg_t regId = _currentDict.checkIfRegionExistsByComponents( resultingRegion );
+         return regId;
+      }
+
       void addSubRegion( std::list< std::pair< reg_t, reg_t > > &partsList, reg_t regionToInsert ) {
-         ensure( !partsList.empty(), "Empty parts list!" );
+         //ensure( !partsList.empty(), "Empty parts list!" );
+         //if ( partsList.empty() ) {
+         //   std::cerr << "FAIL " << __FUNCTION__ << std::endl; 
+         //}
+
          
          std::list< std::pair< reg_t, reg_t > > intersectList;
          std::list< std::pair< reg_t, reg_t > >::iterator it = partsList.begin();
+
+         //std::cerr << "BEGIN addSubRegion, insert reg: " << regionToInsert << " content of partsList: ";
+         //for( std::list< std::pair< reg_t, reg_t > >::iterator pit = partsList.begin(); pit != partsList.end(); pit++ ) {
+         //   std::cerr << "[" << pit->first << "," << pit->second << "] ";
+         //}
+         //std::cerr << std::endl;
+
          while ( it != partsList.end() ) {
             if ( _currentDict.checkIntersect( it->first, regionToInsert ) ) {
+               //std::cerr << "Add intersect " << it->first << std::endl;
                intersectList.push_back( *it );
                it = partsList.erase( it );
             } else {
@@ -210,9 +272,15 @@ void RegionIntersectionDictionary::addRegionAndComputeIntersects( reg_t id, std:
             std::list<reg_t> pieces;
             _currentDict.substract( it->first, regionToInsert, pieces );
             for ( std::list< reg_t >::iterator piecesIt = pieces.begin(); piecesIt != pieces.end(); piecesIt++ ) {
+               //std::cerr << "Add part " << *piecesIt << std::endl;
                partsList.push_back( std::make_pair( *piecesIt, it->second ) );
             }
          }
+         //std::cerr << "END addSubRegion, content of partsList: ";
+         //for( std::list< std::pair< reg_t, reg_t > >::iterator pit = partsList.begin(); pit != partsList.end(); pit++ ) {
+         //   std::cerr << "[" << pit->first << "," << pit->second << "] ";
+         //}
+         //std::cerr << std::endl;
       }
    };
 
@@ -222,9 +290,14 @@ void RegionIntersectionDictionary::addRegionAndComputeIntersects( reg_t id, std:
    RegionDictionary::RegionList missingParts;
    reg_t backgroundRegion = 0;
 
+   Version *thisEntry = _dict.getRegionData( id );
+   unsigned int thisRegionVersion = thisEntry != NULL ? thisEntry->getVersion() : 1;
+
    RegionNode const *regNode = _dict.getLeafRegionNode( id );
+   if ( regNode == NULL ) { std::cerr << "NULL RegNode, this must come from a rogue insert from a cache."<<std::endl;}
    MemoryMap< std::set< reg_t > >::MemChunkList results[ _dict.getNumDimensions() ];
    std::map< reg_t, unsigned int > interacts;
+   unsigned int skipDimensions = 0;
    for ( int idx = _dict.getNumDimensions() - 1; idx >= 0; idx -= 1 ) {
       std::size_t accessedLength = regNode->getValue();
       regNode = regNode->getParent();
@@ -233,50 +306,123 @@ void RegionIntersectionDictionary::addRegionAndComputeIntersects( reg_t id, std:
 
       _intersects[ idx ].getOrAddChunk( lowerBound, accessedLength, results[ idx ] );
       std::set< reg_t > thisDimInteracts;
+      if ( results[idx].size() == 1 ) {
+         if ( *(results[idx].begin()->second) == NULL ) {
+            *(results[idx].begin()->second) = NEW std::set< reg_t >();
+         }
+         //if(sys.getNetwork()->getNodeNum() == 0) {
+         //   std::cerr <<"reg "<< id <<"("<< thisRegionVersion <<") dimIdx "<< idx <<": [" << lowerBound << ":" << accessedLength <<"] set size " << (*(results[idx].begin()->second))->size() << " maxregId " << _dict.getRegionCount() << " leafCount "<< _dict.getLeafCount()  << " { ";
+         //   for ( std::set< reg_t >::iterator sit = (*(results[idx].begin()->second))->begin(); sit != (*(results[idx].begin()->second))->end(); sit++ ) {
+         //       Version *itEntry = _dict.getRegionData( *sit );
+         //       unsigned int itVersion = ( itEntry != NULL ? itEntry->getVersion() : 1 );
+         //      std::cerr << *sit << "("<< itVersion <<") ";
+         //   }
+         //   std::cerr <<"}" << std::endl;
+         //}
+         if ( (*(results[idx].begin()->second))->size() == _dict.getLeafCount() ||
+              ( justCreatedRegion && ((*(results[idx].begin()->second))->size() + 1 ) == _dict.getLeafCount() )) {
+            skipDimensions += 1;
+         } else {
+            for ( std::set< reg_t >::iterator sit = (*(results[idx].begin()->second))->begin(); sit != (*(results[idx].begin()->second))->end(); sit++ ) {
+                if ( *sit == id ) continue;
+                std::set< reg_t >::iterator sit2 = sit;
+                Version *itEntry = _dict.getRegionData( *sit );
+                unsigned int itVersion = ( itEntry != NULL ? itEntry->getVersion() : 1 );
+                bool insert = true;
+                if ( (*(results[idx].begin()->second))->size() > 1 ) {
+                   for ( sit2++; sit2 != (*(results[idx].begin()->second))->end(); sit2++ ) {
+                      //std::cerr << "\tintersect test "<< *sit << " vs " << *sit2 << std::endl;
+                      if ( _dict.checkIntersect( *sit, *sit2 ) && _dict.checkIntersect( *sit2, id ) ) {
+                         Version *entry2 = _dict.getRegionData( *sit2 );
+                         unsigned int thisVersion2 = ( entry2 != NULL ? entry2->getVersion() : 1 );
+                         if ( thisVersion2 > itVersion ) {
+                            insert = false;
+                         }
+                      }
+                   }
+                }
+                if ( insert ) {
+                   //std::cerr << "insert reg " << *sit << std::endl;
+                   thisDimInteracts.insert( *sit );
+                }
+            }
+         }
+         (*(results[idx].begin()->second))->insert( id );
+      } else {
+        //std::cerr << "case with > 1 results"<< std::endl;
+        //if(sys.getNetwork()->getNodeNum() == 0)  std::cerr << idx  <<": [" << lowerBound << ":" << accessedLength <<"] results size size " << results[idx].size() << " maxregId " << _dict.getMaxRegionId() << std::endl;
+      //std::cerr << "intersect map query, dim " << idx << " got entries: " <<  results[ idx ].size() << std::endl;
       for ( MemoryMap< std::set< reg_t > >::MemChunkList::iterator it = results[ idx ].begin(); it != results[ idx ].end(); it++ ) {
          if ( *(it->second) == NULL ) {
-            *(it->second) = new std::set< reg_t >();
+            *(it->second) = NEW std::set< reg_t >();
          } else {
-            thisDimInteracts.insert( (*(it->second))->begin(), (*(it->second))->end());
-            //std::cerr <<"Region " << id << " "; printRegion( id ); std::cerr << " dim: " << idx << " LB: " << it->first->getAddress() << " AL: "<< it->first->getLength()  << " interacts with: { ";
-            //for ( std::set< reg_t >::iterator sit = (*(it->second))->begin(); sit != (*(it->second))->end(); sit++ ) {
-            //   std::cerr << *sit << " ";
-            //   if ( *sit != id ) {
-            //    thisDimInteracts.insert( *sit );
-            //   }
-            //}
-            //std::cerr << "}" << std::endl;;
+            //thisDimInteracts.insert( (*(it->second))->begin(), (*(it->second))->end());
+            //std::cerr <<"Region " << id << " "; _dict.printRegion( id ); std::cerr << " dim: " << idx << " LB: " << it->first->getAddress() << " AL: "<< it->first->getLength()  << " interacts with: { ";
+            //unsigned int maxVersion = 0;
+            //compute max version of registered interactions
+            for ( std::set< reg_t >::iterator sit = (*(it->second))->begin(); sit != (*(it->second))->end(); sit++ ) {
+                if ( *sit == id ) continue;
+                std::set< reg_t >::iterator sit2 = sit;
+                Version *itEntry = _dict.getRegionData( *sit );
+                unsigned int itVersion = ( itEntry != NULL ? itEntry->getVersion() : 1 );
+                bool insert = true;
+                if ( (*(it->second))->size() > 1 ) {
+                   for ( sit2++; sit2 != (*(it->second))->end(); sit2++ ) {
+                      //std::cerr << "\tintersect test "<< *sit << " vs " << *sit2 << std::endl;
+                      if ( _dict.checkIntersect( *sit, *sit2 ) && _dict.checkIntersect( *sit2, id ) ) {
+                         Version *entry2 = _dict.getRegionData( *sit2 );
+                         unsigned int thisVersion2 = ( entry2 != NULL ? entry2->getVersion() : 1 );
+                         if ( thisVersion2 > itVersion ) {
+                            insert = false;
+                         }
+                      }
+                   }
+                }
+                if ( insert ) {
+                   thisDimInteracts.insert( *sit );
+                }
+            }
          } 
          (*(it->second))->insert( id );
       }
       //std::cerr <<"Region " << id << " "; _dict.printRegion( id ); std::cerr << " dim: " << idx << " interacts with: { ";
+      }
+
       for ( std::set< reg_t >::iterator sit = thisDimInteracts.begin(); sit != thisDimInteracts.end(); sit++ ) {
-         //std::cerr << *sit << " ";
+        // std::cerr << *sit << " ";
          interacts[ *sit ]++;
       }
       //std::cerr << "}" << std::endl;;
    }
+   //std::cerr << __FUNCTION__ << " node "<< sys.getNetwork()->getNodeNum() << " reg "<< id << " numdims " <<_dict.getNumDimensions() << " skipdims " << skipDimensions << " rogue? " << rogue << " leafs "<< _dict.getLeafCount() ; _dict.printRegion(id); std::cerr << " results sizes ";
+   //for ( int idx = _dict.getNumDimensions() - 1; idx >= 0; idx -= 1 ) {
+   //   std::cerr << "[ " << idx << "=" << results[idx].size() << ", " << (*(results[idx].begin()->second))->size()<<" ]";
+   //}
+   //std::cerr << std::endl;
+   //if ( skipDimensions == 0 && !rogue ) sys.printBt();
    for ( std::map< reg_t, unsigned int >::iterator mip = interacts.begin(); mip != interacts.end(); mip++ ) {
-      if ( mip->second == _dict.getNumDimensions() ) {
+      //std::cerr <<"numdims " <<_dict.getNumDimensions() << " skipdims " << skipDimensions << " count " <<mip->second <<std::endl;
+      if ( mip->second == ( _dict.getNumDimensions() - skipDimensions ) ) {
          reg_t intersectRegId = local.addIntersect( id, mip->first );
          if ( intersectRegId != id ) {
             //std::cerr << "Looks like a subPart " << intersectRegId << std::endl;
             subParts.push_back( intersectRegId );
          } else {
+            //std::cerr << "Looks like a superPart " << mip->first << std::endl;
             superParts.push_back( mip->first );
          }
+      }else {
+            //std::cerr << "<skip> interact count for reg " << mip->first << " -> " << mip->second << std::endl;
       }
    }
 
-   Version *thisEntry = _dict.getRegionData( id );
-
-   unsigned int thisRegionVersion = thisEntry != NULL ? thisEntry->getVersion() : 0;
-   version = 0;
-   unsigned int bgVersion = 0;
+   version = 1;
+   unsigned int bgVersion;
    reg_t highestVersionSuperRegion = 0;
 
    for ( RegionDictionary::RegionList::iterator it = superParts.begin(); it != superParts.end(); it++ ) {
-      unsigned int itVersion = ( _dict.getRegionData( *it ) == NULL ? 0 : _dict.getRegionData( *it )->getVersion() );
+      //std::cerr << "super region of reg " << id<< ": " << *it<<std::endl;
+      unsigned int itVersion = ( _dict.getRegionData( *it ) == NULL ? 1 : _dict.getRegionData( *it )->getVersion() );
       if ( itVersion > version ) {
          highestVersionSuperRegion = *it;
          version = itVersion;
@@ -295,61 +441,84 @@ void RegionIntersectionDictionary::addRegionAndComputeIntersects( reg_t id, std:
    bgVersion = version;
 
    for ( RegionDictionary::RegionList::iterator it = subParts.begin(); it != subParts.end(); it++ ) {
-      unsigned int itVersion = ( _dict.getRegionData( *it ) == NULL ? 0 : _dict.getRegionData( *it )->getVersion() );
+      unsigned int itVersion = ( _dict.getRegionData( *it ) == NULL ? 1 : _dict.getRegionData( *it )->getVersion() );
       if ( itVersion > bgVersion ) {
-         bool intersect = false;
+         //bool intersect = false;
+         bool subpart = false;
          for ( RegionDictionary::RegionList::const_iterator cit = missingParts.begin(); cit != missingParts.end(); cit++ ) {
-            intersect = _dict.checkIntersect( *it, *cit );
-            if ( intersect ) {
-               std::cerr << "··· WARNING: subregions intersect in "<< 
-__FUNCTION__ << " regions: " << *it << " and " << *cit << std::endl;
+            //intersect = _dict.checkIntersect( *it, *cit );
+            reg_t intersectReg = local.computeIntersect( *it, *cit );
+            if ( intersectReg == *it )
+            {
+               unsigned int citVersion = ( _dict.getRegionData( *cit ) == NULL ? 1 : _dict.getRegionData( *cit )->getVersion() );
+               subpart = ( citVersion >= itVersion );
             }
+            //if ( intersect ) {
+            //   std::cerr << "*** WARNING: subregions intersect in "<< __FUNCTION__ << " regions: " << *it << " and " << *cit << std::endl;
+            //}
          }
 
-         missingParts.push_back( *it );
-         version = itVersion;
+         if ( !subpart ) {
+            missingParts.push_back( *it );
+            version = itVersion;
+         }
       }
    }
 
-   //if ( !missingParts.empty() ) {
-      finalParts.push_back( std::make_pair( id, backgroundRegion ) );
-      for ( RegionDictionary::RegionList::const_iterator cit = missingParts.begin(); cit != missingParts.end(); cit++ ) {
-         //std::cerr << "BG rgion is " << backgroundRegion<< ", Add sub region " << *cit << std::endl;
-         local.addSubRegion( finalParts, *cit );
-      }
-      for ( RegionDictionary::RegionList::const_iterator cit = missingParts.begin(); cit != missingParts.end(); cit++ ) {
-         finalParts.push_back( std::make_pair( *cit, *cit ) );
-      }
-   //}
+   finalParts.push_back( std::make_pair( id, backgroundRegion ) );
+   //std::cerr << "starting with " << id << "," << backgroundRegion << std::endl;
+   for ( RegionDictionary::RegionList::const_iterator cit = missingParts.begin(); cit != missingParts.end(); cit++ ) {
+      //std::cerr << /*myThread->getId() <<*/ "BG rgion is " << backgroundRegion<< ", Add sub region " << *cit << " resulting set: { ";
+      local.addSubRegion( finalParts, *cit ); //FIXME: handle case when "finalParts" is empty
+      //for (std::list< std::pair< reg_t, reg_t > >::const_iterator cpit = finalParts.begin(); cpit != finalParts.end(); cpit++ ) {
+      //   std::cerr << "(" << cpit->first << "," << cpit->second << ")";
+      //}
+      //std::cerr <<" }"<< std::endl;
+   }
+   for ( RegionDictionary::RegionList::const_iterator cit = missingParts.begin(); cit != missingParts.end(); cit++ ) {
+      //std::cerr << /*myThread->getId() <<*/ " final parts region is " << *cit << std::endl;
+      finalParts.push_back( std::make_pair( *cit, *cit ) );
+   }
 }
 
 reg_t RegionDictionary::addRegion( CopyData const &cd, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version ) {
    reg_t id = 0;
+   unsigned int currentLeafCount = 0;
+   bool newlyCreatedRegion = false;
    //std::cerr << "=== RegionDictionary::addRegion ====================================================" << std::endl;
 
    ensure( cd.getNumDimensions() == getNumDimensions(), "ERROR" );
    if ( cd.getNumDimensions() != getNumDimensions() ) {
       std::cerr << "Error, invalid numDimensions" << std::endl;
    } else {
+      currentLeafCount = getLeafCount();
       id = _tree.addRegion( cd.getDimensions(), *this );
+      newlyCreatedRegion = ( getLeafCount() > currentLeafCount );
    }
    //std::cerr << cd << std::endl;
    //std::cerr << "got id "<< id << std::endl;
+   //if ( newlyCreatedRegion ) { std::cerr << __FUNCTION__ << ": just created region " << id << std::endl; }
 
-   _intersects.addRegionAndComputeIntersects( id, missingParts, version );
+   _intersects.addRegionAndComputeIntersects( id, missingParts, version, _rogue, newlyCreatedRegion );
 
    //std::cerr << "===== reg " << id << " ====================================================" << std::endl;
    return id;
 }
 
 reg_t RegionDictionary::addRegion( reg_t id, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version ) {
-   _intersects.addRegionAndComputeIntersects( id, missingParts, version );
+   _intersects.addRegionAndComputeIntersects( id, missingParts, version, _rogue, false );
    return id;
 }
 
 reg_t RegionDictionary::addRegionByComponents( nanos_region_dimension_internal_t const region[] ) {
    //return _root.addNode( region, getNumDimensions(), 0, *this );
-   return _tree.addRegion( region, *this );
+   reg_t t = _tree.addRegion( region, *this );
+   return t;//_tree.addRegion( region, *this );
+}
+
+reg_t RegionDictionary::checkIfRegionExistsByComponents( nanos_region_dimension_internal_t const region[] ) {
+   //return _root.addNode( region, getNumDimensions(), 0, *this );
+   return _tree.checkIfRegionExists( region );
 }
 
 reg_t RegionDictionary::getNewRegionId() {
@@ -464,7 +633,7 @@ bool RegionDictionary::checkIntersect( reg_t regionIdA, reg_t regionIdB ) const 
    return result;
 }
 
-RegionVector::RegionVector( ) : _regionList( 256, RegionVectorEntry() ) {
+RegionVector::RegionVector( ) : _regionList( 4096, RegionVectorEntry() ), _maxId( 0 ), _leafCount( 0 ) {
 }
 
 RegionNode *RegionVector::getLeaf( reg_t id ) const {
@@ -472,11 +641,13 @@ RegionNode *RegionVector::getLeaf( reg_t id ) const {
 }
 
 void RegionDictionary::addLeaf( RegionNode *leaf ) {
-   _regionContainer.addLeaf( leaf );
+   _regionContainer.addLeaf( leaf, _rogue );
 }
 
-void RegionVector::addLeaf( RegionNode *leaf ) {
+void RegionVector::addLeaf( RegionNode *leaf, bool rogue ) {
    _regionList[ leaf->getId() ].setLeaf( leaf );
+   _maxId = std::max( _maxId, leaf->getId() );
+   if (!rogue) _leafCount++;
 }
 
 Version *RegionVector::getRegionData( reg_t id ) {
@@ -485,6 +656,14 @@ Version *RegionVector::getRegionData( reg_t id ) {
 
 void RegionVector::setRegionData( reg_t id, Version *data ) {
    _regionList[ id ].setData( data );
+}
+
+unsigned int RegionVector::getRegionCount() const {
+   return _maxId;
+}
+
+unsigned int RegionVector::getLeafCount() const {
+   return _leafCount.value();
 }
 
 RegionMap::RegionMap( RegionAssociativeContainer const &orig ) : _regionList(), _orig( orig ) {
@@ -499,7 +678,7 @@ RegionNode *RegionMap::getLeaf( reg_t id ) const {
    return it->second.getLeaf();
 }
 
-void RegionMap::addLeaf( RegionNode *leaf ) {
+void RegionMap::addLeaf( RegionNode *leaf, bool rogue ) {
    _regionList[ leaf->getId() ].setLeaf( leaf );
 }
 
@@ -517,8 +696,22 @@ void RegionMap::setRegionData( reg_t id, Version *data ) {
    _regionList[ id ].setData( data );
 }
 
+unsigned int RegionMap::getRegionCount() const {
+   return _regionList.size();
+}
+
+unsigned int RegionMap::getLeafCount() const {
+   return _regionList.size();
+}
 reg_t RegionDictionary::getMaxRegionId() const {
    return _tree.getMaxRegionId();
+}
+
+unsigned int RegionDictionary::getRegionCount() const {
+   return _regionContainer.getRegionCount();
+}
+unsigned int RegionDictionary::getLeafCount() const {
+   return _regionContainer.getLeafCount();
 }
 
 //void RegionDictionary::addSubRegion( RegionDictionary &dict, std::list< std::pair< reg_t, reg_t > > partsList, reg_t regionToInsert ) {
@@ -545,6 +738,10 @@ reg_t RegionDictionary::getMaxRegionId() const {
 
 void RegionDictionary::printRegion( reg_t region ) const {
    RegionNode const *regNode = getLeafRegionNode( region );
+   if ( regNode == NULL ) {
+      std::cerr <<"NULL LEAF !";
+      return;
+   }
    for ( int dimensionCount = getNumDimensions() - 1; dimensionCount >= 0; dimensionCount -= 1 ) {  
       std::size_t accessedLength = regNode->getValue();
       regNode = regNode->getParent();
@@ -647,7 +844,9 @@ void RegionDictionary::_combine ( nanos_region_dimension_internal_t tmpFragment[
          _combine( tmpFragment, dim-1, 2, fragments, ( allFragmentsIntersect && false ), resultingPieces ); 
       } else {
          if ( !allFragmentsIntersect ) {
+            if ( _rogue ) _rogueLock->acquire();
             reg_t id = _tree.addRegion( tmpFragment, *this );
+            if ( _rogue ) _rogueLock->release();
             //std::cerr << "computed a subchunk " << id; printRegion( id ); std::cerr << std::endl;
             resultingPieces.push_back( id );
          } else {
@@ -717,6 +916,20 @@ std::size_t global_reg_t::getBreadth() const {
       if ( dimIdx >= 1 ) acumSizes = acumSizes / sizes[ dimIdx - 1 ];
    }
    return lastOffset - offset; 
+}
+
+std::size_t global_reg_t::getDataSize() const {
+   RegionNode *n = key->getLeafRegionNode( id );
+   //uint64_t baseAddress = key->getBaseAddress();
+   std::size_t dataSize = 1;
+
+   for ( int dimIdx = key->getNumDimensions() - 1; dimIdx >= 0; dimIdx -= 1 ) {
+      std::size_t accessedLength = n->getValue();
+      n = n->getParent();
+      n = n->getParent();
+      dataSize *= accessedLength;
+   }
+   return dataSize; 
 }
 
 unsigned int global_reg_t::getNumDimensions() const {

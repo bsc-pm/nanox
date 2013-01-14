@@ -81,6 +81,11 @@ inline NewRegionDirectory::LocationInfoList const &CacheCopy::getLocations() con
    return _locations;
 }
 
+inline NewNewRegionDirectory::NewLocationInfoList const &CacheCopy::getNewLocations() const {
+   return _newLocations;
+}
+
+
 inline CacheCopy *CacheController::getCacheCopies() const {
    return _cacheCopies;
 }

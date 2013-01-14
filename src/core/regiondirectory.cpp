@@ -261,7 +261,7 @@ void NewRegionDirectory::mergeOutput( const NewRegionDirectory &inputDir )
 
 void NewRegionDirectory::setRoot() {
    _root = this;
-   message("SET ROOT DIR: " << (void *) this );
+   //message("SET ROOT DIR: " << (void *) this );
    nanos_region_dimension_internal_t wholeMemDim[1] = { { -1ULL, 0, -1ULL } };
    Region r = build_region( DataAccess((void *) 0, true, true, false, false, 1, wholeMemDim ) );
    insertRegionIntoTree( _inputDirectory, r, 0, true, *((NewDirectoryEntryData * ) NULL), 1 );

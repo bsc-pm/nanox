@@ -26,7 +26,7 @@
 
 
 inline NewNewDirectoryEntryData::NewNewDirectoryEntryData(): Version( 1 ), _writeLocation(0), _location() {
-   _location.insert( 0 );
+   _location.insert(0);
 }
 
 inline NewNewDirectoryEntryData::NewNewDirectoryEntryData( const NewNewDirectoryEntryData &de ): Version( de ), _writeLocation( de._writeLocation ),
@@ -64,15 +64,22 @@ inline void NewNewDirectoryEntryData::addAccess( int id, unsigned int version ) 
       _location.insert( id );
    } else if ( version == this->getVersion() ) {
       // entry is going to be replicated, so it must be that multiple copies are used as inputs only
-      _writeLocation = -1;
       _location.insert( id );
+      if ( _location.size() > 1 )
+      {
+         _writeLocation = -1;
+      }
    } else {
      //std::cerr << "FIXME: wrong case" << std::endl;
    }
 }
 
 inline bool NewNewDirectoryEntryData::isLocatedIn( int id, unsigned int version ) const {
-   return ( version == this->getVersion() && _location.count( id ) > 0 );
+   return ( version <= this->getVersion() && _location.count( id ) > 0 );
+}
+
+inline bool NewNewDirectoryEntryData::isLocatedIn( int id ) const {
+   return ( _location.count( id ) > 0 );
 }
 
 inline void NewNewDirectoryEntryData::merge( const NewNewDirectoryEntryData &de ) {

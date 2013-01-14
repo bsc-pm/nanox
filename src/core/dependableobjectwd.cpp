@@ -76,6 +76,7 @@ void DOWait::wait ( std::list<Region> const &regions )
 {
    _syncCond.wait();
 
+   if ( !sys.usingNewCache() )
    getWD()->getNewDirectory()->consolidate( true ); //FIXME flush only selected regions
 
    //Directory *d = getWD()->getDirectory(false);

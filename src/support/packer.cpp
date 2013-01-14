@@ -23,6 +23,12 @@ void * Packer::give_pack( uint64_t addr, std::size_t len, std::size_t count ) {
    void *result = NULL;
    PackInfo key( addr, len, count );
 
+#if 1 /* simple implementation */
+   if ( _allocator == NULL ) _allocator = sys.getNetwork()->getPackerAllocator();
+   _allocator->lock();
+   result = _allocator->allocate( len * count );
+   _allocator->unlock();
+#else
    _lock.acquire();
    //std::map< PackInfo, void *>::iterator it = _packs.lower_bound( key );
    mapIterator it = _packs.lower_bound( key );
@@ -58,12 +64,14 @@ void * Packer::give_pack( uint64_t addr, std::size_t len, std::size_t count ) {
          _packs.insert( it, std::make_pair( key, result ) );
       } else { /* eq addr, no size match*/
          if (sys.getNetwork()->getNodeNum() == 0) std::cerr << "equal addr, different size" << std::endl;
+         fatal("Unhandled case\n");
       }
    } else { /* exact match */
       if (sys.getNetwork()->getNodeNum() == 0) std::cerr << "exact match chunk " << (void *) addr << " pack addr "<< it->second.getMemory()  << std::endl;
       result = it->second.getMemoryAndIncreaseReferences();
    }
    _lock.release();
+#endif
    if ( result == NULL ) {
       std::cerr << "Error: could not get a memory area to pack data." << std::endl;
    }
@@ -71,7 +79,12 @@ void * Packer::give_pack( uint64_t addr, std::size_t len, std::size_t count ) {
    return result;
 }
 
-void Packer::free_pack( uint64_t addr, std::size_t len, std::size_t count ) {
+void Packer::free_pack( uint64_t addr, std::size_t len, std::size_t count, void *allocAddr ) {
+#if 1
+   _allocator->lock();
+   _allocator->free( allocAddr );
+   _allocator->unlock();
+#else
    PackInfo key( addr, len, count );
    _lock.acquire();
    _allocator->lock();
@@ -83,6 +96,7 @@ void Packer::free_pack( uint64_t addr, std::size_t len, std::size_t count ) {
    }
    _allocator->unlock();
    _lock.release();
+#endif
 }
 
 void Packer::setAllocator( SimpleAllocator *alloc ) {

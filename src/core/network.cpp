@@ -319,7 +319,7 @@ SimpleAllocator *Network::getPackerAllocator() const
    {
       res = _api->getPackSegment();
    }
-   std::cerr <<" PACK SEGMENT IS " << res << std::endl;
+   //std::cerr <<" PACK SEGMENT IS " << res << std::endl;
    return res;
 }
 std::size_t Network::getMaxGetStridedLen() const {

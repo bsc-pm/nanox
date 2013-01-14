@@ -91,25 +91,27 @@ namespace nanos {
 
          class Op {
                RegionCache &_parent;
+               std::string _name;
             public:
-               Op( RegionCache &parent ) : _parent ( parent ) { }
+               Op( RegionCache &parent, std::string name ) : _parent ( parent ), _name ( name ) { }
                RegionCache &getParent() const { return _parent; }
-               virtual void doNoStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, DeviceOps *ops, WD const &wd ) = 0;
-               virtual void doStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, std::size_t count, std::size_t ld, DeviceOps *ops, WD const &wd ) = 0;
+               std::string const &getStr() { return _name; }
+               virtual void doNoStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, DeviceOps *ops, WD const &wd, bool fake ) = 0;
+               virtual void doStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, std::size_t count, std::size_t ld, DeviceOps *ops, WD const &wd, bool fake ) = 0;
          };
 
          class CopyIn : public Op {
             public:
-               CopyIn( RegionCache &parent ) : Op( parent ) {}
-               void doNoStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, DeviceOps *ops, WD const &wd ) ;
-               void doStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, std::size_t count, std::size_t ld, DeviceOps *ops, WD const &wd ) ;
+               CopyIn( RegionCache &parent ) : Op( parent, "CopyIn" ) {}
+               void doNoStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, DeviceOps *ops, WD const &wd, bool fake ) ;
+               void doStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, std::size_t count, std::size_t ld, DeviceOps *ops, WD const &wd, bool fake ) ;
          } _copyInObj;
 
          class CopyOut : public Op {
             public:
-               CopyOut( RegionCache &parent ) : Op( parent ) {}
-               void doNoStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, DeviceOps *ops, WD const &wd ) ;
-               void doStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, std::size_t count, std::size_t ld, DeviceOps *ops, WD const &wd ) ;
+               CopyOut( RegionCache &parent ) : Op( parent, "CopyOut" ) {}
+               void doNoStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, DeviceOps *ops, WD const &wd, bool fake ) ;
+               void doStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, std::size_t count, std::size_t ld, DeviceOps *ops, WD const &wd, bool fake ) ;
          } _copyOutObj;
 
          void doOp( Op *opObj, Region const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, WD const &wd ); 
@@ -126,14 +128,14 @@ namespace nanos {
          void syncRegion( std::list< std::pair< global_reg_t, CacheCopy * > > const &regions, WD const &wd ) ;
          unsigned int getMemorySpaceId();
          /* device stubs */
-         void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, WD const &wd );
-         void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, DeviceOps *ops, WD const &wd );
-         void _syncAndCopyIn( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, WD const &wd );
-         void _copyDevToDev( unsigned int copyFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, WD const &wd );
-         void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, WD const &wd );
-         void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, WD const &wd );
-         void _syncAndCopyInStrided1D( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, WD const &wd );
-         void _copyDevToDevStrided1D( unsigned int copyFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, WD const &wd );
+         void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, WD const &wd, bool fake );
+         void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, DeviceOps *ops, WD const &wd, bool fake );
+         void _syncAndCopyIn( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, WD const &wd, bool fake );
+         void _copyDevToDev( unsigned int copyFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, WD const &wd, bool fake );
+         void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, WD const &wd, bool fake );
+         void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, WD const &wd, bool fake );
+         void _syncAndCopyInStrided1D( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, WD const &wd, bool fake );
+         void _copyDevToDevStrided1D( unsigned int copyFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, WD const &wd, bool fake );
          /* *********** */
          void copyIn( Region const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, WD const &wd ); 
          void copyOut( Region const &hostMem, uint64_t devBaseAddr, DeviceOps *ops, WD const &wd ); 
@@ -162,9 +164,9 @@ namespace nanos {
          NewNewRegionDirectory::NewLocationInfoList _newLocations;
          DeviceOps _operations;
          std::set< DeviceOps * > _otherPendingOps;
-         global_reg_t _reg;
 
       public:
+         global_reg_t _reg;
          CacheCopy();
          CacheCopy( WD const &wd, unsigned int index );
          
@@ -174,6 +176,7 @@ namespace nanos {
          void NEWgenerateCopyInOps( RegionCache *targetCache, std::map<unsigned int, std::list< std::pair< global_reg_t, CacheCopy * > > > &opsBySourceRegions ) ;
 
          NewRegionDirectory::LocationInfoList const &getLocations() const;
+         NewNewRegionDirectory::NewLocationInfoList const &getNewLocations() const;
          uint64_t getDeviceAddress() const;
          DeviceOps *getOperations();
          Region const &getRegion() const;
@@ -192,6 +195,7 @@ namespace nanos {
          unsigned int _numCopies;
          CacheCopy *_cacheCopies;
          RegionCache *_targetCache;  
+         bool _registered;
 
       public:
          CacheController();
@@ -200,7 +204,7 @@ namespace nanos {
          bool isCreated() const;
          void preInit( );
          void copyDataIn( RegionCache *targetCache );
-         bool dataIsReady() const;
+         bool dataIsReady() ;
          uint64_t getAddress( unsigned int copyIndex ) const;
          void copyDataOut();
 

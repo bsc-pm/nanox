@@ -50,7 +50,7 @@ class Packer {
    public:
       Packer() : _packs(), _allocator( NULL ) {}
       void *give_pack( uint64_t addr, std::size_t len, std::size_t count );
-      void free_pack( uint64_t addr, std::size_t len, std::size_t count );
+      void free_pack( uint64_t addr, std::size_t len, std::size_t count, void *allocAddr );
       void setAllocator( SimpleAllocator *alloc );
 };
 

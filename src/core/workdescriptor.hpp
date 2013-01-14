@@ -122,7 +122,9 @@ inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t n
    wd._doSubmit.reset( NEW DOSubmit() );
    wd._doSubmit->setWD(&wd);
 //<<<<<<< HEAD
+   //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_POST_OUTLINE_WORK5) );
    _depsDomain->submitDependableObject( *(wd._doSubmit), numDataAccesses, dataAccesses );
+   //NANOS_INSTRUMENT( inst2.close() );
 //=======
 //   SchedulePolicySuccessorFunctor cb( *sys.getDefaultSchedulePolicy() );
 //   _depsDomain->submitDependableObject( *(wd._doSubmit), numDeps, deps, &cb );
@@ -193,8 +195,11 @@ inline void WorkDescriptor::waitCompletion( bool avoidFlush )
    //if (sys.getNetwork()->getNodeNum()==0){ message("WorkDescriptor::waitCompletion, " << getId() ); }
    //if ( _directory.isInitialized() && !avoidFlush )
    //   _directory->synchronizeHost();
-   if ( !sys.usingNewCache() ) getNewDirectory()->consolidate( !avoidFlush );
-   else sys.getMasterRegionDirectory().synchronize( !avoidFlush );
+   //if ( !sys.usingNewCache() ) {
+    getNewDirectory()->consolidate( !avoidFlush );
+   //} else {
+    sys.getMasterRegionDirectory().synchronize( !avoidFlush );
+   //}
 }
 
 inline void WorkDescriptor::waitCompletionAndSignalers( bool avoidFlush )

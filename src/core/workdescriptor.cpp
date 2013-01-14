@@ -243,10 +243,12 @@ void WorkDescriptor::predecessorFinished( WorkDescriptor *predecessorWd )
    //if (predecessorWd != NULL) predecessorWd->listed();
 
    //message("wd " << getId() << " getting directory from previous wd " << predecessorWd->getId() );
+   if ( !sys.usingNewCache() ) {
       if ( getNewDirectory() == NULL )
          initNewDirectory();
-   //std::cerr << "wd " << (unsigned int)  getId() << " getting directory from " << (unsigned int)predecessorWd->getId() << std::endl;
-   _newDirectory->merge( *predecessorWd->getNewDirectory() );
+      //std::cerr << "wd " << (unsigned int)  getId() << " getting directory from " << (unsigned int)predecessorWd->getId() << std::endl;
+      _newDirectory->merge( *predecessorWd->getNewDirectory() );
+   }
 }
 
 void WorkDescriptor::initMyGraphRepListNoPred( )

@@ -100,7 +100,7 @@ namespace ext
       virtual void start() {}
       virtual BaseThread * getNextThread ();
 
-      void idle() { sys.getNetwork()->poll(getId()); };
+      void idle();
 
       void addBlockingWDSMP( WD * wd );
       WD *fetchBlockingWDSMP();

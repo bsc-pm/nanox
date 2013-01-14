@@ -47,7 +47,7 @@ uintptr_t OSAllocator::lookForAlignedAddress( size_t len ) const {
          }
       }
    }
-   fprintf(stderr, "selected addr is %p, len %lX, aligned to %lX\n", (void *) target, len, alignedLen);
+   //fprintf(stderr, "selected addr is %p, len %lX, aligned to %lX\n", (void *) target, len, alignedLen);
    return target;
 }
 
@@ -57,7 +57,7 @@ int OSAllocator::tryAlloc( uintptr_t addr, size_t len ) const {
       fprintf(stderr, "mmap failed: %s\n", strerror(errno) );
       return -1;
    } else {
-      fprintf(stderr, "mmap succeded at addr %p, 0x%lx bytes\n", result, len );
+      //fprintf(stderr, "mmap succeded at addr %p, 0x%lx bytes\n", result, len );
       return 0;
    }
 }

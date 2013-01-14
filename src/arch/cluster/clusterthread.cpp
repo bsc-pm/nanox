@@ -245,3 +245,24 @@ WD *ClusterThread::fetchBlockingWDGPU() {
    }
    return wd;
 }
+
+void ClusterThread::idle()
+{
+   sys.getNetwork()->poll(0);
+
+   if ( !_pendingRequests.empty() ) {
+      std::set<void *>::iterator it = _pendingRequests.begin();
+      while ( it != _pendingRequests.end() ) {
+         ext::ClusterDevice::GetRequest *req = (ext::ClusterDevice::GetRequest *) (*it);
+         if ( req->isCompleted() ) {
+           std::set<void *>::iterator toBeDeletedIt = it;
+           it++;
+           _pendingRequests.erase(toBeDeletedIt);
+           req->clear();
+           delete req;
+         } else {
+            it++;
+         }
+      }
+   }
+}

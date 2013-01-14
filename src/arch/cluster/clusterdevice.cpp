@@ -78,7 +78,7 @@ void ClusterDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::
    NANOS_INSTRUMENT( inst2.close(); );
    ClusterNode const &node = dynamic_cast< ClusterNode const & >( pe );
    sys.getNetwork()->putStrided1D( node.getClusterNodeNum(),  devAddr, ( void * ) hostAddr, packedAddr, len, count, ld, wd.getId(), wd );
-   _packer.free_pack( hostAddr, len, count );
+   _packer.free_pack( hostAddr, len, count, packedAddr );
    ops->completeOp();
 }
 
@@ -90,7 +90,7 @@ void ClusterDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std:
       count : ( sys.getNetwork()->getMaxGetStridedLen() / len );
 
    // FIXME: check if maxCount can copy more data on the last iteration
-   if ( maxCount != count ) std::cerr <<"WARNING: maxCount("<< maxCount << ") != count(" << count <<")"<<std::endl;
+   if ( maxCount != count ) std::cerr <<"WARNING: maxCount("<< maxCount << ") != count(" << count <<") MaxGetStridedLen="<< sys.getNetwork()->getMaxGetStridedLen()<<std::endl;
    for ( unsigned int i = 0; i < count; i += maxCount ) {
       char * packedAddr = (char *) _packer.give_pack( hostAddr, len, maxCount );
       if ( packedAddr != NULL) { 
@@ -105,6 +105,7 @@ void ClusterDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std:
 }
 
 void ClusterDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement const &peDest, ProcessingElement const &peOrig, DeviceOps *ops, WD const &wd ) const {
+   ops->addOp();
    sys.getNetwork()->sendRequestPutStrided1D( ((ClusterNode &) peOrig).getClusterNodeNum(), devOrigAddr, ((ClusterNode &) peDest).getClusterNodeNum(), devDestAddr, len, count, ld, wd.getId(), wd );
    ops->completeOp();
 }
@@ -127,6 +128,6 @@ void ClusterDevice::GetRequestStrided::clear() {
       ::memcpy( &_hostAddr[ j  * _ld ], &_recvAddr[ j * _size ], _size );
    }
    NANOS_INSTRUMENT( inst2.close(); );
-   _packer->free_pack( (uint64_t) _hostAddr, _size, _count );
+   _packer->free_pack( (uint64_t) _hostAddr, _size, _count, _recvAddr );
    _ops->completeOp();
 }

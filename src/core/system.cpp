@@ -514,9 +514,11 @@ void System::start ()
          //  EXTRA THD //_net.setMasterDirectory( smpRepThd1->getThreadWD().getDirectory(true) );
          _net.setNewMasterDirectory( mainWD.getNewDirectory() );
          setSlaveParentWD( &mainWD );
+#ifdef GPU_DEV
          if ( nanos::ext::GPUConfig::getGPUCount() > 0 ) {
             _net.enableCheckingForDataInOtherAddressSpaces();
          }
+#endif
       }
    } //else {
 //	   mainWD.getDirectory(true);
@@ -620,7 +622,7 @@ void System::finish ()
    verbose ( "Joining threads... phase 1" );
 
 
-   if ( _net.getNodeNum() == 0 )  getMasterRegionDirectory().print();
+   //if ( _net.getNodeNum() == 0 )  getMasterRegionDirectory().print();
 
 
    message0("Network traffic: " << sys.getNetwork()->getTotalBytes() << " bytes");

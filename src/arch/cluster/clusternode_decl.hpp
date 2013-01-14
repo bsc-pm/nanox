@@ -54,7 +54,7 @@ namespace nanos {
 #ifdef GPU_DEV
             ClusterNode( int id ) : CachedAccelerator( id, &SMP, &GPU, &Cluster, ClusterInfo::getSegmentLen( id ), RegionCache::ALLOC_WIDE ),
 #else
-            ClusterNode( int id ) : CachedAccelerator( id, &SMP, NULL, &Cluster, ClusterInfo::getSegmentLen( id ), ALLOC_WIDE ),
+            ClusterNode( int id ) : CachedAccelerator( id, &SMP, NULL, &Cluster, ClusterInfo::getSegmentLen( id ), RegionCache::ALLOC_WIDE ),
 #endif
             _clusterNode ( id ), _memSegment( ( uintptr_t ) ClusterInfo::getSegmentAddr( id ),
                   ClusterInfo::getSegmentLen( id ) ), _executedWorkDesciptors ( 0 ) { }
