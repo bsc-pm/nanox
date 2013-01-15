@@ -27,31 +27,31 @@
 namespace nanos {
    namespace ext {
 
-      /*! \class CentralizedBarrier
+      /*! \class OldCentralizedBarrier
        *  \brief implements a single semaphore barrier
        */
-      class CentralizedBarrier: public Barrier
+      class OldCentralizedBarrier: public Barrier
       {
 
          private:
             Atomic<int> _sem;
-            volatile bool _flag;
+            Atomic<bool> _flag;
             MultipleSyncCond<EqualConditionChecker<bool> > _syncCondTrue;
             MultipleSyncCond<EqualConditionChecker<bool> > _syncCondFalse;
             int _numParticipants;
 
          public:
-            CentralizedBarrier () : Barrier(), _sem(0), _flag(false),
-               _syncCondTrue( EqualConditionChecker<bool>( &_flag, true ), 1 ),
-               _syncCondFalse( EqualConditionChecker<bool>( &_flag, false ), 1 ) {}
-            CentralizedBarrier ( const CentralizedBarrier& orig ) : Barrier(orig), _sem(0), _flag(false),
-               _syncCondTrue( EqualConditionChecker<bool>( &_flag, true ), orig._numParticipants ),
-               _syncCondFalse( EqualConditionChecker<bool>( &_flag, false ), orig._numParticipants )
+            OldCentralizedBarrier () : Barrier(), _sem(0), _flag(false),
+               _syncCondTrue( EqualConditionChecker<bool>( &(_flag.override()), true ), 1 ),
+               _syncCondFalse( EqualConditionChecker<bool>( &(_flag.override()), false ), 1 ) {}
+            OldCentralizedBarrier ( const OldCentralizedBarrier& orig ) : Barrier(orig), _sem(0), _flag(false),
+               _syncCondTrue( EqualConditionChecker<bool>( &(_flag.override()), true ), orig._numParticipants ),
+               _syncCondFalse( EqualConditionChecker<bool>( &(_flag.override()), false ), orig._numParticipants )
                { init( orig._numParticipants ); }
 
-            const CentralizedBarrier & operator= ( const CentralizedBarrier & barrier );
+            const OldCentralizedBarrier & operator= ( const OldCentralizedBarrier & barrier );
 
-            virtual ~CentralizedBarrier() { }
+            virtual ~OldCentralizedBarrier() { }
 
             void init ( int numParticipants );
             void resize ( int numThreads );
@@ -59,7 +59,7 @@ namespace nanos {
             void barrier ( int participant );
       };
 
-      const CentralizedBarrier & CentralizedBarrier::operator= ( const CentralizedBarrier & orig )
+      const OldCentralizedBarrier & OldCentralizedBarrier::operator= ( const OldCentralizedBarrier & orig )
       {
          // self-assignment
          if ( &orig == this ) return *this;
@@ -74,14 +74,14 @@ namespace nanos {
          return *this;
       }
 
-      void CentralizedBarrier::init( int numParticipants ) 
+      void OldCentralizedBarrier::init( int numParticipants ) 
       {
          _numParticipants = numParticipants;
          _syncCondTrue.resize( numParticipants );
          _syncCondFalse.resize( numParticipants );
       }
 
-      void CentralizedBarrier::resize( int numParticipants ) 
+      void OldCentralizedBarrier::resize( int numParticipants ) 
       {
          _numParticipants = numParticipants;
          _syncCondTrue.resize( numParticipants );
@@ -89,68 +89,62 @@ namespace nanos {
       }
 
 
-      void CentralizedBarrier::barrier( int participant )
+      void OldCentralizedBarrier::barrier( int participant )
       {
-         
          int val;
 
-         // the last process incrementing the semaphore sets the flag
-         // releiasing all other threads waiting in the next block
-         if (_flag == false)
-         {
-             val = ++_sem;
 
-             if ( val == _numParticipants ) {
-                 computeVectorReductions();
-                 _sem = 0;
+         val = ++_sem;
 
-                 _flag=true;
-                 _syncCondTrue.signal();
-             } else {
-                 _syncCondTrue.wait();
-             }
+         /* the last process incrementing the semaphore sets the flag
+         releasing all other threads waiting in the next block */
+         if ( val == _numParticipants ) {
+            _flag=true;
+            // FIXME: reduction here and remove 2nd phase?
+            _syncCondTrue.signal();
+            computeVectorReductions();
+
+         } else {
+            _syncCondTrue.wait();
          }
-         else
-         {
-             val = ++_sem;
 
-             if ( val == _numParticipants ) {
-                 computeVectorReductions();
-                 _sem = 0;
+         val = --_sem;
 
-                 _flag=false;
-                 _syncCondFalse.signal();
-             } else {
-                 _syncCondFalse.wait();
-             }
+         /* the last thread decrementing the sem for the second time resets the flag.
+         A thread passing in the next barrier will be blocked until this is performed */
+         if ( val == 0 ) {
+            _flag=false;
+            _syncCondFalse.signal();
+         } else {
+            _syncCondFalse.wait();
          }
       }
 
 
-      static Barrier * createCentralizedBarrier()
+      static Barrier * createOldCentralizedBarrier()
       {
-          return NEW CentralizedBarrier();
+         return NEW OldCentralizedBarrier();
       }
 
 
-      /*! \class CentralizedBarrierPlugin
-       *  \brief plugin of the related centralizedBarrier class
-       *  \see centralizedBarrier
+      /*! \class OldCentralizedBarrierPlugin
+       *  \brief plugin of the related OldCentralizedBarrier class
+       *  \see OldCentralizedBarrier
        */
-      class CentralizedBarrierPlugin : public Plugin
+      class OldCentralizedBarrierPlugin : public Plugin
       {
 
          public:
-            CentralizedBarrierPlugin() : Plugin( "Centralized Barrier Plugin",1 ) {}
+            OldCentralizedBarrierPlugin() : Plugin( "OldCentralized Barrier Plugin",1 ) {}
 
             virtual void config( Config &cfg ) {}
 
             virtual void init() {
-               sys.setDefaultBarrFactory( createCentralizedBarrier );
+               sys.setDefaultBarrFactory( createOldCentralizedBarrier );
             }
       };
 
    }
 }
 
-DECLARE_PLUGIN("barr-centralized",nanos::ext::CentralizedBarrierPlugin);
+DECLARE_PLUGIN("barr-old-centralized",nanos::ext::OldCentralizedBarrierPlugin);
