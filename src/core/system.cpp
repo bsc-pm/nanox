@@ -1027,7 +1027,7 @@ BaseThread * System:: getUnassignedWorker ( void )
 {
    BaseThread *thread;
 
-   for ( unsigned i  = 0; i < _workers.size(); i++ ) {
+   for ( unsigned i = 0; i < _workers.size(); i++ ) {
       if ( !_workers[i]->hasTeam() ) {
          thread = _workers[i];
          // recheck availability with exclusive access
@@ -1076,6 +1076,8 @@ void System::acquireWorker ( ThreadTeam * team, BaseThread * thread, bool enter,
 
    if ( enter ) thread->enterTeam( data );
    else thread->setNextTeamData( data );
+
+   thread->reserve(); // set team flag only
 
    debug( "added thread " << thread << " with id " << toString<int>(thId) << " to " << team );
 }
@@ -1171,6 +1173,7 @@ void System::increaseActiveWorkers ( unsigned nthreads )
       }
 
       acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
+      thread->signal();
       nthreads--;
       _numPEs++;
       _numThreads++;
@@ -1190,7 +1193,7 @@ void System::decreaseActiveWorkers ( unsigned nthreads )
       fatal_cond( thread == NULL, "Trying to release a non-existent thread" );
 
       debug("Releasing thread " << thread << " from team " << team );
-      thread->leaveTeam();
+      thread->sleep();
       nthreads--;
       _numPEs--;
       _numThreads--;
@@ -1210,6 +1213,47 @@ void System::updateActiveWorkers ( unsigned nthreads )
       decreaseActiveWorkers ( std::abs(new_threads) );
    } else {
       /* new_threads == 0 */
+   }
+}
+
+// Not thread-safe
+void System::applyCpuMask()
+{
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, (nanos_event_value_t *) &_cpu_count); )
+
+   bool pe_dirty;
+   BaseThread *thread;
+   ThreadTeam *team = myThread->getTeam();
+
+   for ( unsigned pe_id = 0; _numPEs != _cpu_count; pe_id++ ) {
+
+      // Create PE & Worker if it does not exists
+      if ( pe_id >= _pes.size() )
+         createWorker( _pes.size() );
+
+      pe_dirty = false;
+
+      // This PE should be running
+      if ( _cpu_id[pe_id] >= 0 ) {
+         while ( (thread = _pes[pe_id]->getNextStoppedThread()) != NULL ) {
+            acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
+            thread->signal();
+            _numThreads++;
+            pe_dirty = true;
+         }
+         if ( pe_dirty ) _numPEs++;
+      }
+      // This PE should not
+      if ( _cpu_id[pe_id] < 0 ) {
+         while ( (thread = _pes[pe_id]->getNextRunningThread()) != NULL ) {
+            thread->sleep();
+            _numThreads--;
+            pe_dirty = true;
+         }
+         if ( pe_dirty ) _numPEs--;
+      }
    }
 }
 

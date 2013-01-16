@@ -51,6 +51,55 @@ inline int System::getCpuId ( int idx ) const {
 
 inline int System::getCpuCount () const { return _cpu_count; };
 
+inline void System::getCpuMask ( cpu_set_t *mask ) const { memcpy( mask, &_cpu_set, sizeof(cpu_set_t) ); }
+
+inline void System::setCpuMask ( cpu_set_t *mask ) {
+
+   memcpy( &_cpu_set, mask, sizeof(cpu_set_t) );
+   memset( &_cpu_id, -1, sizeof(_cpu_id) );
+
+   std::ostringstream oss_cpu_idx;
+   oss_cpu_idx << "[";
+   int i;
+   for(i=0, _cpu_count=0; i<CPU_SETSIZE; i++){
+      if(CPU_ISSET(i, &_cpu_set)){
+         _cpu_id[_cpu_count++] = i;
+         oss_cpu_idx << i << ", ";
+      }
+   }
+   oss_cpu_idx << "]";
+   verbose0("PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str());
+   sys.applyCpuMask();
+}
+
+inline void System::addCpuMask ( cpu_set_t *mask ) {
+
+   CPU_OR( &_cpu_set, &_cpu_set, mask );
+
+   std::ostringstream oss_cpu_idx;
+   oss_cpu_idx << "[";
+   int i, j;
+   bool found;
+   /* Add ONLY new elements of _cpu_set into _cpu_id. */
+   for ( i=0; i<CPU_SETSIZE; i++) {
+      if ( CPU_ISSET(i, &_cpu_set) ) {
+         for ( j=0, found=false; j<_cpu_count; j++ ) {
+            if ( _cpu_id[j] == i ) {
+               found = true;
+               break;
+            }
+         }
+         if ( !found ) {
+            _cpu_id[_cpu_count++] = i;
+            oss_cpu_idx << i << ", ";
+         }
+      }
+   }
+   oss_cpu_idx << "]";
+   verbose0("PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str());
+   sys.applyCpuMask();
+}
+
 inline int System::checkCpuMask(cpu_set_t *mask){
 
    int idx = 0;
@@ -69,7 +118,9 @@ inline int System::checkCpuMask(cpu_set_t *mask){
 }
 
 inline void System::setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask){
-   ensure( checkCpuMask(mask), "invalid CPU mask set" );
+   // It is possible to reach the setAffinity when the thread is already going to sleep.
+   // In this case, we need avoid the ensure because the mask is outdated
+   if ( myThread->isEligible() ) { ensure( checkCpuMask(mask), "invalid CPU mask set" ); }
    sched_setaffinity( pid, cpusetsize, mask);
 }
 
@@ -132,7 +183,8 @@ inline void System::setCoresPerSocket ( int coresPerSocket ) { _coresPerSocket =
 inline int System::getBindingId ( int pe ) const
 {
    int tmpId = ( pe * getBindingStride() + getBindingStart() );
-   return getCpuId( ( tmpId + tmpId/_cpu_count ) % _cpu_count );
+   //return getCpuId( ( tmpId + tmpId/_cpu_count ) % _cpu_count );
+   return getCpuId( tmpId  % _cpu_count );
 }
 
 

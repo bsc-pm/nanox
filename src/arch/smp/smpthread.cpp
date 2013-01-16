@@ -30,6 +30,8 @@
 using namespace nanos;
 using namespace nanos::ext;
 
+pthread_mutex_t SMPThread::_mutexWait = PTHREAD_MUTEX_INITIALIZER;
+
 void * smp_bootthread ( void *arg )
 {
    SMPThread *self = static_cast<SMPThread *>( arg );
@@ -62,6 +64,9 @@ void SMPThread::start ()
 
    if ( pthread_create( &_pth, &attr, smp_bootthread, this ) )
       fatal( "couldn't create thread" );
+
+   if ( pthread_cond_init( &_condWait, NULL ) < 0 )
+      fatal( "couldn't create pthread condition wait" );
 }
 
 void SMPThread::runDependent ()
@@ -76,6 +81,9 @@ void SMPThread::runDependent ()
 
 void SMPThread::join ()
 {
+   if ( pthread_cond_destroy( &_condWait ) < 0 )
+      fatal( "couldn't destroy pthread condition wait" );
+
    pthread_join( _pth,NULL );
    joined();
 }
@@ -109,6 +117,20 @@ void SMPThread::yield()
 {
    if (sched_yield() != 0)
       warning("sched_yield call returned an error");
+}
+
+void SMPThread::wait()
+{
+   leaveTeam();
+   pthread_mutex_lock( &_mutexWait );
+   pthread_cond_wait( &_condWait, &_mutexWait );
+   pthread_mutex_unlock( &_mutexWait );
+   wakeup();
+}
+
+void SMPThread::signal()
+{
+   pthread_cond_signal( &_condWait );
 }
 
 // This is executed in between switching stacks

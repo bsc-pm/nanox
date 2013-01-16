@@ -121,6 +121,7 @@ namespace nanos
          // Thread status
          bool                    _started;
          volatile bool           _mustStop;
+         volatile bool           _mustSleep;
          volatile bool           _paused;
          WD *                    _currentWD;
          WD *                    _nextWD;
@@ -154,6 +155,8 @@ namespace nanos
             _started = false;
          }
 
+         void wakeup ();
+
       private:
         /*! \brief BaseThread default constructor
          */
@@ -186,6 +189,7 @@ namespace nanos
          virtual void start () = 0;
          void run();
          void stop();
+         void sleep();
          
          void pause ();
          void unpause ();
@@ -195,6 +199,9 @@ namespace nanos
 
          virtual void join() = 0;
          virtual void bind() {};
+
+         virtual void wait() {};
+         virtual void signal() {};
 
          // set/get methods
          void setCurrentWD ( WD &current );
@@ -239,6 +246,8 @@ namespace nanos
          bool isStarted () const;
 
          bool isRunning () const;
+
+         bool isEligible () const;
          
          //! \brief Is the thread paused as the result of stopping the scheduler?
          bool isPaused () const;

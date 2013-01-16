@@ -173,6 +173,7 @@ namespace nanos
          void acquireWorker( ThreadTeam * team, BaseThread * thread, bool enter=true, bool star=false, bool creator=false );
          void increaseActiveWorkers( unsigned nthreads );
          void decreaseActiveWorkers( unsigned nthreads );
+         void applyCpuMask();
          
          PE * createPE ( std::string pe_type, int pid );
 
@@ -226,6 +227,12 @@ namespace nanos
          int getCpuId ( int idx ) const;
 	 
          int getCpuCount ( ) const;
+
+         void getCpuMask ( cpu_set_t *mask ) const;
+
+         void setCpuMask ( cpu_set_t *mask );
+
+         void addCpuMask ( cpu_set_t *mask );
 
          void setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask);
 
