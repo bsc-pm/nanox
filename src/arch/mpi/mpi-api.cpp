@@ -102,6 +102,16 @@ NANOS_API_DEF(nanos_err_t, nanos_MPI_Init, (int* argc, char ***argv)) {
     return NANOS_OK;
 }
 
+NANOS_API_DEF(nanos_err_t, nanos_MPI_Finalize, (void)) {
+    try {
+        nanos::ext::MPIProcessor::nanos_MPI_Finalize();
+    } catch (...) {
+        return NANOS_UNKNOWN_ERR;
+    }
+
+    return NANOS_OK;
+}
+
 NANOS_API_DEF(int, nanos_MPI_Send_taskinit, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm)) {
         return nanos::ext::MPIProcessor::nanos_MPI_Send_taskinit(buf,count,datatype,dest,comm);
 }

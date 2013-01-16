@@ -112,19 +112,6 @@ std::string MPIProcessor::getMpiExename() {
 }
 
 void MPIProcessor::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
-//    if (_bufferDefaultSize != 0 && _bufferPtr != 0) {
-//        int size;
-//        void *ptr;
-//        MPI_Buffer_detach(&ptr, &size);
-//        if (ptr != _bufferPtr) {
-//            warning("Another MPI Buffer was attached instead of the one defined with"
-//                    " nanox mpi buffer size, not releasing it");
-//            MPI_Buffer_attach(ptr, size);
-//        } else {
-//            MPI_Buffer_detach(&ptr, &size);
-//        }
-//        delete[] _bufferPtr;
-//    }
     cacheOrder order;
     order.opId = -1;
     int id = -1; 
@@ -176,6 +163,27 @@ void MPIProcessor::nanos_MPI_Init(int *argc, char ***argv) {
         MPIDD * dd = NEW MPIDD((MPIDD::work_fct) nanos::MPIDevice::mpiCacheWorker);
         WD *wd = NEW WD(dd);
         mpi->startThread(*wd);
+    }
+}
+
+void MPIProcessor::nanos_MPI_Finalize() {    
+    if (_bufferDefaultSize != 0 && _bufferPtr != 0) {
+        int size;
+        void *ptr;
+        MPI_Buffer_detach(&ptr, &size);
+        if (ptr != _bufferPtr) {
+            warning("Another MPI Buffer was attached instead of the one defined with"
+                    " nanox mpi buffer size, not releasing it, user should do it manually");
+            MPI_Buffer_attach(ptr, size);
+        } else {
+            MPI_Buffer_detach(&ptr, &size);
+        }
+        delete[] _bufferPtr;
+    }
+    int resul;
+    MPI_Finalized(&resul);
+    if (!resul){
+      MPI_Finalize();
     }
 }
 

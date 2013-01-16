@@ -23,6 +23,7 @@
 #include "mpi.h"
 #include "nanos.h" 
 #define MPI_Init nanos_MPI_Init
+#define MPI_Finalize nanos_MPI_Finalize
 
 
 #ifdef __cplusplus
@@ -48,6 +49,7 @@ extern "C" {
     NANOS_API_DECL(nanos_err_t, DEEP_Booster_free_size, (MPI_Comm *intercomm, int size));
     NANOS_API_DECL(nanos_err_t, setMpiExename, (char* new_name));
     NANOS_API_DECL(nanos_err_t, nanos_MPI_Init, (int* argc, char*** argv));
+    NANOS_API_DECL(nanos_err_t, nanos_MPI_Finalize, (void) );
     NANOS_API_DECL(nanos_err_t, nanos_set_MPI_control_pointers, (int* file_mask, int mask, unsigned int* file_namehash, unsigned int* file_size));
     //Syncs pointers so device file has exactly the same order than host file
     NANOS_API_DECL(nanos_err_t, nanos_sync_dev_pointers, (int* file_mask, int mask, unsigned int* file_namehash, unsigned int* file_size,
