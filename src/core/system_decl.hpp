@@ -425,7 +425,12 @@ namespace nanos
          
                   
          #ifdef MPI_DEV
-         void DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm);  
+        /**
+         * \brief Registers workers spawned by DEEP_Booster_Alloc to current nanox workers/team
+         * \param number_of_spawns number of process spawned
+         * \param intercomm intercommunicator those containing processes
+         */
+         void DEEP_Booster_register_spawns( int number_of_spawns, MPI_Comm *intercomm);
          #endif
          
    };

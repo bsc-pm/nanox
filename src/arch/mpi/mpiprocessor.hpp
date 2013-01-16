@@ -94,6 +94,8 @@ namespace nanos {
             
             static void nanos_MPI_Init(int* argc, char ***argv);
             
+            static void DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm);  
+            
             static int nanos_MPI_Send_taskinit(void *buf, int count, MPI_Datatype datatype, int dest,
                     MPI_Comm comm);
 
