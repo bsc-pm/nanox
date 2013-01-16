@@ -54,6 +54,7 @@ namespace nanos {
             static System::CachePolicyType _cachePolicy;
             //! Save OmpSS-mpi filename
             static std::string _mpiExecFile;
+            static std::string _mpiLauncherFile;
             static std::string _mpiFilename;
             static std::string _mpiHosts;
             static std::string _mpiHostsFile;

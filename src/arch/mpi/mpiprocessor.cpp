@@ -32,6 +32,7 @@ size_t MPIProcessor::_bufferDefaultSize = 0;
 char* MPIProcessor::_bufferPtr = 0;
 std::string MPIProcessor::_mpiFilename;
 std::string MPIProcessor::_mpiExecFile;
+std::string MPIProcessor::_mpiLauncherFile="./ompss_launch.sh";
 std::string MPIProcessor::_mpiHosts;
 std::string MPIProcessor::_mpiHostsFile;
 unsigned int* MPIProcessor::_mpiFileHashname;
@@ -45,15 +46,20 @@ MPIProcessor::MPIProcessor(int id, MPI_Comm communicator, int rank) : CachedAcce
 
 void MPIProcessor::prepareConfig(Config &config) {
 
-    config.registerConfigOption("mpi-exec", NEW Config::StringVar(_mpiExecFile), "Defines secondary mpi file spawned in DEEP_Booster_Alloc");
+    config.registerConfigOption("mpi-exec", NEW Config::StringVar(_mpiExecFile), "Defines executable path (in child nodes) used in DEEP_Booster_Alloc");
     config.registerArgOption("mpi-exec", "mpi-exec");
     config.registerEnvOption("mpi-exec", "NX_MPIEXEC");
+    
+    config.registerConfigOption("mpi-launcher", NEW Config::StringVar(_mpiLauncherFile), "Defines launcher script path (in child nodes) used in DEEP_Booster_Alloc");
+    config.registerArgOption("mpi-launcher", "mpi-launcher");
+    config.registerEnvOption("mpi-launcher", "NX_MPILAUNCHER");
+    
 
-    config.registerConfigOption("mpihostsfile", NEW Config::StringVar(_mpiHostsFile), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\nThe format of the file is: One host per line with blank lines and lines beginning with # ignored\nMultiple processes per host can be specified by specifying the host name as follows: hostA:n");
-    config.registerArgOption("mpihostsfile", "mpihostsfile");
-    config.registerEnvOption("mpihostsfile", "NX_MPIHOSTSFILE");
+    config.registerConfigOption("mpihostfile", NEW Config::StringVar(_mpiHostsFile), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\nThe format of the file is: One host per line with blank lines and lines beginning with # ignored\nMultiple processes per host can be specified by specifying the host name as follows: hostA:n\nEnvironment variables for the host can be specified separated by comma using hostA:n>env_vars or hostA>env_vars");
+    config.registerArgOption("mpihostfile", "mpihostfile");
+    config.registerEnvOption("mpihostfile", "NX_MPIHOSTFILE");
 
-    config.registerConfigOption("mpihosts", NEW Config::StringVar(_mpiHosts), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\nExample: hostA hostB:2 hostC");
+    config.registerConfigOption("mpihosts", NEW Config::StringVar(_mpiHosts), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\n Same format than NX_MPIHOSTFILE but in a single line and separated with \';\'\nExample: hostZ hostA>env_vars hostB:2>env_vars hostC:3 hostD:4");
     config.registerArgOption("mpihosts", "mpihosts");
     config.registerEnvOption("mpihosts", "NX_MPIHOSTS");
 
@@ -141,12 +147,19 @@ void MPIProcessor::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
 void MPIProcessor::nanos_MPI_Init(int *argc, char ***argv) {
     int provided, claimed;
     //TODO: Try with multiple MPI thread
-    MPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE, &provided);
+    int initialized;
+    MPI_Initialized(&initialized);
+    //In case it was already initialized (shouldn't happen, since we theorically "rename" the calls with mercurium), we won't try to do so
+    //We'll trust user criteria, but show a warning
+    if (!initialized)
+        MPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE, &provided);
+    else
+        warning0("MPI was already initialized, please, call to nanos_MPI_Init routine instead of default MPI_routines");
+    
+    //If not initiliazed with the paralelism level we need/implementation doesn't provide it, error.
     MPI_Query_thread(&claimed);
-    if (claimed < MPI_THREAD_MULTIPLE) {
-        fatal0("MPI_Query_Thread returned multithread support less than MPI_THREAD_MULTIPLE, check your MPI "
-                "implementation and try to configure it so it can support this multithread level");
-    }
+    fatal_cond0(claimed < MPI_THREAD_MULTIPLE,"MPI_Query_Thread returned multithread support less than MPI_THREAD_MULTIPLE, check your MPI "
+            "implementation and try to configure it so it can support this multithread level");
     if (_bufferDefaultSize != 0 && _bufferPtr != 0) {
         _bufferPtr = new char[_bufferDefaultSize];
         MPI_Buffer_attach(_bufferPtr, _bufferDefaultSize);

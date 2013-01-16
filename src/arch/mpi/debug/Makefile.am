@@ -26,15 +26,11 @@ noinst_LTLIBRARIES = libmpi.la
 debug_LTLIBRARIES = libnanox-mpi-api.la
 debug_LTLIBRARIES += libnanox-pe-mpi.la
 
-if SMP_SUPPORTS_ULT
-mpi_ult_sources=$(ult_sources)
-mpi_ult_flags=$(ult_flags)
-endif 
 
 nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) $(mpi_ult_flags)
 
 libmpi_la_CXXFLAGS=$(nanos_debug_cxxflags)  $(mpi_api_flags)
-libmpi_la_SOURCES=$(mpi_sources) $(mpi_ult_sources) $(mpi_api_sources)
+libmpi_la_SOURCES=$(mpi_sources) $(mpi_api_sources)
 
 libnanox_mpi_api_la_CXXFLAGS=$(nanos_debug_cxxflags) $(mpi_api_flags)
 libnanox_mpi_api_la_LDFLAGS=$(version_flags)

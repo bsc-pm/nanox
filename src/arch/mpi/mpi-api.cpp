@@ -139,13 +139,13 @@ NANOS_API_DEF(nanos_err_t, nanos_sync_dev_pointers, (int* file_mask, int mask, u
     try {        
         MPI_Comm parentcomm; /* intercommunicator */
         MPI_Comm_get_parent(&parentcomm);
-        //If this process was not spawned, we don't need this daemon-thread
-        if (parentcomm != NULL && parentcomm != MPI_COMM_NULL) {
+        //If this process was not spawned, we don't need this reorder (and shouldnt have been called)
+        if ( parentcomm != NULL && parentcomm != MPI_COMM_NULL ) {
             MPI_Status status;
             int arr_size;
-            for (arr_size=0;file_mask[arr_size]==mask;arr_size++);
+            for ( arr_size=0;file_mask[arr_size]==mask;arr_size++ );
             unsigned int total_size=0;
-            for (int k=0;k<arr_size;k++) total_size+=task_per_file[k];
+            for ( int k=0;k<arr_size;k++ ) total_size+=task_per_file[k];
             size_t filled_arr_size=0;
             unsigned int* host_file_size=(unsigned int*) malloc(sizeof(unsigned int)*arr_size);
             unsigned int* host_file_namehash=(unsigned int*) malloc(sizeof(unsigned int)*arr_size);
@@ -157,12 +157,12 @@ NANOS_API_DEF(nanos_err_t, nanos_sync_dev_pointers, (int* file_mask, int mask, u
             bool found;
             int local_counter;
             //i loops at host files
-            for (i=0;i<arr_size;i++){   
+            for ( i=0;i<arr_size;i++ ){   
                 func_pointers_arr=0;
                 found=false;
                 //Search the host file in dev file and copy every pointer in the same order
-                for (e=0;!found && e<arr_size;e++){
-                    if(file_namehash[e] == host_file_namehash[i] && file_size[e] == host_file_size[i]){
+                for ( e=0;!found && e<arr_size;e++ ){
+                    if( file_namehash[e] == host_file_namehash[i] && file_size[e] == host_file_size[i] ){
                         found=true; 
                         //Copy from _dev_tmp array to _dev array in the same order than the host
                         memcpy(ompss_mpi_func_pointers_dev_out+filled_arr_size,ompss_mpi_func_pointers_dev+func_pointers_arr,task_per_file[e]*sizeof(void (*)()));
@@ -170,6 +170,7 @@ NANOS_API_DEF(nanos_err_t, nanos_sync_dev_pointers, (int* file_mask, int mask, u
                     }
                     func_pointers_arr+=task_per_file[e];
                 }
+                fatal_cond0(!found,"File not found in device, please compile the code using exactly the same sources (same filename and size) for each architecture");
             }
             memcpy(ompss_mpi_func_pointers_dev,ompss_mpi_func_pointers_dev_out,total_size*sizeof(void (*)()));
             free(ompss_mpi_func_pointers_dev_out);
