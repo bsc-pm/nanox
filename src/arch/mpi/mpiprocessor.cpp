@@ -187,25 +187,36 @@ void MPIProcessor::nanos_MPI_Finalize() {
     }
 }
 
-void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm) {  
+static inline void trim(std::string& params){
+    //Trim params
+    size_t pos = params.find_last_not_of(" \t");
+    if( std::string::npos != pos ) params = params.substr( 0, pos+1 );
+    pos = params.find_first_not_of(" \t");
+    if( std::string::npos != pos ) params = params.substr( pos );
+}
+
+void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm, int offset) {  
     std::list<std::string> tmp_storage;
     std::vector<std::string> tokens_params;
-    std::vector<std::string> tokens_host;    
+    std::vector<std::string> tokens_host;   
+    std::vector<int> host_instances;     
     //In case a host has no parameters, we'll fill our structure with this one
     std::string params="ompssnoparam";
     //Store single-line env value or hostfile into vector, separated by ';' or '\n'
     if ( !_mpiHosts.empty() ){   
         std::stringstream hostInput(_mpiHosts);
         std::string line;
-        while( getline( hostInput, line , ';') ){
-            tmp_storage.push_back(line);
+        while( getline( hostInput, line , ';') ){            
+            if (offset>0) offset--;
+            else tmp_storage.push_back(line);
         }
     } else if ( !_mpiHostsFile.empty() ){
         std::ifstream infile(_mpiHostsFile.c_str());
         fatal_cond0(infile.bad(),"DEEP_Booster alloc error, NX_MPIHOSTFILE file not found");
         std::string line;
-        while( getline( infile, line , '\n') ){
-            tmp_storage.push_back(line);
+        while( getline( infile, line , '\n') ){            
+            if (offset>0) offset--;
+            else tmp_storage.push_back(line);
         }
         infile.close();
     }
@@ -221,17 +232,20 @@ void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_C
             if (pos_end==line.npos) {
                 pos_end=line.size();
             } else {
-                params=line.substr(pos_end+1,line.size());
+                params=line.substr(pos_end+1,line.size());                
+                trim(params);
             }
             if (pos_sep!=line.npos){
                  std::string real_host=line.substr(0,pos_sep);
-                 int number=atoi(line.substr(pos_sep+1,pos_end).c_str());
-                 for (int e=0;e<number;e++){                          
-                   tokens_host.push_back(real_host); 
-                   tokens_params.push_back(params);
-                 }
+                 int number=atoi(line.substr(pos_sep+1,pos_end).c_str());            
+                 trim(real_host);
+                 host_instances.push_back(number);
+                 tokens_host.push_back(real_host); 
+                 tokens_params.push_back(params);
             } else {
-              std::string real_host=line.substr(0,pos_end);                     
+              std::string real_host=line.substr(0,pos_end);           
+              trim(real_host);  
+              host_instances.push_back(1);                
               tokens_host.push_back(real_host); 
               tokens_params.push_back(params);
             }
@@ -242,6 +256,7 @@ void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_C
     if (tokens_host.empty()){
         tokens_host.push_back("localhost");
         tokens_params.push_back(params);
+        host_instances.push_back(1);              
     }
     
     // Spawn the remote process using previously parsed parameters  
@@ -260,30 +275,37 @@ void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_C
         fatal_cond0(count==0,"Couldn't identify executable filename, please specify it manually using NX_MPIEXEC environment variable");  
         result_str=result_tmp.substr(0,count);    
     }
+    //Number of spawns = max length (one instance per host)
     char *array_of_commands[number_of_spawns];
     char **array_of_argv[number_of_spawns];
     MPI_Info  array_of_info[number_of_spawns];
     int n_process[number_of_spawns];
     int host_counter=0;
-    //Build comm_spawn structures
-    for ( int i=0;i<number_of_spawns;i++ ){
+    
+    //This the real length of previously declared arrays, it will be equal to number_of_spawns when 
+    //hostfile/line only has one instance per host (aka no host:nInstances)
+    int spawn_arrays_length=0;
+    int i=0;
+    //Build comm_spawn structures, iterate as many times as needed to spawn number_of_spawns instances of processes
+    while( i<number_of_spawns ){
+        //Fill host
         MPI_Info info;
         MPI_Info_create(&info);
-        array_of_commands[i]=const_cast<char*> (_mpiLauncherFile.c_str());
-        n_process[i]=1;
-        //Search for next host
         std::string host;
-        //Look for the next non-empty host
         do {
             if (host_counter>=tokens_host.size()) host_counter=0;
             host=tokens_host.at(host_counter);
             host_counter++;
-        } while (host.empty());
+        } while (host.empty());        
+        MPI_Info_set(info, const_cast<char*> ("host"), const_cast<char*> (host.c_str()));
+        array_of_info[spawn_arrays_length]=info;
+        
+        
+        //Fill parameter array (including env vars)
         std::stringstream all_param_tmp(tokens_params.at(host_counter-1));
-        std::string tmp_s;            
-        //Count dynamic params+3 mandatory ones in order to allocate the array
+        std::string tmp_param;            
         int params_size=3;
-        while (getline(all_param_tmp, tmp_s, ',')) {
+        while (getline(all_param_tmp, tmp_param, ',')) {
             params_size++;
         }
         std::stringstream all_param(tokens_params.at(host_counter-1));
@@ -292,24 +314,33 @@ void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_C
         argvv[0]= const_cast<char*> (result_str.c_str());
         argvv[1]= TAG_MAIN_OMPSS;    
         int param_counter=2;
-        while (getline(all_param, tmp_s, ',')) {
-            char* arg_copy=new char[tmp_s.size()+1];
-            strcpy(arg_copy,tmp_s.c_str());
+        while (getline(all_param, tmp_param, ',')) {            
+            //Trim current param
+            trim(params);
+            char* arg_copy=new char[tmp_param.size()+1];
+            strcpy(arg_copy,tmp_param.c_str());
             argvv[param_counter]=arg_copy;
             param_counter++;
         }
         argvv[params_size-1]=NULL;              
-        MPI_Info_set(info, const_cast<char*> ("host"), const_cast<char*> (host.c_str()));
-        array_of_info[i]=info;
-        array_of_argv[i]=argvv;      
+        array_of_argv[spawn_arrays_length]=argvv;     
+        
+        array_of_commands[spawn_arrays_length]=const_cast<char*> (_mpiLauncherFile.c_str());      
+        
+        //Set number of instances this host can handle
+        int curr_host_instances=host_instances.at(host_counter-1);
+        int remaning_spawns=(number_of_spawns-i);
+        n_process[spawn_arrays_length]=(curr_host_instances<remaning_spawns)?curr_host_instances:remaning_spawns;//min(host_instances,remaning_spawns)
+        i+=n_process[spawn_arrays_length]; 
+        spawn_arrays_length++;
     }   
 
-    MPI_Comm_spawn_multiple(number_of_spawns,array_of_commands, array_of_argv, n_process,
+    MPI_Comm_spawn_multiple(spawn_arrays_length,array_of_commands, array_of_argv, n_process,
             array_of_info, 0, comm, intercomm,
             MPI_ERRCODES_IGNORE);
     //Free all args sent
-    for (int i=0;i<number_of_spawns;i++){  
-        //Delete all args which were dynamically copied before
+    for (i=0;i<spawn_arrays_length;i++){  
+        //Free all args which were dynamically copied before
         for (int e=2;array_of_argv[i][e]!=NULL;e++){
             delete[] array_of_argv[i][e];
         }

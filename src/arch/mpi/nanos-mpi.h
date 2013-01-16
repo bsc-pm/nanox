@@ -42,11 +42,11 @@ extern "C" {
 #define NANOS_MPI_DESC( args ) { nanos_mpi_factory, &( args ) } 
 
     NANOS_API_DECL(nanos_err_t, DEEP_Booster_alloc, (MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm));
+    NANOS_API_DECL(nanos_err_t, DEEP_Booster_alloc_offset, (MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm, int offset));
 //    NANOS_API_DECL(nanos_err_t, DEEP_Booster_alloc_hostfile, (MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm, char* hosts));
 //    NANOS_API_DECL(nanos_err_t, DEEP_Booster_alloc_hostlist, (MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm, char* hosts, char* exec_file));
     NANOS_API_DECL(nanos_err_t, DEEP_Booster_free, (MPI_Comm *intercomm));
     NANOS_API_DECL(nanos_err_t, DEEP_Booster_free_single, (MPI_Comm *intercomm, int rank));
-    NANOS_API_DECL(nanos_err_t, DEEP_Booster_free_size, (MPI_Comm *intercomm, int size));
     NANOS_API_DECL(nanos_err_t, setMpiExename, (char* new_name));
     NANOS_API_DECL(nanos_err_t, nanos_MPI_Init, (int* argc, char*** argv));
     NANOS_API_DECL(nanos_err_t, nanos_MPI_Finalize, (void) );

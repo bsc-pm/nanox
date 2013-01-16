@@ -75,7 +75,17 @@ NANOS_API_DEF(nanos_err_t, DEEP_Booster_free_single, (MPI_Comm *intercomm, int r
 //
 NANOS_API_DEF(nanos_err_t, DEEP_Booster_alloc, (MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm)) {
     try {
-        nanos::ext::MPIProcessor::DEEP_Booster_alloc(comm, number_of_spawns, intercomm);
+        nanos::ext::MPIProcessor::DEEP_Booster_alloc(comm, number_of_spawns, intercomm, 0);
+    } catch (...) {
+        return NANOS_UNKNOWN_ERR;
+    }
+
+    return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, DEEP_Booster_alloc_offset, (MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm, int offset)) {
+    try {
+        nanos::ext::MPIProcessor::DEEP_Booster_alloc(comm, number_of_spawns, intercomm, offset);
     } catch (...) {
         return NANOS_UNKNOWN_ERR;
     }
