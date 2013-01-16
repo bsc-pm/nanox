@@ -93,12 +93,13 @@ namespace nanos
 
          void print() const;
          void lock();
-         void unlock();
+         void tryLock();
          RegionDictionary &getDictionary( CopyData const &cd ) const;
 
          static NewNewDirectoryEntryData *getDirectoryEntry( RegionDictionary &dict, reg_t id );
 
-         static reg_t getLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
+         static reg_t _getLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
+         static reg_t tryGetLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
          static bool isLocatedIn( RegionDirectoryKey dict, reg_t id, unsigned int loc, unsigned int version );
          static bool isLocatedIn( RegionDirectoryKey dict, reg_t id, unsigned int loc );
          static bool hasWriteLocation( RegionDirectoryKey dict, reg_t id );

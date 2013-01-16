@@ -5,10 +5,17 @@
 #include "version.hpp"
 #include "system_decl.hpp"
 #include "basethread.hpp"
+#include "os.hpp"
 
 using namespace nanos;
-
+#define MAX_REG_ID 16384
 RegionNode::RegionNode( RegionNode *parent, std::size_t value, reg_t id ) : _parent( parent ), _value( value ), _id( id ), _sons( NULL ) {
+   if ( id > 1 ) {
+      _memoIntersectInfo = NEW reg_t[ id - 1 ];
+      ::memset(_memoIntersectInfo, 0, sizeof( reg_t ) * (id - 1) );
+   } else {
+      _memoIntersectInfo = NULL;
+   }
    //std::cerr << "created node with value " << value << " and id " << id << std::endl;
 }
 
@@ -18,6 +25,14 @@ RegionNode::~RegionNode() {
 
 reg_t RegionNode::getId() const {
    return _id;
+}
+
+reg_t RegionNode::getMemoIntersect( reg_t target ) const {
+   return _memoIntersectInfo[ target-1 ];
+}
+
+void RegionNode::setMemoIntersect( reg_t target, reg_t value ) const {
+   _memoIntersectInfo[ target-1 ] = value;
 }
 
 reg_t RegionNode::addNode( nanos_region_dimension_internal_t const *dimensions, unsigned int numDimensions, unsigned int deep, RegionDictionary & dict ) {
@@ -123,6 +138,8 @@ unsigned int RegionTreeRoot::getNumDimensions() const {
 
 reg_t RegionTreeRoot::getNewRegionId() {
    reg_t id = _idSeed++;
+   if (id >= MAX_REG_ID) { std::cerr <<"Max regions reached."<<std::endl;}
+   //std::cerr << "Created id "<< id << std::endl;
    return id;
 }
 
@@ -161,6 +178,10 @@ void RegionDictionary::lock() {
    _lock.acquire();
 }
 
+bool RegionDictionary::tryLock() {
+   return _lock.tryAcquire();
+}
+
 void RegionDictionary::unlock() {
    _lock.release();
 }
@@ -169,7 +190,7 @@ unsigned int RegionDictionary::getNumDimensions() const {
    return _tree.getNumDimensions();
 }
 
-void RegionIntersectionDictionary::addRegionAndComputeIntersects( reg_t id, std::list< std::pair< reg_t, reg_t > > &finalParts, unsigned int &version, bool rogue, bool justCreatedRegion ) {
+void RegionIntersectionDictionary::addRegionAndComputeIntersects( reg_t id, std::list< std::pair< reg_t, reg_t > > &finalParts, unsigned int &version, bool rogue, bool justCreatedRegion, bool superPrecise ) {
    class LocalFunction {
       RegionDictionary &_currentDict;
       public:
@@ -178,6 +199,20 @@ void RegionIntersectionDictionary::addRegionAndComputeIntersects( reg_t id, std:
       void _computeIntersect( reg_t regionIdA, reg_t regionIdB, nanos_region_dimension_internal_t *outReg ) {
          RegionNode const *regA = _currentDict.getLeafRegionNode( regionIdA );
          RegionNode const *regB = _currentDict.getLeafRegionNode( regionIdB );
+
+         if ( regionIdA == regionIdB ) {
+            std::cerr << __FUNCTION__ << " Dummy check! regA == regB" << std::endl;
+            for ( int dimensionCount = _currentDict.getNumDimensions() - 1; dimensionCount >= 0; dimensionCount -= 1 ) {
+               outReg[ dimensionCount ].accessed_length = 0;
+               outReg[ dimensionCount ].lower_bound = 0;
+            }
+            return;
+         }
+
+         //reg_t maxReg = std::max( regionIdA, regionIdB );
+         //if ( regionIdA > regionIdB ) {
+         //} else {
+         //}
       
          //std::cerr << "Computing intersect between reg " << regionIdA << " and "<< regionIdB << "... "<<std::endl;
          //_dict.printRegion(regionIdA ); std::cerr << std::endl;
@@ -236,9 +271,27 @@ void RegionIntersectionDictionary::addRegionAndComputeIntersects( reg_t id, std:
       }
 
       reg_t computeIntersect( reg_t regionIdA, reg_t regionIdB ) {
+   {
+      reg_t maxRegionId = std::max( regionIdA, regionIdB );
+      reg_t minRegionId = std::min( regionIdA, regionIdB );
+      RegionNode const *maxReg = _currentDict.getLeafRegionNode( maxRegionId );
+      reg_t data = maxReg->getMemoIntersect( minRegionId );
+      if ( data != (unsigned int)-2 ) {
+         //std::cerr << "hit compute!"<<std::endl;
+         return data;
+      }
+   }
          nanos_region_dimension_internal_t resultingRegion[ _currentDict.getNumDimensions() ];
          _computeIntersect( regionIdA, regionIdB, resultingRegion );
          reg_t regId = _currentDict.checkIfRegionExistsByComponents( resultingRegion );
+
+   {
+      reg_t maxRegionId = std::max( regionIdA, regionIdB );
+      reg_t minRegionId = std::min( regionIdA, regionIdB );
+      RegionNode *maxReg = _currentDict.getLeafRegionNode( maxRegionId );
+      maxReg->setMemoIntersect( minRegionId, regId );
+   }
+
          return regId;
       }
 
@@ -259,8 +312,10 @@ void RegionIntersectionDictionary::addRegionAndComputeIntersects( reg_t id, std:
          //std::cerr << std::endl;
 
          while ( it != partsList.end() ) {
-            if ( _currentDict.checkIntersect( it->first, regionToInsert ) ) {
-               //std::cerr << "Add intersect " << it->first << std::endl;
+            if ( it->first == regionToInsert ) {
+               //std::cerr << __FUNCTION__ << ": skip self intersect: " << it->first << std::endl;
+               it = partsList.erase( it );
+            } else if ( _currentDict.checkIntersect( it->first, regionToInsert ) ) {
                intersectList.push_back( *it );
                it = partsList.erase( it );
             } else {
@@ -298,6 +353,10 @@ void RegionIntersectionDictionary::addRegionAndComputeIntersects( reg_t id, std:
    MemoryMap< std::set< reg_t > >::MemChunkList results[ _dict.getNumDimensions() ];
    std::map< reg_t, unsigned int > interacts;
    unsigned int skipDimensions = 0;
+
+
+   //double tiniINTERS = OS::getMonotonicTime();
+
    for ( int idx = _dict.getNumDimensions() - 1; idx >= 0; idx -= 1 ) {
       std::size_t accessedLength = regNode->getValue();
       regNode = regNode->getParent();
@@ -325,24 +384,28 @@ void RegionIntersectionDictionary::addRegionAndComputeIntersects( reg_t id, std:
          } else {
             for ( std::set< reg_t >::iterator sit = (*(results[idx].begin()->second))->begin(); sit != (*(results[idx].begin()->second))->end(); sit++ ) {
                 if ( *sit == id ) continue;
-                std::set< reg_t >::iterator sit2 = sit;
-                Version *itEntry = _dict.getRegionData( *sit );
-                unsigned int itVersion = ( itEntry != NULL ? itEntry->getVersion() : 1 );
-                bool insert = true;
-                if ( (*(results[idx].begin()->second))->size() > 1 ) {
-                   for ( sit2++; sit2 != (*(results[idx].begin()->second))->end(); sit2++ ) {
-                      //std::cerr << "\tintersect test "<< *sit << " vs " << *sit2 << std::endl;
-                      if ( _dict.checkIntersect( *sit, *sit2 ) && _dict.checkIntersect( *sit2, id ) ) {
-                         Version *entry2 = _dict.getRegionData( *sit2 );
-                         unsigned int thisVersion2 = ( entry2 != NULL ? entry2->getVersion() : 1 );
-                         if ( thisVersion2 > itVersion ) {
-                            insert = false;
+                if ( superPrecise ) {
+                   std::set< reg_t >::iterator sit2 = sit;
+                   Version *itEntry = _dict.getRegionData( *sit );
+                   unsigned int itVersion = ( itEntry != NULL ? itEntry->getVersion() : 1 );
+                   bool insert = true;
+                   if ( (*(results[idx].begin()->second))->size() > 1 ) {
+                      for ( sit2++; insert && sit2 != (*(results[idx].begin()->second))->end(); sit2++ ) {
+                         //std::cerr << "\tintersect test "<< *sit << " vs " << *sit2 << std::endl;
+                         if ( *sit2 != id && _dict.checkIntersect( *sit, *sit2 ) && _dict.checkIntersect( *sit2, id ) ) {
+                            Version *entry2 = _dict.getRegionData( *sit2 );
+                            unsigned int thisVersion2 = ( entry2 != NULL ? entry2->getVersion() : 1 );
+                            if ( thisVersion2 > itVersion ) {
+                               insert = false;
+                            }
                          }
                       }
                    }
-                }
-                if ( insert ) {
-                   //std::cerr << "insert reg " << *sit << std::endl;
+                   if ( insert ) {
+                      //std::cerr << "insert reg " << *sit << std::endl;
+                      thisDimInteracts.insert( *sit );
+                   }
+                } else {
                    thisDimInteracts.insert( *sit );
                 }
             }
@@ -362,23 +425,27 @@ void RegionIntersectionDictionary::addRegionAndComputeIntersects( reg_t id, std:
             //compute max version of registered interactions
             for ( std::set< reg_t >::iterator sit = (*(it->second))->begin(); sit != (*(it->second))->end(); sit++ ) {
                 if ( *sit == id ) continue;
-                std::set< reg_t >::iterator sit2 = sit;
-                Version *itEntry = _dict.getRegionData( *sit );
-                unsigned int itVersion = ( itEntry != NULL ? itEntry->getVersion() : 1 );
-                bool insert = true;
-                if ( (*(it->second))->size() > 1 ) {
-                   for ( sit2++; sit2 != (*(it->second))->end(); sit2++ ) {
-                      //std::cerr << "\tintersect test "<< *sit << " vs " << *sit2 << std::endl;
-                      if ( _dict.checkIntersect( *sit, *sit2 ) && _dict.checkIntersect( *sit2, id ) ) {
-                         Version *entry2 = _dict.getRegionData( *sit2 );
-                         unsigned int thisVersion2 = ( entry2 != NULL ? entry2->getVersion() : 1 );
-                         if ( thisVersion2 > itVersion ) {
-                            insert = false;
+                if ( superPrecise ) {
+                   std::set< reg_t >::iterator sit2 = sit;
+                   Version *itEntry = _dict.getRegionData( *sit );
+                   unsigned int itVersion = ( itEntry != NULL ? itEntry->getVersion() : 1 );
+                   bool insert = true;
+                   if ( (*(it->second))->size() > 1 ) {
+                      for ( sit2++; sit2 != (*(it->second))->end(); sit2++ ) {
+                         //std::cerr << "\tintersect test "<< *sit << " vs " << *sit2 << std::endl;
+                         if ( *sit2 != id && _dict.checkIntersect( *sit, *sit2 ) && _dict.checkIntersect( *sit2, id ) ) {
+                            Version *entry2 = _dict.getRegionData( *sit2 );
+                            unsigned int thisVersion2 = ( entry2 != NULL ? entry2->getVersion() : 1 );
+                            if ( thisVersion2 > itVersion ) {
+                               insert = false;
+                            }
                          }
                       }
                    }
-                }
-                if ( insert ) {
+                   if ( insert ) {
+                      thisDimInteracts.insert( *sit );
+                   }
+                } else {
                    thisDimInteracts.insert( *sit );
                 }
             }
@@ -394,6 +461,9 @@ void RegionIntersectionDictionary::addRegionAndComputeIntersects( reg_t id, std:
       }
       //std::cerr << "}" << std::endl;;
    }
+   //double tfiniINTERS = OS::getMonotonicTime();
+   //std::cerr << __FUNCTION__ << " total intersect time " << (tfiniINTERS-tiniINTERS) << std::endl;
+
    //std::cerr << __FUNCTION__ << " node "<< sys.getNetwork()->getNodeNum() << " reg "<< id << " numdims " <<_dict.getNumDimensions() << " skipdims " << skipDimensions << " rogue? " << rogue << " leafs "<< _dict.getLeafCount() ; _dict.printRegion(id); std::cerr << " results sizes ";
    //for ( int idx = _dict.getNumDimensions() - 1; idx >= 0; idx -= 1 ) {
    //   std::cerr << "[ " << idx << "=" << results[idx].size() << ", " << (*(results[idx].begin()->second))->size()<<" ]";
@@ -479,6 +549,8 @@ void RegionIntersectionDictionary::addRegionAndComputeIntersects( reg_t id, std:
       //std::cerr << /*myThread->getId() <<*/ " final parts region is " << *cit << std::endl;
       finalParts.push_back( std::make_pair( *cit, *cit ) );
    }
+   //double tfiniTOTAL = OS::getMonotonicTime();
+   //std::cerr << __FUNCTION__ << " rest of time " << (tfiniTOTAL-tfiniINTERS) << std::endl;
 }
 
 reg_t RegionDictionary::addRegion( CopyData const &cd, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version ) {
@@ -487,6 +559,8 @@ reg_t RegionDictionary::addRegion( CopyData const &cd, std::list< std::pair< reg
    bool newlyCreatedRegion = false;
    //std::cerr << "=== RegionDictionary::addRegion ====================================================" << std::endl;
 
+   //{
+   //double tini = OS::getMonotonicTime();
    ensure( cd.getNumDimensions() == getNumDimensions(), "ERROR" );
    if ( cd.getNumDimensions() != getNumDimensions() ) {
       std::cerr << "Error, invalid numDimensions" << std::endl;
@@ -495,18 +569,26 @@ reg_t RegionDictionary::addRegion( CopyData const &cd, std::list< std::pair< reg
       id = _tree.addRegion( cd.getDimensions(), *this );
       newlyCreatedRegion = ( getLeafCount() > currentLeafCount );
    }
+   //double tfini = OS::getMonotonicTime();
+   //std::cerr << __FUNCTION__ << " Insert region into node time " << (tfini-tini) << std::endl;
+   //}
    //std::cerr << cd << std::endl;
    //std::cerr << "got id "<< id << std::endl;
    //if ( newlyCreatedRegion ) { std::cerr << __FUNCTION__ << ": just created region " << id << std::endl; }
 
+   //{
+   //double tini = OS::getMonotonicTime();
    _intersects.addRegionAndComputeIntersects( id, missingParts, version, _rogue, newlyCreatedRegion );
+   //double tfini = OS::getMonotonicTime();
+   //std::cerr << __FUNCTION__ << " add and compute intersects time " << (tfini-tini) << std::endl;
+   //}
 
    //std::cerr << "===== reg " << id << " ====================================================" << std::endl;
    return id;
 }
 
-reg_t RegionDictionary::addRegion( reg_t id, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version ) {
-   _intersects.addRegionAndComputeIntersects( id, missingParts, version, _rogue, false );
+reg_t RegionDictionary::addRegion( reg_t id, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, bool superPrecise ) {
+   _intersects.addRegionAndComputeIntersects( id, missingParts, version, _rogue, false, superPrecise );
    return id;
 }
 
@@ -602,6 +684,21 @@ reg_t RegionDictionary::addIntersect( reg_t regionIdA, reg_t regionIdB ) {
 */
 
 bool RegionDictionary::checkIntersect( reg_t regionIdA, reg_t regionIdB ) const {
+   if ( regionIdA == regionIdB ) {
+            std::cerr << __FUNCTION__ << " Dummy check! regA == regB" << std::endl;
+   }
+
+   {
+      reg_t maxRegionId = std::max( regionIdA, regionIdB );
+      reg_t minRegionId = std::min( regionIdA, regionIdB );
+      RegionNode const *maxReg = getLeafRegionNode( maxRegionId );
+      reg_t data = maxReg->getMemoIntersect( minRegionId );
+      if ( data != 0 ) {
+         //std::cerr << "hit!"<<std::endl;
+         return ( data != (unsigned int) -1 );
+      }
+   }
+
    RegionNode const *regA = getLeafRegionNode( regionIdA );
    RegionNode const *regB = getLeafRegionNode( regionIdB );
    bool result = true;
@@ -630,10 +727,21 @@ bool RegionDictionary::checkIntersect( reg_t regionIdA, reg_t regionIdB ) const 
       regA = regA->getParent();
       regB = regB->getParent();
    }
+
+   //std::cerr << "Computing intersect between reg " << regionIdA << " and "<< regionIdB << " " << result<< std::endl;
+
+   {
+      reg_t maxRegionId = std::max( regionIdA, regionIdB );
+      reg_t minRegionId = std::min( regionIdA, regionIdB );
+      RegionNode *maxReg = getLeafRegionNode( maxRegionId );
+      maxReg->setMemoIntersect( minRegionId, result ? -2 : -1  );
+   }
+   
+
    return result;
 }
 
-RegionVector::RegionVector( ) : _regionList( 4096, RegionVectorEntry() ), _maxId( 0 ), _leafCount( 0 ) {
+RegionVector::RegionVector( ) : _regionList( MAX_REG_ID, RegionVectorEntry() ), _maxId( 0 ), _leafCount( 0 ) {
 }
 
 RegionNode *RegionVector::getLeaf( reg_t id ) const {
@@ -752,6 +860,12 @@ void RegionDictionary::printRegion( reg_t region ) const {
 }
 
 void RegionDictionary::substract( reg_t base, reg_t regionToSubstract, std::list< reg_t > &resultingPieces ) {
+
+   //std::cerr << __FUNCTION__ << ": base("<< base << ") "; printRegion(base); std::cerr<< " regToSubs(" << regionToSubstract<< ") "; printRegion(regionToSubstract); std::cerr << std::endl;
+   if ( !checkIntersect( base, regionToSubstract ) ) {
+      return;
+   }
+
    nanos_region_dimension_internal_t fragments[ getNumDimensions() ][ 3 ];
    RegionNode const *regBase   = getLeafRegionNode( base );
    RegionNode const *regToSubs = getLeafRegionNode( regionToSubstract );
@@ -825,10 +939,11 @@ void RegionDictionary::substract( reg_t base, reg_t regionToSubstract, std::list
 
 }
 void RegionDictionary::_combine ( nanos_region_dimension_internal_t tmpFragment[], int dim, int currentPerm, nanos_region_dimension_internal_t fragments[ ][3], bool allFragmentsIntersect, std::list< reg_t > &resultingPieces  ) {
+   //std::cerr << "dim "<<dim << " currentPerm " << currentPerm<<std::endl;;
    if ( fragments[ dim ][ currentPerm ].accessed_length > 0 ) { 
       tmpFragment[ dim ].accessed_length = fragments[ dim ][ currentPerm ].accessed_length;
       tmpFragment[ dim ].lower_bound     = fragments[ dim ][ currentPerm ].lower_bound;
-      //for( unsigned int _i = 0; _i < ( _dimensionSizes.size() - (1+dim) ); _i++ ) std::cerr << ">";
+      //for( unsigned int _i = 0; _i < ( getDimensionSizes().size() - (1+dim) ); _i++ ) std::cerr << ">";
       //std::cerr <<" [" << fragments[ dim ][ currentPerm ].lower_bound << ":" << fragments[ dim ][ currentPerm ].accessed_length << "] " << std::endl;
 
       if ( dim > 0 )  {
@@ -844,15 +959,20 @@ void RegionDictionary::_combine ( nanos_region_dimension_internal_t tmpFragment[
          _combine( tmpFragment, dim-1, 2, fragments, ( allFragmentsIntersect && false ), resultingPieces ); 
       } else {
          if ( !allFragmentsIntersect ) {
+            //std::cerr << "not all intersect " << std::endl;
+            //for ( unsigned int i = 0; i < getDimensionSizes().size(); i++ ) {
+            //   std::cerr << "["<<tmpFragment[getDimensionSizes().size()-(i+1)].lower_bound<< ":" << tmpFragment[getDimensionSizes().size()-(i+1)].accessed_length << "]";
+            //}
+            //std::cerr << std::endl;
             if ( _rogue ) _rogueLock->acquire();
             reg_t id = _tree.addRegion( tmpFragment, *this );
             if ( _rogue ) _rogueLock->release();
-            //std::cerr << "computed a subchunk " << id; printRegion( id ); std::cerr << std::endl;
+            //std::cerr << "computed a subchunk " << id ;printRegion( id ); std::cerr << std::endl;
             resultingPieces.push_back( id );
          } else {
             //std::cerr << "ignored intersect region ";
-            //for ( unsigned int i = 0; i < _dimensionSizes.size(); i++ ) {
-            //   std::cerr << "["<<tmpFragment[_dimensionSizes.size()-(i+1)].lower_bound<< ":" << tmpFragment[_dimensionSizes.size()-(i+1)].accessed_length << "]";
+            //for ( unsigned int i = 0; i < getDimensionSizes().size(); i++ ) {
+            //   std::cerr << "["<<tmpFragment[getDimensionSizes().size()-(i+1)].lower_bound<< ":" << tmpFragment[getDimensionSizes().size()-(i+1)].accessed_length << "]";
             //}
             //std::cerr << std::endl;
          }

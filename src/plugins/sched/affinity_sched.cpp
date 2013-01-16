@@ -37,6 +37,7 @@ namespace nanos {
             struct TeamData : public ScheduleTeamData
             {
                WDDeque            _globalReadyQueue;
+               WDDeque            _unrankedQueue;
                WDDeque*           _readyQueues;
                WDDeque*           _bufferQueues;
                std::size_t*       _createdData;
@@ -494,6 +495,8 @@ namespace nanos {
                return NEW ThreadData();
             }
 
+            void rankWD( BaseThread *thread, WD &wd );
+            void tryGetLocationData( BaseThread *thread ); 
             /*!
             *  \brief Enqueue a work descriptor in the readyQueue of the passed thread
             *  \param thread pointer to the thread to which readyQueue the task must be appended
@@ -564,10 +567,10 @@ namespace nanos {
                      }
                      //tdata._readyQueues[winner + 1].push_back( &wd );
                      tdata._holdTasks = true;
+                 //    std::cerr << "END case, regular init wd " << wd.getId() << std::endl;
                   }
                   else
                   {
-                     unsigned int ranks[ tdata._numNodes ];
                      if ( tdata._holdTasks.value() )
                      {
                         if ( tdata._holdTasks.cswap( true, false ) )
@@ -578,73 +581,24 @@ namespace nanos {
                            }
                         }
                      }
-                     for (unsigned int i = 0; i < tdata._numNodes; i++ ) {
-                        ranks[i] = 0;
+                     
+                     bool locationDataIsAvailable = true;
+                     for ( unsigned int i = 0; i < wd.getNumCopies() && locationDataIsAvailable; i++ ) {
+                        locationDataIsAvailable = ( wd._ccontrol.getCacheCopies()[ i ]._reg.id != 0 );
                      }
-                     for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
-                        if ( !copies[i].isPrivate() && copies[i].isOutput() && copies[i].isInput()) {
-                           if ( sys.usingNewCache() ) {
-                              NewNewRegionDirectory::NewLocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getNewLocations();
-                              for ( NewNewRegionDirectory::NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                                 int loc = ( NewNewRegionDirectory::hasWriteLocation( wd._ccontrol.getCacheCopies()[ i ]._reg.key, it->first ) ) ? NewNewRegionDirectory::getWriteLocation( wd._ccontrol.getCacheCopies()[ i ]._reg.key, it->first )  : NewNewRegionDirectory::getFirstLocation( wd._ccontrol.getCacheCopies()[ i ]._reg.key, it->first );
-                                 ranks[ ( loc != 0 ? sys.getCaches()[ loc ]->getNodeNumber() : 0 ) ] += wd._ccontrol.getCacheCopies()[ i ]._reg.getDataSize();
-                              }
-                           } else {
-                              NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();
-                              for ( NewDirectory::LocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                                 int loc = ( it->second.hasWriteLocation() ) ? it->second.getWriteLocation() : it->second.getFirstLocation();
-                                 //if( it->second.getNumLocations() > 1 ) std::cerr <<" WARRRRRRRRRRRRNINC lets see write loc "<< it->second.getWriteLocation() <<std::endl;
-                                 //if( sys.getNetwork()->getNodeNum() == 0) std::cerr /*<< it->first*/ << " copy "<< i << " is in " << ( loc != 0 ? sys.getCaches()[ loc ]->getNodeNumber() : 0 ) << " size " << it->first.getBreadth() / ( 16 * 512 * 512 ) << " " << std::endl;
-                                 ranks[ ( loc != 0 ? sys.getCaches()[ loc ]->getNodeNumber() : 0 ) ] += it->first.getBreadth();
-                                 //  if (sys.getNetwork()->getNodeNum() == 0 ) {message("wd " << wd.getId() << " selected queue " << ( loc != 0 ? sys.getCaches()[ loc ]->getNodeNumber() : 0 ) << " loc is " << loc << " nded: " << it->second  ); }
-                              }
-                           }
-                        }
+
+                     if ( locationDataIsAvailable ) {
+                     //std::cerr <<"all data is available, ranking... wd "<< wd.getId() << std::endl;
+                        rankWD(thread, wd);
+                        
+                   //  std::cerr <<"all data is available, ranked" << wd.getId() << std::endl;
+                     } else { //no location data available, set as unranked
+                 //    std::cerr <<"not all data is available, pushing..." << wd.getId() <<std::endl;
+                        tdata._unrankedQueue.push_front( &wd );
+               //      std::cerr <<"not all data is available, pushed" << wd.getId() << std::endl;
                      }
-                        int winner = -1;
-                        unsigned int start = ( _noMaster ) ? 1 : 0 ;
-                        unsigned int maxRank = 0;
-                        for ( int i = start; i < ( (int) tdata._numNodes ); i++ ) {
-                           if ( ranks[i] > maxRank ) {
-                              winner = i;
-                              maxRank = ranks[i];
-                           }
-                        }
-                        {
-                        unsigned int usage[ tdata._numNodes ];
-                        unsigned int ties=0;
-                        for ( int i = start; i < ( (int) tdata._numNodes ); i++ ) {
-                           if ( ranks[i] == maxRank ) {
-                              usage[ ties ] = i;
-                              ties += 1;
-                           }
-                        }
-                        if ( ties > 1 ) {
-                           //std::cerr << "I have to chose between :";
-                           //for ( unsigned int ii = 0; ii < ties; ii += 1 ) std::cerr <<" " << usage[ ii ];
-                           //std::cerr << std::endl;
-                           unsigned int minLoad = usage[0];
-                           for ( unsigned int ii = 1; ii < ties; ii += 1 ) {
-                           //std::cerr << "load of (min) " << minLoad << " is " << tdata._load[ minLoad ] <<std::endl;
-                           //std::cerr << "load of (itr) " << usage[ ii ]  << " is " << tdata._load[ usage[ ii ] ] << std::endl;
-                              if ( tdata._load[ usage[ ii ] ] < tdata._load[ minLoad ] ) {
-                                 minLoad = usage[ ii ];
-                              }
-                           }
-                           //std::cerr << "Well winner is gonna be "<< minLoad << std::endl;
-                           tdata._load[ minLoad ]++;
-                           winner = minLoad;
-                        }
-		        //if (sys.getNetwork()->getNodeNum() == 0 ) { 
-                        //   std::cerr << "WD: " << wd.getId() << " ROcopies: "<<ro_copies << " WOcopies: " << wo_copies << " RWcopies: " << rw_copies << " Locality results: [ ";
-                        //   for (unsigned int i = 0; i < tdata._numNodes ; i += 1) std::cerr << i << ": " << (ranks[i] / (16*512*512)) << " "; 
-                        //   std::cerr <<"] ties " << ties << " winner " << winner << std::endl;
-                        //}
-                     }
-                     //if (winner == -1) winner = start;
-		     //message("queued wd " << wd.getId() << " to queue " << winner << " ranks " << ranks[0] << "," << ranks[1] << "," << ranks[2] << "," << ranks[3] );
-		     //std::cerr << "the winner is " << winner << std::endl;
-                     tdata._readyQueues[winner].push_back( &wd );
+                     
+             //        std::cerr << "END case, regular wd " << wd.getId() << std::endl;
                   }
                } else {
                   tdata._globalReadyQueue.push_front ( &wd );
@@ -676,14 +630,16 @@ namespace nanos {
 
             WD * atPrefetch ( BaseThread *thread, WD &current )
             {
-               WD * found = current.getImmediateSuccessor(*thread);
+               return NULL;
+               //WD * found = current.getImmediateSuccessor(*thread);
          
-               return found != NULL ? found : atIdle(thread);
+               //return found != NULL ? found : atIdle(thread);
             }
          
             WD * atBeforeExit ( BaseThread *thread, WD &current )
             {
-               return current.getImmediateSuccessor(*thread);
+               return NULL;
+ //              return current.getImmediateSuccessor(*thread);
             }
 
             WD *fetchWD ( BaseThread *thread, WD *current );  
@@ -935,6 +891,11 @@ namespace nanos {
             data._init = true;
          }
          TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+         if ( thread->getId() == 0 ) {
+            while ( !tdata._unrankedQueue.empty() ) {
+               tryGetLocationData( thread );
+            }
+         }
 
          if ( tdata._holdTasks.value() ) 
          {
@@ -1056,6 +1017,13 @@ namespace nanos {
                   wd = tdata._globalReadyQueue.pop_front( thread );
                   return wd;
                }
+
+         if ( thread->getId() == 0 ) {
+            while ( !tdata._unrankedQueue.empty() ) {
+               tryGetLocationData( thread );
+            }
+         }
+         //tryGetLocationData( thread );
          /*
           *  First try to schedule the thread with a task from its queue
           */
@@ -1143,7 +1111,111 @@ namespace nanos {
          return wd;
       }
 
+      void CacheSchedPolicy::tryGetLocationData( BaseThread *thread ) {
+         ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
+         if ( !data._init ) {
+            //data._cacheId = thread->runningOn()->getMemorySpaceId();
+            data._cacheId = thread->runningOn()->getMyNodeNumber();
+            data._init = true;
+         }
+         TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+         if ( !tdata._unrankedQueue.empty() ) {
+            WD *wd = tdata._unrankedQueue.pop_front( thread );
+           
+            if ( wd != NULL ) {
+               bool succeeded = true;
+               for ( unsigned int i = 0; i < wd->getNumCopies(); i++ ) {
+                  if ( wd->_ccontrol.getCacheCopies()[ i ]._reg.id == 0 ) {
+                   //  std::cerr << "trygetLoc at "<< __FUNCTION__<<std::endl;
+                     succeeded = succeeded && wd->_ccontrol.getCacheCopies()[ i ].tryGetLocation( *wd, i );
+                  }
+               }
+               if ( succeeded ) {
+                 // std::cerr << "got a wd delayed using "<< __FUNCTION__<<std::endl;
+                  rankWD( thread, *wd );
+               } else {
+                 // std::cerr << "readd a wd delayed using "<< __FUNCTION__<<std::endl;
+                  tdata._unrankedQueue.push_front( wd );
+               }
+            }
+         }
+      }
+
+      void CacheSchedPolicy::rankWD( BaseThread *thread, WD &wd ) {
+         TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+         CopyData * copies = wd.getCopies();
+         unsigned int ranks[ tdata._numNodes ];
+         for (unsigned int i = 0; i < tdata._numNodes; i++ ) {
+            ranks[i] = 0;
+         }
+         for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
+            if ( !copies[i].isPrivate() && copies[i].isOutput() && copies[i].isInput()) {
+               if ( sys.usingNewCache() ) {
+                  NewNewRegionDirectory::NewLocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getNewLocations();
+                  for ( NewNewRegionDirectory::NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
+                     int loc = ( NewNewRegionDirectory::hasWriteLocation( wd._ccontrol.getCacheCopies()[ i ]._reg.key, it->first ) ) ? NewNewRegionDirectory::getWriteLocation( wd._ccontrol.getCacheCopies()[ i ]._reg.key, it->first )  : NewNewRegionDirectory::getFirstLocation( wd._ccontrol.getCacheCopies()[ i ]._reg.key, it->first );
+                     ranks[ ( loc != 0 ? sys.getCaches()[ loc ]->getNodeNumber() : 0 ) ] += wd._ccontrol.getCacheCopies()[ i ]._reg.getDataSize();
+                  }
+               } else {
+                  NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();
+                  for ( NewDirectory::LocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
+                     int loc = ( it->second.hasWriteLocation() ) ? it->second.getWriteLocation() : it->second.getFirstLocation();
+                     //if( it->second.getNumLocations() > 1 ) std::cerr <<" WARRRRRRRRRRRRNINC lets see write loc "<< it->second.getWriteLocation() <<std::endl;
+                     //if( sys.getNetwork()->getNodeNum() == 0) std::cerr /*<< it->first*/ << " copy "<< i << " is in " << ( loc != 0 ? sys.getCaches()[ loc ]->getNodeNumber() : 0 ) << " size " << it->first.getBreadth() / ( 16 * 512 * 512 ) << " " << std::endl;
+                     ranks[ ( loc != 0 ? sys.getCaches()[ loc ]->getNodeNumber() : 0 ) ] += it->first.getBreadth();
+                     //  if (sys.getNetwork()->getNodeNum() == 0 ) {message("wd " << wd.getId() << " selected queue " << ( loc != 0 ? sys.getCaches()[ loc ]->getNodeNumber() : 0 ) << " loc is " << loc << " nded: " << it->second  ); }
+                  }
+               }
+            }
+         }
+         int winner = -1;
+         unsigned int start = ( _noMaster ) ? 1 : 0 ;
+         unsigned int maxRank = 0;
+         for ( int i = start; i < ( (int) tdata._numNodes ); i++ ) {
+            if ( ranks[i] > maxRank ) {
+               winner = i;
+               maxRank = ranks[i];
+            }
+         }
+         {
+            unsigned int usage[ tdata._numNodes ];
+            unsigned int ties=0;
+            for ( int i = start; i < ( (int) tdata._numNodes ); i++ ) {
+               if ( ranks[i] == maxRank ) {
+                  usage[ ties ] = i;
+                  ties += 1;
+               }
+            }
+            if ( ties > 1 ) {
+               //std::cerr << "I have to chose between :";
+               //for ( unsigned int ii = 0; ii < ties; ii += 1 ) std::cerr <<" " << usage[ ii ];
+               //std::cerr << std::endl;
+               unsigned int minLoad = usage[0];
+               for ( unsigned int ii = 1; ii < ties; ii += 1 ) {
+                  //std::cerr << "load of (min) " << minLoad << " is " << tdata._load[ minLoad ] <<std::endl;
+                  //std::cerr << "load of (itr) " << usage[ ii ]  << " is " << tdata._load[ usage[ ii ] ] << std::endl;
+                  if ( tdata._load[ usage[ ii ] ] < tdata._load[ minLoad ] ) {
+                     minLoad = usage[ ii ];
+                  }
+               }
+               //std::cerr << "Well winner is gonna be "<< minLoad << std::endl;
+               tdata._load[ minLoad ]++;
+               winner = minLoad;
+            }
+            //if (sys.getNetwork()->getNodeNum() == 0 ) { 
+            //   std::cerr << "WD: " << wd.getId() << " ROcopies: "<<ro_copies << " WOcopies: " << wo_copies << " RWcopies: " << rw_copies << " Locality results: [ ";
+            //   for (unsigned int i = 0; i < tdata._numNodes ; i += 1) std::cerr << i << ": " << (ranks[i] / (16*512*512)) << " "; 
+            //   std::cerr <<"] ties " << ties << " winner " << winner << std::endl;
+            //}
+         }
+         //if (winner == -1) winner = start;
+         //message("queued wd " << wd.getId() << " to queue " << winner << " ranks " << ranks[0] << "," << ranks[1] << "," << ranks[2] << "," << ranks[3] );
+         //std::cerr << "the winner is " << winner << std::endl;
+         tdata._readyQueues[winner].push_back( &wd );
+      }
+
       void CacheSchedPolicy::atSupport ( BaseThread *thread ) {
+         //tryGetLocationData( thread );
          if ( !_noSupport ) {
             pickWDtoInitialize( thread );
          }

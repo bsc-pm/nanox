@@ -184,9 +184,11 @@ bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
 
 void WorkDescriptor::submit( void )
 {
+   if ( !sys.usingNewCache() ) {
    if ( getNewDirectory() == NULL )
       initNewDirectory();
-   getNewDirectory()->setParent( ( getParent() != NULL ) ? getParent()->getNewDirectory() : NULL );   
+      getNewDirectory()->setParent( ( getParent() != NULL ) ? getParent()->getNewDirectory() : NULL );   
+   }
    _ccontrol.preInit();
    Scheduler::submit( *this );
 } 
@@ -199,12 +201,13 @@ void WorkDescriptor::done ()
    //  pe->copyDataOut( *this );
 
    _ccontrol.copyDataOut();
-      
    
 
    sys.getPMInterface().wdFinished( *this );
 
+               NANOS_INSTRUMENT( InstrumentState inst3(NANOS_POST_OUTLINE_WORK4 ); );
    this->getParent()->workFinished( *this );
+               NANOS_INSTRUMENT( inst3.close(); );
 
    this->wgdone();
    WorkGroup::done();
@@ -303,14 +306,16 @@ void WorkDescriptor::printCopies()
 }
 void WorkDescriptor::workFinished(WorkDescriptor &wd)
 {
-   if ( _newDirectory == NULL ) initNewDirectory();
-   //if (sys.getNetwork()->getNodeNum() > 0 ) std::cerr << "wd " << (unsigned int) wd.getId() <<":" <<(void *) wd.getNewDirectory() << " merging directory into parent " << (unsigned int) this->getId() <<":"<<(void *) _newDirectory << " num successors " << (int) ( wd._doSubmit != NULL ? wd._doSubmit->getSuccessors().size() : -1 ) << std::endl;
-               NANOS_INSTRUMENT( InstrumentState inst3(NANOS_POST_OUTLINE_WORK3); );
-   _newDirectory->mergeOutput( *(wd.getNewDirectory()) );
-               NANOS_INSTRUMENT( inst3.close(); );
-   //if (sys.getNetwork()->getNodeNum() > 0) {
-   //   _newDirectory->consolidate( false );
-   //}
+   if ( !sys.usingNewCache() ) {
+      if ( _newDirectory == NULL ) initNewDirectory();
+      //if (sys.getNetwork()->getNodeNum() > 0 ) std::cerr << "wd " << (unsigned int) wd.getId() <<":" <<(void *) wd.getNewDirectory() << " merging directory into parent " << (unsigned int) this->getId() <<":"<<(void *) _newDirectory << " num successors " << (int) ( wd._doSubmit != NULL ? wd._doSubmit->getSuccessors().size() : -1 ) << std::endl;
+      NANOS_INSTRUMENT( InstrumentState inst3(NANOS_POST_OUTLINE_WORK3); );
+      _newDirectory->mergeOutput( *(wd.getNewDirectory()) );
+      NANOS_INSTRUMENT( inst3.close(); );
+      //if (sys.getNetwork()->getNodeNum() > 0) {
+      //   _newDirectory->consolidate( false );
+      //}
+   }
 
    if ( wd._doSubmit != NULL )
       wd._doSubmit->finished();

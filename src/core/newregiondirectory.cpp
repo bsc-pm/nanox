@@ -41,6 +41,7 @@
 #endif
 
 #include "newregiondirectory.hpp"
+#include "os.hpp"
 
 using namespace nanos;
 
@@ -81,7 +82,18 @@ RegionDictionary *NewNewRegionDirectory::getRegionDictionary( uint64_t objectAdd
    return it->second;
 }
 
-reg_t NewNewRegionDirectory::getLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd )
+reg_t NewNewRegionDirectory::tryGetLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd ) {
+   reg_t reg = 0;
+   if ( dict->tryLock() ) {
+   NANOS_INSTRUMENT( InstrumentState inst1(NANOS_POST_OUTLINE_WORK2 ); );
+    reg = _getLocation( dict, cd, missingParts, version, wd );
+   NANOS_INSTRUMENT( inst1.close(); );
+      dict->unlock();
+   }
+   return reg;
+}
+
+reg_t NewNewRegionDirectory::_getLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd )
 {
    reg_t reg = 0;
 
@@ -89,7 +101,6 @@ reg_t NewNewRegionDirectory::getLocation( RegionDirectoryKey dict, CopyData cons
    missingParts.clear();
    //sys.getMasterRegionDirectory().print();
 
-   dict->lock();
    reg = dict->addRegion( cd, missingParts, version );
 
    for ( std::list< std::pair< reg_t, reg_t > >::iterator it = missingParts.begin(); it != missingParts.end(); it++ ) {
@@ -111,7 +122,6 @@ reg_t NewNewRegionDirectory::getLocation( RegionDirectoryKey dict, CopyData cons
          }
       }
    }
-   dict->unlock();
    //std::cerr << "Git region " << reg << std::endl;
    //for ( std::list< std::pair< reg_t, reg_t > >::iterator it = missingParts.begin(); it != missingParts.end(); it++ ) {
    //   std::cerr << "\tPart " << it->first << " comes from " << it->second << " dict " << (void *) dict << std::endl;
@@ -192,13 +202,16 @@ RegionDictionary &NewNewRegionDirectory::getDictionary( CopyData const &cd ) con
 void NewNewRegionDirectory::synchronize( bool flushData ) {
    if ( flushData ) {
       //std::cerr << "SYNC DIR" << std::endl;
-      //int c = 0;
+      int c = 0;
       //print();
       for ( std::map< uint64_t, RegionDictionary *>::iterator it = _objects.begin(); it != _objects.end(); it++ ) {
-         //std::cerr << "==================  start object " << ++c << " of " << _objects.size() << "("<< it->first <<") ================="<<std::endl;
+         std::cerr << "==================  start object " << ++c << " of " << _objects.size() << "("<< it->first <<") ================="<<std::endl;
          std::list< std::pair< reg_t, reg_t > > missingParts;
          unsigned int version = 0;
-         /*reg_t lol =*/ it->second->addRegion(1, missingParts, version);
+   double tini = OS::getMonotonicTime();
+         /*reg_t lol =*/ it->second->addRegion(1, missingParts, version, true);
+   double tfini = OS::getMonotonicTime();
+   std::cerr << __FUNCTION__ << " addRegion time " << (tfini-tini) << std::endl;
          //std::cerr << "Missing parts are: (want version) "<< version << " got " << lol << " { ";
          //for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
          //   std::cerr <<"("<< mit->first << "," << mit->second << ") ";
@@ -227,7 +240,7 @@ void NewNewRegionDirectory::synchronize( bool flushData ) {
                std::cerr << "FIXME" << std::endl;
             }
          }
-         //std::cerr << "=============================================================="<<std::endl;
+         std::cerr << "=============================================================="<<std::endl;
       }
    }
 }

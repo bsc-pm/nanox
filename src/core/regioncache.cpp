@@ -33,6 +33,7 @@
 #include "newregiondirectory.hpp"
 #include "regioncache.hpp"
 #include "cachedregionstatus.hpp"
+#include "os.hpp"
 
 //AllocatedChunk::AllocatedChunk() : _lock(), _address( 0 ) {
 //}
@@ -624,17 +625,17 @@ void RegionCache::doOp( Op *opObj, Region const &hostMem, uint64_t devBaseAddr, 
       uint64_t ld = hostMem.getNonContiguousChunk( 1, skipBits ) - hostMem.getNonContiguousChunk( 0, skipBits );
       uint64_t hostAddr = hostMem.getNonContiguousChunk( 0, skipBits );
 
-         std::cerr <<"[OLD]opObj("<<opObj->getStr()<<")->doStrided( src="<<location<<", dst="<< getMemorySpaceId()<<", "<<(void*)(devBaseAddr)<<", "<<(void*)(hostAddr)<<", "<<contiguousSize<<", "<<numChunks << ", " << ld << ", _ops, _wd="<<(&wd != NULL ? wd.getId():-1)<<" )";
-         opObj->doStrided( location, devBaseAddr, hostAddr, contiguousSize, numChunks, ld, ops, wd, true );
-         std::cerr << " done" << std::endl;
+         //std::cerr <<"[OLD]opObj("<<opObj->getStr()<<")->doStrided( src="<<location<<", dst="<< getMemorySpaceId()<<", "<<(void*)(devBaseAddr)<<", "<<(void*)(hostAddr)<<", "<<contiguousSize<<", "<<numChunks << ", " << ld << ", _ops, _wd="<<(&wd != NULL ? wd.getId():-1)<<" )";
+         opObj->doStrided( location, devBaseAddr, hostAddr, contiguousSize, numChunks, ld, ops, wd, false );
+         //std::cerr << " done" << std::endl;
    } else {
       for (unsigned int chunkIndex = 0; chunkIndex < numChunks; chunkIndex +=1 ) {
          uint64_t hostAddr = hostMem.getNonContiguousChunk( chunkIndex, skipBits );
          uint64_t devAddr = devBaseAddr + ( hostAddr - hostMem.getFirstValue() ); /* contiguous chunk offset */
 
-         std::cerr <<"[OLD]opObj("<<opObj->getStr()<<")->doNoStrided( src="<<location<<", dst="<< getMemorySpaceId()<<", "<<(void*)(devAddr)<<", "<<(void*)(hostAddr)<<", "<<contiguousSize<<", _ops, _wd="<<(&wd != NULL ? wd.getId():-1)<<" )";
-         opObj->doNoStrided( location, devAddr, hostAddr, contiguousSize, ops, wd, true );
-         std::cerr << " done" << std::endl;
+         //std::cerr <<"[OLD]opObj("<<opObj->getStr()<<")->doNoStrided( src="<<location<<", dst="<< getMemorySpaceId()<<", "<<(void*)(devAddr)<<", "<<(void*)(hostAddr)<<", "<<contiguousSize<<", _ops, _wd="<<(&wd != NULL ? wd.getId():-1)<<" )";
+         opObj->doNoStrided( location, devAddr, hostAddr, contiguousSize, ops, wd, false );
+         //std::cerr << " done" << std::endl;
       }
    }
 }
@@ -773,18 +774,30 @@ CacheCopy::CacheCopy( WD const &wd , unsigned int copyIndex ) : _copy( wd.getCop
       wd.getNewDirectory()->getLocation( _region, _locations, _version, wd );
    } else {
       _reg.key = sys.getMasterRegionDirectory().getRegionDirectoryKeyRegisterIfNeeded( wd.getCopies()[ copyIndex ] );
+      _reg.id = 0;
    //double tini = OS::getMonotonicTime();
    //if ( sys.getNetwork()->getNodeNum() == 0 )  sys.getMasterRegionDirectory().print();
-      _reg.id = NewNewRegionDirectory::getLocation( _reg.key, wd.getCopies()[ copyIndex ], _newLocations, _newVersion, wd );
+  // std::cerr << "Trying to get locatoin info ... wd " << wd.getId() << std::endl;
+      tryGetLocation( wd, copyIndex );
+   //std::cerr << "Trying to get locatoin info ... got " << _reg.id << " for index "<< copyIndex << std::endl;
    //std::cerr << "wd "<< wd.getId() <<" got region " << _reg.key << " : " << _reg.id << std::endl;
    //double tfini = OS::getMonotonicTime();
-   //std::cerr << __FUNCTION__ << " getLocation time " << (tini-tfini) << std::endl;
+   //std::cerr << __FUNCTION__ << " getLocation time " << (tfini-tini) << std::endl;
    }
    
    //std::cerr << "Region is " << _regId << " # Components: " << _newLocations.size() << " " << std::endl;
    //for ( NewNewRegionDirectory::NewLocationInfoList::iterator it = _newLocations.begin(); it != _newLocations.end(); it++ ) {
    //   std::cerr << "\tReg " << *it << std::endl;
    //}
+}
+
+bool CacheCopy::tryGetLocation( WD const &wd, unsigned int copyIndex ) {
+   //NANOS_INSTRUMENT( InstrumentState inst1(NANOS_POST_OUTLINE_WORK2 ); );
+   //std::cerr << "Trying to get locatoin info ... wd " << wd.getId() << std::endl;
+   _reg.id = NewNewRegionDirectory::tryGetLocation( _reg.key, wd.getCopies()[ copyIndex ], _newLocations, _newVersion, wd );
+   //std::cerr << "Trying to get locatoin info ... got " << _reg.id << " for index "<< copyIndex << std::endl;
+   //NAINOS_INSTRUMENT( inst1.close(); );
+   return (_reg.id != 0);
 }
 
 bool CacheCopy::isReady() {
@@ -936,6 +949,20 @@ void CacheController::copyDataIn(RegionCache *targetCache) {
    _targetCache = targetCache;
    NANOS_INSTRUMENT( InstrumentState inst2(NANOS_CC_CDIN); );
    //fprintf(stderr, "%s for WD %d depth %u\n", __FUNCTION__, _wd.getId(), _wd.getDepth() );
+   
+   unsigned int locationInfoReady = 0;
+   while ( locationInfoReady < _numCopies ) {
+      locationInfoReady = 0;
+      for ( unsigned int idx = 0; idx < _numCopies; idx += 1 ) {
+         if ( _cacheCopies[ idx ]._reg.id != 0 ) { locationInfoReady += 1;
+         } else {
+            if ( _cacheCopies[ idx ].tryGetLocation( _wd, idx ) ) {
+               locationInfoReady += 1;
+            }
+         }
+      }
+   }
+
    if ( _numCopies > 0 ) {
       /* Get device address, allocate if needed */
       NANOS_INSTRUMENT( InstrumentState inst3(NANOS_CC_CDIN_GET_ADDR); );
@@ -1104,7 +1131,9 @@ void CacheController::copyDataOut() {
       if ( !ccopy.getCopyData().isOutput() ) continue;
       if ( sys.usingNewCache() ) {
          //if (sys.getNetwork()->getNodeNum() == 0) std::cerr << __FUNCTION__ << " wd " << _wd.getId() << " set copy " << index << " regId " << ccopy._reg.id << " version " << ccopy.getNewVersion() + 1  << std::endl;
+               NANOS_INSTRUMENT( InstrumentState inst3(NANOS_POST_OUTLINE_WORK3); );
          NewNewRegionDirectory::addAccess( ccopy.getRegionDirectoryKey(), ccopy.getRegId(), ( !_targetCache ) ? 0 : _targetCache->getMemorySpaceId(), ccopy.getNewVersion() + 1 );
+               NANOS_INSTRUMENT( inst3.close(); );
       }
    
       // TODO: WriteThrough code

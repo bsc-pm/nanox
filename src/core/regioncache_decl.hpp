@@ -174,6 +174,7 @@ namespace nanos {
          void setUpDeviceAddress( RegionCache *targetCache, NewRegionDirectory *dir );
          void generateCopyInOps( RegionCache *targetCache, std::map<unsigned int, std::list< std::pair< Region, CacheCopy * > > > &opsBySourceRegions ) ;
          void NEWgenerateCopyInOps( RegionCache *targetCache, std::map<unsigned int, std::list< std::pair< global_reg_t, CacheCopy * > > > &opsBySourceRegions ) ;
+         bool tryGetLocation( WD const &wd, unsigned int index );
 
          NewRegionDirectory::LocationInfoList const &getLocations() const;
          NewNewRegionDirectory::NewLocationInfoList const &getNewLocations() const;

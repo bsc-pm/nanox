@@ -47,6 +47,7 @@ namespace nanos {
       std::size_t  _value;
       reg_t _id;
       std::map<std::size_t, RegionNode> *_sons;
+      reg_t *_memoIntersectInfo;
 
       public:
       RegionNode( RegionNode *parent, std::size_t value, reg_t id );
@@ -56,6 +57,9 @@ namespace nanos {
       reg_t checkNode( nanos_region_dimension_internal_t const *dimensions, unsigned int numDimensions, unsigned int deep );
       std::size_t getValue() const;
       RegionNode *getParent() const;
+
+      reg_t getMemoIntersect( reg_t target ) const;
+      void setMemoIntersect( reg_t target, reg_t value ) const;
    };
 
    class RegionIntersectionDictionary {
@@ -64,7 +68,7 @@ namespace nanos {
 
       public:
       RegionIntersectionDictionary( RegionDictionary &d );
-      void addRegionAndComputeIntersects( reg_t id, std::list< std::pair< reg_t, reg_t > > &finalParts, unsigned int &version, bool rogue, bool justCreatedRegion );
+      void addRegionAndComputeIntersects( reg_t id, std::list< std::pair< reg_t, reg_t > > &finalParts, unsigned int &version, bool rogue, bool justCreatedRegion, bool superPrecise = false );
    };
 
    class RegionAssociativeContainer {
@@ -146,6 +150,7 @@ namespace nanos {
 
       public:
       void lock();
+      bool tryLock();
       void unlock();
 
       typedef std::list< reg_t > RegionList;
@@ -153,7 +158,7 @@ namespace nanos {
       RegionDictionary( CopyData const &cd, RegionAssociativeContainer &container, bool rogue = false );
       RegionDictionary( RegionDictionary &dict, RegionAssociativeContainer &container , bool rogue = false);
       reg_t addRegion( CopyData const &cd, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version );
-      reg_t addRegion( reg_t, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version );
+      reg_t addRegion( reg_t, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, bool superPrecise = false );
       reg_t getNewRegionId();
       void addLeaf( RegionNode *leaf );
 
