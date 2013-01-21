@@ -260,8 +260,8 @@ void System::config ()
    cfg.registerConfigOption ( "verbose", NEW Config::FlagOption( _verboseMode ), "Activates verbose mode" );
    cfg.registerArgOption ( "verbose", "verbose" );
 
+   /*! \bug implement execution modes (#146) */
 #if 0
-   FIXME: implement execution modes (#146)
    cfg::MapVar<ExecutionMode> map( _executionMode );
    map.addOption( "dedicated", DEDICATED).addOption( "shared", SHARED );
    cfg.registerConfigOption ( "exec_mode", &map, "Execution mode" );
@@ -680,9 +680,6 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
 
 /*! \brief Creates a new Sliced WD
  *
- *  This function creates a new Sliced WD, allocating memory space for device ptrs and
- *  data when necessary. Also allocates Slicer Data object which is related with the WD.
- *
  *  \param [in,out] uwd is the related addr for WD if this parameter is null the
  *                  system will allocate space in memory for the new WD
  *  \param [in] num_devices is the number of related devices
@@ -694,8 +691,15 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
  *  \param [in,out] data used as the slicer data (allocated if needed)
  *  \param [in] props new WD properties
  *
- *  When it does a full allocation the layout is the following:
+ *  \return void
  *
+ *  \par Description:
+ * 
+ *  This function creates a new Sliced WD, allocating memory space for device ptrs and
+ *  data when necessary. Also allocates Slicer Data object which is related with the WD.
+ *
+ *  When it does a full allocation the layout is the following:
+ *  <pre>
  *  +---------------+
  *  |   slicedWD    |
  *  +---------------+
@@ -727,7 +731,9 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
  *  +---------------+
  *  |   PM Data     |
  *  +---------------+
+ *  </pre>
  *
+ * \sa createWD, duplicateWD, duplicateSlicedWD
  */
 void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
                         int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props,
@@ -818,13 +824,22 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
 }
 
-/*! \brief Duplicates a given WD
- *
- *  This function duplicates the given as a parameter WD copying all the
- *  related data (devices ptr, data and DD)
+/*! \brief Duplicates the whole structure for a given WD
  *
  *  \param [out] uwd is the target addr for the new WD
  *  \param [in] wd is the former WD
+ *
+ *  \return void
+ *
+ *  \par Description:
+ *
+ *  This function duplicates the given WD passed as a parameter copying all the
+ *  related data included in the layout (devices ptr, data and DD). First it computes
+ *  the size for the layout, then it duplicates each one of the chunks (Data,
+ *  Device's pointers, internal data, etc). Finally calls WorkDescriptor constructor
+ *  using new and placement.
+ *
+ *  \sa WorkDescriptor, createWD, createSlicedWD, duplicateSlicedWD
  */
 void System::duplicateWD ( WD **uwd, WD *wd)
 {
