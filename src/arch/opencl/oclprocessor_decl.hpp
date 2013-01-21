@@ -182,16 +182,13 @@ public:
 public:
    void initialize();
 
-   virtual WD &getWorkerWD() const;
+   WD &getWorkerWD() const;
 
-   virtual WD &getMasterWD() const
-   {
-      fatal0( "Not yet implemented" );
-   }
+   WD &getMasterWD() const;
 
-   virtual BaseThread &createThread( WorkDescriptor &wd );
+   BaseThread &createThread( WorkDescriptor &wd );
 
-   virtual bool supportsUserLevelThreads() const { return false; }
+   bool supportsUserLevelThreads() const { return false; }
     
    OCLAdapter::ProgramCache getProgCache() const {
         return _oclAdapter.getProgCache();

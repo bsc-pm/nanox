@@ -9,23 +9,26 @@ using namespace nanos::ext;
 // OCLLocalThread implementation.
 //
 
-void OCLLocalThread::initializeDependent() {
+void OCLThread::initializeDependent() {
+    printf("iniini dependant\n");
     // Since we create an OCLLocalThread for each OCLProcessor, and an
     // OCLProcessor for each OpenCL device, force device initialization here, in
     // order to be executed in parallel.
     OCLProcessor *myProc = static_cast<OCLProcessor *> (myThread->runningOn());
     myProc->initialize();
+    printf("ini dependant\n");
 }
 
-void OCLLocalThread::runDependent() {
+void OCLThread::runDependent() {    
     WD &wd = getThreadWD();
-    SMPDD &dd = static_cast<SMPDD &> (wd.activateDevice(SMP));
+    setCurrentWD( wd );
+    OpenCLDD &dd = static_cast<OpenCLDD &> (wd.activateDevice(OCLDev));
 
-    SMPDD::work_fct workFct = dd.getWorkFct();
-    workFct(wd.getData());
+    dd.getWorkFct()(wd.getData());
 }
 
-bool OCLLocalThread::inlineWorkDependent(WD &wd) {
+bool OCLThread::inlineWorkDependent(WD &wd) {
+    printf("INI PROCESO\n");
    // Now the WD will be inminently run
    wd.start(WD::IsNotAUserLevelThread);
 
@@ -39,24 +42,18 @@ bool OCLLocalThread::inlineWorkDependent(WD &wd) {
    return true;
 }
 
-void OCLLocalThread::yield() {
+void OCLThread::yield() {
     OCLProcessor &proc = *static_cast<OCLProcessor *> (myThread->runningOn());
 
     proc.execTransfers();
 
-#ifdef CLUSTER_DEV
-    proc.processPendingMessages();
-#endif
 }
 
-void OCLLocalThread::idle() {
+void OCLThread::idle() {
     OCLProcessor &proc = *static_cast<OCLProcessor *> (myThread->runningOn());
 
     proc.execTransfers();
 
-#ifdef CLUSTER_DEV
-    proc.processPendingMessages();
-#endif
 }
 
 //bool OCLLocalThread::checkForAbort(OCLDD::event_iterator i,

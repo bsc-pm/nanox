@@ -8,7 +8,7 @@ using namespace nanos::ext;
 bool OCLConfig::_disableOCL = false;
 std::string OCLConfig::_devTy = "ALL";
 int OCLConfig::_devCacheSize = 0;
-System::CachePolicyType OCLConfig::_cachePolicy = System::DEFAULT;
+System::CachePolicyType OCLConfig::_cachePolicy = System::WRITE_BACK;
 
 std::vector<cl_platform_id> OCLConfig::_plats;
 std::vector<cl_device_id> OCLConfig::_devices;

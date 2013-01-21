@@ -60,7 +60,7 @@ extern OCLDevice OCLDev;
 
 class OpenCLDD : public DD
    {
-      //friend class O;
+    
       public:
          typedef void ( *work_fct ) ( void *self );
 

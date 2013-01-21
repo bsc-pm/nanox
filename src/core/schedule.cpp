@@ -198,7 +198,16 @@ inline void Scheduler::idleLoop ()
          myThread->unpause();
       }
 
-      if ( next ) {
+      int esOCL=strcmp(thread->runningOn()->getDeviceType().getName(),"OCL")==0;
+      int esSMP=strcmp(thread->runningOn()->getDeviceType().getName(),"SMP")==0;
+      if (esOCL && thread->getTeam() != NULL){          
+          printf("resul %d\n",next);
+      }
+      if (esSMP && thread->getTeam() != NULL){    
+          
+      }
+      if ( next ) {  
+          printf("smp pasa por next team %d\n",next);
          myThread->resetNextWD();
       } else if ( thread->getTeam() != NULL ) {
          memoryFence();
@@ -516,6 +525,7 @@ struct WorkerBehaviour
       if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
          // The thread is not paused, mark it as so
          thread->unpause();
+       std::cout << "busco WD" << thread->runningOn()->getDeviceType().getName() << "\n";
          
          return thread->getTeam()->getSchedulePolicy().atIdle ( thread );
       }

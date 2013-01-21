@@ -26,7 +26,7 @@ performance_LTLIBRARIES = libnanox-opencl-api.la libnanox-pe-opencl.la
 
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags) $(opencl_includes)
 
-libopencl_la_CXXFLAGS=$(nanos_perfo_cxxflags)
+libopencl_la_CXXFLAGS=$(nanos_perfo_cxxflags) $(opencl_api_flags)
 libopencl_la_LDFLAGS=$(opencl_ldflags)
 libopencl_la_SOURCES=$(opencl_sources)
 

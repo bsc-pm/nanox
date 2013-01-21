@@ -399,17 +399,12 @@ void System::start ()
 #endif
    
 #ifdef OCL_DEV
-    for ( int i = 0,
-              e = nanos::ext::OCLConfig::getOCLDevicesCount();
-              i != e;
-              ++i) {
-       Accelerator *oclAccelerator = NEW nanos::ext::OCLProcessor( p++ );
-
-       _pes.push_back( oclAccelerator );
-
-       BaseThread *oclThd = &oclAccelerator->startWorker();
-       _workers.push_back( oclThd );
-    }
+//    for ( unsigned int i = 0; i < nanos::ext::OCLConfig::getOCLDevicesCount(); i++) {
+//       PE *oclAccelerator = NEW nanos::ext::OCLProcessor( getBindingId( p ));
+//       _pes.push_back( oclAccelerator );
+//      _workers.push_back( &oclAccelerator->startWorker() );
+//      ++p;
+//    }
 #endif
 
 #ifdef SPU_DEV

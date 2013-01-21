@@ -26,6 +26,9 @@ NANOS_API_DECL(nanos_err_t,nanos_ocl_set_bufferarg, (void* ocl_kernel, int arg_n
 NANOS_API_DECL(nanos_err_t,nanos_ocl_set_arg, (void* ocl_kernel, int arg_num, size_t size, void* pointer));
 NANOS_API_DECL(nanos_err_t,nanos_exec_kernel, (void* ocl_kernel, int work_dim, size_t* ndr_offset, size_t* ndr_local_size, size_t* ndr_global_size));
 
+enum {
+    OMPSS_SEEK_END=SEEK_END,OMPSS_SEEK_SET=SEEK_SET
+};
 
 #ifdef _MERCURIUM_OPENCL_
 unsigned get_work_dim();

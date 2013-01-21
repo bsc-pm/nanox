@@ -8,3 +8,8 @@ using namespace nanos::ext;
 
 OCLDevice nanos::ext::OCLDev( "OCL" );
 
+OpenCLDD * OpenCLDD::copyTo ( void *toAddr )
+{
+   OpenCLDD *dd = new ( toAddr ) OpenCLDD( *this );
+   return dd;
+}

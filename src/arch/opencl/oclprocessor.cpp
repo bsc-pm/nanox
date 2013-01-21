@@ -517,26 +517,26 @@ void OCLProcessor::initialize()
 
 WD &OCLProcessor::getWorkerWD() const
 {
-   SMPDD::work_fct work_fct;
-   SMPDD *dd;
-   WD *wd;
+    printf("pillando worker\n");
+    OpenCLDD * dd = NEW OpenCLDD((OpenCLDD::work_fct)Scheduler::workerLoop);
+    WD *wd = NEW WD(dd);
+    printf("retornando worker %p\n",wd);
+    return *wd;
+}
 
-   work_fct = reinterpret_cast<SMPDD::work_fct>( Scheduler::workerLoop );
-   dd = NEW SMPDD( work_fct );
-   wd = NEW WD( dd );
 
-   return *wd;
+WD & OCLProcessor::getMasterWD() const {    
+   fatal("Attempting to create a OpenCL master thread");
 }
 
 BaseThread &OCLProcessor::createThread( WorkDescriptor &wd )
 {
-   OCLLocalThread *thr;
 
    ensure( wd.canRunIn( SMP ), "Incompatible worker thread" );
 
-   thr = NEW OCLLocalThread( wd, this );
+   OCLThread &thr = *NEW OCLThread( wd, this );
 
-   return *thr;
+   return thr;
 }
 
 void OCLProcessor::setKernelBufferArg(void* oclKernel, int argNum, void* pointer)
@@ -574,88 +574,3 @@ void OCLProcessor::execKernel(void* oclKernel,
                             ndrLocalSize,
                             ndrGlobalSize);
 }
-
-
-//
-//int OCLProcessor::exec( OCLNDRangeKernelStarSSDD &kern,
-//                        OCLNDRangeKernelStarSSDD::Data &data,
-//                        OCLNDRangeKernelStarSSDD::arg_iterator i,
-//                        OCLNDRangeKernelStarSSDD::arg_iterator e )
-//{
-//
-//   cl_program prog;
-//   cl_int errCode;
-//   
-//   errCode = _oclAdapter.getProgram( data._programSrcs,
-//                                     data._compilerOptions,
-//                                     prog );
-//   if( errCode != CL_SUCCESS ){
-//      return errCode;
-//   }
-//
-//   bool starSSMode=OCLConfig::getStarSSMode();
-//
-//
-//   // Before executing the kernel we must translate arguments.
-//   for( OCLNDRangeKernelStarSSDD::arg_iterator j = i; j != e; ++j )
-//   {
-//      OCLNDRangeKernelStarSSDD::Arg &arg = *j;
-//
-//      // Buffers must be translated into internal representation.
-//      if( isBufferArg( arg ) )
-//      {
-//         // Global buffers.
-//         if( arg._ptr )
-//         {
-//           
-//            if (starSSMode){                
-//                cl_mem buffer=_cache.toMemoryObjSS( arg._ptr );
-//                //If buffer is null, this was not written, but it's probably allocated (output)
-//                //Search with size and assign it to this pointer
-//                if (buffer==NULL){
-//                    arg._size=arg._size-1;
-//                    buffer=_cache.toMemoryObjSizeSS(arg._size, arg._ptr );
-//                }
-//                arg._ptr = new cl_mem( buffer );
-//            } else {
-//                unsigned id = getBufferId( arg._size );                
-//                arg._ptr = new cl_mem( _cache.toMemoryObj( id ) );
-//            }
-//
-//            arg._size = sizeof( cl_mem );
-//            
-//         }
-//
-//         // Local buffers.
-//         else
-//         {
-//            arg._size = getLocalBufferSize( arg._size );
-//         }
-//      }
-//   }
-//
-//   // Exec kernel.
-//   errCode = _oclAdapter.execKernel( prog,
-//                                     data._kernName,
-//                                     kern.getWorkDim(),
-//                                     kern.getGlobalWorkOffset(),
-//                                     kern.getGlobalWorkSize(),
-//                                     kern.getLocalWorkSize(),
-//                                     i,
-//                                     e
-//                                   );
-//
-//   // Destroy parameters.
-//   for( OCLNDRangeKernelStarSSDD::arg_iterator j = i; j != e; ++j )
-//   {
-//      OCLNDRangeKernelStarSSDD::Arg &arg = *j;
-//
-//      if( isBufferArg( arg ) && arg._ptr != NULL )
-//         delete static_cast<cl_mem *>( arg._ptr );
-//   }
-//
-//   if( errCode != CL_SUCCESS )
-//      return errCode;
-//
-//   return _oclAdapter.putProgram( prog );
-//}
