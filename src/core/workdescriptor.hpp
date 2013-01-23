@@ -197,11 +197,11 @@ inline void WorkDescriptor::waitCompletion( bool avoidFlush )
    //if (sys.getNetwork()->getNodeNum()==0){ message("WorkDescriptor::waitCompletion, " << getId() ); }
    //if ( _directory.isInitialized() && !avoidFlush )
    //   _directory->synchronizeHost();
-   //if ( !sys.usingNewCache() ) {
+   if ( !sys.usingNewCache() ) {
     getNewDirectory()->consolidate( !avoidFlush );
-   //} else {
+   } else {
     sys.getMasterRegionDirectory().synchronize( !avoidFlush );
-   //}
+   }
 }
 
 inline void WorkDescriptor::waitCompletionAndSignalers( bool avoidFlush )

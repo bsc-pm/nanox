@@ -144,7 +144,8 @@ reg_t RegionTreeRoot::getNewRegionId() {
 }
 
 reg_t RegionTreeRoot::addRegion( nanos_region_dimension_internal_t const region[], RegionDictionary &dict ) {
-   return _root.addNode( region, getNumDimensions(), 0, dict );
+   reg_t id = _root.addNode( region, getNumDimensions(), 0, dict );
+   return id;
 }
 
 reg_t RegionTreeRoot::checkIfRegionExists( nanos_region_dimension_internal_t const region[] ) {
@@ -190,110 +191,135 @@ unsigned int RegionDictionary::getNumDimensions() const {
    return _tree.getNumDimensions();
 }
 
+
+void RegionDictionary::_computeIntersect( reg_t regionIdA, reg_t regionIdB, nanos_region_dimension_internal_t *outReg ) {
+   RegionNode const *regA = getLeafRegionNode( regionIdA );
+   RegionNode const *regB = getLeafRegionNode( regionIdB );
+
+   if ( regionIdA == regionIdB ) {
+      std::cerr << __FUNCTION__ << " Dummy check! regA == regB" << std::endl;
+      for ( int dimensionCount = getNumDimensions() - 1; dimensionCount >= 0; dimensionCount -= 1 ) {
+         outReg[ dimensionCount ].accessed_length = 0;
+         outReg[ dimensionCount ].lower_bound = 0;
+      }
+      return;
+   }
+
+   //reg_t maxReg = std::max( regionIdA, regionIdB );
+   //if ( regionIdA > regionIdB ) {
+   //} else {
+   //}
+
+   //std::cerr << "Computing intersect between reg " << regionIdA << " and "<< regionIdB << "... "<<std::endl;
+   //_dict.printRegion(regionIdA ); std::cerr << std::endl;
+   //_dict.printRegion(regionIdB ); std::cerr << std::endl;
+
+   for ( int dimensionCount = getNumDimensions() - 1; dimensionCount >= 0; dimensionCount -= 1 ) {
+      std::size_t accessedLengthA = regA->getValue();
+      std::size_t accessedLengthB = regB->getValue();
+      regA = regA->getParent();
+      regB = regB->getParent();
+      std::size_t lowerBoundA = regA->getValue();
+      std::size_t lowerBoundB = regB->getValue();
+
+      std::size_t upperBoundA = lowerBoundA + accessedLengthA;
+      std::size_t upperBoundB = lowerBoundB + accessedLengthB;
+
+      std::size_t lowerBoundC = 0;
+      std::size_t accessedLengthC = 0;
+
+      if ( lowerBoundA > lowerBoundB ) {
+         lowerBoundC = lowerBoundA;
+         if ( upperBoundA > upperBoundB ) {
+            accessedLengthC = upperBoundB - lowerBoundA;
+         } else if ( upperBoundA <= upperBoundB ) {
+            accessedLengthC = accessedLengthA;
+         } 
+      } else if ( lowerBoundA < lowerBoundB ) {
+         lowerBoundC = lowerBoundB;
+         if ( upperBoundA >= upperBoundB ) {
+            accessedLengthC = accessedLengthB;
+         } else if ( upperBoundA < upperBoundB ) {
+            accessedLengthC = upperBoundA - lowerBoundB;
+         }
+      } else {
+         lowerBoundC = lowerBoundA;
+         if ( upperBoundA > upperBoundB ) {
+            accessedLengthC = accessedLengthB;
+         } else if ( upperBoundA <= upperBoundB ) {
+            accessedLengthC = accessedLengthA;
+         } 
+      }
+
+      outReg[ dimensionCount ].accessed_length = accessedLengthC;
+      outReg[ dimensionCount ].lower_bound = lowerBoundC;
+
+      regA = regA->getParent();
+      regB = regB->getParent();
+   }
+}
+
+reg_t RegionDictionary::computeTestIntersect( reg_t regionIdA, reg_t regionIdB ) {
+   {
+      reg_t maxRegionId = std::max( regionIdA, regionIdB );
+      reg_t minRegionId = std::min( regionIdA, regionIdB );
+      RegionNode const *maxReg = getLeafRegionNode( maxRegionId );
+      reg_t data = maxReg->getMemoIntersect( minRegionId );
+      if ( data == (unsigned int)-1 ) {
+         //std::cerr << "hit compute!"<<std::endl;
+         return 0;
+      } else if ( data != (unsigned int)-2 && data != 0 ) {
+         return data;
+      }
+   }
+
+   nanos_region_dimension_internal_t resultingRegion[ getNumDimensions() ];
+   _computeIntersect( regionIdA, regionIdB, resultingRegion );
+   reg_t regId = checkIfRegionExistsByComponents( resultingRegion );
+
+   return regId;
+}
+
+reg_t RegionDictionary::computeIntersect( reg_t regionIdA, reg_t regionIdB ) {
+   {
+      reg_t maxRegionId = std::max( regionIdA, regionIdB );
+      reg_t minRegionId = std::min( regionIdA, regionIdB );
+      RegionNode const *maxReg = getLeafRegionNode( maxRegionId );
+      reg_t data = maxReg->getMemoIntersect( minRegionId );
+      if ( data == (unsigned int)-1 ) {
+         //std::cerr << "hit compute!"<<std::endl;
+         return 0;
+      } else if ( data != (unsigned int)-2 && data != 0 ) {
+         return data;
+      }
+   }
+   nanos_region_dimension_internal_t resultingRegion[ getNumDimensions() ];
+   _computeIntersect( regionIdA, regionIdB, resultingRegion );
+   reg_t regId = addRegionByComponents( resultingRegion );
+
+   //std::cerr << "Computed intersect bewteen " << regionIdA << " and " << regionIdB << " resulting region is "<< regId << std::endl;
+   {
+      reg_t maxRegionId = std::max( regionIdA, regionIdB );
+      reg_t minRegionId = std::min( regionIdA, regionIdB );
+      RegionNode *maxReg = getLeafRegionNode( maxRegionId );
+      maxReg->setMemoIntersect( minRegionId, regId );
+   }
+
+   return regId;
+}
 void RegionIntersectionDictionary::addRegionAndComputeIntersects( reg_t id, std::list< std::pair< reg_t, reg_t > > &finalParts, unsigned int &version, bool rogue, bool justCreatedRegion, bool superPrecise ) {
    class LocalFunction {
       RegionDictionary &_currentDict;
       public:
       LocalFunction( RegionDictionary &dict ) : _currentDict( dict ) { } 
 
-      void _computeIntersect( reg_t regionIdA, reg_t regionIdB, nanos_region_dimension_internal_t *outReg ) {
-         RegionNode const *regA = _currentDict.getLeafRegionNode( regionIdA );
-         RegionNode const *regB = _currentDict.getLeafRegionNode( regionIdB );
-
-         if ( regionIdA == regionIdB ) {
-            std::cerr << __FUNCTION__ << " Dummy check! regA == regB" << std::endl;
-            for ( int dimensionCount = _currentDict.getNumDimensions() - 1; dimensionCount >= 0; dimensionCount -= 1 ) {
-               outReg[ dimensionCount ].accessed_length = 0;
-               outReg[ dimensionCount ].lower_bound = 0;
-            }
-            return;
-         }
-
-         //reg_t maxReg = std::max( regionIdA, regionIdB );
-         //if ( regionIdA > regionIdB ) {
-         //} else {
-         //}
-      
-         //std::cerr << "Computing intersect between reg " << regionIdA << " and "<< regionIdB << "... "<<std::endl;
-         //_dict.printRegion(regionIdA ); std::cerr << std::endl;
-         //_dict.printRegion(regionIdB ); std::cerr << std::endl;
-      
-         for ( int dimensionCount = _currentDict.getNumDimensions() - 1; dimensionCount >= 0; dimensionCount -= 1 ) {
-            std::size_t accessedLengthA = regA->getValue();
-            std::size_t accessedLengthB = regB->getValue();
-            regA = regA->getParent();
-            regB = regB->getParent();
-            std::size_t lowerBoundA = regA->getValue();
-            std::size_t lowerBoundB = regB->getValue();
-      
-            std::size_t upperBoundA = lowerBoundA + accessedLengthA;
-            std::size_t upperBoundB = lowerBoundB + accessedLengthB;
-      
-            std::size_t lowerBoundC = 0;
-            std::size_t accessedLengthC = 0;
-      
-            if ( lowerBoundA > lowerBoundB ) {
-                lowerBoundC = lowerBoundA;
-                if ( upperBoundA > upperBoundB ) {
-                   accessedLengthC = upperBoundB - lowerBoundA;
-                } else if ( upperBoundA <= upperBoundB ) {
-                   accessedLengthC = accessedLengthA;
-                } 
-            } else if ( lowerBoundA < lowerBoundB ) {
-                lowerBoundC = lowerBoundB;
-                if ( upperBoundA >= upperBoundB ) {
-                   accessedLengthC = accessedLengthB;
-                } else if ( upperBoundA < upperBoundB ) {
-                   accessedLengthC = upperBoundA - lowerBoundB;
-                }
-            } else {
-                lowerBoundC = lowerBoundA;
-                if ( upperBoundA > upperBoundB ) {
-                   accessedLengthC = accessedLengthB;
-                } else if ( upperBoundA <= upperBoundB ) {
-                   accessedLengthC = accessedLengthA;
-                } 
-            }
-      
-            outReg[ dimensionCount ].accessed_length = accessedLengthC;
-            outReg[ dimensionCount ].lower_bound = lowerBoundC;
-      
-            regA = regA->getParent();
-            regB = regB->getParent();
-         }
-      }
-
       reg_t addIntersect( reg_t regionIdA, reg_t regionIdB ) {
          nanos_region_dimension_internal_t resultingRegion[ _currentDict.getNumDimensions() ];
-         _computeIntersect( regionIdA, regionIdB, resultingRegion );
+         _currentDict._computeIntersect( regionIdA, regionIdB, resultingRegion );
          reg_t regId = _currentDict.addRegionByComponents( resultingRegion );
          return regId;
       }
 
-      reg_t computeIntersect( reg_t regionIdA, reg_t regionIdB ) {
-   {
-      reg_t maxRegionId = std::max( regionIdA, regionIdB );
-      reg_t minRegionId = std::min( regionIdA, regionIdB );
-      RegionNode const *maxReg = _currentDict.getLeafRegionNode( maxRegionId );
-      reg_t data = maxReg->getMemoIntersect( minRegionId );
-      if ( data != (unsigned int)-2 ) {
-         //std::cerr << "hit compute!"<<std::endl;
-         return data;
-      }
-   }
-         nanos_region_dimension_internal_t resultingRegion[ _currentDict.getNumDimensions() ];
-         _computeIntersect( regionIdA, regionIdB, resultingRegion );
-         reg_t regId = _currentDict.checkIfRegionExistsByComponents( resultingRegion );
-
-   {
-      reg_t maxRegionId = std::max( regionIdA, regionIdB );
-      reg_t minRegionId = std::min( regionIdA, regionIdB );
-      RegionNode *maxReg = _currentDict.getLeafRegionNode( maxRegionId );
-      maxReg->setMemoIntersect( minRegionId, regId );
-   }
-
-         return regId;
-      }
 
       void addSubRegion( std::list< std::pair< reg_t, reg_t > > &partsList, reg_t regionToInsert ) {
          //ensure( !partsList.empty(), "Empty parts list!" );
@@ -517,7 +543,7 @@ void RegionIntersectionDictionary::addRegionAndComputeIntersects( reg_t id, std:
          bool subpart = false;
          for ( RegionDictionary::RegionList::const_iterator cit = missingParts.begin(); cit != missingParts.end(); cit++ ) {
             //intersect = _dict.checkIntersect( *it, *cit );
-            reg_t intersectReg = local.computeIntersect( *it, *cit );
+            reg_t intersectReg = _dict.computeTestIntersect( *it, *cit );
             if ( intersectReg == *it )
             {
                unsigned int citVersion = ( _dict.getRegionData( *cit ) == NULL ? 1 : _dict.getRegionData( *cit )->getVersion() );
@@ -553,22 +579,39 @@ void RegionIntersectionDictionary::addRegionAndComputeIntersects( reg_t id, std:
    //std::cerr << __FUNCTION__ << " rest of time " << (tfiniTOTAL-tfiniINTERS) << std::endl;
 }
 
+reg_t RegionDictionary::tryObtainRegionId( CopyData const &cd ) {
+   reg_t id = 0;
+   ensure( cd.getNumDimensions() == getNumDimensions(), "ERROR" );
+   if ( cd.getNumDimensions() != getNumDimensions() ) {
+      std::cerr << "Error, invalid numDimensions" << std::endl;
+   } else {
+      id = _tree.checkIfRegionExists( cd.getDimensions() );
+   }
+   return id;
+}
+
+reg_t RegionDictionary::obtainRegionId( CopyData const &cd ) {
+   reg_t id = 0;
+   ensure( cd.getNumDimensions() == getNumDimensions(), "ERROR" );
+   if ( cd.getNumDimensions() != getNumDimensions() ) {
+      std::cerr << "Error, invalid numDimensions" << std::endl;
+   } else {
+      id = _tree.addRegion( cd.getDimensions(), *this );
+   }
+   return id;
+}
+
 reg_t RegionDictionary::addRegion( CopyData const &cd, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version ) {
    reg_t id = 0;
    unsigned int currentLeafCount = 0;
    bool newlyCreatedRegion = false;
    //std::cerr << "=== RegionDictionary::addRegion ====================================================" << std::endl;
-
+   //std::cerr << cd ;
    //{
    //double tini = OS::getMonotonicTime();
-   ensure( cd.getNumDimensions() == getNumDimensions(), "ERROR" );
-   if ( cd.getNumDimensions() != getNumDimensions() ) {
-      std::cerr << "Error, invalid numDimensions" << std::endl;
-   } else {
-      currentLeafCount = getLeafCount();
-      id = _tree.addRegion( cd.getDimensions(), *this );
-      newlyCreatedRegion = ( getLeafCount() > currentLeafCount );
-   }
+   currentLeafCount = getLeafCount();
+   id = obtainRegionId( cd );
+   newlyCreatedRegion = ( getLeafCount() > currentLeafCount );
    //double tfini = OS::getMonotonicTime();
    //std::cerr << __FUNCTION__ << " Insert region into node time " << (tfini-tini) << std::endl;
    //}
@@ -984,6 +1027,42 @@ uint64_t RegionDictionary::getBaseAddress() const {
    return _baseAddress;
 }
 
+reg_t RegionDictionary::isThisPartOf( reg_t target, std::map< reg_t, unsigned int >::const_iterator begin, std::map< reg_t, unsigned int >::const_iterator end, unsigned int &version ) {
+   reg_t result = 0;
+   while ( begin != end && result == 0 ) {
+      if ( begin->first != target ) {
+         reg_t intersect = computeIntersect( target, begin->first );
+         //std::cerr << __FUNCTION__<<" "<< (void*)this <<" This " << begin->first; printRegion( begin->first ); std::cerr << " vs target " << target; printRegion( target ); std::cerr << " intersect result " << intersect << std::endl;
+         if ( target == intersect ) {
+            result = begin->first;
+            version = begin->second;
+         }
+      } 
+      begin++;
+   }
+   return result;
+}
+
+bool RegionDictionary::doTheseRegionsForm( reg_t target, std::map< reg_t, unsigned int >::const_iterator begin, std::map< reg_t, unsigned int >::const_iterator end, unsigned int &version ) {
+   std::size_t totalSize = 0;
+   global_reg_t gtarget( target, this );
+   unsigned int maxVersion = 0;
+   while ( begin != end ) {
+      if ( begin->first != target ) {
+         reg_t intersect = computeIntersect( target, begin->first );
+         //std::cerr << __FUNCTION__ << " " << (void*)this <<" This " << begin->first; printRegion( begin->first ); std::cerr << " vs target " << target; printRegion( target ); std::cerr << " intersect result " << intersect << std::endl;
+         if ( begin->first == intersect ) {
+            global_reg_t greg( begin->first, this );
+            totalSize += greg.getDataSize();
+            maxVersion = std::max( maxVersion, begin->second );
+         }      
+      }
+      begin++;
+   }
+   version = ( totalSize == gtarget.getDataSize() ) ? maxVersion : 0;
+   return ( totalSize == gtarget.getDataSize() );
+}
+
 std::vector< std::size_t > const &RegionTreeRoot::getDimensionSizes() const {
    return _dimensionSizes;
 }
@@ -1076,3 +1155,13 @@ void global_reg_t::fillDimensionData( nanos_region_dimension_internal_t region[]
    }
 }
 
+
+bool global_reg_t::operator<( global_reg_t const &reg ) const {
+   bool result;
+   if ( key < reg.key )
+      result = true;
+   else if ( reg.key < key )
+      result = false;
+   else result = ( id < reg.id );
+   return result;
+}

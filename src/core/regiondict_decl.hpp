@@ -28,7 +28,7 @@ namespace nanos {
       std::size_t getDataSize() const;
       unsigned int getNumDimensions() const;
       void fillDimensionData( nanos_region_dimension_internal_t region[]) const;
-
+      bool operator<( global_reg_t const &reg ) const;
       /*
       struct DimensionData {
          std::size_t lowerBound;
@@ -159,6 +159,8 @@ namespace nanos {
       RegionDictionary( RegionDictionary &dict, RegionAssociativeContainer &container , bool rogue = false);
       reg_t addRegion( CopyData const &cd, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version );
       reg_t addRegion( reg_t, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, bool superPrecise = false );
+      reg_t obtainRegionId( CopyData const &cd );
+      reg_t tryObtainRegionId( CopyData const &cd );
       reg_t getNewRegionId();
       void addLeaf( RegionNode *leaf );
 
@@ -181,8 +183,14 @@ namespace nanos {
       void printRegion( reg_t ) const;
 
       bool checkIntersect( reg_t baseRegionId, reg_t targetRegionId ) const;
+      reg_t computeTestIntersect( reg_t regionIdA, reg_t regionIdB ) ;
+      reg_t computeIntersect( reg_t regionIdA, reg_t regionIdB ) ;
+      void _computeIntersect( reg_t regionIdA, reg_t regionIdB, nanos_region_dimension_internal_t *outReg );
+
       void substract( reg_t base, reg_t regionToSubstract, std::list< reg_t > &resultingPieces );
       void _combine ( nanos_region_dimension_internal_t tmpFragment[], int dim, int currentPerm, nanos_region_dimension_internal_t fragments[][3], bool allFragmentsIntersect, std::list< reg_t > &resultingPieces );
+      reg_t isThisPartOf( reg_t target, std::map< reg_t, unsigned int >::const_iterator begin, std::map< reg_t, unsigned int >::const_iterator end, unsigned int &version );
+      bool doTheseRegionsForm( reg_t target, std::map< reg_t, unsigned int >::const_iterator begin, std::map< reg_t, unsigned int >::const_iterator end, unsigned int &version ) ;
    };
    
    std::ostream& operator<< (std::ostream& o, RegionNode const &rn);

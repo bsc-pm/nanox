@@ -150,6 +150,7 @@ namespace nanos {
          ProcessingElement &getPE() const;
    };
 
+   class CacheController;
    class CacheCopy {
 
       private:
@@ -164,11 +165,12 @@ namespace nanos {
          NewNewRegionDirectory::NewLocationInfoList _newLocations;
          DeviceOps _operations;
          std::set< DeviceOps * > _otherPendingOps;
+         reg_t _regId;
 
       public:
          global_reg_t _reg;
          CacheCopy();
-         CacheCopy( WD const &wd, unsigned int index );
+         CacheCopy( WD const &wd, unsigned int index, CacheController &ccontrol );
          
          bool isReady();
          void setUpDeviceAddress( RegionCache *targetCache, NewRegionDirectory *dir );
@@ -197,6 +199,8 @@ namespace nanos {
          CacheCopy *_cacheCopies;
          RegionCache *_targetCache;  
          bool _registered;
+         Lock _provideLock;
+         std::map< NewNewRegionDirectory::RegionDirectoryKey, std::map< reg_t, unsigned int > > _providedRegions;
 
       public:
          CacheController();
@@ -208,6 +212,8 @@ namespace nanos {
          bool dataIsReady() ;
          uint64_t getAddress( unsigned int copyIndex ) const;
          void copyDataOut();
+         void getInfoFromPredecessor( CacheController const &predecessorController );
+         bool hasVersionInfoForRegion( global_reg_t reg, unsigned int &version, NewNewRegionDirectory::NewLocationInfoList &locations ) ;
 
          CacheCopy *getCacheCopies() const;
          RegionCache *getTargetCache() const;

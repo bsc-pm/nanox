@@ -104,29 +104,52 @@ reg_t NewNewRegionDirectory::_getLocation( RegionDirectoryKey dict, CopyData con
    reg = dict->addRegion( cd, missingParts, version );
 
    for ( std::list< std::pair< reg_t, reg_t > >::iterator it = missingParts.begin(); it != missingParts.end(); it++ ) {
-      //std::cerr << "getLocation: " << it->first << ","<< it->second <<std::endl;
       if ( it->first != it->second ) {
          NewNewDirectoryEntryData *firstEntry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->first );
          NewNewDirectoryEntryData *secondEntry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->second );
          if ( firstEntry == NULL ) {
-            firstEntry = NEW NewNewDirectoryEntryData( *secondEntry );
+            if ( secondEntry != NULL ) {
+      //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"(null),"<< it->second <<"("<< *secondEntry<<")"<<std::endl;
+               firstEntry = NEW NewNewDirectoryEntryData( *secondEntry );
+      //if( sys.getNetwork()->getNodeNum() ) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, null, !null"<<std::endl;
+          } else {
+      //if( sys.getNetwork()->getNodeNum() ) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, null, null"<<std::endl;
+      //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"(null),"<< it->second <<"(null)"<<std::endl;
+               firstEntry = NEW NewNewDirectoryEntryData();
+               firstEntry->addAccess( 0, 1 );
+               secondEntry = NEW NewNewDirectoryEntryData();
+               secondEntry->addAccess( 0, 1 );
+               dict->setRegionData( it->second, secondEntry );
+            }
             dict->setRegionData( it->first, firstEntry );
          } else {
-            *firstEntry = *secondEntry;
+            if ( secondEntry != NULL ) {
+      //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"("<<*firstEntry<<"),"<< it->second <<"("<< *secondEntry<<")"<<std::endl;
+      //if( wd.getId() == 27) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, !null, !null"<<std::endl;
+
+               *firstEntry = *secondEntry;
+            } else {
+               std::cerr << "Dunno what to do..."<<std::endl;
+            }
          }
       } else {
+      //if( wd.getId() == 27) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, same id"<<std::endl;
          NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->first );
          if ( entry == NULL ) {
             entry = NEW NewNewDirectoryEntryData();
+            entry->addAccess( 0, 1 );
             dict->setRegionData( it->first, entry );
          }
       }
    }
+
+   //if ( wd.getId() == 27 ) {
    //std::cerr << "Git region " << reg << std::endl;
    //for ( std::list< std::pair< reg_t, reg_t > >::iterator it = missingParts.begin(); it != missingParts.end(); it++ ) {
    //   std::cerr << "\tPart " << it->first << " comes from " << it->second << " dict " << (void *) dict << std::endl;
    //}
    //std::cerr <<" end of getLocation "<< std::endl;
+   //}
 
    return reg;
 }
@@ -134,7 +157,7 @@ reg_t NewNewRegionDirectory::_getLocation( RegionDirectoryKey dict, CopyData con
 void NewNewRegionDirectory::addAccess( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version )
 {
    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
-   //if(sys.getNetwork()->getNodeNum() == 0) { std::cerr << dict << " ADDING ACCESS reg " << id << " version " << version << " TO LOC " << memorySpaceId << " entry: " << *regEntry << std::endl; }
+   //if(sys.getNetwork()->getNodeNum() > 0) { std::cerr << dict << " ADDING ACCESS reg " << id << " version " << version << " TO LOC " << memorySpaceId << " entry: " << *regEntry << std::endl; }
    regEntry->addAccess( memorySpaceId, version );
    //if(sys.getNetwork()->getNodeNum() == 0) { std::cerr << dict << " ADDING ACCESS reg " << id << " version " << version << " TO LOC " << memorySpaceId << " entry: " << *regEntry << std::endl; }
 }
@@ -202,16 +225,16 @@ RegionDictionary &NewNewRegionDirectory::getDictionary( CopyData const &cd ) con
 void NewNewRegionDirectory::synchronize( bool flushData ) {
    if ( flushData ) {
       //std::cerr << "SYNC DIR" << std::endl;
-      int c = 0;
+      //int c = 0;
       //print();
       for ( std::map< uint64_t, RegionDictionary *>::iterator it = _objects.begin(); it != _objects.end(); it++ ) {
-         std::cerr << "==================  start object " << ++c << " of " << _objects.size() << "("<< it->first <<") ================="<<std::endl;
+         //std::cerr << "==================  start object " << ++c << " of " << _objects.size() << "("<< it->first <<") ================="<<std::endl;
          std::list< std::pair< reg_t, reg_t > > missingParts;
          unsigned int version = 0;
-   double tini = OS::getMonotonicTime();
+   //double tini = OS::getMonotonicTime();
          /*reg_t lol =*/ it->second->addRegion(1, missingParts, version, true);
-   double tfini = OS::getMonotonicTime();
-   std::cerr << __FUNCTION__ << " addRegion time " << (tfini-tini) << std::endl;
+   //double tfini = OS::getMonotonicTime();
+   //std::cerr << __FUNCTION__ << " addRegion time " << (tfini-tini) << std::endl;
          //std::cerr << "Missing parts are: (want version) "<< version << " got " << lol << " { ";
          //for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
          //   std::cerr <<"("<< mit->first << "," << mit->second << ") ";
@@ -240,7 +263,7 @@ void NewNewRegionDirectory::synchronize( bool flushData ) {
                std::cerr << "FIXME" << std::endl;
             }
          }
-         std::cerr << "=============================================================="<<std::endl;
+         //std::cerr << "=============================================================="<<std::endl;
       }
    }
 }

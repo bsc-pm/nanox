@@ -36,7 +36,9 @@ void * ClusterDevice::memAllocate( size_t size, ProcessingElement &pe ) const
    ClusterNode &node = dynamic_cast< ClusterNode & >( pe );
    void *retAddr = NULL;
 
+   node.getAllocator().lock();
    retAddr = node.getAllocator().allocate( size );
+   node.getAllocator().unlock();
    return retAddr;
 }
 

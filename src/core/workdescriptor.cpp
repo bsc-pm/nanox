@@ -251,6 +251,8 @@ void WorkDescriptor::predecessorFinished( WorkDescriptor *predecessorWd )
          initNewDirectory();
       //std::cerr << "wd " << (unsigned int)  getId() << " getting directory from " << (unsigned int)predecessorWd->getId() << std::endl;
       _newDirectory->merge( *predecessorWd->getNewDirectory() );
+   } else {
+      _ccontrol.getInfoFromPredecessor( predecessorWd->_ccontrol ); 
    }
 }
 

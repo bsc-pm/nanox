@@ -52,20 +52,20 @@ namespace nanos {
                Atomic<unsigned int> _getting;
                unsigned int       _lastNodeScheduled;
  
-               TeamData ( unsigned int size ) : ScheduleTeamData()
+               TeamData ( unsigned int size ) : ScheduleTeamData(), _globalReadyQueue(), _unrankedQueue()
                {
                   unsigned int nodes = sys.getNetwork()->getNumNodes();
                   unsigned int numqueues = nodes; //(nodes > 0) ? nodes + 1 : nodes;
                   _numNodes = ( sys.getNetwork()->getNodeNum() == 0 ) ? nodes : 1;
                   _getting = 0;
 
+                  _holdTasks = false;
                   _nodeSet.insert( 0 );
                   if ( _numNodes > 1 ) {
                      _readyQueues = NEW WDDeque[numqueues];
                      _bufferQueues = NEW WDDeque[numqueues];
                      _createdData = NEW std::size_t[numqueues];
                      for (unsigned int i = 0; i < numqueues; i += 1 ) _createdData[i] = 0;
-                     _holdTasks = false;
                      for( unsigned int i = 1; i < sys.getNumMemorySpaces(); i += 1 ) {
                         if ( sys.getCaches()[ i ]->getNodeNumber() != 0 ) _nodeSet.insert( i );
                      }
@@ -583,8 +583,10 @@ namespace nanos {
                      }
                      
                      bool locationDataIsAvailable = true;
+                     if ( sys.usingNewCache() ) {
                      for ( unsigned int i = 0; i < wd.getNumCopies() && locationDataIsAvailable; i++ ) {
                         locationDataIsAvailable = ( wd._ccontrol.getCacheCopies()[ i ]._reg.id != 0 );
+                     }
                      }
 
                      if ( locationDataIsAvailable ) {
@@ -891,11 +893,6 @@ namespace nanos {
             data._init = true;
          }
          TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
-         if ( thread->getId() == 0 ) {
-            while ( !tdata._unrankedQueue.empty() ) {
-               tryGetLocationData( thread );
-            }
-         }
 
          if ( tdata._holdTasks.value() ) 
          {
@@ -911,6 +908,11 @@ namespace nanos {
                   wd = tdata._globalReadyQueue.pop_front( thread );
                   return wd;
                }
+         if ( thread->getId() == 0 ) {
+            while ( !tdata._unrankedQueue.empty() ) {
+               tryGetLocationData( thread );
+            }
+         }
          /*
           *  First try to schedule the thread with a task from its queue
           */
@@ -1186,6 +1188,7 @@ namespace nanos {
                   ties += 1;
                }
             }
+         //std::cerr << "winner is "<< winner << " ties "<< ties << std::endl;
             if ( ties > 1 ) {
                //std::cerr << "I have to chose between :";
                //for ( unsigned int ii = 0; ii < ties; ii += 1 ) std::cerr <<" " << usage[ ii ];
