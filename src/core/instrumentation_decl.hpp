@@ -359,6 +359,7 @@ namespace nanos {
             
             /* 39 */ registerEventKey("wd-priority","Priority of a work descriptor");
             /* 40 */ registerEventKey("set-num-threads","Change Number of Threads");
+            /* 41 */ registerEventKey("cpuid","Thread cpuid");
 
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }
