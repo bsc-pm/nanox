@@ -17,25 +17,25 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_OCL_PROCESSOR_DECL
-#define _NANOS_OCL_PROCESSOR_DECL
+#ifndef _NANOS_OpenCL_PROCESSOR_DECL
+#define _NANOS_OpenCL_PROCESSOR_DECL
 
 #include "cachedaccelerator.hpp"
-#include "oclcache.hpp"
-#include "oclconfig.hpp"
-#include "ocldd.hpp"
-#include "ocldevice_decl.hpp"
+#include "openclcache.hpp"
+#include "openclconfig.hpp"
+#include "opencldd.hpp"
+#include "opencldevice_decl.hpp"
 
 namespace nanos {
 namespace ext {
 
-class OCLAdapter
+class OpenCLAdapter
 {
 public: 
    typedef std::map<uint32_t, cl_program> ProgramCache;
 
 public:
-   ~OCLAdapter();
+   ~OpenCLAdapter();
 
 public:
    void initialize(cl_device_id dev);
@@ -65,12 +65,12 @@ public:
    void* getProgram( const char *src,
                       const char *compilerOpts );
    
-   void* createKernel( char* kernel_name, void* program);    
+   void* createKernel( char* kernel_name, char* opencl_code, const char* compiler_opts);    
 
    // Return program to the cache, decreasing reference-counting.
    cl_int putProgram( cl_program &prog );
 
-   cl_int execKernel( void* openclKernel, 
+   cl_int execKernel( void* oclKernel, 
                         int workDim, 
                         size_t* ndrOffset, 
                         size_t* ndrLocalSize, 
@@ -171,13 +171,13 @@ private:
    ProgramCache _progCache;
 };
 
-class OCLProcessor : public CachedAccelerator<OCLDevice>
+class OpenCLProcessor : public CachedAccelerator<OpenCLDevice>
 {
 public:
-   OCLProcessor( int id );
+   OpenCLProcessor( int id );
 
-   OCLProcessor( const OCLProcessor &pe ); // Do not implement.
-   OCLProcessor &operator=( const OCLProcessor &pe ); // Do not implement.
+   OpenCLProcessor( const OpenCLProcessor &pe ); // Do not implement.
+   OpenCLProcessor &operator=( const OpenCLProcessor &pe ); // Do not implement.
 
 public:
    void initialize();
@@ -190,33 +190,26 @@ public:
 
    bool supportsUserLevelThreads() const { return false; }
     
-   OCLAdapter::ProgramCache getProgCache() const {
-        return _oclAdapter.getProgCache();
-   }
-   
-   // Get program from cache, increasing reference-counting.
-   void* getProgram( const char *src,
-                      const char *compilerOpts ){
-       return _oclAdapter.getProgram(src,compilerOpts);
+   OpenCLAdapter::ProgramCache getProgCache() const {
+        return _openclAdapter.getProgCache();
    }
    
    // Get program from cache, increasing reference-counting.
    void* createKernel( char* kernel_name,
-                       void* program){
-       return _oclAdapter.createKernel(kernel_name,program);
+                       char* opencl_code, 
+                       const char* compiler_opts){
+       return _openclAdapter.createKernel(kernel_name,opencl_code, compiler_opts);
    }
    
-   void setKernelBufferArg(void* oclKernel, int argNum, void* pointer);
+   void setKernelBufferArg(void* openclKernel, int argNum, void* pointer);
    
-   void execKernel(void* oclKernel, 
+   void execKernel(void* openclKernel, 
                         int workDim, 
                         size_t* ndrOffset, 
                         size_t* ndrLocalSize, 
                         size_t* ndrGlobalSize);
    
-   void setKernelArg(void* ocl_kernel, int arg_num, size_t size, void* pointer){
-        p_clSetKernelArg( (cl_kernel) ocl_kernel, arg_num, size, pointer );
-   }
+   void setKernelArg(void* opencl_kernel, int arg_num, size_t size, void* pointer);
    
    void *allocate( size_t size )
    {
@@ -266,9 +259,9 @@ public:
 
 
 private:
-   OCLAdapter _oclAdapter;
-   OCLCache _cache;
-   OCLDMA _dma;
+   OpenCLAdapter _openclAdapter;
+   OpenCLCache _cache;
+   OpenCLDMA _dma;
 
 };
 
@@ -276,4 +269,4 @@ private:
  // End namespace ext.
 } // End namespace nanos.
 
-#endif // _NANOS_OCL_PROCESSOR_DECL
+#endif // _NANOS_OpenCL_PROCESSOR_DECL

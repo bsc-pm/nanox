@@ -337,6 +337,14 @@ AM_CONDITIONAL([GPU_SUPPORT],[test $gpu_valid = yes])
 AC_SUBST([gpu_valid])
 
 # Check if an OpenCL implementation is installed.
+AC_ARG_WITH([opencl],
+AS_HELP_STRING([--with-opencl=dir], [Directory of OpenCL includes dir]),
+	[
+		OPENCLDIR="${withval}"
+	],
+	[
+		OPENCLDIR="/usr/include/"
+	])
 AC_MSG_CHECKING([if the use of OpenCL devices was disabled])
 AC_ARG_ENABLE([opencl-arch],
   AS_HELP_STRING([--disable-opencl-arch], [Disables the use of OpenCL devices]),
@@ -380,8 +388,8 @@ else
 fi
 
 if test x"$opencl_valid" = x"yes"; then
-    CFLAGS="$CFLAGS -I $APP_ROOT/include -I/gpfs/apps/NVIDIA/NVIDIA_SDK/OpenCL/common/inc/ -DOCL_DEV"
-    CXXFLAGS="$CXXFLAGS -I $APP_ROOT/include -I/gpfs/apps/NVIDIA/NVIDIA_SDK/OpenCL/common/inc/ -DOCL_DEV"
+    CFLAGS="$CFLAGS -I $APP_ROOT/include -I$OPENCLDIR -DOpenCL_DEV"
+    CXXFLAGS="$CXXFLAGS -I $APP_ROOT/include -I$OPENCLDIR -DOpenCL_DEV"
     ARCHITECTURES="$ARCHITECTURES opencl"
 fi
 

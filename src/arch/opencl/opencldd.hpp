@@ -17,19 +17,19 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_OCL_WD
-#define _NANOS_OCL_WD
+#ifndef _NANOS_OpenCL_WD
+#define _NANOS_OpenCL_WD
 
 #include "workdescriptor.hpp"
 #include "debug.hpp"
-#include "ocldevice_decl.hpp"
+#include "opencldevice_decl.hpp"
 
 namespace nanos {
 namespace ext {
     
     
 
-extern OCLDevice OCLDev;
+extern OpenCLDevice OpenCLDev;
 
 // OpenCL back-end Device Description.
 //
@@ -69,9 +69,9 @@ class OpenCLDD : public DD
 
       public:
          // constructors
-         OpenCLDD( work_fct w ) : DD( &OCLDev ), _work( w ) {}
+         OpenCLDD( work_fct w ) : DD( &OpenCLDev ), _work( w ) {}
 
-         OpenCLDD() : DD( &OCLDev ), _work( 0 ) {}
+         OpenCLDD() : DD( &OpenCLDev ), _work( 0 ) {}
 
          // copy constructors
          OpenCLDD( const OpenCLDD &dd ) : DD( dd ), _work( dd._work ) {}

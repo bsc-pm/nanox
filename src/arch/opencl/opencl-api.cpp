@@ -21,32 +21,27 @@
 #include "nanos-opencl.h"
 #include "nanos.h"
 #include "system.hpp"
-#include "oclprocessor.hpp"
-#include "ocldd.hpp"
+#include "openclprocessor.hpp"
+#include "opencldd.hpp"
 #include <string.h>
 
 
 using namespace nanos;
 
 NANOS_API_DEF(void *, nanos_opencl_factory, (void *args)) {
-    nanos_opencl_args_t *ocl = (nanos_opencl_args_t *) args;
-    return (void *) new ext::OpenCLDD(ocl->outline);
+    nanos_opencl_args_t *opencl = (nanos_opencl_args_t *) args;
+    return (void *) new ext::OpenCLDD(opencl->outline);
 }
 
-NANOS_API_DEF(void*, nanos_get_ocl_program, (char* ocl_code, char* compiler_opts)){    
-    nanos::ext::OCLProcessor *pe=( nanos::ext::OCLProcessor * ) myThread->runningOn();
-    return pe->getProgram(ocl_code,compiler_opts);
+NANOS_API_DEF(void*, nanos_create_current_kernel, (char* kernel_name, char* opencl_code, char* compiler_opts)){  
+    nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) myThread->runningOn();
+    return pe->createKernel(kernel_name,opencl_code,compiler_opts);
 }
 
-NANOS_API_DEF(void*, nanos_create_current_kernel, (char* kernel_name, void* program_pointer)){  
-    nanos::ext::OCLProcessor *pe=( nanos::ext::OCLProcessor * ) myThread->runningOn();
-    return pe->createKernel(kernel_name,program_pointer);
-}
-
-NANOS_API_DEF(nanos_err_t,nanos_ocl_set_bufferarg, (void* ocl_kernel, int arg_num, void* pointer)){
+NANOS_API_DEF(nanos_err_t,nanos_opencl_set_bufferarg, (void* opencl_kernel, int arg_num, void* pointer)){
    try {
-      nanos::ext::OCLProcessor *pe=( nanos::ext::OCLProcessor * ) myThread->runningOn();
-      pe->setKernelBufferArg(ocl_kernel, arg_num, pointer);
+      nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) myThread->runningOn();
+      pe->setKernelBufferArg(opencl_kernel, arg_num, pointer);
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -54,10 +49,10 @@ NANOS_API_DEF(nanos_err_t,nanos_ocl_set_bufferarg, (void* ocl_kernel, int arg_nu
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t,nanos_ocl_set_arg, (void* ocl_kernel, int arg_num, size_t size, void* pointer)){
+NANOS_API_DEF(nanos_err_t,nanos_opencl_set_arg, (void* opencl_kernel, int arg_num, size_t size, void* pointer)){
     try {
-      nanos::ext::OCLProcessor *pe=( nanos::ext::OCLProcessor * ) myThread->runningOn();
-      pe->setKernelArg(ocl_kernel, arg_num, size, pointer);
+      nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) myThread->runningOn();
+      pe->setKernelArg(opencl_kernel, arg_num, size, pointer);
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -65,10 +60,10 @@ NANOS_API_DEF(nanos_err_t,nanos_ocl_set_arg, (void* ocl_kernel, int arg_num, siz
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t,nanos_exec_kernel, (void* ocl_kernel, int work_dim, size_t* ndr_offset, size_t* ndr_local_size, size_t* ndr_global_size)){
+NANOS_API_DEF(nanos_err_t,nanos_exec_kernel, (void* opencl_kernel, int work_dim, size_t* ndr_offset, size_t* ndr_local_size, size_t* ndr_global_size)){
     try {
-      nanos::ext::OCLProcessor *pe=( nanos::ext::OCLProcessor * ) myThread->runningOn();
-      pe->execKernel(ocl_kernel, work_dim, ndr_offset, ndr_local_size, ndr_global_size);
+      nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) myThread->runningOn();
+      pe->execKernel(opencl_kernel, work_dim, ndr_offset, ndr_local_size, ndr_global_size);
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }

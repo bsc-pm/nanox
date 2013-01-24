@@ -1,0 +1,94 @@
+
+/* Platform API */
+OpenCL_API(clGetPlatformIDs)
+OpenCL_API(clGetPlatformInfo)
+
+/* Device APIs */
+OpenCL_API(clGetDeviceIDs)
+OpenCL_API(clGetDeviceInfo)
+
+/* Context APIs */
+OpenCL_API(clCreateContext)
+OpenCL_API(clCreateContextFromType)
+OpenCL_API(clRetainContext)
+OpenCL_API(clReleaseContext)
+OpenCL_API(clGetContextInfo)
+
+/* Command Queue APIs */
+OpenCL_API(clCreateCommandQueue)
+OpenCL_API(clRetainCommandQueue)
+OpenCL_API(clReleaseCommandQueue)
+OpenCL_API(clGetCommandQueueInfo)
+//COL_API(clSetCommandQueueProperty)
+
+/* Memory Object APIs */
+OpenCL_API(clCreateBuffer)
+//OpenCL_API(clCreateSubBuffer)
+OpenCL_API(clCreateImage2D)
+OpenCL_API(clCreateImage3D)
+OpenCL_API(clRetainMemObject)
+OpenCL_API(clReleaseMemObject)
+OpenCL_API(clGetSupportedImageFormats)
+OpenCL_API(clGetMemObjectInfo)
+OpenCL_API(clGetImageInfo)
+//OpenCL_API(clSetMemObjectDestructorCallback)
+
+/* Sampler APIs */
+OpenCL_API(clCreateSampler)
+OpenCL_API(clRetainSampler)
+OpenCL_API(clReleaseSampler)
+OpenCL_API(clGetSamplerInfo)
+
+/* Program Object APIs */
+OpenCL_API(clCreateProgramWithSource)
+OpenCL_API(clCreateProgramWithBinary)
+OpenCL_API(clRetainProgram)
+OpenCL_API(clReleaseProgram)
+OpenCL_API(clBuildProgram)
+OpenCL_API(clUnloadCompiler)
+OpenCL_API(clGetProgramInfo)
+OpenCL_API(clGetProgramBuildInfo)
+
+/* Kernel Object APIs */
+OpenCL_API(clCreateKernel)
+OpenCL_API(clCreateKernelsInProgram)
+OpenCL_API(clRetainKernel)
+OpenCL_API(clReleaseKernel)
+OpenCL_API(clSetKernelArg)
+OpenCL_API(clGetKernelInfo)
+OpenCL_API(clGetKernelWorkGroupInfo)
+
+/* Event Object APIs */
+OpenCL_API(clWaitForEvents)
+OpenCL_API(clGetEventInfo)
+OpenCL_API(clRetainEvent)
+OpenCL_API(clReleaseEvent)
+
+/* Profiling APIs */
+OpenCL_API(clGetEventProfilingInfo)
+
+/* Flush and Finish APIs */
+OpenCL_API(clFlush)
+OpenCL_API(clFinish)
+
+/* Enqueue Commands APIs */
+OpenCL_API(clEnqueueReadBuffer)
+OpenCL_API(clEnqueueWriteBuffer)
+OpenCL_API(clEnqueueCopyBuffer)
+OpenCL_API(clEnqueueReadImage)
+OpenCL_API(clEnqueueWriteImage)
+OpenCL_API(clEnqueueCopyImage)
+OpenCL_API(clEnqueueCopyImageToBuffer)
+OpenCL_API(clEnqueueCopyBufferToImage)
+OpenCL_API(clEnqueueMapBuffer)
+OpenCL_API(clEnqueueMapImage)
+OpenCL_API(clEnqueueUnmapMemObject)
+OpenCL_API(clEnqueueNDRangeKernel)
+OpenCL_API(clEnqueueTask)
+OpenCL_API(clEnqueueNativeKernel)
+OpenCL_API(clEnqueueMarker)
+OpenCL_API(clEnqueueWaitForEvents)
+OpenCL_API(clEnqueueBarrier)
+
+/* Extensions API */
+OpenCL_API(clGetExtensionFunctionAddress)

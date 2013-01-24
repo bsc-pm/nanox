@@ -1,12 +1,12 @@
 
-#include "ocldd.hpp"
-#include "ocldevice.hpp"
-#include "oclconfig.hpp"
+#include "opencldd.hpp"
+#include "opencldevice.hpp"
+#include "openclconfig.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
 
-OCLDevice nanos::ext::OCLDev( "OCL" );
+OpenCLDevice nanos::ext::OpenCLDev( "OPENCL" );
 
 OpenCLDD * OpenCLDD::copyTo ( void *toAddr )
 {

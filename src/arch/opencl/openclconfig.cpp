@@ -1,46 +1,47 @@
 
-#include "oclconfig.hpp"
+#include "openclconfig.hpp"
 #include "system.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
 
-bool OCLConfig::_disableOCL = false;
-std::string OCLConfig::_devTy = "ALL";
-int OCLConfig::_devCacheSize = 0;
-System::CachePolicyType OCLConfig::_cachePolicy = System::WRITE_BACK;
+bool OpenCLConfig::_disableOpenCL = false;
+std::string OpenCLConfig::_devTy = "ALL";
+int OpenCLConfig::_devCacheSize = 0;
+int OpenCLConfig::_devNum = INT_MAX;
+System::CachePolicyType OpenCLConfig::_cachePolicy = System::WRITE_BACK;
 
-std::vector<cl_platform_id> OCLConfig::_plats;
-std::vector<cl_device_id> OCLConfig::_devices;
+std::vector<cl_platform_id> OpenCLConfig::_plats;
+std::vector<cl_device_id> OpenCLConfig::_devices;
 
-Atomic<unsigned> OCLConfig::_freeDevice = 0;
+Atomic<unsigned> OpenCLConfig::_freeDevice = 0;
 
-cl_device_id OCLConfig::getFreeDevice() {
+cl_device_id OpenCLConfig::getFreeDevice() {
    if(_freeDevice == _devices.size())
       fatal( "No more free devices" );
 
    return _devices[_freeDevice++];
 }
 
-void OCLConfig::prepare( Config &cfg )
+void OpenCLConfig::prepare( Config &cfg )
 {
-   cfg.setOptionsSection( "OPENCL Arch", "OpenCL specific options" );
+   cfg.setOptionsSection( "OpenCL Arch", "OpenCL specific options" );
 
    // Enable/disable OpenCL.
    cfg.registerConfigOption( "disable-opencl",
-                             NEW Config::FlagOption( _disableOCL ),
+                             NEW Config::FlagOption( _disableOpenCL ),
                              "Enable or disable the use of "
                              "OpenCL back-end (enabled by default)" );
    cfg.registerEnvOption( "disable-opencl", "NX_DISABLE_OPENCL" );
    cfg.registerArgOption( "disable-opencl", "disable-opencl" );
 
    // Select the device to use.
-   cfg.registerConfigOption( "opencl-device",
+   cfg.registerConfigOption( "opencl-device-type",
                              NEW Config::StringVar( _devTy ),
                              "Defines the OpenCL device type to use "
                              "(ALL, CPU, GPU, ACCELERATOR)" );
-   cfg.registerEnvOption( "opencl-device", "NX_OPENCL_DEVICE" );
-   cfg.registerArgOption( "opencl-device", "opencl-device" );
+   cfg.registerEnvOption( "opencl-device-type", "NX_OPENCL_DEVICE_TYPE" );
+   cfg.registerArgOption( "opencl-device-type", "opencl-device-type" );
    
    System::CachePolicyConfig *cachePolicyCfg = NEW System::CachePolicyConfig ( _cachePolicy );
    cachePolicyCfg->addOption("wt", System::WRITE_THROUGH );
@@ -58,12 +59,20 @@ void OCLConfig::prepare( Config &cfg )
                              "to be allocated on the device" );
    cfg.registerEnvOption( "opencl-cache", "NX_OPENCL_CACHE" );
    cfg.registerArgOption( "opencl-cache", "opencl-cache" );
+   
+    // Select the size of the device cache.
+   cfg.registerConfigOption( "opencl-max-devices",
+                             NEW Config::IntegerVar( _devNum ),
+                             "Defines the total maximum number of devices "
+                             "to be used by nanox" );
+   cfg.registerEnvOption( "opencl-max-devices", "NX_OPENCL_MAX_DEVICES" );
+   cfg.registerArgOption( "opencl-max-devices", "opencl-max-devices" );
 
 }
 
-void OCLConfig::apply()
+void OpenCLConfig::apply()
 {
-   if( _disableOCL )
+   if( _disableOpenCL )
      return;
 
    cl_int errCode;
@@ -112,6 +121,9 @@ void OCLConfig::apply()
       // Get the number of available devices.
       cl_uint numDevices;
       errCode = p_clGetDeviceIDs( *i, devTy, 0, NULL, &numDevices );
+      if (numDevices>_devNum){
+          numDevices=_devNum;
+      }
       if( errCode != CL_SUCCESS )
          continue;
 

@@ -40,8 +40,8 @@
 #include "gpuprocessor_decl.hpp"
 #endif
 
-#ifdef OCL_DEV
-#include "oclprocessor.hpp"
+#ifdef OpenCL_DEV
+#include "openclprocessor.hpp"
 #endif
 
 using namespace nanos;
@@ -148,8 +148,8 @@ void System::loadModules ()
       fatal0 ( "Couldn't load GPU support" );
 #endif
    
-#ifdef OCL_DEV
-   verbose0( "loading OCL support" );
+#ifdef OpenCL_DEV
+   verbose0( "loading OpenCL support" );
 
    if ( !loadPlugin( "pe-opencl" ) )
      fatal0 ( "Couldn't load OpenCL support" );
@@ -343,8 +343,8 @@ void System::start ()
    _targetThreads += nanos::ext::GPUConfig::getGPUCount();
 #endif
    
-#ifdef OCL_DEV
-   _targetThreads += nanos::ext::OCLConfig::getOCLDevicesCount();
+#ifdef OpenCL_DEV
+   _targetThreads += nanos::ext::OpenCLConfig::getOpenCLDevicesCount();
 #endif
    // Instrumentation startup
    NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );
@@ -397,16 +397,17 @@ void System::start ()
       ++p;
    }
 #endif
-   
-#ifdef OCL_DEV
-//    for ( unsigned int i = 0; i < nanos::ext::OCLConfig::getOCLDevicesCount(); i++) {
-//       PE *oclAccelerator = NEW nanos::ext::OCLProcessor( getBindingId( p ));
-//       _pes.push_back( oclAccelerator );
-//      _workers.push_back( &oclAccelerator->startWorker() );
-//      ++p;
-//    }
-#endif
 
+   
+#ifdef OpenCL_DEV
+    for ( unsigned int i = 0; i < nanos::ext::OpenCLConfig::getOpenCLDevicesCount(); i++) {
+       PE *openclAccelerator = NEW nanos::ext::OpenCLProcessor( getBindingId( p ));
+       _pes.push_back( openclAccelerator );
+      _workers.push_back( &openclAccelerator->startWorker() );
+      ++p;
+    }
+#endif
+      
 #ifdef SPU_DEV
    PE *spu = NEW nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);
    spu->startWorker();
@@ -1059,7 +1060,7 @@ void System::submitWithDependencies (WD& work, size_t numDataAccesses, DataAcces
    SchedulePolicy* policy = getDefaultSchedulePolicy();
    policy->onSystemSubmit( work, SchedulePolicy::SYS_SUBMIT_WITH_DEPENDENCIES );
    setupWD( work, myThread->getCurrentWD() );
-   WD *current = myThread->getCurrentWD();
+   WD *current = myThread->getCurrentWD(); 
    current->submitWithDependencies( work, numDataAccesses , dataAccesses);
 }
 

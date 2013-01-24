@@ -1,6 +1,6 @@
 
-#include "oclprocessor.hpp"
-#include "oclthread.hpp"
+#include "openclprocessor.hpp"
+#include "openclthread.hpp"
 #include "os.hpp"
 #include <iostream>
 
@@ -8,10 +8,10 @@ using namespace nanos;
 using namespace nanos::ext;
 
 //
-// OCLAdapter implementation.
+// OpenCLAdapter implementation.
 //
 
-OCLAdapter::~OCLAdapter()
+OpenCLAdapter::~OpenCLAdapter()
 {
   cl_int errCode;
 
@@ -30,7 +30,7 @@ OCLAdapter::~OCLAdapter()
     p_clReleaseProgram( i->second );
 }
 
-void OCLAdapter::initialize(cl_device_id dev)
+void OpenCLAdapter::initialize(cl_device_id dev)
 {
    cl_int errCode;
 
@@ -64,7 +64,7 @@ void OCLAdapter::initialize(cl_device_id dev)
      fatal0( "Cannot create a command queue" );
 }
 
-cl_int OCLAdapter::allocBuffer( size_t size, cl_mem &buf )
+cl_int OpenCLAdapter::allocBuffer( size_t size, cl_mem &buf )
 {
    cl_int errCode;
 
@@ -73,12 +73,12 @@ cl_int OCLAdapter::allocBuffer( size_t size, cl_mem &buf )
    return errCode;
 }
 
-cl_int OCLAdapter::freeBuffer( cl_mem &buf )
+cl_int OpenCLAdapter::freeBuffer( cl_mem &buf )
 {
    return p_clReleaseMemObject( buf );
 }
 
-cl_int OCLAdapter::readBuffer( cl_mem buf,
+cl_int OpenCLAdapter::readBuffer( cl_mem buf,
                                void *dst,
                                size_t offset,
                                size_t size )
@@ -105,6 +105,7 @@ cl_int OCLAdapter::readBuffer( cl_mem buf,
                                &exitStatus,
                                NULL
                              );
+   
    if( errCode != CL_SUCCESS || exitStatus != CL_SUCCESS )
       errCode = CL_MEM_OBJECT_ALLOCATION_FAILURE;
 
@@ -113,7 +114,7 @@ cl_int OCLAdapter::readBuffer( cl_mem buf,
    return errCode;
 }
 
-cl_int OCLAdapter::writeBuffer( cl_mem buf,
+cl_int OpenCLAdapter::writeBuffer( cl_mem buf,
                                 void *src,
                                 size_t offset,
                                 size_t size )
@@ -150,7 +151,7 @@ cl_int OCLAdapter::writeBuffer( cl_mem buf,
    return errCode;
 }
 
-cl_int OCLAdapter::buildProgram( const char *src,
+cl_int OpenCLAdapter::buildProgram( const char *src,
                                  const char *compilerOpts,
                                  cl_program &prog )
 {
@@ -183,60 +184,68 @@ cl_int OCLAdapter::buildProgram( const char *src,
    return errCode;
 }
 
-cl_int OCLAdapter::destroyProgram( cl_program &prog )
+cl_int OpenCLAdapter::destroyProgram( cl_program &prog )
 {
   return p_clReleaseProgram( prog );
 }
 
-// Get program cache of this processor
-void* OCLAdapter::getProgram( const char *src,
-                               const char *compilerOpts)
-{    
-   cl_program prog;
-
-   uint32_t hash = gnuHash( src );
-   nanos::ext::OCLProcessor *pe=( nanos::ext::OCLProcessor * ) myThread->runningOn();
-   ProgramCache progCache = pe->getProgCache();
-   if( progCache.count( hash ) )
-   {
-      prog = progCache[hash];
-   }
-
-   buildProgram( src, compilerOpts, prog );
-
-   progCache[hash] = prog;
-   
-   return prog;
-}
-
 // TODO: use a fixed cache size.
-cl_int OCLAdapter::putProgram( cl_program &prog )
+cl_int OpenCLAdapter::putProgram( cl_program &prog )
 {
    return p_clReleaseProgram( prog );
 }
 
-void* OCLAdapter::createKernel( char* kernel_name, void* program)        
+
+void* OpenCLAdapter::createKernel( char* kernel_name, char* ompss_code_file,const char *compilerOpts)        
 {
+   cl_program prog;
+   uint32_t hash = gnuHash( ompss_code_file );
+   nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) myThread->runningOn();
+   ProgramCache progCache = pe->getProgCache();
+   if( progCache.count( hash ) )
+   {
+      prog = progCache[hash];
+   } else {    
+      char* ompss_code;    
+      FILE *fp;
+      size_t source_size;
+      fp = fopen(ompss_code_file, "r");
+      if (!fp) {
+        fatal0("Failed to open file when loading kernel from file " + std::string(ompss_code_file) + ".\n");
+      }      
+      fseek(fp, 0, SEEK_END); // seek to end of file;
+      int size = ftell(fp); // get current file pointer
+      fseek(fp, 0, SEEK_SET); // seek back to beginning of file
+      ompss_code = (char*)malloc(size+1);;
+      source_size = fread( ompss_code, 1, size, fp);
+      fclose(fp); 
+      ompss_code[size]=0;
+      buildProgram( ompss_code, compilerOpts, prog );
+      free(ompss_code);
+      progCache[hash] = prog;
+   }
+   
+   
    cl_kernel kern;
    cl_int errCode;
-   kern = p_clCreateKernel( (cl_program) program, kernel_name, &errCode );
+   kern = p_clCreateKernel( prog, kernel_name, &errCode );
    return kern;    
 }
 
-cl_int OCLAdapter::execKernel(void* openclKernel, 
+cl_int OpenCLAdapter::execKernel(void* oclKernel, 
                         int workDim, 
                         size_t* ndrOffset, 
                         size_t* ndrLocalSize, 
                         size_t* ndrGlobalSize)
 {
-   cl_kernel oclKernel=(cl_kernel) openclKernel;
+   cl_kernel openclKernel=(cl_kernel) oclKernel;
    cl_event ev;
    cl_int errCode, exitStatus;
 
    
    // Exec it.
    errCode = p_clEnqueueNDRangeKernel( _queue,
-                                       oclKernel,
+                                       openclKernel,
                                        workDim,
                                        ndrOffset,
                                        ndrGlobalSize,
@@ -248,7 +257,7 @@ cl_int OCLAdapter::execKernel(void* openclKernel,
    if( errCode != CL_SUCCESS )
    {
       // Don't worry about exit code, we are cleaning an error.
-      p_clReleaseKernel( oclKernel );
+      p_clReleaseKernel( openclKernel );
       return errCode;
    }
 
@@ -258,7 +267,7 @@ cl_int OCLAdapter::execKernel(void* openclKernel,
    {
       // Clean up environment.
       p_clReleaseEvent( ev );
-      p_clReleaseKernel( oclKernel );
+      p_clReleaseKernel( openclKernel );
       return errCode;
    }
 
@@ -273,7 +282,7 @@ cl_int OCLAdapter::execKernel(void* openclKernel,
    {
       // Clean up environment.
       p_clReleaseEvent( ev );
-      p_clReleaseKernel( oclKernel );
+      p_clReleaseKernel( openclKernel );
       return errCode;
    }
 
@@ -287,11 +296,11 @@ cl_int OCLAdapter::execKernel(void* openclKernel,
    }
 
    // Free the kernel.
-   return p_clReleaseKernel( oclKernel );
+   return p_clReleaseKernel( openclKernel );
 }
 
 // TODO: replace with new APIs.
-size_t OCLAdapter::getGlobalSize()
+size_t OpenCLAdapter::getGlobalSize()
 {
    cl_int errCode;
    cl_ulong size;
@@ -307,7 +316,7 @@ size_t OCLAdapter::getGlobalSize()
    return size;
 }
 
-cl_int OCLAdapter::getSizeTypeMax( unsigned long long &sizeTypeMax )
+cl_int OpenCLAdapter::getSizeTypeMax( unsigned long long &sizeTypeMax )
 {
    std::string plat;
 
@@ -320,7 +329,7 @@ cl_int OCLAdapter::getSizeTypeMax( unsigned long long &sizeTypeMax )
 }
 
 cl_int
-OCLAdapter::getPreferredWorkGroupSizeMultiple(
+OpenCLAdapter::getPreferredWorkGroupSizeMultiple(
    size_t &preferredWorkGroupSizeMultiple )
 {
    // The NVIDIA SDK does not recognize
@@ -342,13 +351,13 @@ OCLAdapter::getPreferredWorkGroupSizeMultiple(
 
 }
 
-cl_int OCLAdapter::getDeviceInfo( cl_device_info key, size_t size, void *value )
+cl_int OpenCLAdapter::getDeviceInfo( cl_device_info key, size_t size, void *value )
 {
    return p_clGetDeviceInfo( _dev, key, size, value, NULL );
 }
 
 cl_int
-OCLAdapter::getStandardPreferredWorkGroupSizeMultiple(
+OpenCLAdapter::getStandardPreferredWorkGroupSizeMultiple(
    size_t &preferredWorkGroupSizeMultiple )
 {
    #ifdef CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE
@@ -408,7 +417,7 @@ OCLAdapter::getStandardPreferredWorkGroupSizeMultiple(
 }
 
 //cl_int
-//OCLAdapter::getNVIDIAPreferredWorkGroupSizeMultiple(
+//OpenCLAdapter::getNVIDIAPreferredWorkGroupSizeMultiple(
 //   size_t &preferredWorkGroupSizeMultiple )
 //{
 //  // CL_DEVICE_WARP_SIZE_NV = 0x4003.
@@ -419,7 +428,7 @@ OCLAdapter::getStandardPreferredWorkGroupSizeMultiple(
 //}
 
 
-cl_int OCLAdapter::getStandardSizeTypeMax( unsigned long long &sizeTypeMax )
+cl_int OpenCLAdapter::getStandardSizeTypeMax( unsigned long long &sizeTypeMax )
 {
    // This parameter is architecture-dependent. Unfortunately, there is not a
    // corresponding property -- we need an estimate.
@@ -450,14 +459,14 @@ cl_int OCLAdapter::getStandardSizeTypeMax( unsigned long long &sizeTypeMax )
    return errCode;
 }
 
-cl_int OCLAdapter::getNVIDIASizeTypeMax( unsigned long long &sizeTypeMax )
+cl_int OpenCLAdapter::getNVIDIASizeTypeMax( unsigned long long &sizeTypeMax )
 {
    sizeTypeMax = CL_INT_MAX;
 
    return CL_SUCCESS;
 }
 
-cl_int OCLAdapter::getPlatformName( std::string &name )
+cl_int OpenCLAdapter::getPlatformName( std::string &name )
 {
    cl_platform_id plat;
    cl_int errCode;
@@ -491,86 +500,83 @@ cl_int OCLAdapter::getPlatformName( std::string &name )
 }
 
 //
-// OCLProcessor implementation.
+// OpenCLProcessor implementation.
 //
 
 
-OCLProcessor::OCLProcessor( int id ) :
-   CachedAccelerator<OCLDevice>( id, &OCLDev ),
-   _oclAdapter(),
-   _cache( _oclAdapter ),
+OpenCLProcessor::OpenCLProcessor( int id ) :
+   CachedAccelerator<OpenCLDevice>( id, &OpenCLDev ),
+   _openclAdapter(),
+   _cache( _openclAdapter ),
    _dma ( *this ) { }
 
 
 //TODO: Configure cache awareness
-void OCLProcessor::initialize()
+void OpenCLProcessor::initialize()
 {
    // Initialize the adapter, it will talk with the OpenCL device.
-   _oclAdapter.initialize( OCLConfig::getFreeDevice() );
+   _openclAdapter.initialize( OpenCLConfig::getFreeDevice() );
 
    // Initialize the caching subsystem.
    _cache.initialize();
 
    // Register this device as cache-aware.
-   configureCache( _cache.getSize(), OCLConfig::getCachePolicy());
+   configureCache( _cache.getSize(), OpenCLConfig::getCachePolicy());
 }
 
-WD &OCLProcessor::getWorkerWD() const
+WD &OpenCLProcessor::getWorkerWD() const
 {
-    printf("pillando worker\n");
     OpenCLDD * dd = NEW OpenCLDD((OpenCLDD::work_fct)Scheduler::workerLoop);
     WD *wd = NEW WD(dd);
-    printf("retornando worker %p\n",wd);
     return *wd;
 }
 
 
-WD & OCLProcessor::getMasterWD() const {    
+WD & OpenCLProcessor::getMasterWD() const {    
    fatal("Attempting to create a OpenCL master thread");
 }
 
-BaseThread &OCLProcessor::createThread( WorkDescriptor &wd )
+BaseThread &OpenCLProcessor::createThread( WorkDescriptor &wd )
 {
 
    ensure( wd.canRunIn( SMP ), "Incompatible worker thread" );
 
-   OCLThread &thr = *NEW OCLThread( wd, this );
+   OpenCLThread &thr = *NEW OpenCLThread( wd, this );
 
    return thr;
 }
 
-void OCLProcessor::setKernelBufferArg(void* oclKernel, int argNum, void* pointer)
+void OpenCLProcessor::setKernelBufferArg(void* openclKernel, int argNum, void* pointer)
 {
-    WD* wd=myThread->getCurrentWD();
     cl_mem buffer=_cache.toMemoryObjSS( pointer );
-    //If buffer is null, this was not written, but it's allocated (output)
-    //Search for it's size and assign it to an address
-    if (buffer==NULL){
-        CopyData *copy_array = wd->getCopies();
-        unsigned int i = 0;
-        for (i = 0; i < wd->getNumCopies(); ++i) {
-            CopyData cpd = copy_array[i];
-            //In pointers we have pointer size, not buffer size
-            //This way we use the same buffer size
-            void * ptr = (void*) cpd.getAddress();
-            if (ptr==pointer){                
-                buffer=_cache.toMemoryObjSizeSS(cpd.getSize(), pointer );
-                break;;
-            }
-        }
-    }
     //Set buffer as arg
-    p_clSetKernelArg( (cl_kernel) oclKernel, argNum, sizeof(cl_mem), buffer );
+    cl_int errCode= p_clSetKernelArg( (cl_kernel) openclKernel, argNum, sizeof(cl_mem), &buffer ); 
+    if( errCode != CL_SUCCESS )
+    {
+         fatal0("Error setting kernel buffer arg");
+    }
 }
 
-void OCLProcessor::execKernel(void* oclKernel, 
+void OpenCLProcessor::setKernelArg(void* opencl_kernel, int arg_num, size_t size, void* pointer){
+    cl_int errCode= p_clSetKernelArg( (cl_kernel) opencl_kernel, arg_num, size, pointer );
+    if( errCode != CL_SUCCESS )
+    {
+         fatal0("Error setting kernel arg");
+    }
+}
+
+void OpenCLProcessor::execKernel(void* openclKernel, 
                         int workDim, 
                         size_t* ndrOffset, 
                         size_t* ndrLocalSize, 
                         size_t* ndrGlobalSize){
-     _oclAdapter.execKernel(oclKernel,
+     cl_int errCode=_openclAdapter.execKernel(openclKernel,
                             workDim,
                             ndrOffset,
                             ndrLocalSize,
                             ndrGlobalSize);
+     if( errCode != CL_SUCCESS )
+    {
+         fatal0("Error executing kernel");
+    }
 }

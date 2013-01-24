@@ -3,27 +3,27 @@ opencl_api_sources = \
 	$(top_srcdir)/src/arch/opencl/opencl-api.cpp \
 	$(END)
 opencl_sources = \
-	$(top_srcdir)/src/arch/opencl/oclwrapper.hpp \
-	$(top_srcdir)/src/arch/opencl/oclwrapper.cpp \
-        $(top_srcdir)/src/arch/opencl/oclconfig.hpp \
-        $(top_srcdir)/src/arch/opencl/oclconfig.cpp \
-        $(top_srcdir)/src/arch/opencl/ocldd.hpp \
-        $(top_srcdir)/src/arch/opencl/ocldd.cpp \
-        $(top_srcdir)/src/arch/opencl/ocldevice_decl.hpp \
-        $(top_srcdir)/src/arch/opencl/ocldevice.hpp \
-        $(top_srcdir)/src/arch/opencl/oclprocessor_decl.hpp \
-        $(top_srcdir)/src/arch/opencl/oclprocessor.hpp \
-        $(top_srcdir)/src/arch/opencl/oclprocessor.cpp \
-        $(top_srcdir)/src/arch/opencl/oclcache.hpp \
-        $(top_srcdir)/src/arch/opencl/oclcache.cpp \
-        $(top_srcdir)/src/arch/opencl/oclthread_decl.hpp \
-        $(top_srcdir)/src/arch/opencl/oclthread.hpp \
-        $(top_srcdir)/src/arch/opencl/oclthread.cpp \
-        $(top_srcdir)/src/arch/opencl/oclutils.hpp \
-        $(END)
+	 $(top_srcdir)/src/arch/opencl/openclwrapper.hpp \
+	 $(top_srcdir)/src/arch/opencl/openclwrapper.cpp \
+    $(top_srcdir)/src/arch/opencl/openclconfig.hpp \
+    $(top_srcdir)/src/arch/opencl/openclconfig.cpp \
+    $(top_srcdir)/src/arch/opencl/opencldd.hpp \
+    $(top_srcdir)/src/arch/opencl/opencldd.cpp \
+    $(top_srcdir)/src/arch/opencl/opencldevice_decl.hpp \
+    $(top_srcdir)/src/arch/opencl/opencldevice.hpp \
+    $(top_srcdir)/src/arch/opencl/openclprocessor_decl.hpp \
+    $(top_srcdir)/src/arch/opencl/openclprocessor.hpp \
+    $(top_srcdir)/src/arch/opencl/openclprocessor.cpp \
+    $(top_srcdir)/src/arch/opencl/openclcache.hpp \
+    $(top_srcdir)/src/arch/opencl/openclcache.cpp \
+    $(top_srcdir)/src/arch/opencl/openclthread_decl.hpp \
+    $(top_srcdir)/src/arch/opencl/openclthread.hpp \
+    $(top_srcdir)/src/arch/opencl/openclthread.cpp \
+    $(top_srcdir)/src/arch/opencl/openclutils.hpp \
+    $(END)
 
 pe_opencl_sources = \
-	$(top_srcdir)/src/arch/opencl/oclplugin.cpp \
+	$(top_srcdir)/src/arch/opencl/openclplugin.cpp \
 	$(END)
 
 opencl_api_flags = -I$(top_srcdir)/src/apis/c
