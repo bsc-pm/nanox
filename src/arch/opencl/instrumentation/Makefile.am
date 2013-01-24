@@ -22,7 +22,7 @@ include $(top_srcdir)/src/common.am
 
 if INSTRUMENTATION_VERSION
 noinst_LTLIBRARIES = libopencl.la
-instrumentation_LTLIBRARIES = libnanox-pe-opencl.la
+instrumentation_LTLIBRARIES = libnanox-opencl-api.la libnanox-pe-opencl.la
 
 nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags) $(opencl_includes)
 

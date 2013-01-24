@@ -23,7 +23,7 @@ include $(top_srcdir)/src/common.am
 
 if DEBUG_VERSION
 noinst_LTLIBRARIES = libopencl.la
-debug_LTLIBRARIES = libnanox-pe-opencl.la
+debug_LTLIBRARIES = libnanox-opencl-api.la libnanox-pe-opencl.la
 
 nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) $(opencl_includes)
 
@@ -31,7 +31,7 @@ libopencl_la_CXXFLAGS=$(nanos_debug_cxxflags) $(opencl_api_flags)
 libopencl_la_LDFLAGS=$(opencl_ldflags)
 libopencl_la_SOURCES=$(opencl_sources)
 
-libnanox_opencl_api_la_CXXFLAGS=$(nanos_instr_cxxflags) $(opencl_api_flags)
+libnanox_opencl_api_la_CXXFLAGS=$(nanos_debug_cxxflags) $(opencl_api_flags)
 libnanox_opencl_api_la_LDFLAGS=$(version_flags)
 libnanox_opencl_api_la_SOURCES=$(opencl_api_sources)
 

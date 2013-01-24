@@ -8,7 +8,7 @@ using namespace nanos::ext;
 bool OpenCLConfig::_disableOpenCL = false;
 std::string OpenCLConfig::_devTy = "ALL";
 int OpenCLConfig::_devCacheSize = 0;
-int OpenCLConfig::_devNum = INT_MAX;
+unsigned int OpenCLConfig::_devNum = INT_MAX;
 System::CachePolicyType OpenCLConfig::_cachePolicy = System::WRITE_BACK;
 
 std::vector<cl_platform_id> OpenCLConfig::_plats;
@@ -62,7 +62,7 @@ void OpenCLConfig::prepare( Config &cfg )
    
     // Select the size of the device cache.
    cfg.registerConfigOption( "opencl-max-devices",
-                             NEW Config::IntegerVar( _devNum ),
+                             NEW Config::UintVar( _devNum ),
                              "Defines the total maximum number of devices "
                              "to be used by nanox" );
    cfg.registerEnvOption( "opencl-max-devices", "NX_OPENCL_MAX_DEVICES" );

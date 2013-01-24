@@ -47,7 +47,7 @@ private:
   static int _devCacheSize;
   
   //Maximum number of devices to be used by nanox
-  static int _devNum;
+  static unsigned int _devNum;
   // These properties contains runtime info, not directly settable by the user.
 
   // All found OpenCL platforms.
