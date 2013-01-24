@@ -163,6 +163,9 @@ void MPIDevice::syncTransfer(uint64_t hostAddress, ProcessingElement *pe) {
 }
 
 bool MPIDevice::copyDevToDev(void * addrDst, CopyDescriptor& cdDst, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc) {
+    //TODO: Improve this behaviour
+    copyOut(cdDst,addrSrc,size,peSrc);
+    copyIn(addrDst,cdDst,size,peDst);
     return true;
 }
 
