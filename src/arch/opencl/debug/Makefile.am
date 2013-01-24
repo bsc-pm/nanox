@@ -17,21 +17,25 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-#TODO: Fix instrumentation and debug makefiles so they are named opencl instead of ocl and they can use headers in this folder
+#TODO: Fix instrumentation and debug makefiles so they are named opencl instead of opencl and they can use headers in this folder
 include $(top_srcdir)/src/arch/opencl/version_commons.am
 include $(top_srcdir)/src/common.am
 
 if DEBUG_VERSION
-noinst_LTLIBRARIES = libocl.la
-debug_LTLIBRARIES = libnanox-pe-ocl.la
+noinst_LTLIBRARIES = libopencl.la
+debug_LTLIBRARIES = libnanox-pe-opencl.la
 
-nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) $(ocl_includes)
+nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) $(opencl_includes)
 
-libocl_la_CXXFLAGS=$(nanos_debug_cxxflags)
-libocl_la_LDFLAGS=$(ocl_ldflags)
-libocl_la_SOURCES=$(ocl_sources)
+libopencl_la_CXXFLAGS=$(nanos_debug_cxxflags) $(opencl_api_flags)
+libopencl_la_LDFLAGS=$(opencl_ldflags)
+libopencl_la_SOURCES=$(opencl_sources)
 
-libnanox_pe_ocl_la_CXXFLAGS=$(nanos_debug_cxxflags)
-libnanox_pe_ocl_la_LDFLAGS=$(ld_plugin_flags) $(ocl_ldflags)
-libnanox_pe_ocl_la_SOURCES=$(pe_ocl_sources)
+libnanox_opencl_api_la_CXXFLAGS=$(nanos_instr_cxxflags) $(opencl_api_flags)
+libnanox_opencl_api_la_LDFLAGS=$(version_flags)
+libnanox_opencl_api_la_SOURCES=$(opencl_api_sources)
+
+libnanox_pe_opencl_la_CXXFLAGS=$(nanos_debug_cxxflags)
+libnanox_pe_opencl_la_LDFLAGS=$(ld_plugin_flags) $(opencl_ldflags)
+libnanox_pe_opencl_la_SOURCES=$(pe_opencl_sources)
 endif

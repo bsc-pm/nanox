@@ -21,16 +21,20 @@ include $(top_srcdir)/src/arch/opencl/version_commons.am
 include $(top_srcdir)/src/common.am
 
 if INSTRUMENTATION_VERSION
-noinst_LTLIBRARIES = libocl.la
-instrumentation_LTLIBRARIES = libnanox-pe-ocl.la
+noinst_LTLIBRARIES = libopencl.la
+instrumentation_LTLIBRARIES = libnanox-pe-opencl.la
 
-nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags) $(ocl_includes)
+nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags) $(opencl_includes)
 
-libocl_la_CXXFLAGS=$(nanos_instr_cxxflags)
-libocl_la_LDFLAGS=$(ocl_ldflags)
-libocl_la_SOURCES=$(ocl_sources)
+libopencl_la_CXXFLAGS=$(nanos_instr_cxxflags) $(opencl_api_flags)
+libopencl_la_LDFLAGS=$(opencl_ldflags)
+libopencl_la_SOURCES=$(opencl_sources)
 
-libnanox_pe_ocl_la_CXXFLAGS=$(nanos_instr_cxxflags)
-libnanox_pe_ocl_la_LDFLAGS=$(ld_plugin_flags) $(ocl_ldflags)
-libnanox_pe_ocl_la_SOURCES=$(pe_ocl_sources)
+libnanox_opencl_api_la_CXXFLAGS=$(nanos_instr_cxxflags) $(opencl_api_flags)
+libnanox_opencl_api_la_LDFLAGS=$(version_flags)
+libnanox_opencl_api_la_SOURCES=$(opencl_api_sources)
+
+libnanox_pe_opencl_la_CXXFLAGS=$(nanos_instr_cxxflags)
+libnanox_pe_opencl_la_LDFLAGS=$(ld_plugin_flags) $(opencl_ldflags)
+libnanox_pe_opencl_la_SOURCES=$(pe_opencl_sources)
 endif
