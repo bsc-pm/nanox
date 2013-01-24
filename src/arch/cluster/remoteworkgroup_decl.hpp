@@ -20,7 +20,6 @@
 #ifndef _NANOS_REMOTE_WORK_GROUP_DECL_H
 #define _NANOS_REMOTE_WORK_GROUP_DECL_H
 
-#include "system_decl.hpp"
 #include "workgroup_decl.hpp"
 namespace nanos
 {
@@ -29,16 +28,10 @@ namespace nanos
       private:
          unsigned int _remoteId;
       public:
-         RemoteWorkGroup(unsigned int rId) : _remoteId ( rId ) {}
-
-         virtual void exitWork( WorkGroup &work ) { 
-            sys.getNetwork()->sendWorkDoneMsg( 
-                  Network::MASTER_NODE_NUM, 
-                  /*new queue */work.getRemoteAddr() , _remoteId); }
+         RemoteWorkGroup(unsigned int rId);
+         virtual void exitWork( WorkGroup &work );
    };
 
 };
 
-
 #endif
-

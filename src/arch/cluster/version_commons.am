@@ -28,6 +28,7 @@ cluster_sources = \
 		$(top_srcdir)/src/arch/cluster/clusterinfo.cpp \
 		$(top_srcdir)/src/arch/cluster/remoteworkgroup_decl.hpp \
 		$(top_srcdir)/src/arch/cluster/remoteworkgroup_fwd.hpp \
+		$(top_srcdir)/src/arch/cluster/remoteworkgroup.cpp \
 		$(END)
 
 pe_cluster_sources = \

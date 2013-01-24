@@ -22,8 +22,6 @@
 
 #include "smpthread.hpp"
 #include "wddeque.hpp"
-//#include "clusternode.hpp"
-#include <queue>
 
 #define MAX_PRESEND 1024
 
@@ -33,25 +31,26 @@ namespace ext
 
    class ClusterThread : public SMPThread
    {
-
-      friend class ClusterProcessor;
-
       private:
+
+      class RunningWDQueue {
+         Atomic<unsigned int> _numRunning;
+         Atomic<unsigned int> _completedHead;
+         Atomic<unsigned int> _completedHead2;
+         unsigned int _completedTail;
+         WD* _completedWDs[MAX_PRESEND];
+         
+         public:
+         RunningWDQueue();
+         ~RunningWDQueue();
+         void addRunningWD( WorkDescriptor *wd );
+         unsigned int numRunningWDs() const;
+         void clearCompletedWDs( ClusterThread *self );
+         void completeWD( void *remoteWdAddr );
+      };
+
       unsigned int                     _clusterNode; // Assigned Cluster device Id
-
-      std::queue<WD*> _blockedWDsSMP;
-      std::queue<WD*> _blockedWDsGPU;
-
-      Atomic<unsigned int> _numRunningSMP;
-      Atomic<unsigned int> _completedSMPHead;
-      Atomic<unsigned int> _completedSMPHead2;
-      unsigned int _completedSMPTail;
-      WD* _completedWDsGPU[MAX_PRESEND];
-      Atomic<unsigned int> _numRunningGPU;
-      Atomic<unsigned int> _completedGPUHead;
-      Atomic<unsigned int> _completedGPUHead2;
-      unsigned int _completedGPUTail;
-      WD* _completedWDsSMP[MAX_PRESEND];
+      RunningWDQueue _runningWDs[2]; //0: SMP, 1: GPU
 
       // disable copy constructor and assignment operator
       ClusterThread( const ClusterThread &th );
@@ -59,56 +58,31 @@ namespace ext
 
       public:
       // constructor
-      ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : SMPThread( w, pe, parent ),
-      _clusterNode( device ),
-      _numRunningSMP (0) , 
-      _completedSMPHead(0),
-      _completedSMPHead2(0), 
-      _completedSMPTail(0), 
-      _numRunningGPU (0) ,
-      _completedGPUHead(0), 
-      _completedGPUHead2(0), 
-      _completedGPUTail(0)
-      {
-         setCurrentWD( w );
-         //(void) w.getDirectory(true); 
-         for ( int i = 0; i < MAX_PRESEND; i++ )
-         {
-            _completedWDsGPU[i]=NULL; 
-            _completedWDsSMP[i]=NULL;
-         }
-      }
+      ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device );
 
       // destructor
-      virtual ~ClusterThread() {}
+      virtual ~ClusterThread();
 
       virtual void runDependent ( void );
-      virtual void inlineWorkDependent ( WD &wd ) { fatal( "inline execution is not supported in this architecture (cluster)."); }
+      virtual void inlineWorkDependent ( WD &wd );
       virtual void outlineWorkDependent ( WD &wd );
 
       void addRunningWDSMP( WorkDescriptor *wd );
-      unsigned int numRunningWDsSMP();
+      unsigned int numRunningWDsSMP() const;
       void clearCompletedWDsSMP2( );
-      void completeWDSMP_2( void *remoteWdAddr );
 
       void addRunningWDGPU( WorkDescriptor *wd );
-      unsigned int numRunningWDsGPU();
+      unsigned int numRunningWDsGPU() const;
       void clearCompletedWDsGPU2( );
-      void completeWDGPU_2( void *remoteWdAddr );
 
       virtual void join();
-      virtual void start() {}
+      virtual void start();
       virtual BaseThread * getNextThread ();
 
       void idle();
 
-      void addBlockingWDSMP( WD * wd );
-      WD *fetchBlockingWDSMP();
-      void addBlockingWDGPU( WD * wd );
-      WD *fetchBlockingWDGPU();
-
-      virtual void notifyOutlinedCompletionDependent( WD &completedWD ); 
-      virtual bool isCluster() { return true; }
+      virtual void notifyOutlinedCompletionDependent( WD *completedWD ); 
+      virtual bool isCluster();
    };
 
 

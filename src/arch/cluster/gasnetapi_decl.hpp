@@ -54,7 +54,6 @@ namespace ext {
          static std::vector< SimpleAllocator * > _pinnedAllocators;
          static std::vector< Lock * > _pinnedAllocatorsLocks;
          static Atomic<unsigned int> *_seqN;
-         static Atomic<unsigned int> *_putSeqN;
 
          // data dependencies for data comming via a node different than the one sending the work
          // e.g. node 1 sends work to 2 but some data comes from node 3, the work message can
@@ -69,17 +68,7 @@ namespace ext {
          static std::multimap<uint64_t, wdDeps *> _depsMap; //needed data
          static std::set<uint64_t> _recvdDeps; //already got the data
 
-         struct DelayedWork {
-            std::vector<uint64_t> *delayedDepsV;
-            WD *delayedWD;
-            unsigned int delayedExpectedPutSeqN;
-            unsigned int delayedSeq;
-         };
-         static std::list<struct DelayedWork * > _delayedWork;
-         static Lock _delayedWorkLock;
-
          //static void addDelayedWork(std::vector<uint64_t> *delayedDepsv, WD *delayedWD, int delayedExpectedPutSeqN, unsigned int delayedSeq);
-         static void processWork(std::vector<uint64_t> *delayedDepsv, WD *delayedWD, unsigned int delayedExpectedPutSeqN, unsigned int delayedSeq);
          static void processWork2(std::size_t expectedData, WD *delayedWD, unsigned int delayedSeq);
          static void releaseDelayedWork();
 
@@ -219,7 +208,7 @@ namespace ext {
                              gasnet_handlerarg_t rmwdHi,
                              gasnet_handlerarg_t expectedDataLo,
                              gasnet_handlerarg_t expectedDataHi,
-                             unsigned int dataSize, unsigned int wdId, unsigned int numPe, int arch, unsigned int seq, unsigned int seqPut );
+                             unsigned int dataSize, unsigned int wdId, unsigned int numPe, int arch, unsigned int seq );
          static void amWorkData(gasnet_token_t token, void *buff, std::size_t len,
                gasnet_handlerarg_t msgNum,
                gasnet_handlerarg_t totalLenLo,

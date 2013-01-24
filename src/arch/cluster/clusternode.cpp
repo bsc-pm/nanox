@@ -26,20 +26,36 @@
 using namespace nanos;
 using namespace nanos::ext;
 
-WorkDescriptor & ClusterNode::getWorkerWD () const
-{
+
+ClusterNode::ClusterNode( int id ) : CachedAccelerator( id, &SMP, 
+#ifdef GPU_DEV
+   &GPU,
+#else
+   NULL,
+#endif
+   &Cluster, ClusterInfo::getSegmentLen( id ), RegionCache::ALLOC_WIDE ), _clusterNode ( id ),
+   _memSegment( ( uintptr_t ) ClusterInfo::getSegmentAddr( id ),
+   ClusterInfo::getSegmentLen( id ) ), _executedWorkDesciptors ( 0 ) {
+}
+
+ClusterNode::~ClusterNode() {
+}
+
+WorkDescriptor & ClusterNode::getWorkerWD () const {
    SMPDD * dd = new SMPDD( ( SMPDD::work_fct )0xdeadbeef );
    WD *wd = new WD( dd );
    return *wd;
 }
 
-WorkDescriptor & ClusterNode::getMasterWD () const
-{
+WorkDescriptor & ClusterNode::getMasterWD () const {
    fatal("Attempting to create a cluster master thread");
 }
 
-BaseThread &ClusterNode::createThread ( WorkDescriptor &helper, SMPMultiThread *parent )
-{
+WD & ClusterNode::getMultiWorkerWD () const {
+   fatal( "getMultiWorkerWD: ClusterNode is not allowed to create MultiThreads" );
+}
+
+BaseThread &ClusterNode::createThread ( WorkDescriptor &helper, SMPMultiThread *parent ) {
    // In fact, the GPUThread will run on the CPU, so make sure it canRunIn( SMP )
    ensure( helper.canRunIn( SMP ), "Incompatible worker thread" );
    ClusterThread &th = *new ClusterThread( helper, this, parent, _clusterNode );
@@ -47,9 +63,42 @@ BaseThread &ClusterNode::createThread ( WorkDescriptor &helper, SMPMultiThread *
    return th;
 }
 
+BaseThread & ClusterNode::createMultiThread ( WorkDescriptor &wd, unsigned int numPEs, PE **repPEs ) {
+   fatal( "ClusterNode is not allowed to create MultiThreads" );
+}
+
+bool ClusterNode::supportsUserLevelThreads () const {
+   return false;
+}
+
+bool ClusterNode::isGPU () const {
+   return false;
+}
+
+bool ClusterNode::supportsDirectTransfersWith( ProcessingElement const &pe ) const {
+   return ( &Cluster == pe.getCacheDeviceType() && sys.useNode2Node() );
+}
+
+unsigned int ClusterNode::getMyNodeNumber() const {
+   return _clusterNode;
+}
+
 unsigned int ClusterNode::getClusterNodeNum() const {
    return _clusterNode;
 }
-bool ClusterNode::supportsDirectTransfersWith( ProcessingElement const &pe ) const {
-   return ( &Cluster == pe.getCacheDeviceType() && sys.useNode2Node() );
+
+SimpleAllocator & ClusterNode::getAllocator( void ) {
+   return _memSegment;
+}
+
+void ClusterNode::incExecutedWDs() {
+   _executedWorkDesciptors++;
+}
+
+unsigned int ClusterNode::getExecutedWDs() const {
+   return _executedWorkDesciptors;
+}
+
+unsigned int ClusterNode::getNodeNum() const {
+   return _clusterNode;
 }

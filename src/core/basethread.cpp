@@ -91,4 +91,6 @@ BaseThread * nanos::getMyThreadSafe()
    return myThread;
 }
 
-
+void BaseThread::notifyOutlinedCompletionDependent( WD *completedWD ) {
+   fatal0( "::notifyOutlinedCompletionDependent() not available for this thread type." );
+}

@@ -27,15 +27,68 @@
 using namespace nanos;
 using namespace ext;
 
+ClusterThread::RunningWDQueue::RunningWDQueue() : _numRunning(0), _completedHead(0), _completedHead2(0), _completedTail(0) {
+   for ( unsigned int i = 0; i < MAX_PRESEND; i++ )
+   {
+      _completedWDs[i] = NULL;
+   }
+}
 
-void ClusterThread::runDependent ()
-{
+ClusterThread::RunningWDQueue::~RunningWDQueue() {
+}
+
+void ClusterThread::RunningWDQueue::addRunningWD( WorkDescriptor *wd ) { 
+   _numRunning++;
+}
+
+unsigned int ClusterThread::RunningWDQueue::numRunningWDs() const {
+   return _numRunning.value();
+}
+
+void ClusterThread::RunningWDQueue::clearCompletedWDs( ClusterThread *self ) {
+   unsigned int lowval = _completedTail % MAX_PRESEND;
+   unsigned int highval = ( _completedHead2.value() ) % MAX_PRESEND;
+   unsigned int pos = lowval;
+   if ( lowval > highval ) highval +=MAX_PRESEND;
+   while ( lowval < highval )
+   {
+      WD *completedWD = _completedWDs[pos];
+      Scheduler::postOutlineWork( completedWD, false, self );
+      delete[] (char *) completedWD;
+      _completedWDs[pos] =(WD *) 0xdeadbeef;
+      pos = (pos+1) % MAX_PRESEND;
+      lowval += 1;
+      _completedTail += 1;
+   }
+}
+
+void ClusterThread::RunningWDQueue::completeWD( void *remoteWdAddr ) {
+   unsigned int realpos = _completedHead++;
+   unsigned int pos = realpos %MAX_PRESEND;
+   _completedWDs[pos] = (WD *) remoteWdAddr;
+   while( !_completedHead2.cswap( realpos, realpos+1) ) {}
+   _numRunning--;
+}
+
+ClusterThread::ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : SMPThread( w, pe, parent ), _clusterNode( device ) {
+   setCurrentWD( w );
+}
+
+ClusterThread::~ClusterThread() {
+}
+
+void ClusterThread::runDependent () {
    WD &work = getThreadWD();
    setCurrentWD( work );
 
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
 
    dd.getWorkFct()( work.getData() );
+}
+
+
+void ClusterThread::inlineWorkDependent ( WD &wd ) {
+   fatal( "inline execution is not supported in this architecture (cluster).");
 }
 
 void ClusterThread::outlineWorkDependent ( WD &wd )
@@ -113,12 +166,14 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
 
 }
 
-void ClusterThread::join()
-{
+void ClusterThread::join() {
    unsigned int i;
    message( "Node " << ( ( ClusterNode * ) this->runningOn() )->getClusterNodeNum() << " executed " <<( ( ClusterNode * ) this->runningOn() )->getExecutedWDs() << " WDs" );
    for ( i = 1; i < sys.getNetwork()->getNumNodes(); i++ )
       sys.getNetwork()->sendExitMsg( i );
+}
+
+void ClusterThread::start() {
 }
 
 BaseThread * ClusterThread::getNextThread ()
@@ -135,115 +190,45 @@ BaseThread * ClusterThread::getNextThread ()
    return next;
 }
 
-void ClusterThread::notifyOutlinedCompletionDependent( WD &completedWD ) {
+void ClusterThread::notifyOutlinedCompletionDependent( WD *completedWD ) {
 #ifdef GPU_DEV
    int arch = -1;
-   if ( completedWD.canRunIn( GPU ) )
+   if ( completedWD->canRunIn( GPU ) )
    {
       arch = 1;
    }
-   else if ( completedWD.canRunIn( SMP ) )
+   else if ( completedWD->canRunIn( SMP ) )
    {
       arch = 0;
    }
 #else
    int arch = 0;
 #endif
-   if ( arch == 0) 
-      completeWDSMP_2( &completedWD );
-   else if ( arch == 1)
-      completeWDGPU_2( &completedWD );
-   else
+   if ( arch < 0 ) 
       std::cerr << "unhandled arch" << std::endl;
+   _runningWDs[ arch ].completeWD( completedWD );
 }
 
 void ClusterThread::addRunningWDSMP( WorkDescriptor *wd ) { 
-   _numRunningSMP++;
+   _runningWDs[0].addRunningWD( wd );
 }
-unsigned int ClusterThread::numRunningWDsSMP() {
-   return _numRunningSMP.value();
+unsigned int ClusterThread::numRunningWDsSMP() const {
+   return _runningWDs[0].numRunningWDs();
 }
 void ClusterThread::clearCompletedWDsSMP2( ) {
-   unsigned int lowval = _completedSMPTail % MAX_PRESEND;
-   unsigned int highval = ( _completedSMPHead2.value() ) % MAX_PRESEND;
-   unsigned int pos = lowval;
-   if ( lowval > highval ) highval +=MAX_PRESEND;
-   while ( lowval < highval )
-   {
-      WD *completedWD = _completedWDsSMP[pos];
-      Scheduler::postOutlineWork( completedWD, false, this );
-      delete[] (char *) completedWD;
-      _completedWDsSMP[pos] =(WD *) 0xdeadbeef;
-      pos = (pos+1) % MAX_PRESEND;
-      lowval += 1;
-      _completedSMPTail += 1;
-   }
-}
-void ClusterThread::completeWDSMP_2( void *remoteWdAddr ) {
-   unsigned int realpos = _completedSMPHead++;
-   unsigned int pos = realpos %MAX_PRESEND;
-   _completedWDsSMP[pos] = (WD *) remoteWdAddr;
-   while( !_completedSMPHead2.cswap( realpos, realpos+1) ) {}
-   _numRunningSMP--;
+   _runningWDs[0].clearCompletedWDs( this );
 }
 
 void ClusterThread::addRunningWDGPU( WorkDescriptor *wd ) { 
-   _numRunningGPU++;
+   _runningWDs[1].addRunningWD( wd );
 }
 
-unsigned int ClusterThread::numRunningWDsGPU() {
-   return _numRunningGPU.value();
+unsigned int ClusterThread::numRunningWDsGPU() const {
+   return _runningWDs[1].numRunningWDs();
 }
 
 void ClusterThread::clearCompletedWDsGPU2( ) {
-   unsigned int lowval = _completedGPUTail % MAX_PRESEND;
-   unsigned int highval = ( _completedGPUHead2.value() ) % MAX_PRESEND;
-   unsigned int pos = lowval;
-   if ( lowval > highval ) highval +=MAX_PRESEND;
-   while ( lowval < highval )
-   {
-      WD *completedWD = _completedWDsGPU[pos];
-      Scheduler::postOutlineWork( completedWD, false, this );
-      //delete[] (char *) completedWD;
-      _completedWDsGPU[pos] =(WD *) 0xdeadbeef;
-      pos = (pos+1) % MAX_PRESEND;
-      lowval += 1;
-      _completedGPUTail += 1;
-   }
-}
-
-void ClusterThread::completeWDGPU_2( void *remoteWdAddr ) {
-   unsigned int realpos = _completedGPUHead++;
-   _numRunningGPU--;
-   unsigned int pos = realpos %MAX_PRESEND;
-   _completedWDsGPU[pos] = (WD *) remoteWdAddr;
-   while( !_completedGPUHead2.cswap( realpos, realpos+1) ) {}
-}
-
-void ClusterThread::addBlockingWDSMP( WD * wd ) {
-   _blockedWDsSMP.push(wd);
-}
-
-WD *ClusterThread::fetchBlockingWDSMP() {
-   WD *wd = NULL;
-   if ( !_blockedWDsSMP.empty() ) {
-      wd = _blockedWDsSMP.front();
-      _blockedWDsSMP.pop();
-   }
-   return wd;
-}
-
-void ClusterThread::addBlockingWDGPU( WD * wd ) {
-   _blockedWDsGPU.push(wd);
-}
-
-WD *ClusterThread::fetchBlockingWDGPU() {
-   WD *wd = NULL;
-   if ( !_blockedWDsGPU.empty() ) {
-      wd = _blockedWDsGPU.front();
-      _blockedWDsGPU.pop();
-   }
-   return wd;
+   _runningWDs[1].clearCompletedWDs( this );
 }
 
 void ClusterThread::idle()
@@ -265,4 +250,8 @@ void ClusterThread::idle()
          }
       }
    }
+}
+
+bool ClusterThread::isCluster() {
+   return true;
 }

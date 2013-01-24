@@ -51,40 +51,28 @@ namespace nanos {
 
          public:
             // constructors
-#ifdef GPU_DEV
-            ClusterNode( int id ) : CachedAccelerator( id, &SMP, &GPU, &Cluster, ClusterInfo::getSegmentLen( id ), RegionCache::ALLOC_WIDE ),
-#else
-            ClusterNode( int id ) : CachedAccelerator( id, &SMP, NULL, &Cluster, ClusterInfo::getSegmentLen( id ), RegionCache::ALLOC_WIDE ),
-#endif
-            _clusterNode ( id ), _memSegment( ( uintptr_t ) ClusterInfo::getSegmentAddr( id ),
-                  ClusterInfo::getSegmentLen( id ) ), _executedWorkDesciptors ( 0 ) { }
+            ClusterNode( int id );
 
-            virtual ~ClusterNode() {}
+            virtual ~ClusterNode();
 
             virtual WD & getWorkerWD () const;
             virtual WD & getMasterWD () const;
-            virtual WD & getMultiWorkerWD () const
-            {
-               fatal( "getMultiWorkerWD: ClusterNode is not allowed to create MultiThreads" );
-            }
+            virtual WD & getMultiWorkerWD () const;
             virtual BaseThread & createThread ( WorkDescriptor &wd, SMPMultiThread *parent );
-            virtual BaseThread & createMultiThread ( WorkDescriptor &wd, unsigned int numPEs, PE **repPEs )
-            {
-               fatal( "ClusterNode is not allowed to create MultiThreads" );
-            }
+            virtual BaseThread & createMultiThread ( WorkDescriptor &wd, unsigned int numPEs, PE **repPEs );
 
             // capability query functions
-            virtual bool supportsUserLevelThreads () const { return false; }
-            virtual bool isGPU () const { return false; }
+            virtual bool supportsUserLevelThreads () const;
+            virtual bool isGPU () const;
             virtual bool supportsDirectTransfersWith( ProcessingElement const &pe ) const;
-            virtual unsigned int getMyNodeNumber() const { return _clusterNode; }
+            virtual unsigned int getMyNodeNumber() const;
 
             unsigned int getClusterNodeNum() const;
-            SimpleAllocator & getAllocator( void ) { return _memSegment; }
+            SimpleAllocator & getAllocator( void );
 
-            void incExecutedWDs() { _executedWorkDesciptors++; }
-            unsigned int getExecutedWDs() { return _executedWorkDesciptors; }
-            unsigned int getNodeNum() { return _clusterNode; }
+            void incExecutedWDs();
+            unsigned int getExecutedWDs() const;
+            unsigned int getNodeNum() const;
       };
    }
 }

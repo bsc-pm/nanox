@@ -17,8 +17,8 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _CLUSTER_DEVICE
-#define _CLUSTER_DEVICE
+#ifndef _CLUSTERDEVICE_DECL
+#define _CLUSTERDEVICE_DECL
 
 #include "workdescriptor_decl.hpp"
 #include "copydescriptor_decl.hpp"
@@ -44,9 +44,8 @@ namespace nanos
             DeviceOps *_ops;
             Packer *_packer;
 
-            GetRequest( char* hostAddr, std::size_t size, char *recvAddr, DeviceOps *ops ) :
-               _complete(0), _hostAddr( hostAddr ), _size( size ), _recvAddr( recvAddr ), _ops( ops ) { }
-            virtual ~GetRequest() {}
+            GetRequest( char* hostAddr, std::size_t size, char *recvAddr, DeviceOps *ops );
+            virtual ~GetRequest();
 
             void complete();
             bool isCompleted() const;
@@ -58,9 +57,8 @@ namespace nanos
             std::size_t _ld;
             Packer *_packer;
 
-            GetRequestStrided( char* hostAddr, std::size_t size, std::size_t count, std::size_t ld, char *recvAddr, DeviceOps *ops, Packer *packer ) :
-               GetRequest( hostAddr, size, recvAddr, ops ), _count( count ), _ld( ld ), _packer( packer ) { }
-            virtual ~GetRequestStrided() {}
+            GetRequestStrided( char* hostAddr, std::size_t size, std::size_t count, std::size_t ld, char *recvAddr, DeviceOps *ops, Packer *packer );
+            virtual ~GetRequestStrided();
 
             virtual void clear();
          };
@@ -68,15 +66,15 @@ namespace nanos
 
          /*! \brief ClusterDevice constructor
           */
-         ClusterDevice ( const char *n ) : Device ( n ) {}
+         ClusterDevice ( const char *n );
 
          /*! \brief ClusterDevice copy constructor
           */
-         ClusterDevice ( const ClusterDevice &arch ) : Device ( arch ) {}
+         ClusterDevice ( const ClusterDevice &arch );
 
          /*! \brief ClusterDevice destructor
           */
-         ~ClusterDevice() { }
+         ~ClusterDevice();
 
          virtual void *memAllocate( std::size_t size, ProcessingElement &pe) const;
          virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement &pe, DeviceOps *ops, WD const &wd ) const;

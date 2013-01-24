@@ -226,7 +226,7 @@ void WorkDescriptor::prepareCopies()
 void WorkDescriptor::notifyOutlinedCompletion()
 {
    ensure( isTied(), "Outlined WD completed, but it is untied!");
-   _tiedTo->notifyOutlinedCompletionDependent( *this );
+   _tiedTo->notifyOutlinedCompletionDependent( this );
 }
 void WorkDescriptor::predecessorFinished( WorkDescriptor *predecessorWd )
 {

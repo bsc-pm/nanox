@@ -23,8 +23,17 @@ int ClusterInfo::_gpuPresend = 1;
 int ClusterInfo::_smpPresend = 1;
 System::CachePolicyType ClusterInfo::_cachePolicy = System::DEFAULT;
 
-void ClusterInfo::addPinnedSegments( unsigned int numSegments, void **segmentAddr, std::size_t *segmentSize )
-{
+ClusterInfo::ClusterInfo() {
+}
+
+ClusterInfo::~ClusterInfo() {
+   if ( _segmentAddrList != NULL )
+      delete _segmentAddrList;
+   if ( _segmentLenList != NULL )
+      delete _segmentLenList;
+}
+
+void ClusterInfo::addPinnedSegments( unsigned int numSegments, void **segmentAddr, std::size_t *segmentSize ) {
    unsigned int idx;
    _numPinnedSegments = numSegments;
    _pinnedSegmentAddrList = new void *[ numSegments ];
@@ -37,18 +46,15 @@ void ClusterInfo::addPinnedSegments( unsigned int numSegments, void **segmentAdd
    }
 }
 
-void * ClusterInfo::getPinnedSegmentAddr( unsigned int idx )
-{
+void * ClusterInfo::getPinnedSegmentAddr( unsigned int idx ) {
    return _pinnedSegmentAddrList[ idx ];
 }
 
-std::size_t ClusterInfo::getPinnedSegmentLen( unsigned int idx )
-{
+std::size_t ClusterInfo::getPinnedSegmentLen( unsigned int idx ) {
    return _pinnedSegmentLenList[ idx ];
 }
 
-void ClusterInfo::addSegments( unsigned int numSegments, void **segmentAddr, std::size_t *segmentSize )
-{
+void ClusterInfo::addSegments( unsigned int numSegments, void **segmentAddr, std::size_t *segmentSize ) {
    unsigned int idx;
    _numSegments = numSegments;
    _segmentAddrList = new void *[ numSegments ];
@@ -61,28 +67,23 @@ void ClusterInfo::addSegments( unsigned int numSegments, void **segmentAddr, std
    }
 }
 
-void * ClusterInfo::getSegmentAddr( unsigned int idx )
-{
+void * ClusterInfo::getSegmentAddr( unsigned int idx ) {
    return _segmentAddrList[ idx ];
 }
 
-std::size_t ClusterInfo::getSegmentLen( unsigned int idx )
-{
+std::size_t ClusterInfo::getSegmentLen( unsigned int idx ) {
    return _segmentLenList[ idx ];
 }
 
-unsigned int ClusterInfo::getExtraPEsCount()
-{
+unsigned int ClusterInfo::getExtraPEsCount() {
    return _extraPEsCount;
 }
 
-void ClusterInfo::setExtraPEsCount( unsigned int num)
-{
+void ClusterInfo::setExtraPEsCount( unsigned int num) {
    _extraPEsCount = num;
 }
 
-void ClusterInfo::prepare( Config& cfg )
-{
+void ClusterInfo::prepare( Config& cfg ) {
    /* Cluster: memory size to be allocated on remote nodes */
    cfg.registerConfigOption ( "node-memory", NEW Config::SizeVar ( _nodeMem ), "Sets the memory size that will be used on each node to send and receive data." );
    cfg.registerArgOption ( "node-memory", "cluster-node-memory" );
@@ -105,8 +106,7 @@ void ClusterInfo::prepare( Config& cfg )
    cfg.registerArgOption( "cluster-cache-policy", "cluster-cache-policy" );
 }
 
-void ClusterInfo::setUpCache()
-{
+void ClusterInfo::setUpCache() {
    // Check if the use of caches has been disabled
    if ( sys.isCacheEnabled() ) {
       // Check if the cache policy for GPUs has been defined
@@ -142,27 +142,22 @@ void ClusterInfo::setUpCache()
    //}
 }
 
-std::size_t ClusterInfo::getNodeMem()
-{
+std::size_t ClusterInfo::getNodeMem() {
    return _nodeMem;
 }
 
-int ClusterInfo::getSmpPresend()
-{
+int ClusterInfo::getSmpPresend() {
    return _smpPresend;
 }
 
-int ClusterInfo::getGpuPresend()
-{
+int ClusterInfo::getGpuPresend() {
    return _gpuPresend;
 }
 
-System::CachePolicyType ClusterInfo::getCachePolicy ( void )
-{
+System::CachePolicyType ClusterInfo::getCachePolicy ( void ) {
    return _cachePolicy;
 }
 
-RemoteWorkGroup * ClusterInfo::getRemoteWorkGroup( int archId )
-{
+RemoteWorkGroup * ClusterInfo::getRemoteWorkGroup( int archId ) {
    return NEW RemoteWorkGroup( archId );
 }

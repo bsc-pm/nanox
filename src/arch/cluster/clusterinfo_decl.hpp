@@ -26,16 +26,8 @@ namespace nanos {
             static System::CachePolicyType _cachePolicy;
 
          public:
-            ClusterInfo() {}
-
-            ~ClusterInfo()
-            {
-               if ( _segmentAddrList != NULL )
-                  delete _segmentAddrList;
-
-               if ( _segmentLenList != NULL )
-                  delete _segmentLenList;
-            }
+            ClusterInfo();
+            ~ClusterInfo();
 
             static void prepare( Config& cfg );
             static void addSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize );
