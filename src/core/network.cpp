@@ -81,6 +81,7 @@ void Network::finalize()
 void Network::poll( unsigned int id)
 {
    //   ensure ( _api != NULL, "No network api loaded." );
+   checkDeferredWorkReqs();
    if (_api != NULL /*&& (id >= _pollingMinThd && id <= _pollingMaxThd) */)
       _api->poll();
 }
@@ -108,8 +109,9 @@ void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigne
          NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
          NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wdId) ) ; )
          NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL, dest ); )
-
-         _api->sendWorkMsg( dest, work, dataSize, wdId, numPe, argSize, arg, xlate, arch, remoteWd );
+      
+         std::size_t expectedData = _sentWdData.getSentData( wdId );
+         _api->sendWorkMsg( dest, work, dataSize, wdId, numPe, argSize, arg, xlate, arch, remoteWd, expectedData );
       }
       else
       {
@@ -146,6 +148,7 @@ void Network::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAdd
 {
    if ( _api != NULL )
    {
+      _sentWdData.addSentData( wdId, size );
       _api->put( remoteNode, remoteAddr, localAddr, size, wdId, wd );
    }
 }
@@ -154,6 +157,7 @@ void Network::putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void 
 {
    if ( _api != NULL )
    {
+      _sentWdData.addSentData( wdId, size * count );
       _api->putStrided1D( remoteNode, remoteAddr, localAddr, localPack, size, count, ld, wdId, wd );
    }
 }
@@ -272,6 +276,7 @@ void Network::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int
 {
    if ( _api != NULL )
    {
+      _sentWdData.addSentData( wdId, len );
       _api->sendRequestPut( dest, origAddr, dataDest, dstAddr, len, wdId, wd );
    }
 }
@@ -280,6 +285,7 @@ void Network::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, uns
 {
    if ( _api != NULL )
    {
+      _sentWdData.addSentData( wdId, len * count );
       _api->sendRequestPutStrided1D( dest, origAddr, dataDest, dstAddr, len, count, ld, wdId, wd );
    }
 }
@@ -342,4 +348,114 @@ void Network::freeReceiveMemory( void * addr ) {
    if ( _api != NULL ) {
       _api->freeReceiveMemory( addr );
    }
+}
+
+
+// API -> system mechanisms
+Network::ReceivedWDData::ReceivedWDData() : _recvWdDataMap(), _lock(), _receivedWDs( 0 ) {
+}
+
+Network::ReceivedWDData::~ReceivedWDData() {
+}
+
+void Network::ReceivedWDData::addData( unsigned int wdId, std::size_t size ) {
+   _lock.acquire();
+   struct recvDataInfo &info = _recvWdDataMap[ wdId ];
+   info._count += size;
+   if ( info._wd != NULL && info._expected == info._count ) {
+      WD *wd = info._wd;
+      if ( _recvWdDataMap.erase( wdId ) != 1) std::cerr <<"Error removing from map: "<<__FUNCTION__<< " @ " << __FILE__<<":"<<__LINE__<< std::endl;
+      _lock.release();
+      //release wd
+      sys.submit( *wd );
+      _receivedWDs++;
+      //std::cerr <<"["<< gasnet_mynode()<< "] release wd (by data) new seq is " << _recvSeqN.value()   << std::endl;
+   } else {
+      _lock.release();
+   }
+}
+
+void Network::ReceivedWDData::addWD( unsigned int wdId, WorkDescriptor *wd, std::size_t expectedData ) {
+   _lock.acquire();
+   struct recvDataInfo &info = _recvWdDataMap[ wdId ];
+   info._wd = wd;
+   info._expected = expectedData;
+   //std::cerr <<"["<< gasnet_mynode()<< "] addWD with expected data: " << expectedData << " current count: " << info._count  << std::endl;
+   if ( info._expected == info._count ) {
+      if ( _recvWdDataMap.erase( wdId ) != 1) std::cerr <<"Error removing from map: "<<__FUNCTION__<< " @ " << __FILE__<<":"<<__LINE__<< std::endl;
+      _lock.release();
+      //release wd
+      sys.submit( *wd );
+      _receivedWDs++;
+   //std::cerr <<"["<< gasnet_mynode()<< "] release wd (by wd) new seq is " << _recvSeqN.value()   << std::endl;
+   } else {
+      _lock.release();
+   }
+}
+
+unsigned int Network::ReceivedWDData::getReceivedWDsCount() const {
+   return _receivedWDs.value();
+}
+
+Network::SentWDData::SentWDData() : _sentWdDataMap(), _lock() {
+}
+
+Network::SentWDData::~SentWDData() {
+}
+
+void Network::SentWDData::addSentData( unsigned int wdId, std::size_t sentData ) {
+   _lock.acquire();
+   _sentWdDataMap[ wdId ] += sentData;//assumes that if no data was yet sent, the elem is initialized to 0
+   _lock.release();
+}
+
+std::size_t Network::SentWDData::getSentData( unsigned int wdId ) {
+   _lock.acquire();
+   std::size_t wdSentData = _sentWdDataMap[ wdId ];
+   if ( _sentWdDataMap.erase( wdId ) != 1) std::cerr <<"Error removing from map: "<<__FUNCTION__<< " @ " << __FILE__<<":"<<__LINE__<< std::endl;
+   _lock.release();
+   return wdSentData;
+}
+
+void Network::notifyWorkArrival(std::size_t expectedData, WD *delayedWD, unsigned int delayedSeq) {
+   if ( _recvWdData.getReceivedWDsCount() == delayedSeq )
+   {
+      _recvWdData.addWD( delayedWD->getId(), delayedWD, expectedData );
+      checkDeferredWorkReqs();
+   } else { //not expected seq number, enqueue
+      _deferredWorkReqsLock.acquire();
+      _deferredWorkReqs.push_back( std::pair< unsigned int, std::pair < WD*, std::size_t > >( delayedSeq, std::pair< WD*, std::size_t > ( delayedWD, expectedData ) ) );
+      _deferredWorkReqsLock.release();
+   }
+}
+
+void Network::checkDeferredWorkReqs()
+{
+   std::pair<unsigned int, std::pair< WD *, std::size_t > > dwd ( 0, std::pair< WD *, std::size_t > ( NULL, 0 )  );
+   if ( _deferredWorkReqsLock.tryAcquire() )
+   {
+      if ( !_deferredWorkReqs.empty() )
+      {
+         dwd = _deferredWorkReqs.front();
+         _deferredWorkReqs.pop_front();
+      }
+      if ( dwd.second.first != NULL )
+      {
+         if (dwd.first == _recvWdData.getReceivedWDsCount() ) 
+         {
+            _deferredWorkReqsLock.release();
+            _recvWdData.addWD( dwd.second.first->getId(), dwd.second.first, dwd.second.second );
+            checkDeferredWorkReqs();
+         } else {
+            _deferredWorkReqs.push_back( dwd );
+            _deferredWorkReqsLock.release();
+         }
+      } else {
+         _deferredWorkReqsLock.release();
+      }
+   }
+}
+
+void Network::notifyPutArrival( unsigned int wdId, std::size_t totalLen ) {
+   _recvWdData.addData( wdId, totalLen );
 }

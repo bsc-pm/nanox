@@ -37,6 +37,45 @@ namespace nanos {
          char * _masterHostname;
          bool _checkForDataInOtherAddressSpaces;
 
+         class ReceivedWDData {
+            private:
+               struct recvDataInfo {
+                  recvDataInfo() : _wd( NULL ), _count( 0 ), _expected( 0 ) { }
+                  WorkDescriptor *_wd;
+                  std::size_t _count;
+                  std::size_t _expected;
+               };
+               std::map< unsigned int, struct recvDataInfo > _recvWdDataMap;
+               Lock _lock;
+               Atomic<unsigned int> _receivedWDs;
+            public:
+            ReceivedWDData();
+            ~ReceivedWDData();
+            void addData( unsigned int wdId, std::size_t size );
+            void addWD( unsigned int wdId, WorkDescriptor *wd, std::size_t expectedData );
+            unsigned int getReceivedWDsCount() const;
+         };
+
+         class SentWDData {
+            private:
+               std::map< unsigned int, std::size_t > _sentWdDataMap;
+               Lock _lock;
+            public:
+            SentWDData();
+            ~SentWDData();
+            void addSentData( unsigned int wdId, std::size_t sentData );
+            std::size_t getSentData( unsigned int wdId );
+         };
+
+         ReceivedWDData _recvWdData;
+         SentWDData _sentWdData;
+
+         std::list< std::pair< unsigned int, std::pair<WD *, std::size_t> > > _deferredWorkReqs;
+         Lock _deferredWorkReqsLock;
+         Atomic<unsigned int> _recvSeqN;
+
+         void checkDeferredWorkReqs();
+
       public:
          static const unsigned int MASTER_NODE_NUM = 0;
          typedef struct {
@@ -94,6 +133,9 @@ namespace nanos {
 
          void *allocateReceiveMemory( std::size_t len );
          void freeReceiveMemory( void * addr );
+
+         void notifyWorkArrival(std::size_t expectedData, WD *delayedWD, unsigned int delayedSeq);
+         void notifyPutArrival( unsigned int wdId, std::size_t totalLen );
    };
 }
 

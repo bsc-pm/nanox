@@ -37,7 +37,7 @@ namespace nanos {
          virtual void finalize () = 0;
          virtual void poll () = 0;
          virtual void sendExitMsg ( unsigned int dest ) = 0;
-         virtual void sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, std::size_t argSize, char * arg, void ( *xlate ) ( void *, void * ), int arch , void *remoteWdAddr) = 0;
+         virtual void sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, std::size_t argSize, char * arg, void ( *xlate ) ( void *, void * ), int arch , void *remoteWdAddr, std::size_t expectedData) = 0;
          virtual void sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr, int peId ) = 0;
          virtual void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD const &wd ) = 0;
          virtual void putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd ) = 0;

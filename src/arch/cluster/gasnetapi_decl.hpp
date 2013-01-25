@@ -26,6 +26,7 @@
 #include "simpleallocator.hpp"
 #include "regiondirectory_decl.hpp"
 #include "clusterinfo_decl.hpp"
+#include "requestqueue_decl.hpp"
 //#include "remoteworkgroup_decl.hpp"
 #include <map>
 
@@ -62,15 +63,10 @@ namespace ext {
             WD *wd;
             unsigned int count;
          } wdDeps;
-         static Lock _depsLock;
          static Lock _sentDataLock;
          static std::vector<std::set<uint64_t> *> _sentData;
-         static std::multimap<uint64_t, wdDeps *> _depsMap; //needed data
-         static std::set<uint64_t> _recvdDeps; //already got the data
 
-         //static void addDelayedWork(std::vector<uint64_t> *delayedDepsv, WD *delayedWD, int delayedExpectedPutSeqN, unsigned int delayedSeq);
          static void processWork2(std::size_t expectedData, WD *delayedWD, unsigned int delayedSeq);
-         static void releaseDelayedWork();
 
          // GASNet does not allow to send a message during the execution of an active message handler,
          // to handle put request, we have to enqueue the incoming request to be able to send the "real" put
@@ -86,23 +82,22 @@ namespace ext {
             unsigned int wdId;
             WD const *wd;
          };
-         static std::list<struct putReqDesc * > _putReqs;
+         static RequestQueue< struct putReqDesc > _putReqs;
          static std::list<struct putReqDesc * > _delayedPutReqs;
-         static Lock _putReqsLock;
          static Lock _delayedPutReqsLock;
 
-         struct delayedGetDesc {
-            unsigned int dest;
-            void *origTag;
-            void *origAddr;
-            void *destAddr;
-            std::size_t len;
-            std::size_t count;
-            std::size_t ld;
-            void *waitObj;
-         };
-         static std::list<struct delayedGetDesc * > _delayedGets;
-         static Lock _delayedGetsLock;
+         // NOT YET IMPLEMENTED struct delayedGetDesc {
+         // NOT YET IMPLEMENTED    unsigned int dest;
+         // NOT YET IMPLEMENTED    void *origTag;
+         // NOT YET IMPLEMENTED    void *origAddr;
+         // NOT YET IMPLEMENTED    void *destAddr;
+         // NOT YET IMPLEMENTED    std::size_t len;
+         // NOT YET IMPLEMENTED    std::size_t count;
+         // NOT YET IMPLEMENTED    std::size_t ld;
+         // NOT YET IMPLEMENTED    void *waitObj;
+         // NOT YET IMPLEMENTED };
+         // NOT YET IMPLEMENTED static std::list<struct delayedGetDesc * > _delayedGets;
+         // NOT YET IMPLEMENTED static Lock _delayedGetsLock;
 
          static std::size_t rxBytes;
          static std::size_t txBytes;
@@ -118,6 +113,7 @@ namespace ext {
          static Atomic<unsigned int> _recvSeqN;
          static Atomic<unsigned int> _recvPutSeqN;
 
+#if 0
          class ReceivedWDData {
             private:
                struct recvDataInfo {
@@ -146,13 +142,14 @@ namespace ext {
          };
          static ReceivedWDData _recvWdData;
          static SentWDData _sentWdData;
+#endif
          
       public:
          void initialize ( Network *net );
          void finalize ();
          void poll ();
          void sendExitMsg ( unsigned int dest );
-         void sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, std::size_t argSize, char * arg, void ( *xlate ) ( void *, void * ), int arch, void *wd );
+         void sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, std::size_t argSize, char * arg, void ( *xlate ) ( void *, void * ), int arch, void *wd, std::size_t expectedData );
          void sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr, int peId);
          static void _sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr, int peId);
          void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD const &wd );
@@ -170,7 +167,6 @@ namespace ext {
          void setNewMasterDirectory(NewRegionDirectory *dir);
          std::size_t getMaxGetStridedLen() const;
          std::size_t getTotalBytes();
-         static void testForDependencies( WD const *localWD, std::vector<uint64_t> *deps );
          static std::size_t getRxBytes();
          static std::size_t getTxBytes();
          SimpleAllocator *getPackSegment() const;
@@ -189,7 +185,6 @@ namespace ext {
          void checkForPutReqs();
          static void sendWaitForRequestPut( unsigned int dest, uint64_t addr );
          static void print_copies( WD const *wd, int deps );
-         static void releaseWDsFromDataDep( void *addr );
          static void enqueueFreeBufferNotify( void *bufferAddr, WD const *wd );
          static void checkForFreeBufferReqs();
          static void checkWorkDoneReqs();

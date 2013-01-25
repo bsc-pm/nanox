@@ -35,6 +35,8 @@ pe_cluster_sources = \
 		$(top_srcdir)/src/arch/cluster/clusterplugin.cpp \
 		$(top_srcdir)/src/arch/cluster/gasnetapi_decl.hpp \
 		$(top_srcdir)/src/arch/cluster/gasnetapi.cpp \
+		$(top_srcdir)/src/arch/cluster/requestqueue_decl.hpp \
+		$(top_srcdir)/src/arch/cluster/requestqueue.hpp \
 		$(END)
 
 
