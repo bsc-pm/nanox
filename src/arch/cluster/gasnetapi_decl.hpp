@@ -56,18 +56,6 @@ namespace ext {
          static std::vector< Lock * > _pinnedAllocatorsLocks;
          static Atomic<unsigned int> *_seqN;
 
-         // data dependencies for data comming via a node different than the one sending the work
-         // e.g. node 1 sends work to 2 but some data comes from node 3, the work message can
-         // arrive from 1 to 2 before than the data from 3 to 2. 
-         typedef struct {
-            WD *wd;
-            unsigned int count;
-         } wdDeps;
-         static Lock _sentDataLock;
-         static std::vector<std::set<uint64_t> *> _sentData;
-
-         static void processWork2(std::size_t expectedData, WD *delayedWD, unsigned int delayedSeq);
-
          // GASNet does not allow to send a message during the execution of an active message handler,
          // to handle put request, we have to enqueue the incoming request to be able to send the "real" put
          // later on (we do it during the GASNetAPI::poll).
@@ -82,7 +70,11 @@ namespace ext {
             unsigned int wdId;
             WD const *wd;
          };
+
          static RequestQueue< struct putReqDesc > _putReqs;
+         static RequestQueue< std::pair< void *, WD const * > > _freeBufferReqs;
+         static RequestQueue< std::pair<void *, unsigned int> > _workDoneReqs;
+
          static std::list<struct putReqDesc * > _delayedPutReqs;
          static Lock _delayedPutReqsLock;
 
@@ -103,47 +95,7 @@ namespace ext {
          static std::size_t txBytes;
          static std::size_t _totalBytes;
          
-         static std::list< std::pair< void *, WD const * > > _freeBufferReqs;
-         static Lock _freeBufferReqsLock;
-         static std::list< std::pair<void *, unsigned int> > _workDoneReqs;
-         static Lock _workDoneReqsLock;
-         //static std::list< std::pair< unsigned int, std::pair<WD *, std::vector<uint64_t> *> > > _deferredWorkReqs;
-         static std::list< std::pair< unsigned int, std::pair<WD *, std::size_t> > > _deferredWorkReqs;
-         static Lock _deferredWorkReqsLock;
-         static Atomic<unsigned int> _recvSeqN;
-         static Atomic<unsigned int> _recvPutSeqN;
 
-#if 0
-         class ReceivedWDData {
-            private:
-               struct recvDataInfo {
-                  recvDataInfo() : _wd( NULL ), _count( 0 ), _expected( 0 ) { }
-                  WorkDescriptor *_wd;
-                  std::size_t _count;
-                  std::size_t _expected;
-               };
-               std::map< unsigned int, struct recvDataInfo > _recvWdData;
-               Lock _lock;
-            public:
-            //ReceivedWDData();
-            //~ReceivedWDData();
-            void addData( unsigned int wdId, std::size_t size );
-            void addWD( unsigned int wdId, WorkDescriptor *wd, std::size_t expectedData );
-         };
-         class SentWDData {
-            private:
-               std::map< unsigned int, std::size_t > _sentWdData;
-               Lock _lock;
-            public:
-            //SentWDData();
-            //~SentWDData();
-            void addSentData( unsigned int wdId, std::size_t sentData );
-            std::size_t getSentData( unsigned int wdId );
-         };
-         static ReceivedWDData _recvWdData;
-         static SentWDData _sentWdData;
-#endif
-         
       public:
          void initialize ( Network *net );
          void finalize ();
