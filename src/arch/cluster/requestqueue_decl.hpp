@@ -1,5 +1,9 @@
 #ifndef REQUESTQUEUE_DECL_H
 #define REQUESTQUEUE_DECL_H
+#include <list>
+#include <map>
+#include "atomic_decl.hpp"
+namespace nanos {
 template <class T>
 class RequestQueue {
    std::list< T * > _queue;
@@ -23,4 +27,5 @@ class RequestMap {
    T *fetch( uint64_t key );
    T *tryFetch( uint64_t key );
 };
+}
 #endif /* REQUESTQUEUE_DECL_H */

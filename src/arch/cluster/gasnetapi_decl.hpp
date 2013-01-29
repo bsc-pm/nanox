@@ -40,43 +40,58 @@ namespace ext {
    class GASNetAPI : public NetworkAPI
    {
       private:
-         static Network *_net;
+         static GASNetAPI *_instance;
+         static GASNetAPI *getInstance();
 
-         static RemoteWorkGroup *_rwgGPU;
-         static RemoteWorkGroup *_rwgSMP;
-         static NewRegionDirectory *_newMasterDir;
+         Network *_net;
+         RemoteWorkGroup *_rwgGPU;
+         RemoteWorkGroup *_rwgSMP;
+         NewRegionDirectory *_newMasterDir;
 #ifndef GASNET_SEGMENT_EVERYTHING
-         static SimpleAllocator *_thisNodeSegment;
+         SimpleAllocator *_thisNodeSegment;
 #endif
-         static SimpleAllocator *_packSegment;
-         static std::set< void * > _waitingPutRequests;
-         static std::set< void * > _receivedUnmatchedPutRequests;
-         static Lock _waitingPutRequestsLock;
-         static std::vector< SimpleAllocator * > _pinnedAllocators;
-         static std::vector< Lock * > _pinnedAllocatorsLocks;
-         static Atomic<unsigned int> *_seqN;
+         SimpleAllocator *_packSegment;
+         //std::set< void * > _waitingPutRequests;
+         //std::set< void * > _receivedUnmatchedPutRequests;
+         //Lock _waitingPutRequestsLock;
+         std::vector< SimpleAllocator * > _pinnedAllocators;
+         std::vector< Lock * > _pinnedAllocatorsLocks;
+         Atomic<unsigned int> *_seqN;
 
-         // GASNet does not allow to send a message during the execution of an active message handler,
-         // to handle put request, we have to enqueue the incoming request to be able to send the "real" put
-         // later on (we do it during the GASNetAPI::poll).
-         struct putReqDesc {
-            unsigned int dest;
-            void *origAddr;
-            void *destAddr;
-            std::size_t len;
-            std::size_t count;
-            std::size_t ld;
-            void *tmpBuffer;
-            unsigned int wdId;
-            WD const *wd;
+         class GASNetSendDataRequest : public SendDataRequest {
+            protected:
+            GASNetAPI *_gasnetApi;
+            public:
+            GASNetSendDataRequest( GASNetAPI *api, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld );
          };
 
-         static RequestQueue< struct putReqDesc > _putReqs;
-         static RequestQueue< std::pair< void *, WD const * > > _freeBufferReqs;
-         static RequestQueue< std::pair<void *, unsigned int> > _workDoneReqs;
+         class SendDataPutRequest : public GASNetSendDataRequest {
+            unsigned int _dest;
+            void *_tmpBuffer;
+            unsigned int _wdId;
+            WD const *_wd;
+            public:
+            SendDataPutRequest( GASNetAPI *api, unsigned int dest, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *tmpBuffer, unsigned int wdId, WD const *wd );
+            virtual ~SendDataPutRequest();
+            virtual void doSingleChunk();
+            virtual void doStrided( void *localAddr );
+         };
 
-         static std::list<struct putReqDesc * > _delayedPutReqs;
-         static Lock _delayedPutReqsLock;
+         class SendDataGetRequest : public GASNetSendDataRequest {
+            void *_waitObj;
+            public:
+            SendDataGetRequest( GASNetAPI *api, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *waitObj );
+            virtual ~SendDataGetRequest();
+            virtual void doSingleChunk();
+            virtual void doStrided( void *localAddr );
+         };
+
+         RequestQueue< SendDataRequest > _dataSendRequests;
+         RequestQueue< std::pair< void *, WD const * > > _freeBufferReqs;
+         RequestQueue< std::pair< void *, unsigned int > > _workDoneReqs;
+
+         std::list< GASNetSendDataRequest * > _delayedPutReqs;
+         Lock _delayedPutReqsLock;
 
          // NOT YET IMPLEMENTED struct delayedGetDesc {
          // NOT YET IMPLEMENTED    unsigned int dest;
@@ -91,12 +106,14 @@ namespace ext {
          // NOT YET IMPLEMENTED static std::list<struct delayedGetDesc * > _delayedGets;
          // NOT YET IMPLEMENTED static Lock _delayedGetsLock;
 
-         static std::size_t rxBytes;
-         static std::size_t txBytes;
-         static std::size_t _totalBytes;
+         std::size_t _rxBytes;
+         std::size_t _txBytes;
+         std::size_t _totalBytes;
          
 
       public:
+         GASNetAPI();
+         ~GASNetAPI();
          void initialize ( Network *net );
          void finalize ();
          void poll ();
@@ -119,29 +136,30 @@ namespace ext {
          void setNewMasterDirectory(NewRegionDirectory *dir);
          std::size_t getMaxGetStridedLen() const;
          std::size_t getTotalBytes();
-         static std::size_t getRxBytes();
-         static std::size_t getTxBytes();
+         std::size_t getRxBytes();
+         std::size_t getTxBytes();
          SimpleAllocator *getPackSegment() const;
          void *allocateReceiveMemory( std::size_t len );
          void freeReceiveMemory( void * addr );
+         void processSendDataRequest( SendDataRequest *req );
 
       private:
          static void getDataFromDevice( uint64_t addr, std::size_t len );
          static void invalidateDataFromDevice( uint64_t addr, std::size_t len );
          void _put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, void *remoteTmpBuffer, unsigned int wdId, WD const &wd );
          void _putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, void *remoteTmpBuffer, unsigned int wdId, WD const &wd );
-         static void enqueuePutReq( unsigned int dest, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *tmpBuffer, unsigned int wdId, WD const *wd );
-         static void enqueueDelayedPutReq( unsigned int dest, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *tmpBuffer, unsigned int wdId, WD const *wd );
-         static void enqueueDelayedGet( unsigned int dest, void *origTag, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *waitObj );
-         static void delayAmGet( unsigned int dest, void *origTag, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *waitObj ) ;
+         void enqueuePutReq( SendDataRequest *req );
+         //void enqueueDelayedPutReq( unsigned int dest, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *tmpBuffer, unsigned int wdId, WD const *wd );
+         void enqueueDelayedGet( unsigned int dest, void *origTag, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *waitObj );
+         void delayAmGet( unsigned int dest, void *origTag, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *waitObj ) ;
          void checkForPutReqs();
-         static void sendWaitForRequestPut( unsigned int dest, uint64_t addr );
+         void sendWaitForRequestPut( unsigned int dest, uint64_t addr );
          static void print_copies( WD const *wd, int deps );
-         static void enqueueFreeBufferNotify( void *bufferAddr, WD const *wd );
-         static void checkForFreeBufferReqs();
-         static void checkWorkDoneReqs();
-         static void checkDeferredWorkReqs();
-         static void sendFreeTmpBuffer( void *addr, WD const *wd );
+         void enqueueFreeBufferNotify( void *bufferAddr, WD const *wd );
+         void checkForFreeBufferReqs();
+         void checkWorkDoneReqs();
+         void checkDeferredWorkReqs();
+         void sendFreeTmpBuffer( void *addr, WD const *wd );
 
          // Active Message handlers
          static void amFinalize( gasnet_token_t token );

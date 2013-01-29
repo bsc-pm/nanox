@@ -21,6 +21,7 @@
 #include <iostream>
 #include <cstring>
 #include "network_decl.hpp"
+#include "requestqueue.hpp"
 #include "schedule.hpp"
 #include "system.hpp"
 
@@ -417,7 +418,7 @@ std::size_t Network::SentWDData::getSentData( unsigned int wdId ) {
    return wdSentData;
 }
 
-void Network::notifyWorkArrival(std::size_t expectedData, WD *delayedWD, unsigned int delayedSeq) {
+void Network::notifyWork(std::size_t expectedData, WD *delayedWD, unsigned int delayedSeq) {
    if ( _recvWdData.getReceivedWDsCount() == delayedSeq )
    {
       _recvWdData.addWD( delayedWD->getId(), delayedWD, expectedData );
@@ -456,6 +457,113 @@ void Network::checkDeferredWorkReqs()
    }
 }
 
-void Network::notifyPutArrival( unsigned int wdId, std::size_t totalLen ) {
+void Network::notifyPut( unsigned int from, unsigned int wdId, std::size_t totalLen, uint64_t realTag ) {
    _recvWdData.addData( wdId, totalLen );
+      if ( from != 0 ) { /* check for delayed putReqs or gets */
+         _waitingPutRequestsLock.acquire();
+         std::set<void *>::iterator it;
+         if ( ( it = _waitingPutRequests.find( (void*)realTag ) ) != _waitingPutRequests.end() )
+         {
+            void *destAddr = *it;
+            _waitingPutRequests.erase( it );
+            _delayedPutReqsLock.acquire();
+            if ( !_delayedPutReqs.empty() ) {
+               for ( std::list<SendDataRequest *>::iterator putReqsIt = _delayedPutReqs.begin(); putReqsIt != _delayedPutReqs.end(); putReqsIt++ ) {
+                  if ( (*putReqsIt)->getOrigAddr() == destAddr ) {
+                     _dataSendRequests.add( *putReqsIt );
+                  }
+               }
+            }
+            _delayedPutReqsLock.release();
+         }
+         else
+         {
+            _receivedUnmatchedPutRequests.insert( (void *) realTag );
+         }
+         _waitingPutRequestsLock.release();
+      }
+}
+
+void Network::notifyRequestPut( SendDataRequest *req ) {
+   _waitingPutRequestsLock.acquire();
+   if ( _waitingPutRequests.find( req->getOrigAddr() ) != _waitingPutRequests.end() ) //we have to wait 
+   {
+      _waitingPutRequestsLock.release();
+      _delayedPutReqsLock.acquire();
+      _delayedPutReqs.push_back( req );
+      _delayedPutReqsLock.release();
+   } else {
+      _waitingPutRequestsLock.release();
+      _api->processSendDataRequest( req );
+   }
+}
+
+void Network::notifyWaitRequestPut( void *addr ) {
+   _waitingPutRequestsLock.acquire();
+   std::set< void * >::iterator it;
+   if ( _receivedUnmatchedPutRequests.empty() || ( it = _receivedUnmatchedPutRequests.find( addr ) ) == _receivedUnmatchedPutRequests.end() )
+   {
+      _waitingPutRequests.insert( addr );
+   } 
+   else
+   {
+      _receivedUnmatchedPutRequests.erase( it );
+   }
+   _waitingPutRequestsLock.release();
+}
+
+void Network::notifyGet( SendDataRequest *req ) {
+   _waitingPutRequestsLock.acquire();
+   if ( _waitingPutRequests.find( req->getOrigAddr() ) != _waitingPutRequests.end() ) //we have to wait 
+   {
+      //delayAmGet( src_node, tagAddr, destAddr, tagAddr, waitObj, realLen );
+      message("addr " << req->getOrigAddr() << " found! erasing from waiting list");
+      message("WARNING: this amGet SHOULD BE DELAYED!!!");
+   } //else { message("addr " << tagAddr << " not found at waiting list");}
+   _waitingPutRequestsLock.release();
+
+   //if ( sys.getNetwork()->doIHaveToCheckForDataInOtherAddressSpaces() ) {
+   //   getDataFromDevice( (uint64_t) origAddr, len*count );
+   //   //fprintf(stderr, "im node %d and im getDataFromDevice @ %s, sent data is %f, addr %p\n", gasnet_mynode(), __FUNCTION__, *data, tagAddr);
+   //}
+
+   _api->processSendDataRequest( req );
+}
+
+SendDataRequest::SendDataRequest( NetworkAPI *api, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld ) :
+   _api( api ), _origAddr( origAddr ), _destAddr( destAddr ), _len( len ), _count( count ), _ld( ld ) {
+}
+
+SendDataRequest::~SendDataRequest() {
+}
+
+void SendDataRequest::doSend() {
+   if ( _ld == 0 ) {
+      //NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
+      //NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_IN, key, (nanos_event_value_t) _len) );
+      doSingleChunk();
+      //NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
+   } else {
+      char *localPack, *origAddrPtr = (char*) _origAddr;
+
+      NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_PACK); );
+      _api->getPackSegment()->lock();
+      localPack = ( char * ) _api->getPackSegment()->allocate( _len * _count );
+      if ( localPack == NULL ) { fprintf(stderr, "ERROR!!! could not get an addr to pack strided data\n" ); }
+      _api->getPackSegment()->unlock();
+
+      for ( unsigned int i = 0; i < _count; i += 1 ) {
+         memcpy( &localPack[ i * _len ], &origAddrPtr[ i * _ld ], _len );
+      }
+      NANOS_INSTRUMENT( inst2.close(); );
+
+      doStrided( localPack );
+
+      _api->getPackSegment()->lock();
+      _api->getPackSegment()->free( localPack );
+      _api->getPackSegment()->unlock();
+   }
+}
+void *SendDataRequest::getOrigAddr() const {
+   return _origAddr;
 }

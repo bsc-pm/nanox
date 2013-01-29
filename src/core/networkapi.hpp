@@ -25,10 +25,12 @@
 #include "regiondirectory_decl.hpp"
 #include "simpleallocator_decl.hpp"
 #include "workdescriptor_fwd.hpp"
+#include "workdescriptor_fwd.hpp"
 
 namespace nanos {
 
    class Network;
+   class SendDataRequest;
 
    class NetworkAPI
    {
@@ -58,6 +60,7 @@ namespace nanos {
          virtual std::size_t getMaxGetStridedLen() const = 0;
          virtual void *allocateReceiveMemory( std::size_t len ) = 0;
          virtual void freeReceiveMemory( void * addr ) = 0;
+         virtual void processSendDataRequest( SendDataRequest *req ) = 0;
    };
 }
 

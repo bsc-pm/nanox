@@ -22,9 +22,26 @@
 #define _NANOX_NETWORK
 
 #include <string>
+#include "requestqueue_decl.hpp"
 #include "networkapi.hpp"
 
 namespace nanos {
+         class SendDataRequest {
+            protected:
+            NetworkAPI *_api;
+            void *_origAddr;
+            void *_destAddr;
+            std::size_t _len;
+            std::size_t _count;
+            std::size_t _ld;
+            public:
+            SendDataRequest( NetworkAPI *api, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld );
+            virtual ~SendDataRequest();
+            void doSend();
+            void *getOrigAddr() const;
+            virtual void doSingleChunk() = 0;
+            virtual void doStrided( void *localAddr ) = 0;
+         };
 
    class Network
    {
@@ -76,12 +93,24 @@ namespace nanos {
 
          void checkDeferredWorkReqs();
 
+         Lock _waitingPutRequestsLock;
+         std::set< void * > _waitingPutRequests;
+         std::set< void * > _receivedUnmatchedPutRequests;
+
+
       public:
          static const unsigned int MASTER_NODE_NUM = 0;
          typedef struct {
             int complete;
             void * resultAddr;
          } mallocWaitObj;
+
+
+         std::list< SendDataRequest * > _delayedPutReqs;
+         Lock _delayedPutReqsLock;
+
+         RequestQueue< SendDataRequest > _dataSendRequests;
+
          // constructor
 
          Network ();
@@ -134,8 +163,11 @@ namespace nanos {
          void *allocateReceiveMemory( std::size_t len );
          void freeReceiveMemory( void * addr );
 
-         void notifyWorkArrival(std::size_t expectedData, WD *delayedWD, unsigned int delayedSeq);
-         void notifyPutArrival( unsigned int wdId, std::size_t totalLen );
+         void notifyWork( std::size_t expectedData, WD *delayedWD, unsigned int delayedSeq);
+         void notifyPut( unsigned int from, unsigned int wdId, std::size_t totalLen, uint64_t realTag );
+         void notifyWaitRequestPut( void *addr );
+         void notifyRequestPut( SendDataRequest *req );
+         void notifyGet( SendDataRequest *req );
    };
 }
 
