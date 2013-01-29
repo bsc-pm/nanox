@@ -225,3 +225,16 @@ bool WorkDescriptor::tryAcquireCommutativeAccesses()
    return true;
 } 
 
+void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
+{
+    ensure(_numCopies == 0, "This WD already had copies. Overriding them is not possible");
+    ensure((numCopies == 0) == (copies == NULL), "Inconsistency between copies and number of copies");
+
+    _numCopies = numCopies;
+    _copies = NEW CopyData[numCopies];
+    _copiesNotInChunk = true;
+
+    // Keep a copy of the copy descriptors
+    std::copy(copies, copies + numCopies, _copies);
+}
+

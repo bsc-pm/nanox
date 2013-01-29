@@ -194,12 +194,12 @@ typedef struct nanos_ws_desc {
 typedef struct {
    bool mandatory_creation:1;
    bool tied:1;
+   bool clear_chunk:1;
    bool reserved0:1;
    bool reserved1:1;
    bool reserved2:1;
    bool reserved3:1;
    bool reserved4:1;
-   bool reserved5:1;
 } nanos_wd_props_t;
 
 typedef struct {

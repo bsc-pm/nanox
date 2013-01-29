@@ -468,7 +468,23 @@ NANOS_API_DEF(nanos_err_t, nanos_get_num_blocked_tasks, ( unsigned int *blocked_
 
 }
 
+
+/*! \brief Sets copies of a wd
+ *
+ */
+NANOS_API_DEF(nanos_err_t, nanos_set_copies, (nanos_wd_t wd, int num_copies, nanos_copy_data_t *copies))
+{
+    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","set_copies",NANOS_RUNTIME) );
+    try {
+        WD *lwd = ( WD * )wd;
+        lwd->setCopies(num_copies, copies);
+    } catch ( nanos_err_t e) {
+        return e;
+    }
+
+    return NANOS_OK;
+}
+
 /*!
  * \}
  */ 
-
