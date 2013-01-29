@@ -50,7 +50,7 @@ System::System () :
       _numPEs( INT_MAX ), _numThreads( 0 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
-      _numSockets( 1 ), _coresPerSocket( 1 ), _cpu_count( 0 ), _throttlePolicy ( NULL ),
+      _numSockets( 1 ), _coresPerSocket( 1 ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "default" ), _defThrottlePolicy( "numtasks" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _pausedThreads( 0 ),
@@ -72,12 +72,12 @@ System::System () :
 
    std::ostringstream oss_cpu_idx;
    oss_cpu_idx << "[";
-   int i;
-   for(i=0, _cpu_count=0; i<CPU_SETSIZE; i++){
-     if(CPU_ISSET(i, &_cpu_set)){
-       _cpu_id[_cpu_count++] = i;
-       oss_cpu_idx << i << ", ";
-     }
+   for ( int i=0; i<CPU_SETSIZE; i++ ) {
+      if ( CPU_ISSET(i, &_cpu_set) ) {
+         _cpu_mask.insert( i );
+         _pe_map.push_back( i );
+         oss_cpu_idx << i << ", ";
+      }
    }
    oss_cpu_idx << "]";
    
@@ -90,7 +90,7 @@ System::System () :
    // Ensure everything is properly configured
    if( getNumPEs() == INT_MAX && _numThreads == 0 )
       // If no parameter specified, use all available CPUs
-      setNumPEs( _cpu_count );
+      setNumPEs( _cpu_mask.size() );
    
    if ( _numThreads == 0 )
       // No threads specified? Use as many as PEs
@@ -220,7 +220,7 @@ void System::config ()
 
    cfg.setOptionsSection ( "Core", "Core options of the core of Nanos++ runtime" );
 
-   cfg.registerConfigOption ( "num_pes", NEW Config::PositiveVar( _numPEs ), "Defines the number of processing elements" );
+   cfg.registerConfigOption ( "num_pes", NEW Config::UintVar( _numPEs ), "Defines the number of processing elements" );
    cfg.registerArgOption ( "num_pes", "pes" );
    cfg.registerEnvOption ( "num_pes", "NX_PES" );
 
@@ -344,7 +344,7 @@ void System::start ()
 
    _pes.reserve ( numPes );
 
-   PE *pe = createPE ( _defArch, getCpuId( getBindingStart() ) );
+   PE *pe = createPE ( _defArch, getBindingId( 0 ) );
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 
@@ -1221,22 +1221,32 @@ void System::applyCpuMask()
 {
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, (nanos_event_value_t *) &_cpu_count); )
+   NANOS_INSTRUMENT ( nanos_event_value_t num_threads_val = (nanos_event_value_t ) _cpu_mask.size(); )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &num_threads_val); )
 
-   bool pe_dirty;
    BaseThread *thread;
    ThreadTeam *team = myThread->getTeam();
 
-   for ( unsigned pe_id = 0; _numPEs != _cpu_count; pe_id++ ) {
+   for ( unsigned pe_id = 0; pe_id < _pes.size() || _numPEs < _cpu_mask.size(); pe_id++ ) {
 
-      // Create PE & Worker if it does not exists
-      if ( pe_id >= _pes.size() )
-         createWorker( _pes.size() );
+      // Create PE & Worker if it does not exist
+      if ( pe_id == _pes.size() ) {
 
-      pe_dirty = false;
+         // Iterate through _cpu_mask to find the first element not in _pe_map
+         for ( std::set<int>::iterator it = _cpu_mask.begin(); it != _cpu_mask.end(); ++it ) {
+            if ( std::find( _pe_map.begin(), _pe_map.end(), *it ) == _pe_map.end() ) {
+               _pe_map.push_back( *it );
+               break;
+            }
+         }
+         createWorker( pe_id );
+      }
 
-      // This PE should be running
-      if ( _cpu_id[pe_id] >= 0 ) {
+      bool pe_dirty = false;
+      int pe_binding = _pe_map[pe_id];
+      if ( _cpu_mask.find( pe_binding ) != _cpu_mask.end() ) {
+
+         // This PE should be running
          while ( (thread = _pes[pe_id]->getNextStoppedThread()) != NULL ) {
             acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
             thread->signal();
@@ -1244,9 +1254,10 @@ void System::applyCpuMask()
             pe_dirty = true;
          }
          if ( pe_dirty ) _numPEs++;
-      }
-      // This PE should not
-      if ( _cpu_id[pe_id] < 0 ) {
+
+      } else {
+
+         // This PE should not
          while ( (thread = _pes[pe_id]->getNextRunningThread()) != NULL ) {
             thread->sleep();
             _numThreads--;
@@ -1255,6 +1266,7 @@ void System::applyCpuMask()
          if ( pe_dirty ) _numPEs--;
       }
    }
+   ensure( _numPEs == _cpu_mask.size(), "applyCpuMask fatal error" );
 }
 
 void System::waitUntilThreadsPaused ()

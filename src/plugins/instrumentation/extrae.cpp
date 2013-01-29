@@ -627,7 +627,7 @@ class InstrumentationExtrae: public Instrumentation
                   break;
                case NANOS_POINT:
                   ckey = e.getKey();
-                  if ( ckey == changeThreads ) Extrae_change_num_threads ( e.getValue() );
+                  if ( ckey == changeThreads ) Extrae_change_num_threads ( sys.getMaskMaxSize() );
                case NANOS_BURST_START:
                   ckey = e.getKey();
                   cvalue = e.getValue();

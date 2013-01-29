@@ -44,77 +44,60 @@ inline void System::setNumThreads ( int nthreads ) { _numThreads = nthreads; }
 
 inline int System::getNumThreads () const { return _numThreads; }
 
-inline int System::getCpuId ( int idx ) const { 
-   ensure( ( ( idx >= 0 ) && ( idx < _cpu_count ) ), "invalid value for cpu idx" );
-   return _cpu_id[idx]; 
-};
-
-inline int System::getCpuCount () const { return _cpu_count; };
+inline int System::getCpuCount () const { return _cpu_mask.size(); };
 
 inline void System::getCpuMask ( cpu_set_t *mask ) const { memcpy( mask, &_cpu_set, sizeof(cpu_set_t) ); }
 
-inline void System::setCpuMask ( cpu_set_t *mask ) {
-
+inline void System::setCpuMask ( cpu_set_t *mask )
+{
    memcpy( &_cpu_set, mask, sizeof(cpu_set_t) );
-   memset( &_cpu_id, -1, sizeof(_cpu_id) );
+   _cpu_mask.clear();
 
    std::ostringstream oss_cpu_idx;
    oss_cpu_idx << "[";
-   int i;
-   for(i=0, _cpu_count=0; i<CPU_SETSIZE; i++){
-      if(CPU_ISSET(i, &_cpu_set)){
-         _cpu_id[_cpu_count++] = i;
+   for ( int i=0; i<CPU_SETSIZE; i++ ) {
+      if ( CPU_ISSET(i, &_cpu_set) ) {
+         _cpu_mask.insert( i );
          oss_cpu_idx << i << ", ";
       }
    }
    oss_cpu_idx << "]";
-   verbose0("PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str());
+   verbose0( "PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str() );
    sys.applyCpuMask();
 }
 
-inline void System::addCpuMask ( cpu_set_t *mask ) {
-
+inline void System::addCpuMask ( cpu_set_t *mask )
+{
    CPU_OR( &_cpu_set, &_cpu_set, mask );
 
    std::ostringstream oss_cpu_idx;
    oss_cpu_idx << "[";
-   int i, j;
-   bool found;
-   /* Add ONLY new elements of _cpu_set into _cpu_id. */
-   for ( i=0; i<CPU_SETSIZE; i++) {
+   for ( int i=0; i<CPU_SETSIZE; i++) {
       if ( CPU_ISSET(i, &_cpu_set) ) {
-         for ( j=0, found=false; j<_cpu_count; j++ ) {
-            if ( _cpu_id[j] == i ) {
-               found = true;
-               break;
-            }
-         }
-         if ( !found ) {
-            _cpu_id[_cpu_count++] = i;
-            oss_cpu_idx << i << ", ";
-         }
+         _cpu_mask.insert( i );
+         oss_cpu_idx << i << ", ";
       }
    }
    oss_cpu_idx << "]";
-   verbose0("PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str());
+   verbose0( "PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str() );
    sys.applyCpuMask();
 }
 
-inline int System::checkCpuMask(cpu_set_t *mask){
+inline bool System::checkCpuMask(cpu_set_t *mask)
+{
+   cpu_set_t intxn;
+   CPU_AND( &intxn, &_cpu_set, mask);
 
-   int idx = 0;
-   int i = 0;
-   while( i < _cpu_count){
-     ensure( idx < CPU_SETSIZE, "_cpu_count != CPU_COUNT(&_cpu_set)" ); 
-     if(CPU_ISSET(idx, &_cpu_set)){
-       i++;
-     } else {
-       if(CPU_ISSET(idx, mask))
-         return 0;
-     }
-     idx++;
-   }
-   return 1;
+   // Is mask a subset of _cpu_set?
+   return ( CPU_EQUAL( mask, &intxn ) );
+}
+
+inline int System::getMaskMaxSize() const
+{
+   // Union of sets _cpu_mask and _pe_map
+   std::set<int> union_set = _cpu_mask;
+   union_set.insert( _pe_map.begin(), _pe_map.end() );
+   return union_set.size();
 }
 
 inline void System::setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask){
@@ -182,11 +165,13 @@ inline void System::setCoresPerSocket ( int coresPerSocket ) { _coresPerSocket =
 
 inline int System::getBindingId ( int pe ) const
 {
-   int tmpId = ( pe * getBindingStride() + getBindingStart() );
-   //return getCpuId( ( tmpId + tmpId/_cpu_count ) % _cpu_count );
-   return getCpuId( tmpId  % _cpu_count );
+   int tmpId = ( pe * getBindingStride() + getBindingStart() ) % _cpu_mask.size();
+   try {
+      return _pe_map.at( tmpId );
+   } catch (std::exception& e) {
+      fatal( "invalid value for cpu" );
+   }
 }
-
 
 inline void System::setThrottlePolicy( ThrottlePolicy * policy ) { _throttlePolicy = policy; }
 
