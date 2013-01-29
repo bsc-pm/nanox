@@ -353,12 +353,7 @@ namespace nanos {
             /* 36 */ registerEventKey("dependence","Dependence analysis", true); /* System have found a new dependence */
             /* 37 */ registerEventKey("dep-direction", "Dependence direction", true);
 
-            // FIXME (#702): These two values will be removed once Extrae provide a separate function to specify name and location due right
-            // now we need to use two consecutive values (original values are 11 and 21).
-            /* 38 */ registerEventKey("user-funct-name-2","User Function Name", true); // FIXME: temporary value
-            /* 39 */ registerEventKey("user-funct-location-2","User Function Location", true); // FIXME: temporary value
-
-            /* 40 */ registerEventKey("wd-priority","Priority of a work descriptor");
+            /* 38 */ registerEventKey("wd-priority","Priority of a work descriptor");
 
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }
