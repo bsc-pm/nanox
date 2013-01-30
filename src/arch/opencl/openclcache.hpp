@@ -25,9 +25,9 @@
 #include "copydescriptor_decl.hpp"
 #include "simpleallocator.hpp"
 #include "system_decl.hpp"
-#include "openclwrapper.hpp"
 #include "openclutils.hpp"
 #include "openclconfig.hpp"
+#include <CL/opencl.h>
 
 #include <limits>
 #include <queue>
@@ -75,6 +75,7 @@ protected:
 
 class OpenCLCache : public OpenCLMemDump
 {
+    friend class OpenCLProcessor;
 public:
   OpenCLCache(OpenCLAdapter &openclAdapter) : _devCacheSize( 0 ),
                                      _openclAdapter( openclAdapter ) { }
@@ -143,6 +144,10 @@ private:
    
    std::map<void *, cl_mem> _devBufAddrMappings;
    std::map<void *, cl_mem> _bufAddrMappings;
+   
+   Atomic<unsigned int>    _bytesIn;
+   Atomic<unsigned int>    _bytesOut;
+   Atomic<unsigned int>    _bytesDevice;
 };
 
 template <typename DstTy, typename SrcTy>

@@ -79,7 +79,7 @@ void OpenCLConfig::apply()
 
    // Get the number of available platforms.
    cl_uint numPlats;
-   if( p_clGetPlatformIDs( 0, NULL, &numPlats ) != CL_SUCCESS )
+   if( clGetPlatformIDs( 0, NULL, &numPlats ) != CL_SUCCESS )
       fatal0( "Cannot detect the number of available OpenCL platforms" );
 
    if ( numPlats == 0 )
@@ -87,7 +87,7 @@ void OpenCLConfig::apply()
 
    // Read all platforms.
    cl_platform_id *plats = new cl_platform_id[numPlats];
-   if( p_clGetPlatformIDs( numPlats, plats, NULL ) != CL_SUCCESS )
+   if( clGetPlatformIDs( numPlats, plats, NULL ) != CL_SUCCESS )
       fatal0( "Cannot load OpenCL platforms" );
 
    // Is platform available?
@@ -120,7 +120,7 @@ void OpenCLConfig::apply()
                                               ++i ) {
       // Get the number of available devices.
       cl_uint numDevices;
-      errCode = p_clGetDeviceIDs( *i, devTy, 0, NULL, &numDevices );
+      errCode = clGetDeviceIDs( *i, devTy, 0, NULL, &numDevices );
       if (numDevices>_devNum){
           numDevices=_devNum;
       }
@@ -129,7 +129,7 @@ void OpenCLConfig::apply()
 
       // Read all matching devices.
       cl_device_id *devs = new cl_device_id[numDevices];
-      errCode = p_clGetDeviceIDs( *i, devTy, numDevices, devs, NULL );
+      errCode = clGetDeviceIDs( *i, devTy, numDevices, devs, NULL );
       if( errCode != CL_SUCCESS )
          continue;
 
@@ -138,7 +138,7 @@ void OpenCLConfig::apply()
       {
          cl_bool available;
 
-         errCode = p_clGetDeviceInfo( *j,
+         errCode = clGetDeviceInfo( *j,
                                       CL_DEVICE_AVAILABLE,
                                       sizeof( cl_bool ),
                                       &available,

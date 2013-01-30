@@ -3,8 +3,6 @@ opencl_api_sources = \
 	$(top_srcdir)/src/arch/opencl/opencl-api.cpp \
 	$(END)
 opencl_sources = \
-	 $(top_srcdir)/src/arch/opencl/openclwrapper.hpp \
-	 $(top_srcdir)/src/arch/opencl/openclwrapper.cpp \
     $(top_srcdir)/src/arch/opencl/openclconfig.hpp \
     $(top_srcdir)/src/arch/opencl/openclconfig.cpp \
     $(top_srcdir)/src/arch/opencl/opencldd.hpp \

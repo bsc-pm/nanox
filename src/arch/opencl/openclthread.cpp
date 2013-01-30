@@ -22,7 +22,8 @@ void OpenCLThread::runDependent() {
     setCurrentWD( wd );
     OpenCLDD &dd = static_cast<OpenCLDD &> (wd.activateDevice(OpenCLDev));
 
-    dd.getWorkFct()(wd.getData());
+    dd.getWorkFct()(wd.getData());    
+   ( ( OpenCLProcessor * ) myThread->runningOn() )->cleanUp();
 }
 
 bool OpenCLThread::inlineWorkDependent(WD &wd) {

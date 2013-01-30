@@ -2,8 +2,8 @@
 #ifndef _NANOS_OpenCL_CFG
 #define _NANOS_OpenCL_CFG
 
+#include <CL/opencl.h>
 #include "atomic.hpp"
-#include "openclwrapper.hpp"
 #include "config.hpp"
 
 namespace nanos {
@@ -63,6 +63,27 @@ private:
 
   friend class OpenCLPlugin;
 };
+
+
+// Macro's to instrument the code and make it cleaner
+#define NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT(x)   NANOS_INSTRUMENT( \
+		sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-opencl-runtime" ), (x) ); )
+
+#define NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT       NANOS_INSTRUMENT( \
+		sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-opencl-runtime" ) ); )
+
+
+typedef enum {
+   NANOS_OPENCL_NULL_EVENT,                            /* 0 */
+   NANOS_OPENCL_ALLOC_EVENT,                          /* 1 */
+   NANOS_OPENCL_FREE_EVENT,                            /* 2 */
+   NANOS_OPENCL_GET_DEV_INFO_EVENT,                     /* 3 */
+   NANOS_OPENCL_CREATE_CONTEXT_EVENT,                       /* 4 */
+   NANOS_OPENCL_MEMWRITE_SYNC_EVENT,                         /* 5 */
+   NANOS_OPENCL_MEMREAD_SYNC_EVENT,                 /* 6 */
+   NANOS_OPENCL_CREATE_COMMAND_QUEUE_EVENT,                   /* 7 */
+   NANOS_OPENCL_GENERIC_EVENT                         /* 19 */
+} in_opencl_runtime_event_value;
 
 } // End namespace ext.
 } // End namespace nanos.

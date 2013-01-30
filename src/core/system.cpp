@@ -401,7 +401,7 @@ void System::start ()
    
 #ifdef OpenCL_DEV
     for ( unsigned int i = 0; i < nanos::ext::OpenCLConfig::getOpenCLDevicesCount(); i++) {
-       PE *openclAccelerator = NEW nanos::ext::OpenCLProcessor( getBindingId( p ));
+       PE *openclAccelerator = NEW nanos::ext::OpenCLProcessor( getBindingId( p ) , i);
        _pes.push_back( openclAccelerator );
       _workers.push_back( &openclAccelerator->startWorker() );
       ++p;

@@ -67,13 +67,11 @@ void *OpenCLCache::deviceAllocate(size_t size) {
         fatal("Device cache allocation failed");
 
     _bufAddrMappings[addr] = buf;
-    printf("allocate %p, buffer %p\n",addr,buf);
 
     return addr;
 }
 
 void *OpenCLCache::deviceReallocate(void * addr, size_t size, size_t ceSize) {
-    printf("REALLOC ERROR\n\n\n");
     deviceFree(addr);
 
     return deviceAllocate(size);
@@ -85,16 +83,13 @@ void OpenCLCache::deviceFree(void * addr) {
     cl_mem buf = _bufAddrMappings[allocAddr];    
     if (_openclAdapter.freeBuffer(buf) != CL_SUCCESS)
         fatal("Cannot free device buffer");
-    _bufAddrMappings.erase(_bufAddrMappings.find(allocAddr)); 
     
-    buf = _bufAddrMappings[allocAddr]; 
+    _bufAddrMappings.erase(_bufAddrMappings.find(allocAddr)); 
 }
 
 bool OpenCLCache::deviceCopyIn(void *localDst,
         CopyDescriptor &remoteSrc,
         size_t size) {
-    float* src=(float*) remoteSrc.getTag();
-    printf("copy in %p, %p, %f\n",localDst,remoteSrc.getTag(),src[0]);
     cl_int errCode;    
     cl_mem buf = _bufAddrMappings[localDst];  
     
@@ -102,8 +97,10 @@ bool OpenCLCache::deviceCopyIn(void *localDst,
               (void*) remoteSrc.getTag(),
               0,
               size);
-    if (errCode != CL_SUCCESS)
+    if (errCode != CL_SUCCESS){
         fatal("Buffer writing failed");
+    }
+    _bytesIn += ( unsigned int ) size;
 
     return true;
 }
@@ -113,7 +110,6 @@ bool OpenCLCache::deviceCopyOut(CopyDescriptor &remoteDst,
         size_t size) {
     cl_int errCode;
     cl_mem buffer=_bufAddrMappings[localSrc];
-    printf("copy out %p, to %p\n",localSrc,remoteDst.getTag());
     
     errCode = _openclAdapter.readBuffer(buffer,
                 ((void*)remoteDst.getTag()),
@@ -122,7 +118,9 @@ bool OpenCLCache::deviceCopyOut(CopyDescriptor &remoteDst,
     
     if (errCode != CL_SUCCESS) {
         fatal("Buffer reading failed");
-    }
+    }    
+    
+    _bytesOut += ( unsigned int ) size;
 
     return true;
 }

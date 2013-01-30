@@ -15,11 +15,11 @@ OpenCLAdapter::~OpenCLAdapter()
 {
   cl_int errCode;
 
-  errCode = p_clReleaseCommandQueue( _queue );
+  errCode = clReleaseCommandQueue( _queue );
   if( errCode != CL_SUCCESS )
      fatal0( "Unable to release the command queue" );
 
-  errCode = p_clReleaseContext( _ctx );
+  errCode = clReleaseContext( _ctx );
   if( errCode != CL_SUCCESS )
      fatal0( "Unable to release the context" );
 
@@ -27,7 +27,7 @@ OpenCLAdapter::~OpenCLAdapter()
                               e = _progCache.end();
                               i != e;
                               ++i )
-    p_clReleaseProgram( i->second );
+    clReleaseProgram( i->second );
 }
 
 void OpenCLAdapter::initialize(cl_device_id dev)
@@ -36,13 +36,15 @@ void OpenCLAdapter::initialize(cl_device_id dev)
 
    _dev = dev;
 
-   // Get device platform.
+   // Get device platform.   
+   NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_GET_DEV_INFO_EVENT );
    cl_platform_id plat;
-   errCode = p_clGetDeviceInfo( dev,
+   errCode = clGetDeviceInfo( dev,
                                 CL_DEVICE_PLATFORM,
                                 sizeof(cl_platform_id),
                                 &plat,
                                 NULL );
+   NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
    if( errCode != CL_SUCCESS )
       fatal0( "Cannot get device platform" );
 
@@ -54,28 +56,38 @@ void OpenCLAdapter::initialize(cl_device_id dev)
       };
 
    // Create the context.
-   _ctx = p_clCreateContext( props, 1, &_dev, NULL, NULL, &errCode );
+   NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_CREATE_CONTEXT_EVENT );
+   _ctx = clCreateContext( props, 1, &_dev, NULL, NULL, &errCode );   
+   NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
+   
    if( errCode != CL_SUCCESS )
       fatal0( "Cannot create the context" );
 
    // Get a command queue.
-   _queue = p_clCreateCommandQueue( _ctx, _dev, 0, &errCode );
+   NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_CREATE_COMMAND_QUEUE_EVENT );
+   _queue = clCreateCommandQueue( _ctx, _dev, 0, &errCode );
    if( errCode != CL_SUCCESS )
      fatal0( "Cannot create a command queue" );
+   NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
 }
 
 cl_int OpenCLAdapter::allocBuffer( size_t size, cl_mem &buf )
 {
    cl_int errCode;
 
-   buf = p_clCreateBuffer( _ctx, CL_MEM_READ_WRITE, size, NULL, &errCode );
+   NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_ALLOC_EVENT );
+   buf = clCreateBuffer( _ctx, CL_MEM_READ_WRITE, size, NULL, &errCode );
+   NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
 
    return errCode;
 }
 
 cl_int OpenCLAdapter::freeBuffer( cl_mem &buf )
 {
-   return p_clReleaseMemObject( buf );
+   NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_FREE_EVENT );
+   cl_int ret= clReleaseMemObject( buf );   
+   NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
+   return ret;
 }
 
 cl_int OpenCLAdapter::readBuffer( cl_mem buf,
@@ -86,7 +98,8 @@ cl_int OpenCLAdapter::readBuffer( cl_mem buf,
    cl_int errCode, exitStatus;
    cl_event ev;
 
-   errCode = p_clEnqueueReadBuffer( _queue,
+   NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_MEMREAD_SYNC_EVENT );
+   errCode = clEnqueueReadBuffer( _queue,
                                     buf,
                                     true,
                                     offset,
@@ -96,20 +109,19 @@ cl_int OpenCLAdapter::readBuffer( cl_mem buf,
                                     NULL,
                                     &ev
                                   );
+   NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
+   
    if( errCode != CL_SUCCESS )
       return errCode;
 
-   errCode = p_clGetEventInfo( ev,
+   errCode = clGetEventInfo( ev,
                                CL_EVENT_COMMAND_EXECUTION_STATUS,
                                sizeof(cl_int),
                                &exitStatus,
                                NULL
-                             );
-   
-   if( errCode != CL_SUCCESS || exitStatus != CL_SUCCESS )
-      errCode = CL_MEM_OBJECT_ALLOCATION_FAILURE;
+                             );   
 
-   p_clReleaseEvent( ev );
+   clReleaseEvent( ev );
 
    return errCode;
 }
@@ -122,7 +134,8 @@ cl_int OpenCLAdapter::writeBuffer( cl_mem buf,
    cl_int errCode, exitStatus;
    cl_event ev;
 
-   errCode = p_clEnqueueWriteBuffer( _queue,
+   NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_MEMWRITE_SYNC_EVENT );
+   errCode = clEnqueueWriteBuffer( _queue,
                                      buf,
                                      true,
                                      offset,
@@ -132,21 +145,19 @@ cl_int OpenCLAdapter::writeBuffer( cl_mem buf,
                                      NULL,
                                      &ev
                                    );
+   NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
    if( errCode != CL_SUCCESS ){
       return errCode;
    }
 
-   errCode = p_clGetEventInfo( ev,
+   errCode = clGetEventInfo( ev,
                                CL_EVENT_COMMAND_EXECUTION_STATUS,
                                sizeof(cl_int),
                                &exitStatus,
                                NULL
                              );
    
-   if( errCode != CL_SUCCESS || exitStatus != CL_SUCCESS )
-      errCode = CL_MEM_OBJECT_ALLOCATION_FAILURE;
-
-   p_clReleaseEvent( ev );
+   clReleaseEvent( ev );
 
    return errCode;
 }
@@ -157,20 +168,20 @@ cl_int OpenCLAdapter::buildProgram( const char *src,
 {
    cl_int errCode;
 
-   prog = p_clCreateProgramWithSource( _ctx, 1, &src, NULL, &errCode );
+   prog = clCreateProgramWithSource( _ctx, 1, &src, NULL, &errCode );
    if( errCode != CL_SUCCESS )
       return errCode;
 
-   errCode = p_clBuildProgram( prog, 1, &_dev, compilerOpts, NULL, NULL );
+   errCode = clBuildProgram( prog, 1, &_dev, compilerOpts, NULL, NULL );
    if( errCode != CL_SUCCESS ){
      // Determine the size of the log
      size_t log_size;
-     p_clGetProgramBuildInfo(prog, _dev, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+     clGetProgramBuildInfo(prog, _dev, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
 
      // Allocate memory for the log
      char *log = (char *) malloc(log_size+1);
      // Get the log
-     p_clGetProgramBuildInfo(prog, _dev, CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
+     clGetProgramBuildInfo(prog, _dev, CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
      log[log_size] = '\0';
 
      std::stringstream sstm;
@@ -179,20 +190,20 @@ cl_int OpenCLAdapter::buildProgram( const char *src,
      // Print the log
      fatal(sstm.str());
       // No matter if this call fails, the relevant error code is the first.
-      p_clReleaseProgram( prog );
+      clReleaseProgram( prog );
    }
    return errCode;
 }
 
 cl_int OpenCLAdapter::destroyProgram( cl_program &prog )
 {
-  return p_clReleaseProgram( prog );
+  return clReleaseProgram( prog );
 }
 
 // TODO: use a fixed cache size.
 cl_int OpenCLAdapter::putProgram( cl_program &prog )
 {
-   return p_clReleaseProgram( prog );
+   return clReleaseProgram( prog );
 }
 
 
@@ -200,7 +211,7 @@ void* OpenCLAdapter::createKernel( char* kernel_name, char* ompss_code_file,cons
 {
    cl_program prog;
    uint32_t hash = gnuHash( ompss_code_file );
-   nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) myThread->runningOn();
+   nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
    ProgramCache progCache = pe->getProgCache();
    if( progCache.count( hash ) )
    {
@@ -214,21 +225,31 @@ void* OpenCLAdapter::createKernel( char* kernel_name, char* ompss_code_file,cons
         fatal0("Failed to open file when loading kernel from file " + std::string(ompss_code_file) + ".\n");
       }      
       fseek(fp, 0, SEEK_END); // seek to end of file;
-      int size = ftell(fp); // get current file pointer
+      size_t size = ftell(fp); // get current file pointer
       fseek(fp, 0, SEEK_SET); // seek back to beginning of file
-      ompss_code = (char*)malloc(size+1);;
+      ompss_code = new char[size];
       source_size = fread( ompss_code, 1, size, fp);
       fclose(fp); 
       ompss_code[size]=0;
-      buildProgram( ompss_code, compilerOpts, prog );
-      free(ompss_code);
+      
+      std::string filename(ompss_code_file);
+      if (filename.find(".cl")!=filename.npos){
+         buildProgram( ompss_code, compilerOpts, prog );
+      } else {
+         cl_int errCode;
+         const unsigned char* tmp_code=reinterpret_cast<const unsigned char*>(ompss_code);
+         prog = clCreateProgramWithBinary( _ctx, 1, &_dev, &size, &tmp_code, NULL, &errCode );    
+         if( errCode != CL_SUCCESS )
+            fatal0("Failed to create program with binary from file " + std::string(ompss_code_file) + ".\n");
+      }
+      delete [] ompss_code;
       progCache[hash] = prog;
    }
    
    
    cl_kernel kern;
    cl_int errCode;
-   kern = p_clCreateKernel( prog, kernel_name, &errCode );
+   kern = clCreateKernel( prog, kernel_name, &errCode );
    return kern;    
 }
 
@@ -244,7 +265,7 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
 
    
    // Exec it.
-   errCode = p_clEnqueueNDRangeKernel( _queue,
+   errCode = clEnqueueNDRangeKernel( _queue,
                                        openclKernel,
                                        workDim,
                                        ndrOffset,
@@ -257,22 +278,24 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
    if( errCode != CL_SUCCESS )
    {
       // Don't worry about exit code, we are cleaning an error.
-      p_clReleaseKernel( openclKernel );
-      return errCode;
+      clReleaseKernel( openclKernel );
+      std::cerr << "Error code" << errCode << "\n";
+      fatal0("Error launching OpenCL kernel");
    }
 
    // Wait for its termination.
-   errCode = p_clWaitForEvents( 1, &ev );
+   errCode = clWaitForEvents( 1, &ev );
    if( errCode != CL_SUCCESS )
    {
       // Clean up environment.
-      p_clReleaseEvent( ev );
-      p_clReleaseKernel( openclKernel );
-      return errCode;
+      clReleaseEvent( ev );
+      clReleaseKernel( openclKernel );
+      std::cerr << "Error code" << errCode << "\n";
+      fatal0("Error launching OpenCL kernel");
    }
 
    // Check if any errors has occurred.
-   errCode = p_clGetEventInfo( ev,
+   errCode = clGetEventInfo( ev,
                                CL_EVENT_COMMAND_EXECUTION_STATUS,
                                sizeof(cl_int),
                                &exitStatus,
@@ -281,22 +304,24 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
    if( errCode != CL_SUCCESS || exitStatus != CL_SUCCESS )
    {
       // Clean up environment.
-      p_clReleaseEvent( ev );
-      p_clReleaseKernel( openclKernel );
-      return errCode;
+      clReleaseEvent( ev );
+      clReleaseKernel( openclKernel );
+      std::cerr << "Error code" << errCode << "\n";
+      fatal0("Error launching OpenCL kernel");
    }
 
    // Free the event.
-   errCode = p_clReleaseEvent( ev );
+   errCode = clReleaseEvent( ev );
    if( errCode != CL_SUCCESS )
    {
       // Clean up environment.
-      p_clReleaseEvent( ev );
-      return errCode;
+      clReleaseEvent( ev );
+      std::cerr << "Error code" << errCode << "\n";
+      fatal0("Error launching OpenCL kernel");
    }
 
    // Free the kernel.
-   return p_clReleaseKernel( openclKernel );
+   return clReleaseKernel( openclKernel );
 }
 
 // TODO: replace with new APIs.
@@ -305,7 +330,7 @@ size_t OpenCLAdapter::getGlobalSize()
    cl_int errCode;
    cl_ulong size;
 
-   errCode = p_clGetDeviceInfo( _dev,
+   errCode = clGetDeviceInfo( _dev,
                                 CL_DEVICE_GLOBAL_MEM_SIZE,
                                 sizeof(cl_ulong),
                                 &size,
@@ -353,7 +378,7 @@ OpenCLAdapter::getPreferredWorkGroupSizeMultiple(
 
 cl_int OpenCLAdapter::getDeviceInfo( cl_device_info key, size_t size, void *value )
 {
-   return p_clGetDeviceInfo( _dev, key, size, value, NULL );
+   return clGetDeviceInfo( _dev, key, size, value, NULL );
 }
 
 cl_int
@@ -375,7 +400,7 @@ OpenCLAdapter::getStandardPreferredWorkGroupSizeMultiple(
       return CL_OUT_OF_RESOURCES;
 
    // Create the kernel.
-   kern = p_clCreateKernel( prog, "empty", &errCode );
+   kern = clCreateKernel( prog, "empty", &errCode );
    if( errCode != CL_SUCCESS )
    {
       destroyProgram( prog );
@@ -383,7 +408,7 @@ OpenCLAdapter::getStandardPreferredWorkGroupSizeMultiple(
    }
 
    // Get the parameter to estimate.
-   errCode = p_clGetKernelWorkGroupInfo(
+   errCode = clGetKernelWorkGroupInfo(
                 kern,
                 _dev,
                 CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
@@ -393,13 +418,13 @@ OpenCLAdapter::getStandardPreferredWorkGroupSizeMultiple(
               );
    if( errCode != CL_SUCCESS )
    {
-      p_clReleaseKernel( kern );
+      clReleaseKernel( kern );
       destroyProgram( prog );
       return CL_OUT_OF_RESOURCES;
    }
 
    // Free the kernel.
-   errCode = p_clReleaseKernel( kern );
+   errCode = clReleaseKernel( kern );
    if( errCode != CL_SUCCESS )
    {
       destroyProgram( prog );
@@ -479,14 +504,14 @@ cl_int OpenCLAdapter::getPlatformName( std::string &name )
    size_t size;
 
    // Get platform name size.
-   errCode = p_clGetPlatformInfo( plat, CL_PLATFORM_NAME, 0, NULL, &size );
+   errCode = clGetPlatformInfo( plat, CL_PLATFORM_NAME, 0, NULL, &size );
    if( errCode != CL_SUCCESS )
       return CL_OUT_OF_RESOURCES;
 
    char *rawName = new char[size];
 
    // Get platform name.
-   errCode = p_clGetPlatformInfo( plat, CL_PLATFORM_NAME, size, rawName, NULL );
+   errCode = clGetPlatformInfo( plat, CL_PLATFORM_NAME, size, rawName, NULL );
    if( errCode != CL_SUCCESS )
    {
       delete [] rawName;
@@ -504,11 +529,12 @@ cl_int OpenCLAdapter::getPlatformName( std::string &name )
 //
 
 
-OpenCLProcessor::OpenCLProcessor( int id ) :
+OpenCLProcessor::OpenCLProcessor( int id, int devId ) :
    CachedAccelerator<OpenCLDevice>( id, &OpenCLDev ),
    _openclAdapter(),
    _cache( _openclAdapter ),
-   _dma ( *this ) { }
+   _dma ( *this ),
+   _devId ( devId ) { }
 
 
 //TODO: Configure cache awareness
@@ -550,7 +576,7 @@ void OpenCLProcessor::setKernelBufferArg(void* openclKernel, int argNum, void* p
 {
     cl_mem buffer=_cache.toMemoryObjSS( pointer );
     //Set buffer as arg
-    cl_int errCode= p_clSetKernelArg( (cl_kernel) openclKernel, argNum, sizeof(cl_mem), &buffer ); 
+    cl_int errCode= clSetKernelArg( (cl_kernel) openclKernel, argNum, sizeof(cl_mem), &buffer ); 
     if( errCode != CL_SUCCESS )
     {
          fatal0("Error setting kernel buffer arg");
@@ -558,7 +584,7 @@ void OpenCLProcessor::setKernelBufferArg(void* openclKernel, int argNum, void* p
 }
 
 void OpenCLProcessor::setKernelArg(void* opencl_kernel, int arg_num, size_t size, void* pointer){
-    cl_int errCode= p_clSetKernelArg( (cl_kernel) opencl_kernel, arg_num, size, pointer );
+    cl_int errCode= clSetKernelArg( (cl_kernel) opencl_kernel, arg_num, size, pointer );
     if( errCode != CL_SUCCESS )
     {
          fatal0("Error setting kernel arg");
@@ -579,4 +605,59 @@ void OpenCLProcessor::execKernel(void* openclKernel,
     {
          fatal0("Error executing kernel");
     }
+}
+
+static inline std::string bytesToHumanReadable ( size_t bytes )
+ {
+    double b = bytes;
+    int times = 0;
+    while ( b / 1024 >= 1.0 ) {
+      b /= 1024;
+      times++;
+    }
+
+    switch ( times ) {
+        case 8: // Yottabyte
+           return std::string( toString<double>( b ) + " YB" );
+           break;
+        case 7: // Zettabyte
+           return std::string( toString<double>( b ) + " ZB" );
+           break;
+        case 6: // Exabyte
+           return std::string( toString<double>( b ) + " EB" );
+           break;
+        case 5: // petabyte
+           return std::string( toString<double>( b ) + " PB" );
+          break;
+        case 4: // terabyte
+           return std::string( toString<double>( b ) + " TB" );
+           break;
+        case 3: // gigabyte
+           return std::string( toString<double>( b ) + " GB" );
+           break;
+        case 2: // megabyte
+           return std::string( toString<double>( b ) + " MB" );
+           break;
+        case 1: // kilobyte
+           return std::string( toString<double>( b ) + " KB" );
+           break;
+        case 0: // byte
+        default:
+           return std::string( toString<double>( b ) + " B" );
+           break;
+  }
+}
+
+void OpenCLProcessor::printStats ()
+{
+   message("OpenCL dev" << _devId << " TRANSFER STATISTICS");
+   message("    Total input transfers: " << bytesToHumanReadable( _cache._bytesIn.value() ) );
+   message("    Total output transfers: " << bytesToHumanReadable( _cache._bytesOut.value() ) );
+   message("    Total device transfers: " << bytesToHumanReadable( _cache._bytesDevice.value() ) );
+}
+ 
+
+void OpenCLProcessor::cleanUp()
+{
+   printStats();
 }

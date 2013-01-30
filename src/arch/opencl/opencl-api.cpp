@@ -34,13 +34,13 @@ NANOS_API_DEF(void *, nanos_opencl_factory, (void *args)) {
 }
 
 NANOS_API_DEF(void*, nanos_create_current_kernel, (char* kernel_name, char* opencl_code, char* compiler_opts)){  
-    nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) myThread->runningOn();
+    nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
     return pe->createKernel(kernel_name,opencl_code,compiler_opts);
 }
 
 NANOS_API_DEF(nanos_err_t,nanos_opencl_set_bufferarg, (void* opencl_kernel, int arg_num, void* pointer)){
    try {
-      nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) myThread->runningOn();
+      nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
       pe->setKernelBufferArg(opencl_kernel, arg_num, pointer);
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
@@ -51,7 +51,7 @@ NANOS_API_DEF(nanos_err_t,nanos_opencl_set_bufferarg, (void* opencl_kernel, int 
 
 NANOS_API_DEF(nanos_err_t,nanos_opencl_set_arg, (void* opencl_kernel, int arg_num, size_t size, void* pointer)){
     try {
-      nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) myThread->runningOn();
+      nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
       pe->setKernelArg(opencl_kernel, arg_num, size, pointer);
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
@@ -62,7 +62,7 @@ NANOS_API_DEF(nanos_err_t,nanos_opencl_set_arg, (void* opencl_kernel, int arg_nu
 
 NANOS_API_DEF(nanos_err_t,nanos_exec_kernel, (void* opencl_kernel, int work_dim, size_t* ndr_offset, size_t* ndr_local_size, size_t* ndr_global_size)){
     try {
-      nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) myThread->runningOn();
+      nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
       pe->execKernel(opencl_kernel, work_dim, ndr_offset, ndr_local_size, ndr_global_size);
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;

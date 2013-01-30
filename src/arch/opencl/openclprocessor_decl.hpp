@@ -174,12 +174,13 @@ private:
 class OpenCLProcessor : public CachedAccelerator<OpenCLDevice>
 {
 public:
-   OpenCLProcessor( int id );
+   OpenCLProcessor( int id , int devId);
 
    OpenCLProcessor( const OpenCLProcessor &pe ); // Do not implement.
    OpenCLProcessor &operator=( const OpenCLProcessor &pe ); // Do not implement.
 
 public:
+    
    void initialize();
 
    WD &getWorkerWD() const;
@@ -211,6 +212,10 @@ public:
    
    void setKernelArg(void* opencl_kernel, int arg_num, size_t size, void* pointer);
    
+   void printStats();
+   
+   void cleanUp();
+     
    void *allocate( size_t size )
    {
       return _cache.allocate( size );
@@ -262,6 +267,7 @@ private:
    OpenCLAdapter _openclAdapter;
    OpenCLCache _cache;
    OpenCLDMA _dma;
+   int _devId;
 
 };
 
