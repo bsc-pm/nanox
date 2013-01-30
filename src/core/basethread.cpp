@@ -30,7 +30,7 @@ Atomic<int> BaseThread::_idSeed = 0;
 
 void BaseThread::run ()
 {
-   _threadWD.tieTo( *this );
+   _threadWD.tied().tieTo( *this );
    associate();
    initializeDependent();
    /* Notify that the thread has finished all its initialization and it's ready to run */

@@ -1,4 +1,8 @@
 
+default_sources = \
+	$(top_srcdir)/src/plugins/throttle/default_throttle.cpp \
+	$(END)
+
 dummy_sources = \
 	$(top_srcdir)/src/plugins/throttle/dummy_throttle.cpp \
 	$(END)
@@ -17,5 +21,9 @@ taskdepth_sources = \
 
 readytasks_sources = \
 	$(top_srcdir)/src/plugins/throttle/readytasks_throttle.cpp \
+	$(END)
+
+numtasks_e_sources = \
+	$(top_srcdir)/src/plugins/throttle/numtasks-e_throttle.cpp \
 	$(END)
 

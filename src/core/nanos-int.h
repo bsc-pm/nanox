@@ -36,7 +36,6 @@ typedef struct {
 
    /* Lower bound in terms of the size of the previous dimension. */
    size_t lower_bound;
-
    /* Accessed length in terms of the size of the previous dimension. */
    size_t accessed_length;
 } nanos_region_dimension_internal_t;
@@ -102,13 +101,15 @@ typedef struct {
  * its contents has to be reflected in CopyData constructor
  */
 typedef struct {
-   uint64_t address;
+   void *address;
    nanos_sharing_t sharing;
    struct {
       bool input: 1;
       bool output: 1;
    } flags;
-   size_t size;
+   short dimension_count;
+   nanos_region_dimension_internal_t const *dimensions;
+   ptrdiff_t offset;
 } nanos_copy_data_internal_t;
 
 typedef nanos_access_type_internal_t nanos_access_type_t;

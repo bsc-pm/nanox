@@ -49,9 +49,6 @@ void Scheduler::submit ( WD &wd )
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
    BaseThread *mythread = myThread;
 
-   sys.getSchedulerStats()._createdTasks++;
-   sys.getSchedulerStats()._totalTasks++;
-
    debug ( "submitting task " << wd.getId() );
 
    wd.submitted();
@@ -120,13 +117,21 @@ void Scheduler::submitAndWait ( WD &wd )
    submit( wd );
 
    // Wait for WD to be finished
-   myWG.waitCompletionAndSignalers();
+   myWG.waitCompletion();
+}
+
+void Scheduler::updateCreateStats ( WD &wd )
+{
+   sys.getSchedulerStats()._createdTasks++;
+   sys.getSchedulerStats()._totalTasks++;
+   wd.setConfigured(); 
+
 }
 
 void Scheduler::updateExitStats ( WD &wd )
 {
-   if ( wd.isSubmitted() ) 
-     sys.getSchedulerStats()._totalTasks--;
+   sys.throttleTaskOut();
+   if ( wd.isConfigured() ) sys.getSchedulerStats()._totalTasks--;
 }
 
 template<class behaviour>

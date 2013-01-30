@@ -105,6 +105,8 @@ inline bool WorkDescriptor::isTied() const { return _tiedTo != NULL; }
 
 inline BaseThread* WorkDescriptor::isTiedTo() const { return _tiedTo; }
 
+inline bool WorkDescriptor::shouldBeTied() const { return _tie; }
+
 inline void WorkDescriptor::setData ( void *wdata ) { _data = wdata; }
 
 inline void * WorkDescriptor::getData () const { return _data; }
@@ -252,13 +254,6 @@ inline void WorkDescriptor::waitCompletion( bool avoidFlush )
       _directory->synchronizeHost();
 }
 
-inline void WorkDescriptor::waitCompletionAndSignalers( bool avoidFlush )
-{
-   this->WorkGroup::waitCompletionAndSignalers();
-   if ( _directory.isInitialized() && !avoidFlush )
-      _directory->synchronizeHost();
-}
-
 inline Directory* WorkDescriptor::getDirectory(bool create)
 {
    if ( !_directory.isInitialized() && create == false ) {
@@ -270,6 +265,9 @@ inline Directory* WorkDescriptor::getDirectory(bool create)
 
 inline bool WorkDescriptor::isSubmitted() const { return _submitted; }
 inline void WorkDescriptor::submitted()  { _submitted = true; }
+
+inline bool WorkDescriptor::isConfigured ( void ) const { return _configured; }
+inline void WorkDescriptor::setConfigured ( bool value ) { _configured = value; }
 
 inline void WorkDescriptor::setPriority( unsigned int priority ) { _priority = priority; }
 inline unsigned int WorkDescriptor::getPriority() const { return _priority; }

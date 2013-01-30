@@ -43,19 +43,6 @@ NANOS_API_DEF(nanos_err_t, nanos_get_default_binding, ( bool *res ))
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_get_num_running_tasks, ( int *num ))
-{
-   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_running_tasks",RUNTIME) );
-
-   try {
-      *num = sys.getRunningTasks();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-
-   return NANOS_OK;
-}
-
 NANOS_API_DEF(nanos_err_t, nanos_delay_start, ())
 {
    try {
@@ -85,28 +72,6 @@ NANOS_API_DEF(nanos_err_t, nanos_finish, ())
    } catch ( ... ) { 
       return NANOS_UNKNOWN_ERR;
    }   
-
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_current_socket, (int socket ))
-{
-   try {
-      sys.setCurrentSocket( socket );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_get_num_sockets, (int *num_sockets ))
-{
-   try {
-      *num_sockets = sys.getNumSockets();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
 
    return NANOS_OK;
 }

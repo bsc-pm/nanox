@@ -55,7 +55,8 @@ struct nanos_const_wd_definition_1 const_data_1 =
    },
    0,//__alignof__(section_data_1),
    0,
-   1},
+   1,
+   0},
    {
       {
          nanos_smp_factory,
@@ -87,7 +88,7 @@ int main()
                 const_data_1.base.data_alignment =  __alignof__(_nx_data_env_0_t);
                 const_data_1.devices[0].arg = &_ol_main_0_smp_args;
                 nanos_err_t err;
-                err = nanos_create_wd_compact(&wd, &const_data_1.base, &dyn_props, sizeof(_nx_data_env_0_t), (void **) &ol_args, nanos_current_wd(), (nanos_copy_data_t **) 0);
+                err = nanos_create_wd_compact(&wd, &const_data_1.base, &dyn_props, sizeof(_nx_data_env_0_t), (void **) &ol_args, nanos_current_wd(), (nanos_copy_data_t **) 0, NULL);
                 //err = nanos_create_wd(&wd, 1, _ol_main_0_devices, sizeof(_nx_data_env_0_t), __alignof__(_nx_data_env_0_t), (void **) &ol_args, nanos_current_wd(), &props, 0, (nanos_copy_data_t **) 0);
                 if (err != NANOS_OK)
                     nanos_handle_error(err);
@@ -188,7 +189,7 @@ int main()
                             0
                         }
                     };
-                    err = nanos_create_wd_and_run_compact(&const_data_1.base, &dyn_props, sizeof(_nx_data_env_0_t), &imm_args, 2, (nanos_data_access_t *) _data_accesses, (nanos_copy_data_t *) 0, 0 );
+                    err = nanos_create_wd_and_run_compact(&const_data_1.base, &dyn_props, sizeof(_nx_data_env_0_t), &imm_args, 2, (nanos_data_access_t *) _data_accesses, (nanos_copy_data_t *) 0, 0, NULL );
                     //err = nanos_create_wd_and_run(1, _ol_main_0_devices, sizeof(_nx_data_env_0_t), __alignof__(_nx_data_env_0_t),  &imm_args, &props, 0, (nanos_copy_data_t *) 0);
                     if (err != NANOS_OK)
                         nanos_handle_error(err);

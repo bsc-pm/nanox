@@ -115,10 +115,7 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_events, ( unsigned int num_events, n
                sys.getInstrumentation()->closeBurstEvent(&e[i],events[i].key);
                break;
             case NANOS_POINT:
-#if 0
-               sys.getInstrumentation()->createPointEvent(&e[i],events[i].info.point.nkvs,events[i].info.point.keys,events[i].info.point.values );
-#endif
-               return NANOS_UNKNOWN_ERR;
+               sys.getInstrumentation()->createPointEvent(&e[i],events[i].key,events[i].value );
                break;
             case NANOS_PTP_START:
 #if 0

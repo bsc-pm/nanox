@@ -206,7 +206,7 @@ int main ( int argc, char **argv )
       const_data1.base.data_alignment = __alignof__(section_data_1);
       nanos_wd_dyn_props_t dyn_props = {0};
       NANOS_SAFE( nanos_create_wd_compact ( &wd[0], &const_data1.base, &dyn_props, sizeof(section_data_1), (void **) &section_data_1,
-                                    nanos_current_wd(), NULL ) );
+                                    nanos_current_wd(), NULL, NULL ) );
       /* Initializing section 1 data */
       section_data_1->M = A;
 
@@ -214,7 +214,7 @@ int main ( int argc, char **argv )
       main__section_2_data_t *section_data_2 = NULL;
       const_data2.base.data_alignment = __alignof__(section_data_2);
       NANOS_SAFE( nanos_create_wd_compact ( &wd[1], &const_data2.base, &dyn_props, sizeof(section_data_2), (void **) &section_data_2,
-                                    nanos_current_wd(), NULL ) );
+                                    nanos_current_wd(), NULL, NULL ) );
       /* Initializing section 2 data */
       section_data_2->M = B;
 
@@ -222,7 +222,7 @@ int main ( int argc, char **argv )
       main__section_3_data_t *section_data_3 = NULL;
       const_data3.base.data_alignment = __alignof__(section_data_3);
       NANOS_SAFE( nanos_create_wd_compact ( &wd[2], &const_data3.base, &dyn_props, sizeof(section_data_3), (void **) &section_data_3,
-                                    nanos_current_wd(), NULL ) );
+                                    nanos_current_wd(), NULL, NULL ) );
       /* Initializing section 3 data */
       section_data_3->M = C;
 
@@ -230,7 +230,7 @@ int main ( int argc, char **argv )
       main__section_4_data_t *section_data_4 = NULL;
       const_data4.base.data_alignment = __alignof__(section_data_4);
       NANOS_SAFE( nanos_create_wd_compact ( &wd[3], &const_data4.base, &dyn_props, sizeof(section_data_4), (void **) &section_data_4,
-                                    nanos_current_wd(), NULL ) );
+                                    nanos_current_wd(), NULL, NULL ) );
 
       /* Creating section 4 wd */
       section_data_4->M = D;
@@ -255,7 +255,7 @@ int main ( int argc, char **argv )
       /* slicer data pointer */
       NANOS_SAFE( nanos_create_sliced_wd ( &cwd, 1, main__sections_device,
                                     sizeof(nanos_compound_wd_data_t) + (4) * sizeof(nanos_wd_t), __alignof__(nanos_compound_wd_data_t),
-                                    (void **) &list_of_wds, nanos_current_wd(), slicer, &const_data1.base.props , &dyn_props, 0, NULL ) );
+                                    (void **) &list_of_wds, nanos_current_wd(), slicer, &const_data1.base.props , &dyn_props, 0, NULL, 0, NULL ) );
 
       /* Initializing data */
       //nanos_wd_t *lwd = &list_of_wds->lwd;

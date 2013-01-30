@@ -38,7 +38,40 @@ inline void System::setNumPEs ( int npes ) { _numPEs = npes; }
 
 inline int System::getNumPEs () const { return _numPEs; }
 
-inline unsigned System::getMaxThreads () const { return _targetThreads; }
+inline unsigned System::getMaxThreads () const { return _targetThreads; } 
+
+inline void System::setNumThreads ( int nthreads ) { _numThreads = nthreads; }
+
+inline int System::getNumThreads () const { return _numThreads; }
+
+inline int System::getCpuId ( int idx ) const { 
+   ensure( ( ( idx >= 0 ) && ( idx < _cpu_count ) ), "invalid value for cpu idx" );
+   return _cpu_id[idx]; 
+};
+
+inline int System::getCpuCount () const { return _cpu_count; };
+
+inline int System::checkCpuMask(cpu_set_t *mask){
+
+   int idx = 0;
+   int i = 0;
+   while( i < _cpu_count){
+     ensure( idx < CPU_SETSIZE, "_cpu_count != CPU_COUNT(&_cpu_set)" ); 
+     if(CPU_ISSET(idx, &_cpu_set)){
+       i++;
+     } else {
+       if(CPU_ISSET(idx, mask))
+         return 0;
+     }
+     idx++;
+   }
+   return 1;
+}
+
+inline void System::setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask){
+   ensure( checkCpuMask(mask), "invalid CPU mask set" );
+   sched_setaffinity( pid, cpusetsize, mask);
+}
 
 inline void System::setDeviceStackSize ( int stackSize ) { _deviceStackSize = stackSize; }
 
@@ -72,11 +105,13 @@ inline bool System::getDelayedStart () const { return _delayedStart; }
 
 inline bool System::useYield() const { return _useYield; }
 
-inline int System::getThsPerPE() const { return _thsPerPE; }
-
 inline int System::getTaskNum() const { return _schedStats._totalTasks.value(); }
 
+inline int System::getReadyNum() const { return _schedStats._readyTasks.value(); }
+
 inline int System::getIdleNum() const { return _schedStats._idleThreads.value(); }
+
+inline int System::getRunningTasks() const { return _workers.size() - _schedStats._idleThreads.value(); }
 
 inline void System::setUntieMaster ( bool value ) { _untieMaster = value; }
 inline bool System::getUntieMaster () const { return _untieMaster; }
@@ -85,13 +120,6 @@ inline void System::setSynchronizedStart ( bool value ) { _synchronizedStart = v
 inline bool System::getSynchronizedStart ( void ) const { return _synchronizedStart; }
 
 inline int System::getWorkDescriptorId( void ) { return _atomicWDSeed++; }
-
-inline int System::getReadyNum() const { return _schedStats._readyTasks.value(); }
-
-inline int System::getRunningTasks() const
-{
-   return _workers.size() - _schedStats._idleThreads.value();
-}
 
 inline int System::getNumWorkers() const { return _workers.size(); }
 
@@ -104,10 +132,12 @@ inline void System::setCurrentSocket( int currentSocket ) { _currentSocket = cur
 inline int System::getCoresPerSocket() const { return _coresPerSocket; }
 inline void System::setCoresPerSocket ( int coresPerSocket ) { _coresPerSocket = coresPerSocket; }
 
-inline int System::getBindingId ( int id ) const
+inline int System::getBindingId ( int pe ) const
 {
-   return _bindings[ id ];
+   int tmpId = ( pe * getBindingStride() + getBindingStart() );
+   return getCpuId( ( tmpId + tmpId/_cpu_count ) % _cpu_count );
 }
+
 
 inline void System::setThrottlePolicy( ThrottlePolicy * policy ) { _throttlePolicy = policy; }
 
@@ -229,10 +259,8 @@ inline CacheMap& System::getCacheMap() { return _cacheMap; }
 inline PinnedAllocator& System::getPinnedAllocatorCUDA() { return _pinnedMemoryCUDA; }
 #endif
 
-inline bool System::throttleTask()
-{
-   return _throttlePolicy->throttle();
-}
+inline bool System::throttleTaskIn ( void ) const { return _throttlePolicy->throttleIn(); }
+inline void System::throttleTaskOut ( void ) const { _throttlePolicy->throttleOut(); }
 
 inline void System::threadReady()
 {
