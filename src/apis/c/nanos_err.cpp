@@ -16,7 +16,9 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
+/*! \file nanos_err.cpp
+ *  \brief 
+ */
 #include "nanos.h"
 #include <stdlib.h>
 #include <stdio.h>

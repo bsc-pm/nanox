@@ -16,7 +16,9 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
+/*! \file nanos_sync.cpp
+ *  \brief 
+ */
 #include "workgroup.hpp"
 #include "nanos.h"
 #include "schedule.hpp"
@@ -24,6 +26,11 @@
 #include "synchronizedcondition.hpp"
 #include "instrumentationmodule_decl.hpp"
 #include "instrumentation.hpp"
+
+/*! \defgroup capi_sync C/C++ API: Synchronization services. */
+/*! \addtogroup capi_sync
+ *  \{
+ */
 
 using namespace nanos;
 
@@ -299,3 +306,6 @@ NANOS_API_DEF(nanos_err_t, nanos_memory_fence, (void))
     nanos::memoryFence();
     return NANOS_OK;
 }
+/*!
+ * \}
+ */ 

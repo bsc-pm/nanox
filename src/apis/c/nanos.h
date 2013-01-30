@@ -16,15 +16,32 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
 #ifndef _NANOS_H_
 #define _NANOS_H_
+/*!
+ * \file  nanos.h
+ * \brief Main Nanos++ header file.
+ */
+
+/*!
+ * \mainpage  Nanos++ Runtime Library
+ *
+ * This is the main development page for documenting Nanos++ Runtime Library (Nanos++ RTL).
+ * <p/><br/>
+ * Nanos++ is an extensible Runtime Library designed to serve as a runtime support in parallel environments.
+ * It is mainly used to support OmpSs (an extension to the OpenMP programming model) developed at BSC but it also has modules to support OpenMP and Chapel.
+ * <p/><br/>
+ */
 
 #include <unistd.h>
 #include "nanos-int.h"
 #include "nanos_error.h"
 #include "nanos_c_api_macros.h"
 
+/*! \defgroup capi C/C++ API */
+/*! \addtogroup capi
+ *  \{
+ */
 
 #ifdef _MERCURIUM
 // define API version
@@ -33,8 +50,6 @@
 #pragma nanos interface family(deps_api) version(1001)
 #pragma nanos interface family(copies_api) version(1000)
 #endif
-
-// data types
 
 // C++ types hidden as void *
 typedef void * nanos_wg_t;
@@ -58,10 +73,14 @@ typedef struct {
    void *arch;
 } nanos_constraint_t;
 
-// TODO: move smp to some dependent part
+/*! \todo Move nanos_smp_args_t to some dependent part */
 typedef struct {
    void (*outline) (void *);
 } nanos_smp_args_t;
+
+/*!
+ * \}
+ */ 
 
 #ifdef __cplusplus
 
@@ -166,6 +185,7 @@ NANOS_API_DECL(nanos_err_t, nanos_try_lock, ( nanos_lock_t *lock, bool *result )
 NANOS_API_DECL(nanos_err_t, nanos_destroy_lock, ( nanos_lock_t *lock ));
 
 // Device copies
+NANOS_API_DECL(nanos_err_t, nanos_set_copies, (nanos_wd_t wd, int num_copies, nanos_copy_data_t *copies));
 NANOS_API_DECL(nanos_err_t, nanos_get_addr, ( nanos_copy_id_t copy_id, void **addr, nanos_wd_t cwd ));
 
 NANOS_API_DECL(nanos_err_t, nanos_copy_value, ( void *dst, nanos_copy_id_t copy_id, nanos_wd_t cwd ));

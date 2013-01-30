@@ -206,6 +206,8 @@ namespace nanos
          unsigned int                  _wakeUpQueue;  /**< Queue to wake up to */
          bool                          _implicit;     /**< is a implicit task (in a team) */
 
+         bool                          _copiesNotInChunk; /**< States whether the buffer of the copies is allocated in the chunk of the WD */
+
       private: /* private methods */
          /*! \brief WorkDescriptor copy assignment operator (private)
           */
@@ -244,9 +246,12 @@ namespace nanos
           */
          virtual ~WorkDescriptor()
          {
-            for ( unsigned i = 0; i < _numDevices; i++ ) delete _devices[i];
+             for ( unsigned i = 0; i < _numDevices; i++ ) delete _devices[i];
 
-	    delete _depsDomain;
+             delete _depsDomain;
+
+             if (_copiesNotInChunk)
+                 delete[] _copies;
          }
 
          /*! \brief Has this WorkDescriptor ever run?
@@ -547,6 +552,17 @@ namespace nanos
 
          void setImplicit( bool b = true );
          bool isImplicit( void );
+
+         /*! \brief Set copies for a given WD
+          * We call this when copies cannot be set at creation time of the work descriptor
+          * Note that this should only be done between creation and submit.
+          * This function shall not be called if the workdescriptor already has copies.
+          *
+          * \param numCopies the number of copies. If zero \a copies must be NULL
+          * \param copies Buffer of copy descriptors. The workdescriptor WILL NOT acquire the ownership of the copy as a private buffer
+          * will be allocated instead
+          */
+         void setCopies(size_t numCopies, CopyData * copies);
    };
 
    typedef class WorkDescriptor WD;

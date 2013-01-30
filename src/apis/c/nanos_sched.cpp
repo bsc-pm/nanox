@@ -16,9 +16,16 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
+/*! \file nanos_sched.cpp
+ *  \brief 
+ */
 #include "nanos.h"
 #include "system.hpp"
+
+/*! \defgroup capi_sched C/C++ API: Scheduler services. */
+/*! \addtogroup capi_sched
+ *  \{
+ */
 
 using namespace nanos;
 
@@ -102,3 +109,6 @@ NANOS_API_DEF(nanos_err_t, nanos_scheduler_set_stealing, ( bool value ))
 }
 
 
+/*!
+ * \}
+ */ 
