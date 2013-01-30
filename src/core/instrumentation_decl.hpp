@@ -122,7 +122,7 @@ namespace nanos {
           */
          nanos_event_key_t getId ( void );
 
-         /*! \brief return if the event is enabled 
+         /*! \brief return if the event is enabled
           */
          bool isEnabled ( void );
 
@@ -138,11 +138,11 @@ namespace nanos {
           */
          const std::string getDescription ( void );
 
-         /*! \brief Inserts (or gets) a value into (from) valueMap 
+         /*! \brief Inserts (or gets) a value into (from) valueMap
           */
          nanos_event_value_t registerValue ( const std::string &value, const std::string &description="", bool abort_when_registered=true );
 
-         /*! \brief Inserts (or gets) a value into (from) valueMap 
+         /*! \brief Inserts (or gets) a value into (from) valueMap
           */
          nanos_event_value_t registerValue ( const char *value, const char *description="", bool abort_when_registered=true );
 
@@ -155,11 +155,11 @@ namespace nanos {
           */
          void registerValue ( const char *value, nanos_event_value_t val,
                               const char *description="", bool abort_when_registered=true );
-         /*! \brief Gets a value into (from) valueMap 
+         /*! \brief Gets a value into (from) valueMap
           */
          nanos_event_value_t getValue ( const std::string &value );
 
-         /*! \brief Gets a value into (from) valueMap 
+         /*! \brief Gets a value into (from) valueMap
           */
          nanos_event_value_t getValue ( const char *value );
 
@@ -175,7 +175,7 @@ namespace nanos {
           */
          const std::string getValueDescription ( nanos_event_value_t val );
 
-         /*! \brief Returns the number of registered values 
+         /*! \brief Returns the number of registered values
           */
          size_t getSize( void ) const;
    };
@@ -189,7 +189,7 @@ namespace nanos {
          Atomic<unsigned int> _totalKeys; /**< Total number of keys */
          Lock                 _lock;      /**< Is the _keyMap exclusive lock */
          KeyMap               _keyMap;    /**< Registered Key elements */
-         
+
          /*! \brief InstrumentationDictionary copy constructor (private)
           */
          InstrumentationDictionary ( InstrumentationDictionary &id );
@@ -205,7 +205,7 @@ namespace nanos {
             /* Instrumentation events: In order initialization */
             /* ******************************************** */
 
-            /* 01 */ registerEventKey("api","Nanos Runtime API", true, true, true ); 
+            /* 01 */ registerEventKey("api","Nanos Runtime API", true, true, true );
             registerEventValue("api","find_slicer","nanos_find_slicer()");
             registerEventValue("api","wg_wait_completion","nanos_wg_wait_completion()");
             registerEventValue("api","*_create_sync_cond","nanos_create_xxx_cond()");
@@ -266,13 +266,13 @@ namespace nanos {
 
             /* 13 */ registerEventKey("create-wd-id","Create WD Id:", true);
             /* 14 */ registerEventKey("create-wd-ptr","Create WD pointer:", true);
-            /* 15 */ registerEventKey("wd-num-deps","Create WD num. deps.", true); 
-            /* 16 */ registerEventKey("wd-deps-ptr","Create WD dependence pointer", true); 
+            /* 15 */ registerEventKey("wd-num-deps","Create WD num. deps.", true);
+            /* 16 */ registerEventKey("wd-deps-ptr","Create WD dependence pointer", true);
 
-            /* 17 */ registerEventKey("lock-addr","Lock address", true); 
+            /* 17 */ registerEventKey("lock-addr","Lock address", true);
 
-            /* 18 */ registerEventKey("num-spins","Number of Spins", true); 
-            /* 19 */ registerEventKey("num-yields","Number of Yields", true); 
+            /* 18 */ registerEventKey("num-spins","Number of Spins", true);
+            /* 19 */ registerEventKey("num-yields","Number of Yields", true);
             /* 20 */ registerEventKey("time-yields","Time on Yield (in nsecs)", true);
 
             /* 21 */ registerEventKey("user-funct-location","User Function Location", true);
@@ -327,7 +327,7 @@ namespace nanos {
             /* 31 */ registerEventKey("num-sleeps","Number of Sleep operations", true);
             /* 32 */ registerEventKey("time-sleeps","Time on Sleep (in nsecs)", true);
 
-            /* 33 */ registerEventKey("num-scheds","Number of scheduler operations", true); 
+            /* 33 */ registerEventKey("num-scheds","Number of scheduler operations", true);
             /* 34 */ registerEventKey("time-scheds","Time on scheduler operations (in nsecs)", true);
 
             /* 35 */ registerEventKey("sched-versioning","Versioning scheduler decisions", true);
@@ -351,13 +351,9 @@ namespace nanos {
             registerEventValue("sched-versioning", "NANOS_SCHED_VER_FINDEARLIESTEW_IDLEWORKER", "Found earliest execution worker idle reason" );
 
             /* 36 */ registerEventKey("dependence","Dependence analysis", true); /* System have found a new dependence */
+            /* 37 */ registerEventKey("dep-direction", "Dependence direction", true);
 
-            // FIXME (#702): These two values will be removed once Extrae provide a separate function to specify name and location due right
-            // now we need to use two consecutive values (original values are 11 and 21).
-            /* 37 */ registerEventKey("user-funct-name-2","User Function Name", true); // FIXME: temporary value
-            /* 38 */ registerEventKey("user-funct-location-2","User Function Location", true); // FIXME: temporary value
-            
-            /* 39 */ registerEventKey("wd-priority","Priority of a work descriptor");
+            /* 38 */ registerEventKey("wd-priority","Priority of a work descriptor");
 
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }
@@ -402,11 +398,11 @@ namespace nanos {
          void registerEventValue ( const char *key, const char *value, nanos_event_value_t val,
                                    const char *description="", bool abort_when_registered=true );
 
-         /*! \brief Enable/disable all events in dictionary 
+         /*! \brief Enable/disable all events in dictionary
           */
          void switchAllEvents ( bool on_off );
 
-         /*! \brief Enable/disable all events prefixed with prefix 
+         /*! \brief Enable/disable all events prefixed with prefix
           */
          void switchEventPrefix ( const char *prefix, bool on_off );
 
@@ -425,7 +421,7 @@ namespace nanos {
          /*! \brief Returns ending point of keyMap ( iteration purposes )
           */
          ConstKeyMapIterator endKeyMap ( void );
-         
+
          /*! \brief Returns a Key description for a given key
           */
          const std::string getKeyDescription ( nanos_event_key_t key );
@@ -437,7 +433,7 @@ namespace nanos {
    };
 #endif
 
-   class Instrumentation 
+   class Instrumentation
    {
       public:
          class Event {
@@ -451,7 +447,7 @@ namespace nanos {
 
 
             public:
-               /*! \brief Event default constructor 
+               /*! \brief Event default constructor
                 *
                 *  \see State Burst Point PtP
                 */
@@ -465,7 +461,7 @@ namespace nanos {
                 */
                Event ( nanos_event_type_t type, nanos_event_key_t key, nanos_event_value_t value,
                        nanos_event_domain_t ptp_domain, nanos_event_id_t ptp_id, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF ) :
-                     _type (type), _key(key), _value (value), 
+                     _type (type), _key(key), _value (value),
                      _ptpDomain (ptp_domain), _ptpId (ptp_id), _partner(partner)
                { }
 
@@ -484,11 +480,11 @@ namespace nanos {
 
                /*! \brief Event copy assignment operator
                 */
-               void operator= ( const Event & evt ) 
-               { 
+               void operator= ( const Event & evt )
+               {
                   // self-assignment: ok
-                  if ( this == &evt ) return; 
-                    
+                  if ( this == &evt ) return;
+
                   _type = evt._type;
                   _key = evt._key;
                   _value = evt._value;
@@ -504,7 +500,7 @@ namespace nanos {
 
                /*! \brief Get event type
                 */
-               nanos_event_type_t getType () const; 
+               nanos_event_type_t getType () const;
 
                /*! \brief Get event state
                 */
@@ -551,7 +547,7 @@ namespace nanos {
             public:
               /*! \brief State event constructor
                */
-              State ( nanos_event_type_t type = NANOS_STATE_START, nanos_event_state_value_t state = NANOS_ERROR ) 
+              State ( nanos_event_type_t type = NANOS_STATE_START, nanos_event_state_value_t state = NANOS_ERROR )
                     : Event (type, 0, (nanos_event_value_t) state, (nanos_event_domain_t) 0, (nanos_event_id_t) 0 ) { }
               friend class Instrumentation;
          };
@@ -687,7 +683,7 @@ namespace nanos {
          virtual void addResumeTask( WorkDescriptor &w ) = 0 ;
 
          virtual void addSuspendTask( WorkDescriptor &w, bool last = false ) = 0 ;
-         
+
          /*! \brief Pure virtual functions executed each time runtime wants to add an event
           *
           *  Each of (specific) instrumentation modules have to implement this function in order
@@ -703,7 +699,7 @@ namespace nanos {
          // CORE: high-level instrumentation interface (virtual functions)
 
          /*! \brief Used when creating a work descriptor (initializes instrumentation context associated to a WD)
-          */   
+          */
          virtual void wdCreate( WorkDescriptor* newWD );
 
          /*! \brief Used in work descriptor context switch (oldWD has finished completely its execution
@@ -736,7 +732,7 @@ namespace nanos {
           */
          void createStateEvent ( Event *e, nanos_event_state_value_t state, InstrumentationContextData *icd = NULL );
 
-         /*! \brief Used by higher levels to create a STATE event (value will be previous state in instrumentation context info) 
+         /*! \brief Used by higher levels to create a STATE event (value will be previous state in instrumentation context info)
           *
           *  \param[in,out] e is an event reference, preallocated by the caller
           */
@@ -749,7 +745,7 @@ namespace nanos {
           *
           *  \param[in,out] e is an event reference, preallocated by the caller
           *  \param[in] nkvs is the number of pairs <key,value> related with the new event
-          *  \param[in] key is a vector of nkvs keys 
+          *  \param[in] key is a vector of nkvs keys
           *  \param[in] value is a vector of nkvs  values
           */
          void createPointEvent ( Event *e, nanos_event_key_t key, nanos_event_value_t value );
@@ -763,7 +759,7 @@ namespace nanos {
           *  \param[in] domain specifies a specific domain in which id is a unique value
           *  \param[in] id is a unique id in a given domain context
           *  \param[in] nkvs is the number of pairs <key,value> related with the new event
-          *  \param[in] key is a vector of nkvs keys 
+          *  \param[in] key is a vector of nkvs keys
           *  \param[in] value is a vector of nkvs  values
           *  \param[in] partner is the origin node of the event
           */
@@ -779,7 +775,7 @@ namespace nanos {
           *  \param[in] domain specifies a specific domain in which id is a unique value
           *  \param[in] id is a unique id in a given domain context
           *  \param[in] nkvs is the number of pairs <key,value> related with the new event
-          *  \param[in] key is a vector of nkvs keys 
+          *  \param[in] key is a vector of nkvs keys
           *  \param[in] value is a vector of nkvs  values
           *  \param[in] partner is the destination node of the event
           */
@@ -810,7 +806,7 @@ namespace nanos {
          void raiseCloseBurstEvent ( nanos_event_key_t key );
 
          void raiseOpenPtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF );
-         void raiseClosePtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF ); 
+         void raiseClosePtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF );
 
          void raiseOpenStateAndBurst ( nanos_event_state_value_t state, nanos_event_key_t key, nanos_event_value_t val );
          void raiseCloseStateAndBurst ( nanos_event_key_t key );

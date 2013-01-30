@@ -29,5 +29,6 @@ nextsim_sources = \
 	$(END)
 
 graph_sources = \
+    $(top_srcdir)/src/plugins/instrumentation/graph_utils.hpp \
 	$(top_srcdir)/src/plugins/instrumentation/graph.cpp \
 	$(END)
