@@ -492,7 +492,7 @@ void System::start ()
 
          //_net.setMasterDirectory( mainWD.getDirectory(true) );
          //mainWD.initNewDirectory();
-         _net.setNewMasterDirectory( mainWD.getNewDirectory() );
+         //_net.setNewMasterDirectory( mainWD.getNewDirectory() );
 
       }
       else
@@ -512,7 +512,7 @@ void System::start ()
          //  EXTRA THD _pmInterface->setupWD( smpRepThd1->getThreadWD() );
          //  EXTRA THD _workers.push_back( smpRepThd1 ); 
          //  EXTRA THD //_net.setMasterDirectory( smpRepThd1->getThreadWD().getDirectory(true) );
-         _net.setNewMasterDirectory( mainWD.getNewDirectory() );
+         //_net.setNewMasterDirectory( mainWD.getNewDirectory() );
          setSlaveParentWD( &mainWD );
 #ifdef GPU_DEV
          if ( nanos::ext::GPUConfig::getGPUCount() > 0 ) {

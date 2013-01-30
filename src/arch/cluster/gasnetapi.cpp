@@ -31,11 +31,9 @@
 #include "clusterinfo_decl.hpp"
 #include "clusterdevice_decl.hpp"
 #include "instrumentation.hpp"
-#include "atomic_decl.hpp"
-#include "regiondirectory.hpp"
 #include "osallocator_decl.hpp"
 #include "requestqueue.hpp"
-#include <list>
+#include "atomic.hpp"
 #include <cstddef>
 
 //#define HALF_PRESEND
@@ -98,8 +96,8 @@ GASNetAPI *GASNetAPI::getInstance() {
    return _instance;
 }
 
-GASNetAPI::GASNetAPI() : _net( 0 ), _rwgGPU( 0 ), _rwgSMP( 0 ), _newMasterDir( 0 ), _packSegment( 0 ), _pinnedAllocators(), _pinnedAllocatorsLocks(),
-   _seqN( 0 ), _dataSendRequests(), _freeBufferReqs(), _workDoneReqs(), _delayedPutReqs(), _delayedPutReqsLock(), _rxBytes( 0 ), _txBytes( 0 ), _totalBytes( 0 ) {
+GASNetAPI::GASNetAPI() : _net( 0 ), _rwgGPU( 0 ), _rwgSMP( 0 ), _packSegment( 0 ), _pinnedAllocators(), _pinnedAllocatorsLocks(),
+   _seqN( 0 ), _dataSendRequests(), _freeBufferReqs(), _workDoneReqs(), _rxBytes( 0 ), _txBytes( 0 ), _totalBytes( 0 ) {
    _instance = this;
 }
 
@@ -129,22 +127,6 @@ void GASNetAPI::print_copies( WD const *wd, int deps )
    fprintf(stderr, "\n");
 #endif
 }
-
-// NOT YET IMPLEMENTED void GASNetAPI::delayAmGet( unsigned int dest, void *origTag, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *waitObj ) {
-// NOT YET IMPLEMENTED    struct delayedGetDesc *dgd = NEW struct delayedGetDesc();
-// NOT YET IMPLEMENTED    dgd->dest = dest;
-// NOT YET IMPLEMENTED    dgd->origTag = origTag;
-// NOT YET IMPLEMENTED    dgd->origAddr = origAddr;
-// NOT YET IMPLEMENTED    dgd->destAddr = destAddr;
-// NOT YET IMPLEMENTED    dgd->len = len;
-// NOT YET IMPLEMENTED    dgd->count = count;
-// NOT YET IMPLEMENTED    dgd->ld = ld;
-// NOT YET IMPLEMENTED    dgd->waitObj = waitObj;
-// NOT YET IMPLEMENTED 
-// NOT YET IMPLEMENTED    _delayedGetsLock.acquire();
-// NOT YET IMPLEMENTED    _delayedGets.push_back( dgd );
-// NOT YET IMPLEMENTED    _delayedGetsLock.release();
-// NOT YET IMPLEMENTED }
 
 GASNetAPI::GASNetSendDataRequest::GASNetSendDataRequest( GASNetAPI *api, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld ) :
    SendDataRequest( api, origAddr, destAddr, len, count, ld ), _gasnetApi( api ) {
@@ -356,7 +338,6 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
       fprintf(stderr, "Unsupported architecture\n");
    }
 
-   //if (gasnet_mynode() == 3) { message("n:3 amWork id " << wdId << " seq is " << seq << " recvd seq counter is " << _recvSeqN.value() ); }
    sys.createWD( &localWD, (std::size_t) 1, devPtr, (std::size_t) dataSize, (int) ( sizeof(void *) ), (void **) &data, (WG *)rwg, (nanos_wd_props_t *) NULL, (nanos_wd_dyn_props_t *) NULL, (std::size_t) numCopies, newCopiesPtr, num_dimensions, dimensions_ptr, xlate );
 
    std::memcpy(data, work_data, dataSize);
@@ -560,14 +541,6 @@ void GASNetAPI::amPut( gasnet_token_t token,
    NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( buf ) ; )
    NANOS_INSTRUMENT ( instr->raiseClosePtPEvent( NANOS_XFER_PUT, id, sizeKey, xferSize, src_node ); )
 
-   if ( firstMsg )
-   {
-      //fprintf(stderr, "[%d] BEGIN amPut to node %d, from %d, local (maybe tmp) addr %p, realTag %p, realAddr (local) %p  data is %f\n", myThread->getId(),  gasnet_mynode(), src_node, buf, realTag, realAddr, *((float *)buf));
-      if ( sys.getNetwork()->doIHaveToCheckForDataInOtherAddressSpaces() ) {
-         invalidateDataFromDevice( (uint64_t) realTag, totalLen );
-         //fprintf(stderr, "im node %d and im invalidateDataFromDevice @ %s, addr %p, %f\n", gasnet_mynode(), __FUNCTION__, realTag, *((double *)buf));
-      }
-   }
    if ( realAddr != NULL )
    {
       ::memcpy( realAddr, buf, len );
@@ -616,13 +589,6 @@ void GASNetAPI::amPutStrided1D( gasnet_token_t token,
    NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( buf ) ; )
    NANOS_INSTRUMENT ( instr->raiseClosePtPEvent( NANOS_XFER_PUT, id, sizeKey, xferSize, src_node ); )
 
-   if ( firstMsg )
-   {
-      if ( sys.getNetwork()->doIHaveToCheckForDataInOtherAddressSpaces() ) {
-         std::cerr <<"Unsupported for now"<<std::endl;
-         //invalidateDataFromDevice( (uint64_t) realTag, totalLen );
-      }
-   }
    if ( lastMsg )
    {
       char* realAddrPtr = (char *) realTag;
@@ -1283,9 +1249,6 @@ void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *local
    else
 #endif
    {
-      if ( sys.getNetwork()->doIHaveToCheckForDataInOtherAddressSpaces() && gasnet_mynode() > 0) {
-         getDataFromDevice( (uint64_t) localAddr, size );
-      }
       while ( sent < size )
       {
          thisReqSize = ( ( size - sent ) <= gasnet_AMMaxLongRequest() ) ? size - sent : gasnet_AMMaxLongRequest();
@@ -1334,10 +1297,6 @@ void GASNetAPI::_putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, vo
    _txBytes += realSize;
    _totalBytes += realSize;
    {
-      if ( sys.getNetwork()->doIHaveToCheckForDataInOtherAddressSpaces() && gasnet_mynode() > 0) {
-         std::cerr << "ERROR, not supported yet" << std::endl;
-         getDataFromDevice( (uint64_t) localAddr, size );
-      }
       while ( sent < realSize )
       {
          thisReqSize = ( ( realSize - sent ) <= gasnet_AMMaxLongRequest() ) ? realSize - sent : gasnet_AMMaxLongRequest();
@@ -1632,10 +1591,10 @@ void GASNetAPI::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, u
    NANOS_INSTRUMENT( inst2.close(); );
 }
 
-void GASNetAPI::setNewMasterDirectory(NewRegionDirectory *dir)
-{
-   _newMasterDir = dir;
-}
+//void GASNetAPI::setNewMasterDirectory(NewRegionDirectory *dir)
+//{
+//   _newMasterDir = dir;
+//}
 
 void GASNetAPI::sendWaitForRequestPut( unsigned int dest, uint64_t addr )
 {
@@ -1682,39 +1641,7 @@ std::size_t GASNetAPI::getTotalBytes()
    return _totalBytes;
 }
 
-void GASNetAPI::getDataFromDevice( uint64_t addr, std::size_t len ) {
-   NewDirectory::LocationInfoList locations;
-   unsigned int currentVersion;
-   nanos_region_dimension_internal_t aDimension = { len, 0, len };
-   CopyData cd( addr, NANOS_SHARED, true, true, 1, &aDimension, 0);
-   Region reg = NewRegionDirectory::build_region( cd );
-   getInstance()->_newMasterDir->lock();
-   getInstance()->_newMasterDir->masterGetLocation( reg, locations, currentVersion ); 
-   getInstance()->_newMasterDir->addAccess( reg, 0, currentVersion ); 
-   getInstance()->_newMasterDir->unlock();
-   for ( NewDirectory::LocationInfoList::iterator it = locations.begin(); it != locations.end(); it++ ) {
-      if (!it->second.isLocatedIn( 0 ) ) { 
-         unsigned int loc = it->second.getFirstLocation();
-         //std::cerr << "Houston, we have a problem, data is not in Host and we need it back. HostAddr: " << (void *) (((it->first)).getFirstValue()) << it->second << std::endl;
-         sys.getCaches()[ loc ]->syncRegion( it->first /*, it->second.getAddressOfLocation( loc )*/ );
-         //std::cerr <<"[" << gasnet_mynode() << "] Sync data to host mem, got " << *((double *) it->first.getFirstValue())<< " addr is " << (void *) it->first.getFirstValue() << std::endl;
-      }
-     //else { /*if ( sys.getNetwork()->getNodeNum() == 0)*/ std::cerr << "["<<sys.getNetwork()->getNodeNum()<<"]  All ok, checked directory " << _newMasterDir  <<" location is " << it->second << std::endl; }
-   }
-}
 
-void GASNetAPI::invalidateDataFromDevice( uint64_t addr, std::size_t len ) {
-   NewDirectory::LocationInfoList locations;
-   unsigned int currentVersion;
-   nanos_region_dimension_internal_t aDimension = { len, 0, len };
-   CopyData cd( addr, NANOS_SHARED, true, true, 1, &aDimension, 0);
-   Region reg = NewRegionDirectory::build_region( cd );
-   getInstance()->_newMasterDir->lock();
-   //getInstance()->_newMasterDir->masterRegisterAccess( reg, true, true /* will increase version number */, 0, addr /*this is currently unused */, locations );
-   getInstance()->_newMasterDir->masterGetLocation( reg, locations, currentVersion ); 
-   getInstance()->_newMasterDir->addAccess( reg, 0, currentVersion + 1 ); 
-   getInstance()->_newMasterDir->unlock();
-}
 
 SimpleAllocator *GASNetAPI::getPackSegment() const {
    return _packSegment;

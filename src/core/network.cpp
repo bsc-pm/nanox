@@ -291,13 +291,13 @@ void Network::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, uns
    }
 }
 
-void Network::setNewMasterDirectory(NewRegionDirectory *dir)
-{
-   if ( _api != NULL) 
-   {
-      _api->setNewMasterDirectory( dir );
-   }
-}
+//void Network::setNewMasterDirectory(NewRegionDirectory *dir)
+//{
+//   if ( _api != NULL) 
+//   {
+//      _api->setNewMasterDirectory( dir );
+//   }
+//}
 
 std::size_t Network::getTotalBytes()
 {
@@ -458,30 +458,33 @@ void Network::checkDeferredWorkReqs()
 }
 
 void Network::notifyPut( unsigned int from, unsigned int wdId, std::size_t totalLen, uint64_t realTag ) {
+   // TODO if ( doIHaveToCheckForDataInOtherAddressSpaces() ) {
+   // TODO    invalidateDataFromDevice( (uint64_t) realTag, totalLen );
+   // TODO }
    _recvWdData.addData( wdId, totalLen );
-      if ( from != 0 ) { /* check for delayed putReqs or gets */
-         _waitingPutRequestsLock.acquire();
-         std::set<void *>::iterator it;
-         if ( ( it = _waitingPutRequests.find( (void*)realTag ) ) != _waitingPutRequests.end() )
-         {
-            void *destAddr = *it;
-            _waitingPutRequests.erase( it );
-            _delayedPutReqsLock.acquire();
-            if ( !_delayedPutReqs.empty() ) {
-               for ( std::list<SendDataRequest *>::iterator putReqsIt = _delayedPutReqs.begin(); putReqsIt != _delayedPutReqs.end(); putReqsIt++ ) {
-                  if ( (*putReqsIt)->getOrigAddr() == destAddr ) {
-                     _dataSendRequests.add( *putReqsIt );
-                  }
+   if ( from != 0 ) { /* check for delayed putReqs or gets */
+      _waitingPutRequestsLock.acquire();
+      std::set<void *>::iterator it;
+      if ( ( it = _waitingPutRequests.find( (void*)realTag ) ) != _waitingPutRequests.end() )
+      {
+         void *destAddr = *it;
+         _waitingPutRequests.erase( it );
+         _delayedPutReqsLock.acquire();
+         if ( !_delayedPutReqs.empty() ) {
+            for ( std::list<SendDataRequest *>::iterator putReqsIt = _delayedPutReqs.begin(); putReqsIt != _delayedPutReqs.end(); putReqsIt++ ) {
+               if ( (*putReqsIt)->getOrigAddr() == destAddr ) {
+                  _dataSendRequests.add( *putReqsIt );
                }
             }
-            _delayedPutReqsLock.release();
          }
-         else
-         {
-            _receivedUnmatchedPutRequests.insert( (void *) realTag );
-         }
-         _waitingPutRequestsLock.release();
+         _delayedPutReqsLock.release();
       }
+      else
+      {
+         _receivedUnmatchedPutRequests.insert( (void *) realTag );
+      }
+      _waitingPutRequestsLock.release();
+   }
 }
 
 void Network::notifyRequestPut( SendDataRequest *req ) {
@@ -522,10 +525,10 @@ void Network::notifyGet( SendDataRequest *req ) {
    } //else { message("addr " << tagAddr << " not found at waiting list");}
    _waitingPutRequestsLock.release();
 
-   //if ( sys.getNetwork()->doIHaveToCheckForDataInOtherAddressSpaces() ) {
-   //   getDataFromDevice( (uint64_t) origAddr, len*count );
-   //   //fprintf(stderr, "im node %d and im getDataFromDevice @ %s, sent data is %f, addr %p\n", gasnet_mynode(), __FUNCTION__, *data, tagAddr);
-   //}
+   // TODO if ( doIHaveToCheckForDataInOtherAddressSpaces() ) {
+   // TODO    getDataFromDevice( (uint64_t) req->origAddr, len*count );
+   // TODO    //fprintf(stderr, "im node %d and im getDataFromDevice @ %s, sent data is %f, addr %p\n", gasnet_mynode(), __FUNCTION__, *data, tagAddr);
+   // TODO }
 
    _api->processSendDataRequest( req );
 }
@@ -538,6 +541,9 @@ SendDataRequest::~SendDataRequest() {
 }
 
 void SendDataRequest::doSend() {
+   // TODO if ( doIHaveToCheckForDataInOtherAddressSpaces() && getNodeNum() > 0) {
+   // TODO    getDataFromDevice( (uint64_t) localAddr, size );
+   // TODO }
    if ( _ld == 0 ) {
       //NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
       //NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_IN, key, (nanos_event_value_t) _len) );
@@ -566,4 +572,38 @@ void SendDataRequest::doSend() {
 }
 void *SendDataRequest::getOrigAddr() const {
    return _origAddr;
+}
+
+void Network::invalidateDataFromDevice( uint64_t addr, std::size_t len ) {
+   //NewDirectory::LocationInfoList locations;
+   //unsigned int currentVersion;
+   //nanos_region_dimension_internal_t aDimension = { len, 0, len };
+   //CopyData cd( addr, NANOS_SHARED, true, true, 1, &aDimension, 0);
+   //Region reg = NewRegionDirectory::build_region( cd );
+   //getInstance()->_newMasterDir->lock();
+   ////getInstance()->_newMasterDir->masterRegisterAccess( reg, true, true /* will increase version number */, 0, addr /*this is currently unused */, locations );
+   //getInstance()->_newMasterDir->masterGetLocation( reg, locations, currentVersion ); 
+   //getInstance()->_newMasterDir->addAccess( reg, 0, currentVersion + 1 ); 
+   //getInstance()->_newMasterDir->unlock();
+}
+
+void Network::getDataFromDevice( uint64_t addr, std::size_t len ) {
+   //NewDirectory::LocationInfoList locations;
+   //unsigned int currentVersion;
+   //nanos_region_dimension_internal_t aDimension = { len, 0, len };
+   //CopyData cd( addr, NANOS_SHARED, true, true, 1, &aDimension, 0);
+   //Region reg = NewRegionDirectory::build_region( cd );
+   //getInstance()->_newMasterDir->lock();
+   //getInstance()->_newMasterDir->masterGetLocation( reg, locations, currentVersion ); 
+   //getInstance()->_newMasterDir->addAccess( reg, 0, currentVersion ); 
+   //getInstance()->_newMasterDir->unlock();
+   //for ( NewDirectory::LocationInfoList::iterator it = locations.begin(); it != locations.end(); it++ ) {
+   //   if (!it->second.isLocatedIn( 0 ) ) { 
+   //      unsigned int loc = it->second.getFirstLocation();
+   //      //std::cerr << "Houston, we have a problem, data is not in Host and we need it back. HostAddr: " << (void *) (((it->first)).getFirstValue()) << it->second << std::endl;
+   //      sys.getCaches()[ loc ]->syncRegion( it->first /*, it->second.getAddressOfLocation( loc )*/ );
+   //      //std::cerr <<"[" << gasnet_mynode() << "] Sync data to host mem, got " << *((double *) it->first.getFirstValue())<< " addr is " << (void *) it->first.getFirstValue() << std::endl;
+   //   }
+   //  //else { /*if ( sys.getNetwork()->getNodeNum() == 0)*/ std::cerr << "["<<sys.getNetwork()->getNodeNum()<<"]  All ok, checked directory " << _newMasterDir  <<" location is " << it->second << std::endl; }
+   //}
 }
