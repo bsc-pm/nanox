@@ -17,13 +17,12 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_REMOTE_WORK_GROUP_FWD_H
-#define _NANOS_REMOTE_WORK_GROUP_FWD_H
+#ifndef _REMOTEWORKGROUP_FWD
+#define _REMOTEWORKGROUP_FWD
 
 namespace nanos
 {
    class RemoteWorkGroup;
 };
 
-#endif
-
+#endif /* _REMOTEWORKGROUP_FWD */

@@ -18,8 +18,8 @@
 /*************************************************************************************/
 
 
-#ifndef _GASNET_API
-#define _GASNET_API
+#ifndef _GASNETAPI_DECL
+#define _GASNETAPI_DECL
 
 #include "networkapi.hpp"
 #include "network_decl.hpp"
@@ -270,4 +270,4 @@ namespace ext {
    };
 }
 }
-#endif
+#endif /* _GASNETAPI_DECL */

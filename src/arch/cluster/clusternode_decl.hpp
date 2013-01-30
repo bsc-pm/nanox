@@ -17,8 +17,8 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_CLUSTER_NODE
-#define _NANOS_CLUSTER_NODE
+#ifndef _CLUSTERNODE_DECL
+#define _CLUSTERNODE_DECL
 
 #include "config.hpp"
 #include "simpleallocator_decl.hpp"
@@ -29,7 +29,7 @@
 //FIXME: GPU support
 #include "gpudd.hpp"
 #endif
-#include "cachedaccelerator.hpp"
+#include "cachedaccelerator_decl.hpp"
 
 namespace nanos {
    namespace ext {
@@ -77,4 +77,4 @@ namespace nanos {
    }
 }
 
-#endif
+#endif /* _CLUSTERNODE_DECL */

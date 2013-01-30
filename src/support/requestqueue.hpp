@@ -1,5 +1,5 @@
-#ifndef REQUESTQUEUE_H
-#define REQUESTQUEUE_H
+#ifndef _REQUESTQUEUE
+#define _REQUESTQUEUE
 
 #include "requestqueue_decl.hpp"
 #include "atomic.hpp"
@@ -80,4 +80,4 @@ T *RequestMap<T>::fetch( uint64_t key ) {
    _lock.release();
 }
 
-#endif /* REQUESTQUEUE_H */
+#endif /* _REQUESTQUEUE */

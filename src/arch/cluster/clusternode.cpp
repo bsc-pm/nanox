@@ -22,6 +22,7 @@
 #include "clusterthread_decl.hpp"
 #include "debug.hpp"
 #include "schedule.hpp"
+#include "cachedaccelerator.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;

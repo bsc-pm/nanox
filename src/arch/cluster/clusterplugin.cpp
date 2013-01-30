@@ -22,7 +22,6 @@
 #include "gasnetapi_decl.hpp"
 #include "clusterinfo_decl.hpp"
 
-
 namespace nanos {
 namespace ext {
 
@@ -43,11 +42,7 @@ class ClusterPlugin : public Plugin
          sys.getNetwork()->setAPI(&_gasnetApi);
          sys.getNetwork()->initialize();
 
-         //if (sys.getNetwork()->getNodeNum() == 0)
-         //{
-            //ClusterInfo::setExtraPEsCount( sys.getNetwork()->getNumNodes() ); // we have num_nodes-1 "soft" threads, and 1 "container" thread
-            ClusterInfo::setExtraPEsCount( 1 ); // We will use 1 paraver thread only to represent the soft-threads and the container. (extrae_get_thread_num must be coded acordingly
-         //}
+         ClusterInfo::setExtraPEsCount( 1 ); // We will use 1 paraver thread only to represent the soft-threads and the container. (extrae_get_thread_num must be coded acordingly
       }
 };
 

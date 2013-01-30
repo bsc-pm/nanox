@@ -22,6 +22,7 @@
 #include "basethread.hpp"
 #include "debug.hpp"
 #include "system.hpp"
+#include "network_decl.hpp"
 #include "clusternode_decl.hpp"
 #include "deviceops.hpp"
 #include <iostream>

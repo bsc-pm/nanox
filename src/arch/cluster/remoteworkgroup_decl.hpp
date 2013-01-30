@@ -17,8 +17,8 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_REMOTE_WORK_GROUP_DECL_H
-#define _NANOS_REMOTE_WORK_GROUP_DECL_H
+#ifndef _REMOTEWORKGROUP_DECL
+#define _REMOTEWORKGROUP_DECL
 
 #include "workgroup_decl.hpp"
 namespace nanos
@@ -34,4 +34,4 @@ namespace nanos
 
 };
 
-#endif
+#endif /* _REMOTEWORKGROUP_DECL */

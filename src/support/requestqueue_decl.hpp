@@ -1,5 +1,5 @@
-#ifndef REQUESTQUEUE_DECL_H
-#define REQUESTQUEUE_DECL_H
+#ifndef _REQUESTQUEUE_DECL
+#define _REQUESTQUEUE_DECL
 #include <list>
 #include <map>
 #include "atomic_decl.hpp"
@@ -28,4 +28,4 @@ class RequestMap {
    T *tryFetch( uint64_t key );
 };
 }
-#endif /* REQUESTQUEUE_DECL_H */
+#endif /* _REQUESTQUEUE_DECL */

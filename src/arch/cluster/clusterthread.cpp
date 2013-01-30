@@ -23,6 +23,7 @@
 #include "clusternode_decl.hpp"
 #include "system_decl.hpp"
 #include "workdescriptor_decl.hpp"
+#include "smpthread.hpp"
 
 using namespace nanos;
 using namespace ext;
@@ -70,7 +71,8 @@ void ClusterThread::RunningWDQueue::completeWD( void *remoteWdAddr ) {
    _numRunning--;
 }
 
-ClusterThread::ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : SMPThread( w, pe, parent ), _clusterNode( device ) {
+//ClusterThread::ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : SMPThread( w, pe, parent ), _clusterNode( device ) {
+ClusterThread::ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : BaseThread( w, pe, parent ), _clusterNode( device ) {
    setCurrentWD( w );
 }
 
@@ -120,13 +122,9 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
       memcpy( &buff[ 0 ], wd.getData(), wd.getDataSize() );
    }
 
-   // Set the number of copies
    *((int *) &buff[ wd.getDataSize() ] ) = wd.getNumCopies();
-
-   // Set the number of dimensions
    *((int *) &buff[ wd.getDataSize() + sizeof( int ) + wd.getNumCopies() * sizeof( CopyData ) ] ) = totalDimensions;
 
-   // Copy CopyData and dimension entries
    CopyData *newCopies = ( CopyData * ) ( buff + wd.getDataSize() + sizeof( int ) );
    nanos_region_dimension_internal_t *dimensions = ( nanos_region_dimension_internal_t * ) ( buff + wd.getDataSize() + sizeof( int ) + wd.getNumCopies() * sizeof( CopyData ) + sizeof( int ) );
    
@@ -135,17 +133,11 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
       new ( &newCopies[i] ) CopyData( wd.getCopies()[i] );
       memcpy( &dimensions[ dimensionIndex ], wd.getCopies()[i].getDimensions(), sizeof( nanos_region_dimension_internal_t ) * wd.getCopies()[i].getNumDimensions());
       newCopies[i].setDimensions( ( nanos_region_dimension_internal_t const *  ) dimensionIndex ); // This is the index because it makes no sense to send an address over the network
-      //newCopies[i].setBaseAddress( pe->getAddress( wd, wd.getCopies()[i].getAddress(), newCopies[i].getSharing() ) );
       newCopies[i].setBaseAddress( (void *) ( wd._ccontrol.getAddress( i ) - wd.getCopies()[i].getOffset() ) );
-      //message( "New get address: " << (void *) wd._ccontrol.getAddress( i) );
       dimensionIndex += wd.getCopies()[i].getNumDimensions();
    }
 
    //std::cerr << "run remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << " data size is " << wd.getDataSize() << " copies " << wd.getNumCopies() << " dimensions " << dimensionIndex << std::endl;
-   //NANOS_INSTRUMENT ( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("user-code") );
-   //NANOS_INSTRUMENT ( nanos_event_value_t val = wd.getId() );
-   //NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_RUNNING, key, val ) );
-
 
 #ifdef GPU_DEV
    int arch = -1;
@@ -255,3 +247,10 @@ void ClusterThread::idle()
 bool ClusterThread::isCluster() {
    return true;
 }
+
+void ClusterThread::switchTo( WD *work, SchedulerHelper *helper ) {}
+void ClusterThread::exitTo( WD *work, SchedulerHelper *helper ) {}
+void ClusterThread::switchHelperDependent( WD* oldWD, WD* newWD, void *arg ) {}
+void ClusterThread::exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) {}
+void ClusterThread::initializeDependent( void ) {}
+void ClusterThread::switchToNextThread() {}

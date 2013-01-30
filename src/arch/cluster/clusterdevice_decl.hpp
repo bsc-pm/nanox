@@ -21,7 +21,6 @@
 #define _CLUSTERDEVICE_DECL
 
 #include "workdescriptor_decl.hpp"
-#include "copydescriptor_decl.hpp"
 #include "packer_decl.hpp"
 
 namespace nanos
@@ -63,7 +62,6 @@ namespace nanos
             virtual void clear();
          };
 
-
          /*! \brief ClusterDevice constructor
           */
          ClusterDevice ( const char *n );
@@ -86,9 +84,6 @@ namespace nanos
    };
 
    extern ClusterDevice Cluster;
-
 }
 }
-
-
-#endif
+#endif /* _CLUSTERDEVICE_DECL */

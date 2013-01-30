@@ -17,11 +17,12 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_GPU_THREAD
-#define _NANOS_GPU_THREAD
+#ifndef _CLUSTERTHREAD_DECL
+#define _CLUSTERTHREAD_DECL
 
-#include "smpthread.hpp"
-#include "wddeque.hpp"
+//#include "smpthread.hpp"
+#include "basethread_decl.hpp"
+//#include "wddeque.hpp"
 
 #define MAX_PRESEND 1024
 
@@ -29,7 +30,7 @@ namespace nanos {
 namespace ext
 {
 
-   class ClusterThread : public SMPThread
+   class ClusterThread : public BaseThread
    {
       private:
 
@@ -83,10 +84,19 @@ namespace ext
 
       virtual void notifyOutlinedCompletionDependent( WD *completedWD ); 
       virtual bool isCluster();
+
+
+         virtual void switchTo( WD *work, SchedulerHelper *helper );
+         virtual void exitTo( WD *work, SchedulerHelper *helper );
+         virtual void switchHelperDependent( WD* oldWD, WD* newWD, void *arg );
+         virtual void exitHelperDependent( WD* oldWD, WD* newWD, void *arg );
+         virtual void initializeDependent( void );
+
+         virtual void switchToNextThread();
    };
 
 
 }
 }
 
-#endif
+#endif /* _CLUSTERTHREAD_DECL */

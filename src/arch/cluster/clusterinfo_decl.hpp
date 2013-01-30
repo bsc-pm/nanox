@@ -1,5 +1,5 @@
-#ifndef _CLUSTER_INFO
-#define _CLUSTER_INFO
+#ifndef _CLUSTERINFO_DECL
+#define _CLUSTERINFO_DECL
 
 #include <iostream>
 #include "config_decl.hpp"
@@ -49,4 +49,4 @@ namespace nanos {
    }
 }
 
-#endif
+#endif /* _CLUSTERINFO_DECL */
