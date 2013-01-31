@@ -457,11 +457,11 @@ void Network::checkDeferredWorkReqs()
    }
 }
 
-void Network::notifyPut( unsigned int from, unsigned int wdId, std::size_t totalLen, uint64_t realTag ) {
+void Network::notifyPut( unsigned int from, unsigned int wdId, std::size_t len, std::size_t count, std::size_t ld, uint64_t realTag ) {
    // TODO if ( doIHaveToCheckForDataInOtherAddressSpaces() ) {
-   // TODO    invalidateDataFromDevice( (uint64_t) realTag, totalLen );
+   // TODO    invalidateDataFromDevice( (uint64_t) realTag, len, count, ld );
    // TODO }
-   _recvWdData.addData( wdId, totalLen );
+   _recvWdData.addData( wdId, len*count );
    if ( from != 0 ) { /* check for delayed putReqs or gets */
       _waitingPutRequestsLock.acquire();
       std::set<void *>::iterator it;
@@ -525,11 +525,6 @@ void Network::notifyGet( SendDataRequest *req ) {
    } //else { message("addr " << tagAddr << " not found at waiting list");}
    _waitingPutRequestsLock.release();
 
-   // TODO if ( doIHaveToCheckForDataInOtherAddressSpaces() ) {
-   // TODO    getDataFromDevice( (uint64_t) req->origAddr, len*count );
-   // TODO    //fprintf(stderr, "im node %d and im getDataFromDevice @ %s, sent data is %f, addr %p\n", gasnet_mynode(), __FUNCTION__, *data, tagAddr);
-   // TODO }
-
    _api->processSendDataRequest( req );
 }
 
@@ -541,8 +536,8 @@ SendDataRequest::~SendDataRequest() {
 }
 
 void SendDataRequest::doSend() {
-   // TODO if ( doIHaveToCheckForDataInOtherAddressSpaces() && getNodeNum() > 0) {
-   // TODO    getDataFromDevice( (uint64_t) localAddr, size );
+   // TODO if ( doIHaveToCheckForDataInOtherAddressSpaces() ) {
+   // TODO    getDataFromDevice( (uint64_t) _origAddr, _len, _count, _ld );
    // TODO }
    if ( _ld == 0 ) {
       //NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
@@ -574,7 +569,7 @@ void *SendDataRequest::getOrigAddr() const {
    return _origAddr;
 }
 
-void Network::invalidateDataFromDevice( uint64_t addr, std::size_t len ) {
+void Network::invalidateDataFromDevice( uint64_t addr, std::size_t len, std::size_t count, std::size_t ld ) {
    //NewDirectory::LocationInfoList locations;
    //unsigned int currentVersion;
    //nanos_region_dimension_internal_t aDimension = { len, 0, len };
@@ -587,7 +582,7 @@ void Network::invalidateDataFromDevice( uint64_t addr, std::size_t len ) {
    //getInstance()->_newMasterDir->unlock();
 }
 
-void Network::getDataFromDevice( uint64_t addr, std::size_t len ) {
+void Network::getDataFromDevice( uint64_t addr, std::size_t len, std::size_t count, std::size_t ld ) {
    //NewDirectory::LocationInfoList locations;
    //unsigned int currentVersion;
    //nanos_region_dimension_internal_t aDimension = { len, 0, len };

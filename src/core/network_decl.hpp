@@ -26,22 +26,22 @@
 #include "networkapi.hpp"
 
 namespace nanos {
-         class SendDataRequest {
-            protected:
-            NetworkAPI *_api;
-            void *_origAddr;
-            void *_destAddr;
-            std::size_t _len;
-            std::size_t _count;
-            std::size_t _ld;
-            public:
-            SendDataRequest( NetworkAPI *api, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld );
-            virtual ~SendDataRequest();
-            void doSend();
-            void *getOrigAddr() const;
-            virtual void doSingleChunk() = 0;
-            virtual void doStrided( void *localAddr ) = 0;
-         };
+   class SendDataRequest {
+      protected:
+         NetworkAPI *_api;
+         void *_origAddr;
+         void *_destAddr;
+         std::size_t _len;
+         std::size_t _count;
+         std::size_t _ld;
+      public:
+         SendDataRequest( NetworkAPI *api, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld );
+         virtual ~SendDataRequest();
+         void doSend();
+         void *getOrigAddr() const;
+         virtual void doSingleChunk() = 0;
+         virtual void doStrided( void *localAddr ) = 0;
+   };
 
    class Network
    {
@@ -66,11 +66,11 @@ namespace nanos {
                Lock _lock;
                Atomic<unsigned int> _receivedWDs;
             public:
-            ReceivedWDData();
-            ~ReceivedWDData();
-            void addData( unsigned int wdId, std::size_t size );
-            void addWD( unsigned int wdId, WorkDescriptor *wd, std::size_t expectedData );
-            unsigned int getReceivedWDsCount() const;
+               ReceivedWDData();
+               ~ReceivedWDData();
+               void addData( unsigned int wdId, std::size_t size );
+               void addWD( unsigned int wdId, WorkDescriptor *wd, std::size_t expectedData );
+               unsigned int getReceivedWDsCount() const;
          };
 
          class SentWDData {
@@ -78,10 +78,10 @@ namespace nanos {
                std::map< unsigned int, std::size_t > _sentWdDataMap;
                Lock _lock;
             public:
-            SentWDData();
-            ~SentWDData();
-            void addSentData( unsigned int wdId, std::size_t sentData );
-            std::size_t getSentData( unsigned int wdId );
+               SentWDData();
+               ~SentWDData();
+               void addSentData( unsigned int wdId, std::size_t sentData );
+               std::size_t getSentData( unsigned int wdId );
          };
 
          ReceivedWDData _recvWdData;
@@ -146,7 +146,6 @@ namespace nanos {
          const char * getMasterHostname( void ) const;
          void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const &wd );
          void sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd );
-         //void setNewMasterDirectory(NewRegionDirectory *dir);
          std::size_t getTotalBytes();
          void mallocSlaves ( void **addresses, std::size_t size );
 
@@ -154,8 +153,8 @@ namespace nanos {
          static Atomic<uint64_t> _nodeRCAaddr;
          static Atomic<uint64_t> _nodeRCAaddrOther;
 
-	 void enableCheckingForDataInOtherAddressSpaces();
-	 bool doIHaveToCheckForDataInOtherAddressSpaces() const;
+         void enableCheckingForDataInOtherAddressSpaces();
+         bool doIHaveToCheckForDataInOtherAddressSpaces() const;
 
          SimpleAllocator *getPackerAllocator() const;
          std::size_t getMaxGetStridedLen() const;
@@ -164,12 +163,12 @@ namespace nanos {
          void freeReceiveMemory( void * addr );
 
          void notifyWork( std::size_t expectedData, WD *delayedWD, unsigned int delayedSeq);
-         void notifyPut( unsigned int from, unsigned int wdId, std::size_t totalLen, uint64_t realTag );
+         void notifyPut( unsigned int from, unsigned int wdId, std::size_t len, std::size_t count, std::size_t ld, uint64_t realTag );
          void notifyWaitRequestPut( void *addr );
          void notifyRequestPut( SendDataRequest *req );
          void notifyGet( SendDataRequest *req );
-void invalidateDataFromDevice( uint64_t addr, std::size_t len );
-void getDataFromDevice( uint64_t addr, std::size_t len );
+         void invalidateDataFromDevice( uint64_t addr, std::size_t len, std::size_t count, std::size_t ld );
+         void getDataFromDevice( uint64_t addr, std::size_t len, std::size_t count, std::size_t ld );
    };
 }
 

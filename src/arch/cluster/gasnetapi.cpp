@@ -549,7 +549,7 @@ void GASNetAPI::amPut( gasnet_token_t token,
    {
       uintptr_t localAddr =  ( ( uintptr_t ) buf ) - ( ( uintptr_t ) realAddr - ( uintptr_t ) realTag );
       getInstance()->enqueueFreeBufferNotify( ( void * ) localAddr, wd );
-      getInstance()->_net->notifyPut( src_node, wdId, totalLen, (uint64_t) realTag );
+      getInstance()->_net->notifyPut( src_node, wdId, totalLen, 1, 0, (uint64_t) realTag );
    }
    VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
 }
@@ -600,7 +600,7 @@ void GASNetAPI::amPutStrided1D( gasnet_token_t token,
       NANOS_INSTRUMENT( inst2.close(); );
       uintptr_t localAddr = ( ( uintptr_t ) buf ) + ( ( uintptr_t ) len ) - ( uintptr_t ) totalLen;
       getInstance()->enqueueFreeBufferNotify( ( void * ) localAddr, wd );
-      getInstance()->_net->notifyPut( src_node, wdId, totalLen, (uint64_t)realTag );
+      getInstance()->_net->notifyPut( src_node, wdId, size, count, ld, (uint64_t)realTag );
    }
    VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
 }
