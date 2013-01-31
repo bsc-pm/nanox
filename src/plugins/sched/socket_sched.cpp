@@ -745,6 +745,8 @@ namespace nanos {
                if ( depth != HWLOC_TYPE_DEPTH_UNKNOWN ) {
                   _numSockets = hwloc_get_nbobjs_by_depth(topology, depth);
                }
+               else
+                  _numSockets = 1;
                
                depth = hwloc_get_type_depth( topology, HWLOC_OBJ_CORE );
                if ( depth != HWLOC_TYPE_DEPTH_UNKNOWN ) {
