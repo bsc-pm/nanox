@@ -11,12 +11,15 @@ namespace ext {
 class OpenCLThread : public SMPThread
 {
 private:
+   bool _wdClosingEvents; //! controls whether an instrumentation event should be generated at WD completion
+   
    OpenCLThread( const OpenCLThread &thr ); // Do not implement.
    const OpenCLThread &operator=( const OpenCLThread &thr ); // Do not implement.
    
    WD * getNextTask ( WD &wd );
    void prefetchNextTask( WD * next );
-
+   void raiseWDClosingEvents ();
+   
 public:
    OpenCLThread( WD &wd, PE *pe ) : SMPThread( wd, pe ) {}
    ~OpenCLThread() {}
@@ -26,6 +29,7 @@ public:
    bool inlineWorkDependent( WD &wd );
    void yield();
    void idle();
+   void enableWDClosingEvents ();
 
 private:
 

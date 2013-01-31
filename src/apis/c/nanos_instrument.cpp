@@ -28,6 +28,11 @@
 #include "gputhread_decl.hpp"
 #endif
 
+#ifdef OpenCL_DEV
+#include "openclthread_decl.hpp"
+#endif
+
+
 /*! \defgroup capi_instrument C/C++ API: Instrumentation services. */
 /*! \addtogroup capi_instrument
  *  \{
@@ -156,6 +161,14 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_close_user_fun_event, ( void ))
    try
    {
       ( ( ext::GPUThread *) myThread )->enableWDClosingEvents();
+   } catch ( nanos_err_t err) {
+      return err;
+   }
+#endif
+#ifdef OpenCL_DEV
+   try
+   {
+      ( ( ext::OpenCLThread *) myThread )->enableWDClosingEvents();
    } catch ( nanos_err_t err) {
       return err;
    }

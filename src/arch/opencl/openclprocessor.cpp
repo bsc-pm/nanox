@@ -565,8 +565,6 @@ WD & OpenCLProcessor::getMasterWD() const {
 BaseThread &OpenCLProcessor::createThread( WorkDescriptor &wd )
 {
 
-   ensure( wd.canRunIn( SMP ), "Incompatible worker thread" );
-
    OpenCLThread &thr = *NEW OpenCLThread( wd, this );
 
    return thr;

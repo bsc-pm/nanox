@@ -33,6 +33,8 @@ bool OpenCLThread::inlineWorkDependent(WD &wd) {
    OpenCLDD &dd = ( OpenCLDD & )wd.getActiveDevice();
 
    ( dd.getWorkFct() )( wd.getData() );
+   
+   NANOS_INSTRUMENT ( raiseWDClosingEvents() );
    return true;
 }
 
@@ -50,6 +52,26 @@ void OpenCLThread::idle() {
 
 }
 
+void OpenCLThread::enableWDClosingEvents ()
+{
+   _wdClosingEvents = true;
+}
+
+void OpenCLThread::raiseWDClosingEvents ()
+{
+   if ( _wdClosingEvents ) {
+      NANOS_INSTRUMENT(
+            Instrumentation::Event e[2];
+            sys.getInstrumentation()->closeBurstEvent( &e[0],
+                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-name" ) );
+            sys.getInstrumentation()->closeBurstEvent( &e[1],
+                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-location" ) );
+
+            sys.getInstrumentation()->addEventList( 2, e );
+      );
+      _wdClosingEvents = false;
+   }
+}
 //bool OpenCLLocalThread::checkForAbort(OpenCLDD::event_iterator i,
 //        OpenCLDD::event_iterator e) {
 //    bool abortNeeded = false;

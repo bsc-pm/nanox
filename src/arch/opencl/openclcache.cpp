@@ -82,7 +82,7 @@ void OpenCLCache::deviceFree(void * addr) {
     _devAllocator.free(allocAddr);
     cl_mem buf = _bufAddrMappings[allocAddr];    
     if (_openclAdapter.freeBuffer(buf) != CL_SUCCESS)
-        fatal("Cannot free device buffer");
+        fatal("Cannot free device buffer. ErrCode: " << errCode);
     
     _bufAddrMappings.erase(_bufAddrMappings.find(allocAddr)); 
 }
@@ -98,7 +98,7 @@ bool OpenCLCache::deviceCopyIn(void *localDst,
               0,
               size);
     if (errCode != CL_SUCCESS){
-        fatal("Buffer writing failed");
+        fatal("Buffer writing failed. ErrCode: " << errCode);
     }
     _bytesIn += ( unsigned int ) size;
 
@@ -117,7 +117,7 @@ bool OpenCLCache::deviceCopyOut(CopyDescriptor &remoteDst,
                 size);
     
     if (errCode != CL_SUCCESS) {
-        fatal("Buffer reading failed");
+        fatal("Buffer reading failed. ErrCode: " << errCode);
     }    
     
     _bytesOut += ( unsigned int ) size;
