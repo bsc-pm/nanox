@@ -725,15 +725,14 @@ inline void CacheCopy::generateCopyInOps( RegionCache *targetCache, std::map<uns
 }
 
 inline void CacheCopy::NEWgenerateCopyInOps( RegionCache *targetCache, std::map<unsigned int, std::list< std::pair< global_reg_t, CacheCopy * > > > &opsBySourceRegions ) {
-#if 1
 	NewNewRegionDirectory::NewLocationInfoList::const_iterator it;
    if ( targetCache ) _cacheEntry->lock();
    if ( _copy.isInput() ) {
       for ( it = _newLocations.begin(); it != _newLocations.end(); it++ ) {
 
          global_reg_t gr( it->first, _reg.key );
-         //if(sys.getNetwork()->getNodeNum() == 0)std::cerr <<"[" << sys.getNetwork()->getNodeNum()<<"] check location copy first: "<< it->first << " ("<< NewNewRegionDirectory::getDirectoryEntry( *_reg.key, it->first )<< ")[ "<<(*(NewNewRegionDirectory::getDirectoryEntry( *_reg.key, it->first )))<<" ]" << (void*) gr.getFirstAddress() << " second: " << it->second<< " (" << NewNewRegionDirectory::getDirectoryEntry( *_reg.key, it->second )<< ")[ " << (*(NewNewRegionDirectory::getDirectoryEntry( *_reg.key, it->second ))) << " do we have cache " << (void *)targetCache << std::endl; 
-         if ( NewNewRegionDirectory::isLocatedIn( _reg.key, it->first, ( !targetCache ) ? 0 : targetCache->getMemorySpaceId(), _newVersion ) ) continue;
+         //if(sys.getNetwork()->getNodeNum() > 0)std::cerr <<"[" << sys.getNetwork()->getNodeNum()<<"] check location copy first: "<< it->first << " ("<< NewNewRegionDirectory::getDirectoryEntry( *_reg.key, it->first )<< ")[ "<<(*(NewNewRegionDirectory::getDirectoryEntry( *_reg.key, it->first )))<<" ]" << (void*) gr.getFirstAddress() << " second: " << it->second<< " (" << NewNewRegionDirectory::getDirectoryEntry( *_reg.key, it->second )<< ")[ " << (*(NewNewRegionDirectory::getDirectoryEntry( *_reg.key, it->second ))) << " do we have cache " << (void *)targetCache << " wanted version " << _newVersion << std::endl; 
+         if ( NewNewRegionDirectory::isLocatedIn( _reg.key, it->first, ( !targetCache ) ? 0 : targetCache->getMemorySpaceId() /*, _newVersion*/ ) ) continue; //Version matching is already done in getLocation, if a region is listed, its because its a max version fragment
          //std::cerr <<"check location copy first: "<< it->first << " second: " << it->second << " do we have cache " << (void *)targetCache << std::endl; 
 
          //  if ( it->second.isLocatedIn( ( !targetCache ) ? 0 : targetCache->getMemorySpaceId() ) ) continue;
@@ -768,7 +767,6 @@ inline void CacheCopy::NEWgenerateCopyInOps( RegionCache *targetCache, std::map<
       if ( targetCache ) _cacheEntry->NEWaddWriteRegion( _reg.id, currentVersion + 1 );
    }
    if ( targetCache ) _cacheEntry->unlock();
-#endif
 }
 
 CacheController::CacheController( WD const &wd ) : _wd( wd ), _numCopies( wd.getNumCopies() ), _targetCache( NULL ), _registered( false ), _provideLock(), _providedRegions() {
@@ -833,16 +831,20 @@ void CacheController::copyDataIn(RegionCache *targetCache) {
       NANOS_INSTRUMENT( InstrumentState inst4(NANOS_CC_CDIN_OP_GEN); );
       std::map<unsigned int, std::list< std::pair< Region, CacheCopy * > > > opsBySourceRegions;
       std::map<unsigned int, std::list< std::pair< global_reg_t, CacheCopy * > > > NEWopsBySourceRegions;
-      //if(sys.getNetwork()->getNodeNum() == 0)std::cerr << _wd.getId()  << " "<< myThread->getId() << " ---------------------------- GEN COPIES WD "<< _wd.getId() <<" --------------------------" << std::endl;
+      //if(sys.getNetwork()->getNodeNum() > 0)std::cerr << _wd.getId()  << " "<< myThread->getId() << " ---------------------------- GEN COPIES WD "<< _wd.getId() <<" --------------------------" << std::endl;
       for ( index = 0; index < _numCopies; index += 1 ) {
-         //   if(sys.getNetwork()->getNodeNum() == 0)std::cerr << _wd.getId()  << " thd: "<< myThread->getId() <<" -- " << index << ": " << _cacheCopies[index]._reg.key << " "<< _cacheCopies[index]._reg.id << std::endl;
+         //if( sys.getNetwork()->getNodeNum() > 0 ) { 
+         //   std::cerr << _wd.getId()  << " thd: "<< myThread->getId() <<" -- " << index << ": " << _cacheCopies[index]._reg.key << " "<< _cacheCopies[index]._reg.id;
+         //   _cacheCopies[index]._reg.key->printRegion( _cacheCopies[index]._reg.id );
+         //   std::cerr << std::endl;
+         //}
          if (!sys.usingNewCache()) {
             _cacheCopies[ index ].generateCopyInOps( _targetCache, opsBySourceRegions );
          } else {
             _cacheCopies[ index ].NEWgenerateCopyInOps( _targetCache, NEWopsBySourceRegions );
          }
       }
-      //if(sys.getNetwork()->getNodeNum() == 0)std::cerr << _wd.getId()  << " "<< myThread->getId() << " ------------------------------------------------------" << std::endl;
+      //if(sys.getNetwork()->getNodeNum() > 0)std::cerr << _wd.getId()  << " "<< myThread->getId() << " ------------------------------------------------------" << std::endl;
       NANOS_INSTRUMENT( inst4.close(); );
       /* END OF COPY IN GENERATION */
 
@@ -890,9 +892,16 @@ void CacheController::copyDataIn(RegionCache *targetCache) {
          } else {
             for ( NEWmapOpsStrIt = NEWopsBySourceRegions.begin(); NEWmapOpsStrIt != NEWopsBySourceRegions.end(); NEWmapOpsStrIt++ ) {
                //std::cerr << "Copy from cache " <<  NEWmapOpsStrIt->first << std::endl;
-               if ( NEWmapOpsStrIt->first == 0 ) std::cerr << "DIRECTORY ERROR " << sys.getNetwork()->getNodeNum() << std::endl;
-               else
+               if ( NEWmapOpsStrIt->first == 0 ) {
+                  std::list< std::pair< global_reg_t, CacheCopy * > > &ops = NEWmapOpsStrIt->second;
+                  std::cerr << "DIRECTORY ERROR " << sys.getNetwork()->getNodeNum() << " regs: ";
+                  for ( std::list< std::pair< global_reg_t, CacheCopy * > >::iterator listIt = ops.begin(); listIt != ops.end(); listIt++ ) {
+                     std::cerr << "[" << (void *) listIt->first.key << "," << listIt->first.id << "]";
+                  }
+                  std::cerr << std::endl;
+               } else {
                   sys.getCaches()[ NEWmapOpsStrIt->first ]->syncRegion( NEWmapOpsStrIt->second, _wd );
+               }
             }
          }
          //std::cerr <<"########## ########### ######### "<<std::endl;

@@ -1122,7 +1122,6 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    }
 
    // creating new WD 
-   //FIXME jbueno
    new (*uwd) WD( *wd, dev_ptrs, wdCopies, data );
 
    // initializing internal data
