@@ -37,17 +37,6 @@ struct GuidedData {
 
 static void guidedLoop ( void *arg )
 {
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t loop_lower = ID->getEventKey("loop-lower"); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t loop_upper = ID->getEventKey("loop-upper"); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t loop_step  = ID->getEventKey("loop-step"); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t chunk_size = ID->getEventKey("chunk-size"); )
-   NANOS_INSTRUMENT ( nanos_event_key_t Keys[4]; )
-   NANOS_INSTRUMENT ( Keys[0] = loop_lower; )
-   NANOS_INSTRUMENT ( Keys[1] = loop_upper; )
-   NANOS_INSTRUMENT ( Keys[2] = loop_step; )
-   NANOS_INSTRUMENT ( Keys[3] = chunk_size; )
-   
    nanos_loop_info_t * nli = (nanos_loop_info_t *) arg;
    GuidedData * gsd = (GuidedData *) nli->args;
 
@@ -80,14 +69,6 @@ static void guidedLoop ( void *arg )
       nli->upper = nli->lower + std::max( _niters/(2*_valid_threads), _chunk) * _step - _step;
       if ( ( nli->upper * _sign ) > ( _upper * _sign ) ) nli->upper = _upper;
       nli->last = mychunk == gsd->_nchunks-1;
-
-      NANOS_INSTRUMENT ( nanos_event_value_t Values[4]; )
-      NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) nli->lower; )
-      NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) nli->upper; )
-      NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) nli->step; )
-      NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) (nli->upper - nli->lower) / nli->step; )
-  
-      NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents (4, Keys, Values); )
 
       gsd->_realWork(arg);
    }
