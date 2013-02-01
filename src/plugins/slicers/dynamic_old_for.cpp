@@ -36,15 +36,6 @@ struct DynamicData {
 
 static void dynamicLoop ( void *arg )
 {
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t loop_lower = ID->getEventKey("loop-lower"); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t loop_upper = ID->getEventKey("loop-upper"); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t loop_step  = ID->getEventKey("loop-step"); )
-   NANOS_INSTRUMENT ( nanos_event_key_t Keys[3]; )
-   NANOS_INSTRUMENT ( Keys[0] = loop_lower; )
-   NANOS_INSTRUMENT ( Keys[1] = loop_upper; )
-   NANOS_INSTRUMENT ( Keys[2] = loop_step; )
-   
    nanos_loop_info_t * nli = (nanos_loop_info_t *) arg;
    DynamicData * dsd = (DynamicData *) nli->args;
 
@@ -59,8 +50,6 @@ static void dynamicLoop ( void *arg )
    int mychunk = dsd->_current++;
    nli->step = _step; /* step will be constant among chunks */
    
-   NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
-
    for ( ; mychunk < dsd->_nchunks; mychunk = dsd->_current++ )
    {
       nli->lower = _lower + mychunk * _chunk * _step;
@@ -68,19 +57,8 @@ static void dynamicLoop ( void *arg )
       if ( ( nli->upper * _sign ) > ( _upper * _sign ) ) nli->upper = _upper;
       nli->last = mychunk == dsd->_nchunks-1;
 
-      NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) nli->lower; )
-      NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) nli->upper; )
-      NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) nli->step; )
-  
-      NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents (3, Keys, Values); )
-
       dsd->_realWork(arg);
    }
-   NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) 0; )
-   NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) 0; )
-   NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) 1; )
-
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents (3, Keys, Values); )
 
    if ( --dsd->_nrefs == 0 ) {
      // Arena::deallocate(dsd); // TODO

@@ -2,7 +2,6 @@
 #include "slicer.hpp"
 #include "system.hpp"
 #include "smpdd.hpp"
-#include "instrumentationmodule_decl.hpp"
 
 namespace nanos {
 namespace ext {
@@ -24,15 +23,6 @@ class SlicerStaticFor: public Slicer
 
 static void staticLoop ( void *arg )
 {
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t loop_lower = ID->getEventKey("loop-lower"); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t loop_upper = ID->getEventKey("loop-upper"); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t loop_step  = ID->getEventKey("loop-step"); )
-   NANOS_INSTRUMENT ( nanos_event_key_t Keys[3]; )
-   NANOS_INSTRUMENT ( Keys[0] = loop_lower; )
-   NANOS_INSTRUMENT ( Keys[1] = loop_upper; )
-   NANOS_INSTRUMENT ( Keys[2] = loop_step; )
-   
    debug ( "Executing static loop wrapper");
    int _upper, _stride, _chunk;
 
@@ -45,8 +35,6 @@ static void staticLoop ( void *arg )
    _upper = loop_info->upper;
    _stride = loop_info->stride;
 
-   NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
-
    // loop replication (according to step) related with performance issues
    if ( loop_info->step < 0 ) {
       _chunk = loop_info->chunk + 1;
@@ -58,10 +46,6 @@ static void staticLoop ( void *arg )
             loop_info->upper = _upper;
             loop_info->last = true;
          }
-         NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) loop_info->lower; )
-         NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) loop_info->upper; )
-         NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) loop_info->step; )
-         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(3, Keys, Values); )
          // calling realwork
          ((SMPDD::work_fct)(loop_info->args))(arg);
       }
@@ -75,18 +59,10 @@ static void staticLoop ( void *arg )
             loop_info->upper = _upper;
             loop_info->last = true;
          }
-         NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) loop_info->lower; )
-         NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) loop_info->upper; )
-         NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) loop_info->step; )
-         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(3, Keys, Values); )
          // calling realwork
          ((SMPDD::work_fct)(loop_info->args))(arg);
       }
    }
-   NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) 0; )
-   NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) 0; )
-   NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) 0; )
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(3, Keys, Values); )
 }
 
 void SlicerStaticFor::submit ( SlicedWD &work )
