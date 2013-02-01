@@ -48,7 +48,7 @@
 #pragma nanos interface family(master) version(5020)
 #pragma nanos interface family(worksharing) version(1000)
 #pragma nanos interface family(deps_api) version(1001)
-#pragma nanos interface family(copies_api) version(1000)
+#pragma nanos interface family(copies_api) version(1002)
 #endif
 
 // C++ types hidden as void *
