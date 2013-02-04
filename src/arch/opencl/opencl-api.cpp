@@ -33,7 +33,7 @@ NANOS_API_DEF(void *, nanos_opencl_factory, (void *args)) {
     return (void *) new ext::OpenCLDD(opencl->outline);
 }
 
-NANOS_API_DEF(void*, nanos_create_current_kernel, (char* kernel_name, char* opencl_code, char* compiler_opts)){  
+NANOS_API_DEF(void*, nanos_create_current_kernel, (const char* kernel_name,const char* opencl_code,const char* compiler_opts)){  
     nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
     return pe->createKernel(kernel_name,opencl_code,compiler_opts);
 }

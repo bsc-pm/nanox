@@ -207,7 +207,7 @@ cl_int OpenCLAdapter::putProgram( cl_program &prog )
 }
 
 
-void* OpenCLAdapter::createKernel( char* kernel_name, char* ompss_code_file,const char *compilerOpts)        
+void* OpenCLAdapter::createKernel( const char* kernel_name, const char* ompss_code_file,const char *compilerOpts)        
 {
    cl_program prog;
    uint32_t hash = gnuHash( ompss_code_file );

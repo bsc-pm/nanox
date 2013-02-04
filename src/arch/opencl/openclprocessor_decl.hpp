@@ -65,7 +65,7 @@ public:
    void* getProgram( const char *src,
                       const char *compilerOpts );
    
-   void* createKernel( char* kernel_name, char* opencl_code, const char* compiler_opts);    
+   void* createKernel(const char* kernel_name, const char* opencl_code, const char* compiler_opts);    
 
    // Return program to the cache, decreasing reference-counting.
    cl_int putProgram( cl_program &prog );
@@ -196,8 +196,8 @@ public:
    }
    
    // Get program from cache, increasing reference-counting.
-   void* createKernel( char* kernel_name,
-                       char* opencl_code, 
+   void* createKernel( const char* kernel_name,
+                       const char* opencl_code, 
                        const char* compiler_opts){
        return _openclAdapter.createKernel(kernel_name,opencl_code, compiler_opts);
    }
