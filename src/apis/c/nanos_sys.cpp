@@ -78,3 +78,25 @@ NANOS_API_DEF(nanos_err_t, nanos_finish, ())
    return NANOS_OK;
 }
 
+NANOS_API_DEF(nanos_err_t, nanos_current_socket, (int socket ))
+{
+   try {
+      sys.setCurrentSocket( socket );
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_get_num_sockets, (int *num_sockets ))
+{
+   try {
+      *num_sockets = sys.getNumSockets();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
