@@ -6,11 +6,16 @@
 #include "instrumentationcontext_decl.hpp"
 #include "smpdd.hpp"
 
-#include <cassert>
 #include <iostream>
 #include <fstream>
-#include <map>
 #include <stdlib.h>
+
+#include <cassert>
+#include <map>
+#include <math.h>
+
+#include <sys/time.h>
+#include <time.h>
 
 #define dot_file_name "graph.dot"
 #define pdf_file_name "graph.pdf"
@@ -22,6 +27,9 @@ class InstrumentationGraphInstrumentation: public Instrumentation
    private:
       std::map<int64_t, std::string> _funct_id_to_color_map;
       std::map<int64_t, std::string> _funct_id_to_funct_decl_map;
+      std::map<int, double> _wd_id_to_time_map;
+      std::map<int, float> _wd_id_to_last_time_map;
+      std::set<unsigned> _wd_id_independent;
       std::ofstream _dot_file;
 
 #ifndef NANOS_INSTRUMENTATION_ENABLED
@@ -29,7 +37,8 @@ class InstrumentationGraphInstrumentation: public Instrumentation
       // constructor
       InstrumentationGraphInstrumentation() : Instrumentation(),
                                               _funct_id_to_color_map( ), _funct_id_to_funct_decl_map( ),
-                                              _dot_file( dot_file_name ) {}
+                                              _wd_id_to_time_map( ), _wd_id_to_last_time_map( ),
+                                              _wd_id_independent( ), _dot_file( dot_file_name ) {}
       // destructor
       ~InstrumentationGraphInstrumentation() {}
 
@@ -46,9 +55,10 @@ class InstrumentationGraphInstrumentation: public Instrumentation
 #else
    public:
       // constructor
-      InstrumentationGraphInstrumentation() : Instrumentation( *new InstrumentationContext() ),
+      InstrumentationGraphInstrumentation() : Instrumentation( *new InstrumentationContextDisabled() ),
                                               _funct_id_to_color_map( ), _funct_id_to_funct_decl_map( ),
-                                              _dot_file( dot_file_name ) {}
+                                              _wd_id_to_time_map( ), _wd_id_to_last_time_map( ),
+                                              _wd_id_independent( ), _dot_file( dot_file_name ) {}
       // destructor
       ~InstrumentationGraphInstrumentation ( ) {}
 
@@ -64,14 +74,46 @@ class InstrumentationGraphInstrumentation: public Instrumentation
             exit( EXIT_FAILURE );
          }
       }
+
       void finalize( void )
       {
-         // Print the legend
          if( !_funct_id_to_funct_decl_map.empty( ) )
          {
-            assert( _funct_id_to_funct_decl_map.size( ) == _funct_id_to_color_map.size( ) );
+            // Print the size of the nodes
+            double time_avg = 0;
+            for( std::map<int, double>::iterator it = _wd_id_to_time_map.begin( );
+                 it != _wd_id_to_time_map.end( ); ++it )
+            {
+                time_avg += it->second;
+            }
+            time_avg /= _wd_id_to_time_map.size( );
+            if( time_avg == 0 )
+            {
+                for( std::map<int, double>::iterator it = _wd_id_to_time_map.begin( );
+                    it != _wd_id_to_time_map.end( ); ++it )
+                {
+                    _dot_file << "  " << it->first << "[width=1, height=1];\n";
+                }
+            }
+            else
+            {
+                for( std::map<int, double>::iterator it = _wd_id_to_time_map.begin( );
+                    it != _wd_id_to_time_map.end( ); ++it )
+                {
+                    _dot_file << "  " << it->first << "[width=" << (double)(it->second/time_avg)
+                                                << ", height=" << (double)(it->second/time_avg) << "];\n";
+                }
+            }
 
-            // Nodes legend
+            // Align nodes depending on the moment they have been executed
+            for( std::set<unsigned>::iterator it = _wd_id_independent.begin( ); it != _wd_id_independent.end( ); ++it )
+            {
+                _dot_file << "  {rank=same; " << *it << " " << ( *it - 1 ) << "}\n";
+            }
+
+            // Print the legend
+            assert( _funct_id_to_funct_decl_map.size( ) == _funct_id_to_color_map.size( ) );
+                    // Nodes legend
             _dot_file << "  subgraph cluster0 {\n";
             _dot_file << "    label=\"User functions:\"; style=\"rounded\"; rankdir=\"TB\";\n";
             std::map<int64_t, std::string>::iterator it_name = _funct_id_to_funct_decl_map.begin( );
@@ -96,7 +138,7 @@ class InstrumentationGraphInstrumentation: public Instrumentation
 
             _dot_file << "  }\n";
 
-            // Edges legend
+                    // Edges legend
             _dot_file << "  subgraph cluster1 {\n";
             _dot_file << "    label=\"Dependence type:\"; style=\"rounded\"; rankdir=\"TB\";\n";
             _dot_file << "    subgraph A{\n";
@@ -121,12 +163,48 @@ class InstrumentationGraphInstrumentation: public Instrumentation
 
          // Create the graph image from the dot file
          std::string command = "dot -Tpdf " + std::string( dot_file_name ) + " -o " + std::string( pdf_file_name );
-         system( command.c_str( )/*"dot -Tpdf graph.dot -o graph.pdf"*/ );
+         system( command.c_str( ) );
       }
+
       void disable( void ) {}
+
       void enable( void ) {}
-      void addResumeTask( WorkDescriptor &w ) {}
-      void addSuspendTask( WorkDescriptor &w, bool last ) {}
+
+      static double get_current_time( )
+      {
+          struct timeval tv;
+          gettimeofday(&tv,0);
+          return ( ( double ) tv.tv_sec*1000000L ) + ( ( double )tv.tv_usec );
+      }
+
+      void addResumeTask( WorkDescriptor &w )
+      {
+          int wd_id = w.getId();
+          if( wd_id != 1 )
+          {
+             _wd_id_to_last_time_map[wd_id] = get_current_time( );
+          }
+      }
+
+      void addSuspendTask( WorkDescriptor &w, bool last )
+      {
+         int wd_id = w.getId();
+         if( wd_id != 1 )
+         {
+            double last_time = _wd_id_to_last_time_map[wd_id];
+            double current_time = get_current_time( );
+            double time = last_time - current_time;
+            if( _wd_id_to_time_map.find( wd_id ) == _wd_id_to_time_map.end( ) )
+            {
+                _wd_id_to_time_map[wd_id] = time;
+            }
+            else
+            {
+                _wd_id_to_time_map[wd_id] += time;
+            }
+         }
+      }
+
       void addEventList ( unsigned int count, Event *events )
       {
          InstrumentationDictionary *iD = getInstrumentationDictionary();
@@ -139,23 +217,25 @@ class InstrumentationGraphInstrumentation: public Instrumentation
          unsigned int i;
          for( i=0; i<count; i++) {
             Event &e = events[i];
-            if ( e.getKey() == dependence )
+            if ( e.getKey( ) == dependence )
             {  // A dependence occurs
-               unsigned sender = (e.getValue() >> 32) & 0xFFFFFFFF;
-               unsigned receiver = e.getValue() & 0xFFFFFFFF;
+               unsigned sender = (e.getValue( ) >> 32) & 0xFFFFFFFF;
+               unsigned receiver = e.getValue( ) & 0xFFFFFFFF;
 
                e = events[++i];
-               assert( e.getKey() == dep_direction );
+               assert( e.getKey( ) == dep_direction );
                if( e.getValue() == 0 )
                {    // Input dependence
                    _dot_file << "  " << sender << " -> " << receiver << ";\n";
                }
-               else if( e.getValue() == 1 )
+               else if( e.getValue( ) == 1 )
                {    // Output dependence
                    _dot_file << "  " << sender << " -> " << receiver << " [style=dashed];\n";
                }
+               _wd_id_independent.erase( sender );
+               _wd_id_independent.erase( receiver );
             }
-            else if( e.getKey() == create_wd_ptr )
+            else if( e.getKey( ) == create_wd_ptr )
             {  // A wd is submitted
                WorkDescriptor *wd = (WorkDescriptor *) e.getValue();
                int64_t funct_id = (int64_t) ((ext::SMPDD &)(wd->getActiveDevice())).getWorkFct();
@@ -164,7 +244,7 @@ class InstrumentationGraphInstrumentation: public Instrumentation
                if( _funct_id_to_color_map.find( funct_id ) == _funct_id_to_color_map.end( ) )
                {
                    color = wd_to_color_hash( funct_id );
-                   _funct_id_to_color_map.insert( std::pair<int64_t, std::string>( funct_id, color ) );
+                   _funct_id_to_color_map[funct_id] = color ;
                }
                else
                {
@@ -175,10 +255,12 @@ class InstrumentationGraphInstrumentation: public Instrumentation
                assert(e.getKey() == create_wd_id);
                int64_t wd_id = e.getValue();
                _dot_file << "  " << wd_id << "[fillcolor=" << color.c_str( ) << ", style=filled];\n";
+               _wd_id_independent.insert( wd_id );
             }
-            else if ( e.getKey() == user_funct_location )
+            else if ( e.getKey( ) == user_funct_location )
             {
-                if( _funct_id_to_funct_decl_map.find( e.getValue() ) == _funct_id_to_funct_decl_map.end( ) )
+                if( e.getValue( ) != 0
+                    && _funct_id_to_funct_decl_map.find( e.getValue( ) ) == _funct_id_to_funct_decl_map.end( ) )
                 {
                     std::string description = iD->getValueDescription( user_funct_location, e.getValue( ) );
                     int pos2 = description.find_first_of( "(" );
@@ -188,8 +270,11 @@ class InstrumentationGraphInstrumentation: public Instrumentation
             }
          }
       }
+
       void threadStart( BaseThread &thread ) {}
+
       void threadFinish ( BaseThread &thread ) {}
+
 #endif
 
 };

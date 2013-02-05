@@ -928,7 +928,7 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    }
 
    // creating new WD 
-   //FIXME jbueno
+   //FIXME jbueno (#758) should we have to take into account dimensions?
    new (*uwd) WD( *wd, dev_ptrs, wdCopies, data );
 
    // initializing internal data

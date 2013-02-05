@@ -159,6 +159,7 @@ typedef struct {
    int chunk;
    int stride;
    int thid;
+   int threads;
    void *args;
 } nanos_loop_info_t;
 
