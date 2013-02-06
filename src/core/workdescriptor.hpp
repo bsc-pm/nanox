@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <utility>
 #include <vector>
+#include <climits>
 #include "workdescriptor_decl.hpp"
 #include "workgroup.hpp"
 #include "dependableobjectwd.hpp"

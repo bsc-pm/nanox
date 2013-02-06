@@ -40,6 +40,10 @@
 #include "gpuprocessor_decl.hpp"
 #endif
 
+#ifdef OpenCL_DEV
+#include "openclprocessor.hpp"
+#endif
+
 using namespace nanos;
 
 System nanos::sys;
@@ -143,7 +147,14 @@ void System::loadModules ()
    if ( !loadPlugin( "pe-gpu" ) )
       fatal0 ( "Couldn't load GPU support" );
 #endif
+   
+#ifdef OpenCL_DEV
+   verbose0( "loading OpenCL support" );
 
+   if ( !loadPlugin( "pe-opencl" ) )
+     fatal0 ( "Couldn't load OpenCL support" );
+#endif
+   
    // load default schedule plugin
    verbose0( "loading " << getDefaultSchedule() << " scheduling policy support" );
 
@@ -331,7 +342,10 @@ void System::start ()
 #ifdef GPU_DEV
    _targetThreads += nanos::ext::GPUConfig::getGPUCount();
 #endif
-
+   
+#ifdef OpenCL_DEV
+   _targetThreads += nanos::ext::OpenCLConfig::getOpenCLDevicesCount();
+#endif
    // Instrumentation startup
    NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->initialize() );
@@ -384,6 +398,16 @@ void System::start ()
    }
 #endif
 
+   
+#ifdef OpenCL_DEV
+    for ( unsigned int i = 0; i < nanos::ext::OpenCLConfig::getOpenCLDevicesCount(); i++) {
+       PE *openclAccelerator = NEW nanos::ext::OpenCLProcessor( getBindingId( p ) , i);
+       _pes.push_back( openclAccelerator );
+      _workers.push_back( &openclAccelerator->startWorker() );
+      ++p;
+    }
+#endif
+      
 #ifdef SPU_DEV
    PE *spu = NEW nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);
    spu->startWorker();
@@ -1038,7 +1062,7 @@ void System::submitWithDependencies (WD& work, size_t numDataAccesses, DataAcces
    SchedulePolicy* policy = getDefaultSchedulePolicy();
    policy->onSystemSubmit( work, SchedulePolicy::SYS_SUBMIT_WITH_DEPENDENCIES );
    setupWD( work, myThread->getCurrentWD() );
-   WD *current = myThread->getCurrentWD();
+   WD *current = myThread->getCurrentWD(); 
    current->submitWithDependencies( work, numDataAccesses , dataAccesses);
 }
 

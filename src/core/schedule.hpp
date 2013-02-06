@@ -54,6 +54,11 @@ inline int SchedulerConf::getNumSleeps () const
    return _numSleeps;
 }
 
+inline void SchedulerConf::setNumSleeps ( const unsigned int num )
+{
+   _numSleeps = num;
+}
+
 inline int SchedulerConf::getTimeSleep () const
 {
    return _timeSleep;
