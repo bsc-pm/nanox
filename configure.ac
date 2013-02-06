@@ -368,7 +368,7 @@ AC_ARG_ENABLE([opencl-arch],
     fi
   ],
   [
-    opencl_enabled="yes"
+    opencl_enabled="no"
     AC_MSG_RESULT([no])
   ]
 )
@@ -380,7 +380,7 @@ if test x"$opencl_enabled" = x"yes" ; then
     AC_CHECK_LIB([OpenCL],
                  [clGetPlatformIDs],
                  [true],
-                 [AC_MSG_ERROR([OpenCL library not found])])
+                 [AC_MSG_WARN([OpenCL library not found. Disabling OpenCL support])])
 
     opencl_valid="yes"
 else
