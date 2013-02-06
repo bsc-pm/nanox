@@ -101,6 +101,7 @@ namespace nanos
          unsigned int getNumSpins () const;
          void setNumSpins ( const unsigned int num );
          int getNumSleeps () const;
+         void setNumSleeps ( const unsigned int num );
          int getTimeSleep () const;
          void setSchedulerEnabled ( bool value ) ;
          bool getSchedulerEnabled () const;
