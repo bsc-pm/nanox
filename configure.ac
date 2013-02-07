@@ -817,6 +817,10 @@ AC_CONFIG_FILES([Makefile
 		 src/arch/opencl/instrumentation/Makefile
 		 src/arch/opencl/instrumentation-debug/Makefile
 		 src/utils/Makefile
+		 src/utils/performance/Makefile
+		 src/utils/instrumentation/Makefile
+		 src/utils/debug/Makefile
+		 src/utils/instrumentation-debug/Makefile
 		 scripts/Makefile
 		 tests/Makefile
 		 tests/gens/Makefile

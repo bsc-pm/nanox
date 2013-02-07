@@ -17,7 +17,21 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = performance debug instrumentation instrumentation-debug
-
+include $(top_srcdir)/src/utils/version_commons.am
 include $(top_srcdir)/src/common.am
 
+if DEBUG_VERSION
+
+bin_PROGRAMS = nanox-dbg
+
+nanox_dbg_CPPFLAGS = $(common_includes) $(common_debug_cxxflags) $(bin_cxxflags) -DPLUGIN_DIR=\"$(@USED_VERSION@dir)\"
+
+nanox_dbg_SOURCES=  $(nanox_sources)
+
+nanox_dbg_LDADD=\
+	-ldl \
+	../../core/@USED_VERSION@/libnanox.la \
+	@CUDA_RPATH@
+	$(END)
+
+endif

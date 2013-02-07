@@ -32,6 +32,7 @@ EXTRA_DIST=\
 
 bin_SCRIPTS=\
 	extrae_post_process.sh\
+   nanox\
 	$(END)
 
 rpm:
