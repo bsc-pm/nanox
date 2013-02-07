@@ -28,6 +28,7 @@ EXTRA_DIST=\
            preamble.txt \
            extrae_post_process.sh \
            nanox.spec \
+           nanox\
            $(END)
 
 bin_SCRIPTS=\
