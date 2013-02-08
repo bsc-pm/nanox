@@ -22,7 +22,7 @@ include $(top_srcdir)/src/common.am
 
 if INSTRUMENTATION_VERSION
 instrumentation_LTLIBRARIES = \
-	libnanox-throttle-default.la \
+	libnanox-throttle-hysteresis.la \
 	libnanox-throttle-dummy.la \
 	libnanox-throttle-numtasks.la \
 	libnanox-throttle-numtasks-e.la \
@@ -33,9 +33,9 @@ instrumentation_LTLIBRARIES = \
 
 nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags)
 
-libnanox_throttle_default_la_CXXFLAGS = $(nanos_instr_cxxflags)
-libnanox_throttle_default_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_throttle_default_la_SOURCES = $(default_sources)
+libnanox_throttle_hysteresis_la_CXXFLAGS = $(nanos_instr_cxxflags)
+libnanox_throttle_hysteresis_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_throttle_hysteresis_la_SOURCES = $(hysteresis_sources)
 
 libnanox_throttle_dummy_la_CXXFLAGS = $(nanos_instr_cxxflags)
 libnanox_throttle_dummy_la_LDFLAGS = $(ld_plugin_flags)
