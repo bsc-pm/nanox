@@ -132,34 +132,34 @@ cl_int OpenCLAdapter::writeBuffer( cl_mem buf,
                                 size_t size )
 {
    cl_int errCode, exitStatus;
-   cl_event ev;
+//   cl_event ev;
 
    NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_MEMWRITE_SYNC_EVENT );
    errCode = clEnqueueWriteBuffer( _queue,
                                      buf,
-                                     true,
+                                     CL_FALSE,
                                      offset,
                                      size,
                                      src,
                                      0,
                                      NULL,
-                                     &ev
+                                     NULL
                                    );
-   NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
-   if( errCode != CL_SUCCESS ){
-      return errCode;
-   }
+//   NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
+//   if( errCode != CL_SUCCESS ){
+//      return errCode;
+//   }
+//
+//   errCode = clGetEventInfo( ev,
+//                               CL_EVENT_COMMAND_EXECUTION_STATUS,
+//                               sizeof(cl_int),
+//                               &exitStatus,
+//                               NULL
+//                             );
+//   
+//   clReleaseEvent( ev );
 
-   errCode = clGetEventInfo( ev,
-                               CL_EVENT_COMMAND_EXECUTION_STATUS,
-                               sizeof(cl_int),
-                               &exitStatus,
-                               NULL
-                             );
-   
-   clReleaseEvent( ev );
-
-   return errCode;
+   return CL_SUCCESS;
 }
 
 cl_int OpenCLAdapter::buildProgram( const char *src,
@@ -279,7 +279,7 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
    {
       // Don't worry about exit code, we are cleaning an error.
       clReleaseKernel( openclKernel );
-      std::cerr << "Error code" << errCode << "\n";
+      std::cerr << "Error code when trying to executing kernel " << errCode << "\n"; 
       fatal0("Error launching OpenCL kernel");
    }
 
@@ -290,7 +290,7 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
       // Clean up environment.
       clReleaseEvent( ev );
       clReleaseKernel( openclKernel );
-      std::cerr << "Error code" << errCode << "\n";
+      std::cerr << "Error code when trying to executing kernel " << errCode << "\n";
       fatal0("Error launching OpenCL kernel");
    }
 
@@ -306,7 +306,7 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
       // Clean up environment.
       clReleaseEvent( ev );
       clReleaseKernel( openclKernel );
-      std::cerr << "Error code" << errCode << "\n";
+      std::cerr << "Error code when trying to executing kernel " << errCode << "\n";
       fatal0("Error launching OpenCL kernel");
    }
 
@@ -316,7 +316,7 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
    {
       // Clean up environment.
       clReleaseEvent( ev );
-      std::cerr << "Error code" << errCode << "\n";
+      std::cerr << "Error code when trying to executing kernel " << errCode << "\n";
       fatal0("Error launching OpenCL kernel");
    }
 
