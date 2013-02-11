@@ -101,7 +101,7 @@ cl_int OpenCLAdapter::readBuffer( cl_mem buf,
    NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_MEMREAD_SYNC_EVENT );
    errCode = clEnqueueReadBuffer( _queue,
                                     buf,
-                                    true,
+                                    CL_TRUE,
                                     offset,
                                     size,
                                     dst,
@@ -132,34 +132,34 @@ cl_int OpenCLAdapter::writeBuffer( cl_mem buf,
                                 size_t size )
 {
    cl_int errCode, exitStatus;
-//   cl_event ev;
+   cl_event ev;
 
    NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_MEMWRITE_SYNC_EVENT );
    errCode = clEnqueueWriteBuffer( _queue,
                                      buf,
-                                     CL_FALSE,
+                                     CL_TRUE,
                                      offset,
                                      size,
                                      src,
                                      0,
                                      NULL,
-                                     NULL
+                                     &ev
                                    );
-//   NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
-//   if( errCode != CL_SUCCESS ){
-//      return errCode;
-//   }
-//
-//   errCode = clGetEventInfo( ev,
-//                               CL_EVENT_COMMAND_EXECUTION_STATUS,
-//                               sizeof(cl_int),
-//                               &exitStatus,
-//                               NULL
-//                             );
-//   
-//   clReleaseEvent( ev );
+   NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
+   if( errCode != CL_SUCCESS ){
+      return errCode;
+   }
 
-   return CL_SUCCESS;
+   errCode = clGetEventInfo( ev,
+                               CL_EVENT_COMMAND_EXECUTION_STATUS,
+                               sizeof(cl_int),
+                               &exitStatus,
+                               NULL
+                             );
+   
+   clReleaseEvent( ev );
+
+   return errCode;
 }
 
 cl_int OpenCLAdapter::buildProgram( const char *src,
@@ -209,47 +209,98 @@ cl_int OpenCLAdapter::putProgram( cl_program &prog )
 
 void* OpenCLAdapter::createKernel( const char* kernel_name, const char* ompss_code_file,const char *compilerOpts)        
 {
+   NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_GET_PROGRAM_EVENT );
    cl_program prog;
-   uint32_t hash = gnuHash( ompss_code_file );
    nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
-   ProgramCache progCache = pe->getProgCache();
-   if( progCache.count( hash ) )
+   std::vector<std::string> code_files_vect;
+   uint32_t hash;
+   #ifndef CL_VERSION_1_2   
+      std::string code_files(ompss_code_file);
+      code_files_vect.push_back(code_files);
+      fatal_cond0(code_files.find(",")!=std::string::npos,"In order to compile multiple OpenCL files (separated by ,), OpenCL 1.2 or higher is required");
+   #else
+      //Tokenize with ',' as separator
+      const char* str=ompss_code_file;
+      do
+      {
+         const char *begin = ompss_code_file;
+         while(*str != ',' && *str) str++;
+         code_files_vect.push_back(std::string(begin, str));
+      } while (0 != *str++);
+   #endif
+   //When we find the kernel, stop compiling
+   bool found=false;
+   for(std::vector<std::string>::iterator i=code_files_vect.begin(); 
+        i != code_files_vect.end() && !found; 
+        ++i)
    {
-      prog = progCache[hash];
-   } else {    
-      char* ompss_code;    
-      FILE *fp;
-      size_t source_size;
-      fp = fopen(ompss_code_file, "r");
-      if (!fp) {
-        fatal0("Failed to open file when loading kernel from file " + std::string(ompss_code_file) + ".\n");
-      }      
-      fseek(fp, 0, SEEK_END); // seek to end of file;
-      size_t size = ftell(fp); // get current file pointer
-      fseek(fp, 0, SEEK_SET); // seek back to beginning of file
-      ompss_code = new char[size];
-      source_size = fread( ompss_code, 1, size, fp);
-      fclose(fp); 
-      ompss_code[size]=0;
-      
-      std::string filename(ompss_code_file);
-      if (filename.find(".cl")!=filename.npos){
-         buildProgram( ompss_code, compilerOpts, prog );
-      } else {
-         cl_int errCode;
-         const unsigned char* tmp_code=reinterpret_cast<const unsigned char*>(ompss_code);
-         prog = clCreateProgramWithBinary( _ctx, 1, &_dev, &size, &tmp_code, NULL, &errCode );    
-         if( errCode != CL_SUCCESS )
-            fatal0("Failed to create program with binary from file " + std::string(ompss_code_file) + ".\n");
+      std::string code_file=*i;
+      #ifndef CL_VERSION_1_2
+         hash= gnuHash( code_file.c_str() );
+      #else
+         hash= gnuHash( kernel_name );
+      #endif
+      ProgramCache progCache = pe->getProgCache();   
+      if( progCache.count( hash ) )
+      {
+         prog = progCache[hash];
+         found=true;
+      } else { //Compile file and add it to the progCache map (either file or kernels)
+         char* ompss_code;    
+         FILE *fp;
+         size_t source_size;
+         fp = fopen(code_file.c_str(), "r");
+         fatal_cond0(!fp, "Failed to open file when loading kernel from file " + code_file + ".\n");
+         
+         fseek(fp, 0, SEEK_END); // seek to end of file;
+         size_t size = ftell(fp); // get current file pointer
+         fseek(fp, 0, SEEK_SET); // seek back to beginning of file
+         ompss_code = new char[size];
+         source_size = fread( ompss_code, 1, size, fp);
+         fclose(fp); 
+         ompss_code[size]=0;
+
+         if (code_file.find(".cl")!=code_file.npos){
+            buildProgram( ompss_code, compilerOpts, prog );
+         } else {
+            cl_int errCode;
+            const unsigned char* tmp_code=reinterpret_cast<const unsigned char*>(ompss_code);
+            prog = clCreateProgramWithBinary( _ctx, 1, &_dev, &size, &tmp_code, NULL, &errCode );    
+            fatal_cond0(errCode != CL_SUCCESS,"Failed to create program with binary from file " + code_file + ".\n");
+         }
+         delete [] ompss_code;
+         #ifndef CL_VERSION_1_2
+            progCache[hash] = prog;
+         #else
+            size_t n_kernels;
+            uint32_t curr_kernel_hash;
+            clGetProgramInfo(prog, CL_PROGRAM_NUM_KERNELS, sizeof(size_t),&n_kernels, NULL);
+            char* kernel_ids= new char[n_kernels*MAX_KERNEL_NAME_LENGTH];
+            size_t sizeret_kernels;
+            clGetProgramInfo(prog, CL_PROGRAM_KERNEL_NAMES, n_kernels*MAX_KERNEL_NAME_LENGTH*sizeof(char),kernel_ids, &sizeret_kernels);
+            if (sizeret_kernels>=n_kernels*MAX_KERNEL_NAME_LENGTH*sizeof(char))
+                warning0("Maximum kernel name length is 100 characters, you shouldn't use longer names");            
+            
+            //Tokenize with ',' as separator            
+            str=kernel_ids;
+            do
+            {
+               const char *begin = kernel_ids;
+               while(*str != ',' && *str) str++;
+               curr_kernel_hash=gnuHash(begin, str);
+               progCache[curr_kernel_hash]=prog;
+               if (curr_kernel_hash==hash) found=true;
+            } while (0 != *str++);
+            delete[] kernel_ids;
+         #endif
       }
-      delete [] ompss_code;
-      progCache[hash] = prog;
    }
    
    
    cl_kernel kern;
    cl_int errCode;
    kern = clCreateKernel( prog, kernel_name, &errCode );
+   NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
    return kern;    
 }
 

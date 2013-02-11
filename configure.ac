@@ -350,25 +350,20 @@ AC_ARG_ENABLE([opencl-arch],
   AS_HELP_STRING([--disable-opencl-arch], [Disables the use of OpenCL devices]),
   [
     if test x"$enableval" = x"yes" -o x"$enableval" = x"";
-    then if test -d "$APP_ROOT";
-         then
-             opencl_enabled="yes"
-             AC_MSG_RESULT([no])
-         else
-             opencl_enabled="no"
-             AC_MSG_RESULT([yes])
-         fi
+    then
+        opencl_enabled="yes"
+        AC_MSG_RESULT([no])
     else if test x"$enableval" = x"no";
-         then
-             opencl_enabled="no"
-             AC_MSG_RESULT([yes])
-         else
-             AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
-         fi
+        then
+            opencl_enabled="no"
+            AC_MSG_RESULT([yes])
+        else
+            AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
+        fi    
     fi
   ],
   [
-    opencl_enabled="no"
+    opencl_enabled="yes"
     AC_MSG_RESULT([no])
   ]
 )
@@ -388,12 +383,10 @@ else
 fi
 
 if test x"$opencl_valid" = x"yes"; then
-    CFLAGS="$CFLAGS -I $APP_ROOT/include -I$OPENCLDIR -DOpenCL_DEV -lOpenCL"
-    CXXFLAGS="$CXXFLAGS -I $APP_ROOT/include -I$OPENCLDIR -DOpenCL_DEV -lOpenCL"
+    CFLAGS="$CFLAGS -I$OPENCLDIR -DOpenCL_DEV -lOpenCL"
+    CXXFLAGS="$CXXFLAGS -I$OPENCLDIR -DOpenCL_DEV -lOpenCL"
     ARCHITECTURES="$ARCHITECTURES opencl"
 fi
-
-AM_CONDITIONAL([OCL_SUPPORT],[test $ocl_valid = yes])
 
 # mcc support
 AC_ARG_WITH([mcc],

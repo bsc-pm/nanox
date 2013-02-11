@@ -26,6 +26,8 @@
 #include "opencldd.hpp"
 #include "opencldevice_decl.hpp"
 
+#define MAX_KERNEL_NAME_LENGTH 100
+
 namespace nanos {
 namespace ext {
 
