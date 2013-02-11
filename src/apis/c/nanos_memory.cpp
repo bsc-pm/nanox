@@ -68,6 +68,10 @@ NANOS_API_DEF(nanos_err_t, nanos_free, ( void *p ))
    return NANOS_OK;
 }
 
+NANOS_API_DEF(void, nanos_free0, ( void *p ))
+{
+   nanos_free(p);
+}
 
 NANOS_API_DEF(nanos_err_t, nanos_memcpy, (void *dest, const void *src, size_t n))
 {
