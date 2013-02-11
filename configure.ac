@@ -388,6 +388,8 @@ if test x"$opencl_valid" = x"yes"; then
     ARCHITECTURES="$ARCHITECTURES opencl"
 fi
 
+AM_CONDITIONAL([OPENCL_SUPPORT],[test $opencl_valid = yes]) 
+
 # mcc support
 AC_ARG_WITH([mcc],
 AS_HELP_STRING([--with-mcc=dir], [Directory of mcc compiler]),
