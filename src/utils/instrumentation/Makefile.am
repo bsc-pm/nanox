@@ -17,44 +17,21 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-include $(top_srcdir)/src/plugins/throttle/version_commons.am
+include $(top_srcdir)/src/utils/version_commons.am
 include $(top_srcdir)/src/common.am
 
-if INSTRUMENTATION_DEBUG_VERSION
-instrdebug_LTLIBRARIES = \
-	libnanox-throttle-hysteresis.la \
-	libnanox-throttle-dummy.la \
-	libnanox-throttle-numtasks.la \
-	libnanox-throttle-idlethreads.la \
-	libnanox-throttle-taskdepth.la \
-	libnanox-throttle-readytasks.la \
+if INSTRUMENTATION_VERSION
+
+bin_PROGRAMS = nanox-ins
+
+nanox_ins_CPPFLAGS = $(common_includes) $(common_instrumentation_cxxflags) $(bin_cxxflags) -DPLUGIN_DIR=\"$(@USED_VERSION@dir)\"
+
+nanox_ins_SOURCES=  $(nanox_sources)
+
+nanox_ins_LDADD=\
+	-ldl \
+	../../core/@USED_VERSION@/libnanox.la \
+	@CUDA_RPATH@
 	$(END)
 
-nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags)
-
-libnanox_throttle_hysteresis_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
-libnanox_throttle_hysteresis_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_throttle_hysteresis_la_SOURCES = $(hysteresis_sources)
-
-libnanox_throttle_dummy_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
-libnanox_throttle_dummy_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_throttle_dummy_la_SOURCES = $(dummy_sources)
-
-libnanox_throttle_numtasks_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
-libnanox_throttle_numtasks_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_throttle_numtasks_la_SOURCES = $(numtasks_sources)
-
-libnanox_throttle_idlethreads_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
-libnanox_throttle_idlethreads_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_throttle_idlethreads_la_SOURCES = $(idlethreads_sources)
-
-libnanox_throttle_taskdepth_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
-libnanox_throttle_taskdepth_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_throttle_taskdepth_la_SOURCES = $(taskdepth_sources)
-
-libnanox_throttle_readytasks_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
-libnanox_throttle_readytasks_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_throttle_readytasks_la_SOURCES = $(readytasks_sources)
-
 endif
-

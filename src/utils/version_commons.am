@@ -1,0 +1,6 @@
+
+nanox_sources = \
+   $(top_srcdir)/src/utils/nanox.cpp \
+   $(END)
+
+
