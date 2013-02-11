@@ -374,10 +374,13 @@ if test x"$opencl_enabled" = x"yes" ; then
 
     AC_CHECK_LIB([OpenCL],
                  [clGetPlatformIDs],
-                 [true],
-                 [AC_MSG_WARN([OpenCL library not found. Disabling OpenCL support])])
-
-    opencl_valid="yes"
+                 [
+                  opencl_valid="yes"
+                 ],
+                 [
+                  AC_MSG_WARN([OpenCL library not found. Disabling OpenCL support])
+                  opencl_valid="no"
+                 ])
 else
     opencl_valid="no"
 fi
