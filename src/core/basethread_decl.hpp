@@ -155,7 +155,6 @@ namespace nanos
             _started = false;
          }
 
-         void wakeup ();
 
       private:
         /*! \brief BaseThread default constructor
@@ -190,6 +189,7 @@ namespace nanos
          void run();
          void stop();
          void sleep();
+         void wakeup ();
          
          void pause ();
          void unpause ();

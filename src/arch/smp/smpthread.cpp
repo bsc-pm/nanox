@@ -136,11 +136,11 @@ void SMPThread::wait()
    NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value =  (nanos_event_value_t) 0; )
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
 
+   getTeam()->removeThread( getTeamId() );
    leaveTeam();
    pthread_mutex_lock( &_mutexWait );
    pthread_cond_wait( &_condWait, &_mutexWait );
    pthread_mutex_unlock( &_mutexWait );
-   wakeup();
 
    NANOS_INSTRUMENT ( cpuid_value =  (nanos_event_value_t) getCpuId() + 1; )
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )

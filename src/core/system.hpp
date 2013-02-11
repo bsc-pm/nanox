@@ -165,12 +165,8 @@ inline void System::setCoresPerSocket ( int coresPerSocket ) { _coresPerSocket =
 
 inline int System::getBindingId ( int pe ) const
 {
-   int tmpId = ( pe * getBindingStride() + getBindingStart() ) % _cpu_mask.size();
-   try {
-      return _pe_map.at( tmpId );
-   } catch (std::exception& e) {
-      fatal( "invalid value for cpu" );
-   }
+   int tmpId = ( pe * getBindingStride() + getBindingStart() ) % _pe_map.size();
+   return _pe_map[tmpId];
 }
 
 inline void System::setThrottlePolicy( ThrottlePolicy * policy ) { _throttlePolicy = policy; }

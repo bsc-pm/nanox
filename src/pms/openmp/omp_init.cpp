@@ -28,7 +28,7 @@
 #include "plugin.hpp"
 
 extern "C" {
-   void DLB_UpdateResources() __attribute__ ((weak));
+   void DLB_UpdateResources( int max_resources ) __attribute__ ((weak));
 }
 
 using namespace nanos;
