@@ -82,7 +82,8 @@ typedef enum {
    NANOS_OPENCL_MEMWRITE_SYNC_EVENT,                         /* 5 */
    NANOS_OPENCL_MEMREAD_SYNC_EVENT,                 /* 6 */
    NANOS_OPENCL_CREATE_COMMAND_QUEUE_EVENT,                   /* 7 */
-   NANOS_OPENCL_GENERIC_EVENT                         /* 19 */
+   NANOS_OPENCL_GET_PROGRAM_EVENT,                   /* 8 */
+   NANOS_OPENCL_GENERIC_EVENT                         /* 9 */
 } in_opencl_runtime_event_value;
 
 } // End namespace ext.

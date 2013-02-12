@@ -62,6 +62,16 @@ inline uint32_t gnuHash( const char *str )
    return h;
 }
 
+inline uint32_t gnuHash( const char *str, const char *end )
+{
+   uint32_t h = 5381;
+
+   for ( unsigned char c = *str; str != end; c = *++str )
+      h = h * 33 + c;
+
+   return h;
+}
+
 } // End namespace ext.
 } // End namespace nanos.
 
