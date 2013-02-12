@@ -230,6 +230,7 @@ void* OpenCLAdapter::createKernel( const char* kernel_name, const char* ompss_co
    #endif
    //When we find the kernel, stop compiling
    bool found=false;
+   ProgramCache& progCache = pe->getProgCache();  
    for(std::vector<std::string>::iterator i=code_files_vect.begin(); 
         i != code_files_vect.end() && !found; 
         ++i)
@@ -240,59 +241,72 @@ void* OpenCLAdapter::createKernel( const char* kernel_name, const char* ompss_co
       #else
          hash= gnuHash( kernel_name );
       #endif
-      ProgramCache progCache = pe->getProgCache();   
+      //First search kernel name hash (or filename if V_CL < 1.2), then filename
       if( progCache.count( hash ) )
       {
          prog = progCache[hash];
          found=true;
-      } else { //Compile file and add it to the progCache map (either file or kernels)
-         char* ompss_code;    
-         FILE *fp;
-         size_t source_size;
-         fp = fopen(code_file.c_str(), "r");
-         fatal_cond0(!fp, "Failed to open file when loading kernel from file " + code_file + ".\n");
-         
-         fseek(fp, 0, SEEK_END); // seek to end of file;
-         size_t size = ftell(fp); // get current file pointer
-         fseek(fp, 0, SEEK_SET); // seek back to beginning of file
-         ompss_code = new char[size];
-         source_size = fread( ompss_code, 1, size, fp);
-         fclose(fp); 
-         ompss_code[size]=0;
+      } else {
+          hash= gnuHash( code_file.c_str() );
+          if( progCache.count( hash ) )
+          {
+            prog = progCache[hash];
+            found=true;      
+          } else { //Compile file and add it to the progCache map (either file or kernels)
+            char* ompss_code;    
+            FILE *fp;
+            size_t source_size;
+            fp = fopen(code_file.c_str(), "r");
+            fatal_cond0(!fp, "Failed to open file when loading kernel from file " + code_file + ".\n");
 
-         if (code_file.find(".cl")!=code_file.npos){
-            buildProgram( ompss_code, compilerOpts, prog );
-         } else {
-            cl_int errCode;
-            const unsigned char* tmp_code=reinterpret_cast<const unsigned char*>(ompss_code);
-            prog = clCreateProgramWithBinary( _ctx, 1, &_dev, &size, &tmp_code, NULL, &errCode );    
-            fatal_cond0(errCode != CL_SUCCESS,"Failed to create program with binary from file " + code_file + ".\n");
-         }
-         delete [] ompss_code;
-         #ifndef CL_VERSION_1_2
-            progCache[hash] = prog;
-         #else
-            size_t n_kernels;
-            uint32_t curr_kernel_hash;
-            clGetProgramInfo(prog, CL_PROGRAM_NUM_KERNELS, sizeof(size_t),&n_kernels, NULL);
-            char* kernel_ids= new char[n_kernels*MAX_KERNEL_NAME_LENGTH];
-            size_t sizeret_kernels;
-            clGetProgramInfo(prog, CL_PROGRAM_KERNEL_NAMES, n_kernels*MAX_KERNEL_NAME_LENGTH*sizeof(char),kernel_ids, &sizeret_kernels);
-            if (sizeret_kernels>=n_kernels*MAX_KERNEL_NAME_LENGTH*sizeof(char))
-                warning0("Maximum kernel name length is 100 characters, you shouldn't use longer names");            
-            
-            //Tokenize with ',' as separator            
-            str=kernel_ids;
-            do
-            {
-               const char *begin = kernel_ids;
-               while(*str != ',' && *str) str++;
-               curr_kernel_hash=gnuHash(begin, str);
-               progCache[curr_kernel_hash]=prog;
-               if (curr_kernel_hash==hash) found=true;
-            } while (0 != *str++);
-            delete[] kernel_ids;
-         #endif
+            fseek(fp, 0, SEEK_END); // seek to end of file;
+            size_t size = ftell(fp); // get current file pointer
+            fseek(fp, 0, SEEK_SET); // seek back to beginning of file
+            ompss_code = new char[size];
+            source_size = fread( ompss_code, 1, size, fp);
+            fclose(fp); 
+            ompss_code[size]=0;
+
+            if (code_file.find(".cl")!=code_file.npos){
+               buildProgram( ompss_code, compilerOpts, prog );
+            } else {
+               cl_int errCode;
+               const unsigned char* tmp_code=reinterpret_cast<const unsigned char*>(ompss_code);
+               prog = clCreateProgramWithBinary( _ctx, 1, &_dev, &size, &tmp_code, NULL, &errCode );    
+               fatal_cond0(errCode != CL_SUCCESS,"Failed to create program with binary from file " + code_file + ".\n");
+            }
+            delete [] ompss_code;
+            #ifndef CL_VERSION_1_2
+               progCache[hash] = prog;
+            #else
+               size_t n_kernels;
+               uint32_t curr_kernel_hash;
+               cl_int errProg=clGetProgramInfo(prog, CL_PROGRAM_NUM_KERNELS, sizeof(size_t),&n_kernels, NULL);
+               //Sometimes even with CL 1.2 it won't work, handle in runtime too
+               if (errProg==CL_SUCESS){
+                   char* kernel_ids= new char[n_kernels*MAX_KERNEL_NAME_LENGTH];
+                   size_t sizeret_kernels;
+                   clGetProgramInfo(prog, CL_PROGRAM_KERNEL_NAMES, n_kernels*MAX_KERNEL_NAME_LENGTH*sizeof(char),kernel_ids, &sizeret_kernels);
+                   if (sizeret_kernels>=n_kernels*MAX_KERNEL_NAME_LENGTH*sizeof(char))
+                       warning0("Maximum kernel name length is 100 characters, you shouldn't use longer names");            
+
+                   //Tokenize with ',' as separator            
+                   str=kernel_ids;
+                   do
+                   {
+                      const char *begin = kernel_ids;
+                      while(*str != ',' && *str) str++;
+                      curr_kernel_hash=gnuHash(begin, str);
+                      progCache[curr_kernel_hash]=prog;
+                      if (curr_kernel_hash==hash) found=true;
+                   } while (0 != *str++);
+                   delete[] kernel_ids;
+               } else {
+                   hash= gnuHash( code_file.c_str() );
+                   progCache[hash]=prog;
+               }
+            #endif
+            }
       }
    }
    

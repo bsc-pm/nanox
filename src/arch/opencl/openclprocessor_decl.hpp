@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2013 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -146,7 +146,7 @@ public:
 
    cl_int getPreferredWorkGroupSizeMultiple( size_t &preferredWorkGroupSizeMultiple );
 
-   ProgramCache getProgCache() const {
+   ProgramCache& getProgCache() {
         return _progCache;
     }
 
@@ -193,8 +193,9 @@ public:
 
    bool supportsUserLevelThreads() const { return false; }
     
-   OpenCLAdapter::ProgramCache getProgCache() const {
-        return _openclAdapter.getProgCache();
+   OpenCLAdapter::ProgramCache& getProgCache() {
+       OpenCLAdapter::ProgramCache& pc=_openclAdapter.getProgCache();
+        return pc;
    }
    
    // Get program from cache, increasing reference-counting.

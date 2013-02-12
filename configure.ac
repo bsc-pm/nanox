@@ -345,6 +345,16 @@ AS_HELP_STRING([--with-opencl-include=dir], [Directory of OpenCL includes dir]),
 	[
 		OPENCLDIR="/usr/include/"
 	])
+AC_ARG_WITH([opencl-lib],
+AS_HELP_STRING([--with-opencl-lib=dir], [Directory of OpenCL libraries dir]),
+	[
+		OPENCLLIB="${withval}"
+	],
+	[
+      AC_CHECK_FILE([/usr/lib64/libOpenCL.so],
+                     [OPENCLLIB="/usr/lib64/"],
+                     [OPENCLLIB="/usr/lib/"])
+	])
 AC_MSG_CHECKING([if the use of OpenCL devices was disabled])
 AC_ARG_ENABLE([opencl-arch],
   AS_HELP_STRING([--disable-opencl-arch], [Disables the use of OpenCL devices]),
@@ -372,13 +382,12 @@ if test x"$opencl_enabled" = x"yes" ; then
     LIBS=""
     LDFLAGS=""
 
-    AC_CHECK_LIB([OpenCL],
-                 [clGetPlatformIDs],
+    AC_CHECK_FILE([$OPENCLLIB/libOpenCL.so],
                  [
                   opencl_valid="yes"
                  ],
                  [
-                  AC_MSG_WARN([OpenCL library not found. Disabling OpenCL support])
+                  AC_MSG_WARN([OpenCL library not found in $OPENCLLIB, specify location using -with-opencl-lib. Disabling OpenCL support])
                   opencl_valid="no"
                  ])
 else
@@ -386,8 +395,8 @@ else
 fi
 
 if test x"$opencl_valid" = x"yes"; then
-    CFLAGS="$CFLAGS -I$OPENCLDIR -DOpenCL_DEV -lOpenCL"
-    CXXFLAGS="$CXXFLAGS -I$OPENCLDIR -DOpenCL_DEV -lOpenCL"
+    CFLAGS="$CFLAGS -L$OPENCLLIB -I$OPENCLDIR -DOpenCL_DEV -lOpenCL"
+    CXXFLAGS="$CXXFLAGS -L$OPENCLLIB -I$OPENCLDIR -DOpenCL_DEV -lOpenCL"
     ARCHITECTURES="$ARCHITECTURES opencl"
 fi
 
