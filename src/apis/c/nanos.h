@@ -179,6 +179,7 @@ NANOS_API_DECL(nanos_err_t, nanos_wait_on, ( size_t num_data_accesses, nanos_dat
 #define NANOS_INIT_LOCK_FREE { NANOS_LOCK_FREE }
 #define NANOS_INIT_LOCK_BUSY { NANOS_LOCK_BUSY }
 NANOS_API_DECL(nanos_err_t, nanos_init_lock, ( nanos_lock_t **lock ));
+NANOS_API_DECL(nanos_err_t, nanos_init_lock_at, ( nanos_lock_t *lock ));
 NANOS_API_DECL(nanos_err_t, nanos_set_lock, (nanos_lock_t *lock));
 NANOS_API_DECL(nanos_err_t, nanos_unset_lock, (nanos_lock_t *lock));
 NANOS_API_DECL(nanos_err_t, nanos_try_lock, ( nanos_lock_t *lock, bool *result ));

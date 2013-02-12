@@ -168,6 +168,19 @@ NANOS_API_DEF(nanos_err_t, nanos_init_lock, ( nanos_lock_t **lock ))
    return NANOS_OK;
 }
 
+NANOS_API_DEF(nanos_err_t, nanos_init_lock_at, ( nanos_lock_t *lock ))
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","init_lock",NANOS_RUNTIME) );
+
+   try {
+      new ( lock ) Lock();
+   } catch ( nanos_err_t e) {
+      return e;
+   }
+
+   return NANOS_OK;
+}
+
 NANOS_API_DEF(nanos_err_t, nanos_set_lock, ( nanos_lock_t *lock ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","set_lock",NANOS_SYNCHRONIZATION) );
