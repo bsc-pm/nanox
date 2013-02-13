@@ -142,7 +142,7 @@ void OpenCLConfig::apply()
          clGetPlatformInfo(*i, CL_PLATFORM_VENDOR, 200, buffer, NULL);
          if (std::string(buffer)=="Intel(R) Corporation"){
             warning0("Intel OpenCL doesn't work correctly when using nanox allocator, "
-                    "please configure nanox with --disable-allocator and reinstall it in case you want to use it, skipping Intel OpenCL devices");
+                    "please configure and reinstall nanox with --disable-allocator in case you want to use it, skipping Intel OpenCL devices");
             continue;
          }
       #endif

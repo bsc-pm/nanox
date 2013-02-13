@@ -336,25 +336,40 @@ AM_CONDITIONAL([GPU_SUPPORT],[test $gpu_valid = yes])
 
 AC_SUBST([gpu_valid])
 
-# Check if an OpenCL implementation is installed.
+#Check if an OpenCL implementation is installed.
+OPENCLBASE="/usr"
+AC_ARG_WITH([opencl],
+AS_HELP_STRING([--with-opencl=dir], [Directory of OpenCL installation]),
+	[
+		OPENCLBASE="${withval}"
+	],
+	[
+		OPENCLBASE="/usr"
+	]
+)
+
 AC_ARG_WITH([opencl-include],
-AS_HELP_STRING([--with-opencl-include=dir], [Directory of OpenCL includes dir]),
+AS_HELP_STRING([--with-opencl-include=dir], [Directory of OpenCL includes]),
 	[
 		OPENCLDIR="${withval}"
 	],
 	[
-		OPENCLDIR="/usr/include/"
-	])
+		OPENCLDIR="$OPENCLBASE/include/"
+	]
+)
+
 AC_ARG_WITH([opencl-lib],
-AS_HELP_STRING([--with-opencl-lib=dir], [Directory of OpenCL libraries dir]),
+AS_HELP_STRING([--with-opencl-lib=dir], [Directory of OpenCL libraries]),
 	[
 		OPENCLLIB="${withval}"
 	],
 	[
-      AC_CHECK_FILE([/usr/lib64/libOpenCL.so],
-                     [OPENCLLIB="/usr/lib64/"],
-                     [OPENCLLIB="/usr/lib/"])
-	])
+      AC_CHECK_FILE([$OPENCLBASE/lib64/libOpenCL.so],
+                     [OPENCLLIB="$OPENCLBASE/lib64/"],
+                     [OPENCLLIB="$OPENCLBASE/lib/"])
+	]
+)
+
 AC_MSG_CHECKING([if the use of OpenCL devices was disabled])
 AC_ARG_ENABLE([opencl-arch],
   AS_HELP_STRING([--disable-opencl-arch], [Disables the use of OpenCL devices]),
@@ -388,6 +403,15 @@ if test x"$opencl_enabled" = x"yes" ; then
                  ],
                  [
                   AC_MSG_WARN([OpenCL library not found in $OPENCLLIB, specify location using -with-opencl-lib. Disabling OpenCL support])
+                  opencl_valid="no"
+                 ])
+
+    AC_CHECK_FILE([$OPENCLDIR/CL/opencl.h],
+                 [
+                  opencl_valid="yes"
+                 ],
+                 [
+                  AC_MSG_WARN([OpenCL headers not found in $OPENCLDIR, specify location using -with-opencl-include. Disabling OpenCL support])
                   opencl_valid="no"
                  ])
 else

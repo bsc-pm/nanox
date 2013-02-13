@@ -283,7 +283,7 @@ void* OpenCLAdapter::createKernel( const char* kernel_name, const char* ompss_co
                uint32_t curr_kernel_hash;
                cl_int errProg=clGetProgramInfo(prog, CL_PROGRAM_NUM_KERNELS, sizeof(size_t),&n_kernels, NULL);
                //Sometimes even with CL 1.2 it won't work, handle in runtime too
-               if (errProg==CL_SUCESS){
+               if (errProg==CL_SUCCESS){
                    char* kernel_ids= new char[n_kernels*MAX_KERNEL_NAME_LENGTH];
                    size_t sizeret_kernels;
                    clGetProgramInfo(prog, CL_PROGRAM_KERNEL_NAMES, n_kernels*MAX_KERNEL_NAME_LENGTH*sizeof(char),kernel_ids, &sizeret_kernels);
