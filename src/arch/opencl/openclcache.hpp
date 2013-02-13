@@ -27,7 +27,12 @@
 #include "system_decl.hpp"
 #include "openclutils.hpp"
 #include "openclconfig.hpp"
+
+#ifdef __APPLE__
+#include <OpenCL/opencl.h>
+#else
 #include <CL/opencl.h>
+#endif
 
 #include <limits>
 #include <queue>

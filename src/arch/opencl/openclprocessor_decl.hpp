@@ -25,6 +25,11 @@
 #include "openclconfig.hpp"
 #include "opencldd.hpp"
 #include "opencldevice_decl.hpp"
+#ifdef __APPLE__
+#include <OpenCL/opencl.h>
+#else
+#include <CL/opencl.h>
+#endif
 
 #define MAX_KERNEL_NAME_LENGTH 100
 

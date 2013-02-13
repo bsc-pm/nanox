@@ -2,7 +2,12 @@
 #ifndef _NANOS_OpenCL_CFG
 #define _NANOS_OpenCL_CFG
 
+#ifdef __APPLE__
+#include <OpenCL/opencl.h>
+#else
 #include <CL/opencl.h>
+#endif
+
 #include "atomic.hpp"
 #include "config.hpp"
 
