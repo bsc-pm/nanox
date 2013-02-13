@@ -235,7 +235,7 @@ void System::config ()
    cfg.registerArgOption ( "num_pes", "pes" );
    cfg.registerEnvOption ( "num_pes", "NX_PES" );
 
-   cfg.registerConfigOption ( "num_threads", NEW Config::PositiveVar( _numThreads ), "Defines the number of threads" );
+   cfg.registerConfigOption ( "num_threads", NEW Config::PositiveVar( _numThreads ), "Defines the number of threads. Note that OMP_NUM_THREADS is an alias to this." );
    cfg.registerArgOption ( "num_threads", "threads" );
    cfg.registerEnvOption ( "num_threads", "NX_THREADS" );
 
