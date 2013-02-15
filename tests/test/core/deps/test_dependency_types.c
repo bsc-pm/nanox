@@ -156,7 +156,7 @@ struct nanos_const_wd_definition_1 const_data1 =
    __alignof__(my_args),
    0,
    1,
-   0},
+   0,NULL},
    {
       {
          nanos_smp_factory,
@@ -173,7 +173,7 @@ struct nanos_const_wd_definition_1 const_data2 =
    __alignof__(my_args),
    0,
    1,
-   0},
+   0,NULL},
    {
       {
          nanos_smp_factory,
@@ -190,7 +190,7 @@ struct nanos_const_wd_definition_1 const_data3 =
    __alignof__(my_args),
    0,
    1,
-   0},
+   0,NULL},
    {
       {
          nanos_smp_factory,
@@ -207,7 +207,7 @@ struct nanos_const_wd_definition_1 const_data4 =
    __alignof__(my_args),
    0,
    1,
-   0},
+   0,NULL},
    {
       {
          nanos_smp_factory,
@@ -224,7 +224,7 @@ struct nanos_const_wd_definition_1 const_data5 =
    __alignof__(my_args2),
    0,
    1,
-   0},
+   0,NULL},
    {
       {
          nanos_smp_factory,
@@ -241,7 +241,7 @@ struct nanos_const_wd_definition_1 const_data6 =
    __alignof__(my_args2),
    0,
    1,
-   0},
+   0,NULL},
    {
       {
          nanos_smp_factory,
@@ -258,7 +258,7 @@ struct nanos_const_wd_definition_1 const_data7 =
    __alignof__(my_args3),
    0,
    1,
-   0},
+   0,NULL},
    {
       {
          nanos_smp_factory,
@@ -275,7 +275,7 @@ struct nanos_const_wd_definition_1 const_data8 =
    __alignof__(my_args2),
    0,
    1,
-   0},
+   0,NULL},
    {
       {
          nanos_smp_factory,

@@ -79,7 +79,7 @@ struct nanos_const_wd_definition_1 const_data1 =
       .tied = false},
    __alignof__(my_args),
    2,
-   1,2},
+   1,2,NULL},
    {
       {
          nanos_smp_factory,

@@ -94,7 +94,7 @@ int main ( int argc, char **argv )
    Slicer *slicer = sys.getSlicer ( "repeat_n" );
  
    // Work descriptor creation
-   WD * wd2 = new SlicedWD( *slicer, new SMPDD( hello_world ), sizeof(hello_world_args), __alignof__(hello_world_args),data );
+   WD * wd2 = new SlicedWD( *slicer, new SMPDD( hello_world ), sizeof(hello_world_args), __alignof__(hello_world_args),data,0,NULL,NULL );
 
    // Work Group affiliation and work submision
    WG *wg = getMyThreadSafe()->getCurrentWD();
