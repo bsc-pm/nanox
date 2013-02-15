@@ -64,13 +64,15 @@ typedef struct {
    size_t data_alignment;
    size_t num_copies;
    size_t num_devices;
+   size_t num_dimensions;
+   char * description;
    nanos_device_t devices[];
 } nanos_const_wd_definition_local_t;
 
 nanos_const_wd_definition_local_t const_data1 = 
 {
    { .tied = 1},
-   0, 0, 1, 0, NULL
+   0, 0, 1, 0, NULL,
    { { nanos_smp_factory, 0 } }
 };
 
