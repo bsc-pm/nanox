@@ -66,6 +66,7 @@ typedef struct nanos_const_wd_definition_tag {
    size_t num_copies;
    size_t num_devices;
    size_t num_dimensions;
+   const char *description;
 } nanos_const_wd_definition_t;
 
 typedef struct {
