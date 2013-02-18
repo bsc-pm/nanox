@@ -201,6 +201,8 @@ NANOS_API_DECL(nanos_err_t, nanos_get_default_binding, ( bool *res ));
 NANOS_API_DECL(nanos_err_t, nanos_delay_start, ());
 NANOS_API_DECL(nanos_err_t, nanos_start, ());
 NANOS_API_DECL(nanos_err_t, nanos_finish, ());
+NANOS_API_DECL(nanos_err_t, nanos_current_socket, ( int socket ));
+NANOS_API_DECL(nanos_err_t, nanos_get_num_sockets, ( int *num_sockets ));
 
 // Memory management
 NANOS_API_DECL(nanos_err_t, nanos_malloc, ( void **p, size_t size, const char *file, int line ));

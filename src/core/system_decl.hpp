@@ -65,6 +65,9 @@ namespace nanos
          typedef std::map<std::string, WorkSharing *> WorkSharings;
          typedef std::multimap<std::string, std::string> ModulesPlugins;
          
+         //! CPU id binding list
+         typedef std::vector<int> Bindings;
+         
          // globla seeds
          Atomic<int> _atomicWDSeed;
 
@@ -86,6 +89,8 @@ namespace nanos
          bool                 _synchronizedStart;
          int                  _numSockets;
          int                  _coresPerSocket;
+         //! The socket that will be assigned to the next WD
+         int                  _currentSocket;
 
 	 // Nanos++ scheduling domain
    	 cpu_set_t            _cpu_set;
@@ -152,6 +157,9 @@ namespace nanos
          CachePolicyType      _cachePolicy;
          //! CacheMap register
          CacheMap             _cacheMap;
+         
+         //! CPU id binding list
+         Bindings             _bindings;
 
 #ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
@@ -273,6 +281,10 @@ namespace nanos
          int getNumSockets() const;
 
          void setNumSockets ( int numSockets );
+
+         int getCurrentSocket() const;
+
+         void setCurrentSocket( int currentSocket );
 
          int getCoresPerSocket() const;
 

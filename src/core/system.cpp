@@ -680,6 +680,11 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
 
    WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, data_align, data != NULL ? *data : NULL,
                              num_copies, (copies != NULL)? *copies : NULL, translate_args, desc );
+   // Set WD's socket
+   wd->setSocket( getCurrentSocket() );
+   
+   if ( getCurrentSocket() >= sys.getNumSockets() )
+      throw NANOS_INVALID_PARAM;
 
    // All the implementations for a given task will have the same ID
    wd->setVersionGroupId( ( unsigned long ) devices );
@@ -696,7 +701,8 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    // set properties
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
-      wd->setPriority( dyn_props->priority );
+      unsigned priority = dyn_props->priority;
+      wd->setPriority( priority );
    }
    if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
 }
@@ -845,6 +851,11 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
 
    SlicedWD * wd =  new (*uwd) SlicedWD( *slicer, num_devices, dev_ptrs, outline_data_size, outline_data_align,
                                          outline_data != NULL ? *outline_data : NULL, num_copies, (copies == NULL) ? NULL : *copies, desc );
+   // Set WD's socket
+   wd->setSocket(  getCurrentSocket() );
+   
+   if ( getCurrentSocket() >= sys.getNumSockets() )
+      throw NANOS_INVALID_PARAM;
 
    // initializing internal data
    if ( size_PMD > 0) wd->setInternalData( chunk + offset_PMD );

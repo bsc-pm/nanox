@@ -16,6 +16,7 @@
 #include <libgen.h>
 #include "os.hpp"
 #include "errno.h"
+#include <unistd.h>
 
 #ifndef EXTRAE_VERSION
 #warning Extrae library version is not supported (use >= 2.3):
