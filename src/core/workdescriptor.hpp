@@ -274,5 +274,7 @@ inline void WorkDescriptor::releaseCommutativeAccesses()
 inline void WorkDescriptor::setImplicit( bool b ) { _implicit = b; }
 inline bool WorkDescriptor::isImplicit( void ) { return _implicit; } 
 
+inline char * WorkDescriptor::getDescription ( void ) const  { return _description; }
+
 #endif
 

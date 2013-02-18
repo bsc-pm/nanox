@@ -551,6 +551,8 @@ namespace nanos
           * will be allocated instead
           */
          void setCopies(size_t numCopies, CopyData * copies);
+
+         char * getDescription ( void ) const;
    };
 
    typedef class WorkDescriptor WD;

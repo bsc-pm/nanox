@@ -77,6 +77,24 @@ NANOS_API_DEF(int, nanos_get_wd_id, ( nanos_wd_t wd ))
    return id;
 }
 
+/*! \brief Returns the description of the specified WD.
+ *
+ *  \param [out] string description
+ *  \param [in] wd is the WorkDescriptor
+ */
+NANOS_API_DEF(nanos_err_t, nanos_get_wd_description, ( char **description, nanos_wd_t wd ))
+{
+   try 
+   {
+      WD *lwd = ( WD * )wd;
+      *description = lwd->getDescription();
+   } catch ( nanos_err_t e) {
+      return e;
+   }
+
+   return NANOS_OK;
+}
+
 /*! \brief Creates a new WorkDescriptor
  *
  *  \param uwd is WorkDescriptor to be initialized, if *uwd == 0 is allocated
