@@ -97,7 +97,7 @@ void SMPThread::bind( void )
          warning( "cpu id " << cpu_id << " is in socket #" << socket <<
                  ", while there are only " << sys.getNumSockets() << " sockets." );
       }
-      
+      verbose( "Binding cpu " << cpu_id << " to socket " << socket );
       setSocket( socket );
    }
 
@@ -116,7 +116,7 @@ int SMPThread::adjustBind( int cpu_id )
    if( getId() == 0 )
       return cpu_id;
    int new_id = sys.getBindingId( getId() );
-   fprintf( stderr, "CPU thread %d goes to %d\n", cpu_id, new_id );
+   //fprintf( stderr, "CPU thread %d goes to %d\n", cpu_id, new_id );
    return new_id;
 }
 
