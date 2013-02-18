@@ -354,6 +354,18 @@ namespace nanos {
             /* 37 */ registerEventKey("dep-direction", "Dependence direction", true);
 
             /* 38 */ registerEventKey("wd-priority","Priority of a work descriptor");
+                     
+            /* 39 */ registerEventKey("in-opencl-runtime","Inside OpenCL runtime", true);
+            registerEventValue("in-opencl-runtime", "NANOS_OPENCL_ALLOC_EVENT", "clCreateBuffer()" );                                     /* 1 */
+            registerEventValue("in-opencl-runtime", "NANOS_OPENCL_FREE_EVENT", "clReleaseMemObject()" );                                         /* 2 */
+            registerEventValue("in-opencl-runtime", "NANOS_OPENCL_GET_DEV_INFO_EVENT", "clGetDeviceInfo()" );                            /* 3 */
+            registerEventValue("in-opencl-runtime", "NANOS_OPENCL_CREATE_CONTEXT_EVENT", "clCreateContext()" );                                /* 4 */
+            registerEventValue("in-opencl-runtime", "NANOS_OPENCL_MEMWRITE_SYNC_EVENT", "clEnqueueWriteBuffer(blocking=true)" );                      /* 5 */
+            registerEventValue("in-opencl-runtime", "NANOS_OPENCL_MEMREAD_SYNC_EVENT", "clEnqueueReadBuffer(blocking=true)" );                /* 6 */
+            registerEventValue("in-opencl-runtime", "NANOS_OPENCL_CREATE_COMMAND_QUEUE_EVENT", "clCreateCommandQueue()" );                /* 7 */
+            registerEventValue("in-opencl-runtime", "NANOS_OPENCL_GET_PROGRAM_EVENT", "Compile, build and clCreateKernel() nanox routine" );                /* 8 */
+            registerEventValue("in-opencl-runtime", "NANOS_OPENCL_GENERIC_EVENT", "OpenCL generic event" );                              /* 9 */
+
 
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }

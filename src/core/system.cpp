@@ -40,6 +40,10 @@
 #include "gpuprocessor_decl.hpp"
 #endif
 
+#ifdef OpenCL_DEV
+#include "openclprocessor.hpp"
+#endif
+
 using namespace nanos;
 
 System nanos::sys;
@@ -51,7 +55,7 @@ System::System () :
       _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
       _numSockets( 1 ), _coresPerSocket( 1 ), _cpu_count( 0 ), _throttlePolicy ( NULL ),
-      _schedStats(), _schedConf(), _defSchedule( "default" ), _defThrottlePolicy( "default" ), 
+      _schedStats(), _schedConf(), _defSchedule( "default" ), _defThrottlePolicy( "hysteresis" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _pausedThreads( 0 ),
       _pausedThreadsCond(), _unpausedThreadsCond(),
@@ -143,7 +147,14 @@ void System::loadModules ()
    if ( !loadPlugin( "pe-gpu" ) )
       fatal0 ( "Couldn't load GPU support" );
 #endif
+   
+#ifdef OpenCL_DEV
+   verbose0( "loading OpenCL support" );
 
+   if ( !loadPlugin( "pe-opencl" ) )
+     fatal0 ( "Couldn't load OpenCL support" );
+#endif
+   
    // load default schedule plugin
    verbose0( "loading " << getDefaultSchedule() << " scheduling policy support" );
 
@@ -224,7 +235,7 @@ void System::config ()
    cfg.registerArgOption ( "num_pes", "pes" );
    cfg.registerEnvOption ( "num_pes", "NX_PES" );
 
-   cfg.registerConfigOption ( "num_threads", NEW Config::PositiveVar( _numThreads ), "Defines the number of threads" );
+   cfg.registerConfigOption ( "num_threads", NEW Config::PositiveVar( _numThreads ), "Defines the number of threads. Note that OMP_NUM_THREADS is an alias to this." );
    cfg.registerArgOption ( "num_threads", "threads" );
    cfg.registerEnvOption ( "num_threads", "NX_THREADS" );
 
@@ -331,7 +342,10 @@ void System::start ()
 #ifdef GPU_DEV
    _targetThreads += nanos::ext::GPUConfig::getGPUCount();
 #endif
-
+   
+#ifdef OpenCL_DEV
+   _targetThreads += nanos::ext::OpenCLConfig::getOpenCLDevicesCount();
+#endif
    // Instrumentation startup
    NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->initialize() );
@@ -384,6 +398,16 @@ void System::start ()
    }
 #endif
 
+   
+#ifdef OpenCL_DEV
+    for ( unsigned int i = 0; i < nanos::ext::OpenCLConfig::getOpenCLDevicesCount(); i++) {
+       PE *openclAccelerator = NEW nanos::ext::OpenCLProcessor( getBindingId( p ) , i);
+       _pes.push_back( openclAccelerator );
+      _workers.push_back( &openclAccelerator->startWorker() );
+      ++p;
+    }
+#endif
+      
 #ifdef SPU_DEV
    PE *spu = NEW nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);
    spu->startWorker();
@@ -917,7 +941,7 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    }
 
    // creating new WD 
-   //FIXME jbueno
+   //FIXME jbueno (#758) should we have to take into account dimensions?
    new (*uwd) WD( *wd, dev_ptrs, wdCopies, data );
 
    // initializing internal data
@@ -1051,7 +1075,7 @@ void System::submitWithDependencies (WD& work, size_t numDataAccesses, DataAcces
    SchedulePolicy* policy = getDefaultSchedulePolicy();
    policy->onSystemSubmit( work, SchedulePolicy::SYS_SUBMIT_WITH_DEPENDENCIES );
    setupWD( work, myThread->getCurrentWD() );
-   WD *current = myThread->getCurrentWD();
+   WD *current = myThread->getCurrentWD(); 
    current->submitWithDependencies( work, numDataAccesses , dataAccesses);
 }
 

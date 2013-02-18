@@ -336,6 +336,150 @@ AM_CONDITIONAL([GPU_SUPPORT],[test $gpu_valid = yes])
 
 AC_SUBST([gpu_valid])
 
+#only show warnings when the user tries to specify opencl folders
+opencl_showwarn="no"
+#Check if an OpenCL implementation is installed.
+OPENCLBASE="/usr"
+AC_ARG_WITH([opencl],
+AS_HELP_STRING([--with-opencl=dir], [Directory of OpenCL installation]),
+	[
+		OPENCLBASE="${withval}"
+      opencl_showwarn="yes"
+	],
+	[
+		OPENCLBASE="/usr"
+	]
+)
+
+AC_ARG_WITH([opencl-include],
+AS_HELP_STRING([--with-opencl-include=dir], [Directory of OpenCL includes]),
+	[
+		OPENCL_INC="${withval}"
+      opencl_showwarn="yes"
+	],
+	[
+		OPENCL_INC="$OPENCLBASE/include/"
+	]
+)
+
+AC_ARG_WITH([opencl-lib],
+AS_HELP_STRING([--with-opencl-lib=dir], [Directory of OpenCL libraries]),
+	[
+		OPENCL_LIB="${withval}"
+      opencl_showwarn="yes"
+	],
+	[
+      #tests if headers and libraries are usable and correct
+      #backup vars before we do the tests
+      CFLAGSBACKUP="$CFLAGS"
+      CPPFLAGSBACKUP="$CPPFLAGS"
+      CXXFLAGSBACKUP="$CXXFLAGS"
+      LDFLAGSBACKUP="$LDFLAGS"
+
+      CFLAGS="$CFLAGS -L$OPENCLBASE/lib64/"
+      CPPFLAGS="$CPPFLAGS -L$OPENCLBASE/lib64/"
+      CFLAGS="$CXXFLAGS -L$OPENCLBASE/lib64/"
+      LDFLAGS="$LDFLAGS -L$OPENCLBASE/lib64/"
+      AC_CHECK_LIB([OpenCL],
+                   [clGetPlatformIDs],
+                   [OPENCL_LIB="$OPENCLBASE/lib64/"],
+                   [OPENCL_LIB="$OPENCLBASE/lib/"])
+
+      CFLAGS="$CFLAGSBACKUP"
+      CPPFLAGS="$CPPFLAGSBACKUP"
+      CXXFLAGS="$CFLAGSBACKUP"
+      LDFLAGS="$LDFLAGSBACKUP"
+      #endtest
+	]
+)
+
+AC_MSG_CHECKING([if the use of OpenCL devices was disabled])
+AC_ARG_ENABLE([opencl-arch],
+  AS_HELP_STRING([--disable-opencl-arch], [Disables the use of OpenCL devices]),
+  [
+    if test x"$enableval" = x"yes" -o x"$enableval" = x"";
+    then
+        opencl_enabled="yes"        
+        opencl_showwarn="yes"
+        AC_MSG_RESULT([no])
+    else if test x"$enableval" = x"no";
+        then
+            opencl_enabled="no"
+            AC_MSG_RESULT([yes])
+        else
+            AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
+        fi    
+    fi
+  ],
+  [
+    opencl_enabled="yes"
+    AC_MSG_RESULT([no])
+  ]
+)
+
+if test x"$opencl_enabled" = x"yes" ; then
+
+    opencl_valid="no"
+    opencl_libs="no"
+    opencl_headers="no"
+
+    #tests if headers and libraries are usable and correct
+    #backup vars before we do the tests
+    CFLAGSBACKUP="$CFLAGS"
+    CPPFLAGSBACKUP="$CPPFLAGS"
+    CXXFLAGSBACKUP="$CXXFLAGS"
+    LDFLAGSBACKUP="$LDFLAGS"
+
+    CFLAGS="$CFLAGS -I$OPENCL_INC -L$OPENCL_LIB"
+    CPPFLAGS="$CPPFLAGS -I$OPENCL_INC -L$OPENCL_LIB"
+    CFLAGS="$CXXFLAGS -I$OPENCL_INC -L$OPENCL_LIB"
+    LDFLAGS="$LDFLAGS -L$OPENCL_LIB"
+
+    AC_CHECK_HEADER([CL/opencl.h], [opencl_headers="yes"],[])
+    AC_CHECK_HEADER([OpenCL/opencl.h], [opencl_headers="yes"],[])
+    AC_CHECK_LIB([OpenCL],
+                 [clGetPlatformIDs],
+                 [opencl_libs="yes"],
+                 [])
+
+    CFLAGS="$CFLAGSBACKUP"
+    CPPFLAGS="$CPPFLAGSBACKUP"
+    CXXFLAGS="$CFLAGSBACKUP"
+    LDFLAGS="$LDFLAGSBACKUP"
+    #endtest
+
+    if test x"$opencl_libs" = x"yes" ; then
+         if test x"$opencl_headers" = x"yes" ; then
+            opencl_valid="yes"
+         fi
+    fi
+
+    if test x"$opencl_showwarn" = x"yes" ; then
+         if test x"$opencl_libs" = x"no" ; then
+            AC_MSG_WARN([OpenCL library not found in $OPENCL_LIB, specify location using -with-opencl-lib. Disabling OpenCL support])
+         fi
+         if test x"$opencl_headers" = x"no" ; then
+            AC_MSG_WARN([OpenCL headers not found in $OPENCL_INC, specify location using -with-opencl-include. Disabling OpenCL support])
+         fi
+    fi
+else
+    opencl_valid="no"
+fi
+
+if test x"$opencl_valid" = x"yes"; then
+    OPENCL_LD=$OPENCL_LIB
+    OPENCL_INC=$OPENCL_INC
+    CFLAGS="$CFLAGS -I$OPENCL_INC -DOpenCL_DEV"
+    CXXFLAGS="$CXXFLAGS -I$OPENCL_INC -DOpenCL_DEV"
+    ARCHITECTURES="$ARCHITECTURES opencl"
+    AC_SUBST([OPENCL_LD])
+    AC_SUBST([OPENCL_INC])
+fi
+
+AM_CONDITIONAL([OPENCL_SUPPORT],[test $opencl_valid = yes]) 
+
+AC_SUBST([opencl_valid])
+
 # mcc support
 AC_ARG_WITH([mcc],
 AS_HELP_STRING([--with-mcc=dir], [Directory of mcc compiler]),
@@ -752,7 +896,16 @@ AC_CONFIG_FILES([Makefile
 		 src/arch/gpu/debug/Makefile
 		 src/arch/gpu/instrumentation/Makefile
 		 src/arch/gpu/instrumentation-debug/Makefile
+		 src/arch/opencl/Makefile
+		 src/arch/opencl/performance/Makefile
+		 src/arch/opencl/debug/Makefile
+		 src/arch/opencl/instrumentation/Makefile
+		 src/arch/opencl/instrumentation-debug/Makefile
 		 src/utils/Makefile
+		 src/utils/performance/Makefile
+		 src/utils/instrumentation/Makefile
+		 src/utils/debug/Makefile
+		 src/utils/instrumentation-debug/Makefile
 		 scripts/Makefile
 		 tests/Makefile
 		 tests/gens/Makefile

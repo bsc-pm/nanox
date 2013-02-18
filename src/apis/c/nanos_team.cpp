@@ -32,6 +32,16 @@ using namespace nanos;
  *  \{
  */
 
+/*! \brief Creates a new team
+ *  
+ *  \param team Resulting team
+ *  \param sp Scheduling policy
+ *  \param nthreads Number of threads
+ *  \param constraints List of constraints
+ *  \param reuse Reuse current thread for the new team
+ *  \param info Extra information needed by team
+ *  \sa ThreadTeam
+ */
 NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_t sp, unsigned int *nthreads,
                                nanos_constraint_t * constraints, bool reuse, nanos_thread_t *info ))
 {

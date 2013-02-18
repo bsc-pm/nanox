@@ -198,8 +198,8 @@ inline void Scheduler::idleLoop ()
          myThread->unpause();
       }
 
-      if ( next ) {
-         myThread->resetNextWD();
+      if ( next ) {  
+        myThread->resetNextWD();
       } else if ( thread->getTeam() != NULL ) {
          memoryFence();
          if ( sys.getSchedulerStats()._readyTasks > 0 ) {
@@ -461,7 +461,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 void Scheduler::wakeUp ( WD *wd )
 {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
-
+   
    if ( wd->isBlocked() ) {
       /* Setting ready wd */
       wd->setReady();

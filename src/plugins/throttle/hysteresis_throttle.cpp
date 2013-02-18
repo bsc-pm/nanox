@@ -26,18 +26,18 @@
 namespace nanos {
    namespace ext {
 
-      class DefaultThrottle: public ThrottlePolicy
+      class HysteresisThrottle: public ThrottlePolicy
       {
          private:
             int   _upper;
             int   _lower;
             MultipleSyncCond<LessOrEqualConditionChecker<int> > _syncCond;
 
-            DefaultThrottle ( const DefaultThrottle & );
-            const DefaultThrottle & operator= ( const DefaultThrottle & );
+            HysteresisThrottle ( const HysteresisThrottle & );
+            const HysteresisThrottle & operator= ( const HysteresisThrottle & );
 
          public:
-            DefaultThrottle( int upper, int lower ) : _upper( upper ), _lower( lower ),
+            HysteresisThrottle( int upper, int lower ) : _upper( upper ), _lower( lower ),
                                                       _syncCond( LessOrEqualConditionChecker<int>(sys.getSchedulerStats().getTotalTasksAddr(), lower )) {}
 
             void setUpper( int upper ) { _upper = upper; };
@@ -46,33 +46,33 @@ namespace nanos {
             bool throttleIn( void );
             void throttleOut ( void );
 
-            ~DefaultThrottle() {}
+            ~HysteresisThrottle() {}
       };
 
-      bool DefaultThrottle::throttleIn ( void )
+      bool HysteresisThrottle::throttleIn ( void )
       {
          // Only dealing with first level tasks
          if ( ( (myThread->getCurrentWD())->getDepth() < 1 ) && ( sys.getTaskNum() > (_upper * sys.getNumWorkers()) ) ) _syncCond.wait();
          return true;
       }
-      void DefaultThrottle::throttleOut ( void )
+      void HysteresisThrottle::throttleOut ( void )
       {
          if ( sys.getTaskNum() <= ( _lower * sys.getNumWorkers() ) ) _syncCond.signal();
       }
 
-      class DefaultThrottlePlugin : public Plugin
+      class HysteresisThrottlePlugin : public Plugin
       {
          private:
             int _lowerLimit;
             int _upperLimit;
 
          public:
-            DefaultThrottlePlugin() : Plugin( "Default throttle plugin (Hysteresis in number of tasks per thread)",1 ),
+            HysteresisThrottlePlugin() : Plugin( "Hysteresis throttle plugin (Hysteresis in number of tasks per thread)",1 ),
                                       _lowerLimit( 250 ), _upperLimit ( 500 ) {}
 
             virtual void config( Config &cfg )
             {
-               cfg.setOptionsSection( "Default throttle (hysteresis in number of tasks per thread)", "Scheduling throttle policy based on the number of tasks" );
+               cfg.setOptionsSection( "Hysteresis throttle (hysteresis in number of tasks per thread)", "Scheduling throttle policy based on the number of tasks" );
 
                cfg.registerConfigOption ( "throttle-upper", NEW Config::PositiveVar( _upperLimit ),
                   "Defines the maximum number of tasks (per thread) allowed to create new 1st level's tasks" );
@@ -85,11 +85,11 @@ namespace nanos {
             }
 
             virtual void init() {
-               sys.setThrottlePolicy( NEW DefaultThrottle( _upperLimit, _lowerLimit ) ); 
+               sys.setThrottlePolicy( NEW HysteresisThrottle( _upperLimit, _lowerLimit ) ); 
             }
       };
 
    }
 }
 
-DECLARE_PLUGIN("throttle-default",nanos::ext::DefaultThrottlePlugin);
+DECLARE_PLUGIN("throttle-default",nanos::ext::HysteresisThrottlePlugin);
