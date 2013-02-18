@@ -215,7 +215,7 @@ namespace nanos {
                   {
                      int node = worker->getSocket();
                      _gpuNodes.insert( node );
-                     fprintf( stderr, "Found GPU Worker in node %d\n", node );
+                     //fprintf( stderr, "Found GPU Worker in node %d\n", node );
                   }
 #endif
                   // Avoid unused variable warning.
@@ -437,7 +437,7 @@ namespace nanos {
                      index = nodeToQueue( node, true );
                      wd.setWakeUpQueue( index );
                      
-                     //fprintf( stderr, "Depth 1, inserting WD %d in queue number %d (curr socket %d)\n", wd.getId(), index, wd._socket );
+                     //fprintf( stderr, "Depth 1, inserting WD %d in queue number %d (curr socket %d)\n", wd.getId(), index, wd.getSocket() );
                      
                      // Insert at the front (these will have higher priority)
                      tdata._readyQueues[index].push_back ( &wd );
