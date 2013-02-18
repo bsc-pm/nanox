@@ -49,7 +49,6 @@ void * GPUThread::getCUBLASHandle()
 inline int GPUThread::adjustBind( int cpu_id )
 {
    int new_id = sys.getBindingId( getId() );
-   fprintf( stderr, "GPU thread %d goes to %d\n", cpu_id, new_id );
    return new_id;
 }
 
