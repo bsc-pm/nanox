@@ -91,6 +91,7 @@ void main__loop_1 ( void *args );
       _loop_data.loop_info.chunk = chunk2; \
       WG *wg = getMyThreadSafe()->getCurrentWD();\
       wg->addWork( *wd );\
+      sys.setupWD( *wd, (nanos::WD *) wg );\
       sys.submit( *wd );\
       wg->waitCompletion();\
       if (step2 > 0 ) for ( int j = lower2+k_offset; j <= upper2+k_offset; j+= step2 ) A[j+_loop_data.offset]--; \

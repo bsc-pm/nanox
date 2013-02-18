@@ -101,7 +101,10 @@ int main ( int argc, char **argv )
    wg->addWork( *wd1 );
    wg->addWork( *wd2 );
 
+   sys.setupWD(*wd1, (nanos::WD *) wg);
    sys.submit( *wd1 );
+
+   sys.setupWD(*wd2, (nanos::WD *) wg);
    sys.submit( *wd2 );
 
    wg->waitCompletion();
