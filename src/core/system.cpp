@@ -1087,7 +1087,6 @@ void System::submit ( WD &work )
 {
    SchedulePolicy* policy = getDefaultSchedulePolicy();
    policy->onSystemSubmit( work, SchedulePolicy::SYS_SUBMIT );
-   setupWD( work, myThread->getCurrentWD() );
    work.submit();
 }
 
@@ -1097,7 +1096,6 @@ void System::submitWithDependencies (WD& work, size_t numDataAccesses, DataAcces
 {
    SchedulePolicy* policy = getDefaultSchedulePolicy();
    policy->onSystemSubmit( work, SchedulePolicy::SYS_SUBMIT_WITH_DEPENDENCIES );
-   setupWD( work, myThread->getCurrentWD() );
    WD *current = myThread->getCurrentWD(); 
    current->submitWithDependencies( work, numDataAccesses , dataAccesses);
 }
@@ -1115,7 +1113,6 @@ void System::inlineWork ( WD &work )
 {
    SchedulePolicy* policy = getDefaultSchedulePolicy();
    policy->onSystemSubmit( work, SchedulePolicy::SYS_INLINE_WORK );
-   setupWD( work, myThread->getCurrentWD() );
    // TODO: choose actual (active) device...
    if ( Scheduler::checkBasicConstraints( work, *myThread ) ) {
       Scheduler::inlineWork( &work );

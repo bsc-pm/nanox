@@ -199,6 +199,8 @@ NANOS_API_DEF(nanos_err_t, nanos_submit, ( nanos_wd_t uwd, size_t num_data_acces
          warning( "Submitting to another team not implemented yet" );
       }
 
+      sys.setupWD( *wd, myThread->getCurrentWD() );
+
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
 
       NANOS_INSTRUMENT ( static nanos_event_key_t create_wd_id = ID->getEventKey("create-wd-id"); )
@@ -288,6 +290,8 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
       if ( pmDataSize > 0 ) {
         wd.setInternalData(pmData);
       }
+
+      sys.setupWD( wd, myThread->getCurrentWD() );
 
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
 
