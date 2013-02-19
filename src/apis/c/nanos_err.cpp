@@ -54,6 +54,9 @@ NANOS_API_DEF(void, nanos_handle_error, ( nanos_err_t err ))
       case NANOS_ENOMEM:
          fprintf( stderr,"Nanox: Cannot allocate enough memory to run the program\n" );
          break;
+      case NANOS_INVALID_PARAM:
+         fprintf( stderr, "Nanox: invalid parameter\n" );
+         break;
    }
 
    abort();

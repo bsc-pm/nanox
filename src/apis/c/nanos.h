@@ -45,7 +45,7 @@
 
 #ifdef _MERCURIUM
 // define API version
-#pragma nanos interface family(master) version(5021)
+#pragma nanos interface family(master) version(5022)
 #pragma nanos interface family(worksharing) version(1000)
 #pragma nanos interface family(deps_api) version(1001)
 #pragma nanos interface family(copies_api) version(1002)
@@ -66,6 +66,11 @@ typedef struct nanos_const_wd_definition_tag {
    size_t num_copies;
    size_t num_devices;
    size_t num_dimensions;
+#ifdef _MF03
+   void *description;
+#else
+   const char *description;
+#endif
 } nanos_const_wd_definition_t;
 
 typedef struct {
@@ -95,6 +100,7 @@ NANOS_API_DECL(char *, nanos_get_mode, ( void ));
 NANOS_API_DECL(nanos_wd_t, nanos_current_wd, (void));
 NANOS_API_DECL(int, nanos_get_wd_id, (nanos_wd_t wd));
 NANOS_API_DECL(unsigned int, nanos_get_wd_priority, (nanos_wd_t wd));
+NANOS_API_DECL(nanos_err_t, nanos_get_wd_description, ( char **description, nanos_wd_t wd ));
 
 // Finder functions
 NANOS_API_DECL(nanos_slicer_t, nanos_find_slicer, ( const char * slicer ));
@@ -199,6 +205,8 @@ NANOS_API_DECL(nanos_err_t, nanos_get_default_binding, ( bool *res ));
 NANOS_API_DECL(nanos_err_t, nanos_delay_start, ());
 NANOS_API_DECL(nanos_err_t, nanos_start, ());
 NANOS_API_DECL(nanos_err_t, nanos_finish, ());
+NANOS_API_DECL(nanos_err_t, nanos_current_socket, ( int socket ));
+NANOS_API_DECL(nanos_err_t, nanos_get_num_sockets, ( int *num_sockets ));
 
 // Memory management
 NANOS_API_DECL(nanos_err_t, nanos_malloc, ( void **p, size_t size, const char *file, int line ));

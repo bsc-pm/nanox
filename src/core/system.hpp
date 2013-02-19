@@ -126,6 +126,9 @@ inline int System::getNumWorkers() const { return _workers.size(); }
 inline int System::getNumSockets() const { return _numSockets; }
 inline void System::setNumSockets ( int numSockets ) { _numSockets = numSockets; }
 
+inline int System::getCurrentSocket() const { return _currentSocket; }
+inline void System::setCurrentSocket( int currentSocket ) { _currentSocket = currentSocket; }
+
 inline int System::getCoresPerSocket() const { return _coresPerSocket; }
 inline void System::setCoresPerSocket ( int coresPerSocket ) { _coresPerSocket = coresPerSocket; }
 

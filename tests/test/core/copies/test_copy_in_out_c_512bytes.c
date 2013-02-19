@@ -55,7 +55,7 @@ struct nanos_const_wd_definition_1 const_data1 =
    __alignof__(my_args),
    2,
    1,
-   2},
+   2,NULL},
    {
       {
          nanos_smp_factory,

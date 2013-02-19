@@ -77,6 +77,24 @@ NANOS_API_DEF(int, nanos_get_wd_id, ( nanos_wd_t wd ))
    return id;
 }
 
+/*! \brief Returns the description of the specified WD.
+ *
+ *  \param [out] string description
+ *  \param [in] wd is the WorkDescriptor
+ */
+NANOS_API_DEF(nanos_err_t, nanos_get_wd_description, ( char **description, nanos_wd_t wd ))
+{
+   try 
+   {
+      WD *lwd = ( WD * )wd;
+      *description = lwd->getDescription();
+   } catch ( nanos_err_t e) {
+      return e;
+   }
+
+   return NANOS_OK;
+}
+
 /*! \brief Creates a new WorkDescriptor
  *
  *  \param uwd is WorkDescriptor to be initialized, if *uwd == 0 is allocated
@@ -98,11 +116,17 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_compact, ( nanos_wd_t *uwd, nanos_co
 
    try 
    {
-      if ( ( &const_data->props == NULL  || ( &const_data->props != NULL  && !const_data->props.mandatory_creation ) ) && !sys.throttleTaskIn() ) {
+      if ( ( 
+              &const_data->props == NULL  || 
+              ( &const_data->props != NULL  && !const_data->props.mandatory_creation ) 
+           ) && !sys.throttleTaskIn() 
+         ) {
          *uwd = 0;
          return NANOS_OK;
       }
-      sys.createWD ( (WD **) uwd, const_data->num_devices, const_data->devices, data_size, const_data->data_alignment, (void **) data, (WG *) uwg, &const_data->props, dyn_props, const_data->num_copies, copies, const_data->num_dimensions, dimensions, NULL );
+      sys.createWD ( (WD **) uwd, const_data->num_devices, const_data->devices, data_size, const_data->data_alignment,
+                     (void **) data, (WG *) uwg, &const_data->props, dyn_props, const_data->num_copies, copies,
+                     const_data->num_dimensions, dimensions, NULL, const_data->description );
 
    } catch ( nanos_err_t e) {
       return e;
@@ -147,8 +171,9 @@ NANOS_API_DEF(nanos_err_t, nanos_create_sliced_wd, ( nanos_wd_t *uwd, size_t num
          return NANOS_OK;
       }
 
+      // FIXME: last parameter is description, which currently is forced
       sys.createSlicedWD ( (WD **) uwd, num_devices, devices, outline_data_size, outline_data_align, outline_data, (WG *) uwg,
-                           (Slicer *) slicer, props, dyn_props, num_copies, copies, num_dimensions, dimensions );
+                           (Slicer *) slicer, props, dyn_props, num_copies, copies, num_dimensions, dimensions, "" );
 
    } catch ( nanos_err_t e) {
       return e;
@@ -173,6 +198,8 @@ NANOS_API_DEF(nanos_err_t, nanos_submit, ( nanos_wd_t uwd, size_t num_data_acces
       if ( team != NULL ) {
          warning( "Submitting to another team not implemented yet" );
       }
+
+      sys.setupWD( *wd, myThread->getCurrentWD() );
 
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
 
@@ -240,8 +267,15 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
 
       // TODO: choose device
       
-      WD wd( ( DD* ) const_data->devices[0].factory( const_data->devices[0].arg ), data_size, const_data->data_alignment, data, const_data->num_copies, copies );
+      WD wd( (DD*) const_data->devices[0].factory( const_data->devices[0].arg ), data_size, const_data->data_alignment,
+             data, const_data->num_copies, copies, NULL, (char *) const_data->description);
       wd.setTranslateArgs( translate_args );
+      
+      // Set WD's socket
+      wd.setSocket( sys.getCurrentSocket() );
+      
+      if ( wd.getSocket() >= sys.getNumSockets() )
+         throw NANOS_INVALID_PARAM;
 
       // set properties
       if ( &const_data->props != NULL ) {
@@ -262,6 +296,8 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
       if ( pmDataSize > 0 ) {
         wd.setInternalData(pmData);
       }
+
+      sys.setupWD( wd, myThread->getCurrentWD() );
 
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
 

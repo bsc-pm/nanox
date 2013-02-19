@@ -72,13 +72,3 @@ NANOS_REDUCTION_CLEANUP_DEF(cfloat, _Complex float)
 NANOS_REDUCTION_CLEANUP_DEF(cdouble, _Complex double)
 NANOS_REDUCTION_CLEANUP_DEF(clongdouble, _Complex long double)
 
-extern "C"
-{
-    extern void nanos_reduction_default_cleanup_fortran_aux_(void*);
-}
-
-NANOS_API_DEF(void, nanos_reduction_default_cleanup_fortran, (void* r))
-{
-    nanos_reduction_t* nanos_reduction = (nanos_reduction_t*)r;
-    nanos_reduction_default_cleanup_fortran_aux_(nanos_reduction->descriptor);
-}
