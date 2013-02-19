@@ -45,7 +45,7 @@
 
 #ifdef _MERCURIUM
 // define API version
-#pragma nanos interface family(master) version(5021)
+#pragma nanos interface family(master) version(5022)
 #pragma nanos interface family(worksharing) version(1000)
 #pragma nanos interface family(deps_api) version(1001)
 #pragma nanos interface family(copies_api) version(1002)
@@ -66,7 +66,11 @@ typedef struct nanos_const_wd_definition_tag {
    size_t num_copies;
    size_t num_devices;
    size_t num_dimensions;
+#ifdef _MF03
+   void *description;
+#else
    const char *description;
+#endif
 } nanos_const_wd_definition_t;
 
 typedef struct {
