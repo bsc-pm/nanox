@@ -83,7 +83,7 @@ struct nanos_const_wd_definition_1 const_data1 =
       .tied = false},
    __alignof__(fib_args),
    0,
-   1},
+   1,0,NULL},
    {
       {
          nanos_smp_factory,
@@ -99,7 +99,7 @@ struct nanos_const_wd_definition_1 const_data2 =
       .tied = false},
    __alignof__(fib_args),
    0,
-   1},
+   1,0,NULL},
    {
       {
          nanos_smp_factory,
@@ -123,7 +123,7 @@ int fib ( int n, int d )
       nanos_wd_dyn_props_t dyn_props = {0};
 
       nanos_create_wd_compact ( &wd, &const_data1.base, &dyn_props, sizeof( fib_args ),
-                               ( void ** )&args, nanos_current_wd(), NULL );
+                               ( void ** )&args, nanos_current_wd(), NULL, NULL );
 
       if ( wd != 0 ) {
          args->n = n;
@@ -143,7 +143,7 @@ int fib ( int n, int d )
       nanos_wd_dyn_props_t dyn_props = {0};
 
       nanos_create_wd_compact ( &wd, &const_data2.base, &dyn_props, sizeof( fib_args ),
-                               ( void ** )&args, nanos_current_wd(), NULL );
+                               ( void ** )&args, nanos_current_wd(), NULL, NULL );
 
       if ( wd != 0 ) {
          args->n = n;

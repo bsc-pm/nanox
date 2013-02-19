@@ -1,3 +1,6 @@
+/*! \file nanos_c_api_macros.h
+ *  \brief 
+ */
 #ifndef NANOS_API_MACROS_H
 #define NANOS_API_MACROS_H
 

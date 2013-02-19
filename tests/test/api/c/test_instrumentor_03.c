@@ -81,7 +81,7 @@ struct nanos_const_wd_definition_1 const_data1 =
       .tied = false},
    __alignof__(fib_args),
    0,
-   1},
+   1,0,NULL},
    {
       {
          nanos_smp_factory,
@@ -96,7 +96,7 @@ struct nanos_const_wd_definition_1 const_data2 =
       .tied = false},
    __alignof__(fib_args),
    0,
-   1},
+   1,0,NULL},
    {
       {
          nanos_smp_factory,
@@ -129,7 +129,7 @@ int fib ( int n, int d )
          fib_args *args=0;
 
          NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1.base, &dyn_props, sizeof( fib_args ),
-                                       ( void ** )&args, nanos_current_wd(), NULL ) );
+                                       ( void ** )&args, nanos_current_wd(), NULL, NULL ) );
          args->n = n;
          args->d = d;
          args->x = &x;
@@ -144,7 +144,7 @@ int fib ( int n, int d )
          fib_args *args=0;
 
          NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1.base, &dyn_props, sizeof( fib_args ),
-                                       ( void ** )&args, nanos_current_wd(), NULL ) );
+                                       ( void ** )&args, nanos_current_wd(), NULL, NULL ) );
          args->n = n;
          args->d = d;
          args->x = &y;

@@ -27,6 +27,7 @@
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
 
+
 using namespace nanos;
 using namespace nanos::ext;
 
@@ -97,6 +98,8 @@ void SMPThread::bind( void )
 {
    int cpu_id = getCpuId();
    
+   cpu_id = adjustBind( cpu_id );
+   
    // If using the socket scheduler...
    if ( sys.getDefaultSchedule() == "socket" )
    {
@@ -107,7 +110,7 @@ void SMPThread::bind( void )
          warning( "cpu id " << cpu_id << " is in socket #" << socket <<
                  ", while there are only " << sys.getNumSockets() << " sockets." );
       }
-      
+      verbose( "Binding cpu " << cpu_id << " to socket " << socket );
       setSocket( socket );
    }
 
@@ -121,6 +124,18 @@ void SMPThread::bind( void )
    NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
    NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value =  (nanos_event_value_t) getCpuId() + 1; )
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
+}
+
+// TODO: move to hpp
+int SMPThread::adjustBind( int cpu_id )
+{
+   // getBindingId will fail for the Master thread because the structure will
+   // be empty.
+   if( getId() == 0 )
+      return cpu_id;
+   int new_id = sys.getBindingId( getId() );
+   //fprintf( stderr, "CPU thread %d goes to %d\n", cpu_id, new_id );
+   return new_id;
 }
 
 void SMPThread::yield()

@@ -65,6 +65,9 @@ namespace nanos
          typedef std::map<std::string, WorkSharing *> WorkSharings;
          typedef std::multimap<std::string, std::string> ModulesPlugins;
          
+         //! CPU id binding list
+         typedef std::vector<int> Bindings;
+         
          // global seeds
          Atomic<int> _atomicWDSeed;
          Atomic<int> _threadIdSeed;
@@ -87,6 +90,8 @@ namespace nanos
          bool                 _synchronizedStart;
          int                  _numSockets;
          int                  _coresPerSocket;
+         //! The socket that will be assigned to the next WD
+         int                  _currentSocket;
 
 	 // Nanos++ scheduling domain
          cpu_set_t            _cpu_set;
@@ -153,6 +158,9 @@ namespace nanos
          CachePolicyType      _cachePolicy;
          //! CacheMap register
          CacheMap             _cacheMap;
+         
+         //! CPU id binding list
+         Bindings             _bindings;
 
 #ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
@@ -197,12 +205,13 @@ namespace nanos
 
          void createWD (WD **uwd, size_t num_devices, nanos_device_t *devices,
                         size_t data_size, size_t data_align, void ** data, WG *uwg,
-                        nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props, size_t num_copies,
-                        nanos_copy_data_t **copies, nanos_translate_args_t translate_args );
+                        nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props, size_t num_copies, nanos_copy_data_t **copies,
+                        size_t num_dimensions, nanos_region_dimension_internal_t **dimensions,
+                        nanos_translate_args_t translate_args, const char *description );
 
          void createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
                         int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props,
-                        size_t num_copies, nanos_copy_data_t **copies );
+                        size_t num_copies, nanos_copy_data_t **copies, size_t num_dimensions, nanos_region_dimension_internal_t **dimensions, const char *description );
 
          void duplicateWD ( WD **uwd, WD *wd );
          void duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd );
@@ -284,6 +293,10 @@ namespace nanos
          int getNumSockets() const;
 
          void setNumSockets ( int numSockets );
+
+         int getCurrentSocket() const;
+
+         void setCurrentSocket( int currentSocket );
 
          int getCoresPerSocket() const;
 

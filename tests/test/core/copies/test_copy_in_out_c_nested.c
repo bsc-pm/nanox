@@ -61,7 +61,8 @@ struct nanos_const_wd_definition_1 const_data1 =
       .tied = true},
    __alignof__(my_args),
    2,
-   1},
+   1,
+   2,NULL},
    {
       {
          nanos_smp_factory,
@@ -119,13 +120,17 @@ void submit_task( nanos_smp_args_t task, int intarg, int* text )
    nanos_wd_t wd1=0;
    nanos_wd_dyn_props_t dyn_props = {0};
    const_data1.devices[0].arg = &task;
-   NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1.base, &dyn_props, sizeof(my_args), (void**)&args, nanos_current_wd(), &cd) );
+   nanos_region_dimension_internal_t *dims = 0;
+   NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1.base, &dyn_props, sizeof(my_args), (void**)&args, nanos_current_wd(), &cd, &dims ) );
 
    args->a = intarg;
    args->b = text;
 
-   cd[0] = (nanos_copy_data_t) {(uint64_t)&(args->a), NANOS_PRIVATE, {true, false}, sizeof(args->a)};
-   cd[1] = (nanos_copy_data_t) {(uint64_t)args->b, NANOS_SHARED, {true, true}, sizeof(int)*10}; 
+   dims[0] = ( nanos_region_dimension_internal_t ){ sizeof(args->a), 0, sizeof(args->a)};
+   dims[1] = ( nanos_region_dimension_internal_t ){ sizeof(int)*10, 0, sizeof(int)*10};
+
+   cd[0] = (nanos_copy_data_t) {(uint64_t)&(args->a), NANOS_PRIVATE, {true, false}, 1, &dims[0], 0};
+   cd[1] = (nanos_copy_data_t) {(uint64_t)args->b, NANOS_SHARED, {true, true}, 1, &dims[1], 0}; 
 
    NANOS_SAFE( nanos_submit( wd1,0,0,0 ) );
 }

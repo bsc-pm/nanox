@@ -1,5 +1,5 @@
 #####################################################################################
-#      Copyright 2012 Barcelona Supercomputing Center                               #
+#      Copyright 2009 Barcelona Supercomputing Center                               #
 #                                                                                   #
 #      This file is part of the NANOS++ library.                                    #
 #                                                                                   #
@@ -17,9 +17,21 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-paravergeneraldir = ${docdir}/paraver/general/
+include $(top_srcdir)/src/utils/version_commons.am
+include $(top_srcdir)/src/common.am
 
-dist_paravergeneral_DATA = \
-	general/views/state_as_is.cfg
+if DEBUG_VERSION
 
+bin_PROGRAMS = nanox-dbg
 
+nanox_dbg_CPPFLAGS = $(common_includes) $(common_debug_cxxflags) $(bin_cxxflags) -DPLUGIN_DIR=\"$(@USED_VERSION@dir)\"
+
+nanox_dbg_SOURCES=  $(nanox_sources)
+
+nanox_dbg_LDADD=\
+	-ldl \
+	../../core/@USED_VERSION@/libnanox.la \
+	@CUDA_RPATH@
+	$(END)
+
+endif

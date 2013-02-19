@@ -16,7 +16,9 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
+/*! \file nanos_err.cpp
+ *  \brief 
+ */
 #include "nanos.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -51,6 +53,9 @@ NANOS_API_DEF(void, nanos_handle_error, ( nanos_err_t err ))
          break;
       case NANOS_ENOMEM:
          fprintf( stderr,"Nanox: Cannot allocate enough memory to run the program\n" );
+         break;
+      case NANOS_INVALID_PARAM:
+         fprintf( stderr, "Nanox: invalid parameter\n" );
          break;
    }
 

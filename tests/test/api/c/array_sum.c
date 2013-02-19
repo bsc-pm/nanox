@@ -64,13 +64,15 @@ typedef struct {
    size_t data_alignment;
    size_t num_copies;
    size_t num_devices;
+   size_t num_dimensions;
+   char * description;
    nanos_device_t devices[];
 } nanos_const_wd_definition_local_t;
 
 nanos_const_wd_definition_local_t const_data1 = 
 {
    { .tied = 1},
-   0, 0, 1,
+   0, 0, 1, 0, NULL,
    { { nanos_smp_factory, 0 } }
 };
 
@@ -124,7 +126,7 @@ int main(int argc, char * argv[])
             const_data1.devices[0].arg = &_ol_main_0_smp_args;
             nanos_wd_dyn_props_t dyn_data1 = { 0 };
             nanos_err_t err;
-            err = nanos_create_wd_compact(&wd, (nanos_const_wd_definition_t *) &const_data1, &dyn_data1, sizeof(_nx_data_env_0_t), (void **) &ol_args, nanos_current_wd(), (nanos_copy_data_t **) 0);
+            err = nanos_create_wd_compact(&wd, (nanos_const_wd_definition_t *) &const_data1, &dyn_data1, sizeof(_nx_data_env_0_t), (void **) &ol_args, nanos_current_wd(), (nanos_copy_data_t **) 0, NULL);
             if (err != NANOS_OK)
                 nanos_handle_error(err);
             if (wd != (nanos_wd_t) 0)
@@ -143,7 +145,7 @@ int main(int argc, char * argv[])
                 imm_args.l_partial_sums_0 = l_partial_sums;
                 imm_args.l_i_0 = l_i;
                 err = nanos_create_wd_and_run_compact((nanos_const_wd_definition_t *) &const_data1, &dyn_data1,  sizeof(_nx_data_env_0_t),
-                       &imm_args, 0, (nanos_data_access_t *) 0, (nanos_copy_data_t *) 0, 0);
+                       &imm_args, 0, (nanos_data_access_t *) 0, (nanos_copy_data_t *) 0, 0, NULL);
                 if (err != NANOS_OK)
                     nanos_handle_error(err);
             }

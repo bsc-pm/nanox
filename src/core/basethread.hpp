@@ -219,7 +219,7 @@ namespace nanos
  
    inline ProcessingElement * BaseThread::runningOn() const { return _pe; }
  
-   inline int BaseThread::getId() { return _id; }
+   inline int BaseThread::getId() const { return _id; }
  
    inline int BaseThread::getCpuId() { return runningOn()->getId(); }
  
