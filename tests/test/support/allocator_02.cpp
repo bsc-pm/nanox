@@ -28,7 +28,6 @@ test_generator="gens/mixed-generator -a \"--gpus=0\""
 #include <iostream>
 #include <string.h>
 #include "config.hpp"
-#include "nanos.h"
 #include "smpprocessor.hpp"
 #include "system.hpp"
 #include "allocator.hpp"

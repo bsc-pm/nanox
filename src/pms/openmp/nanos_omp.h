@@ -35,11 +35,6 @@ typedef enum nanos_omp_sched_t {
 extern "C" {
 #endif
 
-#ifdef _MERCURIUM
-// define OpenMP API version
-#pragma nanos interface family(openmp) version(6)
-#endif
-
 #define NANOS_OMP_WS_TSIZE 5
 
 NANOS_API_DECL(nanos_err_t, nanos_omp_single, ( bool *));
