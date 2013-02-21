@@ -66,11 +66,11 @@ bool OpenCLDevice::copyIn( void *localDst,
    {
       // Current thread is not the device owner: instead of doing the copy, add
       // it to the pending transfer list.
-      if( myThread->runningOn() != pe )
-         return proc->asyncCopyIn( localDst, remoteSrc, size );
-
-      // We can do a synchronous copy.
-      else
+//      if( myThread->runningOn() != pe )
+//         return proc->asyncCopyIn( localDst, remoteSrc, size );
+//
+//      // We can do a synchronous copy.
+//      else
          return proc->copyIn( localDst, remoteSrc, size );
    }
 
@@ -86,11 +86,11 @@ bool OpenCLDevice::copyOut( CopyDescriptor &remoteDst,
    {
       // Current thread is not the device owner: instead of doing the copy, add
       // it to the pending transfer list.
-      if( myThread->runningOn() != pe )
-         return proc->asyncCopyOut( remoteDst, localSrc, size );
-
-      // We can do a synchronous copy.
-      else
+//      if( myThread->runningOn() != pe )
+//         return proc->asyncCopyOut( remoteDst, localSrc, size );
+//
+//      // We can do a synchronous copy.
+//      else
          return proc->copyOut( remoteDst, localSrc, size );
    }
 
