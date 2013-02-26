@@ -27,7 +27,7 @@
 using namespace nanos;
 
 
-#define PRINT_LIST 1
+#define PRINT_LIST 0
 
 
 void AsyncThread::runDependent ( void )
