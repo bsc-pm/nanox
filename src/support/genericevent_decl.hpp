@@ -293,7 +293,7 @@ namespace nanos
    class GenericEvent
    {
       public:
-         typedef enum { CREATED, PENDING, RAISED } GenericEventState;
+         typedef enum { CREATED, PENDING, RAISED, COMPLETED } GenericEventState;
          //typedef void * next_action_param;
          //typedef void ( *next_action_fct_0 ) ();
          //typedef std::unary_function<next_action_param, void> next_action_fct;
@@ -333,6 +333,9 @@ namespace nanos
 
          virtual void setRaised() { _state = RAISED; }
          virtual bool isRaised() { return _state == RAISED; }
+
+         virtual void setCompleted() { _state = COMPLETED; }
+         virtual bool isCompleted() { return _state == COMPLETED; }
 
          // event related methods
          virtual void waitForEvent()

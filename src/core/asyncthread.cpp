@@ -70,19 +70,7 @@ bool AsyncThread::inlineWorkDependent( WD &work )
 
 void AsyncThread::idle()
 {
-   for ( GenericEventList::iterator it = _pendingEvents.begin(); it != _pendingEvents.end(); it++ ) {
-      GenericEvent * evt = *it;
-      if ( evt->isRaised() ) {
-         // Move to next step if WD's event is raised
-         while ( evt->hasNextAction() ) {
-            Action * action = evt->getNextAction();
-            action->run();
-            delete action;
-         }
-         it = _pendingEvents.erase( it );
-         _pendingEventsCounter--;
-      }
-   }
+   checkEvents();
 
    WD * last = ( _runningWDsCounter != 0 ) ? _runningWDs.back() : getCurrentWD();
 
@@ -112,6 +100,8 @@ void AsyncThread::idle()
 
          // Start steps to run this WD
          this->preRunWD( next );
+
+         checkEvents();
 
          last = next;
 
@@ -342,6 +332,8 @@ void AsyncThread::executeInputCopies( WorkDescriptor &work, std::list<CopyData *
    }
 
    if ( lastEvt ) {
+      Action * check = new_action( ( ActionMemFunPtr1<AsyncThread, WD*>::MemFunPtr1 ) &AsyncThread::checkEvents, *this, &work );
+      lastEvt->addNextAction( check );
       Action * action = new_action( ( ActionMemFunPtr1<AsyncThread, WD*>::MemFunPtr1 ) &AsyncThread::runWD, *this, &work );
       lastEvt->addNextAction( action );
    }

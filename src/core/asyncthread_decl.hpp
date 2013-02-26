@@ -125,6 +125,8 @@ namespace nanos
          //virtual void bind( void );
 
          void addEvent( GenericEvent * evt );
+         void checkEvents();
+         void checkEvents( WD * wd );
          virtual void raiseWDClosingEvents( WD * wd ) {}
 
          virtual bool canGetWork ();

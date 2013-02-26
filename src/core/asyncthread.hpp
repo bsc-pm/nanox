@@ -34,9 +34,49 @@
 namespace nanos
 {
 
+inline void AsyncThread::checkEvents()
+{
+   for ( GenericEventList::iterator it = _pendingEvents.begin(); it != _pendingEvents.end(); it++ ) {
+      GenericEvent * evt = *it;
+      if ( evt->isRaised() ) {
+         evt->setCompleted();
+         // Move to next step if WD's event is raised
+         while ( evt->hasNextAction() ) {
+            Action * action = evt->getNextAction();
+            action->run();
+            delete action;
+         }
+         it = _pendingEvents.erase( it );
+         _pendingEventsCounter--;
+      }
+   }
+}
+
+inline void AsyncThread::checkEvents( WD * wd )
+{
+   for ( GenericEventList::iterator it = _pendingEvents.begin(); it != _pendingEvents.end(); it++ ) {
+      GenericEvent * evt = *it;
+      if ( evt->getWD() == wd ) {
+         if ( evt->isRaised() ) {
+            evt->setCompleted();
+
+            // Move to next step if WD's event is raised
+            while ( evt->hasNextAction() ) {
+               Action * action = evt->getNextAction();
+               action->run();
+               delete action;
+            }
+            it = _pendingEvents.erase( it );
+            _pendingEventsCounter--;
+         }
+      }
+   }
+}
+
+
 inline bool AsyncThread::canGetWork()
 {
-   return BaseThread::canGetWork() && _runningWDsCounter < getMaxPrefetch();
+   return BaseThread::canGetWork() && ( int ) _runningWDsCounter < getMaxPrefetch();
 }
 
 }
