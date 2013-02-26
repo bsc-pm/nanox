@@ -50,19 +50,31 @@ void * GPUThread::getCUBLASHandle()
 GenericEvent * GPUThread::createPreRunEvent( WD * wd )
 {
    GPUProcessor * pe = ( GPUProcessor * ) this->AsyncThread::runningOn();
+#ifdef NANOS_DEBUG_ENABLED
+   return NEW GPUEvent( wd, pe->getGPUProcessorInfo()->getInTransferStream(), "Pre-run event" );
+#else
    return NEW GPUEvent( wd, pe->getGPUProcessorInfo()->getInTransferStream() );
+#endif
 }
 
 GenericEvent * GPUThread::createRunEvent( WD * wd )
 {
    GPUProcessor * pe = ( GPUProcessor * ) this->AsyncThread::runningOn();
+#ifdef NANOS_DEBUG_ENABLED
+   return NEW GPUEvent( wd, pe->getGPUProcessorInfo()->getKernelExecStream(), "Run event" );
+#else
    return NEW GPUEvent( wd, pe->getGPUProcessorInfo()->getKernelExecStream() );
+#endif
 }
 
 GenericEvent * GPUThread::createPostRunEvent( WD * wd )
 {
    GPUProcessor * pe = ( GPUProcessor * ) this->AsyncThread::runningOn();
+#ifdef NANOS_DEBUG_ENABLED
+   return NEW GPUEvent( wd, pe->getGPUProcessorInfo()->getOutTransferStream(), "Post-run event" );
+#else
    return NEW GPUEvent( wd, pe->getGPUProcessorInfo()->getOutTransferStream() );
+#endif
 }
 
 }

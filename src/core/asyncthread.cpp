@@ -120,14 +120,14 @@ void AsyncThread::preRunWD ( WD * wd )
    WD *oldwd = this->getCurrentWD();
    this->setCurrentWD( *wd );
    // Instrumenting context switch: oldwd leaves CPU, but will come back later (last = false)
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( oldwd, wd, /* last */ false) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( oldwd, wd, /* last */ false ) );
 
    // This will start WD's copies
    wd->init();
 
    this->setCurrentWD( *oldwd );
    // Instrumenting context switch: wd leaves CPU, but will come back later (last = false)
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( wd, oldwd, /* last */ false) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( wd, oldwd, /* last */ false ) );
 }
 
 
@@ -138,13 +138,16 @@ void AsyncThread::runWD ( WD * wd )
    WD *oldwd = this->getCurrentWD();
    this->setCurrentWD( *wd );
    // Instrumenting context switch: oldwd leaves CPU, but will come back later (last = false)
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( oldwd, wd, /* last */ false) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( oldwd, wd, /* last */ false ) );
 
 
    // This will wait for WD's inputs
    wd->start( WD::IsNotAUserLevelThread );
 
    GenericEvent * evt = this->createRunEvent( wd );
+#ifdef NANOS_DEBUG_ENABLED
+   evt->setDescription( evt->getDescription() + " First event after WD is executed" );
+#endif
    evt->setCreated();
 
    _pendingEvents.push_back( evt );
@@ -158,13 +161,19 @@ void AsyncThread::runWD ( WD * wd )
 
    Action * instrument = new_action( ( ActionMemFunPtr1<AsyncThread, WD *>::MemFunPtr1 ) &AsyncThread::raiseWDClosingEvents, this, wd );
    evt->addNextAction( instrument );
+#ifdef NANOS_DEBUG_ENABLED
+   evt->setDescription( evt->getDescription() + " action:closeInstr" );
+#endif
 
    Action * action = new_action( ( ActionMemFunPtr1<AsyncThread, WD *>::MemFunPtr1 ) &AsyncThread::postRunWD, this, wd );
    evt->addNextAction( action );
+#ifdef NANOS_DEBUG_ENABLED
+   evt->setDescription( evt->getDescription() + " action:AsyncThread::postRunWD" );
+#endif
 
    this->setCurrentWD( *oldwd );
    // Instrumenting context switch: wd leaves CPU, but will come back later (last = false)
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( wd, oldwd, /* last */ false) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( wd, oldwd, /* last */ false ) );
 }
 
 
@@ -175,7 +184,7 @@ void AsyncThread::postRunWD ( WD * wd )
    WD *oldwd = this->getCurrentWD();
    this->setCurrentWD( *wd );
    // Instrumenting context switch: oldwd leaves CPU, but will come back later (last = false)
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( oldwd, wd, /* last */ false) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( oldwd, wd, /* last */ false ) );
 
    wd->finish();
 
@@ -197,7 +206,7 @@ void AsyncThread::postRunWD ( WD * wd )
 
    this->setCurrentWD( *oldwd );
    // Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( wd, oldwd, /* last */ true) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( wd, oldwd, /* last */ true ) );
 
 }
 
@@ -211,13 +220,19 @@ void AsyncThread::copyDataIn( WorkDescriptor& work )
 
    if ( inputs.empty() ) {
       GenericEvent * evt = this->createPreRunEvent( &work );
-      evt->setCreated();
+#ifdef NANOS_DEBUG_ENABLED
+      evt->setDescription( evt->getDescription() + " No inputs, event triggers runWD" );
+#endif
+     evt->setCreated();
 
       _pendingEvents.push_back( evt );
       _pendingEventsCounter++;
 
       Action * action = new_action( ( ActionMemFunPtr1<AsyncThread, WD*>::MemFunPtr1 ) &AsyncThread::runWD, this, &work );
       evt->addNextAction( action );
+#ifdef NANOS_DEBUG_ENABLED
+      evt->setDescription( evt->getDescription() + " action:AsyncThread::runWD" );
+#endif
 
       evt->setPending();
       evt->setRaised();
@@ -246,6 +261,9 @@ void AsyncThread::copyDataOut( WorkDescriptor& work )
 
    if ( outputs.empty() ) {
       GenericEvent * evt = this->createPostRunEvent( &work );
+#ifdef NANOS_DEBUG_ENABLED
+      evt->setDescription( evt->getDescription() + " No outputs, event triggers finishWork" );
+#endif
       evt->setCreated();
 
       _pendingEvents.push_back( evt );
@@ -253,6 +271,9 @@ void AsyncThread::copyDataOut( WorkDescriptor& work )
 
       Action * action = new_action( ( ActionFunPtr2<WD *, WD *>::FunPtr2 ) &Scheduler::finishWork, ( WD * ) NULL, &work );
       evt->addNextAction( action );
+#ifdef NANOS_DEBUG_ENABLED
+      evt->setDescription( evt->getDescription() + " action:Scheduler::finishWork" );
+#endif
 
       evt->setPending();
       evt->setRaised();
@@ -308,6 +329,9 @@ void AsyncThread::executeInputCopies( WorkDescriptor &work, std::list<CopyData *
       uint64_t tag = ( uint64_t ) cd->isPrivate() ? ( ( uint64_t ) work.getData() + ( unsigned long ) cd->getAddress() ) : cd->getAddress();
 
       GenericEvent * evt = this->createPreRunEvent( &work );
+#ifdef NANOS_DEBUG_ENABLED
+      evt->setDescription( evt->getDescription() + " copy input " + toString<uint64_t>( tag ) );
+#endif
       evt->setCreated();
 
       _pendingEvents.push_back( evt );
@@ -327,6 +351,9 @@ void AsyncThread::executeInputCopies( WorkDescriptor &work, std::list<CopyData *
       //Action * action = new_action( ( ActionMemFunPtr1<PE, CopyDescriptor>::MemFunPtr1 ) &PE::synchronize, *runningOn(), cd->getCopyDescriptor() );
       Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize, this, cd->getCopyDescriptor() );
       evt->addNextAction( action );
+#ifdef NANOS_DEBUG_ENABLED
+      evt->setDescription( evt->getDescription() + " action:AsyncThread::synchronize" );
+#endif
 
       lastEvt = evt;
    }
@@ -334,8 +361,14 @@ void AsyncThread::executeInputCopies( WorkDescriptor &work, std::list<CopyData *
    if ( lastEvt ) {
       Action * check = new_action( ( ActionMemFunPtr1<AsyncThread, WD*>::MemFunPtr1 ) &AsyncThread::checkEvents, *this, &work );
       lastEvt->addNextAction( check );
+#ifdef NANOS_DEBUG_ENABLED
+      lastEvt->setDescription( lastEvt->getDescription() + " action:AsyncThread::checkEventsWD" );
+#endif
       Action * action = new_action( ( ActionMemFunPtr1<AsyncThread, WD*>::MemFunPtr1 ) &AsyncThread::runWD, *this, &work );
       lastEvt->addNextAction( action );
+#ifdef NANOS_DEBUG_ENABLED
+     lastEvt->setDescription( lastEvt->getDescription() + " action:AsyncThread::runWD" );
+#endif
    }
 }
 
@@ -359,6 +392,9 @@ void AsyncThread::executeOutputCopies( WorkDescriptor& work, std::list<CopyData 
       uint64_t tag = ( uint64_t ) cd->isPrivate() ? ( ( uint64_t ) work.getData() + ( unsigned long ) cd->getAddress() ) : cd->getAddress();
 
       GenericEvent * evt = this->createPostRunEvent( &work );
+#ifdef NANOS_DEBUG_ENABLED
+      evt->setDescription( evt->getDescription() + " copy output" );
+#endif
       evt->setCreated();
 
       _pendingEvents.push_back( evt );
@@ -386,6 +422,9 @@ void AsyncThread::executeOutputCopies( WorkDescriptor& work, std::list<CopyData 
       //Action * action = new_action( ( ActionMemFunPtr1<PE, CopyDescriptor>::MemFunPtr1 ) &PE::synchronize, *runningOn(), cd->getCopyDescriptor() );
       Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize, this, cd->getCopyDescriptor() );
       evt->addNextAction( action );
+#ifdef NANOS_DEBUG_ENABLED
+      evt->setDescription( evt->getDescription() + " action:AsyncThread::synchronize" );
+#endif
 
       lastEvt = evt;
    }
@@ -393,6 +432,9 @@ void AsyncThread::executeOutputCopies( WorkDescriptor& work, std::list<CopyData 
    if ( lastEvt ) {
       Action * action = new_action( ( ActionFunPtr2<WD *, WD *>::FunPtr2 ) &Scheduler::finishWork, ( WD * ) NULL, &work );
       lastEvt->addNextAction( action );
+#ifdef NANOS_DEBUG_ENABLED
+      lastEvt->setDescription( lastEvt->getDescription() + " action:Scheduler::finishWork" );
+#endif
    }
 }
 

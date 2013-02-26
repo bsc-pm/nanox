@@ -136,6 +136,12 @@ void GPUMemoryTransferOutAsyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt
    pinned = pinned ? pinned : ( void * ) mt._hostAddress.getTag();
 
    GenericEvent * evt = thread->createPostRunEvent( NULL );
+#ifdef NANOS_DEBUG_ENABLED
+   evt->setDescription( evt->getDescription() + " remMemTxAsync DtH"
+         + toString<uint64_t>( ( uint64_t ) mt._deviceAddress )
+         + "->" + toString<uint64_t>( mt._hostAddress.getTag() )
+         + toString<size_t>( mt._size ) );
+#endif
 
    GPUDevice::copyOutAsyncToBuffer( pinned, mt._deviceAddress, mt._size );
 
@@ -154,6 +160,9 @@ void GPUMemoryTransferOutAsyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt
    Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize,
          ( AsyncThread * ) thread, mt._hostAddress );
    evt->addNextAction( action );
+#ifdef NANOS_DEBUG_ENABLED
+   evt->setDescription( evt->getDescription() + " action:AsyncThread::synchronize()" );
+#endif
 
    thread->addEvent( evt );
 
@@ -327,7 +336,13 @@ void GPUMemoryTransferInAsyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt 
       GPUDevice::copyInAsyncToBuffer( pinned, ( void * ) mt._hostAddress.getTag(), mt._size );
    }
 
-  GenericEvent * evt = thread->createPreRunEvent( NULL );
+   GenericEvent * evt = thread->createPreRunEvent( NULL );
+#ifdef NANOS_DEBUG_ENABLED
+   evt->setDescription( evt->getDescription() + " remMemTxAsync HtD"
+         + toString<uint64_t>( mt._hostAddress.getTag() ) + "(" + toString<uint64_t>( ( uint64_t ) pinned ) + ")"
+         + "->" + toString<uint64_t>( ( uint64_t ) mt._deviceAddress )
+         + toString<size_t>( mt._size ) );
+#endif
 
    GPUDevice::copyInAsyncToDevice( mt._deviceAddress, pinned, mt._size );
 
@@ -336,6 +351,9 @@ void GPUMemoryTransferInAsyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt 
    Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize,
          ( AsyncThread * ) thread, mt._hostAddress );
    evt->addNextAction( action );
+#ifdef NANOS_DEBUG_ENABLED
+   evt->setDescription( evt->getDescription() + " action:AsyncThread::synchronize()" );
+#endif
 
    thread->addEvent( evt );
 }

@@ -21,6 +21,7 @@
 #define _GENERIC_EVENT_DECL
 
 
+#include <iostream>
 #include <queue>
 #include <functional>
 
@@ -182,7 +183,7 @@ namespace nanos
 
    };
 
-   /* !\brief Wrapper for member functions with 1 parameter
+   /* !\brief Wrapper for member functions with no parameters
     */
    template <typename Class>
    Action* new_action( void ( Class::*fun )(), Class &obj );
@@ -309,18 +310,41 @@ namespace nanos
 
          std::queue<Action *>    _nextActions; //! Actions that must be done after event's raise
 
+#ifdef NANOS_DEBUG_ENABLED
+         std::string             _description; //! Description of the event
+#endif
+
 
       public:
-        /*! \brief GenericEvent constructor
-         */
-         GenericEvent ( WD *wd ) : _state( CREATED ), _wd( wd ), _nextActions() { }
+         /*! \brief GenericEvent constructor
+          */
+         GenericEvent ( WD *wd ) : _state( CREATED ), _wd( wd ), _nextActions()
+#ifdef NANOS_DEBUG_ENABLED
+         , _description()
+#endif
+         {}
 
          /*! \brief GenericEvent constructor
           */
-          GenericEvent ( WD *wd, std::queue<Action *> next ) : _state( CREATED ), _wd( wd ), _nextActions( next ) {}
+         GenericEvent ( WD *wd, std::queue<Action *> next ) : _state( CREATED ), _wd( wd ), _nextActions( next )
+#ifdef NANOS_DEBUG_ENABLED
+         , _description()
+#endif
+         {}
 
-        /*! \brief GenericEvent destructor
-         */
+#ifdef NANOS_DEBUG_ENABLED
+         /*! \brief GenericEvent constructor
+          */
+         GenericEvent ( WD *wd, std::string desc ) : _state( CREATED ), _wd( wd ), _nextActions(), _description( desc ) {}
+
+         /*! \brief GenericEvent constructor
+          */
+         GenericEvent ( WD *wd, std::queue<Action *> next, std::string desc ) :
+            _state( CREATED ), _wd( wd ), _nextActions( next ), _description( desc ) {}
+#endif
+
+         /*! \brief GenericEvent destructor
+          */
          virtual ~GenericEvent() {}
 
 
@@ -336,6 +360,11 @@ namespace nanos
 
          virtual void setCompleted() { _state = COMPLETED; }
          virtual bool isCompleted() { return _state == COMPLETED; }
+
+#ifdef NANOS_DEBUG_ENABLED
+         void setDescription( std::string desc ) { _description = desc; }
+         std::string getDescription() { return _description; }
+#endif
 
          // event related methods
          virtual void waitForEvent()
