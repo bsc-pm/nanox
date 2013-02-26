@@ -55,6 +55,11 @@ inline bool InstrumentationKeyDescriptor::isEnabled ( void )
    return _enabled;
 }
 
+inline bool InstrumentationKeyDescriptor::isStacked ( void )
+{
+   return _stacked;
+}
+
 inline nanos_event_value_t InstrumentationKeyDescriptor::registerValue ( const std::string &value, const std::string &description,
                                                                       bool abort_when_registered )
 {
@@ -167,14 +172,18 @@ inline const std::string InstrumentationKeyDescriptor::getValueDescription ( nan
    if (found == true) return it->second->getDescription();
    else return "";
 }
+inline size_t InstrumentationKeyDescriptor::getSize( void ) const
+{
+   return _valueMap.size();
+}
 /** INSTRUMENTOR DICTIONARY **/
 
-inline nanos_event_key_t InstrumentationDictionary::registerEventKey ( const std::string &key, const std::string &description, bool abort_when_registered, bool enabled  )
+inline nanos_event_key_t InstrumentationDictionary::registerEventKey ( const std::string &key, const std::string &description, bool abort_when_registered, bool enabled, bool stacked  )
 {
-   return registerEventKey( key.c_str(), description.c_str(), abort_when_registered, enabled );
+   return registerEventKey( key.c_str(), description.c_str(), abort_when_registered, enabled, stacked );
 }
 
-inline nanos_event_key_t InstrumentationDictionary::registerEventKey ( const char *key, const char *description, bool abort_when_registered, bool enabled  )
+inline nanos_event_key_t InstrumentationDictionary::registerEventKey ( const char *key, const char *description, bool abort_when_registered, bool enabled, bool stacked  )
 {
    InstrumentationKeyDescriptor *keyDescriptor = NULL;
 
@@ -185,7 +194,7 @@ inline nanos_event_key_t InstrumentationDictionary::registerEventKey ( const cha
          LockBlock lock( _lock );
          it = _keyMap.find( key );
          if ( it == _keyMap.end() ) {
-            keyDescriptor = NEW InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, description, enabled );
+            keyDescriptor = NEW InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, description, enabled, stacked );
             _keyMap.insert( std::make_pair( key, keyDescriptor ) );
          }
          else {
@@ -258,7 +267,7 @@ inline nanos_event_value_t InstrumentationDictionary::registerEventValue ( const
          LockBlock lock( _lock );
          it = _keyMap.find( key );
          if ( it == _keyMap.end() ) {
-            keyDescriptor = NEW InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, "", true );
+            keyDescriptor = NEW InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, "", true, false );
             _keyMap.insert( std::make_pair( key, keyDescriptor ) );
          }
          else {
@@ -291,7 +300,7 @@ inline void InstrumentationDictionary::registerEventValue ( const char *key, con
          LockBlock lock( _lock );
          it = _keyMap.find( key );
          if ( it == _keyMap.end() ) {
-            keyDescriptor = new InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, "", true );
+            keyDescriptor = new InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, "", true, false );
             _keyMap.insert( std::make_pair( key, keyDescriptor ) );
          }
          else {

@@ -43,7 +43,7 @@ namespace nanos
          cfg.setOptionsSection("OpenMP specific","OpenMP related options");
 
          // OMP_NUM_THREADS
-         cfg.registerAlias("num_pes","omp-threads","Configures the number of OpenMP Threads to use");
+         cfg.registerAlias("num_threads","omp-threads","Configures the number of OpenMP Threads to use");
          cfg.registerEnvOption("omp-threads","OMP_NUM_THREADS");
 
          // OMP_SCHEDULE
@@ -69,7 +69,7 @@ namespace nanos
 
          TaskICVs & icvs = globalState->getICVs();
          icvs.setSchedule(LoopSchedule(omp_sched_static));
-         icvs.setNumThreads(sys.getNumPEs());
+         icvs.setNumThreads(sys.getNumThreads());
 
          if ( ssCompatibility != NULL ) {
             // Enable Ss compatibility mode
@@ -99,9 +99,9 @@ namespace nanos
          delete globalState;
       }
 
-       int OpenMPInterface::getInternalDataSize() const { return sizeof(OmpData); }
-       int OpenMPInterface::getInternalDataAlignment() const { return __alignof__(OmpData); }
-       void OpenMPInterface::setupWD( WD &wd )
+      int OpenMPInterface::getInternalDataSize() const { return sizeof(OmpData); }
+      int OpenMPInterface::getInternalDataAlignment() const { return __alignof__(OmpData); }
+      void OpenMPInterface::setupWD( WD &wd )
       {
          OmpData *data = (OmpData *) wd.getInternalData();
          ensure(data,"OpenMP data is missing!");
@@ -116,7 +116,6 @@ namespace nanos
             data->icvs() = globalState->getICVs();
             data->setFinal(false);
          }
-         data->setImplicit(false);
       }
 
       void OpenMPInterface::wdStarted( WD &wd ) {}

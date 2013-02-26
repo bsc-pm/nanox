@@ -73,20 +73,20 @@ namespace nanos
       public:
          /*! \brief SlicedWD constructor - n devices
           */
-          SlicedWD ( Slicer &slicer, int ndevices, DeviceData **devs, size_t data_size, int data_align=1,
-                     void *wdata=0, size_t numCopies=0, CopyData *copies=NULL )
-                   : WorkDescriptor ( ndevices, devs, data_size, data_align, wdata, numCopies, copies ),
+          SlicedWD ( Slicer &slicer, int ndevices, DeviceData **devs, size_t data_size, int data_align,
+                     void *wdata, size_t numCopies, CopyData *copies, char *desc )
+                   : WorkDescriptor ( ndevices, devs, data_size, data_align, wdata, numCopies, copies, NULL, desc ),
                      _slicer(slicer), _isSliceable(true)  {}
 
          /*! \brief SlicedWD constructor - 1 device
           */
-          SlicedWD ( Slicer &slicer, DeviceData *device, size_t data_size, int data_align, void *wdata=0,
-                     size_t numCopies=0, CopyData* copies=NULL )
-                   : WorkDescriptor ( device, data_size, data_align, wdata, numCopies, copies ),
+          SlicedWD ( Slicer &slicer, DeviceData *device, size_t data_size, int data_align, void *wdata,
+                     size_t numCopies, CopyData* copies, char *desc )
+                   : WorkDescriptor ( device, data_size, data_align, wdata, numCopies, copies, NULL, desc ),
                      _slicer(slicer), _isSliceable(true)  {}
          /*! \brief SlicedWD constructor - from wd
           */
-          SlicedWD ( Slicer &slicer, WD &wd, DeviceData **device, CopyData *copies, void *wdata=0 )
+          SlicedWD ( Slicer &slicer, WD &wd, DeviceData **device, CopyData *copies, void *wdata )
                    : WorkDescriptor ( wd, device, copies, wdata),
                      _slicer(slicer), _isSliceable(true)  {}
 

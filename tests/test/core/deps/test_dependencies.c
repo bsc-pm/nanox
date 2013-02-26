@@ -68,7 +68,8 @@ struct nanos_const_wd_definition_1 const_data1 =
       .tied = false},
    0,//__alignof__(section_data_1),
    0,
-   1},
+   1,
+   0,NULL},
    {
       {
          nanos_smp_factory,
@@ -84,7 +85,8 @@ struct nanos_const_wd_definition_1 const_data2 =
       .tied = false},
    0,//__alignof__(section_data_1),
    0,
-   1},
+   1,
+   0,NULL},
    {
       {
          nanos_smp_factory,
@@ -101,13 +103,13 @@ int main ( int argc, char **argv )
    nanos_wd_t wd1=0;
    nanos_wd_dyn_props_t dyn_props = {0};
    const_data1.base.data_alignment = 1;
-   NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1.base, &dyn_props, 0, NULL, nanos_current_wd(), NULL ) );
+   NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1.base, &dyn_props, 0, NULL, nanos_current_wd(), NULL, NULL ) );
    NANOS_SAFE( nanos_submit( wd1, 1, data_accesses, 0 ) );
 
 
    nanos_wd_t wd2=0;
    const_data2.base.data_alignment = 1;
-   NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data2.base, &dyn_props, 0, NULL, nanos_current_wd(), NULL ) );
+   NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data2.base, &dyn_props, 0, NULL, nanos_current_wd(), NULL, NULL ) );
    NANOS_SAFE( nanos_submit( wd2, 1, data_accesses,0 ) );
 
 

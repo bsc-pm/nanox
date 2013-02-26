@@ -97,7 +97,7 @@ namespace nanos
 
         /*! \brief Returns next global worksharing descriptor for _team 
          */
-         nanos_ws_desc_t *getTeamWorkSharingDescriptor( bool *b );
+         nanos_ws_desc_t *getTeamWorkSharingDescriptor( BaseThread * thread, bool *b );
 
          void setParentTeamData ( TeamData *data ) { _parentData = data; }
          TeamData * getParentTeamData () const { return _parentData; }
@@ -255,7 +255,7 @@ namespace nanos
 
          void associate();
 
-         int getId();
+         int getId() const;
 
          int getCpuId();
          

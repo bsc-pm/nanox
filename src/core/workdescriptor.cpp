@@ -138,7 +138,7 @@ void WorkDescriptor::submit( void )
 void WorkDescriptor::finish ()
 {
    ProcessingElement *pe = myThread->runningOn();
-   waitCompletionAndSignalers();
+   waitCompletion();
    if ( getNumCopies() > 0 )
      pe->copyDataOut( *this );
 
@@ -160,7 +160,8 @@ void WorkDescriptor::prepareCopies()
       _paramsSize += _copies[i].getSize();
 
       if ( _copies[i].isPrivate() )
-         _copies[i].setAddress( ( (uint64_t)_copies[i].getAddress() - (unsigned long)_data ) );
+         //jbueno new API _copies[i].setAddress( ( (uint64_t)_copies[i].getAddress() - (unsigned long)_data ) );
+         _copies[i].setBaseAddress( (void *) ( (uint64_t )_copies[i].getBaseAddress() - (unsigned long)_data ) );
    }
 }
 
@@ -223,4 +224,17 @@ bool WorkDescriptor::tryAcquireCommutativeAccesses()
    }
    return true;
 } 
+
+void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
+{
+    ensure(_numCopies == 0, "This WD already had copies. Overriding them is not possible");
+    ensure((numCopies == 0) == (copies == NULL), "Inconsistency between copies and number of copies");
+
+    _numCopies = numCopies;
+    _copies = NEW CopyData[numCopies];
+    _copiesNotInChunk = true;
+
+    // Keep a copy of the copy descriptors
+    std::copy(copies, copies + numCopies, _copies);
+}
 

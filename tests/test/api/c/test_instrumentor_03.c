@@ -81,7 +81,7 @@ struct nanos_const_wd_definition_1 const_data1 =
       .tied = false},
    __alignof__(fib_args),
    0,
-   1},
+   1,0,NULL},
    {
       {
          nanos_smp_factory,
@@ -96,7 +96,7 @@ struct nanos_const_wd_definition_1 const_data2 =
       .tied = false},
    __alignof__(fib_args),
    0,
-   1},
+   1,0,NULL},
    {
       {
          nanos_smp_factory,
@@ -109,12 +109,13 @@ nanos_wd_dyn_props_t dyn_props = {0};
 
 int fib ( int n, int d )
 {
-   nanos_event_key_t ek;
-   nanos_event_value_t ev;
-   nanos_instrument_get_key ( "user-funct-name", &ek );
-   nanos_instrument_register_value ( &ev, "user-funct-name", "fib", "fib user's function", true );
+   nanos_event_t event;
 
-   nanos_instrument_enter_burst ( ek, ev );
+   nanos_instrument_get_key ("user-funct-name", &(event.key));
+   nanos_instrument_register_value ( &(event.value), "user-funct-name", "fib", "fib user's function", false );
+   
+   event.type = NANOS_BURST_START;
+   nanos_instrument_events(1, &event);
 
    int x, y;
 
@@ -128,7 +129,7 @@ int fib ( int n, int d )
          fib_args *args=0;
 
          NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1.base, &dyn_props, sizeof( fib_args ),
-                                       ( void ** )&args, nanos_current_wd(), NULL ) );
+                                       ( void ** )&args, nanos_current_wd(), NULL, NULL ) );
          args->n = n;
          args->d = d;
          args->x = &x;
@@ -143,7 +144,7 @@ int fib ( int n, int d )
          fib_args *args=0;
 
          NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_data1.base, &dyn_props, sizeof( fib_args ),
-                                       ( void ** )&args, nanos_current_wd(), NULL ) );
+                                       ( void ** )&args, nanos_current_wd(), NULL, NULL ) );
          args->n = n;
          args->d = d;
          args->x = &y;
@@ -158,7 +159,8 @@ int fib ( int n, int d )
       y = fib_seq( n-2 );
    }
 
-   nanos_instrument_leave_burst ( ek );
+   event.type = NANOS_BURST_END;
+   nanos_instrument_events(1, &event);
 
    return x + y;
 }

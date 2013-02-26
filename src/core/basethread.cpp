@@ -31,7 +31,7 @@ Atomic<int> BaseThread::_idSeed = 0;
 
 void BaseThread::run ()
 {
-   _threadWD.tieTo( *this );
+   _threadWD.tied().tieTo( *this );
    associate();
    initializeDependent();
    /* Notify that the thread has finished all its initialization and it's ready to run */
@@ -83,6 +83,7 @@ void BaseThread::associate ()
 bool BaseThread::singleGuard ()
 {
    if ( getTeam() == NULL ) return true;
+   if ( getCurrentWD()->isImplicit() == false ) return true;
    return getTeam()->singleGuard( getTeamData()->nextSingleGuard() );
 }
 

@@ -65,11 +65,15 @@ namespace nanos
          typedef std::map<std::string, WorkSharing *> WorkSharings;
          typedef std::multimap<std::string, std::string> ModulesPlugins;
          
+         //! CPU id binding list
+         typedef std::vector<int> Bindings;
+         
          // globla seeds
          Atomic<int> _atomicWDSeed;
 
          // configuration variables
          int                  _numPEs;
+         int                  _numThreads;
          int                  _deviceStackSize;
          int                  _bindingStart;
          int                  _bindingStride;
@@ -79,13 +83,19 @@ namespace nanos
          bool                 _verboseMode;
          ExecutionMode        _executionMode;
          InitialMode          _initialMode;
-         int                  _thsPerPE;
          bool                 _untieMaster;
          bool                 _delayedStart;
          bool                 _useYield;
          bool                 _synchronizedStart;
          int                  _numSockets;
          int                  _coresPerSocket;
+         //! The socket that will be assigned to the next WD
+         int                  _currentSocket;
+
+	 // Nanos++ scheduling domain
+   	 cpu_set_t            _cpu_set;
+   	 int                  _cpu_id[CPU_SETSIZE];
+   	 int                  _cpu_count;
 
          //cutoff policy and related variables
          ThrottlePolicy      *_throttlePolicy;
@@ -147,6 +157,9 @@ namespace nanos
          CachePolicyType      _cachePolicy;
          //! CacheMap register
          CacheMap             _cacheMap;
+         
+         //! CPU id binding list
+         Bindings             _bindings;
 
 #ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
@@ -186,12 +199,13 @@ namespace nanos
 
          void createWD (WD **uwd, size_t num_devices, nanos_device_t *devices,
                         size_t data_size, size_t data_align, void ** data, WG *uwg,
-                        nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props, size_t num_copies,
-                        nanos_copy_data_t **copies, nanos_translate_args_t translate_args );
+                        nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props, size_t num_copies, nanos_copy_data_t **copies,
+                        size_t num_dimensions, nanos_region_dimension_internal_t **dimensions,
+                        nanos_translate_args_t translate_args, const char *description );
 
          void createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
                         int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props,
-                        size_t num_copies, nanos_copy_data_t **copies );
+                        size_t num_copies, nanos_copy_data_t **copies, size_t num_dimensions, nanos_region_dimension_internal_t **dimensions, const char *description );
 
          void duplicateWD ( WD **uwd, WD *wd );
          void duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd );
@@ -205,6 +219,21 @@ namespace nanos
          void setNumPEs ( int npes );
 
          int getNumPEs () const;
+         
+         //! \brief Returns the maximum number of threads (SMP + GPU + ...). 
+         unsigned getMaxThreads () const; 
+         
+         void setNumThreads ( int nthreads );
+         
+         int getNumThreads () const;
+
+         int getCpuId ( int idx ) const;
+	 
+         int getCpuCount ( ) const;
+
+         void setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask);
+
+         int checkCpuMask(cpu_set_t *mask);
 
          void setDeviceStackSize ( int stackSize );
 
@@ -237,8 +266,6 @@ namespace nanos
 
          bool useYield() const;
 
-         int getThsPerPE() const;
-
          int getTaskNum() const;
 
          int getIdleNum() const;
@@ -255,9 +282,20 @@ namespace nanos
 
          void setNumSockets ( int numSockets );
 
+         int getCurrentSocket() const;
+
+         void setCurrentSocket( int currentSocket );
+
          int getCoresPerSocket() const;
 
          void setCoresPerSocket ( int coresPerSocket );
+         
+         /**
+          * \brief Returns a CPU Id that the given architecture should use
+          * to tie a new processing element to.
+          * \param pe Processing Element number.
+          */
+         int getBindingId ( int pe ) const;
 
          void setUntieMaster ( bool value );
 
@@ -278,7 +316,8 @@ namespace nanos
 
          void setThrottlePolicy( ThrottlePolicy * policy );
 
-         bool throttleTask();
+         bool throttleTaskIn( void ) const;
+         void throttleTaskOut( void ) const;
 
          const std::string & getDefaultSchedule() const;
 

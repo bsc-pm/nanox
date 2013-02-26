@@ -2,6 +2,10 @@
 AC_INIT([nanox], [0.7a], [pmtools@bsc.es])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
 
+configure_orig_arguments="$@"
+
+# New comment
+
 # Environment
 AC_CANONICAL_BUILD
 AC_CANONICAL_SYSTEM
@@ -19,6 +23,37 @@ m4_ifdef([AM_SILENT_RULES],
 
 AM_CONDITIONAL([SUPPORTED_SILENT_RULES], test x$supported_silent_rules = x1)
  
+dnl Versioning things
+dnl Make sure build_version is double-quoted!
+build_version="\"unknown revision\""
+if test -d $srcdir/.git;
+then
+   AC_PATH_PROG([GIT], [git], [])
+   AC_MSG_CHECKING([revision of git repository])
+   run_git=""
+   if test x"$GIT" != x;
+   then
+      echo "$GIT" "$srcdir" >& AS_MESSAGE_LOG_FD
+      run_gitversion=`"$GIT" --git-dir=$srcdir/.git show "--pretty=format:%h %ci" HEAD | head -n 1`
+      run_gitbranch=`"$GIT" --git-dir=$srcdir/.git branch | grep ^* | sed s/*\ //g`
+      build_version="\"git $run_gitbranch $run_gitversion developer version\""
+   fi
+   if test x"$GIT" = x -o x"$run_gitversion" = x;
+   then
+       build_version="\"unknown git commit\""
+   fi
+   AC_MSG_RESULT([$build_version])
+elif test -e $srcdir/VERSION;
+then
+     AC_MSG_CHECKING([revision of distributed release])
+     run_gitversion=`cat $srcdir/VERSION`
+     build_version="\"$run_gitversion\""
+     AC_MSG_RESULT([$build_version])
+fi
+AC_DEFINE_UNQUOTED([NANOX_BUILD_VERSION], [$build_version], [Build version])
+
+nanox_config_args='"'$(echo "$0 $configure_orig_arguments")'"'
+AC_DEFINE_UNQUOTED([NANOX_CONFIGURE_ARGS], [$nanox_config_args], [Configure line])
 
 # Set compiler default flags
 : ${CFLAGS=""}
@@ -76,13 +111,15 @@ AC_ARG_ENABLE([mic],
 )
 
 if test x$use_icc = xno; then
-	FC="gfortran"
 	CFLAGS="$CFLAGS -Wredundant-decls"
 	CXXFLAGS="$CXXFLAGS -Wredundant-decls"
+	: ${CC="gcc"}
+	: ${CXX="g++"}
+	: ${FC="gfortran"}
 else
-	CC="icc"
-	CXX="icpc"
-    	FC="ifort"
+	: ${CC="icc"}
+	: ${CXX="icpc"}
+	: ${FC="ifort"}
 	CFLAGS="$CFLAGS -wd873 -wd1419 -lifcore"
 	CXXFLAGS="$CXXFLAGS -wd873 -wd1419 -lifcore"
 fi
@@ -94,6 +131,8 @@ AC_PROG_CPP
 AM_PROG_CC_C_O
 AC_PROG_CXX([$CXX])
 AM_PROG_AS
+
+AC_PROG_SED
 
 # Fortran
 AC_PROG_FC([$FC])
@@ -218,6 +257,7 @@ esac
 gpu_valid=no
 gpu_enabled=yes
 CUDA=""
+CUDA_RPATH=""
 
 AC_MSG_CHECKING([if the use of GPU devices was disabled])
 AC_ARG_ENABLE([gpu-arch],
@@ -265,9 +305,11 @@ if test x$gpu_enabled = xyes ; then
 	    then
                 CUDA_LIB="$CUDADIR/lib64"
             fi
+            CUDA_RPATH="-Xlinker -rpath -Xlinker $CUDA_LIB"
 
             AC_SUBST([CUDA_INC])
             AC_SUBST([CUDA_LIB])
+            AC_SUBST([CUDA_RPATH])
 
             cuda_version_h="$CUDA_INC/cuda.h"
             if test -e $cuda_version_h ;
@@ -295,6 +337,150 @@ fi
 AM_CONDITIONAL([GPU_SUPPORT],[test $gpu_valid = yes])
 
 AC_SUBST([gpu_valid])
+
+#only show warnings when the user tries to specify opencl folders
+opencl_showwarn="no"
+#Check if an OpenCL implementation is installed.
+OPENCLBASE="/usr"
+AC_ARG_WITH([opencl],
+AS_HELP_STRING([--with-opencl=dir], [Directory of OpenCL installation]),
+	[
+		OPENCLBASE="${withval}"
+      opencl_showwarn="yes"
+	],
+	[
+		OPENCLBASE="/usr"
+	]
+)
+
+AC_ARG_WITH([opencl-include],
+AS_HELP_STRING([--with-opencl-include=dir], [Directory of OpenCL includes]),
+	[
+		OPENCL_INC="${withval}"
+      opencl_showwarn="yes"
+	],
+	[
+		OPENCL_INC="$OPENCLBASE/include/"
+	]
+)
+
+AC_ARG_WITH([opencl-lib],
+AS_HELP_STRING([--with-opencl-lib=dir], [Directory of OpenCL libraries]),
+	[
+		OPENCL_LIB="${withval}"
+      opencl_showwarn="yes"
+	],
+	[
+      #tests if headers and libraries are usable and correct
+      #backup vars before we do the tests
+      CFLAGSBACKUP="$CFLAGS"
+      CPPFLAGSBACKUP="$CPPFLAGS"
+      CXXFLAGSBACKUP="$CXXFLAGS"
+      LDFLAGSBACKUP="$LDFLAGS"
+
+      CFLAGS="$CFLAGS -L$OPENCLBASE/lib64/"
+      CPPFLAGS="$CPPFLAGS -L$OPENCLBASE/lib64/"
+      CFLAGS="$CXXFLAGS -L$OPENCLBASE/lib64/"
+      LDFLAGS="$LDFLAGS -L$OPENCLBASE/lib64/"
+      AC_CHECK_LIB([OpenCL],
+                   [clGetPlatformIDs],
+                   [OPENCL_LIB="$OPENCLBASE/lib64/"],
+                   [OPENCL_LIB="$OPENCLBASE/lib/"])
+
+      CFLAGS="$CFLAGSBACKUP"
+      CPPFLAGS="$CPPFLAGSBACKUP"
+      CXXFLAGS="$CFLAGSBACKUP"
+      LDFLAGS="$LDFLAGSBACKUP"
+      #endtest
+	]
+)
+
+AC_MSG_CHECKING([if the use of OpenCL devices was disabled])
+AC_ARG_ENABLE([opencl-arch],
+  AS_HELP_STRING([--disable-opencl-arch], [Disables the use of OpenCL devices]),
+  [
+    if test x"$enableval" = x"yes" -o x"$enableval" = x"";
+    then
+        opencl_enabled="yes"        
+        opencl_showwarn="yes"
+        AC_MSG_RESULT([no])
+    else if test x"$enableval" = x"no";
+        then
+            opencl_enabled="no"
+            AC_MSG_RESULT([yes])
+        else
+            AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
+        fi    
+    fi
+  ],
+  [
+    opencl_enabled="yes"
+    AC_MSG_RESULT([no])
+  ]
+)
+
+if test x"$opencl_enabled" = x"yes" ; then
+
+    opencl_valid="no"
+    opencl_libs="no"
+    opencl_headers="no"
+
+    #tests if headers and libraries are usable and correct
+    #backup vars before we do the tests
+    CFLAGSBACKUP="$CFLAGS"
+    CPPFLAGSBACKUP="$CPPFLAGS"
+    CXXFLAGSBACKUP="$CXXFLAGS"
+    LDFLAGSBACKUP="$LDFLAGS"
+
+    CFLAGS="$CFLAGS -I$OPENCL_INC -L$OPENCL_LIB"
+    CPPFLAGS="$CPPFLAGS -I$OPENCL_INC -L$OPENCL_LIB"
+    CFLAGS="$CXXFLAGS -I$OPENCL_INC -L$OPENCL_LIB"
+    LDFLAGS="$LDFLAGS -L$OPENCL_LIB"
+
+    AC_CHECK_HEADER([CL/opencl.h], [opencl_headers="yes"],[])
+    AC_CHECK_HEADER([OpenCL/opencl.h], [opencl_headers="yes"],[])
+    AC_CHECK_LIB([OpenCL],
+                 [clGetPlatformIDs],
+                 [opencl_libs="yes"],
+                 [])
+
+    CFLAGS="$CFLAGSBACKUP"
+    CPPFLAGS="$CPPFLAGSBACKUP"
+    CXXFLAGS="$CFLAGSBACKUP"
+    LDFLAGS="$LDFLAGSBACKUP"
+    #endtest
+
+    if test x"$opencl_libs" = x"yes" ; then
+         if test x"$opencl_headers" = x"yes" ; then
+            opencl_valid="yes"
+         fi
+    fi
+
+    if test x"$opencl_showwarn" = x"yes" ; then
+         if test x"$opencl_libs" = x"no" ; then
+            AC_MSG_WARN([OpenCL library not found in $OPENCL_LIB, specify location using -with-opencl-lib. Disabling OpenCL support])
+         fi
+         if test x"$opencl_headers" = x"no" ; then
+            AC_MSG_WARN([OpenCL headers not found in $OPENCL_INC, specify location using -with-opencl-include. Disabling OpenCL support])
+         fi
+    fi
+else
+    opencl_valid="no"
+fi
+
+if test x"$opencl_valid" = x"yes"; then
+    OPENCL_LD=$OPENCL_LIB
+    OPENCL_INC=$OPENCL_INC
+    CFLAGS="$CFLAGS -I$OPENCL_INC -DOpenCL_DEV"
+    CXXFLAGS="$CXXFLAGS -I$OPENCL_INC -DOpenCL_DEV"
+    ARCHITECTURES="$ARCHITECTURES opencl"
+    AC_SUBST([OPENCL_LD])
+    AC_SUBST([OPENCL_INC])
+fi
+
+AM_CONDITIONAL([OPENCL_SUPPORT],[test $opencl_valid = yes]) 
+
+AC_SUBST([opencl_valid])
 
 # mcc support
 AC_ARG_WITH([mcc],
@@ -477,7 +663,7 @@ AC_ARG_WITH([mpitrace],
                 then
                    extrae_version_string=`sed -ne '/^\s*#\s*define\s\+EXTRAE_VERSION .*$/p' $extrae_version_h`
                    extrae_version=`echo $extrae_version_string | sed -e 's/#define EXTRAE_VERSION EXTRAE_VERSION_NUMBER(\([0-9]*\),\([0-9]*\),\([0-9]*\).*$/\1\2\3/'`
-                   if test "$extrae_version" -ge 220;
+                   if test "$extrae_version" -ge 230;
                    then
                       MPITRACE_HOME="$withval"
                       MPITRACE_INC="$withval/include"
@@ -489,10 +675,10 @@ AC_ARG_WITH([mpitrace],
                       MPITRACE_BIN="$withval/bin"
                       AC_MSG_RESULT([checking if Extrae library is compatible... yes])
                    else
-                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
                    fi
                 else
-                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
                 fi
            ]
 )
@@ -504,7 +690,7 @@ AC_ARG_WITH([extrae],
                 then
                    extrae_version_string=`sed -ne '/^\s*#\s*define\s\+EXTRAE_VERSION .*$/p' $extrae_version_h`
                    extrae_version=`echo $extrae_version_string | sed -e 's/#define EXTRAE_VERSION EXTRAE_VERSION_NUMBER(\([0-9]*\),\([0-9]*\),\([0-9]*\).*$/\1\2\3/'`
-                   if test "$extrae_version" -ge 220;
+                   if test "$extrae_version" -ge 230;
                    then
                       MPITRACE_HOME="$withval"
                       MPITRACE_INC="$withval/include"
@@ -516,10 +702,10 @@ AC_ARG_WITH([extrae],
                       MPITRACE_BIN="$withval/bin"
                       AC_MSG_RESULT([checking if Extrae library is compatible... yes])
                    else
-                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
                    fi
                 else
-                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
                 fi
            ]
 )
@@ -532,8 +718,19 @@ AC_SUBST([MPITRACE_BIN])
 
 AM_CONDITIONAL([INSTRUMENTATION_EXTRAE], test x"$MPITRACE_HOME" != x)
 
-# Check Ayudame support
+# Check NextSim support
+AC_ARG_WITH([nextsim],
+           AS_HELP_STRING([--with-nextsim=dir], [Directory of NextSim installation]),
+           [
+              NEXTSIM_HOME="$withval"
+              NEXTSIM_INC="$withval/include"
+           ]
+)
+AC_SUBST([NEXTSIM_HOME])
+AC_SUBST([NEXTSIM_INC])
+AM_CONDITIONAL([INSTRUMENTATION_NEXTSIM], test x"$NEXTSIM_HOME" != x)
 
+# Check Ayudame support
 AYUDAME_HOME=""
 AYUDAME_INC=""
 AYUDAME_LIB=""
@@ -701,13 +898,21 @@ AC_CONFIG_FILES([Makefile
 		 src/arch/gpu/debug/Makefile
 		 src/arch/gpu/instrumentation/Makefile
 		 src/arch/gpu/instrumentation-debug/Makefile
+		 src/arch/opencl/Makefile
+		 src/arch/opencl/performance/Makefile
+		 src/arch/opencl/debug/Makefile
+		 src/arch/opencl/instrumentation/Makefile
+		 src/arch/opencl/instrumentation-debug/Makefile
 		 src/utils/Makefile
+		 src/utils/performance/Makefile
+		 src/utils/instrumentation/Makefile
+		 src/utils/debug/Makefile
+		 src/utils/instrumentation-debug/Makefile
 		 scripts/Makefile
 		 tests/Makefile
 		 tests/gens/Makefile
 		 doc/Makefile
                  doc/doxy-nanox
-		 doc/paraver_configs/Makefile
                  ])
 
 AC_OUTPUT

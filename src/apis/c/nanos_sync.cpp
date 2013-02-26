@@ -16,7 +16,9 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
+/*! \file nanos_sync.cpp
+ *  \brief 
+ */
 #include "workgroup.hpp"
 #include "nanos.h"
 #include "schedule.hpp"
@@ -24,6 +26,11 @@
 #include "synchronizedcondition.hpp"
 #include "instrumentationmodule_decl.hpp"
 #include "instrumentation.hpp"
+
+/*! \defgroup capi_sync C/C++ API: Synchronization services. */
+/*! \addtogroup capi_sync
+ *  \{
+ */
 
 using namespace nanos;
 
@@ -34,8 +41,8 @@ NANOS_API_DEF(nanos_err_t, nanos_wg_wait_completion, ( nanos_wg_t uwg, bool avoi
    try {
       WG *wg = ( WG * )uwg;
       wg->waitCompletion( avoid_flush );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -47,8 +54,8 @@ NANOS_API_DEF(nanos_err_t, nanos_create_int_sync_cond, ( nanos_sync_cond_t *sync
 
    try {
       *sync_cond = ( nanos_sync_cond_t ) new MultipleSyncCond<EqualConditionChecker<int> >( EqualConditionChecker<int>( p, condition ) );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -60,8 +67,8 @@ NANOS_API_DEF(nanos_err_t, nanos_create_bool_sync_cond, ( nanos_sync_cond_t *syn
 
    try {
       *sync_cond = ( nanos_sync_cond_t ) new MultipleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>( p, condition ) );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -74,8 +81,8 @@ NANOS_API_DEF(nanos_err_t, nanos_sync_cond_wait, ( nanos_sync_cond_t sync_cond )
    try {
       GenericSyncCond * syncCond = (GenericSyncCond *) sync_cond;
       syncCond->wait();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -88,8 +95,8 @@ NANOS_API_DEF(nanos_err_t, nanos_sync_cond_signal, ( nanos_sync_cond_t sync_cond
    try {
       GenericSyncCond * syncCond = (GenericSyncCond *) sync_cond;
       syncCond->signal();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -102,8 +109,8 @@ NANOS_API_DEF(nanos_err_t, nanos_destroy_sync_cond, ( nanos_sync_cond_t sync_con
    try {
       GenericSyncCond * syncCond = (GenericSyncCond *) sync_cond;
       delete syncCond;
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -135,8 +142,8 @@ NANOS_API_DEF(nanos_err_t, nanos_wait_on, ( size_t num_data_accesses, nanos_data
          return NANOS_OK;
       }
 
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -154,8 +161,21 @@ NANOS_API_DEF(nanos_err_t, nanos_init_lock, ( nanos_lock_t **lock ))
 
    try {
       *lock = new Lock();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_init_lock_at, ( nanos_lock_t *lock ))
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","init_lock",NANOS_RUNTIME) );
+
+   try {
+      new ( lock ) Lock();
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -174,8 +194,8 @@ NANOS_API_DEF(nanos_err_t, nanos_set_lock, ( nanos_lock_t *lock ))
    try {
       Lock &l = *( Lock * ) lock;
       l++;
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -194,8 +214,8 @@ NANOS_API_DEF(nanos_err_t, nanos_unset_lock, ( nanos_lock_t *lock ))
    try {
       Lock &l = *( Lock * ) lock;
       l--;
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -215,8 +235,8 @@ NANOS_API_DEF(nanos_err_t, nanos_try_lock, ( nanos_lock_t *lock, bool *result ))
       Lock &l = *( Lock * ) lock;
 
       *result = l.tryAcquire();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -234,8 +254,8 @@ NANOS_API_DEF(nanos_err_t, nanos_destroy_lock, ( nanos_lock_t *lock ))
 
    try {
       delete ( Lock * )lock;
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -248,8 +268,8 @@ NANOS_API_DEF(nanos_err_t, nanos_single_guard, ( bool *b ))
 
    try {
       *b = myThread->singleGuard();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -261,8 +281,8 @@ NANOS_API_DEF(nanos_err_t, nanos_enter_sync_init, ( bool *b ))
 
    try {
       *b = myThread->enterSingleBarrierGuard();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -274,8 +294,8 @@ NANOS_API_DEF(nanos_err_t, nanos_wait_sync_init, ( void ))
 
    try {
       myThread->waitSingleBarrierGuard();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -287,8 +307,8 @@ NANOS_API_DEF(nanos_err_t, nanos_release_sync_init, ( void ))
 
    try {
       myThread->releaseSingleBarrierGuard();
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -299,3 +319,6 @@ NANOS_API_DEF(nanos_err_t, nanos_memory_fence, (void))
     nanos::memoryFence();
     return NANOS_OK;
 }
+/*!
+ * \}
+ */ 

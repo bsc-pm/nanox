@@ -21,6 +21,7 @@
 #define _NANOS_LIB_WDDEQUE_DECL_H
 
 #include <list>
+#include <functional>
 #include "atomic_decl.hpp"
 #include "debug.hpp"
 #include "workdescriptor_fwd.hpp"
@@ -63,7 +64,7 @@ namespace nanos
          WDPool() {}
          /*! \brief WDPool destructor
           */
-         ~WDPool() {}
+         virtual ~WDPool() {}
 
          virtual bool empty ( void ) const = 0;
          virtual size_t size() const = 0; /*FIXME: Try to remove this functions, use empty, there is a global counter for ready tasks  */
@@ -106,7 +107,7 @@ namespace nanos
       public:
          /*! \brief WDDeque default constructor
           */
-         WDDeque() : _dq(), _lock() {}
+         WDDeque() : _dq(), _lock(), _nelems(0) {}
          /*! \brief WDDeque destructor
           */
          ~WDDeque() {}
@@ -212,17 +213,58 @@ namespace nanos
          bool removeWDWithConstraints( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
 #endif
    };
-
+   
    /*! \brief Class used to compare WDs by priority.
     *  \see WDPriorityQueue::push
     */
-   struct WDPriorityComparison
+   template <typename T>
+   struct WDPriorityComparisonBase : public std::binary_function< WD*, WD*, bool>
    {
-      bool operator() ( const WD* wd1, const WD* wd2 ) const;
+      /*! \brief Type of the functor */
+      typedef std::const_mem_fun_t<T, WD> PriorityValueFun;
+      
+      PriorityValueFun _getter;
+      
+      WDPriorityComparisonBase( PriorityValueFun functor ) : _getter( functor ) {}
+   };
+   
+   /*! \brief Class used to compare WDs by priority.
+    */
+   template <typename T>
+   struct WDPriorityComparison : public WDPriorityComparisonBase<T>
+   {
+      typedef WDPriorityComparisonBase<T> Base;
+      
+      WDPriorityComparison( typename Base::PriorityValueFun functor ) 
+         : Base( functor ) {}
+      
+      bool operator() ( const WD *wd1, const WD *wd2 ) const
+      {
+         return this->_getter( wd1 ) > this->_getter( wd2 );
+      }
+   };
+   
+   /*! \brief Class used to compare WDs by priority reversely.
+    */
+   template <typename T>
+   struct WDPriorityComparisonReverse : public WDPriorityComparisonBase<T>
+   {
+      typedef WDPriorityComparisonBase<T> Base;
+      
+      WDPriorityComparisonReverse( typename Base::PriorityValueFun functor ) 
+         : Base( functor ) {}
+      bool operator() ( const WD *wd1, const WD *wd2 ) const
+      {
+         return this->_getter( wd1 ) <= this->_getter( wd2 );
+      }
    };
 
+   template<typename T = unsigned>
    class WDPriorityQueue : public WDPool
    {
+      public:
+         typedef T         type;
+         typedef std::const_mem_fun_t<T, WD> PriorityValueFun;
       private:
          // TODO (gmiranda): Measure if vector is better as a container
          typedef std::list<WorkDescriptor *> BaseContainer;
@@ -235,6 +277,14 @@ namespace nanos
           * in the above case.
           */
          bool              _optimise;
+         
+         /*! \brief Revert insertion */
+         bool              _reverse;
+         
+         /*! \brief Functor that will be used to get the priority or
+          *  deadline */
+         PriorityValueFun  _getter;
+      
 
       private:
          /*! \brief WDPriorityQueue copy constructor (private)
@@ -248,10 +298,18 @@ namespace nanos
           *  \param fifo Insert WDs with the same after the current ones?
           */
          void insertOrdered ( WorkDescriptor *wd, bool fifo = true );
+         
+         /*! \brief Performs upper bound reversely or not depending on the settings */
+        BaseContainer::iterator upper_bound( const WD *wd );
+        
+        /*! \brief Performs lower bound reversely or not depending on the settings */
+        BaseContainer::iterator lower_bound( const WD *wd );
       public:
          /*! \brief WDPriorityQueue default constructor
           */
-         WDPriorityQueue( bool optimise = true );
+         WDPriorityQueue( bool optimise = true, bool reverse = false,
+               PriorityValueFun getter = std::mem_fun( &WD::getPriority ) );
+         
          /*! \brief WDPriorityQueue destructor
           */
          ~WDPriorityQueue() {}

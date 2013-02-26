@@ -1,3 +1,5 @@
+common_includes += -I $(top_builddir)/src/apis/c
+
 omp_sources = \
         $(top_srcdir)/src/pms/openmp/omp_init.cpp\
         $(top_srcdir)/src/pms/openmp/omp_init.hpp\

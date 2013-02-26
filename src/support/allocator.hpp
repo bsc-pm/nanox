@@ -34,6 +34,7 @@ inline Allocator & getAllocator ( void )
 {
    if (!allocator) {
       allocator = (Allocator *) malloc(sizeof(Allocator));
+      if ( allocator == NULL ) throw(NANOS_ENOMEM);
       new (allocator) Allocator();
    }
 
@@ -71,6 +72,7 @@ inline void * Allocator::allocateBigObject ( size_t size )
    ObjectHeader * ptr = NULL;
 
    ptr = (ObjectHeader *) malloc( size + _headerSize );
+   if ( ptr == NULL ) throw(NANOS_ENOMEM);
    ptr->_arena = NULL; 
 
    return  ((char *) ptr ) + _headerSize;
@@ -100,6 +102,7 @@ inline void * Allocator::allocate ( size_t size, const char* file, int line )
    if ( it == _arenas.end() ) {
       // no arena found for that size, create a new one
       arena = (Arena *) malloc ( sizeof(Arena) );
+      if ( arena == NULL ) throw(NANOS_ENOMEM);
       new ( arena ) Arena( realSize );
       _arenas.push_back( arena );
    }
@@ -113,6 +116,7 @@ inline void * Allocator::allocate ( size_t size, const char* file, int line )
       if ( ptr == NULL ) { 
           if ( arena->getNext() == NULL ) {
              Arena *next = ( Arena *) malloc ( sizeof(Arena) );
+             if ( next == NULL ) throw(NANOS_ENOMEM);
              new (next) Arena(realSize);
              arena->setNext( next );
           }

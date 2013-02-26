@@ -54,6 +54,11 @@ inline int SchedulerConf::getNumSleeps () const
    return _numSleeps;
 }
 
+inline void SchedulerConf::setNumSleeps ( const unsigned int num )
+{
+   _numSleeps = num;
+}
+
 inline int SchedulerConf::getTimeSleep () const
 {
    return _timeSleep;
@@ -95,7 +100,29 @@ inline WD * SchedulePolicy::atYield       ( BaseThread *thread, WD *current)
 
 inline WD * SchedulePolicy::atWakeUp      ( BaseThread *thread, WD &wd )
 {
+   // Ticket #716: execute earlier tasks that have been waiting for children
+   // If the WD was waiting for something
+   if ( wd.started() ) {
+      BaseThread * prefetchThread = NULL;
+      // Check constraints since they won't be checked in Schedule::wakeUp
+      if ( Scheduler::checkBasicConstraints ( wd, *thread ) ) {
+         prefetchThread = thread;
+      }
+      else
+         prefetchThread = wd.isTiedTo();
+      
+      // Returning the wd here makes the application to hang
+      // Use prefetching instead.
+      if ( prefetchThread != NULL && prefetchThread->reserveNextWD() ) {
+         prefetchThread->setReservedNextWD( &wd );
+         
+         return NULL;
+      }
+   }
+   
+   // otherwise, as usual
    queue( thread, wd );
+   
    return NULL;
 }
 

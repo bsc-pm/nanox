@@ -35,7 +35,7 @@ inline void BaseDependenciesDomain::finalizeReduction( TrackableObject &status, 
       status.setCommDO( NULL );
 
       // This ensures that even if commDO's dependencies are satisfied
-      // during this step, lastWriter will be reseted 
+      // during this step, lastWriter will be reseted
       DependableObject *lw = status.getLastWriter();
       if ( commDO->increasePredecessors() == 0 ) {
          // We increased the number of predecessors but someone just decreased them to 0
@@ -64,9 +64,16 @@ inline void BaseDependenciesDomain::dependOnLastWriter( DependableObject &depObj
             NANOS_INSTRUMENT ( WorkDescriptor *wd_sender = (WorkDescriptor *) lastWriter->getRelatedObject(); )
             NANOS_INSTRUMENT ( WorkDescriptor *wd_receiver = (WorkDescriptor *) depObj.getRelatedObject(); )
             NANOS_INSTRUMENT ( if ( wd_sender && wd_receiver ) { )
-            NANOS_INSTRUMENT ( nanos_event_value_t dependence_value = ( ((nanos_event_value_t) wd_sender->getId()) << 32 ) + wd_receiver->getId(); )
-            NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &dependence_key, &dependence_value); )
+            NANOS_INSTRUMENT ( static nanos_event_key_t dep_direction_key  = ID->getEventKey("dep-direction"); )
+            NANOS_INSTRUMENT ( nanos_event_key_t Keys[2]; )
+            NANOS_INSTRUMENT ( Keys[0] = dependence_key; )
+            NANOS_INSTRUMENT ( Keys[1] = dep_direction_key; )
+            NANOS_INSTRUMENT ( nanos_event_value_t Values[4]; )
+            NANOS_INSTRUMENT ( Values[0] = ( ((nanos_event_value_t) wd_sender->getId()) << 32 ) + wd_receiver->getId(); )
+            NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 0); )
+            NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(2, Keys, Values); )
             NANOS_INSTRUMENT ( } )
+
             depObj.increasePredecessors();
             if ( callback != NULL ) {
                debug( "Calling callback" );
@@ -91,8 +98,14 @@ inline void BaseDependenciesDomain::dependOnReaders( DependableObject &depObj, T
          NANOS_INSTRUMENT ( WorkDescriptor *wd_sender = (WorkDescriptor *) predecessorReader->getRelatedObject(); )
          NANOS_INSTRUMENT ( WorkDescriptor *wd_receiver = (WorkDescriptor *) depObj.getRelatedObject(); )
          NANOS_INSTRUMENT ( if ( wd_sender && wd_receiver ) { )
-         NANOS_INSTRUMENT ( nanos_event_value_t dependence_value = ( ((nanos_event_value_t) wd_sender->getId()) << 32 ) + wd_receiver->getId(); )
-         NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &dependence_key, &dependence_value); )
+         NANOS_INSTRUMENT ( static nanos_event_key_t dep_direction_key  = ID->getEventKey("dep-direction"); )
+         NANOS_INSTRUMENT ( nanos_event_key_t Keys[2]; )
+         NANOS_INSTRUMENT ( Keys[0] = dependence_key; )
+         NANOS_INSTRUMENT ( Keys[1] = dep_direction_key; )
+         NANOS_INSTRUMENT ( nanos_event_value_t Values[4]; )
+         NANOS_INSTRUMENT ( Values[0] = ( ((nanos_event_value_t) wd_sender->getId()) << 32 ) + wd_receiver->getId(); )
+         NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 1); )
+         NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(2, Keys, Values); )
          NANOS_INSTRUMENT ( } )
          depObj.increasePredecessors();
          if ( callback != NULL ) {
@@ -146,7 +159,7 @@ inline CommutationDO * BaseDependenciesDomain::createCommutationDO( BaseDependen
 inline CommutationDO * BaseDependenciesDomain::setUpTargetCommutationDependableObject ( BaseDependency const &target, AccessType const &accessType, TrackableObject &status )
 {
    CommutationDO *commDO = status.getCommDO();
-   
+
    /* FIXME: this must be atomic */
 
    if ( commDO == NULL ) {
@@ -160,7 +173,7 @@ inline CommutationDO * BaseDependenciesDomain::setUpTargetCommutationDependableO
    else if ( commDO->increasePredecessors() == 0 ) {
       commDO = createCommutationDO( target, accessType, status );
    }
-   
+
    return commDO;
 }
 
@@ -168,12 +181,12 @@ inline CommutationDO * BaseDependenciesDomain::setUpTargetCommutationDependableO
 inline CommutationDO * BaseDependenciesDomain::setUpInitialCommutationDependableObject ( BaseDependency const &target, AccessType const &accessType, TrackableObject &status )
 {
    CommutationDO *initialCommDO = NULL;
-   
+
    if ( status.hasReaders() ) {
       initialCommDO = new CommutationDO( target, accessType.commutative );
       initialCommDO->setDependenciesDomain( this );
       initialCommDO->increasePredecessors();
-      
+
       // add dependencies to all previous reads using a CommutationDO
       dependOnReaders( *initialCommDO, status, target, NULL );
       {
@@ -181,11 +194,11 @@ inline CommutationDO * BaseDependenciesDomain::setUpInitialCommutationDependable
          status.flushReaders();
       }
       initialCommDO->addWriteTarget( target );
-      
+
       // Replace the lastWriter with the initial CommutationDO
       status.setLastWriter( *initialCommDO );
    }
-   
+
    return initialCommDO;
 }
 
@@ -195,10 +208,10 @@ inline void BaseDependenciesDomain::submitDependableObjectCommutativeDataAccess 
    // NOTE: Do not change the order
    CommutationDO *initialCommDO = setUpInitialCommutationDependableObject( target, accessType, status );
    CommutationDO *commDO = setUpTargetCommutationDependableObject( target, accessType, status );
-   
+
    // Add the Commutation object as successor of the current DO (depObj)
    depObj.addSuccessor( *commDO );
-   
+
    // assumes no new readers added concurrently
    dependOnLastWriter( depObj, status, callback );
 
@@ -229,7 +242,7 @@ inline void BaseDependenciesDomain::submitDependableObjectInputDataAccess ( Depe
 inline void BaseDependenciesDomain::submitDependableObjectOutputDataAccess ( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, TrackableObject &status, SchedulePolicySuccessorFunctor* callback )
 {
    finalizeReduction( status, target );
-   
+
    // assumes no new readers added concurrently
    if ( !status.hasReaders() ) {
       dependOnLastWriter( depObj, status, callback );

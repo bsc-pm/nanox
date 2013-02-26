@@ -27,6 +27,7 @@
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
 
+
 using namespace nanos;
 using namespace nanos::ext;
 
@@ -82,10 +83,9 @@ void SMPThread::join ()
 
 void SMPThread::bind( void )
 {
-   cpu_set_t cpu_set;
-   long ncpus = sysconf( _SC_NPROCESSORS_ONLN );
-   int cpu_idx = ( getCpuId() * sys.getBindingStride() ) + sys.getBindingStart();
-   int cpu_id = ( (cpu_idx + ( cpu_idx/ncpus) ) % ncpus);
+   int cpu_id = getCpuId();
+   
+   cpu_id = adjustBind( cpu_id );
    
    // If using the socket scheduler...
    if ( sys.getDefaultSchedule() == "socket" )
@@ -97,15 +97,27 @@ void SMPThread::bind( void )
          warning( "cpu id " << cpu_id << " is in socket #" << socket <<
                  ", while there are only " << sys.getNumSockets() << " sockets." );
       }
-      
+      verbose( "Binding cpu " << cpu_id << " to socket " << socket );
       setSocket( socket );
    }
 
-   ensure( ( ( cpu_id >= 0 ) && ( cpu_id < ncpus ) ), "invalid value for cpu id" );
+   cpu_set_t cpu_set;
    CPU_ZERO( &cpu_set );
    CPU_SET( cpu_id, &cpu_set );
-   verbose( "Binding thread " << getId() << " to cpu " << cpu_id );
-   sched_setaffinity( ( pid_t ) 0, sizeof( cpu_set ), &cpu_set );
+   verbose( " Binding thread " << getId() << " to cpu " << cpu_id );
+   sys.setCpuAffinity( ( pid_t ) 0, sizeof( cpu_set ), &cpu_set );
+}
+
+// TODO: move to hpp
+int SMPThread::adjustBind( int cpu_id )
+{
+   // getBindingId will fail for the Master thread because the structure will
+   // be empty.
+   if( getId() == 0 )
+      return cpu_id;
+   int new_id = sys.getBindingId( getId() );
+   //fprintf( stderr, "CPU thread %d goes to %d\n", cpu_id, new_id );
+   return new_id;
 }
 
 void SMPThread::yield()

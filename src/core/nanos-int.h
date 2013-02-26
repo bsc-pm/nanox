@@ -25,6 +25,26 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+/*! \file nanos_c_api_macros.h
+ *  \brief 
+ */
+#define NANOS_API_DECL(Type, Name, Params) \
+    extern Type Name##_ Params; \
+    extern Type Name Params
+
+#ifdef _NANOS_INTERNAL
+
+   #define NANOS_API_DEF(Type, Name, Params) \
+       __attribute__((alias(#Name))) Type Name##_ Params; \
+       Type Name Params
+
+#endif
+
+/*! \defgroup capi C/C++ API */
+/*! \addtogroup capi
+ *  \{
+ */
+
 #ifdef __cplusplus
 extern "C"
 #endif
@@ -36,7 +56,6 @@ typedef struct {
 
    /* Lower bound in terms of the size of the previous dimension. */
    size_t lower_bound;
-
    /* Accessed length in terms of the size of the previous dimension. */
    size_t accessed_length;
 } nanos_region_dimension_internal_t;
@@ -102,13 +121,23 @@ typedef struct {
  * its contents has to be reflected in CopyData constructor
  */
 typedef struct {
-   uint64_t address;
+   void *address;
    nanos_sharing_t sharing;
    struct {
       bool input: 1;
       bool output: 1;
    } flags;
-   size_t size;
+   short dimension_count;
+
+#if defined(_MERCURIUM) && defined(_MF03)
+   // Fortran makes a strong separation between pointers and arrays and they
+   // cannot be mixed in any way. To the eyes of Mercurium the original
+   // declaration would be a pointer to a scalar, not a pointer to an array
+   void* dimensions;
+#else
+   nanos_region_dimension_internal_t const *dimensions;
+#endif
+   ptrdiff_t offset;
 } nanos_copy_data_internal_t;
 
 typedef nanos_access_type_internal_t nanos_access_type_t;
@@ -150,9 +179,11 @@ typedef struct {
    int upper;
    int step;
    bool last;
+   bool wait;
    int chunk;
    int stride;
    int thid;
+   int threads;
    void *args;
 } nanos_loop_info_t;
 
@@ -188,12 +219,12 @@ typedef struct nanos_ws_desc {
 typedef struct {
    bool mandatory_creation:1;
    bool tied:1;
+   bool clear_chunk:1;
    bool reserved0:1;
    bool reserved1:1;
    bool reserved2:1;
    bool reserved3:1;
    bool reserved4:1;
-   bool reserved5:1;
 } nanos_wd_props_t;
 
 typedef struct {
@@ -207,11 +238,30 @@ typedef struct {
   void * arg;
 } nanos_device_t;
 
+/*! \todo Move nanos_smp_args_t to some dependent part ? */
+typedef struct {
+   void (*outline) (void *);
+} nanos_smp_args_t;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+// factories
+// smp
+NANOS_API_DECL(void *, nanos_smp_factory,( void *args));
+#define NANOS_SMP_DESC( args ) { nanos_smp_factory, &( args ) }
+
+#ifdef __cplusplus
+};
+#endif
 // instrumentation structures
 
 typedef enum { NANOS_STATE_START, NANOS_STATE_END, NANOS_SUBSTATE_START, NANOS_SUBSTATE_END,
                NANOS_BURST_START, NANOS_BURST_END, NANOS_PTP_START, NANOS_PTP_END, NANOS_POINT, EVENT_TYPES
 } nanos_event_type_t; /**< Event types  */
+
+typedef unsigned int         nanos_event_key_t; /**< Key (on key-value pair) */
+typedef unsigned long long   nanos_event_value_t; /**< Value (on key-value pair) */
 
 typedef enum { NANOS_NOT_CREATED, NANOS_NOT_RUNNING, NANOS_STARTUP, NANOS_SHUTDOWN, NANOS_ERROR, NANOS_IDLE,
                NANOS_RUNTIME, NANOS_RUNNING, NANOS_SYNCHRONIZATION, NANOS_SCHEDULING, NANOS_CREATION,
@@ -220,43 +270,17 @@ typedef enum { NANOS_NOT_CREATED, NANOS_NOT_RUNNING, NANOS_STARTUP, NANOS_SHUTDO
                NANOS_CACHE, NANOS_YIELD, NANOS_ACQUIRING_LOCK, NANOS_CONTEXT_SWITCH, NANOS_DEBUG, NANOS_EVENT_STATE_TYPES
 } nanos_event_state_value_t; /**< State enum values */
 
-typedef enum { NANOS_WD_DOMAIN, NANOS_WD_DEPENDENCY, NANOS_WAIT, NANOS_WD_REMOTE, NANOS_XFER_PUT, NANOS_XFER_GET } nanos_event_domain_t; /**< Specifies a domain */
-typedef long long  nanos_event_id_t;                   /**< Used as unique id within a given domain */
+typedef enum { NANOS_WD_DOMAIN, NANOS_WD_DEPENDENCY, NANOS_WAIT, NANOS_WD_REMOTE, NANOS_XFER_PUT, NANOS_XFER_GET
+} nanos_event_domain_t; /**< Specifies a domain */
 
-typedef unsigned int         nanos_event_key_t;   /**< Key (on key-value pair) */
-typedef unsigned long long   nanos_event_value_t; /**< Value (on key-value pair) */
+typedef long long  nanos_event_id_t; /**< Used as unique id within a given domain */
   
 typedef struct {
+   nanos_event_type_t   type;
    nanos_event_key_t    key;
    nanos_event_value_t  value;
-} nanos_event_burst_t;
-
-typedef struct {
-   nanos_event_state_value_t value;
-} nanos_event_state_t;
-
-typedef struct {
-   unsigned int        nkvs;
-   nanos_event_key_t   *keys;
-   nanos_event_value_t *values;
-} nanos_event_point_t;
-
-typedef struct {
    nanos_event_domain_t domain; 
    nanos_event_id_t     id;
-   unsigned int         nkvs;
-   nanos_event_key_t    *keys;
-   nanos_event_value_t  *values;
-} nanos_event_ptp_t;
-
-typedef struct {
-   nanos_event_type_t       type;
-   union {
-      nanos_event_burst_t   burst;
-      nanos_event_state_t   state;
-      nanos_event_point_t   point;
-      nanos_event_ptp_t     ptp;
-   } info;
 } nanos_event_t;
 
 /* Lock C interface */
@@ -277,5 +301,9 @@ typedef struct {
    nanos_init_func_t  *func;
    void               *data;
 } nanos_init_desc_t;
+
+/*!
+ * \}
+ */ 
 
 #endif

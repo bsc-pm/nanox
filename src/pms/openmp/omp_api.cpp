@@ -23,7 +23,6 @@
 #include "system.hpp"
 #include "omp_wd_data.hpp"
 #include "omp_threadteam_data.hpp"
-#include "nanos_c_api_macros.h"
 #include "nanos_omp.h"
 
 using namespace nanos;
@@ -65,7 +64,7 @@ extern "C"
 
    NANOS_API_DEF(int, omp_get_num_procs, ( void ))
    {
-      return sys.getNumPEs();
+      return sys.getCpuCount();
    }
 
    NANOS_API_DEF(int, omp_in_parallel, ( void ))

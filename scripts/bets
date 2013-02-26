@@ -310,6 +310,7 @@ clean_test_vars ()
    unset test_nolink
    unset test_noexec
    unset test_ignore
+   unset test_ignore_fail
 }
 
 # run functions
