@@ -46,7 +46,7 @@ namespace ext
          GPUThread( const GPUThread &th );
          const GPUThread & operator= ( const GPUThread &th );
 
-         void raiseWDClosingEvents ();
+         void raiseWDClosingEvents ( WD * wd );
 
 
          WD * getNextTask ( WD &wd );

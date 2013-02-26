@@ -166,6 +166,9 @@ void AsyncThread::runWD ( WD * wd )
 
    evt->setPending();
 
+   Action * instrument = new_action( ( ActionMemFunPtr1<AsyncThread, WD *>::MemFunPtr1 ) &AsyncThread::raiseWDClosingEvents, this, wd );
+   evt->addNextAction( instrument );
+
    Action * action = new_action( ( ActionMemFunPtr1<AsyncThread, WD *>::MemFunPtr1 ) &AsyncThread::postRunWD, this, wd );
    evt->addNextAction( action );
 

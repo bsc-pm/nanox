@@ -262,10 +262,13 @@ void GPUThread::idle()
 }
 
 
-void GPUThread::raiseWDClosingEvents ()
+void GPUThread::raiseWDClosingEvents ( WD * wd )
 {
-   if ( _wdClosingEvents ) {
+   //if ( _wdClosingEvents ) {
       NANOS_INSTRUMENT(
+            WD * oldwd = getCurrentWD();
+            // Instrumenting context switch: oldwd leaves CPU, but will come back later (last = false)
+            sys.getInstrumentation()->wdSwitch( oldwd, wd, /* last */ false );
             Instrumentation::Event e[2];
             sys.getInstrumentation()->closeBurstEvent( &e[0],
                   sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-name" ) );
@@ -273,7 +276,10 @@ void GPUThread::raiseWDClosingEvents ()
                   sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-location" ) );
 
             sys.getInstrumentation()->addEventList( 2, e );
+
+            // Instrumenting context switch: wd leaves CPU, but will come back later (last = false)
+            sys.getInstrumentation()->wdSwitch( wd, oldwd, /* last */ false );
       );
-      _wdClosingEvents = false;
-   }
+      //_wdClosingEvents = false;
+   //}
 }
