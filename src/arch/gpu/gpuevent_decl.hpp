@@ -216,6 +216,12 @@ namespace nanos
 
             if ( _state == RAISED ) return;
 
+            // Check again for the state of the event, just in case it has changed
+            // Force checking
+            _timesToQuery = 0;
+            updateState();
+            if ( _state == RAISED ) return;
+
             NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_EVENT_SYNC_EVENT );
             //cudaError_t err =
             cudaEventSynchronize( _cudaEvent );
