@@ -22,7 +22,6 @@
 
 #include "nanos.h"
 #include "nanos_reduction.h"
-#include "nanos_c_api_macros.h"
 
 typedef enum nanos_omp_sched_t {
    omp_sched_static = 1,

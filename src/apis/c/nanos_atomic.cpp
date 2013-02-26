@@ -23,7 +23,6 @@
    #include "config.h"
 #endif
 
-#include "nanos_c_api_macros.h"
 #include "nanos_atomic.h"
 
 #include "atomic.hpp"

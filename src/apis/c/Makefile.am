@@ -27,7 +27,6 @@ pkginclude_HEADERS=\
 	nanos.h \
    nanos_version.h \
    nanos_reduction.h \
-   nanos_c_api_macros.h \
 	$(END)
 
 BUILT_SOURCES=\

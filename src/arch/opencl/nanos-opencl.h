@@ -22,7 +22,8 @@
 #define	NANOS_OPENCL_H
 
 //#include "CL/opencl.h"
-#include "nanos.h" 
+#include "nanos-int.h" 
+#include "nanos_error.h"
 #ifdef	__cplusplus
 extern "C" {
 #endif
@@ -40,6 +41,7 @@ NANOS_API_DECL(void*, nanos_create_current_kernel, (const char* kernel_name, con
 NANOS_API_DECL(nanos_err_t,nanos_opencl_set_bufferarg, (void* opencl_kernel, int arg_num, void* pointer));
 NANOS_API_DECL(nanos_err_t,nanos_opencl_set_arg, (void* opencl_kernel, int arg_num, size_t size, void* pointer));
 NANOS_API_DECL(nanos_err_t,nanos_exec_kernel, (void* opencl_kernel, int work_dim, size_t* ndr_offset, size_t* ndr_local_size, size_t* ndr_global_size));
+NANOS_API_DECL(unsigned int,nanos_get_opencl_num_devices, (void));
 
 #ifdef _MERCURIUM_OPENCL_
 //unsigned get_work_dim();

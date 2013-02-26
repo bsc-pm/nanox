@@ -20,7 +20,6 @@
  *  \brief 
  */
 #include "nanos-int.h"
-#include "nanos_c_api_macros.h"
 
 #ifndef _NANOS_REDUCTION_H_
 #define _NANOS_REDUCTION_H_
