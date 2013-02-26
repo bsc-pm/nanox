@@ -132,6 +132,9 @@ void GPUMemoryTransferOutAsyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt
          ( void * ) mt._hostAddress.getTag() :
          ( ( nanos::ext::GPUProcessor * ) thread->runningOn() )->allocateOutputPinnedMemory( mt._size );
 
+   // allocateOutputPinnedMemory() can return NULL, so we have to check the pointer to pinned memory
+   pinned = pinned ? pinned : ( void * ) mt._hostAddress.getTag();
+
    GenericEvent * evt = thread->createPostRunEvent( NULL );
 
    GPUDevice::copyOutAsyncToBuffer( pinned, mt._deviceAddress, mt._size );
