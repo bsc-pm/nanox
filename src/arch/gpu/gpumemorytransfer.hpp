@@ -195,10 +195,6 @@ namespace ext
                               + toString<size_t>( _requestedTransfers.size() ) + " pending transfers to perform" );
          }
 
-         /*! \brief Add a new memory transfer to the list of pending transfers (asynchronous)
-          */
-         void addMemoryTransfer ( CopyDescriptor &address );
-
          /*! \brief Add a new memory transfer to the list of requested transfers (asynchronous)
           */
          void addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size )
@@ -207,10 +203,6 @@ namespace ext
             _requestedTransfers.push_back( *NEW GPUMemoryTransfer ( hostAddress, deviceAddress, size ) );
             _lock.release();
          }
-
-         /*! \brief Notify that all the pending memory transfers have been executed (asynchronous)
-          */
-         void clearMemoryTransfers ();
 
          /*! \brief Execute the given memory transfer (asynchronous)
           */

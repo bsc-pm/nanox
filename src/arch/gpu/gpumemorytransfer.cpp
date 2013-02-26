@@ -298,31 +298,6 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ( std::list<GPUMemory
    }
 }
 
-void GPUMemoryTransferInAsyncList::addMemoryTransfer ( CopyDescriptor &address )
-{
-   //_pendingTransfersAsync.push_back( address );
-
-   GPUThread * thread = ( GPUThread * ) myThread;
-
-   GenericEvent * evt = thread->createPreRunEvent( NULL );
-   evt->setPending();
-
-   Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize,
-         ( AsyncThread * ) thread, address );
-   evt->addNextAction( action );
-
-   thread->addEvent( evt );
-
-
-}
-
-void GPUMemoryTransferInAsyncList::clearMemoryTransfers()
-{
-   //( ( GPUProcessor * ) myThread->runningOn() )->synchronize( _pendingTransfersAsync );
-
-   //_pendingTransfersAsync.clear();
-}
-
 void GPUMemoryTransferInAsyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt )
 {
    GPUThread * thread = ( GPUThread * ) myThread;

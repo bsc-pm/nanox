@@ -80,7 +80,6 @@ bool GPUDevice::isMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t si
       }
 
       copyInAsyncToDevice( localDst, pinned, size );
-      myPE->getInTransferList()->addMemoryTransfer( remoteSrc );
 
       return false;
    }
