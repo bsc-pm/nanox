@@ -246,8 +246,9 @@ void AsyncThread::waitInputs( WorkDescriptor &work )
    // Should never find a non-raised event
    for ( GenericEventList::iterator it = _pendingEvents.begin(); it != _pendingEvents.end(); it++ ) {
       GenericEvent * evt = *it;
-      if ( evt->getWD() == &work && !evt->isRaised() ) {
-         warning( "Found a non-raised event!" );
+      if ( evt->getWD() == &work && !( evt->isRaised() || evt->isCompleted() ) ) {
+         // May not be an error in the case of GPUs since CUDA events are only checked every 100 times
+         //warning( "Found a non-raised event! For WD " << evt->getWD()->getId() << " about " << evt->getDescription() );
          evt->waitForEvent();
       }
    }
