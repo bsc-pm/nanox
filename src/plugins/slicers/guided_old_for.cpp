@@ -160,11 +160,11 @@ void SlicerGuidedFor::submit ( SlicedWD &work )
 
       sys.setupWD(*wd, work.getParent() );
       wd->tieTo((*team)[j]);
-      if ( (*team)[j].setNextWD(wd) == false ) Scheduler::submit ( *wd );
+      (*team)[j].addNextWD(wd);
    }
     
    work.tieTo(*mythread);
-   if ( (*team)[first_valid_thread].setNextWD(&work) == false ) Scheduler::submit ( work );
+   (*team)[first_valid_thread].addNextWD(&work);
 }
 
 class SlicerGuidedForPlugin : public Plugin {

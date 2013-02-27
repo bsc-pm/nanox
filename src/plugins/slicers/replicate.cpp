@@ -44,7 +44,7 @@ void SlicerReplicate::submit ( SlicedWD &work )
          sys.setupWD(*slice, &work );
          slice->tieTo( *thread );
          ((WorkSharing *)(wsd_current->ws))->duplicateWS( wsd_current, ( nanos_ws_desc_t ** ) slice->getData() );
-         if ( thread->setNextWD( slice ) == false ) Scheduler::submit ( *slice );
+         thread->addNextWD( slice );
       }
       i--;
    }
@@ -53,7 +53,7 @@ void SlicerReplicate::submit ( SlicedWD &work )
    work.convertToRegularWD();
    work.tieTo( *last_thread );
    ((WorkSharing *)(wsd_current->ws))->duplicateWS( wsd_current, ( nanos_ws_desc_t ** ) work.getData() );
-   if ( last_thread->setNextWD( (WorkDescriptor *) &work) == false ) Scheduler::submit ( work );
+   last_thread->addNextWD( (WorkDescriptor *) &work );
 
 }
 

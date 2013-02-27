@@ -17,12 +17,26 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 #include "allocator.hpp"
+#include "basethread.hpp"
 
 using namespace nanos;
 
 Allocator *nanos::allocator;
 
 size_t Allocator::_headerSize = NANOS_ALIGNED_MEMORY_OFFSET( 0, sizeof(Allocator::ObjectHeader), 16 );
+
+Allocator & nanos::getAllocator ( void )
+{
+   if (!allocator) {
+      allocator = (Allocator *) malloc(sizeof(Allocator));
+      if ( allocator == NULL ) throw(NANOS_ENOMEM);
+      new (allocator) Allocator();
+   }
+
+   BaseThread *my_thread = getMyThreadSafe();
+   if ( my_thread == NULL ) return *allocator;
+   else return my_thread->getAllocator();
+}
 
 void * Allocator::Arena::allocate ( void )
 {

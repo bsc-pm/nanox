@@ -20,7 +20,7 @@
 #ifndef _BASE_THREAD_DECL
 #define _BASE_THREAD_DECL
 
-#include "workdescriptor_fwd.hpp"
+#include "workdescriptor_decl.hpp"
 #include "processingelement_fwd.hpp"
 #include "debug.hpp"
 #include "atomic_decl.hpp"

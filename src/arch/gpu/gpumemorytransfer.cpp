@@ -20,12 +20,18 @@
 
 #include "gpumemorytransfer.hpp"
 #include "gpuprocessor.hpp"
-#include "instrumentationmodule_decl.hpp"
 
 
 using namespace nanos;
 using namespace nanos::ext;
 
+
+nanos::ext::GPUMemoryTransferOutList::~GPUMemoryTransferOutList()
+{
+   ensure( _pendingTransfersAsync.empty(),
+         "Attempting to delete the output pending transfers list with already "
+         + toString<size_t>( _pendingTransfersAsync.size() ) + " pending transfers to perform" );
+}
 
 void GPUMemoryTransferOutList::removeMemoryTransfer ()
 {
@@ -258,6 +264,13 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ( std::list<GPUMemory
    }
 }
 
+
+nanos::ext::GPUMemoryTransferInAsyncList::~GPUMemoryTransferInAsyncList()
+{
+   ensure( _pendingTransfersAsync.empty(),
+         "Attempting to delete the input pending transfers list with already "
+         + toString<size_t>( _pendingTransfersAsync.size() ) + " pending transfers to perform" );
+}
 
 void GPUMemoryTransferInAsyncList::clearMemoryTransfers()
 {

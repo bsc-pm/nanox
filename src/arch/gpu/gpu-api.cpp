@@ -18,7 +18,6 @@
 /*************************************************************************************/
 
 #include "nanos-gpu.h"
-#include "basethread.hpp"
 #include "gpudd.hpp"
 #include "gpuprocessor.hpp"
 
