@@ -72,6 +72,9 @@ bool GPUDevice::isMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t si
             ( void * ) remoteSrc.getTag() :
             myPE->allocateInputPinnedMemory( size );
 
+      // allocateInputPinnedMemory() can return NULL, so we have to check the pointer to pinned memory
+      pinned = pinned ? pinned : ( void * ) remoteSrc.getTag();
+
       if ( pinned != ( void * ) remoteSrc.getTag() ) {
          copyInAsyncToBuffer( pinned, ( void * ) remoteSrc.getTag(), size );
       }

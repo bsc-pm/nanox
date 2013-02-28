@@ -20,13 +20,14 @@
 #ifndef _BASE_THREAD_DECL
 #define _BASE_THREAD_DECL
 
-#include "workdescriptor_fwd.hpp"
+#include "workdescriptor_decl.hpp"
 #include "processingelement_fwd.hpp"
 #include "debug.hpp"
 #include "atomic_decl.hpp"
 #include "schedule_fwd.hpp"
 #include "threadteam_fwd.hpp"
 #include "allocator_decl.hpp"
+#include "wddeque_decl.hpp"
 
 namespace nanos
 {
@@ -119,12 +120,15 @@ namespace nanos
          WD &                    _threadWD;
          int                     _socket;
 
+         unsigned int            _maxPrefetch;
+         WDLFQueue               _nextWDs;
+         unsigned int            _nextWDsCounter;
+
          // Thread status
          bool                    _started;
          volatile bool           _mustStop;
          volatile bool           _paused;
          WD *                    _currentWD;
-         WD *                    _nextWD;
 
          // Team info
          bool                    _hasTeam;
@@ -170,8 +174,8 @@ namespace nanos
          */
          BaseThread ( WD &wd, ProcessingElement *creator=0 ) :
             _id( _idSeed++ ), _name("Thread"), _description(""), _pe( creator ), _threadWD( wd ), _socket( 0 ) ,
-            _started( false ), _mustStop( false ), _paused( false ), _currentWD( NULL),
-            _nextWD( NULL), _hasTeam( false ), _teamData(NULL), _nextTeamData(NULL), _allocator() { } 
+            _maxPrefetch( 1 ), _nextWDs(), _nextWDsCounter( 0 ), _started( false ), _mustStop( false ), _paused( false ),
+            _currentWD( NULL  ), _hasTeam( false ), _teamData( NULL ), _nextTeamData( NULL ), _allocator() { }
 
         /*! \brief BaseThread destructor
          */
@@ -207,13 +211,13 @@ namespace nanos
 
          WD & getThreadWD () const;
 
-         void resetNextWD ();
-         bool setNextWD ( WD *next );
-
-         bool reserveNextWD ( void );
-         bool setReservedNextWD ( WD *next );
-
-         WD * getNextWD () const;
+         // Prefetching related methods used also by slicers
+         int getMaxPrefetch () const;
+         void setMaxPrefetch ( int max );
+         bool canPrefetch () const;
+         void addNextWD ( WD *next );
+         WD * getNextWD ();
+         bool hasNextWD ();
 
          // team related methods
          void reserve();

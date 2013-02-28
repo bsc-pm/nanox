@@ -87,6 +87,9 @@ void GPUThread::initializeDependent ()
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
    if ( err != cudaSuccess )
       warning( "CUDA errors occurred during initialization:" << cudaGetErrorString( err ) );
+
+   // Set the number of look ahead (prefetching) tasks
+   setMaxPrefetch( 8 );
 }
 
 void GPUThread::runDependent ()
@@ -155,11 +158,17 @@ bool GPUThread::inlineWorkDependent ( WD &wd )
    }
 
    if ( GPUConfig::isPrefetchingDefined() ) {
-      // Get next task in order to prefetch data to device memory
-      if ( reserveNextWD () ) {
-         WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, wd );
-         setReservedNextWD( next );  
-         if ( next != NULL ) next->init();
+      WD * last = &wd;
+      while ( canPrefetch() ) {
+         // Get next task in order to prefetch data to device memory
+         WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, *last );
+         if ( next != NULL ) {
+            next->init();
+            addNextWD( next );
+            last = next;
+         } else {
+            break;
+         }
       }
    }
 

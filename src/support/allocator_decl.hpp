@@ -199,7 +199,7 @@ class Allocator
 };
 
 
-inline Allocator & getAllocator ( void );
+Allocator & getAllocator ( void );
 
 
 } // namespace: nanos
