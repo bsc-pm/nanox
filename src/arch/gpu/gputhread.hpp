@@ -46,13 +46,6 @@ void * GPUThread::getCUBLASHandle()
    return _cublasHandle;
 }
 
-inline int GPUThread::adjustBind( int cpu_id )
-{
-   int new_id = sys.getBindingId( getId() );
-   return new_id;
-}
-
-
 }
 }
 

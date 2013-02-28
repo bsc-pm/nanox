@@ -29,8 +29,10 @@
 #include "malign.hpp"
 #include "processingelement.hpp"
 #include "allocator.hpp"
+#include "debug.hpp"
 #include <string.h>
 #include <set>
+#include <cmath>
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -339,13 +341,13 @@ void System::start ()
    loadModules();
 
    _targetThreads = _numThreads;
-#ifdef GPU_DEV
-   _targetThreads += nanos::ext::GPUConfig::getGPUCount();
-#endif
+   // Do the same for the architecture plugins
+   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
+        it != _archs.end(); ++it )
+   {
+      _targetThreads += (*it)->getNumThreads();
+   }
    
-#ifdef OpenCL_DEV
-   _targetThreads += nanos::ext::OpenCLConfig::getOpenCLDevicesCount();
-#endif
    // Instrumentation startup
    NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->initialize() );
@@ -374,7 +376,41 @@ void System::start ()
    myThread->rename("Master");
 
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_STARTUP) );
+   
+   // Check NUMA config
+   if ( _numSockets != std::ceil( _targetThreads / static_cast<float>( _coresPerSocket ) ) )
+   {
+      unsigned validCoresPS = std::ceil( _targetThreads / static_cast<float>( _numSockets ) );
+      warning0( "Adjusting cores-per-socket from " << _coresPerSocket << " to " << validCoresPS );
+      _coresPerSocket = validCoresPS;
+   }
 
+   // start of new PE/Worker creation
+   // How many PEs will be created
+   unsigned targetPes = numPes;
+   // Ask each plugin how many PEs it needs to 
+   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
+        it != _archs.end(); ++it )
+   {
+      
+      targetPes += (*it)->getNumHelperPEs();
+   }
+   
+   _bindings.reserve( targetPes );
+   // Construct the list of PEs
+   for ( unsigned cpu_id = 0; cpu_id < targetPes; ++cpu_id )
+   {
+      _bindings.push_back( cpu_id );
+   }
+   
+   // For each plugin, notify it's the way to reserve PEs if they are required
+   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
+        it != _archs.end(); ++it )
+   {
+      (*it)->createBindingList();
+   }   
+   // Right now, _bindings should only store SMP PEs ids
+  
    // Create PEs
    int p;
    for ( p = 1; p < numPes ; p++ ) {
@@ -387,26 +423,20 @@ void System::start ()
       pe = _pes[ ths % numPes ];
       _workers.push_back( &pe->startWorker() );
    }
-
-#ifdef GPU_DEV
-   int gpuC;
-   for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount(); gpuC++ ) {
-      PE *gpu = NEW nanos::ext::GPUProcessor( getBindingId( p ), gpuC );
-      _pes.push_back( gpu );
-      _workers.push_back( &gpu->startWorker() );
-      ++p;
-   }
-#endif
-
    
-#ifdef OpenCL_DEV
-    for ( unsigned int i = 0; i < nanos::ext::OpenCLConfig::getOpenCLDevicesCount(); i++) {
-       PE *openclAccelerator = NEW nanos::ext::OpenCLProcessor( getBindingId( p ) , i);
-       _pes.push_back( openclAccelerator );
-      _workers.push_back( &openclAccelerator->startWorker() );
-      ++p;
-    }
-#endif
+   // For each plugin create PEs and workers
+   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
+        it != _archs.end(); ++it )
+   {
+      for ( unsigned archPE = 0; archPE < (*it)->getNumPEs(); ++archPE )
+      {
+         PE * processor = (*it)->createPE( archPE );
+         fatal_cond0( processor == NULL, "ArchPlugin::createPE returned NULL" );
+         _pes.push_back( processor );
+         _workers.push_back( &processor->startWorker() );
+         ++p;
+      }
+   }
       
 #ifdef SPU_DEV
    PE *spu = NEW nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);
@@ -1291,4 +1321,12 @@ void System::waitUntilThreadsUnpaused ()
 {
    // Wait until all threads are paused
    _unpausedThreadsCond.wait();
+}
+
+unsigned System::reservePE( unsigned node )
+{
+   // TODO (gmiranda): complete.
+   unsigned pe = _bindings.back();
+   _bindings.pop_back();
+   return pe;
 }

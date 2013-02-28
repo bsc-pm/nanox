@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2013 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -17,63 +17,21 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "plugin.hpp"
-#include "smpprocessor.hpp"
-#include "smpdd.hpp"
-#include "system.hpp"
 #include "archplugin.hpp"
+#include "system.hpp"
 
-namespace nanos {
-namespace ext {
+using namespace nanos;
 
-nanos::PE * smpProcessorFactory ( int id );
-
-nanos::PE * smpProcessorFactory ( int id )
+ArchPlugin::ArchPlugin( const char *name, int version ) : Plugin( name, version )
 {
-   return new SMPProcessor( id );
+   sys.registerArchitecture( this );
 }
 
-class SMPPlugin : public ArchPlugin
+unsigned ArchPlugin::getNumHelperPEs() const
 {
-
-   public:
-      SMPPlugin() : ArchPlugin( "SMP PE Plugin",1 ) {}
-
-      virtual void config ( Config& cfg )
-      {
-         cfg.setOptionsSection( "SMP Arch", "SMP specific options" );
-         SMPProcessor::prepareConfig( cfg );
-         SMPDD::prepareConfig( cfg );
-      }
-
-      virtual void init() {
-         sys.setHostFactory( smpProcessorFactory );
-      }
-      
-      virtual unsigned getPEsInNode( unsigned node ) const
-      {
-         // TODO (gmiranda): if HWLOC is available, use it.
-         return sys.getCoresPerSocket();
-      }
-
-      virtual unsigned getNumPEs() const
-      {
-         // TODO (gmiranda): create PEs here and not in system
-         return 0;
-      }
-
-      virtual unsigned getNumThreads() const
-      {
-         //return sys.getNumThreads();
-         return 0;
-      }
-
-      virtual ProcessingElement* createPE( unsigned id )
-      {
-         return NULL;
-      }
-};
-}
+   return 0;
 }
 
-DECLARE_PLUGIN("arch-smp",nanos::ext::SMPPlugin);
+void ArchPlugin::createBindingList()
+{
+}

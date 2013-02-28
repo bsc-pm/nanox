@@ -22,6 +22,9 @@ support_sources = \
 	$(top_srcdir)/src/support/plugin_decl.hpp \
 	$(top_srcdir)/src/support/plugin.hpp \
 	$(top_srcdir)/src/support/plugin.cpp \
+	$(top_srcdir)/src/support/archplugin_decl.hpp \
+	$(top_srcdir)/src/support/archplugin.hpp \
+	$(top_srcdir)/src/support/archplugin.cpp \
 	$(top_srcdir)/src/support/xstring.hpp \
 	$(top_srcdir)/src/support/cache_fwd.hpp \
 	$(top_srcdir)/src/support/cache_decl.hpp \

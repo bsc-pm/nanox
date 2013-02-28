@@ -35,6 +35,7 @@
 #include "pminterface_decl.hpp"
 #include "cache_map_decl.hpp"
 #include "plugin_decl.hpp"
+#include "archplugin_decl.hpp"
 #include "barrier_decl.hpp"
 
 #ifdef GPU_DEV
@@ -64,6 +65,7 @@ namespace nanos
          typedef std::map<std::string, Slicer *> Slicers;
          typedef std::map<std::string, WorkSharing *> WorkSharings;
          typedef std::multimap<std::string, std::string> ModulesPlugins;
+         typedef std::vector<ArchPlugin*> ArchitecturePlugins;
          
          //! CPU id binding list
          typedef std::vector<int> Bindings;
@@ -118,6 +120,9 @@ namespace nanos
          
          /*! Valid plugin map (module)->(list of plugins) */
          ModulesPlugins       _validPlugins;
+         
+         /*! Architecture plugins */
+         ArchitecturePlugins  _archs;
          
 
          PEList               _pes;
@@ -294,8 +299,28 @@ namespace nanos
           * \brief Returns a CPU Id that the given architecture should use
           * to tie a new processing element to.
           * \param pe Processing Element number.
+          * \note This method is the one that uses the affinity mask and binding
+          * start and stride parameters.
           */
          int getBindingId ( int pe ) const;
+         
+         /**
+          * \brief Returns a new PE id that takes into account the binding list,
+          * meaning that the first calls to this function will only return the
+          * SMP ids, and then the other architectures' ids will follow.
+          * For instance, in Minotauro (12 HW threads, 2 NUMA nodes, 1 GPU per
+          * node), getBindingId will return 0,1,2,3,4,6,7,8,9,10,5,11, provided
+          * that binding start is 0 and the stride is 1.
+          */
+         int getNUMABinding( int id ) const;
+         
+         /**
+          * \brief Reserves a PE to be used exclusively by a certain
+          * architecture.
+          * \param node NUMA node to reserve the PE from.
+          * \return Id of the PE to reserve.
+          */
+         unsigned reservePE( unsigned node );
 
          void setUntieMaster ( bool value );
 
@@ -406,6 +431,12 @@ namespace nanos
          bool isCacheEnabled();
          CachePolicyType getCachePolicy();
          CacheMap& getCacheMap();
+         
+         /**! \brief Register an architecture plugin.
+          *   \param plugin A pointer to the plugin.
+          *   \return The index of the plugin in the vector.
+          */
+         size_t registerArchitecture( ArchPlugin * plugin );
 
 #ifdef GPU_DEV
          PinnedAllocator& getPinnedAllocatorCUDA();
