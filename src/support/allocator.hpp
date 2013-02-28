@@ -131,6 +131,8 @@ inline void * Allocator::allocate ( size_t size, const char* file, int line )
 
 inline void Allocator::deallocate ( void *object, const char *file, int line )
 {
+   if ( object == NULL ) return;
+
    ObjectHeader * ptr = (ObjectHeader *) ( ((char *)object) - _headerSize );
 
    Arena *arena = ptr->_arena;
