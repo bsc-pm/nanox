@@ -332,6 +332,10 @@ if test x$gpu_valid = xyes; then
 	ARCHITECTURES="$ARCHITECTURES gpu"
 fi
 
+AM_CONDITIONAL([GPU_SUPPORT],[test $gpu_valid = yes])
+
+AC_SUBST([gpu_valid])
+
 #mpi support
 AC_ARG_ENABLE([mpi],
   AC_HELP_STRING([--enable-mpi],[Enable support for MPI (off by default)]),
@@ -349,19 +353,13 @@ AC_ARG_ENABLE([mpi],
     #FC="mpif90"
   fi
     ARCHITECTURES="$ARCHITECTURES mpi"
-	mpi_ARCH=x86-64
 	CFLAGS="$CFLAGS -DMPI_DEV -DMPICH_IGNORE_CXX_SEEK -mt_mpi"
 	CXXFLAGS="$CXXFLAGS -DMPI_DEV -DMPICH_IGNORE_CXX_SEEK -mt_mpi" 
-	AC_SUBST([mpi_ARCH])
   ],
   [
     AC_MSG_RESULT([no])
   ]
 )
-
-AM_CONDITIONAL([GPU_SUPPORT],[test $gpu_valid = yes])
-
-AC_SUBST([gpu_valid])
 
 # mcc support
 AC_ARG_WITH([mcc],
