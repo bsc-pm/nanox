@@ -16,11 +16,13 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
+/*! \file nanos_atomic.h
+ *  \brief 
+ */
 #ifndef _NANOS_ATOMIC_H
 #define _NANOS_ATOMIC_H
 
-#include "nanos_c_api_macros.h"
+#include "nanos-int.h"
 
 #ifdef __cplusplus
 extern "C"

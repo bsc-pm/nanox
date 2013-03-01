@@ -41,7 +41,7 @@ void test_task_creation_overhead ( stats_t *s )
          struct nanos_const_wd_definition_local_t { nanos_const_wd_definition_t base; nanos_device_t devices[1];
          };
          static struct nanos_const_wd_definition_local_t _const_def = { 
-            { { 0, 1, 0, 0, 0, 0, 0, 0 }, __alignof__(_nx_data_env_1_t), 0, 1 }, {{ nanos_smp_factory, &_ol_test_task_creation_overhead_1_smp_args }}
+            { { 0, 1, 0, 0, 0, 0, 0, 0 }, __alignof__(_nx_data_env_1_t), 0, 1, 0, NULL }, {{ nanos_smp_factory, &_ol_test_task_creation_overhead_1_smp_args }}
          };
          nanos_wd_dyn_props_t dyn_props = {0};
          nanos_err_t err;

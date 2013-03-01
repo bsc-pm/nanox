@@ -16,25 +16,33 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
 #ifndef _NANOS_H_
 #define _NANOS_H_
+/*!
+ * \file  nanos.h
+ * \brief Main Nanos++ header file.
+ */
+
+/*!
+ * \mainpage  Nanos++ Runtime Library
+ *
+ * This is the main development page for documenting Nanos++ Runtime Library (Nanos++ RTL).
+ * <p/><br/>
+ * Nanos++ is an extensible Runtime Library designed to serve as a runtime support in parallel environments.
+ * It is mainly used to support OmpSs (an extension to the OpenMP programming model) developed at BSC but it also has modules to support OpenMP and Chapel.
+ * <p/><br/>
+ */
 
 #include <unistd.h>
 #include "nanos-int.h"
 #include "nanos_error.h"
-#include "nanos_c_api_macros.h"
 
+/*! \defgroup capi C/C++ API */
+/*! \addtogroup capi
+ *  \{
+ */
 
-#ifdef _MERCURIUM
-// define API version
-#pragma nanos interface family(master) version(5020)
-#pragma nanos interface family(worksharing) version(1000)
-#pragma nanos interface family(deps_api) version(1001)
-#pragma nanos interface family(copies_api) version(1000)
-#endif
-
-// data types
+#include "nanos_version.h"
 
 // C++ types hidden as void *
 typedef void * nanos_wg_t;
@@ -51,6 +59,11 @@ typedef struct nanos_const_wd_definition_tag {
    size_t num_copies;
    size_t num_devices;
    size_t num_dimensions;
+#ifdef _MF03
+   void *description;
+#else
+   const char *description;
+#endif
 } nanos_const_wd_definition_t;
 
 typedef struct {
@@ -58,10 +71,9 @@ typedef struct {
    void *arch;
 } nanos_constraint_t;
 
-// TODO: move smp to some dependent part
-typedef struct {
-   void (*outline) (void *);
-} nanos_smp_args_t;
+/*!
+ * \}
+ */ 
 
 #ifdef __cplusplus
 
@@ -76,6 +88,7 @@ NANOS_API_DECL(char *, nanos_get_mode, ( void ));
 NANOS_API_DECL(nanos_wd_t, nanos_current_wd, (void));
 NANOS_API_DECL(int, nanos_get_wd_id, (nanos_wd_t wd));
 NANOS_API_DECL(unsigned int, nanos_get_wd_priority, (nanos_wd_t wd));
+NANOS_API_DECL(nanos_err_t, nanos_get_wd_description, ( char **description, nanos_wd_t wd ));
 
 // Finder functions
 NANOS_API_DECL(nanos_slicer_t, nanos_find_slicer, ( const char * slicer ));
@@ -160,12 +173,14 @@ NANOS_API_DECL(nanos_err_t, nanos_wait_on, ( size_t num_data_accesses, nanos_dat
 #define NANOS_INIT_LOCK_FREE { NANOS_LOCK_FREE }
 #define NANOS_INIT_LOCK_BUSY { NANOS_LOCK_BUSY }
 NANOS_API_DECL(nanos_err_t, nanos_init_lock, ( nanos_lock_t **lock ));
+NANOS_API_DECL(nanos_err_t, nanos_init_lock_at, ( nanos_lock_t *lock ));
 NANOS_API_DECL(nanos_err_t, nanos_set_lock, (nanos_lock_t *lock));
 NANOS_API_DECL(nanos_err_t, nanos_unset_lock, (nanos_lock_t *lock));
 NANOS_API_DECL(nanos_err_t, nanos_try_lock, ( nanos_lock_t *lock, bool *result ));
 NANOS_API_DECL(nanos_err_t, nanos_destroy_lock, ( nanos_lock_t *lock ));
 
 // Device copies
+NANOS_API_DECL(nanos_err_t, nanos_set_copies, (nanos_wd_t wd, int num_copies, nanos_copy_data_t *copies));
 NANOS_API_DECL(nanos_err_t, nanos_get_addr, ( nanos_copy_id_t copy_id, void **addr, nanos_wd_t cwd ));
 
 NANOS_API_DECL(nanos_err_t, nanos_copy_value, ( void *dst, nanos_copy_id_t copy_id, nanos_wd_t cwd ));
@@ -178,18 +193,16 @@ NANOS_API_DECL(nanos_err_t, nanos_get_default_binding, ( bool *res ));
 NANOS_API_DECL(nanos_err_t, nanos_delay_start, ());
 NANOS_API_DECL(nanos_err_t, nanos_start, ());
 NANOS_API_DECL(nanos_err_t, nanos_finish, ());
+NANOS_API_DECL(nanos_err_t, nanos_current_socket, ( int socket ));
+NANOS_API_DECL(nanos_err_t, nanos_get_num_sockets, ( int *num_sockets ));
 
 // Memory management
 NANOS_API_DECL(nanos_err_t, nanos_malloc, ( void **p, size_t size, const char *file, int line ));
 NANOS_API_DECL(nanos_err_t, nanos_free, ( void *p ));
+NANOS_API_DECL(void, nanos_free0, ( void *p )); 
 
 // error handling
 NANOS_API_DECL(void, nanos_handle_error, ( nanos_err_t err ));
-
-// factories
-   // smp
-NANOS_API_DECL(void *, nanos_smp_factory,( void *args));
-#define NANOS_SMP_DESC( args ) { nanos_smp_factory, &( args ) }
 
 // instrumentation interface
 NANOS_API_DECL(nanos_err_t, nanos_instrument_register_key, ( nanos_event_key_t *event_key, const char *key, const char *description, bool abort_when_registered ));

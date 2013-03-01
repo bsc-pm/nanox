@@ -69,7 +69,7 @@ struct nanos_const_wd_definition_1 const_data1 =
    0,//__alignof__(section_data_1),
    0,
    1,
-   0},
+   0,NULL},
    {
       {
          nanos_smp_factory,
@@ -86,7 +86,7 @@ struct nanos_const_wd_definition_1 const_data2 =
    0,//__alignof__(section_data_1),
    0,
    1,
-   0},
+   0,NULL},
    {
       {
          nanos_smp_factory,

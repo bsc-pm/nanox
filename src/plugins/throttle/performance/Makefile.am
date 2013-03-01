@@ -22,10 +22,9 @@ include $(top_srcdir)/src/common.am
 
 if PERFORMANCE_VERSION
 performance_LTLIBRARIES = \
-	libnanox-throttle-default.la \
+	libnanox-throttle-hysteresis.la \
 	libnanox-throttle-dummy.la \
 	libnanox-throttle-numtasks.la \
-	libnanox-throttle-numtasks-e.la \
 	libnanox-throttle-idlethreads.la \
 	libnanox-throttle-taskdepth.la \
 	libnanox-throttle-readytasks.la \
@@ -33,9 +32,9 @@ performance_LTLIBRARIES = \
 
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags)
 
-libnanox_throttle_default_la_CXXFLAGS = $(nanos_perfo_cxxflags)
-libnanox_throttle_default_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_throttle_default_la_SOURCES = $(default_sources)
+libnanox_throttle_hysteresis_la_CXXFLAGS = $(nanos_perfo_cxxflags)
+libnanox_throttle_hysteresis_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_throttle_hysteresis_la_SOURCES = $(hysteresis_sources)
 
 libnanox_throttle_dummy_la_CXXFLAGS = $(nanos_perfo_cxxflags)
 libnanox_throttle_dummy_la_LDFLAGS = $(ld_plugin_flags)
@@ -57,8 +56,5 @@ libnanox_throttle_readytasks_la_CXXFLAGS = $(nanos_perfo_cxxflags)
 libnanox_throttle_readytasks_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_throttle_readytasks_la_SOURCES = $(readytasks_sources)
 
-libnanox_throttle_numtasks_e_la_CXXFLAGS = $(nanos_perfo_cxxflags)
-libnanox_throttle_numtasks_e_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_throttle_numtasks_e_la_SOURCES = $(numtasks_e_sources)
 endif
 

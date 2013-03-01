@@ -209,8 +209,12 @@ namespace nanos
          CommutativeOwnerMap           _commutativeOwnerMap; /**< Map from commutative target address to owner pointer */
          WorkDescriptorPtrList         _commutativeOwners;   /**< Array of commutative target owners */
 
+         int                           _socket;       /**< The socket this WD was assigned to */
          unsigned int                  _wakeUpQueue;  /**< Queue to wake up to */
          bool                          _implicit;     /**< is a implicit task (in a team) */
+
+         bool                          _copiesNotInChunk; /**< States whether the buffer of the copies is allocated in the chunk of the WD */
+         char                         *_description; /**< WorkDescriptor description, usually user function name */
 
       private: /* private methods */
          /*! \brief WorkDescriptor copy assignment operator (private)
@@ -224,12 +228,12 @@ namespace nanos
          /*! \brief WorkDescriptor constructor - 1
           */
          WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0, size_t data_align = 1, void *wdata=0,
-                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL );
+                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL, char *description = NULL );
 
          /*! \brief WorkDescriptor constructor - 2
           */
          WorkDescriptor ( DeviceData *device, size_t data_size = 0, size_t data_align = 1, void *wdata=0,
-                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL );
+                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL, char *description = NULL );
 
          /*! \brief WorkDescriptor copy constructor (using a given WorkDescriptor)
           *
@@ -241,7 +245,7 @@ namespace nanos
           *
           *  \see WorkDescriptor System::duplicateWD System::duplicateSlicedWD
           */
-         WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL );
+         WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL, char *description = NULL );
 
          /*! \brief WorkDescriptor destructor
           *
@@ -250,9 +254,12 @@ namespace nanos
           */
          virtual ~WorkDescriptor()
          {
-            for ( unsigned i = 0; i < _numDevices; i++ ) delete _devices[i];
+             for ( unsigned i = 0; i < _numDevices; i++ ) delete _devices[i];
 
-	    delete _depsDomain;
+             delete _depsDomain;
+
+             if (_copiesNotInChunk)
+                 delete[] _copies;
          }
 
          /*! \brief Has this WorkDescriptor ever run?
@@ -373,6 +380,18 @@ namespace nanos
          void * getInternalData () const;
 
          void setTranslateArgs( nanos_translate_args_t translateArgs );
+
+         /*! \brief Returns the socket that this WD was assigned to.
+          * 
+          * \see setSocket
+          */
+         int getSocket() const;
+
+         /*! \brief Changes the socket this WD is assigned to.
+          *
+          * \see getSocket
+          */
+         void setSocket( int socket );
          
          /*! \brief Returns the queue this WD should wake up in.
           *  This will be used by the socket-aware schedule policy.
@@ -541,6 +560,19 @@ namespace nanos
 
          void setImplicit( bool b = true );
          bool isImplicit( void );
+
+         /*! \brief Set copies for a given WD
+          * We call this when copies cannot be set at creation time of the work descriptor
+          * Note that this should only be done between creation and submit.
+          * This function shall not be called if the workdescriptor already has copies.
+          *
+          * \param numCopies the number of copies. If zero \a copies must be NULL
+          * \param copies Buffer of copy descriptors. The workdescriptor WILL NOT acquire the ownership of the copy as a private buffer
+          * will be allocated instead
+          */
+         void setCopies(size_t numCopies, CopyData * copies);
+
+         char * getDescription ( void ) const;
    };
 
    typedef class WorkDescriptor WD;

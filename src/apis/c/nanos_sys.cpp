@@ -16,7 +16,9 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
+/*! \file nanos_sys.cpp
+ *  \brief 
+ */
 #include "nanos.h"
 #include "system.hpp"
 #include "instrumentationmodule_decl.hpp"
@@ -72,6 +74,28 @@ NANOS_API_DEF(nanos_err_t, nanos_finish, ())
    } catch ( ... ) { 
       return NANOS_UNKNOWN_ERR;
    }   
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_current_socket, (int socket ))
+{
+   try {
+      sys.setCurrentSocket( socket );
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_get_num_sockets, (int *num_sockets ))
+{
+   try {
+      *num_sockets = sys.getNumSockets();
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
+   }
 
    return NANOS_OK;
 }

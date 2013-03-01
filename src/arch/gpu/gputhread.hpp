@@ -46,7 +46,6 @@ void * GPUThread::getCUBLASHandle()
    return _cublasHandle;
 }
 
-
 }
 }
 

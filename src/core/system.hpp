@@ -30,6 +30,7 @@
 #include "dataaccess.hpp"
 #include "instrumentation_decl.hpp"
 #include "cache_map.hpp"
+//#include "archplugin.hpp"
 
 using namespace nanos;
 
@@ -126,6 +127,9 @@ inline int System::getNumWorkers() const { return _workers.size(); }
 inline int System::getNumSockets() const { return _numSockets; }
 inline void System::setNumSockets ( int numSockets ) { _numSockets = numSockets; }
 
+inline int System::getCurrentSocket() const { return _currentSocket; }
+inline void System::setCurrentSocket( int currentSocket ) { _currentSocket = currentSocket; }
+
 inline int System::getCoresPerSocket() const { return _coresPerSocket; }
 inline void System::setCoresPerSocket ( int coresPerSocket ) { _coresPerSocket = coresPerSocket; }
 
@@ -135,6 +139,11 @@ inline int System::getBindingId ( int pe ) const
    return getCpuId( ( tmpId + tmpId/_cpu_count ) % _cpu_count );
 }
 
+inline int System::getNUMABinding( int id ) const
+{
+   // Use the binding list to get the real PE associated to this id
+   return _bindings[ id ];
+}
 
 inline void System::setThrottlePolicy( ThrottlePolicy * policy ) { _throttlePolicy = policy; }
 
@@ -251,6 +260,13 @@ inline bool System::isCacheEnabled() { return _useCaches; }
 inline System::CachePolicyType System::getCachePolicy() { return _cachePolicy; }
 
 inline CacheMap& System::getCacheMap() { return _cacheMap; }
+
+inline size_t System::registerArchitecture( ArchPlugin * plugin )
+{
+   size_t id = _archs.size();
+   _archs.push_back( plugin );
+   return id;
+}
 
 #ifdef GPU_DEV
 inline PinnedAllocator& System::getPinnedAllocatorCUDA() { return _pinnedMemoryCUDA; }

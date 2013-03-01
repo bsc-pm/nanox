@@ -1,6 +1,6 @@
 
-default_sources = \
-	$(top_srcdir)/src/plugins/throttle/default_throttle.cpp \
+hysteresis_sources = \
+	$(top_srcdir)/src/plugins/throttle/hysteresis_throttle.cpp \
 	$(END)
 
 dummy_sources = \

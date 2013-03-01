@@ -27,6 +27,8 @@ test_generator="gens/mixed-generator"
 #include <iostream>
 #include "allocator.hpp"
 
+using namespace nanos;
+
 #define CHECK_VALUE 3456
 #define TIMES 100000
 

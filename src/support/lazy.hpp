@@ -21,6 +21,7 @@
 #define _NANOS_LAZY_INIT
 
 #include "lazy_decl.hpp"
+#include "atomic.hpp"
 
 template <class T>
 inline void LazyInit<T>::construct ()
@@ -43,7 +44,16 @@ inline LazyInit<T>::~LazyInit ()
 template <class T>
 inline T * LazyInit<T>::operator-> ()
 {
-   if ( __builtin_expect(_ptr == NULL,0)) construct();
+   // Double checked lock idiom -- Nanox is full of concurrent accesses to lazy
+   // initialized data structures.
+   if ( __builtin_expect(_ptr == NULL,0) )
+   {
+      SyncLockBlock lock(_initLock);
+
+      if ( __builtin_expect(_ptr == NULL,0) )
+         construct();
+   }
+
    return _ptr;
 }
 
@@ -56,6 +66,9 @@ inline T & LazyInit<T>::operator* ()
 template <class T>
 inline bool LazyInit<T>::isInitialized()
 {
+   // Due to the monotonicity of the double checked lock idiom, this checks is
+   // actually safe: indeed _ptr either is NULL and becomes !NULL or it will be
+   // NULL for all the lifetime of this object.
    return _ptr != NULL;
 }
 

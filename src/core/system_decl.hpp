@@ -40,6 +40,7 @@
 #include "pminterface_decl.hpp"
 #include "cache_map_decl.hpp"
 #include "plugin_decl.hpp"
+#include "archplugin_decl.hpp"
 #include "barrier_decl.hpp"
 
 #ifdef GPU_DEV
@@ -68,6 +69,10 @@ namespace nanos
          typedef std::map<std::string, Slicer *> Slicers;
          typedef std::map<std::string, WorkSharing *> WorkSharings;
          typedef std::multimap<std::string, std::string> ModulesPlugins;
+         typedef std::vector<ArchPlugin*> ArchitecturePlugins;
+         
+         //! CPU id binding list
+         typedef std::vector<int> Bindings;
          
          // globla seeds
          Atomic<int> _atomicWDSeed;
@@ -90,6 +95,8 @@ namespace nanos
          bool                 _synchronizedStart;
          int                  _numSockets;
          int                  _coresPerSocket;
+         //! The socket that will be assigned to the next WD
+         int                  _currentSocket;
 
 	 // Nanos++ scheduling domain
    	 cpu_set_t            _cpu_set;
@@ -117,6 +124,9 @@ namespace nanos
          
          /*! Valid plugin map (module)->(list of plugins) */
          ModulesPlugins       _validPlugins;
+         
+         /*! Architecture plugins */
+         ArchitecturePlugins  _archs;
          
 
          PEList               _pes;
@@ -156,6 +166,9 @@ namespace nanos
          CachePolicyType      _cachePolicy;
          //! CacheMap register
          CacheMap             _cacheMap;
+         
+         //! CPU id binding list
+         Bindings             _bindings;
 
 #ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
@@ -197,11 +210,11 @@ namespace nanos
                         size_t data_size, size_t data_align, void ** data, WG *uwg,
                         nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props, size_t num_copies, nanos_copy_data_t **copies,
                         size_t num_dimensions, nanos_region_dimension_internal_t **dimensions,
-                        nanos_translate_args_t translate_args );
+                        nanos_translate_args_t translate_args, const char *description );
 
          void createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
                         int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props,
-                        size_t num_copies, nanos_copy_data_t **copies, size_t num_dimensions, nanos_region_dimension_internal_t **dimensions );
+                        size_t num_copies, nanos_copy_data_t **copies, size_t num_dimensions, nanos_region_dimension_internal_t **dimensions, const char *description );
 
          void duplicateWD ( WD **uwd, WD *wd );
          void duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd );
@@ -278,6 +291,10 @@ namespace nanos
 
          void setNumSockets ( int numSockets );
 
+         int getCurrentSocket() const;
+
+         void setCurrentSocket( int currentSocket );
+
          int getCoresPerSocket() const;
 
          void setCoresPerSocket ( int coresPerSocket );
@@ -286,8 +303,28 @@ namespace nanos
           * \brief Returns a CPU Id that the given architecture should use
           * to tie a new processing element to.
           * \param pe Processing Element number.
+          * \note This method is the one that uses the affinity mask and binding
+          * start and stride parameters.
           */
          int getBindingId ( int pe ) const;
+         
+         /**
+          * \brief Returns a new PE id that takes into account the binding list,
+          * meaning that the first calls to this function will only return the
+          * SMP ids, and then the other architectures' ids will follow.
+          * For instance, in Minotauro (12 HW threads, 2 NUMA nodes, 1 GPU per
+          * node), getBindingId will return 0,1,2,3,4,6,7,8,9,10,5,11, provided
+          * that binding start is 0 and the stride is 1.
+          */
+         int getNUMABinding( int id ) const;
+         
+         /**
+          * \brief Reserves a PE to be used exclusively by a certain
+          * architecture.
+          * \param node NUMA node to reserve the PE from.
+          * \return Id of the PE to reserve.
+          */
+         unsigned reservePE( unsigned node );
 
          void setUntieMaster ( bool value );
 
@@ -398,6 +435,12 @@ namespace nanos
          bool isCacheEnabled();
          CachePolicyType getCachePolicy();
          CacheMap& getCacheMap();
+         
+         /**! \brief Register an architecture plugin.
+          *   \param plugin A pointer to the plugin.
+          *   \return The index of the plugin in the vector.
+          */
+         size_t registerArchitecture( ArchPlugin * plugin );
 
 #ifdef GPU_DEV
          PinnedAllocator& getPinnedAllocatorCUDA();

@@ -111,6 +111,7 @@ int main ( int argc, char **argv )
 
    wg->addWork( *wd );
 
+   sys.setupWD(*wd, (nanos::WD *) wg);
    sys.submit( *wd );
 
    usleep( 500 );

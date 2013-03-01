@@ -113,7 +113,7 @@ struct nanos_const_wd_definition_1 const_data1 =
       .tied = false},
    0,//__alignof__(section_data_1),
    0,
-   1},
+   1, 0,NULL},
    {
       {
          nanos_smp_factory,
@@ -124,12 +124,14 @@ struct nanos_const_wd_definition_1 const_data1 =
 
 struct nanos_const_wd_definition_1 const_data2 = 
 {
-   {{
-      .mandatory_creation = true,
-      .tied = false},
-   0,//__alignof__(section_data_2),
-   0,
-   1},
+   {
+      { .mandatory_creation = true, .tied = false}, // props
+   0, //__alignof__(section_data_2),
+   0, // copies
+   1, // devices
+   0, // dimensions
+   NULL // description
+   },
    {
       {
          nanos_smp_factory,
@@ -144,7 +146,7 @@ struct nanos_const_wd_definition_1 const_data3 =
       .tied = false},
    0,//__alignof__(section_data_3),
    0,
-   1},
+   1, 0, NULL},
    {
       {
          nanos_smp_factory,
@@ -159,7 +161,7 @@ struct nanos_const_wd_definition_1 const_data4 =
       .tied = false},
    0,//__alignof__(section_data_4),
    0,
-   1},
+   1,0,NULL},
    {
       {
          nanos_smp_factory,

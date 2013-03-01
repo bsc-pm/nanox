@@ -25,6 +25,26 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+/*! \file nanos_c_api_macros.h
+ *  \brief 
+ */
+#define NANOS_API_DECL(Type, Name, Params) \
+    extern Type Name##_ Params; \
+    extern Type Name Params
+
+#ifdef _NANOS_INTERNAL
+
+   #define NANOS_API_DEF(Type, Name, Params) \
+       __attribute__((alias(#Name))) Type Name##_ Params; \
+       Type Name Params
+
+#endif
+
+/*! \defgroup capi C/C++ API */
+/*! \addtogroup capi
+ *  \{
+ */
+
 #ifdef __cplusplus
 extern "C"
 #endif
@@ -108,7 +128,15 @@ typedef struct {
       bool output: 1;
    } flags;
    short dimension_count;
+
+#if defined(_MERCURIUM) && defined(_MF03)
+   // Fortran makes a strong separation between pointers and arrays and they
+   // cannot be mixed in any way. To the eyes of Mercurium the original
+   // declaration would be a pointer to a scalar, not a pointer to an array
+   void* dimensions;
+#else
    nanos_region_dimension_internal_t const *dimensions;
+#endif
    ptrdiff_t offset;
 } nanos_copy_data_internal_t;
 
@@ -151,9 +179,11 @@ typedef struct {
    int upper;
    int step;
    bool last;
+   bool wait;
    int chunk;
    int stride;
    int thid;
+   int threads;
    void *args;
 } nanos_loop_info_t;
 
@@ -189,12 +219,12 @@ typedef struct nanos_ws_desc {
 typedef struct {
    bool mandatory_creation:1;
    bool tied:1;
+   bool clear_chunk:1;
    bool reserved0:1;
    bool reserved1:1;
    bool reserved2:1;
    bool reserved3:1;
    bool reserved4:1;
-   bool reserved5:1;
 } nanos_wd_props_t;
 
 typedef struct {
@@ -208,6 +238,22 @@ typedef struct {
   void * arg;
 } nanos_device_t;
 
+/*! \todo Move nanos_smp_args_t to some dependent part ? */
+typedef struct {
+   void (*outline) (void *);
+} nanos_smp_args_t;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+// factories
+// smp
+NANOS_API_DECL(void *, nanos_smp_factory,( void *args));
+#define NANOS_SMP_DESC( args ) { nanos_smp_factory, &( args ) }
+
+#ifdef __cplusplus
+};
+#endif
 // instrumentation structures
 
 typedef enum { NANOS_STATE_START, NANOS_STATE_END, NANOS_SUBSTATE_START, NANOS_SUBSTATE_END,
@@ -255,5 +301,9 @@ typedef struct {
    nanos_init_func_t  *func;
    void               *data;
 } nanos_init_desc_t;
+
+/*!
+ * \}
+ */ 
 
 #endif

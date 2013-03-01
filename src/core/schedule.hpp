@@ -54,6 +54,11 @@ inline int SchedulerConf::getNumSleeps () const
    return _numSleeps;
 }
 
+inline void SchedulerConf::setNumSleeps ( const unsigned int num )
+{
+   _numSleeps = num;
+}
+
 inline int SchedulerConf::getTimeSleep () const
 {
    return _timeSleep;
@@ -108,8 +113,8 @@ inline WD * SchedulePolicy::atWakeUp      ( BaseThread *thread, WD &wd )
       
       // Returning the wd here makes the application to hang
       // Use prefetching instead.
-      if ( prefetchThread != NULL && prefetchThread->reserveNextWD() ) {
-         prefetchThread->setReservedNextWD( &wd );
+      if ( prefetchThread != NULL ) {
+         prefetchThread->addNextWD( &wd );
          
          return NULL;
       }

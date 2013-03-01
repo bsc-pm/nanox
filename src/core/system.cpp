@@ -29,8 +29,10 @@
 #include "malign.hpp"
 #include "processingelement.hpp"
 #include "allocator.hpp"
+#include "debug.hpp"
 #include <string.h>
 #include <set>
+#include <cmath>
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -46,6 +48,10 @@
 #include <stdlib.h>
 #endif
 
+#ifdef OpenCL_DEV
+#include "openclprocessor.hpp"
+#endif
+
 using namespace nanos;
 
 System nanos::sys;
@@ -57,7 +63,7 @@ System::System () :
       _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
       _numSockets( 1 ), _coresPerSocket( 1 ), _cpu_count( 0 ), _throttlePolicy ( NULL ),
-      _schedStats(), _schedConf(), _defSchedule( "default" ), _defThrottlePolicy( "default" ), 
+      _schedStats(), _schedConf(), _defSchedule( "default" ), _defThrottlePolicy( "hysteresis" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _pausedThreads( 0 ),
       _pausedThreadsCond(), _unpausedThreadsCond(),
@@ -157,6 +163,14 @@ void System::loadModules ()
       fatal0 ( "Couldn't load MPI support" );
 #endif
 
+   
+#ifdef OpenCL_DEV
+   verbose0( "loading OpenCL support" );
+
+   if ( !loadPlugin( "pe-opencl" ) )
+     fatal0 ( "Couldn't load OpenCL support" );
+#endif
+   
    // load default schedule plugin
    verbose0( "loading " << getDefaultSchedule() << " scheduling policy support" );
 
@@ -237,7 +251,7 @@ void System::config ()
    cfg.registerArgOption ( "num_pes", "pes" );
    cfg.registerEnvOption ( "num_pes", "NX_PES" );
 
-   cfg.registerConfigOption ( "num_threads", NEW Config::PositiveVar( _numThreads ), "Defines the number of threads" );
+   cfg.registerConfigOption ( "num_threads", NEW Config::PositiveVar( _numThreads ), "Defines the number of threads. Note that OMP_NUM_THREADS is an alias to this." );
    cfg.registerArgOption ( "num_threads", "threads" );
    cfg.registerEnvOption ( "num_threads", "NX_THREADS" );
 
@@ -262,8 +276,8 @@ void System::config ()
    cfg.registerConfigOption ( "verbose", NEW Config::FlagOption( _verboseMode ), "Activates verbose mode" );
    cfg.registerArgOption ( "verbose", "verbose" );
 
+   /*! \bug implement execution modes (#146) */
 #if 0
-   FIXME: implement execution modes (#146)
    cfg::MapVar<ExecutionMode> map( _executionMode );
    map.addOption( "dedicated", DEDICATED).addOption( "shared", SHARED );
    cfg.registerConfigOption ( "exec_mode", &map, "Execution mode" );
@@ -342,10 +356,13 @@ void System::start ()
    loadModules();
 
    _targetThreads = _numThreads;
-#ifdef GPU_DEV
-   _targetThreads += nanos::ext::GPUConfig::getGPUCount();
-#endif
-
+   // Do the same for the architecture plugins
+   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
+        it != _archs.end(); ++it )
+   {
+      _targetThreads += (*it)->getNumThreads();
+   }
+   
    // Instrumentation startup
    NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->initialize() );
@@ -374,7 +391,41 @@ void System::start ()
    myThread->rename("Master");
 
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_STARTUP) );
+   
+   // Check NUMA config
+   if ( _numSockets != std::ceil( _targetThreads / static_cast<float>( _coresPerSocket ) ) )
+   {
+      unsigned validCoresPS = std::ceil( _targetThreads / static_cast<float>( _numSockets ) );
+      warning0( "Adjusting cores-per-socket from " << _coresPerSocket << " to " << validCoresPS );
+      _coresPerSocket = validCoresPS;
+   }
 
+   // start of new PE/Worker creation
+   // How many PEs will be created
+   unsigned targetPes = numPes;
+   // Ask each plugin how many PEs it needs to 
+   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
+        it != _archs.end(); ++it )
+   {
+      
+      targetPes += (*it)->getNumHelperPEs();
+   }
+   
+   _bindings.reserve( targetPes );
+   // Construct the list of PEs
+   for ( unsigned cpu_id = 0; cpu_id < targetPes; ++cpu_id )
+   {
+      _bindings.push_back( cpu_id );
+   }
+   
+   // For each plugin, notify it's the way to reserve PEs if they are required
+   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
+        it != _archs.end(); ++it )
+   {
+      (*it)->createBindingList();
+   }   
+   // Right now, _bindings should only store SMP PEs ids
+  
    // Create PEs
    int p;
    for ( p = 1; p < numPes ; p++ ) {
@@ -387,21 +438,24 @@ void System::start ()
       pe = _pes[ ths % numPes ];
       _workers.push_back( &pe->startWorker() );
    }
-
-#ifdef GPU_DEV
-   int gpuC;
-   for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount(); gpuC++ ) {
-      PE *gpu = NEW nanos::ext::GPUProcessor( getBindingId( p ), gpuC );
-      _pes.push_back( gpu );
-      _workers.push_back( &gpu->startWorker() );
-      ++p;
-   }
-#endif
    
+   // For each plugin create PEs and workers
+   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
+        it != _archs.end(); ++it )
+   {
+      for ( unsigned archPE = 0; archPE < (*it)->getNumPEs(); ++archPE )
+      {
+         PE * processor = (*it)->createPE( archPE );
+         fatal_cond0( processor == NULL, "ArchPlugin::createPE returned NULL" );
+         _pes.push_back( processor );
+         _workers.push_back( &processor->startWorker() );
+         ++p;
+      }
+   }
+      
 #ifdef MPI_DEV   
    nanos::MPIDevice::setMasterDirectory(mainWD.getDirectory(true));
 #endif
-
 #ifdef SPU_DEV
    PE *spu = NEW nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);
    spu->startWorker();
@@ -582,8 +636,10 @@ void System::finish ()
  *
  */
 void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t data_size, size_t data_align,
-                        void **data, WG *uwg, nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props, size_t num_copies,
-                        nanos_copy_data_t **copies, size_t num_dimensions, nanos_region_dimension_internal_t **dimensions, nanos_translate_args_t translate_args )
+                        void **data, WG *uwg, nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props,
+                        size_t num_copies, nanos_copy_data_t **copies, size_t num_dimensions,
+                        nanos_region_dimension_internal_t **dimensions, nanos_translate_args_t translate_args,
+                        const char *description )
 {
    ensure(num_devices > 0,"WorkDescriptor has no devices");
 
@@ -592,6 +648,8 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
 
    size_t size_CopyData;
    size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_Copies, offset_Copies, size_Dimensions, offset_Dimensions, offset_PMD;
+   size_t offset_DESC, size_DESC;
+   char *desc;
    size_t total_size;
 
    // WD doesn't need to compute offset, it will always be the chunk allocated address
@@ -620,18 +678,29 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
       offset_Copies = offset_Dimensions = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, 1);
    }
 
+   // Computing description char * + description
+   if ( description == NULL ) {
+      offset_DESC = offset_Dimensions;
+      size_DESC = size_Dimensions;
+   } else {
+      offset_DESC = NANOS_ALIGNED_MEMORY_OFFSET(offset_Dimensions, size_Dimensions, __alignof__ (void*) );
+      size_DESC = (strlen(description)+1) * sizeof(char);
+   }
+
    // Computing Internal Data info and total size
    static size_t size_PMD   = _pmInterface->getInternalDataSize();
    if ( size_PMD != 0 ) {
       static size_t align_PMD = _pmInterface->getInternalDataAlignment();
-      offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_Dimensions, size_Dimensions, align_PMD);
+      offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_DESC, size_DESC, align_PMD);
       total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD,size_PMD,1);
    } else {
       offset_PMD = 0; // needed for a gcc warning
-      total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_Dimensions, size_Dimensions, 1);
+      total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_DESC, size_DESC, 1);
    }
 
    chunk = NEW char[total_size];
+   if (props->clear_chunk)
+       memset(chunk, 0, sizeof(char) * total_size);
 
    // allocating WD and DATA
    if ( *uwd == NULL ) *uwd = (WD *) chunk;
@@ -650,8 +719,20 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
       *dimensions = ( nanos_region_dimension_internal_t * ) ( chunk + offset_Dimensions );
    }
 
+   // Copying description string
+   if ( description == NULL ) desc = NULL;
+   else {
+      desc = (chunk + offset_DESC);
+      strncpy ( desc, description, strlen(description));
+   }
+
    WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, data_align, data != NULL ? *data : NULL,
-                             num_copies, (copies != NULL)? *copies : NULL, translate_args );
+                             num_copies, (copies != NULL)? *copies : NULL, translate_args, desc );
+   // Set WD's socket
+   wd->setSocket( getCurrentSocket() );
+   
+   if ( getCurrentSocket() >= sys.getNumSockets() )
+      throw NANOS_INVALID_PARAM;
 
    // All the implementations for a given task will have the same ID
    wd->setVersionGroupId( ( unsigned long ) devices );
@@ -668,15 +749,13 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    // set properties
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
-      wd->setPriority( dyn_props->priority );
+      unsigned priority = dyn_props->priority;
+      wd->setPriority( priority );
    }
    if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
 }
 
 /*! \brief Creates a new Sliced WD
- *
- *  This function creates a new Sliced WD, allocating memory space for device ptrs and
- *  data when necessary. Also allocates Slicer Data object which is related with the WD.
  *
  *  \param [in,out] uwd is the related addr for WD if this parameter is null the
  *                  system will allocate space in memory for the new WD
@@ -689,8 +768,15 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
  *  \param [in,out] data used as the slicer data (allocated if needed)
  *  \param [in] props new WD properties
  *
- *  When it does a full allocation the layout is the following:
+ *  \return void
  *
+ *  \par Description:
+ * 
+ *  This function creates a new Sliced WD, allocating memory space for device ptrs and
+ *  data when necessary. Also allocates Slicer Data object which is related with the WD.
+ *
+ *  When it does a full allocation the layout is the following:
+ *  <pre>
  *  +---------------+
  *  |   slicedWD    |
  *  +---------------+
@@ -722,11 +808,14 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
  *  +---------------+
  *  |   PM Data     |
  *  +---------------+
+ *  </pre>
  *
+ * \sa createWD, duplicateWD, duplicateSlicedWD
  */
 void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
                         int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props,
-                        nanos_wd_dyn_props_t *dyn_props, size_t num_copies, nanos_copy_data_t **copies, size_t num_dimensions, nanos_region_dimension_internal_t **dimensions )
+                        nanos_wd_dyn_props_t *dyn_props, size_t num_copies, nanos_copy_data_t **copies, size_t num_dimensions,
+                        nanos_region_dimension_internal_t **dimensions, const char *description )
 {
    ensure(num_devices > 0,"WorkDescriptor has no devices");
 
@@ -736,6 +825,8 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    size_t size_CopyData;
    size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs;
    size_t size_Copies, offset_Copies, size_Dimensions, offset_Dimensions, offset_PMD;
+   size_t offset_DESC, size_DESC;
+   char *desc;
    size_t total_size;
 
    // WD doesn't need to compute offset, it will always be the chunk allocated address
@@ -764,13 +855,22 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
       offset_Copies = offset_Dimensions = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, 1);
    }
 
+   // Computing description char * + description
+   if ( description == NULL ) {
+      offset_DESC = offset_Dimensions;
+      size_DESC = size_Dimensions;
+   } else {
+      offset_DESC = NANOS_ALIGNED_MEMORY_OFFSET(offset_Dimensions, size_Dimensions, __alignof__ (void*) );
+      size_DESC = (strlen(description)+1) * sizeof(char);
+   }
+
    // Computing Internal Data info and total size
    static size_t size_PMD   = _pmInterface->getInternalDataSize();
    if ( size_PMD != 0 ) {
       static size_t align_PMD = _pmInterface->getInternalDataAlignment();
-      offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_Dimensions, size_Dimensions, align_PMD);
+      offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_DESC, size_DESC, align_PMD);
    } else {
-      offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_Dimensions, size_Dimensions, 1);
+      offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_DESC, size_DESC, 1);
    }
 
    total_size = NANOS_ALIGNED_MEMORY_OFFSET(offset_PMD, size_PMD, 1);
@@ -793,8 +893,17 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
       *dimensions = ( nanos_region_dimension_internal_t * ) ( chunk + offset_Dimensions );
    }
 
+   // Copying description string
+   if ( description == NULL ) desc = NULL;
+   else desc = (chunk + offset_DESC);
+
    SlicedWD * wd =  new (*uwd) SlicedWD( *slicer, num_devices, dev_ptrs, outline_data_size, outline_data_align,
-                                         outline_data != NULL ? *outline_data : NULL, num_copies, (copies == NULL) ? NULL : *copies );
+                                         outline_data != NULL ? *outline_data : NULL, num_copies, (copies == NULL) ? NULL : *copies, desc );
+   // Set WD's socket
+   wd->setSocket(  getCurrentSocket() );
+   
+   if ( getCurrentSocket() >= sys.getNumSockets() )
+      throw NANOS_INVALID_PARAM;
 
    // initializing internal data
    if ( size_PMD > 0) wd->setInternalData( chunk + offset_PMD );
@@ -813,13 +922,22 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
 }
 
-/*! \brief Duplicates a given WD
- *
- *  This function duplicates the given as a parameter WD copying all the
- *  related data (devices ptr, data and DD)
+/*! \brief Duplicates the whole structure for a given WD
  *
  *  \param [out] uwd is the target addr for the new WD
  *  \param [in] wd is the former WD
+ *
+ *  \return void
+ *
+ *  \par Description:
+ *
+ *  This function duplicates the given WD passed as a parameter copying all the
+ *  related data included in the layout (devices ptr, data and DD). First it computes
+ *  the size for the layout, then it duplicates each one of the chunks (Data,
+ *  Device's pointers, internal data, etc). Finally calls WorkDescriptor constructor
+ *  using new and placement.
+ *
+ *  \sa WorkDescriptor, createWD, createSlicedWD, duplicateSlicedWD
  */
 void System::duplicateWD ( WD **uwd, WD *wd)
 {
@@ -905,7 +1023,7 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    }
 
    // creating new WD 
-   //FIXME jbueno
+   //FIXME jbueno (#758) should we have to take into account dimensions?
    new (*uwd) WD( *wd, dev_ptrs, wdCopies, data );
 
    // initializing internal data
@@ -1028,7 +1146,6 @@ void System::submit ( WD &work )
 {
    SchedulePolicy* policy = getDefaultSchedulePolicy();
    policy->onSystemSubmit( work, SchedulePolicy::SYS_SUBMIT );
-   setupWD( work, myThread->getCurrentWD() );
    work.submit();
 }
 
@@ -1038,8 +1155,7 @@ void System::submitWithDependencies (WD& work, size_t numDataAccesses, DataAcces
 {
    SchedulePolicy* policy = getDefaultSchedulePolicy();
    policy->onSystemSubmit( work, SchedulePolicy::SYS_SUBMIT_WITH_DEPENDENCIES );
-   setupWD( work, myThread->getCurrentWD() );
-   WD *current = myThread->getCurrentWD();
+   WD *current = myThread->getCurrentWD(); 
    current->submitWithDependencies( work, numDataAccesses , dataAccesses);
 }
 
@@ -1056,7 +1172,6 @@ void System::inlineWork ( WD &work )
 {
    SchedulePolicy* policy = getDefaultSchedulePolicy();
    policy->onSystemSubmit( work, SchedulePolicy::SYS_INLINE_WORK );
-   setupWD( work, myThread->getCurrentWD() );
    // TODO: choose actual (active) device...
    if ( Scheduler::checkBasicConstraints( work, *myThread ) ) {
       Scheduler::inlineWork( &work );
@@ -1224,6 +1339,14 @@ void System::waitUntilThreadsUnpaused ()
 {
    // Wait until all threads are paused
    _unpausedThreadsCond.wait();
+}
+
+unsigned System::reservePE( unsigned node )
+{
+   // TODO (gmiranda): complete.
+   unsigned pe = _bindings.back();
+   _bindings.pop_back();
+   return pe;
 }
 
 #ifdef MPI_DEV   

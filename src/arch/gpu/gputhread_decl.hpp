@@ -48,7 +48,7 @@ namespace ext
          void prefetchNextTask( WD * next );
          void executeRequestedTransfers( GPUProcessor & myGPU );
          void executeOutputTransfers( GPUProcessor & myGPU );
-
+         
       public:
          // constructor
          GPUThread( WD &w, PE *pe, int device ) : SMPThread( w, pe ), _gpuDevice( device ),

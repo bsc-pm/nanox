@@ -84,6 +84,8 @@ namespace nanos {
 
    inline void MemTracker::deallocate ( void * p, const char *file, int line )
    {
+      if ( p == NULL ) return;
+
       LockBlock_noinst guard(_lock);
 
       AddrMap::iterator it = _blocks.find( p );

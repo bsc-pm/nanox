@@ -16,6 +16,7 @@
 #include <libgen.h>
 #include "os.hpp"
 #include "errno.h"
+#include <unistd.h>
 
 #ifndef EXTRAE_VERSION
 #warning Extrae library version is not supported (use >= 2.3):
@@ -275,6 +276,11 @@ class InstrumentationExtrae: public Instrumentation
                if ( remove( file_name ) != 0 ) file_exists = false;
 
             } 
+
+            // Removing TRACE.sym file
+            sprintf( file_name, "%s/TRACE.sym", _traceFinalDirectory.c_str() );
+            remove( file_name );
+            // Removing directory
             remove( _traceFinalDirectory.c_str());
          }
 
@@ -285,6 +291,10 @@ class InstrumentationExtrae: public Instrumentation
             if ( remove( file_name ) != 0 ) file_exists = false;
 
          }
+         // Removing TRACE.sym file
+         sprintf( file_name, "%s/TRACE.sym", _traceDirectory.c_str() );
+         remove( file_name );
+         // Removing directory
          remove( _traceDirectory.c_str());
 
       }
