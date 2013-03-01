@@ -121,7 +121,7 @@ namespace nanos
          int                     _socket;
 
          unsigned int            _maxPrefetch;
-         WDLFQueue               _nextWDs;
+         WDDeque                 _nextWDs;
          unsigned int            _nextWDsCounter;
 
          // Thread status
