@@ -109,7 +109,6 @@ void GPUThread::runDependent ()
 
 bool GPUThread::inlineWorkDependent ( WD &wd )
 {
-   GPUDD &dd = ( GPUDD & )wd.getActiveDevice();
    GPUProcessor &myGPU = * ( GPUProcessor * ) myThread->runningOn();
 
    if ( GPUConfig::isOverlappingInputsDefined() ) {
@@ -127,6 +126,8 @@ bool GPUThread::inlineWorkDependent ( WD &wd )
 
    // We wait for wd inputs, but as we have just waited for them, we could skip this step
    wd.start( WD::IsNotAUserLevelThread );
+
+   GPUDD &dd = ( GPUDD & ) wd.getActiveDevice();
 
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
    ( dd.getWorkFct() )( wd.getData() );
