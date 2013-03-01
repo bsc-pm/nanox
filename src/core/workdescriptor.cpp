@@ -242,10 +242,23 @@ void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
     ensure((numCopies == 0) == (copies == NULL), "Inconsistency between copies and number of copies");
 
     _numCopies = numCopies;
+
     _copies = NEW CopyData[numCopies];
     _copiesNotInChunk = true;
 
     // Keep a copy of the copy descriptors
     std::copy(copies, copies + numCopies, _copies);
+
+    for (unsigned int i = 0; i < numCopies; ++i)
+    {
+        int num_dimensions = copies[i].dimension_count;
+        if ( num_dimensions > 0 ) {
+            nanos_region_dimension_internal_t* copy_dims = NEW nanos_region_dimension_internal_t[num_dimensions];
+            std::copy(copies[i].dimensions, copies[i].dimensions + num_dimensions, copy_dims);
+            _copies[i].dimensions = copy_dims;
+        } else {
+            _copies[i].dimensions = NULL;
+        }
+    }
 }
 

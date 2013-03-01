@@ -128,7 +128,15 @@ typedef struct {
       bool output: 1;
    } flags;
    short dimension_count;
+
+#if defined(_MERCURIUM) && defined(_MF03)
+   // Fortran makes a strong separation between pointers and arrays and they
+   // cannot be mixed in any way. To the eyes of Mercurium the original
+   // declaration would be a pointer to a scalar, not a pointer to an array
+   void* dimensions;
+#else
    nanos_region_dimension_internal_t const *dimensions;
+#endif
    ptrdiff_t offset;
 } nanos_copy_data_internal_t;
 

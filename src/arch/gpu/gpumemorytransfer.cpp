@@ -20,12 +20,18 @@
 
 #include "gpumemorytransfer.hpp"
 #include "gpuprocessor.hpp"
-#include "instrumentationmodule_decl.hpp"
 
 
 using namespace nanos;
 using namespace nanos::ext;
 
+
+nanos::ext::GPUMemoryTransferOutList::~GPUMemoryTransferOutList()
+{
+   ensure( _pendingTransfersAsync.empty(),
+         "Attempting to delete the output pending transfers list with already "
+         + toString<size_t>( _pendingTransfersAsync.size() ) + " pending transfers to perform" );
+}
 
 void GPUMemoryTransferOutList::removeMemoryTransfer ()
 {
@@ -128,6 +134,9 @@ void GPUMemoryTransferOutAsyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt
    void * pinned = ( sys.getPinnedAllocatorCUDA().isPinned( ( void * ) mt._hostAddress.getTag(), mt._size ) ) ?
          ( void * ) mt._hostAddress.getTag() :
          ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->allocateOutputPinnedMemory( mt._size );
+
+   // allocateOutputPinnedMemory() can return NULL, so we have to check the pointer to pinned memory
+   pinned = pinned ? pinned : ( void * ) mt._hostAddress.getTag();
 
    GPUDevice::copyOutAsyncToBuffer( pinned, mt._deviceAddress, mt._size );
    GPUDevice::copyOutAsyncWait();
@@ -255,6 +264,13 @@ void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ( std::list<GPUMemory
    }
 }
 
+
+nanos::ext::GPUMemoryTransferInAsyncList::~GPUMemoryTransferInAsyncList()
+{
+   ensure( _pendingTransfersAsync.empty(),
+         "Attempting to delete the input pending transfers list with already "
+         + toString<size_t>( _pendingTransfersAsync.size() ) + " pending transfers to perform" );
+}
 
 void GPUMemoryTransferInAsyncList::clearMemoryTransfers()
 {

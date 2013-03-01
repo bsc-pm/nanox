@@ -49,8 +49,6 @@ namespace ext
          void executeRequestedTransfers( GPUProcessor & myGPU );
          void executeOutputTransfers( GPUProcessor & myGPU );
          
-         int adjustBind( int cpu_id );
-
       public:
          // constructor
          GPUThread( WD &w, PE *pe, int device ) : SMPThread( w, pe ), _gpuDevice( device ),

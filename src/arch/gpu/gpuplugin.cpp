@@ -18,16 +18,18 @@
 /*************************************************************************************/
 
 #include "plugin.hpp"
+#include "archplugin.hpp"
 #include "gpuconfig.hpp"
 #include "system_decl.hpp"
+#include "gpuprocessor.hpp"
 
 namespace nanos {
 namespace ext {
 
-class GPUPlugin : public Plugin
+class GPUPlugin : public ArchPlugin
 {
    public:
-      GPUPlugin() : Plugin( "GPU PE Plugin", 1 ) {}
+      GPUPlugin() : ArchPlugin( "GPU PE Plugin", 1 ) {}
 
       void config( Config& cfg )
       {
@@ -37,6 +39,47 @@ class GPUPlugin : public Plugin
       void init()
       {
          GPUConfig::apply();
+      }
+      
+      /*virtual unsigned getPEsInNode( unsigned node ) const
+      {
+         // TODO: make it work correctly
+         // If it is the last node, assign
+         //if ( node == ( sys.getNumSockets() - 1 ) )
+      }*/
+      
+      virtual unsigned getNumHelperPEs() const
+      {
+         return GPUConfig::getGPUCount();
+      }
+
+      virtual unsigned getNumPEs() const
+      {
+         return GPUConfig::getGPUCount();
+      }
+
+      virtual unsigned getNumThreads() const
+      {
+            return GPUConfig::getGPUCount();
+      }
+            
+      virtual void createBindingList()
+      {
+         /* As we now how many devices we have and how many helper threads we
+          * need, reserve a PE for them */
+         for ( int i = 0; i < GPUConfig::getGPUCount(); ++i )
+         {
+            // TODO: if HWLOC is available, use it.
+            int node = sys.getNumSockets() - 1;
+            unsigned pe = sys.reservePE( node );
+            // Now add this node to the binding list
+            addBinding( pe );
+         }
+      }
+
+      virtual PE* createPE( unsigned id )
+      {
+         return NEW GPUProcessor( getBinding( id ) , id );
       }
 };
 

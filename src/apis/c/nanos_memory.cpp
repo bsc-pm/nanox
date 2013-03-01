@@ -23,6 +23,7 @@
 #include "allocator.hpp"
 #include "memtracker.hpp"
 #include "instrumentation_decl.hpp"
+#include "instrumentationmodule_decl.hpp"
 
 #include <cstring>
 

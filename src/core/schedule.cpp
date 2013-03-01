@@ -57,11 +57,7 @@ void Scheduler::submit ( WD &wd )
    BaseThread *wd_tiedto = wd.isTiedTo();
    if ( wd.isTied() && wd_tiedto != mythread ) {
       if ( wd_tiedto->getTeam() == NULL ) {
-        if ( wd_tiedto->reserveNextWD() ) {
-           wd_tiedto->setReservedNextWD(&wd);
-        } else {
-           fatal("Work Descriptor can not reach its own team");
-        }
+         wd_tiedto->addNextWD( &wd );
       } else {
          wd_tiedto->getTeam()->getSchedulePolicy().queue( wd_tiedto, wd );
       }
@@ -198,9 +194,7 @@ inline void Scheduler::idleLoop ()
          myThread->unpause();
       }
 
-      if ( next ) {  
-        myThread->resetNextWD();
-      } else if ( thread->getTeam() != NULL ) {
+      if ( !next && thread->getTeam() != NULL ) {
          memoryFence();
          if ( sys.getSchedulerStats()._readyTasks > 0 ) {
             NANOS_INSTRUMENT ( total_scheds++; )
@@ -343,9 +337,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
          if ( !( condition->check() ) ) {
             WD * next = myThread->getNextWD();
 
-            if ( next) {
-               myThread->resetNextWD();
-            } else {
+            if ( !next ) {
                memoryFence();
                if ( sys.getSchedulerStats()._readyTasks > 0 ) {
                   // If the scheduler is running
@@ -595,9 +587,9 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
 
    if (schedule) {
       ThreadTeam *thread_team = thread->getTeam();
-        if ( thread_team && thread->reserveNextWD() ) {
-           thread->setReservedNextWD(thread_team->getSchedulePolicy().atBeforeExit(thread,*wd));
-        }
+      if ( thread_team ) {
+         thread->addNextWD( thread_team->getSchedulePolicy().atBeforeExit( thread, *wd ) );
+      }
    }
 
    if (done)
@@ -747,10 +739,8 @@ void Scheduler::exit ( void )
 
    oldwd->finish();
 
-  /* if getNextWD() has returned a WD, we need to resetNextWD(). If no WD has
-   * been returned call scheduler policy */
-   if (next) thread->resetNextWD();
-   else if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
+  /* If no WD has been returned from getNextWD() call scheduler policy */
+   if ( !next && sys.getSchedulerConf().getSchedulerEnabled() ) {
       // The thread is not paused, mark it as so
       thread->unpause();
    
