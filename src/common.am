@@ -15,9 +15,8 @@ common_cflags= -Wall -Wextra -Wshadow -Wmissing-declarations -Wno-unused-paramet
 no_inline_flag= -fno-inline
 endif
 
-# I'm assuming BG/Q here...
 if IBM_C
-common_cflags= -qarch=qp -qtune=qp -qinclude="new_decl.hpp" -qlanglvl=variadictemplates $(CFLAGS)
+common_cflags= -qinclude="new_decl.hpp" -qlanglvl=variadictemplates $(CFLAGS)
 no_inline_flag= -qnoinline
 ignore_muldefs= -Wl,-z,muldefs
 endif
