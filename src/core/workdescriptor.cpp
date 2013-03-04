@@ -49,22 +49,32 @@ void WorkDescriptor::init ()
    setStart();
 }
 
-void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
+// That function must be called from the thread it will execute it. This is important
+// from the point of view of tiedness and the device activation. Both operation will
+// involves current thread / pe
+void WorkDescriptor::start (ULTFlag isUserLevelThread, WorkDescriptor *previous)
 {
    ensure ( _state == START , "Trying to start a wd twice or trying to start an uninitialized wd");
 
-   ensure ( _activeDeviceIdx != _numDevices, "This WD has no active device. If you are using 'implements' feature, please use versioning scheduler." );
-
-   _devices[_activeDeviceIdx]->lazyInit(*this,isUserLevelThread,previous);
-   
    ProcessingElement *pe = myThread->runningOn();
 
-   if ( getNumCopies() > 0 )
-      pe->waitInputs( *this );
+   // Initializing devices
+   for ( unsigned int i = 0; i < _numDevices; i++ )
+      _devices[i]->lazyInit( *this, isUserLevelThread, previous );
 
-   if ( _tie ) tieTo(*myThread);
+   // If there are no active device, choose a compatible one
+   if ( _activeDeviceIdx == _numDevices ) activateDevice ( pe->getDeviceType() );
 
+   // Waiting for copies
+   if ( getNumCopies() > 0 ) pe->waitInputs( *this );
+
+   // Tie WD to current thread
+   if ( _tie ) tieTo( *myThread );
+
+   // Call Programming Model interface .started() method.
    sys.getPMInterface().wdStarted( *this );
+
+   // Setting state to ready
    setReady();
 }
 
@@ -98,6 +108,7 @@ DeviceData & WorkDescriptor::activateDevice ( const Device &device )
    }
 
    ensure( i < _numDevices, "Did not find requested device in activation" );
+
    return *_devices[_activeDeviceIdx];
 }
 
