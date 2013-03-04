@@ -206,6 +206,8 @@ AC_SUBST([ARCHITECTURES])
 AC_SUBST([OS])
 AC_SUBST([SMP_ARCH])
 
+AC_CHECK_SIZEOF([size_t])
+
 #AC_MSG_CHECKING([for architecture])
 smp_ult=yes
 case $host in
@@ -233,18 +235,11 @@ case $host in
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
 
-    case $CC in
-      *-m32* | *-q32*)
-         SMP_ARCH=ppc32
-         ;;
-      *-m64* | *-q64*)
-         SMP_ARCH=ppc64
-         ;;
-      *)
-         # GCC generates ppc32 code by default
-         SMP_ARCH=ppc32
-         ;;
-    esac
+    if test $ac_cv_sizeof_size_t = 8 ; then
+        SMP_ARCH=ppc64
+    else
+        SMP_ARCH=ppc32
+    fi
 
     # Check if it is a Cell system
     if cat /proc/cpuinfo | grep Cell &> /dev/null ; then
