@@ -24,7 +24,7 @@
 #include "gputhread_decl.hpp"
 #include "gpuconfig.hpp"
 #include "gpudevice_decl.hpp"
-#include "gpumemorytransfer.hpp"
+#include "gpumemorytransfer_decl.hpp"
 #include "gpuutils.hpp"
 #include "malign.hpp"
 #include "simpleallocator_decl.hpp"

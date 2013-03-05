@@ -24,8 +24,8 @@
 #include <functional>
 #include "atomic_decl.hpp"
 #include "debug.hpp"
-#include "workdescriptor_decl.hpp"
-#include "basethread_decl.hpp"
+#include "workdescriptor_fwd.hpp"
+#include "basethread_fwd.hpp"
 
 #define NANOS_ABA_MASK (15)
 #define NANOS_ABA_PTR(x) ((volatile WDNode *)(((uintptr_t)(x))& ~(uintptr_t)NANOS_ABA_MASK))
@@ -64,7 +64,7 @@ namespace nanos
          WDPool() {}
          /*! \brief WDPool destructor
           */
-         ~WDPool() {}
+         virtual ~WDPool() {}
 
          virtual bool empty ( void ) const = 0;
          virtual size_t size() const = 0; /*FIXME: Try to remove this functions, use empty, there is a global counter for ready tasks  */
@@ -107,7 +107,7 @@ namespace nanos
       public:
          /*! \brief WDDeque default constructor
           */
-         WDDeque() : _dq(), _lock() {}
+         WDDeque() : _dq(), _lock(), _nelems(0) {}
          /*! \brief WDDeque destructor
           */
          ~WDDeque() {}
@@ -341,7 +341,7 @@ namespace nanos
           * It is needed when the priority of a WD is changed.
           * \note This just removes and pushes the WD into the list.
           * \return If the WD was found or not.
-          * \note This method sets the lock uppon entry (using LockBlock).
+          * \note This method sets the lock upon entry (using LockBlock).
           */
          bool reorderWD( WorkDescriptor *wd );
 

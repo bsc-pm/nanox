@@ -87,6 +87,9 @@ void GPUThread::initializeDependent ()
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
    if ( err != cudaSuccess )
       warning( "CUDA errors occurred during initialization:" << cudaGetErrorString( err ) );
+
+   // Set the number of look ahead (prefetching) tasks
+   setMaxPrefetch( 8 );
 }
 
 void GPUThread::runDependent ()
@@ -109,7 +112,6 @@ void GPUThread::runDependent ()
 
 bool GPUThread::inlineWorkDependent ( WD &wd )
 {
-   GPUDD &dd = ( GPUDD & )wd.getActiveDevice();
    GPUProcessor &myGPU = * ( GPUProcessor * ) myThread->runningOn();
 
    if ( GPUConfig::isOverlappingInputsDefined() ) {
@@ -127,6 +129,8 @@ bool GPUThread::inlineWorkDependent ( WD &wd )
 
    // We wait for wd inputs, but as we have just waited for them, we could skip this step
    wd.start( WD::IsNotAUserLevelThread );
+
+   GPUDD &dd = ( GPUDD & ) wd.getActiveDevice();
 
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
    ( dd.getWorkFct() )( wd.getData() );
@@ -155,11 +159,17 @@ bool GPUThread::inlineWorkDependent ( WD &wd )
    }
 
    if ( GPUConfig::isPrefetchingDefined() ) {
-      // Get next task in order to prefetch data to device memory
-      if ( reserveNextWD () ) {
-         WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, wd );
-         setReservedNextWD( next );  
-         if ( next != NULL ) next->init();
+      WD * last = &wd;
+      while ( canPrefetch() ) {
+         // Get next task in order to prefetch data to device memory
+         WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, *last );
+         if ( next != NULL ) {
+            next->init();
+            addNextWD( next );
+            last = next;
+         } else {
+            break;
+         }
       }
    }
 

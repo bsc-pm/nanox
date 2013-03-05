@@ -81,7 +81,8 @@ namespace nanos {
          if ( &orig == this ) return *this;
 
          Barrier::operator=(orig);
-         /*! \todo copy the _sems variable */
+
+         /*! \todo do we need to copy the _sems variable? */
 
          if ( orig._numParticipants != _numParticipants )
             resize(orig._numParticipants);

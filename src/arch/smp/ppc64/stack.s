@@ -56,6 +56,9 @@ switchStacks:
    std %r29,192(%r1)
    std %r30,200(%r1)
    std %r31,208(%r1)
+   # condition register
+   mfcr %r12
+   std %r12,8(%r1)
 
    # switch stacks
    mr %r8,%r5
@@ -72,6 +75,8 @@ switchStacks:
 	ld %r2,40(%r1)
 
    # restore registers
+   ld %r12,8(%r1)
+   mtcr %r12
    ld %r14,72(%r1)
    ld %r15,80(%r1)
    ld %r16,88(%r1)

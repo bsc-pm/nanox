@@ -358,7 +358,7 @@ inline bool WDLFQueue::removeWD( BaseThread *thread, WorkDescriptor *toRem, Work
 
 template <typename T>
 inline WDPriorityQueue<T>::WDPriorityQueue( bool optimise, bool reverse, PriorityValueFun getter )
-   : _dq(), _lock(), _optimise( optimise ), _reverse( reverse ),
+   : _dq(), _lock(), _nelems(0), _optimise( optimise ), _reverse( reverse ),
      _getter( getter )
 {
 }

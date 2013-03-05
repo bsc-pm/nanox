@@ -80,7 +80,7 @@ struct nanos_const_wd_definition_1 const_data1 =
       .tied = false},
    __alignof__( main__task_1_data_t),
    0,
-   1},
+   1,0,NULL},
    {
       {
          nanos_smp_factory,
@@ -100,7 +100,7 @@ int main ( int argc, char **argv )
 
    for ( i = 0; i < 10; i++ ) {
       NANOS_SAFE( nanos_create_wd_compact ( &wd[i], &const_data1.base, &dyn_props, sizeof( main__task_1_data_t ),
-                                    (void **) &task_data[i], nanos_current_wd(), NULL ));
+                                    (void **) &task_data[i], nanos_current_wd(), NULL, NULL ));
       task_data[i]->value = 100;
       NANOS_SAFE( nanos_submit( wd[i],0,0,0 ) );
    }

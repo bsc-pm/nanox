@@ -127,17 +127,21 @@ if test x$use_icc = xyes; then
     if test x$use_xlc = xyes; then
         AC_MSG_ERROR([Both Intel and IBM compilers support is enabled. Please, choose only one of them.])
     else
-	CC="icc"
-	CXX="icpc"
-    	FC="ifort"
+	: ${CC="icc"}
+	: ${CXX="icpc"}
+	: ${FC="ifort"}
+	CFLAGS="$CFLAGS -wd873 -wd1419 -lifcore"
+	CXXFLAGS="$CXXFLAGS -wd873 -wd1419 -lifcore"
     fi
 else
     if test x$use_xlc = xyes; then
-        CC="xlc"
-        CXX="xlc++"
-        FC="xlf"
+        : ${CC="xlc"}
+        : ${CXX="xlc++"}
+        : ${FC="xlf"}
     else
-        FC="gfortran"
+	: ${CC="gcc"}
+	: ${CXX="g++"}
+	: ${FC="gfortran"}
     fi
 fi
 
@@ -148,6 +152,8 @@ AC_PROG_CPP
 AM_PROG_CC_C_O
 AC_PROG_CXX([$CXX])
 AM_PROG_AS
+
+AC_PROG_SED
 
 # Fortran
 AC_PROG_FC([$FC])
@@ -167,11 +173,6 @@ fi
 if test x$use_gnu = xyes; then
     CFLAGS="$CFLAGS -Wredundant-decls"
     CXXFLAGS="$CXXFLAGS -Wredundant-decls"
-fi
-
-if test x$use_icc = xyes; then
-    CFLAGS="$CFLAGS -wd873 -wd1419 -lifcore"
-    CXXFLAGS="$CXXFLAGS -wd873 -wd1419 -lifcore"
 fi
 
 AM_CONDITIONAL([GNU_C], [test x$use_gnu = xyes])
@@ -373,6 +374,150 @@ AM_CONDITIONAL([GPU_SUPPORT],[test $gpu_valid = yes])
 
 AC_SUBST([gpu_valid])
 
+#only show warnings when the user tries to specify opencl folders
+opencl_showwarn="no"
+#Check if an OpenCL implementation is installed.
+OPENCLBASE="/usr"
+AC_ARG_WITH([opencl],
+AS_HELP_STRING([--with-opencl=dir], [Directory of OpenCL installation]),
+	[
+		OPENCLBASE="${withval}"
+      opencl_showwarn="yes"
+	],
+	[
+		OPENCLBASE="/usr"
+	]
+)
+
+AC_ARG_WITH([opencl-include],
+AS_HELP_STRING([--with-opencl-include=dir], [Directory of OpenCL includes]),
+	[
+		OPENCL_INC="${withval}"
+      opencl_showwarn="yes"
+	],
+	[
+		OPENCL_INC="$OPENCLBASE/include/"
+	]
+)
+
+AC_ARG_WITH([opencl-lib],
+AS_HELP_STRING([--with-opencl-lib=dir], [Directory of OpenCL libraries]),
+	[
+		OPENCL_LIB="${withval}"
+      opencl_showwarn="yes"
+	],
+	[
+      #tests if headers and libraries are usable and correct
+      #backup vars before we do the tests
+      CFLAGSBACKUP="$CFLAGS"
+      CPPFLAGSBACKUP="$CPPFLAGS"
+      CXXFLAGSBACKUP="$CXXFLAGS"
+      LDFLAGSBACKUP="$LDFLAGS"
+
+      CFLAGS="$CFLAGS -L$OPENCLBASE/lib64/"
+      CPPFLAGS="$CPPFLAGS -L$OPENCLBASE/lib64/"
+      CFLAGS="$CXXFLAGS -L$OPENCLBASE/lib64/"
+      LDFLAGS="$LDFLAGS -L$OPENCLBASE/lib64/"
+      AC_CHECK_LIB([OpenCL],
+                   [clGetPlatformIDs],
+                   [OPENCL_LIB="$OPENCLBASE/lib64/"],
+                   [OPENCL_LIB="$OPENCLBASE/lib/"])
+
+      CFLAGS="$CFLAGSBACKUP"
+      CPPFLAGS="$CPPFLAGSBACKUP"
+      CXXFLAGS="$CFLAGSBACKUP"
+      LDFLAGS="$LDFLAGSBACKUP"
+      #endtest
+	]
+)
+
+AC_MSG_CHECKING([if the use of OpenCL devices was disabled])
+AC_ARG_ENABLE([opencl-arch],
+  AS_HELP_STRING([--disable-opencl-arch], [Disables the use of OpenCL devices]),
+  [
+    if test x"$enableval" = x"yes" -o x"$enableval" = x"";
+    then
+        opencl_enabled="yes"        
+        opencl_showwarn="yes"
+        AC_MSG_RESULT([no])
+    else if test x"$enableval" = x"no";
+        then
+            opencl_enabled="no"
+            AC_MSG_RESULT([yes])
+        else
+            AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
+        fi    
+    fi
+  ],
+  [
+    opencl_enabled="yes"
+    AC_MSG_RESULT([no])
+  ]
+)
+
+if test x"$opencl_enabled" = x"yes" ; then
+
+    opencl_valid="no"
+    opencl_libs="no"
+    opencl_headers="no"
+
+    #tests if headers and libraries are usable and correct
+    #backup vars before we do the tests
+    CFLAGSBACKUP="$CFLAGS"
+    CPPFLAGSBACKUP="$CPPFLAGS"
+    CXXFLAGSBACKUP="$CXXFLAGS"
+    LDFLAGSBACKUP="$LDFLAGS"
+
+    CFLAGS="$CFLAGS -I$OPENCL_INC -L$OPENCL_LIB"
+    CPPFLAGS="$CPPFLAGS -I$OPENCL_INC -L$OPENCL_LIB"
+    CFLAGS="$CXXFLAGS -I$OPENCL_INC -L$OPENCL_LIB"
+    LDFLAGS="$LDFLAGS -L$OPENCL_LIB"
+
+    AC_CHECK_HEADER([CL/opencl.h], [opencl_headers="yes"],[])
+    AC_CHECK_HEADER([OpenCL/opencl.h], [opencl_headers="yes"],[])
+    AC_CHECK_LIB([OpenCL],
+                 [clGetPlatformIDs],
+                 [opencl_libs="yes"],
+                 [])
+
+    CFLAGS="$CFLAGSBACKUP"
+    CPPFLAGS="$CPPFLAGSBACKUP"
+    CXXFLAGS="$CFLAGSBACKUP"
+    LDFLAGS="$LDFLAGSBACKUP"
+    #endtest
+
+    if test x"$opencl_libs" = x"yes" ; then
+         if test x"$opencl_headers" = x"yes" ; then
+            opencl_valid="yes"
+         fi
+    fi
+
+    if test x"$opencl_showwarn" = x"yes" ; then
+         if test x"$opencl_libs" = x"no" ; then
+            AC_MSG_WARN([OpenCL library not found in $OPENCL_LIB, specify location using -with-opencl-lib. Disabling OpenCL support])
+         fi
+         if test x"$opencl_headers" = x"no" ; then
+            AC_MSG_WARN([OpenCL headers not found in $OPENCL_INC, specify location using -with-opencl-include. Disabling OpenCL support])
+         fi
+    fi
+else
+    opencl_valid="no"
+fi
+
+if test x"$opencl_valid" = x"yes"; then
+    OPENCL_LD=$OPENCL_LIB
+    OPENCL_INC=$OPENCL_INC
+    CFLAGS="$CFLAGS -I$OPENCL_INC -DOpenCL_DEV"
+    CXXFLAGS="$CXXFLAGS -I$OPENCL_INC -DOpenCL_DEV"
+    ARCHITECTURES="$ARCHITECTURES opencl"
+    AC_SUBST([OPENCL_LD])
+    AC_SUBST([OPENCL_INC])
+fi
+
+AM_CONDITIONAL([OPENCL_SUPPORT],[test $opencl_valid = yes]) 
+
+AC_SUBST([opencl_valid])
+
 # mcc support
 AC_ARG_WITH([mcc],
 AS_HELP_STRING([--with-mcc=dir], [Directory of mcc compiler]),
@@ -554,7 +699,7 @@ AC_ARG_WITH([mpitrace],
                 then
                    extrae_version_string=`sed -ne '/^\s*#\s*define\s\+EXTRAE_VERSION .*$/p' $extrae_version_h`
                    extrae_version=`echo $extrae_version_string | sed -e 's/#define EXTRAE_VERSION EXTRAE_VERSION_NUMBER(\([0-9]*\),\([0-9]*\),\([0-9]*\).*$/\1\2\3/'`
-                   if test "$extrae_version" -ge 220;
+                   if test "$extrae_version" -ge 230;
                    then
                       MPITRACE_HOME="$withval"
                       MPITRACE_INC="$withval/include"
@@ -566,10 +711,10 @@ AC_ARG_WITH([mpitrace],
                       MPITRACE_BIN="$withval/bin"
                       AC_MSG_RESULT([checking if Extrae library is compatible... yes])
                    else
-                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
                    fi
                 else
-                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
                 fi
            ]
 )
@@ -581,7 +726,7 @@ AC_ARG_WITH([extrae],
                 then
                    extrae_version_string=`sed -ne '/^\s*#\s*define\s\+EXTRAE_VERSION .*$/p' $extrae_version_h`
                    extrae_version=`echo $extrae_version_string | sed -e 's/#define EXTRAE_VERSION EXTRAE_VERSION_NUMBER(\([0-9]*\),\([0-9]*\),\([0-9]*\).*$/\1\2\3/'`
-                   if test "$extrae_version" -ge 220;
+                   if test "$extrae_version" -ge 230;
                    then
                       MPITRACE_HOME="$withval"
                       MPITRACE_INC="$withval/include"
@@ -593,10 +738,10 @@ AC_ARG_WITH([extrae],
                       MPITRACE_BIN="$withval/bin"
                       AC_MSG_RESULT([checking if Extrae library is compatible... yes])
                    else
-                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
                    fi
                 else
-                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
                 fi
            ]
 )
@@ -614,9 +759,11 @@ AC_ARG_WITH([nextsim],
            AS_HELP_STRING([--with-nextsim=dir], [Directory of NextSim installation]),
            [
               NEXTSIM_HOME="$withval"
+              NEXTSIM_INC="$withval/include"
            ]
 )
 AC_SUBST([NEXTSIM_HOME])
+AC_SUBST([NEXTSIM_INC])
 AM_CONDITIONAL([INSTRUMENTATION_NEXTSIM], test x"$NEXTSIM_HOME" != x)
 
 # Check Ayudame support
@@ -787,13 +934,21 @@ AC_CONFIG_FILES([Makefile
 		 src/arch/gpu/debug/Makefile
 		 src/arch/gpu/instrumentation/Makefile
 		 src/arch/gpu/instrumentation-debug/Makefile
+		 src/arch/opencl/Makefile
+		 src/arch/opencl/performance/Makefile
+		 src/arch/opencl/debug/Makefile
+		 src/arch/opencl/instrumentation/Makefile
+		 src/arch/opencl/instrumentation-debug/Makefile
 		 src/utils/Makefile
+		 src/utils/performance/Makefile
+		 src/utils/instrumentation/Makefile
+		 src/utils/debug/Makefile
+		 src/utils/instrumentation-debug/Makefile
 		 scripts/Makefile
 		 tests/Makefile
 		 tests/gens/Makefile
 		 doc/Makefile
                  doc/doxy-nanox
-		 doc/paraver_configs/Makefile
                  ])
 
 AC_OUTPUT

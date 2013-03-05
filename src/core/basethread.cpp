@@ -21,6 +21,7 @@
 #include "processingelement.hpp"
 #include "system.hpp"
 #include "synchronizedcondition.hpp"
+#include "wddeque.hpp"
 
 using namespace nanos;
 
@@ -30,7 +31,7 @@ Atomic<int> BaseThread::_idSeed = 0;
 
 void BaseThread::run ()
 {
-   _threadWD.tieTo( *this );
+   _threadWD.tied().tieTo( *this );
    associate();
    initializeDependent();
    /* Notify that the thread has finished all its initialization and it's ready to run */
@@ -39,6 +40,30 @@ void BaseThread::run ()
      sys.threadReady();
    runDependent();
    NANOS_INSTRUMENT ( sys.getInstrumentation()->threadFinish ( *this ) );
+}
+
+void BaseThread::addNextWD ( WD *next )
+{
+   if ( next != NULL ) {
+      debug("Add next WD as: " << next << ":??" << " @ thread " << _id );
+      _nextWDsCounter++;
+      ensure( _nextWDsCounter > 0, "Trying to increase a negative counter..." );
+     _nextWDs.push_back( next );
+   }
+}
+
+WD * BaseThread::getNextWD ()
+{
+   if ( !sys.getSchedulerConf().getSchedulerEnabled() )
+      return NULL;
+
+   WD * next = _nextWDs.pop_front( this );
+
+   if ( next ) {
+      ensure( _nextWDsCounter > 0, "Trying to decrease a negative counter..." );
+      _nextWDsCounter--;
+   }
+   return next;
 }
 
 void BaseThread::associate ()

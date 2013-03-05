@@ -17,8 +17,8 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-include $(top_srcdir)/src/pms/openmp/version_commons.am
 include $(top_srcdir)/src/common.am
+include $(top_srcdir)/src/pms/openmp/version_commons.am
 
 if INSTRUMENTATION_DEBUG_VERSION
 instrdebug_LTLIBRARIES=libnanox-omp.la libnanox-omp-stubs.la

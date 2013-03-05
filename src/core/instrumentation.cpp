@@ -96,10 +96,10 @@ void Instrumentation::closeBurstEvent ( Event *e, nanos_event_key_t key, Instrum
       new (e) Event(*it);
    }
 }
-void Instrumentation::createPointEvent ( Event *e, nanos_event_key_t keys, nanos_event_value_t values )
+void Instrumentation::createPointEvent ( Event *e, nanos_event_key_t key, nanos_event_value_t value )
 {
    /* Creating a point event */
-   new (e) Point ( keys, values );
+   new (e) Point ( key, value );
 
 }
 

@@ -19,4 +19,4 @@
 
 SUBDIRS = @ARCHITECTURES@ @OS@
 
-DIST_SUBDIRS = unix-os smp spu gpu fpga
+DIST_SUBDIRS = unix-os smp spu gpu fpga opencl

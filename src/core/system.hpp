@@ -30,6 +30,7 @@
 #include "dataaccess.hpp"
 #include "instrumentation_decl.hpp"
 #include "cache_map.hpp"
+//#include "archplugin.hpp"
 
 using namespace nanos;
 
@@ -38,7 +39,13 @@ inline void System::setNumPEs ( int npes ) { _numPEs = npes; }
 
 inline int System::getNumPEs () const { return _numPEs; }
 
-inline int System::getCpuId ( int idx ) { 
+inline unsigned System::getMaxThreads () const { return _targetThreads; } 
+
+inline void System::setNumThreads ( int nthreads ) { _numThreads = nthreads; }
+
+inline int System::getNumThreads () const { return _numThreads; }
+
+inline int System::getCpuId ( int idx ) const { 
    ensure( ( ( idx >= 0 ) && ( idx < _cpu_count ) ), "invalid value for cpu idx" );
    return _cpu_id[idx]; 
 };
@@ -99,11 +106,13 @@ inline bool System::getDelayedStart () const { return _delayedStart; }
 
 inline bool System::useYield() const { return _useYield; }
 
-inline int System::getThsPerPE() const { return _thsPerPE; }
-
 inline int System::getTaskNum() const { return _schedStats._totalTasks.value(); }
 
+inline int System::getReadyNum() const { return _schedStats._readyTasks.value(); }
+
 inline int System::getIdleNum() const { return _schedStats._idleThreads.value(); }
+
+inline int System::getRunningTasks() const { return _workers.size() - _schedStats._idleThreads.value(); }
 
 inline void System::setUntieMaster ( bool value ) { _untieMaster = value; }
 inline bool System::getUntieMaster () const { return _untieMaster; }
@@ -113,20 +122,28 @@ inline bool System::getSynchronizedStart ( void ) const { return _synchronizedSt
 
 inline int System::getWorkDescriptorId( void ) { return _atomicWDSeed++; }
 
-inline int System::getReadyNum() const { return _schedStats._readyTasks.value(); }
-
-inline int System::getRunningTasks() const
-{
-   return _workers.size() - _schedStats._idleThreads.value();
-}
-
 inline int System::getNumWorkers() const { return _workers.size(); }
 
 inline int System::getNumSockets() const { return _numSockets; }
 inline void System::setNumSockets ( int numSockets ) { _numSockets = numSockets; }
 
+inline int System::getCurrentSocket() const { return _currentSocket; }
+inline void System::setCurrentSocket( int currentSocket ) { _currentSocket = currentSocket; }
+
 inline int System::getCoresPerSocket() const { return _coresPerSocket; }
 inline void System::setCoresPerSocket ( int coresPerSocket ) { _coresPerSocket = coresPerSocket; }
+
+inline int System::getBindingId ( int pe ) const
+{
+   int tmpId = ( pe * getBindingStride() + getBindingStart() );
+   return getCpuId( ( tmpId + tmpId/_cpu_count ) % _cpu_count );
+}
+
+inline int System::getNUMABinding( int id ) const
+{
+   // Use the binding list to get the real PE associated to this id
+   return _bindings[ id ];
+}
 
 inline void System::setThrottlePolicy( ThrottlePolicy * policy ) { _throttlePolicy = policy; }
 
@@ -243,6 +260,13 @@ inline bool System::isCacheEnabled() { return _useCaches; }
 inline System::CachePolicyType System::getCachePolicy() { return _cachePolicy; }
 
 inline CacheMap& System::getCacheMap() { return _cacheMap; }
+
+inline size_t System::registerArchitecture( ArchPlugin * plugin )
+{
+   size_t id = _archs.size();
+   _archs.push_back( plugin );
+   return id;
+}
 
 #ifdef GPU_DEV
 inline PinnedAllocator& System::getPinnedAllocatorCUDA() { return _pinnedMemoryCUDA; }

@@ -43,7 +43,7 @@ namespace ext
          // disable copy constructor and assignment operator
          SMPThread( const SMPThread &th );
          const SMPThread & operator= ( const SMPThread &th );
-
+        
       public:
          // constructor
          SMPThread( WD &w, PE *pe ) : BaseThread( w,pe ),_stackSize(0), _useUserThreads(true) {}
@@ -70,6 +70,7 @@ namespace ext
          virtual void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) {};
 
          virtual void bind( void );
+         
 
          /** \brief SMP specific yield implementation
          */

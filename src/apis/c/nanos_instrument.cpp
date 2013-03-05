@@ -16,7 +16,9 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
+/*! \file nanos_instrument.cpp
+ *  \brief 
+ */
 #include "nanos.h"
 #include "system.hpp"
 #include "instrumentation.hpp"
@@ -25,6 +27,16 @@
 #ifdef GPU_DEV
 #include "gputhread_decl.hpp"
 #endif
+
+#ifdef OpenCL_DEV
+#include "openclthread_decl.hpp"
+#endif
+
+
+/*! \defgroup capi_instrument C/C++ API: Instrumentation services. */
+/*! \addtogroup capi_instrument
+ *  \{
+ */
 
 using namespace nanos;
 
@@ -115,10 +127,7 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_events, ( unsigned int num_events, n
                sys.getInstrumentation()->closeBurstEvent(&e[i],events[i].key);
                break;
             case NANOS_POINT:
-#if 0
-               sys.getInstrumentation()->createPointEvent(&e[i],events[i].info.point.nkvs,events[i].info.point.keys,events[i].info.point.values );
-#endif
-               return NANOS_UNKNOWN_ERR;
+               sys.getInstrumentation()->createPointEvent(&e[i],events[i].key,events[i].value );
                break;
             case NANOS_PTP_START:
 #if 0
@@ -156,6 +165,14 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_close_user_fun_event, ( void ))
       return err;
    }
 #endif
+#ifdef OpenCL_DEV
+   try
+   {
+      ( ( ext::OpenCLThread *) myThread )->enableWDClosingEvents();
+   } catch ( nanos_err_t err) {
+      return err;
+   }
+#endif
 #endif
    return NANOS_OK;
 }
@@ -186,3 +203,6 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_disable,())
    return NANOS_OK;
 }
 
+/*!
+ * \}
+ */ 

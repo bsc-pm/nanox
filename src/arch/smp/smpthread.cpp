@@ -27,6 +27,7 @@
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
 
+
 using namespace nanos;
 using namespace nanos::ext;
 
@@ -84,9 +85,7 @@ void SMPThread::join ()
 
 void SMPThread::bind( void )
 {
-   int ncpus = sys.getCpuCount();
-   int cpu_idx = ( getCpuId() * sys.getBindingStride() ) + sys.getBindingStart();
-   int cpu_id = sys.getCpuId( ((cpu_idx+(cpu_idx/ncpus)) % ncpus));
+   int cpu_id = getCpuId();
    
    // If using the socket scheduler...
    if ( sys.getDefaultSchedule() == "socket" )
@@ -98,7 +97,7 @@ void SMPThread::bind( void )
          warning( "cpu id " << cpu_id << " is in socket #" << socket <<
                  ", while there are only " << sys.getNumSockets() << " sockets." );
       }
-      
+      verbose( "Binding cpu " << cpu_id << " to socket " << socket );
       setSocket( socket );
    }
 

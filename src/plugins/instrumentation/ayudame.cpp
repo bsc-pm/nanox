@@ -43,11 +43,7 @@ fprintf(stderr,"Event PREINIT emitted\n");
          AYU_data[0] = 0; // FIXME: Function Id
          AYU_data[1] = 0; // FIXME: Is Critical?
 
-#ifdef GPU_DEV
-         const int system_tasks = sys.getNumPEs() + nanos::ext::GPUConfig::getGPUCount();
-#else
-         const int system_tasks = sys.getNumPEs();
-#endif
+         const int system_tasks = sys.getMaxThreads();
          int i;
 
          for ( i = 1; i <= system_tasks;i++){

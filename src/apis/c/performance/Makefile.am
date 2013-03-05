@@ -17,14 +17,16 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-include $(top_srcdir)/src/apis/c/version_commons.am
 include $(top_srcdir)/src/common.am
+include $(top_srcdir)/src/apis/c/version_commons.am
 
 if PERFORMANCE_VERSION
 performance_LTLIBRARIES=libnanox-c.la
 
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags)
+nanos_perfo_fcflags=$(common_includes) $(common_perfo_fcflags)
 
+libnanox_c_la_FCFLAGS=$(nanos_perfo_fcflags)
 libnanox_c_la_CXXFLAGS=$(nanos_perfo_cxxflags)
 libnanox_c_la_LDFLAGS=$(version_flags) $(ignore_muldefs)
 libnanox_c_la_LIBADD=$(top_builddir)/src/core/performance/libnanox.la

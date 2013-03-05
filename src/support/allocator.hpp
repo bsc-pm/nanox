@@ -19,8 +19,6 @@
 #ifndef _NANOS_ALLOCATOR_HPP
 #define _NANOS_ALLOCATOR_HPP
 #include "allocator_decl.hpp"
-#include "debug.hpp"
-#include "basethread.hpp"
 #include <vector>
 #include <cstdlib>
 #include <cstring>
@@ -29,19 +27,6 @@
 namespace nanos {
 
 extern Allocator *allocator;
-
-inline Allocator & getAllocator ( void )
-{
-   if (!allocator) {
-      allocator = (Allocator *) malloc(sizeof(Allocator));
-      if ( allocator == NULL ) throw(NANOS_ENOMEM);
-      new (allocator) Allocator();
-   }
-
-   BaseThread *my_thread = getMyThreadSafe();
-   if ( my_thread == NULL ) return *allocator;
-   else return my_thread->getAllocator();
-}
 
 inline size_t Allocator::Arena::getObjectSize () const
 {
@@ -131,6 +116,8 @@ inline void * Allocator::allocate ( size_t size, const char* file, int line )
 
 inline void Allocator::deallocate ( void *object, const char *file, int line )
 {
+   if ( object == NULL ) return;
+
    ObjectHeader * ptr = (ObjectHeader *) ( ((char *)object) - _headerSize );
 
    Arena *arena = ptr->_arena;

@@ -100,13 +100,13 @@ void GPUProcessor::init ()
    // If some kind of overlapping is defined, allocate some pinned memory
 
    if ( inputStream ) {
-      size_t pinnedSize = std::min( maxMemoryAvailable, ( size_t ) 1*1024*1024*1024 );
+      size_t pinnedSize = std::min( maxMemoryAvailable, ( size_t ) 256*1024*1024 );
       void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
       _inputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );
    }
 
    if ( outputStream ) {
-      size_t pinnedSize = std::min( maxMemoryAvailable, ( size_t ) 1*1024*1024*1024 );
+      size_t pinnedSize = std::min( maxMemoryAvailable, ( size_t ) 256*1024*1024 );
       void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
       _outputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );
    }

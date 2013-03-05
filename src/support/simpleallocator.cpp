@@ -20,6 +20,7 @@
 #include <iostream>
 #include <cstring>
 #include "simpleallocator.hpp"
+#include "debug.hpp"
 
 using namespace nanos;
 
@@ -69,6 +70,13 @@ void * SimpleAllocator::allocate( size_t size )
 size_t SimpleAllocator::free( void *address )
 {
    SegmentMap::iterator mapIter = _allocatedChunks.find( ( uint64_t ) address );
+
+   // Unknown address, simply ignore
+   if( mapIter == _allocatedChunks.end() ) {
+      ensure0( false,"Unknown address deallocation (Simple Allocator)" );
+      return 0;
+   }
+
    size_t size = mapIter->second;
    std::pair< SegmentMap::iterator, bool > ret;
 

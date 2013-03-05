@@ -41,14 +41,14 @@ void test_task_creation_overhead ( stats_t *s )
          struct nanos_const_wd_definition_local_t { nanos_const_wd_definition_t base; nanos_device_t devices[1];
          };
          static struct nanos_const_wd_definition_local_t _const_def = { 
-            { { 0, 1, 0, 0, 0, 0, 0, 0 }, __alignof__(_nx_data_env_1_t), 0, 1 }, {{ nanos_smp_factory, &_ol_test_task_creation_overhead_1_smp_args }}
+            { { 0, 1, 0, 0, 0, 0, 0, 0 }, __alignof__(_nx_data_env_1_t), 0, 1, 0, NULL }, {{ nanos_smp_factory, &_ol_test_task_creation_overhead_1_smp_args }}
          };
          nanos_wd_dyn_props_t dyn_props = {0};
          nanos_err_t err;
          dyn_props.priority = 0;
 
          err = nanos_create_wd_compact(&wd, &_const_def.base, &dyn_props, sizeof(_nx_data_env_1_t),
-                                       (void **) &ol_args, nanos_current_wd(), (nanos_copy_data_t **) 0
+                                       (void **) &ol_args, nanos_current_wd(), (nanos_copy_data_t **) 0, NULL
                );
 
          if (err != NANOS_OK) nanos_handle_error(err);
@@ -61,7 +61,7 @@ void test_task_creation_overhead ( stats_t *s )
          } else {
             _nx_data_env_1_t imm_args;
             dyn_props.priority = 0;
-            err = nanos_create_wd_and_run_compact(&_const_def.base, &dyn_props, sizeof(_nx_data_env_1_t), &imm_args, 0, (nanos_data_access_t *) 0, (nanos_copy_data_t *) 0, (void *) 0);
+            err = nanos_create_wd_and_run_compact(&_const_def.base, &dyn_props, sizeof(_nx_data_env_1_t), &imm_args, 0, (nanos_data_access_t *) 0, (nanos_copy_data_t *) 0, (void *) 0, NULL);
             if (err != NANOS_OK) nanos_handle_error(err);
          }
       }
