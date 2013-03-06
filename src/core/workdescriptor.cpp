@@ -58,12 +58,12 @@ void WorkDescriptor::start (ULTFlag isUserLevelThread, WorkDescriptor *previous)
 
    ProcessingElement *pe = myThread->runningOn();
 
-   // Initializing devices
-   for ( unsigned int i = 0; i < _numDevices; i++ )
-      _devices[i]->lazyInit( *this, isUserLevelThread, previous );
 
    // If there are no active device, choose a compatible one
    if ( _activeDeviceIdx == _numDevices ) activateDevice ( pe->getDeviceType() );
+
+   // Initializing devices
+   _devices[_activeDeviceIdx]->lazyInit( *this, isUserLevelThread, previous );
 
    // Waiting for copies
    if ( getNumCopies() > 0 ) pe->waitInputs( *this );
