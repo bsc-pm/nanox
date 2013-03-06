@@ -51,7 +51,7 @@ inline void ContainerAdapter<CONTAINER_T, false>::insert(CONTAINER_T &container,
 }
 
 template <class CONTAINER_T>
-inline typename CONTAINER_T::value_type ContainerAdapter<CONTAINER_T, false>::ContainerAdapter::pop(CONTAINER_T &container)
+inline typename CONTAINER_T::value_type ContainerAdapter<CONTAINER_T, false>::pop(CONTAINER_T &container)
 {
    typename CONTAINER_T::value_type value = container.back();
    container.pop_back();

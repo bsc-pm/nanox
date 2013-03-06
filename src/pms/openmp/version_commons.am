@@ -20,4 +20,7 @@ omp_stub_sources = \
         $(top_srcdir)/src/pms/openmp/omp_locks.cpp\
 	$(END) 
 
-local_includes = -I $(top_srcdir)/src/apis/c -I @CUDA_INC@
+local_includes = -I$(top_srcdir)/src/apis/c
+if GPU_SUPPORT
+local_includes += -I@CUDA_INC@
+endif

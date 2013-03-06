@@ -7,7 +7,7 @@
 namespace nanos {
    namespace OpenMP {
 
-      class OmpThreadTeamData : ThreadTeamData
+      class OmpThreadTeamData : public ThreadTeamData
       {
          private:
             int _activeLevel;

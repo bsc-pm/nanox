@@ -259,6 +259,13 @@ namespace nanos
       }
    };
 
+   /*! \brief Namespace used to refer WDPriorityQueue BaseContainer.
+    */
+   namespace WDPQ
+   {
+       typedef std::list<WorkDescriptor *> BaseContainer;
+   }
+
    template<typename T = unsigned>
    class WDPriorityQueue : public WDPool
    {
@@ -267,10 +274,9 @@ namespace nanos
          typedef std::const_mem_fun_t<T, WD> PriorityValueFun;
       private:
          // TODO (gmiranda): Measure if vector is better as a container
-         typedef std::list<WorkDescriptor *> BaseContainer;
-         BaseContainer     _dq;
-         Lock              _lock;
-         size_t            _nelems;
+         WDPQ::BaseContainer _dq;
+         Lock                _lock;
+         size_t              _nelems;
          /*! \brief When this is enabled, elements with the same priority
           * as the one in the back will be inserted at the back.
           * \note When this is enabled, it will override the LIFO behaviour
@@ -300,10 +306,10 @@ namespace nanos
          void insertOrdered ( WorkDescriptor *wd, bool fifo = true );
          
          /*! \brief Performs upper bound reversely or not depending on the settings */
-        BaseContainer::iterator upper_bound( const WD *wd );
+         WDPQ::BaseContainer::iterator upper_bound( const WD *wd );
         
-        /*! \brief Performs lower bound reversely or not depending on the settings */
-        BaseContainer::iterator lower_bound( const WD *wd );
+         /*! \brief Performs lower bound reversely or not depending on the settings */
+         WDPQ::BaseContainer::iterator lower_bound( const WD *wd );
       public:
          /*! \brief WDPriorityQueue default constructor
           */

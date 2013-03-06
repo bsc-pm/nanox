@@ -36,6 +36,9 @@ instrumentation_LTLIBRARIES = \
 	$(END)
 
 nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags)
+if IBM_C
+nanos_instr_cxxflags += -qnoinline
+endif
 
 libnanox_sched_default_la_CXXFLAGS = $(nanos_instr_cxxflags)
 libnanox_sched_default_la_LDFLAGS = $(ld_plugin_flags)

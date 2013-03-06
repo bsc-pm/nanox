@@ -23,9 +23,9 @@
 // Define GCC Version
 #define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 
-// Define a linker section with GCC
+// Define a linker section with GCC attribute
 #define LINKER_SECTION(name,type,nop) \
-    __attribute__((weak, section( #name ))) type __section_##name = nop; \
+    type __section_##name __attribute__((weak, section( #name ))) = nop; \
     extern type __start_##name; \
     extern type __stop_##name;
 
@@ -34,6 +34,10 @@
 
 #define BROKEN_COMPARE_AND_SWAP
 
+#endif
+
+#if __IBMCPP__
+#define __volatile volatile // defining __volatile to volatile with XLC compiler. But you shouldn't have to do this.
 #endif
 
 // compiler issues
@@ -91,6 +95,11 @@ template<> struct hash<unsigned long long> : public std::unary_function<unsigned
 #define ASSIGN_EVENT(event,type,args) event = type args
 #endif // __GNUC__ == 4 && (__GNUC_MINOR__ == 1 || __GNUC_MINOR__ == 2)
 #endif // __GNUC__
+
+// xlC seems to need this hack also
+#ifdef __IBMCPP__
+#define ASSIGN_EVENT(event,type,args) do {type tmp_event args; event = tmp_event;} while(0)
+#endif
 
 #ifdef BROKEN_COMPARE_AND_SWAP
 

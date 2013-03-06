@@ -124,7 +124,7 @@ void Instrumentation::createDeferredPointEvent ( WorkDescriptor &wd, unsigned in
                                       nanos_event_value_t *values )
 {
    unsigned int i,ne=0; // Number of events
-   Event e[nkvs]; /* Event array */
+   Event *e = (Event *) alloca(sizeof(Event) * nkvs ); /* Event array */
 
    InstrumentationContextData *icd = wd.getInstrumentationContextData();                                             
 
@@ -176,7 +176,7 @@ void Instrumentation::createDeferredPtPEnd ( WorkDescriptor &wd, nanos_event_dom
 void Instrumentation::raisePointEvents ( unsigned int nkvs, nanos_event_key_t *key, nanos_event_value_t *val )
 {
    unsigned int i,ne=0; // Number of events
-   Event e[nkvs]; /* Event array */
+   Event *e = (Event *) alloca(sizeof(Event) * nkvs ); /* Event array */
 
    /* Create point event */
    for ( i = 0; i < nkvs; i++ )

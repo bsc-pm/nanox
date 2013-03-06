@@ -38,6 +38,8 @@ void * smp_bootthread ( void *arg )
    self->run();
 
    pthread_exit ( 0 );
+   // We should never get here!
+   return NULL;
 }
 
 // TODO: detect at configure

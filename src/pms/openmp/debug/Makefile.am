@@ -23,10 +23,10 @@ include $(top_srcdir)/src/pms/openmp/version_commons.am
 if DEBUG_VERSION
 debug_LTLIBRARIES=libnanox-omp.la libnanox-omp-stubs.la
 
-nanos_debug_cxxflags=$(common_includes) $(local_includes)  $(common_debug_cxxflags) 
+nanos_debug_cxxflags=$(common_includes) $(local_includes) $(common_debug_cxxflags)
 
 libnanox_omp_la_CXXFLAGS=$(nanos_debug_cxxflags)
-libnanox_omp_la_LDFLAGS=$(version_flags)
+libnanox_omp_la_LDFLAGS=$(version_flags) $(ignore_muldefs)
 libnanox_omp_la_LIBADD=$(top_builddir)/src/core/debug/libnanox.la
 libnanox_omp_la_SOURCES=$(omp_sources)
 libnanox_omp_la_DEPENDENCIES=$(top_builddir)/src/core/debug/libnanox.la

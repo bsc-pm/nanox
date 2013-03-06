@@ -24,7 +24,7 @@ if INSTRUMENTATION_VERSION
 instrumentation_LTLIBRARIES=libnanox.la
 
 nanos_cxxflags=$(common_includes) $(common_instr_cxxflags) 
-nanos_ldflags=$(version_flags) @NANOS_CONFIG_LIBDIRS@ -Wl,-rpath,$(instrumentationdir)
+nanos_ldflags=$(version_flags) @NANOS_CONFIG_LIBDIRS@ -Wl,-rpath,$(instrumentationdir) $(ignore_muldefs)
 
 nanos_libadd=$(common_libadd)
 

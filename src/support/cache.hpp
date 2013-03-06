@@ -754,8 +754,8 @@ inline void DeviceCache<_T>::waitInput( DeviceCache<_T>* _this, uint64_t tag )
 template <class _T>
 inline void DeviceCache<_T>::waitInputs( std::list<uint64_t> &tags )
 {
-   for_each( tags.begin(), tags.end(), std :: bind1st( std :: ptr_fun ( waitInput ), this ) );
-   for_each( tags.begin(), tags.end(), waitInput );
+   std::for_each( tags.begin(), tags.end(), std :: bind1st( std :: ptr_fun ( waitInput ), this ) );
+   std::for_each( tags.begin(), tags.end(), waitInput );
 }
 
 template <class _T>
