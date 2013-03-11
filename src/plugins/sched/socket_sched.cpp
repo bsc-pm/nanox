@@ -213,9 +213,9 @@ namespace nanos {
                   //if ( dynamic_cast<GPUDevice*>( worker->runningOn()->getDeviceType() ) == 0 )
                   if ( nanos::ext::GPU == worker->runningOn()->getDeviceType() )
                   {
-                     int node = worker->getSocket();
+                     int node = worker->runningOn()->getNUMANode();
                      _gpuNodes.insert( node );
-                     //fprintf( stderr, "Found GPU Worker in node %d\n", node );
+                     verbose0( "Found GPU Worker in node " << node );
                   }
 #endif
                   // Avoid unused variable warning.
@@ -260,7 +260,7 @@ namespace nanos {
                fatal_cond( _gpuNodes.count( newNode ) == 0, "Cannot find a node with GPUs to move the task to." );
                
                
-               fprintf( stderr, "WD %d cannot run in node %d, moved to %d\n", wd.getId(), node, newNode );
+               verbose( "WD " << wd.getId() << " cannot run in node " << node << ", moved to " << newNode );
                return newNode;
             //#endif
             }
@@ -437,7 +437,7 @@ namespace nanos {
                      index = nodeToQueue( node, true );
                      wd.setWakeUpQueue( index );
                      
-                     //fprintf( stderr, "Depth 1, inserting WD %d in queue number %d (curr socket %d)\n", wd.getId(), index, wd.getSocket() );
+                     //fprintf( stderr, "Depth 1, inserting WD %d in queue number %d (curr socket %d)\n", wd.getId(), index, wd.runningOn()->getNUMANode() );
                      
                      // Insert at the front (these will have higher priority)
                      tdata._readyQueues[index].push_back ( &wd );
@@ -493,7 +493,7 @@ namespace nanos {
                WD* wd = NULL;
                
                // Get the socket of this thread
-               unsigned socket = thread->getSocket();
+               unsigned socket = thread->runningOn()->getNUMANode();
                
                //fprintf( stderr, "atIdle socket %d\n", socket );
                
@@ -731,39 +731,8 @@ namespace nanos {
             
             void loadDefaultValues()
             {
-               // Read number of sockets and cores from hwloc
-#ifdef HWLOC
-               hwloc_topology_t topology;
-               
-               /* Allocate and initialize topology object. */
-               hwloc_topology_init( &topology );
-               
-               /* Perform the topology detection. */
-               hwloc_topology_load( topology );
-               int depth = hwloc_get_type_depth( topology, HWLOC_OBJ_NODE );
-               
-               if ( depth != HWLOC_TYPE_DEPTH_UNKNOWN ) {
-                  _numSockets = hwloc_get_nbobjs_by_depth(topology, depth);
-               }
-               else
-                  _numSockets = 1;
-               
-               depth = hwloc_get_type_depth( topology, HWLOC_OBJ_CORE );
-               if ( depth != HWLOC_TYPE_DEPTH_UNKNOWN ) {
-                  _coresPerSocket = hwloc_get_nbobjs_by_depth( topology, depth ) / _numSockets;
-               }
-               
-               /* Destroy topology object. */
-               hwloc_topology_destroy(topology);
-#else
-               // Number of sockets can be read with
-               // cat /proc/cpuinfo | grep "physical id" | sort | uniq | wc -l
-               // Cores per socket:
-               // cat /proc/cpuinfo | grep 'core id' | sort | uniq | wc -l
-               debug0( "No hwloc support" );
                _numSockets = sys.getNumSockets();
                _coresPerSocket = sys.getCoresPerSocket();
-#endif
             }
          public:
             SocketSchedPlugin() : Plugin( "Socket-aware scheduling Plugin",1 ),
@@ -776,13 +745,6 @@ namespace nanos {
                loadDefaultValues();
                
                cfg.setOptionsSection( "Sockets module", "Socket-aware scheduling module" );
-   
-               cfg.registerConfigOption( "cores-per-socket", NEW Config::PositiveVar( _coresPerSocket ), "Number of cores per socket." );
-               cfg.registerArgOption( "cores-per-socket", "cores-per-socket" );
-               
-               cfg.registerConfigOption( "num-sockets", NEW Config::PositiveVar( _numSockets ), "Number of sockets available." );
-               cfg.registerArgOption( "num-sockets", "num-sockets" );
-               
                cfg.registerConfigOption( "socket-steal", NEW Config::FlagOption( _steal ), "Enable work stealing from other sockets' inner tasks queues (default)." );
                cfg.registerArgOption( "socket-steal", "socket-steal" );
                
