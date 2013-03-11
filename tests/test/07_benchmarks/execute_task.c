@@ -21,6 +21,7 @@
 
 /*
 <testinfo>
+test_mode=performance
 test_generator=gens/mcc-openmp-generator
 </testinfo>
 */
