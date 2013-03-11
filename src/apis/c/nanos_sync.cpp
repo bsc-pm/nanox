@@ -17,7 +17,7 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 /*! \file nanos_sync.cpp
- *  \brief 
+ *  \brief
  */
 #include "workgroup.hpp"
 #include "nanos.h"
@@ -37,6 +37,11 @@ using namespace nanos;
 NANOS_API_DEF(nanos_err_t, nanos_wg_wait_completion, ( nanos_wg_t uwg, bool avoid_flush ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","wg_wait_completion",NANOS_SYNCHRONIZATION) );
+
+   NANOS_INSTRUMENT( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT( static nanos_event_key_t taskwait  = ID->getEventKey("taskwait"); )
+   NANOS_INSTRUMENT( unsigned wd_id = ((WG *)uwg)->getId( ); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &taskwait, (nanos_event_value_t *) &wd_id); )
 
    try {
       WG *wg = ( WG * )uwg;
@@ -124,7 +129,7 @@ NANOS_API_DEF(nanos_err_t, nanos_wait_on, ( size_t num_data_accesses, nanos_data
 
    NANOS_INSTRUMENT ( static nanos_event_key_t wd_num_deps = ID->getEventKey("wd-num-deps"); )
    NANOS_INSTRUMENT ( static nanos_event_key_t wd_deps_ptr = ID->getEventKey("wd-deps-ptr"); )
-                                                                                                                                                         
+
    NANOS_INSTRUMENT ( nanos_event_key_t Keys[2]; )
    NANOS_INSTRUMENT ( nanos_event_value_t Values[2]; )
 
@@ -321,4 +326,4 @@ NANOS_API_DEF(nanos_err_t, nanos_memory_fence, (void))
 }
 /*!
  * \}
- */ 
+ */
