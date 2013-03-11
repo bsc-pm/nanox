@@ -24,7 +24,7 @@ if INSTRUMENTATION_DEBUG_VERSION
 instrdebug_LTLIBRARIES=libnanox.la
 
 nanos_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) 
-nanos_ldflags=$(version_flags) @NANOS_CONFIG_LIBDIRS@ -Wl,-rpath,$(instrdebugdir) $(ignore_muldefs)
+nanos_ldflags=$(version_flags) @NANOS_CONFIG_LIBDIRS@ -Wl,-rpath,$(instrdebugdir) $(ignore_muldefs) $(hwloc_ldflags)
 
 nanos_libadd=$(common_libadd)
 

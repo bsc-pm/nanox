@@ -86,20 +86,6 @@ void SMPThread::join ()
 void SMPThread::bind( void )
 {
    int cpu_id = getCpuId();
-   
-   // If using the socket scheduler...
-   if ( sys.getDefaultSchedule() == "socket" )
-   {
-      // Set the number of socket
-      int socket = cpu_id / sys.getCoresPerSocket();
-      
-      if ( socket >= sys.getNumSockets() ) {
-         warning( "cpu id " << cpu_id << " is in socket #" << socket <<
-                 ", while there are only " << sys.getNumSockets() << " sockets." );
-      }
-      verbose( "Binding cpu " << cpu_id << " to socket " << socket );
-      setSocket( socket );
-   }
 
    cpu_set_t cpu_set;
    CPU_ZERO( &cpu_set );

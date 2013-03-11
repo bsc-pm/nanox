@@ -42,7 +42,6 @@
 #include "pinnedallocator_decl.hpp"
 #endif
 
-
 namespace nanos
 {
 
@@ -165,6 +164,11 @@ namespace nanos
          
          //! CPU id binding list
          Bindings             _bindings;
+         
+         //! hwloc topology structure
+         void *               _hwlocTopology;
+         //! Path to a hwloc topology xml
+         std::string          _topologyPath;
 
 #ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
@@ -181,6 +185,9 @@ namespace nanos
          void config ();
          void loadModules();
          void unloadModules();
+         
+         void loadHwloc();
+         void unloadHwloc();
          
          PE * createPE ( std::string pe_type, int pid );
 
@@ -305,22 +312,37 @@ namespace nanos
          int getBindingId ( int pe ) const;
          
          /**
-          * \brief Returns a new PE id that takes into account the binding list,
-          * meaning that the first calls to this function will only return the
-          * SMP ids, and then the other architectures' ids will follow.
-          * For instance, in Minotauro (12 HW threads, 2 NUMA nodes, 1 GPU per
-          * node), getBindingId will return 0,1,2,3,4,6,7,8,9,10,5,11, provided
-          * that binding start is 0 and the stride is 1.
-          */
-         int getNUMABinding( int id ) const;
-         
-         /**
           * \brief Reserves a PE to be used exclusively by a certain
           * architecture.
           * \param node NUMA node to reserve the PE from.
           * \return Id of the PE to reserve.
           */
-         unsigned reservePE( unsigned node );
+         unsigned reservePE ( unsigned node );
+         
+         /**
+          * \brief Checks if hwloc is available.
+          */
+         bool isHwlocAvailable () const;
+         
+         /**
+          * \brief Returns the hwloc_topology_t structure.
+          * This structure will only be available for a short window during
+          * System::start. Otherwise, NULL will be returned.
+          * In order to avoid surrounding this function by ifdefs, it returns
+          * a void * that you must cast to hwloc_topology_t.
+          */
+         void * getHwlocTopology ();
+         
+         /**
+          * \brief Sets the number of NUMA nodes and cores per node.
+          * Uses hwloc if available, and also checks if both settings make sense.
+          */
+         void loadNUMAInfo ();
+         
+         /** \brief Retrieves the NUMA node of a given PE.
+          *  \note Will use hwloc if available.
+          */
+         unsigned getNodeOfPE ( unsigned pe );
 
          void setUntieMaster ( bool value );
 
