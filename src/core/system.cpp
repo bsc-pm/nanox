@@ -396,19 +396,13 @@ void System::start ()
    loadNUMAInfo();
 
    // start of new PE/Worker creation
-   // How many PEs will be created
-   unsigned targetPes = numPes;
-   // Ask each plugin how many PEs it needs to 
-   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
-        it != _archs.end(); ++it )
-   {
-      
-      targetPes += (*it)->getNumHelperPEs();
-   }
+   // How many available physical PEs
+   unsigned physPes = getCpuCount();
+
    
-   _bindings.reserve( targetPes );
+   _bindings.reserve( physPes );
    // Construct the list of PEs
-   for ( unsigned cpu_id = 0; cpu_id < targetPes; ++cpu_id )
+   for ( unsigned cpu_id = 0; cpu_id < physPes; ++cpu_id )
    {
       _bindings.push_back( getBindingId( cpu_id ) );
    }
@@ -422,11 +416,9 @@ void System::start ()
    // Right now, _bindings should only store SMP PEs ids
   
    // Create PEs
-   
-   fatal_cond0( numPes != _bindings.size(), "Number of SMP PEs and available PEs to bind do not match." );
-   int p;
+      int p;
    for ( p = 1; p < numPes ; p++ ) {
-      pe = createPE ( "smp", _bindings[ p ] );
+      pe = createPE ( "smp", _bindings[ p % _bindings.size() ]  );
       pe->setNUMANode( getNodeOfPE( pe->getId() ) );
       _pes.push_back ( pe );
    }
@@ -1347,10 +1339,7 @@ unsigned System::reservePE ( unsigned node )
    {
       unsigned pe = *it;
       unsigned currentNode = getNodeOfPE( pe );
-      // FIXME: _bindings might contain more PEs than what we might have.
-      // ( If binding-stride and/or start is used... )
       
-      verbose( "Current node: " << currentNode <<", pe: " << pe );
       // If this PE is in the requested node
       if ( currentNode == node )
       {
