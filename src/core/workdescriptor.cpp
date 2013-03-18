@@ -189,7 +189,8 @@ void WorkDescriptor::submit( void )
       initNewDirectory();
       getNewDirectory()->setParent( ( getParent() != NULL ) ? getParent()->getNewDirectory() : NULL );   
    }
-   _ccontrol.preInit();
+   //_ccontrol.preInit();
+   _mcontrol.preInit();
    Scheduler::submit( *this );
 } 
 
@@ -200,7 +201,8 @@ void WorkDescriptor::done ()
    //if ( getNumCopies() > 0 )
    //  pe->copyDataOut( *this );
 
-   _ccontrol.copyDataOut();
+   //_ccontrol.copyDataOut();
+   _mcontrol.copyDataOut();
    
 
    sys.getPMInterface().wdFinished( *this );
@@ -252,7 +254,8 @@ void WorkDescriptor::predecessorFinished( WorkDescriptor *predecessorWd )
       //std::cerr << "wd " << (unsigned int)  getId() << " getting directory from " << (unsigned int)predecessorWd->getId() << std::endl;
       _newDirectory->merge( *predecessorWd->getNewDirectory() );
    } else {
-      _ccontrol.getInfoFromPredecessor( predecessorWd->_ccontrol ); 
+      //_ccontrol.getInfoFromPredecessor( predecessorWd->_ccontrol ); 
+      _mcontrol.getInfoFromPredecessor( predecessorWd->_mcontrol ); 
    }
 }
 

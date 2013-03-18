@@ -273,21 +273,21 @@ const char * Network::getMasterHostname() const
 }
 
 
-void Network::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const &wd )
+void Network::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const &wd, Functor *f )
 {
    if ( _api != NULL )
    {
       _sentWdData.addSentData( wdId, len );
-      _api->sendRequestPut( dest, origAddr, dataDest, dstAddr, len, wdId, wd );
+      _api->sendRequestPut( dest, origAddr, dataDest, dstAddr, len, wdId, wd, f );
    }
 }
 
-void Network::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd )
+void Network::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, Functor *f )
 {
    if ( _api != NULL )
    {
       _sentWdData.addSentData( wdId, len * count );
-      _api->sendRequestPutStrided1D( dest, origAddr, dataDest, dstAddr, len, count, ld, wdId, wd );
+      _api->sendRequestPutStrided1D( dest, origAddr, dataDest, dstAddr, len, count, ld, wdId, wd, f );
    }
 }
 

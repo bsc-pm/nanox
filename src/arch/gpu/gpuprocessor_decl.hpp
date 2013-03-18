@@ -101,7 +101,7 @@ namespace ext
 
       public:
          //! Constructors
-         GPUProcessor( int id, int gpuId );
+         GPUProcessor( int id, int gpuId, memory_space_id_t );
 
          virtual ~GPUProcessor();
 
@@ -208,7 +208,7 @@ namespace ext
          {
             while ( !_initialized ) { }
          }
-         virtual bool supportsDirectTransfersWith(ProcessingElement const &pe) const;
+         //virtual bool supportsDirectTransfersWith(ProcessingElement const &pe) const;
    };
 
 }

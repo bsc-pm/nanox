@@ -165,7 +165,8 @@ inline WorkDescriptor * WorkDescriptor::getImmediateSuccessor ( BaseThread &thre
            successor->predecessorFinished( this );
             if (!sys.usingNewCache() ) {
    successor->getNewDirectory()->setParent( ( successor->getParent() != NULL ) ? successor->getParent()->getNewDirectory() : NULL );   
-   successor->_ccontrol.preInit();
+   //successor->_ccontrol.preInit();
+   successor->_mcontrol.preInit();
            }
            return successor;
         } else {
@@ -200,7 +201,8 @@ inline void WorkDescriptor::waitCompletion( bool avoidFlush )
    if ( !sys.usingNewCache() ) {
     getNewDirectory()->consolidate( !avoidFlush );
    } else {
-    sys.getMasterRegionDirectory().synchronize( !avoidFlush );
+    //sys.getMasterRegionDirectory().synchronize( !avoidFlush );
+    sys.getHostMemory().synchronize( !avoidFlush );
    }
 }
 

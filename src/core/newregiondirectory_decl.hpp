@@ -21,12 +21,18 @@
 #define NEW_NANOS_NEW2DIRECTORY_DECL_H
 
 #include "regiondict_decl.hpp"
+#include "globalregt_decl.hpp"
+#include "deviceops_decl.hpp"
+#include "workdescriptor_fwd.hpp"
 
 namespace nanos
 {
    class NewNewDirectoryEntryData : public Version {
       private:
          int _writeLocation;
+         int _invalidated;
+         DeviceOpsPtr _opsPtr;
+         DeviceOps _ops;
          std::set< int > _location;
       public:
          NewNewDirectoryEntryData();
@@ -37,6 +43,9 @@ namespace nanos
          int getWriteLocation() const ;
          void setWriteLocation( int id ) ;
          void addAccess( int id, unsigned int version ); 
+         bool delAccess( int id ); 
+         void invalidate(); 
+         bool hasBeenInvalidated() const; 
          bool isLocatedIn( int id, unsigned int version ) const ;
          bool isLocatedIn( int id ) const ;
          void merge( const NewNewDirectoryEntryData &de ) ;
@@ -45,16 +54,19 @@ namespace nanos
          bool contains( const NewNewDirectoryEntryData &d ) const ;
          int getFirstLocation() const ;
          int getNumLocations() const ;
+         void setOps( DeviceOps *ops );
+         DeviceOps *getOps() ;
          friend std::ostream & operator<< (std::ostream &o, NewNewDirectoryEntryData const &entry);
    };
 
   /*! \class NewDirectory
    *  \brief Stores copy accesses controls their versions and if they are dirty in any cache
    */
+   typedef std::list< std::pair< reg_t, reg_t > > NewLocationInfoList; 
    class NewNewRegionDirectory
    {
       private:
-         std::map< uint64_t, RegionDictionary * > _objects;
+         std::map< uint64_t, GlobalRegionDictionary * > _objects;
          Lock _lock;
 
       private:
@@ -67,19 +79,19 @@ namespace nanos
           */
          const NewNewRegionDirectory & operator= ( const NewNewRegionDirectory &dir );
 
-         RegionDictionary *getRegionDictionaryRegisterIfNeeded( CopyData const &cd );
-         RegionDictionary *getRegionDictionary( CopyData const &cd ) const;
-         RegionDictionary *getRegionDictionary( uint64_t addr ) const;
-         static void addSubRegion( RegionDictionary &dict, std::list< std::pair< reg_t, reg_t > > &partsList, reg_t regionToInsert );
+         GlobalRegionDictionary *getRegionDictionaryRegisterIfNeeded( CopyData const &cd );
+         GlobalRegionDictionary *getRegionDictionary( CopyData const &cd ) const;
+         GlobalRegionDictionary *getRegionDictionary( uint64_t addr ) const;
+         static void addSubRegion( GlobalRegionDictionary &dict, std::list< std::pair< reg_t, reg_t > > &partsList, reg_t regionToInsert );
 
       public:
-         typedef RegionDictionary *RegionDirectoryKey;
+         typedef GlobalRegionDictionary *RegionDirectoryKey;
          //typedef std::pair< Region, NewNewDirectoryEntryData const *> LocationInfo;
-         typedef std::list< std::pair< reg_t, reg_t > > NewLocationInfoList; 
          RegionDirectoryKey getRegionDirectoryKey( CopyData const &cd ) const;
          RegionDirectoryKey getRegionDirectoryKey( uint64_t addr ) const;
          RegionDirectoryKey getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd );
          void synchronize( bool flushData );
+         void synchronize2( bool flushData );
 
          /*! \brief NewDirectory default constructor
           */
@@ -89,14 +101,14 @@ namespace nanos
           */
          ~NewNewRegionDirectory() {};
 
-         //void invalidate( RegionTree<CachedRegionStatus> *regions );
+         void invalidate( CacheRegionDictionary *regions, unsigned int from );
 
          void print() const;
          void lock();
          void tryLock();
-         RegionDictionary &getDictionary( CopyData const &cd ) const;
+         GlobalRegionDictionary &getDictionary( CopyData const &cd ) const;
 
-         static NewNewDirectoryEntryData *getDirectoryEntry( RegionDictionary &dict, reg_t id );
+         static NewNewDirectoryEntryData *getDirectoryEntry( GlobalRegionDictionary &dict, reg_t id );
 
          static reg_t _getLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
          static reg_t tryGetLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
@@ -104,9 +116,22 @@ namespace nanos
          static bool isLocatedIn( RegionDirectoryKey dict, reg_t id, unsigned int loc );
          static bool hasWriteLocation( RegionDirectoryKey dict, reg_t id );
          static unsigned int getWriteLocation( RegionDirectoryKey dict, reg_t id );
-         static unsigned int getVersion( RegionDirectoryKey dict, reg_t id );
+         static unsigned int getVersion( RegionDirectoryKey dict, reg_t id, bool increaseVersion );
          static void addAccess( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version );
+         static void addAccessRegisterIfNeeded( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version );
+         static bool delAccess( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId );
+         static void invalidate( RegionDirectoryKey dict, reg_t id );
+         static bool hasBeenInvalidated( RegionDirectoryKey dict, reg_t id );
+         static void updateFromInvalidated( RegionDirectoryKey dict, reg_t id, reg_t from );
          static unsigned int getFirstLocation( RegionDirectoryKey dict, reg_t id );
+         static DeviceOps *getOps( RegionDirectoryKey dict, reg_t id );
+         static void setOps( RegionDirectoryKey dict, reg_t id, DeviceOps *ops );
+
+
+         static void tryGetLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
+         static void __getLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
+         static void initializeEntry( RegionDirectoryKey dict, reg_t reg );
+
    };
 }
 

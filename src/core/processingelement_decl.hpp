@@ -112,7 +112,7 @@ namespace nanos
          virtual void waitInputs( WorkDescriptor& wd );
 
          virtual bool isGPU() const = 0;
-         virtual bool supportsDirectTransfersWith( ProcessingElement const &pe ) const = 0;
+         //virtual bool supportsDirectTransfersWith( ProcessingElement const &pe ) const = 0;
          BaseThread *getFirstThread() const { return _threads[0]; }
    };
 

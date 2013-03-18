@@ -1,5 +1,6 @@
 #include "atomic.hpp"
 #include "deviceops.hpp"
+#include "system_decl.hpp"
 
 using namespace nanos;
 
@@ -13,8 +14,12 @@ void DeviceOps::completeOp() {
          }
          _refs.clear();
       }
-   } else if ( value == 0 ) std::cerr << "overflow!!! "<< (void *)this << std::endl;
+   } else if ( value == 0 ) { std::cerr << "overflow!!! "<< (void *)this << std::endl; sys.printBt(); }
    _lock.release();
+}
+
+void DeviceOps::completeCacheOp() {
+   _pendingCacheOp.release();
 }
 
 bool DeviceOps::addRef( DeviceOpsPtr *opsPtr, DeviceOpsPtr &p ) {

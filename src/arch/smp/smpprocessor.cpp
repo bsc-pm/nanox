@@ -136,6 +136,6 @@ BaseThread &SMPProcessor::createMultiThread ( WorkDescriptor &helper, unsigned i
 // (void) cd;
 // return (void*) 0xdeadebef;
 //}
-bool SMPProcessor::supportsDirectTransfersWith(ProcessingElement const &pe ) const {
-   return false;
-}
+//bool SMPProcessor::supportsDirectTransfersWith(ProcessingElement const &pe ) const {
+//   return false;
+//}

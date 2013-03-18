@@ -126,6 +126,20 @@ common_sources=\
 	$(top_srcdir)/src/core/version_decl.hpp  \
 	$(top_srcdir)/src/core/cachedregionstatus.hpp  \
 	$(top_srcdir)/src/core/cachedregionstatus_decl.hpp  \
+	$(top_srcdir)/src/core/addressspace.cpp  \
+	$(top_srcdir)/src/core/addressspace_decl.hpp  \
+	$(top_srcdir)/src/core/addressspace.hpp  \
+	$(top_srcdir)/src/core/addressspace_fwd.hpp  \
+	$(top_srcdir)/src/core/memcontroller_fwd.hpp  \
+	$(top_srcdir)/src/core/memcontroller_decl.hpp  \
+	$(top_srcdir)/src/core/memcontroller.cpp  \
+	$(top_srcdir)/src/core/memcachecopy_decl.hpp \
+	$(top_srcdir)/src/core/memcachecopy_fwd.hpp \
+	$(top_srcdir)/src/core/memcachecopy.cpp \
+	$(top_srcdir)/src/core/memoryops_decl.hpp \
+	$(top_srcdir)/src/core/memoryops.cpp \
+	$(top_srcdir)/src/core/globalregt_decl.hpp \
+	$(top_srcdir)/src/core/globalregt.cpp \
 	$(END)
 
 instr_sources = \

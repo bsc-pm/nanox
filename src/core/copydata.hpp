@@ -25,7 +25,7 @@
 
 using namespace nanos;
 
-inline CopyData::CopyData ( uint64_t addr, nanos_sharing_t nxSharing, bool input, bool output, std::size_t numDimensions, nanos_region_dimension_internal_t const *dims, ptrdiff_t off )
+inline CopyData::CopyData ( uint64_t addr, nanos_sharing_t nxSharing, bool input, bool output, std::size_t numDimensions, nanos_region_dimension_internal_t const *dims, ptrdiff_t off, uint64_t hostBaseAddress )
 {
    address = (void *) addr;
    sharing = nxSharing;
@@ -34,6 +34,7 @@ inline CopyData::CopyData ( uint64_t addr, nanos_sharing_t nxSharing, bool input
    dimension_count = numDimensions;
    dimensions = dims;
    offset = off;
+   _hostBaseAddress = hostBaseAddress;
 }
 
 inline CopyData::CopyData ( const CopyData &cd )
@@ -45,6 +46,7 @@ inline CopyData::CopyData ( const CopyData &cd )
    dimension_count = cd.dimension_count;
    dimensions = cd.dimensions;
    offset = cd.offset;
+   _hostBaseAddress = cd._hostBaseAddress;
 }
 
 inline const CopyData & CopyData::operator= ( const CopyData &cd )
@@ -57,6 +59,7 @@ inline const CopyData & CopyData::operator= ( const CopyData &cd )
    dimension_count = cd.dimension_count;
    dimensions = cd.dimensions;
    offset = cd.offset;
+   _hostBaseAddress = cd._hostBaseAddress;
    return *this;
 }
 
@@ -159,7 +162,16 @@ inline std::size_t CopyData::getFitSize() const
 
 inline uint64_t CopyData::getFitAddress() const
 {
+   //std::cerr << __FUNCTION__ << " dimensions are " << dimension_count << std::endl;
    return ( (uint64_t) getBaseAddress() ) + getFitOffsetRecursive( dimension_count - 1 );
+}
+
+inline uint64_t CopyData::getHostBaseAddress() const {
+   return _hostBaseAddress;
+}
+
+inline void CopyData::setHostBaseAddress( uint64_t addr ) {
+   _hostBaseAddress = addr;
 }
 
 

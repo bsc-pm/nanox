@@ -11,6 +11,7 @@ namespace nanos {
          ~Version();
          Version &operator=( Version const & ver );
          unsigned int getVersion() const;
+         unsigned int getVersion(bool increaseVersion);
          void setVersion( unsigned int version );
    };
 }

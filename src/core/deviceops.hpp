@@ -95,6 +95,15 @@ inline bool DeviceOps::allCompleted() {
    return b;
 }
 
+
+inline bool DeviceOps::addCacheOp() {
+   return _pendingCacheOp.tryAcquire();
+}
+
+inline bool DeviceOps::allCacheOpsCompleted() {
+   return _pendingCacheOp.getState() == NANOS_LOCK_FREE;
+}
+
 inline void DeviceOps::delRef( DeviceOpsPtr *opsPtr ) {
   _lock.acquire();
   _refs.erase( opsPtr );

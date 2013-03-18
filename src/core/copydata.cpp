@@ -5,6 +5,7 @@ using namespace nanos;
 
 std::size_t CopyData::getWideSizeRecursive( int i ) const
 {
+   //std::cerr << __FUNCTION__ << " with i " << i << std::endl;
    if ( i == 0 )
       return dimensions[ 0 ].size;
    else
@@ -29,9 +30,26 @@ uint64_t CopyData::getFitOffsetRecursive( int i ) const
    return off;
 }
 
+void CopyData::getFitDimensions( nanos_region_dimension_internal_t *outDimensions ) const {
+   bool keep_fitting = true;
+   for ( int idx = dimension_count - 1; idx >= 0; idx -= 1 ) {
+      outDimensions[ idx ].size = dimensions[ idx ].size;
+      if ( keep_fitting ) {
+         outDimensions[ idx ].accessed_length = dimensions[ idx ].accessed_length;
+         outDimensions[ idx ].lower_bound = dimensions[ idx ].lower_bound;
+         if ( dimensions[ idx ].accessed_length != 1 )
+            keep_fitting = false;
+      } else {
+         outDimensions[ idx ].lower_bound = 0;
+         outDimensions[ idx ].accessed_length = dimensions[ idx ].size;
+      }
+   }
+}
+
 std::ostream& nanos::operator<< (std::ostream &o, CopyData const &cd) {
    o << "CopyData" << std::endl;
    o << "\tAddtess: " << cd.address << std::endl;
+   o << "\tHostBaseAddtess: " << cd._hostBaseAddress << std::endl;
    o << "\tOffset: " << cd.offset << std::endl;
    o << "\tDimensions: " << cd.dimension_count << std::endl;
    for ( int i = 0; i < cd.dimension_count; i++) {

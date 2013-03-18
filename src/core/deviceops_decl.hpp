@@ -10,6 +10,7 @@ namespace nanos {
    class DeviceOps {
       private:
          Atomic<unsigned int> _pendingDeviceOps;
+         Lock _pendingCacheOp;
          Lock _lock;
          std::set<DeviceOpsPtr *> _refs;
       public:
@@ -22,6 +23,10 @@ namespace nanos {
          bool addRef( DeviceOpsPtr *opsPtr, DeviceOpsPtr &p );
          void delRef( DeviceOpsPtr *opsPtr );
          void addFirstRef( DeviceOpsPtr *opsPtr );
+
+         bool addCacheOp();
+         void completeCacheOp();
+         bool allCacheOpsCompleted();
    };
    
    class DeviceOpsPtr {

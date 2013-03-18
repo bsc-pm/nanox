@@ -17,39 +17,31 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_CACHED_ACCELERATOR
-#define _NANOS_CACHED_ACCELERATOR
 
-#include "cachedaccelerator_decl.hpp"
-#include "accelerator_decl.hpp"
-#include "regioncache.hpp"
-#include "system.hpp"
+#ifndef _NANOX_NETWORK
+#define _NANOX_NETWORK
 
-using namespace nanos;
 
-inline CachedAccelerator::CachedAccelerator( int newId, const Device *arch,
-   const Device *subArch, Device *cacheArch, std::size_t cacheSize, enum RegionCache::CacheOptions flags, memory_space_id_t addressSpace ) :
-   Accelerator( newId, arch, subArch ), _addressSpaceId( addressSpace ) , _newCache( (memory_space_id_t ) -1, *cacheArch, flags )  {
-   //sys.getCaches()[this->getMemorySpaceId()] = &_newCache;
-}
+namespace nanos {
 
-inline CachedAccelerator::~CachedAccelerator() {
-}
+   class NetworkMessage
+   {
+      private:
+      unsigned int _sequenceNumber;
+      unsigned int _destination;
+      public:
+      NetworkMessage( dest ) : _sequenceNumber( seed++ ), _destination( dest );
+      unsigned int getSequenceNumber() { return _sequenceNumber; }
+   }
 
-inline void CachedAccelerator::copyDataInDependent( WorkDescriptor &wd )
-{
-   //wd._ccontrol.copyDataIn( &_newCache );
-   wd._mcontrol.copyDataIn( _addressSpaceId );
-}
-
-inline void CachedAccelerator::waitInputsDependent( WorkDescriptor &wd )
-{
-   while ( !wd._mcontrol.isDataReady() ) { myThread->idle(); } 
-   //while ( !wd._ccontrol.dataIsReady() ) { myThread->idle(); } 
-}
-
-inline Device const *CachedAccelerator::getCacheDeviceType( ) const {
-   return &_newCache.getDevice();
+   class RemoteWorkDescriptorExecMsg : public NetworkMessage
+   {
+      private:
+      public:
+      RemoteWorkDescriptorExecMsg( const WD &wd ) : NetworkMessage( ) 
+      {
+      }
+   }
 }
 
 #endif

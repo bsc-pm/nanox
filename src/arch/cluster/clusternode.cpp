@@ -28,13 +28,13 @@ using namespace nanos;
 using namespace nanos::ext;
 
 
-ClusterNode::ClusterNode( int id ) : CachedAccelerator( id, &SMP, 
+ClusterNode::ClusterNode( int id, memory_space_id_t memId ) : CachedAccelerator( id, &SMP, 
 #ifdef GPU_DEV
    &GPU,
 #else
    NULL,
 #endif
-   &Cluster, ClusterInfo::getSegmentLen( id ), RegionCache::ALLOC_WIDE ), _clusterNode ( id ),
+   &Cluster, ClusterInfo::getSegmentLen( id ), RegionCache::ALLOC_FIT, memId ), _clusterNode ( id ),
    _memSegment( ( uintptr_t ) ClusterInfo::getSegmentAddr( id ),
    ClusterInfo::getSegmentLen( id ) ), _executedWorkDesciptors ( 0 ) {
 }
@@ -76,9 +76,9 @@ bool ClusterNode::isGPU () const {
    return false;
 }
 
-bool ClusterNode::supportsDirectTransfersWith( ProcessingElement const &pe ) const {
-   return ( &Cluster == pe.getCacheDeviceType() && sys.useNode2Node() );
-}
+//bool ClusterNode::supportsDirectTransfersWith( ProcessingElement const &pe ) const {
+//   return ( &Cluster == pe.getCacheDeviceType() && sys.useNode2Node() );
+//}
 
 unsigned int ClusterNode::getMyNodeNumber() const {
    return _clusterNode;

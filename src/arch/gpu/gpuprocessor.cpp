@@ -31,7 +31,7 @@ using namespace nanos::ext;
 Atomic<int> GPUProcessor::_deviceSeed = 0;
 
 
-GPUProcessor::GPUProcessor( int id, int gpuId ) : CachedAccelerator( id, &GPU , NULL, &GPU, 0, RegionCache::ALLOC_WIDE ),
+GPUProcessor::GPUProcessor( int id, int gpuId, memory_space_id_t memId ) : CachedAccelerator( id, &GPU , NULL, &GPU, 0, RegionCache::ALLOC_FIT, memId ),
       _gpuDevice( _deviceSeed++ ), _gpuProcessorStats(), _gpuProcessorTransfers(),
       _initialized( false ), _allocator(), _inputPinnedMemoryBuffer()
 {
@@ -257,6 +257,6 @@ void GPUProcessor::GPUProcessorInfo::destroyTransferStreams ()
       }
    }
 }
-bool GPUProcessor::supportsDirectTransfersWith(ProcessingElement const &pe) const {
-   return ( &GPU == pe.getCacheDeviceType() );
-}
+//bool GPUProcessor::supportsDirectTransfersWith(ProcessingElement const &pe) const {
+//   return ( &GPU == pe.getCacheDeviceType() );
+//}

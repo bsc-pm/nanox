@@ -38,6 +38,7 @@
 #include "barrier_decl.hpp"
 #include "accelerator_decl.hpp"
 #include "location.hpp"
+#include "addressspace_decl.hpp"
 
 #include "newregiondirectory_decl.hpp"
 
@@ -167,7 +168,11 @@ namespace nanos
          BaseThread *_auxThd;
 
          std::vector< RegionCache *> _regCaches;
-         LocationDirectory _locations;
+
+         unsigned int _separateMemorySpacesCount;
+         std::vector< SeparateMemoryAddressSpace * > _separateAddressSpaces;
+         HostMemoryAddressSpace                      _hostMemory;
+         //LocationDirectory _locations;
 
 #ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
@@ -400,6 +405,15 @@ namespace nanos
          void setAuxThd( BaseThread * t ) { _auxThd = t; }
          BaseThread * getAuxThd( void ) const { return _auxThd; }
 
+         HostMemoryAddressSpace &getHostMemory() { return _hostMemory; }
+          
+         SeparateMemoryAddressSpace &getSeparateMemory( memory_space_id_t id ) { 
+            //std::cerr << "Requested object " << _separateAddressSpaces[ id ] <<std::endl;
+            return *(_separateAddressSpaces[ id ]); 
+         }
+         unsigned int getNewSeparateMemoryAddressSpaceId() { return _separateMemorySpacesCount++; }
+         unsigned int getSeparateMemoryAddressSpacesCount() { return _separateMemorySpacesCount - 1; }
+
       private:
          std::list< std::list<GraphEntry *> * > _graphRepLists;
          Lock _graphRepListsLock;
@@ -407,6 +421,7 @@ namespace nanos
          std::list<GraphEntry *> *getGraphRepList();
          
          NewNewRegionDirectory &getMasterRegionDirectory() { return _masterRegionDirectory; }
+         bool canCopy( memory_space_id_t from, memory_space_id_t to ) const;
    };
 
    extern System sys;

@@ -1,5 +1,6 @@
 #ifndef VERSION_HPP
 #define VERSION_HPP
+#include "system_decl.hpp"
 using namespace nanos;
 
 inline Version::Version() : _version( 0 ) {
@@ -23,7 +24,19 @@ inline unsigned int Version::getVersion() const {
    return _version;
 }
 
+inline unsigned int Version::getVersion( bool increaseVersion ) {
+   unsigned int current_version = _version;
+   if ( increaseVersion ) {
+      _version += 1;
+   }
+   return current_version;
+}
+
 inline void Version::setVersion( unsigned int version ) {
+   if ( version < _version ) {
+      std::cerr << "WARNING not version increase " << _version << " => " << version << std::endl;
+      sys.printBt();
+   }
    _version = version;
 }
 #endif /* VERSION_HPP */

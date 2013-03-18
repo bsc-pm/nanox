@@ -65,8 +65,9 @@ namespace ext {
             void *_tmpBuffer;
             unsigned int _wdId;
             WD const *_wd;
+            Functor *_functor;
             public:
-            SendDataPutRequest( GASNetAPI *api, unsigned int dest, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *tmpBuffer, unsigned int wdId, WD const *wd );
+            SendDataPutRequest( GASNetAPI *api, unsigned int dest, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *tmpBuffer, unsigned int wdId, WD const *wd, Functor *f );
             virtual ~SendDataPutRequest();
             virtual void doSingleChunk();
             virtual void doStrided( void *localAddr );
@@ -82,7 +83,13 @@ namespace ext {
          };
 
          RequestQueue< SendDataRequest > _dataSendRequests;
-         RequestQueue< std::pair< void *, WD const * > > _freeBufferReqs;
+         struct FreeBufferRequest {
+            FreeBufferRequest(void *addr, WD const *w, Functor *f );
+            void *address;
+            WD const * wd;
+            Functor *functor;
+         };
+         RequestQueue< FreeBufferRequest > _freeBufferReqs;
          RequestQueue< std::pair< void *, unsigned int > > _workDoneReqs;
 
          std::size_t _rxBytes;
@@ -109,8 +116,8 @@ namespace ext {
          void nodeBarrier( void );
          
          void sendMyHostName( unsigned int dest );
-         void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const &wd);
-         void sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd );
+         void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const &wd, Functor *f);
+         void sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, Functor *f );
          std::size_t getMaxGetStridedLen() const;
          std::size_t getTotalBytes();
          std::size_t getRxBytes();
@@ -121,12 +128,12 @@ namespace ext {
          void processSendDataRequest( SendDataRequest *req );
 
       private:
-         void _put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, void *remoteTmpBuffer, unsigned int wdId, WD const &wd );
-         void _putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, void *remoteTmpBuffer, unsigned int wdId, WD const &wd );
-         void sendFreeTmpBuffer( void *addr, WD const *wd );
+         void _put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, void *remoteTmpBuffer, unsigned int wdId, WD const &wd, Functor *f );
+         void _putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, void *remoteTmpBuffer, unsigned int wdId, WD const &wd, Functor *f );
+         void sendFreeTmpBuffer( void *addr, WD const *wd, Functor *f );
          void sendWaitForRequestPut( unsigned int dest, uint64_t addr );
          static void print_copies( WD const *wd, int deps );
-         void enqueueFreeBufferNotify( void *bufferAddr, WD const *wd );
+         void enqueueFreeBufferNotify( void *bufferAddr, WD const *wd, Functor *f );
          void checkForPutReqs();
          void checkForFreeBufferReqs();
          void checkWorkDoneReqs();
@@ -173,7 +180,9 @@ namespace ext {
                gasnet_handlerarg_t wdLo,
                gasnet_handlerarg_t wdHi,
                gasnet_handlerarg_t first,
-               gasnet_handlerarg_t last);
+               gasnet_handlerarg_t last,
+               gasnet_handlerarg_t functorLo,
+               gasnet_handlerarg_t functorHi );
          static void amGet( gasnet_token_t token,
                gasnet_handlerarg_t destAddrLo,
                gasnet_handlerarg_t destAddrHi,
@@ -211,7 +220,9 @@ namespace ext {
                gasnet_handlerarg_t wdId,
                gasnet_handlerarg_t wdLo,
                gasnet_handlerarg_t wdHi,
-               gasnet_handlerarg_t dst );
+               gasnet_handlerarg_t dst,
+               gasnet_handlerarg_t functorLo,
+               gasnet_handlerarg_t functorHi );
          static void amRequestPutStrided1D( gasnet_token_t token,
                gasnet_handlerarg_t destAddrLo,
                gasnet_handlerarg_t destAddrHi,
@@ -226,7 +237,9 @@ namespace ext {
                gasnet_handlerarg_t wdId,
                gasnet_handlerarg_t wdLo,
                gasnet_handlerarg_t wdHi,
-               gasnet_handlerarg_t dst );
+               gasnet_handlerarg_t dst,
+               gasnet_handlerarg_t functorLo,
+               gasnet_handlerarg_t functorHi );
          static void amWaitRequestPut( gasnet_token_t token, 
                gasnet_handlerarg_t addrLo,
                gasnet_handlerarg_t addrHi );
@@ -234,7 +247,9 @@ namespace ext {
                gasnet_handlerarg_t addrLo,
                gasnet_handlerarg_t addrHi,
                gasnet_handlerarg_t wdLo,
-               gasnet_handlerarg_t wdHi );
+               gasnet_handlerarg_t wdHi,
+               gasnet_handlerarg_t functorLo,
+               gasnet_handlerarg_t functorHi );
          static void amPutStrided1D( gasnet_token_t token,
                void *buf,
                std::size_t len,
@@ -248,7 +263,9 @@ namespace ext {
                gasnet_handlerarg_t wdLo,
                gasnet_handlerarg_t wdHi,
                gasnet_handlerarg_t firstMsg,
-               gasnet_handlerarg_t lastMsg );
+               gasnet_handlerarg_t lastMsg,
+               gasnet_handlerarg_t functorLo,
+               gasnet_handlerarg_t functorHi );
          static void amGetStrided1D( gasnet_token_t token,
                gasnet_handlerarg_t destAddrLo,
                gasnet_handlerarg_t destAddrHi,

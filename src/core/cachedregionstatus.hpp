@@ -4,19 +4,22 @@
 #include "version.hpp"
 using namespace nanos; 
 
-inline CachedRegionStatus::CachedRegionStatus() : Version() {
+inline CachedRegionStatus::CachedRegionStatus() : Version(), _ops() {
 }
 
-inline CachedRegionStatus::CachedRegionStatus( CachedRegionStatus const &rs ) : Version( rs), _waitObject ( rs._waitObject ) {
+inline CachedRegionStatus::CachedRegionStatus( CachedRegionStatus const &rs ) : Version( rs ), _ops ( ) {
+}
+
+inline DeviceOps *CachedRegionStatus::getDeviceOps() {
+   return &_ops;
 }
 
 inline CachedRegionStatus &CachedRegionStatus::operator=( CachedRegionStatus const &rs ) {
    Version::operator=(rs);
-   _waitObject = rs._waitObject;
    return *this;
 }
 
-inline CachedRegionStatus::CachedRegionStatus( CachedRegionStatus &rs ) : Version( rs ), _waitObject ( rs._waitObject ) {
+inline CachedRegionStatus::CachedRegionStatus( CachedRegionStatus &rs ) : Version( rs ), _ops () {
 }
 
 inline CachedRegionStatus &CachedRegionStatus::operator=( CachedRegionStatus &rs ) {
@@ -26,10 +29,6 @@ inline CachedRegionStatus &CachedRegionStatus::operator=( CachedRegionStatus &rs
 
 inline void CachedRegionStatus::setCopying( DeviceOps *ops ) {
    _waitObject.set( ops );
-}
-
-inline DeviceOps *CachedRegionStatus::getDeviceOps() {
-   return _waitObject.get();
 }
 
 inline bool CachedRegionStatus::isReady( ) {

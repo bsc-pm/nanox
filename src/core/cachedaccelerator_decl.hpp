@@ -31,6 +31,7 @@ namespace nanos
    class CachedAccelerator : public Accelerator
    {
       private:
+        memory_space_id_t _addressSpaceId;
         RegionCache             _newCache;
 
         /*! \brief CachedAccelerator default constructor (private)
@@ -46,7 +47,7 @@ namespace nanos
         /*! \brief CachedAccelerator constructor - from 'newId' and 'arch'
          */
          CachedAccelerator( int newId, const Device *arch, const Device *subArch = NULL,
-            Device *cacheArch = NULL, std::size_t cacheSize = 0, enum RegionCache::CacheOptions flags = RegionCache::ALLOC_WIDE );
+            Device *cacheArch = NULL, std::size_t cacheSize = 0, enum RegionCache::CacheOptions flags = RegionCache::ALLOC_WIDE, memory_space_id_t addressSpace = (memory_space_id_t) -1 );
 
         /*! \brief CachedAccelerator destructor
          */

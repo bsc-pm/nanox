@@ -48,6 +48,8 @@
 #include "smpthread.hpp"
 #endif
 
+#include "addressspace.hpp"
+
 #include <execinfo.h>
 
 using namespace nanos;
@@ -79,7 +81,7 @@ System::System () :
       _initializedThreads ( 0 ), _targetThreads ( 0 ),_pausedThreads( 0 ), _pausedThreadsCond(), _unpausedThreadsCond(),
       _usingCluster( false ),_usingNewCache( false ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _pmInterface( NULL ),
-      _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap(), _masterGpuThd( NULL ), _auxThd( NULL ),_regCaches(1024)
+      _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap(), _masterGpuThd( NULL ), _auxThd( NULL ),_regCaches(1024), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( ext::SMP )
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
 #endif
@@ -438,7 +440,11 @@ void System::start ()
    int gpuC;
    for ( gpuC = 0; gpuC < ( ( usingCluster() && sys.getNetwork()->getNodeNum() == 0 && sys.getNetwork()->getNumNodes() > 1 ) ? 0 : nanos::ext::GPUConfig::getGPUCount() ); gpuC++ ) {
    //for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount() ; gpuC++ ) {
-      PE *gpu = NEW nanos::ext::GPUProcessor( p++, gpuC );
+      memory_space_id_t id = getNewSeparateMemoryAddressSpaceId();
+      SeparateMemoryAddressSpace *gpuMemory = NEW SeparateMemoryAddressSpace( id, ext::GPU );
+      _separateAddressSpaces[ id ] = gpuMemory;
+      
+      PE *gpu = NEW nanos::ext::GPUProcessor( p++, gpuC, id );
       _pes.push_back( gpu );
       _localAccelerators.push_back( dynamic_cast<nanos::ext::GPUProcessor *>( gpu ) );
          _preMainBarrier++;
@@ -475,7 +481,12 @@ void System::start ()
 
          PE *_peArray[ _net.getNumNodes() - 1];
          for ( nodeC = 1; nodeC < _net.getNumNodes(); nodeC++ ) {
-            nanos::ext::ClusterNode *node = new nanos::ext::ClusterNode( nodeC );
+      memory_space_id_t id = getNewSeparateMemoryAddressSpaceId();
+      SeparateMemoryAddressSpace *nodeMemory = NEW SeparateMemoryAddressSpace( id, ext::Cluster );
+      nodeMemory->setSpecificData( NEW SimpleAllocator( ( uintptr_t ) nanos::ext::ClusterInfo::getSegmentAddr( nodeC ), nanos::ext::ClusterInfo::getSegmentLen( nodeC ) ) );
+      nodeMemory->setNodeNumber( nodeC );
+      _separateAddressSpaces[ id ] = nodeMemory;
+            nanos::ext::ClusterNode *node = new nanos::ext::ClusterNode( nodeC, id );
             _pes.push_back( node );
 
             _peArray[ nodeC - 1 ] = node;
@@ -1472,4 +1483,8 @@ void System::waitUntilThreadsUnpaused ()
 {
    // Wait until all threads are paused
    _unpausedThreadsCond.wait();
+}
+
+bool System::canCopy( memory_space_id_t from, memory_space_id_t to ) const {
+   return true;
 }

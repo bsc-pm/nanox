@@ -33,7 +33,8 @@ NANOS_API_DEF(nanos_err_t, nanos_get_addr, ( nanos_copy_id_t copy_id, void **add
 
    WD *wd = ( WD * )cwd;
 
-   *addr = (void *) wd->_ccontrol.getAddress( copy_id );
+   //*addr = (void *) wd->_ccontrol.getAddress( copy_id );
+   *addr = (void *) wd->_mcontrol.getAddress( copy_id );
 
    return NANOS_OK;
 }

@@ -22,14 +22,15 @@
 
 #include "regiondirectory_decl.hpp"
 #include "regionbuilder.hpp"
+#include "deviceops.hpp"
 #include "version.hpp"
 
 
-inline NewNewDirectoryEntryData::NewNewDirectoryEntryData(): Version( 1 ), _writeLocation(-1), _location() {
+inline NewNewDirectoryEntryData::NewNewDirectoryEntryData(): Version( 1 ), _writeLocation( -1 ), _invalidated( 0 ), _ops(), _location() {
 }
 
 inline NewNewDirectoryEntryData::NewNewDirectoryEntryData( const NewNewDirectoryEntryData &de ): Version( de ), _writeLocation( de._writeLocation ),
-   _location( de._location ) {
+   _invalidated( de._invalidated ), _ops(), _location( de._location ) {
 }
 
 inline NewNewDirectoryEntryData::~NewNewDirectoryEntryData() {
@@ -37,6 +38,7 @@ inline NewNewDirectoryEntryData::~NewNewDirectoryEntryData() {
 
 inline const NewNewDirectoryEntryData & NewNewDirectoryEntryData::operator= ( const NewNewDirectoryEntryData &de ) {
    Version::operator=( de );
+   _invalidated = de._invalidated;
    _writeLocation = de._writeLocation;
    _location.clear();
    _location.insert( de._location.begin(), de._location.end() );
@@ -61,6 +63,7 @@ inline void NewNewDirectoryEntryData::addAccess( int id, unsigned int version ) 
       _writeLocation = id;
       this->setVersion( version );
       _location.insert( id );
+      _invalidated = 0;
    } else if ( version == this->getVersion() ) {
       // entry is going to be replicated, so it must be that multiple copies are used as inputs only
       _location.insert( id );
@@ -73,8 +76,21 @@ inline void NewNewDirectoryEntryData::addAccess( int id, unsigned int version ) 
    }
 }
 
+inline bool NewNewDirectoryEntryData::delAccess( int from ) {
+   _location.erase( from );
+   return _location.empty();
+}
+
 inline bool NewNewDirectoryEntryData::isLocatedIn( int id, unsigned int version ) const {
    return ( version <= this->getVersion() && _location.count( id ) > 0 );
+}
+
+inline void NewNewDirectoryEntryData::invalidate() {
+   _invalidated = 1;
+}
+
+inline bool NewNewDirectoryEntryData::hasBeenInvalidated() const {
+   return _invalidated == 1;
 }
 
 inline bool NewNewDirectoryEntryData::isLocatedIn( int id ) const {
@@ -134,6 +150,14 @@ inline int NewNewDirectoryEntryData::getFirstLocation() const {
 
 inline int NewNewDirectoryEntryData::getNumLocations() const {
    return _location.size();
+}
+
+inline DeviceOps *NewNewDirectoryEntryData::getOps() {
+   return &_ops;
+}
+
+inline void NewNewDirectoryEntryData::setOps( DeviceOps *ops ) {
+   return _opsPtr.set( ops );
 }
 
 inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd ) {

@@ -31,7 +31,8 @@ using namespace nanos;
 
 void ProcessingElement::copyDataIn( WorkDescriptor &work )
 {
-   work._ccontrol.copyDataIn( NULL );
+   //work._ccontrol.copyDataIn( NULL );
+   work._mcontrol.copyDataIn( 0 );
 }
 
 void ProcessingElement::copyDataOut( WorkDescriptor &work )
@@ -41,7 +42,8 @@ void ProcessingElement::copyDataOut( WorkDescriptor &work )
 void ProcessingElement::waitInputs( WorkDescriptor &work )
 {
    BaseThread * thread = getMyThreadSafe();
-   while ( !work._ccontrol.dataIsReady() ) { 
+   //while ( !work._ccontrol.dataIsReady() ) { 
+   while ( !work._mcontrol.isDataReady() ) { 
       thread->idle();
       thread->getTeam()->getSchedulePolicy().atSupport( thread ); 
    }

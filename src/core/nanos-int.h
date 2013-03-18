@@ -117,6 +117,7 @@ typedef struct {
    short dimension_count;
    nanos_region_dimension_internal_t const *dimensions;
    ptrdiff_t offset;
+   uint64_t _hostBaseAddress;
 } nanos_copy_data_internal_t;
 
 

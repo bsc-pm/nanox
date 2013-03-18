@@ -8,16 +8,18 @@ namespace nanos {
 
    class CachedRegionStatus : public Version {
       private:
+         DeviceOps _ops;
          DeviceOpsPtr _waitObject;
       public:
          CachedRegionStatus();
          CachedRegionStatus( CachedRegionStatus const &rs );
+         DeviceOps * getDeviceOps();
+
          CachedRegionStatus &operator=( CachedRegionStatus const &rs );
          CachedRegionStatus( CachedRegionStatus &rs );
          CachedRegionStatus &operator=( CachedRegionStatus &rs );
-         void setCopying( DeviceOps *ops );
-         DeviceOps * getDeviceOps();
          bool isReady();
+         void setCopying( DeviceOps * );
    };
 }
 

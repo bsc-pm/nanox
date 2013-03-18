@@ -22,6 +22,7 @@
 #define _NANOX_NETWORK
 
 #include <string>
+#include "functor_decl.hpp"
 #include "requestqueue_decl.hpp"
 #include "networkapi.hpp"
 
@@ -144,8 +145,8 @@ namespace nanos {
          void setMasterHostname( char *name );
          //const std::string & getMasterHostname( void ) const;
          const char * getMasterHostname( void ) const;
-         void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const &wd );
-         void sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd );
+         void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const &wd, Functor *f );
+         void sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, Functor *f );
          std::size_t getTotalBytes();
          void mallocSlaves ( void **addresses, std::size_t size );
 

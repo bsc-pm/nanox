@@ -40,6 +40,7 @@
 //#include "newdirectory_fwd.hpp"
 #include "regiondirectory_fwd.hpp"
 #include "regioncache_decl.hpp"
+#include "memcontroller_decl.hpp"
 
 namespace nanos
 {
@@ -81,13 +82,13 @@ namespace nanos
           */
          const char * getName ( void ) const { return _name; }
 
-         virtual void *memAllocate( std::size_t size, ProcessingElement &pe ) const { return (void *) 0xdeadbeef; }
-         virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement &pe, DeviceOps *ops, WorkDescriptor const &wd ) const { std::cerr << "wrong copyIn" <<std::endl; }
-         virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, ProcessingElement &pe, DeviceOps *ops, WorkDescriptor const &wd ) const { std::cerr << "wrong copyOut" <<std::endl; }
-         virtual void _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, ProcessingElement &peDest, ProcessingElement &peOrig, DeviceOps *ops, WorkDescriptor const &wd ) const { std::cerr << "wrong copyOut" <<std::endl; }
-         virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, ProcessingElement const &pe, DeviceOps *ops, WorkDescriptor const &wd ) { std::cerr << "wrong copyIn" <<std::endl; }
-         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, ProcessingElement const &pe, DeviceOps *ops, WorkDescriptor const &wd ) { std::cerr << "wrong copyOut" <<std::endl; }
-         virtual void _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, ProcessingElement const &peDest, ProcessingElement const &peOrig, DeviceOps *ops, WorkDescriptor const &wd ) const { std::cerr << "wrong copyOut" <<std::endl; }
+         virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem ) const { return (void *) 0xdeadbeef; }
+         virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WorkDescriptor const &wd ) const { std::cerr << "wrong copyIn" <<std::endl; }
+         virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WorkDescriptor const &wd ) const { std::cerr << "wrong copyOut" <<std::endl; }
+         virtual void _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, WorkDescriptor const &wd, Functor *f ) const { std::cerr << "wrong copyOut" <<std::endl; }
+         virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, WorkDescriptor const &wd ) { std::cerr << "wrong copyIn" <<std::endl; }
+         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, WorkDescriptor const &wd ) { std::cerr << "wrong copyOut" <<std::endl; }
+         virtual void _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &memDest, SeparateMemoryAddressSpace const &memOrig, DeviceOps *ops, WorkDescriptor const &wd, Functor *f ) const { std::cerr << "wrong copyOut" <<std::endl; }
    };
 
   /*! \brief This class holds the specific data for a given device
@@ -202,6 +203,7 @@ namespace nanos
          unsigned int                  _priority;      /**< Task priority */
       public:
          CacheController                _ccontrol;
+         MemController                  _mcontrol;
 
       private: /* private methods */
          /*! \brief WorkDescriptor copy assignment operator (private)
@@ -223,7 +225,14 @@ namespace nanos
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
                           _depsDomain(), _newDirectory( NULL ), _instrumentationContextData(), _submitted(false),
                           _translateArgs( translate_args ),_myGraphRepList(NULL), _listed(false), _notifyCopy( NULL ),
-                          _notifyThread( NULL ), _priority( 0 ), _ccontrol( *this ) { getGE()->setNoWait(); }
+                          _notifyThread( NULL ), _priority( 0 ), _ccontrol( *this ), _mcontrol( *this ) { 
+                             getGE()->setNoWait();
+                             if ( copies != NULL ) {
+                                for ( unsigned int i = 0; i < numCopies; i += 1 ) {
+                                   copies[i].setHostBaseAddress( 0 );
+                                }
+                             }
+                          }
                           //_depsDomain(), _directory(), _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted(false), _translateArgs( translate_args ) { }
 
          /*! \brief WorkDescriptor constructor - 2
@@ -237,7 +246,14 @@ namespace nanos
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
                           _depsDomain(), _newDirectory( NULL ), _instrumentationContextData(), _submitted( false ),
                           _translateArgs( translate_args ),_myGraphRepList(NULL), _listed(false), _notifyCopy( NULL ),
-                          _notifyThread( NULL ), _priority( 0 ), _ccontrol( *this ) { getGE()->setNoWait(); }
+                          _notifyThread( NULL ), _priority( 0 ), _ccontrol( *this ), _mcontrol( *this ) { 
+                             getGE()->setNoWait();
+                             if ( copies != NULL ) {
+                                for ( unsigned int i = 0; i < numCopies; i += 1 ) {
+                                   copies[i].setHostBaseAddress( 0 );
+                                }
+                             }
+                          }
                           //_depsDomain(), _directory(),  _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted( false ), _translateArgs( translate_args ) { }
 
          /*! \brief WorkDescriptor copy constructor (using a given WorkDescriptor)
@@ -258,7 +274,7 @@ namespace nanos
                           _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
                           _doSubmit(), _doWait(), _depsDomain(), _newDirectory( wd._newDirectory ), _instrumentationContextData(), _submitted( false ),
                           _translateArgs( wd._translateArgs ),_myGraphRepList(wd._myGraphRepList) , _listed(wd._listed), _notifyCopy( NULL ),
-                          _notifyThread ( NULL ), _priority( wd._priority ), _ccontrol( *this ) { }
+                          _notifyThread ( NULL ), _priority( wd._priority ), _ccontrol( *this ), _mcontrol( *this ) { }
                           //_doSubmit(), _doWait(), _depsDomain(), _directory(), _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted( false ), _translateArgs( wd._translateArgs ) { }
 
          /*! \brief WorkDescriptor destructor
