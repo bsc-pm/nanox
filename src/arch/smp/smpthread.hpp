@@ -76,7 +76,7 @@ namespace ext
          /** \brief SMP specific yield implementation
          */
          virtual void yield();
-         virtual void idle();
+         virtual void idle( bool debug = false );
 
          virtual void switchToNextThread() {
             fatal( "SMPThread does not support switchToNextThread()" );

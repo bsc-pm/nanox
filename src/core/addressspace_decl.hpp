@@ -66,6 +66,7 @@ class SeparateAddressSpace {
    void copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations );
 
    RegionCache &getCache();
+   ProcessingElement &getPE();
 
 };
 

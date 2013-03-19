@@ -109,7 +109,9 @@ common_sources=\
 	$(top_srcdir)/src/core/regiondirectory.cpp  \
 	$(top_srcdir)/src/core/regiondirectory.hpp  \
 	$(top_srcdir)/src/core/regiondirectory_decl.hpp  \
+   $(top_srcdir)/src/core/regiondirectory_fwd.hpp \
 	$(top_srcdir)/src/core/regiondict_decl.hpp  \
+	$(top_srcdir)/src/core/regiondict.hpp  \
 	$(top_srcdir)/src/core/regiondict.cpp  \
 	$(top_srcdir)/src/core/newregiondirectory.cpp  \
 	$(top_srcdir)/src/core/newregiondirectory.hpp  \
@@ -120,6 +122,7 @@ common_sources=\
 	$(top_srcdir)/src/core/location_decl.hpp  \
 	$(top_srcdir)/src/core/location.hpp  \
 	$(top_srcdir)/src/core/deviceops_decl.hpp  \
+	$(top_srcdir)/src/core/deviceops_fwd.hpp  \
 	$(top_srcdir)/src/core/deviceops.hpp  \
 	$(top_srcdir)/src/core/deviceops.cpp  \
 	$(top_srcdir)/src/core/version.hpp  \
@@ -137,6 +140,7 @@ common_sources=\
 	$(top_srcdir)/src/core/memcachecopy_fwd.hpp \
 	$(top_srcdir)/src/core/memcachecopy.cpp \
 	$(top_srcdir)/src/core/memoryops_decl.hpp \
+	$(top_srcdir)/src/core/memoryops.hpp \
 	$(top_srcdir)/src/core/memoryops.cpp \
 	$(top_srcdir)/src/core/globalregt_decl.hpp \
 	$(top_srcdir)/src/core/globalregt.cpp \

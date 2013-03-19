@@ -660,11 +660,11 @@ namespace nanos {
 
             WD *fetchWD ( BaseThread *thread, WD *current );  
             virtual void atSupport ( BaseThread *thread );
-            //void pickWDtoInitialize ( BaseThread *thread );  
+            void pickWDtoInitialize ( BaseThread *thread );  
 
       };
 
-#if 0
+#if 1
       inline void CacheSchedPolicy::pickWDtoInitialize( BaseThread *thread )
       {
          WorkDescriptor * wd = NULL;
@@ -702,9 +702,12 @@ namespace nanos {
 
                tdata._lastNodeScheduled = selectedNode;
                
-               BaseThread const *actualThread = sys.getCaches()[ selectedNode ]->getPE().getFirstThread();
-               BaseThread *actualThreadNC = sys.getCaches()[ selectedNode ]->getPE().getFirstThread();
-               if ( sys.getCaches()[ selectedNode ]->getNodeNumber() != selectedNode ) std::cerr <<"ERROR !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" <<std::endl;
+               BaseThread const *actualThread = sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE().getFirstThread();
+               BaseThread *actualThreadNC = sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE().getFirstThread();
+
+               if ( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getNodeNumber() != selectedNode ) {
+                  std::cerr <<"ERROR !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" <<std::endl;
+               }
                
                ext::ClusterThread *actualClusterThread = dynamic_cast< ext::ClusterThread * >( actualThreadNC );
 
@@ -718,7 +721,8 @@ namespace nanos {
                   //Scheduler::preOutlineWorkWithThread( actualClusterThread, wd );
                   //actualClusterThread->outlineWorkDependent(*wd);
                   
-                  wd->initWithPE( sys.getCaches()[ selectedNode ]->getPE() );
+                  //wd->initWithPE( sys.getCaches()[ selectedNode ]->getPE() );
+                  wd->initWithPE( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
                   tdata._readyQueues[selectedNode].push_front( wd );
 
                   data._helped++;
@@ -750,7 +754,7 @@ namespace nanos {
                   NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("sched-affinity-constraint");)
                   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) SICOPYNOMASTERINIT );)
                   //std::cerr <<"help init wd "<< wd->getId() << " TC " << (void *) wd->_ccontrol._targetCache <<std::endl;
-                  wd->initWithPE( sys.getCaches()[ selectedNode ]->getPE() );
+                  wd->initWithPE( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
 
                   //std::cerr << "add running wd "<<std::endl;
                   //actualClusterThread->addRunningWDSMP( wd );
@@ -1241,7 +1245,7 @@ namespace nanos {
       void CacheSchedPolicy::atSupport ( BaseThread *thread ) {
          //tryGetLocationData( thread );
          if ( !_noSupport ) {
-            //pickWDtoInitialize( thread );
+            pickWDtoInitialize( thread );
          }
       }
 

@@ -63,7 +63,8 @@ void * SimpleAllocator::allocate( std::size_t size )
    }
    else {
       // Could not get a chunk of 'size' bytes
-      std::cerr << __FUNCTION__ << " WARNING: Allocator is full, requested " << size << " bytes, remaining " << _remaining << " bytes." << std::endl;
+      //std::cerr << __FUNCTION__ << " WARNING: Allocator is full, requested " << size << " bytes, remaining " << _remaining << " bytes." << std::endl;
+      //sys.printBt();
       return NULL;
    }
 

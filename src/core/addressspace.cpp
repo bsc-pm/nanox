@@ -1,7 +1,8 @@
 #include "addressspace_decl.hpp"
 #include "newregiondirectory.hpp"
 #include "regioncache.hpp"
-#include "system_decl.hpp"
+#include "system.hpp"
+#include "regiondict.hpp"
 namespace nanos {
 
 template <>
@@ -157,7 +158,8 @@ RegionCache &SeparateAddressSpace::getCache() {
    return _cache;
 }
 
-
-
+ProcessingElement &SeparateAddressSpace::getPE() {
+   return sys.getPEWithMemorySpaceId( _cache.getMemorySpaceId() );
+}
 
 }

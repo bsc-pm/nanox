@@ -49,6 +49,8 @@ bool ClusterDevice::GetRequest::isCompleted() const {
 
 void ClusterDevice::GetRequest::clear() {
    ::memcpy( _hostAddr, _recvAddr, _size );
+   std::cerr << "CELAR "<< (void*)this << std::endl;
+   sys.printBt();
    sys.getNetwork()->freeReceiveMemory( _recvAddr );
    _ops->completeOp();
 }
@@ -100,13 +102,23 @@ void ClusterDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t le
 
 void ClusterDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const &wd ) const {
 
-   char *recvAddr = (char *) sys.getNetwork()->allocateReceiveMemory( len );
+   char *recvAddr = NULL;
+   std::cerr << std::endl << " NETWORK GET, get buffer " <<std::endl;
+   do { 
+      recvAddr = (char *) sys.getNetwork()->allocateReceiveMemory( len );
+      if ( !recvAddr ) {
+         myThread->idle( true );
+      }
+   } while ( recvAddr == NULL );
+   std::cerr << std::endl << " NETWORK GET, got buffer " <<std::endl;
 
    GetRequest *newreq = NEW GetRequest( (char *) hostAddr, len, recvAddr, ops );
    myThread->_pendingRequests.insert( newreq );
 
    ops->addOp();
+   std::cerr << std::endl << " NETWORK GET, request "<< (void *)newreq << " queue addr " << (void *) &myThread->_pendingRequests  <<std::endl;
    sys.getNetwork()->get( ( void * ) recvAddr, mem.getNodeNumber(), devAddr, len, (volatile int *) newreq );
+   std::cerr << " DONE NETWORK GET, request "<< (void *)newreq <<std::endl;
 }
 
 void ClusterDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, WD const &wd, Functor *f ) const {
@@ -140,7 +152,14 @@ void ClusterDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std:
    // FIXME: check if maxCount can copy more data on the last iteration
    if ( maxCount != count ) std::cerr <<"WARNING: maxCount("<< maxCount << ") != count(" << count <<") MaxGetStridedLen="<< sys.getNetwork()->getMaxGetStridedLen()<<std::endl;
    for ( unsigned int i = 0; i < count; i += maxCount ) {
-      char * packedAddr = (char *) _packer.give_pack( hostAddr, len, maxCount );
+      char * packedAddr = NULL;
+      do {
+         packedAddr = (char *) _packer.give_pack( hostAddr, len, maxCount );
+         if (!packedAddr ) {
+            myThread->idle( true );
+         }
+      } while ( packedAddr == NULL );
+
       if ( packedAddr != NULL) { 
          GetRequestStrided *newreq = NEW GetRequestStrided( &hostAddrPtr[ i * ld ] , len, maxCount, ld, packedAddr, ops, &_packer );
          myThread->_pendingRequests.insert( newreq );

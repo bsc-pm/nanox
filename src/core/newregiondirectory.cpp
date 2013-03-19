@@ -426,6 +426,7 @@ void NewNewRegionDirectory::synchronize2( bool flushData ) {
                   } else {
                      ops.insert( thisOps );
                   }
+                  std::cerr << "issued copyOut " << std::endl;
                   //regEntry->addAccess( 0, regEntry->getVersion() );
                } else {
                   //std::cerr << "\t" << mit->first << " " << mit->second <<" already in loc 0." <<std::endl;
@@ -447,22 +448,25 @@ void NewNewRegionDirectory::synchronize2( bool flushData ) {
          }
          std::cerr << "=============================================================="<<std::endl;
       }
+                  std::cerr << "wait outs " << std::endl;
       bool allDone = true;
       do {
          allDone = true;
          for ( std::set< DeviceOps *>::iterator it = myOps.begin(); it != myOps.end(); it++ ) {
             allDone = allDone && (*it)->allCompleted();
          }
-         myThread->idle();
+         myThread->idle( true);
       } while ( !allDone );
       for ( std::set< DeviceOps *>::iterator it = myOps.begin(); it != myOps.end(); it++ ) {
          (*it)->completeCacheOp();
       }
+                  std::cerr << "wait more outs " << std::endl;
 
       do {
          for ( std::set< DeviceOps *>::iterator it = ops.begin(); it != ops.end(); it++ ) {
             allDone = (*it)->allCacheOpsCompleted();
          }
+         myThread->idle( true);
       } while ( !allDone );
    }
 }

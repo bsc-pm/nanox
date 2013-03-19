@@ -1,7 +1,7 @@
 #include <stdint.h>
-#include <globalregt_decl.hpp>
-#include <newregiondirectory_decl.hpp>
-#include <regiondict.hpp>
+#include "globalregt_decl.hpp"
+#include "newregiondirectory_decl.hpp"
+#include "regiondict.hpp"
 
 uint64_t global_reg_t::getFirstAddress() const {
    RegionNode *n = key->getRegionNode( id );

@@ -201,7 +201,7 @@ namespace nanos
          void pause ();
          void unpause ();
 
-         virtual void idle() {};
+         virtual void idle( bool debug = false ) {};
          virtual void yield() {};
 
          virtual void join() = 0;

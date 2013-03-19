@@ -199,7 +199,7 @@ void GPUThread::yield()
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->executeMemoryTransfers();
 }
 
-void GPUThread::idle()
+void GPUThread::idle( bool debug )
 {
    cudaFree(0);
    ( ( GPUProcessor * ) runningOn() )->getInTransferList()->executeMemoryTransfers();

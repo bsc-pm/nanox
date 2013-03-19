@@ -422,6 +422,7 @@ namespace nanos
          
          NewNewRegionDirectory &getMasterRegionDirectory() { return _masterRegionDirectory; }
          bool canCopy( memory_space_id_t from, memory_space_id_t to ) const;
+         ProcessingElement &getPEWithMemorySpaceId( memory_space_id_t id );;
    };
 
    extern System sys;

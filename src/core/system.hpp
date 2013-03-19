@@ -264,5 +264,17 @@ inline unsigned int System::getMemorySpaceId() { return _atomicSeedMemorySpace++
 inline unsigned int System::getRootMemorySpaceId() { return 0; }
 inline unsigned int System::getNumMemorySpaces() { return _atomicSeedMemorySpace.value(); }
 
+inline ProcessingElement &System::getPEWithMemorySpaceId( memory_space_id_t id ) {
+   bool found = false;
+   PE *target = NULL;
+   for ( PEList::iterator it = _pes.begin(); it != _pes.end() && !found; it++ ) {
+      if ( (*it)->getMemorySpaceId() == id ) {
+         target = *it;
+         found = true;
+      }
+   }
+   return *target;
+}
+
 #endif
 

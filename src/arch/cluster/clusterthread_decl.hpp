@@ -80,7 +80,7 @@ namespace ext
       virtual void start();
       virtual BaseThread * getNextThread ();
 
-      void idle();
+      virtual void idle( bool debug=false );
 
       virtual void notifyOutlinedCompletionDependent( WD *completedWD ); 
       virtual bool isCluster();

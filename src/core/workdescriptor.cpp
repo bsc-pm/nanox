@@ -202,7 +202,8 @@ void WorkDescriptor::done ()
    //  pe->copyDataOut( *this );
 
    //_ccontrol.copyDataOut();
-   _mcontrol.copyDataOut();
+   if ( getNumCopies() > 0 )
+      _mcontrol.copyDataOut();
    
 
    sys.getPMInterface().wdFinished( *this );

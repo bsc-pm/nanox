@@ -64,9 +64,9 @@ namespace ext
 
          void inlineWorkDependent( WD &work );
 
-         void yield();
+         virtual void yield();
 
-         void idle();
+         virtual void idle( bool debug );
 
          int getGPUDevice ();
 

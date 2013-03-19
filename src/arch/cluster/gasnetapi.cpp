@@ -159,6 +159,7 @@ void GASNetAPI::SendDataGetRequest::doSingleChunk() {
    NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
+   std::cerr << " send data to 0, len is " << _len << " max is " << gasnet_AMMaxLongRequest() << std::endl;
    while ( sent < _len )
    {
       thisReqSize = ( ( _len - sent ) <= gasnet_AMMaxLongRequest() ) ? _len - sent : gasnet_AMMaxLongRequest();
@@ -637,6 +638,7 @@ void GASNetAPI::amGetReply( gasnet_token_t token,
    if ( waitObj != NULL )
    {
       //waitObj->_complete = 1;
+      std::cerr << " complete request " << (void*) waitObj << std::endl;
       waitObj->complete();
    }
    VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
@@ -1408,7 +1410,7 @@ void GASNetAPI::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteA
       NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( ( ( sent + thisReqSize ) == size ) ? &requestComplete : NULL ) ; )
       NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent ( NANOS_XFER_GET, id, sizeKey, xferSize, remoteNode ); )
 
-      //fprintf(stderr, "n:%d send get req to node %d(src=%p, dst=%p localtag=%p, size=%ld)\n", gasnet_mynode(), remoteNode, (void *) remoteAddr, (void *) ( ( uintptr_t ) ( ( uintptr_t ) addr ) + sent ), localAddr, thisReqSize  );
+      fprintf(stderr, "n:%d send get req to node %d(src=%p, dst=%p localtag=%p, size=%ld)\n", gasnet_mynode(), remoteNode, (void *) remoteAddr, (void *) ( ( uintptr_t ) ( ( uintptr_t ) addr ) + sent ), localAddr, thisReqSize  );
       if ( gasnet_AMRequestShort12( remoteNode, 211,
                ARG_LO( ( ( uintptr_t ) ( ( uintptr_t ) addr ) + sent )  ),
                ARG_HI( ( ( uintptr_t ) ( ( uintptr_t ) addr ) + sent )  ),
