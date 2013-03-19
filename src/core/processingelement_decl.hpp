@@ -86,8 +86,9 @@ namespace nanos
          virtual void* getAddress( WorkDescriptor& wd, uint64_t tag, nanos_sharing_t sharing );
          virtual void copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );
 
-         virtual BaseThread* getNextRunningThread();
-         virtual BaseThread* getNextStoppedThread();
+         virtual BaseThread* getFirstRunningThread();
+         virtual BaseThread* getFirstStoppedThread();
+         virtual int getRunningThreads() const;
    };
 
    typedef class ProcessingElement PE;

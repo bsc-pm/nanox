@@ -1291,59 +1291,48 @@ void System::endTeam ( ThreadTeam *team )
    delete team;
 }
 
-void System::increaseActiveWorkers ( unsigned nthreads )
-{
-   ThreadTeam *team = myThread->getTeam();
-
-   while ( nthreads > 0 ) {
-      BaseThread *thread = getUnassignedWorker();
-
-      if ( !thread ) {
-         createWorker( _pes.size() );
-         continue;
-      }
-
-      acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
-      thread->signal();
-      nthreads--;
-      _numPEs++;
-      _numThreads++;
-   }
-}
-
-void System::decreaseActiveWorkers ( unsigned nthreads )
-{
-   // If the current thread is going to leave the team, leave the work to the master
-   if ( (unsigned)myThread->getTeamId() >= nthreads ) {
-      //getMyThreadSafe()->getCurrentWD()->tieTo(*_workers[0]);
-      Scheduler::switchToThread(_workers[0]);
-   }
-   while ( nthreads > 0 ) {
-      ThreadTeam *team = myThread->getTeam();
-      BaseThread *thread = team->popThread();
-      fatal_cond( thread == NULL, "Trying to release a non-existent thread" );
-
-      debug("Releasing thread " << thread << " from team " << team );
-      thread->sleep();
-      nthreads--;
-      _numPEs--;
-      _numThreads--;
-   }
-}
-
-void System::updateActiveWorkers ( unsigned nthreads )
+void System::updateActiveWorkers ( int nthreads )
 {
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, (nanos_event_value_t *) &nthreads); )
 
-   int new_threads = nthreads - getNumThreads();
-   if ( new_threads > 0 ) {
-      increaseActiveWorkers( new_threads );
-   } else if ( new_threads < 0 ) {
-      decreaseActiveWorkers ( std::abs(new_threads) );
-   } else {
-      /* new_threads == 0 */
+   BaseThread *thread;
+   ThreadTeam *team = myThread->getTeam();
+
+   /* Increase _numThreads */
+   for ( unsigned pe_id = 0; nthreads > _numThreads; pe_id++ ) {
+
+      fatal_cond( std::abs(_numThreads) < pe_id, "should never get here" );
+      // Create PE & Worker if it does not exist
+      if ( pe_id == _pes.size() ) {
+         createWorker( pe_id );
+      }
+
+      bool pe_dirty = false;
+      // Double-check the number of threads because we may overflow if the PE has more than one thread
+      while ( nthreads > _numThreads && (thread = _pes[pe_id]->getFirstStoppedThread()) != NULL ) {
+         acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
+         thread->signal();
+         _numThreads++;
+         pe_dirty = true;
+      }
+      if ( pe_dirty ) _numPEs++;
+   }
+
+   /* Decrease _numThreads */
+   for ( unsigned pe_id = _pes.size()-1; nthreads < _numThreads; pe_id-- ) {
+
+      bool pe_dirty = false;
+      // Double-check the number of threads because we may overflow if the PE has more than one thread
+      while ( nthreads < _numThreads && (thread = _pes[pe_id]->getFirstRunningThread()) != NULL ) {
+         thread->sleep();
+         _numThreads--;
+         pe_dirty = true;
+      }
+      if ( pe_dirty ) _numPEs--;
+
+      fatal_cond ( pe_id == 0 && nthreads < _numThreads, "Reached thread 0 and there are still threads to remove" );
    }
 }
 
@@ -1378,7 +1367,7 @@ void System::applyCpuMask()
       if ( _cpu_mask.find( pe_binding ) != _cpu_mask.end() ) {
 
          // This PE should be running
-         while ( (thread = _pes[pe_id]->getNextStoppedThread()) != NULL ) {
+         while ( (thread = _pes[pe_id]->getFirstStoppedThread()) != NULL ) {
             acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
             thread->signal();
             _numThreads++;
@@ -1389,7 +1378,7 @@ void System::applyCpuMask()
       } else {
 
          // This PE should not
-         while ( (thread = _pes[pe_id]->getNextRunningThread()) != NULL ) {
+         while ( (thread = _pes[pe_id]->getFirstRunningThread()) != NULL ) {
             thread->sleep();
             _numThreads--;
             pe_dirty = true;
@@ -1398,6 +1387,66 @@ void System::applyCpuMask()
       }
    }
    ensure( _numPEs == _cpu_mask.size(), "applyCpuMask fatal error" );
+}
+
+void System::getCpuMask ( cpu_set_t *mask ) const
+{
+   memcpy( mask, &_cpu_set, sizeof(cpu_set_t) );
+}
+
+void System::setCpuMask ( cpu_set_t *mask )
+{
+   memcpy( &_cpu_set, mask, sizeof(cpu_set_t) );
+   _cpu_mask.clear();
+
+   std::ostringstream oss_cpu_idx;
+   oss_cpu_idx << "[";
+   for ( int i=0; i<CPU_SETSIZE; i++ ) {
+      if ( CPU_ISSET(i, &_cpu_set) ) {
+         _cpu_mask.insert( i );
+         oss_cpu_idx << i << ", ";
+      }
+   }
+   oss_cpu_idx << "]";
+
+   if ( sys.getBinding() ) {
+      verbose0( "PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str() );
+      sys.applyCpuMask();
+   } else {
+      verbose0( "PID[" << getpid() << "]. Num threads: " << _cpu_mask.size() );
+      sys.updateActiveWorkers( _cpu_mask.size() );
+   }
+}
+
+void System::addCpuMask ( cpu_set_t *mask )
+{
+   CPU_OR( &_cpu_set, &_cpu_set, mask );
+
+   std::ostringstream oss_cpu_idx;
+   oss_cpu_idx << "[";
+   for ( int i=0; i<CPU_SETSIZE; i++) {
+      if ( CPU_ISSET(i, &_cpu_set) ) {
+         _cpu_mask.insert( i );
+         oss_cpu_idx << i << ", ";
+      }
+   }
+   oss_cpu_idx << "]";
+
+   if ( sys.getBinding() ) {
+      verbose0( "PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str() );
+      sys.applyCpuMask();
+   } else {
+      verbose0( "PID[" << getpid() << "]. Num threads: " << _cpu_mask.size() );
+      sys.updateActiveWorkers( _cpu_mask.size() );
+   }
+}
+
+int System::getMaskMaxSize() const
+{
+   // Union of sets _cpu_mask and _pe_map
+   std::set<int> union_set = _cpu_mask;
+   union_set.insert( _pe_map.begin(), _pe_map.end() );
+   return union_set.size();
 }
 
 void System::waitUntilThreadsPaused ()

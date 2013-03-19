@@ -189,9 +189,9 @@ inline void Scheduler::idleLoop ()
       BaseThread *thread = getMyThreadSafe();
       spins--;
 
-      if ( !thread->isEligible() && !behaviour::exiting() ) thread->wait();
-
       if ( !thread->isRunning() && !behaviour::exiting() ) break;
+
+      if ( !thread->isEligible() && !behaviour::exiting() ) thread->wait();
 
       WD * next = myThread->getNextWD();
       // This should be ideally performed in getNextWD, but it's const...

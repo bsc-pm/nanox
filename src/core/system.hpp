@@ -46,64 +46,8 @@ inline int System::getNumThreads () const { return _numThreads; }
 
 inline int System::getCpuCount () const { return _cpu_mask.size(); };
 
-inline void System::getCpuMask ( cpu_set_t *mask ) const { memcpy( mask, &_cpu_set, sizeof(cpu_set_t) ); }
-
-inline void System::setCpuMask ( cpu_set_t *mask )
-{
-   memcpy( &_cpu_set, mask, sizeof(cpu_set_t) );
-   _cpu_mask.clear();
-
-   std::ostringstream oss_cpu_idx;
-   oss_cpu_idx << "[";
-   for ( int i=0; i<CPU_SETSIZE; i++ ) {
-      if ( CPU_ISSET(i, &_cpu_set) ) {
-         _cpu_mask.insert( i );
-         oss_cpu_idx << i << ", ";
-      }
-   }
-   oss_cpu_idx << "]";
-   verbose0( "PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str() );
-   sys.applyCpuMask();
-}
-
-inline void System::addCpuMask ( cpu_set_t *mask )
-{
-   CPU_OR( &_cpu_set, &_cpu_set, mask );
-
-   std::ostringstream oss_cpu_idx;
-   oss_cpu_idx << "[";
-   for ( int i=0; i<CPU_SETSIZE; i++) {
-      if ( CPU_ISSET(i, &_cpu_set) ) {
-         _cpu_mask.insert( i );
-         oss_cpu_idx << i << ", ";
-      }
-   }
-   oss_cpu_idx << "]";
-   verbose0( "PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str() );
-   sys.applyCpuMask();
-}
-
-inline bool System::checkCpuMask(cpu_set_t *mask)
-{
-   cpu_set_t intxn;
-   CPU_AND( &intxn, &_cpu_set, mask);
-
-   // Is mask a subset of _cpu_set?
-   return ( CPU_EQUAL( mask, &intxn ) );
-}
-
-inline int System::getMaskMaxSize() const
-{
-   // Union of sets _cpu_mask and _pe_map
-   std::set<int> union_set = _cpu_mask;
-   union_set.insert( _pe_map.begin(), _pe_map.end() );
-   return union_set.size();
-}
-
 inline void System::setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask){
-   // It is possible to reach the setAffinity when the thread is already going to sleep.
-   // In this case, we need avoid the ensure because the mask is outdated
-   if ( myThread->isEligible() ) { ensure( checkCpuMask(mask), "invalid CPU mask set" ); }
+   //ensure( checkCpuMask(mask), "invalid CPU mask set" );
    sched_setaffinity( pid, cpusetsize, mask);
 }
 

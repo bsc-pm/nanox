@@ -145,7 +145,7 @@ void ProcessingElement::copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nan
    memcpy( dst, actualTag, size );
 }
 
-BaseThread* ProcessingElement::getNextRunningThread()
+BaseThread* ProcessingElement::getFirstRunningThread()
 {
    ThreadList::iterator it;
    for ( it = _threads.begin(); it != _threads.end(); it++ ) {
@@ -155,7 +155,7 @@ BaseThread* ProcessingElement::getNextRunningThread()
    return NULL;
 }
 
-BaseThread* ProcessingElement::getNextStoppedThread()
+BaseThread* ProcessingElement::getFirstStoppedThread()
 {
    ThreadList::iterator it;
    for ( it = _threads.begin(); it != _threads.end(); it++ ) {
@@ -163,4 +163,15 @@ BaseThread* ProcessingElement::getNextStoppedThread()
          return (*it);
    }
    return NULL;
+}
+
+int ProcessingElement::getRunningThreads() const
+{
+   int n = 0;
+   ThreadList::const_iterator it;
+   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
+      if ( (*it)->hasTeam() && (*it)->isEligible() )
+         n++;
+   }
+   return n;
 }

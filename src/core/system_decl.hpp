@@ -243,8 +243,6 @@ namespace nanos
 
          void setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask);
 
-         bool checkCpuMask(cpu_set_t *mask);
-
          int getMaskMaxSize() const;
 
          void setDeviceStackSize ( int stackSize );
@@ -328,7 +326,7 @@ namespace nanos
          void endTeam ( ThreadTeam *team );
          void releaseWorker ( BaseThread * thread );
 
-         void updateActiveWorkers ( unsigned nthreads );
+         void updateActiveWorkers ( int nthreads );
 
          void setThrottlePolicy( ThrottlePolicy * policy );
 
