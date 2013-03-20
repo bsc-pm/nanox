@@ -30,6 +30,12 @@
 #include "dataaccess.hpp"
 #include "instrumentation_decl.hpp"
 #include "cache_map.hpp"
+#include <cmath>
+
+
+#ifdef HWLOC
+#include <hwloc.h>
+#endif
 
 using namespace nanos;
 
@@ -114,6 +120,116 @@ inline int System::getBindingId ( int pe ) const
 {
    int tmpId = ( pe * getBindingStride() + getBindingStart() ) % _pe_map.size();
    return _pe_map[tmpId];
+}
+
+inline bool System::isHwlocAvailable () const
+{
+#ifdef HWLOC
+   return true;
+#else
+   return false;
+#endif
+}
+
+inline void System::loadHwloc ()
+{
+#ifdef HWLOC
+   // Allocate and initialize topology object.
+   hwloc_topology_init( ( hwloc_topology_t* )&_hwlocTopology );
+   
+   // If the user provided an alternate topology
+   if ( !_topologyPath.empty() )
+   {
+      int res = hwloc_topology_set_xml( ( hwloc_topology_t ) _hwlocTopology, _topologyPath.c_str() );
+      fatal_cond0( res != 0, "Could not load hwloc topology xml file." );
+   }
+   
+   // Enable GPU detection
+   hwloc_topology_set_flags( ( hwloc_topology_t ) _hwlocTopology, HWLOC_TOPOLOGY_FLAG_IO_DEVICES );
+   
+   // Perform the topology detection.
+   hwloc_topology_load( ( hwloc_topology_t ) _hwlocTopology );
+#endif
+}
+
+inline void System::loadNUMAInfo ()
+{
+#ifdef HWLOC
+   hwloc_topology_t topology = ( hwloc_topology_t ) _hwlocTopology;
+   
+   // Read the number of numa nodes if the user didn't set that value
+   if ( _numSockets == 0 )
+   {
+      int depth = hwloc_get_type_depth( topology, HWLOC_OBJ_NODE );
+      
+      // If there are NUMA nodes in this machine
+      if ( depth != HWLOC_TYPE_DEPTH_UNKNOWN ) {
+         _numSockets = hwloc_get_nbobjs_by_depth( topology, depth );
+      }
+      // Otherwise, set it to 1
+      else
+         _numSockets = 1;
+   }
+   
+   // Same thing, just change the value if the user didn't provide one
+   if( _coresPerSocket == 0 )
+   {
+      int depth = hwloc_get_type_depth( topology, HWLOC_OBJ_PU );
+      if ( depth != HWLOC_TYPE_DEPTH_UNKNOWN ) {
+         _coresPerSocket = hwloc_get_nbobjs_by_depth( topology, depth ) / _numSockets;
+      }
+   }
+   
+#else
+   // Number of sockets can be read with
+   // cat /proc/cpuinfo | grep "physical id" | sort | uniq | wc -l
+   // Cores per socket:
+   // cat /proc/cpuinfo | grep 'core id' | sort | uniq | wc -l
+   
+   // Assume just 1 socket
+   if ( _numSockets == 0 )
+      _numSockets = 1;
+   if ( _coresPerSocket == 0 )
+      _coresPerSocket = std::ceil( _targetThreads / static_cast<float>( _numSockets ) );
+#endif
+   // Check NUMA config
+   if ( _numSockets != std::ceil( _targetThreads / static_cast<float>( _coresPerSocket ) ) )
+   {
+      unsigned validCoresPS = std::ceil( _targetThreads / static_cast<float>( _numSockets ) );
+      warning0( "Adjusting cores-per-socket from " << _coresPerSocket << " to " << validCoresPS );
+      _coresPerSocket = validCoresPS;
+   }
+}
+
+inline void System::unloadHwloc ()
+{
+#ifdef HWLOC
+   /* Destroy topology object. */
+   hwloc_topology_destroy( ( hwloc_topology_t )_hwlocTopology );
+#endif
+}
+
+inline unsigned System::getNodeOfPE ( unsigned pe )
+{
+#ifdef HWLOC
+   // cast just once
+   hwloc_topology_t topology = ( hwloc_topology_t ) _hwlocTopology;
+   
+   hwloc_obj_t pu = hwloc_get_pu_obj_by_os_index( topology, pe );
+   
+   // Now we have the PU object, go find its parent numa node
+   hwloc_obj_t numaNode =
+      hwloc_get_ancestor_obj_by_type( topology, HWLOC_OBJ_NODE, pu );
+
+   return numaNode->os_index;
+#else
+   // Dirty way, will not work with hyperthreading
+   // Use /sys/bus/cpu/devices/cpuX/
+   //return pe / getCoresPerSocket();
+   
+   // Otherwise, return
+   return sys.getNumSockets() - 1;
+#endif
 }
 
 inline void System::setThrottlePolicy( ThrottlePolicy * policy ) { _throttlePolicy = policy; }
@@ -231,6 +347,13 @@ inline bool System::isCacheEnabled() { return _useCaches; }
 inline System::CachePolicyType System::getCachePolicy() { return _cachePolicy; }
 
 inline CacheMap& System::getCacheMap() { return _cacheMap; }
+
+inline size_t System::registerArchitecture( ArchPlugin * plugin )
+{
+   size_t id = _archs.size();
+   _archs.push_back( plugin );
+   return id;
+}
 
 #ifdef GPU_DEV
 inline PinnedAllocator& System::getPinnedAllocatorCUDA() { return _pinnedMemoryCUDA; }

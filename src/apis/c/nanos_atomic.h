@@ -22,7 +22,7 @@
 #ifndef _NANOS_ATOMIC_H
 #define _NANOS_ATOMIC_H
 
-#include "nanos_c_api_macros.h"
+#include "nanos-int.h"
 
 #ifdef __cplusplus
 extern "C"

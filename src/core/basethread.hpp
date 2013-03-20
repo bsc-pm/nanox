@@ -100,8 +100,9 @@ namespace nanos
 
    inline BaseThread::BaseThread ( WD &wd, ProcessingElement *creator ) :
       _id( sys.nextThreadId() ), _name("Thread"), _description(""), _pe( creator ), _threadWD( wd ),
-      _socket( 0 ), _started( false ), _mustStop( false ), _mustSleep( false ), _paused( false ), _currentWD( NULL),
-      _nextWD( NULL), _hasTeam( false ), _teamData(NULL), _nextTeamData(NULL), _allocator() { }
+      _maxPrefetch( 1 ), _nextWDs(), _nextWDsCounter( 0 ), _started( false ), _mustStop( false ),
+      _mustSleep( false ), _paused( false ), _currentWD( NULL), _hasTeam( false ), _teamData(NULL),
+      _nextTeamData(NULL), _allocator() { }
 
    // atomic access
    inline void BaseThread::lock () { _mlock++; }
@@ -143,31 +144,13 @@ namespace nanos
  
    inline WD & BaseThread::getThreadWD () const { return _threadWD; }
  
-   inline void BaseThread::resetNextWD () { _nextWD = NULL; }
- 
-   inline bool BaseThread::setNextWD ( WD *next ) { 
-      debug("Set next WD as: " << next << ":??" << " @ thread " << _id );
-      return compareAndSwap( &_nextWD, (WD *) NULL, next);
-   }
- 
-   inline bool BaseThread::reserveNextWD ( void ) { 
-      return compareAndSwap( &_nextWD, (WD *) NULL, (WD *) 1);
-   }
- 
-   inline bool BaseThread::setReservedNextWD ( WD *next ) { 
-      debug("Set next WD as: " << next << ":??" << " @ thread " << _id );
-      return compareAndSwap( &_nextWD, (WD *) 1, next);
-   }
- 
-   inline WD * BaseThread::getNextWD () const
-   { 
-      if ( !sys.getSchedulerConf().getSchedulerEnabled() )
-         return NULL;
-      /* First copy value to avoid race conditions */
-      WD * retWD = _nextWD;
-      if ( retWD == (WD *) 1 ) return NULL;
-      return retWD;
-   }
+   inline int BaseThread::getMaxPrefetch () const { return _maxPrefetch; }
+
+   inline void BaseThread::setMaxPrefetch ( int max ) { _maxPrefetch = max; }
+
+   inline bool BaseThread::canPrefetch () const { return _nextWDsCounter < _maxPrefetch; }
+
+   inline bool BaseThread::hasNextWD () { return !_nextWDs.empty(); }
  
    // team related methods
    inline void BaseThread::reserve() { _hasTeam = 1; }
@@ -202,7 +185,7 @@ namespace nanos
 
    inline nanos_ws_desc_t *BaseThread::getTeamWorkSharingDescriptor( bool *b )
    {
-      if ( _teamData) return _teamData->getTeamWorkSharingDescriptor ( this,  b );
+      if ( _teamData ) return _teamData->getTeamWorkSharingDescriptor ( this,  b );
       else return NULL;
    }
  
@@ -222,10 +205,6 @@ namespace nanos
    inline int BaseThread::getId() const { return _id; }
  
    inline int BaseThread::getCpuId() { return runningOn()->getId(); }
- 
-   inline int BaseThread::getSocket() const{ return _socket; }
-   
-   inline void BaseThread::setSocket( int socket ){ _socket = socket; }
  
    inline bool BaseThread::isStarring ( const ThreadTeam *t ) const
    {

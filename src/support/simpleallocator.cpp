@@ -73,7 +73,7 @@ size_t SimpleAllocator::free( void *address )
 
    // Unknown address, simply ignore
    if( mapIter == _allocatedChunks.end() ) {
-      ensure0(false,"Unknown address deallocation (Simple Allocator)");
+      ensure0( false,"Unknown address deallocation (Simple Allocator)" );
       return 0;
    }
 

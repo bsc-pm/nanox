@@ -21,7 +21,10 @@
 #include "debug.hpp"
 #include "openclconfig.hpp"
 #include "os.hpp"
+#include "processingelement_fwd.hpp"
 #include "plugin.hpp"
+#include "archplugin.hpp"
+#include "openclprocessor.hpp"
 
 #include <dlfcn.h>
 
@@ -31,10 +34,10 @@ using namespace nanos::ext;
 namespace nanos {
 namespace ext {
 
-class OpenCLPlugin : public Plugin
+class OpenCLPlugin : public ArchPlugin
 {
 public:
-   OpenCLPlugin() : Plugin( "OpenCL PE Plugin", 1 ) { }
+   OpenCLPlugin() : ArchPlugin( "OpenCL PE Plugin", 1 ) { }
 
    ~OpenCLPlugin() { }
 
@@ -47,6 +50,50 @@ public:
    {
       OpenCLConfig::apply();
    }
+   
+   /*virtual unsigned getPEsInNode( unsigned node ) const
+   {
+      // TODO: make it work correctly
+      // If it is the last node, assign
+      //if ( node == ( sys.getNumSockets() - 1 ) )
+   }*/
+   
+   virtual unsigned getNumHelperPEs() const
+   {
+      return OpenCLConfig::getOpenCLDevicesCount();
+   }
+
+   virtual unsigned getNumPEs() const
+   {
+      return OpenCLConfig::getOpenCLDevicesCount();
+   }
+   
+   virtual unsigned getNumThreads() const
+   {
+      return OpenCLConfig::getOpenCLDevicesCount();
+   }
+   
+   virtual void createBindingList()
+   {
+      /* As we now how many devices we have and how many helper threads we
+       * need, reserve a PE for them */
+      for ( unsigned i = 0; i < OpenCLConfig::getOpenCLDevicesCount(); ++i )
+      {
+         // TODO: if HWLOC is available, use it.
+         int node = sys.getNumSockets() - 1;
+         unsigned pe = sys.reservePE( node );
+         // Now add this node to the binding list
+         addBinding( pe );
+      }
+   }
+
+   virtual PE* createPE( unsigned id )
+   {
+      PE * pe = NEW OpenCLProcessor( getBinding( id ) , id );
+      pe->setNUMANode( sys.getNodeOfPE( pe->getId() ) );
+      return pe;
+   }
+
 
 };
 

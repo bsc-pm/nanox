@@ -20,13 +20,14 @@
 #ifndef _BASE_THREAD_DECL
 #define _BASE_THREAD_DECL
 
-#include "workdescriptor_fwd.hpp"
+#include "workdescriptor_decl.hpp"
 #include "processingelement_fwd.hpp"
 #include "debug.hpp"
 #include "atomic_decl.hpp"
 #include "schedule_fwd.hpp"
 #include "threadteam_fwd.hpp"
 #include "allocator_decl.hpp"
+#include "wddeque_decl.hpp"
 
 namespace nanos
 {
@@ -116,7 +117,10 @@ namespace nanos
 
          ProcessingElement *     _pe;         /**< Threads are binded to a PE for its life-time */
          WD &                    _threadWD;
-         int                     _socket;
+
+         unsigned int            _maxPrefetch;
+         WDDeque                 _nextWDs;
+         unsigned int            _nextWDsCounter;
 
          // Thread status
          bool                    _started;
@@ -124,7 +128,6 @@ namespace nanos
          volatile bool           _mustSleep;
          volatile bool           _paused;
          WD *                    _currentWD;
-         WD *                    _nextWD;
 
          // Team info
          bool                    _hasTeam;
@@ -154,7 +157,6 @@ namespace nanos
          {
             _started = false;
          }
-
 
       private:
         /*! \brief BaseThread default constructor
@@ -189,7 +191,7 @@ namespace nanos
          void run();
          void stop();
          void sleep();
-         void wakeup ();
+         void wakeup();
          
          void pause ();
          void unpause ();
@@ -210,13 +212,13 @@ namespace nanos
 
          WD & getThreadWD () const;
 
-         void resetNextWD ();
-         bool setNextWD ( WD *next );
-
-         bool reserveNextWD ( void );
-         bool setReservedNextWD ( WD *next );
-
-         WD * getNextWD () const;
+         // Prefetching related methods used also by slicers
+         int getMaxPrefetch () const;
+         void setMaxPrefetch ( int max );
+         bool canPrefetch () const;
+         void addNextWD ( WD *next );
+         WD * getNextWD ();
+         bool hasNextWD ();
 
          // team related methods
          void reserve();
@@ -259,12 +261,6 @@ namespace nanos
          int getId() const;
 
          int getCpuId();
-         
-         //! \brief Returns the socket this thread is running on.
-         int getSocket() const;
-         
-         //! \brief Sets the socket this thread is running on.
-         void setSocket( int socket );
 
          bool singleGuard();
          bool enterSingleBarrierGuard ();

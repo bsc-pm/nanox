@@ -113,8 +113,8 @@ inline WD * SchedulePolicy::atWakeUp      ( BaseThread *thread, WD &wd )
       
       // Returning the wd here makes the application to hang
       // Use prefetching instead.
-      if ( prefetchThread != NULL && prefetchThread->reserveNextWD() ) {
-         prefetchThread->setReservedNextWD( &wd );
+      if ( prefetchThread != NULL ) {
+         prefetchThread->addNextWD( &wd );
          
          return NULL;
       }

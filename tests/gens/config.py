@@ -31,7 +31,7 @@ import sys
 
 header ='Nanox config generator 0.1\n\n'+\
 	'Envorionment variables that affect this script:\n'+\
-	'   NX_TEST_MODE=\'small\'|\'medium\'|\'large\'   -  \'small\' by default\n'+\
+	'   NX_TEST_MODE=\'test\'|\'small\'|\'medium\'|\'large\'   -  \'small\' by default\n'+\
 	'   NX_TEST_MAX_CPUS=#CPUS                  -  2 by default\n'+\
 	'   NX_TEST_SCHEDULE=[scheduler]\n'
 if '-h' in sys.argv or '--help' in sys.argv:
@@ -41,7 +41,7 @@ usage = "usage: %prog [options]"
 parser = OptionParser(usage)
 parser.add_option("-a", metavar="\"a1|a2,b1|b2,..\"", dest="additional",
                   help="Comma separated lists of aditional options ('|' separates incompatible alternatives ) combined in the configurations generated")
-parser.add_option("-m", choices=['small','medium','large'], dest="mode",
+parser.add_option("-m", choices=['performance','small','medium','large'], dest="mode",
                   help="Determines the number of execution versions for each test combining different runtime options.")
 parser.add_option("-c","--cpus", metavar="n", type='int', dest="cpus",
                   help="Each configuration will be tested for 1 to n CPUS")
@@ -51,7 +51,7 @@ parser.add_option("-d", "--deps", metavar="\"a1,b1,..\"", dest="deps_plugins",
 (options, args) = parser.parse_args()
 
 if len(args) != 0:
-	parser.error("this script takes no arguments")
+	parser.error("Wrong arguments")
 
 addlist=[]
 if options.additional:
@@ -70,33 +70,27 @@ if options.deps_plugins:
 	for d in deps_plugins:
 		depslist=depslist+["--deps="+d]
 
-
 max_cpus=int(max_cpus)
 
 scheduling_small=['--schedule=default','--schedule=affinity']
-#scheduling_small=['--schedule=default','--schedule=dbf','--schedule=wf','--schedule=cilk']
-
-scheduling_full=['--schedule=default','--schedule=bf --bf-stack','--schedule=bf --no-bf-stack','--schedule=dbf', '--schedule=affinity']
-#scheduling_small=['--schedule=bf','--schedule=wf','--schedule=dbf','--schedule=cilk']
-#scheduling_full=['--schedule=bf --bf-stack','--schedule=bf --no-bf-stack', '--schedule=wf --steal-parent --wf-local-policy=FIFO --wf-steal-policy=FIFO','--schedule=wf --steal-parent --wf-local-policy=FIFO --wf-steal-policy=LIFO','--schedule=wf --steal-parent --wf-local-policy=LIFO --wf-steal-policy=FIFO','--schedule=wf --steal-parent --wf-local-policy=LIFO --wf-steal-policy=LIFO','--schedule=wf --no-steal-parent --wf-local-policy=FIFO --wf-steal-policy=FIFO', '--schedule=wf --no-steal-parent --wf-local-policy=FIFO --wf-steal-policy=LIFO','--schedule=wf --no-steal-parent --wf-local-policy=LIFO --wf-steal-policy=FIFO','--schedule=wf --no-steal-parent --wf-local-policy=LIFO --wf-steal-policy=LIFO','--schedule=dbf','--schedule=cilk']
+scheduling_large=['--schedule=default','--schedule=bf --bf-stack','--schedule=bf --no-bf-stack','--schedule=dbf', '--schedule=affinity']
+throttle=['--throttle=dummy','--throttle=idlethreads','--throttle=numtasks','--throttle=readytasks','--throttle=taskdepth']
+barriers=['--barrier=centralized','--barrier=tree']
+binding=['--disable-binding','--no-disable-binding']
+architecture=['--architecture=smp','--architecture=smp-numa']
 
 if test_schedule is not None:
    scheduling_small=['--schedule='+test_schedule]
-   scheduling_full=['--schedule='+test_schedule]
+   scheduling_large=['--schedule='+test_schedule]
 
-
-
-throttle=['--throttle=dummy','--throttle=idlethreads','--throttle=numtasks','--throttle=readytasks','--throttle=taskdepth']
-#barriers=['--barrier=centralized','--barrier=tree','--barrier=dissemination']
-barriers=['--barrier=centralized','--barrier=tree']
-others=[cpus(max_cpus),['--disable-binding','--no-disable-binding'],['--architecture=smp','--architecture=smp-numa']]
-
-if test_mode == 'small':
-	configs=cross(*others+[scheduling_small]+addlist+[depslist])
+if test_mode == 'performance':
+	configs=cross(*[cpus(max_cpus)]+addlist)
+elif test_mode == 'small':
+	configs=cross(*[cpus(max_cpus)]+[binding]+[architecture]+[scheduling_small]+[depslist]+addlist)
 elif test_mode == 'medium':
-	configs=cross(*others+[scheduling_small]+[throttle]+[barriers]+addlist+[depslist])
+	configs=cross(*[cpus(max_cpus)]+[binding]+[architecture]+[scheduling_small]+[throttle]+[barriers]+[depslist]+addlist)
 elif test_mode == 'large':
-	configs=cross(*others+[scheduling_full]+[throttle]+[barriers]+addlist+[depslist])
+	configs=cross(*[cpus(max_cpus)]+[binding]+[architecture]+[scheduling_large]+[throttle]+[barriers]+[depslist]+addlist)
 
 config_lines=[]
 versions=''

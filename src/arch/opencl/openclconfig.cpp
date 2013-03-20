@@ -178,5 +178,4 @@ void OpenCLConfig::apply()
 
       delete [] devs;
    }
-   debug("Detected " << _devices.size() << " OpenCL Devices");
 }

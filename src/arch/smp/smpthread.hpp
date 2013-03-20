@@ -47,10 +47,6 @@ namespace ext
          SMPThread( const SMPThread &th );
          const SMPThread & operator= ( const SMPThread &th );
         
-         /*! \brief Given a CPU id bind, proposes a new one.
-          */
-         virtual int adjustBind( int cpu_id );
-
       public:
          // constructor
          SMPThread( WD &w, PE *pe ) : BaseThread( w,pe ),_stackSize(0), _useUserThreads(true) {}

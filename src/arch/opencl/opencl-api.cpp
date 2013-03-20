@@ -19,7 +19,6 @@
 /*************************************************************************************/
 
 #include "nanos-opencl.h"
-#include "nanos.h"
 #include "system.hpp"
 #include "openclprocessor.hpp"
 #include "opencldd.hpp"
@@ -69,4 +68,8 @@ NANOS_API_DEF(nanos_err_t,nanos_exec_kernel, (void* opencl_kernel, int work_dim,
    }
 
    return NANOS_OK;
+}
+
+NANOS_API_DEF(unsigned int,nanos_get_opencl_num_devices, (void)){
+    return nanos::ext::OpenCLConfig::getOpenCLDevicesCount();
 }

@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2013 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,46 +16,23 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-/* DESCRIPTION: Just checking basic functionality of Allocator alternating memory
- * allocations and memory deallocations in a single thread.
- */
 
-/*<testinfo>
-test_generator="gens/mixed-generator"
-</testinfo>*/
+#ifndef _NANOS_ARCHPLUGIN
+#define _NANOS_ARCHPLUGIN
 
-#include <iostream>
-#include "allocator.hpp"
+#include "archplugin_decl.hpp"
 
-#define CHECK_VALUE 3456
-#define TIMES 100000
+using namespace nanos;
 
-int sizes[] = { 7, 17, 33, 63, 123 };
-
-int main (int argc, char **argv)
+inline void ArchPlugin::addBinding ( unsigned pe )
 {
-   bool check = true;
-   Allocator allocator;
-
-   for ( int  n = 0; n < TIMES; n++ ) {
-      for ( unsigned int i = 0; i < (sizeof( sizes )/sizeof(int)); i++ ) {
-
-         int *ptr = (int *) allocator.allocate( sizes[i] * sizeof(int) );
-         if ( ptr == NULL ) check = false;
-
-         for ( int j = 0; j < sizes[i]; j++ ) ptr[j] = CHECK_VALUE; // INI
-         for ( int j = 0; j < sizes[i]; j++ ) ptr[j]++; // INC
-         for ( int j = 0; j < sizes[i]; j++ ) ptr[j]--; // DEC
-
-         // Check result
-         for ( int j = 0; j < sizes[i]; j++ ) {
-            if ( ptr[j] != CHECK_VALUE ) exit(-1);
-         }
-
-         Allocator::deallocate( ptr );
-      }
-   }
-
-   if (check) { return 0; } else { return -1; }
+   _bindings.push_back( pe );
 }
 
+inline ArchPlugin::PEList::value_type ArchPlugin::getBinding( unsigned index )
+{
+   return _bindings[ index ];
+}
+
+
+#endif

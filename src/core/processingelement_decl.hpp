@@ -35,6 +35,7 @@ namespace nanos
          int                                  _id;
          const Device *                       _device;
          ThreadList                           _threads;
+         int                                  _numaNode;
 
       private:
          /*! \brief ProcessinElement default constructor
@@ -52,7 +53,7 @@ namespace nanos
       public:
          /*! \brief ProcessinElement constructor
           */
-         ProcessingElement ( int newId, const Device *arch ) : _id ( newId ), _device ( arch ) {}
+         ProcessingElement ( int newId, const Device *arch ) : _id ( newId ), _device ( arch ), _numaNode( 0 ) {}
 
          /*! \brief ProcessinElement destructor
           */
@@ -60,6 +61,12 @@ namespace nanos
 
          /* get/put methods */
          int getId() const;
+         
+         //! \brief Returns the socket this thread is running on.
+         int getNUMANode() const;
+         
+         //! \brief Sets the socket this thread is running on.
+         void setNUMANode( int node );
 
          const Device & getDeviceType () const;
 

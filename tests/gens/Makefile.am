@@ -1,4 +1,4 @@
-include $(abs_top_srcdir)/src/common.am
+include $(top_srcdir)/src/common.am
 
 EXTRA_DIST = api-generator.in core-generator.in gpu-generator.in mixed-generator.in nanox-creation-generator.in api-omp-generator.in mcc-openmp-generator.in config.py
 
@@ -273,6 +273,7 @@ mcc-openmp-generator: mcc-openmp-generator.in
 	tmp_cxx='"$(CXX)"' ; \
 	tmp_mcc_valid='"$(mcc_valid)"' ; \
 	tmp_mcc='"$(MCC)"' ; \
+	tmp_ldflags='"$(LDFLAGS)"' ; \
 	sed \
 		-e's,@SRCDIR\@,'"$$tmp_srcdir"',g' \
 		-e's,@BUILDDIR\@,'"$$tmp_builddir"',g' \
@@ -293,6 +294,7 @@ mcc-openmp-generator: mcc-openmp-generator.in
 		-e's,@CONFIG_CXX\@,'"$$tmp_cxx"',g' \
 		-e's,@MCC_SUPPORT\@,'"$$tmp_mcc_valid"',g' \
 		-e's,@MCC\@,'"$$tmp_mcc"',g' \
+		-e's,@LDFLAGS\@,'"$$tmp_ldflags"',g' \
 		$(srcdir)/mcc-openmp-generator.in > mcc-openmp-generator.tmp
 	mv mcc-openmp-generator.tmp mcc-openmp-generator
 	chmod 755 mcc-openmp-generator

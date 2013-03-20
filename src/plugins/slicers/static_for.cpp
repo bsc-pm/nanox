@@ -147,7 +147,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          // Submit: slice (WorkDescriptor i, running on Thread j)
          sys.setupWD ( *slice, work.getParent() );
          slice->tieTo( (*team)[j] );
-         if ( (*team)[j].setNextWD(slice) == false ) Scheduler::submit ( *slice );
+         (*team)[j].addNextWD(slice);
       }
    } else {
       // Computing offset between threads
@@ -183,7 +183,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          sys.setupWD ( *slice, work.getParent() );
          // Submit: slice (WorkDescriptor i, running on Thread j)
          slice->tieTo( (*team)[j] );
-         if ( (*team)[j].setNextWD(slice) == false ) Scheduler::submit ( *slice );
+         (*team)[j].addNextWD(slice);
       }
    }
    // Submit: work (WorkDescriptor 0, running on thread 'first')
@@ -195,7 +195,10 @@ void SlicerStaticFor::submit ( SlicedWD &work )
          delete[] (char *) &work;
       }
    }
-   else if ( (*team)[first_valid_thread].setNextWD( (WorkDescriptor *) &work) == false ) Scheduler::submit ( work );
+   else
+   {
+      (*team)[first_valid_thread].addNextWD( (WorkDescriptor *) &work);
+   }
 }
 
 class SlicerStaticForPlugin : public Plugin {

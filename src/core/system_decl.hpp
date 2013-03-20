@@ -35,12 +35,12 @@
 #include "pminterface_decl.hpp"
 #include "cache_map_decl.hpp"
 #include "plugin_decl.hpp"
+#include "archplugin_decl.hpp"
 #include "barrier_decl.hpp"
 
 #ifdef GPU_DEV
 #include "pinnedallocator_decl.hpp"
 #endif
-
 
 namespace nanos
 {
@@ -64,6 +64,7 @@ namespace nanos
          typedef std::map<std::string, Slicer *> Slicers;
          typedef std::map<std::string, WorkSharing *> WorkSharings;
          typedef std::multimap<std::string, std::string> ModulesPlugins;
+         typedef std::vector<ArchPlugin*> ArchitecturePlugins;
          
          //! CPU id binding list
          typedef std::vector<int> Bindings;
@@ -120,6 +121,9 @@ namespace nanos
          /*! Valid plugin map (module)->(list of plugins) */
          ModulesPlugins       _validPlugins;
          
+         /*! Architecture plugins */
+         ArchitecturePlugins  _archs;
+         
 
          PEList               _pes;
          ThreadList           _workers;
@@ -161,6 +165,11 @@ namespace nanos
          
          //! CPU id binding list
          Bindings             _bindings;
+         
+         //! hwloc topology structure
+         void *               _hwlocTopology;
+         //! Path to a hwloc topology xml
+         std::string          _topologyPath;
 
 #ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
@@ -182,6 +191,9 @@ namespace nanos
          void increaseActiveWorkers( unsigned nthreads );
          void decreaseActiveWorkers( unsigned nthreads );
          void applyCpuMask();
+         
+         void loadHwloc();
+         void unloadHwloc();
          
          PE * createPE ( std::string pe_type, int pid );
 
@@ -304,8 +316,43 @@ namespace nanos
           * \brief Returns a CPU Id that the given architecture should use
           * to tie a new processing element to.
           * \param pe Processing Element number.
+          * \note This method is the one that uses the affinity mask and binding
+          * start and stride parameters.
           */
          int getBindingId ( int pe ) const;
+         
+         /**
+          * \brief Reserves a PE to be used exclusively by a certain
+          * architecture.
+          * \param node NUMA node to reserve the PE from.
+          * \return Id of the PE to reserve.
+          */
+         unsigned reservePE ( unsigned node );
+         
+         /**
+          * \brief Checks if hwloc is available.
+          */
+         bool isHwlocAvailable () const;
+         
+         /**
+          * \brief Returns the hwloc_topology_t structure.
+          * This structure will only be available for a short window during
+          * System::start. Otherwise, NULL will be returned.
+          * In order to avoid surrounding this function by ifdefs, it returns
+          * a void * that you must cast to hwloc_topology_t.
+          */
+         void * getHwlocTopology ();
+         
+         /**
+          * \brief Sets the number of NUMA nodes and cores per node.
+          * Uses hwloc if available, and also checks if both settings make sense.
+          */
+         void loadNUMAInfo ();
+         
+         /** \brief Retrieves the NUMA node of a given PE.
+          *  \note Will use hwloc if available.
+          */
+         unsigned getNodeOfPE ( unsigned pe );
 
          void setUntieMaster ( bool value );
 
@@ -420,6 +467,12 @@ namespace nanos
          bool isCacheEnabled();
          CachePolicyType getCachePolicy();
          CacheMap& getCacheMap();
+         
+         /**! \brief Register an architecture plugin.
+          *   \param plugin A pointer to the plugin.
+          *   \return The index of the plugin in the vector.
+          */
+         size_t registerArchitecture( ArchPlugin * plugin );
 
 #ifdef GPU_DEV
          PinnedAllocator& getPinnedAllocatorCUDA();

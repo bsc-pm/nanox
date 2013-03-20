@@ -29,6 +29,7 @@
 #include "malign.hpp"
 #include "processingelement.hpp"
 #include "allocator.hpp"
+#include "debug.hpp"
 #include <string.h>
 #include <set>
 
@@ -54,7 +55,7 @@ System::System () :
       _numPEs( INT_MAX ), _numThreads( 0 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
-      _numSockets( 1 ), _coresPerSocket( 1 ), _throttlePolicy ( NULL ),
+      _numSockets( 0 ), _coresPerSocket( 0 ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "default" ), _defThrottlePolicy( "hysteresis" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _pausedThreads( 0 ),
@@ -238,6 +239,17 @@ void System::config ()
    cfg.registerConfigOption ( "num_threads", NEW Config::PositiveVar( _numThreads ), "Defines the number of threads. Note that OMP_NUM_THREADS is an alias to this." );
    cfg.registerArgOption ( "num_threads", "threads" );
    cfg.registerEnvOption ( "num_threads", "NX_THREADS" );
+   
+   cfg.registerConfigOption( "cores-per-socket", NEW Config::PositiveVar( _coresPerSocket ), "Number of cores per socket." );
+   cfg.registerArgOption( "cores-per-socket", "cores-per-socket" );
+   
+   cfg.registerConfigOption( "num-sockets", NEW Config::PositiveVar( _numSockets ), "Number of sockets available." );
+   cfg.registerArgOption( "num-sockets", "num-sockets" );
+   
+   cfg.registerConfigOption ( "hwloc-topology", NEW Config::StringVar( _topologyPath ), "Overrides hwloc's topology discovery and uses the one provided by an XML file." );
+   cfg.registerArgOption ( "hwloc-topology", "hwloc-topology" );
+   cfg.registerEnvOption ( "hwloc-topology", "NX_HWLOC_TOPOLOGY_PATH" );
+   
 
    cfg.registerConfigOption ( "stack-size", NEW Config::PositiveVar( _deviceStackSize ), "Defines the default stack size for all devices" );
    cfg.registerArgOption ( "stack-size", "stack-size" );
@@ -335,17 +347,21 @@ PE * System::createPE ( std::string pe_type, int pid )
 void System::start ()
 {
    if ( !_useCaches ) _cachePolicy = System::NONE;
+   
+   // Load hwloc now, in order to make it available for modules
+   if ( isHwlocAvailable() )
+      loadHwloc();
 
    loadModules();
 
    _targetThreads = _numThreads;
-#ifdef GPU_DEV
-   _targetThreads += nanos::ext::GPUConfig::getGPUCount();
-#endif
+   // Do the same for the architecture plugins
+   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
+        it != _archs.end(); ++it )
+   {
+      _targetThreads += (*it)->getNumThreads();
+   }
    
-#ifdef OpenCL_DEV
-   _targetThreads += nanos::ext::OpenCLConfig::getOpenCLDevicesCount();
-#endif
    // Instrumentation startup
    NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->initialize() );
@@ -359,6 +375,7 @@ void System::start ()
    _pes.reserve ( numPes );
 
    PE *pe = createPE ( _defArch, getBindingId( 0 ) );
+   pe->setNUMANode( getNodeOfPE( pe->getId() ) );
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 
@@ -377,11 +394,35 @@ void System::start ()
    myThread->rename("Master");
 
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_STARTUP) );
+   
+   // Load & check NUMA config
+   loadNUMAInfo();
 
+   // start of new PE/Worker creation
+   // How many available physical PEs
+   unsigned physPes = getCpuCount();
+
+   
+   _bindings.reserve( physPes );
+   // Construct the list of PEs
+   for ( unsigned cpu_id = 0; cpu_id < physPes; ++cpu_id )
+   {
+      _bindings.push_back( getBindingId( cpu_id ) );
+   }
+   
+   // For each plugin, notify it's the way to reserve PEs if they are required
+   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
+        it != _archs.end(); ++it )
+   {
+      (*it)->createBindingList();
+   }   
+   // Right now, _bindings should only store SMP PEs ids
+  
    // Create PEs
    int p;
    for ( p = 1; p < numPes ; p++ ) {
-      pe = createPE ( "smp", getBindingId( p ) );
+      pe = createPE ( "smp", _bindings[ p % _bindings.size() ]  );
+      pe->setNUMANode( getNodeOfPE( pe->getId() ) );
       _pes.push_back ( pe );
    }
    
@@ -390,26 +431,20 @@ void System::start ()
       pe = _pes[ ths % numPes ];
       _workers.push_back( &pe->startWorker() );
    }
-
-#ifdef GPU_DEV
-   int gpuC;
-   for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount(); gpuC++ ) {
-      PE *gpu = NEW nanos::ext::GPUProcessor( getBindingId( p ), gpuC );
-      _pes.push_back( gpu );
-      _workers.push_back( &gpu->startWorker() );
-      ++p;
-   }
-#endif
-
    
-#ifdef OpenCL_DEV
-    for ( unsigned int i = 0; i < nanos::ext::OpenCLConfig::getOpenCLDevicesCount(); i++) {
-       PE *openclAccelerator = NEW nanos::ext::OpenCLProcessor( getBindingId( p ) , i);
-       _pes.push_back( openclAccelerator );
-      _workers.push_back( &openclAccelerator->startWorker() );
-      ++p;
-    }
-#endif
+   // For each plugin create PEs and workers
+   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
+        it != _archs.end(); ++it )
+   {
+      for ( unsigned archPE = 0; archPE < (*it)->getNumPEs(); ++archPE )
+      {
+         PE * processor = (*it)->createPE( archPE );
+         fatal_cond0( processor == NULL, "ArchPlugin::createPE returned NULL" );
+         _pes.push_back( processor );
+         _workers.push_back( &processor->startWorker() );
+         ++p;
+      }
+   }
       
 #ifdef SPU_DEV
    PE *spu = NEW nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);
@@ -455,6 +490,10 @@ void System::start ()
    std::string unrecog = Config::getOrphanOptions();
    if ( !unrecog.empty() )
       warning( "Unrecognised arguments: " << unrecog );
+      
+   // hwloc can be now unloaded
+   if ( isHwlocAvailable() )
+      unloadHwloc();
 }
 
 System::~System ()
@@ -1459,4 +1498,30 @@ void System::waitUntilThreadsUnpaused ()
 {
    // Wait until all threads are paused
    _unpausedThreadsCond.wait();
+}
+
+unsigned System::reservePE ( unsigned node )
+{
+   // For each available PE
+   for ( Bindings::reverse_iterator it = _bindings.rbegin(); it != _bindings.rend(); ++it )
+   {
+      unsigned pe = *it;
+      unsigned currentNode = getNodeOfPE( pe );
+      
+      // If this PE is in the requested node
+      if ( currentNode == node )
+      {
+         // Take this pe out of the available bindings list.
+         _bindings.erase( --( it.base() ) );
+         return pe;
+      }
+   }
+   // If we reach this point, there are no PEs available for that node.
+   verbose( "reservePE failed for node " << node );
+   fatal( "There are no available PEs for the requested node" );
+}
+
+void * System::getHwlocTopology ()
+{
+   return _hwlocTopology;
 }

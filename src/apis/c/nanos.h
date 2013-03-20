@@ -37,20 +37,13 @@
 #include <sched.h>
 #include "nanos-int.h"
 #include "nanos_error.h"
-#include "nanos_c_api_macros.h"
 
 /*! \defgroup capi C/C++ API */
 /*! \addtogroup capi
  *  \{
  */
 
-#ifdef _MERCURIUM
-// define API version
-#pragma nanos interface family(master) version(5022)
-#pragma nanos interface family(worksharing) version(1000)
-#pragma nanos interface family(deps_api) version(1001)
-#pragma nanos interface family(copies_api) version(1002)
-#endif
+#include "nanos_version.h"
 
 // C++ types hidden as void *
 typedef void * nanos_wg_t;
@@ -78,11 +71,6 @@ typedef struct {
    int nthreads;
    void *arch;
 } nanos_constraint_t;
-
-/*! \todo Move nanos_smp_args_t to some dependent part */
-typedef struct {
-   void (*outline) (void *);
-} nanos_smp_args_t;
 
 /*!
  * \}
@@ -220,11 +208,6 @@ NANOS_API_DECL(void, nanos_free0, ( void *p ));
 
 // error handling
 NANOS_API_DECL(void, nanos_handle_error, ( nanos_err_t err ));
-
-// factories
-   // smp
-NANOS_API_DECL(void *, nanos_smp_factory,( void *args));
-#define NANOS_SMP_DESC( args ) { nanos_smp_factory, &( args ) }
 
 // instrumentation interface
 NANOS_API_DECL(nanos_err_t, nanos_instrument_register_key, ( nanos_event_key_t *event_key, const char *key, const char *description, bool abort_when_registered ));
