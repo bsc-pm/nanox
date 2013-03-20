@@ -539,17 +539,14 @@ void SendDataRequest::doSend() {
    // TODO if ( doIHaveToCheckForDataInOtherAddressSpaces() ) {
    // TODO    getDataFromDevice( (uint64_t) _origAddr, _len, _count, _ld );
    // TODO }
-   std::cerr << " sending data ld "<< _ld << std::endl;
    if ( _ld == 0 ) {
       //NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
       //NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_IN, key, (nanos_event_value_t) _len) );
-      std::cerr << " lol wut?" << std::endl;
       doSingleChunk();
       //NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
    } else {
       char *localPack, *origAddrPtr = (char*) _origAddr;
 
-      std::cerr << " lol wat?" << std::endl;
       NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_PACK); );
       _api->getPackSegment()->lock();
       localPack = ( char * ) _api->getPackSegment()->allocate( _len * _count );

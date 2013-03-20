@@ -49,15 +49,12 @@ bool ClusterDevice::GetRequest::isCompleted() const {
 
 void ClusterDevice::GetRequest::clear() {
    ::memcpy( _hostAddr, _recvAddr, _size );
-   std::cerr << "CELAR "<< (void*)this << std::endl;
-   sys.printBt();
    sys.getNetwork()->freeReceiveMemory( _recvAddr );
    _ops->completeOp();
 }
 
 ClusterDevice::GetRequestStrided::GetRequestStrided( char* hostAddr, std::size_t size, std::size_t count, std::size_t ld, char *recvAddr, DeviceOps *ops, Packer *packer ) :
    GetRequest( hostAddr, size, recvAddr, ops ), _count( count ), _ld( ld ), _packer( packer ) {
-   std::cerr << "CREATED REQUEST WITH OPS " << ops << " THIS " << this << std::endl;
 }
 
 ClusterDevice::GetRequestStrided::~GetRequestStrided() {
@@ -70,7 +67,6 @@ void ClusterDevice::GetRequestStrided::clear() {
    }
    NANOS_INSTRUMENT( inst2.close(); );
    _packer->free_pack( (uint64_t) _hostAddr, _size, _count, _recvAddr );
-   //std::cerr << "COMPLETING REQUEST WITH OPS " << _ops << " THIS " << this << std::endl;
    _ops->completeOp();
 }
 
@@ -103,22 +99,18 @@ void ClusterDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t le
 void ClusterDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const &wd ) const {
 
    char *recvAddr = NULL;
-   std::cerr << std::endl << " NETWORK GET, get buffer " <<std::endl;
    do { 
       recvAddr = (char *) sys.getNetwork()->allocateReceiveMemory( len );
       if ( !recvAddr ) {
          myThread->idle( true );
       }
    } while ( recvAddr == NULL );
-   std::cerr << std::endl << " NETWORK GET, got buffer " <<std::endl;
 
    GetRequest *newreq = NEW GetRequest( (char *) hostAddr, len, recvAddr, ops );
    myThread->_pendingRequests.insert( newreq );
 
    ops->addOp();
-   std::cerr << std::endl << " NETWORK GET, request "<< (void *)newreq << " queue addr " << (void *) &myThread->_pendingRequests  <<std::endl;
    sys.getNetwork()->get( ( void * ) recvAddr, mem.getNodeNumber(), devAddr, len, (volatile int *) newreq );
-   std::cerr << " DONE NETWORK GET, request "<< (void *)newreq <<std::endl;
 }
 
 void ClusterDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, WD const &wd, Functor *f ) const {
@@ -149,23 +141,22 @@ void ClusterDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std:
    std::size_t maxCount = ( ( len * count ) <= sys.getNetwork()->getMaxGetStridedLen() ) ?
       count : ( sys.getNetwork()->getMaxGetStridedLen() / len );
 
-   // FIXME: check if maxCount can copy more data on the last iteration
    if ( maxCount != count ) std::cerr <<"WARNING: maxCount("<< maxCount << ") != count(" << count <<") MaxGetStridedLen="<< sys.getNetwork()->getMaxGetStridedLen()<<std::endl;
    for ( unsigned int i = 0; i < count; i += maxCount ) {
+      unsigned int thisCount = ( i + maxCount > count ) ? count - i : maxCount; 
       char * packedAddr = NULL;
       do {
-         packedAddr = (char *) _packer.give_pack( hostAddr, len, maxCount );
+         packedAddr = (char *) _packer.give_pack( hostAddr, len, thisCount );
          if (!packedAddr ) {
             myThread->idle( true );
          }
       } while ( packedAddr == NULL );
 
       if ( packedAddr != NULL) { 
-         GetRequestStrided *newreq = NEW GetRequestStrided( &hostAddrPtr[ i * ld ] , len, maxCount, ld, packedAddr, ops, &_packer );
+         GetRequestStrided *newreq = NEW GetRequestStrided( &hostAddrPtr[ i * ld ] , len, thisCount, ld, packedAddr, ops, &_packer );
          myThread->_pendingRequests.insert( newreq );
-         std::cerr << "Req: " << (void *) newreq << " ops are " << ops << std::endl;
          ops->addOp();
-         sys.getNetwork()->getStrided1D( packedAddr, mem.getNodeNumber(), devAddr, devAddr + ( i * ld ), len, maxCount, ld, (volatile int *) newreq );
+         sys.getNetwork()->getStrided1D( packedAddr, mem.getNodeNumber(), devAddr, devAddr + ( i * ld ), len, thisCount, ld, (volatile int *) newreq );
       } else {
          std::cerr << "copyOutStrdided ERROR!!! could not get a packet to gather data." << std::endl;
       }

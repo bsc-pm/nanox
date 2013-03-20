@@ -102,7 +102,6 @@ void SMPThread::idle( bool debug )
 {
    sys.getNetwork()->poll(0);
 
-     if(debug)  std::cerr <<" FUCKING IDLING "<< _pendingRequests.size() <<std::endl;
    if ( !_pendingRequests.empty() ) {
       std::set<void *>::iterator it = _pendingRequests.begin();
       while ( it != _pendingRequests.end() ) {
@@ -111,11 +110,9 @@ void SMPThread::idle( bool debug )
            std::set<void *>::iterator toBeDeletedIt = it;
            it++;
            _pendingRequests.erase(toBeDeletedIt);
-           std::cerr << "[i] clear request " << (void*) req << std::endl;
            req->clear();
            delete req;
          } else {
-           std::cerr << "[i]  request not completed " << (void*) req << std::endl;
             it++;
          }
       }

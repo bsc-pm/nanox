@@ -229,7 +229,6 @@ void ClusterThread::idle( bool debug )
 {
    sys.getNetwork()->poll(0);
 
-     if(debug)  std::cerr <<"cluster  FUCKING IDLING "<< _pendingRequests.size() <<std::endl;
    if ( !_pendingRequests.empty() ) {
       std::set<void *>::iterator it = _pendingRequests.begin();
       while ( it != _pendingRequests.end() ) {

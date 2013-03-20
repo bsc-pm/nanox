@@ -324,7 +324,7 @@ reg_t RegionDictionary<Sparsity>::computeIntersect( reg_t regionIdA, reg_t regio
    _computeIntersect( regionIdA, regionIdB, resultingRegion );
    reg_t regId = this->addRegion( resultingRegion );
 
-   std::cerr << (void *) this << " Computed intersect bewteen " << regionIdA << " and " << regionIdB << " resulting region is "<< regId << std::endl;
+   //std::cerr << (void *) this << " Computed intersect bewteen " << regionIdA << " and " << regionIdB << " resulting region is "<< regId << std::endl;
 
    {
       reg_t maxRegionId = std::max( regionIdA, regionIdB );
