@@ -173,13 +173,12 @@ namespace nanos
       void OmpSsInterface::updateNumThreads ()
       {
          OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
-         unsigned omp_threads = data->icvs()->getNumThreads();
+         int omp_threads = data->icvs()->getNumThreads();
 
          sys.updateActiveWorkers( omp_threads );
 
-         unsigned sys_threads = sys.getNumThreads();
-         ensure( sys_threads == omp_threads, "Update Number of Threads failed " +
-               toString<unsigned>(sys_threads) + " != " + toString<unsigned>(omp_threads) );
+         ensure( sys.getNumThreads() == omp_threads, "Update Number of Threads failed " +
+               toString<unsigned>(sys.getNumThreads()) + " != " + toString<unsigned>(omp_threads) );
       }
    };
 }
