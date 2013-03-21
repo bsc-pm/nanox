@@ -104,7 +104,6 @@ unsigned int BaseAddressSpaceInOps::getVersionNoLock( global_reg_t const &reg ) 
 }
 
 void BaseAddressSpaceInOps::copyInputData( global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations ) {
-   std::cerr << "FIXME "<< __FUNCTION__ << std::endl;
    DeviceOps *thisRegOps = NULL;
    if ( reg.getHostVersion( false ) != version ) {
       thisRegOps = reg.getDeviceOps();
@@ -120,7 +119,7 @@ void BaseAddressSpaceInOps::copyInputData( global_reg_t const &reg, unsigned int
                   thisOps->addCacheOp();
                   _ownDeviceOps.insert( thisOps );
                }
-               std::cerr << "HOST mustcopy: reg " << reg.id << " version " << version << "  region shape: " << region_shape.id << " data source: " << data_source.id << " location "<< location << std::endl;
+               //std::cerr << "HOST mustcopy: reg " << reg.id << " version " << version << "  region shape: " << region_shape.id << " data source: " << data_source.id << " location "<< location << std::endl;
                ensure( location > 0, "Wrong location.");
                addOp( &( sys.getSeparateMemory( location ) ), region_shape, version );
             }

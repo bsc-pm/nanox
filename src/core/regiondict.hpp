@@ -648,7 +648,7 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
    reg_t highestVersionSuperRegion = 0;
 
    for ( RegionDictionary::RegionList::iterator it = superParts.begin(); it != superParts.end(); it++ ) {
-      if (this->sparse)std::cerr << "super region of reg " << id<< ": " << *it<<std::endl;
+      //if (this->sparse)std::cerr << "super region of reg " << id<< ": " << *it<<std::endl;
       unsigned int itVersion = ( this->getRegionData( *it ) == NULL ? ( this->sparse ? 0 : 1 ) : this->getRegionData( *it )->getVersion() );
       if ( itVersion > version ) {
          highestVersionSuperRegion = *it;

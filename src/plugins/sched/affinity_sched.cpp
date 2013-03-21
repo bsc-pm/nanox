@@ -71,10 +71,11 @@ namespace nanos {
                      }
                      _nodeToMemSpace = NEW std::vector< memory_space_id_t >( _numNodes );
                      (*_nodeToMemSpace)[ 0 ] = 0;
-                     for( unsigned int i = 1; i < sys.getSeparateMemoryAddressSpacesCount(); i += 1 ) {
+                     for( unsigned int i = 1; i <= sys.getSeparateMemoryAddressSpacesCount(); i += 1 ) {
                         //if ( sys.getCaches()[ i ]->getNodeNumber() != 0 ) _nodeSet.insert( i );
                         if ( sys.getSeparateMemory( i ).getNodeNumber() != 0 ) {
                            _nodeSet.insert( i );
+                           std::cerr << " location " << i << " is node " << sys.getSeparateMemory( i ).getNodeNumber() << std::endl;
                            (*_nodeToMemSpace)[ sys.getSeparateMemory( i ).getNodeNumber() ] = i;
                         }
                      }
@@ -598,9 +599,9 @@ namespace nanos {
                      
                      bool locationDataIsAvailable = true;
                      if ( sys.usingNewCache() ) {
-                     for ( unsigned int i = 0; i < wd.getNumCopies() && locationDataIsAvailable; i++ ) {
-                        locationDataIsAvailable = ( wd._mcontrol._memCacheCopies[ i ]._reg.id != 0 );
-                     }
+                        for ( unsigned int i = 0; i < wd.getNumCopies() && locationDataIsAvailable; i++ ) {
+                           locationDataIsAvailable = ( wd._mcontrol._memCacheCopies[ i ]._locationDataReady );
+                        }
                      }
 
                      if ( locationDataIsAvailable ) {
@@ -609,8 +610,8 @@ namespace nanos {
                         
                    //  std::cerr <<"all data is available, ranked" << wd.getId() << std::endl;
                      } else { //no location data available, set as unranked
-                 //    std::cerr <<"not all data is available, pushing..." << wd.getId() <<std::endl;
-                        tdata._unrankedQueue.push_front( &wd );
+                     //std::cerr <<"not all data is available, pushing..." << wd.getId() <<std::endl;
+                        tdata._unrankedQueue.push_back( &wd );
                //      std::cerr <<"not all data is available, pushed" << wd.getId() << std::endl;
                      }
                      
@@ -1151,22 +1152,22 @@ namespace nanos {
             WD *wd = tdata._unrankedQueue.pop_front( thread );
            
             if ( wd != NULL ) {
-               bool succeeded = true;
+               //bool succeeded = true;
                for ( unsigned int i = 0; i < wd->getNumCopies(); i++ ) {
                   //if ( wd->_mcontrol.getCacheCopies()[ i ]._reg.id == 0 ) {
-                  if ( ! wd->_mcontrol._memCacheCopies[ i ]._locationDataReady ) {
-                   //  std::cerr << "trygetLoc at "<< __FUNCTION__<<std::endl;
+                  if ( !wd->_mcontrol._memCacheCopies[ i ]._locationDataReady ) {
+                //     std::cerr << "trygetLoc at "<< __FUNCTION__<<std::endl;
                      //succeeded = succeeded && wd->_mcontrol.getCacheCopies()[ i ].tryGetLocation( *wd, i );
                      wd->_mcontrol._memCacheCopies[ i ].getVersionInfo();
                   }
                }
-               if ( succeeded ) {
-                 // std::cerr << "got a wd delayed using "<< __FUNCTION__<<std::endl;
+               //if ( succeeded ) {
+              //    std::cerr << "got a wd delayed using "<< __FUNCTION__<<std::endl;
                   rankWD( thread, *wd );
-               } else {
-                 // std::cerr << "readd a wd delayed using "<< __FUNCTION__<<std::endl;
-                  tdata._unrankedQueue.push_front( wd );
-               }
+               //} else {
+               //   std::cerr << "readd a wd delayed using "<< __FUNCTION__<<std::endl;
+               //   tdata._unrankedQueue.push_front( wd );
+               //}
             }
          }
       }
@@ -1178,14 +1179,26 @@ namespace nanos {
          for (unsigned int i = 0; i < tdata._numNodes; i++ ) {
             ranks[i] = 0;
          }
+         //std::cerr << "RANKING WD " << wd.getId() << " numCopies " << wd.getNumCopies() << std::endl;
          for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
-            if ( !copies[i].isPrivate() && copies[i].isOutput() && copies[i].isInput()) {
+            if ( !copies[i].isPrivate() && copies[i].isInput() && copies[i].isOutput() ) {
                if ( sys.usingNewCache() ) {
                   //NewLocationInfoList const &locs = wd._mcontrol.getCacheCopies()[ i ].getNewLocations();
                   NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
-                  for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                     int loc = ( NewNewRegionDirectory::hasWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first ) ) ? NewNewRegionDirectory::getWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first )  : NewNewRegionDirectory::getFirstLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first );
+                  if ( locs.empty() ) {
+                     //std::cerr << "empty list, version "<<  wd._mcontrol._memCacheCopies[ i ]._version << std::endl;
+                     int loc = wd._mcontrol._memCacheCopies[ i ]._reg.getFirstLocation();
                      ranks[ ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 ) ] += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
+                  } else {
+                     for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
+                        int loc = ( NewNewRegionDirectory::hasWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first ) ) ? NewNewRegionDirectory::getWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first )  : NewNewRegionDirectory::getFirstLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first );
+                        if ( NewNewRegionDirectory::hasWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first ) ) {
+                           //std::cerr << " wd " << wd.getId() << " has write loc " << NewNewRegionDirectory::getWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first ) << " locToNode-> " <<  ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 ) << std::endl;
+                        } else {
+                           //std::cerr << " wd " << wd.getId() << " DOES NOT have write loc " << NewNewRegionDirectory::getFirstLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first ) << " locToNode-> " <<  ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 ) << std::endl;
+                        }
+                        ranks[ ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 ) ] += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
+                     }
                   }
                } else {
                   NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();
@@ -1197,7 +1210,7 @@ namespace nanos {
                      //  if (sys.getNetwork()->getNodeNum() == 0 ) {message("wd " << wd.getId() << " selected queue " << ( loc != 0 ? sys.getCaches()[ loc ]->getNodeNumber() : 0 ) << " loc is " << loc << " nded: " << it->second  ); }
                   }
                }
-            }
+            } //else { std::cerr << "ignored copy "<< std::endl; }
          }
          //if (wd.getId() > 55 ) { tdata._readyQueues[ 0 ].push_back( &wd ); return; }
          int winner = -1;
@@ -1219,15 +1232,16 @@ namespace nanos {
                usage[ ties ] = i;
                ties += 1;
             }
+         }
          //std::cerr << "winner is "<< winner << " ties "<< ties << " " << maxRank<< std::endl;
             if ( ties > 1 ) {
-               //std::cerr << "I have to chose between :";
-               //for ( unsigned int ii = 0; ii < ties; ii += 1 ) std::cerr <<" " << usage[ ii ];
+           //    std::cerr << "I have to chose between :";
+               //for ( unsigned int ii = 0; ii < ties; ii += 1 ) fprintf(stderr, " %d", usage[ ii ] );
                //std::cerr << std::endl;
                unsigned int minLoad = usage[0];
                for ( unsigned int ii = 1; ii < ties; ii += 1 ) {
-                  //std::cerr << "load of (min) " << minLoad << " is " << tdata._load[ minLoad ] <<std::endl;
-                  //std::cerr << "load of (itr) " << usage[ ii ]  << " is " << tdata._load[ usage[ ii ] ] << std::endl;
+             //     std::cerr << "load of (min) " << minLoad << " is " << tdata._load[ minLoad ] <<std::endl;
+               //   std::cerr << "load of (itr) " << usage[ ii ]  << " is " << tdata._load[ usage[ ii ] ] << std::endl;
                   if ( tdata._load[ usage[ ii ] ] < tdata._load[ minLoad ] ) {
                      minLoad = usage[ ii ];
                   }
@@ -1241,9 +1255,9 @@ namespace nanos {
             //   for (unsigned int i = 0; i < tdata._numNodes ; i += 1) std::cerr << i << ": " << (ranks[i] / (16*512*512)) << " "; 
             //   std::cerr <<"] ties " << ties << " winner " << winner << std::endl;
             //}
-         }
          //if (winner == -1) winner = start;
          //message("queued wd " << wd.getId() << " to queue " << winner << " ranks " << ranks[0] << "," << ranks[1] << "," << ranks[2] << "," << ranks[3] );
+         //fprintf(stderr, "queued wd %d to queue %d ranks %x %x %x %x \n", wd.getId(), winner, ranks[0], ranks[1], ranks[2], ranks[3] );
          //std::cerr << "the winner is " << winner << std::endl;
          tdata._readyQueues[winner].push_back( &wd );
       }

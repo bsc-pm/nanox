@@ -19,6 +19,7 @@ void MemCacheCopy::getVersionInfo() {
    }
 }
 
+#if 0
 void MemCacheCopy::generateInOps( BaseAddressSpaceInOps &ops, bool input, bool output, WD const &wd ) {
    ops.prepareRegion( _reg, wd );
    if ( input ) {
@@ -57,6 +58,7 @@ void MemCacheCopy::generateInOps( BaseAddressSpaceInOps &ops, bool input, bool o
       fprintf(stderr, "Error at %s.\n", __FUNCTION__);
    }
 }
+#endif
 
 void MemCacheCopy::generateInOps2( BaseAddressSpaceInOps &ops, bool input, bool output, WD const &wd ) {
    ops.prepareRegion( _reg, wd );

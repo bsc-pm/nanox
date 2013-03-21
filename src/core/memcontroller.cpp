@@ -78,6 +78,7 @@ void MemController::preInit( ) {
       //std::cerr << _wd.getCopies()[ index ];
       new ( &_memCacheCopies[ index ] ) MemCacheCopy( _wd, index );
       hasVersionInfoForRegion( _memCacheCopies[ index ]._reg  , _memCacheCopies[ index ]._version, _memCacheCopies[ index ]._locations );
+      if ( _memCacheCopies[ index ]._version != 0 ) _memCacheCopies[ index ]._locationDataReady = true;
    }
 }
 
@@ -90,10 +91,10 @@ void MemController::copyDataIn( memory_space_id_t destination ) {
       _inOps = NEW SeparateAddressSpaceInOps( sys.getSeparateMemory( _memorySpaceId ) );
    }
    
- std::cerr << "### copyDataIn wd " << _wd.getId() << std::endl; 
+ //std::cerr << "### copyDataIn wd " << _wd.getId() << std::endl; 
    for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
       _memCacheCopies[ index ].getVersionInfo();
-      std::cerr << "## "; _memCacheCopies[ index ]._reg.key->printRegion( _memCacheCopies[ index ]._reg.id ); std::cerr << std::endl;
+  //    std::cerr << "## "; _memCacheCopies[ index ]._reg.key->printRegion( _memCacheCopies[ index ]._reg.id ); std::cerr << std::endl;
    }
    
    for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
@@ -101,7 +102,7 @@ void MemController::copyDataIn( memory_space_id_t destination ) {
    }
 
    _inOps->issue( _wd );
- std::cerr << "### copyDataIn wd " << _wd.getId() << " done" << std::endl;
+ //std::cerr << "### copyDataIn wd " << _wd.getId() << " done" << std::endl;
 }
 
 void MemController::copyDataOut( ) {
