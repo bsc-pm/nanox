@@ -340,6 +340,7 @@ run_gen_test ()
    local all_exec_versions=
    local exec_versions=
    local compile_versions=
+   local test_max_cpus=
    local test_schedule=
    local test_deps_plugins=
    local test_mode=
@@ -367,6 +368,9 @@ run_gen_test ()
    compile_versions=
    exec_versions=
    
+   if [ "$test_max_cpus" ]; then
+      export NX_TEST_MAX_CPUS="$test_max_cpus"
+   fi
    if [ "$test_schedule" ]; then
       export NX_TEST_SCHEDULE="$test_schedule"
    fi
@@ -468,6 +472,10 @@ run_gen_test ()
      done
    fi
    
+   if [ "$test_max_cpus" ]; then
+      unset NX_TEST_MAX_CPUS
+   fi
+
    if [ "$test_schedule" ]; then
       unset NX_TEST_SCHEDULE
    fi
