@@ -148,6 +148,13 @@ namespace ext
          GPUMemoryTransferOutAsyncList() : GPUMemoryTransferOutList() {}
          ~GPUMemoryTransferOutAsyncList() {}
 
+         void addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size )
+         {
+            _lock.acquire();
+            _pendingTransfersAsync.push_back( *NEW GPUMemoryTransfer ( hostAddress, deviceAddress, size ) );
+            _lock.release();
+         }
+
          /*! \brief Execute the given memory transfer (asynchronous)
           */
          void removeMemoryTransfer ( GPUMemoryTransfer &mt );

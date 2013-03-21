@@ -123,7 +123,6 @@ void GPUMemoryTransferOutSyncList::executeMemoryTransfers ()
 
 void GPUMemoryTransferOutAsyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt )
 {
-
    GPUThread * thread = ( GPUThread * ) myThread;
 
    // Even there is only one copy, we must do it asynchronously, as we may be doing something else
